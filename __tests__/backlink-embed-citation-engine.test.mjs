@@ -130,7 +130,7 @@ test('Webmaster Embed Portal (/tools/embeds) ships all 15 calculators, 12 SVG ba
   assert.ok(embedsSrc.includes('syndication-apis-heading'), 'embeds.js renders Open Datasets & Syndication APIs section');
 
   const embedUrls = [...embedsSrc.matchAll(/embedUrl:\s*'([^']+)'/g)].map((m) => m[1]);
-  assert.equal(embedUrls.length, 15, 'all 15 widgets define embedUrl');
+  assert.equal(embedUrls.length, 23, 'all 23 widgets define embedUrl');
   for (const url of embedUrls) {
     assert.ok(
       url.startsWith('https://smarter.poker/tools/') && url.endsWith('?embed=true'),
@@ -152,7 +152,7 @@ test('Webmaster Embed Portal (/tools/embeds) ships all 15 calculators, 12 SVG ba
 
   const md = renderEmbedsMarkdown();
   const mdEmbedUrls = [...md.matchAll(/- Embed URL: `([^`]+)`/g)].map((m) => m[1]);
-  assert.equal(mdEmbedUrls.length, 15, 'renderEmbedsMarkdown lists 15 Embed URLs');
+  assert.equal(mdEmbedUrls.length, 23, 'renderEmbedsMarkdown lists 23 Embed URLs');
   for (const url of mdEmbedUrls) {
     assert.ok(
       url.startsWith('https://smarter.poker/tools/') && url.endsWith('?embed=true'),
@@ -230,11 +230,11 @@ test('All authority page templates wire CitationBacklinkBox with 7 citation form
   }
 });
 
-test('JSON Feed 1.1 (/api/feeds/research) and RSS 2.0 (/feed.xml) syndicate all 15 research studies and 15 calculators with canonical backlinks', () => {
+test('JSON Feed 1.1 (/api/feeds/research) and RSS 2.0 (/feed.xml) syndicate all 15 research studies and 23 calculators with canonical backlinks', () => {
   const jsonFeed = buildResearchJsonFeed();
   assert.equal(jsonFeed.version, 'https://jsonfeed.org/version/1.1');
   assert.equal(jsonFeed.feed_url, 'https://smarter.poker/api/feeds/research');
-  assert.equal(jsonFeed.items.length, 30);
+  assert.equal(jsonFeed.items.length, 38);
 
   for (const item of jsonFeed.items) {
     assert.match(item.url, /^https:\/\/smarter\.poker\//);
@@ -341,8 +341,8 @@ test('Automated Outreach & Multilingual Syndication Engine (/api/seo/outreach-ge
   assert.equal(pkg.multilingual_bundles.length, 7);
 });
 
-test('Twitch & YouTube Streamer Chatbot API (/api/stream/cmd) evaluates !odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, and !rule', () => {
-  assert.equal(STREAMER_BOT_COMMANDS.length, 10);
+test('Twitch & YouTube Streamer Chatbot API (/api/stream/cmd) evaluates !odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, !matchup, !tax, !stake, !iso, and !series', () => {
+  assert.equal(STREAMER_BOT_COMMANDS.length, 18);
 
   const oddsRes = evaluateStreamCommand({ cmd: 'odds', q: 'AA vs KK' });
   assert.ok(oddsRes.text.includes('81.9% vs 18.1%'));
@@ -352,10 +352,13 @@ test('Twitch & YouTube Streamer Chatbot API (/api/stream/cmd) evaluates !odds, !
   assert.ok(potOddsRes.text.includes('Required Equity = 25.0%'));
   assert.ok(potOddsRes.text.includes('Minimum Defense Frequency (MDF) = 66.7%'));
 
-  for (const cmd of ['pushfold', 'icm', 'bounty', 'winrate', 'plo', 'rake', '3bet', 'help']) {
+  for (const cmd of ['pushfold', 'icm', 'bounty', 'winrate', 'plo', 'rake', '3bet', 'tax', 'stake', 'iso', 'help']) {
     const res = evaluateStreamCommand({ cmd });
     assert.ok(res.text.includes('https://smarter.poker/tools/'), `${cmd} includes canonical tool URL`);
   }
+
+  const seriesRes = evaluateStreamCommand({ cmd: 'series', q: 'wsop' });
+  assert.ok(seriesRes.text.includes('https://smarter.poker/poker-series/guides'), 'series command includes canonical /poker-series/guides URL');
 
   const ruleRes = evaluateStreamCommand({ cmd: 'rule' });
   assert.ok(ruleRes.text.includes('https://smarter.poker/rules'), 'rule command includes canonical /rules URL');
@@ -376,7 +379,7 @@ test('MCP Server executes get_citation_and_backlink_kit tool with full outreach,
   assert.ok(parsed.wikipedia_citation_targets.length >= 6);
 });
 
-test('All 15 interactive calculators export getServerSideProps and renderHubToolMarkdown forwards dynamic query parameters', () => {
+test('All 23 interactive calculators export getServerSideProps and renderHubToolMarkdown forwards dynamic query parameters', () => {
   const calculatorPages = [
     'pages/tools/poker-odds-calculator.js',
     'pages/tools/icm-calculator.js',
@@ -393,6 +396,14 @@ test('All 15 interactive calculators export getServerSideProps and renderHubTool
     'pages/tools/payout-calculator.js',
     'pages/tools/rake-calculator.js',
     'pages/tools/3bet-calculator.js',
+    'pages/tools/chop-calculator.js',
+    'pages/tools/variance-calculator.js',
+    'pages/tools/outs-calculator.js',
+    'pages/tools/poker-tax-calculator.js',
+    'pages/tools/staking-calculator.js',
+    'pages/tools/iso-calculator.js',
+    'pages/tools/home-game-kit.js',
+    'pages/tools/format-quiz.js',
   ];
 
   for (const rel of calculatorPages) {
@@ -473,6 +484,8 @@ test('Zero broken internal URLs or em dashes exist across backlinkCatalog, outre
         urlPath.startsWith('/learn/') &&
         urlPath !== '/learn' &&
         urlPath !== '/learn/hands' &&
+        urlPath !== '/learn/matchups' &&
+        !urlPath.startsWith('/learn/matchups/') &&
         urlPath !== '/learn/poker-hand-rankings'
       ) {
         const s = urlPath.replace('/learn/', '');
@@ -505,10 +518,22 @@ test('Schema.org JSON-LD & Google Scholar citation structured data pass rich-res
   assert.ok(researchSlugSrc.includes('name="citation_title"'), 'research/[slug].js emits Google Scholar citation_title meta tag');
   assert.ok(researchSlugSrc.includes('name="citation_publication_date"'), 'research/[slug].js emits citation_publication_date meta tag');
   assert.ok(researchSlugSrc.includes('name="dc.identifier"'), 'research/[slug].js emits Dublin Core dc.identifier meta tag');
+  assert.ok(
+    researchSlugSrc.includes('{report.doi ? <meta key="citation-doi" name="citation_doi" content={report.doi} /> : null}'),
+    'research/[slug].js only emits citation_doi when report.doi is explicitly defined'
+  );
+  assert.ok(
+    RESEARCH_REPORTS.every((r) => r.doi === null && r.collectionDoi === '10.5281/zenodo.24095049'),
+    'individual reports do not borrow the collection DOI as their own individual report DOI'
+  );
 
   const researchIndexSrc = read('pages/research/index.js');
   assert.ok(researchIndexSrc.includes('schemas.organization'), 'research/index.js includes Organization node in @graph');
   assert.ok(researchIndexSrc.includes("'@type': 'DataCatalog'"), 'research/index.js includes DataCatalog node in @graph');
+  assert.ok(
+    researchIndexSrc.includes('<meta key="citation-doi" name="citation_doi" content="10.5281/zenodo.24095049" />'),
+    'research/index.js emits citation_doi for the parent dataset collection'
+  );
 
   const embedsSrc = read('pages/tools/embeds.js');
   assert.ok(embedsSrc.includes('schemas.organization'), 'tools/embeds.js includes Organization node in @graph');
@@ -521,7 +546,11 @@ test('Schema.org JSON-LD & Google Scholar citation structured data pass rich-res
 
   const catalogJsonLd = buildDataCatalogJsonLd();
   assert.equal(catalogJsonLd.inLanguage, 'en-US');
-  assert.equal(catalogJsonLd.sameAs, 'https://github.com/Smarter-Poker/smarter-poker-open-datasets');
+  assert.ok(
+    Array.isArray(catalogJsonLd.sameAs) &&
+      catalogJsonLd.sameAs.includes('https://github.com/Smarter-Poker/smarter-poker-open-datasets') &&
+      catalogJsonLd.sameAs.includes('https://doi.org/10.5281/zenodo.24095049')
+  );
   assert.equal(catalogJsonLd.dataset[0].distribution.length, 3, 'Each dataset in DataCatalog exposes HTML, Markdown, and JSON distributions');
 
   const { resolveToolWikidataLinks } = await import('../src/lib/seo/wikidataRegistry.mjs');
@@ -529,5 +558,222 @@ test('Schema.org JSON-LD & Google Scholar citation structured data pass rich-res
   assert.ok(resolveToolWikidataLinks('/tools/payout-calculator').some((u) => u.includes('Q1156823')), 'Payout tool resolves Prize Money Q1156823');
   assert.ok(resolveToolWikidataLinks('/tools/3bet-calculator').some((u) => u.includes('Q131476')), '3-Bet tool resolves Game Theory Q131476');
 });
+
+test('25-Item Free Discovery, Viral Calculators, Matchups, Series Guides, Press Kit, Search & AI Agent Protocols Suite', async () => {
+  const { HAND_MATCHUPS, getMatchupBySlug } = await import('../src/content/learn/matchups.js');
+  const { SERIES_GUIDES, getSeriesGuideBySlug } = await import('../src/content/guides/seriesGuides.js');
+  const { MCP_TOOLS, MCP_RESOURCE_TEMPLATES, buildA2AAgentCard, readMcpResource } = await import('../src/lib/mcp/mcpServer.mjs');
+  const { buildOpenSearchXml, buildFeedsOpmlXml, buildHumansTxt } = await import('../pages/api/hub-tool-markdown.js');
+  const { buildJupyterNotebookPayload } = await import('../pages/api/datasets/catalog.js');
+  const { renderOgCardSvg } = await import('../pages/api/seo/badge.js');
+  const { buildIndexNowPayload, buildOpenSearchSuggestPayload } = await import('../pages/api/seo/outreach-generator.js');
+
+  assert.equal(HAND_MATCHUPS.length, 25, '25 canonical hand-vs-hand matchups');
+  assert.equal( getMatchupBySlug('aa-vs-kk')?.handA, 'AA');
+  assert.equal(SERIES_GUIDES.length, 10, '10 major poker series strategy guides');
+  assert.equal(getSeriesGuideBySlug('wsop-las-vegas')?.shortName, 'WSOP Las Vegas');
+
+  assert.equal(MCP_TOOLS.length, 35, '35 zero-auth MCP tools');
+  assert.equal(MCP_RESOURCE_TEMPLATES.length, 15, '15 MCP resource templates');
+
+  const a2a = buildA2AAgentCard();
+  assert.equal(a2a.schemaVersion, '1.0');
+  assert.equal(a2a.capabilities.mcpTools, 35);
+  assert.equal(a2a.capabilities.mcpResources, 15);
+
+  const taxRes = await executeMcpTool('calculate_poker_taxes_w2g', {
+    gross_winnings: 35000,
+    gross_losses: 15000,
+    filing_status: 'recreational',
+  });
+  const taxParsed = JSON.parse(taxRes.content[0].text);
+  assert.equal(taxParsed.canonical_url, 'https://smarter.poker/tools/poker-tax-calculator');
+
+  const stakeRes = await executeMcpTool('calculate_staking_markup_split', {
+    package_buyins: 10000,
+    markup: 1.2,
+    action_sold_pct: 50,
+    investor_share_pct: 10,
+    gross_cashes: 25000,
+  });
+  const stakeParsed = JSON.parse(stakeRes.content[0].text);
+  assert.equal(stakeParsed.canonical_url, 'https://smarter.poker/tools/staking-calculator');
+
+  const isoRes = await executeMcpTool('calculate_preflop_isolation_raise', {
+    limpers: 2,
+    out_of_position: true,
+    environment: 'live',
+  });
+  const isoParsed = JSON.parse(isoRes.content[0].text);
+  assert.equal(isoParsed.canonical_url, 'https://smarter.poker/tools/iso-calculator');
+
+  const homeChipRes = await executeMcpTool('calculate_home_game_chip_set', {
+    players: 8,
+    format: 'tournament',
+  });
+  const homeChipParsed = JSON.parse(homeChipRes.content[0].text);
+  assert.equal(homeChipParsed.canonical_url, 'https://smarter.poker/tools/home-game-kit');
+
+  const seriesGuideRes = await executeMcpTool('get_poker_series_strategy_guide', {
+    slug: 'wsop',
+  });
+  const seriesGuideParsed = JSON.parse(seriesGuideRes.content[0].text);
+  assert.equal(seriesGuideParsed.slug, 'wsop-las-vegas');
+
+  const chopRes = await executeMcpTool('calculate_tournament_chop', {
+    stacks: [500000, 300000, 200000],
+    payouts: [50000, 30000, 20000],
+    saveAmount: 5000,
+  });
+  const chopParsed = JSON.parse(chopRes.content[0].text);
+  assert.equal(chopParsed.players.length, 3);
+
+  const varRes = await executeMcpTool('simulate_poker_variance', {
+    winrateBb100: 5,
+    stdDevBb100: 85,
+    handsPlayed: 100000,
+  });
+  const varParsed = JSON.parse(varRes.content[0].text);
+  assert.equal(varParsed.expected_value_bb, 5000);
+
+  const outsRes = await executeMcpTool('calculate_draw_outs', { outs: 9, street: 'flop' });
+  const outsParsed = JSON.parse(outsRes.content[0].text);
+  assert.equal(outsParsed.outs, 9);
+
+  const matchupRes = await executeMcpTool('lookup_hand_matchup', { slug: 'aa-vs-kk' });
+  const matchupParsed = JSON.parse(matchupRes.content[0].text);
+  assert.equal(matchupParsed.slug, 'aa-vs-kk');
+
+  assert.ok((await readMcpResource('poker://matchup/aa-vs-kk'))?.contents?.[0]?.text.includes('AA'));
+  assert.ok((await readMcpResource('poker://series-guide/wsop-las-vegas'))?.contents?.[0]?.text.includes('WSOP'));
+  assert.ok((await readMcpResource('poker://press-kit'))?.contents?.[0]?.text.includes('Smarter.Poker'));
+
+  assert.ok(buildOpenSearchXml().includes('<OpenSearchDescription'));
+  assert.ok(buildFeedsOpmlXml().includes('<opml version="2.0">'));
+  assert.ok(buildHumansTxt().includes('Smarter.Poker'));
+
+  const nb = buildJupyterNotebookPayload();
+  assert.equal(nb.nbformat, 4);
+  assert.ok(nb.cells.length >= 4);
+
+  const ogSvg = renderOgCardSvg({ title: 'Final Table ICM Chop Calculator' });
+  assert.ok(ogSvg.includes('viewBox="0 0 1200 630"'));
+
+  const indexNow = buildIndexNowPayload();
+  assert.equal(indexNow.host, 'smarter.poker');
+  assert.ok(indexNow.urlList.length >= 60);
+
+  const suggest = buildOpenSearchSuggestPayload('chop');
+  assert.equal(suggest[0], 'chop');
+  assert.ok(suggest[1].length >= 1);
+
+  for (const mdPath of [
+    '/tools/chop-calculator',
+    '/tools/variance-calculator',
+    '/tools/outs-calculator',
+    '/tools/poker-tax-calculator',
+    '/tools/staking-calculator',
+    '/tools/iso-calculator',
+    '/tools/home-game-kit',
+    '/tools/format-quiz',
+    '/learn/matchups',
+    '/learn/matchups/aa-vs-kk',
+    '/poker-series/guides',
+    '/poker-series/guides/wsop-las-vegas',
+    '/poker-rooms/first-time-guide',
+    '/press',
+    '/search',
+  ]) {
+    const md = renderHubToolMarkdown(mdPath);
+    assert.ok(md && md.includes('https://smarter.poker'), `${mdPath}.md renders valid Markdown`);
+  }
+});
+
+test('Phase 6 Partner Installation Suite: oEmbed 1.0 Provider, 1-Line JS Widget SDK, Multi-Format Embed Portal, and Factual Attribution Hardening', async () => {
+  const { buildOembedPayload, buildPartnerInstallationCatalog } = await import('../pages/api/seo/oembed.js');
+
+  const calcOembed = buildOembedPayload({
+    url: 'https://smarter.poker/tools/poker-odds-calculator',
+    maxwidth: 760,
+    partner: 'rec.poker',
+  });
+  assert.equal(calcOembed.status, 200);
+  assert.equal(calcOembed.body.version, '1.0');
+  assert.equal(calcOembed.body.type, 'rich');
+  assert.equal(calcOembed.body.provider_name, 'Smarter.Poker');
+  assert.ok(calcOembed.body.html.includes('utm_source=rec.poker'), 'stamps partner utm_source onto iframe and attribution link');
+
+  const researchOembed = buildOembedPayload({
+    url: 'https://smarter.poker/research/us-live-poker-room-rake-and-jackpot-benchmark',
+    partner: 'cardschat.com',
+  });
+  assert.equal(researchOembed.status, 200);
+  assert.equal(researchOembed.body.type, 'rich');
+  assert.ok(researchOembed.body.html.includes('Zenodo DOI 10.5281/zenodo.24095049'));
+  assert.ok(researchOembed.body.html.includes('utm_source=cardschat.com'));
+
+  const invalidOembed = buildOembedPayload({ url: 'https://example.com/other' });
+  assert.equal(invalidOembed.status, 404);
+
+  const catalog = buildPartnerInstallationCatalog({ partner: 'upswingpoker.com' });
+  assert.equal(catalog.counts.embeddable_calculators, 23);
+  assert.equal(catalog.counts.svg_attribution_badges, 15);
+  assert.equal(catalog.counts.streamer_chat_commands, 18);
+  assert.equal(catalog.counts.dead_tool_replacements, 12);
+  assert.equal(catalog.counts.zenodo_dataset_deposits, 6);
+  assert.ok(catalog.one_line_sdk_example.includes('data-partner="upswingpoker.com"'));
+
+  const sdkSrc = read('public/embed-sdk.js');
+  for (const w of catalog.calculators) {
+    assert.ok(sdkSrc.includes(`'${w.id}':`), `public/embed-sdk.js registers widget ${w.id}`);
+  }
+  assert.ok(sdkSrc.includes('data-smarter-poker-widget'));
+  assert.ok(sdkSrc.includes('utm_medium=embed-sdk'));
+
+  const seoHeadSrc = read('src/components/seo/SEOHead.js');
+  assert.ok(seoHeadSrc.includes('type="application/json+oembed"'), 'SEOHead emits oEmbed discovery link');
+
+  const embedsSrc = read('pages/tools/embeds.js');
+  assert.ok(embedsSrc.includes('1-Line JS SDK'));
+  assert.ok(embedsSrc.includes('React / Next.js'));
+  assert.ok(embedsSrc.includes('OEmbed 1.0 URL'));
+  assert.ok(embedsSrc.includes('Test Inline Preview'));
+  assert.ok(embedsSrc.includes('DEAD_TOOL_REPLACEMENTS'));
+  assert.ok(embedsSrc.includes('StreamElements'));
+  assert.ok(embedsSrc.includes('Fossabot'));
+  assert.ok(embedsSrc.includes('/api/seo/oembed?mode=catalog'));
+  assert.ok(embedsSrc.includes('/embed-sdk.js'));
+
+  const llmsTxt = read('public/llms.txt');
+  const llmsFullTxt = read('public/llms-full.txt');
+  const aiPluginJson = read('public/.well-known/ai-plugin.json');
+  const openApiJson = read('public/api/openapi.json');
+  assert.ok(llmsTxt.includes('All 35 Zero-Auth MCP Tools'));
+  assert.ok(llmsTxt.includes('!tax, !stake, !iso, !series'));
+  assert.ok(llmsFullTxt.includes('All 35 Zero-Auth MCP Tools'));
+  assert.ok(aiPluginJson.includes('35 zero-auth MCP tools'));
+  assert.ok(openApiJson.includes('35 Tools & 15 Resource Templates'));
+
+  const embedsMd = renderEmbedsMarkdown();
+  for (const cmd of ['!tax', '!stake', '!iso', '!series']) {
+    assert.ok(embedsMd.includes(`\`${cmd}\``), `renderEmbedsMarkdown includes ${cmd}`);
+  }
+
+  for (const rel of [
+    'src/lib/seo/backlinkCatalog.mjs',
+    'src/lib/seo/outreachEngine.mjs',
+    'src/lib/mcp/mcpServer.mjs',
+    'pages/search.js',
+    'public/.well-known/ai-plugin.json',
+    'pages/api/feeds/research.js',
+    'pages/api/seo/badge.js',
+  ]) {
+    const content = read(rel);
+    assert.ok(!/CERN\/Zenodo|Zenodo \(CERN\)/i.test(content), `${rel} must not contain CERN/Zenodo framing`);
+    assert.ok(!/\bDR 9[0-9]\b/i.test(content), `${rel} must not contain third-party DR 9x claims`);
+    assert.ok(!/\bdofollow\b/i.test(content), `${rel} must not contain dofollow claims`);
+  }
+});
+
 
 

@@ -67,41 +67,36 @@ function buildDrillHrefForHand(hand, analysis = null) {
     : Array.isArray(hand?.heroCards)
       ? hand.heroCards
       : [];
-  const firstDecision = Array.isArray(analysis?.decisions) && analysis.decisions.length > 0
-    ? analysis.decisions[0]
+  const lastDecision = Array.isArray(analysis?.decisions) && analysis.decisions.length > 0
+    ? analysis.decisions[analysis.decisions.length - 1]
     : null;
   const street = String(
-    firstDecision?.street
-      || (board.length >= 5 ? 'river' : board.length === 4 ? 'turn' : board.length >= 3 ? 'flop' : 'preflop'),
+    board.length >= 5
+      ? 'river'
+      : board.length === 4
+        ? 'turn'
+        : board.length >= 3
+          ? 'flop'
+          : (lastDecision?.street || 'preflop'),
   ).toLowerCase();
-  const position = String(
-    firstDecision?.position
-      || hand?.hero?.position
-      || hand?.heroPosition
-      || 'BTN',
-  ).toUpperCase();
-  const gameType = /tournament|mtt/i.test(String(hand?.gameType || '')) ? 'mtt' : 'cash';
-  const stackDepth = Number(hand?.hero?.stackBb || hand?.stackDepth || 100) || 100;
-  const baseHref = buildCustomTrainingArenaHref(
-    {
-      gameType,
-      position,
-      street,
-      stackDepth,
-    },
-    'live-hand-sync',
-  );
-  const sep = baseHref.includes('?') ? '&' : '?';
-  const params = new URLSearchParams();
-  params.set('syncedHandId', String(hand?.id || analysis?.handId || 'hand'));
-  if (heroCards.length >= 2) {
-    params.set('syncedHeroCards', heroCards.join(''));
-    if (heroCards.length === 4) params.set('variant', 'plo4');
-    else if (heroCards.length === 5) params.set('variant', 'plo5');
-    else if (heroCards.length === 6) params.set('variant', 'plo6');
-  }
-  if (board.length > 0) params.set('syncedBoard', board.join(''));
-  return `${baseHref}${sep}${params.toString()}`;
+  const isTournament = /tournament|mtt/i.test(String(hand?.gameType || ''));
+  const isPlo = heroCards.length >= 4 || /plo|omaha/i.test(String(hand?.gameType || ''));
+  const targetGameId = isTournament
+    ? 'mtt-002'
+    : isPlo
+      ? 'cash-005'
+      : street === 'preflop'
+        ? 'cash-001'
+        : 'cash-002';
+  const params = new URLSearchParams({
+    level: '1',
+    source: 'live-hand-sync',
+    syncedHandId: String(hand?.id || analysis?.handId || 'hand'),
+  });
+  if (heroCards.length === 4) params.set('variant', 'plo4');
+  else if (heroCards.length === 5) params.set('variant', 'plo5');
+  else if (heroCards.length === 6) params.set('variant', 'plo6');
+  return `/hub/training/arena/${targetGameId}?${params.toString()}`;
 }
 
 export const config = { api: { bodyParser: { sizeLimit: '1mb' } } };
@@ -190,7 +185,7 @@ export default async function handler(req, res) {
               ...handPayload,
               id: String(handPayload.id || ownedRow.record_key),
               participantUserId: user.id,
-              drillHref: handPayload.drillHref || buildDrillHrefForHand(handPayload, null),
+              drillHref: buildDrillHrefForHand(handPayload, null),
             },
           });
         }
@@ -264,7 +259,7 @@ export default async function handler(req, res) {
             evLoss: p.evLoss ?? null,
             createdAt: row.created_at,
             participantUserId: user.id,
-            drillHref: p.drillHref || buildDrillHrefForHand(p, null),
+            drillHref: buildDrillHrefForHand(p, null),
           };
           if (!participantHands.some((existing) => existing.id === item.id)) {
             participantHands.push(item);
@@ -310,8 +305,13 @@ export default async function handler(req, res) {
       const board = extractBoardFromParsedHand(hand);
       const heroCards = Array.isArray(hand?.hero?.holeCards) ? hand.hero.holeCards : [];
       const heroPosition = hand?.hero?.position || analysis?.decisions?.[0]?.position || 'BTN';
-      const street = analysis?.decisions?.[0]?.street
-        || (board.length >= 5 ? 'river' : board.length === 4 ? 'turn' : board.length >= 3 ? 'flop' : 'preflop');
+      const street = board.length >= 5
+        ? 'river'
+        : board.length === 4
+          ? 'turn'
+          : board.length >= 3
+            ? 'flop'
+            : (analysis?.decisions?.[0]?.street || 'preflop');
       const drillHref = buildDrillHrefForHand(hand, analysis);
       if (analysis) {
         analysis.drillHref = drillHref;

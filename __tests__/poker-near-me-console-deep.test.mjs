@@ -39,7 +39,7 @@ function seriesHydrationFixture() {
     '../../src/components/poker-near-me/PokerIdentityMark': empty,
     '../../src/components/poker-near-me/PokerNearMeConsole': { PokerNearMeConsoleIcon: empty, PokerNearMePanelShell: ({ children, className }) => React.createElement('section', { className }, children) },
     '../../src/lib/poker-near-me/structuredData': { buildSeriesDirectorySchema: () => ({}), serializePokerJsonLd: JSON.stringify },
-    '../../src/lib/seo/hubPageSchema': { datasetSchema: () => [], faqSchema: () => [] },
+    '../../src/lib/seo/hubPageSchema': { datasetSchema: () => [], faqSchema: () => [], breadcrumbSchema: () => null },
     '../../src/components/seo/SEOHead': { __esModule: true, default: empty, normalizeJsonLdGraph: (graph) => graph },
     '../../src/components/seo/FaqSection': empty,
   };

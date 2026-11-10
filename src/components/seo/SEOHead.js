@@ -18,6 +18,29 @@ export * from '@smarter-poker/commander-shared/components/seo/SEOHead';
 
 export { PRODUCT_OG_IMAGES, productOgImage } from '../../lib/seo/productOgImage';
 
+export const ORGANIZATION_SAME_AS = [
+  'https://github.com/Smarter-Poker',
+  'https://github.com/Smarter-Poker/smarter-poker-open-datasets',
+  'https://github.com/Smarter-Poker/smarter-poker-mcp',
+  'https://twitter.com/SmarterPoker',
+  'https://x.com/SmarterPoker',
+  'https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp',
+  'https://doi.org/10.5281/zenodo.24095049',
+  'https://doi.org/10.5281/zenodo.24095057',
+  'https://doi.org/10.5281/zenodo.24095560',
+  'https://doi.org/10.5281/zenodo.24095564',
+  'https://doi.org/10.5281/zenodo.24095597',
+  'https://doi.org/10.5281/zenodo.24095602',
+  'https://zenodo.org/records/24095049',
+  'https://zenodo.org/records/24095057',
+  'https://archive.softwareheritage.org/swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
+  'https://archive.softwareheritage.org/swh:1:snp:02b8992833424620305edcfb730b3cf8add15747',
+];
+
+if (schemas && schemas.organization) {
+  schemas.organization.sameAs = ORGANIZATION_SAME_AS;
+}
+
 /**
  * Normalize a JSON-LD graph array so that:
  * 1. Child nodes inside @graph never carry a redundant @context key.
@@ -26,6 +49,13 @@ export { PRODUCT_OG_IMAGES, productOgImage } from '../../lib/seo/productOgImage'
  *    when not already present in the array.
  */
 export function normalizeJsonLdGraph(jsonLd) {
+  if (jsonLd && typeof jsonLd === 'object' && !Array.isArray(jsonLd) && Array.isArray(jsonLd['@graph'])) {
+    return {
+      ...jsonLd,
+      '@context': jsonLd['@context'] || 'https://schema.org',
+      '@graph': normalizeJsonLdGraph(jsonLd['@graph']),
+    };
+  }
   if (!Array.isArray(jsonLd)) return jsonLd;
   const cleaned = jsonLd
     .filter(Boolean)
@@ -46,10 +76,12 @@ export function normalizeJsonLdGraph(jsonLd) {
   // only pointed at #website shipped a dangling #organization reference
   // (structured data audit, 2026-11-09).
   if (!hasOrgNode && (needsWebsite || serialized.includes('https://smarter.poker/#organization'))) {
-    prefix.push(schemas.organization);
+    const { '@context': _orgCtx, ...orgNode } = schemas.organization;
+    prefix.push(orgNode);
   }
   if (needsWebsite) {
-    prefix.push(schemas.website);
+    const { '@context': _webCtx, ...websiteNode } = schemas.website;
+    prefix.push(websiteNode);
   }
   return prefix.length > 0 ? [...prefix, ...cleaned] : cleaned;
 }
@@ -111,7 +143,26 @@ export default function SEOHead(props) {
       pathname === '/tools/plo-bet-calculator' ||
       pathname === '/tools/payout-calculator' ||
       pathname === '/tools/rake-calculator' ||
-      pathname === '/tools/3bet-calculator'
+      pathname === '/tools/3bet-calculator' ||
+      pathname === '/tools/chop-calculator' ||
+      pathname === '/tools/variance-calculator' ||
+      pathname === '/tools/outs-calculator' ||
+      pathname === '/tools/poker-tax-calculator' ||
+      pathname === '/tools/staking-calculator' ||
+      pathname === '/tools/iso-calculator' ||
+      pathname === '/tools/home-game-kit' ||
+      pathname === '/tools/format-quiz' ||
+      pathname === '/rules' ||
+      pathname.startsWith('/rules/') ||
+      pathname === '/games' ||
+      pathname.startsWith('/games/') ||
+      pathname === '/poker-rooms/guides' ||
+      pathname.startsWith('/poker-rooms/guides/') ||
+      pathname === '/poker-rooms/first-time-guide' ||
+      pathname === '/poker-series/guides' ||
+      pathname.startsWith('/poker-series/guides/') ||
+      pathname === '/press' ||
+      pathname === '/search'
     ) {
       resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : `https://smarter.poker${pathname}.md`;
     } else if (pathname === '/tools/poker-odds-calculator' || pathname === '/hub/poker-tools') {
@@ -267,13 +318,13 @@ export default function SEOHead(props) {
   }
 
   // Auto-resolve calendarUrl for known routes that serve clean .ics calendar feeds
+  const cleanCanonForCal = typeof props.canonical === 'string' && props.canonical.startsWith('http')
+    ? props.canonical.replace(/\/$/, '')
+    : typeof props.canonical === 'string' && props.canonical.startsWith('/')
+    ? `https://smarter.poker${props.canonical.replace(/\/$/, '')}`
+    : null;
   let resolvedCalendarUrl = calendarUrl;
   if (!resolvedCalendarUrl && typeof pathname === 'string') {
-    const cleanCanonForCal = typeof props.canonical === 'string' && props.canonical.startsWith('http')
-      ? props.canonical.replace(/\/$/, '')
-      : typeof props.canonical === 'string' && props.canonical.startsWith('/')
-      ? `https://smarter.poker${props.canonical.replace(/\/$/, '')}`
-      : null;
     if (pathname === '/freerolls' || pathname === '/hub/freerolls') {
       resolvedCalendarUrl = 'https://smarter.poker/freerolls.ics';
     } else if (pathname === '/hub/tours/[code]' || /^\/hub\/tours\/[^/]+$/.test(pathname)) {
@@ -323,6 +374,24 @@ export default function SEOHead(props) {
           type="application/feed+json"
           title="Smarter.Poker Research & Tools JSON Feed"
           href="https://smarter.poker/api/feeds/research"
+        />
+      )}
+      {!props.noindex && cleanCanonForCal && (
+        <link
+          key="alternate-oembed"
+          rel="alternate"
+          type="application/json+oembed"
+          title="Smarter.Poker oEmbed Profile"
+          href={`https://smarter.poker/api/seo/oembed?url=${encodeURIComponent(cleanCanonForCal)}&format=json`}
+        />
+      )}
+      {!props.noindex && (
+        <link
+          key="opensearch-description"
+          rel="search"
+          type="application/opensearchdescription+xml"
+          title="Smarter.Poker Search"
+          href="https://smarter.poker/opensearch.xml"
         />
       )}
       {props.children}

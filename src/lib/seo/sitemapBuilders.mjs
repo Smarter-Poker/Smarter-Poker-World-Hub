@@ -34,6 +34,8 @@ import { VIDEO_LIBRARY_PLAYERS } from '../videoLibraryPlayers.mjs';
 import { POKER_RULES, RULES_AS_OF, rulePath } from '../../content/rules/rules.js';
 import { POKER_VARIANTS, GAMES_AS_OF, gameVariantPath } from '../../content/games/variants.js';
 import { POKER_MARKET_GUIDES, MARKET_GUIDES_AS_OF, marketGuidePath } from '../../content/guides/markets.js';
+import { HAND_MATCHUPS, MATCHUPS_AS_OF, matchupPath } from '../../content/learn/matchups.js';
+import { SERIES_GUIDES, SERIES_GUIDES_AS_OF, seriesGuidePath } from '../../content/guides/seriesGuides.js';
 
 export const SITE_URL = 'https://smarter.poker';
 export const SITEMAP_DB_PAGE_SIZE = 1000;
@@ -54,6 +56,8 @@ export const LEARN_PAGES = [
   { path: LEARN_PATH, priority: '0.8', changefreq: 'monthly' },
   { path: '/learn/poker-hand-rankings', priority: '0.85', changefreq: 'monthly' },
   { path: '/learn/hands', priority: '0.8', changefreq: 'monthly' },
+  { path: '/learn/matchups', priority: '0.85', changefreq: 'monthly', lastmod: MATCHUPS_AS_OF },
+  ...HAND_MATCHUPS.map((m) => ({ path: matchupPath(m.slug), priority: '0.8', changefreq: 'monthly', lastmod: MATCHUPS_AS_OF })),
   ...STARTING_HANDS.map((h) => ({ path: `/learn/hands/${h.slug}`, priority: '0.75', changefreq: 'monthly' })),
   ...LEARN_CATEGORIES.map((c) => ({ path: learnCategoryPath(c), priority: '0.75', changefreq: 'monthly' })),
   ...LESSONS.map((l) => ({ path: lessonPath(l.slug), priority: '0.7', changefreq: 'monthly' })),
@@ -76,18 +80,27 @@ export const GAMES_PAGES = [
 
 export const MARKET_GUIDE_PAGES = [
   { path: '/poker-rooms/guides', priority: '0.85', changefreq: 'monthly', lastmod: MARKET_GUIDES_AS_OF },
+  { path: '/poker-rooms/first-time-guide', priority: '0.85', changefreq: 'monthly', lastmod: MARKET_GUIDES_AS_OF },
   ...POKER_MARKET_GUIDES.map((m) => ({ path: marketGuidePath(m.slug), priority: '0.8', changefreq: 'monthly', lastmod: MARKET_GUIDES_AS_OF })),
+];
+
+export const SERIES_GUIDE_PAGES = [
+  { path: '/poker-series/guides', priority: '0.85', changefreq: 'monthly', lastmod: SERIES_GUIDES_AS_OF },
+  ...SERIES_GUIDES.map((g) => ({ path: seriesGuidePath(g.slug), priority: '0.8', changefreq: 'monthly', lastmod: SERIES_GUIDES_AS_OF })),
 ];
 
 export const STATIC_PAGES = [
   { path: '/', priority: '1.0', changefreq: 'weekly' },
   { path: '/about', priority: '0.8', changefreq: 'monthly' },
+  { path: '/press', priority: '0.8', changefreq: 'monthly' },
+  { path: '/search', priority: '0.8', changefreq: 'weekly' },
   { path: '/verification-methodology', priority: '0.7', changefreq: 'monthly' },
   { path: '/editorial-standards', priority: '0.75', changefreq: 'monthly' },
   ...RESEARCH_PAGES,
   ...RULES_PAGES,
   ...GAMES_PAGES,
   ...MARKET_GUIDE_PAGES,
+  ...SERIES_GUIDE_PAGES,
   { path: '/terms', priority: '0.3', changefreq: 'yearly' },
   { path: '/privacy', priority: '0.3', changefreq: 'yearly' },
   { path: '/legal/official-rules', priority: '0.3', changefreq: 'yearly' },
@@ -140,6 +153,14 @@ export const STATIC_PAGES = [
   { path: '/tools/payout-calculator', priority: '0.9', changefreq: 'weekly' },
   { path: '/tools/rake-calculator', priority: '0.9', changefreq: 'weekly' },
   { path: '/tools/3bet-calculator', priority: '0.9', changefreq: 'weekly' },
+  { path: '/tools/chop-calculator', priority: '0.9', changefreq: 'weekly' },
+  { path: '/tools/variance-calculator', priority: '0.9', changefreq: 'weekly' },
+  { path: '/tools/outs-calculator', priority: '0.9', changefreq: 'weekly' },
+  { path: '/tools/poker-tax-calculator', priority: '0.9', changefreq: 'weekly' },
+  { path: '/tools/staking-calculator', priority: '0.9', changefreq: 'weekly' },
+  { path: '/tools/iso-calculator', priority: '0.9', changefreq: 'weekly' },
+  { path: '/tools/home-game-kit', priority: '0.9', changefreq: 'weekly' },
+  { path: '/tools/format-quiz', priority: '0.9', changefreq: 'weekly' },
   { path: '/tools/preflop-ranges', priority: '0.9', changefreq: 'weekly' },
   { path: '/tools/preflop-ranges/utg', priority: '0.85', changefreq: 'monthly' },
   { path: '/tools/preflop-ranges/mp', priority: '0.85', changefreq: 'monthly' },
@@ -169,7 +190,6 @@ export const STATIC_PAGES = [
 
   { path: '/hub/events-calendar', priority: '0.8', changefreq: 'daily' },
   { path: '/freerolls', priority: '0.9', changefreq: 'daily' },
-  { path: '/hub/freerolls', priority: '0.9', changefreq: 'daily' },
   { path: '/hub/daily-tournaments', priority: '0.7', changefreq: 'daily' },
   { path: '/hub/tournaments/this-weekend', priority: '0.8', changefreq: 'daily' },
   { path: '/hub/poker-tours', priority: '0.8', changefreq: 'daily' },
@@ -198,8 +218,6 @@ export const STATIC_PAGES = [
   { path: '/hub/trivia/leaderboard', priority: '0.6', changefreq: 'daily' },
 
   // Hub — Training sub-pages
-  { path: '/hub/training/achievements', priority: '0.65', changefreq: 'daily' },
-  { path: '/hub/training/streaks', priority: '0.65', changefreq: 'daily' },
   { path: '/hub/training/challenges', priority: '0.6', changefreq: 'daily' },
   { path: '/hub/training/leaderboard', priority: '0.6', changefreq: 'daily' },
   { path: '/hub/training/tournaments', priority: '0.6', changefreq: 'daily' },

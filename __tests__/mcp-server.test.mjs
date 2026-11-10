@@ -18,7 +18,16 @@ test('MCP Server Protocol Engine initializes properly', async () => {
   assert.equal(res.jsonrpc, '2.0');
   assert.equal(res.id, 1);
   assert.equal(res.result.serverInfo.name, MCP_SERVER_INFO.name);
-  assert.equal(res.result.serverInfo.version, MCP_SERVER_INFO.version);
+  assert.equal(res.result.serverInfo.version, '1.8.0');
+  assert.ok(typeof res.result.instructions === 'string' && res.result.instructions.includes('calculate_poker_odds'));
+  assert.equal(MCP_TOOLS.length, 35);
+  for (const tool of MCP_TOOLS) {
+    assert.ok(tool.annotations && typeof tool.annotations.title === 'string', `${tool.name} has annotations.title`);
+    assert.equal(tool.annotations.readOnlyHint, true, `${tool.name} has readOnlyHint: true`);
+    assert.equal(tool.annotations.destructiveHint, false, `${tool.name} has destructiveHint: false`);
+    assert.equal(tool.annotations.idempotentHint, true, `${tool.name} has idempotentHint: true`);
+    assert.equal(tool.annotations.openWorldHint, false, `${tool.name} has openWorldHint: false`);
+  }
 });
 
 test('MCP Server lists all required poker discovery tools', async () => {

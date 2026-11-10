@@ -1499,6 +1499,81 @@ const nextConfig = {
           has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
           destination: '/api/hub-tool-markdown?path=/tools/3bet-calculator',
         },
+        {
+          source: '/tools/chop-calculator',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/chop-calculator',
+        },
+        {
+          source: '/tools/variance-calculator',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/variance-calculator',
+        },
+        {
+          source: '/tools/outs-calculator',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/outs-calculator',
+        },
+        {
+          source: '/tools/poker-tax-calculator',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/poker-tax-calculator',
+        },
+        {
+          source: '/tools/staking-calculator',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/staking-calculator',
+        },
+        {
+          source: '/tools/iso-calculator',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/iso-calculator',
+        },
+        {
+          source: '/tools/home-game-kit',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/home-game-kit',
+        },
+        {
+          source: '/tools/format-quiz',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/format-quiz',
+        },
+        {
+          source: '/learn/matchups',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/learn/matchups',
+        },
+        {
+          source: '/learn/matchups/:slug',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/learn/matchups/:slug',
+        },
+        {
+          source: '/poker-series/guides',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/poker-series/guides',
+        },
+        {
+          source: '/poker-series/guides/:slug',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/poker-series/guides/:slug',
+        },
+        {
+          source: '/poker-rooms/first-time-guide',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/first-time-guide',
+        },
+        {
+          source: '/press',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/press',
+        },
+        {
+          source: '/search',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/search',
+        },
       ],
       afterFiles: [
         /* Clean Root OpenAPI & Knowledge Graph Aliases for AI crawlers */
@@ -1697,6 +1772,98 @@ const nextConfig = {
         {
           source: '/tools/3bet-calculator.md',
           destination: '/api/hub-tool-markdown?path=/tools/3bet-calculator',
+        },
+        {
+          source: '/tools/chop-calculator.md',
+          destination: '/api/hub-tool-markdown?path=/tools/chop-calculator',
+        },
+        {
+          source: '/tools/variance-calculator.md',
+          destination: '/api/hub-tool-markdown?path=/tools/variance-calculator',
+        },
+        {
+          source: '/tools/outs-calculator.md',
+          destination: '/api/hub-tool-markdown?path=/tools/outs-calculator',
+        },
+        {
+          source: '/tools/poker-tax-calculator.md',
+          destination: '/api/hub-tool-markdown?path=/tools/poker-tax-calculator',
+        },
+        {
+          source: '/tools/staking-calculator.md',
+          destination: '/api/hub-tool-markdown?path=/tools/staking-calculator',
+        },
+        {
+          source: '/tools/iso-calculator.md',
+          destination: '/api/hub-tool-markdown?path=/tools/iso-calculator',
+        },
+        {
+          source: '/tools/home-game-kit.md',
+          destination: '/api/hub-tool-markdown?path=/tools/home-game-kit',
+        },
+        {
+          source: '/tools/format-quiz.md',
+          destination: '/api/hub-tool-markdown?path=/tools/format-quiz',
+        },
+        {
+          source: '/learn/matchups.md',
+          destination: '/api/hub-tool-markdown?path=/learn/matchups',
+        },
+        {
+          source: '/learn/matchups/:slug.md',
+          destination: '/api/hub-tool-markdown?path=/learn/matchups/:slug',
+        },
+        {
+          source: '/poker-series/guides.md',
+          destination: '/api/hub-tool-markdown?path=/poker-series/guides',
+        },
+        {
+          source: '/poker-series/guides/:slug.md',
+          destination: '/api/hub-tool-markdown?path=/poker-series/guides/:slug',
+        },
+        {
+          source: '/poker-rooms/first-time-guide.md',
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/first-time-guide',
+        },
+        {
+          source: '/press.md',
+          destination: '/api/hub-tool-markdown?path=/press',
+        },
+        {
+          source: '/search.md',
+          destination: '/api/hub-tool-markdown?path=/search',
+        },
+        {
+          source: '/.well-known/agent.json',
+          destination: '/api/mcp?format=a2a',
+        },
+        {
+          source: '/opensearch.xml',
+          destination: '/api/hub-tool-markdown?path=/opensearch.xml',
+        },
+        {
+          source: '/feeds.opml',
+          destination: '/api/hub-tool-markdown?path=/feeds.opml',
+        },
+        {
+          source: '/humans.txt',
+          destination: '/api/hub-tool-markdown?path=/humans.txt',
+        },
+        {
+          source: '/api/datasets/notebook',
+          destination: '/api/datasets/catalog?format=notebook',
+        },
+        {
+          source: '/api/og/tool',
+          destination: '/api/seo/badge?mode=og',
+        },
+        {
+          source: '/api/seo/indexnow',
+          destination: '/api/seo/outreach-generator?mode=indexnow',
+        },
+        {
+          source: '/api/search/suggest',
+          destination: '/api/seo/outreach-generator?mode=suggest',
         },
         {
           source: '/rules.md',
@@ -2087,6 +2254,34 @@ const nextConfig = {
         {
           source: '/tools/icm-calculator',
           destination: '/hub/training/icm-calculator',
+        },
+        {
+          source: '/tools/hand-rankings',
+          destination: '/learn/poker-hand-rankings',
+        },
+        {
+          source: '/tools/preflop-charts',
+          destination: '/tools/preflop-ranges',
+        },
+        {
+          source: '/tools/ev-calculator',
+          destination: '/tools/pot-odds-calculator',
+        },
+        {
+          source: '/tools/push-fold-chart',
+          destination: '/tools/push-fold-calculator',
+        },
+        {
+          source: '/tools/deal-calculator',
+          destination: '/tools/chop-calculator',
+        },
+        {
+          source: '/tools/tax-calculator',
+          destination: '/tools/poker-tax-calculator',
+        },
+        {
+          source: '/tools/blind-timer',
+          destination: '/tools/home-game-kit',
         },
       ],
       fallback: [],

@@ -21,6 +21,8 @@ import { COMPARE_PAGES, AS_OF } from '../../../src/content/compare/pages.js';
 import { POKER_RULES, RULES_AS_OF } from '../../../src/content/rules/rules.js';
 import { POKER_VARIANTS, GAMES_AS_OF } from '../../../src/content/games/variants.js';
 import { POKER_MARKET_GUIDES, MARKET_GUIDES_AS_OF } from '../../../src/content/guides/markets.js';
+import { HAND_MATCHUPS, MATCHUPS_AS_OF } from '../../../src/content/learn/matchups.js';
+import { SERIES_GUIDES, SERIES_GUIDES_AS_OF } from '../../../src/content/guides/seriesGuides.js';
 import { SCHEMA_ROUTES } from '../../../src/lib/seo/summarySchema.js';
 import { getHubPageSummaries } from '../../../src/lib/seo/hubPageSummariesData.js';
 import { TRAINING_LIBRARY } from '../../../src/data/TRAINING_LIBRARY.js';
@@ -128,10 +130,10 @@ const VERTICAL_APPLICATIONS = [
   },
   {
     id: 'poker-equity-calculators',
-    name: 'Smarter.Poker Multiway Odds & Malmuth-Harville ICM Suite',
+    name: 'Smarter.Poker 24-Tool Multiway Odds, ICM & Bankroll Calculator Suite (35 MCP Tools)',
     category: 'UtilitiesApplication',
     url: `${SITE}/features/poker-equity-calculators`,
-    description: 'Free Browser Calculators For Multiway Holdem/PLO Equity And Tournament Final Table ICM Payouts.',
+    description: '24 Free Browser Calculators And 35 Zero-Auth MCP Tools For Multiway Holdem/PLO Equity, Tournament ICM/Chop Payouts, Variance, Tax W-2G, Staking And Isolation Sizing.',
   },
 ];
 
@@ -147,7 +149,7 @@ export function buildKnowledgeGraph() {
         url: SITE,
         logo: `${SITE}/images/logo.png`,
         description:
-          'Smarter.Poker Is The Premier Poker Training, Live Venue Discovery And Club Management Platform Offering 100+ GTO Training Games, 324+ Verified Live Poker Rooms, 4,500+ Weekly Tournaments And Free Cloud Tools.',
+          'Smarter.Poker Is The Premier Poker Training, Live Venue Discovery And Club Management Platform Offering 100+ GTO Training Games, 24 Free Poker Calculators, 35 Zero-Auth MCP Tools, 324+ Verified Live Poker Rooms, 4,500+ Weekly Tournaments And Free Cloud Tools.',
         foundingDate: '2025',
         publishingPrinciples: `${SITE}/editorial-standards`,
         verificationFactCheckingPolicy: `${SITE}/verification-methodology`,
@@ -278,6 +280,50 @@ export function buildKnowledgeGraph() {
         dateModified: MARKET_GUIDES_AS_OF,
         publisher: { '@id': `${SITE}/#organization` },
         numberOfItems: POKER_MARKET_GUIDES.length,
+      },
+      {
+        '@type': 'CollectionPage',
+        '@id': `${SITE}/learn/matchups#matchups`,
+        name: 'Smarter.Poker 25 Pre-Flop Hand-Vs-Hand Equity Matchup Encyclopedia',
+        url: `${SITE}/learn/matchups`,
+        dateModified: MATCHUPS_AS_OF,
+        publisher: { '@id': `${SITE}/#organization` },
+        numberOfItems: HAND_MATCHUPS.length,
+      },
+      {
+        '@type': 'CollectionPage',
+        '@id': `${SITE}/poker-series/guides#series-guides`,
+        name: 'Smarter.Poker 10 Major Poker Series Strategy, Structure & Bankroll Guides',
+        url: `${SITE}/poker-series/guides`,
+        dateModified: SERIES_GUIDES_AS_OF,
+        publisher: { '@id': `${SITE}/#organization` },
+        numberOfItems: SERIES_GUIDES.length,
+      },
+      {
+        '@type': 'HowTo',
+        '@id': `${SITE}/poker-rooms/first-time-guide#guide`,
+        name: 'First-Time Live Poker Room Etiquette, Tipping & Check-In Guide',
+        description:
+          'Step-By-Step Casino Poker Room Check-In Procedure, TDA Floor Rules, Dealer Tipping Standards And Table Etiquette For First-Time Live Players.',
+        url: `${SITE}/poker-rooms/first-time-guide`,
+        publisher: { '@id': `${SITE}/#organization` },
+      },
+      {
+        '@type': 'WebPage',
+        '@id': `${SITE}/press#press-kit`,
+        name: 'Smarter.Poker Official Media & Press Fact Sheet (24 Calculators & 35 MCP Tools)',
+        description:
+          'Verified 2026 Industry Benchmarks, CC-BY 4.0 Open Datasets, Academic Citations (BibTeX/APA), 24 Free Poker Calculators And 35 Zero-Auth MCP Tools.',
+        url: `${SITE}/press`,
+        publisher: { '@id': `${SITE}/#organization` },
+      },
+      {
+        '@type': 'CollectionPage',
+        '@id': `${SITE}/tools#calculators`,
+        name: 'Smarter.Poker 24 Free Interactive Poker Math, ICM, Tax & Strategy Calculators',
+        url: `${SITE}/tools`,
+        publisher: { '@id': `${SITE}/#organization` },
+        numberOfItems: 24,
       },
       ...RESEARCH_REPORTS.map((r) => ({
         '@type': 'Report',

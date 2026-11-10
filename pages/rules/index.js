@@ -15,6 +15,7 @@ import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
+import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import {
   POKER_RULES,
   RULE_CATEGORIES,
@@ -311,6 +312,13 @@ export default function PokerRulesIndexPage() {
           badgeValue="30 TDA & RROP Rulings"
           summary="Authoritative reference to 30 official Robert's Rules of Poker and Poker TDA floor rulings published by Smarter.Poker."
           slug="official-poker-rules-encyclopedia"
+        />
+
+        <AiPromptLauncher
+          title="Official Poker Rules & Tournament TDA Floor Rulings Encyclopedia"
+          canonicalUrl={RULES_URL}
+          canonicalPath="/rules"
+          markdownUrl="/rules.md"
         />
 
         <p style={styles.complianceFooter}>

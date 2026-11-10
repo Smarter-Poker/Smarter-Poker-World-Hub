@@ -6455,7 +6455,7 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     // Apply probe-farm counter (Module 19): if opponent is probe-farming, add raise equity
     const probeFarmMod = (state.probeFarmScore || 0) > 0.6 ? +6 : 0;
     // Apply limp-trap penalty (Module 21): reduce raise aggression on preflop
-    // (handled via fold threshold below, not equity; placeholder)
+    // (handled via fold threshold below, not equity)
     const equityFinalAdjusted = Math.max(0, Math.min(100, equityFinalRaw + imageExposedMod + probeFarmMod));
 
     // ─── MODULE 13: PLO NUT-BIAS EXPLOIT DETECTOR ───
@@ -7378,6 +7378,7 @@ module.exports = {
     getPLORiverCheckRaise,
 
     // Opponent & exploitation
+    updatePLOOpponentRead,
     getPLOOpponentAdjustments,
     getPLOBlockers,
     getPLOCardRemovalEffects,

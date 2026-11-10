@@ -240,7 +240,8 @@ function buildRecordedAnswerResponse({
         || servedQuestion.options?.find((option) => String(option?.id) === String(servedQuestion.correctAnswer))?.text
         || String(servedQuestion.correctAnswer || ''),
       explanation: servedQuestion.explanation || '',
-      structuredExplanation: servedQuestion.structuredExplanation || null,
+      structuredExplanation: servedQuestion.structuredExplanation || canonicalQuestion?.structuredExplanation || null,
+      brainEvaluation: canonicalScenario.brainEvaluation || servedQuestion.scenario?.brainEvaluation || null,
       gtoFrequencies: verified ? (servedQuestion.gtoFrequencies || null) : null,
       frequencies: verified ? (servedQuestion.frequencies || null) : null,
       rawFrequencies: verified ? (servedQuestion.rawFrequencies || null) : null,

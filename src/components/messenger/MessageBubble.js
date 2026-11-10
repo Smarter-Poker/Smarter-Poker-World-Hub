@@ -7,6 +7,7 @@ import AccountingInvoiceCard from './AccountingInvoiceCard';
 import CashoutRequestActions, { formatChips } from './CashoutRequestActions';
 import ReliabilityIncidentControls from './ReliabilityIncidentControls';
 import { isUnverifiedCorrectionPlaceholder } from '../../lib/accountingMessage.mjs';
+import { unionEcoRows } from '../../lib/unionEco.mjs';
 import { getAccessToken, authedFetch } from '../../lib/authUtils';
 import { parseMessageMedia, isMediaMessage, mediaThumbnailUrl } from '../../lib/messenger/messageMedia.mjs';
 import { isLiveInvite, liveInviteHref } from '../../lib/messenger/liveInvite.mjs';
@@ -512,7 +513,8 @@ export function ClubStatementCard({ meta, isOwn, theme: C = defaultTheme }) {
                     {row('Union Fee Kept', lines.union_fee_kept)}
                     {row('Player win/loss', lines.players_won)}
                     {row('Settled in chips', lines.settled_in_chips)}
-                    {lines.eco_enabled ? row('ECO adjustment', lines.eco_amount) : null}
+                    {row('Combined ECO Adjustment', lines.eco_amount)}
+                    {unionEcoRows(lines, { recorded: true }).map(eco => row(eco.label, eco.amount, eco.detail))}
                     {Number(lines.presettled || 0) !== 0 ? row('Payments received', lines.presettled) : null}
                     <div style={{ marginTop: 8, fontSize: 11, lineHeight: 1.45, color: isOwn ? 'rgba(255,255,255,0.65)' : C.textSec }}>
                         The Statement Separates Amounts Earned From Transfers Recorded.

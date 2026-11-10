@@ -79,7 +79,29 @@ function researchIndexJsonLd() {
       license: 'https://creativecommons.org/licenses/by/4.0/',
       isAccessibleForFree: true,
       publisher: { '@id': ORGANIZATION_ID },
-      sameAs: 'https://github.com/Smarter-Poker/smarter-poker-open-datasets',
+      sameAs: [
+        'https://doi.org/10.5281/zenodo.24095049',
+        'https://doi.org/10.5281/zenodo.24095057',
+        'https://doi.org/10.5281/zenodo.24095560',
+        'https://doi.org/10.5281/zenodo.24095564',
+        'https://doi.org/10.5281/zenodo.24095597',
+        'https://doi.org/10.5281/zenodo.24095602',
+        'https://zenodo.org/records/24095049',
+        'https://github.com/Smarter-Poker/smarter-poker-open-datasets',
+        'https://archive.softwareheritage.org/swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
+        'https://archive.softwareheritage.org/swh:1:snp:02b8992833424620305edcfb730b3cf8add15747',
+        'https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp',
+      ],
+      identifier: [
+        { '@type': 'PropertyValue', propertyID: 'DOI', value: '10.5281/zenodo.24095049', url: 'https://doi.org/10.5281/zenodo.24095049' },
+        { '@type': 'PropertyValue', propertyID: 'DOI', value: '10.5281/zenodo.24095057', url: 'https://doi.org/10.5281/zenodo.24095057' },
+        { '@type': 'PropertyValue', propertyID: 'DOI', value: '10.5281/zenodo.24095560', url: 'https://doi.org/10.5281/zenodo.24095560' },
+        { '@type': 'PropertyValue', propertyID: 'DOI', value: '10.5281/zenodo.24095564', url: 'https://doi.org/10.5281/zenodo.24095564' },
+        { '@type': 'PropertyValue', propertyID: 'DOI', value: '10.5281/zenodo.24095597', url: 'https://doi.org/10.5281/zenodo.24095597' },
+        { '@type': 'PropertyValue', propertyID: 'DOI', value: '10.5281/zenodo.24095602', url: 'https://doi.org/10.5281/zenodo.24095602' },
+        { '@type': 'PropertyValue', propertyID: 'SWHID', value: 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f' },
+        { '@type': 'PropertyValue', propertyID: 'SWHID', value: 'swh:1:snp:02b8992833424620305edcfb730b3cf8add15747' },
+      ],
       dataset: RESEARCH_REPORTS.map((r) => ({
         '@type': 'Dataset',
         '@id': `${SITE_URL}${researchPath(r.slug)}#dataset`,
@@ -88,6 +110,17 @@ function researchIndexJsonLd() {
         url: `${SITE_URL}${researchPath(r.slug)}`,
         license: 'https://creativecommons.org/licenses/by/4.0/',
         isAccessibleForFree: true,
+        ...(r.doiUrl && r.zenodoUrl ? { sameAs: [r.doiUrl, r.zenodoUrl] } : {}),
+        ...(r.doi
+          ? {
+              identifier: {
+                '@type': 'PropertyValue',
+                propertyID: 'DOI',
+                value: r.doi,
+                url: r.doiUrl,
+              },
+            }
+          : {}),
         creator: { '@id': ORGANIZATION_ID },
       })),
     },
@@ -111,7 +144,15 @@ export default function ResearchIndexPage() {
         description="Original Poker Industry Research And Statistical Benchmark Reports By Smarter.Poker: Live Room Rake Caps, Tournament Buy-In Indexes, And GTO Population Leak Studies."
         canonical={RESEARCH_BASE_PATH}
         jsonLd={researchIndexJsonLd()}
-      />
+      >
+        <meta key="citation-title" name="citation_title" content="Smarter.Poker Open Quantitative Poker & Live Cardroom Data Catalog" />
+        <meta key="citation-author" name="citation_author" content="Smarter.Poker Research Division" />
+        <meta key="citation-institution" name="citation_technical_report_institution" content="Smarter Software Inc." />
+        <meta key="citation-pub-date" name="citation_publication_date" content="2026-11-09" />
+        <meta key="citation-public-url" name="citation_public_url" content={url} />
+        <meta key="citation-doi" name="citation_doi" content="10.5281/zenodo.24095049" />
+        <meta key="dc-identifier" name="dc.identifier" content="doi:10.5281/zenodo.24095049" />
+      </SEOHead>
 
       <main style={{ maxWidth: 920, margin: '0 auto', padding: '40px 20px 80px' }}>
         <nav aria-label="Breadcrumb" style={{ fontSize: 13, color: '#94a3b8', marginBottom: 18 }}>
@@ -124,9 +165,75 @@ export default function ResearchIndexPage() {
           Smarter.Poker Original Poker Industry Research And Data Benchmarks
         </h1>
 
-        <p style={{ fontSize: 17, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
+        <p style={{ fontSize: 17, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 22px 0' }}>
           First-Party Empirical Studies And Structured Datasets Compiled From Smarter.Poker&apos;S National Directory Of 324+ Verified US Poker Rooms, 4,500+ Weekly Tournament Schedules, And 100+ GTO Solver Training Baselines.
         </p>
+
+        <section
+          aria-label="Open Datasets And Archival Registry"
+          style={{
+            padding: 20,
+            background: '#0f172a',
+            borderRadius: 12,
+            border: '1px solid #1e293b',
+            marginBottom: 28,
+          }}
+        >
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#10b981', textTransform: 'uppercase', marginBottom: 8 }}>
+            Open Datasets &amp; Self-Archived Registry (Zenodo DOIs &amp; Software Heritage)
+          </div>
+          <p style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 1.6, margin: '0 0 12px 0' }}>
+            Smarter.Poker Datasets And Model Context Protocol (MCP) Releases Are Self-Archived Under Creative Commons Attribution 4.0 (CC BY 4.0) With Resolvable Zenodo DOIs And Software Heritage SWHIDs:
+          </p>
+          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13.5, lineHeight: 1.75, color: '#cbd5e1' }}>
+            <li>
+              <strong>Core Open Quantitative Poker Research Datasets (15 CSV &amp; JSON Datasets):</strong>{' '}
+              <a href="https://doi.org/10.5281/zenodo.24095049" target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8' }}>
+                {'DOI: 10.5281/zenodo.24095049'}
+              </a>{' '}
+              <span>{'(Concept DOI: 10.5281/zenodo.24095048)'}</span>
+            </li>
+            <li>
+              <strong>30-Tool Model Context Protocol (MCP) Server Archive:</strong>{' '}
+              <a href="https://doi.org/10.5281/zenodo.24095057" target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8' }}>
+                {'DOI: 10.5281/zenodo.24095057'}
+              </a>{' '}
+              •{' '}
+              <a href="https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp" target="_blank" rel="noopener noreferrer" style={{ color: '#10b981' }}>
+                Listed On Glama MCP Directory
+              </a>
+            </li>
+            <li>
+              <strong>North American Live Poker Room, Regional Market &amp; Tournament Series Benchmark Dataset:</strong>{' '}
+              <a href="https://doi.org/10.5281/zenodo.24095560" target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8' }}>
+                {'DOI: 10.5281/zenodo.24095560'}
+              </a>
+            </li>
+            <li>
+              <strong>100BB 6-Max GTO Preflop Ranges, 169 Starting Hands &amp; 25 Canonical Matchup Benchmarks:</strong>{' '}
+              <a href="https://doi.org/10.5281/zenodo.24095564" target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8' }}>
+                {'DOI: 10.5281/zenodo.24095564'}
+              </a>
+            </li>
+            <li>
+              <strong>Smarter.Poker Model Context Protocol (MCP) Server &amp; OpenAPI 3.1 Specification V1.0.2:</strong>{' '}
+              <a href="https://doi.org/10.5281/zenodo.24095597" target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8' }}>
+                {'DOI: 10.5281/zenodo.24095597'}
+              </a>
+            </li>
+            <li>
+              <strong>Official Poker Rules (TDA &amp; RROP), 15 Game Variants &amp; 80-Term Quantitative Glossary Corpus:</strong>{' '}
+              <a href="https://doi.org/10.5281/zenodo.24095602" target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8' }}>
+                {'DOI: 10.5281/zenodo.24095602'}
+              </a>
+            </li>
+            <li>
+              <strong>Software Heritage SWHIDs:</strong>{' '}
+              <code>{'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f'}</code> (Open Datasets) &amp;{' '}
+              <code>{'swh:1:snp:02b8992833424620305edcfb730b3cf8add15747'}</code> (MCP Server)
+            </li>
+          </ul>
+        </section>
 
         <div style={{ display: 'grid', gap: 20, marginBottom: 36 }}>
           {RESEARCH_REPORTS.map((r) => (
@@ -170,6 +277,7 @@ export default function ResearchIndexPage() {
           badgeValue="Smarter.Poker Research"
           summary="15 First-Party Poker Industry Benchmarks Covering US Cardroom Rake, Tournament Guarantees, Waitlist Turnover, W-2G Tax Reporting, And Solver Frequencies."
           slug="smarter-poker-research-hub"
+          doi="10.5281/zenodo.24095049"
         />
 
         <AiPromptLauncher

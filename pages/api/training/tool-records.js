@@ -36,7 +36,7 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      const toolId = String(req.query.toolId || '');
+      const toolId = String(req.query.toolId || req.query.toolKey || '');
       const recordType = req.query.recordType ? String(req.query.recordType) : '';
       const duelToken = typeof req.query.duelToken === 'string' ? req.query.duelToken.trim() : '';
       const limit = Math.min(100, Math.max(1, Number.parseInt(req.query.limit, 10) || 50));
@@ -63,29 +63,75 @@ export default async function handler(req, res) {
         if (duelErr) throw duelErr;
 
         const participants = Array.isArray(duelRows) ? duelRows : [];
-        const challengerRecord = participants.find(
-          (r) => String(r?.data?.attemptId || '') === String(duelPayload.challengerAttemptId || '')
-        ) || participants[0] || null;
-        const opponentRecord = participants.find(
-          (r) => r?.data?.attemptId && String(r.data.attemptId) !== String(duelPayload.challengerAttemptId || '')
-        ) || null;
-
-        const challengerAttemptId = String(
-          challengerRecord?.data?.attemptId || duelPayload.challengerAttemptId || ''
+        const allParticipantAttemptIds = Array.from(
+          new Set(
+            [
+              duelPayload.challengerAttemptId,
+              ...participants.map((r) => r?.data?.attemptId),
+            ]
+              .map((x) => String(x || '').trim())
+              .filter(Boolean)
+          )
         );
-        const opponentAttemptId = String(opponentRecord?.data?.attemptId || '');
-        const attemptIds = [challengerAttemptId, opponentAttemptId].filter(Boolean);
 
         let answerRows = [];
-        if (attemptIds.length > 0) {
+        if (allParticipantAttemptIds.length > 0) {
           const { data: answers, error: ansErr } = await getSupabase()
             .from('training_answers')
             .select('attempt_id, user_id, question_id, hand_ordinal, answer_id, is_correct, ev_loss, classification, selected_frequency, optimal_frequency, solver_verified')
-            .in('attempt_id', attemptIds.slice(0, 4))
+            .in('attempt_id', allParticipantAttemptIds.slice(0, 10))
             .order('hand_ordinal', { ascending: true });
           if (ansErr) throw ansErr;
           answerRows = Array.isArray(answers) ? answers : [];
         }
+
+        const countAnswersForAttempt = (attId) =>
+          attId ? answerRows.filter((row) => String(row.attempt_id) === String(attId)).length : 0;
+
+        const challengerUserId = String(duelPayload.challengerId || duelPayload.challengerUserId || '');
+        const challengerCandidates = participants.filter(
+          (r) =>
+            (challengerUserId && String(r?.user_id || '') === challengerUserId) ||
+            String(r?.data?.role || '') === 'challenger' ||
+            String(r?.data?.attemptId || '') === String(duelPayload.challengerAttemptId || '')
+        );
+        // Prefer the challenger attempt that actually has recorded answers (in case minting created a seed attempt first)
+        const challengerRecord =
+          challengerCandidates.find((r) => countAnswersForAttempt(r?.data?.attemptId) > 0) ||
+          challengerCandidates[0] ||
+          participants[0] ||
+          null;
+
+        const challengerAttemptId = String(
+          challengerRecord?.data?.attemptId || duelPayload.challengerAttemptId || ''
+        );
+
+        const opponentCandidates = participants.filter(
+          (r) =>
+            r?.data?.attemptId &&
+            String(r.data.attemptId) !== challengerAttemptId &&
+            String(r.data.attemptId) !== String(duelPayload.challengerAttemptId || '') &&
+            (String(r?.data?.role || '') === 'opponent' ||
+              (challengerUserId && String(r?.user_id || '') !== challengerUserId))
+        );
+        const opponentRecord =
+          opponentCandidates.find(
+            (r) => challengerUserId && String(r?.user_id || '') !== challengerUserId && countAnswersForAttempt(r?.data?.attemptId) > 0
+          ) ||
+          opponentCandidates.find((r) => countAnswersForAttempt(r?.data?.attemptId) > 0) ||
+          opponentCandidates.find((r) => challengerUserId && String(r?.user_id || '') !== challengerUserId) ||
+          opponentCandidates[0] ||
+          null;
+
+        const opponentAttemptId = String(opponentRecord?.data?.attemptId || '');
+
+        const requiredHands = Math.max(
+          1,
+          Number(duelPayload.targetHands || (Array.isArray(duelPayload.questionIds) && duelPayload.questionIds.length) || 10)
+        );
+        const lockedQuestionSet = new Set(
+          (Array.isArray(duelPayload.questionIds) ? duelPayload.questionIds : []).map(String)
+        );
 
         const buildPlayerSummary = (attemptId, fallbackName, roleLabel) => {
           const rowsForAttempt = attemptId
@@ -93,10 +139,14 @@ export default async function handler(req, res) {
             : [];
           const byQuestion = new Map();
           for (const row of rowsForAttempt) {
+            const qId = String(row.question_id || '');
+            if (lockedQuestionSet.size > 0 && qId && !lockedQuestionSet.has(qId)) {
+              continue;
+            }
             const key = String(row.question_id || row.hand_ordinal);
             if (!byQuestion.has(key)) byQuestion.set(key, row);
           }
-          const uniqueAnswers = Array.from(byQuestion.values());
+          const uniqueAnswers = Array.from(byQuestion.values()).slice(0, requiredHands);
           const handsAnswered = uniqueAnswers.length;
           const correctCount = uniqueAnswers.filter((r) => Boolean(r.is_correct)).length;
           const totalEvLoss = Number(
@@ -139,7 +189,7 @@ export default async function handler(req, res) {
 
         let status = 'awaiting_opponent';
         let winner = null;
-        if (challengerSummary.handsAnswered > 0 && opponentSummary.handsAnswered > 0) {
+        if (challengerSummary.handsAnswered >= requiredHands && opponentSummary.handsAnswered >= requiredHands) {
           status = 'completed';
           if (challengerSummary.accuracyPct > opponentSummary.accuracyPct) {
             winner = 'Challenger';
@@ -163,7 +213,7 @@ export default async function handler(req, res) {
             gameId: duelPayload.gameId,
             level: duelPayload.level,
             variant: duelPayload.variant || 'nlh',
-            targetHands: duelPayload.targetHands || duelPayload.questionIds.length,
+            targetHands: requiredHands,
             questionIds: duelPayload.questionIds,
             status,
             winner,

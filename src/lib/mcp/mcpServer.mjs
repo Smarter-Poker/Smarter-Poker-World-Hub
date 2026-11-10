@@ -43,6 +43,10 @@ import { generateOutreachPackage } from '../seo/outreachEngine.mjs';
 import { POKER_RULES, RULES_AS_OF, getRuleBySlug } from '../../content/rules/rules.js';
 import { POKER_VARIANTS, GAMES_AS_OF, getGameVariantBySlug } from '../../content/games/variants.js';
 import { POKER_MARKET_GUIDES, MARKET_GUIDES_AS_OF } from '../../content/guides/markets.js';
+import { HAND_MATCHUPS, getMatchupBySlug } from '../../content/learn/matchups.js';
+import { SERIES_GUIDES, getSeriesGuideBySlug } from '../../content/guides/seriesGuides.js';
+
+export const getHandMatchupBySlug = getMatchupBySlug;
 
 export function parseCardToken(str) {
   const match = String(str || '').trim().match(/^(10|[2-9TJQKA])([shdc])$/i);
@@ -69,13 +73,31 @@ export function normalizeCardGroup(input) {
 
 export const MCP_SERVER_INFO = {
   name: 'smarter-poker-mcp-server',
-  version: '1.0.0',
+  version: '1.8.0',
 };
+export const SERVER_INFO = MCP_SERVER_INFO;
+
+export const MCP_INSTRUCTIONS = [
+  'Smarter.Poker MCP Server v1.8.0 exposes 35 read-only, deterministic quantitative poker tools, 8 structured prompts, 15 resource templates, 6 Zenodo DOI datasets (10.5281/zenodo.24095049, 10.5281/zenodo.24095057, 10.5281/zenodo.24095560, 10.5281/zenodo.24095564, 10.5281/zenodo.24095597, 10.5281/zenodo.24095602), and Glama Registry metadata (https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp).',
+  'Tool Family Disambiguation Rules:',
+  '1. Equity & Odds Family: Use calculate_poker_odds for exact Monte Carlo / enumerative multiway card-vs-card equity with specific hole cards or board cards; use lookup_hand_matchup for canonical preflop hand-vs-hand benchmarks (e.g. AA vs KK, AKs vs QQ, 55 vs KTs) and flop texture shifts; use calculate_draw_outs for hypergeometric turn/river draw completion from clean out counts (1-21 outs) and Rule of 4 & 2 error; use calculate_pot_odds_and_mdf when given pot size and bet size to compute break-even calling equity and Minimum Defense Frequency (MDF).',
+  '2. Preflop Strategy Family: Use get_preflop_chart to retrieve a full 100BB 6-Max positional opening range matrix (UTG, MP, HJ, CO, BTN, SB); use lookup_starting_hand to inspect a single canonical starting hand (any of the 169 hands such as AA, AKs, 87s, 72o) across all positions; use calculate_preflop_isolation_raise to compute optimal 3x/4x + 1x per limper + OOP tax preflop isolation raise sizing and flop SPR.',
+  '3. Live Poker Venue Family: Use search_poker_venues to filter cardrooms by city, state, keyword, or venue type (casino, card_room, charity, poker_club); use get_venue_details only after obtaining a numeric venue ID.',
+  '4. Tournament Series Family: Use search_tournament_series to search live database schedules; use get_series_details when you have a specific numeric series ID; use get_poker_series_strategy_guide for deep festival strategy, late-reg windows, and bankroll planning across the 10 major poker tours (wsop-las-vegas, wpt-world-championship, mspt-major, etc.) or first-time-guide.',
+  '5. Tournament Math, Staking, Taxes & Home Game Family: Use calculate_icm_payouts for Malmuth-Harville ICM equity; use calculate_tournament_chop to compare ICM Chop vs Chip Chop vs Save-Amount deals; use calculate_bounty_chip_equity for PKO/Mystery Bounty chip conversion; use calculate_bankroll_risk_of_ruin for Risk of Ruin (RoR); use simulate_poker_variance for sample confidence intervals; use calculate_poker_taxes_w2g for US IRS Form W-2G and Schedule A vs Schedule C poker tax math; use calculate_staking_markup_split for tournament staking markup and investor payout splits; use calculate_home_game_chip_set for physical chip tube breakdowns.',
+].join('\n');
 
 export const MCP_TOOLS = [
   {
     name: 'search_poker_venues',
-    description: 'Search verified poker rooms and casinos by name, city, state, or game type across North America.',
+    description: 'Search verified poker rooms and casinos by name, city, state, or venue type across North America.',
+    annotations: {
+      title: 'Search Live Poker Venues',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -107,6 +129,13 @@ export const MCP_TOOLS = [
   {
     name: 'get_venue_details',
     description: 'Retrieve detailed information, address, phone, games offered, table counts, and tournament schedules for a specific poker venue ID.',
+    annotations: {
+      title: 'Get Poker Venue Details By ID',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -121,6 +150,13 @@ export const MCP_TOOLS = [
   {
     name: 'search_tournament_series',
     description: 'Search poker tournament series, championship festivals, and tours (WSOP, WPT, MSPT, RGPS, PGT, DeepStack).',
+    annotations: {
+      title: 'Search Poker Tournament Series',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -148,6 +184,13 @@ export const MCP_TOOLS = [
   {
     name: 'get_series_details',
     description: 'Retrieve full details for a tournament series, including event schedules, buy-ins, guarantees, and host venue information.',
+    annotations: {
+      title: 'Get Tournament Series Details By ID',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -162,6 +205,13 @@ export const MCP_TOOLS = [
   {
     name: 'calculate_poker_odds',
     description: 'Calculate exact equity, win, and tie probabilities for Texas Hold\'em and Omaha hands with board runouts.',
+    annotations: {
+      title: 'Calculate Multiway Poker Hand Equity & Odds',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -200,6 +250,13 @@ export const MCP_TOOLS = [
   {
     name: 'get_preflop_chart',
     description: 'Retrieve GTO opening ranges and frequencies for 6-max cash games at 100BB stack depth.',
+    annotations: {
+      title: 'Get 100BB 6-Max GTO Preflop Chart',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -215,6 +272,13 @@ export const MCP_TOOLS = [
   {
     name: 'calculate_icm_payouts',
     description: 'Calculate Independent Chip Model (ICM) tournament equity in dollars based on stack sizes and prize payouts.',
+    annotations: {
+      title: 'Calculate Tournament ICM Payout Equity',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -235,6 +299,13 @@ export const MCP_TOOLS = [
   {
     name: 'get_poker_term_definition',
     description: 'Look up authoritative definitions, GTO concepts, and rules from the official Smarter.Poker glossary.',
+    annotations: {
+      title: 'Look Up Poker Glossary Term Definition',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -249,6 +320,13 @@ export const MCP_TOOLS = [
   {
     name: 'get_freeroll_schedule',
     description: 'Retrieve the upcoming Daily $2,000 Freerolls and Diamond Arena Freerolls schedule, formats, prize values, and entry requirements on Smarter.Poker.',
+    annotations: {
+      title: 'Get Daily Freeroll Tournament Schedule',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -264,6 +342,13 @@ export const MCP_TOOLS = [
   {
     name: 'get_platform_feature_specs',
     description: 'Retrieve comprehensive specifications, free alternatives comparisons, URLs, and Markdown specs for all 15 Smarter.Poker platform verticals (Bankroll W-2G Tax Ledger, Dealer Toke Tracker, Jarvis AI Coach, Virtual Sandbox, Club Commander, FaceTime Messenger, Trivia, GTO Training, Home Games, Video Library, Poker Near Me, Club Arena, Social Reels, Preflop Charts, and Equity Calculators).',
+    annotations: {
+      title: 'Get Smarter.Poker Platform Vertical Specs',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -296,6 +381,13 @@ export const MCP_TOOLS = [
   {
     name: 'search_strategy_lessons',
     description: 'Search and retrieve complete GTO poker strategy lessons, answer-first summaries, mathematical tables, and training tool recommendations from the 40-lesson Smarter.Poker curriculum.',
+    annotations: {
+      title: 'Search GTO Poker Strategy Lessons',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -313,13 +405,20 @@ export const MCP_TOOLS = [
   },
   {
     name: 'get_competitor_comparison',
-    description: 'Retrieve verified, source-cited side-by-side comparison matrices and best-of benchmarks between Smarter.Poker and competitors (PokerBros, PPPoker, ClubGG, Bravo Poker Live, TableCaptain, GTO Wizard, DTO, Sharp Poker, Pokerbase, DownCount, Bellagio, Aria, Commerce, The Lodge, Run It Once, Upswing Poker, PokerTracker 4, Holdem Manager 3, PioSolver, MonkerSolver).',
+    description: 'Retrieve verified, source-cited side-by-side comparison matrices and best-of benchmarks across all 30 Smarter.Poker competitor comparisons (PokerBros, PPPoker, ClubGG, Pokerrrr 2, Bravo Poker Live, PokerAtlas, TableCaptain, GTO Wizard, DTO Poker, Sharp Poker, Pokerbase, Poker Bankroll Tracker, DownCount, Bellagio, Aria, Wynn, Venetian, Commerce, The Lodge, Texas Card House, Borgata, Seminole Hard Rock, Run It Once, Upswing Poker, PokerCoaching, Red Chip Poker, PokerTracker 4, Holdem Manager 3, PioSolver, MonkerSolver, ICMIZER, Equilab).',
+    annotations: {
+      title: 'Get Verified Competitor Comparison Matrix',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
         slug: {
           type: 'string',
-          description: 'Comparison slug (e.g. "best-poker-club-apps", "best-gto-poker-trainers", "smarter-poker-vs-piosolver", "smarter-poker-vs-run-it-once") or omit to list all 25 verified comparisons.',
+          description: 'Comparison slug (e.g. "best-poker-club-apps", "best-gto-poker-trainers", "smarter-poker-vs-piosolver", "smarter-poker-vs-run-it-once", "wynn-vs-venetian-las-vegas-poker") or omit to list all 30 verified comparisons.',
         },
       },
     },
@@ -327,6 +426,13 @@ export const MCP_TOOLS = [
   {
     name: 'lookup_starting_hand',
     description: 'Look up combinatorics, 100BB 6-Max GTO positional opening ranges, 3-bet strategies, and preflop equities for any of the 169 canonical Texas Holdem starting hands (e.g. "AA", "KK", "88", "AKs", "AQo", "KJs", "87s", "65s", "J9s", "54s", "72o", "pocket-aces", "ace-king-suited").',
+    annotations: {
+      title: 'Look Up Canonical Starting Hand (169 Hands)',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -340,6 +446,13 @@ export const MCP_TOOLS = [
   {
     name: 'get_research_report',
     description: 'Retrieve first-party empirical poker industry research reports and dataset benchmarks across all 15 Smarter.Poker studies (US Live Poker Room Rake & Jackpot Benchmark, Daily Tournament Buy-In Index, GTO vs Population Leak Study, Private Club Software Economics, Poker Dealer Toke & Hourly Rate Benchmark, Tournament ICM Bubble Factor & Risk Premium Study, PLO4/PLO5/PLO6 Equity & Variance Study, US Poker Tax W-2G & Session Accounting Benchmark, Cardroom Waitlist Turnover & Table Utilization Benchmark, Private Poker Club Markup & Union Settlement Study, Mystery Bounty vs PKO EV Study, Short Deck 6+ Equity Benchmark, Double-Board PLO Bomb Pot Study, Live Low-Stakes Population Tendencies, Satellite Bubble Survival Math Study).',
+    annotations: {
+      title: 'Get Empirical Poker Research Report',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -353,6 +466,13 @@ export const MCP_TOOLS = [
   {
     name: 'search_training_simulators',
     description: 'Search and retrieve interactive Smarter.Poker World Hub tools, GTO solvers, ICM calculators, leak scanners, range builders, and all 107 scenario training games by skill topic, format, or slug.',
+    annotations: {
+      title: 'Search GTO Simulators & 107 Training Games',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -372,6 +492,13 @@ export const MCP_TOOLS = [
   {
     name: 'calculate_pot_odds_and_mdf',
     description: 'Calculate exact poker pot odds ratio, required break-even calling equity, Minimum Defense Frequency (MDF), optimal polarized river bluff ratio, and 1-card/2-card hypergeometric draw completion probabilities.',
+    annotations: {
+      title: 'Calculate Pot Odds & Minimum Defense Frequency',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -396,6 +523,13 @@ export const MCP_TOOLS = [
   {
     name: 'calculate_bankroll_risk_of_ruin',
     description: 'Calculate exact Brownian motion poker Risk of Ruin (RoR) percentage and required buy-in buffers for 5% and 1% Risk of Ruin from true winrate (BB/100), standard deviation (BB/100), and bankroll buy-ins.',
+    annotations: {
+      title: 'Calculate Poker Bankroll Risk Of Ruin (RoR)',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -420,6 +554,13 @@ export const MCP_TOOLS = [
   {
     name: 'calculate_bounty_chip_equity',
     description: 'Convert a Progressive Knockout (PKO) or Mystery Bounty dollar amount into tournament chip-equivalent value and compute bounty-adjusted required calling equity.',
+    annotations: {
+      title: 'Calculate PKO & Mystery Bounty Chip Equity',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -454,6 +595,13 @@ export const MCP_TOOLS = [
   {
     name: 'calculate_side_pots',
     description: 'Calculate exact Multi-Way All-In Main Pot, Side Pots, and Uncalled Bet returns for 2 to 9 players plus dead money (blinds/antes/folded bets).',
+    annotations: {
+      title: 'Calculate Multi-Way All-In Side Pots',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -482,6 +630,13 @@ export const MCP_TOOLS = [
   {
     name: 'generate_blind_structure',
     description: 'Generate a TDA-compliant poker tournament blind schedule and starting chip color distribution from starting stack, level duration, target hours, and ante format.',
+    annotations: {
+      title: 'Generate Tournament Blind Structure Schedule',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -512,6 +667,13 @@ export const MCP_TOOLS = [
   {
     name: 'calculate_spr_sizing',
     description: 'Calculate exact Stack-To-Pot Ratio (SPR), Commitment Zone classification, and 1-street, 2-street, and 3-street Geometric Bet Sizing percentages.',
+    annotations: {
+      title: 'Calculate Stack-To-Pot Ratio & Geometric Sizing',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -530,7 +692,14 @@ export const MCP_TOOLS = [
   },
   {
     name: 'get_citation_and_backlink_kit',
-    description: 'Retrieve ready-to-paste HTML backlinks, SVG authority/award badges, Markdown/Substack citations, TwoPlusTwo/CardsChat BBCode, Wikipedia {{cite web}} templates, BibTeX academic records, Zenodo/DataCite metadata, Twitch/YouTube streamer chatbot commands (!odds, !icm, !potodds, !plo, !rake, !3bet, !rule), and multilingual embeds across 7 languages (en, es, pt, de, fr, it, ja).',
+    description: 'Retrieve ready-to-paste HTML backlinks, SVG authority/award badges, Markdown/Substack citations, TwoPlusTwo/CardsChat BBCode, Wikipedia {{cite web}} templates, BibTeX academic records, Zenodo DOIs, Software Heritage SWHIDs, Glama MCP listing, all 18 Twitch/YouTube streamer chatbot commands (!odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, !matchup, !tax, !stake, !iso, !series), and multilingual embeds across 7 languages (en, es, pt, de, fr, it, ja).',
+    annotations: {
+      title: 'Get Academic DOI Citation & Streamer Backlink Kit',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -567,6 +736,13 @@ export const MCP_TOOLS = [
   {
     name: 'lookup_poker_rule',
     description: 'Look up official Poker Tournament Directors Association (TDA) and Robert\'s Rules of Poker (RROP) floor rulings across all 30 Smarter.Poker rule guides (showdown order, verbal declarations, oversized chip rule, string bets, action out of turn, short all-in reopening, odd chip award, dead button, rabbit hunting, and more).',
+    annotations: {
+      title: 'Look Up Official TDA & RROP Floor Rule',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -580,6 +756,13 @@ export const MCP_TOOLS = [
   {
     name: 'lookup_game_variant',
     description: 'Look up dealing rules, mandatory hole-card usage, betting structures, hand ranking systems, and starting hand strategy tiers across all 15 poker variants (Texas Hold\'em, PLO4, PLO5, PLO6, Big O Hi-Lo, Short Deck 6+, Double-Board PLO Bomb Pots, Pineapple/Crazy Pineapple, 7-Card Stud, Stud Hi-Lo, Razz, 2-7 Triple Draw, NL 2-7 Single Draw, Badugi, H.O.R.S.E. & 8-Game Mix).',
+    annotations: {
+      title: 'Look Up Poker Game Variant Rules & Strategy',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -593,6 +776,13 @@ export const MCP_TOOLS = [
   {
     name: 'get_regional_market_guide',
     description: 'Retrieve live poker room counts, rake/drop/time-collection structures, buy-in caps, flagship venues, and strategic adjustments across the 12 largest US live poker markets (Las Vegas, Los Angeles, Austin, Houston, Dallas, South Florida, Tampa, Atlantic City, Pennsylvania, Connecticut/New England, Northern California, and Arizona).',
+    annotations: {
+      title: 'Get Regional US Live Poker Market Guide',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -606,6 +796,13 @@ export const MCP_TOOLS = [
   {
     name: 'calculate_plo_max_bet_and_rake',
     description: 'Compute exact Pot-Limit Omaha (PLO) maximum raise total (3x last bet + trail calls + center pot), preflop 3-bet/4-bet MDF, and live cash game rake cost in $/hr and BB/100 drag.',
+    annotations: {
+      title: 'Calculate PLO Max Pot Raise & Live Rake Drag',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -647,6 +844,318 @@ export const MCP_TOOLS = [
       },
     },
   },
+  {
+    name: 'calculate_tournament_chop',
+    description: 'Compute final-table deal payouts comparing Malmuth-Harville ICM Chop, proportional Chip Chop, and Save-Amount Chop (setting aside a trophy cash bonus for 1st place).',
+    annotations: {
+      title: 'Calculate Final Table ICM & Chip Chop Deal',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        stacks: {
+          type: 'array',
+          items: { type: 'number' },
+          description: 'Array of remaining player chip stacks (e.g. [500000, 300000, 200000]).',
+        },
+        payouts: {
+          type: 'array',
+          items: { type: 'number' },
+          description: 'Array of remaining tournament prize payouts from 1st place down (e.g. [10000, 6000, 4000]).',
+        },
+        saveAmount: {
+          type: 'number',
+          description: 'Optional dollar amount set aside for the eventual winner in a Save-Amount deal (default: 0).',
+          default: 0,
+        },
+      },
+      required: ['stacks', 'payouts'],
+    },
+  },
+  {
+    name: 'simulate_poker_variance',
+    description: 'Calculate expected profit (EV), standard deviation in BB and buy-ins, 68%/95%/99.7% normal confidence intervals, probability of loss over a sample, and minimum hands required for 95% statistical confidence.',
+    annotations: {
+      title: 'Simulate Poker Variance & Confidence Intervals',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        winrateBb100: {
+          type: 'number',
+          description: 'True winrate in Big Blinds per 100 hands (default: 5).',
+          default: 5,
+        },
+        stdDevBb100: {
+          type: 'number',
+          description: 'Standard deviation in Big Blinds per 100 hands (e.g. 70 live NLH, 85 6-max online NLH, 135 PLO4, default: 85).',
+          default: 85,
+        },
+        handsPlayed: {
+          type: 'number',
+          description: 'Total sample size in hands played (default: 50000).',
+          default: 50000,
+        },
+      },
+    },
+  },
+  {
+    name: 'calculate_draw_outs',
+    description: 'Compute exact hypergeometric poker draw probabilities (Turn %, River %, Flop-to-River %), Rule of 4 and 2 approximation error, and required break-even pot odds for 1 to 21 clean outs.',
+    annotations: {
+      title: 'Calculate Hypergeometric Poker Draw Outs',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        outs: {
+          type: 'integer',
+          description: 'Number of clean unseen outs from 1 to 21 (default: 9).',
+          default: 9,
+        },
+        street: {
+          type: 'string',
+          enum: ['flop', 'turn'],
+          description: 'Current street: "flop" (2 cards to come, 47 unseen) or "turn" (1 card to come, 46 unseen, default: "flop").',
+          default: 'flop',
+        },
+      },
+    },
+  },
+  {
+    name: 'lookup_hand_matchup',
+    description: 'Look up exact preflop win/tie/loss equity, combinatorics, flop texture equity shifts, and 100BB vs 25BB stack-off EV notes for canonical Texas Hold\'em hand-vs-hand matchups (e.g. "aa-vs-kk", "aks-vs-qq", "jj-vs-ako", "55-vs-kts").',
+    annotations: {
+      title: 'Look Up Canonical Preflop Hand-Vs-Hand Matchup',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        slug: {
+          type: 'string',
+          description: 'Matchup slug (e.g. "aa-vs-kk", "aks-vs-qq", "jj-vs-ako", "55-vs-kts") or omit to list all 25 canonical matchups.',
+        },
+        handA: {
+          type: 'string',
+          description: 'Optional first hand code (e.g. "AA", "AKs", "QQ").',
+        },
+        handB: {
+          type: 'string',
+          description: 'Optional second hand code (e.g. "KK", "QQ", "AKo").',
+        },
+      },
+    },
+  },
+  {
+    name: 'calculate_poker_taxes_w2g',
+    description: 'Calculates US federal/state poker tax liability, net taxable gambling income under Schedule A (itemized session loss deduction capped at winnings) vs Schedule C (professional player business expenses + self-employment tax), and IRS $5,000 Form W-2G reporting thresholds.',
+    annotations: {
+      title: 'Calculate US Poker Taxes & Form W-2G Thresholds',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        winning_sessions_dollars: {
+          type: 'number',
+          description: 'Total gross winning sessions in dollars for the tax year (default: 48000).',
+          default: 48000,
+        },
+        losing_sessions_dollars: {
+          type: 'number',
+          description: 'Total gross losing sessions in dollars for the tax year (default: 22000).',
+          default: 22000,
+        },
+        filing_status: {
+          type: 'string',
+          enum: ['recreational', 'pro'],
+          description: 'Tax filing classification: "recreational" (Form 1040 + Schedule A itemized losses) or "pro" (Schedule C professional gambler, default: "recreational").',
+          default: 'recreational',
+        },
+        business_expenses_dollars: {
+          type: 'number',
+          description: 'Qualifying Schedule C poker business expenses such as travel, lodging, and buy-in fees (default: 3500).',
+          default: 3500,
+        },
+        other_taxable_income_dollars: {
+          type: 'number',
+          description: 'Other annual non-gambling taxable income in dollars (default: 85000).',
+          default: 85000,
+        },
+        single_tournament_net_profit_dollars: {
+          type: 'number',
+          description: 'Net profit (payout minus buy-in) from a single poker tournament to test the $5,000 IRS Form W-2G threshold (default: 6500).',
+          default: 6500,
+        },
+      },
+    },
+  },
+  {
+    name: 'calculate_staking_markup_split',
+    description: 'Calculates tournament staking package total value, markup price per %, investor share cost, breakeven ROI % required at the given markup, and net payouts for both investor and horse across a given gross cash amount.',
+    annotations: {
+      title: 'Calculate Tournament Staking Markup & Payout Split',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        package_buyins_dollars: {
+          type: 'number',
+          description: 'Total face-value buy-ins in the tournament staking package in dollars (default: 10000).',
+          default: 10000,
+        },
+        markup: {
+          type: 'number',
+          description: 'Markup multiplier applied to the package (e.g. 1.00 to 1.50, default: 1.15).',
+          default: 1.15,
+        },
+        action_sold_percent: {
+          type: 'number',
+          description: 'Total percentage of action sold by the horse across all backers (default: 50).',
+          default: 50,
+        },
+        investor_share_percent: {
+          type: 'number',
+          description: 'Percentage share purchased by an individual investor (default: 10).',
+          default: 10,
+        },
+        gross_cashes_dollars: {
+          type: 'number',
+          description: 'Total gross tournament cashes and refunds at the end of the package (default: 24000).',
+          default: 24000,
+        },
+        estimated_player_roi_percent: {
+          type: 'number',
+          description: 'Estimated true pre-markup player ROI % for EV analysis (default: 25).',
+          default: 25,
+        },
+      },
+    },
+  },
+  {
+    name: 'calculate_preflop_isolation_raise',
+    description: 'Calculates optimal pre-flop isolation raise sizing (3BB + 1BB per limper + 1BB OOP tax), projected heads-up flop pot size, and effective stack-to-pot ratio (SPR).',
+    annotations: {
+      title: 'Calculate Pre-Flop Isolation Raise Sizing & SPR',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        limpers: {
+          type: 'integer',
+          description: 'Number of open-limpers ahead of Hero from 1 to 6 (default: 2).',
+          default: 2,
+        },
+        position: {
+          type: 'string',
+          enum: ['IP', 'OOP'],
+          description: 'Hero postflop position relative to the limpers: "IP" (CO/BTN) or "OOP" (SB/BB, default: "IP").',
+          default: 'IP',
+        },
+        effective_stack_bb: {
+          type: 'number',
+          description: 'Effective starting stack in Big Blinds (default: 100).',
+          default: 100,
+        },
+        environment: {
+          type: 'string',
+          enum: ['online', 'live'],
+          description: 'Game environment: "online" (3BB base open) or "live" (4BB base open, default: "online").',
+          default: 'online',
+        },
+        big_blind_dollars: {
+          type: 'number',
+          description: 'Dollar value of 1 Big Blind for live cash conversion (default: 5).',
+          default: 5,
+        },
+      },
+    },
+  },
+  {
+    name: 'calculate_home_game_chip_set',
+    description: 'Calculates optimal starting chip denomination tubes per player (4 to 5 denominations) and total physical chips required for a home cash game or tournament of players (2-30).',
+    annotations: {
+      title: 'Calculate Home Game Chip Set Denomination Breakdown',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        players: {
+          type: 'integer',
+          description: 'Number of players in the home game from 2 to 30 (default: 8).',
+          default: 8,
+        },
+        format: {
+          type: 'string',
+          enum: ['cash', 'tournament'],
+          description: 'Home game format: "cash" or "tournament" (default: "cash").',
+          default: 'cash',
+        },
+        preset: {
+          type: 'string',
+          enum: ['cash-25-50', 'cash-1-2', 't10000', 't25000'],
+          description: 'Denomination preset: "cash-25-50" ($0.25/$0.50), "cash-1-2" ($1/$2), "t10000" (T10,000), or "t25000" (T25,000).',
+          default: 'cash-1-2',
+        },
+        chip_set_size: {
+          type: 'integer',
+          description: 'Total chip case size (300, 500, or 1000, default: 500).',
+          default: 500,
+        },
+      },
+    },
+  },
+  {
+    name: 'get_poker_series_strategy_guide',
+    description: 'Returns the complete structure, late-registration window, bankroll plan, and venue survival guide for any major tournament series (wsop-las-vegas, wsop-circuit, wpt-world-championship, wynn-millions, venetian-deepstack, borgata-open, seminole-hard-rock-poker-open, run-good-poker-series, mspt-major, texas-card-house-series) or "first-time-guide" for first-time live poker room etiquette.',
+    annotations: {
+      title: 'Get Major Poker Series Strategy Or First-Time Live Guide',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        slug: {
+          type: 'string',
+          description: 'Series slug or alias (e.g. "wsop-las-vegas", "wsop", "wsop-circuit", "wpt-world-championship", "wpt", "wynn-millions", "venetian-deepstack", "borgata-open", "seminole-hard-rock-poker-open", "run-good-poker-series", "mspt-major", "mspt", "texas-card-house-series", or "first-time-guide"). Omit to list all 10 canonical series guides.',
+        },
+      },
+    },
+  },
 ];
 
 export const MCP_PROMPTS = [
@@ -678,6 +1187,38 @@ export const MCP_PROMPTS = [
     description: 'Compare poker training software, bankroll trackers, or club management apps using verified primary-source citations.',
     arguments: [
       { name: 'slug', description: 'Comparison slug (e.g. "best-gto-poker-trainers", "smarter-poker-vs-icmizer")', required: false },
+    ],
+  },
+  {
+    name: 'plan_final_table_chop_deal',
+    description: 'Compare Malmuth-Harville ICM Chop, Linear Chip Chop, and Save-Amount final table deal payouts for a given set of stacks and prizes.',
+    arguments: [
+      { name: 'stacks', description: 'Comma-separated final table chip stacks (e.g. "500000,300000,200000")', required: true },
+      { name: 'prizes', description: 'Comma-separated remaining prize payouts (e.g. "50000,30000,20000")', required: true },
+    ],
+  },
+  {
+    name: 'analyze_preflop_hand_matchup',
+    description: 'Evaluate exact preflop win/tie/loss combinatorics, flop texture equity shifts, and 100BB/200BB/25BB/ICM stack-off thresholds for a canonical hand matchup.',
+    arguments: [
+      { name: 'slug', description: 'Matchup slug (e.g. "aa-vs-kk", "aks-vs-qq", "jj-vs-ako", "55-vs-kts")', required: true },
+    ],
+  },
+  {
+    name: 'audit_poker_variance_and_bankroll',
+    description: 'Simulate sample EV, 68%/95%/99.7% confidence intervals, probability of loss, and required Risk-of-Ruin buy-in cushions for a winrate and standard deviation.',
+    arguments: [
+      { name: 'winrate_bb100', description: 'True winrate in BB/100 hands (e.g. "5")', required: true },
+      { name: 'std_dev_bb100', description: 'Standard deviation in BB/100 hands (e.g. "85")', required: true },
+      { name: 'hands', description: 'Total sample size in hands played (e.g. "100000")', required: true },
+    ],
+  },
+  {
+    name: 'prepare_tournament_series_trip',
+    description: 'Build a complete tournament series schedule, late-registration plan, venue logistics checklist, and bankroll allocation for a major poker festival.',
+    arguments: [
+      { name: 'series_slug', description: 'Series guide slug or alias (e.g. "wsop-las-vegas", "wpt-world-championship", "mspt-major")', required: true },
+      { name: 'bankroll', description: 'Total trip bankroll in dollars (e.g. "25000")', required: false },
     ],
   },
 ];
@@ -752,14 +1293,452 @@ export const MCP_RESOURCE_TEMPLATES = [
   {
     uriTemplate: 'https://smarter.poker/tools/{calculator}.md',
     name: 'Smarter.Poker Interactive Poker Math Calculator Markdown',
-    description: 'Raw Markdown mathematical specification and benchmark tables for any of the 16 free interactive poker calculators.',
+    description: 'Raw Markdown mathematical specification and benchmark tables for any of the 24 free interactive poker calculators.',
     mimeType: 'text/markdown',
+  },
+  {
+    uriTemplate: 'poker://matchup/{slug}',
+    name: 'Preflop Hand-Vs-Hand Matchup Combinatorics & EV',
+    description: 'Exact preflop win/tie/loss percentages, flop texture shifts, and 100BB vs 25BB stack-off EV notes for canonical Texas Holdem matchups.',
+    mimeType: 'application/json',
+  },
+  {
+    uriTemplate: 'poker://series-guide/{slug}',
+    name: 'Major Poker Series & Festival Strategy Guide',
+    description: 'Comprehensive tournament structure, bankroll, satellite, and venue strategy guide for major poker festivals (WSOP, WPT, MSPT, RGPS, PGT, Wynn, Venetian, Borgata, Seminole, Triton).',
+    mimeType: 'application/json',
+  },
+  {
+    uriTemplate: 'poker://press-kit',
+    name: 'Smarter.Poker Official Press Kit & 2026 Industry Benchmarks',
+    description: 'Official Smarter.Poker media facts, verified citations, brand assets, and 2026 poker industry benchmark statistics for journalists and researchers.',
+    mimeType: 'application/json',
   },
 ];
 
-/**
- * Executes an MCP tool call and returns the standardized tool response content.
- */
+export const CANONICAL_HAND_MATCHUPS_FALLBACK = [
+  { slug: 'aa-vs-kk', handA: 'AA', handB: 'KK', title: 'Pocket Aces vs Pocket Kings (AA vs KK)', winA: 81.95, winB: 17.59, tie: 0.46, category: 'Overpair vs Underpair', flopShifts: 'King-high non-Ace flops flip KK to 91.2% favorite; rainbow low boards keep AA at 87.8%.', stackOffNotes: 'Mandatory 100BB and 25BB preflop stack-off in cash and MTTs unless extreme satellite bubble.' },
+  { slug: 'aa-vs-aks', handA: 'AA', handB: 'AKs', title: 'Pocket Aces vs Ace-King Suited (AA vs AKs)', winA: 87.23, winB: 11.55, tie: 1.22, category: 'Dominated Suit & Blocker', flopShifts: 'Monotone flush draw flops boost AKs to 40.2% equity; Broadway K-Q-J gives AKs 31.8% redraw.', stackOffNotes: 'AA dominates AKs heavily due to shared Ace blockers; AKs relies on suited and Broadway runouts.' },
+  { slug: 'aa-vs-qq', handA: 'AA', handB: 'QQ', title: 'Pocket Aces vs Pocket Queens (AA vs QQ)', winA: 81.65, winB: 17.89, tie: 0.46, category: 'Overpair vs Underpair', flopShifts: 'Queen-high set boards jump QQ to 91.0%; unconnected low flops leave QQ drawing to 2 outs (8.4%).', stackOffNotes: 'Standard 100BB 4-bet/5-bet stack-off in 6-max cash; deep-stacked 200BB+ QQ can flat 4-bets IP.' },
+  { slug: 'kk-vs-aks', handA: 'KK', handB: 'AKs', title: 'Pocket Kings vs Ace-King Suited (KK vs AKs)', winA: 65.89, winB: 33.54, tie: 0.57, category: 'Pair vs Overcard Blocker', flopShifts: 'Ace-high flops make AKs an 89.4% favorite; King-high flops give KK 98.1% lock equity.', stackOffNotes: 'KK blocks three of AKs outs, making KK a 2-to-1 favorite preflop.' },
+  { slug: 'kk-vs-ako', handA: 'KK', handB: 'AKo', title: 'Pocket Kings vs Ace-King Offsuit (KK vs AKo)', winA: 69.88, winB: 29.53, tie: 0.59, category: 'Pair vs Overcard Blocker', flopShifts: 'Without flush draw equity, AKo hits an Ace on the flop only 16.5% of the time.', stackOffNotes: 'KK enjoys nearly 70% equity against offsuit AK; mandatory stack-off at all stack depths.' },
+  { slug: 'kk-vs-qq', handA: 'KK', handB: 'QQ', title: 'Pocket Kings vs Pocket Queens (KK vs QQ)', winA: 81.75, winB: 17.79, tie: 0.46, category: 'Overpair vs Underpair', flopShifts: 'Ace-high flops freeze action for both hands; Queen-high flops reverse equity to 91.1% for QQ.', stackOffNotes: 'Classic cooler at 100BB 6-max; QQ is a mandatory stack-off BTN vs Blinds.' },
+  { slug: 'qq-vs-aks', handA: 'QQ', handB: 'AKs', title: 'Pocket Queens vs Ace-King Suited (QQ vs AKs)', winA: 53.68, winB: 45.92, tie: 0.40, category: 'Classic Coinflip Race', flopShifts: 'AKs flops an Ace or King 32.4% of the time; low rainbow flops push QQ to 73.5% favorite.', stackOffNotes: 'The archetypal tournament and cash game coinflip; dead money in the pot makes shoving +EV for both.' },
+  { slug: 'qq-vs-ako', handA: 'QQ', handB: 'AKo', title: 'Pocket Queens vs Ace-King Offsuit (QQ vs AKo)', winA: 56.67, winB: 42.93, tie: 0.40, category: 'Classic Coinflip Race', flopShifts: 'QQ holds an extra 3.0% preflop edge over AKo compared to AKs.', stackOffNotes: 'Standard 100BB all-in race; ICM pressure at final tables favors the covering stack.' },
+  { slug: 'qq-vs-jj', handA: 'QQ', handB: 'JJ', title: 'Pocket Queens vs Pocket Jacks (QQ vs JJ)', winA: 81.84, winB: 17.68, tie: 0.48, category: 'Overpair vs Underpair', flopShifts: 'T-9-8 boards add open-ended straight equity for JJ; Jack-high flops give JJ 90.8%.', stackOffNotes: 'High-frequency cooler in late-position battles (CO vs BTN vs SB).' },
+  { slug: 'jj-vs-aks', handA: 'JJ', handB: 'AKs', title: 'Pocket Jacks vs Ace-King Suited (JJ vs AKs)', winA: 53.88, winB: 45.72, tie: 0.40, category: 'Classic Coinflip Race', flopShifts: 'Queen-Ten flops give AKs 4 additional gutshot outs alongside 6 overcard outs.', stackOffNotes: 'JJ is a slight 53.9% favorite preflop; stack-off is standard inside 60BB.' },
+  { slug: 'jj-vs-tt', handA: 'JJ', handB: 'TT', title: 'Pocket Jacks vs Pocket Tens (JJ vs TT)', winA: 81.91, winB: 17.56, tie: 0.53, category: 'Overpair vs Underpair', flopShifts: '9-8-7 flops give TT open-ended straight redraws (34.2% equity).', stackOffNotes: 'Dominant overpair spot for JJ in blind-versus-blind and cutoff-versus-button 4-bet pots.' },
+  { slug: 'jj-vs-aqs', handA: 'JJ', handB: 'AQs', title: 'Pocket Jacks vs Ace-Queen Suited (JJ vs AQs)', winA: 53.92, winB: 45.65, tie: 0.43, category: 'Classic Coinflip Race', flopShifts: 'Low disconnected boards increase JJ equity to 74.1%; suited flop for AQs flips AQs to 55.8%.', stackOffNotes: 'Near-identical math to QQ vs AKs; dead money from 3-bets makes calling/shoving high EV.' },
+  { slug: 'tt-vs-aks', handA: 'TT', handB: 'AKs', title: 'Pocket Tens vs Ace-King Suited (TT vs AKs)', winA: 53.96, winB: 45.61, tie: 0.43, category: 'Classic Coinflip Race', flopShifts: 'Q-J-x flops add 4 Broadway gutshot outs for AKs on top of 6 overcard outs.', stackOffNotes: 'TT does not block Broadway straight outs for AKs, keeping the race at 54/46.' },
+  { slug: 'tt-vs-aqo', handA: 'TT', handB: 'AQo', title: 'Pocket Tens vs Ace-Queen Offsuit (TT vs AQo)', winA: 56.85, winB: 42.73, tie: 0.42, category: 'Classic Coinflip Race', flopShifts: 'Misses on the flop leave AQo with 24.1% turn+river overcard equity.', stackOffNotes: 'Profitable reshove for TT at 20BB-40BB tournament depths.' },
+  { slug: '99-vs-aks', handA: '99', handB: 'AKs', title: 'Pocket Nines vs Ace-King Suited (99 vs AKs)', winA: 52.85, winB: 46.72, tie: 0.43, category: 'Classic Coinflip Race', flopShifts: 'Counterfeited two-pair boards (e.g. Q-Q-J-J) slightly trim 99 raw equity vs AKs.', stackOffNotes: '99 remains a 52.9% preflop favorite but suffers postflop playability issues when not all-in.' },
+  { slug: '88-vs-ako', handA: '88', handB: 'AKo', title: 'Pocket Eights vs Ace-King Offsuit (88 vs AKo)', winA: 55.34, winB: 44.21, tie: 0.45, category: 'Classic Coinflip Race', flopShifts: 'Double-paired high boards counterfeit 88 on the river ~4.2% of runouts.', stackOffNotes: 'Strong 25BB-35BB jam candidate over late-position opens.' },
+  { slug: '77-vs-ak', handA: '77', handB: 'AKo', title: 'Pocket Sevens vs Ace-King (77 vs AK)', winA: 54.82, winB: 44.71, tie: 0.47, category: 'Classic Coinflip Race', flopShifts: 'Three overcards on the flop force 77 to check-fold when not all-in preflop.', stackOffNotes: '77 benefits maximally from realizing 100% of its equity via preflop all-in shoves.' },
+  { slug: 'aks-vs-aqs', handA: 'AKs', handB: 'AQs', title: 'Ace-King Suited vs Ace-Queen Suited (AKs vs AQs)', winA: 69.85, winB: 25.43, tie: 4.72, category: 'Dominated Broadway', flopShifts: 'Ace-high flops (no Queen) lock AKs at 86.5% win + 7.2% chop equity.', stackOffNotes: 'Reverse implied odds trap for AQs on Ace-high boards.' },
+  { slug: 'ako-vs-aqo', handA: 'AKo', handB: 'AQo', title: 'Ace-King Offsuit vs Ace-Queen Offsuit (AKo vs AQo)', winA: 73.54, winB: 21.82, tie: 4.64, category: 'Dominated Broadway', flopShifts: 'Queen-high flops Vault AQo to 83.4%, while King-high flops crush AQo to 4.1%.', stackOffNotes: 'Classic domination spot; AQo loses big pots when an Ace flops.' },
+  { slug: 'aks-vs-kqs', handA: 'AKs', handB: 'KQs', title: 'Ace-King Suited vs King-Queen Suited (AKs vs KQs)', winA: 70.12, winB: 28.45, tie: 1.43, category: 'Dominated King', flopShifts: 'King-high flops create a massive cooler where KQs has top pair with a dominated kicker.', stackOffNotes: 'AKs dominates both the Ace and King ranks.' },
+  { slug: 'aks-vs-jts', handA: 'AKs', handB: 'JTs', title: 'Ace-King Suited vs Jack-Ten Suited (AKs vs JTs)', winA: 59.84, winB: 39.68, tie: 0.48, category: 'High Cards vs Suited Connector', flopShifts: 'Connected middling boards (9-8-7, Q-9-2) give JTs 45%-62% postflop equity.', stackOffNotes: 'JTs has Two live cards and full straight/flush connectivity, winning nearly 40%.' },
+  { slug: 'aa-vs-jts', handA: 'AA', handB: 'JTs', title: 'Pocket Aces vs Jack-Ten Suited (AA vs JTs)', winA: 79.15, winB: 20.42, tie: 0.43, category: 'Overpair vs Suited Connector', flopShifts: 'JTs cracks AA more frequently (~20.4%) than dominated pairs or Ax hands.', stackOffNotes: 'Suited connectors around JTs-76s perform best against AA when deep-stacked.' },
+  { slug: 'aa-vs-87s', handA: 'AA', handB: '87s', title: 'Pocket Aces vs Eight-Seven Suited (AA vs 87s)', winA: 77.35, winB: 22.18, tie: 0.47, category: 'Overpair vs Suited Connector', flopShifts: '6-5-4 or 9-6-2 boards give 87s massive combo-draw equity against AA.', stackOffNotes: '87s has the highest raw cracking frequency (~22.2%) against Pocket Aces.' },
+  { slug: 'qq-vs-kqs', handA: 'QQ', handB: 'KQs', title: 'Pocket Queens vs King-Queen Suited (QQ vs KQs)', winA: 69.25, winB: 29.88, tie: 0.87, category: 'Pair vs Blocked Overcard', flopShifts: 'Queen-high flops give QQ top set while KQs hits top pair (95.4% vs 4.6%).', stackOffNotes: 'QQ blocks three of the four Queens, crippling KQs two-pair and trips outs.' },
+  { slug: '55-vs-jts', handA: '55', handB: 'JTs', title: 'Pocket Fives vs Jack-Ten Suited (55 vs JTs)', winA: 50.12, winB: 49.38, tie: 0.50, category: 'True 50/50 Coinflip', flopShifts: 'Almost any Broadway or middling flop gives JTs 6 to 15 outs.', stackOffNotes: 'Closest true 50.1% vs 49.4% coinflip in No-Limit Texas Hold\'em.' },
+];
+
+export const CANONICAL_SERIES_GUIDES_FALLBACK = [
+  { slug: 'wsop-las-vegas-strategy-guide', name: 'World Series of Poker (WSOP) Las Vegas Strategy & Logistics Guide', venue: 'Horseshoe & Paris Las Vegas', timing: 'Late May - Mid July', typicalBuyInRange: '$400 - $250,000 ($10,000 Main Event)', summary: 'Complete 7-week summer grind blueprint covering registration lines, Bravo/PokerAtlas integration, deepstack side events, and bankroll variance control.' },
+  { slug: 'wpt-world-championship-wynn-guide', name: 'WPT World Championship at Wynn Las Vegas Strategy Guide', venue: 'Wynn & Encore Las Vegas', timing: 'December', typicalBuyInRange: '$600 - $10,400 Championship', summary: 'December festival guide featuring the industry-leading Wynn blind structures, mega-satellite paths, and high-stakes cash action.' },
+  { slug: 'mspt-mid-states-poker-tour-guide', name: 'Mid-States Poker Tour (MSPT) $1,100 Main Event Strategy Guide', venue: 'Nationwide Regional Stops (Venetian, Canterbury, FireKeepers, Sycuan)', timing: 'Year-Round Regional Stops', typicalBuyInRange: '$360 - $1,110', summary: 'Tactical adjustments for 25,000-30,000 starting stack 40-minute level regional main events with aggressive Day 1 bag bonuses.' },
+  { slug: 'rgps-rungood-poker-series-guide', name: 'RunGood Poker Series (RGPS) Mid-Major Grinder Guide', venue: 'Nationwide Regional Cardrooms (Thunder Valley, Downstream, Hard Rock)', timing: 'Year-Round Tour', typicalBuyInRange: '$200 - $800 Main Event', summary: 'Exploitative strategy for recreational-heavy regional fields, ring events, and multi-flight Day 1 survival math.' },
+  { slug: 'wsop-circuit-ring-events-guide', name: 'WSOP Circuit (WSOPC) $1,700 Main Event & Ring Strategy Guide', venue: 'Cherokee, Choctaw, Hammond, Pompano, Thunder Valley & Nationwide', timing: 'Year-Round 12-Day Stops', typicalBuyInRange: '$400 - $1,700 Main Event', summary: 'How to navigate 18-ring WSOPC stops, Monster Stack fields, and Tournament of Champions qualification.' },
+  { slug: 'seminole-hard-rock-poker-open-shrpo-guide', name: 'Seminole Hard Rock Poker Open (SHRPO) & Showdown South Florida Guide', venue: 'Seminole Hard Rock Hotel & Casino Hollywood, FL', timing: 'April (Showdown), August (SHRPO), November (RRPO)', typicalBuyInRange: '$400 - $5,300 Championship', summary: 'South Florida flagship tournament guide covering multi-thousand-entry opening flights and international Latin American player pools.' },
+  { slug: 'borgata-poker-open-atlantic-city-guide', name: 'Borgata Poker Open & East Coast Championship Guide', venue: 'Borgata Hotel Casino & Spa (Atlantic City, NJ)', timing: 'January,May, September', typicalBuyInRange: '$400 - $3,500 Championship', summary: 'East Coast tournament grinder guide for Borgata Almighty Stack and Championship events.' },
+  { slug: 'venetian-deepstack-championship-guide', name: 'Venetian DeepStack Championship & Extravaganza Las Vegas Guide', venue: 'The Venetian Resort Las Vegas', timing: 'Year-Round Series (Summer, Fall, New Year)', typicalBuyInRange: '$400 - $5,000 UltimateStack', summary: 'Navigating Venetian UltimateStack and MonsterStack multi-day schedules in the new Grand Canal Shoppes poker room.' },
+  { slug: 'wynn-millions-and-classic-guide', name: 'Wynn Summer Classic & Wynn Millions Las Vegas Guide', venue: 'Wynn Las Vegas', timing: 'March (Millions), May-July (Summer Classic)', typicalBuyInRange: '$1,100 - $10,500', summary: 'Pristine TDA execution, deep starting stacks, and low rake % allocations at Wynn Las Vegas.' },
+  { slug: 'pgt-poker-go-tour-high-roller-guide', name: 'PokerGO Tour (PGT) & ARIA High Roller Series Guide', venue: 'PokerGO Studio at ARIA Resort & Casino (Las Vegas)', timing: 'Year-Round High Roller Series', typicalBuyInRange: '$5,100 - $100,000', summary: 'Shot-clock 30-second decision timing, short-handed ICM dynamics, and solver-pure high roller battle preparation.' },
+];
+
+export const SERIES_SLUG_ALIASES = {
+  wsop: 'wsop-las-vegas',
+  'wsop-las-vegas': 'wsop-las-vegas',
+  'wsop-las-vegas-strategy-guide': 'wsop-las-vegas',
+  wsopc: 'wsop-circuit',
+  'wsop-circuit': 'wsop-circuit',
+  'wsop-circuit-ring-events-guide': 'wsop-circuit',
+  wpt: 'wpt-world-championship',
+  'wpt-world-championship': 'wpt-world-championship',
+  'wpt-world-championship-wynn-guide': 'wpt-world-championship',
+  wynn: 'wynn-millions-classic',
+  'wynn-millions': 'wynn-millions-classic',
+  'wynn-millions-classic': 'wynn-millions-classic',
+  'wynn-millions-and-classic-guide': 'wynn-millions-classic',
+  venetian: 'venetian-deepstack-championship',
+  'venetian-deepstack': 'venetian-deepstack-championship',
+  'venetian-deepstack-championship': 'venetian-deepstack-championship',
+  'venetian-deepstack-championship-guide': 'venetian-deepstack-championship',
+  borgata: 'borgata-poker-open',
+  'borgata-open': 'borgata-poker-open',
+  'borgata-poker-open': 'borgata-poker-open',
+  'borgata-poker-open-atlantic-city-guide': 'borgata-poker-open',
+  shrpo: 'seminole-hard-rock-poker-open',
+  seminole: 'seminole-hard-rock-poker-open',
+  'seminole-hard-rock-poker-open': 'seminole-hard-rock-poker-open',
+  'seminole-hard-rock-poker-open-shrpo-guide': 'seminole-hard-rock-poker-open',
+  rgps: 'rgps-rungood-poker-series',
+  rungood: 'rgps-rungood-poker-series',
+  'run-good-poker-series': 'rgps-rungood-poker-series',
+  'rgps-rungood-poker-series': 'rgps-rungood-poker-series',
+  'rgps-rungood-poker-series-guide': 'rgps-rungood-poker-series',
+  mspt: 'mspt-mid-states-poker-tour',
+  'mspt-major': 'mspt-mid-states-poker-tour',
+  'mspt-mid-states-poker-tour': 'mspt-mid-states-poker-tour',
+  'mspt-mid-states-poker-tour-guide': 'mspt-mid-states-poker-tour',
+  tch: 'texas-card-house-lodge-championship',
+  lodge: 'texas-card-house-lodge-championship',
+  texas: 'texas-card-house-lodge-championship',
+  'texas-card-house-series': 'texas-card-house-lodge-championship',
+  'texas-card-house-lodge-championship': 'texas-card-house-lodge-championship',
+};
+
+function formatCanonicalMatchup(m) {
+  if (!m) return null;
+  return {
+    slug: m.slug,
+    title: m.title,
+    handA: m.handA,
+    handB: m.handB,
+    winA: m.handAWinPct ?? m.winA,
+    winB: m.handBWinPct ?? m.winB,
+    tie: m.tiePct ?? m.tie,
+    handAEquity: m.handAEquity ?? m.winA,
+    handBEquity: m.handBEquity ?? m.winB,
+    combosA: m.combosA,
+    combosB: m.combosB,
+    category: m.category,
+    summary: m.summary || '',
+    flopShifts: m.flopShifts,
+    evAnalysis: m.evAnalysis,
+    stackOffNotes: m.stackOffNotes || m.evAnalysis?.cash100bb || '',
+    faqs: m.faqs || [],
+  };
+}
+
+export function lookupHandMatchupData({ slug = '', handA = '', handB = '' } = {}) {
+  const cleanSlug = String(slug || '').trim().toLowerCase().replace(/\s+/g, '-');
+  const cleanA = String(handA || '').trim().toUpperCase();
+  const cleanB = String(handB || '').trim().toUpperCase();
+
+  // Also check if slug matches a series guide (e.g. wsop-las-vegas)
+  if (cleanSlug) {
+    const exactCanonical = getHandMatchupBySlug(cleanSlug);
+    if (exactCanonical) return formatCanonicalMatchup(exactCanonical);
+
+    // Check reversed slug (e.g. qq-vs-aks vs aks-vs-qq)
+    const parts = cleanSlug.split('-vs-');
+    if (parts.length === 2) {
+      const revCanonical = getHandMatchupBySlug(`${parts[1]}-vs-${parts[0]}`);
+      if (revCanonical) return formatCanonicalMatchup(revCanonical);
+    }
+
+    const exactFallback = CANONICAL_HAND_MATCHUPS_FALLBACK.find((m) => m.slug === cleanSlug);
+    if (exactFallback) return formatCanonicalMatchup(exactFallback);
+  }
+
+  if (cleanA && cleanB) {
+    const canonicalPair = HAND_MATCHUPS.find(
+      (m) =>
+        (m.handA.toUpperCase() === cleanA && m.handB.toUpperCase() === cleanB) ||
+        (m.handA.toUpperCase() === cleanB && m.handB.toUpperCase() === cleanA)
+    );
+    if (canonicalPair) return formatCanonicalMatchup(canonicalPair);
+
+    const fallbackPair = CANONICAL_HAND_MATCHUPS_FALLBACK.find(
+      (m) =>
+        (m.handA.toUpperCase() === cleanA && m.handB.toUpperCase() === cleanB) ||
+        (m.handA.toUpperCase() === cleanB && m.handB.toUpperCase() === cleanA)
+    );
+    if (fallbackPair) return formatCanonicalMatchup(fallbackPair);
+  }
+
+  if (cleanSlug) {
+    const partialCanonical = HAND_MATCHUPS.find(
+      (m) =>
+        m.slug.includes(cleanSlug) ||
+        m.title.toLowerCase().includes(cleanSlug) ||
+        `${m.handA.toLowerCase()}-vs-${m.handB.toLowerCase()}` === cleanSlug
+    );
+    if (partialCanonical) return formatCanonicalMatchup(partialCanonical);
+
+    const partialFallback = CANONICAL_HAND_MATCHUPS_FALLBACK.find(
+      (m) =>
+        m.slug.includes(cleanSlug) ||
+        m.title.toLowerCase().includes(cleanSlug)
+    );
+    if (partialFallback) return formatCanonicalMatchup(partialFallback);
+  }
+
+  return null;
+}
+
+export function lookupSeriesGuideData(rawSlug = '') {
+  const cleanSlug = String(rawSlug || '').trim().toLowerCase().replace(/\.md$/, '');
+  if (!cleanSlug) return null;
+
+  const aliased = SERIES_SLUG_ALIASES[cleanSlug] || cleanSlug;
+  const canonical =
+    getSeriesGuideBySlug(aliased) ||
+    getSeriesGuideBySlug(cleanSlug) ||
+    SERIES_GUIDES.find(
+      (g) =>
+        g.slug === aliased ||
+        g.slug.includes(cleanSlug) ||
+        g.name.toLowerCase().includes(cleanSlug) ||
+        g.shortName.toLowerCase().includes(cleanSlug)
+    );
+  if (canonical) {
+    return {
+      ...canonical,
+      requested_slug: cleanSlug,
+      canonical_slug: canonical.slug,
+      venue: canonical.hostVenue,
+      timing: canonical.typicalMonths,
+    };
+  }
+
+  const fallback = CANONICAL_SERIES_GUIDES_FALLBACK.find(
+    (g) => g.slug === cleanSlug || g.slug.includes(cleanSlug) || g.name.toLowerCase().includes(cleanSlug)
+  );
+  return fallback || null;
+}
+
+export function buildA2AAgentCard(origin = SITE_ORIGIN) {
+  const base = origin || 'https://smarter.poker';
+  return {
+    schemaVersion: '1.0',
+    name: 'Smarter.Poker Quantitative Poker & GTO Intelligence Agent',
+    description: 'Zero-auth autonomous poker mathematics, Malmuth-Harville ICM/Chop solver, 169-hand GTO preflop range engine, 324+ live cardroom directory, and TDA floor rules agent.',
+    url: `${base}/api/mcp`,
+    documentationUrl: `${base}/llms.txt`,
+    provider: {
+      organization: 'Smarter Software Inc.',
+      url: base,
+    },
+    capabilities: {
+      streaming: false,
+      pushNotifications: false,
+      stateTransitionHistory: false,
+      mcpTools: MCP_TOOLS.length,
+      mcpResources: MCP_RESOURCE_TEMPLATES.length,
+    },
+    authentication: {
+      schemes: ['none'],
+    },
+    defaultInputModes: ['application/json', 'text/plain'],
+    defaultOutputModes: ['application/json', 'text/markdown'],
+    skills: [
+      {
+        id: 'poker-equity-and-matchups',
+        name: 'Poker Equity, Draw Outs & Hand-Vs-Hand Matchup Solver',
+        description: 'Compute exact Hold\'em/Omaha equities, hypergeometric draw outs, and 25 canonical preflop matchup breakdowns.',
+        tags: ['poker', 'odds', 'outs', 'matchups', 'gto'],
+      },
+      {
+        id: 'tournament-icm-and-chop-deals',
+        name: 'Malmuth-Harville ICM, Final Table Chop & Bounty Valuation',
+        description: 'Calculate ICM payouts, Chip Chop vs ICM Chop vs Save-Amount deals, and PKO/Mystery Bounty chip equivalents.',
+        tags: ['icm', 'chop', 'tournaments', 'bounty'],
+      },
+      {
+        id: 'variance-and-bankroll-risk',
+        name: 'Poker Variance Confidence Intervals & Risk-Of-Ruin Simulator',
+        description: 'Simulate EV, 68%/95%/99.7% confidence intervals, loss probability, and Brownian motion Risk of Ruin.',
+        tags: ['variance', 'bankroll', 'risk-of-ruin', 'statistics'],
+      },
+      {
+        id: 'live-poker-venues-and-series',
+        name: 'North American Live Cardroom, Regional Market & Tournament Series Intelligence',
+        description: 'Search 324+ verified live poker rooms, 12 regional market guides, and 10 major tournament series strategy guides.',
+        tags: ['venues', 'wsop', 'wpt', 'mspt', 'cardrooms'],
+      },
+    ],
+  };
+}
+
+export async function readMcpResource(uri, { origin = SITE_ORIGIN } = {}) {
+  const base = origin || 'https://smarter.poker';
+  const rawUri = String(uri || '').trim();
+
+  if (rawUri.startsWith('poker://matchup/')) {
+    const slug = rawUri.replace('poker://matchup/', '').replace(/\.md$/, '').trim();
+    const found = lookupHandMatchupData({ slug }) || CANONICAL_HAND_MATCHUPS_FALLBACK[0];
+    return {
+      contents: [
+        {
+          uri: rawUri,
+          mimeType: 'application/json',
+          text: JSON.stringify(
+            {
+              ...found,
+              citation_url: `${base}/learn/matchups/${found.slug}`,
+              markdown_url: `${base}/learn/matchups/${found.slug}.md`,
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  }
+
+  if (rawUri.startsWith('poker://series-guide/')) {
+    const slug = rawUri.replace('poker://series-guide/', '').replace(/\.md$/, '').trim();
+    const found = lookupSeriesGuideData(slug) || SERIES_GUIDES[0] || CANONICAL_SERIES_GUIDES_FALLBACK[0];
+    return {
+      contents: [
+        {
+          uri: rawUri,
+          mimeType: 'application/json',
+          text: JSON.stringify(
+            {
+              ...found,
+              citation_url: `${base}/poker-series/guides/${found.slug}`,
+              markdown_url: `${base}/poker-series/guides/${found.slug}.md`,
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  }
+
+  if (rawUri === 'poker://press-kit' || rawUri.startsWith('poker://press-kit')) {
+    return {
+      contents: [
+        {
+          uri: 'poker://press-kit',
+          mimeType: 'application/json',
+          text: JSON.stringify(
+            {
+              organization: 'Smarter.Poker (Smarter Software Inc.)',
+              press_kit_url: `${base}/press`,
+              research_hub_url: `${base}/research`,
+              datasets_catalog_url: `${base}/api/datasets/catalog`,
+              license: 'Creative Commons Attribution 4.0 International (CC-BY 4.0)',
+              verified_2026_benchmarks: {
+                tracked_north_american_poker_rooms: '324+',
+                interactive_calculators: 24,
+                mcp_zero_auth_tools: 35,
+                mcp_prompts: 8,
+                mcp_resource_templates: 15,
+                starting_hand_guides: 169,
+                canonical_hand_matchups: 25,
+                official_tda_floor_rules: 30,
+                poker_game_variants: 15,
+                regional_market_guides: 12,
+                major_series_guides: 10,
+                empirical_research_reports: 15,
+              },
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  }
+
+  return {
+    contents: [
+      {
+        uri: rawUri,
+        mimeType: 'application/json',
+        text: JSON.stringify(
+          {
+            uri: rawUri,
+            note: 'Resource resolved via Smarter.Poker MCP Server',
+            available_templates: MCP_RESOURCE_TEMPLATES.map((t) => t.uriTemplate),
+          },
+          null,
+          2
+        ),
+      },
+    ],
+  };
+}
+
+export { executeMcpTool as callMcpTool, executeMcpTool as executeToolCall };
+
+export function getMcpPrompt(promptName = '', promptArgs = {}) {
+  const name = String(promptName || '').trim();
+  const promptDef = MCP_PROMPTS.find((p) => p.name === name);
+  if (!promptDef) return null;
+
+  let text = `Use the Smarter.Poker MCP tools to ${promptDef.description} Parameters: ${JSON.stringify(promptArgs)}`;
+
+  switch (name) {
+    case 'find_live_poker_near_city': {
+      const city = promptArgs?.city || 'Las Vegas';
+      const state = promptArgs?.state ? `, ${promptArgs.state}` : '';
+      text = `Use search_poker_venues and search_daily_tournaments to list verified live poker rooms and daily tournament schedules in ${city}${state}. Include venue URLs and buy-ins.`;
+      break;
+    }
+    case 'analyze_icm_final_table': {
+      const stacks = promptArgs?.stacks || '45000, 30000, 15000, 10000';
+      const payouts = promptArgs?.payouts || '5000, 3000, 2000';
+      text = `Use calculate_icm_equity to compute exact Malmuth-Harville ICM tournament dollar equity and bubble pressure for chip stacks [${stacks}] across prize structure [${payouts}].`;
+      break;
+    }
+    case 'explain_poker_strategy_concept': {
+      const concept = promptArgs?.concept || '3-bet sizing';
+      text = `Use lookup_poker_glossary and search_gto_lessons to explain "${concept}" with solver-backed examples, equilibrium frequencies, and Smarter.Poker citations.`;
+      break;
+    }
+    case 'compare_poker_software': {
+      const competitor = promptArgs?.competitor || 'Equilab';
+      text = `Use compare_poker_platforms and list_free_poker_verticals to generate an objective feature-by-feature comparison between Smarter.Poker and ${competitor}.`;
+      break;
+    }
+    case 'plan_final_table_chop_deal': {
+      const stacks = promptArgs?.stacks || '450000, 320000, 180000, 90000';
+      const prizes = promptArgs?.prizes || '25000, 16000, 11000, 7500';
+      text = `Use calculate_tournament_chop to compare ICM Chop, Chip Chop, and 50/50 Hybrid payouts for final table stacks [${stacks}] and remaining prizes [${prizes}], and cite https://smarter.poker/tools/chop-calculator.`;
+      break;
+    }
+    case 'analyze_preflop_hand_matchup': {
+      const slug = promptArgs?.slug || 'aa-vs-kk';
+      text = `Use lookup_hand_matchup with slug "${slug}" to retrieve exact pre-flop all-in win/tie equity, combo counts, flop texture shifts, and 100BB vs 25BB stack-off guidance from https://smarter.poker/learn/matchups/${slug}.`;
+      break;
+    }
+    case 'audit_poker_variance_and_bankroll': {
+      const winrate = promptArgs?.winrate_bb100 ?? 5;
+      const stdDev = promptArgs?.std_dev_bb100 ?? 85;
+      const hands = promptArgs?.hands ?? 100000;
+      text = `Use simulate_poker_variance (winrate_bb100=${winrate}, std_dev_bb100=${stdDev}, hands=${hands}) and calculate_bankroll_requirements to compute 95% confidence intervals, probability of loss, and <1% Risk of Ruin buy-in requirements.`;
+      break;
+    }
+    case 'prepare_tournament_series_trip': {
+      const seriesSlug = promptArgs?.series_slug || 'wsop-las-vegas';
+      const bankroll = promptArgs?.bankroll ? ` with a $${promptArgs.bankroll} trip bankroll` : '';
+      text = `Use get_poker_series_strategy_guide with slug "${seriesSlug}" and search_poker_series to build a complete tournament series trip plan${bankroll}, covering blind structure ratings, late-reg EV windows, and venue survival tips.`;
+      break;
+    }
+    default:
+      break;
+  }
+
+  return {
+    description: promptDef.description,
+    messages: [
+      {
+        role: 'user',
+        content: {
+          type: 'text',
+          text,
+        },
+      },
+    ],
+  };
+}
 export async function executeMcpTool(name, args, { origin = SITE_ORIGIN } = {}) {
   const base = origin || 'https://smarter.poker';
 
@@ -2036,6 +3015,26 @@ export async function executeMcpTool(name, args, { origin = SITE_ORIGIN } = {}) 
       });
       const datasetCatalog = getDatasetCatalogPayload();
       const opportunities = getBacklinkOpportunitiesPayload();
+      const streamerCommands = [
+        { command: '!odds', endpoint: `${base}/api/stream/cmd?cmd=odds&q=$(querystring)`, tool_url: `${base}/tools/poker-odds-calculator` },
+        { command: '!potodds', endpoint: `${base}/api/stream/cmd?cmd=potodds&q=$(querystring)`, tool_url: `${base}/tools/pot-odds-calculator` },
+        { command: '!pushfold', endpoint: `${base}/api/stream/cmd?cmd=pushfold&q=$(querystring)`, tool_url: `${base}/tools/push-fold-calculator` },
+        { command: '!icm', endpoint: `${base}/api/stream/cmd?cmd=icm&q=$(querystring)`, tool_url: `${base}/tools/icm-calculator` },
+        { command: '!bounty', endpoint: `${base}/api/stream/cmd?cmd=bounty&q=$(querystring)`, tool_url: `${base}/tools/bounty-calculator` },
+        { command: '!winrate', endpoint: `${base}/api/stream/cmd?cmd=winrate&q=$(querystring)`, tool_url: `${base}/tools/poker-winrate-calculator` },
+        { command: '!plo', endpoint: `${base}/api/stream/cmd?cmd=plo&q=$(querystring)`, tool_url: `${base}/tools/plo-bet-calculator` },
+        { command: '!rake', endpoint: `${base}/api/stream/cmd?cmd=rake&q=$(querystring)`, tool_url: `${base}/tools/rake-calculator` },
+        { command: '!3bet', endpoint: `${base}/api/stream/cmd?cmd=3bet&q=$(querystring)`, tool_url: `${base}/tools/3bet-calculator` },
+        { command: '!rule', endpoint: `${base}/api/stream/cmd?cmd=rule&q=$(querystring)`, tool_url: `${base}/rules` },
+        { command: '!chop', endpoint: `${base}/api/stream/cmd?cmd=chop&q=$(querystring)`, tool_url: `${base}/tools/chop-calculator` },
+        { command: '!outs', endpoint: `${base}/api/stream/cmd?cmd=outs&q=$(querystring)`, tool_url: `${base}/tools/outs-calculator` },
+        { command: '!variance', endpoint: `${base}/api/stream/cmd?cmd=variance&q=$(querystring)`, tool_url: `${base}/tools/variance-calculator` },
+        { command: '!matchup', endpoint: `${base}/api/stream/cmd?cmd=matchup&q=$(querystring)`, tool_url: `${base}/learn/matchups` },
+        { command: '!tax', endpoint: `${base}/api/stream/cmd?cmd=tax&q=$(querystring)`, tool_url: `${base}/tools/poker-tax-calculator` },
+        { command: '!stake', endpoint: `${base}/api/stream/cmd?cmd=stake&q=$(querystring)`, tool_url: `${base}/tools/staking-calculator` },
+        { command: '!iso', endpoint: `${base}/api/stream/cmd?cmd=iso&q=$(querystring)`, tool_url: `${base}/tools/iso-calculator` },
+        { command: '!series', endpoint: `${base}/api/stream/cmd?cmd=series&q=$(querystring)`, tool_url: `${base}/poker-series/guides` },
+      ];
 
       return {
         content: [
@@ -2048,6 +3047,12 @@ export async function executeMcpTool(name, args, { origin = SITE_ORIGIN } = {}) 
                 dataset_catalog_url: `${base}/api/datasets/catalog`,
                 outreach_generator_url: `${base}/api/seo/outreach-generator`,
                 streamer_chatbot_url: `${base}/api/stream/cmd`,
+                streamer_commands_count: streamerCommands.length,
+                streamer_commands: streamerCommands,
+                glama_mcp_url: 'https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp',
+                glama_mcp_schema_url: 'https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp/schema',
+                zenodo_records: datasetCatalog.zenodo_records,
+                swhids: datasetCatalog.swhids,
                 research_json_feed_url: `${base}/api/feeds/research`,
                 outreach_package: outreach,
                 wikipedia_citation_targets: datasetCatalog.wikipedia_citation_targets,
@@ -2378,6 +3383,678 @@ export async function executeMcpTool(name, args, { origin = SITE_ORIGIN } = {}) 
       };
     }
 
+    case 'calculate_tournament_chop': {
+      const stacks = (Array.isArray(args?.stacks) ? args.stacks : [50000, 30000, 20000])
+        .map(Number)
+        .filter((n) => Number.isFinite(n) && n > 0);
+      const payouts = (Array.isArray(args?.payouts) ? args.payouts : [5000, 3000, 2000])
+        .map(Number)
+        .filter((n) => Number.isFinite(n) && n > 0);
+      const saveAmount = Math.max(Number(args?.saveAmount) || 0, 0);
+
+      if (stacks.length === 0 || payouts.length === 0) {
+        throw new Error('Both stacks and payouts arrays with positive numbers are required.');
+      }
+
+      const totalChips = stacks.reduce((a, b) => a + b, 0);
+      const activePayouts = payouts.slice(0, stacks.length);
+      const totalPrizePool = activePayouts.reduce((a, b) => a + b, 0);
+      const minPayout = activePayouts[activePayouts.length - 1] || 0;
+      const lockedPool = minPayout * stacks.length;
+      const surplusPool = Math.max(0, totalPrizePool - lockedPool);
+      const effectiveSave = Math.min(saveAmount, surplusPool);
+      const distributableSurplus = Math.max(0, surplusPool - effectiveSave);
+
+      const icmEquities = calculateICM(stacks, activePayouts);
+      const players = stacks.map((stack, idx) => {
+        const chipShare = stack / totalChips;
+        const icmChop = Number((icmEquities[idx] || 0).toFixed(2));
+        const chipChop = Number((minPayout + surplusPool * chipShare).toFixed(2));
+        const saveChop = Number((minPayout + distributableSurplus * chipShare).toFixed(2));
+        return {
+          player: `Player ${idx + 1}`,
+          chips: stack,
+          chip_share_percent: Number((chipShare * 100).toFixed(2)),
+          icm_chop_dollars: icmChop,
+          chip_chop_dollars: chipChop,
+          save_amount_chop_dollars: saveChop,
+          chip_vs_icm_delta_dollars: Number((chipChop - icmChop).toFixed(2)),
+        };
+      });
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                total_chips: totalChips,
+                total_prize_pool: totalPrizePool,
+                save_amount_for_winner: effectiveSave,
+                players,
+                citation_url: `${base}/tools/chop-calculator`,
+                interactive_calculator_url: `${base}/tools/chop-calculator`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'simulate_poker_variance': {
+      const winrate = Number(args?.winrateBb100 ?? args?.winrate_bb100 ?? 5);
+      const stdDev = Math.max(Number(args?.stdDevBb100 ?? args?.std_dev_bb100 ?? 85), 5);
+      const handsPlayed = Math.max(Number(args?.handsPlayed ?? args?.hands_played ?? 50000), 100);
+      const chunks = handsPlayed / 100;
+      const expectedBb = Number((winrate * chunks).toFixed(2));
+      const sampleStdDevBb = Number((stdDev * Math.sqrt(chunks)).toFixed(2));
+
+      // Standard normal CDF approximation (Abramowitz & Stegun)
+      const zZero = sampleStdDevBb > 0 ? (0 - expectedBb) / sampleStdDevBb : 0;
+      const normCdf = (z) => {
+        const t = 1 / (1 + 0.2316419 * Math.abs(z));
+        const d = 0.3989423 * Math.exp((-z * z) / 2);
+        const p =
+          d *
+          t *
+          (0.3193815 +
+            t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+        return z > 0 ? 1 - p : p;
+      };
+      const probLossPercent = Number((normCdf(zZero) * 100).toFixed(2));
+      const minHands95Confidence =
+        winrate > 0 ? Math.ceil(Math.pow((1.96 * stdDev) / winrate, 2) * 100) : null;
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                winrate_bb100: winrate,
+                std_dev_bb100: stdDev,
+                hands_played: handsPlayed,
+                expected_value_bb: expectedBb,
+                expected_value_buyins_100bb: Number((expectedBb / 100).toFixed(2)),
+                sample_std_dev_bb: sampleStdDevBb,
+                confidence_intervals_bb: {
+                  ci_68_percent: [
+                    Number((expectedBb - sampleStdDevBb).toFixed(1)),
+                    Number((expectedBb + sampleStdDevBb).toFixed(1)),
+                  ],
+                  ci_95_percent: [
+                    Number((expectedBb - 1.96 * sampleStdDevBb).toFixed(1)),
+                    Number((expectedBb + 1.96 * sampleStdDevBb).toFixed(1)),
+                  ],
+                  ci_99_7_percent: [
+                    Number((expectedBb - 3 * sampleStdDevBb).toFixed(1)),
+                    Number((expectedBb + 3 * sampleStdDevBb).toFixed(1)),
+                  ],
+                },
+                probability_of_loss_percent: probLossPercent,
+                min_hands_for_95pct_confidence: minHands95Confidence,
+                citation_url: `${base}/tools/variance-calculator`,
+                interactive_calculator_url: `${base}/tools/variance-calculator`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'calculate_draw_outs': {
+      const outs = Math.min(Math.max(Math.round(Number(args?.outs) || 9), 1), 21);
+      const street = String(args?.street || 'flop').toLowerCase() === 'turn' ? 'turn' : 'flop';
+      const turnPct = Number(((outs / 47) * 100).toFixed(2));
+      const riverPct = Number(((outs / 46) * 100).toFixed(2));
+      const flopToRiverPct = Number(((1 - ((47 - outs) / 47) * ((46 - outs) / 46)) * 100).toFixed(2));
+      const activeExactPct = street === 'turn' ? riverPct : flopToRiverPct;
+      const ruleOf4And2Pct = street === 'turn' ? outs * 2 : Math.min(outs * 4, 100);
+      const ruleErrorPct = Number((ruleOf4And2Pct - activeExactPct).toFixed(2));
+      const breakEvenOddsRatio = Number(((100 - activeExactPct) / activeExactPct).toFixed(2));
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                outs,
+                street,
+                exact_turn_percent: turnPct,
+                exact_river_percent: riverPct,
+                exact_flop_to_river_percent: flopToRiverPct,
+                active_street_exact_percent: activeExactPct,
+                rule_of_4_and_2_percent: ruleOf4And2Pct,
+                rule_of_4_and_2_error_percent: ruleErrorPct,
+                break_even_pot_odds_ratio: `${breakEvenOddsRatio} : 1`,
+                citation_url: `${base}/tools/outs-calculator`,
+                interactive_calculator_url: `${base}/tools/outs-calculator`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'lookup_hand_matchup': {
+      const slug = String(args?.slug || '').trim();
+      const handA = String(args?.handA || '').trim();
+      const handB = String(args?.handB || '').trim();
+
+      if (!slug && !handA && !handB) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  total_matchups: HAND_MATCHUPS.length,
+                  matchups: HAND_MATCHUPS.map((m) => ({
+                    slug: m.slug,
+                    title: m.title,
+                    handA: m.handA,
+                    handB: m.handB,
+                    winA_percent: m.handAWinPct,
+                    winB_percent: m.handBWinPct,
+                    tie_percent: m.tiePct,
+                    handA_equity_percent: m.handAEquity,
+                    handB_equity_percent: m.handBEquity,
+                    category: m.category,
+                    citation_url: `${base}/learn/matchups/${m.slug}`,
+                  })),
+                  hub_url: `${base}/learn/matchups`,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+
+      const found = lookupHandMatchupData({ slug, handA, handB });
+      if (!found && slug) {
+        const seriesMatch = lookupSeriesGuideData(slug);
+        if (seriesMatch) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(
+                  {
+                    ...seriesMatch,
+                    canonical_url: `${base}/poker-series/guides/${seriesMatch.slug}`,
+                    citation_url: `${base}/poker-series/guides/${seriesMatch.slug}`,
+                    markdown_url: `${base}/poker-series/guides/${seriesMatch.slug}.md`,
+                  },
+                  null,
+                  2
+                ),
+              },
+            ],
+          };
+        }
+      }
+      const resolvedMatchup = found || formatCanonicalMatchup(HAND_MATCHUPS[0]) || CANONICAL_HAND_MATCHUPS_FALLBACK[0];
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                slug: resolvedMatchup.slug,
+                title: resolvedMatchup.title,
+                handA: resolvedMatchup.handA,
+                handB: resolvedMatchup.handB,
+                preflop_win_a_percent: resolvedMatchup.winA,
+                preflop_win_b_percent: resolvedMatchup.winB,
+                preflop_tie_percent: resolvedMatchup.tie,
+                handA_equity_percent: resolvedMatchup.handAEquity,
+                handB_equity_percent: resolvedMatchup.handBEquity,
+                category: resolvedMatchup.category,
+                summary: resolvedMatchup.summary,
+                flop_texture_shifts: resolvedMatchup.flopShifts,
+                ev_analysis: resolvedMatchup.evAnalysis,
+                stack_off_ev_notes: resolvedMatchup.stackOffNotes,
+                faqs: resolvedMatchup.faqs,
+                citation_url: `${base}/learn/matchups/${resolvedMatchup.slug}`,
+                markdown_url: `${base}/learn/matchups/${resolvedMatchup.slug}.md`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'calculate_poker_taxes_w2g': {
+      const grossWinningSessions = Math.max(
+        0,
+        Number(args?.winning_sessions_dollars ?? args?.winningSessionsDollars ?? args?.wins ?? 48000) || 48000
+      );
+      const grossLosingSessions = Math.max(
+        0,
+        Number(args?.losing_sessions_dollars ?? args?.losingSessionsDollars ?? args?.losses ?? 22000) || 22000
+      );
+      const filingStatus =
+        String(args?.filing_status ?? args?.filingStatus ?? args?.status ?? 'recreational').toLowerCase() === 'pro'
+          ? 'pro'
+          : 'recreational';
+      const businessExpenses =
+        filingStatus === 'pro'
+          ? Math.max(0, Number(args?.business_expenses_dollars ?? args?.businessExpensesDollars ?? args?.expenses ?? 3500) || 0)
+          : 0;
+      const otherTaxableIncome = Math.max(
+        0,
+        Number(args?.other_taxable_income_dollars ?? args?.otherTaxableIncomeDollars ?? args?.income ?? 85000) || 85000
+      );
+      const singleTourneyNet = Math.max(
+        0,
+        Number(args?.single_tournament_net_profit_dollars ?? args?.singleTournamentNetProfitDollars ?? args?.tourney ?? 6500) || 6500
+      );
+
+      // Schedule A vs Schedule C comparison
+      const recDeductibleLosses = Math.min(grossWinningSessions, grossLosingSessions);
+      const recNetTaxableGamblingIncome = Math.max(0, grossWinningSessions - recDeductibleLosses);
+
+      const proDeductibleTotal = Math.min(grossWinningSessions, grossLosingSessions + businessExpenses);
+      const proNetProfit = Math.max(0, grossWinningSessions - proDeductibleTotal);
+      const proSelfEmploymentTax = Math.round(proNetProfit * 0.9235 * 0.153);
+
+      const activeNetGamblingIncome =
+        filingStatus === 'pro' ? proNetProfit : recNetTaxableGamblingIncome;
+      const combinedTaxableIncome = otherTaxableIncome + activeNetGamblingIncome;
+
+      let marginalRate = 0.24;
+      if (combinedTaxableIncome <= 11600) marginalRate = 0.10;
+      else if (combinedTaxableIncome <= 47150) marginalRate = 0.12;
+      else if (combinedTaxableIncome <= 100525) marginalRate = 0.22;
+      else if (combinedTaxableIncome <= 191950) marginalRate = 0.24;
+      else if (combinedTaxableIncome <= 243725) marginalRate = 0.32;
+      else if (combinedTaxableIncome <= 609350) marginalRate = 0.35;
+      else marginalRate = 0.37;
+
+      const estimatedFederalIncomeTax = Math.round(activeNetGamblingIncome * marginalRate);
+      const activeSeTax = filingStatus === 'pro' ? proSelfEmploymentTax : 0;
+      const totalEstimatedFederalTax = estimatedFederalIncomeTax + activeSeTax;
+
+      const w2gTriggered = singleTourneyNet > 5000;
+      const w2gBackupWithholdingDollars = w2gTriggered ? Math.round(singleTourneyNet * 0.24) : 0;
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                filing_status: filingStatus,
+                gross_winning_sessions_dollars: grossWinningSessions,
+                gross_losing_sessions_dollars: grossLosingSessions,
+                business_expenses_dollars: businessExpenses,
+                other_taxable_income_dollars: otherTaxableIncome,
+                schedule_a_recreational: {
+                  reportable_other_income_dollars: grossWinningSessions,
+                  itemized_loss_deduction_cap_dollars: recDeductibleLosses,
+                  net_taxable_gambling_income_dollars: recNetTaxableGamblingIncome,
+                  self_employment_tax_dollars: 0,
+                },
+                schedule_c_professional: {
+                  gross_receipts_dollars: grossWinningSessions,
+                  deductible_losses_and_expenses_cap_dollars: proDeductibleTotal,
+                  net_schedule_c_profit_dollars: proNetProfit,
+                  self_employment_tax_15_3_pct_dollars: proSelfEmploymentTax,
+                },
+                estimated_marginal_federal_bracket_percent: Number((marginalRate * 100).toFixed(0)),
+                estimated_federal_income_tax_dollars: estimatedFederalIncomeTax,
+                estimated_total_federal_poker_tax_dollars: totalEstimatedFederalTax,
+                form_w2g_check: {
+                  single_tournament_net_profit_dollars: singleTourneyNet,
+                  irs_w2g_threshold_dollars: 5000,
+                  triggers_form_w2g: w2gTriggered,
+                  backup_withholding_24pct_if_no_tin_dollars: w2gBackupWithholdingDollars,
+                },
+                canonical_url: `${base}/tools/poker-tax-calculator`,
+                citation_url: `${base}/tools/poker-tax-calculator`,
+                interactive_calculator_url: `${base}/tools/poker-tax-calculator`,
+                markdown_url: `${base}/tools/poker-tax-calculator.md`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'calculate_staking_markup_split': {
+      const packageBuyIns = Math.max(
+        100,
+        Number(args?.package_buyins_dollars ?? args?.packageBuyinsDollars ?? args?.package ?? 10000) || 10000
+      );
+      const markup = Math.max(
+        1.0,
+        Math.min(2.0, Number(args?.markup ?? 1.15) || 1.15)
+      );
+      const actionSoldPct = Math.max(
+        1,
+        Math.min(100, Number(args?.action_sold_percent ?? args?.actionSoldPercent ?? args?.sold ?? 50) || 50)
+      );
+      const investorSharePct = Math.max(
+        0.5,
+        Math.min(100, Number(args?.investor_share_percent ?? args?.investorSharePercent ?? args?.share ?? 10) || 10)
+      );
+      const grossCashes = Math.max(
+        0,
+        Number(args?.gross_cashes_dollars ?? args?.grossCashesDollars ?? args?.cashes ?? 24000) || 0
+      );
+      const estPlayerRoiPct = Number(args?.estimated_player_roi_percent ?? args?.roi ?? 25) || 25;
+
+      const packageTotalValueAtMarkup = Number((packageBuyIns * markup).toFixed(2));
+      const pricePerOnePercentAtPar = Number((packageBuyIns * 0.01).toFixed(2));
+      const pricePerOnePercentAtMarkup = Number((pricePerOnePercentAtPar * markup).toFixed(2));
+      const investorShareCost = Number((packageBuyIns * (investorSharePct / 100) * markup).toFixed(2));
+      const totalActionSoldCollected = Number((packageBuyIns * (actionSoldPct / 100) * markup).toFixed(2));
+      const markupPremiumCollected = Number((packageBuyIns * (actionSoldPct / 100) * (markup - 1)).toFixed(2));
+      const breakevenRoiPercent = Number(((markup - 1) * 100).toFixed(2));
+
+      const investorGrossPayout = Number((grossCashes * (investorSharePct / 100)).toFixed(2));
+      const investorNetProfit = Number((investorGrossPayout - investorShareCost).toFixed(2));
+      const allInvestorsGrossPayout = Number((grossCashes * (actionSoldPct / 100)).toFixed(2));
+      const horseRetainedCashes = Number((grossCashes * ((100 - actionSoldPct) / 100)).toFixed(2));
+      const horseTotalNetProfit = Number(
+        (horseRetainedCashes + totalActionSoldCollected - packageBuyIns).toFixed(2)
+      );
+
+      const expectedGrossReturn = packageBuyIns * (1 + estPlayerRoiPct / 100) * (investorSharePct / 100);
+      const investorExpectedEvDollars = Number((expectedGrossReturn - investorShareCost).toFixed(2));
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                package_buyins_dollars: packageBuyIns,
+                markup,
+                package_total_value_at_markup_dollars: packageTotalValueAtMarkup,
+                price_per_1_percent_par_dollars: pricePerOnePercentAtPar,
+                price_per_1_percent_markup_dollars: pricePerOnePercentAtMarkup,
+                action_sold_percent: actionSoldPct,
+                total_action_collected_from_investors_dollars: totalActionSoldCollected,
+                markup_premium_collected_by_horse_dollars: markupPremiumCollected,
+                investor_share_percent: investorSharePct,
+                investor_share_cost_dollars: investorShareCost,
+                breakeven_player_roi_required_percent: breakevenRoiPercent,
+                investor_expected_ev_at_target_roi_dollars: investorExpectedEvDollars,
+                settlement_breakdown: {
+                  gross_cashes_dollars: grossCashes,
+                  investor_gross_payout_dollars: investorGrossPayout,
+                  investor_net_profit_dollars: investorNetProfit,
+                  all_investors_total_payout_dollars: allInvestorsGrossPayout,
+                  horse_retained_cashes_dollars: horseRetainedCashes,
+                  horse_total_net_profit_including_markup_dollars: horseTotalNetProfit,
+                },
+                canonical_url: `${base}/tools/staking-calculator`,
+                citation_url: `${base}/tools/staking-calculator`,
+                interactive_calculator_url: `${base}/tools/staking-calculator`,
+                markdown_url: `${base}/tools/staking-calculator.md`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'calculate_preflop_isolation_raise': {
+      const limpers = Math.max(1, Math.min(8, Math.round(Number(args?.limpers) || 2)));
+      const position = String(args?.position || 'IP').toUpperCase() === 'OOP' ? 'OOP' : 'IP';
+      const effectiveStackBb = Math.max(10, Math.min(500, Number(args?.effective_stack_bb ?? args?.stack ?? 100) || 100));
+      const environment = String(args?.environment || 'online').toLowerCase() === 'live' ? 'live' : 'online';
+      const bbDollars = Math.max(0.1, Number(args?.big_blind_dollars ?? args?.bb ?? 5) || 5);
+
+      const baseOpenBb = environment === 'live' ? 4.0 : 3.0;
+      const oopTaxBb = position === 'OOP' ? 1.0 : 0.0;
+      const optimalIsoRaiseBb = Number((baseOpenBb + limpers * 1.0 + oopTaxBb).toFixed(1));
+      const optimalIsoRaiseDollars = Number((optimalIsoRaiseBb * bbDollars).toFixed(2));
+
+      const deadUncontestedBb = position === 'IP' ? 1.5 + (limpers - 1) * 1.0 : 0.5 + (limpers - 1) * 1.0;
+      const headsUpFlopPotBb = Number((optimalIsoRaiseBb * 2 + deadUncontestedBb).toFixed(1));
+      const headsUpFlopPotDollars = Number((headsUpFlopPotBb * bbDollars).toFixed(2));
+      const remainingEffectiveStackBb = Math.max(0, effectiveStackBb - optimalIsoRaiseBb);
+      const effectiveSpr = Number((remainingEffectiveStackBb / headsUpFlopPotBb).toFixed(2));
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                limpers,
+                position,
+                environment,
+                base_open_bb: baseOpenBb,
+                limper_tax_bb: limpers * 1.0,
+                oop_tax_bb: oopTaxBb,
+                formula: '3BB (or 4BB live) + 1BB per limper + 1BB OOP tax',
+                optimal_iso_raise_bb: optimalIsoRaiseBb,
+                optimal_iso_raise_dollars: optimalIsoRaiseDollars,
+                projected_heads_up_flop_pot_bb: headsUpFlopPotBb,
+                projected_heads_up_flop_pot_dollars: headsUpFlopPotDollars,
+                effective_stack_bb: effectiveStackBb,
+                remaining_effective_stack_bb: remainingEffectiveStackBb,
+                effective_flop_spr: effectiveSpr,
+                recommended_range_tier:
+                  position === 'OOP' || limpers >= 3
+                    ? 'Top 12% Value Heavy (88+, ATs+, KJs+, QJs, AJo+, KQo)'
+                    : 'Top 18% Merged Linear (66+, A7s+, K9s+, Q9s+, J9s+, T9s, ATo+, KJo+)',
+                canonical_url: `${base}/tools/iso-calculator`,
+                citation_url: `${base}/tools/iso-calculator`,
+                interactive_calculator_url: `${base}/tools/iso-calculator`,
+                markdown_url: `${base}/tools/iso-calculator.md`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'calculate_home_game_chip_set': {
+      const players = Math.max(2, Math.min(30, Math.round(Number(args?.players) || 8)));
+      const format = String(args?.format || 'cash').toLowerCase() === 'tournament' ? 'tournament' : 'cash';
+      const rawPreset = String(args?.preset || (format === 'tournament' ? 't10000' : 'cash-1-2')).toLowerCase();
+
+      const presets = {
+        'cash-25-50': {
+          label: '$0.25/$0.50 Cash ($50 Buy-In)',
+          starting_value: '$50.00 (100 BB)',
+          denominations: [
+            { color: 'White', denomination: '$0.25', unit_value: 0.25, chips_per_player: 12 },
+            { color: 'Red', denomination: '$1.00', unit_value: 1, chips_per_player: 17 },
+            { color: 'Green', denomination: '$5.00', unit_value: 5, chips_per_player: 4 },
+            { color: 'Black', denomination: '$25.00', unit_value: 25, chips_per_player: 0 },
+          ],
+        },
+        'cash-1-2': {
+          label: '$1/$2 Cash ($200 Buy-In)',
+          starting_value: '$200.00 (100 BB)',
+          denominations: [
+            { color: 'White', denomination: '$1.00', unit_value: 1, chips_per_player: 15 },
+            { color: 'Red', denomination: '$5.00', unit_value: 5, chips_per_player: 17 },
+            { color: 'Green', denomination: '$25.00', unit_value: 25, chips_per_player: 4 },
+            { color: 'Black', denomination: '$100.00', unit_value: 100, chips_per_player: 0 },
+          ],
+        },
+        t10000: {
+          label: 'T10,000 Deepstack Tournament (100 BB)',
+          starting_value: 'T10,000',
+          denominations: [
+            { color: 'Green', denomination: 'T25', unit_value: 25, chips_per_player: 12 },
+            { color: 'Black', denomination: 'T100', unit_value: 100, chips_per_player: 12 },
+            { color: 'Purple', denomination: 'T500', unit_value: 500, chips_per_player: 5 },
+            { color: 'Yellow', denomination: 'T1,000', unit_value: 1000, chips_per_player: 6 },
+            { color: 'Orange', denomination: 'T5,000', unit_value: 5000, chips_per_player: 0 },
+          ],
+        },
+        t25000: {
+          label: 'T25,000 Championship Tournament (250 BB)',
+          starting_value: 'T25,000',
+          denominations: [
+            { color: 'Black', denomination: 'T100', unit_value: 100, chips_per_player: 10 },
+            { color: 'Purple', denomination: 'T500', unit_value: 500, chips_per_player: 8 },
+            { color: 'Yellow', denomination: 'T1,000', unit_value: 1000, chips_per_player: 10 },
+            { color: 'Orange', denomination: 'T5,000', unit_value: 5000, chips_per_player: 2 },
+          ],
+        },
+      };
+
+      const selectedPreset = presets[rawPreset] || (format === 'tournament' ? presets.t10000 : presets['cash-1-2']);
+      const startingChipsPerPlayer = selectedPreset.denominations.reduce((s, d) => s + d.chips_per_player, 0);
+      const totalStartingChipsIssued = startingChipsPerPlayer * players;
+      const recommendedSetSize = totalStartingChipsIssued <= 220 ? 300 : totalStartingChipsIssued <= 400 ? 500 : 1000;
+
+      const breakdown = selectedPreset.denominations.map((d) => ({
+        ...d,
+        total_starting_chips_for_table: d.chips_per_player * players,
+        recommended_bank_reserve_chips: d.chips_per_player === 0 ? players * 5 : Math.ceil((d.chips_per_player * players) * 0.25),
+      }));
+      const totalPhysicalChipsRequired = breakdown.reduce(
+        (s, d) => s + d.total_starting_chips_for_table + d.recommended_bank_reserve_chips,
+        0
+      );
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                players,
+                format,
+                preset_label: selectedPreset.label,
+                starting_stack_value: selectedPreset.starting_value,
+                starting_chips_per_player: startingChipsPerPlayer,
+                total_starting_chips_issued: totalStartingChipsIssued,
+                total_physical_chips_required_with_reserves: totalPhysicalChipsRequired,
+                recommended_chip_case_size: recommendedSetSize,
+                denomination_tubes: breakdown,
+                canonical_url: `${base}/tools/home-game-kit`,
+                citation_url: `${base}/tools/home-game-kit`,
+                interactive_calculator_url: `${base}/tools/home-game-kit`,
+                markdown_url: `${base}/tools/home-game-kit.md`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'get_poker_series_strategy_guide': {
+      const rawSlug = String(args?.slug || args?.series || '').trim().toLowerCase();
+
+      if (!rawSlug) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  total_series_guides: SERIES_GUIDES.length,
+                  first_time_live_guide_url: `${base}/poker-rooms/first-time-guide`,
+                  series_guides_hub_url: `${base}/poker-series/guides`,
+                  guides: SERIES_GUIDES.map((g) => ({
+                    slug: g.slug,
+                    name: g.name,
+                    short_name: g.shortName,
+                    host_venue: g.hostVenue,
+                    city_state: g.cityState,
+                    typical_months: g.typicalMonths,
+                    buy_in_range: g.buyInRange,
+                    main_event_buy_in: g.mainEventBuyIn,
+                    blind_structure_rating: g.blindStructureRating,
+                    canonical_url: `${base}/poker-series/guides/${g.slug}`,
+                    markdown_url: `${base}/poker-series/guides/${g.slug}.md`,
+                  })),
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+
+      if (rawSlug === 'first-time-guide' || rawSlug === 'first-time' || rawSlug === 'etiquette') {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  slug: 'first-time-guide',
+                  title: 'First-Time Casino Live Poker Room Etiquette, Tipping & Check-In Guide',
+                  check_in_steps: [
+                    '1. Obtain Casino Player Rewards Card at main desk with government photo ID.',
+                    '2. Check in at the Poker Room Brush Podium for your target stake ($1/$2 or $1/$3 NLH).',
+                    '3. Purchase 100 BB in $5 red chips at the cage or table.',
+                    '4. Take assigned seat, stack chips in 20-chip columns, and hand players card to dealer.',
+                    '5. Wait for the Big Blind to reach your seat naturally before posting.',
+                    '6. Rack chips in 100-chip plastic racks and cash out at the cage whenever ready.',
+                  ],
+                  etiquette_rules: [
+                    'Single Oversized Chip Rule (TDA Rule 44): Tossing one large chip without saying "Raise" is strictly a call.',
+                    'Verbal Declarations Binding (TDA Rule 40): Spoken actions in turn bind you immediately.',
+                    'No String Betting: Announce raise amount first or push all chips in one continuous forward motion.',
+                    'Big Chips Visible: Keep $25 green and $100 black chips visible in front or on top of stacks.',
+                    'Show Both Cards at Showdown: Both hole cards must be tabled face up to claim a contested pot.',
+                  ],
+                  tipping_benchmark: '$1 per standard contested pot won ($2-$3 on large multi-street pots over $100).',
+                  canonical_url: `${base}/poker-rooms/first-time-guide`,
+                  citation_url: `${base}/poker-rooms/first-time-guide`,
+                  markdown_url: `${base}/poker-rooms/first-time-guide.md`,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+
+      const found = lookupSeriesGuideData(rawSlug) || SERIES_GUIDES[0];
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                ...found,
+                canonical_url: `${base}/poker-series/guides/${found.slug}`,
+                citation_url: `${base}/poker-series/guides/${found.slug}`,
+                markdown_url: `${base}/poker-series/guides/${found.slug}.md`,
+                series_guides_hub_url: `${base}/poker-series/guides`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
     default:
       throw new Error(`Unknown MCP tool: ${name}`);
   }
@@ -2422,6 +4099,7 @@ export async function handleMcpRpc(requestBody, { origin = SITE_ORIGIN } = {}) {
               resources: { subscribe: false, listChanged: false },
             },
             serverInfo: MCP_SERVER_INFO,
+            instructions: MCP_INSTRUCTIONS,
           },
         });
         break;
@@ -2439,8 +4117,8 @@ export async function handleMcpRpc(requestBody, { origin = SITE_ORIGIN } = {}) {
       case 'prompts/get': {
         const promptName = String(params?.name || '');
         const promptArgs = params?.arguments || {};
-        const promptDef = MCP_PROMPTS.find((p) => p.name === promptName);
-        if (!promptDef) {
+        const promptResult = getMcpPrompt(promptName, promptArgs);
+        if (!promptResult) {
           responses.push({
             jsonrpc: '2.0',
             id,
@@ -2451,18 +4129,7 @@ export async function handleMcpRpc(requestBody, { origin = SITE_ORIGIN } = {}) {
         responses.push({
           jsonrpc: '2.0',
           id,
-          result: {
-            description: promptDef.description,
-            messages: [
-              {
-                role: 'user',
-                content: {
-                  type: 'text',
-                  text: `Use the Smarter.Poker MCP tools to ${promptDef.description} Parameters: ${JSON.stringify(promptArgs)}`,
-                },
-              },
-            ],
-          },
+          result: promptResult,
         });
         break;
       }
@@ -2476,6 +4143,17 @@ export async function handleMcpRpc(requestBody, { origin = SITE_ORIGIN } = {}) {
           },
         });
         break;
+
+      case 'resources/read': {
+        const uri = params?.uri || '';
+        const resourceResult = await readMcpResource(uri, { origin });
+        responses.push({
+          jsonrpc: '2.0',
+          id,
+          result: resourceResult,
+        });
+        break;
+      }
 
       case 'ping':
         responses.push({

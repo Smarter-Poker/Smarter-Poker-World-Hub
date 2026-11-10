@@ -26,7 +26,7 @@ import PokerIdentityMark from '../../../src/components/poker-near-me/PokerIdenti
 import { homeGameUrl } from '../../../src/lib/home-games/urls';
 import { buildDailyTournamentSchema, serializePokerJsonLd } from '../../../src/lib/poker-near-me/structuredData';
 import { getWeekendDates } from '../../../src/lib/poker-near-me/weekendSchedule.mjs';
-import { datasetSchema, faqSchema } from '../../../src/lib/seo/hubPageSchema';
+import { datasetSchema, faqSchema, breadcrumbSchema } from '../../../src/lib/seo/hubPageSchema';
 import FaqSection from '../../../src/components/seo/FaqSection';
 
 const WEEKEND_TOURNAMENTS_FAQS = [
@@ -218,6 +218,11 @@ export default function TournamentsThisWeekendPage({ initialTournaments = [] }) 
                   ],
                 }),
                 faqSchema(WEEKEND_TOURNAMENTS_FAQS, '/hub/tournaments/this-weekend'),
+                breadcrumbSchema([
+                  ['Home', '/'],
+                  ['Poker Near Me', '/hub/poker-near-me/lobby'],
+                  ['Weekend Tournaments', '/hub/tournaments/this-weekend'],
+                ]),
               ].filter(Boolean)),
             }),
           }}

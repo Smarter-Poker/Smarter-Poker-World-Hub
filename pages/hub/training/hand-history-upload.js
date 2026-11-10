@@ -1024,7 +1024,7 @@ function AnalyzedHandRow({ hand, index }) {
                   data-hand-id={hand.id}
                   href={
                     hand?._solverAudit?.drillHref ||
-                    `/hub/training/arena/${/mtt|tournament/i.test(String(hand.gameType || '')) ? 'mtt-002' : 'cash-002'}?level=1&syncedHandId=${encodeURIComponent(hand.id)}&syncedHeroCards=${encodeURIComponent((hand.heroCards || []).join(''))}&syncedBoard=${encodeURIComponent((hand.board || []).join(''))}`
+                    `/hub/training/arena/${/mtt|tournament/i.test(String(hand.gameType || '')) ? 'mtt-002' : 'cash-002'}?level=1&source=hand-history-upload&syncedHandId=${encodeURIComponent(hand.id)}`
                   }
                   style={{
                     display: 'inline-flex',

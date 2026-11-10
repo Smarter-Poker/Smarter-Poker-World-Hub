@@ -152,6 +152,78 @@ const INTERACTIVE_TOOLS = [
     formula: '3-Bet Size = Open_BB * ((IP ? 3.0 : 4.0) + 1.0 * Callers)',
   },
   {
+    name: 'Final Table Deal & ICM Chop Calculator',
+    href: '/tools/chop-calculator',
+    mdHref: '/tools/chop-calculator.md',
+    badge: 'ICM Vs Chip Chop',
+    summary:
+      'Compares Exact Malmuth-Harville Recursive ICM Chop, Linear Chip Chop, And Hybrid Save-Amount Final Table Deal Payouts Side By Side With Shareable Scenario Permalinks.',
+    formula: 'Chip Chop_i = Min_Prize + (Chips_i / Total_Chips) * Surplus_Pool',
+  },
+  {
+    name: 'Poker Variance & Downswing Simulator',
+    href: '/tools/variance-calculator',
+    mdHref: '/tools/variance-calculator.md',
+    badge: 'Confidence & Swings',
+    summary:
+      'Calculates 1-SD, 2-SD, And 3-SD Winrate Confidence Intervals, Probability Of Running Below Zero, And Expected Downswing Thresholds Across Any Hand Sample.',
+    formula: 'Min Hands (95% Conf) = ((1.96 * SD_100) / Winrate_100)^2 * 100',
+  },
+  {
+    name: 'Poker Outs & Draw Probability Calculator',
+    href: '/tools/outs-calculator',
+    mdHref: '/tools/outs-calculator.md',
+    badge: 'Hypergeometric Outs',
+    summary:
+      'Computes Exact Turn, River, And Combined Flop-To-River Draw Hit Probabilities, Rule Of 4 And 2 Approximation Error, And Minimum Implied Odds Required.',
+    formula: 'Flop-To-River Hit % = 1 - ((47 - Outs) / 47) * ((46 - Outs) / 46)',
+  },
+  {
+    name: 'US Poker Tax & Form W-2G Calculator',
+    href: '/tools/poker-tax-calculator',
+    mdHref: '/tools/poker-tax-calculator.md',
+    badge: 'IRS Form W-2G & 165d',
+    summary:
+      'Estimates US Federal Poker Taxes, IRS $5,000 Form W-2G Tournament Reporting Triggers, And Recreational Schedule A Vs Professional Schedule C Net Session Deductions.',
+    formula: 'Deductible Losses = Min(Gross_Winning_Sessions, Gross_Losing_Sessions)',
+  },
+  {
+    name: 'Poker Staking & Markup Split Calculator',
+    href: '/tools/staking-calculator',
+    mdHref: '/tools/staking-calculator.md',
+    badge: 'Staking & Markup',
+    summary:
+      'Calculates Tournament Staking Markup, Cost Per 1% Share, Investor Breakeven ROI, And Post-Series Payout Splits With Copyable X And Discord Backing Summaries.',
+    formula: 'Investor Breakeven ROI % = (Markup_Multiplier - 1.0) * 100%',
+  },
+  {
+    name: 'Pre-Flop Isolation Raise Sizing Calculator',
+    href: '/tools/iso-calculator',
+    mdHref: '/tools/iso-calculator.md',
+    badge: 'Limper Isolation',
+    summary:
+      'Computes Optimal Pre-Flop Isolation Raise Sizing Against Live And Online Limpers Based On Hero Position, Effective Stack Depth, And Resulting Flop SPR.',
+    formula: 'ISO Size (BB) = Base_Open + 1.0 * Limpers + (OOP ? 1.5 : 0)',
+  },
+  {
+    name: 'Home Game Chip Set & Setup Calculator',
+    href: '/tools/home-game-kit',
+    mdHref: '/tools/home-game-kit.md',
+    badge: 'Chip Tube & Rules',
+    summary:
+      'Calculates Per-Player Starting Chip Tube Breakdowns For 300, 500, And 1,000 Piece Sets With Color-Up Schedules And Printable House Rules & Hand Rankings.',
+    formula: '30 To 36 Physical Chips Per Player Across 3 To 4 Active Denominations',
+  },
+  {
+    name: 'Poker Format Selector & Study Roadmap Quiz',
+    href: '/tools/format-quiz',
+    mdHref: '/tools/format-quiz.md',
+    badge: 'Format Diagnostic',
+    summary:
+      'Interactive 5-Parameter Diagnostic Matching Your Session Schedule, Bankroll Cushion, And Variance Tolerance To Your Optimal Game Format And 7-Day Study Plan.',
+    formula: '5-Axis Weighted Profile Match + Custom 7-Day Tool Curriculum',
+  },
+  {
     name: 'Embeddable Webmaster Poker Widgets',
     href: '/tools/embeds',
     mdHref: '/tools/embeds.md',
@@ -185,16 +257,18 @@ const TOOLS_FAQS = [
   {
     question: 'Which Poker Math Calculators Are Included In The Smarter.Poker Directory?',
     answer:
-      'The Suite Includes Multiway Equity, Malmuth-Harville ICM, 13x13 GTO Preflop Ranges, Pot Odds & MDF, Bankroll Risk Of Ruin, Short-Stack Push/Fold, PKO & Mystery Bounty, Winrate Converter, Multi-Way Side Pots, Blind Structure Generator, And SPR Geometric Sizing.',
+      'The Suite Includes All 24 Free Browser-Native Tools (23 Interactive Calculators + Embeds & Streamer Bot API): Multiway Equity, Malmuth-Harville ICM, Tournament Deal & ICM Chop Calculator, 13x13 GTO Preflop Ranges, Pot Odds & MDF, Poker Outs & Rule Of 2 And 4 Calculator, Bankroll Risk Of Ruin, Bankroll Variance & Downswing Simulator, Short-Stack Push/Fold, PKO & Mystery Bounty, Winrate Converter, Multi-Way Side Pots, Blind Structure Generator, SPR Geometric Sizing, PLO Max Bet, Tournament Payouts, Live Cash Rake, 3-Bet/4-Bet Sizing, Pre-Flop Isolation Raise Calculator, Poker Staking & Markup Calculator, US Poker Tax & IRS W-2G Calculator, Home Game Blind Timer & Chip Distribution Kit, And What Poker Format Fits Your Brain Quiz.',
   },
 ];
+
+const TOOLS = INTERACTIVE_TOOLS;
 
 export default function PokerToolsDirectoryPage() {
   const canonicalPath = '/tools';
   const canonicalUrl = `https://smarter.poker${canonicalPath}`;
   const pageTitle = 'Free Poker Calculators, GTO Solvers & Math Tools';
   const pageDesc =
-    'Explore Smarter.Poker Free Interactive Poker Calculators: Multiway Equity, Tournament ICM, 13x13 GTO Ranges, Pot Odds, Side Pots, SPR, Bankroll, And Blind Generators.';
+    'Explore All 24 Free Browser-Native Smarter.Poker Tools (23 Interactive Calculators + Embeds & Streamer Bot API): Multiway Equity, Tournament ICM, Tournament Deal & ICM Chop Calculator, 13x13 GTO Ranges, Pot Odds, Poker Outs & Rule Of 2 And 4 Calculator, Bankroll Risk Of Ruin, Bankroll Variance & Downswing Simulator, Push/Fold, PKO Bounties, Winrate, Side Pots, Blind Structure, SPR, PLO Max Bet, Payouts, Rake, 3-Bet Sizing, Pre-Flop Isolation Raise Calculator, Poker Staking & Markup Calculator, US Poker Tax & IRS W-2G Calculator, Home Game Blind Timer & Chip Distribution Kit, And What Poker Format Fits Your Brain Quiz.';
 
   const schema = useMemo(() => {
     const baseSchema = hubProductSchema({
@@ -252,7 +326,7 @@ export default function PokerToolsDirectoryPage() {
         </h1>
 
         <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
-          <strong>Direct Answer:</strong> Smarter.Poker Provides <strong>16 Free Browser-Native Poker Calculators And GTO Reference Tools</strong> Covering Exact Multiway Hand Equity, Malmuth-Harville ICM Prize Pool Valuation, 13x13 GTO Preflop Ranges, Pot Odds And Minimum Defense Frequency (MDF), Risk Of Ruin Bankroll Math, Short-Stack Push/Fold Charts, PKO Bounty Discounts, Multi-Way Side Pots, Tournament Blind Schedules, Geometric SPR Bet Sizing, Pot-Limit Omaha Max Bets, Tournament Payout Distributions, Live Cash Rake Comparisons, And 3-Bet/4-Bet Sizing. Every Tool Runs Instantly In Your Browser And Exposes A Dedicated Markdown Endpoint For AI Assistants.
+          <strong>Direct Answer:</strong> Smarter.Poker Provides <strong>24 Free Browser-Native Tools (23 Interactive Calculators + Embeds &amp; Streamer Bot API)</strong> Covering Exact Multiway Hand Equity, Malmuth-Harville ICM Prize Pool Valuation, Tournament Deal &amp; ICM Chop Calculator, 13x13 GTO Preflop Ranges, Pot Odds And Minimum Defense Frequency (MDF), Poker Outs &amp; Rule Of 2 And 4 Calculator, Risk Of Ruin Bankroll Math, Bankroll Variance &amp; Downswing Simulator, Short-Stack Push/Fold Charts, PKO Bounty Discounts, Winrate Conversion, Multi-Way Side Pots, Tournament Blind Schedules, Geometric SPR Bet Sizing, Pot-Limit Omaha Max Bets, Tournament Payout Distributions, Live Cash Rake Comparisons, 3-Bet/4-Bet Sizing, Pre-Flop Isolation Raise Calculator, Poker Staking &amp; Markup Calculator, US Poker Tax &amp; IRS W-2G Calculator, Home Game Blind Timer &amp; Chip Distribution Kit, And What Poker Format Fits Your Brain Quiz. Every Tool Runs Instantly In Your Browser And Exposes A Dedicated Markdown Endpoint For AI Assistants.
         </p>
 
         {/* Grid Of Interactive Calculators */}
@@ -364,6 +438,9 @@ export default function PokerToolsDirectoryPage() {
             <Link href="/learn/hands" style={{ padding: '8px 14px', background: '#0284c7', color: '#fff', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               169 Starting Hand Encyclopedia
             </Link>
+            <Link href="/learn/matchups" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+              25 All-In Hand Matchups
+            </Link>
             <Link href="/learn/poker-hand-rankings" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Poker Hand Rankings Cheat Sheet
             </Link>
@@ -376,6 +453,12 @@ export default function PokerToolsDirectoryPage() {
             <Link href="/poker-rooms/guides" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               12 US Regional Poker Market Guides
             </Link>
+            <Link href="/poker-rooms/first-time-guide" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+              First-Time Live Poker Room Guide
+            </Link>
+            <Link href="/poker-series/guides" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+              10 Major Poker Series Survival Guides
+            </Link>
             <Link href="/learn" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               GTO Strategy Academy
             </Link>
@@ -386,7 +469,7 @@ export default function PokerToolsDirectoryPage() {
               Poker Glossary
             </Link>
             <Link href="/compare" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
-              Platform Comparisons
+              30 Platform Comparisons
             </Link>
             <Link href="/hub/video-library" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Poker Video Library
@@ -401,8 +484,8 @@ export default function PokerToolsDirectoryPage() {
           canonicalUrl={canonicalUrl}
           badgeType="gto"
           badgeLabel="GTO Math & Solvers"
-          badgeValue="16 Free Poker Calculators"
-          summary="Complete Directory Of 16 Free Browser-Native Poker Calculators, GTO Preflop Range Matrices, And Tournament Director Utilities."
+          badgeValue="24 Free Poker Calculators"
+          summary="Complete Directory Of 24 Free Browser-Native Poker Calculators, GTO Preflop Range Matrices, And Tournament Director Utilities."
           slug="poker-tools-suite"
         />
 

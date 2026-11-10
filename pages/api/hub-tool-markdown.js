@@ -27,6 +27,21 @@ import {
   renderPokerHandRankingsMarkdown,
   renderMarketGuidesIndexMarkdown,
   renderMarketGuideCityMarkdown,
+  renderChopCalculatorMarkdown,
+  renderVarianceCalculatorMarkdown,
+  renderOutsCalculatorMarkdown,
+  renderPokerTaxCalculatorMarkdown,
+  renderStakingCalculatorMarkdown,
+  renderIsoCalculatorMarkdown,
+  renderHomeGameKitMarkdown,
+  renderFormatQuizMarkdown,
+  renderMatchupsIndexMarkdown,
+  renderMatchupDetailMarkdown,
+  renderSeriesGuidesIndexMarkdown,
+  renderSeriesGuideDetailMarkdown,
+  renderFirstTimeGuideMarkdown,
+  renderPressKitMarkdown,
+  renderSearchDirectoryMarkdown,
 } from '../../src/lib/seo/markdownIngestion.mjs';
 
 const SITE = 'https://smarter.poker';
@@ -476,6 +491,53 @@ export function renderHubToolMarkdown(targetPath, query = {}) {
   if (cleanPath === '/tools/3bet-calculator') {
     return renderThreeBetCalculatorMarkdown(query);
   }
+  if (cleanPath === '/tools/chop-calculator') {
+    return renderChopCalculatorMarkdown(query);
+  }
+  if (cleanPath === '/tools/variance-calculator') {
+    return renderVarianceCalculatorMarkdown(query);
+  }
+  if (cleanPath === '/tools/outs-calculator') {
+    return renderOutsCalculatorMarkdown(query);
+  }
+  if (cleanPath === '/tools/poker-tax-calculator') {
+    return renderPokerTaxCalculatorMarkdown(query);
+  }
+  if (cleanPath === '/tools/staking-calculator') {
+    return renderStakingCalculatorMarkdown(query);
+  }
+  if (cleanPath === '/tools/iso-calculator') {
+    return renderIsoCalculatorMarkdown(query);
+  }
+  if (cleanPath === '/tools/home-game-kit') {
+    return renderHomeGameKitMarkdown(query);
+  }
+  if (cleanPath === '/tools/format-quiz') {
+    return renderFormatQuizMarkdown(query);
+  }
+  if (cleanPath === '/learn/matchups') {
+    return renderMatchupsIndexMarkdown();
+  }
+  if (cleanPath.startsWith('/learn/matchups/')) {
+    const slug = cleanPath.slice('/learn/matchups/'.length);
+    return renderMatchupDetailMarkdown(slug);
+  }
+  if (cleanPath === '/poker-series/guides') {
+    return renderSeriesGuidesIndexMarkdown();
+  }
+  if (cleanPath.startsWith('/poker-series/guides/')) {
+    const slug = cleanPath.slice('/poker-series/guides/'.length);
+    return renderSeriesGuideDetailMarkdown(slug);
+  }
+  if (cleanPath === '/poker-rooms/first-time-guide') {
+    return renderFirstTimeGuideMarkdown();
+  }
+  if (cleanPath === '/press') {
+    return renderPressKitMarkdown();
+  }
+  if (cleanPath === '/search') {
+    return renderSearchDirectoryMarkdown(query);
+  }
   if (cleanPath === '/rules') {
     return renderRulesIndexMarkdown();
   }
@@ -635,6 +697,79 @@ export function renderHubToolMarkdown(targetPath, query = {}) {
   return lines.join('\n');
 }
 
+export function buildOpenSearchXml() {
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/" xmlns:moz="http://www.mozilla.org/2006/browser/search/">',
+    '  <ShortName>Smarter.Poker</ShortName>',
+    '  <Description>Search 24 Free Poker Calculators, 169 Starting Hands, 25 Matchups, 30 TDA Rules, 15 Game Variants &amp; 500+ Live Rooms</Description>',
+    '  <InputEncoding>UTF-8</InputEncoding>',
+    '  <Image width="192" height="192" type="image/png">https://smarter.poker/icons/icon-192x192.png</Image>',
+    '  <Url type="text/html" method="get" template="https://smarter.poker/search?q={searchTerms}" />',
+    '  <Url type="application/x-suggestions+json" method="get" template="https://smarter.poker/api/search/suggest?q={searchTerms}" />',
+    '  <moz:SearchForm>https://smarter.poker/search</moz:SearchForm>',
+    '</OpenSearchDescription>',
+  ].join('\n');
+}
+
+export function buildFeedsOpmlXml() {
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<opml version="2.0">',
+    '  <head>',
+    '    <title>Smarter.Poker Quantitative Poker Research, Calculators &amp; Strategy Feeds</title>',
+    '    <dateCreated>Mon, 09 Nov 2026 00:00:00 GMT</dateCreated>',
+    '    <ownerName>Smarter Software Inc. (Smarter.Poker)</ownerName>',
+    '    <ownerId>https://smarter.poker</ownerId>',
+    '    <docs>http://opml.org/spec2.opml</docs>',
+    '  </head>',
+    '  <body>',
+    '    <outline text="Smarter.Poker Feeds &amp; Syndication" title="Smarter.Poker Feeds &amp; Syndication">',
+    '      <outline type="rss" text="Smarter.Poker Master RSS 2.0 Feed (Tools, Strategy, Rules &amp; Research)" title="Smarter.Poker Master RSS 2.0 Feed" xmlUrl="https://smarter.poker/feed.xml" htmlUrl="https://smarter.poker" />',
+    '      <outline type="rss" text="Smarter.Poker Empirical Research &amp; 24 Calculators JSON Feed 1.1" title="Smarter.Poker Research &amp; Calculators JSON Feed" xmlUrl="https://smarter.poker/api/feeds/research" htmlUrl="https://smarter.poker/research" />',
+    '      <outline type="link" text="Smarter.Poker Open Datasets Catalog (Schema.org + DataCite + BibTeX)" title="Smarter.Poker Open Datasets Catalog" url="https://smarter.poker/api/datasets/catalog" />',
+    '      <outline type="link" text="Smarter.Poker Google Colab / Jupyter Quantitative Notebook (.ipynb)" title="Smarter.Poker Quantitative Research Notebook" url="https://smarter.poker/api/datasets/notebook" />',
+    '      <outline type="link" text="Smarter.Poker Model Context Protocol (MCP) Server (35 Tools)" title="Smarter.Poker 35-Tool MCP Server" url="https://smarter.poker/api/mcp" />',
+    '      <outline type="link" text="Smarter.Poker Full AI Knowledge Corpus (llms-full.txt)" title="Smarter.Poker Full AI Corpus" url="https://smarter.poker/llms-full.txt" />',
+    '    </outline>',
+    '  </body>',
+    '</opml>',
+  ].join('\n');
+}
+
+export function buildHumansTxt() {
+  return [
+    '/* TEAM & PLATFORM */',
+    'Platform: Smarter.Poker (World Hub & Club Arena)',
+    'Operator: Smarter Software Inc.',
+    'Website: https://smarter.poker',
+    'Contact: support@smarter.poker',
+    'Location: United States',
+    '',
+    '/* QUANTITATIVE & AI DISCOVERY INFRASTRUCTURE */',
+    'Interactive Calculators: 24 Browser-Native GTO & Math Solvers (https://smarter.poker/tools)',
+    'Starting Hand Encyclopedia: 169 Canonical Holdem Hands (https://smarter.poker/learn/hands)',
+    'Preflop Hand Matchups: 25 Combinatoric Matchup Guides (https://smarter.poker/learn/matchups)',
+    'Official Floor Rulings: 30 TDA & RROP Rulings (https://smarter.poker/rules)',
+    'Poker Game Variants: 15 Rules & Mixed-Game Guides (https://smarter.poker/games)',
+    'US Regional Market Guides: 12 Major Poker Destinations (https://smarter.poker/poker-rooms/guides)',
+    'Major Poker Series Guides: 10 Championship Tour Guides (https://smarter.poker/poker-series/guides)',
+    'Empirical Research Studies: 15 First-Party Benchmarks (https://smarter.poker/research)',
+    'MCP Server (35 Zero-Auth Tools): https://smarter.poker/api/mcp',
+    'A2A Agent Discovery Card: https://smarter.poker/.well-known/agent.json',
+    'OpenAPI 3.1.0 Specification: https://smarter.poker/openapi.json',
+    'OpenSearch Description: https://smarter.poker/opensearch.xml',
+    'OPML 2.0 Feed Bundle: https://smarter.poker/feeds.opml',
+    'Press & Media Kit: https://smarter.poker/press',
+    '',
+    '/* STANDARDS & STACK */',
+    'Framework: Next.js + React + Node.js',
+    'Protocols: Model Context Protocol (MCP), A2A 1.0, OpenAPI 3.1.0, JSON-LD, OpenSearch 1.1, OPML 2.0, RSS 2.0, JSON Feed 1.1, IndexNow',
+    'License: Quantitative Benchmarks & Datasets Published Under CC-BY 4.0 Attribution (https://smarter.poker)',
+    '',
+  ].join('\n');
+}
+
 export default function handler(req, res) {
   const { path: queryPath, section, slug } = req.query;
   let targetPath = '';
@@ -645,6 +780,22 @@ export default function handler(req, res) {
     targetPath = `/hub/${section}/${slug}`;
   } else if (section) {
     targetPath = `/hub/${section}`;
+  }
+
+  if (targetPath === '/opensearch.xml') {
+    res.setHeader('Content-Type', 'application/opensearchdescription+xml; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    return res.status(200).send(buildOpenSearchXml());
+  }
+  if (targetPath === '/feeds.opml') {
+    res.setHeader('Content-Type', 'text/x-opml; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    return res.status(200).send(buildFeedsOpmlXml());
+  }
+  if (targetPath === '/humans.txt') {
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    return res.status(200).send(buildHumansTxt());
   }
 
   const md = renderHubToolMarkdown(targetPath, req.query);

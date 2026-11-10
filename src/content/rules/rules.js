@@ -26,9 +26,62 @@ export function rulePath(slug) {
   return `/rules/${slug}`;
 }
 
+const RULE_SLUG_ALIASES = {
+  'showdown-order': 'showdown-order-who-shows-first',
+  'who-shows-first': 'showdown-order-who-shows-first',
+  'verbal-declarations': 'verbal-declarations-binding-action',
+  'string-bet': 'string-bets-and-oversized-chip-rule',
+  'string-bets': 'string-bets-and-oversized-chip-rule',
+  'oversized-chip': 'string-bets-and-oversized-chip-rule',
+  'odd-chip': 'odd-chip-rule-split-pots',
+  'split-pot': 'odd-chip-rule-split-pots',
+  'side-pot': 'side-pot-and-all-in-protection-rules',
+  'side-pots': 'side-pot-and-all-in-protection-rules',
+  'misdeal': 'misdeals-and-exposed-card-rules',
+  'misdeals': 'misdeals-and-exposed-card-rules',
+  'dead-hand': 'dead-hands-and-fouled-decks',
+  'minimum-raise': 'minimum-raise-and-incomplete-all-in-reopen',
+  'straddle': 'straddle-rules-utg-button-mississippi',
+  'mississippi-straddle': 'straddle-rules-utg-button-mississippi',
+  'big-blind-ante': 'big-blind-ante-vs-traditional-ante-rules',
+  'bba': 'big-blind-ante-vs-traditional-ante-rules',
+  'one-player-to-a-hand': 'one-player-to-a-hand-and-collusion-rules',
+  'first-card-off-the-deck': 'first-card-off-the-deck-and-substantial-action',
+  'chip-race': 'color-up-and-chip-race-rules',
+  'color-up': 'color-up-and-chip-race-rules',
+  'table-balancing': 'table-balancing-and-breaking-order',
+  'hand-for-hand': 'hand-for-hand-bubble-play-rules',
+  'shot-clock': 'shot-clock-and-time-bank-rules',
+  'missed-blinds': 'missed-blinds-posting-and-buying-the-button',
+  'buying-the-button': 'missed-blinds-posting-and-buying-the-button',
+  'run-it-twice': 'run-it-twice-and-all-in-insurance-rules',
+  'bomb-pot': 'bomb-pots-and-double-board-rules',
+  'bomb-pots': 'bomb-pots-and-double-board-rules',
+  'double-board': 'bomb-pots-and-double-board-rules',
+  'kill-pot': 'kill-pots-and-half-kill-rules',
+  'rabbit-hunting': 'rabbit-hunting-and-dealing-unused-cards',
+  'out-of-turn': 'check-raising-and-out-of-turn-action',
+  'table-stakes': 'chip-visibility-and-table-stakes-rules',
+  'icm-chop': 'final-table-redraw-and-icm-chop-rules',
+  'late-registration': 'late-registration-and-re-entry-rules',
+  'mystery-bounty': 'bounty-and-mystery-bounty-token-rules',
+  'pot-limit': 'pot-limit-maximum-bet-calculation-rules',
+  'pot-limit-omaha': 'pot-limit-maximum-bet-calculation-rules',
+  'texas-holdem': 'showdown-order-who-shows-first',
+  'eight-or-better': 'hi-lo-eight-or-better-qualifier-rules',
+  'short-deck': 'short-deck-six-plus-holdem-rules',
+  'disputed-pots': 'disputed-pots-and-surveillance-review-rules',
+};
+
 export function getRuleBySlug(slug) {
   if (!slug) return null;
-  return POKER_RULES.find((r) => r.slug === slug) || null;
+  const clean = String(slug).trim().toLowerCase();
+  const target = RULE_SLUG_ALIASES[clean] || clean;
+  return (
+    POKER_RULES.find((r) => r.slug === target) ||
+    POKER_RULES.find((r) => r.slug.includes(clean)) ||
+    null
+  );
 }
 
 export const POKER_RULES = [

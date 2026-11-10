@@ -13,6 +13,82 @@
 
 import { RESEARCH_REPORTS } from '../../content/research/reports.js';
 
+export const ZENODO_RECORDS = [
+  {
+    id: 'zenodo-24095049',
+    doi: '10.5281/zenodo.24095049',
+    conceptDoi: '10.5281/zenodo.24095048',
+    doiUrl: 'https://doi.org/10.5281/zenodo.24095049',
+    zenodoUrl: 'https://zenodo.org/records/24095049',
+    title: 'Core Open Quantitative Poker Research Datasets (15 CSV & JSON Datasets)',
+    datasetCount: 15,
+    swhid: 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
+  },
+  {
+    id: 'zenodo-24095057',
+    doi: '10.5281/zenodo.24095057',
+    conceptDoi: '10.5281/zenodo.24095056',
+    doiUrl: 'https://doi.org/10.5281/zenodo.24095057',
+    zenodoUrl: 'https://zenodo.org/records/24095057',
+    title: '30-Tool Model Context Protocol (MCP) Server Archive',
+    toolCount: 30,
+    swhid: 'swh:1:snp:02b8992833424620305edcfb730b3cf8add15747',
+  },
+  {
+    id: 'zenodo-24095560',
+    doi: '10.5281/zenodo.24095560',
+    conceptDoi: '10.5281/zenodo.24095559',
+    doiUrl: 'https://doi.org/10.5281/zenodo.24095560',
+    zenodoUrl: 'https://zenodo.org/records/24095560',
+    title: 'North American Live Poker Room, Regional Market & Tournament Series Benchmark Dataset',
+    swhid: 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
+  },
+  {
+    id: 'zenodo-24095564',
+    doi: '10.5281/zenodo.24095564',
+    conceptDoi: '10.5281/zenodo.24095563',
+    doiUrl: 'https://doi.org/10.5281/zenodo.24095564',
+    zenodoUrl: 'https://zenodo.org/records/24095564',
+    title: '100BB 6-Max GTO Preflop Ranges, 169 Starting Hands & 25 Canonical Matchup Benchmarks',
+    swhid: 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
+  },
+  {
+    id: 'zenodo-24095597',
+    doi: '10.5281/zenodo.24095597',
+    conceptDoi: '10.5281/zenodo.24095596',
+    doiUrl: 'https://doi.org/10.5281/zenodo.24095597',
+    zenodoUrl: 'https://zenodo.org/records/24095597',
+    title: 'Smarter.Poker Model Context Protocol (MCP) Server & OpenAPI 3.1 Specification v1.0.2',
+    swhid: 'swh:1:snp:02b8992833424620305edcfb730b3cf8add15747',
+  },
+  {
+    id: 'zenodo-24095602',
+    doi: '10.5281/zenodo.24095602',
+    conceptDoi: '10.5281/zenodo.24095601',
+    doiUrl: 'https://doi.org/10.5281/zenodo.24095602',
+    zenodoUrl: 'https://zenodo.org/records/24095602',
+    title: 'Official Poker Rules (TDA & RROP), 15 Game Variants & 80-Term Quantitative Glossary Corpus',
+    swhid: 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
+  },
+];
+
+export const STATIC_DATASETS = RESEARCH_REPORTS.map((study) => ({
+  slug: study.slug,
+  title: study.title,
+  shortTitle: study.shortTitle,
+  category: study.category,
+  publishedDate: study.publishedDate,
+  modifiedDate: study.modifiedDate,
+  summary: study.summary,
+  doi: study.doi || null,
+  doiUrl: study.doiUrl || null,
+  zenodoUrl: study.zenodoUrl || null,
+  collectionDoi: study.collectionDoi || '10.5281/zenodo.24095049',
+  collectionDoiUrl: study.collectionDoiUrl || 'https://doi.org/10.5281/zenodo.24095049',
+  collectionZenodoUrl: study.collectionZenodoUrl || 'https://zenodo.org/records/24095049',
+  swhid: study.swhid || 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
+}));
+
 export const WIKIPEDIA_CITATION_TARGETS = [
   {
     id: 'wiki-icm',
@@ -129,6 +205,9 @@ export function buildZenodoMetadata() {
     title: 'Smarter.Poker 2026 Open Quantitative Poker Research & Live Cardroom Benchmark Datasets',
     upload_type: 'dataset',
     publication_date: '2026-11-09',
+    doi: '10.5281/zenodo.24095049',
+    conceptrecid: '24095048',
+    swhid: 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
     creators: [
       {
         name: 'Smarter.Poker Research Division',
@@ -149,6 +228,51 @@ export function buildZenodoMetadata() {
       'risk of ruin',
     ],
     related_identifiers: [
+      {
+        identifier: '10.5281/zenodo.24095049',
+        relation: 'isIdenticalTo',
+        scheme: 'doi',
+      },
+      {
+        identifier: '10.5281/zenodo.24095057',
+        relation: 'isSupplementedBy',
+        scheme: 'doi',
+      },
+      {
+        identifier: '10.5281/zenodo.24095560',
+        relation: 'isPartOf',
+        scheme: 'doi',
+      },
+      {
+        identifier: '10.5281/zenodo.24095564',
+        relation: 'isPartOf',
+        scheme: 'doi',
+      },
+      {
+        identifier: '10.5281/zenodo.24095597',
+        relation: 'isPartOf',
+        scheme: 'doi',
+      },
+      {
+        identifier: '10.5281/zenodo.24095602',
+        relation: 'isPartOf',
+        scheme: 'doi',
+      },
+      {
+        identifier: 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
+        relation: 'isDerivedFrom',
+        scheme: 'url',
+      },
+      {
+        identifier: 'swh:1:snp:02b8992833424620305edcfb730b3cf8add15747',
+        relation: 'isSupplementedBy',
+        scheme: 'url',
+      },
+      {
+        identifier: 'https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp',
+        relation: 'isSupplementedBy',
+        scheme: 'url',
+      },
       {
         identifier: 'https://smarter.poker/research',
         relation: 'isSupplementTo',
@@ -174,6 +298,30 @@ export function buildCitationCff() {
     'message: "If You Use Smarter.Poker Quantitative Datasets Or Solvers In Your Research, Please Cite Them As Below."',
     'title: "Smarter.Poker Open Quantitative Poker Research & GTO Solver Benchmarks (2026)"',
     'type: dataset',
+    'doi: "10.5281/zenodo.24095049"',
+    'identifiers:',
+    '  - type: doi',
+    '    value: "10.5281/zenodo.24095049"',
+    '    description: "Core Open Quantitative Poker Research Datasets"',
+    '  - type: doi',
+    '    value: "10.5281/zenodo.24095057"',
+    '    description: "30-Tool Model Context Protocol (MCP) Server Archive"',
+    '  - type: doi',
+    '    value: "10.5281/zenodo.24095560"',
+    '    description: "North American Live Poker Room, Regional Market & Tournament Series Benchmark Dataset"',
+    '  - type: doi',
+    '    value: "10.5281/zenodo.24095564"',
+    '    description: "100BB 6-Max GTO Preflop Ranges, 169 Starting Hands & 25 Canonical Matchup Benchmarks"',
+    '  - type: doi',
+    '    value: "10.5281/zenodo.24095597"',
+    '    description: "Smarter.Poker Model Context Protocol (MCP) Server & OpenAPI 3.1 Specification v1.0.2"',
+    '  - type: doi',
+    '    value: "10.5281/zenodo.24095602"',
+    '    description: "Official Poker Rules (TDA & RROP), 15 Game Variants & 80-Term Quantitative Glossary Corpus"',
+    '  - type: swh',
+    '    value: "swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f"',
+    '  - type: swh',
+    '    value: "swh:1:snp:02b8992833424620305edcfb730b3cf8add15747"',
     'authors:',
     '  - name: "Smarter.Poker Research Division"',
     '    website: "https://smarter.poker/research"',
@@ -181,7 +329,8 @@ export function buildCitationCff() {
     'date-released: "2026-11-09"',
     'license: "CC-BY-4.0"',
     'url: "https://smarter.poker/research"',
-    'repository-artifact: "https://smarter.poker/api/datasets/catalog"',
+    'repository-code: "https://github.com/Smarter-Poker/smarter-poker-open-datasets"',
+    'repository-artifact: "https://zenodo.org/records/24095049"',
   ].join('\n');
 }
 
@@ -199,7 +348,29 @@ export function buildDataCatalogJsonLd() {
     license: 'https://creativecommons.org/licenses/by/4.0/',
     isAccessibleForFree: true,
     keywords: [study.category, 'Poker Research', 'Smarter.Poker Dataset', study.shortTitle],
-    sameAs: 'https://github.com/Smarter-Poker/smarter-poker-open-datasets',
+    sameAs: [
+      ...(study.doiUrl && study.zenodoUrl ? [study.doiUrl, study.zenodoUrl] : []),
+      'https://github.com/Smarter-Poker/smarter-poker-open-datasets',
+      'https://archive.softwareheritage.org/swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
+    ],
+    identifier: [
+      ...(study.doi
+        ? [
+            {
+              '@type': 'PropertyValue',
+              propertyID: 'DOI',
+              value: study.doi,
+              url: study.doiUrl,
+            },
+          ]
+        : []),
+      {
+        '@type': 'PropertyValue',
+        propertyID: 'SWHID',
+        value: study.swhid || 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
+        url: 'https://archive.softwareheritage.org/swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
+      },
+    ],
     creator: {
       '@type': 'Organization',
       '@id': 'https://smarter.poker/#organization',
@@ -253,7 +424,42 @@ export function buildDataCatalogJsonLd() {
     inLanguage: 'en-US',
     license: 'https://creativecommons.org/licenses/by/4.0/',
     isAccessibleForFree: true,
-    sameAs: 'https://github.com/Smarter-Poker/smarter-poker-open-datasets',
+    sameAs: [
+      'https://doi.org/10.5281/zenodo.24095049',
+      'https://doi.org/10.5281/zenodo.24095057',
+      'https://doi.org/10.5281/zenodo.24095560',
+      'https://doi.org/10.5281/zenodo.24095564',
+      'https://doi.org/10.5281/zenodo.24095597',
+      'https://doi.org/10.5281/zenodo.24095602',
+      'https://zenodo.org/records/24095049',
+      'https://github.com/Smarter-Poker/smarter-poker-open-datasets',
+      'https://archive.softwareheritage.org/swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
+      'https://archive.softwareheritage.org/swh:1:snp:02b8992833424620305edcfb730b3cf8add15747',
+      'https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp',
+    ],
+    identifier: [
+      ...ZENODO_RECORDS.map((z) => ({
+        '@type': 'PropertyValue',
+        propertyID: 'DOI',
+        name: z.title,
+        value: z.doi,
+        url: z.doiUrl,
+      })),
+      {
+        '@type': 'PropertyValue',
+        propertyID: 'SWHID',
+        name: 'Software Heritage Open Datasets Snapshot',
+        value: 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
+        url: 'https://archive.softwareheritage.org/swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
+      },
+      {
+        '@type': 'PropertyValue',
+        propertyID: 'SWHID',
+        name: 'Software Heritage MCP Server Snapshot',
+        value: 'swh:1:snp:02b8992833424620305edcfb730b3cf8add15747',
+        url: 'https://archive.softwareheritage.org/swh:1:snp:02b8992833424620305edcfb730b3cf8add15747',
+      },
+    ],
     publisher: {
       '@type': 'Organization',
       '@id': 'https://smarter.poker/#organization',
@@ -297,6 +503,8 @@ export function getDatasetCatalogPayload({ slug = '' } = {}) {
     license: 'Creative Commons Attribution 4.0 International (CC-BY 4.0)',
     provenance_and_redistribution_rights: DATASET_PROVENANCE_AND_RIGHTS,
     datasets_count: filteredStudies.length,
+    zenodo_records: ZENODO_RECORDS,
+    static_datasets: STATIC_DATASETS,
     wikipedia_targets_count: WIKIPEDIA_CITATION_TARGETS.length,
     zenodo_metadata: buildZenodoMetadata(),
     citation_cff: buildCitationCff(),

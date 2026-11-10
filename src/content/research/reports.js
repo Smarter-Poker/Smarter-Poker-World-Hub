@@ -8,18 +8,23 @@
  */
 
 export const RESEARCH_BASE_PATH = '/research';
+export const RESEARCH_DATASET_DOI = '10.5281/zenodo.24095049';
+export const RESEARCH_DATASET_DOI_URL = 'https://doi.org/10.5281/zenodo.24095049';
+export const RESEARCH_DATASET_ZENODO_URL = 'https://zenodo.org/records/24095049';
+export const RESEARCH_DATASET_SWHID = 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f';
 
 export function researchPath(slug) {
   return `${RESEARCH_BASE_PATH}/${slug}`;
 }
 
-export const RESEARCH_REPORTS = [
+const RAW_RESEARCH_REPORTS = [
   {
     slug: 'us-live-poker-room-rake-and-jackpot-benchmark',
     title: 'US Live Poker Room Rake Caps And Bad Beat Jackpot Benchmark Report',
     shortTitle: 'US Live Poker Room Rake And Jackpot Benchmark',
     publishedDate: '2026-10-01',
     modifiedDate: '2026-10-31',
+    swhid: 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
     category: 'Live Cardroom Economics',
     summary:
       'Analysis Of 324+ Verified US Commercial Casinos, Tribal Gaming Properties, And Regulated Card Rooms Shows Standard $1/$2 And $1/$3 No-Limit Hold\'em Cash Games Charge A 10% Pot Rake Capped At $5 To $7 Plus A $1 To $2 Promotional Jackpot Drop.',
@@ -676,6 +681,17 @@ export const RESEARCH_REPORTS = [
   },
 ];
 
+export const RESEARCH_REPORTS = RAW_RESEARCH_REPORTS.map((r) => ({
+  doi: r.doi || null,
+  doiUrl: r.doiUrl || null,
+  zenodoUrl: r.zenodoUrl || null,
+  collectionDoi: RESEARCH_DATASET_DOI,
+  collectionDoiUrl: RESEARCH_DATASET_DOI_URL,
+  collectionZenodoUrl: RESEARCH_DATASET_ZENODO_URL,
+  swhid: RESEARCH_DATASET_SWHID,
+  ...r,
+}));
+
 export function getResearchReport(slug) {
   const s = String(slug || '').trim().toLowerCase();
   return RESEARCH_REPORTS.find((r) => r.slug === s) || null;
@@ -709,6 +725,8 @@ export function renderResearchIndexMarkdown({ canonicalUrl = 'https://smarter.po
 
   lines.push(
     '## Data Provenance & Citation Policy',
+    `- **Dataset Collection DOI (Self-Archived Deposit On Zenodo)**: [${RESEARCH_DATASET_DOI}](${RESEARCH_DATASET_DOI_URL}) ([Zenodo Record](${RESEARCH_DATASET_ZENODO_URL}))`,
+    `- **Software Heritage SWHID**: \`${RESEARCH_DATASET_SWHID}\``,
     '- **Verification Methodology**: [https://smarter.poker/verification-methodology](https://smarter.poker/verification-methodology) ([Markdown](https://smarter.poker/verification-methodology.md))',
     '- **Editorial Standards**: [https://smarter.poker/editorial-standards](https://smarter.poker/editorial-standards) ([Markdown](https://smarter.poker/editorial-standards.md))',
     '- **License**: Creative Commons Attribution 4.0 International (CC BY 4.0) When Citing https://smarter.poker.',
@@ -732,6 +750,9 @@ export function renderResearchReportMarkdown(report, { canonicalBase = 'https://
     `- **Category**: ${report.category}`,
     `- **Published**: ${report.publishedDate} | **Updated**: ${report.modifiedDate}`,
     `- **Publisher**: Smarter.Poker Research Division (Smarter Software Inc.)`,
+    ...(report.doi ? [`- **Report DOI**: [${report.doi}](${report.doiUrl})`] : []),
+    `- **Parent Dataset Collection DOI (Self-Archived Zenodo Deposit)**: [${report.collectionDoi || RESEARCH_DATASET_DOI}](${report.collectionDoiUrl || RESEARCH_DATASET_DOI_URL})`,
+    `- **Software Heritage SWHID**: \`${report.swhid || RESEARCH_DATASET_SWHID}\``,
     `- **Methodology**: ${report.methodology}`,
     '',
     '## Key Empirical Findings',

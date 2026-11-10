@@ -306,3 +306,5 @@ export function selectServedOptions(readableActions, optimalAction, maxOptions =
         gtoFrequencies,
     };
 }
+
+export { resolveSyncedHandForTrainingDrill } from '../lib/training/syncedHandDrillResolver.js';

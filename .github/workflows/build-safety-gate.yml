@@ -1485,6 +1485,7 @@ jobs:
             __tests__/horses-phase11-incident-acknowledgement.test.mjs \
             __tests__/scroll-lock.test.mjs \
             __tests__/union-settlement-math.test.mjs \
+            __tests__/union-leave-read-errors.test.mjs \
             __tests__/public-shell-precache.test.mjs \
             __tests__/manifest-icons.test.mjs \
             __tests__/fixed-elements-stay-fixed.test.mjs \

@@ -132,6 +132,9 @@ export function normalizeTrainingSessionConfig(input = {}, defaults = {}) {
     ...(typeof source.duelToken === 'string' && source.duelToken.trim()
       ? { duelToken: source.duelToken.trim() }
       : {}),
+    ...(typeof source.syncedHandId === 'string' && source.syncedHandId.trim()
+      ? { syncedHandId: source.syncedHandId.trim() }
+      : {}),
     feedbackRule: 'every',
     autoAdvanceUI: 'off',
     autoAdvance: false,

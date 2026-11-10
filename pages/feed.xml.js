@@ -13,6 +13,8 @@ import { RESEARCH_REPORTS, researchPath } from '../src/content/research/reports.
 import { POKER_RULES, rulePath } from '../src/content/rules/rules.js';
 import { POKER_VARIANTS, gameVariantPath } from '../src/content/games/variants.js';
 import { POKER_MARKET_GUIDES, marketGuidePath } from '../src/content/guides/markets.js';
+import { HAND_MATCHUPS, matchupPath } from '../src/content/learn/matchups.js';
+import { SERIES_GUIDES, seriesGuidePath } from '../src/content/guides/seriesGuides.js';
 import { SITE_URL, sendSitemapXmlResponse } from '../src/lib/seo/sitemapBuilders.mjs';
 import { xmlEscape } from '../src/lib/videoLibraryWatch.mjs';
 
@@ -103,7 +105,7 @@ const TOOL_ITEMS = [
     {
         title: 'Free Poker Tools, GTO Solvers & Math Calculators Directory',
         link: `${SITE_URL}/tools`,
-        description: 'Master Directory Of 16 Interactive Poker Math Calculators, GTO Preflop Range Matrices, ICM Deal Solvers, And Bankroll Variance Engines.',
+        description: 'Master Directory Of 24 Interactive Poker Math Calculators, GTO Preflop Range Matrices, ICM Deal Solvers, And Bankroll Variance Engines.',
         category: 'Poker Tools',
         pubDate: LEARN_MODIFIED,
     },
@@ -203,6 +205,76 @@ const TOOL_ITEMS = [
         link: `${SITE_URL}/tools/3bet-calculator`,
         description: 'Calculate Solver-Backed IP/OOP 3-Bet And 4-Bet Sizing, Break-Even Fold Equity, And Value-To-Bluff Ratios.',
         category: 'Poker Tools',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'Final Table Deal & ICM Chop Calculator',
+        link: `${SITE_URL}/tools/chop-calculator`,
+        description: 'Compare Exact Malmuth-Harville ICM Chop, Linear Chip Chop, And Save-Amount Final Table Deal Payouts.',
+        category: 'Poker Tools',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'Poker Variance, Downswing & Confidence Simulator',
+        link: `${SITE_URL}/tools/variance-calculator`,
+        description: 'Simulate Winrate Confidence Intervals, Probability Of Loss, And Expected Downswings In Buy-Ins.',
+        category: 'Poker Tools',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'Postflop Poker Outs & Draw Probability Calculator',
+        link: `${SITE_URL}/tools/outs-calculator`,
+        description: 'Calculate Exact Hypergeometric Turn, River, And Flop-To-River Draw Odds Alongside The Rule Of 4 And 2.',
+        category: 'Poker Tools',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'US Poker Tax, Form W-2G & Session Deduction Calculator',
+        link: `${SITE_URL}/tools/poker-tax-calculator`,
+        description: 'Estimate IRS Form W-2G Tournament Thresholds ($5,000) And Recreational Vs Professional Session Tax Deductions.',
+        category: 'Poker Tools',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'Poker Tournament Staking, Markup & Investor Split Calculator',
+        link: `${SITE_URL}/tools/staking-calculator`,
+        description: 'Compute Staking Markup Breakeven ROI, Investor Share Costs, And Post-Series Payout Splits.',
+        category: 'Poker Tools',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'Pre-Flop Isolation Raise (ISO) & Limper Sizing Calculator',
+        link: `${SITE_URL}/tools/iso-calculator`,
+        description: 'Calculate Optimal Pre-Flop Isolation Raise Sizing Against Live And Online Limpers With Resulting Flop SPR.',
+        category: 'Poker Tools',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'Home Game Chip Set Denomination & Setup Calculator',
+        link: `${SITE_URL}/tools/home-game-kit`,
+        description: 'Compute Optimal 300, 500, And 1,000 Piece Chip Set Breakdowns And Printable Home Game House Rules.',
+        category: 'Poker Tools',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'Poker Format Selector & 7-Day Study Roadmap Quiz',
+        link: `${SITE_URL}/tools/format-quiz`,
+        description: 'Match Your Session Schedule, Bankroll Cushion, And Risk Tolerance To Your Optimal Poker Format And Study Plan.',
+        category: 'Poker Tools',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'First-Time Live Casino Poker Room Etiquette & Tipping Guide',
+        link: `${SITE_URL}/poker-rooms/first-time-guide`,
+        description: 'Interactive First-Time Live Casino Poker Room Guide With Dealer Tipping Calculator, Chip Denominations, And Etiquette.',
+        category: 'Live Poker Guides',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'Smarter.Poker Official Press Kit & 2026 Industry Benchmarks',
+        link: `${SITE_URL}/press`,
+        description: 'Quotable 2026 US Poker Industry Fast Facts, Official Brand Boilerplates, And Media Citation Snippets.',
+        category: 'Press & Media',
         pubDate: LEARN_MODIFIED,
     },
     {
@@ -333,6 +405,28 @@ export function buildRssFeedXml() {
                 guid: url,
                 description: market.summary || '',
                 category: 'Regional Live Poker Market Guides',
+                pubDate: learnDate,
+            };
+        }),
+        ...HAND_MATCHUPS.map((matchup) => {
+            const url = `${SITE_URL}${matchupPath(matchup.slug)}`;
+            return {
+                title: matchup.title,
+                link: url,
+                guid: url,
+                description: matchup.summary || '',
+                category: `Preflop Hand Matchups (${matchup.category})`,
+                pubDate: learnDate,
+            };
+        }),
+        ...SERIES_GUIDES.map((guide) => {
+            const url = `${SITE_URL}${seriesGuidePath(guide.slug)}`;
+            return {
+                title: `${guide.name} Strategy & Player Guide`,
+                link: url,
+                guid: url,
+                description: `${guide.hostVenue} (${guide.cityState}) - ${guide.buyInRange} Buy-Ins, ${guide.blindStructureRating} Structure.`,
+                category: 'Major Poker Series Guides',
                 pubDate: learnDate,
             };
         }),

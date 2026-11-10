@@ -150,6 +150,21 @@ export default function LearnIndex({ count, groups }) {
             </section>
           ))}
 
+          <section style={{ marginTop: 36, marginBottom: 24, padding: 20, background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(0, 198, 255, 0.18)', borderRadius: 12 }}>
+            <h2 style={styles.h2}>Connected Poker Tools, Matchups &amp; Field Guides</h2>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 12 }}>
+              <Link href="/tools" style={styles.tocLink}>24 Free Poker Calculators &amp; GTO Solvers</Link>
+              <Link href="/learn/matchups" style={styles.tocLink}>25 Canonical All-In Hand Matchups</Link>
+              <Link href="/learn/hands" style={styles.tocLink}>169 Starting Hand Encyclopedia</Link>
+              <Link href="/learn/poker-hand-rankings" style={styles.tocLink}>Poker Hand Rankings Cheat Sheet</Link>
+              <Link href="/poker-rooms/guides" style={styles.tocLink}>12 US Regional Poker Market Guides</Link>
+              <Link href="/poker-rooms/first-time-guide" style={styles.tocLink}>First-Time Live Poker Room Guide</Link>
+              <Link href="/poker-series/guides" style={styles.tocLink}>10 Major Poker Series Survival Guides</Link>
+              <Link href="/research" style={styles.tocLink}>Open Poker Research &amp; Datasets</Link>
+              <Link href="/compare" style={styles.tocLink}>30 Platform &amp; Solver Comparisons</Link>
+            </div>
+          </section>
+
           <CitationBacklinkBox
             title="Smarter.Poker Strategy Lessons & GTO Curriculum Index"
             canonicalUrl="https://smarter.poker/learn"

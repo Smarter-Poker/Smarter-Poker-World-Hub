@@ -171,8 +171,8 @@ test('Phase 4 of 6: Home Games Geo FAQPage + Host Tools and Poker Tour RFC 5545 
   assert.ok(ics.includes('DTSTART;VALUE=DATE:20260526'));
 });
 
-test('Phase 5 of 6: 26 MCP tools, Sitemaps, RSS Feed, llms.txt, and 404 recovery routes', async () => {
-  assert.equal(MCP_TOOLS.length, 26);
+test('Phase 5 of 6: 35 MCP tools, Sitemaps, RSS Feed, llms.txt, and 404 recovery routes', async () => {
+  assert.equal(MCP_TOOLS.length, 35);
 
   const sidePotRes = await executeMcpTool('calculate_side_pots', {
     contributions: [
@@ -275,9 +275,9 @@ test('Phase 6 of 6: 12-Item Master Expansion — 30 Official Rules, 15 Game Vari
   assert.ok(renderPokerHandRankingsMarkdown().includes('Royal Flush'));
   assert.ok(renderHubToolMarkdown('/learn/poker-hand-rankings').includes('2,598,960'));
 
-  // 5. Top 12 US Regional Poker Market Strategy Guides (/poker-rooms/guides and /poker-rooms/guides/[city])
+  // 5. Top 12 US Regional Poker Market Strategy Guides (/poker-rooms/guides and /poker-rooms/guides/[city]) + First-Time Guide
   assert.equal(POKER_MARKET_GUIDES.length, 12);
-  assert.equal(MARKET_GUIDE_PAGES.length, 13);
+  assert.equal(MARKET_GUIDE_PAGES.length, 14);
   assert.ok(renderMarketGuidesIndexMarkdown().includes('US Regional Live Poker Market Strategy Guides'));
   assert.ok(renderMarketGuideCityMarkdown('las-vegas-nevada').includes('Las Vegas'));
   assert.ok(renderHubToolMarkdown('/poker-rooms/guides/houston-texas').includes('Houston'));

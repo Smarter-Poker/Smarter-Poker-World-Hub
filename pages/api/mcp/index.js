@@ -17,6 +17,7 @@ import {
   MCP_TOOLS,
   MCP_PROMPTS,
   MCP_RESOURCE_TEMPLATES,
+  buildA2AAgentCard,
 } from '../../../src/lib/mcp/mcpServer.mjs';
 import { originFrom } from '../../../src/lib/poker-near-me/seriesSeo.mjs';
 
@@ -34,6 +35,10 @@ export default async function handler(req, res) {
 
   // SSE (Server-Sent Events) endpoint: GET /api/mcp or GET /api/mcp?transport=sse
   if (req.method === 'GET') {
+    if (String(req.query?.format || '').toLowerCase() === 'a2a') {
+      return res.status(200).json(buildA2AAgentCard(origin));
+    }
+
     const acceptHeader = String(req.headers.accept || '');
     const isSse = acceptHeader.includes('text/event-stream') || req.query.transport === 'sse';
 
@@ -65,14 +70,39 @@ export default async function handler(req, res) {
     return res.status(200).json({
       name: MCP_SERVER_INFO.name,
       version: MCP_SERVER_INFO.version,
+      description: 'Smarter.Poker Model Context Protocol (MCP) Server exposing 35 zero-auth poker mathematics, ICM/Chop, variance, GTO preflop, live cardroom, tax/staking, and TDA rules tools plus 15 resource templates.',
       protocolVersion: '2024-11-05',
       status: 'active',
       transport: ['http-jsonrpc', 'sse'],
+      counts: {
+        tools: MCP_TOOLS.length,
+        prompts: MCP_PROMPTS.length,
+        resourceTemplates: MCP_RESOURCE_TEMPLATES.length,
+      },
       endpoints: {
         jsonrpc: `${origin}/api/mcp`,
         sse: `${origin}/api/mcp?transport=sse`,
+        a2a_agent_card: `${origin}/api/mcp?format=a2a`,
         well_known: `${origin}/.well-known/mcp.json`,
         registry: `${origin}/.well-known/mcp-registry.json`,
+        glama_directory: 'https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp',
+        glama_schema: 'https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp/schema',
+      },
+      archival_identifiers: {
+        mcp_doi: '10.5281/zenodo.24095057',
+        mcp_doi_url: 'https://doi.org/10.5281/zenodo.24095057',
+        datasets_doi: '10.5281/zenodo.24095049',
+        datasets_doi_url: 'https://doi.org/10.5281/zenodo.24095049',
+        zenodo_records: [
+          'https://doi.org/10.5281/zenodo.24095049',
+          'https://doi.org/10.5281/zenodo.24095057',
+          'https://doi.org/10.5281/zenodo.24095560',
+          'https://doi.org/10.5281/zenodo.24095564',
+          'https://doi.org/10.5281/zenodo.24095597',
+          'https://doi.org/10.5281/zenodo.24095602',
+        ],
+        mcp_swhid: 'swh:1:snp:02b8992833424620305edcfb730b3cf8add15747',
+        datasets_swhid: 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
       },
       tools_available: MCP_TOOLS.map((t) => t.name),
       tools: MCP_TOOLS,

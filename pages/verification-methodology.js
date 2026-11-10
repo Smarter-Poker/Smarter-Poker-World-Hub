@@ -46,6 +46,16 @@ export function renderVerificationMethodologyMarkdown() {
     '- **No Real-Money Gambling**: Smarter.Poker Is Free To Play For Users Aged 18 And Over. Club Chips Are Play Credits With No Cash Value, And Diamonds Are A Promotional Rewards Currency.',
     '- **RFC 9116 Security Policy**: Security Researchers Can Review Our Disclosure Policy At https://smarter.poker/.well-known/security.txt.',
     '',
+    '## 5. Self-Archived Datasets & AI Tool Listings (Zenodo DOIs, Software Heritage & Glama MCP)',
+    '- **Zenodo Deposit 1 (`10.5281/zenodo.24095049`)**: [https://doi.org/10.5281/zenodo.24095049](https://doi.org/10.5281/zenodo.24095049) (Core Open Quantitative Poker Research Datasets, 15 CSV & JSON Datasets)',
+    '- **Zenodo Deposit 2 (`10.5281/zenodo.24095057`)**: [https://doi.org/10.5281/zenodo.24095057](https://doi.org/10.5281/zenodo.24095057) (30-Tool Model Context Protocol Server Archive)',
+    '- **Zenodo Deposit 3 (`10.5281/zenodo.24095560`)**: [https://doi.org/10.5281/zenodo.24095560](https://doi.org/10.5281/zenodo.24095560) (North American Live Poker Room, Regional Market & Tournament Series Benchmark Dataset)',
+    '- **Zenodo Deposit 4 (`10.5281/zenodo.24095564`)**: [https://doi.org/10.5281/zenodo.24095564](https://doi.org/10.5281/zenodo.24095564) (100BB 6-Max GTO Preflop Ranges, 169 Starting Hands & 25 Canonical Matchup Benchmarks)',
+    '- **Zenodo Deposit 5 (`10.5281/zenodo.24095597`)**: [https://doi.org/10.5281/zenodo.24095597](https://doi.org/10.5281/zenodo.24095597) (Smarter.Poker Model Context Protocol Server & OpenAPI 3.1 Specification v1.0.2)',
+    '- **Zenodo Deposit 6 (`10.5281/zenodo.24095602`)**: [https://doi.org/10.5281/zenodo.24095602](https://doi.org/10.5281/zenodo.24095602) (Official Poker Rules TDA & RROP, 15 Game Variants & 80-Term Quantitative Glossary Corpus)',
+    '- **Software Heritage SWHIDs**: `swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f` (`smarter-poker-open-datasets`) And `swh:1:snp:02b8992833424620305edcfb730b3cf8add15747` (`smarter-poker-mcp`)',
+    '- **Glama MCP Directory Listing**: [https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp](https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp)',
+    '',
   ].join('\n');
 }
 
@@ -171,6 +181,61 @@ export default function VerificationMethodologyPage() {
               Diamonds Are A Promotional Rewards Currency. Our Platform Security Contact Is Published At{' '}
               <a href="/.well-known/security.txt" style={styles.link}>Security Disclosure Policy (RFC 9116)</a>.
             </p>
+          </section>
+
+          <section style={styles.section}>
+            <h2 style={styles.h2}>5. Self-Archived Zenodo DOIs, Software Heritage SWHIDs &amp; Glama MCP Listing</h2>
+            <p style={styles.p}>
+              Quantitative Datasets, Geolocation Registries, And Model Context Protocol (MCP) Schemas Published By Smarter.Poker Are Self-Archived On Zenodo And Software Heritage, And Listed In The Glama MCP Directory:
+            </p>
+            <ul style={{ fontSize: 15, lineHeight: 1.75, color: '#c9d3e3', paddingLeft: 20 }}>
+              <li>
+                <strong>Core Open Quantitative Poker Research Datasets (15 CSV &amp; JSON Datasets):</strong>{' '}
+                <a href="https://doi.org/10.5281/zenodo.24095049" target="_blank" rel="noopener noreferrer" style={styles.link}>
+                  {'DOI: 10.5281/zenodo.24095049'}
+                </a>{' '}
+                <span>{'(Concept DOI: 10.5281/zenodo.24095048)'}</span>
+              </li>
+              <li>
+                <strong>30-Tool Model Context Protocol (MCP) Server Archive:</strong>{' '}
+                <a href="https://doi.org/10.5281/zenodo.24095057" target="_blank" rel="noopener noreferrer" style={styles.link}>
+                  {'DOI: 10.5281/zenodo.24095057'}
+                </a>{' '}
+                •{' '}
+                <a href="https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp" target="_blank" rel="noopener noreferrer" style={styles.link}>
+                  Glama MCP Directory Listing
+                </a>
+              </li>
+              <li>
+                <strong>North American Live Poker Room, Regional Market &amp; Tournament Series Benchmark Dataset:</strong>{' '}
+                <a href="https://doi.org/10.5281/zenodo.24095560" target="_blank" rel="noopener noreferrer" style={styles.link}>
+                  {'DOI: 10.5281/zenodo.24095560'}
+                </a>
+              </li>
+              <li>
+                <strong>100BB 6-Max GTO Preflop Ranges, 169 Starting Hands &amp; 25 Canonical Matchup Benchmarks:</strong>{' '}
+                <a href="https://doi.org/10.5281/zenodo.24095564" target="_blank" rel="noopener noreferrer" style={styles.link}>
+                  {'DOI: 10.5281/zenodo.24095564'}
+                </a>
+              </li>
+              <li>
+                <strong>Smarter.Poker Model Context Protocol (MCP) Server &amp; OpenAPI 3.1 Specification V1.0.2:</strong>{' '}
+                <a href="https://doi.org/10.5281/zenodo.24095597" target="_blank" rel="noopener noreferrer" style={styles.link}>
+                  {'DOI: 10.5281/zenodo.24095597'}
+                </a>
+              </li>
+              <li>
+                <strong>Official Poker Rules (TDA &amp; RROP), 15 Game Variants &amp; 80-Term Quantitative Glossary Corpus:</strong>{' '}
+                <a href="https://doi.org/10.5281/zenodo.24095602" target="_blank" rel="noopener noreferrer" style={styles.link}>
+                  {'DOI: 10.5281/zenodo.24095602'}
+                </a>
+              </li>
+              <li>
+                <strong>Software Heritage SWHIDs:</strong>{' '}
+                <code>{'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f'}</code> (Open Datasets) And{' '}
+                <code>{'swh:1:snp:02b8992833424620305edcfb730b3cf8add15747'}</code> (MCP Server)
+              </li>
+            </ul>
           </section>
 
           <CitationBacklinkBox

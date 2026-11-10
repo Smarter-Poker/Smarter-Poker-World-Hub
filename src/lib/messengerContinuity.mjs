@@ -158,8 +158,13 @@ export function createContinuityController({ actorId, workspace, storage, reques
         if (!isCurrent() || !isMessageId(conversationId) || !['draft', 'position'].includes(field)) return;
         const record = state(conversationId);
         if (equal(fieldValue(field, record[field]), value)) return false;
-        const next = { ...record[field], ...value, dirty: true, edit: (record[field].edit || 0) + 1 };
+        // A new explicit edit/scroll chooses the active device's value. Rebase
+        // on the observed revision without replaying a failed write or letting
+        // a peer replace the text currently being composed.
+        const next = { ...record[field], ...value, revision: observedRevision(record[field]),
+            conflict: false, remote: undefined, dirty: true, edit: (record[field].edit || 0) + 1 };
         if (!valid(field, next)) return;
+        if (record[field].conflict) errors.delete(`${conversationId}:${field}`);
         record[field] = next;
         remember(conversationId); notify();
         return true;

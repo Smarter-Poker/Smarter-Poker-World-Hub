@@ -18,6 +18,7 @@ export default function CitationBacklinkBox({
   summary = 'Verified poker industry benchmark data and mathematical analysis published by Smarter.Poker.',
   publishedYear = '2026',
   slug = 'smarter-poker-study',
+  doi = null,
 }) {
   const [copiedKey, setCopiedKey] = useState(null);
 
@@ -27,46 +28,85 @@ export default function CitationBacklinkBox({
   const htmlBadgeSnippet = `<a href="${canonicalUrl}" target="_blank" rel="noopener" title="${title}"><img src="${badgeUrl}" alt="${badgeLabel}: ${badgeValue}" height="28" /></a>`;
   const markdownSnippet = `[${title} (${badgeValue})](${canonicalUrl})`;
   const bbcodeSnippet = `[url=${canonicalUrl}]${title} (${badgeValue})[/url]`;
-  const journalistQuote = `According to ${title} published by Smarter.Poker (${canonicalUrl}), ${summary}`;
-  const wikipediaSnippet = `{{cite web |title=${title} |url=${canonicalUrl} |website=Smarter.Poker |publisher=Smarter Software Inc. |year=${publishedYear} |access-date=${publishedYear}-11-09}}`;
+  const doiUrl = doi ? `https://doi.org/${doi}` : null;
+  const journalistQuote = `According to ${title} published by Smarter.Poker (${canonicalUrl}${doiUrl ? `, DOI: ${doiUrl}` : ''}), ${summary}`;
+  const apaCitation = `Smarter.Poker Research Division. (${publishedYear}). ${title}. Smarter Software Inc. ${canonicalUrl}${doiUrl ? ` (DOI: ${doiUrl})` : ''}`;
+  const mlaCitation = `Smarter.Poker Research Division. "${title}." Smarter.Poker, Smarter Software Inc., ${publishedYear}, ${canonicalUrl}.${doiUrl ? ` DOI: ${doiUrl}.` : ''}`;
+  const wikipediaSnippet = `{{cite web |title=${title} |url=${canonicalUrl} |website=Smarter.Poker |publisher=Smarter Software Inc.${doi ? ` |doi=${doi}` : ''} |year=${publishedYear} |access-date=${publishedYear}-11-09}}`;
   const bibtexKey = String(slug || 'smarterpoker2026').replace(/[^a-zA-Z0-9]/g, '_');
-  const bibtexSnippet = `@techreport{${bibtexKey}_${publishedYear},\n  title = {${title}},\n  author = {{Smarter.Poker Research Division}},\n  institution = {Smarter.Poker},\n  year = {${publishedYear}},\n  url = {${canonicalUrl}}\n}`;
+  const bibtexSnippet = `@techreport{${bibtexKey}_${publishedYear},\n  title = {${title}},\n  author = {{Smarter.Poker Research Division}},\n  institution = {Smarter.Poker},\n  year = {${publishedYear}},${doi ? `\n  doi = {${doi}},` : ''}\n  url = {${canonicalUrl}}\n}`;
+
+  const safeTitle = String(title || 'Smarter.Poker Quantitative Poker Research').replace(/\|/g, '-');
+  const safeSummary = String(summary || 'Verified poker industry benchmark data and mathematical analysis published by Smarter.Poker.').replace(/\|/g, '-');
+  const redditCitation = `| Resource | Key Benchmark Summary | Source |\n| :--- | :--- | :--- |\n| **${safeTitle}** | ${safeSummary} | [Smarter.Poker: ${safeTitle}](${canonicalUrl}) |`;
+  const discordCitation = `> **${safeTitle}**\n> ${safeSummary}\n> Source: <${canonicalUrl}>`;
 
   const formats = [
     {
       key: 'html',
       label: 'HTML Contextual Backlink',
       code: htmlBacklink,
+      value: htmlBacklink,
     },
     {
       key: 'badge',
       label: 'SVG Authority Badge Embed',
       code: htmlBadgeSnippet,
+      value: htmlBadgeSnippet,
     },
     {
       key: 'markdown',
       label: 'Markdown / Substack Citation',
       code: markdownSnippet,
+      value: markdownSnippet,
+    },
+    {
+      key: 'reddit',
+      label: 'Reddit Table & Link',
+      code: redditCitation,
+      value: redditCitation,
+    },
+    {
+      key: 'discord',
+      label: 'Discord Quote & Link',
+      code: discordCitation,
+      value: discordCitation,
     },
     {
       key: 'bbcode',
       label: 'Forum BBCode (TwoPlusTwo / CardsChat)',
       code: bbcodeSnippet,
+      value: bbcodeSnippet,
     },
     {
       key: 'wikipedia',
       label: 'Wikipedia / MediaWiki Citation ({{cite web}})',
       code: wikipediaSnippet,
+      value: wikipediaSnippet,
     },
     {
       key: 'press',
       label: 'Journalist / Media Attribution Quote',
       code: journalistQuote,
+      value: journalistQuote,
+    },
+    {
+      key: 'apa',
+      label: 'APA 7th Edition Academic Citation (With DOI)',
+      code: apaCitation,
+      value: apaCitation,
+    },
+    {
+      key: 'mla',
+      label: 'MLA 9th Edition Citation (With DOI)',
+      code: mlaCitation,
+      value: mlaCitation,
     },
     {
       key: 'bibtex',
       label: 'Academic / Game Theory BibTeX',
       code: bibtexSnippet,
+      value: bibtexSnippet,
     },
   ];
 

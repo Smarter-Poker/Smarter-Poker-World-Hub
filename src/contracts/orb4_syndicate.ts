@@ -258,6 +258,10 @@ export const ManageUnionAction = z.enum([
 ]);
 
 export const UnionSettingsSchema = z.object({
+    eco_cash_enabled: z.boolean().optional(),
+    eco_cash_rate: z.number().finite().min(0).max(1).optional(),
+    eco_tournament_enabled: z.boolean().optional(),
+    eco_tournament_rate: z.number().finite().min(0).max(1).optional(),
     union_rake_hold: z.number().min(0).max(0.50).optional(),
     default_agent_commission: z.number().min(0).max(1.0).optional(),
     default_club_commission_rate: z.number().min(0.01).max(1.0).optional(),

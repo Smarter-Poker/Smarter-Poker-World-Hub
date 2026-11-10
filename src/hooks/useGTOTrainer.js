@@ -179,6 +179,7 @@ function createDeliveryFamilyKey(gameId, level, trainerConfig) {
     handSelection: String(trainerConfig?.handSelection || 'all').toLowerCase(),
     variant: String(trainerConfig?.variant || '').toLowerCase() || null,
     duelToken: String(trainerConfig?.duelToken || '').trim() || null,
+    syncedHandId: String(trainerConfig?.syncedHandId || '').trim() || null,
     custom: isCustomTrainerConfig(trainerConfig) ? {
       gameType: String(trainerConfig?.gameType || 'cash').toLowerCase(),
       stackDepth: Number(trainerConfig?.stackDepth) || 100,
@@ -989,6 +990,9 @@ export default function useGTOTrainer(
         if (trainerConfig?.duelToken && typeof trainerConfig.duelToken === 'string') {
           params.set('duelToken', trainerConfig.duelToken.trim());
         }
+        if (trainerConfig?.syncedHandId && typeof trainerConfig.syncedHandId === 'string') {
+          params.set('syncedHandId', trainerConfig.syncedHandId.trim());
+        }
 
         apiUrl = `/api/training/batch-preload?${params}`;
         console.debug(
@@ -998,7 +1002,10 @@ export default function useGTOTrainer(
 
       let data;
       let response = null;
-      const isStandardSession = !isCustomTrainerConfig(trainerConfig);
+      const isStandardSession = !isCustomTrainerConfig(trainerConfig)
+        && !trainerConfig?.syncedHandId
+        && !trainerConfig?.duelToken
+        && (!trainerConfig?.variant || trainerConfig.variant === 'nlh');
       const browserIsOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
 
       if (isStandardSession && browserIsOffline) {
@@ -1043,6 +1050,8 @@ export default function useGTOTrainer(
         }
       }
 
+      const isBoundDrillSession = Boolean(trainerConfig?.syncedHandId || trainerConfig?.duelToken);
+
       if ((response && !response.ok) || !data.questions || data.questions.length === 0) {
         const responseError = trainingApiResponseError(
           data,
@@ -1052,7 +1061,7 @@ export default function useGTOTrainer(
             : 'Custom Training questions could not be delivered.',
         );
         if (RECOVERABLE_ATTEMPT_START_CODES.has(responseError.code)) throw responseError;
-        if (!isStandardSession) {
+        if (!isStandardSession || isBoundDrillSession) {
           throw responseError;
         }
         console.warn('[GTOTrainer] Pre-load failed, using single-question mode');
@@ -1064,6 +1073,12 @@ export default function useGTOTrainer(
 
       if (!isTrainingLeaseActive(requestLease)) return;
       assertSignedTrainingDelivery(data, trainingSessionId);
+
+      if (data?.syncedHand && typeof window !== 'undefined') {
+        try {
+          window.dispatchEvent(new CustomEvent('sp-training-synced-hand', { detail: data.syncedHand }));
+        } catch (_) { /* ignore custom event error */ }
+      }
 
       if (isStandardSession) {
         if (!isTrainingLeaseActive(requestLease)) return;
@@ -1168,8 +1183,8 @@ export default function useGTOTrainer(
       if (!isTrainingLeaseActive(requestLease)) return;
       setPreloadComplete(false);
       setLoading(false);
-      if (isCustomTrainerConfig(trainerConfig)) {
-        setError(err?.message || 'Custom Training questions could not be delivered.');
+      if (isCustomTrainerConfig(trainerConfig) || trainerConfig?.syncedHandId || trainerConfig?.duelToken) {
+        setError(err?.message || 'Training questions could not be delivered.');
         return;
       }
       return fetchSingleQuestion(effectiveLevel, questionNumber);

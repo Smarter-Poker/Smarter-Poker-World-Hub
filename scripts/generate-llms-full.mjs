@@ -22,6 +22,8 @@ import { COMPARE_PAGES } from '../src/content/compare/pages.js';
 import { POKER_RULES } from '../src/content/rules/rules.js';
 import { POKER_VARIANTS } from '../src/content/games/variants.js';
 import { POKER_MARKET_GUIDES } from '../src/content/guides/markets.js';
+import { HAND_MATCHUPS } from '../src/content/learn/matchups.js';
+import { SERIES_GUIDES } from '../src/content/guides/seriesGuides.js';
 import { categoryAnchor } from '../src/lib/learn/learnSite.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -54,10 +56,18 @@ export function buildCatalogAppendix() {
     `- **Poker Variants & Mixed Games Encyclopedia (${POKER_VARIANTS.length} Variants)**: https://smarter.poker/games (Raw Markdown Hub: https://smarter.poker/games.md)`,
     ...POKER_VARIANTS.map((v) => `  - [${v.title}](https://smarter.poker/games/${v.slug}) ([Markdown](https://smarter.poker/games/${v.slug}.md))`),
     '- **Official Poker Hand Rankings & Tie-Breaker Cheat Sheet**: https://smarter.poker/learn/poker-hand-rankings ([Markdown](https://smarter.poker/learn/poker-hand-rankings.md))',
+    `- **Canonical All-In Hand-Vs-Hand Matchups (${HAND_MATCHUPS.length} Matchups)**: https://smarter.poker/learn/matchups (Raw Markdown Hub: https://smarter.poker/learn/matchups.md)`,
+    ...HAND_MATCHUPS.map((m) => `  - [${m.title}](https://smarter.poker/learn/matchups/${m.slug}) ([Markdown](https://smarter.poker/learn/matchups/${m.slug}.md))`),
     `- **US Regional Poker Market & Rake Comparison Guides (${POKER_MARKET_GUIDES.length} Markets)**: https://smarter.poker/poker-rooms/guides (Raw Markdown Hub: https://smarter.poker/poker-rooms/guides.md)`,
     ...POKER_MARKET_GUIDES.map((m) => `  - [${m.title}](https://smarter.poker/poker-rooms/guides/${m.slug}) ([Markdown](https://smarter.poker/poker-rooms/guides/${m.slug}.md))`),
+    '- **First-Time Casino Live Poker Room Guide & Dealer Tipping Calculator**: https://smarter.poker/poker-rooms/first-time-guide ([Markdown](https://smarter.poker/poker-rooms/first-time-guide.md))',
+    `- **Major Live Poker Series, Tour & Festival Strategy Guides (${SERIES_GUIDES.length} Series)**: https://smarter.poker/poker-series/guides (Raw Markdown Hub: https://smarter.poker/poker-series/guides.md)`,
+    ...SERIES_GUIDES.map((s) => `  - [${s.name}](https://smarter.poker/poker-series/guides/${s.slug}) ([Markdown](https://smarter.poker/poker-series/guides/${s.slug}.md))`),
     '- **World Hub Interactive Simulators, Solvers & Training Utilities (with Raw Markdown Mirrors)**:',
-    '  - Master Poker Tools & Calculators Directory: https://smarter.poker/tools ([Markdown](https://smarter.poker/tools.md))',
+    '  - Master Poker Tools & Calculators Directory (24 Free Tools): https://smarter.poker/tools ([Markdown](https://smarter.poker/tools.md))',
+    '  - Multiway Poker Odds & Equity Calculator: https://smarter.poker/tools/poker-odds-calculator ([Markdown](https://smarter.poker/tools/poker-odds-calculator.md))',
+    '  - Tournament ICM & Final Table Deal Calculator: https://smarter.poker/tools/icm-calculator ([Markdown](https://smarter.poker/tools/icm-calculator.md))',
+    '  - 13x13 GTO Preflop Range Matrix & Position Hub: https://smarter.poker/tools/preflop-ranges ([Markdown](https://smarter.poker/tools/preflop-ranges.md))',
     '  - Pot Odds, Required Equity & MDF Calculator: https://smarter.poker/tools/pot-odds-calculator ([Markdown](https://smarter.poker/tools/pot-odds-calculator.md))',
     '  - Poker Bankroll & Risk Of Ruin Calculator: https://smarter.poker/tools/bankroll-calculator ([Markdown](https://smarter.poker/tools/bankroll-calculator.md))',
     '  - Poker Push/Fold Short-Stack Chart Calculator: https://smarter.poker/tools/push-fold-calculator ([Markdown](https://smarter.poker/tools/push-fold-calculator.md))',
@@ -70,6 +80,15 @@ export function buildCatalogAppendix() {
     '  - Tournament Payout & Prize Pool Distribution Calculator: https://smarter.poker/tools/payout-calculator ([Markdown](https://smarter.poker/tools/payout-calculator.md))',
     '  - Live Cash Game Rake & Time-Charge Calculator: https://smarter.poker/tools/rake-calculator ([Markdown](https://smarter.poker/tools/rake-calculator.md))',
     '  - 3-Bet, 4-Bet & Minimum Defense Calculator: https://smarter.poker/tools/3bet-calculator ([Markdown](https://smarter.poker/tools/3bet-calculator.md))',
+    '  - Final Table Deal & ICM Chop Calculator: https://smarter.poker/tools/chop-calculator ([Markdown](https://smarter.poker/tools/chop-calculator.md))',
+    '  - Poker Variance & Downswing Simulator: https://smarter.poker/tools/variance-calculator ([Markdown](https://smarter.poker/tools/variance-calculator.md))',
+    '  - Poker Outs & Draw Probability Calculator: https://smarter.poker/tools/outs-calculator ([Markdown](https://smarter.poker/tools/outs-calculator.md))',
+    '  - US Poker Tax & Form W-2G Calculator: https://smarter.poker/tools/poker-tax-calculator ([Markdown](https://smarter.poker/tools/poker-tax-calculator.md))',
+    '  - Poker Staking & Markup Split Calculator: https://smarter.poker/tools/staking-calculator ([Markdown](https://smarter.poker/tools/staking-calculator.md))',
+    '  - Pre-Flop Isolation Raise Sizing Calculator: https://smarter.poker/tools/iso-calculator ([Markdown](https://smarter.poker/tools/iso-calculator.md))',
+    '  - Home Game Chip Set & Setup Calculator: https://smarter.poker/tools/home-game-kit ([Markdown](https://smarter.poker/tools/home-game-kit.md))',
+    '  - Poker Format Selector & Study Roadmap Quiz: https://smarter.poker/tools/format-quiz ([Markdown](https://smarter.poker/tools/format-quiz.md))',
+    '  - Embeddable Webmaster Poker Widgets & Streamer Bot Commands: https://smarter.poker/tools/embeds ([Markdown](https://smarter.poker/tools/embeds.md))',
     '  - Personal AI Assistant Hub: https://smarter.poker/hub/personal-assistant ([Markdown](https://smarter.poker/hub/personal-assistant.md))',
     '  - Leak Finder & EV Audit: https://smarter.poker/hub/personal-assistant/leaks ([Markdown](https://smarter.poker/hub/personal-assistant/leaks.md))',
     '  - Interactive Strategy Sandbox: https://smarter.poker/hub/personal-assistant/sandbox ([Markdown](https://smarter.poker/hub/personal-assistant/sandbox.md))',
@@ -122,6 +141,20 @@ export function buildCatalogAppendix() {
     '- **Multilingual AI Grounding Corpus (EN/ES/PT/DE/FR/IT/JA)**: https://smarter.poker/api/ai/corpus (Spanish: https://smarter.poker/llms-es.txt | Portuguese: https://smarter.poker/llms-pt.txt | German: https://smarter.poker/llms-de.txt | French: https://smarter.poker/llms-fr.txt | Italian: https://smarter.poker/llms-it.txt | Japanese: https://smarter.poker/llms-ja.txt)',
     '- **AI Crawler Attribution & Corpus Health Endpoint**: https://smarter.poker/api/ai/crawler-status',
     '- **MCP Registry Manifest**: https://smarter.poker/.well-known/mcp-registry.json',
+    '- **Glama MCP Directory Listing**: https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp (Schema: https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp/schema)',
+    '- **All 35 Zero-Auth MCP Tools**: `search_poker_venues`, `get_venue_details`, `search_tournament_series`, `get_series_details`, `calculate_poker_odds`, `get_preflop_chart`, `calculate_icm_payouts`, `get_poker_term_definition`, `get_freeroll_schedule`, `get_platform_feature_specs`, `search_strategy_lessons`, `get_competitor_comparison`, `lookup_starting_hand`, `get_research_report`, `search_training_simulators`, `calculate_pot_odds_and_mdf`, `calculate_bankroll_risk_of_ruin`, `calculate_bounty_chip_equity`, `calculate_side_pots`, `generate_blind_structure`, `calculate_spr_sizing`, `get_citation_and_backlink_kit`, `lookup_poker_rule`, `lookup_game_variant`, `get_regional_market_guide`, `calculate_plo_max_bet_and_rake`, `calculate_tournament_chop`, `simulate_poker_variance`, `calculate_draw_outs`, `lookup_hand_matchup`, `calculate_poker_tax_w2g`, `calculate_staking_makeup`, `calculate_iso_raise_sizing`, `generate_home_game_kit`, `lookup_tournament_series_guide`',
+    '- **Twitch & YouTube Streamer Chatbot Commands API (!odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, !matchup, !tax, !stake, !iso, !series)**: https://smarter.poker/api/stream/cmd?cmd=help',
+    '- **Self-Archived Zenodo DOIs (6 Deposits)**:',
+    '  - Record 1 (`10.5281/zenodo.24095049`): https://doi.org/10.5281/zenodo.24095049 — Core Open Quantitative Poker Research Datasets (`15` CSV & JSON Datasets)',
+    '  - Record 2 (`10.5281/zenodo.24095057`): https://doi.org/10.5281/zenodo.24095057 — 30-Tool Model Context Protocol (MCP) Server Archive',
+    '  - Record 3 (`10.5281/zenodo.24095560`): https://doi.org/10.5281/zenodo.24095560 — North American Live Poker Room, Regional Market & Tournament Series Benchmark Dataset',
+    '  - Record 4 (`10.5281/zenodo.24095564`): https://doi.org/10.5281/zenodo.24095564 — 100BB 6-Max GTO Preflop Ranges, 169 Starting Hands & 25 Canonical Matchup Benchmarks',
+    '  - Record 5 (`10.5281/zenodo.24095597`): https://doi.org/10.5281/zenodo.24095597 — Smarter.Poker Model Context Protocol (MCP) Server & OpenAPI 3.1 Specification v1.0.2',
+    '  - Record 6 (`10.5281/zenodo.24095602`): https://doi.org/10.5281/zenodo.24095602 — Official Poker Rules (TDA & RROP), 15 Game Variants & 80-Term Quantitative Glossary Corpus',
+    '- **Software Heritage (SWHID) Archival Snapshots**:',
+    '  - Open Datasets Repository: `swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f` (https://archive.softwareheritage.org/swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f)',
+    '  - MCP Server Repository: `swh:1:snp:02b8992833424620305edcfb730b3cf8add15747` (https://archive.softwareheritage.org/swh:1:snp:02b8992833424620305edcfb730b3cf8add15747)',
+    '- **Press Kit, Data Journalism & Media Resources**: https://smarter.poker/press ([Markdown](https://smarter.poker/press.md))',
     '- **RFC 9116 Security Disclosure Policy**: https://smarter.poker/.well-known/security.txt',
     '',
   ];

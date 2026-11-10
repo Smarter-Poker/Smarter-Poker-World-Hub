@@ -21,4 +21,31 @@ Club Arena migration `20261109224532_bug_reports_reach_the_owner_messenger_and_p
 - First PR head 97993cf: Pre-Deploy Safety Checks failed in the phantom-table step, which compares queried tables with the live schema: `bug_report_routing` and `bug_report_deliveries` did not exist in production because the Club Arena migration was not installed. The check was correct and was not changed; the cause is deploy order.
 - Local, final candidate: `node --test __tests__/messenger-bug-report-owner-inbox.test.mjs` 15 of 15, including: opening the newer report leaves the older one unread across a reload; non-recipient and no-session requests; every failed read answers 503, is reported and never carries `owner: false`.
 
-Merge, deployment and live verification are recorded in the delivery section once observed.
+## Delivery (observed, November 10, 2026 UTC)
+
+- PR: Smarter-Poker-World-Hub #2754, branch `feat/messenger-bug-report-owner-inbox`, final head 90bf70d.
+- Installed prerequisite: migration 20261109224532 present in `schema_migrations`; one routing row with a conversation (read back after Club Arena #10243 merged).
+- Checks: all eight required contexts green on 90bf70d. Pre-Deploy Safety Checks passed on one re-run after the migration was installed; no gate, baseline or allowlist was changed.
+- Merged: protected squash cc92609f213b4fcd06cdc13cb00cf0e5eb8cc10a at 00:28:53Z.
+- Published: Vercel `hub-vanguard` deployment dpl_BNTR9Ecgvnahg2N5b7CWkh5eJs75, production, READY, Git revision cc92609, aliased to smarter.poker. `https://smarter.poker/api/health` reported that revision and deployment id at 00:33:48Z.
+- Verified live, production route `POST /api/messenger/bug-reports`: no session 401 (list and read_all), invalid bearer 401, GET 405.
+- Verified live, database boundary (read-only, role `authenticated` with a non-recipient, non-admin subject): zero `bug_report_deliveries` rows visible; `authenticated` and `anon` hold no SELECT on `bug_report_routing`; `anon` holds no SELECT on `bug_report_deliveries`.
+- Rendered check, headless Chrome 375 by 667, real component with a stubbed API: list, detail, badge 2 to 1 after opening the newest report with the older one still unread, Bug Inbox Unavailable with retry for a remembered recipient, plain form for an unconfirmed account, no horizontal overflow, no console errors.
+
+## Recipient View, Observed By The Coordinator On Production
+
+Signed-in recipient session on `/hub/messenger`, production revision cc92609, about 00:34 to 00:38Z November 10, 2026:
+
+- Report A Bug opened the Bug Reports dialog, All Caught Up, with the two existing reports listed.
+- After two labelled test reports were filed, the rail button went from no badge to two unread without a reload, and both rows showed New.
+- Opening the newer report showed its reference, reporter, priority, page, reported time, description and the Open In Messenger, Open Ticket Queue and Open Reporter Profile buttons. The badge became one unread and the older report stayed unread.
+- The database agreed: a read row for the opened report and none for the other.
+- After a full reload the badge still showed one unread. No Bug Inbox Unavailable notice appeared.
+- Each of the four delivered reports had exactly one Messenger message and one push, sent on the first attempt.
+
+## Not Observed Live
+
+- An authenticated non-recipient request to the route on production, and an ordinary account's unchanged form in a browser. No non-recipient session was available to this lane or the coordinator; the handler path and the widget fallback are pinned by the focused test and the rendered check only. The unauthenticated refusals and the database boundary above were observed live.
+- The Bug Inbox Unavailable state on production. It was exercised in the rendered check only.
+
+Follow-up record: the delivery section above was merged by #2758 (099963883c2000ca1b71cf6e32ba89f6f91cd641), documentation only.

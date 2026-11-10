@@ -216,8 +216,23 @@ export default function PokerMarketGuidesIndexPage() {
             <Link href="/hub/poker-near-me" style={{ padding: '8px 14px', background: '#25c8ff', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Poker Near Me (324+ Live Venues)
             </Link>
+            <Link href="/poker-rooms/first-time-guide" style={{ padding: '8px 14px', background: '#020608', color: '#25c8ff', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+              First-Time Live Poker Room Survival Guide
+            </Link>
+            <Link href="/poker-series/guides" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+              10 Major Poker Series Survival Guides
+            </Link>
             <Link href="/research/us-live-poker-room-rake-and-jackpot-benchmark" style={{ padding: '8px 14px', background: '#020608', color: '#f2b84b', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               US Live Poker Room Rake Benchmark Study
+            </Link>
+            <Link href="/tools" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+              24 Free Poker Calculators &amp; Tools
+            </Link>
+            <Link href="/learn" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+              GTO Strategy Academy
+            </Link>
+            <Link href="/learn/matchups" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+              25 All-In Hand Matchups
             </Link>
             <Link href="/tools/rake-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Interactive Rake &amp; Time Calculator

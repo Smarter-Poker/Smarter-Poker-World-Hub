@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Head from 'next/head';
 import SEOHead, { schemas } from '../../src/components/seo/SEOHead';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { DEAD_TOOL_REPLACEMENTS } from '../../src/lib/seo/backlinkCatalog.mjs';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { Code, Copy, Check, ExternalLink, ShieldCheck, Zap } from 'lucide-react';
 
@@ -157,7 +158,89 @@ const WIDGETS = [
     width: '100%',
     creditAnchor: 'Smarter.Poker GTO 3-Bet & 4-Bet Calculator',
   },
+  {
+    id: 'chop-calculator',
+    title: 'Final Table Deal & ICM Chop Calculator',
+    description: 'Compares exact Malmuth-Harville ICM chop, linear chip chop, and hybrid save-amount final table deal payouts side by side.',
+    embedUrl: 'https://smarter.poker/tools/chop-calculator?embed=true',
+    landerUrl: 'https://smarter.poker/tools/chop-calculator',
+    height: 780,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Final Table ICM Chop Calculator',
+  },
+  {
+    id: 'variance-calculator',
+    title: 'Poker Variance & Downswing Simulator',
+    description: 'Calculates 1-SD, 2-SD, and 3-SD winrate confidence intervals, probability of loss, and expected downswing thresholds across any hand sample.',
+    embedUrl: 'https://smarter.poker/tools/variance-calculator?embed=true',
+    landerUrl: 'https://smarter.poker/tools/variance-calculator',
+    height: 760,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Variance & Downswing Simulator',
+  },
+  {
+    id: 'outs-calculator',
+    title: 'Poker Outs & Draw Probability Calculator',
+    description: 'Computes exact hypergeometric turn, river, and combined flop-to-river draw equity, Rule of 4 and 2 error, and minimum implied odds.',
+    embedUrl: 'https://smarter.poker/tools/outs-calculator?embed=true',
+    landerUrl: 'https://smarter.poker/tools/outs-calculator',
+    height: 740,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Outs & Draw Probability Calculator',
+  },
+  {
+    id: 'poker-tax-calculator',
+    title: 'US Poker Tax & Form W-2G Calculator',
+    description: 'Estimates US federal poker taxes, IRS Form W-2G $5,000 net tournament triggers, and Schedule A vs Schedule C session deductions.',
+    embedUrl: 'https://smarter.poker/tools/poker-tax-calculator?embed=true',
+    landerUrl: 'https://smarter.poker/tools/poker-tax-calculator',
+    height: 780,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker US Poker Tax & Form W-2G Calculator',
+  },
+  {
+    id: 'staking-calculator',
+    title: 'Poker Staking & Markup Split Calculator',
+    description: 'Calculates tournament staking markup, investor share cost, package EV breakeven ROI, and post-series payout splits.',
+    embedUrl: 'https://smarter.poker/tools/staking-calculator?embed=true',
+    landerUrl: 'https://smarter.poker/tools/staking-calculator',
+    height: 760,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Staking & Markup Calculator',
+  },
+  {
+    id: 'iso-calculator',
+    title: 'Pre-Flop Isolation Raise Sizing Calculator',
+    description: 'Calculates optimal pre-flop isolation raise sizing against live and online limpers based on position, stack depth, and resulting flop SPR.',
+    embedUrl: 'https://smarter.poker/tools/iso-calculator?embed=true',
+    landerUrl: 'https://smarter.poker/tools/iso-calculator',
+    height: 740,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Pre-Flop Isolation Raise Calculator',
+  },
+  {
+    id: 'home-game-kit',
+    title: 'Home Game Chip Set & Setup Calculator',
+    description: 'Calculates per-player starting chip tube breakdowns for 300, 500, and 1,000 piece sets with color-up schedules and house rules.',
+    embedUrl: 'https://smarter.poker/tools/home-game-kit?embed=true',
+    landerUrl: 'https://smarter.poker/tools/home-game-kit',
+    height: 780,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Home Game Chip Set Calculator',
+  },
+  {
+    id: 'format-quiz',
+    title: 'Poker Format Selector & Study Roadmap Quiz',
+    description: 'Interactive 5-parameter diagnostic matching your session schedule, bankroll cushion, and variance tolerance to a 7-day study plan.',
+    embedUrl: 'https://smarter.poker/tools/format-quiz?embed=true',
+    landerUrl: 'https://smarter.poker/tools/format-quiz',
+    height: 780,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Format Selector Quiz',
+  },
 ];
+
+export const EMBEDDABLE_TOOLS = WIDGETS;
 
 export const PARTNER_BADGES = [
   {
@@ -286,6 +369,10 @@ export const STREAM_CHAT_COMMANDS = [
   {
     id: 'cmd-odds',
     command: '!odds',
+    cmd: '!odds',
+    query: 'AA vs KK',
+    desc: 'Preflop matchup & draw equity calculator',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=odds&q=AA+vs+KK',
     title: 'Preflop Matchup & Draw Equity Command (!odds AA vs KK)',
     nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=odds&q=$(querystring))',
     toolUrl: 'https://smarter.poker/tools/poker-odds-calculator',
@@ -293,6 +380,10 @@ export const STREAM_CHAT_COMMANDS = [
   {
     id: 'cmd-potodds',
     command: '!potodds',
+    cmd: '!potodds',
+    query: '100 50',
+    desc: 'Pot odds & Minimum Defense Frequency (MDF) calculator',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=potodds&q=100+50',
     title: 'Pot Odds & Minimum Defense Frequency Command (!potodds 100 50)',
     nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=potodds&q=$(querystring))',
     toolUrl: 'https://smarter.poker/tools/pot-odds-calculator',
@@ -300,6 +391,10 @@ export const STREAM_CHAT_COMMANDS = [
   {
     id: 'cmd-pushfold',
     command: '!pushfold',
+    cmd: '!pushfold',
+    query: '10 BTN',
+    desc: '10BB short-stack Nash push/fold range solver',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=pushfold&q=10+BTN',
     title: '10BB Short-Stack Nash Push/Fold Command (!pushfold)',
     nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=pushfold&q=$(querystring))',
     toolUrl: 'https://smarter.poker/tools/push-fold-calculator',
@@ -307,6 +402,10 @@ export const STREAM_CHAT_COMMANDS = [
   {
     id: 'cmd-icm',
     command: '!icm',
+    cmd: '!icm',
+    query: '40,30,20,10',
+    desc: 'Tournament final table ICM bubble factor & payout equity',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=icm&q=40,30,20,10',
     title: 'Tournament Final Table ICM Bubble Factor Command (!icm)',
     nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=icm&q=$(querystring))',
     toolUrl: 'https://smarter.poker/tools/icm-calculator',
@@ -314,6 +413,10 @@ export const STREAM_CHAT_COMMANDS = [
   {
     id: 'cmd-bounty',
     command: '!bounty',
+    cmd: '!bounty',
+    query: '100 50 10000',
+    desc: 'PKO & Mystery Bounty chip equivalent & odds discount',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=bounty&q=100+50+10000',
     title: 'PKO & Mystery Bounty Chip Equivalent Command (!bounty)',
     nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=bounty&q=$(querystring))',
     toolUrl: 'https://smarter.poker/tools/bounty-calculator',
@@ -321,6 +424,10 @@ export const STREAM_CHAT_COMMANDS = [
   {
     id: 'cmd-winrate',
     command: '!winrate',
+    cmd: '!winrate',
+    query: '5 85',
+    desc: 'Poker bankroll Risk of Ruin & BB/100 variance calculator',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=winrate&q=5+85',
     title: 'Poker Bankroll Risk Of Ruin & Variance Command (!winrate)',
     nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=winrate&q=$(querystring))',
     toolUrl: 'https://smarter.poker/tools/poker-winrate-calculator',
@@ -328,6 +435,10 @@ export const STREAM_CHAT_COMMANDS = [
   {
     id: 'cmd-plo',
     command: '!plo',
+    cmd: '!plo',
+    query: '100 50',
+    desc: 'Pot-Limit Omaha max raise (3x + trail + pot) calculator',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=plo&q=100+50',
     title: 'Pot-Limit Omaha Max Raise (3x + Trail + Pot) Command (!plo)',
     nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=plo&q=$(querystring))',
     toolUrl: 'https://smarter.poker/tools/plo-bet-calculator',
@@ -335,6 +446,10 @@ export const STREAM_CHAT_COMMANDS = [
   {
     id: 'cmd-rake',
     command: '!rake',
+    cmd: '!rake',
+    query: '10 5 7',
+    desc: 'Live cash game rake cap vs time collection analyzer',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=rake&q=10+5+7',
     title: 'Live Cash Game Rake Cap Vs. Time Collection Command (!rake)',
     nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=rake&q=$(querystring))',
     toolUrl: 'https://smarter.poker/tools/rake-calculator',
@@ -342,6 +457,10 @@ export const STREAM_CHAT_COMMANDS = [
   {
     id: 'cmd-3bet',
     command: '!3bet',
+    cmd: '!3bet',
+    query: '2.5 IP',
+    desc: 'Solver-approved IP/OOP 3-bet & 4-bet sizing calculator',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=3bet&q=2.5+IP',
     title: 'Solver-Approved IP/OOP 3-Bet & 4-Bet Sizing Command (!3bet)',
     nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=3bet&q=$(querystring))',
     toolUrl: 'https://smarter.poker/tools/3bet-calculator',
@@ -349,11 +468,105 @@ export const STREAM_CHAT_COMMANDS = [
   {
     id: 'cmd-rule',
     command: '!rule',
+    cmd: '!rule',
+    query: 'one-chip',
+    desc: 'Official Poker TDA & RROP floor rulings lookup',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=rule&q=one-chip',
     title: 'Official Poker TDA & RROP Floor Rulings Command (!rule)',
     nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=rule&q=$(querystring))',
     toolUrl: 'https://smarter.poker/rules',
   },
+  {
+    id: 'cmd-chop',
+    command: '!chop',
+    cmd: '!chop',
+    query: '50000,30000,20000 5000,3000,2000',
+    desc: 'Final table ICM chop & chip chop deal calculator',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=chop&q=50000,30000,20000+5000,3000,2000',
+    title: 'Final Table ICM Chop & Chip Chop Deal Command (!chop 50000,30000,20000 5000,3000,2000)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=chop&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/tools/chop-calculator',
+  },
+  {
+    id: 'cmd-outs',
+    command: '!outs',
+    cmd: '!outs',
+    query: '9 flop',
+    desc: 'Exact hypergeometric poker draw outs & Rule of 2 and 4',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=outs&q=9+flop',
+    title: 'Exact Hypergeometric Poker Draw Outs Command (!outs 9 flop)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=outs&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/tools/outs-calculator',
+  },
+  {
+    id: 'cmd-variance',
+    command: '!variance',
+    cmd: '!variance',
+    query: '5 85 50000',
+    desc: 'Poker winrate confidence interval & downswing simulator',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=variance&q=5+85+50000',
+    title: 'Poker Winrate Confidence Interval & Downswing Command (!variance 5 85 50000)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=variance&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/tools/variance-calculator',
+  },
+  {
+    id: 'cmd-matchup',
+    command: '!matchup',
+    cmd: '!matchup',
+    query: 'aa-vs-kk',
+    desc: 'Canonical preflop hand-vs-hand equity lookup',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=matchup&q=aa-vs-kk',
+    title: 'Canonical Preflop Hand-Vs-Hand Equity Command (!matchup aa-vs-kk)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=matchup&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/learn/matchups',
+  },
+  {
+    id: 'cmd-tax',
+    command: '!tax',
+    cmd: '!tax',
+    query: 'net=25000&losses=10000',
+    desc: 'US poker tax & IRS $5,000 Form W-2G withholding calculator',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=tax&q=net=25000',
+    title: 'US Poker Tax & IRS $5,000 Form W-2G Withholding Command (!tax net=25000&losses=10000)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=tax&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/tools/poker-tax-calculator',
+  },
+  {
+    id: 'cmd-stake',
+    command: '!stake',
+    cmd: '!stake',
+    query: 'buyin=1000&markup=1.2&sold=50',
+    desc: 'Tournament staking markup, breakeven ROI & payout split',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=stake&q=1000+1.2+50',
+    title: 'Tournament Staking Markup, Breakeven ROI & Payout Split Command (!stake 1000 1.2 50)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=stake&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/tools/staking-calculator',
+  },
+  {
+    id: 'cmd-iso',
+    command: '!iso',
+    cmd: '!iso',
+    query: 'limpers=2&oop=true',
+    desc: 'Pre-flop limper isolation raise sizing & flop SPR',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=iso&q=2',
+    title: 'Pre-Flop Limper Isolation Raise Sizing & Flop SPR Command (!iso 2)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=iso&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/tools/iso-calculator',
+  },
+  {
+    id: 'cmd-series',
+    command: '!series',
+    cmd: '!series',
+    query: 'wsop-las-vegas',
+    desc: 'Major poker tournament series structure & survival guide',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=series&q=wsop-las-vegas',
+    title: 'Major Poker Tournament Series Structure & Survival Guide Command (!series wsop-las-vegas)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=series&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/poker-series/guides',
+  },
 ];
+
+export const STREAMER_COMMANDS = STREAM_CHAT_COMMANDS;
 
 export async function getServerSideProps({ req, res, query }) {
   const acceptHeader = String(req?.headers?.accept || '');
@@ -373,12 +586,88 @@ export async function getServerSideProps({ req, res, query }) {
   return { props: {} };
 }
 
+const WIDGET_CATEGORY_MAP = {
+  'odds-calculator': 'equity',
+  'preflop-ranges': 'equity',
+  'pot-odds-calculator': 'equity',
+  'spr-calculator': 'equity',
+  '3bet-calculator': 'equity',
+  'outs-calculator': 'equity',
+  'icm-calculator': 'tournament',
+  'push-fold-calculator': 'tournament',
+  'bounty-calculator': 'tournament',
+  'blind-structure-calculator': 'tournament',
+  'payout-calculator': 'tournament',
+  'chop-calculator': 'tournament',
+  'staking-calculator': 'tournament',
+  'format-quiz': 'tournament',
+  'side-pot-calculator': 'cash',
+  'plo-bet-calculator': 'cash',
+  'rake-calculator': 'cash',
+  'iso-calculator': 'cash',
+  'poker-winrate-calculator': 'cash',
+  'bankroll-calculator': 'bankroll',
+  'variance-calculator': 'bankroll',
+  'poker-tax-calculator': 'bankroll',
+  'home-game-kit': 'bankroll',
+};
+
 export default function WebmasterEmbedPortal() {
   const [copiedId, setCopiedId] = useState(null);
+  const [embedFormat, setEmbedFormat] = useState('iframe');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [partnerDomain, setPartnerDomain] = useState('');
+  const [botPlatform, setBotPlatform] = useState('nightbot');
+  const [previewWidgetId, setPreviewWidgetId] = useState(null);
+
+  const cleanPartner = String(partnerDomain || '')
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/[^a-z0-9._-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 64);
 
   const getEmbedCode = (widget) => {
-    return `<iframe src="${widget.embedUrl}" width="${widget.width}" height="${widget.height}" frameborder="0" style="border:0;border-radius:12px;overflow:hidden;max-width:100%;" title="${widget.title}"></iframe>\n<p style="font-size:12px;text-align:center;color:#94AFCC;margin-top:6px;">Powered By <a href="${widget.landerUrl}" target="_blank" rel="noopener" style="color:#4E9CFF;text-decoration:none;font-weight:600;">${widget.creditAnchor}</a></p>`;
+    const utmEmbed = cleanPartner ? `&utm_source=${encodeURIComponent(cleanPartner)}&utm_medium=embed` : '';
+    const utmLander = cleanPartner ? `?utm_source=${encodeURIComponent(cleanPartner)}&utm_medium=embed` : '';
+    const fullEmbedUrl = `${widget.embedUrl}${utmEmbed}`;
+    const fullLanderUrl = `${widget.landerUrl}${utmLander}`;
+
+    if (embedFormat === 'sdk') {
+      const partnerAttr = cleanPartner ? ` data-partner="${cleanPartner}"` : '';
+      return `<div data-smarter-poker-widget="${widget.id}"${partnerAttr}></div>\n<script async src="https://smarter.poker/embed-sdk.js"></script>`;
+    }
+    if (embedFormat === 'react') {
+      return `<div className="smarter-poker-widget">\n  <iframe src="${fullEmbedUrl}" width="100%" height={${widget.height}} style={{ border: 0, borderRadius: 12, overflow: 'hidden', maxWidth: '100%' }} loading="lazy" title="${widget.title}" />\n  <p style={{ fontSize: 12, textAlign: 'center', marginTop: 6 }}>Powered By <a href="${fullLanderUrl}" target="_blank" rel="noopener noreferrer">${widget.creditAnchor}</a></p>\n</div>`;
+    }
+    if (embedFormat === 'oembed') {
+      return `https://smarter.poker/api/seo/oembed?url=${encodeURIComponent(widget.landerUrl)}&format=json${cleanPartner ? `&partner=${encodeURIComponent(cleanPartner)}` : ''}`;
+    }
+    if (embedFormat === 'markdown') {
+      return `### [${widget.title}](${fullLanderUrl})\n${widget.description}\n\n[![${widget.creditAnchor}](https://smarter.poker/api/seo/badge?type=gto)](${fullLanderUrl})`;
+    }
+    if (embedFormat === 'bbcode') {
+      return `[url=${fullLanderUrl}][b]${widget.title} (${widget.creditAnchor})[/b][/url]\n${widget.description}\nLaunch Free Calculator: [url=${fullLanderUrl}]${fullLanderUrl}[/url]`;
+    }
+    return `<iframe src="${fullEmbedUrl}" width="${widget.width}" height="${widget.height}" frameborder="0" loading="lazy" style="border:0;border-radius:12px;overflow:hidden;max-width:100%;" title="${widget.title}"></iframe>\n<p style="font-size:12px;text-align:center;color:#94AFCC;margin-top:6px;">Powered By <a href="${fullLanderUrl}" target="_blank" rel="noopener" style="color:#4E9CFF;text-decoration:none;font-weight:600;">${widget.creditAnchor}</a></p>`;
   };
+
+  const getBotSyntax = (cmdItem) => {
+    const endpoint = cmdItem.nightbot.replace(/^\$\(urlfetch\s+/, '').replace(/\?\$\(querystring\)\)$/, '');
+    if (botPlatform === 'streamelements') {
+      return `\${customapi.${endpoint}&q=\${queryencode \${1:}}}`;
+    }
+    if (botPlatform === 'fossabot') {
+      return `\$(customapi ${endpoint}&q=\$(querystring))`;
+    }
+    return cmdItem.nightbot;
+  };
+
+  const visibleWidgets =
+    selectedCategory === 'all'
+      ? WIDGETS
+      : WIDGETS.filter((w) => (WIDGET_CATEGORY_MAP[w.id] || 'equity') === selectedCategory);
 
   const handleCopy = (widget) => {
     const code = getEmbedCode(widget);
@@ -422,17 +711,17 @@ export default function WebmasterEmbedPortal() {
       applicationSubCategory: 'DeveloperApplication',
       trail: [
         ['Hub', '/hub'],
-        ['Poker Tools', '/tools/poker-odds-calculator'],
+        ['Poker Tools', '/tools'],
         ['Embed Widgets', '/tools/embeds'],
       ],
       faqs: EMBEDS_FAQS,
       howTo: {
         name: 'How To Embed Smarter.Poker Calculators On Your Website',
-        description: 'Step-by-step instructions for copying and embedding all 15 responsive poker calculators, SVG badges, and Nightbot stream commands into WordPress, Ghost, Substack, or custom HTML sites.',
+        description: `Step-by-step instructions for copying and embedding all ${WIDGETS.length} responsive poker calculators, ${PARTNER_BADGES.length} SVG badges, and ${STREAM_CHAT_COMMANDS.length} Nightbot stream commands into WordPress, Ghost, Substack, or custom HTML sites.`,
         steps: [
           {
             name: 'Select A Poker Widget Or Attribution Badge',
-            text: 'Choose from any of the 15 interactive poker calculators (Multiway Odds, ICM, GTO Preflop Ranges, Pot Odds, Push/Fold, Bankroll, Bounty, Winrate, Side Pot, Blind Structure, SPR, PLO Max Bet, Payouts, Rake, or 3-Bet Sizing) or 15 SVG attribution badges.',
+            text: `Choose from any of the ${WIDGETS.length} interactive poker calculators (Multiway Odds, ICM, GTO Preflop Ranges, Pot Odds, Push/Fold, Bankroll, Bounty, Winrate, Side Pot, Blind Structure, SPR, PLO Max Bet, Payouts, Rake, 3-Bet Sizing, Final Table Chop, Variance, Draw Outs, Poker Tax, Staking, Iso-Raise, Home Game Kit, or Format Quiz), ${PARTNER_BADGES.length} SVG attribution badges, or ${STREAM_CHAT_COMMANDS.length} Nightbot/StreamElements commands.`,
           },
           {
             name: 'Copy The Responsive Iframe Or Badge Snippet',
@@ -509,12 +798,115 @@ export default function WebmasterEmbedPortal() {
           </div>
 
           <section aria-labelledby="available-widgets-heading">
-            <h2 id="available-widgets-heading" style={{ fontSize: '1.6rem', fontWeight: 700, marginBottom: '24px' }}>
+            <h2 id="available-widgets-heading" style={{ fontSize: '1.6rem', fontWeight: 700, marginBottom: '16px' }}>
               Available Embeddable Widgets
             </h2>
 
+            {/* Partner Attribution & Multi-Format Configuration Bar */}
+            <div
+              style={{
+                background: 'rgba(56, 189, 248, 0.04)',
+                border: '1px solid rgba(56, 189, 248, 0.22)',
+                borderRadius: '14px',
+                padding: '20px',
+                marginBottom: '24px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px',
+              }}
+            >
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ flex: '1 1 260px' }}>
+                  <label
+                    htmlFor="partner-domain-input"
+                    style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#38bdf8', marginBottom: '6px' }}
+                  >
+                    Optional Partner Domain For Referral Attribution (UTM Source)
+                  </label>
+                  <input
+                    id="partner-domain-input"
+                    type="text"
+                    value={partnerDomain}
+                    onChange={(e) => setPartnerDomain(e.target.value)}
+                    placeholder="example.com or your-club-name"
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '8px',
+                      background: '#06060c',
+                      border: '1px solid rgba(255, 255, 255, 0.16)',
+                      color: '#f8fafc',
+                      fontSize: '0.88rem',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#94a3b8', marginBottom: '6px' }}>
+                    Embed Snippet Format
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {[
+                      { id: 'iframe', label: 'HTML5 Iframe' },
+                      { id: 'sdk', label: '1-Line JS SDK' },
+                      { id: 'react', label: 'React / Next.js' },
+                      { id: 'oembed', label: 'OEmbed 1.0 URL' },
+                      { id: 'markdown', label: 'Markdown / Substack' },
+                      { id: 'bbcode', label: 'Forum BBCode' },
+                    ].map((fmt) => (
+                      <button
+                        key={fmt.id}
+                        type="button"
+                        onClick={() => setEmbedFormat(fmt.id)}
+                        style={{
+                          padding: '7px 12px',
+                          borderRadius: '7px',
+                          border: embedFormat === fmt.id ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.12)',
+                          background: embedFormat === fmt.id ? 'rgba(56, 189, 248, 0.18)' : 'rgba(255, 255, 255, 0.03)',
+                          color: embedFormat === fmt.id ? '#38bdf8' : '#cbd5e1',
+                          fontSize: '0.8rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {fmt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {[
+                  { id: 'all', label: `All Widgets (${WIDGETS.length})` },
+                  { id: 'equity', label: 'Equity & Preflop (6)' },
+                  { id: 'tournament', label: 'Tournament & ICM (8)' },
+                  { id: 'cash', label: 'Cash Game & Rake (5)' },
+                  { id: 'bankroll', label: 'Bankroll, Tax & Home Game (4)' },
+                ].map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setSelectedCategory(cat.id)}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '20px',
+                      border: selectedCategory === cat.id ? '1px solid #60a5fa' : '1px solid rgba(255, 255, 255, 0.1)',
+                      background: selectedCategory === cat.id ? 'rgba(96, 165, 250, 0.16)' : 'transparent',
+                      color: selectedCategory === cat.id ? '#93c5fd' : '#94a3b8',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-              {WIDGETS.map((widget) => {
+              {visibleWidgets.map((widget) => {
                 const code = getEmbedCode(widget);
                 const isCopied = copiedId === widget.id;
 
@@ -530,19 +922,50 @@ export default function WebmasterEmbedPortal() {
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
                       <h3 style={{ fontSize: '1.35rem', fontWeight: 700, margin: 0 }}>{widget.title}</h3>
-                      <Link
-                        href={widget.landerUrl}
-                        target="_blank"
-                        rel="noopener"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.88rem', color: '#60a5fa', textDecoration: 'none' }}
-                      >
-                        Preview Live Tool <ExternalLink size={14} />
-                      </Link>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewWidgetId(previewWidgetId === widget.id ? null : widget.id)}
+                          style={{
+                            padding: '5px 11px',
+                            borderRadius: '6px',
+                            border: '1px solid rgba(56, 189, 248, 0.35)',
+                            background: previewWidgetId === widget.id ? 'rgba(56, 189, 248, 0.22)' : 'rgba(56, 189, 248, 0.08)',
+                            color: '#7dd3fc',
+                            fontSize: '0.8rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {previewWidgetId === widget.id ? 'Hide Inline Preview' : 'Test Inline Preview'}
+                        </button>
+                        <Link
+                          href={widget.landerUrl}
+                          target="_blank"
+                          rel="noopener"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.88rem', color: '#60a5fa', textDecoration: 'none' }}
+                        >
+                          Open Full Tool <ExternalLink size={14} />
+                        </Link>
+                      </div>
                     </div>
 
                     <p style={{ fontSize: '0.95rem', color: 'rgba(255, 255, 255, 0.75)', lineHeight: 1.5, margin: '0 0 16px 0' }}>
                       {widget.description}
                     </p>
+
+                    {previewWidgetId === widget.id && (
+                      <div style={{ marginBottom: '16px', borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(56, 189, 248, 0.28)', background: '#050811' }}>
+                        <iframe
+                          src={widget.embedUrl}
+                          width="100%"
+                          height={widget.height}
+                          style={{ border: 0, display: 'block', maxWidth: '100%' }}
+                          loading="lazy"
+                          title={`Live Preview: ${widget.title}`}
+                        />
+                      </div>
+                    )}
 
                     <div style={{ position: 'relative' }}>
                       <textarea
@@ -693,15 +1116,43 @@ export default function WebmasterEmbedPortal() {
 
           {/* Twitch, YouTube & Kick Streamer Chatbot Commands */}
           <section aria-labelledby="streamer-commands-heading" style={{ marginTop: '48px' }}>
-            <h2 id="streamer-commands-heading" style={{ fontSize: '1.6rem', fontWeight: 700, marginBottom: '12px' }}>
-              Twitch, YouTube &amp; Kick Streamer Chatbot Commands (Nightbot / StreamElements)
-            </h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
+              <h2 id="streamer-commands-heading" style={{ fontSize: '1.6rem', fontWeight: 700, margin: 0 }}>
+                18 Twitch, YouTube &amp; Kick Streamer Chatbot Commands (Nightbot / StreamElements)
+              </h2>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {[
+                  { id: 'nightbot', label: 'Nightbot' },
+                  { id: 'streamelements', label: 'StreamElements' },
+                  { id: 'fossabot', label: 'Fossabot' },
+                ].map((plat) => (
+                  <button
+                    key={plat.id}
+                    type="button"
+                    onClick={() => setBotPlatform(plat.id)}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '7px',
+                      border: botPlatform === plat.id ? '1px solid #c084fc' : '1px solid rgba(255, 255, 255, 0.12)',
+                      background: botPlatform === plat.id ? 'rgba(168, 85, 247, 0.22)' : 'rgba(255, 255, 255, 0.03)',
+                      color: botPlatform === plat.id ? '#e9d5ff' : '#94a3b8',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {plat.label}
+                  </button>
+                ))}
+              </div>
+            </div>
             <p style={{ fontSize: '0.96rem', color: 'rgba(255, 255, 255, 0.72)', lineHeight: 1.6, marginBottom: '24px' }}>
-              Add Instant Live Poker Equity, Pot Odds, ICM Bubble Factors, PLO Max Bet Math, And Official TDA Floor Rulings Directly To Your Stream Chat. Viewers Type The Command In Chat And Receive An Instant Sub-380-Character Mathematical Answer With Canonical Attribution.
+              Add All 18 Instant Live Poker Equity, Pot Odds, ICM Bubble Factors, Final Table Chop, Variance, Draw Outs, US Poker Tax, Staking Markup, Limper Isolation, Series Survival Guides, PLO Max Bet Math, And Official TDA Floor Rulings Commands Directly To Your Stream Chat. Viewers Type The Command In Chat And Receive An Instant Sub-380-Character Mathematical Answer With Canonical Attribution.
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: '16px' }}>
               {STREAM_CHAT_COMMANDS.map((cmdItem) => {
                 const isCmdCopied = copiedId === cmdItem.id;
+                const botSyntax = getBotSyntax(cmdItem);
                 return (
                   <article
                     key={cmdItem.id}
@@ -741,7 +1192,7 @@ export default function WebmasterEmbedPortal() {
                     <div style={{ position: 'relative' }}>
                       <textarea
                         readOnly
-                        value={cmdItem.nightbot}
+                        value={botSyntax}
                         aria-label={`Nightbot Command Syntax for ${cmdItem.command}`}
                         style={{
                           width: '100%',
@@ -761,7 +1212,7 @@ export default function WebmasterEmbedPortal() {
                         type="button"
                         onClick={() => {
                           if (typeof navigator !== 'undefined' && navigator.clipboard) {
-                            navigator.clipboard.writeText(cmdItem.nightbot);
+                            navigator.clipboard.writeText(botSyntax);
                             setCopiedId(cmdItem.id);
                             setTimeout(() => setCopiedId(null), 2500);
                           }
@@ -788,6 +1239,104 @@ export default function WebmasterEmbedPortal() {
                         ) : (
                           <>
                             <Copy size={13} /> Copy Nightbot Command
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* 12-Item Dead-Tool Replacement & Webmaster Migration Matrix */}
+          <section aria-labelledby="dead-tool-replacements-heading" style={{ marginTop: '48px' }}>
+            <h2 id="dead-tool-replacements-heading" style={{ fontSize: '1.6rem', fontWeight: 700, marginBottom: '12px' }}>
+              Legacy &amp; Discontinued Poker Tool Replacement Matrix (12 Drop-In Upgrades)
+            </h2>
+            <p style={{ fontSize: '0.96rem', color: 'rgba(255, 255, 255, 0.72)', lineHeight: 1.6, marginBottom: '24px' }}>
+              Maintaining A Poker Strategy Guide, University Syllabus, Or Forum Resource Thread With Broken Links To Discontinued Software? Replace Retired Tools With Free, Zero-Install Browser Calculators And Copy The Clean HTML Anchor Snippet Below.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
+              {DEAD_TOOL_REPLACEMENTS.map((item) => {
+                const anchorHtml = `<a href="${item.replacementUrl}" target="_blank" rel="noopener">${item.recommendedAnchorText}</a>`;
+                const copyKey = `dead-${item.id}`;
+                const isDeadCopied = copiedId === copyKey;
+                return (
+                  <article
+                    key={item.id}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.02)',
+                      border: '1px solid rgba(251, 191, 36, 0.22)',
+                      borderRadius: '14px',
+                      padding: '20px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      gap: '12px',
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                        <span
+                          style={{
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            background: 'rgba(251, 191, 36, 0.14)',
+                            color: '#fcd34d',
+                          }}
+                        >
+                          {item.category}
+                        </span>
+                        <Link
+                          href={item.replacementUrl}
+                          style={{ fontSize: '0.8rem', color: '#60a5fa', textDecoration: 'none', fontWeight: 600 }}
+                        >
+                          Live Tool &rarr;
+                        </Link>
+                      </div>
+                      <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: '0 0 6px 0', color: '#f8fafc' }}>
+                        {item.legacyToolName}
+                      </h3>
+                      <p style={{ fontSize: '0.84rem', color: 'rgba(255, 255, 255, 0.65)', margin: 0, lineHeight: 1.5 }}>
+                        {item.status}
+                      </p>
+                    </div>
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                            navigator.clipboard.writeText(anchorHtml);
+                            setCopiedId(copyKey);
+                            setTimeout(() => setCopiedId(null), 2500);
+                          }
+                        }}
+                        style={{
+                          width: '100%',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          background: isDeadCopied ? '#059669' : 'rgba(251, 191, 36, 0.16)',
+                          border: '1px solid rgba(251, 191, 36, 0.4)',
+                          color: isDeadCopied ? '#fff' : '#fde68a',
+                          borderRadius: '6px',
+                          padding: '7px 12px',
+                          fontSize: '0.8rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {isDeadCopied ? (
+                          <>
+                            <Check size={13} /> Copied Replacement Link!
+                          </>
+                        ) : (
+                          <>
+                            <Copy size={13} /> Copy Replacement HTML Link
                           </>
                         )}
                       </button>
@@ -891,6 +1440,36 @@ export default function WebmasterEmbedPortal() {
               >
                 AI Backlink & Citation Catalog API
               </a>
+              <a
+                href="/api/seo/oembed?mode=catalog"
+                style={{
+                  padding: '8px 14px',
+                  background: '#0f172a',
+                  border: '1px solid #38bdf8',
+                  borderRadius: '6px',
+                  color: '#bae6fd',
+                  fontSize: '0.84rem',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                OEmbed 1.0 & Partner Manifest API
+              </a>
+              <a
+                href="/embed-sdk.js"
+                style={{
+                  padding: '8px 14px',
+                  background: '#0f172a',
+                  border: '1px solid #10b981',
+                  borderRadius: '6px',
+                  color: '#a7f3d0',
+                  fontSize: '0.84rem',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                One-Line JS Widget SDK
+              </a>
             </div>
           </section>
           {/* Frequently Asked Questions */}
@@ -989,7 +1568,7 @@ export default function WebmasterEmbedPortal() {
                   textDecoration: 'none',
                 }}
               >
-                All 16 Free Poker Calculators
+                All 24 Free Poker Calculators
               </Link>
               <Link
                 href="/compare"
