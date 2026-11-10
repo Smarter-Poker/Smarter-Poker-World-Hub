@@ -49671,7 +49671,7 @@
         },
         {
           "name": "finalizePersistedAnswer",
-          "line": 1535,
+          "line": 1537,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -49679,7 +49679,7 @@
         },
         {
           "name": "postAttempt",
-          "line": 2467,
+          "line": 2469,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -49724,7 +49724,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 1038,
+          "line": 1040,
           "excerpt": "// single-question fallback. That fallback intentionally requests one",
           "disposition": "training-data-provenance-fallback",
           "review": "documented-follow-up",
@@ -49733,7 +49733,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 1038,
+          "line": 1040,
           "excerpt": "// single-question fallback. That fallback intentionally requests one",
           "disposition": "training-data-provenance-fallback",
           "review": "documented-follow-up",
@@ -49742,7 +49742,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 2615,
+          "line": 2617,
           "excerpt": "// fallback. Keep the persisted verdict and manual Next on screen so a",
           "disposition": "runtime-resilience-fallback",
           "review": "documented-follow-up",
@@ -49751,7 +49751,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 2704,
+          "line": 2706,
           "excerpt": "// Fallback to single-question mode",
           "disposition": "training-data-provenance-fallback",
           "review": "documented-follow-up",
@@ -49760,7 +49760,7 @@
         },
         {
           "kind": "SIMULATION",
-          "line": 3583,
+          "line": 3585,
           "excerpt": "// ═══ PHASE 229: Runout simulation ═══",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -99812,6 +99812,7 @@
       "persistence": [],
       "realtime": [],
       "tests": [
+        "__tests__/training-reconciled-workflows.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs",
         "__tests__/training-session-config-contract.test.mjs"
       ]
@@ -102406,7 +102407,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "FALLBACK",
-        "line": 1038,
+        "line": 1040,
         "excerpt": "// single-question fallback. That fallback intentionally requests one",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -102416,7 +102417,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "FALLBACK",
-        "line": 1038,
+        "line": 1040,
         "excerpt": "// single-question fallback. That fallback intentionally requests one",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -102426,7 +102427,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "FALLBACK",
-        "line": 2615,
+        "line": 2617,
         "excerpt": "// fallback. Keep the persisted verdict and manual Next on screen so a",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -102436,7 +102437,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "FALLBACK",
-        "line": 2704,
+        "line": 2706,
         "excerpt": "// Fallback to single-question mode",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -102446,7 +102447,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "SIMULATION",
-        "line": 3583,
+        "line": 3585,
         "excerpt": "// ═══ PHASE 229: Runout simulation ═══",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -112346,7 +112347,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "FALLBACK",
-        "line": 1038,
+        "line": 1040,
         "excerpt": "// single-question fallback. That fallback intentionally requests one",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -112356,7 +112357,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "FALLBACK",
-        "line": 1038,
+        "line": 1040,
         "excerpt": "// single-question fallback. That fallback intentionally requests one",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -112366,7 +112367,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "FALLBACK",
-        "line": 2615,
+        "line": 2617,
         "excerpt": "// fallback. Keep the persisted verdict and manual Next on screen so a",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -112376,7 +112377,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "FALLBACK",
-        "line": 2704,
+        "line": 2706,
         "excerpt": "// Fallback to single-question mode",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -112386,7 +112387,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "SIMULATION",
-        "line": 3583,
+        "line": 3585,
         "excerpt": "// ═══ PHASE 229: Runout simulation ═══",
         "disposition": "domain-simulation",
         "review": "accepted",
