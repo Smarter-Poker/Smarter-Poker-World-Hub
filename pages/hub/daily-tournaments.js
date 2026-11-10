@@ -37,7 +37,7 @@ const DAILY_TOURNAMENTS_FAQS = [
     },
     {
         question: 'Does Smarter.Poker Also Offer Free Online Daily Tournaments?',
-        answer: 'Yes. Smarter.Poker Hosts $2,000 In Free Online Poker Tournaments Every Day Plus Diamond Freerolls Every 3 Hours With Zero Entry Fees At Smarter.Poker/Freerolls.',
+        answer: 'Yes. Smarter.Poker Hosts 2,000 Chips In Free Online Poker Tournaments Every Day Plus Diamond Freerolls Every 3 Hours With Zero Entry Fees At Smarter.Poker/Freerolls.',
     },
 ];
 

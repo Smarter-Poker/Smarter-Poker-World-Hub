@@ -16,7 +16,7 @@ import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
-import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import { normalizeTrainingSessionConfig } from '../../../src/lib/training/sessionConfigContract.mjs';
 import { savePracticeSession } from '../../../src/lib/training/practiceSession';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
@@ -52,6 +52,7 @@ export default function MultiTablePage() {
   const router = useRouter();
   useTrainingBus('multi-table');
   const [tableCount, setTableCount] = useState(2);
+  const [selectedVariant, setSelectedVariant] = useState('nlh');
   const [isStarted, setIsStarted] = useState(false);
   const [selectedGames, setSelectedGames] = useState([
     'cash-002',
@@ -138,6 +139,9 @@ export default function MultiTablePage() {
     if (Number.isFinite(requested) && requested >= 2 && requested <= 4) {
       setTableCount(requested);
     }
+    if (typeof q.variant === 'string' && ['nlh', 'plo4', 'plo5', 'plo6'].includes(q.variant.toLowerCase())) {
+      setSelectedVariant(q.variant.toLowerCase());
+    }
     if (typeof q.game === 'string' && q.game) {
       // Lead with the drill the player actually clicked, then fill the
       // remaining slots from the preset list without repeating it.
@@ -213,6 +217,7 @@ export default function MultiTablePage() {
     // accident rather than by decision.
     speed: 'normal',
     feedbackRule: 'every',
+    variant: selectedVariant,
     // Deliberately NOT `tables` — each arena here is a single table. The
     // wrapper's own multi-table branch was removed in this same change because
     // it rendered N identical copies of one drill.
@@ -228,6 +233,7 @@ export default function MultiTablePage() {
     router.query.scope,
     router.query.targetStreet,
     router.query.handSelection,
+    selectedVariant,
   ]);
 
   // The tables actually on screen, and which one currently owns the keyboard
@@ -422,9 +428,31 @@ export default function MultiTablePage() {
               level: tableCount,
               context: {
                 tableCount,
+                variant: selectedVariant,
                 measuredEVDecisions: combinedStats.measuredEVDecisions,
               },
           });
+          try {
+            await authedFetch('/api/training/tool-records', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                tool_id: 'multi-table',
+                record_type: 'multi_table_session',
+                payload: {
+                  runId,
+                  tableCount,
+                  variant: selectedVariant,
+                  totalHands: combinedStats.totalHands,
+                  totalCorrect: combinedStats.totalCorrect,
+                  accuracy,
+                  totalEVLoss: combinedStats.measuredEVDecisions > 0 ? combinedStats.totalEVLoss : null,
+                },
+              }),
+            });
+          } catch {}
           setSaveStatus('saved');
 
           eventBus?.emit?.(
@@ -769,6 +797,56 @@ export default function MultiTablePage() {
               </div>
             </div>
 
+            {/* Variant Selector (Hold'em / PLO4 / PLO5 / PLO6) */}
+            <div style={{ marginBottom: 24 }}>
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: 'var(--sp-fg-dim)',
+                  letterSpacing: 1.5,
+                  textTransform: 'uppercase',
+                  marginBottom: 10,
+                }}
+              >
+                POKER VARIANT
+              </div>
+              <div
+                data-multitable-variant-selector="true"
+                style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}
+              >
+                {[
+                  { id: 'nlh', label: "Hold'em (2)" },
+                  { id: 'plo4', label: 'PLO4 (4)' },
+                  { id: 'plo5', label: 'PLO5 (5)' },
+                  { id: 'plo6', label: 'PLO6 (6)' },
+                ].map((v) => {
+                  const active = selectedVariant === v.id;
+                  return (
+                    <button
+                      key={v.id}
+                      type="button"
+                      data-multitable-variant={v.id}
+                      aria-pressed={active}
+                      onClick={() => setSelectedVariant(v.id)}
+                      style={{
+                        padding: '8px 14px',
+                        borderRadius: 8,
+                        fontSize: 12,
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        border: active ? '1px solid rgba(0,212,255,0.65)' : '1px solid rgba(255,255,255,0.08)',
+                        background: active ? 'rgba(0,212,255,0.18)' : 'rgba(255,255,255,0.04)',
+                        color: active ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-muted)',
+                      }}
+                    >
+                      {v.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Game Selection Grid */}
             <div style={{ marginBottom: 28 }}>
               <div
@@ -912,6 +990,40 @@ export default function MultiTablePage() {
               >
                 {tableCount}-TABLE MODE
               </span>
+              <div
+                data-multitable-variant-selector="true"
+                style={{ display: 'flex', gap: 4, alignItems: 'center' }}
+              >
+                {[
+                  { id: 'nlh', label: "Hold'em" },
+                  { id: 'plo4', label: 'PLO4' },
+                  { id: 'plo5', label: 'PLO5' },
+                  { id: 'plo6', label: 'PLO6' },
+                ].map((v) => {
+                  const active = selectedVariant === v.id;
+                  return (
+                    <button
+                      key={v.id}
+                      type="button"
+                      data-multitable-variant={v.id}
+                      aria-pressed={active}
+                      onClick={() => setSelectedVariant(v.id)}
+                      style={{
+                        padding: '2px 8px',
+                        borderRadius: 6,
+                        fontSize: 12,
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        border: active ? '1px solid rgba(0,212,255,0.65)' : '1px solid rgba(255,255,255,0.1)',
+                        background: active ? 'rgba(0,212,255,0.18)' : 'rgba(255,255,255,0.04)',
+                        color: active ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-muted)',
+                      }}
+                    >
+                      {v.label}
+                    </button>
+                  );
+                })}
+              </div>
               {!isPhone && (
                 <span
                   data-multi-table-hotkey-hint="true"

@@ -16,6 +16,7 @@ import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { authedFetch } from '../../../src/lib/authUtils';
+import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
 
 export default function IcmSimulatorPage() {
   const router = useRouter();
@@ -49,7 +50,20 @@ export default function IcmSimulatorPage() {
       if (!response.ok || !payload.success) {
         throw new Error(payload.error || `Calculation Failed (${response.status})`);
       }
-      setEquities(payload.results.map((result) => result.icmDollars));
+      const nextEquities = payload.results.map((result) => result.icmDollars);
+      setEquities(nextEquities);
+      authedFetch('/api/training/tool-records', {
+        method: 'POST',
+        body: JSON.stringify({
+          tool_id: 'icm-simulator',
+          record_type: 'icm_simulation',
+          payload: {
+            stacks,
+            prizes: pays,
+            equities: nextEquities,
+          },
+        }),
+      }).catch(() => {});
     } catch (error) {
       setEquities([]);
       setCalculationError(error.message || 'ICM Calculation Failed');
@@ -60,6 +74,31 @@ export default function IcmSimulatorPage() {
 
   const totalPrizePool = payouts.reduce((a, b) => a + (Number(b) || 0), 0);
   const totalChips = players.reduce((a, b) => a + (Number(b.stack) || 0), 0);
+  const heroStackBb = Math.max(5, Math.round((Number(players[0]?.stack) || 500000) / 20000));
+  const icmBrainEval = React.useMemo(() => {
+    try {
+      return evaluateTrainingSpotWithHorseBrain({
+        gameId: 'mtt-001',
+        variant: 'nlh',
+        heroCards: ['Ad', 'Js'],
+        boardCards: [],
+        street: 'preflop',
+        pot: 2.5,
+        stackDepth: heroStackBb,
+        heroPosition: 'CO',
+        villainPosition: 'BTN',
+        isICM: true,
+        bubbleFactor: heroStackBb <= 20 ? 1.85 : heroStackBb >= 50 ? 1.25 : 1.55,
+        options: [
+          { id: 'raise', text: 'Open 2.1x BB' },
+          { id: 'allin', text: `All-In (${heroStackBb} BB)` },
+          { id: 'fold', text: 'Fold (ICM Tight)' },
+        ],
+      });
+    } catch {
+      return null;
+    }
+  }, [heroStackBb]);
 
   return (
     <>
@@ -412,6 +451,49 @@ export default function IcmSimulatorPage() {
                   <div style={{ fontSize: 48, marginBottom: 16 }}>■</div>
                   <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--sp-fg)' }}>Run Solver</div>
                   <div style={{ fontSize: 13, color: 'var(--sp-fg-muted)' }}>Fill In Stacks And Payouts.</div>
+                </div>
+              )}
+
+              {icmBrainEval && (
+                <div
+                  data-icm-brain-panel="true"
+                  data-brain-engine={icmBrainEval.engineModule}
+                  style={{
+                    marginTop: 20,
+                    padding: 16,
+                    borderRadius: 12,
+                    border: '1px solid rgba(56, 189, 248, 0.35)',
+                    background: 'rgba(2, 6, 23, 0.65)',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-accent-cyan)' }}>
+                      Horse Brain ICM Pressure Guidance
+                    </span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-amber)' }}>
+                      Hero Depth: {heroStackBb} BB · Engine: {icmBrainEval.engineModule}
+                    </span>
+                  </div>
+                  <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.5 }}>
+                    {icmBrainEval.coachingExplanation}
+                  </p>
+                  <button
+                    type="button"
+                    data-launch-icm-arena="true"
+                    onClick={() => router.push('/hub/training/arena/mtt-001?level=1')}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: 8,
+                      border: '1px solid rgba(56, 189, 248, 0.5)',
+                      background: 'rgba(56, 189, 248, 0.16)',
+                      color: 'var(--sp-accent-cyan)',
+                      fontSize: 12,
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Drill ICM Preflop In Club Arena →
+                  </button>
                 </div>
               )}
             </div>

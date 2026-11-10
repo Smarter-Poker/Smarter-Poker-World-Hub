@@ -11,15 +11,15 @@ test('buildFreerollsIcs creates valid RFC 5545 iCalendar feed with all 5 recurri
   assert.ok(ics.endsWith('\r\nEND:VCALENDAR'), 'Must end with END:VCALENDAR');
   assert.match(ics, /VERSION:2\.0/);
   assert.match(ics, /PRODID:-\/\/Smarter Software\/\/Smarter\.Poker Freerolls\/\/EN/);
-  assert.match(ics, /X-WR-CALNAME:Smarter\.Poker Daily \$2,000 Freerolls/);
+  assert.match(ics, /X-WR-CALNAME:Smarter\.Poker Daily 2,000 Chip Freerolls/);
   assert.match(ics, /BEGIN:VTIMEZONE/);
   assert.match(ics, /TZID:America\/Chicago/);
 
   // Check all 5 freeroll events
-  assert.match(ics, /Morning Opener Freeroll \(\$250 GTD\)/);
-  assert.match(ics, /Afternoon Prime Freeroll \(\$500 GTD\)/);
-  assert.match(ics, /Evening Championship Freeroll \(\$750 GTD\)/);
-  assert.match(ics, /Nightcap Turbo Freeroll \(\$500 GTD\)/);
+  assert.match(ics, /Morning Opener Freeroll \(250 Chips GTD\)/);
+  assert.match(ics, /Afternoon Prime Freeroll \(500 Chips GTD\)/);
+  assert.match(ics, /Evening Championship Freeroll \(750 Chips GTD\)/);
+  assert.match(ics, /Nightcap Turbo Freeroll \(500 Chips GTD\)/);
   assert.match(ics, /Sunday Diamond Championship Freeroll/);
 
   // Check RRULE recursion patterns
@@ -115,9 +115,9 @@ test('pages/api/og/tool-card.js handles freerolls and compare tools with distinc
   assert.match(code, /runtime:\s*['"]edge['"]/);
   assert.match(code, /tool === ['"]freerolls['"]/);
   assert.match(code, /tool === ['"]compare['"]/);
-  assert.match(code, /\$2,000 In Daily Poker Freerolls/);
+  assert.match(code, /2,000 Chips In Daily Poker Freerolls/);
   assert.match(code, /Free Poker Software & Platform Alternatives/);
-  assert.match(code, /DAILY \$2,000 FREEROLLS/);
+  assert.match(code, /DAILY 2,000 CHIP FREEROLLS/);
   assert.match(code, /SOFTWARE COMPARISON/);
   assert.match(code, /ZERO DEPOSIT REQUIRED/);
   assert.match(code, /100% FREE ALTERNATIVES/);

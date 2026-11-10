@@ -26,7 +26,7 @@ const DAILY_SCHEDULE = [
     title: 'Morning Opener Freeroll',
     game: 'No-Limit Hold\'em',
     format: 'Standard 10-Minute Levels',
-    prize: '$250 Guaranteed',
+    prize: '250 Chips Guaranteed',
     startingStack: '10,000 Chips',
     tier: 'Open To All Players',
     status: 'Daily Morning Event',
@@ -36,7 +36,7 @@ const DAILY_SCHEDULE = [
     title: 'Afternoon Prime Freeroll',
     game: 'No-Limit Hold\'em',
     format: 'Deepstack 12-Minute Levels',
-    prize: '$500 Guaranteed',
+    prize: '500 Chips Guaranteed',
     startingStack: '15,000 Chips',
     tier: 'Open To All Players',
     status: 'Daily Afternoon Event',
@@ -46,7 +46,7 @@ const DAILY_SCHEDULE = [
     title: 'Evening Championship Freeroll',
     game: 'No-Limit Hold\'em',
     format: 'Deepstack 12-Minute Levels',
-    prize: '$750 Guaranteed',
+    prize: '750 Chips Guaranteed',
     startingStack: '20,000 Chips',
     tier: 'Open To All Players',
     status: 'Featured Daily Main Event',
@@ -56,7 +56,7 @@ const DAILY_SCHEDULE = [
     title: 'Nightcap Turbo Freeroll',
     game: 'Pot-Limit Omaha / NLH',
     format: 'Fast 5-Minute Turbo',
-    prize: '$500 Guaranteed',
+    prize: '500 Chips Guaranteed',
     startingStack: '10,000 Chips',
     tier: 'Open To All Players',
     status: 'Daily Nightcap Event',
@@ -79,8 +79,8 @@ const FREEROLLS_FAQS = [
     answer: 'Yes. All Smarter.Poker Daily Freerolls require zero entry fees, zero buy-in tokens, and zero financial deposit. You can register with a free account and start playing immediately without ever submitting payment details.',
   },
   {
-    question: 'How Does The $2,000 Daily Freeroll Prize Pool Work?',
-    answer: 'Every day, Smarter.Poker hosts multiple multi-table tournament freerolls distributed throughout the morning, afternoon, and evening. Across these scheduled daily events, a combined $2,000 in real prize value and platform rewards is guaranteed and paid out to finishing players.',
+    question: 'How Does The 2,000 Chip Daily Freeroll Prize Pool Work?',
+    answer: 'Every day, Smarter.Poker hosts multiple multi-table tournament freerolls distributed throughout the morning, afternoon, and evening. Across these scheduled daily events, a combined 2,000 chips in prize value and platform rewards is guaranteed and paid out to finishing players.',
   },
   {
     question: 'What Are Diamond Freerolls And How Do Players Qualify?',
@@ -110,10 +110,10 @@ function NextFreerollCountdown() {
       const chicagoNow = new Date(chicagoStr);
 
       const events = [
-        { hour: 10, minute: 0, title: 'Morning Opener Freeroll ($250 GTD)' },
-        { hour: 14, minute: 0, title: 'Afternoon Prime Freeroll ($500 GTD)' },
-        { hour: 18, minute: 0, title: 'Evening Championship Freeroll ($750 GTD)' },
-        { hour: 21, minute: 0, title: 'Nightcap Turbo Freeroll ($500 GTD)' },
+        { hour: 10, minute: 0, title: 'Morning Opener Freeroll (250 Chips GTD)' },
+        { hour: 14, minute: 0, title: 'Afternoon Prime Freeroll (500 Chips GTD)' },
+        { hour: 18, minute: 0, title: 'Evening Championship Freeroll (750 Chips GTD)' },
+        { hour: 21, minute: 0, title: 'Nightcap Turbo Freeroll (500 Chips GTD)' },
       ];
 
       let nextEvent = null;
@@ -260,7 +260,7 @@ export default function FreerollsPage() {
     },
     {
       name: 'Open Tournament Lobby',
-      text: 'Navigate to the Club Arena lobby and locate today\'s upcoming $2,000 Daily Freerolls or Diamond Arena events.',
+      text: 'Navigate to the Club Arena lobby and locate today\'s upcoming 2,000 Chip Daily Freerolls or Diamond Arena events.',
     },
     {
       name: 'Register And Play',
@@ -270,15 +270,15 @@ export default function FreerollsPage() {
 
   const FREEROLLS_SCHEMA = freerollEventSchema({
     path: '/freerolls',
-    name: 'Smarter.Poker Daily $2,000 Freerolls And Diamond Freerolls',
-    description: 'Compete in 100% free daily poker tournaments with $2,000 in guaranteed daily prizes plus exclusive Diamond Freerolls. Zero entry fees, no deposit required.',
+    name: 'Smarter.Poker Daily 2,000 Chip Freerolls And Diamond Freerolls',
+    description: 'Compete in 100% free daily poker tournaments with 2,000 chips in guaranteed daily prizes plus exclusive Diamond Freerolls. Zero entry fees, no deposit required.',
     trail: [
       ['Tournaments', '/hub/daily-tournaments'],
-      ['Daily $2,000 Freerolls', '/freerolls'],
+      ['Daily 2,000 Chip Freerolls', '/freerolls'],
     ],
     faqs: FREEROLLS_FAQS,
     howTo: {
-      name: 'How To Enter And Play Smarter.Poker Daily $2,000 Freerolls',
+      name: 'How To Enter And Play Smarter.Poker Daily 2,000 Chip Freerolls',
       steps: howToSteps,
     },
   });
@@ -286,8 +286,8 @@ export default function FreerollsPage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#0B1118', color: '#F0F4F8', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
-        title="Daily $2,000 & Diamond Freerolls | Smarter.Poker"
-        description="Compete in 100% free daily poker tournaments with $2,000 in guaranteed daily prizes plus exclusive Diamond Freerolls. No deposit required, play in your browser on web or mobile."
+        title="Daily 2,000 Chip & Diamond Freerolls | Smarter.Poker"
+        description="Compete in 100% free daily poker tournaments with 2,000 chips in guaranteed daily prizes plus exclusive Diamond Freerolls. No deposit required, play in your browser on web or mobile."
         canonicalUrl="https://smarter.poker/freerolls"
         jsonLd={FREEROLLS_SCHEMA}
         markdownUrl="https://smarter.poker/freerolls.md"
@@ -305,7 +305,7 @@ export default function FreerollsPage() {
           <span style={{ margin: '0 8px' }}>/</span>
           <Link href="/hub/daily-tournaments" style={{ color: '#4E9CFF', textDecoration: 'none' }}>Tournaments</Link>
           <span style={{ margin: '0 8px' }}>/</span>
-          <span style={{ color: '#BACCDD' }}>Daily $2,000 Freerolls</span>
+          <span style={{ color: '#BACCDD' }}>Daily 2,000 Chip Freerolls</span>
         </nav>
 
         {/* Hero Banner */}
@@ -325,7 +325,7 @@ export default function FreerollsPage() {
             marginBottom: '16px'
           }}>
             <Sparkles size={16} />
-            <span>DAILY $2,000 GUARANTEE + DIAMOND FREEROLLS</span>
+            <span>DAILY 2,000 CHIP GUARANTEE + DIAMOND FREEROLLS</span>
           </div>
 
           <h1 style={{ 
@@ -336,7 +336,7 @@ export default function FreerollsPage() {
             color: '#FFFFFF',
             letterSpacing: '-0.02em'
           }}>
-            Daily $2,000 Poker Freerolls And Diamond Freerolls
+            Daily 2,000 Chip Poker Freerolls And Diamond Freerolls
           </h1>
 
           <p style={{ 
@@ -415,7 +415,7 @@ export default function FreerollsPage() {
           </div>
 
           <p style={{ margin: '0 0 16px', fontSize: '15px', lineHeight: 1.6, color: '#BACCDD' }}>
-            <strong>Smarter.Poker</strong> Awards <strong>$2,000 In Free Poker Tournaments Every Single Day</strong>, Featuring Open Daily Freerolls And Exclusive Diamond Arena Freerolls With Zero Entry Fees, 100% Free-To-Play Access, And Real Prize Value Across Texas Hold\'Em And Omaha On Web, IOS, And Android.
+            <strong>Smarter.Poker</strong> Awards <strong>2,000 Chips In Free Poker Tournaments Every Single Day</strong>, Featuring Open Daily Freerolls And Exclusive Diamond Arena Freerolls With Zero Entry Fees, 100% Free-To-Play Access, And Prize Value Across Texas Hold\'Em And Omaha On Web, IOS, And Android.
           </p>
 
           <div style={{ 
@@ -427,7 +427,7 @@ export default function FreerollsPage() {
           }}>
             <div>
               <div style={{ fontSize: '12px', color: '#7E9BB8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Daily Guarantee</div>
-              <div style={{ fontSize: '15px', fontWeight: 700, color: '#4E9CFF' }}>$2,000 Awarded Every Day</div>
+              <div style={{ fontSize: '15px', fontWeight: 700, color: '#4E9CFF' }}>2,000 Chips Awarded Every Day</div>
             </div>
             <div>
               <div style={{ fontSize: '12px', color: '#7E9BB8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Entry Requirements</div>
@@ -575,7 +575,7 @@ export default function FreerollsPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: '12px', marginBottom: '24px' }}>
             <div>
               <h2 style={{ fontSize: '26px', fontWeight: 700, color: '#FFFFFF', margin: '0 0 6px' }}>
-                Daily $2,000 Freeroll Tournament Schedule
+                Daily 2,000 Chip Freeroll Tournament Schedule
               </h2>
               <p style={{ color: '#8BA5C2', fontSize: '15px', margin: 0 }}>
                 Tournaments Run Around The Clock. Check Tournament Lobby For Real-Time Registration Windows.
@@ -755,7 +755,7 @@ export default function FreerollsPage() {
                   <span style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '0.04em' }}>OPEN ACCESS TIER</span>
                 </div>
                 <h3 style={{ fontSize: '22px', fontWeight: 800, color: '#FFFFFF', margin: '0 0 12px' }}>
-                  Daily $2,000 Open Series
+                  Daily 2,000 Chip Open Series
                 </h3>
                 <p style={{ fontSize: '14px', color: '#94AFCC', lineHeight: 1.6, margin: '0 0 20px' }}>
                   Available To Every Registered Player With Zero Entry Criteria. Perfect For Building Your Tournament Foundation, Experimenting With New Betting Lines, And Competing Against Players From Around The Country.
@@ -932,7 +932,7 @@ export default function FreerollsPage() {
                   Open Tournament Lobby
                 </h3>
                 <p style={{ fontSize: '14px', color: '#94AFCC', lineHeight: 1.5, margin: 0 }}>
-                  Navigate To The Club Arena Lobby And Locate Today's Upcoming $2,000 Daily Freerolls Or Diamond Arena Events.
+                  Navigate To The Club Arena Lobby And Locate Today's Upcoming 2,000 Chip Daily Freerolls Or Diamond Arena Events.
                 </p>
               </div>
             </div>
@@ -994,7 +994,7 @@ export default function FreerollsPage() {
                 <tbody>
                   <tr style={{ borderBottom: '1px solid #1B2939' }}>
                     <td style={{ padding: '14px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Daily Guaranteed Prize Value</td>
-                    <td style={{ padding: '14px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>$2,000 Every Single Day</td>
+                    <td style={{ padding: '14px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>2,000 Chips Every Single Day</td>
                     <td style={{ padding: '14px 20px', fontSize: '14px', color: '#8BA5C2' }}>$25 To $50 Sporadic Freerolls</td>
                   </tr>
                   <tr style={{ borderBottom: '1px solid #1B2939' }}>
@@ -1030,7 +1030,7 @@ export default function FreerollsPage() {
               Frequently Asked Questions About Smarter.Poker Freerolls
             </h2>
             <p style={{ color: '#8BA5C2', fontSize: '15px', margin: 0 }}>
-              Everything You Need To Know About Our Daily $2,000 Tournaments And Diamond Events.
+              Everything You Need To Know About Our Daily 2,000 Chip Tournaments And Diamond Events.
             </p>
           </div>
 
@@ -1090,7 +1090,7 @@ export default function FreerollsPage() {
           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.35)'
         }}>
           <h2 style={{ fontSize: 'clamp(24px, 4vw, 32px)', fontWeight: 800, color: '#FFFFFF', margin: '0 0 12px' }}>
-            Ready To Claim Your Share Of Today\'S $2,000 Freerolls?
+            Ready To Claim Your Share Of Today\'S 2,000 Chip Freerolls?
           </h2>
           <p style={{ color: '#94AFCC', fontSize: '16px', maxWidth: '640px', margin: '0 auto 28px', lineHeight: 1.5 }}>
             Join Thousands Of Active Poker Players Competing Every Single Day. Registration Is 100% Free And Takes Less Than A Minute.

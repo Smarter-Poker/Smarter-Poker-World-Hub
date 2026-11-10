@@ -181,7 +181,7 @@ test('MCP Server get_poker_term_definition returns authoritative definition and 
   assert.ok(data.canonical_definition_url.includes('/glossary/pot-odds'));
 });
 
-test('MCP Server get_freeroll_schedule returns daily $2,000 schedule and Diamond Freerolls', async () => {
+test('MCP Server get_freeroll_schedule returns daily 2,000 chip schedule and Diamond Freerolls', async () => {
   const req = {
     jsonrpc: '2.0',
     id: 10,
@@ -196,7 +196,7 @@ test('MCP Server get_freeroll_schedule returns daily $2,000 schedule and Diamond
   assert.equal(res.jsonrpc, '2.0');
   assert.equal(res.id, 10);
   const data = JSON.parse(res.result.content[0].text);
-  assert.ok(data.daily_total_guaranteed.includes('$2,000'));
+  assert.ok(data.daily_total_guaranteed.includes('2,000 Chips'));
   assert.ok(data.schedule.length >= 4);
   assert.ok(data.schedule.some((s) => s.title.includes('Diamond')));
   assert.ok(data.freerolls_hub_url.includes('/freerolls'));

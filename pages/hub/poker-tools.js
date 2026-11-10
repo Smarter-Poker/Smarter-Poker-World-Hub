@@ -697,7 +697,7 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
                                         Track Sessions In Bankroll Manager
                                     </Link>
                                     <Link href="/freerolls" className="odds-btn" style={{ textDecoration: 'none' }}>
-                                        Play Daily $2,000 Guaranteed Poker Freerolls
+                                        Play Daily 2,000 Chip Guaranteed Poker Freerolls
                                     </Link>
                                     <Link href="/compare" className="odds-btn" style={{ textDecoration: 'none' }}>
                                         Compare Free Poker Tools Vs. Paid Software

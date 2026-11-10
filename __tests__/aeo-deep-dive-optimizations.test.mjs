@@ -56,14 +56,14 @@ test('AEO Deep Dive: AI Crawlers and Discovery manifests ground Freerolls and Co
   const llmsTxt = fs.readFileSync(path.resolve('public/llms.txt'), 'utf8');
   assert.ok(llmsTxt.includes('https://smarter.poker/freerolls'), 'llms.txt must include freerolls url');
   assert.ok(llmsTxt.includes('https://smarter.poker/compare'), 'llms.txt must include compare url');
-  assert.ok(llmsTxt.includes('$2,000'), 'llms.txt must include $2,000 guarantee');
+  assert.ok(llmsTxt.includes('2,000 chips'), 'llms.txt must include 2,000 chip guarantee');
   assert.ok(llmsTxt.includes('https://smarter.poker/openapi.json'), 'llms.txt must reference root openapi alias');
 
   // public/llms-full.txt
   const llmsFullTxt = fs.readFileSync(path.resolve('public/llms-full.txt'), 'utf8');
   assert.ok(llmsFullTxt.includes('https://smarter.poker/freerolls'), 'llms-full.txt must include freerolls url');
   assert.ok(llmsFullTxt.includes('https://smarter.poker/compare'), 'llms-full.txt must include compare url');
-  assert.ok(llmsFullTxt.includes('Daily $2,000 Freerolls'), 'llms-full.txt must have freerolls section');
+  assert.ok(llmsFullTxt.includes('Daily 2,000 Chip Freerolls'), 'llms-full.txt must have freerolls section');
 
   // public/ai.txt
   const aiTxt = fs.readFileSync(path.resolve('public/ai.txt'), 'utf8');

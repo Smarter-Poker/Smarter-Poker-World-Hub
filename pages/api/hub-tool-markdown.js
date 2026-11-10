@@ -206,7 +206,7 @@ const CUSTOM_SURFACE_MARKDOWN = {
         heading: 'Diamond Currency Rules & Compliance',
         bullets: [
           '**Zero Real-Money Gambling**: Smarter.Poker Operates Zero Real-Money Gambling. Club Chips Are Free Play Credits With No Cash Value.',
-          '**Ways To Earn Free Diamonds**: Daily Login Streaks, Training Simulator Milestones, Trivia Leaderboards, Daily $2,000 Freerolls, And Mail-In AMOE (`/legal/official-rules`).',
+          '**Ways To Earn Free Diamonds**: Daily Login Streaks, Training Simulator Milestones, Trivia Leaderboards, Daily 2,000 Chip Freerolls, And Mail-In AMOE (`/legal/official-rules`).',
         ],
       },
     ],

@@ -16,6 +16,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { authedFetch } from '../../../src/lib/authUtils';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 import ProgressStrip from '../../../src/components/poker/ProgressStrip';
 
@@ -392,6 +393,21 @@ export default function FlashcardsPage() {
     // Trigger initial deck generation after sm2Data loads
     sm2LoadedRef.current = true;
     setDeckGenKey(k => k + 1);
+    authedFetch('/api/training/tool-records?tool_id=flashcards&limit=1')
+      .then((res) => (res && res.ok ? res.json() : null))
+      .then((json) => {
+        const remoteSm2 = json?.data?.[0]?.payload?.sm2Data;
+        if (remoteSm2 && typeof remoteSm2 === 'object') {
+          setSm2Data((prev) => {
+            const merged = { ...remoteSm2, ...prev };
+            try {
+              localStorage.setItem('flashcard-sm2', JSON.stringify(merged));
+            } catch (_e) {}
+            return merged;
+          });
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // Regenerate deck when category changes (NOT on sm2Data changes from card ratings)
@@ -452,6 +468,23 @@ export default function FlashcardsPage() {
       try {
         localStorage.setItem('flashcard-sm2', JSON.stringify(updated));
       } catch (e) { console.warn('[App] Handled exception:', e); }
+      authedFetch('/api/training/tool-records', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tool_id: 'flashcards',
+          record_type: 'sm2_review',
+          title: `Card #${current.id} (${current.cat})`,
+          summary: `Quality ${quality} · Interval ${nextStats.interval}d`,
+          payload: {
+            cardId: current.id,
+            category: current.cat,
+            quality,
+            nextStats,
+            sm2Data: updated,
+          },
+        }),
+      }).catch(() => {});
       return updated;
     });
 

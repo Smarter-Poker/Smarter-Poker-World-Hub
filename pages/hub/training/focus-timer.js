@@ -15,6 +15,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { authedFetch } from '../../../src/lib/authUtils';
 
 const PHASES = {
   FOCUS: { id: 'focus', label: 'Focus Block', mins: 25, color: 'var(--sp-accent-blue)' },
@@ -117,6 +118,20 @@ export default function FocusTimerPage() {
         try {
           localStorage.setItem('focus-timer-log', JSON.stringify(newLog));
         } catch (e) { console.warn('[App] Handled exception:', e); }
+        authedFetch('/api/training/tool-records', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tool_id: 'focus-timer',
+            record_type: 'focus_block',
+            title: `Focus Block #${next}`,
+            summary: `${phase.mins}m completed at ${entry.time}`,
+            payload: {
+              completedBlocks: next,
+              entry,
+            },
+          }),
+        }).catch(() => {});
         // A focus block is productivity history, not a graded poker decision.
         // Keep it out of training sessions, streaks, accuracy, and leaderboards.
         setTimeout(() => {

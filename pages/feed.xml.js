@@ -299,9 +299,9 @@ const TOOL_ITEMS = [
         pubDate: LEARN_MODIFIED,
     },
     {
-        title: 'Daily $2,000 Poker Freerolls & Diamond Freerolls',
+        title: 'Daily 2,000 Chip Poker Freerolls & Diamond Freerolls',
         link: `${SITE_URL}/freerolls`,
-        description: 'Compete In 100% Free Daily Poker Tournaments With $2,000 In Guaranteed Daily Cash Prizes And Diamond Freerolls. Zero Deposit Required.',
+        description: 'Compete In 100% Free Daily Poker Tournaments With 2,000 Chips In Guaranteed Daily Prizes And Diamond Freerolls. Zero Deposit Required.',
         category: 'Poker Freerolls',
         pubDate: LEARN_MODIFIED,
     },
