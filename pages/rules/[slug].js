@@ -10,7 +10,7 @@
  * House style: Title Case, zero em dashes.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
@@ -49,9 +49,30 @@ export async function getStaticProps({ params }) {
 }
 
 export default function PokerRuleDetailPage({ rule, peerRules = [] }) {
+  const [rulingCopiedKey, setRulingCopiedKey] = useState('');
   const canonicalPath = rulePath(rule.slug);
   const canonicalUrl = `https://smarter.poker${canonicalPath}`;
   const mdPath = `${canonicalPath}.md`;
+  const groupChatRulingText = `[Official Poker Floor Ruling: ${rule.title} (${rule.tdaRef})] ${rule.summary} Verify Full Rule & Live Table Scenarios: ${canonicalUrl}`;
+  const redditMarkdownRuling = `> **Official Floor Ruling: ${rule.title} (${rule.tdaRef})**\n> ${rule.summary}\n> *Source: [Smarter.Poker Official TDA & RROP Floor Encyclopedia](${canonicalUrl})*`;
+
+  const handleCopyRuling = async (key, text) => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(text);
+        setRulingCopiedKey(key);
+        setTimeout(() => setRulingCopiedKey(''), 2200);
+      }
+      if (typeof fetch === 'function') {
+        fetch(
+          `/api/seo/referral-stats?event=record&category=solved_spot_shares&item=${encodeURIComponent(rule.slug)}&source=rule-share`,
+          { method: 'POST', keepalive: true }
+        ).catch(() => {});
+      }
+    } catch {
+      // Ignore clipboard failure
+    }
+  };
 
   const jsonLd = [
     {
@@ -136,6 +157,82 @@ export default function PokerRuleDetailPage({ rule, peerRules = [] }) {
             <div id="quick-answer-summary" style={styles.summaryBox}>
               <div style={styles.summaryLabel}>DIRECT FLOOR RULING SUMMARY</div>
               <p style={styles.summaryText}>{rule.summary}</p>
+            </div>
+
+            <div
+              aria-label="Settle The Bet Ruling Share And Print Actions"
+              style={{
+                marginTop: '14px',
+                padding: '14px 16px',
+                background: '#081118',
+                border: '1px solid #1e293b',
+                borderRadius: '2px',
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '10px',
+              }}
+            >
+              <div style={{ fontSize: '12px', fontWeight: 700, color: '#f2b84b', letterSpacing: '0.04em' }}>
+                SETTLE THE BET AT THE TABLE: SHARE OR PRINT THIS OFFICIAL RULING
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => handleCopyRuling('chat', groupChatRulingText)}
+                  style={{
+                    padding: '7px 12px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    background: rulingCopiedKey === 'chat' ? '#10b981' : '#25c8ff',
+                    color: '#020608',
+                    border: 'none',
+                    borderRadius: '2px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {rulingCopiedKey === 'chat'
+                    ? 'Copied Group-Chat Ruling'
+                    : 'Copy Official Ruling For Group Chat (SMS / WhatsApp / Discord)'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCopyRuling('reddit', redditMarkdownRuling)}
+                  style={{
+                    padding: '7px 12px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    background: rulingCopiedKey === 'reddit' ? '#10b981' : '#101a20',
+                    color: rulingCopiedKey === 'reddit' ? '#020608' : '#25c8ff',
+                    border: '1px solid #25c8ff',
+                    borderRadius: '2px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {rulingCopiedKey === 'reddit' ? 'Copied Forum Quote' : 'Copy Forum / Reddit Quote'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (typeof window !== 'undefined' && typeof window.print === 'function') {
+                      window.print();
+                    }
+                  }}
+                  style={{
+                    padding: '7px 12px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    background: '#101a20',
+                    color: '#f2b84b',
+                    border: '1px solid #f2b84b',
+                    borderRadius: '2px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Print Official Table Ruling Sheet
+                </button>
+              </div>
             </div>
           </header>
 

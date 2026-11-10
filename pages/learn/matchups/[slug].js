@@ -10,7 +10,7 @@
  * House style: Title Case, zero em dashes.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -97,6 +97,28 @@ export default function PokerMatchupDetailPage({ matchup, peerMatchups = [] }) {
     },
   ];
 
+  const [copiedCardType, setCopiedCardType] = useState('');
+  const discordEquityCard = `[Smarter.Poker Preflop Equity: ${matchup.handA} vs ${matchup.handB}] ${matchup.handA}: ${matchup.handAEquity.toFixed(2)}% Equity (${matchup.handAWinPct.toFixed(2)}% Win, ${matchup.combosA} Combos) | ${matchup.handB}: ${matchup.handBEquity.toFixed(2)}% Equity (${matchup.handBWinPct.toFixed(2)}% Win, ${matchup.combosB} Combos) | Split Tie: ${matchup.tiePct.toFixed(2)}% | Simulate Live: ${canonicalUrl}`;
+  const redditEquityTable = `| Hand | Total Equity | Outright Win % | Tie % | Combos |\n| :--- | :--- | :--- | :--- | :--- |\n| **${matchup.handA}** | **${matchup.handAEquity.toFixed(2)}%** | ${matchup.handAWinPct.toFixed(2)}% | ${matchup.tiePct.toFixed(2)}% | ${matchup.combosA} |\n| **${matchup.handB}** | **${matchup.handBEquity.toFixed(2)}%** | ${matchup.handBWinPct.toFixed(2)}% | ${matchup.tiePct.toFixed(2)}% | ${matchup.combosB} |\n\n*Source: [Smarter.Poker ${matchup.handA} Vs ${matchup.handB} Combinatorial Analysis](${canonicalUrl})*`;
+
+  const handleCopyEquityCard = async (type, value) => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(value);
+        setCopiedCardType(type);
+        setTimeout(() => setCopiedCardType(''), 2200);
+      }
+      if (typeof fetch === 'function') {
+        fetch(
+          `/api/seo/referral-stats?event=record&category=solved_spot_shares&item=matchup-${encodeURIComponent(matchup.slug)}&source=matchup-card`,
+          { method: 'POST', keepalive: true }
+        ).catch(() => {});
+      }
+    } catch {
+      // Ignore clipboard failure
+    }
+  };
+
   return (
     <div style={styles.page}>
       <SEOHead
@@ -176,6 +198,61 @@ export default function PokerMatchupDetailPage({ matchup, peerMatchups = [] }) {
                   width: `${matchup.handBEquity}%`,
                 }}
               />
+            </div>
+
+            <div
+              style={{
+                marginTop: '14px',
+                paddingTop: '12px',
+                borderTop: '1px solid #1e293b',
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '8px',
+              }}
+            >
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#94a3b8' }}>
+                Share Exact Preflop Equity Card:
+              </span>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => handleCopyEquityCard('discord', discordEquityCard)}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    background: copiedCardType === 'discord' ? '#10b981' : '#38bdf8',
+                    color: '#04131d',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {copiedCardType === 'discord'
+                    ? 'Copied Discord / Chat Equity Card'
+                    : 'Copy Discord / Group-Chat Equity Card'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCopyEquityCard('reddit', redditEquityTable)}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    background: copiedCardType === 'reddit' ? '#10b981' : '#0b1324',
+                    color: copiedCardType === 'reddit' ? '#04131d' : '#38bdf8',
+                    border: '1px solid #38bdf8',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {copiedCardType === 'reddit'
+                    ? 'Copied Forum / Reddit Markdown Table'
+                    : 'Copy Forum / Reddit Markdown Table'}
+                </button>
+              </div>
             </div>
           </div>
 

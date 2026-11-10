@@ -8,7 +8,7 @@
  * House style: Title Case, zero em dashes, #SmarterCasinoRealism theme.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -36,9 +36,31 @@ export async function getStaticProps({ params }) {
 }
 
 export default function PokerMarketCityGuidePage({ guide }) {
+  const [copiedMarketEmbed, setCopiedMarketEmbed] = useState('');
   const canonicalPath = marketGuidePath(guide.slug);
   const canonicalUrl = `${SITE_URL}${canonicalPath}`;
   const otherGuides = POKER_MARKET_GUIDES.filter((g) => g.slug !== guide.slug);
+  const badgeSvgUrl = `${SITE_URL}/api/seo/badge?type=verified-venue&label=${encodeURIComponent(`Verified ${guide.regionName} Room`)}&value=${encodeURIComponent('Smarter.Poker Directory')}`;
+  const venueBadgeHtml = `<a href="${canonicalUrl}" target="_blank" rel="noopener" title="${guide.h1}"><img src="${badgeSvgUrl}" alt="Verified ${guide.regionName} Poker Room On Smarter.Poker" height="28" style="border:0;height:28px;" /></a>`;
+  const marketTableHtml = `<div style="padding:14px;background:#020608;border:1px solid #1e293b;border-radius:4px;color:#e2e8f0;font-family:Inter,system-ui,sans-serif;"><div style="font-size:14px;font-weight:700;color:#25c8ff;margin-bottom:8px;">${guide.regionName} Live Poker Room Benchmark (${guide.activeRoomsEstimate})</div><p style="margin:0 0 10px 0;font-size:12.5px;color:#cbd5e1;">Standard Rake Model: ${guide.typicalRakeModel} | Stakes: ${guide.signatureStakes}</p><a href="${canonicalUrl}" target="_blank" rel="noopener" style="font-size:12px;font-weight:700;color:#f2b84b;text-decoration:none;">View Full ${guide.regionName} Live Poker Directory &amp; Rake Guide At Smarter.Poker</a></div>`;
+
+  const handleCopyMarketSnippet = async (key, text) => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(text);
+        setCopiedMarketEmbed(key);
+        setTimeout(() => setCopiedMarketEmbed(''), 2200);
+      }
+      if (typeof fetch === 'function') {
+        fetch(
+          `/api/seo/referral-stats?event=record&category=widget_embeds&item=market-${encodeURIComponent(guide.slug)}&source=market-guide`,
+          { method: 'POST', keepalive: true }
+        ).catch(() => {});
+      }
+    } catch {
+      // Ignore clipboard failure
+    }
+  };
 
   const jsonLd = [
     {
@@ -179,6 +201,70 @@ export default function PokerMarketCityGuidePage({ guide }) {
               ))}
             </tbody>
           </table>
+        </section>
+
+        {/* Venue Manager Badge & Regional Market Snapshot Embed */}
+        <section
+          aria-label="Venue Manager Badge And Regional Market Embed"
+          style={{
+            marginBottom: 34,
+            padding: 20,
+            background: '#101a20',
+            borderRadius: '2px',
+            border: '1px solid #25c8ff',
+          }}
+        >
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#f2b84b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                For Cardroom Managers &amp; Regional Poker Publishers
+              </div>
+              <h2 style={{ fontSize: 19, fontWeight: 700, color: '#f8fafc', margin: '4px 0 6px 0' }}>
+                Embed Verified {guide.regionName} Poker Room Badge Or Market Snapshot
+              </h2>
+              <p style={{ fontSize: 13.5, color: '#cbd5e1', margin: 0 }}>
+                Display The Official Smarter.Poker Verified {guide.regionName} Venue Badge Or Live Rake &amp; Stakes Snapshot On Your Cardroom Website Or Blog.
+              </p>
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <button
+                type="button"
+                onClick={() => handleCopyMarketSnippet('badge', venueBadgeHtml)}
+                style={{
+                  padding: '8px 14px',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  background: copiedMarketEmbed === 'badge' ? '#10b981' : '#25c8ff',
+                  color: '#020608',
+                  border: 'none',
+                  borderRadius: '2px',
+                  cursor: 'pointer',
+                }}
+              >
+                {copiedMarketEmbed === 'badge'
+                  ? 'Copied Verified Room SVG Badge'
+                  : 'Copy Verified Room SVG Badge HTML'}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleCopyMarketSnippet('snapshot', marketTableHtml)}
+                style={{
+                  padding: '8px 14px',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  background: copiedMarketEmbed === 'snapshot' ? '#10b981' : '#020608',
+                  color: copiedMarketEmbed === 'snapshot' ? '#020608' : '#f2b84b',
+                  border: '1px solid #f2b84b',
+                  borderRadius: '2px',
+                  cursor: 'pointer',
+                }}
+              >
+                {copiedMarketEmbed === 'snapshot'
+                  ? 'Copied Market Snapshot Widget'
+                  : 'Copy Regional Market Snapshot HTML'}
+              </button>
+            </div>
+          </div>
         </section>
 
         {/* Regional Tactical Adjustments */}

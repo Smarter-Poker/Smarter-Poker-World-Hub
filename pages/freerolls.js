@@ -390,6 +390,26 @@ export default function FreerollsPage() {
               <Calendar size={18} />
               <span>View Daily Schedule</span>
             </a>
+
+            <a
+              href="/api/seo/series-calendar?slug=freerolls"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '14px 24px',
+                borderRadius: '10px',
+                backgroundColor: 'rgba(0, 230, 118, 0.1)',
+                border: '1px solid rgba(0, 230, 118, 0.35)',
+                color: '#00E676',
+                fontWeight: 700,
+                fontSize: '15px',
+                textDecoration: 'none'
+              }}
+            >
+              <Calendar size={18} />
+              <span>Add Daily Freerolls To Calendar (.ICS)</span>
+            </a>
           </div>
 
           <NextFreerollCountdown />
