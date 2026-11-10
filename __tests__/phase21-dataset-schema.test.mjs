@@ -59,7 +59,7 @@ test('Phase 21: all 4 national poker directories wire datasetSchema into their J
 
 test('Public directory, store, and about pages emit BreadcrumbList and resolved @id graph nodes', () => {
   const aboutSrc = fs.readFileSync(path.resolve('pages/about.js'), 'utf8');
-  assert.ok(aboutSrc.includes('ABOUT_PAGE_SCHEMA.breadcrumb'), 'pages/about.js must include top-level BreadcrumbList in jsonLd');
+  assert.ok(aboutSrc.includes("'@type': 'BreadcrumbList'"), 'pages/about.js must include BreadcrumbList in ABOUT_PAGE_SCHEMA');
 
   const weekendSrc = fs.readFileSync(path.resolve('pages/hub/tournaments/this-weekend.js'), 'utf8');
   assert.ok(weekendSrc.includes('breadcrumbSchema('), 'pages/hub/tournaments/this-weekend.js must include breadcrumbSchema()');
