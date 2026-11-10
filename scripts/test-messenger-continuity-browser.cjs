@@ -35,6 +35,7 @@ async function fixture(options = {}) {
   const state = (actor = actors[0].id, conv = conversations[0].id) => { const k = key(actor, conv); if (!states.has(k)) states.set(k, empty()); return states.get(k); };
   const savedFor = (actor, conv) => [...saved.values()].filter(item => item.actor === actor && (!conv || item.conversationId === conv) && item.saved && !item.unavailable && !revoked.has(item.conversationId) && histories.get(item.conversationId)?.some(message => message.id === item.messageId)).map(({ actor: _actor, ...item }) => ({ ...clone(item), message: clone(histories.get(item.conversationId)?.find(message => message.id === item.messageId)) }));
   let holdRead = false, readHeld = false, failDraft = 0;
+  const conflictFields = new Set();
   const releaseReads = [];
   const actorFrom = request => { try { const token = request.headers().authorization?.replace(/^Bearer /, ''); const uid = JSON.parse(Buffer.from(token.split('.')[1], 'base64url')).sub; return actors.find(actor => actor.id === uid) || actors[0]; } catch { return actors[0]; } };
   await context.exposeBinding('__recordContinuityRead', (_source, receipt) => {
@@ -94,6 +95,11 @@ async function fixture(options = {}) {
         }
         if (body.action === 'write') {
           const current = state(actor.id, body.conversationId);
+          // Inject the peer update at the CAS boundary, after any normal
+          // synchronization reads, so this scenario actually exercises 409.
+          if (conflictFields.delete(body.field)) current[body.field] = body.field === 'draft'
+            ? { text: 'Other Tab Draft', replyToId: null, revision: current.draft.revision + 1 }
+            : { messageId: histories.get(body.conversationId)[0].id, offset: 0, revision: current.position.revision + 5 };
           if (body.field === 'draft' && failDraft > 0) { failDraft--; return respond({ success: false, error: 'Fixture Save Temporarily Unavailable' }, 503); }
           const savedKey = `${actor.id}:${body.value?.messageId}`;
           const previous = body.field === 'saved' ? saved.get(savedKey) || { revision: 0, saved: false } : current[body.field];
@@ -143,7 +149,7 @@ async function fixture(options = {}) {
   const newPage = async () => { const page = await context.newPage(); page.setDefaultTimeout(20000); page.on('pageerror', error => report.errors.push(error.message)); return page; };
   const open = async (page, conv = conversations[0]) => { await page.goto(`${base.origin}/hub/messenger?conversation=${conv.id}`, { waitUntil: 'domcontentloaded', timeout: 120000 }); await page.getByRole('textbox', { name: 'Message', exact: true }).waitFor(); };
   return { context, state, states, saved, histories, watermarks, revoked, requests, readReceipts, failures, forbidden, newPage, open,
-    hold: () => { holdRead = true; }, held: () => readHeld, release: () => { holdRead = false; releaseReads.splice(0).forEach(resolve => resolve()); }, failDraft: () => { failDraft++; },
+    hold: () => { holdRead = true; }, held: () => readHeld, release: () => { holdRead = false; releaseReads.splice(0).forEach(resolve => resolve()); }, failDraft: () => { failDraft++; }, conflictNext: field => { conflictFields.add(field); },
     async switchActor(page, actor) {
       await page.evaluate(current => { localStorage.setItem('smarter-poker-auth', JSON.stringify(current)); const channel = new BroadcastChannel('smarter-poker-auth'); channel.postMessage({ event: 'SIGNED_IN', session: current }); channel.close(); }, session(actor));
       const broadcaster = await context.newPage();
@@ -237,7 +243,7 @@ async function visibleInPane(page, messageId) {
     assert.equal(f.state().draft.text, 'Newer Local Typing Continued');
     await page.getByRole('button', { name: 'Retry Continuity', exact: true }).first().click();
     await expect.poll(() => f.state().draft.text).toBe('Explicit Retry Draft');
-    f.state().draft = { text: 'Other Tab Draft', replyToId: null, revision: f.state().draft.revision + 1 };
+    f.conflictNext('draft');
     const draftConflict = page.waitForResponse(response => response.url().endsWith('/api/messenger/continuity')
       && response.status() === 409 && response.request().postDataJSON()?.field === 'draft');
     await page.getByRole('textbox', { name: 'Message', exact: true }).fill('Keep Local Conflict Draft');
@@ -248,13 +254,13 @@ async function visibleInPane(page, messageId) {
     await page.getByRole('textbox', { name: 'Message', exact: true }).fill('Keep Local Conflict Draft Continued');
     await expect.poll(() => f.state().draft.text).toBe('Keep Local Conflict Draft Continued');
     // A stale reading-position write stays quiet and the next scroll resumes.
-    const peerRevision = f.state().position.revision + 5;
-    f.state().position = { messageId: f.histories.get(conversations[0].id)[0].id, offset: 0, revision: peerRevision };
+    f.conflictNext('position');
     const pane = page.locator('[data-messenger-message-scroll]');
     const positionConflict = page.waitForResponse(response => response.url().endsWith('/api/messenger/continuity')
       && response.status() === 409 && response.request().postDataJSON()?.field === 'position');
     await pane.evaluate(node => { node.scrollTop -= 160; node.dispatchEvent(new Event('scroll')); });
     await positionConflict;
+    const peerRevision = f.state().position.revision;
     await expect(page.getByText('Your Reading Position Changed On Another Device.', { exact: true })).toHaveCount(0);
     await expect(page.getByRole('button', { name: /Keep This Position|Use Saved Position/ })).toHaveCount(0);
     await pane.evaluate(node => { node.scrollTop -= 160; node.dispatchEvent(new Event('scroll')); });
