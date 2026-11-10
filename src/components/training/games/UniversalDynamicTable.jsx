@@ -5723,7 +5723,7 @@ function UniversalDynamicTable({
                                 </div>
                                 {(() => {
                                     const brainMeta = fq?.brainEvaluation || fq?.scenario?.brainEvaluation || question?.scenario?.brainEvaluation || null;
-                                    const coachingText = fq?.explanation || displayExplanation || explanation || '';
+                                    const coachingText = fq?.explanation || explanation || '';
                                     if (!brainMeta && !coachingText) return null;
                                     return (
                                         <div
