@@ -238,8 +238,10 @@ async function visibleInPane(page, messageId) {
     await page.getByRole('button', { name: 'Retry Continuity', exact: true }).first().click();
     await expect.poll(() => f.state().draft.text).toBe('Explicit Retry Draft');
     f.state().draft = { text: 'Other Tab Draft', replyToId: null, revision: f.state().draft.revision + 1 };
+    const draftConflict = page.waitForResponse(response => response.url().endsWith('/api/messenger/continuity')
+      && response.status() === 409 && response.request().postDataJSON()?.field === 'draft');
     await page.getByRole('textbox', { name: 'Message', exact: true }).fill('Keep Local Conflict Draft');
-    await expect.poll(() => f.requests.filter(r => r.body.field === 'draft' && r.body.value?.text === 'Keep Local Conflict Draft').length).toBeGreaterThan(0);
+    await draftConflict;
     await expect(page.getByRole('textbox', { name: 'Message', exact: true })).toHaveValue('Keep Local Conflict Draft');
     await expect(page.getByText('Your Draft Changed In Another Tab Or Device. Your Text Is Still Here.', { exact: true })).toHaveCount(0);
     await expect(page.getByRole('button', { name: /Keep This Draft|Use Saved Draft/ })).toHaveCount(0);
@@ -249,8 +251,10 @@ async function visibleInPane(page, messageId) {
     const peerRevision = f.state().position.revision + 5;
     f.state().position = { messageId: f.histories.get(conversations[0].id)[0].id, offset: 0, revision: peerRevision };
     const pane = page.locator('[data-messenger-message-scroll]');
+    const positionConflict = page.waitForResponse(response => response.url().endsWith('/api/messenger/continuity')
+      && response.status() === 409 && response.request().postDataJSON()?.field === 'position');
     await pane.evaluate(node => { node.scrollTop -= 160; node.dispatchEvent(new Event('scroll')); });
-    await expect.poll(() => f.requests.filter(r => r.body.field === 'position' && r.body.expectedRevision < peerRevision).length).toBeGreaterThan(0);
+    await positionConflict;
     await expect(page.getByText('Your Reading Position Changed On Another Device.', { exact: true })).toHaveCount(0);
     await expect(page.getByRole('button', { name: /Keep This Position|Use Saved Position/ })).toHaveCount(0);
     await pane.evaluate(node => { node.scrollTop -= 160; node.dispatchEvent(new Event('scroll')); });
