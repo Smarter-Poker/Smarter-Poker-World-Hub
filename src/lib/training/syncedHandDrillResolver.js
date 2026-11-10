@@ -62,9 +62,17 @@ function verifyParticipant(record, userId) {
   if (record.owner_id && String(record.owner_id).trim() === uid) return true;
   if (Array.isArray(record.player_ids) && record.player_ids.map(String).includes(uid)) return true;
   if (Array.isArray(record.participant_ids) && record.participant_ids.map(String).includes(uid)) return true;
+  if (Array.isArray(record.players)) {
+    const matchedPlayer = record.players.some((p) => {
+      const pid = String(p?.id || p?.userId || p?.playerId || p?.user_id || '').trim();
+      return pid === uid;
+    });
+    if (matchedPlayer) return true;
+  }
   const data = record.data && typeof record.data === 'object' ? record.data : {};
   if (data.userId && String(data.userId).trim() === uid) return true;
   if (Array.isArray(data.participantIds) && data.participantIds.map(String).includes(uid)) return true;
+  if (Array.isArray(data.participants) && data.participants.map(String).includes(uid)) return true;
   return false;
 }
 
@@ -107,7 +115,7 @@ export async function lookupServerSyncedHand({ supabase, userId, syncedHandId })
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetId);
       const query = supabase
         .from('hand_history')
-        .select('id, user_id, player_ids, game_type, stakes, pot_size, hero_cards, board, hero_position, action_summary, hand_data, hand_number, created_at')
+        .select('id, hand_number, game_variant, players, hole_cards, board, community_cards, button_seat, actions, summary, source, created_at')
         .limit(5);
       const { data: hhRows } = isUuid
         ? await query.eq('id', targetId)
@@ -144,21 +152,52 @@ export async function lookupServerSyncedHand({ supabase, userId, syncedHandId })
   const handData = payload.hand_data && typeof payload.hand_data === 'object'
     ? payload.hand_data
     : {};
+  const summary = payload.summary && typeof payload.summary === 'object'
+    ? payload.summary
+    : {};
+  const uid = String(userId || '').trim();
+  const heroFromPlayers = Array.isArray(payload.players)
+    ? payload.players.find((p) => String(p?.id || p?.userId || p?.playerId || p?.user_id || '').trim() === uid)
+    : null;
 
   const heroCards = parseCardList(
-    payload.hero_cards || payload.heroCards || handData.hero_cards || handData.heroCards,
+    payload.hero_cards
+      || payload.heroCards
+      || handData.hero_cards
+      || handData.heroCards
+      || heroFromPlayers?.cards
+      || heroFromPlayers?.holeCards
+      || heroFromPlayers?.hole_cards,
   );
   const boardCards = parseCardList(
-    payload.board || payload.boardCards || handData.board || handData.boardCards,
+    payload.board
+      || payload.boardCards
+      || payload.community_cards
+      || handData.board
+      || handData.boardCards,
   );
-  const variant = inferVariantFromHoleCards(heroCards, payload.variant || handData.variant);
+  const variant = inferVariantFromHoleCards(
+    heroCards,
+    payload.variant || payload.game_variant || handData.variant,
+  );
   const street = inferStreetFromBoard(boardCards, payload.street || handData.street);
   const heroPosition = normalizePosition(
-    payload.hero_position || payload.heroPosition || handData.hero_position || handData.heroPosition,
+    payload.hero_position
+      || payload.heroPosition
+      || handData.hero_position
+      || handData.heroPosition
+      || heroFromPlayers?.position,
     'BTN',
   );
   const villainPosition = heroPosition === 'BB' ? 'BTN' : 'BB';
-  const rawPot = Number(payload.pot_size ?? payload.pot ?? handData.pot_size ?? handData.pot);
+  const rawPot = Number(
+    payload.pot_size
+      ?? payload.pot
+      ?? handData.pot_size
+      ?? handData.pot
+      ?? summary.potTotal
+      ?? summary.pot,
+  );
   const pot = Number.isFinite(rawPot) && rawPot > 0
     ? Number(rawPot.toFixed(1))
     : street === 'preflop'
@@ -188,8 +227,8 @@ export async function lookupServerSyncedHand({ supabase, userId, syncedHandId })
       pot,
       toCall,
       stackDepth,
-      gameType: String(payload.game_type || payload.gameType || 'cash'),
-      stakes: String(payload.stakes || '1/2'),
+      gameType: String(payload.game_type || payload.gameType || payload.game_variant || summary.format || 'cash'),
+      stakes: String(payload.stakes || summary.stakes || '1/2'),
       actionSummary: String(
         payload.action_summary || payload.actionSummary || handData.action_summary || 'Action reaches Hero',
       ).slice(0, 180),
