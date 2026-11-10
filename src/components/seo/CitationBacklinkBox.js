@@ -18,6 +18,7 @@ export default function CitationBacklinkBox({
   summary = 'Verified poker industry benchmark data and mathematical analysis published by Smarter.Poker.',
   publishedYear = '2026',
   slug = 'smarter-poker-study',
+  doi = null,
 }) {
   const [copiedKey, setCopiedKey] = useState(null);
 
@@ -27,12 +28,13 @@ export default function CitationBacklinkBox({
   const htmlBadgeSnippet = `<a href="${canonicalUrl}" target="_blank" rel="noopener" title="${title}"><img src="${badgeUrl}" alt="${badgeLabel}: ${badgeValue}" height="28" /></a>`;
   const markdownSnippet = `[${title} (${badgeValue})](${canonicalUrl})`;
   const bbcodeSnippet = `[url=${canonicalUrl}]${title} (${badgeValue})[/url]`;
-  const journalistQuote = `According to ${title} published by Smarter.Poker (${canonicalUrl}, DOI: https://doi.org/10.5281/zenodo.24095049), ${summary}`;
-  const apaCitation = `Smarter.Poker Research Division. (${publishedYear}). ${title}. Smarter Software Inc. ${canonicalUrl} (Archival DOI: https://doi.org/10.5281/zenodo.24095049)`;
-  const mlaCitation = `Smarter.Poker Research Division. "${title}." Smarter.Poker, Smarter Software Inc., ${publishedYear}, ${canonicalUrl}. DOI: https://doi.org/10.5281/zenodo.24095049.`;
-  const wikipediaSnippet = `{{cite web |title=${title} |url=${canonicalUrl} |website=Smarter.Poker |publisher=Smarter Software Inc. |doi=10.5281/zenodo.24095049 |year=${publishedYear} |access-date=${publishedYear}-11-09}}`;
+  const doiUrl = doi ? `https://doi.org/${doi}` : null;
+  const journalistQuote = `According to ${title} published by Smarter.Poker (${canonicalUrl}${doiUrl ? `, DOI: ${doiUrl}` : ''}), ${summary}`;
+  const apaCitation = `Smarter.Poker Research Division. (${publishedYear}). ${title}. Smarter Software Inc. ${canonicalUrl}${doiUrl ? ` (DOI: ${doiUrl})` : ''}`;
+  const mlaCitation = `Smarter.Poker Research Division. "${title}." Smarter.Poker, Smarter Software Inc., ${publishedYear}, ${canonicalUrl}.${doiUrl ? ` DOI: ${doiUrl}.` : ''}`;
+  const wikipediaSnippet = `{{cite web |title=${title} |url=${canonicalUrl} |website=Smarter.Poker |publisher=Smarter Software Inc.${doi ? ` |doi=${doi}` : ''} |year=${publishedYear} |access-date=${publishedYear}-11-09}}`;
   const bibtexKey = String(slug || 'smarterpoker2026').replace(/[^a-zA-Z0-9]/g, '_');
-  const bibtexSnippet = `@techreport{${bibtexKey}_${publishedYear},\n  title = {${title}},\n  author = {{Smarter.Poker Research Division}},\n  institution = {Smarter.Poker},\n  year = {${publishedYear}},\n  doi = {10.5281/zenodo.24095049},\n  url = {${canonicalUrl}}\n}`;
+  const bibtexSnippet = `@techreport{${bibtexKey}_${publishedYear},\n  title = {${title}},\n  author = {{Smarter.Poker Research Division}},\n  institution = {Smarter.Poker},\n  year = {${publishedYear}},${doi ? `\n  doi = {${doi}},` : ''}\n  url = {${canonicalUrl}}\n}`;
 
   const safeTitle = String(title || 'Smarter.Poker Quantitative Poker Research').replace(/\|/g, '-');
   const safeSummary = String(summary || 'Verified poker industry benchmark data and mathematical analysis published by Smarter.Poker.').replace(/\|/g, '-');

@@ -49,9 +49,11 @@ function reportJsonLd(report) {
   const path = researchPath(report.slug);
   const url = `${SITE_URL}${path}`;
   const ogImageUrl = `${SITE_URL}/api/og/tool-card?tool=research&title=${encodeURIComponent(report.shortTitle)}`;
-  const doi = report.doi || '10.5281/zenodo.24095049';
-  const doiUrl = report.doiUrl || 'https://doi.org/10.5281/zenodo.24095049';
-  const zenodoUrl = report.zenodoUrl || 'https://zenodo.org/records/24095049';
+  const doi = report.doi || null;
+  const doiUrl = report.doiUrl || null;
+  const zenodoUrl = report.zenodoUrl || null;
+  const collectionDoi = report.collectionDoi || '10.5281/zenodo.24095049';
+  const collectionDoiUrl = report.collectionDoiUrl || 'https://doi.org/10.5281/zenodo.24095049';
   const swhid = report.swhid || 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f';
   return [
     schemas.organization,
@@ -68,9 +70,14 @@ function reportJsonLd(report) {
       dateModified: report.modifiedDate,
       isAccessibleForFree: true,
       license: 'https://creativecommons.org/licenses/by/4.0/',
-      sameAs: [doiUrl, zenodoUrl],
+      isPartOf: {
+        '@type': 'CollectionPage',
+        '@id': `${SITE_URL}${RESEARCH_BASE_PATH}#collection`,
+        url: `${SITE_URL}${RESEARCH_BASE_PATH}`,
+      },
+      ...(doiUrl && zenodoUrl ? { sameAs: [doiUrl, zenodoUrl] } : {}),
       identifier: [
-        { '@type': 'PropertyValue', propertyID: 'DOI', value: doi, url: doiUrl },
+        ...(doi ? [{ '@type': 'PropertyValue', propertyID: 'DOI', value: doi, url: doiUrl }] : []),
         { '@type': 'PropertyValue', propertyID: 'SWHID', value: swhid },
       ],
       author: {
@@ -113,15 +120,21 @@ function reportJsonLd(report) {
         '@id': `${SITE_URL}${RESEARCH_BASE_PATH}#datacatalog`,
         name: 'Smarter.Poker Open Quantitative Poker & Live Cardroom Data Catalog',
         url: `${SITE_URL}${RESEARCH_BASE_PATH}`,
+        sameAs: [collectionDoiUrl],
+        identifier: {
+          '@type': 'PropertyValue',
+          propertyID: 'DOI',
+          value: collectionDoi,
+          url: collectionDoiUrl,
+        },
       },
       sameAs: [
-        doiUrl,
-        zenodoUrl,
+        ...(doiUrl && zenodoUrl ? [doiUrl, zenodoUrl] : []),
         'https://github.com/Smarter-Poker/smarter-poker-open-datasets',
         `https://archive.softwareheritage.org/${swhid}`,
       ],
       identifier: [
-        { '@type': 'PropertyValue', propertyID: 'DOI', value: doi, url: doiUrl },
+        ...(doi ? [{ '@type': 'PropertyValue', propertyID: 'DOI', value: doi, url: doiUrl }] : []),
         { '@type': 'PropertyValue', propertyID: 'SWHID', value: swhid, url: `https://archive.softwareheritage.org/${swhid}` },
       ],
       variableMeasured: report.table.columns,
@@ -189,9 +202,10 @@ export default function ResearchReportDetailPage({ report }) {
         <meta key="citation-pub-date" name="citation_publication_date" content={report.publishedDate} />
         <meta key="citation-online-date" name="citation_online_date" content={report.modifiedDate} />
         <meta key="citation-public-url" name="citation_public_url" content={url} />
-        <meta key="citation-doi" name="citation_doi" content={report.doi || '10.5281/zenodo.24095049'} />
+        {report.doi ? <meta key="citation-doi" name="citation_doi" content={report.doi} /> : null}
         <meta key="citation-language" name="citation_language" content="en" />
-        <meta key="dc-identifier" name="dc.identifier" content={`doi:${report.doi || '10.5281/zenodo.24095049'}`} />
+        <meta key="dc-identifier" name="dc.identifier" content={report.doi ? `doi:${report.doi}` : url} />
+        <meta key="dc-relation-ispartof" name="dc.relation.ispartof" content={`doi:${report.collectionDoi || '10.5281/zenodo.24095049'}`} />
         <meta key="dc-rights" name="dc.rights" content="https://creativecommons.org/licenses/by/4.0/" />
       </SEOHead>
 
@@ -210,7 +224,7 @@ export default function ResearchReportDetailPage({ report }) {
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
           <a
-            href={report.doiUrl || 'https://doi.org/10.5281/zenodo.24095049'}
+            href={report.doiUrl || report.collectionDoiUrl || 'https://doi.org/10.5281/zenodo.24095049'}
             target="_blank"
             rel="noopener noreferrer"
             style={{
@@ -224,7 +238,7 @@ export default function ResearchReportDetailPage({ report }) {
               textDecoration: 'none',
             }}
           >
-            CERN/Zenodo DOI: {report.doi || '10.5281/zenodo.24095049'}
+            {report.doi ? `Report DOI: ${report.doi}` : `Parent Dataset Archive (Zenodo DOI: ${report.collectionDoi || '10.5281/zenodo.24095049'})`}
           </a>
           <a
             href={`https://archive.softwareheritage.org/${report.swhid || 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f'}`}
