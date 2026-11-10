@@ -461,4 +461,46 @@ test('Train This Hand resolves strictly from server storage, enforces participan
 
   const handLabUi = read('pages/hub/training/hand-lab.js');
   assert.match(handLabUi, /data-handlab-brain-panel="true"/);
+
+  // 8. Phase 3 Upgrades: 1:1 Club Arena Table Play Clone Parity + Multi-Table Variants + Specialty Brain Panels + Study Tools Server Sync
+  const universalTable = read('src/components/training/games/UniversalDynamicTable.jsx');
+  assert.match(universalTable, /data-club-arena-action-bar="true"/);
+  assert.match(universalTable, /data-club-arena-raise-panel="true"/);
+  assert.match(universalTable, /data-club-arena-raise-slider="true"/);
+  assert.match(universalTable, /data-club-arena-preset=/);
+  assert.match(universalTable, /data-club-arena-raise-confirm="true"/);
+  assert.match(universalTable, /data-pot-display-mode-toggle="true"/);
+  assert.match(universalTable, /data-club-arena-pot-pill="true"/);
+  assert.match(universalTable, /data-club-arena-street-pot-pill="true"/);
+  assert.match(universalTable, /data-seat-stack-display="true"/);
+
+  const multiTableUi = read('pages/hub/training/multi-table.js');
+  assert.match(multiTableUi, /data-multitable-variant-selector="true"/);
+  assert.match(multiTableUi, /tool_id:\s*'multi-table'/);
+
+  const finalTableSimUi = read('pages/hub/training/final-table-sim.js');
+  assert.match(finalTableSimUi, /data-icm-brain-panel="true"/);
+  assert.match(finalTableSimUi, /evaluateTrainingSpotWithHorseBrain/);
+  assert.match(finalTableSimUi, /tool_id:\s*'final-table-sim'/);
+
+  const icmSimUi = read('pages/hub/training/icm-simulator.js');
+  assert.match(icmSimUi, /data-icm-brain-panel="true"/);
+  assert.match(icmSimUi, /evaluateTrainingSpotWithHorseBrain/);
+  assert.match(icmSimUi, /tool_id:\s*'icm-simulator'/);
+
+  const weaknessScannerUi = read('pages/hub/training/weakness-scanner.js');
+  assert.match(weaknessScannerUi, /data-leak-brain-panel="true"/);
+  assert.match(weaknessScannerUi, /data-fix-top-leak-cta="true"/);
+
+  const flashcardsUi = read('pages/hub/training/flashcards.js');
+  assert.match(flashcardsUi, /tool_id:\s*'flashcards'/);
+
+  const quizBuilderUi = read('pages/hub/training/quiz-builder.js');
+  assert.match(quizBuilderUi, /tool_id:\s*'quiz-builder'/);
+
+  const focusTimerUi = read('pages/hub/training/focus-timer.js');
+  assert.match(focusTimerUi, /tool_id:\s*'focus-timer'/);
+
+  const sessionWarmupUi = read('pages/hub/training/session-warmup.js');
+  assert.match(sessionWarmupUi, /tool_id:\s*'session-warmup'/);
 });

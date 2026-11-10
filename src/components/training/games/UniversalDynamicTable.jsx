@@ -1862,9 +1862,11 @@ function UniversalDynamicTable({
     const [panelPoppedOut, setPanelPoppedOut] = React.useState(false);
     const togglePanelPopOut = useCallback(() => setPanelPoppedOut(v => !v), []);
 
-    // Club Arena 4-Color Deck & Felt Theme Preferences (persisted in localStorage)
+    // Club Arena 4-Color Deck, Felt Theme & BB/Chips Display Mode (persisted in localStorage)
     const [fourColorDeck, setFourColorDeck] = React.useState(false);
     const [feltTheme, setFeltTheme] = React.useState('carbon');
+    const [displayMode, setDisplayMode] = React.useState('bb'); // 'bb' | 'chips' (1 BB = 100 Chips)
+    const [sliderSizingBb, setSliderSizingBb] = React.useState(null);
     const [heroActionFlight, setHeroActionFlight] = React.useState(null);
     useEffect(() => {
         try {
@@ -1874,6 +1876,10 @@ function UniversalDynamicTable({
             const savedFelt = localStorage.getItem('sp_training_felt_theme');
             if (savedFelt && ['carbon', 'emerald', 'sapphire', 'crimson'].includes(savedFelt)) {
                 setFeltTheme(savedFelt);
+            }
+            const savedDisp = localStorage.getItem('sp_training_display_mode');
+            if (savedDisp === 'bb' || savedDisp === 'chips') {
+                setDisplayMode(savedDisp);
             }
         } catch { /* non-blocking storage read */ }
     }, []);
@@ -1892,6 +1898,23 @@ function UniversalDynamicTable({
             return next;
         });
     }, []);
+    const toggleDisplayMode = useCallback(() => {
+        setDisplayMode(prev => {
+            const next = prev === 'bb' ? 'chips' : 'bb';
+            try { localStorage.setItem('sp_training_display_mode', next); } catch {}
+            return next;
+        });
+    }, []);
+    const formatTableAmount = useCallback((bbAmount, { unit = true } = {}) => {
+        const num = Number(bbAmount);
+        if (!Number.isFinite(num)) return unit ? '0 BB' : '0';
+        if (displayMode === 'chips') {
+            const chips = Math.round(num * 100);
+            return unit ? `${chips.toLocaleString()} CHIPS` : chips.toLocaleString();
+        }
+        const formatted = Number.isInteger(num) ? String(num) : num.toFixed(1).replace(/\.0$/, '');
+        return unit ? `${formatted} BB` : formatted;
+    }, [displayMode]);
 
     // H2: Memoize mode bar tabs to prevent re-creates on every render
     const MODE_TABS = useMemo(() => [
@@ -2993,6 +3016,7 @@ function UniversalDynamicTable({
         answerSubmittedRef.current = false;
         setTimeExpired(null);
         setHeroActionFlight(null);
+        setSliderSizingBb(null);
     }, [decisionKey]);
 
     // ARENA_HAND_LOADED is a per-HAND event, so it stays keyed on the hand.
@@ -3883,6 +3907,26 @@ function UniversalDynamicTable({
                                     </button>
                                 );
                             })}
+                            <button
+                                type="button"
+                                data-pot-display-mode-toggle="true"
+                                data-display-mode={displayMode}
+                                aria-label="Toggle BB or Chips Display Mode"
+                                title="Click to toggle stacks and pot between BB and Chips (Club Arena 1:1)"
+                                onClick={toggleDisplayMode}
+                                style={{
+                                    padding: '2px 8px',
+                                    borderRadius: 5,
+                                    fontSize: 12,
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                    border: '1px solid rgba(251, 191, 36, 0.45)',
+                                    background: displayMode === 'chips' ? 'rgba(251, 191, 36, 0.2)' : 'rgba(255,255,255,0.05)',
+                                    color: '#fbbf24',
+                                }}
+                            >
+                                {displayMode === 'chips' ? 'CHIPS (100/BB)' : 'UNITS: BB'}
+                            </button>
                         </div>
 
                         {/* Authoritative Tournament & Opponent Telemetry */}
@@ -4328,14 +4372,21 @@ function UniversalDynamicTable({
                                     }}>
                                         {seatLabel}
                                     </div>
-                                    <div style={{
-                                        fontSize: Math.max(12, ui(11)),
-                                        fontWeight: 800,
-                                        fontVariantNumeric: 'tabular-nums',
-                                        color: isActiveSeat ? '#ffd67a' : '#e2af3a',
-                                        whiteSpace: 'nowrap',
-                                    }}>
-                                        {stackSize} BB
+                                    <div
+                                        data-seat-stack-display="true"
+                                        data-display-mode={displayMode}
+                                        onClick={toggleDisplayMode}
+                                        title="Click to toggle BB / Chips (Club Arena 1:1)"
+                                        style={{
+                                            fontSize: Math.max(12, ui(11)),
+                                            fontWeight: 800,
+                                            fontVariantNumeric: 'tabular-nums',
+                                            color: isActiveSeat ? '#ffd67a' : '#e2af3a',
+                                            whiteSpace: 'nowrap',
+                                            cursor: 'pointer',
+                                        }}
+                                    >
+                                        {formatTableAmount(stackSize)}
                                     </div>
                                     {/* PKO Bounty & Exploitative Villain Read Badge */}
                                     {!isHero && index === villainSeatIndex && (() => {
@@ -4839,6 +4890,11 @@ function UniversalDynamicTable({
                     <motion.div
                         className="sp-club-gto-pot"
                         data-training-pot={displayPot}
+                        data-club-arena-pot-pill="true"
+                        data-pot-display-mode-toggle="true"
+                        data-display-mode={displayMode}
+                        onClick={toggleDisplayMode}
+                        title="Click to toggle between BB and Chips (Club Arena 1:1)"
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         style={{
@@ -4856,6 +4912,7 @@ function UniversalDynamicTable({
                             border: '1px solid rgba(0,212,255,0.22)',
                             boxShadow: '0 6px 16px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.05)',
                             gap: ui(2),
+                            cursor: 'pointer',
                         }}
                     >
                         <span style={{
@@ -4879,13 +4936,20 @@ function UniversalDynamicTable({
                                 }}
                             />
                             <span style={{ fontSize: Math.max(12, ui(10)), fontWeight: 900, letterSpacing: 1.1, color: '#f5a623' }}>POT</span>
-                            {displayPot}
-                            <span style={{ fontSize: Math.max(12, ui(9)), fontWeight: 700, color: 'rgba(255,255,255,0.45)', marginLeft: -ui(3) }}>BB</span>
+                            {formatTableAmount(displayPot, { unit: false })}
+                            <span style={{ fontSize: Math.max(12, ui(9)), fontWeight: 700, color: 'rgba(255,255,255,0.45)', marginLeft: -ui(3) }}>
+                                {displayMode === 'chips' ? 'CHIPS' : 'BB'}
+                            </span>
                         </span>
-                        {/* SPR + Pot Odds + Tournament ICM Indicator */}
-                        <div style={styles.potOverlayRow}>
+                        {/* SPR + Pot Odds + Street Bet + Tournament ICM Indicator */}
+                        <div data-club-arena-street-pot-pill="true" style={styles.potOverlayRow}>
                             {spr && <span style={styles.potOverlayBadge}>SPR: {spr}</span>}
                             {potOdds && <span style={styles.potOverlayBadge}>Odds: {potOdds}%</span>}
+                            {Number(scenario?.villainBet) > 0 && (
+                                <span style={{ ...styles.potOverlayBadge, color: '#38bdf8', borderColor: 'rgba(56,189,248,0.4)' }}>
+                                    Bet: {formatTableAmount(scenario.villainBet)}
+                                </span>
+                            )}
                             {(() => {
                                 const gId = String(gameId || '').toLowerCase();
                                 const rawBf = scenario?.bubbleFactor ?? scenario?.icmBubbleFactor ?? null;
@@ -5114,6 +5178,154 @@ function UniversalDynamicTable({
                 )}
             </AnimatePresence>
 
+            {/* CLUB ARENA 1:1 INTERACTIVE RAISE SIZING BAR & PRESETS */}
+            {!showFeedback && (() => {
+                const currentVariant = String(
+                    scenario?.variant
+                    || trainerConfig?.variant
+                    || (heroCards?.length === 6 ? 'plo6' : heroCards?.length === 5 ? 'plo5' : heroCards?.length === 4 ? 'plo4' : 'nlh')
+                ).toLowerCase();
+                const isPotLimit = currentVariant.startsWith('plo') || (heroCards?.length || 2) >= 4;
+                const callBb = Math.max(0, Number(scenario?.villainBet) || 0);
+                const basePotBb = Math.max(1.5, Number(displayPot) || 1.5);
+                const potLimitMaxBb = Number((basePotBb + 2 * callBb).toFixed(1));
+                const maxRaiseBb = isPotLimit
+                    ? Math.min(Number(heroStack) || 100, potLimitMaxBb)
+                    : (Number(heroStack) || 100);
+                const minRaiseBb = Math.max(1, Math.min(maxRaiseBb, callBb > 0 ? callBb * 2 : 2));
+
+                const aggressiveOptions = (displayOptions || []).slice(0, 9).map((opt, idx) => {
+                    const id = opt?.id || String.fromCharCode(97 + idx);
+                    const text = typeof opt === 'string' ? opt : (opt?.text || opt?.label || '');
+                    const kind = detectActionType(text);
+                    if (!['betsmall', 'betlarge', 'betpot', 'overbet', 'raise', 'allin'].includes(kind)) return null;
+                    const bbMatch = text.match(/(\d+(?:\.\d+)?)\s*(?:bb|x)/i);
+                    const pctMatch = text.match(/(\d+(?:\.\d+)?)\s*%/i);
+                    let estBb = minRaiseBb;
+                    if (bbMatch) {
+                        estBb = parseFloat(bbMatch[1]);
+                    } else if (pctMatch) {
+                        estBb = Number((basePotBb * (parseFloat(pctMatch[1]) / 100)).toFixed(1));
+                    } else if (/all[- ]?in|shove|jam|push/i.test(text)) {
+                        estBb = maxRaiseBb;
+                    } else if (/pot/i.test(text)) {
+                        estBb = potLimitMaxBb;
+                    } else {
+                        estBb = Number((basePotBb * 0.67).toFixed(1));
+                    }
+                    return { id, label: text, bb: Math.max(minRaiseBb, Math.min(maxRaiseBb, estBb)) };
+                }).filter(Boolean);
+
+                if (aggressiveOptions.length === 0) return null;
+
+                const isPreflop = streetLabel === 'PREFLOP';
+                const presets = isPreflop
+                    ? [
+                        { id: '2x', label: '2X', bb: Math.min(maxRaiseBb, 2) },
+                        { id: '2.5x', label: '2.5X', bb: Math.min(maxRaiseBb, 2.5) },
+                        { id: '3x', label: '3X', bb: Math.min(maxRaiseBb, 3) },
+                        { id: 'pot', label: 'POT', bb: Math.min(maxRaiseBb, potLimitMaxBb) },
+                        { id: 'allin', label: isPotLimit ? 'MAX POT' : 'ALL-IN', bb: maxRaiseBb },
+                    ]
+                    : [
+                        { id: '33pct', label: '33%', bb: Math.min(maxRaiseBb, Number((basePotBb * 0.33).toFixed(1))) },
+                        { id: '50pct', label: '50%', bb: Math.min(maxRaiseBb, Number((basePotBb * 0.50).toFixed(1))) },
+                        { id: '67pct', label: '67%', bb: Math.min(maxRaiseBb, Number((basePotBb * 0.67).toFixed(1))) },
+                        { id: '75pct', label: '75%', bb: Math.min(maxRaiseBb, Number((basePotBb * 0.75).toFixed(1))) },
+                        { id: 'pot', label: 'POT', bb: Math.min(maxRaiseBb, potLimitMaxBb) },
+                        { id: 'allin', label: isPotLimit ? 'MAX POT' : 'ALL-IN', bb: maxRaiseBb },
+                    ];
+
+                const effectiveSliderBb = sliderSizingBb !== null
+                    ? Math.min(maxRaiseBb, Math.max(minRaiseBb, Number(sliderSizingBb)))
+                    : aggressiveOptions[0].bb;
+
+                const matchedAggressiveOpt = aggressiveOptions.reduce((best, cand) => {
+                    return Math.abs(cand.bb - effectiveSliderBb) < Math.abs(best.bb - effectiveSliderBb) ? cand : best;
+                }, aggressiveOptions[0]);
+
+                return (
+                    <div
+                        data-club-arena-action-bar="true"
+                        data-club-arena-raise-panel="true"
+                        data-pot-limit-enforced={isPotLimit ? 'true' : 'false'}
+                        data-pot-limit-max-bb={isPotLimit ? String(potLimitMaxBb) : ''}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            flexWrap: 'wrap',
+                            gap: 6,
+                            padding: '5px 10px',
+                            background: 'linear-gradient(180deg, rgba(15,23,42,0.95) 0%, rgba(7,11,22,0.98) 100%)',
+                            borderTop: '1px solid rgba(251,191,36,0.28)',
+                        }}
+                    >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                            {presets.map((p) => {
+                                const isPresetActive = Math.abs(effectiveSliderBb - p.bb) < 0.25;
+                                return (
+                                    <button
+                                        key={p.id}
+                                        type="button"
+                                        data-club-arena-preset={p.id}
+                                        onClick={() => setSliderSizingBb(p.bb)}
+                                        style={{
+                                            padding: '2px 7px',
+                                            borderRadius: 5,
+                                            fontSize: 12,
+                                            fontWeight: 800,
+                                            cursor: 'pointer',
+                                            border: isPresetActive ? '1px solid #fbbf24' : '1px solid rgba(255,255,255,0.14)',
+                                            background: isPresetActive ? 'rgba(251,191,36,0.2)' : 'rgba(255,255,255,0.05)',
+                                            color: isPresetActive ? '#fde68a' : '#cbd5e1',
+                                        }}
+                                    >
+                                        {p.label}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: '1 1 200px', justifyContent: 'flex-end' }}>
+                            <input
+                                type="range"
+                                data-club-arena-raise-slider="true"
+                                aria-label="Club Arena Bet and Raise Sizing Slider"
+                                min={minRaiseBb}
+                                max={Math.max(minRaiseBb + 0.5, maxRaiseBb)}
+                                step="0.5"
+                                value={effectiveSliderBb}
+                                onChange={(e) => setSliderSizingBb(parseFloat(e.target.value))}
+                                style={{
+                                    width: isMobile ? 90 : 120,
+                                    accentColor: '#f59e0b',
+                                    cursor: 'pointer',
+                                }}
+                            />
+                            <button
+                                type="button"
+                                data-club-arena-raise-confirm="true"
+                                data-matched-action-id={matchedAggressiveOpt.id}
+                                onClick={() => handleAnswerWithGrouping(matchedAggressiveOpt.id)}
+                                style={{
+                                    padding: '3px 10px',
+                                    borderRadius: 6,
+                                    fontSize: 12,
+                                    fontWeight: 900,
+                                    cursor: 'pointer',
+                                    border: '1px solid rgba(245,158,11,0.65)',
+                                    background: 'linear-gradient(180deg, #f59e0b 0%, #d97706 100%)',
+                                    color: '#0f172a',
+                                    whiteSpace: 'nowrap',
+                                }}
+                            >
+                                {`${matchedAggressiveOpt.label.toUpperCase()} (${formatTableAmount(effectiveSliderBb)})`}
+                            </button>
+                        </div>
+                    </div>
+                );
+            })()}
+
             {/* ACTION BUTTONS — GTO Wizard-style poker action bar (F2: Dynamic sizing + F9: Keyboard hints) */}
             <div className="sp-club-gto-actions" style={{
                 ...styles.actionBar,
@@ -5319,7 +5531,7 @@ function UniversalDynamicTable({
                                         color: '#ffffff',
                                         marginTop: 2,
                                     }}>
-                                        {betSizeNum} BB
+                                        {formatTableAmount(betSizeNum)}
                                     </div>
                                 ) : null}
                                 {showFeedback ? (
@@ -5404,7 +5616,7 @@ function UniversalDynamicTable({
                                 the transpose for the whole app. */}
                             {rangeModeGrid ? (
                                 <div data-matrix-provenance="solver-raw-frequencies">
-                                    <div style={{ fontSize: 11, color: '#6ee7b7', textAlign: 'center', marginBottom: 4, fontWeight: 700 }}>
+                                    <div style={{ fontSize: 12, color: '#6ee7b7', textAlign: 'center', marginBottom: 4, fontWeight: 700 }}>
                                         Provenance: Authoritative Solver Node Frequencies
                                     </div>
                                     <RangeGrid
@@ -5421,7 +5633,7 @@ function UniversalDynamicTable({
                                 </div>
                             ) : (
                                 <div data-matrix-provenance="positional-gto-reference" style={{ padding: '4px 4px 8px' }}>
-                                    <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)', textAlign: 'center', marginBottom: 6 }}>
+                                    <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', textAlign: 'center', marginBottom: 6 }}>
                                         Positional 13×13 Hand Matrix (Reference Range - Not Solver-Exact) • Hero Subset Highlighted ({fq?.scenario?.brainEvaluation?.primaryTwoCardSubset || handNotationFromCards(fq?.heroCards || heroCards) || 'Hero'})
                                     </div>
                                     <div
@@ -5642,6 +5854,17 @@ function UniversalDynamicTable({
                                 >
                                     {`◆ Club Arena Felt: ${feltTheme.charAt(0).toUpperCase() + feltTheme.slice(1)}`}
                                 </button>
+                                <button
+                                    data-training-display-mode-toggle="true"
+                                    onClick={toggleDisplayMode}
+                                    style={{
+                                        ...styles.settingsBtn,
+                                        color: displayMode === 'chips' ? '#fbbf24' : 'var(--sp-fg)',
+                                        borderColor: displayMode === 'chips' ? 'rgba(251,191,36,0.4)' : 'rgba(255,255,255,0.1)',
+                                    }}
+                                >
+                                    {displayMode === 'chips' ? '◆ Stack & Pot Units: CHIPS (100/BB)' : '◆ Stack & Pot Units: Big Blinds (BB)'}
+                                </button>
                                 {onExit && (
                                     <button onClick={onExit} style={{ ...styles.settingsBtn, color: 'var(--sp-accent-red)', borderColor: 'rgba(239,68,68,0.3)' }}>
                                          Quit Session
@@ -5742,16 +5965,16 @@ function UniversalDynamicTable({
                                         >
                                             {brainMeta && (
                                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: coachingText ? 6 : 0 }}>
-                                                    <span style={{ padding: '2px 7px', borderRadius: 999, background: 'rgba(14, 165, 233, 0.2)', color: '#7dd3fc', fontWeight: 800, fontSize: 11 }}>
+                                                    <span style={{ padding: '2px 7px', borderRadius: 999, background: 'rgba(14, 165, 233, 0.2)', color: '#7dd3fc', fontWeight: 800, fontSize: 12 }}>
                                                         Brain: {brainMeta.engineModule}
                                                     </span>
                                                     {brainMeta.madeHandCategory && (
-                                                        <span style={{ padding: '2px 7px', borderRadius: 999, background: 'rgba(16, 185, 129, 0.2)', color: '#6ee7b7', fontWeight: 800, fontSize: 11 }}>
+                                                        <span style={{ padding: '2px 7px', borderRadius: 999, background: 'rgba(16, 185, 129, 0.2)', color: '#6ee7b7', fontWeight: 800, fontSize: 12 }}>
                                                             Hand: {brainMeta.madeHandCategory}
                                                         </span>
                                                     )}
                                                     {brainMeta.potLimitBounds?.maxBetBb && (
-                                                        <span style={{ padding: '2px 7px', borderRadius: 999, background: 'rgba(245, 158, 11, 0.2)', color: '#fcd34d', fontWeight: 800, fontSize: 11 }}>
+                                                        <span style={{ padding: '2px 7px', borderRadius: 999, background: 'rgba(245, 158, 11, 0.2)', color: '#fcd34d', fontWeight: 800, fontSize: 12 }}>
                                                             Pot-Limit Max: {brainMeta.potLimitBounds.maxBetBb} BB
                                                         </span>
                                                     )}

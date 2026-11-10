@@ -23,6 +23,7 @@ import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
 import { analyzeVerifiedTrainingWeaknesses } from '../../../src/lib/training/weaknessAnalysis.mjs';
+import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
 // TRAIN-WIRE-EMPTY-6a — adoption: shared empty-state primitive
 
 export const analyzeData = analyzeVerifiedTrainingWeaknesses;
@@ -97,6 +98,31 @@ export default function WeaknessScannerPage() {
     });
     return analyzeData(filtered);
   }, [rawSessions, timeFilter]);
+
+  const topLeak = data?.leaks?.[0] || null;
+  const topLeakGameId = topLeak?.gameId || topLeak?._engineLeak?.drill?.gameId || 'cash-005';
+  const leakBrainEval = React.useMemo(() => {
+    try {
+      return evaluateTrainingSpotWithHorseBrain({
+        gameId: topLeakGameId,
+        variant: 'nlh',
+        heroCards: ['Kh', 'Jc'],
+        boardCards: ['Ks', '8d', '4c'],
+        street: 'flop',
+        pot: 6.5,
+        stackDepth: 100,
+        heroPosition: 'BB',
+        villainPosition: 'BTN',
+        options: [
+          { id: 'call', text: 'Call 2.2 BB' },
+          { id: 'raise', text: 'Check-Raise 7.5 BB' },
+          { id: 'fold', text: 'Fold' },
+        ],
+      });
+    } catch {
+      return null;
+    }
+  }, [topLeakGameId]);
 
   return (
     <>
@@ -178,6 +204,54 @@ export default function WeaknessScannerPage() {
               </button>
             ))}
           </div>
+
+          {/* Horse Brain Leak Remediation & One-Click Club Arena CTA */}
+          {leakBrainEval && (
+            <div
+              data-leak-brain-panel="true"
+              data-brain-engine={leakBrainEval.engineModule}
+              style={{
+                padding: '16px',
+                borderRadius: 12,
+                marginBottom: 16,
+                background: 'rgba(15, 23, 42, 0.72)',
+                border: '1px solid rgba(56, 189, 248, 0.35)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-accent-cyan)' }}>
+                  Horse Brain Leak Remediation Engine
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-amber)' }}>
+                  Target Drill: {topLeak ? topLeak.area : 'Blind Defense'} ({topLeakGameId})
+                </span>
+              </div>
+              <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.5 }}>
+                {leakBrainEval.coachingExplanation}
+              </p>
+              <button
+                type="button"
+                data-fix-top-leak-cta="true"
+                data-target-game-id={topLeakGameId}
+                onClick={() => {
+                  router.push(buildCustomTrainingArenaHref({ gameId: topLeakGameId }, 'weakness-scanner'));
+                }}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  borderRadius: 8,
+                  border: '1px solid rgba(56, 189, 248, 0.5)',
+                  background: 'rgba(56, 189, 248, 0.16)',
+                  color: 'var(--sp-accent-cyan)',
+                  fontSize: 12,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                }}
+              >
+                {topLeak ? `Train Top Leak In Club Arena: ${topLeak.area} →` : 'Train Priority Leak Spot In Club Arena →'}
+              </button>
+            </div>
+          )}
 
           {/* Error State */}
           <ErrorBanner message={fetchError} onRetry={() => { setLoading(true); fetchData(); }} />
