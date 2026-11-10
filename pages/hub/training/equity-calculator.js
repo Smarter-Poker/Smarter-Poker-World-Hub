@@ -41,15 +41,24 @@ const SUITS = [
 const PLAYER_COLORS = ['var(--sp-accent-cyan)', 'var(--sp-accent-red)', 'var(--sp-accent-green)', 'var(--sp-accent-orange)'];
 const PLAYER_LABELS = ['Player 1', 'Player 2', 'Player 3', 'Player 4'];
 
+const EQUITY_VARIANTS = [
+  { id: 'holdem', label: "Hold'em (2c)", holeCount: 2 },
+  { id: 'plo4', label: 'PLO4 (4c)', holeCount: 4 },
+  { id: 'plo5', label: 'PLO5 (5c)', holeCount: 5 },
+  { id: 'plo6', label: 'PLO6 (6c)', holeCount: 6 },
+];
+
 const PRESETS = [
-  { name: 'AA vs KK', hands: ['AhAs', 'KdKc'], board: [] },
-  { name: 'AKs vs QQ', hands: ['AhKh', 'QcQd'], board: [] },
-  { name: 'AKo vs 77', hands: ['AhKd', '7c7s'], board: [] },
-  { name: 'AA vs AKs', hands: ['AhAd', 'AcKc'], board: [] },
-  { name: 'JJ vs AKs', hands: ['JhJd', 'AcKc'], board: [] },
-  { name: 'KK vs AKs vs QQ', hands: ['KhKd', 'AcKc', 'QsQh'], board: [] },
-  { name: 'Cooler: Set vs Flush', hands: ['7h7d', 'Ah9h'], board: ['7s', '3h', '5h'] },
-  { name: 'Pair vs Overcards', hands: ['6d6c', 'AhKs'], board: [] },
+  { name: 'AA vs KK', variant: 'holdem', hands: ['AhAs', 'KdKc'], board: [] },
+  { name: 'AKs vs QQ', variant: 'holdem', hands: ['AhKh', 'QcQd'], board: [] },
+  { name: 'AKo vs 77', variant: 'holdem', hands: ['AhKd', '7c7s'], board: [] },
+  { name: 'AA vs AKs', variant: 'holdem', hands: ['AhAd', 'AcKc'], board: [] },
+  { name: 'JJ vs AKs', variant: 'holdem', hands: ['JhJd', 'AcKc'], board: [] },
+  { name: 'KK vs AKs vs QQ', variant: 'holdem', hands: ['KhKd', 'AcKc', 'QsQh'], board: [] },
+  { name: 'Cooler: Set vs Flush', variant: 'holdem', hands: ['7h7d', 'Ah9h'], board: ['7s', '3h', '5h'] },
+  { name: 'PLO4: AAKKds vs Rundown', variant: 'plo4', hands: ['AhAsKhKs', 'JhTh9d8d'], board: [] },
+  { name: 'PLO5: Wrap vs Top Set', variant: 'plo5', hands: ['AhKhQhJdTc', '9s9d9c2h3d'], board: ['9h', '8h', '2c'] },
+  { name: 'PLO6: 6-Card High Clash', variant: 'plo6', hands: ['AhAsKhKsQhQs', 'JhTh9h8d7d6c'], board: [] },
 ];
 
 
@@ -57,7 +66,7 @@ const PRESETS = [
 // CARD PICKER COMPONENT
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
-function CardPicker({ selectedCards, onSelect, usedCards, label }) {
+function CardPicker({ selectedCards, onSelect, usedCards, label, holeCount = 2 }) {
   const [open, setOpen] = useState(false);
   const [slot, setSlot] = useState(0); // Which card slot we're picking for
 
@@ -67,8 +76,8 @@ function CardPicker({ selectedCards, onSelect, usedCards, label }) {
     const newCards = [...selectedCards];
     newCards[slot] = card;
     onSelect(newCards.filter(Boolean));
-    if (slot < selectedCards.length) {
-      setSlot((prev) => Math.min(prev + 1, 1));
+    if (slot < holeCount - 1) {
+      setSlot((prev) => Math.min(prev + 1, holeCount - 1));
     }
     setOpen(false);
   };
@@ -93,8 +102,8 @@ function CardPicker({ selectedCards, onSelect, usedCards, label }) {
       >
         {label}
       </div>
-      <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-        {[0, 1].map((idx) => {
+      <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
+        {Array.from({ length: holeCount }, (_, idx) => idx).map((idx) => {
           const card = selectedCards[idx];
           return (
             <div
@@ -627,11 +636,13 @@ function EquityBar({ results }) {
 
 function formatHand(handStr) {
   if (!handStr || handStr.length < 4) return handStr || '';
-  const c1 = handStr.substring(0, 2);
-  const c2 = handStr.substring(2, 4);
-  const s1 = SUITS.find((s) => s.char === c1[1]);
-  const s2 = SUITS.find((s) => s.char === c2[1]);
-  return `${c1[0]}${s1?.symbol || c1[1]} ${c2[0]}${s2?.symbol || c2[1]}`;
+  const tokens = [];
+  for (let i = 0; i < handStr.length; i += 2) {
+    const c = handStr.substring(i, i + 2);
+    const s = SUITS.find((suit) => suit.char === c[1]);
+    tokens.push(`${c[0]}${s?.symbol || c[1]}`);
+  }
+  return tokens.join(' ');
 }
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -644,12 +655,19 @@ export default function EquityCalculatorPage() {
   const calcCountRef = useRef(0);
 
   // State
+  const [variant, setVariant] = useState('holdem');
   const [numPlayers, setNumPlayers] = useState(2);
   const [hands, setHands] = useState([[], []]);
   const [boardCards, setBoardCards] = useState([]);
   const [results, setResults] = useState(null);
+  const [horseBrainAnalysis, setHorseBrainAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const activeVariantSpec = useMemo(
+    () => EQUITY_VARIANTS.find((v) => v.id === variant) || EQUITY_VARIANTS[0],
+    [variant]
+  );
 
   // All used cards (deduplication)
   const usedCards = useMemo(() => {
@@ -667,8 +685,18 @@ export default function EquityCalculatorPage() {
 
   // Can calculate?
   const canCalculate = useMemo(() => {
-    return hands.slice(0, numPlayers).every((h) => h.length === 2);
-  }, [hands, numPlayers]);
+    return hands.slice(0, numPlayers).every((h) => h.length === activeVariantSpec.holeCount);
+  }, [hands, numPlayers, activeVariantSpec.holeCount]);
+
+  // Switch variant
+  const changeVariant = useCallback((nextVariant) => {
+    const nextSpec = EQUITY_VARIANTS.find((v) => v.id === nextVariant) || EQUITY_VARIANTS[0];
+    setVariant(nextSpec.id);
+    setHands((prev) => prev.map((h) => h.slice(0, nextSpec.holeCount)));
+    setResults(null);
+    setHorseBrainAnalysis(null);
+    setError(null);
+  }, []);
 
   // Update hand for player
   const updateHand = useCallback((playerIdx, cards) => {
@@ -678,6 +706,7 @@ export default function EquityCalculatorPage() {
       return next;
     });
     setResults(null);
+    setHorseBrainAnalysis(null);
   }, []);
 
   // Add/remove player
@@ -689,10 +718,13 @@ export default function EquityCalculatorPage() {
       return next;
     });
     setResults(null);
+    setHorseBrainAnalysis(null);
   }, []);
 
   // Load preset
   const loadPreset = useCallback((preset) => {
+    const presetVariant = preset.variant || 'holdem';
+    setVariant(presetVariant);
     const newHands = preset.hands.map((h) => {
       const cards = [];
       for (let i = 0; i < h.length; i += 2) {
@@ -705,6 +737,7 @@ export default function EquityCalculatorPage() {
     setBoardCards(preset.board || []);
     setNumPlayers(preset.hands.length);
     setResults(null);
+    setHorseBrainAnalysis(null);
     setError(null);
   }, []);
 
@@ -713,6 +746,7 @@ export default function EquityCalculatorPage() {
     setHands([[], [], [], []]);
     setBoardCards([]);
     setResults(null);
+    setHorseBrainAnalysis(null);
     setError(null);
   }, []);
 
@@ -728,7 +762,7 @@ export default function EquityCalculatorPage() {
         body: JSON.stringify({
           hands: handStrings,
           board: boardCards,
-          variant: 'holdem',
+          variant,
           iterations: 5000,
         }),
       });
@@ -736,6 +770,7 @@ export default function EquityCalculatorPage() {
       const data = await res.json();
       if (data.success) {
         setResults(data.results);
+        setHorseBrainAnalysis(data.horseBrainAnalysis || null);
         calcCountRef.current += 1;
         busEmit.sessionEnd('equity-calculator');
       } else {
@@ -746,7 +781,7 @@ export default function EquityCalculatorPage() {
     } finally {
       setLoading(false);
     }
-  }, [canCalculate, hands, numPlayers, boardCards]);
+  }, [canCalculate, hands, numPlayers, boardCards, variant]);
 
   const pageUrl = 'https://smarter.poker/hub/training/equity-calculator';
   const equityJsonLd = hubProductSchema({
@@ -872,7 +907,51 @@ export default function EquityCalculatorPage() {
 
         {/* Main Content */}
         <div className="sp-training-analysis-main" style={{ padding: '20px 24px', maxWidth: 700, margin: '0 auto' }}>
-          {/* Player Count */}
+          {/* Variant & Player Count */}
+          <div
+            data-equity-variant-selector="true"
+            style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}
+          >
+            <span
+              style={{
+                fontSize: 12,
+                color: 'var(--sp-fg-dim)',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: 1,
+              }}
+            >
+              Variant:
+            </span>
+            {EQUITY_VARIANTS.map((v) => (
+              <button
+                key={v.id}
+                type="button"
+                data-variant-option={v.id}
+                data-equity-variant={v.id}
+                aria-pressed={variant === v.id}
+                onClick={() => changeVariant(v.id)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: 8,
+                  fontSize: 12,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  border: variant === v.id ? '1px solid rgba(34,211,238,0.5)' : '1px solid rgba(255,255,255,0.08)',
+                  transition: 'all 0.2s',
+                  background:
+                    variant === v.id
+                      ? 'linear-gradient(135deg, rgba(6,182,212,0.35), rgba(59,130,246,0.35))'
+                      : 'rgba(255,255,255,0.05)',
+                  color: variant === v.id ? '#e0f2fe' : 'var(--sp-fg-muted)',
+                  fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
+                }}
+              >
+                {v.label}
+              </button>
+            ))}
+          </div>
+
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 16 }}>
             <span
               style={{
@@ -949,6 +1028,7 @@ export default function EquityCalculatorPage() {
                   onSelect={(cards) => updateHand(idx, cards)}
                   usedCards={usedCards}
                   label=""
+                  holeCount={activeVariantSpec.holeCount}
                 />
               </div>
             ))}
@@ -1056,6 +1136,41 @@ export default function EquityCalculatorPage() {
                   EQUITY RESULTS (5,000 SIMULATIONS)
                 </div>
                 <EquityBar results={results} />
+                {horseBrainAnalysis && (
+                  <div
+                    data-equity-brain-panel="true"
+                    data-brain-engine={horseBrainAnalysis.engineModule}
+                    style={{
+                      marginTop: 14,
+                      padding: '12px 14px',
+                      borderRadius: 10,
+                      background: 'rgba(6,182,212,0.08)',
+                      border: '1px solid rgba(34,211,238,0.28)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 6 }}>
+                      <span style={{ fontSize: 12, fontWeight: 800, color: '#67e8f9', textTransform: 'uppercase' }}>
+                        {`Engine: ${horseBrainAnalysis.engineModule}`}
+                      </span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#cbd5e1' }}>
+                        {`Player 1 Made Hand: ${horseBrainAnalysis.madeHandCategory}`}
+                      </span>
+                      {horseBrainAnalysis.recommendedAction && (
+                        <span style={{ fontSize: 12, fontWeight: 800, color: '#4ade80' }}>
+                          {`Recommended Line: ${horseBrainAnalysis.recommendedAction}`}
+                        </span>
+                      )}
+                      {horseBrainAnalysis.potLimitMaxBetBb && (
+                        <span style={{ fontSize: 12, fontWeight: 700, color: '#fbbf24' }}>
+                          {`Pot-Limit Max Bet: ${horseBrainAnalysis.potLimitMaxBetBb} BB`}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 12, color: '#e2e8f0', lineHeight: 1.5 }}>
+                      {horseBrainAnalysis.coachingSummary}
+                    </div>
+                  </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>

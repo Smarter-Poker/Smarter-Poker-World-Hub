@@ -689,4 +689,72 @@ test('25-Item Free Discovery, Viral Calculators, Matchups, Series Guides, Press 
   }
 });
 
+test('Phase 6 Partner Installation Suite: oEmbed 1.0 Provider, 1-Line JS Widget SDK, Multi-Format Embed Portal, and Factual Attribution Hardening', async () => {
+  const { buildOembedPayload, buildPartnerInstallationCatalog } = await import('../pages/api/seo/oembed.js');
+
+  const calcOembed = buildOembedPayload({
+    url: 'https://smarter.poker/tools/poker-odds-calculator',
+    maxwidth: 760,
+    partner: 'rec.poker',
+  });
+  assert.equal(calcOembed.status, 200);
+  assert.equal(calcOembed.body.version, '1.0');
+  assert.equal(calcOembed.body.type, 'rich');
+  assert.equal(calcOembed.body.provider_name, 'Smarter.Poker');
+  assert.ok(calcOembed.body.html.includes('utm_source=rec.poker'), 'stamps partner utm_source onto iframe and attribution link');
+
+  const researchOembed = buildOembedPayload({
+    url: 'https://smarter.poker/research/us-live-poker-room-rake-and-jackpot-benchmark',
+    partner: 'cardschat.com',
+  });
+  assert.equal(researchOembed.status, 200);
+  assert.equal(researchOembed.body.type, 'rich');
+  assert.ok(researchOembed.body.html.includes('Zenodo DOI 10.5281/zenodo.24095049'));
+  assert.ok(researchOembed.body.html.includes('utm_source=cardschat.com'));
+
+  const invalidOembed = buildOembedPayload({ url: 'https://example.com/other' });
+  assert.equal(invalidOembed.status, 404);
+
+  const catalog = buildPartnerInstallationCatalog({ partner: 'upswingpoker.com' });
+  assert.equal(catalog.counts.embeddable_calculators, 23);
+  assert.equal(catalog.counts.svg_attribution_badges, 15);
+  assert.equal(catalog.counts.streamer_chat_commands, 18);
+  assert.equal(catalog.counts.dead_tool_replacements, 12);
+  assert.equal(catalog.counts.zenodo_dataset_deposits, 6);
+  assert.ok(catalog.one_line_sdk_example.includes('data-partner="upswingpoker.com"'));
+
+  const sdkSrc = read('public/embed-sdk.js');
+  for (const w of catalog.calculators) {
+    assert.ok(sdkSrc.includes(`'${w.id}':`), `public/embed-sdk.js registers widget ${w.id}`);
+  }
+  assert.ok(sdkSrc.includes('data-smarter-poker-widget'));
+  assert.ok(sdkSrc.includes('utm_medium=embed-sdk'));
+
+  const seoHeadSrc = read('src/components/seo/SEOHead.js');
+  assert.ok(seoHeadSrc.includes('type="application/json+oembed"'), 'SEOHead emits oEmbed discovery link');
+
+  const embedsSrc = read('pages/tools/embeds.js');
+  assert.ok(embedsSrc.includes('1-Line JS SDK'));
+  assert.ok(embedsSrc.includes('StreamElements'));
+  assert.ok(embedsSrc.includes('Fossabot'));
+  assert.ok(embedsSrc.includes('/api/seo/oembed?mode=catalog'));
+  assert.ok(embedsSrc.includes('/embed-sdk.js'));
+
+  for (const rel of [
+    'src/lib/seo/backlinkCatalog.mjs',
+    'src/lib/seo/outreachEngine.mjs',
+    'src/lib/mcp/mcpServer.mjs',
+    'pages/search.js',
+    'public/.well-known/ai-plugin.json',
+    'pages/api/feeds/research.js',
+    'pages/api/seo/badge.js',
+  ]) {
+    const content = read(rel);
+    assert.ok(!/CERN\/Zenodo|Zenodo \(CERN\)/i.test(content), `${rel} must not contain CERN/Zenodo framing`);
+    assert.ok(!/\bDR 9[0-9]\b/i.test(content), `${rel} must not contain third-party DR 9x claims`);
+    assert.ok(!/\bdofollow\b/i.test(content), `${rel} must not contain dofollow claims`);
+  }
+});
+
+
 

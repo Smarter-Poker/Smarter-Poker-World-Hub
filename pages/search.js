@@ -198,7 +198,7 @@ const CALCULATOR_ITEMS = [
     title: 'Official Smarter.Poker Press Kit, DOIs & Media Fast Facts',
     href: '/press',
     badge: 'Media & DOIs',
-    summary: 'Quotable 2026 Industry Benchmarks, 6 CERN/Zenodo DOIs, Software Heritage SWHIDs, And Brand Boilerplates.',
+    summary: 'Quotable 2026 Industry Benchmarks, 6 Zenodo DOIs, Software Heritage SWHIDs, And Brand Boilerplates.',
   },
 ];
 

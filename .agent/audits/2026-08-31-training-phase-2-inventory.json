@@ -14,7 +14,7 @@
     "dependencyFiles": 373,
     "componentFiles": 53,
     "hookFiles": 14,
-    "ctas": 407,
+    "ctas": 408,
     "dialogs": 12,
     "persistenceFiles": 87,
     "realtimeFiles": 6,
@@ -1666,7 +1666,7 @@
         "success": true,
         "authExpiry": false
       },
-      "ctaCount": 9,
+      "ctaCount": 10,
       "dialogCount": 0,
       "apiReferences": [
         "/api/training/equity"
@@ -8033,7 +8033,8 @@
           "status": "coverage-gap",
           "evidence": [],
           "tests": [
-            "__tests__/training-focused-launch-wiring.test.mjs"
+            "__tests__/training-focused-launch-wiring.test.mjs",
+            "__tests__/training-reconciled-workflows.test.mjs"
           ],
           "followUpPhase": 7
         },
@@ -8044,7 +8045,8 @@
             "src/lib/seo/hubPageSchema.js"
           ],
           "tests": [
-            "__tests__/training-focused-launch-wiring.test.mjs"
+            "__tests__/training-focused-launch-wiring.test.mjs",
+            "__tests__/training-reconciled-workflows.test.mjs"
           ]
         },
         "error": {
@@ -8053,7 +8055,8 @@
             "pages/hub/training/drill-builder.js"
           ],
           "tests": [
-            "__tests__/training-focused-launch-wiring.test.mjs"
+            "__tests__/training-focused-launch-wiring.test.mjs",
+            "__tests__/training-reconciled-workflows.test.mjs"
           ]
         },
         "retry": {
@@ -8062,7 +8065,8 @@
             "pages/hub/training/drill-builder.js"
           ],
           "tests": [
-            "__tests__/training-focused-launch-wiring.test.mjs"
+            "__tests__/training-focused-launch-wiring.test.mjs",
+            "__tests__/training-reconciled-workflows.test.mjs"
           ]
         },
         "success": {
@@ -8071,14 +8075,16 @@
             "pages/hub/training/drill-builder.js"
           ],
           "tests": [
-            "__tests__/training-focused-launch-wiring.test.mjs"
+            "__tests__/training-focused-launch-wiring.test.mjs",
+            "__tests__/training-reconciled-workflows.test.mjs"
           ]
         },
         "stale": {
           "status": "coverage-gap",
           "evidence": [],
           "tests": [
-            "__tests__/training-focused-launch-wiring.test.mjs"
+            "__tests__/training-focused-launch-wiring.test.mjs",
+            "__tests__/training-reconciled-workflows.test.mjs"
           ],
           "followUpPhase": 8
         },
@@ -8089,7 +8095,8 @@
             "src/components/training/ConnectionToast.js"
           ],
           "tests": [
-            "__tests__/training-focused-launch-wiring.test.mjs"
+            "__tests__/training-focused-launch-wiring.test.mjs",
+            "__tests__/training-reconciled-workflows.test.mjs"
           ]
         },
         "authExpiry": {
@@ -8099,12 +8106,14 @@
             "src/components/seo/HubPageSummary.js"
           ],
           "tests": [
-            "__tests__/training-focused-launch-wiring.test.mjs"
+            "__tests__/training-focused-launch-wiring.test.mjs",
+            "__tests__/training-reconciled-workflows.test.mjs"
           ]
         }
       },
       "existingTests": [
-        "__tests__/training-focused-launch-wiring.test.mjs"
+        "__tests__/training-focused-launch-wiring.test.mjs",
+        "__tests__/training-reconciled-workflows.test.mjs"
       ],
       "uncoveredStates": [
         "loading",
@@ -8144,6 +8153,7 @@
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
             "__tests__/phase23-calculator-schema.test.mjs",
+            "__tests__/training-reconciled-workflows.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -8157,6 +8167,7 @@
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
             "__tests__/phase23-calculator-schema.test.mjs",
+            "__tests__/training-reconciled-workflows.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -8172,6 +8183,7 @@
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
             "__tests__/phase23-calculator-schema.test.mjs",
+            "__tests__/training-reconciled-workflows.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -8185,6 +8197,7 @@
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
             "__tests__/phase23-calculator-schema.test.mjs",
+            "__tests__/training-reconciled-workflows.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -8198,6 +8211,7 @@
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
             "__tests__/phase23-calculator-schema.test.mjs",
+            "__tests__/training-reconciled-workflows.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -8211,6 +8225,7 @@
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
             "__tests__/phase23-calculator-schema.test.mjs",
+            "__tests__/training-reconciled-workflows.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -8221,6 +8236,7 @@
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
             "__tests__/phase23-calculator-schema.test.mjs",
+            "__tests__/training-reconciled-workflows.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ],
           "followUpPhase": 15
@@ -8235,6 +8251,7 @@
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
             "__tests__/phase23-calculator-schema.test.mjs",
+            "__tests__/training-reconciled-workflows.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         }
@@ -8243,6 +8260,7 @@
         "__tests__/gsc-series2-phase2.test.mjs",
         "__tests__/gsc-series3-phase2.test.mjs",
         "__tests__/phase23-calculator-schema.test.mjs",
+        "__tests__/training-reconciled-workflows.test.mjs",
         "e2e/020-hamburger.spec.ts"
       ],
       "uncoveredStates": [
@@ -10005,6 +10023,7 @@
             "src/lib/authUtils.js"
           ],
           "tests": [
+            "__tests__/training-reconciled-workflows.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -10030,6 +10049,7 @@
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
+            "__tests__/training-reconciled-workflows.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -10061,6 +10081,7 @@
             "src/stores/toastStore.js"
           ],
           "tests": [
+            "__tests__/training-reconciled-workflows.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -10079,6 +10100,7 @@
             "src/tutorials/personal-assistant.js"
           ],
           "tests": [
+            "__tests__/training-reconciled-workflows.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -10105,6 +10127,7 @@
             "src/stores/toastStore.js"
           ],
           "tests": [
+            "__tests__/training-reconciled-workflows.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -10135,6 +10158,7 @@
             "src/tutorials/personal-assistant.js"
           ],
           "tests": [
+            "__tests__/training-reconciled-workflows.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -10147,6 +10171,7 @@
             "src/contexts/AvatarContext.jsx"
           ],
           "tests": [
+            "__tests__/training-reconciled-workflows.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -10163,11 +10188,13 @@
             "src/services/avatar-service.js"
           ],
           "tests": [
+            "__tests__/training-reconciled-workflows.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         }
       },
       "existingTests": [
+        "__tests__/training-reconciled-workflows.test.mjs",
         "e2e/020-hamburger.spec.ts"
       ],
       "uncoveredStates": []
@@ -20008,7 +20035,7 @@
         },
         {
           "name": "handler",
-          "line": 99,
+          "line": 104,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -20815,6 +20842,7 @@
         "src/lib/apiRateLimit.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
+        "src/lib/training/horseBrainTrainingAdapter.js",
         "src/utils/trainingApiUtils.js"
       ],
       "links": [],
@@ -20828,7 +20856,7 @@
       },
       "states": {
         "loading": false,
-        "empty": false,
+        "empty": true,
         "error": true,
         "retry": false,
         "offline": false,
@@ -20853,7 +20881,7 @@
       "functions": [
         {
           "name": "getSupabase",
-          "line": 34,
+          "line": 35,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -20861,7 +20889,7 @@
         },
         {
           "name": "parseCardStr",
-          "line": 49,
+          "line": 50,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -20869,14 +20897,6 @@
         },
         {
           "name": "getRank",
-          "line": 60,
-          "references": 6,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "getSuit",
           "line": 61,
           "references": 6,
           "exported": false,
@@ -20884,16 +20904,40 @@
           "namedFunctionExpression": false
         },
         {
+          "name": "getSuit",
+          "line": 62,
+          "references": 6,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "evaluate5Fast",
-          "line": 63,
-          "references": 2,
+          "line": 64,
+          "references": 3,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "bestOf7",
-          "line": 95,
+          "line": 96,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "bestOmaha5",
+          "line": 116,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "normalizeEquityVariant",
+          "line": 137,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -20901,7 +20945,7 @@
         },
         {
           "name": "shufflePartial",
-          "line": 111,
+          "line": 146,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -20909,7 +20953,7 @@
         },
         {
           "name": "calcEquity",
-          "line": 118,
+          "line": 153,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -20917,16 +20961,16 @@
         },
         {
           "name": "handler",
-          "line": 179,
+          "line": 218,
           "references": 1,
           "exported": true,
           "defaultExport": true,
           "namedFunctionExpression": false
         },
         {
-          "name": "evalFn",
-          "line": 129,
-          "references": 2,
+          "name": "normalizeHandEntry",
+          "line": 251,
+          "references": 4,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -26825,7 +26869,7 @@
         {
           "element": "button",
           "name": "\\U2190",
-          "line": 329,
+          "line": 373,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": null,
@@ -26873,15 +26917,15 @@
         },
         {
           "name": "Chip",
-          "line": 159,
-          "references": 5,
+          "line": 199,
+          "references": 6,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "DrillBuilderPage",
-          "line": 185,
+          "line": 226,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -26889,7 +26933,7 @@
         },
         {
           "name": "loadDrills",
-          "line": 198,
+          "line": 240,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -26897,7 +26941,7 @@
         },
         {
           "name": "togglePosition",
-          "line": 231,
+          "line": 273,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -26905,7 +26949,7 @@
         },
         {
           "name": "toggleStreet",
-          "line": 235,
+          "line": 277,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -26913,7 +26957,7 @@
         },
         {
           "name": "selectFormat",
-          "line": 239,
+          "line": 281,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -26921,7 +26965,7 @@
         },
         {
           "name": "applyPreset",
-          "line": 246,
+          "line": 288,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -26929,7 +26973,7 @@
         },
         {
           "name": "saveDrill",
-          "line": 254,
+          "line": 297,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -26937,7 +26981,7 @@
         },
         {
           "name": "startDrill",
-          "line": 300,
+          "line": 344,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -26950,7 +26994,7 @@
       "markers": [
         {
           "kind": "PLACEHOLDER",
-          "line": 432,
+          "line": 476,
           "excerpt": "placeholder=\"e.g., SB vs BB 3-Bet Defense\"",
           "disposition": "ui-input-copy",
           "review": "accepted",
@@ -26979,7 +27023,7 @@
         {
           "element": "button",
           "name": "X",
-          "line": 223,
+          "line": 232,
           "handler": "() => setOpen(false)",
           "destination": null,
           "type": null,
@@ -26989,7 +27033,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 242,
+          "line": 251,
           "handler": "() => !used && handlePick(rank, suit)",
           "destination": null,
           "type": null,
@@ -26999,7 +27043,7 @@
         {
           "element": "button",
           "name": "X",
-          "line": 444,
+          "line": 453,
           "handler": "() => setActiveSlot(null)",
           "destination": null,
           "type": null,
@@ -27009,7 +27053,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 463,
+          "line": 472,
           "handler": "() => !used && handlePick(rank, suit)",
           "destination": null,
           "type": null,
@@ -27019,7 +27063,7 @@
         {
           "element": "button",
           "name": "← Training",
-          "line": 828,
+          "line": 863,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": null,
@@ -27028,8 +27072,18 @@
         },
         {
           "element": "button",
+          "name": "<dynamic>",
+          "line": 927,
+          "handler": "() => changeVariant(v.id)",
+          "destination": null,
+          "type": "button",
+          "disabled": null,
+          "wiring": "handler"
+        },
+        {
+          "element": "button",
           "name": "-Way",
-          "line": 889,
+          "line": 968,
           "handler": "() => changePlayerCount(n)",
           "destination": null,
           "type": null,
@@ -27039,7 +27093,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 972,
+          "line": 1052,
           "handler": "calculate",
           "destination": null,
           "type": null,
@@ -27049,7 +27103,7 @@
         {
           "element": "button",
           "name": "Clear All",
-          "line": 994,
+          "line": 1074,
           "handler": "clearAll",
           "destination": null,
           "type": null,
@@ -27059,7 +27113,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1087,
+          "line": 1202,
           "handler": "() => loadPreset(preset)",
           "destination": null,
           "type": null,
@@ -27099,7 +27153,7 @@
       "functions": [
         {
           "name": "CardPicker",
-          "line": 60,
+          "line": 69,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -27107,7 +27161,7 @@
         },
         {
           "name": "BoardPicker",
-          "line": 284,
+          "line": 293,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -27115,7 +27169,7 @@
         },
         {
           "name": "EquityBar",
-          "line": 505,
+          "line": 514,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -27123,7 +27177,7 @@
         },
         {
           "name": "formatHand",
-          "line": 628,
+          "line": 637,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -27131,7 +27185,7 @@
         },
         {
           "name": "EquityCalculatorPage",
-          "line": 641,
+          "line": 652,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -27139,7 +27193,7 @@
         },
         {
           "name": "handlePick",
-          "line": 64,
+          "line": 73,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -27147,7 +27201,7 @@
         },
         {
           "name": "removeCard",
-          "line": 76,
+          "line": 85,
           "references": 6,
           "exported": false,
           "defaultExport": false,
@@ -27168,7 +27222,7 @@
         },
         {
           "kind": "SIMULATION",
-          "line": 778,
+          "line": 813,
           "excerpt": "name: 'How To Calculate Hand-Vs-Hand Poker Equity With Monte Carlo Simulation',",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -27176,7 +27230,7 @@
         },
         {
           "kind": "SIMULATION",
-          "line": 794,
+          "line": 829,
           "excerpt": "name: 'Run Monte Carlo Equity Simulation',",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -27184,7 +27238,7 @@
         },
         {
           "kind": "SIMULATION",
-          "line": 805,
+          "line": 840,
           "excerpt": "description=\"Calculate hand vs hand equity with Monte Carlo simulation. Compare up to 4 hands pre-flop or on specific boards.\"",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -28837,7 +28891,7 @@
           "name": "Train This Hand →",
           "line": 1022,
           "handler": null,
-          "destination": "hand?._solverAudit?.drillHref ||\n                    `/hub/training/arena/${/mtt|tournament/i.test(String(hand.gameType || '')) ? 'mtt-002' : 'cash-002'}?level=1&syncedHandId=${encodeURIComponent(hand.id)}&syncedHeroCards=${encodeURIComponent((hand.heroCards || []).join(''))}&syncedBoard=${encodeURIComponent((hand.board || []).join(''))}`",
+          "destination": "hand?._solverAudit?.drillHref ||\n                    `/hub/training/arena/${/mtt|tournament/i.test(String(hand.gameType || '')) ? 'mtt-002' : 'cash-002'}?level=1&source=hand-history-upload&syncedHandId=${encodeURIComponent(hand.id)}`",
           "type": null,
           "disabled": null,
           "wiring": "destination"
@@ -29056,7 +29110,7 @@
         {
           "element": "button",
           "name": "← Hub",
-          "line": 140,
+          "line": 141,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": null,
@@ -29066,7 +29120,7 @@
         {
           "element": "button",
           "name": "Clear Board",
-          "line": 147,
+          "line": 148,
           "handler": "clearAll",
           "destination": null,
           "type": null,
@@ -29076,7 +29130,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 328,
+          "line": 360,
           "handler": "() => handleCardSelect(rank, suit)",
           "destination": null,
           "type": null,
@@ -29132,7 +29186,7 @@
         },
         {
           "name": "getSuitColor",
-          "line": 361,
+          "line": 393,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -29156,7 +29210,7 @@
         },
         {
           "name": "clearAll",
-          "line": 119,
+          "line": 120,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -29169,7 +29223,7 @@
       "markers": [
         {
           "kind": "PLACEHOLDER",
-          "line": 176,
+          "line": 177,
           "excerpt": "<span style={styles.placeholder}>Card 1</span>",
           "disposition": "visible-ui-state",
           "review": "accepted",
@@ -29177,7 +29231,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 197,
+          "line": 198,
           "excerpt": "<span style={styles.placeholder}>Card 2</span>",
           "disposition": "visible-ui-state",
           "review": "accepted",
@@ -29185,7 +29239,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 225,
+          "line": 226,
           "excerpt": "<span style={{ ...styles.placeholder, fontSize: 12 }}>",
           "disposition": "visible-ui-state",
           "review": "accepted",
@@ -29193,7 +29247,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 456,
+          "line": 488,
           "excerpt": "placeholder: {",
           "disposition": "visible-ui-state",
           "review": "accepted",
@@ -48896,7 +48950,7 @@
         },
         {
           "name": "finalizePersistedAnswer",
-          "line": 1522,
+          "line": 1525,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -48904,7 +48958,7 @@
         },
         {
           "name": "postAttempt",
-          "line": 2454,
+          "line": 2457,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -48949,7 +49003,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 1025,
+          "line": 1028,
           "excerpt": "// single-question fallback. That fallback intentionally requests one",
           "disposition": "training-data-provenance-fallback",
           "review": "documented-follow-up",
@@ -48958,7 +49012,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 1025,
+          "line": 1028,
           "excerpt": "// single-question fallback. That fallback intentionally requests one",
           "disposition": "training-data-provenance-fallback",
           "review": "documented-follow-up",
@@ -48967,7 +49021,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 2602,
+          "line": 2605,
           "excerpt": "// fallback. Keep the persisted verdict and manual Next on screen so a",
           "disposition": "runtime-resilience-fallback",
           "review": "documented-follow-up",
@@ -48976,7 +49030,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 2691,
+          "line": 2694,
           "excerpt": "// Fallback to single-question mode",
           "disposition": "training-data-provenance-fallback",
           "review": "documented-follow-up",
@@ -48985,7 +49039,7 @@
         },
         {
           "kind": "SIMULATION",
-          "line": 3570,
+          "line": 3573,
           "excerpt": "// ═══ PHASE 229: Runout simulation ═══",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -59308,7 +59362,7 @@
       "functions": [
         {
           "name": "valuesOf",
-          "line": 13,
+          "line": 14,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -59316,7 +59370,7 @@
         },
         {
           "name": "firstAllowed",
-          "line": 19,
+          "line": 20,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -59324,7 +59378,7 @@
         },
         {
           "name": "normalizeGameType",
-          "line": 27,
+          "line": 28,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -59332,7 +59386,7 @@
         },
         {
           "name": "nearestStack",
-          "line": 34,
+          "line": 35,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -59340,7 +59394,7 @@
         },
         {
           "name": "scenarioOf",
-          "line": 51,
+          "line": 52,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -59348,7 +59402,7 @@
         },
         {
           "name": "spotTypeOf",
-          "line": 66,
+          "line": 67,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -59356,7 +59410,7 @@
         },
         {
           "name": "canonicalGameFor",
-          "line": 80,
+          "line": 81,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -59364,7 +59418,7 @@
         },
         {
           "name": "resolveCustomTrainingLaunch",
-          "line": 103,
+          "line": 107,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -59372,7 +59426,7 @@
         },
         {
           "name": "buildCustomTrainingArenaHref",
-          "line": 156,
+          "line": 162,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -59380,7 +59434,7 @@
         },
         {
           "name": "customTrainingConfigFromQuery",
-          "line": 172,
+          "line": 181,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -59388,7 +59442,7 @@
         },
         {
           "name": "isCanonicalTrainingGameId",
-          "line": 185,
+          "line": 194,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -59403,7 +59457,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 19,
+          "line": 20,
           "excerpt": "function firstAllowed(value, allowed, fallback, transform = (item) => item) {",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -59411,7 +59465,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 24,
+          "line": 25,
           "excerpt": "return fallback;",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -60661,7 +60715,7 @@
         },
         {
           "name": "combinations",
-          "line": 239,
+          "line": 240,
           "references": 6,
           "exported": false,
           "defaultExport": false,
@@ -60669,7 +60723,7 @@
         },
         {
           "name": "resolvePrimaryTwoCardSubset",
-          "line": 252,
+          "line": 253,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -60677,7 +60731,7 @@
         },
         {
           "name": "evaluateOmahaExactTwoPlusThree",
-          "line": 281,
+          "line": 282,
           "references": 4,
           "exported": true,
           "defaultExport": false,
@@ -60685,7 +60739,7 @@
         },
         {
           "name": "evaluateTrainingSpotWithHorseBrain",
-          "line": 343,
+          "line": 344,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -66743,6 +66797,10 @@
     },
     {
       "from": "pages/api/training/equity.js",
+      "to": "src/lib/training/horseBrainTrainingAdapter.js"
+    },
+    {
+      "from": "pages/api/training/equity.js",
       "to": "src/utils/trainingApiUtils.js"
     },
     {
@@ -72719,11 +72777,11 @@
       "effectRef": "pages/hub/training/daily-goals.js"
     },
     {
-      "id": "pages/hub/training/drill-builder.js:329:1",
+      "id": "pages/hub/training/drill-builder.js:373:1",
       "file": "pages/hub/training/drill-builder.js",
       "element": "button",
       "name": "\\U2190",
-      "line": 329,
+      "line": 373,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": null,
@@ -72732,11 +72790,11 @@
       "effectRef": "pages/hub/training/drill-builder.js"
     },
     {
-      "id": "pages/hub/training/equity-calculator.js:223:1",
+      "id": "pages/hub/training/equity-calculator.js:232:1",
       "file": "pages/hub/training/equity-calculator.js",
       "element": "button",
       "name": "X",
-      "line": 223,
+      "line": 232,
       "handler": "() => setOpen(false)",
       "destination": null,
       "type": null,
@@ -72745,11 +72803,11 @@
       "effectRef": "pages/hub/training/equity-calculator.js"
     },
     {
-      "id": "pages/hub/training/equity-calculator.js:242:2",
+      "id": "pages/hub/training/equity-calculator.js:251:2",
       "file": "pages/hub/training/equity-calculator.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 242,
+      "line": 251,
       "handler": "() => !used && handlePick(rank, suit)",
       "destination": null,
       "type": null,
@@ -72758,11 +72816,11 @@
       "effectRef": "pages/hub/training/equity-calculator.js"
     },
     {
-      "id": "pages/hub/training/equity-calculator.js:444:3",
+      "id": "pages/hub/training/equity-calculator.js:453:3",
       "file": "pages/hub/training/equity-calculator.js",
       "element": "button",
       "name": "X",
-      "line": 444,
+      "line": 453,
       "handler": "() => setActiveSlot(null)",
       "destination": null,
       "type": null,
@@ -72771,11 +72829,11 @@
       "effectRef": "pages/hub/training/equity-calculator.js"
     },
     {
-      "id": "pages/hub/training/equity-calculator.js:463:4",
+      "id": "pages/hub/training/equity-calculator.js:472:4",
       "file": "pages/hub/training/equity-calculator.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 463,
+      "line": 472,
       "handler": "() => !used && handlePick(rank, suit)",
       "destination": null,
       "type": null,
@@ -72784,11 +72842,11 @@
       "effectRef": "pages/hub/training/equity-calculator.js"
     },
     {
-      "id": "pages/hub/training/equity-calculator.js:828:5",
+      "id": "pages/hub/training/equity-calculator.js:863:5",
       "file": "pages/hub/training/equity-calculator.js",
       "element": "button",
       "name": "← Training",
-      "line": 828,
+      "line": 863,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": null,
@@ -72797,11 +72855,24 @@
       "effectRef": "pages/hub/training/equity-calculator.js"
     },
     {
-      "id": "pages/hub/training/equity-calculator.js:889:6",
+      "id": "pages/hub/training/equity-calculator.js:927:6",
+      "file": "pages/hub/training/equity-calculator.js",
+      "element": "button",
+      "name": "<dynamic>",
+      "line": 927,
+      "handler": "() => changeVariant(v.id)",
+      "destination": null,
+      "type": "button",
+      "disabled": null,
+      "wiring": "handler",
+      "effectRef": "pages/hub/training/equity-calculator.js"
+    },
+    {
+      "id": "pages/hub/training/equity-calculator.js:968:7",
       "file": "pages/hub/training/equity-calculator.js",
       "element": "button",
       "name": "-Way",
-      "line": 889,
+      "line": 968,
       "handler": "() => changePlayerCount(n)",
       "destination": null,
       "type": null,
@@ -72810,11 +72881,11 @@
       "effectRef": "pages/hub/training/equity-calculator.js"
     },
     {
-      "id": "pages/hub/training/equity-calculator.js:972:7",
+      "id": "pages/hub/training/equity-calculator.js:1052:8",
       "file": "pages/hub/training/equity-calculator.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 972,
+      "line": 1052,
       "handler": "calculate",
       "destination": null,
       "type": null,
@@ -72823,11 +72894,11 @@
       "effectRef": "pages/hub/training/equity-calculator.js"
     },
     {
-      "id": "pages/hub/training/equity-calculator.js:994:8",
+      "id": "pages/hub/training/equity-calculator.js:1074:9",
       "file": "pages/hub/training/equity-calculator.js",
       "element": "button",
       "name": "Clear All",
-      "line": 994,
+      "line": 1074,
       "handler": "clearAll",
       "destination": null,
       "type": null,
@@ -72836,11 +72907,11 @@
       "effectRef": "pages/hub/training/equity-calculator.js"
     },
     {
-      "id": "pages/hub/training/equity-calculator.js:1087:9",
+      "id": "pages/hub/training/equity-calculator.js:1202:10",
       "file": "pages/hub/training/equity-calculator.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1087,
+      "line": 1202,
       "handler": "() => loadPreset(preset)",
       "destination": null,
       "type": null,
@@ -73258,7 +73329,7 @@
       "name": "Train This Hand →",
       "line": 1022,
       "handler": null,
-      "destination": "hand?._solverAudit?.drillHref ||\n                    `/hub/training/arena/${/mtt|tournament/i.test(String(hand.gameType || '')) ? 'mtt-002' : 'cash-002'}?level=1&syncedHandId=${encodeURIComponent(hand.id)}&syncedHeroCards=${encodeURIComponent((hand.heroCards || []).join(''))}&syncedBoard=${encodeURIComponent((hand.board || []).join(''))}`",
+      "destination": "hand?._solverAudit?.drillHref ||\n                    `/hub/training/arena/${/mtt|tournament/i.test(String(hand.gameType || '')) ? 'mtt-002' : 'cash-002'}?level=1&source=hand-history-upload&syncedHandId=${encodeURIComponent(hand.id)}`",
       "type": null,
       "disabled": null,
       "wiring": "destination",
@@ -73304,11 +73375,11 @@
       "effectRef": "pages/hub/training/hand-history-upload.js"
     },
     {
-      "id": "pages/hub/training/hand-lab.js:140:1",
+      "id": "pages/hub/training/hand-lab.js:141:1",
       "file": "pages/hub/training/hand-lab.js",
       "element": "button",
       "name": "← Hub",
-      "line": 140,
+      "line": 141,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": null,
@@ -73317,11 +73388,11 @@
       "effectRef": "pages/hub/training/hand-lab.js"
     },
     {
-      "id": "pages/hub/training/hand-lab.js:147:2",
+      "id": "pages/hub/training/hand-lab.js:148:2",
       "file": "pages/hub/training/hand-lab.js",
       "element": "button",
       "name": "Clear Board",
-      "line": 147,
+      "line": 148,
       "handler": "clearAll",
       "destination": null,
       "type": null,
@@ -73330,11 +73401,11 @@
       "effectRef": "pages/hub/training/hand-lab.js"
     },
     {
-      "id": "pages/hub/training/hand-lab.js:328:3",
+      "id": "pages/hub/training/hand-lab.js:360:3",
       "file": "pages/hub/training/hand-lab.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 328,
+      "line": 360,
       "handler": "() => handleCardSelect(rank, suit)",
       "destination": null,
       "type": null,
@@ -78426,9 +78497,31 @@
         "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
         "src/lib/horses/playerSessionAccess.mjs",
+        "src/lib/poker-engine/ChipBridge.js",
+        "src/lib/poker-engine/SupabaseResilience.js",
+        "src/lib/poker-engine/brain/HorsePokerAdvanced.js",
+        "src/lib/poker-engine/brain/HorsePokerGTO.js",
+        "src/lib/poker-engine/brain/HorsePokerPersonality.js",
+        "src/lib/poker-engine/brain/anti-exploit.js",
+        "src/lib/poker-engine/brain/core.js",
+        "src/lib/poker-engine/brain/holdem-brain.js",
+        "src/lib/poker-engine/brain/live-observer.js",
+        "src/lib/poker-engine/brain/plo-core.js",
+        "src/lib/poker-engine/brain/plo5-brain.js",
+        "src/lib/poker-engine/brain/plo6-brain.js",
+        "src/lib/poker-engine/brain/session-analytics.js",
+        "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
-        "src/utils/trainingApiUtils.js"
+        "src/lib/training/cacheTruthContract.mjs",
+        "src/lib/training/customSolverSpotContract.mjs",
+        "src/lib/training/horseBrainTrainingAdapter.js",
+        "src/lib/training/solverMatrixTrust.js",
+        "src/lib/training/solverPolicyContract.js",
+        "src/lib/training/solverRowIdentity.mjs",
+        "src/services/SolverPolicyService.js",
+        "src/utils/trainingApiUtils.js",
+        "src/utils/v2Matrix.js"
       ],
       "apiReferences": [],
       "persistence": [
@@ -78453,10 +78546,100 @@
             "deletes": 0,
             "rpc": 1
           }
+        },
+        {
+          "file": "src/lib/poker-engine/ChipBridge.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 2,
+            "updates": 5,
+            "deletes": 3,
+            "rpc": 2
+          }
+        },
+        {
+          "file": "src/lib/poker-engine/SupabaseResilience.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 1,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/poker-engine/brain/HorsePokerGTO.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 1,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/poker-engine/brain/anti-exploit.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 1,
+            "updates": 0,
+            "deletes": 3,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/poker-engine/brain/live-observer.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 9,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/poker-engine/brain/plo-core.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 1,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/lib/poker-engine/brain/session-analytics.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 5,
+            "updates": 1,
+            "deletes": 9,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/services/SolverPolicyService.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
         }
       ],
       "realtime": [],
-      "tests": []
+      "tests": [
+        "__tests__/training-reconciled-workflows.test.mjs"
+      ]
     },
     {
       "file": "pages/api/training/explain-answer.js",
@@ -83613,7 +83796,8 @@
       ],
       "realtime": [],
       "tests": [
-        "__tests__/training-focused-launch-wiring.test.mjs"
+        "__tests__/training-focused-launch-wiring.test.mjs",
+        "__tests__/training-reconciled-workflows.test.mjs"
       ]
     },
     {
@@ -83663,7 +83847,8 @@
       ],
       "realtime": [],
       "tests": [
-        "__tests__/phase23-calculator-schema.test.mjs"
+        "__tests__/phase23-calculator-schema.test.mjs",
+        "__tests__/training-reconciled-workflows.test.mjs"
       ]
     },
     {
@@ -84758,7 +84943,9 @@
           }
         }
       ],
-      "tests": []
+      "tests": [
+        "__tests__/training-reconciled-workflows.test.mjs"
+      ]
     },
     {
       "file": "pages/hub/training/icm-calculator.js",
@@ -97052,7 +97239,8 @@
       "realtime": [],
       "tests": [
         "__tests__/training-custom-launch-contract.test.mjs",
-        "__tests__/training-level-launch-authority.test.mjs"
+        "__tests__/training-level-launch-authority.test.mjs",
+        "__tests__/training-reconciled-workflows.test.mjs"
       ]
     },
     {
@@ -97780,6 +97968,7 @@
         "__tests__/training-phase6-truth-closeout.test.mjs",
         "__tests__/training-production-delivery-attestation.test.mjs",
         "__tests__/training-question-delivery-authority.test.mjs",
+        "__tests__/training-reconciled-workflows.test.mjs",
         "__tests__/training-reference-is-public-c.test.mjs",
         "__tests__/training-reissue-authority.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs",
@@ -98569,7 +98758,7 @@
       {
         "file": "pages/hub/training/drill-builder.js",
         "kind": "PLACEHOLDER",
-        "line": 432,
+        "line": 476,
         "excerpt": "placeholder=\"e.g., SB vs BB 3-Bet Defense\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -98587,7 +98776,7 @@
       {
         "file": "pages/hub/training/equity-calculator.js",
         "kind": "SIMULATION",
-        "line": 778,
+        "line": 813,
         "excerpt": "name: 'How To Calculate Hand-Vs-Hand Poker Equity With Monte Carlo Simulation',",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -98596,7 +98785,7 @@
       {
         "file": "pages/hub/training/equity-calculator.js",
         "kind": "SIMULATION",
-        "line": 794,
+        "line": 829,
         "excerpt": "name: 'Run Monte Carlo Equity Simulation',",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -98605,7 +98794,7 @@
       {
         "file": "pages/hub/training/equity-calculator.js",
         "kind": "SIMULATION",
-        "line": 805,
+        "line": 840,
         "excerpt": "description=\"Calculate hand vs hand equity with Monte Carlo simulation. Compare up to 4 hands pre-flop or on specific boards.\"",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -98697,7 +98886,7 @@
       {
         "file": "pages/hub/training/hand-lab.js",
         "kind": "PLACEHOLDER",
-        "line": 176,
+        "line": 177,
         "excerpt": "<span style={styles.placeholder}>Card 1</span>",
         "disposition": "visible-ui-state",
         "review": "accepted",
@@ -98706,7 +98895,7 @@
       {
         "file": "pages/hub/training/hand-lab.js",
         "kind": "PLACEHOLDER",
-        "line": 197,
+        "line": 198,
         "excerpt": "<span style={styles.placeholder}>Card 2</span>",
         "disposition": "visible-ui-state",
         "review": "accepted",
@@ -98715,7 +98904,7 @@
       {
         "file": "pages/hub/training/hand-lab.js",
         "kind": "PLACEHOLDER",
-        "line": 225,
+        "line": 226,
         "excerpt": "<span style={{ ...styles.placeholder, fontSize: 12 }}>",
         "disposition": "visible-ui-state",
         "review": "accepted",
@@ -98724,7 +98913,7 @@
       {
         "file": "pages/hub/training/hand-lab.js",
         "kind": "PLACEHOLDER",
-        "line": 456,
+        "line": 488,
         "excerpt": "placeholder: {",
         "disposition": "visible-ui-state",
         "review": "accepted",
@@ -100300,7 +100489,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "FALLBACK",
-        "line": 1025,
+        "line": 1028,
         "excerpt": "// single-question fallback. That fallback intentionally requests one",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -100310,7 +100499,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "FALLBACK",
-        "line": 1025,
+        "line": 1028,
         "excerpt": "// single-question fallback. That fallback intentionally requests one",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -100320,7 +100509,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "FALLBACK",
-        "line": 2602,
+        "line": 2605,
         "excerpt": "// fallback. Keep the persisted verdict and manual Next on screen so a",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -100330,7 +100519,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "FALLBACK",
-        "line": 2691,
+        "line": 2694,
         "excerpt": "// Fallback to single-question mode",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -100340,7 +100529,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "SIMULATION",
-        "line": 3570,
+        "line": 3573,
         "excerpt": "// ═══ PHASE 229: Runout simulation ═══",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -101207,7 +101396,7 @@
       {
         "file": "src/lib/training/customTrainingLaunchContract.mjs",
         "kind": "FALLBACK",
-        "line": 19,
+        "line": 20,
         "excerpt": "function firstAllowed(value, allowed, fallback, transform = (item) => item) {",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -101216,7 +101405,7 @@
       {
         "file": "src/lib/training/customTrainingLaunchContract.mjs",
         "kind": "FALLBACK",
-        "line": 24,
+        "line": 25,
         "excerpt": "return fallback;",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -101805,7 +101994,7 @@
       {
         "file": "pages/api/training/audit-hand-history.js",
         "name": "handler",
-        "line": 99,
+        "line": 104,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -101909,7 +102098,7 @@
       {
         "file": "pages/api/training/equity.js",
         "name": "handler",
-        "line": 179,
+        "line": 218,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -102689,7 +102878,7 @@
       {
         "file": "pages/hub/training/drill-builder.js",
         "name": "DrillBuilderPage",
-        "line": 185,
+        "line": 226,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -102702,7 +102891,7 @@
       {
         "file": "pages/hub/training/equity-calculator.js",
         "name": "EquityCalculatorPage",
-        "line": 641,
+        "line": 652,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -106498,7 +106687,7 @@
       {
         "file": "src/lib/training/customTrainingLaunchContract.mjs",
         "name": "buildCustomTrainingArenaHref",
-        "line": 156,
+        "line": 162,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -106508,6 +106697,7 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "__tests__/training-custom-launch-contract.test.mjs",
+          "__tests__/training-reconciled-workflows.test.mjs",
           "pages/api/training/audit-hand-history.js",
           "pages/hub/training/drill-builder.js",
           "pages/hub/training/replay-theater.js",
@@ -106518,7 +106708,7 @@
       {
         "file": "src/lib/training/customTrainingLaunchContract.mjs",
         "name": "customTrainingConfigFromQuery",
-        "line": 172,
+        "line": 181,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -106534,7 +106724,7 @@
       {
         "file": "src/lib/training/customTrainingLaunchContract.mjs",
         "name": "isCanonicalTrainingGameId",
-        "line": 185,
+        "line": 194,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -106856,7 +107046,7 @@
       {
         "file": "src/lib/training/horseBrainTrainingAdapter.js",
         "name": "evaluateTrainingSpotWithHorseBrain",
-        "line": 343,
+        "line": 344,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -106866,6 +107056,7 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "__tests__/training-reconciled-workflows.test.mjs",
+          "pages/api/training/equity.js",
           "src/lib/training/curatedPokerConcepts.js",
           "src/lib/training/syncedHandDrillResolver.js"
         ]
@@ -107389,6 +107580,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/training-reconciled-workflows.test.mjs",
           "pages/api/training/batch-preload.js",
           "pages/api/training/get-question.js",
           "pages/api/training/hand-of-the-day.js"
@@ -108416,7 +108608,7 @@
       {
         "file": "pages/hub/training/drill-builder.js",
         "kind": "PLACEHOLDER",
-        "line": 432,
+        "line": 476,
         "excerpt": "placeholder=\"e.g., SB vs BB 3-Bet Defense\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -108434,7 +108626,7 @@
       {
         "file": "pages/hub/training/equity-calculator.js",
         "kind": "SIMULATION",
-        "line": 778,
+        "line": 813,
         "excerpt": "name: 'How To Calculate Hand-Vs-Hand Poker Equity With Monte Carlo Simulation',",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -108443,7 +108635,7 @@
       {
         "file": "pages/hub/training/equity-calculator.js",
         "kind": "SIMULATION",
-        "line": 794,
+        "line": 829,
         "excerpt": "name: 'Run Monte Carlo Equity Simulation',",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -108452,7 +108644,7 @@
       {
         "file": "pages/hub/training/equity-calculator.js",
         "kind": "SIMULATION",
-        "line": 805,
+        "line": 840,
         "excerpt": "description=\"Calculate hand vs hand equity with Monte Carlo simulation. Compare up to 4 hands pre-flop or on specific boards.\"",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -108544,7 +108736,7 @@
       {
         "file": "pages/hub/training/hand-lab.js",
         "kind": "PLACEHOLDER",
-        "line": 176,
+        "line": 177,
         "excerpt": "<span style={styles.placeholder}>Card 1</span>",
         "disposition": "visible-ui-state",
         "review": "accepted",
@@ -108553,7 +108745,7 @@
       {
         "file": "pages/hub/training/hand-lab.js",
         "kind": "PLACEHOLDER",
-        "line": 197,
+        "line": 198,
         "excerpt": "<span style={styles.placeholder}>Card 2</span>",
         "disposition": "visible-ui-state",
         "review": "accepted",
@@ -108562,7 +108754,7 @@
       {
         "file": "pages/hub/training/hand-lab.js",
         "kind": "PLACEHOLDER",
-        "line": 225,
+        "line": 226,
         "excerpt": "<span style={{ ...styles.placeholder, fontSize: 12 }}>",
         "disposition": "visible-ui-state",
         "review": "accepted",
@@ -108571,7 +108763,7 @@
       {
         "file": "pages/hub/training/hand-lab.js",
         "kind": "PLACEHOLDER",
-        "line": 456,
+        "line": 488,
         "excerpt": "placeholder: {",
         "disposition": "visible-ui-state",
         "review": "accepted",
@@ -110147,7 +110339,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "FALLBACK",
-        "line": 1025,
+        "line": 1028,
         "excerpt": "// single-question fallback. That fallback intentionally requests one",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -110157,7 +110349,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "FALLBACK",
-        "line": 1025,
+        "line": 1028,
         "excerpt": "// single-question fallback. That fallback intentionally requests one",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -110167,7 +110359,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "FALLBACK",
-        "line": 2602,
+        "line": 2605,
         "excerpt": "// fallback. Keep the persisted verdict and manual Next on screen so a",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -110177,7 +110369,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "FALLBACK",
-        "line": 2691,
+        "line": 2694,
         "excerpt": "// Fallback to single-question mode",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -110187,7 +110379,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "SIMULATION",
-        "line": 3570,
+        "line": 3573,
         "excerpt": "// ═══ PHASE 229: Runout simulation ═══",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -111054,7 +111246,7 @@
       {
         "file": "src/lib/training/customTrainingLaunchContract.mjs",
         "kind": "FALLBACK",
-        "line": 19,
+        "line": 20,
         "excerpt": "function firstAllowed(value, allowed, fallback, transform = (item) => item) {",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -111063,7 +111255,7 @@
       {
         "file": "src/lib/training/customTrainingLaunchContract.mjs",
         "kind": "FALLBACK",
-        "line": 24,
+        "line": 25,
         "excerpt": "return fallback;",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -111652,7 +111844,7 @@
       {
         "file": "pages/api/training/audit-hand-history.js",
         "name": "handler",
-        "line": 99,
+        "line": 104,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -111756,7 +111948,7 @@
       {
         "file": "pages/api/training/equity.js",
         "name": "handler",
-        "line": 179,
+        "line": 218,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -112536,7 +112728,7 @@
       {
         "file": "pages/hub/training/drill-builder.js",
         "name": "DrillBuilderPage",
-        "line": 185,
+        "line": 226,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -112549,7 +112741,7 @@
       {
         "file": "pages/hub/training/equity-calculator.js",
         "name": "EquityCalculatorPage",
-        "line": 641,
+        "line": 652,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -116345,7 +116537,7 @@
       {
         "file": "src/lib/training/customTrainingLaunchContract.mjs",
         "name": "buildCustomTrainingArenaHref",
-        "line": 156,
+        "line": 162,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -116355,6 +116547,7 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "__tests__/training-custom-launch-contract.test.mjs",
+          "__tests__/training-reconciled-workflows.test.mjs",
           "pages/api/training/audit-hand-history.js",
           "pages/hub/training/drill-builder.js",
           "pages/hub/training/replay-theater.js",
@@ -116365,7 +116558,7 @@
       {
         "file": "src/lib/training/customTrainingLaunchContract.mjs",
         "name": "customTrainingConfigFromQuery",
-        "line": 172,
+        "line": 181,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -116381,7 +116574,7 @@
       {
         "file": "src/lib/training/customTrainingLaunchContract.mjs",
         "name": "isCanonicalTrainingGameId",
-        "line": 185,
+        "line": 194,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -116703,7 +116896,7 @@
       {
         "file": "src/lib/training/horseBrainTrainingAdapter.js",
         "name": "evaluateTrainingSpotWithHorseBrain",
-        "line": 343,
+        "line": 344,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -116713,6 +116906,7 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "__tests__/training-reconciled-workflows.test.mjs",
+          "pages/api/training/equity.js",
           "src/lib/training/curatedPokerConcepts.js",
           "src/lib/training/syncedHandDrillResolver.js"
         ]
@@ -117236,6 +117430,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/training-reconciled-workflows.test.mjs",
           "pages/api/training/batch-preload.js",
           "pages/api/training/get-question.js",
           "pages/api/training/hand-of-the-day.js"

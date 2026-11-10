@@ -585,12 +585,81 @@ export async function getServerSideProps({ req, res, query }) {
   return { props: {} };
 }
 
+const WIDGET_CATEGORY_MAP = {
+  'odds-calculator': 'equity',
+  'preflop-ranges': 'equity',
+  'pot-odds-calculator': 'equity',
+  'spr-calculator': 'equity',
+  '3bet-calculator': 'equity',
+  'outs-calculator': 'equity',
+  'icm-calculator': 'tournament',
+  'push-fold-calculator': 'tournament',
+  'bounty-calculator': 'tournament',
+  'blind-structure-calculator': 'tournament',
+  'payout-calculator': 'tournament',
+  'chop-calculator': 'tournament',
+  'staking-calculator': 'tournament',
+  'format-quiz': 'tournament',
+  'side-pot-calculator': 'cash',
+  'plo-bet-calculator': 'cash',
+  'rake-calculator': 'cash',
+  'iso-calculator': 'cash',
+  'poker-winrate-calculator': 'cash',
+  'bankroll-calculator': 'bankroll',
+  'variance-calculator': 'bankroll',
+  'poker-tax-calculator': 'bankroll',
+  'home-game-kit': 'bankroll',
+};
+
 export default function WebmasterEmbedPortal() {
   const [copiedId, setCopiedId] = useState(null);
+  const [embedFormat, setEmbedFormat] = useState('iframe');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [partnerDomain, setPartnerDomain] = useState('');
+  const [botPlatform, setBotPlatform] = useState('nightbot');
+
+  const cleanPartner = String(partnerDomain || '')
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/[^a-z0-9._-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 64);
 
   const getEmbedCode = (widget) => {
-    return `<iframe src="${widget.embedUrl}" width="${widget.width}" height="${widget.height}" frameborder="0" style="border:0;border-radius:12px;overflow:hidden;max-width:100%;" title="${widget.title}"></iframe>\n<p style="font-size:12px;text-align:center;color:#94AFCC;margin-top:6px;">Powered By <a href="${widget.landerUrl}" target="_blank" rel="noopener" style="color:#4E9CFF;text-decoration:none;font-weight:600;">${widget.creditAnchor}</a></p>`;
+    const utmEmbed = cleanPartner ? `&utm_source=${encodeURIComponent(cleanPartner)}&utm_medium=embed` : '';
+    const utmLander = cleanPartner ? `?utm_source=${encodeURIComponent(cleanPartner)}&utm_medium=embed` : '';
+    const fullEmbedUrl = `${widget.embedUrl}${utmEmbed}`;
+    const fullLanderUrl = `${widget.landerUrl}${utmLander}`;
+
+    if (embedFormat === 'sdk') {
+      const partnerAttr = cleanPartner ? ` data-partner="${cleanPartner}"` : '';
+      return `<div data-smarter-poker-widget="${widget.id}"${partnerAttr}></div>\n<script async src="https://smarter.poker/embed-sdk.js"></script>`;
+    }
+    if (embedFormat === 'markdown') {
+      return `### [${widget.title}](${fullLanderUrl})\n${widget.description}\n\n[![${widget.creditAnchor}](https://smarter.poker/api/seo/badge?type=gto)](${fullLanderUrl})`;
+    }
+    if (embedFormat === 'bbcode') {
+      return `[url=${fullLanderUrl}][b]${widget.title} (${widget.creditAnchor})[/b][/url]\n${widget.description}\nLaunch Free Calculator: [url=${fullLanderUrl}]${fullLanderUrl}[/url]`;
+    }
+    return `<iframe src="${fullEmbedUrl}" width="${widget.width}" height="${widget.height}" frameborder="0" loading="lazy" style="border:0;border-radius:12px;overflow:hidden;max-width:100%;" title="${widget.title}"></iframe>\n<p style="font-size:12px;text-align:center;color:#94AFCC;margin-top:6px;">Powered By <a href="${fullLanderUrl}" target="_blank" rel="noopener" style="color:#4E9CFF;text-decoration:none;font-weight:600;">${widget.creditAnchor}</a></p>`;
   };
+
+  const getBotSyntax = (cmdItem) => {
+    const endpoint = cmdItem.nightbot.replace(/^\$\(urlfetch\s+/, '').replace(/\?\$\(querystring\)\)$/, '');
+    if (botPlatform === 'streamelements') {
+      return `\${customapi.${endpoint}&q=\${queryencode \${1:}}}`;
+    }
+    if (botPlatform === 'fossabot') {
+      return `\$(customapi ${endpoint}&q=\$(querystring))`;
+    }
+    return cmdItem.nightbot;
+  };
+
+  const visibleWidgets =
+    selectedCategory === 'all'
+      ? WIDGETS
+      : WIDGETS.filter((w) => (WIDGET_CATEGORY_MAP[w.id] || 'equity') === selectedCategory);
 
   const handleCopy = (widget) => {
     const code = getEmbedCode(widget);
@@ -721,12 +790,113 @@ export default function WebmasterEmbedPortal() {
           </div>
 
           <section aria-labelledby="available-widgets-heading">
-            <h2 id="available-widgets-heading" style={{ fontSize: '1.6rem', fontWeight: 700, marginBottom: '24px' }}>
+            <h2 id="available-widgets-heading" style={{ fontSize: '1.6rem', fontWeight: 700, marginBottom: '16px' }}>
               Available Embeddable Widgets
             </h2>
 
+            {/* Partner Attribution & Multi-Format Configuration Bar */}
+            <div
+              style={{
+                background: 'rgba(56, 189, 248, 0.04)',
+                border: '1px solid rgba(56, 189, 248, 0.22)',
+                borderRadius: '14px',
+                padding: '20px',
+                marginBottom: '24px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px',
+              }}
+            >
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ flex: '1 1 260px' }}>
+                  <label
+                    htmlFor="partner-domain-input"
+                    style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#38bdf8', marginBottom: '6px' }}
+                  >
+                    Optional Partner Domain For Referral Attribution (UTM Source)
+                  </label>
+                  <input
+                    id="partner-domain-input"
+                    type="text"
+                    value={partnerDomain}
+                    onChange={(e) => setPartnerDomain(e.target.value)}
+                    placeholder="example.com or your-club-name"
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '8px',
+                      background: '#06060c',
+                      border: '1px solid rgba(255, 255, 255, 0.16)',
+                      color: '#f8fafc',
+                      fontSize: '0.88rem',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#94a3b8', marginBottom: '6px' }}>
+                    Embed Snippet Format
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {[
+                      { id: 'iframe', label: 'HTML5 Iframe' },
+                      { id: 'sdk', label: '1-Line JS SDK' },
+                      { id: 'markdown', label: 'Markdown / Substack' },
+                      { id: 'bbcode', label: 'Forum BBCode' },
+                    ].map((fmt) => (
+                      <button
+                        key={fmt.id}
+                        type="button"
+                        onClick={() => setEmbedFormat(fmt.id)}
+                        style={{
+                          padding: '7px 12px',
+                          borderRadius: '7px',
+                          border: embedFormat === fmt.id ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.12)',
+                          background: embedFormat === fmt.id ? 'rgba(56, 189, 248, 0.18)' : 'rgba(255, 255, 255, 0.03)',
+                          color: embedFormat === fmt.id ? '#38bdf8' : '#cbd5e1',
+                          fontSize: '0.8rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {fmt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {[
+                  { id: 'all', label: `All Widgets (${WIDGETS.length})` },
+                  { id: 'equity', label: 'Equity & Preflop (6)' },
+                  { id: 'tournament', label: 'Tournament & ICM (8)' },
+                  { id: 'cash', label: 'Cash Game & Rake (5)' },
+                  { id: 'bankroll', label: 'Bankroll, Tax & Home Game (4)' },
+                ].map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setSelectedCategory(cat.id)}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '20px',
+                      border: selectedCategory === cat.id ? '1px solid #60a5fa' : '1px solid rgba(255, 255, 255, 0.1)',
+                      background: selectedCategory === cat.id ? 'rgba(96, 165, 250, 0.16)' : 'transparent',
+                      color: selectedCategory === cat.id ? '#93c5fd' : '#94a3b8',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-              {WIDGETS.map((widget) => {
+              {visibleWidgets.map((widget) => {
                 const code = getEmbedCode(widget);
                 const isCopied = copiedId === widget.id;
 
@@ -905,15 +1075,43 @@ export default function WebmasterEmbedPortal() {
 
           {/* Twitch, YouTube & Kick Streamer Chatbot Commands */}
           <section aria-labelledby="streamer-commands-heading" style={{ marginTop: '48px' }}>
-            <h2 id="streamer-commands-heading" style={{ fontSize: '1.6rem', fontWeight: 700, marginBottom: '12px' }}>
-              18 Twitch, YouTube &amp; Kick Streamer Chatbot Commands (Nightbot / StreamElements)
-            </h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
+              <h2 id="streamer-commands-heading" style={{ fontSize: '1.6rem', fontWeight: 700, margin: 0 }}>
+                18 Twitch, YouTube &amp; Kick Streamer Chatbot Commands (Nightbot / StreamElements)
+              </h2>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {[
+                  { id: 'nightbot', label: 'Nightbot' },
+                  { id: 'streamelements', label: 'StreamElements' },
+                  { id: 'fossabot', label: 'Fossabot' },
+                ].map((plat) => (
+                  <button
+                    key={plat.id}
+                    type="button"
+                    onClick={() => setBotPlatform(plat.id)}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '7px',
+                      border: botPlatform === plat.id ? '1px solid #c084fc' : '1px solid rgba(255, 255, 255, 0.12)',
+                      background: botPlatform === plat.id ? 'rgba(168, 85, 247, 0.22)' : 'rgba(255, 255, 255, 0.03)',
+                      color: botPlatform === plat.id ? '#e9d5ff' : '#94a3b8',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {plat.label}
+                  </button>
+                ))}
+              </div>
+            </div>
             <p style={{ fontSize: '0.96rem', color: 'rgba(255, 255, 255, 0.72)', lineHeight: 1.6, marginBottom: '24px' }}>
               Add All 18 Instant Live Poker Equity, Pot Odds, ICM Bubble Factors, Final Table Chop, Variance, Draw Outs, US Poker Tax, Staking Markup, Limper Isolation, Series Survival Guides, PLO Max Bet Math, And Official TDA Floor Rulings Commands Directly To Your Stream Chat. Viewers Type The Command In Chat And Receive An Instant Sub-380-Character Mathematical Answer With Canonical Attribution.
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: '16px' }}>
               {STREAM_CHAT_COMMANDS.map((cmdItem) => {
                 const isCmdCopied = copiedId === cmdItem.id;
+                const botSyntax = getBotSyntax(cmdItem);
                 return (
                   <article
                     key={cmdItem.id}
@@ -953,7 +1151,7 @@ export default function WebmasterEmbedPortal() {
                     <div style={{ position: 'relative' }}>
                       <textarea
                         readOnly
-                        value={cmdItem.nightbot}
+                        value={botSyntax}
                         aria-label={`Nightbot Command Syntax for ${cmdItem.command}`}
                         style={{
                           width: '100%',
@@ -973,7 +1171,7 @@ export default function WebmasterEmbedPortal() {
                         type="button"
                         onClick={() => {
                           if (typeof navigator !== 'undefined' && navigator.clipboard) {
-                            navigator.clipboard.writeText(cmdItem.nightbot);
+                            navigator.clipboard.writeText(botSyntax);
                             setCopiedId(cmdItem.id);
                             setTimeout(() => setCopiedId(null), 2500);
                           }
@@ -1102,6 +1300,36 @@ export default function WebmasterEmbedPortal() {
                 }}
               >
                 AI Backlink & Citation Catalog API
+              </a>
+              <a
+                href="/api/seo/oembed?mode=catalog"
+                style={{
+                  padding: '8px 14px',
+                  background: '#0f172a',
+                  border: '1px solid #38bdf8',
+                  borderRadius: '6px',
+                  color: '#bae6fd',
+                  fontSize: '0.84rem',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                OEmbed 1.0 & Partner Manifest API
+              </a>
+              <a
+                href="/embed-sdk.js"
+                style={{
+                  padding: '8px 14px',
+                  background: '#0f172a',
+                  border: '1px solid #10b981',
+                  borderRadius: '6px',
+                  color: '#a7f3d0',
+                  fontSize: '0.84rem',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                One-Line JS Widget SDK
               </a>
             </div>
           </section>

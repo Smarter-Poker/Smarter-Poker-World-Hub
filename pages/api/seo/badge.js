@@ -5,7 +5,7 @@
  *
  * Serves crisp, zero-dependency SVG badges for poker rooms, Club Commander
  * venues, strategy blogs, journalists, and GitHub repositories to embed
- * alongside canonical dofollow attribution links back to Smarter.Poker.
+ * alongside canonical attribution links back to Smarter.Poker.
  *
  * Query Parameters:
  * - type: 'venue' | 'commander' | 'research' | 'gto' | 'club' (default: 'venue')

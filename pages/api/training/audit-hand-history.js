@@ -67,12 +67,17 @@ function buildDrillHrefForHand(hand, analysis = null) {
     : Array.isArray(hand?.heroCards)
       ? hand.heroCards
       : [];
-  const firstDecision = Array.isArray(analysis?.decisions) && analysis.decisions.length > 0
-    ? analysis.decisions[0]
+  const lastDecision = Array.isArray(analysis?.decisions) && analysis.decisions.length > 0
+    ? analysis.decisions[analysis.decisions.length - 1]
     : null;
   const street = String(
-    firstDecision?.street
-      || (board.length >= 5 ? 'river' : board.length === 4 ? 'turn' : board.length >= 3 ? 'flop' : 'preflop'),
+    board.length >= 5
+      ? 'river'
+      : board.length === 4
+        ? 'turn'
+        : board.length >= 3
+          ? 'flop'
+          : (lastDecision?.street || 'preflop'),
   ).toLowerCase();
   const isTournament = /tournament|mtt/i.test(String(hand?.gameType || ''));
   const isPlo = heroCards.length >= 4 || /plo|omaha/i.test(String(hand?.gameType || ''));
@@ -300,8 +305,13 @@ export default async function handler(req, res) {
       const board = extractBoardFromParsedHand(hand);
       const heroCards = Array.isArray(hand?.hero?.holeCards) ? hand.hero.holeCards : [];
       const heroPosition = hand?.hero?.position || analysis?.decisions?.[0]?.position || 'BTN';
-      const street = analysis?.decisions?.[0]?.street
-        || (board.length >= 5 ? 'river' : board.length === 4 ? 'turn' : board.length >= 3 ? 'flop' : 'preflop');
+      const street = board.length >= 5
+        ? 'river'
+        : board.length === 4
+          ? 'turn'
+          : board.length >= 3
+            ? 'flop'
+            : (analysis?.decisions?.[0]?.street || 'preflop');
       const drillHref = buildDrillHrefForHand(hand, analysis);
       if (analysis) {
         analysis.drillHref = drillHref;

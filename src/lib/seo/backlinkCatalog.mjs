@@ -166,6 +166,57 @@ export const DEAD_TOOL_REPLACEMENTS = [
     outreachTemplate:
       'Hi - I spotted an older Robert\'s Rules of Poker link on your home game rules page. We maintain a searchable, mobile-ready 30-rule TDA & Cash Game Floor Rulings Encyclopedia at https://smarter.poker/rules (plus our Official Poker Hand Rankings Cheat Sheet at https://smarter.poker/learn/poker-hand-rankings) if you want an updated live reference.',
   },
+  {
+    id: 'cardrunners-ev',
+    legacyToolName: 'CardRunnersEV (CREV) Legacy Decision-Tree Calculator',
+    legacyDomains: ['cardrunnersev.com'],
+    status: 'Legacy Windows-only decision-tree software superseded by modern browser GTO tools',
+    category: 'Preflop 3-Bet, 4-Bet & SPR Bet-Sizing Calculators',
+    replacementUrl: 'https://smarter.poker/tools/3bet-calculator',
+    comparisonUrl: 'https://smarter.poker/tools/spr-calculator',
+    recommendedAnchorText: 'Smarter.Poker GTO 3-Bet, 4-Bet & SPR Geometric Bet Sizing Calculator',
+    searchFootprints: [
+      '"cardrunnersev.com" OR "CardRunnersEV" poker tool',
+      '"CREV" poker EV calculator alternative',
+    ],
+    outreachSubject: 'Browser-Native Replacement For Legacy CardRunnersEV (CREV) Link',
+    outreachTemplate:
+      'Hi - your poker math resource page links to CardRunnersEV (cardrunnersev.com), an older Windows-only tool. We maintain a free browser-native GTO Preflop 3-Bet/4-Bet & MDF Calculator (https://smarter.poker/tools/3bet-calculator) and Stack-To-Pot Ratio (SPR) Geometric Sizing Calculator (https://smarter.poker/tools/spr-calculator) if you want a modern web replacement.',
+  },
+  {
+    id: 'holdemresources-web',
+    legacyToolName: 'HoldemResources (HRC) Retired Static Web Nash Charts',
+    legacyDomains: ['holdemresources.net/h/web/calculators/nashicm.html', 'holdemresources.net/nashicm'],
+    status: 'Legacy static web Nash URLs retired or redirected to paid desktop licensing',
+    category: 'Short-Stack Push/Fold & Malmuth-Harville ICM Calculators',
+    replacementUrl: 'https://smarter.poker/tools/push-fold-calculator',
+    comparisonUrl: 'https://smarter.poker/compare/smarter-poker-vs-holdem-resources-calculator',
+    recommendedAnchorText: 'Smarter.Poker Free Push/Fold Nash & ICM Calculator',
+    searchFootprints: [
+      '"holdemresources.net" "nashicm" poker',
+      '"HoldemResources" free web calculator push fold',
+    ],
+    outreachSubject: 'Updated Link For Retired HoldemResources Web Nash Calculator URL',
+    outreachTemplate:
+      'Hi - your tournament strategy article links to an older holdemresources.net web calculator URL. You can link directly to our free browser Short-Stack Push/Fold Nash Calculator (https://smarter.poker/tools/push-fold-calculator) and HRC comparison guide (https://smarter.poker/compare/smarter-poker-vs-holdem-resources-calculator) so readers can run calculations without a desktop license.',
+  },
+  {
+    id: 'pokerdope-variance',
+    legacyToolName: 'Legacy Standalone Variance & Bankroll Calculators',
+    legacyDomains: ['pokerdope.com/poker-variance-calculator'],
+    status: 'Static desktop-era layout without mobile embed or Risk-of-Ruin stake guidance',
+    category: 'Poker Variance, Downswing & Risk Of Ruin Simulators',
+    replacementUrl: 'https://smarter.poker/tools/variance-calculator',
+    comparisonUrl: 'https://smarter.poker/tools/bankroll-calculator',
+    recommendedAnchorText: 'Smarter.Poker Variance, Confidence Interval & Risk Of Ruin Simulator',
+    searchFootprints: [
+      '"poker variance calculator" resources page',
+      '"risk of ruin calculator" poker bankroll guide',
+    ],
+    outreachSubject: 'Embeddable Poker Variance & Risk Of Ruin Simulator For Your Bankroll Guide',
+    outreachTemplate:
+      'Hi - I read your poker bankroll and variance guide and wanted to share our free, mobile-ready Poker Variance & Downswing Simulator (https://smarter.poker/tools/variance-calculator) and Risk of Ruin Calculator (https://smarter.poker/tools/bankroll-calculator), both of which can also be embedded directly via https://smarter.poker/tools/embeds.',
+  },
 ];
 
 export const DIRECTORY_NETWORK_TARGETS = [
@@ -214,7 +265,7 @@ export const DIRECTORY_NETWORK_TARGETS = [
     id: 'ai-tool-directories',
     platform: 'There\'s An AI For That / Futurepedia / Product Hunt',
     submissionUrl: 'https://www.producthunt.com',
-    priority: 'High (High-DR Tech & AI Backlinks)',
+    priority: 'High (Software & AI Product Directories)',
     competitorsReplaced: ['PioSolver', 'MonkerSolver', 'PokerCoaching', 'Upswing Poker'],
     canonicalTarget: 'https://smarter.poker/compare/best-gto-poker-trainers',
     recommendedDescription:
@@ -259,18 +310,18 @@ export const JOURNALIST_PR_ANGLES = [
 
 export const OPEN_DATASET_AND_ACADEMIC_MIRRORS = [
   {
-    id: 'zenodo-cern-doi',
-    platform: 'Zenodo (CERN) & Figshare DOI Minting',
-    domainAuthority: 'DR 91+ (doi.org / zenodo.org)',
+    id: 'zenodo-open-doi',
+    platform: 'Zenodo Open-Access Dataset Deposits & DOI Archival',
+    domainAuthority: 'Open-Access Dataset Repository (doi.org / zenodo.org)',
     sourceUrl: 'https://smarter.poker/research',
     feedUrl: 'https://smarter.poker/api/feeds/research',
     strategy:
-      'Publish the 15 Smarter.Poker empirical research studies and raw Markdown tables as open CC-BY 4.0 datasets with permanent doi.org academic identifiers linking back to https://smarter.poker/research.',
+      'Archive the 15 Smarter.Poker empirical research studies and raw CSV/JSON tables as open CC-BY 4.0 dataset releases on Zenodo with persistent doi.org identifiers linking back to https://smarter.poker/research.',
   },
   {
     id: 'huggingface-kaggle-datasets',
     platform: 'HuggingFace Datasets & Kaggle Open Poker Benchmarks',
-    domainAuthority: 'DR 90+ (huggingface.co / kaggle.com)',
+    domainAuthority: 'Open Machine Learning & Data Repositories (huggingface.co / kaggle.com)',
     sourceUrl: 'https://smarter.poker/learn/hands',
     feedUrl: 'https://smarter.poker/tools/preflop-ranges',
     strategy:
@@ -279,11 +330,11 @@ export const OPEN_DATASET_AND_ACADEMIC_MIRRORS = [
   {
     id: 'wikipedia-citation-replacement',
     platform: 'Wikipedia & Wikimedia Dead-Citation Replacements',
-    domainAuthority: 'DR 98 (en.wikipedia.org / wikidata.org)',
+    domainAuthority: 'Encyclopedia & Knowledge Graph Citations (en.wikipedia.org / wikidata.org)',
     sourceUrl: 'https://smarter.poker/glossary',
     feedUrl: 'https://smarter.poker/research/us-live-poker-room-rake-and-jackpot-benchmark',
     strategy:
-      'Replace dead citations on Wikipedia pages (Independent Chip Model, Pot odds, Texas hold \'em starting hands, Cardroom, Rake) with Smarter.Poker empirical studies and mathematical glossary pages.',
+      'Propose replacements on Wikipedia talk pages (following WP:COI) where dead citations exist on poker articles (Independent Chip Model, Pot odds, Texas hold \'em starting hands, Cardroom, Rake) using Smarter.Poker empirical studies and mathematical glossary pages.',
   },
 ];
 
@@ -294,7 +345,7 @@ export const INSTITUTIONAL_AND_ECOSYSTEM_CHANNELS = [
     targets: ['smithery.ai', 'glama.ai/mcp/servers', 'mcp.so', 'pulsemcp.com', 'github.com/modelcontextprotocol/servers'],
     canonicalTarget: 'https://smarter.poker/api/mcp',
     valueProposition:
-      'Register Smarter.Poker\'s zero-auth 26-tool MCP server, 12 resource templates, and /.well-known/mcp.json so developer directories and AI agent hubs link directly to https://smarter.poker.',
+      'Register Smarter.Poker\'s zero-auth 30-tool MCP server, 15 resource templates, and /.well-known/mcp.json so developer directories and AI agent hubs can discover https://smarter.poker.',
   },
   {
     id: 'collegiate-quant-clubs',
@@ -317,7 +368,7 @@ export const INSTITUTIONAL_AND_ECOSYSTEM_CHANNELS = [
 export const BACKLINK_EXECUTION_TODO_CHECKLIST = [
   {
     id: 'unlinked-brand-reclamation',
-    priority: 'P0 (Highest Conversion Rate: 30%+)',
+    priority: 'P0 (Direct Brand Attribution Reclamation)',
     title: 'Unlinked Brand Mention Reclamation Loop',
     searchQuery: '"Smarter.Poker" OR "Smarter Poker" OR "Club Commander" -site:smarter.poker',
     targetLandingUrl: 'https://smarter.poker/about',
@@ -335,16 +386,16 @@ export const BACKLINK_EXECUTION_TODO_CHECKLIST = [
   },
   {
     id: 'annual-cardroom-award-badges',
-    priority: 'P1 (High-Authority Real Casino & Cardroom Backlinks)',
+    priority: 'P1 (Casino & Cardroom Directory Attribution Badges)',
     title: 'Annual Top 50 US Poker Rooms & Regional Card Club Award Badges',
     searchQuery: 'https://smarter.poker/api/seo/badge?type=venue&theme=gold',
     targetLandingUrl: 'https://smarter.poker/research/us-live-poker-room-rake-and-jackpot-benchmark',
     actionPlan:
-      'Issue verified gold SVG award badges to top-ranked poker rooms in Las Vegas, Texas, Florida, and California so venue webmasters embed the badge on their homepage with a dofollow link to our benchmark study.',
+      'Issue verified gold SVG directory badges to poker rooms in Las Vegas, Texas, Florida, and California so venue webmasters can display the badge on their website with a canonical attribution link to our benchmark study.',
   },
   {
     id: 'gaming-cpa-tax-w2g-outreach',
-    priority: 'P1 (High-DR Finance, Legal & Accounting Backlinks)',
+    priority: 'P1 (Finance, Legal & Tax Advisory Resource Links)',
     title: 'Gaming CPA, Tax Attorney & Enrolled Agent Form W-2G Resource Links',
     searchQuery: '"Form W-2G" poker tax accountant resources OR "gambling losses Schedule C"',
     targetLandingUrl: 'https://smarter.poker/features/bankroll-tax-tracker',
@@ -353,7 +404,7 @@ export const BACKLINK_EXECUTION_TODO_CHECKLIST = [
   },
   {
     id: 'casino-dealer-schools',
-    priority: 'P1 (Vocational & Hospitality Education Backlinks)',
+    priority: 'P1 (Vocational & Hospitality Education Resource Links)',
     title: 'Casino Dealer Schools & Hospitality Career Center Resource Links',
     searchQuery: '"poker dealer school" student resources OR "casino dealing school"',
     targetLandingUrl: 'https://smarter.poker/features/poker-dealer-toke-tracker',
@@ -362,25 +413,25 @@ export const BACKLINK_EXECUTION_TODO_CHECKLIST = [
   },
   {
     id: 'npm-pypi-open-source-packages',
-    priority: 'P1 (DR 92+ Developer Registry Backlinks)',
+    priority: 'P1 (Public Developer Package Registries)',
     title: 'Open-Source npmjs.com & pypi.org MCP & Poker Math Package Listings',
     searchQuery: 'npmjs.com / pypi.org @smarter-poker/mcp-connector',
     targetLandingUrl: 'https://smarter.poker/api/mcp',
     actionPlan:
-      'Publish lightweight open-source CLI/MCP wrapper packages on npmjs.com (DR 93) and pypi.org (DR 92) whose repository, homepage, and README metadata link to https://smarter.poker and https://smarter.poker/api/mcp.',
+      'Publish lightweight open-source CLI/MCP wrapper packages on npmjs.com and pypi.org whose repository, homepage, and README metadata link to https://smarter.poker and https://smarter.poker/api/mcp.',
   },
   {
     id: 'streamer-obs-chatbot-commands',
-    priority: 'P2 (Recurring YouTube Description & Twitch Panel Backlinks)',
+    priority: 'P2 (Recurring YouTube Description & Twitch Panel Attribution)',
     title: 'Twitch / YouTube Streamer OBS Overlay & !odds / !icm Chatbot Integration',
     searchQuery: 'poker vloggers twitch streamers live hand analysis',
     targetLandingUrl: 'https://smarter.poker/tools/poker-odds-calculator',
     actionPlan:
-      'Supply poker livestreamers and YouTube vloggers with a free Nightbot/StreamElements !odds and !icm command plus transparent OBS equity overlay in exchange for a permanent link in their video descriptions.',
+      'Supply poker livestreamers and YouTube vloggers with a free Nightbot/StreamElements !odds and !icm command plus transparent OBS equity overlay paired with an attribution link in their video descriptions.',
   },
   {
     id: 'multilingual-international-syndication',
-    priority: 'P2 (Global Non-English Poker Portal Backlinks)',
+    priority: 'P2 (Global Non-English Poker Portal Syndication)',
     title: 'Multilingual International Poker Portal Syndication (ES, PT, DE, FR, IT, JA)',
     searchQuery: 'calculadora de odds poker / calculadora ICM poker gratis',
     targetLandingUrl: 'https://smarter.poker/tools/embeds',
@@ -391,9 +442,11 @@ export const BACKLINK_EXECUTION_TODO_CHECKLIST = [
 
 export function getBacklinkOpportunitiesPayload() {
   return {
-    generatedAt: '2026-11-09',
+    generatedAt: '2026-11-10',
     siteOrigin: 'https://smarter.poker',
     embedPortalUrl: 'https://smarter.poker/tools/embeds',
+    oneLineWidgetSdkUrl: 'https://smarter.poker/embed-sdk.js',
+    oembedEndpointUrl: 'https://smarter.poker/api/seo/oembed',
     badgeApiEndpoint: 'https://smarter.poker/api/seo/badge',
     researchHubUrl: 'https://smarter.poker/research',
     researchJsonFeedUrl: 'https://smarter.poker/api/feeds/research',

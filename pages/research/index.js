@@ -204,25 +204,25 @@ export default function ResearchIndexPage() {
               </a>
             </li>
             <li>
-              <strong>Poker Strategy Academy, 169 Starting-Hand Encyclopedia &amp; TDA Rules Index:</strong>{' '}
+              <strong>North American Live Poker Room, Regional Market &amp; Tournament Series Benchmark Dataset:</strong>{' '}
               <a href="https://doi.org/10.5281/zenodo.24095560" target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8' }}>
                 {'DOI: 10.5281/zenodo.24095560'}
               </a>
             </li>
             <li>
-              <strong>North American State, Metro &amp; Regional Poker Room Geolocation Atlas Index:</strong>{' '}
+              <strong>100BB 6-Max GTO Preflop Ranges, 169 Starting Hands &amp; 25 Canonical Matchup Benchmarks:</strong>{' '}
               <a href="https://doi.org/10.5281/zenodo.24095564" target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8' }}>
                 {'DOI: 10.5281/zenodo.24095564'}
               </a>
             </li>
             <li>
-              <strong>Verified US Cardroom &amp; Social Poker Club Venue Registry Index:</strong>{' '}
+              <strong>Smarter.Poker Model Context Protocol (MCP) Server &amp; OpenAPI 3.1 Specification V1.0.2:</strong>{' '}
               <a href="https://doi.org/10.5281/zenodo.24095597" target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8' }}>
                 {'DOI: 10.5281/zenodo.24095597'}
               </a>
             </li>
             <li>
-              <strong>Live Poker Tournament Series, Championship Festivals &amp; Major Tour Schedule Index:</strong>{' '}
+              <strong>Official Poker Rules (TDA &amp; RROP), 15 Game Variants &amp; 80-Term Quantitative Glossary Corpus:</strong>{' '}
               <a href="https://doi.org/10.5281/zenodo.24095602" target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8' }}>
                 {'DOI: 10.5281/zenodo.24095602'}
               </a>
