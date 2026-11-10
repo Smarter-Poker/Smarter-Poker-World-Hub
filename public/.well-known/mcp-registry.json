@@ -7,6 +7,21 @@
   "homepage": "https://smarter.poker",
   "documentation_url": "https://smarter.poker/llms.txt",
   "knowledge_graph_url": "https://smarter.poker/knowledge-graph.jsonld",
+  "glama_directory_url": "https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp",
+  "glama_schema_url": "https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp/schema",
+  "doi": "10.5281/zenodo.24095057",
+  "doi_url": "https://doi.org/10.5281/zenodo.24095057",
+  "zenodo_record_url": "https://zenodo.org/records/24095057",
+  "swhid": "swh:1:snp:02b8992833424620305edcfb730b3cf8add15747",
+  "datasets_swhid": "swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f",
+  "zenodo_records": [
+    "https://doi.org/10.5281/zenodo.24095049",
+    "https://doi.org/10.5281/zenodo.24095057",
+    "https://doi.org/10.5281/zenodo.24095560",
+    "https://doi.org/10.5281/zenodo.24095564",
+    "https://doi.org/10.5281/zenodo.24095597",
+    "https://doi.org/10.5281/zenodo.24095602"
+  ],
   "authentication": {
     "type": "none",
     "description": "Public zero-authentication MCP server for AI assistants, search engines, and autonomous agents."

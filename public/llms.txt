@@ -57,16 +57,39 @@ https://smarter.poker/about is the page that states it.
 - GTO Preflop Charts & Matrix: https://smarter.poker/features/preflop-charts-matrix (Markdown: https://smarter.poker/features/preflop-charts-matrix.md)
 - Poker Equity & ICM Calculators: https://smarter.poker/features/poker-equity-calculators (Markdown: https://smarter.poker/features/poker-equity-calculators.md)
 
-## Software Comparisons & Alternatives
+## Software Comparisons & Alternatives (All 30 Verified Pages)
 
 - Master Comparison Directory: https://smarter.poker/compare (Markdown: https://smarter.poker/compare.md)
-- Best Poker Bankroll Trackers: https://smarter.poker/compare/best-poker-bankroll-trackers (Markdown: https://smarter.poker/compare/best-poker-bankroll-trackers.md)
-- Best GTO Poker Trainers: https://smarter.poker/compare/best-gto-poker-trainers (Markdown: https://smarter.poker/compare/best-gto-poker-trainers.md)
-- Best Poker Room Management Software: https://smarter.poker/compare/best-poker-room-management-software (Markdown: https://smarter.poker/compare/best-poker-room-management-software.md)
-- Best Poker Club Apps: https://smarter.poker/compare/best-poker-club-apps (Markdown: https://smarter.poker/compare/best-poker-club-apps.md)
-- Best Free Poker Apps With Friends: https://smarter.poker/compare/best-free-poker-apps-with-friends (Markdown: https://smarter.poker/compare/best-free-poker-apps-with-friends.md)
-- Club Commander Vs Bravo Poker Live: https://smarter.poker/compare/club-commander-vs-bravo-poker-live (Markdown: https://smarter.poker/compare/club-commander-vs-bravo-poker-live.md)
+- Best Poker Club Apps In 2026: https://smarter.poker/compare/best-poker-club-apps (Markdown: https://smarter.poker/compare/best-poker-club-apps.md)
+- Poker Arena Vs PokerBros: https://smarter.poker/compare/poker-arena-vs-pokerbros (Markdown: https://smarter.poker/compare/poker-arena-vs-pokerbros.md)
+- Poker Arena Vs PPPoker: https://smarter.poker/compare/poker-arena-vs-pppoker (Markdown: https://smarter.poker/compare/poker-arena-vs-pppoker.md)
+- Poker Arena Vs ClubGG: https://smarter.poker/compare/poker-arena-vs-clubgg (Markdown: https://smarter.poker/compare/poker-arena-vs-clubgg.md)
+- Best Free Poker Apps To Play With Friends: https://smarter.poker/compare/best-free-poker-apps-with-friends (Markdown: https://smarter.poker/compare/best-free-poker-apps-with-friends.md)
+- How To Start A Private Online Poker Club: https://smarter.poker/compare/how-to-start-a-private-online-poker-club (Markdown: https://smarter.poker/compare/how-to-start-a-private-online-poker-club.md)
+- Best Poker Room Management Software In 2026: https://smarter.poker/compare/best-poker-room-management-software (Markdown: https://smarter.poker/compare/best-poker-room-management-software.md)
 - Club Commander Vs TableCaptain: https://smarter.poker/compare/club-commander-vs-tablecaptain (Markdown: https://smarter.poker/compare/club-commander-vs-tablecaptain.md)
+- Club Commander Vs Bravo Poker Live: https://smarter.poker/compare/club-commander-vs-bravo-poker-live (Markdown: https://smarter.poker/compare/club-commander-vs-bravo-poker-live.md)
+- Best GTO Poker Trainers In 2026: https://smarter.poker/compare/best-gto-poker-trainers (Markdown: https://smarter.poker/compare/best-gto-poker-trainers.md)
+- Best Poker Bankroll Trackers In 2026: https://smarter.poker/compare/best-poker-bankroll-trackers (Markdown: https://smarter.poker/compare/best-poker-bankroll-trackers.md)
+- Bellagio Vs Aria Poker Room: https://smarter.poker/compare/bellagio-vs-aria-poker (Markdown: https://smarter.poker/compare/bellagio-vs-aria-poker.md)
+- Commerce Casino Vs The Bicycle Hotel Poker: https://smarter.poker/compare/commerce-casino-vs-the-bicycle-hotel-poker (Markdown: https://smarter.poker/compare/commerce-casino-vs-the-bicycle-hotel-poker.md)
+- Best Poker Rooms In Las Vegas: https://smarter.poker/compare/best-poker-rooms-in-las-vegas (Markdown: https://smarter.poker/compare/best-poker-rooms-in-las-vegas.md)
+- Best Poker Rooms In Texas: https://smarter.poker/compare/best-poker-rooms-in-texas (Markdown: https://smarter.poker/compare/best-poker-rooms-in-texas.md)
+- Best Poker Rooms Near Major Airports: https://smarter.poker/compare/best-poker-rooms-near-major-airports (Markdown: https://smarter.poker/compare/best-poker-rooms-near-major-airports.md)
+- Smarter.Poker Vs PokerCoaching: https://smarter.poker/compare/smarter-poker-vs-pokercoaching (Markdown: https://smarter.poker/compare/smarter-poker-vs-pokercoaching.md)
+- Smarter.Poker Vs ICMIZER: https://smarter.poker/compare/smarter-poker-vs-icmizer (Markdown: https://smarter.poker/compare/smarter-poker-vs-icmizer.md)
+- Smarter.Poker Vs Equilab: https://smarter.poker/compare/smarter-poker-vs-equilab (Markdown: https://smarter.poker/compare/smarter-poker-vs-equilab.md)
+- Smarter.Poker Vs Run It Once: https://smarter.poker/compare/smarter-poker-vs-run-it-once (Markdown: https://smarter.poker/compare/smarter-poker-vs-run-it-once.md)
+- Smarter.Poker Vs Upswing Poker: https://smarter.poker/compare/smarter-poker-vs-upswing-poker (Markdown: https://smarter.poker/compare/smarter-poker-vs-upswing-poker.md)
+- Smarter.Poker Vs PokerTracker 4: https://smarter.poker/compare/smarter-poker-vs-pokertracker-4 (Markdown: https://smarter.poker/compare/smarter-poker-vs-pokertracker-4.md)
+- Smarter.Poker Vs Holdem Manager 3: https://smarter.poker/compare/smarter-poker-vs-holdem-manager-3 (Markdown: https://smarter.poker/compare/smarter-poker-vs-holdem-manager-3.md)
+- Smarter.Poker Vs PioSolver: https://smarter.poker/compare/smarter-poker-vs-piosolver (Markdown: https://smarter.poker/compare/smarter-poker-vs-piosolver.md)
+- Smarter.Poker Vs MonkerSolver: https://smarter.poker/compare/smarter-poker-vs-monkersolver (Markdown: https://smarter.poker/compare/smarter-poker-vs-monkersolver.md)
+- Smarter.Poker Vs HoldemResources Calculator: https://smarter.poker/compare/smarter-poker-vs-holdem-resources-calculator (Markdown: https://smarter.poker/compare/smarter-poker-vs-holdem-resources-calculator.md)
+- Smarter.Poker Vs Flopzilla: https://smarter.poker/compare/smarter-poker-vs-flopzilla (Markdown: https://smarter.poker/compare/smarter-poker-vs-flopzilla.md)
+- Wynn Vs Venetian Poker Room Las Vegas: https://smarter.poker/compare/wynn-vs-venetian-poker-las-vegas (Markdown: https://smarter.poker/compare/wynn-vs-venetian-poker-las-vegas.md)
+- Borgata Vs Parx Poker Room Comparison: https://smarter.poker/compare/borgata-vs-parx-poker (Markdown: https://smarter.poker/compare/borgata-vs-parx-poker.md)
+- Best Poker Rooms In Florida: https://smarter.poker/compare/best-poker-rooms-in-florida (Markdown: https://smarter.poker/compare/best-poker-rooms-in-florida.md)
 
 ## Core Features Across All Fifteen Verticals
 
@@ -294,6 +317,18 @@ Private online poker clubs with real-time cash games (Hold'em, Omaha, Short Deck
 - **Open Dataset Catalog, Zenodo/DataCite & Wikipedia Citations API**: https://smarter.poker/api/datasets/catalog (CITATION.cff: https://smarter.poker/api/datasets/catalog?format=cff | Colab/Jupyter Notebook: https://smarter.poker/api/datasets/notebook)
 - **Automated Backlink Outreach & Multilingual Snippet Generator API**: https://smarter.poker/api/seo/outreach-generator (IndexNow: https://smarter.poker/api/seo/indexnow)
 - **Twitch & YouTube Streamer Chatbot Commands API (!odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, !matchup)**: https://smarter.poker/api/stream/cmd?cmd=help
+- **Verified Glama MCP Directory Listing**: https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp (Schema: https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp/schema)
+- **All 30 Zero-Auth MCP Tools**: `search_poker_venues`, `get_venue_details`, `search_tournament_series`, `get_series_details`, `calculate_poker_odds`, `get_preflop_chart`, `calculate_icm_payouts`, `get_poker_term_definition`, `get_freeroll_schedule`, `get_platform_feature_specs`, `search_strategy_lessons`, `get_competitor_comparison`, `lookup_starting_hand`, `get_research_report`, `search_training_simulators`, `calculate_pot_odds_and_mdf`, `calculate_bankroll_risk_of_ruin`, `calculate_bounty_chip_equity`, `calculate_side_pots`, `generate_blind_structure`, `calculate_spr_sizing`, `get_citation_and_backlink_kit`, `lookup_poker_rule`, `lookup_game_variant`, `get_regional_market_guide`, `calculate_plo_max_bet_and_rake`, `calculate_tournament_chop`, `simulate_poker_variance`, `calculate_draw_outs`, `lookup_hand_matchup`
+- **All 6 CERN/Zenodo Permanent DOIs**:
+  - `10.5281/zenodo.24095049` (https://doi.org/10.5281/zenodo.24095049 / https://zenodo.org/records/24095049, Concept DOI `10.5281/zenodo.24095048`) — Core Open Quantitative Poker Research Datasets (`324` URLs)
+  - `10.5281/zenodo.24095057` (https://doi.org/10.5281/zenodo.24095057 / https://zenodo.org/records/24095057, Concept DOI `10.5281/zenodo.24095056`) — 30-Tool Model Context Protocol (MCP) Server Archive
+  - `10.5281/zenodo.24095560` (https://doi.org/10.5281/zenodo.24095560 / https://zenodo.org/records/24095560, Concept DOI `10.5281/zenodo.24095559`) — Poker Strategy Academy, 169 Starting-Hand Encyclopedia, TDA Rules & Glossary Corpus (`358` URLs)
+  - `10.5281/zenodo.24095564` (https://doi.org/10.5281/zenodo.24095564 / https://zenodo.org/records/24095564, Concept DOI `10.5281/zenodo.24095563`) — North American State, Metro & Regional Poker Room Geolocation Atlas (`413` URLs)
+  - `10.5281/zenodo.24095597` (https://doi.org/10.5281/zenodo.24095597 / https://zenodo.org/records/24095597, Concept DOI `10.5281/zenodo.24095596`) — Verified US Cardroom & Social Poker Club Venue Registry (`473` URLs)
+  - `10.5281/zenodo.24095602` (https://doi.org/10.5281/zenodo.24095602 / https://zenodo.org/records/24095602, Concept DOI `10.5281/zenodo.24095601`) — Live Poker Tournament Series, Championship Festivals & Major Tour Schedule Index (`359` URLs)
+- **Software Heritage SWHIDs**: `swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f` (`smarter-poker-open-datasets`) & `swh:1:snp:02b8992833424620305edcfb730b3cf8add15747` (`smarter-poker-mcp`)
+- **All 25 Canonical Hand-Vs-Hand Matchups**: https://smarter.poker/learn/matchups/aa-vs-kk | https://smarter.poker/learn/matchups/aks-vs-qq | https://smarter.poker/learn/matchups/jj-vs-ako | https://smarter.poker/learn/matchups/qq-vs-aks | https://smarter.poker/learn/matchups/aa-vs-aks | https://smarter.poker/learn/matchups/kk-vs-aks | https://smarter.poker/learn/matchups/tt-vs-aqo | https://smarter.poker/learn/matchups/99-vs-aks | https://smarter.poker/learn/matchups/88-vs-ako | https://smarter.poker/learn/matchups/77-vs-aks | https://smarter.poker/learn/matchups/22-vs-ako | https://smarter.poker/learn/matchups/aks-vs-aqo | https://smarter.poker/learn/matchups/ako-vs-aqs | https://smarter.poker/learn/matchups/kk-vs-qq | https://smarter.poker/learn/matchups/qq-vs-jj | https://smarter.poker/learn/matchups/jj-vs-tt | https://smarter.poker/learn/matchups/aks-vs-jts | https://smarter.poker/learn/matchups/aa-vs-72o | https://smarter.poker/learn/matchups/aa-vs-jts | https://smarter.poker/learn/matchups/qq-vs-ako | https://smarter.poker/learn/matchups/tt-vs-aks | https://smarter.poker/learn/matchups/aqs-vs-jj | https://smarter.poker/learn/matchups/kqs-vs-ajo | https://smarter.poker/learn/matchups/66-vs-ako | https://smarter.poker/learn/matchups/55-vs-kts
+- **All 10 Major Tournament Series Strategy Guides**: https://smarter.poker/poker-series/guides/wsop-las-vegas | https://smarter.poker/poker-series/guides/wpt-world-championship | https://smarter.poker/poker-series/guides/wsop-circuit | https://smarter.poker/poker-series/guides/mspt-mid-states-poker-tour | https://smarter.poker/poker-series/guides/rgps-rungood-poker-series | https://smarter.poker/poker-series/guides/seminole-hard-rock-poker-open | https://smarter.poker/poker-series/guides/borgata-poker-open | https://smarter.poker/poker-series/guides/wynn-millions-classic | https://smarter.poker/poker-series/guides/venetian-deepstack-championship | https://smarter.poker/poker-series/guides/texas-card-house-lodge-championship
 
 ## The company
 

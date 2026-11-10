@@ -120,28 +120,10 @@ const CALCULATOR_ITEMS = [
     summary: 'Calculates Solver-Approved In-Position And Out-Of-Position 3-Bet, Multiway Squeeze, And 4-Bet Sizing.',
   },
   {
-    title: 'Expected Value (EV) & Fold Equity Decision Calculator',
-    href: '/tools/ev-calculator',
-    badge: 'All-In & Bluff EV',
-    summary: 'Computes Dollar And Big Blind Expected Value Across Calling, Bluffing, And Semi-Bluffing Lines.',
-  },
-  {
-    title: 'Hand Combinatorics & Card Removal Blocker Calculator',
-    href: '/tools/combinatorics-calculator',
-    badge: '1,326 Combos',
-    summary: 'Counts Exact Pocket Pair, Suited, And Offsuit Hand Combinations After Dead Board And Blocker Removal.',
-  },
-  {
-    title: 'Outs, Rule Of 4 And 2 & Draw Odds Calculator',
-    href: '/tools/outs-calculator',
-    badge: 'Draw Math',
-    summary: 'Calculates Turn, River, And Combined Flop-To-River Hit Probabilities For Any Number Of Clean Outs.',
-  },
-  {
-    title: 'Implied Odds & Required River Payoff Calculator',
-    href: '/tools/implied-odds-calculator',
-    badge: 'Set-Mining & Draws',
-    summary: 'Computes The Minimum Future Turn And River Value Required To Profitably Call Out-Of-Odds Flop Bets.',
+    title: 'Final Table ICM Vs Chip-Chop Deal Settlement Calculator',
+    href: '/tools/chop-calculator',
+    badge: 'ICM Vs Chip Chop',
+    summary: 'Side-By-Side Tournament Deal Settlement Comparing ICM, Chip Chop, And Save-Some For Play.',
   },
   {
     title: 'Multi-Table Tournament (MTT) Variance & ROI Simulator',
@@ -150,28 +132,70 @@ const CALCULATOR_ITEMS = [
     summary: 'Models Tournament Downswings, Confidence Intervals, And Bankroll Swings Across 1,000+ MTT Samples.',
   },
   {
+    title: 'Outs, Rule Of 4 And 2 & Draw Odds Calculator',
+    href: '/tools/outs-calculator',
+    badge: 'Draw Math',
+    summary: 'Calculates Turn, River, And Combined Flop-To-River Hit Probabilities For Any Number Of Clean Outs.',
+  },
+  {
+    title: 'US Poker Tax, W-2G Withholding & OBBBA 90% Loss Cap Calculator',
+    href: '/tools/poker-tax-calculator',
+    badge: '2026 IRS Tax Math',
+    summary: 'Calculates Federal W-2G Thresholds, 2026 90% Gambling Loss Deduction Cap, And Phantom Tax Exposure.',
+  },
+  {
     title: 'Tournament Staking, Markup & Swap Settlement Calculator',
     href: '/tools/staking-calculator',
     badge: 'Backing & Swaps',
     summary: 'Calculates Fair Markup Pricing, Investor Share Payouts, Piece Swaps, And Tax Withholding Splits.',
   },
   {
-    title: 'M-Ratio, Effective Big Blinds & Tourney Zone Calculator',
-    href: '/tools/m-ratio-calculator',
-    badge: 'Harrington M-Zone',
-    summary: 'Computes Effective Big Blinds And True Orbit Cost (M-Ratio) Taking Into Account Blinds And Antes.',
+    title: 'Preflop Isolation Raise (Iso-Raise) Sizing Calculator',
+    href: '/tools/iso-calculator',
+    badge: 'Limper Punish Math',
+    summary: 'Calculates Optimal In-Position And Out-Of-Position Isolation Raise Sizing Over Multiple Live Limpers.',
   },
   {
-    title: 'Home Game Chip Breakdown & Starting Stack Calculator',
-    href: '/tools/chip-distribution-calculator',
+    title: 'Home Game Chip Set Breakdown & Starting Stack Planner',
+    href: '/tools/home-game-kit',
     badge: 'Chip Set Planner',
     summary: 'Builds Optimal Per-Player Chip Counts From Your Physical 300, 500, Or 1,000-Piece Poker Chip Set.',
   },
   {
-    title: 'Embeddable Webmaster Poker Widgets Suite',
+    title: 'Interactive Poker Format & Game Selector Quiz',
+    href: '/tools/format-quiz',
+    badge: 'Format Matcher',
+    summary: 'Matches Your Bankroll, Risk Tolerance, And Schedule To Cash Games, MTTs, PLO, Or Spin-And-Gos.',
+  },
+  {
+    title: 'Embeddable Webmaster Poker Widgets & Streamer Bot Suite',
     href: '/tools/embeds',
     badge: 'Free HTML5 Iframes',
-    summary: 'Copy-And-Paste Responsive Calculator Iframe Embeds For Poker Blogs, Study Discords, And Cardroom Sites.',
+    summary: 'Copy-And-Paste Responsive Calculator Iframe Embeds And 14 Nightbot/StreamElements Commands.',
+  },
+  {
+    title: 'Poker Hand Vs Hand Matchup Odds Directory (25 Matchups)',
+    href: '/learn/matchups',
+    badge: 'Matchup Index',
+    summary: 'Interactive Preflop Equity Directory Covering 25 Canonical Hold\'em All-In Confrontations And Flop Shifts.',
+  },
+  {
+    title: 'Major Live Poker Tournament Series Guides (WSOP, WPT, Wynn)',
+    href: '/poker-series/guides',
+    badge: '10 Series Guides',
+    summary: 'Complete Player Logistics, Rake Comparison, And Registration Timing For 10 Premier North American Series.',
+  },
+  {
+    title: 'First-Time Live Casino Poker Room Etiquette & Survival Guide',
+    href: '/poker-rooms/first-time-guide',
+    badge: 'Live Etiquette',
+    summary: 'Step-By-Step Check-In, Chip Buying, One-Chip Call Rule, And Tipping Etiquette For First-Time Live Players.',
+  },
+  {
+    title: 'Official Smarter.Poker Press Kit, DOIs & Media Fast Facts',
+    href: '/press',
+    badge: 'Media & DOIs',
+    summary: 'Quotable 2026 Industry Benchmarks, 6 CERN/Zenodo DOIs, Software Heritage SWHIDs, And Brand Boilerplates.',
   },
 ];
 
@@ -366,16 +390,6 @@ export default function UniversalPokerSearchPage() {
         description="Search Across 24 Interactive Poker Calculators, 169 Starting Hands, 25 Hand Matchups, 30 Official Rules, 15 Game Variants, And 15 Research Studies."
         canonical="/search"
         jsonLd={jsonLd}
-      />
-
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@graph': jsonLd,
-          }),
-        }}
       />
 
       <UniversalHeader pageDepth={1} />

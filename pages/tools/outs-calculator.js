@@ -219,8 +219,10 @@ export default function OutsCalculatorPage({
     });
   }, [pageDesc]);
 
+  const isEmbed = router.query?.embed === 'true';
+
   return (
-    <div style={{ minHeight: '100vh', background: '#020608', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div style={{ minHeight: isEmbed ? 'auto' : '100vh', background: '#020608', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
         title="Poker Outs & Draw Probability Calculator"
         description="Interactive Postflop Poker Outs Calculator With Exact Turn, River, And Flop-To-River Draw Equity, Rule Of 4 And 2 Comparison, And Pot Odds."
@@ -228,22 +230,26 @@ export default function OutsCalculatorPage({
         jsonLd={schema}
       />
 
-      <main style={{ maxWidth: 1060, margin: '0 auto', padding: '40px 20px 80px' }}>
-        <nav aria-label="Breadcrumb" style={{ fontSize: 13, color: '#94a3b8', marginBottom: 18 }}>
-          <Link href="/" style={{ color: '#25c8ff', textDecoration: 'none' }}>Smarter.Poker</Link>
-          {' / '}
-          <Link href="/tools" style={{ color: '#25c8ff', textDecoration: 'none' }}>Poker Tools</Link>
-          {' / '}
-          <span>Poker Outs &amp; Draw Probability Calculator</span>
-        </nav>
+      <main style={{ maxWidth: 1060, margin: '0 auto', padding: isEmbed ? '16px 14px 24px' : '40px 20px 80px' }}>
+        {!isEmbed && (
+          <nav aria-label="Breadcrumb" style={{ fontSize: 13, color: '#94a3b8', marginBottom: 18 }}>
+            <Link href="/" style={{ color: '#25c8ff', textDecoration: 'none' }}>Smarter.Poker</Link>
+            {' / '}
+            <Link href="/tools" style={{ color: '#25c8ff', textDecoration: 'none' }}>Poker Tools</Link>
+            {' / '}
+            <span>Poker Outs &amp; Draw Probability Calculator</span>
+          </nav>
+        )}
 
-        <h1 style={{ fontSize: 32, fontWeight: 800, color: '#f8fafc', margin: '0 0 14px 0', lineHeight: 1.2 }}>
+        <h1 style={{ fontSize: isEmbed ? 22 : 32, fontWeight: 800, color: '#f8fafc', margin: '0 0 14px 0', lineHeight: 1.2 }}>
           Poker Outs &amp; Draw Probability Calculator
         </h1>
 
-        <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
-          <strong>Direct Answer:</strong> With <strong>47 Unseen Cards On The Flop</strong> And <strong>46 On The Turn</strong>, A 9-Out Flush Draw Hits On The Turn <strong>19.15% Of The Time</strong>, On The River <strong>19.57% Of The Time</strong>, And Across Both Streets Combined <strong>34.97% Of The Time</strong> (Versus 36.0% Using The Rule Of 4).
-        </p>
+        {!isEmbed && (
+          <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
+            <strong>Direct Answer:</strong> With <strong>47 Unseen Cards On The Flop</strong> And <strong>46 On The Turn</strong>, A 9-Out Flush Draw Hits On The Turn <strong>19.15% Of The Time</strong>, On The River <strong>19.57% Of The Time</strong>, And Across Both Streets Combined <strong>34.97% Of The Time</strong> (Versus 36.0% Using The Rule Of 4).
+          </p>
+        )}
 
         {/* Interactive Outs Panel */}
         <section
@@ -513,23 +519,27 @@ export default function OutsCalculatorPage({
           </div>
         </section>
 
-        <FaqSection faqs={OUTS_CALCULATOR_FAQS} />
+        {!isEmbed && (
+          <>
+            <FaqSection faqs={OUTS_CALCULATOR_FAQS} />
 
-        <CitationBacklinkBox
-          title="Poker Outs & Draw Probability Calculator"
-          canonicalUrl={canonicalUrl}
-          badgeType="gto"
-          badgeLabel="Hypergeometric Draw Engine"
-          badgeValue="Exact Turn, River & Implied Odds"
-          summary="Interactive Postflop Poker Outs Calculator Computing Exact Turn, River, And Flop-To-River Draw Probabilities And Implied Odds."
-          slug="outs-calculator"
-        />
+            <CitationBacklinkBox
+              title="Poker Outs & Draw Probability Calculator"
+              canonicalUrl={canonicalUrl}
+              badgeType="gto"
+              badgeLabel="Hypergeometric Draw Engine"
+              badgeValue="Exact Turn, River & Implied Odds"
+              summary="Interactive Postflop Poker Outs Calculator Computing Exact Turn, River, And Flop-To-River Draw Probabilities And Implied Odds."
+              slug="outs-calculator"
+            />
 
-        <AiPromptLauncher
-          title="Poker Outs & Draw Probability Calculator"
-          canonicalUrl={canonicalUrl}
-          markdownUrl={`${canonicalUrl}.md`}
-        />
+            <AiPromptLauncher
+              title="Poker Outs & Draw Probability Calculator"
+              canonicalUrl={canonicalUrl}
+              markdownUrl={`${canonicalUrl}.md`}
+            />
+          </>
+        )}
       </main>
     </div>
   );

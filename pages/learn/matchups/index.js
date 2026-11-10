@@ -38,7 +38,7 @@ const DIRECTORY_FAQS = [
   },
   {
     q: 'Where Can I Run Custom Multiway Or Dead-Card Equity Simulations?',
-    a: 'Launch The Free Smarter.Poker Multiway Poker Odds Calculator At /tools/poker-odds-calculator Or /tools/odds-calculator To Compute Exact Board-Specific And Dead-Card Equities.',
+    a: 'Launch The Free Smarter.Poker Multiway Poker Odds Calculator At /tools/poker-odds-calculator To Compute Exact Board-Specific And Dead-Card Equities.',
   },
 ];
 
@@ -118,16 +118,6 @@ export default function PokerMatchupsIndexPage() {
         jsonLd={jsonLd}
       />
 
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@graph': jsonLd,
-          }),
-        }}
-      />
-
       <UniversalHeader pageDepth={2} />
 
       <main style={styles.container}>
@@ -180,17 +170,32 @@ export default function PokerMatchupsIndexPage() {
           </div>
 
           <div style={styles.quickCrossLinks}>
-            <Link href="/tools/odds-calculator" style={styles.crossBtnCyan}>
+            <Link href="/tools/poker-odds-calculator" style={styles.crossBtnCyan}>
               Launch Interactive Odds Calculator
             </Link>
-            <Link href="/tools/poker-odds-calculator" style={styles.crossBtnEmerald}>
-              Multiway Equity Solver
+            <Link href="/tools/pot-odds-calculator" style={styles.crossBtnEmerald}>
+              Pot Odds &amp; MDF Solver
+            </Link>
+            <Link href="/tools" style={styles.crossBtnOutline}>
+              24 Free Poker Calculators
+            </Link>
+            <Link href="/learn" style={styles.crossBtnOutline}>
+              GTO Strategy Academy
             </Link>
             <Link href="/learn/hands" style={styles.crossBtnOutline}>
               All 169 Starting Hands Matrix
             </Link>
             <Link href="/tools/preflop-ranges" style={styles.crossBtnOutline}>
               13x13 GTO Preflop Ranges
+            </Link>
+            <Link href="/poker-rooms/guides" style={styles.crossBtnOutline}>
+              12 Regional Poker Market Guides
+            </Link>
+            <Link href="/poker-rooms/first-time-guide" style={styles.crossBtnOutline}>
+              First-Time Live Poker Room Guide
+            </Link>
+            <Link href="/poker-series/guides" style={styles.crossBtnOutline}>
+              10 Major Poker Series Guides
             </Link>
           </div>
         </header>
@@ -273,7 +278,7 @@ export default function PokerMatchupsIndexPage() {
                       {m.combosA} / {m.combosB}
                     </td>
                     <td style={styles.tdAction}>
-                      <Link href={`/tools/odds-calculator?handA=${encodeURIComponent(m.handA)}&handB=${encodeURIComponent(m.handB)}`} style={styles.calcLink}>
+                      <Link href={`/tools/poker-odds-calculator?hand1=${encodeURIComponent(m.handA)}&hand2=${encodeURIComponent(m.handB)}`} style={styles.calcLink}>
                         Run In Odds Calculator
                       </Link>
                     </td>
@@ -333,7 +338,7 @@ export default function PokerMatchupsIndexPage() {
                   <Link href={matchupPath(m.slug)} style={styles.readGuideLink}>
                     View Flop Shifts &amp; 100BB EV Guide
                   </Link>
-                  <Link href="/tools/odds-calculator" style={styles.oddsToolLink}>
+                  <Link href={`/tools/poker-odds-calculator?hand1=${encodeURIComponent(m.handA)}&hand2=${encodeURIComponent(m.handB)}`} style={styles.oddsToolLink}>
                     Odds Calculator
                   </Link>
                 </div>

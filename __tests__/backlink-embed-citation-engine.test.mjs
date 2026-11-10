@@ -523,7 +523,11 @@ test('Schema.org JSON-LD & Google Scholar citation structured data pass rich-res
 
   const catalogJsonLd = buildDataCatalogJsonLd();
   assert.equal(catalogJsonLd.inLanguage, 'en-US');
-  assert.equal(catalogJsonLd.sameAs, 'https://github.com/Smarter-Poker/smarter-poker-open-datasets');
+  assert.ok(
+    Array.isArray(catalogJsonLd.sameAs) &&
+      catalogJsonLd.sameAs.includes('https://github.com/Smarter-Poker/smarter-poker-open-datasets') &&
+      catalogJsonLd.sameAs.includes('https://doi.org/10.5281/zenodo.24095049')
+  );
   assert.equal(catalogJsonLd.dataset[0].distribution.length, 3, 'Each dataset in DataCatalog exposes HTML, Markdown, and JSON distributions');
 
   const { resolveToolWikidataLinks } = await import('../src/lib/seo/wikidataRegistry.mjs');

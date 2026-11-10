@@ -242,16 +242,6 @@ export default function FirstTimeCasinoPokerGuidePage() {
         jsonLd={jsonLd}
       />
 
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@graph': jsonLd,
-          }),
-        }}
-      />
-
       <UniversalHeader pageDepth={2} />
 
       <main style={styles.container}>
@@ -290,6 +280,18 @@ export default function FirstTimeCasinoPokerGuidePage() {
             </Link>
             <Link href="/poker-rooms/guides" style={styles.crossBtnOutline}>
               12 Regional US Market Guides
+            </Link>
+            <Link href="/poker-series/guides" style={styles.crossBtnOutline}>
+              10 Major Poker Series Guides
+            </Link>
+            <Link href="/tools" style={styles.crossBtnOutline}>
+              24 Free Poker Calculators
+            </Link>
+            <Link href="/learn" style={styles.crossBtnOutline}>
+              GTO Strategy Academy
+            </Link>
+            <Link href="/learn/matchups" style={styles.crossBtnOutline}>
+              25 All-In Hand Matchups
             </Link>
             <Link href="/hub/poker-near-me" style={styles.crossBtnOutline}>
               Find Live Rooms Near Me
