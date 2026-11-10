@@ -34,7 +34,7 @@ On the owner's Mac, also read `/Users/smarter.poker/Documents/AGENTS.md` and `/U
 
 Working routes, as verified on November 10, 2026:
 
-- Claude Code, any account, in a checkout of this repository at or after the commit that added the folder: the skill is expected to load as a project skill named `reddit-agent`. Loading has not been confirmed in any session yet: a cloud session that added the files did not list the skill after reloading the repository, so confirm with a fresh session before relying on it.
+- Claude Code, any account, in a checkout of this repository at or after the commit that added the folder: the skill loads as a project skill named `reddit-agent`. Verified on November 10, 2026 in one cloud Claude Code session, where the skill was listed after the repository reloaded; not yet verified on the Mac.
 - Claude Code in other repositories, or for every account on the Mac user: not installed. Copy the folder to `~/.claude/skills/` using the command in the skill's `README.md`.
 - Claude app: available only on the account where it was saved from the chat's review card.
 - Other agents (Codex, Antigravity): read `SKILL.md` as instructions.
