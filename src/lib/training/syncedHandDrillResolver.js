@@ -16,7 +16,13 @@ import { evaluateTrainingSpotWithHorseBrain, validateDealAndPotLimitBounds } fro
 import { generateCuratedPokerConceptBatch } from './curatedPokerConcepts.js';
 import { SolverPolicyService } from '../../services/SolverPolicyService.js';
 
-const solverPolicyService = new SolverPolicyService();
+let _defaultSolverPolicyService = null;
+function getDefaultSolverPolicyService() {
+  if (!_defaultSolverPolicyService) {
+    _defaultSolverPolicyService = new SolverPolicyService();
+  }
+  return _defaultSolverPolicyService;
+}
 
 const CARD_TOKEN_RE = /[2-9TJQKA][cdhs]/gi;
 const VALID_POSITIONS = new Set(['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB', 'BB']);
@@ -330,7 +336,8 @@ export async function resolveSyncedHandForTrainingDrill({
   });
 
   const allRaw = [primaryQuestionRaw, ...companionsRaw].slice(0, 10);
-  const questions = allRaw.map((q) => solverPolicyService.attachToQuestion(q, 'get-question'));
+  const policySvc = getDefaultSolverPolicyService();
+  const questions = allRaw.map((q) => policySvc.attachToQuestion(q, 'get-question'));
 
   return {
     ok: true,

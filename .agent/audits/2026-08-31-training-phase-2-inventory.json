@@ -11,7 +11,7 @@
     "dynamicGameRouteExpansions": 214,
     "trainingApiRouteTemplates": 54,
     "apiReferencePrefixes": 3,
-    "dependencyFiles": 374,
+    "dependencyFiles": 373,
     "componentFiles": 53,
     "hookFiles": 14,
     "ctas": 407,
@@ -19,14 +19,14 @@
     "persistenceFiles": 87,
     "realtimeFiles": 6,
     "tests": 177,
-    "markerCandidates": 372,
-    "possibleUnwiredFunctions": 403,
+    "markerCandidates": 369,
+    "possibleUnwiredFunctions": 402,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 228,
     "routeStateUnassignedGaps": 0,
     "ctaWiringGaps": 0,
     "markerPhaseReview": 0,
-    "markerDocumentedFollowUp": 116,
+    "markerDocumentedFollowUp": 115,
     "functionPhaseReview": 0
   },
   "games": [
@@ -48218,7 +48218,6 @@
         "src/lib/training/solverDecisionEvidence.js",
         "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverRowIdentity.mjs",
-        "src/lib/training/syncedHandDrillResolver.js",
         "src/services/SolverPolicyService.js",
         "src/utils/v2Matrix.js"
       ],
@@ -48258,7 +48257,7 @@
       "functions": [
         {
           "name": "rowMatchesCandidateRequest",
-          "line": 65,
+          "line": 64,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -48266,7 +48265,7 @@
         },
         {
           "name": "fetchAdmittedSolverCandidates",
-          "line": 84,
+          "line": 83,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -48274,7 +48273,7 @@
         },
         {
           "name": "fetchExactAdmittedArtifact",
-          "line": 164,
+          "line": 163,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -48282,7 +48281,7 @@
         },
         {
           "name": "headsUpInPositionSeat",
-          "line": 196,
+          "line": 195,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -48290,7 +48289,7 @@
         },
         {
           "name": "exactContinuationScenarioHash",
-          "line": 200,
+          "line": 199,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -48298,7 +48297,7 @@
         },
         {
           "name": "toHandClass",
-          "line": 206,
+          "line": 205,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -48306,7 +48305,7 @@
         },
         {
           "name": "prepareSolverScenarioRow",
-          "line": 227,
+          "line": 226,
           "references": 5,
           "exported": true,
           "defaultExport": false,
@@ -48314,7 +48313,7 @@
         },
         {
           "name": "provenanceIsComplete",
-          "line": 245,
+          "line": 244,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -48322,7 +48321,7 @@
         },
         {
           "name": "rowMatchesContinuationLineage",
-          "line": 270,
+          "line": 269,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -48330,7 +48329,7 @@
         },
         {
           "name": "orderedExactContinuationCandidates",
-          "line": 302,
+          "line": 301,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -48338,7 +48337,7 @@
         },
         {
           "name": "stampSolverProvenance",
-          "line": 312,
+          "line": 311,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -48346,7 +48345,7 @@
         },
         {
           "name": "canonicalRangeActionSignature",
-          "line": 386,
+          "line": 385,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -48354,7 +48353,7 @@
         },
         {
           "name": "rebindRawFrequenciesToCanonicalPolicy",
-          "line": 411,
+          "line": 410,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -48362,7 +48361,7 @@
         },
         {
           "name": "synchronizeCanonicalPolicyQuestion",
-          "line": 460,
+          "line": 459,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -48370,7 +48369,7 @@
         },
         {
           "name": "sanitizeStrategyMatrix",
-          "line": 518,
+          "line": 517,
           "references": 4,
           "exported": true,
           "defaultExport": false,
@@ -48378,7 +48377,7 @@
         },
         {
           "name": "matrixHasHand",
-          "line": 589,
+          "line": 588,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -48386,7 +48385,7 @@
         },
         {
           "name": "pruneScenarioToHand",
-          "line": 596,
+          "line": 595,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -48394,7 +48393,7 @@
         },
         {
           "name": "applyDeterministicEnginePatches",
-          "line": 618,
+          "line": 617,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -48402,7 +48401,7 @@
         },
         {
           "name": "patchedGenerateBatch",
-          "line": 630,
+          "line": 629,
           "references": 1,
           "exported": false,
           "defaultExport": false,
@@ -48410,7 +48409,7 @@
         },
         {
           "name": "canonicalPolicyForValidatedSolvedRow",
-          "line": 642,
+          "line": 641,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -48418,7 +48417,7 @@
         },
         {
           "name": "generateAttestationContinuationParentCandidates",
-          "line": 667,
+          "line": 666,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -48426,7 +48425,7 @@
         },
         {
           "name": "patchedFetchSolverPool",
-          "line": 738,
+          "line": 737,
           "references": 1,
           "exported": false,
           "defaultExport": false,
@@ -48434,7 +48433,7 @@
         },
         {
           "name": "patchedBuild",
-          "line": 818,
+          "line": 817,
           "references": 1,
           "exported": false,
           "defaultExport": false,
@@ -48442,7 +48441,7 @@
         },
         {
           "name": "patchedQueryNextStreet",
-          "line": 883,
+          "line": 882,
           "references": 1,
           "exported": false,
           "defaultExport": false,
@@ -48450,7 +48449,7 @@
         },
         {
           "name": "isAggressiveAction",
-          "line": 220,
+          "line": 219,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -48458,7 +48457,7 @@
         },
         {
           "name": "attachCanonicalPolicy",
-          "line": 832,
+          "line": 831,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -48466,7 +48465,7 @@
         },
         {
           "name": "sameRelease",
-          "line": 906,
+          "line": 905,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -63379,135 +63378,6 @@
       "markers": []
     },
     {
-      "file": "src/lib/training/syncedHandDrillResolver.js",
-      "imports": [
-        "src/lib/training/curatedPokerConcepts.js",
-        "src/lib/training/horseBrainTrainingAdapter.js",
-        "src/services/SolverPolicyService.js"
-      ],
-      "links": [],
-      "apiReferences": [],
-      "apiReferencePrefixes": [],
-      "ctas": [],
-      "dialogs": {
-        "native": 0,
-        "aria": 0,
-        "modalComponents": []
-      },
-      "states": {
-        "loading": false,
-        "empty": true,
-        "error": true,
-        "retry": false,
-        "offline": false,
-        "stale": false,
-        "success": false,
-        "authExpiry": false
-      },
-      "persistenceWrites": {
-        "localStorage": 0,
-        "sessionStorage": 0,
-        "inserts": 0,
-        "updates": 0,
-        "deletes": 0,
-        "rpc": 0
-      },
-      "realtime": {
-        "channels": 0,
-        "postgresChanges": 0,
-        "webSockets": 0,
-        "eventSources": 0
-      },
-      "functions": [
-        {
-          "name": "parseCardList",
-          "line": 24,
-          "references": 3,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "inferVariantFromHoleCards",
-          "line": 36,
-          "references": 2,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "inferStreetFromBoard",
-          "line": 45,
-          "references": 2,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "normalizePosition",
-          "line": 55,
-          "references": 2,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "verifyParticipant",
-          "line": 61,
-          "references": 2,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "lookupServerSyncedHand",
-          "line": 74,
-          "references": 2,
-          "exported": true,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "resolveSyncedHandForTrainingDrill",
-          "line": 204,
-          "references": 1,
-          "exported": true,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        }
-      ],
-      "possibleUnwiredFunctions": [
-        "resolveSyncedHandForTrainingDrill"
-      ],
-      "markers": [
-        {
-          "kind": "FALLBACK",
-          "line": 55,
-          "excerpt": "function normalizePosition(rawPos, fallback = 'BTN') {",
-          "disposition": "input-normalization-default",
-          "review": "accepted",
-          "rationale": "Explicit function default used to normalize missing display/input values."
-        },
-        {
-          "kind": "FALLBACK",
-          "line": 58,
-          "excerpt": "return fallback;",
-          "disposition": "input-normalization-default",
-          "review": "accepted",
-          "rationale": "Explicit function default used to normalize missing display/input values."
-        },
-        {
-          "kind": "FALLBACK",
-          "line": 104,
-          "excerpt": "// Continue to hand_history fallback",
-          "disposition": "training-data-provenance-fallback",
-          "review": "documented-follow-up",
-          "followUpPhase": 4,
-          "rationale": "Training-data downgrade requires Phase 4 legality, provenance, semantics, and answer-contract evidence."
-        }
-      ]
-    },
-    {
       "file": "src/lib/training/trainerConfigMode.mjs",
       "imports": [],
       "links": [],
@@ -70313,10 +70183,6 @@
     },
     {
       "from": "src/engines/deterministicEnginePatches.js",
-      "to": "src/lib/training/syncedHandDrillResolver.js"
-    },
-    {
-      "from": "src/engines/deterministicEnginePatches.js",
       "to": "src/services/SolverPolicyService.js"
     },
     {
@@ -70854,18 +70720,6 @@
     {
       "from": "src/lib/training/solverMatrixTrust.js",
       "to": "src/utils/v2Matrix.js"
-    },
-    {
-      "from": "src/lib/training/syncedHandDrillResolver.js",
-      "to": "src/lib/training/curatedPokerConcepts.js"
-    },
-    {
-      "from": "src/lib/training/syncedHandDrillResolver.js",
-      "to": "src/lib/training/horseBrainTrainingAdapter.js"
-    },
-    {
-      "from": "src/lib/training/syncedHandDrillResolver.js",
-      "to": "src/services/SolverPolicyService.js"
     },
     {
       "from": "src/lib/training/trainingAttemptDelivery.mjs",
@@ -77894,7 +77748,6 @@
         "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
         "src/lib/training/solverRowIdentity.mjs",
-        "src/lib/training/syncedHandDrillResolver.js",
         "src/lib/training/trainingAttemptDelivery.mjs",
         "src/lib/training/trainingAttestationCohortDiagnostics.mjs",
         "src/lib/training/trainingAttestationContinuationContract.mjs",
@@ -78326,7 +78179,6 @@
         "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
         "src/lib/training/solverRowIdentity.mjs",
-        "src/lib/training/syncedHandDrillResolver.js",
         "src/lib/training/trainingAttemptDelivery.mjs",
         "src/lib/training/trainingPersistence.mjs",
         "src/services/SolverPolicyService.js",
@@ -78746,7 +78598,6 @@
         "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
         "src/lib/training/solverRowIdentity.mjs",
-        "src/lib/training/syncedHandDrillResolver.js",
         "src/lib/training/trainingAttemptDelivery.mjs",
         "src/lib/training/trainingPersistence.mjs",
         "src/services/PIOQueryService.js",
@@ -79442,7 +79293,6 @@
         "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
         "src/lib/training/solverRowIdentity.mjs",
-        "src/lib/training/syncedHandDrillResolver.js",
         "src/lib/training/trainingAttemptDelivery.mjs",
         "src/lib/training/trainingAttestationContinuationContract.mjs",
         "src/lib/training/trainingContinuationEligibility.mjs",
@@ -80488,7 +80338,6 @@
         "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
         "src/lib/training/solverRowIdentity.mjs",
-        "src/lib/training/syncedHandDrillResolver.js",
         "src/lib/training/trainingPersistence.mjs",
         "src/services/SolverPolicyService.js",
         "src/utils/trainingApiUtils.js",
@@ -94472,29 +94321,12 @@
       "file": "src/engines/deterministicEnginePatches.js",
       "reachableFiles": [
         "src/engines/deterministicEnginePatches.js",
-        "src/lib/poker-engine/ChipBridge.js",
-        "src/lib/poker-engine/SupabaseResilience.js",
-        "src/lib/poker-engine/brain/HorsePokerAdvanced.js",
-        "src/lib/poker-engine/brain/HorsePokerGTO.js",
-        "src/lib/poker-engine/brain/HorsePokerPersonality.js",
-        "src/lib/poker-engine/brain/anti-exploit.js",
-        "src/lib/poker-engine/brain/core.js",
-        "src/lib/poker-engine/brain/holdem-brain.js",
-        "src/lib/poker-engine/brain/live-observer.js",
-        "src/lib/poker-engine/brain/plo-core.js",
-        "src/lib/poker-engine/brain/plo5-brain.js",
-        "src/lib/poker-engine/brain/plo6-brain.js",
-        "src/lib/poker-engine/brain/session-analytics.js",
-        "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/training/cacheTruthContract.mjs",
-        "src/lib/training/curatedPokerConcepts.js",
         "src/lib/training/customSolverSpotContract.mjs",
-        "src/lib/training/horseBrainTrainingAdapter.js",
         "src/lib/training/solverDecisionEvidence.js",
         "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
         "src/lib/training/solverRowIdentity.mjs",
-        "src/lib/training/syncedHandDrillResolver.js",
         "src/services/SolverPolicyService.js",
         "src/utils/trainingApiUtils.js",
         "src/utils/v2Matrix.js"
@@ -94510,83 +94342,6 @@
             "updates": 0,
             "deletes": 0,
             "rpc": 1
-          }
-        },
-        {
-          "file": "src/lib/poker-engine/ChipBridge.js",
-          "writes": {
-            "localStorage": 0,
-            "sessionStorage": 0,
-            "inserts": 2,
-            "updates": 5,
-            "deletes": 3,
-            "rpc": 2
-          }
-        },
-        {
-          "file": "src/lib/poker-engine/SupabaseResilience.js",
-          "writes": {
-            "localStorage": 0,
-            "sessionStorage": 0,
-            "inserts": 0,
-            "updates": 1,
-            "deletes": 0,
-            "rpc": 0
-          }
-        },
-        {
-          "file": "src/lib/poker-engine/brain/HorsePokerGTO.js",
-          "writes": {
-            "localStorage": 0,
-            "sessionStorage": 0,
-            "inserts": 0,
-            "updates": 0,
-            "deletes": 1,
-            "rpc": 0
-          }
-        },
-        {
-          "file": "src/lib/poker-engine/brain/anti-exploit.js",
-          "writes": {
-            "localStorage": 0,
-            "sessionStorage": 0,
-            "inserts": 1,
-            "updates": 0,
-            "deletes": 3,
-            "rpc": 0
-          }
-        },
-        {
-          "file": "src/lib/poker-engine/brain/live-observer.js",
-          "writes": {
-            "localStorage": 0,
-            "sessionStorage": 0,
-            "inserts": 0,
-            "updates": 0,
-            "deletes": 9,
-            "rpc": 0
-          }
-        },
-        {
-          "file": "src/lib/poker-engine/brain/plo-core.js",
-          "writes": {
-            "localStorage": 0,
-            "sessionStorage": 0,
-            "inserts": 1,
-            "updates": 0,
-            "deletes": 0,
-            "rpc": 0
-          }
-        },
-        {
-          "file": "src/lib/poker-engine/brain/session-analytics.js",
-          "writes": {
-            "localStorage": 0,
-            "sessionStorage": 0,
-            "inserts": 5,
-            "updates": 1,
-            "deletes": 9,
-            "rpc": 0
           }
         },
         {
@@ -97946,131 +97701,6 @@
       ]
     },
     {
-      "file": "src/lib/training/syncedHandDrillResolver.js",
-      "reachableFiles": [
-        "src/lib/poker-engine/ChipBridge.js",
-        "src/lib/poker-engine/SupabaseResilience.js",
-        "src/lib/poker-engine/brain/HorsePokerAdvanced.js",
-        "src/lib/poker-engine/brain/HorsePokerGTO.js",
-        "src/lib/poker-engine/brain/HorsePokerPersonality.js",
-        "src/lib/poker-engine/brain/anti-exploit.js",
-        "src/lib/poker-engine/brain/core.js",
-        "src/lib/poker-engine/brain/holdem-brain.js",
-        "src/lib/poker-engine/brain/live-observer.js",
-        "src/lib/poker-engine/brain/plo-core.js",
-        "src/lib/poker-engine/brain/plo5-brain.js",
-        "src/lib/poker-engine/brain/plo6-brain.js",
-        "src/lib/poker-engine/brain/session-analytics.js",
-        "src/lib/poker-engine/brain/tournament-brain.js",
-        "src/lib/training/cacheTruthContract.mjs",
-        "src/lib/training/curatedPokerConcepts.js",
-        "src/lib/training/customSolverSpotContract.mjs",
-        "src/lib/training/horseBrainTrainingAdapter.js",
-        "src/lib/training/solverMatrixTrust.js",
-        "src/lib/training/solverPolicyContract.js",
-        "src/lib/training/solverRowIdentity.mjs",
-        "src/lib/training/syncedHandDrillResolver.js",
-        "src/services/SolverPolicyService.js",
-        "src/utils/trainingApiUtils.js",
-        "src/utils/v2Matrix.js"
-      ],
-      "apiReferences": [],
-      "persistence": [
-        {
-          "file": "src/lib/poker-engine/ChipBridge.js",
-          "writes": {
-            "localStorage": 0,
-            "sessionStorage": 0,
-            "inserts": 2,
-            "updates": 5,
-            "deletes": 3,
-            "rpc": 2
-          }
-        },
-        {
-          "file": "src/lib/poker-engine/SupabaseResilience.js",
-          "writes": {
-            "localStorage": 0,
-            "sessionStorage": 0,
-            "inserts": 0,
-            "updates": 1,
-            "deletes": 0,
-            "rpc": 0
-          }
-        },
-        {
-          "file": "src/lib/poker-engine/brain/HorsePokerGTO.js",
-          "writes": {
-            "localStorage": 0,
-            "sessionStorage": 0,
-            "inserts": 0,
-            "updates": 0,
-            "deletes": 1,
-            "rpc": 0
-          }
-        },
-        {
-          "file": "src/lib/poker-engine/brain/anti-exploit.js",
-          "writes": {
-            "localStorage": 0,
-            "sessionStorage": 0,
-            "inserts": 1,
-            "updates": 0,
-            "deletes": 3,
-            "rpc": 0
-          }
-        },
-        {
-          "file": "src/lib/poker-engine/brain/live-observer.js",
-          "writes": {
-            "localStorage": 0,
-            "sessionStorage": 0,
-            "inserts": 0,
-            "updates": 0,
-            "deletes": 9,
-            "rpc": 0
-          }
-        },
-        {
-          "file": "src/lib/poker-engine/brain/plo-core.js",
-          "writes": {
-            "localStorage": 0,
-            "sessionStorage": 0,
-            "inserts": 1,
-            "updates": 0,
-            "deletes": 0,
-            "rpc": 0
-          }
-        },
-        {
-          "file": "src/lib/poker-engine/brain/session-analytics.js",
-          "writes": {
-            "localStorage": 0,
-            "sessionStorage": 0,
-            "inserts": 5,
-            "updates": 1,
-            "deletes": 9,
-            "rpc": 0
-          }
-        },
-        {
-          "file": "src/services/SolverPolicyService.js",
-          "writes": {
-            "localStorage": 0,
-            "sessionStorage": 0,
-            "inserts": 0,
-            "updates": 0,
-            "deletes": 0,
-            "rpc": 1
-          }
-        }
-      ],
-      "realtime": [],
-      "tests": [
-        "__tests__/training-reconciled-workflows.test.mjs"
-      ]
-    },
-    {
       "file": "src/lib/training/trainerConfigMode.mjs",
       "reachableFiles": [
         "src/lib/training/trainerConfigMode.mjs"
@@ -98205,32 +97835,15 @@
         "src/engines/DifficultyEngine.js",
         "src/engines/deterministicEnginePatches.js",
         "src/engines/positionOrder.js",
-        "src/lib/poker-engine/ChipBridge.js",
-        "src/lib/poker-engine/SupabaseResilience.js",
-        "src/lib/poker-engine/brain/HorsePokerAdvanced.js",
-        "src/lib/poker-engine/brain/HorsePokerGTO.js",
-        "src/lib/poker-engine/brain/HorsePokerPersonality.js",
-        "src/lib/poker-engine/brain/anti-exploit.js",
-        "src/lib/poker-engine/brain/core.js",
-        "src/lib/poker-engine/brain/holdem-brain.js",
-        "src/lib/poker-engine/brain/live-observer.js",
-        "src/lib/poker-engine/brain/plo-core.js",
-        "src/lib/poker-engine/brain/plo5-brain.js",
-        "src/lib/poker-engine/brain/plo6-brain.js",
-        "src/lib/poker-engine/brain/session-analytics.js",
-        "src/lib/poker-engine/brain/tournament-brain.js",
         "src/lib/training/cacheTruthContract.mjs",
         "src/lib/training/continuationSizingContract.mjs",
-        "src/lib/training/curatedPokerConcepts.js",
         "src/lib/training/customSolverSpotContract.mjs",
         "src/lib/training/difficultyQuestionContract.mjs",
-        "src/lib/training/horseBrainTrainingAdapter.js",
         "src/lib/training/questionContract.mjs",
         "src/lib/training/solverDecisionEvidence.js",
         "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
         "src/lib/training/solverRowIdentity.mjs",
-        "src/lib/training/syncedHandDrillResolver.js",
         "src/lib/training/trainingAttestationContinuationContract.mjs",
         "src/lib/training/trainingContinuationEligibility.mjs",
         "src/services/SolverPolicyService.js",
@@ -98249,83 +97862,6 @@
             "updates": 0,
             "deletes": 0,
             "rpc": 1
-          }
-        },
-        {
-          "file": "src/lib/poker-engine/ChipBridge.js",
-          "writes": {
-            "localStorage": 0,
-            "sessionStorage": 0,
-            "inserts": 2,
-            "updates": 5,
-            "deletes": 3,
-            "rpc": 2
-          }
-        },
-        {
-          "file": "src/lib/poker-engine/SupabaseResilience.js",
-          "writes": {
-            "localStorage": 0,
-            "sessionStorage": 0,
-            "inserts": 0,
-            "updates": 1,
-            "deletes": 0,
-            "rpc": 0
-          }
-        },
-        {
-          "file": "src/lib/poker-engine/brain/HorsePokerGTO.js",
-          "writes": {
-            "localStorage": 0,
-            "sessionStorage": 0,
-            "inserts": 0,
-            "updates": 0,
-            "deletes": 1,
-            "rpc": 0
-          }
-        },
-        {
-          "file": "src/lib/poker-engine/brain/anti-exploit.js",
-          "writes": {
-            "localStorage": 0,
-            "sessionStorage": 0,
-            "inserts": 1,
-            "updates": 0,
-            "deletes": 3,
-            "rpc": 0
-          }
-        },
-        {
-          "file": "src/lib/poker-engine/brain/live-observer.js",
-          "writes": {
-            "localStorage": 0,
-            "sessionStorage": 0,
-            "inserts": 0,
-            "updates": 0,
-            "deletes": 9,
-            "rpc": 0
-          }
-        },
-        {
-          "file": "src/lib/poker-engine/brain/plo-core.js",
-          "writes": {
-            "localStorage": 0,
-            "sessionStorage": 0,
-            "inserts": 1,
-            "updates": 0,
-            "deletes": 0,
-            "rpc": 0
-          }
-        },
-        {
-          "file": "src/lib/poker-engine/brain/session-analytics.js",
-          "writes": {
-            "localStorage": 0,
-            "sessionStorage": 0,
-            "inserts": 5,
-            "updates": 1,
-            "deletes": 9,
-            "rpc": 0
           }
         },
         {
@@ -102151,34 +101687,6 @@
         "rationale": "Explicit function default used to normalize missing display/input values."
       },
       {
-        "file": "src/lib/training/syncedHandDrillResolver.js",
-        "kind": "FALLBACK",
-        "line": 55,
-        "excerpt": "function normalizePosition(rawPos, fallback = 'BTN') {",
-        "disposition": "input-normalization-default",
-        "review": "accepted",
-        "rationale": "Explicit function default used to normalize missing display/input values."
-      },
-      {
-        "file": "src/lib/training/syncedHandDrillResolver.js",
-        "kind": "FALLBACK",
-        "line": 58,
-        "excerpt": "return fallback;",
-        "disposition": "input-normalization-default",
-        "review": "accepted",
-        "rationale": "Explicit function default used to normalize missing display/input values."
-      },
-      {
-        "file": "src/lib/training/syncedHandDrillResolver.js",
-        "kind": "FALLBACK",
-        "line": 104,
-        "excerpt": "// Continue to hand_history fallback",
-        "disposition": "training-data-provenance-fallback",
-        "review": "documented-follow-up",
-        "followUpPhase": 4,
-        "rationale": "Training-data downgrade requires Phase 4 legality, provenance, semantics, and answer-contract evidence."
-      },
-      {
         "file": "src/lib/training/trainingAttemptDelivery.mjs",
         "kind": "SIMULATED",
         "line": 28,
@@ -105697,7 +105205,7 @@
       {
         "file": "src/engines/deterministicEnginePatches.js",
         "name": "patchedGenerateBatch",
-        "line": 630,
+        "line": 629,
         "references": 1,
         "exported": false,
         "defaultExport": false,
@@ -105710,7 +105218,7 @@
       {
         "file": "src/engines/deterministicEnginePatches.js",
         "name": "patchedFetchSolverPool",
-        "line": 738,
+        "line": 737,
         "references": 1,
         "exported": false,
         "defaultExport": false,
@@ -105723,7 +105231,7 @@
       {
         "file": "src/engines/deterministicEnginePatches.js",
         "name": "patchedBuild",
-        "line": 818,
+        "line": 817,
         "references": 1,
         "exported": false,
         "defaultExport": false,
@@ -105736,7 +105244,7 @@
       {
         "file": "src/engines/deterministicEnginePatches.js",
         "name": "patchedQueryNextStreet",
-        "line": 883,
+        "line": 882,
         "references": 1,
         "exported": false,
         "defaultExport": false,
@@ -107850,22 +107358,6 @@
           "__tests__/training-solver-scoped-protocol-custody.test.mjs",
           "__tests__/training-solver-worker-ingestion.test.mjs",
           "pages/api/training/solver-worker.js"
-        ]
-      },
-      {
-        "file": "src/lib/training/syncedHandDrillResolver.js",
-        "name": "resolveSyncedHandForTrainingDrill",
-        "line": 204,
-        "references": 1,
-        "exported": true,
-        "defaultExport": false,
-        "namedFunctionExpression": false,
-        "disposition": "imported-entrypoint",
-        "review": "accepted",
-        "rationale": "Named export is imported by another repository source file.",
-        "externalReferenceFiles": [
-          "__tests__/training-reconciled-workflows.test.mjs",
-          "src/engines/deterministicEnginePatches.js"
         ]
       },
       {
@@ -112042,34 +111534,6 @@
         "rationale": "Explicit function default used to normalize missing display/input values."
       },
       {
-        "file": "src/lib/training/syncedHandDrillResolver.js",
-        "kind": "FALLBACK",
-        "line": 55,
-        "excerpt": "function normalizePosition(rawPos, fallback = 'BTN') {",
-        "disposition": "input-normalization-default",
-        "review": "accepted",
-        "rationale": "Explicit function default used to normalize missing display/input values."
-      },
-      {
-        "file": "src/lib/training/syncedHandDrillResolver.js",
-        "kind": "FALLBACK",
-        "line": 58,
-        "excerpt": "return fallback;",
-        "disposition": "input-normalization-default",
-        "review": "accepted",
-        "rationale": "Explicit function default used to normalize missing display/input values."
-      },
-      {
-        "file": "src/lib/training/syncedHandDrillResolver.js",
-        "kind": "FALLBACK",
-        "line": 104,
-        "excerpt": "// Continue to hand_history fallback",
-        "disposition": "training-data-provenance-fallback",
-        "review": "documented-follow-up",
-        "followUpPhase": 4,
-        "rationale": "Training-data downgrade requires Phase 4 legality, provenance, semantics, and answer-contract evidence."
-      },
-      {
         "file": "src/lib/training/trainingAttemptDelivery.mjs",
         "kind": "SIMULATED",
         "line": 28,
@@ -115588,7 +115052,7 @@
       {
         "file": "src/engines/deterministicEnginePatches.js",
         "name": "patchedGenerateBatch",
-        "line": 630,
+        "line": 629,
         "references": 1,
         "exported": false,
         "defaultExport": false,
@@ -115601,7 +115065,7 @@
       {
         "file": "src/engines/deterministicEnginePatches.js",
         "name": "patchedFetchSolverPool",
-        "line": 738,
+        "line": 737,
         "references": 1,
         "exported": false,
         "defaultExport": false,
@@ -115614,7 +115078,7 @@
       {
         "file": "src/engines/deterministicEnginePatches.js",
         "name": "patchedBuild",
-        "line": 818,
+        "line": 817,
         "references": 1,
         "exported": false,
         "defaultExport": false,
@@ -115627,7 +115091,7 @@
       {
         "file": "src/engines/deterministicEnginePatches.js",
         "name": "patchedQueryNextStreet",
-        "line": 883,
+        "line": 882,
         "references": 1,
         "exported": false,
         "defaultExport": false,
@@ -117741,22 +117205,6 @@
           "__tests__/training-solver-scoped-protocol-custody.test.mjs",
           "__tests__/training-solver-worker-ingestion.test.mjs",
           "pages/api/training/solver-worker.js"
-        ]
-      },
-      {
-        "file": "src/lib/training/syncedHandDrillResolver.js",
-        "name": "resolveSyncedHandForTrainingDrill",
-        "line": 204,
-        "references": 1,
-        "exported": true,
-        "defaultExport": false,
-        "namedFunctionExpression": false,
-        "disposition": "imported-entrypoint",
-        "review": "accepted",
-        "rationale": "Named export is imported by another repository source file.",
-        "externalReferenceFiles": [
-          "__tests__/training-reconciled-workflows.test.mjs",
-          "src/engines/deterministicEnginePatches.js"
         ]
       },
       {

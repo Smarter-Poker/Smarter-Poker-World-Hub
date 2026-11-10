@@ -9,7 +9,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { sanitizeParam, withTiming, reconcileAnswerKey } from '../../../src/utils/trainingApiUtils';
+import { sanitizeParam, withTiming, reconcileAnswerKey, resolveSyncedHandForTrainingDrill } from '../../../src/utils/trainingApiUtils';
 import { deterministicEngine } from '../../../src/engines/DeterministicGTOEngine';
 import { applyDeterministicEnginePatches } from '../../../src/engines/deterministicEnginePatches';
 // 2026-07-19 engine-audit runtime patches (see that module's header)
@@ -367,8 +367,8 @@ export default async function handler(req, res) {
           }
 
           let syncedResolution = null;
-          if (syncedHandId && typeof deterministicEngine.resolveSyncedHandForTrainingDrill === 'function') {
-              syncedResolution = await deterministicEngine.resolveSyncedHandForTrainingDrill({
+          if (syncedHandId && typeof resolveSyncedHandForTrainingDrill === 'function') {
+              syncedResolution = await resolveSyncedHandForTrainingDrill({
                   supabase: getSupabase(),
                   userId: _authUser.id,
                   syncedHandId,

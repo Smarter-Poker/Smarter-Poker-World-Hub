@@ -43,7 +43,6 @@ import { enforceSolverClaimHonesty } from '../lib/training/solverDecisionEvidenc
 import { isSolverRowIdentityValid } from '../lib/training/solverRowIdentity.mjs';
 import { normalizeSolvedPolicyRecord } from '../services/SolverPolicyService.js';
 import { isExactPioRake, v2ArtifactEnvelopeIsExact } from '../utils/v2Matrix.js';
-import { resolveSyncedHandForTrainingDrill } from '../lib/training/syncedHandDrillResolver.js';
 import {
     alignQuestionToCanonicalPolicy,
     sourceClassificationForQuestion,
@@ -1069,8 +1068,6 @@ export function applyDeterministicEnginePatches(engine) {
             return null;
         }
     };
-
-    engine.resolveSyncedHandForTrainingDrill = resolveSyncedHandForTrainingDrill;
 
     return engine;
 }
