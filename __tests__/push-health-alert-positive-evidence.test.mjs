@@ -455,8 +455,11 @@ function rotatedWorld() {
   return seed;
 }
 const rotate = (s, key) => { s.db.vapidKey = key; s.db.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY = key; };
-const rotationLines = (s) => s.db.attempts.filter((a) => a.table === 'notifications' && a.row.user_id === ADMIN_A
+// Owner, 2026-11-09: a rotation is a platform alert, so no person is told of
+// it (the owner gets it through the store only). Counts notices to anyone.
+const rotationLines = (s) => s.db.attempts.filter((a) => a.table === 'notifications'
   && /VAPID key rotated/i.test(a.row.message || '')).length;
+const toldRotation = (res) => res.body.problems.some((line) => /VAPID KEY ROTATED/.test(line));
 
 test('two rotations on consecutive runs are each recorded once, never re-delivered or resolved here', async () => {
   const s = scenario({ seed: rotatedWorld() });
@@ -468,7 +471,7 @@ test('two rotations on consecutive runs are each recorded once, never re-deliver
   assert.deepEqual(fired.map((row) => row.delivery_count), [1, 1], 'a rotation was re-delivered');
   assert.deepEqual(resolved(s, ROTATED), [], 'push-health resolved a rotation');
   assert.ok(fired.every((row) => FLEET.test(row.payload.resolved_by)));
-  assert.equal(rotationLines(s), 2);
+  assert.equal(rotationLines(s), 0, 'a person was told of a platform alert');
 });
 
 test('two rotations during a store outage are both re-derived from the fingerprint log, each recorded once', async () => {
@@ -477,15 +480,17 @@ test('two rotations during a store outage are both re-derived from the fingerpri
   // Nothing of the refused runs is kept, so only the log can give them back.
   s.db.fail = (req) => (req.table === 'push_dispatch_runs' && req.op === 'insert' && req.payload?.job !== 'vapid-fingerprint'
     ? 'permission denied for table push_dispatch_runs' : null);
-  await s.run();
+  const first = await s.run();
   rotate(s, 'third-key');
-  await s.run();
-  assert.equal(rotationLines(s), 2);
+  const second = await s.run();
+  // Each refused run still observed its rotation; no person was told of it.
+  assert.ok(toldRotation(first) && toldRotation(second), 'a refused run lost the rotation it observed');
+  assert.equal(rotationLines(s), 0, 'a person was told of a platform alert');
   s.db.failRecord = null;
   s.db.fail = () => null;
   await s.run();
   const fired = firing(s, ROTATED);
-  assert.equal(fired.length, 2, 'the admins were told of two rotations and the store holds one');
+  assert.equal(fired.length, 2, 'two rotations were observed and the store holds one');
   assert.ok(fired.every((row) => row.payload.recorded_late === true));
   await s.run();
   await s.run();
