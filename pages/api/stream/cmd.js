@@ -149,6 +149,62 @@ export const STREAMER_BOT_COMMANDS = [
     streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=series&q=${queryencode}}',
     canonicalToolUrl: 'https://smarter.poker/poker-series/guides',
   },
+  {
+    command: '!board',
+    description: 'Flop Board Texture, Range Advantage & GTO C-Bet Sizing (!board AsKh7d or !board QsJsTs)',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=board&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=board&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/tools/board-texture-analyzer',
+  },
+  {
+    command: '!mratio',
+    description: 'Harrington Tournament M-Ratio, Effective M & Zone Classification (!mratio 25000 500 1000 1000)',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=mratio&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=mratio&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/tools/m-ratio-calculator',
+  },
+  {
+    command: '!straddle',
+    description: 'Live Cash Game Straddle & Double-Board Bomb Pot EV Math (!straddle 1/3)',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=straddle&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=straddle&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/tools/straddle-calculator',
+  },
+  {
+    command: '!sat',
+    description: 'Satellite Bubble Factor, Seat-Lock Stack & Fold-AA Threshold (!sat 12 10)',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=sat&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=sat&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/tools/satellite-calculator',
+  },
+  {
+    command: '!bbj',
+    description: 'Bad Beat Jackpot Breakeven Pool & High-Hand Promo EV Math (!bbj 250000)',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=bbj&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=bbj&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/tools/promo-ev-calculator',
+  },
+  {
+    command: '!position',
+    description: 'Table Seat Position GTO RFI %, 3-Bet % & BB/100 Winrate (!position btn or !pos utg)',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=position&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=position&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/learn/positions',
+  },
+  {
+    command: '!math',
+    description: 'Instant Quantitative Poker Formula Lookup (!math mdf, !math spr, !math ev, !math kelly)',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=math&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=math&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/learn/poker-math',
+  },
+  {
+    command: '!iq',
+    description: '10-Question Interactive GTO Poker IQ Diagnostic Test & Percentile Challenge (!iq)',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=iq&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=iq&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/tools/poker-iq-test',
+  },
 ];
 
 const PREFLOP_MATCHUPS = [
@@ -468,9 +524,160 @@ export function evaluateStreamCommand({ cmd = 'help', q = '', pot = '', bet = ''
     };
   }
 
+  if (normalizedCmd === 'board' || normalizedCmd === 'flop' || normalizedCmd === 'texture') {
+    const rawBoard = queryText || 'AsKh7d';
+    const tokens = rawBoard.match(/(?:10|[2-9TJQKA])[shdc]/gi) || ['As', 'Kh', '7d'];
+    const cards = tokens.slice(0, 3).map((t) => `${t.slice(0, -1).toUpperCase()}${t.slice(-1).toLowerCase()}`);
+    const rankMap = { '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, T: 10, J: 11, Q: 12, K: 13, A: 14 };
+    const ranks = cards.map((c) => rankMap[c.slice(0, -1)] || 10).sort((a, b) => b - a);
+    const suits = cards.map((c) => c.slice(-1));
+    const uniqueSuits = new Set(suits).size;
+    const suitLabel = uniqueSuits === 1 ? 'Monotone' : uniqueSuits === 2 ? 'Two-Tone' : 'Rainbow';
+    const uniqueRanks = new Set(ranks).size;
+    const pairLabel = uniqueRanks === 1 ? 'Trips' : uniqueRanks === 2 ? 'Paired' : 'Unpaired';
+    const span = (ranks[0] || 14) - (ranks[2] || 7);
+    const highCards = ranks.filter((r) => r >= 11).length;
+    const adv = highCards >= 2 ? 'PFR Range Advantage' : span <= 4 && ranks[0] <= 10 ? 'BB Caller Advantage' : 'Moderate PFR Edge';
+    const cbet = uniqueSuits === 1 ? '25%-33% Pot (42% Freq)' : highCards >= 2 && uniqueSuits === 3 ? '33% Pot (85% Range Bet)' : span <= 4 && ranks[0] <= 10 ? '66%-75% Polarized Or Check' : '33% Pot (75% Freq)';
+
+    return {
+      command: '!board',
+      text: `[Smarter.Poker Board] [${cards.join(' ')}] (${suitLabel}, ${pairLabel}): ${adv} | GTO C-Bet: ${cbet} | Analyzer: https://smarter.poker/tools/board-texture-analyzer`,
+      canonicalUrl: 'https://smarter.poker/tools/board-texture-analyzer',
+    };
+  }
+
+  if (normalizedCmd === 'mratio' || normalizedCmd === 'm') {
+    const nums = queryText
+      .match(/\d+(?:\.\d+)?/g)
+      ?.map((n) => parseFloat(n))
+      .filter((n) => Number.isFinite(n) && n >= 0);
+    const stack = nums && nums.length >= 1 ? nums[0] : 25000;
+    const sb = nums && nums.length >= 2 ? nums[1] : 500;
+    const bb = nums && nums.length >= 3 ? nums[2] : 1000;
+    const ante = nums && nums.length >= 4 ? nums[3] : bb;
+    const players = nums && nums.length >= 5 ? Math.min(10, Math.max(2, Math.round(nums[4]))) : 9;
+    const orbitCost = Math.max(1, sb + bb + ante);
+    const mRatio = (stack / orbitCost).toFixed(1);
+    const effM = ((stack / orbitCost) * (players / 10)).toFixed(1);
+    const mVal = parseFloat(effM);
+    const zone = mVal >= 20 ? 'Green Zone' : mVal >= 10 ? 'Yellow Zone' : mVal >= 6 ? 'Orange Zone' : mVal >= 1 ? 'Red Zone (Push/Fold)' : 'Dead Zone';
+
+    return {
+      command: '!mratio',
+      text: `[Smarter.Poker M-Ratio] Stack ${stack.toLocaleString()} (${(stack / bb).toFixed(1)}BB, Orbit ${orbitCost.toLocaleString()}): M = ${mRatio} | Effective M (${players}-Handed) = ${effM} (${zone}) | Tool: https://smarter.poker/tools/m-ratio-calculator`,
+      canonicalUrl: 'https://smarter.poker/tools/m-ratio-calculator',
+    };
+  }
+
+  if (normalizedCmd === 'straddle' || normalizedCmd === 'bombpot') {
+    const nums = queryText
+      .match(/\d+(?:\.\d+)?/g)
+      ?.map((n) => parseFloat(n))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    const sb = nums && nums.length >= 1 ? nums[0] : 1;
+    const bb = nums && nums.length >= 2 ? nums[1] : 3;
+    const straddle = nums && nums.length >= 3 ? nums[2] : bb * 2;
+    const stackDollars = bb * 100;
+    const effBlinds = (stackDollars / straddle).toFixed(0);
+    const bombPot8Way = bb * 5 * 8;
+
+    return {
+      command: '!straddle',
+      text: `[Smarter.Poker Straddle] $${sb}/$${bb}/$${straddle}: Halves Stack From 100BB To ${effBlinds} Effective Blinds | 8-Way $5BB Double-Board Bomb Pot = $${bombPot8Way} Dead Money | Calculator: https://smarter.poker/tools/straddle-calculator`,
+      canonicalUrl: 'https://smarter.poker/tools/straddle-calculator',
+    };
+  }
+
+  if (normalizedCmd === 'sat' || normalizedCmd === 'satellite') {
+    const nums = queryText
+      .match(/\d+(?:\.\d+)?/g)
+      ?.map((n) => parseFloat(n))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    const remaining = nums && nums.length >= 1 ? Math.max(2, Math.round(nums[0])) : 12;
+    const seats = nums && nums.length >= 2 ? Math.max(1, Math.min(remaining - 1, Math.round(nums[1]))) : 10;
+    const totalChips = remaining * 35000;
+    const targetStack = Math.round(totalChips / seats);
+    const lockStack = Math.round(targetStack * 0.92);
+    const bf = (1 + 2.4 * (seats / remaining)).toFixed(2);
+    const reqEq = ((parseFloat(bf) / (parseFloat(bf) + 1)) * 100).toFixed(1);
+
+    return {
+      command: '!sat',
+      text: `[Smarter.Poker Satellite] ${remaining} Left For ${seats} Seats: Target Stack = ${targetStack.toLocaleString()} (Seat-Lock ~${lockStack.toLocaleString()}) | Bubble Factor = ${bf}x (${reqEq}% Equity To Call; Fold AA When Locked!) | Tool: https://smarter.poker/tools/satellite-calculator`,
+      canonicalUrl: 'https://smarter.poker/tools/satellite-calculator',
+    };
+  }
+
+  if (normalizedCmd === 'bbj' || normalizedCmd === 'promo') {
+    const nums = queryText
+      .match(/\d+(?:\.\d+)?/g)
+      ?.map((n) => parseFloat(n))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    const pool = nums && nums.length >= 1 ? Math.round(nums[0]) : 250000;
+    const breakevenPool = 37650;
+    const evPerHand = (((pool * 0.85) / 9) / 32000 - 1 / 9).toFixed(2);
+    const status = pool >= breakevenPool ? '+EV Jackpot Pool' : 'Below Breakeven';
+
+    return {
+      command: '!bbj',
+      text: `[Smarter.Poker BBJ] $${pool.toLocaleString()} Pool (Aces Full Of Tens Qualifier, ~1-In-32,000 Hands): Net Seat EV = $${evPerHand}/Hand (${status}; Breakeven = $${breakevenPool.toLocaleString()}) | Tool: https://smarter.poker/tools/promo-ev-calculator`,
+      canonicalUrl: 'https://smarter.poker/tools/promo-ev-calculator',
+    };
+  }
+
+  if (normalizedCmd === 'position' || normalizedCmd === 'pos') {
+    const posData = {
+      utg: { slug: 'utg', label: 'UTG (Under The Gun)', rfi: '10.5%', threeBet: '3.2%', wr: '+11.5 BB/100' },
+      'utg-1': { slug: 'utg-1', label: 'UTG+1', rfi: '12.2%', threeBet: '3.8%', wr: '+12.8 BB/100' },
+      mp: { slug: 'mp', label: 'MP (Middle Position)', rfi: '14.8%', threeBet: '4.5%', wr: '+14.5 BB/100' },
+      lj: { slug: 'lj', label: 'LJ (Lojack / 6-Max UTG)', rfi: '17.5%', threeBet: '5.4%', wr: '+17.2 BB/100' },
+      hj: { slug: 'hj', label: 'HJ (Hijack)', rfi: '21.5%', threeBet: '6.8%', wr: '+21.0 BB/100' },
+      co: { slug: 'co', label: 'CO (Cutoff)', rfi: '27.8%', threeBet: '8.9%', wr: '+28.4 BB/100' },
+      btn: { slug: 'btn', label: 'BTN (Button / Dealer)', rfi: '44.5%', threeBet: '11.4%', wr: '+42.0 BB/100' },
+      sb: { slug: 'sb', label: 'SB (Small Blind)', rfi: '41.0%', threeBet: '12.5%', wr: '-14.5 BB/100' },
+      bb: { slug: 'bb', label: 'BB (Big Blind)', rfi: '0.0% (38.5% Defend)', threeBet: '10.8%', wr: '-26.0 BB/100' },
+    };
+    const cleanPos = queryText.toLowerCase().trim().replace(/\+/g, '-');
+    const alias = { button: 'btn', dealer: 'btn', cutoff: 'co', hijack: 'hj', lojack: 'lj', utg1: 'utg-1' }[cleanPos] || cleanPos;
+    const p = posData[alias] || posData.btn;
+
+    return {
+      command: '!position',
+      text: `[Smarter.Poker Position] ${p.label}: GTO RFI = ${p.rfi} | 3-Bet = ${p.threeBet} | Expected Winrate = ${p.wr} | Seat Guide: https://smarter.poker/learn/positions/${p.slug}`,
+      canonicalUrl: `https://smarter.poker/learn/positions/${p.slug}`,
+    };
+  }
+
+  if (normalizedCmd === 'math' || normalizedCmd === 'formula') {
+    const cleanQ = queryText.toLowerCase().trim();
+    const formulas = {
+      mdf: 'MDF (Minimum Defense Frequency) = Pot / (Pot + Bet) | Half-Pot Bet = 66.7% MDF, Pot-Sized Bet = 50.0% MDF',
+      spr: 'SPR (Stack-To-Pot Ratio) = Effective Stack / Pot | 2-Street Geometric Bet % = ((sqrt(1 + 2*SPR) - 1) / 2) * 100',
+      ev: 'Expected Value (EV) = (%Win * $Won) - (%Lose * $Lost) | Required Fold Equity = Risk / (Risk + Reward)',
+      kelly: 'Bankroll Risk Of Ruin (RoR) = exp(-2 * Winrate * Bankroll / Variance) | 5% RoR @ 5 BB/100 & 85 SD = ~22 Buy-Ins',
+      potodds: 'Required Calling Equity (%) = Call / (Pot + Bet + Call) | 50% Pot Bet = 25.0% Equity, 100% Pot Bet = 33.3% Equity',
+    };
+    const fText = formulas[cleanQ] || formulas.mdf;
+
+    return {
+      command: '!math',
+      text: `[Smarter.Poker Math] ${fText} | 20 Core Poker Formulas: https://smarter.poker/learn/poker-math`,
+      canonicalUrl: 'https://smarter.poker/learn/poker-math',
+    };
+  }
+
+  if (normalizedCmd === 'iq' || normalizedCmd === 'quiz' || normalizedCmd === 'test') {
+    return {
+      command: '!iq',
+      text: `[Smarter.Poker GTO IQ Test] Can You Pass All 10 Solver Scenarios (Pot Odds, MDF, ICM, PKO Bounties & Combinatorics)? Take The Free 3-Minute Diagnostic: https://smarter.poker/tools/poker-iq-test`,
+      canonicalUrl: 'https://smarter.poker/tools/poker-iq-test',
+    };
+  }
+
   return {
     command: '!help',
-    text: `[Smarter.Poker Streamer Bot] 18 Commands: !odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, !matchup, !tax, !stake, !iso, !series | Setup: https://smarter.poker/tools/embeds`,
+    text: `[Smarter.Poker Streamer Bot] 26 Commands: !odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, !matchup, !tax, !stake, !iso, !series, !board, !mratio, !straddle, !sat, !bbj, !position, !math, !iq | Setup: https://smarter.poker/tools/embeds`,
     canonicalUrl: 'https://smarter.poker/tools/embeds',
   };
 }

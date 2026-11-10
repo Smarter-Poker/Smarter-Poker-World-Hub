@@ -70,7 +70,7 @@ export default function PokerVariantDetailPage({ variant, peerVariants = [] }) {
       publisher: { '@id': 'https://smarter.poker/#organization' },
       speakable: {
         '@type': 'SpeakableSpecification',
-        cssSelector: ['h1', '#variant-quick-summary'],
+        cssSelector: ['h1', '#quick-answer-summary'],
       },
     },
     {
@@ -133,7 +133,7 @@ export default function PokerVariantDetailPage({ variant, peerVariants = [] }) {
 
             <h1 style={styles.h1}>{variant.h1}</h1>
 
-            <div id="variant-quick-summary" style={styles.summaryBox}>
+            <div id="quick-answer-summary" style={styles.summaryBox}>
               <div style={styles.summaryLabel}>OFFICIAL VARIANT DEFINITION</div>
               <p style={styles.summaryText}>{variant.summary}</p>
             </div>

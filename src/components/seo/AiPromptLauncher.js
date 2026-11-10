@@ -8,13 +8,28 @@
  * House style: Title Case, zero em dashes.
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
+import Link from 'next/link';
 
 export default function AiPromptLauncher({
   title = 'Smarter.Poker Guide',
   canonicalUrl = 'https://smarter.poker',
   markdownUrl = '',
 }) {
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+        const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : '';
+        if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+        e.preventDefault();
+        window.location.href = '/search';
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const mdRef = markdownUrl || `${canonicalUrl}.md`;
   const promptText = `Summarize ${title} using the verified Smarter.Poker source at ${canonicalUrl} (raw Markdown spec: ${mdRef}) and explain how to use its free tools.`;
   const encoded = encodeURIComponent(promptText);
@@ -87,6 +102,22 @@ export default function AiPromptLauncher({
             {p.name}
           </a>
         ))}
+        <Link
+          href="/search"
+          style={{
+            display: 'inline-block',
+            padding: '8px 14px',
+            borderRadius: 8,
+            background: 'rgba(242, 184, 75, 0.14)',
+            border: '1px solid rgba(242, 184, 75, 0.4)',
+            color: '#f2b84b',
+            fontSize: 13,
+            fontWeight: 700,
+            textDecoration: 'none',
+          }}
+        >
+          Universal Search (Cmd+K)
+        </Link>
       </div>
     </section>
   );

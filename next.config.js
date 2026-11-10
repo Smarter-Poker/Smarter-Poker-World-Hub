@@ -1420,6 +1420,81 @@ const nextConfig = {
           destination: '/api/learn-markdown?category=:category',
         },
         {
+          source: '/learn/poker-hand-rankings',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/learn/poker-hand-rankings',
+        },
+        {
+          source: '/learn/matchups',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/learn/matchups',
+        },
+        {
+          source: '/learn/matchups/:slug',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/learn/matchups/:slug',
+        },
+        {
+          source: '/learn/positions',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/learn/positions',
+        },
+        {
+          source: '/learn/positions/:pos',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/learn/positions/:pos',
+        },
+        {
+          source: '/learn/stakes',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/learn/stakes',
+        },
+        {
+          source: '/learn/stakes/:stake',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/learn/stakes/:stake',
+        },
+        {
+          source: '/learn/famous-hands',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/learn/famous-hands',
+        },
+        {
+          source: '/learn/famous-hands/:slug',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/learn/famous-hands/:slug',
+        },
+        {
+          source: '/learn/roadmaps',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/learn/roadmaps',
+        },
+        {
+          source: '/learn/roadmaps/:track',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/learn/roadmaps/:track',
+        },
+        {
+          source: '/learn/poker-math',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/learn/poker-math',
+        },
+        {
+          source: '/learn/cheat-sheets',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/learn/cheat-sheets',
+        },
+        {
+          source: '/learn/online-vs-live-poker',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/learn/online-vs-live-poker',
+        },
+        {
+          source: '/learn/live-poker-tells',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/learn/live-poker-tells',
+        },
+        {
           source: '/learn/:slug',
           has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
           destination: '/api/learn-markdown?slug=:slug',
@@ -1538,6 +1613,146 @@ const nextConfig = {
           source: '/tools/format-quiz',
           has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
           destination: '/api/hub-tool-markdown?path=/tools/format-quiz',
+        },
+        {
+          source: '/tools/board-texture-analyzer',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/board-texture-analyzer',
+        },
+        {
+          source: '/tools/m-ratio-calculator',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/m-ratio-calculator',
+        },
+        {
+          source: '/tools/session-planner',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/session-planner',
+        },
+        {
+          source: '/tools/straddle-calculator',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/straddle-calculator',
+        },
+        {
+          source: '/tools/hand-converter',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/hand-converter',
+        },
+        {
+          source: '/tools/satellite-calculator',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/satellite-calculator',
+        },
+        {
+          source: '/tools/promo-ev-calculator',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/promo-ev-calculator',
+        },
+        {
+          source: '/tools/who-wins-calculator',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/who-wins-calculator',
+        },
+        {
+          source: '/tools/mixed-game-placards',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/mixed-game-placards',
+        },
+        {
+          source: '/tools/poker-iq-test',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/poker-iq-test',
+        },
+        {
+          source: '/poker-rooms/states',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/states',
+        },
+        {
+          source: '/poker-rooms/states/:state',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/states/:state',
+        },
+        {
+          source: '/poker-rooms/comps-and-tipping-guide',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/comps-and-tipping-guide',
+        },
+        {
+          source: '/learn/positions',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/learn/positions',
+        },
+        {
+          source: '/learn/positions/:pos',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/learn/positions/:pos',
+        },
+        {
+          source: '/learn/stakes',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/learn/stakes',
+        },
+        {
+          source: '/learn/stakes/:stake',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/learn/stakes/:stake',
+        },
+        {
+          source: '/learn/famous-hands',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/learn/famous-hands',
+        },
+        {
+          source: '/learn/famous-hands/:slug',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/learn/famous-hands/:slug',
+        },
+        {
+          source: '/learn/roadmaps',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/learn/roadmaps',
+        },
+        {
+          source: '/learn/roadmaps/:track',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/learn/roadmaps/:track',
+        },
+        {
+          source: '/learn/poker-math',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/learn/poker-math',
+        },
+        {
+          source: '/learn/cheat-sheets',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/learn/cheat-sheets',
+        },
+        {
+          source: '/learn/online-vs-live-poker',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/learn/online-vs-live-poker',
+        },
+        {
+          source: '/learn/live-poker-tells',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/learn/live-poker-tells',
+        },
+        {
+          source: '/poker-rooms/states',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/states',
+        },
+        {
+          source: '/poker-rooms/states/:state',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/states/:state',
+        },
+        {
+          source: '/poker-rooms/comps-and-tipping-guide',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/comps-and-tipping-guide',
         },
         {
           source: '/learn/matchups',
@@ -1804,6 +2019,110 @@ const nextConfig = {
         {
           source: '/tools/format-quiz.md',
           destination: '/api/hub-tool-markdown?path=/tools/format-quiz',
+        },
+        {
+          source: '/tools/board-texture-analyzer.md',
+          destination: '/api/hub-tool-markdown?path=/tools/board-texture-analyzer',
+        },
+        {
+          source: '/tools/m-ratio-calculator.md',
+          destination: '/api/hub-tool-markdown?path=/tools/m-ratio-calculator',
+        },
+        {
+          source: '/tools/session-planner.md',
+          destination: '/api/hub-tool-markdown?path=/tools/session-planner',
+        },
+        {
+          source: '/tools/straddle-calculator.md',
+          destination: '/api/hub-tool-markdown?path=/tools/straddle-calculator',
+        },
+        {
+          source: '/tools/hand-converter.md',
+          destination: '/api/hub-tool-markdown?path=/tools/hand-converter',
+        },
+        {
+          source: '/tools/satellite-calculator.md',
+          destination: '/api/hub-tool-markdown?path=/tools/satellite-calculator',
+        },
+        {
+          source: '/tools/promo-ev-calculator.md',
+          destination: '/api/hub-tool-markdown?path=/tools/promo-ev-calculator',
+        },
+        {
+          source: '/tools/who-wins-calculator.md',
+          destination: '/api/hub-tool-markdown?path=/tools/who-wins-calculator',
+        },
+        {
+          source: '/tools/mixed-game-placards.md',
+          destination: '/api/hub-tool-markdown?path=/tools/mixed-game-placards',
+        },
+        {
+          source: '/tools/poker-iq-test.md',
+          destination: '/api/hub-tool-markdown?path=/tools/poker-iq-test',
+        },
+        {
+          source: '/learn/poker-hand-rankings.md',
+          destination: '/api/hub-tool-markdown?path=/learn/poker-hand-rankings',
+        },
+        {
+          source: '/learn/positions.md',
+          destination: '/api/hub-tool-markdown?path=/learn/positions',
+        },
+        {
+          source: '/learn/positions/:pos.md',
+          destination: '/api/hub-tool-markdown?path=/learn/positions/:pos',
+        },
+        {
+          source: '/learn/stakes.md',
+          destination: '/api/hub-tool-markdown?path=/learn/stakes',
+        },
+        {
+          source: '/learn/stakes/:stake.md',
+          destination: '/api/hub-tool-markdown?path=/learn/stakes/:stake',
+        },
+        {
+          source: '/learn/famous-hands.md',
+          destination: '/api/hub-tool-markdown?path=/learn/famous-hands',
+        },
+        {
+          source: '/learn/famous-hands/:slug.md',
+          destination: '/api/hub-tool-markdown?path=/learn/famous-hands/:slug',
+        },
+        {
+          source: '/learn/roadmaps.md',
+          destination: '/api/hub-tool-markdown?path=/learn/roadmaps',
+        },
+        {
+          source: '/learn/roadmaps/:track.md',
+          destination: '/api/hub-tool-markdown?path=/learn/roadmaps/:track',
+        },
+        {
+          source: '/learn/poker-math.md',
+          destination: '/api/hub-tool-markdown?path=/learn/poker-math',
+        },
+        {
+          source: '/learn/cheat-sheets.md',
+          destination: '/api/hub-tool-markdown?path=/learn/cheat-sheets',
+        },
+        {
+          source: '/learn/online-vs-live-poker.md',
+          destination: '/api/hub-tool-markdown?path=/learn/online-vs-live-poker',
+        },
+        {
+          source: '/learn/live-poker-tells.md',
+          destination: '/api/hub-tool-markdown?path=/learn/live-poker-tells',
+        },
+        {
+          source: '/poker-rooms/states.md',
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/states',
+        },
+        {
+          source: '/poker-rooms/states/:state.md',
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/states/:state',
+        },
+        {
+          source: '/poker-rooms/comps-and-tipping-guide.md',
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/comps-and-tipping-guide',
         },
         {
           source: '/learn/matchups.md',
@@ -2282,6 +2601,22 @@ const nextConfig = {
         {
           source: '/tools/blind-timer',
           destination: '/tools/home-game-kit',
+        },
+        {
+          source: '/tools/blind-structure-builder',
+          destination: '/tools/blind-structure-calculator',
+        },
+        {
+          source: '/tools/cbet-calculator',
+          destination: '/tools/board-texture-analyzer',
+        },
+        {
+          source: '/tools/bbj-calculator',
+          destination: '/tools/promo-ev-calculator',
+        },
+        {
+          source: '/tools/showdown-calculator',
+          destination: '/tools/who-wins-calculator',
         },
       ],
       fallback: [],

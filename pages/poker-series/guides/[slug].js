@@ -64,6 +64,10 @@ export default function PokerSeriesDetailPage({ guide, peerGuides = [] }) {
       isAccessibleForFree: true,
       author: { '@id': 'https://smarter.poker/#organization' },
       publisher: { '@id': 'https://smarter.poker/#organization' },
+      speakable: {
+        '@type': 'SpeakableSpecification',
+        cssSelector: ['h1', '#quick-answer-summary'],
+      },
     },
     {
       '@type': 'FAQPage',
@@ -127,7 +131,7 @@ export default function PokerSeriesDetailPage({ guide, peerGuides = [] }) {
             {guide.name}: Structure, Schedule &amp; Strategy Guide
           </h1>
 
-          <p style={styles.lead}>
+          <p id="quick-answer-summary" style={styles.lead}>
             <strong>Direct Festival Overview:</strong> Hosted At <strong>{guide.hostVenue}</strong> In <strong>{guide.cityState}</strong> During <strong>{guide.typicalMonths}</strong>, The <strong>{guide.shortName}</strong> Spans Buy-Ins From <strong>{guide.buyInRange}</strong> Headlined By The <strong>{guide.mainEventBuyIn}</strong> ({guide.typicalGuarantee}).
           </p>
 

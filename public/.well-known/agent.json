@@ -1,0 +1,75 @@
+{
+  "schemaVersion": "1.0",
+  "name": "Smarter.Poker Quantitative Poker & GTO Intelligence Agent",
+  "description": "Zero-auth autonomous poker mathematics, Malmuth-Harville ICM/Chop solver, 169-hand GTO preflop range engine, 34 interactive calculators, 26 streamer bot commands, 324+ live cardroom directory, and TDA floor rules agent.",
+  "url": "https://smarter.poker/api/mcp",
+  "documentationUrl": "https://smarter.poker/llms.txt",
+  "fullContextUrl": "https://smarter.poker/llms-full.txt",
+  "openApiSpecUrl": "https://smarter.poker/api/openapi.json",
+  "mcpManifestUrl": "https://smarter.poker/.well-known/mcp.json",
+  "provider": {
+    "organization": "Smarter Software Inc.",
+    "url": "https://smarter.poker"
+  },
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": false,
+    "stateTransitionHistory": false,
+    "mcpTools": 45,
+    "mcpPrompts": 10,
+    "mcpResources": 16,
+    "interactiveCalculators": 34,
+    "streamerBotCommands": 26
+  },
+  "authentication": {
+    "schemes": ["none"]
+  },
+  "defaultInputModes": ["application/json", "text/plain"],
+  "defaultOutputModes": ["application/json", "text/markdown"],
+  "authorityHubs": [
+    "https://smarter.poker/tools",
+    "https://smarter.poker/learn/positions",
+    "https://smarter.poker/learn/stakes",
+    "https://smarter.poker/learn/famous-hands",
+    "https://smarter.poker/learn/roadmaps",
+    "https://smarter.poker/learn/poker-math",
+    "https://smarter.poker/learn/cheat-sheets",
+    "https://smarter.poker/learn/online-vs-live-poker",
+    "https://smarter.poker/learn/live-poker-tells",
+    "https://smarter.poker/learn/matchups",
+    "https://smarter.poker/learn/hands",
+    "https://smarter.poker/poker-rooms/states",
+    "https://smarter.poker/poker-rooms/comps-and-tipping-guide",
+    "https://smarter.poker/poker-rooms/guides",
+    "https://smarter.poker/poker-series/guides",
+    "https://smarter.poker/rules",
+    "https://smarter.poker/games",
+    "https://smarter.poker/research"
+  ],
+  "skills": [
+    {
+      "id": "poker-equity-and-matchups",
+      "name": "Poker Equity, Flop Texture, Showdown & Hand-Vs-Hand Matchup Solver",
+      "description": "Compute exact Hold'em/Omaha equities, 7-card showdown winners, flop board texture C-Bet sizing, hypergeometric draw outs, and 25 canonical preflop matchup breakdowns.",
+      "tags": ["poker", "odds", "outs", "matchups", "gto", "board-texture", "showdown"]
+    },
+    {
+      "id": "tournament-icm-and-chop-deals",
+      "name": "Malmuth-Harville ICM, M-Ratio, Satellites, Chop & Bounty Valuation",
+      "description": "Calculate ICM payouts, Harrington M-Ratio & Effective M, satellite seat-lock bubble factors, Chip Chop vs ICM Chop vs Save-Amount deals, and PKO/Mystery Bounty chip equivalents.",
+      "tags": ["icm", "chop", "tournaments", "bounty", "m-ratio", "satellite"]
+    },
+    {
+      "id": "variance-and-bankroll-risk",
+      "name": "Poker Variance, Cash Session Planner, Promotions & Risk-Of-Ruin Simulator",
+      "description": "Simulate EV, 68%/95%/99.7% confidence intervals, cash game net hourly EV with comps/expenses, Straddle & Bomb Pot math, Bad Beat Jackpot EV, and Risk of Ruin.",
+      "tags": ["variance", "bankroll", "risk-of-ruin", "statistics", "cash-games", "straddle", "bbj"]
+    },
+    {
+      "id": "live-poker-venues-and-series",
+      "name": "North American Live Cardroom, US State Law, Position Strategy & Series Intelligence",
+      "description": "Search 324+ verified live poker rooms, US state legal/tax/rake guides, 9-max/6-max positional GTO ranges, 12 regional market guides, and 10 major tournament series strategy guides.",
+      "tags": ["venues", "wsop", "wpt", "mspt", "cardrooms", "positions", "states"]
+    }
+  ]
+}

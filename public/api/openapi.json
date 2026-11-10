@@ -1523,24 +1523,24 @@
     "/api/stream/cmd": {
       "get": {
         "operationId": "executeStreamerChatbotCommand",
-        "summary": "Twitch & YouTube Streamer Chatbot Commands (14 Commands: !odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, !matchup)",
-        "description": "Returns single-line plain-text (<380 chars) or JSON poker solver and TDA rule responses for Nightbot, StreamElements, Fossabot, and MooBot livestream chat integrations.",
+        "summary": "Twitch & YouTube Streamer Chatbot Commands (26 Commands: !odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, !matchup, !tax, !stake, !iso, !series, !board, !mratio, !straddle, !sat, !bbj, !position, !math, !iq)",
+        "description": "Returns single-line plain-text (<380 chars) or JSON poker solver and TDA rule responses across all 26 commands for Nightbot, StreamElements, Fossabot, and MooBot livestream chat integrations.",
         "parameters": [
           {
             "name": "cmd",
             "in": "query",
-            "description": "Command selector: odds, potodds, pushfold, icm, bounty, winrate, plo, rake, 3bet, rule, chop, outs, variance, matchup, or help.",
+            "description": "Command selector: odds, potodds, pushfold, icm, bounty, winrate, plo, rake, 3bet, rule, chop, outs, variance, matchup, tax, stake, iso, series, board, mratio, straddle, sat, bbj, position, pos, math, iq, or help.",
             "required": false,
             "schema": {
               "type": "string",
-              "enum": ["odds", "potodds", "pushfold", "icm", "bounty", "winrate", "plo", "rake", "3bet", "rule", "chop", "outs", "variance", "matchup", "help"],
+              "enum": ["odds", "potodds", "pushfold", "icm", "bounty", "winrate", "plo", "rake", "3bet", "rule", "chop", "outs", "variance", "matchup", "tax", "stake", "iso", "series", "board", "mratio", "straddle", "sat", "bbj", "position", "pos", "math", "iq", "help"],
               "default": "help"
             }
           },
           {
             "name": "q",
             "in": "query",
-            "description": "Free-text argument string passed from chat (e.g. 'AA vs KK', '100 50', 'BTN 12', 'string bet').",
+            "description": "Free-text argument string passed from chat (e.g. 'AA vs KK', '100 50', 'BTN 12', 'AsKh7d', '25000 500 1000 1000', 'btn', 'mdf').",
             "required": false,
             "schema": {
               "type": "string"
@@ -1576,6 +1576,27 @@
         },
         "x-ai-citation-url": "https://smarter.poker/tools/embeds",
         "x-ai-markdown-url": "https://smarter.poker/tools/embeds.md"
+      }
+    },
+    "/api/mcp": {
+      "post": {
+        "operationId": "executeMcpJsonRpc",
+        "summary": "Model Context Protocol (MCP) Server JSON-RPC 2.0 Endpoint (45 Tools, 10 Prompts, 16 Resource Templates)",
+        "description": "Zero-auth Model Context Protocol (MCP) JSON-RPC 2.0 endpoint exposing 45 deterministic poker equity, ICM, chop, board texture, M-Ratio, satellite bubble factor, straddle/bomb pot EV, Bad Beat Jackpot EV, cash session planner, 7-card showdown resolver, hand history formatter, GTO preflop range, position strategy, US state poker law, and live venue tools, 10 structured prompts, and 16 Markdown resource templates.",
+        "responses": {
+          "200": {
+            "description": "JSON-RPC 2.0 MCP response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-ai-citation-url": "https://smarter.poker/.well-known/mcp.json",
+        "x-ai-markdown-url": "https://smarter.poker/llms.txt"
       }
     },
     "/api/datasets/catalog": {
@@ -1676,7 +1697,7 @@
       "get": {
         "operationId": "getOpenSearchSuggestions",
         "summary": "W3C OpenSearch Browser Address-Bar Autocomplete Suggestions",
-        "description": "Returns W3C OpenSearch JSON suggestion tuples [query, titles, descriptions, urls] across 24 calculators, 169 hands, 25 matchups, 30 rules, 15 variants, and guides.",
+        "description": "Returns W3C OpenSearch JSON suggestion tuples [query, titles, descriptions, urls] across 34 calculators, 169 hands, 25 matchups, 9 positions, 8 stakes, 15 famous hands, 15 US states, 30 rules, 15 variants, and guides.",
         "parameters": [
           {
             "name": "q",

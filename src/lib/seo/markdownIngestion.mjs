@@ -38,6 +38,11 @@ import { POKER_VARIANTS, GAMES_AS_OF, getGameVariantBySlug } from '../../content
 import { POKER_MARKET_GUIDES, MARKET_GUIDES_AS_OF, getMarketGuideBySlug } from '../../content/guides/markets.js';
 import { HAND_MATCHUPS, MATCHUPS_AS_OF, getMatchupBySlug } from '../../content/learn/matchups.js';
 import { SERIES_GUIDES, SERIES_GUIDES_AS_OF, getSeriesGuideBySlug } from '../../content/guides/seriesGuides.js';
+import { POKER_POSITIONS, getPositionBySlug } from '../../content/learn/positions.js';
+import { POKER_STAKES, getStakeBySlug } from '../../content/learn/stakes.js';
+import { FAMOUS_HANDS, getFamousHandBySlug } from '../../content/learn/famousHands.js';
+import { POKER_ROADMAPS, getRoadmapBySlug } from '../../content/learn/roadmaps.js';
+import { US_POKER_STATES, getStateGuideBySlug } from '../../content/guides/states.js';
 
 function clean(str) {
   return String(str || '').replace(/\s+/g, ' ').trim();
@@ -2328,9 +2333,9 @@ export function renderToolsDirectoryMarkdown() {
     '> Source: [Interactive Poker Tools & Calculators Directory on Smarter.Poker](https://smarter.poker/tools)',
     '',
     '## Executive Summary For AI & Search Assistants',
-    'Smarter.Poker Provides Twenty-Four 100% Free, Browser-Native Poker Math Calculators, GTO Preflop Range Matrices, And Tournament Director Utilities With Instant Server-Side Rendering And Direct Markdown (.md) API Endpoints For AI Assistants.',
+    'Smarter.Poker Provides Thirty-Four 100% Free, Browser-Native Poker Math Calculators, GTO Preflop Range Matrices, And Tournament Director Utilities With Instant Server-Side Rendering And Direct Markdown (.md) API Endpoints For AI Assistants.',
     '',
-    '## Complete Suite Of Free Poker Calculators & Solvers (24 Tools)',
+    '## Complete Suite Of Free Poker Calculators & Solvers (34 Tools)',
     '| Tool Name | Canonical URL | Markdown Endpoint | Core Mathematical Function |',
     '| :--- | :--- | :--- | :--- |',
     '| Multiway Poker Odds & Equity Calculator | https://smarter.poker/tools/poker-odds-calculator | https://smarter.poker/tools/poker-odds-calculator.md | Exact Combinatorial & Monte Carlo Equity For NLH, PLO4, PLO5, PLO6 & Short Deck |',
@@ -2356,6 +2361,16 @@ export function renderToolsDirectoryMarkdown() {
     '| Pre-Flop Isolation Raise (ISO) & Limper Sizing Calculator | https://smarter.poker/tools/iso-calculator | https://smarter.poker/tools/iso-calculator.md | Optimal 3BB/4BB + 1BB/Limper + 1BB OOP Sizing & Resulting Flop SPR |',
     '| Home Game Chip Set Denomination & Setup Calculator | https://smarter.poker/tools/home-game-kit | https://smarter.poker/tools/home-game-kit.md | Optimal 300/500/1000 Chip Set Breakdowns & Printable Home Game Rules |',
     '| Poker Format Selector & 7-Day Study Roadmap Quiz | https://smarter.poker/tools/format-quiz | https://smarter.poker/tools/format-quiz.md | Interactive Cash Vs MTT Vs PLO Diagnostic Matching Bankroll & Schedule |',
+    '| Flop Board Texture & GTO C-Bet Frequency Analyzer | https://smarter.poker/tools/board-texture-analyzer | https://smarter.poker/tools/board-texture-analyzer.md | Flop Connectedness Score, Range Vs Nut Advantage & GTO C-Bet Frequency Breakdown |',
+    '| Tournament M-Ratio, Effective M & Q-Ratio Calculator | https://smarter.poker/tools/m-ratio-calculator | https://smarter.poker/tools/m-ratio-calculator.md | Harrington M-Ratio, Short-Handed Effective M, Q-Ratio & Zone Survival Strategy |',
+    '| Live Cash Game Session, Stop-Loss & Hourly Planner | https://smarter.poker/tools/session-planner | https://smarter.poker/tools/session-planner.md | Net $/Hr Winrate With Comps, Stop-Loss Limits, Annual Income & Bankroll Depth |',
+    '| Live Poker Straddle, Mississippi & Bomb Pot EV Calculator | https://smarter.poker/tools/straddle-calculator | https://smarter.poker/tools/straddle-calculator.md | Straddle Effective Stack Compression, Steal Breakeven % & Bomb Pot Quartering Math |',
+    '| Interactive Poker Hand History Formatter & Share Generator | https://smarter.poker/tools/hand-converter | https://smarter.poker/tools/hand-converter.md | Reddit Markdown, Discord/X Copy Card, Permalink & AI Solver Prompt Generator |',
+    '| Tournament Satellite Seat-Bubble & Milestone Calculator | https://smarter.poker/tools/satellite-calculator | https://smarter.poker/tools/satellite-calculator.md | Target Average Seat Stack, Seat Lock %, Satellite Bubble Factor & Folding AA/KK Thresholds |',
+    '| Bad Beat Jackpot (BBJ) & High-Hand Promo EV Calculator | https://smarter.poker/tools/promo-ev-calculator | https://smarter.poker/tools/promo-ev-calculator.md | Exact Qualifier Hit Odds, Per-Hand BBJ + High-Hand $EV & Breakeven Pool Threshold |',
+    '| What Beats What? Showdown & Kicker Resolver | https://smarter.poker/tools/who-wins-calculator | https://smarter.poker/tools/who-wins-calculator.md | Deterministic 7-Card Showdown Evaluator, Best 5-Card Hand & Floor Kicker Ruling |',
+    '| Mixed Game (HORSE / 8-Game) Rotation Tracker & Placards | https://smarter.poker/tools/mixed-game-placards | https://smarter.poker/tools/mixed-game-placards.md | Live Mixed Game Orbit Counter, Limit Rules, Hi-Lo Qualifier & Printable Table Placards |',
+    '| 10-Question GTO & Live Poker IQ Diagnostic Test | https://smarter.poker/tools/poker-iq-test | https://smarter.poker/tools/poker-iq-test.md | 100-To-200 Poker IQ Assessment Across Pot Odds, ICM, PKO, Textures & TDA Floor Rules |',
     '| Embeddable Webmaster Poker Widgets | https://smarter.poker/tools/embeds | https://smarter.poker/tools/embeds.md | Zero-Dependency Responsive Iframe Widgets For Poker Blogs, Forums & Discord Communities |',
     '',
     '## 100BB 6-Max Positional GTO Preflop Charts',
@@ -3302,13 +3317,23 @@ export function renderSearchDirectoryMarkdown({ q = '' } = {}) {
     '',
     `> Source: [Smarter.Poker Universal Search Directory](${url}${queryClean ? `?q=${encodeURIComponent(queryClean)}` : ''})`,
     '',
-    '## Master Command & Hub Index (24 Calculators & 35 MCP Tools)',
-    '- **24 Interactive Poker Calculators**: [https://smarter.poker/tools](https://smarter.poker/tools)',
-    '- **35 Zero-Auth MCP Server Tools**: [https://smarter.poker/api/mcp](https://smarter.poker/api/mcp)',
+    '## Master Command & Hub Index (34 Calculators & 45 MCP Tools)',
+    '- **34 Interactive Poker Calculators**: [https://smarter.poker/tools](https://smarter.poker/tools)',
+    '- **45 Zero-Auth MCP Server Tools**: [https://smarter.poker/api/mcp](https://smarter.poker/api/mcp)',
     `- **${LESSONS.length} GTO Strategy Lessons**: [https://smarter.poker/learn](https://smarter.poker/learn)`,
     `- **${GLOSSARY_TERMS.length}+ Official Poker Glossary Terms**: [https://smarter.poker/glossary](https://smarter.poker/glossary)`,
     '- **169 Starting Hands Encyclopedia**: [https://smarter.poker/learn/hands](https://smarter.poker/learn/hands)',
     '- **25 Preflop Hand-Vs-Hand Matchups**: [https://smarter.poker/learn/matchups](https://smarter.poker/learn/matchups)',
+    '- **9-Seat Poker Position Strategy Encyclopedia**: [https://smarter.poker/learn/positions](https://smarter.poker/learn/positions)',
+    '- **7 Stake Level & Move-Up Readiness Guides**: [https://smarter.poker/learn/stakes](https://smarter.poker/learn/stakes)',
+    '- **12 Famous Historic Poker Hands Solver Archive**: [https://smarter.poker/learn/famous-hands](https://smarter.poker/learn/famous-hands)',
+    '- **5 90-Day Player Progression Roadmaps**: [https://smarter.poker/learn/roadmaps](https://smarter.poker/learn/roadmaps)',
+    '- **15 US State Poker Legality & Tax Guides**: [https://smarter.poker/poker-rooms/states](https://smarter.poker/poker-rooms/states)',
+    '- **Complete Poker Math Formulas & Equations**: [https://smarter.poker/learn/poker-math](https://smarter.poker/learn/poker-math)',
+    '- **Printable 1-Page Poker Cheat Sheets**: [https://smarter.poker/learn/cheat-sheets](https://smarter.poker/learn/cheat-sheets)',
+    '- **Online Vs. Live Poker Strategy Transition Guide**: [https://smarter.poker/learn/online-vs-live-poker](https://smarter.poker/learn/online-vs-live-poker)',
+    '- **Live Poker Tells & Table Etiquette Encyclopedia**: [https://smarter.poker/learn/live-poker-tells](https://smarter.poker/learn/live-poker-tells)',
+    '- **Casino Comps, Rewards & Dealer Tipping Guide**: [https://smarter.poker/poker-rooms/comps-and-tipping-guide](https://smarter.poker/poker-rooms/comps-and-tipping-guide)',
     '- **30 Official TDA & RROP Floor Rulings**: [https://smarter.poker/rules](https://smarter.poker/rules)',
     '- **15 Poker Game Variants & Mixed Games**: [https://smarter.poker/games](https://smarter.poker/games)',
     '- **12 US Regional Live Poker Market Guides**: [https://smarter.poker/poker-rooms/guides](https://smarter.poker/poker-rooms/guides)',
@@ -3330,7 +3355,670 @@ export function renderSearchDirectoryMarkdown({ q = '' } = {}) {
   ].join('\n');
 }
 
+export function renderBoardTextureAnalyzerMarkdown({
+  flop = 'AsKh7d',
+  scenario = 'BTN_VS_BB_SRP',
+} = {}) {
+  const url = 'https://smarter.poker/tools/board-texture-analyzer';
+  return [
+    '# Interactive Flop Board Texture & GTO C-Bet Frequency Analyzer',
+    '',
+    `> Source: [Flop Board Texture & GTO C-Bet Analyzer on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    `Flop Continuation Betting (C-Bet) Strategy Is Governed By Range Advantage (Overall Equity Across All Combos), Nut Advantage (Concentration Of Sets, Two Pairs, And Nut Draws), And Board Connectedness. For Scenario ${clean(scenario)} On Board ${clean(flop)}, Solvers Choose Between High-Frequency Small Range Bets (33% Pot) On Dry Static High-Card Boards And Lower-Frequency Polarized Bets (66%-75% Pot) Or High Check Frequencies On Wet Connected Dynamic Boards.`,
+    '',
+    '## GTO Flop Board Texture Archetypes & C-Bet Benchmarks (BTN Vs BB Single-Raised Pot 100BB)',
+    '| Flop Archetype | Example Board | Suit & Pair Texture | Connectedness (0-100) | Range / Nut Advantage | Optimal GTO C-Bet Strategy |',
+    '| :--- | :--- | :--- | :--- | :--- | :--- |',
+    '| **Dry Ace-High Rainbow** | A♠ K♥ 7♦ | Rainbow Unpaired | 18 / 100 (Static) | PFR Massive Range + Nut Advantage | 33% Small Range Bet (85% Small / 10% Big / 5% Check) |',
+    '| **Paired Dry Low** | 8♣ 8♦ 3♥ | Rainbow Paired | 12 / 100 (Static) | PFR Overpair Advantage / Shared Trips | 33% Small Range Bet (88% Small / 0% Big / 12% Check) |',
+    '| **Wet Connected Two-Tone** | J♥ T♠ 9♠ | Two-Tone Unpaired | 92 / 100 (Dynamic) | Symmetrical Equity / Shared Straights | Polarized 66%-75% Bet Or Check (45% Check / 15% Small / 40% Big) |',
+    '| **Broadway Monotone** | K♠ Q♠ J♠ | Monotone Unpaired | 96 / 100 (Dynamic) | PFR High-Flush Blocker Advantage | Small 25%-33% Block Bet Or Check (52% Check / 48% Small / 0% Big) |',
+    '| **Low Dynamic Connected** | 7♥ 6♥ 5♣ | Two-Tone Unpaired | 88 / 100 (Dynamic) | BB Condensed 2-Pair/Set Nut Advantage | High Check Frequency (68% Check / 22% Small / 10% Big) |',
+    '',
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    '',
+  ].join('\n');
+}
 
+export function renderMRatioCalculatorMarkdown({
+  stack = 24000,
+  sb = 400,
+  bb = 800,
+  ante = 800,
+  players = 9,
+  avgStack = 35000,
+} = {}) {
+  const url = 'https://smarter.poker/tools/m-ratio-calculator';
+  const safeStack = Math.max(100, Number(stack) || 24000);
+  const safeSb = Math.max(10, Number(sb) || 400);
+  const safeBb = Math.max(20, Number(bb) || 800);
+  const safeAnte = Math.max(0, Number(ante) || 800);
+  const safePlayers = Math.max(2, Math.min(10, Math.round(Number(players) || 9)));
+  const safeAvg = Math.max(100, Number(avgStack) || 35000);
+  const orbitCost = safeSb + safeBb + safeAnte;
+  const mRatio = safeStack / orbitCost;
+  const effectiveM = mRatio * (safePlayers / 10);
+  const qRatio = safeStack / safeAvg;
 
+  return [
+    '# Tournament M-Ratio, Effective M & Q-Ratio Survival Calculator',
+    '',
+    `> Source: [Tournament M-Ratio & Effective M Calculator on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    `Dan Harrington's M-Ratio Measures Tournament Survival In Orbits Remaining Before Blinding Out: M = Stack / (Small Blind + Big Blind + Total Orbit Antes). Short-Handed Tables Compress Survival Via Effective M = M * (Players At Table / 10), While Q-Ratio = Stack / Average Stack Measures Relative Field Leverage. With ${safeStack.toLocaleString('en-US')} Chips At ${safeSb}/${safeBb}/${safeAnte} (${safePlayers}-Handed), Orbit Cost Is ${orbitCost.toLocaleString('en-US')}, M-Ratio Is ${mRatio.toFixed(2)}, Effective M Is ${effectiveM.toFixed(2)}, And Q-Ratio Is ${qRatio.toFixed(2)}.`,
+    '',
+    '## Dan Harrington M-Ratio Zone Classification Matrix',
+    '| Harrington Zone | M-Ratio Threshold | Approx Big Blinds (BBA) | Tactical Freedom & Optimal Tournament Strategy |',
+    '| :--- | :--- | :--- | :--- |',
+    '| **Green Zone** | M > 20 | > 50 BB | Full Postflop Freedom: Speculative Connectors, Set Mining, And Multi-Street Bluffs Available |',
+    '| **Yellow Zone** | M 10 To 20 | 25 BB To 50 BB | Aggressive Steal & Re-Steal Phase: Avoid Calling 3-Bets Speculatively; Attack Medium Stacks |',
+    '| **Orange Zone** | M 6 To 10 | 15 BB To 25 BB | Stop-And-Go & 3-Bet Jam Phase: Open Tighter Or Open-Shove; Maximize First-In Fold Equity |',
+    '| **Red Zone** | M 1 To 5 | 2.5 BB To 12.5 BB | Strict Push-Or-Fold Mode: All-In Or Fold Only; Prioritize First-In Shoves Before Big Blind Hits |',
+    '| **Dead Zone** | M < 1 | < 2.5 BB | Zero Fold Equity: Any Two Live Cards From Late Position Or Blinds When Unopened |',
+    '',
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    '',
+  ].join('\n');
+}
 
+export function renderSessionPlannerMarkdown({
+  stake = '2/5',
+  winRateHr = 45,
+  hoursPerSession = 6,
+  sessionsPerWeek = 4,
+  weeksPerYear = 48,
+  compRate = 2,
+  expenses = 15,
+} = {}) {
+  const url = 'https://smarter.poker/tools/session-planner';
+  const safeWr = Number(winRateHr) || 45;
+  const safeHrs = Math.max(1, Number(hoursPerSession) || 6);
+  const safeSess = Math.max(1, Number(sessionsPerWeek) || 4);
+  const safeWeeks = Math.max(1, Number(weeksPerYear) || 48);
+  const safeComp = Math.max(0, Number(compRate) || 2);
+  const safeExp = Math.max(0, Number(expenses) || 15);
+  const netHourly = safeWr + safeComp - safeExp / safeHrs;
+  const annualHours = safeHrs * safeSess * safeWeeks;
+  const annualNet = Math.round(netHourly * annualHours);
+
+  return [
+    '# Live Cash Game Session, Stop-Loss & Annual Hourly Planner',
+    '',
+    `> Source: [Live Cash Game Session & Stop-Loss Planner on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    `Professional Live Cash Game Session Planning Combines Table Hourly Winrate ($/Hr), Casino Comp Value ($/Hr), Per-Session Expenses/Tips, And A-Game Stop-Loss Discipline. At $${clean(stake)} Generating $${safeWr}/Hr Gross Plus $${safeComp}/Hr In Comps Minus $${safeExp}/Session Expenses Across ${safeHrs}-Hour Sessions (${safeSess}x/Week, ${safeWeeks} Weeks/Year = ${annualHours} Hours), Net Hourly Winrate Is $${netHourly.toFixed(2)}/Hr And Projected Annual Net Income Is $${annualNet.toLocaleString('en-US')}.`,
+    '',
+    '## Live Cash Game Stake & Annual Income Benchmark Matrix (1,150 Hours/Year)',
+    '| Game Stake | 100BB Buy-In | Target Crusher Winrate | Recommended Stop-Loss | Required Bankroll (25-35 Buy-Ins) | Projected Annual Net EV |',
+    '| :--- | :--- | :--- | :--- | :--- | :--- |',
+    '| **$1/$2 Live NLH** | $200 | 10 BB/Hr ($20/Hr) | 2.5 Buy-Ins ($500) | $5,000 - $7,000 | $21,500 / Year |',
+    '| **$1/$3 Live NLH** | $300 | 9.5 BB/Hr ($28.50/Hr) | 2.5 Buy-Ins ($750) | $7,500 - $10,500 | $31,200 / Year |',
+    '| **$2/$5 Live NLH** | $500 | 9.0 BB/Hr ($45/Hr) | 3.0 Buy-Ins ($1,500) | $12,500 - $17,500 | $50,600 / Year |',
+    '| **$5/$10 Live NLH** | $1,000 | 7.5 BB/Hr ($75/Hr) | 3.0 Buy-Ins ($3,000) | $25,000 - $35,000 | $85,100 / Year |',
+    '| **$10/$25 Live NLH** | $2,500 | 6.0 BB/Hr ($150/Hr) | 3.0 Buy-Ins ($7,500) | $62,500 - $87,500 | $171,000 / Year |',
+    '',
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    '',
+  ].join('\n');
+}
+
+export function renderStraddleCalculatorMarkdown({
+  blinds = '2/5',
+  straddleType = 'MISSISSIPPI_BTN',
+  stack = 1000,
+  bombAnte = 15,
+  bombPlayers = 8,
+} = {}) {
+  const url = 'https://smarter.poker/tools/straddle-calculator';
+  const safeStack = Math.max(50, Number(stack) || 1000);
+  const safeAnte = Math.max(5, Number(bombAnte) || 15);
+  const safePlayers = Math.max(2, Math.min(9, Number(bombPlayers) || 8));
+  const bombPool = safeAnte * safePlayers;
+  const bombSpr = (safeStack - safeAnte) / bombPool;
+
+  return [
+    '# Live Poker Straddle, Mississippi Button Straddle & Bomb Pot EV Calculator',
+    '',
+    `> Source: [Straddle & Bomb Pot EV Calculator on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    `A Live 2x Straddle Halves Effective Stack Depth In Big Blinds And Adds A Third Forced Blind To The Pre-Flop Dead Pot. Under A ${clean(straddleType)} At $${clean(blinds)} With A $${safeStack} Stack, Or An ${safePlayers}-Handed $${safeAnte} Bomb Pot ($${bombPool} Dead Pool), Flop SPR Compresses To ${bombSpr.toFixed(2)}, Shifting Postflop Strategy Toward Two-Board Nut Redraws And Quartering Protection.`,
+    '',
+    '## Straddle & Bomb Pot Structural Comparison Matrix ($2/$5 Cash Game, $1,000 Stack)',
+    '| Structure Type | Forced Dead Money | Effective Big Blind | Effective Stack Depth | Flop Pot / SPR | Optimal Strategic Adjustment |',
+    '| :--- | :--- | :--- | :--- | :--- | :--- |',
+    '| **Standard $2/$5 Unstraddled** | $7 ($2 SB + $5 BB) | $5 BB | 200.0 BB | ~11.5 SPR (SRP) | Deepstack Implied Odds & Multi-Street Maneuvering |',
+    '| **UTG 2x Straddle ($2/$5/$10)** | $17 ($2 + $5 + $10) | $10 Straddle | 100.0 Straddled BB | ~6.2 SPR | Tighten Flat Calls; 3-Bet Linearly Against Loose Straddlers |',
+    '| **Mississippi Button 2x Straddle** | $17 ($10 On BTN) | $10 BTN Straddle | 100.0 Straddled BB | ~5.8 SPR | SB & BB Act First Pre-Flop; Attack Limpers From Late Seats |',
+    '| **Single-Board NLH Bomb Pot ($15 Ante)** | $120 (8x $15 Antes) | No Pre-Flop Betting | $985 Behind | 8.21 SPR | Bet Protection With Sets/Two Pair; Fold Weak One-Pair Hands |',
+    '| **Double-Board PLO Bomb Pot ($15 Ante)** | $120 (8x $15 Antes) | No Pre-Flop Betting | $985 Behind | 8.21 SPR | Never Commit Without Equity On Both Boards To Avoid Quartering |',
+    '',
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    '',
+  ].join('\n');
+}
+
+export function renderHandConverterMarkdown({
+  stakes = '$2/$5 Live NLH',
+  hero = 'BTN',
+  villain = 'BB',
+  cards = 'As Ks',
+  flop = 'Qh Jd 4s',
+} = {}) {
+  const url = 'https://smarter.poker/tools/hand-converter';
+  return [
+    '# Interactive Poker Hand History Formatter & Reddit/Discord Share Card Generator',
+    '',
+    `> Source: [Poker Hand History Formatter on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    `The Smarter.Poker Hand History Formatter Converts Live And Online Poker Hands (${clean(stakes)} | Hero ${clean(hero)} Holding ${clean(cards)} Vs ${clean(villain)} On ${clean(flop)}) Into Clean Suit-Symbol Reddit Markdown, Discord/X Share Cards, Deep-Link Permalinks, And Structured ChatGPT/Claude GTO Solver Review Prompts.`,
+    '',
+    '## Supported Hand Export Formats',
+    '- **Reddit r/poker Markdown**: Formatted With Suit Symbols (♠️ ♥️ ♦️ ♣️), Street-By-Street Pot Progression, Effective Stack Header, And Smarter.Poker Attribution.',
+    '- **Discord / X / TwoPlusTwo Compact Card**: Clean Monospace-Friendly Text Block For Study Discord Channels And Forum Threads.',
+    '- **1-Click Shareable Permalink**: Parameterized URL Preserving Stakes, Positions, Cards, Board Runout, And Street Actions.',
+    '- **AI GTO Solver Review Prompt**: Pre-Structured Prompt For Jarvis AI, ChatGPT, And Claude Requesting Range Advantage, MDF, And Sizing Feedback.',
+    '',
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    '',
+  ].join('\n');
+}
+
+export function renderSatelliteCalculatorMarkdown({
+  totalPlayers = 100,
+  startingStack = 10000,
+  seatsAwarded = 10,
+  playersRemaining = 12,
+  heroStack = 92000,
+  bb = 4000,
+} = {}) {
+  const url = 'https://smarter.poker/tools/satellite-calculator';
+  const safeTotal = Math.max(2, Number(totalPlayers) || 100);
+  const safeStart = Math.max(100, Number(startingStack) || 10000);
+  const safeSeats = Math.max(1, Number(seatsAwarded) || 10);
+  const safeRem = Math.max(safeSeats + 1, Number(playersRemaining) || 12);
+  const safeHero = Math.max(100, Number(heroStack) || 92000);
+  const safeBb = Math.max(10, Number(bb) || 4000);
+  const totalChips = safeTotal * safeStart;
+  const targetSeatStack = Math.round(totalChips / safeSeats);
+  const lockPct = Math.min(99.5, Math.max(1, (safeHero / (targetSeatStack * 1.15)) * 100)).toFixed(1);
+
+  return [
+    '# Tournament Satellite Seat-Bubble & Milestone Survival Calculator',
+    '',
+    `> Source: [Tournament Satellite Seat-Bubble Calculator on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    `In Equal-Prize Satellite Tournaments Awarding ${safeSeats} Identical Seats From ${safeTotal} Entries (${totalChips.toLocaleString('en-US')} Total Chips In Play), Every Chip Above The Target Seat Threshold (${targetSeatStack.toLocaleString('en-US')} Chips) Has Near-Zero Marginal Dollar Value. With ${safeRem} Players Remaining And Hero Holding ${safeHero.toLocaleString('en-US')} Chips (${(safeHero / safeBb).toFixed(1)} BB), Hero Seat Lock Probability Is ${lockPct}%, Creating Extreme Bubble Factors Where Even Pocket Kings Or Pocket Aces Must Fold Against A Covering Stack.`,
+    '',
+    '## Satellite Seat-Bubble All-In Calling Equity Thresholds (10 Seats Awarded, 11-12 Left)',
+    '| Hero Stack (% Of Target Seat) | Seat Lock Probability | Satellite Bubble Factor | Required All-In Calling Equity Vs Covering Stack | Recommended Action With QQ / KK / AA |',
+    '| :--- | :--- | :--- | :--- | :--- |',
+    '| **120%+ Of Target Seat Stack** | 99.0%+ Locked | 7.5x - 10.0x | 88.0% - 91.0% Equity Required | **Fold Everything Including AA** (Seat Already Won) |',
+    '| **95% - 110% Of Target Seat Stack** | 92.0% - 97.5% Locked | 4.5x - 6.5x | 81.8% - 86.7% Equity Required | **Fold AKs, QQ, KK**; Call AA Only If Forced |',
+    '| **70% - 85% Of Target Seat Stack** | 72.0% - 86.0% Locked | 2.8x - 3.8x | 73.7% - 79.2% Equity Required | **Fold AKo/JJ**; Shove First-In Over Short Stacks |',
+    '| **40% - 60% Of Target Seat Stack** | 45.0% - 65.0% Locked | 1.9x - 2.4x | 65.5% - 70.6% Equity Required | Attack Medium Stacks Relentlessly Using Fold Equity |',
+    '| **< 25% Of Target (Short Stack)** | < 25.0% Locked | 1.25x - 1.45x | 55.6% - 59.2% Equity Required | Standard Chip-EV Push/Fold To Double Toward Seat Average |',
+    '',
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    '',
+  ].join('\n');
+}
+
+export function renderPromoEvCalculatorMarkdown({
+  jackpotPool = 250000,
+  qualifier = 'QUAD_8S',
+  promoDrop = 2,
+  highHandPrize = 500,
+  activeTables = 12,
+} = {}) {
+  const url = 'https://smarter.poker/tools/promo-ev-calculator';
+  const safePool = Math.max(10000, Number(jackpotPool) || 250000);
+  const safeDrop = Math.max(0, Number(promoDrop) || 2);
+  const safeHh = Math.max(0, Number(highHandPrize) || 500);
+  const safeTables = Math.max(1, Number(activeTables) || 12);
+
+  return [
+    '# Bad Beat Jackpot (BBJ) & High-Hand Promotion EV Calculator',
+    '',
+    `> Source: [Bad Beat Jackpot & High-Hand Promo EV Calculator on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    `Live Casino Bad Beat Jackpots (BBJ) And Hourly High-Hand Promotions Are Funded By A $1 Or $2 Per-Hand Promotional Drop. At A $${safePool.toLocaleString('en-US')} Bad Beat Jackpot Pool (${clean(qualifier)} Qualifier) Plus A $${safeHh}/Hr High-Hand Across ${safeTables} Active Tables Against A $${safeDrop} Promo Drop, Players Can Compute Exact Per-Hand Expected Value ($EV) And The Breakeven Jackpot Threshold Where Sitting Down Turns +EV Before Skill Edge.`,
+    '',
+    '## Bad Beat Jackpot Qualifier Hit Probabilities & Breakeven Pool Thresholds (9-Handed NLH)',
+    '| Minimum Losing Hand Qualifier | Approximate 9-Handed Hit Odds | Expected Hands Between Hits | Breakeven Jackpot Pool ($1 Drop / 25%Pot Share) | Strategic Pocket Pair Adjustment |',
+    '| :--- | :--- | :--- | :--- | :--- |',
+    '| **Aces Full Of Tens+ Beaten By Quads+** | ~1 In 11,500 Hands | ~380 Table Hours | ~$42,000 Pool | Play All Pocket Pairs & Suited Broadways To See Flops |',
+    '| **Quad 2s+ Beaten By Higher Quads/SF** | ~1 In 32,000 Hands | ~1,060 Table Hours | ~$115,000 Pool | Set-Mine All 13 Pocket Pairs In Low-Rake Multiway Pots |',
+    '| **Quad 8s+ Beaten By Higher Quads/SF** | ~1 In 68,000 Hands | ~2,260 Table Hours | ~$245,000 Pool | Prioritize 88+ And Suited Straight-Flush Connectors |',
+    '| **Quad Tens+ Beaten By Higher Quads/SF** | ~1 In 125,000 Hands | ~4,160 Table Hours | ~$450,000 Pool | Ultra-Rare Hit; Never Slowplay Or Overcall Without Pool > $450k |',
+    '',
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    '',
+  ].join('\n');
+}
+
+export function renderWhoWinsCalculatorMarkdown({
+  board = 'Ah Kd Qh Js 9c',
+  p1 = 'Tc 8c',
+  p2 = 'Ac Kc',
+} = {}) {
+  const url = 'https://smarter.poker/tools/who-wins-calculator';
+  return [
+    '# "What Beats What?" Interactive Texas Hold\'em Showdown & Kicker Resolver',
+    '',
+    `> Source: [What Beats What Showdown & Kicker Calculator on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    `In Texas Hold'em, Every Player Forms Their Best Possible 5-Card Poker Hand From Any Combination Of Their 2 Hole Cards And The 5 Community Board Cards (0, 1, Or 2 Hole Cards May Play). Evaluating Board ${clean(board)} With Player 1 (${clean(p1)}) Vs Player 2 (${clean(p2)}), The Smarter.Poker Deterministic 7-Card Showdown Resolver Identifies The Exact Winning 5-Card Hand, Counterfeited Two Pairs, And Kicker Tie-Breakers.`,
+    '',
+    '## Classic Live Poker Showdown & Kicker Disputes Resolved',
+    '| Showdown Dispute Scenario | 5-Card Community Board | Player 1 Hole Cards | Player 2 Hole Cards | Official Floor Ruling & Winning 5-Card Hand |',
+    '| :--- | :--- | :--- | :--- | :--- |',
+    '| **Counterfeited Two Pair** | K♠ K♦ 9♥ 9♣ 2♠ | A♠ 4♦ (K-K-9-9-A) | 7♥ 7♣ (K-K-9-9-7) | **Player 1 Wins**: Board Pairs Counterfeit 77; Ace Kicker Plays (K-K-9-9-A) |',
+    '| **Board Plays Broadway Split** | A♠ K♦ Q♥ J♣ T♠ | 9♠ 8♠ | A♥ 2♥ | **Exact Split Pot Chop**: Both Play A-K-Q-J-T Board Straight; Extra Ace Does Not Play |',
+    '| **5th-Card Flush Kicker** | A♠ J♠ 9♠ 4♠ 2♦ | K♠ 3♣ (A-K-J-9-4♠) | Q♠ T♠ (A-Q-J-T-9♠) | **Player 1 Wins**: King-Second Flush Beats Queen-Second Flush On 2nd Highest Card |',
+    '| **Full House Over Full House** | Q♠ Q♥ 8♦ 8♣ K♠ | Q♦ 2♣ (Q-Q-Q-8-8) | 8♠ 8♥ (8-8-8-Q-Q) | **Player 2 Wins**: Four Eights (8-8-8-8-K) Or Trips Rank Decides Full Houses |',
+    '| **Wheel Straight Vs Top Pair** | A♣ 4♦ 3♥ 2♠ K♦ | 5♠ 5♣ (5-4-3-2-A) | A♠ Q♠ (A-A-K-Q-4) | **Player 1 Wins**: Ace Plays Low To Complete 5-High Wheel Straight Over Pair Of Aces |',
+    '',
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    '',
+  ].join('\n');
+}
+
+export function renderMixedGamePlacardsMarkdown({
+  preset = 'HORSE_5',
+  handsPerGame = 8,
+} = {}) {
+  const url = 'https://smarter.poker/tools/mixed-game-placards';
+  return [
+    '# Mixed Game (HORSE / 8-Game / Dealer\'s Choice) Rotation Tracker & Printable Placards',
+    '',
+    `> Source: [Mixed Game Rotation Tracker & Printable Placards on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    `Mixed Game Poker Rotations (${clean(preset)} Switching Every ${Number(handsPerGame) || 8} Hands) Alternate Between Fixed-Limit Hold'em, Omaha Hi-Lo 8-Or-Better, Razz, 7-Card Stud, Stud Hi-Lo 8-Or-Better, No-Limit Hold'em, Pot-Limit Omaha, And 2-7 Triple Draw. The Smarter.Poker Mixed Game Tracker Displays Current Game Rules, Betting Limits, Hi-Lo Qualifiers, And Printable Table Placards.`,
+    '',
+    '## Official 8-Game & HORSE Mixed Rotation Specification Table',
+    '| Rotation Order | Variant Code & Name | Betting Structure | Hole / Board Cards | Hi-Lo 8-Or-Better Qualifier | Max Raises Per Street |',
+    '| :--- | :--- | :--- | :--- | :--- | :--- |',
+    '| **1 (T)** | **2-7 Triple Draw Lowball** | Fixed-Limit | 5 Draw Cards (3 Draws) | None (Deuce-To-Seven High-Only Low; Aces High) | Bet + 3 Raises (4-Bet Cap) |',
+    '| **2 (H)** | **Limit Texas Hold\'em** | Fixed-Limit | 2 Hole + 5 Community | None (High Only) | Bet + 3 Raises (4-Bet Cap) |',
+    '| **3 (O)** | **Limit Omaha Hi-Lo 8-Or-Better** | Fixed-Limit | 4 Hole (Must Use 2) + 5 Board | 5 Unpaired Cards 8-Or-Lower For Low Half | Bet + 3 Raises (4-Bet Cap) |',
+    '| **4 (R)** | **Razz (7-Card Stud Low)** | Fixed-Limit (Bring-In) | 3 Down / 4 Up (7 Stud) | None (A-To-5 California Low; No Qualifier) | Bet + 3 Raises (4-Bet Cap) |',
+    '| **5 (S)** | **7-Card Stud High** | Fixed-Limit (Bring-In) | 3 Down / 4 Up (7 Stud) | None (High Only) | Bet + 3 Raises (4-Bet Cap) |',
+    '| **6 (E)** | **7-Card Stud Hi-Lo 8-Or-Better** | Fixed-Limit (Bring-In) | 3 Down / 4 Up (7 Stud) | 8-Or-Better Qualifier For Low Half | Bet + 3 Raises (4-Bet Cap) |',
+    '| **7 (N)** | **No-Limit Texas Hold\'em** | No-Limit (Big Blind) | 2 Hole + 5 Community | None (High Only) | Uncapped All-In |',
+    '| **8 (P)** | **Pot-Limit Omaha (PLO4)** | Pot-Limit (3x + Trail) | 4 Hole (Must Use 2) + 5 Board | None (High Only) | Uncapped Up To Stack |',
+    '',
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    '',
+  ].join('\n');
+}
+
+export function renderPokerIqTestMarkdown() {
+  const url = 'https://smarter.poker/tools/poker-iq-test';
+  return [
+    '# Interactive 10-Question GTO & Live Poker IQ Diagnostic Assessment',
+    '',
+    `> Source: [Interactive GTO & Live Poker IQ Test on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    'The Smarter.Poker 10-Question Poker IQ Assessment Evaluates Players On A 100-To-200 Quantitative Scale Across Ten Core Domains: Pot Odds & Minimum Defense Frequency (MDF), 6-Max Positional RFI Ranges, Malmuth-Harville ICM Bubble Factors, Progressive Knockout (PKO) Bounty Conversion, Flop C-Bet Board Textures, Official TDA Floor Rulings, Preflop 3-Bet Sizing, Stack-To-Pot Ratio (SPR) Commitment, Combinatorics & Blockers, And Risk Of Ruin Bankroll Math.',
+    '',
+    '## Poker IQ Diagnostic Scoring Tiers (100 To 200 Scale)',
+    '| Score Range | Correct Answers | Diagnostic Tier | Strategic Profile & Recommended Study Focus |',
+    '| :--- | :--- | :--- | :--- |',
+    '| **180 - 200 IQ** | 9 - 10 / 10 | **Solver Master** | Elite Quantitative Command Of GTO Frequencies, ICM Risk Premiums, And Combinatorics |',
+    '| **150 - 175 IQ** | 6 - 8 / 10 | **Club Crusher** | Strong Winning Fundamental Edge; Refine Satellite Bubble Factors And PKO Bounty Math |',
+    '| **125 - 145 IQ** | 3 - 5 / 10 | **Studying Reg** | Solid Foundational Intuition; Drill Exact Pot Odds, MDF, And 3-Bet Sizing Multipliers |',
+    '| **100 - 120 IQ** | 0 - 2 / 10 | **Recreational Contender** | High Growth Potential; Start With 13x13 GTO Preflop Ranges And Rule Of 4 And 2 Outs |',
+    '',
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    '',
+  ].join('\n');
+}
+
+export function renderPositionsIndexMarkdown() {
+  const url = 'https://smarter.poker/learn/positions';
+  return [
+    '# 9-Seat Poker Position Strategy Encyclopedia (UTG To Button & Blinds)',
+    '',
+    `> Source: [Poker Position Strategy Encyclopedia on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    'Table Position Is The Single Strongest Determinant Of Long-Term Winrate In Texas Hold\'em And Pot-Limit Omaha. Acting Last On Postflop Streets (In Position) Allows Players To Realize Over 100% Of Their Raw Card Equity, Control Pot Size, And Bluff Efficiently. Below Are The Exact 100BB Solver Raise First In (RFI), 3-Bet, Cold-Call, And Expected BB/100 Winrate Benchmarks Across All Nine Seats.',
+    '',
+    '## 9-Seat GTO Position Benchmarks',
+    '| Position | Code | Seat Category | GTO RFI % | 3-Bet % | Expected Winrate (BB/100) | Canonical Guide |',
+    '| :--- | :--- | :--- | :--- | :--- | :--- | :--- |',
+    ...POKER_POSITIONS.map(
+      (p) => `| **${p.name}** | \`${p.code}\` | ${p.seatType} | ${p.rfiPct} | ${p.threeBetPct} | ${p.expectedWinrateBb100} | https://smarter.poker/learn/positions/${p.slug} |`
+    ),
+    '',
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    '',
+  ].join('\n');
+}
+
+export function renderPositionDetailMarkdown(slug) {
+  const pos = getPositionBySlug(slug);
+  if (!pos) return null;
+  const url = `https://smarter.poker/learn/positions/${pos.slug}`;
+  return [
+    `# ${pos.h1 || pos.title}`,
+    '',
+    `> Source: [${pos.title} on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary',
+    clean(pos.summary),
+    '',
+    '## Quantitative Seat Metrics (100BB Baseline)',
+    `- **Position Code**: \`${pos.code}\` (${pos.seatType})`,
+    `- **GTO Raise First In (RFI) Frequency**: ${pos.rfiPct}`,
+    `- **3-Bet Frequency**: ${pos.threeBetPct}`,
+    `- **Cold-Call Frequency**: ${pos.coldCallPct}`,
+    `- **Expected Winrate**: ${pos.expectedWinrateBb100}`,
+    '',
+    '## Core Preflop & Postflop Strategy',
+    clean(pos.coreStrategy),
+    '',
+    '## Positional Realization & Postflop Advantage',
+    clean(pos.postflopAdvantage),
+    '',
+    '## Common Population Leaks To Avoid',
+    ...(pos.commonLeaks || []).map((l) => `- ${clean(l)}`),
+    '',
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    '',
+  ].join('\n');
+}
+
+export function renderStakesIndexMarkdown() {
+  const url = 'https://smarter.poker/learn/stakes';
+  return [
+    '# Poker Stake Level & Move-Up Readiness Authority Hub',
+    '',
+    `> Source: [Poker Stake Level & Move-Up Hub on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    'Complete Quantitative Breakdown Of Live Cash, Online Cash, Pot-Limit Omaha, And Tournament Stake Tiers Covering Bankroll Requirements, Typical Rake Drag, 3-Bet Frequencies, And Shot-Taking Readiness Checklists.',
+    '',
+    '## Covered Stake Tiers',
+    ...POKER_STAKES.map(
+      (s) => `- **[${s.title || s.name}](https://smarter.poker/learn/stakes/${s.slug})**: ${clean(s.summary)}`
+    ),
+    '',
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    '',
+  ].join('\n');
+}
+
+export function renderStakeDetailMarkdown(slug) {
+  const stake = getStakeBySlug(slug);
+  if (!stake) return null;
+  const url = `https://smarter.poker/learn/stakes/${stake.slug}`;
+  return [
+    `# ${stake.h1 || stake.title}`,
+    '',
+    `> Source: [${stake.title} on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary',
+    clean(stake.summary),
+    '',
+    '## Stake Economics & Population Profile',
+    `- **Typical Buy-In**: ${stake.typicalBuyIn || '100BB'}`,
+    `- **Recommended Bankroll**: ${stake.recommendedBankroll || '25-35 Buy-Ins'}`,
+    `- **Population 3-Bet Frequency**: ${stake.populationThreeBet || '4% - 8%'}`,
+    `- **Typical Rake Impact**: ${stake.rakeImpact || 'Standard Casino Drop'}`,
+    '',
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    '',
+  ].join('\n');
+}
+
+export function renderFamousHandsIndexMarkdown() {
+  const url = 'https://smarter.poker/learn/famous-hands';
+  return [
+    '# Famous Historic Poker Hands & GTO Solver Breakdown Archive',
+    '',
+    `> Source: [Famous Historic Poker Hands Solver Archive on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    'Twelve Iconic Broadcast And Championship Poker Hands Deconstructed Street By Street Through A Modern Game Theory Optimal (GTO) Solver Lens: Pot Odds, Minimum Defense Frequency (MDF), Card Removal Blockers, And Solver Verdict.',
+    '',
+    '## Iconic Hands In Archive',
+    ...FAMOUS_HANDS.map(
+      (h) => `- **[${h.title}](https://smarter.poker/learn/famous-hands/${h.slug})**: ${clean(h.summary)}`
+    ),
+    '',
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    '',
+  ].join('\n');
+}
+
+export function renderFamousHandDetailMarkdown(slug) {
+  const hand = getFamousHandBySlug(slug);
+  if (!hand) return null;
+  const url = `https://smarter.poker/learn/famous-hands/${hand.slug}`;
+  return [
+    `# ${hand.h1 || hand.title}`,
+    '',
+    `> Source: [${hand.title} on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary',
+    clean(hand.summary),
+    '',
+    '## Solver & Blocker Verdict',
+    clean(hand.solverVerdict || hand.blockerAnalysis || hand.summary),
+    '',
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    '',
+  ].join('\n');
+}
+
+export function renderRoadmapsIndexMarkdown() {
+  const url = 'https://smarter.poker/learn/roadmaps';
+  return [
+    '# 90-Day Poker Player Progression & Study Roadmaps',
+    '',
+    `> Source: [90-Day Poker Progression Roadmaps on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    'Structured 90-Day Step-By-Step Study And Bankroll Curriculums For Five Distinct Player Archetypes: Live Cash Beginners, Mid-Stakes Professionals, Circuit Tournament Grinders, PLO Specialists, And Private Club Hosts.',
+    '',
+    '## Available 90-Day Tracks',
+    ...POKER_ROADMAPS.map(
+      (r) => `- **[${r.title}](https://smarter.poker/learn/roadmaps/${r.slug})**: ${clean(r.summary)}`
+    ),
+    '',
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    '',
+  ].join('\n');
+}
+
+export function renderRoadmapDetailMarkdown(slug) {
+  const rm = getRoadmapBySlug(slug);
+  if (!rm) return null;
+  const url = `https://smarter.poker/learn/roadmaps/${rm.slug}`;
+  return [
+    `# ${rm.h1 || rm.title}`,
+    '',
+    `> Source: [${rm.title} on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary',
+    clean(rm.summary),
+    '',
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    '',
+  ].join('\n');
+}
+
+export function renderStatesIndexMarkdown() {
+  const url = 'https://smarter.poker/poker-rooms/states';
+  return [
+    '# US State-By-State Poker Legality, Tax Withholding & Live Room Directory',
+    '',
+    `> Source: [US State Poker Legality & Tax Directory on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    'State-By-State Regulatory Guide Covering Commercial Casinos, Tribal Gaming Compacts, Social Membership Card Clubs, Minimum Gambling Ages (18+ Vs 21+), State Income Tax Withholding On W-2G Tournament Prizes, And Rake Models Across The Top 15 US Poker States.',
+    '',
+    '## Covered US States',
+    '| State | Code | Legal Status | Min Age | State Tax Rate | Live Rooms | Canonical Guide |',
+    '| :--- | :--- | :--- | :--- | :--- | :--- | :--- |',
+    ...US_POKER_STATES.map(
+      (s) => `| **${s.name}** | \`${s.code}\` | ${s.legalStatus} | ${s.minAge} | ${s.stateIncomeTaxRate} | ${s.approxLiveRooms} | https://smarter.poker/poker-rooms/states/${s.slug} |`
+    ),
+    '',
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    '',
+  ].join('\n');
+}
+
+export function renderStateDetailMarkdown(slug) {
+  const st = getStateGuideBySlug(slug);
+  if (!st) return null;
+  const url = `https://smarter.poker/poker-rooms/states/${st.slug}`;
+  return [
+    `# ${st.h1 || st.title}`,
+    '',
+    `> Source: [${st.title} on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary',
+    clean(st.summary),
+    '',
+    '## State Regulatory & Tax Fact Sheet',
+    `- **State**: ${st.name} (${st.code})`,
+    `- **Legal Status**: ${st.legalStatus}`,
+    `- **Minimum Gambling Age**: ${st.minAge}`,
+    `- **State Income Tax Rate**: ${st.stateIncomeTaxRate}`,
+    `- **Approximate Live Poker Rooms**: ${st.approxLiveRooms}`,
+    `- **Rake & Collection Model**: ${st.rakeModel}`,
+    `- **Regulated Online Real-Money Status**: ${st.onlineRealMoneyStatus}`,
+    '',
+    '## Regulatory Overview',
+    clean(st.regulatoryOverview),
+    '',
+    '## Tax Withholding & W-2G Notes',
+    clean(st.taxWithholdingNotes),
+    '',
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    '',
+  ].join('\n');
+}
+
+export function renderPokerMathMarkdown() {
+  const url = 'https://smarter.poker/learn/poker-math';
+  return [
+    '# Complete Poker Math Formulas, Equations & Solver Proofs Reference Hub',
+    '',
+    `> Source: [Poker Math Formulas & Equations Reference Hub on Smarter.Poker](${url})`,
+    '',
+    '## Core Poker Math Equations Reference',
+    '- **Required Calling Equity**: `Equity_Req = Call / (Pot_Before_Call + Call)`',
+    '- **Expected Value (EV)**: `EV = (Win% * Pot_Won) - (Lose% * Cost_Risked)`',
+    '- **Minimum Defense Frequency (MDF)**: `MDF = Pot / (Pot + Bet)`',
+    '- **Bluff Break-Even Frequency (Alpha)**: `Alpha = Bet / (Pot + Bet) = 1 - MDF`',
+    '- **Optimal Polarized River Bluff-To-Value Ratio**: `Bluff_Ratio = Bet / (Pot + 2 * Bet)`',
+    '- **Stack-To-Pot Ratio (SPR)**: `SPR = Effective_Stack / Pot`',
+    '- **Geometric N-Street Bet Sizing**: `g = 0.5 * ((1 + 2 * SPR)^(1 / N) - 1)`',
+    '- **Brownian Motion Risk Of Ruin**: `RoR = exp(-2 * Winrate * Bankroll / Variance)`',
+    '- **Dan Harrington M-Ratio**: `M = Stack / (SB + BB + Total_Orbit_Antes)`',
+    '',
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    '',
+  ].join('\n');
+}
+
+export function renderCheatSheetsMarkdown() {
+  const url = 'https://smarter.poker/learn/cheat-sheets';
+  return [
+    '# Printable One-Page Poker Cheat Sheets & Reference Cards Hub',
+    '',
+    `> Source: [Printable Poker Cheat Sheets Hub on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    'Five Print-Ready Reference Cards Covering Official Poker Hand Rankings, Rule Of 4 And 2 Draw Probabilities, 6-Max 100BB GTO Preflop RFI Ranges, 10BB/15BB Short-Stack Push/Fold Charts, And Home Game Chip Breakdowns.',
+    '',
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    '',
+  ].join('\n');
+}
+
+export function renderOnlineVsLiveMarkdown() {
+  const url = 'https://smarter.poker/learn/online-vs-live-poker';
+  return [
+    '# Online Vs. Live Poker Strategy Transition Guide',
+    '',
+    `> Source: [Online Vs. Live Poker Strategy Transition Guide on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    'Quantitative Comparison Of Online 6-Max Cash And MTT Play Versus Live 9-Handed Casino Poker: Open-Raise Sizing (2.2x-2.5x Online Vs 4x-6x Live), Hands Per Hour (85+ Per Table Online Vs 27-30 Live), Multiway Pot Frequencies, Rake Caps, And Physical Mechanics.',
+    '',
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    '',
+  ].join('\n');
+}
+
+export function renderLivePokerTellsMarkdown() {
+  const url = 'https://smarter.poker/learn/live-poker-tells';
+  return [
+    '# Live Poker Tells, Betting Timing & Anti-Angle-Shooting Encyclopedia',
+    '',
+    `> Source: [Live Poker Tells & Table Etiquette Encyclopedia on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    'Empirical Guide To Live Casino Behavioral Tells, Action-Timing Patterns, Chip-Handling Mechanics, Verbal Speech Clues, And Official TDA Defense Against Common Live Table Angle Shots.',
+    '',
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    '',
+  ].join('\n');
+}
+
+export function renderCompsAndTippingMarkdown() {
+  const url = 'https://smarter.poker/poker-rooms/comps-and-tipping-guide';
+  return [
+    '# Live Casino Poker Comps, Rewards Cards & Dealer Tipping Etiquette Guide',
+    '',
+    `> Source: [Live Casino Poker Comps & Dealer Tipping Guide on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    'Complete Financial Guide To Live Poker Room Player Rewards ($1.00 To $3.00/Hr Comp Earning Rates Across MGM Rewards, Caesars Rewards, Wynn Rewards, And Regional Cardrooms), Cash Game Dealer Toke Standards ($1-$2 Per Pot Won), And Tournament Dealer Appreciation Add-Ons.',
+    '',
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    '',
+  ].join('\n');
+}
 

@@ -42,6 +42,31 @@ import {
   renderFirstTimeGuideMarkdown,
   renderPressKitMarkdown,
   renderSearchDirectoryMarkdown,
+  renderBoardTextureAnalyzerMarkdown,
+  renderMRatioCalculatorMarkdown,
+  renderSessionPlannerMarkdown,
+  renderStraddleCalculatorMarkdown,
+  renderHandConverterMarkdown,
+  renderSatelliteCalculatorMarkdown,
+  renderPromoEvCalculatorMarkdown,
+  renderWhoWinsCalculatorMarkdown,
+  renderMixedGamePlacardsMarkdown,
+  renderPokerIqTestMarkdown,
+  renderPositionsIndexMarkdown,
+  renderPositionDetailMarkdown,
+  renderStakesIndexMarkdown,
+  renderStakeDetailMarkdown,
+  renderFamousHandsIndexMarkdown,
+  renderFamousHandDetailMarkdown,
+  renderRoadmapsIndexMarkdown,
+  renderRoadmapDetailMarkdown,
+  renderStatesIndexMarkdown,
+  renderStateDetailMarkdown,
+  renderPokerMathMarkdown,
+  renderCheatSheetsMarkdown,
+  renderOnlineVsLiveMarkdown,
+  renderLivePokerTellsMarkdown,
+  renderCompsAndTippingMarkdown,
 } from '../../src/lib/seo/markdownIngestion.mjs';
 
 const SITE = 'https://smarter.poker';
@@ -515,6 +540,86 @@ export function renderHubToolMarkdown(targetPath, query = {}) {
   if (cleanPath === '/tools/format-quiz') {
     return renderFormatQuizMarkdown(query);
   }
+  if (cleanPath === '/tools/board-texture-analyzer') {
+    return renderBoardTextureAnalyzerMarkdown(query);
+  }
+  if (cleanPath === '/tools/m-ratio-calculator') {
+    return renderMRatioCalculatorMarkdown(query);
+  }
+  if (cleanPath === '/tools/session-planner') {
+    return renderSessionPlannerMarkdown(query);
+  }
+  if (cleanPath === '/tools/straddle-calculator') {
+    return renderStraddleCalculatorMarkdown(query);
+  }
+  if (cleanPath === '/tools/hand-converter') {
+    return renderHandConverterMarkdown(query);
+  }
+  if (cleanPath === '/tools/satellite-calculator') {
+    return renderSatelliteCalculatorMarkdown(query);
+  }
+  if (cleanPath === '/tools/promo-ev-calculator') {
+    return renderPromoEvCalculatorMarkdown(query);
+  }
+  if (cleanPath === '/tools/who-wins-calculator') {
+    return renderWhoWinsCalculatorMarkdown(query);
+  }
+  if (cleanPath === '/tools/mixed-game-placards') {
+    return renderMixedGamePlacardsMarkdown(query);
+  }
+  if (cleanPath === '/tools/poker-iq-test') {
+    return renderPokerIqTestMarkdown(query);
+  }
+  if (cleanPath === '/learn/positions') {
+    return renderPositionsIndexMarkdown();
+  }
+  if (cleanPath.startsWith('/learn/positions/')) {
+    const slug = cleanPath.slice('/learn/positions/'.length);
+    return renderPositionDetailMarkdown(slug);
+  }
+  if (cleanPath === '/learn/stakes') {
+    return renderStakesIndexMarkdown();
+  }
+  if (cleanPath.startsWith('/learn/stakes/')) {
+    const slug = cleanPath.slice('/learn/stakes/'.length);
+    return renderStakeDetailMarkdown(slug);
+  }
+  if (cleanPath === '/learn/famous-hands') {
+    return renderFamousHandsIndexMarkdown();
+  }
+  if (cleanPath.startsWith('/learn/famous-hands/')) {
+    const slug = cleanPath.slice('/learn/famous-hands/'.length);
+    return renderFamousHandDetailMarkdown(slug);
+  }
+  if (cleanPath === '/learn/roadmaps') {
+    return renderRoadmapsIndexMarkdown();
+  }
+  if (cleanPath.startsWith('/learn/roadmaps/')) {
+    const slug = cleanPath.slice('/learn/roadmaps/'.length);
+    return renderRoadmapDetailMarkdown(slug);
+  }
+  if (cleanPath === '/poker-rooms/states') {
+    return renderStatesIndexMarkdown();
+  }
+  if (cleanPath.startsWith('/poker-rooms/states/')) {
+    const slug = cleanPath.slice('/poker-rooms/states/'.length);
+    return renderStateDetailMarkdown(slug);
+  }
+  if (cleanPath === '/learn/poker-math') {
+    return renderPokerMathMarkdown();
+  }
+  if (cleanPath === '/learn/cheat-sheets') {
+    return renderCheatSheetsMarkdown();
+  }
+  if (cleanPath === '/learn/online-vs-live-poker') {
+    return renderOnlineVsLiveMarkdown();
+  }
+  if (cleanPath === '/learn/live-poker-tells') {
+    return renderLivePokerTellsMarkdown();
+  }
+  if (cleanPath === '/poker-rooms/comps-and-tipping-guide') {
+    return renderCompsAndTippingMarkdown();
+  }
   if (cleanPath === '/learn/matchups') {
     return renderMatchupsIndexMarkdown();
   }
@@ -702,7 +807,7 @@ export function buildOpenSearchXml() {
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/" xmlns:moz="http://www.mozilla.org/2006/browser/search/">',
     '  <ShortName>Smarter.Poker</ShortName>',
-    '  <Description>Search 24 Free Poker Calculators, 169 Starting Hands, 25 Matchups, 30 TDA Rules, 15 Game Variants &amp; 500+ Live Rooms</Description>',
+    '  <Description>Search 34 Free Poker Calculators, 169 Starting Hands, 25 Matchups, 30 TDA Rules, 15 Game Variants &amp; 500+ Live Rooms</Description>',
     '  <InputEncoding>UTF-8</InputEncoding>',
     '  <Image width="192" height="192" type="image/png">https://smarter.poker/icons/icon-192x192.png</Image>',
     '  <Url type="text/html" method="get" template="https://smarter.poker/search?q={searchTerms}" />',
@@ -726,10 +831,10 @@ export function buildFeedsOpmlXml() {
     '  <body>',
     '    <outline text="Smarter.Poker Feeds &amp; Syndication" title="Smarter.Poker Feeds &amp; Syndication">',
     '      <outline type="rss" text="Smarter.Poker Master RSS 2.0 Feed (Tools, Strategy, Rules &amp; Research)" title="Smarter.Poker Master RSS 2.0 Feed" xmlUrl="https://smarter.poker/feed.xml" htmlUrl="https://smarter.poker" />',
-    '      <outline type="rss" text="Smarter.Poker Empirical Research &amp; 24 Calculators JSON Feed 1.1" title="Smarter.Poker Research &amp; Calculators JSON Feed" xmlUrl="https://smarter.poker/api/feeds/research" htmlUrl="https://smarter.poker/research" />',
+    '      <outline type="rss" text="Smarter.Poker Empirical Research &amp; 34 Calculators JSON Feed 1.1" title="Smarter.Poker Research &amp; Calculators JSON Feed" xmlUrl="https://smarter.poker/api/feeds/research" htmlUrl="https://smarter.poker/research" />',
     '      <outline type="link" text="Smarter.Poker Open Datasets Catalog (Schema.org + DataCite + BibTeX)" title="Smarter.Poker Open Datasets Catalog" url="https://smarter.poker/api/datasets/catalog" />',
     '      <outline type="link" text="Smarter.Poker Google Colab / Jupyter Quantitative Notebook (.ipynb)" title="Smarter.Poker Quantitative Research Notebook" url="https://smarter.poker/api/datasets/notebook" />',
-    '      <outline type="link" text="Smarter.Poker Model Context Protocol (MCP) Server (35 Tools)" title="Smarter.Poker 35-Tool MCP Server" url="https://smarter.poker/api/mcp" />',
+    '      <outline type="link" text="Smarter.Poker Model Context Protocol (MCP) Server (45 Tools)" title="Smarter.Poker 45-Tool MCP Server" url="https://smarter.poker/api/mcp" />',
     '      <outline type="link" text="Smarter.Poker Full AI Knowledge Corpus (llms-full.txt)" title="Smarter.Poker Full AI Corpus" url="https://smarter.poker/llms-full.txt" />',
     '    </outline>',
     '  </body>',
@@ -747,15 +852,20 @@ export function buildHumansTxt() {
     'Location: United States',
     '',
     '/* QUANTITATIVE & AI DISCOVERY INFRASTRUCTURE */',
-    'Interactive Calculators: 24 Browser-Native GTO & Math Solvers (https://smarter.poker/tools)',
+    'Interactive Calculators: 34 Browser-Native GTO & Math Solvers (https://smarter.poker/tools)',
     'Starting Hand Encyclopedia: 169 Canonical Holdem Hands (https://smarter.poker/learn/hands)',
     'Preflop Hand Matchups: 25 Combinatoric Matchup Guides (https://smarter.poker/learn/matchups)',
+    'Position Strategy Encyclopedia: 9 Table Seats UTG To BTN (https://smarter.poker/learn/positions)',
+    'Stake Level & Move-Up Hub: 7 Stake Guides (https://smarter.poker/learn/stakes)',
+    'Famous Hands Solver Archive: 12 Iconic Hands (https://smarter.poker/learn/famous-hands)',
+    'Player Progression Roadmaps: 5 90-Day Curriculums (https://smarter.poker/learn/roadmaps)',
     'Official Floor Rulings: 30 TDA & RROP Rulings (https://smarter.poker/rules)',
     'Poker Game Variants: 15 Rules & Mixed-Game Guides (https://smarter.poker/games)',
     'US Regional Market Guides: 12 Major Poker Destinations (https://smarter.poker/poker-rooms/guides)',
+    'US State Poker Legality & Tax Directory: 15 States (https://smarter.poker/poker-rooms/states)',
     'Major Poker Series Guides: 10 Championship Tour Guides (https://smarter.poker/poker-series/guides)',
     'Empirical Research Studies: 15 First-Party Benchmarks (https://smarter.poker/research)',
-    'MCP Server (35 Zero-Auth Tools): https://smarter.poker/api/mcp',
+    'MCP Server (45 Zero-Auth Tools): https://smarter.poker/api/mcp',
     'A2A Agent Discovery Card: https://smarter.poker/.well-known/agent.json',
     'OpenAPI 3.1.0 Specification: https://smarter.poker/openapi.json',
     'OpenSearch Description: https://smarter.poker/opensearch.xml',

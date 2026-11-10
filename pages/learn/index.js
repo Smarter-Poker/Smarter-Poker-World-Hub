@@ -20,6 +20,7 @@
 import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
+import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import {
   LEARN_PATH,
   LEARN_URL,
@@ -151,14 +152,26 @@ export default function LearnIndex({ count, groups }) {
           ))}
 
           <section style={{ marginTop: 36, marginBottom: 24, padding: 20, background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(0, 198, 255, 0.18)', borderRadius: 12 }}>
-            <h2 style={styles.h2}>Connected Poker Tools, Matchups &amp; Field Guides</h2>
+            <h2 style={styles.h2}>Explore All Smarter.Poker Strategy &amp; Authority Hubs</h2>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 12 }}>
-              <Link href="/tools" style={styles.tocLink}>24 Free Poker Calculators &amp; GTO Solvers</Link>
-              <Link href="/learn/matchups" style={styles.tocLink}>25 Canonical All-In Hand Matchups</Link>
               <Link href="/learn/hands" style={styles.tocLink}>169 Starting Hand Encyclopedia</Link>
+              <Link href="/learn/matchups" style={styles.tocLink}>25 Canonical All-In Hand Matchups</Link>
+              <Link href="/learn/positions" style={styles.tocLink}>9-Seat Poker Position Encyclopedia</Link>
+              <Link href="/learn/stakes" style={styles.tocLink}>7 Stake Level &amp; Move-Up Guides</Link>
+              <Link href="/learn/famous-hands" style={styles.tocLink}>12 Famous Historic Poker Hands</Link>
+              <Link href="/learn/roadmaps" style={styles.tocLink}>5 Player Progression Roadmaps</Link>
+              <Link href="/learn/poker-math" style={styles.tocLink}>Complete Poker Math Formulas</Link>
+              <Link href="/learn/cheat-sheets" style={styles.tocLink}>Printable One-Page Cheat Sheets</Link>
+              <Link href="/learn/online-vs-live-poker" style={styles.tocLink}>Online Vs. Live Poker Transition</Link>
+              <Link href="/learn/live-poker-tells" style={styles.tocLink}>Live Poker Tells &amp; Anti-Angle Guide</Link>
               <Link href="/learn/poker-hand-rankings" style={styles.tocLink}>Poker Hand Rankings Cheat Sheet</Link>
+              <Link href="/rules" style={styles.tocLink}>30 Official TDA &amp; Floor Rules</Link>
+              <Link href="/games" style={styles.tocLink}>25 Poker Game Variants Encyclopedia</Link>
+              <Link href="/tools" style={styles.tocLink}>24 Free Poker Calculators &amp; Solvers</Link>
+              <Link href="/poker-rooms/states" style={styles.tocLink}>15 US State Poker Laws &amp; Taxes</Link>
               <Link href="/poker-rooms/guides" style={styles.tocLink}>12 US Regional Poker Market Guides</Link>
               <Link href="/poker-rooms/first-time-guide" style={styles.tocLink}>First-Time Live Poker Room Guide</Link>
+              <Link href="/poker-rooms/comps-and-tipping-guide" style={styles.tocLink}>Casino Comps &amp; Tipping Guide</Link>
               <Link href="/poker-series/guides" style={styles.tocLink}>10 Major Poker Series Survival Guides</Link>
               <Link href="/research" style={styles.tocLink}>Open Poker Research &amp; Datasets</Link>
               <Link href="/compare" style={styles.tocLink}>30 Platform &amp; Solver Comparisons</Link>
@@ -174,6 +187,13 @@ export default function LearnIndex({ count, groups }) {
             summary="Complete solver-backed poker strategy curriculum covering preflop charts, pot odds, minimum defense frequency, ICM pressure, and live cardroom mastery."
             publishedYear="2026"
             slug="smarter-poker-learn-curriculum-index"
+          />
+
+          <AiPromptLauncher
+            title="Smarter.Poker Strategy Lessons & GTO Curriculum Index"
+            canonicalUrl="https://smarter.poker/learn"
+            canonicalPath="/learn"
+            markdownUrl="/learn.md"
           />
 
           <p style={styles.compliance}>Free To Play. 18+. No Real Money Gambling. Chips And Diamonds Have No Cash Value.</p>

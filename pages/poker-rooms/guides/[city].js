@@ -53,6 +53,10 @@ export default function PokerMarketCityGuidePage({ guide }) {
       dateModified: MARKET_GUIDES_AS_OF,
       isAccessibleForFree: true,
       publisher: { '@id': ORGANIZATION_ID },
+      speakable: {
+        '@type': 'SpeakableSpecification',
+        cssSelector: ['h1', '#quick-answer-summary'],
+      },
     },
     {
       '@type': 'FAQPage',
@@ -108,7 +112,7 @@ export default function PokerMarketCityGuidePage({ guide }) {
           {guide.h1}
         </h1>
 
-        <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
+        <p id="quick-answer-summary" style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
           <strong>Direct Market Overview:</strong> {guide.summary}
         </p>
 
