@@ -122,6 +122,62 @@ const SYNDICATED_CALCULATORS = [
     summary: 'Calculate Solver-Backed IP/OOP 3-Bet And 4-Bet Sizing, Break-Even Fold Equity, And Value-To-Bluff Ratios.',
     badgeValue: '3-Bet & 4-Bet MDF Solver',
   },
+  {
+    slug: 'chop-calculator',
+    title: 'Smarter.Poker Final Table Deal & ICM Chop Calculator',
+    url: `${SITE_URL}/tools/chop-calculator`,
+    summary: 'Compare Exact Malmuth-Harville ICM Chop, Linear Chip Chop, And Hybrid Save-Amount Final Table Deal Payouts.',
+    badgeValue: 'Final Table ICM Chop Solver',
+  },
+  {
+    slug: 'variance-calculator',
+    title: 'Smarter.Poker Variance, Downswing & Confidence Interval Simulator',
+    url: `${SITE_URL}/tools/variance-calculator`,
+    summary: 'Calculate Poker Winrate Confidence Bands, Probability Of Loss, And Expected Downswings In Buy-Ins.',
+    badgeValue: 'Variance & Downswing Engine',
+  },
+  {
+    slug: 'outs-calculator',
+    title: 'Smarter.Poker Postflop Poker Outs & Draw Probability Calculator',
+    url: `${SITE_URL}/tools/outs-calculator`,
+    summary: 'Compute Exact Hypergeometric Turn, River, And Flop-To-River Draw Equity Alongside Rule Of 4 And 2 Comparisons.',
+    badgeValue: 'Hypergeometric Outs Solver',
+  },
+  {
+    slug: 'poker-tax-calculator',
+    title: 'Smarter.Poker US Poker Tax, Form W-2G & Session Deduction Calculator',
+    url: `${SITE_URL}/tools/poker-tax-calculator`,
+    summary: 'Estimate IRS Form W-2G Tournament Thresholds ($5,000) And Recreational Vs Professional Session Tax Deductions.',
+    badgeValue: 'US Poker Tax & W-2G Estimator',
+  },
+  {
+    slug: 'staking-calculator',
+    title: 'Smarter.Poker Tournament Staking, Markup & Investor Split Calculator',
+    url: `${SITE_URL}/tools/staking-calculator`,
+    summary: 'Calculate Staking Markup Breakeven ROI, Investor Share Costs, And Post-Series Backing Payout Splits.',
+    badgeValue: 'Staking & Markup Solver',
+  },
+  {
+    slug: 'iso-calculator',
+    title: 'Smarter.Poker Pre-Flop Isolation Raise (ISO) & Limper Sizing Calculator',
+    url: `${SITE_URL}/tools/iso-calculator`,
+    summary: 'Calculate Optimal Pre-Flop Isolation Raise Sizing Against Live And Online Open-Limpers With Flop SPR.',
+    badgeValue: 'Pre-Flop ISO Sizing Engine',
+  },
+  {
+    slug: 'home-game-kit',
+    title: 'Smarter.Poker Home Game Chip Set Denomination & Setup Calculator',
+    url: `${SITE_URL}/tools/home-game-kit`,
+    summary: 'Compute Optimal 300, 500, And 1,000 Piece Chip Set Breakdowns And Printable Home Game House Rules.',
+    badgeValue: 'Home Game Chip Architect',
+  },
+  {
+    slug: 'format-quiz',
+    title: 'Smarter.Poker Format Selector & 7-Day Study Roadmap Quiz',
+    url: `${SITE_URL}/tools/format-quiz`,
+    summary: 'Match Your Session Schedule, Bankroll Cushion, And Risk Tolerance To Your Optimal Poker Format And Study Plan.',
+    badgeValue: 'Format Diagnostic Quiz',
+  },
 ];
 
 export function buildResearchJsonFeed() {

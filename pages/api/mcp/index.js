@@ -17,6 +17,7 @@ import {
   MCP_TOOLS,
   MCP_PROMPTS,
   MCP_RESOURCE_TEMPLATES,
+  buildA2AAgentCard,
 } from '../../../src/lib/mcp/mcpServer.mjs';
 import { originFrom } from '../../../src/lib/poker-near-me/seriesSeo.mjs';
 
@@ -34,6 +35,10 @@ export default async function handler(req, res) {
 
   // SSE (Server-Sent Events) endpoint: GET /api/mcp or GET /api/mcp?transport=sse
   if (req.method === 'GET') {
+    if (String(req.query?.format || '').toLowerCase() === 'a2a') {
+      return res.status(200).json(buildA2AAgentCard(origin));
+    }
+
     const acceptHeader = String(req.headers.accept || '');
     const isSse = acceptHeader.includes('text/event-stream') || req.query.transport === 'sse';
 
@@ -65,12 +70,19 @@ export default async function handler(req, res) {
     return res.status(200).json({
       name: MCP_SERVER_INFO.name,
       version: MCP_SERVER_INFO.version,
+      description: 'Smarter.Poker Model Context Protocol (MCP) Server exposing 30 zero-auth poker mathematics, ICM/Chop, variance, GTO preflop, live cardroom, and TDA rules tools plus 15 resource templates.',
       protocolVersion: '2024-11-05',
       status: 'active',
       transport: ['http-jsonrpc', 'sse'],
+      counts: {
+        tools: MCP_TOOLS.length,
+        prompts: MCP_PROMPTS.length,
+        resourceTemplates: MCP_RESOURCE_TEMPLATES.length,
+      },
       endpoints: {
         jsonrpc: `${origin}/api/mcp`,
         sse: `${origin}/api/mcp?transport=sse`,
+        a2a_agent_card: `${origin}/api/mcp?format=a2a`,
         well_known: `${origin}/.well-known/mcp.json`,
         registry: `${origin}/.well-known/mcp-registry.json`,
       },

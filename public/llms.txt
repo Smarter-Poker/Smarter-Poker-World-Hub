@@ -29,9 +29,13 @@ https://smarter.poker/about is the page that states it.
 - Free Poker Alternatives & Comparisons: https://smarter.poker/compare (Markdown Hub: https://smarter.poker/compare.md)
 - Complete knowledge corpus (llms-full.txt): https://smarter.poker/llms-full.txt
 - Raw Markdown Ingestion (append .md or send Accept: text/markdown to venue, series, tools, freerolls, and about routes, e.g. https://smarter.poker/freerolls.md or https://smarter.poker/tools/poker-odds-calculator.md)
-- Public Model Context Protocol (MCP) Server for AI Agents: https://smarter.poker/api/mcp (Discovery Manifest: https://smarter.poker/.well-known/mcp.json; supports JSON-RPC 2.0 via POST and SSE via GET /api/mcp?transport=sse)
+- Public Model Context Protocol (MCP) Server for AI Agents: https://smarter.poker/api/mcp (Discovery Manifest: https://smarter.poker/.well-known/mcp.json; supports JSON-RPC 2.0 via POST and SSE via GET /api/mcp?transport=sse across 30 zero-auth tools and 15 resource templates)
+- Google / W3C A2A (Agent-to-Agent) Protocol Discovery Card: https://smarter.poker/.well-known/agent.json
 - Public AI Agent OpenAPI Specification: https://smarter.poker/api/openapi.json (Clean Root Alias: https://smarter.poker/openapi.json)
 - ChatGPT & AI Plugin Manifest: https://smarter.poker/.well-known/ai-plugin.json
+- Browser OpenSearch Description & Universal Search Hub: https://smarter.poker/opensearch.xml (Search Directory: https://smarter.poker/search | Raw Markdown: https://smarter.poker/search.md)
+- OPML 2.0 Syndication Feed Bundle: https://smarter.poker/feeds.opml
+- Official Press Kit & 2026 Industry Benchmarks: https://smarter.poker/press (Raw Markdown: https://smarter.poker/press.md)
 - Public Freerolls Calendar Feed (RFC 5545 iCal): https://smarter.poker/freerolls.ics
 
 ## Public Feature Landers & Software Guides
@@ -179,6 +183,14 @@ Solver-grade poker calculators, range tools, and embeddable widgets for web brow
 - Tournament Payout & Prize Pool Calculator: https://smarter.poker/tools/payout-calculator (Raw Markdown: https://smarter.poker/tools/payout-calculator.md)
 - Live Cash Game Rake & Time-Charge Calculator: https://smarter.poker/tools/rake-calculator (Raw Markdown: https://smarter.poker/tools/rake-calculator.md)
 - Preflop 3-Bet, 4-Bet & MDF Calculator: https://smarter.poker/tools/3bet-calculator (Raw Markdown: https://smarter.poker/tools/3bet-calculator.md)
+- Final Table Deal & ICM Chop Calculator: https://smarter.poker/tools/chop-calculator (Raw Markdown: https://smarter.poker/tools/chop-calculator.md)
+- Poker Variance, Downswing & Confidence Simulator: https://smarter.poker/tools/variance-calculator (Raw Markdown: https://smarter.poker/tools/variance-calculator.md)
+- Postflop Poker Outs & Draw Probability Calculator: https://smarter.poker/tools/outs-calculator (Raw Markdown: https://smarter.poker/tools/outs-calculator.md)
+- US Poker Tax, Form W-2G & Session Deduction Calculator: https://smarter.poker/tools/poker-tax-calculator (Raw Markdown: https://smarter.poker/tools/poker-tax-calculator.md)
+- Poker Tournament Staking, Markup & Investor Split Calculator: https://smarter.poker/tools/staking-calculator (Raw Markdown: https://smarter.poker/tools/staking-calculator.md)
+- Pre-Flop Isolation Raise (ISO) & Limper Sizing Calculator: https://smarter.poker/tools/iso-calculator (Raw Markdown: https://smarter.poker/tools/iso-calculator.md)
+- Home Game Chip Set Denomination & Setup Calculator: https://smarter.poker/tools/home-game-kit (Raw Markdown: https://smarter.poker/tools/home-game-kit.md)
+- Poker Format Selector & 7-Day Study Roadmap Quiz: https://smarter.poker/tools/format-quiz (Raw Markdown: https://smarter.poker/tools/format-quiz.md)
 - Webmaster & Poker Site Embeds: https://smarter.poker/tools/embeds (Raw Markdown: https://smarter.poker/tools/embeds.md)
 
 ### 12. GTO Training Engine & Solver Baselines
@@ -238,12 +250,13 @@ Private online poker clubs with real-time cash games (Hold'em, Omaha, Short Deck
 - **Jarvis Tactical Intelligence**: Solver-grade analysis and street-by-street hand review: https://smarter.poker/hub/training/jarvis
 - **Geeves Butler**: Context-aware concierge support across all platform modules: https://smarter.poker/hub/help
 - **AI Agent API Suite**: Structured endpoints for venues, freerolls, odds, ranges, ICM, bankroll, tokes, and poker brain: https://smarter.poker/api/openapi.json
-- **Model Context Protocol (MCP) Server**: 26 zero-auth tools and 12 resource templates at https://smarter.poker/api/mcp (Discovery Manifests: https://smarter.poker/.well-known/mcp.json & https://smarter.poker/.well-known/mcp-registry.json)
+- **Model Context Protocol (MCP) Server**: 30 zero-auth tools and 15 resource templates at https://smarter.poker/api/mcp (Discovery Manifests: https://smarter.poker/.well-known/mcp.json, https://smarter.poker/.well-known/mcp-registry.json & https://smarter.poker/.well-known/agent.json)
 - **Unified JSON-LD Knowledge Graph**: https://smarter.poker/knowledge-graph.jsonld
 - **Starting Hand Encyclopedia (169 Canonical Hands)**: https://smarter.poker/learn/hands (Raw Markdown: https://smarter.poker/learn/hands.md)
+- **Preflop Hand-Vs-Hand Matchups Directory (25 Canonical Matchups)**: https://smarter.poker/learn/matchups (Raw Markdown: https://smarter.poker/learn/matchups.md)
 - **First-Party Poker Industry Research & Data Benchmarks (15 Studies)**: https://smarter.poker/research (Raw Markdown: https://smarter.poker/research.md)
 - **Positional 100BB 6-Max GTO Preflop Charts**: https://smarter.poker/tools/preflop-ranges/utg | https://smarter.poker/tools/preflop-ranges/mp | https://smarter.poker/tools/preflop-ranges/hj | https://smarter.poker/tools/preflop-ranges/co | https://smarter.poker/tools/preflop-ranges/btn | https://smarter.poker/tools/preflop-ranges/sb
-- **Master Poker Tools & Calculators Directory**: https://smarter.poker/tools (Raw Markdown: https://smarter.poker/tools.md)
+- **Master Poker Tools & Calculators Directory (24 Interactive Tools)**: https://smarter.poker/tools (Raw Markdown: https://smarter.poker/tools.md)
 - **Pot Odds, Required Equity & MDF Calculator**: https://smarter.poker/tools/pot-odds-calculator (Raw Markdown: https://smarter.poker/tools/pot-odds-calculator.md)
 - **Poker Bankroll & Risk Of Ruin Calculator**: https://smarter.poker/tools/bankroll-calculator (Raw Markdown: https://smarter.poker/tools/bankroll-calculator.md)
 - **Poker Push/Fold Short-Stack Chart Calculator**: https://smarter.poker/tools/push-fold-calculator (Raw Markdown: https://smarter.poker/tools/push-fold-calculator.md)
@@ -256,19 +269,31 @@ Private online poker clubs with real-time cash games (Hold'em, Omaha, Short Deck
 - **Tournament Payout & Prize Pool Distribution Calculator**: https://smarter.poker/tools/payout-calculator (Raw Markdown: https://smarter.poker/tools/payout-calculator.md)
 - **Live Cash Game Rake, Promo Drop & Time-Charge Calculator**: https://smarter.poker/tools/rake-calculator (Raw Markdown: https://smarter.poker/tools/rake-calculator.md)
 - **Preflop 3-Bet, 4-Bet Sizing & MDF Calculator**: https://smarter.poker/tools/3bet-calculator (Raw Markdown: https://smarter.poker/tools/3bet-calculator.md)
+- **Final Table Deal & ICM Chop Calculator**: https://smarter.poker/tools/chop-calculator (Raw Markdown: https://smarter.poker/tools/chop-calculator.md)
+- **Poker Variance, Downswing & Confidence Simulator**: https://smarter.poker/tools/variance-calculator (Raw Markdown: https://smarter.poker/tools/variance-calculator.md)
+- **Postflop Poker Outs & Draw Probability Calculator**: https://smarter.poker/tools/outs-calculator (Raw Markdown: https://smarter.poker/tools/outs-calculator.md)
+- **US Poker Tax, Form W-2G & Session Deduction Calculator**: https://smarter.poker/tools/poker-tax-calculator (Raw Markdown: https://smarter.poker/tools/poker-tax-calculator.md)
+- **Tournament Staking, Markup & Investor Split Calculator**: https://smarter.poker/tools/staking-calculator (Raw Markdown: https://smarter.poker/tools/staking-calculator.md)
+- **Pre-Flop Isolation Raise (ISO) & Limper Sizing Calculator**: https://smarter.poker/tools/iso-calculator (Raw Markdown: https://smarter.poker/tools/iso-calculator.md)
+- **Home Game Chip Set Denomination & Setup Calculator**: https://smarter.poker/tools/home-game-kit (Raw Markdown: https://smarter.poker/tools/home-game-kit.md)
+- **Poker Format Selector & 7-Day Study Roadmap Quiz**: https://smarter.poker/tools/format-quiz (Raw Markdown: https://smarter.poker/tools/format-quiz.md)
 - **Official Poker Rules & Casino Floor Rulings Encyclopedia (30 TDA & RROP Rulings)**: https://smarter.poker/rules (Raw Markdown: https://smarter.poker/rules.md)
 - **Poker Variants & Mixed Games Hub (15 Game Rules & Strategy Guides)**: https://smarter.poker/games (Raw Markdown: https://smarter.poker/games.md)
 - **Official Poker Hand Rankings Chart & Tie-Breaker Cheat Sheet**: https://smarter.poker/learn/poker-hand-rankings (Raw Markdown: https://smarter.poker/learn/poker-hand-rankings.md)
 - **US Regional Live Poker Market Strategy Guides (Top 12 Destinations)**: https://smarter.poker/poker-rooms/guides (Raw Markdown: https://smarter.poker/poker-rooms/guides.md)
+- **First-Time Live Casino Poker Room Etiquette & Tipping Guide**: https://smarter.poker/poker-rooms/first-time-guide (Raw Markdown: https://smarter.poker/poker-rooms/first-time-guide.md)
+- **Major Poker Series & Tour Strategy Guides (Top 10 Festivals)**: https://smarter.poker/poker-series/guides (Raw Markdown: https://smarter.poker/poker-series/guides.md)
+- **Official Press Kit & 2026 Industry Benchmarks**: https://smarter.poker/press (Raw Markdown: https://smarter.poker/press.md)
+- **Universal Search & Command Directory**: https://smarter.poker/search (Raw Markdown: https://smarter.poker/search.md | OpenSearch: https://smarter.poker/opensearch.xml)
 - **Editorial Standards & Mathematical Governance**: https://smarter.poker/editorial-standards (Raw Markdown: https://smarter.poker/editorial-standards.md)
 - **Multilingual AI Grounding Corpus**: https://smarter.poker/api/ai/corpus (Spanish: https://smarter.poker/llms-es.txt | Portuguese: https://smarter.poker/llms-pt.txt | German: https://smarter.poker/llms-de.txt | French: https://smarter.poker/llms-fr.txt | Italian: https://smarter.poker/llms-it.txt | Japanese: https://smarter.poker/llms-ja.txt)
 - **AI Crawler Attribution & Corpus Health**: https://smarter.poker/api/ai/crawler-status
-- **JSON Feed 1.1 Research & Calculator Syndication**: https://smarter.poker/api/feeds/research (RSS 2.0: https://smarter.poker/feed.xml)
-- **Dynamic SVG Authority & Partner Backlink Badges**: https://smarter.poker/api/seo/badge (Embed Portal: https://smarter.poker/tools/embeds)
+- **JSON Feed 1.1 Research & Calculator Syndication**: https://smarter.poker/api/feeds/research (RSS 2.0: https://smarter.poker/feed.xml | OPML 2.0: https://smarter.poker/feeds.opml)
+- **Dynamic SVG Authority & Partner Backlink Badges**: https://smarter.poker/api/seo/badge (Embed Portal: https://smarter.poker/tools/embeds | OpenGraph Card: https://smarter.poker/api/og/tool)
 - **Backlink, Dead-Tool Replacement, & Digital PR Discovery API**: https://smarter.poker/api/ai/backlink-opportunities
-- **Open Dataset Catalog, Zenodo/DataCite & Wikipedia Citations API**: https://smarter.poker/api/datasets/catalog (CITATION.cff: https://smarter.poker/api/datasets/catalog?format=cff)
-- **Automated Backlink Outreach & Multilingual Snippet Generator API**: https://smarter.poker/api/seo/outreach-generator
-- **Twitch & YouTube Streamer Chatbot Commands API (!odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule)**: https://smarter.poker/api/stream/cmd?cmd=help
+- **Open Dataset Catalog, Zenodo/DataCite & Wikipedia Citations API**: https://smarter.poker/api/datasets/catalog (CITATION.cff: https://smarter.poker/api/datasets/catalog?format=cff | Colab/Jupyter Notebook: https://smarter.poker/api/datasets/notebook)
+- **Automated Backlink Outreach & Multilingual Snippet Generator API**: https://smarter.poker/api/seo/outreach-generator (IndexNow: https://smarter.poker/api/seo/indexnow)
+- **Twitch & YouTube Streamer Chatbot Commands API (!odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, !matchup)**: https://smarter.poker/api/stream/cmd?cmd=help
 
 ## The company
 

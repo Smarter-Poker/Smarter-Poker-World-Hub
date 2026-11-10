@@ -165,14 +165,80 @@ export function renderBadgeSvg({
 </svg>`;
 }
 
+export function renderOgCardSvg({
+  title = 'Smarter.Poker GTO & Quantitative Poker Intelligence',
+  subtitle = '24 Free Interactive Calculators • 169 Hand Guides • 500+ Live Rooms',
+  stat = '100% Free - Zero Login Required',
+} = {}) {
+  const safeTitle = escapeXml(String(title || 'Smarter.Poker GTO & Quantitative Poker Intelligence').slice(0, 86));
+  const safeSubtitle = escapeXml(
+    String(subtitle || '24 Free Interactive Calculators • 169 Hand Guides • 500+ Live Rooms').slice(0, 110)
+  );
+  const safeStat = escapeXml(
+    String(stat || '100% Free - Zero Login Required')
+      .replace(/\u2014/g, '-')
+      .slice(0, 72)
+  );
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="${safeTitle}">
+  <title>${safeTitle}</title>
+  <defs>
+    <linearGradient id="ogBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0a0f18"/>
+      <stop offset="55%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#0a0f18"/>
+    </linearGradient>
+    <linearGradient id="cyanBar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#00d4ff"/>
+      <stop offset="50%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="#0a0f18"/>
+  <rect width="1200" height="630" fill="url(#ogBg)"/>
+  <rect x="0" y="0" width="1200" height="12" fill="#00d4ff"/>
+  <rect x="64" y="64" width="1072" height="502" rx="24" ry="24" fill="#0d1524" stroke="#00d4ff" stroke-opacity="0.35" stroke-width="2"/>
+  <g font-family="Inter, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" text-rendering="geometricPrecision">
+    <rect x="108" y="114" width="290" height="40" rx="20" ry="20" fill="#00d4ff" fill-opacity="0.14" stroke="#00d4ff" stroke-opacity="0.55"/>
+    <circle cx="132" cy="134" r="6" fill="#00d4ff"/>
+    <text x="150" y="140" fill="#00d4ff" font-size="16" font-weight="800" letter-spacing="1.5">SMARTER.POKER OFFICIAL</text>
+    <text x="108" y="255" fill="#f8fafc" font-size="44" font-weight="800">${safeTitle}</text>
+    <text x="108" y="325" fill="#94a3b8" font-size="25" font-weight="600">${safeSubtitle}</text>
+    <rect x="108" y="388" width="560" height="64" rx="14" ry="14" fill="#071e2e" stroke="#00d4ff" stroke-width="2"/>
+    <text x="138" y="429" fill="#00d4ff" font-size="24" font-weight="800">${safeStat}</text>
+    <text x="108" y="518" fill="#64748b" font-size="20" font-weight="700">smarter.poker • Open Quantitative Poker Intelligence &amp; 30-Tool MCP Server</text>
+  </g>
+</svg>`;
+}
+
 export default function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     res.setHeader('Allow', 'GET, HEAD');
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const { type = 'venue', label = '', value = '', theme = '' } = req.query || {};
-  const svg = renderBadgeSvg({ type, label, value, theme });
+  const {
+    type = 'venue',
+    mode = '',
+    label = '',
+    value = '',
+    theme = '',
+    title = '',
+    subtitle = '',
+    stat = '',
+  } = req.query || {};
+
+  const isOg =
+    String(mode || '').toLowerCase() === 'og' ||
+    String(type || '').toLowerCase() === 'og-card';
+
+  const svg = isOg
+    ? renderOgCardSvg({
+        title: title || 'Smarter.Poker GTO & Quantitative Poker Intelligence',
+        subtitle: subtitle || '24 Free Interactive Calculators • 169 Hand Guides • 500+ Live Rooms',
+        stat: stat || '100% Free - Zero Login Required',
+      })
+    : renderBadgeSvg({ type, label, value, theme });
 
   res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
   res.setHeader('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=604800');
