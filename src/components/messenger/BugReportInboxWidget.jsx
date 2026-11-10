@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import ReportBugWidget from '../ui/ReportBugWidget';
-import { authedFetch } from '../../lib/authUtils';
+import { authedFetch, getAuthUserId } from '../../lib/authUtils';
 import { supabase } from '../../lib/supabase';
 
 // The Messenger "Report A Bug" widget.
@@ -12,6 +12,34 @@ import { supabase } from '../../lib/supabase';
 // decided by /api/messenger/bug-reports from the caller's session: this file
 // holds no account id, and a caller the server does not recognise as the
 // recipient keeps the plain form.
+//
+// A failed request is not a "not the recipient" answer. Once the server has
+// confirmed this account as the recipient, that fact is remembered on this
+// device for this account, and a later failure shows Bug Inbox Unavailable
+// with a retry instead of quietly falling back to the plain form.
+
+const RECIPIENT_MEMORY_PREFIX = 'sp_bug_inbox_recipient:';
+
+function recipientMemoryKey() {
+    const accountId = getAuthUserId();
+    return accountId ? `${RECIPIENT_MEMORY_PREFIX}${accountId}` : null;
+}
+
+function wasConfirmedRecipient() {
+    try {
+        const key = recipientMemoryKey();
+        return Boolean(key && window.localStorage.getItem(key) === '1');
+    } catch (_error) { return false; }
+}
+
+function rememberRecipient(isRecipient) {
+    try {
+        const key = recipientMemoryKey();
+        if (!key) return;
+        if (isRecipient) window.localStorage.setItem(key, '1');
+        else window.localStorage.removeItem(key);
+    } catch (_error) { /* private mode: the inbox still works, only the memory is lost */ }
+}
 
 const FOCUSABLE = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
@@ -27,35 +55,49 @@ export default function BugReportInboxWidget({ contextPath, theme = 'dark' }) {
     const [open, setOpen] = useState(false);
     const [selectedId, setSelectedId] = useState(null);
     const [loadError, setLoadError] = useState(false);
+    const [busy, setBusy] = useState(false);
+    const [knownRecipient, setKnownRecipient] = useState(false);
     const [portalReady, setPortalReady] = useState(false);
     const requestRef = useRef(0);
     const triggerRef = useRef(null);
     const dialogRef = useRef(null);
     const closeRef = useRef(null);
 
-    useEffect(() => setPortalReady(true), []);
+    useEffect(() => {
+        setPortalReady(true);
+        setKnownRecipient(wasConfirmedRecipient());
+    }, []);
 
-    const load = useCallback(async () => {
-        const request = ++requestRef.current;
+    // One request shape for listing and for marking read: every answer is the
+    // refreshed inbox, so the badge always shows the saved state.
+    const request = useCallback(async (body = {}) => {
+        const sequence = ++requestRef.current;
+        setBusy(true);
         try {
             const response = await authedFetch('/api/messenger/bug-reports', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: '{}',
+                body: JSON.stringify(body),
             });
             const data = await response.json().catch(() => null);
-            if (request !== requestRef.current) return;
+            if (sequence !== requestRef.current) return;
             if (!response.ok || !data?.success) {
-                // Could not tell. Keep what is shown and say so in the open inbox.
+                // Could not tell. Never treated as "not the recipient".
                 setLoadError(true);
                 return;
             }
             setLoadError(false);
-            setInbox(data.owner === true ? data : null);
+            const isRecipient = data.owner === true;
+            rememberRecipient(isRecipient);
+            setKnownRecipient(isRecipient);
+            setInbox(isRecipient ? data : null);
         } catch (_error) {
-            if (request === requestRef.current) setLoadError(true);
+            if (sequence === requestRef.current) setLoadError(true);
+        } finally {
+            if (sequence === requestRef.current) setBusy(false);
         }
     }, []);
+    const load = useCallback(() => request({}), [request]);
 
     useEffect(() => { load(); }, [load]);
 
@@ -129,21 +171,41 @@ export default function BugReportInboxWidget({ contextPath, theme = 'dark' }) {
         };
     }, [open, load, handleClose]);
 
-    const openReport = useCallback(async (report) => {
+    // Opening a report marks that one report read and no other.
+    const openReport = useCallback((report) => {
         setSelectedId(report.id);
-        if (!report.unread) return;
-        try {
-            const response = await authedFetch('/api/messenger/mark-read', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ conversationId: report.conversationId, throughMessageId: report.messageId }),
-            });
-            // The badge follows the saved state, never an assumed one.
-            if (response.ok) await load();
-        } catch (_error) { /* the report stays unread and is retried on the next open */ }
-    }, [load]);
+        if (report.unread) request({ action: 'read', reportId: report.id });
+    }, [request]);
 
     if (!isOwner) {
+        if (loadError && knownRecipient) {
+            // This account is the recipient and its inbox could not be read.
+            return (
+                <div data-bug-report-inbox-unavailable="true" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div role="alert" style={{
+                        padding: '10px 12px', borderRadius: 10, textAlign: 'left',
+                        border: '1px solid rgba(239,68,68,0.5)', background: 'rgba(239,68,68,0.10)',
+                        color: isLight ? '#b91c1c' : '#fecaca', fontSize: 13, fontWeight: 600,
+                    }}>
+                        Bug Inbox Unavailable
+                        <div style={{ marginTop: 2, fontSize: 12, fontWeight: 400 }}>
+                            Incoming Reports Could Not Be Loaded.
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={load}
+                        disabled={busy}
+                        style={{
+                            minHeight: 44, borderRadius: 10, cursor: busy ? 'default' : 'pointer',
+                            border: '1px solid rgba(239,68,68,0.5)', background: 'transparent',
+                            color: isLight ? '#b91c1c' : '#fecaca', fontSize: 14, fontWeight: 600, fontFamily: 'inherit',
+                        }}
+                    >{busy ? 'Retrying' : 'Retry Bug Inbox'}</button>
+                    <ReportBugWidget contextPath={contextPath} theme={theme} />
+                </div>
+            );
+        }
         return <ReportBugWidget contextPath={contextPath} theme={theme} />;
     }
 
@@ -246,8 +308,9 @@ export default function BugReportInboxWidget({ contextPath, theme = 'dark' }) {
 
                         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overscrollBehavior: 'contain' }}>
                             {loadError && (
-                                <div role="status" style={{ padding: '10px 16px', fontSize: 12, color: '#fbbf24', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                                    Could Not Refresh Bug Reports. Showing The Last Loaded List.
+                                <div role="alert" style={{ padding: '6px 8px 6px 16px', fontSize: 12, color: '#fecaca', background: 'rgba(239,68,68,0.12)', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <span style={{ flex: 1 }}>Bug Inbox Unavailable. Showing The Last Loaded List.</span>
+                                    <button type="button" onClick={load} disabled={busy} style={{ minHeight: 44, padding: '0 12px', background: 'none', border: '1px solid rgba(239,68,68,0.5)', borderRadius: 8, color: '#fecaca', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Retry</button>
                                 </div>
                             )}
                             {selected ? (
@@ -329,7 +392,20 @@ export default function BugReportInboxWidget({ contextPath, theme = 'dark' }) {
                         </div>
 
                         {!selected && (
-                            <div style={{ padding: 12, borderTop: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
+                            <div style={{ padding: 12, borderTop: '1px solid rgba(255,255,255,0.08)', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                {unreadCount > 0 && (
+                                    <button
+                                        type="button"
+                                        data-bug-report-mark-all-read="true"
+                                        onClick={() => request({ action: 'read_all' })}
+                                        disabled={busy}
+                                        style={{
+                                            minHeight: 44, borderRadius: 10, border: '1px solid rgba(255,255,255,0.2)',
+                                            background: 'transparent', color: '#e5e7eb', fontSize: 14, fontWeight: 600,
+                                            cursor: 'pointer', fontFamily: 'inherit',
+                                        }}
+                                    >Mark All Read</button>
+                                )}
                                 <ReportBugWidget contextPath={contextPath} theme="dark" instanceId="messenger-owner-inbox" />
                             </div>
                         )}

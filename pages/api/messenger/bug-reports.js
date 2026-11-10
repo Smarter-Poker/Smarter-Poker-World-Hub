@@ -2,13 +2,18 @@
  * BUG REPORT OWNER INBOX API
  *
  * POST, bearer token required. Returns the routed bug reports and their
- * unread state to the one account public.bug_report_routing names as the
- * recipient. Every other signed-in account receives { owner: false } and no
- * report data; a request with no valid session receives 401.
+ * per-report unread state to the one account public.bug_report_routing names
+ * as the recipient. Body { action: 'read', reportId } marks one report read;
+ * { action: 'read_all' } marks every report read. Both answer with the
+ * refreshed inbox.
+ *
+ * Every other signed-in account receives { owner: false } and no report data
+ * (403 for a read action); a request with no valid session receives 401. A
+ * failed read of the routing or the reports is a 503 that is reported, never
+ * an owner:false answer.
  *
  * The caller's id is the verified JWT subject. Nothing in the query string
- * or body can select whose inbox is read. Marking a report read goes through
- * the existing /api/messenger/mark-read route and its participant check.
+ * or body can select whose inbox is read.
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -31,6 +36,6 @@ function getSupabase() {
 export default createBugReportInboxHandler({
     getDb: getSupabase,
     getUser: (req, db) => getServerUserWithFallback(req, db),
-    rateLimit: (req, res) => applyRateLimit(req, res, LIMITS.read),
+    rateLimit: (req, res) => applyRateLimit(req, res, req.body?.action && req.body.action !== 'list' ? LIMITS.write : LIMITS.read),
     report: reportApiError,
 });
