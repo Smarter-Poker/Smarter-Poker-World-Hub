@@ -7,7 +7,7 @@
  * House style: Title Case, zero em dashes.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function CitationBacklinkBox({
   title = 'Smarter.Poker Empirical Research Study',
@@ -21,6 +21,20 @@ export default function CitationBacklinkBox({
   doi = null,
 }) {
   const [copiedKey, setCopiedKey] = useState(null);
+  const [liveQuerySuffix, setLiveQuerySuffix] = useState('');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location && window.location.search) {
+      const rawSearch = String(window.location.search || '');
+      if (rawSearch.length > 1 && !rawSearch.includes('embed=true')) {
+        setLiveQuerySuffix(rawSearch);
+      }
+    }
+  }, []);
+
+  const sharePermalink = liveQuerySuffix && !canonicalUrl.includes('?')
+    ? `${canonicalUrl}${liveQuerySuffix}`
+    : canonicalUrl;
 
   const badgeUrl = `https://smarter.poker/api/seo/badge?type=${encodeURIComponent(badgeType)}&label=${encodeURIComponent(badgeLabel)}&value=${encodeURIComponent(badgeValue)}`;
 
@@ -38,8 +52,9 @@ export default function CitationBacklinkBox({
 
   const safeTitle = String(title || 'Smarter.Poker Quantitative Poker Research').replace(/\|/g, '-');
   const safeSummary = String(summary || 'Verified poker industry benchmark data and mathematical analysis published by Smarter.Poker.').replace(/\|/g, '-');
-  const redditCitation = `| Resource | Key Benchmark Summary | Source |\n| :--- | :--- | :--- |\n| **${safeTitle}** | ${safeSummary} | [Smarter.Poker: ${safeTitle}](${canonicalUrl}) |`;
-  const discordCitation = `> **${safeTitle}**\n> ${safeSummary}\n> Source: <${canonicalUrl}>`;
+  const redditCitation = `| Resource | Key Benchmark Summary | Source |\n| :--- | :--- | :--- |\n| **${safeTitle}** | ${safeSummary} | [Smarter.Poker: ${safeTitle}](${sharePermalink}) |`;
+  const discordCitation = `> **${safeTitle}**\n> ${safeSummary}\n> Solve & Verify Live: <${sharePermalink}>`;
+  const dynamicOgPreviewUrl = `https://smarter.poker/api/og/tool-card?tool=${encodeURIComponent(badgeType)}&title=${encodeURIComponent(safeTitle)}&result=${encodeURIComponent(badgeValue)}`;
 
   const formats = [
     {
@@ -116,6 +131,16 @@ export default function CitationBacklinkBox({
       setCopiedKey(key);
       setTimeout(() => setCopiedKey(null), 2200);
     }
+    try {
+      if (typeof fetch === 'function') {
+        fetch(
+          `/api/seo/referral-stats?event=record&category=solved_spot_shares&item=${encodeURIComponent(slug || key)}&source=citation-box`,
+          { method: 'POST', keepalive: true }
+        ).catch(() => {});
+      }
+    } catch {
+      // Ignore telemetry error
+    }
   };
 
   return (
@@ -164,9 +189,82 @@ export default function CitationBacklinkBox({
         </a>
       </div>
 
-      <p style={{ margin: '0 0 16px 0', fontSize: 14, color: '#cbd5e1', lineHeight: 1.55 }}>
+      <p style={{ margin: '0 0 14px 0', fontSize: 14, color: '#cbd5e1', lineHeight: 1.55 }}>
         Journalists, Bloggers, Forum Authors, And Academic Researchers May Freely Cite This Dataset Under Creative Commons CC-BY 4.0 With Canonical Attribution To Smarter.Poker:
       </p>
+
+      <div
+        aria-label="Solved Spot Permalink And Instant Share Bar"
+        style={{
+          marginBottom: 16,
+          padding: '12px 14px',
+          background: '#090d16',
+          border: '1px solid rgba(56, 189, 248, 0.35)',
+          borderRadius: 8,
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 10,
+        }}
+      >
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#38bdf8' }}>
+          Instant Solved-Spot Permalink &amp; Group-Chat Share:
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          <button
+            type="button"
+            onClick={() => handleCopy('permalink', sharePermalink)}
+            style={{
+              background: copiedKey === 'permalink' ? '#059669' : '#0284c7',
+              color: '#ffffff',
+              border: 0,
+              borderRadius: 6,
+              padding: '6px 12px',
+              fontSize: 11.5,
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            {copiedKey === 'permalink' ? 'Copied Permalink URL!' : 'Copy Solved-Spot Permalink'}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleCopy('discord-quick', discordCitation)}
+            style={{
+              background: copiedKey === 'discord-quick' ? '#059669' : '#1e293b',
+              color: '#f8fafc',
+              border: '1px solid #38bdf8',
+              borderRadius: 6,
+              padding: '6px 12px',
+              fontSize: 11.5,
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            {copiedKey === 'discord-quick'
+              ? 'Copied Discord Summary!'
+              : 'Copy 1-Click Discord / Forum Summary'}
+          </button>
+          <a
+            href={dynamicOgPreviewUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              background: '#0f172a',
+              color: '#94a3b8',
+              border: '1px solid #334155',
+              borderRadius: 6,
+              padding: '6px 10px',
+              fontSize: 11.5,
+              fontWeight: 600,
+              textDecoration: 'none',
+            }}
+          >
+            View Social OG Card
+          </a>
+        </div>
+      </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {formats.map((item) => {

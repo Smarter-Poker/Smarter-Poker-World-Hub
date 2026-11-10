@@ -775,5 +775,94 @@ test('Phase 6 Partner Installation Suite: oEmbed 1.0 Provider, 1-Line JS Widget 
   }
 });
 
+test('Phase 8 Viral Backlink Loop: SVG Research Charts, iCalendar Feeds, Solved-Spot Permalinks, Share Cards & Telemetry API', async () => {
+  const { recordSeoTelemetryEvent, getSeoTelemetrySnapshot } = await import(
+    '../pages/api/seo/referral-stats.js'
+  );
+  const { buildResearchChartSvg } = await import('../pages/api/seo/research-chart.js');
+  const { buildSeriesCalendarIcs } = await import('../pages/api/seo/series-calendar.js');
+  const { SERIES_GUIDES } = await import('../src/content/guides/seriesGuides.js');
+
+  // 1. Telemetry API (/api/seo/referral-stats)
+  const recorded = recordSeoTelemetryEvent({
+    category: 'widget_embeds',
+    item: 'odds-calculator',
+    partner: 'cardschat.com',
+    source: 'unit-test',
+  });
+  assert.equal(recorded.category, 'widget_embeds');
+  assert.equal(recorded.item, 'odds-calculator');
+  assert.equal(recorded.partner, 'cardschat.com');
+
+  const snapshot = getSeoTelemetrySnapshot();
+  assert.equal(snapshot.schema_version, '1.0.0');
+  assert.equal(snapshot.verified_distribution_surfaces.surface_counts.mcp_tools, 35);
+  assert.equal(snapshot.verified_distribution_surfaces.surface_counts.streamer_chat_commands, 18);
+  assert.equal(snapshot.verified_distribution_surfaces.surface_counts.svg_research_charts, 15);
+  assert.equal(snapshot.verified_distribution_surfaces.surface_counts.ics_calendar_feeds, 11);
+  assert.ok(snapshot.runtime_telemetry.total_events >= 1);
+  assert.ok(snapshot.runtime_telemetry.by_category.widget_embeds >= 1);
+
+  // 2. Dynamic Vector SVG Research Charts (/api/seo/research-chart) across all 15 studies
+  for (const report of RESEARCH_REPORTS) {
+    const svg = buildResearchChartSvg(report);
+    assert.ok(svg.startsWith('<svg xmlns="http://www.w3.org/2000/svg"'), `SVG generated for ${report.slug}`);
+    assert.ok(
+      svg.includes(`https://smarter.poker/research/${report.slug}`),
+      `SVG chart stamps canonical attribution URL for ${report.slug}`
+    );
+    assert.ok(svg.includes('DOI: 10.5281/zenodo.24095049'), `SVG chart stamps Zenodo DOI for ${report.slug}`);
+  }
+
+  // 3. RFC 5545 iCalendar (.ics) Feeds (/api/seo/series-calendar)
+  const freerollIcs = buildSeriesCalendarIcs('freerolls');
+  assert.equal(freerollIcs.slug, 'freerolls');
+  assert.ok(freerollIcs.ics.includes('BEGIN:VCALENDAR'));
+  assert.ok(freerollIcs.ics.includes('RRULE:FREQ=DAILY'));
+  assert.ok(freerollIcs.ics.includes('URL:https://smarter.poker/freerolls'));
+
+  for (const guide of SERIES_GUIDES) {
+    const seriesIcs = buildSeriesCalendarIcs(guide.slug);
+    assert.equal(seriesIcs.slug, guide.slug);
+    assert.ok(seriesIcs.ics.includes('BEGIN:VCALENDAR'));
+    assert.ok(seriesIcs.ics.includes('BEGIN:VEVENT'));
+    assert.ok(
+      seriesIcs.ics.includes(`URL:https://smarter.poker/poker-series/guides/${guide.slug}`),
+      `Series .ics feed includes canonical URL for ${guide.slug}`
+    );
+  }
+
+  // 4. Page & Component Wiring Verification
+  const citationBoxSrc = read('src/components/seo/CitationBacklinkBox.js');
+  assert.ok(citationBoxSrc.includes('Copy Solved-Spot Permalink'), 'CitationBacklinkBox includes Solved-Spot Permalink button');
+  assert.ok(citationBoxSrc.includes('Copy 1-Click Discord / Forum Summary'), 'CitationBacklinkBox includes 1-click Discord summary button');
+
+  const ogToolCardSrc = read('pages/api/og/tool-card.js');
+  assert.ok(ogToolCardSrc.includes("searchParams.get('result')"), 'OG tool-card supports dynamic ?result= parameter');
+  assert.ok(ogToolCardSrc.includes('SOLVED SPOT OUTPUT'), 'OG tool-card renders SOLVED SPOT OUTPUT label');
+
+  const researchDetailSrc = read('pages/research/[slug].js');
+  assert.ok(researchDetailSrc.includes('/api/seo/research-chart?slug='), 'research/[slug].js embeds SVG benchmark chart');
+  assert.ok(researchDetailSrc.includes('Open In Google Colab (Python Notebook)'), 'research/[slug].js links to Google Colab notebook');
+
+  const rulesDetailSrc = read('pages/rules/[slug].js');
+  assert.ok(rulesDetailSrc.includes('Copy Official Ruling For Group Chat'), 'rules/[slug].js includes group-chat ruling share button');
+  assert.ok(rulesDetailSrc.includes('Print Official Table Ruling Sheet'), 'rules/[slug].js includes printable ruling sheet button');
+
+  const matchupsDetailSrc = read('pages/learn/matchups/[slug].js');
+  assert.ok(matchupsDetailSrc.includes('Copy Discord / Group-Chat Equity Card'), 'learn/matchups/[slug].js includes Discord equity card button');
+
+  const handsDetailSrc = read('pages/learn/hands/[hand].js');
+  assert.ok(handsDetailSrc.includes('Copy Forum / Reddit Markdown Card'), 'learn/hands/[hand].js includes Reddit markdown card button');
+
+  const marketGuideSrc = read('pages/poker-rooms/guides/[city].js');
+  assert.ok(marketGuideSrc.includes('Copy Verified Room SVG Badge HTML'), 'poker-rooms/guides/[city].js includes Verified Room SVG Badge HTML copy');
+
+  const seriesGuideSrc = read('pages/poker-series/guides/[slug].js');
+  assert.ok(seriesGuideSrc.includes('Download Series .ICS Calendar'), 'poker-series/guides/[slug].js includes .ICS calendar download');
+  assert.ok(seriesGuideSrc.includes('Add Series To Google Calendar'), 'poker-series/guides/[slug].js includes Google Calendar button');
+});
+
+
 
 

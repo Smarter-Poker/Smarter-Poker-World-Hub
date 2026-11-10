@@ -46,6 +46,28 @@ const INDEX_FAQS = [
 
 export default function PokerRulesIndexPage() {
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [copiedQuickSheet, setCopiedQuickSheet] = useState(false);
+
+  const handleCopyTopRulings = async () => {
+    const text = [
+      '[Smarter.Poker Official Home-Game & Club Floor Quick Rulings (TDA / RROP)]',
+      '1. Showdown Order: Last Aggressive Player On River Shows First; If Checked Down, Left Of Button Shows First.',
+      '2. Single Oversized Chip (TDA Rule 44): Silently Tossing One Oversized Chip Is A Call Unless "Raise" Is Declared First.',
+      '3. Verbal Declarations (TDA Rule 40): Verbal Action In Turn ("Call", "Raise", "All-In") Is 100% Binding.',
+      '4. String Bets: Multi-Motion Chip Movements Without A Prior Verbal Raise Declaration Are Restricted To A Minimum Call.',
+      '5. Odd Chip In Split Pots: Awarded To The First Active Player To The Left Of The Dealer Button (Or High Hand In Hi-Lo).',
+      'Full 30-Rule Official Floor Encyclopedia: https://smarter.poker/rules',
+    ].join('\n');
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(text);
+        setCopiedQuickSheet(true);
+        setTimeout(() => setCopiedQuickSheet(false), 2200);
+      }
+    } catch {
+      // Ignore clipboard failure
+    }
+  };
 
   const filteredRules =
     selectedCategory === 'All'
@@ -161,6 +183,44 @@ export default function PokerRulesIndexPage() {
             <Link href="/glossary" style={styles.crossBtnOutline}>
               Poker Glossary ({'80+'} Terms)
             </Link>
+            <button
+              type="button"
+              onClick={handleCopyTopRulings}
+              style={{
+                padding: '9px 14px',
+                background: copiedQuickSheet ? '#10b981' : '#081118',
+                color: copiedQuickSheet ? '#020608' : '#25c8ff',
+                border: '1px solid #25c8ff',
+                borderRadius: '2px',
+                fontSize: '12px',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              {copiedQuickSheet
+                ? 'Copied Top 5 Home-Game Rulings'
+                : 'Copy Top 5 Rulings For Group Chat'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof window !== 'undefined' && typeof window.print === 'function') {
+                  window.print();
+                }
+              }}
+              style={{
+                padding: '9px 14px',
+                background: '#081118',
+                color: '#f2b84b',
+                border: '1px solid #f2b84b',
+                borderRadius: '2px',
+                fontSize: '12px',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              Print Official 30-Rule Table Sheet
+            </button>
           </div>
         </header>
 

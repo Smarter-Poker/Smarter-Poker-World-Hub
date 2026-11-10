@@ -41,10 +41,13 @@ export default async function handler(req) {
         ? '$0 (100% FREE)'
         : '100% FREE';
 
+    const solvedResult = searchParams.get('result') || searchParams.get('spot') || '';
     const title = searchParams.get('title') || defaultTitle;
     const subtitle = searchParams.get('subtitle') || defaultSubtitle;
-    const statLabel = searchParams.get('statLabel') || defaultStatLabel;
-    const statValue = searchParams.get('statValue') || defaultStatValue;
+    const statLabel =
+      searchParams.get('statLabel') || (solvedResult ? 'SOLVED SPOT OUTPUT' : defaultStatLabel);
+    const statValue =
+      searchParams.get('statValue') || (solvedResult ? solvedResult : defaultStatValue);
 
     const defaultBadge = isFreerolls
       ? 'DAILY 2,000 CHIP FREEROLLS'

@@ -218,6 +218,22 @@
       container.appendChild(iframe);
       container.appendChild(footer);
       container.setAttribute('data-sp-mounted', 'true');
+
+      try {
+        var beaconUrl =
+          'https://smarter.poker/api/seo/referral-stats?event=record&category=widget_embeds&item=' +
+          encodeURIComponent(widgetKey) +
+          '&partner=' +
+          encodeURIComponent(partner || 'anonymous-embed') +
+          '&source=embed-sdk';
+        if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
+          navigator.sendBeacon(beaconUrl);
+        } else if (typeof fetch === 'function') {
+          fetch(beaconUrl, { method: 'POST', mode: 'cors', keepalive: true }).catch(function () {});
+        }
+      } catch (e) {
+        // Ignore telemetry errors on restricted host pages
+      }
     }
   }
 

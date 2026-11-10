@@ -8,7 +8,7 @@
  * House style: Title Case, zero em dashes.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -45,10 +45,32 @@ export async function getStaticProps({ params }) {
 }
 
 export default function PokerSeriesDetailPage({ guide, peerGuides = [] }) {
+  const [copiedSeriesEmbed, setCopiedSeriesEmbed] = useState(false);
   const canonicalPath = `/poker-series/guides/${guide.slug}`;
   const canonicalUrl = `https://smarter.poker${canonicalPath}`;
   const seoTitle = `${guide.shortName} Strategy And Structure Guide`;
   const seoDesc = `${guide.name} Strategy Guide At ${guide.hostVenue} (${guide.cityState}): ${guide.buyInRange} Buy-Ins, ${guide.startingStackBB} Stacks, And Bankroll Sizing.`;
+  const icsFeedPath = `/api/seo/series-calendar?slug=${encodeURIComponent(guide.slug)}`;
+  const googleCalTemplateUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`${guide.name} (${guide.cityState})`)}&details=${encodeURIComponent(`${guide.name} At ${guide.hostVenue}. Buy-Ins: ${guide.buyInRange} (Main Event: ${guide.mainEventBuyIn}). Full Structure & Strategy Guide: ${canonicalUrl}`)}&location=${encodeURIComponent(`${guide.hostVenue}, ${guide.cityState}`)}`;
+  const seriesTableHtml = `<div style="padding:14px;background:#070b14;border:1px solid #1e293b;border-radius:8px;color:#e2e8f0;font-family:Inter,system-ui,sans-serif;"><div style="font-size:14px;font-weight:700;color:#38bdf8;margin-bottom:6px;">${guide.name} (${guide.cityState}) - Structure &amp; Schedule</div><p style="margin:0 0 8px 0;font-size:12.5px;color:#cbd5e1;">Venue: ${guide.hostVenue} | Window: ${guide.typicalMonths} | Buy-Ins: ${guide.buyInRange} | Main Event: ${guide.mainEventBuyIn}</p><a href="${canonicalUrl}" target="_blank" rel="noopener" style="font-size:12px;font-weight:700;color:#34d399;text-decoration:none;">View Full ${guide.shortName} Schedule, Late-Reg EV &amp; Bankroll Guide At Smarter.Poker</a></div>`;
+
+  const handleCopySeriesWidget = async () => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(seriesTableHtml);
+        setCopiedSeriesEmbed(true);
+        setTimeout(() => setCopiedSeriesEmbed(false), 2200);
+      }
+      if (typeof fetch === 'function') {
+        fetch(
+          `/api/seo/referral-stats?event=record&category=widget_embeds&item=series-${encodeURIComponent(guide.slug)}&source=series-guide`,
+          { method: 'POST', keepalive: true }
+        ).catch(() => {});
+      }
+    } catch {
+      // Ignore clipboard error
+    }
+  };
 
   const jsonLd = [
     {
@@ -164,6 +186,29 @@ export default function PokerSeriesDetailPage({ guide, peerGuides = [] }) {
             <Link href={SERIES_GUIDES_BASE_PATH} style={styles.crossBtnOutline}>
               All 10 Major Series Guides
             </Link>
+            <a href={icsFeedPath} style={styles.crossBtnCyan}>
+              Download Series .ICS Calendar
+            </a>
+            <a
+              href={googleCalTemplateUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={styles.crossBtnEmerald}
+            >
+              Add Series To Google Calendar
+            </a>
+            <button
+              type="button"
+              onClick={handleCopySeriesWidget}
+              style={{
+                ...styles.crossBtnOutline,
+                cursor: 'pointer',
+                background: copiedSeriesEmbed ? '#10b981' : 'transparent',
+                color: copiedSeriesEmbed ? '#04131d' : '#e2e8f0',
+              }}
+            >
+              {copiedSeriesEmbed ? 'Copied Schedule Embed HTML' : 'Copy Embeddable Schedule Card'}
+            </button>
           </div>
         </header>
 

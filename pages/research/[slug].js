@@ -8,6 +8,7 @@
    House style: Title Case, no em dashes.
    ═══════════════════════════════════════════════════════════════════════════ */
 
+import React, { useState } from 'react';
 import Link from 'next/link';
 import SEOHead, { schemas } from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
@@ -154,6 +155,11 @@ function reportJsonLd(report) {
           encodingFormat: 'application/json',
           contentUrl: `${SITE_URL}/api/datasets/catalog?slug=${report.slug}`,
         },
+        {
+          '@type': 'DataDownload',
+          encodingFormat: 'image/svg+xml',
+          contentUrl: `${SITE_URL}/api/seo/research-chart?slug=${report.slug}`,
+        },
       ],
     },
     {
@@ -181,10 +187,28 @@ function reportJsonLd(report) {
 }
 
 export default function ResearchReportDetailPage({ report }) {
+  const [chartCopiedKey, setChartCopiedKey] = useState('');
   const path = researchPath(report.slug);
   const url = `${SITE_URL}${path}`;
   const ogImageUrl = `${SITE_URL}/api/og/tool-card?tool=research&title=${encodeURIComponent(report.shortTitle)}`;
+  const chartSvgUrl = `${SITE_URL}/api/seo/research-chart?slug=${encodeURIComponent(report.slug)}`;
+  const colabNotebookUrl =
+    'https://colab.research.google.com/github/Smarter-Poker/smarter-poker-open-datasets/blob/main/notebooks/poker_math_benchmarks_2026.ipynb';
+  const chartHtmlSnippet = `<figure style="margin:0;padding:14px;background:#070b14;border:1px solid #1e293b;border-radius:10px;text-align:center;"><a href="${url}" target="_blank" rel="noopener"><img src="${chartSvgUrl}" alt="${report.title}" width="880" height="460" style="max-width:100%;height:auto;border-radius:8px;" loading="lazy" /></a><figcaption style="margin-top:8px;font-size:12px;color:#94a3b8;font-family:Inter,system-ui,sans-serif;">Source: <a href="${url}" target="_blank" rel="noopener" style="color:#38bdf8;text-decoration:none;font-weight:600;">${report.shortTitle} (Smarter.Poker Research)</a></figcaption></figure>`;
+  const chartMarkdownSnippet = `[![${report.shortTitle}](${chartSvgUrl})](${url})\n*Source: [${report.title}](${url}) (Smarter.Poker Research, DOI: ${report.doi || '10.5281/zenodo.24095049'})*`;
   const others = RESEARCH_REPORTS.filter((r) => r.slug !== report.slug);
+
+  const handleChartCopy = async (key, value) => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(value);
+        setChartCopiedKey(key);
+        setTimeout(() => setChartCopiedKey(''), 2200);
+      }
+    } catch {
+      // Clipboard fallback ignored
+    }
+  };
 
   return (
     <div style={{ minHeight: '100vh', background: '#070b14', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -258,6 +282,23 @@ export default function ResearchReportDetailPage({ report }) {
           >
             {report.swhid || 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f'}
           </a>
+          <a
+            href={colabNotebookUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              fontSize: 12,
+              fontWeight: 700,
+              color: '#f59e0b',
+              background: 'rgba(245, 158, 11, 0.12)',
+              border: '1px solid #f59e0b',
+              padding: '4px 10px',
+              borderRadius: 6,
+              textDecoration: 'none',
+            }}
+          >
+            Open In Google Colab (Python Notebook)
+          </a>
         </div>
 
         <h1 style={{ fontSize: 32, fontWeight: 800, color: '#f8fafc', margin: '0 0 16px 0', lineHeight: 1.2 }}>
@@ -277,6 +318,88 @@ export default function ResearchReportDetailPage({ report }) {
               <li key={finding} style={{ marginBottom: 8 }}>{finding}</li>
             ))}
           </ul>
+        </section>
+
+        <section
+          aria-label="Embeddable Vector Benchmark Chart"
+          style={{
+            marginBottom: 32,
+            padding: 20,
+            background: '#0f172a',
+            borderRadius: 12,
+            border: '1px solid #1e293b',
+          }}
+        >
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+            <div>
+              <h2 style={{ fontSize: 20, fontWeight: 700, color: '#f8fafc', margin: 0 }}>
+                Publication-Ready Vector Benchmark Chart (CC BY 4.0)
+              </h2>
+              <p style={{ fontSize: 13, color: '#94a3b8', margin: '4px 0 0 0' }}>
+                Embed Or Download This Vector SVG Chart With Canonical Smarter.Poker And Zenodo DOI Attribution
+              </p>
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <button
+                type="button"
+                onClick={() => handleChartCopy('html', chartHtmlSnippet)}
+                style={{
+                  padding: '7px 12px',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  borderRadius: 6,
+                  border: '1px solid #38bdf8',
+                  background: chartCopiedKey === 'html' ? '#10b981' : 'rgba(56, 189, 248, 0.14)',
+                  color: chartCopiedKey === 'html' ? '#04131d' : '#38bdf8',
+                  cursor: 'pointer',
+                }}
+              >
+                {chartCopiedKey === 'html' ? 'Copied HTML Chart Embed' : 'Copy HTML Chart Embed'}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleChartCopy('md', chartMarkdownSnippet)}
+                style={{
+                  padding: '7px 12px',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  borderRadius: 6,
+                  border: '1px solid #10b981',
+                  background: chartCopiedKey === 'md' ? '#10b981' : 'rgba(16, 185, 129, 0.12)',
+                  color: chartCopiedKey === 'md' ? '#04131d' : '#34d399',
+                  cursor: 'pointer',
+                }}
+              >
+                {chartCopiedKey === 'md' ? 'Copied Markdown Chart' : 'Copy Markdown Chart'}
+              </button>
+              <a
+                href={`/api/seo/research-chart?slug=${encodeURIComponent(report.slug)}&download=1`}
+                style={{
+                  padding: '7px 12px',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  borderRadius: 6,
+                  border: '1px solid #475569',
+                  background: '#070b14',
+                  color: '#e2e8f0',
+                  textDecoration: 'none',
+                }}
+              >
+                Download SVG Chart
+              </a>
+            </div>
+          </div>
+
+          <div style={{ background: '#070b14', padding: 12, borderRadius: 8, border: '1px solid #1e293b', textAlign: 'center' }}>
+            <img
+              src={`/api/seo/research-chart?slug=${encodeURIComponent(report.slug)}`}
+              alt={`${report.title} Benchmark Chart`}
+              width={880}
+              height={460}
+              loading="lazy"
+              style={{ maxWidth: '100%', height: 'auto', borderRadius: 6, display: 'block', margin: '0 auto' }}
+            />
+          </div>
         </section>
 
         <section style={{ marginBottom: 32, overflowX: 'auto' }}>
