@@ -238,6 +238,7 @@ jobs:
           __tests__/messenger-continuity-server.test.mjs
           __tests__/messenger-continuity-live-safety.test.mjs
           __tests__/messenger-read-state.test.mjs
+          __tests__/messenger-bug-report-owner-inbox.test.mjs
           __tests__/messenger-sync-lifecycle.test.mjs
           __tests__/messenger-completion-lifecycle.test.mjs
           __tests__/messenger-organization.test.mjs
