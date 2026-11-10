@@ -152,6 +152,15 @@ jobs:
       - name: The ref guard tells the truth about origin
         run: node --test __tests__/ref-guard-tells-the-truth-about-origin.test.mjs
 
+      # A worker update never reloads the page you are on (2026-11-10). These
+      # two files pinned the service-worker upgrade handshake for months with
+      # no workflow running them, so when the reload they guarded became the
+      # defect Dan reported, nothing in CI could have caught it (CLAUDE.md
+      # 10.83: a check nobody can see is not a check). They need no
+      # node_modules, so they sit above the install steps with the others.
+      - name: A Worker Update Never Reloads The Page You Are On
+        run: node --test __tests__/sw-update.test.mjs __tests__/messenger-calls-work.law.test.mjs
+
       - name: Restore node_modules For Training Authority
         id: training-authority-nm-cache
         uses: actions/cache@v4

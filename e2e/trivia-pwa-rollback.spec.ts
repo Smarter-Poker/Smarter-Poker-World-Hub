@@ -23,10 +23,11 @@ async function activateRootWorker(
   expectedSearch: string,
 ) {
   await page.evaluate(async ({ script, search }) => {
-    // This test owns worker activation, not updater reload behavior. Keep the
-    // updater's existing one-minute reload guard closed so Playwright observes
-    // one document and can await the exact candidate's state transition.
-    sessionStorage.setItem('sp_sw_reloaded_at', String(Date.now()));
+    // This test owns worker activation, not updater reload behavior. Since
+    // 2026-11-10 ServiceWorkerUpdater performs no reload at all, so nothing
+    // has to be suppressed here: Playwright observes one document and can
+    // await the exact candidate's state transition. The old
+    // `sp_sw_reloaded_at` cooldown seed is gone with the reload it guarded.
     const registration = await navigator.serviceWorker.register(script, { scope: '/' });
     const matches = (worker: ServiceWorker | null) => {
       if (!worker) return false;
