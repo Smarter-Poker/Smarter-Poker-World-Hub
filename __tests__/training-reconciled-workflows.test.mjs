@@ -52,32 +52,36 @@ test('PLO selector normalizes Holdem, PLO4, PLO5, and PLO6 and deals exact hole 
   ];
 
   for (const { key, expectedCards, expectedStructure } of variants) {
-    const [q] = generateCuratedPokerConceptBatch({
-      gameId: 'cash-005',
-      level: 1,
-      count: 1,
-      gameConfig: {
-        pioGameType: 'plo_6max',
-        pioStackDepth: 100,
-        variant: key,
-      },
-      targetStreet: 'flop',
-    });
-    assert.ok(q, `Expected curated question for variant ${key}`);
-    assert.equal(q.heroCards.length, expectedCards, `Expected ${expectedCards} hole cards for ${key}`);
-    assert.equal(q.scenario.variant, key);
-    assert.equal(q.scenario.holeCardCount, expectedCards);
-    assert.equal(q.scenario.bettingStructure, expectedStructure);
+    for (const targetStreet of ['preflop', 'flop']) {
+      const [q] = generateCuratedPokerConceptBatch({
+        gameId: 'cash-005',
+        level: 1,
+        count: 1,
+        gameConfig: {
+          pioGameType: 'plo_6max',
+          pioStackDepth: 100,
+          variant: key,
+        },
+        targetStreet,
+      });
+      assert.ok(q, `Expected curated question for variant ${key} on ${targetStreet}`);
+      assert.equal(q.heroCards.length, expectedCards, `Expected ${expectedCards} hole cards for ${key}`);
+      assert.equal(q.scenario.variant, key);
+      assert.equal(q.scenario.holeCardCount, expectedCards);
+      assert.equal(q.scenario.bettingStructure, expectedStructure);
+      assert.doesNotMatch(String(q.scenario.madeHandCategory || ''), /undefined/i, `madeHandCategory must not contain undefined in ${key} ${targetStreet}`);
+      assert.doesNotMatch(String(q.explanation || ''), /undefined/i, `explanation must not contain undefined in ${key} ${targetStreet}`);
 
-    // Ensure zero card collisions between heroCards and boardCards
-    const allDealt = [...q.heroCards, ...(q.boardCards || [])].map((c) => c.toUpperCase());
-    assert.equal(new Set(allDealt).size, allDealt.length, `Duplicate card dealt in ${key}`);
+      // Ensure zero card collisions between heroCards and boardCards
+      const allDealt = [...q.heroCards, ...(q.boardCards || [])].map((c) => c.toUpperCase());
+      assert.equal(new Set(allDealt).size, allDealt.length, `Duplicate card dealt in ${key}`);
 
-    if (expectedStructure === 'pot_limit') {
-      assert.ok(
-        q.options.some((opt) => /Pot/i.test(opt.text)),
-        `Expected Pot-Limit legal action sizing in ${key}`,
-      );
+      if (expectedStructure === 'pot_limit') {
+        assert.ok(
+          q.options.some((opt) => /Pot/i.test(opt.text)),
+          `Expected Pot-Limit legal action sizing in ${key}`,
+        );
+      }
     }
   }
 });

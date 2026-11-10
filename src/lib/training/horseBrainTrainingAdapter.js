@@ -519,8 +519,28 @@ export function evaluateTrainingSpotWithHorseBrain({
       rawBrainDecision = makeFallbackDecision('hero-brain', gameState, brainLegalActions);
     } else if (normVariant === 'plo4') {
       engineModule = 'plo-core.js';
-      const preflopEval = classifyPLOPreflop(parsedHero);
-      preflopProfile = preflopEval;
+      const rawPreflopScore = classifyPLOPreflop(parsedHero);
+      const plo4Score = typeof rawPreflopScore === 'number'
+        ? rawPreflopScore
+        : (Number(rawPreflopScore?.score) || 50);
+      const suitFreq4 = {};
+      for (const c of parsedHero) suitFreq4[c.suit] = (suitFreq4[c.suit] || 0) + 1;
+      const suitCounts4 = Object.values(suitFreq4).sort((a, b) => b - a);
+      const plo4Suitedness = suitCounts4[0] >= 3
+        ? 'triple-suited'
+        : suitCounts4[0] === 2 && suitCounts4[1] >= 2
+          ? 'double-suited'
+          : suitCounts4[0] === 2
+            ? 'single-suited'
+            : 'rainbow';
+      const plo4Tier = plo4Score >= 82
+        ? 'premium'
+        : plo4Score >= 66
+          ? 'strong'
+          : plo4Score >= 50
+            ? 'playable'
+            : 'marginal';
+      preflopProfile = { score: plo4Score, tier: plo4Tier, suitedness: plo4Suitedness };
       const omahaEval = evaluateOmahaExactTwoPlusThree(cleanHero, cleanBoard);
       bestTwoHoleCards = omahaEval.bestTwoHoleCards;
       bestThreeBoardCards = omahaEval.bestThreeBoardCards;
@@ -529,8 +549,8 @@ export function evaluateTrainingSpotWithHorseBrain({
       straightOuts = Math.max(Number(omahaEval.straightDraw?.outs) || 0, Number(omahaEval.wrapDraw?.wrapOuts) || 0);
       wrapType = omahaEval.wrapDraw?.wrapType || omahaEval.straightDraw?.type || 'none';
       if (normStreet === 'preflop') {
-        handScore = Number(preflopEval.score) || 50;
-        madeHandCategory = `PLO4 ${preflopEval.tier} (${preflopEval.suitCategory})`;
+        handScore = plo4Score;
+        madeHandCategory = `PLO4 ${plo4Tier} (${plo4Suitedness})`;
       } else {
         const drawBonus = Math.min(28, flushOuts * 1.6 + straightOuts * 1.2);
         handScore = Math.min(100, Math.round((Number(omahaEval.madeHand?.strength) || 35) + drawBonus));
@@ -540,22 +560,25 @@ export function evaluateTrainingSpotWithHorseBrain({
       rawBrainDecision = makePLOFallbackDecision('hero-brain', gameState, brainLegalActions);
     } else if (normVariant === 'plo5') {
       engineModule = 'plo5-brain.js';
-      const preflopEval = scorePLO5Hand(parsedHero);
+      const preflopEval = scorePLO5Hand(cleanHero);
       preflopProfile = preflopEval;
       const omahaEval = evaluateOmahaExactTwoPlusThree(cleanHero, cleanBoard);
       bestTwoHoleCards = omahaEval.bestTwoHoleCards;
       bestThreeBoardCards = omahaEval.bestThreeBoardCards;
       if (normStreet === 'preflop') {
-        handScore = Number(preflopEval.score) || 50;
-        madeHandCategory = `PLO5 ${preflopEval.category} (${preflopEval.suitPattern}${preflopEval.hasDangler ? ', dangler' : ', coordinated'})`;
+        handScore = Number(preflopEval?.score) || 50;
+        const tier5 = preflopEval?.tier || 'playable';
+        const suited5 = preflopEval?.suitedness || 'single-suited';
+        const fifthVal = preflopEval?.fifthCardValue || 'coordinated';
+        madeHandCategory = `PLO5 ${tier5} (${suited5}, ${fifthVal})`;
       } else {
         const boardTex = analyzePLOBoardTexture(parsedBoard);
-        const draws5 = classifyPLO5Draws(parsedHero, parsedBoard, omahaEval.madeHand);
-        const flushHier5 = evaluatePLO5FlushHierarchy(parsedHero, parsedBoard);
-        const adjStrengthObj = adjustPLO5PostflopStrength(omahaEval.madeHand, boardTex, parsedHero, parsedBoard);
+        const draws5 = classifyPLO5Draws(cleanHero, cleanBoard, normStreet);
+        const flushHier5 = evaluatePLO5FlushHierarchy(cleanHero, cleanBoard);
+        const adjStrengthObj = adjustPLO5PostflopStrength(omahaEval.madeHand, draws5, normStreet, cleanHero, cleanBoard);
         const adjBase = Number(adjStrengthObj?.adjustedStrength ?? adjStrengthObj ?? omahaEval.madeHand?.strength) || 35;
         flushOuts = Number(omahaEval.flushDraw?.outs) || 0;
-        isNutFlushDraw = Boolean(draws5?.nutFlushDraw || flushHier5?.hasNutFlushDraw || omahaEval.flushDraw?.isNutFlushDraw);
+        isNutFlushDraw = Boolean(draws5?.nutFlushDraw || flushHier5?.flushRank === 'nut' || omahaEval.flushDraw?.isNutFlushDraw);
         straightOuts = Math.max(Number(omahaEval.straightDraw?.outs) || 0, Number(omahaEval.wrapDraw?.wrapOuts) || 0);
         const totalCleanOuts = Math.max(Number(draws5?.totalOuts) || 0, flushOuts + straightOuts);
         wrapType = draws5?.drawLabel || omahaEval.wrapDraw?.wrapType || 'none';
@@ -566,27 +589,30 @@ export function evaluateTrainingSpotWithHorseBrain({
       rawBrainDecision = makePLO5Decision('hero-brain', gameState, brainLegalActions);
     } else if (normVariant === 'plo6') {
       engineModule = 'plo6-brain.js';
-      const preflopEval = scorePLO6Hand(parsedHero);
+      const preflopEval = scorePLO6Hand(cleanHero);
       preflopProfile = preflopEval;
       const omahaEval = evaluateOmahaExactTwoPlusThree(cleanHero, cleanBoard);
       bestTwoHoleCards = omahaEval.bestTwoHoleCards;
       bestThreeBoardCards = omahaEval.bestThreeBoardCards;
       if (normStreet === 'preflop') {
-        handScore = Number(preflopEval.score) || 50;
-        madeHandCategory = `PLO6 ${preflopEval.category} (${preflopEval.suitPattern}, ${preflopEval.danglerCount || 0} danglers)`;
+        handScore = Number(preflopEval?.score) || 50;
+        const tier6 = preflopEval?.tier || 'playable';
+        const suited6 = preflopEval?.suitedness || 'double-suited';
+        const extra6 = preflopEval?.extraCardValue || 'coordinated';
+        madeHandCategory = `PLO6 ${tier6} (${suited6}, ${extra6})`;
       } else {
         const boardTex = analyzePLOBoardTexture(parsedBoard);
-        const draws6 = classifyPLO6Draws(parsedHero, parsedBoard, omahaEval.madeHand);
-        const flushHier6 = evaluatePLO6FlushHierarchy(parsedHero, parsedBoard);
-        const blockerVal6 = getPLO6BlockerValue(parsedHero, parsedBoard);
-        const adjStrengthObj = adjustPLO6PostflopStrength(omahaEval.madeHand, boardTex, parsedHero, parsedBoard);
+        const draws6 = classifyPLO6Draws(cleanHero, cleanBoard, normStreet);
+        const flushHier6 = evaluatePLO6FlushHierarchy(cleanHero, cleanBoard);
+        const blockerVal6 = getPLO6BlockerValue(cleanHero, cleanBoard);
+        const adjStrengthObj = adjustPLO6PostflopStrength(omahaEval.madeHand, draws6, normStreet, cleanHero, cleanBoard);
         const adjBase = Number(adjStrengthObj?.adjustedStrength ?? adjStrengthObj ?? omahaEval.madeHand?.strength) || 35;
         flushOuts = Number(omahaEval.flushDraw?.outs) || 0;
-        isNutFlushDraw = Boolean(draws6?.nutFlushDraw || flushHier6?.hasNutFlushDraw || omahaEval.flushDraw?.isNutFlushDraw);
+        isNutFlushDraw = Boolean(draws6?.nutFlushDraw || flushHier6?.flushRank === 'nut' || omahaEval.flushDraw?.isNutFlushDraw);
         straightOuts = Math.max(Number(omahaEval.straightDraw?.outs) || 0, Number(omahaEval.wrapDraw?.wrapOuts) || 0);
         const totalCleanOuts = Math.max(Number(draws6?.totalOuts) || 0, flushOuts + straightOuts);
         wrapType = draws6?.drawLabel || omahaEval.wrapDraw?.wrapType || 'none';
-        handScore = Math.min(100, Math.round(adjBase + Math.min(36, totalCleanOuts * 2.1) + (isNutFlushDraw ? 8 : 0) + (blockerVal6?.hasNutBlocker ? 5 : 0)));
+        handScore = Math.min(100, Math.round(adjBase + Math.min(36, totalCleanOuts * 2.1) + (isNutFlushDraw ? 8 : 0) + (blockerVal6?.blocksNutFlush || blockerVal6?.shouldBluff ? 5 : 0)));
         madeHandCategory = `${omahaEval.madeHand?.category || 'plo6_hand'} (${draws6?.drawLabel || 'nut-focused'})`;
         boardProfile = boardTex;
       }
