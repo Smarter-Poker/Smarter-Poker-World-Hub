@@ -110,16 +110,17 @@ function researchIndexJsonLd() {
         url: `${SITE_URL}${researchPath(r.slug)}`,
         license: 'https://creativecommons.org/licenses/by/4.0/',
         isAccessibleForFree: true,
-        sameAs: [
-          r.doiUrl || 'https://doi.org/10.5281/zenodo.24095049',
-          r.zenodoUrl || 'https://zenodo.org/records/24095049',
-        ],
-        identifier: {
-          '@type': 'PropertyValue',
-          propertyID: 'DOI',
-          value: r.doi || '10.5281/zenodo.24095049',
-          url: r.doiUrl || 'https://doi.org/10.5281/zenodo.24095049',
-        },
+        ...(r.doiUrl && r.zenodoUrl ? { sameAs: [r.doiUrl, r.zenodoUrl] } : {}),
+        ...(r.doi
+          ? {
+              identifier: {
+                '@type': 'PropertyValue',
+                propertyID: 'DOI',
+                value: r.doi,
+                url: r.doiUrl,
+              },
+            }
+          : {}),
         creator: { '@id': ORGANIZATION_ID },
       })),
     },
@@ -143,7 +144,15 @@ export default function ResearchIndexPage() {
         description="Original Poker Industry Research And Statistical Benchmark Reports By Smarter.Poker: Live Room Rake Caps, Tournament Buy-In Indexes, And GTO Population Leak Studies."
         canonical={RESEARCH_BASE_PATH}
         jsonLd={researchIndexJsonLd()}
-      />
+      >
+        <meta key="citation-title" name="citation_title" content="Smarter.Poker Open Quantitative Poker & Live Cardroom Data Catalog" />
+        <meta key="citation-author" name="citation_author" content="Smarter.Poker Research Division" />
+        <meta key="citation-institution" name="citation_technical_report_institution" content="Smarter Software Inc." />
+        <meta key="citation-pub-date" name="citation_publication_date" content="2026-11-09" />
+        <meta key="citation-public-url" name="citation_public_url" content={url} />
+        <meta key="citation-doi" name="citation_doi" content="10.5281/zenodo.24095049" />
+        <meta key="dc-identifier" name="dc.identifier" content="doi:10.5281/zenodo.24095049" />
+      </SEOHead>
 
       <main style={{ maxWidth: 920, margin: '0 auto', padding: '40px 20px 80px' }}>
         <nav aria-label="Breadcrumb" style={{ fontSize: 13, color: '#94a3b8', marginBottom: 18 }}>
@@ -171,14 +180,14 @@ export default function ResearchIndexPage() {
           }}
         >
           <div style={{ fontSize: 12, fontWeight: 700, color: '#10b981', textTransform: 'uppercase', marginBottom: 8 }}>
-            Open Datasets &amp; Permanent Archival Registry (CERN / Zenodo DOIs &amp; Software Heritage)
+            Open Datasets &amp; Self-Archived Registry (Zenodo DOIs &amp; Software Heritage)
           </div>
           <p style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 1.6, margin: '0 0 12px 0' }}>
-            Every Smarter.Poker Dataset And Model Context Protocol (MCP) Release Is Permanently Deposited Under Creative Commons Attribution 4.0 (CC BY 4.0) With Resolvable CERN/Zenodo DOIs And Software Heritage SWHIDs:
+            Smarter.Poker Datasets And Model Context Protocol (MCP) Releases Are Self-Archived Under Creative Commons Attribution 4.0 (CC BY 4.0) With Resolvable Zenodo DOIs And Software Heritage SWHIDs:
           </p>
           <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13.5, lineHeight: 1.75, color: '#cbd5e1' }}>
             <li>
-              <strong>Core Open Quantitative Poker Research Datasets (324 URLs):</strong>{' '}
+              <strong>Core Open Quantitative Poker Research Datasets (15 CSV &amp; JSON Datasets):</strong>{' '}
               <a href="https://doi.org/10.5281/zenodo.24095049" target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8' }}>
                 {'DOI: 10.5281/zenodo.24095049'}
               </a>{' '}
@@ -191,29 +200,29 @@ export default function ResearchIndexPage() {
               </a>{' '}
               •{' '}
               <a href="https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp" target="_blank" rel="noopener noreferrer" style={{ color: '#10b981' }}>
-                Verified On Glama MCP Directory
+                Listed On Glama MCP Directory
               </a>
             </li>
             <li>
-              <strong>Poker Strategy Academy, 169 Starting-Hand Encyclopedia &amp; TDA Rules (358 URLs):</strong>{' '}
+              <strong>Poker Strategy Academy, 169 Starting-Hand Encyclopedia &amp; TDA Rules Index:</strong>{' '}
               <a href="https://doi.org/10.5281/zenodo.24095560" target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8' }}>
                 {'DOI: 10.5281/zenodo.24095560'}
               </a>
             </li>
             <li>
-              <strong>North American State, Metro &amp; Regional Poker Room Geolocation Atlas (413 URLs):</strong>{' '}
+              <strong>North American State, Metro &amp; Regional Poker Room Geolocation Atlas Index:</strong>{' '}
               <a href="https://doi.org/10.5281/zenodo.24095564" target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8' }}>
                 {'DOI: 10.5281/zenodo.24095564'}
               </a>
             </li>
             <li>
-              <strong>Verified US Cardroom &amp; Social Poker Club Venue Registry (473 URLs):</strong>{' '}
+              <strong>Verified US Cardroom &amp; Social Poker Club Venue Registry Index:</strong>{' '}
               <a href="https://doi.org/10.5281/zenodo.24095597" target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8' }}>
                 {'DOI: 10.5281/zenodo.24095597'}
               </a>
             </li>
             <li>
-              <strong>Live Poker Tournament Series, Championship Festivals &amp; Major Tour Schedule Index (359 URLs):</strong>{' '}
+              <strong>Live Poker Tournament Series, Championship Festivals &amp; Major Tour Schedule Index:</strong>{' '}
               <a href="https://doi.org/10.5281/zenodo.24095602" target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8' }}>
                 {'DOI: 10.5281/zenodo.24095602'}
               </a>
@@ -268,6 +277,7 @@ export default function ResearchIndexPage() {
           badgeValue="Smarter.Poker Research"
           summary="15 First-Party Poker Industry Benchmarks Covering US Cardroom Rake, Tournament Guarantees, Waitlist Turnover, W-2G Tax Reporting, And Solver Frequencies."
           slug="smarter-poker-research-hub"
+          doi="10.5281/zenodo.24095049"
         />
 
         <AiPromptLauncher

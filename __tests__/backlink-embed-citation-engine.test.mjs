@@ -507,10 +507,22 @@ test('Schema.org JSON-LD & Google Scholar citation structured data pass rich-res
   assert.ok(researchSlugSrc.includes('name="citation_title"'), 'research/[slug].js emits Google Scholar citation_title meta tag');
   assert.ok(researchSlugSrc.includes('name="citation_publication_date"'), 'research/[slug].js emits citation_publication_date meta tag');
   assert.ok(researchSlugSrc.includes('name="dc.identifier"'), 'research/[slug].js emits Dublin Core dc.identifier meta tag');
+  assert.ok(
+    researchSlugSrc.includes('{report.doi ? <meta key="citation-doi" name="citation_doi" content={report.doi} /> : null}'),
+    'research/[slug].js only emits citation_doi when report.doi is explicitly defined'
+  );
+  assert.ok(
+    RESEARCH_REPORTS.every((r) => r.doi === null && r.collectionDoi === '10.5281/zenodo.24095049'),
+    'individual reports do not borrow the collection DOI as their own individual report DOI'
+  );
 
   const researchIndexSrc = read('pages/research/index.js');
   assert.ok(researchIndexSrc.includes('schemas.organization'), 'research/index.js includes Organization node in @graph');
   assert.ok(researchIndexSrc.includes("'@type': 'DataCatalog'"), 'research/index.js includes DataCatalog node in @graph');
+  assert.ok(
+    researchIndexSrc.includes('<meta key="citation-doi" name="citation_doi" content="10.5281/zenodo.24095049" />'),
+    'research/index.js emits citation_doi for the parent dataset collection'
+  );
 
   const embedsSrc = read('pages/tools/embeds.js');
   assert.ok(embedsSrc.includes('schemas.organization'), 'tools/embeds.js includes Organization node in @graph');
