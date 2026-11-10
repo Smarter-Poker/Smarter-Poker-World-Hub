@@ -10,6 +10,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
 
 // BUG FIX (TRAIN-FTS-A11Y-1): SVG back-arrow + button hardening for the
 // final-table simulator. Page was already emoji-free in rendered output.
@@ -51,6 +52,32 @@ export default function FinalTableSimulator() {
   const [showDealProposal, setShowDealProposal] = useState(false);
 
   const totalChips = players.reduce((sum, p) => sum + (Number(p.stack) || 0), 0) || 1;
+  const heroPlayer = players.find((p) => p.name === 'Hero') || players[0];
+  const heroBbEquivalent = Math.max(5, Math.round((Number(heroPlayer?.stack) || 500000) / 20000));
+  const icmBrainEval = React.useMemo(() => {
+    try {
+      return evaluateTrainingSpotWithHorseBrain({
+        gameId: 'mtt-004',
+        variant: 'nlh',
+        heroCards: ['Ah', 'Qs'],
+        boardCards: [],
+        street: 'preflop',
+        pot: 2.5,
+        stackDepth: heroBbEquivalent,
+        heroPosition: 'BTN',
+        villainPosition: 'BB',
+        isICM: true,
+        bubbleFactor: heroBbEquivalent <= 20 ? 1.85 : heroBbEquivalent >= 50 ? 1.25 : 1.55,
+        options: [
+          { id: 'raise', text: 'Open 2.1x BB' },
+          { id: 'allin', text: `All-In (${heroBbEquivalent} BB)` },
+          { id: 'fold', text: 'Fold (ICM Tight)' },
+        ],
+      });
+    } catch {
+      return null;
+    }
+  }, [heroBbEquivalent]);
 
   useEffect(() => {
     let cancelled = false;
@@ -240,6 +267,49 @@ export default function FinalTableSimulator() {
                 </tbody>
               </table>
 
+              {icmBrainEval && (
+                <div
+                  data-icm-brain-panel="true"
+                  data-brain-engine={icmBrainEval.engineModule}
+                  style={{
+                    marginTop: 20,
+                    padding: 16,
+                    borderRadius: 12,
+                    border: '1px solid rgba(56, 189, 248, 0.35)',
+                    background: 'rgba(15, 23, 42, 0.72)',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-accent-cyan)' }}>
+                      Horse Brain & Tournament Brain Tactical Readout
+                    </span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-amber)' }}>
+                      Hero Depth: {heroBbEquivalent} BB · Engine: {icmBrainEval.engineModule}
+                    </span>
+                  </div>
+                  <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.5 }}>
+                    {icmBrainEval.coachingExplanation}
+                  </p>
+                  <button
+                    type="button"
+                    data-launch-ft-arena="true"
+                    onClick={() => router.push('/hub/training/arena/mtt-004?level=1')}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: 8,
+                      border: '1px solid rgba(56, 189, 248, 0.5)',
+                      background: 'rgba(56, 189, 248, 0.16)',
+                      color: 'var(--sp-accent-cyan)',
+                      fontSize: 12,
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Practice Final Table ICM In Club Arena →
+                  </button>
+                </div>
+              )}
+
               <div style={styles.dealBox}>
                 <h3>Chip Chop (Deal-Making Tool)</h3>
                 <p style={{ color: 'var(--sp-fg-muted)', fontSize: 13, marginBottom: 16 }}>
@@ -248,7 +318,23 @@ export default function FinalTableSimulator() {
                 </p>
                 <button
                   type="button"
-                  onClick={() => setShowDealProposal((visible) => !visible)}
+                  onClick={() => {
+                    const nextVisible = !showDealProposal;
+                    setShowDealProposal(nextVisible);
+                    if (nextVisible && icmResults.length > 0) {
+                      authedFetch('/api/training/tool-records', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                          tool_id: 'final-table-sim',
+                          record_type: 'icm_deal_proposal',
+                          payload: {
+                            players: icmResults.map((r) => ({ name: r.name, stack: r.stack, icmValue: r.icmValue })),
+                            payouts,
+                          },
+                        }),
+                      }).catch(() => {});
+                    }
+                  }}
                   disabled={calculating || icmResults.length === 0}
                   style={{ ...styles.dealBtn, opacity: calculating || icmResults.length === 0 ? 0.5 : 1, cursor: calculating || icmResults.length === 0 ? 'not-allowed' : 'pointer' }}
                 >

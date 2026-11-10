@@ -16,7 +16,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { getAuthUser } from '../../../src/lib/authUtils';
+import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 // TRAIN-WIRE-EMPTY-8b — adoption: shared empty-state primitive
@@ -325,12 +325,32 @@ export default function QuizBuilderPage() {
   const [savedQuizzes, setSavedQuizzes] = useState([]);
   const [tab, setTab] = useState('build');
 
-  // Load saved quizzes from localStorage
+  // Load saved quizzes from localStorage and server tool-records
   useEffect(() => {
     try {
       const saved = localStorage.getItem('custom-quizzes');
       if (saved) setSavedQuizzes(JSON.parse(saved));
     } catch (e) { console.warn('[App] Handled exception:', e); }
+    authedFetch('/api/training/tool-records?tool_id=quiz-builder&limit=20')
+      .then((res) => (res && res.ok ? res.json() : null))
+      .then((json) => {
+        const rows = Array.isArray(json?.data) ? json.data : [];
+        const remoteQuizzes = rows
+          .map((r) => r?.payload?.quiz)
+          .filter((q) => q && q.id && q.name && Array.isArray(q.questions));
+        if (remoteQuizzes.length > 0) {
+          setSavedQuizzes((prev) => {
+            const byId = new Map();
+            [...remoteQuizzes, ...prev].forEach((q) => byId.set(q.id, q));
+            const merged = Array.from(byId.values());
+            try {
+              localStorage.setItem('custom-quizzes', JSON.stringify(merged));
+            } catch (_e) {}
+            return merged;
+          });
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // Bus listener
@@ -368,6 +388,17 @@ export default function QuizBuilderPage() {
     try {
       localStorage.setItem('custom-quizzes', JSON.stringify(updated));
     } catch (e) { console.warn('[App] Handled exception:', e); }
+    authedFetch('/api/training/tool-records', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tool_id: 'quiz-builder',
+        record_type: 'custom_quiz',
+        title: quiz.name,
+        summary: `${quiz.questions.length} question(s)`,
+        payload: { quiz },
+      }),
+    }).catch(() => {});
     setQuizName('');
     setQuestions([{ ...DEFAULT_QUESTION }]);
     setTab('saved');
