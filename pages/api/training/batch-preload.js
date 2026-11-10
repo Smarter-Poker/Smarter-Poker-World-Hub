@@ -474,6 +474,16 @@ export default async function handler(req, res) {
               .filter((row) => {
                   const q = row.question_data;
                   if (!q) return false;
+                  const madeCat = String(q.scenario?.madeHandCategory || q.scenario?.brainEvaluation?.madeHandCategory || '');
+                  if (madeCat.includes('undefined')) return false;
+                  if (
+                      madeCat.startsWith('Pocket Pair (')
+                      && Array.isArray(q.heroCards)
+                      && q.heroCards.length === 2
+                      && String(q.heroCards[0] || '')[0] !== String(q.heroCards[1] || '')[0]
+                  ) {
+                      return false;
+                  }
                   if (expectedHoleCardCount !== null) {
                       const cards = Array.isArray(q.heroCards) ? q.heroCards : [];
                       if (cards.length !== expectedHoleCardCount) return false;
