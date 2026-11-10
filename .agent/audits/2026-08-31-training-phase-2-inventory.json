@@ -37861,7 +37861,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 314,
+          "line": 315,
           "handler": "() => setVillainArchetype(arch)",
           "destination": null,
           "type": "button",
@@ -37871,7 +37871,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 337,
+          "line": 339,
           "handler": "() => {\n                  router.push(topLeakHref);\n                }",
           "destination": null,
           "type": "button",
@@ -37881,7 +37881,7 @@
         {
           "element": "button",
           "name": "`Practice ${leak.area} leak in spot trainer`",
-          "line": 640,
+          "line": 642,
           "handler": "() => {\n                          router.push(buildCustomTrainingArenaHref({\n                            gameId: leak.gameId || leak._engineLeak?.drill?.gameId,\n                            variant: leak.variant,\n                            street: leak.street,\n                            position: leak.position,\n                          }, 'weakness-scanner'));\n                        }",
           "destination": null,
           "type": "button",
@@ -37891,7 +37891,7 @@
         {
           "element": "button",
           "name": "`Ask Jarvis about ${leak.area} leak`",
-          "line": 665,
+          "line": 667,
           "handler": "() => {\n                          const q = new URLSearchParams({\n                            context: 'weakness',\n                            area: leak.area,\n                            accuracy: String(leak.acc),\n                            category: leak.cat,\n                          });\n                          window.location.href = `/hub/training/jarvis?${q.toString()}`;\n                        }",
           "destination": null,
           "type": "button",
@@ -76569,11 +76569,11 @@
       "effectRef": "pages/hub/training/weakness-scanner.js"
     },
     {
-      "id": "pages/hub/training/weakness-scanner.js:314:3",
+      "id": "pages/hub/training/weakness-scanner.js:315:3",
       "file": "pages/hub/training/weakness-scanner.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 314,
+      "line": 315,
       "handler": "() => setVillainArchetype(arch)",
       "destination": null,
       "type": "button",
@@ -76582,11 +76582,11 @@
       "effectRef": "pages/hub/training/weakness-scanner.js"
     },
     {
-      "id": "pages/hub/training/weakness-scanner.js:337:4",
+      "id": "pages/hub/training/weakness-scanner.js:339:4",
       "file": "pages/hub/training/weakness-scanner.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 337,
+      "line": 339,
       "handler": "() => {\n                  router.push(topLeakHref);\n                }",
       "destination": null,
       "type": "button",
@@ -76595,11 +76595,11 @@
       "effectRef": "pages/hub/training/weakness-scanner.js"
     },
     {
-      "id": "pages/hub/training/weakness-scanner.js:640:5",
+      "id": "pages/hub/training/weakness-scanner.js:642:5",
       "file": "pages/hub/training/weakness-scanner.js",
       "element": "button",
       "name": "`Practice ${leak.area} leak in spot trainer`",
-      "line": 640,
+      "line": 642,
       "handler": "() => {\n                          router.push(buildCustomTrainingArenaHref({\n                            gameId: leak.gameId || leak._engineLeak?.drill?.gameId,\n                            variant: leak.variant,\n                            street: leak.street,\n                            position: leak.position,\n                          }, 'weakness-scanner'));\n                        }",
       "destination": null,
       "type": "button",
@@ -76608,11 +76608,11 @@
       "effectRef": "pages/hub/training/weakness-scanner.js"
     },
     {
-      "id": "pages/hub/training/weakness-scanner.js:665:6",
+      "id": "pages/hub/training/weakness-scanner.js:667:6",
       "file": "pages/hub/training/weakness-scanner.js",
       "element": "button",
       "name": "`Ask Jarvis about ${leak.area} leak`",
-      "line": 665,
+      "line": 667,
       "handler": "() => {\n                          const q = new URLSearchParams({\n                            context: 'weakness',\n                            area: leak.area,\n                            accuracy: String(leak.acc),\n                            category: leak.cat,\n                          });\n                          window.location.href = `/hub/training/jarvis?${q.toString()}`;\n                        }",
       "destination": null,
       "type": "button",
