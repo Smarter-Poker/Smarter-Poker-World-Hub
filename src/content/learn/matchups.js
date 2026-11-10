@@ -25,11 +25,47 @@ export function matchupPath(slug) {
   return `/learn/matchups/${slug}`;
 }
 
+const MATCHUP_SLUG_ALIASES = {
+  'ak-vs-qq': 'aks-vs-qq',
+  'qq-vs-ak': 'qq-vs-aks',
+  'ak-vs-jj': 'jj-vs-ako',
+  'jj-vs-ak': 'jj-vs-ako',
+  'jj-vs-aks': 'aqs-vs-jj',
+  'ak-vs-tt': 'tt-vs-aks',
+  'tt-vs-ak': 'tt-vs-aks',
+  'ak-vs-aa': 'aa-vs-aks',
+  'aa-vs-ak': 'aa-vs-aks',
+  'ak-vs-kk': 'kk-vs-aks',
+  'kk-vs-ak': 'kk-vs-aks',
+  'kk-vs-aa': 'aa-vs-kk',
+  'qq-vs-kk': 'kk-vs-qq',
+  'jj-vs-qq': 'qq-vs-jj',
+  'tt-vs-jj': 'jj-vs-tt',
+  '72o-vs-aa': 'aa-vs-72o',
+  'jts-vs-aa': 'aa-vs-jts',
+  'jts-vs-aks': 'aks-vs-jts',
+  'aq-vs-tt': 'tt-vs-aqo',
+  'ak-vs-22': '22-vs-ako',
+  'ako-vs-22': '22-vs-ako',
+  '22-vs-ak': '22-vs-ako',
+};
+
 export function getMatchupBySlug(slug) {
   if (!slug) return null;
   const clean = String(slug).trim().toLowerCase();
-  return HAND_MATCHUPS.find((m) => m.slug === clean) || null;
+  const target = MATCHUP_SLUG_ALIASES[clean] || clean;
+  const exact = HAND_MATCHUPS.find((m) => m.slug === target);
+  if (exact) return exact;
+  const parts = clean.split('-vs-');
+  if (parts.length === 2) {
+    const reversed = `${parts[1]}-vs-${parts[0]}`;
+    const revTarget = MATCHUP_SLUG_ALIASES[reversed] || reversed;
+    const revMatch = HAND_MATCHUPS.find((m) => m.slug === revTarget);
+    if (revMatch) return revMatch;
+  }
+  return null;
 }
+export const getHandMatchupBySlug = getMatchupBySlug;
 
 export const HAND_MATCHUPS = [
   {

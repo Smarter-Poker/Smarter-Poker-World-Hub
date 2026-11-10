@@ -16,6 +16,7 @@ import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
+import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import {
   GAME_CATEGORIES,
   GAMES_AS_OF,
@@ -325,6 +326,13 @@ export default function PokerGamesIndexPage() {
           badgeValue="15 Official Game Guides"
           summary="Complete rulebooks, hand ranking systems, and starting hand strategy tiers for 15 poker variants published by Smarter.Poker."
           slug="poker-variants-encyclopedia"
+        />
+
+        <AiPromptLauncher
+          title="Poker Variants & Mixed Games Encyclopedia (15 Complete Rulebooks)"
+          canonicalUrl={GAMES_URL}
+          canonicalPath="/games"
+          markdownUrl="/games.md"
         />
 
         <p style={styles.complianceFooter}>

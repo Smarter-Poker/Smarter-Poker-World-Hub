@@ -25,7 +25,7 @@ import {
 export async function getStaticPaths() {
   return {
     paths: POKER_MARKET_GUIDES.map((g) => ({ params: { city: g.slug } })),
-    fallback: false,
+    fallback: 'blocking',
   };
 }
 

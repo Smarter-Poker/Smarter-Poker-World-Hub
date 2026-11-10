@@ -257,7 +257,7 @@ const TOOLS_FAQS = [
   {
     question: 'Which Poker Math Calculators Are Included In The Smarter.Poker Directory?',
     answer:
-      'The Suite Includes Multiway Equity, Malmuth-Harville ICM, 13x13 GTO Preflop Ranges, Pot Odds & MDF, Bankroll Risk Of Ruin, Short-Stack Push/Fold, PKO & Mystery Bounty, Winrate Converter, Multi-Way Side Pots, Blind Structure Generator, And SPR Geometric Sizing.',
+      'The Suite Includes All 24 Free Browser-Native Tools (23 Interactive Calculators + Embeds & Streamer Bot API): Multiway Equity, Malmuth-Harville ICM, Tournament Deal & ICM Chop Calculator, 13x13 GTO Preflop Ranges, Pot Odds & MDF, Poker Outs & Rule Of 2 And 4 Calculator, Bankroll Risk Of Ruin, Bankroll Variance & Downswing Simulator, Short-Stack Push/Fold, PKO & Mystery Bounty, Winrate Converter, Multi-Way Side Pots, Blind Structure Generator, SPR Geometric Sizing, PLO Max Bet, Tournament Payouts, Live Cash Rake, 3-Bet/4-Bet Sizing, Pre-Flop Isolation Raise Calculator, Poker Staking & Markup Calculator, US Poker Tax & IRS W-2G Calculator, Home Game Blind Timer & Chip Distribution Kit, And What Poker Format Fits Your Brain Quiz.',
   },
 ];
 
@@ -268,7 +268,7 @@ export default function PokerToolsDirectoryPage() {
   const canonicalUrl = `https://smarter.poker${canonicalPath}`;
   const pageTitle = 'Free Poker Calculators, GTO Solvers & Math Tools';
   const pageDesc =
-    'Explore Smarter.Poker Free Interactive Poker Calculators: Multiway Equity, Tournament ICM, 13x13 GTO Ranges, Pot Odds, Side Pots, SPR, Bankroll, And Blind Generators.';
+    'Explore All 24 Free Browser-Native Smarter.Poker Tools (23 Interactive Calculators + Embeds & Streamer Bot API): Multiway Equity, Tournament ICM, Tournament Deal & ICM Chop Calculator, 13x13 GTO Ranges, Pot Odds, Poker Outs & Rule Of 2 And 4 Calculator, Bankroll Risk Of Ruin, Bankroll Variance & Downswing Simulator, Push/Fold, PKO Bounties, Winrate, Side Pots, Blind Structure, SPR, PLO Max Bet, Payouts, Rake, 3-Bet Sizing, Pre-Flop Isolation Raise Calculator, Poker Staking & Markup Calculator, US Poker Tax & IRS W-2G Calculator, Home Game Blind Timer & Chip Distribution Kit, And What Poker Format Fits Your Brain Quiz.';
 
   const schema = useMemo(() => {
     const baseSchema = hubProductSchema({
@@ -326,7 +326,7 @@ export default function PokerToolsDirectoryPage() {
         </h1>
 
         <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
-          <strong>Direct Answer:</strong> Smarter.Poker Provides <strong>24 Free Browser-Native Poker Calculators And GTO Reference Tools</strong> Covering Exact Multiway Hand Equity, Malmuth-Harville ICM Prize Pool Valuation, Final Table Chop Deals, 13x13 GTO Preflop Ranges, Pot Odds And Minimum Defense Frequency (MDF), Hypergeometric Draw Outs, Risk Of Ruin Bankroll Math, Variance Confidence Intervals, Short-Stack Push/Fold Charts, PKO Bounty Discounts, Multi-Way Side Pots, Tournament Blind Schedules, Geometric SPR Bet Sizing, Pot-Limit Omaha Max Bets, Tournament Payout Distributions, Live Cash Rake Comparisons, 3-Bet/4-Bet Sizing, Pre-Flop Limper Isolation, Staking Markup Splits, US Poker Tax Estimation, Home Game Chip Setups, And Format Selection. Every Tool Runs Instantly In Your Browser And Exposes A Dedicated Markdown Endpoint For AI Assistants.
+          <strong>Direct Answer:</strong> Smarter.Poker Provides <strong>24 Free Browser-Native Tools (23 Interactive Calculators + Embeds &amp; Streamer Bot API)</strong> Covering Exact Multiway Hand Equity, Malmuth-Harville ICM Prize Pool Valuation, Tournament Deal &amp; ICM Chop Calculator, 13x13 GTO Preflop Ranges, Pot Odds And Minimum Defense Frequency (MDF), Poker Outs &amp; Rule Of 2 And 4 Calculator, Risk Of Ruin Bankroll Math, Bankroll Variance &amp; Downswing Simulator, Short-Stack Push/Fold Charts, PKO Bounty Discounts, Winrate Conversion, Multi-Way Side Pots, Tournament Blind Schedules, Geometric SPR Bet Sizing, Pot-Limit Omaha Max Bets, Tournament Payout Distributions, Live Cash Rake Comparisons, 3-Bet/4-Bet Sizing, Pre-Flop Isolation Raise Calculator, Poker Staking &amp; Markup Calculator, US Poker Tax &amp; IRS W-2G Calculator, Home Game Blind Timer &amp; Chip Distribution Kit, And What Poker Format Fits Your Brain Quiz. Every Tool Runs Instantly In Your Browser And Exposes A Dedicated Markdown Endpoint For AI Assistants.
         </p>
 
         {/* Grid Of Interactive Calculators */}

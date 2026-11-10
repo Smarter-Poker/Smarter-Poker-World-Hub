@@ -46,7 +46,7 @@ export function buildJupyterNotebookPayload() {
         source: [
           '# Smarter.Poker Quantitative Poker Datasets & Zero-Auth MCP Solvers (CC-BY 4.0)\n',
           '\n',
-          'This interactive Jupyter / Google Colab notebook connects directly to the public **Smarter.Poker Open Data Catalog** and **30-Tool Model Context Protocol (MCP) Server**.\n',
+          'This interactive Jupyter / Google Colab notebook connects directly to the public **Smarter.Poker Open Data Catalog** and **35-Tool Model Context Protocol (MCP) Server**.\n',
           '\n',
           '- **Canonical Research Hub**: https://smarter.poker/research\n',
           '- **Interactive Calculators (24 Tools)**: https://smarter.poker/tools\n',

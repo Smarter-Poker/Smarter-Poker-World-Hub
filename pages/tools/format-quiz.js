@@ -17,6 +17,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { renderFormatQuizMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
 
 const FORMAT_PROFILES = {
   'live-cash': {
@@ -615,4 +616,26 @@ export default function FormatQuizPage({
       </main>
     </div>
   );
+}
+
+export async function getServerSideProps({ req, res, query }) {
+  const accept = String(req?.headers?.accept || '');
+  if (
+    query?.format === 'md' ||
+    query?.format === 'markdown' ||
+    accept.includes('text/markdown') ||
+    req?.url?.includes('format=md')
+  ) {
+    const renderToolDocumentationMarkdown = () => renderFormatQuizMarkdown();
+    const md = renderToolDocumentationMarkdown('format-quiz');
+    if (md) {
+      res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+      res.setHeader('Vary', 'Accept');
+      res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
+      res.write(md);
+      res.end();
+      return { props: {} };
+    }
+  }
+  return { props: {} };
 }

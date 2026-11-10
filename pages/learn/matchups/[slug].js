@@ -15,6 +15,7 @@ import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
+import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import {
   HAND_MATCHUPS,
   MATCHUPS_AS_OF,
@@ -27,7 +28,7 @@ import {
 export async function getStaticPaths() {
   return {
     paths: HAND_MATCHUPS.map((m) => ({ params: { slug: m.slug } })),
-    fallback: false,
+    fallback: 'blocking',
   };
 }
 
@@ -337,6 +338,13 @@ export default function PokerMatchupDetailPage({ matchup, peerMatchups = [] }) {
           summary={matchup.summary}
           publishedYear="2026"
           slug={`matchup-${matchup.slug}`}
+        />
+
+        <AiPromptLauncher
+          title={matchup.title}
+          canonicalUrl={canonicalUrl}
+          canonicalPath={canonicalPath}
+          markdownUrl={`/learn/matchups/${matchup.slug}.md`}
         />
       </main>
     </div>

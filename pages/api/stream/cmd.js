@@ -19,6 +19,9 @@
  * - help     : Command summary & setup link
  */
 
+import { HAND_MATCHUPS, getMatchupBySlug } from '../../../src/content/learn/matchups.js';
+import { SERIES_GUIDES, getSeriesGuideBySlug } from '../../../src/content/guides/seriesGuides.js';
+
 export const STREAMER_BOT_COMMANDS = [
   {
     command: '!odds',
@@ -117,6 +120,34 @@ export const STREAMER_BOT_COMMANDS = [
     nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=matchup&q=$(querystring))',
     streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=matchup&q=${queryencode}}',
     canonicalToolUrl: 'https://smarter.poker/learn/matchups',
+  },
+  {
+    command: '!tax',
+    description: 'US Poker Tax Estimator (Schedule A Session Cap Vs Schedule C Pro & $5,000 IRS Form W-2G)',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=tax&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=tax&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/tools/poker-tax-calculator',
+  },
+  {
+    command: '!stake',
+    description: 'Tournament Staking & Markup Split Calculator (Share Cost, Breakeven ROI & Payout Splits)',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=stake&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=stake&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/tools/staking-calculator',
+  },
+  {
+    command: '!iso',
+    description: 'Pre-Flop Limper Isolation Raise Sizing (3BB + 1BB/Limper + 1BB OOP) & Flop SPR',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=iso&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=iso&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/tools/iso-calculator',
+  },
+  {
+    command: '!series',
+    description: 'Major Poker Series Strategy & Structure Guide (!series wsop-las-vegas or !series wpt)',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=series&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=series&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/poker-series/guides',
   },
 ];
 
@@ -310,7 +341,23 @@ export function evaluateStreamCommand({ cmd = 'help', q = '', pot = '', bet = ''
     };
   }
 
-  if (normalizedCmd === 'matchup') {
+  if (normalizedCmd === 'matchup' || normalizedCmd === 'matchups') {
+    const cleanQ = queryText.toLowerCase().replace(/\s+/g, '-');
+    const canonicalMatchup =
+      getMatchupBySlug(cleanQ) ||
+      HAND_MATCHUPS.find(
+        (m) =>
+          m.slug === cleanQ ||
+          m.title.toLowerCase().includes(queryText.toLowerCase()) ||
+          `${m.handA.toLowerCase()}-vs-${m.handB.toLowerCase()}` === cleanQ
+      );
+    if (canonicalMatchup && queryText) {
+      return {
+        command: '!matchup',
+        text: `[Smarter.Poker Matchups] ${canonicalMatchup.handA} vs ${canonicalMatchup.handB}: ${canonicalMatchup.handAWinPct}% Win vs ${canonicalMatchup.handBWinPct}% Win (${canonicalMatchup.tiePct}% Tie) | Guide: https://smarter.poker/learn/matchups/${canonicalMatchup.slug}`,
+        canonicalUrl: `https://smarter.poker/learn/matchups/${canonicalMatchup.slug}`,
+      };
+    }
     const matched = PREFLOP_MATCHUPS.find((m) => m.pattern.test(queryText));
     const label = matched ? matched.label : 'QQ vs AKs (Classic Coinflip)';
     const eq = matched ? matched.equity : '53.7% Win vs 45.9% Win (0.4% Tie)';
@@ -321,9 +368,109 @@ export function evaluateStreamCommand({ cmd = 'help', q = '', pot = '', bet = ''
     };
   }
 
+  if (normalizedCmd === 'tax' || normalizedCmd === 'taxes' || normalizedCmd === 'w2g') {
+    const nums = queryText
+      .match(/\d+(?:\.\d+)?/g)
+      ?.map((n) => parseFloat(n))
+      .filter((n) => Number.isFinite(n) && n >= 0);
+    const wins = nums && nums.length >= 1 ? Math.round(nums[0]) : 48000;
+    const losses = nums && nums.length >= 2 ? Math.round(nums[1]) : 22000;
+    const deduct = Math.min(wins, losses);
+    const netTaxable = Math.max(0, wins - deduct);
+    const estFedTax = Math.round(netTaxable * 0.24);
+    return {
+      command: '!tax',
+      text: `[Smarter.Poker Tax] $${wins.toLocaleString()} Wins / $${losses.toLocaleString()} Losses: Net Taxable = $${netTaxable.toLocaleString()} (~$${estFedTax.toLocaleString()} Est. 24% Fed) | IRS Form W-2G Triggers >$5,000 Net | Calculator: https://smarter.poker/tools/poker-tax-calculator`,
+      canonicalUrl: 'https://smarter.poker/tools/poker-tax-calculator',
+    };
+  }
+
+  if (normalizedCmd === 'stake' || normalizedCmd === 'staking' || normalizedCmd === 'markup') {
+    const nums = queryText
+      .match(/\d+(?:\.\d+)?/g)
+      ?.map((n) => parseFloat(n))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    const pkg = nums && nums.length >= 1 ? Math.round(nums[0]) : 5000;
+    const markup = nums && nums.length >= 2 ? Number(nums[1].toFixed(2)) : 1.15;
+    const pct = nums && nums.length >= 3 ? Math.min(100, nums[2]) : 10;
+    const cost = Math.round(pkg * (pct / 100) * markup);
+    const breakevenRoi = ((markup - 1) * 100).toFixed(1);
+    return {
+      command: '!stake',
+      text: `[Smarter.Poker Staking] $${pkg.toLocaleString()} Package @ ${markup}x Markup: ${pct}% Share = $${cost.toLocaleString()} | Investor Breakeven ROI = +${breakevenRoi}% | Split Calculator: https://smarter.poker/tools/staking-calculator`,
+      canonicalUrl: 'https://smarter.poker/tools/staking-calculator',
+    };
+  }
+
+  if (normalizedCmd === 'iso' || normalizedCmd === 'isolation') {
+    const nums = queryText
+      .match(/\d+(?:\.\d+)?/g)
+      ?.map((n) => parseFloat(n))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    const limpers = nums && nums.length >= 1 ? Math.min(6, Math.max(1, Math.round(nums[0]))) : 2;
+    const isOop = /\boop|sb|bb\b/i.test(queryText);
+    const isoBb = 3 + limpers + (isOop ? 1 : 0);
+    const flopPotBb = Number((isoBb * 2 + (limpers - 1) + 1.5).toFixed(1));
+    const spr = Number(((100 - isoBb) / flopPotBb).toFixed(1));
+    return {
+      command: '!iso',
+      text: `[Smarter.Poker Iso] ${limpers} Limper(s) (${isOop ? 'OOP' : 'IP'}): Optimal Raise = ${isoBb}BB (3BB + 1BB/Limper${isOop ? ' + 1BB OOP' : ''}) | HU Flop Pot = ${flopPotBb}BB (SPR ${spr} @ 100BB) | Tool: https://smarter.poker/tools/iso-calculator`,
+      canonicalUrl: 'https://smarter.poker/tools/iso-calculator',
+    };
+  }
+
+  if (
+    normalizedCmd === 'series' ||
+    normalizedCmd === 'tour' ||
+    normalizedCmd === 'wsop' ||
+    normalizedCmd === 'wpt' ||
+    normalizedCmd === 'mspt'
+  ) {
+    const aliasMap = {
+      wsop: 'wsop-las-vegas',
+      wpt: 'wpt-world-championship',
+      wsopc: 'wsop-circuit',
+      mspt: 'mspt-mid-states-poker-tour',
+      'mspt-major': 'mspt-mid-states-poker-tour',
+      rgps: 'rgps-rungood-poker-series',
+      'run-good-poker-series': 'rgps-rungood-poker-series',
+      shrpo: 'seminole-hard-rock-poker-open',
+      borgata: 'borgata-poker-open',
+      'borgata-open': 'borgata-poker-open',
+      wynn: 'wynn-millions-classic',
+      'wynn-millions': 'wynn-millions-classic',
+      venetian: 'venetian-deepstack-championship',
+      'venetian-deepstack': 'venetian-deepstack-championship',
+      tch: 'texas-card-house-lodge-championship',
+      'texas-card-house-series': 'texas-card-house-lodge-championship',
+    };
+    const rawTarget = (
+      queryText || (normalizedCmd !== 'series' && normalizedCmd !== 'tour' ? normalizedCmd : 'wsop-las-vegas')
+    )
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, '-');
+    const resolvedSlug = aliasMap[rawTarget] || rawTarget;
+    const guide =
+      getSeriesGuideBySlug(resolvedSlug) ||
+      SERIES_GUIDES.find(
+        (g) =>
+          g.slug.includes(rawTarget) ||
+          g.name.toLowerCase().includes(rawTarget) ||
+          g.shortName.toLowerCase().includes(rawTarget)
+      ) ||
+      SERIES_GUIDES[0];
+
+    return {
+      command: '!series',
+      text: `[Smarter.Poker Series] ${guide.shortName} (${guide.cityState}): Buy-Ins ${guide.buyInRange} (Main: ${guide.mainEventBuyIn}) | Structure: ${guide.blindStructureRating} | Guide: https://smarter.poker/poker-series/guides/${guide.slug}`,
+      canonicalUrl: `https://smarter.poker/poker-series/guides/${guide.slug}`,
+    };
+  }
+
   return {
     command: '!help',
-    text: `[Smarter.Poker Streamer Bot] Commands: !odds, !potodds <pot> <bet>, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, !matchup | Add To Nightbot Free: https://smarter.poker/tools/embeds`,
+    text: `[Smarter.Poker Streamer Bot] 18 Commands: !odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, !matchup, !tax, !stake, !iso, !series | Setup: https://smarter.poker/tools/embeds`,
     canonicalUrl: 'https://smarter.poker/tools/embeds',
   };
 }

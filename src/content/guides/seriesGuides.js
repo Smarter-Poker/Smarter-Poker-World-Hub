@@ -18,10 +18,40 @@ export function seriesGuidePath(slug) {
   return `/poker-series/guides/${slug}`;
 }
 
+const SERIES_SLUG_ALIASES = {
+  'wsop': 'wsop-las-vegas',
+  'world-series-of-poker': 'wsop-las-vegas',
+  'wpt': 'wpt-world-championship',
+  'world-poker-tour': 'wpt-world-championship',
+  'wsopc': 'wsop-circuit',
+  'mspt': 'mspt-mid-states-poker-tour',
+  'mspt-major': 'mspt-mid-states-poker-tour',
+  'mid-states-poker-tour': 'mspt-mid-states-poker-tour',
+  'rgps': 'rgps-rungood-poker-series',
+  'run-good-poker-series': 'rgps-rungood-poker-series',
+  'rungood': 'rgps-rungood-poker-series',
+  'shrpo': 'seminole-hard-rock-poker-open',
+  'seminole-hard-rock': 'seminole-hard-rock-poker-open',
+  'borgata': 'borgata-poker-open',
+  'borgata-open': 'borgata-poker-open',
+  'wynn': 'wynn-millions-classic',
+  'wynn-millions': 'wynn-millions-classic',
+  'venetian': 'venetian-deepstack-championship',
+  'venetian-deepstack': 'venetian-deepstack-championship',
+  'tch': 'texas-card-house-lodge-championship',
+  'the-lodge': 'texas-card-house-lodge-championship',
+  'texas-card-house-series': 'texas-card-house-lodge-championship',
+};
+
 export function getSeriesGuideBySlug(slug) {
   if (!slug) return null;
   const clean = String(slug).trim().toLowerCase();
-  return SERIES_GUIDES.find((g) => g.slug === clean) || null;
+  const target = SERIES_SLUG_ALIASES[clean] || clean;
+  return (
+    SERIES_GUIDES.find((g) => g.slug === target) ||
+    SERIES_GUIDES.find((g) => g.slug.includes(clean)) ||
+    null
+  );
 }
 
 export const SERIES_GUIDES = [

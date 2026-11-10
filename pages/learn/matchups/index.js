@@ -14,6 +14,7 @@ import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
+import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import {
   HAND_MATCHUPS,
   MATCHUP_CATEGORIES,
@@ -368,6 +369,13 @@ export default function PokerMatchupsIndexPage() {
           summary="Complete Preflop Hand-Vs-Hand Equity Directory Covering 25 Canonical Hold'em Matchups, Combinatorics, Flop Shifts, And Stack-Off Thresholds."
           publishedYear="2026"
           slug="poker-hand-matchups-directory"
+        />
+
+        <AiPromptLauncher
+          title="Poker Hand Vs Hand Matchup Odds & Preflop Equity Directory"
+          canonicalUrl={MATCHUPS_URL}
+          canonicalPath="/learn/matchups"
+          markdownUrl="/learn/matchups.md"
         />
       </main>
     </div>

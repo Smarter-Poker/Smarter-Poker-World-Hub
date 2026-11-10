@@ -15,6 +15,7 @@ import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
+import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 
 const CHECKIN_STEPS = [
   {
@@ -519,6 +520,13 @@ export default function FirstTimeCasinoPokerGuidePage() {
           summary="Interactive First-Time Live Casino Poker Room Guide With Dealer Tipping Calculator, Chip-Buying Etiquette, Table Rules, And Check-In Workflow."
           publishedYear="2026"
           slug="first-time-casino-poker-room-guide"
+        />
+
+        <AiPromptLauncher
+          title="First-Time Casino Live Poker Room Guide & Dealer Tipping Calculator"
+          canonicalUrl={canonicalUrl}
+          canonicalPath="/poker-rooms/first-time-guide"
+          markdownUrl="/poker-rooms/first-time-guide.md"
         />
       </main>
     </div>

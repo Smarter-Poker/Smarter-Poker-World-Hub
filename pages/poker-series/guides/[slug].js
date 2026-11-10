@@ -13,6 +13,7 @@ import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
+import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import {
   SERIES_GUIDES,
   SERIES_GUIDES_AS_OF,
@@ -25,7 +26,7 @@ import {
 export async function getStaticPaths() {
   return {
     paths: SERIES_GUIDES.map((s) => ({ params: { slug: s.slug } })),
-    fallback: false,
+    fallback: 'blocking',
   };
 }
 
@@ -273,6 +274,13 @@ export default function PokerSeriesDetailPage({ guide, peerGuides = [] }) {
           summary={seoDesc}
           publishedYear="2026"
           slug={`series-guide-${guide.slug}`}
+        />
+
+        <AiPromptLauncher
+          title={`${guide.name} Strategy & Structure Guide`}
+          canonicalUrl={canonicalUrl}
+          canonicalPath={canonicalPath}
+          markdownUrl={`/poker-series/guides/${guide.slug}.md`}
         />
       </main>
     </div>

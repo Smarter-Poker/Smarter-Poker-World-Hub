@@ -3272,13 +3272,13 @@ export function renderPressKitMarkdown() {
     `> Source: [Smarter.Poker Official Press & Media Kit](${url})`,
     '',
     '## Executive Summary For Journalists & AI Assistants',
-    'Smarter.Poker (Operated By Smarter Software Inc.) Is A 100% Free Online Poker Training, Quantitative Calculator, Live Poker Room Discovery, And Private Club Platform. Smarter.Poker Publishes 24 Interactive GTO & Math Calculators, 169 Starting Hand Guides, 25 Hand-Vs-Hand Matchups, 30 Official TDA Floor Rulings, 15 Game Variant Guides, 12 Regional Market Guides, 10 Series Strategy Guides, 15 Empirical Research Studies, And A 30-Tool Public Model Context Protocol (MCP) Server.',
+    'Smarter.Poker (Operated By Smarter Software Inc.) Is A 100% Free Online Poker Training, Quantitative Calculator, Live Poker Room Discovery, And Private Club Platform. Smarter.Poker Publishes 24 Interactive GTO & Math Calculators, 169 Starting Hand Guides, 25 Hand-Vs-Hand Matchups, 30 Official TDA Floor Rulings, 15 Game Variant Guides, 12 Regional Market Guides, 10 Series Strategy Guides, 15 Empirical Research Studies, And A 35-Tool Public Model Context Protocol (MCP) Server.',
     '',
     '## Quotable 2026 Smarter.Poker Platform & Industry Benchmarks (CC-BY 4.0)',
     '- **Verified Live US Poker Rooms Indexed**: 500+ Active Casino, Cardroom, And Private Club Venues Across 42 States.',
     '- **Free Interactive Poker Calculators**: 24 Browser-Native Solvers With Zero Login Or Paywall.',
     '- **Canonical Strategy & Reference Corpus**: 169 Starting Hands, 25 Hand Matchups, 30 TDA Rules, 15 Variants, 12 Regional Market Guides, 10 Series Guides, And 15 Empirical Research Reports.',
-    '- **AI Agent & Developer Infrastructure**: 30 Zero-Auth MCP Tools (`/api/mcp`), Google/W3C A2A Agent Card (`/.well-known/agent.json`), OpenAPI 3.1.0 Spec (`/openapi.json`), And Jupyter/Colab Research Notebook (`/api/datasets/notebook`).',
+    '- **AI Agent & Developer Infrastructure**: 35 Zero-Auth MCP Tools (`/api/mcp`), Google/W3C A2A Agent Card (`/.well-known/agent.json`), OpenAPI 3.1.0 Spec (`/openapi.json`), And Jupyter/Colab Research Notebook (`/api/datasets/notebook`).',
     '',
     `- **Canonical URL**: [${url}](${url})`,
     `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
@@ -3294,8 +3294,11 @@ export function renderSearchDirectoryMarkdown({ q = '' } = {}) {
     '',
     `> Source: [Smarter.Poker Universal Search Directory](${url}${queryClean ? `?q=${encodeURIComponent(queryClean)}` : ''})`,
     '',
-    '## Master Command & Hub Index',
+    '## Master Command & Hub Index (24 Calculators & 35 MCP Tools)',
     '- **24 Interactive Poker Calculators**: [https://smarter.poker/tools](https://smarter.poker/tools)',
+    '- **35 Zero-Auth MCP Server Tools**: [https://smarter.poker/api/mcp](https://smarter.poker/api/mcp)',
+    `- **${LESSONS.length} GTO Strategy Lessons**: [https://smarter.poker/learn](https://smarter.poker/learn)`,
+    `- **${GLOSSARY_TERMS.length}+ Official Poker Glossary Terms**: [https://smarter.poker/glossary](https://smarter.poker/glossary)`,
     '- **169 Starting Hands Encyclopedia**: [https://smarter.poker/learn/hands](https://smarter.poker/learn/hands)',
     '- **25 Preflop Hand-Vs-Hand Matchups**: [https://smarter.poker/learn/matchups](https://smarter.poker/learn/matchups)',
     '- **30 Official TDA & RROP Floor Rulings**: [https://smarter.poker/rules](https://smarter.poker/rules)',
@@ -3305,6 +3308,16 @@ export function renderSearchDirectoryMarkdown({ q = '' } = {}) {
     '- **15 First-Party Empirical Research Studies**: [https://smarter.poker/research](https://smarter.poker/research)',
     '- **First-Time Casino Live Poker Room Guide**: [https://smarter.poker/poker-rooms/first-time-guide](https://smarter.poker/poker-rooms/first-time-guide)',
     '- **Official Press Kit & Media Benchmarks**: [https://smarter.poker/press](https://smarter.poker/press)',
+    '',
+    `## Sample GTO Strategy Lessons (${LESSONS.length} Total)`,
+    ...LESSONS.slice(0, 10).map(
+      (l) => `- **[${l.title || l.question || l.slug}](https://smarter.poker/learn/${l.slug})**: ${clean(l.summary || '')}`
+    ),
+    '',
+    `## Sample Poker Glossary Terms (${GLOSSARY_TERMS.length} Total)`,
+    ...GLOSSARY_TERMS.slice(0, 10).map(
+      (t) => `- **[${t.term}](https://smarter.poker/glossary/${t.slug})**: ${clean(t.definition || '')}`
+    ),
     '',
   ].join('\n');
 }

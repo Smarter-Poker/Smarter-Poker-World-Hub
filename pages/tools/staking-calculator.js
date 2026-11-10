@@ -17,6 +17,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { renderStakingCalculatorMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
 
 const MARKUP_BENCHMARK_TABLE = [
   {
@@ -594,4 +595,26 @@ export default function StakingCalculatorPage({
       </main>
     </div>
   );
+}
+
+export async function getServerSideProps({ req, res, query }) {
+  const accept = String(req?.headers?.accept || '');
+  if (
+    query?.format === 'md' ||
+    query?.format === 'markdown' ||
+    accept.includes('text/markdown') ||
+    req?.url?.includes('format=md')
+  ) {
+    const renderToolDocumentationMarkdown = () => renderStakingCalculatorMarkdown();
+    const md = renderToolDocumentationMarkdown('staking-calculator');
+    if (md) {
+      res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+      res.setHeader('Vary', 'Accept');
+      res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
+      res.write(md);
+      res.end();
+      return { props: {} };
+    }
+  }
+  return { props: {} };
 }

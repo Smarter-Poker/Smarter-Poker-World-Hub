@@ -13,6 +13,8 @@
  */
 
 import { generateOutreachPackage } from '../../../src/lib/seo/outreachEngine.mjs';
+import { LESSONS } from '../../../src/content/learn/lessons.js';
+import { GLOSSARY_TERMS } from '../../../src/content/glossary/terms.js';
 
 export const INDEXNOW_PRIORITY_URLS = [
   'https://smarter.poker/tools',
@@ -114,6 +116,16 @@ export const OPENSEARCH_SUGGESTION_INDEX = [
   { title: '10 Major Poker Tournament Series Strategy Guides', desc: 'WSOP, WPT, MSPT, RGPS, WSOPC, SHRPO, Borgata, Venetian, Wynn, TCH/Lodge', url: 'https://smarter.poker/poker-series/guides' },
   { title: 'First-Time Live Casino Poker Room Etiquette Guide', desc: 'Step-by-step check-in, buying chips, posting blinds, and tipping', url: 'https://smarter.poker/poker-rooms/first-time-guide' },
   { title: 'Smarter.Poker Press Kit & 2026 Industry Benchmarks', desc: 'Quotable 2026 poker industry facts, brand boilerplates & citation snippets', url: 'https://smarter.poker/press' },
+  ...LESSONS.slice(0, 15).map((l) => ({
+    title: `${l.title || l.question || l.slug} (GTO Strategy Lesson)`,
+    desc: String(l.summary || l.category || 'Answer-first GTO poker strategy lesson').slice(0, 120),
+    url: `https://smarter.poker/learn/${l.slug}`,
+  })),
+  ...GLOSSARY_TERMS.slice(0, 15).map((t) => ({
+    title: `${t.term} (Poker Glossary Definition)`,
+    desc: String(t.definition || t.category || 'Official Smarter.Poker glossary definition').slice(0, 120),
+    url: `https://smarter.poker/glossary/${t.slug}`,
+  })),
 ];
 
 export function buildIndexNowPayload() {
