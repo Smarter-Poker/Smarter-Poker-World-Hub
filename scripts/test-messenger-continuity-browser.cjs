@@ -219,7 +219,7 @@ async function visibleInPane(page, messageId) {
     await expect(page.getByRole('textbox', { name: 'Message', exact: true })).toHaveValue('Account One Draft 1');
     await page.screenshot({ path: path.join(evidence, 'draft-account-isolation.png') });
   });
-  await check('delayed-draft-load-and-explicit-error-conflict', {}, async f => {
+  await check('delayed-draft-load-and-explicit-error-conflict', { long: true }, async f => {
     f.state().draft = { text: 'Earlier Server Draft', replyToId: null, revision: 1 };
     f.hold();
     const page = await f.newPage();
@@ -228,18 +228,37 @@ async function visibleInPane(page, messageId) {
     await page.getByRole('textbox', { name: 'Message', exact: true }).fill('Newer Local Typing');
     f.release();
     await expect(page.getByRole('textbox', { name: 'Message', exact: true })).toHaveValue('Newer Local Typing');
-    await page.getByRole('button', { name: 'Keep This Draft', exact: true }).click();
-    await expect.poll(() => f.state().draft.text).toBe('Newer Local Typing');
+    await expect(page.getByRole('button', { name: /Keep This Draft|Use Saved Draft/ })).toHaveCount(0);
+    await page.getByRole('textbox', { name: 'Message', exact: true }).fill('Newer Local Typing Continued');
+    await expect.poll(() => f.state().draft.text).toBe('Newer Local Typing Continued');
     f.failDraft();
     await page.getByRole('textbox', { name: 'Message', exact: true }).fill('Explicit Retry Draft');
     await page.getByRole('button', { name: 'Retry Continuity', exact: true }).first().waitFor();
-    assert.equal(f.state().draft.text, 'Newer Local Typing');
+    assert.equal(f.state().draft.text, 'Newer Local Typing Continued');
     await page.getByRole('button', { name: 'Retry Continuity', exact: true }).first().click();
     await expect.poll(() => f.state().draft.text).toBe('Explicit Retry Draft');
     f.state().draft = { text: 'Other Tab Draft', replyToId: null, revision: f.state().draft.revision + 1 };
+    const draftConflict = page.waitForResponse(response => response.url().endsWith('/api/messenger/continuity')
+      && response.status() === 409 && response.request().postDataJSON()?.field === 'draft');
     await page.getByRole('textbox', { name: 'Message', exact: true }).fill('Keep Local Conflict Draft');
-    await page.getByRole('button', { name: 'Keep This Draft', exact: true }).click();
-    await expect.poll(() => f.state().draft.text).toBe('Keep Local Conflict Draft');
+    await draftConflict;
+    await expect(page.getByRole('textbox', { name: 'Message', exact: true })).toHaveValue('Keep Local Conflict Draft');
+    await expect(page.getByText('Your Draft Changed In Another Tab Or Device. Your Text Is Still Here.', { exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /Keep This Draft|Use Saved Draft/ })).toHaveCount(0);
+    await page.getByRole('textbox', { name: 'Message', exact: true }).fill('Keep Local Conflict Draft Continued');
+    await expect.poll(() => f.state().draft.text).toBe('Keep Local Conflict Draft Continued');
+    // A stale reading-position write stays quiet and the next scroll resumes.
+    const peerRevision = f.state().position.revision + 5;
+    f.state().position = { messageId: f.histories.get(conversations[0].id)[0].id, offset: 0, revision: peerRevision };
+    const pane = page.locator('[data-messenger-message-scroll]');
+    const positionConflict = page.waitForResponse(response => response.url().endsWith('/api/messenger/continuity')
+      && response.status() === 409 && response.request().postDataJSON()?.field === 'position');
+    await pane.evaluate(node => { node.scrollTop -= 160; node.dispatchEvent(new Event('scroll')); });
+    await positionConflict;
+    await expect(page.getByText('Your Reading Position Changed On Another Device.', { exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /Keep This Position|Use Saved Position/ })).toHaveCount(0);
+    await pane.evaluate(node => { node.scrollTop -= 160; node.dispatchEvent(new Event('scroll')); });
+    await expect.poll(() => f.state().position.revision).toBeGreaterThan(peerRevision);
     await page.screenshot({ path: path.join(evidence, 'draft-conflict-recovered.png') });
   });
   await check('two-tabs-pin-save-remove-convergence', {}, async f => {
