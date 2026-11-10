@@ -70,73 +70,62 @@ test('the worker honours that message', () => {
     assert.match(handler.slice(0, 400), /skipWaiting\(\)/, 'the message handler must actually skip waiting');
 });
 
-test('control change triggers exactly one reload, never a loop', () => {
-    assert.match(UPDATER, /controllerchange/, 'nothing reacts to the new worker taking control');
-    assert.match(UPDATER, /location\.reload\(\)/, 'the page must reload to pick up the new build');
-    // A worker that activates and claims immediately can drive
-    // controllerchange -> reload -> controllerchange forever. That is worse
-    // than a stale build, so the guard is not optional.
-    assert.match(UPDATER, /sessionStorage/, 'the reload must be guarded by persisted state');
-    assert.match(UPDATER, /RELOAD_COOLDOWN_MS|cooldown/i, 'the guard needs a cooldown window');
-    // And a storage failure must fail CLOSED (assume recently reloaded),
-    // never open into an unguarded reload.
-    const fn = UPDATER.slice(UPDATER.indexOf('function recentlyReloaded'));
-    assert.match(fn.slice(0, 400), /catch\s*\{[\s\S]*?return true/, 'a storage failure must not enable an unguarded reload');
-});
-
-test('the first worker to claim an uncontrolled page never reloads it', () => {
-    // Dan, 2026-09-01: "the world hub page is doing this weird glitch where it
-    // loads, then glitches and 'reloads' a 2nd time." Reproduced by
-    // unregistering the root worker, clearing sessionStorage and navigating to
-    // /hub once: the resulting document reported
-    // performance.getEntriesByType('navigation')[0].type === 'reload' and
-    // sp_sw_reloaded_at had just been written. The generated worker skips
-    // waiting, then the custom activation handler claims after cache migration.
-    // On a page loaded WITHOUT a controller that first claim fires
-    // controllerchange even though the page's HTML and chunks came straight
-    // off the network. Nothing is stale;
-    // the reload is pure flicker, and the sessionStorage cooldown cannot
-    // suppress it because a fresh session starts with empty sessionStorage.
-    assert.match(
+test('a worker update never reloads the page you are on', () => {
+    // Dan, 2026-11-10: "YOU NEED TO FIX WHAT EVER IS CAUSING A PAGE TO AUTO
+    // REFRESH WHEN ITS CLICKED AND LOADED... A FEW SECONDS LATER IT INSTANTLY
+    // 'RELOADS' AGAIN ON ITS OWN. THIS HAPPENS 100% OF THE TIME INSIDE OF
+    // MESSENGER, AND ALOT OF TIMES FOR THE OTHER PAGES."
+    //
+    // This component was the cause. Read live from a Messenger tab in Dan's
+    // browser that day, sp_sw_decisions held ten consecutive
+    // controllerchange -> reload pairs, and the final pair sat 1ms before the
+    // surviving document's timeOrigin with navigation type 'reload'.
+    // chunk_reload_count was null, so ChunkLoadRecovery never fired: every
+    // reload came from here.
+    //
+    // The old handler assumed a controller replacement meant this document's
+    // HTML and chunks had come from the OLD worker. next.config.js makes that
+    // impossible: same-origin document requests, /_next/static/chunks/pages/*
+    // and /_next/data/* are all NetworkOnly, so every document is fetched off
+    // the network and is already the build production serves. The reload could
+    // never fetch anything newer. It could only discard a rendered page.
+    //
+    // The promotion handshake stays (the tests above pin it) because a waiting
+    // worker that never activates is its own bug. Activation is enough: the
+    // new worker serves the NEXT navigation.
+    assert.match(UPDATER, /controllerchange/, 'nothing observes the new worker taking control');
+    assert.doesNotMatch(
         UPDATER,
-        /const hadControllerAtLoad = Boolean\(navigator\.serviceWorker\.controller\)/,
-        'the updater must record whether the document loaded already controlled'
+        /location\.reload\(\)/,
+        'the updater must never reload the document; fix the caching rule that served stale assets, not the page the player is reading'
     );
-    const controllerHandler = UPDATER.slice(UPDATER.indexOf('const onControllerChange'));
-    const firstClaimGuard = controllerHandler.indexOf('if (!hadControllerAtLoad) return;');
-    const reload = controllerHandler.indexOf('reloadForUpdatedWorker();');
-    assert.ok(firstClaimGuard >= 0, 'the first-claim transition is not guarded');
-    assert.ok(reload > firstClaimGuard, 'the first-claim guard must precede the reload');
-    // The flag has to be read at mount, before anything promotes a waiting
-    // worker. Sampling it inside the handler would always see the NEW
-    // controller and the guard would never fire.
-    assert.ok(
-        UPDATER.indexOf('const hadControllerAtLoad') < UPDATER.indexOf('const onControllerChange'),
-        'the controller must be sampled before the handler is defined'
-    );
-});
-
-test('a worker update never reloads a live Training gameplay session', () => {
-    assert.match(UPDATER, /\/hub\\\/training\\\/\(\?:arena\|play\)/, 'Training gameplay routes are not identified');
-    const controllerHandler = UPDATER.slice(UPDATER.indexOf('const onControllerChange'));
-    const gameplayGuard = controllerHandler.indexOf('isLiveTrainingGameplaySession()');
-    const reload = controllerHandler.indexOf('reloadForUpdatedWorker();');
-    assert.ok(gameplayGuard >= 0 && reload > gameplayGuard, 'gameplay must be guarded before the reload');
-});
-
-test('a worker update defers on an actual active Trivia run, not a Trivia route guess', () => {
-    assert.match(UPDATER, /hasActiveTriviaRun\(\)/, 'the updater does not inspect the shared live-run signal');
-    assert.match(UPDATER, /subscribeToActiveTriviaRuns/, 'a deferred update cannot resume when the last run settles');
-    assert.doesNotMatch(UPDATER, /\/hub\\\/trivia/, 'Trivia safety must follow the server run rather than a route whitelist');
-    const controllerHandler = UPDATER.slice(UPDATER.indexOf('const onControllerChange'));
-    const activeGuard = controllerHandler.indexOf('if (hasActiveTriviaRun())');
-    const reload = controllerHandler.indexOf('reloadForUpdatedWorker();');
-    assert.ok(activeGuard >= 0 && reload > activeGuard, 'the active-run guard must precede the reload');
-    assert.match(
+    assert.doesNotMatch(
         UPDATER,
-        /if \(active \|\| !triviaReloadDeferred\) return;[\s\S]*?triviaReloadDeferred = false;[\s\S]*?reloadForUpdatedWorker\(\)/,
-        'the deferred update must reload only after the aggregate run signal reaches zero'
+        /location\.(href|assign|replace)\s*[=(]/,
+        'a navigation is a reload wearing a different name'
     );
+});
+
+test('nothing is left behind to re-arm a reload', () => {
+    // Four guards existed here only to decide WHEN that reload was safe: a
+    // live Training gameplay route, an active server-issued Trivia run, a
+    // ringing or connected call, and unsent typed text. With no reload at all
+    // each is satisfied absolutely rather than conditionally. They are removed
+    // rather than left as unreachable code for the next agent to rewire, and
+    // the stronger guarantee is pinned here and in
+    // __tests__/messenger-calls-work.law.test.mjs.
+    for (const dead of [
+        'reloadForUpdatedWorker',
+        'RELOAD_COOLDOWN_MS',
+        'recentlyReloaded',
+        'markReloaded',
+        'hadControllerAtLoad',
+        'triviaReloadDeferred',
+        'callReloadDeferred',
+        'draftTimer',
+    ]) {
+        assert.ok(!UPDATER.includes(dead), `${dead} survives, so the reload path is still reachable`);
+    }
 });
 
 test('the shared Trivia run lease is acquired, settled, reset and always released on unmount', () => {

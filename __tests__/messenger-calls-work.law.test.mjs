@@ -251,24 +251,41 @@ test('a call that rang while the page was frozen, offline or between sockets rin
     assert.match(provider, /document\.addEventListener\('visibilitychange', visible\);/);
 });
 
-test('an open page picks up a new build, but never by reloading under a call', () => {
+test('an open page picks up a new build, and can never reload under a call', () => {
+    // The updater used to defer its reload while `window.__spCallActive` was
+    // set and resume on `sp-call-idle`. Dan, 2026-11-10: pages were reloading
+    // themselves seconds after load, 100% of the time in Messenger. That
+    // reload is gone entirely (see ServiceWorkerUpdater's header and
+    // __tests__/sw-update.test.mjs): every document is fetched NetworkOnly, so
+    // a worker claiming the page never made it stale and the reload could only
+    // discard a live page. A call can no longer be interrupted by a deferral
+    // that works; it cannot be interrupted at all.
     const updater = read('src/components/ui/ServiceWorkerUpdater.jsx');
     assert.match(updater, /document\.addEventListener\('visibilitychange', onVisible\);/);
     assert.match(updater, /setInterval\(\(\) => \{ if \(document\.visibilityState === 'visible'\) void recheck\(\); \}, 15 \* 60 \* 1000\)/);
-    assert.match(updater, /if \(typeof window !== 'undefined' && window\.__spCallActive\) \{\s*callReloadDeferred = true;\s*noteDecision\('held-call'\);\s*return;/);
-    assert.match(updater, /window\.addEventListener\('sp-call-idle', onCallIdle\);/);
+    assert.doesNotMatch(updater, /location\.reload\(\)/, 'a worker update must never reload a page carrying a call');
+    assert.ok(!updater.includes('callReloadDeferred'), 'the deferral is dead code once the reload is gone');
+    // CallProvider still publishes call state and the idle boundary: the call
+    // UI and other consumers depend on it, independently of this component.
     const provider = read('src/components/calls/CallProvider.jsx');
     assert.match(provider, /window\.__spCallActive = Boolean\(value\);/);
     assert.match(provider, /if \(wasActive && !value\) window\.dispatchEvent\(new Event\('sp-call-idle'\)\);/);
 });
 
 test('a version update never wipes text the person typed, and waits for it to clear', async () => {
+    // The updater used to hold its reload while a text box had unsent text and
+    // poll every five seconds until the boxes were empty. The reload is gone
+    // (2026-11-10, see ServiceWorkerUpdater's header), so a version update can
+    // no longer wipe a half-typed message under any timing at all. What the
+    // updater still records is the worker decision itself, which is how that
+    // reload bug was identified from a live browser.
     const updater = read('src/components/ui/ServiceWorkerUpdater.jsx');
-    assert.match(updater, /const typing = trackTyping\(document\);/);
-    assert.match(updater, /if \(hasUnsentText\(typing\.typed\)\) \{\s*noteDecision\('held-draft'\);/);
-    assert.match(updater, /if \(cancelled \|\| hasUnsentText\(typing\.typed\) \|\| window\.__spCallActive \|\| hasActiveTriviaRun\(\)\) return;/);
-    // Every decision is recorded where it survives the reload it leads to.
-    for (const d of ['controllerchange', 'first-claim', 'held-call', 'held-draft', 'held-trivia', 'cooldown', 'reload']) assert.ok(updater.includes(`noteDecision('${d}')`), d);
+    assert.doesNotMatch(updater, /location\.reload\(\)/, 'a worker update must never discard unsent text');
+    assert.ok(!updater.includes('draftTimer'), 'the draft deferral is dead code once the reload is gone');
+    assert.ok(updater.includes("noteDecision('controllerchange')"), 'controllerchange');
+    for (const d of ['update-found', 'update-waiting', 'update-none']) assert.ok(updater.includes(`'${d}'`), d);
+    // unsentText itself is still proven below: it guards other surfaces, and
+    // its contract is worth keeping correct.
     const { hasUnsentText, trackTyping, isDraftField } = await import('../src/lib/pwa/unsentText.mjs');
     const el = (tagName, props = {}) => ({ tagName, isConnected: true, getAttribute: k => props.attrs?.[k] ?? null, closest: () => (props.safe ? {} : null), ...props });
     const listeners = {};

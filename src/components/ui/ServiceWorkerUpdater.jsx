@@ -1,102 +1,104 @@
 /**
- * SERVICE WORKER UPDATER — the reason "nothing changed" kept being true.
- * ═══════════════════════════════════════════════════════════════════════
+ * SERVICE WORKER UPDATER — a new build takes over the NEXT navigation, and
+ * never reloads the page you are on.
+ * ═══════════════════════════════════════════════════════════════════════════
  *
- * Dan, 2026-08-25, repeatedly: "LITERALLY NOTHING CHANGED, PUSHED OR
- * PUBLISHED." Every time, the code WAS merged and WAS live on the server —
- * verified against production, not assumed. His device was serving a cached
- * app shell from a service worker that had taken control weeks earlier and
- * was never replaced.
+ * WHAT THIS DOES
  *
- * WHY THE APP GOT STUCK, AND WHY IT COULD NOT UNSTICK ITSELF
+ * A new service worker installs, then sits in `waiting` until every client of
+ * the old one goes away. On a phone, "every client" means fully closing the
+ * app from the app switcher - not backgrounding it, not pull-to-refresh.
+ * People do not do that, so the old worker keeps control indefinitely, and
+ * `skipWaiting` cannot fix it from inside the worker that is stuck. Something
+ * in the PAGE has to reach across and tell the waiting worker to activate.
  *
- * A new service worker installs, then sits in `waiting` until every client
- * of the old one goes away. On a phone, "every client" means fully closing
- * the app from the app switcher — not backgrounding it, not pull-to-refresh.
- * People do not do that, so the old worker kept control indefinitely.
- *
- * next.config.js caches /_next/static with CacheFirst (correct on its own —
- * webpack hashes the filename when content changes). But the HTML that names
- * those new hashed files is itself served by the old worker, so the browser
- * never learns the new filenames exist. The app is frozen at whatever build
- * was current when the worker took over.
- *
- * The obvious fix — skipWaiting in the worker — CANNOT DEPLOY ITSELF. It
- * lives in the new worker, and the new worker is the one that cannot take
- * over. The old worker predates it and will never call it. Something in the
- * PAGE has to reach across and tell the waiting worker to activate.
- *
- * That is this component. On every load it:
+ * That is this component. On every load, whenever the page becomes visible,
+ * and every 15 minutes while it stays visible, it:
  *   1. asks the browser to re-check for a new worker (registration.update()),
- *   2. if one is waiting, tells it to skip waiting,
- *   3. reloads exactly once when control actually changes.
+ *   2. if one is waiting, tells it to skip waiting.
  *
- * The reload is guarded by a sessionStorage flag: without it, a worker that
- * activates and immediately claims can drive controllerchange -> reload ->
- * controllerchange in a loop, which is a worse bug than a stale build.
+ * It does NOT reload the page. See below.
  *
- * THE FIRST-CLAIM DOUBLE LOAD (Dan, 2026-09-01: "the world hub page is doing
- * this weird glitch where it loads, then glitches and 'reloads' a 2nd time")
+ * ───────────────────────────────────────────────────────────────────────────
+ * WHY THERE IS NO RELOAD HERE (Dan, 2026-11-10, and the reason it is gone)
+ * ───────────────────────────────────────────────────────────────────────────
  *
- * Step 3 above says "reloads exactly once when control CHANGES". There is a
- * second way controllerchange fires that is not a change at all: the very
- * first visit. The custom root worker skips waiting, retires release-scoped
- * caches, and only then claims clients, so on a page that loaded with NO
- * controller the new worker still takes control during that visit -- and
- * controllerchange fires on a document whose HTML and chunks came straight
- * off the network.
- * There is no old build to escape, and the reload bought nothing: it simply
- * threw the rendered page away and drew it again.
+ * Dan: "YOU NEED TO FIX WHAT EVER IS CAUSING A PAGE TO AUTO REFRESH WHEN ITS
+ * CLICKED AND LOADED... A FEW SECONDS LATER IT INSTANTLY 'RELOADS' AGAIN ON
+ * ITS OWN. THIS HAPPENS 100% OF THE TIME INSIDE OF MESSENGER, AND ALOT OF
+ * TIMES FOR THE OTHER PAGES."
  *
- * That is one visible double load for every uncontrolled entry -- a new
- * device, cleared site data, a private window, or any session after the
- * worker was evicted -- and the sessionStorage cooldown does not suppress it,
- * because a fresh session starts with an empty sessionStorage by definition.
+ * This component was the cause, and its own decision log proved it. Read from
+ * a Messenger tab in Dan's browser on 2026-11-10, `sp_sw_decisions` held ten
+ * consecutive `controllerchange` -> `reload` pairs, and the last pair sat 1ms
+ * before the surviving document's `timeOrigin` with
+ * `performance.getEntriesByType('navigation')[0].type === 'reload'` - the
+ * page had reloaded itself into existence. `chunk_reload_count` was null
+ * throughout, so ChunkLoadRecovery never fired: every one of those reloads
+ * came from here.
  *
- * Fix: remember whether this document had a controller when the effect
- * mounted. Reload only on a genuine REPLACEMENT (had one, now a different
- * one). The uncontrolled -> controlled transition is recorded and ignored.
+ * The mechanism, end to end:
+ *   * `worker/index.js` calls `skipWaiting()` on install and `clients.claim()`
+ *     on activate, so a newly installed worker takes control of every open
+ *     document immediately and `controllerchange` fires on all of them.
+ *   * `update()` runs on every page load, every visibilitychange and every
+ *     15 minutes. The World Hub deploys many times a day, so a newly
+ *     installed worker claims the page constantly.
+ *   * The old handler read a controller replacement as "the HTML and chunks
+ *     this page is running came from the OLD worker" and reloaded.
+ *
+ * THAT PREMISE IS NO LONGER TRUE, AND THAT IS THE WHOLE BUG. The premise was
+ * written when `/_next/static` page JS and HTML were cached. They are not:
+ * `next.config.js` runtimeCaching serves same-origin `document` requests,
+ * `/_next/static/chunks/pages/*.js` and `/_next/data/*` with **NetworkOnly**
+ * (Dan-fix/mobile-white-screen) precisely so that cached HTML can never
+ * reference page chunks that a deploy has replaced. Framework/vendor chunks
+ * are CacheFirst but content-hashed, so a changed file has a changed name.
+ *
+ * So every document this app serves came straight off the network and is
+ * already the build production is serving. A worker claiming it does not make
+ * it stale, and it was never stale to begin with. The reload could not pick up
+ * a newer build than the one already running; all it could do was throw away
+ * a rendered page the player had just asked for, a few seconds after they
+ * asked for it. The stale-shell problem it was written for is fixed at the
+ * caching layer, where it belongs.
+ *
+ * Promotion still matters and stays: a waiting worker that never activates is
+ * what broke push registration (`navigator.serviceWorker.ready` waits for a
+ * worker to CONTROL the page) and what left old release caches in place. The
+ * new worker activates, retires its old caches, claims the page, and serves
+ * the NEXT navigation. Nothing has to be thrown away for that to happen.
+ *
+ * If a deploy ever does leave this document asking for a chunk that is gone,
+ * that is a real failure with a real signal, and `ChunkLoadRecovery` plus the
+ * error boundaries already own it through the shared budget in
+ * `src/lib/chunkRecovery.js`. A reload fired on a healthy page is not a net;
+ * it is the defect.
+ *
+ * WHAT THIS DELIBERATELY NO LONGER NEEDS
+ *
+ * Four guards used to exist here only to decide WHEN it was safe to perform
+ * that reload: a live Training gameplay route, an active server-issued Trivia
+ * run, a ringing or connected call (`window.__spCallActive` / `sp-call-idle`),
+ * and unsent typed text. Each was a correct answer to "do not reload NOW".
+ * With no reload at all, every one of them is satisfied absolutely instead of
+ * conditionally, so they are gone rather than left as unreachable code for the
+ * next agent to rewire. Their laws moved with them in this same commit:
+ * `__tests__/sw-update.test.mjs` and
+ * `__tests__/messenger-calls-work.law.test.mjs` now pin the stronger rule -
+ * this component contains no reload, so it cannot interrupt a call, a hand, a
+ * graded run or a half-typed message.
+ *
+ * DO NOT ADD A RELOAD BACK HERE. If a page is genuinely serving stale assets,
+ * fix the caching rule that let it, not the document the player is reading.
  */
 import { useEffect } from 'react';
-import {
-    hasActiveTriviaRun,
-    subscribeToActiveTriviaRuns,
-} from '../../lib/trivia/activeRunSignal.mjs';
-import { hasUnsentText, trackTyping } from '../../lib/pwa/unsentText.mjs';
-
-const RELOAD_GUARD = 'sp_sw_reloaded_at';
-const RELOAD_COOLDOWN_MS = 60_000;
-
-/**
- * Never destroy a live decision by reloading underneath the player. The new
- * worker already controls the next navigation after `controllerchange`; the
- * current document can safely finish its session on the assets it loaded.
- */
-function isLiveTrainingGameplaySession() {
-    try {
-        return /^\/hub\/training\/(?:arena|play)\//.test(window.location.pathname);
-    } catch {
-        // If location is unavailable, preserving the current document is the
-        // only fail-closed choice.
-        return true;
-    }
-}
-
-function recentlyReloaded() {
-    try {
-        const at = Number(sessionStorage.getItem(RELOAD_GUARD) || 0);
-        return Date.now() - at < RELOAD_COOLDOWN_MS;
-    } catch {
-        // sessionStorage throws in some private modes. Treat as "yes, recently"
-        // so a storage failure can never produce a reload loop.
-        return true;
-    }
-}
 
 /**
  * The last decisions this tab's updater made, newest last, kept in
- * sessionStorage so they survive the reload they lead to. Read by the upgrade
- * test and by anyone asking why an open page did or did not take a build.
+ * sessionStorage. Read by the upgrade test, and by anyone asking why an open
+ * page did or did not take a build. This log is how the 2026-11-10 reload bug
+ * was identified from a live browser, so it is worth keeping.
  */
 const DECISION_LOG = 'sp_sw_decisions';
 function noteDecision(decision) {
@@ -105,10 +107,6 @@ function noteDecision(decision) {
         log.push({ at: Date.now(), decision });
         sessionStorage.setItem(DECISION_LOG, JSON.stringify(log.slice(-20)));
     } catch { /* storage unavailable */ }
-}
-
-function markReloaded() {
-    try { sessionStorage.setItem(RELOAD_GUARD, String(Date.now())); } catch { /* ignore */ }
 }
 
 /** Ask a waiting worker to take over now rather than at some future cold start. */
@@ -123,84 +121,15 @@ export default function ServiceWorkerUpdater() {
         if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return undefined;
 
         let cancelled = false;
-        let triviaReloadDeferred = false;
-        let callReloadDeferred = false;
-        let draftTimer = null;
-        const typing = trackTyping(document);
 
-        // Whether this document was already being served by a worker. Captured
-        // BEFORE anything is promoted, because it is the only thing that
-        // distinguishes "a newer build took over" from "a worker took over for
-        // the first time", and only the first of those is worth a reload.
-        const hadControllerAtLoad = Boolean(navigator.serviceWorker.controller);
-
-        const reloadForUpdatedWorker = () => {
-            if (cancelled) return;
-            if (recentlyReloaded()) { noteDecision('cooldown'); return; }
-            noteDecision('reload');
-            markReloaded();
-            window.location.reload();
-        };
-
+        // A new worker is now in charge. It serves the NEXT navigation; this
+        // document keeps the assets it already fetched from the network. There
+        // is nothing to do but record it - see the header for why reloading
+        // here was the defect rather than the recovery.
         const onControllerChange = () => {
             if (cancelled) return;
-            // FIRST CLAIM, NOT AN UPDATE. This page loaded uncontrolled, so its
-            // HTML and chunks came from the network and are already current.
-            // Reloading here is the double load Dan reported and it corrects
-            // nothing. The new worker serves the NEXT navigation either way.
             noteDecision('controllerchange');
-            if (!hadControllerAtLoad) noteDecision('first-claim');
-            if (!hadControllerAtLoad) return;
-            if (isLiveTrainingGameplaySession()) { noteDecision('held-training'); return; }
-            // A server-issued Trivia session is an actual live decision, not a
-            // route guess. Let it settle or unmount before replacing its page.
-            if (hasActiveTriviaRun()) {
-                triviaReloadDeferred = true;
-                noteDecision('held-trivia');
-                return;
-            }
-            // Never reload under a ringing or connected call: it would drop
-            // it. CallProvider announces sp-call-idle when the call is over.
-            if (typeof window !== 'undefined' && window.__spCallActive) {
-                callReloadDeferred = true;
-                noteDecision('held-call');
-                return;
-            }
-            // Never wipe text the person typed and has not sent. Look again
-            // every five seconds and reload once every box is empty (sent or
-            // cleared) and nothing else is holding the page.
-            if (hasUnsentText(typing.typed)) {
-                noteDecision('held-draft');
-                if (!draftTimer) {
-                    draftTimer = setInterval(() => {
-                        if (cancelled || hasUnsentText(typing.typed) || window.__spCallActive || hasActiveTriviaRun()) return;
-                        clearInterval(draftTimer);
-                        draftTimer = null;
-                        reloadForUpdatedWorker();
-                    }, 5000);
-                }
-                return;
-            }
-            // A different worker is now in charge, so the HTML and chunks this
-            // page is running came from the OLD one. Reload to pick up the new
-            // build. Once per minute at most.
-            reloadForUpdatedWorker();
         };
-
-        const unsubscribeFromTriviaRuns = subscribeToActiveTriviaRuns((active) => {
-            if (active || !triviaReloadDeferred) return;
-            triviaReloadDeferred = false;
-            reloadForUpdatedWorker();
-        });
-
-        const onCallIdle = () => {
-            if (!callReloadDeferred) return;
-            callReloadDeferred = false;
-            // The call is over, but a typed reply still holds the page.
-            if (hasUnsentText(typing.typed)) { onControllerChange(); return; }
-            reloadForUpdatedWorker();
-        };
-        window.addEventListener('sp-call-idle', onCallIdle);
 
         navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
 
@@ -271,13 +200,9 @@ export default function ServiceWorkerUpdater() {
 
         return () => {
             cancelled = true;
-            unsubscribeFromTriviaRuns();
             navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
-            window.removeEventListener('sp-call-idle', onCallIdle);
             document.removeEventListener('visibilitychange', onVisible);
             clearInterval(recheckTimer);
-            if (draftTimer) clearInterval(draftTimer);
-            typing.stop();
         };
     }, []);
 
