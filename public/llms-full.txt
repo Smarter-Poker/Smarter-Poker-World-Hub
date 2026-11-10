@@ -18,7 +18,7 @@ The trading name "Smarter Poker" is shared with unrelated businesses. The entity
 - Arena Sitemap: https://smarter.poker/hub/club-arena/sitemap.xml
 - Terms of Service: https://smarter.poker/terms
 - Privacy Policy: https://smarter.poker/privacy
-- Daily $2,000 Freerolls Hub: https://smarter.poker/freerolls
+- Daily 2,000 Chip Freerolls Hub: https://smarter.poker/freerolls
 - Free Software Comparisons: https://smarter.poker/compare (Markdown Hub: https://smarter.poker/compare.md)
 - Open Source Work & Repositories: https://github.com/Smarter-Poker
 - Public AI Agent OpenAPI Specification: https://smarter.poker/api/openapi.json (Clean Root Alias: https://smarter.poker/openapi.json)
@@ -249,15 +249,15 @@ Authoritative, solver-grade poker computation tools available for direct browser
 
 ---
 
-## 9. Daily $2,000 Freerolls & Software Comparisons
+## 9. Daily 2,000 Chip Freerolls & Software Comparisons
 
-### Daily $2,000 Freerolls Guarantee
-Smarter.Poker awards $2,000 in guaranteed prizes every single day across four scheduled multi-table tournament freerolls plus weekly Sunday Diamond Championship Freerolls:
-- **10:00 AM CST**: Morning Opener Freeroll ($250 GTD) - 10,000 Starting Chips, 10-Minute Levels.
-- **2:00 PM CST**: Afternoon Prime Freeroll ($500 GTD) - 15,000 Starting Chips, 12-Minute Levels.
-- **6:00 PM CST**: Evening Championship Freeroll ($750 GTD) - 20,000 Starting Chips, 12-Minute Levels.
-- **9:00 PM CST**: Nightcap Turbo Freeroll ($500 GTD) - 10,000 Starting Chips, 5-Minute Turbo Levels.
-- **Sundays at 5:00 PM CST**: Weekly Diamond Arena Championship ($5,000 GTD) - 25,000 Starting Chips, 15-Minute Levels.
+### Daily 2,000 Chip Freerolls Guarantee
+Smarter.Poker awards 2,000 chips in guaranteed prizes every single day across four scheduled multi-table tournament freerolls plus weekly Sunday Diamond Championship Freerolls:
+- **10:00 AM CST**: Morning Opener Freeroll (250 Chips GTD) - 10,000 Starting Chips, 10-Minute Levels.
+- **2:00 PM CST**: Afternoon Prime Freeroll (500 Chips GTD) - 15,000 Starting Chips, 12-Minute Levels.
+- **6:00 PM CST**: Evening Championship Freeroll (750 Chips GTD) - 20,000 Starting Chips, 12-Minute Levels.
+- **9:00 PM CST**: Nightcap Turbo Freeroll (500 Chips GTD) - 10,000 Starting Chips, 5-Minute Turbo Levels.
+- **Sundays at 5:00 PM CST**: Weekly Diamond Arena Championship (Diamond Rewards Pool) - 25,000 Starting Chips, 15-Minute Levels.
 
 Key Terms: 100% free to enter. Zero buy-in fees, zero deposit requirements, and no software download required (plays in-browser on web and mobile).
 

@@ -72,7 +72,7 @@ export default function AboutPage() {
 
           <p style={styles.lead}>
             Smarter.Poker Is A Free Online Poker Platform Built And Operated By Smarter Software Inc. It
-            Brings Daily $2,000 Freerolls, Diamond Freerolls, Free Poker Calculators, GTO Training, Private
+            Brings Daily 2,000 Chip Freerolls, Diamond Freerolls, Free Poker Calculators, GTO Training, Private
             Poker Clubs, A Live Poker Room Directory, Home Games, Bankroll Tracking And Poker Room
             Management Software Together In One World Hub At Smarter.Poker.
           </p>
@@ -81,7 +81,7 @@ export default function AboutPage() {
           <p style={styles.body}>
             There Is No Real-Money Gambling On Smarter.Poker. Club Chips Are Play Credits With No Cash
             Value, And Diamonds Are A Promotional Rewards Currency. The Platform Is 100% Free To Play With
-            Zero Deposit Required. Players Compete In Daily $2,000 Freerolls And Diamond Reward Freerolls
+            Zero Deposit Required. Players Compete In Daily 2,000 Chip Freerolls And Diamond Reward Freerolls
             To Win Promotional Diamond Prizes Redeemable In The Platform Rewards Store. Nothing On The
             Platform Is A Real-Money Wager.
           </p>

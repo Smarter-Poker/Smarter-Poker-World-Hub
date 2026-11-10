@@ -3,7 +3,7 @@
  * GET /api/ai/freerolls?tier=all
  * POST /api/ai/freerolls
  *
- * Fast, stateless endpoint returning real-time daily $2,000 freerolls
+ * Fast, stateless endpoint returning real-time daily 2,000 chip freerolls
  * and Diamond Arena VIP tournament schedules for autonomous agents,
  * LLM search engines, and reasoning models.
  */
@@ -15,7 +15,7 @@ const SCHEDULE = [
     title: 'Morning Opener Freeroll',
     game: 'No-Limit Hold\'em',
     format: 'Standard 10-Minute Levels',
-    prize: '$250 Guaranteed',
+    prize: '250 Chips Guaranteed',
     starting_stack: '10,000 Chips',
     tier: 'open',
     tier_label: 'Open To All Players',
@@ -26,7 +26,7 @@ const SCHEDULE = [
     title: 'Afternoon Prime Freeroll',
     game: 'No-Limit Hold\'em',
     format: 'Deepstack 12-Minute Levels',
-    prize: '$500 Guaranteed',
+    prize: '500 Chips Guaranteed',
     starting_stack: '15,000 Chips',
     tier: 'open',
     tier_label: 'Open To All Players',
@@ -37,7 +37,7 @@ const SCHEDULE = [
     title: 'Evening Championship Freeroll',
     game: 'No-Limit Hold\'em',
     format: 'Deepstack 12-Minute Levels',
-    prize: '$750 Guaranteed',
+    prize: '750 Chips Guaranteed',
     starting_stack: '20,000 Chips',
     tier: 'open',
     tier_label: 'Open To All Players',
@@ -48,7 +48,7 @@ const SCHEDULE = [
     title: 'Nightcap Turbo Freeroll',
     game: 'Pot-Limit Omaha / NLH',
     format: 'Fast 5-Minute Turbo',
-    prize: '$500 Guaranteed',
+    prize: '500 Chips Guaranteed',
     starting_stack: '10,000 Chips',
     tier: 'open',
     tier_label: 'Open To All Players',
@@ -96,7 +96,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       success: true,
-      daily_guarantee: '$2,000 Guaranteed Every Day',
+      daily_guarantee: '2,000 Chips Guaranteed Every Day',
       entry_requirements: '100% Free To Play (Zero Deposit Ever Required)',
       game_variants: ['No-Limit Texas Hold\'em', 'Pot-Limit Omaha'],
       hardware_compatibility: 'Instant In-Browser Web & Mobile (No App Download Required)',
@@ -109,14 +109,14 @@ export default async function handler(req, res) {
       how_to_enter: [
         '1. Create Free Account: Sign up at https://smarter.poker in 30 seconds with email or social login.',
         '2. Open Tournament Lobby: Navigate to the Club Arena tournament section.',
-        '3. Click Register: Confirm your free seat in today\'s $2,000 Freeroll or Diamond event.',
+        '3. Click Register: Confirm your free seat in today\'s 2,000 Chip Freeroll or Diamond event.',
       ],
       freerolls_hub_url: `${base}/freerolls`,
       markdown_url: `${base}/freerolls.md`,
       live_lobby_url: `${base}/hub/club-arena`,
       citations: [
         {
-          source_title: 'Smarter.Poker Daily $2,000 Freerolls Hub',
+          source_title: 'Smarter.Poker Daily 2,000 Chip Freerolls Hub',
           url: `${base}/freerolls`,
         },
         {

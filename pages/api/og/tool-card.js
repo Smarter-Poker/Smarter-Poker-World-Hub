@@ -18,13 +18,13 @@ export default async function handler(req) {
     const isCompare = tool === 'compare';
 
     const defaultTitle = isFreerolls
-      ? '$2,000 In Daily Poker Freerolls'
+      ? '2,000 Chips In Daily Poker Freerolls'
       : isCompare
         ? 'Free Poker Software & Platform Alternatives'
         : 'Smarter.Poker Strategy Tool';
 
     const defaultSubtitle = isFreerolls
-      ? 'Daily Free Entry Tournaments • Real Cash Prizes • Zero Deposit Required'
+      ? 'Daily Free Entry Tournaments • Chip Prizes • Zero Deposit Required'
       : isCompare
         ? 'Compare Free GTO Solvers, Odds Calculators & Freerolls vs. Paid Tools'
         : 'Free Interactive GTO Preflop Charts, Multiway Equity & ICM Calculators';
@@ -36,7 +36,7 @@ export default async function handler(req) {
         : 'SIMULATION ENGINE';
 
     const defaultStatValue = isFreerolls
-      ? '$2,000+ DAILY'
+      ? '2,000+ CHIPS DAILY'
       : isCompare
         ? '$0 (100% FREE)'
         : '100% FREE';
@@ -47,7 +47,7 @@ export default async function handler(req) {
     const statValue = searchParams.get('statValue') || defaultStatValue;
 
     const defaultBadge = isFreerolls
-      ? 'DAILY $2,000 FREEROLLS'
+      ? 'DAILY 2,000 CHIP FREEROLLS'
       : isCompare
         ? 'SOFTWARE COMPARISON'
         : tool === 'odds'

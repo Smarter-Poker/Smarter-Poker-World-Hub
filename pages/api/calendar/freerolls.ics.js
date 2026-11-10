@@ -1,6 +1,6 @@
 /**
  * FREEROLLS CALENDAR (.ics) EXPORT ENDPOINT
- * Serves standards-compliant iCalendar (.ics) feed for Daily $2,000 Freerolls & Diamond events.
+ * Serves standards-compliant iCalendar (.ics) feed for Daily 2,000 Chip Freerolls & Diamond events.
  * Compatible with Apple Calendar, Google Calendar, Outlook, and mobile calendar apps.
  */
 import { buildFreerollsIcs } from '../../../src/lib/poker-near-me/calendarExport.mjs';

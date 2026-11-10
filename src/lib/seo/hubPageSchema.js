@@ -413,13 +413,13 @@ export function courseSchema({
 }
 
 /**
- * Schema.org SportsEvent & EventSeries node for the Daily $2,000 Freerolls and Diamond Freerolls hub.
+ * Schema.org SportsEvent & EventSeries node for the Daily 2,000 Chip Freerolls and Diamond Freerolls hub.
  */
 export function freerollEventSchema({
   path = '/freerolls',
-  name = 'Smarter.Poker Daily $2,000 Freerolls And Diamond Freerolls',
-  description = 'Compete In 100% Free Daily Poker Tournaments With $2,000 In Guaranteed Daily Prizes Plus Exclusive Diamond Freerolls.',
-  trail = [['Tournaments', '/hub/daily-tournaments'], ['Daily $2,000 Freerolls', '/freerolls']],
+  name = 'Smarter.Poker Daily 2,000 Chip Freerolls And Diamond Freerolls',
+  description = 'Compete In 100% Free Daily Poker Tournaments With 2,000 Chips In Guaranteed Daily Prizes Plus Exclusive Diamond Freerolls.',
+  trail = [['Tournaments', '/hub/daily-tournaments'], ['Daily 2,000 Chip Freerolls', '/freerolls']],
   faqs = [],
   howTo = null,
   image = `${SITE}/api/og/tool-card?tool=freerolls`,
@@ -438,8 +438,8 @@ export function freerollEventSchema({
     {
       '@type': 'SportsEvent',
       '@id': `${url}#morning-opener-freeroll`,
-      name: 'Morning Opener $250 Guaranteed Daily Freeroll',
-      description: 'Daily Morning Texas Holdem Tournament Open To All Players With $250 In Real Cash Prizes And Zero Buy-In.',
+      name: 'Morning Opener 250 Chips Guaranteed Daily Freeroll',
+      description: 'Daily Morning Texas Holdem Tournament Open To All Players With 250 Chips In Prizes And Zero Buy-In.',
       url,
       sport: 'Poker',
       startDate: '2026-01-01T10:00:00-06:00',
@@ -479,8 +479,8 @@ export function freerollEventSchema({
     {
       '@type': 'SportsEvent',
       '@id': `${url}#afternoon-prime-freeroll`,
-      name: 'Afternoon Prime $500 Guaranteed Daily Freeroll',
-      description: 'Midday Prime Freeroll Featuring Deep Stacks And $500 In Guaranteed Cash Prizes With Zero Entry Fees.',
+      name: 'Afternoon Prime 500 Chips Guaranteed Daily Freeroll',
+      description: 'Midday Prime Freeroll Featuring Deep Stacks And 500 Chips In Guaranteed Prizes With Zero Entry Fees.',
       url,
       sport: 'Poker',
       startDate: '2026-01-01T14:00:00-06:00',
@@ -520,8 +520,8 @@ export function freerollEventSchema({
     {
       '@type': 'SportsEvent',
       '@id': `${url}#evening-championship-freeroll`,
-      name: 'Evening Championship $750 Guaranteed Daily Freeroll',
-      description: 'The Flagship Daily Freeroll With $750 In Guaranteed Prizes, Full Leaderboard Points, And Free Entry For All Verified Members.',
+      name: 'Evening Championship 750 Chips Guaranteed Daily Freeroll',
+      description: 'The Flagship Daily Freeroll With 750 Chips In Guaranteed Prizes, Full Leaderboard Points, And Free Entry For All Verified Members.',
       url,
       sport: 'Poker',
       startDate: '2026-01-01T18:00:00-06:00',
@@ -561,8 +561,8 @@ export function freerollEventSchema({
     {
       '@type': 'SportsEvent',
       '@id': `${url}#nightcap-turbo-freeroll`,
-      name: 'Nightcap Turbo $500 Guaranteed Daily Freeroll',
-      description: 'Fast-Paced Evening Turbo Freeroll With 5-Minute Blind Levels, $500 In Cash Prizes, And Zero Risk.',
+      name: 'Nightcap Turbo 500 Chips Guaranteed Daily Freeroll',
+      description: 'Fast-Paced Evening Turbo Freeroll With 5-Minute Blind Levels, 500 Chips In Prizes, And Zero Risk.',
       url,
       sport: 'Poker',
       startDate: '2026-01-01T21:00:00-06:00',
@@ -646,7 +646,7 @@ export function freerollEventSchema({
   const eventSeriesNode = {
     '@type': ['SportsEvent', 'EventSeries'],
     '@id': `${url}#eventseries`,
-    name: 'Smarter.Poker Daily $2,000 Freeroll Tournament Series',
+    name: 'Smarter.Poker Daily 2,000 Chip Freeroll Tournament Series',
     description,
     url,
     sport: 'Poker',
@@ -719,7 +719,7 @@ export function freerollEventSchema({
   if (howTo && Array.isArray(howTo.steps) && howTo.steps.length > 0) {
     const howToNode = howToSchema({
       path,
-      name: howTo.name || 'How To Enter And Play Smarter.Poker Daily $2,000 Freerolls',
+      name: howTo.name || 'How To Enter And Play Smarter.Poker Daily 2,000 Chip Freerolls',
       description: howTo.description || description,
       steps: howTo.steps,
       totalTime: howTo.totalTime || 'PT1M',

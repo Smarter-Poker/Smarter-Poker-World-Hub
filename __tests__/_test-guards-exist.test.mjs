@@ -43,6 +43,7 @@ import './aeo-dynamic-og-cards.test.mjs';
 import './aeo-ai-agent-api.test.mjs';
 import './aeo-tool-schemas.test.mjs';
 import './aeo-freerolls-hub.test.mjs';
+import './freeroll-prizes-are-chips.test.mjs';
 import './aeo-freerolls-calendar-og.test.mjs';
 import './aeo-freerolls-global-wiring.test.mjs';
 import './aeo-deep-dive-optimizations.test.mjs';

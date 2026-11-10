@@ -194,7 +194,7 @@ test('GET /api/ai/terms searches authoritative glossary and returns citations', 
   assert.ok(!JSON.stringify(body).includes('—'), 'Must contain zero em dashes');
 });
 
-test('GET /api/ai/freerolls returns daily $2,000 schedule and Diamond Freerolls', async () => {
+test('GET /api/ai/freerolls returns daily 2,000 chip schedule and Diamond Freerolls', async () => {
   const { default: handler } = await import('../pages/api/ai/freerolls.js');
   const req = {
     method: 'GET',
@@ -206,7 +206,7 @@ test('GET /api/ai/freerolls returns daily $2,000 schedule and Diamond Freerolls'
   assert.equal(res.getStatusCode(), 200);
   const body = res.getBody();
   assert.equal(body.success, true);
-  assert.ok(body.daily_guarantee.includes('$2,000'));
+  assert.ok(body.daily_guarantee.includes('2,000 Chips'));
   assert.ok(body.schedule.length >= 4);
   assert.ok(body.freerolls_hub_url.includes('/freerolls'));
   assert.ok(body.markdown_url.includes('/freerolls.md'));
