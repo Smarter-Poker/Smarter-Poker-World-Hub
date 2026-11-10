@@ -4,6 +4,7 @@ import { normalizeCustomTrainingConfig } from './customTrainerConfigContract.mjs
 const CANONICAL_GAME_IDS = new Set(TRAINING_LIBRARY.map((game) => game.id));
 const POSITIONS = new Set(['BTN', 'CO', 'HJ', 'MP', 'UTG', 'SB', 'BB']);
 const STREETS = new Set(['preflop', 'flop', 'turn', 'river', 'all']);
+const VARIANTS = new Set(['nlh', 'plo4', 'plo5', 'plo6']);
 const STACKS = Object.freeze({
   cash: Object.freeze([20, 40, 60, 100, 200]),
   mtt: Object.freeze([10, 20, 40, 60, 100]),
@@ -77,7 +78,10 @@ function spotTypeOf(input) {
   );
 }
 
-function canonicalGameFor({ gameType, street, position, actionScenario, stackDepth }) {
+function canonicalGameFor({ gameType, street, position, actionScenario, stackDepth, variant }) {
+  if (variant && ['plo4', 'plo5', 'plo6'].includes(variant) && gameType === 'cash') {
+    return 'cash-005';
+  }
   if (gameType === 'spins') return 'spins-001';
   if (gameType === 'mtt') {
     if (street === 'river') return 'mtt-024';
@@ -117,10 +121,12 @@ export function resolveCustomTrainingLaunch(input = {}) {
   const stackDepth = nearestStack(gameType, input);
   const actionScenario = scenarioOf(input);
   const spotType = spotTypeOf(input);
+  const rawVariant = String(input.variant || '').trim().toLowerCase();
+  const variant = VARIANTS.has(rawVariant) ? rawVariant : null;
   const explicitGameId = String(input.gameId || input.canonicalGameId || '').trim();
   const gameId = CANONICAL_GAME_IDS.has(explicitGameId)
     ? explicitGameId
-    : canonicalGameFor({ gameType, street, position, actionScenario, stackDepth });
+    : canonicalGameFor({ gameType, street, position, actionScenario, stackDepth, variant });
   const hasFocusConfig = [
     'format', 'gameType', 'position', 'positions', 'street', 'streets',
     'stackDepth', 'stackMin', 'stackMax', 'actionScenario', 'scenarios',
@@ -128,14 +134,14 @@ export function resolveCustomTrainingLaunch(input = {}) {
   ].some((key) => input[key] !== undefined && input[key] !== null && input[key] !== '');
 
   if (CANONICAL_GAME_IDS.has(explicitGameId) && !hasFocusConfig) {
-    return Object.freeze({ gameId, custom: false, config: null });
+    return Object.freeze({ gameId, custom: false, config: null, variant });
   }
 
   // The strict custom policy contract is postflop-only. Preflop requests must
   // launch the closest authored canonical curriculum instead of pretending a
   // generic postflop query can honor them.
-  if (street === 'preflop') {
-    return Object.freeze({ gameId, custom: false, config: null });
+  if (street === 'preflop' || (variant && variant !== 'nlh')) {
+    return Object.freeze({ gameId, custom: false, config: null, variant });
   }
 
   const config = normalizeCustomTrainingConfig({
@@ -150,12 +156,15 @@ export function resolveCustomTrainingLaunch(input = {}) {
     spotType,
     questionsCount: input.questionsCount || input.count || 25,
   });
-  return Object.freeze({ gameId, custom: true, config });
+  return Object.freeze({ gameId, custom: true, config, variant });
 }
 
 export function buildCustomTrainingArenaHref(input = {}, source = 'training-tool') {
   const launch = resolveCustomTrainingLaunch(input);
   const params = new URLSearchParams({ level: '1', source });
+  if (launch.variant && launch.variant !== 'nlh') {
+    params.set('variant', launch.variant);
+  }
   if (launch.custom) {
     params.set('custom', '1');
     for (const key of [

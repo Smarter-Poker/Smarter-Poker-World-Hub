@@ -15,6 +15,15 @@
 import { evaluateTrainingSpotWithHorseBrain, validateDealAndPotLimitBounds } from './horseBrainTrainingAdapter.js';
 import { generateCuratedPokerConceptBatch } from './curatedPokerConcepts.js';
 
+let _defaultSolverPolicyService = null;
+async function getDefaultSolverPolicyService() {
+  if (!_defaultSolverPolicyService) {
+    const { SolverPolicyService } = await import('../../services/SolverPolicyService.js');
+    _defaultSolverPolicyService = new SolverPolicyService();
+  }
+  return _defaultSolverPolicyService;
+}
+
 const CARD_TOKEN_RE = /[2-9TJQKA][cdhs]/gi;
 const VALID_POSITIONS = new Set(['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB', 'BB']);
 
@@ -104,6 +113,18 @@ export async function lookupServerSyncedHand({ supabase, userId, syncedHandId })
           || String(d.hand_number || '') === targetId
         );
       }) || null;
+    }
+
+    if (!matchedRecord) {
+      const { data: directRows } = await supabase
+        .from('training_tool_records')
+        .select('id, user_id, tool_id, record_type, record_key, data, created_at')
+        .eq('tool_id', 'synced-hand-history')
+        .eq('record_key', targetId)
+        .limit(5);
+      if (Array.isArray(directRows) && directRows.length > 0) {
+        matchedRecord = directRows[0];
+      }
     }
   } catch (_err) {
     // Continue to hand_history fallback
@@ -243,6 +264,7 @@ export async function resolveSyncedHandForTrainingDrill({
   syncedHandId,
   gameId = 'cash-001',
   level = 1,
+  solverPolicyService = null,
 }) {
   const lookup = await lookupServerSyncedHand({ supabase, userId, syncedHandId });
   if (!lookup.ok) return lookup;
@@ -365,7 +387,9 @@ export async function resolveSyncedHandForTrainingDrill({
     targetStreet: hand.street,
   });
 
-  const questions = [primaryQuestionRaw, ...companionsRaw].slice(0, 10);
+  const allRaw = [primaryQuestionRaw, ...companionsRaw].slice(0, 10);
+  const policySvc = solverPolicyService || (await getDefaultSolverPolicyService());
+  const questions = allRaw.map((q) => policySvc.attachToQuestion(q, 'get-question'));
 
   return {
     ok: true,

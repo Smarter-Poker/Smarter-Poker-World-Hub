@@ -228,6 +228,7 @@ export function validateDealAndPotLimitBounds({
       formula: 'maxRaise = min(effectiveStack, pot + 2 * callAmount)',
       rawMaxPotAction,
       maxPotBetOrRaise,
+      maxBetBb: maxPotBetOrRaise,
       threeQuarterPotBet,
       twoThirdsPotBetOrRaise,
       halfPotBetOrRaise,
@@ -351,16 +352,24 @@ export function evaluateTrainingSpotWithHorseBrain({
   villainPosition = 'BB',
   pot = 6.5,
   toCall = 0,
+  facingBetBb = 0,
   stackDepth,
   effectiveStackBb,
   isPKO = false,
   bountyBb = null,
   isICM = false,
+  isMTT = false,
   bubbleFactor = null,
   payoutPressure = null,
   villainStats = null,
   villainArchetype = null,
 } = {}) {
+  const resolvedToCall = Number.isFinite(Number(toCall)) && Number(toCall) > 0
+    ? Number(toCall)
+    : Number.isFinite(Number(facingBetBb)) && Number(facingBetBb) > 0
+      ? Number(facingBetBb)
+      : 0;
+  const resolvedIsICM = Boolean(isICM || isMTT);
   const resolvedBoardCards = boardCards !== undefined
     ? boardCards
     : board !== undefined
@@ -379,7 +388,7 @@ export function evaluateTrainingSpotWithHorseBrain({
     heroCards,
     boardCards: resolvedBoardCards,
     pot,
-    toCall,
+    toCall: resolvedToCall,
     effectiveStack: resolvedStackDepth,
   });
 
@@ -588,9 +597,9 @@ export function evaluateTrainingSpotWithHorseBrain({
     let icmAdjustment = null;
     const numericBubbleFactor = Number.isFinite(Number(bubbleFactor)) && Number(bubbleFactor) > 1
       ? Number(bubbleFactor)
-      : isICM ? 1.65 : 1.0;
+      : resolvedIsICM ? 1.65 : 1.0;
 
-    if (isICM || numericBubbleFactor > 1.05) {
+    if (resolvedIsICM || numericBubbleFactor > 1.05) {
       const stageInfo = detectTournamentStage({
         playersRemaining: numericBubbleFactor >= 1.8 ? 9 : 19,
         totalEntrants: 180,
@@ -778,6 +787,7 @@ export function evaluateTrainingSpotWithHorseBrain({
       engineModule,
       variant: normVariant,
       street: normStreet,
+      bettingStructure: isPotLimit ? 'pot_limit' : 'no_limit',
       handScore,
       madeHandCategory,
       primaryTwoCardSubset: primarySubset.notation,
@@ -787,6 +797,7 @@ export function evaluateTrainingSpotWithHorseBrain({
       isNutFlushDraw,
       straightOuts,
       wrapType,
+      potLimitMaxBetBb: isPotLimit ? potLimitBounds.maxPotBetOrRaise : null,
       potLimitBounds,
       icmAdjustment,
       pkoBountyAdjustment,

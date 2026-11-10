@@ -36,7 +36,7 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      const toolId = String(req.query.toolId || '');
+      const toolId = String(req.query.toolId || req.query.toolKey || '');
       const recordType = req.query.recordType ? String(req.query.recordType) : '';
       const duelToken = typeof req.query.duelToken === 'string' ? req.query.duelToken.trim() : '';
       const limit = Math.min(100, Math.max(1, Number.parseInt(req.query.limit, 10) || 50));
