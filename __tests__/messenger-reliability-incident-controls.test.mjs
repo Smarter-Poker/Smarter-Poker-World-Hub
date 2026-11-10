@@ -10,6 +10,7 @@ import * as accounting from '../src/lib/accountingMessage.mjs';
 import * as messageMedia from '../src/lib/messenger/messageMedia.mjs';
 import * as liveInvite from '../src/lib/messenger/liveInvite.mjs';
 import * as callReceipt from '../src/lib/messenger/callReceipt.mjs';
+import * as unionEco from '../src/lib/unionEco.mjs';
 
 const require = createRequire(import.meta.url);
 const React = require('react');
@@ -62,6 +63,7 @@ const MessageBubble = compiled('../src/components/messenger/MessageBubble.js', n
     '../../lib/messenger/messageMedia.mjs': messageMedia,
     '../../lib/messenger/liveInvite.mjs': liveInvite,
     '../../lib/messenger/callReceipt.mjs': callReceipt,
+    '../../lib/unionEco.mjs': unionEco,
 })[name] || require(name)).MessageBubble;
 const IncidentView = compiled('../src/components/reliability/ReliabilityIncidentView.jsx', name => shared(name) || require(name)).default;
 
