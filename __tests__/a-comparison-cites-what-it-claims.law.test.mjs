@@ -251,7 +251,7 @@ test('schema is an Article authored and published by the site organization, neve
   const vendorSeo = read('vendor/commander-shared/src/components/seo/SEOHead.js');
   assert.ok(vendorSeo.includes(`'@id': '${ORGANIZATION_ID}'`), 'the publisher @id is the one the Organization node declares');
   assert.match(SLUG_PAGE, /jsonLd=\{\[schemas\.organization, \.\.\.compareJsonLd\(page\)\]\}/, 'the Organization node ships in the same graph');
-  assert.match(INDEX_PAGE, /jsonLd=\{\[schemas\.organization, \.\.\.compareIndexJsonLd\(\)\]\}/);
+  assert.match(INDEX_PAGE, /jsonLd=\{\[schemas\.organization, \.\.\.compareIndexJsonLd\(\)(?:, faqSchema\(COMPARE_FAQS, '\/compare'\))?\]\}/);
 
   const forbidden = /"@type":"(Review|AggregateRating|Rating|Person)"|"reviewRating"|"ratingValue"|"aggregateRating"/;
   for (const page of COMPARE_PAGES) {

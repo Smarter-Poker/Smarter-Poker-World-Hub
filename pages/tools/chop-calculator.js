@@ -286,8 +286,10 @@ export default function ChopCalculatorPage({
     });
   }, [pageDesc]);
 
+  const isEmbed = router.query?.embed === 'true';
+
   return (
-    <div style={{ minHeight: '100vh', background: '#020608', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div style={{ minHeight: isEmbed ? 'auto' : '100vh', background: '#020608', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
         title="Final Table Deal & ICM Chop Calculator"
         description="Compare Exact Malmuth-Harville ICM Chop, Chip Chop, And Save-Amount Final Table Deal Payouts Side By Side With Shareable Scenario Permalinks."
@@ -295,22 +297,26 @@ export default function ChopCalculatorPage({
         jsonLd={schema}
       />
 
-      <main style={{ maxWidth: 1060, margin: '0 auto', padding: '40px 20px 80px' }}>
-        <nav aria-label="Breadcrumb" style={{ fontSize: 13, color: '#94a3b8', marginBottom: 18 }}>
-          <Link href="/" style={{ color: '#25c8ff', textDecoration: 'none' }}>Smarter.Poker</Link>
-          {' / '}
-          <Link href="/tools" style={{ color: '#25c8ff', textDecoration: 'none' }}>Poker Tools</Link>
-          {' / '}
-          <span>Final Table Chop Calculator</span>
-        </nav>
+      <main style={{ maxWidth: 1060, margin: '0 auto', padding: isEmbed ? '16px 14px 24px' : '40px 20px 80px' }}>
+        {!isEmbed && (
+          <nav aria-label="Breadcrumb" style={{ fontSize: 13, color: '#94a3b8', marginBottom: 18 }}>
+            <Link href="/" style={{ color: '#25c8ff', textDecoration: 'none' }}>Smarter.Poker</Link>
+            {' / '}
+            <Link href="/tools" style={{ color: '#25c8ff', textDecoration: 'none' }}>Poker Tools</Link>
+            {' / '}
+            <span>Final Table Chop Calculator</span>
+          </nav>
+        )}
 
-        <h1 style={{ fontSize: 32, fontWeight: 800, color: '#f8fafc', margin: '0 0 14px 0', lineHeight: 1.2 }}>
+        <h1 style={{ fontSize: isEmbed ? 22 : 32, fontWeight: 800, color: '#f8fafc', margin: '0 0 14px 0', lineHeight: 1.2 }}>
           Final Table Deal &amp; ICM Chop Calculator
         </h1>
 
-        <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
-          <strong>Direct Answer:</strong> An <strong>Independent Chip Model (ICM) Chop</strong> Recursively Computes Each Seat Exact Probability Of Finishing In Every Remaining Payout Spot Using The Malmuth-Harville Theorem, Whereas A <strong>Linear Chip Chop</strong> Awards Everyone Last-Place Money And Splits The Surplus Strictly By Chip Percentage. Adding A <strong>10% Winner Save Amount</strong> Locks Up Immediate Equity While Preserving Championship Competition.
-        </p>
+        {!isEmbed && (
+          <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
+            <strong>Direct Answer:</strong> An <strong>Independent Chip Model (ICM) Chop</strong> Recursively Computes Each Seat Exact Probability Of Finishing In Every Remaining Payout Spot Using The Malmuth-Harville Theorem, Whereas A <strong>Linear Chip Chop</strong> Awards Everyone Last-Place Money And Splits The Surplus Strictly By Chip Percentage. Adding A <strong>10% Winner Save Amount</strong> Locks Up Immediate Equity While Preserving Championship Competition.
+          </p>
+        )}
 
         {/* Interactive Final Table Deal Panel */}
         <section
@@ -631,23 +637,27 @@ export default function ChopCalculatorPage({
           </div>
         </section>
 
-        <FaqSection faqs={CHOP_CALCULATOR_FAQS} />
+        {!isEmbed && (
+          <>
+            <FaqSection faqs={CHOP_CALCULATOR_FAQS} />
 
-        <CitationBacklinkBox
-          title="Final Table Deal & ICM Chop Calculator"
-          canonicalUrl={canonicalUrl}
-          badgeType="gto"
-          badgeLabel="Final Table ICM Deal Engine"
-          badgeValue="ICM Vs. Chip Chop & Save Solver"
-          summary="Interactive Final Table Deal Calculator Comparing Exact Malmuth-Harville ICM Chop, Linear Chip Chop, And Hybrid Save-Amount Payouts."
-          slug="chop-calculator"
-        />
+            <CitationBacklinkBox
+              title="Final Table Deal & ICM Chop Calculator"
+              canonicalUrl={canonicalUrl}
+              badgeType="gto"
+              badgeLabel="Final Table ICM Deal Engine"
+              badgeValue="ICM Vs. Chip Chop & Save Solver"
+              summary="Interactive Final Table Deal Calculator Comparing Exact Malmuth-Harville ICM Chop, Linear Chip Chop, And Hybrid Save-Amount Payouts."
+              slug="chop-calculator"
+            />
 
-        <AiPromptLauncher
-          title="Final Table Deal & ICM Chop Calculator"
-          canonicalUrl={canonicalUrl}
-          markdownUrl={`${canonicalUrl}.md`}
-        />
+            <AiPromptLauncher
+              title="Final Table Deal & ICM Chop Calculator"
+              canonicalUrl={canonicalUrl}
+              markdownUrl={`${canonicalUrl}.md`}
+            />
+          </>
+        )}
       </main>
     </div>
   );

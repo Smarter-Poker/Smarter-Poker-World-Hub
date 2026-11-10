@@ -214,8 +214,10 @@ export default function StakingCalculatorPage({
     });
   }, [pageDesc]);
 
+  const isEmbed = router.query?.embed === 'true';
+
   return (
-    <div style={{ minHeight: '100vh', background: '#020608', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div style={{ minHeight: isEmbed ? 'auto' : '100vh', background: '#020608', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
         title="Poker Staking & Markup Split Calculator"
         description="Calculate Tournament Staking Markup, Investor Share Cost, Package EV Breakeven ROI, And Post-Series Payout Splits With Copyable Backing Summaries."
@@ -223,22 +225,26 @@ export default function StakingCalculatorPage({
         jsonLd={schema}
       />
 
-      <main style={{ maxWidth: 1060, margin: '0 auto', padding: '40px 20px 80px' }}>
-        <nav aria-label="Breadcrumb" style={{ fontSize: 13, color: '#94a3b8', marginBottom: 18 }}>
-          <Link href="/" style={{ color: '#25c8ff', textDecoration: 'none' }}>Smarter.Poker</Link>
-          {' / '}
-          <Link href="/tools" style={{ color: '#25c8ff', textDecoration: 'none' }}>Poker Tools</Link>
-          {' / '}
-          <span>Poker Staking &amp; Markup Split Calculator</span>
-        </nav>
+      <main style={{ maxWidth: 1060, margin: '0 auto', padding: isEmbed ? '16px 14px 24px' : '40px 20px 80px' }}>
+        {!isEmbed && (
+          <nav aria-label="Breadcrumb" style={{ fontSize: 13, color: '#94a3b8', marginBottom: 18 }}>
+            <Link href="/" style={{ color: '#25c8ff', textDecoration: 'none' }}>Smarter.Poker</Link>
+            {' / '}
+            <Link href="/tools" style={{ color: '#25c8ff', textDecoration: 'none' }}>Poker Tools</Link>
+            {' / '}
+            <span>Poker Staking &amp; Markup Split Calculator</span>
+          </nav>
+        )}
 
-        <h1 style={{ fontSize: 32, fontWeight: 800, color: '#f8fafc', margin: '0 0 14px 0', lineHeight: 1.2 }}>
+        <h1 style={{ fontSize: isEmbed ? 22 : 32, fontWeight: 800, color: '#f8fafc', margin: '0 0 14px 0', lineHeight: 1.2 }}>
           Poker Staking &amp; Markup Split Calculator
         </h1>
 
-        <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
-          <strong>Direct Answer:</strong> In Tournament Staking, An Investor Buying Share <strong>S%</strong> Of A Package At <strong>Markup M</strong> Pays <strong>Package * S% * M</strong> Upfront And Receives <strong>S% Of Gross Cashes</strong>. For An Investor To Break Even ($0 EV), The Player True ROI Must At Least Equal <strong>(Markup - 1) * 100%</strong>.
-        </p>
+        {!isEmbed && (
+          <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
+            <strong>Direct Answer:</strong> In Tournament Staking, An Investor Buying Share <strong>S%</strong> Of A Package At <strong>Markup M</strong> Pays <strong>Package * S% * M</strong> Upfront And Receives <strong>S% Of Gross Cashes</strong>. For An Investor To Break Even ($0 EV), The Player True ROI Must At Least Equal <strong>(Markup - 1) * 100%</strong>.
+          </p>
+        )}
 
         {/* Interactive Staking Calculator */}
         <section
@@ -564,23 +570,27 @@ export default function StakingCalculatorPage({
           </div>
         </section>
 
-        <FaqSection faqs={STAKING_CALCULATOR_FAQS} />
+        {!isEmbed && (
+          <>
+            <FaqSection faqs={STAKING_CALCULATOR_FAQS} />
 
-        <CitationBacklinkBox
-          title="Poker Staking & Markup Split Calculator"
-          canonicalUrl={canonicalUrl}
-          badgeType="gto"
-          badgeLabel="Tournament Backing Engine"
-          badgeValue="Staking Markup & Payout Splits"
-          summary="Interactive Tournament Staking Markup, Investor Share Cost, Package EV Breakeven ROI, And Post-Series Payout Split Calculator."
-          slug="staking-calculator"
-        />
+            <CitationBacklinkBox
+              title="Poker Staking & Markup Split Calculator"
+              canonicalUrl={canonicalUrl}
+              badgeType="gto"
+              badgeLabel="Tournament Backing Engine"
+              badgeValue="Staking Markup & Payout Splits"
+              summary="Interactive Tournament Staking Markup, Investor Share Cost, Package EV Breakeven ROI, And Post-Series Payout Split Calculator."
+              slug="staking-calculator"
+            />
 
-        <AiPromptLauncher
-          title="Poker Staking & Markup Split Calculator"
-          canonicalUrl={canonicalUrl}
-          markdownUrl={`${canonicalUrl}.md`}
-        />
+            <AiPromptLauncher
+              title="Poker Staking & Markup Split Calculator"
+              canonicalUrl={canonicalUrl}
+              markdownUrl={`${canonicalUrl}.md`}
+            />
+          </>
+        )}
       </main>
     </div>
   );

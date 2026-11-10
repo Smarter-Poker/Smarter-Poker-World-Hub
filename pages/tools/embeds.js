@@ -435,6 +435,34 @@ export const STREAM_CHAT_COMMANDS = [
     nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=rule&q=$(querystring))',
     toolUrl: 'https://smarter.poker/rules',
   },
+  {
+    id: 'cmd-chop',
+    command: '!chop',
+    title: 'Final Table ICM Chop & Chip Chop Deal Command (!chop 50000,30000,20000 5000,3000,2000)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=chop&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/tools/chop-calculator',
+  },
+  {
+    id: 'cmd-outs',
+    command: '!outs',
+    title: 'Exact Hypergeometric Poker Draw Outs Command (!outs 9 flop)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=outs&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/tools/outs-calculator',
+  },
+  {
+    id: 'cmd-variance',
+    command: '!variance',
+    title: 'Poker Winrate Confidence Interval & Downswing Command (!variance 5 85 50000)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=variance&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/tools/variance-calculator',
+  },
+  {
+    id: 'cmd-matchup',
+    command: '!matchup',
+    title: 'Canonical Preflop Hand-Vs-Hand Equity Command (!matchup aa-vs-kk)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=matchup&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/learn/matchups',
+  },
 ];
 
 export async function getServerSideProps({ req, res, query }) {
@@ -504,17 +532,17 @@ export default function WebmasterEmbedPortal() {
       applicationSubCategory: 'DeveloperApplication',
       trail: [
         ['Hub', '/hub'],
-        ['Poker Tools', '/tools/poker-odds-calculator'],
+        ['Poker Tools', '/tools'],
         ['Embed Widgets', '/tools/embeds'],
       ],
       faqs: EMBEDS_FAQS,
       howTo: {
         name: 'How To Embed Smarter.Poker Calculators On Your Website',
-        description: 'Step-by-step instructions for copying and embedding all 15 responsive poker calculators, SVG badges, and Nightbot stream commands into WordPress, Ghost, Substack, or custom HTML sites.',
+        description: `Step-by-step instructions for copying and embedding all ${WIDGETS.length} responsive poker calculators, ${PARTNER_BADGES.length} SVG badges, and ${STREAM_CHAT_COMMANDS.length} Nightbot stream commands into WordPress, Ghost, Substack, or custom HTML sites.`,
         steps: [
           {
             name: 'Select A Poker Widget Or Attribution Badge',
-            text: 'Choose from any of the 15 interactive poker calculators (Multiway Odds, ICM, GTO Preflop Ranges, Pot Odds, Push/Fold, Bankroll, Bounty, Winrate, Side Pot, Blind Structure, SPR, PLO Max Bet, Payouts, Rake, or 3-Bet Sizing) or 15 SVG attribution badges.',
+            text: `Choose from any of the ${WIDGETS.length} interactive poker calculators (Multiway Odds, ICM, GTO Preflop Ranges, Pot Odds, Push/Fold, Bankroll, Bounty, Winrate, Side Pot, Blind Structure, SPR, PLO Max Bet, Payouts, Rake, 3-Bet Sizing, Final Table Chop, Variance, Draw Outs, Poker Tax, Staking, Iso-Raise, Home Game Kit, or Format Quiz), ${PARTNER_BADGES.length} SVG attribution badges, or ${STREAM_CHAT_COMMANDS.length} Nightbot/StreamElements commands.`,
           },
           {
             name: 'Copy The Responsive Iframe Or Badge Snippet',

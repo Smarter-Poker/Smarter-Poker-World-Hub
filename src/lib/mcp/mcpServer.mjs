@@ -69,13 +69,31 @@ export function normalizeCardGroup(input) {
 
 export const MCP_SERVER_INFO = {
   name: 'smarter-poker-mcp-server',
-  version: '1.0.0',
+  version: '1.8.0',
 };
+export const SERVER_INFO = MCP_SERVER_INFO;
+
+export const MCP_INSTRUCTIONS = [
+  'Smarter.Poker MCP Server v1.8.0 exposes 30 read-only, deterministic quantitative poker tools, 6 CERN/Zenodo DOI datasets (10.5281/zenodo.24095049, 10.5281/zenodo.24095057, 10.5281/zenodo.24095560, 10.5281/zenodo.24095564, 10.5281/zenodo.24095597, 10.5281/zenodo.24095602), and Verified Glama Registry metadata (https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp).',
+  'Tool Family Disambiguation Rules:',
+  '1. Equity & Odds Family: Use calculate_poker_odds for exact Monte Carlo / enumerative multiway card-vs-card equity with specific hole cards or board cards; use lookup_hand_matchup for canonical preflop hand-vs-hand benchmarks (e.g. AA vs KK, AKs vs QQ) and flop texture shifts; use calculate_draw_outs for hypergeometric turn/river draw completion from clean out counts (1-21 outs) and Rule of 4 & 2 error; use calculate_pot_odds_and_mdf when given pot size and bet size to compute break-even calling equity and Minimum Defense Frequency (MDF).',
+  '2. Preflop Strategy Family: Use get_preflop_chart to retrieve a full 100BB 6-Max positional opening range matrix (UTG, MP, HJ, CO, BTN, SB); use lookup_starting_hand to inspect a single canonical starting hand (any of the 169 hands such as AA, AKs, 87s, 72o) across all positions.',
+  '3. Live Poker Venue Family: Use search_poker_venues to filter cardrooms by city, state, keyword, or venue type (casino, card_room, charity, poker_club); use get_venue_details only after obtaining a numeric venue ID.',
+  '4. Tournament Series Family: Use search_tournament_series to search tours (WSOP, WPT, MSPT, RGPS, PGT) or festival names; use get_series_details only when you have a specific numeric series ID.',
+  '5. Tournament Math & Bankroll Family: Use calculate_icm_payouts for Malmuth-Harville ICM equity; use calculate_tournament_chop to compare ICM Chop vs Chip Chop vs Save-Amount deals; use calculate_bounty_chip_equity for PKO/Mystery Bounty chip conversion; use calculate_bankroll_risk_of_ruin for Risk of Ruin (RoR); use simulate_poker_variance for sample confidence intervals (68%/95%/99.7%).',
+].join('\n');
 
 export const MCP_TOOLS = [
   {
     name: 'search_poker_venues',
-    description: 'Search verified poker rooms and casinos by name, city, state, or game type across North America.',
+    description: 'Search verified poker rooms and casinos by name, city, state, or venue type across North America.',
+    annotations: {
+      title: 'Search Live Poker Venues',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -107,6 +125,13 @@ export const MCP_TOOLS = [
   {
     name: 'get_venue_details',
     description: 'Retrieve detailed information, address, phone, games offered, table counts, and tournament schedules for a specific poker venue ID.',
+    annotations: {
+      title: 'Get Poker Venue Details By ID',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -121,6 +146,13 @@ export const MCP_TOOLS = [
   {
     name: 'search_tournament_series',
     description: 'Search poker tournament series, championship festivals, and tours (WSOP, WPT, MSPT, RGPS, PGT, DeepStack).',
+    annotations: {
+      title: 'Search Poker Tournament Series',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -148,6 +180,13 @@ export const MCP_TOOLS = [
   {
     name: 'get_series_details',
     description: 'Retrieve full details for a tournament series, including event schedules, buy-ins, guarantees, and host venue information.',
+    annotations: {
+      title: 'Get Tournament Series Details By ID',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -162,6 +201,13 @@ export const MCP_TOOLS = [
   {
     name: 'calculate_poker_odds',
     description: 'Calculate exact equity, win, and tie probabilities for Texas Hold\'em and Omaha hands with board runouts.',
+    annotations: {
+      title: 'Calculate Multiway Poker Hand Equity & Odds',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -200,6 +246,13 @@ export const MCP_TOOLS = [
   {
     name: 'get_preflop_chart',
     description: 'Retrieve GTO opening ranges and frequencies for 6-max cash games at 100BB stack depth.',
+    annotations: {
+      title: 'Get 100BB 6-Max GTO Preflop Chart',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -215,6 +268,13 @@ export const MCP_TOOLS = [
   {
     name: 'calculate_icm_payouts',
     description: 'Calculate Independent Chip Model (ICM) tournament equity in dollars based on stack sizes and prize payouts.',
+    annotations: {
+      title: 'Calculate Tournament ICM Payout Equity',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -235,6 +295,13 @@ export const MCP_TOOLS = [
   {
     name: 'get_poker_term_definition',
     description: 'Look up authoritative definitions, GTO concepts, and rules from the official Smarter.Poker glossary.',
+    annotations: {
+      title: 'Look Up Poker Glossary Term Definition',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -249,6 +316,13 @@ export const MCP_TOOLS = [
   {
     name: 'get_freeroll_schedule',
     description: 'Retrieve the upcoming Daily $2,000 Freerolls and Diamond Arena Freerolls schedule, formats, prize values, and entry requirements on Smarter.Poker.',
+    annotations: {
+      title: 'Get Daily Freeroll Tournament Schedule',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -264,6 +338,13 @@ export const MCP_TOOLS = [
   {
     name: 'get_platform_feature_specs',
     description: 'Retrieve comprehensive specifications, free alternatives comparisons, URLs, and Markdown specs for all 15 Smarter.Poker platform verticals (Bankroll W-2G Tax Ledger, Dealer Toke Tracker, Jarvis AI Coach, Virtual Sandbox, Club Commander, FaceTime Messenger, Trivia, GTO Training, Home Games, Video Library, Poker Near Me, Club Arena, Social Reels, Preflop Charts, and Equity Calculators).',
+    annotations: {
+      title: 'Get Smarter.Poker Platform Vertical Specs',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -296,6 +377,13 @@ export const MCP_TOOLS = [
   {
     name: 'search_strategy_lessons',
     description: 'Search and retrieve complete GTO poker strategy lessons, answer-first summaries, mathematical tables, and training tool recommendations from the 40-lesson Smarter.Poker curriculum.',
+    annotations: {
+      title: 'Search GTO Poker Strategy Lessons',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -313,13 +401,20 @@ export const MCP_TOOLS = [
   },
   {
     name: 'get_competitor_comparison',
-    description: 'Retrieve verified, source-cited side-by-side comparison matrices and best-of benchmarks between Smarter.Poker and competitors (PokerBros, PPPoker, ClubGG, Bravo Poker Live, TableCaptain, GTO Wizard, DTO, Sharp Poker, Pokerbase, DownCount, Bellagio, Aria, Commerce, The Lodge, Run It Once, Upswing Poker, PokerTracker 4, Holdem Manager 3, PioSolver, MonkerSolver).',
+    description: 'Retrieve verified, source-cited side-by-side comparison matrices and best-of benchmarks across all 30 Smarter.Poker competitor comparisons (PokerBros, PPPoker, ClubGG, Pokerrrr 2, Bravo Poker Live, PokerAtlas, TableCaptain, GTO Wizard, DTO Poker, Sharp Poker, Pokerbase, Poker Bankroll Tracker, DownCount, Bellagio, Aria, Wynn, Venetian, Commerce, The Lodge, Texas Card House, Borgata, Seminole Hard Rock, Run It Once, Upswing Poker, PokerCoaching, Red Chip Poker, PokerTracker 4, Holdem Manager 3, PioSolver, MonkerSolver, ICMIZER, Equilab).',
+    annotations: {
+      title: 'Get Verified Competitor Comparison Matrix',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
         slug: {
           type: 'string',
-          description: 'Comparison slug (e.g. "best-poker-club-apps", "best-gto-poker-trainers", "smarter-poker-vs-piosolver", "smarter-poker-vs-run-it-once") or omit to list all 25 verified comparisons.',
+          description: 'Comparison slug (e.g. "best-poker-club-apps", "best-gto-poker-trainers", "smarter-poker-vs-piosolver", "smarter-poker-vs-run-it-once", "wynn-vs-venetian-las-vegas-poker") or omit to list all 30 verified comparisons.',
         },
       },
     },
@@ -327,6 +422,13 @@ export const MCP_TOOLS = [
   {
     name: 'lookup_starting_hand',
     description: 'Look up combinatorics, 100BB 6-Max GTO positional opening ranges, 3-bet strategies, and preflop equities for any of the 169 canonical Texas Holdem starting hands (e.g. "AA", "KK", "88", "AKs", "AQo", "KJs", "87s", "65s", "J9s", "54s", "72o", "pocket-aces", "ace-king-suited").',
+    annotations: {
+      title: 'Look Up Canonical Starting Hand (169 Hands)',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -340,6 +442,13 @@ export const MCP_TOOLS = [
   {
     name: 'get_research_report',
     description: 'Retrieve first-party empirical poker industry research reports and dataset benchmarks across all 15 Smarter.Poker studies (US Live Poker Room Rake & Jackpot Benchmark, Daily Tournament Buy-In Index, GTO vs Population Leak Study, Private Club Software Economics, Poker Dealer Toke & Hourly Rate Benchmark, Tournament ICM Bubble Factor & Risk Premium Study, PLO4/PLO5/PLO6 Equity & Variance Study, US Poker Tax W-2G & Session Accounting Benchmark, Cardroom Waitlist Turnover & Table Utilization Benchmark, Private Poker Club Markup & Union Settlement Study, Mystery Bounty vs PKO EV Study, Short Deck 6+ Equity Benchmark, Double-Board PLO Bomb Pot Study, Live Low-Stakes Population Tendencies, Satellite Bubble Survival Math Study).',
+    annotations: {
+      title: 'Get Empirical Poker Research Report',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -353,6 +462,13 @@ export const MCP_TOOLS = [
   {
     name: 'search_training_simulators',
     description: 'Search and retrieve interactive Smarter.Poker World Hub tools, GTO solvers, ICM calculators, leak scanners, range builders, and all 107 scenario training games by skill topic, format, or slug.',
+    annotations: {
+      title: 'Search GTO Simulators & 107 Training Games',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -372,6 +488,13 @@ export const MCP_TOOLS = [
   {
     name: 'calculate_pot_odds_and_mdf',
     description: 'Calculate exact poker pot odds ratio, required break-even calling equity, Minimum Defense Frequency (MDF), optimal polarized river bluff ratio, and 1-card/2-card hypergeometric draw completion probabilities.',
+    annotations: {
+      title: 'Calculate Pot Odds & Minimum Defense Frequency',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -396,6 +519,13 @@ export const MCP_TOOLS = [
   {
     name: 'calculate_bankroll_risk_of_ruin',
     description: 'Calculate exact Brownian motion poker Risk of Ruin (RoR) percentage and required buy-in buffers for 5% and 1% Risk of Ruin from true winrate (BB/100), standard deviation (BB/100), and bankroll buy-ins.',
+    annotations: {
+      title: 'Calculate Poker Bankroll Risk Of Ruin (RoR)',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -420,6 +550,13 @@ export const MCP_TOOLS = [
   {
     name: 'calculate_bounty_chip_equity',
     description: 'Convert a Progressive Knockout (PKO) or Mystery Bounty dollar amount into tournament chip-equivalent value and compute bounty-adjusted required calling equity.',
+    annotations: {
+      title: 'Calculate PKO & Mystery Bounty Chip Equity',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -454,6 +591,13 @@ export const MCP_TOOLS = [
   {
     name: 'calculate_side_pots',
     description: 'Calculate exact Multi-Way All-In Main Pot, Side Pots, and Uncalled Bet returns for 2 to 9 players plus dead money (blinds/antes/folded bets).',
+    annotations: {
+      title: 'Calculate Multi-Way All-In Side Pots',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -482,6 +626,13 @@ export const MCP_TOOLS = [
   {
     name: 'generate_blind_structure',
     description: 'Generate a TDA-compliant poker tournament blind schedule and starting chip color distribution from starting stack, level duration, target hours, and ante format.',
+    annotations: {
+      title: 'Generate Tournament Blind Structure Schedule',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -512,6 +663,13 @@ export const MCP_TOOLS = [
   {
     name: 'calculate_spr_sizing',
     description: 'Calculate exact Stack-To-Pot Ratio (SPR), Commitment Zone classification, and 1-street, 2-street, and 3-street Geometric Bet Sizing percentages.',
+    annotations: {
+      title: 'Calculate Stack-To-Pot Ratio & Geometric Sizing',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -530,7 +688,14 @@ export const MCP_TOOLS = [
   },
   {
     name: 'get_citation_and_backlink_kit',
-    description: 'Retrieve ready-to-paste HTML backlinks, SVG authority/award badges, Markdown/Substack citations, TwoPlusTwo/CardsChat BBCode, Wikipedia {{cite web}} templates, BibTeX academic records, Zenodo/DataCite metadata, Twitch/YouTube streamer chatbot commands (!odds, !icm, !potodds, !plo, !rake, !3bet, !rule), and multilingual embeds across 7 languages (en, es, pt, de, fr, it, ja).',
+    description: 'Retrieve ready-to-paste HTML backlinks, SVG authority/award badges, Markdown/Substack citations, TwoPlusTwo/CardsChat BBCode, Wikipedia {{cite web}} templates, BibTeX academic records, CERN/Zenodo DOIs, Software Heritage SWHIDs, Verified Glama MCP listing, all 14 Twitch/YouTube streamer chatbot commands (!odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, !matchup), and multilingual embeds across 7 languages (en, es, pt, de, fr, it, ja).',
+    annotations: {
+      title: 'Get Academic DOI Citation & Streamer Backlink Kit',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -567,6 +732,13 @@ export const MCP_TOOLS = [
   {
     name: 'lookup_poker_rule',
     description: 'Look up official Poker Tournament Directors Association (TDA) and Robert\'s Rules of Poker (RROP) floor rulings across all 30 Smarter.Poker rule guides (showdown order, verbal declarations, oversized chip rule, string bets, action out of turn, short all-in reopening, odd chip award, dead button, rabbit hunting, and more).',
+    annotations: {
+      title: 'Look Up Official TDA & RROP Floor Rule',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -580,6 +752,13 @@ export const MCP_TOOLS = [
   {
     name: 'lookup_game_variant',
     description: 'Look up dealing rules, mandatory hole-card usage, betting structures, hand ranking systems, and starting hand strategy tiers across all 15 poker variants (Texas Hold\'em, PLO4, PLO5, PLO6, Big O Hi-Lo, Short Deck 6+, Double-Board PLO Bomb Pots, Pineapple/Crazy Pineapple, 7-Card Stud, Stud Hi-Lo, Razz, 2-7 Triple Draw, NL 2-7 Single Draw, Badugi, H.O.R.S.E. & 8-Game Mix).',
+    annotations: {
+      title: 'Look Up Poker Game Variant Rules & Strategy',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -593,6 +772,13 @@ export const MCP_TOOLS = [
   {
     name: 'get_regional_market_guide',
     description: 'Retrieve live poker room counts, rake/drop/time-collection structures, buy-in caps, flagship venues, and strategic adjustments across the 12 largest US live poker markets (Las Vegas, Los Angeles, Austin, Houston, Dallas, South Florida, Tampa, Atlantic City, Pennsylvania, Connecticut/New England, Northern California, and Arizona).',
+    annotations: {
+      title: 'Get Regional US Live Poker Market Guide',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -606,6 +792,13 @@ export const MCP_TOOLS = [
   {
     name: 'calculate_plo_max_bet_and_rake',
     description: 'Compute exact Pot-Limit Omaha (PLO) maximum raise total (3x last bet + trail calls + center pot), preflop 3-bet/4-bet MDF, and live cash game rake cost in $/hr and BB/100 drag.',
+    annotations: {
+      title: 'Calculate PLO Max Pot Raise & Live Rake Drag',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -650,6 +843,13 @@ export const MCP_TOOLS = [
   {
     name: 'calculate_tournament_chop',
     description: 'Compute final-table deal payouts comparing Malmuth-Harville ICM Chop, proportional Chip Chop, and Save-Amount Chop (setting aside a trophy cash bonus for 1st place).',
+    annotations: {
+      title: 'Calculate Final Table ICM & Chip Chop Deal',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -675,6 +875,13 @@ export const MCP_TOOLS = [
   {
     name: 'simulate_poker_variance',
     description: 'Calculate expected profit (EV), standard deviation in BB and buy-ins, 68%/95%/99.7% normal confidence intervals, probability of loss over a sample, and minimum hands required for 95% statistical confidence.',
+    annotations: {
+      title: 'Simulate Poker Variance & Confidence Intervals',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -699,6 +906,13 @@ export const MCP_TOOLS = [
   {
     name: 'calculate_draw_outs',
     description: 'Compute exact hypergeometric poker draw probabilities (Turn %, River %, Flop-to-River %), Rule of 4 and 2 approximation error, and required break-even pot odds for 1 to 21 clean outs.',
+    annotations: {
+      title: 'Calculate Hypergeometric Poker Draw Outs',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -719,6 +933,13 @@ export const MCP_TOOLS = [
   {
     name: 'lookup_hand_matchup',
     description: 'Look up exact preflop win/tie/loss equity, combinatorics, flop texture equity shifts, and 100BB vs 25BB stack-off EV notes for canonical Texas Hold\'em hand-vs-hand matchups (e.g. "aa-vs-kk", "ak-vs-qq", "jj-vs-aks", "77-vs-ak").',
+    annotations: {
+      title: 'Look Up Canonical Preflop Hand-Vs-Hand Matchup',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -2372,6 +2593,22 @@ export async function executeMcpTool(name, args, { origin = SITE_ORIGIN } = {}) 
       });
       const datasetCatalog = getDatasetCatalogPayload();
       const opportunities = getBacklinkOpportunitiesPayload();
+      const streamerCommands = [
+        { command: '!odds', endpoint: `${base}/api/stream/cmd?cmd=odds&q=$(querystring)`, tool_url: `${base}/tools/poker-odds-calculator` },
+        { command: '!potodds', endpoint: `${base}/api/stream/cmd?cmd=potodds&q=$(querystring)`, tool_url: `${base}/tools/pot-odds-calculator` },
+        { command: '!pushfold', endpoint: `${base}/api/stream/cmd?cmd=pushfold&q=$(querystring)`, tool_url: `${base}/tools/push-fold-calculator` },
+        { command: '!icm', endpoint: `${base}/api/stream/cmd?cmd=icm&q=$(querystring)`, tool_url: `${base}/tools/icm-calculator` },
+        { command: '!bounty', endpoint: `${base}/api/stream/cmd?cmd=bounty&q=$(querystring)`, tool_url: `${base}/tools/bounty-calculator` },
+        { command: '!winrate', endpoint: `${base}/api/stream/cmd?cmd=winrate&q=$(querystring)`, tool_url: `${base}/tools/poker-winrate-calculator` },
+        { command: '!plo', endpoint: `${base}/api/stream/cmd?cmd=plo&q=$(querystring)`, tool_url: `${base}/tools/plo-bet-calculator` },
+        { command: '!rake', endpoint: `${base}/api/stream/cmd?cmd=rake&q=$(querystring)`, tool_url: `${base}/tools/rake-calculator` },
+        { command: '!3bet', endpoint: `${base}/api/stream/cmd?cmd=3bet&q=$(querystring)`, tool_url: `${base}/tools/3bet-calculator` },
+        { command: '!rule', endpoint: `${base}/api/stream/cmd?cmd=rule&q=$(querystring)`, tool_url: `${base}/rules` },
+        { command: '!chop', endpoint: `${base}/api/stream/cmd?cmd=chop&q=$(querystring)`, tool_url: `${base}/tools/chop-calculator` },
+        { command: '!outs', endpoint: `${base}/api/stream/cmd?cmd=outs&q=$(querystring)`, tool_url: `${base}/tools/outs-calculator` },
+        { command: '!variance', endpoint: `${base}/api/stream/cmd?cmd=variance&q=$(querystring)`, tool_url: `${base}/tools/variance-calculator` },
+        { command: '!matchup', endpoint: `${base}/api/stream/cmd?cmd=matchup&q=$(querystring)`, tool_url: `${base}/learn/matchups` },
+      ];
 
       return {
         content: [
@@ -2384,6 +2621,12 @@ export async function executeMcpTool(name, args, { origin = SITE_ORIGIN } = {}) 
                 dataset_catalog_url: `${base}/api/datasets/catalog`,
                 outreach_generator_url: `${base}/api/seo/outreach-generator`,
                 streamer_chatbot_url: `${base}/api/stream/cmd`,
+                streamer_commands_count: streamerCommands.length,
+                streamer_commands: streamerCommands,
+                glama_mcp_url: 'https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp',
+                glama_mcp_schema_url: 'https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp/schema',
+                zenodo_records: datasetCatalog.zenodo_records,
+                swhids: datasetCatalog.swhids,
                 research_json_feed_url: `${base}/api/feeds/research`,
                 outreach_package: outreach,
                 wikipedia_citation_targets: datasetCatalog.wikipedia_citation_targets,
@@ -2979,6 +3222,7 @@ export async function handleMcpRpc(requestBody, { origin = SITE_ORIGIN } = {}) {
               resources: { subscribe: false, listChanged: false },
             },
             serverInfo: MCP_SERVER_INFO,
+            instructions: MCP_INSTRUCTIONS,
           },
         });
         break;

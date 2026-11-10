@@ -270,8 +270,10 @@ export default function FormatQuizPage({
     });
   }, [pageDesc]);
 
+  const isEmbed = router.query?.embed === 'true';
+
   return (
-    <div style={{ minHeight: '100vh', background: '#020608', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div style={{ minHeight: isEmbed ? 'auto' : '100vh', background: '#020608', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
         title="Poker Format Selector & Study Plan Quiz"
         description="Interactive Poker Format Diagnostic Quiz Matching Your Bankroll, Session Schedule, And Risk Tolerance To Your Optimal Game Format And Study Plan."
@@ -279,22 +281,26 @@ export default function FormatQuizPage({
         jsonLd={schema}
       />
 
-      <main style={{ maxWidth: 1060, margin: '0 auto', padding: '40px 20px 80px' }}>
-        <nav aria-label="Breadcrumb" style={{ fontSize: 13, color: '#94a3b8', marginBottom: 18 }}>
-          <Link href="/" style={{ color: '#25c8ff', textDecoration: 'none' }}>Smarter.Poker</Link>
-          {' / '}
-          <Link href="/tools" style={{ color: '#25c8ff', textDecoration: 'none' }}>Poker Tools</Link>
-          {' / '}
-          <span>Poker Format Selector &amp; Study Roadmap Quiz</span>
-        </nav>
+      <main style={{ maxWidth: 1060, margin: '0 auto', padding: isEmbed ? '16px 14px 24px' : '40px 20px 80px' }}>
+        {!isEmbed && (
+          <nav aria-label="Breadcrumb" style={{ fontSize: 13, color: '#94a3b8', marginBottom: 18 }}>
+            <Link href="/" style={{ color: '#25c8ff', textDecoration: 'none' }}>Smarter.Poker</Link>
+            {' / '}
+            <Link href="/tools" style={{ color: '#25c8ff', textDecoration: 'none' }}>Poker Tools</Link>
+            {' / '}
+            <span>Poker Format Selector &amp; Study Roadmap Quiz</span>
+          </nav>
+        )}
 
-        <h1 style={{ fontSize: 32, fontWeight: 800, color: '#f8fafc', margin: '0 0 14px 0', lineHeight: 1.2 }}>
+        <h1 style={{ fontSize: isEmbed ? 22 : 32, fontWeight: 800, color: '#f8fafc', margin: '0 0 14px 0', lineHeight: 1.2 }}>
           Poker Format Selector &amp; Study Roadmap Quiz
         </h1>
 
-        <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
-          <strong>Direct Answer:</strong> Choosing The Right Primary Poker Format Depends On Five Quantitative Constraints: <strong>Session Block Duration</strong>, <strong>Bankroll Depth In Buy-Ins</strong>, <strong>Standard Deviation Tolerance</strong>, <strong>Mathematical Preference</strong>, And <strong>Live Vs. Online Environment</strong>. Use This 5-Parameter Diagnostic To Match Your Profile And Generate A Custom 7-Day Study Roadmap.
-        </p>
+        {!isEmbed && (
+          <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
+            <strong>Direct Answer:</strong> Choosing The Right Primary Poker Format Depends On Five Quantitative Constraints: <strong>Session Block Duration</strong>, <strong>Bankroll Depth In Buy-Ins</strong>, <strong>Standard Deviation Tolerance</strong>, <strong>Mathematical Preference</strong>, And <strong>Live Vs. Online Environment</strong>. Use This 5-Parameter Diagnostic To Match Your Profile And Generate A Custom 7-Day Study Roadmap.
+          </p>
+        )}
 
         {/* Interactive 5-Parameter Diagnostic */}
         <section
@@ -585,23 +591,27 @@ export default function FormatQuizPage({
           </div>
         </section>
 
-        <FaqSection faqs={FORMAT_QUIZ_FAQS} />
+        {!isEmbed && (
+          <>
+            <FaqSection faqs={FORMAT_QUIZ_FAQS} />
 
-        <CitationBacklinkBox
-          title="Poker Format Selector & Study Roadmap Quiz"
-          canonicalUrl={canonicalUrl}
-          badgeType="gto"
-          badgeLabel="Format Diagnostic Engine"
-          badgeValue="7-Day Personalized Study Plan"
-          summary="Interactive 5-Parameter Poker Format Diagnostic Matching Bankroll, Session Hours, And Variance Tolerance To A 7-Day Study Roadmap."
-          slug="format-quiz"
-        />
+            <CitationBacklinkBox
+              title="Poker Format Selector & Study Roadmap Quiz"
+              canonicalUrl={canonicalUrl}
+              badgeType="gto"
+              badgeLabel="Format Diagnostic Engine"
+              badgeValue="7-Day Personalized Study Plan"
+              summary="Interactive 5-Parameter Poker Format Diagnostic Matching Bankroll, Session Hours, And Variance Tolerance To A 7-Day Study Roadmap."
+              slug="format-quiz"
+            />
 
-        <AiPromptLauncher
-          title="Poker Format Selector & Study Roadmap Quiz"
-          canonicalUrl={canonicalUrl}
-          markdownUrl={`${canonicalUrl}.md`}
-        />
+            <AiPromptLauncher
+              title="Poker Format Selector & Study Roadmap Quiz"
+              canonicalUrl={canonicalUrl}
+              markdownUrl={`${canonicalUrl}.md`}
+            />
+          </>
+        )}
       </main>
     </div>
   );

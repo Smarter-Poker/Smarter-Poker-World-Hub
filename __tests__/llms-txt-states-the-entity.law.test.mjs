@@ -80,7 +80,7 @@ test('every link it gives is ours, and every one of them is https', () => {
     assert.ok(url.startsWith('https://'), `${url} is https`);
     const host = new URL(url).host;
     assert.ok(
-      host === 'smarter.poker' || host === 'github.com',
+      ['smarter.poker', 'github.com', 'doi.org', 'zenodo.org', 'archive.softwareheritage.org', 'glama.ai'].includes(host),
       `${host} is a host we control or publish on`,
     );
   }

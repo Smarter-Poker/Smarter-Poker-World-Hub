@@ -190,7 +190,6 @@ export const STATIC_PAGES = [
 
   { path: '/hub/events-calendar', priority: '0.8', changefreq: 'daily' },
   { path: '/freerolls', priority: '0.9', changefreq: 'daily' },
-  { path: '/hub/freerolls', priority: '0.9', changefreq: 'daily' },
   { path: '/hub/daily-tournaments', priority: '0.7', changefreq: 'daily' },
   { path: '/hub/tournaments/this-weekend', priority: '0.8', changefreq: 'daily' },
   { path: '/hub/poker-tours', priority: '0.8', changefreq: 'daily' },
@@ -219,8 +218,6 @@ export const STATIC_PAGES = [
   { path: '/hub/trivia/leaderboard', priority: '0.6', changefreq: 'daily' },
 
   // Hub — Training sub-pages
-  { path: '/hub/training/achievements', priority: '0.65', changefreq: 'daily' },
-  { path: '/hub/training/streaks', priority: '0.65', changefreq: 'daily' },
   { path: '/hub/training/challenges', priority: '0.6', changefreq: 'daily' },
   { path: '/hub/training/leaderboard', priority: '0.6', changefreq: 'daily' },
   { path: '/hub/training/tournaments', priority: '0.6', changefreq: 'daily' },

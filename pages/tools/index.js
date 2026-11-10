@@ -438,6 +438,9 @@ export default function PokerToolsDirectoryPage() {
             <Link href="/learn/hands" style={{ padding: '8px 14px', background: '#0284c7', color: '#fff', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               169 Starting Hand Encyclopedia
             </Link>
+            <Link href="/learn/matchups" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+              25 All-In Hand Matchups
+            </Link>
             <Link href="/learn/poker-hand-rankings" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Poker Hand Rankings Cheat Sheet
             </Link>
@@ -450,6 +453,12 @@ export default function PokerToolsDirectoryPage() {
             <Link href="/poker-rooms/guides" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               12 US Regional Poker Market Guides
             </Link>
+            <Link href="/poker-rooms/first-time-guide" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+              First-Time Live Poker Room Guide
+            </Link>
+            <Link href="/poker-series/guides" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+              10 Major Poker Series Survival Guides
+            </Link>
             <Link href="/learn" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               GTO Strategy Academy
             </Link>
@@ -460,7 +469,7 @@ export default function PokerToolsDirectoryPage() {
               Poker Glossary
             </Link>
             <Link href="/compare" style={{ padding: '8px 14px', background: '#1e293b', color: '#e2e8f0', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
-              Platform Comparisons
+              30 Platform Comparisons
             </Link>
             <Link href="/hub/video-library" style={{ padding: '8px 14px', background: '#1e293b', color: '#38bdf8', borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               Poker Video Library

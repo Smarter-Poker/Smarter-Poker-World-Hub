@@ -223,8 +223,10 @@ export default function HomeGameKitPage({
     });
   }, [pageDesc]);
 
+  const isEmbed = router.query?.embed === 'true';
+
   return (
-    <div style={{ minHeight: '100vh', background: '#020608', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div style={{ minHeight: isEmbed ? 'auto' : '100vh', background: '#020608', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
         title="Home Game Chip Set & Setup Calculator"
         description="Calculate Optimal Poker Chip Set Denomination Breakdowns For 300, 500, And 1000 Piece Sets With Printable Home Game Rules And Hand Rankings."
@@ -232,22 +234,26 @@ export default function HomeGameKitPage({
         jsonLd={schema}
       />
 
-      <main style={{ maxWidth: 1060, margin: '0 auto', padding: '40px 20px 80px' }}>
-        <nav aria-label="Breadcrumb" style={{ fontSize: 13, color: '#94a3b8', marginBottom: 18 }}>
-          <Link href="/" style={{ color: '#25c8ff', textDecoration: 'none' }}>Smarter.Poker</Link>
-          {' / '}
-          <Link href="/tools" style={{ color: '#25c8ff', textDecoration: 'none' }}>Poker Tools</Link>
-          {' / '}
-          <span>Home Game Chip Set &amp; Setup Calculator</span>
-        </nav>
+      <main style={{ maxWidth: 1060, margin: '0 auto', padding: isEmbed ? '16px 14px 24px' : '40px 20px 80px' }}>
+        {!isEmbed && (
+          <nav aria-label="Breadcrumb" style={{ fontSize: 13, color: '#94a3b8', marginBottom: 18 }}>
+            <Link href="/" style={{ color: '#25c8ff', textDecoration: 'none' }}>Smarter.Poker</Link>
+            {' / '}
+            <Link href="/tools" style={{ color: '#25c8ff', textDecoration: 'none' }}>Poker Tools</Link>
+            {' / '}
+            <span>Home Game Chip Set &amp; Setup Calculator</span>
+          </nav>
+        )}
 
-        <h1 style={{ fontSize: 32, fontWeight: 800, color: '#f8fafc', margin: '0 0 14px 0', lineHeight: 1.2 }}>
+        <h1 style={{ fontSize: isEmbed ? 22 : 32, fontWeight: 800, color: '#f8fafc', margin: '0 0 14px 0', lineHeight: 1.2 }}>
           Home Game Chip Set &amp; Setup Calculator
         </h1>
 
-        <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
-          <strong>Direct Answer:</strong> For An 8-To-10 Player Home Game, A <strong>500-Piece Poker Chip Set</strong> Configured With <strong>30 To 36 Physical Chips Per Player Across 3 Active Denominations</strong> Ensures Fast Dealing Without Change-Making Bottlenecks While Reserving Over 200 High-Value Chips In The Bank For Rebuys And Color-Ups.
-        </p>
+        {!isEmbed && (
+          <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
+            <strong>Direct Answer:</strong> For An 8-To-10 Player Home Game, A <strong>500-Piece Poker Chip Set</strong> Configured With <strong>30 To 36 Physical Chips Per Player Across 3 Active Denominations</strong> Ensures Fast Dealing Without Change-Making Bottlenecks While Reserving Over 200 High-Value Chips In The Bank For Rebuys And Color-Ups.
+          </p>
+        )}
 
         {/* Interactive Chip Set Builder */}
         <section
@@ -534,23 +540,27 @@ export default function HomeGameKitPage({
           </div>
         </section>
 
-        <FaqSection faqs={HOME_GAME_KIT_FAQS} />
+        {!isEmbed && (
+          <>
+            <FaqSection faqs={HOME_GAME_KIT_FAQS} />
 
-        <CitationBacklinkBox
-          title="Home Game Chip Set & Setup Calculator"
-          canonicalUrl={canonicalUrl}
-          badgeType="commander"
-          badgeLabel="Home Game Setup Kit"
-          badgeValue="Chip Breakdowns & House Rules"
-          summary="Interactive Home Game Poker Chip Set Denomination Calculator For 300, 500, And 1,000 Piece Sets With Printable Rules."
-          slug="home-game-kit"
-        />
+            <CitationBacklinkBox
+              title="Home Game Chip Set & Setup Calculator"
+              canonicalUrl={canonicalUrl}
+              badgeType="commander"
+              badgeLabel="Home Game Setup Kit"
+              badgeValue="Chip Breakdowns & House Rules"
+              summary="Interactive Home Game Poker Chip Set Denomination Calculator For 300, 500, And 1,000 Piece Sets With Printable Rules."
+              slug="home-game-kit"
+            />
 
-        <AiPromptLauncher
-          title="Home Game Chip Set & Setup Calculator"
-          canonicalUrl={canonicalUrl}
-          markdownUrl={`${canonicalUrl}.md`}
-        />
+            <AiPromptLauncher
+              title="Home Game Chip Set & Setup Calculator"
+              canonicalUrl={canonicalUrl}
+              markdownUrl={`${canonicalUrl}.md`}
+            />
+          </>
+        )}
       </main>
     </div>
   );

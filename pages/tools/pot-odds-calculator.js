@@ -120,7 +120,7 @@ export default function PotOddsCalculatorPage({
       applicationSubCategory: 'Poker Math Calculator',
       trail: [
         ['Hub', '/hub'],
-        ['Poker Tools', '/tools/poker-odds-calculator'],
+        ['Poker Tools', '/tools'],
         ['Pot Odds & MDF Calculator', canonicalPath],
       ],
       faqs: POT_ODDS_CALCULATOR_FAQS,
@@ -154,7 +154,7 @@ export default function PotOddsCalculatorPage({
         <nav aria-label="Breadcrumb" style={{ fontSize: 13, color: '#94a3b8', marginBottom: 18 }}>
           <Link href="/" style={{ color: '#38bdf8', textDecoration: 'none' }}>Smarter.Poker</Link>
           {' / '}
-          <Link href="/tools/poker-odds-calculator" style={{ color: '#38bdf8', textDecoration: 'none' }}>Poker Tools</Link>
+          <Link href="/tools" style={{ color: '#38bdf8', textDecoration: 'none' }}>Poker Tools</Link>
           {' / '}
           <span>Pot Odds &amp; MDF Calculator</span>
         </nav>

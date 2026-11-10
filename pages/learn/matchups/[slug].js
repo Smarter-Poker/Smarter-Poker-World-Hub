@@ -105,16 +105,6 @@ export default function PokerMatchupDetailPage({ matchup, peerMatchups = [] }) {
         jsonLd={jsonLd}
       />
 
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@graph': jsonLd,
-          }),
-        }}
-      />
-
       <UniversalHeader pageDepth={3} />
 
       <main style={styles.container}>
@@ -189,11 +179,11 @@ export default function PokerMatchupDetailPage({ matchup, peerMatchups = [] }) {
           </div>
 
           <div style={styles.quickCrossLinks}>
-            <Link href="/tools/odds-calculator" style={styles.crossBtnCyan}>
+            <Link href={`/tools/poker-odds-calculator?hand1=${encodeURIComponent(matchup.handA)}&hand2=${encodeURIComponent(matchup.handB)}`} style={styles.crossBtnCyan}>
               Open In Odds Calculator
             </Link>
-            <Link href="/tools/ev-calculator" style={styles.crossBtnEmerald}>
-              Run All-In EV Calculator
+            <Link href="/tools/pot-odds-calculator" style={styles.crossBtnEmerald}>
+              Run Pot Odds &amp; EV Calculator
             </Link>
             <Link href="/learn/hands" style={styles.crossBtnOutline}>
               Browse All 169 Starting Hands

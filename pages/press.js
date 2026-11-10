@@ -96,8 +96,65 @@ const PRESS_FAQS = [
     a: 'Yes. All First-Party Industry Benchmarks, Rake Studies, Tournament Indexes, And Combinatorial Tables Published On Smarter.Poker Are Licensed Under Creative Commons Attribution 4.0 International (CC BY 4.0). Simply Credit "Smarter.Poker Research" With A Direct Link To The Source URL.',
   },
   {
-    q: 'Does Smarter.Poker Provide Raw Markdown And JSON Datasets For Data Journalists?',
-    a: 'Yes. Append .md To Any Research Report, Rule, Game Variant, Or Calculator URL To Retrieve Clean Markdown Tables, Or Visit /datasets And /research To Download Structured CSV And JSON Releases.',
+    q: 'Does Smarter.Poker Provide Raw Markdown, JSON Datasets, And Permanent CERN/Zenodo DOIs For Data Journalists?',
+    a: 'Yes. Append .md To Any Research Report, Rule, Game Variant, Or Calculator URL To Retrieve Clean Markdown Tables, Or Visit /research And /api/datasets/catalog To Download Structured CSV And JSON Releases Archived Under 6 Permanent CERN/Zenodo DOIs (Starting At https://doi.org/10.5281/zenodo.24095049) And 2 Software Heritage SWHIDs.',
+  },
+];
+
+const ARCHIVAL_REGISTRIES = [
+  {
+    label: 'CERN / Zenodo Record 1 (Core Open Research Datasets)',
+    identifier: 'DOI: 10.5281/zenodo.24095049 (Concept DOI: 10.5281/zenodo.24095048)',
+    href: 'https://doi.org/10.5281/zenodo.24095049',
+    scope: '324 Canonical Research, Calculator & Verification URLs',
+  },
+  {
+    label: 'CERN / Zenodo Record 2 (30-Tool MCP Server Archive)',
+    identifier: 'DOI: 10.5281/zenodo.24095057 (Concept DOI: 10.5281/zenodo.24095056)',
+    href: 'https://doi.org/10.5281/zenodo.24095057',
+    scope: 'Model Context Protocol JSON-RPC 2.0 Server & Manifests',
+  },
+  {
+    label: 'CERN / Zenodo Record 3 (Strategy, 169 Hands, TDA Rules & Glossary)',
+    identifier: 'DOI: 10.5281/zenodo.24095560 (Concept DOI: 10.5281/zenodo.24095559)',
+    href: 'https://doi.org/10.5281/zenodo.24095560',
+    scope: '358 Canonical Strategy, Starting-Hand & Rules URLs',
+  },
+  {
+    label: 'CERN / Zenodo Record 4 (North American Regional Geolocation Atlas)',
+    identifier: 'DOI: 10.5281/zenodo.24095564 (Concept DOI: 10.5281/zenodo.24095563)',
+    href: 'https://doi.org/10.5281/zenodo.24095564',
+    scope: '413 State, Metro & Regional Poker Room Directory URLs',
+  },
+  {
+    label: 'CERN / Zenodo Record 5 (Verified US Cardroom & Social Club Registry)',
+    identifier: 'DOI: 10.5281/zenodo.24095597 (Concept DOI: 10.5281/zenodo.24095596)',
+    href: 'https://doi.org/10.5281/zenodo.24095597',
+    scope: '473 Verified Brick-And-Mortar Venue Profile URLs',
+  },
+  {
+    label: 'CERN / Zenodo Record 6 (Live Tournament Series & Festival Index)',
+    identifier: 'DOI: 10.5281/zenodo.24095602 (Concept DOI: 10.5281/zenodo.24095601)',
+    href: 'https://doi.org/10.5281/zenodo.24095602',
+    scope: '359 Major Tour & Championship Series Schedule URLs',
+  },
+  {
+    label: 'Software Heritage Archive (Open Datasets Repository)',
+    identifier: 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
+    href: 'https://archive.softwareheritage.org/swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
+    scope: 'Cryptographic Git Snapshot Of smarter-poker-open-datasets',
+  },
+  {
+    label: 'Software Heritage Archive (30-Tool MCP Server)',
+    identifier: 'swh:1:snp:02b8992833424620305edcfb730b3cf8add15747',
+    href: 'https://archive.softwareheritage.org/swh:1:snp:02b8992833424620305edcfb730b3cf8add15747',
+    scope: 'Cryptographic Git Snapshot Of smarter-poker-mcp',
+  },
+  {
+    label: 'Verified Glama AI Model Context Protocol Directory Listing',
+    identifier: 'glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp',
+    href: 'https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp',
+    scope: '30 Verified Deterministic Poker Math & Venue Discovery Tools',
   },
 ];
 
@@ -159,16 +216,6 @@ export default function PressKitMediaPage() {
         jsonLd={jsonLd}
       />
 
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@graph': jsonLd,
-          }),
-        }}
-      />
-
       <UniversalHeader pageDepth={1} />
 
       <main style={styles.container}>
@@ -198,11 +245,11 @@ export default function PressKitMediaPage() {
             <Link href="/research" style={styles.crossBtnCyan}>
               15 Empirical Research Studies
             </Link>
-            <Link href="/datasets" style={styles.crossBtnEmerald}>
-              Open Poker Datasets (/Datasets)
-            </Link>
-            <Link href="/partners/badges" style={styles.crossBtnOutline}>
-              Partner &amp; Venue Authority Badges
+            <a href="/api/datasets/catalog" style={styles.crossBtnEmerald}>
+              Open JSON Data Catalog
+            </a>
+            <Link href="/tools/embeds" style={styles.crossBtnOutline}>
+              Embeddable Widgets &amp; Streamer Commands
             </Link>
             <Link href="/verification-methodology" style={styles.crossBtnOutline}>
               Data Verification Methodology
@@ -277,7 +324,7 @@ export default function PressKitMediaPage() {
         <section aria-label="Press And Media Badge Snippets" style={styles.sectionPlate}>
           <h2 style={styles.h2}>Press &amp; Media SVG Citation Badge Snippets</h2>
           <p style={styles.sectionSub}>
-            Embed Zero-Script SVG Data Attribution Badges Directly In Your Article Or Research Post. Need Custom Venue Or Calculator Badges? Visit <Link href="/partners/badges" style={styles.inlineLink}>/Partners/Badges</Link>.
+            Embed Zero-Script SVG Data Attribution Badges Directly In Your Article Or Research Post. Need Interactive Calculator Iframe Widgets Or Streamer Bot Commands? Visit <Link href="/tools/embeds" style={styles.inlineLink}>/Tools/Embeds</Link>.
           </p>
 
           <div style={styles.badgeSnippetGrid}>
@@ -296,6 +343,43 @@ export default function PressKitMediaPage() {
                 <pre style={styles.codeBlock}>{snippet.code}</pre>
               </div>
             ))}
+          </div>
+        </section>
+
+        {/* Permanent CERN/Zenodo DOIs, Software Heritage SWHIDs & Glama MCP Registry */}
+        <section aria-label="Permanent Academic DOIs And Archival Registries" style={styles.sectionPlate}>
+          <div style={styles.sectionHeader}>
+            <h2 style={styles.h2}>Permanent CERN/Zenodo DOIs, Software Heritage SWHIDs &amp; Glama MCP Registry</h2>
+            <span style={styles.asOfText}>6 DOIs + 2 SWHIDs + Verified MCP</span>
+          </div>
+          <p style={styles.sectionSub}>
+            All Smarter.Poker Research Corpora, Geolocation Registries, And Model Context Protocol (MCP) Schemas Are Permanently Deposited In CERN/Zenodo, Software Heritage (UNESCO/Inria), And The Glama MCP Directory:
+          </p>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={styles.table}>
+              <thead>
+                <tr style={styles.trHead}>
+                  <th style={styles.th}>Archival Deposit / Registry</th>
+                  <th style={styles.th}>Permanent Identifier (DOI / SWHID)</th>
+                  <th style={styles.th}>Indexed Scope</th>
+                  <th style={styles.th}>Direct Resolver</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ARCHIVAL_REGISTRIES.map((reg) => (
+                  <tr key={reg.identifier} style={styles.trBody}>
+                    <td style={styles.tdMetric}>{reg.label}</td>
+                    <td style={styles.tdBenchmark}>{reg.identifier}</td>
+                    <td style={styles.tdContext}>{reg.scope}</td>
+                    <td style={styles.tdSource}>
+                      <a href={reg.href} target="_blank" rel="noopener noreferrer" style={styles.sourceLink}>
+                        Open Archive
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </section>
 

@@ -46,6 +46,16 @@ export function renderVerificationMethodologyMarkdown() {
     '- **No Real-Money Gambling**: Smarter.Poker Is Free To Play For Users Aged 18 And Over. Club Chips Are Play Credits With No Cash Value, And Diamonds Are A Promotional Rewards Currency.',
     '- **RFC 9116 Security Policy**: Security Researchers Can Review Our Disclosure Policy At https://smarter.poker/.well-known/security.txt.',
     '',
+    '## 5. Permanent Academic Archival & AI Tool Verification (CERN/Zenodo DOIs, Software Heritage & Glama MCP)',
+    '- **Zenodo Record 1 (`10.5281/zenodo.24095049`)**: [https://doi.org/10.5281/zenodo.24095049](https://doi.org/10.5281/zenodo.24095049) (Core Open Quantitative Poker Research Datasets, 324 URLs)',
+    '- **Zenodo Record 2 (`10.5281/zenodo.24095057`)**: [https://doi.org/10.5281/zenodo.24095057](https://doi.org/10.5281/zenodo.24095057) (30-Tool Model Context Protocol Server Archive)',
+    '- **Zenodo Record 3 (`10.5281/zenodo.24095560`)**: [https://doi.org/10.5281/zenodo.24095560](https://doi.org/10.5281/zenodo.24095560) (Poker Strategy Academy, 169 Starting-Hand Encyclopedia, TDA Rules & Glossary Corpus, 358 URLs)',
+    '- **Zenodo Record 4 (`10.5281/zenodo.24095564`)**: [https://doi.org/10.5281/zenodo.24095564](https://doi.org/10.5281/zenodo.24095564) (North American State, Metro & Regional Poker Room Geolocation Atlas, 413 URLs)',
+    '- **Zenodo Record 5 (`10.5281/zenodo.24095597`)**: [https://doi.org/10.5281/zenodo.24095597](https://doi.org/10.5281/zenodo.24095597) (Verified US Cardroom & Social Poker Club Venue Registry, 473 URLs)',
+    '- **Zenodo Record 6 (`10.5281/zenodo.24095602`)**: [https://doi.org/10.5281/zenodo.24095602](https://doi.org/10.5281/zenodo.24095602) (Live Poker Tournament Series, Championship Festivals & Major Tour Schedule Index, 359 URLs)',
+    '- **Software Heritage SWHIDs**: `swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f` (`smarter-poker-open-datasets`) And `swh:1:snp:02b8992833424620305edcfb730b3cf8add15747` (`smarter-poker-mcp`)',
+    '- **Verified Glama MCP Listing**: [https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp](https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp)',
+    '',
   ].join('\n');
 }
 
@@ -171,6 +181,61 @@ export default function VerificationMethodologyPage() {
               Diamonds Are A Promotional Rewards Currency. Our Platform Security Contact Is Published At{' '}
               <a href="/.well-known/security.txt" style={styles.link}>Security Disclosure Policy (RFC 9116)</a>.
             </p>
+          </section>
+
+          <section style={styles.section}>
+            <h2 style={styles.h2}>5. Permanent CERN/Zenodo DOIs, Software Heritage SWHIDs &amp; Glama MCP Verification</h2>
+            <p style={styles.p}>
+              All Quantitative Datasets, Geolocation Registries, And Model Context Protocol (MCP) Schemas Published By Smarter.Poker Are Permanently Archived In CERN/Zenodo, Software Heritage, And The Glama MCP Directory:
+            </p>
+            <ul style={{ fontSize: 15, lineHeight: 1.75, color: '#c9d3e3', paddingLeft: 20 }}>
+              <li>
+                <strong>Core Open Quantitative Poker Research Datasets (324 URLs):</strong>{' '}
+                <a href="https://doi.org/10.5281/zenodo.24095049" target="_blank" rel="noopener noreferrer" style={styles.link}>
+                  {'DOI: 10.5281/zenodo.24095049'}
+                </a>{' '}
+                <span>{'(Concept DOI: 10.5281/zenodo.24095048)'}</span>
+              </li>
+              <li>
+                <strong>30-Tool Model Context Protocol (MCP) Server Archive:</strong>{' '}
+                <a href="https://doi.org/10.5281/zenodo.24095057" target="_blank" rel="noopener noreferrer" style={styles.link}>
+                  {'DOI: 10.5281/zenodo.24095057'}
+                </a>{' '}
+                •{' '}
+                <a href="https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp" target="_blank" rel="noopener noreferrer" style={styles.link}>
+                  Verified Glama MCP Listing
+                </a>
+              </li>
+              <li>
+                <strong>Strategy Academy, 169 Hands, TDA Rules &amp; Glossary Corpus (358 URLs):</strong>{' '}
+                <a href="https://doi.org/10.5281/zenodo.24095560" target="_blank" rel="noopener noreferrer" style={styles.link}>
+                  {'DOI: 10.5281/zenodo.24095560'}
+                </a>
+              </li>
+              <li>
+                <strong>North American State, Metro &amp; Regional Poker Room Geolocation Atlas (413 URLs):</strong>{' '}
+                <a href="https://doi.org/10.5281/zenodo.24095564" target="_blank" rel="noopener noreferrer" style={styles.link}>
+                  {'DOI: 10.5281/zenodo.24095564'}
+                </a>
+              </li>
+              <li>
+                <strong>Verified US Cardroom &amp; Social Poker Club Venue Registry (473 URLs):</strong>{' '}
+                <a href="https://doi.org/10.5281/zenodo.24095597" target="_blank" rel="noopener noreferrer" style={styles.link}>
+                  {'DOI: 10.5281/zenodo.24095597'}
+                </a>
+              </li>
+              <li>
+                <strong>Live Poker Tournament Series, Championship Festivals &amp; Major Tour Schedule Index (359 URLs):</strong>{' '}
+                <a href="https://doi.org/10.5281/zenodo.24095602" target="_blank" rel="noopener noreferrer" style={styles.link}>
+                  {'DOI: 10.5281/zenodo.24095602'}
+                </a>
+              </li>
+              <li>
+                <strong>Software Heritage SWHIDs:</strong>{' '}
+                <code>{'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f'}</code> (Open Datasets) And{' '}
+                <code>{'swh:1:snp:02b8992833424620305edcfb730b3cf8add15747'}</code> (MCP Server)
+              </li>
+            </ul>
           </section>
 
           <CitationBacklinkBox

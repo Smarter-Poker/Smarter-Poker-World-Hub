@@ -254,8 +254,10 @@ export default function VarianceCalculatorPage({
     });
   }, [pageDesc]);
 
+  const isEmbed = router.query?.embed === 'true';
+
   return (
-    <div style={{ minHeight: '100vh', background: '#020608', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div style={{ minHeight: isEmbed ? 'auto' : '100vh', background: '#020608', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
         title="Poker Variance & Downswing Simulator"
         description="Calculate Poker Winrate Confidence Intervals, Probability Of Loss, Standard Deviation Swings, And Expected Downswings Across Any Hand Sample."
@@ -263,22 +265,26 @@ export default function VarianceCalculatorPage({
         jsonLd={schema}
       />
 
-      <main style={{ maxWidth: 1060, margin: '0 auto', padding: '40px 20px 80px' }}>
-        <nav aria-label="Breadcrumb" style={{ fontSize: 13, color: '#94a3b8', marginBottom: 18 }}>
-          <Link href="/" style={{ color: '#25c8ff', textDecoration: 'none' }}>Smarter.Poker</Link>
-          {' / '}
-          <Link href="/tools" style={{ color: '#25c8ff', textDecoration: 'none' }}>Poker Tools</Link>
-          {' / '}
-          <span>Poker Variance &amp; Downswing Simulator</span>
-        </nav>
+      <main style={{ maxWidth: 1060, margin: '0 auto', padding: isEmbed ? '16px 14px 24px' : '40px 20px 80px' }}>
+        {!isEmbed && (
+          <nav aria-label="Breadcrumb" style={{ fontSize: 13, color: '#94a3b8', marginBottom: 18 }}>
+            <Link href="/" style={{ color: '#25c8ff', textDecoration: 'none' }}>Smarter.Poker</Link>
+            {' / '}
+            <Link href="/tools" style={{ color: '#25c8ff', textDecoration: 'none' }}>Poker Tools</Link>
+            {' / '}
+            <span>Poker Variance &amp; Downswing Simulator</span>
+          </nav>
+        )}
 
-        <h1 style={{ fontSize: 32, fontWeight: 800, color: '#f8fafc', margin: '0 0 14px 0', lineHeight: 1.2 }}>
+        <h1 style={{ fontSize: isEmbed ? 22 : 32, fontWeight: 800, color: '#f8fafc', margin: '0 0 14px 0', lineHeight: 1.2 }}>
           Poker Variance &amp; Downswing Simulator
         </h1>
 
-        <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
-          <strong>Direct Answer:</strong> Poker Variance Scales With The <strong>Square Root Of Hand Volume</strong> While Expected Value Grows Linearly. Even A Strong <strong>4.5 BB/100 Winner In 6-Max NLHE (85 BB/100 SD)</strong> Faces A <strong>12.0% Probability Of Being A Net Loser Over 50,000 Hands</strong> And Requires <strong>137,088 Hands</strong> To Prove A Positive Winrate With 95% Statistical Confidence.
-        </p>
+        {!isEmbed && (
+          <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
+            <strong>Direct Answer:</strong> Poker Variance Scales With The <strong>Square Root Of Hand Volume</strong> While Expected Value Grows Linearly. Even A Strong <strong>4.5 BB/100 Winner In 6-Max NLHE (85 BB/100 SD)</strong> Faces A <strong>12.0% Probability Of Being A Net Loser Over 50,000 Hands</strong> And Requires <strong>137,088 Hands</strong> To Prove A Positive Winrate With 95% Statistical Confidence.
+          </p>
+        )}
 
         {/* Interactive Simulator */}
         <section
@@ -613,23 +619,27 @@ export default function VarianceCalculatorPage({
           </div>
         </section>
 
-        <FaqSection faqs={VARIANCE_CALCULATOR_FAQS} />
+        {!isEmbed && (
+          <>
+            <FaqSection faqs={VARIANCE_CALCULATOR_FAQS} />
 
-        <CitationBacklinkBox
-          title="Poker Variance & Downswing Simulator"
-          canonicalUrl={canonicalUrl}
-          badgeType="gto"
-          badgeLabel="Variance & Confidence Solver"
-          badgeValue="1-SD / 2-SD / 3-SD & Downswing Math"
-          summary="Interactive Poker Variance Simulator Computing Confidence Intervals, Probability Of Loss, And Expected Downswing Thresholds."
-          slug="variance-calculator"
-        />
+            <CitationBacklinkBox
+              title="Poker Variance & Downswing Simulator"
+              canonicalUrl={canonicalUrl}
+              badgeType="gto"
+              badgeLabel="Variance & Confidence Solver"
+              badgeValue="1-SD / 2-SD / 3-SD & Downswing Math"
+              summary="Interactive Poker Variance Simulator Computing Confidence Intervals, Probability Of Loss, And Expected Downswing Thresholds."
+              slug="variance-calculator"
+            />
 
-        <AiPromptLauncher
-          title="Poker Variance & Downswing Simulator"
-          canonicalUrl={canonicalUrl}
-          markdownUrl={`${canonicalUrl}.md`}
-        />
+            <AiPromptLauncher
+              title="Poker Variance & Downswing Simulator"
+              canonicalUrl={canonicalUrl}
+              markdownUrl={`${canonicalUrl}.md`}
+            />
+          </>
+        )}
       </main>
     </div>
   );

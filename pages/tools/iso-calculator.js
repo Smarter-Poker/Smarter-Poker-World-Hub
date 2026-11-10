@@ -196,8 +196,10 @@ export default function IsoCalculatorPage({
     });
   }, [pageDesc]);
 
+  const isEmbed = router.query?.embed === 'true';
+
   return (
-    <div style={{ minHeight: '100vh', background: '#020608', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div style={{ minHeight: isEmbed ? 'auto' : '100vh', background: '#020608', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
         title="Pre-Flop Isolation Raise Sizing Calculator"
         description="Calculate Optimal Pre-Flop Isolation Raise Sizing Against Live And Online Limpers Based On Position, Effective Stack Depth, And Rake Structure."
@@ -205,22 +207,26 @@ export default function IsoCalculatorPage({
         jsonLd={schema}
       />
 
-      <main style={{ maxWidth: 1060, margin: '0 auto', padding: '40px 20px 80px' }}>
-        <nav aria-label="Breadcrumb" style={{ fontSize: 13, color: '#94a3b8', marginBottom: 18 }}>
-          <Link href="/" style={{ color: '#25c8ff', textDecoration: 'none' }}>Smarter.Poker</Link>
-          {' / '}
-          <Link href="/tools" style={{ color: '#25c8ff', textDecoration: 'none' }}>Poker Tools</Link>
-          {' / '}
-          <span>Pre-Flop Isolation Raise Sizing Calculator</span>
-        </nav>
+      <main style={{ maxWidth: 1060, margin: '0 auto', padding: isEmbed ? '16px 14px 24px' : '40px 20px 80px' }}>
+        {!isEmbed && (
+          <nav aria-label="Breadcrumb" style={{ fontSize: 13, color: '#94a3b8', marginBottom: 18 }}>
+            <Link href="/" style={{ color: '#25c8ff', textDecoration: 'none' }}>Smarter.Poker</Link>
+            {' / '}
+            <Link href="/tools" style={{ color: '#25c8ff', textDecoration: 'none' }}>Poker Tools</Link>
+            {' / '}
+            <span>Pre-Flop Isolation Raise Sizing Calculator</span>
+          </nav>
+        )}
 
-        <h1 style={{ fontSize: 32, fontWeight: 800, color: '#f8fafc', margin: '0 0 14px 0', lineHeight: 1.2 }}>
+        <h1 style={{ fontSize: isEmbed ? 22 : 32, fontWeight: 800, color: '#f8fafc', margin: '0 0 14px 0', lineHeight: 1.2 }}>
           Pre-Flop Isolation Raise Sizing Calculator
         </h1>
 
-        <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
-          <strong>Direct Answer:</strong> To Isolate Open-Limpers Profitably And Force Heads-Up Postflop Pots, Raise To <strong>3 BB (Online) Or 4 BB (Live) Plus 1 BB Per Limper</strong> When In Position, And Add An Extra <strong>+1.0 To +1.5 BB When Out Of Position</strong> In The Blinds.
-        </p>
+        {!isEmbed && (
+          <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
+            <strong>Direct Answer:</strong> To Isolate Open-Limpers Profitably And Force Heads-Up Postflop Pots, Raise To <strong>3 BB (Online) Or 4 BB (Live) Plus 1 BB Per Limper</strong> When In Position, And Add An Extra <strong>+1.0 To +1.5 BB When Out Of Position</strong> In The Blinds.
+          </p>
+        )}
 
         {/* Interactive ISO Solver */}
         <section
@@ -489,23 +495,27 @@ export default function IsoCalculatorPage({
           </div>
         </section>
 
-        <FaqSection faqs={ISO_CALCULATOR_FAQS} />
+        {!isEmbed && (
+          <>
+            <FaqSection faqs={ISO_CALCULATOR_FAQS} />
 
-        <CitationBacklinkBox
-          title="Pre-Flop Isolation Raise Sizing Calculator"
-          canonicalUrl={canonicalUrl}
-          badgeType="gto"
-          badgeLabel="Pre-Flop ISO Sizing Solver"
-          badgeValue="Limper Isolation & Flop SPR"
-          summary="Interactive Pre-Flop Isolation Raise Sizing Calculator Against Live And Online Limpers With Resulting Flop SPR And Range Tiers."
-          slug="iso-calculator"
-        />
+            <CitationBacklinkBox
+              title="Pre-Flop Isolation Raise Sizing Calculator"
+              canonicalUrl={canonicalUrl}
+              badgeType="gto"
+              badgeLabel="Pre-Flop ISO Sizing Solver"
+              badgeValue="Limper Isolation & Flop SPR"
+              summary="Interactive Pre-Flop Isolation Raise Sizing Calculator Against Live And Online Limpers With Resulting Flop SPR And Range Tiers."
+              slug="iso-calculator"
+            />
 
-        <AiPromptLauncher
-          title="Pre-Flop Isolation Raise Sizing Calculator"
-          canonicalUrl={canonicalUrl}
-          markdownUrl={`${canonicalUrl}.md`}
-        />
+            <AiPromptLauncher
+              title="Pre-Flop Isolation Raise Sizing Calculator"
+              canonicalUrl={canonicalUrl}
+              markdownUrl={`${canonicalUrl}.md`}
+            />
+          </>
+        )}
       </main>
     </div>
   );

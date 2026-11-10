@@ -18,6 +18,29 @@ export * from '@smarter-poker/commander-shared/components/seo/SEOHead';
 
 export { PRODUCT_OG_IMAGES, productOgImage } from '../../lib/seo/productOgImage';
 
+export const ORGANIZATION_SAME_AS = [
+  'https://github.com/Smarter-Poker',
+  'https://github.com/Smarter-Poker/smarter-poker-open-datasets',
+  'https://github.com/Smarter-Poker/smarter-poker-mcp',
+  'https://twitter.com/SmarterPoker',
+  'https://x.com/SmarterPoker',
+  'https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp',
+  'https://doi.org/10.5281/zenodo.24095049',
+  'https://doi.org/10.5281/zenodo.24095057',
+  'https://doi.org/10.5281/zenodo.24095560',
+  'https://doi.org/10.5281/zenodo.24095564',
+  'https://doi.org/10.5281/zenodo.24095597',
+  'https://doi.org/10.5281/zenodo.24095602',
+  'https://zenodo.org/records/24095049',
+  'https://zenodo.org/records/24095057',
+  'https://archive.softwareheritage.org/swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
+  'https://archive.softwareheritage.org/swh:1:snp:02b8992833424620305edcfb730b3cf8add15747',
+];
+
+if (schemas && schemas.organization) {
+  schemas.organization.sameAs = ORGANIZATION_SAME_AS;
+}
+
 /**
  * Normalize a JSON-LD graph array so that:
  * 1. Child nodes inside @graph never carry a redundant @context key.

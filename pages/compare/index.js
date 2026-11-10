@@ -105,7 +105,7 @@ export default function CompareHubPage() {
         title="Poker Room And Software Comparisons"
         description="Honest Comparisons Of Live Poker Rooms, Club Apps, Room Management Software, GTO Trainers And Bankroll Trackers, With Every Fact Sourced And Dated."
         canonical={COMPARE_BASE}
-        jsonLd={[schemas.organization, ...compareIndexJsonLd()]}
+        jsonLd={[schemas.organization, ...compareIndexJsonLd(), faqSchema(COMPARE_FAQS, '/compare')]}
         ogImage="https://smarter.poker/api/og/tool-card?tool=compare"
       />
 
@@ -956,6 +956,65 @@ export default function CompareHubPage() {
               <span>Explore GTO Training & AI Coach</span>
               <ArrowRight size={16} />
             </Link>
+          </div>
+        </section>
+
+        {/* Complete Directory Of All 30 Sourced Comparison Reports */}
+        <section id="directory-grid" style={{ marginBottom: '56px' }}>
+          <div style={{ marginBottom: '24px' }}>
+            <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#FFFFFF', margin: '0 0 8px' }}>
+              All {COMPARE_PAGES.length} Verified Comparison &amp; Best-Of Reports
+            </h2>
+            <p style={{ color: '#8BA5C2', fontSize: '14px', margin: 0 }}>
+              Every Fact In These {COMPARE_PAGES.length} Side-By-Side Guides Is Sourced And Dated ({CHECKED_LABEL}).
+            </p>
+          </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+            gap: '14px'
+          }}>
+            {COMPARE_PAGES.map((page) => (
+              <Link
+                key={page.slug}
+                href={comparePath(page.slug)}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  padding: '18px 20px',
+                  backgroundColor: '#101924',
+                  border: '1px solid #1E2D3D',
+                  borderRadius: '10px',
+                  textDecoration: 'none',
+                  color: '#FFFFFF',
+                }}
+              >
+                <div>
+                  <span style={{
+                    display: 'inline-block',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
+                    color: '#4E9CFF',
+                    marginBottom: '6px'
+                  }}>
+                    {page.kind === 'best-of' ? 'Best-Of Guide' : 'Head-To-Head Comparison'}
+                  </span>
+                  <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#FFFFFF', margin: '0 0 8px', lineHeight: 1.4 }}>
+                    {page.h1}
+                  </h3>
+                  <p style={{ fontSize: '13px', color: '#8BA5C2', margin: '0 0 12px', lineHeight: 1.5 }}>
+                    {page.description}
+                  </p>
+                </div>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 700, color: '#4E9CFF' }}>
+                  <span>Read Sourced Comparison</span>
+                  <ArrowRight size={14} />
+                </span>
+              </Link>
+            ))}
           </div>
         </section>
 

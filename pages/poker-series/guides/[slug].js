@@ -97,16 +97,6 @@ export default function PokerSeriesDetailPage({ guide, peerGuides = [] }) {
         jsonLd={jsonLd}
       />
 
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@graph': jsonLd,
-          }),
-        }}
-      />
-
       <UniversalHeader pageDepth={3} />
 
       <main style={styles.container}>

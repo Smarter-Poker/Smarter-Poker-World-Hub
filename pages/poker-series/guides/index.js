@@ -107,16 +107,6 @@ export default function PokerSeriesGuidesIndexPage() {
         jsonLd={jsonLd}
       />
 
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@graph': jsonLd,
-          }),
-        }}
-      />
-
       <UniversalHeader pageDepth={2} />
 
       <main style={styles.container}>
@@ -156,8 +146,20 @@ export default function PokerSeriesGuidesIndexPage() {
             <Link href="/tools/icm-calculator" style={styles.crossBtnOutline}>
               Final Table ICM Chop Solver
             </Link>
+            <Link href="/tools" style={styles.crossBtnOutline}>
+              24 Free Poker Calculators
+            </Link>
             <Link href="/poker-rooms/guides" style={styles.crossBtnOutline}>
               12 Regional Cash Market Guides
+            </Link>
+            <Link href="/poker-rooms/first-time-guide" style={styles.crossBtnOutline}>
+              First-Time Live Poker Room Guide
+            </Link>
+            <Link href="/learn" style={styles.crossBtnOutline}>
+              GTO Strategy Academy
+            </Link>
+            <Link href="/learn/matchups" style={styles.crossBtnOutline}>
+              25 All-In Hand Matchups
             </Link>
           </div>
         </header>

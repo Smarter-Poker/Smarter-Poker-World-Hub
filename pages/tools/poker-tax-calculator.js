@@ -196,8 +196,10 @@ export default function PokerTaxCalculatorPage({
     });
   }, [pageDesc]);
 
+  const isEmbed = router.query?.embed === 'true';
+
   return (
-    <div style={{ minHeight: '100vh', background: '#020608', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div style={{ minHeight: isEmbed ? 'auto' : '100vh', background: '#020608', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
         title="US Poker Tax & Form W-2G Calculator"
         description="Estimate US Federal And State Poker Taxes, IRS Form W-2G Reporting Thresholds, And Recreational Vs Professional Net Session Tax Deductions."
@@ -205,22 +207,26 @@ export default function PokerTaxCalculatorPage({
         jsonLd={schema}
       />
 
-      <main style={{ maxWidth: 1060, margin: '0 auto', padding: '40px 20px 80px' }}>
-        <nav aria-label="Breadcrumb" style={{ fontSize: 13, color: '#94a3b8', marginBottom: 18 }}>
-          <Link href="/" style={{ color: '#25c8ff', textDecoration: 'none' }}>Smarter.Poker</Link>
-          {' / '}
-          <Link href="/tools" style={{ color: '#25c8ff', textDecoration: 'none' }}>Poker Tools</Link>
-          {' / '}
-          <span>US Poker Tax &amp; Form W-2G Calculator</span>
-        </nav>
+      <main style={{ maxWidth: 1060, margin: '0 auto', padding: isEmbed ? '16px 14px 24px' : '40px 20px 80px' }}>
+        {!isEmbed && (
+          <nav aria-label="Breadcrumb" style={{ fontSize: 13, color: '#94a3b8', marginBottom: 18 }}>
+            <Link href="/" style={{ color: '#25c8ff', textDecoration: 'none' }}>Smarter.Poker</Link>
+            {' / '}
+            <Link href="/tools" style={{ color: '#25c8ff', textDecoration: 'none' }}>Poker Tools</Link>
+            {' / '}
+            <span>US Poker Tax &amp; Form W-2G Calculator</span>
+          </nav>
+        )}
 
-        <h1 style={{ fontSize: 32, fontWeight: 800, color: '#f8fafc', margin: '0 0 14px 0', lineHeight: 1.2 }}>
+        <h1 style={{ fontSize: isEmbed ? 22 : 32, fontWeight: 800, color: '#f8fafc', margin: '0 0 14px 0', lineHeight: 1.2 }}>
           US Poker Tax &amp; Form W-2G Calculator
         </h1>
 
-        <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 18px 0' }}>
-          <strong>Direct Answer:</strong> Under US Internal Revenue Code Section 165D, Poker Players Must Report <strong>100% Of Gross Winning Sessions Separately From Gross Losing Sessions</strong>, And Deductible Losses Cannot Exceed Gross Gambling Winnings. Casinos Issue <strong>IRS Form W-2G</strong> Whenever A Single Poker Tournament Payout Exceeds <strong>$5,000 Net Of Buy-In</strong>.
-        </p>
+        {!isEmbed && (
+          <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 18px 0' }}>
+            <strong>Direct Answer:</strong> Under US Internal Revenue Code Section 165D, Poker Players Must Report <strong>100% Of Gross Winning Sessions Separately From Gross Losing Sessions</strong>, And Deductible Losses Cannot Exceed Gross Gambling Winnings. Casinos Issue <strong>IRS Form W-2G</strong> Whenever A Single Poker Tournament Payout Exceeds <strong>$5,000 Net Of Buy-In</strong>.
+          </p>
+        )}
 
         {/* Educational Tax Disclaimer */}
         <div
@@ -532,23 +538,27 @@ export default function PokerTaxCalculatorPage({
           </div>
         </section>
 
-        <FaqSection faqs={POKER_TAX_FAQS} />
+        {!isEmbed && (
+          <>
+            <FaqSection faqs={POKER_TAX_FAQS} />
 
-        <CitationBacklinkBox
-          title="US Poker Tax & Form W-2G Calculator"
-          canonicalUrl={canonicalUrl}
-          badgeType="award-cpa"
-          badgeLabel="IRS Form W-2G & Sec. 165(d) Engine"
-          badgeValue="US Poker Tax & Session Ledger"
-          summary="Interactive US Poker Tax Estimator Covering IRS Form W-2G $5,000 Tournament Triggers, Schedule A Vs Schedule C Filing, And Session Log Compliance."
-          slug="poker-tax-calculator"
-        />
+            <CitationBacklinkBox
+              title="US Poker Tax & Form W-2G Calculator"
+              canonicalUrl={canonicalUrl}
+              badgeType="award-cpa"
+              badgeLabel="IRS Form W-2G & Sec. 165(d) Engine"
+              badgeValue="US Poker Tax & Session Ledger"
+              summary="Interactive US Poker Tax Estimator Covering IRS Form W-2G $5,000 Tournament Triggers, Schedule A Vs Schedule C Filing, And Session Log Compliance."
+              slug="poker-tax-calculator"
+            />
 
-        <AiPromptLauncher
-          title="US Poker Tax & Form W-2G Calculator"
-          canonicalUrl={canonicalUrl}
-          markdownUrl={`${canonicalUrl}.md`}
-        />
+            <AiPromptLauncher
+              title="US Poker Tax & Form W-2G Calculator"
+              canonicalUrl={canonicalUrl}
+              markdownUrl={`${canonicalUrl}.md`}
+            />
+          </>
+        )}
       </main>
     </div>
   );
