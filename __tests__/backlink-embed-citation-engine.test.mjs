@@ -735,10 +735,29 @@ test('Phase 6 Partner Installation Suite: oEmbed 1.0 Provider, 1-Line JS Widget 
 
   const embedsSrc = read('pages/tools/embeds.js');
   assert.ok(embedsSrc.includes('1-Line JS SDK'));
+  assert.ok(embedsSrc.includes('React / Next.js'));
+  assert.ok(embedsSrc.includes('OEmbed 1.0 URL'));
+  assert.ok(embedsSrc.includes('Test Inline Preview'));
+  assert.ok(embedsSrc.includes('DEAD_TOOL_REPLACEMENTS'));
   assert.ok(embedsSrc.includes('StreamElements'));
   assert.ok(embedsSrc.includes('Fossabot'));
   assert.ok(embedsSrc.includes('/api/seo/oembed?mode=catalog'));
   assert.ok(embedsSrc.includes('/embed-sdk.js'));
+
+  const llmsTxt = read('public/llms.txt');
+  const llmsFullTxt = read('public/llms-full.txt');
+  const aiPluginJson = read('public/.well-known/ai-plugin.json');
+  const openApiJson = read('public/api/openapi.json');
+  assert.ok(llmsTxt.includes('All 35 Zero-Auth MCP Tools'));
+  assert.ok(llmsTxt.includes('!tax, !stake, !iso, !series'));
+  assert.ok(llmsFullTxt.includes('All 35 Zero-Auth MCP Tools'));
+  assert.ok(aiPluginJson.includes('35 zero-auth MCP tools'));
+  assert.ok(openApiJson.includes('35 Tools & 15 Resource Templates'));
+
+  const embedsMd = renderEmbedsMarkdown();
+  for (const cmd of ['!tax', '!stake', '!iso', '!series']) {
+    assert.ok(embedsMd.includes(`\`${cmd}\``), `renderEmbedsMarkdown includes ${cmd}`);
+  }
 
   for (const rel of [
     'src/lib/seo/backlinkCatalog.mjs',

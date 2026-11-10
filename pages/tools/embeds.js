@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Head from 'next/head';
 import SEOHead, { schemas } from '../../src/components/seo/SEOHead';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { DEAD_TOOL_REPLACEMENTS } from '../../src/lib/seo/backlinkCatalog.mjs';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { Code, Copy, Check, ExternalLink, ShieldCheck, Zap } from 'lucide-react';
 
@@ -617,6 +618,7 @@ export default function WebmasterEmbedPortal() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [partnerDomain, setPartnerDomain] = useState('');
   const [botPlatform, setBotPlatform] = useState('nightbot');
+  const [previewWidgetId, setPreviewWidgetId] = useState(null);
 
   const cleanPartner = String(partnerDomain || '')
     .trim()
@@ -635,6 +637,12 @@ export default function WebmasterEmbedPortal() {
     if (embedFormat === 'sdk') {
       const partnerAttr = cleanPartner ? ` data-partner="${cleanPartner}"` : '';
       return `<div data-smarter-poker-widget="${widget.id}"${partnerAttr}></div>\n<script async src="https://smarter.poker/embed-sdk.js"></script>`;
+    }
+    if (embedFormat === 'react') {
+      return `<div className="smarter-poker-widget">\n  <iframe src="${fullEmbedUrl}" width="100%" height={${widget.height}} style={{ border: 0, borderRadius: 12, overflow: 'hidden', maxWidth: '100%' }} loading="lazy" title="${widget.title}" />\n  <p style={{ fontSize: 12, textAlign: 'center', marginTop: 6 }}>Powered By <a href="${fullLanderUrl}" target="_blank" rel="noopener noreferrer">${widget.creditAnchor}</a></p>\n</div>`;
+    }
+    if (embedFormat === 'oembed') {
+      return `https://smarter.poker/api/seo/oembed?url=${encodeURIComponent(widget.landerUrl)}&format=json${cleanPartner ? `&partner=${encodeURIComponent(cleanPartner)}` : ''}`;
     }
     if (embedFormat === 'markdown') {
       return `### [${widget.title}](${fullLanderUrl})\n${widget.description}\n\n[![${widget.creditAnchor}](https://smarter.poker/api/seo/badge?type=gto)](${fullLanderUrl})`;
@@ -841,6 +849,8 @@ export default function WebmasterEmbedPortal() {
                     {[
                       { id: 'iframe', label: 'HTML5 Iframe' },
                       { id: 'sdk', label: '1-Line JS SDK' },
+                      { id: 'react', label: 'React / Next.js' },
+                      { id: 'oembed', label: 'OEmbed 1.0 URL' },
                       { id: 'markdown', label: 'Markdown / Substack' },
                       { id: 'bbcode', label: 'Forum BBCode' },
                     ].map((fmt) => (
@@ -912,19 +922,50 @@ export default function WebmasterEmbedPortal() {
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
                       <h3 style={{ fontSize: '1.35rem', fontWeight: 700, margin: 0 }}>{widget.title}</h3>
-                      <Link
-                        href={widget.landerUrl}
-                        target="_blank"
-                        rel="noopener"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.88rem', color: '#60a5fa', textDecoration: 'none' }}
-                      >
-                        Preview Live Tool <ExternalLink size={14} />
-                      </Link>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewWidgetId(previewWidgetId === widget.id ? null : widget.id)}
+                          style={{
+                            padding: '5px 11px',
+                            borderRadius: '6px',
+                            border: '1px solid rgba(56, 189, 248, 0.35)',
+                            background: previewWidgetId === widget.id ? 'rgba(56, 189, 248, 0.22)' : 'rgba(56, 189, 248, 0.08)',
+                            color: '#7dd3fc',
+                            fontSize: '0.8rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {previewWidgetId === widget.id ? 'Hide Inline Preview' : 'Test Inline Preview'}
+                        </button>
+                        <Link
+                          href={widget.landerUrl}
+                          target="_blank"
+                          rel="noopener"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.88rem', color: '#60a5fa', textDecoration: 'none' }}
+                        >
+                          Open Full Tool <ExternalLink size={14} />
+                        </Link>
+                      </div>
                     </div>
 
                     <p style={{ fontSize: '0.95rem', color: 'rgba(255, 255, 255, 0.75)', lineHeight: 1.5, margin: '0 0 16px 0' }}>
                       {widget.description}
                     </p>
+
+                    {previewWidgetId === widget.id && (
+                      <div style={{ marginBottom: '16px', borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(56, 189, 248, 0.28)', background: '#050811' }}>
+                        <iframe
+                          src={widget.embedUrl}
+                          width="100%"
+                          height={widget.height}
+                          style={{ border: 0, display: 'block', maxWidth: '100%' }}
+                          loading="lazy"
+                          title={`Live Preview: ${widget.title}`}
+                        />
+                      </div>
+                    )}
 
                     <div style={{ position: 'relative' }}>
                       <textarea
@@ -1198,6 +1239,104 @@ export default function WebmasterEmbedPortal() {
                         ) : (
                           <>
                             <Copy size={13} /> Copy Nightbot Command
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* 12-Item Dead-Tool Replacement & Webmaster Migration Matrix */}
+          <section aria-labelledby="dead-tool-replacements-heading" style={{ marginTop: '48px' }}>
+            <h2 id="dead-tool-replacements-heading" style={{ fontSize: '1.6rem', fontWeight: 700, marginBottom: '12px' }}>
+              Legacy &amp; Discontinued Poker Tool Replacement Matrix (12 Drop-In Upgrades)
+            </h2>
+            <p style={{ fontSize: '0.96rem', color: 'rgba(255, 255, 255, 0.72)', lineHeight: 1.6, marginBottom: '24px' }}>
+              Maintaining A Poker Strategy Guide, University Syllabus, Or Forum Resource Thread With Broken Links To Discontinued Software? Replace Retired Tools With Free, Zero-Install Browser Calculators And Copy The Clean HTML Anchor Snippet Below.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
+              {DEAD_TOOL_REPLACEMENTS.map((item) => {
+                const anchorHtml = `<a href="${item.replacementUrl}" target="_blank" rel="noopener">${item.recommendedAnchorText}</a>`;
+                const copyKey = `dead-${item.id}`;
+                const isDeadCopied = copiedId === copyKey;
+                return (
+                  <article
+                    key={item.id}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.02)',
+                      border: '1px solid rgba(251, 191, 36, 0.22)',
+                      borderRadius: '14px',
+                      padding: '20px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      gap: '12px',
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                        <span
+                          style={{
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            background: 'rgba(251, 191, 36, 0.14)',
+                            color: '#fcd34d',
+                          }}
+                        >
+                          {item.category}
+                        </span>
+                        <Link
+                          href={item.replacementUrl}
+                          style={{ fontSize: '0.8rem', color: '#60a5fa', textDecoration: 'none', fontWeight: 600 }}
+                        >
+                          Live Tool &rarr;
+                        </Link>
+                      </div>
+                      <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: '0 0 6px 0', color: '#f8fafc' }}>
+                        {item.legacyToolName}
+                      </h3>
+                      <p style={{ fontSize: '0.84rem', color: 'rgba(255, 255, 255, 0.65)', margin: 0, lineHeight: 1.5 }}>
+                        {item.status}
+                      </p>
+                    </div>
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                            navigator.clipboard.writeText(anchorHtml);
+                            setCopiedId(copyKey);
+                            setTimeout(() => setCopiedId(null), 2500);
+                          }
+                        }}
+                        style={{
+                          width: '100%',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          background: isDeadCopied ? '#059669' : 'rgba(251, 191, 36, 0.16)',
+                          border: '1px solid rgba(251, 191, 36, 0.4)',
+                          color: isDeadCopied ? '#fff' : '#fde68a',
+                          borderRadius: '6px',
+                          padding: '7px 12px',
+                          fontSize: '0.8rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {isDeadCopied ? (
+                          <>
+                            <Check size={13} /> Copied Replacement Link!
+                          </>
+                        ) : (
+                          <>
+                            <Copy size={13} /> Copy Replacement HTML Link
                           </>
                         )}
                       </button>

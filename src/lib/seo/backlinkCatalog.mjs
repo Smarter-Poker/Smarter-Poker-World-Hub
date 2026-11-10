@@ -345,7 +345,7 @@ export const INSTITUTIONAL_AND_ECOSYSTEM_CHANNELS = [
     targets: ['smithery.ai', 'glama.ai/mcp/servers', 'mcp.so', 'pulsemcp.com', 'github.com/modelcontextprotocol/servers'],
     canonicalTarget: 'https://smarter.poker/api/mcp',
     valueProposition:
-      'Register Smarter.Poker\'s zero-auth 30-tool MCP server, 15 resource templates, and /.well-known/mcp.json so developer directories and AI agent hubs can discover https://smarter.poker.',
+      'Register Smarter.Poker\'s zero-auth 35-tool MCP server, 15 resource templates, and /.well-known/mcp.json so developer directories and AI agent hubs can discover https://smarter.poker.',
   },
   {
     id: 'collegiate-quant-clubs',
