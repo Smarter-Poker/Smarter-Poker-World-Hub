@@ -351,6 +351,32 @@ function storeStructuredData(activeTab, vipProduct) {
   if (vipProduct) return vipProductStructuredData(VIP_MEMBERSHIP, vipProduct.plan, vipProduct.gift);
   if (activeTab === 'vip') return vipStructuredData(VIP_MEMBERSHIP);
   const meta = TAB_META[activeTab] || TAB_META.diamonds;
+  const routePath = TAB_ROUTES[activeTab] || TAB_ROUTES.diamonds;
+  const pageUrl = `https://smarter.poker${routePath}`;
+  const breadcrumbNode = {
+    '@type': 'BreadcrumbList',
+    '@id': `${pageUrl}#breadcrumb`,
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Home',
+        item: 'https://smarter.poker/',
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'Hub',
+        item: 'https://smarter.poker/hub',
+      },
+      {
+        '@type': 'ListItem',
+        position: 3,
+        name: meta.title.replace(/\s*\|\s*Smarter\.Poker$/i, ''),
+        item: pageUrl,
+      },
+    ],
+  };
 
   if (activeTab === 'diamonds') {
     const products = DIAMOND_STOREFRONT_FALLBACK_PACKAGES.map((pkg) => {
@@ -435,8 +461,10 @@ function storeStructuredData(activeTab, vipProduct) {
             name: 'Smarter.Poker',
             url: 'https://smarter.poker/',
           },
+          breadcrumb: { '@id': breadcrumbNode['@id'] },
           hasPart: products.map((p) => ({ '@id': p['@id'] })),
         },
+        breadcrumbNode,
         ...products,
       ],
     };
@@ -444,16 +472,23 @@ function storeStructuredData(activeTab, vipProduct) {
 
   return {
     '@context': 'https://schema.org',
-    '@type': 'CollectionPage',
-    name: meta.title,
-    description: meta.description,
-    url: `https://smarter.poker${TAB_ROUTES[activeTab]}`,
-    image: `https://smarter.poker${TAB_SOCIAL_IMAGE[activeTab]}`,
-    isPartOf: {
-      '@type': 'WebSite',
-      name: 'Smarter.Poker',
-      url: 'https://smarter.poker/',
-    },
+    '@graph': [
+      {
+        '@type': 'CollectionPage',
+        '@id': `${pageUrl}#page`,
+        name: meta.title,
+        description: meta.description,
+        url: pageUrl,
+        image: `https://smarter.poker${TAB_SOCIAL_IMAGE[activeTab]}`,
+        isPartOf: {
+          '@type': 'WebSite',
+          name: 'Smarter.Poker',
+          url: 'https://smarter.poker/',
+        },
+        breadcrumb: { '@id': breadcrumbNode['@id'] },
+      },
+      breadcrumbNode,
+    ],
   };
 }
 

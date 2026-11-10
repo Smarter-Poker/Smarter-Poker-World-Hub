@@ -23,8 +23,7 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import PokerIdentityMark from '../../src/components/poker-near-me/PokerIdentityMark';
 import { homeGameUrl } from '../../src/lib/home-games/urls';
 import { buildDailyTournamentSchema, serializePokerJsonLd } from '../../src/lib/poker-near-me/structuredData';
-import { datasetSchema } from '../../src/lib/seo/hubPageSchema';
-import { faqSchema } from '../../src/lib/seo/hubPageSchema';
+import { datasetSchema, faqSchema, breadcrumbSchema } from '../../src/lib/seo/hubPageSchema';
 import FaqSection from '../../src/components/seo/FaqSection';
 
 const DAILY_TOURNAMENTS_FAQS = [
@@ -431,6 +430,11 @@ export default function DailyTournaments() {
                             variableMeasured: ['Tournament Buy-In', 'Guaranteed Prize Pool', 'Starting Chip Stack', 'Blind Level Duration'],
                         }),
                         faqSchema(DAILY_TOURNAMENTS_FAQS, '/hub/daily-tournaments'),
+                        breadcrumbSchema([
+                            ['Home', '/'],
+                            ['Poker Near Me', '/hub/poker-near-me/lobby'],
+                            ['Daily Tournaments', '/hub/daily-tournaments'],
+                        ]),
                     ].filter(Boolean)),
                 }) }} />
 
