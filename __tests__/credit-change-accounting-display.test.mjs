@@ -8,6 +8,7 @@ import * as unionEco from '../src/lib/unionEco.mjs';
 import * as messageMedia from '../src/lib/messenger/messageMedia.mjs';
 import * as liveInvite from '../src/lib/messenger/liveInvite.mjs';
 import * as callReceipt from '../src/lib/messenger/callReceipt.mjs';
+import * as reliabilityIncident from '../src/lib/messenger/reliabilityIncident.mjs';
 
 const require = createRequire(import.meta.url);
 const React = require('react');
@@ -57,6 +58,8 @@ const Bubble = compile('../src/components/messenger/MessageBubble.js', name => {
     if (name === '../../lib/messenger/messageMedia.mjs') return messageMedia;
     if (name === '../../lib/messenger/liveInvite.mjs') return liveInvite;
     if (name === '../../lib/messenger/callReceipt.mjs') return callReceipt;
+    if (name === '../../lib/messenger/reliabilityIncident.mjs') return reliabilityIncident;
+    if (name === './ReliabilityIncidentControls') return { default: () => null, __esModule: true };
     if (name === './MediaViewer') return { default: () => null, ATTACHMENT_ATTRIBUTE: 'data-message-attachment', __esModule: true };
     return require(name);
 }, undefined, 'MessageBubble');

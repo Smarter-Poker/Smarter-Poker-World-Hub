@@ -301,6 +301,7 @@ const HUB_ROUTES_WITHOUT_SHARED_HEADER = new Set([
   '/hub/poker/table/[tableId]',
   '/hub/post/[id]',
   '/hub/profile',
+  '/hub/reliability/incidents/[id]',
   '/hub/reset-auth',
   '/hub/session-history',
   '/hub/settings/notifications',
