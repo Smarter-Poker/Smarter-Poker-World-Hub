@@ -31,11 +31,11 @@ skill is two Markdown files.
 
 | Environment | Can use it | How | Verified |
 | --- | --- | --- | --- |
-| Claude Code, any account, in a checkout of this repo at or after the commit that added this folder | Expected yes | Project skill, loaded from `.claude/skills/reddit-agent/` | Not verified. The cloud session that added the files did not list the skill after reloading the repository on 2026-11-10; confirm in a fresh session |
+| Claude Code, any account, in a checkout of this repo at or after the commit that added this folder | Yes | Project skill, loaded from `.claude/skills/reddit-agent/` | Verified 2026-11-10 in one cloud Claude Code session: the skill was listed after the repository reloaded and loaded on request |
 | Claude Code on the Mac in a checkout of this repo | Expected yes after `git pull` on main | Same project skill | Not verified on the Mac |
 | Claude Code in another repo (for example Club Arena) | No | Project skills do not cross repos | Not installed |
 | Claude Code user level on the Mac (`~/.claude/skills/`), every repo and account that shares that home folder | Not installed | Run the copy command below | Not verified |
-| Claude app (claude.ai) | Only the account where the skill was saved from the chat's review card | Saved per account | One account, if Dan saved it |
+| Claude app (claude.ai) | Only the account where the skill was saved from the chat's review card | Saved per account | Saved on one account and loaded on 2026-11-10 |
 | Codex, Antigravity and other agents | Can read these files as instructions | Open `SKILL.md` | Not verified |
 
 To make it available in every repo for the Mac user, run this once from a
