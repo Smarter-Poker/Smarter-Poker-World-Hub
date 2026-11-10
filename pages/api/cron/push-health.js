@@ -14,7 +14,9 @@
  *
  *  Four checks:
  *    1. ZOMBIE SUBSCRIPTIONS  active + recently pushed + no receipt in 3 days
- *    2. STAFF UNREACHABLE     admin/god accounts with no active subscription
+ *    2. STAFF UNREACHABLE     a platform alert recipient (the owner's verified
+ *                             accounts) with no active subscription; other
+ *                             admin/god accounts only get their own notice
  *    3. CONFIGURATION         VAPID env vars missing or mismatched
  *    4. DISPATCH LIVENESS     push-dispatch has not run in over 30 minutes
  *
@@ -54,7 +56,7 @@ import { filterRecentlyAlerted } from '../../../src/lib/push/alertCooldown.mjs';
 // The owner account's copy of everything this job finds: store episodes (with
 // recoveries where push-health sees the condition clear itself), plus the only
 // way this job may address a person.
-import { CHECK, CONDITION, includesOwnerAccount, isOwnerAccount, observeOwnerAddressedNotices, personalRecipients, pushHealthNotices, pushHealthObservations, recordPushHealthAlerts, settledVapidRotations, vapidRotation } from '../../../src/lib/push/pushHealthOperationalAlerts.mjs';
+import { CHECK, CONDITION, includesOwnerAccount, isOwnerAccount, mustReceivePlatformAlerts, observeOwnerAddressedNotices, personalRecipients, pushHealthNotices, pushHealthObservations, recordPushHealthAlerts, settledVapidRotations, vapidRotation } from '../../../src/lib/push/pushHealthOperationalAlerts.mjs';
 
 const ZOMBIE_RECEIPT_DAYS = 3;
 // Ceiling on per-user alerts in one run. Each alert is a notifications insert
@@ -402,11 +404,15 @@ async function handler(req, res) {
         } else {
             health.unobserved(CONDITION.OWNER_PUSH_OFF);
         }
-        if (unreachable.length > 0 && !nobodyEnrolled) {
-            const line = `${unreachable.length} staff account(s) cannot receive push`;
+        // Only an account that must receive platform alerts is a fault when it
+        // cannot be reached (owner, 2026-11-09); every unreachable staff account
+        // above still gets its own notice.
+        const mustReach = unreachable.filter((p) => mustReceivePlatformAlerts(p.id));
+        if (mustReach.length > 0 && !nobodyEnrolled) {
+            const line = `${mustReach.length} staff account(s) cannot receive push`;
             // With the device read cut off, who is unreachable is not known.
             if (reachUnread) health.unverified(CONDITION.STAFF_UNREACHABLE, line, reachUnread);
-            else health.fault(CONDITION.STAFF_UNREACHABLE, line, { staffAccounts: unreachable.length });
+            else health.fault(CONDITION.STAFF_UNREACHABLE, line, { staffAccounts: mustReach.length });
         } else if (globalUnread || nobodyEnrolled) {
             // Not judged, and the store copy says so (review r27): its silence
             // must never read as a recovery while nobody can receive a push.
