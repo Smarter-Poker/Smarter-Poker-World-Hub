@@ -49,10 +49,10 @@ export function renderVerificationMethodologyMarkdown() {
     '## 5. Self-Archived Datasets & AI Tool Listings (Zenodo DOIs, Software Heritage & Glama MCP)',
     '- **Zenodo Deposit 1 (`10.5281/zenodo.24095049`)**: [https://doi.org/10.5281/zenodo.24095049](https://doi.org/10.5281/zenodo.24095049) (Core Open Quantitative Poker Research Datasets, 15 CSV & JSON Datasets)',
     '- **Zenodo Deposit 2 (`10.5281/zenodo.24095057`)**: [https://doi.org/10.5281/zenodo.24095057](https://doi.org/10.5281/zenodo.24095057) (30-Tool Model Context Protocol Server Archive)',
-    '- **Zenodo Deposit 3 (`10.5281/zenodo.24095560`)**: [https://doi.org/10.5281/zenodo.24095560](https://doi.org/10.5281/zenodo.24095560) (Poker Strategy Academy, 169 Starting-Hand Encyclopedia, TDA Rules & Glossary Index)',
-    '- **Zenodo Deposit 4 (`10.5281/zenodo.24095564`)**: [https://doi.org/10.5281/zenodo.24095564](https://doi.org/10.5281/zenodo.24095564) (North American State, Metro & Regional Poker Room Geolocation Atlas Index)',
-    '- **Zenodo Deposit 5 (`10.5281/zenodo.24095597`)**: [https://doi.org/10.5281/zenodo.24095597](https://doi.org/10.5281/zenodo.24095597) (Verified US Cardroom & Social Poker Club Venue Registry Index)',
-    '- **Zenodo Deposit 6 (`10.5281/zenodo.24095602`)**: [https://doi.org/10.5281/zenodo.24095602](https://doi.org/10.5281/zenodo.24095602) (Live Poker Tournament Series, Championship Festivals & Major Tour Schedule Index)',
+    '- **Zenodo Deposit 3 (`10.5281/zenodo.24095560`)**: [https://doi.org/10.5281/zenodo.24095560](https://doi.org/10.5281/zenodo.24095560) (North American Live Poker Room, Regional Market & Tournament Series Benchmark Dataset)',
+    '- **Zenodo Deposit 4 (`10.5281/zenodo.24095564`)**: [https://doi.org/10.5281/zenodo.24095564](https://doi.org/10.5281/zenodo.24095564) (100BB 6-Max GTO Preflop Ranges, 169 Starting Hands & 25 Canonical Matchup Benchmarks)',
+    '- **Zenodo Deposit 5 (`10.5281/zenodo.24095597`)**: [https://doi.org/10.5281/zenodo.24095597](https://doi.org/10.5281/zenodo.24095597) (Smarter.Poker Model Context Protocol Server & OpenAPI 3.1 Specification v1.0.2)',
+    '- **Zenodo Deposit 6 (`10.5281/zenodo.24095602`)**: [https://doi.org/10.5281/zenodo.24095602](https://doi.org/10.5281/zenodo.24095602) (Official Poker Rules TDA & RROP, 15 Game Variants & 80-Term Quantitative Glossary Corpus)',
     '- **Software Heritage SWHIDs**: `swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f` (`smarter-poker-open-datasets`) And `swh:1:snp:02b8992833424620305edcfb730b3cf8add15747` (`smarter-poker-mcp`)',
     '- **Glama MCP Directory Listing**: [https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp](https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp)',
     '',
@@ -207,25 +207,25 @@ export default function VerificationMethodologyPage() {
                 </a>
               </li>
               <li>
-                <strong>Strategy Academy, 169 Hands, TDA Rules &amp; Glossary Index:</strong>{' '}
+                <strong>North American Live Poker Room, Regional Market &amp; Tournament Series Benchmark Dataset:</strong>{' '}
                 <a href="https://doi.org/10.5281/zenodo.24095560" target="_blank" rel="noopener noreferrer" style={styles.link}>
                   {'DOI: 10.5281/zenodo.24095560'}
                 </a>
               </li>
               <li>
-                <strong>North American State, Metro &amp; Regional Poker Room Geolocation Atlas Index:</strong>{' '}
+                <strong>100BB 6-Max GTO Preflop Ranges, 169 Starting Hands &amp; 25 Canonical Matchup Benchmarks:</strong>{' '}
                 <a href="https://doi.org/10.5281/zenodo.24095564" target="_blank" rel="noopener noreferrer" style={styles.link}>
                   {'DOI: 10.5281/zenodo.24095564'}
                 </a>
               </li>
               <li>
-                <strong>Verified US Cardroom &amp; Social Poker Club Venue Registry Index:</strong>{' '}
+                <strong>Smarter.Poker Model Context Protocol (MCP) Server &amp; OpenAPI 3.1 Specification V1.0.2:</strong>{' '}
                 <a href="https://doi.org/10.5281/zenodo.24095597" target="_blank" rel="noopener noreferrer" style={styles.link}>
                   {'DOI: 10.5281/zenodo.24095597'}
                 </a>
               </li>
               <li>
-                <strong>Live Poker Tournament Series, Championship Festivals &amp; Major Tour Schedule Index:</strong>{' '}
+                <strong>Official Poker Rules (TDA &amp; RROP), 15 Game Variants &amp; 80-Term Quantitative Glossary Corpus:</strong>{' '}
                 <a href="https://doi.org/10.5281/zenodo.24095602" target="_blank" rel="noopener noreferrer" style={styles.link}>
                   {'DOI: 10.5281/zenodo.24095602'}
                 </a>
