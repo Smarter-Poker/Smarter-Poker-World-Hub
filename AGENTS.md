@@ -27,3 +27,16 @@ This is the active instruction for local and cloud agents. Read [PUBLISHING.md](
 The restored provider routes have successful production evidence; this does not certify every pending application package, a green whole-application suite or a guaranteed six-minute delivery. Selected historical source references were Club Arena `c35e9403a043457c8c8d495dd50cf86c35290919` and World Hub `89043c690147e991d6872bace8bec1fb329e402a`. They are historical references, not instructions to reset newer protected application work. Necessary restoration corrections and global telemetry removal were recorded separately.
 
 On the owner's Mac, also read `/Users/smarter.poker/Documents/AGENTS.md` and `/Users/smarter.poker/Documents/AGENT-HARDENING-STANDARD.md` at task start, after context loss and before completion. Their absence in a cloud checkout does not remove the instructions above. Later explicit owner instructions take precedence.
+
+## Reddit research-and-drafting skill (owner instruction, November 10, 2026)
+
+`.claude/skills/reddit-agent/` holds the Smarter.Poker Reddit skill. It researches poker communities, records their rules with sources and verification dates, and drafts posts and comments. It never posts. Nothing goes to Reddit, and no message is sent, without Dan's explicit approval of the exact text and the exact destination; loading the skill authorizes no publication. Affiliation is disclosed whenever Smarter.Poker is mentioned. Karma farming, fake stories or testimonials, coordinated voting, bulk messages and disguised promotion are prohibited.
+
+Working routes, as verified on November 10, 2026:
+
+- Claude Code, any account, in a checkout of this repository at or after the commit that added the folder: the skill loads as a project skill named `reddit-agent`. Verified in one cloud Claude Code session; not yet verified on the Mac.
+- Claude Code in other repositories, or for every account on the Mac user: not installed. Copy the folder to `~/.claude/skills/` using the command in the skill's `README.md`.
+- Claude app: available only on the account where it was saved from the chat's review card.
+- Other agents (Codex, Antigravity): read `SKILL.md` as instructions.
+
+Installation, usage, rule refresh, limitations and removal are in `.claude/skills/reddit-agent/README.md`. The skill is two Markdown files with no scripts, hooks, dependencies or credentials.
