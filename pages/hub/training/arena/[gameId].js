@@ -166,7 +166,7 @@ export default function TrainingArenaPage() {
                     ...(baseConfig || {}),
                     ...(variant ? { variant } : {}),
                     ...(targetStreet ? { targetStreet, gameMode: 'street' } : {}),
-                    ...(targetPosition ? { targetPositions: targetPosition, position: targetPosition } : {}),
+                    ...(targetPosition ? { targetPositions: targetPosition, ...(baseConfig ? { position: targetPosition } : {}) } : {}),
                     ...(duelToken ? { duelToken } : {}),
                     ...(syncedHandId ? { syncedHandId } : {}),
                 },

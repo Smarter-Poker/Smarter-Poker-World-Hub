@@ -639,7 +639,7 @@ test('Decision-level Club Arena parity: short all-in reopening rules, pot-limit 
   assert.match(customSizing.exactSizeVerdict, /9\.5 BB.*8 BB/i);
 });
 
-test('Personalized leak-to-drill loop identifies highest-EV-loss (variant, street, position) and targets Question #1', () => {
+test('Personalized leak-to-drill loop identifies highest-EV-loss (variant, street, position) and targets Question #1', async () => {
   const analysis = analyzeVerifiedTrainingWeaknesses({
     sessions: [
       {
@@ -681,6 +681,16 @@ test('Personalized leak-to-drill loop identifies highest-EV-loss (variant, stree
     launchHref,
     '/hub/training/arena/cash-005?level=1&source=weakness-scanner&variant=plo5&street=turn&position=BB',
   );
+
+  // Verify arena launch config for weakness-scanner routes to batch-preload (isCustomTrainerConfig === false)
+  const { isCustomTrainerConfig } = await import('../src/lib/training/trainerConfigMode.mjs');
+  const arenaTargetedConfig = {
+    variant: 'plo5',
+    targetStreet: 'turn',
+    gameMode: 'street',
+    targetPositions: 'BB',
+  };
+  assert.equal(isCustomTrainerConfig(arenaTargetedConfig), false);
 
   // Verify curated batch generator produces a PLO5 BB turn question on Question #1
   const [firstQuestion] = generateCuratedPokerConceptBatch({
