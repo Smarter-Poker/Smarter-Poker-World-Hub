@@ -121,11 +121,26 @@ export default function TrainingArenaPage() {
     const [ready, setReady] = useState(false);
     const [fetchError, setFetchError] = useState(null);
     const [resolvedSessionId, setResolvedSessionId] = useState(null);
+    const [serverSyncedHand, setServerSyncedHand] = useState(null);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return undefined;
+        const onSyncedHand = (event) => {
+            if (event?.detail && event.detail.handId) {
+                setServerSyncedHand(event.detail);
+            }
+        };
+        window.addEventListener('sp-training-synced-hand', onSyncedHand);
+        return () => window.removeEventListener('sp-training-synced-hand', onSyncedHand);
+    }, []);
 
     const customLaunch = useMemo(() => {
         if (!router.isReady) return { config: null, error: null };
         try {
-            const baseConfig = customTrainingConfigFromQuery(router.query);
+            const syncedHandId = typeof router.query.syncedHandId === 'string' && router.query.syncedHandId.trim()
+                ? router.query.syncedHandId.trim()
+                : null;
+            const baseConfig = syncedHandId ? null : customTrainingConfigFromQuery(router.query);
             const rawVariant = typeof router.query.variant === 'string'
                 ? router.query.variant.trim().toLowerCase()
                 : '';
@@ -133,7 +148,7 @@ export default function TrainingArenaPage() {
             const duelToken = typeof router.query.duelToken === 'string' && router.query.duelToken.trim()
                 ? router.query.duelToken.trim()
                 : null;
-            if (!baseConfig && !variant && !duelToken) {
+            if (!baseConfig && !variant && !duelToken && !syncedHandId) {
                 return { config: null, error: null };
             }
             return {
@@ -141,6 +156,7 @@ export default function TrainingArenaPage() {
                     ...(baseConfig || {}),
                     ...(variant ? { variant } : {}),
                     ...(duelToken ? { duelToken } : {}),
+                    ...(syncedHandId ? { syncedHandId } : {}),
                 },
                 error: null,
             };
@@ -268,9 +284,11 @@ export default function TrainingArenaPage() {
     }
 
     const syncedHandId = typeof router.query.syncedHandId === 'string' ? router.query.syncedHandId.trim() : '';
-    const syncedHeroCards = typeof router.query.syncedHeroCards === 'string' ? router.query.syncedHeroCards.trim() : '';
-    const syncedBoard = typeof router.query.syncedBoard === 'string' ? router.query.syncedBoard.trim() : '';
     const duelToken = typeof router.query.duelToken === 'string' ? router.query.duelToken.trim() : '';
+    const resolvedHeroCards = Array.isArray(serverSyncedHand?.heroCards)
+        ? serverSyncedHand.heroCards.join('')
+        : '';
+    const resolvedBoard = typeof serverSyncedHand?.board === 'string' ? serverSyncedHand.board : '';
 
     return (
         <>
@@ -282,6 +300,7 @@ export default function TrainingArenaPage() {
                 <div
                     data-synced-hand-banner="true"
                     data-synced-hand-id={syncedHandId}
+                    data-synced-hand-verified={serverSyncedHand?.participantVerified ? 'true' : 'pending'}
                     style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -300,10 +319,11 @@ export default function TrainingArenaPage() {
                 >
                     <span>
                         ★ Drilling Authenticated Hand #{syncedHandId}
-                        {syncedHeroCards ? ` · Hero: ${syncedHeroCards}` : ''}
-                        {syncedBoard ? ` · Board: ${syncedBoard}` : ''}
-                        {router.query.position ? ` · Position: ${String(router.query.position).toUpperCase()}` : ''}
-                        {router.query.street ? ` · Street: ${String(router.query.street).toUpperCase()}` : ''}
+                        {resolvedHeroCards ? ` · Hero: ${resolvedHeroCards}` : ''}
+                        {resolvedBoard ? ` · Board: ${resolvedBoard}` : ''}
+                        {serverSyncedHand?.heroPosition ? ` · Position: ${String(serverSyncedHand.heroPosition).toUpperCase()}` : ''}
+                        {serverSyncedHand?.street ? ` · Street: ${String(serverSyncedHand.street).toUpperCase()}` : ''}
+                        {serverSyncedHand?.engineModule ? ` · Brain: ${serverSyncedHand.engineModule}` : ''}
                     </span>
                     <a
                         href="/hub/training/live-hud-sync"

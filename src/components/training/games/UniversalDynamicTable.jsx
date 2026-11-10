@@ -5403,24 +5403,30 @@ function UniversalDynamicTable({
                                 solver's rawFrequencies; buildRangeGridData owns
                                 the transpose for the whole app. */}
                             {rangeModeGrid ? (
-                                <RangeGrid
-                                    gridData={rangeModeGrid.gridData}
-                                    actions={rangeModeGrid.actions}
-                                    cellSize={18}
-                                    heroHand={rangeModeGrid.heroHand}
-                                    compact={true}
-                                    handEVs={rangeModeGrid.handEVs}
-                                    showEVOverlay={Boolean(rangeModeGrid.handEVs)}
-                                    classificationData={rangeClassification}
-                                    actionPresentation={rangeModeGrid.actionPresentation}
-                                />
+                                <div data-matrix-provenance="solver-raw-frequencies">
+                                    <div style={{ fontSize: 11, color: '#6ee7b7', textAlign: 'center', marginBottom: 4, fontWeight: 700 }}>
+                                        Provenance: Authoritative Solver Node Frequencies
+                                    </div>
+                                    <RangeGrid
+                                        gridData={rangeModeGrid.gridData}
+                                        actions={rangeModeGrid.actions}
+                                        cellSize={18}
+                                        heroHand={rangeModeGrid.heroHand}
+                                        compact={true}
+                                        handEVs={rangeModeGrid.handEVs}
+                                        showEVOverlay={Boolean(rangeModeGrid.handEVs)}
+                                        classificationData={rangeClassification}
+                                        actionPresentation={rangeModeGrid.actionPresentation}
+                                    />
+                                </div>
                             ) : (
-                                <div style={{ padding: '4px 4px 8px' }}>
+                                <div data-matrix-provenance="positional-gto-reference" style={{ padding: '4px 4px 8px' }}>
                                     <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)', textAlign: 'center', marginBottom: 6 }}>
-                                        Positional 13×13 Hand Matrix • Hero Hand Highlighted ({handNotationFromCards(fq?.heroCards || heroCards) || 'Hero'})
+                                        Positional 13×13 Hand Matrix (Reference Range - Not Solver-Exact) • Hero Subset Highlighted ({fq?.scenario?.brainEvaluation?.primaryTwoCardSubset || handNotationFromCards(fq?.heroCards || heroCards) || 'Hero'})
                                     </div>
                                     <div
                                         data-training-reference-matrix="true"
+                                        data-matrix-provenance="positional-gto-reference"
                                         style={{
                                             display: 'grid',
                                             gridTemplateColumns: 'repeat(13, minmax(0, 1fr))',
@@ -5432,7 +5438,7 @@ function UniversalDynamicTable({
                                         {['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'].map((r1, ri) =>
                                             ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'].map((r2, ci) => {
                                                 const cellHand = ri === ci ? `${r1}${r2}` : (ri < ci ? `${r1}${r2}s` : `${r2}${r1}o`);
-                                                const activeHeroHand = handNotationFromCards(fq?.heroCards || heroCards);
+                                                const activeHeroHand = fq?.scenario?.brainEvaluation?.primaryTwoCardSubset || handNotationFromCards(fq?.heroCards || heroCards);
                                                 const isHeroCell = activeHeroHand === cellHand;
                                                 const isPair = ri === ci;
                                                 const isSuited = ri < ci;
@@ -5715,6 +5721,50 @@ function UniversalDynamicTable({
                                         <div style={{ color: '#53f2a0', fontSize: 14, fontWeight: 850, marginTop: 3 }}>{correctText}</div>
                                     </div>
                                 </div>
+                                {(() => {
+                                    const brainMeta = fq?.brainEvaluation || fq?.scenario?.brainEvaluation || question?.scenario?.brainEvaluation || null;
+                                    const coachingText = fq?.explanation || displayExplanation || explanation || '';
+                                    if (!brainMeta && !coachingText) return null;
+                                    return (
+                                        <div
+                                            data-training-attempt-coaching="true"
+                                            data-brain-engine={brainMeta?.engineModule || 'solver-node'}
+                                            style={{
+                                                marginTop: 10,
+                                                padding: '8px 11px',
+                                                borderRadius: 9,
+                                                background: 'rgba(2, 6, 23, 0.52)',
+                                                border: '1px solid rgba(103, 232, 249, 0.28)',
+                                                color: '#e2e8f0',
+                                                fontSize: 12,
+                                                lineHeight: 1.45,
+                                            }}
+                                        >
+                                            {brainMeta && (
+                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: coachingText ? 6 : 0 }}>
+                                                    <span style={{ padding: '2px 7px', borderRadius: 999, background: 'rgba(14, 165, 233, 0.2)', color: '#7dd3fc', fontWeight: 800, fontSize: 11 }}>
+                                                        Brain: {brainMeta.engineModule}
+                                                    </span>
+                                                    {brainMeta.madeHandCategory && (
+                                                        <span style={{ padding: '2px 7px', borderRadius: 999, background: 'rgba(16, 185, 129, 0.2)', color: '#6ee7b7', fontWeight: 800, fontSize: 11 }}>
+                                                            Hand: {brainMeta.madeHandCategory}
+                                                        </span>
+                                                    )}
+                                                    {brainMeta.potLimitBounds?.maxBetBb && (
+                                                        <span style={{ padding: '2px 7px', borderRadius: 999, background: 'rgba(245, 158, 11, 0.2)', color: '#fcd34d', fontWeight: 800, fontSize: 11 }}>
+                                                            Pot-Limit Max: {brainMeta.potLimitBounds.maxBetBb} BB
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
+                                            {coachingText && (
+                                                <div style={{ fontWeight: 600, color: '#cbd5e1' }}>
+                                                    {coachingText}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
                                 <div style={{ color: '#c7d7df', fontSize: 12, fontWeight: 700, letterSpacing: .35, marginTop: 10, textAlign: 'center' }}>
                                     Review The Coaching Below. This Screen Will Stay Open Until You Click Next.
                                 </div>
