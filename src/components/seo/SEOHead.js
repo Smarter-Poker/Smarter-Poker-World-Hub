@@ -376,6 +376,15 @@ export default function SEOHead(props) {
           href="https://smarter.poker/api/feeds/research"
         />
       )}
+      {!props.noindex && cleanCanonForCal && (
+        <link
+          key="alternate-oembed"
+          rel="alternate"
+          type="application/json+oembed"
+          title="Smarter.Poker oEmbed Profile"
+          href={`https://smarter.poker/api/seo/oembed?url=${encodeURIComponent(cleanCanonForCal)}&format=json`}
+        />
+      )}
       {!props.noindex && (
         <link
           key="opensearch-description"
