@@ -96,47 +96,47 @@ const PRESS_FAQS = [
     a: 'Yes. All First-Party Industry Benchmarks, Rake Studies, Tournament Indexes, And Combinatorial Tables Published On Smarter.Poker Are Licensed Under Creative Commons Attribution 4.0 International (CC BY 4.0). Simply Credit "Smarter.Poker Research" With A Direct Link To The Source URL.',
   },
   {
-    q: 'Does Smarter.Poker Provide Raw Markdown, JSON Datasets, And Permanent CERN/Zenodo DOIs For Data Journalists?',
-    a: 'Yes. Append .md To Any Research Report, Rule, Game Variant, Or Calculator URL To Retrieve Clean Markdown Tables, Or Visit /research And /api/datasets/catalog To Download Structured CSV And JSON Releases Archived Under 6 Permanent CERN/Zenodo DOIs (Starting At https://doi.org/10.5281/zenodo.24095049) And 2 Software Heritage SWHIDs.',
+    q: 'Does Smarter.Poker Provide Raw Markdown, JSON Datasets, And Zenodo DOIs For Data Journalists?',
+    a: 'Yes. Append .md To Any Research Report, Rule, Game Variant, Or Calculator URL To Retrieve Clean Markdown Tables, Or Visit /research And /api/datasets/catalog To Download Structured CSV And JSON Releases Self-Archived On Zenodo (Starting At https://doi.org/10.5281/zenodo.24095049) And Software Heritage.',
   },
 ];
 
 const ARCHIVAL_REGISTRIES = [
   {
-    label: 'CERN / Zenodo Record 1 (Core Open Research Datasets)',
+    label: 'Zenodo Deposit 1 (Core Open Research Datasets)',
     identifier: 'DOI: 10.5281/zenodo.24095049 (Concept DOI: 10.5281/zenodo.24095048)',
     href: 'https://doi.org/10.5281/zenodo.24095049',
-    scope: '324 Canonical Research, Calculator & Verification URLs',
+    scope: '15 Open Quantitative Poker Research CSV & JSON Datasets',
   },
   {
-    label: 'CERN / Zenodo Record 2 (30-Tool MCP Server Archive)',
+    label: 'Zenodo Deposit 2 (30-Tool MCP Server Archive)',
     identifier: 'DOI: 10.5281/zenodo.24095057 (Concept DOI: 10.5281/zenodo.24095056)',
     href: 'https://doi.org/10.5281/zenodo.24095057',
     scope: 'Model Context Protocol JSON-RPC 2.0 Server & Manifests',
   },
   {
-    label: 'CERN / Zenodo Record 3 (Strategy, 169 Hands, TDA Rules & Glossary)',
+    label: 'Zenodo Deposit 3 (Strategy, 169 Hands, TDA Rules & Glossary Index)',
     identifier: 'DOI: 10.5281/zenodo.24095560 (Concept DOI: 10.5281/zenodo.24095559)',
     href: 'https://doi.org/10.5281/zenodo.24095560',
-    scope: '358 Canonical Strategy, Starting-Hand & Rules URLs',
+    scope: 'Strategy, Starting-Hand & Official Rules Index Deposit',
   },
   {
-    label: 'CERN / Zenodo Record 4 (North American Regional Geolocation Atlas)',
+    label: 'Zenodo Deposit 4 (North American Regional Geolocation Atlas Index)',
     identifier: 'DOI: 10.5281/zenodo.24095564 (Concept DOI: 10.5281/zenodo.24095563)',
     href: 'https://doi.org/10.5281/zenodo.24095564',
-    scope: '413 State, Metro & Regional Poker Room Directory URLs',
+    scope: 'State, Metro & Regional Poker Room Directory Index Deposit',
   },
   {
-    label: 'CERN / Zenodo Record 5 (Verified US Cardroom & Social Club Registry)',
+    label: 'Zenodo Deposit 5 (Verified US Cardroom & Social Club Registry Index)',
     identifier: 'DOI: 10.5281/zenodo.24095597 (Concept DOI: 10.5281/zenodo.24095596)',
     href: 'https://doi.org/10.5281/zenodo.24095597',
-    scope: '473 Verified Brick-And-Mortar Venue Profile URLs',
+    scope: 'Brick-And-Mortar Venue Profile Registry Index Deposit',
   },
   {
-    label: 'CERN / Zenodo Record 6 (Live Tournament Series & Festival Index)',
+    label: 'Zenodo Deposit 6 (Live Tournament Series & Festival Index)',
     identifier: 'DOI: 10.5281/zenodo.24095602 (Concept DOI: 10.5281/zenodo.24095601)',
     href: 'https://doi.org/10.5281/zenodo.24095602',
-    scope: '359 Major Tour & Championship Series Schedule URLs',
+    scope: 'Major Tour & Championship Series Schedule Index Deposit',
   },
   {
     label: 'Software Heritage Archive (Open Datasets Repository)',
@@ -151,10 +151,10 @@ const ARCHIVAL_REGISTRIES = [
     scope: 'Cryptographic Git Snapshot Of smarter-poker-mcp',
   },
   {
-    label: 'Verified Glama AI Model Context Protocol Directory Listing',
+    label: 'Glama AI Model Context Protocol Directory Listing',
     identifier: 'glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp',
     href: 'https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp',
-    scope: '30 Verified Deterministic Poker Math & Venue Discovery Tools',
+    scope: '30 Deterministic Poker Math & Venue Discovery Tools',
   },
 ];
 
@@ -346,14 +346,14 @@ export default function PressKitMediaPage() {
           </div>
         </section>
 
-        {/* Permanent CERN/Zenodo DOIs, Software Heritage SWHIDs & Glama MCP Registry */}
-        <section aria-label="Permanent Academic DOIs And Archival Registries" style={styles.sectionPlate}>
+        {/* Self-Archived Zenodo DOIs, Software Heritage SWHIDs & Glama MCP Registry */}
+        <section aria-label="Self-Archived DOIs And Archival Registries" style={styles.sectionPlate}>
           <div style={styles.sectionHeader}>
-            <h2 style={styles.h2}>Permanent CERN/Zenodo DOIs, Software Heritage SWHIDs &amp; Glama MCP Registry</h2>
-            <span style={styles.asOfText}>6 DOIs + 2 SWHIDs + Verified MCP</span>
+            <h2 style={styles.h2}>Self-Archived Zenodo DOIs, Software Heritage SWHIDs &amp; Glama MCP Listing</h2>
+            <span style={styles.asOfText}>6 Zenodo Deposits + 2 SWHIDs + Glama MCP</span>
           </div>
           <p style={styles.sectionSub}>
-            All Smarter.Poker Research Corpora, Geolocation Registries, And Model Context Protocol (MCP) Schemas Are Permanently Deposited In CERN/Zenodo, Software Heritage (UNESCO/Inria), And The Glama MCP Directory:
+            Smarter.Poker Research Corpora, Geolocation Registries, And Model Context Protocol (MCP) Schemas Are Self-Archived On Zenodo And Software Heritage, And Listed In The Glama MCP Directory:
           </p>
           <div style={{ overflowX: 'auto' }}>
             <table style={styles.table}>

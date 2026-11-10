@@ -24,9 +24,6 @@ const RAW_RESEARCH_REPORTS = [
     shortTitle: 'US Live Poker Room Rake And Jackpot Benchmark',
     publishedDate: '2026-10-01',
     modifiedDate: '2026-10-31',
-    doi: '10.5281/zenodo.24095049',
-    doiUrl: 'https://doi.org/10.5281/zenodo.24095049',
-    zenodoUrl: 'https://zenodo.org/records/24095049',
     swhid: 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
     category: 'Live Cardroom Economics',
     summary:
@@ -685,9 +682,12 @@ const RAW_RESEARCH_REPORTS = [
 ];
 
 export const RESEARCH_REPORTS = RAW_RESEARCH_REPORTS.map((r) => ({
-  doi: RESEARCH_DATASET_DOI,
-  doiUrl: RESEARCH_DATASET_DOI_URL,
-  zenodoUrl: RESEARCH_DATASET_ZENODO_URL,
+  doi: r.doi || null,
+  doiUrl: r.doiUrl || null,
+  zenodoUrl: r.zenodoUrl || null,
+  collectionDoi: RESEARCH_DATASET_DOI,
+  collectionDoiUrl: RESEARCH_DATASET_DOI_URL,
+  collectionZenodoUrl: RESEARCH_DATASET_ZENODO_URL,
   swhid: RESEARCH_DATASET_SWHID,
   ...r,
 }));
@@ -725,7 +725,7 @@ export function renderResearchIndexMarkdown({ canonicalUrl = 'https://smarter.po
 
   lines.push(
     '## Data Provenance & Citation Policy',
-    `- **CERN / Zenodo Permanent DOI**: [${RESEARCH_DATASET_DOI}](${RESEARCH_DATASET_DOI_URL}) ([Zenodo Record](${RESEARCH_DATASET_ZENODO_URL}))`,
+    `- **Dataset Collection DOI (Self-Archived Deposit On Zenodo)**: [${RESEARCH_DATASET_DOI}](${RESEARCH_DATASET_DOI_URL}) ([Zenodo Record](${RESEARCH_DATASET_ZENODO_URL}))`,
     `- **Software Heritage SWHID**: \`${RESEARCH_DATASET_SWHID}\``,
     '- **Verification Methodology**: [https://smarter.poker/verification-methodology](https://smarter.poker/verification-methodology) ([Markdown](https://smarter.poker/verification-methodology.md))',
     '- **Editorial Standards**: [https://smarter.poker/editorial-standards](https://smarter.poker/editorial-standards) ([Markdown](https://smarter.poker/editorial-standards.md))',
@@ -750,7 +750,8 @@ export function renderResearchReportMarkdown(report, { canonicalBase = 'https://
     `- **Category**: ${report.category}`,
     `- **Published**: ${report.publishedDate} | **Updated**: ${report.modifiedDate}`,
     `- **Publisher**: Smarter.Poker Research Division (Smarter Software Inc.)`,
-    `- **Permanent DOI**: [${report.doi || RESEARCH_DATASET_DOI}](${report.doiUrl || RESEARCH_DATASET_DOI_URL})`,
+    ...(report.doi ? [`- **Report DOI**: [${report.doi}](${report.doiUrl})`] : []),
+    `- **Parent Dataset Collection DOI (Self-Archived Zenodo Deposit)**: [${report.collectionDoi || RESEARCH_DATASET_DOI}](${report.collectionDoiUrl || RESEARCH_DATASET_DOI_URL})`,
     `- **Software Heritage SWHID**: \`${report.swhid || RESEARCH_DATASET_SWHID}\``,
     `- **Methodology**: ${report.methodology}`,
     '',

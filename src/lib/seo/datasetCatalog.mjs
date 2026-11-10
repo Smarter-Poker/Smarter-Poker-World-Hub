@@ -20,8 +20,8 @@ export const ZENODO_RECORDS = [
     conceptDoi: '10.5281/zenodo.24095048',
     doiUrl: 'https://doi.org/10.5281/zenodo.24095049',
     zenodoUrl: 'https://zenodo.org/records/24095049',
-    title: 'Core Open Quantitative Poker Research Datasets',
-    urlCount: 324,
+    title: 'Core Open Quantitative Poker Research Datasets (15 CSV & JSON Datasets)',
+    datasetCount: 15,
     swhid: 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
   },
   {
@@ -31,7 +31,7 @@ export const ZENODO_RECORDS = [
     doiUrl: 'https://doi.org/10.5281/zenodo.24095057',
     zenodoUrl: 'https://zenodo.org/records/24095057',
     title: '30-Tool Model Context Protocol (MCP) Server Archive',
-    urlCount: 30,
+    toolCount: 30,
     swhid: 'swh:1:snp:02b8992833424620305edcfb730b3cf8add15747',
   },
   {
@@ -40,8 +40,7 @@ export const ZENODO_RECORDS = [
     conceptDoi: '10.5281/zenodo.24095559',
     doiUrl: 'https://doi.org/10.5281/zenodo.24095560',
     zenodoUrl: 'https://zenodo.org/records/24095560',
-    title: 'Poker Strategy Academy, 169 Starting-Hand Encyclopedia, TDA Rules & Glossary Corpus',
-    urlCount: 358,
+    title: 'Poker Strategy Academy, 169 Starting-Hand Encyclopedia, TDA Rules & Glossary Index',
     swhid: 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
   },
   {
@@ -50,8 +49,7 @@ export const ZENODO_RECORDS = [
     conceptDoi: '10.5281/zenodo.24095563',
     doiUrl: 'https://doi.org/10.5281/zenodo.24095564',
     zenodoUrl: 'https://zenodo.org/records/24095564',
-    title: 'North American State, Metro & Regional Poker Room Geolocation Atlas',
-    urlCount: 413,
+    title: 'North American State, Metro & Regional Poker Room Geolocation Atlas Index',
     swhid: 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
   },
   {
@@ -60,8 +58,7 @@ export const ZENODO_RECORDS = [
     conceptDoi: '10.5281/zenodo.24095596',
     doiUrl: 'https://doi.org/10.5281/zenodo.24095597',
     zenodoUrl: 'https://zenodo.org/records/24095597',
-    title: 'Verified US Cardroom & Social Poker Club Venue Registry',
-    urlCount: 473,
+    title: 'Verified US Cardroom & Social Poker Club Venue Registry Index',
     swhid: 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
   },
   {
@@ -71,7 +68,6 @@ export const ZENODO_RECORDS = [
     doiUrl: 'https://doi.org/10.5281/zenodo.24095602',
     zenodoUrl: 'https://zenodo.org/records/24095602',
     title: 'Live Poker Tournament Series, Championship Festivals & Major Tour Schedule Index',
-    urlCount: 359,
     swhid: 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
   },
 ];
@@ -84,9 +80,12 @@ export const STATIC_DATASETS = RESEARCH_REPORTS.map((study) => ({
   publishedDate: study.publishedDate,
   modifiedDate: study.modifiedDate,
   summary: study.summary,
-  doi: study.doi || '10.5281/zenodo.24095049',
-  doiUrl: study.doiUrl || 'https://doi.org/10.5281/zenodo.24095049',
-  zenodoUrl: study.zenodoUrl || 'https://zenodo.org/records/24095049',
+  doi: study.doi || null,
+  doiUrl: study.doiUrl || null,
+  zenodoUrl: study.zenodoUrl || null,
+  collectionDoi: study.collectionDoi || '10.5281/zenodo.24095049',
+  collectionDoiUrl: study.collectionDoiUrl || 'https://doi.org/10.5281/zenodo.24095049',
+  collectionZenodoUrl: study.collectionZenodoUrl || 'https://zenodo.org/records/24095049',
   swhid: study.swhid || 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
 }));
 
@@ -350,18 +349,21 @@ export function buildDataCatalogJsonLd() {
     isAccessibleForFree: true,
     keywords: [study.category, 'Poker Research', 'Smarter.Poker Dataset', study.shortTitle],
     sameAs: [
-      'https://doi.org/10.5281/zenodo.24095049',
-      'https://zenodo.org/records/24095049',
+      ...(study.doiUrl && study.zenodoUrl ? [study.doiUrl, study.zenodoUrl] : []),
       'https://github.com/Smarter-Poker/smarter-poker-open-datasets',
       'https://archive.softwareheritage.org/swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
     ],
     identifier: [
-      {
-        '@type': 'PropertyValue',
-        propertyID: 'DOI',
-        value: study.doi || '10.5281/zenodo.24095049',
-        url: study.doiUrl || 'https://doi.org/10.5281/zenodo.24095049',
-      },
+      ...(study.doi
+        ? [
+            {
+              '@type': 'PropertyValue',
+              propertyID: 'DOI',
+              value: study.doi,
+              url: study.doiUrl,
+            },
+          ]
+        : []),
       {
         '@type': 'PropertyValue',
         propertyID: 'SWHID',
