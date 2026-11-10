@@ -28,7 +28,7 @@ export const LANDING_PRODUCTS = [
     name: 'Daily Freerolls',
     href: '/freerolls',
     summary:
-      'Daily $2,000 Freerolls And Diamond Freerolls Every 3 Hours. Zero Buy-In, Real Prize Rewards, Live CST Countdown Tickers And Calendar Reminders.',
+      'Daily 2,000 Chip Freerolls And Diamond Freerolls Every 3 Hours. Zero Buy-In, Prize Rewards, Live CST Countdown Tickers And Calendar Reminders.',
   },
   {
     id: 'poker-tools',

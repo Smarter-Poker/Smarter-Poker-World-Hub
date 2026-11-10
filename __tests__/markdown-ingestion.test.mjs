@@ -126,9 +126,9 @@ test('renderAboutPlatformMarkdown outputs clean structured about platform Markdo
 
 test('renderFreerollsMarkdown outputs clean structured freerolls Markdown', () => {
   const md = renderFreerollsMarkdown();
-  assert.ok(md.includes('# Smarter.Poker Daily $2,000 Freerolls & Diamond Freerolls'));
+  assert.ok(md.includes('# Smarter.Poker Daily 2,000 Chip Freerolls & Diamond Freerolls'));
   assert.ok(md.includes('https://smarter.poker/freerolls'));
-  assert.ok(md.includes('$2,000 In Free Poker Tournaments Every Single Day'));
+  assert.ok(md.includes('2,000 Chips In Free Poker Tournaments Every Single Day'));
   assert.ok(md.includes('Diamond Arena Freerolls'));
   assert.ok(md.includes('Daily Freeroll Schedule (CST)'));
   assert.ok(md.includes('10:00 AM CST'));

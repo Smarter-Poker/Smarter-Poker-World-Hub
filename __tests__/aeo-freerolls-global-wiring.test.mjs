@@ -22,7 +22,7 @@ test('STATIC_PAGES sitemap includes canonical /freerolls with daily priority', (
 
 test('RSS 2.0 syndication feed includes daily freerolls and software comparison items', () => {
   const xml = buildRssFeedXml();
-  assert.match(xml, /Daily \$2,000 Poker Freerolls &amp; Diamond Freerolls/);
+  assert.match(xml, /Daily 2,000 Chip Poker Freerolls &amp; Diamond Freerolls/);
   assert.match(xml, /https:\/\/smarter\.poker\/freerolls/);
   assert.match(xml, /Poker Software &amp; Freeroll Platform Comparisons/);
   assert.match(xml, /https:\/\/smarter\.poker\/compare/);
@@ -30,12 +30,12 @@ test('RSS 2.0 syndication feed includes daily freerolls and software comparison 
   assert.match(xml, /Poker Software Comparison/);
 });
 
-test('Global hamburger navigation includes Daily $2,000 Freerolls in key menus', () => {
+test('Global hamburger navigation includes Daily 2,000 Chip Freerolls in key menus', () => {
   const menuSource = read('src/config/hamburgerMenus.js');
 
   assert.match(
     menuSource,
-    /createMenuItem\.navigation\(['"]Daily \$2,000 Freerolls['"],\s*['"]\/freerolls['"]\)/
+    /createMenuItem\.navigation\(['"]Daily 2,000 Chip Freerolls['"],\s*['"]\/freerolls['"]\)/
   );
   assert.match(
     menuSource,
@@ -47,12 +47,12 @@ test('Contextual cross-linking to freerolls exists across tools, calculators, an
   // Poker tools
   const toolsSrc = read('pages/hub/poker-tools.js');
   assert.match(toolsSrc, /href="\/freerolls"/);
-  assert.match(toolsSrc, /Play Daily \$2,000 Guaranteed Poker Freerolls/);
+  assert.match(toolsSrc, /Play Daily 2,000 Chip Guaranteed Poker Freerolls/);
 
   // ICM calculator
   const icmSrc = read('pages/hub/training/icm-calculator.js');
   assert.match(icmSrc, /router\.push\('\/freerolls'\)/);
-  assert.match(icmSrc, /Test Your ICM Skills In Daily \$2,000 Freerolls/);
+  assert.match(icmSrc, /Test Your ICM Skills In Daily 2,000 Chip Freerolls/);
   assert.match(icmSrc, /href="\/compare"/);
 
   // Preflop ranges

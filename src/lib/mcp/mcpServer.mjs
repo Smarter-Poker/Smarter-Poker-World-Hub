@@ -319,7 +319,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'get_freeroll_schedule',
-    description: 'Retrieve the upcoming Daily $2,000 Freerolls and Diamond Arena Freerolls schedule, formats, prize values, and entry requirements on Smarter.Poker.',
+    description: 'Retrieve the upcoming Daily 2,000 Chip Freerolls and Diamond Arena Freerolls schedule, formats, prize values, and entry requirements on Smarter.Poker.',
     annotations: {
       title: 'Get Daily Freeroll Tournament Schedule',
       readOnlyHint: true,
@@ -2112,7 +2112,7 @@ export async function executeMcpTool(name, args, { origin = SITE_ORIGIN } = {}) 
           title: 'Morning Opener Freeroll',
           game: 'No-Limit Hold\'em',
           format: 'Standard 10-Minute Levels',
-          prize: '$250 Guaranteed',
+          prize: '250 Chips Guaranteed',
           starting_stack: '10,000 Chips',
           tier: 'open',
           tier_label: 'Open To All Players',
@@ -2123,7 +2123,7 @@ export async function executeMcpTool(name, args, { origin = SITE_ORIGIN } = {}) 
           title: 'Afternoon Prime Freeroll',
           game: 'No-Limit Hold\'em',
           format: 'Deepstack 12-Minute Levels',
-          prize: '$500 Guaranteed',
+          prize: '500 Chips Guaranteed',
           starting_stack: '15,000 Chips',
           tier: 'open',
           tier_label: 'Open To All Players',
@@ -2134,7 +2134,7 @@ export async function executeMcpTool(name, args, { origin = SITE_ORIGIN } = {}) 
           title: 'Evening Championship Freeroll',
           game: 'No-Limit Hold\'em',
           format: 'Deepstack 12-Minute Levels',
-          prize: '$750 Guaranteed',
+          prize: '750 Chips Guaranteed',
           starting_stack: '20,000 Chips',
           tier: 'open',
           tier_label: 'Open To All Players',
@@ -2145,7 +2145,7 @@ export async function executeMcpTool(name, args, { origin = SITE_ORIGIN } = {}) 
           title: 'Nightcap Turbo Freeroll',
           game: 'Pot-Limit Omaha / NLH',
           format: 'Fast 5-Minute Turbo',
-          prize: '$500 Guaranteed',
+          prize: '500 Chips Guaranteed',
           starting_stack: '10,000 Chips',
           tier: 'open',
           tier_label: 'Open To All Players',
@@ -2174,7 +2174,7 @@ export async function executeMcpTool(name, args, { origin = SITE_ORIGIN } = {}) 
             type: 'text',
             text: JSON.stringify(
               {
-                daily_total_guaranteed: '$2,000 Awarded Every Day',
+                daily_total_guaranteed: '2,000 Chips Awarded Every Day',
                 entry_requirements: '100% Free To Play (Zero Deposit Ever Required)',
                 game_variants: ['No-Limit Texas Hold\'em', 'Pot-Limit Omaha'],
                 platform: 'Instant In-Browser Web & Mobile (No App Download Required)',

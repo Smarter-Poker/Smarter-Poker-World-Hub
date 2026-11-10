@@ -18,7 +18,7 @@
     "dialogs": 12,
     "persistenceFiles": 87,
     "realtimeFiles": 6,
-    "tests": 177,
+    "tests": 178,
     "markerCandidates": 369,
     "possibleUnwiredFunctions": 402,
     "routeStateCells": 752,
@@ -10234,6 +10234,7 @@
             "__tests__/aeo-freerolls-global-wiring.test.mjs",
             "__tests__/aeo-tool-schemas.test.mjs",
             "__tests__/backlink-embed-citation-engine.test.mjs",
+            "__tests__/freeroll-prizes-are-chips.test.mjs",
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
             "__tests__/gsc-series3-phase3.test.mjs",
@@ -10253,6 +10254,7 @@
             "__tests__/aeo-freerolls-global-wiring.test.mjs",
             "__tests__/aeo-tool-schemas.test.mjs",
             "__tests__/backlink-embed-citation-engine.test.mjs",
+            "__tests__/freeroll-prizes-are-chips.test.mjs",
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
             "__tests__/gsc-series3-phase3.test.mjs",
@@ -10275,6 +10277,7 @@
             "__tests__/aeo-freerolls-global-wiring.test.mjs",
             "__tests__/aeo-tool-schemas.test.mjs",
             "__tests__/backlink-embed-citation-engine.test.mjs",
+            "__tests__/freeroll-prizes-are-chips.test.mjs",
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
             "__tests__/gsc-series3-phase3.test.mjs",
@@ -10295,6 +10298,7 @@
             "__tests__/aeo-freerolls-global-wiring.test.mjs",
             "__tests__/aeo-tool-schemas.test.mjs",
             "__tests__/backlink-embed-citation-engine.test.mjs",
+            "__tests__/freeroll-prizes-are-chips.test.mjs",
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
             "__tests__/gsc-series3-phase3.test.mjs",
@@ -10315,6 +10319,7 @@
             "__tests__/aeo-freerolls-global-wiring.test.mjs",
             "__tests__/aeo-tool-schemas.test.mjs",
             "__tests__/backlink-embed-citation-engine.test.mjs",
+            "__tests__/freeroll-prizes-are-chips.test.mjs",
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
             "__tests__/gsc-series3-phase3.test.mjs",
@@ -10335,6 +10340,7 @@
             "__tests__/aeo-freerolls-global-wiring.test.mjs",
             "__tests__/aeo-tool-schemas.test.mjs",
             "__tests__/backlink-embed-citation-engine.test.mjs",
+            "__tests__/freeroll-prizes-are-chips.test.mjs",
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
             "__tests__/gsc-series3-phase3.test.mjs",
@@ -10352,6 +10358,7 @@
             "__tests__/aeo-freerolls-global-wiring.test.mjs",
             "__tests__/aeo-tool-schemas.test.mjs",
             "__tests__/backlink-embed-citation-engine.test.mjs",
+            "__tests__/freeroll-prizes-are-chips.test.mjs",
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
             "__tests__/gsc-series3-phase3.test.mjs",
@@ -10373,6 +10380,7 @@
             "__tests__/aeo-freerolls-global-wiring.test.mjs",
             "__tests__/aeo-tool-schemas.test.mjs",
             "__tests__/backlink-embed-citation-engine.test.mjs",
+            "__tests__/freeroll-prizes-are-chips.test.mjs",
             "__tests__/gsc-series2-phase2.test.mjs",
             "__tests__/gsc-series3-phase2.test.mjs",
             "__tests__/gsc-series3-phase3.test.mjs",
@@ -10388,6 +10396,7 @@
         "__tests__/aeo-freerolls-global-wiring.test.mjs",
         "__tests__/aeo-tool-schemas.test.mjs",
         "__tests__/backlink-embed-citation-engine.test.mjs",
+        "__tests__/freeroll-prizes-are-chips.test.mjs",
         "__tests__/gsc-series2-phase2.test.mjs",
         "__tests__/gsc-series3-phase2.test.mjs",
         "__tests__/gsc-series3-phase3.test.mjs",
@@ -15337,6 +15346,7 @@
           ],
           "tests": [
             "__tests__/backlink-embed-citation-engine.test.mjs",
+            "__tests__/freeroll-prizes-are-chips.test.mjs",
             "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
@@ -15353,6 +15363,7 @@
           ],
           "tests": [
             "__tests__/backlink-embed-citation-engine.test.mjs",
+            "__tests__/freeroll-prizes-are-chips.test.mjs",
             "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
@@ -15373,6 +15384,7 @@
           ],
           "tests": [
             "__tests__/backlink-embed-citation-engine.test.mjs",
+            "__tests__/freeroll-prizes-are-chips.test.mjs",
             "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
@@ -15391,6 +15403,7 @@
           ],
           "tests": [
             "__tests__/backlink-embed-citation-engine.test.mjs",
+            "__tests__/freeroll-prizes-are-chips.test.mjs",
             "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
@@ -15408,6 +15421,7 @@
           ],
           "tests": [
             "__tests__/backlink-embed-citation-engine.test.mjs",
+            "__tests__/freeroll-prizes-are-chips.test.mjs",
             "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
@@ -15425,6 +15439,7 @@
           ],
           "tests": [
             "__tests__/backlink-embed-citation-engine.test.mjs",
+            "__tests__/freeroll-prizes-are-chips.test.mjs",
             "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
@@ -15440,6 +15455,7 @@
           ],
           "tests": [
             "__tests__/backlink-embed-citation-engine.test.mjs",
+            "__tests__/freeroll-prizes-are-chips.test.mjs",
             "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
@@ -15457,6 +15473,7 @@
           ],
           "tests": [
             "__tests__/backlink-embed-citation-engine.test.mjs",
+            "__tests__/freeroll-prizes-are-chips.test.mjs",
             "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
@@ -15468,6 +15485,7 @@
       },
       "existingTests": [
         "__tests__/backlink-embed-citation-engine.test.mjs",
+        "__tests__/freeroll-prizes-are-chips.test.mjs",
         "__tests__/phases-35-50-aeo.test.mjs",
         "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
         "__tests__/training-intelligence-phase-10.test.mjs",
@@ -18674,6 +18692,7 @@
           ],
           "tests": [
             "__tests__/aeo-traffic-expansion-master.test.mjs",
+            "__tests__/freeroll-prizes-are-chips.test.mjs",
             "__tests__/poker-near-me-phase-6.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -18709,6 +18728,7 @@
           ],
           "tests": [
             "__tests__/aeo-traffic-expansion-master.test.mjs",
+            "__tests__/freeroll-prizes-are-chips.test.mjs",
             "__tests__/poker-near-me-phase-6.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -18748,6 +18768,7 @@
           ],
           "tests": [
             "__tests__/aeo-traffic-expansion-master.test.mjs",
+            "__tests__/freeroll-prizes-are-chips.test.mjs",
             "__tests__/poker-near-me-phase-6.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -18776,6 +18797,7 @@
           ],
           "tests": [
             "__tests__/aeo-traffic-expansion-master.test.mjs",
+            "__tests__/freeroll-prizes-are-chips.test.mjs",
             "__tests__/poker-near-me-phase-6.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -18810,6 +18832,7 @@
           ],
           "tests": [
             "__tests__/aeo-traffic-expansion-master.test.mjs",
+            "__tests__/freeroll-prizes-are-chips.test.mjs",
             "__tests__/poker-near-me-phase-6.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -18848,6 +18871,7 @@
           ],
           "tests": [
             "__tests__/aeo-traffic-expansion-master.test.mjs",
+            "__tests__/freeroll-prizes-are-chips.test.mjs",
             "__tests__/poker-near-me-phase-6.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -18868,6 +18892,7 @@
           ],
           "tests": [
             "__tests__/aeo-traffic-expansion-master.test.mjs",
+            "__tests__/freeroll-prizes-are-chips.test.mjs",
             "__tests__/poker-near-me-phase-6.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -18894,6 +18919,7 @@
           ],
           "tests": [
             "__tests__/aeo-traffic-expansion-master.test.mjs",
+            "__tests__/freeroll-prizes-are-chips.test.mjs",
             "__tests__/poker-near-me-phase-6.test.mjs",
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -18907,6 +18933,7 @@
       },
       "existingTests": [
         "__tests__/aeo-traffic-expansion-master.test.mjs",
+        "__tests__/freeroll-prizes-are-chips.test.mjs",
         "__tests__/poker-near-me-phase-6.test.mjs",
         "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
         "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -29368,7 +29395,7 @@
         },
         {
           "element": "link",
-          "name": "Play Daily $2,000 Freerolls",
+          "name": "Play Daily 2,000 Chip Freerolls",
           "line": 1254,
           "handler": null,
           "destination": "/freerolls",
@@ -70995,6 +71022,7 @@
     "__tests__/every-glossary-term-has-a-page.law.test.mjs",
     "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs",
     "__tests__/every-lesson-answers-first.law.test.mjs",
+    "__tests__/freeroll-prizes-are-chips.test.mjs",
     "__tests__/global-header-approved.test.mjs",
     "__tests__/gsc-series2-phase2.test.mjs",
     "__tests__/gsc-series3-phase2.test.mjs",
@@ -73534,7 +73562,7 @@
       "id": "pages/hub/training/icm-calculator.js:1254:10",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "link",
-      "name": "Play Daily $2,000 Freerolls",
+      "name": "Play Daily 2,000 Chip Freerolls",
       "line": 1254,
       "handler": null,
       "destination": "/freerolls",
@@ -81027,6 +81055,7 @@
       "realtime": [],
       "tests": [
         "__tests__/aeo-traffic-expansion-master.test.mjs",
+        "__tests__/freeroll-prizes-are-chips.test.mjs",
         "__tests__/poker-near-me-phase-6.test.mjs",
         "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
         "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -85000,6 +85029,7 @@
         "__tests__/aeo-freerolls-global-wiring.test.mjs",
         "__tests__/aeo-tool-schemas.test.mjs",
         "__tests__/backlink-embed-citation-engine.test.mjs",
+        "__tests__/freeroll-prizes-are-chips.test.mjs",
         "__tests__/gsc-series2-phase2.test.mjs",
         "__tests__/gsc-series3-phase3.test.mjs",
         "__tests__/markdown-ingestion.test.mjs",
@@ -88465,6 +88495,7 @@
       "realtime": [],
       "tests": [
         "__tests__/backlink-embed-citation-engine.test.mjs",
+        "__tests__/freeroll-prizes-are-chips.test.mjs",
         "__tests__/phases-35-50-aeo.test.mjs",
         "__tests__/training-intelligence-phase-10.test.mjs",
         "__tests__/training-legacy-consumer-authority.test.mjs",
@@ -91233,6 +91264,7 @@
       ],
       "tests": [
         "__tests__/aeo-traffic-expansion-master.test.mjs",
+        "__tests__/freeroll-prizes-are-chips.test.mjs",
         "__tests__/poker-near-me-phase-6.test.mjs",
         "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
         "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -93721,6 +93753,7 @@
       "realtime": [],
       "tests": [
         "__tests__/aeo-freerolls-global-wiring.test.mjs",
+        "__tests__/freeroll-prizes-are-chips.test.mjs",
         "__tests__/training-authored-surface-authority.test.mjs",
         "__tests__/training-surface-inventory-classifier.test.mjs",
         "__tests__/world-menu-mobile-phase3.test.mjs"
@@ -93799,6 +93832,7 @@
         "__tests__/aeo-freerolls-global-wiring.test.mjs",
         "__tests__/backlink-embed-citation-engine.test.mjs",
         "__tests__/every-glossary-term-has-a-page.law.test.mjs",
+        "__tests__/freeroll-prizes-are-chips.test.mjs",
         "__tests__/indexnow-submit.test.mjs",
         "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs"
       ]
@@ -96680,6 +96714,7 @@
       "tests": [
         "__tests__/aeo-tool-schemas.test.mjs",
         "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs",
+        "__tests__/freeroll-prizes-are-chips.test.mjs",
         "__tests__/gsc-series4-phase3.test.mjs",
         "__tests__/gsc-series5-phase3.test.mjs",
         "__tests__/phases-35-50-aeo.test.mjs"
@@ -98326,6 +98361,7 @@
         "__tests__/every-glossary-term-has-a-page.law.test.mjs",
         "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs",
         "__tests__/every-lesson-answers-first.law.test.mjs",
+        "__tests__/freeroll-prizes-are-chips.test.mjs",
         "__tests__/gsc-series5-phase7.test.mjs",
         "__tests__/horse-poker-gto-policy.test.mjs",
         "__tests__/indexnow-submit.test.mjs",

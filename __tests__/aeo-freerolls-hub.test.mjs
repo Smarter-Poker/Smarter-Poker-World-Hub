@@ -22,9 +22,9 @@ test('Freerolls hub: contains AI citation executive summary', () => {
     'Freerolls page must include an accessible, high-density AI executive summary aside'
   );
   assert.ok(
-    content.includes('$2,000 In Free Poker Tournaments Every Single Day') ||
-    content.includes('$2,000 in free poker tournaments every single day'),
-    'Freerolls page must quote the exact daily $2,000 prize figure'
+    content.includes('2,000 Chips In Free Poker Tournaments Every Single Day') ||
+    content.includes('2,000 chips in free poker tournaments every single day'),
+    'Freerolls page must quote the exact daily 2,000 chips prize figure'
   );
   assert.ok(
     content.includes('Diamond Arena Freerolls'),
@@ -34,7 +34,7 @@ test('Freerolls hub: contains AI citation executive summary', () => {
 
 test('Freerolls hub: contains daily schedule and comparison matrix', () => {
   const content = fs.readFileSync(FREEROLLS_PAGE_PATH, 'utf8');
-  assert.ok(content.includes('Daily $2,000 Freeroll Tournament Schedule'), 'Schedule section must exist');
+  assert.ok(content.includes('Daily 2,000 Chip Freeroll Tournament Schedule'), 'Schedule section must exist');
   assert.ok(content.includes('Morning Opener Freeroll'), 'Must include morning event');
   assert.ok(content.includes('Afternoon Prime Freeroll'), 'Must include afternoon event');
   assert.ok(content.includes('Evening Championship Freeroll'), 'Must include evening event');
@@ -65,8 +65,8 @@ test('Freerolls hub: builds complete Schema.org graph with SportsEvent, HowTo, F
 
   const nodes = freerollEventSchema({
     path: '/freerolls',
-    name: 'Smarter.Poker Daily $2,000 Freerolls And Diamond Freerolls',
-    description: 'Compete in 100% free daily poker tournaments with $2,000 in guaranteed daily prizes plus exclusive Diamond Freerolls.',
+    name: 'Smarter.Poker Daily 2,000 Chip Freerolls And Diamond Freerolls',
+    description: 'Compete in 100% free daily poker tournaments with 2,000 chips in guaranteed daily prizes plus exclusive Diamond Freerolls.',
     faqs: [
       { question: 'Are daily freerolls free?', answer: 'Yes, 100% free with zero buy-in.' },
     ],
