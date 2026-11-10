@@ -20159,7 +20159,7 @@
         },
         {
           "name": "isAggressiveAnswer",
-          "line": 686,
+          "line": 696,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -20179,7 +20179,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 579,
+          "line": 589,
           "excerpt": "// honest fallback instead of rows this route",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -20187,7 +20187,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 612,
+          "line": 622,
           "excerpt": "// No AI fallback — engines handle all question generation",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -20195,7 +20195,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 657,
+          "line": 667,
           "excerpt": "// ●●● Engine-only — no AI fallback. Return 404 if no solver data exists. ●●●",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -20203,7 +20203,7 @@
         },
         {
           "kind": "SIMULATED",
-          "line": 775,
+          "line": 785,
           "excerpt": "// heuristic, simulated, and incomplete rows were already rejected",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -20211,7 +20211,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 787,
+          "line": 797,
           "excerpt": "* \"fallback\" called this same route (see the note in",
           "disposition": "runtime-resilience-fallback",
           "review": "documented-follow-up",
@@ -98527,7 +98527,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 579,
+        "line": 589,
         "excerpt": "// honest fallback instead of rows this route",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -98536,7 +98536,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 612,
+        "line": 622,
         "excerpt": "// No AI fallback — engines handle all question generation",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -98545,7 +98545,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 657,
+        "line": 667,
         "excerpt": "// ●●● Engine-only — no AI fallback. Return 404 if no solver data exists. ●●●",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -98554,7 +98554,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "SIMULATED",
-        "line": 775,
+        "line": 785,
         "excerpt": "// heuristic, simulated, and incomplete rows were already rejected",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -98563,7 +98563,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 787,
+        "line": 797,
         "excerpt": "* \"fallback\" called this same route (see the note in",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -108377,7 +108377,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 579,
+        "line": 589,
         "excerpt": "// honest fallback instead of rows this route",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -108386,7 +108386,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 612,
+        "line": 622,
         "excerpt": "// No AI fallback — engines handle all question generation",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -108395,7 +108395,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 657,
+        "line": 667,
         "excerpt": "// ●●● Engine-only — no AI fallback. Return 404 if no solver data exists. ●●●",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -108404,7 +108404,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "SIMULATED",
-        "line": 775,
+        "line": 785,
         "excerpt": "// heuristic, simulated, and incomplete rows were already rejected",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -108413,7 +108413,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 787,
+        "line": 797,
         "excerpt": "* \"fallback\" called this same route (see the note in",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
