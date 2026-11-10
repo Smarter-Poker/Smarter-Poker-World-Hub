@@ -1,6 +1,8 @@
 import test, { mock } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import vm from 'node:vm';
+import { createRequire } from 'node:module';
 import { CONTINUITY_PREFIX, createContinuityController, readLocalContinuity, visibleMessageBoundary } from '../src/lib/messengerContinuity.mjs';
 
 const id = number => `00000000-0000-4000-8000-${String(number).padStart(12, '0')}`;
@@ -243,7 +245,60 @@ test('the composer is never asked to save a draft', () => {
     const status = fs.readFileSync(new URL('../src/components/messenger/ContinuityStatus.js', import.meta.url), 'utf8');
     assert.equal(/Save Draft To Account/.test(status), false);
     assert.equal(/Draft Kept On This Device/.test(status), false);
-    // The conflict and failure paths still speak.
-    assert.match(status, /Your Draft Changed In Another Tab Or Device/);
+    // Cross-device choices never interrupt composition; real failures remain.
+    assert.doesNotMatch(status, /Your Draft Changed|Your Reading Position Changed|Keep This Draft|Use Saved Draft|Keep This Position|Use Saved Position/);
     assert.match(status, /Retry Continuity/);
+});
+
+for (const [surface, path] of [['full', '../src/lib/messengerContinuity.mjs'], ['dock', '../src/components/messenger/dock/messengerContinuity.mjs']]) {
+    for (const field of ['draft', 'position']) test(`${surface} ${field} conflict resumes on next explicit action without a prompt or retry loop`, async () => {
+        const { createContinuityController: create } = await import(path);
+        const calls = [];
+        const local = field === 'draft' ? { text: 'Unsent local text', replyToId: null } : { messageId: message, offset: 12 };
+        const next = field === 'draft' ? { text: 'Unsent local text continued', replyToId: null } : { messageId: message, offset: 24 };
+        const controller = create({ actorId: actor, workspace: {}, storage: storage(), request: async body => {
+            calls.push(body);
+            return calls.length === 1 ? { ok: false, status: 409, body: { revision: 8, value: field === 'draft' ? { text: 'Peer', replyToId: null } : { messageId: other, offset: 0 } } }
+                : response({ revision: 9 });
+        } });
+        controller.edit(conversation, field, local);
+        assert.equal(await controller.write(conversation, field), false);
+        assert.equal(calls.length, 1);
+        for (const [key, value] of Object.entries(local)) assert.equal(controller.state(conversation)[field][key], value);
+        controller.edit(conversation, field, next);
+        assert.equal(await controller.write(conversation, field), true);
+        assert.equal(calls[1].expectedRevision, 8);
+        assert.deepEqual(calls[1].value, next);
+        assert.equal(controller.state(conversation)[field].dirty, false);
+        assert.equal(controller.errors.size, 0);
+    });
+}
+
+test('floating chats have no cross-device choice banner', () => {
+    const dock = fs.readFileSync(new URL('../src/components/messenger/dock/MessengerChat.jsx', import.meta.url), 'utf8');
+    assert.doesNotMatch(dock, /Draft Changed In Another Window|Keep This Draft|Use Synced Draft/);
+});
+
+test('conflicts render no strip in a conversation or workspace, while actual failures retain Retry', () => {
+    const require = createRequire(import.meta.url);
+    const ts = require('typescript');
+    const source = fs.readFileSync(new URL('../src/components/messenger/ContinuityStatus.js', import.meta.url), 'utf8');
+    const compiled = ts.transpileModule(source, { compilerOptions: { jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 }, fileName: 'ContinuityStatus.jsx' }).outputText;
+    const exports = {};
+    vm.runInNewContext(compiled, { exports, require });
+    const Status = exports.default;
+    const { controller } = setup();
+    for (const field of ['draft', 'position']) {
+        controller.state(conversation)[field].conflict = true;
+        controller.errors.set(`${conversation}:${field}`, { conversationId: conversation, field, message: 'Saved In Another Tab' });
+    }
+    const theme = { border: '#ccc', card: '#fff', blue: '#00f', text: '#000', bg: '#fff' };
+    for (const conversationId of [conversation, undefined]) {
+        assert.equal(Status({ controller, conversationId, theme }), null);
+    }
+    controller.errors.set('local', { conversationId: conversation, local: true, message: 'Browser Storage Is Unavailable' });
+    const html = require('react-dom/server').renderToStaticMarkup(require('react').createElement(Status, { controller, conversationId: conversation, theme }));
+    assert.match(html, /Browser Storage Is Unavailable/);
+    assert.match(html, /Retry Continuity/);
+    assert.doesNotMatch(html, /Saved In Another Tab|Keep This|Use Saved/);
 });

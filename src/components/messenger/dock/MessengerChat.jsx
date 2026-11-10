@@ -252,8 +252,7 @@ export default function MessengerChat({ actorId, identity, conversation, service
             {conversation.relationshipTags.map(tag => <p key={tag.clubId}>{tag.label}</p>)}
         </div>}
         {error && <div className="dock-chat-error" role="alert">{error} <button type="button" onClick={() => { void load(); void markVisible(); }}>Retry</button></div>}
-        {draft.conflict && <div className="dock-chat-error" role="alert">Draft Changed In Another Window <button type="button" onClick={() => continuity.resolve(id, 'draft', true)}>Keep This Draft</button> <button type="button" onClick={() => continuity.resolve(id, 'draft', false)}>Use Synced Draft</button></div>}
-        {!draft.conflict && [...continuity.errors.values()].length > 0 && <div className="dock-chat-error" role="status">Conversation Sync Needs Attention <button type="button" onClick={() => { void continuity.read(id); void continuity.write(id, 'draft'); void continuity.write(id, 'position'); }}>Retry</button></div>}
+        {[...continuity.errors.values()].some(item => !(['draft', 'position'].includes(item.field) && continuity.state(item.conversationId || id)[item.field]?.conflict)) && <div className="dock-chat-error" role="status">Conversation Sync Needs Attention <button type="button" onClick={() => { void continuity.read(id); void continuity.write(id, 'draft'); void continuity.write(id, 'position'); }}>Retry</button></div>}
         <div className="dock-chat-messages" ref={scroll} role="log" aria-label={`Messages With ${name}`} aria-live="polite" onScroll={() => {
             if (scroll.current) nearBottom.current = scroll.current.scrollHeight - scroll.current.clientHeight - scroll.current.scrollTop < 64;
             if (engaged) {
