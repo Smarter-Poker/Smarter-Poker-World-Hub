@@ -110,7 +110,9 @@ export default async function handler(req, res) {
           (r) =>
             r?.data?.attemptId &&
             String(r.data.attemptId) !== challengerAttemptId &&
-            String(r.data.attemptId) !== String(duelPayload.challengerAttemptId || '')
+            String(r.data.attemptId) !== String(duelPayload.challengerAttemptId || '') &&
+            (String(r?.data?.role || '') === 'opponent' ||
+              (challengerUserId && String(r?.user_id || '') !== challengerUserId))
         );
         const opponentRecord =
           opponentCandidates.find(
@@ -123,16 +125,28 @@ export default async function handler(req, res) {
 
         const opponentAttemptId = String(opponentRecord?.data?.attemptId || '');
 
+        const requiredHands = Math.max(
+          1,
+          Number(duelPayload.targetHands || (Array.isArray(duelPayload.questionIds) && duelPayload.questionIds.length) || 10)
+        );
+        const lockedQuestionSet = new Set(
+          (Array.isArray(duelPayload.questionIds) ? duelPayload.questionIds : []).map(String)
+        );
+
         const buildPlayerSummary = (attemptId, fallbackName, roleLabel) => {
           const rowsForAttempt = attemptId
             ? answerRows.filter((row) => String(row.attempt_id) === String(attemptId))
             : [];
           const byQuestion = new Map();
           for (const row of rowsForAttempt) {
+            const qId = String(row.question_id || '');
+            if (lockedQuestionSet.size > 0 && qId && !lockedQuestionSet.has(qId)) {
+              continue;
+            }
             const key = String(row.question_id || row.hand_ordinal);
             if (!byQuestion.has(key)) byQuestion.set(key, row);
           }
-          const uniqueAnswers = Array.from(byQuestion.values());
+          const uniqueAnswers = Array.from(byQuestion.values()).slice(0, requiredHands);
           const handsAnswered = uniqueAnswers.length;
           const correctCount = uniqueAnswers.filter((r) => Boolean(r.is_correct)).length;
           const totalEvLoss = Number(
@@ -175,7 +189,7 @@ export default async function handler(req, res) {
 
         let status = 'awaiting_opponent';
         let winner = null;
-        if (challengerSummary.handsAnswered > 0 && opponentSummary.handsAnswered > 0) {
+        if (challengerSummary.handsAnswered >= requiredHands && opponentSummary.handsAnswered >= requiredHands) {
           status = 'completed';
           if (challengerSummary.accuracyPct > opponentSummary.accuracyPct) {
             winner = 'Challenger';
@@ -199,7 +213,7 @@ export default async function handler(req, res) {
             gameId: duelPayload.gameId,
             level: duelPayload.level,
             variant: duelPayload.variant || 'nlh',
-            targetHands: duelPayload.targetHands || duelPayload.questionIds.length,
+            targetHands: requiredHands,
             questionIds: duelPayload.questionIds,
             status,
             winner,

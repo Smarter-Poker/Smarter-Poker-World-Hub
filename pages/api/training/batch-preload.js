@@ -9,7 +9,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { sanitizeParam, withTiming, reconcileAnswerKey } from '../../../src/utils/trainingApiUtils';
+import { sanitizeParam, withTiming, reconcileAnswerKey, resolveSyncedHandForTrainingDrill } from '../../../src/utils/trainingApiUtils';
 import { deterministicEngine } from '../../../src/engines/DeterministicGTOEngine';
 import { applyDeterministicEnginePatches } from '../../../src/engines/deterministicEnginePatches';
 // 2026-07-19 engine-audit runtime patches (see that module's header)
@@ -169,10 +169,12 @@ export default async function handler(req, res) {
           variant: rawVariant,
           duelToken: rawDuelToken,
           createDuel: rawCreateDuel,
+          syncedHandId: rawSyncedHandId,
           attestationContinuationRule: rawAttestationContinuationRule,
           attestationContinuationPrecommit: rawAttestationContinuationPrecommit,
       } = req.query;
       const gameId = sanitizeParam(rawGameId, 100);
+      const syncedHandId = sanitizeParam(rawSyncedHandId, 120);
       const normalizedRawVariant = sanitizeParam(rawVariant, 16)?.toLowerCase() || '';
       const requestedVariant = ['nlh', 'plo4', 'plo5', 'plo6'].includes(normalizedRawVariant)
           ? normalizedRawVariant
@@ -217,12 +219,14 @@ export default async function handler(req, res) {
           const gameLevel = Math.min(12, Math.max(1, parseInt(level, 10) || 1));
           const requestedQuestionCount = Math.min(50, Math.max(1, parseInt(count, 10) || 25));
           const attemptTargetHands = trainingMasteryMinimum(gameLevel);
+          const isTenHandCustomSession = Boolean(createDuelRequested || duelPayload || syncedHandId);
+          const effectiveSessionKind = isTenHandCustomSession ? 'custom' : 'campaign';
+          const effectiveTargetHands = isTenHandCustomSession ? 10 : attemptTargetHands;
           const isSingleHandRecovery = requestedQuestionCount === 1;
           // Campaign attempts always own the Level Registry's complete hand
-          // count. A one-row request is the explicit recovery path; every
-          // normal preload receives the full 20/25/30-hand manifest even when
-          // an older browser asks for the former global count of 20.
-          const questionCount = isSingleHandRecovery ? 1 : attemptTargetHands;
+          // count. Duels and server-resolved synced-hand drills use the
+          // approved 10-hand custom challenge contract.
+          const questionCount = isSingleHandRecovery ? 1 : effectiveTargetHands;
           const gameMode = normalizeTrainingGameMode(rawGameMode);
           const handSelection = normalizeTrainingHandSelection(rawHandSelection);
           // Selection happens before the immutable attempt manifest is signed.
@@ -240,7 +244,7 @@ export default async function handler(req, res) {
               ? Math.min(100, Math.max(questionCount + 5, questionCount * 2))
               : Math.min(100, questionCount * 4);
           const handOrdinalStart = isSingleHandRecovery
-              ? Math.min(attemptTargetHands, Math.max(1, parseInt(rawHandOrdinalStart, 10) || 1))
+              ? Math.min(effectiveTargetHands, Math.max(1, parseInt(rawHandOrdinalStart, 10) || 1))
               : 1;
 
           // ●●● PHASE 15: Parse targeting params ●●●
@@ -308,6 +312,7 @@ export default async function handler(req, res) {
               targetStreet: enforcedTargetStreet,
               ...(effectiveVariant ? { variant: effectiveVariant } : {}),
               ...(duelPayload?.duelId ? { duelId: String(duelPayload.duelId) } : {}),
+              ...(syncedHandId ? { syncedHandId: String(syncedHandId) } : {}),
               ...(attestationContinuationPrecommit
                   ? { attestationContinuationCohort: attestationContinuationPrecommit }
                   : {}),
@@ -324,9 +329,9 @@ export default async function handler(req, res) {
                       clientSessionId: trainingSessionId,
                       gameId,
                       level: gameLevel,
-                      sessionKind: 'campaign',
+                      sessionKind: effectiveSessionKind,
                       difficultyMode: difficulty,
-                      requestedHands: attemptTargetHands,
+                      requestedHands: effectiveTargetHands,
                       handOrdinal: handOrdinalStart,
                       config: attemptSelection,
                       questionSelection: attemptSelection,
@@ -358,6 +363,24 @@ export default async function handler(req, res) {
                       });
                   }
                   return res.status(503).json(trainingPersistenceUnavailableBody());
+              }
+          }
+
+          let syncedResolution = null;
+          if (syncedHandId && typeof resolveSyncedHandForTrainingDrill === 'function') {
+              syncedResolution = await resolveSyncedHandForTrainingDrill({
+                  supabase: getSupabase(),
+                  userId: _authUser.id,
+                  syncedHandId,
+                  gameId,
+                  level: gameLevel,
+              });
+              if (!syncedResolution?.ok) {
+                  return res.status(syncedResolution?.status || 422).json({
+                      success: false,
+                      error: syncedResolution?.error || 'Unable to load synced hand drill.',
+                      code: syncedResolution?.code || 'HAND_DRILL_UNSUPPORTED',
+                  });
               }
           }
 
@@ -454,11 +477,12 @@ export default async function handler(req, res) {
                   if (expectedHoleCardCount !== null) {
                       const cards = Array.isArray(q.heroCards) ? q.heroCards : [];
                       if (cards.length !== expectedHoleCardCount) return false;
+                      if (!q.scenario?.brainEvaluation?.engineModule) return false;
                   }
-                  if (requiresPkoScenarioTelemetry && !Number.isFinite(Number(q.scenario?.bountyBb))) {
+                  if (requiresPkoScenarioTelemetry && (!Number.isFinite(Number(q.scenario?.bountyBb)) || !q.scenario?.brainEvaluation?.engineModule)) {
                       return false;
                   }
-                  if (requiresExploitScenarioTelemetry && !Number.isFinite(Number(q.scenario?.villainStats?.vpip))) {
+                  if (requiresExploitScenarioTelemetry && (!Number.isFinite(Number(q.scenario?.villainStats?.vpip)) || !q.scenario?.brainEvaluation?.engineModule)) {
                       return false;
                   }
                   return true;
@@ -621,7 +645,13 @@ export default async function handler(req, res) {
           }
 
           // Merge cached + solver-generated questions
-          const allQuestions = [...cachedQuestions, ...solverQuestions];
+          const allQuestions = syncedResolution?.questions?.length > 0
+              ? syncedResolution.questions
+                  .map((question) => ({
+                      question_data: normalizeCampaignQuestionWithoutFabrication(question),
+                  }))
+                  .filter((row) => row.question_data)
+              : [...cachedQuestions, ...solverQuestions];
 
           if (allQuestions.length === 0) {
               // ●●● Engine-only — no AI fallback. Return 404 if no solver data exists. ●●●
@@ -636,46 +666,51 @@ export default async function handler(req, res) {
               return res.status(404).json({ success: false, error: 'No questions available for this game/level. Solver data not yet loaded for this configuration.' });
           }
 
-          // BUG-03 FIX: Use Fisher-Yates shuffle (sort-based shuffle is biased in V8 TimSort)
-          const shuffled = [...allQuestions];
-          for (let i = shuffled.length - 1; i > 0; i--) {
-              const j = Math.floor(Math.random() * (i + 1));
-              [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-          }
-
-          // ●●● 2026-07-19 ENGINE AUDIT FIX — ANSWER-CLASS BALANCE ●●●
-          // Live sampling showed 73% of served questions graded "Check" as
-          // correct — a user who always checks passes levels. When the pool
-          // allows it, interleave passive-answer and aggressive-answer
-          // questions so no single action dominates the answer key.
-          const isAggressiveAnswer = (q) => {
-              const ca = q?.question_data?.correctAnswer || '';
-              return /^b|^r|allin|jam|push/i.test(String(ca));
-          };
-          const aggressive = shuffled.filter(isAggressiveAnswer);
-          const passive = shuffled.filter(q => !isAggressiveAnswer(q));
           let batch;
-          if (aggressive.length > 0 && passive.length > 0) {
-              batch = [];
-              let ai = 0, pi = 0;
-              while (batch.length < candidateQuestionCount && (ai < aggressive.length || pi < passive.length)) {
-                  // Alternate, preferring whichever class is underrepresented so far
-                  const takeAggressive =
-                      ai < aggressive.length && (pi >= passive.length || batch.length % 2 === 1);
-                  if (takeAggressive) batch.push(aggressive[ai++]);
-                  else batch.push(passive[pi++]);
-              }
+          if (syncedResolution?.questions?.length > 0) {
+              // Preserve the exact server-stored synced hand as Hand #1
+              batch = [...allQuestions];
           } else {
-              // Only one class available in the pool — serve what exists
-              batch = shuffled.slice(0, candidateQuestionCount);
-          }
+              // BUG-03 FIX: Use Fisher-Yates shuffle (sort-based shuffle is biased in V8 TimSort)
+              const shuffled = [...allQuestions];
+              for (let i = shuffled.length - 1; i > 0; i--) {
+                  const j = Math.floor(Math.random() * (i + 1));
+                  [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+              }
 
-          // Balancing the two broad action classes must not make the answer
-          // class predictable from the hand number. The earlier alternating
-          // pass intentionally fixes the quota, then this independent
-          // cryptographic shuffle removes the passive/even, aggressive/odd
-          // side channel before the immutable attempt manifest is sealed.
-          batch = shuffleBalancedQuestionOrder(batch);
+              // ●●● 2026-07-19 ENGINE AUDIT FIX — ANSWER-CLASS BALANCE ●●●
+              // Live sampling showed 73% of served questions graded "Check" as
+              // correct — a user who always checks passes levels. When the pool
+              // allows it, interleave passive-answer and aggressive-answer
+              // questions so no single action dominates the answer key.
+              const isAggressiveAnswer = (q) => {
+                  const ca = q?.question_data?.correctAnswer || '';
+                  return /^b|^r|allin|jam|push/i.test(String(ca));
+              };
+              const aggressive = shuffled.filter(isAggressiveAnswer);
+              const passive = shuffled.filter(q => !isAggressiveAnswer(q));
+              if (aggressive.length > 0 && passive.length > 0) {
+                  batch = [];
+                  let ai = 0, pi = 0;
+                  while (batch.length < candidateQuestionCount && (ai < aggressive.length || pi < passive.length)) {
+                      // Alternate, preferring whichever class is underrepresented so far
+                      const takeAggressive =
+                          ai < aggressive.length && (pi >= passive.length || batch.length % 2 === 1);
+                      if (takeAggressive) batch.push(aggressive[ai++]);
+                      else batch.push(passive[pi++]);
+                  }
+              } else {
+                  // Only one class available in the pool — serve what exists
+                  batch = shuffled.slice(0, candidateQuestionCount);
+              }
+
+              // Balancing the two broad action classes must not make the answer
+              // class predictable from the hand number. The earlier alternating
+              // pass intentionally fixes the quota, then this independent
+              // cryptographic shuffle removes the passive/even, aggressive/odd
+              // side channel before the immutable attempt manifest is sealed.
+              batch = shuffleBalancedQuestionOrder(batch);
+          }
           if (attestationContinuationPrecommit && solverQuestions.length > 0) {
               const includedQuestionIds = new Set(
                   batch.map((row) => String(row?.question_data?.id || '')).filter(Boolean),
@@ -915,9 +950,9 @@ export default async function handler(req, res) {
                   clientSessionId: trainingSessionId,
                   gameId,
                   level: gameLevel,
-                  sessionKind: 'campaign',
+                  sessionKind: effectiveSessionKind,
                   difficultyMode: difficulty,
-                  requestedHands: attemptTargetHands,
+                  requestedHands: effectiveTargetHands,
                   questions: servedBatch,
                   handOrdinalStart,
                   requireFullAttempt: !isSingleHandRecovery,
@@ -1026,6 +1061,7 @@ export default async function handler(req, res) {
               count: delivery.questions.length,
               questions: delivery.questions,
               ...(duelResponse ? { duel: duelResponse } : {}),
+              ...(syncedResolution?.syncedHand ? { syncedHand: syncedResolution.syncedHand } : {}),
               ...(attestationContinuationCohort
                   ? { attestationContinuationCohort }
                   : {}),

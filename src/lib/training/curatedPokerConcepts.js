@@ -8,6 +8,8 @@
  * contains four meaningful alternatives.
  */
 
+import { evaluateTrainingSpotWithHorseBrain } from './horseBrainTrainingAdapter.js';
+
 const FACTS = {
   rfi: {
     label: 'Raise First In', street: 'preflop',
@@ -127,24 +129,32 @@ const VARIANT_HERO_CARDS = {
     ['Ah', 'Kc'],
     ['Ks', 'Qd'],
     ['Ad', 'Jc'],
+    ['Qd', 'Qc'],
+    ['8h', '3d'],
   ],
   plo4: [
     ['As', 'Ks', 'Qh', 'Jd'],
     ['Ah', 'Kh', 'Tc', '9c'],
     ['Ad', 'Kd', 'Qc', 'Jc'],
     ['As', 'Ah', 'Ks', 'Kh'],
+    ['Qd', 'Qc', '7h', '7c'],
+    ['8h', '6c', '5d', '3h'],
   ],
   plo5: [
     ['As', 'Ks', 'Qh', 'Jd', 'Tc'],
     ['Ah', 'Kh', 'Qc', 'Jc', '9d'],
     ['Ad', 'Kd', 'Qh', 'Ts', '9s'],
     ['As', 'Ah', 'Ks', 'Kh', 'Qd'],
+    ['Qd', 'Qc', '7h', '7c', 'Ac'],
+    ['8h', '6c', '5d', '3h', '2d'],
   ],
   plo6: [
     ['As', 'Ks', 'Qh', 'Jd', 'Tc', '9h'],
     ['Ah', 'Kh', 'Qc', 'Jc', '9d', '8d'],
     ['Ad', 'Kd', 'Qh', 'Ts', '9s', '8c'],
     ['As', 'Ah', 'Ks', 'Kh', 'Qd', 'Jc'],
+    ['Qd', 'Qc', '7h', '7c', 'Ac', 'Kc'],
+    ['8h', '6c', '5d', '3h', '2d', '9c'],
   ],
 };
 
@@ -298,17 +308,6 @@ export function generateCuratedPokerConceptBatch({
     const pot = street === 'preflop' ? (['rfi', 'icm'].includes(topic) ? 1.5 : 4.5)
       : street === 'flop' ? 6 : street === 'turn' ? 14 : 30;
 
-    const useActionChoices = isPloVariant || hasExplicitVariant;
-    const actionPool = isPloVariant
-      ? (street === 'preflop' ? VARIANT_ACTION_CHOICES.plo_preflop : VARIANT_ACTION_CHOICES.plo_postflop)
-      : (street === 'preflop' ? VARIANT_ACTION_CHOICES.nlh_preflop : VARIANT_ACTION_CHOICES.nlh_postflop);
-    const answer = useActionChoices
-      ? actionPool[(index + style) % actionPool.length]
-      : fact[field];
-    const choices = useActionChoices
-      ? rotateOptions(actionPool, answer, index + level)
-      : rotateOptions([answer, ...alternatives(topic, field, variant)], answer, index + level);
-
     const cardPresets = VARIANT_HERO_CARDS[effectiveVariant] || VARIANT_HERO_CARDS.nlh;
     const heroCards = isPloVariant || hasExplicitVariant
       ? cardPresets[index % cardPresets.length]
@@ -320,6 +319,66 @@ export function generateCuratedPokerConceptBatch({
       || gIdLower.startsWith('sng-')
       || family.includes('_icm');
     const isExploitGame = ['adv-003', 'adv-015', 'adv-016', 'cash-020'].includes(gIdLower);
+
+    const pkoBountyBb = isPkoGame ? [5, 7.5, 10, 12.5, 15][index % 5] : null;
+    const icmBubbleFactor = isPkoGame
+      ? +(1.12 + (index % 4) * 0.08).toFixed(2)
+      : isIcmGame
+        ? +(1.35 + (index % 5) * 0.15).toFixed(2)
+        : 1.0;
+    const exploitProfile = isExploitGame
+      ? ['Calling Station', 'Aggro 3-Bettor', 'Tight-Passive Nit', 'Capped Turn Reg'][index % 4]
+      : null;
+    const exploitStats = isExploitGame
+      ? [
+          { vpip: 44, pfr: 11, threeBet: 3, sampleHands: 420 },
+          { vpip: 34, pfr: 29, threeBet: 14, sampleHands: 610 },
+          { vpip: 16, pfr: 13, threeBet: 5, sampleHands: 510 },
+          { vpip: 26, pfr: 21, threeBet: 8, sampleHands: 380 },
+        ][index % 4]
+      : null;
+
+    const toCallBb = ['bb_defense', 'vs3bet', 'cold_call', '4bet', 'squeeze', 'check_raise', 'river_bluff_catcher'].includes(topic)
+      ? (street === 'preflop' ? 2.5 : Number((pot * 0.5).toFixed(1)))
+      : 0;
+
+    const brainEval = evaluateTrainingSpotWithHorseBrain({
+      variant: effectiveVariant,
+      street,
+      heroCards,
+      board: boardCards,
+      heroPosition,
+      villainPosition,
+      pot,
+      toCall: toCallBb,
+      effectiveStackBb: stackDepth,
+      isTournament: isPkoGame || isIcmGame,
+      isICM: isIcmGame,
+      isPKO: isPkoGame,
+      bountyBb: pkoBountyBb,
+      bubbleFactor: icmBubbleFactor,
+      villainStats: exploitStats,
+      villainArchetype: exploitProfile,
+    });
+
+    const useActionChoices = isPloVariant || hasExplicitVariant;
+    const actionPool = isPloVariant
+      ? (street === 'preflop' ? VARIANT_ACTION_CHOICES.plo_preflop : VARIANT_ACTION_CHOICES.plo_postflop)
+      : (street === 'preflop' ? VARIANT_ACTION_CHOICES.nlh_preflop : VARIANT_ACTION_CHOICES.nlh_postflop);
+    const fallbackAnswer = useActionChoices
+      ? actionPool[(index + style) % actionPool.length]
+      : fact[field];
+    const fallbackChoices = useActionChoices
+      ? rotateOptions(actionPool, fallbackAnswer, index + level)
+      : rotateOptions([fallbackAnswer, ...alternatives(topic, field, variant)], fallbackAnswer, index + level);
+
+    const useBrainActionChoices = useActionChoices
+      && brainEval?.ok
+      && Array.isArray(brainEval.options)
+      && brainEval.options.length === 4;
+    const finalOptions = useBrainActionChoices ? brainEval.options : fallbackChoices.options;
+    const finalCorrectAnswer = useBrainActionChoices ? brainEval.correctAnswer : fallbackChoices.correctAnswer;
+    const finalAnswerText = useBrainActionChoices ? brainEval.correctAnswerText : fallbackAnswer;
 
     const variantSuffix = hasExplicitVariant ? `_${effectiveVariant}` : '';
     const id = `curated_${gameId}${variantSuffix}_L${level}_${topic}_${style}_${index}`;
@@ -346,6 +405,8 @@ export function generateCuratedPokerConceptBatch({
         variant: effectiveVariant,
         holeCardCount: heroCards.length,
         bettingStructure: isPloVariant ? 'pot_limit' : 'no_limit',
+        board: boardCards.join(''),
+        boardCards,
         action: fact.sequence,
         context: `${variantTitle} · Concept calibration for ${fact.label}.`,
         description: fact.definition,
@@ -357,18 +418,25 @@ export function generateCuratedPokerConceptBatch({
         pot,
         gameType: family,
         spotType: topic,
+        ...(brainEval?.ok
+          ? {
+              brainEvaluation: brainEval.brainEvaluation,
+              madeHandCategory: brainEval.madeHandCategory,
+              potLimitSizing: brainEval.potLimitSizing,
+            }
+          : {}),
         ...(isPkoGame
           ? {
               isPKO: true,
-              bountyBb: [5, 7.5, 10, 12.5, 15][index % 5],
-              bubbleFactor: +(1.12 + (index % 4) * 0.08).toFixed(2),
+              bountyBb: pkoBountyBb,
+              bubbleFactor: icmBubbleFactor,
               payoutPressure: 'PKO Bounty Compression',
             }
           : {}),
         ...(isIcmGame
           ? {
               isICM: true,
-              bubbleFactor: +(1.35 + (index % 5) * 0.15).toFixed(2),
+              bubbleFactor: icmBubbleFactor,
               payoutPressure: [
                 'Direct Money Bubble',
                 'Final Table Pay Jump',
@@ -379,27 +447,20 @@ export function generateCuratedPokerConceptBatch({
           : {}),
         ...(isExploitGame
           ? {
-              villainProfile: [
-                'Calling Station',
-                'Aggro 3-Bettor',
-                'Tight-Passive Nit',
-                'Capped Turn Reg',
-              ][index % 4],
-              villainStats: [
-                { vpip: 44, pfr: 11, threeBet: 3, sampleHands: 420 },
-                { vpip: 34, pfr: 29, threeBet: 14, sampleHands: 610 },
-                { vpip: 16, pfr: 13, threeBet: 5, sampleHands: 510 },
-                { vpip: 26, pfr: 21, threeBet: 8, sampleHands: 380 },
-              ][index % 4],
+              villainProfile: exploitProfile,
+              villainStats: exploitStats,
             }
           : {}),
       },
       heroCards,
       boardCards,
-      options: choices.options,
-      correctAnswer: choices.correctAnswer,
-      correctAnswerText: answer,
-      explanation: `${answer}. ${fact.principle}. (${variantTitle} - ${isPloVariant ? 'Pot-Limit sizing rules apply; max bet/raise is 100% pot' : 'No-Limit sizing rules apply'}). This answer comes from the curated concept curriculum.`,
+      options: finalOptions,
+      correctAnswer: finalCorrectAnswer,
+      correctAnswerText: finalAnswerText,
+      explanation: useBrainActionChoices
+        ? `${brainEval.explanation} This answer comes from the curated concept curriculum.`
+        : `${finalAnswerText}. ${fact.principle}. (${variantTitle} - ${isPloVariant ? 'Pot-Limit sizing rules apply; max bet/raise is 100% pot' : 'No-Limit sizing rules apply'}). This answer comes from the curated concept curriculum.`,
+      ...(brainEval?.structuredExplanation ? { structuredExplanation: brainEval.structuredExplanation } : {}),
       level,
     });
   }
