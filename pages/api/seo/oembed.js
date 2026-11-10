@@ -23,6 +23,7 @@ import { STREAMER_BOT_COMMANDS } from '../stream/cmd.js';
 import { RESEARCH_REPORTS, RESEARCH_DATASET_DOI, RESEARCH_DATASET_DOI_URL } from '../../../src/content/research/reports.js';
 import { DEAD_TOOL_REPLACEMENTS } from '../../../src/lib/seo/backlinkCatalog.mjs';
 import { ZENODO_RECORDS } from '../../../src/lib/seo/datasetCatalog.mjs';
+import { recordSeoTelemetryEvent } from './referral-stats.js';
 
 const SITE_ORIGIN = 'https://smarter.poker';
 
@@ -472,9 +473,21 @@ export default function handler(req, res) {
   res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
 
   if (String(mode || '').toLowerCase() === 'catalog' || !url) {
+    recordSeoTelemetryEvent({
+      category: 'oembed_discoveries',
+      item: 'catalog',
+      partner: partner || req.headers?.referer || '',
+      source: 'oembed-catalog',
+    });
     return res.status(200).json(buildPartnerInstallationCatalog({ partner }));
   }
 
   const result = buildOembedPayload({ url, maxwidth, maxheight, partner });
+  recordSeoTelemetryEvent({
+    category: 'oembed_discoveries',
+    item: url,
+    partner: partner || req.headers?.referer || '',
+    source: 'oembed-url',
+  });
   return res.status(result.status).json(result.body);
 }

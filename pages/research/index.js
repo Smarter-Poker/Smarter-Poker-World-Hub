@@ -232,6 +232,17 @@ export default function ResearchIndexPage() {
               <code>{'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f'}</code> (Open Datasets) &amp;{' '}
               <code>{'swh:1:snp:02b8992833424620305edcfb730b3cf8add15747'}</code> (MCP Server)
             </li>
+            <li>
+              <strong>Executable Python &amp; Pandas Benchmark Notebook:</strong>{' '}
+              <a
+                href="https://colab.research.google.com/github/Smarter-Poker/smarter-poker-open-datasets/blob/main/notebooks/poker_math_benchmarks_2026.ipynb"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: '#f59e0b', fontWeight: 700 }}
+              >
+                Open Poker Math &amp; Rake Benchmarks Notebook In Google Colab
+              </a>
+            </li>
           </ul>
         </section>
 
@@ -257,10 +268,13 @@ export default function ResearchIndexPage() {
               <p style={{ fontSize: 15, lineHeight: 1.6, color: '#cbd5e1', margin: '0 0 14px 0' }}>
                 {r.summary}
               </p>
-              <div style={{ display: 'flex', gap: 14, fontSize: 13, fontWeight: 600 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, fontSize: 13, fontWeight: 600 }}>
                 <Link href={researchPath(r.slug)} style={{ color: '#38bdf8', textDecoration: 'none' }}>
                   Read Full Report And Dataset Table
                 </Link>
+                <a href={`/api/seo/research-chart?slug=${encodeURIComponent(r.slug)}`} style={{ color: '#10b981', textDecoration: 'none' }}>
+                  View Vector SVG Chart
+                </a>
                 <a href={`${researchPath(r.slug)}.md`} style={{ color: '#94a3b8', textDecoration: 'none' }}>
                   View Raw Markdown (.Md)
                 </a>

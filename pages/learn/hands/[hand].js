@@ -13,6 +13,7 @@
    House style: Title Case, no em dashes.
    ═══════════════════════════════════════════════════════════════════════════ */
 
+import React, { useState } from 'react';
 import Link from 'next/link';
 import SEOHead, { schemas } from '../../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
@@ -112,8 +113,29 @@ export function handJsonLd(hand) {
 }
 
 export default function StartingHandDetailPage({ hand }) {
+  const [copiedHandCard, setCopiedHandCard] = useState('');
   const path = handPath(hand.slug);
   const url = `${SITE_URL}${path}`;
+  const discordHandCard = `[Smarter.Poker Starting Hand Guide: ${hand.name} (${hand.code})] Rank: ${hand.preflopRank} | Combos: ${hand.combinations}/1,326 (${hand.probability}) | Equity Vs Random: ${hand.vsRandomEquity} | 100BB 6-Max Guide: ${url}`;
+  const redditHandCard = `**${hand.name} (${hand.code}) - 100BB 6-Max GTO Fact Sheet**\n- **Preflop Rank:** ${hand.preflopRank}\n- **Combinations:** ${hand.combinations} Out Of 1,326 (${hand.probability})\n- **Heads-Up Equity Vs. Random Hand:** ${hand.vsRandomEquity}\n- **Facing 3-Bet:** ${hand.vs3Bet}\n- *Full Solver Guide & Matchups: [Smarter.Poker ${hand.code} Strategy](${url})*`;
+
+  const handleCopyHandCard = async (type, value) => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(value);
+        setCopiedHandCard(type);
+        setTimeout(() => setCopiedHandCard(''), 2200);
+      }
+      if (typeof fetch === 'function') {
+        fetch(
+          `/api/seo/referral-stats?event=record&category=solved_spot_shares&item=hand-${encodeURIComponent(hand.slug)}&source=hand-card`,
+          { method: 'POST', keepalive: true }
+        ).catch(() => {});
+      }
+    } catch {
+      // Ignore clipboard error
+    }
+  };
 
   return (
     <div style={{ minHeight: '100vh', background: '#070b14', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -154,6 +176,60 @@ export default function StartingHandDetailPage({ hand }) {
             <li><strong>Preflop Rank:</strong> {hand.preflopRank}</li>
             <li><strong>Heads-Up Equity Vs. Random Hand:</strong> {hand.vsRandomEquity}</li>
           </ul>
+          <div
+            style={{
+              marginTop: 14,
+              paddingTop: 12,
+              borderTop: '1px solid #1e293b',
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 8,
+            }}
+          >
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8' }}>
+              Share {hand.code} Preflop Equity &amp; GTO Fact Card:
+            </span>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <button
+                type="button"
+                onClick={() => handleCopyHandCard('discord', discordHandCard)}
+                style={{
+                  padding: '6px 12px',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  background: copiedHandCard === 'discord' ? '#10b981' : '#38bdf8',
+                  color: '#04131d',
+                  border: 'none',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                }}
+              >
+                {copiedHandCard === 'discord'
+                  ? 'Copied Discord / Chat Card'
+                  : 'Copy Discord / Group-Chat Summary'}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleCopyHandCard('reddit', redditHandCard)}
+                style={{
+                  padding: '6px 12px',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  background: copiedHandCard === 'reddit' ? '#10b981' : '#070b14',
+                  color: copiedHandCard === 'reddit' ? '#04131d' : '#38bdf8',
+                  border: '1px solid #38bdf8',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                }}
+              >
+                {copiedHandCard === 'reddit'
+                  ? 'Copied Forum / Reddit Card'
+                  : 'Copy Forum / Reddit Markdown Card'}
+              </button>
+            </div>
+          </div>
         </section>
 
         <section style={{ marginBottom: 32 }}>

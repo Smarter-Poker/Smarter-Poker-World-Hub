@@ -21,6 +21,7 @@
 
 import { HAND_MATCHUPS, getMatchupBySlug } from '../../../src/content/learn/matchups.js';
 import { SERIES_GUIDES, getSeriesGuideBySlug } from '../../../src/content/guides/seriesGuides.js';
+import { recordSeoTelemetryEvent } from '../seo/referral-stats.js';
 
 export const STREAMER_BOT_COMMANDS = [
   {
@@ -481,8 +482,14 @@ export default function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const { cmd = 'help', q = '', pot = '', bet = '', format = 'text' } = req.query || {};
+  const { cmd = 'help', q = '', pot = '', bet = '', format = 'text', channel = '' } = req.query || {};
   const result = evaluateStreamCommand({ cmd, q, pot, bet });
+  recordSeoTelemetryEvent({
+    category: 'streamer_commands',
+    item: result.command || String(cmd || 'help'),
+    partner: channel || req.headers?.['nightbot-channel'] || req.headers?.referer || '',
+    source: 'stream-cmd',
+  });
 
   res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=3600');
   res.setHeader('Access-Control-Allow-Origin', '*');
