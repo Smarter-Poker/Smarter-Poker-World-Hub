@@ -21,4 +21,18 @@ Club Arena migration `20261109224532_bug_reports_reach_the_owner_messenger_and_p
 - First PR head 97993cf: Pre-Deploy Safety Checks failed in the phantom-table step, which compares queried tables with the live schema: `bug_report_routing` and `bug_report_deliveries` did not exist in production because the Club Arena migration was not installed. The check was correct and was not changed; the cause is deploy order.
 - Local, final candidate: `node --test __tests__/messenger-bug-report-owner-inbox.test.mjs` 15 of 15, including: opening the newer report leaves the older one unread across a reload; non-recipient and no-session requests; every failed read answers 503, is reported and never carries `owner: false`.
 
-Merge, deployment and live verification are recorded in the delivery section once observed.
+## Delivery (observed, November 10, 2026 UTC)
+
+- PR: Smarter-Poker-World-Hub #2754, branch `feat/messenger-bug-report-owner-inbox`, final head 90bf70d.
+- Installed prerequisite: migration 20261109224532 present in `schema_migrations`; one routing row with a conversation (read back after Club Arena #10243 merged).
+- Checks: all eight required contexts green on 90bf70d. Pre-Deploy Safety Checks passed on one re-run after the migration was installed; no gate, baseline or allowlist was changed.
+- Merged: protected squash cc92609f213b4fcd06cdc13cb00cf0e5eb8cc10a at 00:28:53Z.
+- Published: Vercel `hub-vanguard` deployment dpl_BNTR9Ecgvnahg2N5b7CWkh5eJs75, production, READY, Git revision cc92609, aliased to smarter.poker. `https://smarter.poker/api/health` reported that revision and deployment id at 00:33:48Z.
+- Verified live, production route `POST /api/messenger/bug-reports`: no session 401 (list and read_all), invalid bearer 401, GET 405.
+- Verified live, database boundary (read-only, role `authenticated` with a non-recipient, non-admin subject): zero `bug_report_deliveries` rows visible; `authenticated` and `anon` hold no SELECT on `bug_report_routing`; `anon` holds no SELECT on `bug_report_deliveries`.
+- Rendered check, headless Chrome 375 by 667, real component with a stubbed API: list, detail, badge 2 to 1 after opening the newest report with the older one still unread, Bug Inbox Unavailable with retry for a remembered recipient, plain form for an unconfirmed account, no horizontal overflow, no console errors.
+
+## Not Verified In This Lane
+
+- A non-recipient authenticated request to the route on production. No test identity was available to this session; the handler path is pinned by the focused test only.
+- The signed-in recipient view on production (list, live badge on a new report, per-report read surviving a reload). It can only be observed in the recipient's own browser; the exact steps were handed to the coordinator.
