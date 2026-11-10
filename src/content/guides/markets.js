@@ -595,7 +595,49 @@ export const POKER_MARKET_GUIDES = [
   },
 ];
 
+const MARKET_SLUG_ALIASES = {
+  'las-vegas': 'las-vegas-nevada',
+  'las-vegas-nv': 'las-vegas-nevada',
+  'vegas': 'las-vegas-nevada',
+  'los-angeles': 'los-angeles-california',
+  'los-angeles-ca': 'los-angeles-california',
+  'la': 'los-angeles-california',
+  'south-florida': 'south-florida-miami-hollywood',
+  'miami': 'south-florida-miami-hollywood',
+  'hollywood-fl': 'south-florida-miami-hollywood',
+  'houston': 'houston-texas',
+  'houston-tx': 'houston-texas',
+  'texas-card-houses': 'houston-texas',
+  'dallas': 'dallas-fort-worth-texas',
+  'dfw': 'dallas-fort-worth-texas',
+  'dallas-tx': 'dallas-fort-worth-texas',
+  'austin': 'austin-san-antonio-texas',
+  'austin-tx': 'austin-san-antonio-texas',
+  'san-antonio': 'austin-san-antonio-texas',
+  'tampa': 'tampa-central-florida',
+  'tampa-fl': 'tampa-central-florida',
+  'atlantic-city': 'atlantic-city-new-jersey',
+  'atlantic-city-nj': 'atlantic-city-new-jersey',
+  'philadelphia': 'philadelphia-pennsylvania',
+  'philly': 'philadelphia-pennsylvania',
+  'philadelphia-pa': 'philadelphia-pennsylvania',
+  'phoenix': 'phoenix-scottsdale-arizona',
+  'scottsdale': 'phoenix-scottsdale-arizona',
+  'phoenix-az': 'phoenix-scottsdale-arizona',
+  'chicago': 'chicagoland-midwest',
+  'chicagoland': 'chicagoland-midwest',
+  'boston': 'new-england-connecticut-boston',
+  'new-england': 'new-england-connecticut-boston',
+  'connecticut': 'new-england-connecticut-boston',
+};
+
 export function getMarketGuideBySlug(slug) {
   const clean = String(slug || '').trim().toLowerCase();
-  return POKER_MARKET_GUIDES.find((g) => g.slug === clean) || null;
+  if (!clean) return null;
+  const target = MARKET_SLUG_ALIASES[clean] || clean;
+  return (
+    POKER_MARKET_GUIDES.find((g) => g.slug === target) ||
+    POKER_MARKET_GUIDES.find((g) => g.slug.includes(clean)) ||
+    null
+  );
 }

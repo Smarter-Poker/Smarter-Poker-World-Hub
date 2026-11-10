@@ -165,17 +165,159 @@ export function renderBadgeSvg({
 </svg>`;
 }
 
+export const TOOL_OG_CATALOG = {
+  'chop-calculator': {
+    title: 'Tournament Deal & ICM Chop Calculator',
+    subtitle: 'Compare ICM Chop, Chip Chop & 50/50 Hybrid Final Table Deals',
+    stat: 'Exact Malmuth-Harville ICM - 100% Free',
+  },
+  'variance-calculator': {
+    title: 'Poker Variance & Downswing Simulator',
+    subtitle: '20-Run Brownian Sample Paths, 95% Confidence Intervals & Loss Probability',
+    stat: 'Monte Carlo BB/100 Variance Engine',
+  },
+  'outs-calculator': {
+    title: 'Poker Outs, Draw Equity & Rule of 4 and 2 Calculator',
+    subtitle: 'Exact 47/46-Card Hypergeometric Turn & River Draw Probabilities',
+    stat: '1 To 20 Clean Outs vs Rule Of 4 And 2',
+  },
+  'format-quiz': {
+    title: 'Poker Format Recommender & Player Archetype Quiz',
+    subtitle: 'Match Schedule, Bankroll & Risk Tolerance To Your Highest-EV Format',
+    stat: 'Cash vs MTT vs PLO vs PKO Fit Score',
+  },
+  'poker-tax-calculator': {
+    title: 'US Poker Tax & IRS Form W-2G Calculator',
+    subtitle: 'Schedule A Session Loss Cap vs Schedule C Pro Filing & $5,000 W-2G Rules',
+    stat: '2026 Federal & State Gambling Tax Estimator',
+  },
+  'staking-calculator': {
+    title: 'Poker Tournament Staking & Markup Split Calculator',
+    subtitle: 'Calculate Markup Share Cost, Breakeven ROI % & Net Investor/Horse Splits',
+    stat: 'Instant Staking Package & Makeup Math',
+  },
+  'iso-calculator': {
+    title: 'Pre-Flop Limper Isolation Raise Sizing Calculator',
+    subtitle: 'Solver-Backed 3BB + 1BB/Limper + 1BB OOP Sizing & Postflop SPR',
+    stat: 'Live & Online Cash Isolation Sizing',
+  },
+  'home-game-kit': {
+    title: 'Home Poker Game Setup Kit & Chip Set Calculator',
+    subtitle: 'Optimal Starting Chip Tubes, Case Breakdown & Printable House Rules',
+    stat: 'Cash & Tournament Chip Distribution',
+  },
+  'poker-odds-calculator': {
+    title: 'Multiway Poker Odds & Equity Calculator',
+    subtitle: 'Texas Holdem, PLO4, PLO5, PLO6, 7-Card Stud & Razz Exact Equity Solver',
+    stat: '6-Game Multiway Monte Carlo & Exact Solver',
+  },
+  'icm-calculator': {
+    title: 'Malmuth-Harville Tournament ICM & Bubble Factor Calculator',
+    subtitle: 'Final Table Dollar EV, Bubble Pressure & Risk Premium Matrix',
+    stat: '2 To 9 Player Final Table ICM Solver',
+  },
+  'pot-odds-calculator': {
+    title: 'Pot Odds, Implied Odds & Minimum Defense Frequency Calculator',
+    subtitle: 'Required Equity %, MDF %, Bluff Breakeven % & Geometric Sizing',
+    stat: 'Instant Street-By-Street EV Math',
+  },
+  'push-fold-calculator': {
+    title: 'Short-Stack Push/Fold Nash Equilibrium Charts (5BB-20BB)',
+    subtitle: '169-Hand Unexploitable Open-Shove & Call Matrices With Antes',
+    stat: '5BB To 20BB Tournament Push/Fold Grids',
+  },
+  'bankroll-calculator': {
+    title: 'Poker Bankroll & Risk-Of-Ruin Buy-In Calculator',
+    subtitle: 'Required Buy-Ins For <1% Risk Of Ruin Across Cash, MTT & PLO',
+    stat: 'Variance-Adjusted Bankroll Architecture',
+  },
+  'bounty-calculator': {
+    title: 'PKO & Mystery Bounty Chip Equivalent Calculator',
+    subtitle: 'Convert Knockout Bounties Into Starting-Stack Chips & Equity Drops',
+    stat: 'Standard 50% PKO & Mystery Bounty Math',
+  },
+  'poker-winrate-calculator': {
+    title: 'Poker Win-Rate (BB/100 & $/Hr) & Confidence Calculator',
+    subtitle: 'True Hourly Rate, Standard Error & Required Sample Size Estimator',
+    stat: 'Live & Online Win-Rate Analytics',
+  },
+  'side-pot-calculator': {
+    title: 'Multi-Way All-In Side Pot & Chip Split Calculator',
+    subtitle: 'Instant Main Pot & Side Pot Slices For Up To 9 All-In Players',
+    stat: 'Zero-Error Casino Floor Side Pot Math',
+  },
+  'blind-structure-calculator': {
+    title: 'Poker Tournament Blind Structure & Clock Generator',
+    subtitle: 'Custom Starting Stacks, Ante Schedules & End-Time Pacing',
+    stat: 'Turbo, Standard & Deepstack Structures',
+  },
+  'spr-calculator': {
+    title: 'Stack-To-Pot Ratio (SPR) & Geometric Bet Sizing Calculator',
+    subtitle: 'Compute Exact Equal-Percentage Flop, Turn & River Jam Sizings',
+    stat: '1-Street, 2-Street & 3-Street Geometric Sizing',
+  },
+  'plo-bet-calculator': {
+    title: 'Pot-Limit Omaha (PLO) Max Bet & Double-Board Bomb Pot Calculator',
+    subtitle: 'Dealer 3x + Trail + Pot Formula & Preflop Pot Escalation',
+    stat: 'Exact Pot-Limit Raise & Bomb Pot Math',
+  },
+  'payout-calculator': {
+    title: 'Poker Tournament Prize Pool & Payout Structure Calculator',
+    subtitle: ' balanced 10%, 15% & 20% ITM Prize Tables For Any Field Size',
+    stat: 'Home Game & Cardroom Payout Generator',
+  },
+  'rake-calculator': {
+    title: 'Live Cash Game Rake Cap vs Timed Seat Charge Calculator',
+    subtitle: 'Compare Percentage Pot Drop vs Hourly Time Collection In BB/100',
+    stat: 'True Annual & Hourly Rake Drag Analysis',
+  },
+  '3bet-calculator': {
+    title: 'Pre-Flop 3-Bet, Squeeze & 4-Bet Sizing Calculator',
+    subtitle: 'Solver-Approved IP/OOP Multipliers, Cold-Caller Tax & Villain MDF',
+    stat: '100BB Cash & Tournament 3-Bet Matrix',
+  },
+  'preflop-ranges': {
+    title: '100BB 6-Max GTO Preflop Range Explorer',
+    subtitle: 'Interactive 169-Hand RFI, 3-Bet & 4-Bet Equilibrium Grids',
+    stat: 'Solver-Verified 6-Max Preflop Charts',
+  },
+  embeds: {
+    title: 'Free Embeddable Poker Calculators, Widgets & Streamer Bot',
+    subtitle: 'Copy-Paste Iframe Tools, Nightbot Commands & Authority SVG Badges',
+    stat: '18 Streamer Commands & Webmaster Embeds',
+  },
+};
+
 export function renderOgCardSvg({
-  title = 'Smarter.Poker GTO & Quantitative Poker Intelligence',
-  subtitle = '24 Free Interactive Calculators • 169 Hand Guides • 500+ Live Rooms',
-  stat = '100% Free - Zero Login Required',
+  slug = '',
+  title = '',
+  subtitle = '',
+  stat = '',
 } = {}) {
-  const safeTitle = escapeXml(String(title || 'Smarter.Poker GTO & Quantitative Poker Intelligence').slice(0, 86));
-  const safeSubtitle = escapeXml(
-    String(subtitle || '24 Free Interactive Calculators • 169 Hand Guides • 500+ Live Rooms').slice(0, 110)
-  );
+  const cleanSlug = String(slug || '')
+    .trim()
+    .toLowerCase()
+    .replace(/^\/+|\/+$/g, '')
+    .replace(/^tools\//, '');
+  const toolPreset = TOOL_OG_CATALOG[cleanSlug] || null;
+
+  const resolvedTitle =
+    title ||
+    toolPreset?.title ||
+    'Smarter.Poker GTO & Quantitative Poker Intelligence';
+  const resolvedSubtitle =
+    subtitle ||
+    toolPreset?.subtitle ||
+    '24 Free Interactive Calculators • 169 Hand Guides • 500+ Live Rooms';
+  const resolvedStat =
+    stat ||
+    toolPreset?.stat ||
+    '100% Free - Zero Login Required';
+
+  const safeTitle = escapeXml(String(resolvedTitle).slice(0, 86));
+  const safeSubtitle = escapeXml(String(resolvedSubtitle).slice(0, 110));
   const safeStat = escapeXml(
-    String(stat || '100% Free - Zero Login Required')
+    String(resolvedStat)
       .replace(/\u2014/g, '-')
       .slice(0, 72)
   );
@@ -206,9 +348,21 @@ export function renderOgCardSvg({
     <text x="108" y="325" fill="#94a3b8" font-size="25" font-weight="600">${safeSubtitle}</text>
     <rect x="108" y="388" width="560" height="64" rx="14" ry="14" fill="#071e2e" stroke="#00d4ff" stroke-width="2"/>
     <text x="138" y="429" fill="#00d4ff" font-size="24" font-weight="800">${safeStat}</text>
-    <text x="108" y="518" fill="#64748b" font-size="20" font-weight="700">smarter.poker • Open Quantitative Poker Intelligence &amp; 30-Tool MCP Server</text>
+    <text x="108" y="518" fill="#64748b" font-size="20" font-weight="700">smarter.poker • Open Quantitative Poker Intelligence &amp; 35-Tool MCP Server</text>
   </g>
 </svg>`;
+}
+
+export function renderToolOgCard(req, res) {
+  const { slug = '', title = '', subtitle = '', stat = '' } = req?.query || {};
+  const svg = renderOgCardSvg({ slug, title, subtitle, stat });
+  if (res) {
+    res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=604800');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    return res.status(200).send(svg);
+  }
+  return svg;
 }
 
 export default function handler(req, res) {
@@ -220,6 +374,7 @@ export default function handler(req, res) {
   const {
     type = 'venue',
     mode = '',
+    slug = '',
     label = '',
     value = '',
     theme = '',
@@ -230,15 +385,14 @@ export default function handler(req, res) {
 
   const isOg =
     String(mode || '').toLowerCase() === 'og' ||
-    String(type || '').toLowerCase() === 'og-card';
+    String(type || '').toLowerCase() === 'og-card' ||
+    Boolean(slug);
 
-  const svg = isOg
-    ? renderOgCardSvg({
-        title: title || 'Smarter.Poker GTO & Quantitative Poker Intelligence',
-        subtitle: subtitle || '24 Free Interactive Calculators • 169 Hand Guides • 500+ Live Rooms',
-        stat: stat || '100% Free - Zero Login Required',
-      })
-    : renderBadgeSvg({ type, label, value, theme });
+  if (isOg) {
+    return renderToolOgCard(req, res);
+  }
+
+  const svg = renderBadgeSvg({ type, label, value, theme });
 
   res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
   res.setHeader('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=604800');

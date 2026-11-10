@@ -171,8 +171,8 @@ test('Phase 4 of 6: Home Games Geo FAQPage + Host Tools and Poker Tour RFC 5545 
   assert.ok(ics.includes('DTSTART;VALUE=DATE:20260526'));
 });
 
-test('Phase 5 of 6: 30 MCP tools, Sitemaps, RSS Feed, llms.txt, and 404 recovery routes', async () => {
-  assert.equal(MCP_TOOLS.length, 30);
+test('Phase 5 of 6: 35 MCP tools, Sitemaps, RSS Feed, llms.txt, and 404 recovery routes', async () => {
+  assert.equal(MCP_TOOLS.length, 35);
 
   const sidePotRes = await executeMcpTool('calculate_side_pots', {
     contributions: [

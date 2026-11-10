@@ -341,8 +341,8 @@ test('Automated Outreach & Multilingual Syndication Engine (/api/seo/outreach-ge
   assert.equal(pkg.multilingual_bundles.length, 7);
 });
 
-test('Twitch & YouTube Streamer Chatbot API (/api/stream/cmd) evaluates !odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, and !matchup', () => {
-  assert.equal(STREAMER_BOT_COMMANDS.length, 14);
+test('Twitch & YouTube Streamer Chatbot API (/api/stream/cmd) evaluates !odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, !matchup, !tax, !stake, !iso, and !series', () => {
+  assert.equal(STREAMER_BOT_COMMANDS.length, 18);
 
   const oddsRes = evaluateStreamCommand({ cmd: 'odds', q: 'AA vs KK' });
   assert.ok(oddsRes.text.includes('81.9% vs 18.1%'));
@@ -352,10 +352,13 @@ test('Twitch & YouTube Streamer Chatbot API (/api/stream/cmd) evaluates !odds, !
   assert.ok(potOddsRes.text.includes('Required Equity = 25.0%'));
   assert.ok(potOddsRes.text.includes('Minimum Defense Frequency (MDF) = 66.7%'));
 
-  for (const cmd of ['pushfold', 'icm', 'bounty', 'winrate', 'plo', 'rake', '3bet', 'help']) {
+  for (const cmd of ['pushfold', 'icm', 'bounty', 'winrate', 'plo', 'rake', '3bet', 'tax', 'stake', 'iso', 'help']) {
     const res = evaluateStreamCommand({ cmd });
     assert.ok(res.text.includes('https://smarter.poker/tools/'), `${cmd} includes canonical tool URL`);
   }
+
+  const seriesRes = evaluateStreamCommand({ cmd: 'series', q: 'wsop' });
+  assert.ok(seriesRes.text.includes('https://smarter.poker/poker-series/guides'), 'series command includes canonical /poker-series/guides URL');
 
   const ruleRes = evaluateStreamCommand({ cmd: 'rule' });
   assert.ok(ruleRes.text.includes('https://smarter.poker/rules'), 'rule command includes canonical /rules URL');
@@ -376,7 +379,7 @@ test('MCP Server executes get_citation_and_backlink_kit tool with full outreach,
   assert.ok(parsed.wikipedia_citation_targets.length >= 6);
 });
 
-test('All 15 interactive calculators export getServerSideProps and renderHubToolMarkdown forwards dynamic query parameters', () => {
+test('All 23 interactive calculators export getServerSideProps and renderHubToolMarkdown forwards dynamic query parameters', () => {
   const calculatorPages = [
     'pages/tools/poker-odds-calculator.js',
     'pages/tools/icm-calculator.js',
@@ -393,6 +396,14 @@ test('All 15 interactive calculators export getServerSideProps and renderHubTool
     'pages/tools/payout-calculator.js',
     'pages/tools/rake-calculator.js',
     'pages/tools/3bet-calculator.js',
+    'pages/tools/chop-calculator.js',
+    'pages/tools/variance-calculator.js',
+    'pages/tools/outs-calculator.js',
+    'pages/tools/poker-tax-calculator.js',
+    'pages/tools/staking-calculator.js',
+    'pages/tools/iso-calculator.js',
+    'pages/tools/home-game-kit.js',
+    'pages/tools/format-quiz.js',
   ];
 
   for (const rel of calculatorPages) {
@@ -562,13 +573,52 @@ test('25-Item Free Discovery, Viral Calculators, Matchups, Series Guides, Press 
   assert.equal(SERIES_GUIDES.length, 10, '10 major poker series strategy guides');
   assert.equal(getSeriesGuideBySlug('wsop-las-vegas')?.shortName, 'WSOP Las Vegas');
 
-  assert.equal(MCP_TOOLS.length, 30, '30 zero-auth MCP tools');
+  assert.equal(MCP_TOOLS.length, 35, '35 zero-auth MCP tools');
   assert.equal(MCP_RESOURCE_TEMPLATES.length, 15, '15 MCP resource templates');
 
   const a2a = buildA2AAgentCard();
   assert.equal(a2a.schemaVersion, '1.0');
-  assert.equal(a2a.capabilities.mcpTools, 30);
+  assert.equal(a2a.capabilities.mcpTools, 35);
   assert.equal(a2a.capabilities.mcpResources, 15);
+
+  const taxRes = await executeMcpTool('calculate_poker_taxes_w2g', {
+    gross_winnings: 35000,
+    gross_losses: 15000,
+    filing_status: 'recreational',
+  });
+  const taxParsed = JSON.parse(taxRes.content[0].text);
+  assert.equal(taxParsed.canonical_url, 'https://smarter.poker/tools/poker-tax-calculator');
+
+  const stakeRes = await executeMcpTool('calculate_staking_markup_split', {
+    package_buyins: 10000,
+    markup: 1.2,
+    action_sold_pct: 50,
+    investor_share_pct: 10,
+    gross_cashes: 25000,
+  });
+  const stakeParsed = JSON.parse(stakeRes.content[0].text);
+  assert.equal(stakeParsed.canonical_url, 'https://smarter.poker/tools/staking-calculator');
+
+  const isoRes = await executeMcpTool('calculate_preflop_isolation_raise', {
+    limpers: 2,
+    out_of_position: true,
+    environment: 'live',
+  });
+  const isoParsed = JSON.parse(isoRes.content[0].text);
+  assert.equal(isoParsed.canonical_url, 'https://smarter.poker/tools/iso-calculator');
+
+  const homeChipRes = await executeMcpTool('calculate_home_game_chip_set', {
+    players: 8,
+    format: 'tournament',
+  });
+  const homeChipParsed = JSON.parse(homeChipRes.content[0].text);
+  assert.equal(homeChipParsed.canonical_url, 'https://smarter.poker/tools/home-game-kit');
+
+  const seriesGuideRes = await executeMcpTool('get_poker_series_strategy_guide', {
+    slug: 'wsop',
+  });
+  const seriesGuideParsed = JSON.parse(seriesGuideRes.content[0].text);
+  assert.equal(seriesGuideParsed.slug, 'wsop-las-vegas');
 
   const chopRes = await executeMcpTool('calculate_tournament_chop', {
     stacks: [500000, 300000, 200000],
@@ -668,7 +718,7 @@ test('Phase 6 Partner Installation Suite: oEmbed 1.0 Provider, 1-Line JS Widget 
   const catalog = buildPartnerInstallationCatalog({ partner: 'upswingpoker.com' });
   assert.equal(catalog.counts.embeddable_calculators, 23);
   assert.equal(catalog.counts.svg_attribution_badges, 15);
-  assert.equal(catalog.counts.streamer_chat_commands, 14);
+  assert.equal(catalog.counts.streamer_chat_commands, 18);
   assert.equal(catalog.counts.dead_tool_replacements, 12);
   assert.equal(catalog.counts.zenodo_dataset_deposits, 6);
   assert.ok(catalog.one_line_sdk_example.includes('data-partner="upswingpoker.com"'));

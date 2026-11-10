@@ -13,6 +13,7 @@ import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
+import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import {
   SERIES_GUIDES,
   SERIES_GUIDES_AS_OF,
@@ -289,6 +290,13 @@ export default function PokerSeriesGuidesIndexPage() {
           summary="Complete Tournament Series Strategy Guides For WSOP, WPT, WSOP Circuit, MSPT, RGPS, Wynn, Venetian, Borgata, SHRPO, And Texas Major Festivals."
           publishedYear="2026"
           slug="poker-series-strategy-guides"
+        />
+
+        <AiPromptLauncher
+          title="Major Live Poker Series, Tour & Festival Strategy Guides"
+          canonicalUrl={SERIES_GUIDES_URL}
+          canonicalPath="/poker-series/guides"
+          markdownUrl="/poker-series/guides.md"
         />
       </main>
     </div>

@@ -15,6 +15,7 @@ import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
+import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import {
   POKER_RULES,
   RULES_AS_OF,
@@ -27,7 +28,7 @@ import {
 export async function getStaticPaths() {
   return {
     paths: POKER_RULES.map((r) => ({ params: { slug: r.slug } })),
-    fallback: false,
+    fallback: 'blocking',
   };
 }
 
@@ -249,6 +250,13 @@ export default function PokerRuleDetailPage({ rule, peerRules = [] }) {
             badgeValue={rule.tdaRef}
             summary={rule.summary}
             slug={`poker-rule-${rule.slug}`}
+          />
+
+          <AiPromptLauncher
+            title={`${rule.title} (${rule.tdaRef})`}
+            canonicalUrl={canonicalUrl}
+            canonicalPath={canonicalPath}
+            markdownUrl={`/rules/${rule.slug}.md`}
           />
 
           <div style={styles.bottomNavRow}>

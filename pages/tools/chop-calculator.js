@@ -17,6 +17,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { renderChopCalculatorMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
 
 const DEFAULT_STACKS = [450000, 320000, 210000, 120000, 80000, 50000];
 const DEFAULT_PAYOUTS = [15000, 10000, 7000, 5000, 3500, 2500];
@@ -661,4 +662,31 @@ export default function ChopCalculatorPage({
       </main>
     </div>
   );
+}
+
+export async function getServerSideProps({ req, res, query }) {
+  const accept = String(req?.headers?.accept || '');
+  if (
+    query?.format === 'md' ||
+    query?.format === 'markdown' ||
+    accept.includes('text/markdown') ||
+    req?.url?.includes('format=md')
+  ) {
+    const renderToolDocumentationMarkdown = () =>
+      renderChopCalculatorMarkdown({
+        stacks: query?.stacks,
+        payouts: query?.payouts,
+        save: query?.save,
+      });
+    const md = renderToolDocumentationMarkdown('chop-calculator');
+    if (md) {
+      res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+      res.setHeader('Vary', 'Accept');
+      res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
+      res.write(md);
+      res.end();
+      return { props: {} };
+    }
+  }
+  return { props: {} };
 }

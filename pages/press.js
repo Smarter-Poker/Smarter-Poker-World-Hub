@@ -14,6 +14,7 @@ import Link from 'next/link';
 import SEOHead from '../src/components/seo/SEOHead';
 import UniversalHeader from '../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../src/components/seo/CitationBacklinkBox';
+import AiPromptLauncher from '../src/components/seo/AiPromptLauncher';
 
 const INDUSTRY_FAST_FACTS = [
   {
@@ -405,6 +406,13 @@ export default function PressKitMediaPage() {
           summary="Official Smarter.Poker Press Kit, 2026 US Live And Online Poker Industry Benchmarks, Verified Brand Boilerplates, And Media Citation Snippets."
           publishedYear="2026"
           slug="smarter-poker-press-kit"
+        />
+
+        <AiPromptLauncher
+          title="Smarter.Poker Official Press Kit & 2026 Poker Industry Fast Facts"
+          canonicalUrl={canonicalUrl}
+          canonicalPath="/press"
+          markdownUrl="/press.md"
         />
       </main>
     </div>

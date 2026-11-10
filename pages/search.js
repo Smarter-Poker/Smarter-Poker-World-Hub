@@ -16,6 +16,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../src/components/seo/SEOHead';
 import UniversalHeader from '../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../src/components/seo/CitationBacklinkBox';
+import AiPromptLauncher from '../src/components/seo/AiPromptLauncher';
 import { HAND_MATCHUPS, matchupPath } from '../src/content/learn/matchups';
 import { POKER_RULES, rulePath } from '../src/content/rules/rules';
 import { POKER_VARIANTS, gameVariantPath } from '../src/content/games/variants';
@@ -24,6 +25,8 @@ import { SERIES_GUIDES, seriesGuidePath } from '../src/content/guides/seriesGuid
 import { RESEARCH_REPORTS, researchPath } from '../src/content/research/reports';
 import { STARTING_HANDS, handPath } from '../src/content/learn/hands';
 import { COMPARE_PAGES, comparePath } from '../src/content/compare/pages';
+import { LESSONS } from '../src/content/learn/lessons';
+import { GLOSSARY_TERMS } from '../src/content/glossary/terms';
 
 export const POKER_GAMES = POKER_VARIANTS;
 export const POKER_MARKETS = POKER_MARKET_GUIDES;
@@ -202,6 +205,8 @@ const CALCULATOR_ITEMS = [
 const CATEGORIES = [
   'All Categories',
   'Interactive Calculators',
+  'GTO Lessons',
+  'Glossary',
   'Hand Matchups',
   'Official Poker Rules',
   'Game Variants',
@@ -210,6 +215,86 @@ const CATEGORIES = [
   'Research Studies',
   'Starting Hands',
   'Comparisons',
+];
+
+export const SEARCH_INDEX = [
+  ...CALCULATOR_ITEMS.map((item) => ({
+    category: 'Interactive Calculators',
+    href: item.href,
+    title: item.title,
+    summary: item.summary,
+    badge: item.badge,
+  })),
+  ...LESSONS.map((l) => ({
+    category: 'GTO Lessons',
+    href: `/learn/${l.slug}`,
+    title: l.title,
+    summary: l.summary,
+    badge: 'Lesson',
+  })),
+  ...GLOSSARY_TERMS.map((g) => ({
+    category: 'Glossary',
+    href: `/glossary/${g.slug}`,
+    title: `${g.term} (${g.category})`,
+    summary: g.shortDefinition || g.definition,
+    badge: 'Term',
+  })),
+  ...HAND_MATCHUPS.map((m) => ({
+    category: 'Hand Matchups',
+    href: matchupPath(m.slug),
+    title: m.title,
+    summary: m.summary,
+    badge: `${m.handA} (${m.handAEquity}%) Vs ${m.handB} (${m.handBEquity}%)`,
+  })),
+  ...POKER_RULES.map((r) => ({
+    category: 'Official Poker Rules',
+    href: rulePath(r.slug),
+    title: r.title,
+    summary: r.summary,
+    badge: r.tdaRef,
+  })),
+  ...POKER_GAMES.map((g) => ({
+    category: 'Game Variants',
+    href: gameVariantPath(g.slug),
+    title: g.title,
+    summary: g.summary,
+    badge: g.category,
+  })),
+  ...POKER_MARKETS.map((m) => ({
+    category: 'Regional Poker Markets',
+    href: marketGuidePath(m.slug),
+    title: m.title,
+    summary: m.summary,
+    badge: `${m.stateCode} Market`,
+  })),
+  ...SERIES_GUIDES.map((s) => ({
+    category: 'Major Series Guides',
+    href: seriesGuidePath(s.slug),
+    title: s.name,
+    summary: `${s.hostVenue} (${s.buyInRange} Buy-Ins, ${s.mainEventBuyIn}).`,
+    badge: s.cityState,
+  })),
+  ...RESEARCH_REPORTS.map((r) => ({
+    category: 'Research Studies',
+    href: researchPath(r.slug),
+    title: r.title,
+    summary: r.summary,
+    badge: r.category,
+  })),
+  ...STARTING_HANDS.map((h) => ({
+    category: 'Starting Hands',
+    href: handPath(h.slug),
+    title: `${h.code} - ${h.name} (${h.nickname})`,
+    summary: h.summary,
+    badge: `Rank ${h.preflopRank}`,
+  })),
+  ...COMPARE_PAGES.map((c) => ({
+    category: 'Comparisons',
+    href: comparePath(c.slug),
+    title: c.h1 || c.title,
+    summary: c.description,
+    badge: c.kind === 'best-of' ? 'Best-Of Guide' : 'Side-By-Side Comparison',
+  })),
 ];
 
 export default function UniversalPokerSearchPage() {
@@ -334,8 +419,34 @@ export default function UniversalPokerSearchPage() {
       summary: c.description,
     }));
 
+    const lessons = LESSONS.filter(
+      (l) => matchText(l.title) || matchText(l.category) || matchText(l.summary)
+    ).map((l) => ({
+      category: 'GTO Lessons',
+      href: `/learn/${l.slug}`,
+      title: l.title,
+      summary: l.summary,
+      badge: 'Lesson',
+    }));
+
+    const glossary = GLOSSARY_TERMS.filter(
+      (g) =>
+        matchText(g.term) ||
+        matchText(g.category) ||
+        matchText(g.shortDefinition) ||
+        matchText(g.definition)
+    ).map((g) => ({
+      category: 'Glossary',
+      href: `/glossary/${g.slug}`,
+      title: `${g.term} (${g.category})`,
+      summary: g.shortDefinition || g.definition,
+      badge: 'Term',
+    }));
+
     return [
       { category: 'Interactive Calculators', items: calculators },
+      { category: 'GTO Lessons', items: lessons },
+      { category: 'Glossary', items: glossary },
       { category: 'Hand Matchups', items: matchups },
       { category: 'Official Poker Rules', items: rules },
       { category: 'Game Variants', items: games },
@@ -491,6 +602,13 @@ export default function UniversalPokerSearchPage() {
           summary="Search Across 24 Interactive Poker Calculators, 169 Starting Hands, 25 Hand Matchups, 30 Official Rules, 15 Game Variants, And 15 Research Studies."
           publishedYear="2026"
           slug="smarter-poker-universal-search"
+        />
+
+        <AiPromptLauncher
+          title="Smarter.Poker Universal Search Directory"
+          canonicalUrl={canonicalUrl}
+          canonicalPath="/search"
+          markdownUrl="/search.md"
         />
       </main>
     </div>

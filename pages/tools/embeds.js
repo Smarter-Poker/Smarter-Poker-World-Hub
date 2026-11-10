@@ -368,6 +368,10 @@ export const STREAM_CHAT_COMMANDS = [
   {
     id: 'cmd-odds',
     command: '!odds',
+    cmd: '!odds',
+    query: 'AA vs KK',
+    desc: 'Preflop matchup & draw equity calculator',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=odds&q=AA+vs+KK',
     title: 'Preflop Matchup & Draw Equity Command (!odds AA vs KK)',
     nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=odds&q=$(querystring))',
     toolUrl: 'https://smarter.poker/tools/poker-odds-calculator',
@@ -375,6 +379,10 @@ export const STREAM_CHAT_COMMANDS = [
   {
     id: 'cmd-potodds',
     command: '!potodds',
+    cmd: '!potodds',
+    query: '100 50',
+    desc: 'Pot odds & Minimum Defense Frequency (MDF) calculator',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=potodds&q=100+50',
     title: 'Pot Odds & Minimum Defense Frequency Command (!potodds 100 50)',
     nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=potodds&q=$(querystring))',
     toolUrl: 'https://smarter.poker/tools/pot-odds-calculator',
@@ -382,6 +390,10 @@ export const STREAM_CHAT_COMMANDS = [
   {
     id: 'cmd-pushfold',
     command: '!pushfold',
+    cmd: '!pushfold',
+    query: '10 BTN',
+    desc: '10BB short-stack Nash push/fold range solver',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=pushfold&q=10+BTN',
     title: '10BB Short-Stack Nash Push/Fold Command (!pushfold)',
     nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=pushfold&q=$(querystring))',
     toolUrl: 'https://smarter.poker/tools/push-fold-calculator',
@@ -389,6 +401,10 @@ export const STREAM_CHAT_COMMANDS = [
   {
     id: 'cmd-icm',
     command: '!icm',
+    cmd: '!icm',
+    query: '40,30,20,10',
+    desc: 'Tournament final table ICM bubble factor & payout equity',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=icm&q=40,30,20,10',
     title: 'Tournament Final Table ICM Bubble Factor Command (!icm)',
     nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=icm&q=$(querystring))',
     toolUrl: 'https://smarter.poker/tools/icm-calculator',
@@ -396,6 +412,10 @@ export const STREAM_CHAT_COMMANDS = [
   {
     id: 'cmd-bounty',
     command: '!bounty',
+    cmd: '!bounty',
+    query: '100 50 10000',
+    desc: 'PKO & Mystery Bounty chip equivalent & odds discount',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=bounty&q=100+50+10000',
     title: 'PKO & Mystery Bounty Chip Equivalent Command (!bounty)',
     nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=bounty&q=$(querystring))',
     toolUrl: 'https://smarter.poker/tools/bounty-calculator',
@@ -403,6 +423,10 @@ export const STREAM_CHAT_COMMANDS = [
   {
     id: 'cmd-winrate',
     command: '!winrate',
+    cmd: '!winrate',
+    query: '5 85',
+    desc: 'Poker bankroll Risk of Ruin & BB/100 variance calculator',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=winrate&q=5+85',
     title: 'Poker Bankroll Risk Of Ruin & Variance Command (!winrate)',
     nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=winrate&q=$(querystring))',
     toolUrl: 'https://smarter.poker/tools/poker-winrate-calculator',
@@ -410,6 +434,10 @@ export const STREAM_CHAT_COMMANDS = [
   {
     id: 'cmd-plo',
     command: '!plo',
+    cmd: '!plo',
+    query: '100 50',
+    desc: 'Pot-Limit Omaha max raise (3x + trail + pot) calculator',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=plo&q=100+50',
     title: 'Pot-Limit Omaha Max Raise (3x + Trail + Pot) Command (!plo)',
     nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=plo&q=$(querystring))',
     toolUrl: 'https://smarter.poker/tools/plo-bet-calculator',
@@ -417,6 +445,10 @@ export const STREAM_CHAT_COMMANDS = [
   {
     id: 'cmd-rake',
     command: '!rake',
+    cmd: '!rake',
+    query: '10 5 7',
+    desc: 'Live cash game rake cap vs time collection analyzer',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=rake&q=10+5+7',
     title: 'Live Cash Game Rake Cap Vs. Time Collection Command (!rake)',
     nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=rake&q=$(querystring))',
     toolUrl: 'https://smarter.poker/tools/rake-calculator',
@@ -424,6 +456,10 @@ export const STREAM_CHAT_COMMANDS = [
   {
     id: 'cmd-3bet',
     command: '!3bet',
+    cmd: '!3bet',
+    query: '2.5 IP',
+    desc: 'Solver-approved IP/OOP 3-bet & 4-bet sizing calculator',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=3bet&q=2.5+IP',
     title: 'Solver-Approved IP/OOP 3-Bet & 4-Bet Sizing Command (!3bet)',
     nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=3bet&q=$(querystring))',
     toolUrl: 'https://smarter.poker/tools/3bet-calculator',
@@ -431,6 +467,10 @@ export const STREAM_CHAT_COMMANDS = [
   {
     id: 'cmd-rule',
     command: '!rule',
+    cmd: '!rule',
+    query: 'one-chip',
+    desc: 'Official Poker TDA & RROP floor rulings lookup',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=rule&q=one-chip',
     title: 'Official Poker TDA & RROP Floor Rulings Command (!rule)',
     nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=rule&q=$(querystring))',
     toolUrl: 'https://smarter.poker/rules',
@@ -438,6 +478,10 @@ export const STREAM_CHAT_COMMANDS = [
   {
     id: 'cmd-chop',
     command: '!chop',
+    cmd: '!chop',
+    query: '50000,30000,20000 5000,3000,2000',
+    desc: 'Final table ICM chop & chip chop deal calculator',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=chop&q=50000,30000,20000+5000,3000,2000',
     title: 'Final Table ICM Chop & Chip Chop Deal Command (!chop 50000,30000,20000 5000,3000,2000)',
     nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=chop&q=$(querystring))',
     toolUrl: 'https://smarter.poker/tools/chop-calculator',
@@ -445,6 +489,10 @@ export const STREAM_CHAT_COMMANDS = [
   {
     id: 'cmd-outs',
     command: '!outs',
+    cmd: '!outs',
+    query: '9 flop',
+    desc: 'Exact hypergeometric poker draw outs & Rule of 2 and 4',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=outs&q=9+flop',
     title: 'Exact Hypergeometric Poker Draw Outs Command (!outs 9 flop)',
     nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=outs&q=$(querystring))',
     toolUrl: 'https://smarter.poker/tools/outs-calculator',
@@ -452,6 +500,10 @@ export const STREAM_CHAT_COMMANDS = [
   {
     id: 'cmd-variance',
     command: '!variance',
+    cmd: '!variance',
+    query: '5 85 50000',
+    desc: 'Poker winrate confidence interval & downswing simulator',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=variance&q=5+85+50000',
     title: 'Poker Winrate Confidence Interval & Downswing Command (!variance 5 85 50000)',
     nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=variance&q=$(querystring))',
     toolUrl: 'https://smarter.poker/tools/variance-calculator',
@@ -459,11 +511,61 @@ export const STREAM_CHAT_COMMANDS = [
   {
     id: 'cmd-matchup',
     command: '!matchup',
+    cmd: '!matchup',
+    query: 'aa-vs-kk',
+    desc: 'Canonical preflop hand-vs-hand equity lookup',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=matchup&q=aa-vs-kk',
     title: 'Canonical Preflop Hand-Vs-Hand Equity Command (!matchup aa-vs-kk)',
     nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=matchup&q=$(querystring))',
     toolUrl: 'https://smarter.poker/learn/matchups',
   },
+  {
+    id: 'cmd-tax',
+    command: '!tax',
+    cmd: '!tax',
+    query: 'net=25000&losses=10000',
+    desc: 'US poker tax & IRS $5,000 Form W-2G withholding calculator',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=tax&q=net=25000',
+    title: 'US Poker Tax & IRS $5,000 Form W-2G Withholding Command (!tax net=25000&losses=10000)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=tax&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/tools/poker-tax-calculator',
+  },
+  {
+    id: 'cmd-stake',
+    command: '!stake',
+    cmd: '!stake',
+    query: 'buyin=1000&markup=1.2&sold=50',
+    desc: 'Tournament staking markup, breakeven ROI & payout split',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=stake&q=1000+1.2+50',
+    title: 'Tournament Staking Markup, Breakeven ROI & Payout Split Command (!stake 1000 1.2 50)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=stake&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/tools/staking-calculator',
+  },
+  {
+    id: 'cmd-iso',
+    command: '!iso',
+    cmd: '!iso',
+    query: 'limpers=2&oop=true',
+    desc: 'Pre-flop limper isolation raise sizing & flop SPR',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=iso&q=2',
+    title: 'Pre-Flop Limper Isolation Raise Sizing & Flop SPR Command (!iso 2)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=iso&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/tools/iso-calculator',
+  },
+  {
+    id: 'cmd-series',
+    command: '!series',
+    cmd: '!series',
+    query: 'wsop-las-vegas',
+    desc: 'Major poker tournament series structure & survival guide',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=series&q=wsop-las-vegas',
+    title: 'Major Poker Tournament Series Structure & Survival Guide Command (!series wsop-las-vegas)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=series&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/poker-series/guides',
+  },
 ];
+
+export const STREAMER_COMMANDS = STREAM_CHAT_COMMANDS;
 
 export async function getServerSideProps({ req, res, query }) {
   const acceptHeader = String(req?.headers?.accept || '');
@@ -975,7 +1077,7 @@ export default function WebmasterEmbedPortal() {
           <section aria-labelledby="streamer-commands-heading" style={{ marginTop: '48px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
               <h2 id="streamer-commands-heading" style={{ fontSize: '1.6rem', fontWeight: 700, margin: 0 }}>
-                Twitch, YouTube &amp; Kick Streamer Chatbot Commands (Nightbot / StreamElements)
+                18 Twitch, YouTube &amp; Kick Streamer Chatbot Commands (Nightbot / StreamElements)
               </h2>
               <div style={{ display: 'flex', gap: '8px' }}>
                 {[
@@ -1004,7 +1106,7 @@ export default function WebmasterEmbedPortal() {
               </div>
             </div>
             <p style={{ fontSize: '0.96rem', color: 'rgba(255, 255, 255, 0.72)', lineHeight: 1.6, marginBottom: '24px' }}>
-              Add Instant Live Poker Equity, Pot Odds, ICM Bubble Factors, PLO Max Bet Math, And Official TDA Floor Rulings Directly To Your Stream Chat. Viewers Type The Command In Chat And Receive An Instant Sub-380-Character Mathematical Answer With Canonical Attribution.
+              Add All 18 Instant Live Poker Equity, Pot Odds, ICM Bubble Factors, Final Table Chop, Variance, Draw Outs, US Poker Tax, Staking Markup, Limper Isolation, Series Survival Guides, PLO Max Bet Math, And Official TDA Floor Rulings Commands Directly To Your Stream Chat. Viewers Type The Command In Chat And Receive An Instant Sub-380-Character Mathematical Answer With Canonical Attribution.
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: '16px' }}>
               {STREAM_CHAT_COMMANDS.map((cmdItem) => {

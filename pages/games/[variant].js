@@ -15,6 +15,7 @@ import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
+import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import {
   GAMES_AS_OF,
   GAMES_BASE_PATH,
@@ -27,7 +28,7 @@ import {
 export async function getStaticPaths() {
   return {
     paths: POKER_VARIANTS.map((v) => ({ params: { variant: v.slug } })),
-    fallback: false,
+    fallback: 'blocking',
   };
 }
 
@@ -265,6 +266,13 @@ export default function PokerVariantDetailPage({ variant, peerVariants = [] }) {
             badgeValue={variant.name}
             summary={variant.summary}
             slug={`poker-variant-${variant.slug}`}
+          />
+
+          <AiPromptLauncher
+            title={`${variant.name} Rules, Hand Rankings & Strategy Guide`}
+            canonicalUrl={canonicalUrl}
+            canonicalPath={canonicalPath}
+            markdownUrl={`/games/${variant.slug}.md`}
           />
 
           <div style={styles.bottomNavRow}>

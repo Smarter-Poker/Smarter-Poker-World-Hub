@@ -24,9 +24,55 @@ export function gameVariantPath(slug) {
   return `/games/${slug}`;
 }
 
+const VARIANT_SLUG_ALIASES = {
+  'nlhe': 'texas-holdem',
+  'holdem': 'texas-holdem',
+  'no-limit-holdem': 'texas-holdem',
+  'plo': 'pot-limit-omaha-plo4',
+  'plo4': 'pot-limit-omaha-plo4',
+  'pot-limit-omaha': 'pot-limit-omaha-plo4',
+  'omaha': 'pot-limit-omaha-plo4',
+  'plo5': 'five-card-omaha-plo5',
+  '5-card-omaha': 'five-card-omaha-plo5',
+  'five-card-omaha': 'five-card-omaha-plo5',
+  'plo6': 'six-card-omaha-plo6',
+  '6-card-omaha': 'six-card-omaha-plo6',
+  'six-card-omaha': 'six-card-omaha-plo6',
+  'o8': 'omaha-hi-lo-o8',
+  'plo8': 'omaha-hi-lo-o8',
+  'omaha-hi-lo': 'omaha-hi-lo-o8',
+  'short-deck': 'short-deck-six-plus',
+  '6-plus': 'short-deck-six-plus',
+  'six-plus': 'short-deck-six-plus',
+  'bomb-pot': 'double-board-bomb-pot-plo',
+  'double-board-plo': 'double-board-bomb-pot-plo',
+  'stud': 'seven-card-stud',
+  '7-card-stud': 'seven-card-stud',
+  'stud8': 'seven-card-stud-hi-lo',
+  'stud-hi-lo': 'seven-card-stud-hi-lo',
+  'razz': 'razz-seven-card-lowball',
+  '2-7-triple-draw': 'deuce-to-seven-triple-draw',
+  'deuce-to-seven': 'deuce-to-seven-triple-draw',
+  '2-7-single-draw': 'no-limit-deuce-to-seven-single-draw',
+  'nl-2-7-single-draw': 'no-limit-deuce-to-seven-single-draw',
+  'badugi': 'badugi-four-card-lowball',
+  'horse': 'horse-and-eight-game-mix',
+  '8-game': 'horse-and-eight-game-mix',
+  'eight-game': 'horse-and-eight-game-mix',
+  'mixed-games': 'horse-and-eight-game-mix',
+  'pineapple': 'pineapple-and-crazy-pineapple',
+  'crazy-pineapple': 'pineapple-and-crazy-pineapple',
+};
+
 export function getGameVariantBySlug(slug) {
   if (!slug) return null;
-  return POKER_VARIANTS.find((v) => v.slug === slug) || null;
+  const clean = String(slug).trim().toLowerCase();
+  const target = VARIANT_SLUG_ALIASES[clean] || clean;
+  return (
+    POKER_VARIANTS.find((v) => v.slug === target) ||
+    POKER_VARIANTS.find((v) => v.slug.includes(clean)) ||
+    null
+  );
 }
 
 export const POKER_VARIANTS = [
