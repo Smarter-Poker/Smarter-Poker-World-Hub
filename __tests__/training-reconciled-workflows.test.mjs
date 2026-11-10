@@ -698,4 +698,35 @@ test('Personalized leak-to-drill loop identifies highest-EV-loss (variant, stree
   assert.equal(firstQuestion.scenario.heroPosition, 'BB');
   assert.equal(firstQuestion.heroCards.length, 5);
   assert.equal(firstQuestion.boardCards.length, 4);
+
+  // Verify weakness-scanner Horse Brain remediation cards/boards have zero card collisions across all 16 (variant x street) pairs
+  const heroCardsByVariant = {
+    nlh: ['Kh', 'Jc'],
+    plo4: ['As', 'Ks', 'Qh', 'Jd'],
+    plo5: ['As', 'Ks', 'Qh', 'Jd', 'Tc'],
+    plo6: ['As', 'Ks', 'Qh', 'Jd', 'Tc', '9h'],
+  };
+  const boardByStreet = {
+    preflop: [],
+    flop: ['8d', '5c', '2s'],
+    turn: ['8d', '5c', '2s', '6h'],
+    river: ['8d', '5c', '2s', '6h', '3d'],
+  };
+  for (const [v, hCards] of Object.entries(heroCardsByVariant)) {
+    for (const [st, bCards] of Object.entries(boardByStreet)) {
+      const evalResult = evaluateTrainingSpotWithHorseBrain({
+        gameId: 'cash-005',
+        variant: v,
+        heroCards: hCards,
+        boardCards: bCards,
+        street: st,
+        pot: 6.5,
+        toCall: 0,
+        stackDepth: 100,
+        heroPosition: 'BB',
+        villainPosition: 'BTN',
+      });
+      assert.equal(evalResult.ok, true, `Expected ${v} ${st} to evaluate without card collision`);
+    }
+  }
 });

@@ -146,9 +146,9 @@ export default function WeaknessScannerPage() {
       };
       const boardByStreet = {
         preflop: [],
-        flop: ['Ks', '8d', '4c'],
-        turn: ['Ks', '8d', '4c', '2h'],
-        river: ['Ks', '8d', '4c', '2h', '7s'],
+        flop: ['8d', '5c', '2s'],
+        turn: ['8d', '5c', '2s', '6h'],
+        river: ['8d', '5c', '2s', '6h', '3d'],
       };
       return evaluateTrainingSpotWithHorseBrain({
         gameId: topLeakGameId,
@@ -308,6 +308,7 @@ export default function WeaknessScannerPage() {
               {/* Exploitative Villain Tendency Selector */}
               <div
                 data-exploit-tendency-selector="true"
+                data-recommended-action={leakBrainEval.correctAnswer}
                 style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 10 }}
               >
                 {['Calling Station', 'Aggro 3-Bettor', 'Tight-Passive Nit', 'Balanced GTO Reg'].map((arch) => (
@@ -315,6 +316,7 @@ export default function WeaknessScannerPage() {
                     key={arch}
                     type="button"
                     data-exploit-tendency-btn={arch}
+                    data-tendency-option={arch}
                     onClick={() => setVillainArchetype(arch)}
                     style={{
                       padding: '3px 8px',
