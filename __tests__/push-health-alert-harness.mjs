@@ -54,7 +54,18 @@ export const FINGERPRINT = fingerprintOf(PUBLIC_KEY);
 export const SECOND = 1000, MIN = 60_000, HOUR = 3600_000, DAY = 86400_000;
 export const DETECT = 'PushHealthNoticeAddressedToOwnerAccount';
 export const CHECK_FAILED = 'PushHealthCheckFailed';
-export const TODAY = ['1 zombie subscription(s) across 1 user(s)', '1 staff account(s) cannot receive push'];
+// Owner, 2026-11-09: only an account that must receive platform alerts (the
+// owner's verified accounts) being unreachable is a staff fault. The default
+// world's staff account without a device, ADMIN_B, is an ordinary admin, so
+// today's problems are the zombie line alone.
+export const TODAY = ['1 zombie subscription(s) across 1 user(s)'];
+export const STAFF_LINE = '1 staff account(s) cannot receive push';
+// The owner's verified second account (a platform alert recipient) loses its
+// phone, so the staff condition is a fault: for tests of its mechanics.
+export const recipientOff = (seed) => {
+  seed.push_subscriptions = seed.push_subscriptions.filter((row) => row.user_id !== ADMIN_A);
+  return seed;
+};
 export const clone = (value) => (value === undefined ? undefined : JSON.parse(JSON.stringify(value)));
 const iso = (ms) => new Date(ms).toISOString();
 // A timestamptz as the database renders it into jsonb in UTC, the way every

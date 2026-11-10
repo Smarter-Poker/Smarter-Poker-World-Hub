@@ -288,6 +288,10 @@ jobs:
           __tests__/push-subscription-ownership.test.mjs
           __tests__/push-rotation-ownership.test.mjs
           __tests__/push-health-snapshot.test.mjs
+          __tests__/push-health-alert-cooldown.test.mjs
+          __tests__/push-health-alert-evidence.test.mjs
+          __tests__/push-health-alert-positive-evidence.test.mjs
+          __tests__/push-health-owner-alert-episodes.test.mjs
           __tests__/zombie-endpoint-retirement.test.mjs
           __tests__/push-worker-delivery-receipt.test.mjs
           __tests__/push-enrollment-nudge.test.mjs

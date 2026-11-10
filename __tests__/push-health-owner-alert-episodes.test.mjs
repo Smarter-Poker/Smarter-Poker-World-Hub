@@ -27,7 +27,7 @@ import assert from 'node:assert/strict';
 import { ALERT_TASK_ID } from '../src/lib/operationalAlerts.mjs';
 import { ADMIN_A, ADMIN_B, DETECT, HOUR, MIN, OWNER, PLAYER, ROUTE_SOURCE, SOURCE, TODAY, addressed, alerts,
   confirm, database, device, episodes, failed, firing, gateway, importsOf, named, needHelper, pgUtc, recoveryOf,
-  scenario, subscription, titles, world } from './push-health-alert-harness.mjs';
+  recipientOff, scenario, STAFF_LINE, subscription, titles, world } from './push-health-alert-harness.mjs';
 
 // ---- The route --------------------------------------------------------------
 test('push-health imports exactly these bindings, and names only conditions and checks that exist', () => {
@@ -44,7 +44,7 @@ test('push-health imports exactly these bindings, and names only conditions and 
     notify: '../../../src/lib/notify',
     notifyAdmins: '../../../src/lib/notify',
     filterRecentlyAlerted: '../../../src/lib/push/alertCooldown.mjs',
-    ...Object.fromEntries(['CHECK', 'CONDITION', 'includesOwnerAccount', 'isOwnerAccount', 'observeOwnerAddressedNotices',
+    ...Object.fromEntries(['CHECK', 'CONDITION', 'includesOwnerAccount', 'isOwnerAccount', 'mustReceivePlatformAlerts', 'observeOwnerAddressedNotices',
       'personalRecipients', 'pushHealthNotices', 'pushHealthObservations', 'recordPushHealthAlerts',
       'settledVapidRotations', 'vapidRotation'].map((name) => [name, helper])),
   });
@@ -76,12 +76,13 @@ for (const storeOnly of [false, true]) {
     // Recorded once, directly: nothing went through the classifier capture.
     assert.deepEqual(s.db.tables.operational_notification_destinations, []);
     assert.deepEqual(s.db.tables.operational_alert_events.filter((r) => r.source !== SOURCE), []);
-    assert.deepEqual(episodes(s).map((r) => r.alertname).sort(), ['PushStaffUnreachable', 'PushZombieSubscriptions']);
+    // An ordinary admin without a device (ADMIN_B) opens no staff episode.
+    assert.deepEqual(episodes(s).map((r) => r.alertname).sort(), ['PushZombieSubscriptions']);
   });
 }
 
 test('one condition is one episode, coalesced while it persists: a device condition stays open for the fleet, a directly observed one resolves on the same source', async () => {
-  const s = scenario();
+  const s = scenario({ seed: recipientOff(world()) });
   s.db.tables.push_outbox.push(...Array.from({ length: 251 }, (_, i) => ({ id: `p${i}`, status: 'pending', created_at: s.ago(MIN) })));
   const first = await s.run();
   assert.equal(first.body.operationalAlerts?.ok, true);
@@ -106,7 +107,7 @@ test('one condition is one episode, coalesced while it persists: a device condit
 
   // All three clear.
   confirm(s, 'player-phone');
-  s.db.tables.push_subscriptions.push(subscription('admin-b-phone', ADMIN_B, s.db.now()));
+  s.db.tables.push_subscriptions.push(subscription('admin-a-phone', ADMIN_A, s.db.now()));
   s.db.tables.push_outbox = s.db.tables.push_outbox.filter((row) => row.status !== 'pending');
   const cleared = await s.run();
   assert.deepEqual(cleared.body.problems, []);
@@ -149,7 +150,7 @@ test('"Push Notifications Are Off" for the owner account is an episode, never hi
   const s = scenario({ seed });
   const res = await s.run();
   assert.deepEqual(titles(s, OWNER), [], 'the unclassified staff notice reached the owner account inbox');
-  assert.equal(res.body.problems[1], '2 staff account(s) cannot receive push', 'the admins still count him');
+  assert.equal(res.body.problems[1], STAFF_LINE, 'the admins still count him, and only him (ADMIN_B is no platform alert recipient)');
   assert.deepEqual(titles(s, ADMIN_B), []);
   const [off] = named(s, 'OwnerAccountPushNotificationsOff');
   assert.equal(off?.status, 'firing');
@@ -531,4 +532,23 @@ test('a receipt the store did not really give is a failed delivery; a large batc
   assert.equal(out.ok, true);
   assert.deepEqual(sizes, [200, 10]);
   assert.equal(out.resolved, 210);
+});
+
+// Owner, 2026-11-09: "all important info is supposed to be sent to my account
+// ONLY". Production on that day: an ordinary admin's iPad and a god account had
+// no live device, and push-health raised PushStaffUnreachable for them every
+// day (operational_alert_events row 187659), asking for accounts that receive
+// no platform alert to be turned on.
+test('only an account that must receive platform alerts is a staff fault; an ordinary admin without a device opens nothing', async () => {
+  const s = scenario(); // ADMIN_B: an ordinary admin with no device
+  const res = await s.run();
+  assert.deepEqual(named(s, 'PushStaffUnreachable'), [], 'an ordinary admin without a device opened a Production Alerts episode');
+  assert.ok(!res.body.problems.includes(STAFF_LINE), 'the admins were told an ordinary admin is a fault');
+
+  const t = scenario({ seed: recipientOff(world()) }); // and the owner's verified second account loses its phone
+  const off = await t.run();
+  const [staff] = firing(t, 'PushStaffUnreachable');
+  assert.equal(staff?.payload.summary, STAFF_LINE, 'a platform alert recipient without a device was not a fault');
+  assert.deepEqual(staff.payload.evidence, { staffAccounts: 1 }, 'the ordinary admin was counted');
+  assert.ok(off.body.problems.includes(STAFF_LINE));
 });
