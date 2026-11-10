@@ -205,8 +205,8 @@
     "/api/mcp": {
       "post": {
         "operationId": "callMcpRpc",
-        "summary": "Model Context Protocol JSON-RPC 2.0 Tool Execution (30 Tools & 15 Resource Templates)",
-        "description": "Executes Model Context Protocol (MCP) JSON-RPC 2.0 tool calls across all 30 zero-auth tools including calculate_poker_odds, get_preflop_chart, calculate_icm_payouts, calculate_side_pots, generate_blind_structure, calculate_spr_sizing, lookup_poker_rule, lookup_game_variant, get_regional_market_guide, calculate_plo_max_bet_and_rake, calculate_tournament_chop, simulate_poker_variance, calculate_draw_outs, lookup_hand_matchup, lookup_starting_hand, get_poker_term_definition, search_poker_venues, and search_tournament_series, plus resources/read and resources/templates/list across 15 URI templates.",
+        "summary": "Model Context Protocol JSON-RPC 2.0 Tool Execution (35 Tools & 15 Resource Templates)",
+        "description": "Executes Model Context Protocol (MCP) JSON-RPC 2.0 tool calls across all 35 zero-auth tools including calculate_poker_odds, get_preflop_chart, calculate_icm_payouts, calculate_side_pots, generate_blind_structure, calculate_spr_sizing, lookup_poker_rule, lookup_game_variant, get_regional_market_guide, calculate_plo_max_bet_and_rake, calculate_tournament_chop, simulate_poker_variance, calculate_draw_outs, lookup_hand_matchup, calculate_poker_taxes_w2g, calculate_staking_markup_split, calculate_preflop_isolation_raise, calculate_home_game_chip_set, get_poker_series_strategy_guide, lookup_starting_hand, get_poker_term_definition, search_poker_venues, and search_tournament_series, plus resources/read and resources/templates/list across 15 URI templates.",
         "requestBody": {
           "required": true,
           "content": {
