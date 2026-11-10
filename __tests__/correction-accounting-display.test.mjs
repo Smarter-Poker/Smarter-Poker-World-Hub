@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import * as accounting from '../src/lib/accountingMessage.mjs';
+import * as unionEco from '../src/lib/unionEco.mjs';
 import * as messageMedia from '../src/lib/messenger/messageMedia.mjs';
 import * as liveInvite from '../src/lib/messenger/liveInvite.mjs';
 import * as callReceipt from '../src/lib/messenger/callReceipt.mjs';
@@ -56,6 +57,7 @@ const Card = compile('../src/components/messenger/AccountingInvoiceCard.js',
 const Bubble = compile('../src/components/messenger/MessageBubble.js', name => {
     if (name === './AccountingInvoiceCard') return { default: Card, __esModule: true };
     if (name === '../../lib/accountingMessage.mjs') return accounting;
+    if (name === '../../lib/unionEco.mjs') return unionEco;
     if (name === './MessengerTheme') return { defaultTheme: theme };
     if (name === './Avatar') return { Avatar: () => null };
     if (name === './CashoutRequestActions') return { default: () => null, formatChips: String, __esModule: true };
