@@ -4375,7 +4375,15 @@ function UniversalDynamicTable({
                                     <div
                                         data-seat-stack-display="true"
                                         data-display-mode={displayMode}
+                                        role="button"
+                                        tabIndex={0}
                                         onClick={toggleDisplayMode}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault();
+                                                toggleDisplayMode(e);
+                                            }
+                                        }}
                                         title="Click to toggle BB / Chips (Club Arena 1:1)"
                                         style={{
                                             fontSize: Math.max(12, ui(11)),

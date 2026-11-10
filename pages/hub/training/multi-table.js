@@ -16,7 +16,7 @@ import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
-import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import { normalizeTrainingSessionConfig } from '../../../src/lib/training/sessionConfigContract.mjs';
 import { savePracticeSession } from '../../../src/lib/training/practiceSession';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
@@ -433,29 +433,25 @@ export default function MultiTablePage() {
               },
           });
           try {
-            const token = await getAccessToken();
-            if (token) {
-              await fetch('/api/training/tool-records', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  Authorization: `Bearer ${token}`,
+            await authedFetch('/api/training/tool-records', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                tool_id: 'multi-table',
+                record_type: 'multi_table_session',
+                payload: {
+                  runId,
+                  tableCount,
+                  variant: selectedVariant,
+                  totalHands: combinedStats.totalHands,
+                  totalCorrect: combinedStats.totalCorrect,
+                  accuracy,
+                  totalEVLoss: combinedStats.measuredEVDecisions > 0 ? combinedStats.totalEVLoss : null,
                 },
-                body: JSON.stringify({
-                  tool_id: 'multi-table',
-                  record_type: 'multi_table_session',
-                  payload: {
-                    runId,
-                    tableCount,
-                    variant: selectedVariant,
-                    totalHands: combinedStats.totalHands,
-                    totalCorrect: combinedStats.totalCorrect,
-                    accuracy,
-                    totalEVLoss: combinedStats.measuredEVDecisions > 0 ? combinedStats.totalEVLoss : null,
-                  },
-                }),
-              });
-            }
+              }),
+            });
           } catch {}
           setSaveStatus('saved');
 

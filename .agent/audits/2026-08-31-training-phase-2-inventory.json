@@ -31090,7 +31090,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 830,
+          "line": 826,
           "handler": "() => setSelectedVariant(v.id)",
           "destination": null,
           "type": "button",
@@ -31100,7 +31100,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 873,
+          "line": 869,
           "handler": "() => {\n                        setSelectedGames((prev) => {\n                          if (prev.includes(g.id)) return prev.filter((x) => x !== g.id);\n                          if (prev.length >= tableCount) return [...prev.slice(1), g.id];\n                          return [...prev, g.id];\n                        });\n                      }",
           "destination": null,
           "type": null,
@@ -31110,7 +31110,7 @@
         {
           "element": "button",
           "name": "← Back To Training",
-          "line": 930,
+          "line": 926,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": null,
@@ -31120,7 +31120,7 @@
         {
           "element": "button",
           "name": "← Exit",
-          "line": 961,
+          "line": 957,
           "handler": "() => {\n                  setIsStarted(false);\n                  reportedTablesRef.current = new Set();\n                  setCompletedTables(new Set());\n                  setCombinedStats({\n                    totalHands: 0,\n                    totalCorrect: 0,\n                    totalEVLoss: 0,\n                    measuredEVDecisions: 0,\n                    tablesCompleted: 0,\n                  });\n                }",
           "destination": null,
           "type": null,
@@ -31130,7 +31130,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1009,
+          "line": 1005,
           "handler": "() => setSelectedVariant(v.id)",
           "destination": null,
           "type": "button",
@@ -31140,7 +31140,7 @@
         {
           "element": "button",
           "name": "TABLE",
-          "line": 1084,
+          "line": 1080,
           "handler": "() => setFocusedGameId(gameId)",
           "destination": null,
           "type": null,
@@ -42024,7 +42024,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 5268,
+          "line": 5276,
           "handler": "() => setSliderSizingBb(p.bb)",
           "destination": null,
           "type": "button",
@@ -42034,7 +42034,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 5305,
+          "line": 5313,
           "handler": "() => handleAnswerWithGrouping(matchedAggressiveOpt.id)",
           "destination": null,
           "type": "button",
@@ -42044,7 +42044,7 @@
         {
           "element": "button",
           "name": "!showFeedback && (mode.id === 'range' || mode.id === 'strategy') ? 'Available After You Answer' : undefined",
-          "line": 5565,
+          "line": 5573,
           "handler": "() => {\n                            if (!showFeedback && (mode.id === 'range' || mode.id === 'strategy')) return;\n                            setActiveMode(mode.id);\n                        }",
           "destination": null,
           "type": null,
@@ -42054,7 +42054,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 5828,
+          "line": 5836,
           "handler": "() => rngAvailable && setRngMode(!rngMode)",
           "destination": null,
           "type": null,
@@ -42064,7 +42064,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 5832,
+          "line": 5840,
           "handler": "() => setRngHighLow(v => (v === 'low' ? 'high' : 'low'))",
           "destination": null,
           "type": null,
@@ -42074,7 +42074,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 5839,
+          "line": 5847,
           "handler": "toggleFourColorDeck",
           "destination": null,
           "type": null,
@@ -42084,7 +42084,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 5850,
+          "line": 5858,
           "handler": "cycleFeltTheme",
           "destination": null,
           "type": null,
@@ -42094,7 +42094,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 5857,
+          "line": 5865,
           "handler": "toggleDisplayMode",
           "destination": null,
           "type": null,
@@ -42104,7 +42104,7 @@
         {
           "element": "button",
           "name": "Quit Session",
-          "line": 5869,
+          "line": 5877,
           "handler": "onExit",
           "destination": null,
           "type": null,
@@ -42114,7 +42114,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 5998,
+          "line": 6006,
           "handler": "() => setFeedbackCollapsed && setFeedbackCollapsed(prev => !prev)",
           "destination": null,
           "type": null,
@@ -42124,7 +42124,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 6336,
+          "line": 6344,
           "handler": "() => setDeepAnalysisOpen(v => !v)",
           "destination": null,
           "type": null,
@@ -42134,7 +42134,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 6542,
+          "line": 6550,
           "handler": "() => setShowWhyDrawer(!showWhyDrawer)",
           "destination": null,
           "type": null,
@@ -42144,7 +42144,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 6555,
+          "line": 6563,
           "handler": "() => setShowRangeGrid(!showRangeGrid)",
           "destination": null,
           "type": null,
@@ -42154,7 +42154,7 @@
         {
           "element": "button",
           "name": "Prev",
-          "line": 7408,
+          "line": 7416,
           "handler": "() => setMistakeReviewIndex(i => Math.max(0, i - 1))",
           "destination": null,
           "type": null,
@@ -42164,7 +42164,7 @@
         {
           "element": "button",
           "name": "Next",
-          "line": 7415,
+          "line": 7423,
           "handler": "() => setMistakeReviewIndex(i => Math.min(mistakes.length - 1, i + 1))",
           "destination": null,
           "type": null,
@@ -42174,7 +42174,7 @@
         {
           "element": "button",
           "name": "Close",
-          "line": 7422,
+          "line": 7430,
           "handler": "() => setShowMistakeReview(false)",
           "destination": null,
           "type": null,
@@ -42470,7 +42470,7 @@
         },
         {
           "name": "pick",
-          "line": 5062,
+          "line": 5070,
           "references": 9,
           "exported": false,
           "defaultExport": false,
@@ -42478,7 +42478,7 @@
         },
         {
           "name": "mistakeFeedback",
-          "line": 6402,
+          "line": 6410,
           "references": 6,
           "exported": false,
           "defaultExport": false,
@@ -42558,7 +42558,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 4851,
+          "line": 4859,
           "excerpt": "The denominator counts the dealing placeholder too --",
           "disposition": "poker-normalization-or-ui-state",
           "review": "accepted",
@@ -42566,7 +42566,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 4867,
+          "line": 4875,
           "excerpt": "{/* PREFLOP: Deck placeholder when no board cards */}",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -42574,7 +42574,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 6677,
+          "line": 6685,
           "excerpt": "// Fallback to basic classifier",
           "disposition": "runtime-resilience-fallback",
           "review": "documented-follow-up",
@@ -74264,11 +74264,11 @@
       "effectRef": "pages/hub/training/milestones.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:830:1",
+      "id": "pages/hub/training/multi-table.js:826:1",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 830,
+      "line": 826,
       "handler": "() => setSelectedVariant(v.id)",
       "destination": null,
       "type": "button",
@@ -74277,11 +74277,11 @@
       "effectRef": "pages/hub/training/multi-table.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:873:2",
+      "id": "pages/hub/training/multi-table.js:869:2",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 873,
+      "line": 869,
       "handler": "() => {\n                        setSelectedGames((prev) => {\n                          if (prev.includes(g.id)) return prev.filter((x) => x !== g.id);\n                          if (prev.length >= tableCount) return [...prev.slice(1), g.id];\n                          return [...prev, g.id];\n                        });\n                      }",
       "destination": null,
       "type": null,
@@ -74290,11 +74290,11 @@
       "effectRef": "pages/hub/training/multi-table.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:930:3",
+      "id": "pages/hub/training/multi-table.js:926:3",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "← Back To Training",
-      "line": 930,
+      "line": 926,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": null,
@@ -74303,11 +74303,11 @@
       "effectRef": "pages/hub/training/multi-table.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:961:4",
+      "id": "pages/hub/training/multi-table.js:957:4",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "← Exit",
-      "line": 961,
+      "line": 957,
       "handler": "() => {\n                  setIsStarted(false);\n                  reportedTablesRef.current = new Set();\n                  setCompletedTables(new Set());\n                  setCombinedStats({\n                    totalHands: 0,\n                    totalCorrect: 0,\n                    totalEVLoss: 0,\n                    measuredEVDecisions: 0,\n                    tablesCompleted: 0,\n                  });\n                }",
       "destination": null,
       "type": null,
@@ -74316,11 +74316,11 @@
       "effectRef": "pages/hub/training/multi-table.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:1009:5",
+      "id": "pages/hub/training/multi-table.js:1005:5",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1009,
+      "line": 1005,
       "handler": "() => setSelectedVariant(v.id)",
       "destination": null,
       "type": "button",
@@ -74329,11 +74329,11 @@
       "effectRef": "pages/hub/training/multi-table.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:1084:6",
+      "id": "pages/hub/training/multi-table.js:1080:6",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "TABLE",
-      "line": 1084,
+      "line": 1080,
       "handler": "() => setFocusedGameId(gameId)",
       "destination": null,
       "type": null,
@@ -77150,11 +77150,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5268:8",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5276:8",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 5268,
+      "line": 5276,
       "handler": "() => setSliderSizingBb(p.bb)",
       "destination": null,
       "type": "button",
@@ -77163,11 +77163,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5305:9",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5313:9",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 5305,
+      "line": 5313,
       "handler": "() => handleAnswerWithGrouping(matchedAggressiveOpt.id)",
       "destination": null,
       "type": "button",
@@ -77176,11 +77176,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5565:10",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5573:10",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "!showFeedback && (mode.id === 'range' || mode.id === 'strategy') ? 'Available After You Answer' : undefined",
-      "line": 5565,
+      "line": 5573,
       "handler": "() => {\n                            if (!showFeedback && (mode.id === 'range' || mode.id === 'strategy')) return;\n                            setActiveMode(mode.id);\n                        }",
       "destination": null,
       "type": null,
@@ -77189,11 +77189,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5828:11",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5836:11",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 5828,
+      "line": 5836,
       "handler": "() => rngAvailable && setRngMode(!rngMode)",
       "destination": null,
       "type": null,
@@ -77202,11 +77202,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5832:12",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5840:12",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 5832,
+      "line": 5840,
       "handler": "() => setRngHighLow(v => (v === 'low' ? 'high' : 'low'))",
       "destination": null,
       "type": null,
@@ -77215,11 +77215,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5839:13",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5847:13",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 5839,
+      "line": 5847,
       "handler": "toggleFourColorDeck",
       "destination": null,
       "type": null,
@@ -77228,11 +77228,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5850:14",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5858:14",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 5850,
+      "line": 5858,
       "handler": "cycleFeltTheme",
       "destination": null,
       "type": null,
@@ -77241,11 +77241,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5857:15",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5865:15",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 5857,
+      "line": 5865,
       "handler": "toggleDisplayMode",
       "destination": null,
       "type": null,
@@ -77254,11 +77254,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5869:16",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5877:16",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "Quit Session",
-      "line": 5869,
+      "line": 5877,
       "handler": "onExit",
       "destination": null,
       "type": null,
@@ -77267,11 +77267,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5998:17",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6006:17",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 5998,
+      "line": 6006,
       "handler": "() => setFeedbackCollapsed && setFeedbackCollapsed(prev => !prev)",
       "destination": null,
       "type": null,
@@ -77280,11 +77280,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6336:18",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6344:18",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 6336,
+      "line": 6344,
       "handler": "() => setDeepAnalysisOpen(v => !v)",
       "destination": null,
       "type": null,
@@ -77293,11 +77293,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6542:19",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6550:19",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 6542,
+      "line": 6550,
       "handler": "() => setShowWhyDrawer(!showWhyDrawer)",
       "destination": null,
       "type": null,
@@ -77306,11 +77306,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6555:20",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6563:20",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 6555,
+      "line": 6563,
       "handler": "() => setShowRangeGrid(!showRangeGrid)",
       "destination": null,
       "type": null,
@@ -77319,11 +77319,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:7408:21",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:7416:21",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "Prev",
-      "line": 7408,
+      "line": 7416,
       "handler": "() => setMistakeReviewIndex(i => Math.max(0, i - 1))",
       "destination": null,
       "type": null,
@@ -77332,11 +77332,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:7415:22",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:7423:22",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "Next",
-      "line": 7415,
+      "line": 7423,
       "handler": "() => setMistakeReviewIndex(i => Math.min(mistakes.length - 1, i + 1))",
       "destination": null,
       "type": null,
@@ -77345,11 +77345,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:7422:23",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:7430:23",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "Close",
-      "line": 7422,
+      "line": 7430,
       "handler": "() => setShowMistakeReview(false)",
       "destination": null,
       "type": null,
@@ -100601,7 +100601,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "PLACEHOLDER",
-        "line": 4851,
+        "line": 4859,
         "excerpt": "The denominator counts the dealing placeholder too --",
         "disposition": "poker-normalization-or-ui-state",
         "review": "accepted",
@@ -100610,7 +100610,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "PLACEHOLDER",
-        "line": 4867,
+        "line": 4875,
         "excerpt": "{/* PREFLOP: Deck placeholder when no board cards */}",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -100619,7 +100619,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "FALLBACK",
-        "line": 6677,
+        "line": 6685,
         "excerpt": "// Fallback to basic classifier",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -110454,7 +110454,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "PLACEHOLDER",
-        "line": 4851,
+        "line": 4859,
         "excerpt": "The denominator counts the dealing placeholder too --",
         "disposition": "poker-normalization-or-ui-state",
         "review": "accepted",
@@ -110463,7 +110463,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "PLACEHOLDER",
-        "line": 4867,
+        "line": 4875,
         "excerpt": "{/* PREFLOP: Deck placeholder when no board cards */}",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -110472,7 +110472,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "FALLBACK",
-        "line": 6677,
+        "line": 6685,
         "excerpt": "// Fallback to basic classifier",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
