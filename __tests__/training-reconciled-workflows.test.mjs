@@ -71,6 +71,9 @@ test('PLO selector normalizes Holdem, PLO4, PLO5, and PLO6 and deals exact hole 
       assert.equal(q.scenario.bettingStructure, expectedStructure);
       assert.doesNotMatch(String(q.scenario.madeHandCategory || ''), /undefined/i, `madeHandCategory must not contain undefined in ${key} ${targetStreet}`);
       assert.doesNotMatch(String(q.explanation || ''), /undefined/i, `explanation must not contain undefined in ${key} ${targetStreet}`);
+      if (key === 'nlh' && targetStreet === 'preflop' && q.heroCards[0][0] !== q.heroCards[1][0]) {
+        assert.doesNotMatch(String(q.scenario.madeHandCategory || ''), /^Pocket Pair/i, 'Non-paired NLH preflop hand must not be labeled Pocket Pair');
+      }
 
       // Ensure zero card collisions between heroCards and boardCards
       const allDealt = [...q.heroCards, ...(q.boardCards || [])].map((c) => c.toUpperCase());

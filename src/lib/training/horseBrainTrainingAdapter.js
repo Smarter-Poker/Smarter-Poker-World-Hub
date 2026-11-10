@@ -322,8 +322,8 @@ export function evaluateOmahaExactTwoPlusThree(heroCards = [], boardCards = []) 
 
   const flushDraw = countFlushOuts(parsedHero, parsedBoard);
   const straightDraw = countStraightOuts(parsedHero, parsedBoard);
-  const holeRanks = parsedHero.map((c) => c.value);
-  const boardRanks = parsedBoard.map((c) => c.value);
+  const holeRanks = parsedHero.map((c) => c.rank);
+  const boardRanks = parsedBoard.map((c) => c.rank);
   const wrapDraw = detectPLOWrapDraw(holeRanks, boardRanks);
 
   return {
@@ -493,7 +493,7 @@ export function evaluateTrainingSpotWithHorseBrain({
       const preflopStrength = getPreflopStrength(parsedHero);
       if (normStreet === 'preflop') {
         handScore = preflopStrength;
-        madeHandCategory = parsedHero[0].value === parsedHero[1].value
+        madeHandCategory = parsedHero[0].rank === parsedHero[1].rank
           ? `Pocket Pair (${primarySubset.notation})`
           : parsedHero[0].suit === parsedHero[1].suit
             ? `Suited Combo (${primarySubset.notation})`
