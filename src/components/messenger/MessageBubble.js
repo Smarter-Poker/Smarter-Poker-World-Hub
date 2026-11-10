@@ -5,11 +5,13 @@ import { Avatar } from './Avatar';
 import { Phone, PhoneMissed, Video } from 'lucide-react';
 import AccountingInvoiceCard from './AccountingInvoiceCard';
 import CashoutRequestActions, { formatChips } from './CashoutRequestActions';
+import ReliabilityIncidentControls from './ReliabilityIncidentControls';
 import { isUnverifiedCorrectionPlaceholder } from '../../lib/accountingMessage.mjs';
 import { getAccessToken, authedFetch } from '../../lib/authUtils';
 import { parseMessageMedia, isMediaMessage, mediaThumbnailUrl } from '../../lib/messenger/messageMedia.mjs';
 import { isLiveInvite, liveInviteHref } from '../../lib/messenger/liveInvite.mjs';
 import { isCallReceipt, parseCallReceipt } from '../../lib/messenger/callReceipt.mjs';
+import { reliabilityIncidentControls } from '../../lib/messenger/reliabilityIncident.mjs';
 
 const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡', '🔥', '👏', '🎯', '💎', '♠️', '♥️'];
@@ -1113,6 +1115,15 @@ export function MessageBubble({
                             return <LinkPreviewCard url={urls[0]} isOwn={isOwn} theme={C} />;
                         }
                         return null;
+                    })()}
+                    {(() => {
+                        // Reliability Controller message: the text above is
+                        // unchanged; the controls need the platform sender and
+                        // the metadata kind together, never the text.
+                        const controls = reliabilityIncidentControls(message);
+                        if (!controls) return null;
+                        return <ReliabilityIncidentControls incidentId={controls.incidentId} href={controls.href}
+                            content={message.content || message.text || ''} theme={C} />;
                     })()}
                 </div>
 

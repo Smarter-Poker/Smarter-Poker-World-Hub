@@ -44,6 +44,9 @@ export async function safeCopyToClipboard(text) {
     document.body.appendChild(ta);
     ta.focus();
     ta.select();
+    // iOS Safari and in-app webviews leave a readonly textarea unselected after
+    // select(); without an explicit range execCommand copies nothing.
+    try { ta.setSelectionRange(0, str.length); } catch (_e1) { /* unsupported */ }
     let ok = false;
     try { ok = document.execCommand && document.execCommand('copy'); } catch (_e2) { ok = false; }
     document.body.removeChild(ta);
