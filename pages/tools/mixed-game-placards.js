@@ -275,7 +275,7 @@ export default function MixedGamePlacardsPage() {
   return (
     <div style={{ minHeight: isEmbed ? 'auto' : '100vh', background: '#020608', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
-        title="Mixed Game (HORSE / 8-Game / Dealer's Choice) Rotation Tracker & Printable Placards"
+        title="Mixed Game Rotation Tracker And Placards"
         description="Track Live HORSE, 8-Game, 10-Game, And Dealer Choice Mixed Game Rotations With Orbit Hand Counters, Hi-Lo 8-Or-Better Qualifier Reminders, And Printable Table Placards."
         canonical="/tools/mixed-game-placards"
         jsonLd={schema}
@@ -594,7 +594,7 @@ export default function MixedGamePlacardsPage() {
             <FaqSection faqs={MIXED_GAME_FAQS} />
 
             <CitationBacklinkBox
-              title="Mixed Game (HORSE / 8-Game / Dealer's Choice) Rotation Tracker & Printable Placards"
+              title="Mixed Game Rotation Tracker And Placards"
               canonicalUrl={canonicalUrl}
               badgeType="gto"
               badgeLabel="Mixed Game Orbit Tracker"
@@ -604,7 +604,7 @@ export default function MixedGamePlacardsPage() {
             />
 
             <AiPromptLauncher
-              title="Mixed Game (HORSE / 8-Game / Dealer's Choice) Rotation Tracker & Printable Placards"
+              title="Mixed Game Rotation Tracker And Placards"
               canonicalUrl={canonicalUrl}
               markdownUrl={`${canonicalUrl}.md`}
             />

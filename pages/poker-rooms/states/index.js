@@ -112,7 +112,7 @@ export default function USStatePokerDirectoryPage() {
   return (
     <div style={styles.page}>
       <SEOHead
-        title="US State Poker Laws, Tax Rates, Rake & Cardroom Directory"
+        title="US State Poker Laws, Taxes And Cardrooms"
         description="Complete Guide To Live And Online Poker Across The Top 15 US States: Legal Age (18+ Vs 21+), State Income Tax Rates, W-2G Rules, Rake Models, And Active Cardrooms."
         canonical={STATES_BASE_PATH}
         jsonLd={jsonLd}

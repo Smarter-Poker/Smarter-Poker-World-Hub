@@ -243,7 +243,7 @@ export default function PromoEvCalculatorPage({
   return (
     <div style={{ minHeight: isEmbed ? 'auto' : '100vh', background: '#020608', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
-        title="Bad Beat Jackpot (BBJ) & High-Hand Promotion EV Calculator"
+        title="Bad Beat Jackpot And High-Hand EV Calculator"
         description="Calculate Exact Qualifier Hit Odds, Per-Hand And Hourly Expected Value ($EV) From Bad Beat Jackpots And High-Hand Promotions, And The Breakeven Jackpot Pool Threshold."
         canonical="/tools/promo-ev-calculator"
         jsonLd={schema}
@@ -545,7 +545,7 @@ export default function PromoEvCalculatorPage({
             <FaqSection faqs={PROMO_EV_FAQS} />
 
             <CitationBacklinkBox
-              title="Bad Beat Jackpot (BBJ) & High-Hand Promotion EV Calculator"
+              title="Bad Beat Jackpot And High-Hand EV Calculator"
               canonicalUrl={canonicalUrl}
               badgeType="gto"
               badgeLabel="BBJ & High-Hand EV Solver"
@@ -555,7 +555,7 @@ export default function PromoEvCalculatorPage({
             />
 
             <AiPromptLauncher
-              title="Bad Beat Jackpot (BBJ) & High-Hand Promotion EV Calculator"
+              title="Bad Beat Jackpot And High-Hand EV Calculator"
               canonicalUrl={canonicalUrl}
               markdownUrl={`${canonicalUrl}.md`}
             />

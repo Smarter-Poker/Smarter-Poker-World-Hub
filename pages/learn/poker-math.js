@@ -246,7 +246,7 @@ export default function PokerMathReferencePage() {
   return (
     <div style={styles.page}>
       <SEOHead
-        title="Complete Poker Math Formulas & Equations Reference Guide"
+        title="Poker Math Formulas And Equations Guide"
         description="Master All 12 Core Poker Math Equations: Pot Odds, Rule Of 4 And 2, Expected Value (EV), Fold Equity, MDF, Alpha, Bluff-To-Value Ratio, Geometric Sizing, SPR, ICM, And Risk Of Ruin."
         canonical={canonicalPath}
         jsonLd={jsonLd}

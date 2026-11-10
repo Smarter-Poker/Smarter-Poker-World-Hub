@@ -168,7 +168,7 @@ export default function CompsAndTippingGuidePage() {
   return (
     <div style={styles.page}>
       <SEOHead
-        title="Live Casino Poker Comps, Rewards Cards & Dealer Tipping Guide"
+        title="Live Casino Poker Comps And Tipping Guide"
         description="Complete Guide To Live Casino Poker Room Comps ($1-$3/Hr Across MGM, Caesars, Wynn & Regional Rooms), Poker Room Hotel Rates, And Dealer Tipping Etiquette."
         canonical={canonicalPath}
         jsonLd={jsonLd}

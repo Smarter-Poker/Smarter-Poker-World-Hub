@@ -238,7 +238,7 @@ export default function MRatioCalculatorPage({
   return (
     <div style={{ minHeight: isEmbed ? 'auto' : '100vh', background: '#020608', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
-        title="Tournament M-Ratio, Effective M & Q-Ratio Survival Calculator"
+        title="Tournament M-Ratio And Q-Ratio Calculator"
         description="Calculate Dan Harrington M-Ratio, Short-Handed Effective M, Q-Ratio, Cost Per Orbit, And Harrington Zone Survival Strategy For Live And Online Tournaments."
         canonical="/tools/m-ratio-calculator"
         jsonLd={schema}
@@ -499,7 +499,7 @@ export default function MRatioCalculatorPage({
             <FaqSection faqs={M_RATIO_FAQS} />
 
             <CitationBacklinkBox
-              title="Tournament M-Ratio, Effective M & Q-Ratio Survival Calculator"
+              title="Tournament M-Ratio And Q-Ratio Calculator"
               canonicalUrl={canonicalUrl}
               badgeType="gto"
               badgeLabel="Harrington M-Ratio Engine"
@@ -509,7 +509,7 @@ export default function MRatioCalculatorPage({
             />
 
             <AiPromptLauncher
-              title="Tournament M-Ratio, Effective M & Q-Ratio Survival Calculator"
+              title="Tournament M-Ratio And Q-Ratio Calculator"
               canonicalUrl={canonicalUrl}
               markdownUrl={`${canonicalUrl}.md`}
             />

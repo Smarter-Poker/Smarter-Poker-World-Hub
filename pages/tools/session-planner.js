@@ -233,7 +233,7 @@ export default function SessionPlannerPage({
   return (
     <div style={{ minHeight: isEmbed ? 'auto' : '100vh', background: '#020608', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
-        title="Live Cash Game Session, Stop-Loss & Annual Hourly Planner"
+        title="Live Cash Game Session And Hourly Planner"
         description="Plan Your Live Cash Game Sessions With Gross And Net Hourly Winrates, Casino Comps, A-Game Stop-Loss Limits, Annual Income Projections, And Bankroll Requirements."
         canonical="/tools/session-planner"
         jsonLd={schema}
@@ -496,7 +496,7 @@ export default function SessionPlannerPage({
             <FaqSection faqs={SESSION_PLANNER_FAQS} />
 
             <CitationBacklinkBox
-              title="Live Cash Game Session, Stop-Loss & Annual Hourly Planner"
+              title="Live Cash Game Session And Hourly Planner"
               canonicalUrl={canonicalUrl}
               badgeType="gto"
               badgeLabel="Live Cash Session Planner"
@@ -506,7 +506,7 @@ export default function SessionPlannerPage({
             />
 
             <AiPromptLauncher
-              title="Live Cash Game Session, Stop-Loss & Annual Hourly Planner"
+              title="Live Cash Game Session And Hourly Planner"
               canonicalUrl={canonicalUrl}
               markdownUrl={`${canonicalUrl}.md`}
             />

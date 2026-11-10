@@ -150,7 +150,7 @@ export default function OnlineVsLivePokerGuidePage() {
   return (
     <div style={styles.page}>
       <SEOHead
-        title="Online Vs. Live Poker Strategy Guide: Sizing, Volume & Adjustments"
+        title="Online Vs. Live Poker Strategy And Sizing"
         description="Complete Strategy Comparison Between Online 6-Max Poker And Live Casino Cash Games: Open Sizing (2.2x Vs 4x), Hands Per Hour (85 Vs 28), Multiway Pots, 3-Bet Frequencies, And Skill Equivalents."
         canonical={canonicalPath}
         jsonLd={jsonLd}

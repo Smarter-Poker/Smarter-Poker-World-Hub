@@ -209,7 +209,7 @@ export default function HandConverterPage() {
   return (
     <div style={{ minHeight: isEmbed ? 'auto' : '100vh', background: '#020608', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
-        title="Interactive Poker Hand History Formatter & Share Card Generator"
+        title="Poker Hand History Formatter And Converter"
         description="Format Live And Online Poker Hands Into Suit-Symbol Reddit Markdown, Discord/X Share Cards, Permalinks, And ChatGPT/Claude GTO Solver Prompts."
         canonical="/tools/hand-converter"
         jsonLd={schema}
@@ -600,7 +600,7 @@ export default function HandConverterPage() {
             <FaqSection faqs={HAND_CONVERTER_FAQS} />
 
             <CitationBacklinkBox
-              title="Interactive Poker Hand History Formatter & Share Card Generator"
+              title="Poker Hand History Formatter And Converter"
               canonicalUrl={canonicalUrl}
               badgeType="gto"
               badgeLabel="Hand History Formatter"
@@ -610,7 +610,7 @@ export default function HandConverterPage() {
             />
 
             <AiPromptLauncher
-              title="Interactive Poker Hand History Formatter & Share Card Generator"
+              title="Poker Hand History Formatter And Converter"
               canonicalUrl={canonicalUrl}
               markdownUrl={`${canonicalUrl}.md`}
             />

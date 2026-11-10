@@ -317,7 +317,7 @@ export default function PokerIqTestPage() {
   return (
     <div style={{ minHeight: isEmbed ? 'auto' : '100vh', background: '#020608', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
-        title="Interactive 10-Question GTO & Live Poker IQ Diagnostic Assessment"
+        title="GTO And Live Poker IQ Diagnostic Test"
         description="Test Your Quantitative Poker IQ On A 100 To 200 Scale Across 10 Curated Scenarios Covering Pot Odds, Position RFI, ICM, PKO Bounties, Board Textures, And TDA Rules."
         canonical="/tools/poker-iq-test"
         jsonLd={schema}
@@ -526,7 +526,7 @@ export default function PokerIqTestPage() {
             <FaqSection faqs={IQ_FAQS} />
 
             <CitationBacklinkBox
-              title="Interactive 10-Question GTO & Live Poker IQ Diagnostic Assessment"
+              title="GTO And Live Poker IQ Diagnostic Test"
               canonicalUrl={canonicalUrl}
               badgeType="gto"
               badgeLabel="Quantitative Poker IQ Test"
@@ -536,7 +536,7 @@ export default function PokerIqTestPage() {
             />
 
             <AiPromptLauncher
-              title="Interactive 10-Question GTO & Live Poker IQ Diagnostic Assessment"
+              title="GTO And Live Poker IQ Diagnostic Test"
               canonicalUrl={canonicalUrl}
               markdownUrl={`${canonicalUrl}.md`}
             />

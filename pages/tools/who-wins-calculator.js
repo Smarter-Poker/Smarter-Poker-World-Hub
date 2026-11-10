@@ -413,7 +413,7 @@ export default function WhoWinsCalculatorPage() {
   return (
     <div style={{ minHeight: isEmbed ? 'auto' : '100vh', background: '#020608', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
-        title="What Beats What? Interactive Texas Hold'em Showdown & Kicker Resolver"
+        title="What Beats What? Hold'em Showdown Resolver"
         description="Resolve Any 7-Card Texas Holdem Showdown Dispute With Exact 5-Card Hand Evaluation, Kicker Tie-Breakers, Counterfeited Two-Pair Rulings, And Split Pot Checks."
         canonical="/tools/who-wins-calculator"
         jsonLd={schema}
@@ -706,7 +706,7 @@ export default function WhoWinsCalculatorPage() {
             <FaqSection faqs={WHO_WINS_FAQS} />
 
             <CitationBacklinkBox
-              title="What Beats What? Interactive Texas Hold'em Showdown & Kicker Resolver"
+              title="What Beats What? Hold'em Showdown Resolver"
               canonicalUrl={canonicalUrl}
               badgeType="gto"
               badgeLabel="Showdown & Kicker Engine"
@@ -716,7 +716,7 @@ export default function WhoWinsCalculatorPage() {
             />
 
             <AiPromptLauncher
-              title="What Beats What? Interactive Texas Hold'em Showdown & Kicker Resolver"
+              title="What Beats What? Hold'em Showdown Resolver"
               canonicalUrl={canonicalUrl}
               markdownUrl={`${canonicalUrl}.md`}
             />

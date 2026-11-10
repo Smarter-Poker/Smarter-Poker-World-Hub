@@ -112,7 +112,7 @@ export default function PokerStakesIndexPage() {
   return (
     <div style={styles.page}>
       <SEOHead
-        title="Poker Stake Levels, Bankroll Rules & Move-Up Readiness Hub"
+        title="Poker Stake Levels And Bankroll Rules Hub"
         description="Complete Strategy, Bankroll, Rake, And Winrate Guide Across 7 Poker Stake Tiers: $1/$2-$1/$3 Live, $2/$5 Live, $5/$10+ High Stakes, Online Micros, Online Low-Mid, Live PLO, And Live MTTs."
         canonical={STAKES_BASE_PATH}
         jsonLd={jsonLd}
@@ -313,7 +313,7 @@ export default function PokerStakesIndexPage() {
         </section>
 
         <CitationBacklinkBox
-          title="Poker Stake Levels, Bankroll Rules & Move-Up Readiness Hub"
+          title="Poker Stake Levels And Bankroll Rules Hub"
           canonicalUrl={STAKES_URL}
           badgeType="gto"
           badgeLabel="Stake Progression Hub"
@@ -324,7 +324,7 @@ export default function PokerStakesIndexPage() {
         />
 
         <AiPromptLauncher
-          title="Poker Stake Levels, Bankroll Rules & Move-Up Readiness Hub"
+          title="Poker Stake Levels And Bankroll Rules Hub"
           canonicalUrl={STAKES_URL}
           canonicalPath={STAKES_BASE_PATH}
           markdownUrl="/learn/stakes.md"

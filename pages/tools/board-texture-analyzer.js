@@ -414,7 +414,7 @@ export default function BoardTextureAnalyzerPage() {
   return (
     <div style={{ minHeight: isEmbed ? 'auto' : '100vh', background: '#020608', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
-        title="Interactive Flop Board Texture & GTO C-Bet Frequency Analyzer"
+        title="Flop Board Texture And C-Bet Analyzer"
         description="Analyze Any 3-Card Flop Texture For Connectedness Score, Dynamic Vs Static Rating, Range And Nut Advantage, And Optimal GTO C-Bet Sizing Frequencies."
         canonical="/tools/board-texture-analyzer"
         jsonLd={schema}
@@ -755,7 +755,7 @@ export default function BoardTextureAnalyzerPage() {
             <FaqSection faqs={BOARD_TEXTURE_FAQS} />
 
             <CitationBacklinkBox
-              title="Interactive Flop Board Texture & GTO C-Bet Frequency Analyzer"
+              title="Flop Board Texture And C-Bet Analyzer"
               canonicalUrl={canonicalUrl}
               badgeType="gto"
               badgeLabel="Flop C-Bet Texture Solver"
@@ -765,7 +765,7 @@ export default function BoardTextureAnalyzerPage() {
             />
 
             <AiPromptLauncher
-              title="Interactive Flop Board Texture & GTO C-Bet Frequency Analyzer"
+              title="Flop Board Texture And C-Bet Analyzer"
               canonicalUrl={canonicalUrl}
               markdownUrl={`${canonicalUrl}.md`}
             />

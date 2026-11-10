@@ -168,7 +168,7 @@ export default function LivePokerTellsPage() {
   return (
     <div style={styles.page}>
       <SEOHead
-        title="Live Poker Tells, Betting Timing & Anti-Angle-Shooting Guide"
+        title="Live Poker Tells And Timing Strategy Guide"
         description="Master 8 Reliable Live Poker Physical, Timing, And Verbal Tells Plus 4 Anti-Angle-Shooting Cardroom Defenses Under Official TDA Rules."
         canonical={canonicalPath}
         jsonLd={jsonLd}

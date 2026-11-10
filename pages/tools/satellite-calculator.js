@@ -226,7 +226,7 @@ export default function SatelliteCalculatorPage({
   return (
     <div style={{ minHeight: isEmbed ? 'auto' : '100vh', background: '#020608', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
-        title="Tournament Satellite Seat-Bubble & Milestone Survival Calculator"
+        title="Tournament Satellite Seat-Bubble Calculator"
         description="Calculate Target Satellite Seat Stack, Hero Seat Lock Percentage, Satellite Bubble Factor, And Required All-In Calling Equity Showing When To Fold KK Or AA."
         canonical="/tools/satellite-calculator"
         jsonLd={schema}
@@ -462,7 +462,7 @@ export default function SatelliteCalculatorPage({
             <FaqSection faqs={SATELLITE_FAQS} />
 
             <CitationBacklinkBox
-              title="Tournament Satellite Seat-Bubble & Milestone Survival Calculator"
+              title="Tournament Satellite Seat-Bubble Calculator"
               canonicalUrl={canonicalUrl}
               badgeType="gto"
               badgeLabel="Satellite ICM Bubble Solver"
@@ -472,7 +472,7 @@ export default function SatelliteCalculatorPage({
             />
 
             <AiPromptLauncher
-              title="Tournament Satellite Seat-Bubble & Milestone Survival Calculator"
+              title="Tournament Satellite Seat-Bubble Calculator"
               canonicalUrl={canonicalUrl}
               markdownUrl={`${canonicalUrl}.md`}
             />

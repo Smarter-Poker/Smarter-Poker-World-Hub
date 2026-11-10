@@ -233,7 +233,7 @@ export default function StraddleCalculatorPage({
   return (
     <div style={{ minHeight: isEmbed ? 'auto' : '100vh', background: '#020608', color: '#e2e8f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
-        title="Live Poker Straddle, Mississippi Button Straddle & Bomb Pot EV Calculator"
+        title="Poker Straddle And Bomb Pot EV Calculator"
         description="Calculate Effective Stack Depth In Straddled Big Blinds, Straddler Steal Breakeven Frequency, Bomb Pot Dead Money SPR, And Double-Board Quartering Equity."
         canonical="/tools/straddle-calculator"
         jsonLd={schema}
@@ -617,7 +617,7 @@ export default function StraddleCalculatorPage({
             <FaqSection faqs={STRADDLE_FAQS} />
 
             <CitationBacklinkBox
-              title="Live Poker Straddle, Mississippi Button Straddle & Bomb Pot EV Calculator"
+              title="Poker Straddle And Bomb Pot EV Calculator"
               canonicalUrl={canonicalUrl}
               badgeType="gto"
               badgeLabel="Straddle & Bomb Pot Solver"
@@ -627,7 +627,7 @@ export default function StraddleCalculatorPage({
             />
 
             <AiPromptLauncher
-              title="Live Poker Straddle, Mississippi Button Straddle & Bomb Pot EV Calculator"
+              title="Poker Straddle And Bomb Pot EV Calculator"
               canonicalUrl={canonicalUrl}
               markdownUrl={`${canonicalUrl}.md`}
             />
