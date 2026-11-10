@@ -120,6 +120,7 @@ const PRESETS = [
     desc: 'Tough river spots: value bet, bluff, or give up',
     config: {
       format: 'cash',
+      variant: 'nlh',
       positions: [],
       streets: ['river'],
       stackMin: 50,
@@ -129,12 +130,51 @@ const PRESETS = [
     },
     color: 'var(--sp-accent-amber)',
   },
+  {
+    id: 'plo4-pot-limit',
+    name: 'PLO4 Pot-Limit Lab',
+    desc: '4-Card Omaha nut-draw, wrap, and pot-sizing mastery',
+    config: {
+      format: 'cash',
+      variant: 'plo4',
+      positions: ['BTN'],
+      streets: ['flop'],
+      stackMin: 100,
+      stackMax: 100,
+      stackDepth: 100,
+      scenarios: ['cbet'],
+    },
+    color: 'var(--sp-accent-cyan)',
+  },
+  {
+    id: 'plo5-wrap-lab',
+    name: 'PLO5 5-Card Action',
+    desc: '5-Card PLO redraw equity and pot-limit pressure',
+    config: {
+      format: 'cash',
+      variant: 'plo5',
+      positions: ['BTN'],
+      streets: ['flop'],
+      stackMin: 100,
+      stackMax: 100,
+      stackDepth: 100,
+      scenarios: ['cbet'],
+    },
+    color: 'var(--sp-accent-purple)',
+  },
 ];
 
 const FORMATS = [
   { id: 'cash', label: 'Cash Game' },
   { id: 'mtt', label: 'Tournament' },
   { id: 'spins', label: 'Spins' },
+];
+
+const DRILL_VARIANTS = [
+  { id: 'nlh', label: "Hold'em" },
+  { id: 'plo4', label: 'PLO4' },
+  { id: 'plo5', label: 'PLO5' },
+  { id: 'plo6', label: 'PLO6' },
 ];
 
 const STACK_DEPTHS = {
@@ -187,6 +227,7 @@ export default function DrillBuilderPage() {
   useTrainingBus('drill-builder');
   const [drillName, setDrillName] = useState('');
   const [format, setFormat] = useState('cash');
+  const [variant, setVariant] = useState('nlh');
   const [selectedPositions, setSelectedPositions] = useState([]);
   const [selectedStreets, setSelectedStreets] = useState([]);
   const [stackDepth, setStackDepth] = useState(100);
@@ -246,6 +287,7 @@ export default function DrillBuilderPage() {
   const applyPreset = (preset) => {
     setDrillName(preset.name);
     setFormat(preset.config.format);
+    setVariant(preset.config.variant || 'nlh');
     setSelectedPositions(preset.config.positions);
     setSelectedStreets(preset.config.streets);
     setStackDepth(preset.config.stackDepth);
@@ -264,6 +306,7 @@ export default function DrillBuilderPage() {
 
       const config = {
         format,
+        variant,
         positions: selectedPositions,
         streets: selectedStreets,
         stackDepth,
@@ -470,6 +513,33 @@ export default function DrillBuilderPage() {
               </div>
             </div>
 
+            {/* Game Variant */}
+            <div data-drill-variant-selector="true" style={{ marginBottom: 16 }}>
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: 'var(--sp-fg-dim)',
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.5,
+                  marginBottom: 6,
+                }}
+              >
+                Variant
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {DRILL_VARIANTS.map((v) => (
+                  <Chip
+                    key={v.id}
+                    label={v.label}
+                    selected={variant === v.id}
+                    onClick={() => setVariant(v.id)}
+                    color="#06b6d4"
+                  />
+                ))}
+              </div>
+            </div>
+
             {/* Positions */}
             <div style={{ marginBottom: 16 }}>
               <div
@@ -576,6 +646,7 @@ export default function DrillBuilderPage() {
                 onClick={() =>
                   startDrill({
                     format,
+                    variant,
                     positions: selectedPositions,
                     streets: selectedStreets,
                     stackDepth,

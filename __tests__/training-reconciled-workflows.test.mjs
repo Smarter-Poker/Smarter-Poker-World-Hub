@@ -21,6 +21,12 @@ import {
 import {
   resolveSyncedHandForTrainingDrill,
 } from '../src/lib/training/syncedHandDrillResolver.js';
+import {
+  isTrainingQuestionCampaignEligible,
+} from '../src/lib/training/trainingAttemptDelivery.mjs';
+import {
+  buildCustomTrainingArenaHref,
+} from '../src/lib/training/customTrainingLaunchContract.mjs';
 
 const ROOT = process.cwd();
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
@@ -344,19 +350,25 @@ test('Train This Hand resolves strictly from server storage, enforces participan
   }
 
   // 1. Authorized owner resolves server-stored AsKd on Qs 7d 2c (even if URL had tampered params)
+  // Omit solverPolicyService so default dynamic SolverPolicyService attaches curated policy seals
   const ownerResult = await resolveSyncedHandForTrainingDrill({
     supabase: createMockSupabase(mockHandRow),
     syncedHandId: 'hand-server-auth-901',
     userId: 'user-owner-1',
-    gameId: 'cash-001',
+    gameId: 'cash-002',
     level: 1,
-    solverPolicyService: { attachToQuestion: (q) => q },
   });
   assert.equal(ownerResult.ok, true);
   assert.equal(ownerResult.questions.length, 10);
   assert.deepEqual(ownerResult.questions[0].heroCards, ['As', 'Kd']);
   assert.deepEqual(ownerResult.questions[0].boardCards, ['Qs', '7d', '2c']);
   assert.equal(ownerResult.questions[0].scenario.syncedHandId, 'hand-server-auth-901');
+  assert.equal(ownerResult.questions[0].solverPolicy?.kind, 'curated');
+  assert.equal(
+    isTrainingQuestionCampaignEligible(ownerResult.questions[0]),
+    true,
+    'Synced hand primary question must pass campaign eligibility check',
+  );
   assert.equal(ownerResult.syncedHand.participantVerified, true);
   assert.equal(ownerResult.syncedHand.optimalAction, undefined, 'Pre-answer syncedHand metadata must not leak optimalAction');
 
@@ -419,4 +431,25 @@ test('Train This Hand resolves strictly from server storage, enforces participan
   const toolRecordsApi = read('pages/api/training/tool-records.js');
   assert.match(toolRecordsApi, /challengerSummary\.handsAnswered >= requiredHands/);
   assert.match(toolRecordsApi, /opponentSummary\.handsAnswered >= requiredHands/);
+
+  // 7. Phase 2 Upgrades: Equity Calculator PLO4/PLO5/PLO6 2-hole+3-board evaluator, Custom Drill Builder variants, and Hand Lab Brain Panel
+  const plo5Href = buildCustomTrainingArenaHref(
+    { format: 'cash', variant: 'plo5', streets: ['flop'] },
+    'drill-builder',
+  );
+  assert.equal(plo5Href, '/hub/training/arena/cash-005?level=1&source=drill-builder&variant=plo5');
+
+  const equityApi = read('pages/api/training/equity.js');
+  assert.match(equityApi, /function bestOmaha5/);
+  assert.match(equityApi, /horseBrainAnalysis/);
+
+  const equityCalcUi = read('pages/hub/training/equity-calculator.js');
+  assert.match(equityCalcUi, /data-equity-variant-selector="true"/);
+  assert.match(equityCalcUi, /data-equity-brain-panel="true"/);
+
+  const drillBuilderUi = read('pages/hub/training/drill-builder.js');
+  assert.match(drillBuilderUi, /data-drill-variant-selector="true"/);
+
+  const handLabUi = read('pages/hub/training/hand-lab.js');
+  assert.match(handLabUi, /data-handlab-brain-panel="true"/);
 });

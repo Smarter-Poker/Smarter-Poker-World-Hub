@@ -106,6 +106,7 @@ export default function HandLabV2() {
         opponentEquity: Number(payload.results[1].equity).toFixed(1),
         iterations: payload.totalIterations,
         boardSize: payload.boardSize,
+        horseBrainAnalysis: payload.horseBrainAnalysis || null,
       });
     } catch (error) {
       setEquity(null);
@@ -297,6 +298,37 @@ export default function HandLabV2() {
                     <div>Board Cards Locked: <strong style={{ color: 'var(--sp-fg)' }}>{results.boardSize}</strong></div>
                     <div>Monte Carlo Iterations: <strong style={{ color: 'var(--sp-fg)' }}>{Number(results.iterations || 0).toLocaleString()}</strong></div>
                   </div>
+                  {results.horseBrainAnalysis && (
+                    <div
+                      data-handlab-brain-panel="true"
+                      style={{
+                        marginTop: 10,
+                        padding: '12px 14px',
+                        borderRadius: 10,
+                        border: '1px solid rgba(34,211,238,0.28)',
+                        background: 'rgba(6,182,212,0.08)',
+                        fontSize: 12,
+                        lineHeight: 1.6,
+                      }}
+                    >
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 4 }}>
+                        <span style={{ color: '#67e8f9', fontWeight: 800 }}>
+                          {`Engine: ${results.horseBrainAnalysis.engineModule}`}
+                        </span>
+                        <span style={{ color: '#e2e8f0', fontWeight: 700 }}>
+                          {`Category: ${results.horseBrainAnalysis.madeHandCategory}`}
+                        </span>
+                        {results.horseBrainAnalysis.recommendedAction && (
+                          <span style={{ color: '#4ade80', fontWeight: 800 }}>
+                            {`Best Line: ${results.horseBrainAnalysis.recommendedAction}`}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ color: '#cbd5e1' }}>
+                        {results.horseBrainAnalysis.coachingSummary}
+                      </div>
+                    </div>
+                  )}
                 </motion.div>
               )}
             </div>

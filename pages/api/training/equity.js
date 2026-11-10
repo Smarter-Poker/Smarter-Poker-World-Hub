@@ -28,6 +28,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -108,6 +109,40 @@ function bestOf7(hole, board, shortDeck) {
     return best;
 }
 
+/**
+ * Omaha 5-card evaluator: MUST use strictly 2 hole cards + 3 board cards.
+ * Supports PLO4 (4 hole), PLO5 (5 hole), and PLO6 (6 hole).
+ */
+function bestOmaha5(hole, board) {
+    let best = -1;
+    const hLen = hole.length;
+    const bLen = board.length;
+    for (let hi = 0; hi < hLen - 1; hi++) {
+        for (let hj = hi + 1; hj < hLen; hj++) {
+            const h0 = hole[hi];
+            const h1 = hole[hj];
+            for (let bi = 0; bi < bLen - 2; bi++) {
+                for (let bj = bi + 1; bj < bLen - 1; bj++) {
+                    for (let bk = bj + 1; bk < bLen; bk++) {
+                        const score = evaluate5Fast(h0, h1, board[bi], board[bj], board[bk], false);
+                        if (score > best) best = score;
+                    }
+                }
+            }
+        }
+    }
+    return best;
+}
+
+function normalizeEquityVariant(rawVariant) {
+    const v = String(rawVariant || 'holdem').trim().toLowerCase();
+    if (v === 'plo6' || v === 'omaha6') return { key: 'plo6', holeCount: 6, isOmaha: true, isShortDeck: false };
+    if (v === 'plo5' || v === 'omaha5') return { key: 'plo5', holeCount: 5, isOmaha: true, isShortDeck: false };
+    if (v === 'plo4' || v === 'omaha4' || v === 'plo' || v === 'omaha') return { key: 'plo4', holeCount: 4, isOmaha: true, isShortDeck: false };
+    if (v === 'short_deck' || v === 'shortdeck') return { key: 'short_deck', holeCount: 2, isOmaha: false, isShortDeck: true };
+    return { key: 'nlh', holeCount: 2, isOmaha: false, isShortDeck: false };
+}
+
 function shufflePartial(arr, count) {
     for (let i = arr.length - 1; i > arr.length - 1 - count && i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -116,7 +151,12 @@ function shufflePartial(arr, count) {
 }
 
 function calcEquity(players, board, variant = 'holdem', iterations = 5000) {
-    const isShortDeck = variant === 'short_deck';
+    const variantSpec = normalizeEquityVariant(variant);
+    const isShortDeck = variantSpec.isShortDeck;
+    const isOmaha = variantSpec.isOmaha;
+    const evalFn = isOmaha
+        ? (hole, b) => bestOmaha5(hole, b)
+        : (hole, b) => bestOf7(hole, b, isShortDeck);
     const dead = new Set();
     for (const p of players) for (const c of p.holeCards) dead.add(c);
     for (const c of board) dead.add(c);
@@ -126,7 +166,6 @@ function calcEquity(players, board, variant = 'holdem', iterations = 5000) {
     const cardsNeeded = 5 - board.length;
     if (cardsNeeded <= 0) {
         // Complete board — evaluate once
-        const evalFn = (hole, b) => bestOf7(hole, b, isShortDeck);
         let bestScore = -1, bestCount = 0;
         const scores = [];
         for (const p of players) {
@@ -153,7 +192,7 @@ function calcEquity(players, board, variant = 'holdem', iterations = 5000) {
         let bestScore = -1, bestCount = 0;
         const scores = new Array(players.length);
         for (let p = 0; p < players.length; p++) {
-            scores[p] = bestOf7(players[p].holeCards, simBoard, isShortDeck);
+            scores[p] = evalFn(players[p].holeCards, simBoard);
             if (scores[p] > bestScore) { bestScore = scores[p]; bestCount = 1; }
             else if (scores[p] === bestScore) bestCount++;
         }
@@ -212,18 +251,21 @@ export default async function handler(req, res) {
               return res.status(400).json({ success: false, error: 'Provide 2-4 hands' });
           }
 
+          const variantSpec = normalizeEquityVariant(variant);
+          const expectedChars = variantSpec.holeCount * 2;
           const iterations = Math.min(Math.max(Number(rawIterations) || 5000, 1000), 10000);
           const allCardInts = new Set();
           const errors = [];
 
           // Parse hands
           const players = hands.map((hand, idx) => {
-              if (typeof hand !== 'string' || hand.length < 4) {
-                  errors.push(`Hand ${idx + 1}: invalid format (expected e.g. "AhKs")`);
+              if (typeof hand !== 'string' || hand.length !== expectedChars) {
+                  errors.push(`Hand ${idx + 1}: expected ${variantSpec.holeCount} hole cards for ${variantSpec.key.toUpperCase()}`);
                   return null;
               }
               // Split hand into individual cards (every 2 chars)
               const cards = [];
+              const cardStrings = [];
               for (let i = 0; i < hand.length; i += 2) {
                   const cardStr = hand.substring(i, i + 2);
                   const cardInt = parseCardStr(cardStr);
@@ -237,8 +279,9 @@ export default async function handler(req, res) {
                   }
                   allCardInts.add(cardInt);
                   cards.push(cardInt);
+                  cardStrings.push(`${cardStr[0].toUpperCase()}${cardStr[1].toLowerCase()}`);
               }
-              return { id: `player${idx + 1}`, holeCards: cards, handStr: hand };
+              return { id: `player${idx + 1}`, holeCards: cards, cardStrings, handStr: hand };
           });
 
           if (errors.length > 0) {
@@ -247,6 +290,7 @@ export default async function handler(req, res) {
 
           // Parse board
           const boardCards = [];
+          const boardCardStrings = [];
           if (Array.isArray(boardInput)) {
               for (const cardStr of boardInput) {
                   if (!cardStr) continue;
@@ -259,6 +303,7 @@ export default async function handler(req, res) {
                   }
                   allCardInts.add(cardInt);
                   boardCards.push(cardInt);
+                  boardCardStrings.push(`${cardStr[0].toUpperCase()}${cardStr[1].toLowerCase()}`);
               }
           }
 
@@ -267,10 +312,51 @@ export default async function handler(req, res) {
           }
 
           // Run Monte Carlo
-          const result = calcEquity(players.filter(Boolean), boardCards, variant, iterations);
+          const validPlayers = players.filter(Boolean);
+          const result = calcEquity(validPlayers, boardCards, variant, iterations);
+
+          let horseBrainAnalysis = null;
+          if (!variantSpec.isShortDeck && [0, 3, 4, 5].includes(boardCardStrings.length) && validPlayers[0]?.cardStrings) {
+              try {
+                  const street = boardCardStrings.length === 0
+                      ? 'preflop'
+                      : boardCardStrings.length === 3
+                          ? 'flop'
+                          : boardCardStrings.length === 4
+                              ? 'turn'
+                              : 'river';
+                  const pot = street === 'preflop' ? 4.5 : street === 'flop' ? 8 : street === 'turn' ? 18 : 36;
+                  const evalResult = evaluateTrainingSpotWithHorseBrain({
+                      variant: variantSpec.key,
+                      street,
+                      heroCards: validPlayers[0].cardStrings,
+                      boardCards: boardCardStrings,
+                      heroPosition: 'BTN',
+                      villainPosition: 'BB',
+                      pot,
+                      stackDepth: 100,
+                      facingBetBb: 0,
+                  });
+                  horseBrainAnalysis = {
+                      engineModule: evalResult.brainEvaluation.engineModule,
+                      variant: evalResult.brainEvaluation.variant,
+                      street: evalResult.brainEvaluation.street,
+                      bettingStructure: evalResult.brainEvaluation.bettingStructure,
+                      madeHandCategory: evalResult.madeHandCategory,
+                      omahaBestTwoHole: evalResult.brainEvaluation.omahaBestTwoHole || null,
+                      omahaBestThreeBoard: evalResult.brainEvaluation.omahaBestThreeBoard || null,
+                      recommendedAction: evalResult.correctAnswerText,
+                      potLimitMaxBetBb: evalResult.brainEvaluation.potLimitMaxBetBb ?? null,
+                      coachingSummary: evalResult.explanation,
+                  };
+              } catch (_brainErr) {
+                  horseBrainAnalysis = null;
+              }
+          }
 
           return res.status(200).json({
               success: true,
+              variant: variantSpec.key,
               results: result.players.map((p, i) => ({
                   hand: hands[i],
                   equity: p.equity,
@@ -279,6 +365,7 @@ export default async function handler(req, res) {
               })),
               totalIterations: iterations,
               boardSize: result.boardSize,
+              horseBrainAnalysis,
           });
 
       } catch (err) {
