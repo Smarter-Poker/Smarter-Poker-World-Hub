@@ -205,8 +205,8 @@
     "/api/mcp": {
       "post": {
         "operationId": "callMcpRpc",
-        "summary": "Model Context Protocol JSON-RPC 2.0 Tool Execution (35 Tools & 15 Resource Templates)",
-        "description": "Executes Model Context Protocol (MCP) JSON-RPC 2.0 tool calls across all 35 zero-auth tools including calculate_poker_odds, get_preflop_chart, calculate_icm_payouts, calculate_side_pots, generate_blind_structure, calculate_spr_sizing, lookup_poker_rule, lookup_game_variant, get_regional_market_guide, calculate_plo_max_bet_and_rake, calculate_tournament_chop, simulate_poker_variance, calculate_draw_outs, lookup_hand_matchup, calculate_poker_taxes_w2g, calculate_staking_markup_split, calculate_preflop_isolation_raise, calculate_home_game_chip_set, get_poker_series_strategy_guide, lookup_starting_hand, get_poker_term_definition, search_poker_venues, and search_tournament_series, plus resources/read and resources/templates/list across 15 URI templates.",
+        "summary": "Model Context Protocol JSON-RPC 2.0 Tool Execution (45 Tools, 10 Prompts & 16 Resource Templates)",
+        "description": "Executes Model Context Protocol (MCP) JSON-RPC 2.0 tool calls across all 45 zero-auth tools including calculate_poker_odds, get_preflop_chart, calculate_icm_payouts, calculate_side_pots, generate_blind_structure, calculate_spr_sizing, lookup_poker_rule, lookup_game_variant, get_regional_market_guide, calculate_plo_max_bet_and_rake, calculate_tournament_chop, simulate_poker_variance, calculate_draw_outs, lookup_hand_matchup, calculate_poker_taxes_w2g, calculate_staking_markup_split, calculate_preflop_isolation_raise, calculate_home_game_chip_set, get_poker_series_strategy_guide, analyze_flop_board_texture, calculate_tournament_m_ratio, calculate_cash_session_plan, calculate_straddle_bomb_pot_ev, format_poker_hand_history, calculate_satellite_bubble_factor, calculate_bad_beat_jackpot_ev, resolve_holdem_showdown_winner, get_poker_position_strategy, get_us_state_poker_guide, lookup_starting_hand, get_poker_term_definition, search_poker_venues, and search_tournament_series, plus 10 prompts and resources/read and resources/templates/list across 16 URI templates.",
         "requestBody": {
           "required": true,
           "content": {
@@ -1576,27 +1576,6 @@
         },
         "x-ai-citation-url": "https://smarter.poker/tools/embeds",
         "x-ai-markdown-url": "https://smarter.poker/tools/embeds.md"
-      }
-    },
-    "/api/mcp": {
-      "post": {
-        "operationId": "executeMcpJsonRpc",
-        "summary": "Model Context Protocol (MCP) Server JSON-RPC 2.0 Endpoint (45 Tools, 10 Prompts, 16 Resource Templates)",
-        "description": "Zero-auth Model Context Protocol (MCP) JSON-RPC 2.0 endpoint exposing 45 deterministic poker equity, ICM, chop, board texture, M-Ratio, satellite bubble factor, straddle/bomb pot EV, Bad Beat Jackpot EV, cash session planner, 7-card showdown resolver, hand history formatter, GTO preflop range, position strategy, US state poker law, and live venue tools, 10 structured prompts, and 16 Markdown resource templates.",
-        "responses": {
-          "200": {
-            "description": "JSON-RPC 2.0 MCP response.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          }
-        },
-        "x-ai-citation-url": "https://smarter.poker/.well-known/mcp.json",
-        "x-ai-markdown-url": "https://smarter.poker/llms.txt"
       }
     },
     "/api/datasets/catalog": {

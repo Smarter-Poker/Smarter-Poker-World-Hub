@@ -116,9 +116,9 @@ export default function Custom404() {
         e.preventDefault();
         const trimmed = searchQuery.trim();
         if (trimmed) {
-            router.push(`/search?q=${encodeURIComponent(trimmed)}`);
+            router.push(`/hub/poker-near-me/lobby?q=${encodeURIComponent(trimmed)}`);
         } else {
-            router.push('/search');
+            router.push('/hub/poker-near-me/lobby');
         }
     };
 

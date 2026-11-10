@@ -24,6 +24,9 @@
     "interactiveCalculatorsCount": 34,
     "streamerBotCommandsCount": 26
   },
+  "tools_count": 45,
+  "prompts_count": 10,
+  "resource_templates_count": 16,
   "tools": [
     "search_poker_venues",
     "get_venue_details",
