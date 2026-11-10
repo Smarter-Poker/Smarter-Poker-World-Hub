@@ -35,7 +35,9 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { messengerPreferences } from '../../src/services/preferences-service';
 
 const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalHeader'), { ssr: false });
-const ReportBugWidget = dynamic(() => import('../../src/components/ui/ReportBugWidget'), { ssr: false });
+// The plain submission form for every account; the configured bug report
+// recipient also gets the incoming reports and their unread badge here.
+const BugReportInboxWidget = dynamic(() => import('../../src/components/messenger/BugReportInboxWidget'), { ssr: false });
 import { eventBus, EventType, busEmit } from '../../src/engine/EventBus';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import useMessengerSearch from '../../src/hooks/useMessengerSearch';
@@ -3475,7 +3477,7 @@ function MessengerPage() {
                             flexDirection: 'column',
                             gap: 12,
                         }}>
-                            <ReportBugWidget contextPath="/hub/messenger" theme={isDarkMode ? 'dark' : 'light'} />
+                            <BugReportInboxWidget contextPath="/hub/messenger" theme={isDarkMode ? 'dark' : 'light'} />
                     </div>
                 </div>
                 </aside>
