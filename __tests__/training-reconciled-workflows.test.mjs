@@ -156,6 +156,8 @@ test('Live Hand Sync, Multi-Table Focus, and Telemetry UI contracts are wired en
 
   const handHistoryUpload = read('pages/hub/training/hand-history-upload.js');
   assert.match(handHistoryUpload, /data-train-this-hand="true"/);
+  assert.doesNotMatch(handHistoryUpload, /syncedHeroCards/);
+  assert.doesNotMatch(handHistoryUpload, /syncedBoard/);
 
   const multiTable = read('pages/hub/training/multi-table.js');
   assert.match(multiTable, /onTableStateChange=\{handleTableStateChange\}/);

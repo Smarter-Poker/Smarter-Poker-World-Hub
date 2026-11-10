@@ -928,6 +928,7 @@ export default function EquityCalculatorPage() {
                 key={v.id}
                 type="button"
                 data-variant-option={v.id}
+                data-equity-variant={v.id}
                 aria-pressed={variant === v.id}
                 onClick={() => changeVariant(v.id)}
                 style={{
@@ -1148,19 +1149,19 @@ export default function EquityCalculatorPage() {
                     }}
                   >
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 6 }}>
-                      <span style={{ fontSize: 11, fontWeight: 800, color: '#67e8f9', textTransform: 'uppercase' }}>
+                      <span style={{ fontSize: 12, fontWeight: 800, color: '#67e8f9', textTransform: 'uppercase' }}>
                         {`Engine: ${horseBrainAnalysis.engineModule}`}
                       </span>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: '#cbd5e1' }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#cbd5e1' }}>
                         {`Player 1 Made Hand: ${horseBrainAnalysis.madeHandCategory}`}
                       </span>
                       {horseBrainAnalysis.recommendedAction && (
-                        <span style={{ fontSize: 11, fontWeight: 800, color: '#4ade80' }}>
+                        <span style={{ fontSize: 12, fontWeight: 800, color: '#4ade80' }}>
                           {`Recommended Line: ${horseBrainAnalysis.recommendedAction}`}
                         </span>
                       )}
                       {horseBrainAnalysis.potLimitMaxBetBb && (
-                        <span style={{ fontSize: 11, fontWeight: 700, color: '#fbbf24' }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: '#fbbf24' }}>
                           {`Pot-Limit Max Bet: ${horseBrainAnalysis.potLimitMaxBetBb} BB`}
                         </span>
                       )}

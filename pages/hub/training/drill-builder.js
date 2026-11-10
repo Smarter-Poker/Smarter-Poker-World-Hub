@@ -196,11 +196,12 @@ const STREETS = [
 // CHIP BUTTON
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
-function Chip({ label, selected, onClick, color = 'var(--sp-accent-cyan)' }) {
+function Chip({ label, selected, onClick, color = 'var(--sp-accent-cyan)', ...rest }) {
   return (
     <motion.button
       whileTap={{ scale: 0.95 }}
       onClick={onClick}
+      {...rest}
       style={{
         padding: '8px 16px',
         borderRadius: 8,
@@ -531,6 +532,7 @@ export default function DrillBuilderPage() {
                 {DRILL_VARIANTS.map((v) => (
                   <Chip
                     key={v.id}
+                    data-drill-variant={v.id}
                     label={v.label}
                     selected={variant === v.id}
                     onClick={() => setVariant(v.id)}

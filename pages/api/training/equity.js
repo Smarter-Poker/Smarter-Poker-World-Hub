@@ -240,11 +240,24 @@ export default async function handler(req, res) {
           if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
           const {
-              hands = [],
+              hands: rawHands = [],
+              heroCards: rawHeroCards = null,
+              villainCards: rawVillainCards = null,
               board: boardInput = [],
               variant = 'holdem',
               iterations: rawIterations = 5000,
           } = req.body;
+
+          const normalizeHandEntry = (entry) => {
+              if (Array.isArray(entry)) return entry.map((c) => String(c || '').trim()).join('');
+              return typeof entry === 'string' ? entry.replace(/\s+/g, '') : '';
+          };
+
+          const hands = Array.isArray(rawHands) && rawHands.length > 0
+              ? rawHands.map(normalizeHandEntry)
+              : (rawHeroCards && rawVillainCards)
+                  ? [normalizeHandEntry(rawHeroCards), normalizeHandEntry(rawVillainCards)]
+                  : [];
 
           // Validation
           if (!Array.isArray(hands) || hands.length < 2 || hands.length > 4) {
@@ -346,7 +359,7 @@ export default async function handler(req, res) {
                       omahaBestTwoHole: evalResult.brainEvaluation.omahaBestTwoHole || null,
                       omahaBestThreeBoard: evalResult.brainEvaluation.omahaBestThreeBoard || null,
                       recommendedAction: evalResult.correctAnswerText,
-                      potLimitMaxBetBb: evalResult.brainEvaluation.potLimitMaxBetBb ?? null,
+                      potLimitMaxBetBb: evalResult.brainEvaluation.potLimitMaxBetBb ?? evalResult.brainEvaluation.potLimitBounds?.maxPotBetOrRaise ?? null,
                       coachingSummary: evalResult.explanation,
                   };
               } catch (_brainErr) {
@@ -357,6 +370,9 @@ export default async function handler(req, res) {
           return res.status(200).json({
               success: true,
               variant: variantSpec.key,
+              holeCardsPerPlayer: variantSpec.holeCount,
+              heroEquity: result.players[0]?.equity ?? null,
+              villainEquity: result.players[1]?.equity ?? null,
               results: result.players.map((p, i) => ({
                   hand: hands[i],
                   equity: p.equity,

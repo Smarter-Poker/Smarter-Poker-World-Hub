@@ -1002,7 +1002,10 @@ export default function useGTOTrainer(
 
       let data;
       let response = null;
-      const isStandardSession = !isCustomTrainerConfig(trainerConfig);
+      const isStandardSession = !isCustomTrainerConfig(trainerConfig)
+        && !trainerConfig?.syncedHandId
+        && !trainerConfig?.duelToken
+        && (!trainerConfig?.variant || trainerConfig.variant === 'nlh');
       const browserIsOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
 
       if (isStandardSession && browserIsOffline) {
