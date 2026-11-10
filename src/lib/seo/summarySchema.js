@@ -174,6 +174,32 @@ export function summarySchema(page, entry) {
     });
   }
 
+  const serialized = JSON.stringify(nodes);
+  if (
+    !nodes.some((n) => n && n['@id'] === WEBSITE_ID) &&
+    serialized.includes(WEBSITE_ID)
+  ) {
+    nodes.push({
+      '@type': 'WebSite',
+      '@id': WEBSITE_ID,
+      url: SITE,
+      name: 'Smarter.Poker',
+      publisher: { '@id': ORGANIZATION_ID },
+    });
+  }
+  if (
+    !nodes.some((n) => n && n['@id'] === ORGANIZATION_ID) &&
+    JSON.stringify(nodes).includes(ORGANIZATION_ID)
+  ) {
+    nodes.push({
+      '@type': 'Organization',
+      '@id': ORGANIZATION_ID,
+      name: 'Smarter.Poker',
+      legalName: 'Smarter Software Inc',
+      url: SITE,
+    });
+  }
+
   return { '@context': 'https://schema.org', '@graph': nodes };
 }
 

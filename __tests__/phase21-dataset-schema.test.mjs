@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { datasetSchema } from '../src/lib/seo/hubPageSchema.js';
+import { summarySchema } from '../src/lib/seo/summarySchema.js';
 
 test('Phase 21: datasetSchema builds valid Schema.org Dataset nodes for all 4 national directories', () => {
   const routes = [
@@ -50,5 +51,29 @@ test('Phase 21: all 4 national poker directories wire datasetSchema into their J
   for (const rel of files) {
     const src = fs.readFileSync(path.resolve(rel), 'utf8');
     assert.ok(src.includes('datasetSchema('), `${rel} must invoke datasetSchema()`);
+    if (rel !== 'pages/hub/poker-near-me/[pnmTab].js') {
+      assert.ok(src.includes('breadcrumbSchema('), `${rel} must invoke breadcrumbSchema() in JSON-LD @graph`);
+    }
   }
+});
+
+test('Public directory, store, and about pages emit BreadcrumbList and resolved @id graph nodes', () => {
+  const aboutSrc = fs.readFileSync(path.resolve('pages/about.js'), 'utf8');
+  assert.ok(aboutSrc.includes('ABOUT_PAGE_SCHEMA.breadcrumb'), 'pages/about.js must include top-level BreadcrumbList in jsonLd');
+
+  const weekendSrc = fs.readFileSync(path.resolve('pages/hub/tournaments/this-weekend.js'), 'utf8');
+  assert.ok(weekendSrc.includes('breadcrumbSchema('), 'pages/hub/tournaments/this-weekend.js must include breadcrumbSchema()');
+
+  const storeSrc = fs.readFileSync(path.resolve('pages/hub/diamond-store.js'), 'utf8');
+  assert.ok(storeSrc.includes("'@type': 'BreadcrumbList'"), 'pages/hub/diamond-store.js must include BreadcrumbList in storeStructuredData');
+
+  const triviaGraph = summarySchema('trivia', {
+    heading: 'About Poker Trivia',
+    lead: 'Daily poker trivia.',
+  });
+  assert.ok(triviaGraph && Array.isArray(triviaGraph['@graph']));
+  assert.match(triviaGraph['@graph'][0]['@id'], /#page$/);
+  const ids = new Set(triviaGraph['@graph'].map((n) => n['@id']).filter(Boolean));
+  assert.ok(ids.has('https://smarter.poker/#website'), 'summarySchema must include #website node when referenced');
+  assert.ok(ids.has('https://smarter.poker/#organization'), 'summarySchema must include #organization node when referenced');
 });

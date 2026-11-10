@@ -16,8 +16,7 @@ import PokerNearMeFamilyNav from '../../src/components/poker-near-me/PokerNearMe
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import FaqSection from '../../src/components/seo/FaqSection';
 import { normalizeJsonLdGraph } from '../../src/components/seo/SEOHead';
-import { datasetSchema } from '../../src/lib/seo/hubPageSchema';
-import { faqSchema } from '../../src/lib/seo/hubPageSchema';
+import { datasetSchema, faqSchema, breadcrumbSchema } from '../../src/lib/seo/hubPageSchema';
 import { serializePokerJsonLd } from '../../src/lib/poker-near-me/structuredData';
 import { tourCanonical } from '../../src/lib/seo/tourPageSeo';
 
@@ -826,6 +825,11 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
                             },
                         },
                         faqSchema(POKER_TOURS_FAQS, '/hub/poker-tours'),
+                        breadcrumbSchema([
+                            ['Home', '/'],
+                            ['Poker Near Me', '/hub/poker-near-me/lobby'],
+                            ['Poker Tours', '/hub/poker-tours'],
+                        ]),
                     ].filter(Boolean)),
                 }) }} />
 </Head>

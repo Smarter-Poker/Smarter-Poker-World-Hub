@@ -141,10 +141,14 @@ export default function PvPLobbyPage() {
       duelToken: String(duelObj.duelToken),
       source: 'pvp-duel',
     });
-    if (role === 'challenger' && duelObj.challengerSessionId) {
-      params.set('sessionId', String(duelObj.challengerSessionId));
+    if (role === 'challenger') {
+      const chalSession = `duel_chal_${Date.now().toString(36)}`;
+      params.set('session', chalSession);
+      params.set('sessionId', chalSession);
     } else if (role === 'opponent') {
-      params.set('sessionId', `duel_opp_${Date.now().toString(36)}`);
+      const oppSession = `duel_opp_${Date.now().toString(36)}`;
+      params.set('session', oppSession);
+      params.set('sessionId', oppSession);
     }
     return `/hub/training/arena/${encodeURIComponent(duelObj.gameId || 'mtt-015')}?${params.toString()}`;
   };
