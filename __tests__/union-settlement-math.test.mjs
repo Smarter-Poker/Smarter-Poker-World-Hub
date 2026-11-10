@@ -181,3 +181,42 @@ test('defect B: rake and P&L must measure the same population (horses included)'
   assert.equal(mismatched, -95, 'the horse rake resurfaces as phantom player loss');
   assert.notEqual(mismatched, sameCohort);
 });
+
+// Production renderer contract: the legacy total cannot manufacture a split.
+const { unionEcoComponents, unionEcoRows } = await import('../src/lib/unionEco.mjs');
+const ecoFixture = () => ({ eco_version: 2, eco_amount: -2.01, eco_components: [
+  { activity: 'cash', enabled: true, base_mode: 'club_profit', base: 100.05, rate: 0.1, amount: -10.01,
+    terms_id: '11111111-1111-4111-8111-111111111111', record_id: '22222222-2222-4222-8222-222222222222', status: 'recorded' },
+  { activity: 'tournament', enabled: true, base_mode: 'club_profit', base: -80, rate: 0.1, amount: 8,
+    terms_id: '11111111-1111-4111-8111-111111111111', record_id: '33333333-3333-4333-8333-333333333333', status: 'recorded' },
+] });
+
+test('actual ECO renderer keeps independent signed lanes and PostgreSQL negative half-cent rounding', () => {
+  assert.deepEqual(unionEcoRows(ecoFixture(), { recorded: true }).map(r => [r.label, r.amount]),
+    [['Cash ECO', -10.01], ['Tournament ECO', 8]]);
+});
+
+test('legacy combined invoices retain unknown cash and tournament components', () => {
+  assert.equal(unionEcoComponents({ eco_amount: 12 }), null);
+  assert.deepEqual(unionEcoRows({ eco_amount: 12 }).map(r => r.amount), [null, null]);
+});
+
+test('malformed, duplicate, wrong-sum or unrecorded ECO components cannot render as recorded', () => {
+  for (const change of [
+    x => x.eco_components.pop(), x => x.eco_components[1].activity = 'cash',
+    x => x.eco_amount = 0, x => x.eco_components[0].amount = -10,
+    x => x.eco_components[0].terms_id = null,
+    x => x.eco_components[1].record_id = x.eco_components[0].record_id,
+    x => { x.eco_components[0].status = 'preview'; x.eco_components[0].record_id = null; },
+  ]) {
+    const value = ecoFixture(); change(value);
+    assert.equal(unionEcoComponents(value, { recorded: true }), null);
+  }
+});
+
+test('preview requires explicit preview identity and does not impersonate a recorded invoice', () => {
+  const value = ecoFixture();
+  value.eco_components.forEach(c => { c.status = 'preview'; c.record_id = null; });
+  assert.equal(unionEcoComponents(value).length, 2);
+  assert.equal(unionEcoComponents(value, { recorded: true }), null);
+});
