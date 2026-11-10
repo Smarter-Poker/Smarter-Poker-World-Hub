@@ -18,6 +18,7 @@ import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+import { authedFetch } from '../../../src/lib/authUtils';
 // TRAIN-WIRE-EMPTY-3d — adoption: shared empty-state primitive
 
 // SAMPLE FALLBACK ONLY — these twenty tips are fixed editorial examples, not
@@ -345,7 +346,42 @@ export default function GtoNewsPage() {
       const savedRead = localStorage.getItem('gto-news-read');
       if (savedRead) setReadArticles(new Set(JSON.parse(savedRead)));
     } catch (e) { console.warn('[App] Handled exception:', e); }
+    authedFetch('/api/training/tool-records?tool_id=gto-news&limit=5')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => {
+        const latest = Array.isArray(json?.records)
+          ? json.records.find((r) => r?.payload && (Array.isArray(r.payload.bookmarks) || Array.isArray(r.payload.readArticles)))
+          : null;
+        if (latest?.payload) {
+          if (Array.isArray(latest.payload.bookmarks)) {
+            setBookmarks(new Set(latest.payload.bookmarks));
+            try { localStorage.setItem('gto-news-bookmarks', JSON.stringify(latest.payload.bookmarks)); } catch (_) {}
+          }
+          if (Array.isArray(latest.payload.readArticles)) {
+            setReadArticles(new Set(latest.payload.readArticles));
+            try { localStorage.setItem('gto-news-read', JSON.stringify(latest.payload.readArticles)); } catch (_) {}
+          }
+        }
+      })
+      .catch(() => {});
   }, []);
+
+  const persistNewsProgress = (bmList, readList, summaryText) => {
+    authedFetch('/api/training/tool-records', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tool_id: 'gto-news',
+        record_type: 'news_progress',
+        title: `GTO News (${bmList.length} Bookmarked, ${readList.length} Read)`,
+        summary: summaryText,
+        payload: {
+          bookmarks: bmList,
+          readArticles: readList,
+        },
+      }),
+    }).catch(() => {});
+  };
 
   const toggleBookmark = (id) => {
     const next = new Set(bookmarks);
@@ -355,9 +391,11 @@ export default function GtoNewsPage() {
       next.add(id);
     }
     setBookmarks(next);
+    const bmList = [...next];
     try {
-      localStorage.setItem('gto-news-bookmarks', JSON.stringify([...next]));
+      localStorage.setItem('gto-news-bookmarks', JSON.stringify(bmList));
     } catch (e) { console.warn('[App] Handled exception:', e); }
+    persistNewsProgress(bmList, [...readArticles], `Toggled bookmark ${id}`);
   };
 
   const markRead = (id) => {
@@ -365,9 +403,11 @@ export default function GtoNewsPage() {
     const next = new Set(readArticles);
     next.add(id);
     setReadArticles(next);
+    const readList = [...next];
     try {
-      localStorage.setItem('gto-news-read', JSON.stringify([...next]));
+      localStorage.setItem('gto-news-read', JSON.stringify(readList));
     } catch (e) { console.warn('[App] Handled exception:', e); }
+    persistNewsProgress([...bookmarks], readList, `Read article ${id}`);
 
     // Reading progress stays separate from graded sessions, streaks, accuracy,
     // and leaderboard calculations.

@@ -126,10 +126,31 @@ export default async function handler(req, res) {
               });
           }
 
+          const includeAnswers = String(req.query?.includeAnswers || '') === '1';
+          const fetchRecentAnswersIfRequested = async () => {
+              if (!includeAnswers) return undefined;
+              try {
+                  const { data: answerRows } = await runTrainingPersistenceQuery(
+                      () => getSupabase()
+                          .from('training_answers')
+                          .select('id, game_id, question_id, answer_id, is_correct, hero_position, villain_position, street, classification, ev_loss, ev_loss_measured, spot_type, answered_at')
+                          .eq('user_id', user.id)
+                          .order('answered_at', { ascending: false })
+                          .limit(200),
+                      { label: 'TrainingSessions.recentAnswers' },
+                  );
+                  return Array.isArray(answerRows) ? answerRows : [];
+              } catch (_) {
+                  return [];
+              }
+          };
+
           if (!sessErr && sessions && sessions.length > 0) {
+              const recentAnswers = await fetchRecentAnswersIfRequested();
               return res.status(200).json({
                   success: true,
                   sessions: sessions.map(projectTrainingSessionEvidence),
+                  ...(recentAnswers !== undefined ? { recentAnswers } : {}),
               });
           }
 
@@ -164,8 +185,13 @@ export default async function handler(req, res) {
           }
 
           const normalized = (history || []).map(projectTrainingLevelHistory);
+          const recentAnswers = await fetchRecentAnswersIfRequested();
 
-          return res.status(200).json({ success: true, sessions: normalized });
+          return res.status(200).json({
+              success: true,
+              sessions: normalized,
+              ...(recentAnswers !== undefined ? { recentAnswers } : {}),
+          });
 
       } catch (err) {
           console.warn('[GetSessions] Error:', err);

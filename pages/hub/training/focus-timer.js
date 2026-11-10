@@ -92,7 +92,67 @@ export default function FocusTimerPage() {
       const log = localStorage.getItem('focus-timer-log');
       if (log) setSessionLog(JSON.parse(log));
     } catch (e) { console.warn('[App] Handled exception:', e); }
+    authedFetch('/api/training/tool-records?tool_id=focus-timer&limit=25')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => {
+        const records = Array.isArray(json?.records) ? json.records : [];
+        if (records.length > 0) {
+          const maxCompleted = records.reduce((max, rec) => {
+            const val = Number(rec?.payload?.completedBlocks);
+            return Number.isFinite(val) && val > max ? val : max;
+          }, records.length);
+          setCompletedBlocks((prev) => {
+            const next = Math.max(prev, maxCompleted);
+            try { localStorage.setItem('focus-timer-completed', String(next)); } catch (_) {}
+            return next;
+          });
+          const entries = records
+            .map((rec) => rec?.payload?.entry)
+            .filter((entry) => entry && entry.time);
+          if (entries.length > 0) {
+            setSessionLog((prev) => {
+              const merged = prev.length >= entries.length ? prev : entries.slice(0, 20);
+              try { localStorage.setItem('focus-timer-log', JSON.stringify(merged)); } catch (_) {}
+              return merged;
+            });
+          }
+        }
+      })
+      .catch(() => {});
   }, []);
+
+  const recordCompletedFocusBlock = () => {
+    const next = completedBlocks + 1;
+    setCompletedBlocks(next);
+    try {
+      localStorage.setItem('focus-timer-completed', next.toString());
+    } catch (e) { console.warn('[App] Handled exception:', e); }
+    const entry = {
+      id: Date.now(),
+      time: new Date().toLocaleTimeString(),
+      duration: phase.mins,
+    };
+    const newLog = [entry, ...sessionLog].slice(0, 20);
+    setSessionLog(newLog);
+    try {
+      localStorage.setItem('focus-timer-log', JSON.stringify(newLog));
+    } catch (e) { console.warn('[App] Handled exception:', e); }
+    authedFetch('/api/training/tool-records', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tool_id: 'focus-timer',
+        record_type: 'focus_block',
+        title: `Focus Block #${next}`,
+        summary: `${phase.mins}m completed at ${entry.time}`,
+        payload: {
+          completedBlocks: next,
+          entry,
+        },
+      }),
+    }).catch(() => {});
+    return next;
+  };
 
   useEffect(() => {
     if (isActive && timeLeft > 0) {
@@ -318,7 +378,7 @@ export default function FocusTimerPage() {
           </div>
 
           {/* Controls */}
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 40 }}>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 40, flexWrap: 'wrap' }}>
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={() => setIsActive(!isActive)}
@@ -355,11 +415,30 @@ export default function FocusTimerPage() {
             >
               ↺
             </motion.button>
+            <motion.button
+              type="button"
+              data-complete-focus-block-btn="true"
+              whileTap={{ scale: 0.95 }}
+              onClick={recordCompletedFocusBlock}
+              style={{
+                padding: '12px 16px',
+                borderRadius: 12,
+                border: '1px solid rgba(34,197,94,0.35)',
+                background: 'rgba(34,197,94,0.12)',
+                color: 'var(--sp-accent-green)',
+                fontSize: 12,
+                fontWeight: 800,
+                cursor: 'pointer',
+              }}
+            >
+              Log Completed Block
+            </motion.button>
           </div>
 
           {/* Stats */}
           <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
             <div
+              data-focus-completed-count={completedBlocks}
               style={{
                 flex: 1,
                 padding: '16px',

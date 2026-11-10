@@ -290,6 +290,11 @@ export function generateCuratedPokerConceptBatch({
     : Object.keys(FACTS).filter((topic) => FACTS[topic].street === forcedStreet);
   if (topics.length === 0) return [];
 
+  const effectivePositions = Array.isArray(positions) && positions.length > 0
+    ? positions
+    : Array.isArray(gameConfig?.targetPositions) && gameConfig.targetPositions.length > 0
+      ? gameConfig.targetPositions
+      : [];
   const questions = [];
   const wanted = Math.max(1, Math.min(Number(count) || 1, 25));
   const excludedIds = new Set((seenIds || []).map(String));
@@ -302,7 +307,7 @@ export function generateCuratedPokerConceptBatch({
     const field = fieldForStyle(style);
     const street = forcedStreet || fact.street;
     const boardCards = STREET_BOARD[street] || [];
-    const heroPosition = positions[index % Math.max(positions.length, 1)] || (topic === 'bb_defense' ? 'BB' : 'BTN');
+    const heroPosition = effectivePositions[index % Math.max(effectivePositions.length, 1)] || (topic === 'bb_defense' ? 'BB' : 'BTN');
     const villainPosition = heroPosition === 'BB' ? 'BTN' : 'BB';
     const stackDepth = Number(stackDepths[index % Math.max(stackDepths.length, 1)] || gameConfig?.pioStackDepth || 100);
     const pot = street === 'preflop' ? (['rfi', 'icm'].includes(topic) ? 1.5 : 4.5)
@@ -381,7 +386,10 @@ export function generateCuratedPokerConceptBatch({
     const finalAnswerText = useBrainActionChoices ? brainEval.correctAnswerText : fallbackAnswer;
 
     const variantSuffix = hasExplicitVariant ? `_${effectiveVariant}` : '';
-    const id = `curated_${gameId}${variantSuffix}_L${level}_${topic}_${style}_${index}`;
+    const posSuffix = Array.isArray(effectivePositions) && effectivePositions.length === 1
+      ? `_${String(heroPosition).toLowerCase()}`
+      : '';
+    const id = `curated_${gameId}${variantSuffix}${posSuffix}_L${level}_${topic}_${style}_${index}`;
     if (excludedIds.has(id)) continue;
     const variantTitle = effectiveVariant === 'plo6'
       ? '6-Card PLO (Pot-Limit)'

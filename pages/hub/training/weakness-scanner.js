@@ -55,8 +55,10 @@ export default function WeaknessScannerPage() {
   useTrainingBus('weakness-scanner');
   const [loading, setLoading] = useState(true);
   const [rawSessions, setRawSessions] = useState(null);
+  const [rawAnswers, setRawAnswers] = useState([]);
   const [fetchError, setFetchError] = useState(null);
   const [timeFilter, setTimeFilter] = useState('all');
+  const [villainArchetype, setVillainArchetype] = useState('Calling Station');
 
   const fetchData = useCallback(async () => {
     const user = getAuthUser();
@@ -66,10 +68,11 @@ export default function WeaknessScannerPage() {
     }
     try {
       setFetchError(null);
-      const res = await authedFetch(`/api/training/get-sessions?limit=50`);
+      const res = await authedFetch(`/api/training/get-sessions?limit=50&includeAnswers=1`);
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const d = await res.json();
-      if (d.success && d.sessions) setRawSessions(d.sessions);
+      if (d.success && Array.isArray(d.sessions)) setRawSessions(d.sessions);
+      if (d.success && Array.isArray(d.recentAnswers)) setRawAnswers(d.recentAnswers);
     } catch (e) {
       console.warn('[Scanner]', e);
       setFetchError('Unable to load session data. Please check your connection.');
@@ -88,41 +91,87 @@ export default function WeaknessScannerPage() {
 
   // Time-filtered analysis (computed at render-time so filter changes don't re-fetch)
   const data = React.useMemo(() => {
-    if (!rawSessions) return null;
-    if (timeFilter === 'all') return analyzeData(rawSessions);
+    if (!rawSessions && (!rawAnswers || rawAnswers.length === 0)) return null;
+    if (timeFilter === 'all') return analyzeData(rawSessions || [], rawAnswers || []);
     const now = Date.now();
     const cutoffMs = timeFilter === '7d' ? 7 * 86400000 : 30 * 86400000;
-    const filtered = rawSessions.filter(s => {
+    const filtered = (rawSessions || []).filter(s => {
       const created = new Date(s.created_at || s.timestamp).getTime();
       return now - created < cutoffMs;
     });
-    return analyzeData(filtered);
-  }, [rawSessions, timeFilter]);
+    const filteredAnswers = (rawAnswers || []).filter(a => {
+      const created = new Date(a.answered_at || a.created_at || Date.now()).getTime();
+      return now - created < cutoffMs;
+    });
+    return analyzeData(filtered, filteredAnswers);
+  }, [rawSessions, rawAnswers, timeFilter]);
 
-  const topLeak = data?.leaks?.[0] || null;
+  const topLeak = data?.topSpotLeak || data?.spotLeaks?.[0] || data?.leaks?.[0] || null;
+  const hasVerifiedLeak = Boolean(topLeak && topLeak.sample >= 3);
   const topLeakGameId = topLeak?.gameId || topLeak?._engineLeak?.drill?.gameId || 'cash-005';
+  const topLeakVariant = topLeak?.variant || 'nlh';
+  const topLeakStreet = topLeak?.street || 'flop';
+  const topLeakPosition = topLeak?.position || 'BB';
+  const topLeakSample = topLeak?.sample ?? data?.totalHands ?? 0;
+  const topLeakEvLossBb = topLeak?.evLossBb ?? 0;
+  const topLeakHref = React.useMemo(
+    () => buildCustomTrainingArenaHref(
+      hasVerifiedLeak
+        ? {
+            gameId: topLeakGameId,
+            variant: topLeakVariant,
+            street: topLeakStreet,
+            position: topLeakPosition,
+          }
+        : { gameId: topLeakGameId },
+      'weakness-scanner'
+    ),
+    [hasVerifiedLeak, topLeakGameId, topLeakVariant, topLeakStreet, topLeakPosition]
+  );
+
   const leakBrainEval = React.useMemo(() => {
     try {
+      const archetypeMap = {
+        'Calling Station': { vpip: 46, pfr: 10, threeBet: 3, toCall: 0, pot: 6.5 },
+        'Aggro 3-Bettor': { vpip: 36, pfr: 30, threeBet: 15, toCall: 5.5, pot: 11.0 },
+        'Tight-Passive Nit': { vpip: 14, pfr: 11, threeBet: 4, toCall: 4.5, pot: 6.5 },
+        'Balanced GTO Reg': { vpip: 25, pfr: 21, threeBet: 8, toCall: 2.2, pot: 6.5 },
+      };
+      const profileCfg = archetypeMap[villainArchetype] || archetypeMap['Calling Station'];
+      const heroCardsByVariant = {
+        nlh: ['Kh', 'Jc'],
+        plo4: ['As', 'Ks', 'Qh', 'Jd'],
+        plo5: ['As', 'Ks', 'Qh', 'Jd', 'Tc'],
+        plo6: ['As', 'Ks', 'Qh', 'Jd', 'Tc', '9h'],
+      };
+      const boardByStreet = {
+        preflop: [],
+        flop: ['Ks', '8d', '4c'],
+        turn: ['Ks', '8d', '4c', '2h'],
+        river: ['Ks', '8d', '4c', '2h', '7s'],
+      };
       return evaluateTrainingSpotWithHorseBrain({
         gameId: topLeakGameId,
-        variant: 'nlh',
-        heroCards: ['Kh', 'Jc'],
-        boardCards: ['Ks', '8d', '4c'],
-        street: 'flop',
-        pot: 6.5,
+        variant: topLeakVariant,
+        heroCards: heroCardsByVariant[topLeakVariant] || heroCardsByVariant.nlh,
+        boardCards: boardByStreet[topLeakStreet] || boardByStreet.flop,
+        street: topLeakStreet,
+        pot: profileCfg.pot,
+        toCall: profileCfg.toCall,
         stackDepth: 100,
-        heroPosition: 'BB',
-        villainPosition: 'BTN',
-        options: [
-          { id: 'call', text: 'Call 2.2 BB' },
-          { id: 'raise', text: 'Check-Raise 7.5 BB' },
-          { id: 'fold', text: 'Fold' },
-        ],
+        heroPosition: topLeakPosition,
+        villainPosition: topLeakPosition === 'BB' ? 'BTN' : 'BB',
+        villainArchetype,
+        villainStats: {
+          vpip: profileCfg.vpip,
+          pfr: profileCfg.pfr,
+          threeBet: profileCfg.threeBet,
+        },
       });
     } catch {
       return null;
     }
-  }, [topLeakGameId]);
+  }, [topLeakGameId, topLeakVariant, topLeakStreet, topLeakPosition, villainArchetype]);
 
   return (
     <>
@@ -210,6 +259,14 @@ export default function WeaknessScannerPage() {
             <div
               data-leak-brain-panel="true"
               data-brain-engine={leakBrainEval.engineModule}
+              data-leak-basis={hasVerifiedLeak ? 'verified-history' : 'general-suggestion'}
+              data-leak-variant={topLeakVariant}
+              data-leak-street={topLeakStreet}
+              data-leak-position={topLeakPosition}
+              data-leak-sample-count={String(topLeakSample)}
+              data-leak-ev-loss-bb={String(topLeakEvLossBb)}
+              data-exploit-archetype={villainArchetype}
+              data-recommended-action={leakBrainEval.correctAnswer}
               style={{
                 padding: '16px',
                 borderRadius: 12,
@@ -218,13 +275,61 @@ export default function WeaknessScannerPage() {
                 border: '1px solid rgba(56, 189, 248, 0.35)',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 6 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
                 <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-accent-cyan)' }}>
                   Horse Brain Leak Remediation Engine
                 </span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-amber)' }}>
-                  Target Drill: {topLeak ? topLeak.area : 'Blind Defense'} ({topLeakGameId})
+                <span
+                  data-leak-basis-badge="true"
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: 6,
+                    color: hasVerifiedLeak ? '#fbbf24' : '#94a3b8',
+                    background: hasVerifiedLeak ? 'rgba(251, 191, 36, 0.14)' : 'rgba(148, 163, 184, 0.14)',
+                    border: hasVerifiedLeak ? '1px solid rgba(251, 191, 36, 0.4)' : '1px solid rgba(148, 163, 184, 0.3)',
+                  }}
+                >
+                  {hasVerifiedLeak
+                    ? `Verified Personal Leak · ${topLeakSample} Hands · -${topLeakEvLossBb} BB EV Loss`
+                    : `General Practice Suggestion (Sample: ${topLeakSample}/3 Hands Required)`}
                 </span>
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8, fontSize: 12, color: '#cbd5e1', fontWeight: 700 }}>
+                <span>Target Spot: {topLeakVariant.toUpperCase()} · {topLeakPosition} · {topLeakStreet.toUpperCase()}</span>
+                <span>•</span>
+                <span>Module: {topLeakGameId}</span>
+                <span>•</span>
+                <span data-exploit-recommended-label="true" style={{ color: '#6ee7b7' }}>
+                  Recommended Vs {villainArchetype}: {leakBrainEval.correctAnswerText}
+                </span>
+              </div>
+              {/* Exploitative Villain Tendency Selector */}
+              <div
+                data-exploit-tendency-selector="true"
+                style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 10 }}
+              >
+                {['Calling Station', 'Aggro 3-Bettor', 'Tight-Passive Nit', 'Balanced GTO Reg'].map((arch) => (
+                  <button
+                    key={arch}
+                    type="button"
+                    data-exploit-tendency-btn={arch}
+                    onClick={() => setVillainArchetype(arch)}
+                    style={{
+                      padding: '3px 8px',
+                      borderRadius: 6,
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      border: villainArchetype === arch ? '1px solid #38bdf8' : '1px solid rgba(255,255,255,0.12)',
+                      background: villainArchetype === arch ? 'rgba(56, 189, 248, 0.18)' : 'rgba(255,255,255,0.04)',
+                      color: villainArchetype === arch ? '#7dd3fc' : '#94a3b8',
+                    }}
+                  >
+                    {arch}
+                  </button>
+                ))}
               </div>
               <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.5 }}>
                 {leakBrainEval.coachingExplanation}
@@ -233,8 +338,12 @@ export default function WeaknessScannerPage() {
                 type="button"
                 data-fix-top-leak-cta="true"
                 data-target-game-id={topLeakGameId}
+                data-target-variant={topLeakVariant}
+                data-target-street={topLeakStreet}
+                data-target-position={topLeakPosition}
+                data-target-href={topLeakHref}
                 onClick={() => {
-                  router.push(buildCustomTrainingArenaHref({ gameId: topLeakGameId }, 'weakness-scanner'));
+                  router.push(topLeakHref);
                 }}
                 style={{
                   width: '100%',
@@ -248,7 +357,9 @@ export default function WeaknessScannerPage() {
                   cursor: 'pointer',
                 }}
               >
-                {topLeak ? `Train Top Leak In Club Arena: ${topLeak.area} →` : 'Train Priority Leak Spot In Club Arena →'}
+                {hasVerifiedLeak
+                  ? `Fix My #1 Leak In Club Arena: ${topLeakVariant.toUpperCase()} ${topLeakPosition} (${topLeakStreet.toUpperCase()}) →`
+                  : 'Launch General Practice Suggestion In Club Arena →'}
               </button>
             </div>
           )}
@@ -396,9 +507,12 @@ export default function WeaknessScannerPage() {
                 <motion.button
                   whileTap={{ scale: 0.97 }}
                   onClick={() => {
-                    const w = data.leaks[0];
+                    const w = data.topSpotLeak || data.leaks[0];
                     router.push(buildCustomTrainingArenaHref({
                       gameId: w.gameId || w._engineLeak?.drill?.gameId,
+                      variant: w.variant,
+                      street: w.street,
+                      position: w.position,
                     }, 'weakness-scanner'));
                   }}
                   style={{
@@ -415,7 +529,7 @@ export default function WeaknessScannerPage() {
                     marginBottom: 20,
                   }}
                 >
-                  Drill Weakest Spot: {data.leaks[0].area}
+                  Drill Weakest Spot: {(data.topSpotLeak || data.leaks[0]).area}
                 </motion.button>
               )}
 
@@ -529,6 +643,9 @@ export default function WeaknessScannerPage() {
                         onClick={() => {
                           router.push(buildCustomTrainingArenaHref({
                             gameId: leak.gameId || leak._engineLeak?.drill?.gameId,
+                            variant: leak.variant,
+                            street: leak.street,
+                            position: leak.position,
                           }, 'weakness-scanner'));
                         }}
                         style={{

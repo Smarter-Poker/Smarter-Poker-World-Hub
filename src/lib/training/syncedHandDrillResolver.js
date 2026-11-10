@@ -14,6 +14,7 @@
 
 import { evaluateTrainingSpotWithHorseBrain, validateDealAndPotLimitBounds } from './horseBrainTrainingAdapter.js';
 import { generateCuratedPokerConceptBatch } from './curatedPokerConcepts.js';
+import { parseStakesToBlinds, convertBbToTableChips } from './clubArenaTableParity.js';
 
 let _defaultSolverPolicyService = null;
 async function getDefaultSolverPolicyService() {
@@ -211,6 +212,18 @@ export async function lookupServerSyncedHand({ supabase, userId, syncedHandId })
     'BTN',
   );
   const villainPosition = heroPosition === 'BB' ? 'BTN' : 'BB';
+  const rawStakesInput =
+    payload.stakes
+    || handData.stakes
+    || summary.stakes
+    || (payload.small_blind && payload.big_blind ? `${payload.small_blind}/${payload.big_blind}` : null)
+    || (payload.smallBlind && payload.bigBlind ? `${payload.smallBlind}/${payload.bigBlind}` : null)
+    || '1/2';
+  const stakesInfo = parseStakesToBlinds(rawStakesInput);
+
+  const explicitPotChips = Number(
+    payload.pot_chips ?? payload.potChips ?? handData.pot_chips ?? handData.potChips ?? summary.potChips,
+  );
   const rawPot = Number(
     payload.pot_size
       ?? payload.pot
@@ -219,21 +232,55 @@ export async function lookupServerSyncedHand({ supabase, userId, syncedHandId })
       ?? summary.potTotal
       ?? summary.pot,
   );
-  const pot = Number.isFinite(rawPot) && rawPot > 0
-    ? Number(rawPot.toFixed(1))
-    : street === 'preflop'
-      ? 4.5
-      : street === 'flop'
-        ? 6.5
-        : street === 'turn'
-          ? 14
-          : 28;
+  const potFromChips =
+    Number.isFinite(explicitPotChips) && explicitPotChips > 0 && stakesInfo.bigBlind > 0
+      ? Number((explicitPotChips / stakesInfo.bigBlind).toFixed(2))
+      : null;
+  const pot = potFromChips !== null
+    ? potFromChips
+    : Number.isFinite(rawPot) && rawPot > 0
+      ? Number(rawPot.toFixed(1))
+      : street === 'preflop'
+        ? 4.5
+        : street === 'flop'
+          ? 6.5
+          : street === 'turn'
+            ? 14
+            : 28;
+  const explicitStackChips = Number(
+    payload.stack_chips ?? payload.stackChips ?? payload.heroStackChips ?? handData.stack_chips ?? handData.stackChips,
+  );
   const rawStack = Number(
     payload.stack_depth ?? payload.stackDepth ?? payload.effectiveStack ?? handData.stack_depth ?? 100,
   );
-  const stackDepth = Number.isFinite(rawStack) && rawStack > 0 ? Math.round(rawStack) : 100;
+  const stackFromChips =
+    Number.isFinite(explicitStackChips) && explicitStackChips > 0 && stakesInfo.bigBlind > 0
+      ? Number((explicitStackChips / stakesInfo.bigBlind).toFixed(2))
+      : null;
+  const stackDepth = stackFromChips !== null
+    ? stackFromChips
+    : Number.isFinite(rawStack) && rawStack > 0
+      ? Number(rawStack.toFixed(2))
+      : 100;
+  const explicitToCallChips = Number(
+    payload.to_call_chips ?? payload.toCallChips ?? handData.to_call_chips ?? handData.toCallChips,
+  );
   const rawToCall = Number(payload.to_call ?? payload.toCall ?? handData.toCall ?? 0);
-  const toCall = Number.isFinite(rawToCall) && rawToCall >= 0 ? Number(rawToCall.toFixed(1)) : 0;
+  const toCall =
+    Number.isFinite(explicitToCallChips) && explicitToCallChips >= 0 && stakesInfo.bigBlind > 0
+      ? Number((explicitToCallChips / stakesInfo.bigBlind).toFixed(2))
+      : Number.isFinite(rawToCall) && rawToCall >= 0
+        ? Number(rawToCall.toFixed(2))
+        : 0;
+  const potChips = Number.isFinite(explicitPotChips) && explicitPotChips > 0
+    ? explicitPotChips
+    : convertBbToTableChips(pot, stakesInfo);
+  const heroStackChips = Number.isFinite(explicitStackChips) && explicitStackChips > 0
+    ? explicitStackChips
+    : convertBbToTableChips(stackDepth, stakesInfo);
+  const toCallChips = Number.isFinite(explicitToCallChips) && explicitToCallChips >= 0
+    ? explicitToCallChips
+    : convertBbToTableChips(toCall, stakesInfo);
 
   return {
     ok: true,
@@ -246,10 +293,15 @@ export async function lookupServerSyncedHand({ supabase, userId, syncedHandId })
       heroPosition,
       villainPosition,
       pot,
+      potChips,
       toCall,
+      toCallChips,
       stackDepth,
+      heroStackChips,
       gameType: String(payload.game_type || payload.gameType || payload.game_variant || summary.format || 'cash'),
-      stakes: String(payload.stakes || summary.stakes || '1/2'),
+      stakes: stakesInfo.stakesLabel,
+      smallBlind: stakesInfo.smallBlind,
+      bigBlind: stakesInfo.bigBlind,
       actionSummary: String(
         payload.action_summary || payload.actionSummary || handData.action_summary || 'Action reaches Hero',
       ).slice(0, 180),
@@ -354,7 +406,14 @@ export async function resolveSyncedHandForTrainingDrill({
       heroStack: hand.stackDepth,
       villainStack: hand.stackDepth,
       stackDepth: hand.stackDepth,
+      heroStackChips: hand.heroStackChips,
       pot: hand.pot,
+      potChips: hand.potChips,
+      toCall: hand.toCall,
+      toCallChips: hand.toCallChips,
+      stakes: hand.stakes,
+      smallBlind: hand.smallBlind,
+      bigBlind: hand.bigBlind,
       gameType: hand.gameType,
       spotType,
       brainEvaluation: brainEval.brainEvaluation,
@@ -404,7 +463,14 @@ export async function resolveSyncedHandForTrainingDrill({
       street: hand.street,
       variant: hand.variant,
       pot: hand.pot,
+      potChips: hand.potChips,
+      toCall: hand.toCall,
+      toCallChips: hand.toCallChips,
       stackDepth: hand.stackDepth,
+      heroStackChips: hand.heroStackChips,
+      stakes: hand.stakes,
+      smallBlind: hand.smallBlind,
+      bigBlind: hand.bigBlind,
       engineModule: brainEval.brainEvaluation.engineModule,
       madeHandCategory: brainEval.madeHandCategory,
       participantVerified: true,

@@ -5,6 +5,7 @@ import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { parseHandHistory } from '../../../src/engines/HandHistoryParser';
 import { auditParsedHands } from '../../../src/lib/training/handAuditEngine';
 import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
+import { parseStakesToBlinds } from '../../../src/lib/training/clubArenaTableParity';
 
 let _supabase = null;
 function getSupabase() {
@@ -320,16 +321,33 @@ export default async function handler(req, res) {
         analysis.heroPosition = heroPosition;
         analysis.street = street;
       }
+      const stakesInfo = parseStakesToBlinds(hand.stakes || '1/2');
+      const rawPotChips = Number(hand?.result?.pot || 0);
+      const potBb = stakesInfo.bigBlind > 0 && rawPotChips > 0
+        ? Number((rawPotChips / stakesInfo.bigBlind).toFixed(2))
+        : rawPotChips;
+      const rawHeroStackChips = Number(hand?.hero?.stack || hand?.hero?.startingStack || 0);
+      const stackDepthBb = stakesInfo.bigBlind > 0 && rawHeroStackChips > 0
+        ? Number((rawHeroStackChips / stakesInfo.bigBlind).toFixed(2))
+        : 100;
+      const heroStackChips = rawHeroStackChips > 0
+        ? rawHeroStackChips
+        : Number((stackDepthBb * stakesInfo.bigBlind).toFixed(2));
       return {
         id: String(hand.id),
         site: hand.site || 'PokerStars',
         gameType: hand.gameType || 'Cash',
-        stakes: hand.stakes || '1/2',
+        stakes: stakesInfo.stakesLabel,
+        smallBlind: stakesInfo.smallBlind,
+        bigBlind: stakesInfo.bigBlind,
         heroCards,
         board,
         heroPosition,
         street,
-        pot: Number(hand?.result?.pot || 0),
+        pot: potBb,
+        potChips: rawPotChips > 0 ? rawPotChips : Number((potBb * stakesInfo.bigBlind).toFixed(2)),
+        stackDepth: stackDepthBb,
+        heroStackChips,
         solverVerified: Boolean(analysis?.solverVerified),
         evLoss: analysis?.totalEVLoss ?? null,
         participants: [String(user.id)],

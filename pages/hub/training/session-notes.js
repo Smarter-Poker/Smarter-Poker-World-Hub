@@ -94,6 +94,19 @@ export default function SessionNotesPage() {
       const saved = localStorage.getItem('session-notes');
       if (saved) setNotes(JSON.parse(saved));
     } catch (e) { console.warn('[App] Handled exception:', e); }
+    authedFetch('/api/training/tool-records?tool_id=session-notes&limit=25')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => {
+        const records = Array.isArray(json?.records) ? json.records : [];
+        const latestSnapshot = records.find((r) => Array.isArray(r?.payload?.notes));
+        if (latestSnapshot) {
+          setNotes(latestSnapshot.payload.notes);
+          try {
+            localStorage.setItem('session-notes', JSON.stringify(latestSnapshot.payload.notes));
+          } catch (_) {}
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const fetchRecentSession = useCallback(async () => {
@@ -128,6 +141,20 @@ export default function SessionNotesPage() {
     return () => unsub();
   }, [fetchRecentSession]);
 
+  const persistNotesToServer = (updatedNotes, summaryText = 'Session notes updated') => {
+    authedFetch('/api/training/tool-records', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tool_id: 'session-notes',
+        record_type: 'notes_snapshot',
+        title: `Session Notes (${updatedNotes.length})`,
+        summary: summaryText,
+        payload: { notes: updatedNotes },
+      }),
+    }).catch(() => {});
+  };
+
   const saveNote = () => {
     if (!wentWell.trim() && !toImprove.trim() && !freeText.trim()) return;
     const note = {
@@ -146,6 +173,7 @@ export default function SessionNotesPage() {
     try {
       localStorage.setItem('session-notes', JSON.stringify(updated));
     } catch (e) { console.warn('[App] Handled exception:', e); }
+    persistNotesToServer(updated, wentWell.trim() || freeText.trim() || 'Saved session note');
     setWentWell('');
     setToImprove('');
     setFreeText('');
@@ -160,6 +188,7 @@ export default function SessionNotesPage() {
     try {
       localStorage.setItem('session-notes', JSON.stringify(updated));
     } catch (e) { console.warn('[App] Handled exception:', e); }
+    persistNotesToServer(updated, 'Toggled note pin');
   };
 
   const deleteNote = (id) => {
@@ -168,6 +197,7 @@ export default function SessionNotesPage() {
     try {
       localStorage.setItem('session-notes', JSON.stringify(updated));
     } catch (e) { console.warn('[App] Handled exception:', e); }
+    persistNotesToServer(updated, 'Deleted session note');
   };
 
   const filtered = notes
