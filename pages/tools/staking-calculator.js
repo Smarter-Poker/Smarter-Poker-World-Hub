@@ -17,6 +17,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderStakingCalculatorMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
 
 const MARKUP_BENCHMARK_TABLE = [
@@ -98,6 +99,18 @@ export default function StakingCalculatorPage({
     if (q.cashes !== undefined) setTotalCashes(Math.max(0, Number(q.cashes) || 24000));
     if (q.roi !== undefined) setTrueRoiPct(Number(q.roi) || 25);
   }, [router.isReady, router.query]);
+
+  useSolvedSpotUrlSync(
+    {
+      package: packageBuyIns,
+      markup,
+      sold: actionSoldPct,
+      share: investorSharePct,
+      cashes: totalCashes,
+      roi: trueRoiPct,
+    },
+    {}
+  );
 
   const metrics = useMemo(() => {
     const safePackage = Math.max(100, Number(packageBuyIns) || 10000);

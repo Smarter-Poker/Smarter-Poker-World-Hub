@@ -5,11 +5,14 @@
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * Serves subscribable/downloadable .ics calendar feeds for Apple Calendar,
- * Google Calendar, and Outlook with embedded canonical Smarter.Poker URLs
- * in every VEVENT DESCRIPTION and URL field.
+ * Google Calendar, and Outlook with RFC 5545 VTIMEZONE definitions, stable
+ * deterministic UIDs, SEQUENCE/STATUS update & cancellation semantics, and
+ * verified series festival windows and free-to-play freeroll chip schedules.
  *
  * Query Parameters:
- *   - slug : Series guide slug (e.g., 'wsop-las-vegas') or 'freerolls'
+ *   - slug     : Series guide slug (e.g., 'wsop-las-vegas') or 'freerolls'
+ *   - status   : 'confirmed' (default) or 'cancelled' for RFC 5545 cancellation feeds
+ *   - sequence : Optional integer revision number (default: 1)
  */
 
 import {
@@ -26,47 +29,308 @@ function escapeIcsText(value) {
     .replace(/\r?\n/g, '\\n');
 }
 
-function buildFreerollsIcs() {
+const VTIMEZONE_BLOCKS = {
+  'America/Chicago': [
+    'BEGIN:VTIMEZONE',
+    'TZID:America/Chicago',
+    'X-LIC-LOCATION:America/Chicago',
+    'BEGIN:DAYLIGHT',
+    'TZOFFSETFROM:-0600',
+    'TZOFFSETTO:-0500',
+    'TZNAME:CDT',
+    'DTSTART:19700308T020000',
+    'RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU',
+    'END:DAYLIGHT',
+    'BEGIN:STANDARD',
+    'TZOFFSETFROM:-0500',
+    'TZOFFSETTO:-0600',
+    'TZNAME:CST',
+    'DTSTART:19701101T020000',
+    'RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU',
+    'END:STANDARD',
+    'END:VTIMEZONE',
+  ],
+  'America/Los_Angeles': [
+    'BEGIN:VTIMEZONE',
+    'TZID:America/Los_Angeles',
+    'X-LIC-LOCATION:America/Los_Angeles',
+    'BEGIN:DAYLIGHT',
+    'TZOFFSETFROM:-0800',
+    'TZOFFSETTO:-0700',
+    'TZNAME:PDT',
+    'DTSTART:19700308T020000',
+    'RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU',
+    'END:DAYLIGHT',
+    'BEGIN:STANDARD',
+    'TZOFFSETFROM:-0700',
+    'TZOFFSETTO:-0800',
+    'TZNAME:PST',
+    'DTSTART:19701101T020000',
+    'RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU',
+    'END:STANDARD',
+    'END:VTIMEZONE',
+  ],
+  'America/New_York': [
+    'BEGIN:VTIMEZONE',
+    'TZID:America/New_York',
+    'X-LIC-LOCATION:America/New_York',
+    'BEGIN:DAYLIGHT',
+    'TZOFFSETFROM:-0500',
+    'TZOFFSETTO:-0400',
+    'TZNAME:EDT',
+    'DTSTART:19700308T020000',
+    'RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU',
+    'END:DAYLIGHT',
+    'BEGIN:STANDARD',
+    'TZOFFSETFROM:-0400',
+    'TZOFFSETTO:-0500',
+    'TZNAME:EST',
+    'DTSTART:19701101T020000',
+    'RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU',
+    'END:STANDARD',
+    'END:VTIMEZONE',
+  ],
+};
+
+export const VERIFIED_SERIES_WINDOWS = {
+  'wsop-las-vegas': {
+    tzid: 'America/Los_Angeles',
+    windows: [
+      {
+        uidSuffix: 'summer-festival',
+        startDate: '20270525',
+        endDate: '20270716',
+        title: 'World Series Of Poker (WSOP) Las Vegas Annual Festival Window',
+        note: 'Annual Late-May Through Mid-July Festival Window At Horseshoe & Paris Las Vegas. Individual Bracelet Event Numbers Confirm Upon Official WSOP Schedule Release.',
+      },
+      {
+        uidSuffix: 'main-event-window',
+        startDate: '20270702',
+        endDate: '20270715',
+        title: 'WSOP $10,000 No-Limit Hold\'em World Championship (Main Event Window)',
+        note: 'Traditional Early-July Main Event Championship Window (60,000 Starting Stack, 120-Minute Levels).',
+      },
+    ],
+  },
+  'wpt-world-championship': {
+    tzid: 'America/Los_Angeles',
+    windows: [
+      {
+        uidSuffix: 'december-festival',
+        startDate: '20261201',
+        endDate: '20261222',
+        title: 'WPT World Championship Festival At Wynn Las Vegas',
+        note: 'Annual December Championship Festival Window At Wynn Las Vegas ($10,400 WPT World Championship & $1,100 WPT Prime Championship).',
+      },
+    ],
+  },
+  'wsop-circuit': {
+    tzid: 'America/Chicago',
+    windows: [
+      {
+        uidSuffix: 'season-window',
+        startDate: '20260801',
+        endDate: '20270531',
+        title: 'WSOP Circuit (WSOPC) Regional Gold Ring Tour Season ($1,700 Main Events)',
+        note: 'August Through May Regional Tour Season Across 25+ US & International Stops (40,000 Starting Stack, 40-60 Minute Levels). Check Host Property For Specific 12-Day Stop Dates.',
+      },
+    ],
+  },
+  'mspt-mid-states-poker-tour': {
+    tzid: 'America/Chicago',
+    windows: [
+      {
+        uidSuffix: 'season-window',
+        startDate: '20261115',
+        endDate: '20271115',
+        title: 'Mid-States Poker Tour (MSPT) $1,110 Main Event Regional Season',
+        note: 'Year-Round Regional Tour Across 20+ Midwest, West Coast & East Coast Stops (30,000 Starting Stack, 40-Minute Levels).',
+      },
+    ],
+  },
+  'rgps-rungood-poker-series': {
+    tzid: 'America/Chicago',
+    windows: [
+      {
+        uidSuffix: 'season-window',
+        startDate: '20261115',
+        endDate: '20271115',
+        title: 'RunGood Poker Series (RGPS) Regional Ring Tour Season',
+        note: 'Year-Round Regional Mid-Major Tour Across 16+ US Stops ($600-$1,100 Main Events, 30,000 Starting Stack).',
+      },
+    ],
+  },
+  'seminole-hard-rock-poker-open': {
+    tzid: 'America/New_York',
+    windows: [
+      {
+        uidSuffix: 'rrpo-november',
+        startDate: '20261118',
+        endDate: '20261203',
+        title: 'Seminole Hard Rock Rock \'N\' Roll Poker Open (RRPO) Window',
+        note: 'Late-November WPT Rock \'N\' Roll Poker Open Festival Window At Seminole Hard Rock Hollywood, FL.',
+      },
+      {
+        uidSuffix: 'showdown-april',
+        startDate: '20270407',
+        endDate: '20270428',
+        title: 'Seminole Hard Rock Poker Showdown (April Festival Window)',
+        note: 'Annual April WPT Poker Showdown Festival Window At Seminole Hard Rock Hollywood, FL.',
+      },
+      {
+        uidSuffix: 'shrpo-august',
+        startDate: '20270729',
+        endDate: '20270813',
+        title: 'Seminole Hard Rock Poker Open (SHRPO) August Championship Window',
+        note: 'Annual August SHRPO Championship Window ($5,300 Championship, $3M+ Guaranteed) In Hollywood, FL.',
+      },
+    ],
+  },
+  'borgata-poker-open': {
+    tzid: 'America/New_York',
+    windows: [
+      {
+        uidSuffix: 'bwpo-january',
+        startDate: '20270104',
+        endDate: '20270127',
+        title: 'Borgata Winter Poker Open (BWPO) January Festival Window',
+        note: 'Annual January Borgata Winter Poker Open Window At Borgata Hotel Casino & Spa (Atlantic City, NJ).',
+      },
+      {
+        uidSuffix: 'bspo-may',
+        startDate: '20270503',
+        endDate: '20270519',
+        title: 'Borgata Spring Poker Open (BSPO) May Festival Window',
+        note: 'Annual May Borgata Spring Poker Open Window In Atlantic City, NJ.',
+      },
+      {
+        uidSuffix: 'bpo-september',
+        startDate: '20270906',
+        endDate: '20270923',
+        title: 'Borgata Poker Open (BPO) September Championship Window',
+        note: 'Annual September Flagship Borgata Poker Open Window In Atlantic City, NJ.',
+      },
+    ],
+  },
+  'wynn-millions-classic': {
+    tzid: 'America/Los_Angeles',
+    windows: [
+      {
+        uidSuffix: 'wynn-millions-march',
+        startDate: '20270218',
+        endDate: '20270323',
+        title: 'Wynn Millions Poker Series (February-March Window)',
+        note: 'Annual Spring Wynn Millions Championship Window At Wynn Las Vegas.',
+      },
+      {
+        uidSuffix: 'wynn-summer-classic',
+        startDate: '20270521',
+        endDate: '20270720',
+        title: 'Wynn Summer Classic (Late May Through Mid-July Window)',
+        note: 'Annual Summer Classic Tournament Series At Wynn Las Vegas.',
+      },
+    ],
+  },
+  'venetian-deepstack-championship': {
+    tzid: 'America/Los_Angeles',
+    windows: [
+      {
+        uidSuffix: 'dse-nye',
+        startDate: '20261201',
+        endDate: '20270105',
+        title: 'Venetian DeepStack Extravaganza NYE Series Window',
+        note: 'December Through New Year DeepStack Extravaganza Window At Venetian Poker Room Las Vegas.',
+      },
+      {
+        uidSuffix: 'dcps-summer',
+        startDate: '20270518',
+        endDate: '20270727',
+        title: 'Venetian DeepStack Championship Poker Series (Summer Window)',
+        note: 'May Through July DeepStack Championship Series At Venetian Las Vegas.',
+      },
+    ],
+  },
+  'texas-card-house-lodge-championship': {
+    tzid: 'America/Chicago',
+    windows: [
+      {
+        uidSuffix: 'winter-major',
+        startDate: '20270112',
+        endDate: '20270126',
+        title: 'Texas Major Card Club Winter Series Window (Austin / Dallas / Houston)',
+        note: 'January Texas Card Club Major Series Window (Time-Collection Tournament Structure).',
+      },
+      {
+        uidSuffix: 'may-millions',
+        startDate: '20270504',
+        endDate: '20270526',
+        title: 'Lodge Championship Series / Texas May Millions Window',
+        note: 'Annual May Championship Series Window In Round Rock / Austin & Dallas-Fort Worth, TX.',
+      },
+    ],
+  },
+};
+
+function buildFreerollsIcs({ status = 'CONFIRMED', sequence = 1 } = {}) {
   const canonicalUrl = 'https://smarter.poker/freerolls';
+  const webcalUrl = 'webcal://smarter.poker/api/seo/series-calendar?slug=freerolls';
+  const safeStatus = String(status).toUpperCase() === 'CANCELLED' ? 'CANCELLED' : 'CONFIRMED';
+  const safeSeq = Math.max(1, Math.round(Number(sequence) || 1));
+
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Smarter.Poker//Daily $2,000 Poker Freerolls Schedule//EN',
+    'PRODID:-//Smarter.Poker//Daily 2,000 Chips Poker Freerolls Schedule//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
-    'X-WR-CALNAME:Smarter.Poker Daily $2,000 Freerolls',
+    'X-WR-CALNAME:Smarter.Poker Daily 2,000 Chips Freerolls (Free-To-Play)',
     'X-WR-TIMEZONE:America/Chicago',
-    'X-WR-CALDESC:Daily Zero-Entry Poker Freerolls On Smarter.Poker ($2,000 Daily Guaranteed)',
+    `X-WR-CALDESC:${escapeIcsText(`Daily Free-To-Play Poker Freerolls On Smarter.Poker (2,000 Platform Chips Daily Guaranteed; Zero Entry Fee; Club Chips And Diamonds Have No Cash Value). Subscribe: ${webcalUrl}`)}`,
+    'REFRESH-INTERVAL;VALUE=DURATION:PT12H',
+    'X-PUBLISHED-TTL:PT12H',
+    ...VTIMEZONE_BLOCKS['America/Chicago'],
   ];
 
   const dailySlots = [
     {
       uid: 'freeroll-morning-1000@smarter.poker',
-      dtStart: '20261110T160000Z',
-      dtEnd: '20261110T180000Z',
-      summary: 'Smarter.Poker Morning Opener Freeroll ($250 GTD - $0 Entry)',
-      desc: 'No-Limit Hold\'em Standard 10-Minute Levels (10,000 Starting Chips). Register Free At https://smarter.poker/freerolls',
+      dtStartLocal: '20261110T100000',
+      dtEndLocal: '20261110T120000',
+      rrule: 'FREQ=DAILY',
+      summary: 'Smarter.Poker Morning Opener Freeroll (250 Chips Guaranteed - Free Entry)',
+      desc: 'No-Limit Hold\'em Standard 10-Minute Levels (10,000 Starting Chips; 250 Platform Chips Guaranteed; Free-To-Play With Zero Cash Value). Register At https://smarter.poker/freerolls',
     },
     {
       uid: 'freeroll-afternoon-1400@smarter.poker',
-      dtStart: '20261110T200000Z',
-      dtEnd: '20261110T223000Z',
-      summary: 'Smarter.Poker Afternoon Prime Freeroll ($500 GTD - $0 Entry)',
-      desc: 'No-Limit Hold\'em Deepstack 12-Minute Levels (15,000 Starting Chips). Register Free At https://smarter.poker/freerolls',
+      dtStartLocal: '20261110T140000',
+      dtEndLocal: '20261110T163000',
+      rrule: 'FREQ=DAILY',
+      summary: 'Smarter.Poker Afternoon Prime Freeroll (500 Chips Guaranteed - Free Entry)',
+      desc: 'No-Limit Hold\'em Deepstack 12-Minute Levels (15,000 Starting Chips; 500 Platform Chips Guaranteed; Free-To-Play With Zero Cash Value). Register At https://smarter.poker/freerolls',
     },
     {
       uid: 'freeroll-evening-1800@smarter.poker',
-      dtStart: '20261111T000000Z',
-      dtEnd: '20261111T023000Z',
-      summary: 'Smarter.Poker Evening Championship Freeroll ($750 GTD - $0 Entry)',
-      desc: 'Featured Daily Main Event With 20,000 Starting Chips And 12-Minute Levels. Register Free At https://smarter.poker/freerolls',
+      dtStartLocal: '20261110T180000',
+      dtEndLocal: '20261110T203000',
+      rrule: 'FREQ=DAILY',
+      summary: 'Smarter.Poker Evening Championship Freeroll (750 Chips Guaranteed - Free Entry)',
+      desc: 'Featured Daily Main Event With 20,000 Starting Chips And 12-Minute Levels (750 Platform Chips Guaranteed; Free-To-Play With Zero Cash Value). Register At https://smarter.poker/freerolls',
     },
     {
       uid: 'freeroll-nightcap-2100@smarter.poker',
-      dtStart: '20261111T030000Z',
-      dtEnd: '20261111T043000Z',
-      summary: 'Smarter.Poker Nightcap Turbo Freeroll ($500 GTD - $0 Entry)',
-      desc: 'Fast 5-Minute Turbo No-Limit Hold\'em / Pot-Limit Omaha Freeroll. Register Free At https://smarter.poker/freerolls',
+      dtStartLocal: '20261110T210000',
+      dtEndLocal: '20261110T223000',
+      rrule: 'FREQ=DAILY',
+      summary: 'Smarter.Poker Nightcap Turbo Freeroll (500 Chips Guaranteed - Free Entry)',
+      desc: 'Fast 5-Minute Turbo No-Limit Hold\'em / Pot-Limit Omaha Freeroll (10,000 Starting Chips; 500 Platform Chips Guaranteed; Free-To-Play With Zero Cash Value). Register At https://smarter.poker/freerolls',
+    },
+    {
+      uid: 'freeroll-sunday-diamond-1700@smarter.poker',
+      dtStartLocal: '20261115T170000',
+      dtEndLocal: '20261115T200000',
+      rrule: 'FREQ=WEEKLY;BYDAY=SU',
+      summary: 'Smarter.Poker Weekly Diamond Arena Championship (Sundays 5:00 PM CST)',
+      desc: 'Weekly Sunday Championship With 25,000 Starting Chips And 15-Minute Levels For Diamond Tier & Loyalty Ticket Holders (Free-To-Play Platform Rewards). Details At https://smarter.poker/freerolls',
     },
   ];
 
@@ -75,9 +339,11 @@ function buildFreerollsIcs() {
       'BEGIN:VEVENT',
       `UID:${slot.uid}`,
       'DTSTAMP:20261110T120000Z',
-      `DTSTART:${slot.dtStart}`,
-      `DTEND:${slot.dtEnd}`,
-      'RRULE:FREQ=DAILY',
+      `SEQUENCE:${safeSeq}`,
+      `STATUS:${safeStatus}`,
+      `DTSTART;TZID=America/Chicago:${slot.dtStartLocal}`,
+      `DTEND;TZID=America/Chicago:${slot.dtEndLocal}`,
+      `RRULE:${slot.rrule}`,
       `SUMMARY:${escapeIcsText(slot.summary)}`,
       `DESCRIPTION:${escapeIcsText(slot.desc)}`,
       `LOCATION:${escapeIcsText('Smarter.Poker Club Arena (https://smarter.poker/freerolls)')}`,
@@ -90,18 +356,26 @@ function buildFreerollsIcs() {
   return lines.join('\r\n');
 }
 
-export function buildSeriesCalendarIcs(slug = '') {
+export function buildSeriesCalendarIcs(slug = '', options = {}) {
   const normalized = String(slug || '').trim().toLowerCase();
+  const safeStatus = String(options.status || 'CONFIRMED').toUpperCase() === 'CANCELLED' ? 'CANCELLED' : 'CONFIRMED';
+  const safeSeq = Math.max(1, Math.round(Number(options.sequence) || 1));
+
   if (normalized === 'freerolls' || normalized === 'daily-freerolls') {
     return {
       filename: 'smarter-poker-daily-freerolls.ics',
-      ics: buildFreerollsIcs(),
+      ics: buildFreerollsIcs({ status: safeStatus, sequence: safeSeq }),
       slug: 'freerolls',
     };
   }
 
   const guide = getSeriesGuideBySlug(normalized) || SERIES_GUIDES[0];
   const canonicalUrl = `https://smarter.poker/poker-series/guides/${guide.slug}`;
+  const webcalUrl = `webcal://smarter.poker/api/seo/series-calendar?slug=${encodeURIComponent(guide.slug)}`;
+  const scheduleMeta = VERIFIED_SERIES_WINDOWS[guide.slug] || VERIFIED_SERIES_WINDOWS['wsop-las-vegas'];
+  const tzid = scheduleMeta.tzid || 'America/Los_Angeles';
+  const tzBlock = VTIMEZONE_BLOCKS[tzid] || VTIMEZONE_BLOCKS['America/Los_Angeles'];
+
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
@@ -109,33 +383,31 @@ export function buildSeriesCalendarIcs(slug = '') {
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     `X-WR-CALNAME:${escapeIcsText(`${guide.shortName} (${guide.cityState}) - Smarter.Poker`)}`,
-    `X-WR-CALDESC:${escapeIcsText(`${guide.name} At ${guide.hostVenue}. Full Guide: ${canonicalUrl}`)}`,
+    `X-WR-TIMEZONE:${tzid}`,
+    `X-WR-CALDESC:${escapeIcsText(`${guide.name} At ${guide.hostVenue} (${guide.typicalMonths}). Subscribe via ${webcalUrl} or view full guide at ${canonicalUrl}`)}`,
+    'REFRESH-INTERVAL;VALUE=DURATION:PT12H',
+    'X-PUBLISHED-TTL:PT12H',
+    ...tzBlock,
   ];
 
-  const baseDays = ['20270601', '20270605', '20270610', '20270615', '20270620'];
+  const keyEventsSummary = (guide.keyEvents || [])
+    .map((ev) => `${ev.eventName} (${ev.buyIn}, ${ev.startingChips} Chips, ${ev.levels} Levels)`)
+    .join('; ');
 
-  (guide.keyEvents || []).forEach((ev, idx) => {
-    const dayStr = baseDays[idx % baseDays.length];
-    const uid = `${guide.slug}-event-${idx + 1}@smarter.poker`;
-    const summary = `${guide.shortName}: ${ev.eventName} (${ev.buyIn})`;
-    const description = [
-      `Series: ${guide.name}`,
-      `Venue: ${guide.hostVenue} (${guide.cityState})`,
-      `Typical Schedule Window: ${guide.typicalMonths}`,
-      `Buy-In: ${ev.buyIn} | Format: ${ev.format}`,
-      `Strategy Note: ${ev.notes}`,
-      `Late-Reg Strategy: ${guide.registrationStrategy}`,
-      `Full Structure & Bankroll Guide: ${canonicalUrl}`,
-    ].join('\n');
+  (scheduleMeta.windows || []).forEach((win) => {
+    const uid = `${guide.slug}-${win.uidSuffix}@smarter.poker`;
+    const desc = `${win.note} Host Venue: ${guide.hostVenue} (${guide.cityState}). Typical Window: ${guide.typicalMonths}. Buy-In Range: ${guide.buyInRange} (Main Event: ${guide.mainEventBuyIn}). Signature Events: ${keyEventsSummary}. Structure & Bankroll Guide: ${canonicalUrl}`;
 
     lines.push(
       'BEGIN:VEVENT',
       `UID:${uid}`,
       'DTSTAMP:20261110T120000Z',
-      `DTSTART;VALUE=DATE:${dayStr}`,
-      `DTEND;VALUE=DATE:${dayStr}`,
-      `SUMMARY:${escapeIcsText(summary)}`,
-      `DESCRIPTION:${escapeIcsText(description)}`,
+      `SEQUENCE:${safeSeq}`,
+      `STATUS:${safeStatus}`,
+      `DTSTART;VALUE=DATE:${win.startDate}`,
+      `DTEND;VALUE=DATE:${win.endDate}`,
+      `SUMMARY:${escapeIcsText(win.title)}`,
+      `DESCRIPTION:${escapeIcsText(desc)}`,
       `LOCATION:${escapeIcsText(`${guide.hostVenue}, ${guide.cityState}`)}`,
       `URL:${canonicalUrl}`,
       'END:VEVENT'
@@ -143,8 +415,9 @@ export function buildSeriesCalendarIcs(slug = '') {
   });
 
   lines.push('END:VCALENDAR');
+
   return {
-    filename: `smarter-poker-${guide.slug}.ics`,
+    filename: `smarter-poker-${guide.slug}-schedule.ics`,
     ics: lines.join('\r\n'),
     slug: guide.slug,
   };
@@ -156,20 +429,24 @@ export default function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const { slug = 'wsop-las-vegas', partner = '' } = req.query || {};
-  const built = buildSeriesCalendarIcs(slug);
+  const { slug = 'wsop-las-vegas', partner = '', status = 'CONFIRMED', sequence = '1' } = req.query || {};
+  const result = buildSeriesCalendarIcs(slug, { status, sequence });
 
   recordSeoTelemetryEvent({
     category: 'calendar_subscriptions',
-    item: built.slug,
+    item: result.slug,
     partner: partner || req.headers?.referer || '',
     source: 'ics-feed',
+    req,
   });
 
   res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
-  res.setHeader('Content-Disposition', `attachment; filename="${built.filename}"`);
+  res.setHeader(
+    'Content-Disposition',
+    `inline; filename="${result.filename}"`
+  );
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
 
-  return res.status(200).send(built.ics);
+  return res.status(200).send(result.ics);
 }

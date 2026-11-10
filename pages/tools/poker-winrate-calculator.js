@@ -15,6 +15,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 
 const STAKES_WINRATE_BENCHMARKS = [
   { gameFormat: 'Live $1/$2 & $1/$3 No-Limit Hold\'em', handsPerHour: '28 Hands/Hr', solidWinrate: '8.0 BB/100', crusherWinrate: '12.5 BB/100', solidBbPerHr: '2.24 BB/Hr', crusherBbPerHr: '3.50 BB/Hr' },
@@ -61,6 +62,16 @@ export default function PokerWinrateCalculatorPage({
   const [bigBlindDollars, setBigBlindDollars] = useState(initialBigBlindDollars);
   const [hoursPlayed, setHoursPlayed] = useState(initialHoursPlayed);
   const [handsPerHour, setHandsPerHour] = useState(initialHandsPerHour);
+
+  useSolvedSpotUrlSync(
+    { profit: profitDollars, bb: bigBlindDollars, hours: hoursPlayed, hph: handsPerHour },
+    {
+      profit: (v) => setProfitDollars(Number(v) || 0),
+      bb: (v) => setBigBlindDollars(Math.max(0.05, Number(v) || 5)),
+      hours: (v) => setHoursPlayed(Math.max(1, Number(v) || 150)),
+      hph: (v) => setHandsPerHour(Math.max(10, Math.min(1500, Number(v) || 28))),
+    }
+  );
 
   const metrics = useMemo(() => {
     const safeProfit = Number(profitDollars) || 0;

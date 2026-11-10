@@ -47,9 +47,9 @@ import {
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 
-test('Dynamic SVG Authority & Annual Award Badge generator renders valid, accessible SVG across all 15 presets', () => {
+test('Dynamic SVG Authority & Annual Award Badge generator renders valid, accessible SVG across all 16 presets', () => {
   const presetKeys = Object.keys(BADGE_PRESETS);
-  assert.equal(presetKeys.length, 15);
+  assert.equal(presetKeys.length, 16);
 
   for (const type of presetKeys) {
     const svg = renderBadgeSvg({ type });
@@ -341,8 +341,8 @@ test('Automated Outreach & Multilingual Syndication Engine (/api/seo/outreach-ge
   assert.equal(pkg.multilingual_bundles.length, 7);
 });
 
-test('Twitch & YouTube Streamer Chatbot API (/api/stream/cmd) evaluates !odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, !matchup, !tax, !stake, !iso, !series, !board, !mratio, !straddle, !sat, !bbj, !position, !math, and !iq', () => {
-  assert.equal(STREAMER_BOT_COMMANDS.length, 26);
+test('Twitch & YouTube Streamer Chatbot API (/api/stream/cmd) evaluates !odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, !matchup, !tax, !stake, !iso, and !series', () => {
+  assert.equal(STREAMER_BOT_COMMANDS.length, 18);
 
   const oddsRes = evaluateStreamCommand({ cmd: 'odds', q: 'AA vs KK' });
   assert.ok(oddsRes.text.includes('81.9% vs 18.1%'));
@@ -352,16 +352,10 @@ test('Twitch & YouTube Streamer Chatbot API (/api/stream/cmd) evaluates !odds, !
   assert.ok(potOddsRes.text.includes('Required Equity = 25.0%'));
   assert.ok(potOddsRes.text.includes('Minimum Defense Frequency (MDF) = 66.7%'));
 
-  for (const cmd of ['pushfold', 'icm', 'bounty', 'winrate', 'plo', 'rake', '3bet', 'tax', 'stake', 'iso', 'board', 'mratio', 'straddle', 'sat', 'bbj', 'iq', 'help']) {
+  for (const cmd of ['pushfold', 'icm', 'bounty', 'winrate', 'plo', 'rake', '3bet', 'tax', 'stake', 'iso', 'help']) {
     const res = evaluateStreamCommand({ cmd });
     assert.ok(res.text.includes('https://smarter.poker/tools/'), `${cmd} includes canonical tool URL`);
   }
-
-  const posRes = evaluateStreamCommand({ cmd: 'position', q: 'btn' });
-  assert.ok(posRes.text.includes('https://smarter.poker/learn/positions'), 'position command includes canonical /learn/positions URL');
-
-  const mathRes = evaluateStreamCommand({ cmd: 'math', q: 'mdf' });
-  assert.ok(mathRes.text.includes('https://smarter.poker/learn/poker-math'), 'math command includes canonical /learn/poker-math URL');
 
   const seriesRes = evaluateStreamCommand({ cmd: 'series', q: 'wsop' });
   assert.ok(seriesRes.text.includes('https://smarter.poker/poker-series/guides'), 'series command includes canonical /poker-series/guides URL');
@@ -492,18 +486,6 @@ test('Zero broken internal URLs or em dashes exist across backlinkCatalog, outre
         urlPath !== '/learn/hands' &&
         urlPath !== '/learn/matchups' &&
         !urlPath.startsWith('/learn/matchups/') &&
-        urlPath !== '/learn/positions' &&
-        !urlPath.startsWith('/learn/positions/') &&
-        urlPath !== '/learn/stakes' &&
-        !urlPath.startsWith('/learn/stakes/') &&
-        urlPath !== '/learn/famous-hands' &&
-        !urlPath.startsWith('/learn/famous-hands/') &&
-        urlPath !== '/learn/roadmaps' &&
-        !urlPath.startsWith('/learn/roadmaps/') &&
-        urlPath !== '/learn/poker-math' &&
-        urlPath !== '/learn/cheat-sheets' &&
-        urlPath !== '/learn/online-vs-live-poker' &&
-        urlPath !== '/learn/live-poker-tells' &&
         urlPath !== '/learn/poker-hand-rankings'
       ) {
         const s = urlPath.replace('/learn/', '');
@@ -541,7 +523,7 @@ test('Schema.org JSON-LD & Google Scholar citation structured data pass rich-res
     'research/[slug].js only emits citation_doi when report.doi is explicitly defined'
   );
   assert.ok(
-    RESEARCH_REPORTS.every((r) => r.doi === null && r.collectionDoi === '10.5281/zenodo.24095049'),
+    RESEARCH_REPORTS.every((r) => r.doi === null && r.collectionDoi === '10.5281/zenodo.24115647'),
     'individual reports do not borrow the collection DOI as their own individual report DOI'
   );
 
@@ -549,7 +531,7 @@ test('Schema.org JSON-LD & Google Scholar citation structured data pass rich-res
   assert.ok(researchIndexSrc.includes('schemas.organization'), 'research/index.js includes Organization node in @graph');
   assert.ok(researchIndexSrc.includes("'@type': 'DataCatalog'"), 'research/index.js includes DataCatalog node in @graph');
   assert.ok(
-    researchIndexSrc.includes('<meta key="citation-doi" name="citation_doi" content="10.5281/zenodo.24095049" />'),
+    researchIndexSrc.includes('<meta key="citation-doi" name="citation_doi" content="10.5281/zenodo.24115647" />'),
     'research/index.js emits citation_doi for the parent dataset collection'
   );
 
@@ -567,7 +549,7 @@ test('Schema.org JSON-LD & Google Scholar citation structured data pass rich-res
   assert.ok(
     Array.isArray(catalogJsonLd.sameAs) &&
       catalogJsonLd.sameAs.includes('https://github.com/Smarter-Poker/smarter-poker-open-datasets') &&
-      catalogJsonLd.sameAs.includes('https://doi.org/10.5281/zenodo.24095049')
+      catalogJsonLd.sameAs.includes('https://doi.org/10.5281/zenodo.24115647')
   );
   assert.equal(catalogJsonLd.dataset[0].distribution.length, 3, 'Each dataset in DataCatalog exposes HTML, Markdown, and JSON distributions');
 
@@ -591,13 +573,13 @@ test('25-Item Free Discovery, Viral Calculators, Matchups, Series Guides, Press 
   assert.equal(SERIES_GUIDES.length, 10, '10 major poker series strategy guides');
   assert.equal(getSeriesGuideBySlug('wsop-las-vegas')?.shortName, 'WSOP Las Vegas');
 
-  assert.equal(MCP_TOOLS.length, 45, '45 zero-auth MCP tools');
-  assert.equal(MCP_RESOURCE_TEMPLATES.length, 16, '16 MCP resource templates');
+  assert.equal(MCP_TOOLS.length, 35, '35 zero-auth MCP tools');
+  assert.equal(MCP_RESOURCE_TEMPLATES.length, 15, '15 MCP resource templates');
 
   const a2a = buildA2AAgentCard();
   assert.equal(a2a.schemaVersion, '1.0');
-  assert.equal(a2a.capabilities.mcpTools, 45);
-  assert.equal(a2a.capabilities.mcpResources, 16);
+  assert.equal(a2a.capabilities.mcpTools, 35);
+  assert.equal(a2a.capabilities.mcpResources, 15);
 
   const taxRes = await executeMcpTool('calculate_poker_taxes_w2g', {
     gross_winnings: 35000,
@@ -727,7 +709,7 @@ test('Phase 6 Partner Installation Suite: oEmbed 1.0 Provider, 1-Line JS Widget 
   });
   assert.equal(researchOembed.status, 200);
   assert.equal(researchOembed.body.type, 'rich');
-  assert.ok(researchOembed.body.html.includes('Zenodo DOI 10.5281/zenodo.24095049'));
+  assert.ok(researchOembed.body.html.includes('Zenodo DOI 10.5281/zenodo.24115647'));
   assert.ok(researchOembed.body.html.includes('utm_source=cardschat.com'));
 
   const invalidOembed = buildOembedPayload({ url: 'https://example.com/other' });
@@ -735,8 +717,8 @@ test('Phase 6 Partner Installation Suite: oEmbed 1.0 Provider, 1-Line JS Widget 
 
   const catalog = buildPartnerInstallationCatalog({ partner: 'upswingpoker.com' });
   assert.equal(catalog.counts.embeddable_calculators, 23);
-  assert.equal(catalog.counts.svg_attribution_badges, 15);
-  assert.equal(catalog.counts.streamer_chat_commands, 26);
+  assert.equal(catalog.counts.svg_attribution_badges, 16);
+  assert.equal(catalog.counts.streamer_chat_commands, 18);
   assert.equal(catalog.counts.dead_tool_replacements, 12);
   assert.equal(catalog.counts.zenodo_dataset_deposits, 6);
   assert.ok(catalog.one_line_sdk_example.includes('data-partner="upswingpoker.com"'));
@@ -766,11 +748,11 @@ test('Phase 6 Partner Installation Suite: oEmbed 1.0 Provider, 1-Line JS Widget 
   const llmsFullTxt = read('public/llms-full.txt');
   const aiPluginJson = read('public/.well-known/ai-plugin.json');
   const openApiJson = read('public/api/openapi.json');
-  assert.ok(llmsTxt.includes('All 45 Zero-Auth MCP Tools'));
+  assert.ok(llmsTxt.includes('All 35 Zero-Auth MCP Tools'));
   assert.ok(llmsTxt.includes('!tax, !stake, !iso, !series'));
-  assert.ok(llmsFullTxt.includes('All 45 Zero-Auth MCP Tools'));
-  assert.ok(aiPluginJson.includes('45 zero-auth MCP tools'));
-  assert.ok(openApiJson.includes('45 Tools'));
+  assert.ok(llmsFullTxt.includes('All 35 Zero-Auth MCP Tools'));
+  assert.ok(aiPluginJson.includes('35 zero-auth MCP tools'));
+  assert.ok(openApiJson.includes('35 Tools & 15 Resource Templates'));
 
   const embedsMd = renderEmbedsMarkdown();
   for (const cmd of ['!tax', '!stake', '!iso', '!series']) {
@@ -793,214 +775,208 @@ test('Phase 6 Partner Installation Suite: oEmbed 1.0 Provider, 1-Line JS Widget 
   }
 });
 
-test('35-Item Master Expansion: 10 New Calculators, 9 New Authority Hubs, 45 MCP Tools, 26 Streamer Commands, OpenSearch & Sitemap Parity', async () => {
-  const { POKER_POSITIONS, getPositionBySlug } = await import('../src/content/learn/positions.js');
-  const { POKER_STAKES, getStakeBySlug } = await import('../src/content/learn/stakes.js');
-  const { FAMOUS_HANDS, getFamousHandBySlug } = await import('../src/content/learn/famousHands.js');
-  const { POKER_ROADMAPS, getRoadmapBySlug } = await import('../src/content/learn/roadmaps.js');
-  const { US_POKER_STATES, getStateGuideBySlug } = await import('../src/content/guides/states.js');
-  const { LEARN_PAGES, MARKET_GUIDE_PAGES, STATIC_PAGES } = await import('../src/lib/seo/sitemapBuilders.mjs');
-
-  assert.equal(POKER_POSITIONS.length, 9, '9 table position guides');
-  assert.equal(getPositionBySlug('button')?.slug, 'btn', 'button alias resolves to btn');
-  assert.equal(getPositionBySlug('under-the-gun')?.slug, 'utg', 'under-the-gun alias resolves to utg');
-
-  assert.equal(POKER_STAKES.length, 7, '7 stake level guides');
-  assert.equal(getStakeBySlug('2-5')?.slug, '2-5-live-nlh', '2-5 alias resolves to 2-5-live-nlh');
-
-  assert.equal(FAMOUS_HANDS.length, 12, '12 famous poker hands');
-  assert.equal(getFamousHandBySlug('moneymaker-farha')?.slug, 'moneymaker-vs-farha-2003-wsop');
-
-  assert.equal(POKER_ROADMAPS.length, 5, '5 player progression roadmaps');
-  assert.ok(getRoadmapBySlug('beginner-to-beating-1-3-live'));
-
-  assert.equal(US_POKER_STATES.length, 15, '15 US state poker legality & tax guides');
-  assert.equal(getStateGuideBySlug('tx')?.slug, 'texas', 'tx postal code resolves to texas');
-  assert.equal(getStateGuideBySlug('nv')?.slug, 'nevada', 'nv postal code resolves to nevada');
-
-  // Verify all 10 new MCP tools execute deterministically
-  const boardRes = await executeMcpTool('analyze_flop_board_texture', { flop: 'As,Kh,7d', scenario: 'BTN_VS_BB_SRP' });
-  assert.ok(JSON.parse(boardRes.content[0].text).canonical_url.includes('/tools/board-texture-analyzer'));
-
-  const mRatioRes = await executeMcpTool('calculate_tournament_m_ratio', { stack: 24000, sb: 400, bb: 800, ante: 800, players: 9 });
-  assert.ok(JSON.parse(mRatioRes.content[0].text).canonical_url.includes('/tools/m-ratio-calculator'));
-
-  const sessRes = await executeMcpTool('calculate_cash_session_plan', { stake: '2/5', winrate_hourly: 45, hours_per_session: 6 });
-  assert.ok(JSON.parse(sessRes.content[0].text).canonical_url.includes('/tools/session-planner'));
-
-  const stradRes = await executeMcpTool('calculate_straddle_bomb_pot_ev', { blinds: '2/5', bomb_ante: 15, bomb_players: 8 });
-  assert.ok(JSON.parse(stradRes.content[0].text).canonical_url.includes('/tools/straddle-calculator'));
-
-  const fmtRes = await executeMcpTool('format_poker_hand_history', { stakes: '$2/$5 NLH', hero_position: 'BTN', hero_cards: 'AsKs', flop: 'QhJd4s' });
-  assert.ok(JSON.parse(fmtRes.content[0].text).canonical_url.includes('/tools/hand-converter'));
-
-  const satRes = await executeMcpTool('calculate_satellite_bubble_factor', { total_players: 100, seats_awarded: 10, players_remaining: 12, hero_stack: 90000 });
-  assert.ok(JSON.parse(satRes.content[0].text).canonical_url.includes('/tools/satellite-calculator'));
-
-  const bbjRes = await executeMcpTool('calculate_bad_beat_jackpot_ev', { jackpot_pool: 250000, qualifier: 'quad_8s', promo_drop: 2 });
-  assert.ok(JSON.parse(bbjRes.content[0].text).canonical_url.includes('/tools/promo-ev-calculator'));
-
-  const showRes = await executeMcpTool('resolve_holdem_showdown_winner', { board: 'Ah Kd Qh Js 9c', player1_cards: 'Tc 8c', player2_cards: 'Ac Kc' });
-  assert.ok(JSON.parse(showRes.content[0].text).canonical_url.includes('/tools/who-wins-calculator'));
-
-  const posToolRes = await executeMcpTool('get_poker_position_strategy', { position: 'btn' });
-  assert.ok(JSON.parse(posToolRes.content[0].text).canonical_url.includes('/learn/positions/btn'));
-
-  const stateToolRes = await executeMcpTool('get_us_state_poker_guide', { state: 'tx' });
-  assert.ok(JSON.parse(stateToolRes.content[0].text).canonical_url.includes('/poker-rooms/states/texas'));
-
-  // Verify Markdown ingestion across all 20 new calculator & authority hub routes
-  for (const newMdRoute of [
-    '/tools/board-texture-analyzer',
-    '/tools/m-ratio-calculator',
-    '/tools/session-planner',
-    '/tools/straddle-calculator',
-    '/tools/hand-converter',
-    '/tools/satellite-calculator',
-    '/tools/promo-ev-calculator',
-    '/tools/who-wins-calculator',
-    '/tools/mixed-game-placards',
-    '/tools/poker-iq-test',
-    '/learn/positions',
-    '/learn/positions/btn',
-    '/learn/stakes',
-    '/learn/stakes/2-5-live-nlh',
-    '/learn/famous-hands',
-    '/learn/famous-hands/moneymaker-vs-farha-2003-wsop',
-    '/learn/roadmaps',
-    '/learn/roadmaps/beginner-to-beating-1-3-live',
-    '/poker-rooms/states',
-    '/poker-rooms/states/texas',
-    '/learn/poker-math',
-    '/learn/cheat-sheets',
-    '/learn/online-vs-live-poker',
-    '/learn/live-poker-tells',
-    '/poker-rooms/comps-and-tipping-guide',
-  ]) {
-    const md = renderHubToolMarkdown(newMdRoute);
-    assert.ok(md && md.includes('https://smarter.poker'), `${newMdRoute} renders valid Markdown`);
-  }
-
-  // Verify Sitemap inclusion
-  const allSitemapPaths = new Set([
-    ...LEARN_PAGES.map((p) => p.path),
-    ...MARKET_GUIDE_PAGES.map((p) => p.path),
-    ...STATIC_PAGES.map((p) => p.path),
-  ]);
-  for (const expectedSitemapPath of [
-    '/tools/board-texture-analyzer',
-    '/tools/m-ratio-calculator',
-    '/tools/session-planner',
-    '/tools/straddle-calculator',
-    '/tools/hand-converter',
-    '/tools/satellite-calculator',
-    '/tools/promo-ev-calculator',
-    '/tools/who-wins-calculator',
-    '/tools/mixed-game-placards',
-    '/tools/poker-iq-test',
-    '/learn/positions',
-    '/learn/positions/btn',
-    '/learn/stakes',
-    '/learn/famous-hands',
-    '/learn/roadmaps',
-    '/learn/poker-math',
-    '/learn/cheat-sheets',
-    '/learn/online-vs-live-poker',
-    '/learn/live-poker-tells',
-    '/poker-rooms/states',
-    '/poker-rooms/states/texas',
-    '/poker-rooms/comps-and-tipping-guide',
-  ]) {
-    assert.ok(allSitemapPaths.has(expectedSitemapPath), `Sitemap includes ${expectedSitemapPath}`);
-  }
-});
-
-test('Phase 8 Viral Backlink Loop: SVG Research Charts, iCalendar Feeds, Solved-Spot Permalinks, Share Cards & Telemetry API', async () => {
-  const { recordSeoTelemetryEvent, getSeoTelemetrySnapshot } = await import(
-    '../pages/api/seo/referral-stats.js'
+test('Phase 8 Reconciled Acceptance: Solved-Spot Engine, QR Rule Sheets, Dataset Charts, Directory Badges, VTIMEZONE Calendars, Zenodo v2026.11.12, Executed Notebook, MCP v1.0.5 & Anti-Spoof Telemetry', async () => {
+  const {
+    recordSeoTelemetryEvent,
+    getSeoTelemetrySnapshot,
+    classifyTelemetryRequest,
+  } = await import('../pages/api/seo/referral-stats.js');
+  const { buildResearchChartSvg, extractNumericMetric } = await import(
+    '../pages/api/seo/research-chart.js'
   );
-  const { buildResearchChartSvg } = await import('../pages/api/seo/research-chart.js');
   const { buildSeriesCalendarIcs } = await import('../pages/api/seo/series-calendar.js');
   const { SERIES_GUIDES } = await import('../src/content/guides/seriesGuides.js');
+  const { computeValidatedSolvedSpot, buildSolvedSpotOgImageUrl } = await import(
+    '../src/lib/seo/solvedSpotEngine.js'
+  );
+  const { renderQrCodeSvg, buildQrMatrix } = await import('../src/lib/seo/qrCodeSvg.js');
+  const { renderBadgeSvg } = await import('../pages/api/seo/badge.js');
+  const { buildJupyterNotebookPayload } = await import('../pages/api/datasets/catalog.js');
+  const { MCP_TOOLS, MCP_SERVER_INFO } = await import('../src/lib/mcp/mcpServer.mjs');
 
-  // 1. Telemetry API (/api/seo/referral-stats)
-  const recorded = recordSeoTelemetryEvent({
-    category: 'widget_embeds',
-    item: 'odds-calculator',
-    partner: 'cardschat.com',
-    source: 'unit-test',
+  // 1. Item #1: Share links & OG cards compute strictly from validated inputs (never caller ?result=)
+  const potSpot = computeValidatedSolvedSpot('pot-odds-calculator', {
+    pot: '200',
+    bet: '100',
+    outs: '9',
+    result: '999% FAKE CALLER RESULT',
   });
-  assert.equal(recorded.category, 'widget_embeds');
-  assert.equal(recorded.item, 'odds-calculator');
-  assert.equal(recorded.partner, 'cardschat.com');
+  assert.equal(potSpot.hasValidatedSpot, true);
+  assert.ok(potSpot.statValue.includes('25.0% Eq'), '200 pot facing 100 bet requires 25.0% equity');
+  assert.ok(potSpot.statValue.includes('66.7% MDF'), '200 pot facing 100 bet has 66.7% MDF');
+  assert.ok(!potSpot.statValue.includes('999%'), 'Caller-supplied result is ignored');
 
-  const snapshot = getSeoTelemetrySnapshot();
-  assert.equal(snapshot.schema_version, '1.0.0');
-  assert.equal(snapshot.verified_distribution_surfaces.surface_counts.mcp_tools, 35);
-  assert.equal(snapshot.verified_distribution_surfaces.surface_counts.streamer_chat_commands, 18);
-  assert.equal(snapshot.verified_distribution_surfaces.surface_counts.svg_research_charts, 15);
-  assert.equal(snapshot.verified_distribution_surfaces.surface_counts.ics_calendar_feeds, 11);
-  assert.ok(snapshot.runtime_telemetry.total_events >= 1);
-  assert.ok(snapshot.runtime_telemetry.by_category.widget_embeds >= 1);
+  const ogUrl = buildSolvedSpotOgImageUrl('/tools/pot-odds-calculator', {
+    pot: '200',
+    bet: '100',
+    outs: '9',
+    result: 'FAKE',
+  });
+  assert.ok(ogUrl.includes('pot=200&bet=100&outs=9'));
+  assert.ok(!ogUrl.includes('result='), 'buildSolvedSpotOgImageUrl never forwards caller result=');
 
-  // 2. Dynamic Vector SVG Research Charts (/api/seo/research-chart) across all 15 studies
+  const ogToolCardSrc = read('pages/api/og/tool-card.js');
+  assert.ok(
+    ogToolCardSrc.includes('computeValidatedSolvedSpot'),
+    'OG tool-card computes preview results via computeValidatedSolvedSpot'
+  );
+  assert.ok(
+    !ogToolCardSrc.includes("searchParams.get('result')"),
+    'OG tool-card does not trust caller-supplied ?result='
+  );
+
+  // 2. Items #2 & #3: Floor Rule References (citing TDA/RROP), Scannable QR Sheets & Equity Assumptions
+  const qrMatrix = buildQrMatrix('https://smarter.poker/rules/showdown-order');
+  assert.ok(qrMatrix.size >= 29, 'ISO/IEC 18004 QR matrix sized for canonical rule URL');
+  const qrSvg = renderQrCodeSvg('https://smarter.poker/rules/showdown-order');
+  assert.ok(qrSvg.startsWith('<svg') && qrSvg.includes('<path d="M'));
+
+  const rulesDetailSrc = read('pages/rules/[slug].js');
+  assert.ok(
+    rulesDetailSrc.includes('Copy Rule Reference For Group Chat'),
+    'rules/[slug].js labels share button as Rule Reference (not Official Ruling)'
+  );
+  assert.ok(
+    rulesDetailSrc.includes('/api/seo/qr?path='),
+    'rules/[slug].js embeds scannable QR code pointing to canonical rule URL'
+  );
+  assert.ok(rulesDetailSrc.includes('@media print'), 'rules/[slug].js includes printable @media print stylesheet');
+
+  const matchupsDetailSrc = read('pages/learn/matchups/[slug].js');
+  assert.ok(
+    matchupsDetailSrc.includes('52-Card Deck Full Enumeration Across All'),
+    'learn/matchups/[slug].js states explicit 52-card deck and suit combination assumptions'
+  );
+
+  const handsDetailSrc = read('pages/learn/hands/[hand].js');
+  assert.ok(
+    handsDetailSrc.includes('52-Card Deck Full Enumeration'),
+    'learn/hands/[hand].js states explicit 52-card deck assumptions'
+  );
+
+  // 3. Item #4: Research Charts derived from dataset with units, dates, methodology & uncertainty
+  assert.equal(
+    extractNumericMetric(['No Numeric Row', 'Text Only'], ['A', 'B']),
+    null,
+    'extractNumericMetric returns null instead of fabricated value: 50'
+  );
   for (const report of RESEARCH_REPORTS) {
     const svg = buildResearchChartSvg(report);
     assert.ok(svg.startsWith('<svg xmlns="http://www.w3.org/2000/svg"'), `SVG generated for ${report.slug}`);
-    assert.ok(
-      svg.includes(`https://smarter.poker/research/${report.slug}`),
-      `SVG chart stamps canonical attribution URL for ${report.slug}`
-    );
-    assert.ok(svg.includes('DOI: 10.5281/zenodo.24095049'), `SVG chart stamps Zenodo DOI for ${report.slug}`);
+    assert.ok(svg.includes('PUBLISHED'), `SVG chart stamps publication date for ${report.slug}`);
+    assert.ok(svg.includes('Plotted Column:'), `SVG chart stamps plotted column & units for ${report.slug}`);
+    assert.ok(svg.includes('Methodology:'), `SVG chart stamps methodology for ${report.slug}`);
+    assert.ok(svg.includes('Uncertainty &amp; Range:'), `SVG chart stamps uncertainty note for ${report.slug}`);
+    assert.ok(svg.includes('DOI: 10.5281/zenodo.24115647'), `SVG chart stamps new Zenodo DOI for ${report.slug}`);
   }
+  const researchDetailSrc = read('pages/research/[slug].js');
+  assert.ok(
+    !researchDetailSrc.includes('<a href="${url}" target="_blank" rel="noopener"><img src="${chartSvgUrl}"'),
+    'research/[slug].js chart embed does not force a compulsory ranking link around the image'
+  );
 
-  // 3. RFC 5545 iCalendar (.ics) Feeds (/api/seo/series-calendar)
+  // 4. Item #5: Venue Badges distinguish public directory listing from verified/claimed venue
+  const selfServiceVenueBadge = renderBadgeSvg({
+    type: 'verified-venue',
+    label: 'Verified Las Vegas Room',
+    value: 'Smarter.Poker Directory',
+  });
+  assert.ok(
+    !selfServiceVenueBadge.includes('Verified Las Vegas Room'),
+    'Self-service venue badge sanitizes manufactured Verified claims'
+  );
+  assert.ok(selfServiceVenueBadge.includes('Publicly Listed Las Vegas Room'));
+  const marketGuideSrc = read('pages/poker-rooms/guides/[city].js');
+  assert.ok(
+    marketGuideSrc.includes('Copy Public Directory Listing Badge HTML'),
+    'poker-rooms/guides/[city].js labels self-serve badge as Public Directory Listing'
+  );
+
+  // 5. Item #6: Calendars have VTIMEZONE, verified windows, update/cancellation STATUS, and free-to-play chip amounts
   const freerollIcs = buildSeriesCalendarIcs('freerolls');
   assert.equal(freerollIcs.slug, 'freerolls');
-  assert.ok(freerollIcs.ics.includes('BEGIN:VCALENDAR'));
-  assert.ok(freerollIcs.ics.includes('RRULE:FREQ=DAILY'));
-  assert.ok(freerollIcs.ics.includes('URL:https://smarter.poker/freerolls'));
+  assert.ok(freerollIcs.ics.includes('BEGIN:VTIMEZONE'));
+  assert.ok(freerollIcs.ics.includes('TZID:America/Chicago'));
+  assert.ok(freerollIcs.ics.includes('2\\,000 Platform Chips Daily Guaranteed'));
+  assert.ok(!freerollIcs.ics.includes('$2,000'), 'Freeroll .ics never uses obsolete dollar amounts');
+
+  const cancelledFreerollIcs = buildSeriesCalendarIcs('freerolls', { status: 'cancelled', sequence: 3 });
+  assert.ok(cancelledFreerollIcs.ics.includes('STATUS:CANCELLED'));
+  assert.ok(cancelledFreerollIcs.ics.includes('SEQUENCE:3'));
 
   for (const guide of SERIES_GUIDES) {
     const seriesIcs = buildSeriesCalendarIcs(guide.slug);
     assert.equal(seriesIcs.slug, guide.slug);
-    assert.ok(seriesIcs.ics.includes('BEGIN:VCALENDAR'));
-    assert.ok(seriesIcs.ics.includes('BEGIN:VEVENT'));
+    assert.ok(seriesIcs.ics.includes('BEGIN:VTIMEZONE'), `VTIMEZONE present for ${guide.slug}`);
+    assert.ok(!seriesIcs.ics.includes('20270601'), `No invented 20270601 placeholder dates in ${guide.slug}`);
     assert.ok(
       seriesIcs.ics.includes(`URL:https://smarter.poker/poker-series/guides/${guide.slug}`),
       `Series .ics feed includes canonical URL for ${guide.slug}`
     );
   }
 
-  // 4. Page & Component Wiring Verification
-  const citationBoxSrc = read('src/components/seo/CitationBacklinkBox.js');
-  assert.ok(citationBoxSrc.includes('Copy Solved-Spot Permalink'), 'CitationBacklinkBox includes Solved-Spot Permalink button');
-  assert.ok(citationBoxSrc.includes('Copy 1-Click Discord / Forum Summary'), 'CitationBacklinkBox includes 1-click Discord summary button');
+  // 6. Items #7, #8, #9: Executed Notebook, 6 Zenodo DOIs & MCP v1.0.5 35-tool alignment
+  const nb = buildJupyterNotebookPayload();
+  const codeCells = nb.cells.filter((c) => c.cell_type === 'code');
+  assert.equal(codeCells.length, 3);
+  assert.ok(
+    codeCells.every((c) => typeof c.execution_count === 'number' && Array.isArray(c.outputs) && c.outputs.length > 0),
+    'All notebook code cells have verified execution_count and outputs'
+  );
 
-  const ogToolCardSrc = read('pages/api/og/tool-card.js');
-  assert.ok(ogToolCardSrc.includes("searchParams.get('result')"), 'OG tool-card supports dynamic ?result= parameter');
-  assert.ok(ogToolCardSrc.includes('SOLVED SPOT OUTPUT'), 'OG tool-card renders SOLVED SPOT OUTPUT label');
+  assert.equal(MCP_SERVER_INFO.version, '1.0.5');
+  const mcpManifest = JSON.parse(read('public/.well-known/mcp.json'));
+  const mcpRegistry = JSON.parse(read('public/.well-known/mcp-registry.json'));
+  assert.equal(mcpManifest.version, '1.0.5');
+  assert.equal(mcpRegistry.version, '1.0.5');
+  assert.deepEqual(mcpManifest.tools, MCP_TOOLS.map((t) => t.name));
+  assert.deepEqual(mcpRegistry.tools, MCP_TOOLS.map((t) => t.name));
 
-  const researchDetailSrc = read('pages/research/[slug].js');
-  assert.ok(researchDetailSrc.includes('/api/seo/research-chart?slug='), 'research/[slug].js embeds SVG benchmark chart');
-  assert.ok(researchDetailSrc.includes('Open In Google Colab (Python Notebook)'), 'research/[slug].js links to Google Colab notebook');
+  // 7. Item #10: Telemetry separation & anti-spoofing
+  const spoofAttempt = recordSeoTelemetryEvent({
+    category: 'widget_loads',
+    item: 'pot-odds-calculator',
+    partner: 'spoofed-domain.example',
+    source: 'unit-test',
+    req: { headers: { 'user-agent': 'Mozilla/5.0' } },
+  });
+  assert.equal(spoofAttempt.partner_verified, false, 'Unbacked ?partner= parameter is not marked verified');
 
-  const rulesDetailSrc = read('pages/rules/[slug].js');
-  assert.ok(rulesDetailSrc.includes('Copy Official Ruling For Group Chat'), 'rules/[slug].js includes group-chat ruling share button');
-  assert.ok(rulesDetailSrc.includes('Print Official Table Ruling Sheet'), 'rules/[slug].js includes printable ruling sheet button');
+  const crawlerAttempt = classifyTelemetryRequest(
+    { headers: { 'user-agent': 'Googlebot/2.1', referer: 'https://cardschat.com/thread' } },
+    { partner: 'cardschat.com' }
+  );
+  assert.equal(crawlerAttempt.isCrawler, true);
+  assert.equal(crawlerAttempt.isVerifiedPartnerInstall, false, 'Crawler request is not a human partner install');
 
-  const matchupsDetailSrc = read('pages/learn/matchups/[slug].js');
-  assert.ok(matchupsDetailSrc.includes('Copy Discord / Group-Chat Equity Card'), 'learn/matchups/[slug].js includes Discord equity card button');
+  const verifiedHumanPartner = recordSeoTelemetryEvent({
+    category: 'referral_visits',
+    item: 'pot-odds-calculator',
+    partner: 'cardschat.com',
+    source: 'unit-test',
+    req: {
+      headers: {
+        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0)',
+        referer: 'https://www.cardschat.com/poker-odds/',
+      },
+    },
+  });
+  assert.equal(verifiedHumanPartner.partner_verified, true);
+  assert.equal(verifiedHumanPartner.verified_referer, 'cardschat.com');
 
-  const handsDetailSrc = read('pages/learn/hands/[hand].js');
-  assert.ok(handsDetailSrc.includes('Copy Forum / Reddit Markdown Card'), 'learn/hands/[hand].js includes Reddit markdown card button');
-
-  const marketGuideSrc = read('pages/poker-rooms/guides/[city].js');
-  assert.ok(marketGuideSrc.includes('Copy Verified Room SVG Badge HTML'), 'poker-rooms/guides/[city].js includes Verified Room SVG Badge HTML copy');
-
-  const seriesGuideSrc = read('pages/poker-series/guides/[slug].js');
-  assert.ok(seriesGuideSrc.includes('Download Series .ICS Calendar'), 'poker-series/guides/[slug].js includes .ICS calendar download');
-  assert.ok(seriesGuideSrc.includes('Add Series To Google Calendar'), 'poker-series/guides/[slug].js includes Google Calendar button');
+  const snapshot = getSeoTelemetrySnapshot();
+  assert.equal(snapshot.schema_version, '1.1.0');
+  assert.ok(!JSON.stringify(snapshot).includes('npmjs.com'), 'No non-existent npmjs URL in referral-stats');
+  assert.ok(!JSON.stringify(snapshot).includes('pypi.org'), 'No non-existent pypi URL in referral-stats');
+  assert.ok(snapshot.runtime_telemetry.verified_partner_referrers['cardschat.com'] >= 1);
+  assert.ok(snapshot.runtime_telemetry.unverified_partner_params['spoofed-domain.example'] >= 1);
+  assert.equal(
+    snapshot.runtime_telemetry.verified_partner_referrers['spoofed-domain.example'],
+    undefined,
+    'Spoofed partner parameter never enters verified_partner_referrers'
+  );
 });
+
+
 
 

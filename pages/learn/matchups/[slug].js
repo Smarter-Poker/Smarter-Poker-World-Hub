@@ -55,24 +55,6 @@ export default function PokerMatchupDetailPage({ matchup, peerMatchups = [] }) {
 
   const jsonLd = [
     {
-      '@type': 'Article',
-      '@id': `${canonicalUrl}#article`,
-      headline: matchup.title,
-      name: seoTitle,
-      description: matchup.summary,
-      url: canonicalUrl,
-      inLanguage: 'en-US',
-      datePublished: MATCHUPS_AS_OF,
-      dateModified: MATCHUPS_AS_OF,
-      isAccessibleForFree: true,
-      author: { '@id': 'https://smarter.poker/#organization' },
-      publisher: { '@id': 'https://smarter.poker/#organization' },
-      speakable: {
-        '@type': 'SpeakableSpecification',
-        cssSelector: ['h1', '#quick-answer-summary'],
-      },
-    },
-    {
       '@type': 'Dataset',
       '@id': `${canonicalUrl}#dataset`,
       name: matchup.title,
@@ -116,8 +98,9 @@ export default function PokerMatchupDetailPage({ matchup, peerMatchups = [] }) {
   ];
 
   const [copiedCardType, setCopiedCardType] = useState('');
-  const discordEquityCard = `[Smarter.Poker Preflop Equity: ${matchup.handA} vs ${matchup.handB}] ${matchup.handA}: ${matchup.handAEquity.toFixed(2)}% Equity (${matchup.handAWinPct.toFixed(2)}% Win, ${matchup.combosA} Combos) | ${matchup.handB}: ${matchup.handBEquity.toFixed(2)}% Equity (${matchup.handBWinPct.toFixed(2)}% Win, ${matchup.combosB} Combos) | Split Tie: ${matchup.tiePct.toFixed(2)}% | Simulate Live: ${canonicalUrl}`;
-  const redditEquityTable = `| Hand | Total Equity | Outright Win % | Tie % | Combos |\n| :--- | :--- | :--- | :--- | :--- |\n| **${matchup.handA}** | **${matchup.handAEquity.toFixed(2)}%** | ${matchup.handAWinPct.toFixed(2)}% | ${matchup.tiePct.toFixed(2)}% | ${matchup.combosA} |\n| **${matchup.handB}** | **${matchup.handBEquity.toFixed(2)}%** | ${matchup.handBWinPct.toFixed(2)}% | ${matchup.tiePct.toFixed(2)}% | ${matchup.combosB} |\n\n*Source: [Smarter.Poker ${matchup.handA} Vs ${matchup.handB} Combinatorial Analysis](${canonicalUrl})*`;
+  const combinatorialAssumptions = `52-Card Deck Full Enumeration Across All ${matchup.combosA} x ${matchup.combosB} Suit Combinations (1,712,304 Five-Card Boards Per Suit Pairing; Zero Dead Cards; Suit-Averaged Combinatorial Mean)`;
+  const discordEquityCard = `[Smarter.Poker Preflop Equity: ${matchup.handA} vs ${matchup.handB}] ${matchup.handA}: ${matchup.handAEquity.toFixed(2)}% Equity (${matchup.handAWinPct.toFixed(2)}% Win, ${matchup.combosA} Combos) | ${matchup.handB}: ${matchup.handBEquity.toFixed(2)}% Equity (${matchup.handBWinPct.toFixed(2)}% Win, ${matchup.combosB} Combos) | Split Tie: ${matchup.tiePct.toFixed(2)}% | Assumptions: ${combinatorialAssumptions} | Source: ${canonicalUrl}`;
+  const redditEquityTable = `| Hand | Total Equity | Outright Win % | Tie % | Combos |\n| :--- | :--- | :--- | :--- | :--- |\n| **${matchup.handA}** | **${matchup.handAEquity.toFixed(2)}%** | ${matchup.handAWinPct.toFixed(2)}% | ${matchup.tiePct.toFixed(2)}% | ${matchup.combosA} |\n| **${matchup.handB}** | **${matchup.handBEquity.toFixed(2)}%** | ${matchup.handBWinPct.toFixed(2)}% | ${matchup.tiePct.toFixed(2)}% | ${matchup.combosB} |\n\n*Combinatorial Assumptions: ${combinatorialAssumptions}.*\n*Source: [Smarter.Poker ${matchup.handA} Vs ${matchup.handB} Combinatorial Analysis](${canonicalUrl}) (DOI: https://doi.org/10.5281/zenodo.24115452)*`;
 
   const handleCopyEquityCard = async (type, value) => {
     try {
@@ -177,7 +160,7 @@ export default function PokerMatchupDetailPage({ matchup, peerMatchups = [] }) {
 
           <h1 style={styles.h1}>{matchup.title}</h1>
 
-          <p id="quick-answer-summary" style={styles.lead}>
+          <p style={styles.lead}>
             <strong>Direct Combinatorial Answer:</strong> {matchup.summary}
           </p>
 
@@ -216,6 +199,10 @@ export default function PokerMatchupDetailPage({ matchup, peerMatchups = [] }) {
                   width: `${matchup.handBEquity}%`,
                 }}
               />
+            </div>
+
+            <div style={{ marginTop: '10px', fontSize: '11.5px', color: '#94a3b8', lineHeight: 1.5 }}>
+              <strong style={{ color: '#cbd5e1' }}>Card &amp; Suit Assumptions:</strong> {combinatorialAssumptions}. Suit Dominance (Shared Vs. Unshared Flush Suits) Can Shift Specific Suit-Pairings By Up To ±1.8%.
             </div>
 
             <div
@@ -430,9 +417,10 @@ export default function PokerMatchupDetailPage({ matchup, peerMatchups = [] }) {
           badgeType="research"
           badgeLabel="Preflop Equity Benchmark"
           badgeValue={`${matchup.handA} ${matchup.handAEquity}% Vs ${matchup.handB} ${matchup.handBEquity}%`}
-          summary={matchup.summary}
+          summary={`${matchup.summary} (${combinatorialAssumptions}).`}
           publishedYear="2026"
           slug={`matchup-${matchup.slug}`}
+          doi="10.5281/zenodo.24115452"
         />
 
         <AiPromptLauncher

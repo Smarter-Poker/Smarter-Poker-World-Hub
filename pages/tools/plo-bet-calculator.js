@@ -17,6 +17,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 
 const PLO_PRESETS = [
   {
@@ -145,6 +146,29 @@ export default function PloBetCalculatorPage({
   const [riverBetToCall, setRiverBetToCall] = useState(initialRiverBetToCall);
   const [board1Equity, setBoard1Equity] = useState(initialBoard1Equity);
   const [board2Equity, setBoard2Equity] = useState(initialBoard2Equity);
+
+  useSolvedSpotUrlSync(
+    {
+      pot: previousPot,
+      bet: lastBet,
+      calls: trailCalls,
+      hero: heroAlreadyIn,
+      bomb: bombPotPool,
+      riverCall: riverBetToCall,
+      b1: board1Equity,
+      b2: board2Equity,
+    },
+    {
+      pot: (v) => setPreviousPot(Math.max(0, Number(v) || 20)),
+      bet: (v) => setLastBet(Math.max(0, Number(v) || 15)),
+      calls: (v) => setTrailCalls(Math.max(0, Math.min(8, Math.round(Number(v) || 0)))),
+      hero: (v) => setHeroAlreadyIn(Math.max(0, Number(v) || 0)),
+      bomb: (v) => setBombPotPool(Math.max(0, Number(v) || 160)),
+      riverCall: (v) => setRiverBetToCall(Math.max(0, Number(v) || 120)),
+      b1: (v) => setBoard1Equity(Math.max(0, Math.min(100, Number(v) || 100))),
+      b2: (v) => setBoard2Equity(Math.max(0, Math.min(100, Number(v) || 25))),
+    }
+  );
 
   const applyPreset = (preset) => {
     setPreviousPot(preset.previousPot);

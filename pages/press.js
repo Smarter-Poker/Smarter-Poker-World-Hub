@@ -98,45 +98,45 @@ const PRESS_FAQS = [
   },
   {
     q: 'Does Smarter.Poker Provide Raw Markdown, JSON Datasets, And Zenodo DOIs For Data Journalists?',
-    a: 'Yes. Append .md To Any Research Report, Rule, Game Variant, Or Calculator URL To Retrieve Clean Markdown Tables, Or Visit /research And /api/datasets/catalog To Download Structured CSV And JSON Releases Self-Archived On Zenodo (Starting At https://doi.org/10.5281/zenodo.24095049) And Software Heritage.',
+    a: 'Yes. Append .md To Any Research Report, Rule, Game Variant, Or Calculator URL To Retrieve Clean Markdown Tables, Or Visit /research And /api/datasets/catalog To Download Structured CSV And JSON Releases Self-Archived On Zenodo (Starting At https://doi.org/10.5281/zenodo.24115647) And Software Heritage.',
   },
 ];
 
 const ARCHIVAL_REGISTRIES = [
   {
     label: 'Zenodo Deposit 1 (Core Open Research Datasets)',
-    identifier: 'DOI: 10.5281/zenodo.24095049 (Concept DOI: 10.5281/zenodo.24095048)',
-    href: 'https://doi.org/10.5281/zenodo.24095049',
+    identifier: 'DOI: 10.5281/zenodo.24115647 (Concept DOI: 10.5281/zenodo.24095048)',
+    href: 'https://doi.org/10.5281/zenodo.24115647',
     scope: '15 Open Quantitative Poker Research CSV & JSON Datasets',
   },
   {
     label: 'Zenodo Deposit 2 (30-Tool MCP Server Archive)',
-    identifier: 'DOI: 10.5281/zenodo.24095057 (Concept DOI: 10.5281/zenodo.24095056)',
-    href: 'https://doi.org/10.5281/zenodo.24095057',
+    identifier: 'DOI: 10.5281/zenodo.24115636 (Concept DOI: 10.5281/zenodo.24095056)',
+    href: 'https://doi.org/10.5281/zenodo.24115636',
     scope: 'Model Context Protocol JSON-RPC 2.0 Server & Manifests',
   },
   {
     label: 'Zenodo Deposit 3 (Live Poker Room, Regional Market & Tournament Series Benchmark Dataset)',
-    identifier: 'DOI: 10.5281/zenodo.24095560 (Concept DOI: 10.5281/zenodo.24095559)',
-    href: 'https://doi.org/10.5281/zenodo.24095560',
+    identifier: 'DOI: 10.5281/zenodo.24115447 (Concept DOI: 10.5281/zenodo.24095559)',
+    href: 'https://doi.org/10.5281/zenodo.24115447',
     scope: 'North American Cardroom, Regional Market & Tournament Series Benchmark Deposit',
   },
   {
     label: 'Zenodo Deposit 4 (100BB 6-Max GTO Preflop Ranges, 169 Hands & 25 Matchups)',
-    identifier: 'DOI: 10.5281/zenodo.24095564 (Concept DOI: 10.5281/zenodo.24095563)',
-    href: 'https://doi.org/10.5281/zenodo.24095564',
+    identifier: 'DOI: 10.5281/zenodo.24115452 (Concept DOI: 10.5281/zenodo.24095563)',
+    href: 'https://doi.org/10.5281/zenodo.24115452',
     scope: '100BB 6-Max Preflop Charts, 169 Starting Hands & 25 Canonical Matchup Benchmarks',
   },
   {
     label: 'Zenodo Deposit 5 (MCP Server & OpenAPI 3.1 Specification V1.0.2)',
-    identifier: 'DOI: 10.5281/zenodo.24095597 (Concept DOI: 10.5281/zenodo.24095596)',
-    href: 'https://doi.org/10.5281/zenodo.24095597',
+    identifier: 'DOI: 10.5281/zenodo.24115453 (Concept DOI: 10.5281/zenodo.24095596)',
+    href: 'https://doi.org/10.5281/zenodo.24115453',
     scope: 'Model Context Protocol Server & OpenAPI 3.1 Specification Release Archive',
   },
   {
     label: 'Zenodo Deposit 6 (Official Poker Rules, 15 Game Variants & 80-Term Glossary Corpus)',
-    identifier: 'DOI: 10.5281/zenodo.24095602 (Concept DOI: 10.5281/zenodo.24095601)',
-    href: 'https://doi.org/10.5281/zenodo.24095602',
+    identifier: 'DOI: 10.5281/zenodo.24115454 (Concept DOI: 10.5281/zenodo.24095601)',
+    href: 'https://doi.org/10.5281/zenodo.24115454',
     scope: 'Official TDA & RROP Floor Rulings, 15 Game Variants & Quantitative Glossary Corpus',
   },
   {

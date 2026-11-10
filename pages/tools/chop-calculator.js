@@ -17,6 +17,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderChopCalculatorMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
 
 const DEFAULT_STACKS = [450000, 320000, 210000, 120000, 80000, 50000];
@@ -114,6 +115,16 @@ export default function ChopCalculatorPage({
   const [saveAmount, setSaveAmount] = useState(initialSaveAmount);
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedSummary, setCopiedSummary] = useState(false);
+
+  useSolvedSpotUrlSync(
+    {
+      n: playerCount,
+      stacks: stacks.slice(0, playerCount).join(','),
+      payouts: payouts.slice(0, playerCount).join(','),
+      save: saveAmount,
+    },
+    {}
+  );
 
   useEffect(() => {
     if (!router.isReady) return;

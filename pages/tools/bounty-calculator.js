@@ -15,6 +15,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 
 const PKO_STAGE_CONVERSIONS = [
   { stage: 'Tournament Start (Level 1 - 100% Starting Stacks)', bountyRatio: '1.0x Starting Bounty', bountyPowerPct: '33.3% Of Starting Stack', chipValue20k: '6,667 Chips', equityDiscount: '5% To 7% Wider Call' },
@@ -61,6 +62,23 @@ export default function BountyCalculatorPage({
   const [targetBounty, setTargetBounty] = useState(initialTargetBounty);
   const [potChips, setPotChips] = useState(initialPotChips);
   const [callChips, setCallChips] = useState(initialCallChips);
+
+  useSolvedSpotUrlSync(
+    {
+      startStack: startingStack,
+      startBounty,
+      targetBounty,
+      pot: potChips,
+      call: callChips,
+    },
+    {
+      startStack: (v) => setStartingStack(Math.max(1000, Number(v) || 20000)),
+      startBounty: (v) => setStartBounty(Math.max(1, Number(v) || 50)),
+      targetBounty: (v) => setTargetBounty(Math.max(0, Number(v) || 100)),
+      pot: (v) => setPotChips(Math.max(100, Number(v) || 15000)),
+      call: (v) => setCallChips(Math.max(100, Number(v) || 10000)),
+    }
+  );
 
   const metrics = useMemo(() => {
     const safeStartStack = Math.max(1000, Number(startingStack) || 20000);

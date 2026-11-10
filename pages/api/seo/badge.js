@@ -16,9 +16,14 @@
 
 export const BADGE_PRESETS = {
   venue: {
-    label: 'Verified Poker Room',
+    label: 'Public Directory Listing',
     value: 'Smarter.Poker Directory',
-    accent: '#10b981',
+    accent: '#38bdf8',
+  },
+  'directory-listing': {
+    label: 'Public Directory Listing',
+    value: 'Smarter.Poker Directory',
+    accent: '#38bdf8',
   },
   commander: {
     label: 'Live Waitlist & Clocks',
@@ -46,7 +51,7 @@ export const BADGE_PRESETS = {
     accent: '#25c8ff',
   },
   rules: {
-    label: 'Official Poker Rules',
+    label: 'Floor Rule Reference',
     value: 'Smarter.Poker TDA & RROP',
     accent: '#f2b84b',
   },
@@ -122,8 +127,17 @@ export function renderBadgeSvg({
   value = '',
   theme = '',
 } = {}) {
-  const preset = PRESETS[type] || PRESETS.venue;
-  const leftText = String(label || preset.label).slice(0, 48);
+  const normalizedType = type === 'verified-venue' ? 'directory-listing' : type;
+  const preset = PRESETS[normalizedType] || PRESETS.venue;
+  // Prevent self-service venue badges from manufacturing "Verified Room" claims
+  let rawLabel = String(label || preset.label).trim();
+  if (
+    (normalizedType === 'venue' || normalizedType === 'directory-listing') &&
+    /verified/i.test(rawLabel)
+  ) {
+    rawLabel = rawLabel.replace(/verified/gi, 'Publicly Listed');
+  }
+  const leftText = rawLabel.slice(0, 48);
   const rightText = String(value || preset.value).slice(0, 56);
   const accentColor = THEME_ACCENTS[theme] || preset.accent;
 

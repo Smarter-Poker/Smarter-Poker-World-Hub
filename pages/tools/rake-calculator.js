@@ -17,6 +17,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 
 const REGIONAL_RAKE_BENCHMARK_TABLE = [
   {
@@ -90,6 +91,27 @@ export default function RakeCalculatorPage({
   const [handsPerHour, setHandsPerHour] = useState(initialHandsPerHour);
   const [potsWonPerHour, setPotsWonPerHour] = useState(initialPotsWonPerHour);
   const [timeChargeHalfHour, setTimeChargeHalfHour] = useState(initialTimeChargeHalfHour);
+
+  useSolvedSpotUrlSync(
+    {
+      bb: bigBlind,
+      pct: rakePercent,
+      cap: rakeCap,
+      promo: promoDrop,
+      hph: handsPerHour,
+      pots: potsWonPerHour,
+      time: timeChargeHalfHour,
+    },
+    {
+      bb: (v) => setBigBlind(Math.max(1, Number(v) || 5)),
+      pct: (v) => setRakePercent(Math.max(0, Math.min(25, Number(v) || 10))),
+      cap: (v) => setRakeCap(Math.max(0, Number(v) || 6)),
+      promo: (v) => setPromoDrop(Math.max(0, Number(v) || 2)),
+      hph: (v) => setHandsPerHour(Math.max(10, Math.min(500, Number(v) || 28))),
+      pots: (v) => setPotsWonPerHour(Math.max(0.5, Math.min(25, Number(v) || 3.5))),
+      time: (v) => setTimeChargeHalfHour(Math.max(0, Number(v) || 7)),
+    }
+  );
 
   const metrics = useMemo(() => {
     const safeBb = Math.max(1, Number(bigBlind) || 5);

@@ -7,67 +7,86 @@
  * Every JSX element MUST have display:'flex' for Satori compatibility.
  */
 import { ImageResponse } from '@vercel/og';
+import { TOOL_OG_PRESETS, computeValidatedSolvedSpot } from '../../../src/lib/seo/solvedSpotEngine';
 
 export const config = { runtime: 'edge' };
 
 export default async function handler(req) {
   try {
     const { searchParams } = new URL(req.url);
-    const tool = (searchParams.get('tool') || 'tool').toLowerCase();
+    const rawTool = (searchParams.get('tool') || searchParams.get('preset') || 'tool').toLowerCase();
+    const preset = TOOL_OG_PRESETS[rawTool] || null;
+    const tool = preset ? preset.tool : rawTool;
     const isFreerolls = tool === 'freerolls';
     const isCompare = tool === 'compare';
 
-    const defaultTitle = isFreerolls
-      ? '2,000 Chips In Daily Poker Freerolls'
-      : isCompare
-        ? 'Free Poker Software & Platform Alternatives'
-        : 'Smarter.Poker Strategy Tool';
+    const queryObj = Object.fromEntries(searchParams.entries());
+    const validatedSpot = computeValidatedSolvedSpot(tool, queryObj);
 
-    const defaultSubtitle = isFreerolls
-      ? 'Daily Free Entry Tournaments • Chip Prizes • Zero Deposit Required'
-      : isCompare
-        ? 'Compare Free GTO Solvers, Odds Calculators & Freerolls vs. Paid Tools'
-        : 'Free Interactive GTO Preflop Charts, Multiway Equity & ICM Calculators';
+    const defaultTitle = preset
+      ? preset.title
+      : isFreerolls
+        ? '2,000 Chips In Daily Poker Freerolls'
+        : isCompare
+          ? 'Free Poker Software & Platform Alternatives'
+          : 'Smarter.Poker Strategy Tool';
 
-    const defaultStatLabel = isFreerolls
-      ? 'DAILY PRIZE GUARANTEE'
-      : isCompare
-        ? 'ANNUAL SUBSCRIPTION COST'
-        : 'SIMULATION ENGINE';
+    const defaultSubtitle = preset
+      ? preset.subtitle
+      : isFreerolls
+        ? 'Daily Free Entry Tournaments • Chip Prizes • Zero Deposit Required'
+        : isCompare
+          ? 'Compare Free GTO Solvers, Odds Calculators & Freerolls vs. Paid Tools'
+          : 'Free Interactive GTO Preflop Charts, Multiway Equity & ICM Calculators';
 
-    const defaultStatValue = isFreerolls
-      ? '2,000+ CHIPS DAILY'
-      : isCompare
-        ? '$0 (100% FREE)'
-        : '100% FREE';
+    const defaultStatLabel = preset
+      ? preset.statLabel
+      : isFreerolls
+        ? 'DAILY PRIZE GUARANTEE'
+        : isCompare
+          ? 'ANNUAL SUBSCRIPTION COST'
+          : 'SIMULATION ENGINE';
 
-    const solvedResult = searchParams.get('result') || searchParams.get('spot') || '';
-    const title = searchParams.get('title') || defaultTitle;
-    const subtitle = searchParams.get('subtitle') || defaultSubtitle;
-    const statLabel =
-      searchParams.get('statLabel') || (solvedResult ? 'SOLVED SPOT OUTPUT' : defaultStatLabel);
-    const statValue =
-      searchParams.get('statValue') || (solvedResult ? solvedResult : defaultStatValue);
+    const defaultStatValue = preset
+      ? preset.statValue
+      : isFreerolls
+        ? '2,000+ CHIPS DAILY'
+        : isCompare
+          ? '$0 (100% FREE)'
+          : '100% FREE';
 
-    const defaultBadge = isFreerolls
-      ? 'DAILY 2,000 CHIP FREEROLLS'
-      : isCompare
-        ? 'SOFTWARE COMPARISON'
-        : tool === 'odds'
-          ? 'EQUITY CALCULATOR'
-          : tool === 'ranges'
-            ? 'GTO PREFLOP MATRIX'
-            : tool === 'icm'
-              ? 'ICM PAYOUT SOLVER'
-              : tool === 'glossary'
-                ? 'POKER GLOSSARY'
-                : tool === 'about'
-                  ? 'ABOUT SMARTER.POKER'
-                  : tool === 'embeds'
-                    ? 'WEBMASTER EMBEDS'
-                    : 'POKER STRATEGY TOOL';
+    const title = preset ? preset.title : (searchParams.get('title') || defaultTitle);
+    const subtitle = validatedSpot.hasValidatedSpot
+      ? validatedSpot.summaryText
+      : preset
+        ? preset.subtitle
+        : (searchParams.get('subtitle') || defaultSubtitle);
 
-    const badge = (searchParams.get('badge') || defaultBadge).toUpperCase();
+    // Preview results come strictly from validated inputs and maintained calculation logic, never caller-supplied answers.
+    const statLabel = validatedSpot.hasValidatedSpot ? validatedSpot.statLabel : defaultStatLabel;
+    const statValue = validatedSpot.hasValidatedSpot ? validatedSpot.statValue : defaultStatValue;
+
+    const defaultBadge = preset
+      ? preset.badge
+      : isFreerolls
+        ? 'DAILY 2,000 CHIP FREEROLLS'
+        : isCompare
+          ? 'SOFTWARE COMPARISON'
+          : tool === 'odds'
+            ? 'EQUITY CALCULATOR'
+            : tool === 'ranges'
+              ? 'GTO PREFLOP MATRIX'
+              : tool === 'icm'
+                ? 'ICM PAYOUT SOLVER'
+                : tool === 'glossary'
+                  ? 'POKER GLOSSARY'
+                  : tool === 'about'
+                    ? 'ABOUT SMARTER.POKER'
+                    : tool === 'embeds'
+                      ? 'WEBMASTER EMBEDS'
+                      : 'POKER STRATEGY TOOL';
+
+    const badge = (preset ? preset.badge : (searchParams.get('badge') || defaultBadge)).toUpperCase();
 
     return new ImageResponse(
       (

@@ -13,6 +13,7 @@
 import { useRouter } from 'next/router';
 import SharedSEOHead, { schemas } from '@smarter-poker/commander-shared/components/seo/SEOHead';
 import { productOgImage } from '../../lib/seo/productOgImage';
+import { buildSolvedSpotOgImageUrl } from '../../lib/seo/solvedSpotEngine';
 
 export * from '@smarter-poker/commander-shared/components/seo/SEOHead';
 
@@ -25,14 +26,16 @@ export const ORGANIZATION_SAME_AS = [
   'https://twitter.com/SmarterPoker',
   'https://x.com/SmarterPoker',
   'https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp',
-  'https://doi.org/10.5281/zenodo.24095049',
-  'https://doi.org/10.5281/zenodo.24095057',
-  'https://doi.org/10.5281/zenodo.24095560',
-  'https://doi.org/10.5281/zenodo.24095564',
-  'https://doi.org/10.5281/zenodo.24095597',
-  'https://doi.org/10.5281/zenodo.24095602',
-  'https://zenodo.org/records/24095049',
-  'https://zenodo.org/records/24095057',
+  'https://doi.org/10.5281/zenodo.24115647',
+  'https://doi.org/10.5281/zenodo.24115636',
+  'https://doi.org/10.5281/zenodo.24115447',
+  'https://doi.org/10.5281/zenodo.24115452',
+  'https://doi.org/10.5281/zenodo.24115453',
+  'https://doi.org/10.5281/zenodo.24115454',
+  'https://doi.org/10.5281/zenodo.24095048',
+  'https://doi.org/10.5281/zenodo.24095056',
+  'https://zenodo.org/records/24115647',
+  'https://zenodo.org/records/24115636',
   'https://archive.softwareheritage.org/swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
   'https://archive.softwareheritage.org/swh:1:snp:02b8992833424620305edcfb730b3cf8add15747',
 ];
@@ -96,12 +99,21 @@ function usePathname() {
   }
 }
 
+function useRouterQuery() {
+  try {
+    return useRouter()?.query || {};
+  } catch {
+    return {};
+  }
+}
+
 import Head from 'next/head';
 import { shareImageMetadata } from '../../lib/seo/shareImageMetadata.mjs';
 
 export default function SEOHead(props) {
   const pathname = usePathname();
-  const ogImage = props.ogImage || productOgImage(pathname);
+  const routerQuery = useRouterQuery();
+  const ogImage = props.ogImage || buildSolvedSpotOgImageUrl(pathname, routerQuery) || productOgImage(pathname);
   const imageMetadata = shareImageMetadata(ogImage);
   const { geoRegion, geoPlacename, geoPosition, markdownUrl, calendarUrl } = props;
 

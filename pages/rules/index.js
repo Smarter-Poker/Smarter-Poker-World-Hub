@@ -50,13 +50,13 @@ export default function PokerRulesIndexPage() {
 
   const handleCopyTopRulings = async () => {
     const text = [
-      '[Smarter.Poker Official Home-Game & Club Floor Quick Rulings (TDA / RROP)]',
+      '[Smarter.Poker Home-Game & Club Floor Quick Reference (Citing Published TDA / RROP Standards)]',
       '1. Showdown Order: Last Aggressive Player On River Shows First; If Checked Down, Left Of Button Shows First.',
       '2. Single Oversized Chip (TDA Rule 44): Silently Tossing One Oversized Chip Is A Call Unless "Raise" Is Declared First.',
       '3. Verbal Declarations (TDA Rule 40): Verbal Action In Turn ("Call", "Raise", "All-In") Is 100% Binding.',
       '4. String Bets: Multi-Motion Chip Movements Without A Prior Verbal Raise Declaration Are Restricted To A Minimum Call.',
       '5. Odd Chip In Split Pots: Awarded To The First Active Player To The Left Of The Dealer Button (Or High Hand In Hi-Lo).',
-      'Full 30-Rule Official Floor Encyclopedia: https://smarter.poker/rules',
+      'Source Attribution: Independent Educational Reference Citing Poker TDA & RROP Standards (Local House Rules Govern): https://smarter.poker/rules',
     ].join('\n');
     try {
       if (typeof navigator !== 'undefined' && navigator.clipboard) {
@@ -199,7 +199,7 @@ export default function PokerRulesIndexPage() {
             >
               {copiedQuickSheet
                 ? 'Copied Top 5 Home-Game Rulings'
-                : 'Copy Top 5 Rulings For Group Chat'}
+                : 'Copy Top 5 Rule References For Group Chat'}
             </button>
             <button
               type="button"
@@ -219,10 +219,61 @@ export default function PokerRulesIndexPage() {
                 cursor: 'pointer',
               }}
             >
-              Print Official 30-Rule Table Sheet
+              Print 30-Rule Table Reference Sheet (With QR)
             </button>
           </div>
+
+          <div
+            aria-label="Printable Rulebook QR And Source Attribution"
+            style={{
+              marginTop: '14px',
+              padding: '10px 14px',
+              background: '#081118',
+              border: '1px solid #1e293b',
+              borderRadius: '2px',
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+            }}
+          >
+            <div style={{ flex: '1 1 360px', fontSize: '12px', color: '#94a3b8', lineHeight: 1.5 }}>
+              <strong style={{ color: '#f2b84b' }}>Source Attribution &amp; Governance Note:</strong>{' '}
+              {"Smarter.Poker Provides An Independent Educational Reference Summary Citing Published Poker Tournament Directors Association (TDA) Rules And Robert's Rules Of Poker (RROP). In Any Live Cardroom Or Tournament, The Supervising Floor Director And Posted House Rules Hold Final Authority."}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <img
+                src="/api/seo/qr?path=/rules&label=Smarter.Poker%2030-Rule%20Floor%20Reference"
+                alt="QR Code For https://smarter.poker/rules"
+                width="68"
+                height="68"
+                style={{ display: 'block', borderRadius: '2px', background: '#ffffff' }}
+              />
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: '#25c8ff' }}>
+                  SCAN FOR 30-RULE DIRECTORY
+                </div>
+                <div style={{ fontSize: '10.5px', color: '#cbd5e1' }}>
+                  {RULES_URL}
+                </div>
+              </div>
+            </div>
+          </div>
         </header>
+
+        <style>{`
+          @media print {
+            nav, footer, button, [aria-label="Filter Rules By Category"], [aria-label="Cite Or Link To This Research"], [aria-label="Verify Or Analyze With AI Assistants"] {
+              display: none !important;
+            }
+            body, main, div, article, section, header, table, th, td {
+              background: #ffffff !important;
+              color: #0f172a !important;
+              border-color: #cbd5e1 !important;
+            }
+          }
+        `}</style>
 
         <section aria-label="Filter Rules By Category" style={styles.filterBar}>
           <button
@@ -365,13 +416,14 @@ export default function PokerRulesIndexPage() {
         </section>
 
         <CitationBacklinkBox
-          title="Official Poker Rules & Tournament TDA Floor Rulings Encyclopedia"
+          title="Poker Rules & Tournament TDA / RROP Floor Reference Encyclopedia"
           canonicalUrl={RULES_URL}
           badgeType="research"
-          badgeLabel="Official Rules Authority"
-          badgeValue="30 TDA & RROP Rulings"
-          summary="Authoritative reference to 30 official Robert's Rules of Poker and Poker TDA floor rulings published by Smarter.Poker."
+          badgeLabel="Floor Rule Reference"
+          badgeValue="30 TDA & RROP Citations"
+          summary="Educational reference to 30 published Robert's Rules of Poker and Poker TDA floor rules compiled by Smarter.Poker."
           slug="official-poker-rules-encyclopedia"
+          doi="10.5281/zenodo.24115454"
         />
 
         <AiPromptLauncher

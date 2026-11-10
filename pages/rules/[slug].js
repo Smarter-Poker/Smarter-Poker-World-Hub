@@ -53,8 +53,9 @@ export default function PokerRuleDetailPage({ rule, peerRules = [] }) {
   const canonicalPath = rulePath(rule.slug);
   const canonicalUrl = `https://smarter.poker${canonicalPath}`;
   const mdPath = `${canonicalPath}.md`;
-  const groupChatRulingText = `[Official Poker Floor Ruling: ${rule.title} (${rule.tdaRef})] ${rule.summary} Verify Full Rule & Live Table Scenarios: ${canonicalUrl}`;
-  const redditMarkdownRuling = `> **Official Floor Ruling: ${rule.title} (${rule.tdaRef})**\n> ${rule.summary}\n> *Source: [Smarter.Poker Official TDA & RROP Floor Encyclopedia](${canonicalUrl})*`;
+  const qrSvgPath = `/api/seo/qr?path=${encodeURIComponent(canonicalPath)}&label=${encodeURIComponent(rule.title)}`;
+  const groupChatRulingText = `[Floor Rule Reference (${rule.tdaRef}): ${rule.title}] ${rule.summary} (Citing Published Poker TDA / Robert's Rules Of Poker Standards; Local House Rules Govern At Individual Venues). Full Reference & Table Scenarios: ${canonicalUrl}`;
+  const redditMarkdownRuling = `> **Floor Rule Reference: ${rule.title} (Citing ${rule.tdaRef})**\n> ${rule.summary}\n> *Source Attribution: Independent Educational Summary Citing Published Poker TDA & Robert's Rules Of Poker (RROP) Standards via [Smarter.Poker Floor Reference](${canonicalUrl})*`;
 
   const handleCopyRuling = async (key, text) => {
     try {
@@ -155,8 +156,11 @@ export default function PokerRuleDetailPage({ rule, peerRules = [] }) {
             <h1 style={styles.h1}>{rule.h1}</h1>
 
             <div id="quick-answer-summary" style={styles.summaryBox}>
-              <div style={styles.summaryLabel}>DIRECT FLOOR RULING SUMMARY</div>
+              <div style={styles.summaryLabel}>FLOOR RULE REFERENCE SUMMARY (CITING {rule.tdaRef})</div>
               <p style={styles.summaryText}>{rule.summary}</p>
+              <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#94a3b8', lineHeight: 1.5 }}>
+                {"Source Attribution: Independent Educational Reference Summary Citing Published Poker Tournament Directors Association (TDA) Rules And Robert's Rules Of Poker (RROP). Smarter.Poker Is An Independent Publisher; In Any Live Cardroom Or Tournament, The Supervising Floor Director And Posted House Rules Hold Final Authority."}
+              </p>
             </div>
 
             <div
@@ -171,70 +175,117 @@ export default function PokerRuleDetailPage({ rule, peerRules = [] }) {
                 flexWrap: 'wrap',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                gap: '10px',
+                gap: '14px',
               }}
             >
-              <div style={{ fontSize: '12px', fontWeight: 700, color: '#f2b84b', letterSpacing: '0.04em' }}>
-                SETTLE THE BET AT THE TABLE: SHARE OR PRINT THIS OFFICIAL RULING
+              <div style={{ flex: '1 1 360px' }}>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#f2b84b', letterSpacing: '0.04em', marginBottom: '8px' }}>
+                  SETTLE THE BET AT THE TABLE: SHARE OR PRINT THIS FLOOR RULE REFERENCE SHEET
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyRuling('chat', groupChatRulingText)}
+                    style={{
+                      padding: '7px 12px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      background: rulingCopiedKey === 'chat' ? '#10b981' : '#25c8ff',
+                      color: '#020608',
+                      border: 'none',
+                      borderRadius: '2px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {rulingCopiedKey === 'chat'
+                      ? 'Copied Group-Chat Rule Reference'
+                      : 'Copy Rule Reference For Group Chat (SMS / WhatsApp / Discord)'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyRuling('reddit', redditMarkdownRuling)}
+                    style={{
+                      padding: '7px 12px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      background: rulingCopiedKey === 'reddit' ? '#10b981' : '#101a20',
+                      color: rulingCopiedKey === 'reddit' ? '#020608' : '#25c8ff',
+                      border: '1px solid #25c8ff',
+                      borderRadius: '2px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {rulingCopiedKey === 'reddit' ? 'Copied Forum Quote' : 'Copy Forum / Reddit Quote'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (typeof window !== 'undefined' && typeof window.print === 'function') {
+                        window.print();
+                      }
+                    }}
+                    style={{
+                      padding: '7px 12px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      background: '#101a20',
+                      color: '#f2b84b',
+                      border: '1px solid #f2b84b',
+                      borderRadius: '2px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Print Table Rule Reference Sheet (With QR)
+                  </button>
+                </div>
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                <button
-                  type="button"
-                  onClick={() => handleCopyRuling('chat', groupChatRulingText)}
-                  style={{
-                    padding: '7px 12px',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    background: rulingCopiedKey === 'chat' ? '#10b981' : '#25c8ff',
-                    color: '#020608',
-                    border: 'none',
-                    borderRadius: '2px',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {rulingCopiedKey === 'chat'
-                    ? 'Copied Group-Chat Ruling'
-                    : 'Copy Official Ruling For Group Chat (SMS / WhatsApp / Discord)'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleCopyRuling('reddit', redditMarkdownRuling)}
-                  style={{
-                    padding: '7px 12px',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    background: rulingCopiedKey === 'reddit' ? '#10b981' : '#101a20',
-                    color: rulingCopiedKey === 'reddit' ? '#020608' : '#25c8ff',
-                    border: '1px solid #25c8ff',
-                    borderRadius: '2px',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {rulingCopiedKey === 'reddit' ? 'Copied Forum Quote' : 'Copy Forum / Reddit Quote'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (typeof window !== 'undefined' && typeof window.print === 'function') {
-                      window.print();
-                    }
-                  }}
-                  style={{
-                    padding: '7px 12px',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    background: '#101a20',
-                    color: '#f2b84b',
-                    border: '1px solid #f2b84b',
-                    borderRadius: '2px',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Print Official Table Ruling Sheet
-                </button>
+
+              <div
+                aria-label="Printable QR Code Verification Block"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '8px 10px',
+                  background: '#050b10',
+                  border: '1px solid #1e293b',
+                  borderRadius: '2px',
+                }}
+              >
+                <img
+                  src={qrSvgPath}
+                  alt={`QR Code For ${canonicalUrl}`}
+                  width="76"
+                  height="76"
+                  style={{ display: 'block', borderRadius: '2px', background: '#ffffff' }}
+                />
+                <div style={{ maxWidth: '210px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: '#25c8ff' }}>
+                    SCAN FOR FULL RULE &amp; SCENARIOS
+                  </div>
+                  <div style={{ fontSize: '10.5px', color: '#cbd5e1', wordBreak: 'break-all', marginTop: '2px' }}>
+                    {canonicalUrl}
+                  </div>
+                  <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px' }}>
+                    Cites: {rule.tdaRef}
+                  </div>
+                </div>
               </div>
             </div>
           </header>
+
+          <style>{`
+            @media print {
+              nav, footer, button, [aria-label="Cite Or Link To This Research"], [aria-label="Verify Or Analyze With AI Assistants"] {
+                display: none !important;
+              }
+              body, main, div, article, section, header {
+                background: #ffffff !important;
+                color: #0f172a !important;
+                border-color: #cbd5e1 !important;
+              }
+            }
+          `}</style>
 
           <section style={styles.sectionPlate}>
             <h2 style={styles.h2}>Official TDA &amp; RROP Floor Ruling Procedure</h2>
@@ -343,10 +394,11 @@ export default function PokerRuleDetailPage({ rule, peerRules = [] }) {
             title={`${rule.title} (${rule.tdaRef})`}
             canonicalUrl={canonicalUrl}
             badgeType="research"
-            badgeLabel="Official Floor Ruling"
+            badgeLabel="Floor Rule Reference"
             badgeValue={rule.tdaRef}
             summary={rule.summary}
             slug={`poker-rule-${rule.slug}`}
+            doi="10.5281/zenodo.24115454"
           />
 
           <AiPromptLauncher
