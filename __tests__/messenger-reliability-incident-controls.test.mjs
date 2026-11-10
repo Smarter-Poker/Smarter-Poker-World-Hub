@@ -99,6 +99,20 @@ test('a validation message with no incident id gets Copy Agent Handoff only', ()
         { incidentId: null, href: null });
 });
 
+test('a controller message keeps its line breaks and wraps; no other message changes', () => {
+    const html = bubble(message());
+    const block = html.match(/<div data-testid="reliability-incident-text" style="([^"]*)">([\s\S]*?)<\/div>/);
+    assert.ok(block);
+    assert.match(block[1], /white-space:pre-wrap/);
+    assert.match(block[1], /overflow-wrap:anywhere/);
+    assert.ok(block[2].includes(`AI AGENT NEEDED\nIncident ID: ${INCIDENT}\nSeverity: CRITICAL`));
+    for (const other of [message({ sender_id: OTHER }), message({ media_metadata: null }), message({ media_metadata: { kind: 'bug_report' } })]) {
+        const plain = bubble(other);
+        assert.match(plain, /AI AGENT NEEDED/);
+        assert.doesNotMatch(plain, /reliability-incident-text|pre-wrap/);
+    }
+});
+
 test('forged metadata from any other sender renders no controls', () => {
     for (const forged of [
         message({ sender_id: OTHER }),
@@ -195,26 +209,31 @@ test('the copied text is the authorized handoff when there is one, else the mess
     }
 });
 
+// The returned object of fn_reliability_incident_for_owner, key for key.
+const RELATED = 'c0000000-0000-4000-8000-00000000000c';
 const RPC_ROW = {
-    incident: {
-        id: INCIDENT, title: 'Engine Tick Stalled', severity: 'critical', status: 'escalated', incident_class: 'engine_tick',
-        alertname: 'EngineTickStalled', source: 'alertmanager', environment: 'production',
-        scope: { table_id: 'T-42', component: 'engine' }, first_observed_at: '2026-11-09T18:00:00Z',
-        last_observed_at: '2026-11-10T03:30:15Z', occurrence_count: 7, escalation_reason: 'no eligible recovery',
-        resolution_state: 'unresolved',
-    },
-    incident_events: [
-        { id: 2, kind: 'status_change', from_status: 'investigating', to_status: 'escalated', detail: { reason: 'no runbook' }, at: '2026-11-09T18:01:00Z' },
-        { id: 1, kind: 'opened', from_status: null, to_status: 'investigating', detail: {}, at: '2026-11-09T18:00:00Z' },
+    incident_id: INCIDENT, incident_class: 'table_liveness', title: 'Engine Tick Stalled (table_liveness)',
+    severity: 'critical', status: 'escalated', resolution_state: 'uncertain', closure_basis: null,
+    source: 'alertmanager', alertname: 'EngineTickStalled', environment: 'production',
+    scope: { table_id: 'T-42', instance: 'engine-1' },
+    labels: { table_id: 'T-42', instance: 'engine-1', alertname: 'EngineTickStalled', severity: 'critical', component: 'dealer' },
+    first_observed_at: '2026-11-09T18:00:00+00:00', last_observed_at: '2026-11-10T03:30:15+00:00',
+    last_firing_at: '2026-11-10T03:30:15+00:00', last_resolved_at: null,
+    first_inbox_event_id: 100, latest_inbox_event_id: 200, occurrence_count: 7, recurrence_count: 2,
+    escalation_state: 'escalated', escalation_reason: 'no eligible recovery', engine_release: null,
+    related_incident_id: RELATED,
+    events: [
+        { at: '2026-11-09T18:01:00+00:00', kind: 'status_change', from_status: 'investigating', to_status: 'escalated', reason: 'no enabled runbook' },
+        { at: '2026-11-09T18:00:00+00:00', kind: 'opened', from_status: null, to_status: 'investigating', reason: null },
     ],
-    handoff: 'AI AGENT NEEDED\nAgent Handoff\nAlert name: EngineTickStalled',
+    handoff: 'AI AGENT NEEDED\nAgent Handoff\nAlert name: EngineTickStalled', handoff_version: 1,
 };
 const client = (answer) => {
     const calls = [];
     return { calls, rpc: async (name, args) => { calls.push([name, args]); if (answer instanceof Error) throw answer; return answer; } };
 };
 const view = (result) => renderToStaticMarkup(React.createElement(IncidentView, { ...result, onRetry() {} }));
-const INCIDENT_DATA = /Engine Tick Stalled|EngineTickStalled|T-42|no eligible recovery|a0000000-/;
+const INCIDENT_DATA = /Engine Tick Stalled|EngineTickStalled|T-42|no eligible recovery|a0000000-|c0000000-/;
 
 test('authorized: one call with the caller session, rendered read only in America/Chicago', async () => {
     const db = client({ data: RPC_ROW, error: null });
@@ -222,11 +241,17 @@ test('authorized: one call with the caller session, rendered read only in Americ
     assert.deepEqual(db.calls, [['fn_reliability_incident_for_owner', { p_incident_id: INCIDENT }]]);
     assert.equal(result.state, 'ready');
     const html = view(result);
-    for (const expected of ['Engine Tick Stalled', INCIDENT, 'Critical', 'Escalated', 'Unresolved', 'T-42', 'engine',
-        'Nov 9, 2026, 12:00:00 PM CST', 'Nov 9, 2026, 9:30:15 PM CST', '>7<', 'no eligible recovery',
-        'Status Change · Investigating To Escalated', 'Opened · Investigating', 'Alert name: EngineTickStalled', 'Copy Agent Handoff']) {
+    for (const expected of ['Engine Tick Stalled (table_liveness)', INCIDENT, 'table_liveness', 'Critical', 'Escalated', 'Uncertain',
+        'T-42', 'engine-1', 'dealer', 'Nov 9, 2026, 12:00:00 PM CST', 'Nov 9, 2026, 9:30:15 PM CST', '>7<', '>2<',
+        'no eligible recovery', `href="/hub/reliability/incidents/${RELATED}"`,
+        'Status Change · Investigating To Escalated', 'no enabled runbook', 'Opened · Investigating',
+        'Alert name: EngineTickStalled', 'Copy Agent Handoff']) {
         assert.ok(html.includes(expected), `missing ${expected}`);
     }
+    // Nullable fields that are null are left out instead of being invented.
+    assert.doesNotMatch(html, /Closure Basis|Last Resolved Signal|Engine Release/);
+    // An object that is not the contract's shape is not presented as an incident.
+    assert.deepEqual(await readReliabilityIncident(client({ data: { incident: RPC_ROW }, error: null }), INCIDENT), { state: 'error', incident: null });
     assert.match(html, /data-state="ready"/);
     // Read only: the only actions are navigation back and copying.
     assert.deepEqual([...html.matchAll(/<button[^>]*>([^<]*)<\/button>/g)].map(m => m[1]), ['Copy Agent Handoff']);
@@ -236,7 +261,12 @@ test('authorized: one call with the caller session, rendered read only in Americ
 });
 
 test('not authorized is its own plain state and shows no incident data', async () => {
-    const result = await readReliabilityIncident(client({ data: RPC_ROW, error: { code: '42501', message: 'not the platform alert recipient' } }), INCIDENT);
+    // Raised by the function for a signed-in non-recipient, and by Postgres for a role with no EXECUTE.
+    for (const message of ['Not Authorized', 'permission denied for function fn_reliability_incident_for_owner']) {
+        assert.deepEqual(await readReliabilityIncident(client({ data: null, error: { code: '42501', message } }), INCIDENT),
+            { state: 'not_authorized', incident: null });
+    }
+    const result = await readReliabilityIncident(client({ data: RPC_ROW, error: { code: '42501', message: 'Not Authorized' } }), INCIDENT);
     assert.deepEqual(result, { state: 'not_authorized', incident: null });
     const html = view(result);
     assert.match(html, /Not Authorized/);
@@ -261,11 +291,12 @@ test('a missing function is distinct from a refusal', async () => {
 });
 
 test('not found, an invalid id and a failed request are each stated plainly', async () => {
-    for (const answer of [{ data: null, error: null }, { data: { found: false }, error: null }, { data: null, error: { code: 'P0002', message: 'incident not found' } }]) {
-        const result = await readReliabilityIncident(client(answer), INCIDENT);
-        assert.deepEqual(result, { state: 'not_found', incident: null });
-        assert.match(view(result), /Incident Not Found/);
-    }
+    // An authorized caller and no such incident is SQL NULL.
+    const missing = await readReliabilityIncident(client({ data: null, error: null }), INCIDENT);
+    assert.deepEqual(missing, { state: 'not_found', incident: null });
+    assert.match(view(missing), /Incident Not Found/);
+    assert.deepEqual(await readReliabilityIncident(client({ data: null, error: { code: '22P02', message: 'invalid input syntax for type uuid' } }), INCIDENT),
+        { state: 'invalid_id', incident: null });
     const untouched = client({ data: RPC_ROW, error: null });
     assert.deepEqual(await readReliabilityIncident(untouched, 'not-a-uuid'), { state: 'invalid_id', incident: null });
     assert.deepEqual(await readReliabilityIncident(untouched, undefined), { state: 'invalid_id', incident: null });

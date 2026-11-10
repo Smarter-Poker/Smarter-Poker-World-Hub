@@ -41,58 +41,43 @@ export function reliabilityIncidentControls(message) {
 }
 
 const text = (value) => (typeof value === 'string' && value.trim() ? value : null);
+const count = (value) => (typeof value === 'number' && Number.isFinite(value) ? value : null);
 
-function pick(sources, keys) {
-    for (const source of sources) {
-        if (!isObject(source)) continue;
-        for (const key of keys) {
-            const value = source[key];
-            if (value !== undefined && value !== null && value !== '') return value;
-        }
-    }
-    return null;
-}
-
-// An observation may arrive as a timestamp or as a record carrying one.
-function observedAt(value) {
-    if (isObject(value)) return text(value.observed_at) || text(value.at) || text(value.created_at);
-    return text(value);
-}
-
-function handoffOf(value) {
-    if (isObject(value)) return text(value.text) || text(value.body);
-    return text(value);
-}
-
-export function normalizeReliabilityIncident(data, requestedId = null) {
-    if (!isObject(data)) return null;
-    const sources = [data.incident, data.summary, data].filter(isObject);
-    const events = pick([data, ...sources], ['incident_events', 'events', 'recent_events']);
-    const count = Number(pick(sources, ['occurrence_count']));
+// The object fn_reliability_incident_for_owner returns, key for key. Only the
+// fields its contract marks nullable are allowed to be absent.
+export function normalizeReliabilityIncident(data) {
+    if (!isObject(data) || !isReliabilityIncidentId(data.incident_id)) return null;
     return {
-        id: text(pick(sources, ['id', 'incident_id'])) || requestedId,
-        title: text(pick(sources, ['title'])) || text(data.summary),
-        incidentClass: text(pick(sources, ['incident_class'])),
-        alertName: text(pick(sources, ['alertname', 'alert_name'])),
-        source: text(pick(sources, ['source'])),
-        environment: text(pick(sources, ['environment'])),
-        severity: text(pick(sources, ['severity'])),
-        status: text(pick(sources, ['status'])),
-        resolutionState: text(pick(sources, ['resolution_state'])),
-        escalationReason: text(pick(sources, ['escalation_reason'])),
-        occurrenceCount: Number.isFinite(count) ? count : null,
-        scope: pick(sources, ['scope']),
-        firstObservedAt: observedAt(pick(sources, ['first_observed_at', 'first_observation'])),
-        latestObservedAt: observedAt(pick(sources, ['last_observed_at', 'latest_observed_at', 'latest_observation'])),
-        events: (Array.isArray(events) ? events : []).filter(isObject).slice(0, 20).map((event) => ({
-            id: event.id ?? null,
+        id: data.incident_id,
+        title: text(data.title),
+        incidentClass: text(data.incident_class),
+        alertName: text(data.alertname),
+        source: text(data.source),
+        environment: text(data.environment),
+        severity: text(data.severity),
+        status: text(data.status),
+        resolutionState: text(data.resolution_state),
+        closureBasis: text(data.closure_basis),
+        escalationState: text(data.escalation_state),
+        escalationReason: text(data.escalation_reason),
+        occurrenceCount: count(data.occurrence_count),
+        recurrenceCount: count(data.recurrence_count),
+        scope: isObject(data.scope) ? data.scope : {},
+        labels: isObject(data.labels) ? data.labels : {},
+        firstObservedAt: text(data.first_observed_at),
+        latestObservedAt: text(data.last_observed_at),
+        lastFiringAt: text(data.last_firing_at),
+        lastResolvedAt: text(data.last_resolved_at),
+        engineRelease: text(data.engine_release),
+        relatedIncidentId: isReliabilityIncidentId(data.related_incident_id) ? data.related_incident_id : null,
+        events: (Array.isArray(data.events) ? data.events : []).filter(isObject).slice(0, 20).map((event) => ({
             kind: text(event.kind),
             fromStatus: text(event.from_status),
             toStatus: text(event.to_status),
-            at: text(event.at) || text(event.created_at),
-            detail: event.detail ?? null,
+            at: text(event.at),
+            reason: text(event.reason),
         })),
-        handoff: handoffOf(pick([data, ...sources], ['handoff', 'handoff_text'])),
+        handoff: text(data.handoff),
     };
 }
 
@@ -100,10 +85,11 @@ export function normalizeReliabilityIncident(data, requestedId = null) {
  * One authorized read. Every outcome is a named state so the page never has
  * to guess from a missing field:
  *   ready            the caller may read this incident
- *   not_authorized   SQLSTATE 42501, the function refused this caller
+ *   not_authorized   SQLSTATE 42501: the function answered "Not Authorized",
+ *                    or the role has no EXECUTE on it
  *   function_missing the function is not installed (PGRST202 / 42883)
- *   not_found        no such incident
- *   invalid_id       the id is not a uuid; nothing was sent
+ *   not_found        an authorized caller and no such incident (SQL NULL)
+ *   invalid_id       the id is not a uuid (22P02 if it ever reaches the cast)
  *   error            anything else, including a network failure
  */
 export async function readReliabilityIncident(client, incidentId) {
@@ -117,18 +103,13 @@ export async function readReliabilityIncident(client, incidentId) {
     }
     if (error) {
         const code = String(error.code || '');
-        const message = String(error.message || '');
         if (code === 'PGRST202' || code === '42883') return { state: 'function_missing', incident: null };
         if (code === '42501') return { state: 'not_authorized', incident: null };
-        if (code === 'P0002' || code === 'PGRST116') return { state: 'not_found', incident: null };
         if (code === '22P02') return { state: 'invalid_id', incident: null };
-        if (/could not find the function/i.test(message)) return { state: 'function_missing', incident: null };
         return { state: 'error', incident: null };
     }
-    if (data === null || data === undefined || (isObject(data) && data.found === false)) {
-        return { state: 'not_found', incident: null };
-    }
-    const incident = normalizeReliabilityIncident(data, incidentId.toLowerCase());
+    if (data === null || data === undefined) return { state: 'not_found', incident: null };
+    const incident = normalizeReliabilityIncident(data);
     return incident ? { state: 'ready', incident } : { state: 'error', incident: null };
 }
 
@@ -173,18 +154,8 @@ export function formatChicagoTime(value) {
     return new Intl.DateTimeFormat('en-US', CHICAGO).format(date);
 }
 
+// scope and labels are flat objects of string values.
 export function reliabilityScopeEntries(scope) {
-    if (isObject(scope)) {
-        return Object.keys(scope).sort().map((key) => [key,
-            typeof scope[key] === 'string' ? scope[key] : JSON.stringify(scope[key])]);
-    }
-    const single = text(scope);
-    return single ? [['scope', single]] : [];
-}
-
-export function reliabilityEventDetail(detail) {
-    if (detail === null || detail === undefined) return '';
-    if (typeof detail === 'string') return detail.slice(0, 400);
-    if (isObject(detail) && Object.keys(detail).length === 0) return '';
-    try { return JSON.stringify(detail).slice(0, 400); } catch { return ''; }
+    if (!isObject(scope)) return [];
+    return Object.keys(scope).sort().map((key) => [key, String(scope[key])]);
 }

@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import CopyAgentHandoffButton from './CopyAgentHandoffButton';
-import { formatChicagoTime, reliabilityEventDetail, reliabilityScopeEntries } from '../../lib/messenger/reliabilityIncident.mjs';
+import { formatChicagoTime, reliabilityScopeEntries } from '../../lib/messenger/reliabilityIncident.mjs';
 
 // Read-only view of one reliability incident. It renders what the authorized
 // read returned and nothing else: every state other than "ready" carries no
@@ -18,6 +18,7 @@ const STATE_COPY = {
 };
 
 const label = (value) => (value ? String(value).replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : 'Not Recorded');
+const number = (value) => (value === null ? 'Not Recorded' : value.toLocaleString('en-US'));
 const button = {
     minHeight: 44, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
     padding: '8px 14px', borderRadius: 10, border: `1px solid ${C.border}`, background: C.card, color: C.blue,
@@ -55,6 +56,7 @@ export default function ReliabilityIncidentView({ state, incident, onRetry }) {
     }
 
     const scope = reliabilityScopeEntries(incident.scope);
+    const labels = reliabilityScopeEntries(incident.labels);
     return shell(<>
         <section style={card}>
             <div style={{ fontSize: 12, fontWeight: 700, color: C.textSec, letterSpacing: '0.4px' }}>Reliability Incident · Read Only</div>
@@ -68,10 +70,19 @@ export default function ReliabilityIncidentView({ state, incident, onRetry }) {
                 <Field name="Severity">{label(incident.severity)}</Field>
                 <Field name="Status">{label(incident.status)}</Field>
                 <Field name="Resolution State">{label(incident.resolutionState)}</Field>
+                {incident.closureBasis && <Field name="Closure Basis">{label(incident.closureBasis)}</Field>}
                 <Field name="First Observation">{formatChicagoTime(incident.firstObservedAt)}</Field>
                 <Field name="Latest Observation">{formatChicagoTime(incident.latestObservedAt)}</Field>
-                <Field name="Occurrence Count">{incident.occurrenceCount === null ? 'Not Recorded' : incident.occurrenceCount.toLocaleString('en-US')}</Field>
-                <Field name="Escalation Reason">{incident.escalationReason || 'Not Recorded'}</Field>
+                {incident.lastFiringAt && <Field name="Last Firing">{formatChicagoTime(incident.lastFiringAt)}</Field>}
+                {incident.lastResolvedAt && <Field name="Last Resolved Signal">{formatChicagoTime(incident.lastResolvedAt)}</Field>}
+                <Field name="Occurrence Count">{number(incident.occurrenceCount)}</Field>
+                <Field name="Recurrence Count">{number(incident.recurrenceCount)}</Field>
+                <Field name="Escalation State">{label(incident.escalationState)}</Field>
+                <Field name="Escalation Reason">{incident.escalationReason || 'None Recorded'}</Field>
+                {incident.engineRelease && <Field name="Engine Release">{incident.engineRelease}</Field>}
+                {incident.relatedIncidentId && <Field name="Related Incident">
+                    <Link href={`/hub/reliability/incidents/${incident.relatedIncidentId}`} style={{ color: C.blue, fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 13 }}>{incident.relatedIncidentId}</Link>
+                </Field>}
             </dl>
             <p style={{ margin: '8px 0 0', fontSize: 12, color: C.textSec }}>Times Are Shown In America/Chicago.</p>
         </section>
@@ -83,19 +94,24 @@ export default function ReliabilityIncidentView({ state, incident, onRetry }) {
                 : <dl style={{ margin: 0 }}>{scope.map(([key, value]) => <Field key={key} name={key}>{value}</Field>)}</dl>}
         </section>
 
+        {labels.length > 0 && <section style={card}>
+            <h2 style={heading}>Labels</h2>
+            <dl style={{ margin: 0 }}>{labels.map(([key, value]) => <Field key={key} name={key}>{value}</Field>)}</dl>
+        </section>}
+
         <section style={card}>
             <h2 style={heading}>Recent Events</h2>
             {incident.events.length === 0
                 ? <p style={{ margin: 0, fontSize: 14, color: C.textSec }}>No Events Were Recorded.</p>
                 : <ol style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                     {incident.events.map((event, index) => {
-                        const detail = reliabilityEventDetail(event.detail);
-                        return <li key={event.id ?? index} style={{ padding: '8px 0', borderTop: `1px solid ${C.border}`, ...wrap }}>
+                        const detail = event.reason;
+                        return <li key={index} style={{ padding: '8px 0', borderTop: `1px solid ${C.border}`, ...wrap }}>
                             <div style={{ fontSize: 14, fontWeight: 600 }}>
                                 {[label(event.kind), [event.fromStatus, event.toStatus].filter(Boolean).map(label).join(' To ')].filter(Boolean).join(' · ')}
                             </div>
                             <div style={{ fontSize: 12, color: C.textSec }}>{formatChicagoTime(event.at)}</div>
-                            {detail && <div style={{ fontSize: 12, marginTop: 4, fontFamily: 'ui-monospace, Menlo, monospace' }}>{detail}</div>}
+                            {detail && <div style={{ fontSize: 12, marginTop: 4 }}>{detail}</div>}
                         </li>;
                     })}
                 </ol>}

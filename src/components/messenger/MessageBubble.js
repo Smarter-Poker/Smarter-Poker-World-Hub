@@ -1102,6 +1102,13 @@ export function MessageBubble({
                         const media = parseMessageMedia(content);
                         if (media) return <MediaAttachment media={media} isOwn={isOwn} theme={C} />;
 
+                        // A Reliability Controller body is a list of lines. Only
+                        // a message entitled to the controls keeps its breaks.
+                        if (reliabilityIncidentControls(message)) {
+                            return <div data-testid="reliability-incident-text" style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
+                                <MessageContent content={content} isOwn={isOwn} theme={C} />
+                            </div>;
+                        }
                         return <MessageContent content={content} isOwn={isOwn} theme={C} />;
                     })()}
                     {(() => {
