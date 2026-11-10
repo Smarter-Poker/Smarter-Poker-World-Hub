@@ -91,6 +91,9 @@ export default class MyDocument extends Document {
                     {/* Theme color for mobile browsers */}
                     <meta name="theme-color" content="#0a0a15" />
 
+                    {/* OpenSearch Browser Omnibox Plugin */}
+                    <link rel="search" type="application/opensearchdescription+xml" title="Smarter.Poker Search" href="/opensearch.xml" />
+
                     {/* Speculation Rules API: prefetches public SEO & tool routes on hover/pointerdown
                         (eagerness: moderate) for near-0ms LCP/INP in Chrome CrUX Core Web Vitals. */}
                     <script
@@ -108,6 +111,11 @@ export default class MyDocument extends Document {
                                                         { href_matches: '/learn/*' },
                                                         { href_matches: '/glossary/*' },
                                                         { href_matches: '/compare/*' },
+                                                        { href_matches: '/rules/*' },
+                                                        { href_matches: '/games/*' },
+                                                        { href_matches: '/poker-rooms/*' },
+                                                        { href_matches: '/poker-series/*' },
+                                                        { href_matches: '/research/*' },
                                                         { href_matches: '/hub/poker-near-me/*' },
                                                         { href_matches: '/hub/training*' },
                                                     ],

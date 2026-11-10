@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/" xmlns:moz="http://www.mozilla.org/2006/browser/search/">
+  <ShortName>Smarter.Poker</ShortName>
+  <LongName>Smarter.Poker Universal Poker Tools, GTO Strategy, Rules &amp; Live Room Search</LongName>
+  <Description>Search 34 interactive poker calculators, 169 starting hands, 25 hand matchups, 9 positions, 30 TDA floor rules, 15 game variants, and 324+ North American live poker rooms on Smarter.Poker.</Description>
+  <InputEncoding>UTF-8</InputEncoding>
+  <OutputEncoding>UTF-8</OutputEncoding>
+  <AdultContent>false</AdultContent>
+  <Language>en-us</Language>
+  <Image width="16" height="16" type="image/x-icon">https://smarter.poker/favicon.ico</Image>
+  <Image width="192" height="192" type="image/png">https://smarter.poker/icons/icon-192x192.png</Image>
+  <Url type="text/html" method="get" template="https://smarter.poker/search?q={searchTerms}" />
+  <Url type="application/x-suggestions+json" method="get" template="https://smarter.poker/api/search/suggest?q={searchTerms}" />
+  <Url type="application/opensearchdescription+xml" rel="self" template="https://smarter.poker/opensearch.xml" />
+  <Query role="example" searchTerms="icm calculator" />
+  <Developer>Smarter Software Inc.</Developer>
+  <Attribution>Search data Copyright Smarter Software Inc. (https://smarter.poker)</Attribution>
+  <SyndicationRight>open</SyndicationRight>
+  <moz:SearchForm>https://smarter.poker/search</moz:SearchForm>
+</OpenSearchDescription>
