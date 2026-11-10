@@ -62,7 +62,7 @@ export default function AboutPage() {
         description="Smarter.Poker Is A Free Online Poker Platform From Smarter Software Inc. Read What It Is, What It Is Not, Which Products It Runs And How To Reach Support."
         canonical="/about"
         ogImage="/api/og/tool-card?tool=about&title=About+Smarter.Poker&subtitle=Free+Online+Poker+Platform+Operated+By+Smarter+Software+Inc&statLabel=OPERATOR&statValue=SMARTER+SOFTWARE"
-        jsonLd={[schemas.organization, ABOUT_PAGE_SCHEMA]}
+        jsonLd={[schemas.organization, schemas.website, ABOUT_PAGE_SCHEMA, ABOUT_PAGE_SCHEMA.breadcrumb]}
         markdownUrl="https://smarter.poker/about.md"
       />
 

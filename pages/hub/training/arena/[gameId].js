@@ -113,7 +113,8 @@ class ArenaErrorBoundary extends React.Component {
 
 export default function TrainingArenaPage() {
     const router = useRouter();
-    const { gameId, level: queryLevel, session: sessionId } = router.query;
+    const { gameId, level: queryLevel, session: querySession, sessionId: querySessionId } = router.query;
+    const sessionId = querySession || querySessionId;
     useTrainingBus('training-arena', { gameId });
 
     const [userId, setUserId] = useState(null);

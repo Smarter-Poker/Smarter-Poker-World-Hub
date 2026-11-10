@@ -29,8 +29,7 @@ import { PokerNearMePanelShell, PokerNearMeConsoleIcon } from '../../src/compone
  */
 const SERIES_PANEL_LIMIT = 12;
 import { buildSeriesDirectorySchema, serializePokerJsonLd } from '../../src/lib/poker-near-me/structuredData';
-import { datasetSchema } from '../../src/lib/seo/hubPageSchema';
-import { faqSchema } from '../../src/lib/seo/hubPageSchema';
+import { datasetSchema, faqSchema, breadcrumbSchema } from '../../src/lib/seo/hubPageSchema';
 import { normalizeJsonLdGraph } from '../../src/components/seo/SEOHead';
 import FaqSection from '../../src/components/seo/FaqSection';
 
@@ -788,6 +787,11 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
                             variableMeasured: ['Series Date Range', 'Main Event Buy-In', 'Total Series Guarantee', 'Event Count'],
                         }),
                         faqSchema(POKER_SERIES_FAQS, '/hub/poker-series'),
+                        breadcrumbSchema([
+                            ['Home', '/'],
+                            ['Poker Near Me', '/hub/poker-near-me/lobby'],
+                            ['Poker Series', '/hub/poker-series'],
+                        ]),
                     ].filter(Boolean)),
                 }) }} />
             </Head>

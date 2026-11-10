@@ -966,9 +966,10 @@ export default async function handler(req, res) {
                           challengerName: userName,
                           challengerAttemptId: delivery.attemptId,
                       });
-                  const role = duelPayload && String(delivery.attemptId) !== String(duelPayload.challengerAttemptId)
-                      ? 'opponent'
-                      : 'challenger';
+                  const isChallengerUser = !duelPayload
+                      || String(_authUser.id) === String(duelPayload.challengerId || '')
+                      || String(delivery.attemptId) === String(duelPayload.challengerAttemptId || '');
+                  const role = isChallengerUser ? 'challenger' : 'opponent';
                   const recordKey = `${activeDuelId}_${String(delivery.attemptId || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 16)}`.slice(0, 150);
                   await getSupabase()
                       .from('training_tool_records')

@@ -26,6 +26,13 @@ export { PRODUCT_OG_IMAGES, productOgImage } from '../../lib/seo/productOgImage'
  *    when not already present in the array.
  */
 export function normalizeJsonLdGraph(jsonLd) {
+  if (jsonLd && typeof jsonLd === 'object' && !Array.isArray(jsonLd) && Array.isArray(jsonLd['@graph'])) {
+    return {
+      ...jsonLd,
+      '@context': jsonLd['@context'] || 'https://schema.org',
+      '@graph': normalizeJsonLdGraph(jsonLd['@graph']),
+    };
+  }
   if (!Array.isArray(jsonLd)) return jsonLd;
   const cleaned = jsonLd
     .filter(Boolean)
@@ -46,10 +53,12 @@ export function normalizeJsonLdGraph(jsonLd) {
   // only pointed at #website shipped a dangling #organization reference
   // (structured data audit, 2026-11-09).
   if (!hasOrgNode && (needsWebsite || serialized.includes('https://smarter.poker/#organization'))) {
-    prefix.push(schemas.organization);
+    const { '@context': _orgCtx, ...orgNode } = schemas.organization;
+    prefix.push(orgNode);
   }
   if (needsWebsite) {
-    prefix.push(schemas.website);
+    const { '@context': _webCtx, ...websiteNode } = schemas.website;
+    prefix.push(websiteNode);
   }
   return prefix.length > 0 ? [...prefix, ...cleaned] : cleaned;
 }
