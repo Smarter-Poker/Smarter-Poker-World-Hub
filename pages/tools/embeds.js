@@ -564,6 +564,94 @@ export const STREAM_CHAT_COMMANDS = [
     nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=series&q=$(querystring))',
     toolUrl: 'https://smarter.poker/poker-series/guides',
   },
+  {
+    id: 'cmd-board',
+    command: '!board',
+    cmd: '!board',
+    query: 'AsKh7d',
+    desc: 'Flop board texture, range advantage & GTO C-Bet sizing',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=board&q=AsKh7d',
+    title: 'Flop Board Texture, Range Advantage & GTO C-Bet Sizing Command (!board AsKh7d)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=board&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/tools/board-texture-analyzer',
+  },
+  {
+    id: 'cmd-mratio',
+    command: '!mratio',
+    cmd: '!mratio',
+    query: '25000 500 1000 1000',
+    desc: 'Harrington tournament M-Ratio, Effective M & Zone classification',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=mratio&q=25000+500+1000+1000',
+    title: 'Harrington M-Ratio, Effective M & Zone Classification Command (!mratio 25000 500 1000 1000)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=mratio&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/tools/m-ratio-calculator',
+  },
+  {
+    id: 'cmd-straddle',
+    command: '!straddle',
+    cmd: '!straddle',
+    query: '1/3',
+    desc: 'Live cash game straddle & double-board bomb pot EV math',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=straddle&q=1/3',
+    title: 'Live Cash Game Straddle & Bomb Pot EV Math Command (!straddle 1/3)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=straddle&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/tools/straddle-calculator',
+  },
+  {
+    id: 'cmd-sat',
+    command: '!sat',
+    cmd: '!sat',
+    query: '12 10',
+    desc: 'Satellite bubble factor, seat-lock stack & fold-AA threshold',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=sat&q=12+10',
+    title: 'Satellite Bubble Factor & Seat-Lock Threshold Command (!sat 12 10)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=sat&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/tools/satellite-calculator',
+  },
+  {
+    id: 'cmd-bbj',
+    command: '!bbj',
+    cmd: '!bbj',
+    query: '250000',
+    desc: 'Bad Beat Jackpot breakeven pool & high-hand promo EV math',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=bbj&q=250000',
+    title: 'Bad Beat Jackpot Breakeven Pool & Promo EV Command (!bbj 250000)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=bbj&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/tools/promo-ev-calculator',
+  },
+  {
+    id: 'cmd-position',
+    command: '!position',
+    cmd: '!position',
+    query: 'btn',
+    desc: 'Table seat position GTO RFI %, 3-Bet % & BB/100 winrate (!pos btn)',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=position&q=btn',
+    title: 'Table Seat Position GTO RFI %, 3-Bet % & Winrate Command (!position btn / !pos utg)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=position&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/learn/positions',
+  },
+  {
+    id: 'cmd-math',
+    command: '!math',
+    cmd: '!math',
+    query: 'mdf',
+    desc: 'Instant quantitative poker formula lookup (mdf, spr, ev, kelly)',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=math&q=mdf',
+    title: 'Instant Quantitative Poker Formula Lookup Command (!math mdf / !math spr / !math ev)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=math&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/learn/poker-math',
+  },
+  {
+    id: 'cmd-iq',
+    command: '!iq',
+    cmd: '!iq',
+    query: '',
+    desc: '10-Question Interactive GTO Poker IQ Diagnostic Test link',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=iq',
+    title: '10-Question GTO Poker IQ Diagnostic Test Command (!iq)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=iq&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/tools/poker-iq-test',
+  },
 ];
 
 export const STREAMER_COMMANDS = STREAM_CHAT_COMMANDS;
@@ -1118,7 +1206,7 @@ export default function WebmasterEmbedPortal() {
           <section aria-labelledby="streamer-commands-heading" style={{ marginTop: '48px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
               <h2 id="streamer-commands-heading" style={{ fontSize: '1.6rem', fontWeight: 700, margin: 0 }}>
-                18 Twitch, YouTube &amp; Kick Streamer Chatbot Commands (Nightbot / StreamElements)
+                26 Twitch, YouTube &amp; Kick Streamer Chatbot Commands (Nightbot / StreamElements)
               </h2>
               <div style={{ display: 'flex', gap: '8px' }}>
                 {[
@@ -1147,7 +1235,7 @@ export default function WebmasterEmbedPortal() {
               </div>
             </div>
             <p style={{ fontSize: '0.96rem', color: 'rgba(255, 255, 255, 0.72)', lineHeight: 1.6, marginBottom: '24px' }}>
-              Add All 18 Instant Live Poker Equity, Pot Odds, ICM Bubble Factors, Final Table Chop, Variance, Draw Outs, US Poker Tax, Staking Markup, Limper Isolation, Series Survival Guides, PLO Max Bet Math, And Official TDA Floor Rulings Commands Directly To Your Stream Chat. Viewers Type The Command In Chat And Receive An Instant Sub-380-Character Mathematical Answer With Canonical Attribution.
+              Add All 26 Instant Live Poker Equity, Pot Odds, ICM Bubble Factors, Final Table Chop, Variance, Draw Outs, US Poker Tax, Staking Markup, Limper Isolation, Series Survival Guides, Flop Board Texture, Harrington M-Ratio, Straddle &amp; Bomb Pot EV, Satellite Bubble Factor, Bad Beat Jackpot EV, Seat Position Ranges, Poker Math Formulas, GTO IQ Test, PLO Max Bet Math, And Official TDA Floor Rulings Commands Directly To Your Stream Chat. Viewers Type The Command In Chat And Receive An Instant Sub-380-Character Mathematical Answer With Canonical Attribution.
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: '16px' }}>
               {STREAM_CHAT_COMMANDS.map((cmdItem) => {
@@ -1568,7 +1656,7 @@ export default function WebmasterEmbedPortal() {
                   textDecoration: 'none',
                 }}
               >
-                All 24 Free Poker Calculators
+                All 34 Free Poker Calculators
               </Link>
               <Link
                 href="/compare"

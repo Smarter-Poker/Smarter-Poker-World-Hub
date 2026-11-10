@@ -55,6 +55,24 @@ export default function PokerMatchupDetailPage({ matchup, peerMatchups = [] }) {
 
   const jsonLd = [
     {
+      '@type': 'Article',
+      '@id': `${canonicalUrl}#article`,
+      headline: matchup.title,
+      name: seoTitle,
+      description: matchup.summary,
+      url: canonicalUrl,
+      inLanguage: 'en-US',
+      datePublished: MATCHUPS_AS_OF,
+      dateModified: MATCHUPS_AS_OF,
+      isAccessibleForFree: true,
+      author: { '@id': 'https://smarter.poker/#organization' },
+      publisher: { '@id': 'https://smarter.poker/#organization' },
+      speakable: {
+        '@type': 'SpeakableSpecification',
+        cssSelector: ['h1', '#quick-answer-summary'],
+      },
+    },
+    {
       '@type': 'Dataset',
       '@id': `${canonicalUrl}#dataset`,
       name: matchup.title,
@@ -159,7 +177,7 @@ export default function PokerMatchupDetailPage({ matchup, peerMatchups = [] }) {
 
           <h1 style={styles.h1}>{matchup.title}</h1>
 
-          <p style={styles.lead}>
+          <p id="quick-answer-summary" style={styles.lead}>
             <strong>Direct Combinatorial Answer:</strong> {matchup.summary}
           </p>
 

@@ -5,8 +5,14 @@ import SEOHead from '../src/components/seo/SEOHead';
 
 const RECOVERY_ROUTES = [
     {
+        title: 'Universal Search Directory',
+        subtitle: 'Instant Search Across All 400+ Calculators, Hands, Rules & Guides',
+        href: '/search',
+        badge: 'Search Hub',
+    },
+    {
         title: 'All Free Poker Tools & Solvers',
-        subtitle: '16 Interactive Calculators, ICM Solvers & GTO Range Tools',
+        subtitle: '34 Interactive Calculators, ICM Solvers & GTO Range Tools',
         href: '/tools',
         badge: 'Tools Hub',
     },
@@ -21,6 +27,24 @@ const RECOVERY_ROUTES = [
         subtitle: 'Interactive 169-Hand GTO Preflop Charts',
         href: '/tools/preflop-ranges',
         badge: 'GTO Matrix',
+    },
+    {
+        title: 'Pre-Flop Hand Matchups',
+        subtitle: '25 Canonical All-In Equity & Flop Texture Guides (AA Vs KK, AKs Vs QQ)',
+        href: '/learn/matchups',
+        badge: '25 Matchups',
+    },
+    {
+        title: 'Poker Position Strategy Hub',
+        subtitle: '9-Max & 6-Max Seat-By-Seat GTO RFI %, 3-Bet % & Winrates',
+        href: '/learn/positions',
+        badge: '9 Positions',
+    },
+    {
+        title: 'Tournament Series Guides',
+        subtitle: '10 Major Festival Blueprints: WSOP, WPT, MSPT, Wynn & Borgata',
+        href: '/poker-series/guides',
+        badge: '10 Series',
     },
     {
         title: '169 Starting Hand Guides',

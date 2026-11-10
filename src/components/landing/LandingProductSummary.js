@@ -130,6 +130,84 @@ export const LANDING_GUIDES = [
     href: '/research',
     summary: 'First-Party Empirical Benchmarks On US Live Poker Room Rake, Tournament Buy-In Indexes, Population Leaks And Club Economics.',
   },
+  {
+    id: 'tools-hub',
+    name: '34 Free Poker Calculators & Solvers',
+    href: '/tools',
+    summary: 'Browser-Native ICM Deal Chop, Board Texture C-Bet, M-Ratio, Tax W-2G, PKO Bounty, Side Pot And Equity Calculators.',
+  },
+  {
+    id: 'matchups',
+    name: 'Preflop Hand Matchups',
+    href: '/learn/matchups',
+    summary: 'Exact Combinatoric Win, Tie And Runout Probabilities For 25 Canonical Texas Holdem All-In Confrontations.',
+  },
+  {
+    id: 'positions',
+    name: 'Poker Position Strategy Hub',
+    href: '/learn/positions',
+    summary: 'Seat-By-Seat GTO RFI Opening Frequencies, 3-Bet Defense And Expected BB/100 Winrates From UTG To The Button.',
+  },
+  {
+    id: 'stakes',
+    name: 'Poker Stake Level & Move-Up Guides',
+    href: '/learn/stakes',
+    summary: 'Bankroll Thresholds, Population Tendencies And Readiness Checklists From $1/$2 Live Cash To $5/$10 And Circuit MTTs.',
+  },
+  {
+    id: 'famous-hands',
+    name: 'Famous Poker Hands Solver Archive',
+    href: '/learn/famous-hands',
+    summary: 'Twelve Iconic Broadcast And Championship Poker Hands Deconstructed Street By Street Through A Modern GTO Solver Lens.',
+  },
+  {
+    id: 'roadmaps',
+    name: '90-Day Player Progression Roadmaps',
+    href: '/learn/roadmaps',
+    summary: 'Structured Step-By-Step Study Curriculums For Live Cash Grinders, Tournament Circuit Players, PLO Specialists And Club Hosts.',
+  },
+  {
+    id: 'rules',
+    name: 'Official TDA Poker Floor Rulings',
+    href: '/rules',
+    summary: 'Thirty Official Tournament Directors Association And Robert\'s Rules Of Poker Floor Rulings For Common Live Table Disputes.',
+  },
+  {
+    id: 'games',
+    name: 'Poker Game Variants Encyclopedia',
+    href: '/games',
+    summary: 'Complete Rules, Street Structures And Strategy For Fifteen Live And Mixed-Game Variants Including PLO, Short Deck And Badugi.',
+  },
+  {
+    id: 'market-guides',
+    name: 'US Regional Poker Destination Guides',
+    href: '/poker-rooms/guides',
+    summary: 'Rake Benchmarks, Room Counts And Local Regulations Across Twelve Major US Poker Destinations From Las Vegas To Texas.',
+  },
+  {
+    id: 'state-guides',
+    name: 'US State Poker Legality & Tax Directory',
+    href: '/poker-rooms/states',
+    summary: 'State-By-State Minimum Gambling Age, Live Cardroom Legal Status, Rake Models And Tax Withholding Across Fifteen Top States.',
+  },
+  {
+    id: 'series-guides',
+    name: 'Major Tournament Series Strategy Guides',
+    href: '/poker-series/guides',
+    summary: 'Field Sizes, Rake Comparisons And Registration Logistics For WSOP, WPT, Wynn Millions, Borgata, MSPT And Seminole Hard Rock.',
+  },
+  {
+    id: 'poker-math',
+    name: 'Poker Math Formulas & Cheat Sheets',
+    href: '/learn/poker-math',
+    summary: 'Complete Equations Reference For Pot Odds, MDF, Geometric Sizing, SPR, ICM And Printable One-Page Table Cheat Sheets.',
+  },
+  {
+    id: 'universal-search',
+    name: 'Universal Poker Search Directory',
+    href: '/search',
+    summary: 'Instant Command Search Across Over 400 Calculators, Starting Hands, Matchups, Floor Rules, Game Variants And Lessons.',
+  },
 ];
 
 export default function LandingProductSummary() {
@@ -185,6 +263,30 @@ export default function LandingProductSummary() {
         {' '}
         <Link href="/privacy" style={styles.inlineLink}>
           Privacy
+        </Link>
+        {' '}
+        <Link href="/press" style={styles.inlineLink}>
+          Press Kit
+        </Link>
+        {' '}
+        <Link href="/learn/cheat-sheets" style={styles.inlineLink}>
+          Cheat Sheets
+        </Link>
+        {' '}
+        <Link href="/learn/online-vs-live-poker" style={styles.inlineLink}>
+          Online Vs Live Guide
+        </Link>
+        {' '}
+        <Link href="/learn/live-poker-tells" style={styles.inlineLink}>
+          Live Poker Tells
+        </Link>
+        {' '}
+        <Link href="/poker-rooms/first-time-guide" style={styles.inlineLink}>
+          First-Time Casino Guide
+        </Link>
+        {' '}
+        <Link href="/poker-rooms/comps-and-tipping-guide" style={styles.inlineLink}>
+          Casino Comps &amp; Tipping
         </Link>
       </p>
     </section>

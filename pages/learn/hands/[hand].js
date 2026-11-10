@@ -26,11 +26,12 @@ import {
   LEARN_MODIFIED,
 } from '../../../src/lib/learn/learnSite.js';
 import { STARTING_HANDS, HANDS_BASE_PATH, handPath, getStartingHand, getExpandedHandMatchups } from '../../../src/content/learn/hands.js';
+import { HAND_MATCHUPS, matchupPath } from '../../../src/content/learn/matchups.js';
 
 export async function getStaticPaths() {
   return {
     paths: STARTING_HANDS.map((h) => ({ params: { hand: h.slug } })),
-    fallback: false,
+    fallback: 'blocking',
   };
 }
 
@@ -116,6 +117,14 @@ export default function StartingHandDetailPage({ hand }) {
   const [copiedHandCard, setCopiedHandCard] = useState('');
   const path = handPath(hand.slug);
   const url = `${SITE_URL}${path}`;
+  const directMatchups = HAND_MATCHUPS.filter(
+    (m) =>
+      m.handA === hand.code ||
+      m.handB === hand.code ||
+      m.slug.includes(hand.slug)
+  );
+  const featuredMatchups =
+    directMatchups.length > 0 ? directMatchups : HAND_MATCHUPS.slice(0, 6);
   const discordHandCard = `[Smarter.Poker Starting Hand Guide: ${hand.name} (${hand.code})] Rank: ${hand.preflopRank} | Combos: ${hand.combinations}/1,326 (${hand.probability}) | Equity Vs Random: ${hand.vsRandomEquity} | 100BB 6-Max Guide: ${url}`;
   const redditHandCard = `**${hand.name} (${hand.code}) - 100BB 6-Max GTO Fact Sheet**\n- **Preflop Rank:** ${hand.preflopRank}\n- **Combinations:** ${hand.combinations} Out Of 1,326 (${hand.probability})\n- **Heads-Up Equity Vs. Random Hand:** ${hand.vsRandomEquity}\n- **Facing 3-Bet:** ${hand.vs3Bet}\n- *Full Solver Guide & Matchups: [Smarter.Poker ${hand.code} Strategy](${url})*`;
 
@@ -322,6 +331,37 @@ export default function StartingHandDetailPage({ hand }) {
               ))}
             </tbody>
           </table>
+        </section>
+
+        <section style={{ marginBottom: 32 }}>
+          <h2 style={{ fontSize: 22, fontWeight: 700, color: '#f8fafc', margin: '0 0 12px 0' }}>
+            Head-To-Head Pre-Flop Matchups Featuring This Hand
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
+            {featuredMatchups.map((m) => (
+              <Link
+                key={m.slug}
+                href={matchupPath(m.slug)}
+                style={{
+                  padding: '12px 14px',
+                  background: '#0f172a',
+                  border: '1px solid #1e293b',
+                  borderRadius: 8,
+                  textDecoration: 'none',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 4,
+                }}
+              >
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#34d399' }}>
+                  {m.handA} ({m.handAEquity.toFixed(1)}%) Vs {m.handB} ({m.handBEquity.toFixed(1)}%)
+                </span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: '#38bdf8' }}>
+                  {m.title}
+                </span>
+              </Link>
+            ))}
+          </div>
         </section>
 
         <section style={{ marginBottom: 32 }}>

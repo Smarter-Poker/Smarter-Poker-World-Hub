@@ -205,8 +205,8 @@
     "/api/mcp": {
       "post": {
         "operationId": "callMcpRpc",
-        "summary": "Model Context Protocol JSON-RPC 2.0 Tool Execution (35 Tools & 15 Resource Templates)",
-        "description": "Executes Model Context Protocol (MCP) JSON-RPC 2.0 tool calls across all 35 zero-auth tools including calculate_poker_odds, get_preflop_chart, calculate_icm_payouts, calculate_side_pots, generate_blind_structure, calculate_spr_sizing, lookup_poker_rule, lookup_game_variant, get_regional_market_guide, calculate_plo_max_bet_and_rake, calculate_tournament_chop, simulate_poker_variance, calculate_draw_outs, lookup_hand_matchup, calculate_poker_taxes_w2g, calculate_staking_markup_split, calculate_preflop_isolation_raise, calculate_home_game_chip_set, get_poker_series_strategy_guide, lookup_starting_hand, get_poker_term_definition, search_poker_venues, and search_tournament_series, plus resources/read and resources/templates/list across 15 URI templates.",
+        "summary": "Model Context Protocol JSON-RPC 2.0 Tool Execution (45 Tools, 10 Prompts & 16 Resource Templates)",
+        "description": "Executes Model Context Protocol (MCP) JSON-RPC 2.0 tool calls across all 45 zero-auth tools including calculate_poker_odds, get_preflop_chart, calculate_icm_payouts, calculate_side_pots, generate_blind_structure, calculate_spr_sizing, lookup_poker_rule, lookup_game_variant, get_regional_market_guide, calculate_plo_max_bet_and_rake, calculate_tournament_chop, simulate_poker_variance, calculate_draw_outs, lookup_hand_matchup, calculate_poker_taxes_w2g, calculate_staking_markup_split, calculate_preflop_isolation_raise, calculate_home_game_chip_set, get_poker_series_strategy_guide, analyze_flop_board_texture, calculate_tournament_m_ratio, calculate_cash_session_plan, calculate_straddle_bomb_pot_ev, format_poker_hand_history, calculate_satellite_bubble_factor, calculate_bad_beat_jackpot_ev, resolve_holdem_showdown_winner, get_poker_position_strategy, get_us_state_poker_guide, lookup_starting_hand, get_poker_term_definition, search_poker_venues, and search_tournament_series, plus 10 prompts and resources/read and resources/templates/list across 16 URI templates.",
         "requestBody": {
           "required": true,
           "content": {
@@ -1523,24 +1523,24 @@
     "/api/stream/cmd": {
       "get": {
         "operationId": "executeStreamerChatbotCommand",
-        "summary": "Twitch & YouTube Streamer Chatbot Commands (14 Commands: !odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, !matchup)",
-        "description": "Returns single-line plain-text (<380 chars) or JSON poker solver and TDA rule responses for Nightbot, StreamElements, Fossabot, and MooBot livestream chat integrations.",
+        "summary": "Twitch & YouTube Streamer Chatbot Commands (26 Commands: !odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, !matchup, !tax, !stake, !iso, !series, !board, !mratio, !straddle, !sat, !bbj, !position, !math, !iq)",
+        "description": "Returns single-line plain-text (<380 chars) or JSON poker solver and TDA rule responses across all 26 commands for Nightbot, StreamElements, Fossabot, and MooBot livestream chat integrations.",
         "parameters": [
           {
             "name": "cmd",
             "in": "query",
-            "description": "Command selector: odds, potodds, pushfold, icm, bounty, winrate, plo, rake, 3bet, rule, chop, outs, variance, matchup, or help.",
+            "description": "Command selector: odds, potodds, pushfold, icm, bounty, winrate, plo, rake, 3bet, rule, chop, outs, variance, matchup, tax, stake, iso, series, board, mratio, straddle, sat, bbj, position, pos, math, iq, or help.",
             "required": false,
             "schema": {
               "type": "string",
-              "enum": ["odds", "potodds", "pushfold", "icm", "bounty", "winrate", "plo", "rake", "3bet", "rule", "chop", "outs", "variance", "matchup", "help"],
+              "enum": ["odds", "potodds", "pushfold", "icm", "bounty", "winrate", "plo", "rake", "3bet", "rule", "chop", "outs", "variance", "matchup", "tax", "stake", "iso", "series", "board", "mratio", "straddle", "sat", "bbj", "position", "pos", "math", "iq", "help"],
               "default": "help"
             }
           },
           {
             "name": "q",
             "in": "query",
-            "description": "Free-text argument string passed from chat (e.g. 'AA vs KK', '100 50', 'BTN 12', 'string bet').",
+            "description": "Free-text argument string passed from chat (e.g. 'AA vs KK', '100 50', 'BTN 12', 'AsKh7d', '25000 500 1000 1000', 'btn', 'mdf').",
             "required": false,
             "schema": {
               "type": "string"
@@ -1676,7 +1676,7 @@
       "get": {
         "operationId": "getOpenSearchSuggestions",
         "summary": "W3C OpenSearch Browser Address-Bar Autocomplete Suggestions",
-        "description": "Returns W3C OpenSearch JSON suggestion tuples [query, titles, descriptions, urls] across 24 calculators, 169 hands, 25 matchups, 30 rules, 15 variants, and guides.",
+        "description": "Returns W3C OpenSearch JSON suggestion tuples [query, titles, descriptions, urls] across 34 calculators, 169 hands, 25 matchups, 9 positions, 8 stakes, 15 famous hands, 15 US states, 30 rules, 15 variants, and guides.",
         "parameters": [
           {
             "name": "q",

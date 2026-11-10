@@ -2,8 +2,8 @@
   "schema_version": "2025-11-25",
   "name": "io.github.smarter-poker/mcp-server",
   "display_name": "Smarter.Poker Live Poker, GTO Strategy & Equity MCP Server",
-  "description": "Official Model Context Protocol (MCP) server for Smarter.Poker providing 35 zero-auth tools for North American live poker room discovery (500+ venues), tournament series schedules, exact Holdem/PLO equity calculation, 100BB 6-Max GTO preflop charts, Malmuth-Harville ICM & final table chop payouts, pot odds/MDF math, hypergeometric draw outs, Brownian variance/downswing simulation, PKO/Mystery Bounty chip equity, multi-way side pot calculation, tournament blind structure generation, SPR geometric bet sizing, PLO max bet & live cash rake math, US poker tax & Form W-2G calculation, tournament staking markup splits, pre-flop isolation raise sizing, home game chip set distribution, 30 official TDA/RROP floor rulings, 15 poker game variants, 12 US regional poker market guides, 10 major poker series strategy guides, 169 starting hand guides, 25 hand-vs-hand preflop matchups, 15 first-party poker research benchmarks, 30 competitor comparisons, and automated citation/backlink/embed syndication kits.",
-  "version": "1.9.0",
+  "description": "Official Model Context Protocol (MCP) server for Smarter.Poker providing 45 zero-auth tools for North American live poker room discovery (500+ venues), tournament series schedules, exact Holdem/PLO equity calculation, 100BB 6-Max GTO preflop charts, Malmuth-Harville ICM & final table chop payouts, pot odds/MDF math, hypergeometric draw outs, Brownian variance/downswing simulation, PKO/Mystery Bounty chip equity, multi-way side pot calculation, tournament blind structure generation, SPR geometric bet sizing, PLO max bet & live cash rake math, US poker tax & Form W-2G calculation, tournament staking markup splits, pre-flop isolation raise sizing, home game chip set distribution, Flop Board Texture, Harrington M-Ratio, Cash Session Planner, Straddle & Bomb Pot EV, Hand History Formatter, Satellite Bubble Factor, Bad Beat Jackpot EV, 7-Card Showdown Resolver, 9 table position guides, 15 US state poker law guides, 30 official TDA/RROP floor rulings, 15 poker game variants, 12 US regional poker market guides, 10 major poker series strategy guides, 169 starting hand guides, 25 hand-vs-hand preflop matchups, 15 first-party poker research benchmarks, 30 competitor comparisons, and automated citation/backlink/embed syndication kits.",
+  "version": "2.0.0",
   "homepage": "https://smarter.poker",
   "documentation_url": "https://smarter.poker/llms.txt",
   "knowledge_graph_url": "https://smarter.poker/knowledge-graph.jsonld",
@@ -38,9 +38,9 @@
     "prompts": true,
     "resources": true
   },
-  "tools_count": 35,
-  "prompts_count": 8,
-  "resource_templates_count": 15,
+  "tools_count": 45,
+  "prompts_count": 10,
+  "resource_templates_count": 16,
   "tools": [
     "search_poker_venues",
     "search_poker_series",
@@ -76,7 +76,17 @@
     "calculate_staking_markup_split",
     "calculate_preflop_isolation_raise",
     "calculate_home_game_chip_set",
-    "get_poker_series_strategy_guide"
+    "get_poker_series_strategy_guide",
+    "analyze_flop_board_texture",
+    "calculate_tournament_m_ratio",
+    "calculate_cash_session_plan",
+    "calculate_straddle_bomb_pot_ev",
+    "format_poker_hand_history",
+    "calculate_satellite_bubble_factor",
+    "calculate_bad_beat_jackpot_ev",
+    "resolve_holdem_showdown_winner",
+    "get_poker_position_strategy",
+    "get_us_state_poker_guide"
   ],
   "prompts": [
     "find_live_poker_near_city",
@@ -86,6 +96,8 @@
     "plan_final_table_chop_deal",
     "analyze_preflop_hand_matchup",
     "audit_poker_variance_and_bankroll",
-    "prepare_tournament_series_trip"
+    "prepare_tournament_series_trip",
+    "analyze-flop-cbet-texture",
+    "plan-satellite-or-bounty-endgame"
   ]
 }

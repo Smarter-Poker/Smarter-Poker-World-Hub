@@ -341,8 +341,8 @@ test('Automated Outreach & Multilingual Syndication Engine (/api/seo/outreach-ge
   assert.equal(pkg.multilingual_bundles.length, 7);
 });
 
-test('Twitch & YouTube Streamer Chatbot API (/api/stream/cmd) evaluates !odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, !matchup, !tax, !stake, !iso, and !series', () => {
-  assert.equal(STREAMER_BOT_COMMANDS.length, 18);
+test('Twitch & YouTube Streamer Chatbot API (/api/stream/cmd) evaluates !odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, !matchup, !tax, !stake, !iso, !series, !board, !mratio, !straddle, !sat, !bbj, !position, !math, and !iq', () => {
+  assert.equal(STREAMER_BOT_COMMANDS.length, 26);
 
   const oddsRes = evaluateStreamCommand({ cmd: 'odds', q: 'AA vs KK' });
   assert.ok(oddsRes.text.includes('81.9% vs 18.1%'));
@@ -352,10 +352,16 @@ test('Twitch & YouTube Streamer Chatbot API (/api/stream/cmd) evaluates !odds, !
   assert.ok(potOddsRes.text.includes('Required Equity = 25.0%'));
   assert.ok(potOddsRes.text.includes('Minimum Defense Frequency (MDF) = 66.7%'));
 
-  for (const cmd of ['pushfold', 'icm', 'bounty', 'winrate', 'plo', 'rake', '3bet', 'tax', 'stake', 'iso', 'help']) {
+  for (const cmd of ['pushfold', 'icm', 'bounty', 'winrate', 'plo', 'rake', '3bet', 'tax', 'stake', 'iso', 'board', 'mratio', 'straddle', 'sat', 'bbj', 'iq', 'help']) {
     const res = evaluateStreamCommand({ cmd });
     assert.ok(res.text.includes('https://smarter.poker/tools/'), `${cmd} includes canonical tool URL`);
   }
+
+  const posRes = evaluateStreamCommand({ cmd: 'position', q: 'btn' });
+  assert.ok(posRes.text.includes('https://smarter.poker/learn/positions'), 'position command includes canonical /learn/positions URL');
+
+  const mathRes = evaluateStreamCommand({ cmd: 'math', q: 'mdf' });
+  assert.ok(mathRes.text.includes('https://smarter.poker/learn/poker-math'), 'math command includes canonical /learn/poker-math URL');
 
   const seriesRes = evaluateStreamCommand({ cmd: 'series', q: 'wsop' });
   assert.ok(seriesRes.text.includes('https://smarter.poker/poker-series/guides'), 'series command includes canonical /poker-series/guides URL');
@@ -486,6 +492,18 @@ test('Zero broken internal URLs or em dashes exist across backlinkCatalog, outre
         urlPath !== '/learn/hands' &&
         urlPath !== '/learn/matchups' &&
         !urlPath.startsWith('/learn/matchups/') &&
+        urlPath !== '/learn/positions' &&
+        !urlPath.startsWith('/learn/positions/') &&
+        urlPath !== '/learn/stakes' &&
+        !urlPath.startsWith('/learn/stakes/') &&
+        urlPath !== '/learn/famous-hands' &&
+        !urlPath.startsWith('/learn/famous-hands/') &&
+        urlPath !== '/learn/roadmaps' &&
+        !urlPath.startsWith('/learn/roadmaps/') &&
+        urlPath !== '/learn/poker-math' &&
+        urlPath !== '/learn/cheat-sheets' &&
+        urlPath !== '/learn/online-vs-live-poker' &&
+        urlPath !== '/learn/live-poker-tells' &&
         urlPath !== '/learn/poker-hand-rankings'
       ) {
         const s = urlPath.replace('/learn/', '');
@@ -573,13 +591,13 @@ test('25-Item Free Discovery, Viral Calculators, Matchups, Series Guides, Press 
   assert.equal(SERIES_GUIDES.length, 10, '10 major poker series strategy guides');
   assert.equal(getSeriesGuideBySlug('wsop-las-vegas')?.shortName, 'WSOP Las Vegas');
 
-  assert.equal(MCP_TOOLS.length, 35, '35 zero-auth MCP tools');
-  assert.equal(MCP_RESOURCE_TEMPLATES.length, 15, '15 MCP resource templates');
+  assert.equal(MCP_TOOLS.length, 45, '45 zero-auth MCP tools');
+  assert.equal(MCP_RESOURCE_TEMPLATES.length, 16, '16 MCP resource templates');
 
   const a2a = buildA2AAgentCard();
   assert.equal(a2a.schemaVersion, '1.0');
-  assert.equal(a2a.capabilities.mcpTools, 35);
-  assert.equal(a2a.capabilities.mcpResources, 15);
+  assert.equal(a2a.capabilities.mcpTools, 45);
+  assert.equal(a2a.capabilities.mcpResources, 16);
 
   const taxRes = await executeMcpTool('calculate_poker_taxes_w2g', {
     gross_winnings: 35000,
@@ -718,7 +736,7 @@ test('Phase 6 Partner Installation Suite: oEmbed 1.0 Provider, 1-Line JS Widget 
   const catalog = buildPartnerInstallationCatalog({ partner: 'upswingpoker.com' });
   assert.equal(catalog.counts.embeddable_calculators, 23);
   assert.equal(catalog.counts.svg_attribution_badges, 15);
-  assert.equal(catalog.counts.streamer_chat_commands, 18);
+  assert.equal(catalog.counts.streamer_chat_commands, 26);
   assert.equal(catalog.counts.dead_tool_replacements, 12);
   assert.equal(catalog.counts.zenodo_dataset_deposits, 6);
   assert.ok(catalog.one_line_sdk_example.includes('data-partner="upswingpoker.com"'));
@@ -748,11 +766,11 @@ test('Phase 6 Partner Installation Suite: oEmbed 1.0 Provider, 1-Line JS Widget 
   const llmsFullTxt = read('public/llms-full.txt');
   const aiPluginJson = read('public/.well-known/ai-plugin.json');
   const openApiJson = read('public/api/openapi.json');
-  assert.ok(llmsTxt.includes('All 35 Zero-Auth MCP Tools'));
+  assert.ok(llmsTxt.includes('All 45 Zero-Auth MCP Tools'));
   assert.ok(llmsTxt.includes('!tax, !stake, !iso, !series'));
-  assert.ok(llmsFullTxt.includes('All 35 Zero-Auth MCP Tools'));
-  assert.ok(aiPluginJson.includes('35 zero-auth MCP tools'));
-  assert.ok(openApiJson.includes('35 Tools & 15 Resource Templates'));
+  assert.ok(llmsFullTxt.includes('All 45 Zero-Auth MCP Tools'));
+  assert.ok(aiPluginJson.includes('45 zero-auth MCP tools'));
+  assert.ok(openApiJson.includes('45 Tools'));
 
   const embedsMd = renderEmbedsMarkdown();
   for (const cmd of ['!tax', '!stake', '!iso', '!series']) {
@@ -772,6 +790,128 @@ test('Phase 6 Partner Installation Suite: oEmbed 1.0 Provider, 1-Line JS Widget 
     assert.ok(!/CERN\/Zenodo|Zenodo \(CERN\)/i.test(content), `${rel} must not contain CERN/Zenodo framing`);
     assert.ok(!/\bDR 9[0-9]\b/i.test(content), `${rel} must not contain third-party DR 9x claims`);
     assert.ok(!/\bdofollow\b/i.test(content), `${rel} must not contain dofollow claims`);
+  }
+});
+
+test('35-Item Master Expansion: 10 New Calculators, 9 New Authority Hubs, 45 MCP Tools, 26 Streamer Commands, OpenSearch & Sitemap Parity', async () => {
+  const { POKER_POSITIONS, getPositionBySlug } = await import('../src/content/learn/positions.js');
+  const { POKER_STAKES, getStakeBySlug } = await import('../src/content/learn/stakes.js');
+  const { FAMOUS_HANDS, getFamousHandBySlug } = await import('../src/content/learn/famousHands.js');
+  const { POKER_ROADMAPS, getRoadmapBySlug } = await import('../src/content/learn/roadmaps.js');
+  const { US_POKER_STATES, getStateGuideBySlug } = await import('../src/content/guides/states.js');
+  const { LEARN_PAGES, MARKET_GUIDE_PAGES, STATIC_PAGES } = await import('../src/lib/seo/sitemapBuilders.mjs');
+
+  assert.equal(POKER_POSITIONS.length, 9, '9 table position guides');
+  assert.equal(getPositionBySlug('button')?.slug, 'btn', 'button alias resolves to btn');
+  assert.equal(getPositionBySlug('under-the-gun')?.slug, 'utg', 'under-the-gun alias resolves to utg');
+
+  assert.equal(POKER_STAKES.length, 7, '7 stake level guides');
+  assert.equal(getStakeBySlug('2-5')?.slug, '2-5-live-nlh', '2-5 alias resolves to 2-5-live-nlh');
+
+  assert.equal(FAMOUS_HANDS.length, 12, '12 famous poker hands');
+  assert.equal(getFamousHandBySlug('moneymaker-farha')?.slug, 'moneymaker-vs-farha-2003-wsop');
+
+  assert.equal(POKER_ROADMAPS.length, 5, '5 player progression roadmaps');
+  assert.ok(getRoadmapBySlug('beginner-to-beating-1-3-live'));
+
+  assert.equal(US_POKER_STATES.length, 15, '15 US state poker legality & tax guides');
+  assert.equal(getStateGuideBySlug('tx')?.slug, 'texas', 'tx postal code resolves to texas');
+  assert.equal(getStateGuideBySlug('nv')?.slug, 'nevada', 'nv postal code resolves to nevada');
+
+  // Verify all 10 new MCP tools execute deterministically
+  const boardRes = await executeMcpTool('analyze_flop_board_texture', { flop: 'As,Kh,7d', scenario: 'BTN_VS_BB_SRP' });
+  assert.ok(JSON.parse(boardRes.content[0].text).canonical_url.includes('/tools/board-texture-analyzer'));
+
+  const mRatioRes = await executeMcpTool('calculate_tournament_m_ratio', { stack: 24000, sb: 400, bb: 800, ante: 800, players: 9 });
+  assert.ok(JSON.parse(mRatioRes.content[0].text).canonical_url.includes('/tools/m-ratio-calculator'));
+
+  const sessRes = await executeMcpTool('calculate_cash_session_plan', { stake: '2/5', winrate_hourly: 45, hours_per_session: 6 });
+  assert.ok(JSON.parse(sessRes.content[0].text).canonical_url.includes('/tools/session-planner'));
+
+  const stradRes = await executeMcpTool('calculate_straddle_bomb_pot_ev', { blinds: '2/5', bomb_ante: 15, bomb_players: 8 });
+  assert.ok(JSON.parse(stradRes.content[0].text).canonical_url.includes('/tools/straddle-calculator'));
+
+  const fmtRes = await executeMcpTool('format_poker_hand_history', { stakes: '$2/$5 NLH', hero_position: 'BTN', hero_cards: 'AsKs', flop: 'QhJd4s' });
+  assert.ok(JSON.parse(fmtRes.content[0].text).canonical_url.includes('/tools/hand-converter'));
+
+  const satRes = await executeMcpTool('calculate_satellite_bubble_factor', { total_players: 100, seats_awarded: 10, players_remaining: 12, hero_stack: 90000 });
+  assert.ok(JSON.parse(satRes.content[0].text).canonical_url.includes('/tools/satellite-calculator'));
+
+  const bbjRes = await executeMcpTool('calculate_bad_beat_jackpot_ev', { jackpot_pool: 250000, qualifier: 'quad_8s', promo_drop: 2 });
+  assert.ok(JSON.parse(bbjRes.content[0].text).canonical_url.includes('/tools/promo-ev-calculator'));
+
+  const showRes = await executeMcpTool('resolve_holdem_showdown_winner', { board: 'Ah Kd Qh Js 9c', player1_cards: 'Tc 8c', player2_cards: 'Ac Kc' });
+  assert.ok(JSON.parse(showRes.content[0].text).canonical_url.includes('/tools/who-wins-calculator'));
+
+  const posToolRes = await executeMcpTool('get_poker_position_strategy', { position: 'btn' });
+  assert.ok(JSON.parse(posToolRes.content[0].text).canonical_url.includes('/learn/positions/btn'));
+
+  const stateToolRes = await executeMcpTool('get_us_state_poker_guide', { state: 'tx' });
+  assert.ok(JSON.parse(stateToolRes.content[0].text).canonical_url.includes('/poker-rooms/states/texas'));
+
+  // Verify Markdown ingestion across all 20 new calculator & authority hub routes
+  for (const newMdRoute of [
+    '/tools/board-texture-analyzer',
+    '/tools/m-ratio-calculator',
+    '/tools/session-planner',
+    '/tools/straddle-calculator',
+    '/tools/hand-converter',
+    '/tools/satellite-calculator',
+    '/tools/promo-ev-calculator',
+    '/tools/who-wins-calculator',
+    '/tools/mixed-game-placards',
+    '/tools/poker-iq-test',
+    '/learn/positions',
+    '/learn/positions/btn',
+    '/learn/stakes',
+    '/learn/stakes/2-5-live-nlh',
+    '/learn/famous-hands',
+    '/learn/famous-hands/moneymaker-vs-farha-2003-wsop',
+    '/learn/roadmaps',
+    '/learn/roadmaps/beginner-to-beating-1-3-live',
+    '/poker-rooms/states',
+    '/poker-rooms/states/texas',
+    '/learn/poker-math',
+    '/learn/cheat-sheets',
+    '/learn/online-vs-live-poker',
+    '/learn/live-poker-tells',
+    '/poker-rooms/comps-and-tipping-guide',
+  ]) {
+    const md = renderHubToolMarkdown(newMdRoute);
+    assert.ok(md && md.includes('https://smarter.poker'), `${newMdRoute} renders valid Markdown`);
+  }
+
+  // Verify Sitemap inclusion
+  const allSitemapPaths = new Set([
+    ...LEARN_PAGES.map((p) => p.path),
+    ...MARKET_GUIDE_PAGES.map((p) => p.path),
+    ...STATIC_PAGES.map((p) => p.path),
+  ]);
+  for (const expectedSitemapPath of [
+    '/tools/board-texture-analyzer',
+    '/tools/m-ratio-calculator',
+    '/tools/session-planner',
+    '/tools/straddle-calculator',
+    '/tools/hand-converter',
+    '/tools/satellite-calculator',
+    '/tools/promo-ev-calculator',
+    '/tools/who-wins-calculator',
+    '/tools/mixed-game-placards',
+    '/tools/poker-iq-test',
+    '/learn/positions',
+    '/learn/positions/btn',
+    '/learn/stakes',
+    '/learn/famous-hands',
+    '/learn/roadmaps',
+    '/learn/poker-math',
+    '/learn/cheat-sheets',
+    '/learn/online-vs-live-poker',
+    '/learn/live-poker-tells',
+    '/poker-rooms/states',
+    '/poker-rooms/states/texas',
+    '/poker-rooms/comps-and-tipping-guide',
+  ]) {
+    assert.ok(allSitemapPaths.has(expectedSitemapPath), `Sitemap includes ${expectedSitemapPath}`);
   }
 });
 
@@ -862,7 +1002,5 @@ test('Phase 8 Viral Backlink Loop: SVG Research Charts, iCalendar Feeds, Solved-
   assert.ok(seriesGuideSrc.includes('Download Series .ICS Calendar'), 'poker-series/guides/[slug].js includes .ICS calendar download');
   assert.ok(seriesGuideSrc.includes('Add Series To Google Calendar'), 'poker-series/guides/[slug].js includes Google Calendar button');
 });
-
-
 
 

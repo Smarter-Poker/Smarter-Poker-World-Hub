@@ -224,6 +224,96 @@ const INTERACTIVE_TOOLS = [
     formula: '5-Axis Weighted Profile Match + Custom 7-Day Tool Curriculum',
   },
   {
+    name: 'Interactive Flop Board Texture & GTO C-Bet Frequency Analyzer',
+    href: '/tools/board-texture-analyzer',
+    mdHref: '/tools/board-texture-analyzer.md',
+    badge: 'Flop C-Bet Solver',
+    summary:
+      'Analyzes Any 3-Card Flop For Connectedness (0-100), Dynamic Vs Static Rating, Range And Nut Advantage, And Optimal 33% Vs 75% GTO C-Bet Frequencies.',
+    formula: 'Connectedness + Range Advantage -> Check% / Small 33% Bet% / Big 75% Bet%',
+  },
+  {
+    name: 'Tournament M-Ratio, Effective M & Q-Ratio Survival Calculator',
+    href: '/tools/m-ratio-calculator',
+    mdHref: '/tools/m-ratio-calculator.md',
+    badge: 'Harrington M-Ratio',
+    summary:
+      'Calculates Cost Per Orbit, Dan Harrington M-Ratio, Short-Handed Effective M, Q-Ratio, Harrington Zone Classification, And Minutes Before Blinding Out.',
+    formula: 'M = Stack / (SB + BB + Ante) | Effective M = M * (Players / 10)',
+  },
+  {
+    name: 'Live Cash Game Session, Stop-Loss & Annual Hourly Planner',
+    href: '/tools/session-planner',
+    mdHref: '/tools/session-planner.md',
+    badge: 'Session & Stop-Loss',
+    summary:
+      'Computes Gross And Net Hourly Winrates With Casino Comps Minus Tips, Monthly And Annual Net Income, A-Game Stop-Loss Limits, And 20-35 Buy-In Bankrolls.',
+    formula: 'Net $/Hr = Gross_Winrate + Casino_Comps - (Session_Expenses / Hours)',
+  },
+  {
+    name: 'Live Poker Straddle, Mississippi Button Straddle & Bomb Pot EV Calculator',
+    href: '/tools/straddle-calculator',
+    mdHref: '/tools/straddle-calculator.md',
+    badge: 'Straddle & Bomb Pot',
+    summary:
+      'Calculates Straddled Effective Stack Depth, Straddler Steal Breakeven Frequency, Bomb Pot Dead Money SPR, And Double-Board Quartering & Scoop Math.',
+    formula: 'Straddled BB = Stack / (2 * BB) | Bomb Pot SPR = (Stack - Ante) / Dead_Pool',
+  },
+  {
+    name: 'Interactive Poker Hand History Formatter & Share Card Generator',
+    href: '/tools/hand-converter',
+    mdHref: '/tools/hand-converter.md',
+    badge: 'Hand Share Card',
+    summary:
+      'Converts Live And Online Hands Into Suit-Symbol Reddit Markdown, Discord/X Share Cards, Deep-Link Permalinks, And ChatGPT/Claude GTO Solver Prompts.',
+    formula: 'Street-By-Street Pot Progression + ♠️ ♥️ ♦️ ♣️ Markdown & Solver Prompt',
+  },
+  {
+    name: 'Tournament Satellite Seat-Bubble & Milestone Survival Calculator',
+    href: '/tools/satellite-calculator',
+    mdHref: '/tools/satellite-calculator.md',
+    badge: 'Satellite Bubble',
+    summary:
+      'Computes Target Average Seat Stack, Hero Seat Lock Percentage, Satellite Bubble Factor (1.5x-8.0x), And Required All-In Calling Equity Showing When To Fold AA/KK.',
+    formula: 'Target Seat Stack = Total_Chips / Seats_Awarded | Req Eq = BF / (BF + 1)',
+  },
+  {
+    name: 'Bad Beat Jackpot (BBJ) & High-Hand Promotion EV Calculator',
+    href: '/tools/promo-ev-calculator',
+    mdHref: '/tools/promo-ev-calculator.md',
+    badge: 'BBJ & High-Hand EV',
+    summary:
+      'Calculates Qualifier Hit Odds, Per-Hand And Hourly Expected Value From Bad Beat Jackpots And High-Hand Promotions, And Breakeven Jackpot Pool Thresholds.',
+    formula: 'Net Promo EV/Hand = BBJ_EV + High_Hand_EV - Personal_Promo_Drop_Cost',
+  },
+  {
+    name: 'What Beats What? Interactive Texas Hold\'em Showdown & Kicker Resolver',
+    href: '/tools/who-wins-calculator',
+    mdHref: '/tools/who-wins-calculator.md',
+    badge: 'Showdown Resolver',
+    summary:
+      'Deterministic 7-Card Showdown Evaluator Resolving Winning 5-Card Hands, Kicker Tie-Breakers, Counterfeited Two Pairs, And Split Pot Chops.',
+    formula: 'Max_5_Card_Rank(2_Hole + 5_Board) Across All 21 5-Card Combinations',
+  },
+  {
+    name: 'Mixed Game (HORSE / 8-Game / Dealer\'s Choice) Rotation Tracker & Placards',
+    href: '/tools/mixed-game-placards',
+    mdHref: '/tools/mixed-game-placards.md',
+    badge: 'HORSE & 8-Game',
+    summary:
+      'Interactive Live Table Mixed Game Orbit Tracker With Fixed-Limit/Pot-Limit/No-Limit Rules, 8-Or-Better Qualifier Reminders, And Printable Table Placards.',
+    formula: 'Active Variant = Floor((Hand - 1) / Hands_Per_Orbit) Mod Rotation_Length',
+  },
+  {
+    name: 'Interactive 10-Question GTO & Live Poker IQ Diagnostic Assessment',
+    href: '/tools/poker-iq-test',
+    mdHref: '/tools/poker-iq-test.md',
+    badge: '100-200 Poker IQ',
+    summary:
+      '10-Question Quantitative Assessment Across Pot Odds, RFI, ICM, PKO, Board Textures, And TDA Rules Grading Players On A 100-To-200 Poker IQ Scale.',
+    formula: 'Poker IQ = 100 + 10 * Correct_Domains (100-200 Solver Master Scale)',
+  },
+  {
     name: 'Embeddable Webmaster Poker Widgets',
     href: '/tools/embeds',
     mdHref: '/tools/embeds.md',
@@ -257,7 +347,7 @@ const TOOLS_FAQS = [
   {
     question: 'Which Poker Math Calculators Are Included In The Smarter.Poker Directory?',
     answer:
-      'The Suite Includes All 24 Free Browser-Native Tools (23 Interactive Calculators + Embeds & Streamer Bot API): Multiway Equity, Malmuth-Harville ICM, Tournament Deal & ICM Chop Calculator, 13x13 GTO Preflop Ranges, Pot Odds & MDF, Poker Outs & Rule Of 2 And 4 Calculator, Bankroll Risk Of Ruin, Bankroll Variance & Downswing Simulator, Short-Stack Push/Fold, PKO & Mystery Bounty, Winrate Converter, Multi-Way Side Pots, Blind Structure Generator, SPR Geometric Sizing, PLO Max Bet, Tournament Payouts, Live Cash Rake, 3-Bet/4-Bet Sizing, Pre-Flop Isolation Raise Calculator, Poker Staking & Markup Calculator, US Poker Tax & IRS W-2G Calculator, Home Game Blind Timer & Chip Distribution Kit, And What Poker Format Fits Your Brain Quiz.',
+      'The Suite Includes All 34 Free Browser-Native Tools (33 Interactive Calculators + Embeds & Streamer Bot API): Multiway Equity, Malmuth-Harville ICM, Tournament Deal & ICM Chop Calculator, 13x13 GTO Preflop Ranges, Pot Odds & MDF, Poker Outs & Rule Of 2 And 4 Calculator, Bankroll Risk Of Ruin, Bankroll Variance & Downswing Simulator, Short-Stack Push/Fold, PKO & Mystery Bounty, Winrate Converter, Multi-Way Side Pots, Blind Structure Generator, SPR Geometric Sizing, PLO Max Bet, Tournament Payouts, Live Cash Rake, 3-Bet/4-Bet Sizing, Pre-Flop Isolation Raise Calculator, Poker Staking & Markup Calculator, US Poker Tax & IRS W-2G Calculator, Home Game Blind Timer & Chip Distribution Kit, What Poker Format Fits Your Brain Quiz, Flop Board Texture Analyzer, Tournament M-Ratio Calculator, Live Cash Session Planner, Straddle & Bomb Pot EV Calculator, Hand History Formatter, Satellite Seat-Bubble Calculator, Bad Beat Jackpot & Promo EV Calculator, What Beats What Showdown Resolver, Mixed Game Rotation Tracker & Placards, And 10-Question Poker IQ Test.',
   },
 ];
 
@@ -268,7 +358,7 @@ export default function PokerToolsDirectoryPage() {
   const canonicalUrl = `https://smarter.poker${canonicalPath}`;
   const pageTitle = 'Free Poker Calculators, GTO Solvers & Math Tools';
   const pageDesc =
-    'Explore All 24 Free Browser-Native Smarter.Poker Tools (23 Interactive Calculators + Embeds & Streamer Bot API): Multiway Equity, Tournament ICM, Tournament Deal & ICM Chop Calculator, 13x13 GTO Ranges, Pot Odds, Poker Outs & Rule Of 2 And 4 Calculator, Bankroll Risk Of Ruin, Bankroll Variance & Downswing Simulator, Push/Fold, PKO Bounties, Winrate, Side Pots, Blind Structure, SPR, PLO Max Bet, Payouts, Rake, 3-Bet Sizing, Pre-Flop Isolation Raise Calculator, Poker Staking & Markup Calculator, US Poker Tax & IRS W-2G Calculator, Home Game Blind Timer & Chip Distribution Kit, And What Poker Format Fits Your Brain Quiz.';
+    'Explore All 34 Free Browser-Native Smarter.Poker Tools (33 Interactive Calculators + Embeds & Streamer Bot API): Multiway Equity, Tournament ICM, Chop Calculator, 13x13 GTO Ranges, Pot Odds, Outs, Bankroll RoR, Variance, Push/Fold, PKO Bounties, Winrate, Side Pots, Blind Structure, SPR, PLO Max Bet, Payouts, Rake, 3-Bet Sizing, ISO Sizing, Staking, Tax, Home Game Kit, Format Quiz, Board Texture, M-Ratio, Session Planner, Straddle, Hand Converter, Satellite, Promo EV, Showdown Resolver, Mixed Game Placards, And Poker IQ Test.';
 
   const schema = useMemo(() => {
     const baseSchema = hubProductSchema({
@@ -326,7 +416,7 @@ export default function PokerToolsDirectoryPage() {
         </h1>
 
         <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
-          <strong>Direct Answer:</strong> Smarter.Poker Provides <strong>24 Free Browser-Native Tools (23 Interactive Calculators + Embeds &amp; Streamer Bot API)</strong> Covering Exact Multiway Hand Equity, Malmuth-Harville ICM Prize Pool Valuation, Tournament Deal &amp; ICM Chop Calculator, 13x13 GTO Preflop Ranges, Pot Odds And Minimum Defense Frequency (MDF), Poker Outs &amp; Rule Of 2 And 4 Calculator, Risk Of Ruin Bankroll Math, Bankroll Variance &amp; Downswing Simulator, Short-Stack Push/Fold Charts, PKO Bounty Discounts, Winrate Conversion, Multi-Way Side Pots, Tournament Blind Schedules, Geometric SPR Bet Sizing, Pot-Limit Omaha Max Bets, Tournament Payout Distributions, Live Cash Rake Comparisons, 3-Bet/4-Bet Sizing, Pre-Flop Isolation Raise Calculator, Poker Staking &amp; Markup Calculator, US Poker Tax &amp; IRS W-2G Calculator, Home Game Blind Timer &amp; Chip Distribution Kit, And What Poker Format Fits Your Brain Quiz. Every Tool Runs Instantly In Your Browser And Exposes A Dedicated Markdown Endpoint For AI Assistants.
+          <strong>Direct Answer:</strong> Smarter.Poker Provides <strong>34 Free Browser-Native Tools (33 Interactive Calculators + Embeds &amp; Streamer Bot API)</strong> Covering Exact Multiway Hand Equity, Malmuth-Harville ICM Prize Pool Valuation, Tournament Deal &amp; ICM Chop Calculator, 13x13 GTO Preflop Ranges, Pot Odds And Minimum Defense Frequency (MDF), Poker Outs &amp; Rule Of 2 And 4 Calculator, Risk Of Ruin Bankroll Math, Bankroll Variance &amp; Downswing Simulator, Short-Stack Push/Fold Charts, PKO Bounty Discounts, Winrate Conversion, Multi-Way Side Pots, Tournament Blind Schedules, Geometric SPR Bet Sizing, Pot-Limit Omaha Max Bets, Tournament Payout Distributions, Live Cash Rake Comparisons, 3-Bet/4-Bet Sizing, Pre-Flop Isolation Raise Calculator, Poker Staking &amp; Markup Calculator, US Poker Tax &amp; IRS W-2G Calculator, Home Game Blind Timer &amp; Chip Distribution Kit, What Poker Format Fits Your Brain Quiz, Flop Board Texture Analyzer, Tournament M-Ratio Calculator, Live Cash Session Planner, Straddle &amp; Bomb Pot EV Calculator, Hand History Formatter, Satellite Seat-Bubble Calculator, Bad Beat Jackpot &amp; Promo EV Calculator, What Beats What Showdown Resolver, Mixed Game Rotation Tracker &amp; Placards, And 10-Question Poker IQ Test. Every Tool Runs Instantly In Your Browser And Exposes A Dedicated Markdown Endpoint For AI Assistants.
         </p>
 
         {/* Grid Of Interactive Calculators */}
@@ -484,8 +574,8 @@ export default function PokerToolsDirectoryPage() {
           canonicalUrl={canonicalUrl}
           badgeType="gto"
           badgeLabel="GTO Math & Solvers"
-          badgeValue="24 Free Poker Calculators"
-          summary="Complete Directory Of 24 Free Browser-Native Poker Calculators, GTO Preflop Range Matrices, And Tournament Director Utilities."
+          badgeValue="34 Free Poker Calculators"
+          summary="Complete Directory Of 34 Free Browser-Native Poker Calculators, GTO Preflop Range Matrices, And Tournament Director Utilities."
           slug="poker-tools-suite"
         />
 
