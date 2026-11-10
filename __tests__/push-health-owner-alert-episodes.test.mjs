@@ -557,6 +557,7 @@ test('only an account that must receive platform alerts is a staff fault; an ord
   const res = await s.run();
   assert.deepEqual(named(s, 'PushStaffUnreachable'), [], 'an ordinary admin without a device opened a Production Alerts episode');
   assert.ok(!res.body.problems.includes(STAFF_LINE), 'the admins were told an ordinary admin is a fault');
+  assert.equal(res.body.report.staffUnreachable, 0, 'the report counted an ordinary admin as unreachable staff');
 
   const t = scenario({ seed: ownerOff(world()) }); // and the owner account, the one recipient, loses its phone
   const off = await t.run();
@@ -564,4 +565,5 @@ test('only an account that must receive platform alerts is a staff fault; an ord
   assert.equal(staff?.payload.summary, STAFF_LINE, 'a platform alert recipient without a device was not a fault');
   assert.deepEqual(staff.payload.evidence, { staffAccounts: 1 }, 'the ordinary admin was counted');
   assert.ok(off.body.problems.includes(STAFF_LINE));
+  assert.equal(off.body.report.staffUnreachable, 1, 'the report did not count the unreachable platform alert recipient');
 });

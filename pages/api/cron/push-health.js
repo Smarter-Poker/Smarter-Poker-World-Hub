@@ -14,9 +14,9 @@
  *
  *  Four checks:
  *    1. ZOMBIE SUBSCRIPTIONS  active + recently pushed + no receipt in 3 days
- *    2. STAFF UNREACHABLE     a platform alert recipient (the owner's verified
- *                             accounts) with no active subscription; other
- *                             admin/god accounts only get their own notice
+ *    2. STAFF UNREACHABLE     a platform alert recipient (the owner account)
+ *                             with no active subscription; other admin/god
+ *                             accounts are not required platform alert recipients
  *    3. CONFIGURATION         VAPID env vars missing or mismatched
  *    4. DISPATCH LIVENESS     push-dispatch has not run in over 30 minutes
  *
@@ -362,7 +362,12 @@ async function handler(req, res) {
 
         const reachable = new Set((activeSubs || []).map((s) => s.user_id));
         const unreachable = (staff || []).filter((p) => !reachable.has(p.id));
-        report.staffUnreachable = unreachable.length;
+        // Only an account that must receive platform alerts is counted as
+        // unreachable staff in both the response report and the fault condition
+        // below (owner, 2026-11-09); non-recipient admin/god accounts are not
+        // required operational recipients.
+        const mustReach = unreachable.filter((p) => mustReceivePlatformAlerts(p.id));
+        report.staffUnreachable = mustReach.length;
 
         // NOBODY has enrolled a device yet -- that is a rollout state, not a
         // fault. Alerting every admin every day about it just trains them to
@@ -407,7 +412,6 @@ async function handler(req, res) {
         // Only an account that must receive platform alerts is a fault when it
         // cannot be reached (owner, 2026-11-09); every unreachable staff account
         // above still gets its own notice.
-        const mustReach = unreachable.filter((p) => mustReceivePlatformAlerts(p.id));
         if (mustReach.length > 0 && !nobodyEnrolled) {
             const line = `${mustReach.length} staff account(s) cannot receive push`;
             // With the device read cut off, who is unreachable is not known.
