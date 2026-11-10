@@ -32,41 +32,65 @@ export default function CitationBacklinkBox({
   const bibtexKey = String(slug || 'smarterpoker2026').replace(/[^a-zA-Z0-9]/g, '_');
   const bibtexSnippet = `@techreport{${bibtexKey}_${publishedYear},\n  title = {${title}},\n  author = {{Smarter.Poker Research Division}},\n  institution = {Smarter.Poker},\n  year = {${publishedYear}},\n  url = {${canonicalUrl}}\n}`;
 
+  const safeTitle = String(title || 'Smarter.Poker Quantitative Poker Research').replace(/\|/g, '-');
+  const safeSummary = String(summary || 'Verified poker industry benchmark data and mathematical analysis published by Smarter.Poker.').replace(/\|/g, '-');
+  const redditCitation = `| Resource | Key Benchmark Summary | Source |\n| :--- | :--- | :--- |\n| **${safeTitle}** | ${safeSummary} | [Smarter.Poker: ${safeTitle}](${canonicalUrl}) |`;
+  const discordCitation = `> **${safeTitle}**\n> ${safeSummary}\n> Source: <${canonicalUrl}>`;
+
   const formats = [
     {
       key: 'html',
       label: 'HTML Contextual Backlink',
       code: htmlBacklink,
+      value: htmlBacklink,
     },
     {
       key: 'badge',
       label: 'SVG Authority Badge Embed',
       code: htmlBadgeSnippet,
+      value: htmlBadgeSnippet,
     },
     {
       key: 'markdown',
       label: 'Markdown / Substack Citation',
       code: markdownSnippet,
+      value: markdownSnippet,
+    },
+    {
+      key: 'reddit',
+      label: 'Reddit Table & Link',
+      code: redditCitation,
+      value: redditCitation,
+    },
+    {
+      key: 'discord',
+      label: 'Discord Quote & Link',
+      code: discordCitation,
+      value: discordCitation,
     },
     {
       key: 'bbcode',
       label: 'Forum BBCode (TwoPlusTwo / CardsChat)',
       code: bbcodeSnippet,
+      value: bbcodeSnippet,
     },
     {
       key: 'wikipedia',
       label: 'Wikipedia / MediaWiki Citation ({{cite web}})',
       code: wikipediaSnippet,
+      value: wikipediaSnippet,
     },
     {
       key: 'press',
       label: 'Journalist / Media Attribution Quote',
       code: journalistQuote,
+      value: journalistQuote,
     },
     {
       key: 'bibtex',
       label: 'Academic / Game Theory BibTeX',
       code: bibtexSnippet,
+      value: bibtexSnippet,
     },
   ];
 

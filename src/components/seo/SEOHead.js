@@ -111,7 +111,26 @@ export default function SEOHead(props) {
       pathname === '/tools/plo-bet-calculator' ||
       pathname === '/tools/payout-calculator' ||
       pathname === '/tools/rake-calculator' ||
-      pathname === '/tools/3bet-calculator'
+      pathname === '/tools/3bet-calculator' ||
+      pathname === '/tools/chop-calculator' ||
+      pathname === '/tools/variance-calculator' ||
+      pathname === '/tools/outs-calculator' ||
+      pathname === '/tools/poker-tax-calculator' ||
+      pathname === '/tools/staking-calculator' ||
+      pathname === '/tools/iso-calculator' ||
+      pathname === '/tools/home-game-kit' ||
+      pathname === '/tools/format-quiz' ||
+      pathname === '/rules' ||
+      pathname.startsWith('/rules/') ||
+      pathname === '/games' ||
+      pathname.startsWith('/games/') ||
+      pathname === '/poker-rooms/guides' ||
+      pathname.startsWith('/poker-rooms/guides/') ||
+      pathname === '/poker-rooms/first-time-guide' ||
+      pathname === '/poker-series/guides' ||
+      pathname.startsWith('/poker-series/guides/') ||
+      pathname === '/press' ||
+      pathname === '/search'
     ) {
       resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : `https://smarter.poker${pathname}.md`;
     } else if (pathname === '/tools/poker-odds-calculator' || pathname === '/hub/poker-tools') {
@@ -323,6 +342,15 @@ export default function SEOHead(props) {
           type="application/feed+json"
           title="Smarter.Poker Research & Tools JSON Feed"
           href="https://smarter.poker/api/feeds/research"
+        />
+      )}
+      {!props.noindex && (
+        <link
+          key="opensearch-description"
+          rel="search"
+          type="application/opensearchdescription+xml"
+          title="Smarter.Poker Search"
+          href="https://smarter.poker/opensearch.xml"
         />
       )}
       {props.children}

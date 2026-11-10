@@ -1699,6 +1699,98 @@ const nextConfig = {
           destination: '/api/hub-tool-markdown?path=/tools/3bet-calculator',
         },
         {
+          source: '/tools/chop-calculator.md',
+          destination: '/api/hub-tool-markdown?path=/tools/chop-calculator',
+        },
+        {
+          source: '/tools/variance-calculator.md',
+          destination: '/api/hub-tool-markdown?path=/tools/variance-calculator',
+        },
+        {
+          source: '/tools/outs-calculator.md',
+          destination: '/api/hub-tool-markdown?path=/tools/outs-calculator',
+        },
+        {
+          source: '/tools/poker-tax-calculator.md',
+          destination: '/api/hub-tool-markdown?path=/tools/poker-tax-calculator',
+        },
+        {
+          source: '/tools/staking-calculator.md',
+          destination: '/api/hub-tool-markdown?path=/tools/staking-calculator',
+        },
+        {
+          source: '/tools/iso-calculator.md',
+          destination: '/api/hub-tool-markdown?path=/tools/iso-calculator',
+        },
+        {
+          source: '/tools/home-game-kit.md',
+          destination: '/api/hub-tool-markdown?path=/tools/home-game-kit',
+        },
+        {
+          source: '/tools/format-quiz.md',
+          destination: '/api/hub-tool-markdown?path=/tools/format-quiz',
+        },
+        {
+          source: '/learn/matchups.md',
+          destination: '/api/hub-tool-markdown?path=/learn/matchups',
+        },
+        {
+          source: '/learn/matchups/:slug.md',
+          destination: '/api/hub-tool-markdown?path=/learn/matchups/:slug',
+        },
+        {
+          source: '/poker-series/guides.md',
+          destination: '/api/hub-tool-markdown?path=/poker-series/guides',
+        },
+        {
+          source: '/poker-series/guides/:slug.md',
+          destination: '/api/hub-tool-markdown?path=/poker-series/guides/:slug',
+        },
+        {
+          source: '/poker-rooms/first-time-guide.md',
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/first-time-guide',
+        },
+        {
+          source: '/press.md',
+          destination: '/api/hub-tool-markdown?path=/press',
+        },
+        {
+          source: '/search.md',
+          destination: '/api/hub-tool-markdown?path=/search',
+        },
+        {
+          source: '/.well-known/agent.json',
+          destination: '/api/mcp?format=a2a',
+        },
+        {
+          source: '/opensearch.xml',
+          destination: '/api/hub-tool-markdown?path=/opensearch.xml',
+        },
+        {
+          source: '/feeds.opml',
+          destination: '/api/hub-tool-markdown?path=/feeds.opml',
+        },
+        {
+          source: '/humans.txt',
+          destination: '/api/hub-tool-markdown?path=/humans.txt',
+        },
+        {
+          source: '/api/datasets/notebook',
+          destination: '/api/datasets/catalog?format=notebook',
+        },
+        {
+          source: '/api/og/tool',
+          destination: '/api/seo/badge?mode=og',
+        },
+        {
+          source: '/api/seo/indexnow',
+          destination: '/api/seo/outreach-generator?mode=indexnow',
+        },
+        {
+          source: '/api/search/suggest',
+          destination: '/api/seo/outreach-generator?mode=suggest',
+        },
+        {
           source: '/rules.md',
           destination: '/api/hub-tool-markdown?path=/rules',
         },

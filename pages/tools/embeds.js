@@ -157,7 +157,89 @@ const WIDGETS = [
     width: '100%',
     creditAnchor: 'Smarter.Poker GTO 3-Bet & 4-Bet Calculator',
   },
+  {
+    id: 'chop-calculator',
+    title: 'Final Table Deal & ICM Chop Calculator',
+    description: 'Compares exact Malmuth-Harville ICM chop, linear chip chop, and hybrid save-amount final table deal payouts side by side.',
+    embedUrl: 'https://smarter.poker/tools/chop-calculator?embed=true',
+    landerUrl: 'https://smarter.poker/tools/chop-calculator',
+    height: 780,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Final Table ICM Chop Calculator',
+  },
+  {
+    id: 'variance-calculator',
+    title: 'Poker Variance & Downswing Simulator',
+    description: 'Calculates 1-SD, 2-SD, and 3-SD winrate confidence intervals, probability of loss, and expected downswing thresholds across any hand sample.',
+    embedUrl: 'https://smarter.poker/tools/variance-calculator?embed=true',
+    landerUrl: 'https://smarter.poker/tools/variance-calculator',
+    height: 760,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Variance & Downswing Simulator',
+  },
+  {
+    id: 'outs-calculator',
+    title: 'Poker Outs & Draw Probability Calculator',
+    description: 'Computes exact hypergeometric turn, river, and combined flop-to-river draw equity, Rule of 4 and 2 error, and minimum implied odds.',
+    embedUrl: 'https://smarter.poker/tools/outs-calculator?embed=true',
+    landerUrl: 'https://smarter.poker/tools/outs-calculator',
+    height: 740,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Outs & Draw Probability Calculator',
+  },
+  {
+    id: 'poker-tax-calculator',
+    title: 'US Poker Tax & Form W-2G Calculator',
+    description: 'Estimates US federal poker taxes, IRS Form W-2G $5,000 net tournament triggers, and Schedule A vs Schedule C session deductions.',
+    embedUrl: 'https://smarter.poker/tools/poker-tax-calculator?embed=true',
+    landerUrl: 'https://smarter.poker/tools/poker-tax-calculator',
+    height: 780,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker US Poker Tax & Form W-2G Calculator',
+  },
+  {
+    id: 'staking-calculator',
+    title: 'Poker Staking & Markup Split Calculator',
+    description: 'Calculates tournament staking markup, investor share cost, package EV breakeven ROI, and post-series payout splits.',
+    embedUrl: 'https://smarter.poker/tools/staking-calculator?embed=true',
+    landerUrl: 'https://smarter.poker/tools/staking-calculator',
+    height: 760,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Staking & Markup Calculator',
+  },
+  {
+    id: 'iso-calculator',
+    title: 'Pre-Flop Isolation Raise Sizing Calculator',
+    description: 'Calculates optimal pre-flop isolation raise sizing against live and online limpers based on position, stack depth, and resulting flop SPR.',
+    embedUrl: 'https://smarter.poker/tools/iso-calculator?embed=true',
+    landerUrl: 'https://smarter.poker/tools/iso-calculator',
+    height: 740,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Pre-Flop Isolation Raise Calculator',
+  },
+  {
+    id: 'home-game-kit',
+    title: 'Home Game Chip Set & Setup Calculator',
+    description: 'Calculates per-player starting chip tube breakdowns for 300, 500, and 1,000 piece sets with color-up schedules and house rules.',
+    embedUrl: 'https://smarter.poker/tools/home-game-kit?embed=true',
+    landerUrl: 'https://smarter.poker/tools/home-game-kit',
+    height: 780,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Home Game Chip Set Calculator',
+  },
+  {
+    id: 'format-quiz',
+    title: 'Poker Format Selector & Study Roadmap Quiz',
+    description: 'Interactive 5-parameter diagnostic matching your session schedule, bankroll cushion, and variance tolerance to a 7-day study plan.',
+    embedUrl: 'https://smarter.poker/tools/format-quiz?embed=true',
+    landerUrl: 'https://smarter.poker/tools/format-quiz',
+    height: 780,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Format Selector Quiz',
+  },
 ];
+
+export const EMBEDDABLE_TOOLS = WIDGETS;
 
 export const PARTNER_BADGES = [
   {
@@ -989,7 +1071,7 @@ export default function WebmasterEmbedPortal() {
                   textDecoration: 'none',
                 }}
               >
-                All 16 Free Poker Calculators
+                All 24 Free Poker Calculators
               </Link>
               <Link
                 href="/compare"

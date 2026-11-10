@@ -130,7 +130,7 @@ test('Webmaster Embed Portal (/tools/embeds) ships all 15 calculators, 12 SVG ba
   assert.ok(embedsSrc.includes('syndication-apis-heading'), 'embeds.js renders Open Datasets & Syndication APIs section');
 
   const embedUrls = [...embedsSrc.matchAll(/embedUrl:\s*'([^']+)'/g)].map((m) => m[1]);
-  assert.equal(embedUrls.length, 15, 'all 15 widgets define embedUrl');
+  assert.equal(embedUrls.length, 23, 'all 23 widgets define embedUrl');
   for (const url of embedUrls) {
     assert.ok(
       url.startsWith('https://smarter.poker/tools/') && url.endsWith('?embed=true'),
@@ -152,7 +152,7 @@ test('Webmaster Embed Portal (/tools/embeds) ships all 15 calculators, 12 SVG ba
 
   const md = renderEmbedsMarkdown();
   const mdEmbedUrls = [...md.matchAll(/- Embed URL: `([^`]+)`/g)].map((m) => m[1]);
-  assert.equal(mdEmbedUrls.length, 15, 'renderEmbedsMarkdown lists 15 Embed URLs');
+  assert.equal(mdEmbedUrls.length, 23, 'renderEmbedsMarkdown lists 23 Embed URLs');
   for (const url of mdEmbedUrls) {
     assert.ok(
       url.startsWith('https://smarter.poker/tools/') && url.endsWith('?embed=true'),
@@ -230,11 +230,11 @@ test('All authority page templates wire CitationBacklinkBox with 7 citation form
   }
 });
 
-test('JSON Feed 1.1 (/api/feeds/research) and RSS 2.0 (/feed.xml) syndicate all 15 research studies and 15 calculators with canonical backlinks', () => {
+test('JSON Feed 1.1 (/api/feeds/research) and RSS 2.0 (/feed.xml) syndicate all 15 research studies and 23 calculators with canonical backlinks', () => {
   const jsonFeed = buildResearchJsonFeed();
   assert.equal(jsonFeed.version, 'https://jsonfeed.org/version/1.1');
   assert.equal(jsonFeed.feed_url, 'https://smarter.poker/api/feeds/research');
-  assert.equal(jsonFeed.items.length, 30);
+  assert.equal(jsonFeed.items.length, 38);
 
   for (const item of jsonFeed.items) {
     assert.match(item.url, /^https:\/\/smarter\.poker\//);
@@ -341,8 +341,8 @@ test('Automated Outreach & Multilingual Syndication Engine (/api/seo/outreach-ge
   assert.equal(pkg.multilingual_bundles.length, 7);
 });
 
-test('Twitch & YouTube Streamer Chatbot API (/api/stream/cmd) evaluates !odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, and !rule', () => {
-  assert.equal(STREAMER_BOT_COMMANDS.length, 10);
+test('Twitch & YouTube Streamer Chatbot API (/api/stream/cmd) evaluates !odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, and !matchup', () => {
+  assert.equal(STREAMER_BOT_COMMANDS.length, 14);
 
   const oddsRes = evaluateStreamCommand({ cmd: 'odds', q: 'AA vs KK' });
   assert.ok(oddsRes.text.includes('81.9% vs 18.1%'));
@@ -473,6 +473,8 @@ test('Zero broken internal URLs or em dashes exist across backlinkCatalog, outre
         urlPath.startsWith('/learn/') &&
         urlPath !== '/learn' &&
         urlPath !== '/learn/hands' &&
+        urlPath !== '/learn/matchups' &&
+        !urlPath.startsWith('/learn/matchups/') &&
         urlPath !== '/learn/poker-hand-rankings'
       ) {
         const s = urlPath.replace('/learn/', '');
@@ -528,6 +530,97 @@ test('Schema.org JSON-LD & Google Scholar citation structured data pass rich-res
   assert.ok(resolveToolWikidataLinks('/tools/plo-bet-calculator').some((u) => u.includes('Q649282')), 'PLO tool resolves Omaha Holdem Q649282');
   assert.ok(resolveToolWikidataLinks('/tools/payout-calculator').some((u) => u.includes('Q1156823')), 'Payout tool resolves Prize Money Q1156823');
   assert.ok(resolveToolWikidataLinks('/tools/3bet-calculator').some((u) => u.includes('Q131476')), '3-Bet tool resolves Game Theory Q131476');
+});
+
+test('25-Item Free Discovery, Viral Calculators, Matchups, Series Guides, Press Kit, Search & AI Agent Protocols Suite', async () => {
+  const { HAND_MATCHUPS, getMatchupBySlug } = await import('../src/content/learn/matchups.js');
+  const { SERIES_GUIDES, getSeriesGuideBySlug } = await import('../src/content/guides/seriesGuides.js');
+  const { MCP_TOOLS, MCP_RESOURCE_TEMPLATES, buildA2AAgentCard, readMcpResource } = await import('../src/lib/mcp/mcpServer.mjs');
+  const { buildOpenSearchXml, buildFeedsOpmlXml, buildHumansTxt } = await import('../pages/api/hub-tool-markdown.js');
+  const { buildJupyterNotebookPayload } = await import('../pages/api/datasets/catalog.js');
+  const { renderOgCardSvg } = await import('../pages/api/seo/badge.js');
+  const { buildIndexNowPayload, buildOpenSearchSuggestPayload } = await import('../pages/api/seo/outreach-generator.js');
+
+  assert.equal(HAND_MATCHUPS.length, 25, '25 canonical hand-vs-hand matchups');
+  assert.equal( getMatchupBySlug('aa-vs-kk')?.handA, 'AA');
+  assert.equal(SERIES_GUIDES.length, 10, '10 major poker series strategy guides');
+  assert.equal(getSeriesGuideBySlug('wsop-las-vegas')?.shortName, 'WSOP Las Vegas');
+
+  assert.equal(MCP_TOOLS.length, 30, '30 zero-auth MCP tools');
+  assert.equal(MCP_RESOURCE_TEMPLATES.length, 15, '15 MCP resource templates');
+
+  const a2a = buildA2AAgentCard();
+  assert.equal(a2a.schemaVersion, '1.0');
+  assert.equal(a2a.capabilities.mcpTools, 30);
+  assert.equal(a2a.capabilities.mcpResources, 15);
+
+  const chopRes = await executeMcpTool('calculate_tournament_chop', {
+    stacks: [500000, 300000, 200000],
+    payouts: [50000, 30000, 20000],
+    saveAmount: 5000,
+  });
+  const chopParsed = JSON.parse(chopRes.content[0].text);
+  assert.equal(chopParsed.players.length, 3);
+
+  const varRes = await executeMcpTool('simulate_poker_variance', {
+    winrateBb100: 5,
+    stdDevBb100: 85,
+    handsPlayed: 100000,
+  });
+  const varParsed = JSON.parse(varRes.content[0].text);
+  assert.equal(varParsed.expected_value_bb, 5000);
+
+  const outsRes = await executeMcpTool('calculate_draw_outs', { outs: 9, street: 'flop' });
+  const outsParsed = JSON.parse(outsRes.content[0].text);
+  assert.equal(outsParsed.outs, 9);
+
+  const matchupRes = await executeMcpTool('lookup_hand_matchup', { slug: 'aa-vs-kk' });
+  const matchupParsed = JSON.parse(matchupRes.content[0].text);
+  assert.equal(matchupParsed.slug, 'aa-vs-kk');
+
+  assert.ok((await readMcpResource('poker://matchup/aa-vs-kk'))?.contents?.[0]?.text.includes('AA'));
+  assert.ok((await readMcpResource('poker://series-guide/wsop-las-vegas'))?.contents?.[0]?.text.includes('WSOP'));
+  assert.ok((await readMcpResource('poker://press-kit'))?.contents?.[0]?.text.includes('Smarter.Poker'));
+
+  assert.ok(buildOpenSearchXml().includes('<OpenSearchDescription'));
+  assert.ok(buildFeedsOpmlXml().includes('<opml version="2.0">'));
+  assert.ok(buildHumansTxt().includes('Smarter.Poker'));
+
+  const nb = buildJupyterNotebookPayload();
+  assert.equal(nb.nbformat, 4);
+  assert.ok(nb.cells.length >= 4);
+
+  const ogSvg = renderOgCardSvg({ title: 'Final Table ICM Chop Calculator' });
+  assert.ok(ogSvg.includes('viewBox="0 0 1200 630"'));
+
+  const indexNow = buildIndexNowPayload();
+  assert.equal(indexNow.host, 'smarter.poker');
+  assert.ok(indexNow.urlList.length >= 60);
+
+  const suggest = buildOpenSearchSuggestPayload('chop');
+  assert.equal(suggest[0], 'chop');
+  assert.ok(suggest[1].length >= 1);
+
+  for (const mdPath of [
+    '/tools/chop-calculator',
+    '/tools/variance-calculator',
+    '/tools/outs-calculator',
+    '/tools/poker-tax-calculator',
+    '/tools/staking-calculator',
+    '/tools/iso-calculator',
+    '/tools/home-game-kit',
+    '/tools/format-quiz',
+    '/learn/matchups',
+    '/learn/matchups/aa-vs-kk',
+    '/poker-series/guides',
+    '/poker-series/guides/wsop-las-vegas',
+    '/poker-rooms/first-time-guide',
+    '/press',
+    '/search',
+  ]) {
+    const md = renderHubToolMarkdown(mdPath);
+    assert.ok(md && md.includes('https://smarter.poker'), `${mdPath}.md renders valid Markdown`);
+  }
 });
 
 

@@ -36,6 +36,8 @@ import { describeRange, combosFor } from './preflopReference.js';
 import { POKER_RULES, RULES_AS_OF, getRuleBySlug } from '../../content/rules/rules.js';
 import { POKER_VARIANTS, GAMES_AS_OF, getGameVariantBySlug } from '../../content/games/variants.js';
 import { POKER_MARKET_GUIDES, MARKET_GUIDES_AS_OF, getMarketGuideBySlug } from '../../content/guides/markets.js';
+import { HAND_MATCHUPS, MATCHUPS_AS_OF, getMatchupBySlug } from '../../content/learn/matchups.js';
+import { SERIES_GUIDES, SERIES_GUIDES_AS_OF, getSeriesGuideBySlug } from '../../content/guides/seriesGuides.js';
 
 function clean(str) {
   return String(str || '').replace(/\s+/g, ' ').trim();
@@ -1253,6 +1255,46 @@ export function renderEmbedsMarkdown({ canonicalUrl = 'https://smarter.poker/too
     '- Embed URL: `https://smarter.poker/tools/3bet-calculator?embed=true`',
     '- Canonical Target: `https://smarter.poker/tools/3bet-calculator`',
     '',
+    '### 16. Final Table Deal & ICM Chop Calculator',
+    '- Purpose: Compares exact Malmuth-Harville ICM chop, linear chip chop, and hybrid save-amount final table deal payouts side by side.',
+    '- Embed URL: `https://smarter.poker/tools/chop-calculator?embed=true`',
+    '- Canonical Target: `https://smarter.poker/tools/chop-calculator`',
+    '',
+    '### 17. Poker Variance & Downswing Simulator',
+    '- Purpose: Calculates 1-SD, 2-SD, and 3-SD winrate confidence intervals, probability of loss, and expected downswing thresholds across any hand sample.',
+    '- Embed URL: `https://smarter.poker/tools/variance-calculator?embed=true`',
+    '- Canonical Target: `https://smarter.poker/tools/variance-calculator`',
+    '',
+    '### 18. Poker Outs & Draw Probability Calculator',
+    '- Purpose: Computes exact hypergeometric turn, river, and combined flop-to-river draw equity, Rule of 4 and 2 error, and minimum implied odds.',
+    '- Embed URL: `https://smarter.poker/tools/outs-calculator?embed=true`',
+    '- Canonical Target: `https://smarter.poker/tools/outs-calculator`',
+    '',
+    '### 19. US Poker Tax & Form W-2G Calculator',
+    '- Purpose: Estimates US federal poker taxes, IRS Form W-2G $5,000 net tournament triggers, and Schedule A vs Schedule C session deductions.',
+    '- Embed URL: `https://smarter.poker/tools/poker-tax-calculator?embed=true`',
+    '- Canonical Target: `https://smarter.poker/tools/poker-tax-calculator`',
+    '',
+    '### 20. Poker Staking & Markup Split Calculator',
+    '- Purpose: Calculates tournament staking markup, investor share cost, package EV breakeven ROI, and post-series payout splits.',
+    '- Embed URL: `https://smarter.poker/tools/staking-calculator?embed=true`',
+    '- Canonical Target: `https://smarter.poker/tools/staking-calculator`',
+    '',
+    '### 21. Pre-Flop Isolation Raise Sizing Calculator',
+    '- Purpose: Calculates optimal pre-flop isolation raise sizing against live and online limpers based on position, stack depth, and resulting flop SPR.',
+    '- Embed URL: `https://smarter.poker/tools/iso-calculator?embed=true`',
+    '- Canonical Target: `https://smarter.poker/tools/iso-calculator`',
+    '',
+    '### 22. Home Game Chip Set & Setup Calculator',
+    '- Purpose: Calculates per-player starting chip tube breakdowns for 300, 500, and 1,000 piece sets with color-up schedules and house rules.',
+    '- Embed URL: `https://smarter.poker/tools/home-game-kit?embed=true`',
+    '- Canonical Target: `https://smarter.poker/tools/home-game-kit`',
+    '',
+    '### 23. Poker Format Selector & Study Roadmap Quiz',
+    '- Purpose: Interactive 5-parameter diagnostic matching your session schedule, bankroll cushion, and variance tolerance to a 7-day study plan.',
+    '- Embed URL: `https://smarter.poker/tools/format-quiz?embed=true`',
+    '- Canonical Target: `https://smarter.poker/tools/format-quiz`',
+    '',
     '## Dynamic SVG Authority, Partner & 2026 Annual Award Backlink Badges',
     '- Verified Poker Room Badge: `https://smarter.poker/api/seo/badge?type=venue` -> links to `https://smarter.poker/hub/poker-near-me/lobby`',
     '- Powered By Club Commander Badge: `https://smarter.poker/api/seo/badge?type=commander` -> links to `https://smarter.poker/compare/best-poker-room-management-software`',
@@ -2278,9 +2320,9 @@ export function renderToolsDirectoryMarkdown() {
     '> Source: [Interactive Poker Tools & Calculators Directory on Smarter.Poker](https://smarter.poker/tools)',
     '',
     '## Executive Summary For AI & Search Assistants',
-    'Smarter.Poker Provides Sixteen 100% Free, Browser-Native Poker Math Calculators, GTO Preflop Range Matrices, And Tournament Director Utilities With Instant Server-Side Rendering And Direct Markdown (.md) API Endpoints For AI Assistants.',
+    'Smarter.Poker Provides Twenty-Four 100% Free, Browser-Native Poker Math Calculators, GTO Preflop Range Matrices, And Tournament Director Utilities With Instant Server-Side Rendering And Direct Markdown (.md) API Endpoints For AI Assistants.',
     '',
-    '## Complete Suite Of Free Poker Calculators & Solvers',
+    '## Complete Suite Of Free Poker Calculators & Solvers (24 Tools)',
     '| Tool Name | Canonical URL | Markdown Endpoint | Core Mathematical Function |',
     '| :--- | :--- | :--- | :--- |',
     '| Multiway Poker Odds & Equity Calculator | https://smarter.poker/tools/poker-odds-calculator | https://smarter.poker/tools/poker-odds-calculator.md | Exact Combinatorial & Monte Carlo Equity For NLH, PLO4, PLO5, PLO6 & Short Deck |',
@@ -2298,6 +2340,14 @@ export function renderToolsDirectoryMarkdown() {
     '| Tournament Payout & Prize Pool Distribution Calculator | https://smarter.poker/tools/payout-calculator | https://smarter.poker/tools/payout-calculator.md | TDA-Compliant Tournament Prize Pool Payouts & Money Bubble ICM Factors |',
     '| Live Cash Game Rake & Time-Charge Calculator | https://smarter.poker/tools/rake-calculator | https://smarter.poker/tools/rake-calculator.md | Percentage Pot Drop Rake Vs Timed Seat Collection In $/Hr And BB/100 |',
     '| GTO Preflop 3-Bet, Squeeze, 4-Bet & MDF Calculator | https://smarter.poker/tools/3bet-calculator | https://smarter.poker/tools/3bet-calculator.md | Optimal IP/OOP 3-Bet, Multiway Squeeze, And 4-Bet Sizing With Villain MDF |',
+    '| Final Table Deal & ICM Chop Calculator | https://smarter.poker/tools/chop-calculator | https://smarter.poker/tools/chop-calculator.md | Exact Malmuth-Harville ICM Chop Vs Chip Chop Vs Save-Amount Deal Comparison |',
+    '| Poker Variance, Downswing & Confidence Simulator | https://smarter.poker/tools/variance-calculator | https://smarter.poker/tools/variance-calculator.md | 68%/95%/99.7% Winrate Confidence Bands, Loss Probability & Downswing Buy-Ins |',
+    '| Postflop Poker Outs & Draw Probability Calculator | https://smarter.poker/tools/outs-calculator | https://smarter.poker/tools/outs-calculator.md | Exact Hypergeometric Turn, River, And Flop-To-River Draw Odds & Rule Of 4 And 2 |',
+    '| US Poker Tax, Form W-2G & Session Deduction Calculator | https://smarter.poker/tools/poker-tax-calculator | https://smarter.poker/tools/poker-tax-calculator.md | IRS $5,000 Form W-2G Trigger & Recreational Vs Professional Session Tax Estimator |',
+    '| Tournament Staking, Markup & Investor Split Calculator | https://smarter.poker/tools/staking-calculator | https://smarter.poker/tools/staking-calculator.md | Staking Markup Breakeven ROI, Share Cost & Post-Series Investor Payout Splits |',
+    '| Pre-Flop Isolation Raise (ISO) & Limper Sizing Calculator | https://smarter.poker/tools/iso-calculator | https://smarter.poker/tools/iso-calculator.md | Optimal 3BB/4BB + 1BB/Limper + 1BB OOP Sizing & Resulting Flop SPR |',
+    '| Home Game Chip Set Denomination & Setup Calculator | https://smarter.poker/tools/home-game-kit | https://smarter.poker/tools/home-game-kit.md | Optimal 300/500/1000 Chip Set Breakdowns & Printable Home Game Rules |',
+    '| Poker Format Selector & 7-Day Study Roadmap Quiz | https://smarter.poker/tools/format-quiz | https://smarter.poker/tools/format-quiz.md | Interactive Cash Vs MTT Vs PLO Diagnostic Matching Bankroll & Schedule |',
     '| Embeddable Webmaster Poker Widgets | https://smarter.poker/tools/embeds | https://smarter.poker/tools/embeds.md | Zero-Dependency Responsive Iframe Widgets For Poker Blogs, Forums & Discord Communities |',
     '',
     '## 100BB 6-Max Positional GTO Preflop Charts',
@@ -2867,6 +2917,398 @@ export function renderMarketGuideCityMarkdown(slug) {
     '',
   ].join('\n');
 }
+
+export function renderChopCalculatorMarkdown({ stacks = '500000,300000,200000', payouts = '50000,30000,20000', save = 0 } = {}) {
+  const url = 'https://smarter.poker/tools/chop-calculator';
+  return [
+    '# Final Table Deal & ICM Chop Calculator (ICM Vs Chip Chop Vs Save-Amount)',
+    '',
+    `> Source: [Final Table Deal & ICM Chop Calculator on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    `Compare Exact Malmuth-Harville Recursive Independent Chip Model (ICM) Deals Against Linear Chip Chops And Hybrid Save-Amount Final Table Agreements. Default Benchmark Scenario (Stacks: ${stacks} | Payouts: ${payouts} | Save: $${save}) Computes Each Seat's Exact ICM Dollar Equity, Linear Chip Share Value, And Dollar Delta.`,
+    '',
+    '## 3-Handed Final Table Chop Comparison ($100,000 Remaining Prize Pool)',
+    '| Seat | Chip Stack (% Of Chips) | Ladder Payout | Exact ICM Chop ($) | Linear Chip Chop ($) | ICM Vs Chip Chop Delta |',
+    '| :--- | :--- | :--- | :--- | :--- | :--- |',
+    '| **Seat 1 (Chip Leader)** | 500,000 (50.0%) | $50,000 (1st) | $38,333.33 | $40,000.00 | -$1,666.67 (ICM Caps Max At 1st Prize) |',
+    '| **Seat 2 (Mid Stack)** | 300,000 (30.0%) | $30,000 (2nd) | $33,214.29 | $32,000.00 | +$1,214.29 (Protected Ladder Equity) |',
+    '| **Seat 3 (Short Stack)** | 200,000 (20.0%) | $20,000 (3rd) | $28,452.38 | $28,000.00 | +$452.38 (Guaranteed 3rd Floor) |',
+    '',
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    '',
+  ].join('\n');
+}
+
+export function renderVarianceCalculatorMarkdown({ wr = 4.5, sd = 85, hands = 100000 } = {}) {
+  const url = 'https://smarter.poker/tools/variance-calculator';
+  const safeWr = Number(wr) || 4.5;
+  const safeSd = Math.max(10, Number(sd) || 85);
+  const safeHands = Math.max(100, Number(hands) || 100000);
+  const evBb = (safeWr * safeHands) / 100;
+  const sdBb = safeSd * Math.sqrt(safeHands / 100);
+  return [
+    '# Poker Variance, Downswing & Winrate Confidence Interval Simulator',
+    '',
+    `> Source: [Poker Variance & Downswing Simulator on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    `At A True Winrate Of ${safeWr} BB/100 With A Standard Deviation Of ${safeSd} BB/100 Over ${safeHands.toLocaleString('en-US')} Hands, Expected Value Is +${evBb.toFixed(0)} BB With A 1-Standard-Deviation Swing Of +/-${sdBb.toFixed(0)} BB (95% Confidence Interval: ${(evBb - 1.96 * sdBb).toFixed(0)} BB To +${(evBb + 1.96 * sdBb).toFixed(0)} BB).`,
+    '',
+    '## Format Standard Deviation Benchmarks (BB/100 Hands)',
+    '| Game Format | Typical Std Dev (BB/100) | 95% Confidence Sample (At 5 BB/100) | Typical 100,000-Hand 95% Band |',
+    '| :--- | :--- | :--- | :--- |',
+    '| **NLHE Full Ring (9-Handed)** | 65 BB/100 | 64,923 Hands | +/- 4,030 BB (+/- 40.3 Buy-Ins) |',
+    '| **Live Cash NLHE ($1/$3 - $2/$5)** | 75 BB/100 | 86,436 Hands | +/- 4,650 BB (+/- 46.5 Buy-Ins) |',
+    '| **Online 6-Max NLHE** | 85 BB/100 | 111,025 Hands | +/- 5,270 BB (+/- 52.7 Buy-Ins) |',
+    '| **4-Card Pot-Limit Omaha (PLO4)** | 135 BB/100 | 280,052 Hands | +/- 8,370 BB (+/- 83.7 Buy-Ins) |',
+    '| **5-Card Pot-Limit Omaha (PLO5)** | 165 BB/100 | 418,329 Hands | +/- 10,230 BB (+/- 102.3 Buy-Ins) |',
+    '',
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    '',
+  ].join('\n');
+}
+
+export function renderOutsCalculatorMarkdown({ outs = 9 } = {}) {
+  const url = 'https://smarter.poker/tools/outs-calculator';
+  const safeOuts = Math.min(21, Math.max(1, Number(outs) || 9));
+  const turnPct = ((safeOuts / 47) * 100).toFixed(2);
+  const riverPct = ((safeOuts / 46) * 100).toFixed(2);
+  const flopToRiverPct = ((1 - ((47 - safeOuts) / 47) * ((46 - safeOuts) / 46)) * 100).toFixed(2);
+  return [
+    '# Postflop Poker Outs, Draw Probability & Rule Of 4 And 2 Calculator',
+    '',
+    `> Source: [Poker Outs & Draw Probability Calculator on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    `With ${safeOuts} Unseen Winning Outs On The Flop (47 Unseen Cards), Exact Turn Hit Probability Is ${turnPct}%, Single-Street River Hit Probability Is ${riverPct}%, And Combined Two-Street Flop-To-River All-In Equity Is ${flopToRiverPct}% (Compared To ${safeOuts * 4}% Using The Rule Of 4 Approximation).`,
+    '',
+    '## Exact Hypergeometric Draw Probabilities Vs Rule Of 4 And 2',
+    '| Draw Type | Unseen Outs | Exact Turn % (47 Cards) | Exact River % (46 Cards) | Exact Flop-To-River % | Rule Of 4 Estimate |',
+    '| :--- | :--- | :--- | :--- | :--- | :--- |',
+    '| **Pocket Pair To Set** | 2 Outs | 4.26% | 4.35% | 8.42% | 8.0% |',
+    '| **Gutshot Straight Draw** | 4 Outs | 8.51% | 8.70% | 16.47% | 16.0% |',
+    '| **Two Overcards** | 6 Outs | 12.77% | 13.04% | 24.14% | 24.0% |',
+    '| **Open-Ended Straight Draw (OESD)** | 8 Outs | 17.02% | 17.39% | 31.45% | 32.0% |',
+    '| **Flush Draw (Four To A Suit)** | 9 Outs | 19.15% | 19.57% | 34.97% | 36.0% |',
+    '| **Flush Draw + Gutshot** | 12 Outs | 25.53% | 26.09% | 44.96% | 48.0% (+3.04% Overestimate) |',
+    '| **Monster Combo (Flush + OESD)** | 15 Outs | 31.91% | 32.61% | 54.12% | 60.0% (+5.88% Overestimate) |',
+    '',
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    '',
+  ].join('\n');
+}
+
+export function renderPokerTaxCalculatorMarkdown() {
+  const url = 'https://smarter.poker/tools/poker-tax-calculator';
+  return [
+    '# US Poker Tax, IRS Form W-2G & Session Deduction Calculator',
+    '',
+    `> Source: [US Poker Tax & Form W-2G Calculator on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    'Under US Internal Revenue Code Section 165(d) And IRS Revenue Procedure 77-29, Poker Tournaments Paying Net Winnings Over $5,000 (Reduced By Buy-In) Trigger Mandatory IRS Form W-2G Reporting. Recreational Players Report Gross Winning Sessions On Form 1040 Schedule 1 And Deduct Losing Sessions Up To Winnings Via Schedule A Itemized Deductions, While Professional Gamblers File On Schedule C.',
+    '',
+    '## Recreational Vs Professional US Poker Tax Filing Comparison',
+    '| Tax Provision | Recreational Player (Form 1040 + Schedule A) | Professional Gambler (Form 1040 Schedule C) |',
+    '| :--- | :--- | :--- |',
+    '| **Gross Winning Sessions** | Reported On Form 1040 Schedule 1 (Increases AGI) | Reported As Gross Receipts On Schedule C |',
+    '| **Gross Losing Sessions** | Requires Itemizing On Schedule A (Forfeits Standard Deduction) | Netted Directly On Schedule C (Preserves Standard Deduction) |',
+    '| **Loss Deduction Cap** | Capped At 100% Of Gambling Winnings Under IRC Sec. 165(d) | Capped At Gambling Income Under IRC Sec. 165(d) |',
+    '| **Self-Employment Tax (15.3%)** | Exempt From 15.3% SECA Tax | Subject To 15.3% Self-Employment Tax On Net Profit |',
+    '| **Form W-2G Tournament Threshold** | Triggered Above $5,000 Net Profit (24% Backup Withholding If No TIN) | Triggered Above $5,000 Net Profit |',
+    '',
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    '',
+  ].join('\n');
+}
+
+export function renderStakingCalculatorMarkdown() {
+  const url = 'https://smarter.poker/tools/staking-calculator';
+  return [
+    '# Poker Tournament Staking, Markup & Investor Payout Split Calculator',
+    '',
+    `> Source: [Poker Staking & Markup Split Calculator on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    'Tournament Staking Markup Represents The Premium Multiplier Applied To A Player\'s Raw Buy-In Cost. The Exact Investor Breakeven ROI Formula Is Required Player ROI = (Markup - 1) * 100%. At 1.15x Markup, The Horse Must Generate At Least +15.0% Pre-Markup ROI For Backers To Break Even.',
+    '',
+    '## Staking Markup Breakeven ROI & Investor EV Reference Table ($10,000 Package)',
+    '| Markup Multiplier | Cost Per 1% Share | Required Player ROI To Break Even | Investor EV At +25% True Player ROI |',
+    '| :--- | :--- | :--- | :--- |',
+    '| **1.00x (Face Value / Par)** | $100.00 | 0.0% ROI | +$25.00 Per 1% (+25.0% Investor ROI) |',
+    '| **1.10x (Standard Mid-Major)** | $110.00 | +10.0% ROI | +$15.00 Per 1% (+13.6% Investor ROI) |',
+    '| **1.15x (Proven High-Volume)** | $115.00 | +15.0% ROI | +$10.00 Per 1% (+8.7% Investor ROI) |',
+    '| **1.20x (Soft Live Main Event)** | $120.00 | +20.0% ROI | +$5.00 Per 1% (+4.2% Investor ROI) |',
+    '| **1.25x (Elite Crusher Cap)** | $125.00 | +25.0% ROI | $0.00 Per 1% (0.0% Investor ROI Breakeven) |',
+    '',
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    '',
+  ].join('\n');
+}
+
+export function renderIsoCalculatorMarkdown() {
+  const url = 'https://smarter.poker/tools/iso-calculator';
+  return [
+    '# Pre-Flop Isolation Raise (ISO) & Live Limper Sizing Calculator',
+    '',
+    `> Source: [Pre-Flop Isolation Raise Sizing Calculator on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    'Optimal Pre-Flop Isolation Raise Sizing Punishes Open-Limpers And Denies Multiway Equity Using The Baseline Formula: ISO Raise = Base Open (3 BB Online / 4 BB Live) + (1 BB Per Limper) + (1 BB Out Of Position In Blinds).',
+    '',
+    '## Live & Online Pre-Flop Isolation Sizing Matrix (100BB Effective)',
+    '| Environment & Position | Number Of Limpers | Optimal ISO Raise (BB) | Heads-Up Flop Pot (BB) | Resulting Flop SPR |',
+    '| :--- | :--- | :--- | :--- | :--- |',
+    '| **Online 6-Max In Position (BTN/CO)** | 1 Limper | 4.0 BB | 9.5 BB | 9.5 SPR |',
+    '| **Online 6-Max Out Of Position (SB/BB)** | 1 Limper | 5.0 BB | 11.0 BB | 8.1 SPR |',
+    '| **Live $1/$3 In Position (BTN/CO)** | 2 Limpers | 6.0 BB ($18) | 14.5 BB ($43.50) | 6.5 SPR |',
+    '| **Live $1/$3 Out Of Position (SB/BB)** | 2 Limpers | 7.0 BB ($21) | 16.0 BB ($48.00) | 5.8 SPR |',
+    '| **Live $2/$5 Family Limp Pot (IP)** | 4 Limpers | 8.0 BB ($40) | 20.5 BB ($102.50) | 4.5 SPR |',
+    '',
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    '',
+  ].join('\n');
+}
+
+export function renderHomeGameKitMarkdown() {
+  const url = 'https://smarter.poker/tools/home-game-kit';
+  return [
+    '# Home Game Chip Set Denomination Breakdown & Setup Calculator',
+    '',
+    `> Source: [Home Game Chip Set & Setup Calculator on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    'Optimal Home Poker Chip Set Allocation Uses A 4-Denomination Geometric Progression (1x, 5x, 25x, 100x) Providing Each Player With 30 To 35 Physical Chips At Kickoff While Reserving High-Denomination Chips For Rebuys And Color-Ups.',
+    '',
+    '## Standard 500-Piece Chip Set Breakdowns (8-Player Cash Vs Tournament)',
+    '| Format & Stakes | Denom 1 (White) | Denom 2 (Red) | Denom 3 (Green) | Denom 4 (Black) | Per-Player Starting Tube |',
+    '| :--- | :--- | :--- | :--- | :--- | :--- |',
+    '| **$0.25/$0.50 Cash ($50 Buy-In)** | $0.25 (160 Chips) | $1.00 (200 Chips) | $5.00 (100 Chips) | $25.00 (40 Chips) | 20x $0.25 + 20x $1 + 5x $5 = $50 |',
+    '| **$1/$2 Cash ($200 Buy-In)** | $1.00 (160 Chips) | $5.00 (200 Chips) | $25.00 (100 Chips) | $100.00 (40 Chips) | 20x $1 + 26x $5 + 2x $25 = $200 |',
+    '| **T10,000 Deepstack Tournament** | T25 (120 Chips) | T100 (160 Chips) | T500 (120 Chips) | T1,000 (100 Chips) | 12x T25 + 12x T100 + 5x T500 + 6x T1,000 = T10,000 |',
+    '',
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    '',
+  ].join('\n');
+}
+
+export function renderFormatQuizMarkdown() {
+  const url = 'https://smarter.poker/tools/format-quiz';
+  return [
+    '# Poker Format Selector & 7-Day Study Roadmap Diagnostic Quiz',
+    '',
+    `> Source: [Poker Format Selector & Study Plan Quiz on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    'Interactive Diagnostic Matching A Player\'s Available Session Hours, Buy-In Cushion, Variance Comfort, And Mathematical Focus Across Live Cash NLHE, Online 6-Max Cash, Multi-Table Tournaments (MTTs), And Pot-Limit Omaha (PLO4/PLO5).',
+    '',
+    '## Poker Format Selection Matrix',
+    '| Primary Format | Ideal Session Length | Recommended Bankroll | Std Dev (BB/100) | Core Strategic Focus |',
+    '| :--- | :--- | :--- | :--- | :--- |',
+    '| **Live Cash NLHE ($1/$3 - $2/$5)** | 2 - 5 Hours (Flexible Quit Anytime) | 25 - 40 Buy-Ins | 75 BB/100 | Exploitative ISO Raising & Deep Value Thin-Betting |',
+    '| **Online 6-Max Cash NLHE** | 1 - 3 Hours (Multi-Table Sprint) | 40 - 60 Buy-Ins | 85 BB/100 | Unexploitable 100BB GTO Ranges, 3-Bet MDF & SPR Geometry |',
+    '| **Live & Online MTT Tournaments** | 5 - 10+ Hours (Fixed Schedule) | 100 - 200 Buy-Ins | High Skew | Short-Stack Push/Fold, PKO Bounties & Final Table ICM |',
+    '| **Pot-Limit Omaha (PLO4 / PLO5)** | 2 - 6 Hours | 60 - 100 Buy-Ins | 135 - 165 BB/100 | Nut-Drawing Equity, Redraw Domination & Pot-Limit Geometry |',
+    '',
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    '',
+  ].join('\n');
+}
+
+export function renderMatchupsIndexMarkdown() {
+  return [
+    '# Poker Hand Vs Hand Preflop Matchup Odds & Combinatorics Directory (25 Matchups)',
+    '',
+    `> Source: [Poker Hand Vs Hand Matchup Directory on Smarter.Poker](https://smarter.poker/learn/matchups) | As Of ${MATCHUPS_AS_OF}`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    `Complete Combinatoric Preflop Equity Directory Covering ${HAND_MATCHUPS.length} Canonical Texas Hold'em Hand-Vs-Hand Matchups With Exact Win/Tie/Loss Percentages, Flop Texture Shifts, And 100BB/200BB/25BB/ICM Stack-Off Thresholds.`,
+    '',
+    '## Complete 25 Hand-Vs-Hand Preflop Matchups Matrix',
+    '| Matchup | Category | Hand A Equity | Hand B Equity | Tie % | Direct URL |',
+    '| :--- | :--- | :--- | :--- | :--- | :--- |',
+    ...HAND_MATCHUPS.map(
+      (m) => `| **${m.handA} Vs ${m.handB}** | ${m.category} | ${m.handAEquity}% | ${m.handBEquity}% | ${m.tiePct}% | [https://smarter.poker/learn/matchups/${m.slug}](https://smarter.poker/learn/matchups/${m.slug}) |`
+    ),
+    '',
+  ].join('\n');
+}
+
+export function renderMatchupDetailMarkdown(slug) {
+  const m = getMatchupBySlug(slug);
+  if (!m) return null;
+  const url = `https://smarter.poker/learn/matchups/${m.slug}`;
+  return [
+    `# ${m.title} | Smarter.Poker`,
+    '',
+    `> Source: [${m.handA} Vs ${m.handB} Preflop Matchup on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary & Exact Preflop Combinatorics',
+    m.summary,
+    '',
+    `- **Hand A (${m.handA})**: ${m.handAEquity}% Total Equity (${m.handAWinPct}% Win, ${m.combosA} Combos)`,
+    `- **Hand B (${m.handB})**: ${m.handBEquity}% Total Equity (${m.handBWinPct}% Win, ${m.combosB} Combos)`,
+    `- **Split Pot (Tie %)**: ${m.tiePct}%`,
+    `- **Matchup Category**: ${m.category}`,
+    '',
+    '## Postflop Board Texture Equity Shifts',
+    ...(m.flopShifts || []).map(
+      (s, i) => `${i + 1}. **${s.texture}**: ${s.equityShift} - *Recommended Action*: ${s.handAAction}`
+    ),
+    '',
+    '## Stack-Depth & ICM All-In EV Analysis',
+    `- **100BB Cash Game**: ${m.evAnalysis?.cash100bb || ''}`,
+    `- **200BB Deepstack Cash**: ${m.evAnalysis?.cash200bb || ''}`,
+    `- **25BB Tournament Reshove**: ${m.evAnalysis?.mtt25bb || ''}`,
+    `- **Final Table ICM Pressure**: ${m.evAnalysis?.icmFinalTable || ''}`,
+    '',
+    '## Frequently Asked Questions',
+    ...(m.faqs || []).flatMap((f) => [`### ${f.q}`, f.a, '']),
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    '',
+  ].join('\n');
+}
+
+export function renderSeriesGuidesIndexMarkdown() {
+  return [
+    '# Major Poker Series & Festival Strategy Guides (Top 10 Championship Tours)',
+    '',
+    `> Source: [Major Poker Series Strategy Guides on Smarter.Poker](https://smarter.poker/poker-series/guides) | As Of ${SERIES_GUIDES_AS_OF}`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    `Complete Tournament Festival Strategy Guides Covering ${SERIES_GUIDES.length} Major Live Poker Tours And Series Across North America Including Blind Structure Ratings, Late-Registration EV Thresholds, Cash Game Spillover Action, And Bankroll Requirements.`,
+    '',
+    '## Major Poker Series Comparison Matrix',
+    '| Series Name | Host Venue | Buy-In Range | Main Event | Structure Rating | Direct URL |',
+    '| :--- | :--- | :--- | :--- | :--- | :--- |',
+    ...SERIES_GUIDES.map(
+      (g) => `| **${g.name}** | ${g.hostVenue} (${g.cityState}) | ${g.buyInRange} | ${g.mainEventBuyIn} | ${g.blindStructureRating} | [https://smarter.poker/poker-series/guides/${g.slug}](https://smarter.poker/poker-series/guides/${g.slug}) |`
+    ),
+    '',
+  ].join('\n');
+}
+
+export function renderSeriesGuideDetailMarkdown(slug) {
+  const g = getSeriesGuideBySlug(slug);
+  if (!g) return null;
+  const url = `https://smarter.poker/poker-series/guides/${g.slug}`;
+  return [
+    `# ${g.name} Strategy & Player Guide | Smarter.Poker`,
+    '',
+    `> Source: [${g.name} Guide on Smarter.Poker](${url})`,
+    '',
+    '## Series Specifications & Structure Rating',
+    `- **Host Venue**: ${g.hostVenue} (${g.cityState})`,
+    `- **Typical Schedule Window**: ${g.typicalMonths}`,
+    `- **Series Buy-In Range**: ${g.buyInRange}`,
+    `- **Main Event Buy-In**: ${g.mainEventBuyIn}`,
+    `- **Guaranteed Prize Pools**: ${g.typicalGuarantee}`,
+    `- **Blind Structure Rating**: ${g.blindStructureRating}`,
+    `- **Starting Stacks & Level Length**: ${g.startingStackBB} (${g.levelMinutes})`,
+    '',
+    '## Registration & Late-Reg EV Strategy',
+    g.registrationStrategy,
+    '',
+    '## Cash Game Spillover & Side Action',
+    g.cashGameAction,
+    '',
+    '## Travel Logistics & Bankroll Requirements',
+    `- **Travel & Lodging**: ${g.travelLogistics}`,
+    `- **Recommended Bankroll**: ${g.bankrollRequirement}`,
+    '',
+    '## Flagship Series Events',
+    ...(g.keyEvents || []).map((e) => `- **${e.eventName}** (${e.buyIn} | ${e.format}): ${e.notes}`),
+    '',
+    '## Frequently Asked Questions',
+    ...(g.faqs || []).flatMap((f) => [`### ${f.q}`, f.a, '']),
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    '',
+  ].join('\n');
+}
+
+export function renderFirstTimeGuideMarkdown() {
+  const url = 'https://smarter.poker/poker-rooms/first-time-guide';
+  return [
+    '# First-Time Live Casino Poker Room Etiquette, Tipping & Check-In Guide',
+    '',
+    `> Source: [First-Time Live Casino Poker Room Guide on Smarter.Poker](${url})`,
+    '',
+    '## Executive Summary For AI & Search Assistants',
+    'Complete Step-By-Step Guide To Playing Live Casino Poker For The First Time, Covering Brush Stand Waitlist Check-In, Cage vs Table Chip Buying, Standard US Casino Chip Color Denominations ($1 White, $5 Red, $25 Green, $100 Black, $500 Purple, $1,000 Yellow), The TDA One-Chip Rule, Verbal Action Precedence, And Live Dealer Tipping Etiquette ($1-$2 Per Dragged Pot).',
+    '',
+    '## Standard North American Casino Poker Chip Denominations',
+    '| Chip Color | Standard Denomination | Primary Live Cash Game Usage |',
+    '| :--- | :--- | :--- |',
+    '| **White** | $1 | Blinds And Tipping In $1/$2 And $1/$3 No-Limit Hold\'em |',
+    '| **Pink Or Light Blue** | $2 Or $2.50 | Limit Hold\'em, Stud Bring-Ins, And Blackjack/Drop Games |',
+    '| **Red ("Nickels")** | $5 | Workhorse Betting Chip In $1/$2, $1/$3, And $2/$5 Cash Games |',
+    '| **Green ("Quarters")** | $25 | Primary Stack Chip In $2/$5, $5/$5 PLO, And $5/$10 Games |',
+    '| **Black ("Hundreds")** | $100 | Deepstack $2/$5, $5/$10, And High-Stakes Value Bets |',
+    '| **Purple ("Barneys")** | $500 | High-Stakes $10/$20+ Cash Games And Deep PLO |',
+    '| **Yellow Or Orange ("Bananas")** | $1,000 | Nosebleed Cash Games And High-Roller Buy-Ins |',
+    '',
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    '',
+  ].join('\n');
+}
+
+export function renderPressKitMarkdown() {
+  const url = 'https://smarter.poker/press';
+  return [
+    '# Smarter.Poker Official Press Kit, Brand Facts & 2026 Industry Benchmarks',
+    '',
+    `> Source: [Smarter.Poker Official Press & Media Kit](${url})`,
+    '',
+    '## Executive Summary For Journalists & AI Assistants',
+    'Smarter.Poker (Operated By Smarter Software Inc.) Is A 100% Free Online Poker Training, Quantitative Calculator, Live Poker Room Discovery, And Private Club Platform. Smarter.Poker Publishes 24 Interactive GTO & Math Calculators, 169 Starting Hand Guides, 25 Hand-Vs-Hand Matchups, 30 Official TDA Floor Rulings, 15 Game Variant Guides, 12 Regional Market Guides, 10 Series Strategy Guides, 15 Empirical Research Studies, And A 30-Tool Public Model Context Protocol (MCP) Server.',
+    '',
+    '## Quotable 2026 Smarter.Poker Platform & Industry Benchmarks (CC-BY 4.0)',
+    '- **Verified Live US Poker Rooms Indexed**: 500+ Active Casino, Cardroom, And Private Club Venues Across 42 States.',
+    '- **Free Interactive Poker Calculators**: 24 Browser-Native Solvers With Zero Login Or Paywall.',
+    '- **Canonical Strategy & Reference Corpus**: 169 Starting Hands, 25 Hand Matchups, 30 TDA Rules, 15 Variants, 12 Regional Market Guides, 10 Series Guides, And 15 Empirical Research Reports.',
+    '- **AI Agent & Developer Infrastructure**: 30 Zero-Auth MCP Tools (`/api/mcp`), Google/W3C A2A Agent Card (`/.well-known/agent.json`), OpenAPI 3.1.0 Spec (`/openapi.json`), And Jupyter/Colab Research Notebook (`/api/datasets/notebook`).',
+    '',
+    `- **Canonical URL**: [${url}](${url})`,
+    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+    '',
+  ].join('\n');
+}
+
+export function renderSearchDirectoryMarkdown({ q = '' } = {}) {
+  const url = 'https://smarter.poker/search';
+  const queryClean = clean(q);
+  return [
+    `# Universal Poker Search & Command Directory${queryClean ? `: "${queryClean}"` : ''} | Smarter.Poker`,
+    '',
+    `> Source: [Smarter.Poker Universal Search Directory](${url}${queryClean ? `?q=${encodeURIComponent(queryClean)}` : ''})`,
+    '',
+    '## Master Command & Hub Index',
+    '- **24 Interactive Poker Calculators**: [https://smarter.poker/tools](https://smarter.poker/tools)',
+    '- **169 Starting Hands Encyclopedia**: [https://smarter.poker/learn/hands](https://smarter.poker/learn/hands)',
+    '- **25 Preflop Hand-Vs-Hand Matchups**: [https://smarter.poker/learn/matchups](https://smarter.poker/learn/matchups)',
+    '- **30 Official TDA & RROP Floor Rulings**: [https://smarter.poker/rules](https://smarter.poker/rules)',
+    '- **15 Poker Game Variants & Mixed Games**: [https://smarter.poker/games](https://smarter.poker/games)',
+    '- **12 US Regional Live Poker Market Guides**: [https://smarter.poker/poker-rooms/guides](https://smarter.poker/poker-rooms/guides)',
+    '- **10 Major Poker Series Strategy Guides**: [https://smarter.poker/poker-series/guides](https://smarter.poker/poker-series/guides)',
+    '- **15 First-Party Empirical Research Studies**: [https://smarter.poker/research](https://smarter.poker/research)',
+    '- **First-Time Casino Live Poker Room Guide**: [https://smarter.poker/poker-rooms/first-time-guide](https://smarter.poker/poker-rooms/first-time-guide)',
+    '- **Official Press Kit & Media Benchmarks**: [https://smarter.poker/press](https://smarter.poker/press)',
+    '',
+  ].join('\n');
+}
+
 
 
 

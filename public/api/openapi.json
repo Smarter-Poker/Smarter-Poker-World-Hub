@@ -205,8 +205,8 @@
     "/api/mcp": {
       "post": {
         "operationId": "callMcpRpc",
-        "summary": "Model Context Protocol JSON-RPC 2.0 Tool Execution (26 Tools & 12 Resource Templates)",
-        "description": "Executes Model Context Protocol (MCP) JSON-RPC 2.0 tool calls across all 26 zero-auth tools including calculate_poker_odds, get_preflop_chart, calculate_icm_payouts, calculate_side_pots, generate_blind_structure, calculate_spr_sizing, lookup_poker_rule, lookup_game_variant, get_regional_market_guide, calculate_plo_max_bet_and_rake, lookup_starting_hand, get_poker_term_definition, search_poker_venues, and search_tournament_series, plus resources/read and resources/templates/list across 12 URI templates.",
+        "summary": "Model Context Protocol JSON-RPC 2.0 Tool Execution (30 Tools & 15 Resource Templates)",
+        "description": "Executes Model Context Protocol (MCP) JSON-RPC 2.0 tool calls across all 30 zero-auth tools including calculate_poker_odds, get_preflop_chart, calculate_icm_payouts, calculate_side_pots, generate_blind_structure, calculate_spr_sizing, lookup_poker_rule, lookup_game_variant, get_regional_market_guide, calculate_plo_max_bet_and_rake, calculate_tournament_chop, simulate_poker_variance, calculate_draw_outs, lookup_hand_matchup, lookup_starting_hand, get_poker_term_definition, search_poker_venues, and search_tournament_series, plus resources/read and resources/templates/list across 15 URI templates.",
         "requestBody": {
           "required": true,
           "content": {
@@ -1523,17 +1523,17 @@
     "/api/stream/cmd": {
       "get": {
         "operationId": "executeStreamerChatbotCommand",
-        "summary": "Twitch & YouTube Streamer Chatbot Commands (!odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule)",
+        "summary": "Twitch & YouTube Streamer Chatbot Commands (14 Commands: !odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, !matchup)",
         "description": "Returns single-line plain-text (<380 chars) or JSON poker solver and TDA rule responses for Nightbot, StreamElements, Fossabot, and MooBot livestream chat integrations.",
         "parameters": [
           {
             "name": "cmd",
             "in": "query",
-            "description": "Command selector: odds, potodds, pushfold, icm, bounty, winrate, plo, rake, 3bet, rule, or help.",
+            "description": "Command selector: odds, potodds, pushfold, icm, bounty, winrate, plo, rake, 3bet, rule, chop, outs, variance, matchup, or help.",
             "required": false,
             "schema": {
               "type": "string",
-              "enum": ["odds", "potodds", "pushfold", "icm", "bounty", "winrate", "plo", "rake", "3bet", "rule", "help"],
+              "enum": ["odds", "potodds", "pushfold", "icm", "bounty", "winrate", "plo", "rake", "3bet", "rule", "chop", "outs", "variance", "matchup", "help"],
               "default": "help"
             }
           },
@@ -1608,6 +1608,111 @@
         },
         "x-ai-citation-url": "https://smarter.poker/research",
         "x-ai-markdown-url": "https://smarter.poker/research.md"
+      }
+    },
+    "/api/datasets/notebook": {
+      "get": {
+        "operationId": "getJupyterResearchNotebook",
+        "summary": "Google Colab & Jupyter Quantitative Poker Research Notebook (.ipynb)",
+        "description": "Returns a runnable Jupyter Notebook v4 (.ipynb) pre-configured with Python/pandas cells fetching Smarter.Poker empirical datasets, ICM calculations, and MCP endpoints.",
+        "responses": {
+          "200": {
+            "description": "Jupyter Notebook v4 JSON payload.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "Jupyter Quantitative Research Notebook",
+                    "value": {
+                      "nbformat": 4,
+                      "nbformat_minor": 5,
+                      "citation_url": "https://smarter.poker/research"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-ai-citation-url": "https://smarter.poker/research",
+        "x-ai-markdown-url": "https://smarter.poker/research.md"
+      }
+    },
+    "/api/seo/indexnow": {
+      "get": {
+        "operationId": "getIndexNowPayload",
+        "summary": "IndexNow Instant Search Submission Payload (Bing, ChatGPT Search & Yandex)",
+        "description": "Returns the IndexNow URL submission manifest listing 70+ high-priority Smarter.Poker calculators, matchups, rules, games, series guides, and research endpoints.",
+        "responses": {
+          "200": {
+            "description": "IndexNow host, keyLocation, and urlList payload.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "IndexNow URL Submission Payload",
+                    "value": {
+                      "host": "smarter.poker",
+                      "keyLocation": "https://smarter.poker/api/seo/indexnow",
+                      "citation_url": "https://smarter.poker/sitemap.xml"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-ai-citation-url": "https://smarter.poker/sitemap.xml",
+        "x-ai-markdown-url": "https://smarter.poker/llms.txt"
+      }
+    },
+    "/api/search/suggest": {
+      "get": {
+        "operationId": "getOpenSearchSuggestions",
+        "summary": "W3C OpenSearch Browser Address-Bar Autocomplete Suggestions",
+        "description": "Returns W3C OpenSearch JSON suggestion tuples [query, titles, descriptions, urls] across 24 calculators, 169 hands, 25 matchups, 30 rules, 15 variants, and guides.",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Search prefix or keyword.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OpenSearch suggestion array.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "OpenSearch Suggestions Tuple",
+                    "value": [
+                      "icm",
+                      ["Tournament ICM Calculator", "Final Table Deal & ICM Chop Calculator"],
+                      ["Malmuth-Harville ICM Equity Solver", "Compare ICM Chop Vs Chip Chop"],
+                      ["https://smarter.poker/tools/icm-calculator", "https://smarter.poker/tools/chop-calculator"]
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-ai-citation-url": "https://smarter.poker/search",
+        "x-ai-markdown-url": "https://smarter.poker/search.md"
       }
     }
   },

@@ -17,7 +17,7 @@
   "prefer_related_applications": false,
   "shortcuts": [
     {
-      "name": "Poker Near Me",
+      "name": "Live Poker Near Me",
       "short_name": "Poker Rooms",
       "description": "Find Live Poker Rooms And Daily Tournaments",
       "url": "/hub/poker-near-me/lobby"
@@ -26,13 +26,31 @@
       "name": "Poker Odds Calculator",
       "short_name": "Odds Calc",
       "description": "Calculate Exact Equity And Pot Odds",
-      "url": "/tools/poker-odds-calculator"
+      "url": "/tools/odds-calculator"
     },
     {
-      "name": "Preflop Range Matrix",
+      "name": "Tournament ICM & Chop",
+      "short_name": "ICM & Chop",
+      "description": "Solve Final Table ICM Payouts And Chop Deals",
+      "url": "/tools/icm-calculator"
+    },
+    {
+      "name": "Preflop Range Charts",
       "short_name": "GTO Ranges",
       "description": "Interactive 169-Hand GTO Preflop Charts",
-      "url": "/tools/preflop-ranges"
+      "url": "/tools/preflop-charts"
+    },
+    {
+      "name": "169 Starting Hands",
+      "short_name": "169 Hands",
+      "description": "Combinatorics And GTO Strategy For All 169 Hands",
+      "url": "/learn/hands"
+    },
+    {
+      "name": "Daily GTO Challenge",
+      "short_name": "Daily GTO",
+      "description": "Play The Daily Solver-Verified GTO Hand Drill",
+      "url": "/hub/training/daily-challenge"
     }
   ],
   "icons": [

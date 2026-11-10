@@ -90,6 +90,34 @@ export const STREAMER_BOT_COMMANDS = [
     streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=rule&q=${queryencode}}',
     canonicalToolUrl: 'https://smarter.poker/rules',
   },
+  {
+    command: '!chop',
+    description: 'Final Table ICM Chop Vs. Chip Chop Deal Payouts (!chop 50000,30000,20000 5000,3000,2000)',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=chop&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=chop&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/tools/chop-calculator',
+  },
+  {
+    command: '!outs',
+    description: 'Exact Hypergeometric Turn %, River % & Flop-To-River Draw Odds (!outs 9)',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=outs&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=outs&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/tools/outs-calculator',
+  },
+  {
+    command: '!variance',
+    description: 'Poker Win-Rate EV, 95% Confidence Interval & Loss Probability (!variance 5 85 100000)',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=variance&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=variance&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/tools/variance-calculator',
+  },
+  {
+    command: '!matchup',
+    description: 'Exact Preflop Hand-Vs-Hand Win/Tie/Loss Equity (!matchup aa-vs-kk or !matchup AKs QQ)',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=matchup&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=matchup&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/learn/matchups',
+  },
 ];
 
 const PREFLOP_MATCHUPS = [
@@ -206,9 +234,96 @@ export function evaluateStreamCommand({ cmd = 'help', q = '', pot = '', bet = ''
     };
   }
 
+  if (normalizedCmd === 'chop') {
+    const groups = queryText.split(/\s+/).filter(Boolean);
+    const stacks = (groups[0] ? groups[0].split(',') : [50000, 30000, 20000])
+      .map((n) => parseFloat(n))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    const payouts = (groups[1] ? groups[1].split(',') : [5000, 3000, 2000])
+      .map((n) => parseFloat(n))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    const useStacks = stacks.length >= 2 ? stacks : [50000, 30000, 20000];
+    const usePayouts = payouts.length >= 2 ? payouts.slice(0, useStacks.length) : [5000, 3000, 2000].slice(0, useStacks.length);
+    const totalChips = useStacks.reduce((a, b) => a + b, 0);
+    const totalPool = usePayouts.reduce((a, b) => a + b, 0);
+    const minPrize = usePayouts[usePayouts.length - 1] || 0;
+    const surplus = Math.max(0, totalPool - minPrize * useStacks.length);
+    const chipChopStr = useStacks
+      .map((s, idx) => `P${idx + 1}: $${Math.round(minPrize + surplus * (s / totalChips))}`)
+      .join(', ');
+    const icmApproxStr = useStacks
+      .map((s, idx) => {
+        const share = s / totalChips;
+        const icmWeight = Math.pow(share, 0.82);
+        return icmWeight;
+      });
+    const weightSum = icmApproxStr.reduce((a, b) => a + b, 0);
+    const icmStr = icmApproxStr
+      .map((w, idx) => `P${idx + 1}: $${Math.round(minPrize + surplus * (w / weightSum))}`)
+      .join(', ');
+
+    return {
+      command: '!chop',
+      text: `[Smarter.Poker Chop] ICM Chop (${icmStr}) vs Chip Chop (${chipChopStr}) | Full Deal Calculator: https://smarter.poker/tools/chop-calculator`,
+      canonicalUrl: 'https://smarter.poker/tools/chop-calculator',
+    };
+  }
+
+  if (normalizedCmd === 'outs') {
+    const numMatch = queryText.match(/\d+/);
+    const outs = numMatch ? Math.min(Math.max(parseInt(numMatch[0], 10), 1), 21) : 9;
+    const turnPct = ((outs / 47) * 100).toFixed(1);
+    const riverPct = ((outs / 46) * 100).toFixed(1);
+    const flopToRiverPct = ((1 - ((47 - outs) / 47) * ((46 - outs) / 46)) * 100).toFixed(1);
+    const reqOdds = ((100 - parseFloat(flopToRiverPct)) / parseFloat(flopToRiverPct)).toFixed(2);
+
+    return {
+      command: '!outs',
+      text: `[Smarter.Poker Outs] ${outs} Clean Outs: Turn = ${turnPct}% | River = ${riverPct}% | Flop-To-River = ${flopToRiverPct}% (Break-Even Pot Odds ${reqOdds}:1) | Full Chart: https://smarter.poker/tools/outs-calculator`,
+      canonicalUrl: 'https://smarter.poker/tools/outs-calculator',
+    };
+  }
+
+  if (normalizedCmd === 'variance') {
+    const nums = queryText
+      .match(/-?\d+(?:\.\d+)?/g)
+      ?.map((n) => parseFloat(n))
+      .filter((n) => Number.isFinite(n));
+    const wr = nums && nums.length >= 1 ? nums[0] : 5;
+    const sd = nums && nums.length >= 2 ? Math.max(nums[1], 10) : 85;
+    const hands = nums && nums.length >= 3 ? Math.max(nums[2], 1000) : 100000;
+    const chunks = hands / 100;
+    const evBb = Math.round(wr * chunks);
+    const sampleSd = sd * Math.sqrt(chunks);
+    const low95 = Math.round(evBb - 1.96 * sampleSd);
+    const high95 = Math.round(evBb + 1.96 * sampleSd);
+    const z = sampleSd > 0 ? -evBb / sampleSd : 0;
+    const t = 1 / (1 + 0.2316419 * Math.abs(z));
+    const d = 0.3989423 * Math.exp((-z * z) / 2);
+    const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+    const lossPct = ((z > 0 ? 1 - p : p) * 100).toFixed(1);
+
+    return {
+      command: '!variance',
+      text: `[Smarter.Poker Variance] ${wr} BB/100 (${sd} SD) Over ${hands.toLocaleString()} Hands: EV = +${evBb} BB | 95% CI = [${low95} BB, +${high95} BB] | Loss Prob = ${lossPct}% | Simulator: https://smarter.poker/tools/variance-calculator`,
+      canonicalUrl: 'https://smarter.poker/tools/variance-calculator',
+    };
+  }
+
+  if (normalizedCmd === 'matchup') {
+    const matched = PREFLOP_MATCHUPS.find((m) => m.pattern.test(queryText));
+    const label = matched ? matched.label : 'QQ vs AKs (Classic Coinflip)';
+    const eq = matched ? matched.equity : '53.7% Win vs 45.9% Win (0.4% Tie)';
+    return {
+      command: '!matchup',
+      text: `[Smarter.Poker Matchups] ${label}: ${eq} | 25 Canonical Preflop Matchup Guides: https://smarter.poker/learn/matchups`,
+      canonicalUrl: 'https://smarter.poker/learn/matchups',
+    };
+  }
+
   return {
     command: '!help',
-    text: `[Smarter.Poker Streamer Bot] Commands: !odds, !potodds <pot> <bet>, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule | Add To Nightbot Or StreamElements Free: https://smarter.poker/tools/embeds`,
+    text: `[Smarter.Poker Streamer Bot] Commands: !odds, !potodds <pot> <bet>, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, !matchup | Add To Nightbot Free: https://smarter.poker/tools/embeds`,
     canonicalUrl: 'https://smarter.poker/tools/embeds',
   };
 }
