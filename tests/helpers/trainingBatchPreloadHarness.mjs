@@ -36,7 +36,7 @@ registerHooks({
       if (!fs.existsSync(base) || fs.statSync(base).isDirectory()) {
         for (const extension of ['.js', '.mjs', '.ts']) {
           if (fs.existsSync(base + extension)) {
-            return nextResolve(pathToFileURL(base + extension).href, context);
+            return nextResolve(`${specifier}${extension}`, context);
           }
         }
       }
