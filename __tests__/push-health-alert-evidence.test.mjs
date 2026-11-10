@@ -43,7 +43,7 @@ import { ALERT_TASK_ID } from '../src/lib/operationalAlerts.mjs';
 import * as writer from '../src/lib/operationalAlerts.mjs';
 import { ADMIN_A, ADMIN_B, CHECK_FAILED, DAY, DETECT, HOUR, MIN, OWNER, PLAYER, SOURCE, TODAY, alerts, confirm,
   database, device, episodes, failed, fingerprintOf, firing, named, needHelper, pgUtc, recoveryOf, scenario,
-  subscription, titles, world } from './push-health-alert-harness.mjs';
+  recipientOff, subscription, titles, world } from './push-health-alert-harness.mjs';
 
 const OWNER_SILENT = 'OwnerAccountDeviceNotConfirmingPush';
 const ZOMBIES = 'PushZombieSubscriptions';
@@ -139,11 +139,11 @@ test('after the fleet closes a zombie episode, a device silent long before opens
 });
 
 test('a read the server cut off is not a recovery', async () => {
-  const s = scenario();
+  const s = scenario({ seed: recipientOff(world()) });
   await s.run();
   const [zombies] = firing(s, ZOMBIES);
   const [staff] = firing(s, 'PushStaffUnreachable');
-  s.db.maxRows = 2;
+  s.db.maxRows = 1; // two devices now (the recipient lost hers), so one row cuts every read off
   await s.run();
   assert.equal(recoveryOf(s, zombies), undefined, 'the zombie that did not fit in the answer was read as gone');
   assert.equal(recoveryOf(s, staff), undefined, 'the staff account that did not fit in the answer was read as reachable');
@@ -165,9 +165,10 @@ const CUT_OFF_READS = [
     (seed, at) => seed.push_subscriptions.push(subscription('player-laptop', PLAYER, at)), 2, 3],
   ['staff', 'PushStaffUnreachable', (req) => req.table === 'profiles' && req.columns === 'id, username, role',
     (seed, at) => {
+      recipientOff(seed);
       seed.profiles.push({ id: ADMIN_C, username: 'c', role: 'admin' });
       seed.push_subscriptions.push(subscription('admin-c-phone', ADMIN_C, at));
-    }, 2, 3],
+    }, 1, 2],
   ['duplicate-device', 'PushDuplicateDeviceSubscriptions',
     (req) => req.table === 'push_subscriptions' && req.columns === 'user_id, device_label, device_id',
     (seed, at) => seed.push_subscriptions.push({ ...subscription('admin-a-again', ADMIN_A, at), device_id: 'admin-a-phone' },
@@ -247,8 +248,8 @@ for (const [check, threw, failing] of [['staff', staffList, platformCount], ['di
 }
 
 test('while nobody is enrolled the staff conditions are not judged, and the store says so', async () => {
-  const s = scenario();
-  await s.run(); // one staff account has no device
+  const s = scenario({ seed: recipientOff(world()) });
+  await s.run(); // one platform alert recipient has no device
   const [staff] = firing(s, 'PushStaffUnreachable');
   assert.ok(staff, 'the staff account without a device was not recorded');
   // Every device is retired: nobody can receive a push.
@@ -260,7 +261,7 @@ test('while nobody is enrolled the staff conditions are not judged, and the stor
   assert.match(notJudged.payload.summary, /nobody is enrolled/);
   assert.equal(staff.delivery_count, 1, 'a staff account was judged while nobody is enrolled');
   // Somebody enrols: the staff conditions are judged again.
-  s.db.tables.push_subscriptions.push(subscription('admin-a-new', ADMIN_A, s.db.now()));
+  s.db.tables.push_subscriptions.push(subscription('admin-b-new', ADMIN_B, s.db.now()));
   await s.run();
   assert.equal(recoveryOf(s, notJudged)?.status, 'resolved');
   assert.equal(staff.delivery_count, 2);
@@ -605,7 +606,7 @@ test('a firing row the task closed before a directly observed condition cleared 
   assert.equal(recoveryOf(s, backlog)?.payload.resolves, backlog.event_key);
 
   // Closed while the condition persists: the recurrence carries it.
-  const t = scenario();
+  const t = scenario({ seed: recipientOff(world()) });
   t.dispatcherDown = true;
   await t.run();
   await t.run();
@@ -623,7 +624,7 @@ test('a firing row the task closed before a directly observed condition cleared 
   assert.equal(staffAgain?.payload.unresolved, undefined, 'a device episode carried a row it can never resolve');
   t.dispatcherDown = false;
   t.day(0);
-  t.db.tables.push_subscriptions.push(subscription('admin-b-phone', ADMIN_B, t.db.now()));
+  t.db.tables.push_subscriptions.push(subscription('admin-a-phone', ADMIN_A, t.db.now()));
   await t.run();
   assert.equal(recoveryOf(t, again)?.status, 'resolved');
   assert.equal(recoveryOf(t, stale)?.payload.resolves, stale.event_key, 'the closed episode never got its recovery');
@@ -640,7 +641,7 @@ test('the default scenario still tells everyone else exactly today\'s notices ac
   assert.deepEqual(titles(s, OWNER), []);
   assert.equal(titles(s, ADMIN_A).length, 7);
   assert.deepEqual(episodes(s).map((row) => [row.alertname, row.delivery_count]).sort(),
-    [['PushStaffUnreachable', 7], [ZOMBIES, 7]]);
+    [[ZOMBIES, 7]]);
 });
 
 // ---- The writer's destination rule (#2013) --------------------------------------

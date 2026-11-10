@@ -82,6 +82,16 @@ import { isPlatformAlertRecipient } from '../notifications/deliveryPolicy.mjs';
 import { ALERT_TASK_ID, alertEventKey, recordOperationalAlerts } from '../operationalAlerts.mjs';
 import { OWNER_OPERATIONAL_ID, isOwnerId } from '../notifications/ownerOperationalClassifier.mjs';
 
+/**
+ * WHO MUST BE REACHABLE (owner, 2026-11-09). Platform alerts go to the owner's
+ * verified accounts only (deliveryPolicy PLATFORM_ALERT_RECIPIENTS), so only
+ * those accounts having no live device is an operational fault. Any other
+ * admin or god account without a device is its own business: it keeps its
+ * personal "Push Notifications Are Off" notice and never opens a Production
+ * Alerts episode.
+ */
+export const mustReceivePlatformAlerts = (userId) => isPlatformAlertRecipient(userId);
+
 export const PUSH_HEALTH_SOURCE = 'worldhub.push-health';
 // cron_health_log.cron_name that withCronHealth records for this job.
 export const PUSH_HEALTH_CRON = 'push-health';
