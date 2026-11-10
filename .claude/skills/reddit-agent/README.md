@@ -31,7 +31,7 @@ skill is two Markdown files.
 
 | Environment | Can use it | How | Verified |
 | --- | --- | --- | --- |
-| Claude Code, any account, in a checkout of this repo at or after the commit that added this folder | Yes | Project skill, loaded from `.claude/skills/reddit-agent/` | Verified in one cloud Claude Code session on 2026-11-10 |
+| Claude Code, any account, in a checkout of this repo at or after the commit that added this folder | Expected yes | Project skill, loaded from `.claude/skills/reddit-agent/` | Not verified. The cloud session that added the files did not list the skill after reloading the repository on 2026-11-10; confirm in a fresh session |
 | Claude Code on the Mac in a checkout of this repo | Expected yes after `git pull` on main | Same project skill | Not verified on the Mac |
 | Claude Code in another repo (for example Club Arena) | No | Project skills do not cross repos | Not installed |
 | Claude Code user level on the Mac (`~/.claude/skills/`), every repo and account that shares that home folder | Not installed | Run the copy command below | Not verified |
@@ -51,7 +51,7 @@ needs the same copy made into its own folder.
 
 ## How To Use It
 
-In Claude Code inside this repo, ask for it by name or by task:
+In Claude Code inside this repo, ask for it by name or by task. If a session does not list the skill, tell the agent to read `.claude/skills/reddit-agent/SKILL.md` and follow it; that route works in any agent.
 
 - "Use the reddit-agent skill to refresh the rules for r/poker" (`/rd-rules`)
 - "Find questions we could answer this week" (`/rd-research`)
