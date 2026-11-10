@@ -1,9 +1,10 @@
-// Platform incidents are private to the owner's two verified accounts.
-// Club/player business notifications retain their own recipients.
+// Platform incidents go to ONE account: the owner's daniel@bekavactrading.com
+// (owner, 2026-11-09: "one recipient for important operational information").
+// No other account becomes a recipient because of its role; everyone keeps
+// their own personal, security and gameplay notifications.
+// Mirrors public.fn_is_platform_alert_recipient.
 import { OWNER_OPERATIONAL_ID, OWNER_OPERATIONAL_TYPES } from './ownerOperationalClassifier.mjs';
-export const PLATFORM_ALERT_RECIPIENTS = Object.freeze([
-  OWNER_OPERATIONAL_ID, '3bb71bfe-f723-427c-aac7-a853ba04a014',
-]);
+export const PLATFORM_ALERT_RECIPIENTS = Object.freeze([OWNER_OPERATIONAL_ID]);
 export const PLATFORM_ALERT_TITLES = Object.freeze([
   'Push Health Alert', 'Notifications May Not Be Reaching This Device',
   'Push Notifications Are Off', 'Money Check Failed', 'Engine Restart Storm',

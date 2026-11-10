@@ -43,7 +43,7 @@ import { ALERT_TASK_ID } from '../src/lib/operationalAlerts.mjs';
 import * as writer from '../src/lib/operationalAlerts.mjs';
 import { ADMIN_A, ADMIN_B, CHECK_FAILED, DAY, DETECT, HOUR, MIN, OWNER, PLAYER, SOURCE, TODAY, alerts, confirm,
   database, device, episodes, failed, fingerprintOf, firing, named, needHelper, pgUtc, recoveryOf, scenario,
-  recipientOff, subscription, titles, world } from './push-health-alert-harness.mjs';
+  ownerOff, subscription, titles, world } from './push-health-alert-harness.mjs';
 
 const OWNER_SILENT = 'OwnerAccountDeviceNotConfirmingPush';
 const ZOMBIES = 'PushZombieSubscriptions';
@@ -139,11 +139,15 @@ test('after the fleet closes a zombie episode, a device silent long before opens
 });
 
 test('a read the server cut off is not a recovery', async () => {
-  const s = scenario({ seed: recipientOff(world()) });
+  const seed = ownerOff(world());
+  // The owner account (the only staff account that is a fault) comes last, so
+  // the cut-off staff read misses him.
+  seed.profiles.push(...seed.profiles.splice(0, 1));
+  const s = scenario({ seed });
   await s.run();
   const [zombies] = firing(s, ZOMBIES);
   const [staff] = firing(s, 'PushStaffUnreachable');
-  s.db.maxRows = 1; // two devices now (the recipient lost hers), so one row cuts every read off
+  s.db.maxRows = 1; // two devices now (the owner lost his), so one row cuts every read off
   await s.run();
   assert.equal(recoveryOf(s, zombies), undefined, 'the zombie that did not fit in the answer was read as gone');
   assert.equal(recoveryOf(s, staff), undefined, 'the staff account that did not fit in the answer was read as reachable');
@@ -165,10 +169,12 @@ const CUT_OFF_READS = [
     (seed, at) => seed.push_subscriptions.push(subscription('player-laptop', PLAYER, at)), 2, 3],
   ['staff', 'PushStaffUnreachable', (req) => req.table === 'profiles' && req.columns === 'id, username, role',
     (seed, at) => {
-      recipientOff(seed);
+      ownerOff(seed);
       seed.profiles.push({ id: ADMIN_C, username: 'c', role: 'admin' });
       seed.push_subscriptions.push(subscription('admin-c-phone', ADMIN_C, at));
-    }, 1, 2],
+      // Staff order A, B, owner, C: the owner, the only staff fault, is third.
+      seed.profiles.splice(2, 0, ...seed.profiles.splice(0, 1));
+    }, 2, 3],
   ['duplicate-device', 'PushDuplicateDeviceSubscriptions',
     (req) => req.table === 'push_subscriptions' && req.columns === 'user_id, device_label, device_id',
     (seed, at) => seed.push_subscriptions.push({ ...subscription('admin-a-again', ADMIN_A, at), device_id: 'admin-a-phone' },
@@ -248,7 +254,7 @@ for (const [check, threw, failing] of [['staff', staffList, platformCount], ['di
 }
 
 test('while nobody is enrolled the staff conditions are not judged, and the store says so', async () => {
-  const s = scenario({ seed: recipientOff(world()) });
+  const s = scenario({ seed: ownerOff(world()) });
   await s.run(); // one platform alert recipient has no device
   const [staff] = firing(s, 'PushStaffUnreachable');
   assert.ok(staff, 'the staff account without a device was not recorded');
@@ -293,7 +299,9 @@ function rotatedWorld() {
     started_at: iso(at - 10 * DAY) });
   return seed;
 }
-const rotationLines = (s) => s.db.attempts.filter((a) => a.table === 'notifications' && a.row.user_id === ADMIN_A
+// Owner, 2026-11-09: a rotation is a platform alert, so no person is told of
+// it (the owner gets it through the store only). Counts notices to anyone.
+const rotationLines = (s) => s.db.attempts.filter((a) => a.table === 'notifications'
   && /VAPID key rotated/i.test(a.row.message || '')).length;
 
 test('a VAPID rotation whose run had its store write refused is recorded by the next run as that run saw it, once, and left for the fleet', async () => {
@@ -318,7 +326,7 @@ test('a VAPID rotation whose run had its store write refused is recorded by the 
   await s.run();
   assert.deepEqual(named(s, ROTATED).map((row) => [row.status, row.delivery_count]), [['firing', 1]],
     'recorded once, never re-delivered or resolved here');
-  assert.equal(rotationLines(s), 1, 'the admins are told once, exactly as before');
+  assert.equal(rotationLines(s), 0, 'a person was told of a platform alert');
 });
 
 test('the rotation lifecycle, with the fingerprint log ordered by its started_at default: fired once, never re-delivered or resolved here', async () => {
@@ -338,7 +346,7 @@ test('the rotation lifecycle, with the fingerprint log ordered by its started_at
   s.db.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY = 'third-key';
   await s.run();
   assert.equal(firing(s, ROTATED).length, 2);
-  assert.equal(rotationLines(s), 2);
+  assert.equal(rotationLines(s), 0, 'a person was told of a platform alert');
 });
 
 test('a notice that reached the owner account during a run whose store write was refused is still detected', async () => {
@@ -606,7 +614,7 @@ test('a firing row the task closed before a directly observed condition cleared 
   assert.equal(recoveryOf(s, backlog)?.payload.resolves, backlog.event_key);
 
   // Closed while the condition persists: the recurrence carries it.
-  const t = scenario({ seed: recipientOff(world()) });
+  const t = scenario({ seed: ownerOff(world()) });
   t.dispatcherDown = true;
   await t.run();
   await t.run();
@@ -624,7 +632,7 @@ test('a firing row the task closed before a directly observed condition cleared 
   assert.equal(staffAgain?.payload.unresolved, undefined, 'a device episode carried a row it can never resolve');
   t.dispatcherDown = false;
   t.day(0);
-  t.db.tables.push_subscriptions.push(subscription('admin-a-phone', ADMIN_A, t.db.now()));
+  t.db.tables.push_subscriptions.push(subscription('owner-new-phone', OWNER, t.db.now()));
   await t.run();
   assert.equal(recoveryOf(t, again)?.status, 'resolved');
   assert.equal(recoveryOf(t, stale)?.payload.resolves, stale.event_key, 'the closed episode never got its recovery');
@@ -638,8 +646,11 @@ test('the default scenario still tells everyone else exactly today\'s notices ac
     assert.equal(res.statusCode, 200);
     assert.deepEqual(res.body.problems, TODAY);
   }
-  assert.deepEqual(titles(s, OWNER), []);
-  assert.equal(titles(s, ADMIN_A).length, 7);
+  // Owner, 2026-11-09: one recipient for platform alerts, the owner account,
+  // and he gets them only through the store. No person is told: not him, not
+  // ADMIN_A (no longer a recipient), not anyone else.
+  for (const who of [OWNER, ADMIN_A, ADMIN_B, PLAYER]) assert.deepEqual(titles(s, who), [], `${who} was addressed`);
+  assert.deepEqual(s.phone, [], 'a platform alert reached a phone');
   assert.deepEqual(episodes(s).map((row) => [row.alertname, row.delivery_count]).sort(),
     [[ZOMBIES, 7]]);
 });

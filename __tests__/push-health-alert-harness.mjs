@@ -54,16 +54,18 @@ export const FINGERPRINT = fingerprintOf(PUBLIC_KEY);
 export const SECOND = 1000, MIN = 60_000, HOUR = 3600_000, DAY = 86400_000;
 export const DETECT = 'PushHealthNoticeAddressedToOwnerAccount';
 export const CHECK_FAILED = 'PushHealthCheckFailed';
-// Owner, 2026-11-09: only an account that must receive platform alerts (the
-// owner's verified accounts) being unreachable is a staff fault. The default
-// world's staff account without a device, ADMIN_B, is an ordinary admin, so
-// today's problems are the zombie line alone.
+// Owner, 2026-11-09: ONE account receives platform alerts, the owner's
+// (daniel@bekavactrading.com); no other account is a required recipient
+// because of its role. So only the owner account being unreachable is a staff
+// fault. ADMIN_A (3bb71bfe) and ADMIN_B are ordinary admins: the default
+// world's ADMIN_B without a device is not a fault, and today's problems are the
+// zombie line alone.
 export const TODAY = ['1 zombie subscription(s) across 1 user(s)'];
 export const STAFF_LINE = '1 staff account(s) cannot receive push';
-// The owner's verified second account (a platform alert recipient) loses its
-// phone, so the staff condition is a fault: for tests of its mechanics.
-export const recipientOff = (seed) => {
-  seed.push_subscriptions = seed.push_subscriptions.filter((row) => row.user_id !== ADMIN_A);
+// The owner account, the only platform alert recipient, loses its phone, so
+// the staff condition is a fault: for tests of its mechanics.
+export const ownerOff = (seed) => {
+  seed.push_subscriptions = seed.push_subscriptions.filter((row) => row.user_id !== OWNER);
   return seed;
 };
 export const clone = (value) => (value === undefined ? undefined : JSON.parse(JSON.stringify(value)));
