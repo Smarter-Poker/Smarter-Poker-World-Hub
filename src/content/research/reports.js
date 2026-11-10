@@ -8,9 +8,9 @@
  */
 
 export const RESEARCH_BASE_PATH = '/research';
-export const RESEARCH_DATASET_DOI = '10.5281/zenodo.24095049';
-export const RESEARCH_DATASET_DOI_URL = 'https://doi.org/10.5281/zenodo.24095049';
-export const RESEARCH_DATASET_ZENODO_URL = 'https://zenodo.org/records/24095049';
+export const RESEARCH_DATASET_DOI = '10.5281/zenodo.24115647';
+export const RESEARCH_DATASET_DOI_URL = 'https://doi.org/10.5281/zenodo.24115647';
+export const RESEARCH_DATASET_ZENODO_URL = 'https://zenodo.org/records/24115647';
 export const RESEARCH_DATASET_SWHID = 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f';
 
 export function researchPath(slug) {

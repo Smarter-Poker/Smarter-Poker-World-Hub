@@ -80,25 +80,25 @@ function researchIndexJsonLd() {
       isAccessibleForFree: true,
       publisher: { '@id': ORGANIZATION_ID },
       sameAs: [
-        'https://doi.org/10.5281/zenodo.24095049',
-        'https://doi.org/10.5281/zenodo.24095057',
-        'https://doi.org/10.5281/zenodo.24095560',
-        'https://doi.org/10.5281/zenodo.24095564',
-        'https://doi.org/10.5281/zenodo.24095597',
-        'https://doi.org/10.5281/zenodo.24095602',
-        'https://zenodo.org/records/24095049',
+        'https://doi.org/10.5281/zenodo.24115647',
+        'https://doi.org/10.5281/zenodo.24115636',
+        'https://doi.org/10.5281/zenodo.24115447',
+        'https://doi.org/10.5281/zenodo.24115452',
+        'https://doi.org/10.5281/zenodo.24115453',
+        'https://doi.org/10.5281/zenodo.24115454',
+        'https://zenodo.org/records/24115647',
         'https://github.com/Smarter-Poker/smarter-poker-open-datasets',
         'https://archive.softwareheritage.org/swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
         'https://archive.softwareheritage.org/swh:1:snp:02b8992833424620305edcfb730b3cf8add15747',
         'https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp',
       ],
       identifier: [
-        { '@type': 'PropertyValue', propertyID: 'DOI', value: '10.5281/zenodo.24095049', url: 'https://doi.org/10.5281/zenodo.24095049' },
-        { '@type': 'PropertyValue', propertyID: 'DOI', value: '10.5281/zenodo.24095057', url: 'https://doi.org/10.5281/zenodo.24095057' },
-        { '@type': 'PropertyValue', propertyID: 'DOI', value: '10.5281/zenodo.24095560', url: 'https://doi.org/10.5281/zenodo.24095560' },
-        { '@type': 'PropertyValue', propertyID: 'DOI', value: '10.5281/zenodo.24095564', url: 'https://doi.org/10.5281/zenodo.24095564' },
-        { '@type': 'PropertyValue', propertyID: 'DOI', value: '10.5281/zenodo.24095597', url: 'https://doi.org/10.5281/zenodo.24095597' },
-        { '@type': 'PropertyValue', propertyID: 'DOI', value: '10.5281/zenodo.24095602', url: 'https://doi.org/10.5281/zenodo.24095602' },
+        { '@type': 'PropertyValue', propertyID: 'DOI', value: '10.5281/zenodo.24115647', url: 'https://doi.org/10.5281/zenodo.24115647' },
+        { '@type': 'PropertyValue', propertyID: 'DOI', value: '10.5281/zenodo.24115636', url: 'https://doi.org/10.5281/zenodo.24115636' },
+        { '@type': 'PropertyValue', propertyID: 'DOI', value: '10.5281/zenodo.24115447', url: 'https://doi.org/10.5281/zenodo.24115447' },
+        { '@type': 'PropertyValue', propertyID: 'DOI', value: '10.5281/zenodo.24115452', url: 'https://doi.org/10.5281/zenodo.24115452' },
+        { '@type': 'PropertyValue', propertyID: 'DOI', value: '10.5281/zenodo.24115453', url: 'https://doi.org/10.5281/zenodo.24115453' },
+        { '@type': 'PropertyValue', propertyID: 'DOI', value: '10.5281/zenodo.24115454', url: 'https://doi.org/10.5281/zenodo.24115454' },
         { '@type': 'PropertyValue', propertyID: 'SWHID', value: 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f' },
         { '@type': 'PropertyValue', propertyID: 'SWHID', value: 'swh:1:snp:02b8992833424620305edcfb730b3cf8add15747' },
       ],
@@ -150,8 +150,8 @@ export default function ResearchIndexPage() {
         <meta key="citation-institution" name="citation_technical_report_institution" content="Smarter Software Inc." />
         <meta key="citation-pub-date" name="citation_publication_date" content="2026-11-09" />
         <meta key="citation-public-url" name="citation_public_url" content={url} />
-        <meta key="citation-doi" name="citation_doi" content="10.5281/zenodo.24095049" />
-        <meta key="dc-identifier" name="dc.identifier" content="doi:10.5281/zenodo.24095049" />
+        <meta key="citation-doi" name="citation_doi" content="10.5281/zenodo.24115647" />
+        <meta key="dc-identifier" name="dc.identifier" content="doi:10.5281/zenodo.24115647" />
       </SEOHead>
 
       <main style={{ maxWidth: 920, margin: '0 auto', padding: '40px 20px 80px' }}>
@@ -188,15 +188,15 @@ export default function ResearchIndexPage() {
           <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13.5, lineHeight: 1.75, color: '#cbd5e1' }}>
             <li>
               <strong>Core Open Quantitative Poker Research Datasets (15 CSV &amp; JSON Datasets):</strong>{' '}
-              <a href="https://doi.org/10.5281/zenodo.24095049" target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8' }}>
-                {'DOI: 10.5281/zenodo.24095049'}
+              <a href="https://doi.org/10.5281/zenodo.24115647" target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8' }}>
+                {'DOI: 10.5281/zenodo.24115647'}
               </a>{' '}
               <span>{'(Concept DOI: 10.5281/zenodo.24095048)'}</span>
             </li>
             <li>
               <strong>30-Tool Model Context Protocol (MCP) Server Archive:</strong>{' '}
-              <a href="https://doi.org/10.5281/zenodo.24095057" target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8' }}>
-                {'DOI: 10.5281/zenodo.24095057'}
+              <a href="https://doi.org/10.5281/zenodo.24115636" target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8' }}>
+                {'DOI: 10.5281/zenodo.24115636'}
               </a>{' '}
               •{' '}
               <a href="https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp" target="_blank" rel="noopener noreferrer" style={{ color: '#10b981' }}>
@@ -205,26 +205,26 @@ export default function ResearchIndexPage() {
             </li>
             <li>
               <strong>North American Live Poker Room, Regional Market &amp; Tournament Series Benchmark Dataset:</strong>{' '}
-              <a href="https://doi.org/10.5281/zenodo.24095560" target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8' }}>
-                {'DOI: 10.5281/zenodo.24095560'}
+              <a href="https://doi.org/10.5281/zenodo.24115447" target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8' }}>
+                {'DOI: 10.5281/zenodo.24115447'}
               </a>
             </li>
             <li>
               <strong>100BB 6-Max GTO Preflop Ranges, 169 Starting Hands &amp; 25 Canonical Matchup Benchmarks:</strong>{' '}
-              <a href="https://doi.org/10.5281/zenodo.24095564" target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8' }}>
-                {'DOI: 10.5281/zenodo.24095564'}
+              <a href="https://doi.org/10.5281/zenodo.24115452" target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8' }}>
+                {'DOI: 10.5281/zenodo.24115452'}
               </a>
             </li>
             <li>
               <strong>Smarter.Poker Model Context Protocol (MCP) Server &amp; OpenAPI 3.1 Specification V1.0.2:</strong>{' '}
-              <a href="https://doi.org/10.5281/zenodo.24095597" target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8' }}>
-                {'DOI: 10.5281/zenodo.24095597'}
+              <a href="https://doi.org/10.5281/zenodo.24115453" target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8' }}>
+                {'DOI: 10.5281/zenodo.24115453'}
               </a>
             </li>
             <li>
               <strong>Official Poker Rules (TDA &amp; RROP), 15 Game Variants &amp; 80-Term Quantitative Glossary Corpus:</strong>{' '}
-              <a href="https://doi.org/10.5281/zenodo.24095602" target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8' }}>
-                {'DOI: 10.5281/zenodo.24095602'}
+              <a href="https://doi.org/10.5281/zenodo.24115454" target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8' }}>
+                {'DOI: 10.5281/zenodo.24115454'}
               </a>
             </li>
             <li>
@@ -291,7 +291,7 @@ export default function ResearchIndexPage() {
           badgeValue="Smarter.Poker Research"
           summary="15 First-Party Poker Industry Benchmarks Covering US Cardroom Rake, Tournament Guarantees, Waitlist Turnover, W-2G Tax Reporting, And Solver Frequencies."
           slug="smarter-poker-research-hub"
-          doi="10.5281/zenodo.24095049"
+          doi="10.5281/zenodo.24115647"
         />
 
         <AiPromptLauncher

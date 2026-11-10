@@ -16,6 +16,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 
 const THREE_BET_BENCHMARK_TABLE = [
   {
@@ -88,6 +89,16 @@ export default function ThreeBetCalculatorPage({
   const [callersBetween, setCallersBetween] = useState(initialCallersBetween);
   const [effectiveStackBb, setEffectiveStackBb] = useState(initialEffectiveStackBb);
   const [position, setPosition] = useState(initialPosition);
+
+  useSolvedSpotUrlSync(
+    { open: openSizeBb, callers: callersBetween, stack: effectiveStackBb, pos: position },
+    {
+      open: (v) => setOpenSizeBb(Math.max(2.0, Math.min(15.0, Number(v) || 2.5))),
+      callers: (v) => setCallersBetween(Math.max(0, Math.min(7, Math.round(Number(v) || 0)))),
+      stack: (v) => setEffectiveStackBb(Math.max(15, Math.min(500, Number(v) || 100))),
+      pos: (v) => setPosition(String(v).toUpperCase() === 'OOP' ? 'OOP' : 'IP'),
+    }
+  );
 
   const metrics = useMemo(() => {
     const safeOpen = Math.max(2.0, Math.min(15.0, Number(openSizeBb) || 2.5));

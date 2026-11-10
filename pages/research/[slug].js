@@ -53,8 +53,8 @@ function reportJsonLd(report) {
   const doi = report.doi || null;
   const doiUrl = report.doiUrl || null;
   const zenodoUrl = report.zenodoUrl || null;
-  const collectionDoi = report.collectionDoi || '10.5281/zenodo.24095049';
-  const collectionDoiUrl = report.collectionDoiUrl || 'https://doi.org/10.5281/zenodo.24095049';
+  const collectionDoi = report.collectionDoi || '10.5281/zenodo.24115647';
+  const collectionDoiUrl = report.collectionDoiUrl || 'https://doi.org/10.5281/zenodo.24115647';
   const swhid = report.swhid || 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f';
   return [
     schemas.organization,
@@ -194,8 +194,8 @@ export default function ResearchReportDetailPage({ report }) {
   const chartSvgUrl = `${SITE_URL}/api/seo/research-chart?slug=${encodeURIComponent(report.slug)}`;
   const colabNotebookUrl =
     'https://colab.research.google.com/github/Smarter-Poker/smarter-poker-open-datasets/blob/main/notebooks/poker_math_benchmarks_2026.ipynb';
-  const chartHtmlSnippet = `<figure style="margin:0;padding:14px;background:#070b14;border:1px solid #1e293b;border-radius:10px;text-align:center;"><a href="${url}" target="_blank" rel="noopener"><img src="${chartSvgUrl}" alt="${report.title}" width="880" height="460" style="max-width:100%;height:auto;border-radius:8px;" loading="lazy" /></a><figcaption style="margin-top:8px;font-size:12px;color:#94a3b8;font-family:Inter,system-ui,sans-serif;">Source: <a href="${url}" target="_blank" rel="noopener" style="color:#38bdf8;text-decoration:none;font-weight:600;">${report.shortTitle} (Smarter.Poker Research)</a></figcaption></figure>`;
-  const chartMarkdownSnippet = `[![${report.shortTitle}](${chartSvgUrl})](${url})\n*Source: [${report.title}](${url}) (Smarter.Poker Research, DOI: ${report.doi || '10.5281/zenodo.24095049'})*`;
+  const chartHtmlSnippet = `<figure style="margin:0;padding:14px;background:#070b14;border:1px solid #1e293b;border-radius:10px;text-align:center;"><img src="${chartSvgUrl}" alt="${report.title}" width="880" height="480" style="max-width:100%;height:auto;border-radius:8px;" loading="lazy" /><figcaption style="margin-top:8px;font-size:12px;color:#94a3b8;font-family:Inter,system-ui,sans-serif;">Source: ${report.shortTitle} (Smarter.Poker Research, CC BY 4.0, DOI: ${report.doi || '10.5281/zenodo.24115647'})</figcaption></figure>`;
+  const chartMarkdownSnippet = `![${report.shortTitle}](${chartSvgUrl})\n*Source: ${report.title} (Smarter.Poker Research, DOI: ${report.doi || '10.5281/zenodo.24115647'}, ${url})*`;
   const others = RESEARCH_REPORTS.filter((r) => r.slug !== report.slug);
 
   const handleChartCopy = async (key, value) => {
@@ -229,7 +229,7 @@ export default function ResearchReportDetailPage({ report }) {
         {report.doi ? <meta key="citation-doi" name="citation_doi" content={report.doi} /> : null}
         <meta key="citation-language" name="citation_language" content="en" />
         <meta key="dc-identifier" name="dc.identifier" content={report.doi ? `doi:${report.doi}` : url} />
-        <meta key="dc-relation-ispartof" name="dc.relation.ispartof" content={`doi:${report.collectionDoi || '10.5281/zenodo.24095049'}`} />
+        <meta key="dc-relation-ispartof" name="dc.relation.ispartof" content={`doi:${report.collectionDoi || '10.5281/zenodo.24115647'}`} />
         <meta key="dc-rights" name="dc.rights" content="https://creativecommons.org/licenses/by/4.0/" />
       </SEOHead>
 
@@ -248,7 +248,7 @@ export default function ResearchReportDetailPage({ report }) {
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
           <a
-            href={report.doiUrl || report.collectionDoiUrl || 'https://doi.org/10.5281/zenodo.24095049'}
+            href={report.doiUrl || report.collectionDoiUrl || 'https://doi.org/10.5281/zenodo.24115647'}
             target="_blank"
             rel="noopener noreferrer"
             style={{
@@ -262,7 +262,7 @@ export default function ResearchReportDetailPage({ report }) {
               textDecoration: 'none',
             }}
           >
-            {report.doi ? `Report DOI: ${report.doi}` : `Parent Dataset Archive (Zenodo DOI: ${report.collectionDoi || '10.5281/zenodo.24095049'})`}
+            {report.doi ? `Report DOI: ${report.doi}` : `Parent Dataset Archive (Zenodo DOI: ${report.collectionDoi || '10.5281/zenodo.24115647'})`}
           </a>
           <a
             href={`https://archive.softwareheritage.org/${report.swhid || 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f'}`}

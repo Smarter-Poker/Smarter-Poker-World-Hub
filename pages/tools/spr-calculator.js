@@ -16,6 +16,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 
 const SPR_BENCHMARK_TABLE = [
   {
@@ -92,6 +93,14 @@ export default function SprCalculatorPage({
 }) {
   const [potSize, setPotSize] = useState(initialPot);
   const [effectiveStack, setEffectiveStack] = useState(initialEffectiveStack);
+
+  useSolvedSpotUrlSync(
+    { pot: potSize, stack: effectiveStack },
+    {
+      pot: (v) => setPotSize(Math.max(1, Number(v) || 100)),
+      stack: (v) => setEffectiveStack(Math.max(1, Number(v) || 400)),
+    }
+  );
 
   const metrics = useMemo(() => {
     const safePot = Math.max(1, Number(potSize) || 100);

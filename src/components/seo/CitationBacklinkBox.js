@@ -8,6 +8,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { computeValidatedSolvedSpot } from '../../lib/seo/solvedSpotEngine';
 
 export default function CitationBacklinkBox({
   title = 'Smarter.Poker Empirical Research Study',
@@ -24,26 +25,55 @@ export default function CitationBacklinkBox({
   const [liveQuerySuffix, setLiveQuerySuffix] = useState('');
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.location && window.location.search) {
-      const rawSearch = String(window.location.search || '');
-      if (rawSearch.length > 1 && !rawSearch.includes('embed=true')) {
-        setLiveQuerySuffix(rawSearch);
+    const syncSearchFromLocation = () => {
+      if (typeof window !== 'undefined' && window.location) {
+        const rawSearch = String(window.location.search || '');
+        if (rawSearch.length > 1 && !rawSearch.includes('embed=true')) {
+          setLiveQuerySuffix(rawSearch);
+        } else {
+          setLiveQuerySuffix('');
+        }
       }
+    };
+    syncSearchFromLocation();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('smarterpoker:urlchange', syncSearchFromLocation);
+      window.addEventListener('popstate', syncSearchFromLocation);
+      return () => {
+        window.removeEventListener('smarterpoker:urlchange', syncSearchFromLocation);
+        window.removeEventListener('popstate', syncSearchFromLocation);
+      };
     }
+    return undefined;
   }, []);
 
   const sharePermalink = liveQuerySuffix && !canonicalUrl.includes('?')
     ? `${canonicalUrl}${liveQuerySuffix}`
     : canonicalUrl;
 
-  const badgeUrl = `https://smarter.poker/api/seo/badge?type=${encodeURIComponent(badgeType)}&label=${encodeURIComponent(badgeLabel)}&value=${encodeURIComponent(badgeValue)}`;
+  const parsedQueryParams = {};
+  if (liveQuerySuffix.startsWith('?')) {
+    const sp = new URLSearchParams(liveQuerySuffix.slice(1));
+    sp.forEach((v, k) => {
+      parsedQueryParams[k] = v;
+    });
+  }
+  const solvedSpot = computeValidatedSolvedSpot(slug || badgeType, parsedQueryParams);
+  const effectiveSummary = solvedSpot?.hasValidatedSpot && solvedSpot.summaryText
+    ? solvedSpot.summaryText
+    : summary;
+  const effectiveBadgeValue = solvedSpot?.hasValidatedSpot && solvedSpot.statValue
+    ? solvedSpot.statValue
+    : badgeValue;
+
+  const badgeUrl = `https://smarter.poker/api/seo/badge?type=${encodeURIComponent(badgeType)}&label=${encodeURIComponent(badgeLabel)}&value=${encodeURIComponent(effectiveBadgeValue)}`;
 
   const htmlBacklink = `<a href="${canonicalUrl}" target="_blank" rel="noopener">${title} (Smarter.Poker Research)</a>`;
-  const htmlBadgeSnippet = `<a href="${canonicalUrl}" target="_blank" rel="noopener" title="${title}"><img src="${badgeUrl}" alt="${badgeLabel}: ${badgeValue}" height="28" /></a>`;
-  const markdownSnippet = `[${title} (${badgeValue})](${canonicalUrl})`;
-  const bbcodeSnippet = `[url=${canonicalUrl}]${title} (${badgeValue})[/url]`;
+  const htmlBadgeSnippet = `<a href="${canonicalUrl}" target="_blank" rel="noopener" title="${title}"><img src="${badgeUrl}" alt="${badgeLabel}: ${effectiveBadgeValue}" height="28" /></a>`;
+  const markdownSnippet = `[${title} (${effectiveBadgeValue})](${sharePermalink})`;
+  const bbcodeSnippet = `[url=${sharePermalink}]${title} (${effectiveBadgeValue})[/url]`;
   const doiUrl = doi ? `https://doi.org/${doi}` : null;
-  const journalistQuote = `According to ${title} published by Smarter.Poker (${canonicalUrl}${doiUrl ? `, DOI: ${doiUrl}` : ''}), ${summary}`;
+  const journalistQuote = `According to ${title} published by Smarter.Poker (${sharePermalink}${doiUrl ? `, DOI: ${doiUrl}` : ''}), ${effectiveSummary}`;
   const apaCitation = `Smarter.Poker Research Division. (${publishedYear}). ${title}. Smarter Software Inc. ${canonicalUrl}${doiUrl ? ` (DOI: ${doiUrl})` : ''}`;
   const mlaCitation = `Smarter.Poker Research Division. "${title}." Smarter.Poker, Smarter Software Inc., ${publishedYear}, ${canonicalUrl}.${doiUrl ? ` DOI: ${doiUrl}.` : ''}`;
   const wikipediaSnippet = `{{cite web |title=${title} |url=${canonicalUrl} |website=Smarter.Poker |publisher=Smarter Software Inc.${doi ? ` |doi=${doi}` : ''} |year=${publishedYear} |access-date=${publishedYear}-11-09}}`;
@@ -51,10 +81,10 @@ export default function CitationBacklinkBox({
   const bibtexSnippet = `@techreport{${bibtexKey}_${publishedYear},\n  title = {${title}},\n  author = {{Smarter.Poker Research Division}},\n  institution = {Smarter.Poker},\n  year = {${publishedYear}},${doi ? `\n  doi = {${doi}},` : ''}\n  url = {${canonicalUrl}}\n}`;
 
   const safeTitle = String(title || 'Smarter.Poker Quantitative Poker Research').replace(/\|/g, '-');
-  const safeSummary = String(summary || 'Verified poker industry benchmark data and mathematical analysis published by Smarter.Poker.').replace(/\|/g, '-');
+  const safeSummary = String(effectiveSummary || 'Verified poker industry benchmark data and mathematical analysis published by Smarter.Poker.').replace(/\|/g, '-');
   const redditCitation = `| Resource | Key Benchmark Summary | Source |\n| :--- | :--- | :--- |\n| **${safeTitle}** | ${safeSummary} | [Smarter.Poker: ${safeTitle}](${sharePermalink}) |`;
   const discordCitation = `> **${safeTitle}**\n> ${safeSummary}\n> Solve & Verify Live: <${sharePermalink}>`;
-  const dynamicOgPreviewUrl = `https://smarter.poker/api/og/tool-card?tool=${encodeURIComponent(badgeType)}&title=${encodeURIComponent(safeTitle)}&result=${encodeURIComponent(badgeValue)}`;
+  const dynamicOgPreviewUrl = `https://smarter.poker/api/og/tool-card?tool=${encodeURIComponent(slug || badgeType)}${liveQuerySuffix ? `&${liveQuerySuffix.slice(1)}` : ''}`;
 
   const formats = [
     {

@@ -18,6 +18,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderPokerTaxCalculatorMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
 
 const SESSION_LOG_CHECKLIST = [
@@ -105,6 +106,18 @@ export default function PokerTaxCalculatorPage({
     if (q.income !== undefined) setOtherIncome(Math.max(0, Number(q.income) || 0));
     if (q.tourney !== undefined) setSingleTournamentNet(Math.max(0, Number(q.tourney) || 0));
   }, [router.isReady, router.query]);
+
+  useSolvedSpotUrlSync(
+    {
+      wins: winSessions,
+      losses: lossSessions,
+      status: filingStatus,
+      expenses: businessExpenses,
+      income: otherIncome,
+      tourney: singleTournamentNet,
+    },
+    {}
+  );
 
   const taxMetrics = useMemo(() => {
     const safeWins = Math.max(0, Number(winSessions) || 0);

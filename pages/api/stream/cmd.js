@@ -696,6 +696,7 @@ export default function handler(req, res) {
     item: result.command || String(cmd || 'help'),
     partner: channel || req.headers?.['nightbot-channel'] || req.headers?.referer || '',
     source: 'stream-cmd',
+    req,
   });
 
   res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=3600');

@@ -478,6 +478,7 @@ export default function handler(req, res) {
       item: 'catalog',
       partner: partner || req.headers?.referer || '',
       source: 'oembed-catalog',
+      req,
     });
     return res.status(200).json(buildPartnerInstallationCatalog({ partner }));
   }
@@ -488,6 +489,7 @@ export default function handler(req, res) {
     item: url,
     partner: partner || req.headers?.referer || '',
     source: 'oembed-url',
+    req,
   });
   return res.status(result.status).json(result.body);
 }

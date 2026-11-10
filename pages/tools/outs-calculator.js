@@ -17,6 +17,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderOutsCalculatorMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
 
 const DRAW_PRESETS = [
@@ -127,6 +128,16 @@ export default function OutsCalculatorPage({
     if (q.pot !== undefined) setPotSize(Math.max(1, Number(q.pot) || 100));
     if (q.call !== undefined) setCallSize(Math.max(0, Number(q.call) || 50));
   }, [router.isReady, router.query]);
+
+  useSolvedSpotUrlSync(
+    { outs, street, pot: potSize, call: callSize },
+    {
+      outs: (v) => setOuts(Math.max(1, Math.min(21, Math.round(Number(v) || 9)))),
+      street: (v) => setStreet(String(v).toLowerCase() === 'turn' ? 'turn' : 'flop'),
+      pot: (v) => setPotSize(Math.max(1, Number(v) || 100)),
+      call: (v) => setCallSize(Math.max(0, Number(v) || 50)),
+    }
+  );
 
   const metrics = useMemo(() => {
     const safeOuts = Math.max(1, Math.min(21, Math.round(Number(outs) || 9)));

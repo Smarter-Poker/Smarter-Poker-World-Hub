@@ -2,6 +2,7 @@
   "mcpVersion": "2024-11-05",
   "name": "smarter-poker-mcp-server",
   "version": "2.0.0",
+  "package_version": "1.0.5",
   "title": "Smarter.Poker Quantitative Poker & Live Venue MCP Server",
   "description": "Zero-auth Model Context Protocol (MCP) server providing 45 deterministic poker equity, Malmuth-Harville ICM, tournament chop, Flop Board Texture, Harrington M-Ratio, Satellite Bubble Factor, Straddle & Bomb Pot EV, Bad Beat Jackpot EV, Cash Session Planner, 7-Card Showdown Resolver, Hand History Formatter, GTO 169-hand preflop range, 25 canonical hand-vs-hand matchups, 9 table position guides, 15 US state poker law guides, 10 major poker series strategy guides, US poker tax, tournament staking markup, live rake vs time-collection, 30 TDA floor rulings, 15 game variants, 12 regional market guides, and North American live poker room intelligence tools.",
   "homepage": "https://smarter.poker",
@@ -9,6 +10,22 @@
   "fullContextUrl": "https://smarter.poker/llms-full.txt",
   "openApiSpecUrl": "https://smarter.poker/api/openapi.json",
   "agentCardUrl": "https://smarter.poker/.well-known/agent.json",
+  "glamaDirectoryUrl": "https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp",
+  "glamaSchemaUrl": "https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp/schema",
+  "academicCitations": {
+    "zenodoDois": [
+      "https://doi.org/10.5281/zenodo.24115647",
+      "https://doi.org/10.5281/zenodo.24115636",
+      "https://doi.org/10.5281/zenodo.24115447",
+      "https://doi.org/10.5281/zenodo.24115452",
+      "https://doi.org/10.5281/zenodo.24115453",
+      "https://doi.org/10.5281/zenodo.24115454"
+    ],
+    "softwareHeritageSwhids": [
+      "swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f",
+      "swh:1:snp:02b8992833424620305edcfb730b3cf8add15747"
+    ]
+  },
   "endpoints": {
     "http": "https://smarter.poker/api/mcp",
     "transport": "streamable-http",
@@ -73,6 +90,13 @@
     "resolve_holdem_showdown_winner",
     "get_poker_position_strategy",
     "get_us_state_poker_guide"
+  ],
+  "supported_tool_aliases": [
+    "calculate_poker_tax_w2g",
+    "calculate_staking_makeup",
+    "calculate_iso_raise_sizing",
+    "generate_home_game_kit",
+    "lookup_tournament_series_guide"
   ],
   "prompts": [
     "find_live_poker_near_city",

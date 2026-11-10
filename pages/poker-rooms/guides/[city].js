@@ -40,8 +40,8 @@ export default function PokerMarketCityGuidePage({ guide }) {
   const canonicalPath = marketGuidePath(guide.slug);
   const canonicalUrl = `${SITE_URL}${canonicalPath}`;
   const otherGuides = POKER_MARKET_GUIDES.filter((g) => g.slug !== guide.slug);
-  const badgeSvgUrl = `${SITE_URL}/api/seo/badge?type=verified-venue&label=${encodeURIComponent(`Verified ${guide.regionName} Room`)}&value=${encodeURIComponent('Smarter.Poker Directory')}`;
-  const venueBadgeHtml = `<a href="${canonicalUrl}" target="_blank" rel="noopener" title="${guide.h1}"><img src="${badgeSvgUrl}" alt="Verified ${guide.regionName} Poker Room On Smarter.Poker" height="28" style="border:0;height:28px;" /></a>`;
+  const badgeSvgUrl = `${SITE_URL}/api/seo/badge?type=directory-listing&label=${encodeURIComponent(`Listed In ${guide.regionName} Directory`)}&value=${encodeURIComponent('Smarter.Poker Public Guide')}`;
+  const venueBadgeHtml = `<a href="${canonicalUrl}" target="_blank" rel="noopener" title="${guide.h1}"><img src="${badgeSvgUrl}" alt="Publicly Listed In ${guide.regionName} Poker Room Directory On Smarter.Poker" height="28" style="border:0;height:28px;" /></a>`;
   const marketTableHtml = `<div style="padding:14px;background:#020608;border:1px solid #1e293b;border-radius:4px;color:#e2e8f0;font-family:Inter,system-ui,sans-serif;"><div style="font-size:14px;font-weight:700;color:#25c8ff;margin-bottom:8px;">${guide.regionName} Live Poker Room Benchmark (${guide.activeRoomsEstimate})</div><p style="margin:0 0 10px 0;font-size:12.5px;color:#cbd5e1;">Standard Rake Model: ${guide.typicalRakeModel} | Stakes: ${guide.signatureStakes}</p><a href="${canonicalUrl}" target="_blank" rel="noopener" style="font-size:12px;font-weight:700;color:#f2b84b;text-decoration:none;">View Full ${guide.regionName} Live Poker Directory &amp; Rake Guide At Smarter.Poker</a></div>`;
 
   const handleCopyMarketSnippet = async (key, text) => {
@@ -221,13 +221,16 @@ export default function PokerMarketCityGuidePage({ guide }) {
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, color: '#f2b84b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                For Cardroom Managers &amp; Regional Poker Publishers
+                For Cardroom Publishers &amp; Regional Poker Media
               </div>
               <h2 style={{ fontSize: 19, fontWeight: 700, color: '#f8fafc', margin: '4px 0 6px 0' }}>
-                Embed Verified {guide.regionName} Poker Room Badge Or Market Snapshot
+                Embed {guide.regionName} Public Directory Listing Badge Or Market Snapshot
               </h2>
               <p style={{ fontSize: 13.5, color: '#cbd5e1', margin: 0 }}>
-                Display The Official Smarter.Poker Verified {guide.regionName} Venue Badge Or Live Rake &amp; Stakes Snapshot On Your Cardroom Website Or Blog.
+                Display The Smarter.Poker {guide.regionName} Public Directory Listing Badge Or Regional Rake &amp; Stakes Snapshot On Your Website Or Blog.
+              </p>
+              <p style={{ fontSize: 12, color: '#94a3b8', margin: '6px 0 0 0', lineHeight: 1.5 }}>
+                Listing Status Distinction: This Self-Service Badge Indicates A Public Directory Listing Compiled From State Gaming Commission Records And Published Cardroom Schedules. It Does Not Represent An Owner-Claimed Club Commander Venue Or A Commercial Partnership With Smarter.Poker.
               </p>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -246,8 +249,8 @@ export default function PokerMarketCityGuidePage({ guide }) {
                 }}
               >
                 {copiedMarketEmbed === 'badge'
-                  ? 'Copied Verified Room SVG Badge'
-                  : 'Copy Verified Room SVG Badge HTML'}
+                  ? 'Copied Public Directory Badge'
+                  : 'Copy Public Directory Listing Badge HTML'}
               </button>
               <button
                 type="button"
@@ -347,11 +350,12 @@ export default function PokerMarketCityGuidePage({ guide }) {
         <CitationBacklinkBox
           title={guide.h1}
           canonicalUrl={canonicalUrl}
-          badgeType="research"
-          badgeLabel="Regional Market Guide"
+          badgeType="directory-listing"
+          badgeLabel="Public Directory Guide"
           badgeValue={`${guide.regionName} (${guide.stateCode})`}
           summary={guide.summary}
           slug={`poker-market-guide-${guide.slug}`}
+          doi="10.5281/zenodo.24115447"
         />
 
         <AiPromptLauncher

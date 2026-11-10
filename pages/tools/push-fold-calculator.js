@@ -15,6 +15,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 
 const POSITION_SHOVE_BENCHMARKS = [
   { position: 'Under The Gun (UTG - 8-Max)', bb15: '13.8%', bb12: '16.5%', bb10: '19.4%', bb8: '23.6%', bb5: '31.2%', keyHands: '55+, ATs+, KQs, AJo+' },
@@ -74,6 +75,18 @@ export default function PushFoldCalculatorPage({
       : 'BTN'
   );
   const [antePct, setAntePct] = useState(initialAntePct);
+
+  useSolvedSpotUrlSync(
+    { stack: stackBb, pos: position, ante: antePct },
+    {
+      stack: (v) => setStackBb(Math.max(2, Math.min(25, Number(v) || 10))),
+      pos: (v) =>
+        setPosition(
+          POSITION_BASE_FACTORS[String(v).toUpperCase()] ? String(v).toUpperCase() : 'BTN'
+        ),
+      ante: (v) => setAntePct(Math.max(0, Math.min(25, Number(v) || 12.5))),
+    }
+  );
 
   const metrics = useMemo(() => {
     const safeBb = Math.max(2, Math.min(25, Number(stackBb) || 10));
