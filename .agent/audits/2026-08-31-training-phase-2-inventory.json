@@ -11,7 +11,7 @@
     "dynamicGameRouteExpansions": 214,
     "trainingApiRouteTemplates": 54,
     "apiReferencePrefixes": 3,
-    "dependencyFiles": 374,
+    "dependencyFiles": 375,
     "componentFiles": 53,
     "hookFiles": 14,
     "ctas": 424,
@@ -19,8 +19,8 @@
     "persistenceFiles": 87,
     "realtimeFiles": 6,
     "tests": 178,
-    "markerCandidates": 369,
-    "possibleUnwiredFunctions": 404,
+    "markerCandidates": 372,
+    "possibleUnwiredFunctions": 405,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 217,
     "routeStateUnassignedGaps": 0,
@@ -7719,6 +7719,7 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
         "src/lib/seo/shareImageMetadata.mjs",
+        "src/lib/seo/solvedSpotEngine.js",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
@@ -38833,7 +38834,9 @@
     },
     {
       "file": "src/components/seo/CitationBacklinkBox.js",
-      "imports": [],
+      "imports": [
+        "src/lib/seo/solvedSpotEngine.js"
+      ],
       "links": [],
       "apiReferences": [
         "/api/seo/referral-stats"
@@ -38843,7 +38846,7 @@
         {
           "element": "a",
           "name": "All Webmaster Widgets & Badges",
-          "line": 179,
+          "line": 209,
           "handler": null,
           "destination": "/tools/embeds",
           "type": null,
@@ -38853,7 +38856,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 215,
+          "line": 245,
           "handler": "() => handleCopy('permalink', sharePermalink)",
           "destination": null,
           "type": "button",
@@ -38863,7 +38866,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 231,
+          "line": 261,
           "handler": "() => handleCopy('discord-quick', discordCitation)",
           "destination": null,
           "type": "button",
@@ -38873,7 +38876,7 @@
         {
           "element": "a",
           "name": "View Social OG Card",
-          "line": 249,
+          "line": 279,
           "handler": null,
           "destination": "dynamicOgPreviewUrl",
           "type": null,
@@ -38883,7 +38886,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 294,
+          "line": 324,
           "handler": "() => handleCopy(item.key, item.code)",
           "destination": null,
           "type": "button",
@@ -38923,15 +38926,23 @@
       "functions": [
         {
           "name": "CitationBacklinkBox",
-          "line": 12,
+          "line": 13,
           "references": 2,
           "exported": true,
           "defaultExport": true,
           "namedFunctionExpression": false
         },
         {
+          "name": "syncSearchFromLocation",
+          "line": 28,
+          "references": 6,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "handleCopy",
-          "line": 128,
+          "line": 158,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -39129,7 +39140,7 @@
       "functions": [
         {
           "name": "normalizeJsonLdGraph",
-          "line": 51,
+          "line": 77,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -39137,7 +39148,7 @@
         },
         {
           "name": "usePathname",
-          "line": 89,
+          "line": 111,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -39145,7 +39156,7 @@
         },
         {
           "name": "SEOHead",
-          "line": 102,
+          "line": 124,
           "references": 4,
           "exported": true,
           "defaultExport": true,
@@ -57165,6 +57176,122 @@
       "markers": []
     },
     {
+      "file": "src/lib/seo/solvedSpotEngine.js",
+      "imports": [],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "clampNum",
+          "line": 216,
+          "references": 54,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "computeMalmuthHarvilleIcm",
+          "line": 223,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "recurse",
+          "line": 230,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "computeValidatedSolvedSpot",
+          "line": 255,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "buildSolvedSpotOgImageUrl",
+          "line": 638,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "useSolvedSpotUrlSync",
+          "line": 664,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "buildSolvedSpotOgImageUrl"
+      ],
+      "markers": [
+        {
+          "kind": "FALLBACK",
+          "line": 216,
+          "excerpt": "function clampNum(val, min, max, fallback = null) {",
+          "disposition": "input-normalization-default",
+          "review": "accepted",
+          "rationale": "Explicit function default used to normalize missing display/input values."
+        },
+        {
+          "kind": "FALLBACK",
+          "line": 217,
+          "excerpt": "if (val === undefined || val === null || String(val).trim() === '') return fallback;",
+          "disposition": "input-normalization-default",
+          "review": "accepted",
+          "rationale": "Explicit function default used to normalize missing display/input values."
+        },
+        {
+          "kind": "FALLBACK",
+          "line": 219,
+          "excerpt": "if (!Number.isFinite(n)) return fallback;",
+          "disposition": "input-normalization-default",
+          "review": "accepted",
+          "rationale": "Explicit function default used to normalize missing display/input values."
+        }
+      ]
+    },
+    {
       "file": "src/lib/seo/summarySchema.js",
       "imports": [
         "src/lib/seo/hubPageSchema.js",
@@ -70558,6 +70685,10 @@
       "to": "src/stores/toastStore.js"
     },
     {
+      "from": "src/components/seo/CitationBacklinkBox.js",
+      "to": "src/lib/seo/solvedSpotEngine.js"
+    },
+    {
       "from": "src/components/seo/HubPageSummary.js",
       "to": "src/lib/seo/summarySchema.js"
     },
@@ -76712,11 +76843,11 @@
       "effectRef": "src/components/poker/QuizAnswer.jsx"
     },
     {
-      "id": "src/components/seo/CitationBacklinkBox.js:179:1",
+      "id": "src/components/seo/CitationBacklinkBox.js:209:1",
       "file": "src/components/seo/CitationBacklinkBox.js",
       "element": "a",
       "name": "All Webmaster Widgets & Badges",
-      "line": 179,
+      "line": 209,
       "handler": null,
       "destination": "/tools/embeds",
       "type": null,
@@ -76725,11 +76856,11 @@
       "effectRef": "src/components/seo/CitationBacklinkBox.js"
     },
     {
-      "id": "src/components/seo/CitationBacklinkBox.js:215:2",
+      "id": "src/components/seo/CitationBacklinkBox.js:245:2",
       "file": "src/components/seo/CitationBacklinkBox.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 215,
+      "line": 245,
       "handler": "() => handleCopy('permalink', sharePermalink)",
       "destination": null,
       "type": "button",
@@ -76738,11 +76869,11 @@
       "effectRef": "src/components/seo/CitationBacklinkBox.js"
     },
     {
-      "id": "src/components/seo/CitationBacklinkBox.js:231:3",
+      "id": "src/components/seo/CitationBacklinkBox.js:261:3",
       "file": "src/components/seo/CitationBacklinkBox.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 231,
+      "line": 261,
       "handler": "() => handleCopy('discord-quick', discordCitation)",
       "destination": null,
       "type": "button",
@@ -76751,11 +76882,11 @@
       "effectRef": "src/components/seo/CitationBacklinkBox.js"
     },
     {
-      "id": "src/components/seo/CitationBacklinkBox.js:249:4",
+      "id": "src/components/seo/CitationBacklinkBox.js:279:4",
       "file": "src/components/seo/CitationBacklinkBox.js",
       "element": "a",
       "name": "View Social OG Card",
-      "line": 249,
+      "line": 279,
       "handler": null,
       "destination": "dynamicOgPreviewUrl",
       "type": null,
@@ -76764,11 +76895,11 @@
       "effectRef": "src/components/seo/CitationBacklinkBox.js"
     },
     {
-      "id": "src/components/seo/CitationBacklinkBox.js:294:5",
+      "id": "src/components/seo/CitationBacklinkBox.js:324:5",
       "file": "src/components/seo/CitationBacklinkBox.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 294,
+      "line": 324,
       "handler": "() => handleCopy(item.key, item.code)",
       "destination": null,
       "type": "button",
@@ -84779,6 +84910,7 @@
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/quizStructuredData.mjs",
         "src/lib/seo/shareImageMetadata.mjs",
+        "src/lib/seo/solvedSpotEngine.js",
         "src/lib/seo/summarySchema.js",
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
@@ -93382,7 +93514,8 @@
     {
       "file": "src/components/seo/CitationBacklinkBox.js",
       "reachableFiles": [
-        "src/components/seo/CitationBacklinkBox.js"
+        "src/components/seo/CitationBacklinkBox.js",
+        "src/lib/seo/solvedSpotEngine.js"
       ],
       "apiReferences": [
         "/api/seo/referral-stats"
@@ -98476,6 +98609,18 @@
       "tests": []
     },
     {
+      "file": "src/lib/seo/solvedSpotEngine.js",
+      "reachableFiles": [
+        "src/lib/seo/solvedSpotEngine.js"
+      ],
+      "apiReferences": [],
+      "persistence": [],
+      "realtime": [],
+      "tests": [
+        "__tests__/backlink-embed-citation-engine.test.mjs"
+      ]
+    },
+    {
       "file": "src/lib/seo/summarySchema.js",
       "reachableFiles": [
         "src/lib/seo/hubPageSchema.js",
@@ -102782,6 +102927,33 @@
         "review": "documented-follow-up",
         "followUpPhase": 4,
         "rationale": "Training-data downgrade requires Phase 4 legality, provenance, semantics, and answer-contract evidence."
+      },
+      {
+        "file": "src/lib/seo/solvedSpotEngine.js",
+        "kind": "FALLBACK",
+        "line": 216,
+        "excerpt": "function clampNum(val, min, max, fallback = null) {",
+        "disposition": "input-normalization-default",
+        "review": "accepted",
+        "rationale": "Explicit function default used to normalize missing display/input values."
+      },
+      {
+        "file": "src/lib/seo/solvedSpotEngine.js",
+        "kind": "FALLBACK",
+        "line": 217,
+        "excerpt": "if (val === undefined || val === null || String(val).trim() === '') return fallback;",
+        "disposition": "input-normalization-default",
+        "review": "accepted",
+        "rationale": "Explicit function default used to normalize missing display/input values."
+      },
+      {
+        "file": "src/lib/seo/solvedSpotEngine.js",
+        "kind": "FALLBACK",
+        "line": 219,
+        "excerpt": "if (!Number.isFinite(n)) return fallback;",
+        "disposition": "input-normalization-default",
+        "review": "accepted",
+        "rationale": "Explicit function default used to normalize missing display/input values."
       },
       {
         "file": "src/lib/serverAuth.js",
@@ -107797,6 +107969,21 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "src/components/seo/SEOHead.js"
+        ]
+      },
+      {
+        "file": "src/lib/seo/solvedSpotEngine.js",
+        "name": "buildSolvedSpotOgImageUrl",
+        "line": 638,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/api/og/tool-card.js"
         ]
       },
       {
@@ -112682,6 +112869,33 @@
         "rationale": "Training-data downgrade requires Phase 4 legality, provenance, semantics, and answer-contract evidence."
       },
       {
+        "file": "src/lib/seo/solvedSpotEngine.js",
+        "kind": "FALLBACK",
+        "line": 216,
+        "excerpt": "function clampNum(val, min, max, fallback = null) {",
+        "disposition": "input-normalization-default",
+        "review": "accepted",
+        "rationale": "Explicit function default used to normalize missing display/input values."
+      },
+      {
+        "file": "src/lib/seo/solvedSpotEngine.js",
+        "kind": "FALLBACK",
+        "line": 217,
+        "excerpt": "if (val === undefined || val === null || String(val).trim() === '') return fallback;",
+        "disposition": "input-normalization-default",
+        "review": "accepted",
+        "rationale": "Explicit function default used to normalize missing display/input values."
+      },
+      {
+        "file": "src/lib/seo/solvedSpotEngine.js",
+        "kind": "FALLBACK",
+        "line": 219,
+        "excerpt": "if (!Number.isFinite(n)) return fallback;",
+        "disposition": "input-normalization-default",
+        "review": "accepted",
+        "rationale": "Explicit function default used to normalize missing display/input values."
+      },
+      {
         "file": "src/lib/serverAuth.js",
         "kind": "FALLBACK",
         "line": 49,
@@ -117695,6 +117909,21 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "src/components/seo/SEOHead.js"
+        ]
+      },
+      {
+        "file": "src/lib/seo/solvedSpotEngine.js",
+        "name": "buildSolvedSpotOgImageUrl",
+        "line": 638,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/api/og/tool-card.js"
         ]
       },
       {

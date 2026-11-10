@@ -15,6 +15,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 
 const STANDARD_BET_SIZES = [
   { label: '20% Pot (Block Bet)', pct: 20, ratio: '6.0 : 1', reqEquity: '14.3%', mdf: '83.3%', bluffRatio: '16.7% Bluffs / 83.3% Value' },
@@ -65,6 +66,15 @@ export default function PotOddsCalculatorPage({
   const [potSize, setPotSize] = useState(initialPot);
   const [betSize, setBetSize] = useState(initialBet);
   const [outs, setOuts] = useState(initialOuts);
+
+  useSolvedSpotUrlSync(
+    { pot: potSize, bet: betSize, outs },
+    {
+      pot: (v) => setPotSize(Math.max(1, Number(v) || 100)),
+      bet: (v) => setBetSize(Math.max(1, Number(v) || 50)),
+      outs: (v) => setOuts(Math.max(0, Math.min(25, Number(v) || 9))),
+    }
+  );
 
   const metrics = useMemo(() => {
     const safePot = Math.max(1, Number(potSize) || 100);

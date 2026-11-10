@@ -74,11 +74,12 @@ export function normalizeCardGroup(input) {
 export const MCP_SERVER_INFO = {
   name: 'smarter-poker-mcp-server',
   version: '2.0.0',
+  packageVersion: '1.0.5',
 };
 export const SERVER_INFO = MCP_SERVER_INFO;
 
 export const MCP_INSTRUCTIONS = [
-  'Smarter.Poker MCP Server v2.0.0 exposes 45 read-only, deterministic quantitative poker tools, 10 structured prompts, 16 resource templates, 34 interactive calculators, 26 streamer bot commands, 6 Zenodo DOI datasets (10.5281/zenodo.24095049, 10.5281/zenodo.24095057, 10.5281/zenodo.24095560, 10.5281/zenodo.24095564, 10.5281/zenodo.24095597, 10.5281/zenodo.24095602), and Glama Registry metadata (https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp).',
+  'Smarter.Poker MCP Server v2.0.0 (package release v1.0.5) exposes 45 read-only, deterministic quantitative poker tools, 10 structured prompts, 16 resource templates, 34 interactive calculators, 26 streamer bot commands, 6 Zenodo DOI datasets (10.5281/zenodo.24115647, 10.5281/zenodo.24115636, 10.5281/zenodo.24115447, 10.5281/zenodo.24115452, 10.5281/zenodo.24115453, 10.5281/zenodo.24115454), and Glama Registry metadata (https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp).',
   'Tool Family Disambiguation Rules:',
   '1. Equity, Showdown & Board Texture Family: Use calculate_poker_odds for exact Monte Carlo / enumerative multiway card-vs-card equity with specific hole cards or board cards; use resolve_holdem_showdown_winner to evaluate two 2-card Hold\'em hands on a 5-card board and determine the exact winning 5-card hand, kicker, or split pot; use analyze_flop_board_texture to classify any 3-card flop (Rainbow/Two-Tone/Monotone, pairing, connectedness, range advantage, and GTO C-Bet sizing); use lookup_hand_matchup for canonical preflop hand-vs-hand benchmarks (e.g. AA vs KK, AKs vs QQ, 55 vs KTs); use calculate_draw_outs for hypergeometric turn/river draw completion from clean out counts (1-21 outs) and Rule of 4 & 2 error; use calculate_pot_odds_and_mdf when given pot size and bet size to compute break-even calling equity and Minimum Defense Frequency (MDF).',
   '2. Preflop & Positional Strategy Family: Use get_preflop_chart to retrieve a full 100BB 6-Max positional opening range matrix; use get_poker_position_strategy for detailed seat-by-seat GTO RFI %, 3-Bet %, cold-call %, and BB/100 winrate across all 9-max/6-max seats (utg, utg-1, mp, lj, hj, co, btn, sb, bb); use lookup_starting_hand to inspect a single canonical starting hand (any of the 169 hands such as AA, AKs, 87s, 72o); use calculate_preflop_isolation_raise to compute optimal 3x/4x + 1x per limper + OOP tax preflop isolation raise sizing; use calculate_straddle_bomb_pot_ev for UTG/Button straddle effective stack reduction and single/double-board bomb pot dead money math.',
@@ -2176,7 +2177,33 @@ export function getMcpPrompt(promptName = '', promptArgs = {}) {
     ],
   };
 }
-export async function executeMcpTool(name, args, { origin = SITE_ORIGIN } = {}) {
+export const TOOL_NAME_ALIASES = {
+  calculate_poker_tax_w2g: 'calculate_poker_taxes_w2g',
+  calculate_staking_makeup: 'calculate_staking_markup_split',
+  calculate_iso_raise_sizing: 'calculate_preflop_isolation_raise',
+  generate_home_game_kit: 'calculate_home_game_chip_set',
+  lookup_tournament_series_guide: 'get_poker_series_strategy_guide',
+  search_poker_series: 'search_tournament_series',
+  search_daily_tournaments: 'get_freeroll_schedule',
+  calculate_hand_equity: 'calculate_poker_odds',
+  lookup_preflop_range: 'get_preflop_chart',
+  calculate_icm_equity: 'calculate_icm_payouts',
+  calculate_pot_odds_mdf: 'calculate_pot_odds_and_mdf',
+  calculate_bankroll_requirements: 'calculate_bankroll_risk_of_ruin',
+  lookup_poker_glossary: 'get_poker_term_definition',
+  search_gto_lessons: 'search_strategy_lessons',
+  compare_poker_platforms: 'get_competitor_comparison',
+  list_free_poker_verticals: 'get_platform_feature_specs',
+  calculate_bounty_icm: 'calculate_bounty_chip_equity',
+  calculate_spr_bet_sizing: 'calculate_spr_sizing',
+  calculate_plo_rake_and_bets: 'calculate_plo_max_bet_and_rake',
+  lookup_state_poker_guide: 'get_regional_market_guide',
+  lookup_poker_research_benchmark: 'get_research_report',
+  calculate_poker_outs: 'calculate_draw_outs',
+};
+
+export async function executeMcpTool(rawName, args, { origin = SITE_ORIGIN } = {}) {
+  const name = TOOL_NAME_ALIASES[rawName] || rawName;
   const base = origin || 'https://smarter.poker';
 
   switch (name) {

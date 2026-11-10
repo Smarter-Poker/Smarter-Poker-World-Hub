@@ -15,6 +15,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 
 const VARIANCE_BENCHMARKS = [
   { format: '6-Max Online No-Limit Hold\'em (100BB)', stdDev: '85 BB/100', winrate: '4.0 BB/100', conservativeBr: '45 Buy-Ins', aggressiveBr: '25 Buy-Ins' },
@@ -53,6 +54,16 @@ export default function BankrollCalculatorPage({
   const [stdDev, setStdDev] = useState(initialStdDev);
   const [buyIns, setBuyIns] = useState(initialBuyIns);
   const [buyInDollars, setBuyInDollars] = useState(initialBuyInDollars);
+
+  useSolvedSpotUrlSync(
+    { wr: winrate, sd: stdDev, bi: buyIns, dollars: buyInDollars },
+    {
+      wr: (v) => setWinrate(Math.max(0.5, Number(v) || 5)),
+      sd: (v) => setStdDev(Math.max(20, Number(v) || 85)),
+      bi: (v) => setBuyIns(Math.max(5, Number(v) || 30)),
+      dollars: (v) => setBuyInDollars(Math.max(10, Number(v) || 300)),
+    }
+  );
 
   const stats = useMemo(() => {
     const wr = Math.max(0.5, Number(winrate) || 5);

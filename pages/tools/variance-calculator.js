@@ -16,6 +16,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderVarianceCalculatorMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
 
 const SD_FORMAT_PRESETS = [
@@ -118,6 +119,17 @@ export default function VarianceCalculatorPage({
     if (q.hph !== undefined) setHandsPerHour(Math.max(20, Math.min(500, Number(q.hph) || 85)));
     if (q.bb !== undefined) setBigBlind(Math.max(0.1, Number(q.bb) || 5));
   }, [router.isReady, router.query]);
+
+  useSolvedSpotUrlSync(
+    { wr: winrate, sd, hands, hph: handsPerHour, bb: bigBlind },
+    {
+      wr: (v) => setWinrate(Number(v) || 4.5),
+      sd: (v) => setSd(Math.max(20, Math.min(300, Number(v) || 85))),
+      hands: (v) => setHands(Math.max(1000, Math.min(1000000, Number(v) || 50000))),
+      hph: (v) => setHandsPerHour(Math.max(20, Math.min(500, Number(v) || 85))),
+      bb: (v) => setBigBlind(Math.max(0.1, Number(v) || 5)),
+    }
+  );
 
   const metrics = useMemo(() => {
     const safeWr = Number.isFinite(Number(winrate)) ? Number(winrate) : 4.5;

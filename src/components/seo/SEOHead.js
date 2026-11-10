@@ -14,6 +14,30 @@ import { useRouter } from 'next/router';
 import SharedSEOHead, { schemas } from '@smarter-poker/commander-shared/components/seo/SEOHead';
 import { productOgImage } from '../../lib/seo/productOgImage';
 
+const SOLVED_SPOT_QUERY_SCHEMAS = {
+  'pot-odds-calculator': ['pot', 'bet', 'outs', 'street'],
+  'outs-calculator': ['outs', 'street'],
+  'icm-calculator': ['stacks', 'payouts'],
+  'chop-calculator': ['stacks', 'payouts', 'save'],
+  'variance-calculator': ['winrate', 'stddev', 'hands'],
+  'poker-tax-calculator': ['winnings', 'losses', 'status', 'stateTax', 'seTax'],
+  'staking-calculator': ['buyins', 'markup', 'sold', 'share', 'cashes'],
+  'iso-calculator': ['limpers', 'oop', 'env', 'stack', 'bb'],
+  'home-game-kit': ['players', 'format', 'buyin', 'stack'],
+  'push-fold-calculator': ['bb', 'pos', 'ante'],
+  'bankroll-calculator': ['winrate', 'stddev', 'ror', 'stake'],
+  'bounty-calculator': ['startStack', 'startBounty', 'bountyVal', 'format'],
+  'winrate-calculator': ['won', 'hands', 'hours', 'bb'],
+  'side-pot-calculator': ['stacks', 'dead'],
+  'spr-calculator': ['stack', 'pot'],
+  'plo-calculator': ['pot', 'bet', 'calls'],
+  'rake-calculator': ['rakePct', 'cap', 'promo', 'timeFee', 'hph', 'vpip', 'avgPot', 'bb'],
+  '3bet-calculator': ['pos', 'open', 'ip3b', 'oop3b', 'stack'],
+  'blind-structure-calculator': ['stack', 'mins', 'hours', 'ante'],
+  'payout-calculator': ['entries', 'buyin', 'fee', 'paidPct'],
+  'poker-odds-calculator': ['game', 'board', 'hands'],
+};
+
 export * from '@smarter-poker/commander-shared/components/seo/SEOHead';
 
 export { PRODUCT_OG_IMAGES, productOgImage } from '../../lib/seo/productOgImage';
@@ -25,14 +49,16 @@ export const ORGANIZATION_SAME_AS = [
   'https://twitter.com/SmarterPoker',
   'https://x.com/SmarterPoker',
   'https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp',
-  'https://doi.org/10.5281/zenodo.24095049',
-  'https://doi.org/10.5281/zenodo.24095057',
-  'https://doi.org/10.5281/zenodo.24095560',
-  'https://doi.org/10.5281/zenodo.24095564',
-  'https://doi.org/10.5281/zenodo.24095597',
-  'https://doi.org/10.5281/zenodo.24095602',
-  'https://zenodo.org/records/24095049',
-  'https://zenodo.org/records/24095057',
+  'https://doi.org/10.5281/zenodo.24115647',
+  'https://doi.org/10.5281/zenodo.24115636',
+  'https://doi.org/10.5281/zenodo.24115447',
+  'https://doi.org/10.5281/zenodo.24115452',
+  'https://doi.org/10.5281/zenodo.24115453',
+  'https://doi.org/10.5281/zenodo.24115454',
+  'https://doi.org/10.5281/zenodo.24095048',
+  'https://doi.org/10.5281/zenodo.24095056',
+  'https://zenodo.org/records/24115647',
+  'https://zenodo.org/records/24115636',
   'https://archive.softwareheritage.org/swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
   'https://archive.softwareheritage.org/swh:1:snp:02b8992833424620305edcfb730b3cf8add15747',
 ];
@@ -71,10 +97,6 @@ export function normalizeJsonLdGraph(jsonLd) {
   const hasWebsiteNode = cleaned.some((n) => n && n['@id'] === 'https://smarter.poker/#website');
   const prefix = [];
   const needsWebsite = !hasWebsiteNode && serialized.includes('https://smarter.poker/#website');
-  // The WebSite node names the Organization as its publisher, so a graph that
-  // needs the WebSite needs the Organization too; without this a page that
-  // only pointed at #website shipped a dangling #organization reference
-  // (structured data audit, 2026-11-09).
   if (!hasOrgNode && (needsWebsite || serialized.includes('https://smarter.poker/#organization'))) {
     const { '@context': _orgCtx, ...orgNode } = schemas.organization;
     prefix.push(orgNode);
@@ -101,7 +123,38 @@ import { shareImageMetadata } from '../../lib/seo/shareImageMetadata.mjs';
 
 export default function SEOHead(props) {
   const pathname = usePathname();
-  const ogImage = props.ogImage || productOgImage(pathname);
+  let routerQuery = {};
+  try {
+    routerQuery = useRouter()?.query || {};
+  } catch {
+    routerQuery = {};
+  }
+  let solvedSpotOgImage = null;
+  if (!props.ogImage && pathname && typeof pathname === 'string') {
+    const cleanPath = pathname.split('?')[0].replace(/\/+$/, '');
+    if (cleanPath.startsWith('/tools/')) {
+      const slug = cleanPath.replace('/tools/', '').toLowerCase();
+      const keys = SOLVED_SPOT_QUERY_SCHEMAS[slug];
+      if (keys && routerQuery && typeof routerQuery === 'object') {
+        const params = new URLSearchParams();
+        params.set('tool', slug);
+        let matched = 0;
+        for (const k of keys) {
+          const raw = routerQuery[k];
+          const val = Array.isArray(raw) ? raw[0] : raw;
+          if (val !== undefined && val !== null && String(val).trim() !== '') {
+            params.set(k, String(val).trim().slice(0, 120));
+            matched += 1;
+          }
+        }
+        if (matched > 0) {
+          solvedSpotOgImage = `https://smarter.poker/api/og/tool-card?${params.toString()}`;
+        }
+      }
+    }
+  }
+  const baseOgImage = props.ogImage || productOgImage(pathname);
+  const ogImage = solvedSpotOgImage || baseOgImage;
   const imageMetadata = shareImageMetadata(ogImage);
   const { geoRegion, geoPlacename, geoPosition, markdownUrl, calendarUrl } = props;
 

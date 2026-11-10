@@ -408,7 +408,27 @@ export default function FreerollsPage() {
               }}
             >
               <Calendar size={18} />
-              <span>Add Daily Freerolls To Calendar (.ICS)</span>
+              <span>Download Freerolls .ICS Calendar</span>
+            </a>
+
+            <a
+              href="webcal://smarter.poker/api/seo/series-calendar?slug=freerolls"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '14px 24px',
+                borderRadius: '10px',
+                backgroundColor: 'rgba(56, 189, 248, 0.1)',
+                border: '1px solid rgba(56, 189, 248, 0.35)',
+                color: '#38bdf8',
+                fontWeight: 700,
+                fontSize: '15px',
+                textDecoration: 'none'
+              }}
+            >
+              <Calendar size={18} />
+              <span>Subscribe Via Webcal (Apple / Outlook)</span>
             </a>
           </div>
 

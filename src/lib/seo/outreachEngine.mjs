@@ -232,7 +232,7 @@ Smarter.Poker Casino Operations Team`,
     emailSubjectTemplate: 'Open CC-BY 4.0 Quantitative Poker Datasets & Browser ICM/GTO Solvers For {{target}}',
     emailBodyTemplate: `Hi {{target}} Officers & Faculty,
 
-For students researching imperfect-information game theory, Malmuth-Harville ICM, or Monte Carlo equity simulation, Smarter.Poker has released our 2026 Open Quantitative Poker Data Catalog under Creative Commons CC-BY 4.0 (Zenodo DOIs 10.5281/zenodo.24095049, 10.5281/zenodo.24095057, 10.5281/zenodo.24095560, 10.5281/zenodo.24095564, 10.5281/zenodo.24095597, 10.5281/zenodo.24095602), along with a public 35-tool Model Context Protocol (MCP) server (https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp):
+For students researching imperfect-information game theory, Malmuth-Harville ICM, or Monte Carlo equity simulation, Smarter.Poker has released our 2026 Open Quantitative Poker Data Catalog under Creative Commons CC-BY 4.0 (Zenodo DOIs 10.5281/zenodo.24115647, 10.5281/zenodo.24115636, 10.5281/zenodo.24115447, 10.5281/zenodo.24115452, 10.5281/zenodo.24115453, 10.5281/zenodo.24115454), along with a public 35-tool Model Context Protocol (MCP) server (https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp):
 
 Open Dataset Catalog (Schema.org / Zenodo / CITATION.cff): https://smarter.poker/api/datasets/catalog
 Empirical Research Library (15 Studies): https://smarter.poker/research

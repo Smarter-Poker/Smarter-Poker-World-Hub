@@ -17,6 +17,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderIsoCalculatorMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
 
 const ISO_BENCHMARK_TABLE = [
@@ -99,6 +100,11 @@ export default function IsoCalculatorPage({
     if (q.stack !== undefined) setStackBb(Math.max(20, Math.min(500, Number(q.stack) || 100)));
     if (q.env !== undefined) setEnvironment(String(q.env).toLowerCase() === 'online' ? 'online' : 'live');
   }, [router.isReady, router.query]);
+
+  useSolvedSpotUrlSync(
+    { bb: bigBlind, limpers, pos: position, stack: stackBb, env: environment },
+    {}
+  );
 
   const metrics = useMemo(() => {
     const safeBb = Math.max(0.1, Number(bigBlind) || 5);
