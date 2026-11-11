@@ -35,8 +35,23 @@ On the owner's Mac, also read `/Users/smarter.poker/Documents/AGENTS.md` and `/U
 Working routes, as verified on November 10, 2026:
 
 - Claude Code, any account, in a checkout of this repository at or after the commit that added the folder: the skill loads as a project skill named `reddit-agent`. Verified on November 10, 2026 in one cloud Claude Code session, where the skill was listed after the repository reloaded; not yet verified on the Mac.
-- Claude Code in other repositories, or for every account on the Mac user: not installed. Copy the folder to `~/.claude/skills/` using the command in the skill's `README.md`.
+- Claude Code on the Mac, any account, any folder: installed for the Mac user `smarter.poker` at `~/.claude/skills/reddit-agent/` on November 11, 2026 and checked by SHA-256 against this repository's copy. Re-copy it after a change here with the command in the skill's `README.md`.
+- Claude Code in other repositories on other machines: not installed. Use the same copy command.
 - Claude app: available only on the account where it was saved from the chat's review card.
 - Other agents (Codex, Antigravity): read `SKILL.md` as instructions.
 
 Installation, usage, rule refresh, limitations and removal are in `.claude/skills/reddit-agent/README.md`. The skill is two Markdown files with no scripts, hooks, dependencies or credentials.
+
+## LinkedIn daily check-in (owner instruction, November 10, 2026)
+
+Dan does not keep every Claude account open each day. The daily LinkedIn check-in is therefore done by whichever account is signed in and working that day, once per day, not by every account. Before starting it, read the "Daily Log" in the Smarter.Poker LinkedIn kit doc: if today's entry already exists, another account has done it, so skip it.
+
+The check-in uses the `linkedin-agent` skill (installed for the Mac user `smarter.poker` at `~/.claude/skills/linkedin-agent/` on November 11, 2026, and saved as an account skill on Dan's main claude.ai account) and the built-in browser, which is signed in to Dan's LinkedIn. The scheduled task "LinkedIn Daily Check-In" on the Mac runs the same steps.
+
+1. Publish only posts that Dan has ticked in the kit's "Approve Posts" list and that are due today. An unticked post, or one marked ON HOLD, is never published.
+2. Use the UTM-tagged links in the kit (`utm_source=linkedin&utm_medium=social&utm_campaign=<post-slug>`), never a bare smarter.poker link.
+3. Check whether the pending connection invitations have been accepted. The company page cannot be created until the profile has at least one connection; retry creating it once that is true.
+4. Reply only to comments on Dan's own posts. Draft any reply that mentions the product, and do not send a direct message without Dan's approval of the exact text.
+5. Add today's entry to the Daily Log: what was published, the profile numbers, and anything waiting on Dan.
+
+Product facts follow the reddit-agent skill's "Verified Product Facts". Chips are never written with a currency symbol, and freeroll copy uses the schedule in `src/lib/freerolls/freeBuySchedule.mjs`.
