@@ -42,16 +42,30 @@ Working routes, as verified on November 10, 2026:
 
 Installation, usage, rule refresh, limitations and removal are in `.claude/skills/reddit-agent/README.md`. The skill is two Markdown files with no scripts, hooks, dependencies or credentials.
 
-## LinkedIn daily check-in (owner instruction, November 10, 2026)
+## LinkedIn daily check-in (owner instruction, November 10, 2026; guards verified November 11, 2026)
 
-Dan does not keep every Claude account open each day. The daily LinkedIn check-in is therefore done by whichever account is signed in and working that day, once per day, not by every account. Before starting it, read the "Daily Log" in the Smarter.Poker LinkedIn kit doc: if today's entry already exists, another account has done it, so skip it.
+Dan does not keep every Claude account open each day. The daily LinkedIn check-in is done by whichever account is signed in and working that day, once per day, not by every account. Before starting, read the "Daily Log" in the Smarter.Poker LinkedIn kit doc (https://claude.ai/artifact/516zfHu1Au94xcZPmpVp6p). If today's entry already exists, another account has done it, so skip it.
 
-The check-in uses the `linkedin-agent` skill (installed for the Mac user `smarter.poker` at `~/.claude/skills/linkedin-agent/` on November 11, 2026, and saved as an account skill on Dan's main claude.ai account) and the built-in browser, which is signed in to Dan's LinkedIn. The scheduled task "LinkedIn Daily Check-In" on the Mac runs the same steps.
+Access:
+- The check-in uses the `linkedin-agent` skill. It is installed for the Mac user `smarter.poker` at `~/.claude/skills/linkedin-agent/` (November 11, 2026) and saved as an account skill on Dan's main claude.ai account.
+- It also uses the built-in browser on the Mac, which is signed in to Dan's LinkedIn. Other accounts and environments have no LinkedIn sign-in and must not try one.
+- The scheduled task "LinkedIn Daily Check-In" runs at 7:41 AM Central. It is bound to the Mac and carries these rules.
 
-1. Publish only posts that Dan has ticked in the kit's "Approve Posts" list and that are due today. An unticked post, or one marked ON HOLD, is never published.
-2. Use the UTM-tagged links in the kit (`utm_source=linkedin&utm_medium=social&utm_campaign=<post-slug>`), never a bare smarter.poker link.
-3. Check whether the pending connection invitations have been accepted. The company page cannot be created until the profile has at least one connection; retry creating it once that is true.
-4. Reply only to comments on Dan's own posts. Draft any reply that mentions the product, and do not send a direct message without Dan's approval of the exact text.
-5. Add today's entry to the Daily Log: what was published, the profile numbers, and anything waiting on Dan.
+Rules (nothing is posted or sent without Dan's approval of its exact content and destination):
+1. **Approved text only.** A post is published only when its line in the kit's "Approve Posts" list is ticked, names today as its publish day, and carries "Approved text fingerprint <8 hex>". That fingerprint must equal the `h` value the Claude Docs reader shows on the post's code block (the first 8 hex digits of the SHA-256 of the text). A missing or different fingerprint means the text changed after approval; the post waits for a new tick.
+2. **No duplicates.** Before publishing, read the profile's activity page. If a post with the same first line exists, another account already published it: record its URL and do not publish again. After publishing, open the post, confirm the text matches, and write "PUBLISHED <date> at <URL>" on the tick line.
+3. **Tagged links.** Links use the UTM-tagged URLs in the kit (`utm_source=linkedin&utm_medium=social&utm_campaign=<post-slug>`), never a bare smarter.poker link, and must land on a World Hub page. `/hub/club-arena` is served by the Club Arena app and records no attribution.
+4. **Company page.** Record LinkedIn's exact message ("Feature not available. You don't have enough connections to create a LinkedIn Page" on November 11, 2026). LinkedIn does not publish the number it needs, so never state that a given number of connections unlocks it. Never send connection requests or messages, and never invent headcount, endorsements or business facts.
+5. **Replies and messages.** Comment replies are drafted into the kit for Dan's approval and never posted. The player announcement and any direct message stay unsent until Dan approves the exact text and destination.
+6. **Daily Log.** Add today's entry with the profile numbers, the exact company-page message, what was published (with URLs) and what is waiting on Dan.
+
+Signup attribution (World Hub PRs #2798, #2802, #2804, live November 11, 2026):
+- `src/lib/acquisition/firstTouch.mjs` keeps the first tagged landing. It stores only utm_source, utm_medium, utm_campaign (short lowercase values), the first path segment and the time.
+- Email sign-up writes these onto the new account through `supabase.auth.signUp`.
+- Google sign-up writes them in `/auth/callback`, only on the account's creating sign-in: last sign-in within 60 seconds of creation, account under 10 minutes old, and no attribution yet.
+- Read results with `select raw_user_meta_data->>'acquisition_utm_source', raw_user_meta_data->>'acquisition_utm_campaign', count(*) from auth.users where raw_user_meta_data ? 'acquisition_utm_source' group by 1, 2`.
+- The values are user-editable metadata: marketing data, not audit data.
+
+Founder content: `/about` and the Organization JSON-LD read the `FOUNDER` constant in `src/components/seo/SEOHead.js`. The founding date (October 2025) and the 2008 idea are owner-stated; no public registry record was found on November 11, 2026, so do not describe them as independently verified.
 
 Product facts follow the reddit-agent skill's "Verified Product Facts". Chips are never written with a currency symbol, and freeroll copy uses the schedule in `src/lib/freerolls/freeBuySchedule.mjs`.
