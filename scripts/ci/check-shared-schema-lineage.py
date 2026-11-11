@@ -15,6 +15,7 @@ REPORT_TRANSITIONS = (
     ('supabase/migrations/20261028150757_digest_spins_and_spend.sql', '3a607b11d99c9a2481bcbe6e847a6e1ca47d7e771a1361b477ba71e4830e6edd'),
     ('supabase/migrations/20261028151456_digest_promo_wallet_payouts.sql', '5f2184d05ae638a1aab374f25bb98b2788bef1add2d037312b71b6dc94ad3335'),
     ('supabase/migrations/20261028152704_digest_profit_fractional_diamonds.sql', '961ffaa783c58f92b17d56f4679882403c7770f96cf3924f79dde60cab7ef5a1'),
+    ('supabase/migrations/20261111220642_digest_bbj_rake_and_horse_cash_chips.sql', '090fd87d701c208c6b64150856737e4c2dcbb18ef3b0648588552c1c923a78f1'),
 )
 MARKETPLACE_TRANSITIONS = (('supabase/migrations/20261031191337_signup_audit_checks_auth_triggers_by_name.sql', '16618b0db7ce11823bdfe685af7b3253976354dfcb099d13b4b926434a679021'), ('supabase/migrations/20261102011118_marketplace_whole_dollar_prices.sql', '8183a4285311c4e74d4e39e4e376ccc53b0dea3aba4fce8b1e2809b3b496f663'),)
 MARKETPLACE_PREFIX = 'Marketplace PostgreSQL qualification passed: '
