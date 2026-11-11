@@ -22,6 +22,7 @@ import {
   referralMetadata,
   refFromRedirect,
 } from '../../src/lib/pendingSignupCodes.mjs';
+import { firstTouchMetadata } from '../../src/lib/acquisition/firstTouch.mjs';
 import { Mail } from 'lucide-react';
 import { getAccessToken } from '../../src/lib/authUtils';
 import SignupWelcome from '../../src/components/auth/SignupWelcome';
@@ -689,6 +690,9 @@ export default function SignUpPage() {
             // a fast tap on Create Account cannot drop it; the database
             // resolves it and ignores anything that names nobody.
             ...referralMetadata(formData.promoCode, referralDetails),
+            // First UTM-tagged landing (LinkedIn, Reddit, ...), kept on
+            // auth.users.raw_user_meta_data. src/lib/acquisition/firstTouch.mjs
+            ...firstTouchMetadata(),
           },
           // Enable email confirmation - redirect to /auth/callback after verification
           emailRedirectTo: `${window.location.origin}/auth/callback`,

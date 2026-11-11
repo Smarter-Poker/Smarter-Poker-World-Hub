@@ -992,6 +992,14 @@ export default function App({ Component, pageProps }) {
       .catch(() => {});
   }, []);
 
+  // 2026-11-11: keep the first UTM-tagged landing so sign-up can record
+  // which channel brought the account. See src/lib/acquisition/firstTouch.mjs.
+  useEffect(() => {
+    import('../src/lib/acquisition/firstTouch.mjs')
+      .then((m) => m.recordFirstTouch())
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     try {
       setIsEmbedded(window.self !== window.top);
