@@ -87,7 +87,9 @@ test('a seat offer is sent with a TTL near its own three-minute life', () => {
     assert.match(DISPATCH, /waitlist_seat_open: 3 \* 60 \+ 30/);
     // And it is actually PASSED to the sender. A constant nobody forwards is
     // the quiet version of this bug.
-    assert.match(DISPATCH, /sendPush\(sub, payload, typeof ttl === 'number' \? \{ ttl \} : undefined\)/);
+    // (2026-11-11: the payload is wrapped per device for reliability receipts;
+    // the TTL is still forwarded on every send.)
+    assert.match(DISPATCH, /sendPush\(sub, withDeviceReceipt\(payload, row\.id, token\),\s*typeof ttl === 'number' \? \{ ttl \} : undefined\)/);
     assert.match(
         SEND_PUSH,
         /transport === 'webpush'[\s\S]*sendWebPush\(subscription, payload, opts\)/

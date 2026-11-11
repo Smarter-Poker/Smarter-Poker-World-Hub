@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 import * as gate from '../src/lib/push/push-gate.js';
+import * as deviceReceipt from '../src/lib/push/device-receipt.js';
 import { buildFcmMessage } from '../src/lib/push/fcm.js';
 import * as deliveryPolicy from '../src/lib/notifications/deliveryPolicy.mjs';
 import * as accountingDisplay from '../src/lib/push/accounting-display.mjs';
@@ -95,6 +96,7 @@ function fixture(count = 1, recipientId = 'recipient') {
         },
         '../../../src/lib/push/tournament-reminder-delivery': { isTournamentReminder: () => false },
         '../../../src/lib/push/push-gate': gate,
+        '../../../src/lib/push/device-receipt': deviceReceipt,
     });
     const run = async () => {
         const res = { code: 0, body: null, status(n) { this.code = n; return this; }, json(body) { this.body = body; return this; } };
