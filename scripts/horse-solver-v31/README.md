@@ -200,6 +200,46 @@ change inference, relax quality gates, or authorize promotion.
    Required environment variables are `HORSE_SOLVER_V31_GATEWAY_URL`,
    `HORSE_SOLVER_V31_HMAC_SECRET`, `APPROVED_MANIFEST_CHECKSUM`, `PIO_EXE`,
    `APPROVED_PIO_BINARY_CHECKSUM`, and `PIPELINE_COMMIT`.
+
+   **M1 two-step procedure (solve-only presolve shards, then the worker).** One
+   PioSOLVER process uses about half of M1's 16 CPUs; the 2026-11-11 M1 pilot
+   measured two concurrent processes at about 1.85x the scenarios per minute,
+   and a third added nothing. N = 2 is therefore the measured optimum
+   (`--presolve-shard` accepts N from 1 to 4). Step 1: start both shards
+   concurrently with the same manifest, inputs, work directory and
+   `APPROVED_MANIFEST_CHECKSUM`, `PIO_EXE`, `APPROVED_PIO_BINARY_CHECKSUM` and
+   `PIPELINE_COMMIT`; no gateway URL or HMAC secret is needed:
+
+   ```powershell
+   python scripts/horse-solver-v31/worker.py M1 `
+     --manifest C:/approved/v31-manifest.json `
+     --input-root C:/approved/inputs `
+     --work-directory C:/solver-state/v31 `
+     --presolve-shard 0/2
+   # in a second console, concurrently:
+   python scripts/horse-solver-v31/worker.py M1 `
+     --manifest C:/approved/v31-manifest.json `
+     --input-root C:/approved/inputs `
+     --work-directory C:/solver-state/v31 `
+     --presolve-shard 1/2
+   ```
+
+   Each shard runs the same environment, manifest, binary and solver self-test
+   checks, then solves only the whole scenarios whose position in the ordered
+   scenario list modulo N equals K, so the shards are disjoint and together
+   cover exactly M1's owned targets. Each target is harvested and checked with
+   the same code as the normal worker and written atomically to the same
+   checkpoint path. A shard never constructs a gateway client, never ingests
+   and never sends a heartbeat. A restarted shard skips checkpoints that match
+   the manifest and refuses a foreign checkpoint. Launch each K once and keep
+   N the same for both. Presolve is M1-only: it refuses `M2` and every M2
+   selection input, and M2's held-out capture keeps its single worker path.
+
+   Step 2: after both shards exit 0, run the normal M1 worker command above
+   with the gateway secret. It verifies every checkpoint, solves nothing,
+   ingests each target once and reconciles its heartbeat, so durable claims,
+   ingest and heartbeat stay with that one worker and no target is solved
+   twice. Do not start step 2 while a shard is still running.
 6. Run the compactor again. It builds only declared cells and seals only when
    M1 training evidence, M2 holdout evidence, full coverage, source receipts,
    error thresholds, and all provenance checks pass.
