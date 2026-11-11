@@ -1,4 +1,5 @@
 import AuthEntryChoices from '../../src/components/auth/AuthEntryChoices';
+import { beginOAuthAttribution, withAttributionNonce } from '../../src/lib/acquisition/firstTouch.mjs';
 /* ═══════════════════════════════════════════════════════════════════════════
    ACCESS NODE — CANONICAL SIGN-IN PAGE
    URL: /auth/login  (this is the ONLY sign-in page)
@@ -468,10 +469,13 @@ export default function LoginPage() {
     // longer auto-launches anything it was not clicked for.
 
     try {
+      // A new Google account can be created from this page too; bind any
+      // campaign to this exact flow (src/lib/acquisition/firstTouch.mjs).
+      const attributionNonce = beginOAuthAttribution();
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: callbackUrl(),
+          redirectTo: withAttributionNonce(callbackUrl(), attributionNonce),
           queryParams: provider === 'google' ? { prompt: 'select_account' } : undefined,
           // ASK FACEBOOK FOR A NAME AND A PICTURE, NOT JUST AN ADDRESS.
           // Supabase's Facebook default is `email` alone, so the session came
