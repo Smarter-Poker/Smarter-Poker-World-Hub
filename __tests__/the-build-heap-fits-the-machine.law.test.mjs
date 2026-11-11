@@ -20,6 +20,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
@@ -31,7 +32,7 @@ import {
     withHeapCap,
 } from '../scripts/fit-build-heap.mjs';
 
-const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
+const REPO = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const pkg = JSON.parse(fs.readFileSync(path.join(REPO, 'package.json'), 'utf8'));
 const MB = 1024 * 1024;
 
