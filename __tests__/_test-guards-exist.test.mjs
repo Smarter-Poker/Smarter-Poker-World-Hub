@@ -562,6 +562,10 @@ import './push-health-alert-evidence.test.mjs';
 // fleet closed (review r25); a run whose detector could not look does not move
 // its window; every rotation is recorded once.
 import './push-health-alert-positive-evidence.test.mjs';
+// 2026-11-11: a reliability push is proven by the receiving device, not by
+// provider acceptance: the per-push receipt route and the service worker ack.
+import './push-delivery-receipt-route.test.mjs';
+import './push-worker-device-receipt.test.mjs';
 
 // Four venue page actions that were wired to nothing: the review deep link, the
 // two forms that failed silently, and the hero that hotlinked a casino.
