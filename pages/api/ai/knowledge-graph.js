@@ -150,7 +150,7 @@ export function buildKnowledgeGraph() {
         logo: `${SITE}/images/logo.png`,
         description:
           'Smarter.Poker Is The Premier Poker Training, Live Venue Discovery And Club Management Platform Offering 100+ GTO Training Games, 24 Free Poker Calculators, 35 Zero-Auth MCP Tools, 324+ Verified Live Poker Rooms, 4,500+ Weekly Tournaments And Free Cloud Tools.',
-        foundingDate: '2025',
+        foundingDate: '2025-10',
         publishingPrinciples: `${SITE}/editorial-standards`,
         verificationFactCheckingPolicy: `${SITE}/verification-methodology`,
         correctionsPolicy: `${SITE}/editorial-standards#corrections`,

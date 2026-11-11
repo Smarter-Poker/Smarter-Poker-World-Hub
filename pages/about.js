@@ -130,8 +130,9 @@ export default function AboutPage() {
 
           <h2 style={styles.h2}>The Founder</h2>
           <p style={styles.body}>
-            Smarter.Poker Was Founded By {FOUNDER.name} In October 2025. The Idea Dates To 2008: One Place For
-            Everything Poker, Instead Of Ten Different Apps And Websites For Information And Data.{' '}
+            Smarter.Poker Was Founded By {FOUNDER.name} In October 2025 And Is Operated By Smarter Software
+            Inc. The Idea Is Older: In 2008, {FOUNDER.firstName} Wanted One Place For Everything Poker, Instead Of
+            Ten Different Apps And Websites For Information And Data.{' '}
             <a href={FOUNDER.linkedin} style={styles.inlineLink} rel="noopener noreferrer">
               Connect With {FOUNDER.firstName} On LinkedIn
             </a>

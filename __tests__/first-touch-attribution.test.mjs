@@ -47,6 +47,9 @@ test('tags are restricted to a short safe alphabet', () => {
   assert.equal(cleanTag('x'.repeat(100)).length, 64);
   assert.equal(parseFirstTouch('?utm_source=%22%3E%3Cimg', '/'), null);
   assert.equal(parseFirstTouch('?utm_source=linkedin', '/<x>').landing_path, '/');
+  assert.equal(parseFirstTouch('?utm_source=linkedin', '/hub/club-arena/invite/SECRET42').landing_path, '/hub', 'deeper segments (invite codes, usernames) are never kept');
+  const rec = parseFirstTouch('?utm_source=linkedin&access_token=abc&email=a%40b.c&code=xyz&utm_term=t', '/tools');
+  assert.deepEqual(Object.keys(rec).sort(), ['captured_at', 'landing_path', 'utm_source'], 'only the campaign tags, first path segment and time are kept');
 });
 
 test('expired and corrupt records are ignored', () => {
@@ -64,15 +67,27 @@ test('the app records first touch and sign-up writes it to the account metadata'
   assert.match(signup, /\.\.\.firstTouchMetadata\(\),/);
 });
 
-test('OAuth: only a brand-new account without attribution is attributed', () => {
+test('OAuth: only the sign-in that created the account is attributed', () => {
   const now = Date.parse('2026-11-11T18:00:00Z');
   const w = fakeWindow('?utm_source=reddit&utm_campaign=poker', '/tools');
-  recordFirstTouch(w, now - 60_000);
-  const fresh = { created_at: '2026-11-11T17:55:00Z', user_metadata: {} };
+  recordFirstTouch(w, now - 120_000);
+  const fresh = {
+    app_metadata: { provider: 'google' },
+    created_at: '2026-11-11T17:59:30.000Z',
+    last_sign_in_at: '2026-11-11T17:59:30.400Z',
+    user_metadata: {},
+  };
   assert.equal(attributionForNewAccount(fresh, w, now).acquisition_utm_source, 'reddit');
-  assert.equal(attributionForNewAccount({ ...fresh, created_at: '2026-10-01T00:00:00Z' }, w, now), null, 'existing player is never re-attributed');
-  assert.equal(attributionForNewAccount({ ...fresh, user_metadata: { acquisition_utm_source: 'linkedin' } }, w, now), null, 'first attribution wins');
-  assert.equal(attributionForNewAccount(fresh, fakeWindow(''), now), null, 'untagged visit writes nothing');
+  assert.equal(attributionForNewAccount({ ...fresh, created_at: '2026-10-01T00:00:00Z' }, w, now), null, 'an old account signing in is not new');
+  assert.equal(
+    attributionForNewAccount({ ...fresh, created_at: '2026-11-11T17:52:00Z', last_sign_in_at: '2026-11-11T17:59:30Z' }, w, now),
+    null,
+    'an account created minutes ago that signs in again is not counted as new',
+  );
+  assert.equal(attributionForNewAccount({ ...fresh, user_metadata: { acquisition_utm_source: 'linkedin' } }, w, now), null, 'a repeated callback never overwrites');
+  assert.equal(attributionForNewAccount({ ...fresh, app_metadata: { provider: 'email' } }, w, now), null, 'email accounts are attributed at signUp, not here');
+  assert.equal(attributionForNewAccount({ ...fresh, last_sign_in_at: undefined }, w, now), null);
+  assert.equal(attributionForNewAccount(fresh, fakeWindow(''), now), null, 'an untagged visit writes nothing');
   assert.equal(attributionForNewAccount(null, w, now), null);
 });
 
