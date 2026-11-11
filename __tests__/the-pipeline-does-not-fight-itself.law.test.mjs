@@ -86,6 +86,36 @@ test('the real resolveBuildCpus gives 4 on an 8-core builder and 1 on a 2-core b
   assert.equal(build(NaN)(), 2, 'unreadable core count falls back to the old default');
 });
 
+// -- 1b. The Vercel build's heap ceiling fits the Vercel build machine -------
+//
+// hub-vanguard builds on a fixed Standard Build Machine: "4 cores, 8 GB"
+// (every Vercel build log, first line). build:vercel used to give the main
+// next build process a 7168 MB heap ceiling, sized for the 16 GB Enhanced
+// machine of 2026-09. On 8 GB that let V8 defer collection until the main
+// process alone reached about 6 GB beside three static workers, and on
+// 2026-11-11 deployment dpl_CvwKska6XPK6DAeqyQxwwy74msDd was SIGKILLed by the
+// container (exit 137, "Out of Memory" in Vercel's build report).
+//
+// Measured on SSD from a cold cache with 3 workers (the count derived for
+// 4 cores): ceiling 7168 MB -> main process 5962 MB, tree 6715 MB; ceiling
+// 4096 MB -> main 5399 MB, tree 5761 MB, same compile time (63 s vs 67 s);
+// ceiling 3072 MB still builds (80 s), so 4096 keeps a 1 GB margin above a
+// ceiling that works. Raise it only with the machine.
+
+test('build:vercel caps the heap for an 8 GB build machine', () => {
+  const pkg = JSON.parse(read('package.json'));
+  const script = pkg.scripts['build:vercel'];
+  const caps = [...script.matchAll(/--max-old-space-size=(\d+)/g)].map((m) => Number(m[1]));
+  assert.equal(caps.length, 1, 'build:vercel must set exactly one heap ceiling, on next build');
+  assert.ok(
+    caps[0] <= 4096,
+    `build:vercel heap ceiling ${caps[0]} MB leaves too little of the 8 GB Standard Build Machine ` +
+      'for the build workers; deployment dpl_CvwKska6XPK6DAeqyQxwwy74msDd was OOM-killed at 7168'
+  );
+  assert.ok(caps[0] >= 3072, 'below 3072 MB the build was never measured to complete');
+  assert.match(script, /NODE_OPTIONS='--max-old-space-size=\d+' next build --webpack/);
+});
+
 // -- 2. A preview deployment is opt-in ---------------------------------------
 
 test('preview builds are an allow-list, not a deny-list', () => {
