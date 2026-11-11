@@ -314,6 +314,38 @@ test('the home page graph: Organization, WebSite and the free SoftwareApplicatio
   assert.match(read('pages/index.js'), /jsonLd=\{\[schemas\.organization, schemas\.website, schemas\.softwareApp\]\}/);
 });
 
+test('About publishes the visible company identity, not identities of its software or datasets', () => {
+  let jsonLd;
+  const link = { __esModule: true, default: ({ href, children, ...props }) => React.createElement('a', { href, ...props }, children) };
+  const products = compiled('src/components/landing/LandingProductSummary.js', () => link);
+  const page = compiled('pages/about.js', (name) => {
+    if (name === 'next/link') return link;
+    if (name.endsWith('LandingProductSummary')) return products;
+    if (name.endsWith('SEOHead')) return {
+      __esModule: true, schemas, FOUNDER: siteSeo.FOUNDER,
+      default: props => { jsonLd = props.jsonLd; return null; },
+    };
+    throw new Error(`Unexpected About import: ${name}`);
+  });
+  const html = renderToStaticMarkup(React.createElement(page.default));
+  const doc = assertValid('about', jsonLd);
+  const org = doc['@graph'].find(node => node['@type'] === 'Organization');
+  const about = doc['@graph'].find(node => node['@type'] === 'AboutPage');
+  assert.equal(about.mainEntity['@id'], org['@id']);
+  assert.match(html, /Smarter Software Inc\./);
+  assert.equal(org.legalName, 'Smarter Software Inc.');
+  assert.equal(org.contactPoint.email, 'support@smarter.poker');
+  assert.ok(html.includes(`href="mailto:${org.contactPoint.email}"`));
+  assert.deepEqual(org.sameAs, ['https://github.com/Smarter-Poker']);
+  for (const identity of org.sameAs) assert.ok(html.includes(`href="${identity}"`), 'company reference is visible');
+  assert.equal(org.knowsAbout, undefined, 'do not inherit expertise claims absent from the About page');
+  assert.equal(org.description, undefined, 'do not inherit a separate marketing description');
+  assert.equal(org.foundingDate, '2025-10', 'retain the published founding month');
+  assert.equal(org.founder.name, siteSeo.FOUNDER.name);
+  assert.ok(html.includes(`href="${org.founder.sameAs[0]}"`), 'founder identity belongs to the Person, with its visible profile link');
+  assert.equal(about.name, 'About Smarter.Poker');
+});
+
 test('a calculator page graph from hubProductSchema, with its FAQ and HowTo', async () => {
   const { hubProductSchema, hubCollectionSchema } = await import('../src/lib/seo/hubPageSchema.js');
   const faqs = [{ question: 'Is It Free?', answer: 'Yes.' }];
