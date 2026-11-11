@@ -525,7 +525,8 @@ jobs:
         #
         #   node scripts/patch-next.js    repairs a WebpackError constructor bug
         #                                 inside node_modules/next
-        #   NODE_OPTIONS=--max-old-space-size=7168
+        #   NODE_OPTIONS=--max-old-space-size=7168   (since alert 376825, sized to the
+        #                                           machine by scripts/fit-build-heap.mjs)
         #
         # Without the heap headroom the build died with "Reached heap limit -
         # JavaScript heap out of memory", and it died on EVERY branch: 14 of the

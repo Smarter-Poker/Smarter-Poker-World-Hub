@@ -77,10 +77,12 @@ test('the build script still carries what a bare next build would miss', () => {
     const pkg = JSON.parse(fs.readFileSync(path.join(REPO, 'package.json'), 'utf8'));
     const build = pkg.scripts?.build ?? '';
 
+    // The heap size is no longer a literal here: scripts/fit-build-heap.mjs sizes
+    // it to the machine (alert 376825; __tests__/the-build-heap-fits-the-machine.law.test.mjs).
     assert.match(
         build,
-        /max-old-space-size/,
-        'package.json build no longer sets a heap size — the E2E build OOMs without it, and the test above now points every workflow at this script'
+        /fit-build-heap\.mjs next build/,
+        'package.json build no longer starts next through scripts/fit-build-heap.mjs — the E2E build OOMs without heap headroom, and the test above now points every workflow at this script'
     );
     assert.match(
         build,

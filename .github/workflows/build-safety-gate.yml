@@ -178,6 +178,11 @@ jobs:
       - name: Operational Alert Delivery Contracts
         run: node --test __tests__/tournament-critical-pager-chat-only.test.mjs __tests__/deploy-autofix-inbox.test.mjs __tests__/engine-alert-receipts.test.mjs __tests__/deploy-monitor-inbox.test.mjs __tests__/alertmanager-page.test.mjs __tests__/operational-alert-inbox.test.mjs __tests__/openclaw-critical-jobs.test.mjs __tests__/operational-notification-destination.test.mjs __tests__/operational-push-routing.test.mjs __tests__/operational-push-metadata.test.mjs __tests__/notifications-send-operational-persistence.test.mjs
 
+      # Alert 376825: a fixed 7168 MB heap cap OOM-killed a production build on
+      # Vercel's 8 GB Standard machine. The cap is now fitted to the machine.
+      - name: The Build Heap Fits The Machine
+        run: node --test __tests__/the-build-heap-fits-the-machine.law.test.mjs tests/one-build-command.test.mjs
+
       - name: Queued Open Claw Publications Keep Protected Source Identity
         run: node --test __tests__/openclaw-queued-publication.test.mjs __tests__/openclaw*.test.mjs
 
