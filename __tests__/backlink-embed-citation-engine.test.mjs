@@ -1037,7 +1037,8 @@ test('Phase 8 Reconciled Acceptance: Solved-Spot Engine, QR Rule Sheets, Dataset
   assert.equal(freerollIcs.slug, 'freerolls');
   assert.ok(freerollIcs.ics.includes('BEGIN:VTIMEZONE'));
   assert.ok(freerollIcs.ics.includes('TZID:America/Chicago'));
-  assert.ok(freerollIcs.ics.includes('2\\,000 Platform Chips Daily Guaranteed'));
+  assert.ok(freerollIcs.ics.includes('250 Chips Guaranteed'), 'Freeroll .ics states the real Morning Free Buy guarantee in chips');
+  assert.ok(!freerollIcs.ics.includes('2\\,000'), 'Freeroll .ics carries no invented daily total');
   assert.ok(!freerollIcs.ics.includes('$2,000'), 'Freeroll .ics never uses obsolete dollar amounts');
 
   const cancelledFreerollIcs = buildSeriesCalendarIcs('freerolls', { status: 'cancelled', sequence: 3 });
