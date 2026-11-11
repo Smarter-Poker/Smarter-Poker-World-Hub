@@ -446,12 +446,12 @@ export function renderAboutPlatformMarkdown() {
     '- **Customer Support**: support@smarter.poker',
     '- **Open Code & Verified Repositories**: https://github.com/Smarter-Poker',
     '- **Platform Model**: 100% Free To Play Social And Training Poker Platform. No Real-Money Gambling.',
-    '- **Freeroll Tournaments**: 2,000 Chips In Free Poker Tournaments Awarded Daily Plus Diamond Freerolls Every 3 Hours With Zero Entry Fees.',
+    '- **Freeroll Tournaments**: 2,000 Chips In Free Poker Tournaments Awarded Daily With Zero Entry Fees. Funded Diamond Games Are Not Open For Play Yet.',
     '- **Currency Policy**: Club Chips Are Play Credits With Zero Cash Value; Diamonds Are Promotional Reward Points. No Real Money Wagers Or Cash Payouts.',
     '- **Target Audience**: Intended For Poker Players And Enthusiasts Aged 18 And Over.',
     '',
     '## Integrated Platform Modules',
-    '1. **Daily 2,000 Chip Freerolls & Diamond Freerolls**: 2,000 Chips In Guaranteed Daily Freeroll Tournaments Every Day, Plus Diamond Freerolls Running Every 3 Hours With Zero Entry Fees.',
+    '1. **Daily 2,000 Chip Freerolls & Diamond Freerolls**: 2,000 Chips In Guaranteed Daily Freeroll Tournaments Every Day, With Zero Entry Fees. Funded Diamond Games Are Not Open For Play Yet.',
     '2. **GTO Training Lab**: Solver-Grade Interactive Practice Drills, Preflop Charts, And Jarvis AI Coaching.',
     '3. **Poker Near Me**: Nationwide Directory Of Live Casino Poker Rooms, Rake Schedules, Tournament Series, And Maps.',
     '4. **Poker Tools & Calculators**: Free Texas Hold\'em / Omaha Odds Calculator, GTO Preflop Matrix, And ICM Engine.',
@@ -1721,7 +1721,7 @@ export function renderDailyTournamentsMarkdown({ canonicalUrl = 'https://smarter
     'Yes. The Daily Tournaments Directory Allows Instant Filtering By Day Of The Week, State, GPS Distance, Buy-In Range, Game Type (NLH, PLO, Mixed), And Guaranteed Prize Pool.',
     '',
     '### Are Online Daily 2,000 Chip Freerolls Also Available?',
-    'Yes. In Addition To Live Casino Daily Tournaments, Smarter.Poker Hosts 2,000 Chips In Free Online Poker Tournaments Daily Plus Diamond Freerolls Every 3 Hours At https://smarter.poker/freerolls With Zero Entry Fees.',
+    'Yes. In Addition To Live Casino Daily Tournaments, Smarter.Poker Hosts 2,000 Chips In Free Online Poker Tournaments Daily At https://smarter.poker/freerolls With Zero Entry Fees. Funded Diamond Games Are Not Open For Play Yet.',
     '',
   ].join('\n');
 }

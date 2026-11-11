@@ -22,7 +22,7 @@ test('STATIC_PAGES sitemap includes canonical /freerolls with daily priority', (
 
 test('RSS 2.0 syndication feed includes daily freerolls and software comparison items', () => {
   const xml = buildRssFeedXml();
-  assert.match(xml, /Daily 2,000 Chip Poker Freerolls &amp; Diamond Freerolls/);
+  assert.match(xml, /Daily 2,000 Chip Poker Freerolls/);
   assert.match(xml, /https:\/\/smarter\.poker\/freerolls/);
   assert.match(xml, /Poker Software &amp; Freeroll Platform Comparisons/);
   assert.match(xml, /https:\/\/smarter\.poker\/compare/);

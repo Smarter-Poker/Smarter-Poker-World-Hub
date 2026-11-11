@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { executeMcpTool } from '../src/lib/mcp/mcpServer.mjs';
+import { freerollEventSchema } from '../src/lib/seo/hubPageSchema.js';
 import { renderFreerollsMarkdown } from '../src/lib/seo/markdownIngestion.mjs';
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
@@ -73,4 +74,15 @@ test('homepage and About product catalogue distinguish closed Diamond games and 
   assert.equal(guide.name, 'Help & Getting Started');
   assert.match(guide.summary, /English Or Spanish/);
   assert.match(read('pages/about.js'), /LANDING_PRODUCTS\.map/);
+});
+
+
+test('public structured data and linked discovery FAQs do not advertise closed Diamond events', () => {
+  const series = freerollEventSchema().find(node => Array.isArray(node['@type']) && node['@type'].includes('EventSeries'));
+  assert.equal(series.subEvent.length, 4);
+  assert.ok(series.subEvent.every(event => !/diamond/i.test(event.name)));
+  for (const path of ['pages/freerolls.js', 'pages/about.js', 'pages/feed.xml.js', 'pages/compare/index.js', 'pages/api/hub-tool-markdown.js', 'pages/hub/daily-tournaments.js', 'pages/hub/tournaments/this-weekend.js', 'src/lib/seo/markdownIngestion.mjs']) {
+    assert.doesNotMatch(read(path), /exclusive Diamond Freerolls|Diamond Freerolls (?:Running )?Every 3 Hours/i, path);
+    assert.match(read(path), /Funded Diamond Games Are Not Open For Play Yet/i, path);
+  }
 });

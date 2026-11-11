@@ -39,7 +39,8 @@ test('Freerolls hub: contains daily schedule and comparison matrix', () => {
   assert.ok(content.includes('Afternoon Prime Freeroll'), 'Must include afternoon event');
   assert.ok(content.includes('Evening Championship Freeroll'), 'Must include evening event');
   assert.ok(content.includes('Nightcap Turbo Freeroll'), 'Must include nightcap event');
-  assert.ok(content.includes('Weekly Diamond Arena Championship'), 'Must include diamond championship');
+  assert.ok(!content.includes('Weekly Diamond Arena Championship'), 'Must not schedule an unlaunched Diamond championship');
+  assert.match(content, /Funded Diamond Games Are Not Open For Play Yet/i);
 
   assert.ok(
     content.includes('Smarter.Poker Vs. Legacy Poker Sites') ||
@@ -65,8 +66,8 @@ test('Freerolls hub: builds complete Schema.org graph with SportsEvent, HowTo, F
 
   const nodes = freerollEventSchema({
     path: '/freerolls',
-    name: 'Smarter.Poker Daily 2,000 Chip Freerolls And Diamond Freerolls',
-    description: 'Compete in 100% free daily poker tournaments with 2,000 chips in guaranteed daily prizes plus exclusive Diamond Freerolls.',
+    name: 'Smarter.Poker Daily 2,000 Chip Freerolls',
+    description: 'Compete in 100% free daily poker tournaments with 2,000 chips in guaranteed daily prizes with no cash value.',
     faqs: [
       { question: 'Are daily freerolls free?', answer: 'Yes, 100% free with zero buy-in.' },
     ],
@@ -91,7 +92,8 @@ test('Freerolls hub: builds complete Schema.org graph with SportsEvent, HowTo, F
   assert.equal(eventNode.offers.category, 'Free Entry', 'Offer category must be Free Entry');
   assert.ok(eventNode.sameAs.length >= 4, 'Event must inherit Wikidata sameAs links');
   assert.ok(Array.isArray(eventNode.subEvent), 'EventSeries must declare subEvent array');
-  assert.equal(eventNode.subEvent.length, 5, 'Must contain 5 daily/weekly sub-events');
+  assert.equal(eventNode.subEvent.length, 4, 'Only the four daily events are offered');
+  assert.ok(eventNode.subEvent.every(event => !/diamond/i.test(event.name)), 'Structured data must not advertise a closed Diamond event');
   for (const sub of eventNode.subEvent) {
     assert.ok(sub.startDate, `SubEvent ${sub.name} must declare ISO 8601 startDate`);
     assert.ok(sub.endDate, `SubEvent ${sub.name} must declare ISO 8601 endDate`);

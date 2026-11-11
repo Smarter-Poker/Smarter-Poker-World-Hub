@@ -181,8 +181,10 @@ export function buildFreerollsIcs() {
     },
     {
       uid: 'freeroll-sunday-diamond-championship@smarter.poker',
-      summary: 'Sunday Diamond Championship Freeroll (Diamond Rewards Pool) | Smarter.Poker',
-      description: 'Weekly Flagship Championship Freeroll For Diamond Members And Qualifying Tournament Ticket Holders With A Diamond Rewards Pool. Zero Entry Fee. Play Live At https://smarter.poker/freerolls',
+      summary: 'Diamond Arena Funded Games Not Open | Smarter.Poker',
+      status: 'CANCELLED',
+      sequence: 2,
+      description: 'Funded Diamond games are not open for play yet. Membership or VIP eligibility does not establish game availability.',
       rrule: 'FREQ=WEEKLY;BYDAY=SU',
       dtstart: '20260104T160000',
       dtend: '20260104T200000',
@@ -200,7 +202,8 @@ export function buildFreerollsIcs() {
     `DESCRIPTION:${cleanIcsText(ev.description)}`,
     'LOCATION:https://smarter.poker/freerolls',
     'URL:https://smarter.poker/freerolls',
-    'STATUS:CONFIRMED',
+    `SEQUENCE:${ev.sequence || 1}`,
+    `STATUS:${ev.status || 'CONFIRMED'}`,
     'TRANSP:TRANSPARENT',
     'END:VEVENT',
   ]);
@@ -213,7 +216,7 @@ export function buildFreerollsIcs() {
     'METHOD:PUBLISH',
     'X-WR-CALNAME:Smarter.Poker Daily 2,000 Chip Freerolls',
     'X-WR-TIMEZONE:America/Chicago',
-    'X-WR-CALDESC:Daily Free-To-Play Poker Tournaments With 2,000+ Chips In Guaranteed Daily Prizes Plus Weekly Diamond Freerolls On Smarter.Poker.',
+    'X-WR-CALDESC:Daily Free-To-Play Poker Tournaments With 2,000+ Chips In Guaranteed Daily Prizes On Smarter.Poker. Funded Diamond Games Are Not Open For Play Yet.',
     'BEGIN:VTIMEZONE',
     'TZID:America/Chicago',
     'BEGIN:STANDARD',
@@ -241,7 +244,7 @@ export function buildFreerollsIcs() {
  */
 export function buildFreerollGoogleCalendarUrl(event = {}) {
   const title = event.title || 'Smarter.Poker Daily 2,000 Chip Freerolls';
-  const details = event.description || 'Compete in 100% free daily poker tournaments with 2,000 chips guaranteed daily prizes and Diamond Freerolls. Play live at https://smarter.poker/hub/club-arena?mode=tournament';
+  const details = event.description || 'Compete in 100% free daily poker tournaments with 2,000 chips guaranteed daily prizes with no cash value. Funded Diamond games are not open for play yet. Play live at https://smarter.poker/hub/club-arena?mode=tournament';
   const location = 'https://smarter.poker/freerolls';
 
   const params = new URLSearchParams({

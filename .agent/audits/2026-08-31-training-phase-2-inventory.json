@@ -18,7 +18,7 @@
     "dialogs": 12,
     "persistenceFiles": 87,
     "realtimeFiles": 6,
-    "tests": 178,
+    "tests": 179,
     "markerCandidates": 372,
     "possibleUnwiredFunctions": 405,
     "routeStateCells": 752,
@@ -72040,6 +72040,7 @@
     "__tests__/aeo-tool-schemas.test.mjs",
     "__tests__/aeo-traffic-expansion-master.test.mjs",
     "__tests__/backlink-embed-citation-engine.test.mjs",
+    "__tests__/business-hub-guide-render.test.mjs",
     "__tests__/daily-challenges-casino-realism.test.mjs",
     "__tests__/every-glossary-term-has-a-page.law.test.mjs",
     "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs",
@@ -107923,6 +107924,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/business-hub-product-truth.test.mjs",
           "pages/freerolls.js"
         ]
       },
@@ -117863,6 +117865,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/business-hub-product-truth.test.mjs",
           "pages/freerolls.js"
         ]
       },

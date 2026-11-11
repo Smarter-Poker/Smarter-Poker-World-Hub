@@ -40,7 +40,7 @@ const WEEKEND_TOURNAMENTS_FAQS = [
   },
   {
     question: 'Does Smarter.Poker Host Free Online Weekend Poker Tournaments?',
-    answer: 'Yes. Smarter.Poker Hosts 2,000 Chips In Free Online Poker Tournaments Every Day Of The Weekend Plus Diamond Freerolls Every 3 Hours With Zero Entry Fees At Smarter.Poker/Freerolls.',
+    answer: 'Yes. Smarter.Poker Hosts 2,000 Chips In Free Online Poker Tournaments Every Day Of The Weekend With Zero Entry Fees. Funded Diamond Games Are Not Open For Play Yet At Smarter.Poker/Freerolls.',
   },
 ];
 

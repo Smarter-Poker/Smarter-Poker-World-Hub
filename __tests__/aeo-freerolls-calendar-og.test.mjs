@@ -5,7 +5,7 @@ import path from 'node:path';
 import { buildFreerollsIcs } from '../src/lib/poker-near-me/calendarExport.mjs';
 import freerollsCalendarHandler from '../pages/api/calendar/freerolls.ics.js';
 
-test('buildFreerollsIcs creates valid RFC 5545 iCalendar feed with all 5 recurring events', () => {
+test('buildFreerollsIcs creates valid RFC 5545 iCalendar feed with four offered events and a retained Diamond cancellation', () => {
   const ics = buildFreerollsIcs();
   assert.ok(ics.startsWith('BEGIN:VCALENDAR\r\n'), 'Must start with BEGIN:VCALENDAR');
   assert.ok(ics.endsWith('\r\nEND:VCALENDAR'), 'Must end with END:VCALENDAR');
@@ -20,7 +20,11 @@ test('buildFreerollsIcs creates valid RFC 5545 iCalendar feed with all 5 recurri
   assert.match(ics, /Afternoon Prime Freeroll \(500 Chips GTD\)/);
   assert.match(ics, /Evening Championship Freeroll \(750 Chips GTD\)/);
   assert.match(ics, /Nightcap Turbo Freeroll \(500 Chips GTD\)/);
-  assert.match(ics, /Sunday Diamond Championship Freeroll/);
+  assert.doesNotMatch(ics, /Sunday Diamond Championship Freeroll/);
+  const cancelled = ics.split('BEGIN:VEVENT').find(event => event.includes('UID:freeroll-sunday-diamond-championship@smarter.poker'));
+  assert.match(cancelled, /STATUS:CANCELLED/);
+  assert.match(cancelled, /SEQUENCE:2/);
+  assert.equal((ics.match(/STATUS:CONFIRMED/g) || []).length, 4);
 
   // Check RRULE recursion patterns
   assert.match(ics, /RRULE:FREQ=DAILY/);
@@ -62,7 +66,8 @@ test('pages/api/calendar/freerolls.ics handler serves calendar feed with correct
   assert.ok(headers['Cache-Control'].includes('s-maxage=86400'));
   assert.ok(typeof responseData === 'string');
   assert.ok(responseData.includes('BEGIN:VCALENDAR'));
-  assert.ok(responseData.includes('Sunday Diamond Championship Freeroll'));
+  assert.ok(responseData.includes('STATUS:CANCELLED'));
+  assert.ok(responseData.includes('Funded Diamond games are not open for play yet.'));
 });
 
 test('pages/api/calendar/freerolls.ics handler rejects non-GET methods with 405', async () => {

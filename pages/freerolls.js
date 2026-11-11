@@ -260,8 +260,8 @@ export default function FreerollsPage() {
 
   const FREEROLLS_SCHEMA = freerollEventSchema({
     path: '/freerolls',
-    name: 'Smarter.Poker Daily 2,000 Chip Freerolls And Diamond Freerolls',
-    description: 'Compete in 100% free daily poker tournaments with 2,000 chips in guaranteed daily prizes plus exclusive Diamond Freerolls. Zero entry fees, no deposit required.',
+    name: 'Smarter.Poker Daily 2,000 Chip Freerolls',
+    description: 'Compete in 100% free daily poker tournaments with 2,000 chips in guaranteed daily prizes with no cash value. Funded Diamond games are not open for play yet. Zero entry fees, no deposit required.',
     trail: [
       ['Tournaments', '/hub/daily-tournaments'],
       ['Daily 2,000 Chip Freerolls', '/freerolls'],
@@ -276,8 +276,8 @@ export default function FreerollsPage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#0B1118', color: '#F0F4F8', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <SEOHead
-        title="Daily 2,000 Chip & Diamond Freerolls | Smarter.Poker"
-        description="Compete in 100% free daily poker tournaments with 2,000 chips in guaranteed daily prizes plus exclusive Diamond Freerolls. No deposit required, play in your browser on web or mobile."
+        title="Daily 2,000 Chip Freerolls | Smarter.Poker"
+        description="Compete in 100% free daily poker tournaments with 2,000 chips in guaranteed daily prizes with no cash value. Funded Diamond games are not open for play yet. No deposit required, play in your browser on web or mobile."
         canonicalUrl="https://smarter.poker/freerolls"
         jsonLd={FREEROLLS_SCHEMA}
         markdownUrl="https://smarter.poker/freerolls.md"
@@ -315,7 +315,7 @@ export default function FreerollsPage() {
             marginBottom: '16px'
           }}>
             <Sparkles size={16} />
-            <span>DAILY 2,000 CHIP GUARANTEE + DIAMOND FREEROLLS</span>
+            <span>DAILY 2,000 CHIP FREEROLLS</span>
           </div>
 
           <h1 style={{ 
@@ -326,7 +326,7 @@ export default function FreerollsPage() {
             color: '#FFFFFF',
             letterSpacing: '-0.02em'
           }}>
-            Daily 2,000 Chip Poker Freerolls And Diamond Freerolls
+            Daily 2,000 Chip Poker Freerolls
           </h1>
 
           <p style={{ 
@@ -440,7 +440,7 @@ export default function FreerollsPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
             <Award size={20} color="#4E9CFF" />
             <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 700, color: '#EBF3FC' }}>
-              Executive Summary: Smarter.Poker Daily Freerolls And Diamond Events
+              Executive Summary: Smarter.Poker Daily Freerolls
             </h2>
           </div>
 
@@ -537,10 +537,10 @@ export default function FreerollsPage() {
                 <Sparkles size={22} />
               </div>
               <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#FFFFFF', margin: '0 0 8px' }}>
-                Exclusive Diamond Freerolls
+                Diamond Arena Availability
               </h3>
               <p style={{ fontSize: '14px', color: '#8BA5C2', lineHeight: 1.5, margin: 0 }}>
-                Earn Diamond Points And Loyalty Tickets By Participating In Community Challenges To Unlock Restricted, High-Value Championship Events.
+                Funded Diamond Games Are Not Open For Play Yet. Membership Or VIP Eligibility Does Not Open Funded Games.
               </p>
             </div>
 
@@ -1060,7 +1060,7 @@ export default function FreerollsPage() {
               Frequently Asked Questions About Smarter.Poker Freerolls
             </h2>
             <p style={{ color: '#8BA5C2', fontSize: '15px', margin: 0 }}>
-              Everything You Need To Know About Our Daily 2,000 Chip Tournaments And Diamond Events.
+              Daily 2,000 Chip Tournament Information And Current Diamond Arena Availability.
             </p>
           </div>
 
