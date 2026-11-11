@@ -92,3 +92,21 @@ export function firstTouchMetadata(win = typeof window !== 'undefined' ? window 
     return {};
   }
 }
+
+const NEW_ACCOUNT_WINDOW_MS = 30 * 60 * 1000;
+
+/**
+ * Google (OAuth) sign-ups never pass through supabase.auth.signUp, so they
+ * cannot carry acquisition metadata at creation. The auth callback calls this
+ * with the signed-in user: it returns the metadata to write ONLY for an
+ * account created in the last 30 minutes that has none yet, so an existing
+ * player signing in from a tagged link is never re-attributed.
+ */
+export function attributionForNewAccount(user, win = typeof window !== 'undefined' ? window : undefined, now = Date.now()) {
+  if (!user || typeof user !== 'object') return null;
+  if (user.user_metadata && user.user_metadata.acquisition_utm_source) return null;
+  const created = Date.parse(user.created_at || '');
+  if (!Number.isFinite(created) || now - created > NEW_ACCOUNT_WINDOW_MS || created - now > 60 * 1000) return null;
+  const meta = firstTouchMetadata(win, now);
+  return meta.acquisition_utm_source ? meta : null;
+}
