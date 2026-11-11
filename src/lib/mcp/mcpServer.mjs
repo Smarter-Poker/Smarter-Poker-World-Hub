@@ -320,7 +320,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'get_freeroll_schedule',
-    description: 'Retrieve the upcoming Daily 2,000 Chip Freerolls and Diamond Arena Freerolls schedule, formats, prize values, and entry requirements on Smarter.Poker.',
+    description: 'Retrieve the upcoming Daily 2,000 Chip Freerolls schedule, formats, prize values, entry requirements and current Diamond Arena availability on Smarter.Poker.',
     annotations: {
       title: 'Get Daily Freeroll Tournament Schedule',
       readOnlyHint: true,
@@ -334,7 +334,7 @@ export const MCP_TOOLS = [
         tier: {
           type: 'string',
           enum: ['all', 'open', 'diamond'],
-          description: 'Filter by freeroll tier: "open" for daily open tournaments, "diamond" for Diamond Arena VIP events, or "all".',
+          description: 'Filter by freeroll tier: "open" for daily open tournaments, "diamond" for Diamond Arena availability (no funded events currently open), or "all".',
           default: 'all',
         },
       },
@@ -2615,17 +2615,6 @@ export async function executeMcpTool(rawName, args, { origin = SITE_ORIGIN } = {
           tier_label: 'Open To All Players',
           eligibility: '100% Free Entry (No Deposit Required)',
         },
-        {
-          time: 'Sundays at 5:00 PM CST',
-          title: 'Weekly Diamond Arena Championship',
-          game: 'No-Limit Hold\'em Special',
-          format: 'Championship 15-Minute Levels',
-          prize: 'Premium Diamond Rewards Pool',
-          starting_stack: '25,000 Chips',
-          tier: 'diamond',
-          tier_label: 'Diamond Tier & Loyalty Ticket Holders',
-          eligibility: 'Diamond Loyalty Ticket or VIP Status',
-        },
       ];
 
       const filtered = tierFilter === 'all'
@@ -2643,6 +2632,7 @@ export async function executeMcpTool(rawName, args, { origin = SITE_ORIGIN } = {
                 game_variants: ['No-Limit Texas Hold\'em', 'Pot-Limit Omaha'],
                 platform: 'Instant In-Browser Web & Mobile (No App Download Required)',
                 schedule: filtered,
+                diamond_arena: { available: false, status: 'Funded Diamond games are not open for play yet.' },
                 live_lobby_url: `${base}/hub/club-arena`,
                 freerolls_hub_url: `${base}/freerolls`,
                 markdown_url: `${base}/freerolls.md`,

@@ -267,7 +267,7 @@ City and state directories connecting poker players with verified local home gam
 - Home games near me: https://smarter.poker/hub/home-games/near-me
 
 ### 15. Poker Arena (Club Arena)
-Private online poker clubs with real-time cash games (Hold'em, Omaha, Short Deck, Pineapple), multi-table tournaments, hand histories and replays, player statistics, leaderboards, unions between clubs, a club cashier and chip ledger, agent tools and full club management. Diamond Arena games run inside the same arena using the platform's Diamond currency.
+Private online poker clubs with real-time cash games (Hold'em, Omaha, Short Deck, Pineapple), multi-table tournaments, hand histories and replays, player statistics, leaderboards, unions between clubs, a club cashier and chip ledger, agent tools and full club management. Diamond Arena is a selection inside Poker Arena with automatic membership. Funded Diamond games are not open for play yet.
 - Landing page: https://smarter.poker/hub/club-arena
 - Help Center: https://smarter.poker/hub/club-arena/help
 - Fair Gaming standards: https://smarter.poker/hub/club-arena/legal/fair-gaming

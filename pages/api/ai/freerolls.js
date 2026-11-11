@@ -4,7 +4,7 @@
  * POST /api/ai/freerolls
  *
  * Fast, stateless endpoint returning real-time daily 2,000 chip freerolls
- * and Diamond Arena VIP tournament schedules for autonomous agents,
+ * and current Diamond Arena availability for autonomous agents,
  * LLM search engines, and reasoning models.
  */
 import { SITE_ORIGIN } from '../../../src/lib/seo/indexingService.mjs';
@@ -54,17 +54,6 @@ const SCHEDULE = [
     tier_label: 'Open To All Players',
     eligibility: '100% Free Entry (No Deposit Required)',
   },
-  {
-    time: 'Sundays at 5:00 PM CST',
-    title: 'Weekly Diamond Arena Championship',
-    game: 'No-Limit Hold\'em Special',
-    format: 'Championship 15-Minute Levels',
-    prize: 'Premium Diamond Rewards Pool',
-    starting_stack: '25,000 Chips',
-    tier: 'diamond',
-    tier_label: 'Diamond Tier & Loyalty Ticket Holders',
-    eligibility: 'Diamond Loyalty Ticket or VIP Status',
-  },
 ];
 
 export default async function handler(req, res) {
@@ -102,14 +91,15 @@ export default async function handler(req, res) {
       hardware_compatibility: 'Instant In-Browser Web & Mobile (No App Download Required)',
       legal_status: '100% Free-To-Play Social Poker Legal Across All 50 United States',
       schedule: filtered,
+      diamond_arena: { available: false, status: 'Funded Diamond games are not open for play yet.' },
       tiers: {
         open_daily_freerolls: 'Open to every registered player immediately upon signing up. No deposit, no credit card, and zero token cost.',
-        diamond_freerolls: 'Exclusive VIP tournaments featuring restricted fields and higher prize value per player, unlocked via Diamond loyalty tickets.',
+        diamond_freerolls: 'Funded Diamond games are not open for play yet. Membership or VIP eligibility does not establish availability.',
       },
       how_to_enter: [
         '1. Create Free Account: Sign up at https://smarter.poker in 30 seconds with email or social login.',
         '2. Open Tournament Lobby: Navigate to the Club Arena tournament section.',
-        '3. Click Register: Confirm your free seat in today\'s 2,000 Chip Freeroll or Diamond event.',
+        '3. Click Register: Confirm your free seat in today\'s 2,000 Chip Freeroll listed in the lobby.',
       ],
       freerolls_hub_url: `${base}/freerolls`,
       markdown_url: `${base}/freerolls.md`,

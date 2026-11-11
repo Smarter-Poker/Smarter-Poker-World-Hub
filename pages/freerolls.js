@@ -61,16 +61,6 @@ const DAILY_SCHEDULE = [
     tier: 'Open To All Players',
     status: 'Daily Nightcap Event',
   },
-  {
-    time: 'Sundays at 5:00 PM CST',
-    title: 'Weekly Diamond Arena Championship',
-    game: 'No-Limit Hold\'em Special',
-    format: 'Championship 15-Minute Levels',
-    prize: 'Premium Diamond Rewards Pool',
-    startingStack: '25,000 Chips',
-    tier: 'Diamond Tier & Loyalty Ticket Holders',
-    status: 'Weekly Special Event',
-  },
 ];
 
 const FREEROLLS_FAQS = [
@@ -84,7 +74,7 @@ const FREEROLLS_FAQS = [
   },
   {
     question: 'What Are Diamond Freerolls And How Do Players Qualify?',
-    answer: 'Diamond Freerolls are exclusive premium events reserved for active community members, loyalty ticket earners, and Diamond Tier players. They feature smaller starting fields, higher equity value per seat, and elevated championship prizes.',
+    answer: 'Funded Diamond games are not open for play yet. Diamond Arena membership and VIP eligibility do not establish that games are available. Check the current lobby and official rules before entering any event.',
   },
   {
     question: 'Do I Need To Download Bulky Software To Play In The Freerolls?',
@@ -260,7 +250,7 @@ export default function FreerollsPage() {
     },
     {
       name: 'Open Tournament Lobby',
-      text: 'Navigate to the Club Arena lobby and locate today\'s upcoming 2,000 Chip Daily Freerolls or Diamond Arena events.',
+      text: 'Navigate to the Club Arena lobby and locate today\'s upcoming 2,000 Chip Daily Freerolls listed in the lobby.',
     },
     {
       name: 'Register And Play',
@@ -455,7 +445,7 @@ export default function FreerollsPage() {
           </div>
 
           <p style={{ margin: '0 0 16px', fontSize: '15px', lineHeight: 1.6, color: '#BACCDD' }}>
-            <strong>Smarter.Poker</strong> Awards <strong>2,000 Chips In Free Poker Tournaments Every Single Day</strong>, Featuring Open Daily Freerolls And Exclusive Diamond Arena Freerolls With Zero Entry Fees, 100% Free-To-Play Access, And Prize Value Across Texas Hold\'Em And Omaha On Web, IOS, And Android.
+            <strong>Smarter.Poker</strong> Awards <strong>2,000 Chips In Free Poker Tournaments Every Single Day</strong>, Featuring Open Daily Freerolls With Zero Entry Fees, 100% Free-To-Play Access, And Prize Value Across Texas Hold\'Em And Omaha On Web, IOS, And Android.
           </p>
 
           <div style={{ 
@@ -859,31 +849,31 @@ export default function FreerollsPage() {
                   Diamond Arena Freerolls
                 </h3>
                 <p style={{ fontSize: '14px', color: '#94AFCC', lineHeight: 1.6, margin: '0 0 20px' }}>
-                  High-Prestige Tournaments Reserved For Active Community Members And Diamond Club Ticket Holders. Featuring Restricted Field Sizes, Superior Equity Per Entrant, And Elevated Championship Prize Pools.
+                  Funded Diamond Games Are Not Open For Play Yet. Diamond Arena Is A Selection Inside Poker Arena. Membership Does Not Open Funded Games.
                 </p>
 
                 <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: '#E0E8F0' }}>
                     <CheckCircle2 size={16} color="#FFD700" />
-                    <span>Lower Field Sizes Mean Higher Probability Of Reaching The Final Table</span>
+                    <span>Every Authenticated Player Is Automatically A Member</span>
                   </li>
                   <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: '#E0E8F0' }}>
                     <CheckCircle2 size={16} color="#FFD700" />
-                    <span>Exclusive Sunday Championship Guarantees</span>
+                    <span>Funded Games Remain Closed</span>
                   </li>
                   <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: '#E0E8F0' }}>
                     <CheckCircle2 size={16} color="#FFD700" />
-                    <span>Earn Free Diamond Tickets Through Daily Mission Milestones</span>
+                    <span>VIP Or Ticket Eligibility Does Not Establish Game Availability</span>
                   </li>
                   <li style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: '#E0E8F0' }}>
                     <CheckCircle2 size={16} color="#FFD700" />
-                    <span>Deep 25,000 Chip Stacks With 15-Minute Championship Blinds</span>
+                    <span>Check Official Rules And The Current Lobby Before Entry</span>
                   </li>
                 </ul>
               </div>
 
               <Link
-                href="/hub/diamond-store"
+                href="/legal/official-rules"
                 style={{
                   display: 'block',
                   textAlign: 'center',
@@ -897,7 +887,7 @@ export default function FreerollsPage() {
                   textDecoration: 'none'
                 }}
               >
-                Learn How To Unlock Diamond Freerolls
+                Read Official Rules And Eligibility
               </Link>
             </div>
           </div>
@@ -972,7 +962,7 @@ export default function FreerollsPage() {
                   Open Tournament Lobby
                 </h3>
                 <p style={{ fontSize: '14px', color: '#94AFCC', lineHeight: 1.5, margin: 0 }}>
-                  Navigate To The Club Arena Lobby And Locate Today's Upcoming 2,000 Chip Daily Freerolls Or Diamond Arena Events.
+                  Navigate To The Club Arena Lobby And Locate Today's Upcoming 2,000 Chip Daily Freerolls Listed In The Lobby.
                 </p>
               </div>
             </div>

@@ -28,7 +28,7 @@ export const LANDING_PRODUCTS = [
     name: 'Daily Freerolls',
     href: '/freerolls',
     summary:
-      'Daily 2,000 Chip Freerolls And Diamond Freerolls Every 3 Hours. Zero Buy-In, Prize Rewards, Live CST Countdown Tickers And Calendar Reminders.',
+      'Daily 2,000 Chip Freerolls With Zero Buy-In, Prize Rewards, Countdown Tickers And Calendar Reminders. Funded Diamond Games Are Not Open For Play Yet.',
   },
   {
     id: 'poker-tools',
@@ -94,6 +94,12 @@ export const LANDING_PRODUCTS = [
  * holds this list to the content indexes the sitemap offers.
  */
 export const LANDING_GUIDES = [
+  {
+    id: 'help',
+    name: 'Help & Getting Started',
+    href: '/hub/help',
+    summary: 'Find The Right Poker Tool, Learn What Is Available And Reach Official Support In English Or Spanish.',
+  },
   {
     id: 'learn',
     name: 'Poker Strategy Lessons',
