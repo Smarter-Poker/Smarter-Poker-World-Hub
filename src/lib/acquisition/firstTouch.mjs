@@ -44,8 +44,10 @@ export function parseFirstTouch(search, pathname, now = Date.now()) {
     const v = cleanTag(params.get(f));
     if (v) record[f] = v;
   }
-  const path = typeof pathname === 'string' && /^\/[A-Za-z0-9/_.-]{0,120}$/.test(pathname) ? pathname : '/';
-  record.landing_path = path;
+  // Only the first path segment: deeper segments can hold an invite code,
+  // a username or a club id, none of which belong in attribution.
+  const first = typeof pathname === 'string' ? pathname.split('/')[1] || '' : '';
+  record.landing_path = /^[A-Za-z0-9_.-]{1,40}$/.test(first) ? `/${first}` : '/';
   record.captured_at = new Date(now).toISOString();
   return record;
 }
@@ -93,20 +95,31 @@ export function firstTouchMetadata(win = typeof window !== 'undefined' ? window 
   }
 }
 
-const NEW_ACCOUNT_WINDOW_MS = 30 * 60 * 1000;
+const NEW_ACCOUNT_WINDOW_MS = 10 * 60 * 1000;
+const FIRST_SIGN_IN_SKEW_MS = 60 * 1000;
 
 /**
  * Google (OAuth) sign-ups never pass through supabase.auth.signUp, so they
  * cannot carry acquisition metadata at creation. The auth callback calls this
- * with the signed-in user: it returns the metadata to write ONLY for an
- * account created in the last 30 minutes that has none yet, so an existing
- * player signing in from a tagged link is never re-attributed.
+ * with the signed-in user. It returns metadata to write ONLY when this
+ * callback is the sign-in that created the account:
+ *   - the provider is not email (email accounts carry it from signUp);
+ *   - last_sign_in_at is within 60 s of created_at, which GoTrue sets in the
+ *     same request that creates an OAuth user and moves on every later
+ *     sign-in, so an existing player (even one created minutes ago) fails;
+ *   - the account is under 10 minutes old;
+ *   - it has no attribution yet, so a repeated callback writes nothing new.
  */
 export function attributionForNewAccount(user, win = typeof window !== 'undefined' ? window : undefined, now = Date.now()) {
   if (!user || typeof user !== 'object') return null;
   if (user.user_metadata && user.user_metadata.acquisition_utm_source) return null;
+  const provider = (user.app_metadata && user.app_metadata.provider) || '';
+  if (!provider || provider === 'email' || provider === 'phone') return null;
   const created = Date.parse(user.created_at || '');
-  if (!Number.isFinite(created) || now - created > NEW_ACCOUNT_WINDOW_MS || created - now > 60 * 1000) return null;
+  const signedIn = Date.parse(user.last_sign_in_at || '');
+  if (!Number.isFinite(created) || !Number.isFinite(signedIn)) return null;
+  if (Math.abs(signedIn - created) > FIRST_SIGN_IN_SKEW_MS) return null;
+  if (now - created > NEW_ACCOUNT_WINDOW_MS || created - now > FIRST_SIGN_IN_SKEW_MS) return null;
   const meta = firstTouchMetadata(win, now);
   return meta.acquisition_utm_source ? meta : null;
 }

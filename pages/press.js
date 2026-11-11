@@ -69,7 +69,7 @@ const BRAND_BOILERPLATES = [
   {
     id: 'long',
     label: 'Long Press Boilerplate (Full Media Attribution Paragraph)',
-    text: 'Founded By Smarter Software Inc., Smarter.Poker Is The All-In-One Poker Technology, Data Research, And Cardroom Management Ecosystem. For Everyday Players, Smarter.Poker Provides Free Access To 24 Interactive GTO And Tournament Calculators, 169 Canonical Starting Hand Strategy Guides, 25 Head-To-Head Matchup Solvers, 30 Official TDA And Robert\'s Rules Of Poker Floor Rulings, And Real-Time Live Discovery Across 324+ US Poker Venues And 4,500+ Weekly Tournaments. For Private Clubs And Commercial Cardrooms, Smarter.Poker Powers Club Arena And Club Commander, Delivering Waitlist Automation, Tournament Clocks, Floor Management, And Transparent Player Analytics Under Creative Commons CC BY 4.0 Open Data Attribution.',
+    text: 'Operated By Smarter Software Inc., Smarter.Poker Is The All-In-One Poker Technology, Data Research, And Cardroom Management Ecosystem. For Everyday Players, Smarter.Poker Provides Free Access To 24 Interactive GTO And Tournament Calculators, 169 Canonical Starting Hand Strategy Guides, 25 Head-To-Head Matchup Solvers, 30 Official TDA And Robert\'s Rules Of Poker Floor Rulings, And Real-Time Live Discovery Across 324+ US Poker Venues And 4,500+ Weekly Tournaments. For Private Clubs And Commercial Cardrooms, Smarter.Poker Powers Club Arena And Club Commander, Delivering Waitlist Automation, Tournament Clocks, Floor Management, And Transparent Player Analytics Under Creative Commons CC BY 4.0 Open Data Attribution.',
   },
 ];
 
