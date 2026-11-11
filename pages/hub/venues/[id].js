@@ -6,6 +6,7 @@
  */
 
 import SEOHead from '../../../src/components/seo/SEOHead';
+import { redactPublicVenue } from '../../../src/lib/poker-near-me/publicVenuePrivacy.mjs';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -55,7 +56,6 @@ import {
 } from '../../../src/lib/poker-near-me/venueAeo.mjs';
 import { resolveVenueWikidataLinks } from '../../../src/lib/seo/wikidataRegistry.mjs';
 import {
-import { redactPublicVenue } from '../../../src/lib/poker-near-me/publicVenuePrivacy.mjs';
   createPokerMapSession,
   loadPokerMapRuntime,
   resetPokerMapRuntime,
