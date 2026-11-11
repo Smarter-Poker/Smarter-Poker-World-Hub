@@ -696,3 +696,70 @@ def make_m2_selection_receipt(manifest: dict, *, dataset_id: str, model_builds: 
       "frozen_models":frozen,"selected":selected}
     pairs={(canonical_bytes(protocol_contexts[s["context_id"]]),s["board"]) for s in selected}
     return receipt,pairs
+
+
+# ---------------------------------------------------------------------------
+# Round registration (2026-11-10). R8 was approved as 70 flop / 23 turn /
+# 7 river and built as 0 / 67 / 33; nothing compared the built workload with
+# the approval. Club Arena migration 20261110213931 records every round in
+# gto_v31_round_registrations before its dataset exists and refuses dataset
+# insert and seal unless the cells hash to the registered cell-set checksum.
+# The trainer checks the same binding before any fit, so a training run on an
+# unregistered or substituted cell set fails here, not at the seal.
+REGISTRATION_CONTEXT_KEYS = ("street", "game_family", "objective", "utility_context", "table_size", "pot_type",
+                             "hero_position", "opponent_position", "depth_bucket", "texture_class", "node_role",
+                             "facing_kind", "facing_size_bucket")
+
+
+def cell_composition(cells: Any) -> dict:
+    """{"flop": n, "turn": n, "river": n} of a list of 13-key cell contexts."""
+    if not isinstance(cells, list) or not cells:
+        raise ContractError("registration cells must be a non-empty list")
+    out = {"flop": 0, "turn": 0, "river": 0}
+    for cell in cells:
+        if not isinstance(cell, dict) or set(cell) != set(REGISTRATION_CONTEXT_KEYS) or cell["street"] not in out:
+            raise ContractError("registration cell must be one 13-key V31 context")
+        out[cell["street"]] += 1
+    return out
+
+
+def cell_set_checksum(cells: Any) -> str:
+    """Digest of the contexts in canonical byte order (SQL fn_gto_v31_cell_set_checksum)."""
+    cell_composition(cells)
+    ordered = sorted(cells, key=canonical_bytes)
+    if any(canonical_bytes(a) == canonical_bytes(b) for a, b in zip(ordered, ordered[1:])):
+        raise ContractError("registration cells repeat")
+    return digest(ordered)
+
+
+def _composition_text(c: dict) -> str:
+    return f"{c['flop']} flop / {c['turn']} turn / {c['river']} river"
+
+
+def verify_round_registration(registration: Any, manifest: dict) -> dict:
+    """The manifest's contexts are exactly the round's registered cells.
+
+    `registration` is the gto_v31_round_registrations row exported by the round
+    writer (round_key, dataset_key, composition, cells, cell_set_checksum, ...).
+    Returns the registration; raises ContractError naming both compositions.
+    """
+    if not isinstance(registration, dict):
+        raise ContractError("round registration must be an object")
+    for key in ("round_key", "dataset_key", "composition", "cells", "cell_set_checksum"):
+        if key not in registration:
+            raise ContractError(f"round registration lacks {key}")
+    if registration["dataset_key"] != manifest.get("dataset_key"):
+        raise ContractError("round registration is for another dataset")
+    cells = registration["cells"]
+    if cell_composition(cells) != registration["composition"]:
+        raise ContractError("round registration composition is not the composition of its cells")
+    if cell_set_checksum(cells) != registration["cell_set_checksum"]:
+        raise ContractError("round registration checksum does not hash its cells")
+    contexts = [entry["context"] for entry in manifest.get("public215_contexts", [])]
+    declared = cell_composition(contexts)
+    if cell_set_checksum(contexts) != registration["cell_set_checksum"]:
+        raise ContractError(
+            f"round {registration['round_key']} composition differs from its registration: registered "
+            f"{_composition_text(registration['composition'])} ({len(cells)} cells), manifest "
+            f"{_composition_text(declared)} ({len(contexts)} cells); no cell may be substituted")
+    return registration

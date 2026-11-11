@@ -25,7 +25,8 @@ from typing import Any
 
 from contract import ApprovedManifest, ContractError, load_manifest, _json_bytes
 from public_hist215 import (feature_contract, FROZEN_PARAMETERS, canonical_bytes,
-                            digest, encode_f64, serialize_model, serialize_training_provenance, UUID, decode_f64)
+                            digest, encode_f64, serialize_model, serialize_training_provenance, UUID, decode_f64,
+                            verify_round_registration)
 
 PARAMETERS = {"max_iter":100,"max_leaf_nodes":15,"min_samples_leaf":10,
               "l2_regularization":10.0,"early_stopping":False,"random_state":731}
@@ -493,6 +494,8 @@ def write_new(path: Path, value: dict) -> str:
 def train(args) -> None:
     manifest=load_manifest(args.manifest,expected_checksum=args.manifest_sha256,input_root=args.input_root,pipeline_root=args.pipeline_root)
     need(manifest.raw.get('policy_representation')=='public_hist215_v1',"explicit nine-file public215 pipeline")
+    # The registered round is checked before partition, labels or any fit.
+    verify_round_registration(pinned_json(args.registration,args.registration_sha256),manifest.raw)
     expected,contexts=declared_m1_targets(manifest)
     validate_public_partition(manifest,expected,contexts)
     capture=pinned_json(args.capture_index,args.capture_index_sha256);rows=validate_capture_index(capture,manifest,expected)
@@ -561,7 +564,7 @@ def train(args) -> None:
 
 def main() -> None:
     parser=argparse.ArgumentParser(description=__doc__)
-    for name in ['manifest','manifest-sha256','input-root','pipeline-root','capture-index','capture-index-sha256','public-feature-index','public-feature-index-sha256','training-authority','training-authority-sha256','output']:
+    for name in ['manifest','manifest-sha256','input-root','pipeline-root','capture-index','capture-index-sha256','public-feature-index','public-feature-index-sha256','training-authority','training-authority-sha256','registration','registration-sha256','output']:
         parser.add_argument('--'+name,required=True)
     parser.add_argument('--shard-index',type=int,choices=range(4),required=True);parser.add_argument('--allow-fit',action='store_true')
     train(parser.parse_args())

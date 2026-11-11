@@ -30,6 +30,7 @@ test('the certified V31 solver pipeline passes its hermetic parser and contract 
 for (const suite of [
   'scripts/horse-solver-v31/test_compile_inputs.py',
   'scripts/horse-solver-v31/test_public_hist215.py',
+  'scripts/horse-solver-v31/test_round_registration.py',
   'scripts/horse-solver-v31/test_final_public215_training.py',
   'scripts/horse-solver-v31/test_continue_r7_once.py',
   'scripts/horse-solver-v31/test_seal_r7_once.py',
