@@ -1,0 +1,20 @@
+== cap 7168
+▲ Next.js 16.3.3 (webpack)
+⚠ Compiled with warnings in 2.0min
+✓ Generating static pages using 3 workers (871/871) in 17.1s
+EXIT 0 peak_tree=7056MB peak_single=6345MB
+== cap 6144
+[fit-build-heap] machine memory 13673 MB -> --max-old-space-size=6144 (ceiling 7168, reserve 2048, BUILD_HEAP_MB override)
+⚠ Compiled with warnings in 2.1min
+✓ Generating static pages using 3 workers (871/871) in 17.3s
+EXIT 0 peak_tree=6834MB peak_single=6027MB
+== cap 4096
+[fit-build-heap] machine memory 13673 MB -> --max-old-space-size=4096 (ceiling 7168, reserve 2048, BUILD_HEAP_MB override)
+⚠ Compiled with warnings in 2.0min
+✓ Generating static pages using 3 workers (871/871) in 16.9s
+EXIT 0 peak_tree=5786MB peak_single=5099MB
+== cap 3072
+[fit-build-heap] machine memory 13673 MB -> --max-old-space-size=3072 (ceiling 7168, reserve 2048, BUILD_HEAP_MB override)
+⚠ Compiled with warnings in 2.2min
+✓ Generating static pages using 3 workers (871/871) in 16.7s
+EXIT 0 peak_tree=5211MB peak_single=4527MB
