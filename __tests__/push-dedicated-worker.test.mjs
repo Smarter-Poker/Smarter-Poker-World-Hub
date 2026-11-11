@@ -73,3 +73,16 @@ test('no enrolment path still waits on navigator.serviceWorker.ready', () => {
         'a push path is still gated on the app worker becoming the controller'
     );
 });
+
+test('every registration of the push worker asks the browser for a new version', () => {
+    // register() with an unchanged script URL never checks for a new worker and
+    // nothing navigates under /push/, so without update() a deployed
+    // /push/sw.js is never adopted (owner's Mac, 2026-11-11: version 1374).
+    const code = stripComments(CLIENT);
+    const fn = code.slice(code.indexOf('async function getRegistration'), code.indexOf('async function persistSubscription'));
+    assert.match(fn, /register\(\s*'\/push\/sw\.js'/, 'getRegistration must register /push/sw.js');
+    assert.match(fn, /reg\.update\(\)/, 'getRegistration must call reg.update() so a deployed push worker is adopted');
+    assert.doesNotMatch(fn, /await\s+reg\.update\(\)/, 'the update check must not block enrolment');
+    assert.match(fn, /pending\.catch\(/, 'a failed update check must be swallowed');
+    assert.ok(fn.indexOf('reg.update()') < fn.indexOf('waitForActiveWorker'), 'ask for the new worker before waiting on the active one');
+});
