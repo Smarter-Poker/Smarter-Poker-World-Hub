@@ -38,6 +38,9 @@ test('CODEOWNERS lists every auth-critical path', () => {
         assert.ok(src.includes(p), `CODEOWNERS missing ${p}`);
     }
     assert.match(src, /AUTH-CRITICAL PATHS/, 'must have explicit section header');
+    // Owner direction 2026-11-11: no automatic review requests (they email the owner).
+    const assigned = src.split('\n').filter((l) => l.trim() && !l.trim().startsWith('#') && /@\S/.test(l));
+    assert.deepEqual(assigned, [], 'CODEOWNERS must not assign owners; review requests email the owner');
 });
 
 test('/admin/signup-health dashboard exists with auth gate + reads health view', () => {

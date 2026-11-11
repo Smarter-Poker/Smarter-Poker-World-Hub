@@ -8,46 +8,50 @@
 # Safety Gate) has therefore been failing with ENOENT on every run — the
 # protection was documented but absent.
 #
-# Owners listed here are requested for review automatically. GitHub silently
-# ignores unknown handles, so @Smarter-Poker is used: it is the account that
-# owns this repository and authors its commits.
+# NO OWNERS ARE ASSIGNED (owner direction 2026-11-11). A path with no owner
+# requests nobody. Automatic review requests only emailed the owner: the main
+# ruleset requires no code-owner review and no approvals, and agents merge
+# through required checks. The paths stay listed as the record of which areas
+# are auth, money or deploy critical; their protection is the tests named
+# beside them. __tests__/phase-3-deliverables.test.mjs fails if an owner
+# handle is added back.
 
 # ─── Default ────────────────────────────────────────────────────────────────
-*                                       @Smarter-Poker
+*
 
 # ─── AUTH-CRITICAL PATHS ────────────────────────────────────────────────────
 # A regression in any of these takes signup or sign-in down for every user.
 # Deleting or truncating them is additionally caught by the next.config.js
 # IIFE and __tests__/auth-routes-exist.test.mjs, but review is the first gate.
 
-/pages/auth/                            @Smarter-Poker
-/pages/api/auth/                        @Smarter-Poker
-/middleware.ts                          @Smarter-Poker
-/config/geo-blocks.json                 @Smarter-Poker
-/src/lib/supabase.ts                    @Smarter-Poker
-/__tests__/auth-routes-exist.test.mjs   @Smarter-Poker
-/pages/api/cron/signup-probe.js         @Smarter-Poker
-/docs/SIGNUP_RUNBOOK.md                 @Smarter-Poker
+/pages/auth/
+/pages/api/auth/
+/middleware.ts
+/config/geo-blocks.json
+/src/lib/supabase.ts
+/__tests__/auth-routes-exist.test.mjs
+/pages/api/cron/signup-probe.js
+/docs/SIGNUP_RUNBOOK.md
 
 # Trimming of the Supabase anon key lives here and in authUtils.ts; an
 # untrimmed key reaches the apikey header and every authenticated fetch throws.
-/src/lib/authUtils.ts                   @Smarter-Poker
-/src/lib/supabaseKeys.js                @Smarter-Poker
+/src/lib/authUtils.ts
+/src/lib/supabaseKeys.js
 
 # ─── MONEY PATHS ────────────────────────────────────────────────────────────
 # Diamond balances, rake distribution and chip purchases. Reviewed for the
 # same reason as auth: a silent regression here costs real money.
 
-/pages/api/diamonds/                    @Smarter-Poker
-/pages/api/store/                       @Smarter-Poker
-/pages/api/club-arena/purchase-chips.js @Smarter-Poker
-/src/lib/poker-engine/LobbyManager.js   @Smarter-Poker
+/pages/api/diamonds/
+/pages/api/store/
+/pages/api/club-arena/purchase-chips.js
+/src/lib/poker-engine/LobbyManager.js
 
 # ─── DEPLOY AND SCHEDULING CONTROL ──────────────────────────────────────────
 # CLAUDE.md section 11 makes Open Claw the single scheduler; the dispatcher and
 # the safety gate are the mechanisms that keep that true.
 
-/scripts/git-safe-push.sh               @Smarter-Poker
-/scripts/openclaw-cron-dispatcher.py    @Smarter-Poker
-/.github/workflows/                     @Smarter-Poker
-/vercel.json                            @Smarter-Poker
+/scripts/git-safe-push.sh
+/scripts/openclaw-cron-dispatcher.py
+/.github/workflows/
+/vercel.json
