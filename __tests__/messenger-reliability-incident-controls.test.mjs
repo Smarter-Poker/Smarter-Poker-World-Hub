@@ -75,8 +75,8 @@ function message(extra = {}) {
         ...extra,
     };
 }
-const bubble = (msg, isOwn = false) => renderToStaticMarkup(React.createElement(MessageBubble, {
-    message: msg, isOwn, showAvatar: false, isLastInGroup: true, sender: { username: 'smarterpoker' }, currentUserId: OTHER, theme,
+const bubble = (msg, isOwn = false, extra = {}) => renderToStaticMarkup(React.createElement(MessageBubble, {
+    message: msg, isOwn, showAvatar: false, isLastInGroup: true, sender: { username: 'smarterpoker' }, currentUserId: OTHER, theme, ...extra,
 }));
 
 test('the platform sender with the reliability kind gets both controls and the text unchanged', () => {
@@ -107,12 +107,63 @@ test('a controller message keeps its line breaks and wraps; no other message cha
     assert.ok(block);
     assert.match(block[1], /white-space:pre-wrap/);
     assert.match(block[1], /overflow-wrap:anywhere/);
-    assert.ok(block[2].includes(`AI AGENT NEEDED\nIncident ID: ${INCIDENT}\nSeverity: CRITICAL`));
+    // The first line moves into the heading; the body keeps every other line.
+    assert.ok(block[2].includes(`Incident ID: ${INCIDENT}\nSeverity: CRITICAL\nTitle: Engine Tick Stalled`));
+    assert.doesNotMatch(block[2], /AI AGENT NEEDED/);
+    assert.match(html, /<span data-testid="reliability-incident-label"[^>]*>AI AGENT NEEDED<\/span>/);
     for (const other of [message({ sender_id: OTHER }), message({ media_metadata: null }), message({ media_metadata: { kind: 'bug_report' } })]) {
         const plain = bubble(other);
         assert.match(plain, /AI AGENT NEEDED/);
         assert.doesNotMatch(plain, /reliability-incident-text|pre-wrap/);
     }
+});
+
+test('the heading shows AI AGENT NEEDED with the time it was sent, and a Delete control', () => {
+    const deletes = [];
+    const html = bubble(message(), false, { onDelete: (id, type) => { deletes.push([id, type]); return Promise.resolve(true); } });
+    assert.match(html, /data-testid="reliability-incident-header"/);
+    assert.match(html, /<span data-testid="reliability-incident-label"[^>]*>AI AGENT NEEDED<\/span>/);
+    // created_at 2026-11-09T18:00:00Z is noon in Chicago.
+    assert.match(html, /<span data-testid="reliability-incident-sent-at"[^>]*>Sent Nov 9, 2026, 12:00:00 PM CST<\/span>/);
+    assert.match(html, /<button[^>]*data-testid="delete-reliability-message"[^>]*aria-label="Delete Message"[^>]*>/);
+    assert.match(html, />Delete<\/button>/);
+    // The validation message gets its own heading, its time and Delete too.
+    const validation = bubble(message({ content: 'RELIABILITY CONTROLLER VALIDATION\nDelivery check.',
+        media_metadata: { kind: 'reliability_incident', incident_id: null, notification_kind: 'validation' } }), false, { onDelete() {} });
+    assert.match(validation, /reliability-incident-label"[^>]*>RELIABILITY CONTROLLER VALIDATION</);
+    assert.match(validation, /delete-reliability-message/);
+    // A missing time says so instead of inventing one.
+    assert.match(bubble(message({ created_at: null }), false, { onDelete() {} }), /Sent Not Recorded/);
+    // Without a delete handler (another surface), there is no Delete control.
+    assert.doesNotMatch(bubble(message()), /delete-reliability-message/);
+    // An unsent optimistic row cannot be deleted from the heading.
+    assert.doesNotMatch(bubble(message({ id: 'temp-1' }), false, { onDelete() {} }), /delete-reliability-message/);
+    // A message that is not entitled to the controls never gets the heading or Delete.
+    for (const msg of [message({ sender_id: OTHER }), message({ media_metadata: { kind: 'bug_report' } })]) {
+        const plain = bubble(msg, false, { onDelete() {} });
+        assert.doesNotMatch(plain, /reliability-incident-header|delete-reliability-message/);
+    }
+    assert.deepEqual(deletes, []); // rendering never deletes
+});
+
+test('Delete hides the message for this account only, through the acknowledged route', () => {
+    const bubbleSource = source('../src/components/messenger/MessageBubble.js');
+    assert.match(bubbleSource, /onDelete=\{typeof onDelete === 'function' && !String\(message\.id\)\.startsWith\('temp-'\)\s*\? \(\) => onDelete\(message\.id, 'for_me'\) : null\}/);
+    const header = source('../src/components/messenger/ReliabilityIncidentControls.jsx');
+    assert.match(header, /await onDelete\(\)/);
+    assert.match(header, /disabled=\{deleting\}/);
+    // The page removes a row only after the server acknowledges the hide.
+    const page = source('../pages/hub/messenger.js');
+    assert.match(page, /if \(!response\.ok \|\| result\.success !== true\) throw new Error\('Deletion Unavailable'\);\s*hiddenIds\.add\(messageId\);/);
+});
+
+test('the message parts split the heading from the body and never lose a line', () => {
+    const { reliabilityMessageParts } = reliability;
+    assert.deepEqual(reliabilityMessageParts(BODY), { label: 'AI AGENT NEEDED', body: `Incident ID: ${INCIDENT}\nSeverity: CRITICAL\nTitle: Engine Tick Stalled` });
+    assert.deepEqual(reliabilityMessageParts('AI AGENT NEEDED'), { label: 'AI AGENT NEEDED', body: '' });
+    assert.deepEqual(reliabilityMessageParts(''), { label: 'AI AGENT NEEDED', body: '' });
+    assert.deepEqual(reliabilityMessageParts(null), { label: 'AI AGENT NEEDED', body: '' });
+    assert.equal(reliabilityMessageParts('x'.repeat(200)).label.length, 80);
 });
 
 test('forged metadata from any other sender renders no controls', () => {

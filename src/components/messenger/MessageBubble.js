@@ -5,14 +5,14 @@ import { Avatar } from './Avatar';
 import { Phone, PhoneMissed, Video } from 'lucide-react';
 import AccountingInvoiceCard from './AccountingInvoiceCard';
 import CashoutRequestActions, { formatChips } from './CashoutRequestActions';
-import ReliabilityIncidentControls from './ReliabilityIncidentControls';
+import ReliabilityIncidentControls, { ReliabilityMessageHeader } from './ReliabilityIncidentControls';
 import { isUnverifiedCorrectionPlaceholder } from '../../lib/accountingMessage.mjs';
 import { unionEcoRows } from '../../lib/unionEco.mjs';
 import { getAccessToken, authedFetch } from '../../lib/authUtils';
 import { parseMessageMedia, isMediaMessage, mediaThumbnailUrl } from '../../lib/messenger/messageMedia.mjs';
 import { isLiveInvite, liveInviteHref } from '../../lib/messenger/liveInvite.mjs';
 import { isCallReceipt, parseCallReceipt } from '../../lib/messenger/callReceipt.mjs';
-import { reliabilityIncidentControls } from '../../lib/messenger/reliabilityIncident.mjs';
+import { reliabilityIncidentControls, reliabilityMessageParts } from '../../lib/messenger/reliabilityIncident.mjs';
 
 const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡', '🔥', '👏', '🎯', '💎', '♠️', '♥️'];
@@ -1106,9 +1106,19 @@ export function MessageBubble({
 
                         // A Reliability Controller body is a list of lines. Only
                         // a message entitled to the controls keeps its breaks.
+                        // Its first line is the heading, shown with the time it
+                        // was sent and a Delete control that hides it for this
+                        // account only (the same server-side Delete For Me).
                         if (reliabilityIncidentControls(message)) {
-                            return <div data-testid="reliability-incident-text" style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
-                                <MessageContent content={content} isOwn={isOwn} theme={C} />
+                            const parts = reliabilityMessageParts(content);
+                            return <div data-testid="reliability-incident-message">
+                                <ReliabilityMessageHeader label={parts.label} sentAt={message.created_at || message.timestamp}
+                                    onDelete={typeof onDelete === 'function' && !String(message.id).startsWith('temp-')
+                                        ? () => onDelete(message.id, 'for_me') : null}
+                                    theme={C} />
+                                {parts.body && <div data-testid="reliability-incident-text" style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
+                                    <MessageContent content={parts.body} isOwn={isOwn} theme={C} />
+                                </div>}
                             </div>;
                         }
                         return <MessageContent content={content} isOwn={isOwn} theme={C} />;
