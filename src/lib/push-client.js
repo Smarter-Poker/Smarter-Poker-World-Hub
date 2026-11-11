@@ -265,6 +265,22 @@ async function getRegistration() {
     }
 
     if (reg) {
+        // ASK FOR THE NEW WORKER (2026-11-11). register() with an unchanged
+        // script URL only returns the existing registration: it never checks
+        // for a new /push/sw.js. The browser's own update check runs on a
+        // navigation inside the scope, and nothing ever navigates under /push/,
+        // so a deployed push worker could stay unadopted indefinitely. On the
+        // owner's Mac the /push/ worker was still version 1374 after the receipt
+        // release while the app worker (updated by ServiceWorkerUpdater) was
+        // 1745, and no per-push receipt arrived. update() fetches the script
+        // (updateViaCache 'none'), and the worker's skipWaiting/clients.claim
+        // activates a changed one at once; the subscription belongs to the
+        // registration, so it survives. Not awaited and never thrown: enrolment
+        // must not wait on, or fail because of, an update check.
+        try {
+            const pending = reg.update();
+            if (pending && typeof pending.catch === 'function') pending.catch(() => {});
+        } catch { /* no network or unsupported; the next sync tries again */ }
         await waitForActiveWorker(reg, T.ready);
         if (reg.active && reg.pushManager) return reg;
         // pushManager exists on a registration before it activates; if the
