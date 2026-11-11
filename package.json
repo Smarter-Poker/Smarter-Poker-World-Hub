@@ -114,6 +114,7 @@
     "hono": "^4.6.20",
     "howler": "^2.2.4",
     "idb": "^8.0.3",
+    "imapflow": "2.11.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
     "leaflet": "^1.9.4",
