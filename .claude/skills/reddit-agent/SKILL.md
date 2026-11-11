@@ -129,6 +129,22 @@ All of these must be true, and the draft must show the evidence for each:
 If any item fails or is unknown, the answer is a helpful reply with no
 mention.
 
+### What To Mention First
+
+When the gate passes, lead with the free tools, not the clubs or the
+platform as a whole. They answer the question in the thread on their own,
+need no account and carry no ads, so a reader can check the claim in one
+click:
+
+- Poker odds calculator: `https://smarter.poker/tools?utm_source=reddit&utm_medium=social&utm_campaign=<subreddit>`
+- Tournament ICM calculator and 13x13 preflop range charts: same `/tools`
+  link with the same tags.
+
+Name one tool that fits the question, not the list. Mention Club Arena,
+Poker Arena or Club Commander only when the thread asks for exactly that and
+gate item 5 has been checked for it. Every smarter.poker link carries the
+UTM tags above, with the subreddit name as the campaign; never a bare link.
+
 ## Writing
 
 - Specific beats general. Give the number, the range, the spot.
