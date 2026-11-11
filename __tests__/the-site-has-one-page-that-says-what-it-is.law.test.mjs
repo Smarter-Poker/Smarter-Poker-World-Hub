@@ -66,7 +66,7 @@ test('the about page joins the entity graph instead of starting a second one', (
     /isPartOf:\s*\{\s*'@id':\s*'https:\/\/smarter\.poker\/#website'\s*\}/,
     'the page points at the WebSite node',
   );
-  assert.match(src, /jsonLd=\{\[schemas\.organization, ABOUT_PAGE_SCHEMA\]\}/, 'both nodes ship together');
+  assert.match(src, /jsonLd=\{\[ABOUT_ORGANIZATION_SCHEMA, ABOUT_PAGE_SCHEMA\]\}/, 'the page-specific company identity and AboutPage ship together');
 
   // The ids it references have to be the ids SEOHead actually publishes.
   const head = read('vendor/commander-shared/src/components/seo/SEOHead.js');

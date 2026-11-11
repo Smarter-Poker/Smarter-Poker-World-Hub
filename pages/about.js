@@ -23,11 +23,26 @@ import Link from 'next/link';
 import SEOHead, { schemas } from '../src/components/seo/SEOHead';
 import { LANDING_PRODUCTS } from '../src/components/landing/LandingProductSummary';
 
+// This page states the company identity. Software repositories, datasets and
+// archived code identify its works, not alternate identities of the company.
+// Select the supported fields instead of inheriting unrelated global claims.
+const ABOUT_ORGANIZATION_SCHEMA = {
+  '@type': 'Organization',
+  '@id': schemas.organization['@id'],
+  name: schemas.organization.name,
+  alternateName: schemas.organization.alternateName,
+  legalName: schemas.organization.legalName,
+  url: schemas.organization.url,
+  logo: schemas.organization.logo,
+  contactPoint: schemas.organization.contactPoint,
+  sameAs: ['https://github.com/Smarter-Poker'],
+};
+
 const ABOUT_PAGE_SCHEMA = {
   '@type': 'AboutPage',
   '@id': 'https://smarter.poker/about#page',
   url: 'https://smarter.poker/about',
-  name: 'About Smarter Poker',
+  name: 'About Smarter.Poker',
   mainEntity: { '@id': 'https://smarter.poker/#organization' },
   isPartOf: { '@id': 'https://smarter.poker/#website' },
   breadcrumb: {
@@ -62,7 +77,7 @@ export default function AboutPage() {
         description="Smarter.Poker Is A Free Online Poker Platform From Smarter Software Inc. Read What It Is, What It Is Not, Which Products It Runs And How To Reach Support."
         canonical="/about"
         ogImage="/api/og/tool-card?tool=about&title=About+Smarter.Poker&subtitle=Free+Online+Poker+Platform+Operated+By+Smarter+Software+Inc&statLabel=OPERATOR&statValue=SMARTER+SOFTWARE"
-        jsonLd={[schemas.organization, ABOUT_PAGE_SCHEMA]}
+        jsonLd={[ABOUT_ORGANIZATION_SCHEMA, ABOUT_PAGE_SCHEMA]}
         markdownUrl="https://smarter.poker/about.md"
       />
 
