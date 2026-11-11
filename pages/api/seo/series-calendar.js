@@ -324,13 +324,16 @@ function buildFreerollsIcs({ status = 'CONFIRMED', sequence = 1 } = {}) {
       summary: 'Smarter.Poker Nightcap Turbo Freeroll (500 Chips Guaranteed - Free Entry)',
       desc: 'Fast 5-Minute Turbo No-Limit Hold\'em / Pot-Limit Omaha Freeroll (10,000 Starting Chips; 500 Platform Chips Guaranteed; Free-To-Play With Zero Cash Value). Register At https://smarter.poker/freerolls',
     },
+    // Retain the published UID so subscribed calendars remove the unlaunched event.
     {
       uid: 'freeroll-sunday-diamond-1700@smarter.poker',
       dtStartLocal: '20261115T170000',
       dtEndLocal: '20261115T200000',
       rrule: 'FREQ=WEEKLY;BYDAY=SU',
-      summary: 'Smarter.Poker Weekly Diamond Arena Championship (Sundays 5:00 PM CST)',
-      desc: 'Weekly Sunday Championship With 25,000 Starting Chips And 15-Minute Levels For Diamond Tier & Loyalty Ticket Holders (Free-To-Play Platform Rewards). Details At https://smarter.poker/freerolls',
+      summary: 'Diamond Arena Funded Games Not Open',
+      desc: 'Funded Diamond games are not open for play yet. Membership or VIP eligibility does not establish game availability.',
+      status: 'CANCELLED',
+      sequence: Math.max(2, safeSeq),
     },
   ];
 
@@ -339,8 +342,8 @@ function buildFreerollsIcs({ status = 'CONFIRMED', sequence = 1 } = {}) {
       'BEGIN:VEVENT',
       `UID:${slot.uid}`,
       'DTSTAMP:20261110T120000Z',
-      `SEQUENCE:${safeSeq}`,
-      `STATUS:${safeStatus}`,
+      `SEQUENCE:${slot.sequence || safeSeq}`,
+      `STATUS:${slot.status || safeStatus}`,
       `DTSTART;TZID=America/Chicago:${slot.dtStartLocal}`,
       `DTEND;TZID=America/Chicago:${slot.dtEndLocal}`,
       `RRULE:${slot.rrule}`,

@@ -225,7 +225,7 @@ const CUSTOM_SURFACE_MARKDOWN = {
   },
   '/hub/diamond-store': {
     title: 'Smarter.Poker Diamond Store & Promotional Rewards Catalog',
-    lead: 'Browse Promotional Diamond Bundles, VIP Membership Upgrades, Cosmetic Avatar Frames, Table Skins, And Tournament Access Passes Inside The Smarter.Poker Diamond Store. Diamonds Are A Promotional Platform Rewards Currency Earned Through Daily Logins, Trivia Streaks, Training Accuracy Milestones, And Free-To-Enter Diamond Freerolls.',
+    lead: 'Browse Promotional Diamond Bundles, VIP Membership Upgrades, Cosmetic Avatar Frames, Table Skins, And Tournament Access Passes Inside The Smarter.Poker Diamond Store. Diamonds Are A Promotional Platform Rewards Currency Earned Through Daily Logins, Trivia Streaks, Training Accuracy Milestones, Subject To Current Eligibility. Funded Diamond Games Are Not Open For Play Yet.',
     sections: [
       {
         heading: 'Diamond Currency Rules & Compliance',

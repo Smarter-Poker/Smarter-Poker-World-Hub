@@ -1,0 +1,11 @@
+{
+  "reviewedAt": "2026-11-11",
+  "guideVersion": "2026-11-11.1",
+  "inputs": {
+    "pages/terms.js": "8fe0d3b12df3616c3bdc66211efeb2e6140076f2fb4d66dbb49b04c57b65a1cf",
+    "pages/legal/official-rules.js": "4173d038cf68fb2a9ac806c15011ad1dcfe65122c9bf0ee57865b600484b9c5f",
+    "src/components/landing/LandingProductSummary.js": "0d046265404baafdee32baba60c996a12e34a68504d5b78a52210cd39258f260",
+    "src/lib/businessHubGuide.mjs": "451821eb34e278ac85fe15f61ea24b2337bcf5e185df31bf45beb660b449a43d",
+    "pages/about.js": "c17ef3b424091bf082ee936dc410d2db51595a3396b56a93521cc0035f150f74"
+  }
+}

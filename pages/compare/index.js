@@ -433,7 +433,7 @@ export default function CompareHubPage() {
                 </tr>
                 <tr style={{ borderBottom: '1px solid #1B2939' }}>
                   <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Diamond VIP Freerolls</td>
-                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Earn Free Loyalty Tickets Via Missions</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Funded Diamond Games Are Not Open For Play Yet</td>
                   <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>High Rake Tier Volume Required</td>
                 </tr>
                 <tr>

@@ -9,6 +9,7 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
+import BusinessHubGuide from '../../src/components/help/BusinessHubGuide';
 
 const C = {
     bg: '#0a1628',
@@ -39,7 +40,7 @@ export default function HelpPage() {
                 },
                 {
                     q: 'What is the Diamond economy?',
-                    a: 'Diamonds are the premium currency on Smarter.Poker. Earn them through gameplay, achievements, or purchase them in the Diamond Store.'
+                    a: 'Diamonds are a promotional rewards currency with no cash value and no cash-out. Optional purchases are separate from free play and do not improve reward chances. Current Official Rules and eligibility apply; funded Diamond games are not open for play yet.'
                 }
             ]
         },
@@ -140,7 +141,6 @@ export default function HelpPage() {
                         alignItems: 'center',
                         gap: 12,
                     }}>
-                        <span>❓</span>
                         Help & Support
                     </h1>
                     <p style={{
@@ -151,6 +151,8 @@ export default function HelpPage() {
                         Find Answers To Common Questions And Get Support
                     </p>
                 </div>
+
+                <BusinessHubGuide />
 
                 {/* Quick Contact Cards */}
                 {/* id="contact" is load-bearing: the help hamburger menu has
@@ -346,13 +348,12 @@ export default function HelpPage() {
                                 gap: 8,
                                 padding: '12px 0',
                             }}>
-                                <span>📄</span>
                                 Terms Of Service
                                 <span style={{ marginLeft: 'auto', color: C.textSec }}>→</span>
                             </Link>
                         </div>
                         <div style={{ marginBottom: 16, borderTop: `1px solid ${C.border}`, paddingTop: 16 }}>
-                            <Link href="/terms" style={{
+                            <Link href="/privacy" style={{
                                 color: C.accent,
                                 textDecoration: 'none',
                                 fontSize: 15,
@@ -362,7 +363,6 @@ export default function HelpPage() {
                                 gap: 8,
                                 padding: '12px 0',
                             }}>
-                                <span>🔒</span>
                                 Privacy Policy
                                 <span style={{ marginLeft: 'auto', color: C.textSec }}>→</span>
                             </Link>
