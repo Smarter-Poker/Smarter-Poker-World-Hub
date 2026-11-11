@@ -161,6 +161,15 @@ jobs:
       - name: A Worker Update Never Reloads The Page You Are On
         run: node --test __tests__/sw-update.test.mjs __tests__/messenger-calls-work.law.test.mjs
 
+      # The Vercel build's marketplace contract fails the PRODUCTION build when
+      # it fails, so it has to fail the PR first (alert row 255715, 2026-11-11).
+      # On 2026-10-17 #2473 broke it; the only PR job that ran it was Global
+      # Footer E2E's `npm run build`, which is not required, so the PR merged
+      # and deployment dpl_CW1YLaroptrFiBRmbFotkxg5Fj7Y failed. Both files are
+      # pure file reads and local child processes (0.4 s, no node_modules).
+      - name: The Vercel Build's Contracts Run Before Merge
+        run: node --test __tests__/marketplace-operations.test.mjs __tests__/the-vercel-build-ships-what-it-runs.law.test.mjs
+
       - name: Restore node_modules For Training Authority
         id: training-authority-nm-cache
         uses: actions/cache@v4
