@@ -48,6 +48,7 @@ import './aeo-freerolls-calendar-og.test.mjs';
 import './aeo-freerolls-global-wiring.test.mjs';
 import './freeroll-schedule-is-canonical.test.mjs';
 import './first-touch-attribution.test.mjs';
+import './founder-linkedin-is-linked.test.mjs';
 import './aeo-deep-dive-optimizations.test.mjs';
 import './aeo-phase3-features.test.mjs';
 import './aeo-video-library-schema.test.mjs';

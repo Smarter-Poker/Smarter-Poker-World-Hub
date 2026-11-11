@@ -63,8 +63,28 @@ export const ORGANIZATION_SAME_AS = [
   'https://archive.softwareheritage.org/swh:1:snp:02b8992833424620305edcfb730b3cf8add15747',
 ];
 
+/**
+ * The founder, linked from the Organization node and the About page.
+ * Owner-stated facts (2026-11-09): founded October 2025. The LinkedIn link
+ * gives site visitors a way to connect with the founder, which is also what
+ * lets LinkedIn create the Smarter.Poker company page.
+ */
+export const FOUNDER = Object.freeze({
+  name: 'Daniel Bekavac',
+  firstName: 'Daniel',
+  linkedin: 'https://www.linkedin.com/in/daniel-bekavac-78060944a/',
+});
+
 if (schemas && schemas.organization) {
   schemas.organization.sameAs = ORGANIZATION_SAME_AS;
+  schemas.organization.foundingDate = '2025-10';
+  schemas.organization.founder = {
+    '@type': 'Person',
+    '@id': 'https://smarter.poker/about#founder',
+    name: FOUNDER.name,
+    jobTitle: 'Founder',
+    sameAs: [FOUNDER.linkedin],
+  };
 }
 
 /**
