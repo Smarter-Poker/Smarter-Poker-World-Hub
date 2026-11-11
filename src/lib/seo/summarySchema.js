@@ -129,6 +129,16 @@ export function summarySchema(page, entry) {
         featureList,
       });
 
+  if (page === 'help') {
+    // Help displays support resources, not an image-license acquisition flow.
+    // Keep its share image without inheriting unsupported licensing claims.
+    const image = nodes.find((node) => node['@type'] === 'ImageObject');
+    if (image) {
+      delete image.license;
+      delete image.acquireLicensePage;
+    }
+  }
+
   if (page === 'trivia' || String(page).startsWith('trivia-')) {
     const url = `${SITE}${route.path.startsWith('/') ? '' : '/'}${route.path}`;
     const quizId = `${url}#quiz`;

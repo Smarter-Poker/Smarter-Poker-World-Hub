@@ -70,6 +70,16 @@ test('each graph is valid, complete and about the right page', () => {
   }
 });
 
+test('Help describes a support collection without claiming to offer image licenses', () => {
+  const graph = summarySchema('help', entries().help)['@graph'];
+  assert.equal(graph[0]['@type'], 'CollectionPage');
+  const image = graph.find(node => node['@type'] === 'ImageObject');
+  assert.ok(image, 'retain the actual share image');
+  assert.equal(image.license, undefined, 'general service terms are not an image license');
+  assert.equal(image.acquireLicensePage, undefined, 'Help does not offer image licensing');
+  assert.ok(!graph.some(node => ['FAQPage', 'SoftwareApplication', 'Product'].includes(node['@type'])), 'do not invent a product or unpublished FAQ');
+});
+
 test('the Club Commander pages do not publish two breadcrumb trails', () => {
   // They already ship commanderBreadcrumbs through SEOHead.
   for (const key of Object.keys(SCHEMA_ROUTES)) {
