@@ -37,6 +37,7 @@ import {
     reportAuthError,
 } from '../../src/lib/authErrors';
 import { redeemPendingSignupCodes } from '../../src/lib/pendingSignupCodes.mjs';
+import { attributionForNewAccount } from '../../src/lib/acquisition/firstTouch.mjs';
 
 // Email-link `type` values that Supabase produces.
 // https://supabase.com/docs/reference/javascript/auth-verifyotp
@@ -330,6 +331,15 @@ export default function AuthCallback() {
                     console.warn('[auth-callback] ensure-profile error (non-blocking):', epErr);
                     reportAuthError('profile_provision', epErr);
                 }
+
+                // ── 6.4 First-touch attribution for a brand-new OAuth account.
+                //      Email sign-up writes it at signUp; Google cannot, so a
+                //      fresh account with none gets it here. Never re-attributes
+                //      an existing player (src/lib/acquisition/firstTouch.mjs).
+                try {
+                    const acquisition = attributionForNewAccount(user);
+                    if (acquisition) await supabase.auth.updateUser({ data: acquisition });
+                } catch (_attrErr) { /* non-blocking */ }
 
                 // ── 6.5 Redeem pending promo code / referral code ──
                 // One helper for both verification doors (link here, six-digit
