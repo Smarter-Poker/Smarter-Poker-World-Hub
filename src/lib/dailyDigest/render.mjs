@@ -391,17 +391,61 @@ function listCard(title, rows) {
  * Directly below Needs Your Attention, render Daily Update, Weekly Update,
  * and Monthly Update in that exact order.
  */
+/**
+ * BBJ rake (Dan 2026-11-11): the cash pots' bad beat jackpot drop, collected
+ * on top of the rake. Day, trailing seven Central days and Central month to
+ * date come from fn_sp_digest_house_figures; an unavailable period says so
+ * instead of showing 0.
+ */
+export function bbjRakeRow(digest, period) {
+    const b = digest?.house_figures?.bbj_rake;
+    const v = b ? b[period] : undefined;
+    if (v === undefined || v === null) {
+        const day = get(digest?.metrics || {}, 'money.bbj_contributions');
+        if (period === 'day' && day !== undefined && day !== null) return ['BBJ Rake', fmtNum(day), BBJ_SUB];
+        return ['BBJ Rake', 'Unavailable', 'Bad beat jackpot drop could not be read'];
+    }
+    const days = period === 'week' ? b.week_days : period === 'month' ? b.month_days : null;
+    const expected = period === 'week' ? 7 : period === 'month' ? Number(digest?.mtd?.day_of_month) || null : null;
+    const gap = days !== null && expected !== null && Number(days) < expected ? `; ${fmtInt(days)} of ${fmtInt(expected)} days recorded` : '';
+    return ['BBJ Rake', fmtNum(v), `${BBJ_SUB}${gap}`];
+}
+const BBJ_SUB = 'Bad beat jackpot drop from cash pots, collected on top of the rake';
+
+/**
+ * The horse fleet's cash result (Dan 2026-11-11, "the math isn't mathing").
+ * The old row summed big blinds across every stake and tournament for the UTC
+ * day and called it house exposure. The horses mostly play each other, so
+ * nearly all of that loss is the rake and BBJ they pay to the house. The row
+ * is now chips for the Central day, cash only, split into what the horses
+ * paid the house and what they won or lost against the other players.
+ */
+export function horseCashRow(h, bbSub) {
+    if (!h || h.net === undefined || h.net === null) return null;
+    const vs = Number(h.vs_others) || 0;
+    const against = Math.abs(vs) < 0.005 ? 'broke even against the other players'
+        : `${vs > 0 ? 'won' : 'lost'} ${fmtNum(Math.abs(vs))} against the other players`;
+    const bb = h.net_bb_utc === undefined || h.net_bb_utc === null ? '' : `; ${bbSub} ${fmtNum(h.net_bb_utc)} BB`;
+    return ['Horse Cash Result (Chips)', fmtSigned(h.net),
+        `Paid the house ${fmtNum(h.rake)} rake and ${fmtNum(h.bbj)} BBJ, ${against}${bb}`];
+}
+
+const HORSE_BB_FALLBACK_SUB = 'Big blinds summed across all stakes and tournaments, UTC days; includes the rake and BBJ the horses pay the house, so it is not a chip loss';
+
 export function dailyUpdateRows(digest) {
     const m = digest?.metrics || {};
     const cashRake = Number(get(m, 'money.cash_rake')) || 0;
     const tourneyRake = Number(get(m, 'money.tournament_rake')) || 0;
+    const horse = horseCashRow(digest?.house_figures?.horse_cash?.day, 'engine tally for the UTC day')
+        || ['Horse Net Result (BB, UTC Day)', fmtNum(get(m, 'play.horse_net_bb')), HORSE_BB_FALLBACK_SUB];
     return [
         ['Revenue', fmtUsd(get(m, 'sales.revenue_usd')), ''],
         ['Rake (Cash + Tournament)', fmtNum(cashRake + tourneyRake), `Cash ${fmtNum(cashRake)}, tournament and spin ${fmtNum(tourneyRake)}`],
+        bbjRakeRow(digest, 'day'),
         ['Rakeback Paid', fmtNum(get(m, 'money.rakeback_paid')), ''],
         ['Real Player Signups', fmtInt(get(m, 'growth.signups')), `${fmtInt(get(m, 'growth.active_humans'))} active real players`],
         ['Hands Dealt', fmtInt(get(m, 'play.hands')), `Cash ${fmtInt(get(m, 'play.hands_cash'))}, tournament ${fmtInt(get(m, 'play.hands_tournament'))}`],
-        ['Horse Net Result (BB)', fmtNum(get(m, 'play.horse_net_bb')), 'House exposure through the horse fleet'],
+        horse,
         ['Diamonds Given Out / Taken In', `${fmtInt(get(m, 'diamonds.given_out'))} / ${fmtInt(get(m, 'diamonds.taken_in'))}`, ''],
         ['Chips Minted / Burned', `${fmtNum(get(m, 'money.minted'))} / ${fmtNum(get(m, 'money.burned'))}`, ''],
     ];
@@ -437,6 +481,7 @@ export function weeklyUpdateRows(digest) {
     return [
         ['Revenue', fmtUsd(w.revenue_usd), rangeSub],
         ['Rake (Cash + Tournament)', fmtNum(cashRake + tourneyRake), `Cash ${fmtNum(cashRake)}, tournament and spin ${fmtNum(tourneyRake)}`],
+        bbjRakeRow(digest, 'week'),
         ['Rakeback Paid', fmtNum(w.rakeback_paid), ''],
         ['Real Player Signups', fmtInt(w.signups), ''],
         ['Hands Dealt', fmtInt(w.hands), ''],
@@ -452,8 +497,10 @@ export function monthlyUpdateRows(digest) {
     return [
         ['Revenue', fmtUsd(mtd.revenue_usd), `Projected month end ${fmtUsd(mtd.projected_revenue_usd)}`],
         ['Rake (Cash + Tournament)', fmtNum(cashRake + tourneyRake), `Projected month end ${fmtNum(mtd.projected_rake)}`],
+        bbjRakeRow(digest, 'month'),
         ['Real Player Signups', fmtInt(mtd.signups), `${fmtInt(mtd.days)} days recorded this month`],
-        ['Horse Net Result (BB)', fmtNum(mtd.horse_net_bb), 'House exposure through the horse fleet'],
+        horseCashRow(digest?.house_figures?.horse_cash?.month, 'engine tally for the UTC days')
+            || ['Horse Net Result (BB, UTC Days)', fmtNum(mtd.horse_net_bb), HORSE_BB_FALLBACK_SUB],
     ];
 }
 

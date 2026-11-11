@@ -575,10 +575,10 @@ test('the digest is loaded once for all recipients and the reports do not race t
     } };
     const data = await loadDigestData(sb, '2026-10-28', { withCosts: false, dispatch: false });
     assert.equal(maxInflight, 1, 'one database read at a time');
-    assert.deepEqual(order, ['fn_sp_daily_digest', 'fn_sp_digest_player_report', 'fn_sp_digest_spins_spend', 'fn_sp_digest_signups', 'fn_sp_digest_free_buy_funding']);
+    assert.deepEqual(order, ['fn_sp_daily_digest', 'fn_sp_digest_player_report', 'fn_sp_digest_spins_spend', 'fn_sp_digest_signups', 'fn_sp_digest_free_buy_funding', 'fn_sp_digest_house_figures']);
     const a = renderDigest('2026-10-28', data, { recipientName: 'Ann' });
     const b = renderDigest('2026-10-28', data, { recipientName: 'Bob' });
-    assert.equal(order.length, 5, 'rendering for a second admin reads nothing');
+    assert.equal(order.length, 6, 'rendering for a second admin reads nothing');
     assert.match(a.html, /Ann/); assert.match(b.html, /Bob/);
     const fs = await import('node:fs');
     const route = fs.readFileSync(new URL('../pages/api/cron/daily-digest.js', import.meta.url), 'utf8');
@@ -633,7 +633,7 @@ test('the signed online view executes the shared serial loader without dispatchi
         await handler({ method: 'GET', query: { t: 'fixture' } }, res);
         assert.equal(maxInFlight, 1, 'online reports must not compete for the database');
         assert.deepEqual(options, { withCosts: false, dispatch: false });
-        assert.deepEqual(order, ['fn_sp_daily_digest', 'fn_sp_digest_player_report', 'fn_sp_digest_spins_spend', 'fn_sp_digest_signups', 'fn_sp_digest_free_buy_funding']);
+        assert.deepEqual(order, ['fn_sp_daily_digest', 'fn_sp_digest_player_report', 'fn_sp_digest_spins_spend', 'fn_sp_digest_signups', 'fn_sp_digest_free_buy_funding', 'fn_sp_digest_house_figures']);
         assert.equal(res.code, 200);
         assert.equal(res.headers['Cache-Control'], 'no-store');
         assert.match(res.body, /Real Player Totals/i);
@@ -904,4 +904,66 @@ test('the engine line keeps the live build, since when and the 4 AM cutover verd
     assert.match(html, /Live Engine Build<\/td><td[^>]*><span[^>]*>391f7bc0<\/span>/);
     assert.match(buildText(fixture({ engine_cutover: missed })), /Live Engine Build: 391f7bc0  \(since Nov 7 15:22 Central; 2026-11-08 4 AM cutover: Missed/);
     assert.equal(engineCutoverRow(fixture({ engine_cutover: { ...missed, resolved_at: '2026-11-09T10:02:00Z' } }))[3], false);
+});
+
+// BBJ rake and the horse fleet in chips (Dan 2026-11-11). Production's own
+// figures for the Central day 2026-11-10: the email said Rake 73,324.82 and
+// Horse Net Result -146,546.8 BB "house exposure". The horses paid 63,550.35 of
+// the 64,398 cash rake and 18,038.16 of the 18,130.80 BBJ, and won 2,328.19
+// from the other players: a -79,260.32 chip result that is the house's own drop.
+const HOUSE_FIGURES = {
+    day: '2026-11-10', week_from: '2026-11-04', month_from: '2026-11-01',
+    bbj_rake: { day: 18130.8, week: 134083.27, week_days: 7, month: 205032.47, month_days: 10 },
+    horse_cash: {
+        day: { net: -79260.32, rake: 63550.35, bbj: 18038.16, vs_others: 2328.19, net_bb_utc: -146546.8, days: 1 },
+        month: { net: -1121457.02, rake: 928228, bbj: 204560.2, vs_others: 11331.18, net_bb_utc: -1551807.3, days: 10 },
+    },
+};
+
+test('the updates carry BBJ rake for the day, the seven days and the month, and the horse row is chips, not house exposure', async () => {
+    const { dailyUpdateRows, weeklyUpdateRows, monthlyUpdateRows } = await import('../src/lib/dailyDigest/render.mjs');
+    const d = fixture({ house_figures: HOUSE_FIGURES, mtd: { ...fixture().mtd, day_of_month: 10 } });
+    const h = HOUSE_FIGURES.horse_cash.day;
+    assert.ok(Math.abs(h.net - (-(h.rake + h.bbj) + h.vs_others)) < 0.005, 'the horse result is the drop it paid plus its play');
+    const daily = dailyUpdateRows(d);
+    const row = (rows, label) => rows.find((r) => r[0] === label);
+    assert.deepEqual(row(daily, 'BBJ Rake').slice(0, 2), ['BBJ Rake', '18,130.8']);
+    assert.ok(daily.findIndex((r) => r[0] === 'BBJ Rake') === daily.findIndex((r) => r[0] === 'Rake (Cash + Tournament)') + 1);
+    assert.deepEqual(row(daily, 'Horse Cash Result (Chips)'), ['Horse Cash Result (Chips)', '-79,260.32',
+        'Paid the house 63,550.35 rake and 18,038.16 BBJ, won 2,328.19 against the other players; engine tally for the UTC day -146,546.8 BB']);
+    assert.equal(row(weeklyUpdateRows(d), 'BBJ Rake')[1], '134,083.27');
+    const monthly = monthlyUpdateRows(d);
+    assert.equal(row(monthly, 'BBJ Rake')[1], '205,032.47');
+    assert.equal(row(monthly, 'Horse Cash Result (Chips)')[1], '-1,121,457.02');
+    const html = buildHtml(d, { email: true });
+    const text = buildText(d);
+    for (const out of [html, text]) {
+        assert.ok(!/House exposure/i.test(out), 'the horse fleet is not called house exposure');
+        assert.ok(!out.includes('—'), 'no em dashes');
+        assert.ok(!/\$\s?18,130/.test(out), 'chips carry no dollar sign');
+    }
+    assert.match(text, /BBJ Rake: 18,130\.8/);
+    assert.match(text, /Horse Cash Result \(Chips\): -79,260\.32/);
+    const short = monthlyUpdateRows(fixture({ house_figures: { ...HOUSE_FIGURES, bbj_rake: { ...HOUSE_FIGURES.bbj_rake, month_days: 9 } }, mtd: { ...fixture().mtd, day_of_month: 10 } }));
+    assert.match(row(short, 'BBJ Rake')[2], /9 of 10 days recorded/);
+});
+
+test('without the house figures report the rows say so instead of showing 0 or calling big blinds a loss', async () => {
+    const { dailyUpdateRows, weeklyUpdateRows, monthlyUpdateRows } = await import('../src/lib/dailyDigest/render.mjs');
+    const base = fixture();
+    const d = fixture({ house_figures: { day: '2026-11-10', error: 'statement timeout' },
+        metrics: { ...base.metrics, money: { ...base.metrics.money, bbj_contributions: 18130.8 }, play: { ...base.metrics.play, horse_net_bb: -146546.8 } } });
+    const row = (rows, label) => rows.find((r) => r[0] === label);
+    assert.equal(row(dailyUpdateRows(d), 'BBJ Rake')[1], '18,130.8', 'the day falls back to the snapshot');
+    assert.equal(row(weeklyUpdateRows(d), 'BBJ Rake')[1], 'Unavailable');
+    assert.equal(row(monthlyUpdateRows(d), 'BBJ Rake')[1], 'Unavailable');
+    const horse = row(dailyUpdateRows(d), 'Horse Net Result (BB, UTC Day)');
+    assert.equal(horse[1], '-146,546.8');
+    assert.match(horse[2], /not a chip loss/);
+    assert.ok(row(monthlyUpdateRows(d), 'Horse Net Result (BB, UTC Days)'));
+    const { loadHouseFigures } = await import('../src/lib/dailyDigest/assemble.mjs');
+    assert.deepEqual(await loadHouseFigures({ rpc: async () => ({ data: null, error: { message: 'missing' } }) }, '2026-11-10'), { day: '2026-11-10', error: 'missing' });
+    assert.deepEqual(await loadHouseFigures({ rpc: async () => { throw new Error('socket closed'); } }, '2026-11-10'), { day: '2026-11-10', error: 'socket closed' });
+    const ok = await loadHouseFigures({ rpc: async (name, args) => ({ data: name === 'fn_sp_digest_house_figures' && args.p_day === '2026-11-10' ? HOUSE_FIGURES : null, error: null }) }, '2026-11-10');
+    assert.deepEqual(ok, HOUSE_FIGURES);
 });
