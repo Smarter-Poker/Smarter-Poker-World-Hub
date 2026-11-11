@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { GUIDE_COPY, GUIDE_DESTINATIONS } from '../../lib/businessHubGuide.mjs';
 import { captureBusinessHubGuideEvent } from '../../lib/businessHubGuideActivity.mjs';
+import BusinessHubJourney from './BusinessHubJourney';
 
 const SOURCE_VALUES = new Set(['business_hub', 'help', 'direct']);
 const DESTINATION_TOPICS = {
@@ -94,6 +95,8 @@ export default function BusinessHubGuide() {
           </tbody>
         </table>
       </div>
+
+      <BusinessHubJourney language={language} onEvent={(stage, properties) => captureBusinessHubGuideEvent(stage, { ...properties, language, source: source.current })} />
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         {copy.sections.map(section => (

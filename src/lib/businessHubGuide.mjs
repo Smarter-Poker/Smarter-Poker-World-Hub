@@ -3,7 +3,7 @@ export const GUIDE_VERSION = '2026-11-11.1';
 export const GUIDE_DESTINATIONS = {
   training: '/hub/training', poker_near_me: '/hub/poker-near-me/lobby',
   bankroll: '/hub/bankroll-manager', club_arena: '/hub/club-arena',
-  commander: '/hub/commander', venue_onboarding: 'mailto:support@smarter.poker?subject=Venue%20Onboarding',
+  commander: '/hub/commander', venue_onboarding: '/hub/help#venue-inquiry',
   signup: '/auth/signup', login: '/auth/login', support: 'mailto:support@smarter.poker',
 };
 export const GUIDE_COPY = {

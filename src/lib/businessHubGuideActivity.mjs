@@ -1,7 +1,7 @@
 // Guide interactions describe intent and feedback, never completed onboarding.
 // Use only an existing, explicitly consented SDK. This module loads no SDK.
 export const BUSINESS_HUB_GUIDE_VALUES = Object.freeze({
-  stage: Object.freeze(['guide_view', 'destination_click', 'feedback']),
+  stage: Object.freeze(['guide_view', 'destination_click', 'feedback', 'goal_selected', 'draft_prepared']),
   topic: Object.freeze(['training', 'poker_near_me', 'bankroll', 'clubs', 'venues', 'account', 'chips_payments']),
   language: Object.freeze(['en', 'es']),
   source: Object.freeze(['business_hub', 'help', 'direct']),
@@ -14,7 +14,7 @@ export function buildBusinessHubGuideEvent(stage, properties = {}) {
   for (const key of ['topic', 'language', 'source']) {
     if (BUSINESS_HUB_GUIDE_VALUES[key].includes(properties[key])) safe[key] = properties[key];
   }
-  if (stage === 'destination_click') {
+  if (stage === 'destination_click' || stage === 'goal_selected') {
     if (!BUSINESS_HUB_GUIDE_VALUES.destination.includes(properties.destination)) return null;
     safe.destination = properties.destination;
   }
