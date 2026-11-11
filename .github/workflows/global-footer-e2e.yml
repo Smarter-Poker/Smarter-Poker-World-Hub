@@ -25,6 +25,10 @@ on:
         type: choice
         default: all
         options: [all, upload, tracking]
+      reliability_incident_non_owner_live:
+        description: Run Only The Reliability Incident Non-Owner Live Verification
+        type: boolean
+        default: false
       expected_revision:
         description: Exact Published Video Library Revision
         type: string
@@ -36,7 +40,7 @@ concurrency:
 
 jobs:
   footer:
-    if: ${{ github.event_name != 'workflow_dispatch' || !inputs.video_library_phase5_live && !inputs.video_library_phase6_live && !inputs.video_library_phase8_live }}
+    if: ${{ github.event_name != 'workflow_dispatch' || !inputs.video_library_phase5_live && !inputs.video_library_phase6_live && !inputs.video_library_phase8_live && !inputs.reliability_incident_non_owner_live }}
     name: Chromium and WebKit footer contract
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     # A clean production build currently takes about six minutes. The serialized
@@ -401,4 +405,39 @@ jobs:
         with:
           name: video-library-phase8-live-evidence
           path: ${{ runner.temp }}/video-owner-live-evidence
+          retention-days: 7
+
+  # A signed-in NON-owner cannot read a Reliability Controller incident: the
+  # RPC refuses with 42501 and the page shows only its not-authorized state.
+  # Manual only, against production, with the existing CI test identity.
+  reliability-incident-non-owner-live:
+    name: Reliability Incident Non-Owner Live Verification
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.reliability_incident_non_owner_live }}
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install Locked Verification Dependencies
+        run: npm ci --ignore-scripts
+      - name: Install Chromium For Scoped Live Proof
+        run: npx playwright install --with-deps chromium
+      - name: Verify A Non-Owner Cannot Read A Reliability Incident With The Existing CI Test Identity
+        env:
+          RELIABILITY_EXPECTED_REVISION: ${{ inputs.expected_revision }}
+          RELIABILITY_NON_OWNER_EVIDENCE_DIR: ${{ runner.temp }}/reliability-non-owner-evidence
+          TEST_USER_EMAIL: ${{ vars.TEST_USER_EMAIL || secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: node scripts/qualification/reliabilityIncidentNonOwnerLive.mjs
+      - name: Retain Scoped Live Verification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reliability-incident-non-owner-live-evidence
+          path: ${{ runner.temp }}/reliability-non-owner-evidence
           retention-days: 7
