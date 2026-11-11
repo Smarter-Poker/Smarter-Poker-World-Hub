@@ -314,14 +314,20 @@ test('signup shows existing-account recovery for both Auth response shapes, keep
     const { authSwitchHref } = await import('../src/lib/clubInvite.js');
     const pendingSignupCodes = await import('../src/lib/pendingSignupCodes.mjs');
     const authErrors = await import('../src/lib/authErrors.js');
+    const firstTouch = await import('../src/lib/acquisition/firstTouch.mjs');
     const require = createRequire(import.meta.url), ts = require('typescript'), React = require('react');
     const { create, act } = require('react-test-renderer');
+    // A visitor who landed from a tagged LinkedIn link earlier (first touch).
+    const touchStore = new Map();
+    const touchWin = { location: { search: '?utm_source=linkedin&utm_medium=social&utm_campaign=freerolls', pathname: '/freerolls' }, localStorage: { getItem: k => touchStore.get(k) ?? null, setItem: (k, v) => touchStore.set(k, v) } };
+    firstTouch.recordFirstTouch(touchWin);
+    touchWin.location = { search: '', pathname: '/auth/signup' };
     for (const result of [
         { data: { user: { identities: [] }, session: null }, error: null },
         { data: { user: null, session: null }, error: { code: 'user_already_exists', message: 'User already registered' } },
         { data: { user: { id: 'local-new-user', identities: [{ provider: 'email' }] }, session: null }, error: null },
     ]) {
-        const mod = { exports: {} }, routes = [], stored = new Map(), writes = [], reported = [];
+        const mod = { exports: {} }, routes = [], stored = new Map(), writes = [], reported = [], signUpCalls = [];
         vm.runInNewContext(ts.transpileModule(read('pages/auth/signup.js'), {
             compilerOptions: { jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
         }).outputText, {
@@ -338,13 +344,13 @@ test('signup shows existing-account recovery for both Auth response shapes, keep
                 if (name.endsWith('/ExistingAccountDialog')) return { default: ({ open, onSignIn, onClose }) => open ? React.createElement('div', { role: 'alertdialog' }, React.createElement('h2', null, 'You Already Have An Account'), React.createElement('button', { onClick: onSignIn }, 'Sign In'), React.createElement('button', { onClick: onClose }, 'Use A Different Email')) : null };
                 if (name.endsWith('/SEOHead') || name.endsWith('/AuthEntryChoices')) return { default: () => null };
                 if (name.endsWith('/signupOutcome.mjs')) return signupOutcome;
-                if (name.endsWith('/firstTouch.mjs')) return { firstTouchMetadata: () => ({}) };
+                if (name.endsWith('/firstTouch.mjs')) return { firstTouchMetadata: () => firstTouch.firstTouchMetadata(touchWin) };
                 if (name.endsWith('/signupExperience.mjs')) return { isEmailVerificationCode };
                 if (name.endsWith('/clubInvite')) return { authSwitchHref, readPendingInvite: () => null, safeClubArenaPath: () => null };
                 if (name.endsWith('/passwordStrength')) return { validatePassword: async () => ({ ok: true }) };
                 if (name.endsWith('/pendingSignupCodes.mjs')) return pendingSignupCodes;
                 if (name.endsWith('/authErrors')) return { ...authErrors, reportAuthError: (...args) => reported.push(args) };
-                if (name.endsWith('/supabase')) return { supabase: { auth: { signUp: async () => result } } };
+                if (name.endsWith('/supabase')) return { supabase: { auth: { signUp: async args => { signUpCalls.push(args); return result; } } } };
                 return {};
             },
         });
@@ -354,6 +360,13 @@ test('signup shows existing-account recovery for both Auth response shapes, keep
         await act(async () => { await tree.root.findAllByType('form')[0].props.onSubmit({ preventDefault() {} }); });
         const duplicate = isExistingSignup(result.data, result.error);
         assert.deepEqual(reported, [], 'a signup submit must not report an auth error');
+        // Email sign-up hands the stored first touch to signUp as account metadata.
+        assert.equal(signUpCalls.length, 1);
+        const sent = signUpCalls[0].options.data;
+        assert.equal(sent.acquisition_utm_source, 'linkedin');
+        assert.equal(sent.acquisition_utm_medium, 'social');
+        assert.equal(sent.acquisition_utm_campaign, 'freerolls');
+        assert.equal(sent.acquisition_landing_path, '/freerolls');
         assert.equal(tree.root.findAllByProps({ role: 'alertdialog' }).length, duplicate ? 1 : 0);
         assert.equal(tree.root.findAllByProps({ id: 'signup-email-code' }).length, duplicate ? 0 : 1);
         if (duplicate) {
