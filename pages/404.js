@@ -89,7 +89,7 @@ const RECOVERY_ROUTES = [
         badge: '15 Studies',
     },
     {
-        title: 'Daily 2,000 Chip Freerolls',
+        title: 'Daily Freerolls',
         subtitle: 'Free Daily Tournaments With Zero Deposit Required',
         href: '/freerolls',
         badge: 'Free Prizes',

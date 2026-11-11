@@ -72,7 +72,7 @@ export default function AboutPage() {
 
           <p style={styles.lead}>
             Smarter.Poker Is A Free Online Poker Platform Built And Operated By Smarter Software Inc. It
-            Brings Daily 2,000 Chip Freerolls, Free Poker Calculators, GTO Training, Private
+            Brings Five Free Daily Poker Tournaments, Free Poker Calculators, GTO Training, Private
             Poker Clubs, A Live Poker Room Directory, Home Games, Bankroll Tracking And Poker Room
             Management Software Together In One World Hub At Smarter.Poker.
           </p>

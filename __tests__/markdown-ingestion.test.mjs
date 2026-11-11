@@ -126,13 +126,13 @@ test('renderAboutPlatformMarkdown outputs clean structured about platform Markdo
 
 test('renderFreerollsMarkdown outputs clean structured freerolls Markdown', () => {
   const md = renderFreerollsMarkdown();
-  assert.ok(md.includes('# Smarter.Poker Daily 2,000 Chip Freerolls & Diamond Freerolls'));
+  assert.ok(md.includes('# Smarter.Poker Daily Freerolls'));
   assert.ok(md.includes('https://smarter.poker/freerolls'));
-  assert.ok(md.includes('2,000 Chips In Free Poker Tournaments Every Single Day'));
-  assert.ok(md.includes('Diamond Arena Freerolls'));
-  assert.ok(md.includes('Daily Freeroll Schedule (CST)'));
-  assert.ok(md.includes('10:00 AM CST'));
-  assert.ok(md.includes('Smarter.Poker vs. Legacy Poker Sites'));
+  assert.ok(md.includes('Daily Freeroll Schedule (Central Time)'));
+  assert.ok(md.includes('8:30 AM CT'));
+  assert.ok(md.includes('Morning Free Buy (250 Chips Guaranteed)'));
+  assert.ok(!md.includes('2,000'), 'No invented daily total');
+  assert.ok(md.includes('Funded Diamond games are not open for play yet.'), 'Diamond Arena stays marked closed');
   assert.ok(!md.includes('—'), 'Must not contain em dashes');
 
   const freerollsSrc = read('pages/freerolls.js');

@@ -34,7 +34,7 @@ import {
 const COMPARE_FAQS = [
   {
     question: 'How Does Smarter.Poker Compare To Traditional Real-Money Poker Sites?',
-    answer: 'Smarter.Poker provides 100% free poker tournament play with 2,000 chips in guaranteed daily freeroll prizes and zero deposit requirements. Traditional poker sites typically require real-money financial deposits, charge tournament entry fees, and require large executable desktop software installations.',
+    answer: 'Smarter.Poker provides 100% free poker tournament play with five free tournaments every day and zero deposit requirements. Traditional poker sites typically require real-money financial deposits, charge tournament entry fees, and require large executable desktop software installations.',
   },
   {
     question: 'Is The Smarter.Poker ICM Calculator Really A Free Alternative To ICMIZER?',
@@ -158,7 +158,7 @@ export default function CompareHubPage() {
             margin: '0 auto 28px', 
             lineHeight: 1.5 
           }}>
-            Compare Smarter.Poker Against Traditional Poker Sites, Expensive Subscription Calculators, And Legacy Desktop Software. Learn How Our Free-To-Play Model, 2,000 Chip Daily Freerolls, And Browser-Based GTO Tools Provide Superior Value.
+            Compare Smarter.Poker Against Traditional Poker Sites, Expensive Subscription Calculators, And Legacy Desktop Software. Learn How Our Free-To-Play Model, Five Free Daily Tournaments, And Browser-Based GTO Tools Provide Superior Value.
           </p>
 
           <p className="cmp-checked" style={{ fontSize: '14px', color: '#7E9BB8', margin: '0 0 8px' }}>{CHECKED_LABEL}</p>
@@ -185,7 +185,7 @@ export default function CompareHubPage() {
           </div>
 
           <p style={{ margin: '0 0 16px', fontSize: '15px', lineHeight: 1.6, color: '#BACCDD' }}>
-            <strong>Smarter.Poker</strong> Is A Modern, 100% Free Poker Ecosystem That Replaces Expensive Third-Party Tools And Deposit-Gated Poker Platforms. It Features <strong>2,000 Chips In Guaranteed Daily Freerolls</strong>, Zero Software Downloads, And Free Browser-Based Alternatives To <strong>ICMIZER</strong>, <strong>Equilab</strong>, And <strong>PokerAtlas</strong>.
+            <strong>Smarter.Poker</strong> Is A Modern, 100% Free Poker Ecosystem That Replaces Expensive Third-Party Tools And Deposit-Gated Poker Platforms. It Features <strong>Five Free Daily Tournaments</strong>, Zero Software Downloads, And Free Browser-Based Alternatives To <strong>ICMIZER</strong>, <strong>Equilab</strong>, And <strong>PokerAtlas</strong>.
           </p>
 
           <div style={{ 
@@ -197,7 +197,7 @@ export default function CompareHubPage() {
           }}>
             <div>
               <div style={{ fontSize: '12px', color: '#7E9BB8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Freerolls Guarantee</div>
-              <div style={{ fontSize: '15px', fontWeight: 700, color: '#00E676' }}>2,000 Chips Daily Vs. $25 Legacy Tokens</div>
+              <div style={{ fontSize: '15px', fontWeight: 700, color: '#00E676' }}>Five Free Tournaments Daily</div>
             </div>
             <div>
               <div style={{ fontSize: '12px', color: '#7E9BB8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>ICM Solver Price</div>
@@ -418,7 +418,7 @@ export default function CompareHubPage() {
               <tbody>
                 <tr style={{ borderBottom: '1px solid #1B2939' }}>
                   <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF' }}>Daily Guaranteed Prize Money</td>
-                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>2,000 Chips Distributed Daily</td>
+                  <td style={{ padding: '16px 20px', fontSize: '14px', fontWeight: 700, color: '#00E676' }}>Five Free Tournaments Daily</td>
                   <td style={{ padding: '16px 20px', fontSize: '14px', color: '#8BA5C2' }}>$25 To $50 Irregular Tokens</td>
                 </tr>
                 <tr style={{ borderBottom: '1px solid #1B2939' }}>
@@ -447,7 +447,7 @@ export default function CompareHubPage() {
 
           <div style={{ padding: '20px 28px', backgroundColor: '#0D1620', borderTop: '1px solid #1E2D3D', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
             <span style={{ fontSize: '14px', color: '#BACCDD' }}>
-              Join Today\'S Scheduled 2,000 Chip Freerolls With Zero Deposit.
+              Join Today\'S Scheduled Free Tournaments With Zero Deposit.
             </span>
             <Link
               href="/freerolls"
@@ -461,7 +461,7 @@ export default function CompareHubPage() {
                 textDecoration: 'none'
               }}
             >
-              <span>Explore Daily 2,000 Chip Freerolls Hub</span>
+              <span>Explore Daily Freerolls Hub</span>
               <ArrowRight size={16} />
             </Link>
           </div>
@@ -1081,7 +1081,7 @@ export default function CompareHubPage() {
           badgeType="research"
           badgeLabel="Verified Comparison Matrix"
           badgeValue="Smarter.Poker Benchmarks"
-          summary="Side-by-side verified comparison of Smarter.Poker free browser solvers, 2,000 chip daily freerolls, and 324+ live room tools against legacy paid poker software."
+          summary="Side-by-side verified comparison of Smarter.Poker free browser solvers, five free daily tournaments, and 324+ live room tools against legacy paid poker software."
           publishedYear="2026"
           slug="smarter-poker-comparison-index"
         />

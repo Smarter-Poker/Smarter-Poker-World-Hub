@@ -31,7 +31,7 @@ export default async function handler(req) {
     const defaultTitle = preset
       ? preset.title
       : isFreerolls
-        ? '2,000 Chips In Daily Poker Freerolls'
+        ? 'Five Free Poker Tournaments Every Day'
         : isCompare
           ? 'Free Poker Software & Platform Alternatives'
           : 'Smarter.Poker Strategy Tool';
@@ -55,7 +55,7 @@ export default async function handler(req) {
     const defaultStatValue = preset
       ? preset.statValue
       : isFreerolls
-        ? '2,000+ CHIPS DAILY'
+        ? '5 FREE EVENTS DAILY'
         : isCompare
           ? '$0 (100% FREE)'
           : '100% FREE';
@@ -74,7 +74,7 @@ export default async function handler(req) {
     const defaultBadge = preset
       ? preset.badge
       : isFreerolls
-        ? 'DAILY 2,000 CHIP FREEROLLS'
+        ? 'FIVE FREE DAILY FREEROLLS'
         : isCompare
           ? 'SOFTWARE COMPARISON'
           : tool === 'odds'

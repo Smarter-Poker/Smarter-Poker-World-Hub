@@ -109,7 +109,7 @@ async function runBenchmark() {
   assertCheck('GET /api/ai/terms returns 200 with definition citation', aiTerms.status === 200 && aiTerms.text.includes('Independent Chip Model'));
 
   const aiFreerolls = await fetchRoute('/api/ai/freerolls');
-  assertCheck('GET /api/ai/freerolls returns 200 with 2,000 chip schedule', aiFreerolls.status === 200 && aiFreerolls.text.includes('2,000'));
+  assertCheck('GET /api/ai/freerolls returns 200 with the Free Buy schedule', aiFreerolls.status === 200 && aiFreerolls.text.includes('Free Buy'));
 
   const aiBankroll = await fetchRoute('/api/ai/bankroll');
   assertCheck('GET /api/ai/bankroll returns 200 with Form W-2G tax specs', aiBankroll.status === 200 && aiBankroll.text.includes('Form W-2G'));
@@ -154,7 +154,7 @@ async function runBenchmark() {
   assertCheck('GET /api/ai/comparisons returns 200 with verified table', aiComparisons.status === 200 && aiComparisons.text.includes('PokerBros'));
 
   // 3. Structured Freerolls & Calendar Schema
-  console.log(`\n--- [3/10] Daily 2,000 Chip Freerolls Hub & Calendar Schema ---`);
+  console.log(`\n--- [3/10] Daily Freerolls Hub & Calendar Schema ---`);
   const freerolls = await fetchRoute('/freerolls');
   assertCheck('GET /freerolls status 200', freerolls.status === 200, `${freerolls.durationMs}ms`);
   assertCheck('/freerolls contains Schema.org SportsEvent', freerolls.text.includes('"@type":["SportsEvent","EventSeries"]') || freerolls.text.includes('"@type":"SportsEvent"'));

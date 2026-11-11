@@ -19,6 +19,7 @@
  * 8. get_poker_term_definition: Look up official poker definitions, GTO concepts, and table rules.
  */
 import { SITE_ORIGIN } from '../seo/indexingService.mjs';
+import { freeBuyAgentSchedule, FREE_BUY_SUMMARY } from '../freerolls/freeBuySchedule.mjs';
 import { calculateEquity, makeCard } from '../poker/pokerOddsEngine.js';
 import { calculateICM } from '../../engines/ICMCalculator.js';
 import { RFI } from '../../config/solverRanges.js';
@@ -320,7 +321,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'get_freeroll_schedule',
-    description: 'Retrieve the upcoming Daily 2,000 Chip Freerolls schedule, formats, prize values, entry requirements and current Diamond Arena availability on Smarter.Poker.',
+    description: 'Retrieve the daily Free Buy freeroll schedule (five free No-Limit Hold\'em tournaments a day), prize guarantees in chips, and entry requirements on Smarter.Poker.',
     annotations: {
       title: 'Get Daily Freeroll Tournament Schedule',
       readOnlyHint: true,
@@ -2570,52 +2571,7 @@ export async function executeMcpTool(rawName, args, { origin = SITE_ORIGIN } = {
 
     case 'get_freeroll_schedule': {
       const tierFilter = String(args?.tier || 'all').toLowerCase();
-      const events = [
-        {
-          time: '10:00 AM CST',
-          title: 'Morning Opener Freeroll',
-          game: 'No-Limit Hold\'em',
-          format: 'Standard 10-Minute Levels',
-          prize: '250 Chips Guaranteed',
-          starting_stack: '10,000 Chips',
-          tier: 'open',
-          tier_label: 'Open To All Players',
-          eligibility: '100% Free Entry (No Deposit Required)',
-        },
-        {
-          time: '2:00 PM CST',
-          title: 'Afternoon Prime Freeroll',
-          game: 'No-Limit Hold\'em',
-          format: 'Deepstack 12-Minute Levels',
-          prize: '500 Chips Guaranteed',
-          starting_stack: '15,000 Chips',
-          tier: 'open',
-          tier_label: 'Open To All Players',
-          eligibility: '100% Free Entry (No Deposit Required)',
-        },
-        {
-          time: '6:00 PM CST',
-          title: 'Evening Championship Freeroll',
-          game: 'No-Limit Hold\'em',
-          format: 'Deepstack 12-Minute Levels',
-          prize: '750 Chips Guaranteed',
-          starting_stack: '20,000 Chips',
-          tier: 'open',
-          tier_label: 'Open To All Players',
-          eligibility: '100% Free Entry (No Deposit Required)',
-        },
-        {
-          time: '9:00 PM CST',
-          title: 'Nightcap Turbo Freeroll',
-          game: 'Pot-Limit Omaha / NLH',
-          format: 'Fast 5-Minute Turbo',
-          prize: '500 Chips Guaranteed',
-          starting_stack: '10,000 Chips',
-          tier: 'open',
-          tier_label: 'Open To All Players',
-          eligibility: '100% Free Entry (No Deposit Required)',
-        },
-      ];
+      const events = freeBuyAgentSchedule();
 
       const filtered = tierFilter === 'all'
         ? events
@@ -2627,9 +2583,9 @@ export async function executeMcpTool(rawName, args, { origin = SITE_ORIGIN } = {
             type: 'text',
             text: JSON.stringify(
               {
-                daily_total_guaranteed: '2,000 Chips Awarded Every Day',
+                summary: FREE_BUY_SUMMARY,
                 entry_requirements: '100% Free To Play (Zero Deposit Ever Required)',
-                game_variants: ['No-Limit Texas Hold\'em', 'Pot-Limit Omaha'],
+                game_variants: ['No-Limit Texas Hold\'em'],
                 platform: 'Instant In-Browser Web & Mobile (No App Download Required)',
                 schedule: filtered,
                 diamond_arena: { available: false, status: 'Funded Diamond games are not open for play yet.' },

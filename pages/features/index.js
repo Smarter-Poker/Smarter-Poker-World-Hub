@@ -278,7 +278,7 @@ export default function FeaturesIndexPage() {
               View Competitor Comparisons
             </Link>
             <Link href="/freerolls" style={styles.headerLink}>
-              Daily 2,000 Chip Freerolls
+              Daily Freerolls
             </Link>
             <Link href="/features.md" style={styles.headerLinkSecondary}>
               View Plain-Text Markdown Directory

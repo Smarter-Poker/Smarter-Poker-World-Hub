@@ -1095,7 +1095,7 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
           >
             <div>
               <div style={{ fontSize: 14, fontWeight: 700, color: '#FFD700' }}>
-                Test Your ICM Skills In Daily 2,000 Chip Freerolls
+                Test Your ICM Skills In Daily Freerolls
               </div>
               <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginTop: 2 }}>
                 Put Tournament Equity Strategy Into Action With Zero Entry Fee And Real Guaranteed Prizes.
@@ -1266,7 +1266,7 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
                   textDecoration: 'none',
                 }}
               >
-                Play Daily 2,000 Chip Freerolls
+                Play Daily Freerolls
               </Link>
               <Link
                 href="/tools/poker-odds-calculator"

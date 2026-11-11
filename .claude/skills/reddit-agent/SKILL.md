@@ -161,11 +161,16 @@ Verified against https://smarter.poker and https://smarter.poker/about on
   equity calculator, interactive 13x13 preflop range charts.
 - Poker Near Me (live room directory by state and city), Home Games,
   Bankroll Manager.
-- Daily freerolls, and Diamond Freerolls every 3 hours, with zero buy-in.
+- Five free No-Limit Hold'em tournaments every day (Free Buy events at
+  12:30 AM, 8:30 AM, 12:30 PM, 4:30 PM and 8:30 PM Central), zero buy-in,
+  3,000 starting chips. Morning guarantees 250 chips and Afternoon 500 chips.
+  Source: public.tournaments, read 2026-11-11; the site copy reads the same
+  schedule from `src/lib/freerolls/freeBuySchedule.mjs`.
 
 Not verified, do not state: any player, club, room or hand count; any
-freeroll prize total (the 2,000 figure does not match live tournament data as
-of 2026-11-10); any claim about solver accuracy; any comparison with a named
+combined daily or monthly freeroll total (the old 2,000-chip figure was never
+true and was removed from the site on 2026-11-11); any Diamond freeroll
+schedule (none have been created since 2026-10-31); any claim about solver accuracy; any comparison with a named
 competitor's features or price.
 
 ### Chips, Diamonds And Dollars

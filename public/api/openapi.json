@@ -524,8 +524,8 @@
     "/api/ai/freerolls": {
       "get": {
         "operationId": "getFreerollSchedule",
-        "summary": "Retrieve Daily 2,000 Chip Freerolls & Diamond Freerolls Schedule",
-        "description": "Provides the upcoming Daily 2,000 Chip Freeroll tournaments schedule, formats, prize values, and entry criteria.",
+        "summary": "Retrieve Daily Freerolls Schedule",
+        "description": "Provides the upcoming Daily Freeroll tournaments schedule, formats, prize values, and entry criteria.",
         "parameters": [
           {
             "name": "tier",

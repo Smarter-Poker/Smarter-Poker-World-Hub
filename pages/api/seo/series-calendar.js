@@ -20,6 +20,7 @@ import {
   getSeriesGuideBySlug,
 } from '../../../src/content/guides/seriesGuides.js';
 import { recordSeoTelemetryEvent } from './referral-stats.js';
+import { freeBuyIcsEvents, retiredFreerollIcsEvents } from '../../../src/lib/freerolls/freeBuySchedule.mjs';
 
 function escapeIcsText(value) {
   return String(value || '')
@@ -280,62 +281,27 @@ function buildFreerollsIcs({ status = 'CONFIRMED', sequence = 1 } = {}) {
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Smarter.Poker//Daily 2,000 Chips Poker Freerolls Schedule//EN',
+    'PRODID:-//Smarter.Poker//Daily Poker Freerolls Schedule//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
-    'X-WR-CALNAME:Smarter.Poker Daily 2,000 Chips Freerolls (Free-To-Play)',
+    'X-WR-CALNAME:Smarter.Poker Daily Freerolls (Free-To-Play)',
     'X-WR-TIMEZONE:America/Chicago',
-    `X-WR-CALDESC:${escapeIcsText(`Daily Free-To-Play Poker Freerolls On Smarter.Poker (2,000 Platform Chips Daily Guaranteed; Zero Entry Fee; Club Chips And Diamonds Have No Cash Value). Subscribe: ${webcalUrl}`)}`,
+    `X-WR-CALDESC:${escapeIcsText(`Daily Free-To-Play Poker Freerolls On Smarter.Poker (Five Free Buy Tournaments Daily; Zero Entry Fee; Club Chips And Diamonds Have No Cash Value). Subscribe: ${webcalUrl}`)}`,
     'REFRESH-INTERVAL;VALUE=DURATION:PT12H',
     'X-PUBLISHED-TTL:PT12H',
     ...VTIMEZONE_BLOCKS['America/Chicago'],
   ];
 
-  const dailySlots = [
-    {
-      uid: 'freeroll-morning-1000@smarter.poker',
-      dtStartLocal: '20261110T100000',
-      dtEndLocal: '20261110T120000',
-      rrule: 'FREQ=DAILY',
-      summary: 'Smarter.Poker Morning Opener Freeroll (250 Chips Guaranteed - Free Entry)',
-      desc: 'No-Limit Hold\'em Standard 10-Minute Levels (10,000 Starting Chips; 250 Platform Chips Guaranteed; Free-To-Play With Zero Cash Value). Register At https://smarter.poker/freerolls',
-    },
-    {
-      uid: 'freeroll-afternoon-1400@smarter.poker',
-      dtStartLocal: '20261110T140000',
-      dtEndLocal: '20261110T163000',
-      rrule: 'FREQ=DAILY',
-      summary: 'Smarter.Poker Afternoon Prime Freeroll (500 Chips Guaranteed - Free Entry)',
-      desc: 'No-Limit Hold\'em Deepstack 12-Minute Levels (15,000 Starting Chips; 500 Platform Chips Guaranteed; Free-To-Play With Zero Cash Value). Register At https://smarter.poker/freerolls',
-    },
-    {
-      uid: 'freeroll-evening-1800@smarter.poker',
-      dtStartLocal: '20261110T180000',
-      dtEndLocal: '20261110T203000',
-      rrule: 'FREQ=DAILY',
-      summary: 'Smarter.Poker Evening Championship Freeroll (750 Chips Guaranteed - Free Entry)',
-      desc: 'Featured Daily Main Event With 20,000 Starting Chips And 12-Minute Levels (750 Platform Chips Guaranteed; Free-To-Play With Zero Cash Value). Register At https://smarter.poker/freerolls',
-    },
-    {
-      uid: 'freeroll-nightcap-2100@smarter.poker',
-      dtStartLocal: '20261110T210000',
-      dtEndLocal: '20261110T223000',
-      rrule: 'FREQ=DAILY',
-      summary: 'Smarter.Poker Nightcap Turbo Freeroll (500 Chips Guaranteed - Free Entry)',
-      desc: 'Fast 5-Minute Turbo No-Limit Hold\'em / Pot-Limit Omaha Freeroll (10,000 Starting Chips; 500 Platform Chips Guaranteed; Free-To-Play With Zero Cash Value). Register At https://smarter.poker/freerolls',
-    },
-    // Retain the published UID so subscribed calendars remove the unlaunched event.
-    {
-      uid: 'freeroll-sunday-diamond-1700@smarter.poker',
-      dtStartLocal: '20261115T170000',
-      dtEndLocal: '20261115T200000',
-      rrule: 'FREQ=WEEKLY;BYDAY=SU',
-      summary: 'Diamond Arena Funded Games Not Open',
-      desc: 'Funded Diamond games are not open for play yet. Membership or VIP eligibility does not establish game availability.',
-      status: 'CANCELLED',
-      sequence: Math.max(2, safeSeq),
-    },
-  ];
+  const dailySlots = [...freeBuyIcsEvents(), ...retiredFreerollIcsEvents('series-calendar')].map((ev) => ({
+    uid: ev.uid,
+    dtStartLocal: ev.dtstart,
+    dtEndLocal: ev.dtend,
+    rrule: ev.rrule,
+    summary: ev.summary,
+    desc: ev.description,
+    status: ev.status,
+    sequence: ev.sequence ? Math.max(ev.sequence, safeSeq + 1) : undefined,
+  }));
 
   dailySlots.forEach((slot) => {
     lines.push(

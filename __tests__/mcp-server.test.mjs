@@ -181,7 +181,7 @@ test('MCP Server get_poker_term_definition returns authoritative definition and 
   assert.ok(data.canonical_definition_url.includes('/glossary/pot-odds'));
 });
 
-test('MCP Server get_freeroll_schedule returns daily chip schedule and closed Diamond Arena status', async () => {
+test('MCP Server get_freeroll_schedule returns the five daily Free Buy events', async () => {
   const req = {
     jsonrpc: '2.0',
     id: 10,
@@ -196,11 +196,9 @@ test('MCP Server get_freeroll_schedule returns daily chip schedule and closed Di
   assert.equal(res.jsonrpc, '2.0');
   assert.equal(res.id, 10);
   const data = JSON.parse(res.result.content[0].text);
-  assert.ok(data.daily_total_guaranteed.includes('2,000 Chips'));
-  assert.ok(data.schedule.length >= 4);
-  assert.ok(data.schedule.every((s) => s.tier === 'open'));
-  assert.equal(data.diamond_arena.available, false);
-  assert.match(data.diamond_arena.status, /not open for play yet/i);
+  assert.ok(data.summary.includes('Five free'));
+  assert.equal(data.schedule.length, 5);
+  assert.ok(data.schedule.every((s) => s.starting_stack === '3,000 Chips'));
   assert.ok(data.freerolls_hub_url.includes('/freerolls'));
   assert.ok(data.markdown_url.includes('/freerolls.md'));
 });

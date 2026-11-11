@@ -643,7 +643,7 @@ export default function PreflopRangeMatrixHub({
                   textDecoration: 'none',
                 }}
               >
-                Play Daily 2,000 Chip Guaranteed Freerolls
+                Play Five Free Daily Poker Tournaments
               </Link>
               <Link
                 href="/tools/poker-odds-calculator"

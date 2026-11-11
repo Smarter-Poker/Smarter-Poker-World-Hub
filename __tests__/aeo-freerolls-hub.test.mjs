@@ -22,25 +22,16 @@ test('Freerolls hub: contains AI citation executive summary', () => {
     'Freerolls page must include an accessible, high-density AI executive summary aside'
   );
   assert.ok(
-    content.includes('2,000 Chips In Free Poker Tournaments Every Single Day') ||
-    content.includes('2,000 chips in free poker tournaments every single day'),
-    'Freerolls page must quote the exact daily 2,000 chips prize figure'
+    content.includes("Five Free No-Limit Hold'em Tournaments Every Day"),
+    'Freerolls page must state the real daily schedule (five Free Buy events)'
   );
-  assert.ok(
-    content.includes('Diamond Arena Freerolls'),
-    'Freerolls page must explicitly cite Diamond Arena Freerolls'
-  );
+  assert.ok(content.includes('FREE_BUY_SCHEDULE'), 'Freerolls page must read the canonical schedule module');
 });
 
 test('Freerolls hub: contains daily schedule and comparison matrix', () => {
   const content = fs.readFileSync(FREEROLLS_PAGE_PATH, 'utf8');
-  assert.ok(content.includes('Daily 2,000 Chip Freeroll Tournament Schedule'), 'Schedule section must exist');
-  assert.ok(content.includes('Morning Opener Freeroll'), 'Must include morning event');
-  assert.ok(content.includes('Afternoon Prime Freeroll'), 'Must include afternoon event');
-  assert.ok(content.includes('Evening Championship Freeroll'), 'Must include evening event');
-  assert.ok(content.includes('Nightcap Turbo Freeroll'), 'Must include nightcap event');
-  assert.ok(!content.includes('Weekly Diamond Arena Championship'), 'Must not schedule an unlaunched Diamond championship');
-  assert.match(content, /Funded Diamond Games Are Not Open For Play Yet/i);
+  assert.ok(content.includes('Daily Freeroll Tournament Schedule'), 'Schedule section must exist');
+  assert.ok(content.includes('DAILY_SCHEDULE.map'), 'Schedule table must render the canonical schedule');
 
   assert.ok(
     content.includes('Smarter.Poker Vs. Legacy Poker Sites') ||
@@ -66,8 +57,8 @@ test('Freerolls hub: builds complete Schema.org graph with SportsEvent, HowTo, F
 
   const nodes = freerollEventSchema({
     path: '/freerolls',
-    name: 'Smarter.Poker Daily 2,000 Chip Freerolls',
-    description: 'Compete in 100% free daily poker tournaments with 2,000 chips in guaranteed daily prizes with no cash value.',
+    name: 'Smarter.Poker Daily Freerolls',
+    description: 'Five free daily poker tournaments.',
     faqs: [
       { question: 'Are daily freerolls free?', answer: 'Yes, 100% free with zero buy-in.' },
     ],
@@ -92,16 +83,15 @@ test('Freerolls hub: builds complete Schema.org graph with SportsEvent, HowTo, F
   assert.equal(eventNode.offers.category, 'Free Entry', 'Offer category must be Free Entry');
   assert.ok(eventNode.sameAs.length >= 4, 'Event must inherit Wikidata sameAs links');
   assert.ok(Array.isArray(eventNode.subEvent), 'EventSeries must declare subEvent array');
-  assert.equal(eventNode.subEvent.length, 4, 'Only the four daily events are offered');
-  assert.ok(eventNode.subEvent.every(event => !/diamond/i.test(event.name)), 'Structured data must not advertise a closed Diamond event');
+  assert.equal(eventNode.subEvent.length, 5, 'Must contain the 5 daily Free Buy sub-events');
   for (const sub of eventNode.subEvent) {
     assert.ok(sub.startDate, `SubEvent ${sub.name} must declare ISO 8601 startDate`);
     assert.ok(sub.endDate, `SubEvent ${sub.name} must declare ISO 8601 endDate`);
     assert.equal(sub.eventSchedule['@type'], 'Schedule', `SubEvent ${sub.name} must declare Schedule`);
     assert.ok(sub.location, `SubEvent ${sub.name} must declare location`);
   }
-  const morningOpener = eventNode.subEvent.find(e => e.name.includes('Morning Opener'));
-  assert.ok(morningOpener, 'Must include Morning Opener freeroll');
+  const morningOpener = eventNode.subEvent.find(e => e.name.includes('Morning Free Buy'));
+  assert.ok(morningOpener, 'Must include Morning Free Buy freeroll');
   assert.equal(morningOpener.isAccessibleForFree, true, 'SubEvent must be free');
   assert.equal(morningOpener.offers.price, '0', 'SubEvent price must be 0');
   assert.equal(morningOpener.sport, 'Poker', 'SubEvent sport must be Poker');
