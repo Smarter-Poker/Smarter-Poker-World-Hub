@@ -15,7 +15,7 @@ const PAGE = '66666666-6666-4666-8666-666666666666';
 // Execute the maintained route with only its external I/O replaced. Database
 // atomicity and concurrent duplicate writes have separate PostgreSQL coverage.
 function fixture(options = {}) {
-    const calls = [], notifications = [], access = [];
+    const calls = [], notifications = [], access = [], presence = [];
     let sendCount = 0;
     const db = {
         from(table) {
@@ -69,6 +69,8 @@ function fixture(options = {}) {
             access.push({ userId, request });
             if (options.workspaceStatus) throw Object.assign(new Error('Workspace Unavailable'), { status: options.workspaceStatus });
         },
+        // Sending is activity (2026-11-11): the route stamps the sender.
+        stampSenderPresence: async (client, userId) => { presence.push({ client, userId }); return true; },
         notifyNewMessage: async (...args) => {
             notifications.push(args);
             if (options.notifyThrows) throw new Error('Notification Unavailable');
@@ -82,7 +84,7 @@ function fixture(options = {}) {
     const module = { exports: {} };
     new Function('require', 'module', 'exports', 'process', 'console', code)(
         () => mocks, module, module.exports, { env: { SUPABASE_SERVICE_ROLE_KEY: 'local-fixture' } }, { warn() {} });
-    return { calls, notifications, access, async run(body = {}, request = {}) {
+    return { calls, notifications, access, presence, db, async run(body = {}, request = {}) {
         let status = 200, payload;
         await module.exports.default({ method: 'POST', headers: { authorization: 'Bearer local-fixture' },
             body: { conversationId: CONVERSATION, requestId: REQUEST, content: 'Fixture Message', ...body }, ...request }, {
@@ -141,6 +143,9 @@ test('new sends preserve authenticated identity, canonical payload and existing 
     assert.deepEqual(f.access, [{ userId: USER, request: { workspace: 'resolve', conversationId: CONVERSATION } }]);
     assert.equal(f.notifications.length, 1);
     assert.equal(f.notifications[0][3], 'Sent a photo');
+    assert.deepEqual(f.presence, [{ client: f.db, userId: USER }], 'the authenticated sender, never a body-supplied id, is stamped active');
+    assert.equal((await f.run({ content: '<script>bad()</script>Hello', message_type: 'image', media_metadata: { url: 'fixture' } })).payload.replayed, true);
+    assert.equal(f.presence.length, 1, 'a replayed send is not new activity');
 });
 
 test('an attachment sent as ordinary text still reads as an attachment on the lock screen', async () => {

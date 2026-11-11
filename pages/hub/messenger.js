@@ -59,7 +59,7 @@ import { useOneSignal } from '../../src/contexts/OneSignalContext';
 import { useUnreadCount } from '../../src/hooks/useUnreadCount';
 import { useCall } from '../../src/components/calls/CallProvider';
 import { isOnline } from '../../src/utils/authGuard';
-import { usePresence } from '../../src/hooks/usePresence';
+import { usePresence, refreshPresence } from '../../src/hooks/usePresence';
 import { useActiveIdentity } from '../../src/contexts/ActiveIdentityContext';
 // BottomNavBar intentionally removed from messenger — input area was blocked
 
@@ -417,7 +417,9 @@ function MessengerPage() {
     // Dark Mode Detection
     const [isDarkMode, setIsDarkMode] = useState(false);
     // Online Presence
-    const [otherUserStatus, setOtherUserStatus] = useState('offline'); // 'online' | 'away' | 'offline'
+    // When the other person left this messenger page during this visit (the
+    // messenger-online channel's leave), shown as "Active Xm ago" only while
+    // the platform answer below says they are no longer online.
     const [otherUserLastSeen, setOtherUserLastSeen] = useState(null);
     // Green dot = online anywhere on Smarter.Poker, the same answer the feed,
     // profiles and hover cards use (fn_profile_presence via /api/social/presence).
@@ -441,7 +443,13 @@ function MessengerPage() {
         };
     }, [onlineUsers, platformOnline]);
     const activeOtherId = activeConversation?.otherUser?.id;
-    const isActiveOtherOnline = otherUserStatus === 'online' || (!!activeOtherId && mergedOnlineUsers.has(activeOtherId));
+    // One answer for the header, the avatar dot and the inbox dots (2026-11-11):
+    // the platform presence (fn_profile_presence, refreshed every minute and
+    // the moment they send a message) or this page's live channel. The header
+    // used to keep its own sticky copy, set once when the chat opened and
+    // overwritten to Offline by every channel sync that did not include them,
+    // so a person active anywhere else on Smarter.Poker read Offline here.
+    const isActiveOtherOnline = !!activeConversation?.isJarvis || (!!activeOtherId && mergedOnlineUsers.has(activeOtherId));
     const { controller: continuity, edit: editContinuity, flush: flushContinuity } = useMessengerContinuity({
         actorId: user?.id, scope: workspaceKey, identityRef: authIdentityRef,
         workspace: { workspace: workspaceSelection.clubId ? 'club' : 'social', clubId: workspaceSelection.clubId, folder: workspaceSelection.folder },
@@ -1269,6 +1277,12 @@ function MessengerPage() {
                     return;
                 }
 
+                // Sending a message is activity: the send route stamped the
+                // sender's heartbeat with this row, so ask again now and the
+                // header turns Active Now on the message (2026-11-11).
+                refreshPresence([newMsg.sender_id]);
+                setOtherUserLastSeen(null);
+
                 // Play sound for incoming message (respect preferences — read from ref to avoid stale closure)
                 if (preferencesRef.current.messageSounds !== false) playMessageSound();
 
@@ -1840,8 +1854,7 @@ function MessengerPage() {
 
         // Special handling for Jarvis AI
         if (conversation.isJarvis) {
-            // 🟢 Jarvis is ALWAYS online — force status immediately
-            setOtherUserStatus('online');
+            // Jarvis is always online (isActiveOtherOnline).
             setOtherUserLastSeen(null);
 
             // Load Jarvis conversation from localStorage
@@ -1895,25 +1908,11 @@ function MessengerPage() {
 
         // The persisted read receipt clears the badge after messages load.
 
-        // Check online presence of the other user
-        // Capture at dispatch time — if user switches conversations before await resolves,
-        // discard the result so we don't stamp the new conversation's UI with stale data.
-        const selectedConvId = conversation.id;
-        if (conversation.otherUser?.id) {
-            try {
-                // Another person's last-seen time is theirs alone (2026-09-30).
-                // The presence door says only whether they are online now
-                // (is_online and seen in the last five minutes), never when.
-                const { data: presence } = await supabase.rpc('fn_profile_presence', {
-                    p_user_ids: [conversation.otherUser.id],
-                });
-                // Staleness guard: bail if user already switched to a different conversation
-                if (activeConversationRef.current?.id !== selectedConvId) return;
-                const row = Array.isArray(presence) ? presence[0] : null;
-                setOtherUserStatus(row?.is_online ? 'online' : 'offline');
-                setOtherUserLastSeen(null);
-            } catch { setOtherUserStatus('offline'); }
-        }
+        // Ask the presence door again for the person just opened, whatever
+        // the cache's age. Another person's last-seen time is theirs alone
+        // (2026-09-30): the door says only whether they are online now.
+        setOtherUserLastSeen(null);
+        if (conversation.otherUser?.id) refreshPresence([conversation.otherUser.id]);
     };
 
     // Jarvis history is persisted to localStorage but capped at 200 messages.
@@ -2579,28 +2578,12 @@ function MessengerPage() {
     useEffect(() => {
         if (!user?.id) return;
 
-        // 1. Update DB presence (for cross-page last_seen_at persistence)
-        // M3 FIX: Only broadcast presence if activeStatus preference is enabled
-        const updateDbPresence = async (isOnlineNow) => {
-            try {
-                // If active status is disabled, always report offline
-                const effectiveOnline = preferencesRef.current.activeStatus !== false ? isOnlineNow : false;
-                // Route through API — fn_update_presence returns 403 for authenticated role (missing GRANT EXECUTE)
-                const presenceToken = getAccessToken();
-                await authedFetch('/api/messenger/update-presence', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(presenceToken ? { Authorization: `Bearer ${presenceToken}` } : {}),
-                    },
-                    body: JSON.stringify({ isOnline: effectiveOnline }),
-                });
-            } catch (e) {
-                console.warn('[Presence] DB update error:', e);
-            }
-        };
-
-        updateDbPresence(true);
+        // The heartbeat (profiles.last_seen) is written by the app-wide
+        // presence heartbeat (src/hooks/usePresenceHeartbeat.js), never here:
+        // this page used to write it once on mount and write OFFLINE on
+        // unmount, so a person read offline five minutes into a chat and the
+        // moment they opened any other page (2026-11-11). This channel only
+        // tells who has this page open right now.
 
         // 2. Join global Presence channel — all messenger users share this channel
         const presenceChannel = supabase.channel('messenger-online', {
@@ -2616,18 +2599,10 @@ function MessengerPage() {
                     console.debug('[Presence] Sync - online users:', onlineSet.size);
                 }
 
-                // Update active conversation's other user status in real-time
-                if (activeConversationRef.current?.otherUser?.id) {
-                    const otherId = activeConversationRef.current.otherUser.id;
-                    setOtherUserStatus(onlineSet.has(otherId) ? 'online' : 'offline');
-                }
             })
             .on('presence', { event: 'join' }, ({ key }) => {
                 setOnlineUsers(prev => new Set([...prev, key]));
-                // Instant green dot if the joining user is the active chat partner
-                if (activeConversationRef.current?.otherUser?.id === key) {
-                    setOtherUserStatus('online');
-                }
+                if (activeConversationRef.current?.otherUser?.id === key) setOtherUserLastSeen(null);
             })
             .on('presence', { event: 'leave' }, ({ key }) => {
                 setOnlineUsers(prev => {
@@ -2635,9 +2610,9 @@ function MessengerPage() {
                     next.delete(key);
                     return next;
                 });
-                // Instant red dot if the leaving user is the active chat partner
+                // They left this page; the header still says Active Now while
+                // the platform answer says they are online anywhere else.
                 if (activeConversationRef.current?.otherUser?.id === key) {
-                    setOtherUserStatus('offline');
                     setOtherUserLastSeen(new Date().toISOString());
                 }
             })
@@ -2653,11 +2628,11 @@ function MessengerPage() {
                 }
             });
 
-        // 3. Set offline on unmount or page close
+        // 3. Leave this page's channel on page close. Never write offline:
+        //    closing one tab is not leaving Smarter.Poker, and the heartbeat
+        //    goes stale on its own inside the five-minute window.
         const handleUnload = () => {
-            updateDbPresence(false);
             presenceChannel.untrack();
-            
         };
         window.addEventListener('beforeunload', handleUnload);
 
@@ -2679,7 +2654,6 @@ function MessengerPage() {
             window.removeEventListener('beforeunload', handleUnload);
             document.removeEventListener('visibilitychange', handleVisibility);
             supabase.removeChannel(presenceChannel);
-            updateDbPresence(false);
         };
     }, [user?.id]);
 

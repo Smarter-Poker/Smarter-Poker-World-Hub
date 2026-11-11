@@ -92,6 +92,23 @@ function request(ids) {
   if (queued.size > 0 && !flushTimer) flushTimer = setTimeout(flush, FLUSH_DELAY_MS);
 }
 
+/**
+ * Ask again now for these ids, whatever their cache age. Called when an id
+ * just did something that counts as activity (it sent a message: the send
+ * route stamped its heartbeat before the message reached anyone),
+ * so the dot and the conversation header turn green on the message instead
+ * of up to a minute later.
+ */
+export function refreshPresence(ids) {
+  const key = presenceKey(ids);
+  if (!key) return;
+  for (const id of key.split(',')) {
+    const entry = cache.get(id);
+    if (entry) cache.set(id, { ...entry, at: 0 });
+  }
+  request(key.split(','));
+}
+
 /** Lower-cased, valid, de-duplicated, sorted: a stable key for a list of ids. */
 export function presenceKey(ids) {
   if (!Array.isArray(ids)) return '';
