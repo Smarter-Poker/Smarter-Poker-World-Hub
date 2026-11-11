@@ -7,6 +7,7 @@ import { notifyNewMessage } from '../../../src/lib/notify';
 import { parseMessageMedia } from '../../../src/lib/messenger/messageMedia.mjs';
 import { randomUUID } from 'node:crypto';
 import { authorizeMessengerConversation } from '../../../src/lib/messengerWorkspace.mjs';
+import { stampSenderPresence } from '../../../src/lib/messenger/senderPresence.mjs';
 
 const ATTACHMENT_PREVIEW = { image: 'a photo', video: 'a video', gif: 'a GIF', audio: 'a voice message' };
 
@@ -245,6 +246,10 @@ export default async function handler(req, res) {
           }
           const realMsgId = rpcResult?.message_id;
           if (rpcResult?.success !== true || !isUUID(realMsgId) || typeof rpcResult.replayed !== 'boolean') throw unavailable();
+
+          // Sending a message is activity: the sender reads Online to the
+          // person they are chatting with (src/lib/messenger/senderPresence.mjs).
+          if (!rpcResult.replayed) await stampSenderPresence(getSupabase(), userId);
 
           // ── Notify the recipients ────────────────────────────────────────
           // Until now a direct message produced NOTHING: no bell entry, no

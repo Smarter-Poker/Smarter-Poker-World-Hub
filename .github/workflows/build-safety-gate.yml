@@ -159,7 +159,7 @@ jobs:
       # 10.83: a check nobody can see is not a check). They need no
       # node_modules, so they sit above the install steps with the others.
       - name: A Worker Update Never Reloads The Page You Are On
-        run: node --test __tests__/sw-update.test.mjs __tests__/messenger-calls-work.law.test.mjs
+        run: node --test __tests__/sw-update.test.mjs __tests__/messenger-calls-work.law.test.mjs __tests__/messenger-presence-is-live.law.test.mjs
 
       - name: Restore node_modules For Training Authority
         id: training-authority-nm-cache

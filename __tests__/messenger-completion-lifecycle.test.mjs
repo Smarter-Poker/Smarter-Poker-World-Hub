@@ -41,6 +41,7 @@ function messageFixture() {
         ...context, useEffect: fn => fn(), activeConversation: { id: 'conversation-a' }, supabase: { channel: () => channel },
         preferencesRef: { current: { messageSounds: false } }, profileCacheRef: { current: new Map([['account-b', { id: 'account-b' }]]) }, PROFILE_CACHE_MAX: 50,
         setIncomingRead() {}, setConversations: update => update([]), typingChannelRef: { current: null },
+        refreshPresence() {}, setOtherUserLastSeen() {},
     }, 'undefined');
     const deliver = async message => state.handlers.find(h => h.spec.event === 'INSERT').handler({ new: message });
     return { state, load, deliver, initial, workspaceRef, activeConversationRef, context };

@@ -76,7 +76,7 @@ test('rejected reads retain counts and a delayed read never sends on the newly s
 });
 
 test('the actual incoming-message subscription schedules a scoped read after displaying the message', async () => {
-    const handlers = [], profile = deferred(), candidates = [], painted = [];
+    const handlers = [], profile = deferred(), candidates = [], painted = [], presenceAsked = [];
     const workspaceRef = { current: 'scope-a' }, activeConversationRef = { current: { id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' } };
     const channel = { on(_type, spec, handler) { handlers.push({ spec, handler }); return this; }, subscribe() { return this; } };
     const query = { select() { return this; }, eq() { return this; }, maybeSingle() { return profile.promise; } };
@@ -91,11 +91,14 @@ test('the actual incoming-message subscription schedules a scoped read after dis
         setMessages: update => painted.push(update([])), setIncomingRead: value => { candidates.push(value); },
         setConversations: update => update([]), typingChannelRef: { current: null }, loadMessagesRef: {},
         historyWindowRef: { current: { hasNewer: false } }, incomingRead, messages: [], compareMessageTimestamps, markConversationReadRef: { current: f.read },
+        refreshPresence: ids => presenceAsked.push(...ids), setOtherUserLastSeen() {},
     }, 'undefined');
     const handler = handlers.find(h => h.spec.event === 'INSERT').handler;
     const event = { new: { id: readMessageId, sender_id: 'account-b', conversation_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', content: 'Hello', created_at: '2026-09-26T20:00:00Z' } };
     const pending = handler(event); profile.resolve({ data: { id: 'account-b' } }); await pending;
     assert.equal(painted[0][0].id, readMessageId);
+    // Their message is activity: the header asks the presence door again (2026-11-11).
+    assert.deepEqual(presenceAsked, ['account-b']);
     assert.deepEqual(candidates, [{ scope: 'scope-a', conversationId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', messageId: readMessageId }]);
     const effect = slice(messenger, '    // A rendered row outside the viewport', '    // Typing indicator broadcast');
     evaluate(effect, { useEffect: fn => fn(), incomingRead: candidates[0], workspaceRef, messages: painted[0], compareMessageTimestamps,
