@@ -37,6 +37,7 @@ import { routeOperationalPushRows, routeQueuedOperationalPushes } from '../../..
 import { isAccountingPush, deliverAccountingPush, releaseAccountingPush } from '../../../src/lib/push/accounting-delivery';
 import { isTournamentReminder, deliverTournamentReminder } from '../../../src/lib/push/tournament-reminder-delivery';
 import { loadGateContext, gateDecision, needsDailyCount, countSentTodayBatch } from '../../../src/lib/push/push-gate';
+import { isReceiptEvent, mintDeviceReceipt, withDeviceReceipt } from '../../../src/lib/push/device-receipt';
 
 // Vercel's default Pages-Router function timeout is short, and this route
 // fans out to every subscription of up to BATCH_LIMIT recipients. Give it room,
@@ -500,10 +501,16 @@ async function handler(req, res) {
             // One recipient's devices go out in parallel. A slow Apple endpoint
             // must not delay that user's Android tablet, and sequential sends
             // across 100 recipients is what pushes this run past its budget.
+            // DEVICE RECEIPT (2026-11-11). A reliability escalation carries a
+            // per-device token so the receiving worker can prove THIS push
+            // reached THIS device (src/lib/push/device-receipt.js). A mint
+            // failure sends the push exactly as before, without a token.
             const results = await Promise.all(
-                subs.map((sub) =>
-                    sendPush(sub, payload, typeof ttl === 'number' ? { ttl } : undefined)
-                )
+                subs.map(async (sub) => {
+                    const token = isReceiptEvent(row.event) ? await mintDeviceReceipt(supabase, row, sub) : null;
+                    return sendPush(sub, withDeviceReceipt(payload, row.id, token),
+                        typeof ttl === 'number' ? { ttl } : undefined);
+                })
             );
 
             await Promise.all(results.map(async (result, i) => {

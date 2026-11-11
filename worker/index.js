@@ -222,6 +222,8 @@ self.addEventListener('push', (event) => {
     // Same display restriction as /push/sw.js for legacy root subscriptions.
     // Old provider payloads must not restore private text through this worker.
     const details = data?.data && typeof data.data === 'object' ? data.data : {};
+    const deliveryReceipt = readDeliveryReceipt(details);
+    let displayed = false;
     const accounting = data?.event === 'accounting_invoice' || details.event === 'accounting_invoice' ||
         data?.accountingNotificationId != null || details.accountingNotificationId != null ||
         (typeof data?.tag === 'string' && data.tag.startsWith('accounting:'));
@@ -264,6 +266,7 @@ self.addEventListener('push', (event) => {
         self.registration
             .showNotification(title, options)
             .then(() => {
+                displayed = true;
                 // App-icon badge (installed PWA). Best-effort: unsupported on
                 // several platforms, and a badge failure must never swallow the
                 // notification that already displayed.
@@ -297,12 +300,46 @@ self.addEventListener('push', (event) => {
                 // (actions, renotify, timestamp). Degrade rather than show nothing.
                 return self.registration.showNotification(title, {
                     body: options.body, data: options.data, tag: options.tag, renotify: false,
-                });
+                }).then(() => { displayed = true; });
             })
             .then(() => sendReceipt())
             .catch(() => { /* never let a receipt failure surface */ })
+            .then(() => sendDeliveryReceipt(deliveryReceipt, displayed ? 'displayed' : 'received'))
+            .catch(() => {})
     );
 });
+
+/**
+ * PER-PUSH DEVICE RECEIPT (2026-11-11). A reliability escalation carries
+ * data.receipt = { id, token }: the push_outbox id and a token minted for THIS
+ * device at send time (src/lib/push/device-receipt.js). Posting it back is the
+ * only proof that this push reached this device; provider acceptance is not.
+ * One attempt, no retry, every failure swallowed: an acknowledgement must
+ * never delay, block or repeat a notification. 'displayed' when the OS accepted
+ * the banner, 'received' when the worker ran but the banner was refused.
+ */
+function readDeliveryReceipt(details) {
+    const r = details && typeof details === 'object' ? details.receipt : null;
+    if (!r || typeof r !== 'object' || typeof r.id !== 'string' || typeof r.token !== 'string') return null;
+    if (!/^[0-9a-f]{64}$/.test(r.token)) return null;
+    return { id: r.id, token: r.token };
+}
+
+function sendDeliveryReceipt(receipt, stage) {
+    if (!receipt) return Promise.resolve(null);
+    try {
+        return fetch('/api/push/delivery-receipt', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: receipt.id, token: receipt.token, stage }),
+            credentials: 'same-origin',
+            keepalive: true,
+        }).catch(() => null);
+    } catch (e) {
+        return Promise.resolve(null);
+    }
+}
+
 
 /**
  * Best-effort worker acknowledgment after showNotification resolves. This is
