@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import os
@@ -2253,6 +2254,165 @@ class M2SelectedTargetContextImportTests(unittest.TestCase):
         namespace['selected_pairs'] = set()
         exec(code, namespace)
         self.assertEqual(namespace['targets'], [])
+
+
+class M1PresolveShardTests(unittest.TestCase):
+    """Solve-only M1 shards write checkpoints; the one normal worker ingests."""
+
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        root = Path(self.temporary.name)
+        self.work = root / "work"
+        self.pio_exe = root / "pio.exe"
+        self.pio_exe.write_bytes(b"fake")
+        self.pio_exe.chmod(0o755)
+        fixture = base_scenario()
+        fixture.update({"scenario_id": "analytic.selftest", "purpose": "self_test"})
+        fixture["targets"][0]["target_id"] = "analytic.only"
+        scenarios = [fixture]
+        for name, machines in (("a", ("M1", "M1")), ("b", ("M1", "M2")), ("c", ("M1",)), ("d", ("M2",))):
+            scenario = base_scenario()
+            scenario["scenario_id"] = f"cash.train.{name}"
+            scenario["targets"] = [
+                {**scenario["targets"][0], "target_id": f"{name}.{i}", "machine_id": machine,
+                 "node": f"r:0:{i}"}
+                for i, machine in enumerate(machines)
+            ]
+            scenarios.append(scenario)
+        self.manifest = ApprovedManifest(
+            Path("manifest.json"), Path("inputs"),
+            {"dataset_key": "v31-test", "solver_version": "PioSOLVER-test",
+             "source_combo_order_checksum": "c" * 64, "range_bundle_checksum": "d" * 64,
+             "icm_model_checksum": "e" * 64, "self_test": {"scenario_id": "analytic.selftest"},
+             "solver_binary_checksum": "1" * 64, "pipeline_commit": "2" * 40,
+             "pipeline_bundle_checksum": "3" * 64, "manifest_version": 1,
+             "input_bundle_checksum": "4" * 64,
+             "scenarios": scenarios},
+            "a" * 64, source_combo_order=canonical_hand_order_tokens(),
+        )
+        self.owned = {
+            (scenario["scenario_id"], target["target_id"])
+            for scenario in scenarios for target in owned_targets(scenario, "M1")
+        }
+        self.solved, self.harvested = [], []
+
+    def args(self, machine="M1", shard=None, **extra):
+        return types.SimpleNamespace(
+            machine=machine, manifest="manifest.json", input_root="inputs",
+            work_directory=str(self.work), preflight_only=False,
+            presolve_shard=None if shard is None else worker.parse_presolve_shard(shard),
+            m2_model_builds=None, m2_model_builds_checksum=None, m2_seed_file=None, **extra,
+        )
+
+    def fake_harvest(self, pio, scenario, target, **kwargs):
+        self.harvested.append((scenario["scenario_id"], target["target_id"]))
+        self.assertEqual(kwargs["manifest_checksum"], self.manifest.checksum)
+        return {"schema": "smarter-poker.pio-policy.v3", "node": target["node"],
+                "line_proof": {"manifest_checksum": kwargs["manifest_checksum"]},
+                "source_combo_order_checksum": kwargs["source_combo_order_checksum"],
+                "range_bundle_checksum": kwargs["range_bundle_checksum"]}
+
+    def run_worker(self, args, client=None):
+        process = mock.MagicMock()
+        process.__enter__.return_value.command = object()
+        self_scenario = self.manifest.raw["scenarios"][0]
+        gateway = (mock.patch.object(worker.GatewayClient, "from_environment", return_value=client)
+                   if client is not None else
+                   mock.patch.object(worker, "GatewayClient", side_effect=AssertionError("presolve built a GatewayClient")))
+        with mock.patch.dict(worker.os.environ, {"PIO_EXE": str(self.pio_exe)}, clear=False), \
+                mock.patch.object(worker, "load_manifest", return_value=self.manifest), \
+                mock.patch.object(worker, "validate_pipeline_imports"), \
+                mock.patch.object(worker, "verify_environment"), \
+                mock.patch.object(worker, "PioProcess", return_value=process), \
+                mock.patch.object(worker, "solver_self_test", return_value=(self_scenario, {"weighted_policy_ev_bb": 1.0, "exploitability_pct": 0.01})), \
+                mock.patch.object(worker, "solve_scenario", side_effect=lambda pio, scenario, manifest: self.solved.append(scenario["scenario_id"]) or {}), \
+                mock.patch.object(worker, "harvest_node", side_effect=self.fake_harvest), \
+                mock.patch("builtins.print"), gateway:
+            if client is None:
+                worker.GatewayClient.from_environment = mock.Mock(side_effect=AssertionError("presolve loaded a gateway secret"))
+            return worker.run(args)
+
+    def test_two_shards_are_disjoint_cover_owned_targets_and_never_touch_the_gateway(self):
+        shards = [worker.presolve_shard_scenarios(self.manifest, "M1", k, 2) for k in (0, 1)]
+        sets = [{(s["scenario_id"], t["target_id"]) for s, targets in shard for t in targets} for shard in shards]
+        self.assertFalse(sets[0] & sets[1])
+        self.assertEqual(sets[0] | sets[1], self.owned)
+        for k in (0, 1):
+            self.run_worker(self.args(shard=f"{k}/2"))
+        self.assertEqual(sorted(self.harvested), sorted(self.owned))
+        self.assertEqual(sorted(self.solved), ["cash.train.a", "cash.train.b", "cash.train.c"])
+        for scenario in self.manifest.raw["scenarios"]:
+            for target in owned_targets(scenario, "M1"):
+                stored = load_checkpoint(worker.artifact_path(self.work, "M1", target["target_id"]))
+                self.assertTrue(artifact_matches(stored, self.manifest, "M1", scenario, target))
+        self.assertFalse((self.work / "artifacts" / "M2").exists())
+        # A restarted shard verifies its checkpoints and solves nothing again.
+        self.solved.clear(); self.harvested.clear()
+        self.run_worker(self.args(shard="1/2"))
+        self.assertEqual((self.solved, self.harvested), ([], []))
+        for bad in ("2/2", "0/5", "0/0", "x/2", "1"):
+            with self.assertRaises(argparse.ArgumentTypeError):
+                worker.parse_presolve_shard(bad)
+        self.assertEqual(worker.parse_presolve_shard("3/4"), (3, 4))
+
+    def test_presolve_refuses_m2_and_m2_selection_inputs_before_any_work(self):
+        with mock.patch.object(worker, "load_manifest", side_effect=AssertionError("loaded")):
+            with self.assertRaisesRegex(ContractError, "M1-only"):
+                worker.run(self.args(machine="M2", shard="0/2"))
+            for key in ("m2_model_builds", "m2_model_builds_checksum", "m2_seed_file"):
+                args = self.args(shard="0/2")
+                setattr(args, key, "present")
+                with self.assertRaisesRegex(ContractError, "refuse M2 selection inputs"):
+                    worker.run(args)
+            preflight = self.args(shard="0/2")
+            preflight.preflight_only = True
+            with self.assertRaisesRegex(ContractError, "exclude --preflight-only"):
+                worker.run(preflight)
+
+    def test_later_normal_run_solves_nothing_and_ingests_every_target_once(self):
+        for k in (0, 1):
+            self.run_worker(self.args(shard=f"{k}/2"))
+        self.solved.clear(); self.harvested.clear()
+        calls = []
+
+        def call(operation, payload):
+            calls.append((operation, payload))
+            if operation == "dataset_contract":
+                return {"state": "building", "dataset_id": "11111111-1111-4111-8111-111111111111"}
+            if operation == "worker_heartbeat":
+                return {"accepted": True, "idempotent": True, "machine_id": "M1",
+                        "run_id": payload["run_id"], "sequence": payload["sequence"]}
+            if operation == "ingest_artifact":
+                return {"source_row_id": payload["artifact"]["id"], "source_artifact_checksum": "1" * 64,
+                        "node_count": 1, "idempotent": False}
+            raise AssertionError(operation)
+
+        client = mock.Mock(); client.call.side_effect = call
+        self.run_worker(self.args(), client=client)
+        self.assertEqual((self.solved, self.harvested), ([], []))
+        ingested = [payload["artifact"]["id"] for operation, payload in calls if operation == "ingest_artifact"]
+        expected = {artifact_id(self.manifest, "M1", target_id) for _, target_id in self.owned}
+        self.assertEqual(len(ingested), len(self.owned))
+        self.assertEqual(set(ingested), expected)
+        final = [payload for operation, payload in calls if operation == "worker_heartbeat"][-1]
+        self.assertEqual((final["state"], final["rows_planned"], final["rows_done"], final["rows_written"], final["invalid_rows"]),
+                         ("completed", len(self.owned), len(self.owned), len(self.owned), 0))
+
+    def test_presolve_refuses_a_foreign_checkpoint_without_solving_it(self):
+        scenario = self.manifest.raw["scenarios"][1]  # cash.train.a, shard 1/2
+        target = scenario["targets"][0]
+        other = ApprovedManifest(self.manifest.path, self.manifest.input_root, self.manifest.raw, "f" * 64)
+        foreign = worker.make_artifact(other, "M1", scenario, target, {
+            "schema": "smarter-poker.pio-policy.v3", "node": target["node"],
+            "line_proof": {"manifest_checksum": other.checksum},
+            "source_combo_order_checksum": "c" * 64, "range_bundle_checksum": "d" * 64})
+        path = worker.artifact_path(self.work, "M1", target["target_id"])
+        worker.atomic_json(path, foreign)
+        with self.assertRaisesRegex(ContractError, "belongs to another contract"):
+            self.run_worker(self.args(shard="1/2"))
+        self.assertEqual((self.solved, self.harvested), ([], []))
+        self.assertEqual(load_checkpoint(path), foreign)
 
 
 if __name__ == "__main__":

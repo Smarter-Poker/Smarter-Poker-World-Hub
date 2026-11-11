@@ -69,6 +69,11 @@ test('workers use narrow HMAC ingress and PostgreSQL-owned node seals', () => {
   assert.match(worker, /source_receipt_is_valid/);
   assert.match(worker, /--preflight-only/);
   assert.match(worker, /no gateway was contacted and no source row was written/);
+  assert.match(worker, /--presolve-shard/);
+  assert.match(worker, /presolve shards are M1-only/);
+  assert.match(documentation, /--presolve-shard 0\/2/);
+  assert.match(documentation, /--presolve-shard 1\/2/);
+  assert.match(documentation, /N = 2 is therefore the measured optimum/);
   assert.doesNotMatch(worker, /node_checksum/);
   assert.match(compactor, /"build_cell"/);
   assert.match(compactor, /"seal_dataset"/);

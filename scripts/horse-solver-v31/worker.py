@@ -391,7 +391,144 @@ def print_self_test(receipt: dict[str, float]) -> None:
     )
 
 
+def harvest_artifact(
+    pio: Any,
+    manifest: ApprovedManifest,
+    machine: str,
+    scenario: dict[str, Any],
+    target: dict[str, Any],
+    *, selection_receipt: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Harvest one target of the loaded tree into its checkpoint artifact.
+
+    The normal worker and the M1 presolve shards share this one definition, so
+    a presolved checkpoint is byte-for-byte the contract the worker would write.
+    """
+    node = harvest_node(
+        pio,
+        scenario,
+        target,
+        manifest_checksum=manifest.checksum,
+        source_combo_order_checksum=manifest.raw["source_combo_order_checksum"],
+        range_bundle_checksum=manifest.raw["range_bundle_checksum"],
+        policy_export_schema=policy_export_schema(manifest.raw),
+        icm_model=manifest.icm_models.get(scenario["icm_model_id"]),
+        icm_model_checksum=manifest.raw["icm_model_checksum"],
+        conditional_input_ranges={side: load_range_vector(manifest.input_root / scenario[side.lower() + "_range_path"]) for side in ("OOP", "IP")} if "conditional_history" in scenario else None,
+    )
+    artifact = make_artifact(manifest, machine, scenario, target, node)
+    if selection_receipt is not None:
+        from public_hist215 import digest as selection_digest
+        artifact["strategy_matrix_v2"]["selection_receipt"] = selection_receipt
+        artifact["strategy_matrix_v2"]["selection_receipt_checksum"] = selection_digest(selection_receipt)
+    return artifact
+
+
+PRESOLVE_MAX_SHARDS = 4
+PRESOLVE_MEASURED_SHARDS = 2  # 2026-11-11 M1 pilot: 2 Pio processes = ~1.85x; a third adds nothing.
+
+
+def parse_presolve_shard(value: str) -> tuple[int, int]:
+    """Parse ``K/N``: shard K (0-based) of N, with 1 <= N <= 4."""
+    match = re.fullmatch(r"([0-9])/([0-9])", value.strip()) if isinstance(value, str) else None
+    if match is None:
+        raise argparse.ArgumentTypeError("--presolve-shard must be K/N, for example 0/2")
+    shard, count = int(match.group(1)), int(match.group(2))
+    if not 1 <= count <= PRESOLVE_MAX_SHARDS or not 0 <= shard < count:
+        raise argparse.ArgumentTypeError(
+            f"--presolve-shard needs 0 <= K < N <= {PRESOLVE_MAX_SHARDS}"
+        )
+    return shard, count
+
+
+def presolve_shard_scenarios(
+    manifest: ApprovedManifest, machine: str, shard: int, count: int
+) -> list[tuple[dict[str, Any], list[dict[str, Any]]]]:
+    """Deterministic disjoint scenario split; the union over K is the owned set.
+
+    Whole scenarios are assigned (position in ordered_scenarios() modulo N), so
+    each tree is solved by exactly one shard and never twice.
+    """
+    return [
+        (scenario, owned_targets(scenario, machine))
+        for index, scenario in enumerate(ordered_scenarios(manifest))
+        if index % count == shard and owned_targets(scenario, machine)
+    ]
+
+
+def presolve(
+    args: argparse.Namespace, manifest: ApprovedManifest, executable: Path
+) -> dict[str, int]:
+    """Solve-only M1 shard: write verified checkpoints, never touch the gateway.
+
+    It constructs no GatewayClient, ingests nothing and sends no heartbeat. The
+    normal worker run afterwards finds every checkpoint, solves nothing, and
+    remains the single owner of ingest and the reconciled heartbeat.
+    """
+    shard, count = args.presolve_shard
+    machine = args.machine
+    plan = presolve_shard_scenarios(manifest, machine, shard, count)
+    planned = sum(len(targets) for _, targets in plan)
+    if planned <= 0:
+        raise ContractError(f"presolve shard {shard}/{count} owns no {machine} targets")
+    work_directory = Path(args.work_directory).resolve()
+    work_directory.mkdir(parents=True, exist_ok=True)
+    counts = {"planned": planned, "solved": 0, "skipped": 0}
+    with PioProcess(
+        executable,
+        expected_solver_version=manifest.raw["solver_version"],
+        expected_hand_order=manifest.source_combo_order,
+    ) as process:
+        pio = PioSetupSession(process.command)
+        self_scenario, receipt = solver_self_test(pio, manifest)
+        loaded_scenario = self_scenario["scenario_id"]
+        print_self_test(receipt)
+        for scenario, targets in plan:
+            pending = []
+            for target in targets:
+                prior = load_checkpoint(artifact_path(work_directory, machine, target["target_id"]))
+                if prior is None:
+                    pending.append(target)
+                elif not artifact_matches(prior, manifest, machine, scenario, target):
+                    raise ContractError(
+                        f"checkpoint for {target['target_id']} belongs to another contract"
+                    )
+                else:
+                    counts["skipped"] += 1
+            if not pending:
+                continue
+            if loaded_scenario != scenario["scenario_id"]:
+                solve_scenario(pio, scenario, manifest)
+                loaded_scenario = scenario["scenario_id"]
+            for target in pending:
+                artifact = harvest_artifact(pio, manifest, machine, scenario, target)
+                if not artifact_matches(artifact, manifest, machine, scenario, target):
+                    raise ContractError(
+                        f"presolved artifact for {target['target_id']} failed its contract check"
+                    )
+                atomic_json(artifact_path(work_directory, machine, target["target_id"]), artifact)
+                counts["solved"] += 1
+                print(
+                    f"[v31-worker] presolve {shard}/{count} checkpointed {target['target_id']} "
+                    f"({counts['solved'] + counts['skipped']}/{planned})"
+                )
+    print(
+        f"[v31-worker] presolve shard {shard}/{count} complete: {counts['solved']} solved, "
+        f"{counts['skipped']} already checkpointed, {planned} owned; no gateway was "
+        "contacted, nothing was ingested and no heartbeat was sent"
+    )
+    return counts
+
+
 def run(args: argparse.Namespace) -> None:
+    presolve_shard = getattr(args, "presolve_shard", None)
+    if presolve_shard is not None:
+        if args.machine != "M1":
+            raise ContractError("presolve shards are M1-only; M2 keeps its single held-out capture path")
+        if any(getattr(args, k, None) for k in ("m2_model_builds", "m2_model_builds_checksum", "m2_seed_file")):
+            raise ContractError("presolve shards refuse M2 selection inputs")
+        if args.preflight_only or not args.work_directory:
+            raise ContractError("presolve shards need --work-directory and exclude --preflight-only")
     script_root = Path(__file__).resolve().parents[2]
     expected_manifest = os.environ.get("APPROVED_MANIFEST_CHECKSUM", "")
     manifest = load_manifest(
@@ -420,6 +557,10 @@ def run(args: argparse.Namespace) -> None:
     )
     if planned <= 0:
         raise ContractError(f"manifest assigns no targets to {args.machine}")
+
+    if presolve_shard is not None:
+        presolve(args, manifest, executable)
+        return
 
     if args.preflight_only:
         with PioProcess(
@@ -453,7 +594,7 @@ def run(args: argparse.Namespace) -> None:
         return
     selection_receipt, selected_pairs, selection_seed = None, None, None
     if needs_selection:
-        from public_hist215 import load_model_build_index, make_m2_selection_receipt, canonical_bytes, digest, verify_model_freeze_authority
+        from public_hist215 import load_model_build_index, make_m2_selection_receipt, canonical_bytes, verify_model_freeze_authority
         models = load_model_build_index(args.m2_model_builds,
             expected_checksum=args.m2_model_builds_checksum, dataset_id=dataset_id,
             manifest={**manifest.raw,"_actual_manifest_checksum":manifest.checksum})
@@ -531,24 +672,10 @@ def run(args: argparse.Namespace) -> None:
                     if artifact is None:
                         try:
                             with heartbeat.keepalive("harvesting", phase_id):
-                                node = harvest_node(
-                                    pio,
-                                    scenario,
-                                    target,
-                                    manifest_checksum=manifest.checksum,
-                                    source_combo_order_checksum=manifest.raw[
-                                        "source_combo_order_checksum"
-                                    ],
-                                    range_bundle_checksum=manifest.raw["range_bundle_checksum"],
-                                    policy_export_schema=policy_export_schema(manifest.raw),
-                                    icm_model=manifest.icm_models.get(scenario["icm_model_id"]),
-                                    icm_model_checksum=manifest.raw["icm_model_checksum"],
-                                    conditional_input_ranges={side: load_range_vector(manifest.input_root / scenario[side.lower() + "_range_path"]) for side in ("OOP", "IP")} if "conditional_history" in scenario else None,
+                                artifact = harvest_artifact(
+                                    pio, manifest, args.machine, scenario, target,
+                                    selection_receipt=selection_receipt,
                                 )
-                            artifact = make_artifact(manifest, args.machine, scenario, target, node)
-                            if selection_receipt is not None:
-                                artifact["strategy_matrix_v2"]["selection_receipt"]=selection_receipt
-                                artifact["strategy_matrix_v2"]["selection_receipt_checksum"]=digest(selection_receipt)
                         except (ContractError, PioError):
                             mark_invalid(heartbeat)
                             raise
@@ -594,12 +721,24 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--input-root", required=True)
     parser.add_argument("--work-directory")
     parser.add_argument("--preflight-only", action="store_true")
+    parser.add_argument(
+        "--presolve-shard",
+        type=parse_presolve_shard,
+        metavar="K/N",
+        help=(
+            "M1 solve-only shard K of N (N<=4; 2 is the measured optimum): writes "
+            "verified checkpoints, never contacts the gateway; run the normal "
+            "worker afterwards to ingest"
+        ),
+    )
     parser.add_argument("--m2-model-builds")
     parser.add_argument("--m2-model-builds-checksum")
     parser.add_argument("--m2-seed-file")
     args = parser.parse_args()
     if not args.preflight_only and not args.work_directory:
         parser.error("--work-directory is required unless --preflight-only is used")
+    if args.presolve_shard is not None and args.preflight_only:
+        parser.error("--presolve-shard and --preflight-only are mutually exclusive")
     return args
 
 
