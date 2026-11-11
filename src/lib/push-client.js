@@ -280,7 +280,7 @@ async function getRegistration() {
         try {
             const pending = reg.update();
             if (pending && typeof pending.catch === 'function') pending.catch(() => {});
-        } catch { /* offline or unsupported; the next sync tries again */ }
+        } catch { /* no network or unsupported; the next sync tries again */ }
         await waitForActiveWorker(reg, T.ready);
         if (reg.active && reg.pushManager) return reg;
         // pushManager exists on a registration before it activates; if the
