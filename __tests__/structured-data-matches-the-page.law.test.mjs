@@ -322,7 +322,7 @@ test('About publishes the visible company identity, not identities of its softwa
     if (name === 'next/link') return link;
     if (name.endsWith('LandingProductSummary')) return products;
     if (name.endsWith('SEOHead')) return {
-      __esModule: true, schemas,
+      __esModule: true, schemas, FOUNDER: siteSeo.FOUNDER,
       default: props => { jsonLd = props.jsonLd; return null; },
     };
     throw new Error(`Unexpected About import: ${name}`);
@@ -340,6 +340,9 @@ test('About publishes the visible company identity, not identities of its softwa
   for (const identity of org.sameAs) assert.ok(html.includes(`href="${identity}"`), 'company reference is visible');
   assert.equal(org.knowsAbout, undefined, 'do not inherit expertise claims absent from the About page');
   assert.equal(org.description, undefined, 'do not inherit a separate marketing description');
+  assert.equal(org.foundingDate, '2025-10', 'retain the published founding month');
+  assert.equal(org.founder.name, siteSeo.FOUNDER.name);
+  assert.ok(html.includes(`href="${org.founder.sameAs[0]}"`), 'founder identity belongs to the Person, with its visible profile link');
   assert.equal(about.name, 'About Smarter.Poker');
 });
 

@@ -20,7 +20,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import Link from 'next/link';
-import SEOHead, { schemas } from '../src/components/seo/SEOHead';
+import SEOHead, { schemas, FOUNDER } from '../src/components/seo/SEOHead';
 import { LANDING_PRODUCTS } from '../src/components/landing/LandingProductSummary';
 
 // This page states the company identity. Software repositories, datasets and
@@ -35,6 +35,8 @@ const ABOUT_ORGANIZATION_SCHEMA = {
   url: schemas.organization.url,
   logo: schemas.organization.logo,
   contactPoint: schemas.organization.contactPoint,
+  foundingDate: schemas.organization.foundingDate,
+  founder: schemas.organization.founder,
   sameAs: ['https://github.com/Smarter-Poker'],
 };
 
@@ -122,6 +124,16 @@ export default function AboutPage() {
             , And The Team Publishes Its Open Work On{' '}
             <a href="https://github.com/Smarter-Poker" style={styles.inlineLink} rel="noopener noreferrer">
               GitHub
+            </a>
+            .
+          </p>
+
+          <h2 style={styles.h2}>The Founder</h2>
+          <p style={styles.body}>
+            Smarter.Poker Was Founded By {FOUNDER.name} In October 2025. The Idea Dates To 2008: One Place For
+            Everything Poker, Instead Of Ten Different Apps And Websites For Information And Data.{' '}
+            <a href={FOUNDER.linkedin} style={styles.inlineLink} rel="noopener noreferrer">
+              Connect With {FOUNDER.firstName} On LinkedIn
             </a>
             .
           </p>
