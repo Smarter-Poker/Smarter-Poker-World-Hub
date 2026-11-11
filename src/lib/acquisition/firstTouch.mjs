@@ -97,21 +97,77 @@ export function firstTouchMetadata(win = typeof window !== 'undefined' ? window 
 
 const NEW_ACCOUNT_WINDOW_MS = 10 * 60 * 1000;
 const FIRST_SIGN_IN_SKEW_MS = 60 * 1000;
+export const OAUTH_INTENT_KEY = 'sp_oauth_attribution_intent_v1';
+const OAUTH_INTENT_MAX_AGE_MS = 60 * 60 * 1000;
+const NONCE_RE = /^[a-f0-9]{32}$/;
+
+function newNonce(win) {
+  const bytes = new Uint8Array(16);
+  const c = (win && win.crypto) || globalThis.crypto;
+  if (!c || typeof c.getRandomValues !== 'function') return null;
+  c.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+}
 
 /**
- * Google (OAuth) sign-ups never pass through supabase.auth.signUp, so they
- * cannot carry acquisition metadata at creation. The auth callback calls this
- * with the signed-in user. It returns metadata to write ONLY when this
- * callback is the sign-in that created the account:
- *   - the provider is not email (email accounts carry it from signUp);
- *   - last_sign_in_at is within 60 s of created_at, which GoTrue sets in the
- *     same request that creates an OAuth user and moves on every later
- *     sign-in, so an existing player (even one created minutes ago) fails;
- *   - the account is under 10 minutes old;
- *   - it has no attribution yet, so a repeated callback writes nothing new.
+ * Called by the sign-up and login pages immediately before
+ * supabase.auth.signInWithOAuth. When this browser holds a first touch, it
+ * stores a single-use random nonce and returns it; the page appends it to the
+ * OAuth redirectTo as `attr`. Returns null when there is no campaign to bind.
  */
-export function attributionForNewAccount(user, win = typeof window !== 'undefined' ? window : undefined, now = Date.now()) {
+export function beginOAuthAttribution(win = typeof window !== 'undefined' ? window : undefined, now = Date.now()) {
+  try {
+    if (!win || !win.localStorage) return null;
+    if (!firstTouchMetadata(win, now).acquisition_utm_source) return null;
+    const nonce = newNonce(win);
+    if (!nonce) return null;
+    win.localStorage.setItem(OAUTH_INTENT_KEY, JSON.stringify({ nonce, started_at: new Date(now).toISOString() }));
+    return nonce;
+  } catch (_) {
+    return null;
+  }
+}
+
+/** Append the attribution nonce to an OAuth redirect URL. */
+export function withAttributionNonce(url, nonce) {
+  if (!nonce || !NONCE_RE.test(nonce)) return url;
+  return `${url}${url.includes('?') ? '&' : '?'}attr=${nonce}`;
+}
+
+function consumeIntent(win) {
+  try {
+    const raw = win.localStorage.getItem(OAUTH_INTENT_KEY);
+    win.localStorage.removeItem(OAUTH_INTENT_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+/**
+ * Google (OAuth) sign-ups never pass through supabase.auth.signUp, so the auth
+ * callback writes their attribution. It returns metadata ONLY when:
+ *   - FLOW BINDING (exact): the callback URL carries `attr` equal to the
+ *     single-use nonce this browser stored when it started this OAuth flow,
+ *     within the last hour. The stored nonce is consumed on the first callback,
+ *     so a retry, another tab, another browser, an ordinary login started
+ *     elsewhere, or an older flow can never attach the campaign.
+ *   - NEW ACCOUNT (timing heuristic): the provider is not email, and
+ *     last_sign_in_at is within 60 s of created_at with the account under
+ *     10 minutes old, which is how GoTrue stamps the sign-in that creates an
+ *     OAuth user; every later sign-in moves last_sign_in_at.
+ *   - No attribution is recorded yet.
+ * Limits are documented in AGENTS.md: the newness test is a heuristic, and the
+ * campaign itself is the browser's first tagged landing (first-touch model).
+ */
+export function attributionForNewAccount(user, win = typeof window !== 'undefined' ? window : undefined, now = Date.now(), urlNonce = null) {
+  if (!win || !win.localStorage) return null;
+  const intent = consumeIntent(win);
   if (!user || typeof user !== 'object') return null;
+  if (typeof urlNonce !== 'string' || !NONCE_RE.test(urlNonce)) return null;
+  if (!intent || intent.nonce !== urlNonce) return null;
+  const started = Date.parse(intent.started_at || '');
+  if (!Number.isFinite(started) || now - started > OAUTH_INTENT_MAX_AGE_MS || started - now > FIRST_SIGN_IN_SKEW_MS) return null;
   if (user.user_metadata && user.user_metadata.acquisition_utm_source) return null;
   const provider = (user.app_metadata && user.app_metadata.provider) || '';
   if (!provider || provider === 'email' || provider === 'phone') return null;
@@ -119,6 +175,7 @@ export function attributionForNewAccount(user, win = typeof window !== 'undefine
   const signedIn = Date.parse(user.last_sign_in_at || '');
   if (!Number.isFinite(created) || !Number.isFinite(signedIn)) return null;
   if (Math.abs(signedIn - created) > FIRST_SIGN_IN_SKEW_MS) return null;
+  if (created + FIRST_SIGN_IN_SKEW_MS < started) return null;
   if (now - created > NEW_ACCOUNT_WINDOW_MS || created - now > FIRST_SIGN_IN_SKEW_MS) return null;
   const meta = firstTouchMetadata(win, now);
   return meta.acquisition_utm_source ? meta : null;

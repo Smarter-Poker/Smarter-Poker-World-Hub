@@ -337,7 +337,8 @@ export default function AuthCallback() {
                 //      fresh account with none gets it here. Never re-attributes
                 //      an existing player (src/lib/acquisition/firstTouch.mjs).
                 try {
-                    const acquisition = attributionForNewAccount(user);
+                    const attrParam = Array.isArray(router.query.attr) ? router.query.attr[0] : router.query.attr;
+                    const acquisition = attributionForNewAccount(user, window, Date.now(), attrParam || null);
                     if (acquisition) await supabase.auth.updateUser({ data: acquisition });
                 } catch (_attrErr) { /* non-blocking */ }
 

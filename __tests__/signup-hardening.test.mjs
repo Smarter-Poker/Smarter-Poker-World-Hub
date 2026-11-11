@@ -189,7 +189,7 @@ test('install availability events cannot bypass account-age gating in the mounte
                 getSession: async () => ({ data: { session: null } }),
                 onAuthStateChange: fn => { authChange = fn; return { data: { subscription: { unsubscribe: () => cancelled++ } } }; },
             } } };
-            if (name.endsWith('/firstTouch.mjs')) return { firstTouchMetadata: () => ({}) };
+            if (name.endsWith('/firstTouch.mjs')) return { firstTouchMetadata: () => ({}), beginOAuthAttribution: () => null, withAttributionNonce: (url) => url };
             if (name.endsWith('/signupExperience.mjs')) return { installPromptDelay: (user, path) => installPromptDelay(user, path, now) };
             if (name.endsWith('/pwaInstall')) return {
                 isRunningAsApp: () => false, isKnownInstalled: () => false,
@@ -260,7 +260,7 @@ test('the verification screen passes the fresh six digits to Auth and renders re
             if (name === 'react/jsx-runtime' || name === 'lucide-react') return require(name);
             if (name === 'next/router') return { useRouter: () => ({ query: {} }) };
             if (name.endsWith('/SEOHead') || name.endsWith('/ExistingAccountDialog') || name.endsWith('/AuthEntryChoices')) return { default: () => null };
-            if (name.endsWith('/firstTouch.mjs')) return { firstTouchMetadata: () => ({}) };
+            if (name.endsWith('/firstTouch.mjs')) return { firstTouchMetadata: () => ({}), beginOAuthAttribution: () => null, withAttributionNonce: (url) => url };
             if (name.endsWith('/signupExperience.mjs')) return { isEmailVerificationCode };
             if (name.endsWith('/clubInvite')) return { resolveSignupClubPath: async () => invitedClub };
             if (name.endsWith('/SignupWelcome')) return { default: () => React.createElement('h2', null, 'Welcome To Smarter.Poker!') };
@@ -344,7 +344,7 @@ test('signup shows existing-account recovery for both Auth response shapes, keep
                 if (name.endsWith('/ExistingAccountDialog')) return { default: ({ open, onSignIn, onClose }) => open ? React.createElement('div', { role: 'alertdialog' }, React.createElement('h2', null, 'You Already Have An Account'), React.createElement('button', { onClick: onSignIn }, 'Sign In'), React.createElement('button', { onClick: onClose }, 'Use A Different Email')) : null };
                 if (name.endsWith('/SEOHead') || name.endsWith('/AuthEntryChoices')) return { default: () => null };
                 if (name.endsWith('/signupOutcome.mjs')) return signupOutcome;
-                if (name.endsWith('/firstTouch.mjs')) return { firstTouchMetadata: () => firstTouch.firstTouchMetadata(touchWin) };
+                if (name.endsWith('/firstTouch.mjs')) return { firstTouchMetadata: () => firstTouch.firstTouchMetadata(touchWin), beginOAuthAttribution: () => null, withAttributionNonce: (url) => url };
                 if (name.endsWith('/signupExperience.mjs')) return { isEmailVerificationCode };
                 if (name.endsWith('/clubInvite')) return { authSwitchHref, readPendingInvite: () => null, safeClubArenaPath: () => null };
                 if (name.endsWith('/passwordStrength')) return { validatePassword: async () => ({ ok: true }) };
