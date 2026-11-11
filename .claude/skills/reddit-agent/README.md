@@ -66,9 +66,11 @@ text and destination, then posts it himself.
 ## Rule Refresh Procedure
 
 1. Open the community's rules page, sidebar or wiki and its pinned posts.
-   Claude's web tools are often blocked from reddit.com; when they are, Dan
-   pastes the text or a screenshot. Do not use mirrors, caches or shell
-   requests to get around the block.
+   Claude's web tools and the desktop app's built-in browser are blocked from
+   reddit.com (rechecked November 11, 2026), so Dan pastes the text or a
+   screenshot. Do not use mirrors, caches, other browsers or shell requests to
+   get around the block. Until a community's rules arrive this way, its entry
+   stays unverified and every draft for it stays held.
 2. Update the Rules Register table in `SKILL.md`: what the rule says in your
    own words, the source, the date, and the status (Verified at source,
    Secondary source, Unknown).
