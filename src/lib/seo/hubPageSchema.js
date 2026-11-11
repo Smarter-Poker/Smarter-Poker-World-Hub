@@ -28,6 +28,7 @@ export const ORGANIZATION_ID = `${SITE}/#organization`;
 export const WEBSITE_ID = `${SITE}/#website`;
 
 import { resolveToolWikidataLinks } from './wikidataRegistry.mjs';
+import { FREE_BUY_SCHEDULE, FREE_BUY_SUMMARY, FREE_BUY_TIMEZONE, freeBuyPrizeLabel } from '../freerolls/freeBuySchedule.mjs';
 
 const absolute = (path, site = SITE) => {
   const safePath = typeof path === 'string' && path.length > 0 ? path : '/';
@@ -413,13 +414,13 @@ export function courseSchema({
 }
 
 /**
- * Schema.org SportsEvent & EventSeries node for the Daily 2,000 Chip Freerolls and Diamond Freerolls hub.
+ * Schema.org SportsEvent & EventSeries node for the daily freerolls hub (src/lib/freerolls/freeBuySchedule.mjs).
  */
 export function freerollEventSchema({
   path = '/freerolls',
-  name = 'Smarter.Poker Daily 2,000 Chip Freerolls',
-  description = 'Compete In 100% Free Daily Poker Tournaments With 2,000 Chips In Guaranteed Daily Prizes With No Cash Value. Funded Diamond Games Are Not Open For Play Yet.',
-  trail = [['Tournaments', '/hub/daily-tournaments'], ['Daily 2,000 Chip Freerolls', '/freerolls']],
+  name = 'Smarter.Poker Daily Freerolls',
+  description = FREE_BUY_SUMMARY,
+  trail = [['Tournaments', '/hub/daily-tournaments'], ['Daily Freerolls', '/freerolls']],
   faqs = [],
   howTo = null,
   image = `${SITE}/api/og/tool-card?tool=freerolls`,
@@ -434,187 +435,62 @@ export function freerollEventSchema({
     acquireLicensePage: url,
   });
 
-  const dailySubEvents = [
-    {
-      '@type': 'SportsEvent',
-      '@id': `${url}#morning-opener-freeroll`,
-      name: 'Morning Opener 250 Chips Guaranteed Daily Freeroll',
-      description: 'Daily Morning Texas Holdem Tournament Open To All Players With 250 Chips In Prizes And Zero Buy-In.',
-      url,
-      sport: 'Poker',
-      startDate: '2026-01-01T10:00:00-06:00',
-      endDate: '2026-12-31T12:00:00-06:00',
-      doorTime: '09:45',
-      eventSchedule: {
-        '@type': 'Schedule',
-        repeatFrequency: 'P1D',
-        startTime: '10:00:00',
-        endTime: '12:00:00',
-        scheduleTimezone: 'America/Chicago',
-      },
-      eventAttendanceMode: 'https://schema.org/OnlineEventAttendanceMode',
-      eventStatus: 'https://schema.org/EventScheduled',
-      inLanguage: 'en-US',
-      isAccessibleForFree: true,
-      organizer: {
-        '@type': 'Organization',
-        '@id': ORGANIZATION_ID,
-        name: 'Smarter.Poker',
-        url: SITE,
-      },
-      offers: {
-        '@type': 'Offer',
-        price: '0',
-        priceCurrency: 'USD',
-        category: 'Free Entry',
-        availability: 'https://schema.org/InStock',
-        url,
-      },
-      location: {
-        '@type': 'VirtualLocation',
-        url: `${SITE}/hub/club-arena`,
-        name: 'Smarter.Poker Club Arena Online Tournament Lobby',
-      },
+  const hhmm = (h, m) => `${String(h % 24).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  const dailySubEvents = FREE_BUY_SCHEDULE.map((ev) => ({
+    '@type': 'SportsEvent',
+    '@id': `${url}#${ev.id}-free-buy`,
+    name: `${ev.name} Daily Freeroll`,
+    description: `Daily Free No-Limit Hold'em Tournament At ${ev.time}, Zero Buy-In, 3,000 Starting Chips. ${freeBuyPrizeLabel(ev)}.`,
+    url,
+    sport: 'Poker',
+    startDate: `2026-01-01T${hhmm(ev.hour, ev.minute)}:00-06:00`,
+    endDate: `2026-12-31T${hhmm(ev.hour + 2, ev.minute)}:00-06:00`,
+    eventSchedule: {
+      '@type': 'Schedule',
+      repeatFrequency: 'P1D',
+      startTime: `${hhmm(ev.hour, ev.minute)}:00`,
+      endTime: `${hhmm(ev.hour + 2, ev.minute)}:00`,
+      scheduleTimezone: FREE_BUY_TIMEZONE,
     },
-    {
-      '@type': 'SportsEvent',
-      '@id': `${url}#afternoon-prime-freeroll`,
-      name: 'Afternoon Prime 500 Chips Guaranteed Daily Freeroll',
-      description: 'Midday Prime Freeroll Featuring Deep Stacks And 500 Chips In Guaranteed Prizes With Zero Entry Fees.',
-      url,
-      sport: 'Poker',
-      startDate: '2026-01-01T14:00:00-06:00',
-      endDate: '2026-12-31T16:30:00-06:00',
-      doorTime: '13:45',
-      eventSchedule: {
-        '@type': 'Schedule',
-        repeatFrequency: 'P1D',
-        startTime: '14:00:00',
-        endTime: '16:30:00',
-        scheduleTimezone: 'America/Chicago',
-      },
-      eventAttendanceMode: 'https://schema.org/OnlineEventAttendanceMode',
-      eventStatus: 'https://schema.org/EventScheduled',
-      inLanguage: 'en-US',
-      isAccessibleForFree: true,
-      organizer: {
-        '@type': 'Organization',
-        '@id': ORGANIZATION_ID,
-        name: 'Smarter.Poker',
-        url: SITE,
-      },
-      offers: {
-        '@type': 'Offer',
-        price: '0',
-        priceCurrency: 'USD',
-        category: 'Free Entry',
-        availability: 'https://schema.org/InStock',
-        url,
-      },
-      location: {
-        '@type': 'VirtualLocation',
-        url: `${SITE}/hub/club-arena`,
-        name: 'Smarter.Poker Club Arena Online Tournament Lobby',
-      },
+    eventAttendanceMode: 'https://schema.org/OnlineEventAttendanceMode',
+    eventStatus: 'https://schema.org/EventScheduled',
+    inLanguage: 'en-US',
+    isAccessibleForFree: true,
+    organizer: {
+      '@type': 'Organization',
+      '@id': ORGANIZATION_ID,
+      name: 'Smarter.Poker',
+      url: SITE,
     },
-    {
-      '@type': 'SportsEvent',
-      '@id': `${url}#evening-championship-freeroll`,
-      name: 'Evening Championship 750 Chips Guaranteed Daily Freeroll',
-      description: 'The Flagship Daily Freeroll With 750 Chips In Guaranteed Prizes, Full Leaderboard Points, And Free Entry For All Verified Members.',
+    offers: {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'USD',
+      category: 'Free Entry',
+      availability: 'https://schema.org/InStock',
       url,
-      sport: 'Poker',
-      startDate: '2026-01-01T18:00:00-06:00',
-      endDate: '2026-12-31T21:00:00-06:00',
-      doorTime: '17:45',
-      eventSchedule: {
-        '@type': 'Schedule',
-        repeatFrequency: 'P1D',
-        startTime: '18:00:00',
-        endTime: '21:00:00',
-        scheduleTimezone: 'America/Chicago',
-      },
-      eventAttendanceMode: 'https://schema.org/OnlineEventAttendanceMode',
-      eventStatus: 'https://schema.org/EventScheduled',
-      inLanguage: 'en-US',
-      isAccessibleForFree: true,
-      organizer: {
-        '@type': 'Organization',
-        '@id': ORGANIZATION_ID,
-        name: 'Smarter.Poker',
-        url: SITE,
-      },
-      offers: {
-        '@type': 'Offer',
-        price: '0',
-        priceCurrency: 'USD',
-        category: 'Free Entry',
-        availability: 'https://schema.org/InStock',
-        url,
-      },
-      location: {
-        '@type': 'VirtualLocation',
-        url: `${SITE}/hub/club-arena`,
-        name: 'Smarter.Poker Club Arena Online Tournament Lobby',
-      },
     },
-    {
-      '@type': 'SportsEvent',
-      '@id': `${url}#nightcap-turbo-freeroll`,
-      name: 'Nightcap Turbo 500 Chips Guaranteed Daily Freeroll',
-      description: 'Fast-Paced Evening Turbo Freeroll With 5-Minute Blind Levels, 500 Chips In Prizes, And Zero Risk.',
-      url,
-      sport: 'Poker',
-      startDate: '2026-01-01T21:00:00-06:00',
-      endDate: '2026-12-31T23:00:00-06:00',
-      doorTime: '20:45',
-      eventSchedule: {
-        '@type': 'Schedule',
-        repeatFrequency: 'P1D',
-        startTime: '21:00:00',
-        endTime: '23:00:00',
-        scheduleTimezone: 'America/Chicago',
-      },
-      eventAttendanceMode: 'https://schema.org/OnlineEventAttendanceMode',
-      eventStatus: 'https://schema.org/EventScheduled',
-      inLanguage: 'en-US',
-      isAccessibleForFree: true,
-      organizer: {
-        '@type': 'Organization',
-        '@id': ORGANIZATION_ID,
-        name: 'Smarter.Poker',
-        url: SITE,
-      },
-      offers: {
-        '@type': 'Offer',
-        price: '0',
-        priceCurrency: 'USD',
-        category: 'Free Entry',
-        availability: 'https://schema.org/InStock',
-        url,
-      },
-      location: {
-        '@type': 'VirtualLocation',
-        url: `${SITE}/hub/club-arena`,
-        name: 'Smarter.Poker Club Arena Online Tournament Lobby',
-      },
+    location: {
+      '@type': 'VirtualLocation',
+      url: `${SITE}/hub/club-arena`,
+      name: 'Smarter.Poker Club Arena Online Tournament Lobby',
     },
-  ];
+  }));
 
   const eventSeriesNode = {
     '@type': ['SportsEvent', 'EventSeries'],
     '@id': `${url}#eventseries`,
-    name: 'Smarter.Poker Daily 2,000 Chip Freeroll Tournament Series',
+    name: 'Smarter.Poker Daily Free Buy Tournament Series',
     description,
     url,
     sport: 'Poker',
-    startDate: '2026-01-01T10:00:00-06:00',
+    startDate: '2026-01-01T00:30:00-06:00',
     endDate: '2026-12-31T23:59:59-06:00',
     eventSchedule: {
       '@type': 'Schedule',
       repeatFrequency: 'P1D',
-      startTime: '10:00:00',
-      endTime: '23:00:00',
+      startTime: '00:30:00',
+      endTime: '22:30:00',
       scheduleTimezone: 'America/Chicago',
     },
     isAccessibleForFree: true,
@@ -677,7 +553,7 @@ export function freerollEventSchema({
   if (howTo && Array.isArray(howTo.steps) && howTo.steps.length > 0) {
     const howToNode = howToSchema({
       path,
-      name: howTo.name || 'How To Enter And Play Smarter.Poker Daily 2,000 Chip Freerolls',
+      name: howTo.name || 'How To Enter And Play Smarter.Poker Daily Freerolls',
       description: howTo.description || description,
       steps: howTo.steps,
       totalTime: howTo.totalTime || 'PT1M',

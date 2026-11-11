@@ -52,7 +52,7 @@ export const CATEGORY_PRODUCTS = {
   'Club Poker': [
     { href: '/hub/club-arena', name: 'Poker Arena', text: 'Private Online Poker Clubs With Club Chips, Unions And Agent Tools.' },
     { href: '/features/private-poker-clubs', name: 'Private Poker Clubs Guide', text: 'Complete Feature Specification For Club Arena Unions And Agent Ledgers.' },
-    { href: '/freerolls', name: 'Daily Freerolls', text: 'Compete In Daily 2,000 Chip Free Tournaments And Diamond Freerolls.' },
+    { href: '/freerolls', name: 'Daily Freerolls', text: 'Compete In Five Free Daily Poker Tournaments.' },
   ],
   'Live Room': [
     { href: '/hub/commander', name: 'Club Commander', text: 'Live Poker Room Waitlists, Game Boards And Tournament Clocks.' },

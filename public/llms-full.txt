@@ -18,7 +18,7 @@ The trading name "Smarter Poker" is shared with unrelated businesses. The entity
 - Arena Sitemap: https://smarter.poker/hub/club-arena/sitemap.xml
 - Terms of Service: https://smarter.poker/terms
 - Privacy Policy: https://smarter.poker/privacy
-- Daily 2,000 Chip Freerolls Hub: https://smarter.poker/freerolls
+- Daily Freerolls Hub: https://smarter.poker/freerolls
 - Free Software Comparisons: https://smarter.poker/compare (Markdown Hub: https://smarter.poker/compare.md)
 - Open Source Work & Repositories: https://github.com/Smarter-Poker
 - Public AI Agent OpenAPI Specification: https://smarter.poker/api/openapi.json (Clean Root Alias: https://smarter.poker/openapi.json)
@@ -249,15 +249,17 @@ Authoritative, solver-grade poker computation tools available for direct browser
 
 ---
 
-## 9. Daily 2,000 Chip Freerolls & Software Comparisons
+## 9. Daily Freerolls & Software Comparisons
 
-### Daily 2,000 Chip Freerolls Guarantee
-Smarter.Poker awards 2,000 chips in guaranteed prizes every single day across four scheduled multi-table tournament freerolls:
-- **10:00 AM CST**: Morning Opener Freeroll (250 Chips GTD) - 10,000 Starting Chips, 10-Minute Levels.
-- **2:00 PM CST**: Afternoon Prime Freeroll (500 Chips GTD) - 15,000 Starting Chips, 12-Minute Levels.
-- **6:00 PM CST**: Evening Championship Freeroll (750 Chips GTD) - 20,000 Starting Chips, 12-Minute Levels.
-- **9:00 PM CST**: Nightcap Turbo Freeroll (500 Chips GTD) - 10,000 Starting Chips, 5-Minute Turbo Levels.
-Funded Diamond games are not open for play yet.
+### Daily Freeroll Schedule
+Smarter.Poker runs five free No-Limit Hold'em tournaments every day, each with zero buy-in and 3,000 starting chips (Central Time):
+- **12:30 AM**: Midnight Free Buy (prize pool built from the field).
+- **8:30 AM**: Morning Free Buy (250 Chips Guaranteed).
+- **12:30 PM**: Midday Free Buy (prize pool built from the field).
+- **4:30 PM**: Afternoon Free Buy (500 Chips Guaranteed).
+- **8:30 PM**: Prime Time Free Buy (prize pool built from the field).
+
+Prizes are club chips with no cash value. Funded Diamond games are not open for play yet.
 
 Key Terms: 100% free to enter. Zero buy-in fees, zero deposit requirements, and no software download required (plays in-browser on web and mobile).
 

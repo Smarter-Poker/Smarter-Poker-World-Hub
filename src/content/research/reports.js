@@ -74,7 +74,7 @@ const RAW_RESEARCH_REPORTS = [
       'Sub-$100 Daily Morning And Nightly Turbo Tournaments Carry The Highest Effective Fee Percentage (22% To 28% Combined House And Staff Allocation) Due To Fixed Dealer And Floor Overhead.',
       'Mid-Tier Daily Events ($125 To $250 Buy-In) Represent 54% Of All Scheduled Weekly Tournaments With 20-Minute To 30-Minute Blind Levels And 20,000 To 30,000 Starting Chips.',
       'Weekend Deepstack And Multi-Flight Events ($300 To $600 Buy-In) Offer The Highest Structural Value With 13% To 16% Total Fee Deductions And 30-Minute To 40-Minute Blind Levels.',
-      'Zero-Entry Free-To-Play Online Tournaments On Smarter.Poker Award 2,000 Chips Daily With 0% Entry Rake And Zero Deposit Requirements.',
+      'Smarter.Poker Runs Five Zero-Entry Free-To-Play Online Tournaments Every Day With Zero Deposit Requirements.',
     ],
     table: {
       caption: 'Live Daily Poker Tournament Structural Benchmarks By Buy-In Tier',

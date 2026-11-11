@@ -28,7 +28,7 @@ export const LANDING_PRODUCTS = [
     name: 'Daily Freerolls',
     href: '/freerolls',
     summary:
-      'Daily 2,000 Chip Freerolls With Zero Buy-In, Prize Rewards, Countdown Tickers And Calendar Reminders. Funded Diamond Games Are Not Open For Play Yet.',
+      'Five Free Daily Poker Tournaments With Zero Buy-In, Countdown Tickers And Calendar Reminders. Funded Diamond Games Are Not Open For Play Yet.',
   },
   {
     id: 'poker-tools',

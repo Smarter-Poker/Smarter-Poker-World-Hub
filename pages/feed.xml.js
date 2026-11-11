@@ -299,9 +299,9 @@ const TOOL_ITEMS = [
         pubDate: LEARN_MODIFIED,
     },
     {
-        title: 'Daily 2,000 Chip Poker Freerolls',
+        title: 'Five Free Daily Poker Tournaments (Freerolls)',
         link: `${SITE_URL}/freerolls`,
-        description: 'Compete In 100% Free Daily Poker Tournaments With 2,000 Chips In Guaranteed Daily Prizes With No Cash Value. Funded Diamond Games Are Not Open For Play Yet. Zero Deposit Required.',
+        description: 'Five Free No-Limit Hold\'em Tournaments Every Day At 12:30 AM, 8:30 AM, 12:30 PM, 4:30 PM And 8:30 PM Central. Zero Buy-In, Zero Deposit Required. Funded Diamond Games Are Not Open For Play Yet.',
         category: 'Poker Freerolls',
         pubDate: LEARN_MODIFIED,
     },

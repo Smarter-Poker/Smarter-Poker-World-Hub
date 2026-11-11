@@ -19,34 +19,31 @@ test('Diamond Arena public copy distinguishes membership from funded-game availa
 });
 
 test('public schedule API returns no available Diamond Arena event for any tier', async () => {
-  const source = read('pages/api/ai/freerolls.js')
-    .replace(/^import .*;$/m, '')
-    .replace('export default async function handler', 'async function handler');
-  const handler = new Function('SITE_ORIGIN', `${source}; return handler;`)('https://smarter.poker');
+  const { default: handler } = await import('../pages/api/ai/freerolls.js');
   for (const tier of ['all', 'open', 'diamond']) {
     let body;
-    const res = { setHeader() {}, status(code) { assert.equal(code, 200); return this; }, json(data) { body = data; return this; } };
+    const res = { setHeader() {}, status(code) { assert.equal(code, 200); return this; }, json(data) { body = data; return this; }, end() { return this; } };
     await handler({ method: 'GET', query: { tier } }, res);
-    assert.equal(body.schedule.length, tier === 'diamond' ? 0 : 4);
+    assert.equal(body.schedule.length, tier === 'diamond' ? 0 : 5);
     assert.equal(body.diamond_arena.available, false);
     assert.match(body.diamond_arena.status, /not open for play yet/i);
     assert.ok(body.schedule.every((event) => event.tier === 'open'));
   }
 });
 
-test('subscribed calendars cancel the old Diamond event without cancelling daily slots', () => {
-  const source = read('pages/api/seo/series-calendar.js')
-    .replace(/^import[\s\S]*?;\n/gm, '')
-    .replace(/export default /g, '').replace(/export /g, '');
-  const build = new Function(`${source}; return buildSeriesCalendarIcs;`)();
-  const { ics } = build('freerolls');
+test('subscribed calendars cancel the old Diamond and retired slots without cancelling the daily Free Buy events', async () => {
+  const { buildSeriesCalendarIcs } = await import('../pages/api/seo/series-calendar.js');
+  const { ics } = buildSeriesCalendarIcs('freerolls');
   const events = ics.split('BEGIN:VEVENT').slice(1);
-  assert.equal(events.length, 5);
+  assert.equal(events.length, 10);
   const cancellation = events.find((event) => event.includes('UID:freeroll-sunday-diamond-1700@smarter.poker'));
   assert.match(cancellation, /STATUS:CANCELLED/);
   assert.match(cancellation, /SEQUENCE:2/);
   assert.match(cancellation, /not open for play yet/i);
-  for (const event of events.filter((event) => event !== cancellation)) assert.match(event, /STATUS:CONFIRMED/);
+  const live = events.filter((event) => event.includes('UID:free-buy-'));
+  assert.equal(live.length, 5);
+  for (const event of live) assert.match(event, /STATUS:CONFIRMED/);
+  for (const event of events.filter((event) => !event.includes('UID:free-buy-'))) assert.match(event, /STATUS:CANCELLED/);
 });
 
 test('MCP diamond-tier requests and generated Markdown preserve the closed status', async () => {
@@ -79,7 +76,7 @@ test('homepage and About product catalogue distinguish closed Diamond games and 
 
 test('public structured data and linked discovery FAQs do not advertise closed Diamond events', () => {
   const series = freerollEventSchema().find(node => Array.isArray(node['@type']) && node['@type'].includes('EventSeries'));
-  assert.equal(series.subEvent.length, 4);
+  assert.equal(series.subEvent.length, 5);
   assert.ok(series.subEvent.every(event => !/diamond/i.test(event.name)));
   for (const path of ['pages/freerolls.js', 'pages/about.js', 'pages/feed.xml.js', 'pages/compare/index.js', 'pages/api/hub-tool-markdown.js', 'pages/hub/daily-tournaments.js', 'pages/hub/tournaments/this-weekend.js', 'src/lib/seo/markdownIngestion.mjs']) {
     assert.doesNotMatch(read(path), /exclusive Diamond Freerolls|Diamond Freerolls (?:Running )?Every 3 Hours/i, path);

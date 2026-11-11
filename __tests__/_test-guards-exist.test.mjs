@@ -46,6 +46,7 @@ import './aeo-freerolls-hub.test.mjs';
 import './freeroll-prizes-are-chips.test.mjs';
 import './aeo-freerolls-calendar-og.test.mjs';
 import './aeo-freerolls-global-wiring.test.mjs';
+import './freeroll-schedule-is-canonical.test.mjs';
 import './aeo-deep-dive-optimizations.test.mjs';
 import './aeo-phase3-features.test.mjs';
 import './aeo-video-library-schema.test.mjs';

@@ -5,30 +5,33 @@ import path from 'node:path';
 import { buildFreerollsIcs } from '../src/lib/poker-near-me/calendarExport.mjs';
 import freerollsCalendarHandler from '../pages/api/calendar/freerolls.ics.js';
 
-test('buildFreerollsIcs creates valid RFC 5545 iCalendar feed with four offered events and a retained Diamond cancellation', () => {
+test('buildFreerollsIcs creates valid RFC 5545 iCalendar feed with all 5 daily Free Buy events', () => {
   const ics = buildFreerollsIcs();
   assert.ok(ics.startsWith('BEGIN:VCALENDAR\r\n'), 'Must start with BEGIN:VCALENDAR');
   assert.ok(ics.endsWith('\r\nEND:VCALENDAR'), 'Must end with END:VCALENDAR');
   assert.match(ics, /VERSION:2\.0/);
   assert.match(ics, /PRODID:-\/\/Smarter Software\/\/Smarter\.Poker Freerolls\/\/EN/);
-  assert.match(ics, /X-WR-CALNAME:Smarter\.Poker Daily 2,000 Chip Freerolls/);
+  assert.match(ics, /X-WR-CALNAME:Smarter\.Poker Daily Freerolls/);
   assert.match(ics, /BEGIN:VTIMEZONE/);
   assert.match(ics, /TZID:America\/Chicago/);
 
   // Check all 5 freeroll events
-  assert.match(ics, /Morning Opener Freeroll \(250 Chips GTD\)/);
-  assert.match(ics, /Afternoon Prime Freeroll \(500 Chips GTD\)/);
-  assert.match(ics, /Evening Championship Freeroll \(750 Chips GTD\)/);
-  assert.match(ics, /Nightcap Turbo Freeroll \(500 Chips GTD\)/);
-  assert.doesNotMatch(ics, /Sunday Diamond Championship Freeroll/);
+  for (const name of ['Midnight', 'Morning', 'Midday', 'Afternoon', 'Prime Time']) {
+    assert.match(ics, new RegExp(`SUMMARY:${name} Free Buy \\(NLH\\)`));
+  }
+  assert.equal((ics.match(/BEGIN:VEVENT/g) || []).length, 10, '5 live events plus 5 cancellations of retired UIDs');
+  assert.equal((ics.match(/STATUS:CONFIRMED/g) || []).length, 5);
+  assert.equal((ics.match(/STATUS:CANCELLED/g) || []).length, 5);
   const cancelled = ics.split('BEGIN:VEVENT').find(event => event.includes('UID:freeroll-sunday-diamond-championship@smarter.poker'));
   assert.match(cancelled, /STATUS:CANCELLED/);
   assert.match(cancelled, /SEQUENCE:2/);
-  assert.equal((ics.match(/STATUS:CONFIRMED/g) || []).length, 4);
+  assert.match(ics, /250 Chips Guaranteed/);
+  assert.match(ics, /500 Chips Guaranteed/);
+  assert.doesNotMatch(ics, /Diamond Championship|2,000/);
+  assert.match(ics, /Funded Diamond games are not open for play yet\./);
 
   // Check RRULE recursion patterns
   assert.match(ics, /RRULE:FREQ=DAILY/);
-  assert.match(ics, /RRULE:FREQ=WEEKLY;BYDAY=SU/);
 
   // Check URL grounding
   assert.match(ics, /URL:https:\/\/smarter\.poker\/freerolls/);
@@ -66,6 +69,7 @@ test('pages/api/calendar/freerolls.ics handler serves calendar feed with correct
   assert.ok(headers['Cache-Control'].includes('s-maxage=86400'));
   assert.ok(typeof responseData === 'string');
   assert.ok(responseData.includes('BEGIN:VCALENDAR'));
+  assert.ok(responseData.includes('Morning Free Buy (NLH)'));
   assert.ok(responseData.includes('STATUS:CANCELLED'));
   assert.ok(responseData.includes('Funded Diamond games are not open for play yet.'));
 });
@@ -120,9 +124,9 @@ test('pages/api/og/tool-card.js handles freerolls and compare tools with distinc
   assert.match(code, /runtime:\s*['"]edge['"]/);
   assert.match(code, /tool === ['"]freerolls['"]/);
   assert.match(code, /tool === ['"]compare['"]/);
-  assert.match(code, /2,000 Chips In Daily Poker Freerolls/);
+  assert.match(code, /Five Free Poker Tournaments Every Day/);
   assert.match(code, /Free Poker Software & Platform Alternatives/);
-  assert.match(code, /DAILY 2,000 CHIP FREEROLLS/);
+  assert.match(code, /FIVE FREE DAILY FREEROLLS/);
   assert.match(code, /SOFTWARE COMPARISON/);
   assert.match(code, /ZERO DEPOSIT REQUIRED/);
   assert.match(code, /100% FREE ALTERNATIVES/);
