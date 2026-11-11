@@ -22,6 +22,8 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import consoleStyles from '../../src/components/admin/OperatorAdminSurface.module.css';
+import GrowthScorecard from '../../src/components/admin/GrowthScorecard';
+import { loadGrowthScorecard } from '../../src/lib/acquisition/growthScorecard.mjs';
 
 /**
  * [2026-07-25] REACHABILITY FIX — same as /admin/auth-health: browsers never
@@ -47,10 +49,11 @@ export async function getServerSideProps({ req, res }) {
     }
     const adm = createClient(url, srKey, { auth: { persistSession: false } });
 
-    const [healthRes, heartbeatsRes, errorsRes] = await Promise.all([
+    const [healthRes, heartbeatsRes, errorsRes, growth] = await Promise.all([
         adm.from('signup_health_view').select('*').maybeSingle(),
         adm.from('probe_heartbeats').select('id, probe_name, status, duration_ms, occurred_at').order('occurred_at', { ascending: false }).limit(20),
         adm.from('signup_errors').select('id, email, trigger_name, error_code, error_msg, occurred_at').order('occurred_at', { ascending: false }).limit(50),
+        loadGrowthScorecard(adm),
     ]);
 
     return {
@@ -60,6 +63,7 @@ export async function getServerSideProps({ req, res }) {
             errors: errorsRes.data || [],
             error: healthRes.error?.message || null,
             generatedAt: new Date().toISOString(),
+            growth,
         },
     };
 }
@@ -108,6 +112,7 @@ export default function SignupHealthDashboard(props) {
         errors: props.errors || [],
         error: props.error || null,
         generatedAt: props.generatedAt || null,
+        growth: props.growth || null,
     });
 
     useEffect(() => {
@@ -140,6 +145,7 @@ export default function SignupHealthDashboard(props) {
                         errors: json.errors || [],
                         error: json.error || null,
                         generatedAt: json.generatedAt,
+                        growth: json.growth,
                     });
                 }
             } catch (e) {
@@ -188,6 +194,8 @@ export default function SignupHealthDashboard(props) {
                 </div>
                 <div style={{ fontSize: 24, fontWeight: 600 }}>{statusBadge(dashboardStatus)}</div>
             </header>
+
+            <GrowthScorecard report={state.growth} />
 
             {health && (
                 <section className={consoleStyles.panel} style={S.section}>

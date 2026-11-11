@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { GUIDE_COPY, GUIDE_DESTINATIONS, businessHubKnowledge } from '../src/lib/businessHubGuide.mjs';
+import { JOURNEY_COPY, VENUE_TOOLS, goalRecommendation, prepareVenueInquiry } from '../src/lib/businessHubJourney.mjs';
 const root = new URL('../', import.meta.url);
 const read = path => readFileSync(new URL(path, root), 'utf8');
 
@@ -17,8 +18,37 @@ test('English and Spanish cover the same audiences, tools and official destinati
     }
   }
   for (const href of Object.values(GUIDE_DESTINATIONS).filter(h => h.startsWith('/'))) {
-    assert.ok(['.js', '.jsx', '.tsx', '/index.js'].some(suffix => existsSync(new URL(`pages${href}${suffix}`, root))) || href === '/hub/club-arena', href);
+    const pathname = new URL(href, 'https://smarter.poker').pathname;
+    assert.ok(['.js', '.jsx', '.tsx', '/index.js'].some(suffix => existsSync(new URL(`pages${pathname}${suffix}`, root))) || pathname === '/hub/club-arena', href);
   }
+});
+
+test('every goal has a grounded bilingual recommendation and access requirement', () => {
+  for (const language of ['en', 'es']) for (const row of GUIDE_COPY[language].tools) {
+    const recommendation = goalRecommendation(row[1], language);
+    assert.equal(recommendation.href, GUIDE_DESTINATIONS[row[1]]);
+    assert.equal(recommendation.name, row[3]);
+    assert.equal(recommendation.access, JOURNEY_COPY[language].availability[row[1]]);
+    assert.ok(recommendation.access.length > 70);
+  }
+  assert.equal(goalRecommendation('cash-out'), null);
+  assert.match(goalRecommendation('club_arena').access, /Not Open For Play Yet/);
+  assert.match(goalRecommendation('commander').access, /Does Not Activate/);
+});
+
+test('venue drafts stay bounded, encode customer text and cannot change recipient or headers', () => {
+  for (const language of ['en', 'es']) for (const tool of Object.keys(VENUE_TOOLS)) {
+    const draft = prepareVenueInquiry({ venue: 'Room & Club', city: 'Chicago, IL', tool, language });
+    const url = new URL(draft.href);
+    assert.equal(url.protocol, 'mailto:');
+    assert.equal(url.pathname, 'support@smarter.poker');
+    assert.equal(url.searchParams.get('subject'), 'Venue Onboarding');
+    assert.equal(url.searchParams.get('body'), draft.body);
+    assert.match(draft.body, /Room & Club/);
+    assert.equal(url.searchParams.has('bcc'), false);
+  }
+  for (const fields of [{}, { venue: 'A', city: 'Chicago', tool: 'tables' }, { venue: 'Room\r\nBcc: evil', city: 'Chicago', tool: 'tables' }, { venue: 'x'.repeat(101), city: 'Chicago', tool: 'tables' }, { venue: 'Room', city: 'Chicago', tool: '__proto__' }]) assert.equal(prepareVenueInquiry(fields), null);
+  assert.doesNotMatch(read('src/lib/businessHubJourney.mjs'), /\bfetch\s*\(|localStorage|sessionStorage/);
 });
 
 test('exported guidance preserves launch, payment, safe-support and language boundaries', () => {
@@ -35,6 +65,7 @@ test('exported guidance preserves launch, payment, safe-support and language bou
 
 test('changed authoritative inputs require explicit content review', () => {
   const review = JSON.parse(read('docs/business-hub-guide-review.json'));
+  for (const path of ['pages/terms.js', 'pages/legal/official-rules.js', 'pages/about.js', 'src/lib/businessHubGuide.mjs', 'src/lib/businessHubJourney.mjs', 'pages/hub/commander/index.js', 'pages/hub/bankroll-manager.js', 'pages/hub/training.js', 'pages/hub/poker-near-me/lobby.js']) assert.ok(review.inputs[path], `${path} must remain covered by factual review`);
   for (const [path, expected] of Object.entries(review.inputs)) {
     assert.equal(createHash('sha256').update(read(path)).digest('hex'), expected,
       `${path} changed. Review guide/agent claims and changed-topic tests using docs/business-hub-guide.md before updating the reviewed hash.`);

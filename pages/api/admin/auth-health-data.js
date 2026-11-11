@@ -20,7 +20,8 @@
  * (unless x-admin-secret) — this handler does the full verification.
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
+import { loadGrowthScorecard } from '../../../src/lib/acquisition/growthScorecard.mjs';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 
@@ -70,10 +71,11 @@ export default async function handler(req, res) {
         const view = req.query.view === 'signup' ? 'signup' : 'auth';
 
         if (view === 'signup') {
-            const [healthRes, heartbeatsRes, errorsRes] = await Promise.all([
+            const [healthRes, heartbeatsRes, errorsRes, growth] = await Promise.all([
                 adm.from('signup_health_view').select('*').maybeSingle(),
                 adm.from('probe_heartbeats').select('id, probe_name, status, duration_ms, occurred_at').order('occurred_at', { ascending: false }).limit(20),
                 adm.from('signup_errors').select('id, email, trigger_name, error_code, error_msg, occurred_at').order('occurred_at', { ascending: false }).limit(50),
+                loadGrowthScorecard(adm),
             ]);
             return res.status(200).json({
                 health: healthRes.data || null,
@@ -81,6 +83,7 @@ export default async function handler(req, res) {
                 errors: errorsRes.data || [],
                 error: healthRes.error?.message || null,
                 generatedAt: new Date().toISOString(),
+                growth,
             });
         }
 

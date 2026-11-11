@@ -5,12 +5,21 @@ import vm from 'node:vm';
 import test from 'node:test';
 import * as guideData from '../src/lib/businessHubGuide.mjs';
 import * as activity from '../src/lib/businessHubGuideActivity.mjs';
+import * as journeyData from '../src/lib/businessHubJourney.mjs';
 
 const require = createRequire(import.meta.url);
 const React = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
 const renderer = require('react-test-renderer');
 const ts = require('typescript');
+const journeyModule = { exports: {} };
+const journeyCompiled = ts.transpileModule(readFileSync(new URL('../src/components/help/BusinessHubJourney.jsx', import.meta.url), 'utf8'), {
+  compilerOptions: { jsx: ts.JsxEmit.React, module: ts.ModuleKind.CommonJS, esModuleInterop: true },
+});
+vm.runInNewContext(journeyCompiled.outputText, {
+  require: name => name.endsWith('businessHubJourney.mjs') ? journeyData : name.endsWith('businessHubGuide.mjs') ? guideData : require(name),
+  module: journeyModule, exports: journeyModule.exports,
+});
 const source = readFileSync(new URL('../src/components/help/BusinessHubGuide.jsx', import.meta.url), 'utf8');
 const compiled = ts.transpileModule(source, {
   compilerOptions: { jsx: ts.JsxEmit.React, module: ts.ModuleKind.CommonJS, esModuleInterop: true },
@@ -30,6 +39,7 @@ function setup(t, search = '?source=business_hub&private=never-capture-this') {
   };
   const module = { exports: {} };
   const load = path => {
+    if (path.endsWith('BusinessHubJourney')) return journeyModule.exports;
     if (path.endsWith('businessHubGuide.mjs')) return guideData;
     if (path.endsWith('businessHubGuideActivity.mjs')) {
       // Exercise the real consent/payload helper against this isolated browser.
@@ -61,7 +71,7 @@ test('server rendering includes readable answers and working official destinatio
   for (const href of [
     '/hub/training', '/hub/poker-near-me/lobby', '/hub/bankroll-manager',
     '/hub/club-arena', '/hub/commander', 'mailto:support@smarter.poker',
-    'mailto:support@smarter.poker?subject=Venue%20Onboarding',
+    '/hub/help#venue-inquiry',
     '/terms', '/legal/official-rules', '/privacy',
   ]) assert.ok(html.includes(`href="${href}"`), `SSR includes ${href}`);
   assert.match(html, /Funded Diamond Games Are Not Open For Play Yet/);
@@ -112,6 +122,53 @@ test('feedback distinguishes an accepted SDK call from unavailable or nonconsent
   harness.click('Sí');
   assert.equal(harness.calls.length, before, 'missing SDK means no capture');
   assert.equal(tree.root.findByProps({ role: 'status' }).children.join(''), guideData.GUIDE_COPY.es.unmeasured);
+});
+
+test('goal selection and venue drafting work without treating a draft as delivery', t => {
+  const harness = setup(t);
+  const tree = harness.mount();
+  const change = (id, value) => renderer.act(() => tree.root.findByProps({ id }).props.onChange({ target: { value } }));
+  assert.match(tree.root.findByProps({ id: 'venue-inquiry' }).props.className, /ph-no-capture/, 'typed fields and generated email href stay out of autocapture and session replay');
+  change('guide-goal', 'club_arena');
+  assert.ok(tree.root.findAllByType('p').some(node => String(node.children.join('')).includes('Funded Diamond Games Are Not Open')));
+  assert.deepEqual(harness.calls.at(-1), ['business_hub_goal_selected', { topic: 'clubs', language: 'en', source: 'business_hub', destination: 'club_arena' }]);
+  change('guide-goal', 'commander');
+  assert.ok(tree.root.findAllByType('a').some(node => node.props.href === '#venue-inquiry'));
+  renderer.act(() => tree.root.findByType('form').props.onSubmit({ preventDefault() {} }));
+  assert.ok(tree.root.findByProps({ role: 'alert' }));
+  assert.equal(tree.root.findAllByProps({ id: 'venue-draft' }).length, 0);
+  change('inquiry-venue', 'Private Test Venue'); change('inquiry-city', 'Chicago, IL'); change('inquiry-tool', 'tables');
+  renderer.act(() => tree.root.findByType('form').props.onSubmit({ preventDefault() {} }));
+  assert.match(tree.root.findByProps({ id: 'venue-draft' }).props.value, /Private Test Venue/);
+  assert.deepEqual(harness.calls.at(-1), ['business_hub_draft_prepared', { topic: 'venues', language: 'en', source: 'business_hub' }]);
+  assert.doesNotMatch(JSON.stringify(harness.calls), /Private Test Venue|Chicago/);
+  const mail = tree.root.findAllByType('a').find(node => node.props.href.startsWith('mailto:') && node.props.href.includes('&body='));
+  assert.ok(mail);
+  assert.equal(mail.props.href.split('?')[0], 'mailto:support@smarter.poker');
+  harness.click('Español');
+  assert.match(tree.root.findByProps({ id: 'venue-draft' }).props.value, /Nombre Del Local/);
+  change('inquiry-city', 'Austin, TX');
+  assert.equal(tree.root.findAllByProps({ id: 'venue-draft' }).length, 0, 'editing invalidates the prepared draft');
+});
+
+test('operator scorecard renders measured zero distinctly from unavailable reporting', () => {
+  const module = { exports: {} };
+  const source = readFileSync(new URL('../src/components/admin/GrowthScorecard.jsx', import.meta.url), 'utf8');
+  const code = ts.transpileModule(source, { compilerOptions: { jsx: ts.JsxEmit.React, module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText;
+  vm.runInNewContext(code, { require, module, exports: module.exports });
+  const html = renderToStaticMarkup(React.createElement(module.exports.default, { report: {
+    start: '2026-11-04T00:00:00Z', end: '2026-11-11T00:00:00Z', attribution: 'All Sources', completeness: 'Complete Snapshot',
+    metrics: [{ id: 'accounts', label: 'Accounts Created', value: 0, status: 'measured', definition: 'Profile Records' }, { id: 'visits', label: 'Qualified Visits', value: null, status: 'unavailable', definition: 'Not Connected' }],
+  } }));
+  assert.match(html, /id="growth-scorecard"/);
+  assert.match(html, />0<\/p>/);
+  assert.match(html, />Unavailable<\/p>/);
+  assert.match(html, /Unavailable Does Not Mean Zero/);
+  assert.match(renderToStaticMarkup(React.createElement(module.exports.default)), /Growth Data Is Unavailable/);
+  const dashboard = readFileSync(new URL('../pages/admin/signup-health.js', import.meta.url), 'utf8');
+  assert.match(dashboard, /<GrowthScorecard report=\{state.growth\}/);
+  assert.match(dashboard, /growth: json.growth/);
+  assert.match(dashboard, /loadGrowthScorecard\(adm\)/);
 });
 
 test('initial source attribution accepts only the finite whitelist and never captures raw URLs', async t => {

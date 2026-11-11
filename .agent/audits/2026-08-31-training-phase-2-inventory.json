@@ -18,7 +18,7 @@
     "dialogs": 12,
     "persistenceFiles": 87,
     "realtimeFiles": 6,
-    "tests": 179,
+    "tests": 180,
     "markerCandidates": 372,
     "possibleUnwiredFunctions": 408,
     "routeStateCells": 752,
@@ -72191,6 +72191,7 @@
     "__tests__/aeo-traffic-expansion-master.test.mjs",
     "__tests__/backlink-embed-citation-engine.test.mjs",
     "__tests__/business-hub-guide-render.test.mjs",
+    "__tests__/business-hub-guide.test.mjs",
     "__tests__/daily-challenges-casino-realism.test.mjs",
     "__tests__/every-glossary-term-has-a-page.law.test.mjs",
     "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs",
@@ -80690,6 +80691,7 @@
       ],
       "realtime": [],
       "tests": [
+        "__tests__/business-hub-guide-render.test.mjs",
         "__tests__/indexnow-submit.test.mjs",
         "__tests__/training-request-deadline.test.mjs"
       ]
@@ -95883,6 +95885,7 @@
         "__tests__/aeo-ai-agent-api.test.mjs",
         "__tests__/aeo-freerolls-global-wiring.test.mjs",
         "__tests__/backlink-embed-citation-engine.test.mjs",
+        "__tests__/business-hub-guide.test.mjs",
         "__tests__/every-glossary-term-has-a-page.law.test.mjs",
         "__tests__/freeroll-prizes-are-chips.test.mjs",
         "__tests__/indexnow-submit.test.mjs",
@@ -100410,6 +100413,7 @@
       "persistence": [],
       "realtime": [],
       "tests": [
+        "__tests__/business-hub-guide.test.mjs",
         "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs",
         "__tests__/gsc-series2-phase2.test.mjs",
         "__tests__/no-slide-to-see.law.test.mjs",
@@ -100449,6 +100453,7 @@
         "__tests__/aeo-tool-schemas.test.mjs",
         "__tests__/aeo-traffic-expansion-master.test.mjs",
         "__tests__/backlink-embed-citation-engine.test.mjs",
+        "__tests__/business-hub-guide.test.mjs",
         "__tests__/every-glossary-term-has-a-page.law.test.mjs",
         "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs",
         "__tests__/every-lesson-answers-first.law.test.mjs",
@@ -100518,6 +100523,7 @@
       "persistence": [],
       "realtime": [],
       "tests": [
+        "__tests__/business-hub-guide.test.mjs",
         "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs",
         "__tests__/indexnow-submit.test.mjs",
         "__tests__/no-slide-to-see.law.test.mjs",
