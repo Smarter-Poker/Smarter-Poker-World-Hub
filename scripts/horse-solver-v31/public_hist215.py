@@ -736,12 +736,52 @@ def _composition_text(c: dict) -> str:
     return f"{c['flop']} flop / {c['turn']} turn / {c['river']} river"
 
 
-def verify_round_registration(registration: Any, manifest: dict) -> dict:
-    """The manifest's contexts are exactly the round's registered cells.
+def manifest_range_constructions(manifest: dict) -> dict[bytes, str]:
+    """Each harvested cell's declared range_construction, keyed by its canonical 13-key context.
+
+    Refuses a manifest that cannot be registered (Club Arena migration
+    20261112185251): a harvest scenario that does not declare how its ranges
+    were produced, one that declares "forced" (conditional_history /
+    conditional_root_action: earlier actions fixed, full input ranges kept),
+    and a cell whose scenarios disagree. Forced scenarios remain solvable for
+    research; they can never be part of a registered round.
+    """
+    from contract import REGISTRABLE_RANGE_CONSTRUCTIONS, scenario_range_construction
+    from pio_upi import PioError, target_context
+    out: dict[bytes, str] = {}
+    for scenario in manifest.get("scenarios", []):
+        if scenario.get("purpose", "harvest") != "harvest":
+            continue
+        declared = scenario_range_construction(scenario)
+        conditioned = "conditional_history" in scenario or "conditional_root_action" in scenario
+        if declared == "forced" or conditioned:
+            raise ContractError(
+                f"scenario {scenario.get('scenario_id')} is a forced-line (conditional) solve that keeps unnarrowed "
+                "ranges after earlier decisions; it cannot be registered")
+        if declared not in REGISTRABLE_RANGE_CONSTRUCTIONS:
+            raise ContractError(
+                f"scenario {scenario.get('scenario_id')} does not declare range_construction (root, natural or "
+                "subgame); a round with an unstated range assumption cannot be registered")
+        for target in scenario["targets"]:
+            try:
+                key = canonical_bytes(target_context(scenario, target))
+            except PioError as error:
+                raise ContractError(f"range construction target is invalid: {error}") from error
+            if out.setdefault(key, declared) != declared:
+                raise ContractError("one cell is harvested under two different range constructions")
+    return out
+
+
+def verify_round_registration(registration: Any, manifest: dict, *,
+                              constructions: dict[bytes, str] | None = None) -> dict:
+    """The manifest's contexts are exactly the round's registered cells, built as registered.
 
     `registration` is the gto_v31_round_registrations row exported by the round
-    writer (round_key, dataset_key, composition, cells, cell_set_checksum, ...).
-    Returns the registration; raises ContractError naming both compositions.
+    writer (round_key, dataset_key, composition, cells, cell_set_checksum,
+    cell_provenance, ...). `constructions` is manifest_range_constructions(manifest)
+    when the caller already derived it. Returns the registration; raises
+    ContractError naming both compositions, or the cell whose range
+    construction is missing, forced or not the registered one.
     """
     if not isinstance(registration, dict):
         raise ContractError("round registration must be an object")
@@ -762,4 +802,29 @@ def verify_round_registration(registration: Any, manifest: dict) -> dict:
             f"round {registration['round_key']} composition differs from its registration: registered "
             f"{_composition_text(registration['composition'])} ({len(cells)} cells), manifest "
             f"{_composition_text(declared)} ({len(contexts)} cells); no cell may be substituted")
+    provenance = registration.get("cell_provenance")
+    if not isinstance(provenance, list) or len(provenance) != len(cells) or any(
+            not isinstance(entry, dict) or not isinstance(entry.get("cell"), dict) for entry in provenance):
+        raise ContractError(
+            f"round {registration['round_key']} registration has no range provenance for every cell")
+    registered = {canonical_bytes(entry["cell"]): entry.get("range_construction") for entry in provenance}
+    if set(registered) != {canonical_bytes(cell) for cell in cells}:
+        raise ContractError(
+            f"round {registration['round_key']} range provenance does not cover exactly the registered cells")
+    if constructions is None:
+        constructions = manifest_range_constructions(manifest)
+    for cell in cells:
+        key = canonical_bytes(cell)
+        label = f"{cell['street']} {cell['node_role']} {cell['hero_position']} v {cell['opponent_position']} {cell['texture_class']}"
+        if registered[key] not in ("root", "natural", "subgame"):
+            raise ContractError(
+                f"round {registration['round_key']} cell {label} is registered as {registered[key]!r}: only root, "
+                "natural or subgame ranges can be registered, never forced")
+        if key not in constructions:
+            raise ContractError(
+                f"round {registration['round_key']} cell {label} has no harvest scenario declaring its range construction")
+        if constructions[key] != registered[key]:
+            raise ContractError(
+                f"round {registration['round_key']} cell {label} range construction differs from its registration: "
+                f"registered {registered[key]}, manifest {constructions[key]}")
     return registration

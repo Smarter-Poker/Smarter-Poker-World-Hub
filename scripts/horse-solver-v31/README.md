@@ -313,6 +313,26 @@ The existing node chronology derives cumulative lifetime chip contributions for
 The full approved manifest checksum and new pipeline identity bind this assumption;
 artifact schemas and canonical context/action/pot/range/model definitions stay unchanged.
 
+**Range construction is declared, and a forced line is never registered**
+(2026-11-12; Club Arena migration `20261112185251`). A scenario may declare
+`range_construction`: `root` (no player has yet had a choice), `natural` (the
+solver's own reach ranges from a solve in which every earlier decision was
+free), `subgame` (a separate solve whose inputs are natural ranges exported
+from an upstream solve) or `forced`. A `conditional_history` or
+`conditional_root_action` scenario is the `forced` model and may declare
+nothing else; no other scenario may declare `forced`; `root` is refused for a
+target that follows a bet. Manifests written before the declaration existed
+(R6, R7, R8) still load unchanged and are not relabelled.
+`public_hist215.manifest_range_constructions` refuses to prepare a round for
+registration when any harvest scenario is forced or undeclared, and
+`verify_round_registration` (the trainer's `--registration` check) refuses a
+registration without `cell_provenance`, with a `forced` cell, or whose
+per-cell construction differs from the manifest. `conditional_history`
+therefore remains usable for explicitly labelled research, and only there.
+The database repeats the rule on the solved data: at the seal a cell declared
+`natural` or `subgame` whose deciding player still holds one unnarrowed range
+on every source board is refused.
+
 Before any conditioned artifact can be constructed or sent, actual target ranges
 for **both** players must preserve the legal positive input masks and relative
 weights (up to a positive per-player scale, relative floating tolerance `1e-6`).

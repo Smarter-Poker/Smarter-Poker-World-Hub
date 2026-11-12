@@ -869,7 +869,7 @@ def _validate_scenario(
     icm_models: dict[str, dict[str, Any]],
     verify_inputs: bool,
 ) -> dict[str, Any]:
-    keys = SCENARIO_KEYS | ({"purpose", "conditional_root_action", "conditional_history"} & set(raw) if isinstance(raw, dict) else set())
+    keys = SCENARIO_KEYS | ({"purpose", "conditional_root_action", "conditional_history", "range_construction"} & set(raw) if isinstance(raw, dict) else set())
     scenario = _exact_keys(raw, keys, f"scenarios[{index}]")
     if scenario.get("purpose", "harvest") not in ("harvest", "self_test"):
         raise ContractError(f"scenarios[{index}].purpose must be harvest or self_test")
@@ -1006,7 +1006,45 @@ def _validate_scenario(
         seen_nodes.add(target["node"])
     validate_conditional_root_action(scenario)
     validate_conditional_history(scenario)
+    validate_range_construction(scenario)
     return scenario
+
+
+# How a scenario's node ranges were produced (Club Arena migration
+# 20261112185251, RANGE-DESIGN.md section 3). "forced" is the
+# conditional_history / conditional_root_action model: earlier actions are
+# fixed and both players keep their full input ranges. It stays loadable for
+# explicitly labelled research and can never be registered as a round.
+RANGE_CONSTRUCTIONS = ("root", "natural", "subgame", "forced")
+REGISTRABLE_RANGE_CONSTRUCTIONS = ("root", "natural", "subgame")
+
+
+def scenario_range_construction(scenario: dict[str, Any]) -> str | None:
+    """The declared construction, or None for a manifest written before the declaration existed."""
+    return scenario.get("range_construction")
+
+
+def validate_range_construction(scenario: dict[str, Any]) -> None:
+    """A declaration must be one of the four models and agree with how the scenario is solved."""
+    conditioned = "conditional_history" in scenario or "conditional_root_action" in scenario
+    if "range_construction" not in scenario:
+        return
+    declared = scenario["range_construction"]
+    if not isinstance(declared, str) or declared not in RANGE_CONSTRUCTIONS:
+        raise ContractError("range_construction must be root, natural, subgame or forced")
+    if conditioned and declared != "forced":
+        raise ContractError(
+            "a conditional_history or conditional_root_action scenario forces earlier actions with "
+            "unnarrowed ranges and must declare range_construction forced")
+    if not conditioned and declared == "forced":
+        raise ContractError("range_construction forced requires a conditional_history or conditional_root_action scenario")
+    if declared == "root":
+        for target in scenario["targets"]:
+            # A bet, raise or call before the node is always a decision with an alternative.
+            if any(token.startswith("b") for token in target["node"].split(":")[2:]):
+                raise ContractError(
+                    f"target {target['target_id']} follows a bet and cannot be a root-range node; "
+                    "declare natural or subgame")
 
 
 def validate_conditional_root_action(scenario: dict[str, Any]) -> None:
