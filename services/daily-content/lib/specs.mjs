@@ -60,7 +60,7 @@ export function specFor(slot, built, snapshot, opts = {}) {
       header: { eyebrow: slot === 'today' ? 'TODAY ON' : 'TONIGHT IN', title: slot === 'today' ? 'SMARTER.POKER' : 'THE ARENA',
         chips: [chip(p.date_label), chip('Times Central', 'blue'), chip(plural(p.items.length, 'Event', 'Events'), 'green')] },
       list: { items: p.items.map((i) => ({
-        ...splitTime(i.time), title: i.name, subtitle: GAME_NAMES[i.game] || i.game,
+        ...splitTime(i.time), title: String(i.name).replace(/\s*\((NLH|PLO\d|PLH|LHE)\)\s*$/i, ''), subtitle: GAME_NAMES[i.game] || i.game,
         tags: [i.free_buy ? 'FREE BUY' : null, VARIANT_TAGS[i.variant] || null, i.guarantee && i.guarantee === topGtd(p.items) ? 'FEATURED' : null].filter(Boolean),
         value: i.guarantee || null, value_label: i.guarantee ? 'CHIP GTD' : '', highlight: !!i.guarantee && i.guarantee === topGtd(p.items),
       })) },
