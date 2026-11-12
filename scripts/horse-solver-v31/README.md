@@ -320,18 +320,31 @@ solver's own reach ranges from a solve in which every earlier decision was
 free), `subgame` (a separate solve whose inputs are natural ranges exported
 from an upstream solve) or `forced`. A `conditional_history` or
 `conditional_root_action` scenario is the `forced` model and may declare
-nothing else; no other scenario may declare `forced`; `root` is refused for a
-target that follows a bet. Manifests written before the declaration existed
-(R6, R7, R8) still load unchanged and are not relabelled.
-`public_hist215.manifest_range_constructions` refuses to prepare a round for
-registration when any harvest scenario is forced or undeclared, and
-`verify_round_registration` (the trainer's `--registration` check) refuses a
-registration without `cell_provenance`, with a `forced` cell, or whose
-per-cell construction differs from the manifest. `conditional_history`
-therefore remains usable for explicitly labelled research, and only there.
-The database repeats the rule on the solved data: at the seal a cell declared
-`natural` or `subgame` whose deciding player still holds one unnarrowed range
-on every source board is refused.
+nothing else; no other scenario may declare `forced`. `root` is refused for a
+target after any step at which the scenario's betting tree offered more than
+one action (`contract.tree_available_actions`: the distinct next values of the
+`tree_lines` sharing the line so far, plus the passive action Pio always
+builds, plus fold when facing a wager), the same rule the database applies. A
+`subgame` must declare `subgame_inputs` (`upstream_solve_checksum` and the
+non-root `upstream_node` whose ranges start it); the checksum is recorded, not
+verified, and the cell is held to the same data-evidence rule as a natural
+cell. Manifests written before the declaration existed (R6, R7, R8) still load
+unchanged and are not relabelled; the pinned manifest files are not in this
+repository, so the load test uses scenarios of their exact shape.
+`public_hist215.build_cell_provenance(manifest, manifest_checksum)` generates
+the registration's `cell_provenance` (public history with `available_actions`
+from the tree, game assumptions, runtime mapping, upstream solve) and refuses
+any harvest scenario that is forced or undeclared. `verify_round_registration`
+(the trainer's `--registration` check) recomputes it and refuses a registration
+whose `cell_provenance` differs in any field, so it is never written by hand.
+The one input it takes from the registration is `unnarrowed_seats` (a seat
+that took one action with every hand at its earlier decision), accepted only
+for a seat that made a real decision; the database confirms it on the solved
+data at the seal. `conditional_history` therefore remains usable for
+explicitly labelled research, and only there. The database repeats the rule on
+the solved data: at the seal a cell declared `natural` or `subgame` whose
+deciding player holds one rescaled range on more than 10% of its source boards
+is refused.
 
 Before any conditioned artifact can be constructed or sent, actual target ranges
 for **both** players must preserve the legal positive input masks and relative

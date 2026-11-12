@@ -6,10 +6,12 @@ import copy
 from pathlib import Path
 import unittest
 
-from contract import ContractError, _validate_scenario
+from contract import ContractError, _validate_scenario, tree_available_actions
 from pio_upi import analyze_node, target_context
-from public_hist215 import (canonical_bytes, cell_composition, cell_set_checksum, manifest_range_constructions,
-                            verify_round_registration)
+from public_hist215 import (build_cell_provenance, canonical_bytes, cell_composition, cell_set_checksum,
+                            manifest_range_constructions, verify_round_composition, verify_round_registration)
+
+CHECKSUM = 'e' * 64  # the approved manifest's checksum (betting_tree_checksum in the provenance)
 
 
 def cell(street, texture, role='barrel', table_size=2):
@@ -34,14 +36,8 @@ def registration(planned, construction='natural'):
             'cell_provenance': provenance(planned, construction)}
 
 
-def declared(built, construction='natural'):
-    """What manifest_range_constructions returns for a manifest whose scenarios harvest `built`."""
-    return {canonical_bytes(c): construction for c in built}
-
-
 def verify(reg, man):
-    contexts = [e['context'] for e in man['public215_contexts']]
-    return verify_round_registration(reg, man, constructions=declared(contexts))
+    return verify_round_composition(reg, man)
 
 
 def scenario(node='r:0', board='AsKd7c', **extra):
@@ -138,7 +134,9 @@ class RangeConstructionTests(unittest.TestCase):
             self.assertIn('must declare range_construction forced', str(caught.exception))
 
     def test_a_manifest_written_before_the_declaration_still_loads(self):
-        # R6, R7 and R8 manifests are pinned by checksum and are never rewritten or relabelled.
+        # R6, R7 and R8 manifests are pinned by checksum and are never rewritten or relabelled. The pinned
+        # manifest files are not in this repository (they live with the round artifacts), so this loads
+        # scenarios of their exact shape: no range_construction key, forced and unforced.
         self.assertNotIn('range_construction', self.load(forced_scenario()))
         self.assertNotIn('range_construction', self.load(scenario()))
 
@@ -156,11 +154,45 @@ class RangeConstructionTests(unittest.TestCase):
             self.load(scenario(FORCED_NODE, 'AsKd7c2d', range_construction='root'))
         self.assertIn('cannot be a root-range node', str(caught.exception))
 
+    def test_root_follows_the_database_rule_any_step_with_more_than_one_tree_action(self):
+        # OOP checks; the tree offered only the check: one action, root is allowed.
+        only_check = scenario('r:0:c', tree_lines=[[0, 0, 0, 0, 0, 0]], range_construction='root')
+        self.assertEqual(tree_available_actions(only_check, 'r:0:c'), [1])
+        self.assertEqual(self.load(only_check)['range_construction'], 'root')
+        # The same check where the tree also offered a bet: a real decision, root is refused (no "b" token needed).
+        with_bet = scenario('r:0:c', tree_lines=[[0, 0, 0, 0, 0, 0], [100, 300, 300, 300, 500, 500]], range_construction='root')
+        self.assertEqual(tree_available_actions(with_bet, 'r:0:c'), [2])
+        with self.assertRaises(ContractError) as caught:
+            self.load(with_bet)
+        self.assertIn('more than one available action', str(caught.exception))
+
+    def test_available_actions_come_from_the_tree_lines(self):
+        # bet (check also offered), raise facing a bet (call and fold too), call facing a raise (fold too),
+        # turn check (tree offers nothing else), turn bet (check also offered)
+        self.assertEqual(tree_available_actions(scenario(FORCED_NODE, 'AsKd7c2d'), FORCED_NODE), [2, 3, 2, 1, 2])
+        with self.assertRaises(ContractError):
+            tree_available_actions(scenario(FORCED_NODE, 'AsKd7c2d', tree_lines=[[0, 0, 0, 0, 0, 0]]), FORCED_NODE)
+
     def test_natural_and_subgame_are_allowed_after_earlier_decisions(self):
-        for construction in ('natural', 'subgame'):
+        upstream = {'upstream_solve_checksum': '9' * 64, 'upstream_node': 'r:0:b100:c'}
+        for construction, extra in (('natural', {}), ('subgame', {'subgame_inputs': upstream})):
             with self.subTest(construction=construction):
-                loaded = self.load(scenario(FORCED_NODE, 'AsKd7c2d', range_construction=construction))
+                loaded = self.load(scenario(FORCED_NODE, 'AsKd7c2d', range_construction=construction, **extra))
                 self.assertEqual(loaded['range_construction'], construction)
+
+    def test_a_subgame_must_name_its_upstream_solve_and_non_root_start(self):
+        for inputs in (None, {'upstream_solve_checksum': '9' * 64}, {'upstream_solve_checksum': '0' * 64, 'upstream_node': 'r:0:b100:c'},
+                       {'upstream_solve_checksum': '9' * 64, 'upstream_node': 'r:0'}):
+            extra = {} if inputs is None else {'subgame_inputs': inputs}
+            with self.subTest(inputs=inputs), self.assertRaises(ContractError):
+                self.load(scenario(FORCED_NODE, 'AsKd7c2d', range_construction='subgame', **extra))
+        with self.assertRaises(ContractError) as caught:
+            self.load(scenario(FORCED_NODE, 'AsKd7c2d', range_construction='natural',
+                               subgame_inputs={'upstream_solve_checksum': '9' * 64, 'upstream_node': 'r:0:b100:c'}))
+        self.assertIn('only a subgame scenario', str(caught.exception))
+        man, built = real_manifest(scenario(FORCED_NODE, 'AsKd7c2d', range_construction='subgame',
+                                            subgame_inputs={'upstream_solve_checksum': '9' * 64, 'upstream_node': 'r:0:b100:c'}))
+        self.assertEqual(build_cell_provenance(man, CHECKSUM)[0]['upstream_solve_checksum'], '9' * 64)
 
     def test_a_forced_target_cannot_be_prepared_for_registration(self):
         for value in (forced_scenario(range_construction='forced'), forced_scenario()):
@@ -191,21 +223,76 @@ class RangeConstructionTests(unittest.TestCase):
         man, built = real_manifest(scenario(range_construction='root'),
                                    scenario(FORCED_NODE, 'AsKd7c2d', range_construction='natural'))
         reg = registration(built)
-        reg['cell_provenance'] = [{'cell': built[0], 'range_construction': 'root'},
-                                  {'cell': built[1], 'range_construction': 'natural'}]
-        self.assertIs(verify_round_registration(reg, man), reg)
+        reg['cell_provenance'] = build_cell_provenance(man, CHECKSUM)
+        self.assertIs(verify_round_registration(reg, man, manifest_checksum=CHECKSUM), reg)
         self.assertEqual(sorted(manifest_range_constructions(man).values()), ['natural', 'root'])
+
+    def test_the_generated_provenance_is_the_database_shape(self):
+        man, built = real_manifest(scenario(FORCED_NODE, 'AsKd7c2d', range_construction='natural'))
+        [entry] = build_cell_provenance(man, CHECKSUM)
+        self.assertEqual(sorted(entry), ['cell', 'game', 'public_history', 'range_construction', 'runtime_mapping',
+                                         'unnarrowed_seats', 'upstream_solve_checksum'])
+        self.assertEqual([s['available_actions'] for s in entry['public_history']], [2, 3, 2, 1, 2])
+        self.assertEqual([(s['solver_player'], s['position'], s['family'], s['target_chips'], s['street'])
+                          for s in entry['public_history']],
+                         [(0, 'SB', 'bet', 100, 'flop'), (1, 'BB', 'raise', 300, 'flop'), (0, 'SB', 'call', 300, 'flop'),
+                          (0, 'SB', 'check', 0, 'turn'), (1, 'BB', 'bet', 200, 'turn')])
+        mapping = entry['runtime_mapping']
+        self.assertEqual({k: v for k, v in mapping.items() if k not in ('hero_solver_player', 'solver_positions')},
+                         {k: v for k, v in built[0].items() if k != 'texture_class'})
+        self.assertEqual(mapping['solver_positions'][mapping['hero_solver_player']], built[0]['hero_position'])
+        self.assertEqual(entry['game'], {'variant': 'nlh', 'players_to_flop': 2, 'pot_type': 'limped', 'depth_bucket': 10,
+                                         'chips_per_bb': 100, 'effective_stack_chips': 1000, 'root_pot_chips': 100,
+                                         'rake': [0, 0], 'betting_tree_checksum': CHECKSUM})
+
+    def test_a_hand_written_or_edited_provenance_is_refused(self):
+        with_bet = scenario('r:0:c', tree_lines=[[0, 0, 0, 0, 0, 0], [100, 300, 300, 300, 500, 500]], range_construction='natural')
+        man, built = real_manifest(with_bet)
+        good = build_cell_provenance(man, CHECKSUM)
+        edits = [
+            # the review's M2 case: the check had a bet alternative but is declared a one-action step
+            lambda p: p[0]['public_history'][0].__setitem__('available_actions', 1),
+            lambda p: p[0]['runtime_mapping'].__setitem__('hero_solver_player', 0),
+            lambda p: p[0]['game'].__setitem__('betting_tree_checksum', 'd' * 64),
+            lambda p: p[0]['game'].__setitem__('rake', [0.05, 100]),
+            lambda p: p[0].__setitem__('upstream_solve_checksum', '9' * 64),
+            lambda p: p[0].pop('runtime_mapping'),
+        ]
+        for index, edit in enumerate(edits):
+            reg = registration(copy.deepcopy(built))
+            reg['cell_provenance'] = copy.deepcopy(good)
+            edit(reg['cell_provenance'])
+            with self.subTest(edit=index), self.assertRaises(ContractError) as caught:
+                verify_round_registration(reg, man, manifest_checksum=CHECKSUM)
+            self.assertIn('differs from the provenance generated from the manifest', str(caught.exception))
+        reg = registration(copy.deepcopy(built))
+        reg['cell_provenance'] = copy.deepcopy(good)
+        self.assertIs(verify_round_registration(reg, man, manifest_checksum=CHECKSUM), reg)
+
+    def test_an_unnarrowed_seat_needs_a_real_decision(self):
+        pure = {'seat': 'OOP', 'reason': 'pure_prior_action', 'upstream_evidence_checksum': '8' * 64}
+        man, built = real_manifest(scenario(FORCED_NODE, 'AsKd7c2d', range_construction='natural'))
+        reg = registration(built)
+        reg['cell_provenance'] = build_cell_provenance(man, CHECKSUM, unnarrowed_seats={canonical_bytes(built[0]): [pure]})
+        self.assertEqual(reg['cell_provenance'][0]['unnarrowed_seats'], [pure])
+        self.assertIs(verify_round_registration(reg, man, manifest_checksum=CHECKSUM), reg)
+        only_check, checked = real_manifest(scenario('r:0:c', tree_lines=[[0, 0, 0, 0, 0, 0]], range_construction='natural'))
+        for seats in ([pure], [{**pure, 'reason': 'assumed'}], [{**pure, 'seat': 'IP'}]):
+            with self.subTest(seats=seats), self.assertRaises(ContractError):
+                build_cell_provenance(only_check, CHECKSUM, unnarrowed_seats={canonical_bytes(checked[0]): seats})
 
     def test_missing_mismatched_and_forced_registration_provenance_is_refused(self):
         man, built = real_manifest(scenario(range_construction='root'),
                                    scenario(FORCED_NODE, 'AsKd7c2d', range_construction='natural'))
-        good = [{'cell': built[0], 'range_construction': 'root'}, {'cell': built[1], 'range_construction': 'natural'}]
+        good = build_cell_provenance(man, CHECKSUM)
+        if canonical_bytes(good[0]['cell']) != canonical_bytes(built[0]):
+            good.reverse()
         cases = [
             ('no range provenance', lambda r: r.pop('cell_provenance')),
             ('no range provenance', lambda r: r.__setitem__('cell_provenance', good[:1])),
             ('does not cover exactly the registered cells', lambda r: r.__setitem__('cell_provenance', [good[0], good[0]])),
             ('range construction differs from its registration', lambda r: r.__setitem__(
-                'cell_provenance', [good[0], {'cell': built[1], 'range_construction': 'subgame'}])),
+                'cell_provenance', [good[0], {**good[1], 'range_construction': 'subgame'}])),
             ('never forced', lambda r: r.__setitem__(
                 'cell_provenance', [good[0], {'cell': built[1], 'range_construction': 'forced'}])),
             ('never forced', lambda r: r.__setitem__('cell_provenance', [good[0], {'cell': built[1]}])),
@@ -215,7 +302,7 @@ class RangeConstructionTests(unittest.TestCase):
             reg['cell_provenance'] = copy.deepcopy(good)
             mutate(reg)
             with self.subTest(case=index), self.assertRaises(ContractError) as caught:
-                verify_round_registration(reg, man)
+                verify_round_registration(reg, man, manifest_checksum=CHECKSUM)
             self.assertIn(message, str(caught.exception))
 
 

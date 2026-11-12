@@ -772,16 +772,90 @@ def manifest_range_constructions(manifest: dict) -> dict[bytes, str]:
     return out
 
 
-def verify_round_registration(registration: Any, manifest: dict, *,
-                              constructions: dict[bytes, str] | None = None) -> dict:
-    """The manifest's contexts are exactly the round's registered cells, built as registered.
+UNNARROWED_SEAT_KEYS = ("reason", "seat", "upstream_evidence_checksum")
+
+
+def _cell_label(cell: dict) -> str:
+    return f"{cell['street']} {cell['node_role']} {cell['hero_position']} v {cell['opponent_position']} {cell['texture_class']}"
+
+
+def build_cell_provenance(manifest: dict, manifest_checksum: str, *,
+                          unnarrowed_seats: dict[bytes, list] | None = None) -> list[dict]:
+    """The cell_provenance block of a round registration, generated from the manifest (never hand-written).
+
+    One entry per harvested cell (Club Arena migration 20261112185251):
+    range_construction as the scenario declares it; public_history exactly as
+    the solved node records it, each step carrying available_actions counted
+    from the scenario's own tree_lines (contract.tree_available_actions);
+    upstream_solve_checksum from a subgame scenario's subgame_inputs; the game
+    assumptions; and the runtime mapping (the cell's key components, the
+    acting solver seat and the seat positions). `unnarrowed_seats` (canonical
+    cell bytes -> list) carries the only part the manifest cannot know: a seat
+    that, in the solved data, took one action with every hand. It is accepted
+    only for a seat that made a real earlier decision; the database confirms
+    it on the data at seal. Refuses forced, undeclared or inconsistent cells.
+    """
+    from contract import _nonzero_hex, scenario_public_history
+    from pio_upi import PioError, analyze_node, target_context
+    _nonzero_hex(manifest_checksum, 64, "manifest checksum")
+    manifest_range_constructions(manifest)  # refuses forced, undeclared and doubly declared cells
+    seats_by_cell = unnarrowed_seats or {}
+    out: dict[bytes, dict] = {}
+    for scenario in manifest.get("scenarios", []):
+        if scenario.get("purpose", "harvest") != "harvest":
+            continue
+        declared = scenario["range_construction"]
+        for target in scenario["targets"]:
+            try:
+                cell = target_context(scenario, target)
+                actor = analyze_node(target["node"], root_pot_chips=scenario["pot_chips"],
+                                     effective_stack_chips=scenario["effective_stack_chips"],
+                                     preflop_aggressor=scenario["preflop_aggressor_solver_player"]).actor
+            except PioError as error:
+                raise ContractError(f"range provenance target is invalid: {error}") from error
+            key = canonical_bytes(cell)
+            history = scenario_public_history(scenario, target)
+            decided = {("OOP", "IP")[step["solver_player"]] for step in history if step["available_actions"] > 1}
+            seats = seats_by_cell.get(key, [])
+            if not isinstance(seats, list):
+                raise ContractError(f"cell {_cell_label(cell)} unnarrowed seats must be a list")
+            for seat in seats:
+                if (not isinstance(seat, dict) or tuple(sorted(seat)) != UNNARROWED_SEAT_KEYS
+                        or seat["reason"] != "pure_prior_action" or seat["seat"] not in decided or declared == "root"):
+                    raise ContractError(
+                        f"cell {_cell_label(cell)} may declare a seat unnarrowed only for a natural or subgame cell, "
+                        "a seat that made an earlier decision with more than one available action, reason pure_prior_action")
+                _nonzero_hex(seat["upstream_evidence_checksum"], 64, "upstream_evidence_checksum")
+            entry = {
+                "cell": cell,
+                "range_construction": declared,
+                "public_history": history,
+                "upstream_solve_checksum": (scenario["subgame_inputs"]["upstream_solve_checksum"]
+                                            if declared == "subgame" else None),
+                "unnarrowed_seats": seats,
+                "game": {"variant": "nlh", "players_to_flop": 2, "pot_type": scenario["pot_type"],
+                         "depth_bucket": scenario["depth_bucket"], "chips_per_bb": scenario["chips_per_bb"],
+                         "effective_stack_chips": scenario["effective_stack_chips"],
+                         "root_pot_chips": scenario["pot_chips"],
+                         "rake": [0, 0] if scenario["objective"] == "icm" else scenario["rake"],
+                         "betting_tree_checksum": manifest_checksum},
+                "runtime_mapping": {**{k: v for k, v in cell.items() if k != "texture_class"},
+                                    "hero_solver_player": actor,
+                                    "solver_positions": [scenario["oop_position"], scenario["ip_position"]]},
+            }
+            if out.setdefault(key, entry) != entry:
+                raise ContractError(
+                    f"cell {_cell_label(cell)} is harvested under two different provenances (public history, tree "
+                    "actions, game or seats differ between its scenarios); one registered cell has one provenance")
+    return [out[key] for key in sorted(out)]
+
+
+def verify_round_composition(registration: Any, manifest: dict) -> dict:
+    """The manifest's contexts are exactly the round's registered cells.
 
     `registration` is the gto_v31_round_registrations row exported by the round
-    writer (round_key, dataset_key, composition, cells, cell_set_checksum,
-    cell_provenance, ...). `constructions` is manifest_range_constructions(manifest)
-    when the caller already derived it. Returns the registration; raises
-    ContractError naming both compositions, or the cell whose range
-    construction is missing, forced or not the registered one.
+    writer (round_key, dataset_key, composition, cells, cell_set_checksum, ...).
+    Returns the registration; raises ContractError naming both compositions.
     """
     if not isinstance(registration, dict):
         raise ContractError("round registration must be an object")
@@ -802,29 +876,53 @@ def verify_round_registration(registration: Any, manifest: dict, *,
             f"round {registration['round_key']} composition differs from its registration: registered "
             f"{_composition_text(registration['composition'])} ({len(cells)} cells), manifest "
             f"{_composition_text(declared)} ({len(contexts)} cells); no cell may be substituted")
+    return registration
+
+
+def verify_round_registration(registration: Any, manifest: dict, *, manifest_checksum: str) -> dict:
+    """The manifest's contexts are exactly the round's registered cells, with exactly the generated provenance.
+
+    After verify_round_composition, the registration's cell_provenance must
+    equal build_cell_provenance(manifest, manifest_checksum) entry for entry
+    (the registration's own unnarrowed_seats are the only input taken from
+    it, and are validated there). A hand-written, edited or stale provenance,
+    a forced or undeclared cell, or a one-action step the tree does not show
+    is refused, naming the cell and the field that differs.
+    """
+    verify_round_composition(registration, manifest)
+    cells = registration["cells"]
     provenance = registration.get("cell_provenance")
     if not isinstance(provenance, list) or len(provenance) != len(cells) or any(
             not isinstance(entry, dict) or not isinstance(entry.get("cell"), dict) for entry in provenance):
         raise ContractError(
             f"round {registration['round_key']} registration has no range provenance for every cell")
-    registered = {canonical_bytes(entry["cell"]): entry.get("range_construction") for entry in provenance}
+    registered = {canonical_bytes(entry["cell"]): entry for entry in provenance}
     if set(registered) != {canonical_bytes(cell) for cell in cells}:
         raise ContractError(
             f"round {registration['round_key']} range provenance does not cover exactly the registered cells")
-    if constructions is None:
-        constructions = manifest_range_constructions(manifest)
-    for cell in cells:
-        key = canonical_bytes(cell)
-        label = f"{cell['street']} {cell['node_role']} {cell['hero_position']} v {cell['opponent_position']} {cell['texture_class']}"
-        if registered[key] not in ("root", "natural", "subgame"):
+    for key, entry in registered.items():
+        if entry.get("range_construction") not in ("root", "natural", "subgame"):
             raise ContractError(
-                f"round {registration['round_key']} cell {label} is registered as {registered[key]!r}: only root, "
-                "natural or subgame ranges can be registered, never forced")
-        if key not in constructions:
+                f"round {registration['round_key']} cell {_cell_label(entry['cell'])} is registered as "
+                f"{entry.get('range_construction')!r}: only root, natural or subgame ranges can be registered, never forced")
+    generated = build_cell_provenance(
+        manifest, manifest_checksum,
+        unnarrowed_seats={key: entry.get("unnarrowed_seats", []) for key, entry in registered.items()})
+    by_cell = {canonical_bytes(entry["cell"]): entry for entry in generated}
+    for key, entry in registered.items():
+        label = _cell_label(entry["cell"])
+        if key not in by_cell:
             raise ContractError(
                 f"round {registration['round_key']} cell {label} has no harvest scenario declaring its range construction")
-        if constructions[key] != registered[key]:
+        expected = by_cell[key]
+        if entry != expected:
+            fields = sorted(field for field in set(entry) | set(expected) if entry.get(field) != expected.get(field))
+            if fields == ["range_construction"]:
+                raise ContractError(
+                    f"round {registration['round_key']} cell {label} range construction differs from its registration: "
+                    f"registered {entry['range_construction']}, manifest {expected['range_construction']}")
             raise ContractError(
-                f"round {registration['round_key']} cell {label} range construction differs from its registration: "
-                f"registered {registered[key]}, manifest {constructions[key]}")
+                f"round {registration['round_key']} cell {label} cell_provenance differs from the provenance generated "
+                f"from the manifest ({', '.join(fields)}); cell_provenance is generated by build_cell_provenance, "
+                "never written by hand")
     return registration
