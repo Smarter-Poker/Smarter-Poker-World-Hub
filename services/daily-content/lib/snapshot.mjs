@@ -16,10 +16,13 @@ export function snapshotHash(payload) {
   return sha256(canonicalJson(payload));
 }
 
-/** The parts of a payload that, if changed, make a new revision (read time excluded). */
+const READ_TIME_KEYS = new Set(['source_read_at', 'read_at']);
+
+/** The parts of a payload that, if changed, make a new revision (every read time excluded, at any depth). */
 export function contentOf(payload) {
-  const { source_read_at, ...rest } = payload || {};
-  return rest;
+  if (Array.isArray(payload)) return payload.map(contentOf);
+  if (!payload || typeof payload !== 'object') return payload;
+  return Object.fromEntries(Object.entries(payload).filter(([k]) => !READ_TIME_KEYS.has(k)).map(([k, v]) => [k, contentOf(v)]));
 }
 
 export function sameContent(a, b) {

@@ -9,6 +9,7 @@ import { buildDailyBoard, eventPoints, scoringCutoff } from '../services/daily-c
 import { chicagoDayBounds, chicagoDate, chicagoInstant } from '../services/daily-content/lib/time.mjs';
 import { slotTimes } from '../services/daily-content/lib/boards.mjs';
 import { specFor } from '../services/daily-content/lib/specs.mjs';
+import { contentOf, snapshotHash } from '../services/daily-content/lib/snapshot.mjs';
 import { Engine } from '../services/daily-content/lib/engine.mjs';
 import { MemoryStore } from '../services/daily-content/lib/store-memory.mjs';
 import { simulatedAdapter } from '../services/daily-content/lib/adapters.mjs';
@@ -312,4 +313,11 @@ test('test 9 (data side): every horse is marked and every results spec carries t
   assert.equal(spec.results, true);
   for (const r of b.payload.rows) assert.equal(people.find((p) => p.name === r.name).horse, r.horse);
   assert.ok(spec.footer.disclosure.includes('Boards include Smarter.Poker horses, our AI players.'));
+});
+
+test('a rebuild that only re-reads the source keeps the same snapshot revision', () => {
+  const a = { rows: [1], source_read_at: 't1', closing_frame: { event: 'Nightly', read_at: 't1' } };
+  const b = { rows: [1], source_read_at: 't2', closing_frame: { event: 'Nightly', read_at: 't2' } };
+  assert.equal(snapshotHash(contentOf(a)), snapshotHash(contentOf(b)));
+  assert.notEqual(snapshotHash(contentOf(a)), snapshotHash(contentOf({ ...b, rows: [2] })));
 });
