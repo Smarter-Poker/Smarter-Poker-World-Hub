@@ -119,10 +119,10 @@ test('the published artwork revision seals every delivered preset and custom var
   assert.ok(fs.readFileSync(path.join(root, 'src/data/AVATAR_LIBRARY.js'), 'utf8').includes(receipt.revision));
 });
 
-test('Twin2983, Farmboy13 and RoughRyder use the requested transparent artwork at the existing custom-avatar baseline', async () => {
+test('requested player avatars use transparent artwork at the existing custom-avatar baseline', async () => {
   const manifest = JSON.parse(fs.readFileSync(path.join(root, 'scripts/data/player-avatar-assignments-20261111.json')));
-  assert.deepEqual(manifest.assignments.map(x => x.username), ['Twin2983', 'Farmboy13', 'RoughRyder']);
-  assert.equal(new Set(manifest.assignments.map(x => x.profileId)).size, 3);
+  assert.deepEqual(manifest.assignments.map(x => x.username), ['Twin2983', 'Farmboy13', 'RoughRyder', 'ChiToWnBaLLn']);
+  assert.equal(new Set(manifest.assignments.map(x => x.profileId)).size, 4);
   for (const entry of manifest.assignments) {
     const bytes = fs.readFileSync('public/' + entry.file);
     assert.equal(createHash('sha256').update(bytes).digest('hex'), entry.sha256);
