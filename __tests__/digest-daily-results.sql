@@ -34,3 +34,6 @@ ALTER TABLE tournaments ADD COLUMN name text,ADD COLUMN tournament_type text;
 CREATE TABLE club_members(user_id uuid,club_id uuid,chip_balance numeric);
 CREATE TABLE user_diamond_balance(user_id uuid,balance numeric);
 CREATE TABLE diamond_transactions(user_id uuid,created_at timestamptz,amount numeric);
+
+CREATE TABLE ca_supply_snapshots(taken_at timestamptz,unexplained numeric,basis_version text);
+INSERT INTO ca_supply_snapshots SELECT g,0,'posthand-transit-v6' FROM generate_series('2026-11-10 06:05Z'::timestamptz,'2026-11-11 05:05Z'::timestamptz,interval '1 hour') g;

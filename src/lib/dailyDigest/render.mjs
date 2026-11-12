@@ -495,9 +495,12 @@ export function dailyResultsRows(digest) {
     const t = r.tournament_settlements;
     rows.push(['Tournament Settlement Verification', t ? `${fmtInt(t.unbalanced)} discrepancies / ${fmtInt(t.checked)} checked` : 'UNVERIFIED',
         t ? `Absolute drift ${fmtNum(t.absolute_drift)}; independent event check for completed/cancelled paid non-spin tournaments` : 'Independent settlement check unavailable']);
-    rows.push(['Daily Chip Reconciliation', c.status === 'balanced' && c.accounted_residual === 0 && t && t.unbalanced === 0
+    const supply = r.chip_supply;
+    rows.push(['Chip Supply Verification', supply?.status === 'balanced' ? 'BALANCED: 0' : supply?.status === 'discrepancy' ? 'DISCREPANCY' : 'UNVERIFIED',
+        supply ? `${fmtInt(supply.hours)} / ${fmtInt(supply.expected_hours)} hourly inventory checks; absolute unexplained ${fmtNum(supply.absolute_unexplained)}; net unexplained ${fmtSigned(supply.net_unexplained)}. Includes wallets, cash stacks, BBJ, reserves and liabilities; intervals ending this Chicago day.` : 'Supply inventory checks unavailable']);
+    rows.push(['Daily Chip Reconciliation', supply?.status === 'balanced' && c.status === 'balanced' && c.accounted_residual === 0 && t && t.unbalanced === 0
         ? 'BALANCED: 0' : c.status === 'unverified' ? 'UNVERIFIED' : `DISCREPANCY: ${c.accounted_residual == null ? 'Unavailable' : fmtSigned(c.accounted_residual)}`,
-        'Raw balance + prize liability change + other tournament funding; expected 0. Verifies recorded game flows and checked settlements; every wallet balance is not certified by this check.'],
+        'Raw balance + prize liability change + other tournament funding; expected 0. Verifies recorded game flows, checked settlements and hourly supply inventory. Supply intervals do not use exact midnight cuts.'],
     ['Result Basis', 'Chicago Day / Chips', 'Wins and losses are positive and negative player net results by game type. Diamond Arena excluded. Rake and BBJ are already included in player net; they are added back once for reconciliation.']);
     return rows;
 }

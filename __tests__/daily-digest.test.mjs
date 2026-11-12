@@ -653,7 +653,7 @@ test('explicit live verification rejects wrong revisions and broken sections wit
     const fetchImpl = async (url, opts) => {
         calls.push([url, opts]);
         return url.endsWith('/api/health') ? Response.json({ version: sha, deploymentId: 'fixture' }) : response('Daily Update Weekly Update Monthly Update Real Player Totals Diamond Spins Free Buy And Guarantee Funding'
-            + ' Horse Cash Result (Chips) Horse Tournament Result (Chips) Human Cash Result (Chips) Human Tournament Result (Chips) Kingfish Result (Included In Human Totals) Daily Chip Reconciliation BALANCED: 0'
+            + ' Horse Cash Result (Chips) Horse Tournament Result (Chips) Human Cash Result (Chips) Human Tournament Result (Chips) Kingfish Result (Included In Human Totals) Daily Chip Reconciliation BALANCED: 0</tr><tr>Chip Supply Verification BALANCED: 0</tr>'
             + '<div>Tournament.finish: 1,301 of 1,309 verified fixed (Fix: receipt &lt;safe&gt;)</div>'
             + '<div>CriticalPage.midway_free_buy_missing: 2 of 2 verified fixed</div>');
     };
@@ -1005,6 +1005,7 @@ test('daily results show four cohorts/game rows, Kingfish counted within humans 
         kingfish: { included: true, cash_net: 6, tournament_net: -20 },
         reconciliation: { status: 'balanced', cash_rake: 3, tournament_rake: 2, bbj: 1, cash_residual: 0, raw_residual: -3,
             prize_liability_change: 8, other_prize_movements: -5, accounted_residual: 0, incomplete_cash_hands: 0 },
+        chip_supply: { status: 'balanced', hours: 24, expected_hours: 24, absolute_unexplained: 0, net_unexplained: 0 },
         tournament_settlements: { checked: 1, unbalanced: 0, absolute_drift: 0 },
     };
     const d = fixture({ daily_results: report });
@@ -1020,7 +1021,7 @@ test('daily results show four cohorts/game rows, Kingfish counted within humans 
     assert.ok(!daily.includes('engine tally'), 'independent recorded Horse cash result replaces inferred remainder');
     for (const bad of [null, { error: 'timeout' }, {}]) assert.ok(dailyResultsRows({ daily_results: bad }).some(r => r[1] === 'UNVERIFIED'));
     for (const changed of [{ status: 'discrepancy', accounted_residual: 0.01 }, { status: 'balanced', accounted_residual: null }]) {
-        assert.ok(!dailyResultsRows({ daily_results: { ...report, reconciliation: { ...report.reconciliation, ...changed } } }).some(r => r[1] === 'BALANCED: 0'));
+        assert.notEqual(dailyResultsRows({ daily_results: { ...report, reconciliation: { ...report.reconciliation, ...changed } } }).find(r => r[0] === 'Daily Chip Reconciliation')[1], 'BALANCED: 0');
     }
 });
 

@@ -40,6 +40,7 @@ try {
         '-f', '__tests__/digest-kingfish-assert.sql',
         '-f', 'supabase/migrations/20261112140952_digest_daily_chip_reconciliation.sql',
         '-f', 'supabase/migrations/20261112141236_digest_daily_results_bounded_plan.sql',
+        '-f', 'supabase/migrations/20261112141734_digest_daily_chip_supply_verification.sql',
         '-f', '__tests__/digest-daily-results-assert.sql']);
     console.log('Digest PostgreSQL qualification passed: ' + JSON.stringify([
         'supabase/migrations/20261027183951_digest_player_report_bbj_and_result_breakdown.sql',
@@ -50,6 +51,7 @@ try {
         'supabase/migrations/20261112140947_digest_kingfish_player_totals.sql',
         'supabase/migrations/20261112140952_digest_daily_chip_reconciliation.sql',
         'supabase/migrations/20261112141236_digest_daily_results_bounded_plan.sql',
+        'supabase/migrations/20261112141734_digest_daily_chip_supply_verification.sql',
     ].map(file => ({ path: file, sha256: createHash('sha256').update(readFileSync(path.join(root, file))).digest('hex'), postgresMajor: 17 }))));
 } finally {
     if (started) run('pg_ctl', ['-D', data, '-m', 'fast', 'stop']);

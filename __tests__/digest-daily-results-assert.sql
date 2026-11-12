@@ -32,3 +32,11 @@ DO $$ DECLARE r jsonb:=fn_sp_digest_daily_results('2026-11-10'); BEGIN
 IF r#>>'{reconciliation,status}'<>'discrepancy' OR (r#>>'{tournament_settlements,unbalanced}')::int<>1 THEN RAISE EXCEPTION 'settlement mismatch hidden %',r; END IF;
 IF fn_sp_digest_daily_results('2026-11-09')#>>'{reconciliation,status}'<>'unverified' THEN RAISE EXCEPTION 'missing day passed'; END IF;
 END $$;
+TRUNCATE settlement_fixture;
+UPDATE ca_supply_snapshots SET unexplained=CASE WHEN taken_at='2026-11-10 06:05Z' THEN 1 WHEN taken_at='2026-11-10 07:05Z' THEN -1 ELSE 0 END;
+DO $$ DECLARE r jsonb:=fn_sp_digest_daily_results('2026-11-10'); BEGIN
+IF r#>>'{reconciliation,status}'<>'discrepancy' OR (r#>>'{chip_supply,absolute_unexplained}')::numeric<>2
+ OR (r#>>'{chip_supply,net_unexplained}')::numeric<>0 THEN RAISE EXCEPTION 'opposite supply drift hidden %',r; END IF;
+END $$;
+DELETE FROM ca_supply_snapshots WHERE taken_at='2026-11-10 06:05Z';
+DO $$ BEGIN IF fn_sp_digest_daily_results('2026-11-10')#>>'{reconciliation,status}'<>'unverified' THEN RAISE EXCEPTION 'missing supply hour passed'; END IF; END $$;

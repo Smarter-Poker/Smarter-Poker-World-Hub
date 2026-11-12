@@ -38,11 +38,13 @@ export async function verifyDigestLive({ day, expectedSha, fetchImpl = fetch }) 
             : /Player totals/i.test(failure[0]) ? 'Player totals unavailable' : 'Report unavailable';
         throw new Error(`A live report section failed: ${section} (${category})`);
     }
-    for (const label of ['Horse Cash Result (Chips)', 'Horse Tournament Result (Chips)', 'Human Cash Result (Chips)', 'Human Tournament Result (Chips)', 'Kingfish Result (Included In Human Totals)', 'Daily Chip Reconciliation']) {
+    for (const label of ['Horse Cash Result (Chips)', 'Horse Tournament Result (Chips)', 'Human Cash Result (Chips)', 'Human Tournament Result (Chips)', 'Kingfish Result (Included In Human Totals)', 'Daily Chip Reconciliation', 'Chip Supply Verification']) {
         if (!html.includes(label)) throw new Error(`Missing daily result row: ${label}`);
     }
     if (/UNVERIFIED/.test(html)) throw new Error('Daily chip reconciliation is unverified');
-    const chipReconciliation = html.includes('BALANCED: 0') ? 'balanced' : html.includes('DISCREPANCY:') ? 'discrepancy' : 'unknown';
+    const at = html.indexOf('Daily Chip Reconciliation');
+    const reconciliationRow = html.slice(at, html.indexOf('</tr>', at));
+    const chipReconciliation = reconciliationRow.includes('BALANCED: 0') ? 'balanced' : reconciliationRow.includes('DISCREPANCY:') ? 'discrepancy' : 'unknown';
     if (chipReconciliation === 'unknown') throw new Error('Daily chip reconciliation outcome missing');
     const alertFixes = [...html.matchAll(/>([A-Za-z][A-Za-z0-9_.-]*): ([\d,]+) of ([\d,]+) verified fixed(?:[^<]*)</g)]
         .map(([, alertname, verified, total]) => ({ alertname, verified: Number(verified.replaceAll(',', '')), total: Number(total.replaceAll(',', '')) }));
