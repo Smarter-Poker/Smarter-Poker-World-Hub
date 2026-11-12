@@ -24,6 +24,18 @@
         "width": 455,
         "height": 455
       }
+    },
+    {
+      "username": "RoughRyder",
+      "profileId": "5582eb01-5879-4db5-8d30-53eae24c17fc",
+      "file": "avatars/table/custom_roughryder_7a75f38267b7@2x.webp",
+      "sha256": "7a75f38267b736fc628f3187ba06f619936fd57a5e9c9bd3a069149f823c9360",
+      "bounds": {
+        "left": 30,
+        "top": 51,
+        "width": 450,
+        "height": 455
+      }
     }
   ]
 }
