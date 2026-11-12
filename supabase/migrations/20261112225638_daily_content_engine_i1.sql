@@ -192,19 +192,35 @@ CREATE INDEX daily_content_posts_edition_idx ON public.daily_content_posts (edit
 CREATE INDEX daily_content_receipts_post_idx ON public.daily_content_receipts (post_id);
 CREATE INDEX daily_content_events_at_idx ON public.daily_content_events (at DESC);
 
--- 3. ACCESS: service_role only; RLS on with no policies
-DO $$
-DECLARE t text;
-BEGIN
-  FOREACH t IN ARRAY ARRAY['daily_content_snapshots','daily_content_editions','daily_content_renders',
-    'daily_content_destinations','daily_content_posts','daily_content_receipts','daily_content_pauses',
-    'daily_content_jobs','daily_content_events']
-  LOOP
-    EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t);
-    EXECUTE format('REVOKE ALL ON public.%I FROM PUBLIC, anon, authenticated', t);
-    EXECUTE format('GRANT ALL ON public.%I TO service_role', t);
-  END LOOP;
-END $$;
+-- 3. ACCESS: RLS on with no policies; service_role gets only the operations the
+--    worker and dashboard use (no DELETE anywhere; receipts and events are append-only).
+ALTER TABLE public.daily_content_snapshots ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.daily_content_snapshots FROM PUBLIC, anon, authenticated, service_role;
+GRANT SELECT, INSERT ON TABLE public.daily_content_snapshots TO service_role;
+ALTER TABLE public.daily_content_editions ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.daily_content_editions FROM PUBLIC, anon, authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE ON TABLE public.daily_content_editions TO service_role;
+ALTER TABLE public.daily_content_renders ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.daily_content_renders FROM PUBLIC, anon, authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE ON TABLE public.daily_content_renders TO service_role;
+ALTER TABLE public.daily_content_destinations ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.daily_content_destinations FROM PUBLIC, anon, authenticated, service_role;
+GRANT SELECT, UPDATE ON TABLE public.daily_content_destinations TO service_role;
+ALTER TABLE public.daily_content_posts ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.daily_content_posts FROM PUBLIC, anon, authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE ON TABLE public.daily_content_posts TO service_role;
+ALTER TABLE public.daily_content_receipts ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.daily_content_receipts FROM PUBLIC, anon, authenticated, service_role;
+GRANT SELECT, INSERT ON TABLE public.daily_content_receipts TO service_role;
+ALTER TABLE public.daily_content_pauses ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.daily_content_pauses FROM PUBLIC, anon, authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE ON TABLE public.daily_content_pauses TO service_role;
+ALTER TABLE public.daily_content_jobs ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.daily_content_jobs FROM PUBLIC, anon, authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE ON TABLE public.daily_content_jobs TO service_role;
+ALTER TABLE public.daily_content_events ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.daily_content_events FROM PUBLIC, anon, authenticated, service_role;
+GRANT SELECT, INSERT ON TABLE public.daily_content_events TO service_role;
 REVOKE ALL ON SEQUENCE public.daily_content_receipts_id_seq, public.daily_content_events_id_seq FROM PUBLIC, anon, authenticated;
 GRANT USAGE ON SEQUENCE public.daily_content_receipts_id_seq, public.daily_content_events_id_seq TO service_role;
 
