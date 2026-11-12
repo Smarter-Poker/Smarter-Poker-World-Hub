@@ -282,6 +282,7 @@ const TRAINING_STANDALONE_ART_IDS = new Set([
 const HUB_ROUTES_WITHOUT_SHARED_HEADER = new Set([
   '/hub/admin',
   '/hub/admin/autofix',
+  '/hub/admin/daily-content',
   '/hub/admin/diamond-liability',
   '/hub/commander',
   '/hub/godmode',

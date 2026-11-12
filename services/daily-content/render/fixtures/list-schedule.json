@@ -1,0 +1,102 @@
+{
+  "template": "list",
+  "results": false,
+  "duration_s": 8,
+  "header": {
+    "eyebrow": "TODAY ON",
+    "title": "SMARTER.POKER",
+    "chips": [
+      {
+        "text": "Thu, Jan 8, 2026",
+        "tone": "white"
+      },
+      {
+        "text": "6 Events",
+        "tone": "blue"
+      },
+      {
+        "text": "Times Central",
+        "tone": "blue"
+      }
+    ]
+  },
+  "list": {
+    "items": [
+      {
+        "time": "8:30",
+        "time_sub": "AM CT",
+        "title": "Morning Free Buy",
+        "subtitle": "No-Limit Hold'em",
+        "tags": [
+          "FREE BUY"
+        ],
+        "value": "FREE",
+        "value_label": "ZERO BUY-IN"
+      },
+      {
+        "time": "11:00",
+        "time_sub": "AM CT",
+        "title": "Brunch Special PKO",
+        "subtitle": "Pot-Limit Omaha Hi-Lo",
+        "tags": [
+          "BOUNTY"
+        ],
+        "value": 2500,
+        "value_label": "CHIP GTD"
+      },
+      {
+        "time": "1:00",
+        "time_sub": "PM CT",
+        "title": "Midday Free Buy",
+        "subtitle": "No-Limit Hold'em",
+        "tags": [
+          "FREE BUY"
+        ],
+        "value": "FREE",
+        "value_label": "ZERO BUY-IN"
+      },
+      {
+        "time": "4:00",
+        "time_sub": "PM CT",
+        "title": "Happy Hour Bounty",
+        "subtitle": "No-Limit Hold'em",
+        "tags": [
+          "BOUNTY"
+        ],
+        "value": 5000,
+        "value_label": "CHIP GTD"
+      },
+      {
+        "time": "7:00",
+        "time_sub": "PM CT",
+        "title": "Nightly 20K",
+        "subtitle": "No-Limit Hold'em",
+        "tags": [
+          "FEATURED"
+        ],
+        "value": 20000,
+        "value_label": "CHIP GTD",
+        "highlight": true
+      },
+      {
+        "time": "11:59",
+        "time_sub": "PM CT",
+        "title": "Midnight Free Buy",
+        "subtitle": "No-Limit Hold'em",
+        "tags": [
+          "FREE BUY"
+        ],
+        "value": "FREE",
+        "value_label": "ZERO BUY-IN"
+      }
+    ]
+  },
+  "footer": {
+    "disclosure": [
+      "Free tournaments every day. Times are Central.",
+      "Chips are play credits with no cash value. 18+."
+    ],
+    "provenance": "PRIVATE DRY RUN · SNAPSHOT FIXTURE-SCHEDULE · SYNTHETIC"
+  },
+  "closing": null
+}

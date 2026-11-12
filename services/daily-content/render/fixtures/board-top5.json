@@ -1,0 +1,84 @@
+{
+  "template": "board",
+  "results": true,
+  "duration_s": 15,
+  "header": {
+    "eyebrow": "YESTERDAY'S",
+    "title": "TOP 5",
+    "chips": [
+      {
+        "text": "Wed, Jan 7, 2026",
+        "tone": "white"
+      },
+      {
+        "text": "Arena Points",
+        "tone": "green"
+      },
+      {
+        "text": "31 Tournaments",
+        "tone": "blue"
+      }
+    ]
+  },
+  "board": {
+    "value_label": "Arena Points",
+    "podium": [
+      {
+        "rank_label": "1",
+        "name": "Kestrel Vane",
+        "value": 164,
+        "horse": true,
+        "staff": false,
+        "avatar": null,
+        "sub": "40 prize chips"
+      },
+      {
+        "rank_label": "T2",
+        "name": "Lior Ashdown",
+        "value": 120,
+        "horse": true,
+        "staff": false,
+        "avatar": null,
+        "sub": "0 prize chips"
+      },
+      {
+        "rank_label": "T2",
+        "name": "Marisol Teague",
+        "value": 120,
+        "horse": true,
+        "staff": false,
+        "avatar": null,
+        "sub": "12 prize chips"
+      }
+    ],
+    "rows": [
+      {
+        "rank_label": "4",
+        "name": "Nolan Briar",
+        "value": 98,
+        "horse": false,
+        "staff": true,
+        "avatar": null,
+        "sub": "0 wins · 1 scoring finish · 0 prize chips"
+      },
+      {
+        "rank_label": "5",
+        "name": "Oriel Stamp",
+        "value": 77,
+        "horse": true,
+        "staff": false,
+        "avatar": null,
+        "sub": "0 wins · 1 scoring finish · 5 prize chips"
+      }
+    ],
+    "callout": null
+  },
+  "footer": {
+    "disclosure": [
+      "Boards include Smarter.Poker horses, our AI players.",
+      "Chips are play credits with no cash value. 18+."
+    ],
+    "provenance": "PRIVATE DRY RUN · SNAPSHOT FIXTURE-TOP5 · SYNTHETIC"
+  },
+  "closing": null
+}
