@@ -575,10 +575,10 @@ test('the digest is loaded once for all recipients and the reports do not race t
     } };
     const data = await loadDigestData(sb, '2026-10-28', { withCosts: false, dispatch: false });
     assert.equal(maxInflight, 1, 'one database read at a time');
-    assert.deepEqual(order, ['fn_sp_daily_digest', 'fn_sp_digest_player_report', 'fn_sp_digest_spins_spend', 'fn_sp_digest_signups', 'fn_sp_digest_free_buy_funding', 'fn_sp_digest_house_figures']);
+    assert.deepEqual(order, ['fn_sp_daily_digest', 'fn_sp_digest_player_report', 'fn_sp_digest_spins_spend', 'fn_sp_digest_signups', 'fn_sp_digest_free_buy_funding', 'fn_sp_digest_house_figures', 'fn_sp_digest_daily_results']);
     const a = renderDigest('2026-10-28', data, { recipientName: 'Ann' });
     const b = renderDigest('2026-10-28', data, { recipientName: 'Bob' });
-    assert.equal(order.length, 6, 'rendering for a second admin reads nothing');
+    assert.equal(order.length, 7, 'rendering for a second admin reads nothing');
     assert.match(a.html, /Ann/); assert.match(b.html, /Bob/);
     const fs = await import('node:fs');
     const route = fs.readFileSync(new URL('../pages/api/cron/daily-digest.js', import.meta.url), 'utf8');
@@ -633,7 +633,7 @@ test('the signed online view executes the shared serial loader without dispatchi
         await handler({ method: 'GET', query: { t: 'fixture' } }, res);
         assert.equal(maxInFlight, 1, 'online reports must not compete for the database');
         assert.deepEqual(options, { withCosts: false, dispatch: false });
-        assert.deepEqual(order, ['fn_sp_daily_digest', 'fn_sp_digest_player_report', 'fn_sp_digest_spins_spend', 'fn_sp_digest_signups', 'fn_sp_digest_free_buy_funding', 'fn_sp_digest_house_figures']);
+        assert.deepEqual(order, ['fn_sp_daily_digest', 'fn_sp_digest_player_report', 'fn_sp_digest_spins_spend', 'fn_sp_digest_signups', 'fn_sp_digest_free_buy_funding', 'fn_sp_digest_house_figures', 'fn_sp_digest_daily_results']);
         assert.equal(res.code, 200);
         assert.equal(res.headers['Cache-Control'], 'no-store');
         assert.match(res.body, /Real Player Totals/i);
@@ -653,12 +653,15 @@ test('explicit live verification rejects wrong revisions and broken sections wit
     const fetchImpl = async (url, opts) => {
         calls.push([url, opts]);
         return url.endsWith('/api/health') ? Response.json({ version: sha, deploymentId: 'fixture' }) : response('Daily Update Weekly Update Monthly Update Real Player Totals Diamond Spins Free Buy And Guarantee Funding'
+            + ' Horse Cash Result (Chips) Horse Tournament Result (Chips) Human Cash Result (Chips) Human Tournament Result (Chips) Kingfish Result (Included In Human Totals) Daily Chip Reconciliation BALANCED: 0</tr><tr>Chip Supply Verification BALANCED: 0</tr>'
             + '<div>Tournament.finish: 1,301 of 1,309 verified fixed (Fix: receipt &lt;safe&gt;)</div>'
             + '<div>CriticalPage.midway_free_buy_missing: 2 of 2 verified fixed</div>');
     };
     try {
         const report = await verifyDigestLive({ day: '2026-10-28', expectedSha: sha, fetchImpl });
         assert.equal(report.playerTotals, 'rendered');
+        assert.equal(report.chipReconciliation, 'balanced');
+        assert.equal(report.kingfishIncluded, true);
         assert.deepEqual(report.alertFixes, [
             { alertname: 'Tournament.finish', verified: 1301, total: 1309 },
             { alertname: 'CriticalPage.midway_free_buy_missing', verified: 2, total: 2 },
@@ -869,7 +872,7 @@ test('the funding card is absent without the report and says Report Unavailable 
 
 test('an event funded over or under becomes one tracked Needs Your Attention item; an exact day adds none', async () => {
     const { loadDigestData, loadFreeBuyFunding } = await import('../src/lib/dailyDigest/assemble.mjs');
-    const sbFor = (funding) => ({ rpc: async (name) => ({ data: name === 'fn_sp_daily_digest' ? fixture() : name === 'fn_sp_digest_free_buy_funding' ? funding : PLAYER_TOTALS, error: null }) });
+    const sbFor = (funding) => ({ rpc: async (name) => ({ data: name === 'fn_sp_daily_digest' ? fixture() : name === 'fn_sp_digest_free_buy_funding' ? funding : name === 'fn_sp_digest_daily_results' ? { reconciliation: { status: 'balanced' } } : PLAYER_TOTALS, error: null }) });
     const { digest } = await loadDigestData(sbFor(FUNDING), '2026-11-06', { withCosts: false, dispatch: false });
     const items = digest.attention.filter((a) => a.rule === 'free_buy_funding_off');
     assert.equal(items.length, 1);
@@ -992,4 +995,43 @@ test('Daily, Weekly and Monthly Update titles name the Chicago day, the rolling 
     assert.ok(html.indexOf(t.day) < html.indexOf(t.week) && html.indexOf(t.week) < html.indexOf(t.month));
     // no date means no invented range
     assert.deepEqual(updatePeriodTitles({}), { day: 'Daily Update', week: 'Weekly Update', month: 'Monthly Update' });
+});
+
+test('daily results show four cohorts/game rows, Kingfish counted within humans and the exact reconciliation bridge', async () => {
+    const { dailyResultsRows } = await import('../src/lib/dailyDigest/render.mjs');
+    const report = {
+        results: { cash: { horses: { net: -10, wins: 0, losses: 10, players: 1 }, humans: { net: 6, wins: 6, losses: 0, players: 1 } },
+            tournament: { horses: { net: 15, wins: 15, losses: 0, players: 1 }, humans: { net: -20, wins: 0, losses: 20, players: 1 } } },
+        kingfish: { included: true, cash_net: 6, tournament_net: -20 },
+        reconciliation: { status: 'balanced', cash_rake: 3, tournament_rake: 2, bbj: 1, cash_residual: 0, raw_residual: -3,
+            prize_liability_change: 8, other_prize_movements: -5, accounted_residual: 0, incomplete_cash_hands: 0 },
+        chip_supply: { status: 'balanced', hours: 24, expected_hours: 24, absolute_unexplained: 0, net_unexplained: 0 },
+        tournament_settlements: { checked: 1, unbalanced: 0, absolute_drift: 0 },
+    };
+    const d = fixture({ daily_results: report });
+    const rows = dailyResultsRows(d);
+    for (const label of ['Horse Cash Result (Chips)', 'Horse Tournament Result (Chips)', 'Human Cash Result (Chips)', 'Human Tournament Result (Chips)']) {
+        assert.equal(rows.filter(r => r[0] === label).length, 1);
+        assert.ok(buildHtml(d).includes(label)); assert.ok(buildText(d).includes(label));
+    }
+    assert.equal(rows.find(r => r[0] === 'Daily Chip Reconciliation')[1], 'BALANCED: 0');
+    assert.match(rows.find(r => r[0].startsWith('Kingfish'))[1], /-14/);
+    assert.match(rows.find(r => r[0] === 'Rake + BBJ + Wins - Losses')[1], /-3/);
+    const daily = buildText(d).split('WEEKLY UPDATE')[0];
+    assert.ok(!daily.includes('engine tally'), 'independent recorded Horse cash result replaces inferred remainder');
+    for (const bad of [null, { error: 'timeout' }, {}]) assert.ok(dailyResultsRows({ daily_results: bad }).some(r => r[1] === 'UNVERIFIED'));
+    for (const changed of [{ status: 'discrepancy', accounted_residual: 0.01 }, { status: 'balanced', accounted_residual: null }]) {
+        assert.notEqual(dailyResultsRows({ daily_results: { ...report, reconciliation: { ...report.reconciliation, ...changed } } }).find(r => r[0] === 'Daily Chip Reconciliation')[1], 'BALANCED: 0');
+    }
+});
+
+test('daily result failures raise attention, successful read stays serial and no mail is sent', async () => {
+    const { loadDigestData, loadDailyResults } = await import('../src/lib/dailyDigest/assemble.mjs');
+    const failed = await loadDailyResults({ rpc: async () => { throw Error('unavailable'); } }, '2026-11-11');
+    assert.equal(failed.error, 'unavailable');
+    const { digest } = await loadDigestData({ rpc: async name => name === 'fn_sp_daily_digest' ? { data: fixture() }
+        : name === 'fn_sp_digest_daily_results' ? { data: null, error: { message: 'permission denied' } } : { data: {} } }, '2026-11-11', { withCosts: false, dispatch: false });
+    assert.equal(digest.attention.filter(x => x.rule === 'daily_chip_reconciliation').length, 1);
+    assert.equal(digest.attention.find(x => x.rule === 'daily_chip_reconciliation').dispatch, false);
+    assert.match(buildHtml(digest), /UNVERIFIED/);
 });
