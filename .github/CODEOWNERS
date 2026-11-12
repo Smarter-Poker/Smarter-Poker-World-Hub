@@ -8,13 +8,12 @@
 # Safety Gate) has therefore been failing with ENOENT on every run — the
 # protection was documented but absent.
 #
-# NO OWNERS ARE ASSIGNED (owner direction 2026-11-11). A path with no owner
-# requests nobody. Automatic review requests only emailed the owner: the main
-# ruleset requires no code-owner review and no approvals, and agents merge
-# through required checks. The paths stay listed as the record of which areas
-# are auth, money or deploy critical; their protection is the tests named
-# beside them. __tests__/phase-3-deliverables.test.mjs fails if an owner
-# handle is added back.
+# NO OWNERS ARE CURRENTLY ASSIGNED (2026-11-11). Automatic review requests to
+# @Smarter-Poker emailed the owner on every pull request and merge, and the main
+# ruleset requires no code owner review and no approvals. The paths stay listed
+# as the record of which areas are auth, money or deploy critical. An owner may
+# be added back where a real review requirement exists; each entry requests that
+# account's review and sends GitHub review and merge emails.
 
 # ─── Default ────────────────────────────────────────────────────────────────
 *
