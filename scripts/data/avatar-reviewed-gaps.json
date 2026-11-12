@@ -819,6 +819,25 @@
       "sha256": "c109592c8cfaddb0afad3b221cd876508c9f0b89223ad5b0f3a7325045b7c94d",
       "reason": "Intentional spaces between the arms, hands, clothing or held accessories; visually reviewed against contrasting felt",
       "centroids": [[0.322495, 0.682756]]
+    },
+    {
+      "file": "table/custom_twin2983_532ff2c9e09d@2x.webp",
+      "sha256": "532ff2c9e09d0cbc58c63124ed1f42b3f7b158ee143efe5707719e5c96538d0f",
+      "reason": "Intentional transparent spaces enclosed by the supplied curly hair strands, visually reviewed at enlarged scale; preserve the felt visible between curls rather than filling the hair gaps.",
+      "centroids": [
+        [0.752536, 0.255071],
+        [0.74585, 0.278198],
+        [0.788624, 0.296337],
+        [0.779541, 0.320129],
+        [0.774974, 0.343622],
+        [0.823094, 0.408913],
+        [0.310694, 0.453291],
+        [0.866997, 0.449775],
+        [0.873874, 0.495465],
+        [0.874888, 0.525446],
+        [0.891127, 0.569085],
+        [0.879112, 0.598718]
+      ]
     }
   ]
 }
