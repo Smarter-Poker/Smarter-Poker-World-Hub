@@ -55,6 +55,7 @@ async function localizeAvatars(spec, jobDir, timeoutMs = 10000) {
     if (Array.isArray(o)) return o.forEach(walk);
     if (o && typeof o === 'object') {
       if (typeof o.avatar === 'string' && /^https?:\/\//i.test(o.avatar)) entries.push(o);
+      else if (o.avatar && !String(o.avatar).startsWith('/avatars/')) o.avatar = null; // unknown form: monogram, never a broken request
       Object.values(o).forEach(walk);
     }
   };

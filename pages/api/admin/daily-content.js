@@ -105,16 +105,19 @@ async function readDashboard(adm, days) {
         snapshotIds.length
             ? adm.from('daily_content_snapshots')
                 .select('id, snapshot_key, revision, sha256, completeness, taken_at')
+                // in-list: bounded by the editions query's limit(200)
                 .in('id', snapshotIds)
             : Promise.resolve({ data: [], error: null }),
         editionIds.length
             ? adm.from('daily_content_renders')
                 .select('edition_id, kind, storage_path, width, height, duration_s, sha256, bytes')
+                // in-list: bounded by the editions query's limit(200)
                 .in('edition_id', editionIds)
             : Promise.resolve({ data: [], error: null }),
         editionIds.length
             ? adm.from('daily_content_posts')
                 .select('edition_id, destination, state, state_reason, scheduled_for, expires_at, remote_url, published_at, dry_run')
+                // in-list: bounded by the editions query's limit(200)
                 .in('edition_id', editionIds)
             : Promise.resolve({ data: [], error: null }),
     ]);

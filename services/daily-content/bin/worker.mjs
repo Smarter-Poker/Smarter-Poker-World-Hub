@@ -5,6 +5,8 @@
  *   node services/daily-content/bin/worker.mjs --date 2026-11-12 --simulate-day
  *       Runs one full day with a simulated clock: each slot is planned at its
  *       snapshot time and run to completion. Source data is read now.
+ *   node services/daily-content/bin/worker.mjs --retry-failed --date 2026-11-12
+ *       Queues a new revision for each failed slot of that day and runs it.
  *   node services/daily-content/bin/worker.mjs --tick
  *       One real-time tick for today's Chicago date.
  *
@@ -74,6 +76,11 @@ if (flag('--simulate-day')) {
     const ed = await engine.store.latestEdition(ymd, slot);
     console.log(JSON.stringify({ slot, simulated_now: simulatedNow.toISOString(), jobs_run: ran, edition: ed && { id: ed.id, status: ed.status, reason: ed.status_reason, headline: ed.headline } }));
   }
+} else if (flag('--retry-failed')) {
+  const ymd = opt('--date', chicagoDate(new Date()));
+  console.log(JSON.stringify({ queued: await engine.retryFailed(ymd) }));
+  const ran = await engine.tick();
+  console.log(JSON.stringify({ jobs_run: ran }));
 } else if (flag('--tick')) {
   const ran = await engine.tick(chicagoDate(new Date()));
   console.log(JSON.stringify({ tick: new Date().toISOString(), jobs_run: ran }));

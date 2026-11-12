@@ -9,6 +9,13 @@ import { HORSE_DISCLOSURE, CHIP_DISCLOSURE } from './scoring.mjs';
 const num = (n) => Number(n || 0).toLocaleString('en-US');
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 const chip = (text, tone = 'white') => ({ text, tone });
+/** Profile avatars are absolute storage URLs or site-relative paths; anything else becomes a monogram. */
+export function avatarUrl(u) {
+  if (typeof u !== 'string' || !u) return null;
+  if (/^https:\/\//i.test(u)) return u;
+  if (u.startsWith('/')) return `https://smarter.poker${u}`;
+  return null;
+}
 const VARIANT_TAGS = { bounty: 'BOUNTY', progressive_bounty: 'PKO', mystery_bounty: 'MYSTERY BOUNTY' };
 const GAME_NAMES = { NLH: "No-Limit Hold'em", PLO4: 'Pot-Limit Omaha', PLO5: 'Pot-Limit Omaha 5', PLO6: 'Pot-Limit Omaha 6', PLO8: 'Pot-Limit Omaha Hi-Lo' };
 const topGtd = (items) => Math.max(0, ...items.map((i) => Number(i.guarantee || 0)));
@@ -21,7 +28,7 @@ function footer(snapshotKey, sha, { results = true, dryRun = true } = {}) {
 }
 
 function entry(r, value, sub) {
-  return { rank_label: r.rank_label || String(r.rank), name: r.name, value, horse: !!r.horse, staff: !!r.staff, avatar: r.avatar_url || null, sub };
+  return { rank_label: r.rank_label || String(r.rank), name: r.name, value, horse: !!r.horse, staff: !!r.staff, avatar: avatarUrl(r.avatar_url), sub };
 }
 
 function closingFrom(cf) {
@@ -87,7 +94,7 @@ export function specFor(slot, built, snapshot, opts = {}) {
         podium: rows.slice(0, 3).map((r) => entry(r, r.score, `${num(r.prize_chips)} prize chips`)),
         rows: rows.slice(3).map((r) => entry(r, r.score, r.tie_note ? `${r.tie_note} · ${num(r.prize_chips)} prize chips`
           : `${plural(r.wins, 'win', 'wins')} · ${plural(r.scoring_finishes, 'scoring finish', 'scoring finishes')} · ${num(r.prize_chips)} prize chips`)),
-        callout: hc.qualifies ? { tag: 'BEST HUMAN FINISH', text: `${hc.name} · ${ordinal(hc.position)} of ${hc.field} · ${hc.event}`, name: hc.name, avatar: hc.avatar_url || null } : null,
+        callout: hc.qualifies ? { tag: 'BEST HUMAN FINISH', text: `${hc.name} · ${ordinal(hc.position)} of ${hc.field} · ${hc.event}`, name: hc.name, avatar: avatarUrl(hc.avatar_url) } : null,
       },
       footer: footer(key, sha, { dryRun }), closing: closingFrom(p.closing_frame),
     };

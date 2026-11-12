@@ -61,6 +61,20 @@ export class Engine {
     }
   }
 
+  /** Re-queue a fresh revision for any slot of the day whose latest edition failed (an operator action). */
+  async retryFailed(ymd) {
+    const queued = [];
+    for (const slot of SLOT_ORDER) {
+      const ed = await this.store.latestEdition(ymd, slot);
+      if (!ed || ed.status !== 'failed') continue;
+      const key = `${ymd}:${slot}:build:r${ed.revision + 1}`;
+      await this.store.insertJob({ job_key: key, kind: 'build', edition_date: ymd, slot, run_after: this.clock().toISOString(), dry_run: this.dryRun });
+      await this.event('edition', ed.id, 'edition_retry_queued', { job_key: key });
+      queued.push(key);
+    }
+    return queued;
+  }
+
   // ── Job runner ────────────────────────────────────────────────────────
   async tick(ymd) {
     if (ymd) await this.plan(ymd);

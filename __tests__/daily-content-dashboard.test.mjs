@@ -53,7 +53,7 @@ test('dashboard page calls the admin API with the bearer token and has no emoji'
     assert.match(src, /\/api\/admin\/daily-content/);
     assert.match(src, /Authorization: `Bearer \$\{token\}`/);
     assert.match(src, /smarter-poker-auth/);
-    assert.match(src, /PRIVATE DRY RUN · Publishing Off \(Gate 4 not approved\)/);
+    assert.match(src, /PRIVATE DRY RUN · Publishing Off \(Gate 4 Not Approved\)/);
     assert.doesNotMatch(src, EMOJI);
     const apiSrc = await read(API);
     assert.doesNotMatch(apiSrc, EMOJI);
