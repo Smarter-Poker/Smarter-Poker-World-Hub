@@ -1,0 +1,96 @@
+{
+  "template": "list",
+  "results": true,
+  "duration_s": 12,
+  "header": {
+    "eyebrow": "THIS WEEK'S",
+    "title": "BIGGEST FIELDS",
+    "chips": [
+      {
+        "text": "Jan 1 to Jan 7",
+        "tone": "white"
+      },
+      {
+        "text": "Players Per Event",
+        "tone": "green"
+      }
+    ]
+  },
+  "list": {
+    "items": [
+      {
+        "time": "Mon",
+        "time_sub": "JAN 5",
+        "title": "Morning Free Buy",
+        "subtitle": "Won by Aurora Vexley",
+        "horse": true,
+        "tags": [
+          "FREE BUY"
+        ],
+        "value": 612,
+        "value_label": "PLAYERS",
+        "highlight": true
+      },
+      {
+        "time": "Sat",
+        "time_sub": "JAN 3",
+        "title": "Nightly 10K",
+        "subtitle": "Won by Hollis Dray",
+        "horse": false,
+        "tags": [],
+        "value": 508,
+        "value_label": "PLAYERS"
+      },
+      {
+        "time": "Wed",
+        "time_sub": "JAN 7",
+        "title": "Midnight Free Buy",
+        "subtitle": "Won by Cassia Morrow",
+        "horse": true,
+        "tags": [
+          "FREE BUY"
+        ],
+        "value": 497,
+        "value_label": "PLAYERS"
+      },
+      {
+        "time": "Fri",
+        "time_sub": "JAN 2",
+        "title": "Midday Free Buy",
+        "subtitle": "Won by Fenwick Arlo",
+        "horse": true,
+        "tags": [
+          "FREE BUY"
+        ],
+        "value": 455,
+        "value_label": "PLAYERS"
+      },
+      {
+        "time": "Tue",
+        "time_sub": "JAN 6",
+        "title": "40 Chip Bounty Freezeout",
+        "subtitle": "Won by Ivo Brannick",
+        "horse": true,
+        "tags": [
+          "BOUNTY"
+        ],
+        "value": 301,
+        "value_label": "PLAYERS"
+      }
+    ]
+  },
+  "footer": {
+    "disclosure": [
+      "Boards include Smarter.Poker horses, our AI players.",
+      "Chips are play credits with no cash value. 18+."
+    ],
+    "provenance": "PRIVATE DRY RUN · SNAPSHOT FIXTURE-BIGGEST · SYNTHETIC"
+  },
+  "closing": {
+    "eyebrow": "TONIGHT · 7:00 PM CT",
+    "title": "NIGHTLY 20K",
+    "subtitle": "20,000 CHIP GUARANTEE",
+    "detail": "NO-LIMIT HOLD'EM",
+    "footnote": "Chips are play credits with no cash value. 18+."
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "template": "stats",
+  "results": true,
+  "duration_s": 12,
+  "header": {
+    "eyebrow": "THE",
+    "title": "WEEK IN NUMBERS",
+    "chips": [
+      {
+        "text": "Jan 1 to Jan 7",
+        "tone": "white"
+      },
+      {
+        "text": "Multi-Table Tournaments",
+        "tone": "blue"
+      }
+    ]
+  },
+  "stats": {
+    "tiles": [
+      {
+        "label": "Events Run",
+        "value": 241
+      },
+      {
+        "label": "Total Entries",
+        "value": 18604
+      },
+      {
+        "label": "Biggest Field",
+        "value": 612,
+        "sub": "Morning Free Buy, Mon",
+        "highlight": true
+      },
+      {
+        "label": "Free Buys",
+        "value": 35
+      },
+      {
+        "label": "Best Human Finish",
+        "value": "1st",
+        "sub": "Hollis Dray, Nightly 10K"
+      },
+      {
+        "label": "Prize Chips Paid",
+        "value": 96410
+      }
+    ]
+  },
+  "footer": {
+    "disclosure": [
+      "Boards include Smarter.Poker horses, our AI players.",
+      "Chips are play credits with no cash value. 18+."
+    ],
+    "provenance": "PRIVATE DRY RUN · SNAPSHOT FIXTURE-STATS · SYNTHETIC"
+  },
+  "closing": {
+    "eyebrow": "TONIGHT · 7:00 PM CT",
+    "title": "NIGHTLY 20K",
+    "subtitle": "20,000 CHIP GUARANTEE",
+    "detail": "NO-LIMIT HOLD'EM",
+    "footnote": "Chips are play credits with no cash value. 18+."
+  }
+}

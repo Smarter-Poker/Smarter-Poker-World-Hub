@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><link rel="icon" href="data:,">
+<!-- Smarter.Poker Daily Content renderer (dc-render-1.0). Spec-driven: board | list | stats.
+     Deterministic: every frame is a pure function of window.setTime(t). -->
+<style>
+@font-face { font-family: 'Orbitron'; src: url('/fonts/Orbitron-VF.ttf') format('truetype'); font-weight: 400 900; }
+@font-face { font-family: 'Rajdhani'; src: url('/fonts/Rajdhani-Medium.ttf'); font-weight: 500; }
+@font-face { font-family: 'Rajdhani'; src: url('/fonts/Rajdhani-SemiBold.ttf'); font-weight: 600; }
+@font-face { font-family: 'Rajdhani'; src: url('/fonts/Rajdhani-Bold.ttf'); font-weight: 700; }
+:root { --cyan: #00d4ff; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1080px; height: 1920px; overflow: hidden; background: radial-gradient(ellipse 120% 70% at 50% 38%, #0f2440 0%, #0a1628 32%, #050510 72%, #030508 100%); font-family: 'Rajdhani', sans-serif; color: #fff; }
+#bgfx { position: absolute; inset: 0; background:
+  radial-gradient(circle at 50% 46%, rgba(0,212,255,.10), transparent 42%),
+  repeating-linear-gradient(60deg, rgba(0,212,255,.035) 0 1px, transparent 1px 46px),
+  repeating-linear-gradient(-60deg, rgba(0,212,255,.035) 0 1px, transparent 1px 46px); }
+canvas#gl { position: absolute; inset: 0; width: 1080px; height: 1920px; }
+#vignette { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse 85% 75% at 50% 45%, transparent 55%, rgba(0,0,0,.55) 100%); }
+#ui, #closing { position: absolute; inset: 0; }
+/* header */
+#logo { position: absolute; left: 64px; top: 58px; width: 440px; height: 92px; }
+#logo img { width: 440px; display: block; filter: drop-shadow(0 0 18px rgba(0,212,255,.45)); }
+#logoShine { position: absolute; inset: 0; -webkit-mask: url('/brand/smarter-poker-logo-final.png') left top / 440px auto no-repeat; background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.95) 50%, transparent 65%) no-repeat; background-size: 60% 100%; mix-blend-mode: screen; }
+#eyebrow { position: absolute; left: 66px; top: 170px; width: 840px; white-space: nowrap; font: 600 34px Rajdhani; letter-spacing: 12px; color: var(--cyan); text-shadow: 0 0 14px rgba(0,212,255,.6); }
+#title { position: absolute; left: 58px; top: 196px; width: 850px; height: 124px; display: flex; align-items: center; font: 900 120px/1 Orbitron; letter-spacing: 2px; white-space: nowrap; }
+#title .tw { position: relative; display: inline-block; }
+#title .face { background: linear-gradient(180deg, #ffffff 0%, #dfe9f5 38%, #7f93ab 52%, #eef4fb 64%, #9fb2c8 100%); -webkit-background-clip: text; color: transparent; position: relative; }
+#title .ext { position: absolute; left: 0; top: 0; color: #0b1a2c; text-shadow: 1px 1px 0 #1a2b40, 2px 2px 0 #1a2b40, 3px 3px 0 #15263a, 4px 4px 0 #122133, 5px 5px 0 #0f1c2c, 6px 6px 0 #0c1725, 8px 10px 18px rgba(0,0,0,.7); }
+#title .sweep { position: absolute; left: 0; top: 0; background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,.9) 50%, transparent 60%) no-repeat; background-size: 40% 100%; -webkit-background-clip: text; color: transparent; }
+#chips { position: absolute; left: 64px; top: 326px; width: 850px; display: flex; gap: 14px; }
+.chip { flex: none; padding: 2px; border-radius: 26px; background: linear-gradient(135deg, #6f86a3, #e9f1fa 30%, #4a5d75 55%, #cfdcea 80%, #5b6f88); box-shadow: 0 8px 18px rgba(0,0,0,.5); }
+.chip span { display: block; padding: 7px 20px 5px; border-radius: 24px; background: linear-gradient(180deg, #13243b, #08111f); font: 700 25px Rajdhani; letter-spacing: 2.5px; text-transform: uppercase; white-space: nowrap; }
+.chip.white span { color: #fff; } .chip.green span { color: #39ff9c; text-shadow: 0 0 10px rgba(57,255,156,.5); } .chip.blue span { color: #9fc4ea; } .chip.gold span { color: #ffd76a; text-shadow: 0 0 10px rgba(255,200,60,.45); }
+/* badges */
+.horse, .staff { flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 3px 12px 2px; border-radius: 14px; font: 700 15px Rajdhani; letter-spacing: 2.5px; white-space: nowrap; }
+.horse { color: #2a1700; background: linear-gradient(180deg, #ffe39a 0%, #ffb52e 55%, #d98300 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.7), 0 0 12px rgba(255,170,40,.45); }
+.horse b { font: 400 16px 'Apple Symbols', sans-serif; }
+.staff { color: #f4ecff; background: linear-gradient(180deg, #b49cff 0%, #7a52e8 55%, #4a2aa8 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.55), 0 0 12px rgba(150,110,255,.45); }
+/* podium cards */
+.card { position: absolute; transform-origin: 50% 100%; }
+.frame { padding: 3px; border-radius: 24px; box-shadow: 0 34px 60px rgba(0,0,0,.65), 0 0 0 1px rgba(255,255,255,.06); }
+.gold .frame { background: linear-gradient(140deg, #5c430c 0%, #ffe08a 18%, #b8860b 36%, #fff3c4 50%, #a87912 66%, #ffd700 82%, #6b4e0e 100%); box-shadow: 0 34px 60px rgba(0,0,0,.65), 0 0 46px rgba(255,200,60,.35); }
+.silver .frame { background: linear-gradient(140deg, #4d5866 0%, #f4f8fc 20%, #8a96a6 38%, #ffffff 52%, #7d8a9b 68%, #dfe6ee 84%, #49535f 100%); }
+.bronze .frame { background: linear-gradient(140deg, #5a3015 0%, #f2b27a 20%, #9a5a2c 38%, #ffd6b0 52%, #8c4f24 68%, #e0a067 84%, #4e2a12 100%); }
+.inner { position: relative; overflow: hidden; border-radius: 21px; background: linear-gradient(165deg, rgba(26,44,72,.97) 0%, rgba(10,20,38,.98) 55%, rgba(5,10,22,.99) 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.28), inset 0 -10px 24px rgba(0,0,0,.55); text-align: center; }
+.gold .inner { background: linear-gradient(165deg, rgba(58,44,10,.96) 0%, rgba(20,22,32,.98) 42%, rgba(6,10,22,.99) 100%); }
+.inner::after, .sheen::after { content: ''; position: absolute; inset: -20%; pointer-events: none; background: linear-gradient(105deg, transparent 42%, rgba(255,255,255,.28) 50%, transparent 58%); transform: translateX(calc(var(--sh, -1.2) * 100%)); }
+.av { margin: 0 auto; border-radius: 50%; padding: 4px; }
+.gold .av { background: conic-gradient(from 210deg, #6b4e0e, #fff3c4, #b8860b, #ffe08a, #6b4e0e); box-shadow: 0 0 26px rgba(255,200,60,.55); }
+.silver .av { background: conic-gradient(from 210deg, #4d5866, #ffffff, #8a96a6, #e9f0f7, #4d5866); box-shadow: 0 0 20px rgba(200,220,255,.35); }
+.bronze .av { background: conic-gradient(from 210deg, #4e2a12, #ffd6b0, #9a5a2c, #f2b27a, #4e2a12); box-shadow: 0 0 20px rgba(240,150,80,.35); }
+.av img, .av .mono { display: block; width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.mono { background: radial-gradient(circle at 35% 30%, #2d5a8a, #0d2240); font: 800 26px Orbitron; display: flex !important; align-items: center; justify-content: center; color: #cfe6ff; }
+.name { display: block; width: 100%; font-weight: 700; line-height: 1.04; color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,.7); overflow-wrap: anywhere; }
+.badges { display: flex; justify-content: center; gap: 6px; min-height: 22px; }
+.pts { font-family: Orbitron; font-weight: 900; line-height: 1; -webkit-background-clip: text; background-clip: text; color: transparent; white-space: nowrap; }
+.gold .pts { background-image: linear-gradient(180deg, #fffbe8 0%, #ffe08a 35%, #d4a017 58%, #fff3c4 76%, #b8860b 100%); filter: drop-shadow(0 0 16px rgba(255,200,60,.65)); }
+.silver .pts { background-image: linear-gradient(180deg, #ffffff 0%, #e6eef7 40%, #8d9bad 60%, #ffffff 80%, #9aa8b8 100%); filter: drop-shadow(0 0 12px rgba(200,225,255,.45)); }
+.bronze .pts { background-image: linear-gradient(180deg, #fff1e3 0%, #f2b27a 40%, #a8622f 60%, #ffd6b0 80%, #8c4f24 100%); filter: drop-shadow(0 0 12px rgba(240,150,80,.45)); }
+.lbl { font: 700 15px Rajdhani; letter-spacing: 3px; color: #8fb3d9; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#crown { position: absolute; width: 124px; height: 96px; transform-origin: 50% 100%; filter: drop-shadow(0 6px 10px rgba(0,0,0,.6)) drop-shadow(0 0 22px rgba(255,210,80,.7)); }
+#burst { position: absolute; width: 760px; height: 760px; border-radius: 50%; background: repeating-conic-gradient(from 0deg, rgba(255,215,90,.22) 0deg 5deg, transparent 5deg 18deg); -webkit-mask: radial-gradient(circle, #000 0%, #000 22%, transparent 68%); }
+#flash { position: absolute; width: 900px; height: 900px; border-radius: 50%; background: radial-gradient(circle, rgba(255,240,190,.95) 0%, rgba(255,200,80,.45) 18%, transparent 55%); mix-blend-mode: screen; }
+/* board rows */
+#rows { position: absolute; left: 64px; top: 936px; width: 844px; perspective: 1100px; }
+.row { position: relative; height: 56px; margin-bottom: 6px; padding: 2px; border-radius: 15px; transform-origin: 50% 0%; background: linear-gradient(90deg, #2a4a6e 0%, #9fd8ff 22%, #1f3b5a 46%, #6fc4f0 72%, #1a3350 100%); box-shadow: 0 12px 22px rgba(0,0,0,.5); }
+.row .rin { position: relative; overflow: hidden; height: 52px; border-radius: 13px; display: flex; align-items: center; background: linear-gradient(90deg, rgba(14,30,54,.94) 0%, rgba(8,18,34,.9) 60%, rgba(10,24,44,.94) 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.18), inset 0 -6px 14px rgba(0,0,0,.45); }
+.row .rin::after { content: ''; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 40%, rgba(160,230,255,.30) 50%, transparent 60%); transform: translateX(calc(var(--sh, -1.2) * 100%)); }
+.rk { width: 46px; height: 46px; margin: 0 10px 0 4px; flex: none; clip-path: polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0 50%); background: linear-gradient(160deg, #e9f4ff 0%, #6f8aa8 45%, #1d3149 70%, #8fb6d8 100%); display: flex; align-items: center; justify-content: center; }
+.rk span { font: 900 20px Orbitron; color: #061323; text-shadow: 0 1px 0 rgba(255,255,255,.6); white-space: nowrap; }
+.rav { width: 40px; height: 40px; flex: none; border-radius: 50%; padding: 2px; background: conic-gradient(from 200deg, #3e6a96, #d9f1ff, #2b4f74, #9ad7ff, #3e6a96); margin-right: 12px; }
+.rav img, .rav .mono { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; font-size: 14px; }
+.rtxt { flex: 1; min-width: 0; line-height: 1.05; }
+.rname { font: 700 25px Rajdhani; display: flex; align-items: center; gap: 10px; min-width: 0; }
+.rname .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rname .horse, .rname .staff { font-size: 12px; padding: 2px 9px 1px; letter-spacing: 2px; }
+.rsub { font: 600 15px Rajdhani; color: #8fb3d9; letter-spacing: .5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rpts { flex: none; font: 900 30px Orbitron; padding: 0 20px 0 10px; background: linear-gradient(180deg, #ffffff 0%, #bfefff 45%, #3fb8e8 70%, #e6f8ff 100%); -webkit-background-clip: text; color: transparent; filter: drop-shadow(0 0 10px rgba(0,212,255,.55)); white-space: nowrap; }
+/* callout strip */
+#callout { position: absolute; left: 64px; width: 844px; padding: 2px; border-radius: 16px; background: linear-gradient(90deg, #0d5a3a, #6dffb8 30%, #0b4a30 60%, #4cf0a0 85%, #0d5a3a); box-shadow: 0 0 26px rgba(57,255,156,.25); }
+#callout .hin { height: 56px; border-radius: 14px; display: flex; align-items: center; gap: 14px; padding: 0 16px; background: linear-gradient(90deg, rgba(6,40,28,.95), rgba(6,22,26,.95)); }
+#callout .ct { min-width: 0; flex: 1; }
+#callout .tag { font: 700 14px Rajdhani; letter-spacing: 3px; color: #39ff9c; white-space: nowrap; }
+#callout .txt { font: 700 24px Rajdhani; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#callout .rav { margin: 0; background: conic-gradient(from 200deg, #0d5a3a, #b9ffdd, #0b4a30, #6dffb8, #0d5a3a); }
+/* list template */
+#list { position: absolute; left: 64px; top: 418px; width: 844px; perspective: 1400px; }
+.item { position: relative; height: 122px; margin-bottom: 12px; padding: 2px; border-radius: 20px; transform-origin: 0% 50%; background: linear-gradient(100deg, #3a5878 0%, #d6eeff 18%, #24425f 40%, #8fd4f5 70%, #1d3654 100%); box-shadow: 0 18px 30px rgba(0,0,0,.55); }
+.item.hl { background: linear-gradient(100deg, #6b4e0e 0%, #fff3c4 18%, #a87912 40%, #ffe08a 70%, #5c430c 100%); box-shadow: 0 18px 30px rgba(0,0,0,.55), 0 0 30px rgba(255,200,60,.25); }
+.item .iin { position: relative; overflow: hidden; height: 118px; border-radius: 18px; display: flex; align-items: center; background: linear-gradient(100deg, rgba(16,34,60,.95) 0%, rgba(8,18,34,.93) 55%, rgba(12,28,50,.95) 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.22), inset 0 -10px 22px rgba(0,0,0,.5); }
+.item .iin::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(105deg, transparent 40%, rgba(170,235,255,.28) 50%, transparent 60%); transform: translateX(calc(var(--sh, -1.2) * 100%)); }
+.time { flex: none; width: 150px; height: 92px; margin: 0 18px 0 13px; border-radius: 14px; padding: 2px; background: linear-gradient(160deg, #eaf5ff 0%, #6f8aa8 40%, #1d3149 68%, #9cc4e4 100%); }
+.time div { height: 88px; border-radius: 12px; background: linear-gradient(180deg, #0f2238, #060e1a); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.time .t1 { font: 900 30px Orbitron; color: #fff; white-space: nowrap; text-shadow: 0 0 12px rgba(0,212,255,.45); }
+.time .t2 { font: 700 15px Rajdhani; letter-spacing: 3px; color: var(--cyan); white-space: nowrap; }
+.itxt { flex: 1; min-width: 0; }
+.ititle { display: block; font: 700 34px/1.02 Rajdhani; overflow-wrap: anywhere; }
+.isub { margin-top: 3px; font: 600 19px Rajdhani; color: #9fc4ea; display: flex; align-items: center; gap: 8px; min-width: 0; white-space: nowrap; }
+.isub .st { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.isub .horse, .isub .staff { font-size: 12px; padding: 2px 9px 1px; letter-spacing: 2px; }
+.tags { margin-top: 6px; display: flex; gap: 8px; }
+.tg { flex: none; font: 700 13px Rajdhani; letter-spacing: 2.5px; padding: 3px 11px 2px; border-radius: 10px; white-space: nowrap; color: #bfe9ff; background: rgba(0,212,255,.12); border: 1px solid rgba(0,212,255,.45); }
+.tg.green { color: #0a2a18; background: linear-gradient(180deg, #a8ffd2, #39ff9c 60%, #14c56e); border: 0; box-shadow: 0 0 12px rgba(57,255,156,.4); }
+.tg.gold { color: #2a1700; background: linear-gradient(180deg, #ffe39a, #ffb52e 60%, #d98300); border: 0; }
+.ival { flex: none; text-align: right; padding: 0 22px 0 12px; }
+.ival .v { font: 900 38px Orbitron; background: linear-gradient(180deg, #fffbe8 0%, #ffe08a 35%, #d4a017 58%, #fff3c4 76%, #b8860b 100%); -webkit-background-clip: text; color: transparent; filter: drop-shadow(0 0 12px rgba(255,200,60,.45)); white-space: nowrap; line-height: 1; }
+.ival .vl { margin-top: 5px; font: 700 14px Rajdhani; letter-spacing: 3px; color: #8fb3d9; white-space: nowrap; }
+/* stats template */
+#stats { position: absolute; left: 64px; top: 430px; width: 844px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; perspective: 1400px; }
+.tile { position: relative; height: 220px; padding: 3px; border-radius: 24px; background: linear-gradient(140deg, #4d5866 0%, #f4f8fc 20%, #8a96a6 38%, #ffffff 52%, #7d8a9b 68%, #dfe6ee 84%, #49535f 100%); box-shadow: 0 26px 46px rgba(0,0,0,.6); }
+.tile.gold { background: linear-gradient(140deg, #5c430c 0%, #ffe08a 18%, #b8860b 36%, #fff3c4 50%, #a87912 66%, #ffd700 82%, #6b4e0e 100%); box-shadow: 0 26px 46px rgba(0,0,0,.6), 0 0 40px rgba(255,200,60,.3); }
+.tile .tin { position: relative; overflow: hidden; height: 214px; border-radius: 21px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 0 16px; background: linear-gradient(165deg, rgba(26,44,72,.97) 0%, rgba(10,20,38,.98) 55%, rgba(5,10,22,.99) 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.28), inset 0 -10px 24px rgba(0,0,0,.55); }
+.tile .tin::after { content: ''; position: absolute; inset: -20%; pointer-events: none; background: linear-gradient(105deg, transparent 42%, rgba(255,255,255,.25) 50%, transparent 58%); transform: translateX(calc(var(--sh, -1.2) * 100%)); }
+.tile .tv { font: 900 72px/1 Orbitron; white-space: nowrap; background: linear-gradient(180deg, #ffffff 0%, #e6eef7 40%, #8d9bad 60%, #ffffff 80%, #9aa8b8 100%); -webkit-background-clip: text; color: transparent; filter: drop-shadow(0 0 14px rgba(0,212,255,.45)); }
+.tile.gold .tv { background-image: linear-gradient(180deg, #fffbe8 0%, #ffe08a 35%, #d4a017 58%, #fff3c4 76%, #b8860b 100%); filter: drop-shadow(0 0 16px rgba(255,200,60,.55)); }
+.tile .tl { margin-top: 14px; font: 700 22px Rajdhani; letter-spacing: 4px; color: #8fb3d9; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.tile .ts { margin-top: 4px; font: 600 17px Rajdhani; color: #cfe2f5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+/* footer */
+#footer { position: absolute; left: 64px; top: 1454px; width: 844px; isolation: isolate; }
+#footer::before { content: ''; position: absolute; left: -64px; right: -172px; top: -26px; bottom: -22px; z-index: -1; background: linear-gradient(180deg, rgba(3,8,16,0) 0%, rgba(3,8,16,.62) 30%, rgba(3,8,16,.62) 75%, rgba(3,8,16,0) 100%); }
+#footer .d1 { font: 700 23px Rajdhani; color: #ffc24d; letter-spacing: .3px; text-shadow: 0 0 10px rgba(255,170,40,.35); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#footer .d2 { font: 600 19px Rajdhani; color: #8fb3d9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#footer .d3 { font: 500 13px Rajdhani; color: #4f6782; letter-spacing: 1px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* closing */
+#closing { opacity: 0; }
+#crest { position: absolute; left: 301px; top: 380px; width: 380px; height: 380px; border-radius: 50%; padding: 6px; background: conic-gradient(from 0deg, #2a3a4c, #eaf3fc, #4c6178, #00d4ff, #2a3a4c, #dfe9f3, #3a4b5e); box-shadow: 0 0 60px rgba(0,212,255,.45), 0 30px 60px rgba(0,0,0,.6); }
+#crest img { width: 100%; height: 100%; border-radius: 50%; display: block; background: #000; }
+#cl1 { position: absolute; left: 64px; width: 854px; top: 820px; text-align: center; font: 700 36px Rajdhani; letter-spacing: 10px; color: var(--cyan); text-shadow: 0 0 14px rgba(0,212,255,.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#cl2 { position: absolute; left: 64px; width: 854px; top: 878px; height: 110px; display: flex; align-items: center; justify-content: center; font: 900 98px/1 Orbitron; white-space: nowrap; }
+#cl2 .tw { position: relative; display: inline-block; }
+#cl2 .ext { position: absolute; left: 0; top: 0; color: #0b1a2c; text-shadow: 1px 1px 0 #1a2b40, 2px 2px 0 #1a2b40, 3px 3px 0 #15263a, 4px 4px 0 #122133, 5px 5px 0 #0f1c2c, 8px 10px 18px rgba(0,0,0,.7); }
+#cl2 .face { position: relative; background: linear-gradient(180deg, #ffffff 0%, #dfe9f5 38%, #7f93ab 52%, #eef4fb 64%, #9fb2c8 100%); -webkit-background-clip: text; color: transparent; }
+#cl3 { position: absolute; left: 64px; width: 854px; top: 1008px; text-align: center; font: 900 44px Orbitron; white-space: nowrap; background: linear-gradient(180deg, #fffbe8 0%, #ffe08a 35%, #d4a017 58%, #fff3c4 76%, #b8860b 100%); -webkit-background-clip: text; color: transparent; filter: drop-shadow(0 0 16px rgba(255,200,60,.55)); }
+#cl4 { position: absolute; left: 64px; width: 854px; top: 1080px; text-align: center; font: 600 30px Rajdhani; letter-spacing: 6px; color: #9fc4ea; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#cl5 { position: absolute; left: 271px; top: 1220px; width: 440px; }
+#cl5 img { width: 440px; filter: drop-shadow(0 0 18px rgba(0,212,255,.5)); }
+#cl6 { position: absolute; left: 64px; top: 1500px; width: 844px; font: 600 19px Rajdhani; color: #8fb3d9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+</style>
+<script type="importmap">{ "imports": { "three": "/three/build/three.module.js", "three/addons/": "/three/examples/jsm/" } }</script>
+</head>
+<body>
+<div id="bgfx"></div>
+<canvas id="gl" width="1080" height="1920"></canvas>
+<div id="vignette"></div>
+<div id="ui">
+  <div id="logo"><img src="/brand/smarter-poker-logo-final.png"><div id="logoShine"></div></div>
+  <div id="eyebrow"></div>
+  <div id="title"></div>
+  <div id="chips"></div>
+  <div id="burst"></div><div id="flash"></div>
+  <div id="cards"></div>
+  <svg id="crown" viewBox="0 0 124 96" style="opacity:0">
+    <defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fffbe8"/><stop offset=".35" stop-color="#ffd700"/><stop offset=".6" stop-color="#b8860b"/><stop offset=".8" stop-color="#ffe08a"/><stop offset="1" stop-color="#7a5a10"/></linearGradient>
+    <linearGradient id="cb" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7a5a10"/><stop offset=".5" stop-color="#fff3c4"/><stop offset="1" stop-color="#7a5a10"/></linearGradient></defs>
+    <path d="M8 74 L4 22 L34 46 L62 6 L90 46 L120 22 L116 74 Z" fill="url(#cg)" stroke="#5c430c" stroke-width="2"/>
+    <rect x="8" y="72" width="108" height="16" rx="3" fill="url(#cb)" stroke="#5c430c" stroke-width="2"/>
+    <circle cx="62" cy="10" r="7" fill="#00d4ff" stroke="#e8fbff" stroke-width="2"/><circle cx="6" cy="22" r="5" fill="#ff3b5c" stroke="#ffd1da" stroke-width="1.5"/><circle cx="118" cy="22" r="5" fill="#ff3b5c" stroke="#ffd1da" stroke-width="1.5"/>
+    <circle cx="62" cy="80" r="4.5" fill="#00d4ff"/><circle cx="34" cy="80" r="3.5" fill="#ff3b5c"/><circle cx="90" cy="80" r="3.5" fill="#ff3b5c"/>
+  </svg>
+  <div id="rows"></div>
+  <div id="list"></div>
+  <div id="stats"></div>
+  <div id="callout" style="display:none"></div>
+  <div id="footer"></div>
+</div>
+<div id="closing">
+  <div id="crest"><img src="/brand/icons/smarter-king-512.png"></div>
+  <div id="cl1"></div><div id="cl2"></div><div id="cl3"></div><div id="cl4"></div>
+  <div id="cl5"><img src="/brand/smarter-poker-logo-final.png"></div>
+  <div id="cl6"></div>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+import { TTFLoader } from 'three/addons/loaders/TTFLoader.js';
+import { Font } from 'three/addons/loaders/FontLoader.js';
+
+const $ = id => document.getElementById(id);
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const eOut = x => 1 - Math.pow(1 - x, 3);
+const eInOut = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const eBack = x => { const c1 = 1.5, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+const eBounce = x => { const n = 7.5625, d = 2.75; if (x < 1 / d) return n * x * x; if (x < 2 / d) return n * (x -= 1.5 / d) * x + .75; if (x < 2.5 / d) return n * (x -= 2.25 / d) * x + .9375; return n * (x -= 2.625 / d) * x + .984375; };
+const fmt = n => Math.round(n).toLocaleString('en-US');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+// ---------- spec ----------
+const specUrl = new URLSearchParams(location.search).get('spec') || '/spec.json';
+const S = await (await fetch(specUrl)).json();
+const TPL = S.template;
+if (!['board', 'list', 'stats'].includes(TPL)) throw new Error('unknown template ' + TPL);
+const DUR = Number(S.duration_s) || 15;
+const HAS_CLOSE = !!S.closing;
+const CL = HAS_CLOSE ? DUR - 2 : Infinity;          // closing occupies the last 2 s
+const MAIN_END = HAS_CLOSE ? DUR - 2 : DUR;
+const BASE = { board: 13, list: 6.5, stats: 6.5 }[TPL]; // designed main-timeline length (s)
+const K = BASE / MAIN_END;                            // main timeline time-scale
+window.__meta = { template: TPL, duration_s: DUR, main_end: MAIN_END, closing_at: HAS_CLOSE ? CL : null, renderer_version: 'dc-render-1.0' };
+
+const monoOf = e => esc((e.monogram || String(e.name || '?').split(/\s+/).slice(0, 2).map(w => w[0] || '').join('') || '?').toUpperCase().slice(0, 3));
+const avatarHTML = e => e.avatar ? `<img src="${esc(e.avatar)}" onerror="this.outerHTML='<div class=&quot;mono&quot;>${monoOf(e)}</div>'">` : `<div class="mono">${monoOf(e)}</div>`;
+const HORSE = '<span class="horse" data-badge="horse"><b>&#9822;</b>HORSE</span>';
+const STAFF = '<span class="staff" data-badge="staff">STAFF</span>';
+const badges = e => (e.horse ? HORSE : '') + (e.staff ? STAFF : '');
+const valText = v => typeof v === 'number' ? fmt(v) : esc(v ?? '');
+const countUp = (el, p) => { const v = el.dataset.v; if (v !== undefined && v !== '' && !isNaN(Number(v))) el.textContent = fmt(Number(v) * p); };
+
+// fit helpers: shrink to floor, then wrap/clamp with ellipsis; marks data-truncated
+function fitSingle(el, base, floor) {
+  let s = base; el.style.fontSize = s + 'px';
+  while (s > floor && el.scrollWidth > el.clientWidth + 1) { s -= 1; el.style.fontSize = s + 'px'; }
+  el.dataset.fs = s; el.dataset.floor = floor;
+  if (el.scrollWidth > el.clientWidth + 1) el.dataset.truncated = '1';
+}
+function fitLines(el, base, floor, lines, lh = 1.04) {
+  let s = base; el.style.fontSize = s + 'px'; el.style.lineHeight = lh;
+  const over = () => el.scrollHeight > Math.ceil(s * lh * lines) + 2;
+  while (s > floor && over()) { s -= 1; el.style.fontSize = s + 'px'; }
+  el.dataset.fs = s; el.dataset.floor = floor;
+  if (over()) {
+    el.style.display = '-webkit-box'; el.style.webkitBoxOrient = 'vertical'; el.style.webkitLineClamp = String(lines);
+    el.style.overflow = 'hidden'; el.style.maxHeight = Math.ceil(s * lh * lines) + 'px'; el.dataset.truncated = '1';
+  }
+}
+function fitWidthFont(el, base, floor, maxW) {
+  let s = base; el.style.fontSize = s + 'px';
+  while (s > floor && el.scrollWidth > maxW) { s -= 1; el.style.fontSize = s + 'px'; }
+}
+
+// ---------- header ----------
+$('eyebrow').textContent = S.header?.eyebrow || '';
+const ttl = esc(S.header?.title || '');
+$('title').innerHTML = `<span class="tw"><span class="ext">${ttl}</span><span class="face">${ttl}</span><span class="sweep">${ttl}</span></span>`;
+$('chips').innerHTML = (S.header?.chips || []).slice(0, 4).map(c => `<div class="chip ${esc(c.tone || 'white')}"><span>${esc(c.text)}</span></div>`).join('');
+
+// ---------- footer ----------
+const disc = S.footer?.disclosure || [];
+$('footer').innerHTML = (disc[0] ? `<div class="d1">${esc(disc[0])}</div>` : '') + (disc[1] ? `<div class="d2">${esc(disc[1])}</div>` : '') + (S.footer?.provenance ? `<div class="d3">${esc(S.footer.provenance)}</div>` : '');
+
+// ---------- closing ----------
+if (HAS_CLOSE) {
+  const c = S.closing;
+  $('cl1').textContent = c.eyebrow || '';
+  const t2 = esc(c.title || '');
+  $('cl2').innerHTML = `<span class="tw"><span class="ext">${t2}</span><span class="face">${t2}</span></span>`;
+  $('cl3').textContent = c.subtitle || '';
+  $('cl4').textContent = c.detail || '';
+  $('cl6').textContent = c.footnote ?? disc[disc.length - 1] ?? '';
+}
+
+// ---------- template DOM ----------
+const POD = [{ cls: 'gold', w: 300, av: 92, nameSz: 33, ptsSz: 56 }, { cls: 'silver', w: 262, av: 88, nameSz: 30, ptsSz: 50 }, { cls: 'bronze', w: 258, av: 88, nameSz: 30, ptsSz: 50 }];
+const cards = [];
+let rows = [], items = [], tiles = [];
+const B = S.board || {};
+const podium = TPL === 'board' ? (B.podium || []).slice(0, 3) : [];
+if (TPL === 'board') {
+  podium.forEach((e, i) => {
+    const P = POD[i];
+    const el = document.createElement('div'); el.className = `card ${P.cls}`; el.style.width = P.w + 'px';
+    el.dataset.entry = 'podium-' + i; el.dataset.horse = e.horse ? '1' : '0';
+    el.innerHTML = `<div class="frame"><div class="inner" style="padding:${i === 0 ? 16 : 14}px 12px 12px">
+      <div class="av" style="width:${P.av + 8}px;height:${P.av + 8}px">${avatarHTML(e)}</div>
+      <div class="name" style="margin-top:12px">${esc(e.name)}</div>
+      <div class="badges" style="margin-top:7px">${badges(e)}</div>
+      <div class="pts" style="font-size:${P.ptsSz}px;margin-top:10px" data-v="${typeof e.value === 'number' ? e.value : ''}">${typeof e.value === 'number' ? '0' : valText(e.value)}</div>
+      <div class="lbl" style="margin-top:6px">${esc(B.value_label || '')}</div>${e.sub ? `<div class="lbl" style="margin-top:1px;color:#cfe2f5">${esc(e.sub)}</div>` : ''}
+    </div></div>`;
+    $('cards').appendChild(el); cards.push(el);
+  });
+  $('rows').innerHTML = (B.rows || []).slice(0, 7).map((e, i) => `<div class="row" data-entry="row-${i}" data-horse="${e.horse ? 1 : 0}"><div class="rin"><div class="rk"><span>${esc(e.rank_label)}</span></div><div class="rav">${avatarHTML(e)}</div>
+    <div class="rtxt"><div class="rname"><span class="nm">${esc(e.name)}</span>${badges(e)}</div><div class="rsub">${esc(e.sub || '')}</div></div>
+    <div class="rpts" data-v="${typeof e.value === 'number' ? e.value : ''}">${typeof e.value === 'number' ? '0' : valText(e.value)}</div></div></div>`).join('');
+  rows = [...document.querySelectorAll('.row')];
+  if (B.callout) {
+    const co = $('callout'); co.style.display = 'block'; co.style.top = (936 + rows.length * 62 + 12) + 'px';
+    co.innerHTML = `<div class="hin"><div class="rav">${avatarHTML(B.callout)}</div><div class="ct"><div class="tag">${esc(B.callout.tag || '')}</div><div class="txt">${esc(B.callout.text || '')}</div></div></div>`;
+  }
+} else if (TPL === 'list') {
+  const L = S.list || {};
+  $('list').innerHTML = (L.items || []).slice(0, 6).map((it, i) => {
+    const tags = (it.tags || []).map(tg => { const s = String(tg); const tone = /FREE/i.test(s) ? 'green' : /GTD|GUARANTEE/i.test(s) ? 'gold' : ''; return `<span class="tg ${tone}">${esc(s)}</span>`; }).join('');
+    const hasVal = it.value !== null && it.value !== undefined && it.value !== '';
+    return `<div class="item${it.highlight ? ' hl' : ''}" data-entry="item-${i}" data-horse="${it.horse ? 1 : 0}"><div class="iin">
+      <div class="time"><div><span class="t1">${esc(it.time || '')}</span>${it.time_sub ? `<span class="t2">${esc(it.time_sub)}</span>` : ''}</div></div>
+      <div class="itxt"><span class="ititle">${esc(it.title)}</span>${it.subtitle || it.horse || it.staff ? `<div class="isub"><span class="st">${esc(it.subtitle || '')}</span>${badges(it)}</div>` : ''}${tags ? `<div class="tags">${tags}</div>` : ''}</div>
+      ${hasVal ? `<div class="ival"><div class="v" data-v="${typeof it.value === 'number' ? it.value : ''}">${typeof it.value === 'number' ? '0' : valText(it.value)}</div><div class="vl">${esc(it.value_label || '')}</div></div>` : ''}
+    </div></div>`;
+  }).join('');
+  items = [...document.querySelectorAll('.item')];
+} else {
+  const T = S.stats || {};
+  $('stats').innerHTML = (T.tiles || []).slice(0, 6).map((tl, i) => `<div class="tile${tl.highlight ? ' gold' : ''}" data-entry="tile-${i}"><div class="tin">
+    <div class="tv" data-v="${typeof tl.value === 'number' ? tl.value : ''}">${typeof tl.value === 'number' ? '0' : valText(tl.value)}</div>
+    <div class="tl">${esc(tl.label)}</div>${tl.sub ? `<div class="ts">${esc(tl.sub)}</div>` : ''}</div></div>`).join('');
+  tiles = [...document.querySelectorAll('.tile')];
+}
+
+// ---------- load fonts and images, then fit text ----------
+await document.fonts.load('900 40px Orbitron'); await document.fonts.load('700 20px Rajdhani'); await document.fonts.load('600 20px Rajdhani'); await document.fonts.load('500 20px Rajdhani');
+await Promise.all([...document.images].map(im => im.complete ? 1 : new Promise(r => { im.onload = im.onerror = r; })));
+await document.fonts.ready;
+fitSingle($('eyebrow'), 34, 22);
+fitWidthFont($('title'), 120, 54, 850);
+{ // chips: shrink together until the row fits in 850 px
+  let s = 25; const ch = [...document.querySelectorAll('.chip span')];
+  while (s > 16 && $('chips').scrollWidth > 850) { s -= 1; ch.forEach(c => c.style.fontSize = s + 'px'); }
+}
+cards.forEach((el, i) => { const n = el.querySelector('.name'); fitLines(n, POD[i].nameSz, 20, 2); el.querySelectorAll('.lbl').forEach(l => fitSingle(l, 15, 12)); });
+rows.forEach(r => { fitSingle(r.querySelector('.nm'), 25, 19); fitSingle(r.querySelector('.rsub'), 15, 13); });
+items.forEach(it => { fitLines(it.querySelector('.ititle'), 34, 24, 1, 1.05); const st = it.querySelector('.isub .st'); if (st) fitSingle(st, 19, 15); });
+tiles.forEach(tl => { const v = tl.querySelector('.tv'); const vv = v.textContent; if (v.dataset.v) v.textContent = fmt(Number(v.dataset.v)); fitWidthFont(v, 72, 36, 380); v.textContent = vv; });
+if (HAS_CLOSE) { fitWidthFont($('cl2'), 98, 48, 854); fitWidthFont($('cl3'), 44, 26, 854); }
+if (B.callout) fitSingle(document.querySelector('#callout .txt'), 24, 18);
+
+// ---------- three.js stage ----------
+const renderer = new THREE.WebGLRenderer({ canvas: $('gl'), antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1); renderer.setSize(1080, 1920, false);
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
+const camera = new THREE.PerspectiveCamera(26, 1080 / 1920, 0.1, 200);
+const CAM0 = new THREE.Vector3(0, 3.0, 16), LOOK = new THREE.Vector3(0, 1.0, 0);
+camera.position.copy(CAM0); camera.lookAt(LOOK); camera.updateMatrixWorld(); camera.updateProjectionMatrix();
+scene.add(new THREE.AmbientLight(0x6080a0, 0.35));
+const key = new THREE.DirectionalLight(0xfff1d6, 2.2); key.position.set(-4, 9, 8); scene.add(key);
+const rim = new THREE.PointLight(0x00d4ff, 60, 30); rim.position.set(0, 3, -4); scene.add(rim);
+const spot = new THREE.SpotLight(0xffe2a0, 0, 30, 0.35, 0.6); spot.position.set(0, 12, 4); scene.add(spot); scene.add(spot.target);
+
+const D = 1.4, ZF = D / 2;
+function unprojectAt(sx, sy, z) {
+  const ndc = new THREE.Vector3(sx / 1080 * 2 - 1, -(sy / 1920 * 2 - 1), 0.5).unproject(camera);
+  const dir = ndc.sub(camera.position).normalize();
+  const k = (z - camera.position.z) / dir.z;
+  return camera.position.clone().add(dir.multiplyScalar(k));
+}
+const unproject = (sx, sy) => unprojectAt(sx, sy, ZF);
+const FLOOR_SY = TPL === 'board' ? 922 : 1262;
+let floorY = unproject(540, FLOOR_SY).y;
+
+// pedestals (board only): index 0 = 1st (center), 1 = 2nd (left), 2 = 3rd (right)
+const LAY = [[338, 638, 802], [70, 330, 822], [646, 900, 838]]; const BOTTOM = 922;
+const metal = [
+  new THREE.MeshPhysicalMaterial({ color: 0xd9a531, metalness: 1, roughness: 0.3, clearcoat: 0.8, clearcoatRoughness: 0.12, envMapIntensity: 1.0 }),
+  new THREE.MeshPhysicalMaterial({ color: 0xa9b4c2, metalness: 1, roughness: 0.28, clearcoat: 0.8, clearcoatRoughness: 0.12, envMapIntensity: 1.0 }),
+  new THREE.MeshPhysicalMaterial({ color: 0xb4703c, metalness: 1, roughness: 0.32, clearcoat: 0.7, clearcoatRoughness: 0.15, envMapIntensity: 1.0 })];
+const neon = new THREE.MeshStandardMaterial({ color: 0x002a35, emissive: 0x00d4ff, emissiveIntensity: 2.2, metalness: 0.2, roughness: 0.3 });
+const ped = [];
+const ttf = await new Promise((res, rej) => new TTFLoader().load('/fonts/Rajdhani-Bold.ttf', res, undefined, rej));
+const font = new Font(ttf);
+podium.forEach((e, i) => {
+  const [x0, x1, top] = LAY[i];
+  const a = unproject(x0, BOTTOM), b = unproject(x1, BOTTOM), c = unproject((x0 + x1) / 2, top);
+  const w = b.x - a.x, h = c.y - a.y; floorY = a.y;
+  const g = new THREE.Group(); g.position.set((a.x + b.x) / 2, a.y, 0);
+  const body = new THREE.Mesh(new RoundedBoxGeometry(w, h, D, 4, 0.06), metal[i]); body.position.y = h / 2; g.add(body);
+  const trim = new THREE.Mesh(new THREE.BoxGeometry(w * 0.92, 0.035, 0.02), neon); trim.position.set(0, h - 0.07, ZF + 0.005); g.add(trim);
+  const base = new THREE.Mesh(new RoundedBoxGeometry(w * 1.08, 0.12, D * 1.12, 3, 0.04), new THREE.MeshPhysicalMaterial({ color: 0x1a2738, metalness: 1, roughness: 0.35, envMapIntensity: 1 })); base.position.y = 0.06; g.add(base);
+  const label = String(e.rank_label || (i + 1));
+  const tg = new TextGeometry(label, { font, size: Math.min(h * 0.3, 0.46) * (label.length > 1 ? 0.8 : 1), height: 0.06, curveSegments: 6, bevelEnabled: true, bevelThickness: 0.015, bevelSize: 0.01, bevelSegments: 2 });
+  tg.computeBoundingBox(); const bb = tg.boundingBox; tg.translate(-(bb.max.x + bb.min.x) / 2, -(bb.max.y + bb.min.y) / 2, 0);
+  tg.computeBoundingBox(); const dh = tg.boundingBox.max.y - tg.boundingBox.min.y;
+  const m = new THREE.Mesh(tg, neon); m.position.set(0, 0.13 + dh / 2 + Math.max(0, (h - 0.2 - 0.13 - dh) / 2), ZF + 0.1); g.add(m);
+  scene.add(g); ped.push({ g, h, w });
+});
+// stage floor, ring and glow
+function radTex(inner, outer) { const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d'); const g = x.createRadialGradient(128, 128, 0, 128, 128, 128); g.addColorStop(0, inner); g.addColorStop(0.55, inner); g.addColorStop(1, outer); x.fillStyle = g; x.fillRect(0, 0, 256, 256); return new THREE.CanvasTexture(c); }
+const stage = new THREE.Mesh(new THREE.CircleGeometry(6.2, 96), new THREE.MeshPhysicalMaterial({ color: 0x04080f, metalness: 0.55, roughness: 0.42, clearcoat: 0.8, clearcoatRoughness: 0.2, envMapIntensity: 0.22, transparent: true, alphaMap: radTex('#ffffff', '#000000') }));
+stage.rotation.x = -Math.PI / 2; stage.position.set(0, floorY - 0.002, -1.2); scene.add(stage);
+const ring = new THREE.Mesh(new THREE.RingGeometry(4.5, 4.55, 128), new THREE.MeshBasicMaterial({ color: 0x00d4ff, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending, depthWrite: false }));
+ring.rotation.x = -Math.PI / 2; ring.position.set(0, floorY + 0.003, -1.2); scene.add(ring);
+const ring2 = new THREE.Mesh(new THREE.RingGeometry(3.1, 3.13, 128), new THREE.MeshBasicMaterial({ color: 0xffd27a, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
+ring2.rotation.x = -Math.PI / 2; ring2.position.set(0, floorY + 0.004, -1.2); scene.add(ring2);
+const glow = new THREE.Mesh(new THREE.PlaneGeometry(13, 5), new THREE.MeshBasicMaterial({ map: radTex('rgba(0,212,255,0.16)', 'rgba(0,212,255,0)'), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+glow.rotation.x = -Math.PI / 2; glow.position.set(0, floorY + 0.004, 0.4); scene.add(glow);
+const GLOW_K = TPL === 'board' ? 1 : 0.42;
+if (TPL !== 'board') { stage.scale.setScalar(0.72); ring.scale.setScalar(0.6); ring2.scale.setScalar(0.62); glow.scale.set(0.7, 0.55, 1); }
+// light beams
+function gradTex(stops) { const c = document.createElement('canvas'); c.width = 64; c.height = 256; const x = c.getContext('2d'); const g = x.createLinearGradient(0, 0, 0, 256); stops.forEach(([o, s]) => g.addColorStop(o, s)); x.fillStyle = g; x.fillRect(0, 0, 64, 256); x.globalCompositeOperation = 'destination-in'; const h = x.createLinearGradient(0, 0, 64, 0); h.addColorStop(0, 'rgba(0,0,0,0)'); h.addColorStop(0.5, 'rgba(0,0,0,1)'); h.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = h; x.fillRect(0, 0, 64, 256); return new THREE.CanvasTexture(c); }
+const beamTex = gradTex([[0, 'rgba(255,255,255,0.9)'], [0.35, 'rgba(255,255,255,0.35)'], [1, 'rgba(255,255,255,0)']]);
+const beams = [];
+for (let i = 0; i < 6; i++) {
+  const gold = i === 5 && TPL === 'board';
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 26), new THREE.MeshBasicMaterial({ map: beamTex, color: gold ? 0xffd27a : 0x00d4ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+  m.geometry.translate(0, -13, 0); const holder = new THREE.Group(); holder.position.set(i === 5 ? 0 : (i - 2) * 3.2, 15, i === 5 ? 1 : -9); holder.add(m); scene.add(holder);
+  beams.push({ holder, m, phase: i * 1.37, gold });
+}
+// particles (seeded, deterministic)
+let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const N = 340, pos = new Float32Array(N * 3), pbase = [];
+for (let i = 0; i < N; i++) pbase.push([rnd() * 20 - 10, rnd() * 16 - 3, rnd() * 12 - 9, rnd() * 0.25 + 0.05, rnd()]);
+const pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+const sc = document.createElement('canvas'); sc.width = sc.height = 64; const sx = sc.getContext('2d'); const sgr = sx.createRadialGradient(32, 32, 0, 32, 32, 32); sgr.addColorStop(0, 'rgba(255,255,255,1)'); sgr.addColorStop(0.25, 'rgba(160,235,255,0.8)'); sgr.addColorStop(1, 'rgba(0,212,255,0)'); sx.fillStyle = sgr; sx.fillRect(0, 0, 64, 64);
+const ptsObj = new THREE.Points(pg, new THREE.PointsMaterial({ size: 0.16, map: new THREE.CanvasTexture(sc), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, color: 0xbfefff }));
+scene.add(ptsObj);
+// gold sparks (board winner)
+const NS = 90, spos = new Float32Array(NS * 3), sbase = [];
+for (let i = 0; i < NS; i++) sbase.push([rnd() * Math.PI * 2, rnd() * 3 + 1, rnd() * 4 + 2, rnd()]);
+const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(spos, 3));
+const sparks = new THREE.Points(sg, new THREE.PointsMaterial({ size: 0.14, map: new THREE.CanvasTexture(sc), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, color: 0xffd36b, opacity: 0 }));
+scene.add(sparks);
+// 3D metallic poker chip, top right (decorative depth, no text)
+const chip = new THREE.Group();
+{
+  const r = 0.3, th = 0.07;
+  const bodyMat = new THREE.MeshPhysicalMaterial({ color: 0x0c1a2c, metalness: 0.9, roughness: 0.25, clearcoat: 1, clearcoatRoughness: 0.08, envMapIntensity: 1.2 });
+  const edgeMat = new THREE.MeshPhysicalMaterial({ color: 0xd9a531, metalness: 1, roughness: 0.22, clearcoat: 0.9, envMapIntensity: 1.2 });
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(r, r, th, 96), bodyMat); body.rotation.x = Math.PI / 2; chip.add(body);
+  for (let i = 0; i < 8; i++) {
+    const ins = new THREE.Mesh(new THREE.BoxGeometry(r * 0.3, th * 1.04, r * 0.05), i % 2 ? neon : edgeMat);
+    const a = i / 8 * Math.PI * 2; ins.position.set(Math.cos(a) * (r - r * 0.02), Math.sin(a) * (r - r * 0.02), 0); ins.rotation.z = a + Math.PI / 2; ins.rotation.x = Math.PI / 2; chip.add(ins);
+  }
+  for (const s of [1, -1]) {
+    const face = new THREE.Mesh(new THREE.RingGeometry(r * 0.56, r * 0.66, 96), edgeMat); face.position.z = s * (th / 2 + 0.002); if (s < 0) face.rotation.y = Math.PI; chip.add(face);
+    const core = new THREE.Mesh(new THREE.CircleGeometry(r * 0.5, 96), new THREE.MeshPhysicalMaterial({ color: 0x08121f, metalness: 0.8, roughness: 0.3, envMapIntensity: 0.9 })); core.position.z = s * (th / 2 + 0.003); if (s < 0) core.rotation.y = Math.PI; chip.add(core);
+    const spade = new THREE.Mesh(new THREE.CircleGeometry(r * 0.12, 48), neon); spade.position.z = s * (th / 2 + 0.005); if (s < 0) spade.rotation.y = Math.PI; chip.add(spade);
+  }
+  chip.position.copy(unprojectAt(958, 118, -1.5));
+  scene.add(chip);
+}
+
+const v3 = new THREE.Vector3();
+function toScreen(p) { v3.copy(p).project(camera); return [(v3.x + 1) / 2 * 1080, (1 - v3.y) / 2 * 1920]; }
+const PT = [3.6, 2.4, 1.2]; // board: podium index -> base start time (1st last)
+
+window.setTime = function (t) {
+  const tm = t * K;                                  // main timeline (base seconds)
+  const closeP = HAS_CLOSE ? eInOut(prog(t, CL, CL + 0.7)) : 0;
+  // camera: slow push and drift
+  const push = TPL === 'board'
+    ? 0.9 * eInOut(prog(tm, 0, 12.5)) + 0.35 * eOut(prog(tm, 3.6, 4.6)) - 0.35 * eInOut(prog(tm, 8, 12))
+    : 0.8 * eInOut(prog(tm, 0, BASE));
+  camera.position.set(0.12 * Math.sin(t * 0.45), CAM0.y - 0.15 * prog(t, 0, DUR), CAM0.z - push);
+  camera.lookAt(LOOK); camera.updateMatrixWorld();
+  ped.forEach((P, i) => {
+    const p = eBack(prog(tm, PT[i], PT[i] + (i === 0 ? 0.8 : 0.7)));
+    const s = Math.max(0.001, p * (1 - closeP));
+    P.g.scale.set(1, s, 1); P.g.visible = s > 0.02 && closeP < 0.98;
+  });
+  spot.intensity = TPL === 'board' ? 55 * eOut(prog(tm, 3.8, 4.4)) * (1 - closeP) : 0;
+  { const sp = eOut(prog(tm, 0.3, 1.5)) * (1 - closeP); stage.material.opacity = sp; ring.material.opacity = (TPL === 'board' ? 0.4 : 0.3) * sp * (0.8 + 0.2 * Math.sin(t * 2)); glow.material.opacity = sp * GLOW_K;
+    ring2.material.opacity = TPL === 'board' ? 0 : 0.28 * sp * (0.7 + 0.3 * Math.sin(t * 1.4 + 1)); ring2.rotation.z = t * 0.2; }
+  rim.intensity = 60 + 25 * Math.sin(t * 1.3);
+  for (const b of beams) {
+    const a = b.gold ? 0.55 * eOut(prog(tm, 3.9, 4.6)) * (1 - prog(tm, 7, 9) * 0.6) * (1 - closeP)
+      : (0.11 + 0.04 * Math.sin(t * 0.9 + b.phase)) * eOut(prog(t, 0.2, 1.4)) * (1 + closeP * 1.4);
+    b.m.material.opacity = a; b.holder.rotation.z = b.gold ? 0 : Math.sin(t * 0.35 + b.phase) * 0.32;
+  }
+  for (let i = 0; i < N; i++) { const [x, y, z, sp, ph] = pbase[i]; pos[i * 3] = x + Math.sin(t * 0.3 + ph * 9) * 0.3; pos[i * 3 + 1] = ((y + 3 + t * sp) % 16) - 3; pos[i * 3 + 2] = z; }
+  pg.attributes.position.needsUpdate = true;
+  if (ped.length) {
+    const st = tm - 4.05; sparks.material.opacity = st > 0 ? clamp(1 - st / 2.4) * (1 - closeP) : 0;
+    const top1 = ped[0].g.position.y + ped[0].h;
+    for (let i = 0; i < NS; i++) { const [ang, r, v, ph] = sbase[i]; const tt = Math.max(0, st); const rr = r * eOut(clamp(tt / 1.2)); spos[i * 3] = Math.cos(ang) * rr * 0.6; spos[i * 3 + 1] = top1 + 1.6 + Math.sin(ang) * rr * 0.6 - 1.2 * tt * tt * (0.5 + ph); spos[i * 3 + 2] = ZF + 0.4; }
+    sg.attributes.position.needsUpdate = true;
+  }
+  { const cp = eBack(prog(t, 0.2, 1.2)); chip.scale.setScalar(Math.max(0.001, cp * (1 - closeP)));
+    chip.rotation.set(0.35 + 0.1 * Math.sin(t * 0.7), t * 0.9, 0.18); }
+  renderer.render(scene, camera);
+
+  // ---------- HTML layer ----------
+  const ui = $('ui');
+  ui.style.opacity = 1 - closeP; ui.style.transform = `scale(${1 - 0.05 * closeP})`; ui.style.filter = closeP > 0 ? `blur(${closeP * 8}px)` : 'none';
+  const hp = eOut(prog(tm, 0, 0.9));
+  $('logo').style.opacity = hp; $('logo').style.transform = `translateY(${(1 - hp) * -24}px)`;
+  $('logoShine').style.backgroundPosition = `${-60 + 220 * prog(tm, 0.5, 1.5)}% 0`;
+  const tp = eOut(prog(tm, 0.25, 1.1));
+  $('eyebrow').style.opacity = tp;
+  $('title').style.opacity = tp; $('title').style.transform = `perspective(800px) rotateX(${(1 - tp) * 40}deg)`;
+  const sw = $('title').querySelector('.sweep'); if (sw) sw.style.backgroundPosition = `${-60 + 220 * (prog(tm, 0.9, 2.0) + prog(tm, BASE * 0.69, BASE * 0.69 + 1.2))}% 0`;
+  const cp = eOut(prog(tm, 0.6, 1.3)); $('chips').style.opacity = cp; $('chips').style.transform = `translateY(${(1 - cp) * 16}px)`;
+  $('footer').style.opacity = eOut(prog(tm, 0.8, 1.6));
+
+  if (TPL === 'board') {
+    cards.forEach((el, i) => {
+      const P = ped[i];
+      const [px, py] = toScreen(new THREE.Vector3(P.g.position.x, P.g.position.y + P.h * P.g.scale.y, ZF));
+      const w = POD[i].w;
+      el.style.left = (px - w / 2) + 'px'; el.style.top = (py - el.offsetHeight - 4) + 'px';
+      const a = eOut(prog(tm, PT[i] + 0.25, PT[i] + 0.75));
+      el.style.opacity = a; el.style.transform = `perspective(900px) rotateX(${(1 - a) * 25}deg) scale(${0.9 + 0.1 * a})`;
+      const c0 = PT[i] + 0.35, cd = i === 0 ? 1.5 : 1.0;
+      countUp(el.querySelector('.pts'), eOut(prog(tm, c0, c0 + cd)));
+      const sh = -1.2 + 2.6 * prog(tm, c0 + cd - 0.1, c0 + cd + 0.6) + 2.6 * prog(tm, 9.6 + (i + 1) * 0.15, 10.3 + (i + 1) * 0.15);
+      el.querySelector('.inner').style.setProperty('--sh', sh > 1.4 ? -1.2 + (sh - 2.6) : sh);
+    });
+    if (cards.length) {
+      const c1 = cards[0]; const cx = parseFloat(c1.style.left) + POD[0].w / 2, cy = parseFloat(c1.style.top);
+      const cr = prog(tm, 4.0, 4.55); const crown = $('crown');
+      crown.style.left = (cx - 62) + 'px'; crown.style.top = (cy - 92 - (1 - eBounce(cr)) * 140) + 'px';
+      crown.style.opacity = cr > 0 ? 1 : 0; crown.style.transform = `rotate(${Math.sin(t * 1.6) * 2}deg)`;
+      const bu = $('burst'); bu.style.left = (cx - 380) + 'px'; bu.style.top = (cy + 120 - 380) + 'px';
+      bu.style.opacity = 0.9 * eOut(prog(tm, 4.1, 4.8)); bu.style.transform = `rotate(${t * 14}deg)`;
+      const fl = $('flash'); fl.style.left = (cx - 450) + 'px'; fl.style.top = (cy + 60 - 450) + 'px';
+      const fp = prog(tm, 4.15, 4.75); fl.style.opacity = fp > 0 && fp < 1 ? Math.sin(fp * Math.PI) * 0.85 : 0;
+    } else { $('burst').style.opacity = 0; $('flash').style.opacity = 0; }
+    rows.forEach((row, i) => {
+      const t0 = 5.4 + 0.22 * i; const p = eOut(prog(tm, t0, t0 + 0.5));
+      row.style.opacity = p; row.style.transform = `rotateX(${(1 - p) * -85}deg) translateY(${(1 - p) * 26}px)`;
+      countUp(row.querySelector('.rpts'), eOut(prog(tm, t0 + 0.1, t0 + 0.7)));
+      const s2 = 10.4 + i * 0.08;
+      row.querySelector('.rin').style.setProperty('--sh', -1.2 + 2.6 * prog(tm, t0 + 0.4, t0 + 1.0) + (tm > s2 ? 2.6 * prog(tm, s2, s2 + 0.6) - 2.6 * (tm > s2 + 0.6 ? 1 : 0) : 0));
+    });
+    const ct = 5.4 + 0.22 * rows.length + 0.3;
+    const hpp = eOut(prog(tm, ct, ct + 0.55)); const hm = $('callout'); hm.style.opacity = hpp; hm.style.transform = `translateY(${(1 - hpp) * 30}px) scale(${0.96 + 0.04 * hpp})`;
+  } else {
+    $('burst').style.opacity = 0; $('flash').style.opacity = 0;
+  }
+  if (TPL === 'list') {
+    items.forEach((it, i) => {
+      const t0 = 1.0 + 0.2 * i; const p = eOut(prog(tm, t0, t0 + 0.55));
+      it.style.opacity = p; it.style.transform = `translateX(${(1 - p) * 120}px) rotateY(${(1 - p) * -38}deg)`;
+      const v = it.querySelector('.ival .v'); if (v) countUp(v, eOut(prog(tm, t0 + 0.15, t0 + 0.85)));
+      const s2 = BASE * 0.7 + i * 0.09;
+      it.querySelector('.iin').style.setProperty('--sh', -1.2 + 2.6 * prog(tm, t0 + 0.35, t0 + 0.95) + (tm > s2 ? 2.6 * prog(tm, s2, s2 + 0.6) - 2.6 * (tm > s2 + 0.6 ? 1 : 0) : 0));
+    });
+  }
+  if (TPL === 'stats') {
+    tiles.forEach((tl, i) => {
+      const t0 = 1.0 + 0.22 * i; const p = eBack(prog(tm, t0, t0 + 0.6)); const a = eOut(prog(tm, t0, t0 + 0.4));
+      tl.style.opacity = a; tl.style.transform = `rotateX(${(1 - clamp(p)) * 70}deg) scale(${0.85 + 0.15 * p})`;
+      countUp(tl.querySelector('.tv'), eOut(prog(tm, t0 + 0.2, t0 + 1.2)));
+      const s2 = BASE * 0.72 + i * 0.1;
+      tl.querySelector('.tin').style.setProperty('--sh', -1.2 + 2.6 * prog(tm, t0 + 0.6, t0 + 1.2) + (tm > s2 ? 2.6 * prog(tm, s2, s2 + 0.6) - 2.6 * (tm > s2 + 0.6 ? 1 : 0) : 0));
+    });
+  }
+  // closing
+  const cl = $('closing'); cl.style.opacity = closeP;
+  if (HAS_CLOSE) {
+    const cs = eBack(prog(t, CL + 0.2, CL + 0.9)); $('crest').style.transform = `scale(${0.6 + 0.4 * cs}) rotate(${(1 - cs) * -12}deg)`;
+    ['cl1', 'cl2', 'cl3', 'cl4', 'cl5', 'cl6'].forEach((id, k) => { const q = eOut(prog(t, CL + 0.45 + k * 0.1, CL + 0.95 + k * 0.1)); $(id).style.opacity = q; $(id).style.transform = `translateY(${(1 - q) * 22}px)`; });
+  }
+};
+window.setTime(0);
+window.__ready = true;
+</script>
+</body></html>
