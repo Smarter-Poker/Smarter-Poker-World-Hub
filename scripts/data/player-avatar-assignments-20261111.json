@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "assignments": [
+    {
+      "username": "Twin2983",
+      "profileId": "2e8073d8-ada2-4576-a879-02b9532a858e",
+      "file": "avatars/table/custom_twin2983_532ff2c9e09d@2x.webp",
+      "sha256": "532ff2c9e09d0cbc58c63124ed1f42b3f7b158ee143efe5707719e5c96538d0f",
+      "bounds": {
+        "left": 28,
+        "top": 51,
+        "width": 455,
+        "height": 455
+      }
+    },
+    {
+      "username": "Farmboy13",
+      "profileId": "8b07f77b-d922-4f55-9e77-05146f78efeb",
+      "file": "avatars/table/custom_farmboy13_bc51f3d69429@2x.webp",
+      "sha256": "bc51f3d69429d5ee801ae103cd4907a31acd02225c9842c8bea6c66fbd4cff22",
+      "bounds": {
+        "left": 28,
+        "top": 51,
+        "width": 455,
+        "height": 455
+      }
+    }
+  ]
+}
