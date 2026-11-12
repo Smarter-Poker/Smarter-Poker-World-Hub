@@ -967,3 +967,29 @@ test('without the house figures report the rows say so instead of showing 0 or c
     const ok = await loadHouseFigures({ rpc: async (name, args) => ({ data: name === 'fn_sp_digest_house_figures' && args.p_day === '2026-11-10' ? HOUSE_FIGURES : null, error: null }) }, '2026-11-10');
     assert.deepEqual(ok, HOUSE_FIGURES);
 });
+
+test('Daily, Weekly and Monthly Update titles name the Chicago day, the rolling seven days and the month to date with dates', async () => {
+    const { updatePeriodTitles } = await import('../src/lib/dailyDigest/render.mjs');
+    const t = updatePeriodTitles({ day: '2026-11-10' });
+    assert.equal(t.day, 'Daily Update: Tue, Nov 10 (Chicago Day)');
+    assert.equal(t.week, 'Weekly Update: Nov 4 To Nov 10 (Rolling 7 Days)');
+    assert.equal(t.month, 'Monthly Update: Nov 1 To Nov 10 (Month To Date)');
+    // the week crosses a month boundary and the first of the month is its own month to date
+    const m = updatePeriodTitles({ day: '2026-12-01' });
+    assert.equal(m.week, 'Weekly Update: Nov 25 To Dec 1 (Rolling 7 Days)');
+    assert.equal(m.month, 'Monthly Update: Dec 1 To Dec 1 (Month To Date)');
+    // the DST change (Nov 1) never moves a calendar date
+    assert.equal(updatePeriodTitles({ day: '2026-11-07' }).week, 'Weekly Update: Nov 1 To Nov 7 (Rolling 7 Days)');
+    for (const v of Object.values(t)) assert.ok(!/[–—]/.test(v), 'no em or en dashes');
+
+    const d = fixture({ day: '2026-11-10', day_label: 'Tuesday, Nov 10' });
+    const html = buildHtml(d);
+    const text = buildText(d);
+    for (const title of Object.values(t)) {
+        assert.ok(html.includes(title), `html has ${title}`);
+        assert.ok(text.includes(title.toUpperCase()), `text has ${title}`);
+    }
+    assert.ok(html.indexOf(t.day) < html.indexOf(t.week) && html.indexOf(t.week) < html.indexOf(t.month));
+    // no date means no invented range
+    assert.deepEqual(updatePeriodTitles({}), { day: 'Daily Update', week: 'Weekly Update', month: 'Monthly Update' });
+});

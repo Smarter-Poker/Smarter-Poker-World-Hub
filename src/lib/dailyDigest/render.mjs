@@ -387,6 +387,35 @@ function listCard(title, rows) {
 }
 
 /**
+ * Period boundaries in the card titles (Dan 2026-11-11): the day is the
+ * Chicago calendar day, the week is the rolling seven Chicago days ending on
+ * it, and the month is the month to date. Every figure in those cards uses
+ * exactly these windows (fn_sp_daily_digest, loadWeeklySummary and
+ * fn_sp_digest_house_figures all read report day - 6 and the month start).
+ */
+function isoShort(iso, withWeekday = false) {
+    const d = new Date(`${iso}T12:00:00Z`);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', ...(withWeekday ? { weekday: 'short' } : {}) });
+}
+function shiftIso(iso, days) {
+    const d = new Date(`${iso}T12:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + days);
+    return d.toISOString().slice(0, 10);
+}
+export function updatePeriodTitles(digest) {
+    const day = typeof digest?.day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(digest.day) ? digest.day : null;
+    if (!day || !isoShort(day)) return { day: 'Daily Update', week: 'Weekly Update', month: 'Monthly Update' };
+    const weekFrom = shiftIso(day, -6);
+    const monthFrom = `${day.slice(0, 8)}01`;
+    return {
+        day: `Daily Update: ${isoShort(day, true)} (Chicago Day)`,
+        week: `Weekly Update: ${isoShort(weekFrom)} To ${isoShort(day)} (Rolling 7 Days)`,
+        month: `Monthly Update: ${isoShort(monthFrom)} To ${isoShort(day)} (Month To Date)`,
+    };
+}
+
+/**
  * Daily Update, Weekly Update, and Monthly Update (Dan 2026-11-09):
  * Directly below Needs Your Attention, render Daily Update, Weekly Update,
  * and Monthly Update in that exact order.
@@ -598,9 +627,10 @@ export function buildHtml(digest, opts = {}) {
     body += attentionHtml(digest);
 
     // Daily Update, Weekly Update, then Monthly Update directly below Needs Your Attention
-    body += listCard('Daily Update', dailyUpdateRows(digest));
-    body += listCard('Weekly Update', weeklyUpdateRows(digest));
-    body += listCard('Monthly Update', monthlyUpdateRows(digest));
+    const periods = updatePeriodTitles(digest);
+    body += listCard(periods.day, dailyUpdateRows(digest));
+    body += listCard(periods.week, weeklyUpdateRows(digest));
+    body += listCard(periods.month, monthlyUpdateRows(digest));
 
     body += playerTotalsCard(digest, opts);
     body += playerPeriodCards(digest);
@@ -1018,11 +1048,12 @@ export function buildText(digest, opts = {}) {
         lines.push(`- ${shortTitle(it.title)} [${STATUS_LABEL[it.status] || 'Not Yet Picked Up'}]${it.resolution ? ` - ${String(it.resolution).slice(0, 160)}` : ''}`);
         for (const line of alertFixLines(it)) lines.push(`    ${line}`);
     }
-    lines.push('', 'DAILY UPDATE');
+    const periods = updatePeriodTitles(digest);
+    lines.push('', periods.day.toUpperCase());
     for (const [label, value, sub] of dailyUpdateRows(digest)) lines.push(`${label}: ${value}${sub ? `  (${sub})` : ''}`);
-    lines.push('', 'WEEKLY UPDATE');
+    lines.push('', periods.week.toUpperCase());
     for (const [label, value, sub] of weeklyUpdateRows(digest)) lines.push(`${label}: ${value}${sub ? `  (${sub})` : ''}`);
-    lines.push('', 'MONTHLY UPDATE');
+    lines.push('', periods.month.toUpperCase());
     for (const [label, value, sub] of monthlyUpdateRows(digest)) lines.push(`${label}: ${value}${sub ? `  (${sub})` : ''}`);
     lines.push(...playerTotalsText(digest));
     for (const [title, rows] of spinsSpendRows(digest)) {
