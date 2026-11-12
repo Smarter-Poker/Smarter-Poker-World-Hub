@@ -79,6 +79,13 @@ export async function loadHouseFigures(sb, day, retry = {}) {
     } catch (err) { return { day, error: String(err?.message || err) }; }
 }
 
+export async function loadDailyResults(sb, day, retry = {}) {
+    try {
+        const { data, error } = await rpcWithRetry(sb, 'fn_sp_digest_daily_results', { p_day: day }, retry);
+        return error ? { day, error: error.message } : (data || { day, error: 'Report unavailable' });
+    } catch (err) { return { day, error: String(err?.message || err) }; }
+}
+
 /** One Needs Your Attention line naming every event funded over or under. */
 export function fundingOffTitle(f) {
     const off = Array.isArray(f.off) ? f.off : [];
@@ -270,11 +277,22 @@ export async function loadDigestData(sb, day, { withCosts = true, dispatch = tru
     const signups = await loadSignups(sb, day, withBudget);
     const freeBuyFunding = await loadFreeBuyFunding(sb, day, withBudget);
     const houseFigures = await loadHouseFigures(sb, day, withBudget);
+    const dailyResults = await loadDailyResults(sb, day, withBudget);
     if (digest && playerTotals) digest.player_totals = playerTotals;
     if (digest) digest.spins_spend = spinsSpend;
     if (digest) digest.signups = signups;
     if (digest) digest.free_buy_funding = freeBuyFunding;
     if (digest) digest.house_figures = houseFigures;
+    if (digest) digest.daily_results = dailyResults;
+    if (digest && (dailyResults?.error || dailyResults?.reconciliation?.status !== 'balanced')) {
+        digest.attention = Array.isArray(digest.attention) ? digest.attention : [];
+        digest.attention.push({ rule: 'daily_chip_reconciliation', severity: 'critical', status: 'not_picked_up',
+            title: dailyResults?.error ? 'Daily chip reconciliation could not be verified'
+                : 'Daily chip reconciliation has discrepancies; see Daily Update', dispatch: false });
+        if (digest.attention_status && typeof digest.attention_status === 'object') {
+            digest.attention_status.not_picked_up = Number(digest.attention_status.not_picked_up || 0) + 1;
+        }
+    }
     // The Free Buy funding watch already raised a Production Alert for each
     // event; this is the same fact in the morning email, so it is not sent again.
     if (digest && freeBuyFunding && !freeBuyFunding.error

@@ -461,6 +461,47 @@ export function horseCashRow(h, bbSub) {
 
 const HORSE_BB_FALLBACK_SUB = 'Big blinds summed across all stakes and tournaments, UTC days; includes the rake and BBJ the horses pay the house, so it is not a chip loss';
 
+/** Recorded results and accounting checks share the email and online layout. */
+export function dailyResultsRows(digest) {
+    const r = digest?.daily_results;
+    if (!r || r.error || !r.results || !r.reconciliation) return [
+        ['Horse Tournament Result (Chips)', 'Unavailable', 'Daily results could not be verified'],
+        ['Human Cash / Tournament Result (Chips)', 'Unavailable', 'Kingfish inclusion and chip reconciliation could not be verified'],
+        ['Daily Chip Reconciliation', 'UNVERIFIED', 'Report Unavailable'],
+    ];
+    const rows = [];
+    for (const [cohort, label] of [['horses', 'Horse'], ['humans', 'Human'], ['unknown', 'Unknown Account']]) {
+        for (const [kind, game] of [['cash', 'Cash'], ['tournament', 'Tournament']]) {
+            const x = r.results[kind]?.[cohort];
+            if (cohort === 'unknown' && !Number(x?.players)) continue;
+            rows.push([`${label} ${game} Result (Chips)`, x?.net == null ? 'Unavailable' : fmtSigned(x.net),
+                x?.wins == null || x?.losses == null ? 'Win/loss breakdown unavailable'
+                    : `Wins ${fmtNum(x.wins)}; losses ${fmtNum(x.losses)}; ${fmtInt(x.players)} players${cohort === 'humans' ? '; includes Kingfish' : ''}${kind === 'tournament' ? '; posted entry costs and payouts, not tournament play stacks' : ''}`]);
+        }
+    }
+    const k = r.kingfish;
+    rows.push(['Kingfish Result (Included In Human Totals)', k?.included === true && k.cash_net != null && k.tournament_net != null
+        ? fmtSigned(Number(k.cash_net) + Number(k.tournament_net)) : 'Unavailable',
+    k?.included === true ? `Cash ${fmtSigned(k.cash_net)}; tournament ${fmtSigned(k.tournament_net)}; counted once` : 'Inclusion unverified']);
+    const c = r.reconciliation;
+    rows.push(['Cash Reconciliation', c.cash_residual == null ? 'UNVERIFIED' : fmtSigned(c.cash_residual),
+        `Cash results + rake ${fmtNum(c.cash_rake)} + BBJ ${fmtNum(c.bbj)}; expected 0; ${fmtInt(c.incomplete_cash_hands)} incomplete hands`],
+    ['Rake + BBJ + Wins - Losses', c.raw_residual == null ? 'Unavailable' : fmtSigned(c.raw_residual),
+        'Raw cash and tournament calendar-day balance, before prize liabilities and funding movements'],
+    ['Tournament Prize Liability Change', c.prize_liability_change == null ? 'Unavailable' : fmtSigned(c.prize_liability_change),
+        'Increase in chips held for prizes across midnight; a decrease is negative'],
+    ['Other Tournament Funding Movements', c.other_prize_movements == null ? 'Unavailable' : fmtSigned(c.other_prize_movements),
+        'Net outward ticket, spin, promotion and other non-player prize-liability movements; inward funding is negative']);
+    const t = r.tournament_settlements;
+    rows.push(['Tournament Settlement Verification', t ? `${fmtInt(t.unbalanced)} discrepancies / ${fmtInt(t.checked)} checked` : 'UNVERIFIED',
+        t ? `Absolute drift ${fmtNum(t.absolute_drift)}; independent event check for completed/cancelled paid non-spin tournaments` : 'Independent settlement check unavailable']);
+    rows.push(['Daily Chip Reconciliation', c.status === 'balanced' && c.accounted_residual === 0 && t && t.unbalanced === 0
+        ? 'BALANCED: 0' : c.status === 'unverified' ? 'UNVERIFIED' : `DISCREPANCY: ${c.accounted_residual == null ? 'Unavailable' : fmtSigned(c.accounted_residual)}`,
+        'Raw balance + prize liability change + other tournament funding; expected 0. Verifies recorded game flows and checked settlements; every wallet balance is not certified by this check.'],
+    ['Result Basis', 'Chicago Day / Chips', 'Wins and losses are positive and negative player net results by game type. Diamond Arena excluded. Rake and BBJ are already included in player net; they are added back once for reconciliation.']);
+    return rows;
+}
+
 export function dailyUpdateRows(digest) {
     const m = digest?.metrics || {};
     const cashRake = Number(get(m, 'money.cash_rake')) || 0;
@@ -474,7 +515,7 @@ export function dailyUpdateRows(digest) {
         ['Rakeback Paid', fmtNum(get(m, 'money.rakeback_paid')), ''],
         ['Real Player Signups', fmtInt(get(m, 'growth.signups')), `${fmtInt(get(m, 'growth.active_humans'))} active real players`],
         ['Hands Dealt', fmtInt(get(m, 'play.hands')), `Cash ${fmtInt(get(m, 'play.hands_cash'))}, tournament ${fmtInt(get(m, 'play.hands_tournament'))}`],
-        horse,
+        ...(digest?.daily_results ? dailyResultsRows(digest) : [horse, ...dailyResultsRows(digest)]),
         ['Diamonds Given Out / Taken In', `${fmtInt(get(m, 'diamonds.given_out'))} / ${fmtInt(get(m, 'diamonds.taken_in'))}`, ''],
         ['Chips Minted / Burned', `${fmtNum(get(m, 'money.minted'))} / ${fmtNum(get(m, 'money.burned'))}`, ''],
     ];
