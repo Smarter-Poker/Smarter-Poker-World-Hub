@@ -495,7 +495,7 @@ def train(args) -> None:
     manifest=load_manifest(args.manifest,expected_checksum=args.manifest_sha256,input_root=args.input_root,pipeline_root=args.pipeline_root)
     need(manifest.raw.get('policy_representation')=='public_hist215_v1',"explicit nine-file public215 pipeline")
     # The registered round is checked before partition, labels or any fit.
-    verify_round_registration(pinned_json(args.registration,args.registration_sha256),manifest.raw)
+    verify_round_registration(pinned_json(args.registration,args.registration_sha256),manifest.raw,manifest_checksum=manifest.checksum)
     expected,contexts=declared_m1_targets(manifest)
     validate_public_partition(manifest,expected,contexts)
     capture=pinned_json(args.capture_index,args.capture_index_sha256);rows=validate_capture_index(capture,manifest,expected)
