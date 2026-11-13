@@ -20,6 +20,9 @@ REPORT_TRANSITIONS = (
     ('supabase/migrations/20261112140952_digest_daily_chip_reconciliation.sql', '122ad1c93b827f7f6eb7bdcb613f16a30f88d7d02fe4811fddd438b6d6e858b3'),
     ('supabase/migrations/20261112141236_digest_daily_results_bounded_plan.sql', '3e5c3830e6245d575e0964558ccf75a8bc39637bc5f474124a6f37a4a2f65270'),
     ('supabase/migrations/20261112141734_digest_daily_chip_supply_verification.sql', '0304ddce853ff9dc12e4ff1e0c9b953a13e1f457da3e4d17e9107b12ecac9458'),
+    ('supabase/migrations/20261113154407_digest_tournaments_reconcile_on_start_day.sql', 'cc3614b127a23375bb85f098dfa91186ba1a340921c740e452eb08b238cf69ca'),
+    ('supabase/migrations/20261113154919_digest_start_day_index_ranges.sql', '4340469bf0fc9389fa17d937125e5d124c10587fddc029adbfa692e8b0667f42'),
+    ('supabase/migrations/20261113160502_digest_start_day_primary_key_probe.sql', '3678a9ca026854fe7375be9bc3e34908d12cace9f566fad7d20f94a0bb4bed60'),
 )
 MARKETPLACE_TRANSITIONS = (('supabase/migrations/20261031191337_signup_audit_checks_auth_triggers_by_name.sql', '16618b0db7ce11823bdfe685af7b3253976354dfcb099d13b4b926434a679021'), ('supabase/migrations/20261102011118_marketplace_whole_dollar_prices.sql', '8183a4285311c4e74d4e39e4e376ccc53b0dea3aba4fce8b1e2809b3b496f663'),)
 MARKETPLACE_PREFIX = 'Marketplace PostgreSQL qualification passed: '

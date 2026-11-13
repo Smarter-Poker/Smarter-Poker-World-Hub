@@ -487,7 +487,7 @@ export function dailyResultsRows(digest) {
     rows.push(['Cash Reconciliation', c.cash_residual == null ? 'UNVERIFIED' : fmtSigned(c.cash_residual),
         `Cash results + rake ${fmtNum(c.cash_rake)} + BBJ ${fmtNum(c.bbj)}; expected 0; ${fmtInt(c.incomplete_cash_hands)} incomplete hands`],
     ['Rake + BBJ + Wins - Losses', c.raw_residual == null ? 'Unavailable' : fmtSigned(c.raw_residual),
-        'Raw cash and tournament calendar-day balance, before prize liabilities and funding movements'],
+        'Raw cash and tournament balance, tournaments counted on the Chicago day they started, before prize liabilities and funding movements'],
     ['Tournament Prize Liability Change', c.prize_liability_change == null ? 'Unavailable' : fmtSigned(c.prize_liability_change),
         'Increase in chips held for prizes across midnight; a decrease is negative'],
     ['Other Tournament Funding Movements', c.other_prize_movements == null ? 'Unavailable' : fmtSigned(c.other_prize_movements),
@@ -511,12 +511,13 @@ export function dailyUpdateRows(digest) {
     const tourneyRake = Number(get(m, 'money.tournament_rake')) || 0;
     const horse = horseCashRow(digest?.house_figures?.horse_cash?.day, 'engine tally for the UTC day')
         || ['Horse Net Result (BB, UTC Day)', fmtNum(get(m, 'play.horse_net_bb')), HORSE_BB_FALLBACK_SUB];
+    // Dan 2026-11-13: Real Player Signups is the first line under Needs Your Attention.
     return [
+        ['Real Player Signups', fmtInt(get(m, 'growth.signups')), `${fmtInt(get(m, 'growth.active_humans'))} active real players`],
         ['Revenue', fmtUsd(get(m, 'sales.revenue_usd')), ''],
         ['Rake (Cash + Tournament)', fmtNum(cashRake + tourneyRake), `Cash ${fmtNum(cashRake)}, tournament and spin ${fmtNum(tourneyRake)}`],
         bbjRakeRow(digest, 'day'),
         ['Rakeback Paid', fmtNum(get(m, 'money.rakeback_paid')), ''],
-        ['Real Player Signups', fmtInt(get(m, 'growth.signups')), `${fmtInt(get(m, 'growth.active_humans'))} active real players`],
         ['Hands Dealt', fmtInt(get(m, 'play.hands')), `Cash ${fmtInt(get(m, 'play.hands_cash'))}, tournament ${fmtInt(get(m, 'play.hands_tournament'))}`],
         ...(digest?.daily_results ? dailyResultsRows(digest) : [horse, ...dailyResultsRows(digest)]),
         ['Diamonds Given Out / Taken In', `${fmtInt(get(m, 'diamonds.given_out'))} / ${fmtInt(get(m, 'diamonds.taken_in'))}`, ''],

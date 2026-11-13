@@ -3,7 +3,7 @@ CREATE TABLE chip_ledger(from_type text,to_type text,from_entity_id uuid,to_enti
 CREATE TABLE bbj_contributions(club_id uuid,amount numeric,created_at timestamptz);
 ALTER TABLE profiles ADD COLUMN username text;
 ALTER TABLE ca_hand_facts ADD COLUMN players_dealt smallint DEFAULT 2;
-CREATE TABLE tournaments(id uuid,club_id uuid);
+CREATE TABLE tournaments(id uuid,club_id uuid,started_at timestamptz,start_time timestamptz,created_at timestamptz);
 CREATE TABLE settlement_fixture(id uuid,name text,variant text,ended_at timestamptz,delta numeric);
 CREATE FUNCTION fn_tournament_conservation_deltas(timestamptz,timestamptz) RETURNS SETOF settlement_fixture LANGUAGE sql AS $$SELECT * FROM settlement_fixture WHERE ended_at>$1 AND ended_at<$2$$;
 -- Existing house fixture contains unrelated incomplete cash facts. Use an independent population.

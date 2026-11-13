@@ -1035,3 +1035,15 @@ test('daily result failures raise attention, successful read stays serial and no
     assert.equal(digest.attention.find(x => x.rule === 'daily_chip_reconciliation').dispatch, false);
     assert.match(buildHtml(digest), /UNVERIFIED/);
 });
+
+test('Real Player Signups is the first line under Needs Your Attention (Dan 2026-11-13)', async () => {
+    const { dailyUpdateRows } = await import('../src/lib/dailyDigest/render.mjs');
+    const d = fixture();
+    assert.equal(dailyUpdateRows(d)[0][0], 'Real Player Signups');
+    const text = buildText(d);
+    const daily = text.slice(text.indexOf('DAILY UPDATE'));
+    assert.match(daily.split('\n')[1], /^Real Player Signups: /);
+    const html = buildHtml(d, { email: true });
+    const after = html.slice(html.indexOf('Daily Update:'));
+    assert.ok(after.indexOf('Real Player Signups') < after.indexOf('Revenue'), 'signups lead the daily card');
+});
