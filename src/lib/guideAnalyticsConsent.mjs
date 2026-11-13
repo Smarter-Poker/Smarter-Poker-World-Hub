@@ -1,6 +1,8 @@
 // Only explicit, session-scoped consent may load this isolated guide SDK.
 const CHOICE = 'smarter-guide-analytics';
-const SAFE = new Set(['topic', 'language', 'source', 'destination', 'helpful', '$session_id', 'distinct_id', '$process_person_profile']);
+// `token` is the public ingestion key required by the SDK transport, never
+// the server-only reporting credential. Removing it makes the SDK drop events.
+const SAFE = new Set(['token', 'topic', 'language', 'source', 'destination', 'helpful', '$session_id', 'distinct_id', '$process_person_profile']);
 export function privacyAllows(browser) {
   return !!browser && String(browser.navigator?.doNotTrack) !== '1'
     && String(browser.doNotTrack) !== '1' && browser.navigator?.globalPrivacyControl !== true;
