@@ -59,7 +59,7 @@ land as steps inside `club-stats-maintenance` rather than as new routes.
 | `17 */6` | `cleanup-expired-stories` | Genuine | `fn_cleanup_expired_stories`. TTL garbage collection. |
 | `03:30` | `cleanup-orphan-uploads` | Genuine | Deletes storage objects no row references. |
 | `*/5` | `cleanup-stale-streams` | Genuine | `fn_auto_end_stale_streams`, `fn_cleanup_stale_viewers`, `fn_mark_feed_post_ended`. Ends streams whose broadcaster vanished; no disconnect event exists to do it. |
-| `*/15` | `club-stats-maintenance` | Genuine | Player-to-hand index, `ca_roll_hand_stats_forward`, `ca_refresh_stat_distribution`. See the section below. |
+| `*/15` | `club-stats-maintenance` | Genuine | Player-to-hand index, `ca_roll_hand_stats_forward`, `ca_refresh_stat_distribution`. Skips every step while the daily maintenance break row exists or `fn_platform_frozen()` is true (2026-11-13: its 04:00 run blocked two window migrations). See the section below. |
 | `*/5` | `live-cleanup` | Genuine | `cleanup_zombie_streams`. |
 | `*/5` | `live-reminders` | Genuine | Sends reminders that have come due; `fn_cleanup_stale_scheduled_lives`. |
 | `* * * * *` | `push-dispatch` | Genuine + **Compensation** | `claim_push_outbox_batch` is an outbox drain and is genuine. `requeue_stuck_push_outbox` is compensation; measured below. |

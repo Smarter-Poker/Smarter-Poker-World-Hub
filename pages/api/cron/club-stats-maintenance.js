@@ -85,6 +85,28 @@ export const config = { maxDuration: 300 };
 const HANDLER_BUDGET_SECONDS = 90;
 const RESPONSE_RESERVE_SECONDS = 15;
 
+/**
+ * 'break' while the daily maintenance break is announced, counting down or not
+ * yet thawed (its single engine_maintenance_break row exists) or while
+ * fn_platform_frozen() reports a freeze; 'clear' when neither holds; otherwise
+ * the read error. Never folds an unreadable answer into 'clear'.
+ */
+async function dailyBreakState(admin) {
+  try {
+    const signal = AbortSignal.timeout(10_000);
+    const [row, frozen] = await Promise.all([
+      admin.from('engine_maintenance_break').select('phase').limit(1).abortSignal(signal),
+      admin.rpc('fn_platform_frozen').abortSignal(signal),
+    ]);
+    if (row.error) return `engine_maintenance_break: ${row.error.message}`;
+    if (frozen.error) return `fn_platform_frozen: ${frozen.error.message}`;
+    if (!Array.isArray(row.data) || typeof frozen.data !== 'boolean') return 'maintenance state answered in an unexpected shape';
+    return row.data.length > 0 || frozen.data === true ? 'break' : 'clear';
+  } catch (e) {
+    return `maintenance state: ${e?.message || e}`;
+  }
+}
+
 async function handler(req, res) {
   if (!validateCronAuth(req)) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -97,6 +119,34 @@ async function handler(req, res) {
   }
 
   const started = Date.now();
+
+  // ── THE DAILY MAINTENANCE BREAK BELONGS TO THE MIGRATIONS ─────────────────
+  // Open Claw fires this route at :00, :15, :30 and :45, so one run always
+  // lands at 04:00 America/Chicago, inside the five-minute daily break whose
+  // only database work is the window migrations. On 2026-11-13 this route's
+  // ca_roll_hand_stats_forward() call had held AccessShareLock on
+  // public.tournaments for 17.9 s at 10:00:28Z, and both window migrations
+  // that needed public.tournaments / public.tournament_players were refused
+  // with 55P03 (stage-engine-release run 43366032752). The break row exists
+  // from the 03:58 announcement until thaw; fn_platform_frozen() also covers a
+  // release boundary. While either says so, this run does none of its steps:
+  // every step is idempotent and its readers compute live what has not been
+  // rolled, so the next run catches up. A state that cannot be read is not
+  // "no break": the run refuses and records a failed heartbeat.
+  const breakState = await dailyBreakState(admin);
+  if (breakState !== 'clear') {
+    const skipped = breakState === 'break';
+    const body = skipped
+      ? { status: 'skipped', reason: 'maintenance_break', duration_ms: Date.now() - started }
+      : { status: 'failed', reason: 'maintenance_state_unreadable', error: breakState, duration_ms: Date.now() - started };
+    const { error: hbErr } = await admin
+      .from('probe_heartbeats')
+      .insert({ probe_name: 'club-stats-maintenance', status: body.status, duration_ms: body.duration_ms, details: body })
+      .abortSignal(AbortSignal.timeout(RESPONSE_RESERVE_SECONDS * 1000));
+    if (hbErr) console.warn('[club-stats-maintenance] heartbeat write failed:', hbErr.message);
+    return res.status(skipped ? 200 : 503).json(body);
+  }
+
   const handlerDeadline = started + HANDLER_BUDGET_SECONDS * 1000;
   const optionalWorkDeadline = handlerDeadline - RESPONSE_RESERVE_SECONDS * 1000;
   const result = {

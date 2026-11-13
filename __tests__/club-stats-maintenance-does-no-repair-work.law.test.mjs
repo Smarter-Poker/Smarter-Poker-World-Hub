@@ -65,7 +65,7 @@ const ANSWERS = {
   ca_refresh_stat_distribution: { refreshed: true },
 };
 
-async function runHandler() {
+async function runHandler({ breakRows = [], frozen = false, breakError = null } = {}) {
   assert.ok(vm.SourceTextModule, 'run with node --experimental-vm-modules, as build-safety-gate CHECK 8 does');
   const calls = { rpc: [], heartbeats: [], unexpected: [] };
   const fail = (message) => {
@@ -75,12 +75,20 @@ async function runHandler() {
   const admin = {
     rpc(name, args) {
       calls.rpc.push({ name, args: args ?? null });
+      if (name === 'fn_platform_frozen') {
+        return { abortSignal: () => Promise.resolve({ data: frozen, error: null }) };
+      }
       const answer = Object.hasOwn(ANSWERS, name)
         ? { data: ANSWERS[name], error: null }
         : { data: null, error: { message: `this law's database does not answer ${name}` } };
       return { abortSignal: () => Promise.resolve(answer) };
     },
     from(table) {
+      if (table === 'engine_maintenance_break') {
+        calls.breakReads = (calls.breakReads ?? 0) + 1;
+        const answer = breakError ? { data: null, error: { message: breakError } } : { data: breakRows, error: null };
+        return { select: () => ({ limit: () => ({ abortSignal: () => Promise.resolve(answer) }) }) };
+      }
       if (table !== 'probe_heartbeats') return fail(`Unexpected table: ${table}`);
       return {
         insert(row) {
@@ -132,12 +140,46 @@ test('a run makes exactly the periodic calls, and none of the repairs', async ()
   const { calls, res } = await runHandler();
   const names = calls.rpc.map((c) => c.name);
   assert.deepEqual(names.filter((n) => REPAIRS.includes(n)), [], 'a repair was scheduled from this route');
-  assert.deepEqual(names, PERIODIC, 'the periodic steps run, in order, and nothing else does');
+  assert.deepEqual(names, ['fn_platform_frozen', ...PERIODIC], 'the break check, then the periodic steps in order, and nothing else');
   assert.equal(res.statusCode, 200, JSON.stringify(res.body));
   assert.equal(res.body.status, 'ok', JSON.stringify(res.body.errors));
   assert.equal(calls.heartbeats.length, 1, 'every run still records its heartbeat');
   assert.equal(calls.heartbeats[0].probe_name, 'club-stats-maintenance');
   assert.equal(calls.heartbeats[0].status, 'ok');
+});
+
+// ---------------------------------------------------------------------------
+// The daily maintenance break belongs to the window migrations.
+// 2026-11-13: this route's 04:00 run held public.tournaments for 17.9 s and
+// two window migrations were refused (stage-engine-release run 43366032752).
+// ---------------------------------------------------------------------------
+
+test('an announced or running daily break skips every step and records skipped', async () => {
+  for (const breakRows of [[{ phase: 'last_hand' }], [{ phase: 'counting_down' }]]) {
+    const { calls, res } = await runHandler({ breakRows });
+    const names = calls.rpc.map((c) => c.name);
+    assert.deepEqual(names.filter((n) => PERIODIC.includes(n)), [], `a step ran during ${breakRows[0].phase}`);
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.status, 'skipped');
+    assert.equal(res.body.reason, 'maintenance_break');
+    assert.equal(calls.heartbeats.length, 1);
+    assert.equal(calls.heartbeats[0].status, 'skipped');
+  }
+});
+
+test('a platform freeze without a break row (release boundary) also skips', async () => {
+  const { calls, res } = await runHandler({ frozen: true });
+  assert.deepEqual(calls.rpc.map((c) => c.name), ['fn_platform_frozen']);
+  assert.equal(res.body.status, 'skipped');
+});
+
+test('an unreadable break state is not treated as clear', async () => {
+  const { calls, res } = await runHandler({ breakError: 'permission denied' });
+  assert.deepEqual(calls.rpc.map((c) => c.name).filter((n) => PERIODIC.includes(n)), [], 'a step ran without knowing the break state');
+  assert.equal(res.statusCode, 503);
+  assert.equal(res.body.status, 'failed');
+  assert.equal(res.body.reason, 'maintenance_state_unreadable');
+  assert.equal(calls.heartbeats[0].status, 'failed');
 });
 
 // ---------------------------------------------------------------------------
