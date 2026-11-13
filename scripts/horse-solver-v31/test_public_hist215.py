@@ -364,7 +364,8 @@ class FeatureContractV2Tests(unittest.TestCase):
         self.assertFalse(set(c.V2_APPENDED) & set(v1["feature_order"]))
         self.assertEqual(c.feature_contract("holdem-public-hist215-v1"), (c.FEATURE_DESCRIPTOR_SHA256, 215))
         self.assertEqual(c.feature_contract("holdem-public-hist215-v2"), (c.FEATURE_DESCRIPTOR_V2_SHA256, 246))
-        for unknown in (None, "holdem-public-hist215-v3", "rank-suit-count-v1"):
+        # v3 exists since cell contract v3 (FeatureContractV3Tests); v4 does not.
+        for unknown in (None, "holdem-public-hist215-v4", "rank-suit-count-v1"):
             with self.assertRaises(ContractError):
                 c.feature_contract(unknown)
 
@@ -387,18 +388,41 @@ class FeatureContractV2Tests(unittest.TestCase):
                 admit(bad)
         admit(model(215, c.FEATURE_DESCRIPTOR_SHA256, node(214)))
 
-    def test_manifest_pipeline_identity_accepts_exactly_v1_and_v2(self):
+    def test_manifest_pipeline_identity_accepts_exactly_v1_v2_and_v3(self):
         import contract
         base = {"pipeline_contract_version": contract.PUBLIC215_PIPELINE_CONTRACT, "policy_representation": "public_hist215_v1",
                 "policy_export_schema": "smarter-poker.pio-policy.v4", "public215_contexts": [], "public215_template_files": [],
                 "public215_protocols": {}, "public215_protocol_files": {}}
-        for version in ("holdem-public-hist215-v1", "holdem-public-hist215-v2"):
+        for version in ("holdem-public-hist215-v1", "holdem-public-hist215-v2", "holdem-public-hist215-v3"):
             self.assertEqual(contract.required_pipeline_files({**base, "feature_contract_version": version}), contract.PUBLIC215_PIPELINE_FILES)
-        for version in ("holdem-public-hist215-v3", "holdem-board-relative-v2"):
+        for version in ("holdem-public-hist215-v4", "holdem-board-relative-v2"):
             with self.assertRaises(ContractError):
                 contract.required_pipeline_files({**base, "feature_contract_version": version})
         with self.assertRaises(ContractError):  # never inferred: a public215 field needs the explicit pipeline contract
             contract.required_pipeline_files({"feature_contract_version": "holdem-public-hist215-v2"})
+
+
+class FeatureContractV3Tests(unittest.TestCase):
+    """holdem-public-hist215-v3 (cell contract v3): v2 plus the overbet facing bucket and the donk role, nothing else."""
+
+    def test_v3_is_v2_plus_the_appended_block_and_its_digest_is_pinned(self):
+        import public_hist215 as c
+        v2 = c.maintained_feature_descriptor(c.FEATURE_CONTRACT_V2)
+        v3 = c.maintained_feature_descriptor(c.FEATURE_CONTRACT_V3)
+        self.assertEqual(digest(v2), "c37e7aa2b2dde3f71cde7d224594de637ab66c928c6dffd94661fec3f7ac80c4")
+        # Club Arena GtoPublicHist215Contracts.PUBLIC_HIST215_V3_FEATURE_SCHEMA_SHA256 pins the same digest.
+        self.assertEqual(digest(v3), "26d9271d8b1b1b2400476e9cb1c22662e0086bf5111b1f2e1ce7281ef131b784")
+        self.assertEqual(c.FEATURE_DESCRIPTOR_V3_SHA256, digest(v3))
+        self.assertEqual(v3["feature_order"][:246], v2["feature_order"])
+        self.assertEqual(v3["feature_order"][246:], ["facing_size_bucket=big", "node_role=donk"])
+        self.assertEqual(v3["feature_count"], 248)
+        self.assertEqual(v3["predecessor_schema_sha256"], c.FEATURE_DESCRIPTOR_V2_SHA256)
+        same = lambda d: {k: v for k, v in d.items() if k not in ("feature_order", "feature_count", "feature_groups", "format", "predecessor_schema_sha256")}
+        self.assertEqual(same(v3), same(v2))
+        self.assertEqual(c.feature_contract("holdem-public-hist215-v3"), (c.FEATURE_DESCRIPTOR_V3_SHA256, 248))
+        self.assertEqual(c.FEATURE_COUNT_BY_SCHEMA[c.FEATURE_DESCRIPTOR_V3_SHA256], 248)
+        self.assertFalse({"facing_size_bucket=big", "node_role=donk"} & set(v2["feature_order"]))
+        self.assertEqual(v3["feature_groups"][-1], {"count": 2, "name": "v3_appended_public_categories", "offset": 246})
 
 
 if __name__ == "__main__":

@@ -31,6 +31,30 @@ BET = re.compile(r"^b([1-9][0-9]{0,78})$")
 STREETS = ("flop", "turn", "river")
 OPEN_ROLES = {"open", "cbet", "probe", "delayed_cbet", "barrel"}
 
+# V31 cell contract v3 (2026-11-13, dormant until a scenario declares it).
+# A scenario that declares "cell_contract": "v3" is keyed by 15 fields: the 13
+# v2 fields plus "cell_contract" and "line_class", the whole public betting
+# line before the node with each wager reduced to its size bucket. Two
+# different bet sizes on one line therefore never share a cell unless they
+# fall in the same bucket, and then build_cell_provenance refuses the tree
+# (one registered cell, one public history). v3 also adds the 200 bb depth
+# bucket and the "donk" role (an open node that leads into the previous
+# street's aggressor, including the flop root r:0 when the in-position player
+# raised preflop). Club Arena GtoDecisionContext / GtoPostflopV31 mirror this.
+# A scenario without the declaration is v2 and behaves exactly as before.
+CELL_CONTRACT_V3 = "v3"
+V2_DEPTH_BUCKETS = (10, 20, 40, 80, 150)
+V3_DEPTH_BUCKETS = (10, 20, 40, 80, 150, 200)
+
+
+def scenario_cell_contract(scenario: dict[str, Any]) -> str | None:
+    """None for a v2 scenario (no declaration); "v3" for a v3 scenario; anything else refused."""
+    if "cell_contract" not in scenario:
+        return None
+    if scenario["cell_contract"] != CELL_CONTRACT_V3:
+        raise PioError("scenario cell_contract must be v3 when declared")
+    return CELL_CONTRACT_V3
+
 
 class PioError(RuntimeError):
     """The solver process or its output violated the certified contract."""
@@ -471,7 +495,16 @@ def analyze_node(
     root_pot_chips: int,
     effective_stack_chips: int,
     preflop_aggressor: int | None,
+    cell_contract: str | None = None,
 ) -> NodeLine:
+    """Reconstruct the public line of a Pio node.
+
+    `cell_contract` "v3" names a lead into the previous street's aggressor
+    (including the flop root after an in-position preflop raise) as role
+    "donk"; without it (v2) such a node is refused, exactly as before.
+    """
+    if cell_contract not in (None, CELL_CONTRACT_V3):
+        raise PioError("unknown cell contract")
     tokens = node.split(":")
     if len(tokens) < 2 or tokens[:2] != ["r", "0"]:
         raise PioError("node must begin at r:0")
@@ -646,6 +679,8 @@ def analyze_node(
                 role = "cbet"
             elif previous_aggressor is None:
                 role = "open"
+            elif cell_contract == CELL_CONTRACT_V3:
+                role = "donk"
             else:
                 raise PioError("unsupported donk-lead node was not mislabeled as open")
         else:
@@ -654,7 +689,9 @@ def analyze_node(
             if previous_aggressor == actor:
                 role = "barrel"
             elif previous_aggressor is not None:
-                raise PioError("unsupported donk-lead node was not mislabeled as open")
+                if cell_contract != CELL_CONTRACT_V3:
+                    raise PioError("unsupported donk-lead node was not mislabeled as open")
+                role = "donk"
             elif not previous_checked:
                 raise PioError("prior street has no proven check-through")
             elif older_aggressor == actor:
@@ -686,6 +723,82 @@ def analyze_node(
         older_street_aggressor=older_aggressor,
         cumulative_line=tuple(cumulative_line),
     )
+
+
+LINE_CLASS_V3 = re.compile(
+    r"^(?:(?:x|c|a|[br]-(?:small|mid|big))(?:\.(?:x|c|a|[br]-(?:small|mid|big)))*)?"
+    r"(?:/(?:(?:x|c|a|[br]-(?:small|mid|big))(?:\.(?:x|c|a|[br]-(?:small|mid|big)))*)?){0,2}$")
+
+
+def line_class_v3(node: str, *, root_pot_chips: int, effective_stack_chips: int) -> str:
+    """The v3 cell-key line: every public action before `node`, size-bucketed.
+
+    Streets are separated by "/" (a turn node has one, a river node two) and
+    actions within a street by ".". Tokens: x check, c call, b-<bucket> bet,
+    r-<bucket> raise, a any wager that reaches the effective stack. Buckets are
+    _bucket's (small < 0.6, mid < 1.1, big >= 1.1) on the same denominators as
+    the facing bucket: a bet over the pot before it, a raise increment over the
+    pot after the raiser calls. The flop root is the empty line. The node must
+    also pass analyze_node; this function only names the line.
+    """
+    tokens = node.split(":")
+    if len(tokens) < 2 or tokens[:2] != ["r", "0"]:
+        raise PioError("node must begin at r:0")
+    if type(root_pot_chips) is not int or type(effective_stack_chips) is not int or root_pot_chips <= 0 or effective_stack_chips <= 0:
+        raise PioError("line class needs positive integer pot and stack")
+    pot = float(root_pot_chips)
+    contributions, total, street_start = [0, 0], [0, 0], [0, 0]
+    actor, current_target, wager = 0, 0, False
+    streets: list[list[str]] = [[]]
+    for token in tokens[2:]:
+        if CARD.fullmatch(token):
+            if len(streets) >= 3:
+                raise PioError("node has more than three streets")
+            streets.append([])
+            actor, current_target, wager = 0, 0, False
+            contributions = [0, 0]
+            street_start = list(total)
+            continue
+        if token == "f":
+            raise PioError("a fold is terminal and cannot be a decision-node ancestor")
+        if token == "c":
+            if wager:
+                delta = current_target - contributions[actor]
+                contributions[actor] += delta
+                total[actor] += delta
+                pot += delta
+                wager = False
+                streets[-1].append("c")
+            else:
+                streets[-1].append("x")
+            actor = 1 - actor
+            continue
+        match = BET.fullmatch(token)
+        if not match:
+            raise PioError(f"node contains an unsupported token: {token}")
+        target = int(match.group(1)) - street_start[actor]
+        actor_total_target = contributions[actor] + effective_stack_chips - total[actor]
+        if target <= contributions[actor] or (wager and target <= current_target) or target > actor_total_target:
+            raise PioError("node wager target does not advance legal action")
+        if target == actor_total_target:
+            streets[-1].append("a")
+        elif wager:
+            denominator = pot + current_target - contributions[actor]
+            if denominator <= 0:
+                raise PioError("facing-raise denominator is not positive")
+            streets[-1].append("r-" + _bucket((target - current_target) / denominator))
+        else:
+            streets[-1].append("b-" + _bucket(target / pot))
+        delta = target - contributions[actor]
+        contributions[actor] = target
+        total[actor] += delta
+        pot += delta
+        current_target, wager = target, True
+        actor = 1 - actor
+    line = "/".join(".".join(street) for street in streets)
+    if not LINE_CLASS_V3.fullmatch(line):
+        raise PioError("line class is malformed")
+    return line
 
 
 def texture_class(board: str) -> str:
@@ -1080,11 +1193,13 @@ def target_context(scenario: dict[str, Any], target: dict[str, Any]) -> dict[str
     except ContractError as error:
         raise PioError(str(error)) from error
     _node_board_matches(target, scenario)
+    contract = scenario_cell_contract(scenario)
     line = analyze_node(
         target["node"],
         root_pot_chips=scenario["pot_chips"],
         effective_stack_chips=scenario["effective_stack_chips"],
         preflop_aggressor=scenario["preflop_aggressor_solver_player"],
+        cell_contract=contract,
     )
     expected = (target["node_role"], target["facing_kind"], target["facing_size_bucket"])
     actual = (line.node_role, line.facing_kind, line.facing_size_bucket)
@@ -1105,6 +1220,10 @@ def target_context(scenario: dict[str, Any], target: dict[str, Any]) -> dict[str
         "node_role": line.node_role,
         "facing_kind": line.facing_kind,
         "facing_size_bucket": line.facing_size_bucket,
+        **({"cell_contract": CELL_CONTRACT_V3,
+            "line_class": line_class_v3(target["node"], root_pot_chips=scenario["pot_chips"],
+                                        effective_stack_chips=scenario["effective_stack_chips"])}
+           if contract == CELL_CONTRACT_V3 else {}),
     }
 
 
@@ -1134,7 +1253,8 @@ def complete_node_state(scenario: dict[str, Any], target: dict[str, Any], *,
             "root_pot_chips", "payout_per_chip")}
     line = analyze_node(target["node"], root_pot_chips=root,
                         effective_stack_chips=stack,
-                        preflop_aggressor=scenario["preflop_aggressor_solver_player"])
+                        preflop_aggressor=scenario["preflop_aggressor_solver_player"],
+                        cell_contract=scenario_cell_contract(scenario))
     actor, stage, pot, bet, increment = 0, 0, root, 0, bb
     contributions, spent, history = [0, 0], [0, 0], []
     street_start = [0, 0]
@@ -1214,6 +1334,7 @@ def harvest_node(
         root_pot_chips=scenario["pot_chips"],
         effective_stack_chips=scenario["effective_stack_chips"],
         preflop_aggressor=scenario["preflop_aggressor_solver_player"],
+        cell_contract=scenario_cell_contract(scenario),
     )
     node = target["node"]
     children = parse_children(pio(f"show_children {node}"), node)

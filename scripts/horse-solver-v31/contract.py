@@ -73,7 +73,7 @@ PUBLIC215_PIPELINE_FILES = REQUIRED_PIPELINE_FILES | {
     "scripts/horse-solver-v31/final_public215_training.py",
 }
 PUBLIC215_MANIFEST_FIELDS = {"pipeline_contract_version", "policy_representation", "public215_contexts", "public215_template_files", "public215_protocols", "public215_protocol_files"}
-PUBLIC215_FEATURE_CONTRACT_VERSIONS = frozenset({"holdem-public-hist215-v1", "holdem-public-hist215-v2"})
+PUBLIC215_FEATURE_CONTRACT_VERSIONS = frozenset({"holdem-public-hist215-v1", "holdem-public-hist215-v2", "holdem-public-hist215-v3"})
 FEATURE_CONTRACT_VERSIONS = frozenset({"rank-suit-count-v1", "holdem-board-relative-v2"}) | PUBLIC215_FEATURE_CONTRACT_VERSIONS
 
 
@@ -832,6 +832,9 @@ def _validate_target(raw: Any, scenario: dict[str, Any], index: int) -> dict[str
     facing = target["facing_kind"]
     bucket = target["facing_size_bucket"]
     open_roles = {"open", "cbet", "probe", "delayed_cbet", "barrel"}
+    # Cell contract v3 adds the lead into the previous street's aggressor.
+    if scenario.get("cell_contract") == "v3":
+        open_roles = open_roles | {"donk"}
     response_roles = {"facing_bet", "facing_raise", "check_raise", "bet_raise", "all_in"}
     if role not in open_roles | response_roles:
         raise ContractError(f"target[{index}] node role is invalid")
@@ -869,7 +872,7 @@ def _validate_scenario(
     icm_models: dict[str, dict[str, Any]],
     verify_inputs: bool,
 ) -> dict[str, Any]:
-    keys = SCENARIO_KEYS | ({"purpose", "conditional_root_action", "conditional_history", "range_construction", "subgame_inputs"} & set(raw) if isinstance(raw, dict) else set())
+    keys = SCENARIO_KEYS | ({"purpose", "conditional_root_action", "conditional_history", "range_construction", "subgame_inputs", "cell_contract"} & set(raw) if isinstance(raw, dict) else set())
     scenario = _exact_keys(raw, keys, f"scenarios[{index}]")
     if scenario.get("purpose", "harvest") not in ("harvest", "self_test"):
         raise ContractError(f"scenarios[{index}].purpose must be harvest or self_test")
@@ -906,7 +909,11 @@ def _validate_scenario(
         or scenario["oop_position"] == scenario["ip_position"]
     ):
         raise ContractError(f"scenarios[{index}] positions are invalid")
-    if scenario["depth_bucket"] not in {10, 20, 40, 80, 150}:
+    # Cell contract v3 (declared per scenario, absent = v2) adds the 200 bb
+    # bucket; a v2 scenario keeps exactly the v2 bucket set.
+    if "cell_contract" in scenario and scenario["cell_contract"] != "v3":
+        raise ContractError(f"scenarios[{index}].cell_contract must be v3 when declared")
+    if scenario["depth_bucket"] not in ({10, 20, 40, 80, 150, 200} if "cell_contract" in scenario else {10, 20, 40, 80, 150}):
         raise ContractError(f"scenarios[{index}].depth_bucket is invalid")
     if scenario["pot_type"] not in {"limped", "srp", "3bet", "4bet_plus"}:
         raise ContractError(f"scenarios[{index}].pot_type is invalid")
@@ -1069,11 +1076,12 @@ def tree_available_actions(scenario: dict[str, Any], node: str) -> list[int]:
     passive action even when no line spells it out can only raise the count,
     so a decision is never mistaken for a one-action step.
     """
-    from pio_upi import CARD, PioError, analyze_node
+    from pio_upi import CARD, PioError, analyze_node, scenario_cell_contract
     try:
         line = analyze_node(node, root_pot_chips=scenario["pot_chips"],
                             effective_stack_chips=scenario["effective_stack_chips"],
-                            preflop_aggressor=scenario["preflop_aggressor_solver_player"]).cumulative_line
+                            preflop_aggressor=scenario["preflop_aggressor_solver_player"],
+                            cell_contract=scenario_cell_contract(scenario)).cumulative_line
     except (PioError, ValueError, TypeError) as error:
         raise ContractError(f"invalid node {node}: {error}") from error
     # Chips each solver seat has put in since the root, before each action
@@ -1152,12 +1160,13 @@ def validate_conditional_history(scenario: dict[str, Any]) -> tuple[int, ...] | 
     if assumption["target_node"] != target["node"] or target["node"] == "r:0":
         raise ContractError("conditional history must end exactly before its non-root target")
     # Lazy import uses the actual chronology owner without a second node parser.
-    from pio_upi import PioError, analyze_node, target_context
+    from pio_upi import PioError, analyze_node, scenario_cell_contract, target_context
     try:
         target_context(scenario, target)
         line = analyze_node(target["node"], root_pot_chips=scenario["pot_chips"],
                             effective_stack_chips=scenario["effective_stack_chips"],
-                            preflop_aggressor=scenario["preflop_aggressor_solver_player"])
+                            preflop_aggressor=scenario["preflop_aggressor_solver_player"],
+                            cell_contract=scenario_cell_contract(scenario))
     except (PioError, ValueError, TypeError) as error:
         raise ContractError(f"invalid conditional history: {error}") from error
     prefix = line.cumulative_line
