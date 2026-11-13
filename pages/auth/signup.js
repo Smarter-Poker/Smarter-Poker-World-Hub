@@ -22,7 +22,7 @@ import {
   referralMetadata,
   refFromRedirect,
 } from '../../src/lib/pendingSignupCodes.mjs';
-import { firstTouchMetadata } from '../../src/lib/acquisition/firstTouch.mjs';
+import { firstTouchMetadata, beginOAuthAttribution, withAttributionNonce } from '../../src/lib/acquisition/firstTouch.mjs';
 import { Mail } from 'lucide-react';
 import { getAccessToken } from '../../src/lib/authUtils';
 import SignupWelcome from '../../src/components/auth/SignupWelcome';
@@ -462,10 +462,13 @@ export default function SignUpPage() {
     }
 
     try {
+      // Bind any campaign to THIS flow: a single-use nonce the callback must
+      // echo back (src/lib/acquisition/firstTouch.mjs).
+      const attributionNonce = beginOAuthAttribution();
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: withAttributionNonce(`${window.location.origin}/auth/callback`, attributionNonce),
           queryParams: provider === 'google' ? { prompt: 'select_account' } : undefined,
           // Supabase's Facebook default is `email` alone - no name, no avatar,
           // which is why an OAuth signup's username fell through to Player<N>.

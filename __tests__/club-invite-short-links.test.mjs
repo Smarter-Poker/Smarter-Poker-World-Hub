@@ -164,7 +164,7 @@ test('switching between signup and login keeps redirect and invite', () => {
 test('magic link and OAuth sign-in return through the callback to the redirect target', () => {
     const login = read('pages/auth/login.js');
     assert.match(login, /emailRedirectTo: callbackUrl\(\)/);
-    assert.match(login, /redirectTo: callbackUrl\(\)/);
+    assert.match(login, /redirectTo: (?:withAttributionNonce\()?callbackUrl\(\)/);
     assert.match(login, /\?next=\$\{encodeURIComponent\(target\)\}/);
     assert.doesNotMatch(login, /redirectTo: `\$\{window\.location\.origin\}\/auth\/callback`/);
     const cb = read('pages/auth/callback.js');

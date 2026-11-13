@@ -248,7 +248,7 @@ test('mobile unread badges keep the notification bell visible and the number rea
   assert.match(header, /font-size: clamp\(7px, 1vw, 10px\)/);
 });
 
-test('all 277 Hub page modules own the shared header or inherit the app-root fallback', () => {
+test('all 278 Hub page modules own the shared header or inherit the app-root fallback', () => {
   const files = walk(join(root, 'pages/hub'));
   const filesByRoute = new Map(files.map((file) => [pageRoute(file), file]));
   const fallbackBlock = appRoot.match(
@@ -274,7 +274,7 @@ test('all 277 Hub page modules own the shared header or inherit the app-root fal
 
   // Individual membership and gift product modules inherit the shared store header.
   // Preserve the complete route inventory and the same uncovered/duplicate assertions.
-  assert.equal(files.length, 277);
+  assert.equal(files.length, 278);
   assert.deepEqual(uncovered, []);
   assert.deepEqual(duplicateHeaders, []);
   assert.match(appRoot, /!trainingPageOwnsHeader && <UniversalHeader/);

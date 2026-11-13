@@ -575,10 +575,10 @@ test('the digest is loaded once for all recipients and the reports do not race t
     } };
     const data = await loadDigestData(sb, '2026-10-28', { withCosts: false, dispatch: false });
     assert.equal(maxInflight, 1, 'one database read at a time');
-    assert.deepEqual(order, ['fn_sp_daily_digest', 'fn_sp_digest_player_report', 'fn_sp_digest_spins_spend', 'fn_sp_digest_signups', 'fn_sp_digest_free_buy_funding']);
+    assert.deepEqual(order, ['fn_sp_daily_digest', 'fn_sp_digest_player_report', 'fn_sp_digest_spins_spend', 'fn_sp_digest_signups', 'fn_sp_digest_free_buy_funding', 'fn_sp_digest_house_figures', 'fn_sp_digest_daily_results']);
     const a = renderDigest('2026-10-28', data, { recipientName: 'Ann' });
     const b = renderDigest('2026-10-28', data, { recipientName: 'Bob' });
-    assert.equal(order.length, 5, 'rendering for a second admin reads nothing');
+    assert.equal(order.length, 7, 'rendering for a second admin reads nothing');
     assert.match(a.html, /Ann/); assert.match(b.html, /Bob/);
     const fs = await import('node:fs');
     const route = fs.readFileSync(new URL('../pages/api/cron/daily-digest.js', import.meta.url), 'utf8');
@@ -633,7 +633,7 @@ test('the signed online view executes the shared serial loader without dispatchi
         await handler({ method: 'GET', query: { t: 'fixture' } }, res);
         assert.equal(maxInFlight, 1, 'online reports must not compete for the database');
         assert.deepEqual(options, { withCosts: false, dispatch: false });
-        assert.deepEqual(order, ['fn_sp_daily_digest', 'fn_sp_digest_player_report', 'fn_sp_digest_spins_spend', 'fn_sp_digest_signups', 'fn_sp_digest_free_buy_funding']);
+        assert.deepEqual(order, ['fn_sp_daily_digest', 'fn_sp_digest_player_report', 'fn_sp_digest_spins_spend', 'fn_sp_digest_signups', 'fn_sp_digest_free_buy_funding', 'fn_sp_digest_house_figures', 'fn_sp_digest_daily_results']);
         assert.equal(res.code, 200);
         assert.equal(res.headers['Cache-Control'], 'no-store');
         assert.match(res.body, /Real Player Totals/i);
@@ -653,12 +653,15 @@ test('explicit live verification rejects wrong revisions and broken sections wit
     const fetchImpl = async (url, opts) => {
         calls.push([url, opts]);
         return url.endsWith('/api/health') ? Response.json({ version: sha, deploymentId: 'fixture' }) : response('Daily Update Weekly Update Monthly Update Real Player Totals Diamond Spins Free Buy And Guarantee Funding'
+            + ' Horse Cash Result (Chips) Horse Tournament Result (Chips) Human Cash Result (Chips) Human Tournament Result (Chips) Kingfish Result (Included In Human Totals) Daily Chip Reconciliation BALANCED: 0</tr><tr>Chip Supply Verification BALANCED: 0</tr>'
             + '<div>Tournament.finish: 1,301 of 1,309 verified fixed (Fix: receipt &lt;safe&gt;)</div>'
             + '<div>CriticalPage.midway_free_buy_missing: 2 of 2 verified fixed</div>');
     };
     try {
         const report = await verifyDigestLive({ day: '2026-10-28', expectedSha: sha, fetchImpl });
         assert.equal(report.playerTotals, 'rendered');
+        assert.equal(report.chipReconciliation, 'balanced');
+        assert.equal(report.kingfishIncluded, true);
         assert.deepEqual(report.alertFixes, [
             { alertname: 'Tournament.finish', verified: 1301, total: 1309 },
             { alertname: 'CriticalPage.midway_free_buy_missing', verified: 2, total: 2 },
@@ -869,7 +872,7 @@ test('the funding card is absent without the report and says Report Unavailable 
 
 test('an event funded over or under becomes one tracked Needs Your Attention item; an exact day adds none', async () => {
     const { loadDigestData, loadFreeBuyFunding } = await import('../src/lib/dailyDigest/assemble.mjs');
-    const sbFor = (funding) => ({ rpc: async (name) => ({ data: name === 'fn_sp_daily_digest' ? fixture() : name === 'fn_sp_digest_free_buy_funding' ? funding : PLAYER_TOTALS, error: null }) });
+    const sbFor = (funding) => ({ rpc: async (name) => ({ data: name === 'fn_sp_daily_digest' ? fixture() : name === 'fn_sp_digest_free_buy_funding' ? funding : name === 'fn_sp_digest_daily_results' ? { reconciliation: { status: 'balanced' } } : PLAYER_TOTALS, error: null }) });
     const { digest } = await loadDigestData(sbFor(FUNDING), '2026-11-06', { withCosts: false, dispatch: false });
     const items = digest.attention.filter((a) => a.rule === 'free_buy_funding_off');
     assert.equal(items.length, 1);
@@ -904,4 +907,131 @@ test('the engine line keeps the live build, since when and the 4 AM cutover verd
     assert.match(html, /Live Engine Build<\/td><td[^>]*><span[^>]*>391f7bc0<\/span>/);
     assert.match(buildText(fixture({ engine_cutover: missed })), /Live Engine Build: 391f7bc0  \(since Nov 7 15:22 Central; 2026-11-08 4 AM cutover: Missed/);
     assert.equal(engineCutoverRow(fixture({ engine_cutover: { ...missed, resolved_at: '2026-11-09T10:02:00Z' } }))[3], false);
+});
+
+// BBJ rake and the horse fleet in chips (Dan 2026-11-11). Production's own
+// figures for the Central day 2026-11-10: the email said Rake 73,324.82 and
+// Horse Net Result -146,546.8 BB "house exposure". The horses paid 63,550.35 of
+// the 64,398 cash rake and 18,038.16 of the 18,130.80 BBJ, and won 2,328.19
+// from the other players: a -79,260.32 chip result that is the house's own drop.
+const HOUSE_FIGURES = {
+    day: '2026-11-10', week_from: '2026-11-04', month_from: '2026-11-01',
+    bbj_rake: { day: 18130.8, week: 134083.27, week_days: 7, month: 205032.47, month_days: 10 },
+    horse_cash: {
+        day: { net: -79260.32, rake: 63550.35, bbj: 18038.16, vs_others: 2328.19, net_bb_utc: -146546.8, days: 1 },
+        month: { net: -1121457.02, rake: 928228, bbj: 204560.2, vs_others: 11331.18, net_bb_utc: -1551807.3, days: 10 },
+    },
+};
+
+test('the updates carry BBJ rake for the day, the seven days and the month, and the horse row is chips, not house exposure', async () => {
+    const { dailyUpdateRows, weeklyUpdateRows, monthlyUpdateRows } = await import('../src/lib/dailyDigest/render.mjs');
+    const d = fixture({ house_figures: HOUSE_FIGURES, mtd: { ...fixture().mtd, day_of_month: 10 } });
+    const h = HOUSE_FIGURES.horse_cash.day;
+    assert.ok(Math.abs(h.net - (-(h.rake + h.bbj) + h.vs_others)) < 0.005, 'the horse result is the drop it paid plus its play');
+    const daily = dailyUpdateRows(d);
+    const row = (rows, label) => rows.find((r) => r[0] === label);
+    assert.deepEqual(row(daily, 'BBJ Rake').slice(0, 2), ['BBJ Rake', '18,130.8']);
+    assert.ok(daily.findIndex((r) => r[0] === 'BBJ Rake') === daily.findIndex((r) => r[0] === 'Rake (Cash + Tournament)') + 1);
+    assert.deepEqual(row(daily, 'Horse Cash Result (Chips)'), ['Horse Cash Result (Chips)', '-79,260.32',
+        'Paid the house 63,550.35 rake and 18,038.16 BBJ, won 2,328.19 against the other players; engine tally for the UTC day -146,546.8 BB']);
+    assert.equal(row(weeklyUpdateRows(d), 'BBJ Rake')[1], '134,083.27');
+    const monthly = monthlyUpdateRows(d);
+    assert.equal(row(monthly, 'BBJ Rake')[1], '205,032.47');
+    assert.equal(row(monthly, 'Horse Cash Result (Chips)')[1], '-1,121,457.02');
+    const html = buildHtml(d, { email: true });
+    const text = buildText(d);
+    for (const out of [html, text]) {
+        assert.ok(!/House exposure/i.test(out), 'the horse fleet is not called house exposure');
+        assert.ok(!out.includes('—'), 'no em dashes');
+        assert.ok(!/\$\s?18,130/.test(out), 'chips carry no dollar sign');
+    }
+    assert.match(text, /BBJ Rake: 18,130\.8/);
+    assert.match(text, /Horse Cash Result \(Chips\): -79,260\.32/);
+    const short = monthlyUpdateRows(fixture({ house_figures: { ...HOUSE_FIGURES, bbj_rake: { ...HOUSE_FIGURES.bbj_rake, month_days: 9 } }, mtd: { ...fixture().mtd, day_of_month: 10 } }));
+    assert.match(row(short, 'BBJ Rake')[2], /9 of 10 days recorded/);
+});
+
+test('without the house figures report the rows say so instead of showing 0 or calling big blinds a loss', async () => {
+    const { dailyUpdateRows, weeklyUpdateRows, monthlyUpdateRows } = await import('../src/lib/dailyDigest/render.mjs');
+    const base = fixture();
+    const d = fixture({ house_figures: { day: '2026-11-10', error: 'statement timeout' },
+        metrics: { ...base.metrics, money: { ...base.metrics.money, bbj_contributions: 18130.8 }, play: { ...base.metrics.play, horse_net_bb: -146546.8 } } });
+    const row = (rows, label) => rows.find((r) => r[0] === label);
+    assert.equal(row(dailyUpdateRows(d), 'BBJ Rake')[1], '18,130.8', 'the day falls back to the snapshot');
+    assert.equal(row(weeklyUpdateRows(d), 'BBJ Rake')[1], 'Unavailable');
+    assert.equal(row(monthlyUpdateRows(d), 'BBJ Rake')[1], 'Unavailable');
+    const horse = row(dailyUpdateRows(d), 'Horse Net Result (BB, UTC Day)');
+    assert.equal(horse[1], '-146,546.8');
+    assert.match(horse[2], /not a chip loss/);
+    assert.ok(row(monthlyUpdateRows(d), 'Horse Net Result (BB, UTC Days)'));
+    const { loadHouseFigures } = await import('../src/lib/dailyDigest/assemble.mjs');
+    assert.deepEqual(await loadHouseFigures({ rpc: async () => ({ data: null, error: { message: 'missing' } }) }, '2026-11-10'), { day: '2026-11-10', error: 'missing' });
+    assert.deepEqual(await loadHouseFigures({ rpc: async () => { throw new Error('socket closed'); } }, '2026-11-10'), { day: '2026-11-10', error: 'socket closed' });
+    const ok = await loadHouseFigures({ rpc: async (name, args) => ({ data: name === 'fn_sp_digest_house_figures' && args.p_day === '2026-11-10' ? HOUSE_FIGURES : null, error: null }) }, '2026-11-10');
+    assert.deepEqual(ok, HOUSE_FIGURES);
+});
+
+test('Daily, Weekly and Monthly Update titles name the Chicago day, the rolling seven days and the month to date with dates', async () => {
+    const { updatePeriodTitles } = await import('../src/lib/dailyDigest/render.mjs');
+    const t = updatePeriodTitles({ day: '2026-11-10' });
+    assert.equal(t.day, 'Daily Update: Tue, Nov 10 (Chicago Day)');
+    assert.equal(t.week, 'Weekly Update: Nov 4 To Nov 10 (Rolling 7 Days)');
+    assert.equal(t.month, 'Monthly Update: Nov 1 To Nov 10 (Month To Date)');
+    // the week crosses a month boundary and the first of the month is its own month to date
+    const m = updatePeriodTitles({ day: '2026-12-01' });
+    assert.equal(m.week, 'Weekly Update: Nov 25 To Dec 1 (Rolling 7 Days)');
+    assert.equal(m.month, 'Monthly Update: Dec 1 To Dec 1 (Month To Date)');
+    // the DST change (Nov 1) never moves a calendar date
+    assert.equal(updatePeriodTitles({ day: '2026-11-07' }).week, 'Weekly Update: Nov 1 To Nov 7 (Rolling 7 Days)');
+    for (const v of Object.values(t)) assert.ok(!/[–—]/.test(v), 'no em or en dashes');
+
+    const d = fixture({ day: '2026-11-10', day_label: 'Tuesday, Nov 10' });
+    const html = buildHtml(d);
+    const text = buildText(d);
+    for (const title of Object.values(t)) {
+        assert.ok(html.includes(title), `html has ${title}`);
+        assert.ok(text.includes(title.toUpperCase()), `text has ${title}`);
+    }
+    assert.ok(html.indexOf(t.day) < html.indexOf(t.week) && html.indexOf(t.week) < html.indexOf(t.month));
+    // no date means no invented range
+    assert.deepEqual(updatePeriodTitles({}), { day: 'Daily Update', week: 'Weekly Update', month: 'Monthly Update' });
+});
+
+test('daily results show four cohorts/game rows, Kingfish counted within humans and the exact reconciliation bridge', async () => {
+    const { dailyResultsRows } = await import('../src/lib/dailyDigest/render.mjs');
+    const report = {
+        results: { cash: { horses: { net: -10, wins: 0, losses: 10, players: 1 }, humans: { net: 6, wins: 6, losses: 0, players: 1 } },
+            tournament: { horses: { net: 15, wins: 15, losses: 0, players: 1 }, humans: { net: -20, wins: 0, losses: 20, players: 1 } } },
+        kingfish: { included: true, cash_net: 6, tournament_net: -20 },
+        reconciliation: { status: 'balanced', cash_rake: 3, tournament_rake: 2, bbj: 1, cash_residual: 0, raw_residual: -3,
+            prize_liability_change: 8, other_prize_movements: -5, accounted_residual: 0, incomplete_cash_hands: 0 },
+        chip_supply: { status: 'balanced', hours: 24, expected_hours: 24, absolute_unexplained: 0, net_unexplained: 0 },
+        tournament_settlements: { checked: 1, unbalanced: 0, absolute_drift: 0 },
+    };
+    const d = fixture({ daily_results: report });
+    const rows = dailyResultsRows(d);
+    for (const label of ['Horse Cash Result (Chips)', 'Horse Tournament Result (Chips)', 'Human Cash Result (Chips)', 'Human Tournament Result (Chips)']) {
+        assert.equal(rows.filter(r => r[0] === label).length, 1);
+        assert.ok(buildHtml(d).includes(label)); assert.ok(buildText(d).includes(label));
+    }
+    assert.equal(rows.find(r => r[0] === 'Daily Chip Reconciliation')[1], 'BALANCED: 0');
+    assert.match(rows.find(r => r[0].startsWith('Kingfish'))[1], /-14/);
+    assert.match(rows.find(r => r[0] === 'Rake + BBJ + Wins - Losses')[1], /-3/);
+    const daily = buildText(d).split('WEEKLY UPDATE')[0];
+    assert.ok(!daily.includes('engine tally'), 'independent recorded Horse cash result replaces inferred remainder');
+    for (const bad of [null, { error: 'timeout' }, {}]) assert.ok(dailyResultsRows({ daily_results: bad }).some(r => r[1] === 'UNVERIFIED'));
+    for (const changed of [{ status: 'discrepancy', accounted_residual: 0.01 }, { status: 'balanced', accounted_residual: null }]) {
+        assert.notEqual(dailyResultsRows({ daily_results: { ...report, reconciliation: { ...report.reconciliation, ...changed } } }).find(r => r[0] === 'Daily Chip Reconciliation')[1], 'BALANCED: 0');
+    }
+});
+
+test('daily result failures raise attention, successful read stays serial and no mail is sent', async () => {
+    const { loadDigestData, loadDailyResults } = await import('../src/lib/dailyDigest/assemble.mjs');
+    const failed = await loadDailyResults({ rpc: async () => { throw Error('unavailable'); } }, '2026-11-11');
+    assert.equal(failed.error, 'unavailable');
+    const { digest } = await loadDigestData({ rpc: async name => name === 'fn_sp_daily_digest' ? { data: fixture() }
+        : name === 'fn_sp_digest_daily_results' ? { data: null, error: { message: 'permission denied' } } : { data: {} } }, '2026-11-11', { withCosts: false, dispatch: false });
+    assert.equal(digest.attention.filter(x => x.rule === 'daily_chip_reconciliation').length, 1);
+    assert.equal(digest.attention.find(x => x.rule === 'daily_chip_reconciliation').dispatch, false);
+    assert.match(buildHtml(digest), /UNVERIFIED/);
 });

@@ -387,21 +387,138 @@ function listCard(title, rows) {
 }
 
 /**
+ * Period boundaries in the card titles (Dan 2026-11-11): the day is the
+ * Chicago calendar day, the week is the rolling seven Chicago days ending on
+ * it, and the month is the month to date. Every figure in those cards uses
+ * exactly these windows (fn_sp_daily_digest, loadWeeklySummary and
+ * fn_sp_digest_house_figures all read report day - 6 and the month start).
+ */
+function isoShort(iso, withWeekday = false) {
+    const d = new Date(`${iso}T12:00:00Z`);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', ...(withWeekday ? { weekday: 'short' } : {}) });
+}
+function shiftIso(iso, days) {
+    const d = new Date(`${iso}T12:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + days);
+    return d.toISOString().slice(0, 10);
+}
+export function updatePeriodTitles(digest) {
+    const day = typeof digest?.day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(digest.day) ? digest.day : null;
+    if (!day || !isoShort(day)) return { day: 'Daily Update', week: 'Weekly Update', month: 'Monthly Update' };
+    const weekFrom = shiftIso(day, -6);
+    const monthFrom = `${day.slice(0, 8)}01`;
+    return {
+        day: `Daily Update: ${isoShort(day, true)} (Chicago Day)`,
+        week: `Weekly Update: ${isoShort(weekFrom)} To ${isoShort(day)} (Rolling 7 Days)`,
+        month: `Monthly Update: ${isoShort(monthFrom)} To ${isoShort(day)} (Month To Date)`,
+    };
+}
+
+/**
  * Daily Update, Weekly Update, and Monthly Update (Dan 2026-11-09):
  * Directly below Needs Your Attention, render Daily Update, Weekly Update,
  * and Monthly Update in that exact order.
  */
+/**
+ * BBJ rake (Dan 2026-11-11): the cash pots' bad beat jackpot drop, collected
+ * on top of the rake. Day, trailing seven Central days and Central month to
+ * date come from fn_sp_digest_house_figures; an unavailable period says so
+ * instead of showing 0.
+ */
+export function bbjRakeRow(digest, period) {
+    const b = digest?.house_figures?.bbj_rake;
+    const v = b ? b[period] : undefined;
+    if (v === undefined || v === null) {
+        const day = get(digest?.metrics || {}, 'money.bbj_contributions');
+        if (period === 'day' && day !== undefined && day !== null) return ['BBJ Rake', fmtNum(day), BBJ_SUB];
+        return ['BBJ Rake', 'Unavailable', 'Bad beat jackpot drop could not be read'];
+    }
+    const days = period === 'week' ? b.week_days : period === 'month' ? b.month_days : null;
+    const expected = period === 'week' ? 7 : period === 'month' ? Number(digest?.mtd?.day_of_month) || null : null;
+    const gap = days !== null && expected !== null && Number(days) < expected ? `; ${fmtInt(days)} of ${fmtInt(expected)} days recorded` : '';
+    return ['BBJ Rake', fmtNum(v), `${BBJ_SUB}${gap}`];
+}
+const BBJ_SUB = 'Bad beat jackpot drop from cash pots, collected on top of the rake';
+
+/**
+ * The horse fleet's cash result (Dan 2026-11-11, "the math isn't mathing").
+ * The old row summed big blinds across every stake and tournament for the UTC
+ * day and called it house exposure. The horses mostly play each other, so
+ * nearly all of that loss is the rake and BBJ they pay to the house. The row
+ * is now chips for the Central day, cash only, split into what the horses
+ * paid the house and what they won or lost against the other players.
+ */
+export function horseCashRow(h, bbSub) {
+    if (!h || h.net === undefined || h.net === null) return null;
+    const vs = Number(h.vs_others) || 0;
+    const against = Math.abs(vs) < 0.005 ? 'broke even against the other players'
+        : `${vs > 0 ? 'won' : 'lost'} ${fmtNum(Math.abs(vs))} against the other players`;
+    const bb = h.net_bb_utc === undefined || h.net_bb_utc === null ? '' : `; ${bbSub} ${fmtNum(h.net_bb_utc)} BB`;
+    return ['Horse Cash Result (Chips)', fmtSigned(h.net),
+        `Paid the house ${fmtNum(h.rake)} rake and ${fmtNum(h.bbj)} BBJ, ${against}${bb}`];
+}
+
+const HORSE_BB_FALLBACK_SUB = 'Big blinds summed across all stakes and tournaments, UTC days; includes the rake and BBJ the horses pay the house, so it is not a chip loss';
+
+/** Recorded results and accounting checks share the email and online layout. */
+export function dailyResultsRows(digest) {
+    const r = digest?.daily_results;
+    if (!r || r.error || !r.results || !r.reconciliation) return [
+        ['Horse Tournament Result (Chips)', 'Unavailable', 'Daily results could not be verified'],
+        ['Human Cash / Tournament Result (Chips)', 'Unavailable', 'Kingfish inclusion and chip reconciliation could not be verified'],
+        ['Daily Chip Reconciliation', 'UNVERIFIED', 'Report Unavailable'],
+    ];
+    const rows = [];
+    for (const [cohort, label] of [['horses', 'Horse'], ['humans', 'Human'], ['unknown', 'Unknown Account']]) {
+        for (const [kind, game] of [['cash', 'Cash'], ['tournament', 'Tournament']]) {
+            const x = r.results[kind]?.[cohort];
+            if (cohort === 'unknown' && !Number(x?.players)) continue;
+            rows.push([`${label} ${game} Result (Chips)`, x?.net == null ? 'Unavailable' : fmtSigned(x.net),
+                x?.wins == null || x?.losses == null ? 'Win/loss breakdown unavailable'
+                    : `Wins ${fmtNum(x.wins)}; losses ${fmtNum(x.losses)}; ${fmtInt(x.players)} players${cohort === 'humans' ? '; includes Kingfish' : ''}${kind === 'tournament' ? '; posted entry costs and payouts, not tournament play stacks' : ''}`]);
+        }
+    }
+    const k = r.kingfish;
+    rows.push(['Kingfish Result (Included In Human Totals)', k?.included === true && k.cash_net != null && k.tournament_net != null
+        ? fmtSigned(Number(k.cash_net) + Number(k.tournament_net)) : 'Unavailable',
+    k?.included === true ? `Cash ${fmtSigned(k.cash_net)}; tournament ${fmtSigned(k.tournament_net)}; counted once` : 'Inclusion unverified']);
+    const c = r.reconciliation;
+    rows.push(['Cash Reconciliation', c.cash_residual == null ? 'UNVERIFIED' : fmtSigned(c.cash_residual),
+        `Cash results + rake ${fmtNum(c.cash_rake)} + BBJ ${fmtNum(c.bbj)}; expected 0; ${fmtInt(c.incomplete_cash_hands)} incomplete hands`],
+    ['Rake + BBJ + Wins - Losses', c.raw_residual == null ? 'Unavailable' : fmtSigned(c.raw_residual),
+        'Raw cash and tournament calendar-day balance, before prize liabilities and funding movements'],
+    ['Tournament Prize Liability Change', c.prize_liability_change == null ? 'Unavailable' : fmtSigned(c.prize_liability_change),
+        'Increase in chips held for prizes across midnight; a decrease is negative'],
+    ['Other Tournament Funding Movements', c.other_prize_movements == null ? 'Unavailable' : fmtSigned(c.other_prize_movements),
+        'Net outward ticket, spin, promotion and other non-player prize-liability movements; inward funding is negative']);
+    const t = r.tournament_settlements;
+    rows.push(['Tournament Settlement Verification', t ? `${fmtInt(t.unbalanced)} discrepancies / ${fmtInt(t.checked)} checked` : 'UNVERIFIED',
+        t ? `Absolute drift ${fmtNum(t.absolute_drift)}; independent event check for completed/cancelled paid non-spin tournaments` : 'Independent settlement check unavailable']);
+    const supply = r.chip_supply;
+    rows.push(['Chip Supply Verification', supply?.status === 'balanced' ? 'BALANCED: 0' : supply?.status === 'discrepancy' ? 'DISCREPANCY' : 'UNVERIFIED',
+        supply ? `${fmtInt(supply.hours)} / ${fmtInt(supply.expected_hours)} hourly inventory checks; absolute unexplained ${fmtNum(supply.absolute_unexplained)}; net unexplained ${fmtSigned(supply.net_unexplained)}. Includes wallets, cash stacks, BBJ, reserves and liabilities; intervals ending this Chicago day.` : 'Supply inventory checks unavailable']);
+    rows.push(['Daily Chip Reconciliation', supply?.status === 'balanced' && c.status === 'balanced' && c.accounted_residual === 0 && t && t.unbalanced === 0
+        ? 'BALANCED: 0' : c.status === 'unverified' ? 'UNVERIFIED' : `DISCREPANCY: ${c.accounted_residual == null ? 'Unavailable' : fmtSigned(c.accounted_residual)}`,
+        'Raw balance + prize liability change + other tournament funding; expected 0. Verifies recorded game flows, checked settlements and hourly supply inventory. Supply intervals do not use exact midnight cuts.'],
+    ['Result Basis', 'Chicago Day / Chips', 'Wins and losses are positive and negative player net results by game type. Diamond Arena excluded. Rake and BBJ are already included in player net; they are added back once for reconciliation.']);
+    return rows;
+}
+
 export function dailyUpdateRows(digest) {
     const m = digest?.metrics || {};
     const cashRake = Number(get(m, 'money.cash_rake')) || 0;
     const tourneyRake = Number(get(m, 'money.tournament_rake')) || 0;
+    const horse = horseCashRow(digest?.house_figures?.horse_cash?.day, 'engine tally for the UTC day')
+        || ['Horse Net Result (BB, UTC Day)', fmtNum(get(m, 'play.horse_net_bb')), HORSE_BB_FALLBACK_SUB];
     return [
         ['Revenue', fmtUsd(get(m, 'sales.revenue_usd')), ''],
         ['Rake (Cash + Tournament)', fmtNum(cashRake + tourneyRake), `Cash ${fmtNum(cashRake)}, tournament and spin ${fmtNum(tourneyRake)}`],
+        bbjRakeRow(digest, 'day'),
         ['Rakeback Paid', fmtNum(get(m, 'money.rakeback_paid')), ''],
         ['Real Player Signups', fmtInt(get(m, 'growth.signups')), `${fmtInt(get(m, 'growth.active_humans'))} active real players`],
         ['Hands Dealt', fmtInt(get(m, 'play.hands')), `Cash ${fmtInt(get(m, 'play.hands_cash'))}, tournament ${fmtInt(get(m, 'play.hands_tournament'))}`],
-        ['Horse Net Result (BB)', fmtNum(get(m, 'play.horse_net_bb')), 'House exposure through the horse fleet'],
+        ...(digest?.daily_results ? dailyResultsRows(digest) : [horse, ...dailyResultsRows(digest)]),
         ['Diamonds Given Out / Taken In', `${fmtInt(get(m, 'diamonds.given_out'))} / ${fmtInt(get(m, 'diamonds.taken_in'))}`, ''],
         ['Chips Minted / Burned', `${fmtNum(get(m, 'money.minted'))} / ${fmtNum(get(m, 'money.burned'))}`, ''],
     ];
@@ -437,6 +554,7 @@ export function weeklyUpdateRows(digest) {
     return [
         ['Revenue', fmtUsd(w.revenue_usd), rangeSub],
         ['Rake (Cash + Tournament)', fmtNum(cashRake + tourneyRake), `Cash ${fmtNum(cashRake)}, tournament and spin ${fmtNum(tourneyRake)}`],
+        bbjRakeRow(digest, 'week'),
         ['Rakeback Paid', fmtNum(w.rakeback_paid), ''],
         ['Real Player Signups', fmtInt(w.signups), ''],
         ['Hands Dealt', fmtInt(w.hands), ''],
@@ -452,8 +570,10 @@ export function monthlyUpdateRows(digest) {
     return [
         ['Revenue', fmtUsd(mtd.revenue_usd), `Projected month end ${fmtUsd(mtd.projected_revenue_usd)}`],
         ['Rake (Cash + Tournament)', fmtNum(cashRake + tourneyRake), `Projected month end ${fmtNum(mtd.projected_rake)}`],
+        bbjRakeRow(digest, 'month'),
         ['Real Player Signups', fmtInt(mtd.signups), `${fmtInt(mtd.days)} days recorded this month`],
-        ['Horse Net Result (BB)', fmtNum(mtd.horse_net_bb), 'House exposure through the horse fleet'],
+        horseCashRow(digest?.house_figures?.horse_cash?.month, 'engine tally for the UTC days')
+            || ['Horse Net Result (BB, UTC Days)', fmtNum(mtd.horse_net_bb), HORSE_BB_FALLBACK_SUB],
     ];
 }
 
@@ -551,9 +671,10 @@ export function buildHtml(digest, opts = {}) {
     body += attentionHtml(digest);
 
     // Daily Update, Weekly Update, then Monthly Update directly below Needs Your Attention
-    body += listCard('Daily Update', dailyUpdateRows(digest));
-    body += listCard('Weekly Update', weeklyUpdateRows(digest));
-    body += listCard('Monthly Update', monthlyUpdateRows(digest));
+    const periods = updatePeriodTitles(digest);
+    body += listCard(periods.day, dailyUpdateRows(digest));
+    body += listCard(periods.week, weeklyUpdateRows(digest));
+    body += listCard(periods.month, monthlyUpdateRows(digest));
 
     body += playerTotalsCard(digest, opts);
     body += playerPeriodCards(digest);
@@ -971,11 +1092,12 @@ export function buildText(digest, opts = {}) {
         lines.push(`- ${shortTitle(it.title)} [${STATUS_LABEL[it.status] || 'Not Yet Picked Up'}]${it.resolution ? ` - ${String(it.resolution).slice(0, 160)}` : ''}`);
         for (const line of alertFixLines(it)) lines.push(`    ${line}`);
     }
-    lines.push('', 'DAILY UPDATE');
+    const periods = updatePeriodTitles(digest);
+    lines.push('', periods.day.toUpperCase());
     for (const [label, value, sub] of dailyUpdateRows(digest)) lines.push(`${label}: ${value}${sub ? `  (${sub})` : ''}`);
-    lines.push('', 'WEEKLY UPDATE');
+    lines.push('', periods.week.toUpperCase());
     for (const [label, value, sub] of weeklyUpdateRows(digest)) lines.push(`${label}: ${value}${sub ? `  (${sub})` : ''}`);
-    lines.push('', 'MONTHLY UPDATE');
+    lines.push('', periods.month.toUpperCase());
     for (const [label, value, sub] of monthlyUpdateRows(digest)) lines.push(`${label}: ${value}${sub ? `  (${sub})` : ''}`);
     lines.push(...playerTotalsText(digest));
     for (const [title, rows] of spinsSpendRows(digest)) {

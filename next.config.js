@@ -97,6 +97,13 @@ const os = require('os');
 // prevent 8-core machines from OOMing" - on a machine that now has 16 GB and a
 // 7 GB max-old-space. The cap outlived the hardware that justified it.
 //
+// The machine changed again. Since at least 2026-11-11 hub-vanguard builds on
+// a fixed "4 cores, 8 GB (Standard Build Machine)", so this derives 3 workers,
+// and build:vercel's heap ceiling is sized to THAT machine (see the law test
+// the-pipeline-does-not-fight-itself): the old 7 GB ceiling let the main
+// process grow to ~6 GB beside three workers, and deployment
+// dpl_CvwKska6XPK6DAeqyQxwwy74msDd was SIGKILLed (exit 137, Vercel OOM report).
+//
 // The other half is the 2026-07-21 note: a 2-core sandbox hits an export-worker
 // race in the /_not-found prerender under parallel export, and needed a MANUAL
 // `BUILD_CPUS=1` to avoid it. Deriving from the core count applies that

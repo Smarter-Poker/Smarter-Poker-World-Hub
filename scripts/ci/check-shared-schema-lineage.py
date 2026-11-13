@@ -15,6 +15,11 @@ REPORT_TRANSITIONS = (
     ('supabase/migrations/20261028150757_digest_spins_and_spend.sql', '3a607b11d99c9a2481bcbe6e847a6e1ca47d7e771a1361b477ba71e4830e6edd'),
     ('supabase/migrations/20261028151456_digest_promo_wallet_payouts.sql', '5f2184d05ae638a1aab374f25bb98b2788bef1add2d037312b71b6dc94ad3335'),
     ('supabase/migrations/20261028152704_digest_profit_fractional_diamonds.sql', '961ffaa783c58f92b17d56f4679882403c7770f96cf3924f79dde60cab7ef5a1'),
+    ('supabase/migrations/20261111220642_digest_bbj_rake_and_horse_cash_chips.sql', '090fd87d701c208c6b64150856737e4c2dcbb18ef3b0648588552c1c923a78f1'),
+    ('supabase/migrations/20261112140947_digest_kingfish_player_totals.sql', '8b9b4bc938146e52e3fa4c50879902028f7054c4e2caf94f1c0a7cb2c1733f6a'),
+    ('supabase/migrations/20261112140952_digest_daily_chip_reconciliation.sql', '122ad1c93b827f7f6eb7bdcb613f16a30f88d7d02fe4811fddd438b6d6e858b3'),
+    ('supabase/migrations/20261112141236_digest_daily_results_bounded_plan.sql', '3e5c3830e6245d575e0964558ccf75a8bc39637bc5f474124a6f37a4a2f65270'),
+    ('supabase/migrations/20261112141734_digest_daily_chip_supply_verification.sql', '0304ddce853ff9dc12e4ff1e0c9b953a13e1f457da3e4d17e9107b12ecac9458'),
 )
 MARKETPLACE_TRANSITIONS = (('supabase/migrations/20261031191337_signup_audit_checks_auth_triggers_by_name.sql', '16618b0db7ce11823bdfe685af7b3253976354dfcb099d13b4b926434a679021'), ('supabase/migrations/20261102011118_marketplace_whole_dollar_prices.sql', '8183a4285311c4e74d4e39e4e376ccc53b0dea3aba4fce8b1e2809b3b496f663'),)
 MARKETPLACE_PREFIX = 'Marketplace PostgreSQL qualification passed: '

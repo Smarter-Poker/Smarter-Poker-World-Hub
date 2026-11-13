@@ -56464,7 +56464,7 @@
         "localStorage": 2,
         "sessionStorage": 0,
         "inserts": 0,
-        "updates": 0,
+        "updates": 1,
         "deletes": 0,
         "rpc": 0
       },
@@ -56589,7 +56589,7 @@
         },
         {
           "name": "persistSubscription",
-          "line": 279,
+          "line": 295,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -56597,7 +56597,7 @@
         },
         {
           "name": "enablePush",
-          "line": 333,
+          "line": 349,
           "references": 5,
           "exported": true,
           "defaultExport": false,
@@ -56605,7 +56605,7 @@
         },
         {
           "name": "isOptedOut",
-          "line": 464,
+          "line": 480,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -56613,7 +56613,7 @@
         },
         {
           "name": "setOptOut",
-          "line": 467,
+          "line": 483,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -56621,7 +56621,7 @@
         },
         {
           "name": "clearOptOut",
-          "line": 470,
+          "line": 486,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -56629,7 +56629,7 @@
         },
         {
           "name": "disablePush",
-          "line": 475,
+          "line": 491,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -56637,7 +56637,7 @@
         },
         {
           "name": "sendTestPush",
-          "line": 519,
+          "line": 535,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -56645,7 +56645,7 @@
         },
         {
           "name": "thisDeviceServerEnrolled",
-          "line": 560,
+          "line": 576,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -56653,7 +56653,7 @@
         },
         {
           "name": "hasLocalSubscription",
-          "line": 576,
+          "line": 592,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -73152,7 +73152,7 @@
         "localStorage": 2,
         "sessionStorage": 0,
         "inserts": 0,
-        "updates": 0,
+        "updates": 1,
         "deletes": 0,
         "rpc": 0
       }
@@ -82753,7 +82753,7 @@
             "localStorage": 2,
             "sessionStorage": 0,
             "inserts": 0,
-            "updates": 0,
+            "updates": 1,
             "deletes": 0,
             "rpc": 0
           }
@@ -83698,7 +83698,7 @@
             "localStorage": 2,
             "sessionStorage": 0,
             "inserts": 0,
-            "updates": 0,
+            "updates": 1,
             "deletes": 0,
             "rpc": 0
           }
@@ -84080,7 +84080,7 @@
             "localStorage": 2,
             "sessionStorage": 0,
             "inserts": 0,
-            "updates": 0,
+            "updates": 1,
             "deletes": 0,
             "rpc": 0
           }
@@ -84424,7 +84424,7 @@
             "localStorage": 2,
             "sessionStorage": 0,
             "inserts": 0,
-            "updates": 0,
+            "updates": 1,
             "deletes": 0,
             "rpc": 0
           }
@@ -84763,7 +84763,7 @@
             "localStorage": 2,
             "sessionStorage": 0,
             "inserts": 0,
-            "updates": 0,
+            "updates": 1,
             "deletes": 0,
             "rpc": 0
           }
@@ -85659,7 +85659,7 @@
             "localStorage": 2,
             "sessionStorage": 0,
             "inserts": 0,
-            "updates": 0,
+            "updates": 1,
             "deletes": 0,
             "rpc": 0
           }
@@ -86510,7 +86510,7 @@
             "localStorage": 2,
             "sessionStorage": 0,
             "inserts": 0,
-            "updates": 0,
+            "updates": 1,
             "deletes": 0,
             "rpc": 0
           }
@@ -87095,7 +87095,7 @@
             "localStorage": 2,
             "sessionStorage": 0,
             "inserts": 0,
-            "updates": 0,
+            "updates": 1,
             "deletes": 0,
             "rpc": 0
           }
@@ -87454,7 +87454,7 @@
             "localStorage": 2,
             "sessionStorage": 0,
             "inserts": 0,
-            "updates": 0,
+            "updates": 1,
             "deletes": 0,
             "rpc": 0
           }
@@ -87792,7 +87792,7 @@
             "localStorage": 2,
             "sessionStorage": 0,
             "inserts": 0,
-            "updates": 0,
+            "updates": 1,
             "deletes": 0,
             "rpc": 0
           }
@@ -88654,7 +88654,7 @@
             "localStorage": 2,
             "sessionStorage": 0,
             "inserts": 0,
-            "updates": 0,
+            "updates": 1,
             "deletes": 0,
             "rpc": 0
           }
@@ -89250,7 +89250,7 @@
             "localStorage": 2,
             "sessionStorage": 0,
             "inserts": 0,
-            "updates": 0,
+            "updates": 1,
             "deletes": 0,
             "rpc": 0
           }
@@ -89592,7 +89592,7 @@
             "localStorage": 2,
             "sessionStorage": 0,
             "inserts": 0,
-            "updates": 0,
+            "updates": 1,
             "deletes": 0,
             "rpc": 0
           }
@@ -91193,7 +91193,7 @@
             "localStorage": 2,
             "sessionStorage": 0,
             "inserts": 0,
-            "updates": 0,
+            "updates": 1,
             "deletes": 0,
             "rpc": 0
           }
@@ -91589,7 +91589,7 @@
             "localStorage": 2,
             "sessionStorage": 0,
             "inserts": 0,
-            "updates": 0,
+            "updates": 1,
             "deletes": 0,
             "rpc": 0
           }
@@ -91978,7 +91978,7 @@
             "localStorage": 2,
             "sessionStorage": 0,
             "inserts": 0,
-            "updates": 0,
+            "updates": 1,
             "deletes": 0,
             "rpc": 0
           }
@@ -92389,7 +92389,7 @@
             "localStorage": 2,
             "sessionStorage": 0,
             "inserts": 0,
-            "updates": 0,
+            "updates": 1,
             "deletes": 0,
             "rpc": 0
           }
@@ -92727,7 +92727,7 @@
             "localStorage": 2,
             "sessionStorage": 0,
             "inserts": 0,
-            "updates": 0,
+            "updates": 1,
             "deletes": 0,
             "rpc": 0
           }
@@ -93078,7 +93078,7 @@
             "localStorage": 2,
             "sessionStorage": 0,
             "inserts": 0,
-            "updates": 0,
+            "updates": 1,
             "deletes": 0,
             "rpc": 0
           }
@@ -95261,7 +95261,7 @@
             "localStorage": 2,
             "sessionStorage": 0,
             "inserts": 0,
-            "updates": 0,
+            "updates": 1,
             "deletes": 0,
             "rpc": 0
           }
@@ -95617,7 +95617,7 @@
             "localStorage": 2,
             "sessionStorage": 0,
             "inserts": 0,
-            "updates": 0,
+            "updates": 1,
             "deletes": 0,
             "rpc": 0
           }
@@ -96098,7 +96098,7 @@
             "localStorage": 2,
             "sessionStorage": 0,
             "inserts": 0,
-            "updates": 0,
+            "updates": 1,
             "deletes": 0,
             "rpc": 0
           }
@@ -98702,7 +98702,7 @@
             "localStorage": 2,
             "sessionStorage": 0,
             "inserts": 0,
-            "updates": 0,
+            "updates": 1,
             "deletes": 0,
             "rpc": 0
           }

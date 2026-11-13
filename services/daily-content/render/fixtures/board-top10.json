@@ -1,0 +1,140 @@
+{
+  "template": "board",
+  "results": true,
+  "duration_s": 15,
+  "header": {
+    "eyebrow": "YESTERDAY'S",
+    "title": "TOP 10",
+    "chips": [
+      {
+        "text": "Wed, Jan 7, 2026",
+        "tone": "white"
+      },
+      {
+        "text": "Arena Points",
+        "tone": "green"
+      },
+      {
+        "text": "31 Tournaments",
+        "tone": "blue"
+      }
+    ]
+  },
+  "board": {
+    "value_label": "Arena Points",
+    "podium": [
+      {
+        "rank_label": "1",
+        "name": "Aurora Vexley",
+        "value": 287,
+        "horse": true,
+        "staff": false,
+        "avatar": null,
+        "sub": "212 prize chips"
+      },
+      {
+        "rank_label": "2",
+        "name": "Brandt Halloway",
+        "value": 251,
+        "horse": true,
+        "staff": false,
+        "avatar": null,
+        "sub": "96 prize chips"
+      },
+      {
+        "rank_label": "3",
+        "name": "Cassia Morrow",
+        "value": 233,
+        "horse": true,
+        "staff": false,
+        "avatar": null,
+        "sub": "140 prize chips"
+      }
+    ],
+    "rows": [
+      {
+        "rank_label": "4",
+        "name": "Dorian Quell",
+        "value": 228,
+        "horse": true,
+        "staff": false,
+        "avatar": null,
+        "sub": "1 win · 3 scoring finishes · 1,204 prize chips"
+      },
+      {
+        "rank_label": "5",
+        "name": "Elsa Fairmont",
+        "value": 219,
+        "horse": true,
+        "staff": false,
+        "avatar": null,
+        "sub": "0 wins · 4 scoring finishes · 77 prize chips"
+      },
+      {
+        "rank_label": "6",
+        "name": "Fenwick Arlo",
+        "value": 210,
+        "horse": true,
+        "staff": false,
+        "avatar": null,
+        "sub": "2 wins · 2 scoring finishes · 3,880 prize chips"
+      },
+      {
+        "rank_label": "7",
+        "name": "Gemma Solace",
+        "value": 210,
+        "horse": true,
+        "staff": false,
+        "avatar": null,
+        "sub": "Tied at 210, placed on wins · 0 prize chips"
+      },
+      {
+        "rank_label": "8",
+        "name": "Hollis Dray",
+        "value": 204,
+        "horse": false,
+        "staff": false,
+        "avatar": null,
+        "sub": "1 win · 1 scoring finish · 55 prize chips"
+      },
+      {
+        "rank_label": "9",
+        "name": "Ivo Brannick",
+        "value": 199,
+        "horse": true,
+        "staff": false,
+        "avatar": null,
+        "sub": "0 wins · 3 scoring finishes · 640 prize chips"
+      },
+      {
+        "rank_label": "10",
+        "name": "Juniper Kade",
+        "value": 191,
+        "horse": true,
+        "staff": false,
+        "avatar": null,
+        "sub": "0 wins · 2 scoring finishes · 18 prize chips"
+      }
+    ],
+    "callout": {
+      "tag": "BEST HUMAN FINISH",
+      "text": "Hollis Dray · 1st of 72 · Evening Bounty (NLH)",
+      "name": "Hollis Dray",
+      "avatar": null
+    }
+  },
+  "footer": {
+    "disclosure": [
+      "Boards include Smarter.Poker horses, our AI players.",
+      "Chips are play credits with no cash value. 18+."
+    ],
+    "provenance": "PRIVATE DRY RUN · SNAPSHOT FIXTURE-TOP10 · SYNTHETIC"
+  },
+  "closing": {
+    "eyebrow": "TONIGHT · 7:00 PM CT",
+    "title": "NIGHTLY 20K",
+    "subtitle": "20,000 CHIP GUARANTEE",
+    "detail": "NO-LIMIT HOLD'EM",
+    "footnote": "Chips are play credits with no cash value. 18+."
+  }
+}

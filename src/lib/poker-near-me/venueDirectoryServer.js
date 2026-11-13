@@ -1,4 +1,5 @@
 import { applyVenueIntegrity } from './venueIntegrityServer.js';
+import { redactPublicVenue } from './publicVenuePrivacy.mjs';
 import { parsePokerMapBounds, isVenueWithinPokerMapBounds } from './mapBounds.js';
 
 export const VENUE_DIRECTORY_FIELD_LIST = [
@@ -69,7 +70,7 @@ function projectDirectoryVenue(venue) {
     if (venue?.[field] !== undefined) projected[field] = venue[field];
   });
   if (venue?.location_quality) projected.location_quality = venue.location_quality;
-  return projected;
+  return redactPublicVenue(projected);
 }
 
 function snapshotMatchesSearch(venue, search) {
@@ -208,7 +209,7 @@ export async function fetchVenueDirectory({ supabase, params = {} }) {
     : integrity.venues;
   const page = bounds ? filtered.slice(offset, offset + limit) : filtered;
   const result = {
-    data: page,
+    data: page.map(redactPublicVenue),
     total: bounds ? filtered.length : (count ?? page.length),
     offset,
     limit,

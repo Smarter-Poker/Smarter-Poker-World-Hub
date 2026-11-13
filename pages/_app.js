@@ -143,6 +143,7 @@ import { UnreadProvider } from '../src/hooks/useUnreadCount';
 import { SoundEngine } from '../src/audio/SoundEngine';
 import { AvatarProvider, useAvatar } from '../src/contexts/AvatarContext';
 import useEasterEggSweep from '../src/hooks/useEasterEggSweep';
+import usePresenceHeartbeat from '../src/hooks/usePresenceHeartbeat';
 import { ExternalLinkProvider } from '../src/components/ui/ExternalLinkModal';
 import { PushProvider } from '../src/contexts/PushContext';
 import { TrainingSettingsProvider } from '../src/contexts/TrainingSettingsContext';
@@ -281,6 +282,7 @@ const TRAINING_STANDALONE_ART_IDS = new Set([
 const HUB_ROUTES_WITHOUT_SHARED_HEADER = new Set([
   '/hub/admin',
   '/hub/admin/autofix',
+  '/hub/admin/daily-content',
   '/hub/admin/diamond-liability',
   '/hub/commander',
   '/hub/godmode',
@@ -877,6 +879,17 @@ function EasterEggWatcher() {
   return null;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// PRESENCE HEARTBEAT (2026-11-11) - the signed-in person's one heartbeat on
+// every World Hub page, so Messenger, the feed and profiles read them Online
+// while they use the app. Renders nothing. @see src/lib/presenceHeartbeat.mjs
+// ═══════════════════════════════════════════════════════════════════════════
+function PresenceHeartbeat() {
+  const { user } = useAvatar();
+  usePresenceHeartbeat(user?.id || null);
+  return null;
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 // MARKETPLACE ROUTES THAT OWN THEIR FOOTER
 // ═════════════════════════════════════════════════════════════════════════════
@@ -1302,6 +1315,9 @@ export default function App({ Component, pageProps }) {
                                 </HubErrorBoundary>
                                 <HubErrorBoundary name="Easter Egg Watcher" fallback={<></>}>
                                   {automaticPlayerWrites && <EasterEggWatcher />}
+                                </HubErrorBoundary>
+                                <HubErrorBoundary name="Presence Heartbeat" fallback={<></>}>
+                                  {automaticPlayerWrites && !isEmbedded && <PresenceHeartbeat />}
                                 </HubErrorBoundary>
                               </ToastProvider>
                             </WorldThemeProvider>

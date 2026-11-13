@@ -26,6 +26,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { jitterCoord, publicDistanceToGroup } from '../../../src/lib/home-games/geoPrivacy';
 import { homeGameUrl } from '../../../src/lib/home-games/urls';
 import { publicHomeGameSettings, publicHomeGroupsByLinkedPages } from '../../../src/lib/home-games/publicVenueProjection.mjs';
+import { redactPublicVenue, redactPublicVenues } from '../../../src/lib/poker-near-me/publicVenuePrivacy.mjs';
 import { isVenueWithinPokerMapBounds, parsePokerMapBounds } from '../../../src/lib/poker-near-me/mapBounds';
 import { applyVenueIntegrity } from '../../../src/lib/poker-near-me/venueIntegrityServer';
 import { fetchVenueDirectoryResilient } from '../../../src/lib/poker-near-me/venueDirectoryServer';
@@ -739,7 +740,7 @@ export default async function handler(req, res) {
                   res.setHeader('X-PNM-Snapshot-Generated-At', directory.snapshot.generated_at);
               }
               if (directory.degraded) res.setHeader('Cache-Control', 'no-store');
-              return res.status(200).json({ success: true, ...directory, home_groups: [], total_home_groups: 0 });
+              return res.status(200).json({ success: true, ...directory, data: redactPublicVenues(directory.data), home_groups: [], total_home_groups: 0 });
           } catch (directoryError) {
               if (directoryError?.statusCode === 400) {
                   return res.status(400).json({ success: false, error: directoryError.message });
@@ -1901,7 +1902,7 @@ export default async function handler(req, res) {
                   if (venue.game_schedule === undefined) venue.game_schedule = null;
                   return res.status(200).json({
                       success: true,
-                      data: venue,
+                      data: redactPublicVenue(venue),
                       total: 1,
                       hasGpsData: hasGps,
                       data_integrity: integritySummary,
@@ -1982,7 +1983,7 @@ export default async function handler(req, res) {
 
               return res.status(200).json({
                   success: true,
-                  data: venue,
+                  data: redactPublicVenue(venue),
                   total: 1,
                   hasGpsData: hasGps,
               });
@@ -2336,7 +2337,7 @@ export default async function handler(req, res) {
 
           return res.status(200).json({
               success: true,
-              data: limited,
+              data: redactPublicVenues(limited),
               home_groups: homeGroupsOut,
               total,
               total_home_groups: homeGroupsOut.length,
@@ -2378,7 +2379,7 @@ export default async function handler(req, res) {
           return res.status(200).json({
               success: true,
               degraded: true,
-              data: fallbackVenues,
+              data: redactPublicVenues(fallbackVenues),
               home_groups: [],
               total: fallbackVenues.length,
               total_home_groups: 0,

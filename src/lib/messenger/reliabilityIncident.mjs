@@ -159,3 +159,17 @@ export function reliabilityScopeEntries(scope) {
     if (!isObject(scope)) return [];
     return Object.keys(scope).sort().map((key) => [key, String(scope[key])]);
 }
+
+/**
+ * A controller message split for display: its first line is the heading
+ * ("AI AGENT NEEDED", "RELIABILITY CONTROLLER VALIDATION") shown beside the
+ * time it was sent, and the rest is the body. The stored text is unchanged
+ * and is still what Copy Agent Handoff falls back to.
+ */
+export function reliabilityMessageParts(content) {
+    const value = typeof content === 'string' ? content : '';
+    const lines = value.replace(/^\s*\n/, '').split('\n');
+    const label = (lines[0] || '').trim().slice(0, 80) || 'AI AGENT NEEDED';
+    const body = lines.slice(1).join('\n').replace(/^\n+/, '');
+    return { label, body };
+}

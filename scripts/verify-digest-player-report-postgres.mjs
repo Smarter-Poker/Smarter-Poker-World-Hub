@@ -30,11 +30,28 @@ try {
         '-f', 'supabase/migrations/20261028151456_digest_promo_wallet_payouts.sql',
         '-f', 'supabase/migrations/20261028152704_digest_profit_fractional_diamonds.sql',
         '-f', '__tests__/digest-spins-spend-assert.sql']);
+    run('createdb', ['-h', socket, '-p', '56474', 'house_figures']);
+    run('psql', ['-X', '-v', 'ON_ERROR_STOP=1', '-h', socket, '-p', '56474', '-d', 'house_figures',
+        '-f', '__tests__/digest-house-figures.sql',
+        '-f', 'supabase/migrations/20261111220642_digest_bbj_rake_and_horse_cash_chips.sql',
+        '-f', '__tests__/digest-house-figures-assert.sql',
+        '-f', '__tests__/digest-daily-results.sql',
+        '-f', 'supabase/migrations/20261112140947_digest_kingfish_player_totals.sql',
+        '-f', '__tests__/digest-kingfish-assert.sql',
+        '-f', 'supabase/migrations/20261112140952_digest_daily_chip_reconciliation.sql',
+        '-f', 'supabase/migrations/20261112141236_digest_daily_results_bounded_plan.sql',
+        '-f', 'supabase/migrations/20261112141734_digest_daily_chip_supply_verification.sql',
+        '-f', '__tests__/digest-daily-results-assert.sql']);
     console.log('Digest PostgreSQL qualification passed: ' + JSON.stringify([
         'supabase/migrations/20261027183951_digest_player_report_bbj_and_result_breakdown.sql',
         'supabase/migrations/20261028150757_digest_spins_and_spend.sql',
         'supabase/migrations/20261028151456_digest_promo_wallet_payouts.sql',
         'supabase/migrations/20261028152704_digest_profit_fractional_diamonds.sql',
+        'supabase/migrations/20261111220642_digest_bbj_rake_and_horse_cash_chips.sql',
+        'supabase/migrations/20261112140947_digest_kingfish_player_totals.sql',
+        'supabase/migrations/20261112140952_digest_daily_chip_reconciliation.sql',
+        'supabase/migrations/20261112141236_digest_daily_results_bounded_plan.sql',
+        'supabase/migrations/20261112141734_digest_daily_chip_supply_verification.sql',
     ].map(file => ({ path: file, sha256: createHash('sha256').update(readFileSync(path.join(root, file))).digest('hex'), postgresMajor: 17 }))));
 } finally {
     if (started) run('pg_ctl', ['-D', data, '-m', 'fast', 'stop']);

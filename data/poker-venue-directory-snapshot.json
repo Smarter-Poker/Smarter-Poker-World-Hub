@@ -6999,16 +6999,16 @@
       "slug": null,
       "pokeratlas_slug": null,
       "venue_type": "poker_room",
-      "address": "4830 W 97th Pl",
+      "address": null,
       "city": "Oak Lawn",
       "state": "IL",
       "country": "US",
-      "zip": "60453",
+      "zip": null,
       "latitude": null,
       "longitude": null,
       "lat": null,
       "lng": null,
-      "phone": "7086775221",
+      "phone": null,
       "website": null,
       "profile_photo_url": null,
       "cover_photo_url": null,
@@ -26136,9 +26136,10 @@
     "source_candidate_count": 473,
     "source_count": 473,
     "public_count": 473,
-    "projected_sha256": "7beccd4113277ce18eda6dad4820a4c600accd51dd0099e9d6078870b1e0f284",
-    "material_sha256": "0e7a6ca23e97f027784765f4883434008204f03b05f6a695380a45fadcc55371",
+    "projected_sha256": "84ee426660b424b39f13635e14bed5bcba03b0dbd5cbbe972e2fa9bc5d8dd289",
+    "material_sha256": "1bd8248e117a7b0363d0c641e70d7838b10a45174737856bb919b704761b3818",
     "data_revision": "supabase:473:0:1793415675473",
-    "newest_source_at": "2026-10-31T03:01:15.473Z"
+    "newest_source_at": "2026-10-31T03:01:15.473Z",
+    "privacy_redaction": "2026-11-11: operator PII and unverified self-registration contact fields removed (src/lib/poker-near-me/publicVenuePrivacy.mjs)"
   }
 }

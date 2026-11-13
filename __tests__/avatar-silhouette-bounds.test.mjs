@@ -118,3 +118,21 @@ test('the published artwork revision seals every delivered preset and custom var
   }
   assert.ok(fs.readFileSync(path.join(root, 'src/data/AVATAR_LIBRARY.js'), 'utf8').includes(receipt.revision));
 });
+
+test('requested player avatars use transparent artwork at the existing custom-avatar baseline', async () => {
+  const manifest = JSON.parse(fs.readFileSync(path.join(root, 'scripts/data/player-avatar-assignments-20261111.json')));
+  assert.deepEqual(manifest.assignments.map(x => x.username), ['Twin2983', 'Farmboy13', 'RoughRyder', 'ChiToWnBaLLn']);
+  assert.equal(new Set(manifest.assignments.map(x => x.profileId)).size, 4);
+  for (const entry of manifest.assignments) {
+    const bytes = fs.readFileSync('public/' + entry.file);
+    assert.equal(createHash('sha256').update(bytes).digest('hex'), entry.sha256);
+    const meta = await sharp(bytes).metadata();
+    assert.equal(meta.width, 512); assert.equal(meta.height, 512); assert.equal(meta.hasAlpha, true);
+    const b = await subjectBounds(bytes);
+    assert.ok(Math.abs(b.height - 455) <= 1);
+    assert.ok(b.left >= 5 && b.top >= 5 && b.left + b.width <= 507 && b.top + b.height <= 507);
+    const {data, info} = await sharp(bytes).ensureAlpha().raw().toBuffer({resolveWithObject:true});
+    for (const [x,y] of [[0,0],[511,0],[0,511],[511,511]]) assert.equal(data[(y*info.width+x)*4+3], 0);
+    assert.ok(entry.file.includes(entry.sha256.slice(0,12)), 'immutable URL binds to supplied bytes');
+  }
+});

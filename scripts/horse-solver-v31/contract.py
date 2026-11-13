@@ -869,7 +869,7 @@ def _validate_scenario(
     icm_models: dict[str, dict[str, Any]],
     verify_inputs: bool,
 ) -> dict[str, Any]:
-    keys = SCENARIO_KEYS | ({"purpose", "conditional_root_action", "conditional_history"} & set(raw) if isinstance(raw, dict) else set())
+    keys = SCENARIO_KEYS | ({"purpose", "conditional_root_action", "conditional_history", "range_construction", "subgame_inputs"} & set(raw) if isinstance(raw, dict) else set())
     scenario = _exact_keys(raw, keys, f"scenarios[{index}]")
     if scenario.get("purpose", "harvest") not in ("harvest", "self_test"):
         raise ContractError(f"scenarios[{index}].purpose must be harvest or self_test")
@@ -1006,7 +1006,113 @@ def _validate_scenario(
         seen_nodes.add(target["node"])
     validate_conditional_root_action(scenario)
     validate_conditional_history(scenario)
+    validate_range_construction(scenario)
     return scenario
+
+
+# How a scenario's node ranges were produced (Club Arena migration
+# 20261112185251, RANGE-DESIGN.md section 3). "forced" is the
+# conditional_history / conditional_root_action model: earlier actions are
+# fixed and both players keep their full input ranges. It stays loadable for
+# explicitly labelled research and can never be registered as a round.
+RANGE_CONSTRUCTIONS = ("root", "natural", "subgame", "forced")
+REGISTRABLE_RANGE_CONSTRUCTIONS = ("root", "natural", "subgame")
+
+
+def scenario_range_construction(scenario: dict[str, Any]) -> str | None:
+    """The declared construction, or None for a manifest written before the declaration existed."""
+    return scenario.get("range_construction")
+
+
+def validate_range_construction(scenario: dict[str, Any]) -> None:
+    """A declaration must be one of the four models and agree with how the scenario is solved."""
+    conditioned = "conditional_history" in scenario or "conditional_root_action" in scenario
+    if "range_construction" not in scenario:
+        return
+    declared = scenario["range_construction"]
+    if not isinstance(declared, str) or declared not in RANGE_CONSTRUCTIONS:
+        raise ContractError("range_construction must be root, natural, subgame or forced")
+    if conditioned and declared != "forced":
+        raise ContractError(
+            "a conditional_history or conditional_root_action scenario forces earlier actions with "
+            "unnarrowed ranges and must declare range_construction forced")
+    if not conditioned and declared == "forced":
+        raise ContractError("range_construction forced requires a conditional_history or conditional_root_action scenario")
+    if declared == "subgame":
+        # A subgame's inputs are another solve's natural ranges at a later node:
+        # the scenario names that solve and that non-root node. Club Arena
+        # records the checksum; it does not hold the upstream solve.
+        inputs = _exact_keys(scenario.get("subgame_inputs"), {"upstream_solve_checksum", "upstream_node"}, "subgame_inputs")
+        _nonzero_hex(inputs["upstream_solve_checksum"], 64, "subgame_inputs.upstream_solve_checksum")
+        node = inputs["upstream_node"]
+        if not isinstance(node, str) or not node.startswith("r:0:") or len(node) <= len("r:0:"):
+            raise ContractError("subgame_inputs.upstream_node must be the non-root upstream node whose ranges start the subgame")
+    elif "subgame_inputs" in scenario:
+        raise ContractError("only a subgame scenario may declare subgame_inputs")
+    if declared == "root":
+        for target in scenario["targets"]:
+            # Same rule as the database: no root range after any step at which
+            # the betting tree offered more than one action.
+            if any(count > 1 for count in tree_available_actions(scenario, target["node"])):
+                raise ContractError(
+                    f"target {target['target_id']} follows a decision with more than one available action and "
+                    "cannot be a root-range node; declare natural or subgame")
+
+
+def tree_available_actions(scenario: dict[str, Any], node: str) -> list[int]:
+    """How many actions the scenario's own betting tree offered at each public step before `node`.
+
+    Pio add_line lines are cumulative chips-since-root per action. At a step,
+    the options are the distinct next values of every tree line sharing the
+    line so far, plus the passive action (check, or call when facing a wager)
+    which Pio always builds, plus fold when facing a wager. Counting the
+    passive action even when no line spells it out can only raise the count,
+    so a decision is never mistaken for a one-action step.
+    """
+    from pio_upi import CARD, PioError, analyze_node
+    try:
+        line = analyze_node(node, root_pot_chips=scenario["pot_chips"],
+                            effective_stack_chips=scenario["effective_stack_chips"],
+                            preflop_aggressor=scenario["preflop_aggressor_solver_player"]).cumulative_line
+    except (PioError, ValueError, TypeError) as error:
+        raise ContractError(f"invalid node {node}: {error}") from error
+    # Chips each solver seat has put in since the root, before each action
+    # (analyze_node proved the line legal; equal totals mean nobody faces a wager).
+    spent, actor, counts = [0, 0], 0, []
+    for token in node.split(":")[2:]:
+        if CARD.fullmatch(token):
+            actor = 0
+            continue
+        done = line[:len(counts)]
+        options = {tree[len(done)] for tree in scenario["tree_lines"]
+                   if len(tree) > len(done) and tuple(tree[:len(done)]) == done}
+        if line[len(counts)] not in options:
+            raise ContractError(f"node {node} leaves the scenario's betting tree")
+        options.add(max(spent))
+        counts.append(len(options) + (1 if spent[0] != spent[1] else 0))
+        spent[actor] = line[len(counts) - 1]
+        actor = 1 - actor
+    return counts
+
+
+def scenario_public_history(scenario: dict[str, Any], target: dict[str, Any]) -> list[dict[str, Any]]:
+    """The exact public history the solved node records, each step with the tree's available_actions.
+
+    The history comes from pio_upi.complete_node_state, the same owner that
+    writes complete_public_state.public_history. It depends only on the node,
+    stacks, pot and positions, so the utility is neutralised (no ICM model is
+    needed to know who checked or bet what).
+    """
+    from pio_upi import PioError, complete_node_state
+    view = scenario if scenario.get("objective") != "icm" else {**scenario, "objective": "chip_ev", "icm_model_id": None, "rake": [0, 0]}
+    try:
+        history = complete_node_state(view, target, icm_model_checksum="f" * 64)["public_history"]
+    except PioError as error:
+        raise ContractError(f"target {target.get('target_id')} has no public history: {error}") from error
+    counts = tree_available_actions(scenario, target["node"])
+    if len(counts) != len(history):
+        raise ContractError(f"target {target.get('target_id')} history and tree disagree")
+    return [{**step, "available_actions": count} for step, count in zip(history, counts)]
 
 
 def validate_conditional_root_action(scenario: dict[str, Any]) -> None:

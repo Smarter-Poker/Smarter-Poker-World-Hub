@@ -62,10 +62,13 @@ async function exportVenues() {
     // contract as the live API. This also removes complete-record duplicates
     // without ever blending fields from different source rows.
     const { applyVenueIntegrity } = await import('../src/lib/poker-near-me/venueIntegrityServer.js');
+    // Both outputs are public (one is served from /data, the other is bundled
+    // into client pages), so operator PII never enters them.
+    const { redactPublicVenues } = await import('../src/lib/poker-near-me/publicVenuePrivacy.mjs');
     const integrity = applyVenueIntegrity(formattedVenues);
     const generatedAt = new Date().toISOString();
     const output = {
-        venues: integrity.venues,
+        venues: redactPublicVenues(integrity.venues),
         metadata: {
             total: integrity.venues.length,
             active: integrity.venues.length,

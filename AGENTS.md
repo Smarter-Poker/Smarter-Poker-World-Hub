@@ -52,20 +52,40 @@ Access:
 - The scheduled task "LinkedIn Daily Check-In" runs at 7:41 AM Central. It is bound to the Mac and carries these rules.
 
 Rules (nothing is posted or sent without Dan's approval of its exact content and destination):
-1. **Approved text only.** A post is published only when its line in the kit's "Approve Posts" list is ticked, names today as its publish day, and carries "Approved text fingerprint <8 hex>". That fingerprint must equal the `h` value the Claude Docs reader shows on the post's code block (the first 8 hex digits of the SHA-256 of the text). A missing or different fingerprint means the text changed after approval; the post waits for a new tick.
-2. **No duplicates.** Before publishing, read the profile's activity page. If a post with the same first line exists, another account already published it: record its URL and do not publish again. After publishing, open the post, confirm the text matches, and write "PUBLISHED <date> at <URL>" on the tick line.
+1. **Approved package only.** A tick approves one exact package. Its line in the kit's "Approve Posts" list must name today as the publish day and carry all four parts:
+   - "Approved text fingerprint <8 hex>", matching the `h` value the Claude Docs reader shows on the post's code block (the first 8 hex digits of the text's SHA-256);
+   - Destination;
+   - Media ("none", or a file and its SHA-256 prefix);
+   - First comment.
+   If any part is missing or differs, the post waits for a new tick.
+2. **One publisher.** Only the scheduled task "LinkedIn Daily Check-In" on Dan's Mac publishes. Check-ins from any other account read status, draft and log, but never publish. That rules out simultaneous posts from two accounts.
+   - Before posting, the task writes "PUBLISHING <time>" on the tick line.
+   - After posting, it opens the live post, confirms the text, and replaces the marker with "PUBLISHED <date> at <URL>".
+   - A marker without a result is an uncertain outcome. The next run inspects the profile's activity first: it records the URL if the post exists, and posts only if it does not.
+   - The kit's tick lines are the durable record. The Clipboard post was published 11 November 2026 at https://www.linkedin.com/feed/update/urn:li:activity:7526278649562447874/ and matches its approved text.
 3. **Tagged links.** Links use the UTM-tagged URLs in the kit (`utm_source=linkedin&utm_medium=social&utm_campaign=<post-slug>`), never a bare smarter.poker link, and must land on a World Hub page. `/hub/club-arena` is served by the Club Arena app and records no attribution.
 4. **Company page.** Record LinkedIn's exact message ("Feature not available. You don't have enough connections to create a LinkedIn Page" on November 11, 2026). LinkedIn does not publish the number it needs, so never state that a given number of connections unlocks it. Never send connection requests or messages, and never invent headcount, endorsements or business facts.
 5. **Replies and messages.** Comment replies are drafted into the kit for Dan's approval and never posted. The player announcement and any direct message stay unsent until Dan approves the exact text and destination.
 6. **Daily Log.** Add today's entry with the profile numbers, the exact company-page message, what was published (with URLs) and what is waiting on Dan.
 
-Signup attribution (World Hub PRs #2798, #2802, #2804, live November 11, 2026):
-- `src/lib/acquisition/firstTouch.mjs` keeps the first tagged landing. It stores only utm_source, utm_medium, utm_campaign (short lowercase values), the first path segment and the time.
-- Email sign-up writes these onto the new account through `supabase.auth.signUp`.
-- Google sign-up writes them in `/auth/callback`, only on the account's creating sign-in: last sign-in within 60 seconds of creation, account under 10 minutes old, and no attribution yet.
+Signup attribution (World Hub PRs #2798, #2802, #2804, #2810):
+- `src/lib/acquisition/firstTouch.mjs` keeps the first tagged landing on a World Hub page. It stores only utm_source, utm_medium, utm_campaign (short lowercase values), the first path segment and the time. Every other parameter is dropped.
+- **Email sign-up** writes these onto the new account through `supabase.auth.signUp`, so it binds to the account that call creates.
+- **Google sign-up** writes them in `/auth/callback` only when the callback's `attr` equals a single-use nonce this browser stored when it started that OAuth flow, within the hour. It also requires the creating-sign-in check (last sign-in within 60 seconds of creation, account under 10 minutes old) and no attribution yet. The nonce is consumed on first use, so these can never attach a campaign: retries, other tabs, other browsers, older flows, and ordinary logins or email links.
+- **Exact vs approximate.** Flow binding is exact. Account newness is a GoTrue timing heuristic, so counts are approximate.
+- **False negatives:** GoTrue stamping sign-in more than 60 seconds after creation; Google completion more than an hour after the button; cleared browser storage; landing on `/hub/club-arena` (the Club Arena app), which records nothing.
+- **False positives:** none known from another account or login. The campaign follows the first-touch model, though: it is the browser's first tagged landing in 90 days, not necessarily the link clicked last.
 - Read results with `select raw_user_meta_data->>'acquisition_utm_source', raw_user_meta_data->>'acquisition_utm_campaign', count(*) from auth.users where raw_user_meta_data ? 'acquisition_utm_source' group by 1, 2`.
 - The values are user-editable metadata: marketing data, not audit data.
 
-Founder content: `/about` and the Organization JSON-LD read the `FOUNDER` constant in `src/components/seo/SEOHead.js`. The founding date (October 2025) and the 2008 idea are owner-stated; no public registry record was found on November 11, 2026, so do not describe them as independently verified.
+Founder content: `/about` and the Organization JSON-LD read the `FOUNDER` constant in `src/components/seo/SEOHead.js`. The founding date (October 2025) and the 2008 idea are owner-stated; no public registry record was found on November 11, 2026, so never describe them as independently verified. Never associate news, court or other records about similarly named people with the founder without verified identity evidence.
+
+Public venue data (PR #2809): `src/lib/poker-near-me/publicVenuePrivacy.mjs` removes `email`, `claimed_by` and `primary_contact_id` from every public venue surface. It also hides the street address, ZIP, phone and coordinates of unverified self-registered listings. It applies to the API, the directory, SSR props, the all-venues generator and the checked-in JSON files. Any new public venue output must pass through it.
+
+Outstanding inputs, all owned by Dan:
+- approval of each listed draft and of the player announcement;
+- LinkedIn's connection requirement for the company page;
+- headcount bracket and headquarters city;
+- the current rules pages of each Reddit community, before any Reddit draft moves forward.
 
 Product facts follow the reddit-agent skill's "Verified Product Facts". Chips are never written with a currency symbol, and freeroll copy uses the schedule in `src/lib/freerolls/freeBuySchedule.mjs`.

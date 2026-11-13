@@ -6,6 +6,7 @@
  */
 
 import SEOHead from '../../../src/components/seo/SEOHead';
+import { redactPublicVenue } from '../../../src/lib/poker-near-me/publicVenuePrivacy.mjs';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -430,7 +431,12 @@ function pickPublicVenueFields(row) {
   for (const field of PUBLIC_VENUE_FIELDS) {
     if (row[field] !== undefined) out[field] = row[field];
   }
-  return out;
+  // source/data_quality decide whether an unverified self-registration's
+  // street address and phone may be shown (publicVenuePrivacy.mjs).
+  const redacted = redactPublicVenue({ ...out, source: row.source, data_quality: row.data_quality });
+  delete redacted.source;
+  delete redacted.data_quality;
+  return redacted;
 }
 
 export async function getServerSideProps({ params, query, req, res }) {
