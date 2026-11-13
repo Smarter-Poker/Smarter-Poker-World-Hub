@@ -277,8 +277,18 @@ V2_APPENDED = (
     "opponent_position=UTG",
 )
 FEATURE_DESCRIPTOR_V2_SHA256 = "c37e7aa2b2dde3f71cde7d224594de637ab66c928c6dffd94661fec3f7ac80c4"
+# Feature contract v3 (holdem-public-hist215-v3, cell contract v3, 2026-11-13):
+# the unchanged v2 246 features, then two one-hots (indices 246..247): the
+# overbet facing bucket and the v3 "donk" role. v2 has no category for a node
+# facing a bet of 1.1 pot or more (the turn/river pilot's 1.5-pot flop bet
+# could not be encoded at all) and no role for a lead into the previous
+# street's aggressor. Nothing uses v3 until a dataset declares it.
+FEATURE_CONTRACT_V3 = "holdem-public-hist215-v3"
+V3_APPENDED = ("facing_size_bucket=big", "node_role=donk")
+FEATURE_DESCRIPTOR_V3_SHA256 = "26d9271d8b1b1b2400476e9cb1c22662e0086bf5111b1f2e1ce7281ef131b784"
 FEATURE_CONTRACTS = {FEATURE_CONTRACT_V1: (FEATURE_DESCRIPTOR_SHA256, 215),
-                     FEATURE_CONTRACT_V2: (FEATURE_DESCRIPTOR_V2_SHA256, 215 + len(V2_APPENDED))}
+                     FEATURE_CONTRACT_V2: (FEATURE_DESCRIPTOR_V2_SHA256, 215 + len(V2_APPENDED)),
+                     FEATURE_CONTRACT_V3: (FEATURE_DESCRIPTOR_V3_SHA256, 215 + len(V2_APPENDED) + len(V3_APPENDED))}
 FEATURE_COUNT_BY_SCHEMA = {sha: count for sha, count in FEATURE_CONTRACTS.values()}
 
 
@@ -300,6 +310,17 @@ def feature_descriptor_v2(v1: dict) -> dict:
     return v2
 
 
+def feature_descriptor_v3(v1: dict) -> dict:
+    """The v3 descriptor: the v2 descriptor with the v3 block appended, nothing else."""
+    v2 = feature_descriptor_v2(v1)
+    v3 = dict(v2)
+    v3.update({"format": "holdem-public-hist215-feature-schema-v3", "feature_count": v2["feature_count"] + len(V3_APPENDED),
+               "feature_order": [*v2["feature_order"], *V3_APPENDED],
+               "feature_groups": [*v2["feature_groups"], {"count": len(V3_APPENDED), "name": "v3_appended_public_categories", "offset": v2["feature_count"]}],
+               "predecessor_schema_sha256": FEATURE_DESCRIPTOR_V2_SHA256})
+    return v3
+
+
 def maintained_feature_descriptor(version: Any) -> dict:
     """The maintained descriptor of a contract, each checked against its pinned digest."""
     from pathlib import Path
@@ -310,6 +331,8 @@ def maintained_feature_descriptor(version: Any) -> dict:
     value = json.loads(raw)
     if version == FEATURE_CONTRACT_V2:
         value = feature_descriptor_v2(value)
+    elif version == FEATURE_CONTRACT_V3:
+        value = feature_descriptor_v3(value)
     if digest(value) != sha or value["feature_count"] != count:
         raise ContractError("public215 maintained feature descriptor differs")
     return value
@@ -709,17 +732,40 @@ def make_m2_selection_receipt(manifest: dict, *, dataset_id: str, model_builds: 
 REGISTRATION_CONTEXT_KEYS = ("street", "game_family", "objective", "utility_context", "table_size", "pot_type",
                              "hero_position", "opponent_position", "depth_bucket", "texture_class", "node_role",
                              "facing_kind", "facing_size_bucket")
+# Cell contract v3 (pio_upi.CELL_CONTRACT_V3): the 13 keys plus the contract
+# declaration and the size-bucketed betting line. One registration is all v2
+# or all v3; Club Arena's registration guard enforces the same.
+REGISTRATION_CONTEXT_KEYS_V3 = (*REGISTRATION_CONTEXT_KEYS, "cell_contract", "line_class")
+
+
+def registration_cell_contract(cell: Any) -> str | None:
+    """None for a 13-key v2 cell, "v3" for a well-formed v3 cell; ContractError otherwise."""
+    from pio_upi import LINE_CLASS_V3, V3_DEPTH_BUCKETS
+    if isinstance(cell, dict) and set(cell) == set(REGISTRATION_CONTEXT_KEYS):
+        return None
+    if (isinstance(cell, dict) and set(cell) == set(REGISTRATION_CONTEXT_KEYS_V3) and cell["cell_contract"] == "v3"
+            and isinstance(cell["line_class"], str) and LINE_CLASS_V3.fullmatch(cell["line_class"])
+            and cell["street"] in ("flop", "turn", "river")
+            and cell["line_class"].count("/") == ("flop", "turn", "river").index(cell["street"])
+            and type(cell["depth_bucket"]) is int and cell["depth_bucket"] in V3_DEPTH_BUCKETS):
+        return "v3"
+    raise ContractError("registration cell must be one 13-key V31 context (v2) or one v3 context with cell_contract v3 "
+                        "and a line_class that matches its street")
 
 
 def cell_composition(cells: Any) -> dict:
-    """{"flop": n, "turn": n, "river": n} of a list of 13-key cell contexts."""
+    """{"flop": n, "turn": n, "river": n} of a list of 13-key (v2) or v3 cell contexts, never mixed."""
     if not isinstance(cells, list) or not cells:
         raise ContractError("registration cells must be a non-empty list")
     out = {"flop": 0, "turn": 0, "river": 0}
+    contracts = set()
     for cell in cells:
-        if not isinstance(cell, dict) or set(cell) != set(REGISTRATION_CONTEXT_KEYS) or cell["street"] not in out:
+        if not isinstance(cell, dict) or cell.get("street") not in out:
             raise ContractError("registration cell must be one 13-key V31 context")
+        contracts.add(registration_cell_contract(cell))
         out[cell["street"]] += 1
+    if len(contracts) != 1:
+        raise ContractError("registration cells mix cell contracts v2 and v3")
     return out
 
 
@@ -795,9 +841,12 @@ def build_cell_provenance(manifest: dict, manifest_checksum: str, *,
     only for a seat that made a real earlier decision; the database confirms
     it on the data at seal. Refuses forced, undeclared or inconsistent cells.
     """
-    from contract import _nonzero_hex, scenario_public_history
-    from pio_upi import PioError, analyze_node, target_context
+    from contract import _nonzero_hex, require_feature_and_cell_contracts_agree, scenario_public_history
+    from pio_upi import PioError, analyze_node, scenario_cell_contract, target_context
     _nonzero_hex(manifest_checksum, 64, "manifest checksum")
+    require_feature_and_cell_contracts_agree(
+        manifest.get("feature_contract_version"),
+        [s.get("cell_contract") for s in manifest.get("scenarios", []) if s.get("purpose", "harvest") == "harvest"])
     manifest_range_constructions(manifest)  # refuses forced, undeclared and doubly declared cells
     seats_by_cell = unnarrowed_seats or {}
     out: dict[bytes, dict] = {}
@@ -810,7 +859,8 @@ def build_cell_provenance(manifest: dict, manifest_checksum: str, *,
                 cell = target_context(scenario, target)
                 actor = analyze_node(target["node"], root_pot_chips=scenario["pot_chips"],
                                      effective_stack_chips=scenario["effective_stack_chips"],
-                                     preflop_aggressor=scenario["preflop_aggressor_solver_player"]).actor
+                                     preflop_aggressor=scenario["preflop_aggressor_solver_player"],
+                                     cell_contract=scenario_cell_contract(scenario)).actor
             except PioError as error:
                 raise ContractError(f"range provenance target is invalid: {error}") from error
             key = canonical_bytes(cell)
@@ -891,6 +941,9 @@ def verify_round_registration(registration: Any, manifest: dict, *, manifest_che
     """
     verify_round_composition(registration, manifest)
     cells = registration["cells"]
+    from contract import require_feature_and_cell_contracts_agree
+    require_feature_and_cell_contracts_agree(manifest.get("feature_contract_version"),
+                                             [registration_cell_contract(c) for c in cells])
     provenance = registration.get("cell_provenance")
     if not isinstance(provenance, list) or len(provenance) != len(cells) or any(
             not isinstance(entry, dict) or not isinstance(entry.get("cell"), dict) for entry in provenance):

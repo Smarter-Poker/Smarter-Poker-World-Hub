@@ -40,6 +40,16 @@ class FinalPublic215TrainingTests(unittest.TestCase):
         m._predictors[0][0].nodes[2]['value']=.375
         self.assertEqual(decode_f64(export_scalar_head(m)['trees'][0][2]['value_f64']),.375)  # No second learning-rate shrinkage.
 
+    def test_export_width_is_the_declared_feature_contract_width(self):
+        # review B5 m1: contract-aware, not a hard-coded 215/246 pair (v3 is 248 wide)
+        for width in (215,246,248):
+            m=scalar_stub();m.n_features_in_=width
+            self.assertEqual(len(export_scalar_head(m)['trees']),100)
+            self.assertEqual(len(export_scalar_head(m,width)['trees']),100)
+        for width,declared in ((246,215),(215,246),(246,248),(248,246),(247,None),(300,None),(247,247)):
+            m=scalar_stub();m.n_features_in_=width
+            with self.subTest(width=width,declared=declared),self.assertRaises(ContractError):export_scalar_head(m,declared)
+
     def test_export_refuses_unsupported_layout_categories_or_parameters(self):
         for mutate in [lambda m:m._predictors.pop(),lambda m:setattr(m,'_baseline_prediction',np.array([[1]],dtype='float32')),
                        lambda m:m._predictors[0][0].nodes.__setitem__('is_categorical',1),

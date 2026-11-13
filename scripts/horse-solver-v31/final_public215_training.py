@@ -24,7 +24,7 @@ from pathlib import Path
 from typing import Any
 
 from contract import ApprovedManifest, ContractError, load_manifest, _json_bytes
-from public_hist215 import (feature_contract, FROZEN_PARAMETERS, canonical_bytes,
+from public_hist215 import (feature_contract, FEATURE_COUNT_BY_SCHEMA, FROZEN_PARAMETERS, canonical_bytes,
                             digest, encode_f64, serialize_model, serialize_training_provenance, UUID, decode_f64,
                             verify_round_registration)
 
@@ -294,14 +294,21 @@ def finite(value: Any) -> bool:
     return type(value) in (int,float) and math.isfinite(value)
 
 
-def export_scalar_head(model: Any) -> dict:
-    """Read numeric 1.9 fitted arrays, never pickle or execute serialized code."""
+def export_scalar_head(model: Any, feature_count: int | None = None) -> dict:
+    """Read numeric 1.9 fitted arrays, never pickle or execute serialized code.
+
+    `feature_count` is the dataset's declared feature contract width
+    (public_hist215.feature_contract: v1 215, v2 246, v3 248); the fitted model
+    must have exactly that many inputs. Without it, any contract's width.
+    """
     import numpy as np
     from sklearn.ensemble._hist_gradient_boosting.common import PREDICTOR_RECORD_DTYPE
     params=model.get_params(deep=False)
     need(all(type(params[k]) is type(v) and params[k]==v for k,v in PARAMETERS.items()),"fitted frozen Hist parameters")
     need(params.get("loss")=="squared_error" and params.get("learning_rate")==0.1,"fitted default loss/rate")
-    need(model.n_features_in_ in (215,246) and model.n_trees_per_iteration_==1,"scalar215 head")
+    widths=set(FEATURE_COUNT_BY_SCHEMA.values()) if feature_count is None else {feature_count}
+    need(feature_count is None or feature_count in FEATURE_COUNT_BY_SCHEMA.values(),"declared feature contract width")
+    need(model.n_features_in_ in widths and model.n_trees_per_iteration_==1,"scalar215 head")
     categorical=getattr(model,"is_categorical_",None)
     need(categorical is None or not np.asarray(categorical).any(),"numeric-only fitted features")
     baseline=model._baseline_prediction
@@ -534,7 +541,7 @@ def train(args) -> None:
         cases=groups[cid]['cases'];case_X=np.asarray([[decode_f64(word)for word in case['features_f64']]for case in cases],dtype=np.float64)
         for j in range(Y.shape[1]):
             fitted=HistGradientBoostingRegressor(**PARAMETERS).fit(X,Y[:,j],sample_weight=wt)
-            heads.append(export_scalar_head(fitted));case_columns.append(fitted.predict(case_X))
+            heads.append(export_scalar_head(fitted,feature_contract(manifest.raw['feature_contract_version'])[1]));case_columns.append(fitted.predict(case_X))
         references=reference_cases(np.column_stack(case_columns),cases,len(actions),authority['whole_variant'])
         source_rows=sorted([{'source_row_id':rows[tid]['source_row_id'],'source_node':rows[tid]['source_node'],'board':rows[tid]['board'],'artifact_checksum':rows[tid]['artifact_checksum'],'node_checksum':rows[tid]['node_checksum']}for tid in contexts[cid]],key=lambda s:(s['source_row_id'],s['source_node']))
         provenance={'format':'public_hist215_training_v1','approved_input_bundle_id':manifest.raw['input_bundle_id'],
