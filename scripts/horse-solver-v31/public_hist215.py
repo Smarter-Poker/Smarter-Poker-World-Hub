@@ -841,9 +841,12 @@ def build_cell_provenance(manifest: dict, manifest_checksum: str, *,
     only for a seat that made a real earlier decision; the database confirms
     it on the data at seal. Refuses forced, undeclared or inconsistent cells.
     """
-    from contract import _nonzero_hex, scenario_public_history
+    from contract import _nonzero_hex, require_feature_and_cell_contracts_agree, scenario_public_history
     from pio_upi import PioError, analyze_node, scenario_cell_contract, target_context
     _nonzero_hex(manifest_checksum, 64, "manifest checksum")
+    require_feature_and_cell_contracts_agree(
+        manifest.get("feature_contract_version"),
+        [s.get("cell_contract") for s in manifest.get("scenarios", []) if s.get("purpose", "harvest") == "harvest"])
     manifest_range_constructions(manifest)  # refuses forced, undeclared and doubly declared cells
     seats_by_cell = unnarrowed_seats or {}
     out: dict[bytes, dict] = {}
@@ -938,6 +941,9 @@ def verify_round_registration(registration: Any, manifest: dict, *, manifest_che
     """
     verify_round_composition(registration, manifest)
     cells = registration["cells"]
+    from contract import require_feature_and_cell_contracts_agree
+    require_feature_and_cell_contracts_agree(manifest.get("feature_contract_version"),
+                                             [registration_cell_contract(c) for c in cells])
     provenance = registration.get("cell_provenance")
     if not isinstance(provenance, list) or len(provenance) != len(cells) or any(
             not isinstance(entry, dict) or not isinstance(entry.get("cell"), dict) for entry in provenance):

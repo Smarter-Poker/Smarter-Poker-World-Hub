@@ -598,5 +598,213 @@ class CellContractV3Tests(unittest.TestCase):
                          ('facing_bet', 'bet', 'big', 'x.b-big'))
 
 
+
+def _bucket_name(fraction):
+    return 'small' if fraction < 0.6 else 'mid' if fraction < 1.1 else 'big'
+
+
+def generated_tree(root_pot, stack, bets, raises):
+    """Every line of a two-player tree (cumulative chips per action, the tree_lines format) and the bucketed
+    public line each decision node must carry, written down independently while the tree is generated.
+
+    Bets are fractions of the pot, raises fractions of the pot after the raiser calls; one raise per street;
+    an all-in bet or raise is always offered; sizes reaching the stack are dropped (the all-in covers them)."""
+    lines, expected = [], {}
+
+    def walk(seq, path, street, actor, spent, start, target, wager, raised, checked, pot, names):
+        expected[':'.join(path)] = '/'.join('.'.join(n) for n in names)
+        moved = False
+
+        def go(value, token, name, close, *state):
+            nonlocal moved
+            moved = True
+            new_names = [list(n) for n in names]
+            new_names[-1].append(name)
+            if close:
+                if street == 2 or min(state[0]) >= stack:
+                    lines.append([*seq, value])
+                    return
+                new_names.append([])
+                walk([*seq, value], [*path, token, ('5c', 'Jd')[street]], street + 1, 0, state[0], list(state[0]), 0,
+                     False, False, False, state[1], new_names)
+            else:
+                walk([*seq, value], [*path, token], street, 1 - actor, *state, new_names)
+
+        street_spent = spent[actor] - start[actor]
+        if not wager:
+            go(spent[actor], 'c', 'x', checked, *((spent, pot) if checked else (spent, start, 0, False, False, True, pot)))
+            for amount, name in [*((round(f * pot), 'b-' + _bucket_name(f)) for f in bets), (stack - start[actor], 'a')]:
+                cum = start[actor] + amount
+                if cum > stack or (name != 'a' and cum >= stack):
+                    continue
+                s2 = list(spent)
+                s2[actor] = cum
+                go(cum, f'b{cum}', name, False, s2, start, amount, True, False, False, pot + amount)
+            return
+        to_call = target - street_spent
+        s2 = list(spent)
+        s2[actor] = start[actor] + target
+        go(s2[actor], 'c', 'c', True, s2, pot + to_call)
+        if raised or s2[actor] >= stack:
+            return
+        for to, name in [*((target + round(f * (pot + to_call)), 'r-' + _bucket_name(f)) for f in raises), (stack - start[actor], 'a')]:
+            cum = start[actor] + to
+            if cum > stack or (name != 'a' and cum >= stack):
+                continue
+            s3 = list(spent)
+            s3[actor] = cum
+            go(cum, f'b{cum}', name, False, s3, start, to, True, True, False, pot + (to - street_spent))
+
+    walk([], ['r', '0'], 0, 0, [0, 0], [0, 0], 0, False, False, False, root_pot, [[]])
+    return lines, expected
+
+
+# The engine test (Club Arena GtoV31CellContractV3.test.ts) generates the same four trees.
+GENERATED_TREES = (
+    # root pot, stack (= depth x 100), preflop aggressor, bet fractions, raise fractions
+    (600, 20000, 1, (0.33, 0.75, 1.5), (0.4,)),
+    (1700, 15000, 0, (0.5, 1.0), (1.5,)),
+    (600, 4000, 1, (0.25, 2.0), (0.8,)),
+    (1000, 20000, 1, (0.33, 0.5), (0.75,)),  # 0.33 and 0.5 are both small: one cell, two histories
+)
+
+
+class GeneratedTreeCollisionTests(unittest.TestCase):
+    """Review B5 m4: the v3 key is collision-free beyond the one pilot tree."""
+
+    def test_generated_trees_key_every_decision_node_by_exactly_its_bucketed_line(self):
+        from pio_upi import PioError, scenario_cell_contract
+        counts = []
+        for index, (pot, stack, aggressor, bets, raises) in enumerate(GENERATED_TREES):
+            lines, expected = generated_tree(pot, stack, bets, raises)
+            nodes = tree_decision_nodes(lines, stack=stack)
+            self.assertEqual(set(nodes), set(expected), index)  # every generated node is a decision node
+            value = pilot_scenario(depth=stack // 100, pot_chips=pot, effective_stack_chips=stack,
+                                   preflop_aggressor_solver_player=aggressor, tree_lines=lines)
+            key_to_line, line_to_key, v2 = {}, {}, {}
+            targets = []
+            for i, node in enumerate(nodes):
+                line = analyze_node(node, root_pot_chips=pot, effective_stack_chips=stack, preflop_aggressor=aggressor,
+                                    cell_contract=scenario_cell_contract(value))
+                cards = [t for t in node.split(':') if len(t) == 2 and t[1] in 'cdhs']
+                target = {'target_id': f'gen{index}.{i}', 'machine_id': 'M1', 'node': node,
+                          'board': value['flop_board'] + ''.join(cards), 'node_role': line.node_role,
+                          'facing_kind': line.facing_kind, 'facing_size_bucket': line.facing_size_bucket,
+                          'expected_children': ['c', 'f'] if line.wager_active else ['b1', 'c']}
+                targets.append(target)
+                context = target_context(value, target)
+                self.assertEqual(context['line_class'], expected[node], (index, node))
+                key = canonical_bytes(context)
+                street_line = (context['street'], expected[node])
+                self.assertEqual(key_to_line.setdefault(key, street_line), street_line, (index, node))
+                self.assertEqual(line_to_key.setdefault(street_line, key), key, (index, node))
+                try:  # the same node under v2: no line in the key
+                    old = analyze_node(node, root_pot_chips=pot, effective_stack_chips=stack, preflop_aggressor=aggressor)
+                    v2.setdefault((context['street'], context['hero_position'], old.node_role, old.facing_kind,
+                                   old.facing_size_bucket), set()).add(expected[node])
+                except PioError:
+                    pass
+            self.assertTrue(any(len(v) > 1 for v in v2.values()), index)
+            counts.append((len(nodes), len(key_to_line), len(v2)))
+            if index < 3:
+                self.assertEqual(len(key_to_line), len(nodes), index)
+            else:
+                self.assertLess(len(key_to_line), len(nodes))
+            if index in (1, 2, 3):  # build_cell_provenance re-derives every history from the tree (slow on tree 0)
+                value['targets'] = targets
+                man = multi_manifest(value)[0]
+                if index < 3:
+                    self.assertEqual(len(build_cell_provenance(man, CHECKSUM)), len(nodes))
+                else:
+                    with self.assertRaises(ContractError) as caught:
+                        build_cell_provenance(man, CHECKSUM)
+                    self.assertIn('two different provenances', str(caught.exception))
+        # the same node, key and v2-key counts as the engine test on these trees
+        self.assertEqual(counts, [(3410, 3410, 43), (484, 484, 37), (436, 436, 37), (1264, 302, 31)])
+
+
+class FeatureAndCellContractCouplingTests(unittest.TestCase):
+    """Review B5 M1: feature contract holdem-public-hist215-v3 iff cell contract v3, on the pipeline side."""
+
+    def test_the_rule_both_ways(self):
+        from contract import require_feature_and_cell_contracts_agree as agree
+        agree('holdem-public-hist215-v3', ['v3', 'v3'])
+        agree('holdem-public-hist215-v2', [None, None])
+        agree('holdem-public-hist215-v1', [None])
+        agree('rank-suit-count-v1', ['v3'])  # matrix contracts carry no public215 encoder
+        agree(None, [None, 'v3'])
+        for feature, cells in (('holdem-public-hist215-v3', [None]), ('holdem-public-hist215-v3', ['v3', None]),
+                               ('holdem-public-hist215-v3', []), ('holdem-public-hist215-v3', ['v4']),
+                               ('holdem-public-hist215-v2', ['v3']), ('holdem-public-hist215-v1', [None, 'v3'])):
+            with self.subTest(feature=feature, cells=cells), self.assertRaises(ContractError):
+                agree(feature, cells)
+
+    def v3_manifest(self, feature=None):
+        value = pilot_scenario()
+        value['targets'] = targets_for(value, ['r:0:c', 'r:0:c:b900'])
+        man, built = multi_manifest(value)
+        if feature:
+            man['feature_contract_version'] = feature
+        return man, built
+
+    def v2_manifest(self, feature=None):
+        value = pilot_scenario(cell_contract=None, depth=150, effective_stack_chips=15000)
+        value['targets'] = targets_for(value, ['r:0:c', 'r:0:c:b450'])
+        man, built = multi_manifest(value)
+        if feature:
+            man['feature_contract_version'] = feature
+        return man, built
+
+    def test_provenance_and_registration_refuse_both_mismatch_directions(self):
+        # matched pairs pass
+        for man, built in (self.v3_manifest('holdem-public-hist215-v3'), self.v2_manifest('holdem-public-hist215-v2'),
+                           self.v2_manifest('holdem-public-hist215-v1'), self.v3_manifest(), self.v2_manifest()):
+            reg = registration(built)
+            reg['cell_provenance'] = build_cell_provenance(man, CHECKSUM)
+            self.assertIs(verify_round_registration(reg, man, manifest_checksum=CHECKSUM), reg)
+        good_v3, built_v3 = self.v3_manifest('holdem-public-hist215-v3')
+        reg_v3 = registration(built_v3)
+        reg_v3['cell_provenance'] = build_cell_provenance(good_v3, CHECKSUM)
+        # direction 1: old cell keys claim the v3 feature format
+        bad, _ = self.v2_manifest('holdem-public-hist215-v3')
+        with self.assertRaises(ContractError) as caught:
+            build_cell_provenance(bad, CHECKSUM)
+        self.assertIn('requires cell contract v3', str(caught.exception))
+        # direction 2: v3 cells claim an older public215 feature format
+        for feature in ('holdem-public-hist215-v1', 'holdem-public-hist215-v2'):
+            bad, _ = self.v3_manifest(feature)
+            with self.subTest(feature=feature):
+                with self.assertRaises(ContractError) as caught:
+                    build_cell_provenance(bad, CHECKSUM)
+                self.assertIn('requires feature contract holdem-public-hist215-v3', str(caught.exception))
+                with self.assertRaises(ContractError) as caught:
+                    verify_round_registration(reg_v3, {**good_v3, 'feature_contract_version': feature}, manifest_checksum=CHECKSUM)
+                self.assertIn('requires feature contract holdem-public-hist215-v3', str(caught.exception))
+
+    def test_load_manifest_refuses_both_mismatch_directions_first(self):
+        import hashlib, json, tempfile
+        from contract import ROOT_KEYS, load_manifest
+        v3 = pilot_scenario()
+        v2 = pilot_scenario(cell_contract=None, depth=150, effective_stack_chips=15000)
+
+        def load(feature, scenarios):
+            value = {**{k: None for k in ROOT_KEYS}, 'feature_contract_version': feature, 'scenarios': scenarios}
+            with tempfile.TemporaryDirectory() as root:
+                path = Path(root) / 'manifest.json'
+                path.write_bytes(json.dumps(value).encode())
+                load_manifest(path, expected_checksum=hashlib.sha256(path.read_bytes()).hexdigest(), input_root=root,
+                              pipeline_root=root, require_enabled=False, verify_inputs=False, verify_pipeline=False)
+
+        for feature, scenarios, refused in (('holdem-public-hist215-v3', [v2], 'requires cell contract v3'),
+                                            ('holdem-public-hist215-v3', [v3, v2], 'requires cell contract v3'),
+                                            ('holdem-public-hist215-v2', [v3], 'requires feature contract holdem-public-hist215-v3'),
+                                            ('holdem-public-hist215-v1', [v2, v3], 'requires feature contract holdem-public-hist215-v3'),
+                                            ('holdem-public-hist215-v3', [v3], None), ('holdem-public-hist215-v2', [v2], None)):
+            with self.subTest(feature=feature, n=len(scenarios)), self.assertRaises(ContractError) as caught:
+                load(feature, scenarios)
+            # the matched pairs pass the coupling and fail later on this skeleton manifest, for another reason
+            self.assertEqual(refused is not None and refused in str(caught.exception), refused is not None, str(caught.exception))
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -96,6 +96,27 @@ def feature_contract_version(value: dict[str, Any]) -> str:
     return version
 
 
+PUBLIC215_FEATURE_CONTRACT_V3 = "holdem-public-hist215-v3"
+
+
+def require_feature_and_cell_contracts_agree(feature_version: Any, cell_contracts: Any) -> None:
+    """Feature contract holdem-public-hist215-v3 and cell contract v3 are tied both ways.
+
+    `cell_contracts` lists each scenario's (or registered cell's) declared cell
+    contract, None for v2. hist215-v3 needs every one to be v3 (a large-bet or
+    donk cell must carry its line-keyed v3 key), and a v3 one may not sit under
+    the older public215 feature contracts (hist215-v1 or v2 have no category
+    for its "big" facing bucket or "donk" role). Club Arena enforces the same
+    in the engine (gtoV31FeatureContractVersion) and at dataset insert
+    (fn_gto_v31_dataset_matches_registration). Matrix contracts are unaffected.
+    """
+    contracts = list(cell_contracts)
+    if feature_version == PUBLIC215_FEATURE_CONTRACT_V3 and (not contracts or any(c != "v3" for c in contracts)):
+        raise ContractError("feature contract holdem-public-hist215-v3 requires cell contract v3 on every scenario and cell")
+    if feature_version in PUBLIC215_FEATURE_CONTRACT_VERSIONS - {PUBLIC215_FEATURE_CONTRACT_V3} and any(c is not None for c in contracts):
+        raise ContractError("cell contract v3 requires feature contract holdem-public-hist215-v3, not " + str(feature_version))
+
+
 def manifest_keys(value: Any) -> set[str]:
     return ROOT_KEYS | {key for key in ("feature_contract_version", "policy_export_schema", *PUBLIC215_MANIFEST_FIELDS) if isinstance(value, dict) and key in value}
 
@@ -1223,6 +1244,10 @@ def load_manifest(
     decoded = _json_bytes(payload, "manifest")
     manifest = _exact_keys(decoded, manifest_keys(decoded), "manifest")
     feature_contract_version(manifest)
+    raw_scenarios = manifest.get("scenarios")
+    require_feature_and_cell_contracts_agree(
+        manifest.get("feature_contract_version"),
+        [s.get("cell_contract") if isinstance(s, dict) else None for s in raw_scenarios] if isinstance(raw_scenarios, list) else [])
     policy_export_schema(manifest)
     executable_files = required_pipeline_files(manifest)
     if manifest["contract"] != MANIFEST_CONTRACT:

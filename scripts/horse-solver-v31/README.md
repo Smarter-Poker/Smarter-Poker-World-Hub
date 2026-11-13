@@ -298,12 +298,22 @@ the same point of a line produce one cell key with two public histories, which
 `build_cell_provenance` refuses ("one registered cell has one provenance"),
 never merges. On the pilot tree (65 tree lines, one runout) v2 keys 86 of its
 97 decision nodes into 25 cells, 13 of them shared by 74 nodes, and cannot key
-the 11 leads at all; v3 gives all 97 their own cell. A registration is all v2
-or all v3 (`public_hist215.cell_composition`). Club Arena mirrors the contract
+the 11 leads at all; v3 gives all 97 their own cell. Four generated trees
+(other pots, stacks, size menus and preflop aggressors; 5,594 decision nodes;
+`test_round_registration.GeneratedTreeCollisionTests`) give the same result:
+each node's v3 key is one-to-one with its bucketed line, and only two sizes in
+one bucket share a key. A registration is all v2
+or all v3 (`public_hist215.cell_composition`). Feature contract
+`holdem-public-hist215-v3` and cell contract v3 are tied both ways
+(`contract.require_feature_and_cell_contracts_agree`, checked by
+`load_manifest`, `build_cell_provenance` and `verify_round_registration`):
+hist215-v3 needs every scenario and registered cell to be v3, and a v3 one may
+not declare hist215-v1 or v2. Matrix contracts are unaffected. Club Arena mirrors the contract
 (`GtoDecisionContext.gtoV31LineClassV3` / `classifyGtoDecisionContextV3`,
-`GtoPostflopV31.gtoStreetAdviceV31V3`, migration `20261113143100`). Not yet v3:
-the public215 training metadata path (`validate_context_metadata`,
-`final_public215_training`), the gateway, and the database's runtime cells,
+`GtoPostflopV31.gtoStreetAdviceV31V3`, migration `20261113143100`, which ties
+the two contracts at dataset insert too). `final_public215_training.export_scalar_head`
+checks the fitted width against the declared contract (215, 246 or 248). Not yet
+v3: the public215 training metadata path (`validate_context_metadata`), the gateway, and the database's runtime cells,
 which have no `line_class` column, so a v3 round can be registered but not
 built or sealed until those are extended.
 
