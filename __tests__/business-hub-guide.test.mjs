@@ -2,12 +2,34 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import { createRequire } from 'node:module';
 import { GUIDE_COPY, GUIDE_DESTINATIONS, businessHubKnowledge } from '../src/lib/businessHubGuide.mjs';
 import { JOURNEY_COPY, VENUE_TOOLS, goalRecommendation, prepareVenueInquiry } from '../src/lib/businessHubJourney.mjs';
 import { guideConsent, enableGuideAnalytics, disableGuideAnalytics, sanitizeGuideCapture } from '../src/lib/guideAnalyticsConsent.mjs';
 import { qualifiedGuideQuery, loadQualifiedGuideVisits } from '../src/lib/acquisition/qualifiedGuideVisits.mjs';
 const root = new URL('../', import.meta.url);
 const read = path => readFileSync(new URL(path, root), 'utf8');
+
+test('guide sanitizer preserves the actual SDK ingestion contract while dropping private enrichment', () => {
+  const require = createRequire(import.meta.url);
+  const { PostHog } = require('posthog-js/lib/src/posthog-core');
+  const input = { event: 'business_hub_goal_selected', properties: {
+    token: 'synthetic-public-ingestion-token', distinct_id: 'anonymous-session-device',
+    $session_id: 'random-session', $process_person_profile: false,
+    topic: 'training', destination: 'training', language: 'en', source: 'direct',
+    email: 'private@example.test', password: 'private-password', $current_url: 'https://private.example/?secret=value',
+  } };
+  // Run the installed SDK hook pipeline, which drops events if a required
+  // transport property was removed. A sanitizer-only mock missed this defect.
+  const output = PostHog.prototype._runBeforeSend.call({ config: { before_send: sanitizeGuideCapture } }, input);
+  assert.ok(output, 'the real SDK must accept the sanitized event for transport');
+  assert.equal(output.properties.token, input.properties.token);
+  assert.equal(output.properties.distinct_id, input.properties.distinct_id);
+  assert.equal(output.properties.$session_id, input.properties.$session_id);
+  assert.equal(output.properties.$process_person_profile, false);
+  assert.doesNotMatch(JSON.stringify(output), /private@example|private-password|private\.example|secret=value/);
+  assert.equal(PostHog.prototype._runBeforeSend.call({ config: { before_send: sanitizeGuideCapture } }, { event: '$pageview', properties: input.properties }), null);
+});
 
 test('guide consent never loads before permission, respects privacy signals and excludes private capture data', async () => {
   const values = new Map();
