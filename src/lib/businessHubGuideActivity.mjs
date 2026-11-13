@@ -28,7 +28,8 @@ export function buildBusinessHubGuideEvent(stage, properties = {}) {
 /** True means the existing SDK accepted the call, not confirmed delivery. */
 export function captureBusinessHubGuideEvent(stage, properties = {}, browser = globalThis.window) {
   try {
-    const sdk = browser?.posthog;
+    if (browser?.smarterGuideConsentRequired && browser.smarterGuideConsentGranted !== true) return false;
+    const sdk = browser?.smarterGuideConsentRequired ? browser.smarterGuideAnalytics : browser?.smarterGuideAnalytics || browser?.posthog;
     if (!sdk || Array.isArray(sdk) || typeof sdk.capture !== 'function') return false;
     if (String(browser.navigator?.doNotTrack) === '1' || String(browser.doNotTrack) === '1' || browser.navigator?.globalPrivacyControl === true) return false;
     if (typeof sdk.has_opted_in_capturing !== 'function' || sdk.has_opted_in_capturing() !== true) return false;

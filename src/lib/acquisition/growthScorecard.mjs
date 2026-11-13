@@ -1,4 +1,6 @@
 // Operator-only aggregates. No account IDs or ledger amounts leave this module.
+import { loadVenueInquiryReceipts, VENUE_INQUIRY_DEFINITION } from './venueInquiryReceipts.mjs';
+import { loadQualifiedGuideVisits } from './qualifiedGuideVisits.mjs';
 const PAGE = 1000;
 const MAX_ROWS = 10000;
 const ATTEMPT = 'training_attempts!training_sessions_attempt_fk!inner(user_id,status,practice_only)';
@@ -42,7 +44,7 @@ export function summarizeFirstActions(training, ledger, start, end) {
   return [...first.values()].filter(time => time >= Date.parse(start) && time < Date.parse(end)).length;
 }
 
-export async function loadGrowthScorecard(client, now = new Date()) {
+export async function loadGrowthScorecard(client, now = new Date(), providers = {}) {
   const end = now.toISOString();
   const start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const metrics = [];
@@ -55,18 +57,20 @@ export async function loadGrowthScorecard(client, now = new Date()) {
       return !r.error && Number.isSafeInteger(r.count) && r.count >= 0 ? r.count : null;
     } catch { return null; }
   }
-  const [newAccounts, existingActive, trainingResult, ledgerResult] = await Promise.all([
+  const [newAccounts, existingActive, trainingResult, ledgerResult, venueInquiries, qualifiedVisits] = await Promise.all([
     countProfiles(), countProfiles(true),
     rows(client, 'training_sessions', end).then(data => activity(data, 'training_sessions')).catch(() => null),
     rows(client, 'bankroll_ledger', end).then(data => activity(data, 'bankroll_ledger')).catch(() => null),
+    Promise.resolve().then(() => (providers.venueInquiries || loadVenueInquiryReceipts)({ start, end })).catch(() => null),
+    Promise.resolve().then(() => (providers.qualifiedVisits || loadQualifiedGuideVisits)(start, end)).catch(() => null),
   ]);
   const inWindow = data => data === null ? null : data.filter(row => Date.parse(row.created_at) >= Date.parse(start) && Date.parse(row.created_at) < Date.parse(end)).length;
-  add('qualified_visits', 'Qualified Visits', null, 'Visitor Qualification Is Not Connected To This Scorecard. Use Consented Traffic Reporting; Do Not Substitute Clicks Or Account Counts.');
+  add('qualified_visits', 'Qualified Guide Visits', Number.isSafeInteger(qualifiedVisits) && qualifiedVisits >= 0 ? qualifiedVisits : null, 'Distinct Consented PostHog Sessions With A Guide Goal Selection Or Destination Click In This Window. Deduplicated Across Both Events. Starts With This Release; Prior Traffic Is Not Backfilled. Not People, Customers Or Agent Conversations.');
   add('accounts', 'Accounts Created', newAccounts, 'Profile Records Created In This Window, Including All Account Types. Not An Attributed Customer Conversion Count.');
   add('first_action', 'First Recorded Product Actions', trainingResult && ledgerResult ? summarizeFirstActions(trainingResult, ledgerResult, start, end) : null, 'Distinct Accounts Whose Earliest Saved Verified Training Session Or Ledger Record Falls In This Window. Other Product Actions Are Not Included.');
   add('existing_active', 'Existing Accounts Active', existingActive, 'Accounts Created Before This Window With Their Latest Profile Activity Inside It. A Current Activity Snapshot, Not A Retention Cohort.');
   add('training', 'Verified Training Sessions Saved', inWindow(trainingResult), 'Persisted Sessions Linked To Completed, Non-Practice Attempts Owned By The Same Account. Counts Sessions, Not People.');
   add('ledger', 'Ledger Records Saved', inWindow(ledgerResult), 'User-Entered Ledger Records Created In This Window. Counts Records, Not Money Or Confirmed Financial Transactions.');
-  add('venue_inquiries', 'Venue Inquiries Received', null, 'Email Receipt Is Not Connected To This Scorecard. Preparing A Draft Or Opening An Email App Does Not Prove Delivery.');
+  add('venue_inquiries', 'Venue Inquiries In Inbox', Number.isSafeInteger(venueInquiries) && venueInquiries >= 0 ? venueInquiries : null, VENUE_INQUIRY_DEFINITION);
   return { start, end, metrics, attribution: 'All Sources. These Database Counts Do Not Establish Business Hub Attribution.', completeness: 'Activity Metrics Are Unavailable If Either History Exceeds 10,000 Rows, Changes During Reading Or Cannot Be Read Completely.' };
 }

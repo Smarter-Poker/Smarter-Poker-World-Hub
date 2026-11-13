@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { GUIDE_COPY, GUIDE_DESTINATIONS } from '../../lib/businessHubGuide.mjs';
 import { captureBusinessHubGuideEvent } from '../../lib/businessHubGuideActivity.mjs';
 import BusinessHubJourney from './BusinessHubJourney';
+import GuideAnalyticsConsent from './GuideAnalyticsConsent';
 
 const SOURCE_VALUES = new Set(['business_hub', 'help', 'direct']);
 const DESTINATION_TOPICS = {
@@ -96,6 +97,7 @@ export default function BusinessHubGuide() {
         </table>
       </div>
 
+      <GuideAnalyticsConsent language={language} source={source} />
       <BusinessHubJourney language={language} onEvent={(stage, properties) => captureBusinessHubGuideEvent(stage, { ...properties, language, source: source.current })} />
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
@@ -148,7 +150,7 @@ export default function BusinessHubGuide() {
             >{helpful ? copy.yes : copy.no}</button>
           ))}
         </div>
-        <p role="status" className="mt-3 min-h-5 text-sm leading-relaxed text-slate-300">{feedback ? (feedback.accepted ? copy.recorded : copy.unmeasured) : ''}</p>
+        <p id="guide-feedback-status" role="status" className="mt-3 min-h-5 text-sm leading-relaxed text-slate-300">{feedback ? (feedback.accepted ? copy.recorded : copy.unmeasured) : ''}</p>
       </div>
     </section>
   );

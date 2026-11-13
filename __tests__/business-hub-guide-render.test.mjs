@@ -6,6 +6,7 @@ import test from 'node:test';
 import * as guideData from '../src/lib/businessHubGuide.mjs';
 import * as activity from '../src/lib/businessHubGuideActivity.mjs';
 import * as journeyData from '../src/lib/businessHubJourney.mjs';
+import * as consent from '../src/lib/guideAnalyticsConsent.mjs';
 
 const require = createRequire(import.meta.url);
 const React = require('react');
@@ -31,14 +32,29 @@ function setup(t, search = '?source=business_hub&private=never-capture-this') {
   const calls = [];
   const browser = {
     location: { search }, navigator: {},
+    sessionStorage: { getItem: () => 'yes' },
     posthog: {
       capture: (...args) => calls.push(args),
       has_opted_in_capturing: () => true,
       has_opted_out_capturing: () => false,
     },
   };
+  browser.smarterGuideAnalytics = browser.posthog;
+  Object.defineProperty(browser, 'posthog', { get: () => browser.smarterGuideAnalytics, set: sdk => { browser.smarterGuideAnalytics = sdk; } });
   const module = { exports: {} };
   const load = path => {
+    if (path.endsWith('GuideAnalyticsConsent')) {
+      const child = { exports: {} };
+      const compiledConsent = ts.transpileModule(readFileSync(new URL('../src/components/help/GuideAnalyticsConsent.jsx', import.meta.url), 'utf8'), { compilerOptions: { jsx: ts.JsxEmit.React, module: ts.ModuleKind.CommonJS, esModuleInterop: true } });
+      vm.runInNewContext(compiledConsent.outputText, {
+        require: name => name.endsWith('guideAnalyticsConsent.mjs') ? {
+          guideConsent: () => consent.guideConsent(browser),
+          enableGuideAnalytics: () => consent.enableGuideAnalytics(browser, undefined, ''),
+          disableGuideAnalytics: () => consent.disableGuideAnalytics(browser),
+        } : load(name), module: child, exports: child.exports, window: browser, URLSearchParams,
+      });
+      return child.exports;
+    }
     if (path.endsWith('BusinessHubJourney')) return journeyModule.exports;
     if (path.endsWith('businessHubGuide.mjs')) return guideData;
     if (path.endsWith('businessHubGuideActivity.mjs')) {
@@ -110,18 +126,18 @@ test('feedback distinguishes an accepted SDK call from unavailable or nonconsent
   assert.deepEqual(harness.calls.at(-1), ['business_hub_feedback', {
     language: 'en', source: 'business_hub', helpful: true,
   }]);
-  assert.equal(tree.root.findByProps({ role: 'status' }).children.join(''), guideData.GUIDE_COPY.en.recorded);
+  assert.equal(tree.root.findByProps({ id: 'guide-feedback-status' }).children.join(''), guideData.GUIDE_COPY.en.recorded);
   harness.browser.posthog.has_opted_in_capturing = () => false;
   const before = harness.calls.length;
   harness.click('No');
   assert.equal(harness.calls.length, before, 'no consent means no capture');
-  assert.equal(tree.root.findByProps({ role: 'status' }).children.join(''), guideData.GUIDE_COPY.en.unmeasured);
+  assert.equal(tree.root.findByProps({ id: 'guide-feedback-status' }).children.join(''), guideData.GUIDE_COPY.en.unmeasured);
   assert.equal(harness.button('No').props['aria-pressed'], true);
   harness.browser.posthog = undefined;
   harness.click('Español');
   harness.click('Sí');
   assert.equal(harness.calls.length, before, 'missing SDK means no capture');
-  assert.equal(tree.root.findByProps({ role: 'status' }).children.join(''), guideData.GUIDE_COPY.es.unmeasured);
+  assert.equal(tree.root.findByProps({ id: 'guide-feedback-status' }).children.join(''), guideData.GUIDE_COPY.es.unmeasured);
 });
 
 test('goal selection and venue drafting work without treating a draft as delivery', t => {

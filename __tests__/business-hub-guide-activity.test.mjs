@@ -5,8 +5,65 @@ import { buildBusinessHubGuideEvent, captureBusinessHubGuideEvent } from '../src
 import { loadGrowthScorecard, summarizeFirstActions } from '../src/lib/acquisition/growthScorecard.mjs';
 import { createRequire } from 'node:module';
 import vm from 'node:vm';
+import { isVenueInquiry, loadVenueInquiryReceipts } from '../src/lib/acquisition/venueInquiryReceipts.mjs';
 
 const require = createRequire(import.meta.url);
+
+const receiptStart = '2026-11-04T18:00:00Z';
+const receiptEnd = '2026-11-11T18:00:00Z';
+const receipt = (overrides = {}) => ({ uid: 1, internalDate: new Date(receiptStart), flags: new Set(),
+  envelope: { subject: 'Venue Onboarding', to: [{ address: 'support@smarter.poker' }], from: [{ address: 'venue@example.test' }] }, ...overrides });
+
+function receiptClient(messages = [receipt()], overrides = {}) {
+  const calls = [];
+  const c = { calls, on() {}, connect: async () => {}, close() { calls.push('close'); },
+    mailboxOpen: async (...args) => { calls.push(['open', ...args]); },
+    search: async (...args) => { calls.push(['search', ...args]); return messages.map(m => m.uid); },
+    async *fetch(...args) { calls.push(['fetch', ...args]); yield* messages; }, ...overrides };
+  return c;
+}
+
+test('venue inbox receipts require exact subject, recipient, received window and non-draft metadata', () => {
+  assert.equal(isVenueInquiry(receipt(), receiptStart, receiptEnd), true);
+  assert.equal(isVenueInquiry(receipt({ internalDate: new Date(receiptEnd) }), receiptStart, receiptEnd), false);
+  assert.equal(isVenueInquiry(receipt({ internalDate: new Date(Date.parse(receiptStart) - 1) }), receiptStart, receiptEnd), false);
+  for (const flags of [new Set(['\\Draft']), new Set(['\\Deleted'])]) assert.equal(isVenueInquiry(receipt({ flags }), receiptStart, receiptEnd), false);
+  for (const subject of ['Re: Venue Onboarding', 'Venue Onboarding Offer', 'Other']) {
+    assert.equal(isVenueInquiry(receipt({ envelope: { ...receipt().envelope, subject } }), receiptStart, receiptEnd), false);
+  }
+  for (const envelope of [{ ...receipt().envelope, to: [{ address: 'other@example.test' }] }, { ...receipt().envelope, from: [{ address: 'SUPPORT@SMARTER.POKER' }] }]) {
+    assert.equal(isVenueInquiry(receipt({ envelope }), receiptStart, receiptEnd), false);
+  }
+});
+
+test('mailbox report uses verified TLS, read-only INBOX and metadata-only UID fetch, preserving zero vs missing', async () => {
+  const c = receiptClient(); let config;
+  const value = await loadVenueInquiryReceipts({ start: receiptStart, end: receiptEnd, password: 'synthetic-only', createClient: opts => { config = opts; return c; } });
+  assert.equal(value, 1);
+  assert.equal(config.host, 'mail.privateemail.com'); assert.equal(config.port, 993); assert.equal(config.secure, true);
+  assert.equal(config.tls.rejectUnauthorized, true); assert.equal(config.logger, false); assert.equal(config.logRaw, false); assert.equal(config.disableAutoIdle, true);
+  assert.deepEqual(c.calls.find(x => x[0] === 'open'), ['open', 'INBOX', { readOnly: true }]);
+  assert.deepEqual(c.calls.find(x => x[0] === 'fetch'), ['fetch', '1', { uid: true, internalDate: true, envelope: true, flags: true }, { uid: true }]);
+  assert.ok(c.calls.includes('close'));
+  const empty = receiptClient([]);
+  assert.equal(await loadVenueInquiryReceipts({ start: receiptStart, end: receiptEnd, password: 'synthetic-only', createClient: () => empty }), 0);
+  assert.equal(await loadVenueInquiryReceipts({ start: receiptStart, end: receiptEnd, password: '' }), null);
+});
+
+test('failed, timed-out, over-limit, duplicate and incomplete mailbox reads never become measured zero', async () => {
+  const fixtures = [
+    receiptClient([], { connect: async () => { throw new Error('private protocol details'); } }),
+    receiptClient([], { search: async () => Array.from({ length: 1001 }, (_, i) => i + 1) }),
+    receiptClient([], { search: async () => [1, 1] }),
+    receiptClient([], { search: async () => [1] }),
+    receiptClient([receipt(), receipt()], { search: async () => [1] }),
+    receiptClient([], { connect: () => new Promise(() => {}) }),
+  ];
+  for (const c of fixtures) {
+    assert.equal(await loadVenueInquiryReceipts({ start: receiptStart, end: receiptEnd, password: 'synthetic-only', createClient: () => c, deadlineMs: 15 }), null);
+    assert.ok(c.calls.includes('close'));
+  }
+});
 
 function dataClient(tables) {
   return { from(table) {
@@ -53,6 +110,19 @@ test('failed, truncated and over-limit history cannot become a measured first-ac
     const q = new Proxy({}, { get: (_o, key) => key === 'then' ? resolve => Promise.resolve(response).then(resolve) : () => q });
     const report = await loadGrowthScorecard({ from: () => q });
     assert.equal(report.metrics.find(row => row.id === 'first_action').value, null);
+  }
+});
+
+test('scorecard passes the same exact window to receipt reporting and validates aggregate results', async () => {
+  let supplied;
+  const report = await loadGrowthScorecard(dataClient({}), new Date(receiptEnd), { venueInquiries: window => { supplied = window; return 0; } });
+  assert.deepEqual(supplied, { start: report.start, end: report.end });
+  const metric = report.metrics.find(row => row.id === 'venue_inquiries');
+  assert.equal(metric.value, 0); assert.equal(metric.status, 'measured');
+  assert.match(metric.definition, /Inbox/); assert.match(metric.definition, /Archived And Spam/);
+  for (const value of [-1, 0.1, NaN, undefined, '1']) {
+    const invalid = await loadGrowthScorecard(dataClient({}), new Date(receiptEnd), { venueInquiries: async () => value });
+    assert.equal(invalid.metrics.find(row => row.id === 'venue_inquiries').value, null);
   }
 });
 
@@ -165,4 +235,18 @@ test('SDK failures are isolated and no loader, opt-in action or SDK configuratio
   assert.equal(c.calls.length, 1);
   const source = readFileSync(new URL('../src/lib/businessHubGuideActivity.mjs', import.meta.url), 'utf8');
   assert.doesNotMatch(source, /\bimport\b|\bfetch\s*\(|createElement|opt_in_capturing\s*\(|\.init\s*\(|set_config\s*\(/);
+});
+
+test('an Off guide never falls back to an unrelated opted-in global SDK', () => {
+  const c = client();
+  c.browser.smarterGuideConsentRequired = true;
+  c.browser.smarterGuideConsentGranted = false;
+  assert.equal(captureBusinessHubGuideEvent('goal_selected', { destination: 'training' }, c.browser), false);
+  c.browser.smarterGuideConsentGranted = true;
+  assert.equal(captureBusinessHubGuideEvent('goal_selected', { destination: 'training' }, c.browser), false, 'isolated SDK is required');
+  c.browser.smarterGuideAnalytics = c.browser.posthog;
+  assert.equal(captureBusinessHubGuideEvent('goal_selected', { destination: 'training' }, c.browser), true);
+  c.browser.smarterGuideConsentGranted = false;
+  assert.equal(captureBusinessHubGuideEvent('goal_selected', { destination: 'training' }, c.browser), false);
+  assert.equal(c.calls.length, 1);
 });
