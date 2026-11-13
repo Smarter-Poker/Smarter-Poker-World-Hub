@@ -491,7 +491,7 @@ export function dailyResultsRows(digest) {
     ['Tournament Prize Liability Change', c.prize_liability_change == null ? 'Unavailable' : fmtSigned(c.prize_liability_change),
         'Increase in chips held for prizes across midnight; a decrease is negative'],
     ['Other Tournament Funding Movements', c.other_prize_movements == null ? 'Unavailable' : fmtSigned(c.other_prize_movements),
-        'Net outward ticket, spin, promotion and other non-player prize-liability movements; inward funding is negative']);
+        'Chips moved out of (+) or into (-) tournament prize pools by something other than a player: spin reserves, satellite seat tickets, promo funding and overlays']);
     const t = r.tournament_settlements;
     rows.push(['Tournament Settlement Verification', t ? `${fmtInt(t.unbalanced)} discrepancies / ${fmtInt(t.checked)} checked` : 'UNVERIFIED',
         t ? `Absolute drift ${fmtNum(t.absolute_drift)}; independent event check for completed/cancelled paid non-spin tournaments` : 'Independent settlement check unavailable']);

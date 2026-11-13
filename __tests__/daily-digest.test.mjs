@@ -1047,3 +1047,12 @@ test('Real Player Signups is the first line under Needs Your Attention (Dan 2026
     const after = html.slice(html.indexOf('Daily Update:'));
     assert.ok(after.indexOf('Real Player Signups') < after.indexOf('Revenue'), 'signups lead the daily card');
 });
+
+test('the funding bridge row says in plain words what moved (Dan 2026-11-13)', async () => {
+    const { dailyResultsRows } = await import('../src/lib/dailyDigest/render.mjs');
+    const rows = dailyResultsRows({ daily_results: { results: {}, reconciliation: { other_prize_movements: 861.94, status: 'balanced' }, kingfish: {} } });
+    const row = rows.find((r) => r[0] === 'Other Tournament Funding Movements');
+    assert.equal(row[1], '+861.94');
+    assert.match(row[2], /spin reserves, satellite seat tickets, promo funding/);
+    assert.ok(!/prize-liability/.test(row[2]), 'no accounting jargon in the explanation');
+});
