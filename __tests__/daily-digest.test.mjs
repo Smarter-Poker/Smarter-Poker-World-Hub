@@ -575,10 +575,10 @@ test('the digest is loaded once for all recipients and the reports do not race t
     } };
     const data = await loadDigestData(sb, '2026-10-28', { withCosts: false, dispatch: false });
     assert.equal(maxInflight, 1, 'one database read at a time');
-    assert.deepEqual(order, ['fn_sp_daily_digest', 'fn_sp_digest_player_report', 'fn_sp_digest_spins_spend', 'fn_sp_digest_signups', 'fn_sp_digest_free_buy_funding', 'fn_sp_digest_house_figures', 'fn_sp_digest_daily_results']);
+    assert.deepEqual(order, ['fn_sp_daily_digest', 'fn_sp_digest_player_report', 'fn_sp_digest_spins_spend', 'fn_sp_digest_signups', 'fn_sp_digest_free_buy_funding', 'fn_sp_digest_house_figures', 'fn_sp_digest_daily_results', 'fn_sp_digest_promo_chips']);
     const a = renderDigest('2026-10-28', data, { recipientName: 'Ann' });
     const b = renderDigest('2026-10-28', data, { recipientName: 'Bob' });
-    assert.equal(order.length, 7, 'rendering for a second admin reads nothing');
+    assert.equal(order.length, 8, 'rendering for a second admin reads nothing');
     assert.match(a.html, /Ann/); assert.match(b.html, /Bob/);
     const fs = await import('node:fs');
     const route = fs.readFileSync(new URL('../pages/api/cron/daily-digest.js', import.meta.url), 'utf8');
@@ -633,7 +633,7 @@ test('the signed online view executes the shared serial loader without dispatchi
         await handler({ method: 'GET', query: { t: 'fixture' } }, res);
         assert.equal(maxInFlight, 1, 'online reports must not compete for the database');
         assert.deepEqual(options, { withCosts: false, dispatch: false });
-        assert.deepEqual(order, ['fn_sp_daily_digest', 'fn_sp_digest_player_report', 'fn_sp_digest_spins_spend', 'fn_sp_digest_signups', 'fn_sp_digest_free_buy_funding', 'fn_sp_digest_house_figures', 'fn_sp_digest_daily_results']);
+        assert.deepEqual(order, ['fn_sp_daily_digest', 'fn_sp_digest_player_report', 'fn_sp_digest_spins_spend', 'fn_sp_digest_signups', 'fn_sp_digest_free_buy_funding', 'fn_sp_digest_house_figures', 'fn_sp_digest_daily_results', 'fn_sp_digest_promo_chips']);
         assert.equal(res.code, 200);
         assert.equal(res.headers['Cache-Control'], 'no-store');
         assert.match(res.body, /Real Player Totals/i);
@@ -1055,4 +1055,69 @@ test('the funding bridge row says in plain words what moved (Dan 2026-11-13)', a
     assert.equal(row[1], '+861.94');
     assert.match(row[2], /spin reserves, satellite seat tickets, promo funding/);
     assert.ok(!/prize-liability/.test(row[2]), 'no accounting jargon in the explanation');
+});
+
+// Shape returned by fn_sp_digest_promo_chips for 2026-11-12 (Chicago day).
+const PROMO_CHIPS = {
+    day: '2026-11-12', total: 155.75, sends: 4, recipients: 4,
+    agent_total: 125, agent_sends: 3, agent_recipients: 3,
+    agents: [
+        { agent: 'twin2983', total: 75, sends: 2, players: 2, recipients: [
+            { player: 'MeepMeep', horse: false, amount: 50, sends: 1, club: 'KINGS CLUB', source: 'Agent Promo Wallet' },
+            { player: 'nickw', horse: false, amount: 25, sends: 1, club: 'KINGS CLUB', source: 'Agent Promo Wallet' }] },
+        { agent: 'ChiToWnBaLLn', total: 50, sends: 1, players: 1, recipients: [
+            { player: 'BarryWhite', horse: false, amount: 50, sends: 1, club: 'KINGS CLUB', source: 'Agent Promo Wallet' }] },
+    ],
+    automated_total: 30.75, automated_sends: 3, automated_recipients: 2,
+    systems: [
+        { system: 'Welcome Back Chips', total: 25, sends: 1, players: 1, horses: 0, recipients: [{ player: 'Farmboy13', horse: false, amount: 25, sends: 1 }] },
+        { system: 'Diamond Spins Wheel Prizes', total: 5.75, sends: 2, players: 1, horses: 1, recipients: [{ player: 'tango', horse: true, amount: 5.75, sends: 2 }] },
+    ],
+};
+
+test('the Daily Update totals promo chips, agent to player and every automated system (Dan 2026-11-14)', async () => {
+    const { dailyUpdateRows, promoChipsRows } = await import('../src/lib/dailyDigest/render.mjs');
+    const d = fixture({ promo_chips: PROMO_CHIPS });
+    const rows = promoChipsRows(d);
+    const row = (label) => rows.find((r) => r[0] === label);
+    assert.deepEqual(row('Promo Chips Sent'), ['Promo Chips Sent', '155.75', '4 sends to 4 players; agents 125, automated systems 30.75']);
+    assert.deepEqual(row('Agent Promo: twin2983'), ['Agent Promo: twin2983', '75', 'To MeepMeep 50; nickw 25']);
+    assert.deepEqual(row('Agent Promo: ChiToWnBaLLn'), ['Agent Promo: ChiToWnBaLLn', '50', 'To BarryWhite 50']);
+    assert.deepEqual(row('Automated Promo: Welcome Back Chips'), ['Automated Promo: Welcome Back Chips', '25', '1 player: Farmboy13 25']);
+    assert.equal(row('Automated Promo: Diamond Spins Wheel Prizes')[2], '1 player (1 horse): tango 5.75 (horse, 2 sends)');
+    // In the first section, between Rakeback Paid and Hands Dealt.
+    const daily = dailyUpdateRows(d).map((r) => r[0]);
+    assert.ok(daily.indexOf('Promo Chips Sent') === daily.indexOf('Rakeback Paid') + 1);
+    assert.ok(daily.indexOf('Automated Promo: Diamond Spins Wheel Prizes') < daily.indexOf('Hands Dealt'));
+    assert.equal(daily[0], 'Real Player Signups', 'signups still lead the card');
+    const text = buildText(d);
+    const section = text.slice(text.indexOf('DAILY UPDATE'), text.indexOf('WEEKLY UPDATE'));
+    assert.match(section, /Agent Promo: twin2983: 75 {2}\(To MeepMeep 50; nickw 25\)/);
+    assert.match(section, /Automated Promo: Welcome Back Chips: 25/);
+    const html = buildHtml(d, { email: true });
+    const card = html.slice(html.indexOf('Daily Update:'), html.indexOf('Weekly Update:'));
+    assert.ok(card.includes('Agent Promo: twin2983') && card.includes('To MeepMeep 50; nickw 25'));
+    assert.ok(!/\$\s?155/.test(text + html), 'chips carry no dollar sign');
+});
+
+test('a day without agent or automated promo sends says so, and a failed report says it could not be read', async () => {
+    const { promoChipsRows } = await import('../src/lib/dailyDigest/render.mjs');
+    const none = promoChipsRows({ promo_chips: { total: 0, sends: 0, recipients: 0, agent_total: 0, automated_total: 0, agents: [], systems: [] } });
+    assert.deepEqual(none.map((r) => [r[0], r[1]]), [['Promo Chips Sent', '0'], ['Agent Promo Sends', 'None'], ['Automated Promo Sends', 'None']]);
+    const failed = promoChipsRows({ promo_chips: { day: '2026-11-12', error: 'statement timeout' } });
+    assert.deepEqual(failed.map((r) => r[1]), ['Unavailable']);
+    assert.deepEqual(promoChipsRows({}), [], 'an older digest without the report renders as before');
+});
+
+test('the email names the first 30 recipients of a large automated send; the online digest names all', async () => {
+    const { promoChipsRows, PROMO_EMAIL_NAMES } = await import('../src/lib/dailyDigest/render.mjs');
+    const recipients = Array.from({ length: 1000 }, (_, i) => ({ player: `horse${i}`, horse: true, amount: 90, sends: 1 }));
+    const d = { promo_chips: { total: 90000, sends: 1000, recipients: 1000, agent_total: 0, automated_total: 90000, agents: [],
+        systems: [{ system: 'Midway Weekly Promo Distribution', total: 90000, sends: 1000, players: 1000, horses: 1000, recipients }] } };
+    const email = promoChipsRows(d, { email: true }).find((r) => r[0] === 'Automated Promo: Midway Weekly Promo Distribution');
+    assert.equal(PROMO_EMAIL_NAMES, 30);
+    assert.equal((email[2].match(/horse\d+ 90/g) || []).length, 30);
+    assert.match(email[2], /^1,000 players \(1,000 horses\): .*; and 970 more in the online digest$/);
+    const online = promoChipsRows(d).find((r) => r[0] === 'Automated Promo: Midway Weekly Promo Distribution');
+    assert.equal((online[2].match(/horse\d+ 90/g) || []).length, 1000);
 });

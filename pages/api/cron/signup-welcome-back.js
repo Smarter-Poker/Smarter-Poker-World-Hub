@@ -6,6 +6,10 @@
  * hours ago and has not played a hand is paid 25 free chips from the Midway
  * Union promo wallet and told by push, email and text.
  *
+ * Only for players who have never received a chip (Dan, 2026-11-14): anyone
+ * ever sent chips by an agent, a club, the union or any system is skipped
+ * (fn_sp_player_has_received_chips, migration 20261114163112).
+ *
  * The database pays and raises the push (fn_sp_signup_welcome_back_run, Club
  * Arena migration 20261104145956, idempotent per player); this route sends the
  * email through Resend and the text through Twilio and records each channel's
