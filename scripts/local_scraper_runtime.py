@@ -335,9 +335,12 @@ def install(repository, revision, root, state, inputs, python,
     if final.is_symlink():
         raise RuntimeFault('existing_release_is_symlink')
     # Preserve the venv entrypoint. Resolving its symlink would launch base
-    # Python without the installed scraper packages.
+    # Python without the installed scraper packages. Keep the state path as
+    # given too: when macOS mounts the SSD as "SmarterWork 1" behind a
+    # /Volumes/SmarterWork shim, the resolved spelling stops existing the day
+    # the volume mounts under its own name again.
     manifest = {'revision': revision,
-                'runtime': {'state_dir': str(state.resolve()), 'python': str(python.absolute())},
+                'runtime': {'state_dir': str(state.absolute()), 'python': str(python.absolute())},
                 'files': {
         name: hashlib.sha256(blob).hexdigest() for name, blob in blobs.items()}}
     if component != 'pokeratlas':
@@ -346,7 +349,7 @@ def install(repository, revision, root, state, inputs, python,
     try:
         for name, blob in blobs.items():
             atomic_write(staging / name, blob, 0o444)
-        os.symlink(str(state.resolve()), staging / 'data')
+        os.symlink(str(state.absolute()), staging / 'data')
         atomic_write(staging / 'manifest.json', json_bytes(manifest), 0o444)
         fsync_dir(staging)
         if final.exists():
@@ -612,7 +615,7 @@ def main():
             if not all([args.repository, args.revision, args.state, args.inputs, args.python]):
                 parser.error('install requires repository, revision, state, inputs and python')
             result = install(args.repository, args.revision, args.root.resolve(),
-                             args.state.resolve(), args.inputs.resolve(), args.python,
+                             args.state.absolute(), args.inputs.resolve(), args.python,
                              args.component, args.credential_store)
             print(json.dumps({'installed_revision': result['revision'], 'files': len(result['files'])}))
         elif args.action == 'check':
