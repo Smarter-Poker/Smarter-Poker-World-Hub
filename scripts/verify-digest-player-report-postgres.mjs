@@ -45,7 +45,10 @@ try {
         '-f', 'supabase/migrations/20261113154919_digest_start_day_index_ranges.sql',
         '-f', 'supabase/migrations/20261113160502_digest_start_day_primary_key_probe.sql',
         '-f', '__tests__/digest-daily-results-assert.sql',
-        '-f', '__tests__/digest-tournament-start-day-assert.sql']);
+        '-f', '__tests__/digest-tournament-start-day-assert.sql',
+        '-f', '__tests__/digest-daily-results-snapshot-before.sql',
+        '-f', 'supabase/migrations/20261114163320_digest_daily_results_are_computed_before_the_digest.sql',
+        '-f', '__tests__/digest-daily-results-snapshot-assert.sql']);
     console.log('Digest PostgreSQL qualification passed: ' + JSON.stringify([
         'supabase/migrations/20261027183951_digest_player_report_bbj_and_result_breakdown.sql',
         'supabase/migrations/20261028150757_digest_spins_and_spend.sql',
@@ -59,6 +62,7 @@ try {
         'supabase/migrations/20261113154407_digest_tournaments_reconcile_on_start_day.sql',
         'supabase/migrations/20261113154919_digest_start_day_index_ranges.sql',
         'supabase/migrations/20261113160502_digest_start_day_primary_key_probe.sql',
+        'supabase/migrations/20261114163320_digest_daily_results_are_computed_before_the_digest.sql',
     ].map(file => ({ path: file, sha256: createHash('sha256').update(readFileSync(path.join(root, file))).digest('hex'), postgresMajor: 17 }))));
 } finally {
     if (started) run('pg_ctl', ['-D', data, '-m', 'fast', 'stop']);
