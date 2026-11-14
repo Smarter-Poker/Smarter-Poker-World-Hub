@@ -520,7 +520,7 @@ def _yearless_span(match, year: int):
 PDF_TEXT_MAX_BYTES = 8 * 1024 * 1024
 
 
-def schedule_pdf_text(url: str) -> str:
+def schedule_pdf_text(url: str, asset_host: str = "assets.contentstack.io") -> str:
     """Text of a source-linked schedule PDF on the venue's own asset host.
 
     Returns '' (and the caller fails closed) when the link is not an https PDF
@@ -530,7 +530,7 @@ def schedule_pdf_text(url: str) -> str:
         parsed = urllib.parse.urlsplit(url)
     except ValueError:
         return ""
-    if (parsed.scheme != "https" or parsed.hostname != "assets.contentstack.io"
+    if (parsed.scheme != "https" or parsed.hostname != asset_host
             or not parsed.path.lower().endswith(".pdf")):
         return ""
     exe = shutil.which("pdftotext") or next(
@@ -557,6 +557,54 @@ def schedule_pdf_text(url: str) -> str:
         except (OSError, subprocess.SubprocessError):
             return ""
     return result.stdout.decode("utf-8", "ignore") if result.returncode == 0 else ""
+
+
+WYNN_POKER_PAGE = 'https://www.wynnlasvegas.com/casino/poker'
+WYNN_CHAMPIONSHIPS = {
+    'WPT': 'WPT World Championship',
+    'WPTPRIME': 'WPT Prime Championship',
+    'CLUBWPTG': 'Super Gold Million Mystery Bounty',
+}
+
+
+def wynn_championship_schedule(code, page, today):
+    """Read the host venue's linked WPT schedule, from first flight through final table."""
+    links = set(re.findall(
+        r'href=["\'](https://cdn\.wynnresorts\.com/[^"\'?#]+/Poker/WPT/WPT_World_Championship_Schedule\.pdf)["\']',
+        page, re.I))
+    if len(links) != 1 or code not in WYNN_CHAMPIONSHIPS:
+        return [], '', ''
+    url = links.pop()
+    schedule = schedule_pdf_text(url, 'cdn.wynnresorts.com')
+    header = re.search(r'^\s*([A-Z]+) (\d+) - ([A-Z]+) (\d+), (20\d{2})\s*$', schedule, re.M)
+    if not header:
+        return [], '', ''
+    name = WYNN_CHAMPIONSHIPS[code]
+    dates = {}
+    day = None
+    try:
+        year = int(header[5])
+        first = date(year, MONTHS[header[1][:3].lower()], int(header[2]))
+        last = date(year, MONTHS[header[3][:3].lower()], int(header[4]))
+        for line in schedule.splitlines():
+            if line.strip() == header[0].strip():
+                day = None
+            stamp = re.match(r'^([A-Z][a-z]{2})\.? (\d{1,2})\s+', line)
+            if stamp:
+                day = date(year, MONTHS[stamp[1].lower()], int(stamp[2]))
+            event = re.search(r'\b[ap]\.m\.\s+' + re.escape(name) + r' (Day 1A|Final Table)(?:\s{2,}|\s*$)', line)
+            if event:
+                if not day or not first <= day <= last or event[1] in dates:
+                    return [], '', ''
+                dates[event[1]] = day
+    except (ValueError, KeyError):
+        return [], '', ''
+    start, end = dates.get('Day 1A'), dates.get('Final Table')
+    if not start or not end or end < start or end < today - timedelta(days=14):
+        return [], '', ''
+    stop = {'stop_name': name, 'start': start.isoformat(), 'end': end.isoformat(),
+            'venue': 'Wynn Las Vegas', 'city': 'Las Vegas', 'state': 'NV'}
+    return [stop], url, hashlib.sha256(schedule.encode()).hexdigest()
 
 
 def ante_up_finale_dates_pending(code: str, url: str, page: str, today: date) -> bool:
@@ -594,6 +642,23 @@ def extract_stops(html: str, base_url: str, today: date = None, tour_code: str =
     code = str(tour_code or '').upper()
     host = urllib.parse.urlparse(base_url).hostname
     cutoff_day = (today or datetime.now(timezone.utc).date()) - timedelta(days=14)
+    if code == 'EASTERNPT' and host in {'easternpokertour.com', 'www.easternpokertour.com'}:
+        visible = re.sub(r'<(script|style|noscript)\b[^>]*>.*?</\1>', ' ', html, flags=re.I | re.S)
+        text = normalize_stop_name(visible)
+        events = {}
+        for match in re.finditer(
+                r'\b(?:the )?(\d{1,2}(?:st|nd|rd|th) \$[\d,]+ monthly event for season \d+) '
+                r'has been scheduled for ([A-Za-z]+ \d{1,2}, 20\d{2})\b', text, re.I):
+            try:
+                when = datetime.strptime(match[2], '%B %d, %Y').date()
+            except ValueError:
+                continue
+            if when >= cutoff_day:
+                name = 'Eastern Poker Tour ' + match[1].title()
+                events[(name, when)] = {'stop_name': name, 'start': when.isoformat(),
+                                        'end': when.isoformat(), 'source_scope': 'published event-calendar start'}
+        if events:
+            return list(events.values())
     if code == 'MSPT' and host in {'msptpoker.com', 'www.msptpoker.com'}:
         # The home page's UPCOMING EVENTS list prints "Oct 13 - Oct 18" with no
         # year. It is a chronological list of upcoming stops, so the first
@@ -1417,6 +1482,8 @@ def select_schedule_url(code: str, url: str) -> str:
     """Repair only the two observed retired registry values, never newer URLs."""
     obsolete = {'WPT': 'https://www.worldpokertour.com/schedule/',
                 'WPTPRIME': 'https://www.worldpokertour.com/tours/'}
+    if code == 'EASTERNPT' and url.rstrip('/') == 'https://www.easternpokertour.com':
+        return 'https://www.easternpokertour.com/_p/player/blog/id%3D1'
     if url == obsolete.get(code):
         return 'https://www.worldpokertour.com/event/schedule'
     return url
@@ -1557,8 +1624,17 @@ def main():
         source_context_ok, source_context_reason = tour_page_identity(
             code, name, url, final_url, html,
         )
-        if verify_html(html) and source_context_ok:
-            stops = extract_stops(html, final_url or url, tour_code=code)
+        valid_page = verify_html(html) and source_context_ok
+        stops = extract_stops(html, final_url or url, tour_code=code) if valid_page else []
+        if not stops and code in WYNN_CHAMPIONSHIPS:
+            venue_html, _, session, venue_url = fetch_page(session, WYNN_POKER_PAGE)
+            if venue_url.rstrip('/') == WYNN_POKER_PAGE and verify_html(venue_html):
+                venue_stops, pdf_url, schedule_hash = wynn_championship_schedule(
+                    code, venue_html, datetime.now(timezone.utc).date(),
+                )
+                if venue_stops:
+                    stops, final_url, hhash = venue_stops, pdf_url, schedule_hash
+        if valid_page or stops:
             found = len(stops)
             total_stops += found
             log(f"    {found} stop candidate(s)")
