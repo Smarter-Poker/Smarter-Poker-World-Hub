@@ -50,6 +50,21 @@ class TourStopExtractionTests(unittest.TestCase):
             self.assertEqual(transport.call_count, 2)
         self.assertNotIn('venue', rows[1])
 
+    def test_wynn_artwork_pdf_can_exceed_eight_mib_and_still_has_a_bound(self):
+        size = 23785821  # Venue championship schedule downloaded 2026-11-14.
+        url = 'https://cdn.wynnresorts.com/Poker/WPT/schedule.pdf'
+        with mock.patch.object(scraper.shutil, 'which', return_value='/usr/bin/pdftotext'), \
+             mock.patch.object(scraper.subprocess, 'run') as extract:
+            extract.return_value.returncode = 0
+            extract.return_value.stdout = b'official schedule'
+            with mock.patch.object(scraper.urllib.request, 'urlopen',
+                                   return_value=io.BytesIO(b'%PDF' + bytes(size - 4))):
+                self.assertEqual(scraper.schedule_pdf_text(url, 'cdn.wynnresorts.com'), 'official schedule')
+            with mock.patch.object(scraper, 'WYNN_PDF_MAX_BYTES', 128), \
+                 mock.patch.object(scraper.urllib.request, 'urlopen', return_value=io.BytesIO(b'%PDF' + bytes(125))):
+                self.assertEqual(scraper.schedule_pdf_text(url, 'cdn.wynnresorts.com'), '')
+            self.assertEqual(extract.call_count, 1)
+
     def test_wynn_schedule_binds_both_dates_to_each_named_championship(self):
         url = 'https://cdn.wynnresorts.com/image/upload/v123/x/Poker/WPT/WPT_World_Championship_Schedule.pdf'
         page = f'<a href="{url}">View Schedule</a>'
