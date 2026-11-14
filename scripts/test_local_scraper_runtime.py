@@ -357,6 +357,18 @@ class RuntimeProof(unittest.TestCase):
         self.assertTrue(runtime.deliver_resolution(self.root))
         self.assertEqual([r['p_payload'].get('resolves') for r in self.requests[3:]], [again['p_event_key']])
 
+    def test_state_path_keeps_the_spelling_it_was_installed_with(self):
+        real = self.base / 'SmarterWork 1'
+        real.mkdir()
+        (self.base / 'SmarterWork').symlink_to(real)
+        state = self.base / 'SmarterWork' / 'state'
+        state.mkdir()
+        with patch.object(runtime, 'verify_python'):
+            manifest = runtime.install(self.repo, self.sha, self.root, state, self.inputs, Path(sys.executable))
+        self.assertEqual(manifest['runtime']['state_dir'], str(state))
+        self.assertEqual(os.readlink(self.root / 'current' / 'data'), str(state))
+        runtime.inspect_release(self.root)
+
     def test_an_episode_zero_fault_keeps_its_original_key(self):
         path = runtime.queue_fault(self.root, 'daemon_exited_1', 'a' * 40, 'tournaments')
         self.assertEqual(json.loads(path.read_text())['p_event_key'],
