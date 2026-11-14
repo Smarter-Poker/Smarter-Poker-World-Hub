@@ -421,6 +421,14 @@ export default async function handler(req, res) {
       schedule_url: registryTour.source_urls?.primary,
       alternate_urls: Object.values(registryTour.source_urls || {}),
     }] : [];
+    // Tours added to the live registry can precede the bundled catalog.
+    if (!registryTour && rawEvents?.length) {
+      const { data, error } = await supabase.from('tour_source_registry')
+        .select('tour_code,official_website,schedule_url,alternate_urls')
+        .eq('tour_code', tour_code.toUpperCase()).eq('is_active', true).maybeSingle();
+      if (error) throw error;
+      if (data) summaryTours.push(data);
+    }
     const summaries = databaseTourStops(rawEvents || [], summaryTours);
     const classified = classifyStops(events, today, summaries);
 

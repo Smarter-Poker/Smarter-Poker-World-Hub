@@ -60,7 +60,11 @@ export function databaseTourStops(rows, tours) {
     const sourceHost = host(source);
     const primaryHosts = [tour.official_website, tour.schedule_url, ...(tour.alternate_urls || [])]
       .map(host).filter(Boolean);
-    if (!sourceHost || !primaryHosts.some(primary => sourceHost === primary || sourceHost.endsWith(`.${primary}`))) continue;
+    const primarySource = sourceHost && primaryHosts.some(primary => sourceHost === primary || sourceHost.endsWith(`.${primary}`));
+    // These three championships publish their dated flights in one host-venue PDF.
+    const venueSchedule = ['WPT', 'WPTPRIME', 'CLUBWPTG'].includes(row.tour_code)
+      && /^https:\/\/cdn\.wynnresorts\.com\/image\/upload\/v[0-9]+\/visitwynn_pdfs_files\/Poker\/WPT\/WPT_World_Championship_Schedule\.pdf$/.test(source);
+    if (!primarySource && !venueSchedule) continue;
     const observed = Date.parse(row.scrape_timestamp || '');
     if (!Number.isFinite(observed)) continue;
     const start = day(row.stop_start_date || row.start_date);
