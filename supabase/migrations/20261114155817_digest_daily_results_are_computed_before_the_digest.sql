@@ -157,7 +157,7 @@ CREATE TABLE IF NOT EXISTS public.sp_digest_daily_results_snapshots (
   compute_ms  integer NOT NULL CHECK (compute_ms >= 0)
 );
 ALTER TABLE public.sp_digest_daily_results_snapshots ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON TABLE public.sp_digest_daily_results_snapshots FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON TABLE public.sp_digest_daily_results_snapshots FROM PUBLIC, anon, authenticated, service_role;
 GRANT SELECT ON TABLE public.sp_digest_daily_results_snapshots TO service_role;
 
 CREATE OR REPLACE FUNCTION public.fn_sp_digest_daily_results_refresh(
