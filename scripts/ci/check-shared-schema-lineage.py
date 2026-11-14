@@ -24,6 +24,12 @@ REPORT_TRANSITIONS = (
     ('supabase/migrations/20261113154919_digest_start_day_index_ranges.sql', '4340469bf0fc9389fa17d937125e5d124c10587fddc029adbfa692e8b0667f42'),
     ('supabase/migrations/20261113160502_digest_start_day_primary_key_probe.sql', '3678a9ca026854fe7375be9bc3e34908d12cace9f566fad7d20f94a0bb4bed60'),
     ('supabase/migrations/20261114163320_digest_daily_results_are_computed_before_the_digest.sql', '4816656716d5f77aaeb1ddb3a6f507ae35114f02d1a4fa42772a0893e3465fd8'),
+    ('supabase/migrations/20261114163112_welcome_back_only_for_players_who_never_received_chips.sql', 'c9e0dea577b03a48c70dcb716daf275ea1985fdcb816328646f5e0c1d84561c3'),
+    ('supabase/migrations/20261114163728_digest_promo_chips_agent_to_player_and_automated.sql', '8129f4a676297c65d345d135346f562a17817f8dcd869319fa79973105b0d57d'),
+    ('supabase/migrations/20261114171206_welcome_back_refused_at_the_ledger_write.sql', 'b4beceecfc6e5cbc0a124d424ee5220140746096c16d2db0193a0a46b9ca4e46'),
+    ('supabase/migrations/20261114171319_digest_promo_rule_check.sql', '1e62a3a8ac7daa1bcc8faffaabcf9d06a20cefc90e9a9daddc86e47926da1760'),
+    ('supabase/migrations/20261114174204_agent_promo_daily_cap.sql', 'f03ca24510581a4654f638849fe502b7df445ca392437794fc17077ad3b8c4f3'),
+    ('supabase/migrations/20261114174518_cashier_history_names_the_union_or_club_that_sent.sql', '7ae0cd350be74ecea3635c1e30869de2197d1263e102e89e7e2089d87aca0701'),
 )
 MARKETPLACE_TRANSITIONS = (('supabase/migrations/20261031191337_signup_audit_checks_auth_triggers_by_name.sql', '16618b0db7ce11823bdfe685af7b3253976354dfcb099d13b4b926434a679021'), ('supabase/migrations/20261102011118_marketplace_whole_dollar_prices.sql', '8183a4285311c4e74d4e39e4e376ccc53b0dea3aba4fce8b1e2809b3b496f663'),)
 MARKETPLACE_PREFIX = 'Marketplace PostgreSQL qualification passed: '
