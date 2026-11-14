@@ -549,7 +549,38 @@ export function promoChipsRows(digest, opts = {}) {
         rows.push([`Automated Promo: ${s.system}`, fmtNum(s.total),
             `${plural(s.players, 'player')}${horses}: ${shown.map(promoName).join('; ')}${more > 0 ? `; and ${fmtInt(more)} more in the online digest` : ''}`]);
     }
+    const check = promoRuleCheckRow(p);
+    if (check) rows.push(check);
     return rows;
+}
+
+/**
+ * Promo Rule Check (Dan 2026-11-14, "how do we insure users never get promo
+ * chips they aren't supposed to"): the database refuses Welcome Back Chips to
+ * any player who has received chips; this row is the daily proof that nothing
+ * got past it, and that no automated campaign paid the same player in the same
+ * club twice. A violation also raises a Needs Your Attention item.
+ */
+export const PROMO_RULE_LABELS = {
+    welcome_back_after_chips: 'Welcome Back Chips after other chips',
+    duplicate_automated_promo: 'automated promo paid twice',
+};
+
+export function promoRuleCheckRow(p) {
+    if (!p || p.error || p.violation_count === undefined || p.violation_count === null) return null;
+    const list = Array.isArray(p.violations) ? p.violations : [];
+    const n = Number(p.violation_count) || 0;
+    if (!n) return ['Promo Rule Check', 'Passed', 'No Welcome Back Chips to a player who already had chips; no automated promo paid twice'];
+    return ['Promo Rule Check', `${plural(n, 'Violation')}`,
+        list.map((v) => `${v.player} ${fmtNum(v.amount)} (${PROMO_RULE_LABELS[v.rule] || v.rule}${v.club ? `, ${v.club}` : ''})`).join('; ')];
+}
+
+/** One Needs Your Attention line naming every promo rule violation of the day. */
+export function promoViolationTitle(p) {
+    const list = Array.isArray(p?.violations) ? p.violations : [];
+    const n = Number(p?.violation_count) || list.length;
+    const names = list.slice(0, 4).map((v) => `${v.player} (${PROMO_RULE_LABELS[v.rule] || v.rule})`);
+    return `${n} promo payment${n === 1 ? '' : 's'} broke a promo rule: ${names.join('; ')}${list.length > 4 ? '; more in the Daily Update' : ''}`;
 }
 
 export function dailyUpdateRows(digest, opts = {}) {

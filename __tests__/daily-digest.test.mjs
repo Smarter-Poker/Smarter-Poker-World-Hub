@@ -1121,3 +1121,29 @@ test('the email names the first 30 recipients of a large automated send; the onl
     const online = promoChipsRows(d).find((r) => r[0] === 'Automated Promo: Midway Weekly Promo Distribution');
     assert.equal((online[2].match(/horse\d+ 90/g) || []).length, 1000);
 });
+
+test('the Promo Rule Check passes on a clean day and names every violation otherwise (Dan 2026-11-14)', async () => {
+    const { promoChipsRows, promoRuleCheckRow } = await import('../src/lib/dailyDigest/render.mjs');
+    const clean = promoChipsRows({ promo_chips: { ...PROMO_CHIPS, violation_count: 0, violations: [] } });
+    assert.deepEqual(clean.at(-1).slice(0, 2), ['Promo Rule Check', 'Passed']);
+    const bad = promoRuleCheckRow({ violation_count: 2, violations: [
+        { rule: 'welcome_back_after_chips', player: 'MeepMeep', amount: 25, club: 'KINGS CLUB' },
+        { rule: 'duplicate_automated_promo', player: 'tango', amount: 50, club: 'KINGS CLUB' }] });
+    assert.deepEqual(bad, ['Promo Rule Check', '2 Violations',
+        'MeepMeep 25 (Welcome Back Chips after other chips, KINGS CLUB); tango 50 (automated promo paid twice, KINGS CLUB)']);
+    assert.equal(promoRuleCheckRow(PROMO_CHIPS), null, 'a report without the check adds no row');
+});
+
+test('a promo rule violation leads the email as a Needs Your Attention item', async () => {
+    const { loadDigestData } = await import('../src/lib/dailyDigest/assemble.mjs');
+    const violations = [{ rule: 'welcome_back_after_chips', player: 'MeepMeep', amount: 25, club: 'KINGS CLUB' }];
+    const sb = { rpc: async (name) => ({ error: null, data: name === 'fn_sp_daily_digest' ? fixture()
+        : name === 'fn_sp_digest_promo_chips' ? { ...PROMO_CHIPS, violation_count: 1, violations }
+        : name === 'fn_sp_digest_daily_results' ? { reconciliation: { status: 'balanced' } } : PLAYER_TOTALS }) };
+    const { digest } = await loadDigestData(sb, '2026-11-13', { withCosts: false, dispatch: false });
+    const item = digest.attention.find((a) => a.rule === 'promo_rule_violation');
+    assert.ok(item, 'attention item raised');
+    assert.equal(item.title, '1 promo payment broke a promo rule: MeepMeep (Welcome Back Chips after other chips)');
+    assert.equal(item.severity, 'critical');
+    assert.match(buildText(digest), /NEEDS YOUR ATTENTION[\s\S]*1 promo payment broke a promo rule/);
+});
