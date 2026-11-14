@@ -50,6 +50,30 @@ class TourStopExtractionTests(unittest.TestCase):
             self.assertEqual(transport.call_count, 2)
         self.assertNotIn('venue', rows[1])
 
+    def test_wynn_schedule_binds_both_dates_to_each_named_championship(self):
+        url = 'https://cdn.wynnresorts.com/image/upload/v123/x/Poker/WPT/WPT_World_Championship_Schedule.pdf'
+        page = f'<a href="{url}">View Schedule</a>'
+        for code, name in scraper.WYNN_CHAMPIONSHIPS.items():
+            schedule = (f'NOVEMBER 27 - DECEMBER 21, 2026\nDec. 5   9 a.m.   Other Game\n'
+                        f'         11 a.m.   {name} Day 1A    $400\n'
+                        f'Dec. 8   1 p.m.   {name} Final Table\n')
+            with mock.patch.object(scraper, 'schedule_pdf_text', return_value=schedule):
+                rows, source, digest = scraper.wynn_championship_schedule(code, page, date(2026, 11, 14))
+                self.assertEqual((source, len(digest)), (url, 64))
+                self.assertEqual([(r['start'], r['end']) for r in rows], [('2026-12-05', '2026-12-08')])
+            for bad in (schedule.replace('Day 1A', 'Day 1B'), schedule.replace('Dec. 8', 'Nov. 8'),
+                        schedule.replace(name, 'Satellite to ' + name)):
+                with mock.patch.object(scraper, 'schedule_pdf_text', return_value=bad):
+                    self.assertFalse(scraper.wynn_championship_schedule(code, page, date(2026, 11, 14))[0])
+
+    def test_eastern_monthly_event_uses_its_own_announcement_date(self):
+        url = scraper.select_schedule_url('EASTERNPT', 'https://www.easternpokertour.com/')
+        news = ('THE 8th $10,000 MONTHLY EVENT FOR SEASON 36 has been scheduled for November 21, 2026. '
+                'Last year we joined Bar Poker Open November 13 - 16, 2026!')
+        rows = scraper.extract_stops(news, url, date(2026, 11, 14), 'EASTERNPT')
+        self.assertEqual([(r['start'], r['end']) for r in rows], [('2026-11-21', '2026-11-21')])
+        self.assertNotIn('Bar Poker', rows[0]['stop_name'])
+
     def test_wpt_obsolete_source_selection_preserves_newer_registry(self):
         rows = [{'tour_code': 'WPT', 'schedule_url': 'https://www.worldpokertour.com/schedule/'},
                 {'tour_code': 'WPTPRIME', 'schedule_url': 'https://www.worldpokertour.com/tours/'}]
