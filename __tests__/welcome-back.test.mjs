@@ -310,3 +310,15 @@ test('Welcome Back Chips skips any player who ever received chips (Dan 2026-11-1
     // The helper stays service-only.
     assert.match(sql, /REVOKE ALL ON FUNCTION public\.fn_sp_player_has_received_chips\(uuid\) FROM PUBLIC, anon, authenticated;/);
 });
+
+test('the ledger refuses a Welcome Back payment to a player with any other chip credit (Dan 2026-11-14)', async () => {
+    const fs = await import('node:fs');
+    const sql = fs.readFileSync(new URL('../supabase/migrations/20261114171206_welcome_back_refused_at_the_ledger_write.sql', import.meta.url), 'utf8');
+    // Keyed to the run's own per-player op, so no other promo is touched.
+    assert.match(sql, /NEW\.metadata ->> 'op_id' = md5\('signup-welcome-back:' \|\| NEW\.to_user_id::text\)::uuid::text/);
+    // Any other credit, from any other transaction, refuses it; the payment's own leg (created_at = now()) does not.
+    assert.match(sql, /ct\.to_user_id = NEW\.to_user_id AND ct\.amount > 0 AND ct\.created_at <> now\(\)/);
+    assert.match(sql, /l\.to_entity_id = NEW\.to_user_id AND l\.to_type = 'player_wallet'\s+AND l\.amount > 0 AND l\.created_at <> now\(\)/);
+    assert.match(sql, /BEFORE INSERT ON public\.chip_transactions\s+FOR EACH ROW\s+WHEN \(NEW\.transaction_type = 'promo_disbursement' AND NEW\.to_user_id IS NOT NULL\)/);
+    assert.match(sql, /SET LOCAL lock_timeout = '3s';/, 'the trigger DDL never queues buy-ins behind it');
+});

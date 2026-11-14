@@ -1,5 +1,5 @@
 /** Builds everything the daily digest email needs for one Central day. */
-import { buildHtml, buildSubject, buildText } from './render.mjs';
+import { buildHtml, buildSubject, buildText, promoViolationTitle } from './render.mjs';
 import { providerSpend, viewUrlFor } from './delivery.mjs';
 
 /**
@@ -301,6 +301,16 @@ export async function loadDigestData(sb, day, { withCosts = true, dispatch = tru
     if (digest) digest.free_buy_funding = freeBuyFunding;
     if (digest) digest.house_figures = houseFigures;
     if (digest) digest.daily_results = dailyResults;
+    // Promo rule violations (Dan 2026-11-14): the database refuses them, so one
+    // here means a guard was bypassed; it leads the email, not the card.
+    if (digest && promoChips && !promoChips.error && Number(promoChips.violation_count) > 0) {
+        digest.attention = Array.isArray(digest.attention) ? digest.attention : [];
+        digest.attention.push({ rule: 'promo_rule_violation', severity: 'critical', status: 'not_picked_up',
+            title: promoViolationTitle(promoChips), detail: promoChips.violations, dispatch: false });
+        if (digest.attention_status && typeof digest.attention_status === 'object') {
+            digest.attention_status.not_picked_up = Number(digest.attention_status.not_picked_up || 0) + 1;
+        }
+    }
     if (digest && (dailyResults?.error || dailyResults?.reconciliation?.status !== 'balanced')) {
         digest.attention = Array.isArray(digest.attention) ? digest.attention : [];
         digest.attention.push({ rule: 'daily_chip_reconciliation', severity: 'critical', status: 'not_picked_up',
