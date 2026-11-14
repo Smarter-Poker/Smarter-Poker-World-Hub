@@ -49,6 +49,19 @@ try {
         '-f', '__tests__/digest-daily-results-snapshot-before.sql',
         '-f', 'supabase/migrations/20261114163320_digest_daily_results_are_computed_before_the_digest.sql',
         '-f', '__tests__/digest-daily-results-snapshot-assert.sql']);
+    // Promo controls (Dan, 2026-11-14): Welcome Back only for never-funded
+    // players, the ledger write guard, the digest's promo chips and rule
+    // check, the agent daily cap and the cashier's union/club names.
+    run('createdb', ['-h', socket, '-p', '56474', 'promo_controls']);
+    run('psql', ['-X', '-v', 'ON_ERROR_STOP=1', '-h', socket, '-p', '56474', '-d', 'promo_controls',
+        '-f', '__tests__/promo-controls.sql',
+        '-f', 'supabase/migrations/20261114163112_welcome_back_only_for_players_who_never_received_chips.sql',
+        '-f', 'supabase/migrations/20261114163728_digest_promo_chips_agent_to_player_and_automated.sql',
+        '-f', 'supabase/migrations/20261114171206_welcome_back_refused_at_the_ledger_write.sql',
+        '-f', 'supabase/migrations/20261114171319_digest_promo_rule_check.sql',
+        '-f', 'supabase/migrations/20261114174204_agent_promo_daily_cap.sql',
+        '-f', 'supabase/migrations/20261114174518_cashier_history_names_the_union_or_club_that_sent.sql',
+        '-f', '__tests__/promo-controls-assert.sql']);
     console.log('Digest PostgreSQL qualification passed: ' + JSON.stringify([
         'supabase/migrations/20261027183951_digest_player_report_bbj_and_result_breakdown.sql',
         'supabase/migrations/20261028150757_digest_spins_and_spend.sql',
@@ -63,6 +76,12 @@ try {
         'supabase/migrations/20261113154919_digest_start_day_index_ranges.sql',
         'supabase/migrations/20261113160502_digest_start_day_primary_key_probe.sql',
         'supabase/migrations/20261114163320_digest_daily_results_are_computed_before_the_digest.sql',
+        'supabase/migrations/20261114163112_welcome_back_only_for_players_who_never_received_chips.sql',
+        'supabase/migrations/20261114163728_digest_promo_chips_agent_to_player_and_automated.sql',
+        'supabase/migrations/20261114171206_welcome_back_refused_at_the_ledger_write.sql',
+        'supabase/migrations/20261114171319_digest_promo_rule_check.sql',
+        'supabase/migrations/20261114174204_agent_promo_daily_cap.sql',
+        'supabase/migrations/20261114174518_cashier_history_names_the_union_or_club_that_sent.sql',
     ].map(file => ({ path: file, sha256: createHash('sha256').update(readFileSync(path.join(root, file))).digest('hex'), postgresMajor: 17 }))));
 } finally {
     if (started) run('pg_ctl', ['-D', data, '-m', 'fast', 'stop']);
