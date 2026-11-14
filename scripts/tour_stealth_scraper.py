@@ -559,6 +559,30 @@ def schedule_pdf_text(url: str) -> str:
     return result.stdout.decode("utf-8", "ignore") if result.returncode == 0 else ""
 
 
+def ante_up_finale_dates_pending(code: str, url: str, page: str, today: date) -> bool:
+    """Recognize the official season finale with unpublished dates after its dated stops."""
+    location = urllib.parse.urlsplit(url)
+    if (code != 'AUPT' or location.scheme != 'https'
+            or location.hostname not in {'anteupmagazine.com', 'www.anteupmagazine.com'}
+            or location.path.rstrip('/') != '/where-to-play/tour'):
+        return False
+    visible = re.sub(r'<!--.*?-->|<(script|style|noscript)\b[^>]*>.*?</\1>', ' ', page, flags=re.I | re.S)
+    text = normalize_stop_name(visible)
+    seasons = re.findall(r'\bThe (20\d{2}) Ante Up Poker Tour\b', text)
+    if set(seasons) != {str(today.year)}:
+        return False
+    finale = re.search(r'\bThe Grand Finale\b(.+?)\bfinal dates are still being confirmed\b', text)
+    if not finale or f'close out the {today.year} season' not in finale[1]:
+        return False
+    if 'Ante Up Poker Championship' not in finale[1]:
+        return False
+    # Require the previously parseable dated schedule. A changed or unreadable
+    # calendar must continue to surface as a source error.
+    season_stops = extract_stops(visible, url, date(today.year, 1, 1), 'AUPT')
+    cutoff = today - timedelta(days=14)
+    return bool(season_stops) and all(date.fromisoformat(s['end']) < cutoff for s in season_stops)
+
+
 def extract_stops(html: str, base_url: str, today: date = None, tour_code: str = None,
                   default_year: int = None) -> list:
     """Generic stop extractor: date-range matches paired with the nearest
@@ -1543,7 +1567,12 @@ def main():
                     f"      candidate: {stop['stop_name']} | "
                     f"{stop['start']} to {stop['end']}"
                 )
-            if not stops:
+            dates_pending = not stops and ante_up_finale_dates_pending(
+                code, final_url or url, html, datetime.now(timezone.utc).date(),
+            )
+            if dates_pending:
+                log("    the published stops have ended and the tour has not confirmed its finale dates")
+            elif not stops:
                 source_errors += 1
                 log(
                     "    parser returned no source-owned stop rows; treating "
@@ -1655,7 +1684,9 @@ def main():
             status = "error" if (
                 not found or rejected or source_errors > tour_errors_before
             ) else "active"
-            if status == "active":
+            if dates_pending:
+                status = "pending"
+            if status in {"active", "pending"}:
                 tours_ok += 1
         else:
             source_errors += 1

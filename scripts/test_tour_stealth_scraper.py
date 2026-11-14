@@ -1025,6 +1025,20 @@ class OfficialSourceParserTests(unittest.TestCase):
         self.assertEqual(scraper.extract_stops(body.replace('The 2026', 'The tour'), url, self.TODAY, tour_code='AUPT'), [])
         self.assertEqual(scraper.extract_stops(body + '<p>The 2027 Ante Up Poker Tour</p>', url, self.TODAY, tour_code='AUPT'), [])
 
+    def test_ante_up_requires_a_dated_past_schedule_and_its_pending_finale(self):
+        url = 'https://anteupmagazine.com/where-to-play/tour/'
+        page = ('<p>The 2026 Ante Up Poker Tour.</p><strong>Sycuan Casino Resort</strong>'
+                '<p>From <strong>October 16-25</strong>, we partner with the SoCal Classic.</p>'
+                '<h2>The Grand Finale</h2><p>We’ll close out the 2026 season with the '
+                'Ante Up Poker Championship. While the final dates are still being confirmed, stay tuned.</p>')
+        at = date(2026, 11, 14)
+        self.assertTrue(scraper.ante_up_finale_dates_pending('AUPT', url, page, at))
+        for other in (page.replace('October 16-25', 'December 16-25'),
+                      page.replace('October 16-25', 'TBD'), page.replace('being confirmed', 'announced'),
+                      '<!--' + page + '-->'):
+            self.assertFalse(scraper.ante_up_finale_dates_pending('AUPT', url, other, at))
+        self.assertFalse(scraper.ante_up_finale_dates_pending('AUPT', url, page, date(2027, 1, 1)))
+
     def test_bar_poker_open_championship_and_wtp_open_need_matching_years(self):
         bpo = ('<title>Bar Poker Open - 2026 Atlantic City Championship</title><h1>ATLANTIC CITY<br>NEW JERSEY</h1>'
                '<p class="x">November 13-16, {year}</p>')
