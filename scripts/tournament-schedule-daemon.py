@@ -2971,8 +2971,31 @@ def _kill_zombie_browsers():
                 except: pass
     except: pass
 
+# A SLOW BROWSER START IS RETRIED, NOT A CRASH (2026-11-13).
+#
+# At 15:44 Central on 2026-11-13 a mid-cycle reconnect (venue 368/447, after
+# three timed-out fetches) and then the relaunched process's first connect both
+# died with exit 1 and no log line: LocalScraperRuntimeFailure daemon_exited_1.
+# connect() armed this hard-kill timer at 90s AND bounded the start itself at
+# 90s. Two clocks with one deadline race: when the timer thread won, a slow
+# Chromium start killed the whole process silently, abandoning the cycle; when
+# the start's own TimeoutError won (the third launch, 15:52), the daemon logged
+# "Browser session failed to start", waited five minutes and recovered on the
+# next try. The start's own timeout is the real limit, and the existing
+# MAX_CONNECT_FAILURES streak still exits a daemon that never recovers. The
+# hard kill is now a backstop that fires only if that timeout itself failed to
+# return, and it says why before it exits.
+CONNECT_TIMEOUT_SECONDS = 90
+CONNECT_HARD_KILL_GRACE_SECONDS = 60
+
+
 def _hard_kill_on_hang(msg):
-    os._exit(1)
+    try:
+        log(f"HARD KILL: {msg}. Exiting non-zero so launchd restarts a clean process.")
+        sys.stdout.flush()
+        _kill_zombie_browsers()
+    finally:
+        os._exit(1)
 
 class DaemonSessionManager:
     def __init__(self):
@@ -3013,7 +3036,13 @@ class DaemonSessionManager:
         import asyncio
         self._ensure_loop()
         fut = asyncio.run_coroutine_threadsafe(coro, self._loop)
-        return fut.result(timeout=timeout)
+        try:
+            return fut.result(timeout=timeout)
+        except TimeoutError:
+            # Stop the abandoned coroutine so a timed-out start cannot finish
+            # later and leak a browser the next connect() does not own.
+            fut.cancel()
+            raise
 
     def connect(self):
         # Self-heal a missing Playwright browser before launching a session.
@@ -3027,14 +3056,16 @@ class DaemonSessionManager:
         if not _network_available():
             log("  [SESSION] connect() aborted — no network")
             return False
-        wd = threading.Timer(90, _hard_kill_on_hang, args=('connect() hung',))
+        wd = threading.Timer(
+            CONNECT_TIMEOUT_SECONDS + CONNECT_HARD_KILL_GRACE_SECONDS, _hard_kill_on_hang,
+            args=(f"connect() did not return {CONNECT_TIMEOUT_SECONDS + CONNECT_HARD_KILL_GRACE_SECONDS}s after it started",))
         wd.daemon = True; wd.start()
         try:
             async def _start():
                 s = AsyncStealthySession(headless=True, solve_cloudflare=True)
                 await s.start()
                 return s
-            self.session = self._await(_start(), timeout=90)
+            self.session = self._await(_start(), timeout=CONNECT_TIMEOUT_SECONDS)
             self.last_connect_time = datetime.now(timezone.utc)
             self._session_dead = False
             self.consecutive_fetch_failures = 0
@@ -3042,8 +3073,12 @@ class DaemonSessionManager:
             return True
         except Exception as e:
             wd.cancel()
-            log(f"  [SESSION] AsyncStealthySession start failed: {str(e)[:120]}")
+            reason = str(e)[:120] or type(e).__name__
+            if isinstance(e, TimeoutError):
+                reason = f"no session within {CONNECT_TIMEOUT_SECONDS}s"
+            log(f"  [SESSION] AsyncStealthySession start failed: {reason}")
             self.disconnect()
+            _kill_zombie_browsers()
             return False
 
     def ensure_connected(self):

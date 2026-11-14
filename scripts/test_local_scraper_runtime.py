@@ -324,6 +324,61 @@ class RuntimeProof(unittest.TestCase):
         self.assertEqual(len(list((self.root / 'outbox').glob('*.json'))), 1)
         self.assertEqual(len(list((self.root / 'receipts').glob('*.json'))), 1)
 
+    # Fails on the pre-fix runner, which never resolved a fault: every
+    # LocalScraperRuntimeFailure stayed open after launchd's restart healed it.
+    def test_a_healthy_restart_resolves_the_fault_and_a_later_failure_is_new(self):
+        self.install()
+        with contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(runtime.run(self.root), 1)
+        [first] = self.requests
+        self.assertTrue(runtime.deliver_resolution(self.root))
+        resolved = self.requests[1]
+        self.assertEqual(resolved['p_status'], 'resolved')
+        self.assertEqual(resolved['p_source'], first['p_source'])
+        self.assertEqual(resolved['p_alertname'], 'LocalScraperRuntimeFailure')
+        self.assertEqual(resolved['p_event_key'], first['p_event_key'] + ':resolved')
+        self.assertEqual(resolved['p_payload']['resolves'], first['p_event_key'])
+        self.assertEqual(resolved['p_payload']['target_task_id'], FLEET)
+        # Resolving again sends nothing new.
+        self.assertTrue(runtime.deliver_resolution(self.root))
+        self.assertEqual(len(self.requests), 2)
+        # The same failure after recovery is a new incident, not a dropped repeat.
+        with contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(runtime.run(self.root), 1)
+        self.assertEqual(len(self.requests), 3)
+        again = self.requests[2]
+        self.assertEqual(again['p_status'], 'firing')
+        self.assertEqual(again['p_payload']['failure_code'], 'daemon_exited_7')
+        self.assertNotEqual(again['p_event_key'], first['p_event_key'])
+        # Restarts inside that new episode still deliver it once.
+        with contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(runtime.run(self.root), 1)
+        self.assertEqual(len(self.requests), 3)
+        self.assertTrue(runtime.deliver_resolution(self.root))
+        self.assertEqual([r['p_payload'].get('resolves') for r in self.requests[3:]], [again['p_event_key']])
+
+    def test_an_episode_zero_fault_keeps_its_original_key(self):
+        path = runtime.queue_fault(self.root, 'daemon_exited_1', 'a' * 40, 'tournaments')
+        self.assertEqual(json.loads(path.read_text())['p_event_key'],
+                         hashlib.sha256(('a' * 40 + ':daemon_exited_1').encode()).hexdigest())
+
+    def test_resolution_waits_until_the_child_has_stayed_up(self):
+        calls = []
+        def healthy():
+            calls.append(time.monotonic())
+            return len(calls) >= 2
+        code, terminating = runtime.supervise(
+            [sys.executable, '-c', 'import time; time.sleep(1.2)'], None, dict(os.environ),
+            on_healthy=healthy, healthy_seconds=0.3, retry_seconds=0.2)
+        self.assertEqual((code, terminating), (0, False))
+        self.assertEqual(len(calls), 2)
+        calls.clear()
+        code, _ = runtime.supervise(
+            [sys.executable, '-c', 'raise SystemExit(3)'], None, dict(os.environ),
+            on_healthy=healthy, healthy_seconds=5)
+        self.assertEqual(code, 3)
+        self.assertEqual(calls, [])
+
     def test_delivery_loss_and_receipt_loss_replay_same_event_key(self):
         event = runtime.queue_fault(self.root, 'release_missing')
         key = json.loads(event.read_text())['p_event_key']

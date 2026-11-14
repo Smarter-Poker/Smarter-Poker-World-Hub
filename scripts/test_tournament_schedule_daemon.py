@@ -1035,6 +1035,71 @@ class SessionTruthTests(unittest.TestCase):
             self.html_content = html
             self.body = body
 
+    def test_slow_browser_start_is_a_logged_retry_not_a_silent_hard_kill(self):
+        """2026-11-13: the 90s hard-kill timer raced the 90s start timeout and
+        killed the process (daemon_exited_1) instead of retrying."""
+        import sys, types
+        fetchers = types.ModuleType("scrapling.fetchers")
+        fetchers.AsyncStealthySession = mock.Mock()
+        timers = []
+
+        class _Timer:
+            def __init__(self, interval, function, args=()):
+                self.interval, self.function, self.args = interval, function, args
+                self.daemon = False
+                self.cancelled = False
+                timers.append(self)
+            def start(self):
+                pass
+            def cancel(self):
+                self.cancelled = True
+
+        manager = DAEMON.DaemonSessionManager()
+        lines = []
+        def _timeout(coro, timeout=120):
+            coro.close()
+            self.assertEqual(timeout, DAEMON.CONNECT_TIMEOUT_SECONDS)
+            raise TimeoutError()
+        with mock.patch.dict(sys.modules, {"scrapling": types.ModuleType("scrapling"),
+                                           "scrapling.fetchers": fetchers}), \
+             mock.patch.object(DAEMON, "_browser_heal", None), \
+             mock.patch.object(DAEMON, "_kill_zombie_browsers") as kill, \
+             mock.patch.object(DAEMON, "_network_available", return_value=True), \
+             mock.patch.object(DAEMON.threading, "Timer", _Timer), \
+             mock.patch.object(DAEMON, "log", side_effect=lines.append), \
+             mock.patch.object(manager, "_await", side_effect=_timeout):
+            self.assertFalse(manager.connect())
+        self.assertEqual(len(timers), 1)
+        self.assertGreater(timers[0].interval, DAEMON.CONNECT_TIMEOUT_SECONDS)
+        self.assertTrue(timers[0].cancelled)
+        self.assertTrue(any("start failed: no session within" in line for line in lines))
+        self.assertGreaterEqual(kill.call_count, 2)
+
+    def test_timed_out_await_cancels_the_abandoned_coroutine(self):
+        import asyncio, threading
+        cancelled = threading.Event()
+        async def _slow():
+            try:
+                await asyncio.sleep(30)
+            except asyncio.CancelledError:
+                cancelled.set()
+                raise
+        manager = DAEMON.DaemonSessionManager()
+        with self.assertRaises(TimeoutError):
+            manager._await(_slow(), timeout=0.05)
+        self.assertTrue(cancelled.wait(2))
+        manager._loop.call_soon_threadsafe(manager._loop.stop)
+
+    def test_hard_kill_says_why_before_it_exits(self):
+        lines = []
+        with mock.patch.object(DAEMON, "log", side_effect=lines.append), \
+             mock.patch.object(DAEMON, "_kill_zombie_browsers") as kill, \
+             mock.patch.object(DAEMON.os, "_exit") as exit_:
+            DAEMON._hard_kill_on_hang("connect() did not return 150s after it started")
+        exit_.assert_called_once_with(1)
+        kill.assert_called_once()
+        self.assertTrue(any("HARD KILL: connect() did not return" in line for line in lines))
+
     def test_access_blocks_count_as_errors_but_guessed_404s_do_not(self):
         manager = DAEMON.DaemonSessionManager()
         manager.session = mock.Mock()
