@@ -18,15 +18,18 @@ const summary = {
   scrape_timestamp: '2026-10-01T00:00:00Z',
   scrape_html_hash: 'phase7b-manual-research', notes: 'Stop-level placeholder row; events TBA',
 };
-async function request(rows, query = {}, failure = null, failAt = -1) {
+async function request(rows, query = {}, failure = null, failAt = -1, liveTour = null) {
   let offset = 0;
   const chain = new Proxy({}, { get: (_target, property) => property === 'then'
     ? (resolve) => Promise.resolve({ data: rows.slice(offset, offset + 1000), error: offset === failAt ? { message: 'later-page failure' } : failure }).then(resolve)
     : property === 'range' ? (start) => { offset = start; return chain; }
     : () => chain });
+  const registryQuery = {
+    select() { return this; }, eq() { return this; }, maybeSingle() { return { data: liveTour, error: null }; },
+  };
   const context = vm.createContext({
     ...eventTruth, databaseTourStops, tourStopIdentityKey, decodeScrapedTournamentText, fetchAllRows,
-    createClient: () => ({ from: () => chain }),
+    createClient: () => ({ from: (table) => table === 'tour_source_registry' ? registryQuery : chain }),
     applyRateLimit: () => true, LIMITS: { read: {} }, reportApiError: () => {},
     tourRegistry: { tours: { TEST: { official_website: 'https://official.example' } } },
     process: { env: {} }, console: { warn: () => {} },
@@ -101,4 +104,16 @@ test('different physical ranges, venues and years are never deduplicated', async
     { ...summary, stop_venue: 'Another room' },
     { ...summary, start_date: '2027-12-01', stop_start_date: '2027-12-01', stop_end_date: '2027-12-10' }];
   assert.equal((await request(rows, { all_stops: 'true' })).body.total_stops, 4);
+});
+
+test('new tour codes use the live source registry and the Wynn PDF is scoped to its three series', async () => {
+  const pdf = 'https://cdn.wynnresorts.com/image/upload/v1757097329/visitwynn_pdfs_files/Poker/WPT/WPT_World_Championship_Schedule.pdf';
+  for (const code of ['EASTERNPT', 'WPT', 'WPTPRIME', 'CLUBWPTG']) {
+    const tour = { tour_code: code, official_website: code === 'EASTERNPT' ? 'https://www.easternpokertour.com' : 'https://www.worldpokertour.com' };
+    const url = code === 'EASTERNPT' ? tour.official_website + '/announcements' : pdf;
+    const response = await request([{ ...summary, tour_code: code, source_url: url }], { tour_code: code, all_stops: 'true' }, null, -1, tour);
+    assert.equal(response.body.stops[0].source_url, url);
+  }
+  assert.equal(databaseTourStops([{ ...summary, source_url: pdf }], [{ tour_code: 'TEST' }]).length, 0);
+  assert.equal(databaseTourStops([{ ...summary, tour_code: 'WPT', source_url: pdf + '.other' }], [{ tour_code: 'WPT' }]).length, 0);
 });
