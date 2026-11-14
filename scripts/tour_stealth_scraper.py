@@ -518,6 +518,7 @@ def _yearless_span(match, year: int):
 
 
 PDF_TEXT_MAX_BYTES = 8 * 1024 * 1024
+WYNN_PDF_MAX_BYTES = 32 * 1024 * 1024
 
 
 def schedule_pdf_text(url: str, asset_host: str = "assets.contentstack.io") -> str:
@@ -540,13 +541,17 @@ def schedule_pdf_text(url: str, asset_host: str = "assets.contentstack.io") -> s
         log("    [PDF] pdftotext is unavailable; the schedule year cannot be certified")
         return ""
     try:
+        limit = WYNN_PDF_MAX_BYTES if asset_host == 'cdn.wynnresorts.com' else PDF_TEXT_MAX_BYTES
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req, timeout=30) as response:
-            data = response.read(PDF_TEXT_MAX_BYTES + 1)
+            data = response.read(limit + 1)
     except Exception as e:
         log(f"    [PDF] download failed: {str(e)[:100]}")
         return ""
-    if len(data) > PDF_TEXT_MAX_BYTES or not data.startswith(b"%PDF"):
+    if len(data) > limit:
+        log(f"    [PDF] schedule exceeds {limit} bytes on {asset_host}")
+        return ""
+    if not data.startswith(b"%PDF"):
         return ""
     with tempfile.NamedTemporaryFile(suffix=".pdf") as handle:
         handle.write(data)
