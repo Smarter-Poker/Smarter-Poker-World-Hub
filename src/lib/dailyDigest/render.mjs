@@ -505,7 +505,54 @@ export function dailyResultsRows(digest) {
     return rows;
 }
 
-export function dailyUpdateRows(digest) {
+/**
+ * Promo chips in the Daily Update (Dan 2026-11-14): "TOTALS ON PROMO CHIPS,
+ * HOW MANY WERE SENT AND WHO RECEIVED THEM ... BROKEN DOWN BY AGENT TO PLAYER
+ * ... AS WELL AS IF THERE WERE ANY PROMO CHIPS SENT TO USERS BY ANY AND ALL
+ * AUTOMATED SYSTEMS." One total row, one row per agent naming every player
+ * they sent to and how much, and one row per automated system with its
+ * recipients. A day with no agent or no automated sends says so. The email
+ * names the first PROMO_EMAIL_NAMES recipients of a system (the Monday weekly
+ * distribution reaches about a thousand players); the online view names all.
+ */
+export const PROMO_EMAIL_NAMES = 30;
+
+function plural(n, word) {
+    return `${fmtInt(n)} ${word}${Number(n) === 1 ? '' : 's'}`;
+}
+
+function promoName(r) {
+    const tags = [r.horse ? 'horse' : null, Number(r.sends) > 1 ? `${fmtInt(r.sends)} sends` : null].filter(Boolean);
+    return `${r.player} ${fmtNum(r.amount)}${tags.length ? ` (${tags.join(', ')})` : ''}`;
+}
+
+export function promoChipsRows(digest, opts = {}) {
+    const p = digest?.promo_chips;
+    if (p === undefined || p === null) return [];
+    if (p.error) return [['Promo Chips Sent', 'Unavailable', `Promo chip report could not be read: ${String(p.error).slice(0, 160)}`]];
+    const agents = Array.isArray(p.agents) ? p.agents : [];
+    const systems = Array.isArray(p.systems) ? p.systems : [];
+    const rows = [['Promo Chips Sent', fmtNum(p.total ?? 0),
+        `${plural(p.sends ?? 0, 'send')} to ${plural(p.recipients ?? 0, 'player')}; agents ${fmtNum(p.agent_total ?? 0)}, automated systems ${fmtNum(p.automated_total ?? 0)}`]];
+    if (!agents.length) rows.push(['Agent Promo Sends', 'None', 'No agent sent promo chips this day']);
+    for (const a of agents) {
+        const list = Array.isArray(a.recipients) ? a.recipients : [];
+        rows.push([`Agent Promo: ${a.agent}`, fmtNum(a.total),
+            `To ${list.map(promoName).join('; ')}`]);
+    }
+    if (!systems.length) rows.push(['Automated Promo Sends', 'None', 'No automated system sent promo chips this day']);
+    for (const s of systems) {
+        const list = Array.isArray(s.recipients) ? s.recipients : [];
+        const shown = opts.email ? list.slice(0, PROMO_EMAIL_NAMES) : list;
+        const more = list.length - shown.length;
+        const horses = Number(s.horses) ? ` (${plural(s.horses, 'horse')})` : '';
+        rows.push([`Automated Promo: ${s.system}`, fmtNum(s.total),
+            `${plural(s.players, 'player')}${horses}: ${shown.map(promoName).join('; ')}${more > 0 ? `; and ${fmtInt(more)} more in the online digest` : ''}`]);
+    }
+    return rows;
+}
+
+export function dailyUpdateRows(digest, opts = {}) {
     const m = digest?.metrics || {};
     const cashRake = Number(get(m, 'money.cash_rake')) || 0;
     const tourneyRake = Number(get(m, 'money.tournament_rake')) || 0;
@@ -518,6 +565,7 @@ export function dailyUpdateRows(digest) {
         ['Rake (Cash + Tournament)', fmtNum(cashRake + tourneyRake), `Cash ${fmtNum(cashRake)}, tournament and spin ${fmtNum(tourneyRake)}`],
         bbjRakeRow(digest, 'day'),
         ['Rakeback Paid', fmtNum(get(m, 'money.rakeback_paid')), ''],
+        ...promoChipsRows(digest, opts),
         ['Hands Dealt', fmtInt(get(m, 'play.hands')), `Cash ${fmtInt(get(m, 'play.hands_cash'))}, tournament ${fmtInt(get(m, 'play.hands_tournament'))}`],
         ...(digest?.daily_results ? dailyResultsRows(digest) : [horse, ...dailyResultsRows(digest)]),
         ['Diamonds Given Out / Taken In', `${fmtInt(get(m, 'diamonds.given_out'))} / ${fmtInt(get(m, 'diamonds.taken_in'))}`, ''],
@@ -673,7 +721,7 @@ export function buildHtml(digest, opts = {}) {
 
     // Daily Update, Weekly Update, then Monthly Update directly below Needs Your Attention
     const periods = updatePeriodTitles(digest);
-    body += listCard(periods.day, dailyUpdateRows(digest));
+    body += listCard(periods.day, dailyUpdateRows(digest, opts));
     body += listCard(periods.week, weeklyUpdateRows(digest));
     body += listCard(periods.month, monthlyUpdateRows(digest));
 
@@ -807,8 +855,8 @@ export function signupsRows(digest) {
 }
 
 /**
- * Welcome-Back Chips (Dan 2026-11-04): sign-ups with no hand after 24 hours are
- * paid 25 free chips from the Midway Union promo wallet and told by push,
+ * Welcome-Back Chips (Dan 2026-11-04): sign-ups with no hand after 24 hours who
+ * have never received a chip (Dan 2026-11-14) are paid 25 free chips from the Midway Union promo wallet and told by push,
  * email and text. One row per award that day; players who could not be paid
  * because they are in no club yet are listed beneath.
  */
@@ -1095,7 +1143,7 @@ export function buildText(digest, opts = {}) {
     }
     const periods = updatePeriodTitles(digest);
     lines.push('', periods.day.toUpperCase());
-    for (const [label, value, sub] of dailyUpdateRows(digest)) lines.push(`${label}: ${value}${sub ? `  (${sub})` : ''}`);
+    for (const [label, value, sub] of dailyUpdateRows(digest, { email: true })) lines.push(`${label}: ${value}${sub ? `  (${sub})` : ''}`);
     lines.push('', periods.week.toUpperCase());
     for (const [label, value, sub] of weeklyUpdateRows(digest)) lines.push(`${label}: ${value}${sub ? `  (${sub})` : ''}`);
     lines.push('', periods.month.toUpperCase());

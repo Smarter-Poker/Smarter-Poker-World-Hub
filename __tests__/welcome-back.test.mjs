@@ -297,3 +297,16 @@ test('the three welcome-back push types sit under the Bonuses preference', async
     const { eventToTypeKey } = await import('../src/lib/push/push-prefs.js');
     for (const t of ['welcome_back_chips', 'welcome_back_club_nudge', 'welcome_back_play_nudge']) assert.equal(eventToTypeKey(t), 'bonus');
 });
+
+test('Welcome Back Chips skips any player who ever received chips (Dan 2026-11-14)', async () => {
+    const fs = await import('node:fs');
+    const sql = fs.readFileSync(new URL('../supabase/migrations/20261114163112_welcome_back_only_for_players_who_never_received_chips.sql', import.meta.url), 'utf8');
+    // The helper counts any chip credit, of any type, ever: chip_transactions to the player and chip_ledger player-wallet credits.
+    assert.match(sql, /FROM public\.chip_transactions ct\s+WHERE ct\.to_user_id = p_user_id AND ct\.amount > 0/);
+    assert.match(sql, /FROM public\.chip_ledger l\s+WHERE l\.to_entity_id = p_user_id AND l\.to_type = 'player_wallet' AND l\.amount > 0/);
+    // The run never selects such a player, and closes parked rows that have since received chips.
+    assert.match(sql, /AND NOT public\.fn_sp_player_has_received_chips\(h\.id\)/);
+    assert.match(sql, /status = 'closed', last_error = 'Already Received Chips Before Welcome Back'/);
+    // The helper stays service-only.
+    assert.match(sql, /REVOKE ALL ON FUNCTION public\.fn_sp_player_has_received_chips\(uuid\) FROM PUBLIC, anon, authenticated;/);
+});

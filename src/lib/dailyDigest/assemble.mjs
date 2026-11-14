@@ -79,6 +79,21 @@ export async function loadHouseFigures(sb, day, retry = {}) {
     } catch (err) { return { day, error: String(err?.message || err) }; }
 }
 
+/**
+ * Promo Chips (fn_sp_digest_promo_chips, Dan 2026-11-14): every promo-funded
+ * chip credit to a player wallet that Chicago day. Agent sends are broken down
+ * agent to player with the amount; automated systems (welcome-back, weekly
+ * distribution, Diamond games, leaderboards) by system and recipient. Read
+ * from chip_ledger, so the totals are every promo chip that landed. A failure
+ * never stops the digest; the Daily Update then says it could not be read.
+ */
+export async function loadPromoChips(sb, day, retry = {}) {
+    try {
+        const { data, error } = await rpcWithRetry(sb, 'fn_sp_digest_promo_chips', { p_day: day }, retry);
+        return error ? { day, error: error.message } : (data || { day, error: 'Report unavailable' });
+    } catch (err) { return { day, error: String(err?.message || err) }; }
+}
+
 export async function loadDailyResults(sb, day, retry = {}) {
     try {
         const { data, error } = await rpcWithRetry(sb, 'fn_sp_digest_daily_results', { p_day: day }, retry);
@@ -278,7 +293,9 @@ export async function loadDigestData(sb, day, { withCosts = true, dispatch = tru
     const freeBuyFunding = await loadFreeBuyFunding(sb, day, withBudget);
     const houseFigures = await loadHouseFigures(sb, day, withBudget);
     const dailyResults = await loadDailyResults(sb, day, withBudget);
+    const promoChips = await loadPromoChips(sb, day, withBudget);
     if (digest && playerTotals) digest.player_totals = playerTotals;
+    if (digest) digest.promo_chips = promoChips;
     if (digest) digest.spins_spend = spinsSpend;
     if (digest) digest.signups = signups;
     if (digest) digest.free_buy_funding = freeBuyFunding;
