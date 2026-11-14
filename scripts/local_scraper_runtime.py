@@ -50,6 +50,16 @@ RUNTIME_LOG_MAX_BYTES = 8 * 1024 * 1024
 RUNTIME_LOG_RETAIN_BYTES = 2 * 1024 * 1024
 RUNTIME_LOG_CHECK_SECONDS = 1.0
 RUNTIME_LOG_BOUNDARY = b'[runtime] older output discarded at size bound\n'
+# A FAULT THAT HEALED IS RESOLVED (2026-11-13). This runner queued one firing
+# LocalScraperRuntimeFailure per exit and never said when the collector was
+# back, so every fault stayed open forever and an episode could not clear,
+# even though launchd's restart had recovered the collector (the 2026-11-13
+# tournaments exit was healthy again within ten minutes). Once a restarted
+# collector stays up this long, or a one-shot component exits cleanly, every
+# open fault of this runtime gets its resolved twin and a new episode begins,
+# so a later failure is a new incident instead of a repeat the inbox drops.
+HEALTHY_SECONDS = 15 * 60
+RESOLVE_RETRY_SECONDS = 5 * 60
 
 
 class RuntimeFault(RuntimeError):
@@ -168,9 +178,29 @@ def inspect_release(root):
     return release, manifest, config
 
 
+def current_episode(root):
+    """Episode 0 is every fault queued before resolution existed."""
+    path = root / 'episode'
+    if not path.exists():
+        return 0
+    try:
+        value = int(path.read_text().strip())
+    except (OSError, ValueError):
+        raise RuntimeFault('episode_invalid') from None
+    if value < 0:
+        raise RuntimeFault('episode_invalid')
+    return value
+
+
+def fault_key(revision, code, episode=0):
+    identity = revision + ':' + code + (':' + str(episode) if episode else '')
+    return hashlib.sha256(identity.encode()).hexdigest()
+
+
 def queue_fault(root, code, revision='unknown', component='pokeratlas'):
-    # The same failed release/startup condition is one incident across retries.
-    key = hashlib.sha256((revision + ':' + code).encode()).hexdigest()
+    # The same failed release/startup condition is one incident across the
+    # retries of one episode. A resolved episode never swallows a new failure.
+    key = fault_key(revision, code, current_episode(root))
     event = {'p_source': 'local.' + component + '-runtime', 'p_event_key': key,
              'p_alertname': 'LocalScraperRuntimeFailure', 'p_status': 'firing',
              'p_severity': 'critical',
@@ -181,6 +211,45 @@ def queue_fault(root, code, revision='unknown', component='pokeratlas'):
     if not path.exists():
         atomic_write(path, json_bytes(event))
     return path
+
+
+def resolve_faults(root):
+    """Queue the resolved twin of every open fault and start a new episode.
+
+    The twin's key is the fault's key plus ':resolved' and its payload names
+    the fault it resolves, which is how the operational inbox and the
+    reliability controller pair a resolve with its firing row.
+    """
+    outbox = root / 'outbox'
+    if not outbox.is_dir():
+        return 0
+    queued = 0
+    for path in sorted(outbox.glob('*.json')):
+        if path.name.endswith('.resolved.json'):
+            continue
+        event = read_json(path, 'outbox_unreadable')
+        if (not isinstance(event, dict) or event.get('p_status') != 'firing'
+                or not isinstance(event.get('p_event_key'), str)):
+            raise RuntimeFault('outbox_invalid')
+        twin = outbox / (path.name[:-len('.json')] + '.resolved.json')
+        if twin.exists():
+            continue
+        fault = event.get('p_payload') if isinstance(event.get('p_payload'), dict) else {}
+        resolved = {
+            'p_source': event.get('p_source'), 'p_event_key': event['p_event_key'] + ':resolved',
+            'p_alertname': event.get('p_alertname'), 'p_status': 'resolved',
+            'p_severity': event.get('p_severity'),
+            'p_payload': addressed({
+                'resolves': event['p_event_key'],
+                'failure_code': fault.get('failure_code'),
+                'release_revision': fault.get('release_revision'),
+                'resolved_at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+                'evidence': 'collector healthy after restart'})}
+        atomic_write(twin, json_bytes(resolved))
+        queued += 1
+    if queued:
+        atomic_write(root / 'episode', (str(current_episode(root) + 1) + '\n').encode())
+    return queued
 
 
 def flush_outbox(root, opener=urllib.request.urlopen):
@@ -305,11 +374,19 @@ def install(repository, revision, root, state, inputs, python,
     return manifest
 
 
-def supervise(argv, cwd, env, grace_seconds=10, log_maintenance=None):
-    """Own one process group, including a stop arriving during child startup."""
+def supervise(argv, cwd, env, grace_seconds=10, log_maintenance=None,
+              on_healthy=None, healthy_seconds=HEALTHY_SECONDS,
+              retry_seconds=RESOLVE_RETRY_SECONDS):
+    """Own one process group, including a stop arriving during child startup.
+
+    on_healthy runs once the child has stayed up for healthy_seconds, and again
+    every retry_seconds until it reports success.
+    """
     child = None
     termination = None
     log_failed = False
+    started = time.monotonic()
+    healthy_due = started + healthy_seconds
     def stop(signum, _frame):
         nonlocal termination
         if termination is None:
@@ -332,6 +409,16 @@ def supervise(argv, cwd, env, grace_seconds=10, log_maintenance=None):
                     raise RuntimeFault('runtime_log_unavailable')
                 return code, termination is not None
             except subprocess.TimeoutExpired:
+                if (on_healthy is not None and termination is None
+                        and time.monotonic() >= healthy_due):
+                    try:
+                        done = on_healthy()
+                    except Exception:
+                        done = False
+                    if done:
+                        on_healthy = None
+                    else:
+                        healthy_due = time.monotonic() + retry_seconds
                 if log_maintenance is not None and not log_failed:
                     try:
                         log_ok = log_maintenance()
@@ -448,6 +535,17 @@ def run(root):
         return 1
 
 
+def deliver_resolution(root):
+    """Resolve open faults; report whether every twin has been delivered."""
+    resolve_faults(root)
+    try:
+        flush_outbox(root)
+    except RuntimeFault as error:
+        print(str(error), file=sys.stderr, flush=True)
+        return False
+    return True
+
+
 def run_logged(root, log_maintenance=None):
     root.mkdir(parents=True, exist_ok=True, mode=0o700)
     with (root / 'run.lock').open('a') as lock:
@@ -476,10 +574,12 @@ def run_logged(root, log_maintenance=None):
                 argv.append('--daemon')
             code, terminating = supervise(
                 argv, release, env, log_maintenance=log_maintenance,
+                on_healthy=lambda: deliver_resolution(root),
             )
             if terminating:
                 return 0
             if component == 'tours' and code == 0:
+                deliver_resolution(root)
                 return 0
             raise RuntimeFault('daemon_exited_' + str(code))
         except (OSError, ValueError, TypeError, KeyError):
