@@ -339,15 +339,34 @@ def maintained_feature_descriptor(version: Any) -> dict:
 CONTEXT_KEYS = {"street", "game_family", "objective", "utility_context", "table_size", "pot_type",
                 "hero_position", "opponent_position", "depth_bucket", "texture_class", "node_role",
                 "facing_kind", "facing_size_bucket"}
+# Cell contract v3 (pio_upi.target_context of a scenario declaring cell_contract
+# v3): the 13 keys plus the declaration and the size-bucketed betting line.
+CONTEXT_KEYS_V3 = CONTEXT_KEYS | {"cell_contract", "line_class"}
+FEATURE_CONTRACT_BY_SCHEMA = {sha: version for version, (sha, _) in FEATURE_CONTRACTS.items()}
+
+
+def context_cell_contract(context: Any) -> str | None:
+    """None for a 13-key (v2) approved context, "v3" for a well-formed v3 context; ContractError otherwise.
+
+    The same rule as registration_cell_contract: a v3 context carries
+    cell_contract "v3" and a line_class that matches its street, and only it may
+    use depth bucket 200. A v2 context is accepted exactly as before.
+    """
+    if isinstance(context, dict) and set(context) == CONTEXT_KEYS:
+        return None
+    if isinstance(context, dict) and set(context) == CONTEXT_KEYS_V3:
+        return registration_cell_contract(context)
+    raise ContractError("public215 exact object keys required")
 
 
 def validate_context_metadata(entries: Any) -> None:
     if not isinstance(entries, list) or not entries:
         raise ContractError("public215 approved context metadata required")
-    order = []
+    order, contracts = [], []
     for entry in entries:
         _keys(entry, {"context", "expected_children", "model_action_order", "template_checksum", "feature_schema_checksum"})
-        c = _keys(entry["context"], CONTEXT_KEYS)
+        c = entry["context"]
+        contracts.append(context_cell_contract(c))
         if not _integer(c["table_size"], 2, 10) or not _integer(c["depth_bucket"], 1, (1 << 53)-1):
             raise ContractError("public215 context integers")
         if any(not isinstance(c[k], str) or not c[k] or len(c[k]) > 96 for k in CONTEXT_KEYS - {"table_size", "depth_bucket"}):
@@ -362,6 +381,11 @@ def validate_context_metadata(entries: Any) -> None:
         order.append(canonical_bytes(c))
     if order != sorted(set(order)):
         raise ContractError("public215 context order/uniqueness")
+    # Feature contract hist215-v3 and cell contract v3 are tied both ways
+    # (contract.require_feature_and_cell_contracts_agree): v3 contexts only
+    # under the v3 descriptor, and the v3 descriptor only over v3 contexts.
+    from contract import require_feature_and_cell_contracts_agree
+    require_feature_and_cell_contracts_agree(FEATURE_CONTRACT_BY_SCHEMA[entries[0]["feature_schema_checksum"]], contracts)
 
 
 def validate_manifest_metadata(manifest: dict, root: Any, combo_order: tuple[str, ...], *, verify_inputs: bool) -> None:
@@ -373,7 +397,7 @@ def validate_manifest_metadata(manifest: dict, root: Any, combo_order: tuple[str
     from decimal import Decimal
     from pathlib import Path
     from contract import _json_bytes, _verify_file, _safe_relative_path
-    from pio_upi import target_context, analyze_node
+    from pio_upi import target_context, analyze_node, scenario_cell_contract
     schema, _ = feature_contract(manifest.get("feature_contract_version"))
     maintained_feature_descriptor(manifest["feature_contract_version"])
     entries = manifest["public215_contexts"]
@@ -432,7 +456,7 @@ def validate_manifest_metadata(manifest: dict, root: Any, combo_order: tuple[str
             if not verify_inputs:
                 continue
             t = templates[declared[key]["template_checksum"]]
-            actor = analyze_node(target["node"], root_pot_chips=scenario["pot_chips"], effective_stack_chips=scenario["effective_stack_chips"], preflop_aggressor=scenario["preflop_aggressor_solver_player"]).actor
+            actor = analyze_node(target["node"], root_pot_chips=scenario["pot_chips"], effective_stack_chips=scenario["effective_stack_chips"], preflop_aggressor=scenario["preflop_aggressor_solver_player"], cell_contract=scenario_cell_contract(scenario)).actor
             geometry = {"pot_chips_f64": encode_f64(scenario["pot_chips"]), "effective_stack_chips_f64": encode_f64(scenario["effective_stack_chips"]), "chips_per_bb_f64": encode_f64(scenario["chips_per_bb"]), "rake_f64": [encode_f64(v) for v in (scenario["rake"] or [0, 0])], "ip_range_checksum": scenario["ip_range_checksum"], "oop_range_checksum": scenario["oop_range_checksum"]}
             if t["context"] != context or t["root_actor"] != ("IP" if actor == 1 else "OOP") or t["scenario"] != geometry:
                 raise ContractError("public215 template actual context/actor/geometry differs")
@@ -544,7 +568,7 @@ def validate_protocols(protocols: Any, contexts: list[dict]) -> None:
     actual=[]
     for group in p["contexts"]:
         _keys(group,{"context","cases"})
-        _keys(group["context"],CONTEXT_KEYS)
+        context_cell_contract(group["context"])
         actual.append(canonical_bytes(group["context"]))
         if not isinstance(group["cases"],list) or not 2 <= len(group["cases"]) <= 32:
             raise ContractError("public215 pre-capture case census")

@@ -156,7 +156,16 @@ def range_weight_text(value):
     return text
 
 
-def compile_recipe(recipe_path, source_root, output_root):
+# Range depth buckets. Cell contract v3 (dormant) adds 200 bb; it is used only
+# when the caller asks for it (--cell-contract v3), never inferred from a label.
+DEPTH_BUCKETS_V2 = (10, 20, 40, 80, 150)
+DEPTH_BUCKETS_V3 = (*DEPTH_BUCKETS_V2, 200)
+
+
+def compile_recipe(recipe_path, source_root, output_root, *, cell_contract=None):
+    if cell_contract not in (None, "v3"):
+        raise ContractError("cell contract must be v3 when requested")
+    depth_buckets = DEPTH_BUCKETS_V3 if cell_contract == "v3" else DEPTH_BUCKETS_V2
     recipe_bytes = recipe_path.read_bytes()
     recipe = exact(_json_bytes(recipe_bytes, "input recipe"), {"contract", "ranges", "models"}, "recipe")
     if recipe["contract"] != RECIPE_CONTRACT or not isinstance(recipe["ranges"], list) or not recipe["ranges"] or not isinstance(recipe["models"], list):
@@ -178,7 +187,7 @@ def compile_recipe(recipe_path, source_root, output_root):
                 raise ContractError(f"range provenance {key} is missing")
         if provenance["game_family"] not in ("cash", "spin", "tourney_ev", "tourney_icm") or provenance["pot_type"] not in ("limped", "srp", "3bet", "4bet_plus"):
             raise ContractError("range context is unsupported")
-        if integer(provenance["table_size"], "table size", 2) > 10 or provenance["depth_bucket"] not in (10, 20, 40, 80, 150):
+        if integer(provenance["table_size"], "table size", 2) > 10 or provenance["depth_bucket"] not in depth_buckets:
             raise ContractError("range table/depth is unsupported; do not relabel legacy inputs")
         path, raw = source_file(source_root, item["path"], item["checksum"])
         _, order_bytes = source_file(source_root, item["order_path"], item["order_checksum"])
@@ -210,7 +219,8 @@ def compile_recipe(recipe_path, source_root, output_root):
     outputs["ranges/range-bundle.json"] = encoded({"contract": RANGE_BUNDLE_CONTRACT, "files": range_files})
     outputs["inputs/icm-model.json"] = encoded({"contract": ICM_MODEL_CONTRACT, "models": models})
     outputs["sources/input-recipe.json"] = recipe_bytes
-    outputs["derivation-receipt.json"] = encoded({"contract": "smarter-poker.horse-solver-v31-input-derivation.v1", "recipe_checksum": sha(recipe_bytes), "approved": False, "derivations": receipts, "files": [{"path": path, "checksum": sha(payload)} for path, payload in sorted(outputs.items())]})
+    outputs["derivation-receipt.json"] = encoded({"contract": "smarter-poker.horse-solver-v31-input-derivation.v1", "recipe_checksum": sha(recipe_bytes), "approved": False, "derivations": receipts, "files": [{"path": path, "checksum": sha(payload)} for path, payload in sorted(outputs.items())],
+                                                  **({"cell_contract": "v3"} if cell_contract == "v3" else {})})
     # Compute and validate everything before claiming the write-once directory.
     output_root.mkdir(parents=True, exist_ok=False)
     for relative, payload in sorted(outputs.items()):
@@ -226,9 +236,11 @@ def main():
     parser.add_argument("--recipe", type=Path, required=True)
     parser.add_argument("--source-root", type=Path, required=True)
     parser.add_argument("--output-root", type=Path, required=True)
+    parser.add_argument("--cell-contract", choices=["v3"], default=None,
+                        help="cell contract v3 (dormant): also admit 200 bb range provenance")
     args = parser.parse_args()
     try:
-        print(json.dumps(compile_recipe(args.recipe, args.source_root, args.output_root), sort_keys=True))
+        print(json.dumps(compile_recipe(args.recipe, args.source_root, args.output_root, cell_contract=args.cell_contract), sort_keys=True))
     except (ContractError, OSError, UnicodeError, ValueError) as error:
         parser.exit(1, f"Input compilation refused: {error}\n")
 

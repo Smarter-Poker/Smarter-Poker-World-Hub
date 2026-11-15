@@ -67,6 +67,31 @@ def public_context_id(context: dict) -> str:
     return digest(context)
 
 
+def manifest_cell_contract(manifest_raw: dict) -> str:
+    """"v3" for a manifest on feature contract holdem-public-hist215-v3, otherwise "v2".
+
+    load_manifest already ties hist215-v3 to cell contract v3 on every scenario
+    both ways (contract.require_feature_and_cell_contracts_agree), so the
+    feature contract names the cell contract of every context this run fits.
+    """
+    from public_hist215 import FEATURE_CONTRACT_V3
+    return "v3" if manifest_raw.get("feature_contract_version") == FEATURE_CONTRACT_V3 else "v2"
+
+
+def require_requested_cell_contract(manifest_raw: dict, requested: Any) -> str:
+    """Cell contract v3 is dormant: a v3 run needs an explicit --cell-contract v3.
+
+    The default request is v2, so a v3 manifest is refused unless v3 was asked
+    for, and asking for v3 over a v2 manifest is refused too (no silent mix).
+    A v2 run is exactly the run it was before this check existed.
+    """
+    need(requested in ("v2", "v3"), "requested cell contract must be v2 or v3")
+    declared = manifest_cell_contract(manifest_raw)
+    need(requested == declared, f"manifest declares cell contract {declared}; this run requested {requested}"
+         + ("; a v3 run must be requested explicitly with --cell-contract v3" if declared == "v3" else ""))
+    return declared
+
+
 def pg_json_text(value: Any, *, compact_sorted: bool = False) -> str:
     """Bounded ASCII PostgreSQL JSONB text, from Decimal-parsed artifact bytes.
 
@@ -376,9 +401,9 @@ def load_feature_index(value: dict, manifest: ApprovedManifest, expected: dict[s
         for tid,row in zip(contexts[cid],group['rows']):
             exact(row,{"target_id","board","combo_indices","offset","count"});need(row['target_id']==tid and row['board']==expected[tid]['target']['board'] and type(row['offset'])is int and row['offset']==offset,"public matrix approved target order/board/offset")
             indices=row['combo_indices'];need(isinstance(indices,list) and indices==sorted(set(indices)) and all(type(i)is int and 0<=i<1326 for i in indices) and type(row['count'])is int and row['count']==len(indices)>0,"public combo row mapping")
-            from pio_upi import COMBO_CARDS, analyze_node
+            from pio_upi import COMBO_CARDS, analyze_node, scenario_cell_contract
             from contract import load_range_vector
-            ex=expected[tid];s,t=ex['scenario'],ex['target'];actor=analyze_node(t['node'],root_pot_chips=s['pot_chips'],effective_stack_chips=s['effective_stack_chips'],preflop_aggressor=s['preflop_aggressor_solver_player']).actor
+            ex=expected[tid];s,t=ex['scenario'],ex['target'];actor=analyze_node(t['node'],root_pot_chips=s['pot_chips'],effective_stack_chips=s['effective_stack_chips'],preflop_aggressor=s['preflop_aggressor_solver_player'],cell_contract=scenario_cell_contract(s)).actor
             vectors={}
             for side in ['oop','ip']:
                 checksum=s[side+'_range_checksum']
@@ -501,6 +526,7 @@ def write_new(path: Path, value: dict) -> str:
 def train(args) -> None:
     manifest=load_manifest(args.manifest,expected_checksum=args.manifest_sha256,input_root=args.input_root,pipeline_root=args.pipeline_root)
     need(manifest.raw.get('policy_representation')=='public_hist215_v1',"explicit nine-file public215 pipeline")
+    require_requested_cell_contract(manifest.raw,getattr(args,'cell_contract','v2'))
     # The registered round is checked before partition, labels or any fit.
     verify_round_registration(pinned_json(args.registration,args.registration_sha256),manifest.raw,manifest_checksum=manifest.checksum)
     expected,contexts=declared_m1_targets(manifest)
@@ -574,6 +600,7 @@ def main() -> None:
     for name in ['manifest','manifest-sha256','input-root','pipeline-root','capture-index','capture-index-sha256','public-feature-index','public-feature-index-sha256','training-authority','training-authority-sha256','registration','registration-sha256','output']:
         parser.add_argument('--'+name,required=True)
     parser.add_argument('--shard-index',type=int,choices=range(4),required=True);parser.add_argument('--allow-fit',action='store_true')
+    parser.add_argument('--cell-contract',choices=['v2','v3'],default='v2',help='v3 (dormant) only for a manifest on feature contract holdem-public-hist215-v3')
     train(parser.parse_args())
 
 

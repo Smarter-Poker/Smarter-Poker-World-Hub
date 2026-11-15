@@ -425,5 +425,110 @@ class FeatureContractV3Tests(unittest.TestCase):
         self.assertEqual(v3["feature_groups"][-1], {"count": 2, "name": "v3_appended_public_categories", "offset": 246})
 
 
+class ContractV3TrainingMetadataTests(unittest.TestCase):
+    """C2: the training metadata path admits contract v3 contexts only under hist215-v3, and v2 stays as it was."""
+
+    def v3_entry(self, nodes=("r:0",)):
+        from public_hist215 import FEATURE_DESCRIPTOR_V3_SHA256
+        from pio_upi import target_context
+        from test_round_registration import PILOT_TREE_LINES, pilot_scenario, targets_for
+        # the pilot tree with an out-of-position lead at the flop root (the B5 donk root node), at 200 bb
+        lead_tree = [[0, 0, 0, 0, 0, 0], [450, 450, 450, 450, 450, 450], *PILOT_TREE_LINES[1:]]
+        scenario = pilot_scenario(range_construction="root", tree_lines=lead_tree)
+        scenario["targets"] = targets_for(scenario, list(nodes))
+        target = scenario["targets"][0]
+        return scenario, {"context": target_context(scenario, target), "expected_children": target["expected_children"],
+                          "model_action_order": sorted(target["expected_children"]), "template_checksum": "a"*64,
+                          "feature_schema_checksum": FEATURE_DESCRIPTOR_V3_SHA256}
+
+    def test_v3_context_is_the_15_key_cell_the_registration_guard_expects(self):
+        from public_hist215 import REGISTRATION_CONTEXT_KEYS_V3, registration_cell_contract, context_cell_contract
+        _, e = self.v3_entry()
+        c = e["context"]
+        self.assertEqual(set(c), set(REGISTRATION_CONTEXT_KEYS_V3))
+        self.assertEqual((c["cell_contract"], c["line_class"], c["node_role"], c["depth_bucket"]), ("v3", "", "donk", 200))
+        self.assertEqual(registration_cell_contract(c), "v3")
+        self.assertEqual(context_cell_contract(c), "v3")
+        _, big = self.v3_entry(("r:0:c:b900",))
+        self.assertEqual((big["context"]["facing_size_bucket"], big["context"]["line_class"]), ("big", "x.b-big"))
+
+    def test_feature_descriptor_and_cell_contract_are_tied_both_ways(self):
+        from public_hist215 import (FEATURE_DESCRIPTOR_SHA256, FEATURE_DESCRIPTOR_V2_SHA256, FEATURE_DESCRIPTOR_V3_SHA256,
+                                    validate_context_metadata)
+        _, v3 = self.v3_entry()
+        _, big = self.v3_entry(("r:0:c:b900",))
+        validate_context_metadata([v3])
+        validate_context_metadata(sorted([v3, {**big, "feature_schema_checksum": FEATURE_DESCRIPTOR_V3_SHA256}],
+                                         key=lambda e: canonical_bytes(e["context"])))
+        v2 = Public215MetadataTests.entry(self)
+        validate_context_metadata([v2])  # v2 unchanged under its own descriptor
+        for schema in (FEATURE_DESCRIPTOR_SHA256, FEATURE_DESCRIPTOR_V2_SHA256):
+            with self.subTest(v3_context_under=schema), self.assertRaises(ContractError):
+                validate_context_metadata([{**v3, "feature_schema_checksum": schema}])
+        with self.assertRaises(ContractError):  # a v2 (13-key) context under the v3 descriptor
+            validate_context_metadata([{**v2, "feature_schema_checksum": FEATURE_DESCRIPTOR_V3_SHA256}])
+        mixed = sorted([{**v2, "feature_schema_checksum": FEATURE_DESCRIPTOR_V3_SHA256}, v3], key=lambda e: canonical_bytes(e["context"]))
+        with self.assertRaises(ContractError):
+            validate_context_metadata(mixed)
+
+    def test_malformed_v3_contexts_are_refused(self):
+        from public_hist215 import validate_context_metadata
+        _, e = self.v3_entry()
+        for mutate in [lambda c: c.update(cell_contract="v4"), lambda c: c.update(line_class="x/x"),
+                       lambda c: c.update(line_class="q"), lambda c: c.update(depth_bucket=173),
+                       lambda c: c.pop("line_class"), lambda c: c.pop("cell_contract"),
+                       lambda c: c.update(extra="v3")]:
+            bad = copy.deepcopy(e); mutate(bad["context"])
+            with self.assertRaises(ContractError): validate_context_metadata([bad])
+
+    def test_v3_manifest_metadata_validates_the_donk_root_template_at_200bb(self):
+        # Before C2 the root actor of a donk target was derived without the
+        # scenario's cell contract, so analyze_node refused the node.
+        import tempfile
+        import hashlib
+        from pathlib import Path
+        from pio_upi import PioError, analyze_node
+        from public_hist215 import FEATURE_CONTRACT_V3, maintained_feature_descriptor, validate_manifest_metadata
+        scenario, e = self.v3_entry()
+        with self.assertRaises(PioError):
+            analyze_node("r:0", root_pot_chips=scenario["pot_chips"], effective_stack_chips=scenario["effective_stack_chips"],
+                         preflop_aggressor=scenario["preflop_aggressor_solver_player"])
+        with tempfile.TemporaryDirectory(prefix=".public215-synthetic-", dir=Path(__file__).resolve().parents[2]) as folder:
+            root = Path(folder); (root/"ranges").mkdir()
+            raw = (" ".join(["1"]*1326)).encode()
+            for side in ("ip", "oop"):
+                (root/scenario[side+"_range_path"]).write_bytes(raw)
+                scenario[side+"_range_checksum"] = hashlib.sha256(raw).hexdigest()
+            template = {"format": "public_hist215_template_v1", "context": e["context"], "root_actor": "OOP",
+                        "scenario": {"pot_chips_f64": encode_f64(600), "effective_stack_chips_f64": encode_f64(20000),
+                                     "chips_per_bb_f64": encode_f64(100), "rake_f64": [encode_f64(0.1), encode_f64(250)],
+                                     "ip_range_checksum": scenario["ip_range_checksum"], "oop_range_checksum": scenario["oop_range_checksum"]},
+                        "opponent_weights": [str(10**12)]*1326}
+
+            def manifest_for(t, version=FEATURE_CONTRACT_V3):
+                payload = canonical_bytes(t); (root/"template.json").write_bytes(payload)
+                checksum = hashlib.sha256(payload).hexdigest()
+                entry = copy.deepcopy(e); entry["template_checksum"] = checksum
+                protocols = Public215MetadataTests.protocols(self, entry)
+                protocols["feature_schema"] = maintained_feature_descriptor(version)
+                protocols["runtime_parity_protocol"]["contexts"][0]["cases"] = [
+                    {"board": scenario["flop_board"], "own": ["2c", "2d"]}, {"board": scenario["flop_board"], "own": ["3c", "3d"]}]
+                files = {}
+                for key, body in protocols.items():
+                    path = key+".json"; (root/path).write_bytes(canonical_bytes(body)); files[key] = {"path": path, "checksum": digest(body)}
+                return {"feature_contract_version": version, "scenarios": [scenario], "public215_contexts": [entry],
+                        "public215_template_files": [{"path": "template.json", "checksum": checksum}],
+                        "public215_protocols": protocols, "public215_protocol_files": files}
+            cards = [r+s for r in "23456789TJQKA" for s in "cdhs"]
+            order = tuple(cards[a]+cards[b] for b in range(1, 52) for a in range(b))
+            validate_manifest_metadata(manifest_for(template), root, order, verify_inputs=True)
+            for change in [lambda t: t.update(root_actor="IP"), lambda t: t["context"].update(line_class="x"),
+                           lambda t: t["scenario"].update(effective_stack_chips_f64=encode_f64(15000))]:
+                bad = copy.deepcopy(template); change(bad)
+                with self.assertRaises(ContractError): validate_manifest_metadata(manifest_for(bad), root, order, verify_inputs=True)
+            with self.assertRaises(ContractError):  # the same v3 contexts under the v2 descriptor
+                validate_manifest_metadata(manifest_for(template, "holdem-public-hist215-v2"), root, order, verify_inputs=True)
+
+
 if __name__ == "__main__":
     unittest.main()

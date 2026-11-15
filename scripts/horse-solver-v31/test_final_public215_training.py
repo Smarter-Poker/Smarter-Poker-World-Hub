@@ -183,4 +183,72 @@ class FinalPublic215TrainingTests(unittest.TestCase):
         with self.assertRaises(ContractError):validate_capture_index(index,manifest,{})
 
 
+class ContractV3TrainingRequestTests(unittest.TestCase):
+    """C2: the trainer fits contract v3 cells only when --cell-contract v3 is asked for; v2 is the default and unchanged."""
+
+    V2={'feature_contract_version':'holdem-public-hist215-v2'}
+    V3={'feature_contract_version':'holdem-public-hist215-v3'}
+
+    def test_v3_is_refused_unless_explicitly_requested_and_never_mixed(self):
+        from final_public215_training import manifest_cell_contract,require_requested_cell_contract
+        self.assertEqual(manifest_cell_contract(self.V2),'v2');self.assertEqual(manifest_cell_contract({'feature_contract_version':'holdem-public-hist215-v1'}),'v2')
+        self.assertEqual(manifest_cell_contract(self.V3),'v3')
+        self.assertEqual(require_requested_cell_contract(self.V2,'v2'),'v2')
+        self.assertEqual(require_requested_cell_contract(self.V3,'v3'),'v3')
+        for raw,requested in ((self.V3,'v2'),(self.V2,'v3'),(self.V3,None),(self.V3,'V3'),(self.V3,True),(self.V2,'v4')):
+            with self.subTest(raw=raw,requested=requested),self.assertRaises(ContractError):require_requested_cell_contract(raw,requested)
+
+    def test_command_line_default_is_v2_and_v3_is_an_explicit_choice(self):
+        import final_public215_training as driver
+        seen=[]
+        required=[x for name in ['manifest','manifest-sha256','input-root','pipeline-root','capture-index','capture-index-sha256','public-feature-index','public-feature-index-sha256','training-authority','training-authority-sha256','registration','registration-sha256','output']for x in('--'+name,'x')]
+        with patch.object(driver,'train',side_effect=seen.append):
+            for extra in ([],['--cell-contract','v3']):
+                with patch('sys.argv',['trainer',*required,'--shard-index','0',*extra]):driver.main()
+            with patch('sys.argv',['trainer',*required,'--shard-index','0','--cell-contract','v4']),self.assertRaises(SystemExit):driver.main()
+        self.assertEqual([a.cell_contract for a in seen],['v2','v3'])
+
+    def test_the_request_is_checked_first_before_any_registration_capture_or_label_read(self):
+        import final_public215_training as driver
+        manifest=types.SimpleNamespace(raw={**self.V3,'policy_representation':'public_hist215_v1'},checksum='5'*64)
+        def opened(*a,**k):raise AssertionError('no pinned file may be read before the cell contract request is checked')
+        for args in (types.SimpleNamespace(manifest='m',manifest_sha256='1'*64,input_root='i',pipeline_root='p'),
+                     types.SimpleNamespace(manifest='m',manifest_sha256='1'*64,input_root='i',pipeline_root='p',cell_contract='v2')):
+            with patch.object(driver,'load_manifest',return_value=manifest),patch.object(driver,'pinned_json',side_effect=opened),\
+                 patch.object(driver,'verify_round_registration',side_effect=opened),self.assertRaises(ContractError) as refused:
+                driver.train(args)
+            self.assertIn('--cell-contract v3',str(refused.exception))
+        reached=[]
+        with patch.object(driver,'load_manifest',return_value=manifest),patch.object(driver,'pinned_json',side_effect=lambda *a,**k:reached.append(a) or {}),\
+             patch.object(driver,'verify_round_registration',side_effect=ContractError('stop after the request check')):
+            with self.assertRaises(ContractError):driver.train(types.SimpleNamespace(manifest='m',manifest_sha256='1'*64,input_root='i',pipeline_root='p',registration='r',registration_sha256='2'*64,cell_contract='v3'))
+        self.assertEqual(len(reached),1)  # a v3 request passes the check and goes on to the registration
+
+    def test_v3_fit_contexts_carry_the_line_keyed_cell_and_the_248_wide_hist215_v3_model(self):
+        from pio_upi import analyze_node,scenario_cell_contract,target_context
+        from public_hist215 import REGISTRATION_CONTEXT_KEYS,REGISTRATION_CONTEXT_KEYS_V3,feature_contract,registration_cell_contract
+        from test_round_registration import PILOT_TREE_LINES,pilot_scenario,targets_for
+        from final_public215_training import public_context_id
+        lead_tree=[[0,0,0,0,0,0],[450,450,450,450,450,450],*PILOT_TREE_LINES[1:]]
+        v3=pilot_scenario(range_construction='root',tree_lines=lead_tree);v3['targets']=targets_for(v3,['r:0','r:0:c:b900'])
+        contexts=[target_context(v3,t)for t in v3['targets']]
+        self.assertTrue(all(set(c)==set(REGISTRATION_CONTEXT_KEYS_V3) and registration_cell_contract(c)=='v3' and c['depth_bucket']==200 for c in contexts))
+        self.assertEqual([(c['node_role'],c['facing_size_bucket'],c['line_class'])for c in contexts],[('donk','none',''),('facing_bet','big','x.b-big')])
+        self.assertEqual(len({public_context_id(c)for c in contexts}),2)
+        # the public matrix actor of the donk root: derived under the scenario's cell contract, as load_feature_index now does
+        self.assertEqual(analyze_node('r:0',root_pot_chips=600,effective_stack_chips=20000,preflop_aggressor=1,cell_contract=scenario_cell_contract(v3)).actor,0)
+        import inspect, final_public215_training as driver
+        self.assertIn("cell_contract=scenario_cell_contract(s)",inspect.getsource(driver.load_feature_index))
+        # the model the trainer writes for a v3 manifest: hist215-v3 descriptor (pinned with Club Arena) and 248 inputs
+        self.assertEqual(feature_contract('holdem-public-hist215-v3'),('26d9271d8b1b1b2400476e9cb1c22662e0086bf5111b1f2e1ce7281ef131b784',248))
+        m=scalar_stub();m.n_features_in_=248;self.assertEqual(len(export_scalar_head(m,feature_contract('holdem-public-hist215-v3')[1])['trees']),100)
+        m.n_features_in_=246
+        with self.assertRaises(ContractError):export_scalar_head(m,feature_contract('holdem-public-hist215-v3')[1])
+        # the v2 path: no declaration, the 13-key context and an analyze_node call identical to the one before C2
+        from test_pipeline import base_scenario
+        v2=base_scenario();self.assertIsNone(scenario_cell_contract(v2))
+        self.assertEqual(set(target_context(v2,v2['targets'][0])),set(REGISTRATION_CONTEXT_KEYS))
+        self.assertIsNone(inspect.signature(analyze_node).parameters['cell_contract'].default)
+
+
 if __name__=='__main__':unittest.main()
