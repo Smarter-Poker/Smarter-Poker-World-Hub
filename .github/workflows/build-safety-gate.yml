@@ -1555,6 +1555,7 @@ jobs:
             __tests__/the-home-page-title-and-share-image-are-honest.law.test.mjs \
             __tests__/every-title-fits-a-result-and-every-page-says-what-it-is.law.test.mjs \
             __tests__/the-hub-product-pages-say-what-they-are.law.test.mjs \
+            __tests__/hub-without-webgl.test.mjs \
             __tests__/the-community-pages-say-what-they-are.law.test.mjs \
             __tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs \
             __tests__/the-commander-pages-say-what-they-are.law.test.mjs \

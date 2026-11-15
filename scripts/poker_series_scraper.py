@@ -154,8 +154,8 @@ def daemon_cycle_control(rows_written: object, run_errors: dict,
 
     One-shot callers still exit non-zero from the CLI guard below. Continuous
     mode instead keeps the same observable process alive and applies a bounded
-    producer backoff. Confirmed writes refresh watchdog liveness even when some
-    sources failed, but they do not make that cycle healthy or reset backoff.
+    producer backoff. Confirmed writes remain separate from cycle health: they
+    do not make a degraded cycle healthy or reset its error backoff.
     """
 
     try:
@@ -3431,91 +3431,77 @@ def main():
         f"series_errors={RUN_ERRORS['series_errors']}")
     log(f"Log: {log_path}")
     # Return the number of rows the DB CONFIRMED writing so callers (daemon
-    # watchdog, CI) can tell a productive run from a clean-looking no-op.
+    # and CI) can distinguish confirmed persistence from an empty cycle.
     return total_events
+
+def run_daemon():
+    """Run the existing business schedule; unchanged source data is not a failure.
+
+    Real cycle exceptions still fail. Successful empty cycles do not kill the
+    process or manufacture a fresh-coverage claim from database write counts.
+    """
+    log("\n🚀 Starting continuous daemon mode (6 hour cycles)...")
+    import signal
+    
+    running = True
+    def signal_handler(sig, frame):
+        nonlocal running
+        global STOP_REQUESTED
+        log("⛔ Shutdown signal received, stopping...")
+        running = False
+        STOP_REQUESTED = True
+        
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+    
+    consecutive_error_cycles = 0
+    
+    while running:
+        try:
+            rows_written = main()
+            cycle_control = daemon_cycle_control(
+                rows_written,
+                RUN_ERRORS,
+                consecutive_error_cycles,
+            )
+            consecutive_error_cycles = cycle_control["error_streak"]
+            sleep_seconds = cycle_control["sleep_seconds"]
+            if cycle_control["degraded"]:
+                log(
+                    f"Run completed with integrity errors {RUN_ERRORS}; "
+                    f"keeping daemon alive for bounded producer retry in "
+                    f"{sleep_seconds}s (degraded streak "
+                    f"#{consecutive_error_cycles})"
+                )
+            elif not cycle_control["refresh_liveness"]:
+                log("Cycle completed without new events; preserving the normal six-hour schedule.")
+        except Exception as e:
+            log(f"\n❌ Daemon cycle crashed: {e}")
+            import traceback
+            traceback.print_exc()
+            # An unhandled cycle defect is not a valid idle state. Exit so
+            # launchd records the failure and starts a clean process rather
+            # than leaving the daemon asleep and stale for six hours.
+            sys.exit(1)
+
+        if not running or STOP_REQUESTED:
+            break
+        
+        if cycle_control["degraded"]:
+            log(f"\n💤 Daemon degraded backoff for {sleep_seconds}s...")
+        else:
+            log(f"\n💤 Daemon sleeping for {sleep_seconds // 3600} hours...")
+        for _tick in range(sleep_seconds):
+            if not running or STOP_REQUESTED:
+                break
+            time.sleep(1)
+
+    log("🛑 Daemon strictly stopped.")
+
 
 if __name__ == "__main__":
     if "--daemon" in sys.argv:
-        log("\n🚀 Starting continuous daemon mode (6 hour cycles)...")
-        import signal
-        import os
-        
-        running = True
-        def signal_handler(sig, frame):
-            global running, STOP_REQUESTED
-            log("⛔ Shutdown signal received, stopping...")
-            running = False
-            STOP_REQUESTED = True
-            
-        signal.signal(signal.SIGINT, signal_handler)
-        signal.signal(signal.SIGTERM, signal_handler)
-        
-        last_successful_save = time.time()
-        WATCHDOG_MAX_STALE_MINUTES = 8 * 60 # 8 hours
-        consecutive_error_cycles = 0
-        
-        while running:
-            stale_minutes = (time.time() - last_successful_save) / 60
-            if stale_minutes > WATCHDOG_MAX_STALE_MINUTES:
-                log(f"🚨 WATCHDOG: No successful data save in {stale_minutes:.0f} minutes. Exiting so launchd can cleanly restart process.")
-                os._exit(1)
-            try:
-                rows_written = main()
-                cycle_control = daemon_cycle_control(
-                    rows_written,
-                    RUN_ERRORS,
-                    consecutive_error_cycles,
-                )
-                consecutive_error_cycles = cycle_control["error_streak"]
-                sleep_seconds = cycle_control["sleep_seconds"]
-                if cycle_control["refresh_liveness"]:
-                    last_successful_save = time.time()
-                if cycle_control["degraded"]:
-                    log(
-                        f"Run completed with integrity errors {RUN_ERRORS}; "
-                        f"keeping daemon alive for bounded producer retry in "
-                        f"{sleep_seconds}s (degraded streak "
-                        f"#{consecutive_error_cycles})"
-                    )
-                # Only reset the staleness clock when the cycle ACTUALLY wrote
-                # rows. Resetting on every return meant a daemon producing zero
-                # rows for weeks still looked healthy and the watchdog never
-                # tripped.
-                elif not cycle_control["refresh_liveness"]:
-                    stale = (time.time() - last_successful_save) / 60
-                    log(f"⚠️  Cycle wrote 0 rows — staleness clock NOT reset "
-                        f"({stale:.0f} min since last successful save)")
-            except Exception as e:
-                log(f"\n❌ Daemon cycle crashed: {e}")
-                import traceback
-                traceback.print_exc()
-                # An unhandled cycle defect is not a valid idle state. Exit so
-                # launchd records the failure and starts a clean process rather
-                # than leaving the daemon asleep and stale for six hours.
-                sys.exit(1)
-
-            if not running or STOP_REQUESTED:
-                break
-            
-            if cycle_control["degraded"]:
-                log(f"\n💤 Daemon degraded backoff for {sleep_seconds}s...")
-            else:
-                log(f"\n💤 Daemon sleeping for {sleep_seconds // 3600} hours...")
-            for _tick in range(sleep_seconds):
-                if not running:
-                    break
-                time.sleep(1)
-                # Evaluate staleness DURING the sleep, not only at loop top —
-                # otherwise the watchdog can't fire inside a 6-hour window.
-                if _tick % 300 == 0:
-                    stale_minutes = (time.time() - last_successful_save) / 60
-                    if stale_minutes > WATCHDOG_MAX_STALE_MINUTES:
-                        log(f"🚨 WATCHDOG: No successful data save in "
-                            f"{stale_minutes:.0f} minutes. Exiting so launchd can "
-                            f"cleanly restart process.")
-                        os._exit(1)
-                
-        log("🛑 Daemon strictly stopped.")
+        run_daemon()
     else:
         main()
         # ── FAIL ON OUR FAULTS, REPORT THE WORLD'S (2026-09-07) ──────────────
