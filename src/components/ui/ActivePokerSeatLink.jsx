@@ -19,8 +19,8 @@ export default function ActivePokerSeatLink() {
       if (!id) return;
       try {
         const [seats, sessions] = await Promise.all([
-          supabase.from('table_seats').select('id,table_id,left_at,tables(name,is_deleted,lifecycle)').eq('user_id', id).is('left_at', null),
-          supabase.from('lightning_pool_session').select('id,anchor_seat_id,state,exited_at').eq('player_id', id).is('exited_at', null),
+          supabase.from('table_seats').select('id,table_id,left_at,tables(name,is_deleted,lifecycle,cluster_id)').eq('user_id', id).is('left_at', null),
+          supabase.rpc('fn_lightning_my_sessions'),
         ]);
         if (seats.error) throw seats.error;
         if (sessions.error) throw sessions.error;
@@ -43,7 +43,6 @@ export default function ActivePokerSeatLink() {
       void load();
       channel = supabase.channel(`world-return-seat:${id}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'table_seats', filter: `user_id=eq.${id}` }, load)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'lightning_pool_session', filter: `player_id=eq.${id}` }, load)
         .subscribe();
     };
     const { data } = supabase.auth.onAuthStateChange((_event, session) => accept(session?.user?.id || null));

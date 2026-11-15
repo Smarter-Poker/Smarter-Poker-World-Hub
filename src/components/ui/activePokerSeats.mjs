@@ -1,13 +1,13 @@
-/** Server-owned live occupancies are the only return links; browser tabs are not seats. */
+/** Server-owned live occupancies and the authenticated caller's pool RPC. */
 export function activePokerSeats(seats, sessions) {
-  const rooms = new Map((sessions || []).filter(s => !s.exited_at && !['closed', 'ended', 'left', 'cashed_out'].includes(s.state)).map(s => [s.anchor_seat_id, s.id]));
+  const rooms = Array.isArray(sessions) ? sessions.filter(s => s.pool_session_id && s.cluster_id) : [];
+  const poolClusters = new Set(rooms.map(s => s.cluster_id));
+  const candidates = rooms.map(s => ({id: s.pool_session_id, name: s.name || 'Lightning'}));
+  for (const seat of seats || []) {
+    const table = Array.isArray(seat.tables) ? seat.tables[0] : seat.tables;
+    if (!seat.id || !seat.table_id || seat.left_at || !table || table.is_deleted || table.lifecycle === 'closed' || poolClusters.has(table.cluster_id)) continue;
+    candidates.push({id:seat.table_id,name:table.name || 'Your Game'});
+  }
   const seen = new Set();
-  return (seats || []).filter(s => s.id && s.table_id && !s.left_at).flatMap(s => {
-    const table = Array.isArray(s.tables) ? s.tables[0] : s.tables;
-    if (!table || table.is_deleted || table.lifecycle === 'closed') return [];
-    const room = rooms.get(s.id) || s.table_id;
-    if (seen.has(room)) return [];
-    seen.add(room);
-    return [{ id: room, name: table.name || 'Your Game', href: `/hub/club-arena/table/${encodeURIComponent(room)}` }];
-  });
+  return candidates.filter(s => !seen.has(s.id) && seen.add(s.id)).map(s => ({...s,href:`/hub/club-arena/table/${encodeURIComponent(s.id)}`}));
 }
