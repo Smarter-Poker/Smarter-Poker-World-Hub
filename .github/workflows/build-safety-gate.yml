@@ -1507,6 +1507,7 @@ jobs:
             __tests__/openclaw-workers-secret.test.mjs \
             __tests__/openclaw-critical-jobs.test.mjs \
             __tests__/horse-solver-v31-ingress.test.mjs \
+            __tests__/horse-solver-v31-ingress-cell-contract-v3.test.mjs \
             __tests__/horse-solver-v31-pipeline.test.mjs \
             __tests__/v31-input-approval.test.mjs \
             __tests__/git-safe-push-credential-safety.test.mjs \
