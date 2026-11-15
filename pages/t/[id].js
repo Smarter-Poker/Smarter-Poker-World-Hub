@@ -80,7 +80,8 @@ export default function SharedTournamentLanding({ id, status, preview, renderedA
     const facts = found
         ? [
               ['Buy-In', buyInWords(preview).replace(/^Buy-In /, '')],
-              ['Guarantee', guaranteeWords(preview) || 'None'],
+              // The label already says Guarantee: the value is just the chips.
+              ['Guarantee', guaranteeWords(preview).replace(/ GTD$/, '') || 'None'],
               ['Starts', startWords(preview.startTime) || 'Soon'],
               ['Status', statusWords(preview, renderedAt)],
           ]
