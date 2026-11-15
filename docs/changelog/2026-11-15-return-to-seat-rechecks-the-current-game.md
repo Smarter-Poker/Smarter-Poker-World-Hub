@@ -1,0 +1,7 @@
+# Return To Seat Rechecks The Current Game
+
+A World Hub page left open through a seat departure could retain its previous return link after missing a realtime event. Its static href opened the closed tournament table even though the player had no live seat. Live inspection reproduced that route, and read-only production records confirmed the table and event were closed with no active chair.
+
+The explicit return now owns an authoritative read before navigation. A stable tournament or cluster identity follows that same game's current seat; an unrelated game is offered without selecting it. A departed seat, failed read or superseded response produces a visible result. Repeated presses share the pending return, and account changes or unmount fence late responses. The return is a button styled by the existing dock so middle-click cannot bypass validation through a stale href. Realtime subscription establishment and reconnection re-read the current seats; no polling, repair loop, seat mutation or financial operation is added.
+
+The existing active-poker-seats test entry in the maintained safety gate now exercises the real React component through the repository's existing react-test-renderer harness, including stale snapshots, movement, read failure, reconnect, duplicate presses, account changes, newer refreshes and unmount. The seven original new regression cases fail on the preimage; all retained cases pass with the repair. Publication and live verification remain recorded separately in the owning task checkpoint.
