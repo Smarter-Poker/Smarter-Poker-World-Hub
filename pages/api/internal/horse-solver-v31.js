@@ -18,6 +18,8 @@ import {
   v31Public215HeldoutPhysicsPayloadIsValid,
   v31Public215FrozenHeldoutPreparation,
   v31Public215HeldoutPhysicsReceiptIsValid,
+  v31FeatureContractVersionV3,
+  v31RegistrationCellContract,
 } from '../../../src/lib/horses/solverV31IngressAuth.mjs';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
@@ -150,6 +152,16 @@ function contractMatches(contract, provenance) {
     && contract.input_approval_status === 'approved';
 }
 
+// Cell contract v3 (dormant): both sides must declare hist215-v3; every other
+// identity field is compared by the unchanged contractMatches.
+function contractMatchesV3(contract, provenance) {
+  const asKnown = (value) => ({ ...value, feature_contract_version: 'holdem-public-hist215-v2' });
+  return Boolean(contract) && Boolean(provenance)
+    && v31FeatureContractVersionV3(contract) === 'holdem-public-hist215-v3'
+    && v31FeatureContractVersionV3(provenance) === 'holdem-public-hist215-v3'
+    && contractMatches(asKnown(contract), asKnown(provenance));
+}
+
 async function readContract(supabase, provenance) {
   const contract = await rpc(supabase, 'fn_gto_v31_worker_contract', {
     p_dataset_key: provenance.dataset_key,
@@ -205,6 +217,67 @@ function compactHeartbeat(envelope) {
     manifest_checksum: provenance.manifest_checksum,
     range_bundle_checksum: provenance.range_bundle_checksum,
   };
+}
+
+/**
+ * The registration's cell contract for a dataset key, read before any write.
+ * Any failure (function not installed, timeout, malformed reply) is "not v3".
+ */
+async function registrationCellContract(supabase, datasetKey) {
+  try {
+    const reply = await rpc(supabase, 'fn_gto_v31_registration_cell_contract', { p_dataset_key: datasetKey });
+    return v31RegistrationCellContract(reply, datasetKey);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * CELL CONTRACT v3 DISPATCH (FLOP-5 D6, dormant). Reached only when the envelope
+ * is valid solely under v3 and the dataset's registration declares v3. It admits
+ * the cell-carrying operations (dataset_contract, build_cell, prepare_model and
+ * the ordinary freeze_model) for a hist215-v3 dataset whose registration is
+ * linked to it; every other operation is refused. PostgreSQL still owns every
+ * cell, model and provenance check. The v2 dispatch above is unchanged.
+ */
+async function dispatchV3(supabase, envelope) {
+  const { operation, payload, provenance } = envelope;
+  if (!['dataset_contract', 'build_cell', 'prepare_model', 'freeze_model'].includes(operation)
+      || (operation === 'freeze_model'
+        && (Object.prototype.hasOwnProperty.call(payload, 'physics_board')
+          || Object.prototype.hasOwnProperty.call(payload, 'heldout_board_offset')))) {
+    throw new GatewayError('This operation is not admitted under cell contract v3', 409);
+  }
+  const contract = await rpc(supabase, 'fn_gto_v31_worker_contract', { p_dataset_key: provenance.dataset_key });
+  if (!contractMatchesV3(contract, provenance)) {
+    throw new GatewayError('Dataset contract is absent, revoked, or does not match this build', 409);
+  }
+  const registration = await rpc(supabase, 'fn_gto_v31_registration_cell_contract', { p_dataset_key: provenance.dataset_key });
+  if (v31RegistrationCellContract(registration, provenance.dataset_key) !== 'v3'
+      || registration.dataset_id !== contract.dataset_id) {
+    throw new GatewayError('No cell contract v3 registration is linked to this dataset', 409);
+  }
+  if (operation === 'dataset_contract') {
+    if (!exactKeys(payload, [])) throw new GatewayError('Dataset contract payload is invalid');
+    return contract;
+  }
+  if (!exactKeys(payload, ['dataset_id', 'context']) || payload.dataset_id !== contract.dataset_id
+      || contract.state !== 'building'
+      || !(operation === 'build_cell'
+        ? v31Public215BuildEnvelopeIsValid(payload.context, contract.dataset_id, true, 'v3')
+        : operation === 'prepare_model'
+          ? v31Public215BuildEnvelopeIsValid(payload.context, contract.dataset_id, false, 'v3')
+          : v31Public215FreezeEnvelopeIsValid(payload.context, contract.dataset_id, 'v3'))) {
+    throw new GatewayError('Cell contract v3 envelope is invalid', 409);
+  }
+  if (operation === 'build_cell') {
+    const cellChecksum = await rpc(supabase, 'fn_gto_v31_build_cell',
+      { p_dataset_id: payload.dataset_id, p_context: payload.context }, LONG_DB_TIMEOUT_MS);
+    return { cell_key_checksum: cellChecksum };
+  }
+  return rpc(supabase, operation === 'prepare_model' ? 'fn_gto_v31_prepare_model' : 'fn_gto_v31_freeze_model',
+    { p_dataset_id: payload.dataset_id, ...(operation === 'prepare_model' ? { p_program: payload.context } : { p_freeze: payload.context }) },
+    LONG_DB_TIMEOUT_MS);
 }
 
 async function dispatch(supabase, envelope) {
@@ -487,8 +560,17 @@ export default async function handler(req, res) {
     } catch {
       throw new GatewayError('Request body must be canonical UTF-8 JSON');
     }
+    let cellContract = 'v2';
     if (!v31IngressEnvelopeIsValid(envelope, principal)) {
-      throw new GatewayError('V31 gateway envelope is invalid');
+      // Cell contract v3 (dormant): an envelope that is valid only under v3 is
+      // admitted when, and only when, the database confirms a v3 registration
+      // for its dataset key. Otherwise this is today's refusal, word for word,
+      // before any write (the nonce is not claimed).
+      if (!v31IngressEnvelopeIsValid(envelope, principal, 'v3')
+          || await registrationCellContract(getSupabase(), envelope.provenance.dataset_key) !== 'v3') {
+        throw new GatewayError('V31 gateway envelope is invalid');
+      }
+      cellContract = 'v3';
     }
 
     const supabase = getSupabase();
@@ -499,6 +581,10 @@ export default async function handler(req, res) {
       p_signed_at: new Date(Number(timestamp) * 1000).toISOString(),
       p_body_sha256: bodySha256,
     });
+    if (cellContract === 'v3') {
+      const resultV3 = await dispatchV3(supabase, envelope);
+      return res.status(200).json({ success: true, operation: envelope.operation, result: resultV3 });
+    }
     const result = await dispatch(supabase, envelope);
     return res.status(200).json({ success: true, operation: envelope.operation, result });
   } catch (error) {

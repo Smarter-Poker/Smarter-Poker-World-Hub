@@ -338,7 +338,12 @@ export function parseV31IngressJson(source) {
   return JSON.parse(source);
 }
 
-export function v31IngressEnvelopeIsValid(envelope, principal) {
+export function v31IngressEnvelopeIsValid(envelope, principal, cellContract = 'v2') {
+  // Cell contract v3 (dormant): 'v3' is passed only by the route, and only after
+  // the database confirmed a v3 registration for this dataset. Any other value,
+  // including the default, is today's check unchanged.
+  const featureVersion = cellContract === 'v3' ? v31FeatureContractVersionV3 : v31FeatureContractVersion;
+  const isPublic215 = cellContract === 'v3' ? v31IsPublic215FeatureContractV3 : v31IsPublic215FeatureContract;
   if (!exactKeys(envelope, ['contract', 'principal', 'operation', 'provenance', 'payload'])) {
     return false;
   }
@@ -346,9 +351,9 @@ export function v31IngressEnvelopeIsValid(envelope, principal) {
       || envelope.principal !== principal
       || !V31_INGRESS_OPERATIONS.includes(envelope.operation)
       || !exactKeys(envelope.provenance, [...PROVENANCE_KEYS, ...['feature_contract_version', 'policy_export_schema'].filter(key => Object.prototype.hasOwnProperty.call(envelope.provenance || {}, key))])
-      || !v31FeatureContractVersion(envelope.provenance)
+      || !featureVersion(envelope.provenance)
       || !v31PolicyExportSchema(envelope.provenance)
-      || (v31IsPublic215FeatureContract(v31FeatureContractVersion(envelope.provenance))
+      || (isPublic215(featureVersion(envelope.provenance))
         && v31PolicyExportSchema(envelope.provenance) !== 'smarter-poker.pio-policy.v4')
       || !envelope.payload
       || typeof envelope.payload !== 'object'
@@ -356,7 +361,7 @@ export function v31IngressEnvelopeIsValid(envelope, principal) {
 
   const allowed = principal === 'COMPACTOR' ? COMPACTOR_OPERATIONS : WORKER_OPERATIONS;
   if (!allowed.has(envelope.operation) && !(principal === 'M2' && envelope.operation === 'model_freeze_authority')) return false;
-  if (['prepare_model','freeze_model','model_freeze_authority'].includes(envelope.operation) && !v31IsPublic215FeatureContract(v31FeatureContractVersion(envelope.provenance))) return false;
+  if (['prepare_model','freeze_model','model_freeze_authority'].includes(envelope.operation) && !isPublic215(featureVersion(envelope.provenance))) return false;
   const provenance = envelope.provenance;
   return DATASET_KEY.test(provenance.dataset_key)
     && canonicalIdentityText(provenance.solver_version, 120)
@@ -382,14 +387,17 @@ export function v31IngressEnvelopeIsValid(envelope, principal) {
 
 // This is transport admission, never a parity/quality verdict. PostgreSQL owns
 // full model, source, approval, protocol and independently computed case checks.
-export function v31Public215BuildEnvelopeIsValid(value, datasetId, withReceipt = true) {
+export function v31Public215BuildEnvelopeIsValid(value, datasetId, withReceipt = true, cellContract = 'v2') {
+  // cellContract 'v3' (dormant): only after a confirmed v3 registration; then the
+  // context must be a v3 cell and the descriptor the hist215-v3 one. Default: today.
+  const v3 = cellContract === 'v3';
   const keys = ['context','policy_representation','public_model','public_template','public_training_provenance',
     'model_checksum','template_checksum','feature_schema_checksum','training_provenance_checksum',
     ...(withReceipt ? ['public_model_build_receipt','model_build_receipt_checksum'] : [])];
   const contextKeys = ['street','game_family','objective','utility_context','table_size','pot_type',
     'hero_position','opponent_position','depth_bucket','texture_class','node_role','facing_kind','facing_size_bucket'];
   if (!exactKeys(value, keys) || value.policy_representation !== 'public_hist215_v1'
-      || !exactKeys(value.context, contextKeys)) return false;
+      || !(v3 ? v31ContextCellContract(value.context) === 'v3' : exactKeys(value.context, contextKeys))) return false;
   const canonical = (v, depth = 0) => {
     if (depth > 128) throw Error('public215 depth');
     if (v === null || typeof v === 'boolean') return JSON.stringify(v);
@@ -408,7 +416,7 @@ export function v31Public215BuildEnvelopeIsValid(value, datasetId, withReceipt =
     }
     const actions = value.public_model.action_ids;
     if (!Array.isArray(actions) || actions.length < 2 || actions.some(a=>typeof a !== 'string' || !/^(?:c|f|b[1-9][0-9]{0,78})$/.test(a)) || actions.join('\0') !== [...new Set(actions)].sort().join('\0')) return false;
-    if (!Object.values(V31_PUBLIC215_FEATURE_SCHEMAS).includes(value.feature_schema_checksum)
+    if (!(v3 ? value.feature_schema_checksum === V31_PUBLIC215_FEATURE_SCHEMA_V3 : Object.values(V31_PUBLIC215_FEATURE_SCHEMAS).includes(value.feature_schema_checksum))
         || value.public_model.format !== 'public_hist215_v1'
         || value.public_template.format !== 'public_hist215_template_v1'
         || value.public_training_provenance.format !== 'public_hist215_training_v1'
@@ -426,14 +434,14 @@ export function v31Public215BuildEnvelopeIsValid(value, datasetId, withReceipt =
 }
 
 
-export function v31Public215FreezeEnvelopeIsValid(value,datasetId) {
+export function v31Public215FreezeEnvelopeIsValid(value,datasetId,cellContract='v2') {
   if (!exactKeys(value,['context','model_checksum','public_model_build_receipt','model_build_receipt_checksum'])) return false;
   const receipt=value.public_model_build_receipt;
   if (!receipt || typeof receipt!=='object' || Array.isArray(receipt) || receipt.format!=='public_hist215_build_receipt_v1' || receipt.dataset_id!==datasetId || receipt.model_checksum!==value.model_checksum) return false;
   // Reuse the exact canonical transport hash admission with the corresponding
   // payload references; SQL resolves the immutable prepared model independently.
   const canonical=v=>{if(v===null||typeof v==='boolean')return JSON.stringify(v);if(typeof v==='string'&&/^[\x20-\x7e]*$/.test(v))return JSON.stringify(v);if(typeof v==='number'&&Number.isSafeInteger(v)&&!Object.is(v,-0))return JSON.stringify(v);if(Array.isArray(v))return '['+v.map(canonical).join(',')+']';if(v&&typeof v==='object')return '{'+Object.keys(v).sort().map(k=>canonical(k)+':'+canonical(v[k])).join(',')+'}';throw Error('public215 canonical');};
-  try {return typeof value.model_checksum==='string' && HEX_64.test(value.model_checksum) && value.model_checksum!=='0'.repeat(64) && typeof value.model_build_receipt_checksum==='string' && HEX_64.test(value.model_build_receipt_checksum) && createHash('sha256').update(canonical(receipt),'ascii').digest('hex')===value.model_build_receipt_checksum && exactKeys(value.context,['street','game_family','objective','utility_context','table_size','pot_type','hero_position','opponent_position','depth_bucket','texture_class','node_role','facing_kind','facing_size_bucket']);}catch{return false;}
+  try {return typeof value.model_checksum==='string' && HEX_64.test(value.model_checksum) && value.model_checksum!=='0'.repeat(64) && typeof value.model_build_receipt_checksum==='string' && HEX_64.test(value.model_build_receipt_checksum) && createHash('sha256').update(canonical(receipt),'ascii').digest('hex')===value.model_build_receipt_checksum && (cellContract==='v3' ? v31ContextCellContract(value.context)==='v3' : exactKeys(value.context,['street','game_family','objective','utility_context','table_size','pot_type','hero_position','opponent_position','depth_bucket','texture_class','node_role','facing_kind','facing_size_bucket']));}catch{return false;}
 }
 
 
@@ -589,4 +597,65 @@ export function v31Public215HeldoutPhysicsReceiptIsValid(value, payload, selecte
     return ['selection_receipt_checksum','node_checksum','artifact_checksum','audit_key']
       .every(key => heldoutPhysicsHex(value[key]));
   } catch { return false; }
+}
+
+
+// ---------------------------------------------------------------------------
+// V31 CELL CONTRACT v3 AT THE GATEWAY (FLOP-5 D6, dormant).
+// A v3 cell is keyed by the 13 v2 context fields plus "cell_contract": "v3" and
+// "line_class" (Club Arena GtoDecisionContext.gtoV31LineClassV3, World Hub
+// pio_upi.line_class_v3), may use depth 200 and the role "donk", and carries
+// the hist215-v3 feature descriptor (248 features). The route admits a v3
+// envelope only when the database answers that this dataset's round
+// registration declares cell contract v3 (fn_gto_v31_registration_cell_contract);
+// with no such registration every request is refused exactly as before.
+export const V31_PUBLIC215_FEATURE_CONTRACT_V3 = 'holdem-public-hist215-v3';
+export const V31_PUBLIC215_FEATURE_SCHEMA_V3 = '26d9271d8b1b1b2400476e9cb1c22662e0086bf5111b1f2e1ce7281ef131b784';
+export const V31_REGISTRATION_CELL_CONTRACT_PROTOCOL = 'smarter-poker.gto-v31-registration-cell-contract.v1';
+const V2_CONTEXT_KEYS = Object.freeze(['street','game_family','objective','utility_context','table_size','pot_type',
+  'hero_position','opponent_position','depth_bucket','texture_class','node_role','facing_kind','facing_size_bucket']);
+const V3_LINE_TOKEN = '(?:x|c|a|[br]-(?:small|mid|big))';
+const V3_LINE_STREET = `(?:${V3_LINE_TOKEN}(?:[.]${V3_LINE_TOKEN})*)?`;
+const V3_LINE = new RegExp(`^${V3_LINE_STREET}(?:/${V3_LINE_STREET}){0,2}$`);
+const V3_STREETS = Object.freeze(['flop', 'turn', 'river']);
+
+/** The feature contract under cell contract v3: v2's answers plus hist215-v3. */
+export function v31FeatureContractVersionV3(value) {
+  if (Object.prototype.hasOwnProperty.call(value || {}, 'feature_contract_version')
+      && value.feature_contract_version === V31_PUBLIC215_FEATURE_CONTRACT_V3) return V31_PUBLIC215_FEATURE_CONTRACT_V3;
+  return v31FeatureContractVersion(value);
+}
+export function v31IsPublic215FeatureContractV3(version) {
+  return version === V31_PUBLIC215_FEATURE_CONTRACT_V3 || v31IsPublic215FeatureContract(version);
+}
+
+/** A line class valid for its street: one "/" per street after the flop. */
+export function v31LineClassValidV3(line, street) {
+  const index = V3_STREETS.indexOf(street);
+  return typeof line === 'string' && line.length <= 256 && index >= 0
+    && V3_LINE.test(line) && line.split('/').length === index + 1;
+}
+
+/**
+ * 'v2' for exactly the 13 v2 context keys, 'v3' for exactly those plus
+ * cell_contract 'v3' and a line class valid for the street, null otherwise.
+ * Shape only: PostgreSQL owns every value check.
+ */
+export function v31ContextCellContract(context) {
+  if (exactKeys(context, V2_CONTEXT_KEYS)) return 'v2';
+  if (!exactKeys(context, [...V2_CONTEXT_KEYS, 'cell_contract', 'line_class'])) return null;
+  return context.cell_contract === 'v3' && v31LineClassValidV3(context.line_class, context.street) ? 'v3' : null;
+}
+
+/**
+ * The database's answer on a dataset key's registration, or null. Only an exact,
+ * well-formed reply naming this key counts; anything else means "no v3".
+ */
+export function v31RegistrationCellContract(reply, datasetKey) {
+  if (!exactKeys(reply, ['contract', 'dataset_key', 'dataset_id', 'cell_contract'])
+      || reply.contract !== V31_REGISTRATION_CELL_CONTRACT_PROTOCOL
+      || reply.dataset_key !== datasetKey
+      || !(reply.dataset_id === null || (typeof reply.dataset_id === 'string' && UUID_V4.test(reply.dataset_id)))
+      || !['v2', 'v3'].includes(reply.cell_contract)) return null;
+  return reply.cell_contract;
 }
