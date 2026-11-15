@@ -150,13 +150,14 @@ function fakeDb(answers) {
       : { data: typeof answer === 'function' ? answer(callArgs) : answer ?? null, error: null, status: 200 }) };
   } };
 }
-async function call(env, answers) {
+async function call(env, answers, { unset = [] } = {}) {
   // One distinct secret per principal (the gateway refuses a shared key).
   const secrets = { M1: HEX('5'), M2: HEX('6'), COMPACTOR: HEX('7') };
   for (const [principal, value] of Object.entries(secrets)) process.env[`HORSE_SOLVER_V31_${principal}_HMAC_SECRET`] = value;
   const secret = secrets[env.principal];
   process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.invalid';
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-only';
+  for (const name of unset) delete process.env[name];
   const db = fakeDb(answers);
   const { handler } = loadRoute(db);
   const rawBody = Buffer.from(JSON.stringify(env));
@@ -489,4 +490,20 @@ test('a v3 dataset registers only against a v3 round registration that is not li
   const bad = await call(envelope('register_dataset', { ...payload, extra: 1 }), { fn_gto_v31_registration_cell_contract: registration('v3', null),
     fn_solver_ingress_claim: true });
   assert.deepEqual({ status: bad.status, error: bad.body.error }, { status: 400, error: 'Dataset registration payload is invalid' });
+});
+
+test('database authority unavailable: a v3-valid envelope still gets main\'s 400, a v2 envelope main\'s 409', async () => {
+  // main never reaches the database for an envelope it refuses, so neither may the v3 read
+  for (const name of ['SUPABASE_SERVICE_ROLE_KEY', 'NEXT_PUBLIC_SUPABASE_URL']) {
+    for (const env of [buildV3(), envelope('seal_dataset', { dataset_id: DATASET_ID }),
+      envelope('ingest_artifact', { dataset_id: DATASET_ID, artifact: {} }, undefined, 'M1'),
+      envelope('register_dataset', { input_bundle_id: DATASET_ID, declared_coverage: [], quality_gates: {} })]) {
+      const out = await call(env, SEAL_ANSWERS(), { unset: [name] });
+      assert.deepEqual({ status: out.status, body: out.body }, TODAY, `${name} ${env.operation}`);
+      assert.deepEqual(out.calls, [], `${name} ${env.operation}: no database call`);
+    }
+    const v2 = await call(envelope('dataset_contract', {}, 'holdem-public-hist215-v2'), SEAL_ANSWERS(), { unset: [name] });
+    assert.deepEqual({ status: v2.status, body: v2.body },
+      { status: 409, body: { success: false, error: 'V31 gateway database authority is unavailable' } }, `${name} v2`);
+  }
 });

@@ -339,9 +339,11 @@ export function parseV31IngressJson(source) {
 }
 
 export function v31IngressEnvelopeIsValid(envelope, principal, cellContract = 'v2') {
-  // Cell contract v3 (dormant): 'v3' is passed only by the route, and only after
-  // the database confirmed a v3 registration for this dataset. Any other value,
-  // including the default, is today's check unchanged.
+  // Cell contract v3 (dormant): 'v3' is passed only by the route, for an envelope
+  // that the default check refused; one valid under v3 is then admitted only if
+  // the database answers that this dataset key's round registration declares v3
+  // (read after this check, before any write). Any other value, including the
+  // default, is today's check unchanged.
   const featureVersion = cellContract === 'v3' ? v31FeatureContractVersionV3 : v31FeatureContractVersion;
   const isPublic215 = cellContract === 'v3' ? v31IsPublic215FeatureContractV3 : v31IsPublic215FeatureContract;
   if (!exactKeys(envelope, ['contract', 'principal', 'operation', 'provenance', 'payload'])) {

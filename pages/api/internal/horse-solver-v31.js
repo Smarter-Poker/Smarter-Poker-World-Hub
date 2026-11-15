@@ -221,11 +221,12 @@ function compactHeartbeat(envelope) {
 
 /**
  * The registration's cell contract for a dataset key, read before any write.
- * Any failure (function not installed, timeout, malformed reply) is "not v3".
+ * Any failure (database authority unavailable, function not installed, timeout,
+ * malformed reply) is "not v3", so the caller answers with today's refusal.
  */
-async function registrationCellContract(supabase, datasetKey) {
+async function registrationCellContract(datasetKey) {
   try {
-    const reply = await rpc(supabase, 'fn_gto_v31_registration_cell_contract', { p_dataset_key: datasetKey });
+    const reply = await rpc(getSupabase(), 'fn_gto_v31_registration_cell_contract', { p_dataset_key: datasetKey });
     return v31RegistrationCellContract(reply, datasetKey);
   } catch {
     return null;
@@ -738,7 +739,7 @@ export default async function handler(req, res) {
       // for its dataset key. Otherwise this is today's refusal, word for word,
       // before any write (the nonce is not claimed).
       if (!v31IngressEnvelopeIsValid(envelope, principal, 'v3')
-          || await registrationCellContract(getSupabase(), envelope.provenance.dataset_key) !== 'v3') {
+          || await registrationCellContract(envelope.provenance.dataset_key) !== 'v3') {
         throw new GatewayError('V31 gateway envelope is invalid');
       }
       cellContract = 'v3';
