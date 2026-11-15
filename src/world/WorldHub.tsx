@@ -23,6 +23,8 @@ import { useLaunchAnimation } from './components/LaunchPad';
 import { useCinematicIntro } from './components/CinematicIntro';
 import { useReturnBurst } from './components/ReturnBurst';
 import { HubErrorBoundary } from '../components/ui/HubErrorBoundary';
+import { hasHubGraphics } from './hubGraphics';
+import { HubCardNavigation } from './HubCardNavigation';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 📱 MOBILE DETECTION HOOK
@@ -225,6 +227,8 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
 
     // Mobile detection
     const isMobile = useIsMobile();
+    const [graphicsAvailable, setGraphicsAvailable] = useState(false);
+    useEffect(() => { setGraphicsAvailable(hasHubGraphics()); }, []);
 
     // Real-time Cloud Hydration for Hub Preferences
     useEffect(() => {
@@ -629,8 +633,8 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                 3D SPATIAL LAYER — Camera for massive main card
                 z-index: 5 puts cards ABOVE background but BELOW HUD (z-index: 10)
                 ═══════════════════════════════════════════════════════════════ */}
-                <HubErrorBoundary name="3D Canvas Engine" fallback={<div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.2)', fontFamily: 'Rajdhani, sans-serif' }}>[3D Engine Offline]</div>}>
-                    <Canvas
+                <HubErrorBoundary name="3D Canvas Engine" fallback={<HubCardNavigation orbs={carouselOrbs} onOrbSelect={handleOrbSelect} />}>
+                    {graphicsAvailable ? <Canvas
                         style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 5 }}
                         dpr={[1, 2]}
                         camera={{ position: [0, 0, 24], fov: 60 }}
@@ -682,7 +686,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                                 isMobile={isMobile}
                             />
                         </Suspense>
-                    </Canvas>
+                    </Canvas> : <HubCardNavigation orbs={carouselOrbs} onOrbSelect={handleOrbSelect} />}
                 </HubErrorBoundary>
 
 
