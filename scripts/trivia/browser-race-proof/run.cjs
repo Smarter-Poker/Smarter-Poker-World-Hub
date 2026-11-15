@@ -148,15 +148,24 @@ const snapshot = (owner, state) => ({
       expect(await page.locator('html').getAttribute('data-trivia-active-run-count')).toBe('1');
       expect(await page.evaluate(() => Number(sessionStorage.loads))).toBe(initial);
       await page.evaluate(() => window.releaseTwo());
-      await page.waitForFunction((n) => Number(sessionStorage.loads) === n, initial + 1);
-      await page.waitForFunction(() => window.acquireLease);
+      // The November 10 owner rule is stronger than the retired lease guard:
+      // worker promotion never reloads this document, including after release.
+      await flush(page);
       expect(await page.evaluate(() => window.activeLease())).toBe(false);
+      expect(await page.locator('html').getAttribute('data-trivia-active-run-count')).toBe(null);
+      expect(await page.evaluate(() => Number(sessionStorage.loads))).toBe(initial);
+      expect(await page.evaluate(() => new Promise((resolve) => {
+        const channel = new MessageChannel();
+        channel.port1.onmessage = event => resolve(event.data);
+        navigator.serviceWorker.controller.postMessage('version', [channel.port2]);
+      }))).toBe(2);
       await page.evaluate(() =>
         navigator.serviceWorker.dispatchEvent(new Event('controllerchange'))
       );
-      expect(await page.evaluate(() => Number(sessionStorage.loads))).toBe(initial + 1);
+      await flush(page);
+      expect(await page.evaluate(() => Number(sessionStorage.loads))).toBe(initial);
       results.push(
-        'sw: real V1->V2 browser worker takeover deferred through two leases; exactly one reload after final release; cooldown prevented repeated reload'
+        'sw: real V1->V2 browser worker takes control; two leases, final release and repeated controllerchange never reload the document'
       );
       await ctx.close();
     }
