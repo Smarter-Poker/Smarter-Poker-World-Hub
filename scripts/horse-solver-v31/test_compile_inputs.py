@@ -97,5 +97,75 @@ class InputCompilerTests(unittest.TestCase):
             self.assertEqual((root / "out/ranges/range.txt").read_text().split()[:4], ["0.0601", "0.0057", "0.1227", "0"])
 
 
+def fixture_recipe(root, depth_bucket):
+    """One deterministic range recipe (fixed bytes, so the compiled receipt is a fixed digest)."""
+    order = list(reversed(canonical_hand_order_tokens()))
+    order_bytes = " ".join(order).encode()
+    range_bytes = ("1 " + "0.25 " * 1325).encode()
+    (root / "order.txt").write_bytes(order_bytes)
+    (root / "range.txt").write_bytes(range_bytes)
+    provenance = {"origin": "authored_reviewed", "source_reference": "fixture:contract-v3-depth",
+                  "game_family": "cash", "table_size": 6, "depth_bucket": depth_bucket,
+                  "pot_type": "srp", "player_position": "BB", "action_line": "BTN raise BB call",
+                  "reviewed_by": "unit-test"}
+    recipe = {"contract": RECIPE_CONTRACT, "ranges": [{"id": "range", "path": "range.txt",
+              "checksum": sha(range_bytes), "order_path": "order.txt", "order_checksum": sha(order_bytes),
+              "provenance": provenance}], "models": []}
+    (root / "recipe.json").write_bytes(encoded(recipe))
+    return root / "recipe.json"
+
+
+# The v2 compile of fixture_recipe(depth 150), measured on origin/main 3085ffb50e
+# before cell contract v3 reached the compiler (receipt bytes, then the file).
+V2_RECEIPT_CHECKSUM_ON_MAIN = "eac71c90856f9139e14883fd6ef227e9d3b88e746aacca4b7d7ef164affd554e"
+
+
+class CellContractV3RangeDepthTests(unittest.TestCase):
+    """Cell contract v3 (dormant): 200 bb range provenance only when explicitly requested."""
+
+    def test_default_v2_compile_is_byte_identical_to_main(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            recipe = fixture_recipe(root, 150)
+            result = compile_recipe(recipe, root, root / "out")
+            receipt = (root / "out/derivation-receipt.json").read_bytes()
+            self.assertEqual(sha(receipt), V2_RECEIPT_CHECKSUM_ON_MAIN)
+            self.assertEqual(result["receipt_checksum"], V2_RECEIPT_CHECKSUM_ON_MAIN)
+            self.assertNotIn("cell_contract", json.loads(receipt))
+
+    def test_depth_200_is_refused_unless_v3_is_requested(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            recipe = fixture_recipe(root, 200)
+            with self.assertRaises(ContractError):
+                compile_recipe(recipe, root, root / "v2")
+            self.assertFalse((root / "v2").exists())
+            for depth in (150, 200):  # an unknown request is refused even for a depth v2 admits
+                recipe = fixture_recipe(root, depth)
+                for bad in ("v2", "v4", "V3", True, ""):
+                    with self.subTest(depth=depth, cell_contract=bad), self.assertRaises(ContractError):
+                        compile_recipe(recipe, root, root / "bad", cell_contract=bad)
+                self.assertFalse((root / "bad").exists())
+            compile_recipe(recipe, root, root / "v3", cell_contract="v3")
+            receipt = json.loads((root / "v3/derivation-receipt.json").read_bytes())
+            self.assertEqual(receipt["cell_contract"], "v3")
+            self.assertEqual(receipt["derivations"][0]["provenance"]["depth_bucket"], 200)
+            self.assertIs(receipt["approved"], False)
+
+    def test_v3_keeps_every_v2_depth_and_still_refuses_unknown_depths(self):
+        from compile_inputs import DEPTH_BUCKETS_V2, DEPTH_BUCKETS_V3
+        from pio_upi import V3_DEPTH_BUCKETS
+        # the same depth sets the scenario validator and the registration guard use
+        self.assertEqual(set(DEPTH_BUCKETS_V3), set(V3_DEPTH_BUCKETS))
+        self.assertEqual(set(DEPTH_BUCKETS_V3) - set(DEPTH_BUCKETS_V2), {200})
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for depth in (*DEPTH_BUCKETS_V2, 200):
+                compile_recipe(fixture_recipe(root, depth), root, root / f"ok{depth}", cell_contract="v3")
+            for depth in (100, 173, 250, 400, 0):
+                with self.subTest(depth=depth), self.assertRaises(ContractError):
+                    compile_recipe(fixture_recipe(root, depth), root, root / f"no{depth}", cell_contract="v3")
+
+
 if __name__ == "__main__":
     unittest.main()

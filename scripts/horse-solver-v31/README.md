@@ -312,10 +312,39 @@ not declare hist215-v1 or v2. Matrix contracts are unaffected. Club Arena mirror
 (`GtoDecisionContext.gtoV31LineClassV3` / `classifyGtoDecisionContextV3`,
 `GtoPostflopV31.gtoStreetAdviceV31V3`, migration `20261113143100`, which ties
 the two contracts at dataset insert too). `final_public215_training.export_scalar_head`
-checks the fitted width against the declared contract (215, 246 or 248). Not yet
-v3: the public215 training metadata path (`validate_context_metadata`), the gateway, and the database's runtime cells,
-which have no `line_class` column, so a v3 round can be registered but not
-built or sealed until those are extended.
+checks the fitted width against the declared contract (215, 246 or 248).
+
+### Training path (2026-11-15, dormant)
+
+The training path can emit contract v3 cells, but only when a run asks for
+them; a v2 run takes the same path as before (its compiled inputs are
+byte-identical to main's, pinned by `test_compile_inputs`, and v2 metadata and
+line answers matched main in a differential run).
+
+- `compile_inputs.py --cell-contract v3` also admits 200 bb range provenance
+  and writes `"cell_contract": "v3"` into the derivation receipt. Without the
+  flag 200 bb is refused as before and the receipt has no such field. Declaring
+  an 80 bb range as the 200 bb input is a false provenance statement: a
+  registrable 200 bb dataset needs real 200 bb ranges.
+- `public_hist215.validate_context_metadata` (and the runtime parity protocol
+  check) accept a 15-key v3 context (`context_cell_contract`, the same rule as
+  `registration_cell_contract`) and tie the approved descriptor to the contexts
+  both ways: the hist215-v3 descriptor only over v3 contexts, v3 contexts only
+  under it. The template check derives the root actor under the scenario's cell
+  contract, so a `donk` target (including the flop root) is checked, not refused.
+- `final_public215_training.py` fits a v3 manifest only with
+  `--cell-contract v3` (default `v2`); the request is checked right after the
+  manifest loads, before any registration, capture, feature or label file is
+  read, and a v3 request over a v2 manifest is refused too. The public matrix
+  actor is derived under the scenario's cell contract. The fitted fragment's
+  context is the 15-key v3 cell, the model is 248 wide and names the hist215-v3
+  descriptor (`26d9271d...`, pinned with Club Arena).
+
+Still v2 only (each refuses v3, fail closed): the gateway
+(`src/lib/horses/solverV31IngressAuth.mjs`) and the Club Arena database's
+dataset, runtime-cell (no `line_class` column), agreement-receipt and SQL
+encoding checks. They open together with the Club Arena build path, so a v3
+round can be registered and its models fitted here, but not built or sealed.
 
 ## Pio semantics pinned by the worker
 
