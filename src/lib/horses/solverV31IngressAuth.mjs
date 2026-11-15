@@ -446,11 +446,17 @@ export function v31Public215FreezeEnvelopeIsValid(value,datasetId,cellContract='
 
 
 // Admission for a private derived audit, never a model-freeze acknowledgement.
-export function v31Public215PhysicsPayloadIsValid(payload, contract) {
+// cellContract 'v3' (dormant) is passed only by the route's v3 dispatch, after the
+// database confirmed a v3 registration: the dataset must then be hist215-v3 and
+// the freeze must carry a v3 cell. Any other value, including the default, is
+// today's check unchanged (the same holds for the three functions below).
+export function v31Public215PhysicsPayloadIsValid(payload, contract, cellContract = 'v2') {
+  const v3 = cellContract === 'v3';
   return exactKeys(payload, ['dataset_id','context','physics_board','preparation_offset'])
     && payload.dataset_id === contract.dataset_id
     && contract.state === 'building'
-    && v31IsPublic215FeatureContract(v31FeatureContractVersion(contract))
+    && (v3 ? v31FeatureContractVersionV3(contract) === V31_PUBLIC215_FEATURE_CONTRACT_V3
+      : v31IsPublic215FeatureContract(v31FeatureContractVersion(contract)))
     && Number.isSafeInteger(contract.declared_cells) && contract.declared_cells > 0
     && contract.declared_cells <= 2147483647
     && Number.isSafeInteger(payload.preparation_offset) && payload.preparation_offset >= 0
@@ -458,11 +464,13 @@ export function v31Public215PhysicsPayloadIsValid(payload, contract) {
     && !Object.is(payload.preparation_offset, -0)
     && typeof payload.physics_board === 'string' && /^(?:[2-9TJQKA][cdhs]){3,5}$/.test(payload.physics_board)
     && new Set(payload.physics_board.match(/../g)).size === payload.physics_board.length / 2
-    && v31Public215FreezeEnvelopeIsValid(payload.context, contract.dataset_id);
+    && (v3 ? v31Public215FreezeEnvelopeIsValid(payload.context, contract.dataset_id, 'v3')
+      : v31Public215FreezeEnvelopeIsValid(payload.context, contract.dataset_id));
 }
 
-export function v31Public215ApprovedPhysicsPreparation(payload, contract, rows) {
-  if (!v31Public215PhysicsPayloadIsValid(payload, contract)
+export function v31Public215ApprovedPhysicsPreparation(payload, contract, rows, cellContract = 'v2') {
+  if (!(cellContract === 'v3' ? v31Public215PhysicsPayloadIsValid(payload, contract, 'v3')
+    : v31Public215PhysicsPayloadIsValid(payload, contract))
       || !Array.isArray(rows) || rows.length !== 1) return null;
   const canonical = (value, depth = 0) => {
     if (depth > 128) throw Error('public215 depth');
@@ -516,17 +524,20 @@ export function v31Public215ApprovedPhysicsPreparation(payload, contract, rows) 
 
 
 // Post-capture derived audits use a server-selected M2 board, never caller labels.
-export function v31Public215HeldoutPhysicsPayloadIsValid(payload, contract) {
+export function v31Public215HeldoutPhysicsPayloadIsValid(payload, contract, cellContract = 'v2') {
+  const v3 = cellContract === 'v3';
   return exactKeys(payload, ['dataset_id','context','preparation_offset','heldout_board_offset'])
     && payload.dataset_id === contract.dataset_id && contract.state === 'building'
-    && v31IsPublic215FeatureContract(v31FeatureContractVersion(contract))
+    && (v3 ? v31FeatureContractVersionV3(contract) === V31_PUBLIC215_FEATURE_CONTRACT_V3
+      : v31IsPublic215FeatureContract(v31FeatureContractVersion(contract)))
     && Number.isSafeInteger(contract.declared_cells) && contract.declared_cells > 0
     && contract.declared_cells <= 2147483647
     && Number.isSafeInteger(payload.preparation_offset) && payload.preparation_offset >= 0
     && !Object.is(payload.preparation_offset, -0) && payload.preparation_offset < contract.declared_cells
     && Number.isSafeInteger(payload.heldout_board_offset) && payload.heldout_board_offset >= 0
     && !Object.is(payload.heldout_board_offset, -0) && payload.heldout_board_offset < 8
-    && v31Public215FreezeEnvelopeIsValid(payload.context, contract.dataset_id);
+    && (v3 ? v31Public215FreezeEnvelopeIsValid(payload.context, contract.dataset_id, 'v3')
+      : v31Public215FreezeEnvelopeIsValid(payload.context, contract.dataset_id));
 }
 
 function heldoutPhysicsCanonical(value, depth = 0) {
@@ -541,8 +552,9 @@ function heldoutPhysicsCanonical(value, depth = 0) {
 const heldoutPhysicsHex = value => typeof value === 'string' && HEX_64.test(value) && value !== '0'.repeat(64);
 const heldoutPhysicsHash = value => createHash('sha256').update(heldoutPhysicsCanonical(value), 'ascii').digest('hex');
 
-export function v31Public215FrozenHeldoutPreparation(payload, contract, rows) {
-  if (!v31Public215HeldoutPhysicsPayloadIsValid(payload, contract)
+export function v31Public215FrozenHeldoutPreparation(payload, contract, rows, cellContract = 'v2') {
+  if (!(cellContract === 'v3' ? v31Public215HeldoutPhysicsPayloadIsValid(payload, contract, 'v3')
+    : v31Public215HeldoutPhysicsPayloadIsValid(payload, contract))
       || !Array.isArray(rows) || rows.length !== 1) return null;
   try {
     const p = rows[0], freeze = payload.context, receipt = freeze.public_model_build_receipt;
