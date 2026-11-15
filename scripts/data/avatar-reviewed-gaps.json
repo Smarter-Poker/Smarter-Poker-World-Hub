@@ -838,6 +838,14 @@
         [0.891127, 0.569085],
         [0.879112, 0.598718]
       ]
+    },
+    {
+      "file": "table/custom_whytegold502_9c94404b35df@2x.webp",
+      "sha256": "9c94404b35df68ef850e4a330123f47263e63b37f9d17f1f84ba34c54525646e",
+      "reason": "Intentional transparent space between the hanging jersey sleeve, forearm and foreground chip stacks; enlarged visual review confirms this is exterior background, not missing fabric.",
+      "centroids": [
+        [0.317434, 0.872995]
+      ]
     }
   ]
 }
