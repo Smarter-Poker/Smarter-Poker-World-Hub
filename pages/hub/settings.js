@@ -1261,7 +1261,7 @@ export default function SettingsPage() {
                                                     // and clears localStorage — wrong destination).
                                                     // Route through /auth/callback so the recovery
                                                     // flow lands on /auth/reset-password.
-                                                    redirectTo: `${window.location.origin}/auth/callback`
+                                                    redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent('/auth/reset-password')}`
                                                 });
                                                 if (error) {
                                                     setPasswordResetStatus('error');
