@@ -437,7 +437,6 @@ export default function SignUpPage() {
   // exchangeCodeForSession fails with "code verifier not found".
   const handleOAuthSignIn = async (provider) => {
     if (loading || oauthLoading) return;
-    const opening = beginOpening();
     /* ── www -> apex, and the PKCE code_verifier scope ─────────────────────
        PKCE stores its code_verifier in localStorage on the ORIGIN that called
        signInWithOAuth, and www.smarter.poker is a different origin from
@@ -453,6 +452,7 @@ export default function SignUpPage() {
        whoever opened it. A one-shot sessionStorage marker cannot rescue that
        either - sessionStorage is per-origin too, so a marker written on www is
        unreadable on the apex, which is the single hop it existed to survive. */
+    const opening = beginOpening();
     setError('');
     setOauthLoading(provider);
     /* Remember which page started the flow. /auth/callback always bounced a
