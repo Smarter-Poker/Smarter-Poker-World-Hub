@@ -118,6 +118,11 @@ const CONTENT_GUARDS = [
         why: 'Recovery emails must carry ?next=/auth/reset-password so users still reach the reset form if the email template uses {{ .ConfirmationURL }} instead of {{ .TokenHash }}.',
     },
     {
+        file: 'pages/hub/settings.js',
+        pattern: /resetPasswordForEmail[\s\S]{0,650}redirectTo:[^\n]*auth\/callback\?next=[^\n]*auth\/reset-password/,
+        why: 'Settings must preserve the password-reset destination for a code-only callback.',
+    },
+    {
         file: 'pages/api/cron/login-probe.js',
         pattern: /oauth_chain/,
         why: 'The OAuth-chain health check is what catches a dead custom auth domain (auth.smarter.poker TLS outage, 2026-07-25) — password probes alone stay green during that failure.',

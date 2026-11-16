@@ -529,6 +529,33 @@ class PokerSeriesDiscoveryTests(unittest.TestCase):
         self.assertEqual(0, control["error_streak"])
         self.assertEqual(6 * 60 * 60, control["sleep_seconds"])
 
+    def test_healthy_empty_cycles_survive_twelve_hours_without_restart(self):
+        elapsed = [0]
+        cycles = []
+        def cycle():
+            cycles.append(elapsed[0])
+            if len(cycles) == 3:
+                scraper.STOP_REQUESTED = True
+            return 0
+        def sleep(seconds):
+            elapsed[0] += seconds
+        with (mock.patch.object(scraper, "main", side_effect=cycle),
+              mock.patch.object(scraper.time, "sleep", side_effect=sleep),
+              mock.patch.object(scraper.time, "time", side_effect=lambda: elapsed[0]),
+              mock.patch.object(scraper, "log"),
+              mock.patch("signal.signal"),
+              mock.patch.dict(scraper.RUN_ERRORS, {k: 0 for k in scraper.RUN_ERRORS}, clear=True)):
+            scraper.run_daemon()
+        self.assertEqual([0, 21600, 43200], cycles)
+
+    def test_daemon_programming_failure_remains_a_failure(self):
+        with (mock.patch.object(scraper, "main", side_effect=TypeError("broken cycle")),
+              mock.patch.object(scraper, "log"), mock.patch("signal.signal"),
+              mock.patch("traceback.print_exc")):
+            with self.assertRaises(SystemExit) as stopped:
+                scraper.run_daemon()
+        self.assertEqual(1, stopped.exception.code)
+
     def test_numeric_official_source_is_fetched_once_and_identity_checked(self):
         wrong_page = """
         <html><head><title>Casino Lisboa Poker Tournaments</title></head>

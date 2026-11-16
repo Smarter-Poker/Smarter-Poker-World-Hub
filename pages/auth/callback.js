@@ -206,7 +206,7 @@ export default function AuthCallback() {
                     // Recovery links go to the password-reset page, not the hub.
                     if (typeStr === 'recovery') {
                         setStatus('Redirecting to password reset…');
-                        return setTimeout(() => router.replace('/auth/reset-password'), 600);
+                        return await router.replace('/auth/reset-password');
                     }
                 }
 
@@ -234,6 +234,10 @@ export default function AuthCallback() {
 
                 if (!session?.user) {
                     return goLogin('No active session found. Please sign in again.', 'no_session');
+                }
+
+                if (router.query.next === '/auth/reset-password' || hashParams.get('type') === 'recovery') {
+                    return await router.replace('/auth/reset-password');
                 }
 
                 const user = session.user;

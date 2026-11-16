@@ -160,6 +160,7 @@ import PageErrorBoundary from '../src/components/ui/PageErrorBoundary';
 import UniversalHeader from '../src/components/ui/UniversalHeader';
 import WorldCopyPolicy from '../src/components/ui/WorldCopyPolicy';
 import BottomNavBar, { BottomNavSpacer } from '../src/components/ui/BottomNavBar';
+import ActivePokerSeatLink from '../src/components/ui/ActivePokerSeatLink';
 import OfflineBar from '../src/components/ui/OfflineBar';
 import TutorialProvider from '../src/components/tutorial/TutorialProvider';
 import bottomNavRoutes from '../src/config/bottom-nav-routes.json';
@@ -1227,6 +1228,7 @@ export default function App({ Component, pageProps }) {
                                 )}
                               </PageErrorBoundary>
                               {!isClubArenaRoute && <WorldCommandDock />}
+                              {!isEmbedded && !isClubArenaRoute && path.startsWith('/hub') && automaticPlayerWrites && <ActivePokerSeatLink />}
                               {!isEmbedded && !isClubArenaRoute && path !== '/hub/messenger' && !path.startsWith('/auth/') && automaticPlayerWrites && <MessengerDockHost />}
                               {showBottomNav && (
                                 <BottomNavSpacer
