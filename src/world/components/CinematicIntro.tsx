@@ -584,24 +584,65 @@ export function CinematicIntro({ onComplete, duration = 4000 }: CinematicIntroPr
     const [logoOpacity, setLogoOpacity] = useState(0);
     const [logoScale, setLogoScale] = useState(0.7);
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const hasStartedRef = useRef(false);
+    const [playing, setPlaying] = useState(false);
+    const [needsTap, setNeedsTap] = useState(false);
+    const [audioFailed, setAudioFailed] = useState(false);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+    const attemptRef = useRef(0);
+    const completeRef = useRef(onComplete);
+    completeRef.current = onComplete;
     const startTimeRef = useRef(0);
 
     const { emit } = useAdvancedParticles(canvasRef, phase);
 
-    useEffect(() => {
-        if (hasStartedRef.current) return;
-        hasStartedRef.current = true;
-        startTimeRef.current = performance.now();
-
-        // Play the cinematic intro audio via SoundEngine
-        SoundEngine.play('cinematicIntro');
-
-        // Haptic buildup
-        if ('vibrate' in navigator) {
+    const startOpening = useCallback((fromTap = false) => {
+        const attempt = ++attemptRef.current;
+        audioRef.current?.pause();
+        setNeedsTap(false);
+        setAudioFailed(false);
+        // iOS haptics must begin in the actual gesture, before awaiting audio.
+        if (fromTap && typeof navigator.vibrate === 'function') {
             navigator.vibrate([30, 80, 30, 80, 30, 80, 200]);
         }
+        audioRef.current = SoundEngine.play('cinematicIntro', {
+            onStarted: () => {
+                if (attempt !== attemptRef.current) return;
+                if (!fromTap && typeof navigator.vibrate === 'function') {
+                    navigator.vibrate([30, 80, 30, 80, 30, 80, 200]);
+                }
+                setPlaying(true);
+            },
+            onError: (error) => {
+                if (attempt !== attemptRef.current) return;
+                setAudioFailed(error?.name !== 'NotAllowedError');
+                setNeedsTap(true);
+            },
+        });
+        if (!audioRef.current) {
+            setAudioFailed(true);
+            setNeedsTap(true);
+        }
+    }, []);
 
+    useEffect(() => {
+        // Mobile haptics still need a gesture even when sound autoplay is allowed.
+        const needsHapticGesture = window.__iosHapticsInstalled || (
+            navigator.maxTouchPoints > 0 && typeof navigator.vibrate === 'function' &&
+            navigator.userActivation?.hasBeenActive === false
+        );
+        if (needsHapticGesture) setNeedsTap(true);
+        else startOpening();
+        return () => {
+            ++attemptRef.current;
+            audioRef.current?.pause();
+        };
+    }, [startOpening]);
+
+    useEffect(() => {
+        if (!playing) return;
+        startTimeRef.current = performance.now();
+        let frame: number;
+        let impacted = false;
         const cx = window.innerWidth / 2;
         const cy = window.innerHeight / 2;
 
@@ -617,7 +658,8 @@ export function CinematicIntro({ onComplete, duration = 4000 }: CinematicIntroPr
                     emit(cx, cy, 1, 'dust', { speed: 1, life: 1.5 });
                 }
             } else if (p < 0.25) {
-                if (phase !== 'impact') {
+                if (!impacted) {
+                    impacted = true;
                     setPhase('impact');
                     setScreenGlow(1);
                     emit(cx, cy, 80, 'spark', { speed: 25, life: 0.8 });
@@ -627,7 +669,7 @@ export function CinematicIntro({ onComplete, duration = 4000 }: CinematicIntroPr
                 }
             } else if (p < 0.6) {
                 setPhase('expand');
-                setScreenGlow(Math.max(0, screenGlow - 0.03));
+                setScreenGlow(Math.max(0, 1 - (p - 0.25) / 0.35));
                 if (Math.random() < 0.15) {
                     const angle = Math.random() * Math.PI * 2;
                     const dist = 100 + Math.random() * 200;
@@ -643,14 +685,15 @@ export function CinematicIntro({ onComplete, duration = 4000 }: CinematicIntroPr
             }
 
             if (p < 1) {
-                requestAnimationFrame(animate);
+                frame = requestAnimationFrame(animate);
             } else {
-                onComplete();
+                completeRef.current();
             }
         };
 
-        requestAnimationFrame(animate);
-    }, [duration, onComplete, emit, phase, screenGlow]);
+        frame = requestAnimationFrame(animate);
+        return () => cancelAnimationFrame(frame);
+    }, [duration, emit, playing]);
 
     return (
         <div style={{
@@ -663,6 +706,21 @@ export function CinematicIntro({ onComplete, duration = 4000 }: CinematicIntroPr
             zIndex: 10000,
             overflow: 'hidden',
         }}>
+            {!playing && (
+                <div style={{ position: 'absolute', inset: 0, zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20, color: '#fff', padding: 24 }}>
+                    {needsTap && (
+                        <>
+                            <p role="status">{audioFailed ? 'Opening Sound Could Not Load.' : 'Tap To Start With Sound And Haptics.'}</p>
+                            <button type="button" onClick={() => startOpening(true)} style={{ padding: '16px 24px', color: '#fff', background: '#096ca8', border: '1px solid #7dd3fc', borderRadius: 8, fontSize: 18 }}>
+                                {audioFailed ? 'Retry Opening' : 'Start Opening'}
+                            </button>
+                        </>
+                    )}
+                    <button type="button" onClick={() => completeRef.current()} style={{ padding: 12, color: '#fff', background: 'transparent', border: '1px solid #64748b', borderRadius: 8 }}>
+                        Skip Opening
+                    </button>
+                </div>
+            )}
             <canvas
                 ref={canvasRef}
                 style={{

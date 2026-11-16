@@ -297,7 +297,7 @@ class SoundEngineClass {
      * Play a sound by its slot name
      * Returns the Audio element for control (pause, etc.)
      */
-    play(key: string, options?: { volume?: number; loop?: boolean }): HTMLAudioElement | null {
+    play(key: string, options?: { volume?: number; loop?: boolean; onStarted?: () => void; onError?: (error: unknown) => void }): HTMLAudioElement | null {
         if (this.muted) return null;
 
         const slot = AUDIO_SLOTS[key];
@@ -321,8 +321,11 @@ class SoundEngineClass {
         audio.volume = Math.min(1, Math.max(0, volume));
         audio.loop = options?.loop ?? false;
 
-        audio.play().catch(err => {
+        audio.play().then(() => {
+            options?.onStarted?.();
+        }).catch(err => {
             console.warn(`[SoundEngine] Play failed for ${key}:`, err.message);
+            options?.onError?.(err);
         });
 
         return audio;
