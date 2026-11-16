@@ -60,6 +60,18 @@
         "width": 381,
         "height": 455
       }
+    },
+    {
+      "username": "Bud33",
+      "profileId": "75404279-3f7f-4eb1-bedd-f4bb07373d4a",
+      "file": "avatars/table/custom_bud33_bc20109ec08f@2x.webp",
+      "sha256": "bc20109ec08fd3d0d78f431bc6835926a5141367ea119af289047468231bb76b",
+      "bounds": {
+        "left": 61,
+        "top": 51,
+        "width": 389,
+        "height": 455
+      }
     }
   ]
 }
