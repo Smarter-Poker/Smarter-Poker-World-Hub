@@ -917,6 +917,8 @@ export default function SignUpPage() {
 
   // The form fields, rendered once for the desktop art card and once for the
   // phone layout (CSS decides which tree is visible; both share this state).
+  const promoPlayThroughTerms = 'Club Promo Chips Require Fees Equal To Four Times The Original Grant Before The Remaining Promo Principal Can Be Cashed Out Or Claimed Back By An Agent. Profit And Your Own Chips Stay Cashable. Tickets Must Use Cashable Player Or Agent Wallet Chips; Promo Chips Can Fund Tournament Entry Directly.';
+
   const signupFields = (
     <>
                 {/* First Name & Last Name */}
@@ -1166,6 +1168,7 @@ export default function SignUpPage() {
                     </div>
                   )}
                 </div>
+                <p style={phoneStyles.termsText}>{promoPlayThroughTerms}</p>
     </>
   );
 
@@ -1811,7 +1814,7 @@ export default function SignUpPage() {
                 {legalModal === 'terms' ? (
                   <>
                     <h2 style={{ color: '#00d4ff', marginTop: 0, fontSize: '18px' }}>Terms Of Service</h2>
-                    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px', marginBottom: '20px' }}>Last Updated: January 1, 2026</p>
+                    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px', marginBottom: '20px' }}>Last Updated: November 16, 2026</p>
 
                     <h3 style={{ color: '#fff', fontSize: '14px' }}>1. Acceptance Of Terms</h3>
                     <p>By Creating An Account On Smarter.Poker, You Agree To Be Bound By These Terms Of Service. If You Do Not Agree, Please Do Not Use Our Platform.</p>
@@ -1824,6 +1827,9 @@ export default function SignUpPage() {
 
                     <h3 style={{ color: '#fff', fontSize: '14px' }}>4. Diamonds &amp; Virtual Currency</h3>
                     <p>Diamonds Are A Virtual Currency Used Within Smarter.Poker. They Hold No Monetary Value And Cannot Be Exchanged For Real Money. Prize Redemptions Are Subject To Eligibility Requirements And Applicable State Regulations.</p>
+
+                    <h3 style={{ color: '#fff', fontSize: '14px' }}>Club Promo Chips</h3>
+                    <p>{promoPlayThroughTerms}</p>
 
                     <h3 style={{ color: '#fff', fontSize: '14px' }}>5. Restricted States</h3>
                     <p>Prize Redemptions May Be Restricted In Certain States Including Washington, Idaho, Michigan, Nevada, And California Per Applicable Regulations. Training Features Remain Fully Available In All States.</p>

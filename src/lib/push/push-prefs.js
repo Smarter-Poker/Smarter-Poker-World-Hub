@@ -132,6 +132,7 @@ const EVENT_ALIASES = {
     // sign-up who has not played, the join-a-club nudge and the play nudge.
     // Gated by the Bonuses switch like every other chip promotion.
     welcome_back_chips: 'bonus',
+    promo_play_through: 'bonus',
     welcome_back_club_nudge: 'bonus',
     welcome_back_play_nudge: 'bonus',
     // poker
