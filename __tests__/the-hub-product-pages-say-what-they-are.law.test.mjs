@@ -11,8 +11,9 @@
  * answer may cite.
  *
  * src/components/seo/HubPageSummary.js is the server-rendered answer, the
- * same one the landing page already uses. This pins that every page the
- * sitemap promotes still renders it, that each entry carries enough words
+ * same one the landing page already uses. The root lobby has no summary after
+ * the November 16 owner correction. This pins that the product pages still
+ * render it, that each entry carries enough words
  * to be worth reading, and that the copy obeys the house rules.
  *
  * Reads source files; runs in the Build Safety Gate with no install.
@@ -28,7 +29,6 @@ const read = (file) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 /** page file -> the summary key it must render. */
 const PAGES = {
-  'pages/hub/index.js': 'hub',
   'pages/hub/home-games.js': 'home-games',
   'pages/hub/bankroll-manager.js': 'bankroll-manager',
   'pages/hub/poker-near-me/lobby.js': 'poker-near-me',
@@ -46,11 +46,16 @@ test('every thin hub page renders its summary, and imports it', () => {
   }
 });
 
-test('the hub root asks for an h1, because it has no heading of its own', () => {
+test('the hub launches directly into its lobby without exposing a summary or loading page', () => {
   const src = read('pages/hub/index.js');
-  assert.match(src, /<HubPageSummary page="hub" as="h1" \/>/);
-  // WorldHub is ssr:false, so without this the server HTML has no heading.
+  // Owner direction, November 16: the summary flashed before the client-only
+  // lobby arrived. It must never be mounted under the carousel or during load.
+  assert.doesNotMatch(src, /import HubPageSummary|<HubPageSummary/);
+  assert.doesNotMatch(src, /WorldHubLoadingText|Loading World Hub/);
   assert.match(src, /ssr: false/);
+  assert.match(src, /loading: \(\) => \([\s\S]*?data-hub-launch-shell[\s\S]*?aria-hidden="true"/);
+  assert.match(src, /position: 'fixed', inset: 0, zIndex: 9990, background: '#000'/);
+  assert.match(src, /jsonLd=\{HUB_SCHEMA\}/, 'page metadata remains server rendered');
 });
 
 test('each summary carries enough words to be worth reading, and links onward', () => {

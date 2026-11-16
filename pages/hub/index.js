@@ -6,15 +6,13 @@ import { shouldOfferPhoneWelcome } from '../../src/lib/phoneWelcome';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import useHasMounted from '../../src/hooks/useHasMounted';
 import { supabase } from '../../src/lib/supabase';
 import Head from 'next/head';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { hubCollectionSchema } from '../../src/lib/seo/hubPageSchema';
 
-// AEO phase 3 (2026-09-17): the hub is an index of the products, not a
-// product of its own, so CollectionPage is the honest type. It carries
-// 3,276 server-rendered words and shipped no structured data at all.
+// The hub is an index of products, so CollectionPage describes its metadata.
+// Launch renders only the lobby; product descriptions live on their own pages.
 const HUB_SCHEMA = hubCollectionSchema({
     path: '/hub',
     name: 'Smarter.Poker Hub',
@@ -22,7 +20,6 @@ const HUB_SCHEMA = hubCollectionSchema({
         'Every Smarter.Poker Product In One Place: GTO Training, Private Clubs In Poker Arena, Club Commander Room Management, Poker Near Me, Home Games And The Bankroll Manager.',
     trail: [['Hub', '/hub']],
 });
-import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import dynamic from 'next/dynamic';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
@@ -59,35 +56,17 @@ const WorldHub = dynamic(
     }),
     {
         ssr: false,
+        // This shell is also the server's first paint. Keep it opaque and empty
+        // until the actual lobby bundle is ready; no summary or loading page flashes.
         loading: () => (
-            <div style={{
-                minHeight: '100vh',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: '#0a0a0f',
-                color: '#00d4ff',
-                fontFamily: 'Orbitron, sans-serif',
-                fontSize: 18,
-            }}>
-                <WorldHubLoadingText />
-            </div>
+            <div
+                data-hub-launch-shell
+                aria-hidden="true"
+                style={{ position: 'fixed', inset: 0, zIndex: 9990, background: '#000' }}
+            />
         ),
     }
 );
-
-/**
- * The words, once a browser is actually waiting for them (AEO phase 3,
- * 2026-09-19). With ssr: false, Next renders this loading component on the
- * server, so "Loading World Hub..." was the first sentence of the front
- * door of the hub for every crawler that does not run JavaScript, above a
- * summary that describes the page perfectly well. The box stays, so the
- * layout does not move; the sentence waits for someone to read it.
- */
-function WorldHubLoadingText() {
-    const hasMounted = useHasMounted();
-    return hasMounted ? <>Loading World Hub...</> : null;
-}
 
 // EVERY unverified player sees the welcome screen once (2026-10-08, Dan):
 // the 14-day window that used to exempt older OAuth signups is gone. One
@@ -263,19 +242,8 @@ export default function HubPage() {
                 />
             </HubErrorBoundary>
 
-            {/* THE HUB SAYS WHAT IT IS (AEO phase 3, 2026-09-17). WorldHub is
-                `ssr: false`, so the server sends no part of it; measured on
-                production with scripts stripped, this page - priority 0.9,
-                changefreq daily in the sitemap - carried 31 words and NO
-                heading for any crawler that does not run JavaScript.
-
-                It stays in the flow for good. The first cut removed it once
-                the carousel mounted, and a page that adds 200 words to the
-                flow and then takes them away is a layout shift waiting to
-                happen: measured 0.95 on one load in three. The carousel is a
-                position:fixed layer over the whole viewport, so this sits
-                under it, out of the way, and a reader who scrolls finds it. */}
-            <HubPageSummary page="hub" as="h1" />
+            {/* The lobby is the launch surface. Product descriptions remain on
+                their own pages; no text summary sits beneath the fixed carousel. */}
 
             {/* Transient reminder for a player who skipped the welcome screen:
                 same corner and lifetime as DiamondToast, once per session. */}
