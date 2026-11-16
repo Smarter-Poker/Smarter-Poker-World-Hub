@@ -575,18 +575,17 @@ function EnergyRing({ progress, delay = 0 }: { progress: number; delay?: number 
 interface CinematicIntroProps {
     onComplete: () => void;
     duration?: number;
+    managePlayback?: boolean;
 }
 
-export function CinematicIntro({ onComplete, duration = 4000 }: CinematicIntroProps) {
+export function CinematicIntro({ onComplete, duration = 4000, managePlayback = true }: CinematicIntroProps) {
     const [phase, setPhase] = useState<'void' | 'charge' | 'impact' | 'expand' | 'reveal' | 'exit'>('void');
     const [progress, setProgress] = useState(0);
     const [screenGlow, setScreenGlow] = useState(0);
     const [logoOpacity, setLogoOpacity] = useState(0);
     const [logoScale, setLogoScale] = useState(0.7);
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [playing, setPlaying] = useState(false);
-    const [needsTap, setNeedsTap] = useState(false);
-    const [audioFailed, setAudioFailed] = useState(false);
+    const [playing, setPlaying] = useState(!managePlayback);
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const attemptRef = useRef(0);
     const completeRef = useRef(onComplete);
@@ -595,48 +594,29 @@ export function CinematicIntro({ onComplete, duration = 4000 }: CinematicIntroPr
 
     const { emit } = useAdvancedParticles(canvasRef, phase);
 
-    const startOpening = useCallback((fromTap = false) => {
-        const attempt = ++attemptRef.current;
-        audioRef.current?.pause();
-        setNeedsTap(false);
-        setAudioFailed(false);
-        // iOS haptics must begin in the actual gesture, before awaiting audio.
-        if (fromTap && typeof navigator.vibrate === 'function') {
-            navigator.vibrate([30, 80, 30, 80, 30, 80, 200]);
-        }
-        audioRef.current = SoundEngine.play('cinematicIntro', {
-            onStarted: () => {
-                if (attempt !== attemptRef.current) return;
-                if (!fromTap && typeof navigator.vibrate === 'function') {
-                    navigator.vibrate([30, 80, 30, 80, 30, 80, 200]);
-                }
-                setPlaying(true);
-            },
-            onError: (error) => {
-                if (attempt !== attemptRef.current) return;
-                setAudioFailed(error?.name !== 'NotAllowedError');
-                setNeedsTap(true);
-            },
-        });
-        if (!audioRef.current) {
-            setAudioFailed(true);
-            setNeedsTap(true);
-        }
-    }, []);
-
     useEffect(() => {
-        // Mobile haptics still need a gesture even when sound autoplay is allowed.
-        const needsHapticGesture = window.__iosHapticsInstalled || (
-            navigator.maxTouchPoints > 0 && typeof navigator.vibrate === 'function' &&
-            navigator.userActivation?.hasBeenActive === false
-        );
-        if (needsHapticGesture) setNeedsTap(true);
-        else startOpening();
+        if (!managePlayback) return;
+        const attempt = ++attemptRef.current;
+        const start = () => {
+            if (attempt !== attemptRef.current) return;
+            setPlaying(true);
+        };
+        try {
+            audioRef.current = SoundEngine.play('cinematicIntro', { onStarted: start, onError: start });
+        } catch (error) {
+            console.warn('[CinematicIntro] Audio unavailable:', error);
+            start();
+        }
+        try {
+            if (typeof navigator.vibrate === 'function') navigator.vibrate([30, 80, 30, 80, 30, 80, 200]);
+        } catch (error) { console.warn('[CinematicIntro] Haptics unavailable:', error); }
+        // A platform refusal must never hold entry behind another control.
+        if (!audioRef.current) start();
         return () => {
             ++attemptRef.current;
             audioRef.current?.pause();
         };
-    }, [startOpening]);
+    }, [managePlayback]);
 
     useEffect(() => {
         if (!playing) return;
@@ -665,7 +645,9 @@ export function CinematicIntro({ onComplete, duration = 4000 }: CinematicIntroPr
                     emit(cx, cy, 80, 'spark', { speed: 25, life: 0.8 });
                     emit(cx, cy, 30, 'glow', { speed: 15, life: 1.2 });
                     emit(cx, cy, 50, 'streak', { speed: 35, life: 0.5 });
-                    if ('vibrate' in navigator) navigator.vibrate(150);
+                    try {
+                        if (typeof navigator.vibrate === 'function') navigator.vibrate(150);
+                    } catch (error) { console.warn('[CinematicIntro] Haptics unavailable:', error); }
                 }
             } else if (p < 0.6) {
                 setPhase('expand');
@@ -706,21 +688,6 @@ export function CinematicIntro({ onComplete, duration = 4000 }: CinematicIntroPr
             zIndex: 10000,
             overflow: 'hidden',
         }}>
-            {!playing && (
-                <div style={{ position: 'absolute', inset: 0, zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20, color: '#fff', padding: 24 }}>
-                    {needsTap && (
-                        <>
-                            <p role="status">{audioFailed ? 'Opening Sound Could Not Load.' : 'Tap To Start With Sound And Haptics.'}</p>
-                            <button type="button" onClick={() => startOpening(true)} style={{ padding: '16px 24px', color: '#fff', background: '#096ca8', border: '1px solid #7dd3fc', borderRadius: 8, fontSize: 18 }}>
-                                {audioFailed ? 'Retry Opening' : 'Start Opening'}
-                            </button>
-                        </>
-                    )}
-                    <button type="button" onClick={() => completeRef.current()} style={{ padding: 12, color: '#fff', background: 'transparent', border: '1px solid #64748b', borderRadius: 8 }}>
-                        Skip Opening
-                    </button>
-                </div>
-            )}
             <canvas
                 ref={canvasRef}
                 style={{
@@ -861,6 +828,48 @@ export function CinematicIntro({ onComplete, duration = 4000 }: CinematicIntroPr
             }} />
         </div>
     );
+}
+
+// Start effects before the first authentication await, while the sign-in gesture is active.
+// The existing auth operation runs alongside the animation and keeps its document redirect.
+export function useSignInOpening() {
+    const [visible, setVisible] = useState(false);
+    const audio = useRef<HTMLAudioElement | null>(null);
+    const pending = useRef<Promise<void> | null>(null);
+    const resolve = useRef<(() => void) | null>(null);
+    const finish = useCallback((completed = true) => {
+        audio.current?.pause();
+        audio.current = null;
+        setVisible(false);
+        try {
+            if (completed) sessionStorage.setItem('signin_opening_played', 'true');
+            else sessionStorage.removeItem('signin_opening_played');
+        } catch { /* presentation must not prevent sign-in when storage is unavailable */ }
+        resolve.current?.();
+        resolve.current = null;
+        pending.current = null;
+    }, []);
+    const begin = useCallback(() => {
+        if (pending.current) return pending.current;
+        try { sessionStorage.removeItem('signin_opening_played'); } catch { /* optional presentation state */ }
+        pending.current = new Promise<void>(done => { resolve.current = done; });
+        try {
+            if (typeof navigator.vibrate === 'function') navigator.vibrate([30, 80, 30, 80, 30, 80, 200]);
+        } catch (error) { console.warn('[CinematicIntro] Haptics unavailable:', error); }
+        try { audio.current = SoundEngine.play('cinematicIntro'); }
+        catch (error) { console.warn('[CinematicIntro] Audio unavailable:', error); }
+        setVisible(true);
+        return pending.current;
+    }, []);
+    useEffect(() => () => {
+        audio.current?.pause();
+        resolve.current?.();
+    }, []);
+    return {
+        beginOpening: begin,
+        cancelOpening: () => finish(false),
+        OpeningComponent: visible ? <CinematicIntro managePlayback={false} onComplete={() => finish(true)} /> : null,
+    };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

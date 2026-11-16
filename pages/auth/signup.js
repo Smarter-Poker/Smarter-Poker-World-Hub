@@ -1,3 +1,4 @@
+import { useSignInOpening } from '../../src/world/components/CinematicIntro';
 /* ═══════════════════════════════════════════════════════════════════════════
    SMARTER.POKER — SIGN UP REGISTRATION NODE
    Email/Password Registration with Supabase OTP Email Verification
@@ -144,6 +145,7 @@ const usStates = [
 
 export default function SignUpPage() {
   const router = useRouter();
+  const { beginOpening, cancelOpening, OpeningComponent } = useSignInOpening();
 
   // Step: 'info' → 'email_pending' → 'success' → redirect
   const [step, setStep] = useState('info');
@@ -434,6 +436,8 @@ export default function SignUpPage() {
   // strips the user to apex, where the verifier is unreadable, and
   // exchangeCodeForSession fails with "code verifier not found".
   const handleOAuthSignIn = async (provider) => {
+    if (loading || oauthLoading) return;
+    const opening = beginOpening();
     /* ── www -> apex, and the PKCE code_verifier scope ─────────────────────
        PKCE stores its code_verifier in localStorage on the ORIGIN that called
        signInWithOAuth, and www.smarter.poker is a different origin from
@@ -465,10 +469,11 @@ export default function SignUpPage() {
       // Bind any campaign to THIS flow: a single-use nonce the callback must
       // echo back (src/lib/acquisition/firstTouch.mjs).
       const attributionNonce = beginOAuthAttribution();
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo: withAttributionNonce(`${window.location.origin}/auth/callback`, attributionNonce),
+          skipBrowserRedirect: true,
           queryParams: provider === 'google' ? { prompt: 'select_account' } : undefined,
           // Supabase's Facebook default is `email` alone - no name, no avatar,
           // which is why an OAuth signup's username fell through to Player<N>.
@@ -477,7 +482,11 @@ export default function SignUpPage() {
         },
       });
       if (error) throw error;
+      if (!data?.url) throw new Error('Unable To Start Sign In.');
+      await opening;
+      window.location.assign(data.url);
     } catch (err) {
+      cancelOpening();
       console.warn(`${provider} sign in error:`, err);
       // PARITY WITH login.js (2026-08-25). This page had no server-side error
       // reporting, so a provider failure was invisible. This closes the
@@ -1177,6 +1186,7 @@ export default function SignUpPage() {
   // ─────────────────────────────────────────────────────────────────────────
   return (
     <>
+      {OpeningComponent}
       <SEOHead
         title="Create Account - Smarter.Poker"
         description="Create A Free Smarter.Poker Account: GTO Training, Private Poker Clubs In Poker Arena, Live Poker Room Waitlists, Home Games, Trivia And A Bankroll Manager. Free To Play, No Real-Money Gambling."

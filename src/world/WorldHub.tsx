@@ -269,6 +269,11 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
     const [shouldShowCinematic] = useState(() => {
         // Must check during initial state - useEffect runs AFTER first render
         if (typeof window !== 'undefined') {
+            if (sessionStorage.getItem('signin_opening_played') === 'true') {
+                sessionStorage.removeItem('signin_opening_played');
+                sessionStorage.removeItem('just_authenticated');
+                return false;
+            }
             const justAuthenticated = sessionStorage.getItem('just_authenticated');
             if (justAuthenticated === 'true') {
                 // Clear immediately to prevent re-triggering

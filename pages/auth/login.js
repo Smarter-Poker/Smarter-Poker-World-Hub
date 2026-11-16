@@ -1,3 +1,4 @@
+import { useSignInOpening } from '../../src/world/components/CinematicIntro';
 import AuthEntryChoices from '../../src/components/auth/AuthEntryChoices';
 import { beginOAuthAttribution, withAttributionNonce } from '../../src/lib/acquisition/firstTouch.mjs';
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -74,6 +75,7 @@ function navigateWithFreshAuth(destination, router) {
 
 export default function LoginPage() {
   const router = useRouter();
+  const { beginOpening, cancelOpening, OpeningComponent } = useSignInOpening();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -271,6 +273,8 @@ export default function LoginPage() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (isLoading || oauthLoading) return;
+    const opening = beginOpening();
     setIsLoading(true);
     setError(null);
 
@@ -324,14 +328,17 @@ export default function LoginPage() {
       // ── Step 2: second factor, if this browser isn't already trusted ──
       if (await needsMfaChallenge(data?.session?.access_token)) {
         const dest = getRedirectUrl();
+        await opening;
         navigateWithFreshAuth(`/auth/mfa?redirect=${encodeURIComponent(dest)}`, router);
         return;
       }
 
-      // Set flag so hub plays intro animation
+      await opening;
+      // The gesture opening has already played before authenticated navigation.
       sessionStorage.setItem('just_authenticated', 'true');
       navigateWithFreshAuth(await withPhoneWelcome(getRedirectUrl(), data?.user), router);
     } catch (err) {
+      cancelOpening();
       console.warn('Login error:', err);
       reportAuthError('login_form_submit', err);
 
@@ -435,6 +442,8 @@ export default function LoginPage() {
   // OAUTH SIGN IN (Google, Facebook)
   // ─────────────────────────────────────────────────────────────────────────
   const handleOAuthSignIn = async (provider) => {
+    if (isLoading || oauthLoading) return;
+    const opening = beginOpening();
     setError(null);
     setErrorDetail(null);
     setOauthLoading(provider);
@@ -472,10 +481,11 @@ export default function LoginPage() {
       // A new Google account can be created from this page too; bind any
       // campaign to this exact flow (src/lib/acquisition/firstTouch.mjs).
       const attributionNonce = beginOAuthAttribution();
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo: withAttributionNonce(callbackUrl(), attributionNonce),
+          skipBrowserRedirect: true,
           queryParams: provider === 'google' ? { prompt: 'select_account' } : undefined,
           // ASK FACEBOOK FOR A NAME AND A PICTURE, NOT JUST AN ADDRESS.
           // Supabase's Facebook default is `email` alone, so the session came
@@ -487,7 +497,11 @@ export default function LoginPage() {
         },
       });
       if (error) throw error;
+      if (!data?.url) throw new Error('Unable To Start Sign In.');
+      await opening;
+      window.location.assign(data.url);
     } catch (err) {
+      cancelOpening();
       console.warn(`${provider} sign in error:`, err);
       reportAuthError('login_oauth_init', err);
       setError(err.message || `Failed to sign in with ${provider}`);
@@ -497,6 +511,7 @@ export default function LoginPage() {
 
   return (
     <>
+      {OpeningComponent}
       <AuthEntryChoices current="login" query={router.query} />
       <Head>
         <title>Sign In | Smarter.Poker</title>
@@ -704,7 +719,8 @@ export default function LoginPage() {
           >
             {/* Continue To Hub — covers the blue button */}
             <button
-              onClick={() => {
+              onClick={async () => {
+                await beginOpening();
                 sessionStorage.setItem('just_authenticated', 'true');
                 router.push('/hub');
               }}
