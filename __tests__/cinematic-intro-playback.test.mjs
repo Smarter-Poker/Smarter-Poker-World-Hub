@@ -3,6 +3,9 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import vm from 'node:vm';
 import test from 'node:test';
+// React's act helper requires its test build, including inside Vercel's test subprocess.
+// This isolated node --test process cannot change the following production build's environment.
+process.env.NODE_ENV = 'test';
 const require = createRequire(import.meta.url);
 const React = require('react');
 const renderer = require('react-test-renderer');
