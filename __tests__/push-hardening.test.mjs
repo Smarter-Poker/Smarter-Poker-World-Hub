@@ -36,6 +36,17 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const WF = join(ROOT, '.github/workflows/push-delivery-watchdog.yml');
 const HEALTH = readFileSync(join(ROOT, 'pages/api/cron/push-health.js'), 'utf8');
 
+test('promo play-through pushes respect the existing Bonuses opt-out', () => {
+    assert.deepEqual(
+        gateDecision({ prefs: { push_type_prefs: { bonus: false } } }, 'promo_play_through'),
+        { allowed: false, reason: 'type_disabled:bonus' }
+    );
+    assert.equal(
+        gateDecision({ prefs: { push_type_prefs: { bonus: true } } }, 'promo_play_through').allowed,
+        true
+    );
+});
+
 test('a watchdog probes PRODUCTION, not just CI', () => {
     assert.ok(existsSync(WF), 'the production push watchdog is gone');
     const wf = readFileSync(WF, 'utf8');
