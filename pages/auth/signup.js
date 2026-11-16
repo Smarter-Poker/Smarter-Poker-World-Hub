@@ -926,7 +926,7 @@ export default function SignUpPage() {
 
   // The form fields, rendered once for the desktop art card and once for the
   // phone layout (CSS decides which tree is visible; both share this state).
-  const promoPlayThroughTerms = 'Club Promo Chips Require Fees Equal To Four Times The Original Grant Before The Remaining Promo Principal Can Be Cashed Out Or Claimed Back By An Agent. Profit And Your Own Chips Stay Cashable. Tickets Must Use Cashable Player Or Agent Wallet Chips; Promo Chips Can Fund Tournament Entry Directly.';
+  const promoPlayThroughTerms = 'Promo Winnings Require Qualifying Fees Equal To Twice The Original Promo Grant Before Cashout Or Agent Claim-Back. The Remaining Original Promo Chips Require Four Times The Original Grant. The Same Fees Count Toward Both Milestones. Your Own Deposits And Rakeback Stay Separate From These Promo Locks. Tickets Must Use Cashable Player Or Agent Wallet Chips; Promo Chips Can Fund Tournament Entry Directly.';
 
   const signupFields = (
     <>
