@@ -118,7 +118,7 @@ test('a controller message keeps its line breaks and wraps; no other message cha
     }
 });
 
-test('the heading shows AI AGENT NEEDED with the time it was sent, and a Delete control', () => {
+test('the heading shows the sent time, actions precede the body, and Delete follows it', () => {
     const deletes = [];
     const html = bubble(message(), false, { onDelete: (id, type) => { deletes.push([id, type]); return Promise.resolve(true); } });
     assert.match(html, /data-testid="reliability-incident-header"/);
@@ -127,6 +127,11 @@ test('the heading shows AI AGENT NEEDED with the time it was sent, and a Delete 
     assert.match(html, /<span data-testid="reliability-incident-sent-at"[^>]*>Sent Nov 9, 2026, 12:00:00 PM CST<\/span>/);
     assert.match(html, /<button[^>]*data-testid="delete-reliability-message"[^>]*aria-label="Delete Message"[^>]*>/);
     assert.match(html, />Delete<\/button>/);
+    const positions = ['reliability-incident-header', 'open-incident', 'copy-agent-handoff', 'reliability-incident-text', 'delete-reliability-message']
+        .map(id => html.indexOf(`data-testid="${id}"`));
+    assert.ok(positions.every((position, i) => position >= 0 && (i === 0 || position > positions[i - 1])),
+        'heading, handoff actions, body, and Delete must render in that order');
+
     // The validation message gets its own heading, its time and Delete too.
     const validation = bubble(message({ content: 'RELIABILITY CONTROLLER VALIDATION\nDelivery check.',
         media_metadata: { kind: 'reliability_incident', incident_id: null, notification_kind: 'validation' } }), false, { onDelete() {} });
