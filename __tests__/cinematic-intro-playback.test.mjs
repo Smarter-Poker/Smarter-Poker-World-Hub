@@ -101,4 +101,6 @@ test('media failure offers retry and skip without trapping login', async t => {
 test('intro regression runs on the existing production build route', () => {
   const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url)));
   assert.match(pkg.scripts.prebuild, /node --test __tests__\/cinematic-intro-playback\.test\.mjs/);
+  assert.match(pkg.scripts['build:vercel'], /^node --test __tests__\/cinematic-intro-playback\.test\.mjs &&/);
+  assert.equal(JSON.parse(readFileSync(new URL('../vercel.json', import.meta.url))).buildCommand, 'npm run build:vercel');
 });
