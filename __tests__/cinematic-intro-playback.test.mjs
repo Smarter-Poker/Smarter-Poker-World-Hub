@@ -8,7 +8,7 @@ const React = require('react');
 const renderer = require('react-test-renderer');
 const ts = require('typescript');
 
-function setup(t, outcomes) {
+function setup(t, outcomes, mobile = false) {
   const events = [], frames = new Map(), audios = [];
   let time = 0, frameId = 0, completed = 0;
   class Audio {
@@ -23,7 +23,7 @@ function setup(t, outcomes) {
   const context = {
     console: { log() {}, warn() {} }, Audio,
     window: { innerWidth: 393, innerHeight: 852 },
-    navigator: { vibrate: pattern => { events.push(['haptic', pattern]); return true; } },
+    navigator: { maxTouchPoints: mobile ? 5 : 0, userActivation: { hasBeenActive: !mobile }, vibrate: pattern => { events.push(['haptic', pattern]); return true; } },
     performance: { now: () => time },
     requestAnimationFrame: fn => { frames.set(++frameId, fn); return frameId; },
     cancelAnimationFrame: id => frames.delete(id),
@@ -66,6 +66,17 @@ test('blocked autoplay waits for a gesture; that gesture starts haptics before a
   assert.equal(app.events.filter(e => Array.isArray(e) && e[1] === 150).length, 1, 'impact is emitted only once');
   await app.frame(4001);
   assert.equal(app.completed(), 1);
+});
+
+test('mobile waits for a haptic gesture even when audio autoplay would be permitted', async t => {
+  const app = setup(t, [null], true);
+  await app.mount();
+  assert.equal(app.events.length, 0, 'no unactivated media or haptic attempt');
+  assert.equal(app.frames.size, 0);
+  await app.click('Start Opening');
+  assert.equal(app.events[0][0], 'haptic');
+  assert.equal(app.events[1], 'play');
+  assert.equal(app.frames.size, 1);
 });
 
 test('allowed autoplay starts directly and unmount stops playback and animation', async t => {

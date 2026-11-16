@@ -625,7 +625,13 @@ export function CinematicIntro({ onComplete, duration = 4000 }: CinematicIntroPr
     }, []);
 
     useEffect(() => {
-        startOpening();
+        // Mobile haptics still need a gesture even when sound autoplay is allowed.
+        const needsHapticGesture = window.__iosHapticsInstalled || (
+            navigator.maxTouchPoints > 0 && typeof navigator.vibrate === 'function' &&
+            navigator.userActivation?.hasBeenActive === false
+        );
+        if (needsHapticGesture) setNeedsTap(true);
+        else startOpening();
         return () => {
             ++attemptRef.current;
             audioRef.current?.pause();
