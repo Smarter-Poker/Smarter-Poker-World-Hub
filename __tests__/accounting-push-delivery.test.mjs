@@ -80,6 +80,7 @@ function fixture(count = 1, recipientId = 'recipient') {
         './accounting-display.mjs': accountingDisplay,
     });
     const cron = load('../pages/api/cron/push-dispatch.js', {
+        '../../../src/lib/email/weeklyRakeback.mjs': { deliverWeeklyRakebackEmails: async () => ({ sent: 0, unconfirmed: 0 }) },
         '../../../src/lib/notifications/deliveryPolicy.mjs': deliveryPolicy,
         '../../../src/lib/supabaseServerClient': { createClient: () => db },
         '../../../src/utils/cron-auth': { validateCronAuth: () => true },
