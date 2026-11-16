@@ -101,7 +101,7 @@ test('web-push honours a caller ttl rather than always defaulting to a day', () 
 });
 
 test('an expiry notice replaces the offer without a second buzz', () => {
-    assert.match(DISPATCH, /const QUIET_EVENTS = new Set\(\['waitlist_offer_expired'\]\)/);
+    assert.match(DISPATCH, /const QUIET_EVENTS = new Set\(\['waitlist_offer_expired', 'weekly_rakeback_credit'\]\)/);
     assert.match(DISPATCH, /payload\.renotify = false/);
     // Forwarded only as an explicit false — never as `true`, which without a
     // tag makes Chrome's showNotification throw and display nothing at all.

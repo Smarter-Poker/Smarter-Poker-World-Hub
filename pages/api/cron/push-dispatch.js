@@ -1,3 +1,4 @@
+import { deliverWeeklyRakebackEmails } from '../../../src/lib/email/weeklyRakeback.mjs';
 import { mayDeliverNotification } from '../../../src/lib/notifications/deliveryPolicy.mjs';
 /**
  * ===========================================================================
@@ -133,7 +134,7 @@ const EVENT_TTL_SECONDS = {
 // whether the OS re-alerts on a tag it already has on screen. Buzzing a phone
 // to tell somebody an offer they already missed has now formally lapsed is a
 // second interruption for strictly less news than the first.
-const QUIET_EVENTS = new Set(['waitlist_offer_expired']);
+const QUIET_EVENTS = new Set(['waitlist_offer_expired', 'weekly_rakeback_credit']);
 
 let _supabase = null;
 function getSupabase() {
@@ -198,13 +199,16 @@ async function handler(req, res) {
         } catch { /* ignore */ }
     };
 
+    // Preserve other pushes even when the email provider is unavailable.
+    stats.rakebackEmails = await deliverWeeklyRakebackEmails(supabase).catch(() => ({ sent: 0, unconfirmed: 1 }));
+    const emailIncomplete = stats.rakebackEmails.unconfirmed > 0;
     if (!isPushConfigured()) {
         const routing = await routeQueuedOperationalPushes(supabase);
         stats.skipped = routing.routed;
         stats.failed = routing.pending;
         const reason = routing.error ? 'operational_inbox_pending' : 'vapid_not_configured';
         await finish(reason);
-        return res.status(routing.error ? 503 : 200).json({ ok: false, reason, ...stats });
+        return res.status(routing.error || emailIncomplete ? 503 : 200).json({ ok: false, reason, ...stats });
     }
 
     try {
@@ -246,8 +250,8 @@ async function handler(req, res) {
         );
 
         if (rows.length === 0) {
-            await finish(routing.pending ? 'operational_inbox_pending' : 'nothing_pending');
-            return res.status(routing.pending ? 503 : 200).json({ ok: routing.pending === 0, ...stats, slot });
+            await finish(routing.pending ? 'operational_inbox_pending' : emailIncomplete ? 'rakeback_email_unconfirmed' : 'nothing_pending');
+            return res.status(routing.pending || emailIncomplete ? 503 : 200).json({ ok: routing.pending === 0 && !emailIncomplete, ...stats, slot });
         }
 
         // Daily-cap counts for the whole batch in one query, but ONLY for the
@@ -294,7 +298,7 @@ async function handler(req, res) {
                 continue;
             }
             const ageMs = Date.now() - Date.parse(row.created_at || 0);
-            if (Number.isFinite(ageMs) && ageMs > MAX_DELIVERY_AGE_MS) {
+            if (row.event !== 'weekly_rakeback_credit' && Number.isFinite(ageMs) && ageMs > MAX_DELIVERY_AGE_MS) {
                 suppress(row, 'too_stale_to_deliver');
                 continue;
             }
@@ -310,6 +314,17 @@ async function handler(req, res) {
                 gateOpts.sentToday = capCounts.get(row.recipient_user_id) || 0;
             }
             const gate = gateDecision(entry, row.event, gateOpts);
+            if (!gate.allowed && row.event === 'weekly_rakeback_credit'
+                && (gate.reason === 'quiet_hours' || gate.reason.startsWith('daily_cap_reached:'))) {
+                const deferred = await supabase.from('push_outbox').update({
+                    status: 'pending', claimed_at: null, attempts: Math.max(0, row.attempts - 1),
+                    next_attempt_at: new Date(Date.now() + 15 * 60_000).toISOString(),
+                    failure_reason: gate.reason,
+                }).eq('id', row.id).eq('status', 'processing').eq('claimed_at', row.claimed_at).select('id');
+                if (deferred.error || deferred.data?.length !== 1) throw new Error('Weekly rakeback push deferral unconfirmed');
+                stats.deferred += 1;
+                continue;
+            }
             if (!gate.allowed) { suppress(row, gate.reason); continue; }
 
             deliverable.push(row);
@@ -348,7 +363,7 @@ async function handler(req, res) {
         const digestGroups = new Map();
         for (const row of deliverable) {
             if (!row.event || isTournamentReminder(row)) continue;
-            if (isAccountingPush(row)) continue;
+            if (isAccountingPush(row) || row.event === 'weekly_rakeback_credit') continue;
             const key = `${row.recipient_user_id}|${row.event}`;
             if (!digestGroups.has(key)) digestGroups.set(key, []);
             digestGroups.get(key).push(row);
@@ -571,7 +586,7 @@ async function handler(req, res) {
         await finish(note || null);
         // Neither an unresolved operational destination nor an uncertain
         // accounting receipt may be reported as a healthy dispatcher result.
-        const incomplete = routing.pending > 0 || accountingFailures > 0;
+        const incomplete = routing.pending > 0 || accountingFailures > 0 || emailIncomplete;
         return res.status(incomplete ? 503 : 200).json({ ok: !incomplete, ...stats, slot });
     } catch (e) {
         await finish(`threw:${e?.message || e}`);

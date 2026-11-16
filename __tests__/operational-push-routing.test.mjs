@@ -100,7 +100,8 @@ function recorder(options = {}) {
 // Load the actual entrypoint body, replacing only external imports. This
 // executes its branching/ordering, not a copied routing implementation.
 function entrypoint(path, exported, dependencies) {
-  dependencies = { mayDeliverNotification, isRoutedToProductionAlerts, ...dependencies };
+  dependencies = { mayDeliverNotification, isRoutedToProductionAlerts,
+    deliverWeeklyRakebackEmails: async () => ({ sent: 0, unconfirmed: 0 }), ...dependencies };
   let source = readFileSync(new URL(path, import.meta.url), 'utf8');
   source = source.replace(/^import[^\n]+;\s*$/gm, '')
     .replace(/^export default[^\n]+;\s*$/gm, '').replace(/^export /gm, '');
