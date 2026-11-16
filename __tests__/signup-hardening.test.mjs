@@ -259,6 +259,7 @@ test('the verification screen passes the fresh six digits to Auth and renders re
             ) };
             if (name === 'react/jsx-runtime' || name === 'lucide-react') return require(name);
             if (name === 'next/router') return { useRouter: () => ({ query: {} }) };
+            if (name.endsWith('/CinematicIntro')) return { useSignInOpening: () => ({ beginOpening: () => Promise.resolve(), cancelOpening() {}, OpeningComponent: null }) };
             if (name.endsWith('/SEOHead') || name.endsWith('/ExistingAccountDialog') || name.endsWith('/AuthEntryChoices')) return { default: () => null };
             if (name.endsWith('/firstTouch.mjs')) return { firstTouchMetadata: () => ({}), beginOAuthAttribution: () => null, withAttributionNonce: (url) => url };
             if (name.endsWith('/signupExperience.mjs')) return { isEmailVerificationCode };
@@ -342,7 +343,8 @@ test('signup shows existing-account recovery for both Auth response shapes, keep
                 if (name === 'react/jsx-runtime' || name === 'lucide-react') return require(name);
                 if (name === 'next/router') return { useRouter: () => ({ query: { ref: '1253', invite: 'ABC2345', redirect: '/hub/club-arena/invite/shark-club' }, push: href => routes.push(href) }) };
                 if (name.endsWith('/ExistingAccountDialog')) return { default: ({ open, onSignIn, onClose }) => open ? React.createElement('div', { role: 'alertdialog' }, React.createElement('h2', null, 'You Already Have An Account'), React.createElement('button', { onClick: onSignIn }, 'Sign In'), React.createElement('button', { onClick: onClose }, 'Use A Different Email')) : null };
-                if (name.endsWith('/SEOHead') || name.endsWith('/AuthEntryChoices')) return { default: () => null };
+                if (name.endsWith('/CinematicIntro')) return { useSignInOpening: () => ({ beginOpening: () => Promise.resolve(), cancelOpening() {}, OpeningComponent: null }) };
+            if (name.endsWith('/SEOHead') || name.endsWith('/AuthEntryChoices')) return { default: () => null };
                 if (name.endsWith('/signupOutcome.mjs')) return signupOutcome;
                 if (name.endsWith('/firstTouch.mjs')) return { firstTouchMetadata: () => firstTouch.firstTouchMetadata(touchWin), beginOAuthAttribution: () => null, withAttributionNonce: (url) => url };
                 if (name.endsWith('/signupExperience.mjs')) return { isEmailVerificationCode };
