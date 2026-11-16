@@ -18,6 +18,8 @@ import {
   v31Public215HeldoutPhysicsPayloadIsValid,
   v31Public215FrozenHeldoutPreparation,
   v31Public215HeldoutPhysicsReceiptIsValid,
+  v31FeatureContractVersionV3,
+  v31RegistrationCellContract,
 } from '../../../src/lib/horses/solverV31IngressAuth.mjs';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
@@ -150,6 +152,16 @@ function contractMatches(contract, provenance) {
     && contract.input_approval_status === 'approved';
 }
 
+// Cell contract v3 (dormant): both sides must declare hist215-v3; every other
+// identity field is compared by the unchanged contractMatches.
+function contractMatchesV3(contract, provenance) {
+  const asKnown = (value) => ({ ...value, feature_contract_version: 'holdem-public-hist215-v2' });
+  return Boolean(contract) && Boolean(provenance)
+    && v31FeatureContractVersionV3(contract) === 'holdem-public-hist215-v3'
+    && v31FeatureContractVersionV3(provenance) === 'holdem-public-hist215-v3'
+    && contractMatches(asKnown(contract), asKnown(provenance));
+}
+
 async function readContract(supabase, provenance) {
   const contract = await rpc(supabase, 'fn_gto_v31_worker_contract', {
     p_dataset_key: provenance.dataset_key,
@@ -205,6 +217,239 @@ function compactHeartbeat(envelope) {
     manifest_checksum: provenance.manifest_checksum,
     range_bundle_checksum: provenance.range_bundle_checksum,
   };
+}
+
+/**
+ * The registration's cell contract for a dataset key, read before any write.
+ * Any failure (database authority unavailable, function not installed, timeout,
+ * malformed reply) is "not v3", so the caller answers with today's refusal.
+ */
+async function registrationCellContract(datasetKey) {
+  try {
+    const reply = await rpc(getSupabase(), 'fn_gto_v31_registration_cell_contract', { p_dataset_key: datasetKey });
+    return v31RegistrationCellContract(reply, datasetKey);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * CELL CONTRACT v3 DISPATCH (FLOP-5 D6, dormant). Reached only when the envelope
+ * is valid solely under v3 (a hist215-v3 provenance) and the database answered,
+ * before the nonce was claimed, that this dataset key's round registration
+ * declares cell contract v3. Each V31 operation is then admitted with the rules
+ * of the same operation in the v2 dispatch below and the v3 validators, and
+ * only while the registration is linked to this dataset (register_dataset: not
+ * yet linked to any other). PostgreSQL still owns every registration, source,
+ * cell, model, physics and seal check. The v2 dispatch is unchanged.
+ */
+async function dispatchV3(supabase, envelope) {
+  const { operation, payload, provenance, principal } = envelope;
+  const has = (key) => Object.prototype.hasOwnProperty.call(payload, key);
+  const linkedRegistration = async (datasetId) => {
+    const registration = await rpc(supabase, 'fn_gto_v31_registration_cell_contract', { p_dataset_key: provenance.dataset_key });
+    if (v31RegistrationCellContract(registration, provenance.dataset_key) !== 'v3' || registration.dataset_id !== datasetId) {
+      throw new GatewayError('No cell contract v3 registration is linked to this dataset', 409);
+    }
+  };
+  if (operation === 'register_dataset') {
+    if (!exactKeys(payload, ['input_bundle_id', 'declared_coverage', 'quality_gates'])
+        || !validDatasetId(payload.input_bundle_id)
+        || !Array.isArray(payload.declared_coverage)
+        || !payload.quality_gates
+        || typeof payload.quality_gates !== 'object'
+        || Array.isArray(payload.quality_gates)) {
+      throw new GatewayError('Dataset registration payload is invalid');
+    }
+    const existing = await rpc(supabase, 'fn_gto_v31_worker_contract', { p_dataset_key: provenance.dataset_key });
+    await linkedRegistration(existing ? existing.dataset_id : null);
+    if (existing) {
+      if (!contractMatchesV3(existing, provenance)) {
+        throw new GatewayError('Dataset key already belongs to another build', 409);
+      }
+      return { dataset_id: existing.dataset_id, state: existing.state, idempotent: true };
+    }
+    const datasetId = await rpc(supabase, 'fn_gto_v31_register_dataset', {
+      p_dataset: {
+        policy_export_schema: provenance.policy_export_schema,
+        feature_contract_version: provenance.feature_contract_version,
+        dataset_key: provenance.dataset_key,
+        solver_version: provenance.solver_version,
+        solver_binary_checksum: provenance.solver_binary_checksum,
+        pipeline_commit: provenance.pipeline_commit,
+        pipeline_bundle_checksum: provenance.pipeline_bundle_checksum,
+        manifest_version: provenance.manifest_version,
+        manifest_checksum: provenance.manifest_checksum,
+        source_combo_order_checksum: provenance.source_combo_order_checksum,
+        range_bundle_checksum: provenance.range_bundle_checksum,
+        icm_model_checksum: provenance.icm_model_checksum,
+        input_bundle_id: payload.input_bundle_id,
+        input_bundle_checksum: provenance.input_bundle_checksum,
+        machine_ids: ['M1', 'M2'],
+        declared_coverage: payload.declared_coverage,
+        quality_gates: payload.quality_gates,
+      },
+    });
+    return { dataset_id: datasetId, state: 'building', idempotent: false };
+  }
+  const contract = await rpc(supabase, 'fn_gto_v31_worker_contract', { p_dataset_key: provenance.dataset_key });
+  if (!contractMatchesV3(contract, provenance)) {
+    throw new GatewayError('Dataset contract is absent, revoked, or does not match this build', 409);
+  }
+  await linkedRegistration(contract.dataset_id);
+  if (operation === 'dataset_contract') {
+    if (!exactKeys(payload, [])) throw new GatewayError('Dataset contract payload is invalid');
+    return contract;
+  }
+  if (operation === 'model_freeze_authority') {
+    if (!['M2', 'COMPACTOR'].includes(principal) || !exactKeys(payload, ['dataset_id'])
+        || payload.dataset_id !== contract.dataset_id || contract.state !== 'building') {
+      throw new GatewayError('Model freeze authority is unavailable for this contract', 409);
+    }
+    return rpc(supabase, 'fn_gto_v31_model_freeze_authority', { p_dataset_id: payload.dataset_id });
+  }
+  if (operation === 'worker_heartbeat') {
+    if (!['M1', 'M2'].includes(principal) || !contract.machine_ids?.includes(principal)) {
+      throw new GatewayError('Worker is not declared for this dataset', 403);
+    }
+    return rpc(supabase, 'fn_solver_worker_heartbeat', { p_heartbeat: workerHeartbeat(envelope) });
+  }
+  if (operation === 'ingest_artifact') {
+    if (!['M1', 'M2'].includes(principal)
+        || !exactKeys(payload, ['dataset_id', 'artifact'])
+        || payload.dataset_id !== contract.dataset_id
+        || contract.state !== 'building') {
+      throw new GatewayError('Artifact ingestion is not authorized for this dataset', 409);
+    }
+    // A hist215-v3 dataset is a public215 dataset: M2 carries the blind selection opening, M1 never.
+    if (principal === 'M2' ? (typeof payload.artifact?.selection_seed !== 'string' || !/^[0-9a-f]{64}$/.test(payload.artifact.selection_seed))
+      : Object.prototype.hasOwnProperty.call(payload.artifact || {}, 'selection_seed')) {
+      throw new GatewayError('Artifact selection authority is invalid', 409);
+    }
+    return rpc(supabase, 'fn_gto_v31_ingest_source_artifact', {
+      p_dataset_id: payload.dataset_id,
+      p_machine_id: principal,
+      p_artifact: payload.artifact,
+    });
+  }
+  if (principal !== 'COMPACTOR') throw new GatewayError('Compactor authority required', 403);
+  if (operation === 'freeze_model' && has('physics_board')) {
+    if (!v31Public215PhysicsPayloadIsValid(payload, contract, 'v3')) {
+      throw new GatewayError('Approved private physics payload is invalid', 409);
+    }
+    const rows = await rpc(supabase, 'fn_gto_v31_model_preparations', {
+      p_dataset_id: contract.dataset_id, p_offset: payload.preparation_offset, p_limit: 1,
+    });
+    const selected = v31Public215ApprovedPhysicsPreparation(payload, contract, rows, 'v3');
+    if (!selected) throw new GatewayError('Approved private physics binding is invalid', 409);
+    const auditKey = await rpc(supabase, 'fn_gto_v31_prepare_public_physics', {
+      p_dataset_id: contract.dataset_id, p_cell_key_checksum: selected.cell_key_checksum,
+      p_board: payload.physics_board.match(/../g),
+    }, LONG_DB_TIMEOUT_MS);
+    if (typeof auditKey !== 'string' || !/^[0-9a-f]{64}$/.test(auditKey) || auditKey === '0'.repeat(64)) {
+      throw new GatewayError('Private physics audit receipt is invalid', 503);
+    }
+    return { format: 'public215_prepared_physics_v1', dataset_id: contract.dataset_id,
+      context: payload.context.context, cell_key_checksum: selected.cell_key_checksum,
+      model_checksum: selected.model_checksum, template_checksum: selected.template_checksum,
+      board: payload.physics_board, audit_key: auditKey };
+  }
+  if (operation === 'freeze_model' && has('heldout_board_offset')) {
+    if (!v31Public215HeldoutPhysicsPayloadIsValid(payload, contract, 'v3')) {
+      throw new GatewayError('Heldout physics payload is invalid', 409);
+    }
+    const rows = await rpc(supabase, 'fn_gto_v31_model_preparations', {
+      p_dataset_id: contract.dataset_id, p_offset: payload.preparation_offset, p_limit: 1,
+    });
+    const selected = v31Public215FrozenHeldoutPreparation(payload, contract, rows, 'v3');
+    if (!selected) throw new GatewayError('Frozen heldout physics binding is invalid', 409);
+    const receipt = await rpc(supabase, 'fn_gto_v31_prepare_heldout_public_physics', {
+      p_dataset_id: contract.dataset_id, p_cell_key_checksum: selected.cell_key_checksum,
+      p_model_checksum: selected.model_checksum,
+      p_model_build_receipt_checksum: selected.model_build_receipt_checksum,
+      p_board_offset: payload.heldout_board_offset,
+    }, LONG_DB_TIMEOUT_MS);
+    if (!v31Public215HeldoutPhysicsReceiptIsValid(receipt, payload, selected)) {
+      throw new GatewayError('Heldout physics audit receipt is invalid', 503);
+    }
+    return receipt;
+  }
+  if (['build_cell', 'prepare_model', 'freeze_model'].includes(operation)) {
+    if (!exactKeys(payload, ['dataset_id', 'context']) || payload.dataset_id !== contract.dataset_id
+        || contract.state !== 'building'
+        || !(operation === 'build_cell'
+          ? v31Public215BuildEnvelopeIsValid(payload.context, contract.dataset_id, true, 'v3')
+          : operation === 'prepare_model'
+            ? v31Public215BuildEnvelopeIsValid(payload.context, contract.dataset_id, false, 'v3')
+            : v31Public215FreezeEnvelopeIsValid(payload.context, contract.dataset_id, 'v3'))) {
+      throw new GatewayError('Cell contract v3 envelope is invalid', 409);
+    }
+    if (operation === 'build_cell') {
+      const cellChecksum = await rpc(supabase, 'fn_gto_v31_build_cell',
+        { p_dataset_id: payload.dataset_id, p_context: payload.context }, LONG_DB_TIMEOUT_MS);
+      return { cell_key_checksum: cellChecksum };
+    }
+    return rpc(supabase, operation === 'prepare_model' ? 'fn_gto_v31_prepare_model' : 'fn_gto_v31_freeze_model',
+      { p_dataset_id: payload.dataset_id, ...(operation === 'prepare_model' ? { p_program: payload.context } : { p_freeze: payload.context }) },
+      LONG_DB_TIMEOUT_MS);
+  }
+  if (operation === 'seal_dataset' && has('phase')) {
+    // The v2 rules, with the offset bounded by this dataset's declared cells
+    // (the v2 dispatch's 107 is the R8 coverage); SQL selects and checks the cell.
+    const keys = ['dataset_id', 'phase', 'preparation_offset', 'cell_key_checksum',
+      'model_checksum', 'template_checksum', 'training_provenance_checksum', 'model_build_receipt_checksum'];
+    const hex = (value) => typeof value === 'string' && /^[0-9a-f]{64}$/.test(value) && value !== '0'.repeat(64);
+    if (!exactKeys(payload, keys)
+        || !['prepare_cell', 'preparation_status'].includes(payload.phase)
+        || payload.dataset_id !== contract.dataset_id || contract.state !== 'building'
+        || !Number.isSafeInteger(contract.declared_cells) || contract.declared_cells <= 0
+        || !Number.isSafeInteger(payload.preparation_offset)
+        || Object.is(payload.preparation_offset, -0) || payload.preparation_offset < 0
+        || payload.preparation_offset >= contract.declared_cells
+        || !keys.filter(k => k.endsWith('checksum')).every(k => hex(payload[k]))) {
+      throw new GatewayError('Preseal cell phase is not authorized', 409);
+    }
+    const value = await rpc(supabase,
+      payload.phase === 'prepare_cell' ? 'fn_gto_v31_prepare_seal_cell' : 'fn_gto_v31_seal_cell_preparation_status',
+      { p_dataset_id: payload.dataset_id, p_cell_key_checksum: payload.cell_key_checksum }, LONG_DB_TIMEOUT_MS);
+    const replyKeys = ['format', 'dataset_id', 'preparation_offset', 'cell_key_checksum', 'model_checksum',
+      'template_checksum', 'training_provenance_checksum', 'model_build_receipt_checksum',
+      'receipt_checksum', 'qualification_fingerprint', 'status'];
+    if (!exactKeys(value, replyKeys) || value.format !== 'public215_preseal_cell_v1'
+        || value.dataset_id !== payload.dataset_id || value.preparation_offset !== payload.preparation_offset
+        || !keys.filter(k => k.endsWith('checksum')).every(k => value[k] === payload[k])
+        || !(payload.phase === 'prepare_cell' ? value.status === 'prepared' : ['prepared', 'missing', 'stale'].includes(value.status))
+        || !hex(value.qualification_fingerprint)
+        || !(value.status === 'missing' ? value.receipt_checksum === null : hex(value.receipt_checksum))) {
+      throw new GatewayError('Preseal cell receipt differs', 409);
+    }
+    return value;
+  }
+  if (operation === 'seal_dataset') {
+    if (!exactKeys(payload, ['dataset_id']) || payload.dataset_id !== contract.dataset_id) {
+      throw new GatewayError('Dataset seal is not authorized in this state', 409);
+    }
+    if (contract.state !== 'building') {
+      if (['evaluating', 'candidate', 'active'].includes(contract.state)
+          && typeof contract.dataset_checksum === 'string') {
+        return { dataset_checksum: contract.dataset_checksum, idempotent: true };
+      }
+      throw new GatewayError('Dataset seal is not authorized in this state', 409);
+    }
+    const datasetChecksum = await rpc(supabase, 'fn_gto_v31_seal_build', { p_dataset_id: payload.dataset_id }, LONG_DB_TIMEOUT_MS);
+    return { dataset_checksum: datasetChecksum, idempotent: false };
+  }
+  if (operation === 'compact_heartbeat') {
+    return rpc(supabase, 'fn_solver_compact_heartbeat', { p_heartbeat: compactHeartbeat(envelope) });
+  }
+  if (operation === 'certification_status') {
+    if (!exactKeys(payload, ['dataset_id'])
+        || (payload.dataset_id !== null && payload.dataset_id !== contract.dataset_id)) {
+      throw new GatewayError('Certification status payload is invalid');
+    }
+    return rpc(supabase, 'ca_gto_v31_certification_status', { p_dataset_id: payload.dataset_id });
+  }
+  throw new GatewayError('This operation is not admitted under cell contract v3', 409);
 }
 
 async function dispatch(supabase, envelope) {
@@ -487,8 +732,17 @@ export default async function handler(req, res) {
     } catch {
       throw new GatewayError('Request body must be canonical UTF-8 JSON');
     }
+    let cellContract = 'v2';
     if (!v31IngressEnvelopeIsValid(envelope, principal)) {
-      throw new GatewayError('V31 gateway envelope is invalid');
+      // Cell contract v3 (dormant): an envelope that is valid only under v3 is
+      // admitted when, and only when, the database confirms a v3 registration
+      // for its dataset key. Otherwise this is today's refusal, word for word,
+      // before any write (the nonce is not claimed).
+      if (!v31IngressEnvelopeIsValid(envelope, principal, 'v3')
+          || await registrationCellContract(envelope.provenance.dataset_key) !== 'v3') {
+        throw new GatewayError('V31 gateway envelope is invalid');
+      }
+      cellContract = 'v3';
     }
 
     const supabase = getSupabase();
@@ -499,6 +753,10 @@ export default async function handler(req, res) {
       p_signed_at: new Date(Number(timestamp) * 1000).toISOString(),
       p_body_sha256: bodySha256,
     });
+    if (cellContract === 'v3') {
+      const resultV3 = await dispatchV3(supabase, envelope);
+      return res.status(200).json({ success: true, operation: envelope.operation, result: resultV3 });
+    }
     const result = await dispatch(supabase, envelope);
     return res.status(200).json({ success: true, operation: envelope.operation, result });
   } catch (error) {
