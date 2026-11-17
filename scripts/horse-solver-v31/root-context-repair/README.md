@@ -1,0 +1,9 @@
+# TRAIN context repair, dormant
+
+Repairs two diagnosed failure causes: sparse paired-rank extrapolation is refused by exact-geometry stack-support admission, and conditional response targets are retained directly even when parent reach is zero. The second fixed recipe uses public ROOT matchup distributions and board-relative physics. The old global-rank selection guard is unchanged and remains unsatisfied.
+
+This folder contains all computational source, the unchanged native helpers, campaign preparation operators, frozen method and synthetic contracts. Required private inputs, weights, tables and native outputs stay on SSD2; they are deliberately absent from Git. Source publication does not register a model or enable live play. The source plan and diagnosis predate new TRAIN labels. No final qualification is claimed.
+
+On the owned SSD2 campaign, verify the freeze and actual release before each explicit operation. Run the eight frozen HARVEST cohorts one at a time with src/ops.py launch TAG, then src/ops.py collect TAG after the same native operation terminates. Read each A2 technical receipt before the next launch. Seal dataset.py, review actual DATA-RELEASE and write FIT-ADMISSION binding its hash and FREEZE, then run fit.py once. After CANDIDATE-SEAL, build_screen.py produces four TRAIN validation cohorts. Review all actual model/table/support/A8/remote hashes and seal SCREEN-RELEASE before the first validation launch. After all16 technical passes, score.py claims and scores once. The 3% whole-seat gate is mandatory; no post-score refit or final evaluation is authorized.
+
+Run test_source_contract.py with the pinned numerical runtime and an external TMPDIR. Its printed synthetic failure verdict tests refusal; it is not an actual model result. The existing horse-solver-v31 pipeline test invokes these12 contracts without private files, fitting or solver access.
