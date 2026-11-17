@@ -66,7 +66,8 @@ import { useActiveIdentity } from '../../src/contexts/ActiveIdentityContext';
 import NoticeBoard from '../../src/components/messenger/NoticeBoard';
 import ClubArenaWorkspace from '../../src/components/messenger/ClubArenaWorkspace';
 import { requestPushNudge } from '../../src/lib/push/enrollment-nudge.mjs';
-import AccountingInvoiceCard from '../../src/components/messenger/AccountingInvoiceCard';
+import InvoicePaymentsPanel from '../../src/components/messenger/InvoicePaymentsPanel';
+import StatementsPanel from '../../src/components/messenger/StatementsPanel';
 import AccountingConversationIntroduction from '../../src/components/messenger/AccountingConversationIntroduction';
 import { getTheme } from '../../src/components/messenger/MessengerTheme';
 import { encodeMessageMedia } from '../../src/lib/messenger/messageMedia.mjs';
@@ -321,7 +322,6 @@ function MessengerPage() {
     const [clubAccess, setClubAccess] = useState({ userId: null, clubs: [] });
     const [workspaceSelection, setWorkspaceSelection] = useState({ clubId: null, folder: 'messages' });
     const [inboxError, setInboxError] = useState(null);
-    const [weeklyPreview, setWeeklyPreview] = useState(null);
     const [pendingConversationId, setPendingConversationId] = useState(null);
     const clubDrawerOpen = !!workspaceSelection.clubId;
     // A meaningful moment for notifications: the person opened their invoices.
@@ -1520,7 +1520,6 @@ function MessengerPage() {
             setClubAccess({ userId, clubs: Array.isArray(result.clubs) ? result.clubs : [] });
             setConversations(result.conversations);
             setWorkspaceUnread({ key: requestKey, counts: result.unreadCounts, attentionCounts: result.attentionCounts });
-            setWeeklyPreview(result.weeklySummary ? { key: requestKey, report: result.weeklySummary } : null);
             setInboxError(null);
         } catch (error) {
             if (!current()) return;
@@ -2723,8 +2722,8 @@ function MessengerPage() {
 
     const enterClubWorkspace = (club, folder = 'messages') => {
         if (!club || !joinedClubs.some(c => c.id === club.id)) return;
-        setWorkspaceSelection({ clubId: club.id, folder: ['invoices', 'notice-board'].includes(folder) ? folder : 'messages' });
-        if (folder === 'notice-board') setShowSidebar(false);
+        setWorkspaceSelection({ clubId: club.id, folder: ['invoices', 'statements', 'notice-board'].includes(folder) ? folder : 'messages' });
+        if (['statements', 'notice-board'].includes(folder)) setShowSidebar(false);
         const page = club.canManage && ownedPages.find(p => p.id === club.pageId);
         if (page) switchToClub(page);
         else switchToPersonal();
@@ -3123,7 +3122,7 @@ function MessengerPage() {
                         attentionCounts={workspaceUnread?.key === workspaceKey ? workspaceUnread.attentionCounts : null}
                         clubUnread={messengerUnread?.clubs}
                         onEnter={enterClubWorkspace} onExit={leaveClubWorkspace}
-                        onFolder={folder => { setWorkspaceSelection(prev => ({ ...prev, folder })); if (folder === 'notice-board') setShowSidebar(false); }} />
+                        onFolder={folder => { setWorkspaceSelection(prev => ({ ...prev, folder })); if (['statements', 'notice-board'].includes(folder)) setShowSidebar(false); }} />
                     {loading && <div role="status" style={{ padding: 12, color: C.textSec }}>Loading Inbox...</div>}
                     {inboxError && <div role="alert" style={{ padding: 16, color: C.textSec }}>
                         {inboxError}
@@ -3163,13 +3162,9 @@ function MessengerPage() {
                         </Link>
                     )}
 
+                    {workspaceSelection.folder === 'invoices' && selectedClub && <InvoicePaymentsPanel clubId={selectedClub.id} userId={user?.id} theme={C} />}
                     {/* Conversations List - Only show actual conversations with messages */}
-                    <div hidden={workspaceSelection.folder === 'notice-board'}>
-                        {!loading && !inboxError && weeklyPreview?.key === workspaceKey && selectedClub?.canManage && workspaceSelection.folder === 'invoices' && <div style={{ padding: 12 }}>
-                            <AccountingInvoiceCard theme={C} meta={{ invoice_type: 'club_weekly_accounting', preview: true,
-                                status: weeklyPreview.report.status, lines: weeklyPreview.report }}
-                                content={`${weeklyPreview.report.basis_source}. ${weeklyPreview.report.note}`} />
-                        </div>}
+                    <div hidden={['statements', 'notice-board'].includes(workspaceSelection.folder)}>
                         {loading || inboxError ? null : conversations.length === 0 ? (
                             <div style={{ padding: 40, textAlign: 'center' }}>
                                 <div style={{ fontSize: 48, marginBottom: 12 }}></div>
@@ -3469,7 +3464,11 @@ function MessengerPage() {
                     position: 'relative', // Phase 3 BUGFIX: anchor for scroll-to-bottom FAB
                 }}>
                     {
-                        workspaceSelection.folder === 'notice-board' && selectedClub ? (
+                        workspaceSelection.folder === 'statements' && selectedClub ? (
+                            <StatementsPanel key={`${user.id}:${selectedClub.id}`} club={selectedClub} userId={user.id} theme={C}
+                                onBack={() => { setWorkspaceSelection(prev => ({ ...prev, folder: 'messages' })); setShowSidebar(true); }}
+                                onOpen={id => resolveConversationRef.current(id)} />
+                        ) : workspaceSelection.folder === 'notice-board' && selectedClub ? (
                             <NoticeBoard key={`${user.id}:${selectedClub.id}`} club={selectedClub} userId={user.id} theme={C}
                                 onBack={() => { setWorkspaceSelection(prev => ({ ...prev, folder: 'messages' })); setShowSidebar(true); }} />
                         ) : activeConversation ? (

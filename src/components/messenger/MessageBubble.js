@@ -4,6 +4,7 @@ import { defaultTheme } from './MessengerTheme';
 import { Avatar } from './Avatar';
 import { Phone, PhoneMissed, Video } from 'lucide-react';
 import AccountingInvoiceCard from './AccountingInvoiceCard';
+import InvoicePaymentStatus from './InvoicePaymentStatus';
 import CashoutRequestActions, { formatChips } from './CashoutRequestActions';
 import ReliabilityIncidentControls, { ReliabilityMessageHeader, ReliabilityMessageDelete } from './ReliabilityIncidentControls';
 import { isUnverifiedCorrectionPlaceholder } from '../../lib/accountingMessage.mjs';
@@ -572,6 +573,7 @@ export function MessageBubble({
 }) {
     const senderIsVip = sender?.is_vip || false;
     const isInvoice = message?.message_type === 'invoice';
+    const isFinancialDocument = isInvoice || (message?.media_metadata || message?.metadata)?.kind === 'weekly_agent_transaction_summary';
     const [showReactions, setShowReactions] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
     const [reactions, setReactions] = useState(message?.reactions || []);
@@ -826,7 +828,7 @@ export function MessageBubble({
                             onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
                             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                         >Delete For Me</button>
-                        {isOwn && !isInvoice && !message.is_deleted && (Date.now() - new Date(message.created_at).getTime()) < 300000 && (
+                        {isOwn && !isFinancialDocument && !message.is_deleted && (Date.now() - new Date(message.created_at).getTime()) < 300000 && (
                             <button
                                 onClick={() => {
                                     onEdit?.(message);
@@ -889,7 +891,7 @@ export function MessageBubble({
                             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                         >Reply</button>
                         )}
-                        {isOwn && !isInvoice && !message.is_deleted && (Date.now() - new Date(message.created_at).getTime()) < 120000 && (
+                        {isOwn && !isFinancialDocument && !message.is_deleted && (Date.now() - new Date(message.created_at).getTime()) < 120000 && (
                         <button
                             onClick={() => {
                                 onUnsend?.(message.id);
@@ -910,7 +912,7 @@ export function MessageBubble({
                             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                         >Unsend</button>
                         )}
-                        {isOwn && !isInvoice && (
+                        {isOwn && !isFinancialDocument && (
                         <button
                             onClick={() => {
                                 onDelete(message.id, 'for_everyone');
@@ -935,9 +937,9 @@ export function MessageBubble({
                 )}
 
                 <div data-user-content style={{
-                    padding: '8px 12px',
+                    padding: isInvoice ? 0 : '8px 12px',
                     borderRadius: 18,
-                    background: isOwn ? C.ownBubble : (senderIsVip ? 'linear-gradient(135deg, rgba(255,215,0,0.08), rgba(255,215,0,0.03))' : C.otherBubble),
+                    background: isInvoice ? 'transparent' : isOwn ? C.ownBubble : (senderIsVip ? 'linear-gradient(135deg, rgba(255,215,0,0.08), rgba(255,215,0,0.03))' : C.otherBubble),
                     color: isOwn ? 'white' : C.text,
                     fontSize: 15,
                     lineHeight: 1.4,
@@ -984,7 +986,7 @@ export function MessageBubble({
                         const meta = message.media_metadata || message.metadata;
                         if (message.message_type === 'invoice' && meta?.kind === 'accounting_invoice' &&
                             (meta?.accounting_verified === true || isUnverifiedCorrectionPlaceholder(meta))) {
-                            return <AccountingInvoiceCard meta={meta} content={content} theme={C} currentUserId={currentUserId}
+                            return <AccountingInvoiceCard renderPaymentStatus={id => <InvoicePaymentStatus invoiceId={id} theme={C} />} meta={meta} content={content} theme={C} currentUserId={currentUserId}
                                 renderRequestedPayout={(cashoutId) => <CashoutRequestActions cashoutId={cashoutId} currentUserId={currentUserId} theme={C} />} />;
                         }
                         // Auto-sent cashout request from the player to their agent.

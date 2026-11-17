@@ -455,3 +455,11 @@ test('read financial history remains private and manual conversation deletion st
     await assert.rejects(getMessengerWorkspace(db, ids.user,
         { workspace: 'resolve', conversationId: ids.invoice }), error => error.status === 403);
 });
+
+test('Statements workspace retains club authorization without duplicating invoice conversations or counts', async () => {
+ const {db}=fixture();
+ const result=await getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.club,folder:'statements'});
+ assert.equal(result.folder,'statements');assert.equal(result.clubId,ids.club);assert.deepEqual(result.conversations,[]);
+ assert.deepEqual(result.unreadCounts,{messages:1,invoices:1});assert.equal(result.weeklySummary,null);
+ await assert.rejects(getMessengerWorkspace(fixture({member:false}).db,ids.user,{workspace:'club',clubId:ids.club,folder:'statements'}),e=>e.status===403);
+});

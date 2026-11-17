@@ -23,17 +23,17 @@ export default function ClubArenaWorkspace({ clubs, open, clubId, folder, onEnte
                     })}
                 </select>
             </label>
-            <div role="tablist" aria-label="Club Arena Inbox" style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-                {['messages', 'invoices', 'notice-board'].map(tab => <button key={tab} type="button" role="tab"
+            <div role="tablist" aria-label="Club Arena Inbox" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginTop: 10 }}>
+                {['messages', 'invoices', 'statements', 'notice-board'].map(tab => <button key={tab} type="button" role="tab"
                     aria-selected={folder === tab} onClick={() => onFolder(tab)}
                     style={{ ...button, flex: 1, fontSize: 12, color: folder === tab ? C.blue : C.text, borderColor: folder === tab ? C.blue : C.border }}>
-                    {tab === 'notice-board' ? 'Notice Board' : tab === 'invoices' ? 'Invoices' : 'Messages'}
-                    {tab !== 'notice-board' && badge(tab === 'invoices' ? (attentionCounts?.invoices ?? unreadCounts?.invoices) : unreadCounts?.messages,
+                    {tab === 'notice-board' ? 'Notice Board' : tab === 'statements' ? 'Statements' : tab === 'invoices' ? 'Invoices' : 'Messages'}
+                    {['messages', 'invoices'].includes(tab) && badge(tab === 'invoices' ? (attentionCounts?.invoices ?? unreadCounts?.invoices) : unreadCounts?.messages,
                         tab === 'invoices' && attentionCounts?.invoices !== undefined ? 'Needs Attention' : 'Unread')}
                 </button>)}
             </div>
             {folder === 'invoices' && <p style={{ fontSize: 12, lineHeight: 1.5, color: C.textSec, margin: '10px 0 0' }}>
-                {club?.canManage ? 'Weekly Club Statements And Invoice Discussions' : 'Your Invoices And Invoice Discussions'}
+                {club?.canManage ? 'Club Invoices And Invoice Discussions' : 'Your Invoices And Invoice Discussions'}
             </p>}
         </div>}
     </section>;

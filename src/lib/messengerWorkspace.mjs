@@ -119,6 +119,10 @@ export function selectWorkspaceConversations(conversations, accounting, userId, 
 }
 
 export async function getMessengerWorkspace(db, userId, request, internal = {}) {
+    if (request.workspace === 'club' && request.folder === 'statements') {
+        const inbox = await getMessengerWorkspace(db, userId, { ...request, folder: 'invoices' }, { ...internal, countsOnly: true });
+        return { ...inbox, folder: 'statements', conversations: [], weeklySummary: null };
+    }
     const clubs = internal.clubs || await getMessengerClubs(db, userId);
     const workspace = request.workspace || 'social';
     if (workspace === 'dock' || workspace === 'feed') {
