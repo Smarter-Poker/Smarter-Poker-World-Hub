@@ -285,6 +285,29 @@ def flush_outbox(root, opener=urllib.request.urlopen):
     return len(pending)
 
 
+# A PRODUCTION RUNTIME NEVER LIVES IN SCRATCH (2026-11-17, incidents 10dabbbe
+# and the SSD1 agent-work loss). Between 22:45 and 23:35 Chicago on
+# 2026-11-16, 498 of the 501 folders the SSD1 agent-work tree links to were
+# deleted, and with them the series, tours and tournaments runtimes installed
+# at /Volumes/SmarterWork/agent-work/pnm-production-runtimes-20261009. That
+# tree is task scratch by owner policy: tasks delete their own scratch there,
+# and storage upkeep moves and prunes it. The collector could not even report
+# its own death (the runner was among the deleted files) and stayed down for
+# eleven hours. A production install therefore refuses a root, state or
+# Python path whose given or resolved spelling passes through a scratch tree.
+SCRATCH_TREES = ('agent-work', '.agent-trees')
+
+
+def refuse_scratch_location(*paths):
+    for path in paths:
+        if path is None:
+            continue
+        path = Path(path)
+        for spelling in (path.absolute(), path.resolve()):
+            if any(part in SCRATCH_TREES for part in spelling.parts):
+                raise RuntimeFault('production_runtime_in_scratch_agent_work')
+
+
 def verify_python(python):
     check = subprocess.run([str(python), '-c',
         'import sys, scrapling, dotenv, playwright, patchright; '
@@ -614,6 +637,9 @@ def main():
         if args.action == 'install':
             if not all([args.repository, args.revision, args.state, args.inputs, args.python]):
                 parser.error('install requires repository, revision, state, inputs and python')
+            # Checked before anything is written, so a refused install leaves
+            # no directory, release or pointer behind.
+            refuse_scratch_location(args.root, args.state, args.python)
             result = install(args.repository, args.revision, args.root.resolve(),
                              args.state.absolute(), args.inputs.resolve(), args.python,
                              args.component, args.credential_store)

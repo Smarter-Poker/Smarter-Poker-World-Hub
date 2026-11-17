@@ -10,8 +10,8 @@ Use the configured external Python environment and a protected full revision:
 python3 scripts/local_scraper_runtime.py install \
   --component tours \
   --repository "$PWD" --revision <protected-full-sha> \
-  --root /Volumes/SmarterWork/agent-work/pnm-production-runtimes-20261009/tours \
-  --state /Volumes/SmarterWork/agent-work/pnm-production-runtimes-20261009/tours/state \
+  --root /Volumes/SmarterArchives/agent-evidence/extreme-archive/production-runtimes/pnm/tours \
+  --state /Volumes/SmarterArchives/agent-evidence/extreme-archive/production-runtimes/pnm/tours/state \
   --inputs "$PWD/data" \
   --python /Users/smarter.poker/.local/share/smarter-poker-venv/bin/python3 \
   --credential-store /Users/smarter.poker/.local/share/smarter-poker-runtimes/pokeratlas
@@ -46,5 +46,17 @@ entries and guessed-year promotions are rejected. PokerAtlas remains catalog
 data, not running-table activity; Bravo live remains intentionally disabled.
 
 Runtime roots contain installed production code/state and must be retained.
+They live on the retained SSD2 archives volume, under
+`/Volumes/SmarterArchives/agent-evidence/extreme-archive/production-runtimes/pnm`
+(series, tours, tournaments and the shared `pdf-packages`), never in an
+`agent-work` scratch tree. On 2026-11-16 between 22:45 and 23:35 Chicago the
+SSD1 agent-work tree lost 498 of its 501 folders, including the three runtimes
+then installed at `/Volumes/SmarterWork/agent-work/pnm-production-runtimes-20261009`,
+and the collectors stayed down for eleven hours. `install` now refuses a root,
+state or Python path whose given or resolved spelling passes through
+`agent-work` or `.agent-trees` (`production_runtime_in_scratch_agent_work`).
+Install the PDF adapters with
+`<venv python> -m pip install --target <production root>/pdf-packages -r scripts/pnm-pdf-requirements.txt`
+using an SSD TMPDIR and cache.
 Remove only the delivery worktree, dependencies and task-owned scratch after
 publication, not these registered production roots or their credential store.

@@ -19,6 +19,8 @@ from unittest.mock import patch
 spec = importlib.util.spec_from_file_location('runtime', Path(__file__).with_name('local_scraper_runtime.py'))
 runtime = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(runtime)
+# The retained production root for the PNM runtimes on SSD2 (docs/runbooks/pnm-local-collectors.md).
+PRODUCTION_ROOT = '/Volumes/SmarterArchives/agent-evidence/extreme-archive/production-runtimes/pnm'
 # The owner's routing rule: every operational alert names the production-alerts fleet.
 FLEET = '01a09b86-5ba8-7290-8657-1041f13dd3ca'
 
@@ -199,10 +201,57 @@ class RuntimeProof(unittest.TestCase):
             with (scripts / ('com.smarter-poker.' + suffix + '.plist')).open('rb') as source:
                 value = plistlib.load(source)
             self.assertEqual(value['EnvironmentVariables']['PYTHONPATH'],
-                '/Volumes/SmarterWork/agent-work/pnm-production-runtimes-20261009/pdf-packages')
+                PRODUCTION_ROOT + '/pdf-packages')
         pins = (scripts / 'pnm-pdf-requirements.txt').read_text()
         self.assertIn('pdfplumber==0.11.7', pins)
         self.assertIn('pdfminer.six==20250506', pins)
+
+    def test_launchd_plists_never_point_into_a_scratch_tree(self):
+        # 2026-11-17: the three PNM runtimes lived in SSD1 agent-work scratch
+        # and were deleted with it. Every path a plist hands launchd must sit
+        # in the retained production root, never under a scratch tree.
+        scripts = Path(runtime.__file__).parent
+        for suffix in ('tour-scraper', 'series-scraper', 'tournament-schedule-daemon'):
+            with self.subTest(component=suffix):
+                with (scripts / ('com.smarter-poker.' + suffix + '.plist')).open('rb') as source:
+                    value = plistlib.load(source)
+                paths = [a for a in value['ProgramArguments'] if a.startswith('/Volumes/')]
+                paths += [v for k, v in value.get('EnvironmentVariables', {}).items()
+                          if k in ('PYTHONPATH', 'TMPDIR')]
+                self.assertTrue(paths)
+                for path in paths:
+                    self.assertTrue(path.startswith(PRODUCTION_ROOT + '/'), path)
+                    self.assertFalse(set(Path(path).parts) & set(runtime.SCRATCH_TREES), path)
+        self.assertIn('--target ' + PRODUCTION_ROOT + '/pdf-packages',
+                      (scripts / 'pnm-pdf-requirements.txt').read_text())
+
+    def test_production_install_refuses_a_scratch_root_before_writing(self):
+        scratch = self.base / 'agent-work' / 'pnm' / 'series'
+        argv = ['local_scraper_runtime.py', 'install', '--component', 'series',
+                '--repository', str(self.repo), '--revision', self.sha,
+                '--root', str(scratch), '--state', str(scratch / 'state'),
+                '--inputs', str(self.inputs), '--python', sys.executable]
+        err = io.StringIO()
+        with patch.object(sys, 'argv', argv), contextlib.redirect_stderr(err), \
+                patch.object(runtime, 'install') as install:
+            self.assertEqual(runtime.main(), 1)
+        install.assert_not_called()
+        self.assertIn('production_runtime_in_scratch_agent_work', err.getvalue())
+        self.assertFalse((self.base / 'agent-work').exists())
+
+    def test_a_link_into_a_scratch_tree_is_refused_by_its_resolved_spelling(self):
+        # /Volumes/SmarterWork/agent-work/... resolved into "SmarterWork 1";
+        # a production-looking name that resolves into scratch is scratch.
+        real = self.base / 'SmarterWork 1' / 'agent-work' / 'pnm'
+        real.mkdir(parents=True)
+        link = self.base / 'production-runtimes'
+        link.symlink_to(real)
+        with self.assertRaisesRegex(runtime.RuntimeFault, 'production_runtime_in_scratch_agent_work'):
+            runtime.refuse_scratch_location(link / 'series')
+        with self.assertRaisesRegex(runtime.RuntimeFault, 'production_runtime_in_scratch_agent_work'):
+            runtime.refuse_scratch_location(Path('/x/.agent-trees/y'))
+        runtime.refuse_scratch_location(Path(PRODUCTION_ROOT) / 'series', None,
+                                        Path('/Users/smarter.poker/.local/share/smarter-poker-venv/bin/python3'))
 
     def test_series_runtime_preserves_daemon_mode_and_catalog_inputs(self):
         files, inputs = runtime.COMPONENTS['series']
