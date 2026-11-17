@@ -414,6 +414,9 @@ jobs:
       - name: Private Schema Manifest PostgreSQL Contract
         run: python3 scripts/ci/test-schema-manifest-postgres.py
 
+      - name: Weekly Club Statement Certified Details PostgreSQL
+        run: python3 scripts/ci/test-weekly-club-details-postgres.py
+
       - name: "CHECK 24C: Training PostgreSQL 17 Behavioral Authority"
         run: npm run audit:training:phase6-db
 
