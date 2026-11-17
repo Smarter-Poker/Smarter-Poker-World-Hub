@@ -34,14 +34,16 @@
  *
  * LIMIT WORTH KNOWING: PostgREST only exposes what the API role can see. New
  * client-facing RPCs must appear in `paths`; an absent declared function is a
- * deployment failure, not a warning. Service-only SQL should live outside the
- * exposed public schema when it is intentionally not callable through the API.
+ * deployment failure, not a warning. Explicit, source-pinned private contracts
+ * may instead prove exact installed code/signature/ACL through the existing
+ * service-only catalog manifest. No private function is invoked or granted.
  *
  * USAGE
  *   SUPABASE_SERVICE_ROLE_KEY=... NEXT_PUBLIC_SUPABASE_URL=... \
  *     node scripts/ci/check-migrations-applied.mjs [baseRef]
  * EXIT: 0 clean · 1 an unapplied table/view/column · 2 script error
  */
+import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -304,6 +306,75 @@ export function declaredObjects(sql) {
   };
 }
 
+// Only reviewed, source-pinned declarations may use catalog evidence. This is
+// not an automatic exception for an absent RPC: missing contracts still fail.
+const normalizeType = value => String(value).toLowerCase().replace(/^public\./, '').trim();
+const hash = (kind, value) => createHash(kind).update(value).digest('hex');
+export function catalogSourceDeclarations(sql) {
+  return functionHeaders(sql).flatMap(header => {
+    const tail = sql.slice(header.index + header[0].length);
+    const marker = tail.match(/^([^;]*?)\bas\s+(\$[a-z0-9_]*\$)/i);
+    if (!marker) return [];
+    const start = header.index + header[0].length + marker[0].length;
+    const end = sql.indexOf(marker[2], start);
+    if (end < 0) return [];
+    const args = functionArguments(header[2]);
+    // Unknown argument syntax is never silently reduced to a different overload.
+    if (args.length !== splitSqlArguments(header[2]).filter(a => !/^\s*out\s+/i.test(a)).length) return [];
+    const types = args.map(a => normalizeType(a.type));
+    const attributes = marker[1];
+    return [{
+      signature: `public.${header[1].toLowerCase()}(${types.join(',')})`,
+      name: header[1].toLowerCase(), input_argument_names: args.map(a => a.name),
+      input_argument_types: types, result_type: normalizeType(header[3]),
+      security_definer: /\bsecurity\s+definer\b/i.test(attributes),
+      volatility: /\bimmutable\b/i.test(attributes) ? 'i' : /\bstable\b/i.test(attributes) ? 's' : 'v',
+      body_md5: hash('md5', sql.slice(start, end)),
+      source_sha256: hash('sha256', sql.slice(header.index, end + marker[2].length)),
+    }];
+  });
+}
+const sameArray = (a, b) => Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((value, index) => value === b[index]);
+function catalogProofKey(fn) {
+  return `${fn.name}(${fn.args.join(',')}):${(functionArgumentTypes.get(fn) || fn.input_argument_types || []).map(normalizeType).join(',')}`;
+}
+export function privateCatalogRequirements(sources, expected) {
+  return new Set(sources.flatMap(({ file, sql }) => catalogSourceDeclarations(sql)
+    .filter(source => expected.some(intent => intent.file === file && intent.signature === source.signature))
+    .map(source => catalogProofKey({ name: source.name, args: source.input_argument_names, input_argument_types: source.input_argument_types }))));
+}
+export function privateCatalogProofs(sources, expected, manifest) {
+  if (!Array.isArray(expected) || !Array.isArray(manifest?.function_contracts)) throw new Error('Private function catalog proof unavailable');
+  const catalog = manifest.function_contracts;
+  const readers = catalog.filter(f => f.schema === 'public' && f.name === 'fn_schema_manifest' && sameArray(f.input_argument_types, []));
+  if (readers.length !== 1 || readers[0].execute?.anon !== false || readers[0].execute?.authenticated !== false || readers[0].execute?.service_role !== true || readers[0].volatility !== 's') throw new Error('Schema manifest authority changed');
+  const proofs = new Set();
+  for (const { file, sql } of sources) {
+    for (const source of catalogSourceDeclarations(sql)) {
+      const intents = expected.filter(e => e.file === file && e.signature === source.signature && e.source_sha256 === source.source_sha256);
+      if (intents.length !== 1) continue;
+      const intent = intents[0];
+      // A callable service RPC must still pass the OpenAPI path/signature gate.
+      if (intent.execute?.service_role !== false || intent.execute?.anon !== false || typeof intent.execute?.authenticated !== 'boolean') continue;
+      const matches = catalog.filter(f => f.schema === 'public' && f.name === source.name
+        && sameArray(f.input_argument_names, source.input_argument_names)
+        && sameArray(f.input_argument_types?.map(normalizeType), source.input_argument_types));
+      if (matches.length !== 1) continue;
+      const found = matches[0];
+      if (found.body_md5 !== source.body_md5 || found.security_definer !== source.security_definer
+        || found.volatility !== source.volatility || normalizeType(found.result_type) !== source.result_type
+        || !['anon', 'authenticated', 'service_role'].every(role => found.execute?.[role] === intent.execute[role])) continue;
+      proofs.add(catalogProofKey({ name: source.name, args: source.input_argument_names, input_argument_types: source.input_argument_types }));
+    }
+  }
+  return proofs;
+}
+export async function fetchPrivateFunctionManifest({ url, key }, request = resilientFetch) {
+  return request('check-migrations-applied:private-catalog', `${url}/rest/v1/rpc/fn_schema_manifest`, {
+    method: 'GET', headers: { apikey: key, Authorization: `Bearer ${key}`, Accept: 'application/json' },
+  }, { exitCode: 2 });
+}
+
 function resolveSchema(doc, schema) {
   if (!schema || typeof schema !== 'object') return null;
   const ref = schema.$ref;
@@ -475,7 +546,7 @@ export async function proveCompositeRpcSignatures(
 
 export function unappliedObjects(declared, live) {
   const failures = [];
-  const { tables, fns, compositeRpcProofs = new Set() } = live;
+  const { tables, fns, compositeRpcProofs = new Set(), privateFunctionProofs = new Set(), privateFunctionRequired = new Set() } = live;
   for (const t of declared.tables) if (!tables.has(t)) failures.push(['table/view', t]);
   for (const [t, c] of declared.columns) {
     // A column on a table the API does not expose cannot be judged here.
@@ -483,6 +554,11 @@ export function unappliedObjects(declared, live) {
     if (!tables.get(t).has(c)) failures.push(['column', `${t}.${c}`]);
   }
   for (const fn of declared.fns) {
+    if (privateFunctionRequired.has(catalogProofKey(fn)) && !privateFunctionProofs.has(catalogProofKey(fn))) {
+      failures.push(['private function contract', `${fn.name}(${fn.args.join(', ')})`]);
+      continue;
+    }
+    if (privateFunctionProofs.has(catalogProofKey(fn))) continue;
     if (!fns.has(fn.name)) {
       failures.push(['function', `${fn.name}(${fn.args.join(', ')})`]);
       continue;
@@ -517,10 +593,16 @@ async function main() {
   const declarations = [];
   for (const file of files) {
     if (!existsSync(join(REPO, file))) continue;
-    declarations.push({ file, declared: declaredObjects(readFileSync(join(REPO, file), 'utf8')) });
+    const sql = readFileSync(join(REPO, file), 'utf8');
+    declarations.push({ file, sql, declared: declaredObjects(sql) });
   }
 
   const live = await liveSchema();
+  const expected = JSON.parse(readFileSync(new URL('./private-function-contracts.json', import.meta.url), 'utf8'));
+  const privateFunctionRequired = privateCatalogRequirements(declarations, expected);
+  const privateFunctionProofs = privateFunctionRequired.size > 0
+    ? privateCatalogProofs(declarations, expected, await fetchPrivateFunctionManifest(live))
+    : new Set();
   const probeCandidates = compositeRpcProbeCandidates(
     declarations.flatMap(({ declared }) => declared.fns),
     live
@@ -529,7 +611,7 @@ async function main() {
   const failures = [];
 
   for (const { file, declared } of declarations) {
-    for (const [kind, name] of unappliedObjects(declared, { ...live, compositeRpcProofs })) {
+    for (const [kind, name] of unappliedObjects(declared, { ...live, compositeRpcProofs, privateFunctionProofs, privateFunctionRequired })) {
       failures.push([file, kind, name]);
     }
   }

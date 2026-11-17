@@ -4,6 +4,10 @@ import path from 'node:path';
 import { test } from 'node:test';
 
 import {
+  catalogSourceDeclarations,
+  privateCatalogProofs,
+  privateCatalogRequirements,
+  fetchPrivateFunctionManifest,
   compositeRpcProbeCandidates,
   declaredObjects,
   proveCompositeRpcSignatures,
@@ -358,4 +362,75 @@ test('CHECK 17 ignores CREATE FUNCTION text assembled inside a string for EXECUT
     END $$;
   `);
   assert.deepEqual(declared.fns, []);
+});
+
+
+const privateSource = `CREATE OR REPLACE FUNCTION public.hidden_helper(p_id uuid)
+RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER AS $body$
+ SELECT jsonb_build_object('id',p_id);
+$body$;`;
+function privateFixture() {
+  const source = catalogSourceDeclarations(privateSource)[0];
+  const file = 'supabase/migrations/20261117203000_fixture.sql';
+  const execute = { anon: false, authenticated: false, service_role: false };
+  return {
+    sources: [{ file, sql: privateSource }],
+    expected: [{ file, signature: source.signature, source_sha256: source.source_sha256, execute }],
+    manifest: { function_contracts: [
+      { schema: 'public', name: 'fn_schema_manifest', input_argument_types: [], volatility: 's', execute: { anon: false, authenticated: false, service_role: true } },
+      { ...source, schema: 'public', execute: { ...execute } },
+    ] },
+  };
+}
+test('CHECK 17 private fallback proves exact source, signature, code and least-privilege ACL', () => {
+  const f = privateFixture();
+  const proofs = privateCatalogProofs(f.sources, f.expected, f.manifest);
+  assert.equal(proofs.size, 1);
+  assert.deepEqual(unappliedObjects(declaredObjects(privateSource), { ...emptyLiveSchema(), privateFunctionProofs: proofs }), []);
+  f.expected[0].execute.authenticated = true;
+  assert.equal(privateCatalogProofs(f.sources, f.expected, f.manifest).size, 0);
+  f.manifest.function_contracts[1].execute.authenticated = true;
+  assert.equal(privateCatalogProofs(f.sources, f.expected, f.manifest).size, 1, 'Explicit authenticated-only RPC can be catalog proven');
+});
+test('CHECK 17 private proof rejects every material contract mismatch', () => {
+  for (const [field, value] of Object.entries({ schema: 'other', name: 'other', body_md5: 'wrong', input_argument_names: ['wrong'], input_argument_types: ['text'], result_type: 'text', security_definer: false, volatility: 'v', execute: { anon: true, authenticated: false, service_role: false } })) {
+    const f = privateFixture(); f.manifest.function_contracts[1][field] = value;
+    assert.equal(privateCatalogProofs(f.sources, f.expected, f.manifest).size, 0, field);
+  }
+  for (const field of ['file', 'signature', 'source_sha256']) {
+    const f = privateFixture(); f.expected[0][field] = 'wrong';
+    assert.equal(privateCatalogProofs(f.sources, f.expected, f.manifest).size, 0, field);
+  }
+  const f = privateFixture();
+  assert.equal(privateCatalogProofs(f.sources, [], f.manifest).size, 0, 'Unlisted missing function never bypasses OpenAPI');
+  assert.equal(privateCatalogProofs([{ ...f.sources[0], sql: privateSource.replace("'id'", "'changed'") }], f.expected, f.manifest).size, 0, 'Changed source invalidates pin');
+  f.manifest.function_contracts.push(f.manifest.function_contracts[1]);
+  assert.equal(privateCatalogProofs(f.sources, f.expected, f.manifest).size, 0, 'Ambiguous catalog proof fails closed');
+});
+test('CHECK 17 service callable RPCs and overloads cannot borrow private proof', () => {
+  const f = privateFixture(); const proofs = privateCatalogProofs(f.sources, f.expected, f.manifest);
+  assert.equal(unappliedObjects(declaredObjects(privateSource.replace('p_id uuid', 'p_id text')), { ...emptyLiveSchema(), privateFunctionProofs: proofs }).length, 1);
+  f.expected[0].execute.service_role = true;
+  f.manifest.function_contracts[1].execute.service_role = true;
+  assert.equal(privateCatalogProofs(f.sources, f.expected, f.manifest).size, 0);
+});
+test('CHECK 17 refuses missing or browser-exposed schema manifest and only reads the manifest', async () => {
+  const f = privateFixture();
+  assert.throws(() => privateCatalogProofs(f.sources, f.expected, {}), /unavailable/);
+  f.manifest.function_contracts[0].execute.authenticated = true;
+  assert.throws(() => privateCatalogProofs(f.sources, f.expected, f.manifest), /authority changed/);
+  const calls = [];
+  await fetchPrivateFunctionManifest({ url: 'https://fixture.invalid', key: 'fixture' }, async (...args) => { calls.push(args); return {}; });
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][1], 'https://fixture.invalid/rest/v1/rpc/fn_schema_manifest');
+  assert.equal(calls[0][2].method, 'GET');
+});
+
+test('CHECK 17 an overgranted private function cannot pass through OpenAPI', () => {
+  const f = privateFixture();
+  const required = privateCatalogRequirements(f.sources, f.expected);
+  f.manifest.function_contracts[1].execute.service_role = true;
+  const proofs = privateCatalogProofs(f.sources, f.expected, f.manifest);
+  const live = { ...emptyLiveSchema(), fns: new Set(['hidden_helper']), rpcArgs: new Map([['hidden_helper', [new Set(['p_id'])]]]), privateFunctionRequired: required, privateFunctionProofs: proofs };
+  assert.equal(unappliedObjects(declaredObjects(privateSource), live)[0][0], 'private function contract');
 });

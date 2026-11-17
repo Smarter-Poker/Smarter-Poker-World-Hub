@@ -1,6 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { authedFetch, getAccessToken } from '../../lib/authUtils';
+import CashoutRequestActions from './CashoutRequestActions';
 import { mergeNotices, pendingPins, compareNotices } from '../../lib/clubNoticeBoard.mjs';
 
 // Keyed by authenticated actor + club at the caller. No state crosses identities.
@@ -18,6 +19,9 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
     const [editing, setEditing] = useState(null);
     const [busy, setBusy] = useState(false);
     const [newItems, setNewItems] = useState(false);
+    const [noteTarget, setNoteTarget] = useState(null);
+    const [noteDraft, setNoteDraft] = useState('');
+    const noteIntent = useRef(null);
     const scroller = useRef(null);
     const state = useRef({ rows: [], pinRows: [], cursor: null, alive: true, loading: false, events: [], generation: 0, epoch: 0 });
     const anchor = useRef(null);
@@ -44,19 +48,27 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
         anchor.current = null;
     }, [rows, pins, loading]);
 
-    async function request(method, payload = {}) {
+    function clearAccess() {
+        const s = state.current;
+        s.denied = true; s.epoch++; s.generation++; s.loading = false; s.refreshAfterLoad = false;
+        s.events = []; s.rows = []; s.pinRows = []; s.cursor = null;
+        setRows([]); setPins([]); setCanManage(false); setHasMore(false); setNewItems(false);
+        setEditing(null); setDraft(''); setNoteTarget(null); setNoteDraft('');
+        setLoading(false); setOlderLoading(false); setLive(false);
+        createIntent.current = null; noteIntent.current = null;
+    }
+    async function request(method, payload = {}, action) {
         const epoch = state.current.epoch;
         const token = getAccessToken();
         const response = await authedFetch('/api/messenger/notice-board', { method,
             headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-            body: JSON.stringify({ clubId: club.id, payload }) });
+            body: JSON.stringify({ clubId: club.id, payload, ...(action ? { action } : {}) }) });
         const result = await response.json();
         if (!state.current.alive || state.current.epoch !== epoch) return null;
         if (response.status === 401 || response.status === 403) {
-            state.current.denied = true; state.current.events = []; state.current.pinRows = [];
-            state.current.rows = []; setRows([]); setPins([]); setCanManage(false);
+            clearAccess();
         }
-        if (!response.ok || !result.success) throw new Error(result.error || 'Notice Board Unavailable');
+        if (!response.ok || !result.success) throw Object.assign(new Error(result.error || 'Notice Board Unavailable'), { status: response.status });
         if (method === 'POST') state.current.denied = false;
         return result;
     }
@@ -110,10 +122,24 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
             .on('postgres_changes', { event: '*', schema: 'public', table: 'club_notice_board', filter: `club_id=eq.${club.id}` }, event => {
                 const row = event.new;
                 if (!s.alive || s.denied || row?.club_id !== club.id) return;
-                if (s.loading) s.events.push(row); else accept([row]);
+                // Joined cash-out details must come from the authorized reader, never
+                // from an unjoined realtime table row.
+                if (row.cashout_id) { if (s.loading) s.refreshAfterLoad = true; else void hydrate(); }
+                else if (s.loading) s.events.push(row); else accept([row]);
+            }).on('postgres_changes', { event: '*', schema: 'public', table: 'club_notice_access_events', filter: `user_id=eq.${userId}` }, event => {
+                const access = event.new;
+                if (!s.alive || access?.club_id !== club.id || access?.user_id !== userId) return;
+                // Revocation is self-readable even after club access ends.
+                // Invalidate pending reads before clearing the mounted history.
+                clearAccess();
+                if (access.can_access === true) { setLoading(true); void hydrate(); }
+                else setError('Your Club Role No Longer Has Access To This Notice Board.');
             }).subscribe(status => {
                 if (!s.alive) return;
                 setLive(status === 'SUBSCRIBED');
+                if (['CLOSED', 'CHANNEL_ERROR', 'TIMED_OUT'].includes(status)) {
+                    clearAccess(); setError('Connection Lost. Refresh To Check Notice Board Access.');
+                }
                 if (status === 'SUBSCRIBED') {
                     if (s.loading) s.refreshAfterLoad = true; else void hydrate();
                 }
@@ -122,11 +148,14 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
         // refreshes after connection to close the read/subscription race.
         void hydrate();
         const refresh = () => { if (document.visibilityState === 'visible') void hydrate(); };
+        const offline = () => { clearAccess(); setError('You Are Offline. Reconnect To Check Notice Board Access.'); };
+        window.addEventListener('offline', offline);
         window.addEventListener('online', refresh);
         window.addEventListener('focus', refresh);
         document.addEventListener('visibilitychange', refresh);
         return () => {
             s.alive = false; s.generation++; s.epoch++;
+            window.removeEventListener('offline', offline);
             window.removeEventListener('online', refresh); window.removeEventListener('focus', refresh);
             document.removeEventListener('visibilitychange', refresh); void supabase.removeChannel(channel);
         };
@@ -156,16 +185,29 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
         setError('This Notice Was Removed. Your Edit Was Not Saved.');
     }, [rows, pins, editing]);
 
-    async function mutate(method, payload) {
+    async function mutate(method, payload, action) {
         if (busy) return false;
         setBusy(true); setError('');
         try {
-            const result = await request(method, payload);
+            const result = await request(method, payload, action);
             if (!result) return false;
             // A delayed read must replay acknowledged writes even without a socket.
             if (state.current.loading) state.current.events.push(result.entry);
             accept([result.entry]); return true;
-        } catch (failure) { if (state.current.alive) setError(failure.message); return false; }
+        } catch (failure) {
+            if (state.current.alive) {
+                if (action === 'add_note' && failure.status === 409) {
+                    // A rejected stale note made no write. Refresh its version
+                    // while retaining the draft; uncertain outcomes keep their ID.
+                    noteIntent.current = null;
+                    await hydrate();
+                    const current = [...state.current.rows, ...state.current.pinRows].find(row => row.id === payload.id && !row.is_deleted);
+                    if (current) setNoteTarget(current);
+                }
+                setError(failure.message);
+            }
+            return false;
+        }
         finally { if (state.current.alive) setBusy(false); }
     }
     async function submit(event) {
@@ -182,14 +224,32 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
             if (await mutate('PUT', createIntent.current)) { createIntent.current = null; setDraft(''); }
         }
     }
+    async function submitNote(event) {
+        event.preventDefault();
+        if (!noteTarget || !noteDraft.trim() || !canManage) return;
+        const note = noteDraft.trim();
+        if (!noteIntent.current || noteIntent.current.id !== noteTarget.id || noteIntent.current.note !== note) {
+            noteIntent.current = { id: noteTarget.id, version: noteTarget.version, note, op_id: crypto.randomUUID() };
+        }
+        if (await mutate('PATCH', noteIntent.current, 'add_note')) { noteIntent.current = null; setNoteTarget(null); setNoteDraft(''); }
+    }
     const card = (row, pinned = false) => <article key={row.id} data-notice-id={pinned ? undefined : row.id}
         style={{ padding: 12, marginBottom: 8, border: `1px solid ${pinned ? C.blue : C.border}`, borderRadius: 10, background: C.bg }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, color: C.textSec, fontSize: 11 }}>
-            <strong style={{ color: row.status === 'pending_payout' ? C.blue : C.text }}>{row.status === 'pending_payout' ? 'Pending Payout' : row.status === 'paid' ? 'Marked Paid' : 'Club Notice'}</strong>
+            <strong style={{ color: row.status === 'pending_payout' ? C.blue : C.text }}>{row.cashout_id ? 'Payout Request' : row.status === 'pending_payout' ? 'Pending Payout' : row.status === 'paid' ? 'Marked Paid' : 'Club Notice'}</strong>
             <time dateTime={row.created_at}>{new Date(row.created_at).toLocaleString()}</time>
         </div>
         <p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', lineHeight: 1.5, fontSize: 14, margin: '8px 0' }}>{row.content}</p>
-        {canManage && <div aria-label="Notice Actions" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        {row.cashout_id && <CashoutRequestActions cashoutId={row.cashout_id} currentUserId={userId} theme={C} initialCard={row.cashout || null} onChanged={() => void hydrate()} />}
+        {Array.isArray(row.manager_notes) && row.manager_notes.map(note => <div key={note.id} style={{ borderLeft: `2px solid ${C.border}`, paddingLeft: 10, margin: '10px 0', fontSize: 12 }}>
+            <strong>{note.actor_name || 'Club Management'}</strong> <time style={{ color: C.textSec }} dateTime={note.created_at}>{new Date(note.created_at).toLocaleString()}</time>
+            <p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', margin: '4px 0' }}>{note.note}</p>
+        </div>)}
+        {canManage && row.cashout_id && <div aria-label="Payout Board Actions" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {row.cashout?.status === 'pending' && <button type="button" disabled={busy} style={button} onClick={() => void mutate('PATCH', { id: row.id, version: row.version, is_pinned: !row.is_pinned })}>{row.is_pinned ? 'Unpin' : 'Pin'}</button>}
+            <button type="button" disabled={busy} style={button} onClick={() => { setNoteTarget(row); setNoteDraft(''); noteIntent.current = null; }}>Add Note</button>
+        </div>}
+        {canManage && !row.cashout_id && <div aria-label="Notice Actions" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             <button type="button" disabled={busy} style={button} onClick={() => { setEditing(row); setDraft(row.content); }}>Edit</button>
             {row.status === 'pending_payout' && <>
                 <button type="button" disabled={busy} style={button} onClick={() => void mutate('PATCH', { id: row.id, version: row.version, is_pinned: !row.is_pinned })}>{row.is_pinned ? 'Unpin' : 'Pin'}</button>
@@ -217,7 +277,13 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
             {rows.filter(row => !row.is_deleted).map(row => card(row))}
         </div>
         {newItems && <button type="button" style={button} onClick={() => { scroller.current.scrollTop = scroller.current.scrollHeight; setNewItems(false); }}>Latest Notices</button>}
-        {canManage && <form onSubmit={submit} style={{ padding: '10px 16px', borderTop: `1px solid ${C.border}` }}>
+        {canManage && noteTarget && <form onSubmit={submitNote} style={{ padding: '10px 16px', borderTop: `1px solid ${C.border}` }}>
+            <div style={{ fontSize: 12, marginBottom: 6 }}>Payout Note <button type="button" style={button} disabled={busy} onClick={() => { setNoteTarget(null); setNoteDraft(''); }}>Cancel Note</button></div>
+            <div style={{ display: 'flex', gap: 8 }}><textarea aria-label="Payout Note" value={noteDraft} onChange={e => setNoteDraft(e.target.value)} maxLength={2000} disabled={busy} rows={2} style={{ ...button, flex: 1, minWidth: 0, resize: 'vertical', textAlign: 'left' }} />
+                <button type="submit" disabled={busy || !noteDraft.trim()} style={{ ...button, background: C.blue, color: '#fff' }}>{busy ? 'Saving...' : 'Save Note'}</button></div>
+        </form>}
+        {!loading && !canManage && !error && <p style={{ padding: '0 16px', color: C.textSec, fontSize: 12 }}>Read Only · Club Management Handles Payouts And Notes</p>}
+        {canManage && !noteTarget && <form onSubmit={submit} style={{ padding: '10px 16px', borderTop: `1px solid ${C.border}` }}>
             {editing ? <div style={{ fontSize: 12, marginBottom: 6 }}>Editing Notice <button type="button" style={button} onClick={() => { setEditing(null); setDraft(''); }}>Cancel Edit</button></div>
                 : <select aria-label="Notice Type" value={kind} disabled={busy} onChange={e => setKind(e.target.value)} style={{ ...button, marginBottom: 8 }}><option value="notice">Club Notice</option><option value="pending_payout">Payout Request</option></select>}
             <div style={{ display: 'flex', gap: 8 }}><textarea aria-label="Notice Text" placeholder="Write A Club Notice..." value={draft} onChange={e => setDraft(e.target.value)} maxLength={4000} disabled={busy} rows={2} style={{ ...button, flex: 1, minWidth: 0, resize: 'vertical', maxHeight: 120, textAlign: 'left' }} />

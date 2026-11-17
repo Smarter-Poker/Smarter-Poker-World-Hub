@@ -13,10 +13,11 @@ export function validateNoticeRequest(method, body) {
     const fail = () => { throw Object.assign(new Error('Invalid Notice Board Request'), { status: 400 }); };
     if (!body || !UUID.test(body.clubId || '')) fail();
     const actions = { POST: 'read', PUT: 'create', PATCH: 'update', DELETE: 'delete' };
-    const action = actions[method];
+    const action = method === 'PATCH' && body.action === 'add_note' ? 'add_note' : actions[method];
+    if (body.action !== undefined && !(method === 'PATCH' && body.action === 'add_note')) fail();
     if (!action) throw Object.assign(new Error('Method Not Allowed'), { status: 405 });
     const payload = body.payload || {};
-    const allowed = action === 'read' ? ['before', 'beforeId'] : action === 'create'
+    const allowed = action === 'add_note' ? ['id', 'version', 'note', 'op_id'] : action === 'read' ? ['before', 'beforeId'] : action === 'create'
         ? ['id', 'content', 'status', 'is_pinned'] : ['id', 'version', 'content', 'status', 'is_pinned'];
     if (Array.isArray(payload) || typeof payload !== 'object' || Object.keys(payload).some(k => !allowed.includes(k))) fail();
     if (action === 'read') {
@@ -26,6 +27,7 @@ export function validateNoticeRequest(method, body) {
     } else {
         if (!UUID.test(payload.id || '')) fail();
         if (action !== 'create' && (!Number.isSafeInteger(payload.version) || payload.version < 1)) fail();
+        if (action === 'add_note' && (typeof payload.note !== 'string' || !payload.note.trim() || payload.note.length > 2000 || !UUID.test(payload.op_id || ''))) fail();
         if (action === 'create' && (typeof payload.content !== 'string' || !payload.status)) fail();
         if (payload.content !== undefined && (typeof payload.content !== 'string' || !payload.content.trim() || payload.content.length > 4000)) fail();
         if (payload.status !== undefined && !['notice', 'pending_payout', 'paid'].includes(payload.status)) fail();
@@ -33,6 +35,7 @@ export function validateNoticeRequest(method, body) {
     }
     // Match persistence normalization before an idempotent create retry.
     const canonical = { ...payload };
+    if (typeof canonical.note === 'string') canonical.note = canonical.note.trim();
     if (typeof canonical.content === 'string') canonical.content = canonical.content.trim();
     if (action === 'create' && canonical.status !== 'pending_payout') canonical.is_pinned = false;
     return { clubId: body.clubId, action, payload: canonical };

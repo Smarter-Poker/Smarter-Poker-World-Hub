@@ -381,6 +381,11 @@ jobs:
           CHROME_BIN: /usr/bin/google-chrome
         run: node scripts/ci/test-messenger-accounting-ui.mjs
 
+      - name: Notice Board Payout Browser Components
+        env:
+          CHROME_BIN: /usr/bin/google-chrome
+        run: node scripts/ci/test-notice-payout-ui.mjs
+
       - name: Messenger Saved Statements And Received Payments PostgreSQL
         run: node scripts/ci/test-messenger-accounting-postgres.mjs
 
@@ -400,8 +405,14 @@ jobs:
           mkdir -p "$VIP_GIFT_POSTGRES_ROOT"
           node --test __tests__/vip-gifts-postgres.test.mjs
 
+      - name: Notice Cashout Authorization And Bank Settlement PostgreSQL
+        run: python3 scripts/ci/test-notice-cashout-postgres.py
+
       - name: Club Notice Board Native Authorization And Pagination
         run: node --test __tests__/club-notice-board-postgres.test.mjs
+
+      - name: Private Schema Manifest PostgreSQL Contract
+        run: python3 scripts/ci/test-schema-manifest-postgres.py
 
       - name: "CHECK 24C: Training PostgreSQL 17 Behavioral Authority"
         run: npm run audit:training:phase6-db

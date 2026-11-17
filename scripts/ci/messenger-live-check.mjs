@@ -10,7 +10,7 @@ import { pathToFileURL } from 'node:url';
 import { APP_ORIGIN, AUTH_ORIGIN, validateConfiguration } from './messenger-live-configuration.mjs';
 export { APP_ORIGIN, AUTH_ORIGIN, validateConfiguration } from './messenger-live-configuration.mjs';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const READ_POSTS = new Set(['/api/messenger/get-conversations', '/api/messenger/get-messages', '/api/messenger/statements']);
+const READ_POSTS = new Set(['/api/messenger/get-conversations', '/api/messenger/get-messages', '/api/messenger/statements', '/api/messenger/notice-board']);
 
 export function allowMutation(method, url, body, loadedConversations, visibleNotifications) {
   const target = new URL(url);
@@ -103,12 +103,18 @@ async function run() {
     report.accountFingerprint = createHash('sha256').update(session.user.id).digest('hex').slice(0, 16);
 
     const api = async (path, body) => {
-      assert.ok(['/api/user/get-header-stats', '/api/messenger/get-conversations', '/api/messenger/get-messages', '/api/notifications/feed', '/api/messenger/statements', '/api/messenger/receivables'].includes(path), 'Unapproved API probe route');
+      assert.ok(['/api/user/get-header-stats', '/api/messenger/get-conversations', '/api/messenger/get-messages', '/api/notifications/feed', '/api/messenger/statements', '/api/messenger/receivables', '/api/messenger/notice-board'].includes(path), 'Unapproved API probe route');
       if (path === '/api/messenger/receivables') assert.ok(['list', 'status'].includes(body?.action), 'Payment writes are forbidden in live verification');
       const response = await fetch(`${APP_ORIGIN}${path}${body ? '' : '?bust=1'}`, {
         method: body ? 'POST' : 'GET', headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
         body: body ? JSON.stringify(body) : undefined, cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(20000),
       });
+      if (path === '/api/messenger/notice-board' && response.status === 403) {
+        const denied = await response.json();
+        assert.equal(denied.success, false);
+        assert.equal(denied.entries, undefined, 'Denied board must not disclose history');
+        return { denied: true };
+      }
       assert.ok(response.ok, `${path} failed with HTTP ${response.status}`);
       const data = await response.json();
       assert.equal(data.success, true, `${path} did not return success`);
@@ -277,6 +283,22 @@ async function run() {
       const receivables = await api('/api/messenger/receivables', { action: 'list', clubId: club.id });
       assert.ok(Array.isArray(receivables.invoices), 'Payment balance reader failed');
     }
+    report.phase = 'notice-board-access';
+    let readableBoards = 0, deniedBoards = 0;
+    for (const club of after.workspaces[0].clubs) {
+      const board = await api('/api/messenger/notice-board', { clubId: club.id });
+      if (board.denied) {
+        assert.equal(club.canManage, false, 'Club manager lost board access');
+        deniedBoards++;
+      } else {
+        assert.ok(Array.isArray(board.entries) && Array.isArray(board.pinned));
+        assert.equal(typeof board.canManage, 'boolean');
+        readableBoards++;
+      }
+    }
+    report.coverage.readableNoticeBoards = readableBoards;
+    report.coverage.deniedNoticeBoards = deniedBoards;
+    report.checks.push('Notice Board API returned authorized history or explicit denial without history for every test-account club');
     report.coverage.savedStatements = statementCount;
     if (!statementCount) report.limitations.push('Test account has no saved weekly statement; real-recipient persistence is verified separately through database readback');
     await page.goto(`${APP_ORIGIN}/hub/messenger/document-designs`, { waitUntil: 'domcontentloaded' });

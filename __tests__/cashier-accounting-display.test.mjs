@@ -262,3 +262,20 @@ test('a decided cashout never offers the requested payout actions', () => {
         assert.doesNotMatch(out, /ACTIONS|Requested Payout/);
     }
 });
+
+test('verified escalated cashout shows the club bank destination and hides its balance', () => {
+    const proof = receipt('approval');
+    Object.assign(proof.cashier, { ledger_to_type: 'club_treasury', ledger_to_entity_id: proof.club_id,
+        approval_destination: 'club_bank', club_bank_after: '9876543.21' });
+    const rendered = html(proof);
+    assert.match(rendered, /Chips were transferred to the club chip bank/);
+    assert.doesNotMatch(rendered, /approving cashier|9876543/);
+    assert.equal(parseVerifiedCashierReceipt(proof).club_bank_after, undefined);
+    for (const change of [p => { p.cashier.actor_role = 'agent'; },
+        p => { p.cashier.ledger_to_entity_id = p.cashier.actor_user_id; },
+        p => { delete p.cashier.approval_destination; }]) {
+        const invalid = structuredClone(proof); change(invalid);
+        assert.equal(parseVerifiedCashierReceipt(invalid), null);
+        assert.doesNotMatch(html(invalid), /Cashout Approved/);
+    }
+});

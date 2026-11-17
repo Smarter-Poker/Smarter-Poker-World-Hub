@@ -1,0 +1,112 @@
+[
+  {
+    "file": "supabase/migrations/20261117203000_notice_board_staff_and_cashout_links.sql",
+    "signature": "public.fn_club_notice_role(uuid,uuid)",
+    "source_sha256": "9e3c69264369c151b4c909004963052d132b7867ac479cc8418b88d93396825a",
+    "execute": {
+      "anon": false,
+      "authenticated": false,
+      "service_role": false
+    }
+  },
+  {
+    "file": "supabase/migrations/20261117203000_notice_board_staff_and_cashout_links.sql",
+    "signature": "public.fn_publish_club_notice_access(uuid,uuid)",
+    "source_sha256": "5497244c4207f9129e46d7d2aac501dc9802b4c9243ac1d99b6b555c0a98335c",
+    "execute": {
+      "anon": false,
+      "authenticated": false,
+      "service_role": false
+    }
+  },
+  {
+    "file": "supabase/migrations/20261117203000_notice_board_staff_and_cashout_links.sql",
+    "signature": "public.fn_notice_cashout_card(uuid,uuid)",
+    "source_sha256": "2ad8662d8fc770251b1c87f01e223b048ca733f244c63be21d649ffe7546a045",
+    "execute": {
+      "anon": false,
+      "authenticated": false,
+      "service_role": false
+    }
+  },
+  {
+    "file": "supabase/migrations/20261117203000_notice_board_staff_and_cashout_links.sql",
+    "signature": "public.fn_notice_entry(uuid,uuid)",
+    "source_sha256": "aba24d4ea28055723971640874e36d4d400ac7b628b21fcbc2338d31943305e7",
+    "execute": {
+      "anon": false,
+      "authenticated": false,
+      "service_role": false
+    }
+  },
+  {
+    "file": "supabase/migrations/20261117203000_notice_board_staff_and_cashout_links.sql",
+    "signature": "public.fn_cashout_escalate_v2(uuid,uuid,uuid,uuid)",
+    "source_sha256": "9fcf5064904bc1ab1ba8229e9f615575dd8da6fd773ea68c4bef7aa482e0f388",
+    "execute": {
+      "anon": false,
+      "authenticated": true,
+      "service_role": false
+    }
+  },
+  {
+    "file": "supabase/migrations/20261117203000_notice_board_staff_and_cashout_links.sql",
+    "signature": "public.fn_cashout_queue_v2(uuid,text)",
+    "source_sha256": "c1d552f30c838814d9fe91140c84a58a9672667313dbd10b6025eac1eb2473a9",
+    "execute": {
+      "anon": false,
+      "authenticated": true,
+      "service_role": false
+    }
+  },
+  {
+    "file": "supabase/migrations/20261117203100_escalated_cashouts_settle_to_club_bank.sql",
+    "signature": "public.fn_cashier_cashout_transition(text,uuid,uuid,numeric,uuid,uuid,text)",
+    "source_sha256": "c91c8322868d2f4907b10e5543173d524bb09a6f97a40893db8210bfdeee35b9",
+    "execute": {
+      "anon": false,
+      "authenticated": false,
+      "service_role": false
+    }
+  },
+  {
+    "file": "supabase/migrations/20261117203100_escalated_cashouts_settle_to_club_bank.sql",
+    "signature": "public.fn_cashier_event_payload(accounting_cashier_events)",
+    "source_sha256": "c55638d66724c0bb99ec105db665da66164c147a65a2fe256bd621379c07515e",
+    "execute": {
+      "anon": false,
+      "authenticated": false,
+      "service_role": false
+    }
+  },
+  {
+    "file": "supabase/migrations/20261117203100_escalated_cashouts_settle_to_club_bank.sql",
+    "signature": "public.fn_cashier_invoice_contract(uuid)",
+    "source_sha256": "c6e18b8186a2dea4f9afe4e42efe13185778a2f948409a70f25848b1eb955991",
+    "execute": {
+      "anon": false,
+      "authenticated": false,
+      "service_role": false
+    }
+  },
+  {
+    "file": "supabase/migrations/20261117203100_escalated_cashouts_settle_to_club_bank.sql",
+    "signature": "public.fn_cashier_operation_receipt(uuid,boolean)",
+    "source_sha256": "34a6094e2f8504b3ef3122077f9a81a994b9528576c9985fef23c1dd229a21e9",
+    "execute": {
+      "anon": false,
+      "authenticated": false,
+      "service_role": false
+    }
+  },
+  {
+    "file": "supabase/migrations/20261117203100_escalated_cashouts_settle_to_club_bank.sql",
+    "signature": "public.fn_cashier_document_body(uuid,text)",
+    "source_sha256": "6edda97eed0b2b6bb20b63be4eb82c4cc2e030fa5d2225985d39fb2291956cf3",
+    "execute": {
+      "anon": false,
+      "authenticated": false,
+      "service_role": false
+    }
+  }
+]

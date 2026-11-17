@@ -1,0 +1,10 @@
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import NoticeBoard from '../../src/components/messenger/NoticeBoard';
+import CashoutRequestActions from '../../src/components/messenger/CashoutRequestActions';
+const root=createRoot(document.getElementById('root'));
+const theme={text:'#e4e6eb',textSec:'#b0b3b8',border:'#393a3b',blue:'#0084ff',bg:'#242526'};
+const club={id:'10000000-0000-4000-8000-000000000001',name:'Fixture Club'};
+const userId='10000000-0000-4000-8000-000000000002';
+window.showFixture=(view,key=0)=>root.render(view==='private'?<CashoutRequestActions key={key} cashoutId="20000000-0000-4000-8000-000000000001" currentUserId={userId} theme={theme}/>:<div style={{height:'100vh',display:'flex'}}><NoticeBoard key={key} club={club} userId={userId} theme={theme} onBack={()=>{}}/></div>);
+window.showFixture('private');
