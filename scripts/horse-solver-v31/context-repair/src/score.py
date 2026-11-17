@@ -11,7 +11,7 @@ def memory_bytes(k):
     return k*1024
 def technical(stage):
     report=load(B/('evidence/build-'+stage+'.json'));jobs=[Path(p) for p in report['files']]
-    dirs=[B/'m1'/('F5REPAIR-'+stage+'-'+p.stem.rsplit('-',1)[1]) for p in jobs]
+    dirs=[B/'m1'/('F5TAIL-'+stage+'-'+p.stem.rsplit('-',1)[1]) for p in jobs]
     expected=[j for p in jobs for j in load(p)]
     R=f4_results.load(jobs,dirs,expect_driver={sha(B/'driver/f4_lock_driver.py')})
     summary=R.summary()
@@ -39,7 +39,7 @@ def compare(rows):
     improved=float(np.mean(cand))<=.9*float(np.mean(base)) and max(cand)<=max(base)+.5 and all(x['candidate']<=x['baseline']+.5 for x in means.values())
     return dict(improved=bool(improved),absolute_pass=max(cand)<=3.,baseline_mean=float(np.mean(base)),candidate_mean=float(np.mean(cand)),baseline_max=max(base),candidate_max=max(cand),family_means=means)
 def main():
-    stage=sys.argv[1];assert stage in ('TRAIN','DEV','NEW_FINAL');frozen()
+    stage=sys.argv[1];assert stage=='EVAL';frozen()
     if stage!='TRAIN':candidate_frozen()
     result=B/('evidence/'+stage+'-result.json');assert not result.exists(),'terminal result already exists'
     if stage!='TRAIN':
@@ -55,11 +55,14 @@ def main():
             for j in js:
                 for seat,key in (('ip','oop_mes_chips'),('oop','ip_mes_chips')):
                     row=dict(id=j['id'],family=j['meta']['family'],position=j['meta']['position'],seat=seat)
-                    for name in ('baseline','candidate'):row[name]=endpoint(R.delta_vs_eq(j['id'],seat+'_all|'+name,key),j['phases'][0]['scenario']['pot_chips'])
+                    for name in ('baseline','original','candidate'):row[name]=endpoint(R.delta_vs_eq(j['id'],seat+'_all|'+name,key),j['phases'][0]['scenario']['pot_chips'])
                     rows.append(row)
             out['rows']=rows;out.update(compare(rows))
-            if stage=='NEW_FINAL':out['absolute_pass']=out['absolute_pass'] and load(B/'evidence/DEV-result.json')['absolute_pass']
-            out['verdict']=('IMPROVEMENT_CONTINUE' if stage=='DEV' else 'FINITE_CONTEXT_QUALIFIED' if out['absolute_pass'] else 'IMPROVED_NOT_QUALIFIED') if out['improved'] else 'FAIL_CONTEXT_IMPROVEMENT'
+            original=compare([dict(r,baseline=r['original']) for r in rows]);out['versus_original']=original
+            two=out['family_means']['UNP2T'];two_original=original['family_means']['UNP2T']
+            out['two_tone_nonregression']=two['candidate']<=two['baseline'] and two_original['candidate']<=two_original['baseline']
+            out['improved']=out['improved'] and original['improved'] and out['two_tone_nonregression']
+            out['verdict']=('FINITE_CONTEXT_QUALIFIED' if out['absolute_pass'] else 'IMPROVED_NOT_QUALIFIED') if out['improved'] else 'FAIL_CONTEXT_IMPROVEMENT'
     except (AssertionError,ValueError,KeyError,TypeError,OSError,f4_results.ResultsError) as e:out.update(verdict='UNVERIFIED',rows=[],reason=str(e))
     write(result,out);print(json.dumps({k:v for k,v in out.items() if k not in ('rows','technical_summary')}))
 if __name__=='__main__':main()

@@ -1,17 +1,14 @@
 #!/usr/bin/env python3
-"""FLOP-2 label-free encoder: holdem-public-hist215-v2 base rows for (scenario, target) pairs WITHOUT any solver output.
-Same chain and components as FT/src/ft_features.py (R8 build_caches.py ROOT-range WTL, CA 75b60118 assembler + buildPublicHist215Features.ts,
-57 boards per context per batch, pads = flop-order permutations then suit relabels of the chunk's own boards). The encoder is public state + hand:
-it reads the scenario, the target node and the ROOT ranges only. Output per real target: rows/<target_id>.npz with
-combo_indices (canonical 1326 index of each encoded row, the public ROOT mask) and X (rows x 246 float64), plus index.json.
-Selecting live rows (matchups > 0) is label-dependent and done later in flop2_features.py, exactly like training_arrays().
-usage: OMP_NUM_THREADS=1 venv/bin/python -I -B flop2_encode.py TARGETS.json OUT_DIR
-FLOP-3 B8 COPY (W45 src/flop2_encode.py + ONE change, marked "b8 change"): when a context's own boards cannot supply the 56 pads (a monotone or trips
-board has only 24 distinct flop-order x suit relabels, so a context with one or two such boards fails W45's "pad capacity" check), the remaining pads
-are other physical boards of the SAME texture class (same target context, rank signature outside the exclusion set X), in a seeded order; recorded as
-class pads. Pads never affect a real board's rows (W45 regeneration check: 56 pads vs the FT batch, max abs diff 0.0); test/encode_pad_test.py checks
-it again for class pads. encode(..., class_pads_first=True) is for that test only.
-TARGETS.json = [{"scenario": {...pio scenario...}, "target": {target_id,node,board,node_role,facing_kind,facing_size_bucket,...}}, ...]"""
+"""Label-free exact246 encoder using frozen public TRAIN-only padding.
+
+Real targets use the original public hist215-v2 ROOT-range pipeline. Every pad
+comes from safe-padding-v2.json: public TRAIN geometry, the same texture and
+context, with all new EVAL ranks and historical protected domains excluded.
+Permuting/relabeling an EVAL target is never a padding source. The maintained
+class_pads_first parameter must remain True; False refuses before encoding.
+Outputs are real target combo_indices/X arrays plus inspectable inventory.
+No solver outputs or evaluation answers are read by this module.
+"""
 import copy, hashlib, itertools, json, os, subprocess, sys, uuid
 from pathlib import Path
 import numpy as np
@@ -37,19 +34,10 @@ def relabel(sn, flop_order, perm):
     s['flop_board'] = fl; t['node'] = node; t['board'] = fl + ''.join(f(c) for c in cards(t['board'])[3:])
     return s
 def pads_for(chunk, need_n, used, cid, ctx, tag):
+    # Pads are exclusively drawn from the frozen TRAIN geometry allowlist.
+    # No permutation or relabel of a real EVAL target is admitted as padding.
     out = []
-    orders = [p for p in itertools.permutations(range(3)) if p != (0, 1, 2)]
-    cand = [(x, o, PERMS[0]) for x in chunk for o in orders] + [(x, o, p) for p in PERMS[1:] for x in chunk for o in [(0, 1, 2)] + orders]
-    for x, o, p in cand:
-        if len(out) == need_n: break
-        s = relabel(x['scenario'], o, p); t = s['targets'][0]
-        if t['board'] in used: continue
-        need(sig(t['board']) == sig(x['target']['board']), 'pad signature')
-        s['scenario_id'] = 'f2pad.%s.%s.%d' % (tag, cid[:12], len(used)); t['target_id'] = s['scenario_id'] + '.target'
-        need(pio_upi.target_context(s, t) == ctx, 'pad context')
-        used.add(t['board']); out.append({'scenario': s, 'target': t, 'context': ctx, 'cid': cid, 'pad': True})
-    if len(out) < need_n or CLASS_FIRST[0]:   # b8 change: class pads (same texture class and context, other rank signatures outside X)
-        if CLASS_FIRST[0]: [used.discard(x['target']['board']) for x in out]; out = []
+    if need_n:
         x0 = chunk[0]; tc = pio_upi.texture_class(x0['target']['board'][:6])
         for b in _class_supply(tc):
             if len(out) == need_n: break
@@ -70,8 +58,8 @@ def _class_supply(tc):
         need(tc in all_safe and len(all_safe[tc]) >= 57, 'safe pad capacity')
         _SUPPLY[tc] = all_safe[tc]
     return _SUPPLY[tc]
-def encode(items, OUT, tag='f2', class_pads_first=False):
-    CLASS_FIRST[0] = bool(class_pads_first); OUT = Path(OUT); OUT.mkdir(parents=True, exist_ok=False); (OUT / 'rows').mkdir()
+def encode(items, OUT, tag='f2', class_pads_first=True):
+    need(class_pads_first is True, 'TRAIN-only padding is mandatory'); CLASS_FIRST[0] = True; OUT = Path(OUT); OUT.mkdir(parents=True, exist_ok=False); (OUT / 'rows').mkdir()
     real = []
     for it in items:
         sn = copy.deepcopy(it['scenario']); t = copy.deepcopy(it['target']); sn['targets'] = [t]
