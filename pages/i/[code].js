@@ -19,6 +19,9 @@ import {
     CLUB_INVITE_COOKIE,
     CLUB_INVITE_TTL_MS,
     inviteCookieValue,
+    inviteDescription,
+    inviteFigureLines,
+    inviteHeadline,
     isInviteFresh,
     isLinkPreviewBot,
     normalizeInviteCode,
@@ -74,8 +77,7 @@ export async function getServerSideProps({ params, req, res }) {
                     clubNumber: invite.club?.club_id ?? null,
                     description: invite.club?.description || null,
                     logoUrl: invite.club?.logo_url || null,
-                    memberCount: Number(invite.club?.member_count || 0),
-                    playersPlaying: invite.club?.players_playing == null ? null : Number(invite.club.players_playing),
+                    figureLines: inviteFigureLines(invite.club),
                 },
                 inviter: {
                     alias: invite.inviter?.alias || 'A Club Member',
@@ -95,10 +97,6 @@ const C = {
     text: '#e7ebf2',
     sub: '#9aa4b2',
 };
-
-function plural(n, one, many) {
-    return `${n.toLocaleString('en-US')} ${n === 1 ? one : many}`;
-}
 
 export default function ClubInviteLanding({ invite, code }) {
     const [signedIn, setSignedIn] = useState(false);
@@ -142,15 +140,13 @@ export default function ClubInviteLanding({ invite, code }) {
     const loginHref = signupHref.replace('/auth/signup?', '/auth/login?');
     const pageUrl = `${ORIGIN}/i/${code}`;
     const ogImage = `${ORIGIN}/api/og/club-invite?code=${encodeURIComponent(code)}`;
-    const headline = `${inviter.alias} Invited You To ${club.name}`;
-    const stats = [plural(club.memberCount, 'Member', 'Members')];
-    if (club.playersPlaying != null) stats.push(`${club.playersPlaying.toLocaleString('en-US')} Playing Now`);
-    const description = `${stats.join(' | ')}. Create Your Free Smarter.Poker Account And Join The Club.`;
+    const headline = inviteHeadline(inviter.alias, club.name);
+    const description = inviteDescription(club.figureLines, club.clubNumber);
 
     return (
         <main style={styles.page}>
             <Head>
-                <title>{`${headline} | Smarter.Poker`}</title>
+                <title>{headline}</title>
                 <meta name="description" content={description} />
                 <meta name="robots" content="noindex" />
                 <link key="canonical" rel="canonical" href={pageUrl} />
@@ -185,13 +181,15 @@ export default function ClubInviteLanding({ invite, code }) {
                     {club.description ? <p style={styles.desc}>{club.description}</p> : null}
 
                     <div style={styles.chips}>
-                        <span style={styles.chip}>{plural(club.memberCount, 'Member', 'Members')}</span>
-                        {club.playersPlaying != null ? (
-                            <span style={{ ...styles.chip, color: '#7fd1ff', borderColor: 'rgba(47,140,255,0.55)' }}>
-                                {club.playersPlaying.toLocaleString('en-US')} Playing Now
+                        {club.figureLines.map((line, i) => (
+                            <span
+                                key={line}
+                                style={i === 0 ? styles.chip : { ...styles.chip, color: '#7fd1ff', borderColor: 'rgba(47,140,255,0.55)' }}
+                            >
+                                {line}
                             </span>
-                        ) : null}
-                        {club.clubNumber ? <span style={styles.chip}>Club ID {club.clubNumber}</span> : null}
+                        ))}
+                        {club.clubNumber ? <span style={styles.chip}>Club ID: {club.clubNumber}</span> : null}
                     </div>
 
                     <hr style={styles.rule} />

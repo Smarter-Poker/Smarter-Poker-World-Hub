@@ -822,6 +822,7 @@ import './video-operations-phase10.test.mjs';
 import './owner-only-hub-cards.test.mjs';
 // Dan 2026-10-15: Share & Invite short links credit the sender.
 import './club-invite-short-links.test.mjs';
+import './club-invite-figures.test.mjs';
 // 2026-10-17 sweep: conversation previews are plain text; digest figures carry separators.
 import './messenger-preview-is-plain-text.test.mjs';
 import './messenger-calls-work.law.test.mjs';

@@ -3,13 +3,14 @@
  * GET /api/og/club-invite?code=ABC2345
  *
  * The 1200x630 preview image a messaging app shows for smarter.poker/i/<code>:
- * the club's logo and name, who sent the invite, members and players playing.
+ * the club's logo and name, who sent the invite, and the two figure lines
+ * (club members, players on the floor it plays on) worded by the database.
  * Reads fn_club_invite_resolve server-side (service role) with
  * p_count_click=false, so drawing a preview is never counted as an open.
  * Every element MUST have display:'flex' for Satori compatibility.
  */
 import { ImageResponse } from '@vercel/og';
-import { resolveInviteServer } from '../../../src/lib/clubInvite';
+import { inviteFigureLines, resolveInviteServer } from '../../../src/lib/clubInvite';
 
 export const config = { runtime: 'edge' };
 
@@ -60,8 +61,8 @@ export default async function handler(req) {
 
     const clubName = invite?.club?.name || 'Smarter.Poker Club Arena';
     const alias = invite?.inviter?.alias || 'A Friend';
-    const members = Number(invite?.club?.member_count || 0);
-    const playing = invite?.club?.players_playing;
+    const lines = inviteFigureLines(invite?.club);
+    const clubNumber = invite?.club?.club_id;
     const logo = await embeddableLogo(invite?.club?.logo_url);
 
     return new ImageResponse(
@@ -111,36 +112,29 @@ export default async function handler(req) {
                 <div style={{ display: 'flex', marginTop: 8, fontSize: 64, fontWeight: 800, color: '#ffffff' }}>
                     {clubName.length > 28 ? `${clubName.slice(0, 27)}...` : clubName}
                 </div>
-                <div style={{ display: 'flex', marginTop: 22 }}>
-                    <div
-                        style={{
-                            display: 'flex',
-                            fontSize: 26,
-                            fontWeight: 700,
-                            color: '#f5c542',
-                            border: '2px solid rgba(245,197,66,0.6)',
-                            borderRadius: 999,
-                            padding: '8px 22px',
-                            marginRight: 14,
-                        }}
-                    >
-                        {`${members.toLocaleString('en-US')} ${members === 1 ? 'Member' : 'Members'}`}
+                {clubNumber != null && String(clubNumber) !== '' ? (
+                    <div style={{ display: 'flex', marginTop: 6, fontSize: 24, color: '#9aa4b2' }}>
+                        {`Club ID: ${clubNumber}`}
                     </div>
-                    {playing != null ? (
+                ) : null}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 22 }}>
+                    {lines.map((line, i) => (
                         <div
+                            key={line}
                             style={{
                                 display: 'flex',
                                 fontSize: 26,
                                 fontWeight: 700,
-                                color: '#7fd1ff',
-                                border: '2px solid rgba(47,140,255,0.6)',
+                                color: i === 0 ? '#f5c542' : '#7fd1ff',
+                                border: i === 0 ? '2px solid rgba(245,197,66,0.6)' : '2px solid rgba(47,140,255,0.6)',
                                 borderRadius: 999,
                                 padding: '8px 22px',
+                                marginTop: i === 0 ? 0 : 12,
                             }}
                         >
-                            {`${Number(playing).toLocaleString('en-US')} Playing Now`}
+                            {line.length > 48 ? `${line.slice(0, 47)}...` : line}
                         </div>
-                    ) : null}
+                    ))}
                 </div>
             </div>
         ),
