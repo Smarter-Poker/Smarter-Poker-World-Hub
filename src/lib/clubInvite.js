@@ -34,6 +34,27 @@ export const CLUB_ARENA_PREFIX = '/hub/club-arena/';
 const CODE_RE = /^[A-HJ-NP-Z2-9]{7}$/;
 
 /** The 7-character code alphabet the database issues (no I, O, 0 or 1). */
+/**
+ * The figure lines an invite carries (Dan 2026-11-17), worded once by the
+ * database (fn_club_share_figures) so the preview text, preview image, landing
+ * page and copied message say the same thing:
+ *   "152 Members In KINGS CLUB"            measured members of this club
+ *   "314 Playing Across Midway Union Now"  distinct players on its union's floor
+ *   "4 Playing In Solo Room Now"           a club with no union, its own floor
+ * A figure the database could not read arrives null and its line is left out;
+ * it is never printed as zero and never replaced by another number.
+ */
+export function inviteFigureLines(club) {
+    const line = (v) => (typeof v === 'string' && v.trim() ? v.trim() : null);
+    return [line(club?.members_line), line(club?.activity_line)].filter(Boolean);
+}
+
+/** The link-preview description built from those lines. */
+export function inviteDescription(lines) {
+    const tail = 'Create Your Free Smarter.Poker Account And Join The Club.';
+    return lines && lines.length ? `${lines.join('. ')}. ${tail}` : tail;
+}
+
 export function isInviteCode(value) {
     return typeof value === 'string' && CODE_RE.test(value.trim().toUpperCase());
 }
