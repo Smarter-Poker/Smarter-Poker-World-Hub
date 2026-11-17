@@ -7,6 +7,17 @@ import yaml from 'js-yaml';
 const ROOT = new URL('../', import.meta.url);
 const read = (path) => readFileSync(new URL(path, ROOT), 'utf8');
 
+test('reviewed offline context-repair software contracts pass without private data or solver execution', () => {
+  const python = process.env.V31_NUMERIC_PYTHON || process.env.PYTHON_BIN || 'python3';
+  const result = spawnSync(python, ['-I', '-B', 'scripts/horse-solver-v31/context-repair/test_source_contract.py'], {
+    cwd: ROOT, encoding: 'utf8', timeout: 120_000,
+    env: { ...process.env, OMP_NUM_THREADS: '1', OPENBLAS_NUM_THREADS: '1', MKL_NUM_THREADS: '1' },
+  });
+  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+  assert.match(result.stderr, /Ran 9 tests/);
+  assert.match(result.stderr, /OK/);
+});
+
 test('the authenticated immutable input approval guards pass', () => {
   const result = spawnSync(process.execPath, ['--test', '__tests__/horse-v31-input-approval.test.mjs'], {
     cwd: ROOT, encoding: 'utf8', timeout: 120_000,

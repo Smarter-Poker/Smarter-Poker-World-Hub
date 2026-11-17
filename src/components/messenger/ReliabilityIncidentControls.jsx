@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabase';
 import CopyAgentHandoffButton from '../reliability/CopyAgentHandoffButton';
 import { readReliabilityIncidentOnce, reliabilityHandoffText, formatChicagoTime } from '../../lib/messenger/reliabilityIncident.mjs';
 
-// Open Incident and Copy Agent Handoff under a Reliability Controller message.
+// Open Incident and Copy Agent Handoff above a Reliability Controller body.
 // MessageBubble mounts this only for the platform sender with the
 // reliability_incident kind; see reliabilityIncidentControls.
 export default function ReliabilityIncidentControls({ incidentId, href, content, theme: C }) {
@@ -27,7 +27,7 @@ export default function ReliabilityIncidentControls({ incidentId, href, content,
         background: C.card, color: C.blue, fontSize: 14, fontWeight: 700, lineHeight: 1.2, textAlign: 'center',
         textDecoration: 'none', cursor: 'pointer', fontFamily: 'inherit',
     };
-    return <div data-testid="reliability-incident-controls" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10, maxWidth: '100%' }}>
+    return <div data-testid="reliability-incident-controls" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10, maxWidth: '100%' }}>
         {href && <Link href={href} data-testid="open-incident" onClick={(event) => event.stopPropagation()} style={control}>
             Open Incident
         </Link>}
@@ -36,11 +36,20 @@ export default function ReliabilityIncidentControls({ incidentId, href, content,
     </div>;
 }
 
-// The heading line of a Reliability Controller message: its label, the time
-// it was sent in America/Chicago, and a Delete control. Delete hides the
-// message for this account through the acknowledged Delete For Me route; the
-// message leaves the list only once the server confirms it.
-export function ReliabilityMessageHeader({ label, sentAt, onDelete, theme: C }) {
+// Keep the heading and time above the incident actions and body.
+export function ReliabilityMessageHeader({ label, sentAt, theme: C }) {
+    return <div data-testid="reliability-incident-header" style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
+        <div style={{ flex: '1 1 auto', minWidth: 0 }}>
+            <span data-testid="reliability-incident-label" style={{ fontWeight: 800, letterSpacing: 0.2 }}>{label}</span>
+            <span data-testid="reliability-incident-sent-at" style={{ display: 'block', fontSize: 12, fontWeight: 600, opacity: 0.75, marginTop: 2 }}>
+                Sent {formatChicagoTime(sentAt)}
+            </span>
+        </div>
+    </div>;
+}
+
+// Delete remains acknowledged and account-only, below the full message.
+export function ReliabilityMessageDelete({ onDelete, theme: C }) {
     const [deleting, setDeleting] = useState(false);
     const mounted = useRef(true);
     useEffect(() => () => { mounted.current = false; }, []);
@@ -50,13 +59,7 @@ export function ReliabilityMessageHeader({ label, sentAt, onDelete, theme: C }) 
         setDeleting(true);
         try { await onDelete(); } finally { if (mounted.current) setDeleting(false); }
     };
-    return <div data-testid="reliability-incident-header" style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
-        <div style={{ flex: '1 1 auto', minWidth: 0 }}>
-            <span data-testid="reliability-incident-label" style={{ fontWeight: 800, letterSpacing: 0.2 }}>{label}</span>
-            <span data-testid="reliability-incident-sent-at" style={{ display: 'block', fontSize: 12, fontWeight: 600, opacity: 0.75, marginTop: 2 }}>
-                Sent {formatChicagoTime(sentAt)}
-            </span>
-        </div>
+    return <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
         {onDelete && <button type="button" data-testid="delete-reliability-message" aria-label="Delete Message" title="Delete Message"
             disabled={deleting} onClick={remove}
             style={{ flex: '0 0 auto', minWidth: 44, minHeight: 44, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',

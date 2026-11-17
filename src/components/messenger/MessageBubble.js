@@ -5,7 +5,7 @@ import { Avatar } from './Avatar';
 import { Phone, PhoneMissed, Video } from 'lucide-react';
 import AccountingInvoiceCard from './AccountingInvoiceCard';
 import CashoutRequestActions, { formatChips } from './CashoutRequestActions';
-import ReliabilityIncidentControls, { ReliabilityMessageHeader } from './ReliabilityIncidentControls';
+import ReliabilityIncidentControls, { ReliabilityMessageHeader, ReliabilityMessageDelete } from './ReliabilityIncidentControls';
 import { isUnverifiedCorrectionPlaceholder } from '../../lib/accountingMessage.mjs';
 import { unionEcoRows } from '../../lib/unionEco.mjs';
 import { getAccessToken, authedFetch } from '../../lib/authUtils';
@@ -1107,15 +1107,15 @@ export function MessageBubble({
                         // A Reliability Controller body is a list of lines. Only
                         // a message entitled to the controls keeps its breaks.
                         // Its first line is the heading, shown with the time it
-                        // was sent and a Delete control that hides it for this
-                        // account only (the same server-side Delete For Me).
-                        if (reliabilityIncidentControls(message)) {
+                        // was sent. Actions precede the body; Delete follows it.
+                        const incidentControls = reliabilityIncidentControls(message);
+                        if (incidentControls) {
                             const parts = reliabilityMessageParts(content);
                             return <div data-testid="reliability-incident-message">
                                 <ReliabilityMessageHeader label={parts.label} sentAt={message.created_at || message.timestamp}
-                                    onDelete={typeof onDelete === 'function' && !String(message.id).startsWith('temp-')
-                                        ? () => onDelete(message.id, 'for_me') : null}
                                     theme={C} />
+                                <ReliabilityIncidentControls incidentId={incidentControls.incidentId} href={incidentControls.href}
+                                    content={message.content || message.text || ''} theme={C} />
                                 {parts.body && <div data-testid="reliability-incident-text" style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
                                     <MessageContent content={parts.body} isOwn={isOwn} theme={C} />
                                 </div>}
@@ -1136,13 +1136,13 @@ export function MessageBubble({
                         return null;
                     })()}
                     {(() => {
-                        // Reliability Controller message: the text above is
-                        // unchanged; the controls need the platform sender and
-                        // the metadata kind together, never the text.
+                        // Keep the account-only delete action below the message.
                         const controls = reliabilityIncidentControls(message);
                         if (!controls) return null;
-                        return <ReliabilityIncidentControls incidentId={controls.incidentId} href={controls.href}
-                            content={message.content || message.text || ''} theme={C} />;
+                        return <ReliabilityMessageDelete
+                            onDelete={typeof onDelete === 'function' && !String(message.id).startsWith('temp-')
+                                ? () => onDelete(message.id, 'for_me') : null}
+                            theme={C} />;
                     })()}
                 </div>
 
