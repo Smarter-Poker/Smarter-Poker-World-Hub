@@ -74,16 +74,20 @@ export function parseCashierEvent(c) {
     }
     const held = c.event_kind === 'hold';
     const approved = c.event_kind === 'approval';
+    const bank = approved && c.ledger_to_type === 'club_treasury';
+    if (bank && (c.approval_destination !== 'club_bank' || !['owner', 'co_owner', 'admin'].includes(c.actor_role))) return null;
+    if (!bank && c.approval_destination !== undefined) return null;
     if (c.ledger_from_type !== (held ? 'player_wallet' : 'escrow') ||
         c.ledger_from_entity_id !== (held ? c.player_id : c.escrow_id) ||
-        c.ledger_to_type !== (held ? 'escrow' : approved ? 'agent_wallet' : 'player_wallet') ||
-        c.ledger_to_entity_id !== (held ? c.escrow_id : approved ? c.actor_user_id : c.player_id)) return null;
+        c.ledger_to_type !== (held ? 'escrow' : approved ? (bank ? 'club_treasury' : 'agent_wallet') : 'player_wallet') ||
+        c.ledger_to_entity_id !== (held ? c.escrow_id : approved ? (bank ? c.club_id : c.actor_user_id) : c.player_id)) return null;
     // Whitelist the contract. Counterparty balances and arbitrary metadata do
     // not become part of a verified cashier document.
     const keys = [...idFields, 'contract_version', 'actor_user_id', 'actor_role', 'event_kind',
         'display_state', 'amount', 'occurred_at', 'issued_at', 'hold_event_id', 'hold_invoice_id',
         'ledger_from_type', 'ledger_from_entity_id', 'ledger_to_type', 'ledger_to_entity_id',
         'custody_movement_recorded', 'cashout_completed', 'refund_recorded'];
+    if (bank) keys.push('approval_destination');
     return Object.fromEntries(keys.map(key => [key, c[key]]));
 }
 
@@ -93,7 +97,7 @@ export function cashierInvoiceDisplay(meta) {
     if (!cashier) return { verified: false, label: 'Cashier Receipt', detail: 'Receipt details are unavailable.', amount: 'Not Available' };
     const state = CASHIER_STATES[cashier.event_kind];
     const [whole, fraction] = cashier.amount.split('.');
-    return { verified: true, label: state.label, detail: state.detail,
+    return { verified: true, label: state.label, detail: cashier.approval_destination === 'club_bank' ? 'Chips were transferred to the club chip bank.' : state.detail,
         amount: `${whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}.${fraction}` };
 }
 

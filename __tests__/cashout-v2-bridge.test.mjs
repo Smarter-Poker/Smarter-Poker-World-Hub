@@ -331,14 +331,14 @@ test('request refuses unknown active-table state without a money call; requester
         '../../../src/lib/club-arena/cashoutReceipt.mjs': transport,
         '../../../src/lib/poker-engine/RateLimiter': { applyRateLimit: () => true },
         '../../../src/lib/apiRateLimit': { applyRateLimit: () => true, LIMITS: { write: {} } },
-        '../../../src/lib/club-arena/sanitize': { sanitizeNote: note => note },
+        '../../../src/lib/club-arena/redteam-validation': require('../src/lib/club-arena/redteam-validation.js'),
         '../../../src/lib/club-arena/validate': { isUUID: transport.cashoutUUID, rejectBadPayload: () => false,
           validateAmount: amount => ({ valid: true, value: amount }) },
         '../../../src/lib/club-arena/auditLogger': { logAudit: async () => {}, extractIP: () => 'test' },
       };
       const route = kind === 'hold' ? 'request-cashout' : 'cancel-my-cashout';
       const handler = compiled(`../pages/api/club-arena/${route}.js`, mocks).default, res = response();
-      await handler({ method: 'POST', body: { cashoutId: id(3), clubId: id(7), amount: 1234 } }, res);
+      await handler({ method: 'POST', body: { ...(kind === 'hold' ? {} : { cashoutId: id(3) }), clubId: id(7), amount: 1234 } }, res);
       assert.equal(res.statusCode, kind === 'hold' ? 503 : 200);
       assert.equal(calls, 0);
       if (kind === 'cancellation') {
@@ -491,4 +491,55 @@ test('auth ABA while hashing an intent refuses before acquiring storage or minti
       randomUUID: () => { minted++; return id(100); }, isCurrent: fence.capture(id(12)) });
   fence.update(id(99)); fence.update(id(12)); finishHash(new Uint8Array(32).buffer);
   await assert.rejects(pending, /changed/); assert.equal(locks, 0); assert.equal(minted, 0);
+});
+
+
+test('escalated bank approval requires matching bank destination, manager and balance receipt', () => {
+  const { data, context } = fixture('approval');
+  Object.assign(data.cashier, { ledger_to_type: 'club_treasury', ledger_to_entity_id: data.club_id, approval_destination: 'club_bank' });
+  Object.assign(data, data.cashier, { club_bank_after: data.actor_wallet_after });
+  const result = transport.validateCashoutReceipt(data, context);
+  assert.equal(result.cashier.approval_destination, 'club_bank');
+  assert.equal(result.cashier.ledger_to_entity_id, context.clubId);
+  assert.equal(result.club_bank_after, undefined, 'Do not leak bank balances into shared DTO');
+  for (const change of [
+    d => { d.cashier.actor_role = d.actor_role = 'agent'; },
+    d => { d.cashier.ledger_to_entity_id = d.ledger_to_entity_id = context.actorId; },
+    d => { delete d.cashier.approval_destination; delete d.approval_destination; },
+    d => { d.club_bank_after = '1.00'; },
+  ]) { const invalid = structuredClone(data); change(invalid); assert.throws(() => transport.validateCashoutReceipt(invalid, context)); }
+});
+
+test('request preserves multiline player note and rejects over-limit notes before receipt or money calls', async () => {
+  const old = [process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY];
+  process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.invalid'; process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service';
+  try {
+    let captured, calls = 0;
+    const handler = compiled('../pages/api/club-arena/request-cashout.js', {
+      '../../../src/lib/supabaseServerClient': { createClient: () => ({}) },
+      '../../../src/lib/club-arena/platformFreeze': { refuseWhileFrozen: async () => false },
+      '../../../src/lib/club-arena/cashoutBridge': {
+        authenticateCashout: async () => ({ actorId: id(8), operationId: id(50), token: 'fixture' }),
+        cashoutUserClient: () => ({}), requireCashoutSettlementOpen: async () => {},
+        sendCashoutError: (res, e) => res.status(e.status || 503).json({ success: false }),
+      },
+      '../../../src/lib/club-arena/cashoutReceipt.mjs': { ...transport,
+        lookupCashoutReceipt: async (_client, context) => { calls++; captured = context.note; throw new transport.CashoutBridgeError('Fixture stopped after note capture'); } },
+      '../../../src/lib/poker-engine/RateLimiter': { applyRateLimit: () => true },
+      '../../../src/lib/club-arena/redteam-validation': require('../src/lib/club-arena/redteam-validation.js'),
+      '../../../src/lib/club-arena/validate': require('../src/lib/club-arena/validate.js'),
+      '../../../src/lib/club-arena/auditLogger': { logAudit: async () => {}, extractIP: () => 'fixture' },
+    }).default;
+    const note = 'Call after work.\nKeep <reference> as text. ' + 'x'.repeat(1900);
+    let res = response(); await handler({ method: 'POST', body: { clubId: id(7), amount: 100, note } }, res);
+    assert.equal(captured, note); assert.equal(calls, 1);
+    for (const invalid of ['x'.repeat(2001), 'a\0b', 123]) {
+      res = response(); await handler({ method: 'POST', body: { clubId: id(7), amount: 100, note: invalid } }, res);
+      assert.equal(res.statusCode, 400); assert.equal(calls, 1);
+    }
+  } finally {
+    for (const [key, value] of [['NEXT_PUBLIC_SUPABASE_URL', old[0]], ['SUPABASE_SERVICE_ROLE_KEY', old[1]]]) {
+      if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    }
+  }
 });

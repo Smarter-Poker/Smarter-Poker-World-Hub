@@ -49,6 +49,9 @@ export function validateCashoutReceipt(data, context) {
       data.accepted_note !== context.note ||
       (context.cashoutId && data.cashout_id !== context.cashoutId)) return refuse();
   if (context.kind === 'decline' ? data.actor_wallet_after !== null : cashoutDecimal(data.actor_wallet_after, true) === null) return refuse();
+  if (cashier.approval_destination === 'club_bank' &&
+      (data.approval_destination !== 'club_bank' || cashoutDecimal(data.club_bank_after, true) === null ||
+       data.club_bank_after !== data.actor_wallet_after)) return refuse();
   const row = data.request, hold = context.kind === 'hold';
   if (row.id !== data.cashout_id || row.club_id !== context.clubId || row.player_id !== context.playerId ||
       row.agent_id !== data.assigned_agent_id || row.amount !== context.amount ||

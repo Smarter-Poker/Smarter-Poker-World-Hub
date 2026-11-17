@@ -4,8 +4,8 @@ import { refuseWhileFrozen } from '../../../src/lib/club-arena/platformFreeze';
 import { authenticateCashout, cashoutUserClient, requireCashoutSettlementOpen, sendCashoutError } from '../../../src/lib/club-arena/cashoutBridge';
 import { CashoutBridgeError, cashoutNote, dispatchCashout, lookupCashoutReceipt, cashoutReplayResponse } from '../../../src/lib/club-arena/cashoutReceipt.mjs';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
-const { sanitizeNote } = require('../../../src/lib/club-arena/sanitize');
-const { isUUID, validateAmount, rejectBadPayload } = require('../../../src/lib/club-arena/validate');
+const { runStandardGuards } = require('../../../src/lib/club-arena/redteam-validation');
+const { isUUID, validateAmount } = require('../../../src/lib/club-arena/validate');
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 
 let admin;
@@ -21,7 +21,9 @@ function getAdmin() {
 export default async function handler(req, res) {
   try {
     if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
-    if (rejectBadPayload(req, res, ['clubId','amount','note','expectedActorId'])) return;
+    const guard = runStandardGuards(req.body, { maxBodySize: 16000,
+      allowedFields: new Set(['clubId','amount','note','expectedActorId']) });
+    if (guard) return res.status(guard.status).json({ success: false, error: guard.error });
     const db = getAdmin(), auth = await authenticateCashout(req, db);
     const { amount: rawAmount, note: rawNote } = req.body;
     if (!isUUID(req.body.clubId)) throw new CashoutBridgeError('Invalid clubId format.', 400);
@@ -30,7 +32,10 @@ export default async function handler(req, res) {
     const validation = validateAmount(rawAmount, 100, 100_000_000);
     if (!validation.valid) throw new CashoutBridgeError(validation.error, 400);
     if (rawNote !== undefined && typeof rawNote !== 'string') throw new CashoutBridgeError('Note must be text.', 400);
-    const note = cashoutNote(sanitizeNote(rawNote, 200));
+    const note = cashoutNote(rawNote);
+    if (note && (note.length > 2000 || note.includes('\0'))) {
+      throw new CashoutBridgeError('Note For Agent must be at most 2000 characters and contain no null characters.', 400);
+    }
     if (!applyRateLimit(req, res, 'club-arena/request-cashout')) return;
     const client = cashoutUserClient(auth.token);
     const context = { actorId: auth.actorId, operationId: auth.operationId, clubId, playerId: auth.actorId,

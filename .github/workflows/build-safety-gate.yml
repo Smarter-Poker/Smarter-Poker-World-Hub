@@ -381,6 +381,11 @@ jobs:
           CHROME_BIN: /usr/bin/google-chrome
         run: node scripts/ci/test-messenger-accounting-ui.mjs
 
+      - name: Notice Board Payout Browser Components
+        env:
+          CHROME_BIN: /usr/bin/google-chrome
+        run: node scripts/ci/test-notice-payout-ui.mjs
+
       - name: Messenger Saved Statements And Received Payments PostgreSQL
         run: node scripts/ci/test-messenger-accounting-postgres.mjs
 
