@@ -18,7 +18,7 @@ export default function InvoicePaymentStatus({ invoiceId, theme: C }) {
     if (!result) return <p style={{ color: C.textSec, fontSize: 12 }}>Loading current payment status...</p>;
     if (!result.payable) return null;
     return <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12, marginTop: 12, fontSize: 13 }}>
-        <strong>{result.status === 'partial' ? 'Partially paid' : result.status === 'paid' ? 'Paid' : result.status === 'cancelled' ? 'Cancelled' : 'Unpaid'}</strong>
+        <strong>{result.status === 'partial' ? 'Partially paid' : result.status === 'paid' ? 'Paid' : result.status === 'cancelled' ? 'Cancelled' : result.status === 'disputed' ? 'Disputed' : 'Unpaid'}</strong>
         <p>Paid {statementAmount(result.paid)} · Remaining {statementAmount(result.remaining)} chips</p>
         <button type="button" onClick={() => setRetry(n => n + 1)} style={{ color: C.blue, fontSize: 12 }}>Refresh payment status</button>
     </div>;

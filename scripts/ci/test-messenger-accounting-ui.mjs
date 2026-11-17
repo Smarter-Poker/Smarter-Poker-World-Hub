@@ -19,11 +19,12 @@ try {
  const executablePath=process.env.CHROME_BIN||['/usr/bin/google-chrome','/usr/bin/chromium'].find(existsSync)||puppeteer.executablePath();
  browser=await puppeteer.launch({executablePath,headless:true,userDataDir:path.join(scratch,'profile'),args:process.platform==='linux'?['--no-sandbox']:[]});
  const page=await browser.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
- const week='2026-11-16T08:00:00Z';let paid=0,records=[],failOnce=false,deleted=false,bulk=false;
+ const week='2026-11-16T08:00:00Z';let paid=0,records=[],failOnce=false,deleted=false,bulk=false,statusVariant='disputed';
  const doc={scope:'agent',club_name:'Fixture Club',message_id:'statement-1',conversation_id:'conversation-1',period_end:week,payload:{period_start:'2026-11-09T08:00:00Z',period_end:week,agent_user_id:'fixture',totals:{poker_net:10,fees:100,player_rakeback:5,agent_net:45},people:[]}};
  await page.exposeFunction('testRequest',async(url,body)=>{
   if(url.endsWith('/statements'))return {status:200,body:{success:true,documents:deleted?[]:[doc]}};
   if(url.endsWith('/delete-message')){assert.equal(body.deleteType,'for_me');deleted=true;return {status:200,body:{success:true}};}
+  if(body.action==='status')return {status:200,body:{success:true,payable:true,paid:100,remaining:0,status:statusVariant}};
   if(body.action==='record'){
    for(const item of body.payments){const previous=records.find(r=>r.operation_id===item.operation_id);if(!previous){paid+=item.amount;records.push(item);}}
    if(failOnce){failOnce=false;return {status:503,body:{success:false,error:'Connection lost after recording; retry same payment'}};}
@@ -42,6 +43,7 @@ try {
  bulk=true;paid=0;records=[];await page.evaluate(()=>window.showFixture('payments',1));await click('Weekly payment tracking');await click('Mark all agents paid (2)');await page.type('[aria-label="Payment reference"]','bulk-receipt');await click('Confirm payment');await page.waitForFunction(()=>document.body.textContent.includes('Remaining 0.00')&&!document.body.textContent.includes('Confirm payment'));assert.equal(records.length,2);assert.equal(paid,200);
  await page.evaluate(()=>window.showFixture('statements'));await click('Delete for me');await click('Delete for me');await page.waitForFunction(()=>document.body.textContent.includes('No saved statements'));
  await page.evaluate(()=>window.showFixture('statements',1));await page.waitForFunction(()=>document.body.textContent.includes('No saved statements'));
+ await page.evaluate(()=>window.showFixture('payment-status'));await page.waitForFunction(()=>document.body.textContent.includes('Disputed'));statusVariant='cancelled';await page.evaluate(()=>window.showFixture('payment-status',1));await page.waitForFunction(()=>document.body.textContent.includes('Cancelled'));
  await page.evaluate(()=>window.showFixture('large'));await page.waitForFunction(()=>document.body.textContent.includes('511,435.72'));assert(await page.evaluate(()=>document.documentElement.scrollWidth<=375),'Large club totals overflow mobile statement');assert(await page.$$eval('dd',items=>items.every(e=>e.scrollWidth<=e.clientWidth)), 'Large figures must fit their own value cells');
  await page.evaluate(()=>window.showFixture('designs'));await page.waitForFunction(()=>document.querySelectorAll('[data-document-design]').length===3);
  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=375),'Mobile statements overflow');

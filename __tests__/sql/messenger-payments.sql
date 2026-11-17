@@ -62,3 +62,8 @@ DO $$ BEGIN
  BEGIN DELETE FROM accounting_received_payments; RAISE EXCEPTION 'Receipt deleted'; EXCEPTION WHEN check_violation THEN NULL; END;
 END $$;
 SELECT 'Payment permission, partial/full, duplicate, stale, rounding, atomic batch, immutable document and unchanged credit tests passed' result;
+
+UPDATE credit_invoices SET status='void';
+DO $$ BEGIN
+ IF fn_messenger_invoice_payment_status('00000000-0000-4000-8000-000000000003','00000000-0000-4000-8000-000000000041')->>'status'<>'cancelled' THEN RAISE EXCEPTION 'Voided invoice shown as payable'; END IF;
+END $$;

@@ -169,7 +169,7 @@ BEGIN
  paid:=coalesce((inv.breakdown->>'paid_total')::numeric,0)+(SELECT coalesce(sum(r.amount),0) FROM public.accounting_received_payments r WHERE r.invoice_id=inv.id);
  ELSE RETURN jsonb_build_object('success',true,'payable',false); END IF;
  RETURN jsonb_build_object('success',true,'payable',true,'owed',owed,'paid',paid,'remaining',greatest(owed-paid,0),
- 'status',CASE WHEN inv.status='cancelled' OR bill.status='voided' THEN 'cancelled' WHEN paid>=owed THEN 'paid' WHEN paid>0 THEN 'partial' ELSE 'unpaid' END);
+ 'status',CASE WHEN inv.status='cancelled' OR bill.status='void' THEN 'cancelled' WHEN inv.status='disputed' OR bill.status='disputed' THEN 'disputed' WHEN paid>=owed THEN 'paid' WHEN paid>0 THEN 'partial' ELSE 'unpaid' END);
 END $$;
 REVOKE ALL ON FUNCTION public.fn_messenger_invoice_payment_status(uuid,uuid) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.fn_messenger_invoice_payment_status(uuid,uuid) TO service_role;

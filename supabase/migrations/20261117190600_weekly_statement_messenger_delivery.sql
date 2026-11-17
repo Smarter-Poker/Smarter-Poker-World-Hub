@@ -211,6 +211,7 @@ END $$;
 COMMIT;
 -- ROLLBACK: restore prior definitions below as a new qualified migration.
 /*
+BEGIN;
 CREATE OR REPLACE FUNCTION public.fn_deliver_accounting_invoice(p_invoice_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -408,5 +409,5 @@ BEGIN
    ORDER BY m.created_at DESC,m.id DESC LIMIT 1) visible ON true
  WHERE c.conversation_id=ANY(p_conversation_ids) AND (c.sender_id=p_user_id OR c.recipient_id=p_user_id);
 END $function$;
-
+COMMIT;
 */

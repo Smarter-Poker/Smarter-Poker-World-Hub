@@ -31,6 +31,12 @@ try {
     const different=await Promise.all([race('00000000-0000-4000-8000-000000000071',200,'race-2'),race('00000000-0000-4000-8000-000000000072',200,'race-3')]);
     if(different.filter(r=>r.code===0).length!==1||!different.some(r=>r.out.includes('Invoice changed'))||sql(`SELECT sum(amount) FROM accounting_received_payments WHERE invoice_id='${invoice}'`)!=='200.00') throw new Error('Concurrent balance protection failed: '+JSON.stringify(different));
     console.log('Concurrent operation replay and stale-balance race passed');
+    const readerPath='supabase/migrations/20261117190800_union_readers_include_received_payments.sql';
+    const readerSql=readFileSync(path.join(root,readerPath),'utf8');
+    const readerOriginal=path.join(dir,'reader-original.sql');
+    const rollback=readerSql.split('/*\n')[1].split('*/')[0];
+    writeFileSync(readerOriginal,rollback.slice(rollback.indexOf('CREATE OR REPLACE FUNCTION'),rollback.lastIndexOf('COMMIT;')));
+    run('psql',[...connection,'-X','-v','ON_ERROR_STOP=1','-d','payments','-f','__tests__/sql/messenger-balance-readers.sql','-f',readerOriginal,'-f',readerPath,'-f','__tests__/sql/messenger-balance-readers-assert.sql']);
     run('createdb', [...connection, 'delivery']);
     const migration = readFileSync(path.join(root, 'supabase/migrations/20261117190600_weekly_statement_messenger_delivery.sql'), 'utf8');
     const prior = migration.split('/*\n')[1].split('*/')[0];
