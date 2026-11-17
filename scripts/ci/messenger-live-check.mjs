@@ -118,6 +118,14 @@ async function run() {
       for (const club of social.clubs) for (const folder of ['messages', 'invoices']) {
         workspaces.push(await api('/api/messenger/get-conversations', { workspace: 'club', clubId: club.id, folder }));
       }
+      const feed = await api('/api/messenger/get-conversations', { workspace: 'feed' });
+      const documents = workspaces.filter(w => w.folder === 'invoices').flatMap(w => w.conversations);
+      for (const document of documents) {
+        assert.ok(feed.conversations.some(row => row.id === document.id && row.isAccounting),
+          'Saved accounting conversation disappeared from the main feed');
+      }
+      report.coverage.retainedAccountingConversations = documents.length;
+      report.coverage.retainedReadAccountingConversations = documents.filter(row => row.unreadCount === 0).length;
       const header = await api('/api/user/get-header-stats');
       return { workspaces, header, total: validateUnreadSnapshot(header, workspaces) };
     };
