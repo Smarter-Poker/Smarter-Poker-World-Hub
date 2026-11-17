@@ -1036,6 +1036,30 @@ test('daily result failures raise attention, successful read stays serial and no
     assert.match(buildHtml(digest), /UNVERIFIED/);
 });
 
+test('reconciliation attention distinguishes missing inventory evidence from measured discrepancies', async () => {
+    const { loadDigestData } = await import('../src/lib/dailyDigest/assemble.mjs');
+    const cases = [
+        [{ reconciliation: { status: 'unverified', accounted_residual: 0 }, chip_supply: { hours: 22, expected_hours: 24, absolute_unexplained: 0 } }, 'Daily chip reconciliation could not be verified'],
+        [{ reconciliation: { status: 'discrepancy', accounted_residual: 1 } }, 'Daily chip reconciliation has discrepancies; see Daily Update'],
+        [{ reconciliation: { status: 'unknown' } }, 'Daily chip reconciliation could not be verified'],
+        [{ error: 'timeout' }, 'Daily chip reconciliation could not be verified'],
+        [{ reconciliation: { status: 'balanced' } }, null],
+    ];
+    for (const [report, title] of cases) {
+        const { digest } = await loadDigestData({ rpc: async name => name === 'fn_sp_daily_digest' ? { data: fixture() }
+            : name === 'fn_sp_digest_daily_results' ? { data: report } : { data: {} } }, '2026-11-16', { withCosts: false, dispatch: false });
+        const attention = digest.attention.filter(x => x.rule === 'daily_chip_reconciliation');
+        assert.equal(attention.length, title ? 1 : 0);
+        if (title) {
+            assert.equal(attention[0].title, title);
+            assert.equal(attention[0].severity, 'critical');
+            assert.equal(attention[0].dispatch, false);
+            assert.ok(buildText(digest).includes(title));
+            assert.ok(buildHtml(digest).includes(title));
+        }
+    }
+});
+
 test('Real Player Signups is the first line under Needs Your Attention (Dan 2026-11-13)', async () => {
     const { dailyUpdateRows } = await import('../src/lib/dailyDigest/render.mjs');
     const d = fixture();
