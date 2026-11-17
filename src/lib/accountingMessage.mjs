@@ -302,9 +302,9 @@ export function parseWeeklyClubDetails(value) {
         && results.version === 1 && results.sign_convention === 'positive_club_owes_union';
     const settlement = value.settlement;
     const settled = value.settlement_status === 'recorded' && object(settlement)
-        && ['club owes union', 'union owes club', 'settled'].includes(settlement.direction)
+        && ['club owes union', 'union owes club', 'square'].includes(settlement.direction)
         && uuid(settlement.invoice_id) && nonnegative(settlement.remaining) !== null
-        && (settlement.direction !== 'settled' || settlement.remaining === 0);
+        && (settlement.direction !== 'square' || settlement.remaining === 0);
     return {
         version: 1, period_start: value.period_start, period_end: value.period_end, timezone: value.timezone,
         rake_status: value.rake_status === 'certified' ? 'certified' : 'unavailable',
@@ -333,6 +333,6 @@ export function weeklyClubStatementRows(value, fallbackRake) {
         ['Cash Rake', details?.cash_rake], ['Tournament Rake', details?.tournament_rake],
         ['Total Rake', details?.total_rake ?? fallbackRake],
         [known(net) ? net > 0 ? 'Full Weekly Net · Club Owes Union' : net < 0 ? 'Full Weekly Net · Union Owes Club' : 'Full Weekly Net · Even' : 'Full Weekly Net', known(net) ? Math.abs(net) : null],
-        [details?.settlement ? details.settlement.direction === 'settled' ? 'Invoice Unpaid · Settled' : details.settlement.direction === 'union owes club' ? 'Invoice Unpaid · Union Owes Club' : 'Invoice Unpaid · Club Owes Union' : 'Invoice Unpaid', details?.settlement?.remaining],
+        [details?.settlement ? details.settlement.direction === 'square' ? 'Invoice Unpaid · Even' : details.settlement.direction === 'union owes club' ? 'Invoice Unpaid · Union Owes Club' : 'Invoice Unpaid · Club Owes Union' : 'Invoice Unpaid', details?.settlement?.remaining],
     ];
 }

@@ -128,6 +128,6 @@ test('actual message API obtains club details only through the verified recipien
     assert.equal(result.messages[0].media_metadata.weekly_club_details.total_rake, 5154.81);
     denied = true; await handler(request, res); assert.equal(result.messages[0].media_metadata.weekly_club_details, null);
     failure = true; await handler(request, res); assert.equal(status, 503);
-    const settled = clubHtml({ ...clubDetails, settlement: { ...clubDetails.settlement, direction: 'settled', remaining: 0 } }, 'compact');
-    assert.match(settled, /Invoice Unpaid · Settled/);
+    const settled = clubHtml({ ...clubDetails, settlement: { ...clubDetails.settlement, direction: 'square', remaining: 0 } }, 'compact');
+    assert.match(settled, /Invoice Unpaid · Even/);
 });
