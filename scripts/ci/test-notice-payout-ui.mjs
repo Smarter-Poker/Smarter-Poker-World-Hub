@@ -28,8 +28,9 @@ try {
   const cashier={contract_version:1,event_id:id(1),invoice_id:id(2),cashout_id:cashoutId,escrow_id:id(3),source_transaction_id:id(4),source_ledger_id:id(5),club_id:clubId,player_id:player,assigned_agent_id:id(6),issuer_representative_id:id(7),actor_user_id:userId,actor_role:'admin',event_kind:approval?'approval':'decline',display_state:approval?'approved':'refunded',amount:'500.00',occurred_at:later,issued_at:later,hold_event_id:id(8),hold_invoice_id:id(9),ledger_from_type:'escrow',ledger_from_entity_id:id(3),ledger_to_type:approval?'club_treasury':'player_wallet',ledger_to_entity_id:approval?clubId:player,custody_movement_recorded:true,cashout_completed:approval,refund_recorded:!approval,...(approval?{approval_destination:'club_bank'}:{})};
   return {...cashier,success:true,replayed:false,op_id:args.p_op_id,request_status:approval?'approved':'rejected',accepted_note:null,actor_wallet_after:approval?'5000.00':null,...(approval?{club_bank_after:'5000.00'}:{}),cashier,request:{id:cashoutId,club_id:clubId,player_id:player,agent_id:id(6),amount:'500.00',status:approval?'approved':'rejected',created_at:at,updated_at:later,acknowledged_at:later,completed_at:approval?later:null,cancelled_at:approval?null:later,player_note:card().player_note,agent_note:null}};
  };
+ let deferRead=false,releaseRead;
  await page.exposeFunction('testRpc',async(name,args)=>{
-  if(name==='fn_cashout_request_card')return allowed?{data:card(),error:null}:{data:null,error:{message:'Access Denied'}};
+  if(name==='fn_cashout_request_card'){const response=allowed?{data:card(),error:null}:{data:null,error:{message:'Access Denied'}};if(deferRead){deferRead=false;await new Promise(resolve=>{releaseRead=resolve;});}return response;}
   operations.push({name,args});
   if(name==='fn_cashout_escalate_v2') {
    if(failOnce){failOnce=false;throw new Error('Transport Failed Before Acknowledgment');}
@@ -63,5 +64,18 @@ try {
  allowed=false;await page.evaluate(({clubId,userId})=>window.emitNotice('club_notice_access_events',{club_id:clubId,user_id:userId,can_access:false}),{clubId,userId});
  await page.waitForFunction(()=>document.body.textContent.includes('No Longer Has Access'));assert(!await page.evaluate(()=>document.body.textContent.includes('Fixture Player')),'Revocation removes history immediately');
  await page.evaluate(({clubId,cashoutId})=>window.emitNotice('club_notice_board',{club_id:clubId,cashout_id:cashoutId}),{clubId,cashoutId});assert(!await page.evaluate(()=>document.body.textContent.includes('Fixture Player')));
+ // An older authorized response must never restore details after a newer denial.
+ allowed=true;await page.evaluate(()=>window.showFixture('private',3));await page.waitForFunction(()=>document.body.textContent.includes('Fixture Player'));
+ deferRead=true;await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
+ await page.waitForFunction(()=>true);assert(releaseRead,'Deferred authorized read started');
+ allowed=false;await page.evaluate(()=>window.dispatchEvent(new Event('focus')));await page.waitForFunction(()=>document.body.textContent.includes('This Payout Is Unavailable'));
+ releaseRead();await page.evaluate(()=>new Promise(resolve=>setTimeout(resolve,100)));
+ assert(!await page.evaluate(()=>document.body.textContent.includes('Fixture Player')),'Older authorized read cannot restore denied payout details');
+ // The same ordering rule keeps a newer terminal status from regressing.
+ allowed=true;status='pending';await page.evaluate(()=>window.showFixture('private',4));await page.waitForFunction(()=>document.body.textContent.includes('Awaiting Owner'));
+ deferRead=true;releaseRead=null;await page.evaluate(()=>window.dispatchEvent(new Event('focus')));await page.waitForFunction(()=>true);assert(releaseRead);
+ status='approved';await page.evaluate(()=>window.dispatchEvent(new Event('focus')));await page.waitForFunction(()=>document.body.textContent.includes('Accepted · Chips Sent To The Club Chip Bank'));
+ releaseRead();await page.evaluate(()=>new Promise(resolve=>setTimeout(resolve,100)));
+ assert(!await page.evaluate(()=>document.body.textContent.includes('Awaiting Owner')),'Older pending read cannot restore a terminal request');
  assert.deepEqual(errors,[]);console.log('Notice payout browser passed: original request escalation/retry, agent read-only, manager note/bank approval, mobile layout and immediate history revocation.');
 }finally{if(browser)await browser.close();if(server)await new Promise(resolve=>server.close(resolve));rmSync(scratch,{recursive:true,force:true});}

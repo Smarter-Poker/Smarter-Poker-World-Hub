@@ -38,20 +38,20 @@ export default function CashoutRequestActions({ cashoutId, currentUserId, theme:
     const [error, setError] = useState(null);
     const [done, setDone] = useState(null);
     const pendingOp = useRef(null);
-    const requestState = useRef({ alive: false, epoch: 0, busy: false });
+    const requestState = useRef({ alive: false, epoch: 0, readSequence: 0, busy: false });
     const load = useCallback(async () => {
-        const scope = requestState.current, epoch = scope.epoch;
+        const scope = requestState.current, epoch = scope.epoch, readSequence = ++scope.readSequence;
         if (!UUID.test(cashoutId || '')) { setLoading(false); return; }
         try {
             const { data, error: readError } = await supabase.rpc('fn_cashout_request_card', { p_cashout_id: cashoutId });
-            if (!scope.alive || scope.epoch !== epoch) return;
+            if (!scope.alive || scope.epoch !== epoch || scope.readSequence !== readSequence) return;
             if (readError || !data || typeof data !== 'object') {
                 setCard(null);
                 setError('This Payout Is Unavailable. Refresh To Check Your Access.');
             } else { setCard(data); }
         } catch (_) {
-            if (scope.alive && scope.epoch === epoch) setError('Could Not Refresh This Payout.');
-        } finally { if (scope.alive && scope.epoch === epoch) setLoading(false); }
+            if (scope.alive && scope.epoch === epoch && scope.readSequence === readSequence) setError('Could Not Refresh This Payout.');
+        } finally { if (scope.alive && scope.epoch === epoch && scope.readSequence === readSequence) setLoading(false); }
     }, [cashoutId]);
     useEffect(() => {
         const scope = requestState.current;
@@ -71,6 +71,8 @@ export default function CashoutRequestActions({ cashoutId, currentUserId, theme:
         const scope = requestState.current, epoch = scope.epoch;
         if (!card || scope.busy || !currentUserId || (pendingOp.current && pendingOp.current.action !== action)) return;
         if (!pendingOp.current || pendingOp.current.action !== action) pendingOp.current = { action, id: newOpId() };
+        // A read begun before this decision must not restore stale authority/status.
+        scope.readSequence++;
         scope.busy = true; setBusy(action); setError(null);
         const escalate = action === 'escalate';
         const fn = escalate ? 'fn_cashout_escalate_v2' : action === 'accept' ? 'fn_cashout_approve_v2' : 'fn_cashout_release_v2';
