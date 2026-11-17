@@ -10,6 +10,14 @@ on:
         description: Full protected revision currently served by production
         required: true
         type: string
+      reconciliation_mode:
+        description: Expected report state (unverified never certifies balanced chips)
+        required: true
+        type: choice
+        default: complete
+        options:
+          - complete
+          - unverified
   pull_request:
     branches: [main]
     paths:
@@ -80,4 +88,5 @@ jobs:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           DIGEST_DAY: ${{ inputs.day }}
           DIGEST_EXPECTED_SHA: ${{ inputs.expected_sha }}
+          DIGEST_RECONCILIATION_MODE: ${{ inputs.reconciliation_mode }}
         run: node scripts/verify-digest-live.mjs
