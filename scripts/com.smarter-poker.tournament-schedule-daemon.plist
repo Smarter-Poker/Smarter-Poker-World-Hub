@@ -6,9 +6,9 @@
   <key>ProgramArguments</key>
   <array>
     <string>/Users/smarter.poker/.local/share/smarter-poker-venv/bin/python3</string>
-    <string>/Volumes/SmarterWork/agent-work/pnm-production-runtimes-20261009/tournaments/runner.py</string>
+    <string>/Volumes/SmarterArchives/agent-evidence/extreme-archive/production-runtimes/pnm/tournaments/runner.py</string>
     <string>run</string><string>--root</string>
-    <string>/Volumes/SmarterWork/agent-work/pnm-production-runtimes-20261009/tournaments</string>
+    <string>/Volumes/SmarterArchives/agent-evidence/extreme-archive/production-runtimes/pnm/tournaments</string>
   </array>
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><true/>
@@ -16,10 +16,10 @@
   <key>StandardErrorPath</key><string>/dev/null</string>
   <key>EnvironmentVariables</key>
   <dict>
-    <key>PYTHONPATH</key><string>/Volumes/SmarterWork/agent-work/pnm-production-runtimes-20261009/pdf-packages</string>
+    <key>PYTHONPATH</key><string>/Volumes/SmarterArchives/agent-evidence/extreme-archive/production-runtimes/pnm/pdf-packages</string>
     <key>PATH</key><string>/Users/smarter.poker/.local/share/smarter-poker-venv/bin:/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
     <key>PYTHONUNBUFFERED</key><string>1</string>
-    <key>TMPDIR</key><string>/Volumes/SmarterWork/agent-work/pnm-production-runtimes-20261009/tournaments/tmp</string>
+    <key>TMPDIR</key><string>/Volumes/SmarterArchives/agent-evidence/extreme-archive/production-runtimes/pnm/tournaments/tmp</string>
   </dict>
 </dict>
 </plist>
