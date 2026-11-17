@@ -297,6 +297,7 @@ const HUB_ROUTES_WITHOUT_SHARED_HEADER = new Set([
   '/hub/live/guest',
   '/hub/lives',
   '/hub/marketplace',
+  '/hub/messenger/document-designs',
   '/hub/my-tournaments',
   '/hub/poker-brain',
   '/hub/poker-near-me',
