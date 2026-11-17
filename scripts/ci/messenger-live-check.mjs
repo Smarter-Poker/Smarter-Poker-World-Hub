@@ -10,11 +10,12 @@ import { pathToFileURL } from 'node:url';
 import { APP_ORIGIN, AUTH_ORIGIN, validateConfiguration } from './messenger-live-configuration.mjs';
 export { APP_ORIGIN, AUTH_ORIGIN, validateConfiguration } from './messenger-live-configuration.mjs';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const READ_POSTS = new Set(['/api/messenger/get-conversations', '/api/messenger/get-messages']);
+const READ_POSTS = new Set(['/api/messenger/get-conversations', '/api/messenger/get-messages', '/api/messenger/statements']);
 
 export function allowMutation(method, url, body, loadedConversations, visibleNotifications) {
   const target = new URL(url);
   if (target.origin !== APP_ORIGIN) return false;
+  if (method === 'POST' && target.pathname === '/api/messenger/receivables') return ['list', 'status'].includes(body?.action);
   if (method === 'POST' && READ_POSTS.has(target.pathname)) return true;
   if (method === 'POST' && target.pathname === '/api/messenger/mark-read') {
     return UUID.test(body?.conversationId || '') && UUID.test(body?.throughMessageId || '')
@@ -101,7 +102,8 @@ async function run() {
     report.accountFingerprint = createHash('sha256').update(session.user.id).digest('hex').slice(0, 16);
 
     const api = async (path, body) => {
-      assert.ok(['/api/user/get-header-stats', '/api/messenger/get-conversations', '/api/messenger/get-messages', '/api/notifications/feed'].includes(path), 'Unapproved API probe route');
+      assert.ok(['/api/user/get-header-stats', '/api/messenger/get-conversations', '/api/messenger/get-messages', '/api/notifications/feed', '/api/messenger/statements', '/api/messenger/receivables'].includes(path), 'Unapproved API probe route');
+      if (path === '/api/messenger/receivables') assert.ok(['list', 'status'].includes(body?.action), 'Payment writes are forbidden in live verification');
       const response = await fetch(`${APP_ORIGIN}${path}${body ? '' : '?bust=1'}`, {
         method: body ? 'POST' : 'GET', headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
         body: body ? JSON.stringify(body) : undefined, cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(20000),
@@ -264,6 +266,29 @@ async function run() {
       const label = document.querySelector('.approved-global-header__notifications')?.textContent?.trim() || '';
       return label === (expected > 99 ? '99+' : expected > 0 ? String(expected) : '');
     }, after.header.notificationCount);
+    report.phase = 'saved-statements-and-designs';
+    let statementCount = 0;
+    for (const club of after.workspaces[0].clubs) {
+      const first = await api('/api/messenger/statements', { clubId: club.id });
+      const reopened = await api('/api/messenger/statements', { clubId: club.id });
+      assert.deepEqual(reopened.documents, first.documents, 'Saved statements changed on repeated read');
+      statementCount += first.documents.length;
+      const receivables = await api('/api/messenger/receivables', { action: 'list', clubId: club.id });
+      assert.ok(Array.isArray(receivables.invoices), 'Payment balance reader failed');
+    }
+    report.coverage.savedStatements = statementCount;
+    if (!statementCount) report.limitations.push('Test account has no saved weekly statement; real-recipient persistence is verified separately through database readback');
+    await page.goto(`${APP_ORIGIN}/hub/messenger/document-designs`, { waitUntil: 'domcontentloaded' });
+    await page.locator('[data-document-design]').first().waitFor();
+    assert.equal(await page.locator('[data-document-design]').count(), 3, 'Missing statement design');
+    await page.setViewportSize({ width: 375, height: 812 });
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Mobile statement preview overflows');
+    await page.screenshot({ path: `${evidenceDir}/statements-mobile.png`, fullPage: true });
+    await page.getByRole('tab', { name: 'Invoices', exact: true }).click();
+    assert.equal(await page.locator('[data-document-design]').count(), 3, 'Missing invoice design');
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Mobile invoice preview overflows');
+    await page.screenshot({ path: `${evidenceDir}/invoices-mobile.png`, fullPage: true });
+    report.checks.push('Saved statement and invoice balance APIs read successfully; three designs of each document rendered at mobile width');
     const finalHealth = await fetch(`${APP_ORIGIN}/api/health`, { cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(20000) });
     assert.equal((await finalHealth.json()).commitSha, report.expectedSha, 'Production revision changed during verification');
     assert.equal(failures.length, 0, failures[0] || 'Read safety failure');

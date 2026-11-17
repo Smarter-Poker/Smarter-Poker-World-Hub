@@ -3,7 +3,7 @@
 Generated from the physical Pages Router tree and `src/config/world-footer-navigation.json`.
 Dynamic routes are shown using their source parameter names. Runtime verification uses representative reachable parameters where authentication or data is required.
 
-**Total applicable physical routes: 199.**
+**Total applicable physical routes: 200.**
 
 ## Coverage summary
 
@@ -13,7 +13,7 @@ Dynamic routes are shown using their source parameter names. Runtime verificatio
 | Training Games | 98 | `footer-training-games-v2.png` | PASS | PASS |
 | Poker News | 3 | `footer-poker-news-v2.png` | PASS | PASS |
 | Poker Trivia | 17 | `footer-poker-trivia-v2.png` | PASS | PASS |
-| Social Media | 19 | `footer-social-media-v2.png` | PASS | PASS |
+| Social Media | 20 | `footer-social-media-v2.png` | PASS | PASS |
 | My Clubs | 1 | `footer-my-clubs-v2.png` | PASS | PASS |
 | Video Library | 3 | `footer-video-library-v2.png` | PASS | PASS |
 | Odds Calculator | 1 | `footer-odds-calculator-v2.png` | PASS | PASS |
@@ -150,6 +150,7 @@ Dynamic routes are shown using their source parameter names. Runtime verificatio
 | `/hub/trivia/tournaments` | Poker Trivia | App-shell legacy/generic footer | `footer-poker-trivia-v2.png` | PASS | PASS |
 | `/hub/friends` | Social Media | App-shell legacy/generic footer | `footer-social-media-v2.png` | PASS | PASS |
 | `/hub/messenger` | Social Media | App-shell legacy/generic footer | `footer-social-media-v2.png` | PASS | PASS |
+| `/hub/messenger/document-designs` | Social Media | App-shell legacy/generic footer | `footer-social-media-v2.png` | PASS | PASS |
 | `/hub/messenger/blocked` | Social Media | App-shell legacy/generic footer | `footer-social-media-v2.png` | PASS | PASS |
 | `/hub/messenger/requests` | Social Media | App-shell legacy/generic footer | `footer-social-media-v2.png` | PASS | PASS |
 | `/hub/post/[id]` | Social Media | App-shell legacy/generic footer | `footer-social-media-v2.png` | PASS | PASS |

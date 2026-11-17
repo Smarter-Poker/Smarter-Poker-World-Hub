@@ -56,6 +56,7 @@ const MessageBubble = compiled('../src/components/messenger/MessageBubble.js', n
     './MediaViewer': { __esModule: true, default: Nothing, ATTACHMENT_ATTRIBUTE: 'data-attachment' },
     './MessengerTheme': { defaultTheme: theme },
     './Avatar': { Avatar: Nothing },
+    './InvoicePaymentStatus': { __esModule: true, default: Nothing },
     './AccountingInvoiceCard': { __esModule: true, default: Nothing },
     './CashoutRequestActions': { __esModule: true, default: Nothing, formatChips: String },
     '../../lib/authUtils': { getAccessToken: () => null, authedFetch: async () => ({}) },
