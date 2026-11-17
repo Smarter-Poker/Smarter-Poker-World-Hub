@@ -1,0 +1,30 @@
+{
+  "format": "hv31-context-repair-reviewed-source-v1",
+  "live_play": false,
+  "private_inputs_included": false,
+  "source_files": {
+    "PLAN.md": "87e139a577ee26b95e571a7df96e98632ed17741ec210ff7b8965dcb033ae21c",
+    "driver/context_deadline.py": "6cd7a49c25df3e7a2c99c1334beb18e6acb2d4e15607630967374e2d06bb801b",
+    "driver/f1_readback.py": "311b428fd3443c7dff2530ceff02d9748d0083cf5af4d3046da8236e0271a1fb",
+    "driver/f4_lock_driver.py": "6da40e5fa1e4a90dd6712bf5e0c39b35ac5c15f16506e62b949325ce56d73880",
+    "driver/f4_m1.py": "e60c95183a36bac8ae53e62ff312df3ae98e559b5b2a124738a0222c5bf4fa8e",
+    "driver/f4_storage.py": "ca9af4bedd31efbadb92c9677f07337c77744a1d1ff80c515c9cfac8f1f37a44",
+    "src/admission.py": "0532cb0a44135c2b36e0f75476a31dc29d1a6af64985e2260b8b7f4e2523aefc",
+    "src/build_eval.py": "4c95a0e539529d7ea9620b7700cfbf38bb3db2987a5dbb8188857331f5f6161a",
+    "src/candidate.py": "16213db2369986d80feae2ce036e1b3a2cf374c8f0b8539532514e4ce194e59d",
+    "src/common.py": "a1b1bc3811067b9ae0fe390f6ae87f28fe8d4218332531fc9447944a4b844171",
+    "src/context_deadline.py": "6cd7a49c25df3e7a2c99c1334beb18e6acb2d4e15607630967374e2d06bb801b",
+    "src/context_encode.py": "45bcbe4376df401363fef3d40302533493d247cd012d5d7f7225747cc7707888",
+    "src/f5_context_launch.py": "4c3ee5f6c6f9244195ffdef3198b08638cdd14df6ab698143250cf120f7573f6",
+    "src/features.py": "d8eb8e970d5cddf2bed9263ac29682cf6486cdbcf01e2ed3ecbebceee2628672",
+    "src/fit.py": "6315f368664968adf3f5a215498ed1b9b03494e7a9dba561510678bb05139429",
+    "src/freeze_candidate.py": "28a02d2d3fb48169dc8c7c2831655da0c888ca88cc604bed9ef7c74acf689a81",
+    "src/launch.py": "8408fbe956d2a40dafe4c12774cb2137d7f62ce848baa8333bfe557d840a6ebd",
+    "src/prepare.py": "dcecfdc0a946119533a1987802deb85a896b626d0f16196b79017533e8952081",
+    "src/score.py": "3877281d1637219a72ff8f48bb59cc5a12946c78fb05ce4b2a8ba3a28bb3f8ee",
+    "src/test_repair.py": "92c0ca45131e68de99022c3a9a1d59ea85fe393736220f7d8b24d9fe9c1db2fe"
+  },
+  "source_freeze_sha256": "d6e8efc92584e07b0bf7db839810cf0f123460da0c482f9fad6efb555b89f77b",
+  "status": "OFFLINE_UNQUALIFIED",
+  "training_and_evaluation_authorized": false
+}
