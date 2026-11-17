@@ -217,6 +217,7 @@ export function creditChangeInvoiceDisplay(meta) {
 // Only the server may supply receipt, from accounting_invoice_deliveries.
 export function verifyAccountingMessage(message, receipt) {
     const metadata = { ...message.media_metadata, accounting_verified: false };
+    delete metadata.weekly_club_details;
     delete metadata.cashier;
     delete metadata.cashier_verified;
     delete metadata.correction;
@@ -280,9 +281,58 @@ export function verifyAccountingMessage(message, receipt) {
         return { ...message, media_metadata: { ...metadata, accounting_verified: true,
             ...(typeof receipt.invoice_type === 'string' ? { invoice_type: receipt.invoice_type } : {}),
             invoice_id: receipt.id, issued_status: issuedStatus,
+            ...(receipt.invoice_type === 'club_weekly_accounting' ? { weekly_club_details: parseWeeklyClubDetails(receipt.weekly_club_details) } : {}),
             status: receipt.status, chips_transferred: receipt.chips_transferred } };
     }
     if (message.message_type === 'invoice') return { ...message, message_type: 'text',
         media_metadata: { ...metadata, kind: 'unverified_document' } };
     return { ...message, media_metadata: metadata };
+}
+
+// Supplementary club facts come from the authorized reader, never message text
+// or the sign of ECO. Each section retains its own availability/provenance.
+export function parseWeeklyClubDetails(value) {
+    if (!object(value) || value.version !== 1 || value.timezone !== 'America/Los_Angeles'
+        || !timestamp(value.period_start) || !timestamp(value.period_end)
+        || Date.parse(value.period_end) <= Date.parse(value.period_start)) return null;
+    const money = n => typeof n === 'number' && Number.isFinite(n) ? n : null;
+    const nonnegative = n => money(n) !== null && n >= 0 ? n : null;
+    const results = value.weekly_player_results;
+    const recorded = value.player_results_status === 'recorded' && object(results)
+        && results.version === 1 && results.sign_convention === 'positive_club_owes_union';
+    const settlement = value.settlement;
+    const settled = value.settlement_status === 'recorded' && object(settlement)
+        && ['club owes union', 'union owes club', 'settled'].includes(settlement.direction)
+        && uuid(settlement.invoice_id) && nonnegative(settlement.remaining) !== null
+        && (settlement.direction !== 'settled' || settlement.remaining === 0);
+    return {
+        version: 1, period_start: value.period_start, period_end: value.period_end, timezone: value.timezone,
+        rake_status: value.rake_status === 'certified' ? 'certified' : 'unavailable',
+        cash_rake: value.rake_status === 'certified' ? nonnegative(value.cash_rake) : null,
+        tournament_rake: value.rake_status === 'certified' ? nonnegative(value.tournament_rake) : null,
+        total_rake: nonnegative(value.total_rake),
+        player_results_status: recorded ? 'recorded' : 'unavailable',
+        weekly_player_results: recorded ? {
+            version: 1, sign_convention: results.sign_convention,
+            total_net_loss: money(results.total_net_loss), cash_net_loss: money(results.cash_net_loss),
+            tournament_net_loss: money(results.tournament_net_loss),
+            weekly_net_due_to_union: money(results.weekly_net_due_to_union),
+        } : null,
+        settlement_status: settled ? 'recorded' : 'unavailable',
+        settlement: settled ? { invoice_id: settlement.invoice_id, invoice_number: settlement.invoice_number,
+            direction: settlement.direction, remaining: settlement.remaining } : null,
+    };
+}
+export function weeklyClubStatementRows(value, fallbackRake) {
+    const details = parseWeeklyClubDetails(value);
+    const result = details?.weekly_player_results?.total_net_loss;
+    const net = details?.weekly_player_results?.weekly_net_due_to_union;
+    const known = n => typeof n === 'number' && Number.isFinite(n);
+    return [
+        [known(result) ? result > 0 ? 'Players Lost' : result < 0 ? 'Players Won' : 'Players Net Result' : 'Players Won / Lost', known(result) ? Math.abs(result) : null],
+        ['Cash Rake', details?.cash_rake], ['Tournament Rake', details?.tournament_rake],
+        ['Total Rake', details?.total_rake ?? fallbackRake],
+        [known(net) ? net > 0 ? 'Full Weekly Net · Club Owes Union' : net < 0 ? 'Full Weekly Net · Union Owes Club' : 'Full Weekly Net · Even' : 'Full Weekly Net', known(net) ? Math.abs(net) : null],
+        [details?.settlement ? details.settlement.direction === 'settled' ? 'Invoice Unpaid · Settled' : details.settlement.direction === 'union owes club' ? 'Invoice Unpaid · Union Owes Club' : 'Invoice Unpaid · Club Owes Union' : 'Invoice Unpaid', details?.settlement?.remaining],
+    ];
 }

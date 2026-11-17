@@ -1,4 +1,5 @@
 import React from 'react';
+import { weeklyClubStatementRows } from '../../lib/accountingMessage.mjs';
 
 export const statementAmount = value => value !== null && value !== undefined && Number.isFinite(Number(value))
     ? Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'Unavailable';
@@ -12,7 +13,8 @@ export default function AccountingStatementCard({ document, theme: C, variant = 
         ['Poker win / loss', totals.poker_net], ['Fees generated', totals.fees],
         ['Player rakeback', totals.player_rakeback], ['Agent net retained', totals.agent_net],
     ] : [
-        [totals.poker_net_source === 'posted_club_data' ? 'Poker W/L (posted)' : 'Poker win / loss', totals.poker_net], ['Fees earned', totals.rake_earned], ['Rakeback funding', totals.total_rake_funding],
+        ...weeklyClubStatementRows(totals.weekly_club_details, totals.rake_earned),
+        ['Rakeback funding', totals.total_rake_funding],
         ['Paid to agents and players', totals.total_paid_by_club], ['Retained by club', totals.retained_by_club],
     ];
     const button = { background: 'transparent', border: `1px solid ${C.border}`, color: C.blue, borderRadius: 8, padding: '10px 12px', cursor: 'pointer' };
@@ -33,6 +35,7 @@ export default function AccountingStatementCard({ document, theme: C, variant = 
                     fontSize: variant === 'overview' ? 23 : 16, fontWeight: 700, fontVariantNumeric: 'tabular-nums', overflowWrap: 'anywhere' }}>{statementAmount(value)}</dd>
             </div>)}
         </dl>
+        {!agent && <p style={{ fontSize: 12, lineHeight: 1.6, color: C.textSec }}>Full Weekly Net Summarizes The Week And Is Not An Additional Payment Request. Invoice Unpaid Shows The Separate Invoice Balance After Recorded Payments. Unavailable Figures Are Not Assumed To Be Zero.</p>}
         {agent && <details open={variant === 'ledger'}>
             <summary style={{ color: C.blue, cursor: 'pointer', padding: '8px 0' }}>Personal And Downline Detail · {report.people?.length || 0} People</summary>
             <div style={{ overflowX: 'auto', marginTop: 12 }}><table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
