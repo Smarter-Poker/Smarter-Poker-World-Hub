@@ -1284,6 +1284,45 @@ def save_evidence(series_uid: str, data: dict):
 CURRENT_SESSION = None
 STOP_REQUESTED = False
 
+def close_session(session):
+    """Release every resource a StealthySession owns, even after a failed close.
+
+    SERIES WEDGED AFTER ONE FAILED CLOSE (2026-11-17, incident 10dabbbe).
+    Scrapling 0.4.7 SyncSession.close() closes context, browser and Playwright
+    in sequence and stops at the first error. A context that is mid-navigation
+    or already dead raises, so Playwright.stop() never runs and its sync
+    greenlet keeps its asyncio loop registered as running on this thread.
+    Every later create_session() then refuses with "cannot start sync
+    Playwright inside a running event loop": a drift restart at 12:48 left all
+    22 remaining series of the pass failing, and a restart outside the
+    per-series guard ends run_daemon() with "Daemon cycle crashed" and exit 1
+    (LocalScraperRuntimeFailure daemon_exited_1 on 2026-11-15 and 2026-11-17).
+    Each remaining owned resource is finished once, as
+    pokeratlas-live-daemon.py disconnect() already does. Nothing here touches
+    an unrelated asyncio loop.
+    """
+    if session is None:
+        return
+    try:
+        session.close()
+    except Exception as exc:
+        log(f"  Session close interrupted: {type(exc).__name__}: {str(exc)[:160]}")
+    finally:
+        for name, method in (("context", "close"), ("browser", "close"), ("playwright", "stop")):
+            resource = getattr(session, name, None)
+            if resource is None:
+                continue
+            try:
+                getattr(resource, method)()
+            except Exception as exc:
+                log(f"  Session {name} cleanup failed: {type(exc).__name__}: {str(exc)[:160]}")
+            finally:
+                try:
+                    setattr(session, name, None)
+                except Exception:
+                    pass
+
+
 def create_session():
     """Create a new StealthySession with network pre-check."""
     if not network_ok():
@@ -1351,8 +1390,7 @@ def fetch_with_retry(session, url: str, retries: int = 3, **kwargs) -> tuple:
                 # to this function's local, so the caller kept fetching on the
                 # closed session ("Context manager has been closed") and the next
                 # scheduled recycle crashed the whole cycle.
-                try: session.close()
-                except: pass
+                close_session(session)
                 session = create_session()
                 CURRENT_SESSION = session
     status = getattr(resp, 'status', 0) if resp else 0
@@ -3201,20 +3239,12 @@ def main():
                 discovered_series=discovered_series,
             )
             if series_list is None:
-                try:
-                    if session is not None:
-                        session.close()
-                except Exception:
-                    pass
+                close_session(session)
                 CURRENT_SESSION = None
                 log("Series cohort read failed; aborting this run")
                 break
             if not series_list:
-                try:
-                    if session is not None:
-                        session.close()
-                except Exception:
-                    pass
+                close_session(session)
                 CURRENT_SESSION = None
                 log("🎉 No series to scrape — all done!"); break
 
@@ -3265,8 +3295,7 @@ def main():
             # Recycle every PAGE_RECYCLE series
             if i > 0 and i % PAGE_RECYCLE == 0:
                 log(f"  ♻️  Recycle at #{i}")
-                try: session.close()
-                except: pass
+                close_session(session)
                 session = create_session()
                 CURRENT_SESSION = session
                 session_start = time.time()
@@ -3275,8 +3304,7 @@ def main():
             # 6h session timeout
             if time.time() - session_start > SESSION_MAX:
                 log("  🔄 6h session refresh")
-                try: session.close()
-                except: pass
+                close_session(session)
                 session = create_session()
                 session_start = time.time()
 
@@ -3285,8 +3313,7 @@ def main():
             actual   = time.time() - wall_start
             if actual > expected * 2 + 120:
                 log("  ⚡ Drift detected — restarting session")
-                try: session.close()
-                except: pass
+                close_session(session)
                 session = create_session()
                 session_start = time.time()
                 wall_start = time.time()
@@ -3346,8 +3373,7 @@ def main():
             if args.series_timeout and elapsed > args.series_timeout:
                 log(f"      ⏱  Series took {elapsed:.0f}s (> {args.series_timeout}s cap) "
                     f"— recycling session to keep the pass on schedule")
-                try: session.close()
-                except Exception: pass
+                close_session(session)
                 session = create_session()
                 CURRENT_SESSION = session
                 session_start = time.time()
@@ -3362,8 +3388,7 @@ def main():
             # Circuit breaker — 5 consecutive fails → restart
             if consecutive_fails >= CIRCUIT_MAX:
                 log(f"  ⚡ Circuit breaker — {consecutive_fails} fails — restarting")
-                try: session.close()
-                except: pass
+                close_session(session)
                 time.sleep(4)
                 session = create_session()
                 CURRENT_SESSION = session
@@ -3377,8 +3402,7 @@ def main():
             n = flush_chunk(chunk_buf, batch_id, args.dry_run)
             total_events += n
 
-        try: session.close()
-        except: pass
+        close_session(session)
         CURRENT_SESSION = None
 
         total_found += pass_found
