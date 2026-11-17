@@ -28,3 +28,13 @@ test('the live verifier never picks an empty conversation as its read candidate'
   assert.match(source, /const readable = available\.find\(c => c\.last_message_at\);\s*if \(!candidates\.length && readable\) candidates\.push\(readable\);/);
   assert.doesNotMatch(source, /candidates\.push\(available\[0\]\)/);
 });
+
+test('the live verifier drains route callbacks before success and before browser disposal', () => {
+  const source = readFileSync(new URL('../scripts/ci/messenger-live-check.mjs', import.meta.url), 'utf8');
+  const success = source.indexOf("report.status = report.limitations.length");
+  const drain = source.indexOf("await context.unrouteAll({ behavior: 'wait' });");
+  assert.ok(drain > 0 && drain < success, 'Pending route.fetch must finish before success');
+  const cleanup = source.slice(source.lastIndexOf('  } finally {'));
+  assert.match(source, /await context\?\.unrouteAll\(\{ behavior: 'wait' \}\);\s*\} finally \{\s*await browser\?\.close\(\);/);
+  assert.ok(cleanup.includes('browser?.close()'));
+});

@@ -85,6 +85,7 @@ async function run() {
   await mkdir(evidenceDir, { recursive: true });
   const report = { observedAt: new Date().toISOString(), expectedSha: process.env.MESSENGER_EXPECTED_SHA, status: 'running', coverage: {}, limitations: [], checks: [] };
   let browser;
+  let context;
   try {
     const healthResponse = await fetch(`${APP_ORIGIN}/api/health`, { cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(20000) });
     const health = await healthResponse.json();
@@ -139,7 +140,7 @@ async function run() {
     report.phase = 'browser-start';
     const { chromium } = await import('playwright');
     browser = await chromium.launch({ headless: true });
-    const context = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
+    context = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
     // No stored auth files, HARs, traces, screenshots, or live message contents.
     await context.addInitScript(({ currentSession }) => {
       localStorage.setItem('smarter-poker-auth', JSON.stringify(currentSession));
@@ -293,6 +294,9 @@ async function run() {
     assert.equal((await finalHealth.json()).commitSha, report.expectedSha, 'Production revision changed during verification');
     assert.equal(failures.length, 0, failures[0] || 'Read safety failure');
     assert.equal(pageErrors.length, 0, 'Published page raised browser errors');
+    // Drain interception before disposing its request context. A route.fetch
+    // can still be running after the final page assertion.
+    await context.unrouteAll({ behavior: 'wait' });
     report.after = { messages: after.total, notifications: after.header.notificationCount };
     report.checks.push('Persisted read receipts verified against fresh application APIs', 'Read receipts survive a page refresh that reopens the conversation', 'Reloaded Messenger and notification badges match fresh authoritative counts');
     report.status = report.limitations.length ? 'passed-available-data-with-coverage-gaps' : 'passed';
@@ -308,7 +312,11 @@ async function run() {
     console.error(report.failure);
     process.exitCode = 1;
   } finally {
-    await browser?.close();
+    try {
+      await context?.unrouteAll({ behavior: 'wait' });
+    } finally {
+      await browser?.close();
+    }
     await writeFile(`${evidenceDir}/result.json`, JSON.stringify(report, null, 2));
   }
 }
