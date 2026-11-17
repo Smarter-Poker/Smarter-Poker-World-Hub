@@ -2,9 +2,10 @@ import { pathToFileURL } from 'node:url';
 import { signViewToken } from '../src/lib/dailyDigest/delivery.mjs';
 
 /** One explicit read against the owning production route; never sends mail. */
-export async function verifyDigestLive({ day, expectedSha, fetchImpl = fetch }) {
+export async function verifyDigestLive({ day, expectedSha, reconciliationMode = 'complete', fetchImpl = fetch }) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(day || '') || Number.isNaN(Date.parse(`${day}T12:00:00Z`))) throw new Error('Invalid report day');
     if (!/^[0-9a-f]{40}$/.test(expectedSha || '')) throw new Error('Expected a full protected revision');
+    if (!['complete', 'unverified'].includes(reconciliationMode)) throw new Error('Invalid reconciliation witness mode');
     if (!process.env.CRON_SECRET?.trim()) throw new Error('CRON_SECRET is not configured');
     const health = await fetchImpl('https://smarter.poker/api/health', { signal: AbortSignal.timeout(15000), cache: 'no-store' });
     if (!health.ok) throw new Error(`Production health returned ${health.status}`);
@@ -41,17 +42,25 @@ export async function verifyDigestLive({ day, expectedSha, fetchImpl = fetch }) 
     for (const label of ['Horse Cash Result (Chips)', 'Horse Tournament Result (Chips)', 'Human Cash Result (Chips)', 'Human Tournament Result (Chips)', 'Kingfish Result (Included In Human Totals)', 'Daily Chip Reconciliation', 'Chip Supply Verification']) {
         if (!html.includes(label)) throw new Error(`Missing daily result row: ${label}`);
     }
-    if (/UNVERIFIED/.test(html)) throw new Error('Daily chip reconciliation is unverified');
+    if (reconciliationMode === 'complete' && /UNVERIFIED/.test(html)) throw new Error('Daily chip reconciliation is unverified');
     const at = html.indexOf('Daily Chip Reconciliation');
     const reconciliationRow = html.slice(at, html.indexOf('</tr>', at));
-    const chipReconciliation = reconciliationRow.includes('BALANCED: 0') ? 'balanced' : reconciliationRow.includes('DISCREPANCY:') ? 'discrepancy' : 'unknown';
+    const chipReconciliation = reconciliationRow.includes('BALANCED: 0') ? 'balanced' : reconciliationRow.includes('DISCREPANCY:') ? 'discrepancy'
+        : reconciliationRow.includes('UNVERIFIED') ? 'unverified' : 'unknown';
+    if (reconciliationMode === 'unverified') {
+        if (chipReconciliation !== 'unverified') throw new Error('Expected unverified reconciliation');
+        if (!html.includes('Daily chip reconciliation could not be verified')
+            || html.includes('Daily chip reconciliation has discrepancies; see Daily Update')) {
+            throw new Error('Unverified reconciliation headline differs from the expected evidence state');
+        }
+    }
     if (chipReconciliation === 'unknown') throw new Error('Daily chip reconciliation outcome missing');
     const alertFixes = [...html.matchAll(/>([A-Za-z][A-Za-z0-9_.-]*): ([\d,]+) of ([\d,]+) verified fixed(?:[^<]*)</g)]
         .map(([, alertname, verified, total]) => ({ alertname, verified: Number(verified.replaceAll(',', '')), total: Number(total.replaceAll(',', '')) }));
-    return { day, revision: identity.version, deploymentId: identity.deploymentId, reportBytes: Buffer.byteLength(html), playerTotals: 'rendered', dailyResults: 'rendered', kingfishIncluded: true, chipReconciliation, spins: 'rendered', freeBuyFunding: 'rendered', alertFixes, observedAt: new Date().toISOString() };
+    return { day, revision: identity.version, deploymentId: identity.deploymentId, reportBytes: Buffer.byteLength(html), playerTotals: 'rendered', dailyResults: 'rendered', kingfishIncluded: true, chipReconciliation, reconciliationMode, spins: 'rendered', freeBuyFunding: 'rendered', alertFixes, observedAt: new Date().toISOString() };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-    try { console.log(JSON.stringify(await verifyDigestLive({ day: process.env.DIGEST_DAY, expectedSha: process.env.DIGEST_EXPECTED_SHA }))); }
+    try { console.log(JSON.stringify(await verifyDigestLive({ day: process.env.DIGEST_DAY, expectedSha: process.env.DIGEST_EXPECTED_SHA, reconciliationMode: process.env.DIGEST_RECONCILIATION_MODE || 'complete' }))); }
     catch (error) { console.error(error.message); process.exitCode = 1; }
 }

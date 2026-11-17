@@ -662,6 +662,7 @@ test('explicit live verification rejects wrong revisions and broken sections wit
         assert.equal(report.playerTotals, 'rendered');
         assert.equal(report.chipReconciliation, 'balanced');
         assert.equal(report.kingfishIncluded, true);
+
         assert.deepEqual(report.alertFixes, [
             { alertname: 'Tournament.finish', verified: 1301, total: 1309 },
             { alertname: 'CriticalPage.midway_free_buy_missing', verified: 2, total: 2 },
@@ -670,6 +671,31 @@ test('explicit live verification rejects wrong revisions and broken sections wit
         assert.ok(calls[1][0].startsWith('https://smarter.poker/api/digest/view?t='));
         assert.equal(calls[1][1].redirect, 'error');
         assert.doesNotMatch(JSON.stringify(report), /fixture-only-secret|\?t=/);
+        calls = [];
+        const unverifiedFetch = async (url, opts) => {
+            const original = await fetchImpl(url, opts);
+            if (url.endsWith('/api/health')) return original;
+            return response((await original.text()).replaceAll('BALANCED: 0', 'UNVERIFIED')
+                + ' Daily chip reconciliation could not be verified');
+        };
+        await assert.rejects(verifyDigestLive({ day: '2026-10-28', expectedSha: sha, fetchImpl: unverifiedFetch }), /unverified/);
+        const negative = await verifyDigestLive({ day: '2026-10-28', expectedSha: sha,
+            reconciliationMode: 'unverified', fetchImpl: unverifiedFetch });
+        assert.equal(negative.chipReconciliation, 'unverified');
+        assert.equal(negative.reconciliationMode, 'unverified');
+        assert.doesNotMatch(JSON.stringify(negative), /fixture-only-secret|\?t=/);
+        await assert.rejects(verifyDigestLive({ day: '2026-10-28', expectedSha: sha,
+            reconciliationMode: 'unverified', fetchImpl }), /Expected unverified/);
+        for (const wrong of ['Daily chip reconciliation has discrepancies; see Daily Update', '']) {
+            await assert.rejects(verifyDigestLive({ day: '2026-10-28', expectedSha: sha,
+                reconciliationMode: 'unverified', fetchImpl: async (url, opts) => {
+                    const original = await unverifiedFetch(url, opts);
+                    return url.endsWith('/api/health') ? original : response((await original.text())
+                        .replace('Daily chip reconciliation could not be verified', wrong));
+                } }), /Unverified reconciliation headline/);
+        }
+        await assert.rejects(verifyDigestLive({ day: '2026-10-28', expectedSha: sha,
+            reconciliationMode: 'anything', fetchImpl }), /Invalid reconciliation witness mode/);
         calls = [];
         await assert.rejects(verifyDigestLive({ day: '2026-10-28', expectedSha: 'b'.repeat(40), fetchImpl }), /revision differs/);
         assert.equal(calls.length, 1, 'a wrong deployment never reads the report');
