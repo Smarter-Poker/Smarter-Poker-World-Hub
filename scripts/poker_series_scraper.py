@@ -1323,6 +1323,31 @@ def close_session(session):
                     pass
 
 
+def restart_session(session, pause_seconds=0):
+    """Replace the browser session and publish the replacement, in one place.
+
+    DRIFT RESTART LEFT THE CLOSED SESSION PUBLISHED (2026-11-17, incident
+    10dabbbe). The sleep/wake drift restart and the 6h refresh rebound only the
+    loop's local `session`, while CURRENT_SESSION kept the closed one.
+    fetch_with_retry() deliberately follows CURRENT_SESSION, so the next fetch
+    went to the closed session ("Context manager has been closed"), and its
+    recovery tried to start a second sync Playwright while the unpublished
+    replacement was alive: "cannot start sync Playwright inside a running
+    event loop" for every remaining series, then "Daemon cycle crashed" and
+    exit 1 (LocalScraperRuntimeFailure daemon_exited_1). Reproduced live at
+    12:48 and 13:33 Chicago on 2026-11-17. Every restart now goes through here.
+    """
+    global CURRENT_SESSION
+    close_session(session)
+    if CURRENT_SESSION is session:
+        CURRENT_SESSION = None
+    if pause_seconds:
+        time.sleep(pause_seconds)
+    replacement = create_session()
+    CURRENT_SESSION = replacement
+    return replacement
+
+
 def create_session():
     """Create a new StealthySession with network pre-check."""
     if not network_ok():
@@ -1390,9 +1415,7 @@ def fetch_with_retry(session, url: str, retries: int = 3, **kwargs) -> tuple:
                 # to this function's local, so the caller kept fetching on the
                 # closed session ("Context manager has been closed") and the next
                 # scheduled recycle crashed the whole cycle.
-                close_session(session)
-                session = create_session()
-                CURRENT_SESSION = session
+                session = restart_session(session)
     status = getattr(resp, 'status', 0) if resp else 0
     return "", status, b"", ""
 
@@ -3295,17 +3318,14 @@ def main():
             # Recycle every PAGE_RECYCLE series
             if i > 0 and i % PAGE_RECYCLE == 0:
                 log(f"  ♻️  Recycle at #{i}")
-                close_session(session)
-                session = create_session()
-                CURRENT_SESSION = session
+                session = restart_session(session)
                 session_start = time.time()
                 consecutive_fails = 0
 
             # 6h session timeout
             if time.time() - session_start > SESSION_MAX:
                 log("  🔄 6h session refresh")
-                close_session(session)
-                session = create_session()
+                session = restart_session(session)
                 session_start = time.time()
 
             # Sleep/wake drift detection
@@ -3313,8 +3333,7 @@ def main():
             actual   = time.time() - wall_start
             if actual > expected * 2 + 120:
                 log("  ⚡ Drift detected — restarting session")
-                close_session(session)
-                session = create_session()
+                session = restart_session(session)
                 session_start = time.time()
                 wall_start = time.time()
                 consecutive_fails = 0
@@ -3373,9 +3392,7 @@ def main():
             if args.series_timeout and elapsed > args.series_timeout:
                 log(f"      ⏱  Series took {elapsed:.0f}s (> {args.series_timeout}s cap) "
                     f"— recycling session to keep the pass on schedule")
-                close_session(session)
-                session = create_session()
-                CURRENT_SESSION = session
+                session = restart_session(session)
                 session_start = time.time()
                 consecutive_fails = 0
 
@@ -3388,10 +3405,7 @@ def main():
             # Circuit breaker — 5 consecutive fails → restart
             if consecutive_fails >= CIRCUIT_MAX:
                 log(f"  ⚡ Circuit breaker — {consecutive_fails} fails — restarting")
-                close_session(session)
-                time.sleep(4)
-                session = create_session()
-                CURRENT_SESSION = session
+                session = restart_session(session, pause_seconds=4)
                 session_start = time.time()
                 consecutive_fails = 0
 
