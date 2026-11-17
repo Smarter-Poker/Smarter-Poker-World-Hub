@@ -1,11 +1,24 @@
 """New fixed exact-context cohort. Public identities only; historical TRAIN exposure disclosed."""
-import copy,hashlib,itertools,json,sys,importlib.util
+import copy,hashlib,itertools,json,sys,importlib.util,os
 from pathlib import Path
 from state_identity import game_key
+from data_access import SafeInputs
 B=Path(__file__).resolve().parents[1];P=B.parent;W=P/'v31-rootcause-01TLQer7';A=P/'hv31-eval-acquisition-01a1e479';O=P/'hv31-context-repair-01a1e479'
 SEED='HV31-TAIL-REPAIR-20261117-v1'
-def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
-def load(p):return json.loads(Path(p).read_bytes())
+def _input_gate():
+ expected=os.environ.get('HV31_INPUT_MANIFEST_SHA256','')
+ if len(expected)!=64:raise PermissionError('explicit pinned data-access manifest required; historical research is closed')
+ manifest=B/'DATA-ACCESS.json'
+ if manifest.is_symlink():raise PermissionError('access manifest symlink refused')
+ raw=manifest.read_bytes()
+ if hashlib.sha256(raw).hexdigest()!=expected:raise PermissionError('data-access manifest changed')
+ return SafeInputs(json.loads(raw)['inputs'])
+def _input_bytes(p):
+ gate=_input_gate();name=str(Path(p));item=gate.entries.get(name)
+ if item is None:raise PermissionError('input is not admitted; no read or hash')
+ return gate.read(name,item['role'])
+def sha(p):return hashlib.sha256(_input_bytes(p)).hexdigest()
+def load(p):return json.loads(_input_bytes(p))
 def write(p,x):
  with Path(p).open('x') as f:json.dump(x,f,indent=2,sort_keys=True);f.write('\n')
 def order(s):return hashlib.sha256((SEED+':'+s).encode()).hexdigest()

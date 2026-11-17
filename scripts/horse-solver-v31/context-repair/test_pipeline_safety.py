@@ -99,4 +99,19 @@ class PipelineSafety(unittest.TestCase):
             exec(compile(ast.Module(body=[main],type_ignores=[]),str(source),'exec'),ns)
             with self.assertRaises(ValueError):ns['main']()
 
+    def test_historical_load_and_sha_require_pinned_admission(self):
+        source=Path(__file__).resolve().parent/'src/prepare.py';tree=ast.parse(source.read_text())
+        nodes=[n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name in ('_input_gate','_input_bytes','sha','load')]
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td).resolve();ns=dict(B=root,os=os,Path=Path,json=json,hashlib=hashlib,SafeInputs=SafeInputs)
+            exec(compile(ast.Module(body=nodes,type_ignores=[]),str(source),'exec'),ns)
+            with patch.dict(os.environ,{},clear=True),patch.object(Path,'read_bytes',side_effect=AssertionError('must refuse before reading')):
+                for name in ('sha','load'):
+                    with self.assertRaises(PermissionError):ns[name]('/synthetic/protected-holdout/answers.json')
+            p=root/'TRAIN.json';data=b'{"role":"TRAIN"}';p.write_bytes(data)
+            manifest=json.dumps({'inputs':{str(p):dict(role='TRAIN',sha256=hashlib.sha256(data).hexdigest())}}).encode();(root/'DATA-ACCESS.json').write_bytes(manifest)
+            with patch.dict(os.environ,{'HV31_INPUT_MANIFEST_SHA256':hashlib.sha256(manifest).hexdigest()}):
+                self.assertEqual(ns['load'](p),{'role':'TRAIN'});self.assertEqual(ns['sha'](p),hashlib.sha256(data).hexdigest())
+                with self.assertRaises(PermissionError):ns['load'](root/'unknown.json')
+
 if __name__=='__main__':unittest.main()
