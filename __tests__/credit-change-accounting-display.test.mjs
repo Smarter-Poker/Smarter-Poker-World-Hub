@@ -48,6 +48,7 @@ function compile(path, load, processValue, exportName = 'default') {
 const Card = compile('../src/components/messenger/AccountingInvoiceCard.js',
     name => name === '../../lib/accountingMessage.mjs' ? accounting : require(name));
 const Bubble = compile('../src/components/messenger/MessageBubble.js', name => {
+    if (name === './InvoicePaymentStatus') return { default: () => null, __esModule: true };
     if (name === './AccountingInvoiceCard') return { default: Card, __esModule: true };
     if (name === '../../lib/accountingMessage.mjs') return accounting;
     if (name === '../../lib/unionEco.mjs') return unionEco;
