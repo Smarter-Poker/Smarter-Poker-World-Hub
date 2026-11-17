@@ -22,7 +22,7 @@ export default function AccountingStatementCard({ document, theme: C, variant = 
         <header style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
             <div><div style={{ color: C.blue, fontWeight: 700, fontSize: 12, letterSpacing: 1 }}>SMARTER.POKER · STATEMENT</div>
                 <h2 style={{ margin: '8px 0', fontSize: 22 }}>{document.club_name}</h2>
-                <div style={{ fontSize: 13, color: C.textSec }}>{day(report.period_start)} – {day(new Date(Date.parse(report.period_end) - 1).toISOString())} · Pacific</div>
+                <div style={{ fontSize: 13, color: C.textSec }}>{day(report.period_start)} to {day(new Date(Date.parse(report.period_end) - 1).toISOString())} · Pacific</div>
             </div>
             <div style={{ color: C.textSec, fontSize: 12 }}>{agent ? 'You and your downline' : 'Club accounting'}<br />Amounts in chips</div>
         </header>

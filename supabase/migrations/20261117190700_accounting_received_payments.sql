@@ -15,7 +15,7 @@ CREATE TABLE public.accounting_received_payments (
 ALTER TABLE public.accounting_received_payments ENABLE ROW LEVEL SECURITY;
 CREATE POLICY service_receipt_read ON public.accounting_received_payments FOR SELECT TO service_role USING (true);
 CREATE INDEX accounting_received_payments_actor_idx ON public.accounting_received_payments(actor_id);
-REVOKE ALL ON public.accounting_received_payments FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON public.accounting_received_payments FROM PUBLIC,anon,authenticated,service_role;
 GRANT SELECT ON public.accounting_received_payments TO service_role;
 CREATE FUNCTION public.fn_accounting_received_payment_immutable() RETURNS trigger LANGUAGE plpgsql SET search_path=public,extensions AS $$
 BEGIN RAISE EXCEPTION 'Recorded payment receipts are immutable' USING ERRCODE='23514'; END $$;
