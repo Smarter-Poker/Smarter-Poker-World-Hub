@@ -411,6 +411,9 @@ jobs:
       - name: Club Notice Board Native Authorization And Pagination
         run: node --test __tests__/club-notice-board-postgres.test.mjs
 
+      - name: Private Schema Manifest PostgreSQL Contract
+        run: python3 scripts/ci/test-schema-manifest-postgres.py
+
       - name: "CHECK 24C: Training PostgreSQL 17 Behavioral Authority"
         run: npm run audit:training:phase6-db
 
