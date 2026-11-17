@@ -33,6 +33,35 @@ export const CLUB_ARENA_PREFIX = '/hub/club-arena/';
 
 const CODE_RE = /^[A-HJ-NP-Z2-9]{7}$/;
 
+/**
+ * The figure lines an invite carries (Dan 2026-11-17), worded once by the
+ * database (fn_club_share_figures) so the preview text, preview image, landing
+ * page and copied message say the same thing:
+ *   "152 Members In KINGS CLUB"            measured members of this club
+ *   "314 Playing Across Midway Union Now"  distinct players on its union's floor
+ *   "4 Playing In Solo Room Now"           a club with no union, its own floor
+ * A figure the database could not read arrives null and its line is left out;
+ * it is never printed as zero and never replaced by another number.
+ */
+export function inviteFigureLines(club) {
+    const line = (v) => (typeof v === 'string' && v.trim() ? v.trim() : null);
+    return [line(club?.members_line), line(club?.activity_line)].filter(Boolean);
+}
+
+/** The link-preview description: the Club ID, then those lines. */
+export function inviteDescription(lines, clubNumber = null) {
+    const tail = 'Create Your Free Smarter.Poker Account And Join The Club.';
+    const parts = [];
+    if (clubNumber != null && String(clubNumber).trim() !== '') parts.push(`Club ID: ${String(clubNumber).trim()}`);
+    for (const line of lines || []) parts.push(line);
+    return parts.length ? `${parts.join('. ')}. ${tail}` : tail;
+}
+
+/** The headline the copied message opens with, used for the preview title. */
+export function inviteHeadline(alias, clubName) {
+    return `${alias} Invited You To Join ${clubName} On Smarter.Poker!`;
+}
+
 /** The 7-character code alphabet the database issues (no I, O, 0 or 1). */
 export function isInviteCode(value) {
     return typeof value === 'string' && CODE_RE.test(value.trim().toUpperCase());

@@ -194,3 +194,14 @@ test('required TypeScript setup keeps cache failures outside dependency and comp
   assert.equal(modules.if, undefined);
   assert.doesNotMatch(install.if, /outcome|conclusion|npm-cache-location/);
 });
+
+
+test('TRAIN context repair contracts preserve exact-state exclusion, conditional targets and native gates', () => {
+  const python = process.env.V31_NUMERIC_PYTHON || process.env.PYTHON_BIN || 'python3';
+  const result = spawnSync(python, ['-I', '-B', 'scripts/horse-solver-v31/root-context-repair/test_source_contract.py'], {
+    cwd: ROOT, encoding: 'utf8', timeout: 120_000,
+  });
+  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+  assert.match(result.stderr, /Ran 12 tests/);
+  assert.match(result.stderr, /OK/);
+});
