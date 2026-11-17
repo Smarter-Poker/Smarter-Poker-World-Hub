@@ -62,6 +62,7 @@ export default async function handler(req) {
     const clubName = invite?.club?.name || 'Smarter.Poker Club Arena';
     const alias = invite?.inviter?.alias || 'A Friend';
     const lines = inviteFigureLines(invite?.club);
+    const clubNumber = invite?.club?.club_id;
     const logo = await embeddableLogo(invite?.club?.logo_url);
 
     return new ImageResponse(
@@ -111,6 +112,11 @@ export default async function handler(req) {
                 <div style={{ display: 'flex', marginTop: 8, fontSize: 64, fontWeight: 800, color: '#ffffff' }}>
                     {clubName.length > 28 ? `${clubName.slice(0, 27)}...` : clubName}
                 </div>
+                {clubNumber != null && String(clubNumber) !== '' ? (
+                    <div style={{ display: 'flex', marginTop: 6, fontSize: 24, color: '#9aa4b2' }}>
+                        {`Club ID: ${clubNumber}`}
+                    </div>
+                ) : null}
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 22 }}>
                     {lines.map((line, i) => (
                         <div

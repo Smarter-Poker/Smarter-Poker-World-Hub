@@ -10,7 +10,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { inviteDescription, inviteFigureLines } from '../src/lib/clubInvite.js';
+import { inviteDescription, inviteFigureLines, inviteHeadline } from '../src/lib/clubInvite.js';
 
 const page = readFileSync(new URL('../pages/i/[code].js', import.meta.url), 'utf8');
 const og = readFileSync(new URL('../pages/api/og/club-invite.js', import.meta.url), 'utf8');
@@ -27,6 +27,25 @@ test('club members and union activity travel as two separately named lines', () 
         inviteDescription(lines),
         '152 Members In KINGS CLUB. 314 Playing Across Midway Union Now. Create Your Free Smarter.Poker Account And Join The Club.'
     );
+});
+
+test('the preview opens with the copied message headline and the Club ID', () => {
+    assert.equal(inviteHeadline('KingFish', 'KINGS CLUB'), 'KingFish Invited You To Join KINGS CLUB On Smarter.Poker!');
+    assert.equal(
+        inviteDescription(['152 Members In KINGS CLUB', '314 Playing Across Midway Union Now'], 25450),
+        'Club ID: 25450. 152 Members In KINGS CLUB. 314 Playing Across Midway Union Now. Create Your Free Smarter.Poker Account And Join The Club.'
+    );
+    assert.match(page, /const headline = inviteHeadline\(inviter\.alias, club\.name\);/);
+    assert.match(page, /inviteDescription\(club\.figureLines, club\.clubNumber\)/);
+    assert.match(page, /Club ID: \{club\.clubNumber\}/);
+    assert.match(og, /`Club ID: \$\{clubNumber\}`/);
+});
+
+test("the union's own row keeps its across-the-union member line", () => {
+    assert.deepEqual(inviteFigureLines({ members_line: '3,154 Members Across Midway Union', activity_line: '306 Playing Across Midway Union Now' }), [
+        '3,154 Members Across Midway Union',
+        '306 Playing Across Midway Union Now',
+    ]);
 });
 
 test('a club with no union keeps its club-scoped line', () => {
@@ -52,6 +71,5 @@ test('preview text, preview image and landing page all print the same lines', ()
         assert.doesNotMatch(src, /Playing Now`/, `${name} prints no self-labelled raw count`);
         assert.doesNotMatch(src, /member_count|players_playing/, `${name} reads no raw count`);
     }
-    assert.match(page, /const description = inviteDescription\(club\.figureLines\);/);
     assert.match(page, /club\.figureLines\.map\(/);
 });

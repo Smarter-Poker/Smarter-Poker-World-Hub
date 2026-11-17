@@ -21,6 +21,7 @@ import {
     inviteCookieValue,
     inviteDescription,
     inviteFigureLines,
+    inviteHeadline,
     isInviteFresh,
     isLinkPreviewBot,
     normalizeInviteCode,
@@ -139,13 +140,13 @@ export default function ClubInviteLanding({ invite, code }) {
     const loginHref = signupHref.replace('/auth/signup?', '/auth/login?');
     const pageUrl = `${ORIGIN}/i/${code}`;
     const ogImage = `${ORIGIN}/api/og/club-invite?code=${encodeURIComponent(code)}`;
-    const headline = `${inviter.alias} Invited You To ${club.name}`;
-    const description = inviteDescription(club.figureLines);
+    const headline = inviteHeadline(inviter.alias, club.name);
+    const description = inviteDescription(club.figureLines, club.clubNumber);
 
     return (
         <main style={styles.page}>
             <Head>
-                <title>{`${headline} | Smarter.Poker`}</title>
+                <title>{headline}</title>
                 <meta name="description" content={description} />
                 <meta name="robots" content="noindex" />
                 <link key="canonical" rel="canonical" href={pageUrl} />
@@ -188,7 +189,7 @@ export default function ClubInviteLanding({ invite, code }) {
                                 {line}
                             </span>
                         ))}
-                        {club.clubNumber ? <span style={styles.chip}>Club ID {club.clubNumber}</span> : null}
+                        {club.clubNumber ? <span style={styles.chip}>Club ID: {club.clubNumber}</span> : null}
                     </div>
 
                     <hr style={styles.rule} />

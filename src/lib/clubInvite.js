@@ -33,7 +33,6 @@ export const CLUB_ARENA_PREFIX = '/hub/club-arena/';
 
 const CODE_RE = /^[A-HJ-NP-Z2-9]{7}$/;
 
-/** The 7-character code alphabet the database issues (no I, O, 0 or 1). */
 /**
  * The figure lines an invite carries (Dan 2026-11-17), worded once by the
  * database (fn_club_share_figures) so the preview text, preview image, landing
@@ -49,12 +48,21 @@ export function inviteFigureLines(club) {
     return [line(club?.members_line), line(club?.activity_line)].filter(Boolean);
 }
 
-/** The link-preview description built from those lines. */
-export function inviteDescription(lines) {
+/** The link-preview description: the Club ID, then those lines. */
+export function inviteDescription(lines, clubNumber = null) {
     const tail = 'Create Your Free Smarter.Poker Account And Join The Club.';
-    return lines && lines.length ? `${lines.join('. ')}. ${tail}` : tail;
+    const parts = [];
+    if (clubNumber != null && String(clubNumber).trim() !== '') parts.push(`Club ID: ${String(clubNumber).trim()}`);
+    for (const line of lines || []) parts.push(line);
+    return parts.length ? `${parts.join('. ')}. ${tail}` : tail;
 }
 
+/** The headline the copied message opens with, used for the preview title. */
+export function inviteHeadline(alias, clubName) {
+    return `${alias} Invited You To Join ${clubName} On Smarter.Poker!`;
+}
+
+/** The 7-character code alphabet the database issues (no I, O, 0 or 1). */
 export function isInviteCode(value) {
     return typeof value === 'string' && CODE_RE.test(value.trim().toUpperCase());
 }
