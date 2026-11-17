@@ -35,7 +35,8 @@ test('blinding off is push only for every account and cannot return through cach
 });
 
 test('database and JavaScript policy share the same alert vocabulary and owner accounts',()=>{
- const sql=readFileSync(new URL('../supabase/migrations/20261012152000_notification_delivery_policy.sql',import.meta.url),'utf8');
+ const sql=['20261012152000_notification_delivery_policy.sql','20261117175009_owner_real_alert_titles_are_operational.sql']
+  .map(name=>readFileSync(new URL('../supabase/migrations/'+name,import.meta.url),'utf8')).join('\n');
  for(const value of [...PLATFORM_ALERT_RECIPIENTS,...PLATFORM_ALERT_TITLES])assert.ok(sql.includes("'"+value+"'"),value);
  assert.equal(mayDeliverNotification(player,{type:'system',title:'New Diagnostic',data:{audience:'platform_admin'}}),false);
  assert.equal(mayDeliverNotification(player,{event:'platform_admin_alert'}),false);

@@ -401,7 +401,7 @@ jobs:
         env:
           NOTIFICATION_POLICY_POSTGRES_ROOT: ${{ runner.temp }}
           PG17_BINDIR: ${{ env.PHASE6_POSTGRES_BIN }}
-        run: node --test __tests__/notification-delivery-policy.test.mjs __tests__/notification-delivery-policy-postgres.test.mjs
+        run: node --test __tests__/notification-delivery-policy.test.mjs __tests__/notification-delivery-policy-postgres.test.mjs __tests__/owner-real-alert-titles-are-operational.test.mjs
 
       - name: Video Library Channel Follows PostgreSQL 17
         env:

@@ -9,6 +9,16 @@ export const PLATFORM_ALERT_TITLES = Object.freeze([
   'Push Health Alert', 'Notifications May Not Be Reaching This Device',
   'Push Notifications Are Off', 'Money Check Failed', 'Engine Restart Storm',
   'Tables Have Stopped Dealing', 'Production Alerts Has Stopped Reading', 'Tournament Schedule Active',
+  // Club Arena fn_ca_a_real_alert_reaches_the_owner() titles for kinds releases,
+  // migrations and daily_window. Missing until 2026-11-17, so 19 of them were
+  // pushed to the owner's phone (migration 20261117175009).
+  'Engine Update Missed At 4 AM', 'Merged Migration Not Installed', '3 AM Lobby Close Keeps Failing',
+]);
+// Every title Club Arena's owner real-alert trigger can raise (its CASE on kind).
+// Each one is operational and routed to Production Alerts, never to a phone.
+export const OWNER_REAL_ALERT_TITLES = Object.freeze([
+  'Tables Have Stopped Dealing', 'Engine Restart Storm', 'Engine Update Missed At 4 AM',
+  '3 AM Lobby Close Keeps Failing', 'Merged Migration Not Installed', 'Money Check Failed',
 ]);
 export function isPlatformAlert(row = {}) {
   const type = row.type || row.event;
