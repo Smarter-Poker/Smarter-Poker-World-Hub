@@ -1126,5 +1126,84 @@ class SessionTeardownStopsPlaywright(unittest.TestCase):
         self.assertNotRegex(source, r"try: session\.close\(\)")
 
 
+class RestartPublishesTheLiveSession(unittest.TestCase):
+    """2026-11-17, incident 10dabbbe: the drift restart left the closed session
+    published, so fetch_with_retry() fetched on it and its recovery tried to
+    start a second Playwright beside the live replacement."""
+
+    class _Session:
+        def __init__(self, name):
+            self.name = name
+            self.closed = False
+            self.fetches = 0
+
+        def fetch(self, url, **kwargs):
+            self.fetches += 1
+            if self.closed:
+                raise RuntimeError("Context manager has been closed")
+            return mock.Mock(status=200, body=b"<html>" + self.name.encode() + b"</html>")
+
+        def close(self):
+            self.closed = True
+
+    def setUp(self):
+        self.saved = scraper.CURRENT_SESSION
+        self.made = []
+
+        def make():
+            session = self._Session("replacement-%d" % len(self.made))
+            self.made.append(session)
+            return session
+
+        patches = [mock.patch.object(scraper, "create_session", side_effect=make),
+                   mock.patch.object(scraper, "log"),
+                   mock.patch.object(scraper.time, "sleep")]
+        for patcher in patches:
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def tearDown(self):
+        scraper.CURRENT_SESSION = self.saved
+
+    def test_a_restart_publishes_the_replacement_and_fetches_follow_it(self):
+        old = self._Session("old")
+        scraper.CURRENT_SESSION = old
+        new = scraper.restart_session(old)
+        self.assertTrue(old.closed)
+        self.assertIs(scraper.CURRENT_SESSION, new)
+        html, status, _, _ = scraper.fetch_with_retry(new, "https://example.invalid/series")
+        self.assertEqual(status, 200)
+        self.assertIn("replacement-0", html)
+        self.assertEqual(old.fetches, 0, "nothing may fetch on the closed session")
+        self.assertEqual(len(self.made), 1, "no second browser beside the live one")
+
+    def test_the_old_unpublished_drift_restart_fetched_on_the_closed_session(self):
+        # The pre-fix drift branch: close, create, rebind the local only.
+        old = self._Session("old")
+        scraper.CURRENT_SESSION = old
+        scraper.close_session(old)
+        new = scraper.create_session()
+        scraper.fetch_with_retry(new, "https://example.invalid/series")
+        self.assertGreater(old.fetches, 0)
+        self.assertEqual(new.fetches, 0)
+        self.assertGreater(len(self.made), 1, "its recovery started a second browser")
+
+    def test_every_restart_site_goes_through_restart_session(self):
+        import re as _re
+        source = Path(scraper.__file__).read_text()
+        body = source[source.index("def restart_session("):source.index("def create_session(")]
+        for match in _re.finditer(r"^( *)(\w+) = create_session\(\)\n", source, _re.M):
+            if body.find(match.group(0).strip()) != -1 and match.start() > source.index("def restart_session(") \
+                    and match.start() < source.index("def create_session("):
+                continue
+            following = source[match.end():match.end() + 200].lstrip()
+            self.assertTrue(following.startswith("CURRENT_SESSION = " + match.group(2)),
+                            "an unpublished session start: " + source[match.start():match.end() + 80])
+        for marker in ('log("  ⚡ Drift detected', 'log("  🔄 6h session refresh',
+                       'log(f"  ♻️  Recycle at', 'log(f"  ⚡ Circuit breaker'):
+            start = source.index(marker)
+            self.assertIn("restart_session(session", source[start:start + 300], marker)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
