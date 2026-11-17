@@ -28,7 +28,7 @@ CREATE FUNCTION public.fn_capture_weekly_club_rake_snapshot(p_invoice uuid) RETU
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,extensions AS $$
 DECLARE inv public.settlement_invoices%ROWTYPE;a timestamptz;b timestamptz;u uuid;
  total numeric;cash numeric;tournament numeric;source_total numeric;source_count bigint;fingerprint text;unknown_sources bigint;
- rake_status text:='unavailable';
+ rake_status text:='unavailable'; inserted_count integer;
 BEGIN
  IF NOT public.fn_caller_is_engine() THEN RAISE EXCEPTION 'Not Authorized' USING ERRCODE='42501'; END IF;
  SELECT * INTO inv FROM public.settlement_invoices WHERE id=p_invoice AND invoice_type='club_weekly_accounting';
@@ -55,7 +55,8 @@ BEGIN
  IF rake_status<>'certified' THEN RETURN jsonb_build_object('success',false,'reason','original_source_fingerprint_mismatch','invoice_id',p_invoice); END IF;
  INSERT INTO public.weekly_club_statement_rake_snapshots(invoice_id,source_fingerprint,source_count,cash_rake,tournament_rake,total_rake)
  VALUES(p_invoice,fingerprint,source_count,cash,tournament,total) ON CONFLICT(invoice_id) DO NOTHING;
- RETURN jsonb_build_object('success',true,'replayed',false,'invoice_id',p_invoice);
+ GET DIAGNOSTICS inserted_count=ROW_COUNT;
+ RETURN jsonb_build_object('success',true,'replayed',inserted_count=0,'invoice_id',p_invoice);
 END $$;
 REVOKE ALL ON FUNCTION public.fn_capture_weekly_club_rake_snapshot(uuid) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.fn_capture_weekly_club_rake_snapshot(uuid) TO service_role;
@@ -174,7 +175,7 @@ CREATE OR REPLACE FUNCTION public.fn_issue_scope_weekly_accounting(p_scope_kind 
  SET search_path TO 'public'
 AS $function$
 #variable_conflict use_variable
-DECLARE scope record;club uuid;period public.settlement_periods%ROWTYPE;report jsonb;invoice uuid;issued int:=0;period_count int;clubs uuid[];delivery jsonb;expected_users int;
+DECLARE scope record;club uuid;period public.settlement_periods%ROWTYPE;report jsonb;invoice uuid;issued int:=0;period_count int;clubs uuid[];delivery jsonb;expected_users int;new_invoice boolean;capture_result jsonb;
 BEGIN
  IF NOT public.fn_caller_is_engine() THEN RAISE EXCEPTION 'service_role_required' USING ERRCODE='42501';END IF;
  IF p_from IS NULL OR p_to IS NULL OR NOT isfinite(p_from) OR NOT isfinite(p_to)
@@ -196,7 +197,8 @@ BEGIN
   SELECT * INTO period FROM public.settlement_periods sp WHERE sp.club_id=club AND sp.union_id IS NOT DISTINCT FROM scope.union_id AND sp.start_at=p_from AND sp.end_at=p_to FOR UPDATE;
   PERFORM pg_advisory_xact_lock(hashtextextended('club_weekly_invoice:'||period.id::text,0));
   SELECT i.id INTO invoice FROM public.settlement_invoices i WHERE i.period_id=period.id AND i.club_id=club AND i.invoice_type='club_weekly_accounting';
-  IF invoice IS NULL THEN
+  new_invoice:=invoice IS NULL;
+  IF new_invoice THEN
    report:=public.fn_club_weekly_accounting_summary(period.id);
    IF report->>'ready_to_issue' IS DISTINCT FROM 'true' THEN RAISE EXCEPTION 'club_weekly_statement_requires_reconciliation' USING ERRCODE='23514',DETAIL=report::text;END IF;
    report:=report||jsonb_build_object('status','complete');
@@ -205,7 +207,10 @@ BEGIN
     (report->>'total_paid_by_club')::numeric,report,'generated','Consolidated Weekly Club Accounting. The Net Movement Is Not An Additional Bill Or Transfer.') RETURNING id INTO invoice;
    issued:=issued+1;
   END IF;
-  PERFORM public.fn_capture_weekly_club_rake_snapshot(invoice);
+  capture_result:=public.fn_capture_weekly_club_rake_snapshot(invoice);
+  IF new_invoice AND capture_result->>'success' IS DISTINCT FROM 'true' THEN
+   RAISE EXCEPTION 'Weekly Statement Rake Snapshot Certification Failed' USING ERRCODE='23514',DETAIL=capture_result::text;
+  END IF;
   delivery:=public.fn_deliver_accounting_invoice(invoice);
   SELECT count(*) INTO expected_users FROM public.fn_accounting_party_users('club',club);
   IF delivery->>'success' IS DISTINCT FROM 'true' /* HISTORY-ONLY INVOICE (20261016143729) */ OR expected_users=0 OR (SELECT si.message_sent IS NOT TRUE FROM public.settlement_invoices si WHERE si.id=invoice)

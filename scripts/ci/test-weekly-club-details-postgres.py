@@ -73,7 +73,16 @@ try:
  sql('SET ROLE service_role; SELECT fn_messenger_weekly_club_details('+lit(U)+','+lit(I)+');',error='Not Authorized')
  assert json.loads(sql('SELECT breakdown FROM settlement_invoices WHERE id='+lit(I)+';'))==original
  assert json.loads(sql('SELECT breakdown FROM settlement_invoices WHERE id='+lit(Q)+';'))==sq
- print(json.dumps({'passed':True,'cases':['actual weekly producer captures snapshot and retries idempotently','exact closed week split sums to issued total','issued ECO and full weekly net distinct from invoice remaining','authorized saved reader enrichment','other recipients and browser role denied','immutable captured split survives later source changes; changed-source backfill refused','manual deletion respected for both documents','original invoice payloads unchanged'],'sha256':hashlib.sha256(source.encode()).hexdigest()}))
+ # Exercise the actual new-invoice branch with mismatched certification. The
+ # statement INSERT must roll back before its delivery boundary can be reached.
+ sql("ALTER TABLE settlement_invoices ALTER COLUMN id SET DEFAULT gen_random_uuid(); ALTER TABLE settlement_invoices ADD COLUMN from_entity_type text, ADD COLUMN from_entity_id text, ADD COLUMN to_entity_type text, ADD COLUMN to_entity_id text, ADD COLUMN gross_amount numeric, ADD COLUMN deductions numeric, ADD COLUMN notes text;")
+ badreport=dict(original,ready_to_issue=True,total_rake_funding=4639.32,retained_by_club=1907.75,total_paid_by_club=2731.57)
+ sql("CREATE FUNCTION fn_club_weekly_accounting_summary(p uuid) RETURNS jsonb LANGUAGE sql AS $$ SELECT "+lit(json.dumps(badreport))+"::jsonb $$;")
+ sql('UPDATE settlement_invoices SET period_id=NULL;')
+ before=sql('SELECT count(*) FROM settlement_invoices;')
+ sql(producer,error='Rake Snapshot Certification Failed')
+ assert sql('SELECT count(*) FROM settlement_invoices;')==before
+ print(json.dumps({'passed':True,'cases':['actual weekly producer captures snapshot and retries idempotently','new issuance certification failure rolls back invoice before delivery','exact closed week split sums to issued total','issued ECO and full weekly net distinct from invoice remaining','authorized saved reader enrichment','other recipients and browser role denied','immutable captured split survives later source changes; changed-source backfill refused','manual deletion respected for both documents','original invoice payloads unchanged'],'sha256':hashlib.sha256(source.encode()).hexdigest()}))
 finally:
  if started:cmd('pg_ctl','-D',str(D/'data'),'-m','immediate','stop')
  import shutil;shutil.rmtree(D)
