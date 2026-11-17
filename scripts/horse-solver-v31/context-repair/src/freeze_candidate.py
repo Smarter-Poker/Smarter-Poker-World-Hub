@@ -4,7 +4,10 @@ from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parent))
 from common import B,load,write,sha,frozen
 
+from selection_gate import require_train_selection
+
 def main():
+ require_train_selection(B)
  frozen();assert not (B/'evidence/build-EVAL.json').exists() and not (B/'evidence/EVAL-consumption.json').exists()
  fit=load(B/'models/fit.json');assert fit['training_only'] and not fit['EVAL_read'] and len(fit['domains'])==2 and len(fit['model_sha256']) in (8,14)
  inputs=load(B/'TRAIN-INPUTS.json');files=dict(inputs['input_pins'])

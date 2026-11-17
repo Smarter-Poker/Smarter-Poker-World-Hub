@@ -13,7 +13,7 @@ def functions(name,wanted,**dependencies):
 
 class SourceContracts(unittest.TestCase):
  def test_frozen_source_manifest_and_no_private_payloads(self):
-  manifest=json.loads((ROOT/'source-manifest.json').read_text());self.assertFalse(manifest['live_play']);self.assertFalse(manifest['training_and_evaluation_authorized']);self.assertEqual(len(manifest['source_files']),23)
+  manifest=json.loads((ROOT/'source-manifest.json').read_text());self.assertFalse(manifest['live_play']);self.assertFalse(manifest['training_and_evaluation_authorized']);self.assertEqual(len(manifest['source_files']),29)
   for name,h in manifest['source_files'].items():
    p=ROOT/name;self.assertEqual(hashlib.sha256(p.read_bytes()).hexdigest(),h,name)
    if p.suffix=='.py':ast.parse(p.read_text(),filename=name)
@@ -93,5 +93,8 @@ class SourceContracts(unittest.TestCase):
     result=json.loads((root/'evidence/EVAL-result.json').read_text());self.assertEqual(result['verdict'],expected);self.assertEqual(calls[:2],['consume','technical']);self.assertLess(calls.index('technical'),calls.index('metric'));before=len(calls)
     with self.assertRaises(AssertionError):ns['main']()
     self.assertEqual(before,len(calls))
+
+sys.path.insert(0,str(ROOT))
+from test_pipeline_safety import PipelineSafety
 
 if __name__=='__main__':unittest.main()
