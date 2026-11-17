@@ -73,3 +73,8 @@ test('preview text, preview image and landing page all print the same lines', ()
     }
     assert.match(page, /club\.figureLines\.map\(/);
 });
+
+test('the preview image prints each figure line whole, so the Horse disclosure is never cut off', () => {
+    assert.doesNotMatch(og, /line\.slice\(/);
+    assert.match(og, /\{line\}/);
+});
