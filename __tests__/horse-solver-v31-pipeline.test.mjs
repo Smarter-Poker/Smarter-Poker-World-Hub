@@ -205,3 +205,14 @@ test('TRAIN context repair contracts preserve exact-state exclusion, conditional
   assert.match(result.stderr, /Ran 12 tests/);
   assert.match(result.stderr, /OK/);
 });
+
+
+for (const [suite, count] of [['test_source_contract.py',9], ['test_runtime.py',5], ['test_range_profile.py',5]]) {
+  test(`Dormant context qualification ${suite} preserves its source contracts`, () => {
+    const python = process.env.V31_NUMERIC_PYTHON || process.env.PYTHON_BIN || 'python3';
+    const result = spawnSync(python, ['-I', '-B', 'scripts/horse-solver-v31/context-qualification/' + suite], { cwd: ROOT, encoding: 'utf8', timeout: 120_000 });
+    assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+    assert.match(result.stderr, new RegExp('Ran ' + count + ' tests'));
+    assert.match(result.stderr, /OK/);
+  });
+}
