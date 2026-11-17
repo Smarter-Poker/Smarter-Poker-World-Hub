@@ -133,7 +133,11 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
             workspaces.push(...batch);
         }
         const combined = workspaces.flatMap(selected => selected.conversations.filter(conversation =>
-            workspace === 'dock' || selected.workspace === 'social' || Number(conversation.unreadCount) > 0).map(conversation => ({
+            workspace === 'dock' || selected.workspace === 'social' ||
+            // Reading a saved invoice or summary must not remove it from the
+            // main inbox. Workspace selection already enforces recipient
+            // visibility and explicit deletion before this feed is assembled.
+            conversation.isAccounting || Number(conversation.unreadCount) > 0).map(conversation => ({
             ...conversation, dockWorkspace: { workspace: selected.workspace, clubId: selected.clubId, folder: selected.folder },
         })));
         const conversations = await enrichMessengerClubRelationships(db, userId,

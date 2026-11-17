@@ -371,7 +371,7 @@ test('the global dock lists unread threads first, then by recency', async () => 
 });
 
 
-test('main feed surfaces every authorized unread workspace and keeps read social history', async () => {
+test('main feed keeps read accounting documents alongside social history', async () => {
     const { db, tables } = fixture();
     tables.unread_counts = { [ids.social]: 0, [ids.chat]: 2, [ids.invoice]: 1 };
     const result = await getMessengerWorkspace(db, ids.user, { workspace: 'feed' });
@@ -380,8 +380,18 @@ test('main feed surfaces every authorized unread workspace and keeps read social
     assert.equal(result.conversations[0].dockWorkspace.clubId, ids.club);
     tables.unread_counts[ids.chat] = 0;
     tables.unread_counts[ids.invoice] = 0;
-    tables.accounting_conversations[0].requires_action = true;
-    assert.deepEqual((await getMessengerWorkspace(db, ids.user, { workspace: 'feed' })).conversations.map(c => c.id), [ids.social]);
+    tables.accounting_conversations[0].requires_action = false;
+    for (let reopen = 0; reopen < 2; reopen++) {
+        const refreshed = await getMessengerWorkspace(db, ids.user, { workspace: 'feed' });
+        assert.deepEqual(new Set(refreshed.conversations.map(c => c.id)), new Set([ids.social, ids.invoice]));
+        const document = refreshed.conversations.find(c => c.id === ids.invoice);
+        assert.equal(document.unreadCount, 0);
+        assert.equal(document.requiresAction, false);
+        assert.equal(document.dockWorkspace.folder, 'invoices');
+        assert.equal(document.dockWorkspace.clubId, ids.club);
+    }
+    const reopened = await getMessengerWorkspace(db, ids.user, { workspace: 'resolve', conversationId: ids.invoice });
+    assert.equal(reopened.conversation.id, ids.invoice);
 });
 
 test('main feed respects revoked memberships and hidden private invoices', async () => {
@@ -420,4 +430,28 @@ test('authorize-only resolve reaches the same decision as the full inbox resolve
   const fast=await outcome(()=>getMessengerWorkspace(make().db,ids.user,{workspace:'resolve',conversationId},{authorizeOnly:true}));
   assert.deepEqual(fast,full,name);
  }
+});
+
+test('read financial history remains private and manual conversation deletion stays respected', async () => {
+    const { db, tables } = fixture();
+    tables.unread_counts = { [ids.invoice]: 0, [ids.chat]: 0 };
+    const originalRpc = db.rpc.bind(db);
+    db.rpc = async (name, args) => {
+        const result = await originalRpc(name, args);
+        if (name === 'fn_get_user_conversations') {
+            result.data = result.data.filter(row => row.conversation_id !== ids.invoice ||
+                tables.social_conversation_participants.some(participant =>
+                    participant.conversation_id === ids.invoice && participant.user_id === args.p_user_id));
+        }
+        return result;
+    };
+    const before = await getMessengerWorkspace(db, ids.user, { workspace: 'feed' });
+    assert.ok(before.conversations.some(row => row.id === ids.invoice));
+    assert.ok(!before.conversations.some(row => row.id === ids.agentInvoice));
+    // The explicit delete-conversation operation removes only this participation.
+    tables.social_conversation_participants = [];
+    const after = await getMessengerWorkspace(db, ids.user, { workspace: 'feed' });
+    assert.ok(!after.conversations.some(row => row.id === ids.invoice));
+    await assert.rejects(getMessengerWorkspace(db, ids.user,
+        { workspace: 'resolve', conversationId: ids.invoice }), error => error.status === 403);
 });
