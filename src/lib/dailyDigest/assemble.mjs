@@ -314,8 +314,9 @@ export async function loadDigestData(sb, day, { withCosts = true, dispatch = tru
     if (digest && (dailyResults?.error || dailyResults?.reconciliation?.status !== 'balanced')) {
         digest.attention = Array.isArray(digest.attention) ? digest.attention : [];
         digest.attention.push({ rule: 'daily_chip_reconciliation', severity: 'critical', status: 'not_picked_up',
-            title: dailyResults?.error ? 'Daily chip reconciliation could not be verified'
-                : 'Daily chip reconciliation has discrepancies; see Daily Update', dispatch: false });
+            title: !dailyResults?.error && dailyResults?.reconciliation?.status === 'discrepancy'
+                ? 'Daily chip reconciliation has discrepancies; see Daily Update'
+                : 'Daily chip reconciliation could not be verified', dispatch: false });
         if (digest.attention_status && typeof digest.attention_status === 'object') {
             digest.attention_status.not_picked_up = Number(digest.attention_status.not_picked_up || 0) + 1;
         }
