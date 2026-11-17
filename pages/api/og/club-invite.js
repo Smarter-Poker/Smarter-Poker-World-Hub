@@ -132,7 +132,8 @@ export default async function handler(req) {
                                 marginTop: i === 0 ? 0 : 12,
                             }}
                         >
-                            {line.length > 48 ? `${line.slice(0, 47)}...` : line}
+                            {/* Never cut a figure line short: the Horse disclosure sits at its end. */}
+                            {line}
                         </div>
                     ))}
                 </div>
