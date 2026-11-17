@@ -117,6 +117,17 @@ export default async function handler(req, res) {
               }
           }
 
+          // Enrich only private-reader-authorized club statements. The helper
+          // rechecks delivery visibility and current recipient authority.
+          const weeklyDetails = new Map();
+          const weeklyIds = [...new Set(sorted.filter(m => m.media_metadata?.accounting_verified === true
+              && m.media_metadata?.invoice_type === 'club_weekly_accounting').map(m => m.media_metadata.invoice_id))];
+          await Promise.all(weeklyIds.map(async invoiceId => {
+              const { data, error } = await getSupabase().rpc('fn_messenger_weekly_club_details', { p_user: userId, p_invoice: invoiceId });
+              if (error) throw Object.assign(new Error('Weekly Statement Details Unavailable'), { status: 503 });
+              weeklyDetails.set(invoiceId, data);
+          }));
+
           const normalized = sorted.map(m => {
               // Both assertions originate from the private reader. Identity
               // alone permits an unavailable placeholder, never a paid card.
@@ -143,6 +154,7 @@ export default async function handler(req, res) {
                   // reader from the exact invoice and journal provenance.
                   correction_verified: m.media_metadata.correction_verified,
                   correction: m.media_metadata.correction,
+                  weekly_club_details: weeklyDetails.get(m.media_metadata.invoice_id),
                   credit_change_verified: m.media_metadata.credit_change_verified,
                   credit_change: m.media_metadata.credit_change,
               } : null);

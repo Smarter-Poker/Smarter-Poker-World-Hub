@@ -47,6 +47,10 @@ try {
  await page.evaluate(()=>window.showFixture('large'));await page.waitForFunction(()=>document.body.textContent.includes('511,435.72'));assert(await page.evaluate(()=>document.documentElement.scrollWidth<=375),'Large club totals overflow mobile statement');assert(await page.$$eval('dd',items=>items.every(e=>e.scrollWidth<=e.clientWidth)), 'Large figures must fit their own value cells');
  await page.evaluate(()=>window.showFixture('designs'));await page.waitForFunction(()=>document.querySelectorAll('[data-document-design]').length===3);
  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=375),'Mobile statements overflow');
+ assert(await page.$$eval('[data-document-design]', cards=>cards.every(card=>['Players Lost','Cash Rake','Tournament Rake','Total Rake','Full Weekly Net · Club Owes Union','Invoice Unpaid · Club Owes Union'].every(label=>card.textContent.includes(label)))),'Every club design must show the complete weekly figures');
+ await page.select('[aria-label="Statement Recipient"]','agent');await page.waitForFunction(()=>document.body.textContent.includes('You and your downline'));
+ assert(await page.evaluate(()=>document.documentElement.scrollWidth<=375),'Agent design overflows');
+ await page.select('[aria-label="Statement Recipient"]','club');await page.waitForFunction(()=>document.body.textContent.includes('Players Lost'));
  if(process.env.MESSENGER_UI_EVIDENCE)await page.screenshot({path:path.join(process.env.MESSENGER_UI_EVIDENCE,'statement-options-mobile.png'),fullPage:true});
  await page.setViewport({width:1440,height:1000});
  if(process.env.MESSENGER_UI_EVIDENCE)await page.screenshot({path:path.join(process.env.MESSENGER_UI_EVIDENCE,'statement-options-desktop.png'),fullPage:true});

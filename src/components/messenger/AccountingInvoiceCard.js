@@ -1,5 +1,5 @@
 import React from 'react';
-import { cashierInvoiceDisplay, correctionInvoiceDisplay, creditChangeInvoiceDisplay } from '../../lib/accountingMessage.mjs';
+import { cashierInvoiceDisplay, correctionInvoiceDisplay, creditChangeInvoiceDisplay, weeklyClubStatementRows } from '../../lib/accountingMessage.mjs';
 
 const periodDay = value => { const time = Date.parse(value); return Number.isFinite(time) ? new Date(time).toLocaleDateString('en-US', { timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric', year: 'numeric' }) : 'Unavailable'; };
 const amount = value => value !== null && value !== undefined && Number.isFinite(Number(value))
@@ -23,7 +23,7 @@ export default function AccountingInvoiceCard({ meta, content, theme: C, current
     const statementFields = unionInvoice ? [['Fees generated', lines.rake_generated], ['Club rakeback', lines.rakeback_due], ['Union fee', lines.union_fee_kept], ['ECO', lines.eco_amount], ['Presettlements', lines.presettled]] : [];
     const payable = unionInvoice || !!meta.source_credit_invoice_id;
     const rows = credit ? credit.rows : weekly ? [
-        ['Rake Earned', lines.rake_earned],
+        ...weeklyClubStatementRows(meta.weekly_club_details, lines.rake_earned),
         ['Rake Received From Union', lines.rake_received],
         ['Rakeback Sent To Super Agents', lines.paid_super_agents],
         ['Rakeback Sent To Agents', lines.paid_agents],
@@ -58,6 +58,7 @@ export default function AccountingInvoiceCard({ meta, content, theme: C, current
         {correction && <p role={correction.verified ? undefined : 'status'} style={{ fontSize: 12, lineHeight: 1.5 }}>{correction.detail}</p>}
         {cashier && !requestedPayout && <p role={cashier.verified ? undefined : 'status'} style={{ fontSize: 12, lineHeight: 1.5 }}>{cashier.detail}</p>}
         {requestedPayout && renderRequestedPayout(requestedPayout.cashoutId)}
+        {weekly && <p style={{ fontSize: 12, lineHeight: 1.5 }}>Full Weekly Net Summarizes The Week; It Is Not An Additional Payment Request. Invoice Unpaid Is The Separate Invoice Balance After Recorded Payments. Unavailable Figures Are Not Zero.</p>}
         {weekly && <p style={{ fontSize: 12, lineHeight: 1.5 }}>{lines.note || 'Club Payments Are Counted Once. Further Payments By Agents Are Shown Separately.'}</p>}
         {!credit && !cashier && !correction && <details open={variant === 'ledger'} style={{ marginTop: 20 }}><summary style={{ cursor: 'pointer', color: C.blue, fontSize: 13 }}>{meta.preview ? 'View Statement Details' : 'View Invoice Details'}</summary>
             {unionInvoice && statementFields.some(([,value]) => value != null) ? <dl>{statementFields.map(([label,value]) => <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '9px 0', borderBottom: `1px solid ${C.border}`, fontSize: 13 }}><dt style={{ color: C.textSec }}>{label}</dt><dd style={{ margin: 0 }}>{amount(value)}</dd></div>)}</dl> : <div style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', fontSize: 12, lineHeight: 1.6, marginTop: 10 }}>{content}</div>}
