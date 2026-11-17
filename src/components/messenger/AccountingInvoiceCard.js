@@ -44,7 +44,7 @@ export default function AccountingInvoiceCard({ meta, content, theme: C, current
         {unionInvoice && (lines.union_name || lines.club_name) && <p style={{ color: C.textSec, fontSize: 13, lineHeight: 1.7 }}>{lines.union_name} · {lines.club_name}<br />{lines.direction === 'union owes club' ? 'Union pays club' : 'Club pays union'}</p>}
         {!credit && !correction && meta.invoice_number && <div style={{ marginTop: 6, fontSize: 12, color: C.textSec }}>{meta.invoice_number}</div>}
         {!credit && !cashier && !correction && (lines.period_start || meta.period_start) && <div style={{ fontSize: 12, marginTop: 6, color: C.textSec }}>
-            {periodDay(lines.period_start || meta.period_start)} through {periodDay(Number.isFinite(Date.parse(lines.period_end || meta.period_end)) ? new Date(Date.parse(lines.period_end || meta.period_end) - 1).toISOString() : '')} · Pacific
+            {periodDay(lines.period_start || meta.period_start)} Through {periodDay(Number.isFinite(Date.parse(lines.period_end || meta.period_end)) ? new Date(Date.parse(lines.period_end || meta.period_end) - 1).toISOString() : '')} · Pacific
         </div>}
         {!credit && !correction && meta.status === 'needs_reconciliation' && <p role="status" style={{ fontSize: 12, lineHeight: 1.5 }}>Needs Reconciliation · These Posted Amounts Are Not A Certified Settlement.</p>}
         <dl style={{ margin: '20px 0' }}>

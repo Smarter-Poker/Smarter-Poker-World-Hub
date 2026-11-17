@@ -14,12 +14,12 @@ export default function InvoicePaymentStatus({ invoiceId, theme: C }) {
         return () => { active = false; };
     }, [invoiceId, retry]);
     if (!invoiceId) return null;
-    if (error) return <p role="status" style={{ fontSize: 12 }}>Current payment status unavailable. <button onClick={() => setRetry(n => n + 1)} style={{ color: C.blue }}>Retry</button></p>;
-    if (!result) return <p style={{ color: C.textSec, fontSize: 12 }}>Loading current payment status...</p>;
+    if (error) return <p role="status" style={{ fontSize: 12 }}>Current Payment Status Unavailable. <button onClick={() => setRetry(n => n + 1)} style={{ color: C.blue }}>Retry</button></p>;
+    if (!result) return <p style={{ color: C.textSec, fontSize: 12 }}>Loading Current Payment Status...</p>;
     if (!result.payable) return null;
     return <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12, marginTop: 12, fontSize: 13 }}>
         <strong>{result.status === 'partial' ? 'Partially paid' : result.status === 'paid' ? 'Paid' : result.status === 'cancelled' ? 'Cancelled' : result.status === 'disputed' ? 'Disputed' : 'Unpaid'}</strong>
-        <p>Paid {statementAmount(result.paid)} · Remaining {statementAmount(result.remaining)} chips</p>
-        <button type="button" onClick={() => setRetry(n => n + 1)} style={{ color: C.blue, fontSize: 12 }}>Refresh payment status</button>
+        <p>Paid {statementAmount(result.paid)} · Remaining {statementAmount(result.remaining)} Chips</p>
+        <button type="button" onClick={() => setRetry(n => n + 1)} style={{ color: C.blue, fontSize: 12 }}>Refresh Payment Status</button>
     </div>;
 }

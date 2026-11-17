@@ -27,7 +27,7 @@ test('each design displays the saved amounts and an inclusive week without chang
         assert.match(html, /Nov 9, 2026.*Nov 15, 2026/);
         assert.doesNotMatch(html, /Nov 16, 2026|undefined|NaN/);
         assert.match(html, /You and your downline/);
-        assert.match(html, /Retained until you delete it/);
+        assert.match(html, /Retained Until You Delete It/);
     }
 });
 test('missing posted amounts stay unavailable rather than becoming a false zero', () => {

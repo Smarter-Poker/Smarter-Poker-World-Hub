@@ -16,12 +16,12 @@ const invoice = { kind: 'accounting_invoice', accounting_verified: true, invoice
 export default function DocumentDesigns() {
     const [kind, setKind] = useState('statements');
     return <main style={{ minHeight: '100vh', background: theme.bg, color: theme.text, padding: '32px 20px 80px', fontFamily: 'Inter, system-ui, sans-serif' }}>
-        <Head><title>Document designs | Smarter.Poker</title><meta name="robots" content="noindex,nofollow" /></Head>
+        <Head><title>Document Designs | Smarter.Poker</title><meta name="robots" content="noindex,nofollow" /></Head>
         <div style={{ maxWidth: 1400, margin: '0 auto' }}>
-            <a href="/hub/messenger" style={{ color: theme.blue }}>Back to Messenger</a>
-            <h1 style={{ fontSize: 32, marginBottom: 10 }}>Your weekly books, clearly presented.</h1>
-            <p style={{ color: theme.textSec, maxWidth: 680, lineHeight: 1.6 }}>Three design options for invoices and statements. These are illustrative examples with sample figures, not issued financial documents.</p>
-            <div role="tablist" aria-label="Document type" style={{ display: 'flex', gap: 12, margin: '24px 0' }}>{['statements', 'invoices'].map(tab => <button key={tab} role="tab" aria-selected={kind === tab}
+            <a href="/hub/messenger" style={{ color: theme.blue }}>Back To Messenger</a>
+            <h1 style={{ fontSize: 32, marginBottom: 10 }}>Your Weekly Books, Clearly Presented.</h1>
+            <p style={{ color: theme.textSec, maxWidth: 680, lineHeight: 1.6 }}>Three Design Options For Invoices And Statements. These Are Illustrative Examples With Sample Figures, Not Issued Financial Documents.</p>
+            <div role="tablist" aria-label="Document Type" style={{ display: 'flex', gap: 12, margin: '24px 0' }}>{['statements', 'invoices'].map(tab => <button key={tab} role="tab" aria-selected={kind === tab}
                 onClick={() => setKind(tab)} style={{ cursor: 'pointer', border: `1px solid ${kind === tab ? theme.blue : theme.border}`, borderRadius: 10, padding: '12px 24px', color: theme.text, background: theme.card }}>{tab === 'statements' ? 'Statements' : 'Invoices'}</button>)}</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: 24 }}>
                 {variants.map(([variant, title, description]) => <section key={variant}><h2 style={{ color: theme.blue }}>{title}</h2><p style={{ color: theme.textSec, minHeight: 44, fontSize: 14 }}>{description}</p>

@@ -44,14 +44,14 @@ export default function StatementsPanel({ club, userId, theme: C, onBack, onOpen
     return <section aria-label="Statements" style={{ padding: 20, overflowY: 'auto', minHeight: 0 }}>
         <header style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 20 }}><button type="button" style={button} onClick={onBack}>Back</button><h1 style={{ margin: 0, fontSize: 24, color: C.text }}>Statements</h1></header>
         {error && <div role="alert" style={{ color: C.text, marginBottom: 16 }}>{error} <button style={button} onClick={() => load()} disabled={loading || !!deleting}>Retry</button></div>}
-        {loading && <p role="status" style={{ color: C.textSec }}>Loading saved statements...</p>}
-        {!loading && !error && documents.length === 0 && <p style={{ color: C.textSec }}>No saved statements for this club yet.</p>}
+        {loading && <p role="status" style={{ color: C.textSec }}>Loading Saved Statements...</p>}
+        {!loading && !error && documents.length === 0 && <p style={{ color: C.textSec }}>No Saved Statements For This Club Yet.</p>}
         <div style={{ display: 'grid', gap: 20, maxWidth: 860, margin: '0 auto' }}>{documents.map(document => <div key={document.message_id}>
             <AccountingStatementCard document={document} theme={C} onOpen={() => onOpen(document.conversation_id)} onDelete={() => setConfirmDelete(document.message_id)} />
-            {confirmDelete === document.message_id && <div role="alert" style={{ padding: 16, color: C.text }}>Delete this statement from your Messenger? Other recipients keep their copies.
-                <div style={{ display: 'flex', gap: 8, marginTop: 12 }}><button style={button} disabled={!!deleting} onClick={() => remove(document)}>Delete for me</button><button style={button} disabled={!!deleting} onClick={() => setConfirmDelete(null)}>Keep statement</button></div>
+            {confirmDelete === document.message_id && <div role="alert" style={{ padding: 16, color: C.text }}>Delete This Statement From Your Messenger? Other Recipients Keep Their Copies.
+                <div style={{ display: 'flex', gap: 8, marginTop: 12 }}><button style={button} disabled={!!deleting} onClick={() => remove(document)}>Delete For Me</button><button style={button} disabled={!!deleting} onClick={() => setConfirmDelete(null)}>Keep Statement</button></div>
             </div>}
         </div>)}</div>
-        {more && <button type="button" style={{ ...button, marginTop: 20 }} disabled={loading || !!deleting} onClick={() => load(documents.at(-1).period_end)}>Older statements</button>}
+        {more && <button type="button" style={{ ...button, marginTop: 20 }} disabled={loading || !!deleting} onClick={() => load(documents.at(-1).period_end)}>Older Statements</button>}
     </section>;
 }
