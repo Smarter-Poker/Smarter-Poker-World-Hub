@@ -5,7 +5,7 @@ SP=('F.cbet','F.vs_b33','F.vs_b75','F.vs_xr')
 def validate_train_paths(job_paths,harvest_paths):
     report=load(B/'evidence/build-TRAIN.json')
     expected_jobs={Path(p).resolve() for p in report['files']}
-    expected_dirs={(B/'m1'/('F5REPAIR-TRAIN-'+Path(p).stem.rsplit('-',1)[1])).resolve() for p in report['files']}
+    expected_dirs={(B/'m1'/('F5TAIL-TRAIN-'+Path(p).stem.rsplit('-',1)[1])).resolve() for p in report['files']}
     actual_jobs=[Path(p).resolve() for p in job_paths];actual_dirs=[Path(p).resolve() for p in harvest_paths]
     assert len(actual_jobs)==len(expected_jobs) and set(actual_jobs)==expected_jobs,'exact canonical TRAIN job paths required'
     assert len(actual_dirs)==len(expected_dirs) and set(actual_dirs)==expected_dirs,'exact canonical validated TRAIN harvest paths required'
@@ -19,12 +19,10 @@ def candidate_frozen():
     for p,h in f['files'].items():assert sha(p)==h,'candidate drift: '+p
     return f
 def group_jobs(jobs,stage):
-    assert stage in ('TRAIN','DEV','NEW_FINAL')
+    assert stage=='EVAL'
     normal=[j for j in jobs if j['meta']['family']!='UNPR'];rainbow=[j for j in jobs if j['meta']['family']=='UNPR']
     groups={**{'N%02d'%k:normal[i:i+6] for k,i in enumerate(range(0,len(normal),6))}}
-    if stage=='TRAIN':
-        groups['R00']=rainbow[:1];rainbow=rainbow[1:];start=1
-    else:start=0
+    groups['R00']=rainbow[:1];rainbow=rainbow[1:];start=1
     groups.update({'R%02d'%(k+start):rainbow[i:i+6] for k,i in enumerate(range(0,len(rainbow),6))})
     return {k:v for k,v in groups.items() if v}
 def emit(jobs,stage):

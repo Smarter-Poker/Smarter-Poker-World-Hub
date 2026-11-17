@@ -14,7 +14,7 @@ test('reviewed offline context-repair software contracts pass without private da
     env: { ...process.env, OMP_NUM_THREADS: '1', OPENBLAS_NUM_THREADS: '1', MKL_NUM_THREADS: '1' },
   });
   assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
-  assert.match(result.stderr, /Ran 9 tests/);
+  assert.match(result.stderr, /Ran 14 tests/);
   assert.match(result.stderr, /OK/);
 });
 

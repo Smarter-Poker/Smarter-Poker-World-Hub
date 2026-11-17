@@ -38,9 +38,9 @@ Exit codes: 0 launched and the driver exited 0; 2 arguments; 3 refused by a guar
 import fcntl, hashlib, json, os, re, shlex, signal, subprocess, sys, time
 from pathlib import Path
 W = Path('/Volumes/SmarterWork/agent-work/extreme-capacity/v31-rootcause-01TLQer7/flop4'); REAL_LEDGER = W.parent / 'flop5' / 'logs' / 'budget.jsonl'   # FLOP-5 ledger
-A2 = Path('/Volumes/SmarterWork/agent-work/extreme-capacity/hv31-context-repair-01a1e479/driver')   # FLOP-5: the four M1 files are the FLOP-4 in-force files, hashed where they live
+A2 = Path('/Volumes/SmarterWork/agent-work/extreme-capacity/hv31-tail-repair-01a1e479/driver')   # FLOP-5: the four M1 files are the FLOP-4 in-force files, hashed where they live
 FILES = (('driver', 'f4_lock_driver.py'), ('storage', 'f4_storage.py'), ('readback', 'f1_readback.py'), ('m1helper', 'f4_m1.py'))
-RW_REAL = r'C:\sp-v31\hv31-repair-01a1e479'; R8W = r'C:\sp-v31\mac-v31-r8-20261107-01gw7a'; PY_REAL = r'C:\Users\danie\AppData\Local\Programs\Python\Python312\python.exe'
+RW_REAL = r'C:\sp-v31\hv31-tail-01a1e479'; R8W = r'C:\sp-v31\mac-v31-r8-20261107-01gw7a'; PY_REAL = r'C:\Users\danie\AppData\Local\Programs\Python\Python312\python.exe'
 SSH_KEEP = ['-o', 'ConnectTimeout=20', '-o', 'ServerAliveInterval=30', '-o', 'ServerAliveCountMax=20']   # placed before the account options: the first value wins
 NAME_OK = re.compile(r'^[A-Za-z0-9._-]+$')
 def die(rc, msg): print(msg, file=sys.stderr, flush=True); sys.exit(rc)
