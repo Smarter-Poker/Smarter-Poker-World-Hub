@@ -1011,5 +1011,120 @@ class AuthoritativeEventReconciliationTests(unittest.TestCase):
         reconcile.assert_not_called()
 
 
+class SessionTeardownStopsPlaywright(unittest.TestCase):
+    """2026-11-17, incident 10dabbbe: one failed close wedged the series daemon.
+
+    Playwright's sync API keeps its asyncio loop registered as running on the
+    thread until Playwright.stop(). Scrapling 0.4.7 SyncSession.close() closes
+    context, browser, then Playwright, and stops at the first error, so a dead
+    context left the loop running and every later create_session() refused
+    with "cannot start sync Playwright inside a running event loop".
+    """
+
+    class _Playwright:
+        def __init__(self):
+            import asyncio
+            self.loop = asyncio.new_event_loop()
+            asyncio._set_running_loop(self.loop)
+            self.stopped = 0
+
+        def stop(self):
+            import asyncio
+            self.stopped += 1
+            asyncio._set_running_loop(None)
+            self.loop.close()
+
+    class _DeadContext:
+        def close(self):
+            raise RuntimeError("Target page, context or browser has been closed")
+
+    class _Browser:
+        def __init__(self):
+            self.closed = 0
+
+        def close(self):
+            self.closed += 1
+
+    def _session(self):
+        outer = self
+
+        class ScraplingLikeSession:
+            # The exact order and early exit of scrapling SyncSession.close().
+            def __init__(self):
+                self.playwright = outer._Playwright()
+                self.browser = outer._Browser()
+                self.context = outer._DeadContext()
+                self._is_alive = True
+
+            def close(self):
+                if not self._is_alive:
+                    return
+                if self.context:
+                    self.context.close()
+                    self.context = None
+                if self.browser:
+                    self.browser.close()
+                    self.browser = None
+                if self.playwright:
+                    self.playwright.stop()
+                    self.playwright = None
+                self._is_alive = False
+
+        return ScraplingLikeSession()
+
+    def tearDown(self):
+        import asyncio
+        asyncio._set_running_loop(None)
+
+    def _running_loop(self):
+        import asyncio
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            return False
+        return True
+
+    def test_the_old_swallowed_close_leaves_the_loop_running(self):
+        session = self._session()
+        playwright = session.playwright
+        try:
+            session.close()
+        except Exception:
+            pass
+        self.assertTrue(self._running_loop(), "reproduces the wedge create_session() refuses")
+        playwright.stop()
+
+    def test_close_session_stops_playwright_after_a_dead_context(self):
+        session = self._session()
+        playwright, browser = session.playwright, session.browser
+        with mock.patch.object(scraper, "log"):
+            scraper.close_session(session)
+        self.assertFalse(self._running_loop(), "the next create_session() must be able to start")
+        self.assertEqual(playwright.stopped, 1)
+        self.assertEqual(browser.closed, 1)
+        self.assertIsNone(session.playwright)
+        self.assertIsNone(session.browser)
+        self.assertIsNone(session.context)
+
+    def test_close_session_is_once_and_tolerates_none_and_clean_sessions(self):
+        with mock.patch.object(scraper, "log"):
+            scraper.close_session(None)
+            session = self._session()
+            session.context = None
+            playwright = session.playwright
+            scraper.close_session(session)
+            scraper.close_session(session)
+        self.assertEqual(playwright.stopped, 1)
+        self.assertFalse(self._running_loop())
+
+    def test_every_session_release_goes_through_close_session(self):
+        import re as _re
+        source = Path(scraper.__file__).read_text()
+        helper = source[source.index("def close_session("):source.index("def create_session(")]
+        self.assertEqual(len(_re.findall(r"session\.close\(\)", source)),
+                         len(_re.findall(r"session\.close\(\)", helper)))
+        self.assertNotRegex(source, r"try: session\.close\(\)")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
