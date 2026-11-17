@@ -450,6 +450,7 @@ DO $$ BEGIN
  OR has_function_privilege('authenticated','public.fn_cashier_cashout_transition(text,uuid,uuid,numeric,uuid,uuid,text)','EXECUTE')
  THEN RAISE EXCEPTION 'Cashout Authority Assertion Failed'; END IF;
 END $$;
+GRANT EXECUTE ON FUNCTION public.fn_cashout_escalate_v2(uuid,uuid,uuid,uuid) TO authenticated;
 COMMIT;
 -- ROLLBACK (new migration, retain all financial evidence; stop only new escalations):
 -- BEGIN;

@@ -50,14 +50,28 @@ try:
   sql('INSERT INTO club_members(club_id,user_id,role,status,is_active,membership_lifecycle_status,agent_id,chip_balance) VALUES('+','.join([lit(C),lit(u),lit(role),"'active'",'true',"'active'",lit(AGENT) if u==PLAYER else 'NULL','1000'])+');')
   if role in ['agent','super_agent','sub_agent']:
    sql('INSERT INTO agents(id,club_id,user_id,role,status,agent_wallet_balance) VALUES('+','.join([lit(op()),lit(C),lit(u),lit(role),"'active'",'0'])+');')
+ legacy_message=op()
+ sql('INSERT INTO social_messages(id,conversation_id,sender_id,content) SELECT '+lit(legacy_message)+',conversation_id,'+lit(AGENT)+",'Historical Agent Post' FROM club_messenger_staff_notice_groups WHERE club_id="+lit(C)+';')
+ sql('ALTER TABLE social_messages ENABLE ROW LEVEL SECURITY; GRANT SELECT,UPDATE,DELETE ON social_messages TO authenticated; CREATE POLICY fixture_message_read ON social_messages FOR SELECT TO authenticated USING (sender_id=auth.uid()); CREATE POLICY fixture_message_edit ON social_messages FOR UPDATE TO authenticated USING(sender_id=auth.uid()) WITH CHECK(sender_id=auth.uid());')
  assert board(PLAYER,'read')['canManage']==False
  assert board(CO,'read')['canManage']==False
  for name in ['20261117203000_notice_board_staff_and_cashout_links.sql','20261117203100_escalated_cashouts_settle_to_club_bank.sql']:
   sql((R/'supabase/migrations'/name).read_text())
+  if name.startswith('20261117203000'):
+   assert sql("SELECT has_function_privilege('authenticated','public.fn_cashout_escalate_v2(uuid,uuid,uuid,uuid)','EXECUTE');")=="f"
+   asuser(AGENT,"SELECT fn_cashout_escalate_v2(NULL,NULL,NULL,NULL);",error='permission denied')
+ assert sql("SELECT has_function_privilege('authenticated','public.fn_cashout_escalate_v2(uuid,uuid,uuid,uuid)','EXECUTE');")=="t"
+ cases.append('escalation admission denied between migrations until bank settlement installed')
  assert board(AGENT,'read')['memberCount']==6
  for u in [AGENT,SUPER,SUB]:assert board(u,'read')['canManage']==False
  for u in [OWNER,ADMIN,CO]:assert board(u,'read')['canManage']==True
  board(PLAYER,'read',error='Active Club Membership Required');board(OTHER,'read',error='Active Club Membership Required')
+ for change in ["is_deleted=true","media_metadata='{}'::jsonb","content='Changed'","conversation_id=NULL"]:
+  asuser(AGENT,'UPDATE social_messages SET '+change+' WHERE id='+lit(legacy_message)+';',error='Only Club Management')
+ asuser(AGENT,'UPDATE social_messages SET read_at=now() WHERE id='+lit(legacy_message)+';')
+ asuser(AGENT,'DELETE FROM social_messages WHERE id='+lit(legacy_message)+';')
+ assert sql('SELECT count(*) FROM social_messages WHERE id='+lit(legacy_message)+';')=='1'
+ cases.append('staff group metadata/soft-delete edits blocked; receipt reads preserved and existing RLS denies hard delete')
  cases.append('current staff inclusion, co-owner management, ordinary and other-club denial')
  entry=board(OWNER,'create',{'id':op(),'content':'Club Notice','status':'notice'})
  for u in [AGENT,SUPER,SUB]:board(u,'create',{'id':op(),'content':'Unauthorized','status':'notice'},error='Club Admin Or Owner Required')

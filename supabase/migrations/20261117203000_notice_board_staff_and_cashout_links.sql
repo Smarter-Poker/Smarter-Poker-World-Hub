@@ -7,6 +7,7 @@ SET LOCAL lock_timeout='3s';
 DO $$ BEGIN
  IF to_regclass('public.club_notice_access_events') IS NOT NULL THEN RAISE EXCEPTION 'Notice access already installed'; END IF;
  IF md5(pg_get_functiondef('public.fn_club_notice_board(uuid,uuid,text,jsonb)'::regprocedure))<>'4b5dcec0712a5b9a40566f43586b72bc' THEN RAISE EXCEPTION 'Notice board source changed'; END IF;
+ IF md5(pg_get_functiondef('public.fn_club_notice_access(uuid)'::regprocedure))<>'bb04e8be9060fd9ef7a1d77620ec6e04' THEN RAISE EXCEPTION 'Notice access source changed'; END IF;
  IF md5(pg_get_functiondef('public.fn_club_messenger_staff_role(uuid,uuid)'::regprocedure))<>'da62bfb09a4aa2d5446af6ea56ccc43c' THEN RAISE EXCEPTION 'Staff authority source changed'; END IF;
  IF md5(pg_get_functiondef('public.fn_club_staff_notice_role_event()'::regprocedure))<>'a7f817a4fc8c54ae1b401462862cf8a9' THEN RAISE EXCEPTION 'Staff event source changed'; END IF;
  IF md5(pg_get_functiondef('public.fn_cashout_request_card(uuid)'::regprocedure))<>'984525e3aed135d8dabd8651796b430a' THEN RAISE EXCEPTION 'Cashout card source changed'; END IF;
@@ -164,7 +165,7 @@ BEGIN
  RETURN public.fn_notice_cashout_card(actor,p_cashout_id)||jsonb_build_object('success',true,'contract_version',1,'op_id',p_op_id,'actor_user_id',actor,'replayed',false);
 END $$;
 REVOKE ALL ON FUNCTION public.fn_cashout_escalate_v2(uuid,uuid,uuid,uuid) FROM PUBLIC,anon,authenticated,service_role;
-GRANT EXECUTE ON FUNCTION public.fn_cashout_escalate_v2(uuid,uuid,uuid,uuid) TO authenticated;
+-- Admission remains closed until the bank settlement migration commits.
 CREATE OR REPLACE FUNCTION public.fn_club_notice_board(p_actor uuid, p_club uuid, p_action text, p_payload jsonb DEFAULT '{}'::jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -266,15 +267,25 @@ END $function$;
 
 CREATE FUNCTION public.fn_notice_staff_message_guard() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,extensions AS $$
-DECLARE c uuid;
+DECLARE c uuid;actor uuid:=auth.uid();old_conversation uuid;
 BEGIN
- SELECT club_id INTO c FROM public.club_messenger_staff_notice_groups WHERE conversation_id=NEW.conversation_id;
- IF c IS NOT NULL AND coalesce(public.fn_club_notice_role(c,NEW.sender_id),'') NOT IN ('owner','co_owner','admin') THEN
- RAISE EXCEPTION 'Only Club Management Can Post To The Notice Board' USING ERRCODE='42501'; END IF;
+ IF TG_OP='UPDATE' THEN
+  -- Read receipts are not staff posts or edits.
+  IF (to_jsonb(NEW)-ARRAY['read_at','updated_at']) IS NOT DISTINCT FROM (to_jsonb(OLD)-ARRAY['read_at','updated_at']) THEN RETURN NEW; END IF;
+  old_conversation:=OLD.conversation_id;
+  -- Trusted edit/delete APIs already bind the verified actor to the original
+  -- sender in their UPDATE filter. Browser callers must use their JWT actor.
+  actor:=coalesce(actor,OLD.sender_id);
+ ELSE actor:=coalesce(actor,NEW.sender_id);
+ END IF;
+ FOR c IN SELECT DISTINCT club_id FROM public.club_messenger_staff_notice_groups WHERE conversation_id=ANY(ARRAY[NEW.conversation_id,old_conversation]) LOOP
+  IF coalesce(public.fn_club_notice_role(c,actor),'') NOT IN ('owner','co_owner','admin') THEN
+   RAISE EXCEPTION 'Only Club Management Can Post To The Notice Board' USING ERRCODE='42501'; END IF;
+ END LOOP;
  RETURN NEW;
 END $$;
 REVOKE ALL ON FUNCTION public.fn_notice_staff_message_guard() FROM PUBLIC,anon,authenticated,service_role;
-CREATE TRIGGER notice_staff_message_guard BEFORE INSERT OR UPDATE OF content,conversation_id,sender_id ON public.social_messages FOR EACH ROW EXECUTE FUNCTION public.fn_notice_staff_message_guard();
+CREATE TRIGGER notice_staff_message_guard BEFORE INSERT OR UPDATE ON public.social_messages FOR EACH ROW EXECUTE FUNCTION public.fn_notice_staff_message_guard();
 CREATE FUNCTION public.fn_notice_profile_access_event() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,extensions AS $$
 DECLARE m record;
