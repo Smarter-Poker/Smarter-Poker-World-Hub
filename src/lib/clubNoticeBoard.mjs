@@ -27,7 +27,7 @@ export function validateNoticeRequest(method, body) {
     } else {
         if (!UUID.test(payload.id || '')) fail();
         if (action !== 'create' && (!Number.isSafeInteger(payload.version) || payload.version < 1)) fail();
-        if (action === 'add_note' && (typeof payload.note !== 'string' || !payload.note.trim() || payload.note.length > 4000 || !UUID.test(payload.op_id || ''))) fail();
+        if (action === 'add_note' && (typeof payload.note !== 'string' || !payload.note.trim() || payload.note.length > 2000 || !UUID.test(payload.op_id || ''))) fail();
         if (action === 'create' && (typeof payload.content !== 'string' || !payload.status)) fail();
         if (payload.content !== undefined && (typeof payload.content !== 'string' || !payload.content.trim() || payload.content.length > 4000)) fail();
         if (payload.status !== undefined && !['notice', 'pending_payout', 'paid'].includes(payload.status)) fail();

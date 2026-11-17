@@ -279,7 +279,7 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
         {newItems && <button type="button" style={button} onClick={() => { scroller.current.scrollTop = scroller.current.scrollHeight; setNewItems(false); }}>Latest Notices</button>}
         {canManage && noteTarget && <form onSubmit={submitNote} style={{ padding: '10px 16px', borderTop: `1px solid ${C.border}` }}>
             <div style={{ fontSize: 12, marginBottom: 6 }}>Payout Note <button type="button" style={button} disabled={busy} onClick={() => { setNoteTarget(null); setNoteDraft(''); }}>Cancel Note</button></div>
-            <div style={{ display: 'flex', gap: 8 }}><textarea aria-label="Payout Note" value={noteDraft} onChange={e => setNoteDraft(e.target.value)} maxLength={4000} disabled={busy} rows={2} style={{ ...button, flex: 1, minWidth: 0, resize: 'vertical', textAlign: 'left' }} />
+            <div style={{ display: 'flex', gap: 8 }}><textarea aria-label="Payout Note" value={noteDraft} onChange={e => setNoteDraft(e.target.value)} maxLength={2000} disabled={busy} rows={2} style={{ ...button, flex: 1, minWidth: 0, resize: 'vertical', textAlign: 'left' }} />
                 <button type="submit" disabled={busy || !noteDraft.trim()} style={{ ...button, background: C.blue, color: '#fff' }}>{busy ? 'Saving...' : 'Save Note'}</button></div>
         </form>}
         {!loading && !canManage && !error && <p style={{ padding: '0 16px', color: C.textSec, fontSize: 12 }}>Read Only · Club Management Handles Payouts And Notes</p>}

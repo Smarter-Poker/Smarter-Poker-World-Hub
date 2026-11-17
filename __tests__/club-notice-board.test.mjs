@@ -68,7 +68,8 @@ test('create retries use the same canonical text and pin state as persistence wi
 test('manager payout notes require a bounded note and stable operation identity', () => {
  const payload={id,version:1,note:'  Please Help  ',op_id:clubId};
  assert.deepEqual(validateNoticeRequest('PATCH',{clubId,action:'add_note',payload}),{clubId,action:'add_note',payload:{...payload,note:'Please Help'}});
- for(const bad of [{...payload,note:''},{...payload,note:'x'.repeat(4001)},{...payload,op_id:'bad'},{...payload,amount:500},{...payload,actor_id:id}]) assert.throws(()=>validateNoticeRequest('PATCH',{clubId,action:'add_note',payload:bad}),{status:400});
+ for(const bad of [{...payload,note:''},{...payload,note:'x'.repeat(2001)},{...payload,op_id:'bad'},{...payload,amount:500},{...payload,actor_id:id}]) assert.throws(()=>validateNoticeRequest('PATCH',{clubId,action:'add_note',payload:bad}),{status:400});
+ assert.equal(validateNoticeRequest('PATCH',{clubId,action:'add_note',payload:{...payload,note:'x'.repeat(2000)}}).payload.note.length,2000);
  assert.throws(()=>validateNoticeRequest('POST',{clubId,action:'add_note',payload}),{status:400});
  assert.throws(()=>validateNoticeRequest('PATCH',{clubId,action:'approve',payload}),{status:400});
 });
