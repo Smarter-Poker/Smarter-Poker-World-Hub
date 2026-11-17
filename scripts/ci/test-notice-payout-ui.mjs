@@ -20,14 +20,25 @@ try {
  browser=await puppeteer.launch({executablePath:process.env.CHROME_BIN||['/usr/bin/google-chrome','/usr/bin/chromium'].find(existsSync)||puppeteer.executablePath(),headless:true,userDataDir:path.join(scratch,'profile'),args:process.platform==='linux'?['--no-sandbox']:[]});
  const page=await browser.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
  const clubId='10000000-0000-4000-8000-000000000001',userId='10000000-0000-4000-8000-000000000002',cashoutId='20000000-0000-4000-8000-000000000001';
- let manager=false,allowed=true,escalated=false,failOnce=true,status='pending',notes=[],version=1,noteConflict=true;const operations=[];
- const card=()=>({cashout_id:cashoutId,club_id:clubId,amount:500,player_name:'Fixture Player',player_note:'Please Coordinate My Payout',status,is_escalated:escalated,can_escalate:!escalated,can_decide:escalated?manager:true,approval_destination:escalated?'club_bank':'agent_wallet'});
+ let manager=false,allowed=true,escalated=false,failOnce=true,bareEscalation=true,bareApproval=true,status='pending',notes=[],version=1,noteConflict=true;const operations=[];
+ const card=()=>({cashout_id:cashoutId,club_id:clubId,player_id:'40000000-0000-4000-8000-000000000001',amount:'500.00',player_name:'Fixture Player',player_note:'Please Coordinate My Payout',status,is_escalated:escalated,can_escalate:!escalated,can_decide:escalated?manager:true,approval_destination:escalated?'club_bank':'agent_wallet'});
  const row=()=>({id:'30000000-0000-4000-8000-000000000001',club_id:clubId,cashout_id:cashoutId,cashout:card(),manager_notes:notes,content:'Requested Payout',status:status==='pending'?'pending_payout':'paid',is_pinned:status==='pending',version,created_at:'2026-11-17T20:00:00Z'});
+ const receipt=(args,approval)=>{
+  const id=n=>`50000000-0000-4000-8000-${String(n).padStart(12,'0')}`,player=card().player_id,at='2026-11-17T20:00:00Z',later='2026-11-17T20:02:00Z';
+  const cashier={contract_version:1,event_id:id(1),invoice_id:id(2),cashout_id:cashoutId,escrow_id:id(3),source_transaction_id:id(4),source_ledger_id:id(5),club_id:clubId,player_id:player,assigned_agent_id:id(6),issuer_representative_id:id(7),actor_user_id:userId,actor_role:'admin',event_kind:approval?'approval':'decline',display_state:approval?'approved':'refunded',amount:'500.00',occurred_at:later,issued_at:later,hold_event_id:id(8),hold_invoice_id:id(9),ledger_from_type:'escrow',ledger_from_entity_id:id(3),ledger_to_type:approval?'club_treasury':'player_wallet',ledger_to_entity_id:approval?clubId:player,custody_movement_recorded:true,cashout_completed:approval,refund_recorded:!approval,...(approval?{approval_destination:'club_bank'}:{})};
+  return {...cashier,success:true,replayed:false,op_id:args.p_op_id,request_status:approval?'approved':'rejected',accepted_note:null,actor_wallet_after:approval?'5000.00':null,...(approval?{club_bank_after:'5000.00'}:{}),cashier,request:{id:cashoutId,club_id:clubId,player_id:player,agent_id:id(6),amount:'500.00',status:approval?'approved':'rejected',created_at:at,updated_at:later,acknowledged_at:later,completed_at:approval?later:null,cancelled_at:approval?null:later,player_note:card().player_note,agent_note:null}};
+ };
  await page.exposeFunction('testRpc',async(name,args)=>{
   if(name==='fn_cashout_request_card')return allowed?{data:card(),error:null}:{data:null,error:{message:'Access Denied'}};
   operations.push({name,args});
-  if(name==='fn_cashout_escalate_v2') {if(failOnce){failOnce=false;throw new Error('Transport Failed Before Acknowledgment');}escalated=true;version++;return {data:card(),error:null};}
-  assert(manager,'Only manager UI may decide an escalated request');assert(escalated);assert.equal(args.p_amount,500);status=name==='fn_cashout_approve_v2'?'approved':'rejected';version++;return {data:{approval_destination:'club_bank'},error:null};
+  if(name==='fn_cashout_escalate_v2') {
+   if(failOnce){failOnce=false;throw new Error('Transport Failed Before Acknowledgment');}
+   if(bareEscalation){bareEscalation=false;return {data:null,error:null};}
+   escalated=true;version++;return {data:{...card(),success:true,contract_version:1,op_id:args.p_op_id,actor_user_id:userId,notice_id:row().id,replayed:false},error:null};
+  }
+  assert(manager,'Only manager UI may decide an escalated request');assert(escalated);assert.equal(Number(args.p_amount),500);
+  if(name==='fn_cashout_approve_v2'&&bareApproval){bareApproval=false;return {data:{success:true},error:null};}
+  const approval=name==='fn_cashout_approve_v2';status=approval?'approved':'rejected';version++;return {data:receipt(args,approval),error:null};
  });
  await page.exposeFunction('testRequest',async(method,body)=>{
   if(!allowed)return {status:403,body:{success:false,error:'Access Revoked'}};
@@ -37,14 +48,16 @@ try {
  const click=async text=>{await page.waitForFunction(t=>[...document.querySelectorAll('button')].some(e=>e.textContent.trim()===t&&!e.disabled),{},text);await page.evaluate(t=>[...document.querySelectorAll('button')].find(e=>e.textContent.trim()===t&&!e.disabled).click(),text);};
  await page.setViewport({width:375,height:812});await page.goto(`http://127.0.0.1:${server.address().port}`);
  await page.waitForFunction(()=>document.body.textContent.includes('Note For Agent'));await click('Send To Notice Board');await page.waitForFunction(()=>document.body.textContent.includes('Result Is Unconfirmed'));
+ await click('Send To Notice Board');await page.waitForFunction(()=>document.body.textContent.includes('Result Is Unconfirmed'));assert.equal(escalated,false,'Null success cannot acknowledge escalation');
  await click('Send To Notice Board');await page.waitForFunction(()=>document.body.textContent.includes('Original Request Remains Pending'));
- assert.equal(operations.length,2);assert.equal(operations[0].args.p_op_id,operations[1].args.p_op_id,'Escalation retry keeps operation ID');assert.equal(operations[0].args.p_cashout_id,cashoutId);
+ assert.equal(operations.length,3);assert.equal(operations[1].args.p_op_id,operations[2].args.p_op_id);assert.equal(operations[0].args.p_op_id,operations[1].args.p_op_id,'Escalation retry keeps operation ID');assert.equal(operations[0].args.p_cashout_id,cashoutId);
  assert(await page.$$eval('button',bs=>!bs.some(b=>['Accept','Cancel'].includes(b.textContent))),'Escalated agent cannot decide');
  await page.evaluate(()=>window.showFixture('board'));await page.waitForFunction(()=>document.body.textContent.includes('Read Only'));
  assert(await page.$$eval('button',bs=>!bs.some(b=>['Accept','Deny','Add Note','Pin','Unpin'].includes(b.textContent))),'Agent board is read only');
  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=375),'Mobile board overflows');
  manager=true;await page.evaluate(()=>window.showFixture('board',1));await click('Add Note');await page.type('[aria-label="Payout Note"]','Owner Will Coordinate');await click('Save Note');await page.waitForFunction(()=>document.body.textContent.includes('Notice Changed. Retry Your Note.'));await click('Save Note');await page.waitForFunction(()=>document.body.textContent.includes('Owner Will Coordinate')&&!document.querySelector('[aria-label="Payout Note"]'));
- await click('Accept');await page.waitForFunction(()=>document.body.textContent.includes('Club Chip Bank'));assert.equal(status,'approved');assert.equal(operations.at(-1).name,'fn_cashout_approve_v2');
+ await click('Accept');await page.waitForFunction(()=>document.body.textContent.includes('Result Is Unconfirmed'));assert.equal(status,'pending','Bare success must not acknowledge a payout');const approvalOp=operations.at(-1).args.p_op_id;
+ await click('Accept');await page.waitForFunction(()=>document.body.textContent.includes('Club Chip Bank'));assert.equal(operations.at(-1).args.p_op_id,approvalOp);assert.equal(status,'approved');assert.equal(operations.at(-1).name,'fn_cashout_approve_v2');
  if(process.env.MESSENGER_UI_EVIDENCE)await page.screenshot({path:path.join(process.env.MESSENGER_UI_EVIDENCE,'notice-payout-mobile.png'),fullPage:true});
  status='pending';version++;await page.evaluate(()=>window.showFixture('board',2));await click('Deny');await page.waitForFunction(()=>document.body.textContent.includes('Returned To The Player'));assert.equal(status,'rejected');assert.equal(operations.at(-1).name,'fn_cashout_release_v2');
  allowed=false;await page.evaluate(({clubId,userId})=>window.emitNotice('club_notice_access_events',{club_id:clubId,user_id:userId,can_access:false}),{clubId,userId});

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { cashoutUUID, validateCashoutReceipt } from '../../lib/club-arena/cashoutReceipt.mjs';
 
 // The canonical cashier transition owns authority and chip movement. Escalation
 // shares the existing held request; it never creates a second payout.
@@ -74,7 +75,7 @@ export default function CashoutRequestActions({ cashoutId, currentUserId, theme:
         const escalate = action === 'escalate';
         const fn = escalate ? 'fn_cashout_escalate_v2' : action === 'accept' ? 'fn_cashout_approve_v2' : 'fn_cashout_release_v2';
         try {
-            const { error: rpcError } = await supabase.rpc(fn, {
+            const { data, error: rpcError } = await supabase.rpc(fn, {
                 p_cashout_id: card.cashout_id, p_club_id: card.club_id,
                 p_expected_actor_id: currentUserId, p_op_id: pendingOp.current.id,
                 ...(!escalate ? { p_amount: card.amount, p_note: null } : {}),
@@ -85,9 +86,24 @@ export default function CashoutRequestActions({ cashoutId, currentUserId, theme:
                 setError(code ? ERROR_COPY[code] : 'Could Not Complete. Refresh To Check The Request.');
                 if (code === 'cashier_request_already_terminal') pendingOp.current = null;
             } else {
+                let destination = null;
+                if (escalate) {
+                    if (!data || data.success !== true || data.contract_version !== 1 ||
+                        typeof data.replayed !== 'boolean' || data.op_id !== pendingOp.current.id || data.actor_user_id !== currentUserId ||
+                        data.cashout_id !== card.cashout_id || data.club_id !== card.club_id ||
+                        !cashoutUUID(data.notice_id) || data.is_escalated !== true) throw new Error('Unconfirmed Escalation');
+                } else {
+                    const receipt = validateCashoutReceipt(data, {
+                        kind: action === 'accept' ? 'approval' : 'decline', actorId: currentUserId,
+                        operationId: pendingOp.current.id, clubId: card.club_id, playerId: card.player_id,
+                        cashoutId: card.cashout_id, amount: Number(card.amount).toFixed(2), note: null,
+                    });
+                    destination = receipt.cashier.approval_destination;
+                    if (action === 'accept' && card.is_escalated && destination !== 'club_bank') throw new Error('Unconfirmed Destination');
+                }
                 pendingOp.current = null;
-                setDone(escalate ? 'Sent To Notice Board. The Original Request Remains Pending.' : action === 'accept'
-                    ? `Accepted. ${formatChips(card.amount)} Chips Were Sent To ${card.is_escalated ? 'The Club Chip Bank' : 'Your Agent Wallet'}.`
+                setDone(escalate ? (data.status === 'pending' ? 'Sent To Notice Board. The Original Request Remains Pending.' : 'Sent To Notice Board.') : action === 'accept'
+                    ? `Accepted. ${formatChips(card.amount)} Chips Were Sent To ${destination === 'club_bank' ? 'The Club Chip Bank' : 'Your Agent Wallet'}.`
                     : `Cancelled. ${formatChips(card.amount)} Chips Were Returned To ${card.player_name || 'The Player'}'s Wallet.`);
                 onChanged?.();
             }
