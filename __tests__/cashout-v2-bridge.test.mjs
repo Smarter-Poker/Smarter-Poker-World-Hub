@@ -543,3 +543,9 @@ test('request preserves multiline player note and rejects over-limit notes befor
     }
   }
 });
+
+test('required safety workflow executes actual notice payout browser and PostgreSQL qualification', () => {
+  const workflow = fs.readFileSync(new URL('../.github/workflows/build-safety-gate.yml', import.meta.url), 'utf8');
+  assert.match(workflow, /run: node scripts\/ci\/test-notice-payout-ui\.mjs/);
+  assert.match(workflow, /run: python3 scripts\/ci\/test-notice-cashout-postgres\.py/);
+});

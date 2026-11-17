@@ -405,6 +405,9 @@ jobs:
           mkdir -p "$VIP_GIFT_POSTGRES_ROOT"
           node --test __tests__/vip-gifts-postgres.test.mjs
 
+      - name: Notice Cashout Authorization And Bank Settlement PostgreSQL
+        run: python3 scripts/ci/test-notice-cashout-postgres.py
+
       - name: Club Notice Board Native Authorization And Pagination
         run: node --test __tests__/club-notice-board-postgres.test.mjs
 
