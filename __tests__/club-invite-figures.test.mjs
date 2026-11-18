@@ -1,11 +1,8 @@
 /**
  * Club invite figures name their scope (Dan 2026-11-17).
  *
- * The preview text, preview image and landing page print the two lines the
- * database words (fn_club_share_figures): measured members of this club, and
- * distinct players on the floor it plays on, naming that union or the club.
- * They never print raw counts with their own label, never print an
- * unavailable figure as zero, and never fold a configured addition in.
+ * The preview text, preview image and landing page share the database wording,
+ * including the separately disclosed Kings Club totals and measured union line.
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -15,17 +12,21 @@ import { inviteDescription, inviteFigureLines, inviteHeadline } from '../src/lib
 const page = readFileSync(new URL('../pages/i/[code].js', import.meta.url), 'utf8');
 const og = readFileSync(new URL('../pages/api/og/club-invite.js', import.meta.url), 'utf8');
 
-test('club members and union activity travel as two separately named lines', () => {
+test('Kings Club totals carry their disclosures ahead of measured union activity', () => {
+    const members = '1,652 KINGS CLUB Member Display Total (+1,500 Configured)';
+    const active = '146 KINGS CLUB Active Display Total (+145 Configured)';
+    const union = '314 Players Across Midway Union Now · Includes Horses';
     const lines = inviteFigureLines({
         member_count: 152,
         players_playing: 314,
-        members_line: '152 Members In KINGS CLUB',
-        activity_line: '314 Playing Across Midway Union Now',
+        members_line: members,
+        club_active_display_line: active,
+        activity_line: union,
     });
-    assert.deepEqual(lines, ['152 Members In KINGS CLUB', '314 Playing Across Midway Union Now']);
+    assert.deepEqual(lines, [members, active, union]);
     assert.equal(
         inviteDescription(lines),
-        '152 Members In KINGS CLUB. 314 Playing Across Midway Union Now. Create Your Free Smarter.Poker Account And Join The Club.'
+        `${members}. ${active}. ${union}. Create Your Free Smarter.Poker Account And Join The Club.`
     );
 });
 

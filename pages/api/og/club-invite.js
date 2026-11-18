@@ -62,6 +62,7 @@ export default async function handler(req) {
     const clubName = invite?.club?.name || 'Smarter.Poker Club Arena';
     const alias = invite?.inviter?.alias || 'A Friend';
     const lines = inviteFigureLines(invite?.club);
+    const logoSize = lines.length > 2 ? 110 : 180;
     const clubNumber = invite?.club?.club_id;
     const logo = await embeddableLogo(invite?.club?.logo_url);
 
@@ -77,7 +78,7 @@ export default async function handler(req) {
                     justifyContent: 'center',
                     background: 'linear-gradient(160deg,#050810 0%,#0b1426 55%,#050810 100%)',
                     fontFamily: 'sans-serif',
-                    padding: 48,
+                    padding: lines.length > 2 ? 32 : 48,
                 }}
             >
                 <div style={{ display: 'flex', fontSize: 26, fontWeight: 800, color: '#f5c542', letterSpacing: 2 }}>
@@ -86,10 +87,10 @@ export default async function handler(req) {
                 <div
                     style={{
                         display: 'flex',
-                        width: 180,
-                        height: 180,
+                        width: logoSize,
+                        height: logoSize,
                         marginTop: 28,
-                        borderRadius: 90,
+                        borderRadius: logoSize / 2,
                         border: '5px solid #f5c542',
                         overflow: 'hidden',
                         alignItems: 'center',

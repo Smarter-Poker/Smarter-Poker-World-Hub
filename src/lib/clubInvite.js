@@ -34,18 +34,13 @@ export const CLUB_ARENA_PREFIX = '/hub/club-arena/';
 const CODE_RE = /^[A-HJ-NP-Z2-9]{7}$/;
 
 /**
- * The figure lines an invite carries (Dan 2026-11-17), worded once by the
- * database (fn_club_share_figures) so the preview text, preview image, landing
- * page and copied message say the same thing:
- *   "152 Members In KINGS CLUB"            measured members of this club
- *   "314 Playing Across Midway Union Now"  distinct players on its union's floor
- *   "4 Playing In Solo Room Now"           a club with no union, its own floor
- * A figure the database could not read arrives null and its line is left out;
- * it is never printed as zero and never replaced by another number.
+ * The database supplies the exact copy for preview text, preview image and
+ * landing page. Kings Club can supply two disclosed display totals and
+ * separate measured union activity. An unavailable line is omitted.
  */
 export function inviteFigureLines(club) {
     const line = (v) => (typeof v === 'string' && v.trim() ? v.trim() : null);
-    return [line(club?.members_line), line(club?.activity_line)].filter(Boolean);
+    return [club?.members_line, club?.club_active_display_line, club?.activity_line].map(line).filter(Boolean);
 }
 
 /** The link-preview description: the Club ID, then those lines. */
