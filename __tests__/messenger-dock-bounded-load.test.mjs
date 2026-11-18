@@ -46,6 +46,7 @@ function ownerAccount({ clubs = 6, personal = 1300, perClub = 1400, unread = 3 }
                 eq(k, v) { data = data.filter(r => r[k] === v); return q; },
                 neq(k, v) { data = data.filter(r => r[k] !== v); return q; },
                 gt(k, v) { data = data.filter(r => r[k] > v); return q; },
+                not(k) { data = data.filter(r => r[k] != null); return q; },
                 contains() { data = []; return q; },
                 in(k, values) {
                     counted.largestIn = Math.max(counted.largestIn, values.length);
@@ -116,15 +117,20 @@ test('each club is loaded once and serves both of its folders', async () => {
     assert.deepEqual(club.dockWorkspace, { workspace: 'club', clubId: clubId(1), folder: 'messages' });
 });
 
-test('the full Messenger page and the feed are not sliced', async () => {
+test('the club and personal workspaces are not sliced, and the feed reads a window of its own', async () => {
     const { db } = ownerAccount({ clubs: 1, personal: 250, perClub: 250, unread: 0 });
     const page = await getMessengerWorkspace(db, user, { workspace: 'social' });
     assert.equal(page.conversations.length, 250);
     assert.equal(page.folders, undefined, 'the internal folder split never leaves the dock');
     const clubPage = await getMessengerWorkspace(db, user, { workspace: 'club', clubId: clubId(1) });
     assert.equal(clubPage.conversations.length, 250);
+    // The main inbox is bounded separately (messenger-feed-bounded-load.test.mjs).
     const feed = await getMessengerWorkspace(db, user, { workspace: 'feed' });
-    assert.equal(feed.conversations.filter(c => c.dockWorkspace.workspace === 'social').length, 250);
+    assert.equal(feed.conversations.filter(c => c.dockWorkspace.workspace === 'social').length, 100);
+    assert.equal(feed.hasOlder, true);
+    const older = await getMessengerWorkspace(db, user, { workspace: 'feed', window: 300 });
+    assert.equal(older.conversations.filter(c => c.dockWorkspace.workspace === 'social').length, 250);
+    assert.equal(older.hasOlder, false);
 });
 
 test('dockInboxSlice keeps unread threads, empty staff groups and the newest of the rest', () => {
