@@ -225,3 +225,20 @@ test('wiring: the hourly route runs campaigns, the tab is registered, the routes
     assert.match(sql, /send a test to yourself before approving/);
     assert.match(sql, /set the mailing address/);
 });
+
+test('signup chips: contacts only, need a budget, and the runner pays before it sends', async () => {
+    const base = { slug: 'nov-invite', name: 'N', subject: 'S', headline: 'H', body: 'B', audience: 'contacts', signup_chips: '50', signup_chips_budget: '5000' };
+    assert.equal(validateCampaign(base).signup_chips, 50);
+    assert.equal(validateCampaign({ ...base, audience: 'real_players' }).signup_chips, 0, 'players are never offered signup chips');
+    assert.equal(validateCampaign({ ...base, signup_chips: '500' }).signup_chips, 0, 'above 100 is refused to zero');
+    assert.throws(() => validateCampaign({ ...base, signup_chips_budget: '10' }), /Chip Budget/);
+    const { sb, calls } = fakeSb({ settings: { postal_address: '', webhook_secret: 'x' } });
+    await runMarketingCampaigns(sb, { sendEmail: async () => ({ ok: true }), env: ENV });
+    const names = calls.rpc.map(([n]) => n);
+    assert.ok(names.indexOf('fn_sp_marketing_signup_award_run') > -1 && names.indexOf('fn_sp_marketing_signup_award_run') < names.indexOf('fn_sp_marketing_next_batch'));
+    const sql = read('supabase/migrations/20261118170500_marketing_contacts_and_campaigns.sql');
+    assert.match(sql, /fn_promo_disburse\('union', v_union, 'player'/, 'paid through the platform promo path, from the Midway Union');
+    assert.match(sql, /user_id uuid NOT NULL UNIQUE/, 'one marketing signup grant per player, ever');
+    assert.match(sql, /k\.converted_at > rr\.sent_at AND u\.email_confirmed_at IS NOT NULL/, 'only an emailed contact who then signed up with a confirmed address');
+    assert.match(sql, /v_amt := r\.chips - v_prior/, 'topped up against the welcome-back, never paid twice');
+});

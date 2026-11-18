@@ -32,6 +32,7 @@ const CONSENT_LABEL = {
 const EMPTY_CAMPAIGN = {
   slug: '', name: '', subject: '', preheader: '', headline: '', body: '', cta_label: 'Play Now',
   cta_url: 'https://smarter.poker/hub/club-arena/', promo_code: '', audience: 'contacts', audience_tags: '', lapsed_days: 14, daily_cap: 100,
+  signup_chips: 0, signup_chips_budget: 0,
 };
 const n = (v) => (v === null || v === undefined ? '-' : Number(v).toLocaleString('en-US'));
 const pct = (a, b) => (b ? `${Math.round((Number(a) / Number(b)) * 100)}%` : '-');
@@ -64,10 +65,12 @@ function CampaignCard({ c, canWrite, onEdit, onPreview, onTest, onApprove, onAct
         {c.audience_tags?.length ? ` Tagged ${c.audience_tags.join(', ')}` : ''}
         {c.audience === 'lapsed_players' || c.audience === 'active_players' ? ` (${c.lapsed_days} Days)` : ''}. Daily Cap {n(c.daily_cap)}.
         {c.paused_reason ? ` Paused: ${c.paused_reason.replace(/_/g, ' ')}.` : ''}
+        {Number(c.signup_chips) > 0 ? ` Signup Offer: ${n(c.signup_chips)} Chips From The Midway Union Promo Wallet.` : ''}
       </p>
       <div className={s.stats}>
         {[['Recipients', c.recipients], ['Sent', c.sent], ['Delivered', c.delivered], ['Clicked', c.clicked],
-          ['Signups', c.signups], ['Bounced', c.bounced], ['Spam', c.complained], ['Unsubscribed', c.unsubscribed]].map(([label, value]) => (
+          ['Signups', c.signups], ['Bounced', c.bounced], ['Spam', c.complained], ['Unsubscribed', c.unsubscribed],
+          ...(Number(c.signup_chips) > 0 ? [['Chips Paid', c.chips_paid], ['Players Paid', c.chips_awarded_players], ['Chips Waiting', c.chips_waiting], ['Budget', c.signup_chips_budget]] : [])].map(([label, value]) => (
           <div className={s.stat} key={label}><span className={s.statValue}>{n(value)}</span><span className={s.statLabel}>{label}</span></div>
         ))}
       </div>
@@ -112,6 +115,10 @@ function CampaignForm({ initial, tags, onSave, onClose, busy }) {
           {f.audience === 'contacts' ? <label className={s.label}>Only Contacts Tagged<input className={s.input} list="marketing-tags" value={f.audience_tags} onChange={set('audience_tags')} /><span className={s.hint}>Comma Separated. Blank Means Every Active Contact.</span><datalist id="marketing-tags">{tags.map((t) => <option key={t.tag} value={t.tag} />)}</datalist></label> : null}
           {f.audience === 'lapsed_players' || f.audience === 'active_players' ? <label className={s.label}>{f.audience === 'lapsed_players' ? 'Not Seen For At Least (Days)' : 'Seen Within (Days)'}<input className={s.input} type="number" min="1" max="365" value={f.lapsed_days} onChange={set('lapsed_days')} /></label> : null}
           <label className={s.label}>Daily Cap<input className={s.input} type="number" min="1" max="10000" value={f.daily_cap} onChange={set('daily_cap')} /><span className={s.hint}>Most Emails This Campaign Sends In Any 24 Hours.</span></label>
+          {f.audience === 'contacts' ? <>
+            <label className={s.label}>Signup Chips<input className={s.input} type="number" min="0" max="100" value={f.signup_chips} onChange={set('signup_chips')} /><span className={s.hint}>Paid From The Midway Union Promo Wallet When Someone This Campaign Emailed Signs Up With That Same Confirmed Address. Topped Up Against The Welcome-Back, Never Paid Twice.</span></label>
+            <label className={s.label}>Chip Budget (Total)<input className={s.input} type="number" min="0" max="100000" value={f.signup_chips_budget} onChange={set('signup_chips_budget')} /><span className={s.hint}>No More Than This Is Ever Paid For This Campaign.</span></label>
+          </> : null}
         </div>
         <div className={s.actions}>
           <button type="button" className={s.pillBtn} onClick={onClose} disabled={busy}>Close</button>

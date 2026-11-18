@@ -32,6 +32,10 @@
 --   * sp_marketing_events - every Resend webhook event, idempotent by svix id.
 --     A complaint rate of 0.3% or a bounce rate over 5% pauses the campaign
 --     on its own, because the same Resend account sends signup codes.
+--   * sp_marketing_signup_awards - the signup chips a campaign offers (Dan:
+--     50, funded by the Midway Union promo wallet), owed only to an emailed
+--     contact who signs up with that confirmed address, paid by
+--     fn_promo_disburse, idempotent, topped up against the welcome-back.
 --   * Every function is SECURITY DEFINER, service_role only. No table is
 --     readable by anon or authenticated.
 -- ═══════════════════════════════════════════════════════════════════════
@@ -113,6 +117,8 @@ CREATE TABLE IF NOT EXISTS public.sp_marketing_campaigns (
   audience_tags text[] NOT NULL DEFAULT '{}',
   lapsed_days integer NOT NULL DEFAULT 14 CHECK (lapsed_days BETWEEN 1 AND 365),
   daily_cap integer NOT NULL DEFAULT 100 CHECK (daily_cap BETWEEN 1 AND 10000),
+  signup_chips numeric NOT NULL DEFAULT 0 CHECK (signup_chips >= 0 AND signup_chips <= 100),
+  signup_chips_budget numeric NOT NULL DEFAULT 0 CHECK (signup_chips_budget >= 0 AND signup_chips_budget <= 100000),
   status text NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','sending','paused','completed','cancelled')),
   paused_reason text,
   test_sent_at timestamptz,
@@ -162,6 +168,35 @@ CREATE TABLE IF NOT EXISTS public.sp_marketing_events (
   payload jsonb,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- Signup chips (Dan, 2026-11-18): "50 FREE PROMO CHIPS WHEN THEY SIGN UP
+-- (FUNDED BY MIDWAY UNION PROMO WALLET)". Bound to the invited ADDRESS, not
+-- to a link or a code, so it cannot be farmed: only a contact who was sent the
+-- campaign and then signed up with that same, confirmed address qualifies.
+-- One marketing signup grant per player, ever (user_id unique).
+CREATE TABLE IF NOT EXISTS public.sp_marketing_signup_awards (
+  campaign_id uuid NOT NULL REFERENCES public.sp_marketing_campaigns(id),
+  user_id uuid NOT NULL UNIQUE,
+  contact_id uuid,
+  email_key text NOT NULL,
+  chips numeric NOT NULL CHECK (chips > 0),
+  paid_amount numeric,
+  op_id uuid NOT NULL UNIQUE,
+  status text NOT NULL DEFAULT 'owed' CHECK (status IN ('owed','awarded','covered','failed')),
+  club_id uuid,
+  transaction_id uuid,
+  attempts integer NOT NULL DEFAULT 0,
+  last_error text,
+  landed_notified_at timestamptz,
+  awarded_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (campaign_id, user_id)
+);
+
+ALTER TABLE public.sp_marketing_signup_awards ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.sp_marketing_signup_awards FROM anon, authenticated;
+GRANT ALL ON public.sp_marketing_signup_awards TO service_role;
 
 ALTER TABLE public.sp_marketing_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sp_marketing_contacts ENABLE ROW LEVEL SECURITY;
@@ -486,7 +521,10 @@ RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, aut
     'campaigns', (SELECT coalesce(jsonb_agg(row_to_json(z) ORDER BY z.created_at DESC), '[]') FROM (
       SELECT c.id, c.slug, c.name, c.subject, c.preheader, c.headline, c.body, c.cta_label, c.cta_url, c.promo_code,
              c.audience, c.audience_tags, c.lapsed_days, c.daily_cap, c.status, c.paused_reason, c.test_sent_at,
-             c.test_sent_to, c.approved_at, c.completed_at, c.created_at, c.updated_at,
+             c.test_sent_to, c.approved_at, c.completed_at, c.created_at, c.updated_at, c.signup_chips, c.signup_chips_budget,
+             (SELECT count(*) FROM sp_marketing_signup_awards a WHERE a.campaign_id = c.id AND a.status = 'awarded') AS chips_awarded_players,
+             (SELECT coalesce(sum(a.paid_amount), 0) FROM sp_marketing_signup_awards a WHERE a.campaign_id = c.id AND a.status = 'awarded') AS chips_paid,
+             (SELECT count(*) FROM sp_marketing_signup_awards a WHERE a.campaign_id = c.id AND a.status IN ('owed','failed')) AS chips_waiting,
              count(r.*) AS recipients,
              count(*) FILTER (WHERE r.status = 'pending') AS pending,
              count(*) FILTER (WHERE r.status = 'sent') AS sent,
@@ -526,6 +564,91 @@ RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, aut
       FROM base GROUP BY 1) w;
 $$;
 
+-- ── Signup chips: qualify, then pay through the platform's promo path ─────
+-- Paid with fn_promo_disburse from the Midway Union promo wallet, idempotent
+-- by op_id (the same path and the same "held until they are in a Midway
+-- club" rule as fn_sp_announcement_award_run). A player already paid the
+-- 25-chip welcome-back is topped up to the offer, never paid both in full;
+-- a player whose welcome-back already covers the offer is marked covered.
+CREATE OR REPLACE FUNCTION public.fn_sp_marketing_signup_award_run()
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth SET statement_timeout = '120s' AS $$
+DECLARE
+  v_union constant uuid := 'fade0000-0000-0000-0000-000000000001';
+  r record; v_club uuid; v_res jsonb; v_prior numeric; v_amt numeric; v_txt text;
+  v_new int := 0; v_paid int := 0; v_wait int := 0; v_fail int := 0; v_cov int := 0;
+BEGIN
+  IF NOT pg_try_advisory_xact_lock(hashtext('fn_sp_marketing_signup_award_run')) THEN
+    RETURN jsonb_build_object('already_running', true);
+  END IF;
+  PERFORM fn_sp_marketing_link_conversions();
+
+  -- Qualify: emailed by this campaign, signed up AFTER the email with the
+  -- same address, address confirmed, inside the campaign's chip budget.
+  FOR r IN
+    SELECT DISTINCT ON (k.user_id) c.id AS campaign_id, c.signup_chips, c.signup_chips_budget, k.id AS contact_id, k.user_id, k.email_key
+      FROM sp_marketing_contacts k
+      JOIN sp_marketing_campaign_recipients rr ON rr.contact_id = k.id AND rr.status = 'sent'
+      JOIN sp_marketing_campaigns c ON c.id = rr.campaign_id AND c.signup_chips > 0
+      JOIN auth.users u ON u.id = k.user_id
+     WHERE k.user_id IS NOT NULL AND k.converted_at > rr.sent_at AND u.email_confirmed_at IS NOT NULL
+       AND lower(u.email) = k.email_key
+       AND NOT EXISTS (SELECT 1 FROM sp_marketing_signup_awards a WHERE a.user_id = k.user_id)
+     ORDER BY k.user_id, rr.sent_at
+  LOOP
+    IF (SELECT coalesce(sum(chips), 0) FROM sp_marketing_signup_awards WHERE campaign_id = r.campaign_id) + r.signup_chips > r.signup_chips_budget THEN
+      CONTINUE;
+    END IF;
+    INSERT INTO sp_marketing_signup_awards (campaign_id, user_id, contact_id, email_key, chips, op_id)
+    VALUES (r.campaign_id, r.user_id, r.contact_id, r.email_key, r.signup_chips, md5('marketing-signup:' || r.campaign_id || ':' || r.user_id)::uuid)
+    ON CONFLICT DO NOTHING;
+    IF FOUND THEN v_new := v_new + 1; END IF;
+  END LOOP;
+
+  FOR r IN SELECT a.*, c.name AS campaign_name FROM sp_marketing_signup_awards a JOIN sp_marketing_campaigns c ON c.id = a.campaign_id
+            WHERE a.status IN ('owed','failed') AND a.attempts < 50 ORDER BY a.created_at FOR UPDATE OF a SKIP LOCKED
+  LOOP
+    IF EXISTS (SELECT 1 FROM chip_transactions t WHERE t.transaction_type = 'promo_disbursement' AND t.metadata->>'op_id' = r.op_id::text) THEN
+      UPDATE sp_marketing_signup_awards SET status = 'awarded', awarded_at = coalesce(awarded_at, now()), updated_at = now() WHERE op_id = r.op_id;
+      CONTINUE;
+    END IF;
+    SELECT coalesce(sum(amount), 0) INTO v_prior FROM sp_signup_welcome_back_awards WHERE user_id = r.user_id AND status = 'awarded';
+    v_amt := r.chips - v_prior;
+    IF v_amt <= 0 THEN
+      UPDATE sp_marketing_signup_awards SET status = 'covered', paid_amount = 0, updated_at = now(),
+        last_error = 'welcome-back already paid ' || v_prior || ' chips' WHERE op_id = r.op_id;
+      v_cov := v_cov + 1; CONTINUE;
+    END IF;
+    v_club := NULL;
+    SELECT cm.club_id INTO v_club FROM club_members cm JOIN union_clubs uc ON uc.club_id = cm.club_id AND uc.union_id = v_union
+     WHERE cm.user_id = r.user_id AND coalesce(cm.status, 'active') IN ('active','approved') ORDER BY cm.updated_at DESC NULLS LAST LIMIT 1;
+    IF v_club IS NULL THEN v_wait := v_wait + 1; CONTINUE; END IF;
+    BEGIN
+      v_res := public.fn_promo_disburse('union', v_union, 'player', r.user_id, v_amt,
+        'Signup bonus - ' || v_amt || ' chips from the Midway Union (' || r.campaign_name || ')', v_club, r.op_id);
+    EXCEPTION WHEN OTHERS THEN v_res := jsonb_build_object('success', false, 'error', sqlerrm);
+    END;
+    IF coalesce((v_res->>'success')::boolean, false) THEN
+      UPDATE sp_marketing_signup_awards SET status = 'awarded', paid_amount = v_amt, club_id = v_club,
+        transaction_id = nullif(v_res->>'transaction_id','')::uuid, awarded_at = now(), updated_at = now(),
+        last_error = NULL, attempts = attempts + 1 WHERE op_id = r.op_id;
+      v_paid := v_paid + 1;
+      v_txt := to_char(v_amt, 'FM999990.##');
+      BEGIN
+        PERFORM public.fn_raise_notification(r.user_id, 'marketing_signup_chips_landed', v_txt || ' Free Chips Just Landed',
+          'Your ' || v_txt || ' signup chips from the Midway Union are in your wallet. Good luck out there!', '/hub/club-arena/',
+          jsonb_build_object('campaign_id', r.campaign_id, 'amount', v_amt, 'club_id', v_club));
+        UPDATE sp_marketing_signup_awards SET landed_notified_at = now() WHERE op_id = r.op_id;
+      EXCEPTION WHEN OTHERS THEN NULL;
+      END;
+    ELSE
+      UPDATE sp_marketing_signup_awards SET status = 'failed', last_error = left(v_res->>'error', 300),
+        attempts = attempts + 1, updated_at = now() WHERE op_id = r.op_id;
+      v_fail := v_fail + 1;
+    END IF;
+  END LOOP;
+  RETURN jsonb_build_object('qualified', v_new, 'paid', v_paid, 'waiting_for_club', v_wait, 'covered_by_welcome_back', v_cov, 'failed', v_fail);
+END $$;
+
 DO $$
 DECLARE f text;
 BEGIN
@@ -536,7 +659,7 @@ BEGIN
     'fn_sp_marketing_mark_sent(uuid,text,boolean,text,text)', 'fn_sp_marketing_suppress(text,text,text,uuid)',
     'fn_sp_marketing_unsuppress(text)', 'fn_sp_marketing_record_click(uuid,text)',
     'fn_sp_marketing_record_event(text,text,text,text,jsonb)', 'fn_sp_marketing_overview()',
-    'fn_sp_marketing_funnel(integer)'] LOOP
+    'fn_sp_marketing_funnel(integer)', 'fn_sp_marketing_signup_award_run()'] LOOP
     EXECUTE format('REVOKE ALL ON FUNCTION public.%s FROM PUBLIC, anon, authenticated', f);
     EXECUTE format('GRANT EXECUTE ON FUNCTION public.%s TO service_role', f);
   END LOOP;
@@ -554,13 +677,13 @@ COMMIT;
 
 -- ── ROLLBACK (copy-paste) ─────────────────────────────────────────────────
 -- BEGIN;
--- DROP FUNCTION IF EXISTS public.fn_sp_marketing_funnel(integer), public.fn_sp_marketing_overview(),
+-- DROP FUNCTION IF EXISTS public.fn_sp_marketing_signup_award_run(), public.fn_sp_marketing_funnel(integer), public.fn_sp_marketing_overview(),
 --   public.fn_sp_marketing_record_event(text,text,text,text,jsonb), public.fn_sp_marketing_record_click(uuid,text),
 --   public.fn_sp_marketing_unsuppress(text), public.fn_sp_marketing_suppress(text,text,text,uuid),
 --   public.fn_sp_marketing_mark_sent(uuid,text,boolean,text,text), public.fn_sp_marketing_next_batch(integer),
 --   public.fn_sp_marketing_campaign_approve(uuid,uuid), public.fn_sp_marketing_link_conversions(),
 --   public.fn_sp_marketing_import_contacts(jsonb,text,text,text[],uuid), public.fn_sp_marketing_is_player_email(text),
 --   public.fn_sp_marketing_email_key(text);
--- DROP TABLE IF EXISTS public.sp_marketing_events, public.sp_marketing_campaign_recipients, public.sp_marketing_campaigns,
+-- DROP TABLE IF EXISTS public.sp_marketing_signup_awards, public.sp_marketing_events, public.sp_marketing_campaign_recipients, public.sp_marketing_campaigns,
 --   public.sp_marketing_suppressions, public.sp_marketing_contacts, public.sp_marketing_settings;
 -- COMMIT;

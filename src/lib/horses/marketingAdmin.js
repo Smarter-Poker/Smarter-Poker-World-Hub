@@ -63,7 +63,13 @@ export function validateCampaign(body) {
         audience_tags: audience === 'contacts' ? tagList(body.audience_tags) : [],
         lapsed_days: int(body.lapsed_days, { min: 1, max: 365, fallback: 14 }),
         daily_cap: int(body.daily_cap, { min: 1, max: 10000, fallback: 100 }),
+        // Signup chips only make sense for people who are not players yet.
+        signup_chips: audience === 'contacts' ? int(body.signup_chips, { min: 0, max: 100, fallback: 0 }) : 0,
+        signup_chips_budget: audience === 'contacts' ? int(body.signup_chips_budget, { min: 0, max: 100000, fallback: 0 }) : 0,
     };
+    if (row.signup_chips > 0 && row.signup_chips_budget < row.signup_chips) {
+        throw badRequest('Set A Chip Budget Of At Least One Signup', 'bad_chip_budget');
+    }
     for (const k of ['name', 'subject', 'headline', 'body', 'cta_label']) {
         if (!row[k]) throw badRequest(`Campaign ${k.replace('_', ' ')} Is Required`, 'missing_field');
     }

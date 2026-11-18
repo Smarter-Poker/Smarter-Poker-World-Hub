@@ -62,6 +62,11 @@ export async function runMarketingCampaigns(sb, {
     const { data: linked, error: linkErr } = await sb.rpc('fn_sp_marketing_link_conversions');
     if (linkErr) summary.errors.push(`link: ${linkErr.message}`); else summary.linked = Number(linked) || 0;
 
+    // Signup chips the campaigns promised (Midway Union promo wallet), before
+    // the next send so a reader who signed up since the last run is paid now.
+    const { data: chips, error: chipErr } = await sb.rpc('fn_sp_marketing_signup_award_run');
+    if (chipErr) summary.errors.push(`signup chips: ${chipErr.message}`); else summary.signupChips = chips || null;
+
     try { summary.webhook = await ensureResendWebhook(sb, { apiKey, fetchImpl, log }); }
     catch (e) { summary.webhook = { ok: false, error: String(e?.message || e) }; }
 
