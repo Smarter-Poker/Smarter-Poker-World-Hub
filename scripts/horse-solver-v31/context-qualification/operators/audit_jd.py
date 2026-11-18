@@ -2,7 +2,7 @@ import sys,json,datetime
 from pathlib import Path
 B=Path(__file__).resolve().parents[1];sys.path.insert(0,str(B/'src'))
 from common import frozen,config,read,write,sha
-frozen();c,g=config();seal=read('JD-JOBS-SEAL.json');assert seal['candidate_sha256']==sha('CANDIDATE-SEAL.json') and seal['freeze_sha256']==sha('FREEZE.json');n=0;w=0;groups={}
+frozen();c,g=config();seal=read('JD-JOBS-SEAL.json');assert seal['reference_result_sha256']==c['inputs'][c['jd_reference_result']]['sha256'] and seal['freeze_sha256']==sha('FREEZE.json');n=0;w=0;groups={}
 for tag,co in c['cohorts'].items():
  if co['stage']!='JD':continue
  p=B/('jobs-'+tag+'.json');assert sha(p)==seal['files'][str(p)]

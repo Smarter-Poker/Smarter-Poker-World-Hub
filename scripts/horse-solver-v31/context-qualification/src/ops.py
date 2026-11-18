@@ -17,8 +17,16 @@ def budget(events):
    assert key in opened and e['rc']==0,'unresolved/failed native operation';l=opened.pop(key)
    s=(datetime.datetime.fromisoformat(e['at'].replace('Z','+00:00'))-datetime.datetime.fromisoformat(l['at'].replace('Z','+00:00'))).total_seconds();assert s>=0;seconds+=s
    if e['out'].upper().startswith('F5NQ-'):phase_seconds+=s
-   if e['out'].upper().startswith(('F5D3-','F5CTX-','F5REPAIR-','F5TAIL-','F5ROOT-','F5RCTX-','F5NQ-')):combined+=s
+   if e['out'].upper().startswith(('F5D3-','F5CTX-','F5REPAIR-','F5TAIL-','F5ROOT-','F5RCTX-','F5NQ-','F5FB-')):combined+=s
  return dict(runs=runs,hours=seconds/3600,phase_runs=phase_runs,phase_hours=phase_seconds/3600,combined_hours=combined/3600,open_operations=list(opened))
+def reserved_runs(stage, ledger_events):
+ if stage=='JD':return 0
+ if stage not in ('HARVEST','EVALUATION'):raise ValueError('unknown stage')
+ def remaining(prefix):
+  used=sum(e['solver_runs_max'] for e in ledger_events if e.get('event')=='launch' and not e.get('dry') and e.get('out','').upper().startswith(prefix))
+  if not 0<=used<=16:raise ValueError('stage reservation accounting')
+  return 16-used
+ return remaining('F5NQ-J-')+(remaining('F5NQ-E-') if stage=='HARVEST' else 0)
 def events():return [json.loads(l) for l in LEDGER.read_text().splitlines() if l.strip()]
 def remote_ps(script,timeout=60):
  encoded=base64.b64encode(script.encode('utf-16le')).decode();r=subprocess.run([HELPER,'m1','powershell -NoProfile -EncodedCommand '+encoded],capture_output=True,text=True,timeout=timeout)
@@ -44,7 +52,10 @@ def release(suffix):
  frozen();c,_=config();stage=c['cohorts'][suffix]['stage'];name=stage+'-RELEASE.json';r=read(name)
  assert r['accepted'] is True and r['freeze_sha256']==sha('FREEZE.json')
  for p,h in r['files'].items():assert sha(p)==h,'native release drift'
- if stage in ('EVALUATION','JD'):assert r['candidate_sha256']==sha('CANDIDATE-SEAL.json') and r['jobs_seal_sha256']==sha(stage+'-JOBS-SEAL.json')
+ if stage=='EVALUATION':assert r['candidate_sha256']==sha('CANDIDATE-SEAL.json')
+ if stage=='JD':
+  c,_=config();assert r['reference_result_sha256']==c['inputs'][c['jd_reference_result']]['sha256']
+ if stage in ('EVALUATION','JD'):assert r['jobs_seal_sha256']==sha(stage+'-JOBS-SEAL.json')
  return r
 def launch(suffix):
  c,_=config();assert suffix in c['cohorts'];r=release(suffix);co=c['cohorts'][suffix];out='F5NQ-'+suffix;jp=B/('jobs-'+suffix+'.json');js=json.loads(jp.read_bytes());ev=events();b=budget(ev);assert not b['open_operations']
@@ -59,7 +70,7 @@ def launch(suffix):
  remote_hashes=remote_ps(script);assert remote_hashes=={n:sha('driver/'+n) for n in names},'M1 helper drift'
  if co['requires_solo']:assert read('evidence/technical-'+co['requires_solo']+'.json')['rainbow_solo_pass'] is True
  log=B/('evidence/preflight-'+suffix+'.log');receipt=B/('evidence/preflight-'+suffix+'.json')
- cmd=[sys.executable,'-I','-B',str(W/'flop4/A8/preflight.py'),'--jobs',str(jp),'--driver',str(B/'driver/f4_lock_driver.py'),'--expect-driver-sha',sha('driver/f4_lock_driver.py'),'--expect-accuracy','.001','--cap','77','--used',str(b['phase_runs']),'--reserved',str({'HARVEST':32,'EVALUATION':16,'JD':0}[co['stage']]),'--require-stack-binds','--chips-per-bb','100','--role-names','EVALUATION','--ledger',str(LEDGER),'--programme','F5NQ-','--json',str(receipt)]
+ cmd=[sys.executable,'-I','-B',str(W/'flop4/A8/preflight.py'),'--jobs',str(jp),'--driver',str(B/'driver/f4_lock_driver.py'),'--expect-driver-sha',sha('driver/f4_lock_driver.py'),'--expect-accuracy','.001','--cap','77','--used',str(b['phase_runs']),'--reserved',str(reserved_runs(co['stage'],ev)),'--require-stack-binds','--chips-per-bb','100','--role-names','EVALUATION','--ledger',str(LEDGER),'--programme','F5NQ-','--json',str(receipt)]
  if co['stack'] is not None:cmd+=['--expect-stack-chips',str(co['stack'])]
  with log.open('x') as f:r=subprocess.run(cmd,stdout=f,stderr=subprocess.STDOUT)
  assert r.returncode==0 and read(receipt)['verdict']=='GO'

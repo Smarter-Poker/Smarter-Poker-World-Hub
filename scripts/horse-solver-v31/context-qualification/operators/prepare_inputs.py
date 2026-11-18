@@ -40,6 +40,7 @@ def groups(stage,prefix,jobs,stack):
 for d in [16000,24000]:groups('HARVEST','H%d'%(d//100),[j for j in new.values() if j['phases'][0]['scenario']['effective_stack_chips']==d],d)
 groups('EVALUATION','E',list(ev.values()),None);groups('JD','J',list(jd.values()),20000)
 # Mixed190/210 cohort stack admission must use eachscenario rather than a false singleexpectedstack.
+cohorts['J-N00']['predecessor']=None  # JD survives an earlier training/evaluation technical stop.
 for v in cohorts.values():
  if v['stage']=='EVALUATION':v['stack']=None
 g=SafeInputs(inputs)

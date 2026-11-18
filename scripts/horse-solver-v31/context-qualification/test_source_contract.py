@@ -38,8 +38,8 @@ class Contracts(unittest.TestCase):
   self.assertFalse(compare(rows)['relative_pass'])
  def test_new_budget_prefix_and_legacy_charged(self):
   p=Path(__file__).resolve().parent/'src/ops.py';tree=ast.parse(p.read_text());fn=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='budget');ns={'datetime':datetime};exec(compile(ast.Module(body=[fn],type_ignores=[]),str(p),'exec'),ns);events=[]
-  for prefix in ['F5D3-','F5CTX-','F5REPAIR-','F5TAIL-','F5ROOT-','F5RCTX-','F5NQ-']:events.extend([dict(event='launch',out=prefix+'X',solver_runs_max=1,at='2026-11-17T00:00:00Z'),dict(event='exit',out=prefix+'X',rc=0,at='2026-11-17T01:00:00Z')])
-  b=ns['budget'](events);self.assertEqual((b['runs'],b['combined_hours'],b['phase_runs']),(7,7,1));self.assertTrue(ns['budget'](events[:-1])['open_operations'])
+  for prefix in ['F5D3-','F5CTX-','F5REPAIR-','F5TAIL-','F5ROOT-','F5RCTX-','F5NQ-','F5FB-']:events.extend([dict(event='launch',out=prefix+'X',solver_runs_max=1,at='2026-11-17T00:00:00Z'),dict(event='exit',out=prefix+'X',rc=0,at='2026-11-17T01:00:00Z')])
+  b=ns['budget'](events);self.assertEqual((b['runs'],b['combined_hours'],b['phase_runs']),(8,8,1));self.assertTrue(ns['budget'](events[:-1])['open_operations'])
  def test_once_only_claim_and_opposite_seat_units(self):
   source=Path(__file__).resolve().parent/'src/score.py';tree=ast.parse(source.read_text());functions=[n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name in ('compare','main')]
   for fn in functions:fn.body=[n for n in fn.body if not (isinstance(n,ast.ImportFrom) and n.module=='ops')]
@@ -65,6 +65,34 @@ class Contracts(unittest.TestCase):
    exec(compile(ast.Module(body=functions,type_ignores=[]),str(source),'exec'),ns);ns['main']('EVALUATION');out=json.loads((root/'EVALUATION-RESULT.json').read_bytes());self.assertEqual(out['verdict'],'CONTEXT_QUALIFICATION_PASS');self.assertEqual(out['stats']['max'],1.);self.assertFalse(out['legacy_global_final_qualification']);self.assertTrue((root/'CONTEXT-CERTIFICATE.json').exists())
    with self.assertRaises(AssertionError):ns['main']('EVALUATION')
    self.assertEqual(len(calls),1)
+ def test_remaining_jd_reservation(self):
+  p=Path(__file__).resolve().parent/'src/ops.py';tree=ast.parse(p.read_text());fn=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='reserved_runs');ns={};exec(compile(ast.Module(body=[fn],type_ignores=[]),str(p),'exec'),ns);f=ns['reserved_runs']
+  self.assertEqual(f('EVALUATION',[]),16);self.assertEqual(f('HARVEST',[]),32)
+  ev=[dict(event='launch',out='F5NQ-J-N00',solver_runs_max=6),dict(event='launch',out='F5NQ-E-N00',solver_runs_max=6)]
+  self.assertEqual(f('EVALUATION',ev),10);self.assertEqual(f('JD',ev),0);self.assertEqual(f('HARVEST',ev),20)
+  ev.append(dict(event='launch',out='F5NQ-J-N01',solver_runs_max=10));self.assertEqual(f('EVALUATION',ev),0)
+  ev.append(dict(event='launch',out='F5NQ-J-BAD',solver_runs_max=1))
+  with self.assertRaises(ValueError):f('EVALUATION',ev)
+ def test_jd_builder_without_fit_candidate_or_evaluation(self):
+  p=Path(__file__).resolve().parent/'src/build_jd.py';tree=ast.parse(p.read_text());fn=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='main');jobs={};refs={};base={};ids=[]
+  for i in range(16):
+   source='TRAIN%d'%i;jid='JD%d'%i;ids.append(jid);base[source]=dict(phases=[dict(scenario=dict(pot_chips=600))]);refs[source]=dict(phases=[dict(scenario=dict(pot_chips=600),arms=[dict(name=seat+'_all|range_root',writes=[dict(node=seat+'1'),dict(node=seat+'2')]) for seat in ('ip','oop')])]);jobs[jid]=dict(id=jid,meta=dict(source_train_id=source,drop_chips=25 if i%2 else 60),phases=[dict(scenario=dict(pot_chips=575 if i%2 else 540))])
+  c=dict(inputs={'ref':dict(sha256='SYNTHETIC')},jd_reference_result='ref',jd_jobs=jobs,base_jobs=base,jd_reference_jobs=refs,cohorts={'J':dict(stage='JD',ids=ids)});written={}
+  def read(name):
+   self.assertEqual(name,'POLICY-IMPORT.json');return dict(fit_games=104)
+  ns=dict(config=lambda:(c,None),frozen=lambda:None,read=read,write=lambda p,v:written.update({str(p):v}),sha=lambda p:'SYNTHETIC',B=Path('/synthetic'),copy=copy,json=json)
+  exec(compile(ast.Module(body=[fn],type_ignores=[]),str(p),'exec'),ns);ns['main']()
+  self.assertEqual(written['JD-JOBS-SEAL.json']['arms'],32);self.assertFalse(written['JD-JOBS-SEAL.json']['qualification_use'])
+  self.assertEqual(written['/synthetic/jobs-J.json'][0]['phases'][0]['arms'],refs['TRAIN0']['phases'][0]['arms'])
+ def test_either_stage_namespace_and_foreign_refusal(self):
+  from stage_namespace import ensure_namespace
+  remote=r'C:\sp-v31\hv31-nextq-synthetic';digest='a'*64;calls=[]
+  def create(script):calls.append(script);return dict(created=True,freeze=digest)
+  self.assertTrue(ensure_namespace(create,remote,digest));self.assertIn('foreign or unsealed namespace',calls[0]);self.assertNotIn('EVALUATION',calls[0])
+  self.assertFalse(ensure_namespace(lambda s:dict(created=False,freeze=digest),remote,digest))
+  with self.assertRaises(ValueError):ensure_namespace(lambda s:dict(created=False,freeze='b'*64),remote,digest)
+  with self.assertRaises(ValueError):ensure_namespace(lambda s:dict(created=1,freeze=digest),remote,digest)
+  with self.assertRaises(ValueError):ensure_namespace(lambda s:self.fail('must refuse before remote'),r'C:\foreign',digest)
  def test_proxy_range_status_stays_blocked(self):
   result=range_status();self.assertEqual(result['state'],'BLOCKED_NO_QUALIFIED_DEPTH_RAKED_PROFILE');self.assertFalse(result['realistic_preflop_qualification']);self.assertFalse(result['live_play'])
  def test_protected_or_unknown_roles_refuse_before_open(self):

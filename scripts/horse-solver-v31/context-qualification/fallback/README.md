@@ -1,0 +1,9 @@
+# Sealed-candidate context qualification fallback
+
+This finite offline route imports the eight previously selected range_root models from their original 104-game TRAIN fit. It never refits or relabels old FIT metadata. The original expansion stopped at a native 600-second technical deadline; it is preserved as a failure. The same 16 still-untouched 190/210bb contexts are admitted only after original provenance, exact-game exclusion, neighboring-depth support, public feature parity and an independent frozen-source review.
+
+Each context is checked before batched prediction, then every table is independently rebuilt from scalar predictions. Native cohorts require preflight, exact helper/job hashes, canonical copies and mandatory A2 technical checks before continuation. Only a complete 16-game evaluation can claim and score once. Relative, strict two-tone and every-seat 3-percent limits remain unchanged. A successful result is limited to exact-context interpolation with proxy ranges and prior flop exposure; it does not certify unseen flops, realistic preflop ranges or live play.
+
+Jackpot-drop diagnostics use unchanged old full-pot tables and are independent of candidate fitting and evaluation success. Either stage initializes the same uniquely owned remote namespace using an exact freeze marker; foreign or unsealed directories refuse. Budget reservations subtract already launched JD jobs. No failed session is retried and no evaluation is redrawn.
+
+The maintained V31 pipeline suite executes the 12 hermetic contracts here, including JD without FIT/evaluation artifacts, either-stage namespace ownership and remaining-JD reservation accounting. Actual private inputs, model weights, jobs, native results and freeze/import manifests stay on SSD2. Published source is dormant; HV31 remains OFF. See PLAN.md for the exact finite protocol and limitations.
