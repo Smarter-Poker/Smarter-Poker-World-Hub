@@ -145,3 +145,15 @@ test('minimize/restore reuses one continuity owner so late receipts retain the n
  finish({ok:true,status:200,body:{success:true,state:{draft:{text:'Old',replyToId:null,revision:2},position:{messageId:null,offset:0,revision:0},pin:{value:false,revision:0}}}});await reading;
  assert.equal(notices,before);actor=id(2);const other=owner.get(actor,{workspace:'social'},options);assert.equal(other.state(id(10)).draft.text,'');
 });
+
+// 2026-11-18: "signal timed out" was printed in red over the poker table.
+test('a failed dock request is said plainly, and a background refresh never floats over the page', async () => {
+ const { dockFailureText } = await import('../src/components/messenger/dock/messengerDock.mjs');
+ assert.equal(dockFailureText(Object.assign(new Error('signal timed out'), { name: 'TimeoutError' })), 'Messages Are Taking Too Long. Try Again');
+ assert.equal(dockFailureText(new TypeError('Failed to fetch')), 'Messages Are Unavailable. Check Your Connection');
+ assert.equal(dockFailureText(new Error('Messenger Is Temporarily Unavailable')), 'Messenger Is Temporarily Unavailable');
+ const dock = readFileSync(new URL('../src/components/messenger/dock/MessengerDock.jsx', import.meta.url), 'utf8');
+ assert.ok(dock.includes('setInboxError(dockFailureText(failure));'));
+ assert.ok(!dock.includes('setError(failure.message)'));
+ assert.ok(dock.includes('{error && <p role="alert" className="dock-preview-error">{error}</p>}'));
+});

@@ -118,6 +118,39 @@ export function selectWorkspaceConversations(conversations, accounting, userId, 
     }).map(c => ({ ...c, isAccounting: accounting.has(c.id), requiresAction: accounting.get(c.id)?.requiresAction === true, clubId: club?.id || null }));
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+//  THE DOCK LOADS WHAT THE DOCK SHOWS (2026-11-18)
+// ═══════════════════════════════════════════════════════════════════════════
+// The dock is the small chat launcher on every page. It refreshes on mount, on
+// every tab focus, on reconnect and on every incoming message, and each
+// refresh ran the FULL inbox waterfall for the personal inbox and then TWICE
+// for every club (once per folder, over the same rows): thread details and
+// the two accounting authority reads for every thread the person has ever
+// had, 100 at a time. An owner with 5,895 threads across six clubs made
+// several hundred sequential database round trips per refresh, the request
+// passed the dock's 30 second ceiling, and the browser's own abort text
+// ("signal timed out") was printed over the poker table.
+//
+// Two changes, neither of which alters who may see what:
+//   1. One load per club serves both of its folders. They were always the
+//      same rows filtered two ways.
+//   2. The dock asks only for what it shows: every thread with something
+//      unread, and the most recent DOCK_RECENT_LIMIT of the rest, per inbox.
+//      Unread counts are unchanged because every unread thread is still read.
+//      The full Messenger page is untouched and still lists everything.
+export const DOCK_RECENT_LIMIT = 30;
+const DOCK_CLUBS_AT_ONCE = 4;
+
+// `list` is in inbox order: staff notice groups with no messages first, then
+// the reader's own order (unread first, then newest). Keeps every unread
+// thread and every empty staff group, and the newest `limit` of the others.
+export function dockInboxSlice(list, limit, alwaysKeep = 0) {
+    if (!(limit > 0) || list.length <= limit) return list;
+    let recent = 0;
+    return list.filter((conversation, index) =>
+        index < alwaysKeep || Number(conversation.unread_count || 0) > 0 || recent++ < limit);
+}
+
 export async function getMessengerWorkspace(db, userId, request, internal = {}) {
     if (request.workspace === 'club' && request.folder === 'statements') {
         const inbox = await getMessengerWorkspace(db, userId, { ...request, folder: 'invoices' }, { ...internal, countsOnly: true });
@@ -128,13 +161,18 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
     if (workspace === 'dock' || workspace === 'feed') {
         // Global reconnect/inbox reads must cover each currently authorized
         // workspace, including club discussions missed while offline.
-        const options = { clubs, countsOnly: true };
+        const options = { clubs, countsOnly: true, bothFolders: true,
+            ...(workspace === 'dock' ? { recentLimit: DOCK_RECENT_LIMIT } : {}) };
         const workspaces = [await getMessengerWorkspace(db, userId, { workspace: 'social' }, options)];
-        for (let start = 0; start < clubs.length; start += 2) {
-            const batch = await Promise.all(clubs.slice(start, start + 2).flatMap(club =>
-                ['messages', 'invoices'].map(folder => getMessengerWorkspace(db, userId,
-                    { workspace: 'club', clubId: club.id, folder }, options))));
-            workspaces.push(...batch);
+        for (let start = 0; start < clubs.length; start += DOCK_CLUBS_AT_ONCE) {
+            const batch = await Promise.all(clubs.slice(start, start + DOCK_CLUBS_AT_ONCE).map(club =>
+                getMessengerWorkspace(db, userId, { workspace: 'club', clubId: club.id, folder: 'messages' }, options)));
+            // Same order as before: each club's messages, then its invoices.
+            for (const loaded of batch) {
+                for (const folder of ['messages', 'invoices']) {
+                    workspaces.push({ ...loaded, folder, conversations: loaded.folders[folder] });
+                }
+            }
         }
         const combined = workspaces.flatMap(selected => selected.conversations.filter(conversation =>
             workspace === 'dock' || selected.workspace === 'social' ||
@@ -202,7 +240,9 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
     const emptyGroups = managed.filter(g => participation.some(p => p.conversation_id === g.conversation_id)
         && (!authorizeOne || g.conversation_id === resolvedId))
         .map(g => ({ conversation_id: g.conversation_id, is_group: true, unread_count: 0 }));
-    const unique = [...new Map([...emptyGroups, ...listed].map(c => [c.conversation_id || c.id, c])).values()];
+    const everyThread = [...new Map([...emptyGroups, ...listed].map(c => [c.conversation_id || c.id, c])).values()];
+    const unique = internal.recentLimit && !authorizeOne
+        ? dockInboxSlice(everyThread, internal.recentLimit, emptyGroups.length) : everyThread;
     const ids = unique.map(c => c.conversation_id || c.id);
     const [meta, accounting] = await Promise.all([
         byIds(db, 'social_conversations', 'id,is_request,request_sender_id,last_message_preview,group_name', 'id', ids),
@@ -329,8 +369,14 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
     if (resolvedId) conversation = visible.find(row => row.id === resolvedId);
     // An authorize-only answer carries the one conversation; its list and
     // counts cover that conversation alone and must not be shown as an inbox.
+    // Both folders of one club, from the one load (see DOCK_RECENT_LIMIT).
+    const folders = internal.bothFolders && club ? {
+        messages: club.pageId ? selectWorkspaceConversations(conversations, accounting, userId, club, 'messages') : [],
+        invoices: selectWorkspaceConversations(conversations, accounting, userId, club, 'invoices'),
+    } : null;
     return { success: true, clubs, conversations: visible, conversation, weeklySummary, unreadCounts, attentionCounts,
-        workspace: club ? 'club' : 'social', clubId: club?.id || null, folder, ...(authorizeOne ? { authorizedOnly: true } : {}) };
+        workspace: club ? 'club' : 'social', clubId: club?.id || null, folder, ...(authorizeOne ? { authorizedOnly: true } : {}),
+        ...(folders ? { folders } : {}) };
 }
 
 // Use the exact inbox visibility rules, including private invoices and active
