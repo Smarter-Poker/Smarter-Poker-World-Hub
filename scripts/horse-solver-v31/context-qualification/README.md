@@ -8,4 +8,7 @@ Jackpot sensitivity transfers the OLD sealed200bb TRAIN policies into540/575chip
 
 Same-model batch inference preserves request order and exact probabilities. Evaluation table generation applies each context support gate before batching; the separate actual table auditor reconstructs scalar predictions and requires identical wire tables. benchmark_runtime.py measures only explicit sealed MODEL and public TRAIN feature inputs, using required campaign/fit/source pins; it opens no labels or native answers. Offline Mac timing is not a production SLA.
 
-The existing required V31 pipeline suite runs9qualification,5runtime and5range-profile synthetic contracts without private data, fitting or solver access. Synthetic scorer output is a test, not a model result. Private manifests, rows, weights, jobs and native outcomes remain on SSD2. Publication ships source only; HV31 remains OFF.
+The existing required V31 pipeline suite runs12qualification,5runtime and5range-profile synthetic contracts without private data, fitting or solver access. Synthetic scorer output is a test, not a model result. Private manifests, rows, weights, jobs and native outcomes remain on SSD2. Publication ships source only; HV31 remains OFF.
+
+JD construction and release bind only the old sealed TRAIN reference and tables. They do not require a successful new fit, candidate seal, or evaluation predecessor; the first JD cohort is independent. JD reservations account for already launched diagnostic jobs. The sealed-candidate fallback route is documented in fallback/README.md.
+Each stage can initialize its uniquely owned namespace using an exact freeze ownership marker; foreign or unsealed namespaces are refused.
