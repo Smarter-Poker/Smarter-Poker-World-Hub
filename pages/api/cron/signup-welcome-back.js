@@ -26,6 +26,10 @@
  * sp_player_announcement_recipients. These ride this schedule because CLAUDE.md
  * section 11 forbids a net-new cron route.
  *
+ * Marketing campaigns (Dan, 2026-11-18): last, it sends the next daily-capped
+ * batch of every campaign approved in /horses?tab=marketing
+ * (src/lib/marketing/runner.mjs). Nothing approved means a no-op.
+ *
  * This is a promotion on a clock, not a repair job: the schedule is the product.
  *
  * Auth: Bearer <CRON_SECRET>. `?limit=N` caps the players paid in one run.
@@ -34,7 +38,9 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { withCronHealth } from '../../../src/lib/cronHealth';
-import { sendBulkEmail, sendSms } from '../../../src/lib/dailyDigest/delivery.mjs';
+import { sendBulkEmail, sendSms, sendEmail, bulkEmailConfig } from '../../../src/lib/dailyDigest/delivery.mjs';
+import { resendApiKey } from '../../../src/lib/email/resendAccount.mjs';
+import { runMarketingCampaigns } from '../../../src/lib/marketing/runner.mjs';
 import { runWelcomeBack } from '../../../src/lib/welcomeBack/run.mjs';
 import { runRelaunchNotice } from '../../../src/lib/tournamentRelaunch/notice.mjs';
 import { runPlayerAnnouncements } from '../../../src/lib/playerAnnouncements/notice.mjs';
@@ -74,6 +80,21 @@ async function handler(req, res) {
             console.error('[player-announcements]', announcements.error);
         }
 
+        // Marketing campaigns (Dan, 2026-11-18): approved in /horses?tab=marketing,
+        // sent here in daily-capped batches. Same rule: its own try, resumable,
+        // never turns the run red. The Pro key both sends and owns the webhook.
+        let marketing = null;
+        try {
+            const bulk = bulkEmailConfig();
+            marketing = await runMarketingCampaigns(sb, {
+                sendEmail, apiKey: bulk?.apiKey || resendApiKey(), bulkAddr: bulk?.addr || null,
+                log: (m) => console.log(m), deadline: startedAt + 292000,
+            });
+        } catch (e) {
+            marketing = { error: String(e?.message || e) };
+            console.error('[marketing]', marketing.error);
+        }
+
         // A player the promotion could not pay is an incident, not a success:
         // non-200 lets the dispatcher count it and page after three failed
         // hours. It pages for an empty promo wallet (nobody can be paid) and
@@ -82,9 +103,9 @@ async function handler(req, res) {
         // the pager does not become a permanent alarm anyone learns to mute.
         if (summary.wallet_empty || summary.failed_new > 0) {
             const why = summary.wallet_empty ? 'Midway Union promo wallet cannot fund the chips' : `${summary.failed_new} player(s) could not be paid`;
-            return res.status(503).json({ success: false, error: why, ...summary, relaunch, announcements });
+            return res.status(503).json({ success: false, error: why, ...summary, relaunch, announcements, marketing });
         }
-        return res.status(200).json({ success: true, ...summary, relaunch, announcements });
+        return res.status(200).json({ success: true, ...summary, relaunch, announcements, marketing });
     } catch (err) {
         reportApiError(err, req);
         console.error('[signup-welcome-back]', err?.message || err);

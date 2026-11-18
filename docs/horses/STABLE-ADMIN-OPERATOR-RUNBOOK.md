@@ -66,6 +66,7 @@ off work because `?tab=` and the Club Arena `?section=` value are durable.
 | `sql-console` | Execute the restricted operator SQL surface. | `sql.execute` | Use only approved statements, review the result and preserve the audit trail. | The tab appears without `sql.execute`, arbitrary credentials are requested, or execution bypasses the route. |
 | `hg-moderation` | Moderate Home Games reports and appeals and perform authorized erasure. | `players.read` | Work the inner keyboard tabs; mutate only with `moderation.write`; erase only with `gdpr.erase`. | A named operator passes UI admission but the RPC refuses the same permission, or a destructive action lacks confirmation. |
 | `hand-reviews` | Review horse and human hand evidence. | `fleet.read` | Use the paged/virtualized list, keep horses included, and open a durable hand/review ID. | Show All drops rows, focus is lost across a virtual window, or the RPC admits only legacy roles. |
+| `marketing` | Manage contacts who are not players yet, draft and send email campaigns, keep the do-not-email list, and read the retention funnel. | `console.read` | Writes need `content.write`. Draft, send a test to yourself, set the mailing address, then approve (type SEND). Sending runs hourly inside the per-campaign and global daily caps and pauses itself on a spam or bounce spike. | A campaign sends without a test or a mailing address, an unsubscribed or bounced address is emailed, or a send passes its daily cap. |
 
 ## 4. Club Arena Inner Sections
 

@@ -53,6 +53,7 @@ const HgModerationPanel = dynamic(() => import('./HgModerationPanel'), { ssr: fa
 const HandReviewsPanel = dynamic(() => import('./HandReviewsPanel'), { ssr: false, loading: loadingState('Hand Reviews') });
 const ClubsUnionsPanel = dynamic(() => import('./ClubsUnionsPanel'), { ssr: false, loading: loadingState('Club And Union Operations') });
 const AnnouncementsPanel = dynamic(() => import('./AnnouncementsPanel'), { ssr: false, loading: loadingState('Announcements') });
+const MarketingPanel = dynamic(() => import('./MarketingPanel'), { ssr: false, loading: loadingState('Marketing') });
 
 export const TAB_PANEL_COMPONENTS = Object.freeze({
   stable: StablePanel,
@@ -84,6 +85,7 @@ export const TAB_PANEL_COMPONENTS = Object.freeze({
   'sql-console': SqlConsolePanel,
   'hg-moderation': HgModerationPanel,
   'hand-reviews': HandReviewsPanel,
+  marketing: MarketingPanel,
 });
 
 export const CLUB_ARENA_SECTION_COMPONENTS = Object.freeze({

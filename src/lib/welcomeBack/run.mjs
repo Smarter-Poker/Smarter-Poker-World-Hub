@@ -18,13 +18,15 @@
  * Pure apart from the injected senders, so __tests__/welcome-back.test.mjs
  * covers every branch without a database, Resend or Twilio.
  */
+import { loadSuppressed, isSuppressed, oneClickHeaders, SUPPRESSED_DETAIL } from '../marketing/suppression.mjs';
+
 
 export const WELCOME_BACK_AMOUNT = 25;
 const PLAY_URL = 'https://smarter.poker/hub/club-arena/';
 /** The chips links land in Club Arena with ?welcome=chips, which announces the welcome_chips push-nudge moment. */
 const WELCOME_URL = `${PLAY_URL}?welcome=chips`;
 const fmtChips = (v) => Number(v || WELCOME_BACK_AMOUNT).toLocaleString('en-US', { maximumFractionDigits: 2 });
-const unsubscribeHeaders = () => ({ 'List-Unsubscribe': `<${UNSUBSCRIBE_URL}>` });
+const unsubscribeHeaders = (email) => oneClickHeaders(email, UNSUBSCRIBE_URL);
 const unsubscribeFootHtml = () => `<div style="padding:14px 0 0 0;color:#8b95a7;font-size:11px;line-height:1.5;">You are getting this because you signed up at Smarter.Poker. <a href="${UNSUBSCRIBE_URL}" style="color:#8b95a7;">Manage or turn off these emails</a>.</div>`;
 const unsubscribeFootText = () => `Manage or turn off these emails: ${UNSUBSCRIBE_URL}`;
 /** Player-facing sender; the digest's alerts@ address is for the owner's ops mail. */
@@ -288,6 +290,10 @@ export async function runWelcomeBack(sb, { limit = 50, sendEmail, sendSms, log =
         for (const r of prefs || []) if (r.mute_all === true) muted.add(r.user_id);
     };
     await loadMuted([...todo.keys()]);
+    // The do-not-email list (unsubscribe link, hard bounce, spam complaint).
+    // Unreadable -> null -> no email this run, receipts left for the next run.
+    const suppressed = await loadSuppressed(sb, [...todo.values()].map((t) => t.email));
+    if (suppressed === null) summary.errors.push('suppression list unreadable: emails held for the next run');
 
     // A receipt that fails to record would make the next run send again, so
     // it gets a second try before that is accepted.
@@ -316,9 +322,11 @@ export async function runWelcomeBack(sb, { limit = 50, sendEmail, sendSms, log =
 
         if (t.needEmail) {
             if (!t.email) entry.email = 'no email';
+            else if (suppressed === null) entry.email = 'held: suppression list unreadable';
+            else if (isSuppressed(suppressed, t.email)) { entry.email = 'unsubscribed'; await mark(t.user_id, 'email', false, SUPPRESSED_DETAIL); }
             else {
                 const msg = welcomeBackEmail({ username: t.username, club: t.club, amount });
-                const r = await sendEmail({ to: [t.email], subject: msg.subject, html: msg.html, text: msg.text, idempotencyKey: `welcome-back-${t.user_id}`, from: WELCOME_BACK_FROM, headers: unsubscribeHeaders() });
+                const r = await sendEmail({ to: [t.email], subject: msg.subject, html: msg.html, text: msg.text, idempotencyKey: `welcome-back-${t.user_id}`, from: WELCOME_BACK_FROM, headers: unsubscribeHeaders(t.email) });
                 entry.email = r.ok ? 'sent' : `failed: ${r.error}`;
                 if (r.ok) summary.emails_sent++; else summary.emails_failed++;
                 await mark(t.user_id, 'email', !!r.ok, r.ok ? null : r.error);
@@ -400,6 +408,8 @@ export async function runWelcomeBack(sb, { limit = 50, sendEmail, sendSms, log =
     }
 
     await loadMuted([...new Set(nudgeTodo.map((t) => t.user_id))].filter((id) => !todo.has(id)));
+    const nudgeSuppressed = await loadSuppressed(sb, nudgeTodo.map((t) => t.email));
+    if (nudgeSuppressed === null && nudgeTodo.length) summary.errors.push('suppression list unreadable: nudge emails held for the next run');
     for (const t of nudgeTodo) {
         if (outOfTime()) { summary.deferred++; continue; }
         if (t.kind === 'club' && !t.club_code) {
@@ -425,8 +435,10 @@ export async function runWelcomeBack(sb, { limit = 50, sendEmail, sendSms, log =
             : playNudgeSms({ username: t.username, club: t.club, amount });
         if (t.needEmail) {
             if (!t.email) entry.email = 'no email';
+            else if (nudgeSuppressed === null) entry.email = 'held: suppression list unreadable';
+            else if (isSuppressed(nudgeSuppressed, t.email)) { entry.email = 'unsubscribed'; await mark(t.user_id, `${t.kind}_nudge_email`, false, SUPPRESSED_DETAIL); }
             else {
-                const r = await sendEmail({ to: [t.email], subject: msg.subject, html: msg.html, text: msg.text, idempotencyKey: `welcome-back-${t.kind}-nudge-${t.user_id}`, from: WELCOME_BACK_FROM, headers: unsubscribeHeaders() });
+                const r = await sendEmail({ to: [t.email], subject: msg.subject, html: msg.html, text: msg.text, idempotencyKey: `welcome-back-${t.kind}-nudge-${t.user_id}`, from: WELCOME_BACK_FROM, headers: unsubscribeHeaders(t.email) });
                 entry.email = r.ok ? 'sent' : `failed: ${r.error}`;
                 if (r.ok) summary.nudge_emails_sent++; else summary.nudge_emails_failed++;
                 await mark(t.user_id, `${t.kind}_nudge_email`, !!r.ok, r.ok ? null : r.error);

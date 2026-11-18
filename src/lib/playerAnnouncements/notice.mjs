@@ -13,6 +13,8 @@
  * twice. It runs inside the hourly /api/cron/signup-welcome-back fire (no new
  * cron route, CLAUDE.md section 11). Nothing pending means a no-op.
  */
+import { loadSuppressed, isSuppressed, oneClickHeaders, SUPPRESSED_DETAIL } from '../marketing/suppression.mjs';
+
 
 const PLAY_URL = 'https://smarter.poker/hub/club-arena/';
 const UNSUBSCRIBE_URL = 'https://smarter.poker/hub/settings/notifications';
@@ -82,6 +84,9 @@ export async function runPlayerAnnouncements(sb, { sendEmail, sendSms, log = () 
     const ids = [...new Set(rows.map((r) => r.user_id))];
     const { data: prefs } = await sb.from('notification_preferences').select('user_id, mute_all').in('user_id', ids);
     const muted = new Set((prefs || []).filter((p) => p.mute_all === true).map((p) => p.user_id));
+    // The do-not-email list. Unreadable -> no email this run, left pending.
+    const suppressed = await loadSuppressed(sb, rows.map((r) => r.email));
+    if (suppressed === null) summary.errors.push('suppression list unreadable: emails held for the next run');
     const mark = async (r, channel, ok, detail) => {
         for (let i = 0; i < 2; i++) {
             const { error: e } = await sb.rpc('fn_sp_announcement_notice_mark', { p_announcement_id: r.announcement_id, p_user_id: r.user_id, p_channel: channel, p_ok: ok, p_detail: detail || null });
@@ -100,11 +105,16 @@ export async function runPlayerAnnouncements(sb, { sendEmail, sendSms, log = () 
             if (r.need_sms) await mark(r, 'sms', false, 'muted');
             continue;
         }
-        if (r.need_email && r.email) {
+        if (r.need_email && r.email && suppressed === null) {
+            summary.held = (summary.held || 0) + 1;
+        } else if (r.need_email && r.email && isSuppressed(suppressed, r.email)) {
+            summary.unsubscribed = (summary.unsubscribed || 0) + 1;
+            await mark(r, 'email', false, SUPPRESSED_DETAIL);
+        } else if (r.need_email && r.email) {
             const msg = announcementEmail(r);
             const res = await sendEmail({ to: [r.email], subject: msg.subject, html: msg.html, text: msg.text,
                 idempotencyKey: `announcement-${r.slug}-${r.user_id}`, from: ANNOUNCEMENT_FROM,
-                headers: { 'List-Unsubscribe': `<${UNSUBSCRIBE_URL}>` } });
+                headers: oneClickHeaders(r.email, UNSUBSCRIBE_URL) });
             if (res?.ok) summary.emails_sent++; else summary.emails_failed++;
             await mark(r, 'email', !!res?.ok, res?.ok ? null : String(res?.error || 'unknown'));
         }

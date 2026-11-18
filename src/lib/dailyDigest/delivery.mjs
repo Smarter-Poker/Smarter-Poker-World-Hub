@@ -73,7 +73,7 @@ export async function sendBulkEmail(opts = {}) {
     return sendEmail({ ...opts, from: withAddress(opts.from || digestFrom(), bulk.addr), apiKey: bulk.apiKey });
 }
 
-export async function sendEmail({ to, subject, html, text, idempotencyKey, from = null, headers = null, apiKey: keyOverride = null, fetchImpl = fetch }) {
+export async function sendEmail({ to, subject, html, text, idempotencyKey, from = null, headers = null, replyTo = null, apiKey: keyOverride = null, fetchImpl = fetch }) {
     // No explicit key: the account helper picks the Pro key when it is set and
     // moves an @smarter.poker sender onto mail.smarter.poker to match it.
     const apiKey = trim(keyOverride) || resendApiKey();
@@ -91,7 +91,7 @@ export async function sendEmail({ to, subject, html, text, idempotencyKey, from 
                     ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
                 },
                 signal: AbortSignal.timeout(10000),
-                body: JSON.stringify({ from: sender, to, subject, html, text, ...(headers ? { headers } : {}) }),
+                body: JSON.stringify({ from: sender, to, subject, html, text, ...(headers ? { headers } : {}), ...(replyTo ? { reply_to: replyTo } : {}) }),
             });
             const body = await res.json().catch(() => ({}));
             if (res.ok && body?.id) return { ok: true, id: body.id };
