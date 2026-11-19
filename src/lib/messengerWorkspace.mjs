@@ -106,13 +106,20 @@ async function accountingMap(db, ids, userId) {
     return map;
 }
 
+export function isVisibleInvoiceThread(invoice, userId, clubId, { requireRecipientVisible = true } = {}) {
+    return !!invoice && !!clubId && invoice.scope_id === clubId && (
+        (invoice.recipient_id === userId && (!requireRecipientVisible || !!invoice.recipient_visible))
+        || (invoice.sender_id === userId && !!invoice.last_discussion_at)
+    );
+}
+
 export function selectWorkspaceConversations(conversations, accounting, userId, club, folder) {
     return conversations.filter(c => {
         const invoice = accounting.get(c.id);
         if (folder === 'invoices') {
             // An issuer's participation allows replies but must not turn every
             // agent's private invoice into a separate club inbox item.
-            return invoice?.scope_id === club?.id && ((invoice.recipient_id === userId && invoice.recipient_visible) || (invoice.sender_id === userId && !!invoice.last_discussion_at));
+            return isVisibleInvoiceThread(invoice, userId, club?.id);
         }
         return !invoice;
     }).map(c => ({ ...c, isAccounting: accounting.has(c.id), requiresAction: accounting.get(c.id)?.requiresAction === true, clubId: club?.id || null }));
@@ -212,7 +219,7 @@ export function feedInboxSlice(list, { window, alwaysKeep = 0, pinned = new Set(
     });
     const time = conversation => Date.parse(conversation.last_message_at || '') || 0;
     for (const conversation of [...read].sort((a, b) => time(b) - time(a)).slice(0, window)) kept.add(idOf(conversation));
-    return { conversations: list.filter(conversation => kept.has(idOf(conversation))), hasOlder: read.length > window };
+    return { conversations: list.filter(conversation => kept.has(idOf(conversation))), hasOlder: read.length > window && window < FEED_WINDOW_MAX };
 }
 
 function missingFunction(error) {
@@ -234,12 +241,28 @@ async function feedAttentionIds(db, userId, clubs) {
 // The same two conditions selectWorkspaceConversations applies to an invoice,
 // asked of the table by audience instead of by every thread id.
 async function feedInvoiceThreadIds(db, userId, club) {
-    const scoped = () => db.from('accounting_conversations').select('conversation_id').eq('scope_id', club.id);
+    const scoped = () => db.from('accounting_conversations')
+        .select('conversation_id,scope_id,recipient_id,sender_id,last_discussion_at')
+        .eq('scope_id', club.id);
     const [received, discussed] = await Promise.all([
         pages(() => scoped().eq('recipient_id', userId), 'conversation_id'),
         pages(() => scoped().eq('sender_id', userId).not('last_discussion_at', 'is', null), 'conversation_id'),
     ]);
-    return new Set([...received, ...discussed].map(row => row.conversation_id));
+    return new Set([...received, ...discussed]
+        .filter(row => isVisibleInvoiceThread(row, userId, club.id, { requireRecipientVisible: false }))
+        .map(row => row.conversation_id));
+}
+
+// Invoices the caller issued in this club with no discussion are dropped by
+// selectWorkspaceConversations. Exclude them before dockInboxSlice so bulk
+// weekly invoice issuance cannot consume all DOCK_RECENT_LIMIT read slots.
+async function dockHiddenInvoiceThreadIds(db, userId, club) {
+    const issued = await pages(() => db.from('accounting_conversations')
+        .select('conversation_id,scope_id,recipient_id,sender_id,last_discussion_at')
+        .eq('scope_id', club.id).eq('sender_id', userId), 'conversation_id');
+    return new Set(issued
+        .filter(row => !isVisibleInvoiceThread(row, userId, club.id, { requireRecipientVisible: false }))
+        .map(row => row.conversation_id));
 }
 
 export async function getMessengerWorkspace(db, userId, request, internal = {}) {
@@ -346,7 +369,14 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
         unique = sliced.conversations;
         hasOlder = sliced.hasOlder;
     } else if (internal.recentLimit && !authorizeOne) {
-        unique = dockInboxSlice(everyThread, internal.recentLimit, emptyGroups.length);
+        let dockCandidates = everyThread;
+        if (club) {
+            const hiddenInvoices = await dockHiddenInvoiceThreadIds(db, userId, club);
+            if (hiddenInvoices.size) {
+                dockCandidates = everyThread.filter(c => !hiddenInvoices.has(c.conversation_id || c.id));
+            }
+        }
+        unique = dockInboxSlice(dockCandidates, internal.recentLimit, emptyGroups.length);
     }
     const ids = unique.map(c => c.conversation_id || c.id);
     const [meta, accounting] = await Promise.all([

@@ -140,6 +140,91 @@ test('dockInboxSlice keeps unread threads, empty staff groups and the newest of 
     assert.equal(dockInboxSlice(list, 0, 1), list);
 });
 
+test('unshown issued invoices do not consume dock read slots and crowd out real club threads', async () => {
+    const issuedCount = DOCK_RECENT_LIMIT + 5;
+    const realReadCount = 5;
+    const rows = [];
+    const accounting = [];
+    for (let n = 1; n <= realReadCount; n++) {
+        rows.push({
+            conversation_id: thread(1, n), context: pageId(1), is_group: false, unread_count: 0,
+            other_user_id: peer(n), other_user_username: `player${n}`,
+            last_message_at: new Date(Date.UTC(2026, 0, 1) + n * 60000).toISOString(),
+        });
+    }
+    for (let n = 1; n <= issuedCount; n++) {
+        const id = thread(1, realReadCount + n);
+        rows.push({
+            conversation_id: id, context: pageId(1), is_group: false, unread_count: 0,
+            other_user_id: peer(realReadCount + n), other_user_username: `agent${n}`,
+            // Newer than all 5 real club threads: before the fix, these 35 rows
+            // took all 30 DOCK_RECENT_LIMIT slots and were then dropped.
+            last_message_at: new Date(Date.UTC(2026, 1, 1) + n * 60000).toISOString(),
+        });
+        accounting.push({
+            conversation_id: id, scope_id: clubId(1), issuer_type: 'club',
+            recipient_id: peer(realReadCount + n), sender_id: user, last_discussion_at: null,
+        });
+    }
+    const tables = {
+        club_members: [{ user_id: user, club_id: clubId(1), role: 'owner', status: 'active', membership_lifecycle_status: 'active', is_active: true }],
+        clubs: [{ id: clubId(1), name: 'Club 1', avatar_url: null }],
+        social_pages: [{ id: pageId(1), name: 'Club 1', linked_entity_id: clubId(1), linked_entity_type: 'club' }],
+        club_messenger_staff_notice_groups: [],
+        accounting_conversations: accounting,
+        social_messages: [],
+        social_conversations: rows.map(r => ({ id: r.conversation_id, is_request: false, last_message_preview: 'hi', group_name: null })),
+        social_conversation_participants: [],
+    };
+    const invoices = new Map(accounting.map(record => [record.conversation_id, record]));
+    const db = {
+        from(table) {
+            let data = [...(tables[table] || [])]; let order = null; let ascending = true; let limit = Infinity;
+            const q = {
+                select() { return q; },
+                eq(k, v) { data = data.filter(r => r[k] === v); return q; },
+                neq(k, v) { data = data.filter(r => r[k] !== v); return q; },
+                gt(k, v) { data = data.filter(r => r[k] > v); return q; },
+                not(k) { data = data.filter(r => r[k] != null); return q; },
+                contains() { data = []; return q; },
+                in(k, values) { const wanted = new Set(values); data = data.filter(r => wanted.has(r[k])); return q; },
+                order(k, options = {}) { order = k; ascending = options.ascending !== false; return q; },
+                limit(n) { limit = n; return q; },
+                then(resolve, reject) {
+                    if (order) data.sort((a, b) => String(a[order]).localeCompare(String(b[order])) * (ascending ? 1 : -1));
+                    return Promise.resolve({ data: data.slice(0, limit), error: null }).then(resolve, reject);
+                },
+            };
+            return q;
+        },
+        async rpc(name, args) {
+            if (name === 'fn_get_user_conversations') {
+                const mine = rows.filter(r => r.context === (args.p_context_entity_id ?? null))
+                    .sort((a, b) => (b.unread_count > 0) - (a.unread_count > 0) || b.last_message_at.localeCompare(a.last_message_at));
+                return { data: mine, error: null };
+            }
+            if (name === 'fn_messenger_private_accounting_threads') {
+                return {
+                    data: args.p_conversation_ids.filter(id => invoices.has(id)).map(id => ({
+                        conversation_id: id, recipient_visible: true, last_message_preview: 'Invoice',
+                        last_message_at: rows.find(r => r.conversation_id === id).last_message_at,
+                    })),
+                    error: null,
+                };
+            }
+            return { data: [], error: null };
+        },
+    };
+    const result = await getMessengerWorkspace(db, user, { workspace: 'dock' });
+    assert.equal(result.success, true);
+    const clubConversations = result.conversations.filter(c => c.dockWorkspace.clubId === clubId(1));
+    assert.equal(clubConversations.length, realReadCount, 'all 5 real read club threads remain visible in the dock');
+    for (let n = 1; n <= realReadCount; n++) {
+        assert.ok(clubConversations.some(c => c.id === thread(1, n)), `real club thread ${n} is present`);
+    }
+    assert.ok(clubConversations.every(c => !c.isAccounting), 'unshown issued invoices are not listed');
+});
+
 test('the dock route still answers through getMessengerWorkspace', () => {
     const route = readFileSync(new URL('../pages/api/messenger/get-conversations.js', import.meta.url), 'utf8');
     assert.match(route, /getMessengerWorkspace\(getSupabase\(\), userId, req\.body\)/);
