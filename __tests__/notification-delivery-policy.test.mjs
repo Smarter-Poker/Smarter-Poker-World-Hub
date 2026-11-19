@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PLATFORM_ALERT_RECIPIENTS, PLATFORM_ALERT_TITLES, isPlatformAlert, mayDeliverNotification, isPushOnlyNotification } from '../src/lib/notifications/deliveryPolicy.mjs';
-import { isVisibleNotification, notificationCache, readNotificationCache } from '../src/lib/notificationVisibility.mjs';
+import { isVisibleNotification, isChatMessageNotification, notificationCache, readNotificationCache, CHAT_MESSAGE_NOTIFICATION_TYPES, FEED_VISIBLE_TYPE_OR_FILTER } from '../src/lib/notificationVisibility.mjs';
 const player = '11111111-1111-4111-8111-111111111111';
 test('every platform alert is restricted to exactly the two verified owner accounts', () => {
   for (const title of PLATFORM_ALERT_TITLES) {
@@ -18,19 +18,42 @@ test('every platform alert is restricted to exactly the two verified owner accou
   assert.equal(mayDeliverNotification(player,{event:null,title:'Push Health Alert'}),false,'legacy push without event is still private');
 });
 test('player and club business notices keep their existing delivery',()=>{
- for(const type of ['accounting_invoice','new_message','cashout_approved','club_announcement','tournament_start']) {
+ for(const type of ['accounting_invoice','cashout_approved','club_announcement','tournament_start']) {
   assert.equal(mayDeliverNotification(player,{type,title:'Push Health Alert'}),true);
   assert.equal(isVisibleNotification({type},player),true);
+ }
+ // Chat messages still deliver push/realtime alerts, but never appear in Notifications feeds or bell counts.
+ for (const type of CHAT_MESSAGE_NOTIFICATION_TYPES) {
+  assert.equal(mayDeliverNotification(player,{type,title:'Message from Butter'}),true);
+  assert.equal(isChatMessageNotification({type}),true);
+  assert.equal(isVisibleNotification({type},player),false);
+ }
+});
+test('chat message types are excluded from all notification feed, list and unread-count endpoints', () => {
+ assert.equal(
+  FEED_VISIBLE_TYPE_OR_FILTER,
+  'type.is.null,type.not.in.(accounting_invoice_detail,new_message,message,messenger_message,direct_message)'
+ );
+ for (const rel of [
+  '../pages/api/notifications/feed.js',
+  '../pages/api/notifications/list.js',
+  '../pages/api/notifications/unread-count.js',
+  '../pages/api/user/get-header-stats.js',
+ ]) {
+  const src = readFileSync(new URL(rel, import.meta.url), 'utf8');
+  assert.match(src, /FEED_VISIBLE_TYPE_OR_FILTER/, rel);
  }
 });
 test('blinding off is push only for every account and cannot return through cached/realtime feed',()=>{
  const row={id:'blind',type:'tournament_blinding_off'};
+ const chat={id:'chat',type:'new_message'};
  assert.equal(isPushOnlyNotification(row),true);
  for(const user of [player,...PLATFORM_ALERT_RECIPIENTS]) {
   assert.equal(mayDeliverNotification(user,row),true);
   assert.equal(isVisibleNotification(row,user),false);
-  const raw=notificationCache([row,{id:'msg',type:'new_message'}],user,100);
-  assert.deepEqual(readNotificationCache(raw,user,101).map(x=>x.id),['msg']);
+  assert.equal(isVisibleNotification(chat,user),false);
+  const raw=notificationCache([row,chat,{id:'cashout',type:'cashout_approved'}],user,100);
+  assert.deepEqual(readNotificationCache(raw,user,101).map(x=>x.id),['cashout']);
  }
 });
 

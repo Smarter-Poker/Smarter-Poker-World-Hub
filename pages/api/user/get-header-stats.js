@@ -3,6 +3,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { getMessengerUnreadSummary } from '../../../src/lib/messengerWorkspace.mjs';
+import { FEED_VISIBLE_TYPE_OR_FILTER } from '../../../src/lib/notificationVisibility.mjs';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
@@ -75,7 +76,7 @@ export default async function handler(req, res) {
               sb.from('personal_notifications')
                   .select('*', { count: 'exact', head: true })
                   .eq('user_id', userId)
-                  .or('type.is.null,type.neq.accounting_invoice_detail')
+                  .or(FEED_VISIBLE_TYPE_OR_FILTER)
                   .not('read', 'is', true)
                   .not('is_read', 'is', true),
               // 3. Page followers for poker notifications

@@ -56,8 +56,9 @@ async function apiFixture(file = 'pages/api/notifications/feed.js') {
     } };
     const context = vm.createContext({ process: { env: { SUPABASE_SERVICE_ROLE_KEY: 'fixture-not-a-credential' } }, console: { warn() {} } });
     const module = new vm.SourceTextModule(file.endsWith('/feed.js') ? feedSource : readFileSync(file, 'utf8'), { context });
+    const { FEED_VISIBLE_TYPE_OR_FILTER } = await import('../src/lib/notificationVisibility.mjs');
     const exports = { createClient: () => db, getServerUserWithFallback: async () => ({ user: { id: 'fixture' } }), reportApiError() {}, enrichOperationalResolution: async (_db, rows) => rows, resolveNotificationRoute: () => '/fixture',
-        applyRateLimit: () => true, LIMITS: { read: {} }, getMessengerUnreadSummary: async () => ({ total: 0, social: 0, clubs: {} }) };
+        applyRateLimit: () => true, LIMITS: { read: {} }, getMessengerUnreadSummary: async () => ({ total: 0, social: 0, clubs: {} }), FEED_VISIBLE_TYPE_OR_FILTER };
     await module.link(() => new vm.SyntheticModule(Object.keys(exports), function () {
         for (const [key, value] of Object.entries(exports)) this.setExport(key, value);
     }, { context }));

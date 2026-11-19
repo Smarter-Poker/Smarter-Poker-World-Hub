@@ -16,6 +16,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { enrichOperationalResolution } from '../../../src/lib/notifications/operationalResolution.mjs';
 import { resolveNotificationRoute } from '../../../src/lib/notificationRoute';
+import { FEED_VISIBLE_TYPE_OR_FILTER } from '../../../src/lib/notificationVisibility.mjs';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
@@ -177,7 +178,7 @@ export default async function handler(req, res) {
                 .from('personal_notifications')
                 .select('id, type, title, message, data, read, is_read, created_at, user_id, actor_id, action_url, link')
                 .eq('user_id', userId)
-                .or('type.is.null,type.neq.accounting_invoice_detail'), 'social', cursor)
+                .or(FEED_VISIBLE_TYPE_OR_FILTER), 'social', cursor)
                 .order('created_at', { ascending: false })
                 .order('id', { ascending: false })
                 .limit(limit + 1),

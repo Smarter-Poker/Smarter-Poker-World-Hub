@@ -363,7 +363,7 @@ test('a pre-destination cache cannot repopulate the personal feed after cutover'
   const old = JSON.stringify([{ id: 'old-alert', type: 'system', _cache_version: 2,
     _cache_user: ALERT_OWNER_ID, _cache_ts: 1000 }]);
   assert.equal(readNotificationCache(old, ALERT_OWNER_ID, 1001), null);
-  const current = notificationCache([{ id: 'personal', type: 'new_message' }], ALERT_OWNER_ID, 1000);
+  const current = notificationCache([{ id: 'personal', type: 'friend_accept' }], ALERT_OWNER_ID, 1000);
   assert.equal(readNotificationCache(current, ALERT_OWNER_ID, 1001)[0].id, 'personal');
 });
 for (const [result, accepted] of [
@@ -425,16 +425,17 @@ for (const args of [
   });
 }
 
-// Personal messages and current invoices remain eligible. Archived per-payee
-// invoice details must stay out of both newly written and retained caches.
-test('versioned cache retains personal and current invoice rows, excludes archived detail and isolates accounts', () => {
+// Personal social notices and current invoices remain eligible. Archived per-payee
+// invoice details and chat messages must stay out of both newly written and retained caches.
+test('versioned cache retains personal and current invoice rows, excludes archived detail and chat messages, and isolates accounts', () => {
   const rows = [{ id: 'invoice-detail', type: 'accounting_invoice_detail' },
-    { id: 'personal', type: 'new_message' },
+    { id: 'chat-msg', type: 'new_message' },
+    { id: 'personal', type: 'friend_accept' },
     { id: 'current-invoice', type: 'accounting_invoice' }];
   const raw = notificationCache(rows, ALERT_OWNER_ID, 1000);
   assert.deepEqual(JSON.parse(raw), [
-    { ...rows[1], _cache_ts: 1000, _cache_user: ALERT_OWNER_ID, _cache_version: 5 },
-    rows[2],
+    { ...rows[2], _cache_ts: 1000, _cache_user: ALERT_OWNER_ID, _cache_version: 6 },
+    rows[3],
   ]);
   assert.deepEqual(readNotificationCache(raw, ALERT_OWNER_ID, 1001).map(row => row.id),
     ['personal', 'current-invoice']);
@@ -442,14 +443,15 @@ test('versioned cache retains personal and current invoice rows, excludes archiv
   assert.equal(readNotificationCache(raw, null, 1001), null);
   assert.equal(notificationCache(rows, null, 1000), null);
 });
-test('a retained current-version cache cannot restore archived invoice details on read', () => {
-  const visible = [{ id: 'personal', type: 'new_message' },
+test('a retained current-version cache cannot restore archived invoice details or chat messages on read', () => {
+  const visible = [{ id: 'personal', type: 'friend_accept' },
     { id: 'current-invoice', type: 'accounting_invoice' }];
   // Construct the prior cache directly so write-time filtering cannot mask a
   // missing read-time filter. Its first, now-hidden row still owns the cache.
   const raw = JSON.stringify([
     { id: 'invoice-detail', type: 'accounting_invoice_detail', _cache_ts: 1000,
-      _cache_user: ALERT_OWNER_ID, _cache_version: 5 },
+      _cache_user: ALERT_OWNER_ID, _cache_version: 6 },
+    { id: 'chat-msg', type: 'new_message' },
     ...visible,
   ]);
   assert.deepEqual(readNotificationCache(raw, ALERT_OWNER_ID, 1001), visible);

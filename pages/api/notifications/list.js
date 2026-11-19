@@ -4,6 +4,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { FEED_VISIBLE_TYPE_OR_FILTER } from '../../../src/lib/notificationVisibility.mjs';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
@@ -62,7 +63,7 @@ export default async function handler(req, res) {
               .from('personal_notifications')
               .select('*')
               .eq('user_id', userId)
-              .or('type.is.null,type.neq.accounting_invoice_detail')
+              .or(FEED_VISIBLE_TYPE_OR_FILTER)
               .order('created_at', { ascending: false })
               .limit(limit);
 
