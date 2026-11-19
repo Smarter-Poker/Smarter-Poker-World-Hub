@@ -151,6 +151,10 @@ export function dockInboxSlice(list, limit, alwaysKeep = 0) {
         index < alwaysKeep || Number(conversation.unread_count || 0) > 0 || recent++ < limit);
 }
 
+// A pair receives at most two welcomes per admission, so a thread that reaches
+// this many rows is not proved welcome-only and is left to the inbox's answer.
+const OWN_WELCOME_PROOF_ROWS = 200;
+
 // ════════════════════════════════════════════════════════════════════════
 //  THE MAIN INBOX LOADS A WINDOW (2026-11-18)
 // ════════════════════════════════════════════════════════════════════════
@@ -411,9 +415,20 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
     // Never use this path to resurrect a hidden/deleted or invoice-only thread:
     // prove there are no message rows at all, after the participation/context
     // and active-club/private-accounting checks above have already succeeded.
+    //
+    // The inbox also omits a one-to-one thread that holds only the caller's own
+    // club welcome messages, until somebody writes in it (Club Arena migration
+    // 20261119015312). The sender must still be able to open that thread and
+    // write the first real message, so it resolves here on the same proof: every
+    // message row is a club welcome this caller sent. Any other row (a reply, an
+    // invoice, a message with no welcome flag) means the inbox had its own reason
+    // to omit the thread, and it stays unavailable.
     if (resolvedId && !conversation && !accounting.has(resolvedId)) {
-        const existing = await rows(db.from('social_messages').select('id').eq('conversation_id', resolvedId).limit(1));
-        if (!existing.length) {
+        const existing = await rows(db.from('social_messages').select('id,sender_id,media_metadata')
+            .eq('conversation_id', resolvedId).limit(OWN_WELCOME_PROOF_ROWS));
+        const ownWelcomesOnly = existing.length > 0 && existing.length < OWN_WELCOME_PROOF_ROWS
+            && existing.every(message => message.sender_id === userId && message.media_metadata?.club_welcome === true);
+        if (!existing.length || ownWelcomesOnly) {
             const metadata = await rows(db.from('social_conversations')
                 .select('id,is_group,group_name,is_request,request_sender_id').eq('id', resolvedId).limit(1));
             const empty = metadata[0];
@@ -426,7 +441,10 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
                     last_message_at: null, last_message_preview: null, unreadCount: 0, last_read_at: null,
                     isRequest: !!empty.is_request, requestSenderId: empty.request_sender_id,
                     otherUser: profiles[0] || null, isAccounting: false, requiresAction: false, clubId: club?.id || null };
-                selected.push(conversation);
+                // A welcome-only thread opens only while its other person still
+                // exists: the inbox never shows a nameless one-to-one thread.
+                if (ownWelcomesOnly && (empty.is_group || !conversation.otherUser)) conversation = null;
+                else selected.push(conversation);
             }
         }
     }

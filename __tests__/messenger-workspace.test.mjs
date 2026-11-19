@@ -290,7 +290,7 @@ test('empty club conversations still require current membership and correct cont
  const active=emptyThreadFixture({context:ids.page});const result=await getMessengerWorkspace(active.db,ids.user,{workspace:'resolve',conversationId:active.emptyId});assert.equal(result.clubId,ids.club);
 });
 test('a failed empty-thread proof stays unavailable instead of granting first-send access',async()=>{
- const setup=emptyThreadFixture();const from=setup.db.from;setup.db.from=table=>{const query=from(table);if(table==='social_messages'){const select=query.select;query.select=columns=>columns==='id'?{eq(){return this;},limit(){return Promise.resolve({data:null,error:{code:'57014'}});}}:select(columns);}return query;};
+ const setup=emptyThreadFixture();const from=setup.db.from;setup.db.from=table=>{const query=from(table);if(table==='social_messages'){const select=query.select;query.select=columns=>columns==='id,sender_id,media_metadata'?{eq(){return this;},limit(){return Promise.resolve({data:null,error:{code:'57014'}});}}:select(columns);}return query;};
  await assert.rejects(getMessengerWorkspace(setup.db,ids.user,{workspace:'resolve',conversationId:setup.emptyId}),error=>error.status===503);
 });
 
@@ -462,4 +462,51 @@ test('Statements workspace retains club authorization without duplicating invoic
  assert.equal(result.folder,'statements');assert.equal(result.clubId,ids.club);assert.deepEqual(result.conversations,[]);
  assert.deepEqual(result.unreadCounts,{messages:1,invoices:1});assert.equal(result.weeklySummary,null);
  await assert.rejects(getMessengerWorkspace(fixture({member:false}).db,ids.user,{workspace:'club',clubId:ids.club,folder:'statements'}),e=>e.status===403);
+});
+
+// The inbox reader omits a one-to-one thread that holds only the caller's own
+// club welcomes (Club Arena migration 20261119015312). Opening it must still work.
+const welcomeThread='30000000-0000-4000-8000-000000000009';
+function welcomeFixture(messages,{profile=true}={}){
+    const made=fixture();
+    made.tables.social_conversations.push({id:welcomeThread,is_group:false,group_name:null,is_request:false});
+    made.tables.social_conversation_participants.push({conversation_id:welcomeThread,user_id:ids.user,context_entity_id:null},{conversation_id:welcomeThread,user_id:ids.other,context_entity_id:null});
+    made.tables.profiles=profile?[{id:ids.other,username:'Welcomed Member',display_name:'Welcomed Member',avatar_url:null}]:[];
+    made.tables.social_messages=messages.map((message,index)=>({id:`m${index}`,conversation_id:welcomeThread,...message}));
+    const rpc=made.db.rpc; made.db.rpc=(name,args)=>name==='fn_messenger_club_relationships'?Promise.resolve({data:[],error:null}):rpc(name,args);
+    return made;
+}
+const ownWelcome={sender_id:ids.user,media_metadata:{club_welcome:true,welcome_kind:'downline'}};
+test('a thread holding only the sender\'s own club welcomes still opens for the sender',async()=>{
+    const {db}=welcomeFixture([ownWelcome,{...ownWelcome,media_metadata:{club_welcome:true,welcome_kind:'club_owner'}}]);
+    const listed=await getMessengerWorkspace(db,ids.user,{workspace:'social'});
+    assert.equal(listed.conversations.some(c=>c.id===welcomeThread),false);
+    for (const internal of [{},{authorizeOnly:true},{countsOnly:true,authorizeOnly:true}]) {
+        const resolved=await getMessengerWorkspace(db,ids.user,{workspace:'resolve',conversationId:welcomeThread},internal);
+        assert.equal(resolved.conversation.id,welcomeThread);
+        assert.equal(resolved.conversation.otherUser.id,ids.other);
+        assert.equal(resolved.folder,'messages');
+    }
+});
+test('a thread the inbox omits for any other reason is not reopened by the welcome proof',async()=>{
+    const unavailable=e=>e.status===404;
+    for (const messages of [
+        [ownWelcome,{sender_id:ids.other,media_metadata:null}],
+        [ownWelcome,{sender_id:ids.user,media_metadata:null}],
+        [{sender_id:ids.user,media_metadata:{club_welcome:false}}],
+        [{sender_id:ids.other,media_metadata:{club_welcome:true}}],
+        [{sender_id:ids.user,media_metadata:{club_welcome:'true'}}],
+    ]) {
+        const {db}=welcomeFixture(messages);
+        await assert.rejects(getMessengerWorkspace(db,ids.user,{workspace:'resolve',conversationId:welcomeThread},{authorizeOnly:true}),unavailable);
+    }
+    const nameless=welcomeFixture([ownWelcome],{profile:false});
+    await assert.rejects(getMessengerWorkspace(nameless.db,ids.user,{workspace:'resolve',conversationId:welcomeThread},{authorizeOnly:true}),unavailable);
+    const unbounded=welcomeFixture(Array.from({length:200},()=>ownWelcome));
+    await assert.rejects(getMessengerWorkspace(unbounded.db,ids.user,{workspace:'resolve',conversationId:welcomeThread},{authorizeOnly:true}),unavailable);
+});
+test('a stranger cannot use the welcome proof: participation is still required',async()=>{
+    const {db,tables}=welcomeFixture([ownWelcome]);
+    tables.social_conversation_participants=tables.social_conversation_participants.filter(p=>!(p.conversation_id===welcomeThread&&p.user_id===ids.user));
+    await assert.rejects(getMessengerWorkspace(db,ids.user,{workspace:'resolve',conversationId:welcomeThread},{authorizeOnly:true}),e=>e.status===403);
 });
