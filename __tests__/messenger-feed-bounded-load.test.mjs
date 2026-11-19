@@ -289,14 +289,3 @@ test('the Messenger page asks for a window, sends its pins and offers the older 
     assert.match(page, />Load Older Conversations</);
     assert.match(page, /resolveConversationRef\.current\(hit\.conversation_id\)/);
 });
-
-test('the new reader is service-role only, definer, and derived from the existing attention rule', () => {
-    const sql = readFileSync(new URL('../supabase/migrations/20261118230000_messenger_invoice_attention_ids.sql', import.meta.url), 'utf8');
-    assert.match(sql, /CREATE OR REPLACE FUNCTION public\.fn_messenger_private_invoice_attention_ids\(\s*p_user_id uuid\s*\)\s*RETURNS uuid\[\]/);
-    assert.match(sql, /SECURITY DEFINER\s+SET search_path TO 'public', 'pg_temp'/);
-    assert.match(sql, /REVOKE ALL ON FUNCTION public\.fn_messenger_private_invoice_attention_ids\(uuid\) FROM PUBLIC, anon, authenticated;/);
-    assert.match(sql, /GRANT EXECUTE ON FUNCTION public\.fn_messenger_private_invoice_attention_ids\(uuid\) TO service_role;/);
-    assert.match(sql, /cm\.membership_lifecycle_status = 'active'/);
-    assert.match(sql, /i\.status IN \('pending', 'generated', 'overdue'\)/);
-    assert.match(sql, /i\.invoice_type IS DISTINCT FROM 'cashier_cashout'/);
-});

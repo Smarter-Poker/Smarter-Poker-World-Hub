@@ -48,7 +48,9 @@ Invoices tab, the resolve workspace, the unread summary, and the dock.
 
 ### The new database function
 
-`supabase/migrations/20261118230000_messenger_invoice_attention_ids.sql` adds
+The shared schema is owned by the Club Arena repository (this repository's
+`shared-schema-lineage` gate admits no new migration), so the function is
+delivered there, as migration `messenger_invoice_attention_ids`. It adds
 `fn_messenger_private_invoice_attention_ids(p_user_id uuid) RETURNS uuid[]`:
 the same joins, membership check and `requires_action` expression as the
 installed `fn_messenger_private_invoice_attention`, over all of the caller's
