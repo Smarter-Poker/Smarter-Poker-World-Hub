@@ -281,6 +281,22 @@ test('feedInboxSlice keeps unread, pinned, action-required and the newest of the
     assert.equal(workspace.feedInboxSlice(list, { window: 50 }).hasOlder, false);
 });
 
+test('feedInboxSlice stops reporting hasOlder once window reaches FEED_WINDOW_MAX', () => {
+    const total = workspace.FEED_WINDOW_MAX + 5;
+    const base = Date.UTC(2026, 0, 1);
+    const list = Array.from({ length: total }, (_, i) => ({
+        id: `read-${i + 1}`,
+        unread_count: 0,
+        last_message_at: new Date(base + i * 60000).toISOString(),
+    }));
+    const atMax = workspace.feedInboxSlice(list, { window: workspace.FEED_WINDOW_MAX });
+    assert.equal(atMax.conversations.length, workspace.FEED_WINDOW_MAX);
+    assert.equal(atMax.hasOlder, false, 'hasOlder must be false at FEED_WINDOW_MAX to prevent infinite no-op reloads');
+    const belowMax = workspace.feedInboxSlice(list, { window: workspace.FEED_WINDOW_MAX - 1 });
+    assert.equal(belowMax.conversations.length, workspace.FEED_WINDOW_MAX - 1);
+    assert.equal(belowMax.hasOlder, true, 'hasOlder remains true while window can still grow');
+});
+
 test('the Messenger page asks for a window, sends its pins and offers the older threads', () => {
     const page = readFileSync(new URL('../pages/hub/messenger.js', import.meta.url), 'utf8');
     assert.match(page, /workspace: workspaceSelection\.clubId \? 'club' : 'feed'/);
