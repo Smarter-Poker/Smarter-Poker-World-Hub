@@ -4,8 +4,31 @@ import { isOwnerOperationalRow } from './notifications/ownerOperationalClassifie
 
 import { mayDeliverNotification, isPushOnlyNotification } from './notifications/deliveryPolicy.mjs';
 
-const CACHE_VERSION = 5;
+const CACHE_VERSION = 6;
 const CACHE_MAX_AGE_MS = 300_000;
+
+// Chat/conversation messages belong in Messenger, never in the Notifications
+// bell feed or bell unread count. Keep `new_message` rows in public.notifications
+// only so Realtime live-message popups (Club Arena MessageAlertsHost) and push
+// nudges keep working, while every Notifications feed/list/count surface hides them.
+export const CHAT_MESSAGE_NOTIFICATION_TYPES = Object.freeze([
+    'new_message',
+    'message',
+    'messenger_message',
+    'direct_message',
+]);
+
+export const FEED_HIDDEN_NOTIFICATION_TYPES = Object.freeze([
+    'accounting_invoice_detail',
+    ...CHAT_MESSAGE_NOTIFICATION_TYPES,
+]);
+
+export const FEED_VISIBLE_TYPE_OR_FILTER = `type.is.null,type.not.in.(${FEED_HIDDEN_NOTIFICATION_TYPES.join(',')})`;
+
+export function isChatMessageNotification(row) {
+    const type = typeof row?.type === 'string' ? row.type.trim().toLowerCase() : '';
+    return CHAT_MESSAGE_NOTIFICATION_TYPES.includes(type);
+}
 
 // `/api/notifications/feed` reads from the `personal_notifications` view,
 // which already excludes the owner's routed operational originals (its own
@@ -25,7 +48,7 @@ const CACHE_MAX_AGE_MS = 300_000;
 // silently start hiding a normal customer's own financial_incident-shaped
 // row if one is ever added) is never affected.
 export function isVisibleNotification(row, userId) {
-    return !!row && mayDeliverNotification(userId, row) && !isPushOnlyNotification(row) && row.type !== 'accounting_invoice_detail' && !isOwnerOperationalRow(userId, row);
+    return !!row && mayDeliverNotification(userId, row) && !isPushOnlyNotification(row) && !isChatMessageNotification(row) && row.type !== 'accounting_invoice_detail' && !isOwnerOperationalRow(userId, row);
 }
 
 export function notificationCache(rows, userId, now = Date.now()) {

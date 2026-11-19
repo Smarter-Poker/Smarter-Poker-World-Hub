@@ -53,6 +53,7 @@ async function fixture(file = 'pages/api/notifications/feed.js') {
     require: () => ({ applyCors: () => true }),
   });
   const module = new vm.SourceTextModule(readFileSync(file, 'utf8'), { context });
+  const { FEED_VISIBLE_TYPE_OR_FILTER } = await import('../src/lib/notificationVisibility.mjs');
   const mocks = {
     createClient: () => client,
     getServerUserWithFallback: async () => ({ user: state.userId ? { id: state.userId } : null }),
@@ -61,6 +62,7 @@ async function fixture(file = 'pages/api/notifications/feed.js') {
     applyRateLimit: () => true,
     LIMITS: { write: {} },
     getMessengerUnreadSummary: async () => ({ total: 0, social: 0, clubs: {} }),
+    FEED_VISIBLE_TYPE_OR_FILTER,
   };
   await module.link(() => new vm.SyntheticModule(Object.keys(mocks), function () {
     for (const [key, value] of Object.entries(mocks)) this.setExport(key, value);
