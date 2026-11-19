@@ -157,3 +157,24 @@ test('a failed dock request is said plainly, and a background refresh never floa
  assert.ok(!dock.includes('setError(failure.message)'));
  assert.ok(dock.includes('{error && <p role="alert" className="dock-preview-error">{error}</p>}'));
 });
+
+test('MessengerChat, messengerSendOperation and messenger.js normalize raw timeout/abort transport errors', async () => {
+ const { createMessengerSendOperation, performMessengerSend } = await import('../src/components/messenger/dock/messengerSendOperation.mjs');
+ const map = new Map();
+ const storage = { getItem: k => map.get(k) || null, setItem: (k, v) => map.set(k, v), removeItem: k => map.delete(k), get length() { return map.size; }, key: i => [...map.keys()][i] };
+ const op = createMessengerSendOperation({ actorId: id(1), conversationId: id(10), content: 'Hello' });
+ await performMessengerSend(op, {
+  storage,
+  currentActor: () => id(1),
+  send: async () => { throw Object.assign(new Error('signal timed out'), { name: 'TimeoutError' }); },
+  changed: () => {},
+ });
+ assert.equal(op.status, 'failed');
+ assert.equal(op.error, 'Messages Are Taking Too Long. Try Again');
+ const chat = readFileSync(new URL('../src/components/messenger/dock/MessengerChat.jsx', import.meta.url), 'utf8');
+ assert.ok(!chat.includes('setError(failure.message)'), 'MessengerChat must not render raw failure.message');
+ assert.ok(chat.includes('setError(dockFailureText(failure))'));
+ const page = readFileSync(new URL('../pages/hub/messenger.js', import.meta.url), 'utf8');
+ assert.ok(page.includes('setInboxError(dockFailureText(error));'));
+ assert.ok(!page.includes("setInboxError(error.message || 'Inbox Unavailable. Please Retry.')"));
+});
