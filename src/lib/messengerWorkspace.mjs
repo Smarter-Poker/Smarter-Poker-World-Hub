@@ -155,6 +155,93 @@ export function dockInboxSlice(list, limit, alwaysKeep = 0) {
 // this many rows is not proved welcome-only and is left to the inbox's answer.
 const OWN_WELCOME_PROOF_ROWS = 200;
 
+// ════════════════════════════════════════════════════════════════════════
+//  THE MAIN INBOX LOADS A WINDOW (2026-11-18)
+// ════════════════════════════════════════════════════════════════════════
+// `feed` is the Messenger page's own main inbox (pages/hub/messenger.js asks
+// for it whenever no club is selected): every personal thread plus each
+// club's invoices and unread discussions. It read thread details and the two
+// accounting authority functions for every thread the person ever had. The
+// owner account has 5,895.
+//
+// The feed now reads, per inbox:
+//   - every thread with something unread (unread counts stay exact),
+//   - every pinned thread the caller named (a pin never grants visibility: it
+//     only keeps a row the inbox reader already returned for this caller),
+//   - every invoice that still requires action (one bounded call to
+//     fn_messenger_private_invoice_attention_ids; when that function is not
+//     installed, every invoice is read exactly as before),
+//   - the newest `window` of the remaining read threads.
+// In a club inbox the feed only ever showed unread discussions and the
+// caller's own invoices, so read threads that are neither are not read at
+// all. That part removes nothing from the answer.
+// `hasOlder` says a read thread was left out; asking again with `olderWindow`
+// returns it. The club and resolve workspaces are not sliced.
+export const FEED_WINDOW = 100;
+export const FEED_WINDOW_MAX = 10000;
+export const FEED_PINNED_MAX = 200;
+
+export function feedWindow(value) {
+    const size = Number(value);
+    if (!Number.isInteger(size) || size < FEED_WINDOW) return FEED_WINDOW;
+    return Math.min(size, FEED_WINDOW_MAX);
+}
+
+export function feedPinnedIds(value) {
+    if (!Array.isArray(value)) return new Set();
+    return new Set(value.filter(id => typeof id === 'string' && UUID.test(id))
+        .slice(0, FEED_PINNED_MAX).map(id => id.toLowerCase()));
+}
+
+// `list` is one inbox in reader order. `shown` (club inboxes) is the set of
+// threads the feed can show once read; null means every thread. `attention`
+// is the set of invoices that still require action; null means unknown, and
+// then no shown thread is left out.
+export function feedInboxSlice(list, { window, alwaysKeep = 0, pinned = new Set(), shown = null, attention = new Set(), unreadShown = true }) {
+    const idOf = conversation => conversation.conversation_id || conversation.id;
+    const kept = new Set();
+    const read = [];
+    list.forEach((conversation, index) => {
+        const id = idOf(conversation);
+        const isShown = !shown || shown.has(id);
+        if (index < alwaysKeep) kept.add(id);
+        else if (Number(conversation.unread_count || 0) > 0) { if (unreadShown || isShown) kept.add(id); }
+        else if (!isShown) return;
+        else if (pinned.has(String(id).toLowerCase()) || !attention || attention.has(id)) kept.add(id);
+        else read.push(conversation);
+    });
+    const time = conversation => Date.parse(conversation.last_message_at || '') || 0;
+    for (const conversation of [...read].sort((a, b) => time(b) - time(a)).slice(0, window)) kept.add(idOf(conversation));
+    return { conversations: list.filter(conversation => kept.has(idOf(conversation))), hasOlder: read.length > window };
+}
+
+function missingFunction(error) {
+    return String(error?.code || '') === 'PGRST202'
+        || /could not find the function|function .* does not exist/i.test(String(error?.message || ''));
+}
+
+// One call for every invoice of this caller that still requires action. The
+// answer only decides which threads are read; whether a returned thread
+// requires action is still said by fn_messenger_private_invoice_attention.
+async function feedAttentionIds(db, userId, clubs) {
+    if (!clubs.length) return new Set();
+    const { data, error } = await db.rpc('fn_messenger_private_invoice_attention_ids', { p_user_id: userId });
+    if (error && missingFunction(error)) return null;
+    if (error || !Array.isArray(data)) fail(503, 'Invoice Threads Unavailable');
+    return new Set(data);
+}
+
+// The same two conditions selectWorkspaceConversations applies to an invoice,
+// asked of the table by audience instead of by every thread id.
+async function feedInvoiceThreadIds(db, userId, club) {
+    const scoped = () => db.from('accounting_conversations').select('conversation_id').eq('scope_id', club.id);
+    const [received, discussed] = await Promise.all([
+        pages(() => scoped().eq('recipient_id', userId), 'conversation_id'),
+        pages(() => scoped().eq('sender_id', userId).not('last_discussion_at', 'is', null), 'conversation_id'),
+    ]);
+    return new Set([...received, ...discussed].map(row => row.conversation_id));
+}
+
 export async function getMessengerWorkspace(db, userId, request, internal = {}) {
     if (request.workspace === 'club' && request.folder === 'statements') {
         const inbox = await getMessengerWorkspace(db, userId, { ...request, folder: 'invoices' }, { ...internal, countsOnly: true });
@@ -165,8 +252,10 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
     if (workspace === 'dock' || workspace === 'feed') {
         // Global reconnect/inbox reads must cover each currently authorized
         // workspace, including club discussions missed while offline.
+        const feed = workspace === 'feed' ? { window: feedWindow(request.window), pinned: feedPinnedIds(request.pinnedIds),
+            attention: await feedAttentionIds(db, userId, clubs) } : null;
         const options = { clubs, countsOnly: true, bothFolders: true,
-            ...(workspace === 'dock' ? { recentLimit: DOCK_RECENT_LIMIT } : {}) };
+            ...(feed ? { feed } : { recentLimit: DOCK_RECENT_LIMIT }) };
         const workspaces = [await getMessengerWorkspace(db, userId, { workspace: 'social' }, options)];
         for (let start = 0; start < clubs.length; start += DOCK_CLUBS_AT_ONCE) {
             const batch = await Promise.all(clubs.slice(start, start + DOCK_CLUBS_AT_ONCE).map(club =>
@@ -190,6 +279,8 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
             [...new Map(combined.map(conversation => [conversation.id, conversation])).values()]);
         return { success: true, clubs, workspace: workspace === 'feed' ? 'social' : 'dock', clubId: null, folder: 'messages',
             unreadCounts: workspaces[0].unreadCounts, attentionCounts: workspaces[0].attentionCounts,
+            ...(feed ? { hasOlder: workspaces.some(selected => selected.hasOlder === true), window: feed.window,
+                olderWindow: Math.min(feed.window + FEED_WINDOW, FEED_WINDOW_MAX) } : {}),
             conversations: conversations.sort((a, b) => compareConversations(a, b)) };
     }
     if (!['social', 'club', 'resolve'].includes(workspace)) fail(400, 'Invalid Messenger Workspace');
@@ -245,8 +336,18 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
         && (!authorizeOne || g.conversation_id === resolvedId))
         .map(g => ({ conversation_id: g.conversation_id, is_group: true, unread_count: 0 }));
     const everyThread = [...new Map([...emptyGroups, ...listed].map(c => [c.conversation_id || c.id, c])).values()];
-    const unique = internal.recentLimit && !authorizeOne
-        ? dockInboxSlice(everyThread, internal.recentLimit, emptyGroups.length) : everyThread;
+    let unique = everyThread;
+    let hasOlder = false;
+    if (internal.feed && !authorizeOne) {
+        const sliced = feedInboxSlice(everyThread, club ? {
+            window: internal.feed.window, pinned: internal.feed.pinned, attention: internal.feed.attention,
+            shown: await feedInvoiceThreadIds(db, userId, club), unreadShown: !!club.pageId,
+        } : { window: internal.feed.window, pinned: internal.feed.pinned, alwaysKeep: emptyGroups.length });
+        unique = sliced.conversations;
+        hasOlder = sliced.hasOlder;
+    } else if (internal.recentLimit && !authorizeOne) {
+        unique = dockInboxSlice(everyThread, internal.recentLimit, emptyGroups.length);
+    }
     const ids = unique.map(c => c.conversation_id || c.id);
     const [meta, accounting] = await Promise.all([
         byIds(db, 'social_conversations', 'id,is_request,request_sender_id,last_message_preview,group_name', 'id', ids),
@@ -394,7 +495,7 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
     } : null;
     return { success: true, clubs, conversations: visible, conversation, weeklySummary, unreadCounts, attentionCounts,
         workspace: club ? 'club' : 'social', clubId: club?.id || null, folder, ...(authorizeOne ? { authorizedOnly: true } : {}),
-        ...(folders ? { folders } : {}) };
+        ...(folders ? { folders } : {}), ...(internal.feed ? { hasOlder } : {}) };
 }
 
 // Use the exact inbox visibility rules, including private invoices and active

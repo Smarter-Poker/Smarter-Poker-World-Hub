@@ -455,6 +455,16 @@ function MessengerPage() {
         workspace: { workspace: workspaceSelection.clubId ? 'club' : 'social', clubId: workspaceSelection.clubId, folder: workspaceSelection.folder },
     });
     const pinnedConvoIds = continuity.pins;
+    // The main inbox is read as a window: every unread thread, every pinned
+    // thread, every invoice that still requires action, and the newest of the
+    // rest (FEED_WINDOW in messengerWorkspace.mjs). The server is told the
+    // pins so a pinned thread is returned however old it is.
+    const pinnedConvoIdsRef = useRef([]);
+    pinnedConvoIdsRef.current = Array.isArray(pinnedConvoIds) ? pinnedConvoIds : [];
+    const feedWindowRef = useRef({ key: workspaceKey, size: 0 });
+    if (feedWindowRef.current.key !== workspaceKey) feedWindowRef.current = { key: workspaceKey, size: 0 };
+    const [feedOlder, setFeedOlder] = useState({ key: null, hasOlder: false, olderWindow: 0, loading: false });
+    const feedHasOlder = !workspaceSelection.clubId && feedOlder.hasOlder && feedOlder.key === workspaceKey;
     const [showSavedMessages, setShowSavedMessages] = useState(false);
     const [hasNewerMessages, setHasNewerMessages] = useState(false);
     const [loadingNewerMessages, setLoadingNewerMessages] = useState(false);
@@ -1201,7 +1211,10 @@ function MessengerPage() {
         request: authedFetch,
     });
     const visibleSearchConversations = new Set(conversations.map(conversation => conversation.id));
-    const messageHits = sidebarSearch.results.filter(message => visibleSearchConversations.has(message.conversation_id));
+    // The search covers the whole personal inbox on the server. While older
+    // threads are not loaded, a hit in one of them is kept and opened through
+    // the conversation resolver, which authorizes it again.
+    const messageHits = sidebarSearch.results.filter(message => feedHasOlder || visibleSearchConversations.has(message.conversation_id));
     const messageHitsLoading = sidebarSearch.loading;
     const messageHitsError = sidebarSearch.error;
     const conversationSearch = useMessengerSearch({
@@ -1474,6 +1487,19 @@ function MessengerPage() {
         }
     };
 
+    const loadOlderConversations = () => {
+        if (!user?.id || !feedHasOlder || feedOlder.loading || !feedOlder.olderWindow) return;
+        feedWindowRef.current = { key: workspaceKey, size: feedOlder.olderWindow };
+        setFeedOlder(previous => ({ ...previous, loading: true }));
+        loadConversationsRef.current?.(user.id, { invalidate: true });
+    };
+    // Pins are read after the first inbox load. A pinned thread older than the
+    // window is only returned once the server has been told about the pin.
+    const pinnedConvoKey = pinnedConvoIdsRef.current.join(',');
+    useEffect(() => {
+        if (user?.id && feedHasOlder) loadConversationsRef.current?.(user.id, { invalidate: true });
+    }, [pinnedConvoKey]);
+
     const loadConversations = async (userId, { invalidate = false } = {}) => {
         // PERF 2026-08-24: collapse concurrent duplicate loads (see
         // loadConvInFlightRef). Keyed on the exact request identity, so a
@@ -1507,7 +1533,8 @@ function MessengerPage() {
             const resp = await authedFetch('/api/messenger/get-conversations', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-                body: JSON.stringify({ workspace: workspaceSelection.clubId ? 'club' : 'feed', ...workspaceSelection }),
+                body: JSON.stringify({ workspace: workspaceSelection.clubId ? 'club' : 'feed', ...workspaceSelection,
+                    ...(workspaceSelection.clubId ? {} : { window: feedWindowRef.current.size, pinnedIds: pinnedConvoIdsRef.current }) }),
             });
             const result = await resp.json();
             if (!current()) return;
@@ -1520,9 +1547,11 @@ function MessengerPage() {
             setClubAccess({ userId, clubs: Array.isArray(result.clubs) ? result.clubs : [] });
             setConversations(result.conversations);
             setWorkspaceUnread({ key: requestKey, counts: result.unreadCounts, attentionCounts: result.attentionCounts });
+            setFeedOlder({ key: requestKey, hasOlder: result.hasOlder === true, olderWindow: Number(result.olderWindow) || 0, loading: false });
             setInboxError(null);
         } catch (error) {
             if (!current()) return;
+            setFeedOlder(previous => ({ ...previous, loading: false }));
             setConversations([]);
             setInboxError(error.message || 'Inbox Unavailable. Please Retry.');
         } finally {
@@ -3254,6 +3283,12 @@ function MessengerPage() {
                                     />
                                 ))}
 
+                                {feedHasOlder && router.query.filter !== 'unread' && (
+                                    <div style={{ padding: '8px 16px' }}>
+                                        <button type="button" style={{ ...continuityButtonStyle, width: '100%' }} disabled={feedOlder.loading} onClick={loadOlderConversations}>Load Older Conversations</button>
+                                    </div>
+                                )}
+
                                 {/* Messages matching the search, from every
                                     conversation. The list above only ever
                                     filtered on the other person's name. */}
@@ -3286,6 +3321,7 @@ function MessengerPage() {
 
                                         {!messageHitsLoading && messageHits.map(hit => {
                                             const conv = conversations.find(c => c.id === hit.conversation_id);
+                                            const openable = !!conv || feedHasOlder;
                                             const who = hit.isOwn
                                                 ? 'You'
                                                 : (hit.sender?.display_name || hit.sender?.username || '');
@@ -3297,10 +3333,14 @@ function MessengerPage() {
                                                         if (conv) {
                                                             setSearchQuery('');
                                                             handleSelectConversation(conv);
+                                                        } else if (openable) {
+                                                            setSearchQuery('');
+                                                            resolveConversationRef.current(hit.conversation_id)
+                                                                .then(() => loadConversationsRef.current?.(user.id, { invalidate: true }));
                                                         }
                                                     }}
-                                                    disabled={!conv}
-                                                    title={conv ? 'Open this conversation' : 'Conversation not in this inbox'}
+                                                    disabled={!openable}
+                                                    title={openable ? 'Open this conversation' : 'Conversation not in this inbox'}
                                                     style={{
                                                         display: 'block',
                                                         width: '100%',
@@ -3308,10 +3348,10 @@ function MessengerPage() {
                                                         padding: '8px 16px',
                                                         border: 'none',
                                                         background: 'transparent',
-                                                        cursor: conv ? 'pointer' : 'default',
-                                                        opacity: conv ? 1 : 0.55,
+                                                        cursor: openable ? 'pointer' : 'default',
+                                                        opacity: openable ? 1 : 0.55,
                                                     }}
-                                                    onMouseEnter={e => { if (conv) e.currentTarget.style.background = C.hoverBg; }}
+                                                    onMouseEnter={e => { if (openable) e.currentTarget.style.background = C.hoverBg; }}
                                                     onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                                                 >
                                                     <div style={{

@@ -125,7 +125,7 @@ function inboxFixture() {
         authedFetch: () => { const p = deferred(); pending.push(p); return p.promise; },
         conversationsRef: { current: [] }, activeConversationRef: { current: null }, preferencesRef: { current: {} },
         setConversations: rows => painted.push(rows), setWorkspaceUnread: counts => painted.push(counts),
-        setClubAccess() {}, setWeeklyPreview() {}, setInboxError() {}, setLoading() {}, setConnectionStatus() {},
+        setClubAccess() {}, setWeeklyPreview() {}, setInboxError() {}, setLoading() {}, setConnectionStatus() {}, setFeedOlder() {},
     }, 'loadConversations');
     return { load, pending, painted, workspaceRef };
 }
