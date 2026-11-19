@@ -46,6 +46,7 @@ import { organizeConversations } from '../../src/lib/messengerOrganization.mjs';
 import { createMessengerSendOperation, restoreMessengerSendOperations, messengerOperationMessage,
     mergeMessengerPendingMessages, reconcileMessengerMessage, acknowledgeMessengerSend,
     performMessengerSend, saveMessengerSendOperation } from '../../src/lib/messengerSendOperation.mjs';
+import { dockFailureText } from '../../src/components/messenger/dock/messengerDock.mjs';
 
 
 // JarvisMessengerWidget's dynamic import was removed 2026-08-21: it was
@@ -1553,7 +1554,7 @@ function MessengerPage() {
             if (!current()) return;
             setFeedOlder(previous => ({ ...previous, loading: false }));
             setConversations([]);
-            setInboxError(error.message || 'Inbox Unavailable. Please Retry.');
+            setInboxError(dockFailureText(error));
         } finally {
             if (current()) setLoading(false);
         }

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Minus, X, Maximize2, Send, ImagePlus, Reply, Smile, ThumbsUp, Phone, VideoCamera } from './DockIcons';
 import { requestCall } from '../../calls/CallProvider';
 import { messengerPreviewText } from '../../../lib/messengerPreview.mjs';
-import { dockName } from './messengerDock.mjs';
+import { dockFailureText, dockName } from './messengerDock.mjs';
 import { visibleMessageBoundary, isMessageId, CONTINUITY_PREFIX } from './messengerContinuity.mjs';
 import { createMessengerSendOperation, restoreMessengerSendOperations, performMessengerSend,
     mergeMessengerPendingMessages, reconcileMessengerMessage, messengerOperationMessage, acknowledgeMessengerSend } from './messengerSendOperation.mjs';
@@ -95,7 +95,7 @@ export default function MessengerChat({ actorId, identity, conversation, service
                 else if (before) scroll.current.scrollTop += scroll.current.scrollHeight - previousHeight;
                 else if (nearBottom.current) scroll.current.scrollTop = scroll.current.scrollHeight;
             });
-        } catch (failure) { if (current() && sequence.current === requestSequence) { if ([401,403,404].includes(failure.status)) setMessages([]); setError(failure.message); } }
+        } catch (failure) { if (current() && sequence.current === requestSequence) { if ([401,403,404].includes(failure.status)) setMessages([]); setError(dockFailureText(failure)); } }
         finally { if (current() && sequence.current === requestSequence) setLoading(false); }
     }, [actorId, id, services]);
 
@@ -179,7 +179,7 @@ export default function MessengerChat({ actorId, identity, conversation, service
             const prefs = await services.getPreferences(actorId);
             if (current() && prefs.readReceipts !== false) void channel.current?.send({ type: 'broadcast', event: 'read_receipt', payload: { readerId: actorId, conversationId: id, readThrough: result.readThrough } });
             if (current()) onRead();
-        } catch (failure) { if (current()) setError(failure.message); }
+        } catch (failure) { if (current()) setError(dockFailureText(failure)); }
         finally {
             reading.current = false;
             const latest = visibleMessageBoundary(scroll.current);
@@ -201,7 +201,7 @@ export default function MessengerChat({ actorId, identity, conversation, service
                 if (capturedDraft) { continuity.clearDraftIfUnchanged(id, capturedDraft); void continuity.write(id, 'draft'); }
                 nearBottom.current = true; void load();
             }
-        } catch (failure) { if (current()) setError(failure.message); }
+        } catch (failure) { if (current()) setError(dockFailureText(failure)); }
     };
     const send = (content = draft.text, consume = true) => {
         if (!current() || !content.trim() || content.length > 2000) return;
@@ -229,7 +229,7 @@ export default function MessengerChat({ actorId, identity, conversation, service
             const uploaded = await fetch(result.signedUrl, { method: 'PUT', headers: { 'Content-Type': media.type }, body: media, signal: AbortSignal.timeout(300000) });
             if (!uploaded.ok) throw new Error('Upload Did Not Complete');
             if (current()) send(`[${media.type.startsWith('image/') ? 'Image' : 'Video'}](${result.publicUrl})`, false);
-        } catch (failure) { if (current()) setError(failure.message); }
+        } catch (failure) { if (current()) setError(dockFailureText(failure)); }
         finally { if (current()) setUploading(false); }
     };
     const openFull = () => { onMinimize(); services.openMessenger(id); };

@@ -348,7 +348,7 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
     const listed = authorizeOne ? data.filter(c => (c.conversation_id || c.id) === resolvedId) : data;
     // Staff groups have no synthetic opening post. Include authorized empty
     // groups so promotion enrollment is visible before anybody sends a message.
-    const managed = !contextId && clubs.length && !(authorizeOne && listed.length) ? await rows(db.from('club_messenger_staff_notice_groups')
+    const managed = !contextId && clubs.length && !(authorizeOne && listed.length) && !internal.unreadOnly ? await rows(db.from('club_messenger_staff_notice_groups')
         .select('club_id,conversation_id').in('club_id', clubs.map(c => c.id))) : [];
     const participation = [];
     for (const batch of idBatches(managed.map(g => g.conversation_id))) {
@@ -361,7 +361,9 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
     const everyThread = [...new Map([...emptyGroups, ...listed].map(c => [c.conversation_id || c.id, c])).values()];
     let unique = everyThread;
     let hasOlder = false;
-    if (internal.feed && !authorizeOne) {
+    if (internal.unreadOnly && !authorizeOne) {
+        unique = everyThread.filter(c => Number(c.unread_count || 0) > 0);
+    } else if (internal.feed && !authorizeOne) {
         const sliced = feedInboxSlice(everyThread, club ? {
             window: internal.feed.window, pinned: internal.feed.pinned, attention: internal.feed.attention,
             shown: await feedInvoiceThreadIds(db, userId, club), unreadShown: !!club.pageId,
@@ -532,7 +534,7 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
 // membership. Raw participant/message counts include threads nobody can open.
 export async function getMessengerUnreadSummary(db, userId) {
     const clubs = await getMessengerClubs(db, userId);
-    const options = { clubs, countsOnly: true };
+    const options = { clubs, countsOnly: true, unreadOnly: true };
     const social = await getMessengerWorkspace(db, userId, { workspace: 'social' }, options);
     const summary = { social: social.unreadCounts.messages, clubs: {}, total: social.unreadCounts.messages };
     // Bound query concurrency for accounts that belong to many clubs.

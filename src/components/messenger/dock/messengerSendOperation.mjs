@@ -111,6 +111,14 @@ export function acknowledgeMessengerSend(operation, message, storage) {
     return true;
 }
 
+export function messengerSendFailureText(failure) {
+    const name = String(failure?.name || '');
+    const text = String(failure?.message || '');
+    if (name === 'TimeoutError' || name === 'AbortError' || /timed out|aborted/i.test(text)) return 'Messages Are Taking Too Long. Try Again';
+    if (!text || /failed to fetch|load failed|networkerror|network request failed/i.test(text)) return 'Messages Are Unavailable. Check Your Connection';
+    return text;
+}
+
 export function performMessengerSend(operation, { storage, currentActor, send, changed }) {
     if (operation.inFlight) return operation.inFlight;
     if (operation.receipt) return Promise.resolve(operation.receipt);
@@ -133,7 +141,7 @@ export function performMessengerSend(operation, { storage, currentActor, send, c
         } catch (error) {
             // Realtime may have already supplied the durable row even when the
             // HTTP response was lost. Never replace that receipt with failure.
-            if (!operation.receipt) { operation.status = 'failed'; operation.error = error.message; }
+            if (!operation.receipt) { operation.status = 'failed'; operation.error = messengerSendFailureText(error); }
         } finally {
             operation.inFlight = null;
             changed(operation);

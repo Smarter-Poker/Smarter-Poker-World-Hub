@@ -7,7 +7,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { getMessengerWorkspace, dockInboxSlice, DOCK_RECENT_LIMIT } from '../src/lib/messengerWorkspace.mjs';
+import { getMessengerWorkspace, getMessengerUnreadSummary, dockInboxSlice, DOCK_RECENT_LIMIT } from '../src/lib/messengerWorkspace.mjs';
 
 const user = '00000000-0000-4000-8000-000000000001';
 const uuid = (prefix, n) => `${prefix}${String(n).padStart(12, '0')}`;
@@ -223,6 +223,19 @@ test('unshown issued invoices do not consume dock read slots and crowd out real 
         assert.ok(clubConversations.some(c => c.id === thread(1, n)), `real club thread ${n} is present`);
     }
     assert.ok(clubConversations.every(c => !c.isAccounting), 'unshown issued invoices are not listed');
+});
+
+test('getMessengerUnreadSummary bounds a 9,700-thread account to unread threads only and preserves exact counts', async () => {
+    const { db, counted } = ownerAccount();
+    const summary = await getMessengerUnreadSummary(db, user);
+    // 7 inboxes x 3 unread threads each = 21 unread threads (2 batches each to exhaustion -> 42 detailIds).
+    assert.ok(counted.detailIds <= 2 * 7 * 3, `unread summary asked for ${counted.detailIds} thread detail ids`);
+    assert.ok(counted.trips <= 60, `unread summary made ${counted.trips} round trips`);
+    assert.equal(summary.social, 6);
+    for (let i = 1; i <= 6; i++) {
+        assert.deepEqual(summary.clubs[clubId(i)], { messages: 6, invoices: 0 });
+    }
+    assert.equal(summary.total, 42);
 });
 
 test('the dock route still answers through getMessengerWorkspace', () => {
