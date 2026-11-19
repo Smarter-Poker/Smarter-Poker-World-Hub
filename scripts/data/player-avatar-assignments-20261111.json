@@ -72,6 +72,18 @@
         "width": 389,
         "height": 455
       }
+    },
+    {
+      "username": "Butter",
+      "profileId": "fa407ee1-5473-42ec-a9ac-a1eee50983fe",
+      "file": "avatars/table/custom_butter_1ea1bc1e847b@2x.webp",
+      "sha256": "1ea1bc1e847bf74aedb96a2166b7e9d90e1d7dd3fff5c526106126464caf914d",
+      "bounds": {
+        "left": 28,
+        "top": 51,
+        "width": 455,
+        "height": 455
+      }
     }
   ]
 }

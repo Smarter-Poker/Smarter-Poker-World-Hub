@@ -121,8 +121,8 @@ test('the published artwork revision seals every delivered preset and custom var
 
 test('requested player avatars use transparent artwork at the existing custom-avatar baseline', async () => {
   const manifest = JSON.parse(fs.readFileSync(path.join(root, 'scripts/data/player-avatar-assignments-20261111.json')));
-  assert.deepEqual(manifest.assignments.map(x => x.username), ['Twin2983', 'Farmboy13', 'RoughRyder', 'ChiToWnBaLLn', 'Whytegold502', 'Bud33']);
-  assert.equal(new Set(manifest.assignments.map(x => x.profileId)).size, 6);
+  assert.deepEqual(manifest.assignments.map(x => x.username), ['Twin2983', 'Farmboy13', 'RoughRyder', 'ChiToWnBaLLn', 'Whytegold502', 'Bud33', 'Butter']);
+  assert.equal(new Set(manifest.assignments.map(x => x.profileId)).size, 7);
   for (const entry of manifest.assignments) {
     const bytes = fs.readFileSync('public/' + entry.file);
     assert.equal(createHash('sha256').update(bytes).digest('hex'), entry.sha256);
