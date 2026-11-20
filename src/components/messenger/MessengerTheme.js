@@ -7,6 +7,8 @@ export function getTheme(dark) {
         bg: dark ? '#1C1E21' : '#F0F2F5',
         card: dark ? '#242526' : '#FFFFFF',
         text: dark ? '#E4E6EB' : '#050505',
+        // Typed text in every Messenger field: pure white on the dark theme (Dan, 2026-11-20).
+        inputText: dark ? '#FFFFFF' : '#050505',
         textSec: dark ? '#B0B3B8' : '#65676B',
         blue: '#0084FF',
         blueHover: '#0073E6',
