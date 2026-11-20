@@ -716,6 +716,7 @@ export function freeBuyFundingRows(digest) {
  * after the digest day sealed, was missed, or was not owed. One row; the label
  * stays beside its value.
  */
+const READINESS_LABEL = { ready: 'Ready', not_owed: 'Nothing New To Ship', not_ready: 'At Risk', unknown: 'Could Not Tell' };
 const CUTOVER_LABEL = { sealed: 'Happened', missed: 'Missed', not_owed: 'Not Needed', unknown: 'Could Not Tell', not_checked: 'Not Checked Yet' };
 export function engineCutoverRow(digest) {
     const e = digest && digest.engine_cutover;
@@ -723,6 +724,14 @@ export function engineCutoverRow(digest) {
     const verdict = CUTOVER_LABEL[e.cutover] || 'Unknown';
     const parts = [`since ${e.live_since_ct || 'unknown'} Central`, `${e.cutover_day || ''} 4 AM cutover: ${verdict}`];
     if (e.cutover === 'missed') parts.push(`owed ${e.owed_build || 'unknown'}${e.resolved_at ? ', since installed' : ''}${e.reason ? `; ${e.reason}` : ''}`);
+    // The 03:00 readiness verdict for the same cutover (fn_ca_cutover_readiness_watch,
+    // Club Arena migration 20261119234116): whether the 4 AM update was going to ship.
+    const r = e.readiness;
+    if (r && r.verdict) {
+        const first = Array.isArray(r.reasons) && r.reasons.length ? String(r.reasons[0]) : '';
+        parts.push(`${r.checked_at_ct || '03:00'} readiness check: ${READINESS_LABEL[r.verdict] || 'Unknown'}`
+            + (r.verdict === 'not_ready' && first ? ` (${first.length > 160 ? `${first.slice(0, 157)}...` : first})` : ''));
+    }
     return ['Live Engine Build', e.live_build || 'Unknown', parts.join('; '), e.cutover === 'missed' && !e.resolved_at];
 }
 

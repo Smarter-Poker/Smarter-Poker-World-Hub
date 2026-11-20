@@ -935,6 +935,22 @@ test('the engine line keeps the live build, since when and the 4 AM cutover verd
     assert.equal(engineCutoverRow(fixture({ engine_cutover: { ...missed, resolved_at: '2026-11-09T10:02:00Z' } }))[3], false);
 });
 
+test('the engine line says what the 3 AM readiness check found for the same cutover', async () => {
+    const { engineCutoverRow } = await import('../src/lib/dailyDigest/render.mjs');
+    const base = { live_build: '8bd8eef3', live_since_ct: 'Nov 20 04:01', cutover_day: '2026-11-20', cutover: 'sealed' };
+    assert.equal(engineCutoverRow(fixture({ engine_cutover: { ...base, readiness: { verdict: 'ready', checked_at_ct: '03:00', reasons: [] } } }))[2],
+        'since Nov 20 04:01 Central; 2026-11-20 4 AM cutover: Happened; 03:00 readiness check: Ready');
+    const atRisk = { ...base, cutover: 'missed', owed_build: '95c06728', readiness: { verdict: 'not_ready', checked_at_ct: '03:00',
+        reasons: ['no Backup-certified build the 03:30 selection can take: freeze baseline 95c06728 has no backup-engine/certified status since the freeze began at 23:45 Central'] } };
+    const row = engineCutoverRow(fixture({ engine_cutover: atRisk }));
+    assert.match(row[2], /; owed 95c06728; 03:00 readiness check: At Risk \(no Backup-certified build the 03:30 selection can take: freeze baseline 95c06728 has no backup-engine\/certified status since the freeze began at 23:45 Central\)$/);
+    const long = { ...atRisk, readiness: { ...atRisk.readiness, reasons: [atRisk.readiness.reasons[0] + '; newest Backup run 777 is in_progress for 95c06728'] } };
+    const cut = engineCutoverRow(fixture({ engine_cutover: long }))[2].split('At Risk (')[1];
+    assert.equal(cut.length, 161);
+    assert.match(cut, /\.\.\.\)$/);
+    assert.equal(engineCutoverRow(fixture({ engine_cutover: { ...base, readiness: null } }))[2], 'since Nov 20 04:01 Central; 2026-11-20 4 AM cutover: Happened');
+});
+
 // Player-felt latency (Dan 2026-11-19): fn_sp_digest_felt_latency's shape as
 // production returns it under fn_sp_daily_digest's 'felt_latency' key.
 test('the felt latency card shows each kind, the slowest table and missing hours', async () => {
