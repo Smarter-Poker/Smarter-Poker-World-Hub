@@ -138,6 +138,11 @@ export const TABS = [
   { id: 'sql-console', label: 'SQL Console', permission: 'sql.execute' },
   { id: 'hg-moderation', label: 'HG Moderation', permission: 'players.read' },
   { id: 'hand-reviews', label: 'Hand Reviews', permission: 'fleet.read' },
+
+  // Marketing (Dan, 2026-11-18). Contacts who are not players yet, campaigns,
+  // the do-not-email list and the retention funnel. Opening it is the console
+  // floor; every write inside declares content.write on the server.
+  { id: 'marketing', label: 'Marketing', permission: 'console.read' },
 ];
 
 export const DEFAULT_TAB = 'stable';

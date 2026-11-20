@@ -19,11 +19,11 @@ const LEGACY_REDIRECTS = new Map([
   ['pages/horses/hand-reviews.js', 'hand-reviews'],
 ]);
 
-test('the operator registry has 29 real, pure-data tabs', () => {
+test('the operator registry has 30 real, pure-data tabs', () => {
   const rendered = visibleTabs(TABS);
-  assert.equal(rendered.length, 29);
-  assert.equal(new Set(rendered.map((tab) => tab.id)).size, 29, 'tab ids must be unique');
-  assert.equal(new Set(rendered.map((tab) => tab.label)).size, 29, 'tab labels must be unique');
+  assert.equal(rendered.length, 30);
+  assert.equal(new Set(rendered.map((tab) => tab.id)).size, 30, 'tab ids must be unique');
+  assert.equal(new Set(rendered.map((tab) => tab.label)).size, 30, 'tab labels must be unique');
 
   for (const tab of rendered) {
     assert.equal(typeof tab.id, 'string', `${tab.label} needs an id`);
@@ -54,7 +54,7 @@ test('every tab resolves through one explicit top-level dynamic declaration', as
   assert.ok(mapBody, 'the tab component map must remain explicit');
   const entries = [...mapBody.matchAll(/^\s*(?:'([^']+)'|([a-z][\w-]*)):\s*(\w+Panel),?\s*$/gm)]
     .map((match) => [match[1] || match[2], match[3]]);
-  assert.equal(entries.length, 29, 'one explicit component entry is required per rendered tab');
+  assert.equal(entries.length, 30, 'one explicit component entry is required per rendered tab');
   assert.deepEqual(new Set(entries.map(([id]) => id)), new Set(visibleTabs(TABS).map((tab) => tab.id)));
   for (const [id, component] of entries) {
     assert.ok(declarations.has(component), `${id} maps to undeclared ${component}`);

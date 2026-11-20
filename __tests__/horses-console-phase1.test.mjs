@@ -763,7 +763,7 @@ test('every shared component file obeys the house rules', async () => {
  * Phase 2 review found: thirteen tabs asking for invented names, invisible to
  * a `god`, suite green throughout.
  */
-test('tabRegistry exports twenty-nine tabs in order, and Fleet Command replaced Grinder', async () => {
+test('tabRegistry exports thirty tabs in order, and Fleet Command replaced Grinder', async () => {
   const src = await read(`${COMPONENT_DIR}tabRegistry.js`);
   const ids = [...src.matchAll(/\{ id: '([a-z-]+)', label:/g)].map((m) => m[1]);
   assert.deepEqual(ids, [
@@ -785,8 +785,10 @@ test('tabRegistry exports twenty-nine tabs in order, and Fleet Command replaced 
     'platform',
     // Phase 9.
     'sql-console', 'hg-moderation', 'hand-reviews',
+    // Marketing (2026-11-18).
+    'marketing',
   ]);
-  assert.equal(ids.length, 29);
+  assert.equal(ids.length, 30);
   assert.match(src, /export const TABS = \[/);
   assert.match(src, /export const DEFAULT_TAB = 'stable'/);
 
@@ -799,7 +801,7 @@ test('tabRegistry exports twenty-nine tabs in order, and Fleet Command replaced 
   // the server module that defines it rather than copied into this file.
   const { ALL_PERMISSIONS } = await import('../src/lib/horses/permissions.js');
   const { TABS } = await import(`../${COMPONENT_DIR}tabRegistry.js`);
-  assert.equal(TABS.length, 29);
+  assert.equal(TABS.length, 30);
   assert.deepEqual(TABS.map((t) => t.id), ids, 'the parsed order is the exported order');
   for (const tab of TABS) {
     assert.ok(
