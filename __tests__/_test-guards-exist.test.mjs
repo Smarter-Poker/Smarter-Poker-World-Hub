@@ -828,6 +828,7 @@ import './messenger-preview-is-plain-text.test.mjs';
 import './messenger-calls-work.law.test.mjs';
 import './messenger-calls-live-safety.test.mjs';
 import './messenger-calls-device-safety.test.mjs';
+import './messenger-typed-text-is-white.law.test.mjs';
 import './digest-figures-carry-separators.test.mjs';
 // GSC Series 4 And Series 5 Technical SEO Test Guards
 import './gsc-series4-phase1.test.mjs';
