@@ -951,6 +951,41 @@ test('the engine line says what the 3 AM readiness check found for the same cuto
     assert.equal(engineCutoverRow(fixture({ engine_cutover: { ...base, readiness: null } }))[2], 'since Nov 20 04:01 Central; 2026-11-20 4 AM cutover: Happened');
 });
 
+// Player-felt latency (Dan 2026-11-19): fn_sp_digest_felt_latency's shape as
+// production returns it under fn_sp_daily_digest's 'felt_latency' key.
+test('the felt latency card shows each kind, the slowest table and missing hours', async () => {
+    const { feltLatencyRows, FELT_LATENCY_RED_MS } = await import('../src/lib/dailyDigest/render.mjs');
+    assert.deepEqual(feltLatencyRows(fixture()), []);
+    const felt = {
+        day: '2026-11-19', hours_recorded: 24,
+        kinds: {
+            cash: { pairs: 30650, p50_ms: 3500, p95_ms: 6250, worst_hour_ct: '21:00', worst_hour_p95_ms: 8000, excluded: { idle: 12, rebuy_window: 700 } },
+            tournament: { pairs: 133000, p50_ms: 3750, p95_ms: 17500, worst_hour_ct: '19:00', worst_hour_p95_ms: 22000, excluded: { break: 40, idle: 2000, hand_for_hand: 9 } },
+            lightning: { pairs: 22000, p50_ms: 2500, p95_ms: 20250, excluded: {} },
+        },
+        slowest_table: { table_id: 't1', name: 'Deep Stack 2/5', kind: 'cash', p95_ms: 12000, pairs: 310 },
+    };
+    const rows = feltLatencyRows(fixture({ felt_latency: felt }));
+    assert.deepEqual(rows[0], ['Cash Games', 'p50 3.5 s, p95 6.3 s',
+        '30,650 hand-to-hand waits; worst hour 21:00 Central, p95 8.0 s; left out as intended waits: idle 12, rebuy window 700', false]);
+    assert.equal(rows[1][0], 'Tournaments');
+    assert.match(rows[1][2], /hand for hand 9/);
+    assert.equal(rows[1][3], false);
+    assert.deepEqual(rows[2], ['Lightning', 'p50 2.5 s, p95 20.3 s', '22,000 hand-to-hand waits; left out as intended waits: none', true]);
+    assert.ok(20250 >= FELT_LATENCY_RED_MS);
+    assert.deepEqual(rows[3], ['Slowest Table', 'Deep Stack 2/5', 'cash, p95 12.0 s over 310 waits', false]);
+    assert.equal(rows.length, 4);
+    const partial = feltLatencyRows(fixture({ felt_latency: { ...felt, hours_recorded: 20 } }));
+    assert.deepEqual(partial.at(-1).slice(0, 2), ['Hours Recorded', '20 of 24']);
+    assert.equal(partial.at(-1)[3], true);
+    assert.deepEqual(feltLatencyRows(fixture({ felt_latency: { day: '2026-11-19', hours_recorded: 0, kinds: {} } })),
+        [['Hours Recorded', '0 of 24', 'No player-felt latency was recorded for this day', true]]);
+    const html = buildHtml(fixture({ felt_latency: felt }));
+    assert.match(html, /Player-Felt Latency \(Last Action To Next Deal\)/);
+    assert.match(html, /Cash Games<\/td>/);
+    assert.match(buildText(fixture({ felt_latency: felt })), /PLAYER-FELT LATENCY \(LAST ACTION TO NEXT DEAL\)\nCash Games: p50 3\.5 s, p95 6\.3 s/);
+});
+
 // BBJ rake and the horse fleet in chips (Dan 2026-11-11). Production's own
 // figures for the Central day 2026-11-10: the email said Rake 73,324.82 and
 // Horse Net Result -146,546.8 BB "house exposure". The horses paid 63,550.35 of
