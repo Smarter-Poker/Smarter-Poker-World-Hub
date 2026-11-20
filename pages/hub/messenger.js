@@ -3976,7 +3976,7 @@ function MessengerPage() {
                                 {editingMessage && (
                                     <div style={{
                                         display: 'flex', alignItems: 'center', gap: 8,
-                                        padding: '8px 16px', background: '#E7F3FF',
+                                        padding: '8px 16px', background: isDarkMode ? '#1a3a5c' : '#E7F3FF',
                                         borderTop: `1px solid ${C.border}`,
                                     }}>
                                         <div style={{ flex: 1 }}>
@@ -3987,7 +3987,7 @@ function MessengerPage() {
                                                 onKeyDown={e => { if (e.key === 'Enter') handleEditSave(); if (e.key === 'Escape') handleEditCancel(); }}
                                                 style={{
                                                     width: '100%', border: 'none', background: 'transparent',
-                                                    fontSize: 14, outline: 'none', color: C.text,
+                                                    fontSize: 14, outline: 'none', color: C.inputText, caretColor: C.inputText,
                                                 }}
                                                 autoFocus
                                             />

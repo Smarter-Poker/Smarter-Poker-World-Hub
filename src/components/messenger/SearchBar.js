@@ -36,7 +36,8 @@ export function SearchBar({
                         padding: '10px 0',
                         fontSize: 15,
                         outline: 'none',
-                        color: '#050505',
+                        color: C.inputText,
+                        caretColor: C.inputText,
                     }}
                 />
             </div>
