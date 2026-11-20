@@ -1153,5 +1153,92 @@ class TourSourceRegistryMigrationTests(unittest.TestCase):
             self.assertIn(f"'{url}'", code)
 
 
+class ARunReportsTheRuntimeNotEachSiteTests(unittest.TestCase):
+    """Incident 747a7b32 (2026-11-20): 20 of 21 tours fetched, WTP's ended season
+    parsed as empty, and the collector exited 1 as a critical runtime failure."""
+
+    TODAY = date(2026, 11, 20)
+    URL = 'https://www.worldtavernpoker.info/open-2026'
+
+    def ended_stop(self):
+        return {'stop_name': 'World Tavern Poker OPEN 2026', 'start': '2026-10-31', 'end': '2026-11-05'}
+
+    def stored_row(self, **changed):
+        row = {'stop_name': 'World Tavern Poker OPEN 2026', 'stop_start_date': '2026-10-31',
+               'start_date': '2026-10-31', 'source_url': self.URL}
+        row.update(changed)
+        return row
+
+    def test_a_known_page_whose_stops_all_ended_is_between_seasons(self):
+        self.assertTrue(scraper.season_ended_on_known_page(
+            [self.ended_stop()], [self.stored_row()], self.URL, self.TODAY))
+        self.assertTrue(scraper.season_ended_on_known_page(
+            [self.ended_stop()], [self.stored_row()], self.URL + '/', self.TODAY))
+
+    def test_anything_short_of_that_proof_stays_a_source_error(self):
+        f = scraper.season_ended_on_known_page
+        self.assertFalse(f([], [self.stored_row()], self.URL, self.TODAY))
+        self.assertFalse(f([self.ended_stop()], None, self.URL, self.TODAY))
+        self.assertFalse(f([self.ended_stop()], [], self.URL, self.TODAY))
+        self.assertFalse(f([self.ended_stop()], [self.stored_row(source_url='https://other.test/x')],
+                           self.URL, self.TODAY))
+        self.assertFalse(f([dict(self.ended_stop(), stop_name='A New Event')], [self.stored_row()],
+                           self.URL, self.TODAY))
+        # Still inside the 14-day window: not ended for this purpose.
+        self.assertFalse(f([self.ended_stop()], [self.stored_row()], self.URL, date(2026, 11, 10)))
+        self.assertFalse(f([dict(self.ended_stop(), end='not-a-date')], [self.stored_row()],
+                           self.URL, self.TODAY))
+
+    def test_the_exit_code_is_the_runtime(self):
+        self.assertEqual(scraper.run_exit_code(20, 0, 0), 0)
+        self.assertEqual(scraper.run_exit_code(0, 0, 0), 1)
+        self.assertEqual(scraper.run_exit_code(20, 1, 0), 1)
+        self.assertEqual(scraper.run_exit_code(20, 0, 1), 1)
+
+    def run_tours(self, tours, fetch, stops_for, sb_get_rows):
+        session, heartbeats, registry = mock.Mock(), [], []
+        with mock.patch.object(sys, 'argv', ['tour_stealth_scraper.py']), \
+             mock.patch.object(scraper, 'SUPABASE_KEY', 'offline-key'), \
+             mock.patch.object(scraper, 'load_tours', return_value=tours), \
+             mock.patch.object(scraper, 'create_session', return_value=session), \
+             mock.patch.object(scraper, 'fetch_page', side_effect=lambda _session, u: (fetch(u)[0], 'a' * 64, session, u)), \
+             mock.patch.object(scraper, 'tour_page_identity', side_effect=lambda code, name, url, final, html: (bool(html), 'source_owned')), \
+             mock.patch.object(scraper, 'verify_html', side_effect=lambda html: bool(html)), \
+             mock.patch.object(scraper, 'extract_stops', side_effect=stops_for), \
+             mock.patch.object(scraper, 'sb_get', return_value=sb_get_rows), \
+             mock.patch.object(scraper, 'sb_insert', side_effect=lambda table, rows: len(rows)), \
+             mock.patch.object(scraper, 'update_tour_registry', side_effect=lambda *a: registry.append(a) or True), \
+             mock.patch.object(scraper, 'write_heartbeat', side_effect=lambda **kw: heartbeats.append(kw)), \
+             mock.patch.object(scraper.time, 'sleep'):
+            scraper.main()
+        return heartbeats, {a[0]: a[2] for a in registry}
+
+    def test_one_failing_site_is_that_tours_error_not_a_crash(self):
+        tours = [('GOOD', 'Good Tour', 'https://good.test/s'), ('BAD', 'Bad Tour', 'https://bad.test/s')]
+        future = {'stop_name': 'Future Classic', 'start': '2099-01-01', 'end': '2099-01-05'}
+        heartbeats, status = self.run_tours(
+            tours,
+            fetch=lambda u: ('poker ' * 100 if 'good' in u else '',),
+            stops_for=lambda html, url, *a, **k: [future] if 'good' in url else [],
+            sb_get_rows=[],
+        )  # no SystemExit
+        self.assertEqual(status, {'GOOD': 'active', 'BAD': 'error'})
+        self.assertEqual(heartbeats[-1]['run_status'], 'partial')
+
+    def test_an_ended_season_on_its_known_page_is_pending_and_the_run_succeeds(self):
+        tours = [('WTP', 'World Tavern Poker', self.URL)]
+        def stops_for(html, url, today=None, code=None, *a, **k):
+            # The recency-windowed read is empty; the season read finds the ended stop.
+            return [self.ended_stop()] if today and today.year < 2026 else []
+        with mock.patch.object(scraper, 'datetime', wraps=scraper.datetime) as dt:
+            dt.now.return_value = scraper.datetime(2026, 11, 20, 18, 54, tzinfo=scraper.timezone.utc)
+            heartbeats, status = self.run_tours(
+                tours, fetch=lambda u: ('poker ' * 100,), stops_for=stops_for,
+                sb_get_rows=[self.stored_row()],
+            )
+        self.assertEqual(status, {'WTP': 'pending'})
+        self.assertEqual(heartbeats[-1]['run_status'], 'success')
+
+
 if __name__ == "__main__":
     unittest.main()
