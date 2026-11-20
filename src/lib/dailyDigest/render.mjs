@@ -726,6 +726,47 @@ export function engineCutoverRow(digest) {
     return ['Live Engine Build', e.live_build || 'Unknown', parts.join('; '), e.cutover === 'missed' && !e.resolved_at];
 }
 
+/**
+ * Player-Felt Latency (fn_sp_digest_felt_latency via fn_sp_daily_digest's
+ * 'felt_latency' key, Dan 2026-11-19): the wait players feel between hands,
+ * from the last player action of a hand to the next deal, for the Central day,
+ * per kind (exact p50/p95 from the hourly histograms), the worst hour, the
+ * intended waits left out, the slowest table and how many hours were recorded.
+ * A p95 of 20 seconds or more, or a day with missing hours, is shown in red.
+ */
+export const FELT_LATENCY_RED_MS = 20000;
+const FELT_KINDS = [['cash', 'Cash Games'], ['tournament', 'Tournaments'], ['lightning', 'Lightning']];
+function fmtSeconds(ms) {
+    return ms === null || ms === undefined || ms === '' || !Number.isFinite(Number(ms)) ? 'unknown' : `${(Number(ms) / 1000).toFixed(1)} s`;
+}
+export function feltLatencyRows(digest) {
+    const f = digest && digest.felt_latency;
+    if (!f) return [];
+    const rows = [];
+    const kinds = f.kinds || {};
+    for (const [key, label] of FELT_KINDS) {
+        const k = kinds[key];
+        if (!k) continue;
+        const excluded = Object.entries(k.excluded || {}).filter(([, n]) => Number(n) > 0)
+            .map(([why, n]) => `${why.replace(/_/g, ' ')} ${fmtInt(n)}`).join(', ');
+        const sub = [`${fmtInt(k.pairs)} hand-to-hand waits`];
+        if (k.worst_hour_ct) sub.push(`worst hour ${k.worst_hour_ct} Central, p95 ${fmtSeconds(k.worst_hour_p95_ms)}`);
+        sub.push(`left out as intended waits: ${excluded || 'none'}`);
+        rows.push([label, `p50 ${fmtSeconds(k.p50_ms)}, p95 ${fmtSeconds(k.p95_ms)}`, sub.join('; '), Number(k.p95_ms) >= FELT_LATENCY_RED_MS]);
+    }
+    const t = f.slowest_table;
+    if (t) rows.push(['Slowest Table', t.name || 'Unnamed table', `${t.kind || 'unknown'}, p95 ${fmtSeconds(t.p95_ms)} over ${fmtInt(t.pairs)} waits`, Number(t.p95_ms) >= FELT_LATENCY_RED_MS]);
+    const hours = Number(f.hours_recorded);
+    if (!rows.length) rows.push(['Hours Recorded', `${fmtInt(hours || 0)} of 24`, 'No player-felt latency was recorded for this day', true]);
+    else if (hours < 23) rows.push(['Hours Recorded', `${fmtInt(hours)} of 24`, 'Some hours of the day were not recorded; the figures above cover the recorded hours only', true]);
+    return rows;
+}
+function feltLatencyCard(digest) {
+    const rows = feltLatencyRows(digest);
+    if (!rows.length) return '';
+    return cardOpen('Player-Felt Latency (Last Action To Next Deal)') + rows.map((r) => rowHtml(r[0], esc(r[1]), r[2], r[3], false)).join('') + cardClose;
+}
+
 function freeBuyFundingCard(digest) {
     const rows = freeBuyFundingRows(digest);
     if (!rows.length) return '';
@@ -782,6 +823,7 @@ export function buildHtml(digest, opts = {}) {
         if (def.title === 'Platform Health') {
             const cut = engineCutoverRow(digest);
             if (cut) body += cardOpen('Engine Build And 4 AM Cutover') + rowHtml(cut[0], esc(cut[1]), cut[2], cut[3], false) + cardClose;
+            body += feltLatencyCard(digest);
             body += topListCard('Top Alerts', get(m, 'health.alerts_top'), (x) => [`${x.alertname} (${x.severity})`, fmtInt(x.n)])
                 + topListCard('Top Client Errors', get(m, 'health.client_errors_top'), (x) => [x.k, fmtInt(x.n)]);
         }
@@ -1210,6 +1252,11 @@ export function buildText(digest, opts = {}) {
         if (def.title === 'Platform Health') {
             const cut = engineCutoverRow(digest);
             if (cut) lines.push(`${cut[0]}: ${cut[1]}  (${cut[2]})`);
+            const felt = feltLatencyRows(digest);
+            if (felt.length) {
+                lines.push('', 'PLAYER-FELT LATENCY (LAST ACTION TO NEXT DEAL)');
+                for (const [label, value, sub] of felt) lines.push(`${label}: ${value}  (${sub})`);
+            }
         }
         if (def.title === 'Growth') {
             for (const block of [signupsRows(digest), welcomeBackRows(digest), agentScoreboardRows(digest)]) {
