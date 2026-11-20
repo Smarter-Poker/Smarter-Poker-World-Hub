@@ -636,6 +636,56 @@ def ante_up_finale_dates_pending(code: str, url: str, page: str, today: date) ->
     return bool(season_stops) and all(date.fromisoformat(s['end']) < cutoff for s in season_stops)
 
 
+def season_ended_on_known_page(page_stops: list, stored_rows: list, source_url: str,
+                               today: date) -> bool:
+    """A verified source page that still shows only stops we already hold from it,
+    all ended, is between seasons - not a broken source (2026-11-20).
+
+    Every extractor drops stops that ended over 14 days ago. A tour with one
+    published event therefore parses as empty 14 days after it ends: World
+    Tavern Poker's OPEN 2026 (Oct 31 - Nov 5) left the page's recency window on
+    Nov 19, and the Nov 20 run marked WTP 'error' and exited the collector 1
+    (LocalScraperRuntimeFailure, incident 747a7b32). ante_up_finale_dates_pending
+    handled the same state for one tour only. The proof required here is
+    strict: the page's own schedule, read without the recency cutoff, must be
+    non-empty, every stop on it must have ended before the cutoff, and every one
+    must match a stop already stored for this tour FROM THIS SAME SOURCE URL. A
+    changed, re-laid-out or unreadable page matches nothing and stays an error.
+    """
+    if not page_stops or stored_rows is None:
+        return False
+    cutoff = today - timedelta(days=14)
+    stored = {
+        tour_stop_identity(row) for row in stored_rows
+        if str(row.get('source_url') or '').rstrip('/') == str(source_url or '').rstrip('/')
+    }
+    for stop in page_stops:
+        try:
+            ended = date.fromisoformat(str(stop.get('end'))) < cutoff
+        except ValueError:
+            return False
+        identity = tour_stop_identity({
+            'stop_name': stop.get('stop_name'), 'stop_start_date': stop.get('start'),
+        })
+        if not ended or identity not in stored:
+            return False
+    return True
+
+
+def run_exit_code(tours_ok: int, total_rejected: int, write_errors: int) -> int:
+    """The collector's exit status reports the RUNTIME, not each tour site (2026-11-20).
+
+    One tour site failing to verify or parse is that tour's state, recorded on
+    its tour_source_registry row ('error', last_successful_scrape kept) and in
+    the run's 'partial' heartbeat. Exiting 1 for it told local_scraper_runtime
+    the collector had crashed and paged LocalScraperRuntimeFailure critical for
+    a run that fetched 20 of 21 tours. A non-zero exit is kept for what is
+    really the runtime's failure: no tour fetched at all, a rejected write, or
+    a database read/write this run could not complete.
+    """
+    return 1 if (tours_ok == 0 or total_rejected > 0 or write_errors > 0) else 0
+
+
 def extract_stops(html: str, base_url: str, today: date = None, tour_code: str = None,
                   default_year: int = None) -> list:
     """Generic stop extractor: date-range matches paired with the nearest
@@ -1603,6 +1653,9 @@ def main():
     session = create_session()
     total_stops = total_attempted = total_written = total_rejected = tours_ok = 0
     source_errors = 0
+    # Database reads/writes this run could not complete (2026-11-20): the
+    # runtime's own failures, unlike a tour site that failed to verify or parse.
+    write_errors = 0
     write_heartbeat(
         status="running", run_status="progress", tours_done=0, stops_found=0,
         records_attempted=0, records_written=0, records_rejected=0, errors=0,
@@ -1651,6 +1704,24 @@ def main():
             dates_pending = not stops and ante_up_finale_dates_pending(
                 code, final_url or url, html, datetime.now(timezone.utc).date(),
             )
+            if not dates_pending and not stops and not args.dry_run:
+                today_utc = datetime.now(timezone.utc).date()
+                page_stops = extract_stops(
+                    html, final_url or url, date(today_utc.year - 1, 1, 1), code,
+                ) if valid_page else []
+                stored_rows = sb_get(
+                    "tour_stop_events",
+                    f"?select=stop_name,stop_start_date,start_date,source_url"
+                    f"&tour_code=eq.{urllib.parse.quote(code)}",
+                ) if page_stops else []
+                if stored_rows is None:
+                    write_errors += 1
+                dates_pending = season_ended_on_known_page(
+                    page_stops, stored_rows, final_url or url, today_utc,
+                )
+                if dates_pending:
+                    log("    every stop on the source page has ended and is already held; "
+                        "between seasons, next dates not yet published")
             if dates_pending:
                 log("    the published stops have ended and the tour has not confirmed its finale dates")
             elif not stops:
@@ -1672,6 +1743,7 @@ def main():
                     attempted = len(stops)
                     rejected = len(stops)
                     source_errors += 1
+                    write_errors += 1
                     log("    identity read failed; refusing duplicate-prone writes")
                 else:
                     effective_source_url = final_url or url
@@ -1737,6 +1809,7 @@ def main():
                         "name/date identities already present)")
                     if rejected:
                         source_errors += 1
+                        write_errors += 1
                     else:
                         retire_ids = retirable_stop_ids(
                             existing_rows, stops, final_url or url,
@@ -1755,6 +1828,7 @@ def main():
                                 log(f"    {retired}/{len(retire_ids)} retirements confirmed; "
                                     "changed owners preserved, no blind retry")
                                 source_errors += 1
+                                write_errors += 1
             total_attempted += attempted
             total_written += written
             total_rejected += rejected
@@ -1785,6 +1859,7 @@ def main():
             # and silently matched no row for half of the active tour catalog.
             if not update_tour_registry(code, now_iso, status, found):
                 source_errors += 1
+                write_errors += 1
         heartbeat_status = "degraded" if source_errors else "running"
         write_heartbeat(status=heartbeat_status, tours_done=i + 1, stops_found=total_stops,
                         records_attempted=total_attempted, records_written=total_written,
@@ -1813,9 +1888,13 @@ def main():
         f"{total_written}/{total_attempted} persisted rows confirmed, "
         f"{total_rejected} rejected, {source_errors} source/write errors")
     log("=" * 70)
-    # Non-zero exit when the run wrote nothing AND found nothing - the launcher
-    # and watchdog treat that as a failed run, not a quiet success.
-    if tours_ok == 0 or total_rejected > 0 or source_errors > 0:
+    # Non-zero exit only for a failure of the run itself (run_exit_code). A tour
+    # site that failed is that tour's 'error' row and this run's 'partial'.
+    failed_sites = source_errors - write_errors
+    if failed_sites:
+        log(f"{failed_sites} tour site(s) failed to verify or parse; recorded per tour "
+            "in tour_source_registry, not a runtime failure")
+    if run_exit_code(tours_ok, total_rejected, write_errors):
         sys.exit(1)
 
 
