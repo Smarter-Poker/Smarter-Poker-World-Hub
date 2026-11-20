@@ -1,0 +1,183 @@
+# ═══════════════════════════════════════════════════════════════
+# .vercelignore — Exclude non-deployment files from Vercel upload
+# ═══════════════════════════════════════════════════════════════
+# HARD LAW: Vercel fails at 15,000 files. Keep under 12,000.
+# The 11k+ bulk files are in SCRAPE subdirs — exclude only those.
+# DO NOT exclude /data/ root or /services/ — API routes import them.
+# ═══════════════════════════════════════════════════════════════
+
+# ── Python virtual environment (14k files) ────────────────────
+.venv/
+
+# ── Vercel / Next.js build cache (auto-generated) ─────────────
+.vercel/
+.next/
+
+# ── Node (never committed but just in case) ───────────────────
+node_modules/
+# Keep Git history: the ignored-build decision compares deployed source.
+
+# ── DATA SCRAPING OUTPUT (11k+ files — scraper logs only) ─────
+# These subdirs contain scraper logs/evidence NOT imported by code
+data/scrape-output/
+data/scrape-evidence/
+data/scrape-evidence-v2/
+data/PURGED_AI_GENERATED/
+data/bravo-logs/
+data/charity-scraper-logs/
+data/tournament-logs/
+data/pokeratlas-logs/
+
+# ── Agent / tooling dirs ──────────────────────────────────────
+.agent/
+.agents/
+.gemini/
+.claude/
+.claude-flow/
+.hive-mind/
+.swarm/
+.bg-shell/
+.vscode/
+
+# The production build runs the bounded-solver authority contract, which reads
+# this exact reviewed runbook. Re-include only that file while keeping every
+# other agent artifact out of the deployment upload.
+!/.agent/
+/.agent/*
+!/.agent/audits/
+/.agent/audits/*
+!/.agent/audits/2026-09-07-training-solver-catalog-admission-runbook.md
+
+# ── Planning and memory (agent-only) ─────────────────────────
+.planning/
+.memory/
+.ocr/
+
+# ── Database migrations (executed separately via Supabase) ────
+# The Marketplace build gate reads migrations as deployment evidence. Keep the
+# complete 10 MB migration tree: Vercel CLI cannot reliably re-include children
+# of an ignored parent directory, and an incomplete direct upload fails closed.
+# The explicit entries below document the minimum commerce contract as well.
+!/supabase/migrations/20260828010000_neural_steel_catalog_expansion.sql
+!/supabase/migrations/20260829120000_reserve_merch_order_dry_run.sql
+!/supabase/migrations/20260830040000_atomic_diamond_merch_orders.sql
+!/supabase/migrations/20260830100000_card_commerce_settlement_hardening.sql
+!/supabase/migrations/20260830120000_commerce_event_ordering_and_subscription_claims.sql
+!/supabase/migrations/20260830130000_commerce_refund_replay_guards.sql
+!/supabase/migrations/20260905153833_vip_is_monthly_yearly_or_lifetime.sql
+!/supabase/migrations/20260905180000_lifetime_vip_can_be_bought_with_a_card.sql
+!/supabase/migrations/20260906150000_marketplace_phase6_lifetime_and_fulfillment_guards.sql
+!/supabase/migrations/20260906183000_club_shop_price_authorization.sql
+!/supabase/migrations/20260906213000_marketplace_phase7_vip_acquisition_mutex.sql
+/database/
+/migrations/
+/sql/
+
+# ── Legacy directories ────────────────────────────────────────
+_legacy_backups/
+_legacy_club_arena_standalone_pages/
+_legacy_scripts/
+_legacy_logs/
+_legacy_sql/
+
+# ── Test / QA ─────────────────────────────────────────────────
+/tests/*
+!/tests/helpers/
+/tests/helpers/*
+!/tests/helpers/canonicalTrainingPolicyFixture.mjs
+!/tests/helpers/trainingBatchPreloadHarness.mjs
+/e2e/*
+!/e2e/03-training-gto.spec.ts
+!/e2e/05-diamond-store.spec.ts
+# The Vercel build runs the compact marketplace contract suite. Keep those
+# exact files in the upload while excluding the rest of the large test tree.
+/__tests__/*
+# Vercel runs the permanent Training authority gate before compiling. Keep
+# every tracked Node contract test so new gate members cannot disappear from a
+# direct Vercel CLI upload while remaining present in Git and local CI.
+!/__tests__/*.test.mjs
+!/__tests__/solver-matrix-trust-runtime-probe.cjs
+!/__tests__/marketplace-console-v1-foundation.test.mjs
+!/__tests__/marketplace-console-user-correction.test.mjs
+!/__tests__/marketplace-merch-premium.test.mjs
+!/__tests__/diamond-store-phase-7.test.mjs
+!/__tests__/diamond-store-phase-8.test.mjs
+!/__tests__/diamond-store-phase-9.test.mjs
+!/__tests__/store-tab-routes.test.mjs
+!/__tests__/vip-purchase-wiring.test.mjs
+!/__tests__/vip-gifts.test.mjs
+!/__tests__/vip-structured-data.test.mjs
+!/__tests__/diamond-store-phase-2.test.mjs
+!/__tests__/diamond-store-phase-3.test.mjs
+!/__tests__/diamond-store-phase-4.test.mjs
+!/__tests__/diamond-store-phase-5.test.mjs
+!/__tests__/diamond-store-phase-6.test.mjs
+!/__tests__/diamond-store-v3.test.mjs
+!/__tests__/club-shop-atomic-commerce.test.mjs
+!/__tests__/club-shop-manage-tools.test.mjs
+!/__tests__/club-shop-operator-repairs.test.mjs
+!/__tests__/diamond-store-phase-10.test.mjs
+!/__tests__/diamond-store-phase-11.test.mjs
+!/__tests__/diamond-store-phase-12.test.mjs
+!/__tests__/diamond-store-phase-13.test.mjs
+!/__tests__/diamond-store-phase-14.test.mjs
+!/__tests__/reward-detail-cleanup.test.mjs
+!/__tests__/diamond-store-phase-15.test.mjs
+!/__tests__/diamond-store-phase-16.test.mjs
+!/__tests__/diamond-store-phase-17.test.mjs
+!/__tests__/diamond-store-phase-18.test.mjs
+!/__tests__/diamond-store-phase-19.test.mjs
+!/__tests__/diamond-store-phase-20.test.mjs
+!/__tests__/diamond-store-phase-21.test.mjs
+!/__tests__/diamond-store-phase-22.test.mjs
+!/__tests__/diamond-store-phase-23.test.mjs
+!/__tests__/diamond-store-phase-24.test.mjs
+!/__tests__/diamond-store-phase-25.test.mjs
+!/__tests__/diamond-store-phase-26.test.mjs
+!/__tests__/marketplace-phase-8-lifetime-entitlements.test.mjs
+!/__tests__/marketplace-phase-6-request-resilience.test.mjs
+!/__tests__/marketplace-phase-6-fulfillment-verifier.test.mjs
+!/__tests__/marketplace-phase-6-lifetime-checkout-recovery.test.mjs
+!/__tests__/marketplace-phase-6-lifetime-return-expiration.test.mjs
+!/__tests__/marketplace-phase-6-transfer-idempotency.test.mjs
+!/__tests__/marketplace-phase-6-club-card-preflight.test.mjs
+!/__tests__/marketplace-phase-6-club-card-debt-settlement.test.mjs
+!/__tests__/marketplace-phase-6-mutable-idempotency.test.mjs
+!/__tests__/marketplace-phase-6-package-storefront-authority.test.mjs
+!/__tests__/marketplace-phase-7-cancel-vip-execution.test.mjs
+!/__tests__/marketplace-phase-7-production-truth.test.mjs
+!/__tests__/marketplace-phase-7-stripe-runtime.test.mjs
+!/__tests__/marketplace-phase-7-subscription-open-claim-recovery.test.mjs
+!/__tests__/marketplace-phase-7-switch-vip-plan-execution.test.mjs
+!/__tests__/marketplace-phase-7-webhook-claim-guard.test.mjs
+!/__tests__/marketplace-phase-7-webhook-execution.test.mjs
+!/__tests__/printful-fulfillment.test.mjs
+!/__tests__/merch-catalog-admin.test.mjs
+!/__tests__/marketplace-operations.test.mjs
+!/__tests__/marketplace-club-shop-signed-out-preview.test.mjs
+!/__tests__/marketplace-first-party-operations.test.mjs
+!/__tests__/marketplace-launch-migrations-postgres.test.mjs
+!/__tests__/marketplace-lifetime-card-reversal.test.mjs
+!/__tests__/marketplace-lifetime-monthly-diamonds.test.mjs
+!/__tests__/marketplace-merch-pagination.test.mjs
+!/__tests__/marketplace-vip-benefit-navigation.test.mjs
+!/__tests__/printful-v2-webhook-signature.test.mjs
+!/tests/shop-item-rules.test.mjs
+!/supabase/migrations/20260829130000_club_shop_atomic_purchase.sql
+/playwright/
+/playwright-report/
+/test-results/
+
+# ── Temporary / output / logs ─────────────────────────────────
+/tmp/
+/output/
+/logs/
+
+# ── Documentation ─────────────────────────────────────────────
+/docs/
+
+# ── Heavy asset directories not needed by Next.js runtime ─────
+/pokerbrain-assets/
+
+# ── Misc tooling ──────────────────────────────────────────────
+/eslint-plugin-smarter-poker/
