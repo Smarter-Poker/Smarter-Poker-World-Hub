@@ -274,6 +274,122 @@ export async function loadWeeklySummary(sb, day) {
     }
 }
 
+/**
+ * Tour schedule sources (2026-11-20). Since World Hub #2900 one failing tour
+ * site no longer fails the collector run (scripts/tour_stealth_scraper.py);
+ * the failure is recorded only on its public.tour_source_registry row:
+ * scrape_status 'error', last_successful_scrape left at the last good run.
+ * This is the reader for that record, so a site broken for weeks is a Needs
+ * Your Attention item instead of a silent row.
+ *
+ * Selection rule (pinned by __tests__/daily-digest-tour-sources.test.mjs):
+ *   - only active rows (is_active true);
+ *   - manual sources are skipped exactly as load_tours skips them
+ *     (scrape_method 'manual', case and spaces ignored); they are never scraped;
+ *   - a row is stale when last_successful_scrape is null or more than
+ *     TOUR_STALE_DAYS old;
+ *   - a 'pending' row (between seasons, dates not yet published) is not a
+ *     failure: the collector reached and verified the page but deliberately
+ *     does not stamp success. It is listed only if the collector itself has
+ *     not checked it in TOUR_STALE_DAYS (last_checked_at null or older),
+ *     because then "pending" is an old answer, not a current one.
+ */
+export const TOUR_STALE_DAYS = 7;
+const DAY_MS = 86400000;
+
+function daysSince(iso, nowMs) {
+    if (!iso) return null;
+    const t = Date.parse(iso);
+    if (Number.isNaN(t)) return null;
+    return Math.max(0, Math.floor((nowMs - t) / DAY_MS));
+}
+
+export function isManualTourSource(row) {
+    return String(row?.scrape_method || '').trim().toLowerCase() === 'manual';
+}
+
+export function selectStaleTourSources(rows, nowMs = Date.now(), staleDays = TOUR_STALE_DAYS) {
+    const out = [];
+    for (const r of rows || []) {
+        if (!r || r.is_active !== true || isManualTourSource(r)) continue;
+        const status = String(r.scrape_status || '').trim().toLowerCase() || 'unknown';
+        const sinceSuccess = daysSince(r.last_successful_scrape, nowMs);
+        const sinceCheck = daysSince(r.last_checked_at, nowMs);
+        let reason = null;
+        if (status === 'pending') {
+            if (sinceCheck === null || sinceCheck > staleDays) reason = 'not_checked';
+        } else if (sinceSuccess === null || sinceSuccess > staleDays) {
+            reason = 'stale_success';
+        }
+        if (!reason) continue;
+        out.push({
+            tour_code: String(r.tour_code || '').trim().toUpperCase(),
+            tour_name: r.tour_name || r.tour_code || '',
+            scrape_status: status,
+            days_since_success: sinceSuccess,
+            days_since_check: sinceCheck,
+            reason,
+        });
+    }
+    // Longest broken first; never-succeeded (null) leads.
+    return out.sort((a, b) => (b.days_since_success ?? Infinity) - (a.days_since_success ?? Infinity)
+        || a.tour_code.localeCompare(b.tour_code));
+}
+
+export async function loadTourSourceHealth(sb, nowMs = Date.now()) {
+    try {
+        const { data, error } = await sb.from('tour_source_registry')
+            .select('tour_code, tour_name, scrape_method, scrape_status, is_active, last_successful_scrape, last_checked_at')
+            .eq('is_active', true)
+            .limit(1000);
+        if (error) return { error: error.message };
+        if (!Array.isArray(data)) return { error: 'Registry returned no rows array' };
+        const scraped = data.filter((r) => r?.is_active === true && !isManualTourSource(r));
+        return {
+            stale_days: TOUR_STALE_DAYS,
+            active: scraped.length,
+            manual: data.length - scraped.length,
+            stale: selectStaleTourSources(data, nowMs),
+        };
+    } catch (err) {
+        return { error: String(err?.message || err) };
+    }
+}
+
+function tourDaysText(s) {
+    if (s.reason === 'not_checked') return s.days_since_check === null ? 'never checked' : `not checked in ${s.days_since_check} days`;
+    return s.days_since_success === null ? 'never succeeded' : `${s.days_since_success} days`;
+}
+
+/** One Needs Your Attention line naming every stale tour source. */
+export function tourSourcesStaleTitle(h) {
+    const stale = Array.isArray(h?.stale) ? h.stale : [];
+    const n = stale.length;
+    const names = stale.slice(0, 6).map((s) => `${s.tour_code} ${tourDaysText(s)}, ${s.scrape_status}`);
+    return `${n} tour schedule source${n === 1 ? ' has' : 's have'} not scraped successfully in over ${h.stale_days || TOUR_STALE_DAYS} days (${names.join('; ')}${n > 6 ? '; more in the card' : ''})`;
+}
+
+/** Adds the tour source item to Needs Your Attention, counted like the others. */
+export function addTourSourceAttention(digest, health) {
+    if (!digest) return;
+    digest.tour_sources = health;
+    let item = null;
+    if (!health || health.error) {
+        item = { rule: 'tour_sources_unreadable', severity: 'warning', status: 'not_picked_up',
+            title: 'Tour schedule source health could not be read (tour_source_registry)',
+            detail: { error: health?.error || 'Report unavailable' }, dispatch: false };
+    } else if (health.stale.length) {
+        item = { rule: 'tour_sources_stale', severity: 'warning', status: 'not_picked_up',
+            title: tourSourcesStaleTitle(health), detail: { stale: health.stale }, dispatch: false };
+    }
+    if (!item) return;
+    digest.attention = Array.isArray(digest.attention) ? digest.attention : [];
+    digest.attention.push(item);
+    if (digest.attention_status && typeof digest.attention_status === 'object') {
+        digest.attention_status.not_picked_up = Number(digest.attention_status.not_picked_up || 0) + 1;
+    }
+}
+
 /** Time the report loads may keep retrying, out of the route's 300 s. */
 const REPORT_BUDGET_MS = 150000;
 
@@ -378,6 +494,7 @@ export async function loadDigestData(sb, day, { withCosts = true, dispatch = tru
             digest.attention_status.not_picked_up = Number(digest.attention_status.not_picked_up || 0) + 1;
         }
     }
+    if (digest) addTourSourceAttention(digest, await loadTourSourceHealth(sb));
     const costs = withCosts ? await providerSpend(day).catch(() => null) : null;
     return { digest, costs };
 }
