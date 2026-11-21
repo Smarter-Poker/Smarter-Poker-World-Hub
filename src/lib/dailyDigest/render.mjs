@@ -782,6 +782,38 @@ function freeBuyFundingCard(digest) {
     return cardOpen('Free Buy And Guarantee Funding') + rows.map((r) => rowHtml(r[0], esc(r[1]), r[2], r[3], false)).join('') + cardClose;
 }
 
+/**
+ * Tour Schedule Sources (2026-11-20): every active, non-manual tour source
+ * whose last successful scrape is over the line (loadTourSourceHealth in
+ * assemble.mjs). Shown only when there is something to say: a stale source
+ * or an unreadable registry.
+ */
+export function tourSourceRows(digest) {
+    const h = digest && digest.tour_sources;
+    if (!h) return [];
+    if (h.error) return [['Report Unavailable', 'Unavailable', `tour_source_registry could not be read: ${String(h.error).slice(0, 160)}`, true]];
+    const stale = Array.isArray(h.stale) ? h.stale : [];
+    if (!stale.length) return [];
+    const rows = [['Stale Sources', `${fmtInt(stale.length)} Of ${fmtInt(h.active)}`,
+        `Active scraped sources with no successful scrape in over ${fmtInt(h.stale_days)} days; ${fmtInt(h.manual)} manual sources not scraped; between-season (pending) sources excluded`, true]];
+    for (const s of stale) {
+        const value = s.reason === 'not_checked'
+            ? (s.days_since_check === null ? 'Never Checked' : `${fmtInt(s.days_since_check)} Days Unchecked`)
+            : (s.days_since_success === null ? 'Never Succeeded' : `${fmtInt(s.days_since_success)} Days`);
+        const sub = s.reason === 'not_checked'
+            ? `Status ${s.scrape_status}; the collector has not checked this source recently`
+            : `Status ${s.scrape_status}; days since last successful scrape`;
+        rows.push([`${s.tour_code} - ${s.tour_name}`, value, sub, true]);
+    }
+    return rows;
+}
+
+function tourSourceCard(digest) {
+    const rows = tourSourceRows(digest);
+    if (!rows.length) return '';
+    return cardOpen('Tour Schedule Sources') + rows.map((r) => rowHtml(r[0], esc(r[1]), r[2], r[3], false)).join('') + cardClose;
+}
+
 export function buildSubject(digest) {
     const m = digest.metrics || {};
     const n = (digest.attention || []).length;
@@ -813,6 +845,7 @@ export function buildHtml(digest, opts = {}) {
             `<tr><td colspan="2" class="digest-row"><b>${esc(label)}: ${esc(value)}</b>${sub ? `<div style="color:${C.muted};font-size:11px;">${esc(sub)}</div>` : ''}</td></tr>`).join('') + cardClose : listCard(title, rows);
     }
     body += freeBuyFundingCard(digest);
+    body += tourSourceCard(digest);
     if (!opts.email) body += horseRosterCard(digest);
     else body += listCard('Horse Roster', horseRosterRows(digest).slice(0, 6));
 
@@ -1246,6 +1279,11 @@ export function buildText(digest, opts = {}) {
     if (funding.length) {
         lines.push('', 'FREE BUY AND GUARANTEE FUNDING');
         for (const [label, value, sub] of funding) lines.push(`${label}: ${value}${sub ? `  (${sub})` : ''}`);
+    }
+    const tourRows = tourSourceRows(digest);
+    if (tourRows.length) {
+        lines.push('', 'TOUR SCHEDULE SOURCES');
+        for (const [label, value, sub] of tourRows) lines.push(`${label}: ${value}${sub ? `  (${sub})` : ''}`);
     }
     const roster = horseRosterRows(digest);
     if (roster.length) {

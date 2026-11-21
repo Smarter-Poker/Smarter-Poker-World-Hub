@@ -898,7 +898,9 @@ test('the funding card is absent without the report and says Report Unavailable 
 
 test('an event funded over or under becomes one tracked Needs Your Attention item; an exact day adds none', async () => {
     const { loadDigestData, loadFreeBuyFunding } = await import('../src/lib/dailyDigest/assemble.mjs');
-    const sbFor = (funding) => ({ rpc: async (name) => ({ data: name === 'fn_sp_daily_digest' ? fixture() : name === 'fn_sp_digest_free_buy_funding' ? funding : name === 'fn_sp_digest_daily_results' ? { reconciliation: { status: 'balanced' } } : PLAYER_TOTALS, error: null }) });
+    // A healthy tour registry (no stale source), so the count below is the funding items only.
+    const healthyRegistry = () => { const q = { select: () => q, eq: () => q, in: () => q, gte: () => q, lt: () => q, limit: async () => ({ data: [], error: null }) }; return q; };
+    const sbFor = (funding) => ({ from: healthyRegistry, rpc: async (name) => ({ data: name === 'fn_sp_daily_digest' ? fixture() : name === 'fn_sp_digest_free_buy_funding' ? funding : name === 'fn_sp_digest_daily_results' ? { reconciliation: { status: 'balanced' } } : PLAYER_TOTALS, error: null }) });
     const { digest } = await loadDigestData(sbFor(FUNDING), '2026-11-06', { withCosts: false, dispatch: false });
     const items = digest.attention.filter((a) => a.rule === 'free_buy_funding_off');
     assert.equal(items.length, 1);
