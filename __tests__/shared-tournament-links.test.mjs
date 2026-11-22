@@ -28,6 +28,7 @@ import {
     tournamentOgFacts,
     tournamentPreviewText,
 } from '../src/lib/sharedTournamentLink.js';
+import { fitOgFactValue, fitOgSubtitle, fitOgTitle } from '../src/lib/sharedOgTypography.js';
 
 const read = p => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 const ID = '8c5474fd-f1e6-4112-91f9-6d6e8af4c842';
@@ -133,7 +134,8 @@ test('signed in goes straight on; signed out sees the invitation; a crawler is n
     assert.doesNotMatch(page, /httpEquiv="refresh"/);
     assert.doesNotMatch(page, /redirect:\s*\{/);
     assert.match(page, /<a href=\{target\} style=\{styles\.button\}>/);
-    assert.match(page, /\{open \? 'Register' : 'Open Tournament'\}/);
+    assert.match(page, /const ctaLabel = open \? \(seatBased \? 'Play Now' : 'Register'\) : 'Open Tournament';/);
+    assert.match(page, /\{ctaLabel\}/);
     assert.match(page, /if \(!id\) return \{ notFound: true \};/);
 });
 
@@ -144,6 +146,10 @@ test('the image reads the stored facts by id and never takes words from the URL'
     assert.match(og, /normalizeTournamentId\(searchParams\.get\('id'\) \|\| ''\)/);
     assert.match(og, /tournamentOgFacts\(preview, now\)/);
     assert.match(og, /club-arena-invite-bg\.jpg/);
+    assert.match(og, /fitOgTitle\(/);
+    assert.match(og, /fitOgSubtitle\(/);
+    assert.match(og, /fitOgFactValue\(/);
+    assert.match(og, /whiteSpace:\s*'nowrap'/);
     assert.doesNotMatch(og, /searchParams\.get\('(name|title|club|buyin|buyIn|gtd|guarantee|text|amount)'\)/);
     assert.doesNotMatch(og, /\$\{?\s*['"]?\$/);
     assert.doesNotMatch(og, /[♠-♧]/);
@@ -270,12 +276,124 @@ test('Spins and Sit & Gos never emit clock start times or Guarantee: None, while
     ]);
 });
 
-test('Free To Play disclaimer is removed and 3D metallic assets are wired on /t/[id]', () => {
-    const page = read('pages/t/[id].js');
+test('Free To Play disclaimer is removed and 3D metallic assets are wired on /t/[id], /g/[id], and /l/[id]', () => {
+    for (const pagePath of ['pages/t/[id].js', 'pages/g/[id].js', 'pages/l/[id].js']) {
+        const page = read(pagePath);
+        assert.doesNotMatch(page, /Free To Play\. No Real-Money Gambling\./i, `${pagePath} must not show Free To Play disclaimer`);
+        assert.doesNotMatch(page, /Free To Play/i, `${pagePath} must not contain Free To Play`);
+        assert.doesNotMatch(page, /No Real-Money Gambling/i, `${pagePath} must not contain No Real-Money Gambling`);
+        assert.match(page, /sharedArenaCardStyles/, `${pagePath} must use 3D sharedArenaCardStyles`);
+    }
+    const tournamentPage = read('pages/t/[id].js');
     const cardStyles = read('src/lib/sharedArenaCardStyles.js');
-    assert.doesNotMatch(page, /Free To Play/i);
-    assert.doesNotMatch(page, /No Real-Money Gambling/i);
-    assert.match(page, /sharedArenaCardStyles/);
-    assert.match(page, /tournamentLandingFacts/);
+    assert.match(tournamentPage, /tournamentLandingFacts/);
     assert.match(cardStyles, /\/images\/og\/club-arena-landing-bg\.jpg/);
+});
+
+test('defensive seat-based detection covers all Spins, SNGs, and 6/9-max SNG satellites without misclassifying scheduled MTTs', () => {
+    const now = Date.parse('2026-11-22T15:00:00Z');
+    const clockRe = /\b(?:AM|PM)\b|\bCT\b/;
+
+    const seatBasedCases = [
+        { name: '100 Chip Spin PLO4', game: 'PLO4', format: 'spin', maxPlayers: 3, buyIn: 100, startingChips: 500 },
+        { name: '50 Chip Spin NLH', game: 'NLH', format: 'SPIN', maxPlayers: 3, buyIn: 50, startingChips: 500 },
+        { name: 'Heads-Up NLH SNG', game: 'NLH', format: 'sng', maxPlayers: 2, buyIn: 25, startingChips: 1500 },
+        { name: 'Heads-Up PLO4 SNG', game: 'PLO4', format: 'SNG', maxPlayers: 2, buyIn: 25 },
+        { name: '6-Max NLH Sit & Go', game: 'NLH', format: 'sng', maxPlayers: 6, buyIn: 50, fee: 5 },
+        { name: '9-Max NLH Sit & Go', game: 'NLH', format: 'sit_and_go', maxPlayers: 9, buyIn: 20, fee: 2 },
+        { name: '6-Max Mega Satellite', game: 'NLH', format: 'sng_satellite', maxPlayers: 6, buyIn: 30, fee: 3, startingChips: 2000 },
+        { name: '6-Max Satellite Into Main', game: 'NLH', format: 'satellite', maxPlayers: 6, buyIn: 30, fee: 3, startingChips: 2000 },
+        { name: 'Satellite Into Sunday Funday Mini Main Event', game: 'NLH', format: 'satellite', maxPlayers: 9, buyIn: 50, fee: 5, startingChips: 3000 },
+        { name: 'Satellite Into High Roller', game: 'PLO4', format: 'SATELLITE', maxPlayers: 9, buyIn: 100, fee: 10 },
+        { name: '100 Chip Spin PLO5', game: 'PLO5', format: '', maxPlayers: 3, buyIn: 100, startingChips: 500 },
+        { name: 'Heads-Up Turbo Match', game: 'NLH', format: 'freezeout', maxPlayers: 2, buyIn: 50 },
+        { name: 'Sit & Go 9-Max Turbo', game: 'NLH', format: '', maxPlayers: 9, buyIn: 20 },
+    ];
+
+    for (const raw of seatBasedCases) {
+        const preview = cleanTournamentPreview({
+            ...raw,
+            status: 'REGISTERING',
+            startTime: '2026-11-23T04:30:00Z',
+            guarantee: null,
+            club: 'Midway Union',
+        });
+        assert.equal(isSeatBasedTournament(preview), true, `Expected seat-based for ${raw.name} (${raw.format}, max=${raw.maxPlayers})`);
+
+        const landing = tournamentLandingFacts(preview, now);
+        const ogFacts = tournamentOgFacts(preview, now);
+        const meta = tournamentPreviewText(preview, now);
+
+        for (const [label, value] of landing) {
+            assert.doesNotMatch(value, clockRe, `Landing fact ${label} leaked clock time for ${raw.name}: ${value}`);
+            assert.notEqual(`${label}:${value}`, 'Guarantee:None', `Landing leaked Guarantee: None for ${raw.name}`);
+        }
+        for (const fact of ogFacts) {
+            assert.doesNotMatch(fact.value, clockRe, `OG fact ${fact.label} leaked clock time for ${raw.name}: ${fact.value}`);
+            assert.notEqual(`${fact.label}:${fact.value}`, 'GUARANTEE:None', `OG leaked Guarantee: None for ${raw.name}`);
+        }
+        assert.doesNotMatch(meta.description, clockRe, `Preview description leaked clock time for ${raw.name}: ${meta.description}`);
+        assert.doesNotMatch(meta.description, /Guarantee:\s*None/i, `Preview description leaked Guarantee: None for ${raw.name}`);
+    }
+
+    // Scheduled MTTs and scheduled MTT satellites MUST stay scheduled and preserve Chicago start timestamps.
+    const scheduledCases = [
+        { name: 'Sunday Major 50K', game: 'NLH', format: 'freezeout', maxPlayers: null, guarantee: 50000 },
+        { name: 'Mega Satellite Into Sunday Major', game: 'NLH', format: 'satellite', maxPlayers: null },
+        { name: 'Sunday Funday MTT Satellite', game: 'NLH', format: 'satellite', maxPlayers: 500 },
+        { name: '10-Seat Scheduled Satellite', game: 'NLH', format: 'satellite', maxPlayers: 10 },
+        { name: 'Sunday Spin-Off Championship MTT', game: 'NLH', format: 'freezeout', maxPlayers: 500 },
+        { name: 'Heads-Up Bracket Championship MTT', game: 'NLH', format: 'freezeout', maxPlayers: 128 },
+    ];
+
+    for (const raw of scheduledCases) {
+        const preview = cleanTournamentPreview({
+            ...raw,
+            status: 'REGISTERING',
+            startTime: '2026-11-23T04:30:00Z',
+            buyIn: 100,
+            fee: 10,
+            club: 'Midway Union',
+        });
+        assert.equal(isSeatBasedTournament(preview), false, `Expected scheduled MTT for ${raw.name} (${raw.format}, max=${raw.maxPlayers})`);
+
+        const landing = tournamentLandingFacts(preview, now);
+        const ogFacts = tournamentOgFacts(preview, now);
+        const meta = tournamentPreviewText(preview, now);
+
+        const landingStarts = landing.find(([label]) => label === 'Starts')?.[1] || '';
+        const ogStarts = ogFacts.find(f => f.label === 'STARTS')?.value || '';
+        assert.equal(landingStarts, 'Sun Nov 22, 10:30 PM CT', `Expected Chicago start time in landing facts for ${raw.name}`);
+        assert.equal(ogStarts, 'Sun Nov 22, 10:30 PM CT', `Expected Chicago start time in OG facts for ${raw.name}`);
+        assert.match(meta.description, /Sun Nov 22, 10:30 PM CT/, `Expected Chicago start time in meta for ${raw.name}`);
+    }
+});
+
+test('OG header typography safely caps title size (<= 36px for 36+ chars), subtitles, and fact values against overflow', () => {
+    const longSat = 'Satellite Into Sunday Funday Mini Main Event';
+    assert.equal(longSat.length, 44);
+    const satFit = fitOgTitle(longSat);
+    assert.equal(satFit.text, longSat, '44-char satellite title must fit intact without truncation');
+    assert.ok(satFit.fontSize <= 36, `Expected <= 36px for 44-char title, got ${satFit.fontSize}`);
+
+    const thirtySix = 'Sunday Funday Mini Main Event Turbo!';
+    assert.equal(thirtySix.length, 36);
+    assert.ok(fitOgTitle(thirtySix).fontSize <= 36, '36-char title must cap at <= 36px');
+
+    const allCapsLong = 'SUNDAY FUNDAY CHAMPIONSHIP SUPER HIGH ROLLER EVENT';
+    const capsFit = fitOgTitle(allCapsLong);
+    assert.ok(capsFit.text.length <= 48, 'Titles > 48 chars must truncate cleanly');
+    assert.ok(capsFit.fontSize <= 32, `ALL-CAPS long title must step down cleanly, got ${capsFit.fontSize}`);
+
+    const longSub = fitOgSubtitle('PLO5 Mystery Bounty  |  Midway Championship High Stakes Poker Union Of Chicago');
+    assert.ok(longSub.text.length <= 64, 'Long subtitle must truncate cleanly');
+    assert.ok(longSub.fontSize <= 20, `Long subtitle must step down cleanly, got ${longSub.fontSize}`);
+
+    const seatStartFit = fitOgFactValue('When Full (9 Players)');
+    assert.ok(seatStartFit.fontSize <= 20, `When Full (9 Players) must fit on 1 line, got ${seatStartFit.fontSize}`);
+    assert.equal(seatStartFit.singleLine, true);
+
+    const mttStartFit = fitOgFactValue('Sun Nov 22, 10:30 PM CT');
+    assert.ok(mttStartFit.fontSize <= 20, `Chicago timestamp must fit on 1 line, got ${mttStartFit.fontSize}`);
+    assert.equal(mttStartFit.singleLine, true);
 });

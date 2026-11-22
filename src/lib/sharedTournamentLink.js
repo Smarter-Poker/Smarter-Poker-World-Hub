@@ -82,20 +82,37 @@ const FORMAT_WORDS = {
     mystery_bounty: 'Mystery Bounty',
     satellite: 'Satellite',
     sng: 'Sit & Go',
+    sit_and_go: 'Sit & Go',
+    sng_satellite: 'Sit & Go Satellite',
     spin: 'Spin',
+    spin_and_go: 'Spin',
     rebuy: 'Rebuy',
 };
 
 const SEAT_BASED_FORMATS = new Set(['spin', 'sng', 'spin_and_go', 'sit_and_go', 'sng_satellite']);
+const SEAT_BASED_NAME_RE = /\b(?:spin(?:\s*(?:&|and)\s*go)?|sit\s*(?:&|and)\s*go|sng|heads[-\s]?up)\b/i;
 
 /**
  * Spins and Sit & Go's (including SNG satellites and Heads-Up SNGs) launch
  * when the required seats fill, never at a scheduled clock time.
+ *
+ * Defensively detects seat-based rows even when stored as generic format
+ * 'satellite' (with a fixed SNG seat cap 2 <= maxPlayers <= 9, since scheduled
+ * MTT satellites have maxPlayers null or >= 10) or when the event name
+ * explicitly identifies a Spin / Sit & Go / Heads-Up table with maxPlayers <= 9.
  */
 export function isSeatBasedTournament(p) {
     if (!p || typeof p !== 'object') return false;
     const fmt = String(p.format || '').trim().toLowerCase();
-    return SEAT_BASED_FORMATS.has(fmt);
+    if (SEAT_BASED_FORMATS.has(fmt)) return true;
+
+    const seats = Number(p.maxPlayers);
+    const hasSmallSeatCap = Number.isFinite(seats) && seats >= 2 && seats <= 9;
+    if (!hasSmallSeatCap) return false;
+
+    if (fmt === 'satellite') return true;
+    const name = typeof p.name === 'string' ? p.name : '';
+    return SEAT_BASED_NAME_RE.test(name);
 }
 
 /** "When Full (3 Players)" or "When Full" for Spins/SNGs; empty for scheduled MTTs. */

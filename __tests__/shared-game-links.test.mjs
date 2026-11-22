@@ -29,6 +29,7 @@ import {
     seatsWords,
     stakesWords,
 } from '../src/lib/sharedGameLink.js';
+import { fitOgFactValue, fitOgSubtitle, fitOgTitle } from '../src/lib/sharedOgTypography.js';
 
 const read = p => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 const TABLE_ID = '8c5474fd-f1e6-4112-91f9-6d6e8af4c842';
@@ -405,16 +406,27 @@ test('/g/[id] and /l/[id] redirect signed-in visitors, preserve attribution, nev
     assert.doesNotMatch(lightningPage, /No Real-Money Gambling/i);
 });
 
-test('pages/api/og/club-game.js obeys edge runtime, server-only facts, zero $ / em-dash, and Satori display:flex on every element', () => {
+test('pages/api/og/club-game.js obeys edge runtime, server-only facts, zero $ / em-dash, safe OG typography, and Satori display:flex on every element', () => {
     const og = read('pages/api/og/club-game.js');
     assert.match(og, /export const config = \{\s*runtime:\s*'edge'\s*\};/);
     assert.match(og, /readSharedTable\(id\)/);
     assert.match(og, /readSharedLightning\(id\)/);
     assert.match(og, /normalizeGameId\(searchParams\.get\('id'\) \|\| ''\)/);
+    assert.match(og, /club-arena-invite-bg\.jpg/);
+    assert.match(og, /fitOgTitle\(/);
+    assert.match(og, /fitOgSubtitle\(/);
+    assert.match(og, /fitOgFactValue\(/);
+    assert.match(og, /whiteSpace:\s*'nowrap'/);
     assert.doesNotMatch(og, /searchParams\.get\('(name|title|club|stakes|buyin|buyIn|text|amount|seats)'\)/);
     assert.doesNotMatch(og, /\$\{?\s*['"]?\$/);
     assert.doesNotMatch(og, /[♠-♧]/);
     assert.doesNotMatch(og, /—/);
+
+    // Header title size cap & Cash/Lightning fact fitting guards.
+    assert.ok(fitOgTitle('Super High Roller PLO5 Bomb Pot Table!!').fontSize <= 36);
+    assert.ok(fitOgSubtitle('PLO5 Bomb Pot  |  Midway Championship High Stakes Poker Union Of Chicago').fontSize <= 20);
+    assert.ok(fitOgFactValue('2,000 To 10,000 Chips').fontSize <= 20);
+    assert.equal(fitOgFactValue('2,000 To 10,000 Chips').singleLine, true);
 
     // Satori law: every intrinsic HTML element inside JSX MUST specify display: 'flex'.
     const htmlOpenTags = [...og.matchAll(/<(div|span|p|section|header|footer|main)\b([^>]*)>/g)];
