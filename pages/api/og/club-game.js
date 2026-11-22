@@ -13,6 +13,7 @@
  * Satori compatibility.
  */
 import { ImageResponse } from '@vercel/og';
+import { fitOgFactValue, fitOgSubtitle, fitOgTitle } from '../../../src/lib/sharedOgTypography';
 import {
     buyInRangeWords,
     gameVariantWords,
@@ -74,20 +75,8 @@ async function loadMetallicBackdrop(reqUrl) {
     return bg;
 }
 
-function cardText(value, fallback = '') {
-    const cleaned = String(value || '')
-        .replace(/[\u2018\u2019]/g, "'")
-        .replace(/[\u201C\u201D]/g, '"')
-        .replace(/[\u2013\u2014]/g, '-')
-        .replace(/[^\u0020-\u007E\u00A0-\u017F]/g, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-    return cleaned || fallback;
-}
-
 function Fact({ label, value }) {
-    const valStr = cardText(value);
-    const valueSize = valStr.length > 20 ? 22 : valStr.length > 15 ? 26 : 34;
+    const { text: valStr, fontSize: valueSize, singleLine } = fitOgFactValue(value);
     return (
         <div
             style={{
@@ -95,7 +84,8 @@ function Fact({ label, value }) {
                 flexDirection: 'column',
                 justifyContent: 'center',
                 flex: 1,
-                padding: '18px 22px',
+                minWidth: 0,
+                padding: '16px 18px',
                 borderRadius: 16,
                 background: 'linear-gradient(180deg, rgba(16, 30, 48, 0.92) 0%, rgba(5, 11, 20, 0.96) 100%)',
                 borderTop: '2px solid rgba(196, 236, 255, 0.68)',
@@ -103,9 +93,10 @@ function Fact({ label, value }) {
                 borderRight: '2px solid rgba(90, 196, 255, 0.36)',
                 borderBottom: '2px solid rgba(12, 26, 44, 0.96)',
                 boxShadow: '0 10px 24px rgba(0, 0, 0, 0.75), 0 0 18px rgba(0, 184, 255, 0.16)',
+                overflow: 'hidden',
             }}
         >
-            <div style={{ display: 'flex', fontSize: 17, fontWeight: 800, letterSpacing: 2.2, color: '#7ce4ff' }}>
+            <div style={{ display: 'flex', fontSize: 16, fontWeight: 800, letterSpacing: 2.2, color: '#7ce4ff' }}>
                 {label}
             </div>
             <div
@@ -115,7 +106,11 @@ function Fact({ label, value }) {
                     fontWeight: 900,
                     color: '#ffffff',
                     marginTop: 8,
-                    lineHeight: 1.1,
+                    lineHeight: singleLine ? 1.1 : 1.15,
+                    whiteSpace: singleLine ? 'nowrap' : 'normal',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    maxWidth: '100%',
                 }}
             >
                 {valStr}
@@ -145,19 +140,23 @@ export default async function handler(req) {
     const isLightning = kind === 'lightning';
     const eyebrow = isLightning ? 'SMARTER.POKER  |  LIGHTNING POKER' : 'SMARTER.POKER  |  CLUB ARENA';
     const badge = isLightning ? 'LIGHTNING' : 'CASH TABLE';
-    const rawTitle = preview
-        ? cardText(preview.name, isLightning ? 'Lightning Game' : 'Live Table')
-        : isLightning
-          ? 'Club Arena Lightning Poker'
-          : 'Club Arena Cash Tables';
-    const title = rawTitle.length > 42 ? `${rawTitle.slice(0, 41)}...` : rawTitle;
-    const titleSize = title.length > 32 ? 42 : title.length > 24 ? 48 : 54;
+    const { text: title, fontSize: titleSize } = fitOgTitle(
+        preview
+            ? preview.name
+            : isLightning
+              ? 'Club Arena Lightning Poker'
+              : 'Club Arena Cash Tables',
+        isLightning ? 'Lightning Game' : 'Live Table'
+    );
     const variant = preview ? gameVariantWords({ ...preview, kind }) : '';
-    const sub = preview
-        ? cardText([variant, preview.club].filter(Boolean).join('  |  '), 'Private Poker Clubs On Smarter.Poker')
-        : isLightning
-          ? 'Fast-Fold Poker On Smarter.Poker'
-          : 'Private Poker Clubs On Smarter.Poker';
+    const { text: sub, fontSize: subSize } = fitOgSubtitle(
+        preview
+            ? [variant, preview.club].filter(Boolean).join('  |  ')
+            : isLightning
+              ? 'Fast-Fold Poker On Smarter.Poker'
+              : 'Private Poker Clubs On Smarter.Poker',
+        'Private Poker Clubs On Smarter.Poker'
+    );
 
     const stakes = preview ? stakesWords(preview) : '';
     const buyIn = preview ? buyInRangeWords(preview) : '';
@@ -229,6 +228,7 @@ export default async function handler(req) {
                             justifyContent: 'center',
                             height: 136,
                             width: '100%',
+                            overflow: 'hidden',
                         }}
                     >
                         <div
@@ -288,9 +288,13 @@ export default async function handler(req) {
                                 fontSize: titleSize,
                                 fontWeight: 900,
                                 marginTop: 8,
-                                lineHeight: 1.04,
+                                lineHeight: 1.08,
                                 color: '#ffffff',
                                 textShadow: '0 4px 14px rgba(0, 0, 0, 0.95)',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                maxWidth: '100%',
                             }}
                         >
                             {title}
@@ -298,11 +302,16 @@ export default async function handler(req) {
                         <div
                             style={{
                                 display: 'flex',
-                                fontSize: 24,
+                                fontSize: subSize,
                                 fontWeight: 700,
                                 color: '#bcd6ec',
                                 marginTop: 6,
+                                lineHeight: 1.12,
                                 textShadow: '0 2px 8px rgba(0, 0, 0, 0.95)',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                maxWidth: '100%',
                             }}
                         >
                             {sub}

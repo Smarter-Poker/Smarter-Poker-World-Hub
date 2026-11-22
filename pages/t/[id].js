@@ -64,7 +64,9 @@ function formatBadgeLabel(preview) {
     const fmt = String(preview.format || '').trim().toLowerCase();
     if (fmt === 'spin' || fmt === 'spin_and_go') return 'Spin';
     if (fmt === 'sng' || fmt === 'sit_and_go' || fmt === 'sng_satellite') return 'Sit & Go';
-    if (isSeatBasedTournament(preview)) return 'Sit & Go';
+    if (isSeatBasedTournament(preview)) {
+        return /\bspin\b/i.test(String(preview.name || '')) ? 'Spin' : 'Sit & Go';
+    }
     return 'Tournament';
 }
 
@@ -89,8 +91,10 @@ export default function SharedTournamentLanding({ id, status, preview, renderedA
         ? `${ORIGIN}/api/og/club-tournament?id=${encodeURIComponent(id)}`
         : `${ORIGIN}/api/og/club-tournament`;
     const open = found && isOpenForEntry(preview, renderedAt);
+    const seatBased = Boolean(found && isSeatBasedTournament(preview));
     const facts = found ? tournamentLandingFacts(preview, renderedAt) : [];
     const badge = formatBadgeLabel(found ? preview : null);
+    const ctaLabel = open ? (seatBased ? 'Play Now' : 'Register') : 'Open Tournament';
 
     return (
         <main style={styles.page}>
@@ -145,7 +149,7 @@ export default function SharedTournamentLanding({ id, status, preview, renderedA
                     </p>
                 )}
                 <a href={target} style={styles.button}>
-                    {open ? 'Register' : 'Open Tournament'}
+                    {ctaLabel}
                 </a>
             </section>
         </main>
