@@ -385,6 +385,8 @@ test('/g/[id] and /l/[id] redirect signed-in visitors, preserve attribution, nev
     assert.doesNotMatch(tablePage, /httpEquiv="refresh"/);
     assert.doesNotMatch(tablePage, /redirect:\s*\{/);
     assert.doesNotMatch(tablePage, /—/);
+    assert.doesNotMatch(tablePage, /Free To Play/i);
+    assert.doesNotMatch(tablePage, /No Real-Money Gambling/i);
 
     const lightningPage = read('pages/l/[id].js');
     assert.match(lightningPage, /const target = clubArenaLightningPath\(id, shareParams\);/);
@@ -399,6 +401,8 @@ test('/g/[id] and /l/[id] redirect signed-in visitors, preserve attribution, nev
     assert.doesNotMatch(lightningPage, /httpEquiv="refresh"/);
     assert.doesNotMatch(lightningPage, /redirect:\s*\{/);
     assert.doesNotMatch(lightningPage, /—/);
+    assert.doesNotMatch(lightningPage, /Free To Play/i);
+    assert.doesNotMatch(lightningPage, /No Real-Money Gambling/i);
 });
 
 test('pages/api/og/club-game.js obeys edge runtime, server-only facts, zero $ / em-dash, and Satori display:flex on every element', () => {

@@ -17,6 +17,7 @@
  */
 import { useEffect } from 'react';
 import Head from 'next/head';
+import { arenaCardStyles as styles } from '../../src/lib/sharedArenaCardStyles';
 import {
     CLUB_INVITE_COOKIE,
     CLUB_INVITE_TTL_MS,
@@ -150,13 +151,20 @@ export default function SharedTableLanding({ id, status, preview, shareParams })
                 <meta key="twitter-image" name="twitter:image" content={ogImage} />
             </Head>
             <section style={styles.card} aria-labelledby="shared-table-title">
-                <p style={styles.eyebrow}>Smarter.Poker | Club Arena</p>
+                <div style={styles.eyebrowRow}>
+                    <div style={styles.eyebrowGroup}>
+                        <span style={styles.eyebrowDot} aria-hidden="true" />
+                        <p style={styles.eyebrow}>Smarter.Poker | Club Arena</p>
+                    </div>
+                    <span style={styles.badge}>Cash Table</span>
+                </div>
                 <h1 id="shared-table-title" style={styles.title}>
                     {found ? preview.name || 'Live Table' : 'Club Arena Table'}
                 </h1>
                 {found && (variant || preview.club) && (
                     <p style={styles.sub}>{[variant, preview.club].filter(Boolean).join(' | ')}</p>
                 )}
+                <div style={styles.divider} aria-hidden="true" />
                 {found && facts.length > 0 ? (
                     <dl style={styles.facts}>
                         {facts.map(([label, value]) => (
@@ -187,69 +195,7 @@ export default function SharedTableLanding({ id, status, preview, shareParams })
                         Open Table
                     </a>
                 )}
-                <p style={styles.small}>Free To Play. No Real-Money Gambling.</p>
             </section>
         </main>
     );
 }
-
-const styles = {
-    page: {
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 16,
-        background: '#04060b',
-        color: '#e7ebf2',
-        fontFamily: "'Roboto Condensed', system-ui, sans-serif",
-    },
-    card: {
-        width: '100%',
-        maxWidth: 440,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 12,
-        padding: '24px 20px',
-        background: '#0d151e',
-        border: '1px solid rgba(139,215,255,0.28)',
-        borderRadius: 14,
-    },
-    eyebrow: { margin: 0, color: '#8bd7ff', fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', fontSize: 12 },
-    title: { margin: 0, fontSize: 28, lineHeight: 1.1, fontWeight: 900 },
-    sub: { margin: 0, color: '#9aa4b2', fontSize: 15 },
-    facts: { margin: '4px 0 0', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 },
-    fact: { margin: 0, padding: '10px 12px', background: '#04080d', borderRadius: 10 },
-    factLabel: { margin: 0, color: '#9aa4b2', fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 },
-    factValue: { margin: '4px 0 0', fontSize: 16, fontWeight: 700 },
-    note: { margin: 0, color: '#9aa4b2', fontSize: 15 },
-    button: {
-        marginTop: 6,
-        display: 'block',
-        textAlign: 'center',
-        padding: '14px 16px',
-        background: '#1877F2',
-        color: '#ffffff',
-        fontWeight: 800,
-        fontSize: 17,
-        borderRadius: 10,
-        textDecoration: 'none',
-        textTransform: 'uppercase',
-        letterSpacing: 1,
-    },
-    secondaryButton: {
-        display: 'block',
-        textAlign: 'center',
-        padding: '12px 16px',
-        background: 'transparent',
-        color: '#e7ebf2',
-        border: '1px solid rgba(139,215,255,0.28)',
-        fontWeight: 700,
-        fontSize: 15,
-        borderRadius: 10,
-        textDecoration: 'none',
-        textTransform: 'uppercase',
-        letterSpacing: 1,
-    },
-    small: { margin: 0, color: '#6b7380', fontSize: 12, textAlign: 'center' },
-};

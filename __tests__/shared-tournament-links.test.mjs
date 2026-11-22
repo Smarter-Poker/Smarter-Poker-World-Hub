@@ -18,10 +18,14 @@ import {
     gameLine,
     hasSignedInSession,
     isOpenForEntry,
+    isSeatBasedTournament,
     normalizeTournamentId,
     readSharedTournament,
+    seatStartWords,
     startWords,
     statusWords,
+    tournamentLandingFacts,
+    tournamentOgFacts,
     tournamentPreviewText,
 } from '../src/lib/sharedTournamentLink.js';
 
@@ -135,9 +139,143 @@ test('signed in goes straight on; signed out sees the invitation; a crawler is n
 
 test('the image reads the stored facts by id and never takes words from the URL', () => {
     const og = read('pages/api/og/club-tournament.js');
+    assert.match(og, /export const config = \{\s*runtime:\s*'edge'\s*\};/);
     assert.match(og, /readSharedTournament\(id\)/);
     assert.match(og, /normalizeTournamentId\(searchParams\.get\('id'\) \|\| ''\)/);
+    assert.match(og, /tournamentOgFacts\(preview, now\)/);
+    assert.match(og, /club-arena-invite-bg\.jpg/);
     assert.doesNotMatch(og, /searchParams\.get\('(name|title|club|buyin|buyIn|gtd|guarantee|text|amount)'\)/);
     assert.doesNotMatch(og, /\$\{?\s*['"]?\$/);
     assert.doesNotMatch(og, /[♠-♧]/);
+    assert.doesNotMatch(og, /—/);
+
+    // Satori law: every intrinsic HTML container element inside JSX MUST specify display: 'flex'.
+    const htmlOpenTags = [...og.matchAll(/<(div|span|p|section|header|footer|main)\b([^>]*)>/g)];
+    assert.ok(htmlOpenTags.length >= 6, 'Expected OG JSX elements to be verified');
+    for (const [fullTag, tagName, attrs] of htmlOpenTags) {
+        assert.match(
+            attrs,
+            /display:\s*'flex'/,
+            `Satori requires display:'flex' on every <${tagName}> element; missing in: ${fullTag}`
+        );
+    }
+});
+
+test('Spins and Sit & Gos never emit clock start times or Guarantee: None, while MTTs keep scheduled start times', () => {
+    for (const fmt of ['spin', 'SPIN', 'sng', 'SNG', 'sng_satellite', 'sit_and_go', 'spin_and_go']) {
+        assert.equal(isSeatBasedTournament({ format: fmt }), true, `expected seat-based for ${fmt}`);
+    }
+    for (const fmt of ['freezeout', 'progressive_bounty', 'mystery_bounty', 'bounty', 'satellite', 'rebuy', '', undefined]) {
+        assert.equal(isSeatBasedTournament({ format: fmt }), false, `expected scheduled for ${String(fmt)}`);
+    }
+
+    const spin = cleanTournamentPreview({
+        name: '100 Chip Spin PLO4',
+        game: 'PLO4',
+        format: 'spin',
+        status: 'REGISTERING',
+        startTime: '2026-11-22T15:52:00Z',
+        buyIn: 100,
+        fee: 0,
+        guarantee: null,
+        startingChips: 500,
+        maxPlayers: 3,
+        club: 'Midway Union',
+    });
+    const spinMeta = tournamentPreviewText(spin, Date.parse('2026-11-22T15:00:00Z'));
+    assert.equal(
+        spinMeta.description,
+        'PLO4 Spin | Buy-In 100 Chips | Starts When Full (3 Players) | Midway Union. Register On Smarter.Poker.'
+    );
+    assert.doesNotMatch(spinMeta.description, /\bAM CT\b|\bPM CT\b|Nov 22/);
+
+    const spinLanding = tournamentLandingFacts(spin, Date.parse('2026-11-22T15:00:00Z'));
+    assert.deepEqual(spinLanding, [
+        ['Buy-In', '100 Chips'],
+        ['Starting Stack', '500 Chips'],
+        ['Starts', 'When Full (3 Players)'],
+        ['Status', 'Registration Open'],
+    ]);
+    assert.equal(spinLanding.some(([label]) => label === 'Guarantee'), false);
+
+    const spinOg = tournamentOgFacts(spin, Date.parse('2026-11-22T15:00:00Z'));
+    assert.deepEqual(spinOg, [
+        { label: 'BUY-IN', value: '100 Chips' },
+        { label: 'STARTING STACK', value: '500 Chips' },
+        { label: 'STARTS', value: 'When Full (3 Players)' },
+    ]);
+
+    // SNG without startingChips falls back to Seats; SNG without maxPlayers renders "When Full" without clock time.
+    const sngNoStack = cleanTournamentPreview({
+        name: '6-Max NLH SNG',
+        game: 'NLH',
+        format: 'sng',
+        status: 'REGISTERING',
+        startTime: '2026-11-22T18:00:00Z',
+        buyIn: 50,
+        fee: 5,
+        maxPlayers: 6,
+    });
+    assert.deepEqual(tournamentLandingFacts(sngNoStack), [
+        ['Buy-In', '55 Chips'],
+        ['Seats', '6 Players'],
+        ['Starts', 'When Full (6 Players)'],
+        ['Status', 'Registration Open'],
+    ]);
+    assert.deepEqual(tournamentOgFacts(sngNoStack), [
+        { label: 'BUY-IN', value: '55 Chips' },
+        { label: 'SEATS', value: '6 Players' },
+        { label: 'STARTS', value: 'When Full (6 Players)' },
+    ]);
+
+    const sngNoMax = cleanTournamentPreview({
+        name: 'Heads-Up SNG',
+        game: 'NLH',
+        format: 'SNG',
+        status: 'REGISTERING',
+        startTime: '2026-11-22T18:00:00Z',
+        buyIn: 25,
+    });
+    assert.equal(seatStartWords(sngNoMax), 'When Full');
+    assert.doesNotMatch(tournamentPreviewText(sngNoMax).description, /\bAM CT\b|\bPM CT\b/);
+    assert.deepEqual(tournamentLandingFacts(sngNoMax), [
+        ['Buy-In', '25 Chips'],
+        ['Starts', 'When Full'],
+        ['Status', 'Registration Open'],
+    ]);
+    assert.equal(statusWords({ format: 'spin', status: 'RUNNING', startTime: '2026-11-22T15:00:00Z', lateRegMinutes: 30 }, Date.parse('2026-11-22T15:05:00Z')), 'Running Now');
+
+    // Scheduled MTT retains its exact Chicago start time and guarantee.
+    const mtt = cleanTournamentPreview({
+        name: 'Sunday Major 50K',
+        game: 'NLH',
+        format: 'freezeout',
+        status: 'REGISTERING',
+        startTime: '2026-11-22T20:00:00Z',
+        buyIn: 100,
+        fee: 10,
+        guarantee: 50000,
+        club: 'Midway Union',
+    });
+    assert.deepEqual(tournamentLandingFacts(mtt), [
+        ['Buy-In', '110 Chips'],
+        ['Guarantee', '50,000 Chips'],
+        ['Starts', 'Sun Nov 22, 2:00 PM CT'],
+        ['Status', 'Registration Open'],
+    ]);
+    assert.deepEqual(tournamentOgFacts(mtt), [
+        { label: 'BUY-IN', value: '110 Chips' },
+        { label: 'GUARANTEE', value: '50,000 Chips' },
+        { label: 'STARTS', value: 'Sun Nov 22, 2:00 PM CT' },
+    ]);
+});
+
+test('Free To Play disclaimer is removed and 3D metallic assets are wired on /t/[id]', () => {
+    const page = read('pages/t/[id].js');
+    const cardStyles = read('src/lib/sharedArenaCardStyles.js');
+    assert.doesNotMatch(page, /Free To Play/i);
+    assert.doesNotMatch(page, /No Real-Money Gambling/i);
+    assert.match(page, /sharedArenaCardStyles/);
+    assert.match(page, /tournamentLandingFacts/);
+    assert.match(cardStyles, /\/images\/og\/club-arena-landing-bg\.jpg/);
 });

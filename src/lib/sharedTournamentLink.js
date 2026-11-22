@@ -86,14 +86,47 @@ const FORMAT_WORDS = {
     rebuy: 'Rebuy',
 };
 
+const SEAT_BASED_FORMATS = new Set(['spin', 'sng', 'spin_and_go', 'sit_and_go', 'sng_satellite']);
+
+/**
+ * Spins and Sit & Go's (including SNG satellites and Heads-Up SNGs) launch
+ * when the required seats fill, never at a scheduled clock time.
+ */
+export function isSeatBasedTournament(p) {
+    if (!p || typeof p !== 'object') return false;
+    const fmt = String(p.format || '').trim().toLowerCase();
+    return SEAT_BASED_FORMATS.has(fmt);
+}
+
+/** "When Full (3 Players)" or "When Full" for Spins/SNGs; empty for scheduled MTTs. */
+export function seatStartWords(p) {
+    if (!isSeatBasedTournament(p)) return '';
+    const seats = Number(p?.maxPlayers);
+    if (Number.isFinite(seats) && seats > 0) {
+        return `When Full (${chipAmount(seats)} Players)`;
+    }
+    return 'When Full';
+}
+
+export function startingStackWords(p) {
+    const stack = Number(p?.startingChips);
+    return Number.isFinite(stack) && stack > 0 ? `${chipAmount(stack)} Chips` : '';
+}
+
+export function seatsCountWords(p) {
+    const seats = Number(p?.maxPlayers);
+    return Number.isFinite(seats) && seats > 0 ? `${chipAmount(seats)} Players` : '';
+}
+
 /**
  * "NLH PKO", "PLO5 Sit & Go": the game, then what kind of event it is. Speed
  * is left to the event's own name: Club Arena names a structure by its level
  * clock, and a stored turbo flag can disagree with it.
  */
 export function gameLine(p) {
-    const kind = p.bounty || (p.format && FORMAT_WORDS[p.format] !== undefined ? FORMAT_WORDS[p.format] : '');
-    return [p.game, kind].filter(Boolean).join(' ');
+    const fmtKey = typeof p?.format === 'string' ? p.format.trim().toLowerCase() : '';
+    const kind = p?.bounty || (fmtKey && FORMAT_WORDS[fmtKey] !== undefined ? FORMAT_WORDS[fmtKey] : '');
+    return [p?.game, kind].filter(Boolean).join(' ');
 }
 
 export function buyInWords(p) {
@@ -128,6 +161,7 @@ export function statusWords(p, now = Date.now()) {
     if (s === 'CANCELLED') return 'Cancelled';
     if (s === 'COMPLETED' || s === 'FINISHED') return 'Finished';
     if (s === 'RUNNING' || s === 'BREAK' || s === 'PAUSED' || s === 'FINAL_TABLE') {
+        if (isSeatBasedTournament(p)) return 'Running Now';
         const start = Date.parse(p.startTime || '');
         const lateEnds = Number.isFinite(start) && p.lateRegMinutes ? start + p.lateRegMinutes * 60_000 : NaN;
         return Number.isFinite(lateEnds) && now < lateEnds ? 'Running, Late Registration Open' : 'Running Now';
@@ -140,6 +174,69 @@ export function isOpenForEntry(p, now = Date.now()) {
     return words === 'Registration Open' || words === 'Running, Late Registration Open';
 }
 
+/**
+ * Facts grid for the /t/[id] landing card. Spins and Sit & Go's never emit a
+ * clock start time or a "Guarantee: None" placeholder; they show real seat/stack
+ * facts and "When Full".
+ */
+export function tournamentLandingFacts(p, now = Date.now()) {
+    if (!p) return [];
+    const seatBased = isSeatBasedTournament(p);
+    const gtd = guaranteeWords(p).replace(/ GTD$/, '');
+    const stack = startingStackWords(p);
+    const seats = seatsCountWords(p);
+    const secondFact = gtd
+        ? ['Guarantee', gtd]
+        : stack
+          ? ['Starting Stack', stack]
+          : seats
+            ? ['Seats', seats]
+            : seatBased
+              ? null
+              : ['Guarantee', 'None'];
+    const startFact = seatBased
+        ? ['Starts', seatStartWords(p)]
+        : ['Starts', startWords(p.startTime) || 'Soon'];
+    return [
+        ['Buy-In', buyInWords(p).replace(/^Buy-In /, '')],
+        secondFact,
+        startFact,
+        ['Status', statusWords(p, now)],
+    ].filter(Boolean);
+}
+
+/**
+ * Stat bays for the 1200x630 /api/og/club-tournament image. Same seat-based
+ * contract: Spins and Sit & Go's never emit a scheduled clock start time.
+ */
+export function tournamentOgFacts(p, now = Date.now()) {
+    if (!p) return [];
+    const seatBased = isSeatBasedTournament(p);
+    const status = statusWords(p, now);
+    const gtd = guaranteeWords(p).replace(/ GTD$/, '');
+    const stack = startingStackWords(p);
+    const seats = seatsCountWords(p);
+    const secondFact = gtd
+        ? { label: 'GUARANTEE', value: gtd }
+        : stack
+          ? { label: 'STARTING STACK', value: stack }
+          : seatBased && seats
+            ? { label: 'SEATS', value: seats }
+            : null;
+    const thirdFact = seatBased
+        ? status === 'Registration Open'
+            ? { label: 'STARTS', value: seatStartWords(p) }
+            : { label: 'STATUS', value: status }
+        : status === 'Registration Open' && startWords(p.startTime)
+          ? { label: 'STARTS', value: startWords(p.startTime) }
+          : { label: 'STATUS', value: status };
+    return [
+        { label: 'BUY-IN', value: buyInWords(p).replace(/^Buy-In /, '') },
+        secondFact,
+        thirdFact,
+    ].filter(Boolean);
+}
+
 /** The words a messaging app shows. Chips, never a currency sign. */
 export function tournamentPreviewText(p, now = Date.now()) {
     const preview = p || {};
@@ -150,10 +247,16 @@ export function tournamentPreviewText(p, now = Date.now()) {
     parts.push(buyInWords(preview));
     const gtd = guaranteeWords(preview);
     if (gtd) parts.push(gtd);
-    const when = startWords(preview.startTime);
+    const seatBased = isSeatBasedTournament(preview);
     const status = statusWords(preview, now);
-    if (status === 'Registration Open' && when) parts.push(`Starts ${when}`);
-    else parts.push(status);
+    if (seatBased) {
+        if (status === 'Registration Open') parts.push(`Starts ${seatStartWords(preview)}`);
+        else parts.push(status);
+    } else {
+        const when = startWords(preview.startTime);
+        if (status === 'Registration Open' && when) parts.push(`Starts ${when}`);
+        else parts.push(status);
+    }
     if (preview.club) parts.push(preview.club);
     const cta = isOpenForEntry(preview, now) ? 'Register On Smarter.Poker.' : 'Play Poker Tournaments On Smarter.Poker.';
     return { headline, description: `${parts.join(' | ')}. ${cta}` };
