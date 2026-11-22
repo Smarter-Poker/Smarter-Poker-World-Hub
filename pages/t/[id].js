@@ -2,13 +2,17 @@
  * /t/[id] - a shared Club Arena tournament (2026-11-15)
  * ═══════════════════════════════════════════════════════════════════════════
  * Server-rendered so iMessage, WhatsApp, Discord, Telegram and the rest draw a
- * preview card (the event's name, buy-in, guarantee and start time) instead of
- * the generic Poker Arena card.
+ * preview card (the event's name, buy-in, guarantee/stack and start rule)
+ * instead of the generic Poker Arena card.
  *
  * A person who is already signed in is sent straight on to the tournament in
  * Club Arena. A person who is not sees what they were invited to, with one
  * Register button that goes to the same place, where Club Arena's sign-in
  * keeps the return path. A preview crawler is never redirected.
+ *
+ * Spins and Sit & Go's launch when full (never on a scheduled clock time), so
+ * they show "When Full" instead of a timestamp and never render a useless
+ * "Guarantee: None" box.
  *
  * Private, VIP-only and non-public-club events answer exactly like a missing
  * one (fn_ca_tournament_share_preview), so this page can never show a stranger
@@ -17,17 +21,16 @@
  */
 import { useEffect } from 'react';
 import Head from 'next/head';
+import { arenaCardStyles as styles } from '../../src/lib/sharedArenaCardStyles';
 import {
-    buyInWords,
     clubArenaTournamentPath,
     gameLine,
-    guaranteeWords,
     hasSignedInSession,
     isOpenForEntry,
+    isSeatBasedTournament,
     normalizeTournamentId,
     readSharedTournament,
-    startWords,
-    statusWords,
+    tournamentLandingFacts,
     tournamentPreviewText,
 } from '../../src/lib/sharedTournamentLink';
 
@@ -56,6 +59,15 @@ export async function getServerSideProps({ params, res }) {
     };
 }
 
+function formatBadgeLabel(preview) {
+    if (!preview) return 'Tournament';
+    const fmt = String(preview.format || '').trim().toLowerCase();
+    if (fmt === 'spin' || fmt === 'spin_and_go') return 'Spin';
+    if (fmt === 'sng' || fmt === 'sit_and_go' || fmt === 'sng_satellite') return 'Sit & Go';
+    if (isSeatBasedTournament(preview)) return 'Sit & Go';
+    return 'Tournament';
+}
+
 export default function SharedTournamentLanding({ id, status, preview, renderedAt }) {
     const target = clubArenaTournamentPath(id);
 
@@ -77,15 +89,8 @@ export default function SharedTournamentLanding({ id, status, preview, renderedA
         ? `${ORIGIN}/api/og/club-tournament?id=${encodeURIComponent(id)}`
         : `${ORIGIN}/api/og/club-tournament`;
     const open = found && isOpenForEntry(preview, renderedAt);
-    const facts = found
-        ? [
-              ['Buy-In', buyInWords(preview).replace(/^Buy-In /, '')],
-              // The label already says Guarantee: the value is just the chips.
-              ['Guarantee', guaranteeWords(preview).replace(/ GTD$/, '') || 'None'],
-              ['Starts', startWords(preview.startTime) || 'Soon'],
-              ['Status', statusWords(preview, renderedAt)],
-          ]
-        : [];
+    const facts = found ? tournamentLandingFacts(preview, renderedAt) : [];
+    const badge = formatBadgeLabel(found ? preview : null);
 
     return (
         <main style={styles.page}>
@@ -109,13 +114,20 @@ export default function SharedTournamentLanding({ id, status, preview, renderedA
                 <meta key="twitter-image" name="twitter:image" content={ogImage} />
             </Head>
             <section style={styles.card} aria-labelledby="shared-tournament-title">
-                <p style={styles.eyebrow}>Smarter.Poker | Club Arena</p>
+                <div style={styles.eyebrowRow}>
+                    <div style={styles.eyebrowGroup}>
+                        <span style={styles.eyebrowDot} aria-hidden="true" />
+                        <p style={styles.eyebrow}>Smarter.Poker | Club Arena</p>
+                    </div>
+                    <span style={styles.badge}>{badge}</span>
+                </div>
                 <h1 id="shared-tournament-title" style={styles.title}>
                     {found ? preview.name || 'Tournament' : 'Club Arena Tournament'}
                 </h1>
                 {found && (preview.club || gameLine(preview)) && (
                     <p style={styles.sub}>{[gameLine(preview), preview.club].filter(Boolean).join(' | ')}</p>
                 )}
+                <div style={styles.divider} aria-hidden="true" />
                 {found ? (
                     <dl style={styles.facts}>
                         {facts.map(([label, value]) => (
@@ -135,55 +147,7 @@ export default function SharedTournamentLanding({ id, status, preview, renderedA
                 <a href={target} style={styles.button}>
                     {open ? 'Register' : 'Open Tournament'}
                 </a>
-                <p style={styles.small}>Free To Play. No Real-Money Gambling.</p>
             </section>
         </main>
     );
 }
-
-const styles = {
-    page: {
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 16,
-        background: '#04060b',
-        color: '#e7ebf2',
-        fontFamily: "'Roboto Condensed', system-ui, sans-serif",
-    },
-    card: {
-        width: '100%',
-        maxWidth: 440,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 12,
-        padding: '24px 20px',
-        background: '#0d151e',
-        border: '1px solid rgba(139,215,255,0.28)',
-        borderRadius: 14,
-    },
-    eyebrow: { margin: 0, color: '#8bd7ff', fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', fontSize: 12 },
-    title: { margin: 0, fontSize: 28, lineHeight: 1.1, fontWeight: 900 },
-    sub: { margin: 0, color: '#9aa4b2', fontSize: 15 },
-    facts: { margin: '4px 0 0', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 },
-    fact: { margin: 0, padding: '10px 12px', background: '#04080d', borderRadius: 10 },
-    factLabel: { margin: 0, color: '#9aa4b2', fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 },
-    factValue: { margin: '4px 0 0', fontSize: 16, fontWeight: 700 },
-    note: { margin: 0, color: '#9aa4b2', fontSize: 15 },
-    button: {
-        marginTop: 6,
-        display: 'block',
-        textAlign: 'center',
-        padding: '14px 16px',
-        background: '#1877F2',
-        color: '#ffffff',
-        fontWeight: 800,
-        fontSize: 17,
-        borderRadius: 10,
-        textDecoration: 'none',
-        textTransform: 'uppercase',
-        letterSpacing: 1,
-    },
-    small: { margin: 0, color: '#6b7380', fontSize: 12, textAlign: 'center' },
-};
