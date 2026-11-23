@@ -41,6 +41,42 @@ test('ids are uuids, lower-cased; anything else is not a tournament', () => {
     assert.equal(clubArenaTournamentPath(ID), `/hub/club-arena/tournaments/${ID}`);
 });
 
+test('the club code and the seat-hold token go on to Club Arena, sanitised as /g/ does, and nothing else', () => {
+    // 2026-11-22: Club Arena shares a tournament as /t/<id>?i=<club code> so a
+    // signed-in friend outside the club is offered its join step. Real shapes:
+    // the database's 7 character code and a 32 hex seat-hold token.
+    const CODE = 'K7MQ2XR';
+    const HOLD = 'a1b2c3d4e5f60718293a4b5c6d7e8f90';
+    assert.equal(
+        clubArenaTournamentPath(ID, { i: 'k7mq2xr' }),
+        `/hub/club-arena/tournaments/${ID}?i=${CODE}`
+    );
+    assert.equal(
+        clubArenaTournamentPath(ID, { i: CODE, invite: HOLD }),
+        `/hub/club-arena/tournaments/${ID}?i=${CODE}&invite=${HOLD}`
+    );
+    // A repeated key takes its first value, exactly as /g/ does.
+    assert.equal(
+        clubArenaTournamentPath(ID, { i: [CODE, 'OTHER99'] }),
+        `/hub/club-arena/tournaments/${ID}?i=${CODE}`
+    );
+    // cluster names a cash game; an arbitrary key, a redirect or an injected
+    // value is never forwarded.
+    assert.equal(
+        clubArenaTournamentPath(ID, {
+            cluster: '9b3e1c2a-5d4f-4a6b-8c7d-0e1f2a3b4c5d',
+            next: '//evil.example',
+            redirect: 'https://evil.example',
+            utm_source: 'x',
+        }),
+        `/hub/club-arena/tournaments/${ID}`
+    );
+    for (const bad of ['<script>', 'AB', 'ABC 234', 'ABC2345&x=1', '../x']) {
+        assert.equal(clubArenaTournamentPath(ID, { i: bad }), `/hub/club-arena/tournaments/${ID}`, bad);
+    }
+    assert.equal(clubArenaTournamentPath(ID, null), `/hub/club-arena/tournaments/${ID}`);
+});
+
 test('the server read uses the anon key and sends only the id', async () => {
     let seen;
     const fake = async (url, init) => {
@@ -128,7 +164,12 @@ test('the tournament page replaces the application preview defaults through shar
 
 test('signed in goes straight on; signed out sees the invitation; a crawler is never redirected', () => {
     const page = read('pages/t/[id].js');
-    assert.match(page, /const target = clubArenaTournamentPath\(id\);/);
+    assert.match(page, /const target = clubArenaTournamentPath\(id, shareParams\);/);
+    // The query is read through /g/'s own sanitiser, on the server, and is the
+    // only thing forwarded.
+    assert.match(page, /const shareParams = sanitizeShareParams\(query\);/);
+    assert.match(page, /import \{ sanitizeShareParams \} from '\.\.\/\.\.\/src\/lib\/sharedGameLink';/);
+    assert.match(page, /shareParams,\n\s*\},\n\s*\};/);
     assert.match(page, /if \(hasSignedInSession\(window\.localStorage\)\) window\.location\.replace\(target\);/);
     // No meta refresh and no server redirect: a preview crawler must read the card.
     assert.doesNotMatch(page, /httpEquiv="refresh"/);

@@ -10,6 +10,12 @@
  * Register button that goes to the same place, where Club Arena's sign-in
  * keeps the return path. A preview crawler is never redirected.
  *
+ * The link's club code (?i=) and seat-hold token (?invite=) go on to Club
+ * Arena with it (2026-11-22), sanitised exactly as /g/ does, so a friend who is
+ * not yet in the club is offered its join step there instead of "Tournament
+ * Not Found". The preview card and its cache are unchanged: the code changes
+ * where the button goes, not what the card says.
+ *
  * Spins and Sit & Go's launch when full (never on a scheduled clock time), so
  * they show "When Full" instead of a timestamp and never render a useless
  * "Guarantee: None" box.
@@ -22,6 +28,7 @@
 import { useEffect } from 'react';
 import Head from 'next/head';
 import { arenaCardStyles as styles } from '../../src/lib/sharedArenaCardStyles';
+import { sanitizeShareParams } from '../../src/lib/sharedGameLink';
 import {
     clubArenaTournamentPath,
     gameLine,
@@ -36,9 +43,12 @@ import {
 
 const ORIGIN = 'https://smarter.poker';
 
-export async function getServerSideProps({ params, res }) {
+export async function getServerSideProps({ params, query, res }) {
     const id = normalizeTournamentId(String(params?.id || ''));
     if (!id) return { notFound: true };
+    // The club code (and a seat-hold token) ride on to Club Arena, sanitised
+    // exactly as /g/ sanitises them (2026-11-22). Nothing else is forwarded.
+    const shareParams = sanitizeShareParams(query);
     let shared = null;
     try {
         shared = await readSharedTournament(id);
@@ -55,6 +65,7 @@ export async function getServerSideProps({ params, res }) {
             status: shared?.status || 'unknown',
             preview: shared?.status === 'found' ? shared.preview : null,
             renderedAt: Date.now(),
+            shareParams,
         },
     };
 }
@@ -70,8 +81,8 @@ function formatBadgeLabel(preview) {
     return 'Tournament';
 }
 
-export default function SharedTournamentLanding({ id, status, preview, renderedAt }) {
-    const target = clubArenaTournamentPath(id);
+export default function SharedTournamentLanding({ id, status, preview, renderedAt, shareParams }) {
+    const target = clubArenaTournamentPath(id, shareParams);
 
     useEffect(() => {
         // Signed in: straight to the tournament. replace(): Back returns to

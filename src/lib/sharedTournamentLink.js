@@ -13,6 +13,7 @@
  * service role, nothing secret. Amounts are chips: never a currency sign.
  */
 import { resolveAnonKey, SUPABASE_URL_FALLBACK } from './supabaseKeys.js';
+import { sanitizeShareParams } from './sharedGameLink.js';
 
 const SUPABASE_URL = (process.env.NEXT_PUBLIC_SUPABASE_URL || SUPABASE_URL_FALLBACK).trim();
 
@@ -24,9 +25,27 @@ export function normalizeTournamentId(value) {
     return TOURNAMENT_ID_RE.test(v) ? v : null;
 }
 
-/** Where a person goes: Club Arena's tournament page (sign-in and return as usual). */
-export function clubArenaTournamentPath(id) {
-    return `/hub/club-arena/tournaments/${id}`;
+/**
+ * Where a person goes: Club Arena's tournament page (sign-in and return as usual).
+ *
+ * A TOURNAMENT LINK CARRIES THE CLUB (2026-11-22). Club Arena now shares a
+ * tournament as /t/<id>?i=<the sender's club invite code>, exactly as a table
+ * link carries it, and its tournament page reads `i` to offer a signed-in
+ * friend who is not yet in the club the club's own join step (a tournament is
+ * readable only inside its club, so without it the friend saw "Tournament Not
+ * Found"). This page used to pass no query on at all. It now passes the same
+ * whitelist /g/ passes, through the same normaliser (sanitizeShareParams):
+ * `i` and the seat-hold token `invite`. `cluster` names a cash game and means
+ * nothing to a tournament, so it is not forwarded; nothing else ever is.
+ */
+export function clubArenaTournamentPath(id, params) {
+    const base = `/hub/club-arena/tournaments/${id}`;
+    const safe = sanitizeShareParams(params);
+    const qs = new URLSearchParams();
+    if (safe.i) qs.set('i', safe.i);
+    if (safe.invite) qs.set('invite', safe.invite);
+    const query = qs.toString();
+    return query ? `${base}?${query}` : base;
 }
 
 /** found | missing, or a thrown error when the database could not be asked. */
