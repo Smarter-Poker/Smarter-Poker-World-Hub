@@ -133,7 +133,14 @@ export async function loadAppSettings(userId) {
             .eq('id', uid)
             .maybeSingle();
 
-        return profile?.app_settings || {};
+        const loaded = profile?.app_settings || {};
+        // Overlay any coalesced writes still awaiting their 500ms flush so a
+        // fast reopen (e.g. saving a PokerCardPicker preset and reopening the
+        // picker within 500ms) never regresses to stale DB state.
+        if (uid === getAuthUser()?.id && Object.keys(_pendingValues).length > 0) {
+            return { ...loaded, ..._pendingValues };
+        }
+        return loaded;
     } catch (err) {
         console.warn('[AppSettings] Load failed:', err);
         return {};

@@ -35,6 +35,11 @@ import { getBlockedUsers, unblockUser } from '../../src/services/privacy-service
 import styles from '../../src/components/settings/settingsStyles';
 import PushNotificationToggle from '../../src/components/notifications/PushNotificationToggle';
 import { readOwnProfile } from '../../src/lib/ownProfile';
+import {
+    readRailOptIn,
+    saveProfileAppSettings,
+    saveProfileRailOptIn,
+} from '../../src/lib/hubSettingsSync.mjs';
 
 // Phase 2: Hoisted to module scope — static array, no need to re-create on every render
 const SETTINGS_SECTIONS = [
@@ -366,6 +371,7 @@ export default function SettingsPage() {
         showOnlineStatus: true,
         showHandHistory: true,
         showStats: true,
+        railOptIn: false,
 
         // Appearance
         theme: 'dark',
@@ -390,7 +396,11 @@ export default function SettingsPage() {
     useEffect(() => {
         try {
             const cached = localStorage.getItem('sp-user-settings');
-            if (cached) setSettings((prev) => ({ ...prev, ...withoutRetiredSettings(JSON.parse(cached)) }));
+            if (cached) {
+                const parsed = withoutRetiredSettings(JSON.parse(cached));
+                delete parsed.railOptIn;
+                setSettings((prev) => ({ ...prev, ...parsed }));
+            }
         } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -402,22 +412,27 @@ export default function SettingsPage() {
         if (!user?.id) return;
 
         const loadSettings = async () => {
-            // Load app_settings from profiles table
+            // Load app_settings and settings (for rail_opt_in) from profiles table
             const { data: profile } = await supabase
                 .from('profiles')
-                .select('app_settings')
+                .select('app_settings, settings')
                 .eq('id', user.id)
                 .maybeSingle();
 
             if (profile) {
                 const dbSettings = withoutRetiredSettings(profile.app_settings);
+                delete dbSettings.railOptIn;
+                const railOptIn = readRailOptIn(profile.settings);
                 setSettings(prev => ({
                     ...withoutRetiredSettings(prev),
                     ...dbSettings,
+                    railOptIn,
                 }));
-                // Also update localStorage cache with DB values
+                // Also update localStorage cache with DB app_settings values
                 try {
-                    localStorage.setItem('sp-user-settings', JSON.stringify({ ...SETTINGS_DEFAULTS, ...dbSettings }));
+                    const cachePayload = { ...SETTINGS_DEFAULTS, ...dbSettings };
+                    delete cachePayload.railOptIn;
+                    localStorage.setItem('sp-user-settings', JSON.stringify(cachePayload));
                 } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
             }
         };
@@ -454,15 +469,18 @@ export default function SettingsPage() {
                 if (user?.id) {
                     supabase
                         .from('profiles')
-                        .select('app_settings')
+                        .select('app_settings, settings')
                         .eq('id', user.id)
                         .maybeSingle()
                         .then(({ data: profile }) => {
                             if (profile) {
                                 const dbSettings = withoutRetiredSettings(profile.app_settings);
+                                delete dbSettings.railOptIn;
+                                const railOptIn = readRailOptIn(profile.settings);
                                 setSettings(prev => ({
                                     ...withoutRetiredSettings(prev),
                                     ...dbSettings,
+                                    railOptIn,
                                 }));
                             }
                         });
@@ -557,19 +575,41 @@ export default function SettingsPage() {
     }, [show2FAModal]);
 
     const updateSetting = async (key, value) => {
+        if (key === 'railOptIn') {
+            const previousValue = Boolean(settings.railOptIn);
+            const nextValue = Boolean(value);
+            setSettings((prev) => withoutRetiredSettings({ ...prev, railOptIn: nextValue }));
+
+            if (user?.id) {
+                const result = await saveProfileRailOptIn(supabase, user.id, nextValue);
+                if (!result.ok) {
+                    console.warn('[Settings] Failed to save rail_opt_in to profiles.settings:', result.error);
+                    setSettings((prev) => ({ ...prev, railOptIn: previousValue }));
+                    return;
+                }
+            }
+
+            setSaved(true);
+            setTimeout(() => setSaved(false), 2000);
+            return;
+        }
+
         const newSettings = withoutRetiredSettings({ ...settings, [key]: value });
         setSettings(newSettings);
 
-        // Persist all settings to localStorage (fast cache)
+        // Persist non-rail settings to localStorage (fast cache)
         try {
-            localStorage.setItem('sp-user-settings', JSON.stringify(newSettings));
+            const cachePayload = { ...newSettings };
+            delete cachePayload.railOptIn;
+            localStorage.setItem('sp-user-settings', JSON.stringify(cachePayload));
         } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
 
-        // Persist ALL settings to Supabase profiles.app_settings (cross-device)
+        // Safe read-merge-write to Supabase profiles.app_settings so keys
+        // stored by other features (such as poker_card_presets) are preserved.
         if (user?.id) {
-            const { error } = await supabase.from('profiles').update({ app_settings: newSettings }).eq('id', user.id);
-            if (error) {
-                console.warn('[Settings] Failed to save settings to DB:', error);
+            const result = await saveProfileAppSettings(supabase, user.id, { [key]: value }, RETIRED_SETTING_KEYS);
+            if (!result.ok) {
+                console.warn('[Settings] Failed to save settings to DB:', result.error);
             }
         }
 
@@ -1483,6 +1523,12 @@ export default function SettingsPage() {
                                         label="Show Statistics"
                                         value={settings.showStats}
                                         onChange={(v) => updateSetting('showStats', v)}
+                                    />
+                                    <Toggle
+                                        label="Allow Tournament Rail Updates"
+                                        description="Allow Players In Your Running Tournaments To Share Anonymous Rail Updates About Your Table Stack. Your Name Is Never Shown."
+                                        value={settings.railOptIn}
+                                        onChange={(v) => updateSetting('railOptIn', v)}
                                     />
                                 </div>
                             </div>

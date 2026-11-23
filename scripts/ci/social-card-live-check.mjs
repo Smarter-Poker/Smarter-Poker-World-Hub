@@ -129,23 +129,34 @@ async function verifyCardSurface({ browser, env, client, userId, receipt }) {
   try {
     receipt.stage = 'open-social-composer';
     await page.goto('/hub/social-media', { waitUntil: 'domcontentloaded', timeout: 60_000 });
-    // The composer toolbar no longer offers a Poker Cards button (Dan,
-    // 2026-10-24). The picker is reached only from a restored card draft's
-    // Edit control, so the probe seeds one draft card and edits from there.
     await page.getByRole('button', { name: 'Go Live', exact: true }).first().waitFor({ state: 'visible', timeout: 45_000 });
-    assert.equal(
-      await page.getByRole('button', { name: 'Poker Cards', exact: true }).count(),
-      0,
-      'The removed Poker Cards toolbar button is back in the composer',
-    );
-    await page.evaluate(({ keys, presetKey, seed }) => {
-      for (const key of [...keys, presetKey]) localStorage.removeItem(key);
-      localStorage.setItem('sp-post-card-draft', seed);
-    }, { keys: DRAFT_KEYS, presetKey: `sp-poker-card-presets:${userId}`, seed: 'Hand [[sp-card:2c]]' });
+    const cardsToolbarButton = page.getByRole('button', { name: 'Add Poker Cards', exact: true }).first();
+    await cardsToolbarButton.waitFor({ state: 'visible', timeout: 20_000 });
+    const toolbarGeometry = await cardsToolbarButton.evaluate((button) => {
+      const style = getComputedStyle(button);
+      const rect = button.getBoundingClientRect();
+      const rowButtons = Array.from(button.parentElement?.querySelectorAll('button') || []).map((el) => ({
+        text: el.textContent?.trim() || '',
+        top: Math.round(el.getBoundingClientRect().top),
+        height: Math.round(el.getBoundingClientRect().height),
+      }));
+      return { whiteSpace: style.whiteSpace, height: Math.round(rect.height), rowButtons };
+    });
+    assert.equal(toolbarGeometry.whiteSpace, 'nowrap', 'Cards toolbar button must not wrap text');
+    assert.ok(toolbarGeometry.height >= 44, `Cards toolbar button height ${toolbarGeometry.height}px is below 44px`);
+    const rowTops = toolbarGeometry.rowButtons.map((item) => item.top);
+    assert.ok(Math.max(...rowTops) - Math.min(...rowTops) <= 4, 'Composer toolbar buttons wrapped onto multiple rows');
+
+    await page.evaluate(({ keys, presetKeys }) => {
+      for (const key of [...keys, ...presetKeys]) localStorage.removeItem(key);
+    }, {
+      keys: DRAFT_KEYS,
+      presetKeys: [`sp-poker-card-presets:v1:${encodeURIComponent(userId)}`, `sp-poker-card-presets:${userId}`],
+    });
     await page.reload({ waitUntil: 'domcontentloaded', timeout: 60_000 });
 
     const openPicker = async () => {
-      await page.getByRole('button', { name: 'Edit Poker Cards', exact: true }).first().click();
+      await page.getByRole('button', { name: 'Add Poker Cards', exact: true }).first().click();
       const dialog = page.getByRole('dialog', { name: 'Add Poker Cards' });
       await dialog.waitFor({ state: 'visible', timeout: 20_000 });
       return dialog;

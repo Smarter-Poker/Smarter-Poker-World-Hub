@@ -96,7 +96,7 @@ export default function PokerCardPicker({ accountId = null, initialMarkup = '', 
         setPresets(remote);
         persistPokerCardPresets(window.localStorage, accountId, remote);
       }
-    });
+    }).catch(() => {});
     return () => { cancelled = true; };
   }, [accountId]);
 

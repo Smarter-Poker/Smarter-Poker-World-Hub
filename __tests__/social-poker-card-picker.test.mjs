@@ -149,6 +149,9 @@ test('Club Arena import rejects malformed cards, duplicates and incomplete stree
   assert.equal(clubArenaHandForComposer({ ...base, community_cards: ['As', '7d', 'Th'] }, owner), null);
   assert.equal(clubArenaHandForComposer({ ...base, hole_cards: { owner: [{ rank: 'A', suit: 's' }] } }, owner), null);
   assert.equal(clubArenaHandForComposer({ ...base, hole_cards: { stranger: [{ rank: 'A', suit: 's' }, { rank: 'K', suit: 'h' }] } }, owner), null);
+  const noHandNumber = clubArenaHandForComposer({ ...base, hand_number: null, created_at: '2026-10-08T12:00:00.000Z' }, owner);
+  assert.ok(noHandNumber && !noHandNumber.label.includes('Hand 0'), `null hand_number produced "${noHandNumber?.label}"`);
+  assert.match(noHandNumber.label, /^Club Arena Hand/);
 });
 
 test('recent Club Arena import uses participant RLS plus own-row facts and returns a bounded safe DTO', async () => {
