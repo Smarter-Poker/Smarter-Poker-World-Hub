@@ -50,6 +50,71 @@ def _load_daemon():
 daemon = _load_daemon()
 
 
+class ExitNamesItsCauseTests(unittest.TestCase):
+    """Alert 255584 (2026-11-23): both exit-0 paths of main() had one status."""
+
+    def test_a_writer_lock_held_elsewhere_exits_with_its_own_status(self):
+        import fcntl
+        with TemporaryDirectory() as tmp:
+            lock_file = Path(tmp) / "daemon.lock"
+            with mock.patch.object(daemon, "DAEMON_LOCK_FILE", lock_file), \
+                    mock.patch.object(daemon, "_daemon_lock_handle", None):
+                with open(lock_file, "a+") as holder:
+                    fcntl.flock(holder.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    holder.write("4242\n")
+                    holder.flush()
+                    with self.assertLogs(daemon.log, level="ERROR") as logs, \
+                            mock.patch.object(daemon, "write_heartbeat") as heartbeat:
+                        self.assertEqual(daemon.main(), daemon.EXIT_WRITER_LOCK_HELD)
+                    heartbeat.assert_not_called()
+        self.assertEqual(daemon.EXIT_WRITER_LOCK_HELD, 75)
+        self.assertIn("holder pid 4242", "\n".join(logs.output))
+
+    def test_a_stop_signal_exits_with_the_signal_status(self):
+        import signal as signal_module
+        with TemporaryDirectory() as tmp:
+            lock_file = Path(tmp) / "daemon.lock"
+
+            class Manager:
+                consecutive_failures = 0
+                tier2_failures = 0
+
+                def disconnect(self):
+                    pass
+
+            def stop_during_boot(*_args, **_kwargs):
+                daemon.signal_handler(signal_module.SIGTERM, None)
+
+            with mock.patch.object(daemon, "DAEMON_LOCK_FILE", lock_file), \
+                    mock.patch.object(daemon, "_daemon_lock_handle", None), \
+                    mock.patch.object(daemon, "running", True), \
+                    mock.patch.object(daemon, "_stop_signal", None), \
+                    mock.patch.object(daemon, "PokerAtlasSessionManager", Manager), \
+                    mock.patch.object(daemon, "_kill_zombie_browsers"), \
+                    mock.patch.object(daemon, "write_heartbeat", side_effect=stop_during_boot):
+                self.assertEqual(daemon.main(), 128 + signal_module.SIGTERM)
+
+    def test_a_clean_run_without_a_signal_is_still_zero(self):
+        with TemporaryDirectory() as tmp:
+            lock_file = Path(tmp) / "daemon.lock"
+
+            class Manager:
+                consecutive_failures = 0
+                tier2_failures = 0
+
+                def disconnect(self):
+                    pass
+
+            with mock.patch.object(daemon, "DAEMON_LOCK_FILE", lock_file), \
+                    mock.patch.object(daemon, "_daemon_lock_handle", None), \
+                    mock.patch.object(daemon, "running", False), \
+                    mock.patch.object(daemon, "_stop_signal", None), \
+                    mock.patch.object(daemon, "PokerAtlasSessionManager", Manager), \
+                    mock.patch.object(daemon, "_kill_zombie_browsers"), \
+                    mock.patch.object(daemon, "write_heartbeat"):
+                self.assertEqual(daemon.main(), 0)
+
+
 class SessionTeardownTests(unittest.TestCase):
     def test_failed_context_close_still_stops_real_playwright_owner(self):
         import asyncio

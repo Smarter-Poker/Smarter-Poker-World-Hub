@@ -219,6 +219,17 @@ LOG_DIR = BASE_DIR / 'data' / 'pokeratlas-logs'
 EVIDENCE_DIR = BASE_DIR / 'data' / 'scrape-evidence'
 HEARTBEAT_FILE = LOG_DIR / 'heartbeat.json'
 DAEMON_LOCK_FILE = LOG_DIR / 'daemon.lock'
+# AN EXIT NAMES ITS CAUSE (2026-11-23, production alert 255584). This daemon
+# used to exit 0 on two unrelated paths: another process already held the
+# writer lock, or a shutdown signal reached it from somewhere other than its
+# supervisor. scripts/local_scraper_runtime.py could only report both as
+# daemon_exited_0, so the 2026-10-09 and 2026-10-17 faults could never be
+# attributed from the store. Each path now has its own exit status, which the
+# runner maps to a named failure code. scripts/local_scraper_runtime.py keeps a
+# mirror of this value (it is copied alone and imports nothing from here);
+# scripts/test_local_scraper_runtime.py fails CI if the two differ.
+EXIT_WRITER_LOCK_HELD = 75  # EX_TEMPFAIL
+_stop_signal = None
 
 # ============================================================
 # LOGGING
@@ -2635,9 +2646,20 @@ def _acquire_daemon_lock():
     return handle
 
 def signal_handler(sig, frame):
-    global running
+    global running, _stop_signal
     log.info('⛔ Shutdown signal received, stopping...')
+    if _stop_signal is None:
+        _stop_signal = sig
     running = False
+
+
+def _daemon_lock_holder():
+    """The PID the current lock holder wrote, or None if it is unreadable."""
+    try:
+        text = DAEMON_LOCK_FILE.read_text().strip()
+        return int(text) if text else None
+    except (OSError, ValueError):
+        return None
 
 signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
@@ -2738,8 +2760,9 @@ def main():
     global _daemon_lock_handle
     _daemon_lock_handle = _acquire_daemon_lock()
     if _daemon_lock_handle is None:
-        log.error('Another PokerAtlas daemon owns the writer lock; exiting')
-        return
+        log.error('Another PokerAtlas daemon owns the writer lock (holder pid %s); exiting %d',
+                  _daemon_lock_holder(), EXIT_WRITER_LOCK_HELD)
+        return EXIT_WRITER_LOCK_HELD
 
     write_heartbeat('starting')
     log.info('=' * 60)
@@ -2874,6 +2897,12 @@ def main():
     _daemon_lock_handle.close()
     _daemon_lock_handle = None
     log.info('Daemon stopped.')
+    # A stop is reported as the signal that caused it, the shell convention,
+    # so a supervisor that did not send it can say so. A supervisor that did
+    # send it already knows it is stopping and treats any status as a stop.
+    if _stop_signal is not None:
+        return 128 + int(_stop_signal)
+    return 0
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
