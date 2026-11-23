@@ -95,13 +95,15 @@ export default async function handler(req, res) {
             subscribersResult,
             activeResult,
             inactiveResult,
+            smsActiveResult,
             campaignCountResult,
             campaignsResult,
             articlesResult,
         ] = await Promise.all([
             subscriberQuery,
-            supabase.from('newsletter_subscribers').select('id', { count: 'exact', head: true }).or('is_active.is.null,is_active.eq.true'),
-            supabase.from('newsletter_subscribers').select('id', { count: 'exact', head: true }).eq('is_active', false),
+            supabase.from('newsletter_subscribers').select('id', { count: 'exact', head: true }).like('email', '%@%').or('is_active.is.null,is_active.eq.true'),
+            supabase.from('newsletter_subscribers').select('id', { count: 'exact', head: true }).like('email', '%@%').eq('is_active', false),
+            supabase.from('newsletter_subscribers').select('id', { count: 'exact', head: true }).like('email', 'sms:%').or('is_active.is.null,is_active.eq.true'),
             supabase.from('newsletter_campaigns').select('id', { count: 'exact', head: true }),
             supabase.from('newsletter_campaigns')
                 .select('id,subject,status,lookback_days,article_limit,recipient_count,sent_count,failed_count,error_summary,started_at,completed_at,created_at')
@@ -114,7 +116,7 @@ export default async function handler(req, res) {
                 .limit(12),
         ]);
 
-        for (const result of [subscribersResult, activeResult, inactiveResult, campaignCountResult, campaignsResult, articlesResult]) {
+        for (const result of [subscribersResult, activeResult, inactiveResult, smsActiveResult, campaignCountResult, campaignsResult, articlesResult]) {
             if (result.error) throw result.error;
         }
 
@@ -123,6 +125,7 @@ export default async function handler(req, res) {
             stats: {
                 active: activeResult.count || 0,
                 inactive: inactiveResult.count || 0,
+                sms_active: smsActiveResult.count || 0,
                 campaigns: campaignCountResult.count || 0,
                 last_sent_at: campaignsResult.data?.find((c) => ['sent', 'partial'].includes(c.status))?.completed_at || null,
             },

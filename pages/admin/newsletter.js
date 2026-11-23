@@ -5,6 +5,18 @@ import OperatorGlyph from '../../src/components/admin/OperatorGlyph';
 import { getFreshAccessToken } from '../../src/lib/authUtils';
 import styles from '../../src/components/admin/NewsletterOperations.module.css';
 
+const INITIAL_PROMO_DRAFT = {
+    subject: 'Claim 500 Free Diamonds, 30-Day Free VIP & 25 Free Chips on Smarter.Poker',
+    headline: '500 Free Diamonds + 30-Day Free VIP + 25 Free Chips',
+    body: 'Train with GTO poker tools, discover live poker games near you, and take a seat in Club Arena on Smarter.Poker.\n\nCreate or sign in to your free account, verify your phone to unlock 500 Free Diamonds plus a 30-Day Free VIP Card, and join Kings Club (Club Code 25450) in Club Arena for 25 Free Chips.',
+    ctaLabel: 'Claim Your Free Rewards',
+    ctaUrl: 'https://smarter.poker/auth/signup?next=%2Fhub%2Fclub-arena%2F%3Fjoin%3D25450',
+    smsBody: 'Smarter.Poker: Claim 500 Free Diamonds, 30-Day Free VIP + 25 Free Chips in Kings Club (Code 25450): https://smarter.poker/auth/signup Reply STOP to opt out.',
+    postalAddress: 'PO Box 1905, 9624 Cicero Ave, Oak Lawn, IL 60453',
+    channels: 'both',
+    scope: 'all',
+};
+
 function formatDate(value) {
     if (!value) return '-';
     const date = new Date(value);
@@ -20,6 +32,7 @@ export default function NewsletterOperations() {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [notice, setNotice] = useState('');
     // `error` is the banner channel: every action on this page writes to it. The
     // counters must NOT read it. A failed subscriber PATCH or a failed digest run
     // says nothing about whether the counters were read, and blanking good numbers
@@ -32,6 +45,15 @@ export default function NewsletterOperations() {
     const [articleLimit, setArticleLimit] = useState(8);
     const [preview, setPreview] = useState(null);
     const [running, setRunning] = useState('');
+
+    // Promotional campaign & bulk lead import state
+    const [promoMeta, setPromoMeta] = useState(null);
+    const [promoDraft, setPromoDraft] = useState(INITIAL_PROMO_DRAFT);
+    const [promoPreview, setPromoPreview] = useState(null);
+    const [testEmail, setTestEmail] = useState('');
+    const [testPhone, setTestPhone] = useState('');
+    const [leadInput, setLeadInput] = useState('');
+    const [importResult, setImportResult] = useState(null);
 
     // A counter that reads the same when it is loading, when the request failed and
     // when the answer is genuinely zero is not reporting, it is guessing on the operator's
@@ -76,13 +98,7 @@ export default function NewsletterOperations() {
                     headers: { Authorization: `Bearer ${sessionToken}` },
                     signal: controller.signal,
                 });
-                // DEFECT 3: the body read stays INSIDE the armed abort window. A timeout
-                // that only bounds the headers bounds nothing an operator cares about: a
-                // server that answers 200 and then stalls the body used to hang this
-                // await forever with the timer already cleared, leaving loading true and
-                // the Refresh button disabled for the rest of the session. Aborting the
-                // controller rejects an in-flight body read too, so the whole round trip
-                // is bounded. clearTimeout only runs once the body is parsed or thrown.
+                // DEFECT 3: the body read stays INSIDE the armed abort window.
                 body = await response.json();
                 if (!response.ok || !body.success) throw new Error(body.error || 'Unable to load newsletter operations');
             } finally {
@@ -90,9 +106,7 @@ export default function NewsletterOperations() {
             }
             setData(body);
         } catch (err) {
-            // DEFECT 6: err may not be an Error. Reading .message off a non-Error
-            // rejection threw a TypeError inside this catch, so no message was ever
-            // set and the rejection escaped load() unhandled at both call sites.
+            // DEFECT 6: err may not be an Error.
             const message = err?.name === 'AbortError'
                 ? 'The newsletter service did not respond within 15 seconds. The counters below are unread, not zero.'
                 : err?.message || 'Unable to load newsletter operations';
@@ -102,6 +116,24 @@ export default function NewsletterOperations() {
             setLoading(false);
         }
     }, [page, search, token]);
+
+    const loadPromoConfig = useCallback(async (sessionToken) => {
+        if (!sessionToken) return;
+        try {
+            const response = await fetch('/api/admin/promo-campaign', {
+                headers: { Authorization: `Bearer ${sessionToken}` },
+            });
+            const body = await response.json();
+            if (response.ok && body?.success) {
+                setPromoMeta(body);
+                if (body.defaultDraft) {
+                    setPromoDraft((prev) => ({ ...body.defaultDraft, ...prev }));
+                }
+            }
+        } catch (_err) {
+            // Non-blocking metadata load; individual actions report their own errors.
+        }
+    }, []);
 
     useEffect(() => {
         let active = true;
@@ -114,17 +146,108 @@ export default function NewsletterOperations() {
                 return;
             }
             load(sessionToken, 1, '');
+            loadPromoConfig(sessionToken);
         });
         return () => { active = false; };
         // Initial auth bootstrap only.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    const updatePromoField = (field, value) => {
+        setPromoDraft((prev) => ({ ...prev, [field]: value }));
+        setPromoPreview(null);
+    };
+
+    const runPromoAction = async (action) => {
+        if (!token) return;
+        if (action === 'send') {
+            const count = promoPreview?.recipients || 0;
+            if (!count) return;
+            if (!window.confirm(`Send this Smarter.Poker promotion to ${promoPreview.emailRecipients || 0} email address(es) and ${promoPreview.smsRecipients || 0} phone number(s) now? This cannot be undone.`)) {
+                return;
+            }
+        }
+        setRunning(`promo-${action}`);
+        setError('');
+        setNotice('');
+        try {
+            const response = await fetch('/api/admin/promo-campaign', {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action,
+                    ...promoDraft,
+                    testEmail,
+                    testPhone,
+                }),
+            });
+            const body = await response.json();
+            if (!response.ok || body.error) {
+                throw new Error(body.error || 'Promotional campaign action failed');
+            }
+            if (action === 'preview') {
+                setPromoPreview(body);
+            } else if (action === 'test') {
+                const parts = [];
+                if (body.emailSent) parts.push(`email sent to ${testEmail}`);
+                if (body.smsSent) parts.push(`SMS sent to ${testPhone}`);
+                if (body.errors?.length) throw new Error(body.errors.join(' | '));
+                setNotice(`Test dispatch complete (${parts.join(', ') || 'verified'}).`);
+            } else if (action === 'send') {
+                setPromoPreview(null);
+                setNotice(`Promotion dispatched: ${body.emailSent || 0} email(s) sent, ${body.smsSent || 0} SMS sent${body.failed ? `, ${body.failed} failed` : ''}.`);
+                await load(token, 1, search);
+            }
+        } catch (err) {
+            setError(err?.message || 'Promotional campaign operation failed');
+        } finally {
+            setRunning('');
+        }
+    };
+
+    const importLeads = async (event) => {
+        event.preventDefault();
+        if (!token || !leadInput.trim()) return;
+        setRunning('import-leads');
+        setError('');
+        setNotice('');
+        try {
+            const response = await fetch('/api/admin/promo-campaign', {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action: 'import',
+                    rawText: leadInput,
+                    source: 'admin_import',
+                }),
+            });
+            const body = await response.json();
+            if (!response.ok || !body.success) {
+                throw new Error(body.error || 'Contact import failed');
+            }
+            setImportResult(body);
+            setPromoPreview(null);
+            setNotice(`Imported ${body.importedEmails || 0} new email(s) and ${body.importedPhones || 0} new phone number(s).`);
+            await load(token, 1, search);
+        } catch (err) {
+            setError(err?.message || 'Contact import failed');
+        } finally {
+            setRunning('');
+        }
+    };
+
     const runDigest = async (dryRun) => {
         if (!token) return;
         if (!dryRun && !window.confirm(`Send this newsletter to ${preview?.recipients ?? data?.stats?.active ?? 0} active subscribers now? This cannot be undone.`)) return;
         setRunning(dryRun ? 'preview' : 'send');
         setError('');
+        setNotice('');
         try {
             const params = new URLSearchParams({
                 dryRun: dryRun ? '1' : '0',
@@ -189,7 +312,7 @@ export default function NewsletterOperations() {
                         <Link href="/hub/news" className={styles.back}><OperatorGlyph kind="back" size={15} /> News Hub</Link>
                         <p className={styles.eyebrow}><OperatorGlyph kind="radio" size={13} /> Live Intelligence Wire</p>
                         <h1>Newsletter Operations</h1>
-                        <p className={styles.subtitle}>Compose From Verified Stories, Inspect The Audience, Dispatch Once, And Retain An Audit Trail.</p>
+                        <p className={styles.subtitle}>Import Leads, Dispatch Smarter.Poker Email And SMS Promotions, Run Weekly News Digests, And Retain A Complete Audit Trail.</p>
                     </div>
                     <button className={styles.refresh} onClick={() => load()} disabled={loading || !token}>
                         <OperatorGlyph kind="refresh" size={15} className={loading ? styles.spin : ''} /> Refresh
@@ -197,12 +320,174 @@ export default function NewsletterOperations() {
                 </header>
 
                 {error && <div className={styles.error} role="alert"><OperatorGlyph kind="alert" size={16} /> {error}</div>}
+                {notice && <div className={styles.notice} role="status"><OperatorGlyph kind="check" size={16} /> {notice}</div>}
 
-                <section className={styles.signalGrid} aria-label="Newsletter health">
+                <section className={styles.signalGrid} aria-label="Newsletter Health">
                     <article><OperatorGlyph kind="users" size={17} /><span>Active Audience</span><strong>{statValue(data?.stats?.active)}</strong></article>
                     <article><OperatorGlyph kind="mail" size={17} /><span>Opted Out</span><strong>{statValue(data?.stats?.inactive)}</strong></article>
                     <article><OperatorGlyph kind="send" size={17} /><span>Recorded Campaigns</span><strong>{statValue(data?.stats?.campaigns)}</strong></article>
                     <article><OperatorGlyph kind="clock" size={17} /><span>Last Dispatch</span><strong className={styles.dateValue}>{lastDispatchValue()}</strong></article>
+                </section>
+
+                <section className={styles.dispatch}>
+                    <div className={styles.sectionHeading}>
+                        <div>
+                            <p className={styles.eyebrow}>Promotional Broadcast</p>
+                            <h2>Smarter.Poker Email And SMS Campaign</h2>
+                        </div>
+                        <OperatorGlyph kind="spark" size={22} />
+                    </div>
+                    <div className={styles.promoGrid}>
+                        <div className={styles.promoForm}>
+                            <div className={styles.fieldRow}>
+                                <label>
+                                    Delivery Channels
+                                    <select value={promoDraft.channels} onChange={(e) => updatePromoField('channels', e.target.value)}>
+                                        <option value="both">Email And SMS</option>
+                                        <option value="email">Email Only</option>
+                                        <option value="sms">SMS Only</option>
+                                    </select>
+                                </label>
+                                <label>
+                                    Target Audience
+                                    <select value={promoDraft.scope} onChange={(e) => updatePromoField('scope', e.target.value)}>
+                                        <option value="all">Full Database Plus Imported List</option>
+                                        <option value="subscribers_only">Imported And Subscribed List Only</option>
+                                    </select>
+                                </label>
+                            </div>
+                            <label>
+                                Email Subject
+                                <input value={promoDraft.subject} onChange={(e) => updatePromoField('subject', e.target.value)} placeholder="Campaign Subject Line" />
+                            </label>
+                            <label>
+                                Email Headline
+                                <input value={promoDraft.headline} onChange={(e) => updatePromoField('headline', e.target.value)} placeholder="Primary Offer Headline" />
+                            </label>
+                            <label>
+                                Email Body Copy
+                                <textarea rows={5} value={promoDraft.body} onChange={(e) => updatePromoField('body', e.target.value)} placeholder="Promotional Message Copy" />
+                            </label>
+                            <div className={styles.fieldRow}>
+                                <label>
+                                    Button Label
+                                    <input value={promoDraft.ctaLabel} onChange={(e) => updatePromoField('ctaLabel', e.target.value)} placeholder="Claim Your Free Rewards" />
+                                </label>
+                                <label>
+                                    Destination URL
+                                    <input value={promoDraft.ctaUrl} onChange={(e) => updatePromoField('ctaUrl', e.target.value)} placeholder="https://smarter.poker/auth/signup" />
+                                </label>
+                            </div>
+                            <label>
+                                Postal Address Footer (CAN-SPAM)
+                                <input value={promoDraft.postalAddress} onChange={(e) => updatePromoField('postalAddress', e.target.value)} placeholder="PO Box 1905, 9624 Cicero Ave, Oak Lawn, IL 60453" />
+                            </label>
+                            <label>
+                                SMS Message Copy (Includes Reply STOP To Opt Out)
+                                <textarea rows={3} value={promoDraft.smsBody} onChange={(e) => updatePromoField('smsBody', e.target.value)} placeholder="Smarter.Poker SMS Copy" />
+                            </label>
+
+                            <div className={styles.actionRow}>
+                                <button type="button" className={styles.previewButton} onClick={() => runPromoAction('preview')} disabled={Boolean(running) || !token}>
+                                    {running === 'promo-preview' ? <OperatorGlyph kind="refresh" size={15} className={styles.spin} /> : <OperatorGlyph kind="eye" size={15} />}
+                                    Run Promo Preview
+                                </button>
+                                <button type="button" className={styles.sendButton} onClick={() => runPromoAction('send')} disabled={Boolean(running) || !promoPreview || promoPreview.recipients === 0}>
+                                    {running === 'promo-send' ? <OperatorGlyph kind="refresh" size={15} className={styles.spin} /> : <OperatorGlyph kind="send" size={15} />}
+                                    Confirm And Send Promo
+                                </button>
+                            </div>
+
+                            <div className={styles.testBox}>
+                                <div className={styles.fieldRow}>
+                                    <label>
+                                        Test Email Recipient
+                                        <input value={testEmail} onChange={(e) => setTestEmail(e.target.value)} placeholder="you@example.com" />
+                                    </label>
+                                    <label>
+                                        Test SMS Phone
+                                        <input value={testPhone} onChange={(e) => setTestPhone(e.target.value)} placeholder="+17085551234" />
+                                    </label>
+                                </div>
+                                <div className={styles.actionRow}>
+                                    <button type="button" className={styles.previewButton} onClick={() => runPromoAction('test')} disabled={Boolean(running) || !token || (!testEmail.trim() && !testPhone.trim())}>
+                                        {running === 'promo-test' ? <OperatorGlyph kind="refresh" size={15} className={styles.spin} /> : <OperatorGlyph kind="mail" size={15} />}
+                                        Send Single Test Message
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className={styles.promoPreview}>
+                            <p className={styles.previewLabel}>Audience And Provider Readiness</p>
+                            <div className={styles.senderMeta}>
+                                <div>Active From Address: <strong>{promoPreview?.from || promoMeta?.from || 'Smarter.Poker News <news@smarter.poker>'}</strong></div>
+                                <div>Resend Email: <strong>{(promoPreview?.emailConfigured ?? promoMeta?.emailConfigured) ? 'Ready' : 'Not Configured'}</strong> | Twilio SMS: <strong>{(promoPreview?.smsConfigured ?? promoMeta?.smsConfigured) ? 'Ready' : 'Not Configured'}</strong></div>
+                            </div>
+                            {promoPreview ? (
+                                <>
+                                    <div className={styles.breakdownGrid}>
+                                        <div className={styles.breakdownCard}><span>Deduplicated Emails</span><strong>{promoPreview.emailRecipients}</strong></div>
+                                        <div className={styles.breakdownCard}><span>Deduplicated Phones</span><strong>{promoPreview.smsRecipients}</strong></div>
+                                        <div className={styles.breakdownCard}><span>Imported Or Subscribed</span><strong>{(promoPreview.breakdown?.subscriberEmails || 0) + (promoPreview.breakdown?.subscriberPhones || 0)}</strong></div>
+                                        <div className={styles.breakdownCard}><span>Database Accounts And Leads</span><strong>{(promoPreview.breakdown?.profileEmails || 0) + (promoPreview.breakdown?.profilePhones || 0) + (promoPreview.breakdown?.commanderEmails || 0) + (promoPreview.breakdown?.commanderPhones || 0)}</strong></div>
+                                        <div className={styles.breakdownCard}><span>Suppressed Emails</span><strong>{promoPreview.breakdown?.suppressedEmails || 0}</strong></div>
+                                        <div className={styles.breakdownCard}><span>Suppressed Phones</span><strong>{promoPreview.breakdown?.suppressedPhones || 0}</strong></div>
+                                    </div>
+                                    {promoPreview.smsPreview && (
+                                        <div>
+                                            <p className={styles.previewLabel}>Resolved SMS Copy</p>
+                                            <div className={styles.smsPreviewBox}>{promoPreview.smsPreview}</div>
+                                        </div>
+                                    )}
+                                    <p className={styles.senderMeta}>Preview Complete. No Email Or Text Was Sent During Preview.</p>
+                                </>
+                            ) : (
+                                <div className={styles.previewEmpty}>
+                                    <OperatorGlyph kind="spark" size={28} />
+                                    <p>Click Run Promo Preview To Deduplicate Imported Leads Plus Database Accounts, Apply Unsubscribe And Carrier Suppressions, And Unlock Send.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </section>
+
+                <section className={styles.panel}>
+                    <div className={styles.sectionHeading}>
+                        <div>
+                            <p className={styles.eyebrow}>List Growth</p>
+                            <h2>Bulk Import Emails And Phone Numbers</h2>
+                        </div>
+                        <OperatorGlyph kind="package-plus" size={22} />
+                    </div>
+                    <form onSubmit={importLeads} className={styles.importBody}>
+                        <div>
+                            <label>
+                                Paste Emails Or US/E.164 Phone Numbers (One Per Line Or Comma Separated)
+                                <textarea
+                                    rows={5}
+                                    value={leadInput}
+                                    onChange={(e) => setLeadInput(e.target.value)}
+                                    placeholder="Enter Emails Or Phone Numbers"
+                                />
+                            </label>
+                            <div className={styles.actionRow}>
+                                <button type="submit" className={styles.sendButton} disabled={Boolean(running) || !token || !leadInput.trim()}>
+                                    {running === 'import-leads' ? <OperatorGlyph kind="refresh" size={15} className={styles.spin} /> : <OperatorGlyph kind="package-plus" size={15} />}
+                                    Import Contacts
+                                </button>
+                            </div>
+                        </div>
+                        <div className={styles.importSummary}>
+                            <p className={styles.previewLabel}>Import Safeguards</p>
+                            <p>Every Address And Phone Number Is Validated, Deduplicated, And Cross-Checked Against Existing Opt-Outs And Bounces. Previously Unsubscribed Contacts Stay Opted Out Automatically.</p>
+                            {importResult && (
+                                <p>
+                                    Last Import: <strong>{importResult.importedEmails}</strong> New Emails, <strong>{importResult.importedPhones}</strong> New Phones, <strong>{(importResult.alreadyActiveEmails || 0) + (importResult.alreadyActivePhones || 0)}</strong> Already Active, <strong>{importResult.optedOutPreserved || 0}</strong> Opted-Out Preserved.
+                                </p>
+                            )}
+                        </div>
+                    </form>
                 </section>
 
                 <section className={styles.dispatch}>
@@ -296,13 +581,13 @@ export default function NewsletterOperations() {
                         <div><p className={styles.eyebrow}>Audience Control</p><h2>Subscribers</h2></div>
                         <form onSubmit={searchSubscribers} className={styles.search}>
                             <OperatorGlyph kind="search" size={15} />
-                            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search email" aria-label="Search subscriber email" />
+                            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search Email Or Phone" aria-label="Search Subscriber Email" />
                             <button type="submit">Find</button>
                         </form>
                     </div>
                     <div className={styles.tableWrap}>
                         <table>
-                            <thead><tr><th>Email</th><th>Source</th><th>Status</th><th>Joined</th><th>Control</th></tr></thead>
+                            <thead><tr><th>Contact</th><th>Source</th><th>Status</th><th>Joined</th><th>Control</th></tr></thead>
                             <tbody>
                                 {(data?.subscribers || []).map((subscriber) => (
                                     <tr key={subscriber.id}>
