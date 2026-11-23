@@ -185,6 +185,20 @@ test('after the reveal a viewer who never answered sees the answer and no reward
   assert.doesNotMatch(html, /Diamonds Added/);
 });
 
+test('explicit row.rewardable === false overrides stale metadata puzzle.rewardable === true', () => {
+  const revealAt = new Date(Date.now() + 3 * HOUR).toISOString();
+  const card = loadCard({
+    state: {
+      row: {
+        id: PUZZLE_ID, kind: 'nuts', post_id: 'p7-post-1', options: OPTIONS,
+        reveal_at: revealAt, revealed_at: null, rewardable: false,
+      },
+    },
+  });
+  const html = render(feedWithCard(card).exposed.PostCard(cardProps(puzzlePost(revealAt, { rewardable: true }))));
+  assert.doesNotMatch(html, /10 Diamonds/i);
+});
+
 // ── Who may answer ──
 
 test('a signed-out viewer is told to sign in and cannot press an option', () => {

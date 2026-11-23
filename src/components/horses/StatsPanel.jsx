@@ -70,7 +70,7 @@ function contentTiles(analytics) {
       label: 'Horses Not Social Ready',
       value: count(notReady),
       tone: isNumber(notReady) && Number(notReady) > 0 ? 'warn' : undefined,
-      hint: 'Rows Returned By fn_horses_not_social_ready. That Function Still Counts Benched Horses With Closed Profiles, So Expect The Benched Count Until It Is Amended.',
+      hint: 'Rows Returned By fn_horses_not_social_ready. Counts Active Fleet Horses Missing Required Social Profile Readiness Fields.',
     },
   ];
 }

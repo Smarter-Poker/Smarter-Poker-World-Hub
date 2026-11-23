@@ -778,12 +778,13 @@ ALL_CRONS = [
     # measured no-op, exactly like Phase 6. Not a CRITICAL_JOB for 7.1.
     ('/api/cron/phase7-content',                  dict(minute=40)),          # hourly; due reveals, then capped publishing
     # Fleet Content Programme Phase 9 (the hand replay renderer). Hourly at
-    # :25: the workers route picks ONE winning hand from the fleet's own
+    # :35 (offset from horse-video-reels at :25 so both never fire in the same
+    # minute): the workers route picks ONE winning hand from the fleet's own
     # review table and enqueues one hand_clip_jobs row; the Vercel cron
     # /api/cron/render-hand-clips renders it within the next few minutes.
     # The hand_clip mode row ships disabled, so until the owner approves it
     # the rendered clip stays ready and unpublished. Not a CRITICAL_JOB.
-    ('/api/cron/phase9-content',                  dict(minute=25)),          # hourly; one clip enqueue, bounded by the fleet slot
+    ('/api/cron/phase9-content',                  dict(minute=35)),          # hourly; one clip enqueue, bounded by the fleet slot
     # Fleet Content Programme Phase 10 (one engine, measured): the weekly
     # digest. Monday 09:30 UTC; the workers route reads the same
     # fn_fleet_content_metrics the horses admin page shows, plus the
@@ -1323,6 +1324,9 @@ CRITICAL_JOBS = {
     '/api/cron/video-reel-candidates':  3,   # ten-minute cadence; three misses = stalled candidate supply
     '/api/cron/video-native-studio':    3,   # repeated render failures require operator investigation
     '/api/cron/horse-video-reels':      3,   # hourly; 3 = three hours without the horse video supply path
+    '/api/cron/scrape-poker-clips':     2,   # twice daily; 2 = one full day of failed poker clip ingestion
+    '/api/cron/content-supply-watchdog': 2,  # twice daily; 2 = one full day of failed supply monitoring
+    '/api/cron/phase6-content':         3,   # hourly; 3 = three hours of failing Phase 6 local/club content runs
     # The cache audit has two daily idempotent passes. Page if both fail, so a
     # full day can never lose its integrity audit without reaching an operator.
     '/api/cron/training-cache-drift-audit': 2,
@@ -1347,6 +1351,9 @@ CRITICAL_RUNBOOKS = {
     '/api/cron/video-reel-candidates':  'World-Hub .planning/video-reels-upgrade/STATE.md + journalctl -u openclaw | grep video-reel-candidates',
     '/api/cron/video-native-studio':    'World-Hub .planning/video-reels-upgrade/STATE.md + journalctl -u openclaw | grep video-native-studio',
     '/api/cron/horse-video-reels':      'World-Hub .planning/video-reels-upgrade/STATE.md + journalctl -u openclaw | grep horse-video-reels',
+    '/api/cron/scrape-poker-clips':     'smarter-poker-workers src/routes/scrape-poker-clips.ts + journalctl -u openclaw | grep scrape-poker-clips',
+    '/api/cron/content-supply-watchdog': 'smarter-poker-workers src/routes/content-supply-watchdog.ts + journalctl -u openclaw | grep content-supply-watchdog',
+    '/api/cron/phase6-content':         'smarter-poker-workers src/routes/phase6-content.ts + journalctl -u openclaw | grep phase6-content',
     '/api/cron/training-cache-drift-audit': 'World-Hub .agent/audits/2026-09-08-horse-phase3-certification.md',
     '/api/cron/table-socket-probe':     'club-arena/docs/runbooks/tables-say-reconnecting.md',
     '/api/cron/trivia-nightly-tournament': 'World-Hub docs/trivia/PHASE-6-RELEASE-REPORT.md (runbook) + trivia_tournament_health_v1()',
