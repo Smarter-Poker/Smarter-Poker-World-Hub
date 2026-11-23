@@ -173,15 +173,48 @@ export default async function handler(req, res) {
           }
 
           try {
-              const { error } = await getSupabase()
+              const nowIso = new Date().toISOString();
+              const { data: existingSub, error: lookupError } = await getSupabase()
                   .from('newsletter_subscribers')
-                  .update({ is_active: false, unsubscribed_at: new Date().toISOString() })
-                  .eq('email', target.email);
+                  .select('id')
+                  .eq('email', target.email)
+                  .maybeSingle();
 
-              if (error) {
-                  console.warn('[Newsletter] Unsubscribe failed:', error.message);
+              if (lookupError) {
+                  console.warn('[Newsletter] Unsubscribe lookup failed:', lookupError.message);
                   return respond(500, false, 'We could not process that request. Please try again.');
               }
+
+              const writeResult = existingSub?.id
+                  ? await getSupabase()
+                      .from('newsletter_subscribers')
+                      .update({ is_active: false, unsubscribed_at: nowIso })
+                      .eq('id', existingSub.id)
+                  : await getSupabase()
+                      .from('newsletter_subscribers')
+                      .insert({ email: target.email, is_active: false, unsubscribed_at: nowIso, source: 'unsubscribe' });
+
+              if (writeResult.error) {
+                  console.warn('[Newsletter] Unsubscribe failed:', writeResult.error.message);
+                  return respond(500, false, 'We could not process that request. Please try again.');
+              }
+
+              // Best-effort sync to notification_preferences when a profile shares this email.
+              try {
+                  const { data: profile } = await getSupabase()
+                      .from('profiles')
+                      .select('id')
+                      .eq('email', target.email)
+                      .maybeSingle();
+                  if (profile?.id) {
+                      await getSupabase()
+                          .from('notification_preferences')
+                          .upsert(
+                              { user_id: profile.id, marketing_enabled: false, updated_at: nowIso },
+                              { onConflict: 'user_id' }
+                          );
+                  }
+              } catch (_prefErr) { /* non-blocking preference mirror */ }
           } catch (error) {
               try { reportApiError(error, req); } catch (_e) { /* noop */ }
               console.warn('[Newsletter] Unsubscribe exception:', error?.message || error);

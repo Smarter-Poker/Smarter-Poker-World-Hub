@@ -322,7 +322,9 @@ export default async function handler(req, res) {
               .select('id, email, is_active')
               // Rows inserted by subscribe.js rely on the column default, which
               // can leave is_active NULL — treat NULL as active, and only
-              // exclude an explicit false.
+              // exclude an explicit false. Exclude sms:+... contacts stored in
+              // newsletter_subscribers so digest drops count malformed emails only.
+              .like('email', '%@%')
               .or('is_active.is.null,is_active.eq.true')
               .order('id', { ascending: true })
               .range(offset, upper);
