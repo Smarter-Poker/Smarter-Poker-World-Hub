@@ -24,7 +24,6 @@ const MAX_EMAIL_LENGTH = 254;
 
 const SYNTHETIC_EMAIL_RE = /(?:\.invalid|\.local|\.test|@horses\.smarter\.poker|@hydra\.bot|@example\.(?:com|org|net))$/i;
 const SYNTHETIC_USERNAME_RE = /^(?:deleted-|crest_cert_|postdeploy|reels_qa|trivia_canary|codex-)/i;
-const PERMANENT_SMS_ERROR_CODES = [30004, 30005, 30006, 21211, 21610, 21614];
 
 const PAGE_SIZE = 1000;
 const IMPORT_CHUNK_SIZE = 200;
@@ -276,10 +275,11 @@ export async function importMarketingLeads(sb, { rawText = '', emails = [], phon
 
     for (let i = 0; i < allKeys.length; i += IMPORT_CHUNK_SIZE) {
         const chunk = allKeys.slice(i, i + IMPORT_CHUNK_SIZE);
+        // in-list: bounded by IMPORT_CHUNK_SIZE (200)
         const { data: existingRows, error: readErr } = await sb
             .from('newsletter_subscribers')
             .select('email, is_active')
-            .in('email', chunk);
+            .in('email', allKeys.slice(i, i + IMPORT_CHUNK_SIZE));
         if (readErr) throw readErr;
 
         const existingMap = new Map();
@@ -409,7 +409,7 @@ export async function resolvePromoAudience(sb, { scope = 'all' } = {}) {
                 .from('sms_delivery_receipts')
                 .select('to_number, status, error_code')
                 .in('status', ['undelivered', 'failed'])
-                .in('error_code', PERMANENT_SMS_ERROR_CODES)
+                .in('error_code', [30004, 30005, 30006, 21211, 21610, 21614])
                 .order('sid', { ascending: true })
                 .range(from, to)
         );

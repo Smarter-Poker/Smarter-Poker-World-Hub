@@ -70,10 +70,11 @@ export default async function handler(req, res) {
             if (optingOut) {
                 const digits10 = phone.startsWith('+1') ? phone.slice(2) : null;
                 const candidates = digits10 ? [phone, digits10, `1${digits10}`] : [phone];
+                // in-list: bounded to at most 3 phone representations for one handset
                 const { data: matchedProfiles } = await sb
                     .from('profiles')
                     .select('id')
-                    .in('phone', candidates)
+                    .in('phone', candidates.slice(0, 3))
                     .limit(20);
                 for (const p of matchedProfiles || []) {
                     await sb
