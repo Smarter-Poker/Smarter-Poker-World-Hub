@@ -865,6 +865,7 @@ import './backlink-embed-citation-engine.test.mjs';
 import './aeo-traffic-expansion-master.test.mjs';
 import './training-reconciled-workflows.test.mjs';
 import './hub-settings-rail-opt-in.test.mjs';
+import './fleet-content-cleanup-migration.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
     const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');
