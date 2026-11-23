@@ -87,6 +87,13 @@ function primaryFrom(value, facets) {
     return PRIMARY_SET.has(candidate) ? candidate : 'unknown';
 }
 
+const PHASE7_STORY_MODES = new Set([
+    'live_tournament_story',
+    'throwback_hand',
+    'human_thread',
+    'rail_human',
+]);
+
 /**
  * Derive { topic, topics } for a social post from what the writer knows.
  * Pure: no I/O, no clock, never throws on odd input, never returns null.
@@ -126,7 +133,10 @@ export function deriveSocialPostTopics(input) {
         facets.add('hand');
         facets.add('puzzle');
     }
-    if (phase7Mode.startsWith('story_')) facets.add('story');
+    if (phase7Mode.startsWith('story_') || PHASE7_STORY_MODES.has(phase7Mode)) {
+        facets.add('story');
+        if (phase7Mode === 'live_tournament_story') facets.add('tournament');
+    }
     const phase6Mode = metaText(meta, 'phase6_mode');
     if (phase6Mode === 'club_data_digest') facets.add('club');
     if (phase6Mode === 'local_event' || phase6Mode === 'seasonal_local') facets.add('local');

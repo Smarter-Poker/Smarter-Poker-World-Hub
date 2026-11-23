@@ -234,7 +234,7 @@ export default function PuzzleAnswerCard({ puzzle, postId, authorId, viewerId })
   const canAnswer = phase === 'open' && Boolean(viewerId) && !isAuthor && !mine && !locked && !submitting;
   const correct = phase === 'revealed' && typeof row?.correct_option === 'string' ? row.correct_option : null;
   const correctLabel = correct ? options.find((option) => option.key === correct)?.label || '' : '';
-  const rewardable = row?.rewardable === true || puzzle?.rewardable === true;
+  const rewardable = typeof row?.rewardable === 'boolean' ? row.rewardable : puzzle?.rewardable === true;
   const closeTime = closeTimeLabel(row?.reveal_at || puzzle?.reveal_at);
 
   const answer = async (key) => {

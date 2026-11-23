@@ -78,6 +78,10 @@ test('step 3: facets from metadata', () => {
     assert.deepEqual(derive({ metadata: { puzzle: null } }), ['poker', 'hand', 'puzzle'], 'the key alone marks a puzzle');
     assert.deepEqual(derive({ metadata: { phase7_mode: 'puzzle_nuts' } }), ['poker', 'hand', 'puzzle']);
     assert.deepEqual(derive({ metadata: { phase7_mode: 'story_tournament' } }), ['poker', 'story']);
+    assert.deepEqual(derive({ metadata: { phase7_mode: 'live_tournament_story' } }), ['poker', 'tournament', 'story']);
+    assert.deepEqual(derive({ metadata: { phase7_mode: 'throwback_hand' } }), ['poker', 'story']);
+    assert.deepEqual(derive({ metadata: { phase7_mode: 'human_thread' } }), ['poker', 'story']);
+    assert.deepEqual(derive({ metadata: { phase7_mode: 'rail_human' } }), ['poker', 'story']);
     assert.deepEqual(derive({ metadata: { phase6_mode: 'club_data_digest' } }), ['poker', 'club']);
     assert.deepEqual(derive({ metadata: { phase6_mode: 'local_event' } }), ['poker', 'local']);
     assert.deepEqual(derive({ metadata: { phase6_mode: 'seasonal_local' } }), ['poker', 'local']);

@@ -88,8 +88,8 @@ test('the build scripts never delete or refuse the packed Chromium', () => {
   assert.match(check, /PUPPETEER_SKIP_DOWNLOAD=1/, 'the repair install still skips the puppeteer browser download');
 });
 
-test('the dispatcher carries the Phase 9 workers route hourly at :25 with a 300 s timeout (contract C7)', () => {
-  assert.match(assignmentBlock('ALL_CRONS', '[', ']'), /\('\/api\/cron\/phase9-content',\s*dict\(minute=25\)\)/);
+test('the dispatcher carries the Phase 9 workers route hourly at :35 with a 300 s timeout (contract C7)', () => {
+  assert.match(assignmentBlock('ALL_CRONS', '[', ']'), /\('\/api\/cron\/phase9-content',\s*dict\(minute=35\)\)/);
   assert.match(assignmentBlock('WORKERS_PREFERRED'), /'\/api\/cron\/phase9-content':\s+'\/cron\/phase9-content'/);
   assert.match(assignmentBlock('JOB_TIMEOUTS'), /'\/api\/cron\/phase9-content':\s+300/);
   assert.doesNotMatch(assignmentBlock('CRITICAL_JOBS'), /phase9-content/);
