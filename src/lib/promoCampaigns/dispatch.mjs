@@ -22,7 +22,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const EMAIL_SCAN_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,24}/gi;
 const MAX_EMAIL_LENGTH = 254;
 
-const SYNTHETIC_EMAIL_RE = /(?:\.invalid|\.local|\.test|@horses\.smarter\.poker|@hydra\.bot|@example\.(?:com|org|net))$/i;
+const SYNTHETIC_EMAIL_RE = /(?:\.invalid|\.local|\.test|@(?:[a-z0-9-]+\.)*smarter\.poker|@horse\.ai|@hydra\.bot|@example\.(?:com|org|net)|@(?:email|test)\.com)$/i;
 const SYNTHETIC_USERNAME_RE = /^(?:deleted-|crest_cert_|postdeploy|reels_qa|trivia_canary|codex-)/i;
 
 const PAGE_SIZE = 1000;
@@ -97,12 +97,15 @@ export function sendablePhone(raw) {
     else if (digits.length === 11 && digits.startsWith('1')) normalized = `+${digits}`;
     else if (digits.length >= 10 && digits.length <= 15) normalized = `+${digits}`;
     if (!normalized) return null;
-    // Exclude North American 555-01XX fictional test range and invalid NXX=0/1 area codes
+    // Enforce strict NANPA rules on +1 numbers: area code and exchange must start
+    // with 2-9, area code cannot be 555 (demo seed rows use 555-100/200/999), and
+    // 555-01XX fictional directory range is excluded.
     if (normalized.startsWith('+1')) {
         const area = normalized.slice(2, 5);
         const exchange = normalized.slice(5, 8);
         const line = normalized.slice(8, 12);
-        if (area[0] === '0' || area[0] === '1') return null;
+        if (area[0] === '0' || area[0] === '1' || area === '555') return null;
+        if (exchange[0] === '0' || exchange[0] === '1') return null;
         if (exchange === '555' && Number(line) >= 100 && Number(line) <= 199) return null;
     }
     return normalized;
