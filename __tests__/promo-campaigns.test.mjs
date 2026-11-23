@@ -152,14 +152,21 @@ test('parseLeadInput normalizes emails and US phones while dropping synthetic ad
         'second.player@yahoo.com; 1-312-666-7788',
         'playerone@gmail.com',
         'bot@horses.smarter.poker',
+        'hydra@hydra.smarter.poker',
+        'agent@bot.smarter.poker',
+        'probe@smarter.poker',
+        'ai@horse.ai',
+        'demo@email.com',
         'fixture@example.com',
         '708-555-0142',
+        '555-200-1234',
+        '210-105-4455',
     ].join('\n');
 
     const parsed = parseLeadInput(raw);
     assert.deepEqual(parsed.emails, ['playerone@gmail.com', 'second.player@yahoo.com']);
     assert.deepEqual(parsed.phones, ['+17084442233', '+13126667788']);
-    assert.equal(parsed.invalidCount >= 3, true);
+    assert.equal(parsed.invalidCount >= 10, true);
 });
 
 test('importMarketingLeads inserts new contacts and never reactivates opted-out contacts', async () => {
