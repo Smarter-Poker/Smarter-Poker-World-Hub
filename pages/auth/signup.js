@@ -35,6 +35,11 @@ import {
   safeClubArenaPath,
   resolveSignupClubPath,
 } from '../../src/lib/clubInvite';
+import {
+  cleanPromoTokenShape,
+  readPendingPromoSignupToken,
+  rememberPromoSignupToken,
+} from '../../src/lib/promoCampaigns/promoSignupToken.mjs';
 // [Phase 6.1.20] Password strength + HIBP breach-list check
 import {
   validatePassword,
@@ -234,14 +239,16 @@ export default function SignUpPage() {
   // Auto-fill promo/referral code from ?ref= or ?promo= query parameter
   useEffect(() => {
     if (router.isReady) {
-      const { ref, promo, invite } = router.query;
+      const { ref, promo, invite, pt } = router.query;
       // A Share & Invite link (/i/<code>) sends the player here first. Keep
       // the code (first link wins) so it survives email confirmation.
       if (invite) rememberInvite(String(invite));
+      if (pt) rememberPromoSignupToken(Array.isArray(pt) ? pt[0] : pt);
       // A Club Arena invite (/invite/<club>?ref=<player number>) arrives with
       // its ref inside ?redirect=, not at the top level. Read it there too,
       // so the referral is shown and recorded (2026-10-17).
-      const nestedRef = !ref ? refFromRedirect(router.query.redirect) : null;
+      const rawRedirect = router.query.redirect || router.query.next;
+      const nestedRef = !ref ? refFromRedirect(rawRedirect) : null;
       if (nestedRef && !formData.promoCode) {
         setFormData((prev) => ({ ...prev, promoCode: nestedRef }));
       } else if (ref && !formData.promoCode) {
@@ -469,10 +476,23 @@ export default function SignUpPage() {
       // Bind any campaign to THIS flow: a single-use nonce the callback must
       // echo back (src/lib/acquisition/firstTouch.mjs).
       const attributionNonce = beginOAuthAttribution();
+      const rawPt = Array.isArray(router.query.pt) ? router.query.pt[0] : router.query.pt;
+      const pendingPt = cleanPromoTokenShape(rawPt) || readPendingPromoSignupToken();
+      const rawDest = Array.isArray(router.query.redirect)
+        ? router.query.redirect[0]
+        : router.query.redirect || (Array.isArray(router.query.next) ? router.query.next[0] : router.query.next);
+      const oauthClubNext = safeClubArenaPath(rawDest);
+      let oauthCallbackBase = `${window.location.origin}/auth/callback`;
+      if (oauthClubNext) {
+        oauthCallbackBase += `${oauthCallbackBase.includes('?') ? '&' : '?'}next=${encodeURIComponent(oauthClubNext)}`;
+      }
+      if (pendingPt) {
+        oauthCallbackBase += `${oauthCallbackBase.includes('?') ? '&' : '?'}pt=${encodeURIComponent(pendingPt)}`;
+      }
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: withAttributionNonce(`${window.location.origin}/auth/callback`, attributionNonce),
+          redirectTo: withAttributionNonce(oauthCallbackBase, attributionNonce),
           skipBrowserRedirect: true,
           queryParams: provider === 'google' ? { prompt: 'select_account' } : undefined,
           // Supabase's Facebook default is `email` alone - no name, no avatar,
@@ -660,11 +680,14 @@ export default function SignUpPage() {
       // account's metadata so /auth/callback can claim it even when the
       // confirmation email is opened on another device (2026-10-15).
       const pendingInvite = readPendingInvite();
+      const rawQueryPt = Array.isArray(router.query.pt) ? router.query.pt[0] : router.query.pt;
+      const promoSignupToken = cleanPromoTokenShape(rawQueryPt) || readPendingPromoSignupToken();
       // An older /invite/<club>?ref=<n> link has no code; it sends the way
       // back to the club as ?redirect=, kept the same way.
-      const clubJoinPath = safeClubArenaPath(
-        Array.isArray(router.query.redirect) ? router.query.redirect[0] : router.query.redirect
-      );
+      const rawRedirect = Array.isArray(router.query.redirect)
+        ? router.query.redirect[0]
+        : router.query.redirect || (Array.isArray(router.query.next) ? router.query.next[0] : router.query.next);
+      const clubJoinPath = safeClubArenaPath(rawRedirect);
 
       // Step 1: Create auth user with email/password
       // [2026-08-04] Normalize the email the same way login.js does —
@@ -695,6 +718,7 @@ export default function SignUpPage() {
                 }
               : {}),
             ...(clubJoinPath ? { club_join_path: clubJoinPath } : {}),
+            ...(promoSignupToken ? { promo_signup_token: promoSignupToken } : {}),
             // The referrer, by player number. The database records the
             // referral and pays both players when this account's email is
             // confirmed, on whatever device (fn_settle_signup_referral).
@@ -791,8 +815,7 @@ export default function SignUpPage() {
         const [, , next] = await Promise.all([
           fetchPlayerNumber(),
           redeemCodes,
-          resolveSignupClubPath(session,
-            Array.isArray(router.query.redirect) ? router.query.redirect[0] : router.query.redirect),
+          resolveSignupClubPath(session, rawRedirect),
         ]);
         setSignupClubPath(next);
         setStep('success');
@@ -905,11 +928,17 @@ export default function SignUpPage() {
       const redeemCodes = data?.session?.access_token && data?.user?.id
         ? redeemPendingSignupCodes({ accessToken: data.session.access_token, userId: data.user.id })
         : Promise.resolve();
+      const rawVerifyRedirect = Array.isArray(router.query.redirect)
+        ? router.query.redirect[0]
+        : router.query.redirect || (Array.isArray(router.query.next) ? router.query.next[0] : router.query.next);
+      const rawVerifyPt = Array.isArray(router.query.pt) ? router.query.pt[0] : router.query.pt;
+      const verifyPromoToken = cleanPromoTokenShape(rawVerifyPt)
+        || cleanPromoTokenShape(data?.user?.user_metadata?.promo_signup_token)
+        || readPendingPromoSignupToken();
       const [, , next] = await Promise.all([
         fetchPlayerNumber(),
         redeemCodes,
-        resolveSignupClubPath(data?.session,
-          Array.isArray(router.query.redirect) ? router.query.redirect[0] : router.query.redirect),
+        resolveSignupClubPath(data?.session, rawVerifyRedirect),
       ]);
       setSignupClubPath(next);
       setStep('success');
@@ -2050,11 +2079,16 @@ export default function SignUpPage() {
                 state={formData.outsideUs ? formData.country : formData.state}
                 onContinue={() => window.location.assign(signupClubPath || '/hub/club-arena')}
                 onVerifyPhone={async () => {
+                  const rawBtnRedirect = Array.isArray(router.query.redirect)
+                    ? router.query.redirect[0]
+                    : router.query.redirect || (Array.isArray(router.query.next) ? router.query.next[0] : router.query.next);
+                  const rawBtnPt = Array.isArray(router.query.pt) ? router.query.pt[0] : router.query.pt;
+                  const btnPt = cleanPromoTokenShape(rawBtnPt) || readPendingPromoSignupToken();
                   const next = signupClubPath || await resolveSignupClubPath(
                     { access_token: getAccessToken() },
-                    Array.isArray(router.query.redirect) ? router.query.redirect[0] : router.query.redirect
+                    rawBtnRedirect
                   );
-                  router.push(`/hub/verify-phone?welcome=1&next=${encodeURIComponent(next || CLUB_LOBBY_PATH)}`);
+                  router.push(`/hub/verify-phone?welcome=1&next=${encodeURIComponent(next || CLUB_LOBBY_PATH)}${btnPt ? `&pt=${encodeURIComponent(btnPt)}` : ''}`);
                 }}
               />
             )}

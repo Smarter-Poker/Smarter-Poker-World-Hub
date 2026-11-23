@@ -293,11 +293,11 @@ export async function lookupPendingJoinPath(accessToken) {
 export function authSwitchHref(path, query) {
     const first = (v) => (Array.isArray(v) ? v[0] : v);
     const params = new URLSearchParams();
-    const redirect = first(query?.redirect);
+    const redirect = first(query?.redirect) || first(query?.next);
     const invite = first(query?.invite);
     if (typeof redirect === 'string' && redirect) params.set('redirect', redirect);
     if (typeof invite === 'string' && invite) params.set('invite', invite);
-    for (const key of ['ref', 'promo']) {
+    for (const key of ['ref', 'promo', 'pt']) {
         const value = first(query?.[key]);
         if (typeof value === 'string' && value) params.set(key, value);
     }

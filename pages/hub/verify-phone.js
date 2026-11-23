@@ -26,6 +26,13 @@ import { useRequireAuth, authedFetch, getAccessToken } from '../../src/lib/authU
 import { busEmit } from '../../src/engine/EventBus';
 import { fetchPendingJoinPath, safeClubArenaPath } from '../../src/lib/clubInvite';
 import { codeNotDeliveredMessage } from '../../src/lib/sms/codeDelivery.mjs';
+import {
+    cleanPromoTokenShape,
+    clearPendingPromoSignupToken,
+    getOrCreateClubArenaDeviceId,
+    readPendingPromoSignupToken,
+    rememberPromoSignupToken,
+} from '../../src/lib/promoCampaigns/promoSignupToken.mjs';
 
 const RESEND_COOLDOWN_S = 60;
 const DISMISS_KEY = 'phone_prompt_dismissed_at';
@@ -53,6 +60,15 @@ export default function VerifyPhonePage() {
     const [pendingNext, setPendingNext] = useState(null);
     const nextPath = queryNext || pendingNext;
     const selfPath = `/hub/verify-phone${isWelcome ? '?welcome=1' : ''}${queryNext ? `${isWelcome ? '&' : '?'}next=${encodeURIComponent(queryNext)}` : ''}`;
+
+    useEffect(() => {
+        try {
+            const rawPt = Array.isArray(router.query?.pt) ? router.query.pt[0] : router.query?.pt;
+            if (rawPt && typeof rememberPromoSignupToken === 'function') {
+                rememberPromoSignupToken(rawPt);
+            }
+        } catch (_ptErr) { /* non-blocking */ }
+    }, [router.query?.pt]);
 
     // The repo's guard: resolves the session through every recovery layer
     // and only bounces to /auth/login when the player really is signed out.
@@ -212,15 +228,33 @@ export default function VerifyPhonePage() {
         try {
             // authedFetch attaches the bearer token; verify-otp only pays the
             // welcome package on the authenticated path.
+            let promoToken = null;
+            let deviceId = null;
+            try {
+                const rawPt = Array.isArray(router.query?.pt) ? router.query.pt[0] : router.query?.pt;
+                promoToken = (typeof cleanPromoTokenShape === 'function' ? cleanPromoTokenShape(rawPt) : null)
+                    || (typeof readPendingPromoSignupToken === 'function' ? readPendingPromoSignupToken() : null);
+                if (typeof getOrCreateClubArenaDeviceId === 'function') {
+                    deviceId = getOrCreateClubArenaDeviceId();
+                }
+            } catch (_promoReadErr) { /* non-blocking; server also checks user_metadata */ }
             const res = await authedFetch('/api/sms/verify-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone: digits, code }),
+                body: JSON.stringify({
+                    phone: digits,
+                    code,
+                    ...(promoToken ? { promoToken } : {}),
+                    ...(deviceId ? { deviceId } : {}),
+                }),
             });
             if (res.status === 401) throw new Error('Your Session Expired. Please Sign In Again.');
             const data = await res.json().catch(() => ({}));
             if (!res.ok || !data.success) throw new Error(data.error || 'Verification Failed');
             clearPendingPhoneVerification(phoneChallengeStorage(), user.id);
+            try {
+                if (typeof clearPendingPromoSignupToken === 'function') clearPendingPromoSignupToken();
+            } catch (_promoClearErr) { /* ignore */ }
             setResult(data);
             setStage('done');
             try {
@@ -278,11 +312,14 @@ export default function VerifyPhonePage() {
         else router.replace('/hub');
     }, [router, busy, isWelcome, nextPath, user?.id]);
 
+    const promoChips = Number(result?.promoChipsGranted || 0);
+
     const goHub = useCallback(() => {
         try { sessionStorage.setItem('just_authenticated', 'true'); } catch (_e) { /* ignore */ }
-        if (nextPath) window.location.replace(nextPath);
+        if (promoChips > 0) window.location.replace('/hub/club-arena/?welcome=chips');
+        else if (nextPath) window.location.replace(nextPath);
         else router.replace('/hub');
-    }, [router, nextPath]);
+    }, [router, nextPath, promoChips]);
 
     // The confirmed server result is shown once, then every player continues.
     // Cancel navigation if this page unmounts before the two-second toast ends.
@@ -314,8 +351,8 @@ export default function VerifyPhonePage() {
                 busy={busy} error={error} phone={phone} digits={digits} code={code} codeRef={codeRef}
                 cooldown={cooldown} formatPhone={formatPhone} sendCode={sendCode} verifyCode={verifyCode}
                 skip={skip} goHub={goHub} doneLead={doneLead} vipDays={vipDays}
-                welcomeDiamonds={welcomeDiamonds} bonusDiamonds={bonusDiamonds} packageStatus={packageStatus}
-                continueLabel={nextPath ? 'Continue To The Club' : undefined}
+                welcomeDiamonds={welcomeDiamonds} bonusDiamonds={bonusDiamonds} promoChips={promoChips} packageStatus={packageStatus}
+                continueLabel={nextPath || promoChips > 0 ? 'Continue To The Club' : undefined}
                 onPhoneChange={(event) => { setPhone(event.target.value); setError(''); }}
                 onCodeChange={(event) => { setCode(event.target.value.replace(/\D/g, '').slice(0, 4)); setError(''); }}
                 changePhone={() => { if (!busy) { clearPendingPhoneVerification(phoneChallengeStorage(), user?.id); setStage('phone'); setError(''); } }}
