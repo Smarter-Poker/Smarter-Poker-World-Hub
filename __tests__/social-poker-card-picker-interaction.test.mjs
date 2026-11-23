@@ -799,12 +799,23 @@ function composerStubs(uploader) {
     supabase: {
       supabase: {
         rpc: async () => ({ data: [], error: null }),
-        from: () => ({ select: () => ({ ilike: () => ({ limit: async () => ({ data: [] }) }) }) }),
+        from: () => ({
+          select: () => ({
+            ilike: () => ({ limit: async () => ({ data: [] }) }),
+            eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }),
+            order: () => ({ limit: async () => ({ data: [], error: null }) }),
+            in: () => ({ limit: async () => ({ data: [], error: null }) }),
+          }),
+        }),
         auth: {
           getSession: async () => ({ data: { session: { access_token: token } } }),
           refreshSession: async () => ({ data: { session: { access_token: token } } }),
         },
       },
+    },
+    appSettingsSync: {
+      loadAppSettings: async () => ({}),
+      saveAppSetting: noop,
     },
     authUtils: { getAccessToken: () => token },
     EventBus: { busEmit: { venueCheckinCreated: noop } },
@@ -879,17 +890,31 @@ test('the composer card controls are 44 by 44 targets', async (t) => {
   }
 });
 
-// Dan, 2026-10-24: "INSIDE THE SOCIAL MEDIA PAGE ON MOBILE THE POKER CARDS ARE
-// MESSED UP AND STACKED. JUST REMOVE THIS FROM THE POST FEED." The composer
-// toolbar's Poker Cards button wrapped letter by letter on a phone and pushed
-// Go Live and Check In onto two lines. It is gone; do not put it back.
-test('the composer toolbar has no Poker Cards button', async (t) => {
+test('the composer toolbar restores a mobile-safe Cards button that opens PokerCardPicker', async (t) => {
   const { document } = await renderComposer(t);
   const labels = document.querySelectorAll('button').map((button) => button.textContent.trim());
-  assert.ok(!labels.includes('Poker Cards'), `toolbar still offers Poker Cards: ${labels.join(' | ')}`);
-  for (const kept of ['Photo/Video', 'Go Live', 'Check In']) {
-    assert.ok(labels.includes(kept), `toolbar lost ${kept}`);
+  for (const expected of ['Photo/Video', 'Cards', 'Go Live', 'Check In']) {
+    assert.ok(labels.includes(expected), `toolbar lost ${expected}: ${labels.join(' | ')}`);
   }
+  const cardsButton = byLabel(document, 'Add Poker Cards');
+  assert.equal(cardsButton.textContent.trim(), 'Cards');
+  assert.equal(cardsButton.style.whiteSpace, 'nowrap');
+  assert.equal(String(cardsButton.style.flexShrink), '0');
+  assert.ok((parseFloat(cardsButton.style.minWidth) || 0) >= 44, `Cards minWidth is ${cardsButton.style.minWidth}`);
+  assert.ok((parseFloat(cardsButton.style.minHeight) || 0) >= 44, `Cards minHeight is ${cardsButton.style.minHeight}`);
+
+  const toolbarRow = cardsButton.parentNode;
+  assert.equal(toolbarRow.style.flexWrap, 'nowrap');
+  for (const buttonText of ['Photo/Video', 'Cards', 'Go Live', 'Check In']) {
+    const btn = byText(document, buttonText);
+    assert.equal(btn.style.whiteSpace, 'nowrap', `${buttonText} must not wrap`);
+    assert.equal(String(btn.style.flexShrink), '0', `${buttonText} must not shrink`);
+  }
+
+  await click(cardsButton);
+  const dialog = document.querySelector('[role="dialog"]');
+  assert.ok(dialog, 'clicking Cards did not open PokerCardPicker');
+  assert.equal(dialog.getAttribute('aria-label'), 'Add Poker Cards');
 });
 
 test('the composer names its card controls for what they change', async (t) => {

@@ -2962,11 +2962,13 @@ export function SharedPostCreator({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '8px 8px 4px',
-            gap: 4,
+            flexWrap: 'nowrap',
+            padding: '4px 4px',
+            gap: 2,
           }}
         >
           <button
+            type="button"
             onClick={() => {
               // AUDIT-6 (2026-04-30 per Dan): raise the banner the
               // moment the user taps Photo/Video — don't wait for
@@ -3002,6 +3004,7 @@ export function SharedPostCreator({
             disabled={media.length >= MAX_MEDIA || uploading}
             style={{
               padding: '6px 8px',
+              minHeight: 44,
               borderRadius: 6,
               border: 'none',
               background: 'transparent',
@@ -3011,21 +3014,52 @@ export function SharedPostCreator({
               fontWeight: 600,
               transition: 'background 0.2s',
               whiteSpace: 'nowrap',
+              flexShrink: 0,
             }}
             onMouseEnter={(e) => (e.currentTarget.style.background = '#F0F2F5')}
             onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           >
             {uploading ? 'Uploading…' : 'Photo/Video'}
           </button>
-          {/* The Poker Cards toolbar button was removed (Dan, 2026-10-24):
-              on mobile its label wrapped letter by letter and stacked the
-              whole row. A card draft restored from an earlier session can
-              still be edited or removed from its preview above. */}
-          <span style={{ color: '#BCC0C4' }}>·</span>
+          <span aria-hidden="true" style={{ color: '#BCC0C4', flexShrink: 0 }}>·</span>
           <button
+            type="button"
+            onClick={() => setShowPokerCardPicker(true)}
+            aria-label="Add Poker Cards"
+            style={{
+              padding: '6px 8px',
+              minWidth: 44,
+              minHeight: 44,
+              borderRadius: 6,
+              border: 'none',
+              background: pokerCardsMarkup ? '#FEF3C7' : 'transparent',
+              cursor: 'pointer',
+              color: pokerCardsMarkup ? '#8a5a00' : '#65676B',
+              fontSize: 14,
+              fontWeight: 600,
+              transition: 'background 0.2s',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.background = pokerCardsMarkup ? '#FDE68A' : '#F0F2F5')
+            }
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.background = pokerCardsMarkup ? '#FEF3C7' : 'transparent')
+            }
+          >
+            Cards
+          </button>
+          <span aria-hidden="true" style={{ color: '#BCC0C4', flexShrink: 0 }}>·</span>
+          <button
+            type="button"
             onClick={onGoLive}
             style={{
               padding: '6px 8px',
+              minHeight: 44,
               borderRadius: 6,
               border: 'none',
               background: 'transparent',
@@ -3035,17 +3069,20 @@ export function SharedPostCreator({
               fontWeight: 600,
               transition: 'background 0.2s',
               whiteSpace: 'nowrap',
+              flexShrink: 0,
             }}
             onMouseEnter={(e) => (e.currentTarget.style.background = '#F0F2F5')}
             onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           >
             Go Live
           </button>
-          <span style={{ color: '#BCC0C4' }}>·</span>
+          <span aria-hidden="true" style={{ color: '#BCC0C4', flexShrink: 0 }}>·</span>
           <button
+            type="button"
             onClick={() => setShowCheckInModal(true)}
             style={{
               padding: '6px 8px',
+              minHeight: 44,
               borderRadius: 6,
               border: 'none',
               background: checkInVenue ? '#E7F3FF' : 'transparent',
@@ -3055,6 +3092,7 @@ export function SharedPostCreator({
               fontWeight: 600,
               transition: 'background 0.2s',
               whiteSpace: 'nowrap',
+              flexShrink: 0,
               display: 'flex',
               alignItems: 'center',
               gap: 4,

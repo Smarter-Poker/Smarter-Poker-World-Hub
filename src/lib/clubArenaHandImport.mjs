@@ -43,7 +43,9 @@ function exactCards(value) {
 }
 
 function safeHandLabel(row) {
-  const handNumber = Number.isFinite(Number(row?.hand_number)) ? Number(row.hand_number) : null;
+  const rawHandNumber = row?.hand_number;
+  const hasHandNumber = rawHandNumber !== null && rawHandNumber !== undefined && String(rawHandNumber).trim() !== '';
+  const handNumber = hasHandNumber && Number.isFinite(Number(rawHandNumber)) ? Number(rawHandNumber) : null;
   const timestamp = new Date(row?.created_at || '');
   const date = Number.isNaN(timestamp.getTime())
     ? ''
