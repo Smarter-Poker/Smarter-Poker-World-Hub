@@ -7,8 +7,12 @@ import {
     pendingPins,
     compareNotices,
     ROLE_META,
+    REACTION_META,
+    DEFAULT_ALERT_SETTINGS,
     formatRoleLabel,
     normalizeRoleCounts,
+    normalizeAlertSettings,
+    normalizeReactions,
     formatMemberSummary,
 } from '../../lib/clubNoticeBoard.mjs';
 
@@ -48,104 +52,25 @@ function formatChipsSimple(amount) {
     return Number.isFinite(n) ? n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : String(amount || '0.00');
 }
 
-// Keyed by authenticated actor + club at the caller. No state crosses identities.
-export default function NoticeBoard({ club, userId, theme: C, onBack }) {
-    const [rows, setRows] = useState([]);
-    const [pins, setPins] = useState([]);
-    const [canManage, setCanManage] = useState(false);
-    const [viewerRole, setViewerRole] = useState(null);
-    const [members, setMembers] = useState([]);
-    const [memberCount, setMemberCount] = useState(0);
-    const [roleCounts, setRoleCounts] = useState(() => normalizeRoleCounts(null, 0));
-    const [overduePayouts, setOverduePayouts] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [olderLoading, setOlderLoading] = useState(false);
-    const [error, setError] = useState('');
-    const [live, setLive] = useState(false);
-    const [hasMore, setHasMore] = useState(false);
-    const [draft, setDraft] = useState('');
-    const [kind, setKind] = useState('notice');
-    const [pinOnPost, setPinOnPost] = useState(false);
-    const [editing, setEditing] = useState(null);
-    const [busy, setBusy] = useState(false);
-    const [newItems, setNewItems] = useState(false);
-    const [noteTarget, setNoteTarget] = useState(null);
-    const [noteDraft, setNoteDraft] = useState('');
-    const [activePinIndex, setActivePinIndex] = useState(0);
-    const [pinsExpanded, setPinsExpanded] = useState(false);
-    const [overdueExpanded, setOverdueExpanded] = useState(false);
-    const [highlightedId, setHighlightedId] = useState(null);
-    const [searchOpen, setSearchOpen] = useState(false);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [filterKind, setFilterKind] = useState('all');
-    const [rosterOpen, setRosterOpen] = useState(false);
-    const [rosterSearch, setRosterSearch] = useState('');
-    const [rosterRoleFilter, setRosterRoleFilter] = useState('all');
-
-    const rosterTitleId = useId();
-    const rosterDialogRef = useRef(null);
-    const noteIntent = useRef(null);
-    const scroller = useRef(null);
-    const state = useRef({ rows: [], pinRows: [], members: [], cursor: null, alive: true, loading: false, events: [], generation: 0, epoch: 0 });
-    const anchor = useRef(null);
-    const createIntent = useRef(null);
-    const highlightTimer = useRef(null);
-
-    const surfaceBg = C.card || C.bg || '#18191b';
-    const subtleBg = 'rgba(255, 255, 255, 0.04)';
-    const accentBlue = C.blue || '#0084ff';
-    const button = {
-        border: `1px solid ${C.border}`,
-        borderRadius: 8,
-        background: C.bg,
-        color: C.text,
-        padding: '6px 10px',
-        cursor: 'pointer',
-        fontFamily: 'inherit',
-        fontSize: 12,
-        fontWeight: 500,
-    };
-
-    function captureAnchor(bottom = false) {
-        const box = scroller.current;
-        if (!box) return;
-        if (bottom) { anchor.current = { bottom: true }; return; }
-        const top = box.getBoundingClientRect().top;
-        const item = [...box.querySelectorAll('[data-notice-id]')].find(node => node.getBoundingClientRect().bottom > top);
-        anchor.current = item ? { id: item.dataset.noticeId, top: item.getBoundingClientRect().top } : null;
-    }
-
-    useLayoutEffect(() => {
-        const box = scroller.current;
-        const saved = anchor.current;
-        if (!box || !saved) return;
-        if (saved.bottom) box.scrollTop = box.scrollHeight;
-        else {
-            const item = box.querySelector(`[data-notice-id="${saved.id}"]`);
-            if (item) box.scrollTop += item.getBoundingClientRect().top - saved.top;
-        }
-        anchor.current = null;
-    }, [rows, pins, loading]);
-
-    // Native <dialog> modal lifecycle + Safari closedby fallback.
+function useNativeDialog(dialogRef, open, onCloseState) {
     useEffect(() => {
-        const dialog = rosterDialogRef.current;
+        const dialog = dialogRef.current;
         if (!dialog) return;
-        if (rosterOpen) {
+        if (open) {
             if (typeof dialog.showModal === 'function' && !dialog.open) {
                 try { dialog.showModal(); } catch { /* noop in non-DOM test renderers */ }
             }
         } else if (typeof dialog.close === 'function' && dialog.open) {
             try { dialog.close(); } catch { /* noop */ }
         }
-    }, [rosterOpen]);
+    }, [dialogRef, open]);
 
     useEffect(() => {
-        const dialog = rosterDialogRef.current;
+        const dialog = dialogRef.current;
         if (!dialog || typeof dialog.addEventListener !== 'function') return;
         const onClose = () => {
             if (typeof dialog.returnValue === 'string') dialog.returnValue = '';
-            setRosterOpen(false);
+            onCloseState(false);
         };
         dialog.addEventListener('close', onClose);
         let cleanupOutside = null;
@@ -168,17 +93,138 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
             dialog.removeEventListener('close', onClose);
             cleanupOutside?.();
         };
-    }, []);
+    }, [dialogRef, onCloseState]);
+}
+
+// Keyed by authenticated actor + club at the caller. No state crosses identities.
+export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead, onMessageMember }) {
+    const [rows, setRows] = useState([]);
+    const [pins, setPins] = useState([]);
+    const [canManage, setCanManage] = useState(false);
+    const [viewerRole, setViewerRole] = useState(null);
+    const [members, setMembers] = useState([]);
+    const [memberCount, setMemberCount] = useState(0);
+    const [roleCounts, setRoleCounts] = useState(() => normalizeRoleCounts(null, 0));
+    const [overduePayouts, setOverduePayouts] = useState([]);
+    const [alertSettings, setAlertSettings] = useState(() => ({ ...DEFAULT_ALERT_SETTINGS }));
+    const [previousLastReadAt, setPreviousLastReadAt] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [olderLoading, setOlderLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [live, setLive] = useState(false);
+    const [hasMore, setHasMore] = useState(false);
+    const [draft, setDraft] = useState('');
+    const [kind, setKind] = useState('notice');
+    const [pinOnPost, setPinOnPost] = useState(false);
+    const [attachments, setAttachments] = useState([]);
+    const [uploadingPhoto, setUploadingPhoto] = useState(false);
+    const [mentionUserIds, setMentionUserIds] = useState([]);
+    const [mentionAll, setMentionAll] = useState(false);
+    const [mentionPickerOpen, setMentionPickerOpen] = useState(false);
+    const [mentionFilter, setMentionFilter] = useState('');
+    const [editing, setEditing] = useState(null);
+    const [busy, setBusy] = useState(false);
+    const [reactingId, setReactingId] = useState(null);
+    const [escalatingId, setEscalatingId] = useState(null);
+    const [newItems, setNewItems] = useState(false);
+    const [noteTarget, setNoteTarget] = useState(null);
+    const [noteDraft, setNoteDraft] = useState('');
+    const [activePinIndex, setActivePinIndex] = useState(0);
+    const [pinsExpanded, setPinsExpanded] = useState(false);
+    const [overdueExpanded, setOverdueExpanded] = useState(false);
+    const [highlightedId, setHighlightedId] = useState(null);
+    const [searchOpen, setSearchOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filterKind, setFilterKind] = useState('all');
+    const [memberFilter, setMemberFilter] = useState(null);
+    const [rosterOpen, setRosterOpen] = useState(false);
+    const [rosterSearch, setRosterSearch] = useState('');
+    const [rosterRoleFilter, setRosterRoleFilter] = useState('all');
+    const [settingsOpen, setSettingsOpen] = useState(false);
+    const [settingsDraft, setSettingsDraft] = useState(() => ({ ...DEFAULT_ALERT_SETTINGS }));
+    const [settingsBusy, setSettingsBusy] = useState(false);
+    const [lightboxImage, setLightboxImage] = useState(null);
+
+    const rosterTitleId = useId();
+    const settingsTitleId = useId();
+    const lightboxTitleId = useId();
+    const rosterDialogRef = useRef(null);
+    const settingsDialogRef = useRef(null);
+    const lightboxDialogRef = useRef(null);
+    const photoInputRef = useRef(null);
+    const noteIntent = useRef(null);
+    const escalateIntents = useRef(new Map());
+    const scroller = useRef(null);
+    const state = useRef({
+        rows: [],
+        pinRows: [],
+        members: [],
+        cursor: null,
+        alive: true,
+        loading: false,
+        events: [],
+        generation: 0,
+        epoch: 0,
+        capturedInitialRead: false,
+        metaTimer: null,
+    });
+    const anchor = useRef(null);
+    const createIntent = useRef(null);
+    const highlightTimer = useRef(null);
+
+    const surfaceBg = C.card || C.bg || '#18191b';
+    const subtleBg = 'rgba(255, 255, 255, 0.04)';
+    const accentBlue = C.blue || '#0084ff';
+    const button = {
+        border: `1px solid ${C.border}`,
+        borderRadius: 8,
+        background: C.bg,
+        color: C.text,
+        padding: '6px 10px',
+        cursor: 'pointer',
+        fontFamily: 'inherit',
+        fontSize: 12,
+        fontWeight: 500,
+    };
+
+    useNativeDialog(rosterDialogRef, rosterOpen, setRosterOpen);
+    useNativeDialog(settingsDialogRef, settingsOpen, setSettingsOpen);
+    useNativeDialog(lightboxDialogRef, Boolean(lightboxImage), (open) => { if (!open) setLightboxImage(null); });
+
+    function captureAnchor(bottom = false) {
+        const box = scroller.current;
+        if (!box) return;
+        if (bottom) { anchor.current = { bottom: true }; return; }
+        const top = box.getBoundingClientRect().top;
+        const item = [...box.querySelectorAll('[data-notice-id]')].find(node => node.getBoundingClientRect().bottom > top);
+        anchor.current = item ? { id: item.dataset.noticeId, top: item.getBoundingClientRect().top } : null;
+    }
+
+    useLayoutEffect(() => {
+        const box = scroller.current;
+        const saved = anchor.current;
+        if (!box || !saved) return;
+        if (saved.bottom) box.scrollTop = box.scrollHeight;
+        else {
+            const item = box.querySelector(`[data-notice-id="${saved.id}"]`);
+            if (item) box.scrollTop += item.getBoundingClientRect().top - saved.top;
+        }
+        anchor.current = null;
+    }, [rows, pins, loading]);
 
     function clearAccess() {
         const s = state.current;
         s.denied = true; s.epoch++; s.generation++; s.loading = false; s.refreshAfterLoad = false;
-        s.events = []; s.rows = []; s.pinRows = []; s.members = []; s.cursor = null;
+        s.events = []; s.rows = []; s.pinRows = []; s.members = []; s.cursor = null; s.capturedInitialRead = false;
+        if (s.metaTimer) { clearTimeout(s.metaTimer); s.metaTimer = null; }
         setRows([]); setPins([]); setCanManage(false); setViewerRole(null);
         setMembers([]); setMemberCount(0); setRoleCounts(normalizeRoleCounts(null, 0));
-        setOverduePayouts([]); setHasMore(false); setNewItems(false);
-        setEditing(null); setDraft(''); setNoteTarget(null); setNoteDraft('');
-        setRosterOpen(false); setPinsExpanded(false); setOverdueExpanded(false);
+        setOverduePayouts([]); setAlertSettings({ ...DEFAULT_ALERT_SETTINGS });
+        setPreviousLastReadAt(null); setHasMore(false); setNewItems(false);
+        setEditing(null); setDraft(''); setAttachments([]); setMentionUserIds([]); setMentionAll(false);
+        setMentionPickerOpen(false); setNoteTarget(null); setNoteDraft('');
+        setMemberFilter(null); setRosterOpen(false); setSettingsOpen(false); setLightboxImage(null);
+        setPinsExpanded(false); setOverdueExpanded(false);
         setLoading(false); setOlderLoading(false); setLive(false);
         createIntent.current = null; noteIntent.current = null;
     }
@@ -199,6 +245,41 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
         if (!response.ok || !result.success) throw Object.assign(new Error(result.error || 'Notice Board Unavailable'), { status: response.status });
         if (method === 'POST') state.current.denied = false;
         return result;
+    }
+
+    function markBoardRead(latestNoticeId = null) {
+        if (!state.current.alive || state.current.denied) return;
+        const payload = latestNoticeId ? { lastNoticeId: latestNoticeId } : {};
+        void request('PATCH', payload, 'mark_read')
+            .then(res => { if (res && state.current.alive) onMarkRead?.(club.id); })
+            .catch(() => { /* best-effort read receipt */ });
+    }
+
+    function applyMeta(page) {
+        const nextMembers = Array.isArray(page.members) ? page.members : [];
+        const nextCount = Number.isFinite(Number(page.memberCount)) ? Number(page.memberCount) : nextMembers.length;
+        state.current.members = nextMembers;
+        setMembers(nextMembers);
+        setMemberCount(nextCount);
+        setRoleCounts(normalizeRoleCounts(page.roleCounts, nextCount));
+        setOverduePayouts(Array.isArray(page.overduePayouts) ? page.overduePayouts : []);
+        if (page.alertSettings) {
+            const normalized = normalizeAlertSettings(page.alertSettings);
+            setAlertSettings(normalized);
+        }
+    }
+
+    function scheduleMetaRefresh() {
+        const s = state.current;
+        if (!s.alive || s.denied) return;
+        if (s.metaTimer) clearTimeout(s.metaTimer);
+        s.metaTimer = setTimeout(() => {
+            s.metaTimer = null;
+            if (!s.alive || s.denied || s.loading) return;
+            void request('POST', { refreshMeta: true })
+                .then(res => { if (res && s.alive) applyMeta(res); })
+                .catch(() => { /* non-blocking background meta sync */ });
+        }, 450);
     }
 
     function enrichWithRoster(entries) {
@@ -229,7 +310,14 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
         setRows(state.current.rows);
         state.current.pinRows = mergeNotices(state.current.pinRows, enriched);
         setPins(pendingPins(state.current.pinRows));
-        if (!bottom && hasNewEntries) setNewItems(true);
+        if (hasNewEntries) {
+            const newest = state.current.rows.filter(r => !r.is_deleted).at(-1);
+            const hasNewFromOther = updates.some(row => !row.is_deleted && !knownIds.has(row.id) && row.author_id && row.author_id !== userId);
+            if (!bottom) setNewItems(true);
+            else if (hasNewFromOther && (typeof document === 'undefined' || document.visibilityState === 'visible')) {
+                markBoardRead(newest?.id || null);
+            }
+        }
     }
 
     async function hydrate() {
@@ -260,15 +348,17 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
             setPins(pendingPins(s.pinRows));
             setCanManage(page.canManage);
             setViewerRole(page.viewerRole || null);
-            const nextMembers = Array.isArray(page.members) ? page.members : [];
-            const nextCount = Number.isFinite(Number(page.memberCount)) ? Number(page.memberCount) : nextMembers.length;
-            state.current.members = nextMembers;
-            setMembers(nextMembers);
-            setMemberCount(nextCount);
-            setRoleCounts(normalizeRoleCounts(page.roleCounts, nextCount));
-            setOverduePayouts(Array.isArray(page.overduePayouts) ? page.overduePayouts : []);
+            applyMeta(page);
+            if (!s.capturedInitialRead) {
+                s.capturedInitialRead = true;
+                setPreviousLastReadAt(page.previousLastReadAt || null);
+            }
             setHasMore(more);
             setError('');
+            const latestActive = s.rows.filter(r => !r.is_deleted).at(-1);
+            if (Number(page.unreadCount || 0) > 0) {
+                markBoardRead(latestActive?.id || null);
+            }
         } catch (failure) { if (s.alive) setError(failure.message); }
         finally {
             if (s.alive && generation === s.generation) {
@@ -280,7 +370,7 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
     }
 
     useEffect(() => {
-        const s = state.current; s.alive = true; s.loading = false; s.epoch++;
+        const s = state.current; s.alive = true; s.loading = false; s.epoch++; s.capturedInitialRead = false;
         const instanceSuffix = Math.random().toString(36).slice(2, 8);
         const channel = supabase.channel(`club-notice-board:${club.id}:${userId}:${instanceSuffix}`)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'club_notice_board', filter: `club_id=eq.${club.id}` }, event => {
@@ -298,6 +388,10 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
                 clearAccess();
                 if (access.can_access === true) { setLoading(true); void hydrate(); }
                 else setError('Your Club Role No Longer Has Access To This Notice Board.');
+            }).on('postgres_changes', { event: '*', schema: 'public', table: 'club_members', filter: `club_id=eq.${club.id}` }, () => {
+                scheduleMetaRefresh();
+            }).on('postgres_changes', { event: '*', schema: 'public', table: 'cashout_requests', filter: `club_id=eq.${club.id}` }, () => {
+                scheduleMetaRefresh();
             }).subscribe(status => {
                 if (!s.alive) return;
                 setLive(status === 'SUBSCRIBED');
@@ -319,6 +413,7 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
         document.addEventListener('visibilitychange', refresh);
         return () => {
             s.alive = false; s.generation++; s.epoch++;
+            if (s.metaTimer) { clearTimeout(s.metaTimer); s.metaTimer = null; }
             if (highlightTimer.current) clearTimeout(highlightTimer.current);
             window.removeEventListener('offline', offline);
             window.removeEventListener('online', refresh); window.removeEventListener('focus', refresh);
@@ -336,8 +431,11 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
             captureAnchor();
             s.rows = mergeNotices(mergeNotices(s.rows, page.entries), s.events);
             s.cursor = page.cursor;
-            s.pinRows = mergeNotices(page.pinned, s.events);
-            setRows(s.rows); setPins(pendingPins(s.pinRows));
+            if (!page.paginated && Array.isArray(page.pinned)) {
+                s.pinRows = mergeNotices(page.pinned, s.events);
+                setPins(pendingPins(s.pinRows));
+            }
+            setRows(s.rows);
             setCanManage(page.canManage); setHasMore(page.hasMore); setError('');
         } catch (failure) { if (s.alive) setError(failure.message); }
         finally {
@@ -353,7 +451,7 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
         if (!editing) return;
         const entry = [...state.current.rows, ...state.current.pinRows].find(row => row.id === editing.id && row.is_deleted);
         if (!entry) return;
-        setEditing(null); setDraft('');
+        setEditing(null); setDraft(''); setAttachments([]);
         setError('This Notice Was Removed. Your Edit Was Not Saved.');
     }, [rows, pins, editing]);
 
@@ -374,8 +472,6 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
         } catch (failure) {
             if (state.current.alive) {
                 if (action === 'add_note' && failure.status === 409) {
-                    // A rejected stale note made no write. Refresh its version
-                    // while retaining the draft; uncertain outcomes keep their ID.
                     noteIntent.current = null;
                     await hydrate();
                     const current = [...state.current.rows, ...state.current.pinRows].find(row => row.id === payload.id && !row.is_deleted);
@@ -388,19 +484,195 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
         finally { if (state.current.alive) setBusy(false); }
     }
 
+    async function toggleReaction(noticeId, reaction) {
+        if (reactingId) return;
+        setReactingId(`${noticeId}:${reaction}`);
+        try {
+            const result = await request('PATCH', { id: noticeId, reaction }, 'toggle_reaction');
+            if (result?.entry && state.current.alive) {
+                accept([result.entry]);
+            }
+        } catch (failure) {
+            if (state.current.alive) setError(failure.message);
+        } finally {
+            if (state.current.alive) setReactingId(null);
+        }
+    }
+
+    async function escalateOverduePayout(item) {
+        if (!item?.cashout_id || escalatingId || item.is_escalated) return;
+        let opId = escalateIntents.current.get(item.cashout_id);
+        if (!opId) {
+            opId = crypto.randomUUID();
+            escalateIntents.current.set(item.cashout_id, opId);
+        }
+        setEscalatingId(item.cashout_id);
+        setError('');
+        try {
+            const { error: rpcError } = await supabase.rpc('fn_cashout_escalate_v2', {
+                p_cashout_id: item.cashout_id,
+                p_club_id: club.id,
+                p_expected_actor_id: userId,
+                p_op_id: opId,
+            });
+            if (rpcError) throw new Error(rpcError.message || 'Could Not Escalate Payout Request');
+            escalateIntents.current.delete(item.cashout_id);
+            await hydrate();
+        } catch (failure) {
+            if (state.current.alive) setError(failure.message || 'Could Not Escalate Payout Request');
+        } finally {
+            if (state.current.alive) setEscalatingId(null);
+        }
+    }
+
+    async function handlePhotoSelect(event) {
+        const file = event.target?.files?.[0];
+        if (event.target) event.target.value = '';
+        if (!file || attachments.length >= 4) return;
+        if (!file.type || !file.type.startsWith('image/')) {
+            setError('Only Image Files Are Supported For Notice Attachments.');
+            return;
+        }
+        if (file.size > 10 * 1024 * 1024) {
+            setError('Image Attachment Too Large (Maximum 10MB).');
+            return;
+        }
+        setUploadingPhoto(true);
+        setError('');
+        try {
+            const token = getAccessToken();
+            const res = await authedFetch('/api/social/upload-url', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                body: JSON.stringify({
+                    fileName: file.name || `notice_${Date.now()}.jpg`,
+                    fileSize: file.size,
+                    mimeType: file.type,
+                    folder: 'messages',
+                    prefix: userId,
+                }),
+            });
+            const data = await res.json();
+            if (!res.ok || !data?.success || !data.signedUrl || !data.publicUrl) {
+                throw new Error(data?.error || 'Photo Upload Could Not Start.');
+            }
+            const putRes = await fetch(data.signedUrl, {
+                method: 'PUT',
+                headers: { 'Content-Type': file.type },
+                body: file,
+            });
+            if (!putRes.ok) throw new Error('Photo Upload Did Not Complete.');
+            if (state.current.alive) {
+                setAttachments(prev => [...prev.slice(0, 3), {
+                    url: data.publicUrl,
+                    name: (file.name || 'Image').slice(0, 120),
+                    mime: file.type.slice(0, 64),
+                }]);
+            }
+        } catch (failure) {
+            if (state.current.alive) setError(failure.message || 'Photo Upload Failed.');
+        } finally {
+            if (state.current.alive) setUploadingPhoto(false);
+        }
+    }
+
+    async function saveAlertSettings(event) {
+        event.preventDefault();
+        if (settingsBusy) return;
+        setSettingsBusy(true);
+        setError('');
+        try {
+            const payload = {
+                overdue_threshold_hours: Number(settingsDraft.overdue_threshold_hours) || 4,
+                followup_threshold_hours: settingsDraft.followup_threshold_hours ? Number(settingsDraft.followup_threshold_hours) : null,
+                notify_admins: Boolean(settingsDraft.notify_admins),
+                auto_escalate_hours: settingsDraft.auto_escalate_hours ? Number(settingsDraft.auto_escalate_hours) : null,
+            };
+            const res = await request('PATCH', payload, 'update_alert_settings');
+            if (res?.alertSettings && state.current.alive) {
+                setAlertSettings(normalizeAlertSettings(res.alertSettings));
+                setSettingsOpen(false);
+                scheduleMetaRefresh();
+            }
+        } catch (failure) {
+            if (state.current.alive) setError(failure.message);
+        } finally {
+            if (state.current.alive) setSettingsBusy(false);
+        }
+    }
+
+    function handleDraftChange(nextValue) {
+        setDraft(nextValue);
+        const match = nextValue.match(/(?:^|\s)@([^\s@]{0,24})$/);
+        if (match && !editing) {
+            setMentionPickerOpen(true);
+            setMentionFilter(match[1].toLowerCase());
+        } else if (mentionPickerOpen && !nextValue.includes('@')) {
+            setMentionPickerOpen(false);
+            setMentionFilter('');
+        }
+    }
+
+    function selectMention(member) {
+        if (member === 'ALL') {
+            setMentionAll(true);
+            setDraft(prev => prev.replace(/(?:^|\s)@[^\s@]{0,24}$/, m => `${m.startsWith(' ') ? ' ' : ''}@AllStaff `));
+            if (!draft.match(/(?:^|\s)@[^\s@]{0,24}$/)) {
+                setDraft(prev => `${prev}${prev && !prev.endsWith(' ') ? ' ' : ''}@AllStaff `);
+            }
+            setMentionPickerOpen(false);
+            setMentionFilter('');
+            return;
+        }
+        const tag = `@${member.username || (member.display_name || 'Staff').replace(/\s+/g, '')}`;
+        setMentionUserIds(prev => (prev.includes(member.user_id) ? prev : [...prev, member.user_id]));
+        if (draft.match(/(?:^|\s)@[^\s@]{0,24}$/)) {
+            setDraft(prev => prev.replace(/(?:^|\s)@[^\s@]{0,24}$/, m => `${m.startsWith(' ') ? ' ' : ''}${tag} `));
+        } else {
+            setDraft(prev => `${prev}${prev && !prev.endsWith(' ') ? ' ' : ''}${tag} `);
+        }
+        setMentionPickerOpen(false);
+        setMentionFilter('');
+    }
+
     async function submit(event) {
         event.preventDefault();
         const content = draft.trim();
-        if (!content) return;
+        if (!content || uploadingPhoto) return;
         if (editing) {
-            if (await mutate('PATCH', { id: editing.id, version: editing.version, content })) { setEditing(null); setDraft(''); }
+            const updatePayload = {
+                id: editing.id,
+                version: editing.version,
+                content,
+                ...(attachments.length > 0 || (Array.isArray(editing.attachments) && editing.attachments.length > 0) ? { attachments } : {}),
+            };
+            if (await mutate('PATCH', updatePayload)) { setEditing(null); setDraft(''); setAttachments([]); }
         } else {
             const shouldPin = kind === 'pending_payout' ? true : Boolean(pinOnPost);
-            // Reuse the same creation identity after an uncertain network result.
-            if (!createIntent.current || createIntent.current.content !== content || createIntent.current.status !== kind || createIntent.current.is_pinned !== shouldPin) {
-                createIntent.current = { id: crypto.randomUUID(), content, status: kind, is_pinned: shouldPin };
+            const sig = JSON.stringify({ content, status: kind, is_pinned: shouldPin, attachments, mentionUserIds, mentionAll });
+            if (!createIntent.current || createIntent.current._sig !== sig) {
+                createIntent.current = {
+                    _sig: sig,
+                    payload: {
+                        id: crypto.randomUUID(),
+                        content,
+                        status: kind,
+                        is_pinned: shouldPin,
+                        ...(attachments.length > 0 ? { attachments } : {}),
+                        ...(mentionUserIds.length > 0 && !mentionAll ? { mention_user_ids: mentionUserIds } : {}),
+                        ...(mentionAll ? { mention_all: true } : {}),
+                    },
+                };
             }
-            if (await mutate('PUT', createIntent.current)) { createIntent.current = null; setDraft(''); setPinOnPost(false); }
+            if (await mutate('PUT', createIntent.current.payload)) {
+                createIntent.current = null;
+                setDraft('');
+                setPinOnPost(false);
+                setAttachments([]);
+                setMentionUserIds([]);
+                setMentionAll(false);
+                setMentionPickerOpen(false);
+            }
         }
     }
 
@@ -434,6 +706,12 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
             if (filterKind === 'notices' && (row.status !== 'notice' || row.cashout_id)) return false;
             if (filterKind === 'payouts' && row.status !== 'pending_payout' && row.status !== 'paid' && !row.cashout_id) return false;
             if (filterKind === 'pinned' && !row.is_pinned) return false;
+            if (memberFilter) {
+                const matchesAuthor = row.author_id === memberFilter.user_id;
+                const matchesMention = Array.isArray(row.mentions) && row.mentions.includes(memberFilter.user_id);
+                const matchesCashoutAgent = row.cashout?.agent_id === memberFilter.user_id || row.cashout?.player_id === memberFilter.user_id;
+                if (!matchesAuthor && !matchesMention && !matchesCashoutAgent) return false;
+            }
             if (!q) return true;
             const hay = [
                 row.content,
@@ -444,7 +722,15 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
             ].filter(Boolean).join(' ').toLowerCase();
             return hay.includes(q);
         });
-    }, [rows, filterKind, searchQuery]);
+    }, [rows, filterKind, searchQuery, memberFilter]);
+
+    const firstUnreadId = useMemo(() => {
+        if (!previousLastReadAt) return null;
+        const cutoff = Date.parse(previousLastReadAt);
+        if (!Number.isFinite(cutoff)) return null;
+        const hit = visibleRows.find(r => r.author_id !== userId && Date.parse(r.created_at) > cutoff);
+        return hit?.id || null;
+    }, [visibleRows, previousLastReadAt, userId]);
 
     const feedCounts = useMemo(() => {
         const active = rows.filter(row => !row.is_deleted);
@@ -466,9 +752,19 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
         });
     }, [members, rosterSearch, rosterRoleFilter]);
 
+    const mentionCandidates = useMemo(() => {
+        const q = mentionFilter.trim().toLowerCase();
+        return members
+            .filter(m => m.user_id !== userId)
+            .filter(m => !q || `${m.display_name || ''} ${m.username || ''}`.toLowerCase().includes(q))
+            .slice(0, 6);
+    }, [members, userId, mentionFilter]);
+
     const memberSummary = formatMemberSummary(roleCounts, memberCount);
     const orderedPins = useMemo(() => [...pins].reverse(), [pins]);
     const currentPin = orderedPins[activePinIndex] || orderedPins[0] || null;
+    const canConfigureAlerts = viewerRole === 'owner' || viewerRole === 'co_owner';
+    const thresholdHours = alertSettings.overdue_threshold_hours || 4;
 
     const rolePill = (role) => {
         const meta = ROLE_META[role] || { label: formatRoleLabel(role), color: C.textSec, bg: subtleBg };
@@ -510,6 +806,12 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
             : row.status === 'paid'
                 ? '#22c55e'
                 : C.textSec;
+        const rx = normalizeReactions(row.reactions);
+        const myRx = new Set(Array.isArray(row.my_reactions) ? row.my_reactions : []);
+        const ackUsers = Array.isArray(row.ack_users) ? row.ack_users : [];
+        const rowAttachments = Array.isArray(row.attachments) ? row.attachments : [];
+        const seenCount = Number(row.seen_count || 0);
+        const totalStaff = roleCounts.total || memberCount;
 
         return (
             <article
@@ -585,6 +887,33 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
                     <p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', lineHeight: 1.5, fontSize: 14, margin: '4px 0 8px' }}>
                         {row.content}
                     </p>
+                    {rowAttachments.length > 0 && (
+                        <div style={{ display: 'grid', gridTemplateColumns: rowAttachments.length === 1 ? 'minmax(0, 260px)' : 'repeat(2, minmax(0, 150px))', gap: 6, margin: '6px 0 8px' }}>
+                            {rowAttachments.map((att, idx) => (
+                                <button
+                                    key={`${att.url}-${idx}`}
+                                    type="button"
+                                    onClick={() => setLightboxImage(att)}
+                                    aria-label={`View Attachment ${att.name || 'Image'}`}
+                                    style={{
+                                        padding: 0,
+                                        border: `1px solid ${C.border}`,
+                                        borderRadius: 8,
+                                        overflow: 'hidden',
+                                        background: C.bg,
+                                        cursor: 'pointer',
+                                        display: 'block',
+                                    }}
+                                >
+                                    <img
+                                        src={att.url}
+                                        alt={att.name || 'Notice Attachment'}
+                                        style={{ width: '100%', maxHeight: 180, objectFit: 'cover', display: 'block' }}
+                                    />
+                                </button>
+                            ))}
+                        </div>
+                    )}
                     {row.cashout_id && (
                         <CashoutRequestActions
                             cashoutId={row.cashout_id}
@@ -607,6 +936,57 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
                             ))}
                         </div>
                     )}
+
+                    {/* Staff Reactions, One-Tap Acknowledge & Seen By Receipt Footer */}
+                    {!pinned && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 5, marginTop: 8, paddingTop: 6, borderTop: `1px solid ${C.border}66` }}>
+                            {REACTION_META.map(meta => {
+                                const count = rx[meta.key];
+                                const active = myRx.has(meta.key);
+                                const isAck = meta.key === 'ack';
+                                const isReacting = reactingId === `${row.id}:${meta.key}`;
+                                return (
+                                    <button
+                                        key={meta.key}
+                                        type="button"
+                                        disabled={Boolean(reactingId)}
+                                        aria-pressed={active}
+                                        aria-label={`${meta.label} Notice${count > 0 ? ` (${count})` : ''}`}
+                                        title={isAck && ackUsers.length > 0 ? `Confirmed By: ${ackUsers.join(', ')}` : meta.label}
+                                        onClick={() => void toggleReaction(row.id, meta.key)}
+                                        style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: 4,
+                                            padding: '2px 7px',
+                                            borderRadius: 999,
+                                            fontSize: 11,
+                                            fontWeight: active ? 700 : 500,
+                                            fontFamily: 'inherit',
+                                            cursor: isReacting ? 'wait' : 'pointer',
+                                            border: `1px solid ${active ? accentBlue : C.border}`,
+                                            background: active ? 'rgba(0, 132, 255, 0.16)' : 'transparent',
+                                            color: active ? accentBlue : C.textSec,
+                                        }}
+                                    >
+                                        <span>{meta.emoji}</span>
+                                        {isAck && <span>{active ? 'Confirmed' : 'Confirm'}</span>}
+                                        {count > 0 && <span>{count}</span>}
+                                    </button>
+                                );
+                            })}
+                            {seenCount > 0 && (
+                                <span
+                                    data-testid="notice-seen-count"
+                                    title={ackUsers.length > 0 ? `Confirmed By: ${ackUsers.join(', ')}` : 'Active Staff Who Read This Notice'}
+                                    style={{ marginLeft: 'auto', fontSize: 11, color: C.textSec, whiteSpace: 'nowrap' }}
+                                >
+                                    {`👁 ${seenCount}${totalStaff > 0 ? `/${totalStaff}` : ''} Seen`}
+                                </span>
+                            )}
+                        </div>
+                    )}
+
                     {canManage && row.cashout_id && (
                         <div aria-label="Payout Board Actions" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
                             {row.cashout?.status === 'pending' && (
@@ -621,7 +1001,13 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
                     )}
                     {canManage && !row.cashout_id && (
                         <div aria-label="Notice Actions" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-                            <button type="button" disabled={busy} style={button} onClick={() => { setEditing(row); setDraft(row.content); }}>Edit</button>
+                            <button type="button" disabled={busy} style={button} onClick={() => {
+                                setEditing(row);
+                                setDraft(row.content);
+                                setAttachments(Array.isArray(row.attachments) ? row.attachments : []);
+                            }}>
+                                Edit
+                            </button>
                             {row.status !== 'paid' && (
                                 <button type="button" disabled={busy} style={button} onClick={() => void mutate('PATCH', { id: row.id, version: row.version, is_pinned: !row.is_pinned })}>
                                     {row.is_pinned ? 'Unpin' : 'Pin'}
@@ -674,14 +1060,14 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
                     .nb-scroller::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
                     .nb-scroller::-webkit-scrollbar-track { background: var(--scrollbar-track); }
                 }
-                dialog.nb-roster-dialog[open] {
+                dialog.nb-modal-dialog[open] {
                     display: flex;
                     flex-direction: column;
                 }
-                dialog.nb-roster-dialog:modal {
+                dialog.nb-modal-dialog:modal {
                     overscroll-behavior: contain;
                 }
-                dialog.nb-roster-dialog::backdrop {
+                dialog.nb-modal-dialog::backdrop {
                     overflow: hidden;
                     overscroll-behavior: contain;
                     background: rgba(0, 0, 0, 0.68);
@@ -832,7 +1218,7 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
                             >
                                 <div style={{ fontSize: 11, fontWeight: 700, color: accentBlue, display: 'flex', alignItems: 'center', gap: 6 }}>
                                     <span>
-                                        {`📌 Pinned ${currentPin.status === 'pending_payout' || currentPin.cashout_id ? 'Payout Request' : 'Message'}${orderedPins.length > 1 ? ` #${activePinIndex + 1} of ${orderedPins.length}` : ''}`}
+                                        {`📌 Pinned ${currentPin.status === 'pending_payout' || currentPin.cashout_id ? 'Payout Request' : 'Message'}${orderedPins.length > 1 ? ` #${activePinIndex + 1} Of ${orderedPins.length}` : ''}`}
                                     </span>
                                     {currentPin.author_name && <span style={{ color: C.textSec, fontWeight: 500 }}>· {currentPin.author_name}</span>}
                                 </div>
@@ -872,10 +1258,10 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
                 )}
             </section>
 
-            {/* Overdue >4-Hour Unfulfilled Downline Payout Alert Banner (Management Only) */}
+            {/* Overdue Unfulfilled Downline Payout Alert Banner (Management Only, With Direct Actions) */}
             {canManage && overduePayouts.length > 0 && (
                 <section
-                    aria-label="Unfulfilled Payouts Over 4 Hours"
+                    aria-label={`Unfulfilled Payouts Over ${thresholdHours} Hours`}
                     style={{
                         flexShrink: 0,
                         padding: '8px 14px',
@@ -885,7 +1271,7 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
                 >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                         <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>
-                            ⏰ {overduePayouts.length} Downline Payout {overduePayouts.length === 1 ? 'Request' : 'Requests'} Unfulfilled Over 4 Hours
+                            {`⏰ ${overduePayouts.length} Downline Payout ${overduePayouts.length === 1 ? 'Request' : 'Requests'} Unfulfilled Over ${thresholdHours} ${thresholdHours === 1 ? 'Hour' : 'Hours'}`}
                         </div>
                         <button
                             type="button"
@@ -897,33 +1283,67 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
                     </div>
                     {overdueExpanded && (
                         <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                            {overduePayouts.map(item => (
-                                <div key={item.cashout_id} style={{
-                                    display: 'flex',
-                                    flexWrap: 'wrap',
-                                    justifyContent: 'space-between',
-                                    gap: 6,
-                                    padding: '6px 10px',
-                                    borderRadius: 8,
-                                    background: surfaceBg,
-                                    border: `1px solid ${C.border}`,
-                                    fontSize: 12,
-                                }}>
-                                    <span>
-                                        <strong>{item.player_name}</strong> · {formatChipsSimple(item.amount)} Chips
-                                        <span style={{ color: C.textSec }}> (Upline: {item.agent_name})</span>
-                                    </span>
-                                    <span style={{ color: '#f59e0b', fontWeight: 700 }}>
-                                        Pending {item.hours_pending}h+{item.is_escalated ? ' · Escalated' : ''}
-                                    </span>
-                                </div>
-                            ))}
+                            {overduePayouts.map(item => {
+                                const agentMember = members.find(m => m.user_id === item.agent_id) || {
+                                    user_id: item.agent_id,
+                                    display_name: item.agent_name,
+                                    username: item.agent_name,
+                                };
+                                return (
+                                    <div key={item.cashout_id} style={{
+                                        display: 'flex',
+                                        flexWrap: 'wrap',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        gap: 8,
+                                        padding: '7px 10px',
+                                        borderRadius: 8,
+                                        background: surfaceBg,
+                                        border: `1px solid ${C.border}`,
+                                        fontSize: 12,
+                                    }}>
+                                        <div style={{ minWidth: 0, flex: '1 1 180px' }}>
+                                            <div>
+                                                <strong>{item.player_name}</strong> · {formatChipsSimple(item.amount)} Chips
+                                                <span style={{ color: C.textSec }}> (Upline: {item.agent_name})</span>
+                                            </div>
+                                            <div style={{ color: '#f59e0b', fontWeight: 700, fontSize: 11, marginTop: 2 }}>
+                                                {`Pending ${item.hours_pending}h+${item.is_escalated ? ' · Escalated To Club Bank' : ''}`}
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                            {onMessageMember && item.agent_id && item.agent_id !== userId && (
+                                                <button
+                                                    type="button"
+                                                    style={{ ...button, padding: '4px 8px', fontSize: 11 }}
+                                                    onClick={() => onMessageMember(
+                                                        agentMember,
+                                                        `Checking In On ${item.player_name}'s Pending Payout Of ${formatChipsSimple(item.amount)} Chips (${item.hours_pending}h+ Unfulfilled).`
+                                                    )}
+                                                >
+                                                    Message Agent
+                                                </button>
+                                            )}
+                                            {!item.is_escalated && (
+                                                <button
+                                                    type="button"
+                                                    disabled={Boolean(escalatingId)}
+                                                    style={{ ...button, padding: '4px 8px', fontSize: 11, borderColor: '#f59e0b', color: '#f59e0b', fontWeight: 700 }}
+                                                    onClick={() => void escalateOverduePayout(item)}
+                                                >
+                                                    {escalatingId === item.cashout_id ? 'Escalating...' : 'Escalate To Bank'}
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     )}
                 </section>
             )}
 
-            {/* Quick Filter & Search Bar */}
+            {/* Quick Filter, Member Filter, Alert Settings & Search Bar */}
             <div style={{
                 flexShrink: 0,
                 padding: '6px 12px',
@@ -962,26 +1382,66 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
                         {tab.label}
                     </button>
                 ))}
-                <button
-                    type="button"
-                    aria-label="Search Notices"
-                    aria-pressed={searchOpen}
-                    onClick={() => { setSearchOpen(prev => !prev); if (searchOpen) setSearchQuery(''); }}
-                    style={{
-                        marginLeft: 'auto',
-                        border: `1px solid ${searchOpen ? accentBlue : C.border}`,
-                        borderRadius: 999,
-                        background: searchOpen ? 'rgba(0, 132, 255, 0.16)' : 'transparent',
-                        color: searchOpen ? accentBlue : C.textSec,
-                        padding: '3px 9px',
-                        fontSize: 11,
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        fontFamily: 'inherit',
-                    }}
-                >
-                    Search
-                </button>
+                {memberFilter && (
+                    <button
+                        type="button"
+                        onClick={() => setMemberFilter(null)}
+                        style={{
+                            border: `1px solid ${accentBlue}`,
+                            borderRadius: 999,
+                            background: 'rgba(0, 132, 255, 0.18)',
+                            color: accentBlue,
+                            padding: '3px 9px',
+                            fontSize: 11,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            fontFamily: 'inherit',
+                        }}
+                    >
+                        {`Staff: ${memberFilter.display_name || memberFilter.username} ×`}
+                    </button>
+                )}
+                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5 }}>
+                    {canConfigureAlerts && (
+                        <button
+                            type="button"
+                            aria-label="Configure Overdue Payout Alerts"
+                            onClick={() => { setSettingsDraft({ ...alertSettings }); setSettingsOpen(true); }}
+                            style={{
+                                border: `1px solid ${C.border}`,
+                                borderRadius: 999,
+                                background: 'transparent',
+                                color: C.textSec,
+                                padding: '3px 9px',
+                                fontSize: 11,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                fontFamily: 'inherit',
+                            }}
+                        >
+                            ⚙ Alerts
+                        </button>
+                    )}
+                    <button
+                        type="button"
+                        aria-label="Search Notices"
+                        aria-pressed={searchOpen}
+                        onClick={() => { setSearchOpen(prev => !prev); if (searchOpen) setSearchQuery(''); }}
+                        style={{
+                            border: `1px solid ${searchOpen ? accentBlue : C.border}`,
+                            borderRadius: 999,
+                            background: searchOpen ? 'rgba(0, 132, 255, 0.16)' : 'transparent',
+                            color: searchOpen ? accentBlue : C.textSec,
+                            padding: '3px 9px',
+                            fontSize: 11,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            fontFamily: 'inherit',
+                        }}
+                    >
+                        Search
+                    </button>
+                </div>
                 {searchOpen && (
                     <input
                         type="search"
@@ -1043,6 +1503,7 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
                     visibleRows.map((row, idx) => {
                         const prev = idx > 0 ? visibleRows[idx - 1] : null;
                         const showDay = !prev || dayKey(prev.created_at) !== dayKey(row.created_at);
+                        const showUnreadDivider = firstUnreadId === row.id;
                         return (
                             <React.Fragment key={row.id}>
                                 {showDay && (
@@ -1058,6 +1519,15 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
                                         }}>
                                             {formatDayLabel(row.created_at)}
                                         </span>
+                                    </div>
+                                )}
+                                {showUnreadDivider && (
+                                    <div data-testid="notice-unread-divider" style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '8px 0 12px' }}>
+                                        <span style={{ flex: 1, height: 1, background: `${accentBlue}66` }} />
+                                        <span style={{ fontSize: 11, fontWeight: 700, color: accentBlue, whiteSpace: 'nowrap' }}>
+                                            Unread Messages
+                                        </span>
+                                        <span style={{ flex: 1, height: 1, background: `${accentBlue}66` }} />
                                     </div>
                                 )}
                                 {card(row)}
@@ -1083,7 +1553,12 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
                         fontWeight: 700,
                         boxShadow: '0 4px 14px rgba(0, 0, 0, 0.35)',
                     }}
-                    onClick={() => { scroller.current.scrollTop = scroller.current.scrollHeight; setNewItems(false); }}
+                    onClick={() => {
+                        scroller.current.scrollTop = scroller.current.scrollHeight;
+                        setNewItems(false);
+                        const latest = state.current.rows.filter(r => !r.is_deleted).at(-1);
+                        markBoardRead(latest?.id || null);
+                    }}
                 >
                     Latest Notices ↓
                 </button>
@@ -1126,7 +1601,7 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
                     gap: 10,
                 }}>
                     <p style={{ margin: 0, color: C.textSec, fontSize: 12 }}>
-                        Read Only · Club Management Handles Payouts And Notes{viewerRole ? ` · Enrolled As ${formatRoleLabel(viewerRole)}` : ''}
+                        Read Only · Tap Confirm On Any Notice To Mark Read{viewerRole ? ` · Enrolled As ${formatRoleLabel(viewerRole)}` : ''}
                     </p>
                     <button type="button" style={{ ...button, fontSize: 11 }} onClick={() => setRosterOpen(true)}>
                         View Staff ({roleCounts.total || memberCount})
@@ -1140,7 +1615,7 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
                     {editing ? (
                         <div style={{ fontSize: 12, marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                             <span>Editing Notice</span>
-                            <button type="button" style={button} onClick={() => { setEditing(null); setDraft(''); }}>Cancel Edit</button>
+                            <button type="button" style={button} onClick={() => { setEditing(null); setDraft(''); setAttachments([]); }}>Cancel Edit</button>
                         </div>
                     ) : (
                         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 8 }}>
@@ -1167,6 +1642,29 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
                                 />
                                 📌 Pin To Top
                             </label>
+                            <button
+                                type="button"
+                                disabled={busy || uploadingPhoto || attachments.length >= 4}
+                                onClick={() => photoInputRef.current?.click()}
+                                style={{ ...button, padding: '4px 8px', fontSize: 11 }}
+                            >
+                                {uploadingPhoto ? 'Uploading...' : `📷 Photo${attachments.length > 0 ? ` (${attachments.length}/4)` : ''}`}
+                            </button>
+                            <input
+                                ref={photoInputRef}
+                                type="file"
+                                accept="image/png,image/jpeg,image/gif,image/webp"
+                                style={{ display: 'none' }}
+                                onChange={e => void handlePhotoSelect(e)}
+                            />
+                            <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => setMentionPickerOpen(prev => !prev)}
+                                style={{ ...button, padding: '4px 8px', fontSize: 11, borderColor: mentionPickerOpen || mentionAll || mentionUserIds.length > 0 ? accentBlue : C.border, color: mentionPickerOpen || mentionAll || mentionUserIds.length > 0 ? accentBlue : C.text }}
+                            >
+                                @ Mention
+                            </button>
                             {draft.length > 3200 && (
                                 <span style={{ marginLeft: 'auto', fontSize: 11, color: draft.length > 3800 ? '#f59e0b' : C.textSec }}>
                                     {draft.length}/4000
@@ -1174,14 +1672,67 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
                             )}
                         </div>
                     )}
+
+                    {/* Active Mention Chips */}
+                    {!editing && (mentionAll || mentionUserIds.length > 0) && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 6 }}>
+                            {mentionAll && (
+                                <button type="button" onClick={() => setMentionAll(false)} style={{ ...button, padding: '2px 8px', fontSize: 11, borderRadius: 999, borderColor: accentBlue, color: accentBlue }}>
+                                    @AllStaff ×
+                                </button>
+                            )}
+                            {!mentionAll && mentionUserIds.map(uid => {
+                                const m = members.find(x => x.user_id === uid);
+                                return (
+                                    <button key={uid} type="button" onClick={() => setMentionUserIds(prev => prev.filter(x => x !== uid))} style={{ ...button, padding: '2px 8px', fontSize: 11, borderRadius: 999, borderColor: accentBlue, color: accentBlue }}>
+                                        {`@${m?.display_name || m?.username || 'Staff'} ×`}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
+
+                    {/* Inline @Mention Picker */}
+                    {!editing && mentionPickerOpen && (
+                        <div role="listbox" aria-label="Mention Club Staff" style={{ marginBottom: 8, padding: 6, borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                            <button type="button" onClick={() => selectMention('ALL')} style={{ ...button, padding: '4px 8px', fontSize: 11, borderColor: accentBlue, color: accentBlue, fontWeight: 700 }}>
+                                @AllStaff ({roleCounts.total || memberCount})
+                            </button>
+                            {mentionCandidates.map(m => (
+                                <button key={m.user_id} type="button" onClick={() => selectMention(m)} style={{ ...button, padding: '4px 8px', fontSize: 11 }}>
+                                    {`@${m.display_name || m.username} · ${formatRoleLabel(m.role)}`}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Pending Image Attachment Previews */}
+                    {attachments.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+                            {attachments.map((att, idx) => (
+                                <div key={`${att.url}-${idx}`} style={{ position: 'relative', width: 58, height: 58, borderRadius: 8, overflow: 'hidden', border: `1px solid ${C.border}` }}>
+                                    <img src={att.url} alt={att.name || 'Attachment'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    <button
+                                        type="button"
+                                        aria-label="Remove Attachment"
+                                        onClick={() => setAttachments(prev => prev.filter((_, i) => i !== idx))}
+                                        style={{ position: 'absolute', top: 2, right: 2, width: 18, height: 18, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,0.75)', color: '#fff', fontSize: 11, cursor: 'pointer', padding: 0 }}
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
                     <div style={{ display: 'flex', gap: 8 }}>
                         <textarea
                             aria-label="Notice Text"
-                            placeholder="Write A Club Notice..."
+                            placeholder="Write A Club Notice... Use @ To Ping An Agent"
                             value={draft}
-                            onChange={e => setDraft(e.target.value)}
+                            onChange={e => handleDraftChange(e.target.value)}
                             onKeyDown={e => {
-                                if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && draft.trim() && !busy) {
+                                if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && draft.trim() && !busy && !uploadingPhoto) {
                                     void submit(e);
                                 }
                             }}
@@ -1192,7 +1743,7 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
                         />
                         <button
                             type="submit"
-                            disabled={busy || !draft.trim()}
+                            disabled={busy || uploadingPhoto || !draft.trim()}
                             style={{ ...button, background: accentBlue, color: '#fff', borderColor: accentBlue, fontWeight: 700, padding: '8px 16px' }}
                         >
                             {busy ? 'Saving...' : editing ? 'Save' : 'Post'}
@@ -1206,7 +1757,7 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
                 ref={rosterDialogRef}
                 closedby="any"
                 aria-labelledby={rosterTitleId}
-                className="nb-roster-dialog"
+                className="nb-modal-dialog"
                 style={{
                     width: 'min(480px, calc(100vw - 24px))',
                     maxHeight: '82vh',
@@ -1302,7 +1853,7 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
                     ))}
                 </div>
 
-                {/* Scrollable Member List */}
+                {/* Scrollable Member List With Message & Filter Actions */}
                 <div className="nb-scroller" style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '10px 16px' }}>
                     {filteredMembers.length === 0 ? (
                         <p style={{ color: C.textSec, textAlign: 'center', fontSize: 12, padding: 20 }}>
@@ -1318,7 +1869,7 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
                                         style={{
                                             display: 'flex',
                                             alignItems: 'center',
-                                            gap: 10,
+                                            gap: 8,
                                             padding: '8px 10px',
                                             borderRadius: 10,
                                             border: `1px solid ${C.border}`,
@@ -1365,19 +1916,167 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
                                                 {member.display_name || member.username || 'Club Staff'}
                                                 {member.user_id === userId && <span style={{ color: C.textSec, fontWeight: 400 }}> (You)</span>}
                                             </div>
-                                            {member.username && (
-                                                <div style={{ fontSize: 11, color: C.textSec, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                    @{member.username}
-                                                </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                                                {rolePill(member.role)}
+                                                {member.username && (
+                                                    <span style={{ fontSize: 11, color: C.textSec, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                        @{member.username}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+                                            <button
+                                                type="button"
+                                                style={{ ...button, padding: '4px 7px', fontSize: 11 }}
+                                                onClick={() => { setMemberFilter(member); setRosterOpen(false); }}
+                                            >
+                                                Filter
+                                            </button>
+                                            {onMessageMember && member.user_id !== userId && (
+                                                <button
+                                                    type="button"
+                                                    style={{ ...button, padding: '4px 7px', fontSize: 11, borderColor: accentBlue, color: accentBlue, fontWeight: 600 }}
+                                                    onClick={() => { setRosterOpen(false); onMessageMember(member); }}
+                                                >
+                                                    Message
+                                                </button>
                                             )}
                                         </div>
-                                        {rolePill(member.role)}
                                     </li>
                                 );
                             })}
                         </ul>
                     )}
                 </div>
+            </dialog>
+
+            {/* Native <dialog> Overdue Payout Alert & Escalation Settings Modal (Owner / Co-Owner) */}
+            <dialog
+                ref={settingsDialogRef}
+                closedby="any"
+                aria-labelledby={settingsTitleId}
+                className="nb-modal-dialog"
+                style={{
+                    width: 'min(440px, calc(100vw - 24px))',
+                    maxHeight: '82vh',
+                    padding: 0,
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 14,
+                    background: surfaceBg,
+                    color: C.text,
+                    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.55)',
+                    overflow: 'hidden',
+                }}
+            >
+                <div style={{ padding: '14px 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                    <h1 id={settingsTitleId} style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>
+                        Overdue Payout Alert Settings
+                    </h1>
+                    {settingsOpen && (
+                        <button type="button" style={button} onClick={() => setSettingsOpen(false)} aria-label="Close Alert Settings">Close</button>
+                    )}
+                </div>
+                {settingsOpen && (
+                    <form onSubmit={saveAlertSettings} style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12 }}>
+                            <span style={{ fontWeight: 600 }}>Unfulfilled Alert Threshold (Hours)</span>
+                            <select
+                                aria-label="Unfulfilled Alert Threshold"
+                                value={settingsDraft.overdue_threshold_hours}
+                                onChange={e => {
+                                    const nextTh = Number(e.target.value);
+                                    setSettingsDraft(prev => ({
+                                        ...prev,
+                                        overdue_threshold_hours: nextTh,
+                                        followup_threshold_hours: prev.followup_threshold_hours && prev.followup_threshold_hours <= nextTh ? null : prev.followup_threshold_hours,
+                                        auto_escalate_hours: prev.auto_escalate_hours && prev.auto_escalate_hours < nextTh ? null : prev.auto_escalate_hours,
+                                    }));
+                                }}
+                                style={button}
+                            >
+                                {[1, 2, 3, 4, 6, 8, 12, 24].map(h => (
+                                    <option key={h} value={h}>{`${h} ${h === 1 ? 'Hour' : 'Hours'}`}</option>
+                                ))}
+                            </select>
+                        </label>
+                        <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12 }}>
+                            <span style={{ fontWeight: 600 }}>Second-Stage Follow-Up Reminder</span>
+                            <select
+                                aria-label="Second-Stage Follow-Up Reminder"
+                                value={settingsDraft.followup_threshold_hours ?? ''}
+                                onChange={e => setSettingsDraft(prev => ({ ...prev, followup_threshold_hours: e.target.value ? Number(e.target.value) : null }))}
+                                style={button}
+                            >
+                                <option value="">Disabled (Single Alert Only)</option>
+                                {[6, 8, 12, 24, 48].filter(h => h > settingsDraft.overdue_threshold_hours).map(h => (
+                                    <option key={h} value={h}>{`Remind Again At ${h} Hours`}</option>
+                                ))}
+                            </select>
+                        </label>
+                        <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12 }}>
+                            <span style={{ fontWeight: 600 }}>Auto-Escalate To Club Bank</span>
+                            <select
+                                aria-label="Auto-Escalate To Club Bank"
+                                value={settingsDraft.auto_escalate_hours ?? ''}
+                                onChange={e => setSettingsDraft(prev => ({ ...prev, auto_escalate_hours: e.target.value ? Number(e.target.value) : null }))}
+                                style={button}
+                            >
+                                <option value="">Manual Escalation Only</option>
+                                {[4, 6, 8, 12, 24, 48].filter(h => h >= settingsDraft.overdue_threshold_hours).map(h => (
+                                    <option key={h} value={h}>{`Auto-Escalate After ${h} Hours`}</option>
+                                ))}
+                            </select>
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer' }}>
+                            <input
+                                type="checkbox"
+                                checked={Boolean(settingsDraft.notify_admins)}
+                                onChange={e => setSettingsDraft(prev => ({ ...prev, notify_admins: e.target.checked }))}
+                            />
+                            <span>Also Notify Club Management And Admins On Overdue Payouts</span>
+                        </label>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 4 }}>
+                            <button type="button" style={button} disabled={settingsBusy} onClick={() => setSettingsOpen(false)}>Cancel</button>
+                            <button type="submit" disabled={settingsBusy} style={{ ...button, background: accentBlue, color: '#fff', borderColor: accentBlue, fontWeight: 700 }}>
+                                {settingsBusy ? 'Saving...' : 'Save Settings'}
+                            </button>
+                        </div>
+                    </form>
+                )}
+            </dialog>
+
+            {/* Native <dialog> Image Attachment Lightbox */}
+            <dialog
+                ref={lightboxDialogRef}
+                closedby="any"
+                aria-labelledby={lightboxTitleId}
+                className="nb-modal-dialog"
+                style={{
+                    width: 'min(640px, calc(100vw - 24px))',
+                    maxHeight: '88vh',
+                    padding: 0,
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 14,
+                    background: surfaceBg,
+                    color: C.text,
+                    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.7)',
+                    overflow: 'hidden',
+                }}
+            >
+                <div style={{ padding: '10px 14px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                    <h1 id={lightboxTitleId} style={{ fontSize: 14, fontWeight: 700, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {lightboxImage?.name || 'Notice Attachment'}
+                    </h1>
+                    {lightboxImage && (
+                        <button type="button" style={button} onClick={() => setLightboxImage(null)}>Close</button>
+                    )}
+                </div>
+                {lightboxImage && (
+                    <div style={{ padding: 12, display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#000', overflow: 'auto' }}>
+                        <img src={lightboxImage.url} alt={lightboxImage.name || 'Notice Attachment'} style={{ maxWidth: '100%', maxHeight: '72vh', objectFit: 'contain' }} />
+                    </div>
+                )}
             </dialog>
         </section>
     );

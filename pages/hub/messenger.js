@@ -1547,7 +1547,7 @@ function MessengerPage() {
             setConnectionStatus('connected');
             setClubAccess({ userId, clubs: Array.isArray(result.clubs) ? result.clubs : [] });
             setConversations(result.conversations);
-            setWorkspaceUnread({ key: requestKey, counts: result.unreadCounts, attentionCounts: result.attentionCounts });
+            setWorkspaceUnread({ key: requestKey, counts: result.unreadCounts, attentionCounts: result.attentionCounts, noticeBoardUnread: result.noticeBoardUnread });
             setFeedOlder({ key: requestKey, hasOlder: result.hasOlder === true, olderWindow: Number(result.olderWindow) || 0, loading: false });
             setInboxError(null);
         } catch (error) {
@@ -2533,7 +2533,7 @@ function MessengerPage() {
         }, 300);
     }, [user]);
 
-    const handleStartConversation = async (otherUser) => {
+    const handleStartConversation = async (otherUser, prefillText = '') => {
         if (!user) return;
         setSearchQuery('');
         setSearchResults([]);
@@ -2585,6 +2585,9 @@ function MessengerPage() {
             });
 
             handleSelectConversation(convToSelect);
+            if (typeof prefillText === 'string' && prefillText.trim()) {
+                editContinuity(convId, 'draft', { text: prefillText.trim(), replyToId: null });
+            }
 
             // Show toast if this is a message request (non-friend)
             if (isRequest) {
@@ -3151,6 +3154,8 @@ function MessengerPage() {
                         unreadCounts={workspaceUnread?.key === workspaceKey ? workspaceUnread.counts : messengerUnread?.clubs?.[workspaceSelection.clubId]}
                         attentionCounts={workspaceUnread?.key === workspaceKey ? workspaceUnread.attentionCounts : null}
                         clubUnread={messengerUnread?.clubs}
+                        noticeBoardUnread={workspaceUnread?.key === workspaceKey ? workspaceUnread.noticeBoardUnread : messengerUnread?.noticeBoard?.[workspaceSelection.clubId]}
+                        clubNoticeUnread={messengerUnread?.noticeBoard}
                         onEnter={enterClubWorkspace} onExit={leaveClubWorkspace}
                         onFolder={folder => { setWorkspaceSelection(prev => ({ ...prev, folder })); if (['statements', 'notice-board'].includes(folder)) setShowSidebar(false); }} />
                     {loading && <div role="status" style={{ padding: 12, color: C.textSec }}>Loading Inbox...</div>}
@@ -3511,7 +3516,21 @@ function MessengerPage() {
                                 onOpen={id => resolveConversationRef.current(id)} />
                         ) : workspaceSelection.folder === 'notice-board' && selectedClub ? (
                             <NoticeBoard key={`${user.id}:${selectedClub.id}`} club={selectedClub} userId={user.id} theme={C}
-                                onBack={() => { setWorkspaceSelection(prev => ({ ...prev, folder: 'messages' })); setShowSidebar(true); }} />
+                                onBack={() => { setWorkspaceSelection(prev => ({ ...prev, folder: 'messages' })); setShowSidebar(true); }}
+                                onMarkRead={() => {
+                                    setWorkspaceUnread(prev => prev && prev.key === workspaceKey ? { ...prev, noticeBoardUnread: 0 } : prev);
+                                    refreshUnread?.();
+                                }}
+                                onMessageMember={(member, prefillText) => {
+                                    if (!member?.user_id || member.user_id === user.id) return;
+                                    setWorkspaceSelection(prev => ({ ...prev, folder: 'messages' }));
+                                    handleStartConversation({
+                                        id: member.user_id,
+                                        username: member.username || member.display_name,
+                                        display_name: member.display_name || member.username,
+                                        avatar_url: member.avatar_url || null,
+                                    }, prefillText || '');
+                                }} />
                         ) : activeConversation ? (
                             <>
                                 {/* Chat Header */}

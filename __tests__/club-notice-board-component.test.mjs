@@ -91,34 +91,49 @@ test('notice API forwards manager notes with verified actor and returns database
  denied=true;await mod.namespace.default(req,res);assert.equal(status,403);assert.equal(body.success,false);
 });
 
-test('Telegram-style Notice Board renders member counts, role badges, pinned club notices, overdue >4h payouts, and roster dialog',async()=>{
+test('Telegram-style Notice Board renders member counts, role badges, pinned club notices, unread divider, reactions, overdue actions, and roster dialog',async()=>{
  const handlers={};
  const club={id:'10000000-0000-4000-8000-000000000001',name:'KINGS CLUB'};
- const notice={id:'20000000-0000-4000-8000-000000000010',club_id:club.id,content:'Weekly Settlement Rules',status:'notice',is_pinned:true,version:1,created_at:'2026-11-24T12:00:00Z',author_name:'KingFish',author_role:'owner'};
+ const notice={
+  id:'20000000-0000-4000-8000-000000000010',club_id:club.id,author_id:'u1',content:'Weekly Settlement Rules',status:'notice',is_pinned:true,version:1,
+  created_at:'2026-11-24T12:00:00Z',author_name:'KingFish',author_role:'owner',
+  seen_count:41,reactions:{ack:12,thumbs_up:4,fire:0,eyes:2},my_reactions:[],ack_users:['Butter'],
+  attachments:[{url:'https://cdn.example/rules.png',name:'Rules.png',mime:'image/png'}],
+ };
  const channel={on(type,filter,fn){handlers[filter.table||type]=fn;return channel;},subscribe(){return channel;}};
- const supabase={channel:()=>channel,removeChannel:()=>Promise.resolve()};
- const context=vm.createContext({console,crypto:globalThis.crypto,window:{confirm:()=>true,addEventListener(){},removeEventListener(){}},document:{visibilityState:'visible',addEventListener(){},removeEventListener(){}}});
+ const supabase={channel:()=>channel,removeChannel:()=>Promise.resolve(),rpc:async()=>({data:{success:true},error:null})};
+ const context=vm.createContext({console,setTimeout,clearTimeout,crypto:globalThis.crypto,window:{confirm:()=>true,addEventListener(){},removeEventListener(){}},document:{visibilityState:'visible',addEventListener(){},removeEventListener(){}}});
  const synthetic=values=>new vm.SyntheticModule(Object.keys(values),function(){for(const[k,v]of Object.entries(values))this.setExport(k,v);},{context});
+ const requests=[];
  const modules={
   react:synthetic({default:React,...React}),
   '../../lib/supabase':synthetic({supabase}),
-  '../../lib/authUtils':synthetic({getAccessToken:()=>null,authedFetch:async()=>({
-   status:200,ok:true,json:async()=>({
-    success:true,
-    entries:[notice],
-    pinned:[notice],
-    canManage:true,
-    viewerRole:'owner',
-    memberCount:55,
-    roleCounts:{owner:1,co_owner:1,admin:2,super_agent:40,agent:10,sub_agent:1,management:4,agents:51,online:2,total:55},
-    members:[
-     {user_id:'u1',display_name:'KingFish',username:'kingfish',role:'owner',is_online:true},
-     {user_id:'u2',display_name:'Butter',username:'Butter',role:'super_agent',is_online:true},
-    ],
-    overduePayouts:[{cashout_id:'c1',player_name:'Breezy',agent_name:'Probyourmom',amount:'200.00',hours_pending:10,is_escalated:false}],
-    hasMore:false,cursor:null,
-   }),
-  })}),
+  '../../lib/authUtils':synthetic({getAccessToken:()=>null,authedFetch:async(_url,opts)=>{
+   const body=JSON.parse(opts.body||'{}');
+   requests.push({method:opts.method,action:body.action||null,payload:body.payload||{}});
+   if(body.action==='mark_read') return {status:200,ok:true,json:async()=>({success:true,markedRead:true})};
+   if(body.action==='toggle_reaction') return {status:200,ok:true,json:async()=>({success:true,entry:{...notice,reactions:{...notice.reactions,ack:13},my_reactions:['ack']}})};
+   return {
+    status:200,ok:true,json:async()=>({
+     success:true,
+     entries:[notice],
+     pinned:[notice],
+     canManage:true,
+     viewerRole:'owner',
+     memberCount:55,
+     roleCounts:{owner:1,co_owner:1,admin:2,super_agent:40,agent:10,sub_agent:1,management:4,agents:51,online:2,total:55},
+     members:[
+      {user_id:'u1',display_name:'KingFish',username:'kingfish',role:'owner',is_online:true},
+      {user_id:'u2',display_name:'Butter',username:'Butter',role:'super_agent',is_online:true},
+     ],
+     overduePayouts:[{cashout_id:'c1',agent_id:'u2',player_name:'Breezy',agent_name:'Butter',amount:'200.00',hours_pending:10,is_escalated:false}],
+     alertSettings:{overdue_threshold_hours:4,followup_threshold_hours:12,notify_admins:false,auto_escalate_hours:null},
+     previousLastReadAt:'2026-11-24T11:00:00Z',
+     unreadCount:1,
+     hasMore:false,cursor:null,
+    }),
+   };
+  }}),
   '../../lib/clubNoticeBoard.mjs':synthetic(board),
   './CashoutRequestActions':synthetic({default:()=>null}),
  };
@@ -126,7 +141,8 @@ test('Telegram-style Notice Board renders member counts, role badges, pinned clu
  const mod=new vm.SourceTextModule(source,{context});await mod.link(name=>modules[name]);await mod.evaluate();
  const Component=mod.namespace.default;
  const theme={text:'#fff',textSec:'#aaa',border:'#333',blue:'#08f',card:'#111',bg:'#000'};let root;
- await act(async()=>{root=create(React.createElement(Component,{club,userId:'u1',theme,onBack(){}}));});
+ const dmCalls=[];
+ await act(async()=>{root=create(React.createElement(Component,{club,userId:'u3',theme,onBack(){},onMessageMember:(m,txt)=>dmCalls.push({m,txt})}));});
  const out=()=>JSON.stringify(root.toJSON());
  assert.match(out(),/55 Members · 4 Admins · 51 Agents · 2 Online/);
  assert.match(out(),/Staff \(55\)/);
@@ -134,6 +150,19 @@ test('Telegram-style Notice Board renders member counts, role badges, pinned clu
  assert.match(out(),/Weekly Settlement Rules/);
  assert.match(out(),/KingFish/);
  assert.match(out(),/Unfulfilled Over 4 Hours/);
+ assert.match(out(),/Unread Messages/);
+ assert.match(out(),/41\/55 Seen/);
+ assert.match(out(),/https:\/\/cdn\.example\/rules\.png/);
+ assert.ok(requests.some(r=>r.action==='mark_read'));
+ await act(async()=>{root.root.findAllByType('button').find(b=>String(b.props['aria-label']||'').startsWith('Confirm Notice')).props.onClick();});
+ assert.ok(requests.some(r=>r.action==='toggle_reaction'&&r.payload.reaction==='ack'));
+ assert.match(out(),/Confirmed/);
+ await act(async()=>{root.root.findAllByType('button').find(b=>b.props.children==='Details').props.onClick();});
+ assert.match(out(),/Escalate To Bank/);
+ await act(async()=>{root.root.findAllByType('button').find(b=>b.props.children==='Message Agent').props.onClick();});
+ assert.equal(dmCalls.length,1);
+ assert.equal(dmCalls[0].m.user_id,'u2');
+ assert.match(dmCalls[0].txt,/Breezy/);
  // Open roster dialog and verify auto-enrolled agent appears.
  await act(async()=>{root.root.findAllByType('button').find(b=>b.props['aria-label']==='View Staff And Agents').props.onClick();});
  assert.match(out(),/Butter/);
