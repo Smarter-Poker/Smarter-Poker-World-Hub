@@ -226,8 +226,16 @@ export default async function handler(req, res) {
                 return res.status(v2Err ? 503 : pvpErrorStatus(v2?.error))
                     .json({ success: false, error: v2?.error || 'settlement_unavailable' });
             }
+            const dto = toPvpDto(v2);
+            if (dto?.state === 'result' && dto?.match?.id) {
+                try {
+                    await sb.rpc('trivia_pvp_update_rating_v1', { p_match_id: dto.match.id });
+                } catch (_eloError) {
+                    // Elo rating update is idempotent and must never alter diamond settlement.
+                }
+            }
             res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
-            return res.status(200).json(toPvpDto(v2));
+            return res.status(200).json(dto);
         }
 
         const result = await settlePvpMatch(sb, match, { force: false });
@@ -236,6 +244,13 @@ export default async function handler(req, res) {
         }
         if (result.error) {
             return res.status(503).json({ success: false, error: result.pendingReason || 'settlement_unavailable' });
+        }
+        if (result.settled === true) {
+            try {
+                await sb.rpc('trivia_pvp_update_rating_v1', { p_match_id: matchId });
+            } catch (_eloError) {
+                // Elo rating update is idempotent and must never alter diamond settlement.
+            }
         }
 
         // Shape for the caller's perspective. Correct counts are only exposed

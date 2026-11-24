@@ -10,7 +10,7 @@
 
 // TRAIN-CSS-TOKENS-BATCH5-11 — hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-CSS-GRADIENT-ADOPT-8 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Head from 'next/head';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { hubProductSchema } from '../../../src/lib/seo/hubPageSchema';
@@ -19,6 +19,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../src/engine/EventBus';
 import { authedFetch } from '../../../src/lib/authUtils';
+import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
 
 // TRAIN-CSS-MOTION-ADOPT-12 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
@@ -106,16 +107,14 @@ function CardPicker({ selectedCards, onSelect, usedCards, label, holeCount = 2 }
         {Array.from({ length: holeCount }, (_, idx) => idx).map((idx) => {
           const card = selectedCards[idx];
           return (
-            <div
+            <button
+              type="button"
               key={idx}
-              role="button"
-              tabIndex={0}
               aria-label={`Select hole card ${idx + 1}`}
               onClick={() => {
                 setSlot(idx);
                 setOpen(true);
               }}
-              onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSlot(idx); setOpen(true); } }}
               style={{
                 width: 44,
                 height: 60,
@@ -131,6 +130,7 @@ function CardPicker({ selectedCards, onSelect, usedCards, label, holeCount = 2 }
                   ? '2px solid rgba(0,212,255,0.3)'
                   : '2px dashed rgba(255,255,255,0.15)',
                 position: 'relative',
+                padding: 0,
               }}
             >
               {card ? (
@@ -153,7 +153,7 @@ function CardPicker({ selectedCards, onSelect, usedCards, label, holeCount = 2 }
                   >
                     {SUITS.find((s) => s.char === card[1])?.symbol}
                   </span>
-                  <div
+                  <span
                     role="button"
                     tabIndex={0}
                     aria-label={`Remove hole card ${idx + 1}`}
@@ -180,12 +180,12 @@ function CardPicker({ selectedCards, onSelect, usedCards, label, holeCount = 2 }
                     }}
                   >
                     X
-                  </div>
+                  </span>
                 </>
               ) : (
                 <span style={{ fontSize: 18, color: 'var(--sp-fg-faint)' }}>?</span>
               )}
-            </div>
+            </button>
           );
         })}
       </div>
@@ -230,6 +230,7 @@ function CardPicker({ selectedCards, onSelect, usedCards, label, holeCount = 2 }
                 SELECT CARD
               </span>
               <button
+                type="button"
                 onClick={() => setOpen(false)}
                 style={{
                   background: 'none',
@@ -249,6 +250,7 @@ function CardPicker({ selectedCards, onSelect, usedCards, label, holeCount = 2 }
                   const used = usedCards.has(card);
                   return (
                     <button
+                      type="button"
                       key={card}
                       onClick={() => !used && handlePick(rank, suit)}
                       disabled={used}
@@ -328,13 +330,11 @@ function BoardPicker({ boardCards, onUpdate, usedCards }) {
           const isFlop = idx < 3;
           const label = idx === 3 ? 'T' : idx === 4 ? 'R' : '';
           return (
-            <div
+            <button
+              type="button"
               key={idx}
-              role="button"
-              tabIndex={0}
               aria-label={`Select board card ${idx + 1}`}
               onClick={() => setActiveSlot(idx)}
-              onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setActiveSlot(idx); } }}
               style={{
                 width: 36,
                 height: 50,
@@ -353,6 +353,7 @@ function BoardPicker({ boardCards, onUpdate, usedCards }) {
                       : '1px dashed rgba(255,255,255,0.1)',
                 position: 'relative',
                 transition: 'all 0.15s',
+                padding: 0,
               }}
             >
               {card ? (
@@ -374,7 +375,7 @@ function BoardPicker({ boardCards, onUpdate, usedCards }) {
                   >
                     {SUITS.find((s) => s.char === card[1])?.symbol}
                   </span>
-                  <div
+                  <span
                     role="button"
                     tabIndex={0}
                     aria-label={`Remove board card ${idx + 1}`}
@@ -401,12 +402,12 @@ function BoardPicker({ boardCards, onUpdate, usedCards }) {
                     }}
                   >
                     X
-                  </div>
+                  </span>
                 </>
               ) : (
                 <span style={{ fontSize: 12, color: '#333' }}>{label || '?'}</span>
               )}
-            </div>
+            </button>
           );
         })}
       </div>
@@ -451,6 +452,7 @@ function BoardPicker({ boardCards, onUpdate, usedCards }) {
                 BOARD CARD
               </span>
               <button
+                type="button"
                 onClick={() => setActiveSlot(null)}
                 style={{
                   background: 'none',
@@ -470,6 +472,7 @@ function BoardPicker({ boardCards, onUpdate, usedCards }) {
                   const used = usedCards.has(card);
                   return (
                     <button
+                      type="button"
                       key={card}
                       onClick={() => !used && handlePick(rank, suit)}
                       disabled={used}
@@ -665,11 +668,122 @@ export default function EquityCalculatorPage() {
   const [equitySeq, setEquitySeq] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [isOffline, setIsOffline] = useState(
+    typeof navigator !== 'undefined' ? !navigator.onLine : false,
+  );
+  const [offlineFallbackUsed, setOfflineFallbackUsed] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const activeVariantSpec = useMemo(
     () => EQUITY_VARIANTS.find((v) => v.id === variant) || EQUITY_VARIANTS[0],
     [variant]
   );
+
+  const buildLocalOfflineEvaluation = useCallback(() => {
+    const adapterVariant = variant === 'holdem' ? 'nlh' : variant;
+    const resolvedStreet =
+      boardCards.length >= 5
+        ? 'river'
+        : boardCards.length === 4
+          ? 'turn'
+          : boardCards.length >= 3
+            ? 'flop'
+            : 'preflop';
+    const cleanBoard =
+      resolvedStreet === 'preflop'
+        ? []
+        : resolvedStreet === 'flop'
+          ? boardCards.slice(0, 3)
+          : resolvedStreet === 'turn'
+            ? boardCards.slice(0, 4)
+            : boardCards.slice(0, 5);
+
+    const activeHands = hands.slice(0, numPlayers);
+    const fallbackHeroByVariant = {
+      nlh: ['As', 'Kd'],
+      plo4: ['As', 'Ks', 'Qh', 'Jh'],
+      plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
+      plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
+    };
+    const playerEvals = activeHands.map((playerCards, idx) => {
+      const heroCards =
+        Array.isArray(playerCards) && playerCards.length === activeVariantSpec.holeCount
+          ? playerCards
+          : fallbackHeroByVariant[adapterVariant] || fallbackHeroByVariant.nlh;
+      try {
+        return evaluateTrainingSpotWithHorseBrain({
+          variant: adapterVariant,
+          street: resolvedStreet,
+          heroCards,
+          boardCards: cleanBoard,
+          heroPosition: idx === 0 ? 'BTN' : 'BB',
+          villainPosition: idx === 0 ? 'BB' : 'BTN',
+          pot: 6.5,
+          toCall: 2.2,
+          effectiveStackBb: 100,
+        });
+      } catch (_) {
+        return evaluateTrainingSpotWithHorseBrain({
+          variant: adapterVariant,
+          street: 'preflop',
+          heroCards: fallbackHeroByVariant[adapterVariant] || fallbackHeroByVariant.nlh,
+          boardCards: [],
+          heroPosition: 'BTN',
+          villainPosition: 'BB',
+          pot: 1.5,
+          toCall: 1,
+          effectiveStackBb: 100,
+        });
+      }
+    });
+
+    const totalStrength =
+      playerEvals.reduce((sum, ev) => sum + Math.max(10, Number(ev?.handScore) || 50), 0) || 100;
+    const localResults = activeHands.map((playerCards, idx) => {
+      const score = Math.max(10, Number(playerEvals[idx]?.handScore) || 50);
+      const equity = Number(((score / totalStrength) * 100).toFixed(1));
+      return {
+        hand: (playerCards || []).join(''),
+        equity,
+        wins: Math.round((equity / 100) * 5000),
+        ties: 0,
+      };
+    });
+
+    const p1Eval = playerEvals[0];
+    const localBrainAnalysis = p1Eval
+      ? {
+          engineModule: p1Eval.engineModule,
+          madeHandCategory: p1Eval.madeHandCategory,
+          recommendedAction: p1Eval.recommendedAction || p1Eval.correctAnswerText,
+          potLimitMaxBetBb: p1Eval.brainEvaluation?.potLimitMaxBetBb || null,
+          flushOuts: p1Eval.brainEvaluation?.flushOuts || 0,
+          straightOuts: p1Eval.brainEvaluation?.straightOuts || 0,
+          wrapType: p1Eval.brainEvaluation?.wrapType || 'none',
+          coachingSummary: p1Eval.coachingSummary || p1Eval.explanation,
+        }
+      : null;
+
+    return { localResults, localBrainAnalysis };
+  }, [variant, boardCards, hands, numPlayers, activeVariantSpec.holeCount]);
+
+  const liveOfflineSpotPreview = useMemo(() => {
+    if (!isOffline && !offlineFallbackUsed) return null;
+    const { localBrainAnalysis } = buildLocalOfflineEvaluation();
+    return localBrainAnalysis;
+  }, [isOffline, offlineFallbackUsed, buildLocalOfflineEvaluation]);
 
   // All used cards (deduplication)
   const usedCards = useMemo(() => {
@@ -773,6 +887,18 @@ export default function EquityCalculatorPage() {
     const reqSeq = calcSeqRef.current;
     setLoading(true);
     setError(null);
+
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setIsOffline(true);
+      setOfflineFallbackUsed(true);
+      const { localResults, localBrainAnalysis } = buildLocalOfflineEvaluation();
+      setResults(localResults);
+      setHorseBrainAnalysis(localBrainAnalysis);
+      setEquitySeq(reqSeq);
+      setLoading(false);
+      return;
+    }
+
     try {
       const handStrings = hands.slice(0, numPlayers).map((h) => h.join(''));
       const res = await authedFetch('/api/training/equity', {
@@ -789,6 +915,7 @@ export default function EquityCalculatorPage() {
       const data = await res.json();
       if (reqSeq !== calcSeqRef.current) return;
       if (data.success) {
+        setOfflineFallbackUsed(false);
         setResults(data.results);
         setHorseBrainAnalysis(data.horseBrainAnalysis || null);
         setEquitySeq(reqSeq);
@@ -799,6 +926,11 @@ export default function EquityCalculatorPage() {
       }
     } catch (err) {
       if (reqSeq === calcSeqRef.current) {
+        setOfflineFallbackUsed(true);
+        const { localResults, localBrainAnalysis } = buildLocalOfflineEvaluation();
+        setResults(localResults);
+        setHorseBrainAnalysis(localBrainAnalysis);
+        setEquitySeq(reqSeq);
         setError(err.message);
       }
     } finally {
@@ -806,7 +938,7 @@ export default function EquityCalculatorPage() {
         setLoading(false);
       }
     }
-  }, [canCalculate, hands, numPlayers, boardCards, variant]);
+  }, [canCalculate, hands, numPlayers, boardCards, variant, buildLocalOfflineEvaluation]);
 
   const pageUrl = 'https://smarter.poker/hub/training/equity-calculator';
   const equityJsonLd = hubProductSchema({
@@ -886,6 +1018,7 @@ export default function EquityCalculatorPage() {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
             <button
+              type="button"
               onClick={() => router.push('/hub/training')}
               style={{
                 background: 'rgba(255,255,255,0.06)',
@@ -991,6 +1124,7 @@ export default function EquityCalculatorPage() {
             </span>
             {[2, 3, 4].map((n) => (
               <button
+                type="button"
                 key={n}
                 aria-pressed={numPlayers === n}
                 onClick={() => changePlayerCount(n)}
@@ -1075,6 +1209,7 @@ export default function EquityCalculatorPage() {
           {/* Action Buttons */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
             <button
+              type="button"
               className="sp-analysis-primary-action"
               onClick={calculate}
               disabled={!canCalculate || loading}
@@ -1097,6 +1232,7 @@ export default function EquityCalculatorPage() {
               {loading ? 'Calculating...' : 'Calculate Equity'}
             </button>
             <button
+              type="button"
               onClick={clearAll}
               style={{
                 padding: '14px 20px',
@@ -1113,6 +1249,56 @@ export default function EquityCalculatorPage() {
             </button>
           </div>
 
+          {(isOffline || offlineFallbackUsed) && (
+            <div
+              data-offline-equity-fallback="true"
+              style={{
+                padding: '12px 14px',
+                marginBottom: 16,
+                borderRadius: 10,
+                border: '1px solid rgba(251, 191, 36, 0.45)',
+                background: 'rgba(120, 53, 15, 0.22)',
+                color: '#fde68a',
+                fontSize: 12,
+              }}
+            >
+              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <strong style={{ color: '#fbbf24', textTransform: 'uppercase' }}>
+                  Offline Horse Brain Evaluation Mode Active
+                </strong>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRetryCount((c) => c + 1);
+                    calculate();
+                  }}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: 6,
+                    border: '1px solid rgba(251, 191, 36, 0.5)',
+                    background: 'rgba(217, 119, 6, 0.28)',
+                    color: '#fef3c7',
+                    fontSize: 12,
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Retry Server Simulation {retryCount > 0 ? `(${retryCount})` : ''}
+                </button>
+              </div>
+              {liveOfflineSpotPreview && (
+                <div style={{ color: '#e2e8f0', lineHeight: 1.5 }}>
+                  <div>
+                    Engine: <strong>{liveOfflineSpotPreview.engineModule}</strong> · Made Hand: <strong>{liveOfflineSpotPreview.madeHandCategory}</strong> · Recommended Action: <strong style={{ color: '#4ade80' }}>{liveOfflineSpotPreview.recommendedAction}</strong>
+                  </div>
+                  <div style={{ marginTop: 4 }}>
+                    Draws: Flush Outs <strong>{liveOfflineSpotPreview.flushOuts}</strong> · Straight/Wrap Outs <strong>{liveOfflineSpotPreview.straightOuts}</strong> ({liveOfflineSpotPreview.wrapType})
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Error */}
           {error && (
             <div
@@ -1125,9 +1311,32 @@ export default function EquityCalculatorPage() {
                 fontSize: 12,
                 fontWeight: 600,
                 marginBottom: 16,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: 8,
               }}
             >
-              {error}
+              <span>{error}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setRetryCount((c) => c + 1);
+                  calculate();
+                }}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: 6,
+                  border: '1px solid rgba(239,68,68,0.4)',
+                  background: 'rgba(239,68,68,0.18)',
+                  color: '#fecaca',
+                  fontSize: 12,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                }}
+              >
+                Retry
+              </button>
             </div>
           )}
 
@@ -1228,6 +1437,7 @@ export default function EquityCalculatorPage() {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {PRESETS.map((preset, i) => (
                 <button
+                  type="button"
                   key={i}
                   onClick={() => loadPreset(preset)}
                   style={{

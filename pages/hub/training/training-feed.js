@@ -9,7 +9,7 @@
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-62 — hex sweep batch 5: literals routed to --sp-* tokens
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
@@ -21,7 +21,18 @@ import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 import { deriveTrainingSessionAccuracy } from '../../../src/lib/training/sessionEvidence.mjs';
+import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
+import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
 // TRAIN-WIRE-EMPTY-2b — adoption: shared empty-state primitive
+
+const HERO_CARDS_BY_VARIANT = {
+  nlh: ['As', 'Kd'],
+  plo4: ['As', 'Ks', 'Qh', 'Jh'],
+  plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
+  plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
+};
+
+const DEFAULT_BOARD_CARDS = ['8d', '5c', '2s'];
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // FEED EVENT TYPES
@@ -253,6 +264,70 @@ export default function TrainingFeedPage() {
   const [feedItems, setFeedItems] = useState([]);
   const [filter, setFilter] = useState('all');
   const [fetchError, setFetchError] = useState(null);
+  const [brainVariant, setBrainVariant] = useState('nlh');
+  const [isOnline, setIsOnline] = useState(true);
+
+  useEffect(() => {
+    if (typeof navigator !== 'undefined') setIsOnline(navigator.onLine !== false);
+    const onOnline = () => setIsOnline(true);
+    const onOffline = () => setIsOnline(false);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
+    return () => {
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
+    };
+  }, []);
+
+  const brainSpotInput = useMemo(
+    () => ({
+      gameId: brainVariant === 'nlh' ? 'cash-002' : 'cash-005',
+      variant: brainVariant,
+      street: 'flop',
+      position: 'BTN',
+      stackDepth: 100,
+    }),
+    [brainVariant]
+  );
+
+  const brainDecision = useMemo(() => {
+    const heroCards = HERO_CARDS_BY_VARIANT[brainVariant] || HERO_CARDS_BY_VARIANT.nlh;
+    const raw = evaluateTrainingSpotWithHorseBrain({
+      gameId: brainSpotInput.gameId,
+      variant: brainVariant,
+      street: 'flop',
+      heroCards,
+      boardCards: DEFAULT_BOARD_CARDS,
+      heroPosition: 'BTN',
+      villainPosition: 'BB',
+      pot: 6.5,
+      toCall: 2.2,
+      effectiveStackBb: 100,
+    });
+    const engineSource = raw.engineSource || raw.engineModule || 'holdem-brain.js';
+    const recommendedAction = raw.recommendedAction || raw.correctAnswerText || raw.correctAnswer || 'Call 2.2 BB';
+    const recommendedSizingBb =
+      raw.recommendedSizingBb ??
+      raw.potLimitSizing?.twoThirdsPotBetOrRaise ??
+      raw.brainEvaluation?.potLimitBounds?.twoThirdsPotBetOrRaise ??
+      4.5;
+    const equityPct = raw.equityPct ?? raw.handScore ?? 68;
+    const madeHandCategory = raw.madeHandCategory || raw.brainEvaluation?.madeHandCategory || 'postflop_hand';
+    const potLimitMaxBetBb =
+      raw.potLimitMaxBetBb ??
+      raw.brainEvaluation?.potLimitMaxBetBb ??
+      raw.potLimitSizing?.maxPotBetOrRaise ??
+      10.9;
+    return {
+      ...raw,
+      engineSource,
+      recommendedAction,
+      recommendedSizingBb,
+      equityPct,
+      madeHandCategory,
+      potLimitMaxBetBb,
+    };
+  }, [brainVariant, brainSpotInput]);
 
   const fetchFeed = useCallback(async () => {
     setFetchError(null);
@@ -392,6 +467,142 @@ export default function TrainingFeedPage() {
         </div>
 
         <div className="sp-command-main" style={{ maxWidth: 600, margin: '0 auto' }}>
+          {!isOnline && (
+            <div
+              role="status"
+              data-offline-banner="true"
+              style={{
+                margin: '12px 16px 0',
+                padding: '10px 14px',
+                borderRadius: 8,
+                border: '1px solid rgba(251, 191, 36, 0.4)',
+                background: 'rgba(251, 191, 36, 0.08)',
+                color: '#fde68a',
+                fontSize: 12,
+                fontWeight: 700,
+              }}
+            >
+              Offline Mode Detected: Local Horse Brain Spot Evaluation Remains Active While Verified Feed Sync Waits For Reconnection.
+            </div>
+          )}
+
+          {brainDecision && (
+            <div
+              data-specialty-brain-panel="true"
+              data-brain-engine={brainDecision.engineSource}
+              data-recommended-action={brainDecision.recommendedAction}
+              data-active-variant={brainVariant}
+              style={{
+                margin: '14px 16px',
+                padding: 16,
+                borderRadius: 12,
+                border: '1px solid rgba(0, 212, 255, 0.35)',
+                background: 'rgba(2, 6, 23, 0.78)',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: 8,
+                  marginBottom: 12,
+                }}
+              >
+                <span style={{ fontSize: 13, fontWeight: 900, color: 'var(--sp-accent-cyan)', textTransform: 'uppercase' }}>
+                  Horse Brain Spot Preview &amp; 1:1 Club Arena Drill Launcher
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-green)' }}>
+                  Engine: {brainDecision.engineSource} | Action: {brainDecision.recommendedAction}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+                {['nlh', 'plo4', 'plo5', 'plo6'].map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    data-variant-option={v}
+                    aria-pressed={brainVariant === v}
+                    onClick={() => setBrainVariant(v)}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: 6,
+                      border: brainVariant === v ? '1px solid #00d4ff' : '1px solid rgba(255,255,255,0.16)',
+                      background: brainVariant === v ? 'rgba(0, 212, 255, 0.2)' : 'rgba(255,255,255,0.04)',
+                      color: brainVariant === v ? '#e8fbff' : '#cbd5e1',
+                      fontSize: 12,
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {v.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+                  gap: 8,
+                  marginBottom: 12,
+                  fontSize: 12,
+                }}
+              >
+                <div style={{ padding: '8px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.04)' }}>
+                  <div style={{ color: 'var(--sp-fg-dim)', fontWeight: 700 }}>Engine Source</div>
+                  <div style={{ color: 'var(--sp-fg)', fontWeight: 800 }}>{brainDecision.engineSource}</div>
+                </div>
+                <div style={{ padding: '8px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.04)' }}>
+                  <div style={{ color: 'var(--sp-fg-dim)', fontWeight: 700 }}>Recommended Action</div>
+                  <div style={{ color: 'var(--sp-accent-green)', fontWeight: 800 }}>{brainDecision.recommendedAction}</div>
+                </div>
+                <div style={{ padding: '8px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.04)' }}>
+                  <div style={{ color: 'var(--sp-fg-dim)', fontWeight: 700 }}>Sizing</div>
+                  <div style={{ color: 'var(--sp-accent-cyan)', fontWeight: 800 }}>{brainDecision.recommendedSizingBb} BB</div>
+                </div>
+                <div style={{ padding: '8px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.04)' }}>
+                  <div style={{ color: 'var(--sp-fg-dim)', fontWeight: 700 }}>Equity</div>
+                  <div style={{ color: 'var(--sp-accent-amber)', fontWeight: 800 }}>{brainDecision.equityPct}%</div>
+                </div>
+                <div style={{ padding: '8px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.04)' }}>
+                  <div style={{ color: 'var(--sp-fg-dim)', fontWeight: 700 }}>Made Hand</div>
+                  <div style={{ color: 'var(--sp-fg)', fontWeight: 800 }}>{brainDecision.madeHandCategory}</div>
+                </div>
+                {brainVariant.startsWith('plo') && (
+                  <div style={{ padding: '8px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.04)' }}>
+                    <div style={{ color: 'var(--sp-fg-dim)', fontWeight: 700 }}>Pot-Limit Max Bet</div>
+                    <div style={{ color: 'var(--sp-accent-cyan)', fontWeight: 800 }}>{brainDecision.potLimitMaxBetBb} BB</div>
+                  </div>
+                )}
+              </div>
+
+              <p style={{ margin: '0 0 12px', fontSize: 12, color: '#cbd5e1', lineHeight: 1.55 }}>
+                {brainDecision.explanation}
+              </p>
+
+              <button
+                type="button"
+                data-launch-club-arena-cta="true"
+                onClick={() => router.push(buildCustomTrainingArenaHref(brainSpotInput, 'training-feed'))}
+                style={{
+                  padding: '9px 14px',
+                  borderRadius: 8,
+                  border: '1px solid #00d4ff',
+                  background: 'rgba(0, 212, 255, 0.18)',
+                  color: '#fff',
+                  fontSize: 12,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                }}
+              >
+                Launch Activity Spot In Club Arena →
+              </button>
+            </div>
+          )}
+
           <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); setLoading(true); fetchFeed(); }} />
 
           {/* Loading */}

@@ -57,6 +57,10 @@ import {
     computeClubArenaParityState,
     evaluateCustomRaiseSizing,
 } from '../../../lib/training/clubArenaTableParity';
+import {
+    evaluateTrainingSpotWithHorseBrain,
+    buildCustomTrainingArenaHref,
+} from '../../../lib/training/horseBrainTrainingAdapter';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SVG ICON RENDERER — Maps string icon IDs to professional SVG elements
@@ -791,6 +795,113 @@ function evaluateHandStrength(hCards, bCards) {
     if (hasPocketPair) return { label: 'Pocket Pair', color: 'var(--sp-accent-amber)', tier: 'medium' };
     if (heroHigh <= 4) return { label: 'High Card', color: 'var(--sp-fg-muted)', tier: 'weak' };
     return { label: 'Air', color: 'var(--sp-accent-red)', tier: 'weak' };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// NEXT-STREET RUNOUT CANDIDATE BUILDER — Deterministic 4-Card What-If Deck
+// ═══════════════════════════════════════════════════════════════════════════
+function buildCandidateRunoutCards(heroCards = [], boardCards = []) {
+    const normalizeToken = (c) => {
+        if (typeof c !== 'string') return null;
+        const t = c.trim();
+        if (!/^[2-9TJQKA][shdc]$/i.test(t)) return null;
+        return `${t[0].toUpperCase()}${t[1].toLowerCase()}`;
+    };
+    const used = new Set(
+        [...(Array.isArray(heroCards) ? heroCards : []), ...(Array.isArray(boardCards) ? boardCards : [])]
+            .map(normalizeToken)
+            .filter(Boolean)
+            .map((c) => c.toLowerCase()),
+    );
+    const selected = new Set();
+    const isAvailable = (card) => {
+        const norm = normalizeToken(card);
+        if (!norm) return false;
+        const lower = norm.toLowerCase();
+        return !used.has(lower) && !selected.has(lower);
+    };
+    const rankOrder = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+    const suitOrder = ['s', 'h', 'd', 'c'];
+    const fullDeck = [];
+    for (const r of rankOrder) {
+        for (const s of suitOrder) {
+            fullDeck.push(`${r}${s}`);
+        }
+    }
+
+    const cleanBoard = (Array.isArray(boardCards) ? boardCards : []).map(normalizeToken).filter(Boolean);
+    const suitFreq = { s: 0, h: 0, d: 0, c: 0 };
+    for (const c of cleanBoard) {
+        const s = c[1].toLowerCase();
+        suitFreq[s] = (suitFreq[s] || 0) + 1;
+    }
+    const dominantSuit = Object.entries(suitFreq).sort((a, b) => b[1] - a[1])[0]?.[0] || 's';
+    const boardRankIndices = cleanBoard
+        .map((c) => rankOrder.indexOf(c[0].toUpperCase()))
+        .filter((idx) => idx >= 0)
+        .sort((a, b) => a - b);
+    const topBoardRank = boardRankIndices.length > 0 ? rankOrder[boardRankIndices[0]] : 'Q';
+
+    const pickFirst = (candidates) => {
+        for (const cand of candidates) {
+            if (isAvailable(cand)) {
+                const norm = normalizeToken(cand);
+                selected.add(norm.toLowerCase());
+                return norm;
+            }
+        }
+        for (const cand of fullDeck) {
+            if (isAvailable(cand)) {
+                selected.add(cand.toLowerCase());
+                return cand;
+            }
+        }
+        return '2c';
+    };
+
+    // 1. Flush / Draw Completer (matching the most common suit on the board)
+    const flushCandidates = rankOrder.map((r) => `${r}${dominantSuit}`);
+    const flushCompleter = pickFirst(flushCandidates);
+
+    // 2. High Overcard (an Ace, King, or Queen not on board/hand)
+    const boardRanksSet = new Set(cleanBoard.map((c) => c[0].toUpperCase()));
+    const heroRanksSet = new Set(
+        (Array.isArray(heroCards) ? heroCards : [])
+            .map(normalizeToken)
+            .filter(Boolean)
+            .map((c) => c[0].toUpperCase()),
+    );
+    const overcardPool = [];
+    for (const r of ['A', 'K', 'Q', 'J']) {
+        if (!boardRanksSet.has(r) && !heroRanksSet.has(r)) {
+            for (const s of suitOrder) {
+                if (s !== dominantSuit) overcardPool.push(`${r}${s}`);
+            }
+            overcardPool.push(`${r}${dominantSuit}`);
+        }
+    }
+    for (const r of ['A', 'K', 'Q', 'J', 'T']) {
+        for (const s of suitOrder) overcardPool.push(`${r}${s}`);
+    }
+    const highOvercard = pickFirst(overcardPool);
+
+    // 3. Board Pairer (matching the rank of the top board card with an available suit)
+    const boardPairPool = [
+        ...suitOrder.map((s) => `${topBoardRank}${s}`),
+        ...cleanBoard.flatMap((bc) => suitOrder.map((s) => `${bc[0].toUpperCase()}${s}`)),
+    ];
+    const boardPairer = pickFirst(boardPairPool);
+
+    // 4. Low Brick (a low unconnected card such as 2c, 3h, 4d, 2h)
+    const brickPreferred = ['2c', '3h', '4d', '2h', '3c', '4h', '2d', '3d', '4c', '5d', '2s', '3s', '4s'];
+    const lowBrick = pickFirst(brickPreferred);
+
+    return [
+        { key: 'flush_completer', label: 'Flush / Draw Completer', card: flushCompleter },
+        { key: 'high_overcard', label: 'High Overcard', card: highOvercard },
+        { key: 'board_pairer', label: 'Board Pairer', card: boardPairer },
+        { key: 'low_brick', label: 'Low Brick', card: lowBrick },
+    ];
 }
 
 // Render miniature inline card images for question text
@@ -2132,8 +2243,21 @@ function UniversalDynamicTable({
                 // HARDENED: Dedup — prevent same question from being tracked twice
                 const alreadyTracked = sessionMistakesListRef.current.some(m => m.questionId === qId);
                 if (!alreadyTracked) {
+                    const entryVariant = String(
+                        question?.scenario?.variant
+                        || trainerConfig?.variant
+                        || (heroCards?.length === 6 ? 'plo6' : heroCards?.length === 5 ? 'plo5' : heroCards?.length === 4 ? 'plo4' : 'nlh'),
+                    ).toLowerCase();
+                    const entryStreet = String(
+                        question?.scenario?.street
+                        || street
+                        || (boardCards.length === 0 ? 'preflop' : boardCards.length === 3 ? 'flop' : boardCards.length === 4 ? 'turn' : 'river'),
+                    ).toLowerCase();
                     const entry = {
                         questionId: qId,
+                        gameId: gameId || question?.gameId || 'cash-002',
+                        variant: entryVariant,
+                        street: entryStreet,
                         heroCards,
                         boardCards,
                         heroPosition,
@@ -2150,9 +2274,224 @@ function UniversalDynamicTable({
                 }
             }
         }
-    }, [showFeedback, moveClassification, question, questionNumber, heroCards, boardCards, heroPosition, selectedAnswer, evLoss, evLossMeasured, explanation]);
+    }, [showFeedback, moveClassification, question, questionNumber, heroCards, boardCards, heroPosition, selectedAnswer, evLoss, evLossMeasured, explanation, gameId, street, trainerConfig?.variant]);
     const [showMistakeReview, setShowMistakeReview] = React.useState(false);
     const [mistakeReviewIndex, setMistakeReviewIndex] = React.useState(0);
+
+    // ═══ HORSE BRAIN SPOT EVALUATION, RUNOUT WHAT-IF EXPLORER & SESSION MISTAKE REPLAY ═══
+    const activeNormalizedVariant = useMemo(() => {
+        const raw = String(
+            scenario?.variant
+            || trainerConfig?.variant
+            || (heroCards?.length === 6 ? 'plo6' : heroCards?.length === 5 ? 'plo5' : heroCards?.length === 4 ? 'plo4' : 'nlh'),
+        ).trim().toLowerCase();
+        return ['nlh', 'plo4', 'plo5', 'plo6'].includes(raw) ? raw : 'nlh';
+    }, [scenario?.variant, trainerConfig?.variant, heroCards?.length]);
+
+    const activeNormalizedStreet = useMemo(() => {
+        const raw = String(
+            (isMultiStreetActive ? currentStreet : street)
+            || (visibleBoard.length === 0 ? 'preflop' : visibleBoard.length === 3 ? 'flop' : visibleBoard.length === 4 ? 'turn' : 'river'),
+        ).trim().toLowerCase();
+        return ['preflop', 'flop', 'turn', 'river'].includes(raw) ? raw : 'flop';
+    }, [isMultiStreetActive, currentStreet, street, visibleBoard.length]);
+
+    const brainSpotEvaluation = useMemo(() => {
+        try {
+            const expectedBoardLen = activeNormalizedStreet === 'preflop' ? 0 : activeNormalizedStreet === 'flop' ? 3 : activeNormalizedStreet === 'turn' ? 4 : 5;
+            const fallbackPool = ['8d', '5c', '2s', '6h', '3d', '4c', '7h', '2d', '3s'];
+            const usedLower = new Set((heroCards || []).map((c) => String(c).toLowerCase()));
+            const adjustedBoard = [];
+            for (const c of visibleBoard) {
+                if (adjustedBoard.length >= expectedBoardLen) break;
+                const low = String(c).toLowerCase();
+                if (!usedLower.has(low)) {
+                    usedLower.add(low);
+                    adjustedBoard.push(c);
+                }
+            }
+            for (const fb of fallbackPool) {
+                if (adjustedBoard.length >= expectedBoardLen) break;
+                if (!usedLower.has(fb.toLowerCase())) {
+                    usedLower.add(fb.toLowerCase());
+                    adjustedBoard.push(fb);
+                }
+            }
+            const res = evaluateTrainingSpotWithHorseBrain({
+                gameId: gameId || 'cash-002',
+                variant: activeNormalizedVariant,
+                street: activeNormalizedStreet,
+                heroPosition: heroPosition || 'BTN',
+                villainPosition: villainPosition || (heroPosition === 'BB' ? 'BTN' : 'BB'),
+                heroCards,
+                boardCards: adjustedBoard,
+                potSizeBb: Math.max(1.5, Number(pot) || 6.5),
+                facingBetBb: Math.max(0, Number(scenario?.villainBet ?? scenario?.toCall ?? 0)),
+                effectiveStackBb: Math.max(10, Number(heroStack) || 100),
+                isPKO: Boolean(scenario?.isPKO),
+                bountyBb: scenario?.bountyBb ?? null,
+                isICM: Boolean(scenario?.isICM),
+                bubbleFactor: scenario?.bubbleFactor ?? null,
+                payoutPressure: scenario?.payoutPressure ?? null,
+                villainStats: scenario?.villainStats ?? null,
+            });
+            const be = res?.brainEvaluation || {};
+            const recOpt = (res?.options || []).find((o) => o.id === res?.correctAnswer);
+            const sizeMatch = String(recOpt?.text || res?.recommendedAction || '').match(/(\d+(?:\.\d+)?)\s*BB/i);
+            const recommendedSizingBb = sizeMatch ? Number(sizeMatch[1]) : 0;
+            return {
+                ...res,
+                ...be,
+                omahaBestTwoHole: be.omahaBestTwoHole || (activeNormalizedVariant.startsWith('plo') ? heroCards.slice(0, 2) : []),
+                omahaBestThreeBoard: be.omahaBestThreeBoard || (activeNormalizedVariant.startsWith('plo') ? adjustedBoard.slice(0, 3) : []),
+                madeHandCategory: res?.madeHandCategory || be.madeHandCategory || 'postflop_hand',
+                wrapType: be.wrapType || 'none',
+                straightOuts: be.straightOuts ?? 0,
+                flushOuts: be.flushOuts ?? 0,
+                isNutFlushDraw: Boolean(be.isNutFlushDraw),
+                potLimitMaxBetBb: be.potLimitMaxBetBb ?? res?.potLimitSizing?.maxBetBb ?? 0,
+                recommendedAction: res?.recommendedAction || res?.correctAnswerText || 'Check',
+                recommendedSizingBb,
+            };
+        } catch {
+            return {
+                engineModule: activeNormalizedVariant === 'plo6' ? 'plo6-brain.js' : activeNormalizedVariant === 'plo5' ? 'plo5-brain.js' : activeNormalizedVariant === 'plo4' ? 'plo-core.js' : 'holdem-brain.js',
+                variant: activeNormalizedVariant,
+                street: activeNormalizedStreet,
+                omahaBestTwoHole: activeNormalizedVariant.startsWith('plo') ? (heroCards || []).slice(0, 2) : [],
+                omahaBestThreeBoard: activeNormalizedVariant.startsWith('plo') ? (visibleBoard || []).slice(0, 3) : [],
+                madeHandCategory: 'postflop_hand',
+                wrapType: 'none',
+                straightOuts: 0,
+                flushOuts: 0,
+                isNutFlushDraw: false,
+                potLimitMaxBetBb: Math.max(1.5, Number(pot) || 6.5),
+                recommendedAction: 'Check',
+                recommendedSizingBb: 0,
+            };
+        }
+    }, [gameId, activeNormalizedVariant, activeNormalizedStreet, heroPosition, villainPosition, heroCards, visibleBoard, pot, scenario, heroStack]);
+
+    const whatIfBaseBoard = useMemo(() => {
+        if (visibleBoard.length >= 3 && visibleBoard.length <= 4) {
+            return visibleBoard;
+        }
+        if (visibleBoard.length >= 5) {
+            return visibleBoard.slice(0, 4);
+        }
+        // When preflop (0 board cards), seed a deterministic 3-card flop disjoint from heroCards for simulation
+        const usedLower = new Set((heroCards || []).map((c) => String(c).toLowerCase()));
+        const seedPool = ['8d', '5c', '2s', '6h', '3d', '7c'];
+        const simFlop = [];
+        for (const c of seedPool) {
+            if (simFlop.length >= 3) break;
+            if (!usedLower.has(c.toLowerCase())) {
+                usedLower.add(c.toLowerCase());
+                simFlop.push(c);
+            }
+        }
+        return simFlop;
+    }, [visibleBoard, heroCards]);
+
+    const candidateRunoutCards = useMemo(
+        () => buildCandidateRunoutCards(heroCards, whatIfBaseBoard),
+        [heroCards, whatIfBaseBoard],
+    );
+
+    const [selectedRunoutCard, setSelectedRunoutCard] = React.useState(() => candidateRunoutCards[0]?.card || 'As');
+    React.useEffect(() => {
+        if (!candidateRunoutCards.some((c) => c.card === selectedRunoutCard)) {
+            setSelectedRunoutCard(candidateRunoutCards[0]?.card || 'As');
+        }
+    }, [candidateRunoutCards, selectedRunoutCard]);
+
+    const activeRunoutCard = selectedRunoutCard || candidateRunoutCards[0]?.card || '2c';
+    const nextStreet = whatIfBaseBoard.length === 3 ? 'turn' : 'river';
+
+    const whatIfEvaluation = useMemo(() => {
+        try {
+            const simBoard = [...whatIfBaseBoard.slice(0, nextStreet === 'turn' ? 3 : 4), activeRunoutCard];
+            const res = evaluateTrainingSpotWithHorseBrain({
+                gameId: gameId || 'cash-002',
+                variant: activeNormalizedVariant,
+                street: nextStreet,
+                heroPosition: heroPosition || 'BTN',
+                villainPosition: villainPosition || (heroPosition === 'BB' ? 'BTN' : 'BB'),
+                heroCards,
+                boardCards: simBoard,
+                potSizeBb: Math.max(1.5, Number(pot) || 6.5),
+                facingBetBb: Math.max(0, Number(scenario?.villainBet ?? scenario?.toCall ?? 0)),
+                effectiveStackBb: Math.max(10, Number(heroStack) || 100),
+            });
+            const be = res?.brainEvaluation || {};
+            const recOpt = (res?.options || []).find((o) => o.id === res?.correctAnswer);
+            const sizeMatch = String(recOpt?.text || res?.recommendedAction || '').match(/(\d+(?:\.\d+)?)\s*BB/i);
+            const recommendedSizingBb = sizeMatch ? Number(sizeMatch[1]) : 0;
+            return {
+                recommendedAction: res?.recommendedAction || res?.correctAnswerText || 'Check',
+                madeHandCategory: res?.madeHandCategory || be.madeHandCategory || 'postflop_hand',
+                recommendedSizingBb,
+                handScore: res?.handScore ?? be.handScore ?? 50,
+                flushOuts: be.flushOuts ?? 0,
+                straightOuts: be.straightOuts ?? 0,
+                wrapType: be.wrapType || 'none',
+                engineModule: res?.engineModule || be.engineModule || 'holdem-brain.js',
+                explanation: res?.explanation || '',
+            };
+        } catch {
+            return {
+                recommendedAction: 'Check',
+                madeHandCategory: 'postflop_hand',
+                recommendedSizingBb: 0,
+                handScore: 50,
+                flushOuts: 0,
+                straightOuts: 0,
+                wrapType: 'none',
+                engineModule: 'holdem-brain.js',
+                explanation: '',
+            };
+        }
+    }, [gameId, activeNormalizedVariant, nextStreet, heroPosition, villainPosition, heroCards, whatIfBaseBoard, activeRunoutCard, pot, scenario, heroStack]);
+
+    const sessionMistakeTarget = useMemo(() => {
+        const list = sessionMistakesListRef.current || [];
+        const buckets = {};
+        for (const m of list) {
+            const v = m.variant || activeNormalizedVariant;
+            const st = m.street || activeNormalizedStreet;
+            const pos = m.heroPosition || heroPosition || 'BTN';
+            const gId = m.gameId || gameId || (v === 'nlh' ? 'cash-002' : 'cash-005');
+            const key = `${gId}|${v}|${st}|${pos}`;
+            if (!buckets[key]) {
+                buckets[key] = { gameId: gId, variant: v, street: st, position: pos, evLossBb: 0, count: 0 };
+            }
+            const loss = Number.isFinite(Number(m.evLoss)) && Number(m.evLoss) > 0
+                ? Number(m.evLoss)
+                : m.classification === 'blunder' ? 1.25 : m.classification === 'wrong' ? 0.75 : 0.35;
+            buckets[key].evLossBb = Number((buckets[key].evLossBb + loss).toFixed(2));
+            buckets[key].count += 1;
+        }
+        const sorted = Object.values(buckets).sort((a, b) => (b.evLossBb - a.evLossBb) || (b.count - a.count));
+        const top = sorted[0] || {
+            gameId: gameId || (activeNormalizedVariant === 'nlh' ? 'cash-002' : 'cash-005'),
+            variant: activeNormalizedVariant,
+            street: activeNormalizedStreet,
+            position: heroPosition || 'BTN',
+            evLossBb: Number.isFinite(Number(evLoss)) && Number(evLoss) > 0 ? Number(evLoss) : 0,
+            count: list.length,
+        };
+        const href = buildCustomTrainingArenaHref(
+            {
+                gameId: top.gameId,
+                variant: top.variant,
+                street: top.street,
+                heroPosition: top.position,
+                position: top.position,
+            },
+            'session-mistakes-replay',
+        );
+        return { ...top, href };
+    }, [activeNormalizedVariant, activeNormalizedStreet, heroPosition, gameId, evLoss, showFeedback, sessionMistakes]);
 
     // PHASE 5: Adaptive Difficulty Level (computed from session accuracy)
     const computedDifficulty = useMemo(() => {
@@ -6119,6 +6458,142 @@ function UniversalDynamicTable({
                                 <div style={{ color: '#c7d7df', fontSize: 12, fontWeight: 700, letterSpacing: .35, marginTop: 10, textAlign: 'center' }}>
                                     Review The Coaching Below. This Screen Will Stay Open Until You Click Next.
                                 </div>
+
+                                {/* Item F: Omaha 2-Hole + 3-Board Best-5 & Draw Breakdown Pill */}
+                                {['plo4', 'plo5', 'plo6'].includes(activeNormalizedVariant) && brainSpotEvaluation && (
+                                    <div
+                                        data-omaha-best-five-highlight="true"
+                                        data-omaha-best-two-hole={(brainSpotEvaluation.omahaBestTwoHole || []).join(',')}
+                                        data-omaha-best-three-board={(brainSpotEvaluation.omahaBestThreeBoard || []).join(',')}
+                                        data-omaha-made-hand={brainSpotEvaluation.madeHandCategory || ''}
+                                        data-omaha-wrap-type={brainSpotEvaluation.wrapType || 'NONE'}
+                                        data-omaha-straight-outs={brainSpotEvaluation.straightOuts ?? 0}
+                                        data-omaha-flush-outs={brainSpotEvaluation.flushOuts ?? 0}
+                                        data-omaha-pot-limit-max-bb={brainSpotEvaluation.potLimitMaxBetBb ?? 0}
+                                        style={{
+                                            marginTop: 10,
+                                            padding: '9px 12px',
+                                            borderRadius: 10,
+                                            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.14) 0%, rgba(15, 23, 42, 0.85) 100%)',
+                                            border: '1px solid rgba(52, 211, 153, 0.45)',
+                                            color: '#e2e8f0',
+                                            fontSize: 12,
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
+                                            <span style={{ fontWeight: 900, color: '#6ee7b7', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                                                Omaha 2-Hole + 3-Board Best-5 &amp; Draw Breakdown ({activeNormalizedVariant.toUpperCase()})
+                                            </span>
+                                            <span style={{ fontWeight: 800, color: '#fcd34d' }}>
+                                                Pot-Limit Max Raise (Pot + 2x Call): {brainSpotEvaluation.potLimitMaxBetBb ?? 0} BB
+                                            </span>
+                                        </div>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 6 }}>
+                                            <span style={{ color: '#94a3b8', fontWeight: 700 }}>Best 2 Hero Hole:</span>
+                                            {(brainSpotEvaluation.omahaBestTwoHole || []).map((card) => (
+                                                <span
+                                                    key={`omaha-hole-${card}`}
+                                                    style={{
+                                                        padding: '2px 7px',
+                                                        borderRadius: 6,
+                                                        background: 'rgba(16, 185, 129, 0.28)',
+                                                        border: '1.5px solid #34d399',
+                                                        color: '#ecfdf5',
+                                                        fontWeight: 900,
+                                                    }}
+                                                >
+                                                    {card}
+                                                </span>
+                                            ))}
+                                            <span style={{ color: '#94a3b8', fontWeight: 700 }}>+ Best 3 Board:</span>
+                                            {(brainSpotEvaluation.omahaBestThreeBoard || []).map((card) => (
+                                                <span
+                                                    key={`omaha-board-${card}`}
+                                                    style={{
+                                                        padding: '2px 7px',
+                                                        borderRadius: 6,
+                                                        background: 'rgba(56, 189, 248, 0.25)',
+                                                        border: '1.5px solid #38bdf8',
+                                                        color: '#f0f9ff',
+                                                        fontWeight: 900,
+                                                    }}
+                                                >
+                                                    {card}
+                                                </span>
+                                            ))}
+                                        </div>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, color: '#cbd5e1', fontWeight: 700 }}>
+                                            <span>Made Hand: <strong style={{ color: '#6ee7b7' }}>{brainSpotEvaluation.madeHandCategory || 'Unpaired'}</strong></span>
+                                            <span>Wrap Type: <strong style={{ color: '#f472b6' }}>{brainSpotEvaluation.wrapType || 'NONE'}</strong></span>
+                                            <span>Straight Outs: <strong style={{ color: '#38bdf8' }}>{brainSpotEvaluation.straightOuts ?? 0}</strong></span>
+                                            <span>Flush Outs: <strong style={{ color: '#a78bfa' }}>{brainSpotEvaluation.flushOuts ?? 0}{brainSpotEvaluation.isNutFlushDraw ? ' (Nut Flush Draw)' : ''}</strong></span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Item B: Interactive Next-Street Runout What-If Explorer */}
+                                {whatIfEvaluation && (
+                                    <div
+                                        data-runout-whatif-explorer="true"
+                                        data-whatif-card={activeRunoutCard}
+                                        data-whatif-next-street={nextStreet}
+                                        data-whatif-recommended-action={whatIfEvaluation.recommendedAction}
+                                        data-whatif-made-hand={whatIfEvaluation.madeHandCategory}
+                                        data-whatif-sizing-bb={whatIfEvaluation.recommendedSizingBb}
+                                        style={{
+                                            marginTop: 10,
+                                            padding: '10px 12px',
+                                            borderRadius: 10,
+                                            background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.14) 0%, rgba(2, 6, 23, 0.85) 100%)',
+                                            border: '1px solid rgba(56, 189, 248, 0.42)',
+                                            color: '#e2e8f0',
+                                            fontSize: 12,
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                                            <span style={{ fontWeight: 900, color: '#7dd3fc', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                                                Next-Street Runout What-If Explorer ({nextStreet.toUpperCase()} Simulation)
+                                            </span>
+                                            <span style={{ fontWeight: 800, color: '#6ee7b7' }}>
+                                                Engine: {whatIfEvaluation.engineModule}
+                                            </span>
+                                        </div>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                                            {candidateRunoutCards.map((candidate) => {
+                                                const isSelectedCard = candidate.card === activeRunoutCard;
+                                                return (
+                                                    <button
+                                                        key={candidate.card}
+                                                        type="button"
+                                                        data-runout-card-option={candidate.card}
+                                                        aria-pressed={isSelectedCard}
+                                                        onClick={() => setSelectedRunoutCard(candidate.card)}
+                                                        style={{
+                                                            padding: '5px 9px',
+                                                            borderRadius: 6,
+                                                            fontSize: 12,
+                                                            fontWeight: 800,
+                                                            cursor: 'pointer',
+                                                            border: isSelectedCard ? '1.5px solid #38bdf8' : '1px solid rgba(255,255,255,0.18)',
+                                                            background: isSelectedCard ? 'rgba(56, 189, 248, 0.24)' : 'rgba(255,255,255,0.05)',
+                                                            color: isSelectedCard ? '#f0f9ff' : '#cbd5e1',
+                                                        }}
+                                                    >
+                                                        {candidate.card} · {candidate.label}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', color: '#e2e8f0', fontWeight: 700 }}>
+                                            <span>Runout Card: <strong style={{ color: '#38bdf8' }}>{activeRunoutCard} ({nextStreet.toUpperCase()})</strong></span>
+                                            <span>Recommended Action: <strong style={{ color: '#53f2a0' }}>{whatIfEvaluation.recommendedAction}</strong></span>
+                                            <span>Made Hand: <strong style={{ color: '#fcd34d' }}>{whatIfEvaluation.madeHandCategory}</strong></span>
+                                            <span>Sizing: <strong style={{ color: '#7dd3fc' }}>{whatIfEvaluation.recommendedSizingBb} BB</strong></span>
+                                            <span>Equity Score: <strong>{whatIfEvaluation.handScore}/100</strong></span>
+                                            <span>Outs: <strong>{whatIfEvaluation.flushOuts} Flush / {whatIfEvaluation.straightOuts} Straight</strong></span>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         );
                     })()}
@@ -7449,6 +7924,30 @@ function UniversalDynamicTable({
                                     gameId={gameId}
                                     question={getFeedbackQuestion()}
                                 />
+                                <button
+                                    type="button"
+                                    data-drill-session-mistakes-cta="true"
+                                    data-mistake-target-variant={sessionMistakeTarget.variant}
+                                    data-mistake-target-street={sessionMistakeTarget.street}
+                                    data-mistake-target-position={sessionMistakeTarget.position}
+                                    onClick={() => {
+                                        if (typeof window !== 'undefined') {
+                                            window.location.assign(sessionMistakeTarget.href);
+                                        }
+                                    }}
+                                    style={{
+                                        padding: '8px 14px',
+                                        borderRadius: 8,
+                                        border: '1px solid rgba(251, 191, 36, 0.48)',
+                                        background: 'rgba(251, 191, 36, 0.14)',
+                                        color: '#fde68a',
+                                        fontSize: 12,
+                                        fontWeight: 800,
+                                        cursor: 'pointer',
+                                    }}
+                                >
+                                    {`Fix My Mistakes From This Session (${sessionMistakeTarget.variant.toUpperCase()} · ${sessionMistakeTarget.street.toUpperCase()} · ${sessionMistakeTarget.position})`}
+                                </button>
                             </>
                         ) : (
                             /* PHASE 5: Post-Session Summary Dashboard */
@@ -7512,6 +8011,31 @@ function UniversalDynamicTable({
                                         Review {sessionMistakesListRef.current.length} Mistake{sessionMistakesListRef.current.length > 1 ? 's' : ''}
                                     </motion.button>
                                 )}
+                                <button
+                                    type="button"
+                                    data-drill-session-mistakes-cta="true"
+                                    data-mistake-target-variant={sessionMistakeTarget.variant}
+                                    data-mistake-target-street={sessionMistakeTarget.street}
+                                    data-mistake-target-position={sessionMistakeTarget.position}
+                                    onClick={() => {
+                                        if (typeof window !== 'undefined') {
+                                            window.location.assign(sessionMistakeTarget.href);
+                                        }
+                                    }}
+                                    style={{
+                                        width: '100%',
+                                        padding: '9px 14px',
+                                        borderRadius: 8,
+                                        border: '1px solid rgba(251, 191, 36, 0.52)',
+                                        background: 'rgba(251, 191, 36, 0.15)',
+                                        color: '#fde68a',
+                                        fontSize: 12,
+                                        fontWeight: 800,
+                                        cursor: 'pointer',
+                                    }}
+                                >
+                                    {`Fix My Mistakes From This Session (${sessionMistakeTarget.variant.toUpperCase()} · ${sessionMistakeTarget.street.toUpperCase()} · ${sessionMistakeTarget.position})`}
+                                </button>
                             </motion.div>
                         )}
                     </div>

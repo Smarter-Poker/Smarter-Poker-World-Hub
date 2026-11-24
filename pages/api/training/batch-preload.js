@@ -391,48 +391,54 @@ export default async function handler(req, res) {
           // shuffle meant Postgres returned the same first-N rows every call —
           // users looped the identical 15 questions per level forever. Over-
           // fetch the pool, then shuffle, then slice.
-          // ●●● SEEN-QUESTION EXCLUSION (fail-safe, non-blocking) ●●●
+          // ●●● SEEN-QUESTION EXCLUSION (fail-safe, non-blocking) & CACHE READ ●●●
           let seenIds = new Set();
+          let questions;
+          const seenPromise = !duelPayload && _authUser?.id
+              ? runTrainingPersistenceQuery(
+                  () => getSupabase()
+                      .from('user_seen_questions')
+                      .select('question_id')
+                      .eq('user_id', _authUser.id)
+                      .eq('game_id', gameId)
+                      .limit(2000),
+                  { label: 'BatchPreload:seen-read' },
+              ).then((res) => ({ data: res?.data || [], error: null }))
+               .catch((e) => ({ data: [], error: e }))
+              : Promise.resolve({ data: [], error: null });
+
+          const cachePromise = runTrainingPersistenceQuery(
+              () => {
+                  let query = getSupabase()
+                      .from('training_question_cache')
+                      .select('id, question_id, question_data, engine_type, question_kind, canonical_policy, source_classification, quality_status, policy_version, policy_checksum, generated_at, source_created_at')
+                      .eq('game_id', gameId)
+                      .eq('level', gameLevel)
+                      .in('quality_status', ['active', 'active_fallback']);
+                  if (duelPayload?.questionIds?.length > 0) {
+                      query = query.in('question_id', duelPayload.questionIds.slice(0, 30));
+                  }
+                  return query.limit(Math.max(100, candidateQuestionCount * 3));
+              },
+              { label: 'BatchPreload:cache-read' },
+          ).then((res) => ({ data: res?.data, error: null }))
+           .catch((err) => ({ data: null, error: err }));
+
+          const [seenOutcome, cacheOutcome] = await Promise.all([seenPromise, cachePromise]);
+
           if (!duelPayload) {
-              try {
-                  const { data: seen } = await runTrainingPersistenceQuery(
-                      () => getSupabase()
-                          .from('user_seen_questions')
-                          .select('question_id')
-                          .eq('user_id', _authUser.id)
-                          .eq('game_id', gameId)
-                          .limit(2000),
-                      { label: 'BatchPreload:seen-read' },
-                  );
-                  seenIds = new Set((seen || []).map((r) => r.question_id));
-              } catch (e) {
-                  console.warn('[BatchPreload] Seen history unavailable; continuing without exclusion:', e.message);
+              if (seenOutcome.error) {
+                  console.warn('[BatchPreload] Seen history unavailable; continuing without exclusion:', seenOutcome.error.message);
+              } else {
+                  seenIds = new Set((seenOutcome.data || []).map((r) => r.question_id));
               }
           }
 
-          // Fetch questions from cache (over-fetch so seen-filtering has room)
-          let questions;
-          try {
-              const cacheResult = await runTrainingPersistenceQuery(
-                  () => {
-                      let query = getSupabase()
-                          .from('training_question_cache')
-                          .select('id, question_id, question_data, engine_type, question_kind, canonical_policy, source_classification, quality_status, policy_version, policy_checksum, generated_at, source_created_at')
-                          .eq('game_id', gameId)
-                          .eq('level', gameLevel)
-                          .in('quality_status', ['active', 'active_fallback']);
-                      if (duelPayload?.questionIds?.length > 0) {
-                          query = query.in('question_id', duelPayload.questionIds.slice(0, 30));
-                      }
-                      return query.limit(Math.max(100, candidateQuestionCount * 3));
-                  },
-                  { label: 'BatchPreload:cache-read' },
-              );
-              questions = cacheResult.data;
-          } catch (cacheError) {
-              console.warn('[BatchPreload] Canonical cache read unavailable:', cacheError.message);
+          if (cacheOutcome.error) {
+              console.warn('[BatchPreload] Canonical cache read unavailable:', cacheOutcome.error.message);
               return res.status(503).json(trainingPersistenceUnavailableBody());
           }
+          questions = cacheOutcome.data;
 
           // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
           // SOLVER ENGINE FALLBACK: If cache is empty or insufficient,
@@ -928,27 +934,51 @@ export default async function handler(req, res) {
               });
           }
           const canonicalRows = selectedCanonicalPairs.map(({ row }) => row);
+          const unchangedReceiptByQuestionId = new Map();
+          const dirtyCanonicalRows = canonicalRows.filter((row) => {
+              const questionId = String(row?.question_id || '');
+              const existingRow = originalCacheRowByQuestionId.get(questionId);
+              const existingChecksum = existingRow?.question_data?.canonical_policy?.policy_checksum
+                  || existingRow?.policy_checksum;
+              const rowChecksum = row?.question_data?.canonical_policy?.policy_checksum
+                  || row?.policy_checksum
+                  || row?.question_data?.policyChecksum;
+              if (
+                  existingRow
+                  && Boolean(rowChecksum)
+                  && existingChecksum === rowChecksum
+                  && cacheRowIsServingEligible(existingRow)
+              ) {
+                  unchangedReceiptByQuestionId.set(questionId, existingRow);
+                  return false;
+              }
+              return true;
+          });
           // Two players preloading the same game/level upsert the same
           // deterministic question ids. Submitting them in one stable
           // question_id order means both writers lock rows in the same
           // sequence; the served order below still follows
           // selectedCanonicalPairs and is unaffected.
-          const canonicalRowsForWrite = orderRowsForConcurrentWrite(canonicalRows, 'question_id');
+          const canonicalRowsForWrite = orderRowsForConcurrentWrite(canonicalRows, 'question_id')
+              .filter((row) => !unchangedReceiptByQuestionId.has(String(row?.question_id || '')));
 
           let servedBatch;
           try {
-              const persisted = await runTrainingPersistenceQuery(
-                  () => getSupabase().from('training_question_cache')
-                      .upsert(canonicalRowsForWrite, {
-                          onConflict: 'question_id',
-                          defaultToNull: false,
-                      })
-                      .select('question_id, question_data, canonical_policy, source_classification, quality_status, policy_version, policy_checksum'),
-                  { label: 'BatchPreload:canonicalize' },
-              );
-              const receiptByQuestionId = new Map(
-                  (persisted.data || []).map((row) => [row.question_id, row]),
-              );
+              const persisted = canonicalRowsForWrite.length > 0
+                  ? await runTrainingPersistenceQuery(
+                      () => getSupabase().from('training_question_cache')
+                          .upsert(canonicalRowsForWrite, {
+                              onConflict: 'question_id',
+                              defaultToNull: false,
+                          })
+                          .select('question_id, question_data, canonical_policy, source_classification, quality_status, policy_version, policy_checksum'),
+                      { label: 'BatchPreload:canonicalize' },
+                  )
+                  : { data: [] };
+              const receiptByQuestionId = new Map([
+                  ...unchangedReceiptByQuestionId.entries(),
+                  ...(persisted.data || []).map((row) => [row.question_id, row]),
+              ]);
               if (receiptByQuestionId.size !== canonicalRows.length) {
                   throw new Error('Database did not return one canonical receipt per question');
               }

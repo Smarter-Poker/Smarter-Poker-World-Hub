@@ -8,10 +8,23 @@
  * TRAIN-AGGREGATE-A11Y-1 remains enforced on this replacement surface: the
  * navigation control has a visible label and a currentColor SVG icon.
  */
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import {
+  evaluateTrainingSpotWithHorseBrain,
+  buildCustomTrainingArenaHref,
+} from '../../../src/lib/training/horseBrainTrainingAdapter';
+
+const HERO_CARDS_BY_VARIANT = {
+  nlh: ['As', 'Kd'],
+  plo4: ['As', 'Ks', 'Qh', 'Jh'],
+  plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
+  plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
+};
+
+const BOARD_CARDS = ['8d', '5c', '2s', '6h', '3d'];
 
 function ShieldIcon() {
   return (
@@ -34,6 +47,82 @@ function BackArrowIcon() {
 export default function AggregateReports() {
   const router = useRouter();
   useTrainingBus('aggregate-reports');
+
+  const [activeVariant, setActiveVariant] = useState('nlh');
+  const [heroPosition, setHeroPosition] = useState('BTN');
+  const [activeStreet, setActiveStreet] = useState('flop');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [isOffline, setIsOffline] = useState(
+    typeof navigator !== 'undefined' ? !navigator.onLine : false,
+  );
+  const [cohortRows] = useState([]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    try {
+      const savedVariant = window.localStorage.getItem('sp_aggregate_variant');
+      if (savedVariant && ['nlh', 'plo4', 'plo5', 'plo6'].includes(savedVariant)) {
+        setActiveVariant(savedVariant);
+      }
+    } catch (_) {
+      // Ignore localStorage access errors in restricted privacy contexts
+    }
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  const brainDecision = useMemo(() => {
+    const heroCards = HERO_CARDS_BY_VARIANT[activeVariant] || HERO_CARDS_BY_VARIANT.nlh;
+    const boardCards =
+      activeStreet === 'preflop'
+        ? []
+        : activeStreet === 'flop'
+          ? BOARD_CARDS.slice(0, 3)
+          : activeStreet === 'turn'
+            ? BOARD_CARDS.slice(0, 4)
+            : BOARD_CARDS.slice(0, 5);
+    const evaluation = evaluateTrainingSpotWithHorseBrain({
+      variant: activeVariant,
+      street: activeStreet,
+      heroCards,
+      boardCards,
+      heroPosition,
+      villainPosition: heroPosition === 'BB' ? 'BTN' : 'BB',
+      pot: 6.5,
+      toCall: 2.2,
+      effectiveStackBb: 100,
+    });
+    return {
+      ...evaluation,
+      engineSource: evaluation.engineModule,
+      recommendedAction: evaluation.recommendedAction || evaluation.correctAnswerText,
+    };
+  }, [activeVariant, activeStreet, heroPosition, retryCount]);
+
+  const arenaHref = useMemo(
+    () =>
+      buildCustomTrainingArenaHref(
+        {
+          gameId: activeVariant === 'nlh' ? 'cash-002' : 'cash-005',
+          variant: activeVariant,
+          street: activeStreet,
+          position: heroPosition,
+        },
+        'aggregate-reports',
+      ),
+    [activeVariant, activeStreet, heroPosition],
+  );
+
+  const isEmpty = cohortRows.length === 0;
+  const authStatusText = 'Sign in required for personal cohort persistence; unauthorized or 401 session expired responses fail closed.';
 
   return (
     <>
@@ -64,6 +153,205 @@ export default function AggregateReports() {
             Source Lineage, Cohort Membership, Or Board Weighting. Those Numbers Are Not
             Reliable Enough To Teach From, So They Have Been Removed.
           </p>
+
+          {isOffline ? (
+            <div className="aggregate-note" role="status">
+              Offline Mode Detected: Local Horse Brain Cohort Calibration Remains Available While Network Is Offline.
+            </div>
+          ) : null}
+
+          {error ? (
+            <div className="aggregate-note" role="alert">
+              <span>{error}</span>{' '}
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null);
+                  setIsLoading(false);
+                  setRetryCount((c) => c + 1);
+                }}
+                style={{
+                  marginLeft: 8,
+                  padding: '4px 10px',
+                  borderRadius: 6,
+                  border: '1px solid rgba(251,191,36,0.45)',
+                  background: 'rgba(120,53,15,0.35)',
+                  color: '#fef3c7',
+                  fontSize: 12,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                }}
+              >
+                Retry Calibration
+              </button>
+            </div>
+          ) : null}
+
+          <div
+            data-specialty-brain-panel="true"
+            data-brain-engine={brainDecision.engineSource}
+            data-recommended-action={brainDecision.recommendedAction}
+            data-active-variant={activeVariant}
+            style={{
+              margin: '22px 0',
+              padding: 18,
+              borderRadius: 12,
+              border: '1px solid rgba(103, 232, 249, 0.35)',
+              background: 'rgba(6, 20, 31, 0.88)',
+            }}
+          >
+            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 900, color: '#67e8f9', textTransform: 'uppercase' }}>
+                Horse Brain Aggregate Cohort Spot Calibration Panel
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 800, color: '#4ade80' }}>
+                Engine: {brainDecision.engineSource} · Recommended: {brainDecision.recommendedAction}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 12 }}>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 4 }}>
+                  Variant
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {['nlh', 'plo4', 'plo5', 'plo6'].map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      data-variant-option={v}
+                      aria-pressed={activeVariant === v}
+                      onClick={() => {
+                        setActiveVariant(v);
+                        try {
+                          window.localStorage.setItem('sp_aggregate_variant', v);
+                        } catch (_) {
+                          // Ignore storage errors
+                        }
+                      }}
+                      style={{
+                        padding: '6px 10px',
+                        borderRadius: 6,
+                        border: activeVariant === v ? '1px solid #67e8f9' : '1px solid rgba(255,255,255,0.16)',
+                        background: activeVariant === v ? 'rgba(8, 145, 178, 0.35)' : 'rgba(255,255,255,0.04)',
+                        color: activeVariant === v ? '#e8fbff' : '#cbd5e1',
+                        fontSize: 12,
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {v.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 4 }}>
+                  Position
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {['BTN', 'CO', 'SB', 'BB'].map((pos) => (
+                    <button
+                      key={pos}
+                      type="button"
+                      data-position-option={pos}
+                      aria-pressed={heroPosition === pos}
+                      onClick={() => setHeroPosition(pos)}
+                      style={{
+                        padding: '6px 10px',
+                        borderRadius: 6,
+                        border: heroPosition === pos ? '1px solid #4ade80' : '1px solid rgba(255,255,255,0.16)',
+                        background: heroPosition === pos ? 'rgba(22, 163, 74, 0.25)' : 'rgba(255,255,255,0.04)',
+                        color: heroPosition === pos ? '#bbf7d0' : '#cbd5e1',
+                        fontSize: 12,
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {pos}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 4 }}>
+                  Street
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {['preflop', 'flop', 'turn', 'river'].map((st) => (
+                    <button
+                      key={st}
+                      type="button"
+                      data-street-option={st}
+                      aria-pressed={activeStreet === st}
+                      onClick={() => setActiveStreet(st)}
+                      style={{
+                        padding: '6px 10px',
+                        borderRadius: 6,
+                        border: activeStreet === st ? '1px solid #fbbf24' : '1px solid rgba(255,255,255,0.16)',
+                        background: activeStreet === st ? 'rgba(217, 119, 6, 0.25)' : 'rgba(255,255,255,0.04)',
+                        color: activeStreet === st ? '#fde68a' : '#cbd5e1',
+                        fontSize: 12,
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {st.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.55, marginBottom: 14 }}>
+              {isLoading ? 'Loading Cohort Spot Calibration...' : brainDecision.explanation}
+            </div>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+              <button
+                type="button"
+                data-launch-club-arena-cta="true"
+                data-launch-href={arenaHref}
+                onClick={() => router.push(arenaHref)}
+                style={{
+                  minHeight: 40,
+                  padding: '0 16px',
+                  borderRadius: 8,
+                  border: '1px solid #67e8f9',
+                  background: 'linear-gradient(180deg, #0891b2, #075985)',
+                  color: '#fff',
+                  fontSize: 12,
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                }}
+              >
+                Launch Calibrated Cohort Spot In Club Arena →
+              </button>
+              <button
+                type="button"
+                data-retry-cohort-calibration="true"
+                onClick={() => setRetryCount((c) => c + 1)}
+                style={{
+                  minHeight: 40,
+                  padding: '0 14px',
+                  borderRadius: 8,
+                  border: '1px solid rgba(148, 163, 184, 0.35)',
+                  background: 'rgba(15, 23, 42, 0.75)',
+                  color: '#cbd5e1',
+                  fontSize: 12,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                }}
+              >
+                Recalibrate Spot {retryCount > 0 ? `(${retryCount})` : ''}
+              </button>
+              <span style={{ fontSize: 12, color: '#94a3b8' }}>
+                {isEmpty ? 'Cohort Ledger Empty: Single-Node Calibration Active' : `Cohort Rows: ${cohortRows.length}`} · {authStatusText}
+              </span>
+            </div>
+          </div>
 
           <div className="aggregate-grid">
             <article>

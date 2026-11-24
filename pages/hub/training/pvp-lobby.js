@@ -99,9 +99,11 @@ export default function PvPLobbyPage() {
     }
   }, [router.isReady, router.query.duelToken]);
 
-  const handleCreateSignedDuel = async (gameIdOverride) => {
+  const handleCreateSignedDuel = async (gameIdOverride, variantOverride) => {
     const targetGame = gameIdOverride || selectedGameId || 'mtt-015';
+    const targetVariant = variantOverride || selectedVariant || 'nlh';
     setSelectedGameId(targetGame);
+    setSelectedVariant(targetVariant);
     setCreatingDuel(true);
     setDuelError('');
     try {
@@ -113,7 +115,7 @@ export default function PvPLobbyPage() {
       }
       const sessionSeed = `duel_seed_${Date.now().toString(36)}`;
       const res = await authedFetch(
-        `/api/training/batch-preload?gameId=${encodeURIComponent(targetGame)}&level=1&variant=${encodeURIComponent(selectedVariant)}&sessionId=${encodeURIComponent(sessionSeed)}&createDuel=1`
+        `/api/training/batch-preload?gameId=${encodeURIComponent(targetGame)}&level=1&variant=${encodeURIComponent(targetVariant)}&sessionId=${encodeURIComponent(sessionSeed)}&createDuel=1`
       );
       const json = await res.json();
       if (!res.ok || !json.success || !json.duel?.duelToken) {
@@ -131,6 +133,12 @@ export default function PvPLobbyPage() {
     } finally {
       setCreatingDuel(false);
     }
+  };
+
+  const handleInstantRematch = async (completedBoard) => {
+    const rematchGameId = completedBoard?.gameId || completedBoard?.game_id || selectedGameId || 'mtt-015';
+    const rematchVariant = completedBoard?.variant || selectedVariant || 'nlh';
+    await handleCreateSignedDuel(rematchGameId, rematchVariant);
   };
 
   const buildDuelArenaHref = (duelObj, role) => {
@@ -323,8 +331,34 @@ export default function PvPLobbyPage() {
                     <div style={{ fontSize: 13, fontWeight: 900, color: '#f8fafc' }}>
                       Verified Two-Player Server Scoreboard ({scoreboard.duelId})
                     </div>
-                    <div data-duel-winner-badge="true" style={{ padding: '4px 10px', borderRadius: 999, border: '1px solid rgba(119,242,180,.4)', background: 'rgba(16,185,129,.18)', color: '#77f2b4', fontSize: 12, fontWeight: 900 }}>
-                      {scoreboard.winner ? `Winner: ${scoreboard.winner}` : `Status: ${scoreboard.status}`}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+                      <div data-duel-winner-badge="true" style={{ padding: '4px 10px', borderRadius: 999, border: '1px solid rgba(119,242,180,.4)', background: 'rgba(16,185,129,.18)', color: '#77f2b4', fontSize: 12, fontWeight: 900 }}>
+                        {scoreboard.winner ? `Winner: ${scoreboard.winner}` : `Status: ${scoreboard.status}`}
+                      </div>
+                      {scoreboard.status === 'completed' ? (
+                        <button
+                          type="button"
+                          data-duel-rematch-btn="true"
+                          data-rematch-game-id={scoreboard.gameId || selectedGameId}
+                          data-rematch-variant={scoreboard.variant || selectedVariant}
+                          data-rematch-opponent={scoreboard.opponent?.name || 'Opponent'}
+                          disabled={creatingDuel}
+                          onClick={() => handleInstantRematch(scoreboard)}
+                          style={{
+                            minHeight: 32,
+                            padding: '0 12px',
+                            borderRadius: 6,
+                            border: '1px solid #82e7ff',
+                            background: 'linear-gradient(180deg, rgba(14,116,144,.45), rgba(7,19,29,.85))',
+                            color: '#f0f9ff',
+                            fontSize: 12,
+                            fontWeight: 900,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {creatingDuel ? 'Minting Rematch...' : 'Instant 10-Hand Rematch'}
+                        </button>
+                      ) : null}
                     </div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
@@ -345,6 +379,107 @@ export default function PvPLobbyPage() {
                       </div>
                     ))}
                   </div>
+
+                  {scoreboard.status === 'completed' ? (
+                    <div
+                      data-duel-hand-by-hand="true"
+                      style={{
+                        marginTop: 16,
+                        padding: '14px',
+                        borderRadius: 8,
+                        border: '1px solid rgba(130,231,255,.28)',
+                        background: 'rgba(6,15,26,.92)',
+                        overflowX: 'auto',
+                      }}
+                    >
+                      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                        <div style={{ fontSize: 12, fontWeight: 900, color: '#82e7ff', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                          Hand 1 To {Number(scoreboard.handsCount || scoreboard.targetHands || 10)} Side-By-Side Duel Breakdown
+                        </div>
+                        <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 700 }}>
+                          {scoreboard.challenger?.name || 'Challenger'} Vs {scoreboard.opponent?.name || 'Opponent'} · {scoreboard.gameId || selectedGameId} ({String(scoreboard.variant || selectedVariant || 'nlh').toUpperCase()})
+                        </div>
+                      </div>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid rgba(148,163,184,.25)', textAlign: 'left', color: '#94a3b8' }}>
+                            <th style={{ padding: '8px 6px', fontWeight: 800 }}>Hand #</th>
+                            <th style={{ padding: '8px 6px', fontWeight: 800 }}>Challenger Grade / EV Loss</th>
+                            <th style={{ padding: '8px 6px', fontWeight: 800 }}>Opponent Grade / EV Loss</th>
+                            <th style={{ padding: '8px 6px', fontWeight: 800 }}>Hand Winner</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {Array.from({ length: Number(scoreboard.handsCount || scoreboard.targetHands || 10) }, (_, idx) => {
+                            const chalGrade = scoreboard.challenger?.grades?.[idx] || null;
+                            const oppGrade = scoreboard.opponent?.grades?.[idx] || null;
+                            const chalCorrect = Boolean(chalGrade?.isCorrect);
+                            const oppCorrect = Boolean(oppGrade?.isCorrect);
+                            const chalEvLoss = Number.isFinite(Number(chalGrade?.evLoss)) ? Number(Number(chalGrade.evLoss).toFixed(2)) : (chalCorrect ? 0 : 0.65);
+                            const oppEvLoss = Number.isFinite(Number(oppGrade?.evLoss)) ? Number(Number(oppGrade.evLoss).toFixed(2)) : (oppCorrect ? 0 : 0.65);
+                            const chalAction = String(chalGrade?.selectedAction || chalGrade?.answerId || chalGrade?.classification || (chalCorrect ? 'Best Line' : 'Suboptimal'));
+                            const oppAction = String(oppGrade?.selectedAction || oppGrade?.answerId || oppGrade?.classification || (oppCorrect ? 'Best Line' : 'Suboptimal'));
+
+                            let handWinner = 'Tie';
+                            if (chalCorrect && !oppCorrect) {
+                              handWinner = 'Challenger';
+                            } else if (oppCorrect && !chalCorrect) {
+                              handWinner = 'Opponent';
+                            } else if (chalEvLoss < oppEvLoss) {
+                              handWinner = 'Challenger';
+                            } else if (oppEvLoss < chalEvLoss) {
+                              handWinner = 'Opponent';
+                            }
+
+                            return (
+                              <tr
+                                key={`duel-hand-${idx + 1}`}
+                                data-duel-hand-row={idx + 1}
+                                data-hand-winner={handWinner}
+                                style={{ borderBottom: '1px solid rgba(148,163,184,.12)', color: '#e2e8f0' }}
+                              >
+                                <td style={{ padding: '8px 6px', fontWeight: 800, color: '#82e7ff' }}>
+                                  Hand {idx + 1}
+                                </td>
+                                <td style={{ padding: '8px 6px' }}>
+                                  <span style={{ color: chalCorrect ? '#77f2b4' : '#fca5a5', fontWeight: 800 }}>
+                                    {chalCorrect ? 'Correct' : 'Mistake'}
+                                  </span>
+                                  {' · '}
+                                  <span>{chalAction}</span>
+                                  {' · '}
+                                  <span style={{ color: '#cbd5e1' }}>-{chalEvLoss} BB</span>
+                                </td>
+                                <td style={{ padding: '8px 6px' }}>
+                                  <span style={{ color: oppCorrect ? '#77f2b4' : '#fca5a5', fontWeight: 800 }}>
+                                    {oppCorrect ? 'Correct' : 'Mistake'}
+                                  </span>
+                                  {' · '}
+                                  <span>{oppAction}</span>
+                                  {' · '}
+                                  <span style={{ color: '#cbd5e1' }}>-{oppEvLoss} BB</span>
+                                </td>
+                                <td
+                                  style={{
+                                    padding: '8px 6px',
+                                    fontWeight: 900,
+                                    color:
+                                      handWinner === 'Challenger'
+                                        ? '#82e7ff'
+                                        : handWinner === 'Opponent'
+                                          ? '#fbbf24'
+                                          : '#cbd5e1',
+                                  }}
+                                >
+                                  {handWinner}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
             </div>
