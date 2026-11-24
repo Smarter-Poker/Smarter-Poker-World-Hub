@@ -123,7 +123,7 @@ export default function NewsletterOperations() {
     const loadPromoConfig = useCallback(async (sessionToken) => {
         if (!sessionToken) return;
         try {
-            const response = await fetch('/api/admin/promo-campaign', {
+            const response = await fetch('/api/news/promo-campaign', {
                 headers: { Authorization: `Bearer ${sessionToken}` },
             });
             const body = await response.json();
@@ -190,7 +190,7 @@ export default function NewsletterOperations() {
         setPromoInlineError('');
         setPromoInlineNotice('');
         try {
-            const response = await fetch('/api/admin/promo-campaign', {
+            const response = await fetch('/api/news/promo-campaign', {
                 method: 'POST',
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -241,7 +241,7 @@ export default function NewsletterOperations() {
         setError('');
         setNotice('');
         try {
-            const response = await fetch('/api/admin/promo-campaign', {
+            const response = await fetch('/api/news/promo-campaign', {
                 method: 'POST',
                 headers: {
                     Authorization: `Bearer ${token}`,

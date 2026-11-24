@@ -101,6 +101,30 @@ export function normalizeExplicitTestEmail(raw) {
     return email;
 }
 
+export function verifyOperatorTestSignature({
+    action,
+    testEmail = '',
+    testPhone = '',
+    timestampHeader = '',
+    signatureHeader = '',
+    secret = process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+    nowMs = Date.now(),
+} = {}) {
+    if (action !== 'test' && action !== 'preview') return false;
+    const key = String(secret || '').trim();
+    const tsRaw = String(timestampHeader || '').trim();
+    const sigRaw = String(signatureHeader || '').trim().toLowerCase();
+    if (!key || !/^\d{10,13}$/.test(tsRaw) || !/^[0-9a-f]{64}$/.test(sigRaw)) return false;
+    const tsSec = tsRaw.length > 10 ? Math.floor(Number(tsRaw) / 1000) : Number(tsRaw);
+    const nowSec = Math.floor(nowMs / 1000);
+    if (!Number.isFinite(tsSec) || Math.abs(nowSec - tsSec) > 90) return false;
+    const msg = `${tsRaw}:${action}:${String(testEmail || '').trim().toLowerCase()}:${String(testPhone || '').trim()}`;
+    const expected = crypto.createHmac('sha256', key).update(msg).digest('hex');
+    const a = Buffer.from(sigRaw, 'hex');
+    const b = Buffer.from(expected, 'hex');
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
 export function sendablePhone(raw) {
     const text = String(raw || '').trim();
     const withoutPrefix = text.startsWith('sms:') ? text.slice(4) : text;
