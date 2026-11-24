@@ -265,6 +265,8 @@ test('Law 6: Zero Stale Platform Counts Across Discovery, Corpus, Knowledge Grap
       .map((f) => `pages/tools/${f}`),
   ];
 
+  assert.ok(targetFiles.length >= 50, `Expected at least 50 target files, found ${targetFiles.length}`);
+
   for (const rel of targetFiles) {
     const src = read(rel);
     for (const stale of STALE_PATTERNS) {
@@ -297,11 +299,7 @@ test('Law 7: 42-Calculator Feature, Schema, OG Preset & ShareBar Completeness La
     .readdirSync(path.join(ROOT, 'pages/tools'))
     .filter((f) => f.endsWith('.js') && f !== 'index.js');
 
-  assert.equal(
-    toolFiles.length,
-    42,
-    `pages/tools/ must contain all 42 tool .js files (found ${toolFiles.length})`
-  );
+  assert.equal(toolFiles.length, 42, `pages/tools/ must contain all 42 tool .js files (found ${toolFiles.length})`);
 
   const toolsIndexSrc = read('pages/tools/index.js');
   const embedsSrc = read('pages/tools/embeds.js');
