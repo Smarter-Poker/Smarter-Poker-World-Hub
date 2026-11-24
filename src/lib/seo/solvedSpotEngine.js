@@ -395,6 +395,70 @@ export const TOOL_OG_PRESETS = Object.freeze({
     statLabel: 'PREFLOP SOLVER',
     statValue: '169-HAND MATRIX',
   },
+  'geometric-bet-calculator': {
+    tool: 'geometric-bet-calculator',
+    badge: 'GEOMETRIC OVERBET SOLVER',
+    title: 'Multi-Street Geometric Bet Sizing & Overbet Calculator',
+    subtitle: 'Exact 2e & 3e Equal-Fraction Pot Bet Progression, Street-By-Street Pot Growth & MDF',
+    statLabel: 'POSTFLOP GEOMETRY',
+    statValue: '2E & 3E SIZING',
+  },
+  'late-reg-calculator': {
+    tool: 'late-reg-calculator',
+    badge: 'LATE-REG ICM SOLVER',
+    title: 'Tournament Late-Registration ICM EV & Chip Appreciation Calculator',
+    subtitle: 'Malmuth-Harville Late-Reg Equity Boost, Effective Rake Reduction & Max-Late Thresholds',
+    statLabel: 'TOURNAMENT ICM',
+    statValue: 'LATE-REG EV BOOST',
+  },
+  'mtt-grind-planner': {
+    tool: 'mtt-grind-planner',
+    badge: 'MTT GRIND & ABI PLANNER',
+    title: 'MTT Session ABI, Bullet Budget & Bankroll RoR Planner',
+    subtitle: 'Session Capital Requirement, Re-Entry Bullet Allowance, Expected EV & Downswing Cushion',
+    statLabel: 'MTT BANKROLL',
+    statValue: 'ABI & ROR PLAN',
+  },
+  'plo-outs-calculator': {
+    tool: 'plo-outs-calculator',
+    badge: 'PLO STRAIGHT WRAP SOLVER',
+    title: '4-Card & 5-Card PLO Straight Wrap & Combo Draw Calculator',
+    subtitle: '13-Out, 16-Out, 17-Out & 20-Out Wrap Equity, Nut-Out Ratio & Flop Pot-Raise EV',
+    statLabel: 'OMAHA COMBINATORICS',
+    statValue: 'WRAP & NUT OUTS',
+  },
+  'poker-trip-planner': {
+    tool: 'poker-trip-planner',
+    badge: 'POKER TRIP ROI PLANNER',
+    title: 'Live Poker Trip Budget, Expense Overhead & Breakeven Planner',
+    subtitle: 'Flight, Hotel & Per-Diem Expense Drag Vs. Tournament Buy-In Volume And Cash Grind Hours',
+    statLabel: 'FESTIVAL ECONOMICS',
+    statValue: 'TRIP BREAKEVEN ROI',
+  },
+  'shot-clock': {
+    tool: 'shot-clock',
+    badge: 'TDA ACTION SHOT CLOCK',
+    title: 'Live Poker Action Shot Clock & Time-Bank Card Manager',
+    subtitle: 'WPT/Triton 15s-30s Pre-Flop & Postflop Countdown Timer With Per-Seat Time-Bank Cards',
+    statLabel: 'TOURNAMENT CLOCK',
+    statValue: '30S ACTION TIMER',
+  },
+  'table-selection-calculator': {
+    tool: 'table-selection-calculator',
+    badge: 'LIVE TABLE SCORER',
+    title: 'Live Cash Game Table Selection & Hourly Winrate Scorer',
+    subtitle: 'Grade Table Profitability (A+ To F) From Recreational Seats, Stack Depth, Straddles & Rake',
+    statLabel: 'GAME SELECTION',
+    statValue: 'TABLE EV GRADE',
+  },
+  'winrate-confidence-calculator': {
+    tool: 'winrate-confidence-calculator',
+    badge: 'WINRATE CONFIDENCE CI',
+    title: 'Poker Winrate Confidence Interval & Sample Proof Calculator',
+    subtitle: '70%, 95% & 99% Normal-Approximation Confidence Bounds, Loss Probability & Sample Horizon',
+    statLabel: 'STATISTICAL PROOF',
+    statValue: '70/95/99% BOUNDS',
+  },
 });
 
 function clampNum(val, min, max, fallback = null) {
@@ -1115,6 +1179,214 @@ export function computeValidatedSolvedSpot(toolKey = '', rawQuery = {}) {
         statValue: `Recommended: ${rec}`,
         summaryText: `Poker Format Diagnostic (${hours} Sessions, ${br} Buy-Ins, ${variance} Variance, ${focus} Focus, ${env}): Recommended Primary Format ${rec}.`,
         normalizedQuery: { hours, br, var: variance, focus, env },
+      };
+    }
+  }
+
+  // 31. Geometric Bet Sizing Calculator
+  if (key === 'geometric-bet-calculator' || key === 'geometric') {
+    const pot = clampNum(q.pot, 0.5, 10000000, null);
+    const stack = clampNum(q.stack, 1, 10000000, null);
+    if (pot !== null && stack !== null) {
+      const mode = ['3e', '2e', 'check_2e'].includes(String(q.mode)) ? String(q.mode) : '3e';
+      const streets = mode === '3e' ? 3 : 2;
+      const spr = stack / pot;
+      const pct = ((Math.pow(1 + 2 * spr, 1 / streets) - 1) / 2) * 100;
+      const firstBet = +(pot * (pct / 100)).toFixed(1);
+      return {
+        hasValidatedSpot: true,
+        tool: 'geometric-bet-calculator',
+        statLabel: `SOLVED ${streets}-STREET GEOMETRIC (${stack} STACK / ${pot} POT)`,
+        statValue: `${pct.toFixed(1)}% Pot Per Street (${firstBet} Bet 1)`,
+        summaryText: `${streets}-Street Geometric Sizing (${stack} Effective Stack Into ${pot} Pot, ${spr.toFixed(2)} SPR): Bet ${pct.toFixed(1)}% Pot On Each Street (${firstBet} First Bet).`,
+        normalizedQuery: { pot, stack, mode },
+      };
+    }
+  }
+
+  // 32. Tournament Late-Registration ICM Calculator
+  if (key === 'late-reg-calculator' || key === 'late-reg') {
+    const buyin = clampNum(q.buyin, 5, 1000000, null);
+    const rem = clampNum(q.rem, 15, 100, null);
+    if (buyin !== null && rem !== null) {
+      const rake = clampNum(q.rake, 0, 30, 10);
+      const entries = Math.round(clampNum(q.entries, 10, 50000, 400));
+      const bb = clampNum(q.bb, 5, 100, 15);
+      const roi = clampNum(q.roi, -20, 200, 18);
+      const netTicket = buyin * (1 - rake / 100);
+      const icmMult = +(1 + ((100 - rem) / 100) * 0.24).toFixed(3);
+      const startEq = +(netTicket * icmMult).toFixed(2);
+      return {
+        hasValidatedSpot: true,
+        tool: 'late-reg-calculator',
+        statLabel: `SOLVED LATE-REG ICM ($${buyin} BUY-IN, ${rem}% FIELD LEFT)`,
+        statValue: `$${startEq} Instant Stack Equity (${icmMult}x ICM)`,
+        summaryText: `Late Registration At ${rem}% Field Remaining ($${buyin} Buy-In, ${rake}% Fee, ${bb} BB Stack): Starting Stack ICM Value $${startEq} (${icmMult}x Appreciation).`,
+        normalizedQuery: { buyin, rake, entries, rem, bb, roi },
+      };
+    }
+  }
+
+  // 33. MTT Session Grind & ABI Planner
+  if (key === 'mtt-grind-planner' || key === 'mtt-grind') {
+    const mtts = clampNum(q.mtts, 1, 100, null);
+    const abi = clampNum(q.abi, 1, 100000, null);
+    if (mtts !== null && abi !== null) {
+      const safeMtts = Math.round(mtts);
+      const bullets = clampNum(q.bullets, 0, 200, 30);
+      const roi = clampNum(q.roi, -20, 200, 22);
+      const br = clampNum(q.br, 100, 10000000, 12000);
+      const totalRisk = Math.round(safeMtts * abi * (1 + bullets / 100));
+      const evProfit = Math.round(totalRisk * (roi / 100));
+      return {
+        hasValidatedSpot: true,
+        tool: 'mtt-grind-planner',
+        statLabel: `SOLVED MTT SLATE (${safeMtts} MTTS @ $${abi} ABI + ${bullets}% BULLETS)`,
+        statValue: `$${totalRisk.toLocaleString('en-US')} Slate Risk • +$${evProfit} EV`,
+        summaryText: `${safeMtts}-Tournament Session At $${abi} ABI (+${bullets}% Re-Entry Budget): Total Slate Capital $${totalRisk.toLocaleString('en-US')}, Expected Profit +$${evProfit} At ${roi}% ROI.`,
+        normalizedQuery: { mtts: safeMtts, abi, bullets, roi, br: Math.round(br) },
+      };
+    }
+  }
+
+  // 34. PLO Straight Wrap & Outs Calculator
+  if (key === 'plo-outs-calculator' || key === 'plo-outs') {
+    const outs = clampNum(q.outs, 1, 30, null);
+    if (outs !== null) {
+      const safeOuts = Math.round(outs);
+      const nut = Math.min(safeOuts, Math.round(clampNum(q.nut, 0, 30, Math.max(0, safeOuts - 3))));
+      const wrap = String(q.wrap || 'wrap_20');
+      const pot = clampNum(q.pot, 1, 10000000, 120);
+      const bet = clampNum(q.bet, 0, 10000000, 120);
+      const flopToRiver = (1 - ((45 - safeOuts) / 45) * ((44 - safeOuts) / 44)) * 100;
+      const nutRatio = Math.round((nut / safeOuts) * 100);
+      return {
+        hasValidatedSpot: true,
+        tool: 'plo-outs-calculator',
+        statLabel: `SOLVED PLO WRAP (${safeOuts} TOTAL OUTS / ${nut} NUT OUTS)`,
+        statValue: `${flopToRiver.toFixed(1)}% By River (${nutRatio}% Nut Share)`,
+        summaryText: `PLO Wrap Analysis (${safeOuts} Clean Outs, ${nut} Nut Outs On 45 Unseen Cards): ${flopToRiver.toFixed(1)}% Flop-To-River Completion (${nutRatio}% Nut-Out Purity).`,
+        normalizedQuery: { wrap, outs: safeOuts, nut, pot: Math.round(pot), bet: Math.round(bet) },
+      };
+    }
+  }
+
+  // 35. Live Poker Trip Budget Planner
+  if (key === 'poker-trip-planner' || key === 'trip-planner') {
+    const days = clampNum(q.days, 1, 90, null);
+    const buyins = clampNum(q.buyins, 100, 10000000, null);
+    if (days !== null && buyins !== null) {
+      const safeDays = Math.round(days);
+      const flight = clampNum(q.flight, 0, 50000, 480);
+      const hotel = clampNum(q.hotel, 0, 5000, 165);
+      const food = clampNum(q.food, 0, 2000, 85);
+      const roi = clampNum(q.roi, -20, 200, 22);
+      const travelCost = Math.round(flight + safeDays * (hotel + food));
+      const overheadPct = +((travelCost / buyins) * 100).toFixed(1);
+      return {
+        hasValidatedSpot: true,
+        tool: 'poker-trip-planner',
+        statLabel: `SOLVED POKER TRIP (${safeDays} DAYS, $${Math.round(buyins).toLocaleString('en-US')} ACTION)`,
+        statValue: `$${travelCost.toLocaleString('en-US')} Travel (${overheadPct}% Overhead)`,
+        summaryText: `${safeDays}-Day Poker Trip ($${Math.round(buyins).toLocaleString('en-US')} Planned Action, $${travelCost.toLocaleString('en-US')} Travel Expenses): ${overheadPct}% Travel Overhead Drag.`,
+        normalizedQuery: { days: safeDays, flight: Math.round(flight), hotel: Math.round(hotel), food: Math.round(food), buyins: Math.round(buyins), roi },
+      };
+    }
+  }
+
+  // 36. Live Action Shot Clock
+  if (key === 'shot-clock') {
+    const primary = clampNum(q.primary, 5, 180, null);
+    if (primary !== null) {
+      const safePrimary = Math.round(primary);
+      const bank = Math.round(clampNum(q.bank, 10, 300, 30));
+      return {
+        hasValidatedSpot: true,
+        tool: 'shot-clock',
+        statLabel: `TDA ACTION SHOT CLOCK (${safePrimary}S PRIMARY / ${bank}S TIME BANK)`,
+        statValue: `${safePrimary}s Decision • +${bank}s Bank Card`,
+        summaryText: `TDA Tournament Shot Clock Configuration: ${safePrimary}-Second Primary Decision Timer With +${bank}-Second Time-Bank Extension Cards.`,
+        normalizedQuery: { primary: safePrimary, bank },
+      };
+    }
+  }
+
+  // 37. Live Cash Table Selection Calculator
+  if (key === 'table-selection-calculator' || key === 'table-selection') {
+    const recs = clampNum(q.recs, 0, 8, null);
+    const depth = clampNum(q.depth, 20, 1000, null);
+    if (recs !== null && depth !== null) {
+      const safeRecs = Math.round(recs);
+      const stake = String(q.stake || '2_5');
+      const straddle = Math.round(clampNum(q.straddle, 0, 100, 65));
+      const bomb = Math.round(clampNum(q.bomb, 0, 3, 1));
+      const rake = clampNum(q.rake, 0, 30, 6);
+      const score = Math.min(100, Math.max(10, Math.round(safeRecs * 12 + Math.min(25, depth / 10) + straddle * 0.12 + bomb * 5 - rake * 1.2)));
+      const grade = score >= 85 ? 'A+ Must-Sit' : score >= 72 ? 'A Strong' : score >= 58 ? 'B Playable' : 'C/D Table-Change';
+      return {
+        hasValidatedSpot: true,
+        tool: 'table-selection-calculator',
+        statLabel: `SOLVED TABLE SCORE (${safeRecs} RECS, ${Math.round(depth)} BB DEEP)`,
+        statValue: `Score ${score}/100 (${grade})`,
+        summaryText: `Live Cash Table Selection (${safeRecs} Recreational Seats, ${Math.round(depth)} BB Avg Stack, ${straddle}% Straddles, $${rake} Rake Cap): Table Profitability Score ${score}/100 (${grade}).`,
+        normalizedQuery: { stake, recs: safeRecs, depth: Math.round(depth), straddle, bomb, rake },
+      };
+    }
+  }
+
+  // 38. Winrate Confidence Interval Calculator
+  if (key === 'winrate-confidence-calculator' || key === 'winrate-confidence') {
+    const wr = clampNum(q.wr, -50, 100, null);
+    const sd = clampNum(q.sd, 5, 300, null);
+    const hands = clampNum(q.hands, 100, 10000000, null);
+    if (wr !== null && sd !== null && hands !== null) {
+      const safeHands = Math.round(hands);
+      const mode = String(q.mode || 'bb100') === 'hourly' ? 'hourly' : 'bb100';
+      const se = sd / Math.sqrt(safeHands / 100);
+      const ci95Low = +(wr - 1.96 * se).toFixed(2);
+      const ci95High = +(wr + 1.96 * se).toFixed(2);
+      return {
+        hasValidatedSpot: true,
+        tool: 'winrate-confidence-calculator',
+        statLabel: `SOLVED 95% WINRATE CI (${safeHands.toLocaleString('en-US')} HANDS @ ${wr} BB/100)`,
+        statValue: `[${ci95Low}, +${ci95High}] BB/100 (±${(1.96 * se).toFixed(2)})`,
+        summaryText: `Winrate Confidence Bounds Over ${safeHands.toLocaleString('en-US')} Hands (${wr} BB/100 Observed, ${sd} BB/100 SD): 95% Confidence Interval [${ci95Low}, +${ci95High}] BB/100.`,
+        normalizedQuery: { mode, wr, sd, hands: safeHands },
+      };
+    }
+  }
+
+  // 39. Multiway Poker Odds Calculator
+  if (key === 'poker-odds-calculator' || key === 'odds-calculator') {
+    if (q.hand1 || q.hand2 || q.hands || q.board) {
+      const game = String(q.game || 'holdem').toLowerCase();
+      const hand1 = String(q.hand1 || (q.hands ? String(q.hands).split(',')[0] : 'AsAh')).trim().slice(0, 16);
+      const hand2 = String(q.hand2 || (q.hands ? String(q.hands).split(',')[1] || 'KsKh' : 'KsKh')).trim().slice(0, 16);
+      const board = String(q.board || '').trim().slice(0, 20);
+      return {
+        hasValidatedSpot: true,
+        tool: 'poker-odds-calculator',
+        statLabel: `SOLVED ${game.toUpperCase()} EQUITY MATCHUP${board ? ` (BOARD ${board.toUpperCase()})` : ''}`,
+        statValue: `${hand1.toUpperCase()} Vs ${hand2.toUpperCase()}`,
+        summaryText: `${game.toUpperCase()} Combinatorial Equity Simulation: ${hand1} Vs. ${hand2}${board ? ` On Board [${board}]` : ' (52-Card Pre-Flop Enumeration)'}.`,
+        normalizedQuery: { game, hand1, hand2, ...(board ? { board } : {}) },
+      };
+    }
+  }
+
+  // 40. 100BB 6-Max GTO Preflop Ranges
+  if (key === 'preflop-ranges' || key === 'preflop-charts') {
+    if (q.pos || q.position || q.action || q.depth) {
+      const pos = String(q.pos || q.position || 'BTN').toUpperCase().slice(0, 10);
+      const action = String(q.action || 'RFI').toUpperCase().slice(0, 16);
+      const depth = Math.round(clampNum(q.depth, 10, 300, 100));
+      return {
+        hasValidatedSpot: true,
+        tool: 'preflop-ranges',
+        statLabel: `13X13 GTO PREFLOP MATRIX (${depth}BB 6-MAX • ${pos})`,
+        statValue: `${pos} ${action} Range (${depth}BB)`,
+        summaryText: `100BB 6-Max Solver-Verified 13x13 Preflop Matrix: ${pos} ${action} At ${depth}BB Effective Stack.`,
+        normalizedQuery: { pos, action, depth },
       };
     }
   }

@@ -58,8 +58,9 @@ export default function USStatePokerDetailPage({ stateGuide, peerStates = [] }) 
   const canonicalPath = stateGuidePath(stateGuide.slug);
   const canonicalUrl = `https://smarter.poker${canonicalPath}`;
 
-  const discordFactSheet = `[Smarter.Poker US State Poker Law & Tax Fact Sheet: ${stateGuide.name} (${stateGuide.code})] Status: ${stateGuide.legalStatus} | Min Age: ${stateGuide.minAge} | State Tax: ${stateGuide.stateIncomeTaxRate} | Live Rooms: ${stateGuide.approxLiveRooms} | Rake Model: ${stateGuide.rakeModel} | Source: ${canonicalUrl}`;
-  const redditFactSheet = `**${stateGuide.name} (${stateGuide.code}) - Live & Online Poker Legality, Rake & Tax Fact Sheet**\n- **Legal Cardroom Status:** ${stateGuide.legalStatus}\n- **Minimum Gaming Age:** ${stateGuide.minAge}\n- **State Income Tax / W-2G Rate:** ${stateGuide.stateIncomeTaxRate}\n- **Active Live Poker Rooms:** ${stateGuide.approxLiveRooms}\n- **Standard Rake Model:** ${stateGuide.rakeModel}\n- *Source: [Smarter.Poker ${stateGuide.name} Poker Guide](${canonicalUrl})*`;
+  const stateAssumptions = '2026 US State Gaming Commission Statutes & IRS/State Form W-2G Tax Code';
+  const discordFactSheet = `[Smarter.Poker US State Poker Law & Tax Fact Sheet: ${stateGuide.name} (${stateGuide.code})] Status: ${stateGuide.legalStatus} | Min Age: ${stateGuide.minAge} | State Tax: ${stateGuide.stateIncomeTaxRate} | Live Rooms: ${stateGuide.approxLiveRooms} | Rake Model: ${stateGuide.rakeModel} | Assumptions: ${stateAssumptions} | Source: ${canonicalUrl}`;
+  const redditFactSheet = `**${stateGuide.name} (${stateGuide.code}) - Live & Online Poker Legality, Rake & Tax Fact Sheet**\n- **Legal Cardroom Status:** ${stateGuide.legalStatus}\n- **Minimum Gaming Age:** ${stateGuide.minAge}\n- **State Income Tax / W-2G Rate:** ${stateGuide.stateIncomeTaxRate}\n- **Active Live Poker Rooms:** ${stateGuide.approxLiveRooms}\n- **Standard Rake Model:** ${stateGuide.rakeModel}\n- **Statutory Assumptions:** ${stateAssumptions}\n- *Source: [Smarter.Poker ${stateGuide.name} Poker Guide](${canonicalUrl})*`;
 
   const handleCopyFactSheet = async (type, text) => {
     try {

@@ -130,7 +130,7 @@ test('Webmaster Embed Portal (/tools/embeds) ships all 15 calculators, 12 SVG ba
   assert.ok(embedsSrc.includes('syndication-apis-heading'), 'embeds.js renders Open Datasets & Syndication APIs section');
 
   const embedUrls = [...embedsSrc.matchAll(/embedUrl:\s*'([^']+)'/g)].map((m) => m[1]);
-  assert.equal(embedUrls.length, 33, 'all 33 widgets define embedUrl');
+  assert.equal(embedUrls.length, 41, 'all 41 widgets define embedUrl');
   for (const url of embedUrls) {
     assert.ok(
       url.startsWith('https://smarter.poker/tools/') && url.endsWith('?embed=true'),
@@ -740,7 +740,7 @@ test('Phase 6 Partner Installation Suite: oEmbed 1.0 Provider, 1-Line JS Widget 
   assert.equal(invalidOembed.status, 404);
 
   const catalog = buildPartnerInstallationCatalog({ partner: 'upswingpoker.com' });
-  assert.equal(catalog.counts.embeddable_calculators, 33);
+  assert.equal(catalog.counts.embeddable_calculators, 41);
   assert.equal(catalog.counts.svg_attribution_badges, 16);
   assert.equal(catalog.counts.streamer_chat_commands, 34);
   assert.equal(catalog.counts.dead_tool_replacements, 12);
@@ -1072,13 +1072,13 @@ test('Phase 8 Reconciled Acceptance: Solved-Spot Engine, QR Rule Sheets, Dataset
   );
 
   assert.equal(MCP_SERVER_INFO.version, '2.0.0');
-  assert.equal(MCP_SERVER_INFO.packageVersion, '1.0.6');
+  assert.equal(MCP_SERVER_INFO.packageVersion, '1.0.7');
   const mcpManifest = JSON.parse(read('public/.well-known/mcp.json'));
   const mcpRegistry = JSON.parse(read('public/.well-known/mcp-registry.json'));
   assert.equal(mcpManifest.version, '2.0.0');
-  assert.equal(mcpManifest.package_version, '1.0.6');
+  assert.equal(mcpManifest.package_version, '1.0.7');
   assert.equal(mcpRegistry.version, '2.0.0');
-  assert.equal(mcpRegistry.package_version, '1.0.6');
+  assert.equal(mcpRegistry.package_version, '1.0.7');
   assert.deepEqual(mcpManifest.tools, MCP_TOOLS.map((t) => t.name));
   assert.deepEqual(mcpRegistry.tools, MCP_TOOLS.map((t) => t.name));
 
@@ -1184,6 +1184,9 @@ test('Phase 8 Reconciled Acceptance: Solved-Spot Engine, QR Rule Sheets, Dataset
     'pages/learn/positions/[pos].js',
     'pages/learn/stakes/[stake].js',
     'pages/poker-rooms/states/[state].js',
+    'pages/learn/board-textures/[slug].js',
+    'pages/learn/player-types/[type].js',
+    'pages/poker-rooms/international/[slug].js',
   ]) {
     const src = read(hubFactSheetPage);
     assert.ok(src.includes('Copy Reddit / Forum Markdown'), `${hubFactSheetPage} includes 1-click Reddit/Forum fact-sheet copy button`);

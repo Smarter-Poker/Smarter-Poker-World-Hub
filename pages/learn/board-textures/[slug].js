@@ -10,7 +10,7 @@
  * House style: Title Case, zero em dashes.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -53,9 +53,32 @@ export async function getStaticProps({ params }) {
 }
 
 export default function BoardTextureDetailPage({ texture, allTextures = [] }) {
+  const [copiedCard, setCopiedCard] = useState('');
   const canonicalPath = boardTexturePath(texture.slug);
   const canonicalUrl = `https://smarter.poker${canonicalPath}`;
   const analyzerHref = `/tools/board-texture-analyzer?board=${encodeURIComponent(texture.analyzerQuery)}`;
+
+  const boardAssumptions = '100BB Single-Raised Pot (BTN Raiser vs BB Defender); 5% Capped Rake GTO Solver Equilibrium; 1,755 Isomorphic Flop Subsets';
+  const discordFactSheet = `[Smarter.Poker Flop Board Texture Fact Sheet: ${texture.name} (${texture.exampleBoard})] C-Bet Freq: ${texture.gtoCbetFreq} | Optimal Sizing: ${texture.optimalCbetSize} | Defender XR: ${texture.checkRaiseFreq} | Assumptions: ${boardAssumptions} | Guide: ${canonicalUrl}`;
+  const redditFactSheet = `**${texture.name} (${texture.exampleBoard}) - GTO Flop Board Texture Fact Sheet**\n- **GTO C-Bet Frequency:** ${texture.gtoCbetFreq}\n- **Optimal C-Bet Sizing:** ${texture.optimalCbetSize}\n- **Defender Check-Raise %:** ${texture.checkRaiseFreq}\n- **Range & Nut Advantage:** ${texture.rangeAdvantage}\n- **Solver Assumptions:** ${boardAssumptions}\n- *Source: [Smarter.Poker ${texture.code} Board Texture Guide](${canonicalUrl})*`;
+
+  const handleCopyFactSheet = async (type, text) => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(text);
+        setCopiedCard(type);
+        setTimeout(() => setCopiedCard(''), 2200);
+      }
+      if (typeof fetch === 'function') {
+        fetch(
+          `/api/seo/referral-stats?event=record&category=solved_spot_shares&item=board-texture-${encodeURIComponent(texture.slug)}&source=${encodeURIComponent(type)}`,
+          { method: 'POST', keepalive: true }
+        ).catch(() => {});
+      }
+    } catch {
+      // Ignore clipboard failures
+    }
+  };
 
   const jsonLd = [
     {
@@ -176,6 +199,20 @@ export default function BoardTextureDetailPage({ texture, allTextures = [] }) {
             <Link href={BOARD_TEXTURES_BASE_PATH} style={styles.crossBtnOutline}>
               All 12 Flop Textures
             </Link>
+            <button
+              type="button"
+              onClick={() => handleCopyFactSheet('discord', discordFactSheet)}
+              style={{ ...styles.crossBtnOutline, cursor: 'pointer', color: '#25c8ff', borderColor: 'rgba(37, 200, 255, 0.45)' }}
+            >
+              {copiedCard === 'discord' ? 'Copied Discord Fact Sheet!' : 'Copy Discord Board Card'}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleCopyFactSheet('reddit', redditFactSheet)}
+              style={{ ...styles.crossBtnOutline, cursor: 'pointer', color: '#34d399', borderColor: 'rgba(52, 211, 153, 0.45)' }}
+            >
+              {copiedCard === 'reddit' ? 'Copied Reddit Markdown!' : 'Copy Reddit / Forum Markdown'}
+            </button>
           </div>
         </header>
 

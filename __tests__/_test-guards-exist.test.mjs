@@ -382,6 +382,7 @@ import './trivia-ui-foundation.test.mjs';
 // Trivia Phase 2: versioned rules seed parity, conserving money helpers,
 // ledger migration ACLs with every switch OFF, and the lifeline/audit wiring.
 import './trivia-ledger-phase-2.test.mjs';
+import './trivia-hardening-20261124.test.mjs';
 import './world-command-destinations.test.mjs';
 import './world-command-menu-law.test.mjs';
 import './world-menu-presentation.test.mjs';
@@ -862,13 +863,14 @@ import './digest-shows-the-fix.test.mjs';
 import './notifications-is-the-top-menu-setting.law.test.mjs';
 import './weekly-rakeback-credit-notices.test.mjs';
 import './backlink-embed-citation-engine.test.mjs';
+import './seo-backlink-programme-invariants.law.test.mjs';
 import './aeo-traffic-expansion-master.test.mjs';
 import './training-reconciled-workflows.test.mjs';
 import './hub-settings-rail-opt-in.test.mjs';
 import './fleet-content-cleanup-migration.test.mjs';
 import './promo-campaigns.test.mjs';
 import './aeo-discovery-hardening.law.test.mjs';
-import './trivia-hardening-20261124.test.mjs';
+import './trivia-p11-deadlock-and-sim.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
     const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');
