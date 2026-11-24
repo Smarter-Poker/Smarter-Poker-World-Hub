@@ -44,7 +44,7 @@ test('push-health imports exactly these bindings, and names only conditions and 
     notify: '../../../src/lib/notify',
     notifyAdmins: '../../../src/lib/notify',
     filterRecentlyAlerted: '../../../src/lib/push/alertCooldown.mjs',
-    ...Object.fromEntries(['CHECK', 'CONDITION', 'includesOwnerAccount', 'isOwnerAccount', 'mustReceivePlatformAlerts', 'observeOwnerAddressedNotices',
+    ...Object.fromEntries(['CHECK', 'CONDITION', 'errorText', 'includesOwnerAccount', 'isOwnerAccount', 'mustReceivePlatformAlerts', 'observeOwnerAddressedNotices',
       'personalRecipients', 'pushHealthNotices', 'pushHealthObservations', 'recordPushHealthAlerts',
       'settledVapidRotations', 'vapidRotation'].map((name) => [name, helper])),
   });

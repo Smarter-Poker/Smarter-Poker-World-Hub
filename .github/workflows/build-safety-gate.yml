@@ -307,6 +307,7 @@ jobs:
           __tests__/push-health-alert-evidence.test.mjs
           __tests__/push-health-alert-positive-evidence.test.mjs
           __tests__/push-health-owner-alert-episodes.test.mjs
+          __tests__/push-health-error-text.test.mjs
           __tests__/zombie-endpoint-retirement.test.mjs
           __tests__/push-worker-delivery-receipt.test.mjs
           __tests__/push-enrollment-nudge.test.mjs

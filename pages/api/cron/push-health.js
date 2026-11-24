@@ -56,7 +56,7 @@ import { filterRecentlyAlerted } from '../../../src/lib/push/alertCooldown.mjs';
 // The owner account's copy of everything this job finds: store episodes (with
 // recoveries where push-health sees the condition clear itself), plus the only
 // way this job may address a person.
-import { CHECK, CONDITION, includesOwnerAccount, isOwnerAccount, mustReceivePlatformAlerts, observeOwnerAddressedNotices, personalRecipients, pushHealthNotices, pushHealthObservations, recordPushHealthAlerts, settledVapidRotations, vapidRotation } from '../../../src/lib/push/pushHealthOperationalAlerts.mjs';
+import { CHECK, CONDITION, errorText, includesOwnerAccount, isOwnerAccount, mustReceivePlatformAlerts, observeOwnerAddressedNotices, personalRecipients, pushHealthNotices, pushHealthObservations, recordPushHealthAlerts, settledVapidRotations, vapidRotation } from '../../../src/lib/push/pushHealthOperationalAlerts.mjs';
 
 const ZOMBIE_RECEIPT_DAYS = 3;
 // Ceiling on per-user alerts in one run. Each alert is a notifications insert
@@ -243,7 +243,7 @@ async function handler(req, res) {
                    inventing one inside a catch is how a cleanup failure turns
                    into a TypeError that takes down the health check it was
                    attached to. */
-                report.zombieRetireError = String(e?.message || e).slice(0, 200);
+                report.zombieRetireError = errorText(e).slice(0, 200);
             }
         }
 
@@ -281,7 +281,7 @@ async function handler(req, res) {
                 report.duplicateConfirmersRetired = redundant.length;
             } catch (e) {
                 /* Same rule as the block above: a cleanup never fails the run. */
-                report.duplicateConfirmerRetireError = String(e?.message || e).slice(0, 200);
+                report.duplicateConfirmerRetireError = errorText(e).slice(0, 200);
             }
         }
 
@@ -331,7 +331,7 @@ async function handler(req, res) {
         if (zombieUnread) health.readFailed(CONDITION.ZOMBIES, zombieUnread);
         else health.passed(CHECK.ZOMBIE);
     } catch (e) {
-        health.checkFailed(CHECK.ZOMBIE, `zombie check failed: ${e?.message || e}`, e);
+        health.checkFailed(CHECK.ZOMBIE, `zombie check failed: ${errorText(e)}`, e);
     }
 
     // ---- CHECK 2: staff with no reachable device --------------------------
@@ -436,7 +436,7 @@ async function handler(req, res) {
         // The check passes only when every read it made came back whole.
         if (!staffCut && !globalUnread) health.passed(CHECK.STAFF);
     } catch (e) {
-        health.checkFailed(CHECK.STAFF, `staff check failed: ${e?.message || e}`, e);
+        health.checkFailed(CHECK.STAFF, `staff check failed: ${errorText(e)}`, e);
     }
 
     // ---- CHECK 2b: one live subscription per device ------------------------
@@ -506,7 +506,7 @@ async function handler(req, res) {
         if (liveUnread) health.readFailed(CONDITION.DUPLICATE_DEVICES, liveUnread);
         else health.passed(CHECK.DUPLICATE_DEVICE);
     } catch (e) {
-        health.checkFailed(CHECK.DUPLICATE_DEVICE, `duplicate-device check failed: ${e?.message || e}`, e);
+        health.checkFailed(CHECK.DUPLICATE_DEVICE, `duplicate-device check failed: ${errorText(e)}`, e);
     }
 
     // ---- CHECK 3: configuration -------------------------------------------
@@ -622,7 +622,7 @@ async function handler(req, res) {
             }
         } catch (e) {
             // Never let the detector break the watchdog.
-            console.warn('[push-health] vapid fingerprint check failed:', e?.message || e);
+            console.warn('[push-health] vapid fingerprint check failed:', errorText(e));
             health.unobserved(CONDITION.VAPID_ROTATED, e);
         }
     }
@@ -654,7 +654,7 @@ async function handler(req, res) {
         // A failed read is not a check that worked (review r27).
         if (!lastRunErr) health.passed(CHECK.DISPATCH_LIVENESS);
     } catch (e) {
-        health.checkFailed(CHECK.DISPATCH_LIVENESS, `dispatch liveness check failed: ${e?.message || e}`, e);
+        health.checkFailed(CHECK.DISPATCH_LIVENESS, `dispatch liveness check failed: ${errorText(e)}`, e);
     }
 
     // ---- Backlog signal ----------------------------------------------------
