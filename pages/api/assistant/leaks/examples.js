@@ -20,9 +20,11 @@ function getSupabase() {
   return _supabase;
 }
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+  res.setHeader('Vary', 'Authorization');
   if (!applyRateLimit(req, res, LIMITS.read || { max: 120, windowMs: 60_000 })) return;
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET');

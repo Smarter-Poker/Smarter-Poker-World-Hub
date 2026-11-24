@@ -873,6 +873,7 @@ import './promo-campaigns.test.mjs';
 import './aeo-discovery-hardening.law.test.mjs';
 import './trivia-p11-deadlock-and-sim.test.mjs';
 import './trivia-integrity-elo-horse.test.mjs';
+import './trivia-study-pool-curation.test.mjs';
 import './trivia-v3-ops-burnin.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {

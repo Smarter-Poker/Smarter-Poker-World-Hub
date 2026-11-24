@@ -18,7 +18,7 @@
     "dialogs": 12,
     "persistenceFiles": 88,
     "realtimeFiles": 6,
-    "tests": 181,
+    "tests": 182,
     "markerCandidates": 377,
     "possibleUnwiredFunctions": 408,
     "routeStateCells": 752,
@@ -21343,7 +21343,8 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
-            "__tests__/training-spot-study-authority.test.mjs"
+            "__tests__/training-spot-study-authority.test.mjs",
+            "__tests__/trivia-study-pool-curation.test.mjs"
           ]
         },
         "empty": {
@@ -21374,7 +21375,8 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
-            "__tests__/training-spot-study-authority.test.mjs"
+            "__tests__/training-spot-study-authority.test.mjs",
+            "__tests__/trivia-study-pool-curation.test.mjs"
           ]
         },
         "error": {
@@ -21402,7 +21404,8 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
-            "__tests__/training-spot-study-authority.test.mjs"
+            "__tests__/training-spot-study-authority.test.mjs",
+            "__tests__/trivia-study-pool-curation.test.mjs"
           ]
         },
         "retry": {
@@ -21422,7 +21425,8 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
-            "__tests__/training-spot-study-authority.test.mjs"
+            "__tests__/training-spot-study-authority.test.mjs",
+            "__tests__/trivia-study-pool-curation.test.mjs"
           ]
         },
         "success": {
@@ -21443,7 +21447,8 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
-            "__tests__/training-spot-study-authority.test.mjs"
+            "__tests__/training-spot-study-authority.test.mjs",
+            "__tests__/trivia-study-pool-curation.test.mjs"
           ]
         },
         "stale": {
@@ -21465,7 +21470,8 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
-            "__tests__/training-spot-study-authority.test.mjs"
+            "__tests__/training-spot-study-authority.test.mjs",
+            "__tests__/trivia-study-pool-curation.test.mjs"
           ]
         },
         "offline": {
@@ -21481,7 +21487,8 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
-            "__tests__/training-spot-study-authority.test.mjs"
+            "__tests__/training-spot-study-authority.test.mjs",
+            "__tests__/trivia-study-pool-curation.test.mjs"
           ]
         },
         "authExpiry": {
@@ -21499,7 +21506,8 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
-            "__tests__/training-spot-study-authority.test.mjs"
+            "__tests__/training-spot-study-authority.test.mjs",
+            "__tests__/trivia-study-pool-curation.test.mjs"
           ]
         }
       },
@@ -21510,7 +21518,8 @@
         "__tests__/training-reconciled-workflows.test.mjs",
         "__tests__/training-reference-is-public-b.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs",
-        "__tests__/training-spot-study-authority.test.mjs"
+        "__tests__/training-spot-study-authority.test.mjs",
+        "__tests__/trivia-study-pool-curation.test.mjs"
       ],
       "uncoveredStates": []
     },
@@ -57389,6 +57398,22 @@
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
+        },
+        {
+          "name": "playerKey",
+          "line": 459,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "isAggro",
+          "line": 497,
+          "references": 4,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
         }
       ],
       "possibleUnwiredFunctions": [],
@@ -70368,7 +70393,7 @@
       "functions": [
         {
           "name": "parseJson",
-          "line": 30,
+          "line": 35,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -70376,15 +70401,31 @@
         },
         {
           "name": "playerId",
-          "line": 37,
-          "references": 7,
+          "line": 42,
+          "references": 9,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "isSupportedHoldemVariant",
+          "line": 46,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "isUnsupportedSpecialFormat",
+          "line": 51,
+          "references": 3,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "clubArenaHandRejectionReason",
-          "line": 41,
+          "line": 59,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -70392,7 +70433,7 @@
         },
         {
           "name": "cardCode",
-          "line": 60,
+          "line": 79,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -70400,15 +70441,31 @@
         },
         {
           "name": "cards",
-          "line": 79,
+          "line": 98,
           "references": 23,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
+          "name": "normalizedRawAction",
+          "line": 102,
+          "references": 5,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "isForcedAction",
+          "line": 106,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "actionName",
-          "line": 83,
+          "line": 116,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -70416,7 +70473,7 @@
         },
         {
           "name": "positionedPlayers",
-          "line": 95,
+          "line": 128,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -70424,7 +70481,7 @@
         },
         {
           "name": "normalizeClubArenaHand",
-          "line": 121,
+          "line": 154,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -70432,7 +70489,7 @@
         },
         {
           "name": "fetchPrivateHeroCards",
-          "line": 255,
+          "line": 440,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -70440,7 +70497,7 @@
         },
         {
           "name": "handNotation",
-          "line": 284,
+          "line": 474,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -70448,7 +70505,7 @@
         },
         {
           "name": "canonicalBoard",
-          "line": 297,
+          "line": 487,
           "references": 6,
           "exported": false,
           "defaultExport": false,
@@ -70456,7 +70513,7 @@
         },
         {
           "name": "canonicalCombo",
-          "line": 303,
+          "line": 493,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -70464,7 +70521,7 @@
         },
         {
           "name": "isSupportedHoldemHand",
-          "line": 307,
+          "line": 497,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -70472,7 +70529,7 @@
         },
         {
           "name": "questionBoard",
-          "line": 312,
+          "line": 502,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -70480,7 +70537,7 @@
         },
         {
           "name": "optionAction",
-          "line": 319,
+          "line": 509,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -70488,7 +70545,7 @@
         },
         {
           "name": "optionSizingPercent",
-          "line": 331,
+          "line": 521,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -70496,7 +70553,7 @@
         },
         {
           "name": "mapPlayedAction",
-          "line": 340,
+          "line": 530,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -70504,7 +70561,7 @@
         },
         {
           "name": "normalizedDecisionAction",
-          "line": 360,
+          "line": 550,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -70512,7 +70569,7 @@
         },
         {
           "name": "exactActionHistoryCompatible",
-          "line": 371,
+          "line": 561,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -70520,7 +70577,7 @@
         },
         {
           "name": "questionNode",
-          "line": 388,
+          "line": 578,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -70528,7 +70585,7 @@
         },
         {
           "name": "nodeCompatible",
-          "line": 408,
+          "line": 598,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -70536,7 +70593,7 @@
         },
         {
           "name": "fingerprint",
-          "line": 424,
+          "line": 614,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -70544,7 +70601,7 @@
         },
         {
           "name": "canonicalFingerprint",
-          "line": 430,
+          "line": 620,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -70552,7 +70609,7 @@
         },
         {
           "name": "exactIdentityCompatible",
-          "line": 434,
+          "line": 624,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -70560,7 +70617,7 @@
         },
         {
           "name": "findQuestion",
-          "line": 474,
+          "line": 664,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -70568,15 +70625,15 @@
         },
         {
           "name": "summary",
-          "line": 512,
-          "references": 29,
+          "line": 702,
+          "references": 31,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "runWithConcurrency",
-          "line": 528,
+          "line": 718,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -70584,7 +70641,7 @@
         },
         {
           "name": "replacePersistedDecisionEvidence",
-          "line": 549,
+          "line": 739,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -70592,7 +70649,7 @@
         },
         {
           "name": "auditParsedHands",
-          "line": 576,
+          "line": 766,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -70600,7 +70657,15 @@
         },
         {
           "name": "fetchClubHandsForKey",
-          "line": 727,
+          "line": 917,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "parseTimestampMicros",
+          "line": 956,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -70608,7 +70673,7 @@
         },
         {
           "name": "compareHandKeyDescending",
-          "line": 766,
+          "line": 966,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -70616,7 +70681,7 @@
         },
         {
           "name": "fetchExistingAuditRows",
-          "line": 771,
+          "line": 974,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -70624,7 +70689,7 @@
         },
         {
           "name": "auditRowTime",
-          "line": 786,
+          "line": 989,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -70632,15 +70697,31 @@
         },
         {
           "name": "syncClubArenaHandsForAudit",
-          "line": 792,
+          "line": 995,
           "references": 1,
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
-          "name": "streetActions",
-          "line": 155,
+          "name": "rawActionsForStreet",
+          "line": 193,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "resolveActor",
+          "line": 199,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "normalizeStreet",
+          "line": 254,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -82143,6 +82224,7 @@
     "__tests__/training-tournaments-read-contract.test.mjs",
     "__tests__/training-verified-leaderboard.test.mjs",
     "__tests__/training-verified-report-authority.test.mjs",
+    "__tests__/trivia-study-pool-curation.test.mjs",
     "__tests__/world-command-navigation-state.test.mjs",
     "__tests__/world-hub-connection-hardening.test.mjs",
     "__tests__/world-menu-mobile-phase3.test.mjs",
@@ -123915,6 +123997,7 @@
         "__tests__/training-reference-is-public-c.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs",
         "__tests__/training-surface-inventory-classifier.test.mjs",
+        "__tests__/trivia-study-pool-curation.test.mjs",
         "__tests__/world-hub-connection-hardening.test.mjs",
         "__tests__/world-menu-mobile-phase3.test.mjs"
       ]
@@ -130016,6 +130099,7 @@
           "pages/hub/trivia/leaderboard.js",
           "pages/hub/trivia/settings.js",
           "pages/hub/trivia/stats.js",
+          "pages/hub/trivia/study.js",
           "pages/hub/trivia/survival-game.js",
           "pages/hub/trivia/tournaments.js",
           "pages/hub/user/[username].js",
@@ -132727,7 +132811,7 @@
       {
         "file": "src/lib/training/handAuditEngine.js",
         "name": "syncClubArenaHandsForAudit",
-        "line": 792,
+        "line": 995,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -140183,6 +140267,7 @@
           "pages/hub/trivia/leaderboard.js",
           "pages/hub/trivia/settings.js",
           "pages/hub/trivia/stats.js",
+          "pages/hub/trivia/study.js",
           "pages/hub/trivia/survival-game.js",
           "pages/hub/trivia/tournaments.js",
           "pages/hub/user/[username].js",
@@ -142894,7 +142979,7 @@
       {
         "file": "src/lib/training/handAuditEngine.js",
         "name": "syncClubArenaHandsForAudit",
-        "line": 792,
+        "line": 995,
         "references": 1,
         "exported": true,
         "defaultExport": false,

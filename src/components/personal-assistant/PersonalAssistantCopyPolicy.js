@@ -4,10 +4,13 @@ import {
   PERSONAL_ASSISTANT_COPY_CLASS,
 } from '../../lib/personal-assistant/copyPolicy.mjs';
 
+let activePolicyMounts = 0;
+
 /** Enforces the Personal Assistant copy contract in route content and portals. */
 export default function PersonalAssistantCopyPolicy() {
   useEffect(() => {
     const root = document.body;
+    activePolicyMounts += 1;
     root.classList.add(PERSONAL_ASSISTANT_COPY_CLASS);
     applyPersonalAssistantCopyPolicy(root);
 
@@ -30,7 +33,10 @@ export default function PersonalAssistantCopyPolicy() {
 
     return () => {
       observer.disconnect();
-      root.classList.remove(PERSONAL_ASSISTANT_COPY_CLASS);
+      activePolicyMounts = Math.max(0, activePolicyMounts - 1);
+      if (activePolicyMounts === 0) {
+        root.classList.remove(PERSONAL_ASSISTANT_COPY_CLASS);
+      }
     };
   }, []);
 

@@ -61,7 +61,8 @@ export async function runLeakAuditBatches(requestBatch, {
 
     if (result?.status === 429 && rateLimitRetries < 1) {
       rateLimitRetries += 1;
-      const retrySeconds = Math.max(1, Number(result.retryAfter || data.retryAfter || 1));
+      const parsedRetry = Number(result.retryAfter || data.retryAfter);
+      const retrySeconds = Number.isFinite(parsedRetry) && parsedRetry > 0 ? parsedRetry : 1;
       await waitFor(Math.min(MAX_RATE_LIMIT_WAIT_MS, retrySeconds * 1000), signal);
       continue;
     }
@@ -71,20 +72,22 @@ export async function runLeakAuditBatches(requestBatch, {
       && data.retryable === true
       && transientRetries < 1) {
       transientRetries += 1;
-      const retrySeconds = Math.max(1, Number(result.retryAfter || data.retryAfter || 1));
+      const parsedRetry = Number(result.retryAfter || data.retryAfter);
+      const retrySeconds = Number.isFinite(parsedRetry) && parsedRetry > 0 ? parsedRetry : 1;
       await waitFor(Math.min(MAX_RATE_LIMIT_WAIT_MS, retrySeconds * 1000), signal);
       continue;
     }
     transientRetries = 0;
 
     if (!result?.ok || data.success === false) {
+      const nextCursor = data.code === 'invalid_audit_cursor' ? null : cursor;
       return {
         success: false,
         status: result?.status || 500,
         code: data.code,
         error: data.error || `Detection failed (${result?.status || 500})`,
-        auditCursor: cursor,
-        clubArenaSync: cursor ? { auditCursor: cursor } : data.clubArenaSync,
+        auditCursor: nextCursor,
+        clubArenaSync: nextCursor ? { auditCursor: nextCursor } : data.clubArenaSync,
         auditProgress: {
           batchesCompleted,
           handsScanned,
@@ -97,7 +100,9 @@ export async function runLeakAuditBatches(requestBatch, {
 
     batchesCompleted += 1;
     const sync = data.clubArenaSync || {};
-    handsScanned = addMetric(handsScanned, sync.handsFound);
+    handsScanned = Number.isFinite(Number(sync.cumulativeHandsFound))
+      ? Math.max(handsScanned, Number(sync.cumulativeHandsFound))
+      : addMetric(handsScanned, sync.handsFound);
     handsAudited = addMetric(handsAudited, sync.handsAudited);
     decisionsAnalyzed = addMetric(decisionsAnalyzed, sync.decisionsAnalyzed);
     cursor = sync.auditCursor || null;
