@@ -131,3 +131,9 @@ test('LAW 8: Non-staff deep-link guard, active-agent parity, cross-tab unread sy
     assert.match(boardUi, /initialUnreadCount/);
     assert.match(boardUi, /View Card/);
 });
+
+test('LAW 9: Notice Board listens to live read receipts, cross-tab unread sync, and clears active filters on View Card jump', () => {
+    assert.match(boardUi, /table:\s*'club_notice_board_reads'/);
+    assert.match(boardUi, /listenBroadcast\('smarter_poker_unread_sync'/);
+    assert.match(boardUi, /setPendingJumpId/);
+});

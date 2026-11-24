@@ -1,6 +1,7 @@
 import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { authedFetch, getAccessToken } from '../../lib/authUtils';
+import { listenBroadcast, BROADCAST_TAB_ID } from '../../lib/broadcastSync';
 import CashoutRequestActions from './CashoutRequestActions';
 import {
     mergeNotices,
@@ -134,6 +135,7 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
     const [pinsExpanded, setPinsExpanded] = useState(false);
     const [overdueExpanded, setOverdueExpanded] = useState(false);
     const [highlightedId, setHighlightedId] = useState(null);
+    const [pendingJumpId, setPendingJumpId] = useState(null);
     const [searchOpen, setSearchOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterKind, setFilterKind] = useState('all');
@@ -252,7 +254,12 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
         if (!state.current.alive || state.current.denied) return;
         const payload = latestNoticeId ? { lastNoticeId: latestNoticeId } : {};
         void request('PATCH', payload, 'mark_read')
-            .then(res => { if (res && state.current.alive) onMarkRead?.(club.id); })
+            .then(res => {
+                if (res && state.current.alive) {
+                    state.current.selfMarkReadAt = Date.now();
+                    onMarkRead?.(club.id);
+                }
+            })
             .catch(() => { /* best-effort read receipt */ });
     }
 
@@ -398,6 +405,10 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
                 if (!s.alive || s.denied) return;
                 if (s.loading) s.refreshAfterLoad = true;
                 else void hydrate();
+            }).on('postgres_changes', { event: '*', schema: 'public', table: 'club_notice_board_reads', filter: `club_id=eq.${club.id}` }, () => {
+                if (!s.alive || s.denied) return;
+                if (s.loading) s.refreshAfterLoad = true;
+                else void hydrate();
             }).subscribe(status => {
                 if (!s.alive) return;
                 setLive(status === 'SUBSCRIBED');
@@ -413,6 +424,16 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
         void hydrate();
         const refresh = () => { if (document.visibilityState === 'visible') void hydrate(); };
         const offline = () => { clearAccess(); setError('You Are Offline. Reconnect To Check Notice Board Access.'); };
+        const stopUnreadSync = listenBroadcast('smarter_poker_unread_sync', msg => {
+            const isRefresh = msg === 'refresh_unread' || msg?.action === 'refresh_unread';
+            if (!isRefresh || !s.alive || s.denied) return;
+            if (msg?.tabId && msg.tabId === BROADCAST_TAB_ID) return;
+            if (s.selfMarkReadAt && Date.now() - s.selfMarkReadAt < 500) return;
+            setPreviousLastReadAt(null);
+            setInitialUnreadCount(0);
+            if (s.loading) s.refreshAfterLoad = true;
+            else void hydrate();
+        });
         window.addEventListener('offline', offline);
         window.addEventListener('online', refresh);
         window.addEventListener('focus', refresh);
@@ -421,6 +442,7 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
             s.alive = false; s.generation++; s.epoch++;
             if (s.metaTimer) { clearTimeout(s.metaTimer); s.metaTimer = null; }
             if (highlightTimer.current) clearTimeout(highlightTimer.current);
+            stopUnreadSync?.();
             window.removeEventListener('offline', offline);
             window.removeEventListener('online', refresh); window.removeEventListener('focus', refresh);
             document.removeEventListener('visibilitychange', refresh); void supabase.removeChannel(channel);
@@ -713,18 +735,37 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
         if (await mutate('PATCH', noteIntent.current, 'add_note')) { noteIntent.current = null; setNoteTarget(null); setNoteDraft(''); }
     }
 
-    function jumpToNotice(id) {
-        const box = scroller.current;
-        if (box && typeof box.querySelector === 'function') {
-            const node = box.querySelector(`[data-notice-id="${id}"]`);
-            if (node && typeof node.scrollIntoView === 'function') {
-                node.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-        }
+    function highlightNotice(id) {
         setHighlightedId(id);
         if (highlightTimer.current) clearTimeout(highlightTimer.current);
         highlightTimer.current = setTimeout(() => setHighlightedId(null), 1800);
     }
+
+    function jumpToNotice(id) {
+        if (!id) return;
+        const box = scroller.current;
+        const node = box && typeof box.querySelector === 'function' ? box.querySelector(`[data-notice-id="${id}"]`) : null;
+        if (node && typeof node.scrollIntoView === 'function') {
+            node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            highlightNotice(id);
+            return;
+        }
+        setFilterKind('all');
+        setSearchQuery('');
+        setMemberFilter(null);
+        setPendingJumpId(id);
+    }
+
+    useEffect(() => {
+        if (!pendingJumpId) return;
+        const box = scroller.current;
+        const node = box && typeof box.querySelector === 'function' ? box.querySelector(`[data-notice-id="${pendingJumpId}"]`) : null;
+        if (node && typeof node.scrollIntoView === 'function') {
+            node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        highlightNotice(pendingJumpId);
+        setPendingJumpId(null);
+    }, [pendingJumpId, rows, filterKind, searchQuery, memberFilter]);
 
     const visibleRows = useMemo(() => {
         const active = rows.filter(row => !row.is_deleted);
