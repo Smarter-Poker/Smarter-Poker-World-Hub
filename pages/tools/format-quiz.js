@@ -605,7 +605,7 @@ export default function FormatQuizPage({
           </h2>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
             <Link href="/tools" style={{ padding: '8px 14px', background: '#25c8ff', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
-              All 42 Free Poker Calculators
+              Explore All 52 Free Poker Calculators
             </Link>
             <Link href="/tools/bankroll-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#f2b84b', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Bankroll &amp; Risk Of Ruin Calculator

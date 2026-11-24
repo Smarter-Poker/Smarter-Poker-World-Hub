@@ -59,6 +59,16 @@ const SOLVED_SPOT_QUERY_SCHEMAS = {
   'shot-clock': ['primary', 'bank'],
   'table-selection-calculator': ['stake', 'recs', 'depth', 'straddle', 'bomb', 'rake'],
   'winrate-confidence-calculator': ['mode', 'wr', 'sd', 'hands', 'hph'],
+  'multiway-all-in-calculator': ['p1', 'p2', 'p3', 'eq1', 'eq2', 'eq3', 'dead'],
+  'mystery-bounty-tracker': ['pool', 'topBounty', 'envelopes', 'players', 'startChips', 'fee'],
+  'bubble-factor-calculator': ['s1', 's2', 's3', 's4', 'p1', 'p2', 'p3', 'p4'],
+  'bluff-catching-calculator': ['pot', 'bet', 'valueCombos', 'bluffCombos', 'blockerPct'],
+  'multi-street-ev-calculator': ['pot', 'fBet', 'fFold', 'tBet', 'tFold', 'rBet', 'rFold', 'eq'],
+  'heads-up-push-fold-calculator': ['bb', 'role', 'ante'],
+  'blind-vs-blind-calculator': ['bb', 'action', 'sizing'],
+  'shot-taking-calculator': ['bankroll', 'baseBb', 'shotBb', 'stopLossBi', 'wrBase', 'wrShot'],
+  'warmup-cooldown-routine': ['game', 'duration', 'tiltScore', 'focusScore'],
+  'home-game-director': ['players', 'buyin', 'rebuys', 'addons', 'stack', 'levelMins'],
 };
 
 export * from '@smarter-poker/commander-shared/components/seo/SEOHead';
@@ -266,6 +276,16 @@ export default function SEOHead(props) {
       pathname === '/tools/shot-clock' ||
       pathname === '/tools/table-selection-calculator' ||
       pathname === '/tools/winrate-confidence-calculator' ||
+      pathname === '/tools/multiway-all-in-calculator' ||
+      pathname === '/tools/mystery-bounty-tracker' ||
+      pathname === '/tools/bubble-factor-calculator' ||
+      pathname === '/tools/bluff-catching-calculator' ||
+      pathname === '/tools/multi-street-ev-calculator' ||
+      pathname === '/tools/heads-up-push-fold-calculator' ||
+      pathname === '/tools/blind-vs-blind-calculator' ||
+      pathname === '/tools/shot-taking-calculator' ||
+      pathname === '/tools/warmup-cooldown-routine' ||
+      pathname === '/tools/home-game-director' ||
       pathname === '/rules' ||
       pathname.startsWith('/rules/') ||
       pathname === '/games' ||

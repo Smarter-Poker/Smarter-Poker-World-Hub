@@ -260,6 +260,66 @@
       title: 'Poker Winrate Confidence Interval (70% / 95% / 99%) Calculator',
       anchor: 'Smarter.Poker Winrate Confidence Calculator',
       height: 780
+    },
+    'multiway-all-in-calculator': {
+      path: '/tools/multiway-all-in-calculator',
+      title: 'Multiway All-In EV & Side Pot Equity Calculator',
+      anchor: 'Smarter.Poker Multiway All-In EV Calculator',
+      height: 780
+    },
+    'mystery-bounty-tracker': {
+      path: '/tools/mystery-bounty-tracker',
+      title: 'Live Day-2 Mystery Bounty Envelope Removal Tracker',
+      anchor: 'Smarter.Poker Mystery Bounty Envelope Tracker',
+      height: 780
+    },
+    'bubble-factor-calculator': {
+      path: '/tools/bubble-factor-calculator',
+      title: 'Final Table Pairwise ICM Bubble Factor & Equity Matrix',
+      anchor: 'Smarter.Poker Final Table Bubble Factor Matrix',
+      height: 800
+    },
+    'bluff-catching-calculator': {
+      path: '/tools/bluff-catching-calculator',
+      title: 'River Bluff-Catching, Card-Removal Blockers & MDF Solver',
+      anchor: 'Smarter.Poker River Bluff-Catching Solver',
+      height: 760
+    },
+    'multi-street-ev-calculator': {
+      path: '/tools/multi-street-ev-calculator',
+      title: 'Multi-Street Double & Triple-Barrel Fold-Equity EV Solver',
+      anchor: 'Smarter.Poker Multi-Street Barrel EV Solver',
+      height: 780
+    },
+    'heads-up-push-fold-calculator': {
+      path: '/tools/heads-up-push-fold-calculator',
+      title: 'Heads-Up & 3-Max Spin Push/Fold Nash Equilibrium Solver',
+      anchor: 'Smarter.Poker Heads-Up Push/Fold Nash Solver',
+      height: 820
+    },
+    'blind-vs-blind-calculator': {
+      path: '/tools/blind-vs-blind-calculator',
+      title: 'Blind-Vs-Blind (SB Vs. BB) Limp, Open & 3-Bet Matrix Explorer',
+      anchor: 'Smarter.Poker Blind-Vs-Blind SB Vs. BB Explorer',
+      height: 820
+    },
+    'shot-taking-calculator': {
+      path: '/tools/shot-taking-calculator',
+      title: '2-Tier Bankroll Shot-Taking & Move-Down Stop-Loss Planner',
+      anchor: 'Smarter.Poker Bankroll Shot-Taking Planner',
+      height: 760
+    },
+    'warmup-cooldown-routine': {
+      path: '/tools/warmup-cooldown-routine',
+      title: 'Interactive Poker Pre-Session Warmup & Post-Session Cooldown Tool',
+      anchor: 'Smarter.Poker Pre-Session Warmup & Cooldown Tool',
+      height: 800
+    },
+    'home-game-director': {
+      path: '/tools/home-game-director',
+      title: 'Live Home Game Tournament Director Clock & Payout Console',
+      anchor: 'Smarter.Poker Home Game Tournament Director',
+      height: 800
     }
   };
 
@@ -342,6 +402,116 @@
       } catch (e) {
         // Ignore telemetry errors on restricted host pages
       }
+    }
+
+    // Mount inline mini-preview popovers for <span data-smarter-poker-tooltip="pot-odds-calculator">
+    var tooltipNodes = document.querySelectorAll('[data-smarter-poker-tooltip]');
+    for (var j = 0; j < tooltipNodes.length; j++) {
+      var trigger = tooltipNodes[j];
+      if (trigger.getAttribute('data-sp-tooltip-mounted') === 'true') continue;
+      (function (el) {
+        var tKey = String(el.getAttribute('data-smarter-poker-tooltip') || 'pot-odds-calculator').trim().toLowerCase();
+        var tSpec = WIDGET_REGISTRY[tKey] || WIDGET_REGISTRY['pot-odds-calculator'];
+        var tPartner = sanitizeHost(el.getAttribute('data-partner') || defaultHost);
+        var tLanderSuffix = tPartner ? '?utm_source=' + encodeURIComponent(tPartner) + '&utm_medium=embed-tooltip' : '';
+        var tEmbedSuffix = tPartner ? '&utm_source=' + encodeURIComponent(tPartner) + '&utm_medium=embed-tooltip' : '';
+
+        el.style.position = el.style.position || 'relative';
+        el.style.display = el.style.display || 'inline-block';
+        el.style.borderBottom = el.style.borderBottom || '1px dashed #38bdf8';
+        el.style.color = el.style.color || '#38bdf8';
+        el.style.cursor = 'pointer';
+        el.setAttribute('tabindex', '0');
+        el.setAttribute('role', 'button');
+        el.setAttribute('aria-label', tSpec.title + ' Inline Preview');
+
+        var popover = null;
+
+        function openPopover() {
+          if (popover) return;
+          popover = document.createElement('div');
+          popover.setAttribute('data-sp-tooltip-popover', tKey);
+          popover.style.position = 'absolute';
+          popover.style.zIndex = '99999';
+          popover.style.left = '0';
+          popover.style.top = '100%';
+          popover.style.marginTop = '8px';
+          popover.style.width = '360px';
+          popover.style.background = '#090e1a';
+          popover.style.border = '1px solid #38bdf8';
+          popover.style.borderRadius = '12px';
+          popover.style.boxShadow = '0 16px 40px rgba(0, 0, 0, 0.65)';
+          popover.style.padding = '10px';
+          popover.style.fontFamily = 'Inter, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif';
+
+          var miniFrame = document.createElement('iframe');
+          miniFrame.src = 'https://smarter.poker' + tSpec.path + '?embed=true' + tEmbedSuffix;
+          miniFrame.width = '100%';
+          miniFrame.height = '420';
+          miniFrame.setAttribute('frameborder', '0');
+          miniFrame.setAttribute('loading', 'lazy');
+          miniFrame.setAttribute('title', tSpec.title);
+          miniFrame.style.border = '0';
+          miniFrame.style.borderRadius = '8px';
+          miniFrame.style.display = 'block';
+
+          var bar = document.createElement('div');
+          bar.style.display = 'flex';
+          bar.style.justifyContent = 'space-between';
+          bar.style.alignItems = 'center';
+          bar.style.marginTop = '8px';
+          bar.style.fontSize = '11px';
+
+          var anchorLink = document.createElement('a');
+          anchorLink.href = 'https://smarter.poker' + tSpec.path + tLanderSuffix;
+          anchorLink.target = '_blank';
+          anchorLink.rel = 'noopener';
+          anchorLink.style.color = '#38bdf8';
+          anchorLink.style.textDecoration = 'none';
+          anchorLink.style.fontWeight = '700';
+          anchorLink.textContent = tSpec.anchor;
+
+          var closeBtn = document.createElement('button');
+          closeBtn.type = 'button';
+          closeBtn.textContent = 'Close';
+          closeBtn.style.background = 'transparent';
+          closeBtn.style.border = '1px solid rgba(148, 163, 184, 0.35)';
+          closeBtn.style.color = '#cbd5e1';
+          closeBtn.style.borderRadius = '4px';
+          closeBtn.style.padding = '2px 7px';
+          closeBtn.style.fontSize = '10px';
+          closeBtn.style.cursor = 'pointer';
+          closeBtn.addEventListener('click', function (ev) {
+            ev.stopPropagation();
+            closePopover();
+          });
+
+          bar.appendChild(anchorLink);
+          bar.appendChild(closeBtn);
+          popover.appendChild(miniFrame);
+          popover.appendChild(bar);
+          el.appendChild(popover);
+        }
+
+        function closePopover() {
+          if (popover && popover.parentNode) {
+            popover.parentNode.removeChild(popover);
+          }
+          popover = null;
+        }
+
+        el.addEventListener('mouseenter', openPopover);
+        el.addEventListener('mouseleave', closePopover);
+        el.addEventListener('click', function (ev) {
+          ev.stopPropagation();
+          if (popover) {
+            closePopover();
+          } else {
+            openPopover();
+          }
+        });
+        el.setAttribute('data-sp-tooltip-mounted', 'true');
+      })(trigger);
     }
   }
 

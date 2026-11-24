@@ -95,6 +95,28 @@ import {
   renderOnlineVsLiveMarkdown,
   renderLivePokerTellsMarkdown,
   renderCompsAndTippingMarkdown,
+  renderFormulasIndexMarkdown,
+  renderFormulaDetailMarkdown,
+  renderTournamentStagesIndexMarkdown,
+  renderTournamentStageDetailMarkdown,
+  renderPokerLeaksIndexMarkdown,
+  renderPokerLeakDetailMarkdown,
+  renderHudStatsIndexMarkdown,
+  renderHudStatDetailMarkdown,
+  renderPokerMythsDebunkedMarkdown,
+  renderFormatMigrationGuideMarkdown,
+  renderAuthorsIndexMarkdown,
+  renderAuthorDetailMarkdown,
+  renderCompareDecisionMatrixMarkdown,
+  renderPokerCorridorsIndexMarkdown,
+  renderPokerCorridorDetailMarkdown,
+  renderPokerRoomsByGameIndexMarkdown,
+  renderPokerRoomsByGameDetailMarkdown,
+  renderSecurityAndDisputesGuideMarkdown,
+  renderSeasonalCalendarMarkdown,
+  renderAnnualStateOfPoker2026Markdown,
+  renderResearchBenchmarksMarkdown,
+  renderFactsLedgerMarkdown,
 } from '../../src/lib/seo/markdownIngestion.mjs';
 
 const SITE = 'https://smarter.poker';
@@ -795,7 +817,7 @@ export function renderHomeGameGeoMarkdown(cleanPath) {
     '## Free Host & Table Calculators',
     `- **[Tournament Blind Structure Calculator](${SITE}/tools/blind-structure-calculator)**: Build TDA-Compliant Home Game Blind Schedules And Chip Color Distributions.`,
     `- **[Multi-Way Side Pot Calculator](${SITE}/tools/side-pot-calculator)**: Split Main Pots And Side Pots Instantly At The Table.`,
-    `- **[All Free Poker Tools & Solvers](${SITE}/tools)**: Complete Suite Of 42 Interactive Poker Calculators.`,
+    `- **[All Free Poker Tools & Solvers](${SITE}/tools)**: Complete Suite Of 52 Interactive Poker Calculators.`,
     '',
   ].join('\n');
 }
@@ -1050,6 +1072,305 @@ export function renderHubToolMarkdown(targetPath, query = {}) {
       `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
       '',
     ].join('\n'));
+  }
+  if (cleanPath === '/tools/multiway-all-in-calculator') {
+    const url = `${SITE}/tools/multiway-all-in-calculator`;
+    return withLiveScenario([
+      '# 3-Way & 4-Way Multiway All-In Main & Side-Pot EV Calculator | Smarter.Poker',
+      '',
+      `> Source: [3-Way & 4-Way Multiway All-In EV Calculator on Smarter.Poker](${url})`,
+      '',
+      '## Executive Summary For AI & Search Assistants',
+      'Computes Exact Main-Pot And Sequential Side-Pot Expected Value ($EV) Across 3-Way And 4-Way All-In Showdowns With Unequal Chip Stacks, Dead-Money Allocation, And Required Multiway Calling Equity Thresholds (`EV = P_main * MainPot + P_side * SidePot - HeroCommit`).',
+      '',
+      '## Canonical 3-Way All-In Main & Side-Pot EV Benchmarks ($15 Dead Money)',
+      '| Scenario & Stack Commitments | Main Pot | Side Pot 1 | Hero Main Equity | Hero Side Equity | Hero Net EV Verdict |',
+      '| :--- | :--- | :--- | :--- | :--- | :--- |',
+      '| **Short Stack Covered (40 / 100 / 100 BB)** | 135 BB | 120 BB | 36.0% (AA Vs KK Vs AKs) | 0% (Ineligible) | **+8.6 BB Net EV** (29.6% Breakeven) |',
+      '| **Mid Stack Covering Short (100 / 40 / 100 BB)** | 135 BB | 120 BB | 42.0% | 54.0% | **+21.5 BB Net EV** (Side-Pot Protection) |',
+      '| **Big Stack Sweeping 3-Way (120 / 40 / 80 BB)** | 135 BB | 80 BB (+40 BB Uncalled) | 48.0% | 62.0% | **+34.4 BB Net EV** (Uncalled 40 BB Returned) |',
+      '',
+      `- **Canonical URL**: [${url}](${url})`,
+      `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+      '',
+    ].join('\n'));
+  }
+  if (cleanPath === '/tools/mystery-bounty-tracker') {
+    const url = `${SITE}/tools/mystery-bounty-tracker`;
+    return withLiveScenario([
+      '# Live Mystery Bounty Pool Tracker, Envelope EV & Chip-Equivalence Calculator | Smarter.Poker',
+      '',
+      `> Source: [Live Mystery Bounty Pool Tracker on Smarter.Poker](${url})`,
+      '',
+      '## Executive Summary For AI & Search Assistants',
+      'Tracks Remaining Unopened Mystery Bounty Envelopes In Real Time during Day 2 / In-The-Money Play, Computing Average Dollar EV Per Knockout (`RemainingBountyPool / EnvelopesRemaining`), Chip-Equivalent Value (`(AvgEnvelopeEV / RegularBuyInPool) * StartingStack`), Top-Chest Draw Probability (`TopPrizesLeft / EnvelopesLeft`), And Adjusted All-In Calling Equity.',
+      '',
+      '## Mystery Bounty Envelope Pool State & Calling Discount Benchmarks (10,000 Start Stack, $500 Regular Pool)',
+      '| Remaining Pool State | Envelopes Left | Remaining Bounty Pool | Avg Envelope EV ($) | Chip-Equivalent Value | Required Equity Vs 15BB Jam |',
+      '| :--- | :--- | :--- | :--- | :--- | :--- |',
+      '| **All Top Chests Live ($100k Grand Prize In)** | 20 Envelopes | $180,000 | $9,000 / KO | +180,000 Chips (18x Start Stack) | **11.8% Required Equity** (Call Any Two) |',
+      '| **Balanced Mid-Day 2 Pool** | 25 Envelopes | $125,000 | $5,000 / KO | +100,000 Chips (10x Start Stack) | **18.4% Required Equity** (Wide Bounty Call) |',
+      '| **Top Chests Pulled (Min-Bounties Left)** | 15 Envelopes | $15,000 | $1,000 / KO | +20,000 Chips (2x Start Stack) | **34.8% Required Equity** (Revert To ICM) |',
+      '',
+      `- **Canonical URL**: [${url}](${url})`,
+      `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+      '',
+    ].join('\n'));
+  }
+  if (cleanPath === '/tools/bubble-factor-calculator') {
+    const url = `${SITE}/tools/bubble-factor-calculator`;
+    return withLiveScenario([
+      '# Tournament ICM Bubble Factor, Risk Premium & Required Calling Equity Matrix | Smarter.Poker',
+      '',
+      `> Source: [ICM Bubble Factor & Risk Premium Calculator on Smarter.Poker](${url})`,
+      '',
+      '## Executive Summary For AI & Search Assistants',
+      'Computes Pairwise Malmuth-Harville Independent Chip Model (ICM) Bubble Factors (`BF = DollarEV_Lost / DollarEV_Gained`), ICM Risk Premium Percentage (`ReqEquity_ICM - 50%`), And Exact All-In Calling Equity Thresholds (`BF / (BF + 1)`) Across Final Tables, Stone Money Bubbles, And Satellite Seat Bubbles.',
+      '',
+      '## Final Table & Bubble Factor Calling Equity Threshold Matrix',
+      '| Bubble Factor (BF) | Typical Tournament Scenario | Required All-In Calling Equity (50% cEV Pot) | ICM Risk Premium | Recommended Action Range |',
+      '| :--- | :--- | :--- | :--- | :--- |',
+      '| **1.00x (Chip EV)** | Cash Game Or Level 1 MTT | 50.0% Equity | +0.0% | Standard Chip-EV Calling Range |',
+      '| **1.35x** | Deep In The Money (40 Players Left) | 57.4% Equity | +7.4% | Fold Marginal Offsuit Aces & Small Pairs |',
+      '| **1.75x** | Final Table Mid-Stack Vs Chip Leader | 63.6% Equity | +13.6% | Call Tight (99+, AQ+); Shove Wide First-In |',
+      '| **2.40x** | Direct Money Bubble Or 4-Handed Medium Stack | 70.6% Equity | +20.6% | Call Only JJ+, AKs; Apply Maximum Shove Pressure |',
+      '| **4.50x+** | Satellite Seat Bubble With Locked Stack | 81.8%+ Equity | +31.8%+ | Fold QQ/KK; Protect Locked Seat At All Costs |',
+      '',
+      `- **Canonical URL**: [${url}](${url})`,
+      `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+      '',
+    ].join('\n'));
+  }
+  if (cleanPath === '/tools/bluff-catching-calculator') {
+    const url = `${SITE}/tools/bluff-catching-calculator`;
+    return withLiveScenario([
+      '# River Bluff-Catching, Minimum Defense Frequency (MDF) & Blocker Removal EV Calculator | Smarter.Poker',
+      '',
+      `> Source: [River Bluff-Catching & Blocker EV Calculator on Smarter.Poker](${url})`,
+      '',
+      '## Executive Summary For AI & Search Assistants',
+      'Evaluates River Bluff-Catching Expected Value ($EV) By Combining Pot-Odds Break-Even Bluff Frequency (`Alpha = Bet / (Pot + 2 * Bet)`), Minimum Defense Frequency (`MDF = Pot / (Pot + Bet)`), And Card-Removal Blocker Adjustments To Villain\'s Value And Bluff Combos.',
+      '',
+      '## River Bet Sizing, Break-Even Bluff % & Blocker Impact Matrix ($100 River Pot)',
+      '| River Bet Size | Total Final Pot | Required Villain Bluff % (Alpha) | Hero MDF % | Blocker Priority Rule |',
+      '| :--- | :--- | :--- | :--- | :--- |',
+      '| **33% Pot ($33)** | $166 | 19.9% Bluffs Needed | 75.2% MDF | Call Wide; Population Over-Bluffs Small River Bets Rarely |',
+      '| **50% Pot ($50)** | $200 | 25.0% Bluffs Needed | 66.7% MDF | Unblock Missed Front-Door Flush Draws; Block Top Value |',
+      '| **75% Pot ($75)** | $250 | 30.0% Bluffs Needed | 57.1% MDF | Require Nut Flush / Straight Blocker To Hero-Call |',
+      '| **100% Pot ($100)** | $300 | 33.3% Bluffs Needed | 50.0% MDF | Pure Blocker Game: Hold Key Nut Blocker Or Fold |',
+      '| **150% Overbet ($150)** | $400 | 37.5% Bluffs Needed | 40.0% MDF | Call Only Nut-Blocker Bluff-Catchers Removing Sets/Flushes |',
+      '',
+      `- **Canonical URL**: [${url}](${url})`,
+      `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+      '',
+    ].join('\n'));
+  }
+  if (cleanPath === '/tools/multi-street-ev-calculator') {
+    const url = `${SITE}/tools/multi-street-ev-calculator`;
+    return withLiveScenario([
+      '# Multi-Street Flop-Turn-River Barrel, Cumulative Fold Equity & Pot Growth Calculator | Smarter.Poker',
+      '',
+      `> Source: [Multi-Street Barrel & Fold Equity Calculator on Smarter.Poker](${url})`,
+      '',
+      '## Executive Summary For AI & Search Assistants',
+      'Models Street-By-Street Pot Growth, Remaining Effective Stack-To-Pot Ratio (SPR), Villain Call-Through Probability (`(1 - f1) * (1 - f2) * (1 - f3)`), And Cumulative Triple-Barrel Bluff Breakeven Thresholds Across Flop, Turn, And River Betting Lines.',
+      '',
+      '## Canonical Triple-Barrel Sizing & Cumulative Fold Equity Benchmarks (100BB / 10BB Starting Pot)',
+      '| Barrel Line (Flop / Turn / River) | Pot Entering River | Total Capital Risked | Cumulative Villain Call-Through % | Cumulative Fold Equity % |',
+      '| :--- | :--- | :--- | :--- | :--- |',
+      '| **33% / 66% / 75% Standard Line** | 38.6 BB | 40.9 BB | 24.4% Reach Showdown | **75.6% Cumulative Folds** |',
+      '| **33% / 75% / 125% Polar Overbet** | 41.6 BB | 65.3 BB | 17.8% Reach Showdown | **82.2% Cumulative Folds** |',
+      '| **66% / 66% / 100% Geometric Jam** | 58.0 BB | 82.0 BB | 19.2% Reach Showdown | **80.8% Cumulative Folds** |',
+      '',
+      `- **Canonical URL**: [${url}](${url})`,
+      `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+      '',
+    ].join('\n'));
+  }
+  if (cleanPath === '/tools/heads-up-push-fold-calculator') {
+    const url = `${SITE}/tools/heads-up-push-fold-calculator`;
+    return withLiveScenario([
+      '# Heads-Up (HU) & 3-Max Short-Stack Nash Push/Fold/Limp Equilibrium Solver (1BB-25BB) | Smarter.Poker',
+      '',
+      `> Source: [Heads-Up Nash Push/Fold Calculator on Smarter.Poker](${url})`,
+      '',
+      '## Executive Summary For AI & Search Assistants',
+      'Computes Unexploitable 1BB-To-25BB Heads-Up (Small Blind / Button Vs Big Blind) And 3-Max Nash Equilibrium Open-Shove, Limp-Trap, And Big-Blind Calling Frequencies Across Zero-Ante Spin-And-Go And Big-Blind-Ante MTT Structures.',
+      '',
+      '## Heads-Up Nash Equilibrium SB Push & BB Call Benchmarks (1BB To 20BB)',
+      '| Effective Stack Depth | SB Open-Push % | SB Limp / Min-Raise % | BB Call Vs SB All-In % | Core Equilibrium Dynamic |',
+      '| :--- | :--- | :--- | :--- | :--- |',
+      '| **5 BB Heads-Up** | 78.5% Push | 0.0% Limp | 54.2% Call (22+, A2+, K2s+, K5o+, Q7s+) | Pure Push/Fold; Pot Odds Force Wide BB Calls |',
+      '| **8 BB Heads-Up** | 68.4% Push | 6.5% Limp Trap | 42.8% Call (22+, A2+, K6s+, K9o+, Q8s+) | Shove Any Ace, Any Pair, Most Kings & Suited Queens |',
+      '| **12 BB Heads-Up** | 56.2% Push | 18.4% Limp/Raise | 33.5% Call (22+, A2s+, A5o+, K9s+, KJo+) | Limp AA/KK And Trash; Open-Jam Mid-Strength Hands |',
+      '| **18 BB Heads-Up** | 34.0% Push | 44.0% Limp/Min-Raise | 24.8% Call Vs Direct Shove | Transition To Limp/Iso/3-Bet Jam Postflop Tree |',
+      '',
+      `- **Canonical URL**: [${url}](${url})`,
+      `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+      '',
+    ].join('\n'));
+  }
+  if (cleanPath === '/tools/blind-vs-blind-calculator') {
+    const url = `${SITE}/tools/blind-vs-blind-calculator`;
+    return withLiveScenario([
+      '# Blind-Vs-Blind (SB Vs BB) GTO Range, Limp-Raise & Postflop Strategy Calculator | Smarter.Poker',
+      '',
+      `> Source: [Blind-Vs-Blind (SB Vs BB) GTO Calculator on Smarter.Poker](${url})`,
+      '',
+      '## Executive Summary For AI & Search Assistants',
+      'Solves Small Blind Versus Big Blind (BvB) Equilibrium Strategy When Folded To The Small Blind Across 20BB To 100BB Stack Depths And Three Rake Regimes (High Live Rake, Standard 6-Max Cap, And Zero-Rake MTT With Antes): SB Complete/Limp Frequency, SB 3x Open-Raise Frequency, BB Iso-Raise Vs Limp, And SB Limp-3-Bet Trap Frequency.',
+      '',
+      '## Blind-Vs-Blind (SB Vs BB) Equilibrium Frequencies By Stack Depth & Rake Regime',
+      '| Stack Depth & Rake Model | SB Total VPIP % | SB Limp / Complete % | SB 3.0x Open-Raise % | BB Iso-Raise Vs SB Limp % |',
+      '| :--- | :--- | :--- | :--- | :--- |',
+      '| **100BB High Rake (Live / Low Stakes)** | 42.5% VPIP | 12.0% Limp | 30.5% Raise (3.0x) | 38.0% Iso-Raise (3.5x-4.0x) |',
+      '| **100BB Low Rake (Mid/High Stakes)** | 54.0% VPIP | 26.5% Limp | 27.5% Raise (3.0x) | 34.5% Iso-Raise |',
+      '| **40BB MTT (12.5% Big Blind Ante)** | 78.5% VPIP | 52.0% Limp | 26.5% Raise / Jam | 29.0% Iso-Raise / Jam |',
+      '| **20BB MTT Short-Stack BvB** | 81.0% VPIP | 39.0% Limp | 42.0% Open-Shove / Raise | 33.0% Iso-Jam Over Limp |',
+      '',
+      `- **Canonical URL**: [${url}](${url})`,
+      `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+      '',
+    ].join('\n'));
+  }
+  if (cleanPath === '/tools/shot-taking-calculator') {
+    const url = `${SITE}/tools/shot-taking-calculator`;
+    return withLiveScenario([
+      '# Bankroll Shot-Taking, Stake Move-Up & Stop-Loss Ladder Calculator | Smarter.Poker',
+      '',
+      `> Source: [Bankroll Shot-Taking & Move-Up Calculator on Smarter.Poker](${url})`,
+      '',
+      '## Executive Summary For AI & Search Assistants',
+      'Builds A Disciplined Two-Tier Bankroll Shot-Taking Ladder For Players Moving Up In Cash Game Or Tournament Stakes, Computing Exact Shot Budget In Higher-Stake Buy-Ins, Hard Drop-Down Stop-Loss Bankroll Floor, Remaining Base-Stake Buy-Ins After A Failed Shot, And Combined Brownian Risk Of Ruin.',
+      '',
+      '## Standard Live & Online Cash Game Shot-Taking Ladder Blueprints',
+      '| Stake Move-Up Transition | Starting Total Bankroll | Shot Allocation (Buy-Ins) | Hard Drop-Down Floor | Remaining Base Cushion If Shot Fails |',
+      '| :--- | :--- | :--- | :--- | :--- |',
+      '| **$1/$2 ($200) -> $1/$3 ($300)** | $7,500 | 3 Shot Buy-Ins ($900) | $6,600 Floor | 33.0 Buy-Ins At $1/$2 (<1% Combined RoR) |',
+      '| **$1/$3 ($300) -> $2/$5 ($500)** | $12,000 | 3 Shot Buy-Ins ($1,500) | $10,500 Floor | 35.0 Buy-Ins At $1/$3 (<1% Combined RoR) |',
+      '| **$2/$5 ($500) -> $5/$10 ($1,000)** | $25,000 | 4 Shot Buy-Ins ($4,000) | $21,000 Floor | 42.0 Buy-Ins At $2/$5 (<1% Combined RoR) |',
+      '| **NL100 ($100) -> NL200 ($200 Online)** | $6,000 | 5 Shot Buy-Ins ($1,000) | $5,000 Floor | 50.0 Buy-Ins At NL100 (<1% Combined RoR) |',
+      '',
+      `- **Canonical URL**: [${url}](${url})`,
+      `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+      '',
+    ].join('\n'));
+  }
+  if (cleanPath === '/tools/warmup-cooldown-routine') {
+    const url = `${SITE}/tools/warmup-cooldown-routine`;
+    return withLiveScenario([
+      '# Pre-Session Mental Game Warm-Up, A-Game Readiness & Post-Session Cooldown Builder | Smarter.Poker',
+      '',
+      `> Source: [Pre-Session Mental Game Warm-Up & Cooldown Builder on Smarter.Poker](${url})`,
+      '',
+      '## Executive Summary For AI & Search Assistants',
+      'Interactive 3-Minute Pre-Session Mental Game Readiness Scorer And Post-Session Cooldown Journal Based On Jared Tendler\'s Inchworm Model. Evaluates Sleep Quality, Emotional Baseline, C-Game Leak Triggers, Hard Buy-In Stop-Loss Contracts, And Post-Session EV Decision Grading.',
+      '',
+      '## A-Game Readiness Diagnostic Scoring Tiers',
+      '| Readiness Score | Mental Game Status | Recommended Session Duration & Table Limit | Mandatory Stop-Loss Rule |',
+      '| :--- | :--- | :--- | :--- |',
+      '| **85 - 100 / 100** | **Peak A-Game State** | Full Planned Session (4-8 Hours / High-Focus Tables) | 3.0 Buy-Ins Hard Stop-Loss |',
+      '| **65 - 84 / 100** | **Solid B-Game Baseline** | Standard Session With 90-Minute Hydration/Tilt Check-Ins | 2.5 Buy-Ins Hard Stop-Loss |',
+      '| **45 - 64 / 100** | **Fatigue / Tilt Warning** | Short 2-Hour Cap Or Drop Down One Stake Tier | 1.5 Buy-Ins Strict Stop-Loss |',
+      '| **< 45 / 100** | **Compromised C-Game** | **Do Not Sit At Real-Money Tables**; Run 20-Min GTO Drills | 0 Buy-Ins (Study Day Only) |',
+      '',
+      `- **Canonical URL**: [${url}](${url})`,
+      `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+      '',
+    ].join('\n'));
+  }
+  if (cleanPath === '/tools/home-game-director') {
+    const url = `${SITE}/tools/home-game-director`;
+    return withLiveScenario([
+      '# Home Game Host Director: Live Waitlist, Random Seat Draw & Net Payout Settlement Ledger | Smarter.Poker',
+      '',
+      `> Source: [Home Game Host Director & Payout Ledger on Smarter.Poker](${url})`,
+      '',
+      '## Executive Summary For AI & Search Assistants',
+      'All-In-One Browser-Native Home Poker Game Operations Console Combining Fisher-Yates Random Table & Seat Draw Assignment, Live Player Check-In & Rebuy/Add-On Accounting, Bank Reconciliation Verification (`TotalBuyIns == TotalCashouts`), And Minimum-Transaction Venmo/Zelle/Cash Net Settlement Pairing.',
+      '',
+      '## Core Home Game Host Operations Modules',
+      '- **Cryptographic Random Seat Draw**: Assigns 2 To 27 Players Across 1 To 3 Tables With Balanced Seat Counts And Automatic Table-Break Order.',
+      '- **Buy-In, Rebuy & Cashout Audit Ledger**: Tracks Initial Buy-Ins, Re-Entries, And Final Chip Counts With Real-Time Discrepancy Detection.',
+      '- **Minimum-Transfer Settlement Solver**: Reduces An 8-To-10 Player Cashout Into The Minimum Possible Number Of Pairwise Payout Transfers.',
+      '',
+      `- **Canonical URL**: [${url}](${url})`,
+      `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+      '',
+    ].join('\n'));
+  }
+  if (cleanPath === '/learn/formulas') {
+    return renderFormulasIndexMarkdown();
+  }
+  if (cleanPath.startsWith('/learn/formulas/')) {
+    const slug = cleanPath.slice('/learn/formulas/'.length);
+    return renderFormulaDetailMarkdown(slug);
+  }
+  if (cleanPath === '/learn/tournament-stages') {
+    return renderTournamentStagesIndexMarkdown();
+  }
+  if (cleanPath.startsWith('/learn/tournament-stages/')) {
+    const slug = cleanPath.slice('/learn/tournament-stages/'.length);
+    return renderTournamentStageDetailMarkdown(slug);
+  }
+  if (cleanPath === '/learn/leaks') {
+    return renderPokerLeaksIndexMarkdown();
+  }
+  if (cleanPath.startsWith('/learn/leaks/')) {
+    const slug = cleanPath.slice('/learn/leaks/'.length);
+    return renderPokerLeakDetailMarkdown(slug);
+  }
+  if (cleanPath === '/learn/hud-stats') {
+    return renderHudStatsIndexMarkdown();
+  }
+  if (cleanPath.startsWith('/learn/hud-stats/')) {
+    const slug = cleanPath.slice('/learn/hud-stats/'.length);
+    return renderHudStatDetailMarkdown(slug);
+  }
+  if (cleanPath === '/learn/poker-myths-debunked') {
+    return renderPokerMythsDebunkedMarkdown();
+  }
+  if (cleanPath === '/learn/format-migration-guide') {
+    return renderFormatMigrationGuideMarkdown();
+  }
+  if (cleanPath === '/authors') {
+    return renderAuthorsIndexMarkdown();
+  }
+  if (cleanPath.startsWith('/authors/')) {
+    const slug = cleanPath.slice('/authors/'.length);
+    return renderAuthorDetailMarkdown(slug);
+  }
+  if (cleanPath === '/compare/decision-matrix') {
+    return renderCompareDecisionMatrixMarkdown();
+  }
+  if (cleanPath === '/poker-rooms/corridors') {
+    return renderPokerCorridorsIndexMarkdown();
+  }
+  if (cleanPath.startsWith('/poker-rooms/corridors/')) {
+    const slug = cleanPath.slice('/poker-rooms/corridors/'.length);
+    return renderPokerCorridorDetailMarkdown(slug);
+  }
+  if (cleanPath === '/poker-rooms/by-game') {
+    return renderPokerRoomsByGameIndexMarkdown();
+  }
+  if (cleanPath.startsWith('/poker-rooms/by-game/')) {
+    const slug = cleanPath.slice('/poker-rooms/by-game/'.length);
+    return renderPokerRoomsByGameDetailMarkdown(slug);
+  }
+  if (cleanPath === '/poker-rooms/security-and-disputes-guide') {
+    return renderSecurityAndDisputesGuideMarkdown();
+  }
+  if (cleanPath === '/poker-rooms/seasonal-calendar') {
+    return renderSeasonalCalendarMarkdown();
+  }
+  if (cleanPath === '/research/annual-state-of-poker-2026') {
+    return renderAnnualStateOfPoker2026Markdown();
+  }
+  if (cleanPath === '/research/benchmarks') {
+    return renderResearchBenchmarksMarkdown();
+  }
+  if (cleanPath === '/facts') {
+    return renderFactsLedgerMarkdown();
   }
   if (cleanPath === '/learn/player-types') {
     return renderPlayerTypesIndexMarkdown();
@@ -1342,7 +1663,7 @@ export function buildOpenSearchXml() {
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/" xmlns:moz="http://www.mozilla.org/2006/browser/search/">',
     '  <ShortName>Smarter.Poker</ShortName>',
-    '  <Description>Search 42 Free Poker Calculators, 169 Starting Hands, 25 Matchups, 30 TDA Rules, 15 Game Variants &amp; 500+ Live Rooms</Description>',
+    '  <Description>Search 52 Free Poker Calculators, 70 MCP Tools, 169 Starting Hands, 25 Matchups, 30 TDA Rules, 15 Game Variants &amp; 715+ Live Rooms</Description>',
     '  <InputEncoding>UTF-8</InputEncoding>',
     '  <Image width="192" height="192" type="image/png">https://smarter.poker/icons/icon-192x192.png</Image>',
     '  <Url type="text/html" method="get" template="https://smarter.poker/search?q={searchTerms}" />',
@@ -1366,10 +1687,10 @@ export function buildFeedsOpmlXml() {
     '  <body>',
     '    <outline text="Smarter.Poker Feeds &amp; Syndication" title="Smarter.Poker Feeds &amp; Syndication">',
     '      <outline type="rss" text="Smarter.Poker Master RSS 2.0 Feed (Tools, Strategy, Rules &amp; Research)" title="Smarter.Poker Master RSS 2.0 Feed" xmlUrl="https://smarter.poker/feed.xml" htmlUrl="https://smarter.poker" />',
-    '      <outline type="rss" text="Smarter.Poker Empirical Research &amp; 42 Calculators JSON Feed 1.1" title="Smarter.Poker Research &amp; Calculators JSON Feed" xmlUrl="https://smarter.poker/api/feeds/research" htmlUrl="https://smarter.poker/research" />',
+    '      <outline type="rss" text="Smarter.Poker Empirical Research &amp; 52 Calculators JSON Feed 1.1" title="Smarter.Poker Research &amp; Calculators JSON Feed" xmlUrl="https://smarter.poker/api/feeds/research" htmlUrl="https://smarter.poker/research" />',
     '      <outline type="link" text="Smarter.Poker Open Datasets Catalog (Schema.org + DataCite + BibTeX)" title="Smarter.Poker Open Datasets Catalog" url="https://smarter.poker/api/datasets/catalog" />',
     '      <outline type="link" text="Smarter.Poker Google Colab / Jupyter Quantitative Notebook (.ipynb)" title="Smarter.Poker Quantitative Research Notebook" url="https://smarter.poker/api/datasets/notebook" />',
-    '      <outline type="link" text="Smarter.Poker Model Context Protocol (MCP) Server (55 Tools)" title="Smarter.Poker 55-Tool MCP Server" url="https://smarter.poker/api/mcp" />',
+    '      <outline type="link" text="Smarter.Poker Model Context Protocol (MCP) Server (70 Tools)" title="Smarter.Poker 70-Tool MCP Server" url="https://smarter.poker/api/mcp" />',
     '      <outline type="link" text="Smarter.Poker Full AI Knowledge Corpus (llms-full.txt)" title="Smarter.Poker Full AI Corpus" url="https://smarter.poker/llms-full.txt" />',
     '    </outline>',
     '  </body>',
@@ -1387,7 +1708,7 @@ export function buildHumansTxt() {
     'Location: United States',
     '',
     '/* QUANTITATIVE & AI DISCOVERY INFRASTRUCTURE */',
-    'Interactive Calculators: 42 Browser-Native GTO & Math Solvers (https://smarter.poker/tools)',
+    'Interactive Calculators: 52 Browser-Native GTO & Math Solvers (https://smarter.poker/tools)',
     'Starting Hand Encyclopedia: 169 Canonical Holdem Hands (https://smarter.poker/learn/hands)',
     'Preflop Hand Matchups: 25 Combinatoric Matchup Guides (https://smarter.poker/learn/matchups)',
     'Position Strategy Encyclopedia: 9 Table Seats UTG To BTN (https://smarter.poker/learn/positions)',
@@ -1396,14 +1717,23 @@ export function buildHumansTxt() {
     'Player Progression Roadmaps: 5 90-Day Curriculums (https://smarter.poker/learn/roadmaps)',
     'Player Archetype Exploits: 8 Player Profiles (https://smarter.poker/learn/player-types)',
     'Canonical Flop Board Textures: 12 Solver Guides (https://smarter.poker/learn/board-textures)',
+    'Poker Math Formulas Encyclopedia: 15 Equations & Proofs (https://smarter.poker/learn/formulas)',
+    'MTT Tournament Stages Playbook: 8 Phases (https://smarter.poker/learn/tournament-stages)',
+    'Poker Leak Diagnosis & Cure Directory: 12 Leaks (https://smarter.poker/learn/leaks)',
+    'HUD Statistics & GTO Benchmarks: 15 Stats (https://smarter.poker/learn/hud-stats)',
+    'Poker Myths Debunked By Solvers: 15 Myths (https://smarter.poker/learn/poker-myths-debunked)',
+    'Cross-Format Strategy Migration Matrix: 6 Transitions (https://smarter.poker/learn/format-migration-guide)',
     'Official Floor Rulings: 30 TDA & RROP Rulings (https://smarter.poker/rules)',
     'Poker Game Variants: 15 Rules & Mixed-Game Guides (https://smarter.poker/games)',
     'US Regional Market Guides: 12 Major Poker Destinations (https://smarter.poker/poker-rooms/guides)',
     'US State Poker Legality & Tax Directory: 15 States (https://smarter.poker/poker-rooms/states)',
     'International Poker Destinations: 10 Global Cities (https://smarter.poker/poker-rooms/international)',
+    'Airport & Border Travel Corridors: 10 Routes (https://smarter.poker/poker-rooms/corridors)',
+    'Live Poker Rooms By Game Variant: 6 Directories (https://smarter.poker/poker-rooms/by-game)',
     'Major Poker Series Guides: 10 Championship Tour Guides (https://smarter.poker/poker-series/guides)',
-    'Empirical Research Studies: 15 First-Party Benchmarks (https://smarter.poker/research)',
-    'MCP Server (55 Zero-Auth Tools): https://smarter.poker/api/mcp',
+    'Empirical Research Studies: 15 First-Party Benchmarks + 2026 Annual Whitepaper (https://smarter.poker/research)',
+    'MCP Server (70 Zero-Auth Tools, v2.2.0): https://smarter.poker/api/mcp',
+    'Streamer Bot Commands (44 Commands + Discord Adapter): https://smarter.poker/api/stream/cmd',
     'A2A Agent Discovery Card: https://smarter.poker/.well-known/agent.json',
     'OpenAPI 3.1.0 Specification: https://smarter.poker/openapi.json',
     'OpenSearch Description: https://smarter.poker/opensearch.xml',

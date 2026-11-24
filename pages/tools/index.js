@@ -386,6 +386,96 @@ const INTERACTIVE_TOOLS = [
     formula: 'Session Brick Risk (0 ITMs) = (1 - ITM_Probability)^(Tournaments_In_Session)',
   },
   {
+    name: 'Multiway All-In EV & Side Pot Equity Calculator',
+    href: '/tools/multiway-all-in-calculator',
+    mdHref: '/tools/multiway-all-in-calculator.md',
+    badge: '3-Way & 4-Way EV',
+    summary:
+      'Slices 3-Way And 4-Way Pre-Flop All-In Confrontations Into Main Pot And Sequential Side Pots With Exact Equity Weighting And Net EV Per Stack.',
+    formula: 'Net EV_i = Sum(Pot_k * Normalized_Equity_{i,k}) - Stack_Risked_i',
+  },
+  {
+    name: 'Live Mystery Bounty Envelope Removal & Chip-EV Tracker',
+    href: '/tools/mystery-bounty-tracker',
+    mdHref: '/tools/mystery-bounty-tracker.md',
+    badge: 'Day-2 Envelope Tracker',
+    summary:
+      'Live Day-2 Mystery Bounty Envelope Removal Tracker Dynamically Recomputing Average Remaining Bounty Value, Chip Equivalence, And Pot Odds Discount As Top Prizes Are Pulled.',
+    formula: 'Avg Bounty = Remaining_Bounty_Pool / Remaining_Envelopes',
+  },
+  {
+    name: 'Final Table Pairwise ICM Bubble Factor & Equity Matrix',
+    href: '/tools/bubble-factor-calculator',
+    mdHref: '/tools/bubble-factor-calculator.md',
+    badge: 'Pairwise ICM Matrix',
+    summary:
+      'Computes The Complete Final Table N x N Pairwise Malmuth-Harville ICM Bubble Factor And Required All-In Calling Equity Matrix For Every Hero Vs. Villain Stack Pair.',
+    formula: 'Bubble Factor = dEV_Lose / dEV_Win | Required Equity = BF / (BF + 1)',
+  },
+  {
+    name: 'River Bluff-Catching, Card-Removal Blockers & MDF Solver',
+    href: '/tools/bluff-catching-calculator',
+    mdHref: '/tools/bluff-catching-calculator.md',
+    badge: 'River Blocker Solver',
+    summary:
+      'Calculates River Minimum Defense Frequency (MDF), Polarized Bluff-To-Value Ratios, Actual Villain Bluff Share After Hero Blocker Removal, And Exact Call EV.',
+    formula: 'Effective Bluffs = Raw_Bluff_Combos * (1 - Hero_Blocker_Removal_Pct)',
+  },
+  {
+    name: 'Multi-Street Double & Triple-Barrel Fold-Equity EV Solver',
+    href: '/tools/multi-street-ev-calculator',
+    mdHref: '/tools/multi-street-ev-calculator.md',
+    badge: 'Triple-Barrel EV',
+    summary:
+      'Solves Flop-Turn-River Double And Triple-Barrel Cumulative Fold Equity, Street-By-Street Pot Growth Geometry, And Multi-Street Bluff Breakeven Frequencies.',
+    formula: 'Cumulative Fold % = 1 - (1 - Flop_Fold) * (1 - Turn_Fold) * (1 - River_Fold)',
+  },
+  {
+    name: 'Heads-Up & 3-Max Spin Push/Fold Nash Equilibrium Solver',
+    href: '/tools/heads-up-push-fold-calculator',
+    mdHref: '/tools/heads-up-push-fold-calculator.md',
+    badge: '1BB-25BB HU Nash',
+    summary:
+      'Interactive 13x13 Heads-Up And 3-Max Spin/Hyper SNG 1BB-25BB Nash Equilibrium Small Blind Push, Big Blind Call, And Limp-Trap Hand Matrix Explorer.',
+    formula: 'Unexploitable HU Nash Shove & Call Thresholds Across 169 Canonical Hands',
+  },
+  {
+    name: 'Blind-Vs-Blind (SB Vs. BB) Limp, Open & 3-Bet Matrix Explorer',
+    href: '/tools/blind-vs-blind-calculator',
+    mdHref: '/tools/blind-vs-blind-calculator.md',
+    badge: 'SB Vs. BB GTO Matrix',
+    summary:
+      'Explores 100BB, 50BB, And 25BB Blind-Vs-Blind Small Blind Limp/Raise Strategies And Big Blind Iso-Raise/3-Bet Defense Frequencies Across A 13x13 Grid.',
+    formula: 'SB Strategy Mix (Limp / Open-Raise / Fold) Vs. BB Iso-Raise & 3-Bet Defense',
+  },
+  {
+    name: '2-Tier Bankroll Shot-Taking & Move-Down Stop-Loss Planner',
+    href: '/tools/shot-taking-calculator',
+    mdHref: '/tools/shot-taking-calculator.md',
+    badge: 'Shot-Taking & Stop-Loss',
+    summary:
+      'Plans Disciplined Higher-Stake Shot-Taking With Mandatory Move-Down Stop-Loss Triggers, Blended Risk Of Ruin, And Rebuild Duration At Base Stakes.',
+    formula: 'Move-Down Trigger Floor = Starting_Bankroll - (Stop_Loss_Buy_Ins * Shot_100BB)',
+  },
+  {
+    name: 'Interactive Poker Pre-Session Warmup & Post-Session Cooldown Tool',
+    href: '/tools/warmup-cooldown-routine',
+    mdHref: '/tools/warmup-cooldown-routine.md',
+    badge: 'A-Game Readiness & Audit',
+    summary:
+      'Combines A Pre-Session Pot-Odds & MDF Flash Math Warmup Drill With An A-Game Readiness Scorecard And Post-Session Decision Quality Cooldown Audit.',
+    formula: 'Readiness Score = Focus_Weight + Tilt_Control_Weight + Math_Drill_Accuracy',
+  },
+  {
+    name: 'Live Home Game Tournament Director Clock & Payout Console',
+    href: '/tools/home-game-director',
+    mdHref: '/tools/home-game-director.md',
+    badge: 'Live TD Clock & Pool',
+    summary:
+      'Full-Screen Home Game Tournament Director Blind Timer With Live Rebuy/Add-On Prize Pool Counter, Table Average Harrington M-Ratio Monitor, And Payout Splitter.',
+    formula: 'Average Table M-Ratio = Total_Chips_In_Play / (Active_Players * Orbit_Cost)',
+  },
+  {
     name: 'Embeddable Webmaster Poker Widgets',
     href: '/tools/embeds',
     mdHref: '/tools/embeds.md',
@@ -438,11 +528,21 @@ const TOOL_CATEGORY_MAP = {
   '/tools/mixed-game-placards': 'Home Game & Utilities',
   '/tools/poker-iq-test': 'Home Game & Utilities',
   '/tools/shot-clock': 'Home Game & Utilities',
+  '/tools/multiway-all-in-calculator': 'Equity & GTO',
+  '/tools/mystery-bounty-tracker': 'Tournaments & ICM',
+  '/tools/bubble-factor-calculator': 'Tournaments & ICM',
+  '/tools/bluff-catching-calculator': 'Equity & GTO',
+  '/tools/multi-street-ev-calculator': 'Equity & GTO',
+  '/tools/heads-up-push-fold-calculator': 'Tournaments & ICM',
+  '/tools/blind-vs-blind-calculator': 'Equity & GTO',
+  '/tools/shot-taking-calculator': 'Live Cash & Bankroll',
+  '/tools/warmup-cooldown-routine': 'Live Cash & Bankroll',
+  '/tools/home-game-director': 'Home Game & Utilities',
   '/tools/embeds': 'Home Game & Utilities',
 };
 
 const TOOL_FILTER_CATEGORIES = [
-  'All 42 Tools',
+  'All 52 Tools',
   'Equity & GTO',
   'Tournaments & ICM',
   'Live Cash & Bankroll',
@@ -483,7 +583,7 @@ const TOOLS_FAQS = [
   {
     question: 'Which Poker Math Calculators Are Included In The Smarter.Poker Directory?',
     answer:
-      'The Suite Includes All 42 Free Browser-Native Tools (41 Interactive Calculators + Embeds & Streamer Bot API): Multiway Equity, Malmuth-Harville ICM, Tournament Deal & ICM Chop Calculator, 13x13 GTO Preflop Ranges, Pot Odds & MDF, Poker Outs & Rule Of 2 And 4 Calculator, Bankroll Risk Of Ruin, Bankroll Variance & Downswing Simulator, Short-Stack Push/Fold, PKO & Mystery Bounty, Winrate Converter, Multi-Way Side Pots, Blind Structure Generator, SPR Geometric Sizing, PLO Max Bet, Tournament Payouts, Live Cash Rake, 3-Bet/4-Bet Sizing, Pre-Flop Isolation Raise Calculator, Poker Staking & Markup Calculator, US Poker Tax & IRS W-2G Calculator, Home Game Blind Timer & Chip Distribution Kit, What Poker Format Fits Your Brain Quiz, Flop Board Texture Analyzer, Tournament M-Ratio Calculator, Live Cash Session Planner, Straddle & Bomb Pot EV Calculator, Hand History Formatter, Satellite Seat-Bubble Calculator, Bad Beat Jackpot & Promo EV Calculator, What Beats What Showdown Resolver, Mixed Game Rotation Tracker & Placards, 10-Question Poker IQ Test, PLO Wrap & Nut-Out Analyzer, Tournament Late-Reg ICM EV Calculator, Winrate Confidence-Interval Calculator, Poker Trip & Series Budget Planner, WPT/Triton Poker Action Shot Clock, GTO Geometric 2e/3e Bet-Sizing Planner, Live Table-Selection Grader, And MTT Session & ABI Grind Planner.',
+      'The Suite Includes All 52 Free Browser-Native Tools (51 Interactive Calculators + Embeds & Streamer Bot API): Multiway Equity, Malmuth-Harville ICM, Tournament Deal & ICM Chop Calculator, 13x13 GTO Preflop Ranges, Pot Odds & MDF, Poker Outs & Rule Of 2 And 4 Calculator, Bankroll Risk Of Ruin, Bankroll Variance & Downswing Simulator, Short-Stack Push/Fold, PKO & Mystery Bounty, Winrate Converter, Multi-Way Side Pots, Blind Structure Generator, SPR Geometric Sizing, PLO Max Bet, Tournament Payouts, Live Cash Rake, 3-Bet/4-Bet Sizing, Pre-Flop Isolation Raise Calculator, Poker Staking & Markup Calculator, US Poker Tax & IRS W-2G Calculator, Home Game Blind Timer & Chip Distribution Kit, What Poker Format Fits Your Brain Quiz, Flop Board Texture Analyzer, Tournament M-Ratio Calculator, Live Cash Session Planner, Straddle & Bomb Pot EV Calculator, Hand History Formatter, Satellite Seat-Bubble Calculator, Bad Beat Jackpot & Promo EV Calculator, What Beats What Showdown Resolver, Mixed Game Rotation Tracker & Placards, 10-Question Poker IQ Test, PLO Wrap & Nut-Out Analyzer, Tournament Late-Reg ICM EV Calculator, Winrate Confidence-Interval Calculator, Poker Trip & Series Budget Planner, WPT/Triton Poker Action Shot Clock, GTO Geometric 2e/3e Bet-Sizing Planner, Live Table-Selection Grader, MTT Session & ABI Grind Planner, Multiway All-In EV Calculator, Mystery Bounty Envelope Tracker, Final Table Bubble Factor Matrix, River Bluff-Catching Solver, Multi-Street Barrel EV Solver, Heads-Up Push/Fold Nash Solver, Blind-Vs-Blind SB Vs. BB Explorer, Bankroll Shot-Taking Planner, Pre-Session Warmup & Cooldown Routine, And Home Game Tournament Director.',
   },
 ];
 
@@ -491,18 +591,18 @@ const TOOLS = INTERACTIVE_TOOLS;
 
 export default function PokerToolsDirectoryPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState('All 42 Tools');
+  const [activeCategory, setActiveCategory] = useState('All 52 Tools');
   const canonicalPath = '/tools';
   const canonicalUrl = `https://smarter.poker${canonicalPath}`;
-  const pageTitle = '42 Free Poker Calculators And Solvers';
+  const pageTitle = '52 Free Poker Calculators And Solvers';
   const pageDesc =
-    'Explore All 42 Free Browser-Native Smarter.Poker Tools (41 Interactive Calculators + Embeds & Streamer Bot API) Covering Equity, GTO Ranges, ICM, PLO Wraps, Geometric Sizing, Late-Reg ICM, Winrate Confidence, Trip Budgets, Shot Clock, Table Selection, And MTT ABI Planning.';
+    'Explore All 52 Free Browser-Native Smarter.Poker Tools (51 Interactive Calculators + Embeds & Streamer Bot API) Covering Equity, GTO Ranges, ICM, Bubble Factors, Mystery Bounties, River Bluff-Catching, Multi-Street Barrel EV, Heads-Up Nash, Blind-Vs-Blind, Shot-Taking, And Home Game Directing.';
 
   const filteredTools = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return INTERACTIVE_TOOLS.filter((tool) => {
       const cat = TOOL_CATEGORY_MAP[tool.href] || 'Home Game & Utilities';
-      const matchesCat = activeCategory === 'All 42 Tools' || cat === activeCategory;
+      const matchesCat = activeCategory === 'All 52 Tools' || cat === activeCategory;
       const matchesQuery =
         !q ||
         tool.name.toLowerCase().includes(q) ||
@@ -569,7 +669,7 @@ export default function PokerToolsDirectoryPage() {
         </h1>
 
         <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 24px 0' }}>
-          <strong>Direct Answer:</strong> Smarter.Poker Provides <strong>42 Free Browser-Native Tools (41 Interactive Calculators + Embeds &amp; Streamer Bot API)</strong> Covering Exact Multiway Hand Equity, Malmuth-Harville ICM Prize Pool Valuation, Tournament Deal &amp; ICM Chop Calculator, 13x13 GTO Preflop Ranges, Pot Odds And Minimum Defense Frequency (MDF), Poker Outs &amp; Rule Of 2 And 4, Risk Of Ruin Bankroll Math, Variance &amp; Downswing Simulator, Short-Stack Push/Fold Charts, PKO Bounty Discounts, Winrate Conversion, Multi-Way Side Pots, Tournament Blind Schedules, Geometric SPR Bet Sizing, Pot-Limit Omaha Max Bets, PLO Wrap &amp; Nut-Out Analyzer, Tournament Late-Reg ICM EV Calculator, Winrate Confidence-Interval Calculator, Poker Trip &amp; Series Budget Planner, WPT/Triton Poker Action Shot Clock, GTO Geometric 2e/3e Bet-Sizing Planner, Live Table-Selection Grader, MTT Session &amp; ABI Grind Planner, And 10-Question Poker IQ Test.
+          <strong>Direct Answer:</strong> Smarter.Poker Provides <strong>52 Free Browser-Native Tools (51 Interactive Calculators + Embeds &amp; Streamer Bot API)</strong> Covering Exact Multiway Hand Equity, Malmuth-Harville ICM Prize Pool Valuation, Tournament Deal &amp; ICM Chop Calculator, 13x13 GTO Preflop Ranges, Pot Odds And Minimum Defense Frequency (MDF), Poker Outs &amp; Rule Of 2 And 4, Risk Of Ruin Bankroll Math, Variance &amp; Downswing Simulator, Short-Stack Push/Fold Charts, PKO Bounty Discounts, Winrate Conversion, Multi-Way Side Pots, Tournament Blind Schedules, Geometric SPR Bet Sizing, Pot-Limit Omaha Max Bets, PLO Wrap &amp; Nut-Out Analyzer, Tournament Late-Reg ICM EV Calculator, Winrate Confidence-Interval Calculator, Poker Trip &amp; Series Budget Planner, WPT/Triton Poker Action Shot Clock, GTO Geometric 2e/3e Bet-Sizing Planner, Live Table-Selection Grader, MTT Session &amp; ABI Grind Planner, Multiway All-In EV Calculator, Mystery Bounty Envelope Tracker, Final Table Bubble Factor Matrix, River Bluff-Catching Solver, Multi-Street Barrel EV Solver, Heads-Up Push/Fold Nash Solver, Blind-Vs-Blind SB Vs. BB Explorer, Bankroll Shot-Taking Planner, Pre-Session Warmup &amp; Cooldown Routine, Home Game Tournament Director, And 10-Question Poker IQ Test.
         </p>
 
         {/* Pinned & Featured Quick-Launch Shelf */}
@@ -627,7 +727,7 @@ export default function PokerToolsDirectoryPage() {
         >
           <div style={{ marginBottom: 12 }}>
             <label htmlFor="tools-instant-search" style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#38bdf8', marginBottom: 6 }}>
-              Instant Filter Across All 42 Interactive Poker Calculators &amp; Solvers
+              Instant Filter Across All 52 Interactive Poker Calculators &amp; Solvers
             </label>
             <input
               id="tools-instant-search"
@@ -681,7 +781,7 @@ export default function PokerToolsDirectoryPage() {
         {/* Grid Of Interactive Calculators */}
         <section style={{ marginBottom: 44 }}>
           <h2 style={{ fontSize: 22, fontWeight: 700, color: '#f8fafc', margin: '0 0 16px 0' }}>
-            Complete Suite Of 42 Interactive Poker Calculators ({filteredTools.length} Displayed)
+            Complete Suite Of 52 Interactive Poker Calculators ({filteredTools.length} Displayed)
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 18 }}>
             {filteredTools.map((tool) => (
@@ -833,8 +933,8 @@ export default function PokerToolsDirectoryPage() {
           canonicalUrl={canonicalUrl}
           badgeType="gto"
           badgeLabel="GTO Math & Solvers"
-          badgeValue="42 Free Poker Calculators"
-          summary="Complete Directory Of 42 Free Browser-Native Poker Calculators, GTO Preflop Range Matrices, And Tournament Director Utilities."
+          badgeValue="52 Free Poker Calculators"
+          summary="Complete Directory Of 52 Free Browser-Native Poker Calculators, GTO Preflop Range Matrices, And Tournament Director Utilities."
           slug="poker-tools-suite"
         />
 

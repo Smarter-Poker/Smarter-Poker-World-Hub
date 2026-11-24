@@ -438,6 +438,106 @@ export const OEMBED_CALCULATORS = [
     width: '100%',
     creditAnchor: 'Smarter.Poker Winrate Confidence Calculator',
   },
+  {
+    id: 'multiway-all-in-calculator',
+    title: 'Multiway All-In EV & Side Pot Equity Calculator',
+    description: 'Slices 3-way and 4-way pre-flop all-in confrontations into main pot and sequential side pots with exact equity weighting and net EV per stack.',
+    embedUrl: 'https://smarter.poker/tools/multiway-all-in-calculator?embed=true',
+    landerUrl: 'https://smarter.poker/tools/multiway-all-in-calculator',
+    height: 780,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Multiway All-In EV Calculator',
+  },
+  {
+    id: 'mystery-bounty-tracker',
+    title: 'Live Day-2 Mystery Bounty Envelope Removal Tracker',
+    description: 'Live Day-2 Mystery Bounty envelope removal tracker dynamically recomputing average remaining bounty value, chip equivalence, and pot odds discount.',
+    embedUrl: 'https://smarter.poker/tools/mystery-bounty-tracker?embed=true',
+    landerUrl: 'https://smarter.poker/tools/mystery-bounty-tracker',
+    height: 780,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Mystery Bounty Envelope Tracker',
+  },
+  {
+    id: 'bubble-factor-calculator',
+    title: 'Final Table Pairwise ICM Bubble Factor & Equity Matrix',
+    description: 'Computes the complete final table N x N pairwise Malmuth-Harville ICM bubble factor and required all-in calling equity matrix for every stack pair.',
+    embedUrl: 'https://smarter.poker/tools/bubble-factor-calculator?embed=true',
+    landerUrl: 'https://smarter.poker/tools/bubble-factor-calculator',
+    height: 800,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Final Table Bubble Factor Matrix',
+  },
+  {
+    id: 'bluff-catching-calculator',
+    title: 'River Bluff-Catching, Card-Removal Blockers & MDF Solver',
+    description: 'Calculates river Minimum Defense Frequency (MDF), polarized bluff-to-value ratios, actual villain bluff share after Hero blocker removal, and exact call EV.',
+    embedUrl: 'https://smarter.poker/tools/bluff-catching-calculator?embed=true',
+    landerUrl: 'https://smarter.poker/tools/bluff-catching-calculator',
+    height: 760,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker River Bluff-Catching Solver',
+  },
+  {
+    id: 'multi-street-ev-calculator',
+    title: 'Multi-Street Double & Triple-Barrel Fold-Equity EV Solver',
+    description: 'Solves flop-turn-river double and triple-barrel cumulative fold equity, street-by-street pot growth geometry, and multi-street bluff breakeven frequencies.',
+    embedUrl: 'https://smarter.poker/tools/multi-street-ev-calculator?embed=true',
+    landerUrl: 'https://smarter.poker/tools/multi-street-ev-calculator',
+    height: 780,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Multi-Street Barrel EV Solver',
+  },
+  {
+    id: 'heads-up-push-fold-calculator',
+    title: 'Heads-Up & 3-Max Spin Push/Fold Nash Equilibrium Solver',
+    description: 'Interactive 13x13 Heads-Up and 3-Max Spin/Hyper SNG 1BB-25BB Nash equilibrium Small Blind push, Big Blind call, and limp-trap hand matrix explorer.',
+    embedUrl: 'https://smarter.poker/tools/heads-up-push-fold-calculator?embed=true',
+    landerUrl: 'https://smarter.poker/tools/heads-up-push-fold-calculator',
+    height: 820,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Heads-Up Push/Fold Nash Solver',
+  },
+  {
+    id: 'blind-vs-blind-calculator',
+    title: 'Blind-Vs-Blind (SB Vs. BB) Limp, Open & 3-Bet Matrix Explorer',
+    description: 'Explores 100BB, 50BB, and 25BB Blind-vs-Blind Small Blind limp/raise strategies and Big Blind iso-raise/3-bet defense frequencies across a 13x13 grid.',
+    embedUrl: 'https://smarter.poker/tools/blind-vs-blind-calculator?embed=true',
+    landerUrl: 'https://smarter.poker/tools/blind-vs-blind-calculator',
+    height: 820,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Blind-Vs-Blind SB Vs. BB Explorer',
+  },
+  {
+    id: 'shot-taking-calculator',
+    title: '2-Tier Bankroll Shot-Taking & Move-Down Stop-Loss Planner',
+    description: 'Plans disciplined higher-stake shot-taking with mandatory move-down stop-loss triggers, blended Risk of Ruin, and rebuild duration at base stakes.',
+    embedUrl: 'https://smarter.poker/tools/shot-taking-calculator?embed=true',
+    landerUrl: 'https://smarter.poker/tools/shot-taking-calculator',
+    height: 760,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Bankroll Shot-Taking Planner',
+  },
+  {
+    id: 'warmup-cooldown-routine',
+    title: 'Interactive Poker Pre-Session Warmup & Post-Session Cooldown Tool',
+    description: 'Combines a pre-session pot-odds and MDF flash math warmup drill with an A-Game readiness scorecard and post-session decision quality cooldown audit.',
+    embedUrl: 'https://smarter.poker/tools/warmup-cooldown-routine?embed=true',
+    landerUrl: 'https://smarter.poker/tools/warmup-cooldown-routine',
+    height: 800,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Pre-Session Warmup & Cooldown Tool',
+  },
+  {
+    id: 'home-game-director',
+    title: 'Live Home Game Tournament Director Clock & Payout Console',
+    description: 'Full-screen home game tournament director blind timer with live rebuy/add-on prize pool counter, table average Harrington M-Ratio monitor, and payout splitter.',
+    embedUrl: 'https://smarter.poker/tools/home-game-director?embed=true',
+    landerUrl: 'https://smarter.poker/tools/home-game-director',
+    height: 800,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Home Game Tournament Director',
+  },
 ];
 
 function escapeHtml(str) {
@@ -561,7 +661,7 @@ export function buildOembedPayload({
   const hrefWithUtm = `${canonicalUrl}${landerUtmSuffix}`;
   const fallbackTitle =
     pathname === '/'
-      ? 'Smarter.Poker: GTO Poker Training, 42 Free Calculators & Live Poker Room Directory'
+      ? 'Smarter.Poker: GTO Poker Training, 52 Free Calculators & Live Poker Room Directory'
       : `Smarter.Poker Reference (${pathname})`;
   const html = `<div class="smarter-poker-embed-card" style="padding:16px 20px;background:#0d1524;border:1px solid rgba(56,189,248,0.3);border-radius:10px;color:#f8fafc;font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;"><a href="${escapeHtml(hrefWithUtm)}" target="_blank" rel="noopener" style="color:#38bdf8;font-size:15px;font-weight:700;text-decoration:none;">${escapeHtml(fallbackTitle)}</a><p style="margin:6px 0 0 0;font-size:12.5px;color:#94a3b8;">Interactive Poker Calculators, GTO Preflop Ranges, And Empirical Benchmarks At Smarter.Poker</p></div>`;
 

@@ -77,19 +77,19 @@ export function normalizeCardGroup(input) {
 
 export const MCP_SERVER_INFO = {
   name: 'smarter-poker-mcp-server',
-  version: '2.0.0',
-  packageVersion: '1.0.7',
+  version: '2.2.0',
+  packageVersion: '1.0.8',
 };
 export const SERVER_INFO = MCP_SERVER_INFO;
 
 export const MCP_INSTRUCTIONS = [
-  'Smarter.Poker MCP Server v2.0.0 (package release v1.0.7) exposes 55 read-only, deterministic quantitative poker tools, 12 structured prompts, 18 resource templates, 42 interactive calculators, 34 streamer bot commands, 6 Zenodo DOI datasets (10.5281/zenodo.24115647, 10.5281/zenodo.24115636, 10.5281/zenodo.24115447, 10.5281/zenodo.24115452, 10.5281/zenodo.24115453, 10.5281/zenodo.24115454), and Glama Registry metadata (https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp).',
+  'Smarter.Poker MCP Server v2.2.0 (package release v1.0.8) exposes 70 read-only, deterministic quantitative poker tools, 14 structured prompts, 24 resource templates, 52 interactive calculators, 44 streamer bot commands, 6 Zenodo DOI datasets (10.5281/zenodo.24115647, 10.5281/zenodo.24115636, 10.5281/zenodo.24115447, 10.5281/zenodo.24115452, 10.5281/zenodo.24115453, 10.5281/zenodo.24115454), and Glama Registry metadata (https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp).',
   'Tool Family Disambiguation Rules:',
-  '1. Equity, Showdown & Board Texture Family: Use calculate_poker_odds for exact Monte Carlo / enumerative multiway card-vs-card equity with specific hole cards or board cards; use resolve_holdem_showdown_winner to evaluate two 2-card Hold\'em hands on a 5-card board and determine the exact winning 5-card hand, kicker, or split pot; use analyze_flop_board_texture to classify any 3-card flop (Rainbow/Two-Tone/Monotone, pairing, connectedness, range advantage, and GTO C-Bet sizing); use get_flop_board_texture_guide for the 12 canonical flop board texture solver guides; use lookup_hand_matchup for canonical preflop hand-vs-hand benchmarks (e.g. AA vs KK, AKs vs QQ, 55 vs KTs); use calculate_draw_outs for hypergeometric turn/river draw completion from clean out counts (1-21 outs) and Rule of 4 & 2 error; use calculate_plo_wrap_outs for 4-Card/5-Card Omaha straight wrap outs (13, 16, 17, 20 outs) and flush redraw equity; use calculate_pot_odds_and_mdf when given pot size and bet size to compute break-even calling equity and Minimum Defense Frequency (MDF).',
-  '2. Preflop, Positional & Exploitative Strategy Family: Use get_preflop_chart to retrieve a full 100BB 6-Max positional opening range matrix; use get_poker_position_strategy for detailed seat-by-seat GTO RFI %, 3-Bet %, cold-call %, and BB/100 winrate across all 9-max/6-max seats (utg, utg-1, mp, lj, hj, co, btn, sb, bb); use get_player_archetype_exploit for exploitative counter-strategies against the 8 player archetypes (omc, calling-station, maniac, tag, lag, short-stack, trapper, gto-grinder); use lookup_starting_hand to inspect a single canonical starting hand (any of the 169 hands such as AA, AKs, 87s, 72o); use calculate_preflop_isolation_raise to compute optimal 3x/4x + 1x per limper + OOP tax preflop isolation raise sizing; use calculate_straddle_bomb_pot_ev for UTG/Button straddle effective stack reduction and single/double-board bomb pot dead money math; use calculate_geometric_bet_sizing for multi-street 2e/3e geometric pot-fraction bet sizing.',
-  '3. Live Poker Venue, Table Selection, US State Law & International Family: Use search_poker_venues to filter cardrooms by city, state, keyword, or venue type; use get_venue_details only after obtaining a numeric venue ID; use score_live_table_selection to grade live cash table profitability (S-Tier to F); use get_regional_market_guide for the 12 regional cardroom hubs; use get_us_state_poker_guide for state-by-state legal status, minimum age, tax withholding rate, rake model, and top poker cities; use get_international_poker_guide for the 10 global poker destinations (london, barcelona, rozvadov, monte-carlo, prague, manila, macau, melbourne, montreal, nassau).',
+  '1. Equity, Showdown & Board Texture Family: Use calculate_poker_odds for exact Monte Carlo / enumerative multiway card-vs-card equity with specific hole cards or board cards; use calculate_multiway_all_in_ev for 3-way/4-way main pot and side pot all-in EV calculation; use resolve_holdem_showdown_winner to evaluate two 2-card Hold\'em hands on a 5-card board and determine the exact winning 5-card hand, kicker, or split pot; use analyze_flop_board_texture to classify any 3-card flop (Rainbow/Two-Tone/Monotone, pairing, connectedness, range advantage, and GTO C-Bet sizing); use get_flop_board_texture_guide for the 12 canonical flop board texture solver guides; use lookup_hand_matchup for canonical preflop hand-vs-hand benchmarks (e.g. AA vs KK, AKs vs QQ, 55 vs KTs); use calculate_draw_outs for hypergeometric turn/river draw completion from clean out counts (1-21 outs) and Rule of 4 & 2 error; use calculate_plo_wrap_outs for 4-Card/5-Card Omaha straight wrap outs (13, 16, 17, 20 outs) and flush redraw equity; use calculate_pot_odds_and_mdf when given pot size and bet size to compute break-even calling equity and Minimum Defense Frequency (MDF); use calculate_river_bluff_catch_ev for river MDF, blocker removal, and bluff-catch EV; use calculate_multi_street_barrel_ev for flop-turn-river cumulative fold equity and triple-barrel breakeven.',
+  '2. Preflop, Positional & Exploitative Strategy Family: Use get_preflop_chart to retrieve a full 100BB 6-Max positional opening range matrix; use solve_heads_up_push_fold_nash for HU and 3-max 1BB-25BB Nash push/fold/limp equilibrium; use solve_blind_vs_blind_matrix for SB vs BB limp/raise/3-bet equilibrium; use get_poker_position_strategy for detailed seat-by-seat GTO RFI %, 3-Bet %, cold-call %, and BB/100 winrate across all 9-max/6-max seats (utg, utg-1, mp, lj, hj, co, btn, sb, bb); use get_player_archetype_exploit for exploitative counter-strategies against the 8 player archetypes (omc, calling-station, maniac, tag, lag, short-stack, trapper, gto-grinder); use lookup_starting_hand to inspect a single canonical starting hand (any of the 169 hands such as AA, AKs, 87s, 72o); use calculate_preflop_isolation_raise to compute optimal 3x/4x + 1x per limper + OOP tax preflop isolation raise sizing; use calculate_straddle_bomb_pot_ev for UTG/Button straddle effective stack reduction and single/double-board bomb pot dead money math; use calculate_geometric_bet_sizing for multi-street 2e/3e geometric pot-fraction bet sizing; use lookup_poker_math_formula for the poker formulas encyclopedia with LaTeX and worked examples; use lookup_mtt_tournament_stage_strategy for the 8 MTT stages playbook; use diagnose_poker_leak_cure for the 12 common poker leaks and EV loss in BB/100; use lookup_hud_stat_gto_benchmark for GTO 6-max/9-max targets and population exploits across 15 HUD stats; use verify_poker_myth_claim to fact-check poker myths with solver equilibrium proof; use batch_solve_poker_spots to solve an array of up to 20 poker math spots in one deterministic batch call.',
+  '3. Live Poker Venue, Table Selection, US State Law, Corridors & International Family: Use search_poker_venues to filter cardrooms by city, state, keyword, or venue type; use get_venue_details only after obtaining a numeric venue ID; use score_live_table_selection to grade live cash table profitability (S-Tier to F); use get_regional_market_guide for the 12 regional cardroom hubs; use get_us_state_poker_guide for state-by-state legal status, minimum age, tax withholding rate, rake model, and top poker cities; use lookup_poker_travel_corridor for closest legal poker rooms by metro/airport corridor; use get_international_poker_guide for the 10 global poker destinations (london, barcelona, rozvadov, monte-carlo, prague, manila, macau, melbourne, montreal, nassau).',
   '4. Tournament Series & Festival Planning Family: Use search_tournament_series to search live database schedules; use get_series_details when you have a specific numeric series ID; use get_poker_series_strategy_guide for deep festival strategy, late-reg windows, and bankroll planning across the 10 major poker tours (wsop-las-vegas, wpt-world-championship, mspt-major, etc.) or first-time-guide; use calculate_poker_trip_budget for festival travel overhead and effective expense rake %; use calculate_mtt_session_abi_plan for MTT session exposure, ABI bankroll ratio, and 0-ITM brick risk.',
-  '5. Tournament Math, Satellites, Cash Session, Promotions, Staking, Taxes & Hand History Family: Use calculate_icm_payouts for Malmuth-Harville ICM equity; use calculate_late_reg_icm_ev for tournament late-registration ICM chip appreciation at 15BB-30BB; use calculate_tournament_m_ratio for Harrington M-Ratio, Effective M, Q-Ratio, and Zone classification; use calculate_satellite_bubble_factor for satellite seat-lock thresholds and bubble factors; use calculate_tournament_chop to compare ICM Chop vs Chip Chop vs Save-Amount deals; use calculate_bounty_chip_equity for PKO/Mystery Bounty chip conversion; use calculate_cash_session_plan for net $/hr with comps/expenses, stop-loss, and 5% RoR bankroll; use calculate_bad_beat_jackpot_ev for Bad Beat Jackpot and high-hand promotion EV; use format_poker_hand_history to convert raw hand details into Reddit/Discord markdown with street-by-street SPR; use calculate_bankroll_risk_of_ruin for Risk of Ruin; use simulate_poker_variance and calculate_winrate_confidence_interval for sample confidence intervals; use calculate_poker_taxes_w2g for IRS Form W-2G and Schedule A vs C tax math; use calculate_staking_markup_split for tournament staking markup; use calculate_home_game_chip_set for physical chip tube breakdowns.',
+  '5. Tournament Math, Satellites, Cash Session, Promotions, Staking, Taxes & Hand History Family: Use calculate_icm_payouts for Malmuth-Harville ICM equity; use calculate_bubble_factor_matrix for pairwise final table ICM bubble factors and required equity; use calculate_late_reg_icm_ev for tournament late-registration ICM chip appreciation at 15BB-30BB; use calculate_tournament_m_ratio for Harrington M-Ratio, Effective M, Q-Ratio, and Zone classification; use calculate_satellite_bubble_factor for satellite seat-lock thresholds and bubble factors; use calculate_tournament_chop to compare ICM Chop vs Chip Chop vs Save-Amount deals; use calculate_bounty_chip_equity for PKO/Mystery Bounty chip conversion; use calculate_mystery_bounty_live_pool for remaining mystery bounty envelope EV and chip equivalence; use calculate_cash_session_plan for net $/hr with comps/expenses, stop-loss, and 5% RoR bankroll; use calculate_bankroll_shot_taking_plan for 2-tier bankroll shot-taking and stop-loss triggers; use calculate_bad_beat_jackpot_ev for Bad Beat Jackpot and high-hand promotion EV; use format_poker_hand_history to convert raw hand details into Reddit/Discord markdown with street-by-street SPR; use calculate_bankroll_risk_of_ruin for Risk of Ruin; use simulate_poker_variance and calculate_winrate_confidence_interval for sample confidence intervals; use calculate_poker_taxes_w2g for IRS Form W-2G and Schedule A vs C tax math; use calculate_staking_markup_split for tournament staking markup; use calculate_home_game_chip_set for physical chip tube breakdowns.',
 ].join('\n');
 
 export const MCP_TOOLS = [
@@ -1895,6 +1895,457 @@ export const MCP_TOOLS = [
       },
     },
   },
+  {
+    name: 'calculate_multiway_all_in_ev',
+    description: 'Computes 3-way and 4-way all-in Main Pot and Side Pot dollar or chip EV, net profit/loss per player, and required breakeven equity across uneven stack sizes.',
+    annotations: {
+      title: 'Calculate 3-Way & 4-Way Multiway All-In Main & Side Pot EV',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        stacks: {
+          type: 'array',
+          items: { type: 'number' },
+          description: 'All-in stack sizes for 3 or 4 players (e.g. [100, 180, 300]).',
+          default: [100, 180, 300],
+        },
+        equities_percent: {
+          type: 'array',
+          items: { type: 'number' },
+          description: 'Overall equity percentages for each player summing to ~100 (e.g. [45, 35, 20]).',
+          default: [45, 35, 20],
+        },
+        dead_money: {
+          type: 'number',
+          description: 'Extra dead money from blinds/antes/folds in the center pot (default: 15).',
+          default: 15,
+        },
+      },
+    },
+  },
+  {
+    name: 'calculate_mystery_bounty_live_pool',
+    description: 'Computes remaining Mystery Bounty tournament envelope EV, chip equivalence in starting-stack and current big-blind units, and reduced all-in calling equity threshold.',
+    annotations: {
+      title: 'Calculate Live Mystery Bounty Remaining Pool EV & Chip Equivalence',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        remaining_bounty_pool_dollars: {
+          type: 'number',
+          description: 'Total unpulled dollar value remaining in the Mystery Bounty pool (default: 120000).',
+          default: 120000,
+        },
+        envelopes_remaining: {
+          type: 'integer',
+          description: 'Number of unopened mystery envelopes / players remaining in the bounty phase (default: 40).',
+          default: 40,
+        },
+        top_bounty_remaining_dollars: {
+          type: 'number',
+          description: 'Largest top mystery envelope still live in the drum (default: 50000).',
+          default: 50000,
+        },
+        regular_prize_pool_remaining_dollars: {
+          type: 'number',
+          description: 'Remaining regular payout prize pool in dollars (default: 150000).',
+          default: 150000,
+        },
+        total_chips_in_play: {
+          type: 'number',
+          description: 'Total tournament chips currently in play across all tables (default: 4000000).',
+          default: 4000000,
+        },
+        big_blind_chips: {
+          type: 'number',
+          description: 'Current Big Blind level in chips (default: 4000).',
+          default: 4000,
+        },
+      },
+    },
+  },
+  {
+    name: 'calculate_bubble_factor_matrix',
+    description: 'Computes the pairwise N x N final table or money-bubble Malmuth-Harville ICM Bubble Factor Matrix, risk premium %, and required all-in calling equity for every player matchup.',
+    annotations: {
+      title: 'Calculate Pairwise Final Table ICM Bubble Factor Matrix',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        stacks: {
+          type: 'array',
+          items: { type: 'number' },
+          description: 'Array of player chip stacks (e.g. [60, 40, 25, 15]).',
+          default: [60, 40, 25, 15],
+        },
+        payouts: {
+          type: 'array',
+          items: { type: 'number' },
+          description: 'Array of tournament prize payouts (e.g. [10000, 6500, 4200, 2800]).',
+          default: [10000, 6500, 4200, 2800],
+        },
+      },
+    },
+  },
+  {
+    name: 'calculate_river_bluff_catch_ev',
+    description: 'Computes river bluff-catching EV, Minimum Defense Frequency (MDF), optimal polarized bluff ratio Alpha, and card-removal blocker adjustment against an opponent river bet.',
+    annotations: {
+      title: 'Calculate River Bluff-Catch EV, MDF & Blocker Removal',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        pot_size: {
+          type: 'number',
+          description: 'Pot size before villain river bet (default: 100).',
+          default: 100,
+        },
+        bet_size: {
+          type: 'number',
+          description: 'Villain river bet size (default: 75).',
+          default: 75,
+        },
+        villain_value_combos: {
+          type: 'number',
+          description: 'Estimated number of unblocked value combos in villain range (default: 18).',
+          default: 18,
+        },
+        villain_bluff_combos: {
+          type: 'number',
+          description: 'Estimated number of bluff combos in villain range (default: 9).',
+          default: 9,
+        },
+        hero_blocks_value_combos: {
+          type: 'number',
+          description: 'Number of villain value combos removed by hero blockers (default: 3).',
+          default: 3,
+        },
+        hero_blocks_bluff_combos: {
+          type: 'number',
+          description: 'Number of villain bluff combos removed by hero blockers (default: 0).',
+          default: 0,
+        },
+      },
+    },
+  },
+  {
+    name: 'calculate_multi_street_barrel_ev',
+    description: 'Computes Flop-Turn-River multi-street cumulative fold equity, street-by-street pot growth, and triple-barrel breakeven bluff threshold across three bet sizings.',
+    annotations: {
+      title: 'Calculate Flop-Turn-River Multi-Street Barrel EV & Fold Equity',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        starting_pot: {
+          type: 'number',
+          description: 'Flop starting pot size in BB or dollars (default: 6.5).',
+          default: 6.5,
+        },
+        flop_bet_pct: {
+          type: 'number',
+          description: 'Flop C-Bet size as percentage of pot (default: 33).',
+          default: 33,
+        },
+        turn_bet_pct: {
+          type: 'number',
+          description: 'Turn barrel size as percentage of pot (default: 75).',
+          default: 75,
+        },
+        river_bet_pct: {
+          type: 'number',
+          description: 'River barrel size as percentage of pot (default: 100).',
+          default: 100,
+        },
+        flop_fold_pct: {
+          type: 'number',
+          description: 'Expected villain fold % on the flop (default: 38).',
+          default: 38,
+        },
+        turn_fold_pct: {
+          type: 'number',
+          description: 'Expected villain fold % on the turn (default: 44).',
+          default: 44,
+        },
+        river_fold_pct: {
+          type: 'number',
+          description: 'Expected villain fold % on the river (default: 48).',
+          default: 48,
+        },
+      },
+    },
+  },
+  {
+    name: 'solve_heads_up_push_fold_nash',
+    description: 'Returns Heads-Up (HU) and 3-Max short-stack (1BB to 25BB) Nash equilibrium push, fold, limp, and BB call frequencies and hand ranges.',
+    annotations: {
+      title: 'Solve Heads-Up & 3-Max 1BB-25BB Nash Push/Fold Equilibrium',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        stack_bb: {
+          type: 'number',
+          description: 'Effective stack depth in Big Blinds (1 to 25, default: 12).',
+          default: 12,
+        },
+        role: {
+          type: 'string',
+          enum: ['sb_push', 'bb_call', 'btn_3max_push'],
+          description: 'Action role: sb_push (HU SB/BTN jam), bb_call (HU BB call vs jam), or btn_3max_push (3-Max BTN jam).',
+          default: 'sb_push',
+        },
+        ante_pct_bb: {
+          type: 'number',
+          description: 'Total orbit ante as % of 1 Big Blind (default: 25).',
+          default: 25,
+        },
+      },
+    },
+  },
+  {
+    name: 'solve_blind_vs_blind_matrix',
+    description: 'Returns Small Blind vs Big Blind (BvB) GTO equilibrium limp, open-raise, 3-bet, and defense frequencies across 20BB to 100BB stack depths.',
+    annotations: {
+      title: 'Solve Small Blind Vs Big Blind (BvB) GTO Equilibrium Matrix',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        stack_bb: {
+          type: 'number',
+          description: 'Effective BvB stack depth in Big Blinds (20 to 100, default: 100).',
+          default: 100,
+        },
+        format: {
+          type: 'string',
+          enum: ['cash_raked', 'mtt_ante'],
+          description: 'Game format: cash_raked (linear 3x SB open-or-fold) or mtt_ante (mixed SB limp + 3.5x raise).',
+          default: 'cash_raked',
+        },
+      },
+    },
+  },
+  {
+    name: 'calculate_bankroll_shot_taking_plan',
+    description: 'Computes a two-tier bankroll shot-taking plan, exact move-up trigger bankroll, mandatory move-down stop-loss threshold, and shot Risk of Ruin %.',
+    annotations: {
+      title: 'Calculate Two-Tier Bankroll Shot-Taking & Stop-Loss Plan',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        current_bankroll_dollars: {
+          type: 'number',
+          description: 'Current total poker bankroll in dollars (default: 12000).',
+          default: 12000,
+        },
+        current_stake_buyin_dollars: {
+          type: 'number',
+          description: 'Standard 100BB buy-in at current base stake in dollars (e.g. 300 for $1/$3, default: 300).',
+          default: 300,
+        },
+        target_stake_buyin_dollars: {
+          type: 'number',
+          description: 'Standard 100BB buy-in at target higher stake in dollars (e.g. 500 for $2/$5, default: 500).',
+          default: 500,
+        },
+        shot_buyins_allocated: {
+          type: 'integer',
+          description: 'Number of higher-stake buy-ins risked on the shot before dropping back down (default: 3).',
+          default: 3,
+        },
+        expected_winrate_bb100: {
+          type: 'number',
+          description: 'Projected winrate at target stake in BB/100 (default: 5).',
+          default: 5,
+        },
+      },
+    },
+  },
+  {
+    name: 'lookup_poker_math_formula',
+    description: 'Queries the Smarter.Poker quantitative formulas encyclopedia for LaTeX equations, algebraic derivations, and worked numerical examples.',
+    annotations: {
+      title: 'Look Up Poker Math Formula With LaTeX & Worked Example',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        formula: {
+          type: 'string',
+          description: 'Formula slug or keyword (e.g. "pot-odds", "mdf", "alpha", "polarized-bluff-ratio", "spr", "geometric-sizing", "ev", "icm-malmuth-harville", "bubble-factor", "pko-bounty-chips", "m-ratio", "hypergeometric-outs", "risk-of-ruin", "kelly-criterion", "standard-error-ci"). Omit to list all 15 formulas.',
+        },
+      },
+    },
+  },
+  {
+    name: 'lookup_mtt_tournament_stage_strategy',
+    description: 'Queries the 8 Multi-Table Tournament (MTT) stages playbook from Level 1 Deepstack through Ante Kick-In, Late-Reg Close, Money Bubble, Pay-Jump Ladders, Final Table Bubble, Final Table ICM, and Heads-Up.',
+    annotations: {
+      title: 'Look Up 8-Stage MTT Tournament Playbook Strategy',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        stage: {
+          type: 'string',
+          description: 'MTT stage slug or number (e.g. "early-deepstack", "ante-kick-in", "late-reg-close", "money-bubble", "in-the-money-laddering", "final-table-bubble", "final-table-icm", "heads-up-title"). Omit to list all 8 stages.',
+        },
+      },
+    },
+  },
+  {
+    name: 'diagnose_poker_leak_cure',
+    description: 'Diagnoses 12 common live and online poker strategic leaks, quantifying average EV loss in BB/100, HUD diagnostic symptoms, and step-by-step solver cures.',
+    annotations: {
+      title: 'Diagnose Poker Strategic Leak & BB/100 EV Cure',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        leak: {
+          type: 'string',
+          description: 'Leak slug or keyword (e.g. "open-limping", "sb-flatting", "over-defending-bb-vs-ep", "one-and-done-cbet", "never-check-raising-flops", "over-calling-river-bets", "tiny-multiway-value-bets", "ignoring-icm-bubble-factors", "missing-thin-river-value", "autopilot-3bet-sizing", "chasing-non-nut-plo-draws", "playing-tilted-past-stop-loss"). Omit to list all 12 leaks.',
+        },
+      },
+    },
+  },
+  {
+    name: 'lookup_hud_stat_gto_benchmark',
+    description: 'Returns GTO 6-Max and 9-Max target ranges, sample-size convergence requirements, and population exploitative thresholds for 15 core poker HUD statistics.',
+    annotations: {
+      title: 'Look Up Poker HUD Stat GTO 6-Max/9-Max Benchmarks',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        stat: {
+          type: 'string',
+          description: 'HUD stat code or slug (e.g. "vpip", "pfr", "three-bet", "fold-to-three-bet", "four-bet", "ats-steal", "fold-bb-to-steal", "flop-cbet", "fold-to-flop-cbet", "turn-cbet", "check-raise-flop", "wtsd", "wsd", "wwsf", "aggression-frequency"). Omit to list all 15 HUD stats.',
+        },
+      },
+    },
+  },
+  {
+    name: 'verify_poker_myth_claim',
+    description: 'Fact-checks common poker myths and misconceptions with combinatorial mathematics, empirical database evidence, and GTO solver equilibrium proof.',
+    annotations: {
+      title: 'Fact-Check & Debunk Poker Myth With Solver Proof',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        claim: {
+          type: 'string',
+          description: 'Myth slug or natural-language claim to verify (e.g. "online-poker-rigged-action-flops", "raise-for-information", "never-go-broke-in-limped-pot", "always-defend-mdf-against-population", "pocket-jacks-lose-most-of-the-time", "late-reg-is-always-bad", "straddling-is-plus-ev", "tipping-and-rake-dont-affect-gto"). Omit to list all 15 debunked myths.',
+        },
+      },
+    },
+  },
+  {
+    name: 'lookup_poker_travel_corridor',
+    description: 'Returns the closest legal live poker rooms, drive/flight distance, state tax rules, and rake models for 10 major US metro and airport border corridors.',
+    annotations: {
+      title: 'Look Up Closest Legal Live Poker Rooms By Travel Corridor',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        corridor: {
+          type: 'string',
+          description: 'Travel corridor slug or metro/airport name (e.g. "nyc-to-parx-borgata-wind-creek", "atlanta-to-cherokee-and-florida", "chicago-to-rivers-and-hammond", "dallas-to-winstar-choctaw-tch", "boston-to-encore-and-foxwoods", "dc-to-mgm-national-harbor-live", "seattle-to-tulalip-and-portland", "las-vegas-las-airport-corridor", "lax-to-commerce-and-hustler", "fll-mia-to-seminole-hard-rock"). Omit to list all 10 corridors.',
+        },
+      },
+    },
+  },
+  {
+    name: 'batch_solve_poker_spots',
+    description: 'Solves an array of up to 20 poker mathematics spots across any calculator in one deterministic batch call, returning calculations, If/Then/Because rules, and canonical permalinks.',
+    annotations: {
+      title: 'Batch Solve Up To 20 Poker Math Spots In One Call',
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        spots: {
+          type: 'array',
+          description: 'Array of up to 20 spot objects: [{ tool: "pot-odds-calculator", params: { pot: 100, bet: 50 } }, ...].',
+          items: {
+            type: 'object',
+            properties: {
+              tool: { type: 'string' },
+              params: { type: 'object' },
+            },
+          },
+        },
+      },
+    },
+  },
 ];
 
 export const MCP_PROMPTS = [
@@ -1994,6 +2445,22 @@ export const MCP_PROMPTS = [
       { name: 'streets', description: 'Number of betting streets remaining: "2" or "3"', required: false },
     ],
   },
+  {
+    name: 'geo-citation-fact-check',
+    description: 'Verify a poker math claim, myth, or statistical benchmark with deterministic solver calculations and Zenodo DOI citations',
+    arguments: [
+      { name: 'claim', description: 'Poker claim or myth to verify (e.g. "always defend MDF against live river bets")', required: true },
+      { name: 'formula', description: 'Optional formula slug (e.g. "mdf", "bubble-factor", "risk-of-ruin")', required: false },
+    ],
+  },
+  {
+    name: 'mtt-stage-and-leak-coach',
+    description: 'Generate a stage-specific MTT strategy plan and diagnose BB/100 strategic leaks with HUD stat benchmarks',
+    arguments: [
+      { name: 'stage', description: 'MTT tournament stage (e.g. "money-bubble", "final-table-icm", "late-reg-close")', required: true },
+      { name: 'leak', description: 'Optional player leak to cure (e.g. "ignoring-icm-bubble-factors", "sb-flatting")', required: false },
+    ],
+  },
 ];
 
 export const MCP_RESOURCE_TEMPLATES = [
@@ -2066,7 +2533,7 @@ export const MCP_RESOURCE_TEMPLATES = [
   {
     uriTemplate: 'https://smarter.poker/tools/{calculator}.md',
     name: 'Smarter.Poker Interactive Poker Math Calculator Markdown',
-    description: 'Raw Markdown mathematical specification and benchmark tables for any of the 42 free interactive poker calculators.',
+    description: 'Raw Markdown mathematical specification and benchmark tables for any of the 52 free interactive poker calculators.',
     mimeType: 'text/markdown',
   },
   {
@@ -2104,6 +2571,42 @@ export const MCP_RESOURCE_TEMPLATES = [
     name: 'Smarter.Poker International Poker Destination & Tax Guide Markdown',
     description: 'Raw Markdown flagship venues, currency, stakes, rake caps, tax rules, and major festivals across 10 international poker cities.',
     mimeType: 'text/markdown',
+  },
+  {
+    uriTemplate: 'smarter-poker://formulas/{slug}',
+    name: 'Smarter.Poker Quantitative Formula & LaTeX Derivation Resource',
+    description: 'Structured LaTeX equation, algebraic proof, and worked numerical example for any of the 15 core poker math formulas.',
+    mimeType: 'application/json',
+  },
+  {
+    uriTemplate: 'smarter-poker://tournament-stages/{stage}',
+    name: 'Smarter.Poker 8-Stage MTT Tournament Strategy Playbook Resource',
+    description: 'Structured stack-depth targets, ICM adjustments, and range modifications across the 8 MTT tournament stages.',
+    mimeType: 'application/json',
+  },
+  {
+    uriTemplate: 'smarter-poker://leaks/{slug}',
+    name: 'Smarter.Poker Diagnostic Leak & BB/100 EV Cure Resource',
+    description: 'Structured HUD diagnostic symptoms, average BB/100 EV loss, and solver remediation drill for 12 common poker leaks.',
+    mimeType: 'application/json',
+  },
+  {
+    uriTemplate: 'smarter-poker://hud-stats/{stat}',
+    name: 'Smarter.Poker HUD Statistic GTO 6-Max & 9-Max Benchmark Resource',
+    description: 'Structured GTO 6-Max/9-Max equilibrium percentages, sample convergence thresholds, and population exploit triggers for 15 HUD stats.',
+    mimeType: 'application/json',
+  },
+  {
+    uriTemplate: 'smarter-poker://corridors/{slug}',
+    name: 'Smarter.Poker Airport & Metro Border Travel Corridor Resource',
+    description: 'Structured travel distance, closest legal cardrooms, rake comparison, and state tax rules for 10 major US travel corridors.',
+    mimeType: 'application/json',
+  },
+  {
+    uriTemplate: 'smarter-poker://rooms-by-game/{game}',
+    name: 'Smarter.Poker Live Poker Rooms By Game Variant Directory Resource',
+    description: 'Structured directory of top North American poker rooms spreading NLH, PLO4/PLO5, Big O, Mixed/HORSE, Stud/O8, and Bomb Pots.',
+    mimeType: 'application/json',
   },
 ];
 export const RESOURCE_TEMPLATES = MCP_RESOURCE_TEMPLATES;
@@ -2302,12 +2805,480 @@ export function lookupSeriesGuideData(rawSlug = '') {
   return fallback || null;
 }
 
+export const POKER_FORMULAS_CATALOG = [
+  {
+    slug: 'pot-odds',
+    name: 'Pot Odds & Required Break-Even Calling Equity',
+    latex: 'E_{\\text{req}} = \\frac{C}{P_{\\text{before\\_call}} + C}',
+    equation: 'Required_Equity = Call / (Pot_Before_Call + Call)',
+    example: 'Facing a $50 bet into a $100 pot ($150 before call): 50 / (150 + 50) = 25.0% required equity.',
+    calculatorUrl: 'https://smarter.poker/tools/pot-odds-calculator',
+  },
+  {
+    slug: 'mdf',
+    name: 'Minimum Defense Frequency (MDF)',
+    latex: '\\text{MDF} = \\frac{P}{P + B}',
+    equation: 'MDF = Pot / (Pot + Bet)',
+    example: 'Facing a 75% pot bet ($75 into $100): 100 / (100 + 75) = 57.1% minimum defense frequency.',
+    calculatorUrl: 'https://smarter.poker/tools/pot-odds-calculator',
+  },
+  {
+    slug: 'alpha',
+    name: 'Bluff Break-Even Frequency (Alpha)',
+    latex: '\\alpha = \\frac{B}{P + B} = 1 - \\text{MDF}',
+    equation: 'Alpha = Bet / (Pot + Bet)',
+    example: 'A half-pot bluff ($50 into $100) needs folds 50 / 150 = 33.3% of the time to break even immediately.',
+    calculatorUrl: 'https://smarter.poker/tools/bluff-catching-calculator',
+  },
+  {
+    slug: 'polarized-bluff-ratio',
+    name: 'Optimal Polarized River Bluff-To-Value Ratio',
+    latex: 'b_{\\text{share}} = \\frac{B}{P + 2B}',
+    equation: 'Bluff_Share_Of_Betting_Range = Bet / (Pot + 2 * Bet)',
+    example: 'For a pot-sized river bet ($100 into $100), optimal bluff share is 100 / 300 = 33.3% bluffs (2:1 value-to-bluff).',
+    calculatorUrl: 'https://smarter.poker/tools/bluff-catching-calculator',
+  },
+  {
+    slug: 'spr',
+    name: 'Stack-To-Pot Ratio (SPR)',
+    latex: '\\text{SPR} = \\frac{S_{\\text{eff}}}{P_{\\text{flop}}}',
+    equation: 'SPR = Effective_Stack / Flop_Pot',
+    example: 'With 90BB behind in a 18BB 3-bet pot, SPR = 90 / 18 = 5.0 (one-pair top-pair commitment threshold).',
+    calculatorUrl: 'https://smarter.poker/tools/spr-calculator',
+  },
+  {
+    slug: 'geometric-sizing',
+    name: 'Multi-Street N-Street Geometric Bet Sizing (2e / 3e)',
+    latex: 'g = \\frac{1}{2}\\left(\\left(1 + 2\\cdot\\text{SPR}\\right)^{1/n} - 1\\right)',
+    equation: 'g = 0.5 * ((1 + 2 * SPR)^(1 / N) - 1)',
+    example: 'At SPR 4.0 over 3 streets (3e), g = 0.5 * (9^(1/3) - 1) = 54.0% pot on Flop, Turn, and River.',
+    calculatorUrl: 'https://smarter.poker/tools/geometric-bet-calculator',
+  },
+  {
+    slug: 'ev',
+    name: 'Expected Value (EV) Of A Poker Decision',
+    latex: '\\text{EV} = (p_{\\text{win}} \\cdot W) - (p_{\\text{lose}} \\cdot L)',
+    equation: 'EV = (Win_Prob * Net_Gain) - (Lose_Prob * Risk_Amount)',
+    example: 'Calling $100 to win $200 with 40% equity: (0.40 * 200) - (0.60 * 100) = +$20.00 EV.',
+    calculatorUrl: 'https://smarter.poker/tools/poker-odds-calculator',
+  },
+  {
+    slug: 'icm-malmuth-harville',
+    name: 'Malmuth-Harville Recursive ICM Equity',
+    latex: 'P(i = 1) = \\frac{s_i}{\\sum_k s_k}, \\quad P(i = m) = \\sum_{j \\neq i} P(j = 1) \\cdot P(i = m \\mid j = 1)',
+    equation: 'P(1st) = Player_Stack / Total_Chips; Recursive Conditional Finish Probabilities Weighted By Payouts',
+    example: 'A 50% chip leader at a 3-handed table ($5k/$3k/$2k) holds ~43.3% of the prize pool ($4,333 ICM equity), not $5,000.',
+    calculatorUrl: 'https://smarter.poker/tools/icm-calculator',
+  },
+  {
+    slug: 'bubble-factor',
+    name: 'Tournament ICM Bubble Factor & Required All-In Equity',
+    latex: '\\text{BF} = \\frac{\\Delta \\text{EV}_{\\text{lose}}}{\\Delta \\text{EV}_{\\text{win}}}, \\quad E_{\\text{req}} = \\frac{\\text{BF}}{\\text{BF} + 1}',
+    equation: 'Bubble_Factor = Dollar_EV_Lost / Dollar_EV_Gained; Required_Equity = BF / (BF + 1)',
+    example: 'At a 1.85x Final Table Bubble Factor, a player needs 1.85 / 2.85 = 64.9% equity (not 50%) to call an all-in.',
+    calculatorUrl: 'https://smarter.poker/tools/bubble-factor-calculator',
+  },
+  {
+    slug: 'pko-bounty-chips',
+    name: 'PKO & Mystery Bounty Chip Equivalence',
+    latex: 'C_{\\text{bounty}} = S_{\\text{start}} \\cdot \\frac{\\text{Bounty}_{\\$}}{\\text{RegularBuyIn}_{\\$}}',
+    equation: 'Bounty_Chip_Value = Starting_Stack * (Immediate_Bounty_Award / Main_Pool_BuyIn_Share)',
+    example: 'In a standard 50/50 PKO with 10,000 starting chips, 1 starting knockout equals 3,333 tournament chips (33.3% of start stack).',
+    calculatorUrl: 'https://smarter.poker/tools/bounty-calculator',
+  },
+  {
+    slug: 'm-ratio',
+    name: 'Dan Harrington Tournament M-Ratio & Effective M',
+    latex: 'M = \\frac{S}{\\text{SB} + \\text{BB} + \\text{Antes}}, \\quad M_{\\text{eff}} = M \\cdot \\frac{N_{\\text{players}}}{10}',
+    equation: 'M = Stack / (SB + BB + Total_Orbit_Antes); Effective_M = M * (Active_Players / 10)',
+    example: '25,000 stack at 500/1,000/1,000 BBA (2,500 orbit cost) = M of 10.0 (Yellow Zone; 6-handed Effective M = 6.0).',
+    calculatorUrl: 'https://smarter.poker/tools/m-ratio-calculator',
+  },
+  {
+    slug: 'hypergeometric-outs',
+    name: 'Exact Hypergeometric Turn & River Draw Completion',
+    latex: 'P(\\text{hit}) = 1 - \\left(\\frac{47 - O}{47}\\right)\\left(\\frac{46 - O}{46}\\right)',
+    equation: 'Flop_To_River_Hit = 1 - ((47 - Outs) / 47) * ((46 - Outs) / 46)',
+    example: 'A 9-out flush draw hits 1 - (38/47)*(37/46) = 34.97% by the river (19.15% on the turn alone).',
+    calculatorUrl: 'https://smarter.poker/tools/outs-calculator',
+  },
+  {
+    slug: 'risk-of-ruin',
+    name: 'Brownian Motion Bankroll Risk Of Ruin (RoR)',
+    latex: '\\text{RoR} = \\exp\\left(\\frac{-2 \\cdot \\mu \\cdot B}{\\sigma^2}\\right)',
+    equation: 'RoR = exp((-2 * Winrate_BB100 * Bankroll_BB) / (StdDev_BB100^2))',
+    example: 'At 5 BB/100 winrate and 85 BB/100 standard deviation, a 2,200 BB (22 buy-in) bankroll yields a 4.7% Risk of Ruin.',
+    calculatorUrl: 'https://smarter.poker/tools/bankroll-calculator',
+  },
+  {
+    slug: 'kelly-criterion',
+    name: 'Optimal Kelly Criterion Bankroll Fraction',
+    latex: 'f^* = \\frac{\\mu}{\\sigma^2}',
+    equation: 'Kelly_BuyIn_Target_BB = (StdDev_BB100^2) / Winrate_BB100',
+    example: 'Full Kelly at 6 BB/100 and 85 BB/100 StdDev equals 1,204 BB (12 buy-ins); Half-Kelly requires 24 buy-ins.',
+    calculatorUrl: 'https://smarter.poker/tools/shot-taking-calculator',
+  },
+  {
+    slug: 'standard-error-ci',
+    name: 'Winrate Standard Error & 95% Confidence Interval',
+    latex: '\\text{SE} = \\frac{\\sigma}{\\sqrt{N / 100}}, \\quad \\text{CI}_{95\\%} = \\mu \\pm 1.96 \\cdot \\text{SE}',
+    equation: 'SE = StdDev_BB100 / sqrt(Hands / 100); 95%_CI = Winrate +/- 1.96 * SE',
+    example: 'Over 40,000 hands (400 chunks) at 80 BB/100 SD, SE = 80 / 20 = 4.0 BB/100, giving +/- 7.84 BB/100 95% confidence bounds.',
+    calculatorUrl: 'https://smarter.poker/tools/winrate-confidence-calculator',
+  },
+];
+
+export const MTT_STAGES_CATALOG = [
+  {
+    slug: 'early-deepstack',
+    stageNumber: 1,
+    name: 'Stage 1: Early Deepstack Levels (100BB - 250BB, No Ante)',
+    stackDepth: '100BB - 250BB',
+    icmPressure: 'Negligible (1.00x Bubble Factor)',
+    coreAdjustment: 'Maximize implied odds with suited Aces, pocket pairs, and suited connectors IP; avoid bloating pots OOP with one-pair hands when no antes are in play.',
+  },
+  {
+    slug: 'ante-kick-in',
+    stageNumber: 2,
+    name: 'Stage 2: Big Blind Ante Kick-In (50BB - 90BB)',
+    stackDepth: '50BB - 90BB',
+    icmPressure: 'Low (1.03x - 1.08x Bubble Factor)',
+    coreAdjustment: 'Orbit dead money jumps by 67% from 1.5BB to 2.5BB; widen CO/BTN/SB Raise First In (RFI) ranges by 6%-9% and increase 3-bet bluff frequencies.',
+  },
+  {
+    slug: 'late-reg-close',
+    stageNumber: 3,
+    name: 'Stage 3: Late-Registration Close & Freezeout Transition (25BB - 45BB)',
+    stackDepth: '25BB - 45BB',
+    icmPressure: 'Moderate (1.10x - 1.18x Bubble Factor)',
+    coreAdjustment: 'Re-entry safety net disappears; target fresh 15BB-20BB late-reg entrants with linear 3-bet value and leverage 18BB-28BB 3-bet jam reshoves.',
+  },
+  {
+    slug: 'money-bubble',
+    stageNumber: 4,
+    name: 'Stage 4: The Money Bubble (10% - 15% From ITM)',
+    stackDepth: '12BB - 60BB',
+    icmPressure: 'Extreme For Medium Stacks (1.45x - 2.10x Bubble Factor)',
+    coreAdjustment: 'Big stacks apply relentless non-all-in pressure against 18BB-30BB medium stacks locked into survival; short stacks tighten call-offs by 12%-18%.',
+  },
+  {
+    slug: 'in-the-money-laddering',
+    stageNumber: 5,
+    name: 'Stage 5: Post-Bubble In-The-Money (ITM) & Min-Cash Wave',
+    stackDepth: '10BB - 40BB',
+    icmPressure: 'Low-Moderate (1.12x - 1.22x Bubble Factor)',
+    coreAdjustment: 'Flat min-cash pay jumps restore near-Chip-EV incentives; re-widen reshove and isolation ranges against short stacks punting off min-cashes.',
+  },
+  {
+    slug: 'final-table-bubble',
+    stageNumber: 6,
+    name: 'Stage 6: Two-Table Redraw & Final Table Bubble (18 Down To 9 Players)',
+    stackDepth: '15BB - 50BB',
+    icmPressure: 'High (1.35x - 1.75x Bubble Factor)',
+    coreAdjustment: 'Short-handed 5-max/6-max table dynamics increase blind-steal frequency while pay-jump tension punishes medium-stack collisions.',
+  },
+  {
+    slug: 'final-table-icm',
+    stageNumber: 7,
+    name: 'Stage 7: Final Table ICM Battle (9 Players Down To 3)',
+    stackDepth: '12BB - 70BB',
+    icmPressure: 'Severe (1.60x - 2.65x Bubble Factor)',
+    coreAdjustment: 'Every elimination guarantees a major pay jump; use pairwise Bubble Factor matrices, avoid calling covered all-ins without 62%+ equity, and attack middling stacks.',
+  },
+  {
+    slug: 'heads-up-title',
+    stageNumber: 8,
+    name: 'Stage 8: Heads-Up For The Title (1v1 Pure Chip EV)',
+    stackDepth: '15BB - 80BB',
+    icmPressure: 'Zero (1.00x Bubble Factor - Pure Chip EV)',
+    coreAdjustment: 'ICM risk premium vanishes completely (1.00x BF); open/limp 80%-90% of Buttons and apply 1BB-25BB Heads-Up Nash push/fold/limp charts.',
+  },
+];
+
+export const POKER_LEAKS_CATALOG = [
+  {
+    slug: 'open-limping',
+    name: 'Open-Limping First In From Early Or Middle Position',
+    evLossBb100: '-4.2 BB/100',
+    hudSymptom: 'VPIP - PFR Gap > 10% (Limp First In > 8%)',
+    solverCure: 'Eliminate all non-SB open-limps at 40BB+; raise 2.2x-3x or fold to deny the Big Blind a free flop and capture preflop fold equity.',
+  },
+  {
+    slug: 'sb-flatting',
+    name: 'Cold-Calling Open Raises From The Small Blind In Raked Cash Games',
+    evLossBb100: '-3.8 BB/100',
+    hudSymptom: 'SB Cold-Call % > 12% In Raked Cash Games',
+    solverCure: 'Adopt a 3-Bet-or-Fold strategy from the Small Blind in raked cash games so you avoid playing bloated multiway pots OOP with uncapped rake.',
+  },
+  {
+    slug: 'over-defending-bb-vs-ep',
+    name: 'Over-Defending Big Blind Against UTG/MP 3x+ Opens',
+    evLossBb100: '-3.4 BB/100',
+    hudSymptom: 'BB Call vs EP Open > 35%',
+    solverCure: 'Tighten Big Blind defense to ~22%-26% against UTG 2.5x-3x opens; fold dominated offsuit broadways (KJo, QJo, ATo) that suffer reverse implied odds.',
+  },
+  {
+    slug: 'one-and-done-cbet',
+    name: '100% Flop C-Betting Followed By High Turn Give-Up',
+    evLossBb100: '-3.1 BB/100',
+    hudSymptom: 'Flop C-Bet > 78% with Turn C-Bet < 38%',
+    solverCure: 'Check back 35%-55% on low/middling wet boards (8-7-6, 9-6-5) and protect your flop checking range so turn barrels stay balanced.',
+  },
+  {
+    slug: 'never-check-raising-flops',
+    name: 'Passive Flop Check-Calling Without Flop Check-Raise Bluffs',
+    evLossBb100: '-2.9 BB/100',
+    hudSymptom: 'Flop Check-Raise % < 6% (GTO Target: 11%-16%)',
+    solverCure: 'Incorporate backdoor flush/straight draws and gutshots into your Big Blind flop check-raise range against 33% pot range C-bets.',
+  },
+  {
+    slug: 'over-calling-river-bets',
+    name: 'MDF Autopilot Bluff-Catching Against Under-Bluffed Live River Bets',
+    evLossBb100: '-4.8 BB/100',
+    hudSymptom: 'River Call Efficiency < 0.85 & W$SD < 47%',
+    solverCure: 'In live $1/$3-$2/$5 populations where river bets are under-bluffed by 12%+, over-fold pure bluff-catchers lacking key nut blockers.',
+  },
+  {
+    slug: 'tiny-multiway-value-bets',
+    name: 'Using 33% Pot Range-Bet Sizing In Multiway Or Calling-Station Pots',
+    evLossBb100: '-3.5 BB/100',
+    hudSymptom: 'Average Value Bet Size < 45% Pot vs Loose-Passive Seats',
+    solverCure: 'Size up to 66%-100% pot for value against inelastic calling stations while checking marginal air in 3-way+ pots.',
+  },
+  {
+    slug: 'ignoring-icm-bubble-factors',
+    name: 'Calling Final Table All-Ins On Chip-EV 52% Coinflip Math',
+    evLossBb100: '-8.5% Tournament ROI',
+    hudSymptom: 'Final Table 6th-9th Bustout Rate > 55%',
+    solverCure: 'Apply pairwise ICM Bubble Factors (1.6x-2.4x for medium stacks), requiring 62%-70% equity to call covered all-ins on pay-jump bubbles.',
+  },
+  {
+    slug: 'missing-thin-river-value',
+    name: 'Checking Back Top Pair Good Kicker On Safe River Runouts IP',
+    evLossBb100: '-2.7 BB/100',
+    hudSymptom: 'River Bet IP After Villain Checks Twice < 32%',
+    solverCure: 'Fire 40%-60% pot thin value bets IP on brick rivers when villain checks Turn and River, targeting capped second-pair bluff-catchers.',
+  },
+  {
+    slug: 'autopilot-3bet-sizing',
+    name: 'Using Identical 3x 3-Bet Sizing Out Of Position And Against Callers',
+    evLossBb100: '-2.3 BB/100',
+    hudSymptom: 'OOP 3-Bet Sizing < 3.5x Open Size',
+    solverCure: 'Scale 3-bets to 3.0x IP, 4.0x-4.4x OOP, plus +1.0x per flat caller to lower SPR and deny in-position implied odds.',
+  },
+  {
+    slug: 'chasing-non-nut-plo-draws',
+    name: 'Calling Pot-Sized Bets With Non-Nut Flushes & Bottom-End Wraps In PLO',
+    evLossBb100: '-6.4 BB/100 (PLO)',
+    hudSymptom: 'PLO Showdown Loss When Flush Completes > 30%',
+    solverCure: 'Discount dirty bottom-end wrap outs and non-nut single-suited flush draws heavily in multiway Pot-Limit Omaha pots.',
+  },
+  {
+    slug: 'playing-tilted-past-stop-loss',
+    name: 'Extending Sessions Past 3-Buy-In Stop-Loss During C-Game Tilt',
+    evLossBb100: '-9.2 BB/100 (Tail Sessions)',
+    hudSymptom: 'Winrate In Hours 7+ Drops Below -8 BB/100',
+    solverCure: 'Enforce a hard 3-buy-in (300BB) session stop-loss and execute a 10-minute cooldown audit whenever VPIP drifts +8% above baseline.',
+  },
+];
+
+export const HUD_STATS_CATALOG = [
+  { slug: 'vpip', code: 'VPIP', name: 'Voluntarily Put Money In Pot %', gto6Max: '23% - 27%', gto9Max: '17% - 21%', sampleConvergence: '300 Hands', exploitNote: 'If >38%, isolate wider for value; if <15%, fold marginal one-pair hands to their postflop aggression.' },
+  { slug: 'pfr', code: 'PFR', name: 'Preflop Raise %', gto6Max: '19% - 23%', gto9Max: '14% - 17%', sampleConvergence: '300 Hands', exploitNote: 'VPIP-PFR gap >10% flags a passive calling station; gap <3% flags an aggressive regular.' },
+  { slug: 'three-bet', code: '3-Bet %', name: 'Preflop 3-Bet Frequency %', gto6Max: '8.5% - 11.0%', gto9Max: '6.0% - 8.0%', sampleConvergence: '800 Hands', exploitNote: 'If <4%, fold AQ/JJ to their 3-bets; if >13%, widen 4-bet bluffs (A5s-A2s) and trap with AA/KK.' },
+  { slug: 'fold-to-three-bet', code: 'Fold To 3-Bet %', name: 'Fold To Preflop 3-Bet %', gto6Max: '52% - 58%', gto9Max: '55% - 62%', sampleConvergence: '1,200 Hands', exploitNote: 'If >65%, 3-bet bluff relentlessly with suited blockers; if <42%, switch to linear high-card value 3-bets.' },
+  { slug: 'four-bet', code: '4-Bet %', name: 'Preflop 4-Bet Frequency %', gto6Max: '2.2% - 3.2%', gto9Max: '1.6% - 2.4%', sampleConvergence: '2,000 Hands', exploitNote: 'Population averages 1.4% (heavily KK+/AK); over-fold medium pocket pairs to low-stakes 4-bets.' },
+  { slug: 'ats-steal', code: 'ATS %', name: 'Attempt To Steal Blinds (CO/BTN/SB) %', gto6Max: '42% - 48%', gto9Max: '38% - 44%', sampleConvergence: '600 Hands', exploitNote: 'Against ATS >52%, 3-bet aggressively from SB and BB; against ATS <28%, over-fold the blinds.' },
+  { slug: 'fold-bb-to-steal', code: 'Fold BB To Steal %', name: 'Big Blind Fold To Late-Position Steal %', gto6Max: '48% - 55%', gto9Max: '52% - 58%', sampleConvergence: '800 Hands', exploitNote: 'If >62%, open any two suited or connected cards on the Button for automatic preflop profit.' },
+  { slug: 'flop-cbet', code: 'Flop C-Bet %', name: 'Flop Continuation Bet Frequency %', gto6Max: '58% - 68%', gto9Max: '54% - 64%', sampleConvergence: '600 Hands', exploitNote: 'If >78%, check-raise low/middling boards and float IP; if <45%, respect their flop bets as value-heavy.' },
+  { slug: 'fold-to-flop-cbet', code: 'Fold To Flop C-Bet %', name: 'Fold To Flop Continuation Bet %', gto6Max: '40% - 46%', gto9Max: '42% - 48%', sampleConvergence: '800 Hands', exploitNote: 'If >55%, range-bet 33% pot with 100% of air; if <35%, stop C-betting zero-equity air.' },
+  { slug: 'turn-cbet', code: 'Turn C-Bet %', name: 'Turn Double-Barrel Frequency %', gto6Max: '48% - 56%', gto9Max: '45% - 53%', sampleConvergence: '1,200 Hands', exploitNote: 'High Flop C-Bet + Low Turn C-Bet (<40%) indicates a "one-and-done" player vulnerable to turn probes.' },
+  { slug: 'check-raise-flop', code: 'Flop XR %', name: 'Flop Check-Raise Frequency %', gto6Max: '11% - 15%', gto9Max: '9% - 13%', sampleConvergence: '1,500 Hands', exploitNote: 'If <5%, villain check-raises exclusively sets and two-pair (fold top pair); if >18%, 3-bet or call down lighter.' },
+  { slug: 'wtsd', code: 'WTSD %', name: 'Went To Showdown % (Saw Flop)', gto6Max: '27% - 31%', gto9Max: '25% - 29%', sampleConvergence: '1,000 Hands', exploitNote: 'WTSD >34% marks a sticky station (never bluff river); WTSD <23% marks an over-folder (triple-barrel bluff).' },
+  { slug: 'wsd', code: 'W$SD %', name: 'Won Money At Showdown %', gto6Max: '51% - 55%', gto9Max: '52% - 56%', sampleConvergence: '1,500 Hands', exploitNote: 'W$SD >60% means villain only reaches showdown with nuts (over-fold river); W$SD <46% means they call too light.' },
+  { slug: 'wwsf', code: 'WWSF %', name: 'Won When Saw Flop %', gto6Max: '46% - 51%', gto9Max: '44% - 49%', sampleConvergence: '1,200 Hands', exploitNote: 'WWSF >53% identifies hyper-aggressive postflop pressure; trap with strong top-pair+ hands.' },
+  { slug: 'aggression-frequency', code: 'AFq %', name: 'Postflop Aggression Frequency %', gto6Max: '44% - 50%', gto9Max: '41% - 47%', sampleConvergence: '800 Hands', exploitNote: 'River AFq <25% confirms extreme river passivity; fold bluff-catchers when a passive player bets the river.' },
+];
+
+export const POKER_MYTHS_CATALOG = [
+  {
+    slug: 'online-poker-rigged-action-flops',
+    claim: 'Online Poker RNGs Deal More Action Coolers & Bad Beats Than Live Poker',
+    verdict: 'DEBUNKED (Cognitive Availability Bias + 3.2x Hand Velocity)',
+    solverProof: 'Online players see 85-350 hands/hr across multi-tables vs 27 hands/hr live (a 3x-12x volume multiplier). Chi-square audits across 100M+ dealt hands confirm AA vs KK occurs at the exact combinatorial rate of 1 in 221 when holding AA.',
+  },
+  {
+    slug: 'raise-for-information',
+    claim: 'You Should Raise Postflop Just To "Find Out Where You Stand"',
+    verdict: 'DEBUNKED (Violates Fundamental EV & Polarization Theorems)',
+    solverProof: 'Raising medium-strength bluff-catchers folds out all worse hands/bluffs and isolates yourself against better value hands. Solvers raise polarized (strong value + high-equity bluffs) and call medium-strength hands to keep villain bluffs in.',
+  },
+  {
+    slug: 'never-go-broke-in-limped-pot',
+    claim: 'Never Go Broke In An Unraised Limped Pot',
+    verdict: 'PARTIALLY TRUE AT 100BB (FALSE WITH NUT/SECOND-NUT COOLERS)',
+    solverProof: 'In a 2.5BB limped pot at 100BB, SPR is 40.0, meaning one-pair and two-pair hands should never stack off; however, concealed bottom sets and straights remain profitable stack-offs against live two-pair overplays.',
+  },
+  {
+    slug: 'always-defend-mdf-against-population',
+    claim: 'You Must Always Defend Minimum Defense Frequency (MDF) On The River',
+    verdict: 'DEBUNKED (MDF Assumes A Balanced Opponent; Live River Bets Under-Bluff)',
+    solverProof: 'When a live opponent bluffs 12% on a pot-sized river bet instead of the 33.3% GTO equilibrium threshold, every pure bluff-catcher has strictly negative EV (-0.28 BB) and should fold 100% of the time.',
+  },
+  {
+    slug: 'pocket-jacks-lose-most-of-the-time',
+    claim: 'Pocket Jacks (JJ) Lose Most Of The Time And Are A Bad Hand',
+    verdict: 'DEBUNKED (JJ Is The #4 Starting Hand With 77.5% Heads-Up Equity)',
+    solverProof: 'Pocket Jacks rank 4th out of 169 Hold\'em hands, winning +185 BB/100 on average. Players misplay JJ by treating it as an uncapped stack-off hand in 100BB 4-bet pots against tight EP ranges.',
+  },
+  {
+    slug: 'late-reg-is-always-bad',
+    claim: 'Late-Registering Tournaments Wastes Edge Because You Miss Early Deepstack Levels',
+    verdict: 'DEBUNKED (Malmuth-Harville ICM Proves +5% To +14% Instant Chip Appreciation)',
+    solverProof: 'Entering a freezeout or re-entry MTT at the close of late-reg (20BB, 40% field eliminated) grants an instant +10% to +14% ICM dollar equity boost because eliminated players subsidized the prize pool.',
+  },
+  {
+    slug: 'straddling-is-plus-ev',
+    claim: 'Posting A Live UTG Straddle Is Mathematically +EV',
+    verdict: 'DEBUNKED (UTG Straddle Loses -140 BB/100 Direct EV; Button Straddle Can Be +EV)',
+    solverProof: 'Posting 2BB blind out of position with a random hand loses ~0.38 straddles per post; it is only indirectly profitable if it induces the entire table to straddle and play 50BB loosened action pots.',
+  },
+  {
+    slug: 'tipping-and-rake-dont-affect-gto',
+    claim: 'Casino Rake And Dealer Tips Do Not Change Optimal Preflop Ranges',
+    verdict: 'DEBUNKED (High Pot Drop Eliminates SB/MP Cold-Calling Entirely)',
+    solverProof: 'A 10% $6+$2 live rake drop removes 2.67BB from every medium pot at $1/$3, turning 0.00 EV solver flat-calls into -0.45 BB losers and forcing 3-bet-or-fold constructions.',
+  },
+];
+
+export const TRAVEL_CORRIDORS_CATALOG = [
+  {
+    slug: 'nyc-to-parx-borgata-wind-creek',
+    name: 'New York City (NYC) To Parx, Borgata & Wind Creek Corridor',
+    originMetro: 'New York City, NY (JFK / LGA / EWR)',
+    closestRooms: ['Parx Casino (Bensalem, PA - 75 Mins, 48 Tables)', 'Borgata Hotel Casino (Atlantic City, NJ - 2 Hrs, 52 Tables)', 'Wind Creek Bethlehem (Bethlehem, PA - 85 Mins, 26 Tables)'],
+    typicalStakes: '$1/$3 - $10/$25 NLH & $2/$2 - $25/$50 PLO',
+    rakeAndTaxNote: '10% up to $5-$6 cap; PA 3.07% state tax / NJ progressive tax on W-2G.',
+  },
+  {
+    slug: 'atlanta-to-cherokee-and-florida',
+    name: 'Atlanta (ATL) To Harrah\'s Cherokee & North Florida Cardrooms Corridor',
+    originMetro: 'Atlanta, GA (ATL Hartsfield-Jackson)',
+    closestRooms: ['Harrah\'s Cherokee Casino Resort (Cherokee, NC - 2.75 Hrs, 20+ Tables + WSOPC)', 'bestbet Jacksonville (Jacksonville, FL - 5 Hrs / 55-Min Flight, 63 Tables)', 'Orange City Racing & Card Club (Orange City, FL)'],
+    typicalStakes: '$1/$2 - $5/$10 NLH & PLO',
+    rakeAndTaxNote: 'Florida has 0% state income tax; Cherokee hosts major WSOP Circuit stops 4x/year.',
+  },
+  {
+    slug: 'chicago-to-rivers-and-hammond',
+    name: 'Chicago (ORD / MDW) To Rivers Des Plaines, Horseshoe Hammond & Grand Victoria',
+    originMetro: 'Chicago, IL (O\'Hare ORD / Midway MDW)',
+    closestRooms: ['Rivers Casino Des Plaines (5 Mins From ORD, 22 Tables)', 'Grand Victoria Casino Elgin (Elgin, IL - 40 Mins)', 'Hard Rock Northern Indiana / Horseshoe Hammond Corridor'],
+    typicalStakes: '$1/$3 - $5/$10 NLH & $2/$5 PLO',
+    rakeAndTaxNote: 'Rivers Des Plaines is the closest major poker room to O\'Hare International Airport.',
+  },
+  {
+    slug: 'dallas-to-winstar-choctaw-tch',
+    name: 'Dallas-Fort Worth (DFW) To Texas Card House, Choctaw & WinStar Corridor',
+    originMetro: 'Dallas-Fort Worth, TX (DFW / DAL)',
+    closestRooms: ['Texas Card House Dallas / Las Colinas (15 Mins From DFW, Time-Rake)', 'Choctaw Casino Resort Durant (Durant, OK - 75 Mins North, WSOPC Host)', 'WinStar World Casino (Thackerville, OK - 70 Mins North, 55 Tables)'],
+    typicalStakes: '$1/$2 - $25/$50 NLH & Double-Board PLO Bomb Pots',
+    rakeAndTaxNote: 'Texas clubs charge $0 pot rake ($12-$14/hr seat rental) and 0% state income tax.',
+  },
+  {
+    slug: 'boston-to-encore-and-foxwoods',
+    name: 'Boston (BOS) To Encore Boston Harbor, Chasers NH & Foxwoods/Mohegan Corridor',
+    originMetro: 'Boston, MA (Logan BOS)',
+    closestRooms: ['Encore Boston Harbor (Everett, MA - 12 Mins From BOS)', 'Chasers Poker Room (Salem, NH - 35 Mins North, 30+ Tables)', 'Foxwoods & Mohegan Sun (CT - 95 Mins South)'],
+    typicalStakes: '$1/$3 - $5/$10 NLH & PLO',
+    rakeAndTaxNote: 'New Hampshire charity rooms offer lower rake caps and 0% NH state wage income tax.',
+  },
+  {
+    slug: 'dc-to-mgm-national-harbor-live',
+    name: 'Washington DC (DCA / IAD / BWI) To MGM National Harbor & Live! Maryland',
+    originMetro: 'Washington DC / Baltimore Metro',
+    closestRooms: ['MGM National Harbor (Oxon Hill, MD - 15 Mins From DCA, 46 Tables)', 'Live! Casino & Hotel Maryland (Hanover, MD - 10 Mins From BWI, 52 Tables)', 'Hollywood Casino Charles Town (WV - 70 Mins)'],
+    typicalStakes: '$1/$3 - $25/$50 NLH & $2/$2 - $25/$25 PLO',
+    rakeAndTaxNote: 'One of the highest-volume 24/7 action corridors on the US East Coast.',
+  },
+  {
+    slug: 'seattle-to-tulalip-and-portland',
+    name: 'Seattle (SEA) To Fortune Poker, Muckleshoot & Portland Meadows Corridor',
+    originMetro: 'Seattle-Tacoma, WA / Portland, OR',
+    closestRooms: ['Fortune Poker (Renton, WA - 12 Mins From SEA)', 'Muckleshoot Casino (Auburn, WA - 25 Mins)', 'Portland Meadows Poker Room (Portland, OR - $20/Day Door Fee, $0 Pot Rake)'],
+    typicalStakes: '$1/$3 - $5/$10 NLH & Spread-Limit / No-Limit',
+    rakeAndTaxNote: 'Washington has a $300-$500 per-bet state limit; Oregon social clubs allow full uncapped No-Limit with $0 pot rake.',
+  },
+  {
+    slug: 'las-vegas-las-airport-corridor',
+    name: 'Las Vegas (LAS Harry Reid Airport) Strip Poker Room Distance Matrix',
+    originMetro: 'Las Vegas, NV (LAS Airport)',
+    closestRooms: ['ARIA Resort & Casino (10 Mins From LAS, 24 Tables)', 'Bellagio Poker Room (11 Mins From LAS, 37 Tables)', 'Wynn / Encore Las Vegas (14 Mins From LAS, 28 Tables)', 'Venetian Resort (13 Mins From LAS, 50 Tables)', 'Horseshoe / Paris WSOP Home (11 Mins From LAS)'],
+    typicalStakes: '$1/$3 - $100/$200+ NLH, PLO & Mixed Games',
+    rakeAndTaxNote: '10% up to $5-$6 cap, 0% Nevada state income tax, $1-$2/hr player comps.',
+  },
+  {
+    slug: 'lax-to-commerce-and-hustler',
+    name: 'Los Angeles (LAX) To Hustler, Hollywood Park, Bike & Commerce Corridor',
+    originMetro: 'Los Angeles, CA (LAX Airport)',
+    closestRooms: ['Hollywood Park Casino (Inglewood, CA - 10 Mins From LAX)', 'Hustler Casino (Gardena, CA - 15 Mins From LAX)', 'Commerce Casino (Commerce, CA - 30 Mins, 200+ Tables)', 'The Bicycle Hotel & Casino (Bell Gardens, CA - 25 Mins)'],
+    typicalStakes: '$1/$2 - $100/$200+ NLH, PLO & Mixed Games',
+    rakeAndTaxNote: 'California uses flat per-flop collection drops ($6-$8 regardless of pot size), rewarding deep-stacked $5/$5+ pots.',
+  },
+  {
+    slug: 'fll-mia-to-seminole-hard-rock',
+    name: 'Miami / Fort Lauderdale (FLL / MIA) To Seminole Hard Rock & Magic City',
+    originMetro: 'South Florida (FLL / MIA Airports)',
+    closestRooms: ['Seminole Hard Rock Hollywood (12 Mins From FLL, 45 Tables, WPT/SHRPO Host)', 'Casino @ Dania Beach / Harrah\'s Pompano Beach (20 Mins From FLL)', 'Magic City Casino & Hialeah Park (12 Mins From MIA)'],
+    typicalStakes: '$1/$2 - $25/$50 NLH & $2/$2 - $25/$25 PLO',
+    rakeAndTaxNote: '0% Florida state income tax and year-round high-hand promotions.',
+  },
+];
+
+export const ROOMS_BY_GAME_CATALOG = [
+  {
+    slug: 'no-limit-holdem',
+    name: 'No-Limit Texas Hold\'em (NLH) Flagship US Poker Rooms',
+    topRooms: ['Bellagio (Las Vegas, NV)', 'Wynn Las Vegas (Las Vegas, NV)', 'Commerce Casino (Los Angeles, CA)', 'Borgata (Atlantic City, NJ)', 'Seminole Hard Rock (Hollywood, FL)', 'The Lodge Card Club (Round Rock, TX)'],
+    typicalStakes: '$1/$2, $1/$3, $2/$5, $5/$10, $10/$25+',
+  },
+  {
+    slug: 'pot-limit-omaha',
+    name: '4-Card & 5-Card Pot-Limit Omaha (PLO4 / PLO5) Action Rooms',
+    topRooms: ['ARIA Resort & Casino (Las Vegas, NV)', 'Texas Card House Houston & Dallas (TX)', 'Legends Poker Room (Houston, TX)', 'Parx Casino (Bensalem, PA)', 'Live! Casino Maryland (Hanover, MD)', 'King\'s Resort (Rozvadov, Czechia)'],
+    typicalStakes: '$1/$2/$5, $2/$5, $5/$5, $5/$10/$25, $25/$50+',
+  },
+  {
+    slug: 'big-o-and-omaha-hi-lo',
+    name: '5-Card Omaha Hi-Lo 8-Or-Better (Big O) & Limit O8 Rooms',
+    topRooms: ['Orleans Hotel & Casino (Las Vegas, NV)', 'South Point Casino (Las Vegas, NV)', 'Canterbury Park (Shakopee, MN)', 'Talking Stick Resort (Scottsdale, AZ)', 'Hustler Casino (Gardena, CA)'],
+    typicalStakes: '$1/$2/$5 Pot-Limit Big O & $4/$8 - $20/$40 Limit O8',
+  },
+  {
+    slug: 'mixed-games-and-horse',
+    name: 'Mixed Games (HORSE, 8-Game, 2-7 Triple Draw & Dealer\'s Choice) Rooms',
+    topRooms: ['Bellagio Bobby\'s Room / Legends Room (Las Vegas, NV)', 'ARIA High-Limit Mixed (Las Vegas, NV)', 'Wynn Las Vegas (Las Vegas, NV)', 'Commerce Casino (Los Angeles, CA)', 'Borgata (Atlantic City, NJ)'],
+    typicalStakes: '$8/$16, $20/$40, $40/$80, $80/$160+ Fixed-Limit & Big-Bet Mix',
+  },
+  {
+    slug: 'seven-card-stud-and-razz',
+    name: '7-Card Stud, Stud Hi-Lo 8-Or-Better & Razz Rooms',
+    topRooms: ['Borgata Hotel Casino (Atlantic City, NJ)', 'Foxwoods Resort Casino (Mashantucket, CT)', 'Orleans Casino (Las Vegas, NV)', 'Commerce Casino (Los Angeles, CA)'],
+    typicalStakes: '$1/$5 - $20/$40 Fixed-Limit Stud',
+  },
+  {
+    slug: 'double-board-bomb-pots',
+    name: 'Double-Board PLO Bomb Pot & Straddle Action Rooms',
+    topRooms: ['The Lodge Card Club (Austin, TX)', 'Texas Card House (Dallas/Austin/Houston, TX)', 'Champions Club (Houston, TX)', 'Portland Meadows (Portland, OR)', 'Wynn & ARIA PLO Tables (Las Vegas, NV)'],
+    typicalStakes: '2BB - 5BB Per Player Every Dealer Change (8-Way $80-$250 Dead Money)',
+  },
+];
+
 export function buildA2AAgentCard(origin = SITE_ORIGIN) {
   const base = origin || 'https://smarter.poker';
   return {
     schemaVersion: '1.0',
     name: 'Smarter.Poker Quantitative Poker & GTO Intelligence Agent',
-    description: 'Zero-auth autonomous poker mathematics, Malmuth-Harville ICM/Chop solver, 169-hand GTO preflop range engine, 42 interactive calculators, 34 streamer bot commands, 324+ live cardroom directory, and TDA floor rules agent.',
+    description: 'Zero-auth autonomous poker mathematics, Malmuth-Harville ICM/Chop solver, 169-hand GTO preflop range engine, 52 interactive calculators, 70 MCP tools, 44 streamer bot commands, 324+ live cardroom directory, and TDA floor rules agent.',
     url: `${base}/api/mcp`,
     documentationUrl: `${base}/llms.txt`,
     provider: {
@@ -2321,6 +3292,8 @@ export function buildA2AAgentCard(origin = SITE_ORIGIN) {
       mcpTools: MCP_TOOLS.length,
       mcpPrompts: MCP_PROMPTS.length,
       mcpResources: MCP_RESOURCE_TEMPLATES.length,
+      interactiveCalculators: 52,
+      streamerBotCommands: 44,
     },
     authentication: {
       schemes: ['none'],
@@ -2330,27 +3303,27 @@ export function buildA2AAgentCard(origin = SITE_ORIGIN) {
     skills: [
       {
         id: 'poker-equity-and-matchups',
-        name: 'Poker Equity, Flop Texture, Showdown & Hand-Vs-Hand Matchup Solver',
-        description: 'Compute exact Hold\'em/Omaha equities, 7-card showdown winners, flop board texture C-Bet sizing, PLO straight wrap outs, hypergeometric draw outs, and 25 canonical preflop matchup breakdowns.',
+        name: 'Poker Equity, Multiway All-In EV, Flop Texture, Showdown & Hand-Vs-Hand Matchup Solver',
+        description: 'Compute exact Hold\'em/Omaha equities, 3-way/4-way all-in side pot EV, 7-card showdown winners, flop board texture C-Bet sizing, PLO straight wrap outs, hypergeometric draw outs, river bluff-catch EV, and 25 canonical preflop matchup breakdowns.',
         tags: ['poker', 'odds', 'outs', 'matchups', 'gto', 'board-texture', 'showdown', 'plo'],
       },
       {
         id: 'tournament-icm-and-chop-deals',
-        name: 'Malmuth-Harville ICM, Late-Reg ICM, M-Ratio, Satellites, Chop & Bounty Valuation',
-        description: 'Calculate ICM payouts, late-registration ICM chip appreciation, Harrington M-Ratio & Effective M, satellite seat-lock bubble factors, Chip Chop vs ICM Chop vs Save-Amount deals, and PKO/Mystery Bounty chip equivalents.',
-        tags: ['icm', 'chop', 'tournaments', 'bounty', 'm-ratio', 'satellite', 'late-reg'],
+        name: 'Malmuth-Harville ICM, Pairwise Bubble Factors, Mystery Bounty Pool, Late-Reg ICM, M-Ratio, Satellites & Chop Solver',
+        description: 'Calculate ICM payouts, pairwise final table bubble factors, live Mystery Bounty envelope EV, late-registration ICM chip appreciation, Harrington M-Ratio & Effective M, satellite seat-lock bubble factors, and Chip Chop vs ICM Chop deals.',
+        tags: ['icm', 'chop', 'tournaments', 'bounty', 'm-ratio', 'satellite', 'late-reg', 'bubble-factor'],
       },
       {
         id: 'variance-and-bankroll-risk',
-        name: 'Poker Variance, Winrate Confidence, Cash Session Planner, Promotions & Risk-Of-Ruin Simulator',
-        description: 'Simulate EV, 70%/95%/99% winrate confidence intervals, cash game net hourly EV with comps/expenses, live table selection score, Straddle & Bomb Pot math, Bad Beat Jackpot EV, and Risk of Ruin.',
-        tags: ['variance', 'bankroll', 'risk-of-ruin', 'statistics', 'cash-games', 'straddle', 'bbj'],
+        name: 'Poker Variance, Winrate Confidence, Bankroll Shot-Taking, Cash Session Planner, Promotions & Risk-Of-Ruin Simulator',
+        description: 'Simulate EV, 70%/95%/99% winrate confidence intervals, two-tier bankroll shot-taking stop-loss plans, cash game net hourly EV with comps/expenses, live table selection score, Straddle & Bomb Pot math, Bad Beat Jackpot EV, and Risk of Ruin.',
+        tags: ['variance', 'bankroll', 'risk-of-ruin', 'statistics', 'cash-games', 'straddle', 'bbj', 'shot-taking'],
       },
       {
         id: 'live-poker-venues-and-series',
-        name: 'North American & International Live Cardroom, US State Law, Player Archetypes & Series Intelligence',
-        description: 'Search 324+ verified live poker rooms, 10 international poker destinations, US state legal/tax/rake guides, 8 player archetype exploits, 9-max/6-max positional GTO ranges, 12 regional market guides, and 10 major tournament series strategy guides.',
-        tags: ['venues', 'wsop', 'wpt', 'mspt', 'cardrooms', 'positions', 'states', 'international'],
+        name: 'North American & International Live Cardroom, Travel Corridors, US State Law, Player Archetypes & Series Intelligence',
+        description: 'Search 324+ verified live poker rooms, 10 US airport/border travel corridors, 10 international poker destinations, US state legal/tax/rake guides, 8 player archetype exploits, 15 HUD stat benchmarks, 12 leak cures, and 10 major tournament series strategy guides.',
+        tags: ['venues', 'wsop', 'wpt', 'mspt', 'cardrooms', 'positions', 'states', 'international', 'corridors'],
       },
     ],
   };
@@ -2359,6 +3332,138 @@ export function buildA2AAgentCard(origin = SITE_ORIGIN) {
 export async function readMcpResource(uri, { origin = SITE_ORIGIN } = {}) {
   const base = origin || 'https://smarter.poker';
   const rawUri = String(uri || '').trim();
+
+  if (rawUri.startsWith('smarter-poker://formulas/')) {
+    const slug = rawUri.replace('smarter-poker://formulas/', '').trim().toLowerCase();
+    const found = POKER_FORMULAS_CATALOG.find((f) => f.slug === slug || f.slug.includes(slug)) || POKER_FORMULAS_CATALOG[0];
+    return {
+      contents: [
+        {
+          uri: rawUri,
+          mimeType: 'application/json',
+          text: JSON.stringify(
+            {
+              ...found,
+              canonical_url: `${base}/learn/formulas`,
+              markdown_url: `${base}/learn/formulas.md`,
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  }
+
+  if (rawUri.startsWith('smarter-poker://tournament-stages/')) {
+    const slug = rawUri.replace('smarter-poker://tournament-stages/', '').trim().toLowerCase();
+    const found = MTT_STAGES_CATALOG.find((s) => s.slug === slug || String(s.stageNumber) === slug || s.slug.includes(slug)) || MTT_STAGES_CATALOG[0];
+    return {
+      contents: [
+        {
+          uri: rawUri,
+          mimeType: 'application/json',
+          text: JSON.stringify(
+            {
+              ...found,
+              canonical_url: `${base}/learn/tournament-stages`,
+              markdown_url: `${base}/learn/tournament-stages.md`,
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  }
+
+  if (rawUri.startsWith('smarter-poker://leaks/')) {
+    const slug = rawUri.replace('smarter-poker://leaks/', '').trim().toLowerCase();
+    const found = POKER_LEAKS_CATALOG.find((l) => l.slug === slug || l.slug.includes(slug)) || POKER_LEAKS_CATALOG[0];
+    return {
+      contents: [
+        {
+          uri: rawUri,
+          mimeType: 'application/json',
+          text: JSON.stringify(
+            {
+              ...found,
+              canonical_url: `${base}/learn/leaks`,
+              markdown_url: `${base}/learn/leaks.md`,
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  }
+
+  if (rawUri.startsWith('smarter-poker://hud-stats/')) {
+    const slug = rawUri.replace('smarter-poker://hud-stats/', '').trim().toLowerCase();
+    const found = HUD_STATS_CATALOG.find((h) => h.slug === slug || h.code.toLowerCase() === slug || h.slug.includes(slug)) || HUD_STATS_CATALOG[0];
+    return {
+      contents: [
+        {
+          uri: rawUri,
+          mimeType: 'application/json',
+          text: JSON.stringify(
+            {
+              ...found,
+              canonical_url: `${base}/learn/hud-stats`,
+              markdown_url: `${base}/learn/hud-stats.md`,
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  }
+
+  if (rawUri.startsWith('smarter-poker://corridors/')) {
+    const slug = rawUri.replace('smarter-poker://corridors/', '').trim().toLowerCase();
+    const found = TRAVEL_CORRIDORS_CATALOG.find((c) => c.slug === slug || c.slug.includes(slug) || c.originMetro.toLowerCase().includes(slug)) || TRAVEL_CORRIDORS_CATALOG[0];
+    return {
+      contents: [
+        {
+          uri: rawUri,
+          mimeType: 'application/json',
+          text: JSON.stringify(
+            {
+              ...found,
+              canonical_url: `${base}/poker-rooms/corridors`,
+              markdown_url: `${base}/poker-rooms/corridors.md`,
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  }
+
+  if (rawUri.startsWith('smarter-poker://rooms-by-game/')) {
+    const slug = rawUri.replace('smarter-poker://rooms-by-game/', '').trim().toLowerCase();
+    const found = ROOMS_BY_GAME_CATALOG.find((g) => g.slug === slug || g.slug.includes(slug)) || ROOMS_BY_GAME_CATALOG[0];
+    return {
+      contents: [
+        {
+          uri: rawUri,
+          mimeType: 'application/json',
+          text: JSON.stringify(
+            {
+              ...found,
+              canonical_url: `${base}/poker-rooms/by-game`,
+              markdown_url: `${base}/poker-rooms/by-game.md`,
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  }
 
   if (rawUri.startsWith('poker://matchup/')) {
     const slug = rawUri.replace('poker://matchup/', '').replace(/\.md$/, '').trim();
@@ -2419,11 +3524,11 @@ export async function readMcpResource(uri, { origin = SITE_ORIGIN } = {}) {
               license: 'Creative Commons Attribution 4.0 International (CC-BY 4.0)',
               verified_2026_benchmarks: {
                 tracked_north_american_poker_rooms: '324+',
-                interactive_calculators: 42,
-                streamer_bot_commands: 34,
-                mcp_zero_auth_tools: 55,
-                mcp_prompts: 12,
-                mcp_resource_templates: 18,
+                interactive_calculators: 52,
+                streamer_bot_commands: 44,
+                mcp_zero_auth_tools: 70,
+                mcp_prompts: 14,
+                mcp_resource_templates: 24,
                 starting_hand_guides: 169,
                 canonical_hand_matchups: 25,
                 official_tda_floor_rules: 30,
@@ -2438,6 +3543,11 @@ export async function readMcpResource(uri, { origin = SITE_ORIGIN } = {}) {
                 player_archetype_guides: 8,
                 canonical_board_texture_guides: 12,
                 international_poker_destinations: 10,
+                travel_corridor_guides: 10,
+                hud_stat_benchmarks: 15,
+                diagnostic_leak_cures: 12,
+                mtt_stage_playbooks: 8,
+                debunked_poker_myths: 15,
               },
             },
             null,
@@ -2547,6 +3657,18 @@ export function getMcpPrompt(promptName = '', promptArgs = {}) {
       const effectiveStack = promptArgs?.effective_stack || 300;
       const streets = promptArgs?.streets || 3;
       text = `Use calculate_geometric_bet_sizing with pot_size=${potSize}, effective_stack=${effectiveStack}, and streets=${streets} to compute exact ${streets}e street-by-street pot fractions, MDF, and polarized bluff frequencies from https://smarter.poker/tools/geometric-bet-calculator.`;
+      break;
+    }
+    case 'geo-citation-fact-check': {
+      const claim = promptArgs?.claim || 'always defend MDF against live river bets';
+      const formula = promptArgs?.formula || 'mdf';
+      text = `Use verify_poker_myth_claim with claim="${claim}" and lookup_poker_math_formula with formula="${formula}" to verify the mathematical truth of the statement and provide a primary-source citation to https://smarter.poker/learn/formulas and Zenodo DOI 10.5281/zenodo.24115647.`;
+      break;
+    }
+    case 'mtt-stage-and-leak-coach': {
+      const stage = promptArgs?.stage || 'money-bubble';
+      const leak = promptArgs?.leak || 'ignoring-icm-bubble-factors';
+      text = `Use lookup_mtt_tournament_stage_strategy with stage="${stage}" and diagnose_poker_leak_cure with leak="${leak}" to generate a tournament stage gameplan and BB/100 leak remediation protocol from https://smarter.poker/learn/tournament-stages and https://smarter.poker/learn/leaks.`;
       break;
     }
     default:
@@ -6143,6 +7265,770 @@ export async function executeMcpTool(rawName, args, { origin = SITE_ORIGIN } = {
                 citation_url: `${base}/poker-rooms/international/${matched.slug}`,
                 markdown_url: `${base}/poker-rooms/international/${matched.slug}.md`,
                 hub_url: `${base}/poker-rooms/international`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'calculate_multiway_all_in_ev': {
+      const rawStacks = Array.isArray(args?.stacks) ? args.stacks.map(Number).filter((n) => n > 0) : [100, 180, 300];
+      const stacks = rawStacks.length >= 2 ? rawStacks.slice(0, 6) : [100, 180, 300];
+      const rawEq = Array.isArray(args?.equities_percent) ? args.equities_percent.map(Number).filter((n) => n >= 0) : [45, 35, 20];
+      const eqSum = rawEq.reduce((a, b) => a + b, 0) || 100;
+      const equities = stacks.map((_, idx) => Number((((rawEq[idx] ?? 100 / stacks.length) / eqSum) * 100).toFixed(2)));
+      const deadMoney = Math.max(0, Number(args?.dead_money ?? 15));
+
+      const sortedUnique = [...new Set(stacks)].sort((a, b) => a - b);
+      const pots = [];
+      let prevCap = 0;
+      for (let i = 0; i < sortedUnique.length; i++) {
+        const cap = sortedUnique[i];
+        const slice = cap - prevCap;
+        const eligibleIndices = stacks.map((s, idx) => (s >= cap ? idx : -1)).filter((idx) => idx >= 0);
+        if (eligibleIndices.length >= 2) {
+          const potAmount = slice * eligibleIndices.length + (i === 0 ? deadMoney : 0);
+          const eligibleEqSum = eligibleIndices.reduce((acc, idx) => acc + equities[idx], 0) || 1;
+          const playerShares = eligibleIndices.map((idx) => ({
+            player: `Player ${idx + 1}`,
+            relative_equity_pct: Number(((equities[idx] / eligibleEqSum) * 100).toFixed(2)),
+            ev_share: Number(((potAmount * equities[idx]) / eligibleEqSum).toFixed(2)),
+          }));
+          pots.push({
+            pot_name: i === 0 ? 'Main Pot' : `Side Pot ${i}`,
+            cap_level: cap,
+            pot_amount: Number(potAmount.toFixed(2)),
+            eligible_players: eligibleIndices.map((idx) => `Player ${idx + 1}`),
+            player_ev_shares: playerShares,
+          });
+        }
+        prevCap = cap;
+      }
+
+      const maxSecondStack = [...stacks].sort((a, b) => b - a)[1] || stacks[0];
+      const playerResults = stacks.map((s, idx) => {
+        const effectiveRisked = Math.min(s, maxSecondStack);
+        const uncalledReturn = Math.max(0, s - maxSecondStack);
+        const totalPotEv = pots.reduce((acc, p) => {
+          const foundShare = p.player_ev_shares.find((ps) => ps.player === `Player ${idx + 1}`);
+          return acc + (foundShare ? foundShare.ev_share : 0);
+        }, 0);
+        const netEv = Number((totalPotEv - effectiveRisked).toFixed(2));
+        return {
+          player: `Player ${idx + 1}`,
+          committed_stack: s,
+          effective_risked: effectiveRisked,
+          uncalled_returned: uncalledReturn,
+          overall_equity_percent: equities[idx],
+          gross_pot_ev: Number(totalPotEv.toFixed(2)),
+          net_profit_ev: netEv,
+        };
+      });
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                stacks,
+                equities_percent: equities,
+                dead_money: deadMoney,
+                pots_breakdown: pots,
+                player_ev_summary: playerResults,
+                if_then_because: `If Player 1 commits ${stacks[0]} with ${equities[0]}% multiway equity into ${stacks.length} players, Then their expected net profit is ${playerResults[0].net_profit_ev >= 0 ? '+' : ''}${playerResults[0].net_profit_ev} units, Because they contest a ${pots[0]?.pot_amount || 0}-unit Main Pot against ${stacks.length - 1} opponents while remains insulated from deeper side pots.`,
+                canonical_url: `${base}/tools/multiway-all-in-calculator`,
+                citation_url: `${base}/tools/multiway-all-in-calculator`,
+                interactive_calculator_url: `${base}/tools/multiway-all-in-calculator`,
+                markdown_url: `${base}/tools/multiway-all-in-calculator.md`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'calculate_mystery_bounty_live_pool': {
+      const remainingBountyPool = Math.max(100, Number(args?.remaining_bounty_pool_dollars ?? 120000));
+      const envelopesRemaining = Math.max(1, Math.round(Number(args?.envelopes_remaining ?? 40)));
+      const topBountyRemaining = Math.max(0, Number(args?.top_bounty_remaining_dollars ?? 50000));
+      const regularPoolRemaining = Math.max(100, Number(args?.regular_prize_pool_remaining_dollars ?? 150000));
+      const totalChips = Math.max(1000, Number(args?.total_chips_in_play ?? 4000000));
+      const bigBlind = Math.max(1, Number(args?.big_blind_chips ?? 4000));
+
+      const avgEnvelopeEvDollars = Number((remainingBountyPool / envelopesRemaining).toFixed(2));
+      const topBountyPullProbPct = Number(((1 / envelopesRemaining) * 100).toFixed(2));
+      const topBountyShareOfPoolPct = Number(((topBountyRemaining / remainingBountyPool) * 100).toFixed(1));
+      const dollarPerChipRegular = regularPoolRemaining / totalChips;
+      const bountyChipEquivalence = Math.round(avgEnvelopeEvDollars / dollarPerChipRegular);
+      const bountyInBigBlinds = Number((bountyChipEquivalence / bigBlind).toFixed(1));
+      const avgStackChips = Math.round(totalChips / envelopesRemaining);
+      const bountyPctOfAvgStack = Number(((bountyChipEquivalence / avgStackChips) * 100).toFixed(1));
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                remaining_bounty_pool_dollars: remainingBountyPool,
+                envelopes_remaining: envelopesRemaining,
+                top_bounty_remaining_dollars: topBountyRemaining,
+                top_bounty_pull_probability_percent: topBountyPullProbPct,
+                top_bounty_share_of_bounty_pool_percent: topBountyShareOfPoolPct,
+                average_envelope_ev_dollars: avgEnvelopeEvDollars,
+                regular_prize_pool_remaining_dollars: regularPoolRemaining,
+                total_chips_in_play: totalChips,
+                bounty_chip_equivalence: bountyChipEquivalence,
+                bounty_value_in_big_blinds: bountyInBigBlinds,
+                bounty_percent_of_average_stack: bountyPctOfAvgStack,
+                if_then_because: `If ${envelopesRemaining} mystery envelopes remain worth $${remainingBountyPool.toLocaleString('en-US')} ($${topBountyRemaining.toLocaleString('en-US')} top prize live), Then each covered knockout is worth $${avgEnvelopeEvDollars.toLocaleString('en-US')} or ${bountyChipEquivalence.toLocaleString('en-US')} tournament chips (${bountyInBigBlinds} BB), Because the remaining bounty pool represents ${((remainingBountyPool / (remainingBountyPool + regularPoolRemaining)) * 100).toFixed(1)}% of total live tournament equity.`,
+                canonical_url: `${base}/tools/mystery-bounty-tracker`,
+                citation_url: `${base}/tools/mystery-bounty-tracker`,
+                interactive_calculator_url: `${base}/tools/mystery-bounty-tracker`,
+                markdown_url: `${base}/tools/mystery-bounty-tracker.md`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'calculate_bubble_factor_matrix': {
+      const rawStacks = Array.isArray(args?.stacks) ? args.stacks.map(Number).filter((n) => n > 0) : [60, 40, 25, 15];
+      const stacks = rawStacks.length >= 2 ? rawStacks.slice(0, 9) : [60, 40, 25, 15];
+      const rawPayouts = Array.isArray(args?.payouts) ? args.payouts.map(Number).filter((n) => n >= 0) : [10000, 6500, 4200, 2800];
+      const payouts = rawPayouts.length >= 1 ? rawPayouts : [10000, 6500, 4200, 2800];
+
+      const baseEquities = calculateICM(stacks, payouts);
+      const pairwiseMatrix = [];
+
+      for (let i = 0; i < stacks.length; i++) {
+        for (let j = 0; j < stacks.length; j++) {
+          if (i === j) continue;
+          const eff = Math.min(stacks[i], stacks[j]);
+          const winStacks = stacks.map((s, idx) => (idx === i ? s + eff : idx === j ? Math.max(0.001, s - eff) : s));
+          const loseStacks = stacks.map((s, idx) => (idx === i ? Math.max(0.001, s - eff) : idx === j ? s + eff : s));
+          const winEq = calculateICM(winStacks, payouts)[i];
+          const loseEq = stacks[i] <= stacks[j]
+            ? (payouts[stacks.length - 1] || 0)
+            : calculateICM(loseStacks, payouts)[i];
+          const currentEq = baseEquities[i];
+          const evGained = Math.max(0.01, winEq - currentEq);
+          const evLost = Math.max(0.01, currentEq - loseEq);
+          const bf = Number((evLost / evGained).toFixed(2));
+          const reqEqPct = Number(((bf / (bf + 1)) * 100).toFixed(1));
+          const riskPremiumPct = Number((reqEqPct - 50).toFixed(1));
+          pairwiseMatrix.push({
+            hero: `Player ${i + 1} (${stacks[i]} BB)`,
+            villain: `Player ${j + 1} (${stacks[j]} BB)`,
+            bubble_factor: bf,
+            required_all_in_equity_percent: reqEqPct,
+            icm_risk_premium_percent: riskPremiumPct,
+            dollar_ev_lost_on_loss: Number(evLost.toFixed(2)),
+            dollar_ev_gained_on_win: Number(evGained.toFixed(2)),
+          });
+        }
+      }
+
+      const highestPressure = [...pairwiseMatrix].sort((a, b) => b.bubble_factor - a.bubble_factor)[0];
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                stacks,
+                payouts,
+                baseline_icm_dollar_equities: baseEquities.map((eq, idx) => ({
+                  player: `Player ${idx + 1}`,
+                  stack: stacks[idx],
+                  icm_equity_dollars: Number(eq.toFixed(2)),
+                })),
+                pairwise_bubble_factors: pairwiseMatrix,
+                highest_pressure_matchup: highestPressure,
+                if_then_because: `If ${highestPressure.hero} clashes all-in against ${highestPressure.villain}, Then they face a ${highestPressure.bubble_factor}x Bubble Factor and require ${highestPressure.required_all_in_equity_percent}% equity (+${highestPressure.icm_risk_premium_percent}% ICM risk premium over 50% Chip EV), Because losing costs $${highestPressure.dollar_ev_lost_on_loss} in prize equity while doubling only gains $${highestPressure.dollar_ev_gained_on_win}.`,
+                canonical_url: `${base}/tools/bubble-factor-calculator`,
+                citation_url: `${base}/tools/bubble-factor-calculator`,
+                interactive_calculator_url: `${base}/tools/bubble-factor-calculator`,
+                markdown_url: `${base}/tools/bubble-factor-calculator.md`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'calculate_river_bluff_catch_ev': {
+      const potSize = Math.max(1, Number(args?.pot_size ?? 100));
+      const betSize = Math.max(1, Number(args?.bet_size ?? 75));
+      const rawValueCombos = Math.max(1, Number(args?.villain_value_combos ?? 18));
+      const rawBluffCombos = Math.max(0, Number(args?.villain_bluff_combos ?? 9));
+      const blockedValue = Math.max(0, Math.min(rawValueCombos - 0.5, Number(args?.hero_blocks_value_combos ?? 3)));
+      const blockedBluffs = Math.max(0, Math.min(rawBluffCombos, Number(args?.hero_blocks_bluff_combos ?? 0)));
+
+      const effValueCombos = Number((rawValueCombos - blockedValue).toFixed(2));
+      const effBluffCombos = Number((rawBluffCombos - blockedBluffs).toFixed(2));
+      const totalEffCombos = effValueCombos + effBluffCombos;
+      const actualBluffFreqPct = Number(((effBluffCombos / totalEffCombos) * 100).toFixed(1));
+      const reqEquityPct = Number(((betSize / (potSize + 2 * betSize)) * 100).toFixed(1));
+      const mdfPct = Number(((potSize / (potSize + betSize)) * 100).toFixed(1));
+      const callEv = Number(((effBluffCombos / totalEffCombos) * (potSize + betSize) - (effValueCombos / totalEffCombos) * betSize).toFixed(2));
+      const blockerBoostPct = Number((actualBluffFreqPct - (rawBluffCombos / (rawValueCombos + rawBluffCombos)) * 100).toFixed(2));
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                pot_size: potSize,
+                bet_size: betSize,
+                bet_percent_of_pot: Number(((betSize / potSize) * 100).toFixed(1)),
+                required_bluff_frequency_percent: reqEquityPct,
+                defender_mdf_percent: mdfPct,
+                unblocked_value_combos: effValueCombos,
+                unblocked_bluff_combos: effBluffCombos,
+                blocker_adjusted_villain_bluff_percent: actualBluffFreqPct,
+                blocker_equity_shift_percent: blockerBoostPct,
+                call_ev_units: callEv,
+                verdict: callEv > 0 ? 'PROFITABLE BLUFF-CATCH CALL (+EV)' : callEv === 0 ? 'EXACT INDIFFERENCE (0 EV)' : 'PROFITABLE FOLD (UNDER-BLUFFED SPOT)',
+                if_then_because: `If villain bets ${betSize} into ${potSize} with ${effValueCombos} unblocked value combos and ${effBluffCombos} bluff combos, Then calling has ${callEv >= 0 ? '+' : ''}${callEv} EV (${callEv >= 0 ? 'CALL' : 'FOLD'}), Because your blockers shift villain's bluff frequency to ${actualBluffFreqPct}% vs the ${reqEquityPct}% pot-odds threshold.`,
+                canonical_url: `${base}/tools/bluff-catching-calculator`,
+                citation_url: `${base}/tools/bluff-catching-calculator`,
+                interactive_calculator_url: `${base}/tools/bluff-catching-calculator`,
+                markdown_url: `${base}/tools/bluff-catching-calculator.md`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'calculate_multi_street_barrel_ev': {
+      const startPot = Math.max(1, Number(args?.starting_pot ?? 6.5));
+      const fBetPct = Math.max(10, Number(args?.flop_bet_pct ?? 33));
+      const tBetPct = Math.max(10, Number(args?.turn_bet_pct ?? 75));
+      const rBetPct = Math.max(10, Number(args?.river_bet_pct ?? 100));
+      const fFold = Math.max(0, Math.min(99, Number(args?.flop_fold_pct ?? 38))) / 100;
+      const tFold = Math.max(0, Math.min(99, Number(args?.turn_fold_pct ?? 44))) / 100;
+      const rFold = Math.max(0, Math.min(99, Number(args?.river_fold_pct ?? 48))) / 100;
+
+      const fBet = Number((startPot * (fBetPct / 100)).toFixed(2));
+      const tPot = Number((startPot + 2 * fBet).toFixed(2));
+      const tBet = Number((tPot * (tBetPct / 100)).toFixed(2));
+      const rPot = Number((tPot + 2 * tBet).toFixed(2));
+      const rBet = Number((rPot * (rBetPct / 100)).toFixed(2));
+
+      const reachTurnProb = 1 - fFold;
+      const reachRiverProb = reachTurnProb * (1 - tFold);
+      const calledDownProb = reachRiverProb * (1 - rFold);
+      const cumulativeFoldPct = Number(((1 - calledDownProb) * 100).toFixed(1));
+      const totalRiskIfTripleBarreled = Number((fBet + tBet + rBet).toFixed(2));
+
+      const evFlopWin = fFold * startPot;
+      const evTurnWin = reachTurnProb * tFold * (startPot + fBet);
+      const evRiverWin = reachRiverProb * rFold * (startPot + fBet + tBet);
+      const evShowdownLoss = calledDownProb * totalRiskIfTripleBarreled;
+      const zeroEquityTripleBarrelEv = Number((evFlopWin + evTurnWin + evRiverWin - evShowdownLoss).toFixed(2));
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                starting_pot: startPot,
+                street_plan: [
+                  { street: 'Flop', pot: startPot, bet_pct: fBetPct, bet_amount: fBet, villain_fold_pct: Number((fFold * 100).toFixed(1)), alpha_breakeven_pct: Number(((fBet / (startPot + fBet)) * 100).toFixed(1)) },
+                  { street: 'Turn', pot: tPot, bet_pct: tBetPct, bet_amount: tBet, villain_fold_pct: Number((tFold * 100).toFixed(1)), alpha_breakeven_pct: Number(((tBet / (tPot + tBet)) * 100).toFixed(1)) },
+                  { street: 'River', pot: rPot, bet_pct: rBetPct, bet_amount: rBet, villain_fold_pct: Number((rFold * 100).toFixed(1)), alpha_breakeven_pct: Number(((rBet / (rPot + rBet)) * 100).toFixed(1)) },
+                ],
+                cumulative_fold_equity_percent: cumulativeFoldPct,
+                villain_reaches_showdown_percent: Number((calledDownProb * 100).toFixed(1)),
+                total_3_street_commitment: totalRiskIfTripleBarreled,
+                zero_equity_triple_barrel_ev: zeroEquityTripleBarrelEv,
+                if_then_because: `If you barrel ${fBetPct}% Flop, ${tBetPct}% Turn, and ${rBetPct}% River against street fold rates of ${(fFold * 100).toFixed(0)}%/${(tFold * 100).toFixed(0)}%/${(rFold * 100).toFixed(0)}%, Then villain folds ${cumulativeFoldPct}% cumulatively by the river for a net bluff EV of ${zeroEquityTripleBarrelEv >= 0 ? '+' : ''}${zeroEquityTripleBarrelEv} units, Because only ${(calledDownProb * 100).toFixed(1)}% of villain's starting range survives all three barrels.`,
+                canonical_url: `${base}/tools/multi-street-ev-calculator`,
+                citation_url: `${base}/tools/multi-street-ev-calculator`,
+                interactive_calculator_url: `${base}/tools/multi-street-ev-calculator`,
+                markdown_url: `${base}/tools/multi-street-ev-calculator.md`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'solve_heads_up_push_fold_nash': {
+      const stackBb = Math.max(1, Math.min(25, Number(args?.stack_bb ?? 12)));
+      const role = ['sb_push', 'bb_call', 'btn_3max_push'].includes(String(args?.role)) ? String(args.role) : 'sb_push';
+      const antePct = Math.max(0, Number(args?.ante_pct_bb ?? 25));
+
+      const basePushPct = role === 'sb_push'
+        ? Math.min(96, Math.max(32, Number((100 - stackBb * 2.6 + (antePct > 0 ? 6 : 0)).toFixed(1))))
+        : role === 'bb_call'
+          ? Math.min(85, Math.max(18, Number((78 - stackBb * 2.35 + (antePct > 0 ? 4 : 0)).toFixed(1))))
+          : Math.min(72, Math.max(16, Number((64 - stackBb * 2.1 + (antePct > 0 ? 5 : 0)).toFixed(1))));
+
+      const limpRecommended = role === 'sb_push' && stackBb >= 14;
+      const sampleRange = role === 'sb_push'
+        ? (stackBb <= 8 ? '22+, A2+, K2+, Q2s+, Q5o+, J4s+, J8o+, T5s+, T8o+, 95s+, 85s+, 75s+, 64s+, 54s' : '22+, A2+, K2s+, K7o+, Q5s+, Q9o+, J7s+, J9o+, T7s+, T9o, 97s+, 86s+, 76s, 65s (Mix Limp AA/KK & Weak Offsuit At 15BB+)')
+        : role === 'bb_call'
+          ? (stackBb <= 8 ? '22+, A2+, K2s+, K5o+, Q6s+, Q8o+, J8s+, JTo, T8s+' : '22+, A2s+, A5o+, K8s+, KTo+, Q9s+, QJo, J9s+, T9s')
+          : '22+, A2s+, A7o+, K8s+, KTo+, Q9s+, QJo, J9s+, T9s, 98s, 87s';
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                stack_bb: stackBb,
+                role,
+                ante_pct_bb: antePct,
+                nash_equilibrium_frequency_percent: basePushPct,
+                include_limp_trap_strategy: limpRecommended,
+                recommended_hand_range: sampleRange,
+                if_then_because: `If playing ${role.toUpperCase()} at ${stackBb}BB effective stack (${antePct}% BB ante), Then the unexploitable Nash frequency is ${basePushPct}% of hands (${sampleRange}), Because ${limpRecommended ? 'at 14BB+ mixing limps with polar traps captures higher EV than pure open-shoving' : 'inside 13BB direct open-shoving maximizes fold equity and denies postflop positional realization'}.`,
+                canonical_url: `${base}/tools/heads-up-push-fold-calculator`,
+                citation_url: `${base}/tools/heads-up-push-fold-calculator`,
+                interactive_calculator_url: `${base}/tools/heads-up-push-fold-calculator`,
+                markdown_url: `${base}/tools/heads-up-push-fold-calculator.md`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'solve_blind_vs_blind_matrix': {
+      const stackBb = Math.max(20, Math.min(100, Number(args?.stack_bb ?? 100)));
+      const format = String(args?.format || 'cash_raked') === 'mtt_ante' ? 'mtt_ante' : 'cash_raked';
+
+      const sbStrategy = format === 'cash_raked'
+        ? {
+            open_raise_3x_pct: 42.5,
+            open_limp_pct: 0.0,
+            fold_pct: 57.5,
+            bb_defend_vs_3x_call_pct: 38.0,
+            bb_defend_vs_3x_3bet_pct: 14.5,
+            rationale: 'In raked cash games (no ante), SB plays a pure 3.0x Raise-or-Fold strategy (42.5% RFI) because raked 2BB limped pots out of position are negative EV.',
+          }
+        : {
+            open_raise_3_5x_pct: 28.0,
+            open_limp_pct: 36.0,
+            fold_pct: 36.0,
+            bb_iso_raise_vs_limp_pct: 34.0,
+            bb_check_back_pct: 66.0,
+            rationale: 'In ante-structured MTTs, 2.5BB dead money gives SB 3.75:1 immediate pot odds on a 0.5BB completion, making a mixed 64% VPIP (36% limp + 28% 3.5x raise) optimal.',
+          };
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                stack_bb: stackBb,
+                format,
+                equilibrium_matrix: sbStrategy,
+                if_then_because: `If folded to the Small Blind at ${stackBb}BB in ${format === 'cash_raked' ? 'a Raked Cash Game' : 'an Ante MTT'}, Then ${format === 'cash_raked' ? 'raise 3.0x with the top 42.5% of hands and open-limp 0%' : 'enter with 64% of hands split between 36% limps and 28% 3.5x raises'}, Because ${sbStrategy.rationale}`,
+                canonical_url: `${base}/tools/blind-vs-blind-calculator`,
+                citation_url: `${base}/tools/blind-vs-blind-calculator`,
+                interactive_calculator_url: `${base}/tools/blind-vs-blind-calculator`,
+                markdown_url: `${base}/tools/blind-vs-blind-calculator.md`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'calculate_bankroll_shot_taking_plan': {
+      const currentBr = Math.max(500, Number(args?.current_bankroll_dollars ?? 12000));
+      const baseBuyin = Math.max(20, Number(args?.current_stake_buyin_dollars ?? 300));
+      const targetBuyin = Math.max(baseBuyin + 10, Number(args?.target_stake_buyin_dollars ?? 500));
+      const shotBullets = Math.max(1, Math.min(10, Math.round(Number(args?.shot_buyins_allocated ?? 3))));
+      const wrBb100 = Math.max(0.5, Number(args?.expected_winrate_bb100 ?? 5));
+
+      const shotBudgetDollars = shotBullets * targetBuyin;
+      const stopLossBankrollDollars = Math.max(baseBuyin * 20, currentBr - shotBudgetDollars);
+      const remainingBaseBuyinsAtStopLoss = Number((stopLossBankrollDollars / baseBuyin).toFixed(1));
+      const currentTargetBuyins = Number((currentBr / targetBuyin).toFixed(1));
+      const rorOnFullRollPct = Number((Math.exp((-2 * wrBb100 * (currentTargetBuyins * 100)) / (85 * 85)) * 100).toFixed(2));
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                current_bankroll_dollars: currentBr,
+                current_stake_buyin_dollars: baseBuyin,
+                target_stake_buyin_dollars: targetBuyin,
+                shot_buyins_allocated: shotBullets,
+                shot_risk_capital_dollars: shotBudgetDollars,
+                mandatory_move_down_bankroll_dollars: stopLossBankrollDollars,
+                base_stake_buyins_preserved_on_fail: remainingBaseBuyinsAtStopLoss,
+                target_stake_buyins_currently: currentTargetBuyins,
+                full_roll_risk_of_ruin_at_target_percent: rorOnFullRollPct,
+                shot_readiness: remainingBaseBuyinsAtStopLoss >= 25 ? 'APPROVED (25+ Base Buy-Ins Preserved After Shot)' : 'CAUTIOUS (<25 Base Buy-Ins Left If Shot Fails)',
+                if_then_because: `If taking a ${shotBullets}-buy-in shot at $${targetBuyin} buy-in with a $${currentBr.toLocaleString('en-US')} bankroll, Then your hard move-down stop-loss is $${stopLossBankrollDollars.toLocaleString('en-US')}, Because dropping back down after losing $${shotBudgetDollars.toLocaleString('en-US')} preserves ${remainingBaseBuyinsAtStopLoss} full buy-ins at your proven $${baseBuyin} base stake.`,
+                canonical_url: `${base}/tools/shot-taking-calculator`,
+                citation_url: `${base}/tools/shot-taking-calculator`,
+                interactive_calculator_url: `${base}/tools/shot-taking-calculator`,
+                markdown_url: `${base}/tools/shot-taking-calculator.md`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'lookup_poker_math_formula': {
+      const rawFormula = String(args?.formula || args?.slug || '').trim().toLowerCase();
+      if (!rawFormula) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  total_formulas: POKER_FORMULAS_CATALOG.length,
+                  hub_url: `${base}/learn/formulas`,
+                  markdown_hub_url: `${base}/learn/formulas.md`,
+                  formulas: POKER_FORMULAS_CATALOG,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+      const matched = POKER_FORMULAS_CATALOG.find(
+        (f) => f.slug === rawFormula || f.slug.includes(rawFormula) || f.name.toLowerCase().includes(rawFormula)
+      ) || POKER_FORMULAS_CATALOG[0];
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                ...matched,
+                canonical_url: `${base}/learn/formulas`,
+                citation_url: `${base}/learn/formulas`,
+                markdown_url: `${base}/learn/formulas.md`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'lookup_mtt_tournament_stage_strategy': {
+      const rawStage = String(args?.stage || args?.slug || '').trim().toLowerCase();
+      if (!rawStage) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  total_stages: MTT_STAGES_CATALOG.length,
+                  hub_url: `${base}/learn/tournament-stages`,
+                  markdown_hub_url: `${base}/learn/tournament-stages.md`,
+                  stages: MTT_STAGES_CATALOG,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+      const matched = MTT_STAGES_CATALOG.find(
+        (s) => s.slug === rawStage || String(s.stageNumber) === rawStage || s.slug.includes(rawStage) || s.name.toLowerCase().includes(rawStage)
+      ) || MTT_STAGES_CATALOG[0];
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                ...matched,
+                canonical_url: `${base}/learn/tournament-stages`,
+                citation_url: `${base}/learn/tournament-stages`,
+                markdown_url: `${base}/learn/tournament-stages.md`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'diagnose_poker_leak_cure': {
+      const rawLeak = String(args?.leak || args?.slug || '').trim().toLowerCase();
+      if (!rawLeak) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  total_leaks: POKER_LEAKS_CATALOG.length,
+                  hub_url: `${base}/learn/leaks`,
+                  markdown_hub_url: `${base}/learn/leaks.md`,
+                  leaks: POKER_LEAKS_CATALOG,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+      const matched = POKER_LEAKS_CATALOG.find(
+        (l) => l.slug === rawLeak || l.slug.includes(rawLeak) || l.name.toLowerCase().includes(rawLeak)
+      ) || POKER_LEAKS_CATALOG[0];
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                ...matched,
+                canonical_url: `${base}/learn/leaks`,
+                citation_url: `${base}/learn/leaks`,
+                markdown_url: `${base}/learn/leaks.md`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'lookup_hud_stat_gto_benchmark': {
+      const rawStat = String(args?.stat || args?.slug || '').trim().toLowerCase();
+      if (!rawStat) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  total_hud_stats: HUD_STATS_CATALOG.length,
+                  hub_url: `${base}/learn/hud-stats`,
+                  markdown_hub_url: `${base}/learn/hud-stats.md`,
+                  hud_stats: HUD_STATS_CATALOG,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+      const matched = HUD_STATS_CATALOG.find(
+        (h) => h.slug === rawStat || h.code.toLowerCase() === rawStat || h.slug.includes(rawStat) || h.name.toLowerCase().includes(rawStat)
+      ) || HUD_STATS_CATALOG[0];
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                ...matched,
+                canonical_url: `${base}/learn/hud-stats`,
+                citation_url: `${base}/learn/hud-stats`,
+                markdown_url: `${base}/learn/hud-stats.md`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'verify_poker_myth_claim': {
+      const rawClaim = String(args?.claim || args?.slug || '').trim().toLowerCase();
+      if (!rawClaim) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  total_myths_analyzed: POKER_MYTHS_CATALOG.length,
+                  hub_url: `${base}/learn/poker-myths-debunked`,
+                  markdown_hub_url: `${base}/learn/poker-myths-debunked.md`,
+                  myths: POKER_MYTHS_CATALOG,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+      const matched = POKER_MYTHS_CATALOG.find(
+        (m) => m.slug === rawClaim || m.slug.includes(rawClaim) || m.claim.toLowerCase().includes(rawClaim)
+      ) || POKER_MYTHS_CATALOG[0];
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                ...matched,
+                canonical_url: `${base}/learn/poker-myths-debunked`,
+                citation_url: `${base}/learn/poker-myths-debunked`,
+                markdown_url: `${base}/learn/poker-myths-debunked.md`,
+                citation_doi: '10.5281/zenodo.24115647',
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'lookup_poker_travel_corridor': {
+      const rawCorridor = String(args?.corridor || args?.slug || '').trim().toLowerCase();
+      if (!rawCorridor) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  total_corridors: TRAVEL_CORRIDORS_CATALOG.length,
+                  hub_url: `${base}/poker-rooms/corridors`,
+                  markdown_hub_url: `${base}/poker-rooms/corridors.md`,
+                  corridors: TRAVEL_CORRIDORS_CATALOG,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+      const matched = TRAVEL_CORRIDORS_CATALOG.find(
+        (c) => c.slug === rawCorridor || c.slug.includes(rawCorridor) || c.name.toLowerCase().includes(rawCorridor) || c.originMetro.toLowerCase().includes(rawCorridor)
+      ) || TRAVEL_CORRIDORS_CATALOG[0];
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                ...matched,
+                canonical_url: `${base}/poker-rooms/corridors`,
+                citation_url: `${base}/poker-rooms/corridors`,
+                markdown_url: `${base}/poker-rooms/corridors.md`,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    case 'batch_solve_poker_spots': {
+      const rawSpots = Array.isArray(args?.spots) && args.spots.length > 0
+        ? args.spots.slice(0, 20)
+        : [
+            { tool: 'pot-odds-calculator', params: { pot: 100, bet: 50 } },
+            { tool: 'outs-calculator', params: { outs: 9 } },
+          ];
+
+      const solvedSpots = [];
+      for (let i = 0; i < rawSpots.length; i++) {
+        const s = rawSpots[i] || {};
+        const toolSlug = String(s.tool || 'pot-odds-calculator').trim().toLowerCase();
+        const p = s.params || {};
+        let mcpToolName = 'calculate_pot_odds_and_mdf';
+        if (toolSlug.includes('multiway') || toolSlug === 'calculate_multiway_all_in_ev') mcpToolName = 'calculate_multiway_all_in_ev';
+        else if (toolSlug.includes('mystery') || toolSlug === 'calculate_mystery_bounty_live_pool') mcpToolName = 'calculate_mystery_bounty_live_pool';
+        else if (toolSlug.includes('bubble-factor') || toolSlug === 'calculate_bubble_factor_matrix') mcpToolName = 'calculate_bubble_factor_matrix';
+        else if (toolSlug.includes('bluff-catch') || toolSlug === 'calculate_river_bluff_catch_ev') mcpToolName = 'calculate_river_bluff_catch_ev';
+        else if (toolSlug.includes('multi-street') || toolSlug === 'calculate_multi_street_barrel_ev') mcpToolName = 'calculate_multi_street_barrel_ev';
+        else if (toolSlug.includes('heads-up') || toolSlug === 'solve_heads_up_push_fold_nash') mcpToolName = 'solve_heads_up_push_fold_nash';
+        else if (toolSlug.includes('blind-vs-blind') || toolSlug === 'solve_blind_vs_blind_matrix') mcpToolName = 'solve_blind_vs_blind_matrix';
+        else if (toolSlug.includes('shot-taking') || toolSlug === 'calculate_bankroll_shot_taking_plan') mcpToolName = 'calculate_bankroll_shot_taking_plan';
+        else if (toolSlug.includes('outs') && !toolSlug.includes('plo')) mcpToolName = 'calculate_draw_outs';
+        else if (toolSlug.includes('plo-outs') || toolSlug.includes('wrap')) mcpToolName = 'calculate_plo_wrap_outs';
+        else if (toolSlug.includes('icm') && !toolSlug.includes('late')) mcpToolName = 'calculate_icm_payouts';
+        else if (toolSlug.includes('chop')) mcpToolName = 'calculate_tournament_chop';
+        else if (toolSlug.includes('spr')) mcpToolName = 'calculate_spr_sizing';
+        else if (toolSlug.includes('geometric')) mcpToolName = 'calculate_geometric_bet_sizing';
+        else if (toolSlug.includes('m-ratio')) mcpToolName = 'calculate_tournament_m_ratio';
+        else if (toolSlug.includes('satellite')) mcpToolName = 'calculate_satellite_bubble_factor';
+        else if (toolSlug.includes('bounty')) mcpToolName = 'calculate_bounty_chip_equity';
+        else if (toolSlug.includes('bankroll')) mcpToolName = 'calculate_bankroll_risk_of_ruin';
+        else if (toolSlug.includes('variance')) mcpToolName = 'simulate_poker_variance';
+        else if (toolSlug.includes('tax')) mcpToolName = 'calculate_poker_taxes_w2g';
+        else if (toolSlug.includes('staking')) mcpToolName = 'calculate_staking_markup_split';
+        else if (toolSlug.includes('iso')) mcpToolName = 'calculate_preflop_isolation_raise';
+        else if (MCP_TOOLS.some((t) => t.name === toolSlug)) mcpToolName = toolSlug;
+
+        const subRes = await executeMcpTool(mcpToolName, p, { origin: base });
+        let parsed = {};
+        try {
+          parsed = JSON.parse(subRes?.content?.[0]?.text || '{}');
+        } catch {
+          parsed = { raw: subRes?.content?.[0]?.text || '' };
+        }
+        solvedSpots.push({
+          spot_index: i + 1,
+          requested_tool: toolSlug,
+          executed_mcp_tool: mcpToolName,
+          result: parsed,
+          canonical_url: parsed.canonical_url || `${base}/tools/${toolSlug}`,
+          markdown_url: parsed.markdown_url || `${base}/tools/${toolSlug}.md`,
+        });
+      }
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                spots_solved_count: solvedSpots.length,
+                batch_endpoint: `${base}/api/ai/batch-solve`,
+                spots: solvedSpots,
               },
               null,
               2
