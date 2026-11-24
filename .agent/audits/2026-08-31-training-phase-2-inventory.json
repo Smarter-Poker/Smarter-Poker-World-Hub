@@ -45137,7 +45137,7 @@
         {
           "element": "button",
           "name": "←",
-          "line": 713,
+          "line": 721,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -45147,7 +45147,7 @@
         {
           "element": "button",
           "name": "Drill Priority #1 Leak In Club Arena ( · · ) →",
-          "line": 800,
+          "line": 808,
           "handler": "() => router.push(topLeakDrillHref)",
           "destination": null,
           "type": "button",
@@ -45157,7 +45157,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 862,
+          "line": 870,
           "handler": "() => setActiveVariant(v)",
           "destination": null,
           "type": "button",
@@ -45167,7 +45167,7 @@
         {
           "element": "button",
           "name": "BB",
-          "line": 881,
+          "line": 889,
           "handler": "() => setEffectiveStackBb(stk)",
           "destination": null,
           "type": "button",
@@ -45177,7 +45177,7 @@
         {
           "element": "button",
           "name": "Launch Calibrated Drill In Club Arena →",
-          "line": 899,
+          "line": 907,
           "handler": "() => router.push(arenaHref)",
           "destination": null,
           "type": "button",
@@ -45187,7 +45187,7 @@
         {
           "element": "button",
           "name": "Sign In",
-          "line": 940,
+          "line": 948,
           "handler": "() => router.push('/auth/login?redirect=/hub/training/study-plan')",
           "destination": null,
           "type": "button",
@@ -45267,7 +45267,7 @@
         },
         {
           "name": "handleStartArea",
-          "line": 640,
+          "line": 648,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -45275,7 +45275,7 @@
         },
         {
           "name": "regeneratePlan",
-          "line": 654,
+          "line": 662,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -89464,11 +89464,11 @@
       "effectRef": "pages/hub/training/study-group.js"
     },
     {
-      "id": "pages/hub/training/study-plan.js:713:1",
+      "id": "pages/hub/training/study-plan.js:721:1",
       "file": "pages/hub/training/study-plan.js",
       "element": "button",
       "name": "←",
-      "line": 713,
+      "line": 721,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -89477,11 +89477,11 @@
       "effectRef": "pages/hub/training/study-plan.js"
     },
     {
-      "id": "pages/hub/training/study-plan.js:800:2",
+      "id": "pages/hub/training/study-plan.js:808:2",
       "file": "pages/hub/training/study-plan.js",
       "element": "button",
       "name": "Drill Priority #1 Leak In Club Arena ( · · ) →",
-      "line": 800,
+      "line": 808,
       "handler": "() => router.push(topLeakDrillHref)",
       "destination": null,
       "type": "button",
@@ -89490,11 +89490,11 @@
       "effectRef": "pages/hub/training/study-plan.js"
     },
     {
-      "id": "pages/hub/training/study-plan.js:862:3",
+      "id": "pages/hub/training/study-plan.js:870:3",
       "file": "pages/hub/training/study-plan.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 862,
+      "line": 870,
       "handler": "() => setActiveVariant(v)",
       "destination": null,
       "type": "button",
@@ -89503,11 +89503,11 @@
       "effectRef": "pages/hub/training/study-plan.js"
     },
     {
-      "id": "pages/hub/training/study-plan.js:881:4",
+      "id": "pages/hub/training/study-plan.js:889:4",
       "file": "pages/hub/training/study-plan.js",
       "element": "button",
       "name": "BB",
-      "line": 881,
+      "line": 889,
       "handler": "() => setEffectiveStackBb(stk)",
       "destination": null,
       "type": "button",
@@ -89516,11 +89516,11 @@
       "effectRef": "pages/hub/training/study-plan.js"
     },
     {
-      "id": "pages/hub/training/study-plan.js:899:5",
+      "id": "pages/hub/training/study-plan.js:907:5",
       "file": "pages/hub/training/study-plan.js",
       "element": "button",
       "name": "Launch Calibrated Drill In Club Arena →",
-      "line": 899,
+      "line": 907,
       "handler": "() => router.push(arenaHref)",
       "destination": null,
       "type": "button",
@@ -89529,11 +89529,11 @@
       "effectRef": "pages/hub/training/study-plan.js"
     },
     {
-      "id": "pages/hub/training/study-plan.js:940:6",
+      "id": "pages/hub/training/study-plan.js:948:6",
       "file": "pages/hub/training/study-plan.js",
       "element": "button",
       "name": "Sign In",
-      "line": 940,
+      "line": 948,
       "handler": "() => router.push('/auth/login?redirect=/hub/training/study-plan')",
       "destination": null,
       "type": "button",

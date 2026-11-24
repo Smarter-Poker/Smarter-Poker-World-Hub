@@ -600,14 +600,22 @@ export default function StudyPlanPage() {
     }
     setSignedOut(false);
     try {
-      const res = await authedFetch(`/api/training/get-sessions?limit=50&includeAnswers=1`);
+      const [res, leakRes] = await Promise.all([
+        authedFetch(`/api/training/get-sessions?limit=100`),
+        authedFetch(`/api/training/get-sessions?limit=50&includeAnswers=1`).catch(() => null),
+      ]);
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data?.success !== true || !Array.isArray(data.sessions)) {
         throw new Error('Verified Training history was not returned.');
       }
       setSessions(data.sessions);
-      setRecentAnswers(Array.isArray(data.recentAnswers) ? data.recentAnswers : []);
+      if (leakRes && leakRes.ok) {
+        const leakData = await leakRes.json().catch(() => null);
+        setRecentAnswers(Array.isArray(leakData?.recentAnswers) ? leakData.recentAnswers : []);
+      } else {
+        setRecentAnswers(Array.isArray(data.recentAnswers) ? data.recentAnswers : []);
+      }
     } catch (e) {
       console.warn('[StudyPlan] Fetch error:', e);
       setSessions(null);
