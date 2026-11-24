@@ -282,7 +282,7 @@ export default function TriviaStats() {
                                         ? { label: 'Sign In', onClick: () => router.push('/auth/login?redirect=/hub/trivia/stats') }
                                         : noGames
                                             ? { label: 'Start Playing', onClick: () => router.push('/hub/trivia') }
-                                            : undefined}
+                                            : { label: 'Study Missed Questions', onClick: () => router.push('/hub/trivia/study') }}
                             >
                                 <ResponsiveModeArt art={TRIVIA_INTRO_ART.stats} priority />
                                 {isLoading ? (
@@ -392,6 +392,20 @@ export default function TriviaStats() {
                                                         <ul className="tc-rows trivia-progress-rows">{categoryMastery.map((row) => <CategoryRow key={row.category} row={row} />)}</ul>
                                                     </section>
                                                 ) : null}
+
+                                                <section className="trivia-progress-section trivia-progress-stats-study" aria-labelledby="trivia-stats-study">
+                                                    <h2 id="trivia-stats-study" className="trivia-progress-heading">Missed Questions Study Deck</h2>
+                                                    <p className="trivia-progress-summary">
+                                                        Review Missed Questions With Explanations And Jump Directly Into World Hub Training.
+                                                    </p>
+                                                    <button
+                                                        type="button"
+                                                        className="tc-word trivia-progress-filter__option"
+                                                        onClick={() => router.push('/hub/trivia/study')}
+                                                    >
+                                                        Study Missed Questions
+                                                    </button>
+                                                </section>
                                             </>
                                         )}
                                         {loadedAt ? <p className="trivia-progress-read-time">Last Verified Read {loadedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</p> : null}

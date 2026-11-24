@@ -28,21 +28,21 @@ import sessionStats from './_routes/session-stats.js';
 import sessions from './_routes/sessions.js';
 import socialExport from './_routes/social-export.js';
 
-const ROUTES = {
-  'coach-accuracy': coachAccuracy,
-  'coach-result': coachResult,
-  'create-share': createShare,
-  'custom-drill': customDrill,
-  'equity-snapshot': equitySnapshot,
-  leaderboard,
-  'macro-analysis': macroAnalysis,
-  'quiz-leaderboard': quizLeaderboard,
-  'save-hand': saveHand,
-  'saved-hands': savedHands,
-  'session-stats': sessionStats,
-  sessions,
-  'social-export': socialExport,
-};
+const ROUTES = new Map([
+  ['coach-accuracy', coachAccuracy],
+  ['coach-result', coachResult],
+  ['create-share', createShare],
+  ['custom-drill', customDrill],
+  ['equity-snapshot', equitySnapshot],
+  ['leaderboard', leaderboard],
+  ['macro-analysis', macroAnalysis],
+  ['quiz-leaderboard', quizLeaderboard],
+  ['save-hand', saveHand],
+  ['saved-hands', savedHands],
+  ['session-stats', sessionStats],
+  ['sessions', sessions],
+  ['social-export', socialExport],
+]);
 
 export default async function handler(req, res) {
   // Every /api/sandbox/* request funnels through here, so this is the last
@@ -50,11 +50,16 @@ export default async function handler(req, res) {
   // sub-handler throws OUTSIDE its own try/catch — or that this dispatcher
   // throws itself — reaches the client as Next's HTML 500 page, which every
   // caller on this surface then fails to parse as JSON ("Unexpected token <").
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+  res.setHeader('Vary', 'Authorization');
   try {
     const segments = Array.isArray(req.query.path) ? req.query.path : [req.query.path].filter(Boolean);
     const route = segments[0] || '';
-    const fn = ROUTES[route];
-    if (!fn) return res.status(404).json({ success: false, error: 'Unknown sandbox route' });
+    const fn = ROUTES.get(route);
+    const maxSegments = route === 'create-share' ? 2 : 1;
+    if (!fn || segments.length > maxSegments) {
+      return res.status(404).json({ success: false, error: 'Unknown sandbox route' });
+    }
     return await fn(req, res);
   } catch (err) {
     console.warn('[sandbox dispatcher] Unhandled error:', err?.message || err);

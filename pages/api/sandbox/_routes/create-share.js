@@ -326,8 +326,16 @@ export default async function handler(req, res) {
 
           if (method === 'GET') return handleList(req, res, supabase);
           if (method === 'DELETE') return handleRevoke(req, res, supabase);
-          if (method === 'PATCH') return handleViewIncrement(req, res, supabase);
-          return handleCreate(req, res, supabase);
+          // Virtual Sandbox scenario sharing is retired (pages/sandbox/[id].js
+          // renders RetiredSharedScenario and never reads sandbox_shared_scenarios).
+          // Block unauthenticated/new writes with 410 Gone while preserving GET/DELETE
+          // for historical audit and revocation.
+          return res.status(410).json({
+              success: false,
+              retired: true,
+              code: 'SANDBOX_SHARING_RETIRED',
+              error: 'Virtual Sandbox scenario sharing is retired. Historical links can still be viewed or revoked.',
+          });
       } catch (err) {
           console.warn('[create-share] Error:', err);
           return res.status(500).json({ success: false, error: 'Internal Server Error' });

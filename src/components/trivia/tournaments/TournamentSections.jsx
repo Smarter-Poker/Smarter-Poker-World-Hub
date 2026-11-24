@@ -121,7 +121,7 @@ export function TournamentTabs({ value, onChange, disabled = [] }) {
     );
 }
 
-export function TournamentEventLedger({ tournament, summary, nowMs, onReminder }) {
+export function TournamentEventLedger({ tournament, summary, nowMs, onReminder, reminderSlot = null }) {
     if (!tournament) {
         return (
             <section className="tt-ledger tt-section" aria-labelledby="tt-ledger-title">
@@ -160,9 +160,10 @@ export function TournamentEventLedger({ tournament, summary, nowMs, onReminder }
                     summary?.field ? { label: 'Byes', value: exactDiamonds(summary.field.byes) } : null,
                 ]}
             />
-            {onReminder ? (
+            {(onReminder || reminderSlot) ? (
                 <div className="tt-actions">
-                    <TriviaGlassAction label="Add Calendar Reminder" onClick={onReminder} />
+                    {reminderSlot}
+                    {onReminder ? <TriviaGlassAction label="Add Calendar Reminder" onClick={onReminder} /> : null}
                 </div>
             ) : null}
             <details className="tt-rules">

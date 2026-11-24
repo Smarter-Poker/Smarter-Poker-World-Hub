@@ -1,11 +1,156 @@
-import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
-import { createClient } from '../../../src/lib/supabaseServerClient';
-import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
-import { parseHandHistory } from '../../../src/engines/HandHistoryParser';
-import { auditParsedHands } from '../../../src/lib/training/handAuditEngine';
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth.js';
+import { createClient } from '../../../src/lib/supabaseServerClient.js';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit.js';
+import { reportApiError } from '../../../src/lib/apiErrorHandler.js';
+import { parseHandHistory } from '../../../src/engines/HandHistoryParser.js';
+import { auditParsedHands } from '../../../src/lib/training/handAuditEngine.js';
 import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
-import { parseStakesToBlinds } from '../../../src/lib/training/clubArenaTableParity';
+import { parseStakesToBlinds } from '../../../src/lib/training/clubArenaTableParity.js';
+import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter.js';
+
+const HERO_CARDS_BY_VARIANT = Object.freeze({
+  nlh: ['As', 'Kd'],
+  plo4: ['As', 'Ks', 'Qh', 'Jh'],
+  plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
+  plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
+});
+
+const BOARD_CARDS = Object.freeze(['8d', '5c', '2s', '6h', '3d']);
+
+function resolveHandVariant(hand = {}, defaultVariant = 'nlh') {
+  const raw = String(hand?.variant || hand?.gameType || defaultVariant || 'nlh').trim().toLowerCase();
+  const heroCards = Array.isArray(hand?.heroCards)
+    ? hand.heroCards
+    : Array.isArray(hand?.hero?.holeCards)
+      ? hand.hero.holeCards
+      : [];
+  if (raw === 'plo6' || heroCards.length === 6) return 'plo6';
+  if (raw === 'plo5' || heroCards.length === 5) return 'plo5';
+  if (raw === 'plo4' || /plo|omaha/i.test(raw) || heroCards.length === 4) return 'plo4';
+  return 'nlh';
+}
+
+function resolveHandBoardCards(hand = {}, street = 'flop') {
+  const rawBoard = Array.isArray(hand?.boardCards) && hand.boardCards.length > 0
+    ? hand.boardCards
+    : Array.isArray(hand?.board) && hand.board.length > 0
+      ? hand.board
+      : extractBoardFromParsedHand(hand);
+  const normStreet = String(street || 'flop').toLowerCase();
+  const expectedCount = normStreet === 'preflop' ? 0
+    : normStreet === 'turn' ? 4
+      : normStreet === 'river' ? 5
+        : 3;
+  if (expectedCount === 0) return [];
+  if (Array.isArray(rawBoard) && rawBoard.length >= expectedCount) {
+    return rawBoard.slice(0, expectedCount);
+  }
+  const combined = [...(Array.isArray(rawBoard) ? rawBoard : [])];
+  for (const fallbackCard of BOARD_CARDS) {
+    if (combined.length >= expectedCount) break;
+    if (!combined.some((c) => String(c).toLowerCase() === fallbackCard.toLowerCase())) {
+      combined.push(fallbackCard);
+    }
+  }
+  return combined.slice(0, expectedCount);
+}
+
+export function rankImportedHandsByEvLeak(hands = [], defaultVariant = 'nlh') {
+  if (!Array.isArray(hands) || hands.length === 0) return [];
+  const scored = hands.map((hand, idx) => {
+    const variant = resolveHandVariant(hand, defaultVariant);
+    const rawBoard = Array.isArray(hand?.boardCards) && hand.boardCards.length > 0
+      ? hand.boardCards
+      : Array.isArray(hand?.board) && hand.board.length > 0
+        ? hand.board
+        : extractBoardFromParsedHand(hand);
+    const street = String(
+      hand?.street
+      || (rawBoard.length >= 5 ? 'river' : rawBoard.length === 4 ? 'turn' : rawBoard.length >= 3 ? 'flop' : 'flop'),
+    ).toLowerCase();
+    const heroPosition = String(hand?.heroPosition || hand?.position || hand?.hero?.position || 'BTN').toUpperCase();
+    const rawHeroCards = Array.isArray(hand?.heroCards) && hand.heroCards.length > 0
+      ? hand.heroCards
+      : Array.isArray(hand?.hero?.holeCards) && hand.hero.holeCards.length > 0
+        ? hand.hero.holeCards
+        : HERO_CARDS_BY_VARIANT[variant] || HERO_CARDS_BY_VARIANT.nlh;
+    const expectedHoleCount = (HERO_CARDS_BY_VARIANT[variant] || HERO_CARDS_BY_VARIANT.nlh).length;
+    const heroCards = rawHeroCards.length === expectedHoleCount
+      ? rawHeroCards
+      : (HERO_CARDS_BY_VARIANT[variant] || HERO_CARDS_BY_VARIANT.nlh);
+    const boardCards = resolveHandBoardCards({ ...hand, boardCards: rawBoard }, street);
+    const potSizeBb = Math.max(1.5, Number(hand?.potSizeBb || hand?.pot || 12) || 12);
+    const facingBetBb = Math.max(0, Number(hand?.facingBetBb ?? 4) || 0);
+    const effectiveStackBb = Math.max(10, Number(hand?.effectiveStackBb || hand?.stackDepth || 100) || 100);
+
+    let brainDecision = null;
+    try {
+      brainDecision = evaluateTrainingSpotWithHorseBrain({
+        variant,
+        street,
+        heroPosition,
+        heroCards,
+        boardCards,
+        potSizeBb,
+        facingBetBb,
+        effectiveStackBb,
+      });
+    } catch (_) {
+      brainDecision = evaluateTrainingSpotWithHorseBrain({
+        variant: 'nlh',
+        street: 'flop',
+        heroPosition: 'BTN',
+        heroCards: ['As', 'Kd'],
+        boardCards: ['8d', '5c', '2s'],
+        potSizeBb,
+        facingBetBb: 4,
+        effectiveStackBb: 100,
+      });
+    }
+
+    const explicitLoss = Number(hand?.estimatedEvLossBb ?? hand?.evLoss);
+    let estimatedEvLossBb;
+    if (Number.isFinite(explicitLoss) && explicitLoss > 0) {
+      estimatedEvLossBb = Number(explicitLoss.toFixed(2));
+    } else {
+      const actionEvValues = Object.values(brainDecision?.actionEVs || {})
+        .map(Number)
+        .filter(Number.isFinite);
+      const maxEv = actionEvValues.length > 0 ? Math.max(...actionEvValues) : 0;
+      const minEv = actionEvValues.length > 0 ? Math.min(...actionEvValues) : 0;
+      const evSpread = Math.max(0.35, maxEv - minEv);
+      const handScoreFactor = Math.max(0.25, (100 - (Number(brainDecision?.handScore) || 55)) / 100);
+      const derived = Math.max(0.25, evSpread * 0.55 + potSizeBb * 0.08 * handScoreFactor);
+      estimatedEvLossBb = Number(derived.toFixed(2));
+    }
+
+    return {
+      ...hand,
+      variant,
+      street,
+      heroPosition,
+      heroCards,
+      board: Array.isArray(hand?.board) && hand.board.length > 0 ? hand.board : boardCards,
+      boardCards,
+      potSizeBb,
+      estimatedEvLossBb,
+      recommendedAction: brainDecision?.recommendedAction || brainDecision?.correctAnswerText || 'Bet 75% Pot',
+      brainSource: brainDecision?.engineModule || 'holdem-brain.js',
+      _originalIndex: idx,
+    };
+  });
+
+  scored.sort((a, b) => {
+    const diff = b.estimatedEvLossBb - a.estimatedEvLossBb;
+    if (Math.abs(diff) > 1e-9) return diff;
+    return a._originalIndex - b._originalIndex;
+  });
+
+  return scored.map(({ _originalIndex, ...item }, index) => ({
+    ...item,
+    leakPriorityRank: index + 1,
+  }));
+}
 
 let _supabase = null;
 function getSupabase() {
@@ -170,10 +315,12 @@ export default async function handler(req, res) {
             participantUserId: user.id,
           };
           handObj.drillHref = buildDrillHrefForHand(handObj, null);
+          const [rankedSingle] = rankImportedHandsByEvLeak([handObj]);
           return res.status(200).json({
             success: true,
             participantVerified: true,
-            hand: handObj,
+            hand: rankedSingle || handObj,
+            topLeakHand: rankedSingle || handObj,
           });
         }
 
@@ -201,15 +348,17 @@ export default async function handler(req, res) {
             });
           }
           const handPayload = ownedRow.data || {};
+          const [rankedToolHand] = rankImportedHandsByEvLeak([{
+            ...handPayload,
+            id: String(handPayload.id || ownedRow.record_key),
+            participantUserId: user.id,
+            drillHref: buildDrillHrefForHand(handPayload, null),
+          }]);
           return res.status(200).json({
             success: true,
             participantVerified: true,
-            hand: {
-              ...handPayload,
-              id: String(handPayload.id || ownedRow.record_key),
-              participantUserId: user.id,
-              drillHref: buildDrillHrefForHand(handPayload, null),
-            },
+            hand: rankedToolHand,
+            topLeakHand: rankedToolHand,
           });
         }
 
@@ -290,11 +439,13 @@ export default async function handler(req, res) {
         }
       } catch (_) { /* ignore */ }
 
+      const rankedParticipantHands = rankImportedHandsByEvLeak(participantHands);
       return res.status(200).json({
         success: true,
         participantVerified: true,
         userId: user.id,
-        hands: participantHands,
+        hands: rankedParticipantHands,
+        topLeakHand: rankedParticipantHands[0] || null,
       });
     }
 
@@ -378,9 +529,21 @@ export default async function handler(req, res) {
       };
     });
 
+    const rankedSyncedHands = rankImportedHandsByEvLeak(syncedHands);
+    const rankedById = new Map(rankedSyncedHands.map((h) => [String(h.id), h]));
+    for (const analysis of result.analyses || []) {
+      const ranked = rankedById.get(String(analysis.handId));
+      if (ranked) {
+        analysis.estimatedEvLossBb = ranked.estimatedEvLossBb;
+        analysis.leakPriorityRank = ranked.leakPriorityRank;
+        analysis.recommendedAction = ranked.recommendedAction;
+        analysis.brainSource = ranked.brainSource;
+      }
+    }
+
     try {
       const nowIso = new Date().toISOString();
-      const toolRecords = syncedHands.slice(0, 25).map((h) => ({
+      const toolRecords = rankedSyncedHands.slice(0, 25).map((h) => ({
         user_id: user.id,
         tool_id: 'synced-hand-history',
         record_type: 'hand',
@@ -401,7 +564,9 @@ export default async function handler(req, res) {
       success: true,
       ...result,
       participantVerified: true,
-      syncedHands,
+      syncedHands: rankedSyncedHands,
+      hands: rankedSyncedHands,
+      topLeakHand: rankedSyncedHands[0] || null,
     });
   } catch (error) {
     try { reportApiError(error, req); } catch (_) { /* reporting must not mask response */ }

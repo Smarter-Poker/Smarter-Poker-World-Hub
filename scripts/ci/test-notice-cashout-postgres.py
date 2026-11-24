@@ -137,7 +137,87 @@ try:
  assert balances()['bank']==b['bank']+100.25
  assert sql('SELECT count(*) FROM accounting_cashier_events WHERE cashout_id='+lit(h['cashout_id'])+" AND event_slot='terminal';")=='1'
  cases.append('simultaneous decisions produce exactly one terminal event and bank movement')
- print(json.dumps({'passed':True,'cases':cases,'migrations':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in (R/'supabase/migrations').glob('20261117203*.sql')},'scope':'Actual transition, ledger triggers, receipt/invoice validation; isolated invoice transport fixture; no production writes'}))
+ # Apply 20261124150500: owner downline notification suppression, >4h overdue owner alert, and Telegram Notice Board.
+ sql((R/'supabase/migrations/20261124150500_payout_overdue_owner_notify_and_telegram_notice_board.sql').read_text())
+ sql((R/'supabase/migrations/20261124150500_payout_overdue_owner_notify_and_telegram_notice_board.sql').read_text(),error='Overdue cashout owner notification table already installed')
+ # 1. Non-escalated agent approval/decline/withdrawal excludes OWNER from audience & notifications.
+ owner_notes_before=int(sql('SELECT count(*) FROM notifications WHERE user_id='+lit(OWNER)+';'))
+ h=hold('Normal downline payout');a=decide(h,AGENT)
+ aud=json.loads(sql('SELECT to_jsonb(audience_user_ids) FROM accounting_cashier_events WHERE id='+lit(a['event_id'])+';'))
+ assert sorted(aud)==sorted([PLAYER,AGENT]),aud
+ assert OWNER not in aud
+ assert int(sql('SELECT count(*) FROM notifications WHERE user_id='+lit(OWNER)+';'))==owner_notes_before
+ # Admin deciding another agent's non-escalated cashout informs player, admin, and assigned agent, NOT owner.
+ h=hold('Admin non-escalated');a=decide(h,ADMIN,'release')
+ aud=json.loads(sql('SELECT to_jsonb(audience_user_ids) FROM accounting_cashier_events WHERE id='+lit(a['event_id'])+';'))
+ assert sorted(aud)==sorted([PLAYER,ADMIN,AGENT]),aud
+ assert OWNER not in aud
+ # Player withdrawal of another agent's downline request excludes OWNER.
+ h=hold('Player cancel');a=decide(h,PLAYER,'release')
+ aud=json.loads(sql('SELECT to_jsonb(audience_user_ids) FROM accounting_cashier_events WHERE id='+lit(a['event_id'])+';'))
+ assert sorted(aud)==sorted([PLAYER,AGENT]),aud
+ assert OWNER not in aud
+ assert int(sql('SELECT count(*) FROM notifications WHERE user_id='+lit(OWNER)+';'))==owner_notes_before
+ # Escalated club-bank settlement DOES include OWNER.
+ h=hold('Escalated bank payout');escalate(h);a=decide(h,CO)
+ aud=json.loads(sql('SELECT to_jsonb(audience_user_ids) FROM accounting_cashier_events WHERE id='+lit(a['event_id'])+';'))
+ assert OWNER in aud and PLAYER in aud and CO in aud and AGENT in aud,aud
+ cases.append('non-escalated other-agent downline cashouts exclude owner; escalated bank settlements retain owner')
+ # 2. >4h unfulfilled downline payout notifies OWNER once and only once; <4h stays silent.
+ h_fresh=hold('Pending under 4h')
+ res_fresh=json.loads(asuser(OWNER,'SELECT fn_notify_overdue_cashouts(4,200);',role='service_role').splitlines()[-1])
+ assert res_fresh['notified']==0,res_fresh
+ sql("UPDATE cashout_requests SET created_at=clock_timestamp()-interval '5 hours' WHERE id="+lit(h_fresh['cashout_id'])+';')
+ res_overdue=json.loads(asuser(OWNER,'SELECT fn_notify_overdue_cashouts(4,200);',role='service_role').splitlines()[-1])
+ assert res_overdue['notified']==1,res_overdue
+ overdue_row=json.loads(sql("SELECT jsonb_build_object('user_id',user_id,'type',type,'title',title,'message',message,'action_url',action_url) FROM notifications WHERE type='cashout_overdue' AND data->>'cashout_id'="+lit(h_fresh['cashout_id'])+';'))
+ assert overdue_row['user_id']==OWNER and 'Unfulfilled Payout' in overdue_row['title'] and f'/hub/messenger?clubId={C}&folder=notice-board'==overdue_row['action_url'],overdue_row
+ # Second call is strictly idempotent (at-most-once).
+ res_again=json.loads(asuser(OWNER,'SELECT fn_notify_overdue_cashouts(4,200);',role='service_role').splitlines()[-1])
+ assert res_again['notified']==0,res_again
+ # Concurrent >4h overdue scans emit strictly one owner notification for a newly aged request.
+ sql('UPDATE cashout_requests SET created_at=updated_at WHERE id='+lit(h_fresh['cashout_id'])+';')
+ decide(h_fresh,AGENT)
+ h_conc=hold('Concurrent overdue scan')
+ sql("UPDATE cashout_requests SET created_at=clock_timestamp()-interval '6 hours' WHERE id="+lit(h_conc['cashout_id'])+';')
+ with ThreadPoolExecutor(max_workers=2) as pool:
+  conc_results=list(pool.map(lambda _:json.loads(asuser(OWNER,'SELECT fn_notify_overdue_cashouts(4,200);',role='service_role').splitlines()[-1]),range(2)))
+ assert sum(r['notified'] for r in conc_results)==1,conc_results
+ assert sql("SELECT count(*) FROM cashout_overdue_owner_notifications WHERE cashout_id="+lit(h_conc['cashout_id'])+';')=='1'
+ # Direct downline player of OWNER (>5h pending) does NOT trigger duplicate cashout_overdue.
+ sql('UPDATE cashout_requests SET created_at=updated_at WHERE id='+lit(h_conc['cashout_id'])+';')
+ decide(h_conc,AGENT)
+ sql('UPDATE club_members SET agent_id='+lit(OWNER)+' WHERE club_id='+lit(C)+' AND user_id='+lit(PLAYER)+';')
+ h_own=hold('Owner direct downline')
+ sql("UPDATE cashout_requests SET created_at=clock_timestamp()-interval '6 hours' WHERE id="+lit(h_own['cashout_id'])+';')
+ res_own=json.loads(asuser(OWNER,'SELECT fn_notify_overdue_cashouts(4,200);',role='service_role').splitlines()[-1])
+ assert res_own['notified']==0,res_own
+ sql('UPDATE cashout_requests SET created_at=updated_at WHERE id='+lit(h_own['cashout_id'])+';')
+ a_own=decide(h_own,OWNER,'release')
+ aud_own=json.loads(sql('SELECT to_jsonb(audience_user_ids) FROM accounting_cashier_events WHERE id='+lit(a_own['event_id'])+';'))
+ assert sorted(aud_own)==sorted([PLAYER,OWNER]),aud_own
+ sql('UPDATE club_members SET agent_id='+lit(AGENT)+' WHERE club_id='+lit(C)+' AND user_id='+lit(PLAYER)+';')
+ # Re-seed an overdue request so Notice Board overduePayouts read is also verified below.
+ h_fresh=hold('Pending for Notice Board overdue list')
+ sql("UPDATE cashout_requests SET created_at=clock_timestamp()-interval '5 hours' WHERE id="+lit(h_fresh['cashout_id'])+';')
+ # Authenticated role cannot invoke fn_notify_overdue_cashouts.
+ asuser(AGENT,'SELECT fn_notify_overdue_cashouts(4,200);',error='permission denied')
+ cases.append('unfulfilled >4h downline cashout notifies owner exactly once (including concurrent scans) and skips owner direct downline')
+ # 3. Telegram-style Notice Board: pin regular club notice, author metadata, roster & roleCounts, overduePayouts, club rename sync.
+ pinned_notice=board(OWNER,'create',{'id':op(),'content':'Pinned Club Announcement','status':'notice','is_pinned':True})
+ assert pinned_notice['is_pinned'] is True and pinned_notice['author_name'] and pinned_notice['author_role']=='owner',pinned_notice
+ owner_read=board(OWNER,'read')
+ assert owner_read['memberCount']==6 and owner_read['roleCounts']['management']==3 and owner_read['roleCounts']['agents']==3 and owner_read['roleCounts']['total']==6,owner_read['roleCounts']
+ assert len(owner_read['members'])==6 and owner_read['members'][0]['role']=='owner',owner_read['members']
+ assert any(p['id']==pinned_notice['id'] for p in owner_read['pinned'])
+ assert len(owner_read['overduePayouts'])==1 and owner_read['overduePayouts'][0]['cashout_id']==h_fresh['cashout_id'],owner_read['overduePayouts']
+ agent_read=board(AGENT,'read')
+ assert agent_read['viewerRole']=='agent' and agent_read['overduePayouts']==[] and agent_read['memberCount']==6
+ sql("UPDATE clubs SET name='Renamed Kings Club' WHERE id="+lit(C)+';')
+ sql('SELECT fn_sync_club_staff_notice_group('+lit(C)+');')
+ assert sql('SELECT sc.group_name FROM club_messenger_staff_notice_groups g JOIN social_conversations sc ON sc.id=g.conversation_id WHERE g.club_id='+lit(C)+';')=='Renamed Kings Club - Notice Board'
+ cases.append('Telegram Notice Board pins regular notices, enriches author/roster/roleCounts/overduePayouts, and syncs club renames')
+ print(json.dumps({'passed':True,'cases':cases,'migrations':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(list((R/'supabase/migrations').glob('20261117203*.sql'))+list((R/'supabase/migrations').glob('20261124150500_*.sql')))},'scope':'Actual transition, ledger triggers, receipt/invoice validation; isolated invoice transport fixture; no production writes'}))
 finally:
  if started:cmd('pg_ctl','-D',str(D/'data'),'-m','immediate','stop')
  import shutil;shutil.rmtree(D)

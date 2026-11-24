@@ -32,8 +32,9 @@ export default async function handler(req, res) {
 
     if (!applyRateLimit(req, res, LIMITS.read || LIMITS.write)) return;
 
-    // Per-user training stats · private cache only, 60s browser TTL
-    res.setHeader('Cache-Control', 'private, max-age=60, stale-while-revalidate=120');
+    // Per-user training stats · never cache across auth state transitions or mutations
+    res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+    res.setHeader('Vary', 'Authorization');
 
     // JWT Authentication
     const authHeader = req.headers.authorization;
@@ -41,10 +42,9 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, stats: getDefaultStats(), isDemo: true });
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+    const { user: authUser, error: authErr, status: authStatus } = await getServerUserWithFallback(req, getSupabase());
     if (authErr || !authUser) {
-      return res.status(401).json({ success: false, error: 'Invalid token' });
+      return res.status(authStatus || 401).json({ success: false, error: authStatus === 503 ? 'Session verification unavailable' : 'Invalid token' });
     }
 
     const userId = authUser.id;

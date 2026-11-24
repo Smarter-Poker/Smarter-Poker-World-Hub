@@ -242,6 +242,7 @@ jobs:
           __tests__/messenger-callers-use-the-route-method.test.mjs
           __tests__/club-notice-board.test.mjs
           __tests__/club-notice-board-component.test.mjs
+          __tests__/payout-owner-notifications-and-notice-board.law.test.mjs
           __tests__/messenger-send-reliability.test.mjs
           __tests__/messenger-send-operation.test.mjs
           __tests__/messenger-send-live-safety.test.mjs
@@ -544,6 +545,12 @@ jobs:
       # Phase 12 cutover migration over its minimal prerequisite fixture.
       - name: "Trivia Phase 12 PostgreSQL 17 Cutover Authority"
         run: bash scripts/trivia/p12-cutover-replica-tests/run.sh
+
+      - name: "Trivia Phase 11 Alert And Kill-Switch PostgreSQL 17 Drills"
+        env:
+          P11_ALERT_POSTGRES_BIN: ${{ env.PHASE6_POSTGRES_BIN }}
+          P11_ALERT_TMP_PARENT: ${{ runner.temp }}
+        run: bash scripts/trivia/p11-alert-killswitch-replica-tests/run.sh
 
       - name: Engine Alert Receipt PostgreSQL Contracts
         run: node --test __tests__/engine-alert-receipts-postgres.test.mjs

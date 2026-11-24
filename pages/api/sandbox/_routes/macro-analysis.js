@@ -61,12 +61,17 @@ export default async function handler(req, res) {
           // Deterministic analysis. Streets are stored lowercase — bucket on the
           // normalized value and capitalize only for display.
           let totalEvLost = 0;
+          let measuredEvCount = 0;
           const streetErrors = { preflop: 0, flop: 0, turn: 0, river: 0 };
           const positionErrors = {};
 
           rows.forEach(r => {
-              if (r.is_correct) return;
-              totalEvLost += Math.abs(Number(r.ev_delta) || 0);
+              if (r.is_correct !== false) return;
+              const evNum = Number(r.ev_delta);
+              if (r.ev_delta !== null && r.ev_delta !== undefined && Number.isFinite(evNum)) {
+                  totalEvLost += Math.abs(evNum);
+                  measuredEvCount += 1;
+              }
 
               const s = String(r.street || 'preflop').toLowerCase();
               if (s in streetErrors) streetErrors[s] += 1;
@@ -84,14 +89,14 @@ export default async function handler(req, res) {
               ? Object.keys(positionErrors).reduce((a, b) => (positionErrors[a] >= positionErrors[b] ? a : b))
               : 'Unknown';
 
-          const insights = [
-              `Over the last ${rows.length} hands, you've lost ${totalEvLost.toFixed(2)} EV due to suboptimal decisions.`,
-          ];
+          const insights = measuredEvCount > 0
+              ? [`Over the last ${rows.length} archived spots, ${measuredEvCount} measured errors totaled ${totalEvLost.toFixed(2)} BB EV.`]
+              : [`Reviewed ${rows.length} archived spots (${totalStreetErrors} marked suboptimal; EV loss unmeasured).`];
 
           if (biggestStreetKey) {
               insights.push(`Your most problematic street is the **${biggestStreet}**, accounting for ${streetErrors[biggestStreetKey]} errors.`);
           } else {
-              insights.push('No street stands out as a systemic leak - your errors are evenly spread.');
+              insights.push('No street stands out as a systemic leak across these archived spots.');
           }
 
           if (biggestPos !== 'Unknown') {
@@ -99,12 +104,14 @@ export default async function handler(req, res) {
           }
 
           // Basic heuristic
-          if (streetErrors.river > streetErrors.flop * 1.5 && streetErrors.river > 0) {
+          if (totalStreetErrors === 0) {
+              insights.push('No suboptimal spots were recorded in this sample.');
+          } else if (streetErrors.river > streetErrors.flop * 1.5 && streetErrors.river > 0) {
               insights.push('You are bleeding EV on the River. Focus on polarized range calling logic.');
           } else if (streetErrors.preflop > rows.length * 0.1) {
               insights.push('Your Preflop fundamentals need work. Review opening and 3-betting charts before tackling postflop.');
           } else {
-              insights.push('Your preflop baseline is solid, but you have systemic postflop leaks requiring deeper solver study.');
+              insights.push('Your preflop baseline is solid, but you have postflop spots worth reviewing in verified training.');
           }
 
           return res.status(200).json({

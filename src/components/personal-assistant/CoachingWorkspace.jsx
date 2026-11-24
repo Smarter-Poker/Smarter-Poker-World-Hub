@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity, AlertCircle, Bell, BookOpen, CalendarDays, Check, ChevronRight, ClipboardCheck,
   Crosshair, Database, Download, Flag, Gauge, ListChecks, MessageSquareWarning, RefreshCw,
   Search, ShieldCheck, Target, Trash2, Trophy,
 } from 'lucide-react';
-import { getAccessToken } from '../../lib/authUtils';
+import { getFreshAccessToken } from '../../lib/authUtils';
 import { useLeakHandExamples } from '../../hooks/useAssistant';
 import { buildEvidenceChain } from '../../lib/personal-assistant/coachingIntelligence.mjs';
 import styles from './CoachingWorkspace.module.css';
@@ -97,7 +97,7 @@ export default function CoachingWorkspace({
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
 
   const apiRequest = useCallback(async (method = 'GET', body = null) => {
-    const token = getAccessToken();
+    const token = await getFreshAccessToken();
     if (!token) throw new Error('Sign In To Load Your Coaching Workspace');
     const response = await fetch('/api/assistant/coaching', {
       method,
@@ -112,10 +112,13 @@ export default function CoachingWorkspace({
     return payload;
   }, []);
 
+  const hydratedPrefsForUserRef = useRef(null);
+
   const load = useCallback(async () => {
     if (!userId) {
       setLoading(false);
       setWorkspace(null);
+      hydratedPrefsForUserRef.current = null;
       return;
     }
     setLoading(true);
@@ -123,10 +126,13 @@ export default function CoachingWorkspace({
     try {
       const payload = await apiRequest();
       setWorkspace(payload);
-      const saved = payload.preferences?.saved_view;
-      if (VIEWS.some(item => item.id === saved)) setView(saved);
-      if (['guided', 'detailed', 'expert'].includes(payload.preferences?.analysis_depth)) {
-        setAnalysisDepth(payload.preferences.analysis_depth);
+      if (hydratedPrefsForUserRef.current !== userId) {
+        hydratedPrefsForUserRef.current = userId;
+        const saved = payload.preferences?.saved_view;
+        if (VIEWS.some(item => item.id === saved)) setView(saved);
+        if (['guided', 'detailed', 'expert'].includes(payload.preferences?.analysis_depth)) {
+          setAnalysisDepth(payload.preferences.analysis_depth);
+        }
       }
       const first = payload.snapshot?.priorities?.[0]?.id;
       setSelectedLeakId(current => current || first || null);
@@ -138,6 +144,17 @@ export default function CoachingWorkspace({
   }, [apiRequest, userId]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !userId) return undefined;
+    const onRefresh = () => { load(); };
+    window.addEventListener('pa-data-updated', onRefresh);
+    window.addEventListener('pa-leak-review-updated', onRefresh);
+    return () => {
+      window.removeEventListener('pa-data-updated', onRefresh);
+      window.removeEventListener('pa-leak-review-updated', onRefresh);
+    };
+  }, [load, userId]);
 
   const write = useCallback(async (body, successText, { reload = true } = {}) => {
     setSaving(true);
@@ -156,7 +173,7 @@ export default function CoachingWorkspace({
   }, [apiRequest, load]);
 
   const lifecycleRequest = useCallback(async (method = 'GET', body = null) => {
-    const token = getAccessToken();
+    const token = await getFreshAccessToken();
     if (!token) throw new Error('Sign In To Manage Your Personal Assistant Data');
     const response = await fetch('/api/assistant/data-controls', {
       method,
@@ -198,7 +215,7 @@ export default function CoachingWorkspace({
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
       setStatus({ tone: 'success', text: 'Verified Personal Assistant Export Downloaded' });
       await loadLifecycle();
     } catch (requestError) {
@@ -566,6 +583,7 @@ export default function CoachingWorkspace({
                   await lifecycleRequest('POST', { action: 'save_retention', retentionDays: event.target.value });
                   setStatus({ tone: 'success', text: 'Personal Assistant Retention Policy Saved' });
                   await loadLifecycle();
+                  if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('pa-data-updated'));
                 } catch (requestError) {
                   setStatus({ tone: 'danger', text: requestError?.message || 'Retention Policy Could Not Be Saved' });
                 } finally {
@@ -624,6 +642,7 @@ export default function CoachingWorkspace({
                       setStatus({ tone: 'success', text: 'Personal Assistant Data Removed And Lifecycle Receipt Recorded' });
                       await load();
                       await loadLifecycle();
+                      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('pa-data-updated'));
                     } catch (requestError) {
                       setStatus({ tone: 'danger', text: requestError?.message || 'Personal Assistant Data Could Not Be Removed' });
                     } finally {

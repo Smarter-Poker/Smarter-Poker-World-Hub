@@ -108,5 +108,35 @@
       "authenticated": false,
       "service_role": false
     }
+  },
+  {
+    "file": "supabase/migrations/20261124150500_payout_overdue_owner_notify_and_telegram_notice_board.sql",
+    "signature": "public.fn_cashier_cashout_transition(text,uuid,uuid,numeric,uuid,uuid,text)",
+    "source_sha256": "691250a19cd93e9b44b281d266206a7b46ab0b1aca5edc4f17ae96d39de74019",
+    "execute": {
+      "anon": false,
+      "authenticated": false,
+      "service_role": false
+    }
+  },
+  {
+    "file": "supabase/migrations/20261124150500_payout_overdue_owner_notify_and_telegram_notice_board.sql",
+    "signature": "public.fn_sync_club_staff_notice_group(uuid)",
+    "source_sha256": "6318f0e1898dd3dd2ae1572a8887746d8484bee0f7b5205a02c248e51c88811d",
+    "execute": {
+      "anon": false,
+      "authenticated": false,
+      "service_role": false
+    }
+  },
+  {
+    "file": "supabase/migrations/20261124150500_payout_overdue_owner_notify_and_telegram_notice_board.sql",
+    "signature": "public.fn_notice_entry(uuid,uuid)",
+    "source_sha256": "9359500fe64a30b4ae6a8a0a1221be7308cf45017d36c10fa77f21ac6bf867b2",
+    "execute": {
+      "anon": false,
+      "authenticated": false,
+      "service_role": false
+    }
   }
 ]

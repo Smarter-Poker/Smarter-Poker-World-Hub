@@ -442,8 +442,31 @@ export function getHeroDecisionPoints(hand) {
 
     const points = [];
     const streets = ['preflop', 'flop', 'turn', 'river'];
-    const opponents = (hand.players || []).filter(player => String(player.id) !== String(hand.hero.id));
+    const heroIdPresent = hand.hero.id !== null && hand.hero.id !== undefined && String(hand.hero.id) !== '';
+    const heroNameLower = String(hand.hero.name || '').trim().toLowerCase();
+    const opponents = (hand.players || []).filter(player => {
+        if (heroIdPresent && player?.id !== null && player?.id !== undefined && String(player.id) !== '') {
+            return String(player.id) !== String(hand.hero.id);
+        }
+        if (heroNameLower && player?.name) {
+            return String(player.name).trim().toLowerCase() !== heroNameLower;
+        }
+        return true;
+    });
+    const foldedKeys = new Set();
     const completedActions = [];
+
+    const playerKey = (entry) => {
+        if (entry?.playerId !== null && entry?.playerId !== undefined && String(entry.playerId) !== '') {
+            return `id:${String(entry.playerId)}`;
+        }
+        if (entry?.id !== null && entry?.id !== undefined && String(entry.id) !== '') {
+            return `id:${String(entry.id)}`;
+        }
+        if (entry?.position) return `pos:${String(entry.position).toUpperCase()}`;
+        if (entry?.player || entry?.name) return `name:${String(entry.player || entry.name).trim().toLowerCase()}`;
+        return null;
+    };
 
     for (const streetName of streets) {
         const streetData = hand.streets[streetName];
@@ -451,9 +474,28 @@ export function getHeroDecisionPoints(hand) {
 
         for (let actionIndex = 0; actionIndex < streetData.actions.length; actionIndex++) {
             const action = streetData.actions[actionIndex];
+            if (!action.isHero && action.action === 'fold') {
+                const key = playerKey(action);
+                if (key) foldedKeys.add(key);
+                if (action.position) foldedKeys.add(`pos:${String(action.position).toUpperCase()}`);
+                continue;
+            }
             if (action.isHero) {
+                const activeOpponents = opponents.filter(opp => {
+                    const idKey = opp?.id !== null && opp?.id !== undefined && String(opp.id) !== ''
+                        ? `id:${String(opp.id)}`
+                        : null;
+                    const posKey = opp?.position ? `pos:${String(opp.position).toUpperCase()}` : null;
+                    const nameKey = opp?.name ? `name:${String(opp.name).trim().toLowerCase()}` : null;
+                    return !(
+                        (idKey && foldedKeys.has(idKey))
+                        || (posKey && foldedKeys.has(posKey))
+                        || (nameKey && foldedKeys.has(nameKey))
+                    );
+                });
                 const prior = streetData.actions.slice(0, actionIndex);
-                const priorRaises = prior.filter(a => a.action === 'raise' || a.action === 'bet');
+                const isAggro = (a) => a.action === 'raise' || a.action === 'bet' || a.action === 'allin';
+                const priorRaises = prior.filter(isAggro);
                 const heroPriorRaises = priorRaises.filter(a => a.isHero);
                 const callsAfterRaise = priorRaises.length > 0
                     ? prior.slice(prior.lastIndexOf(priorRaises[priorRaises.length - 1]) + 1)
@@ -468,7 +510,7 @@ export function getHeroDecisionPoints(hand) {
                 } else {
                     const lastHeroIndex = prior.map(a => a.isHero).lastIndexOf(true);
                     const sinceHero = prior.slice(lastHeroIndex + 1);
-                    nodeClass = sinceHero.some(a => !a.isHero && (a.action === 'bet' || a.action === 'raise'))
+                    nodeClass = sinceHero.some(a => !a.isHero && isAggro(a))
                         ? 'hero_faces_bet'
                         : 'hero_bets_or_checks';
                 }
@@ -484,8 +526,8 @@ export function getHeroDecisionPoints(hand) {
                     position: hand.hero.position,
                     nodeClass,
                     villainPosition: [...prior].reverse()
-                        .find(a => !a.isHero && (a.action === 'bet' || a.action === 'raise'))?.position
-                        || (opponents.length === 1 ? opponents[0].position : '')
+                        .find(a => !a.isHero && isAggro(a))?.position
+                        || (activeOpponents.length === 1 ? activeOpponents[0].position : '')
                         || '',
                     priorActions: [...completedActions, ...prior].map(priorAction => ({
                         street: priorAction.street || streetName,

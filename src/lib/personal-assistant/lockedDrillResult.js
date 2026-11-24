@@ -5,7 +5,7 @@
  */
 export function lockedDrillResult(graded, fallbackPick = null) {
   const timedOut = graded?.timedOut === true;
-  const correct = !timedOut && graded?.isCorrect === true;
+  const correct = !timedOut && (graded?.isCorrect === true || graded?.correct === true);
   const pick = timedOut ? 'Ran out of time' : (graded?.selectedAnswer || fallbackPick || null);
   return { timedOut, correct, pick };
 }

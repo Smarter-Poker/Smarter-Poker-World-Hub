@@ -34,7 +34,7 @@ import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { useLeaks, useAssistantStats, useLeakDetection, useLeakHandExamples } from '../../../src/hooks/useAssistant';
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
-import { getAccessToken } from '../../../src/lib/authUtils';
+import { getFreshAccessToken } from '../../../src/lib/authUtils';
 import {
   T, F, S, R, Z, FONT, DISPLAY_FONT, DATA_FONT, card, cardCompact, btn, iconBtn, pill, numeric,
 } from '../../../src/components/sandbox/paTokens';
@@ -146,8 +146,9 @@ function slugFromTitle(title) {
   return title.trim().toLowerCase().replace(/\s+/g, '_');
 }
 
-/** Total BB bled by a leak = per-occurrence EV loss x occurrences. */
+/** Total BB bled by a leak = per-occurrence EV loss x occurrences (priced leaks only). */
 function totalBleed(leak) {
+  if (!hasPricedEv(leak)) return 0;
   return Math.abs(num(leak?.evLossBB)) * Math.max(0, num(leak?.occurrenceCount));
 }
 
@@ -1549,7 +1550,7 @@ export default function LeakFinderPage() {
     setCoachLoading(true);
     setCoachError(null);
     try {
-      const accessToken = getAccessToken();
+      const accessToken = await getFreshAccessToken();
       if (!accessToken) {
         setCoachAccuracy(null);
         return;
@@ -1605,6 +1606,37 @@ export default function LeakFinderPage() {
     if (selectedLeakId == null || leaksLoading) return;
     if (!selectablePool.some(l => String(l.id) === String(selectedLeakId))) setSelectedLeakId(null);
   }, [selectedLeakId, selectablePool, leaksLoading]);
+
+  // Deep link: /hub/personal-assistant/leaks?hand=<uuid> (or legacy /hub/jarvis JSON summary)
+  const [linkedClubHand, setLinkedClubHand] = useState(null);
+  useEffect(() => {
+    if (!router.isReady) return;
+    const raw = router.query?.hand;
+    const value = Array.isArray(raw) ? raw[0] : raw;
+    if (!value) {
+      setLinkedClubHand(null);
+      return;
+    }
+    const trimmed = String(value).trim();
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmed)) {
+      setLinkedClubHand({ id: trimmed, label: `Hand ${trimmed.slice(0, 8)}` });
+      return;
+    }
+    if (trimmed.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed && typeof parsed.id === 'string' && parsed.id.trim()) {
+          const tableLabel = parsed.table ? `${parsed.table}` : `Hand ${parsed.id.trim().slice(0, 8)}`;
+          const stakesLabel = parsed.stakes ? ` (${parsed.stakes})` : '';
+          setLinkedClubHand({ id: parsed.id.trim(), label: `${tableLabel}${stakesLabel}` });
+          return;
+        }
+      } catch (_) {
+        // Ignore malformed legacy payload.
+      }
+    }
+    setLinkedClubHand(null);
+  }, [router.isReady, router.query?.hand]);
 
   // Deep link: /hub/personal-assistant/leaks?leak=<id>
   const deepLinkedRef = useRef(false);
@@ -1797,12 +1829,24 @@ export default function LeakFinderPage() {
   }, [guardAction, router, selectedLeak]);
 
   /**
-   * A saved example snapshot is not enough to recreate a legal decision tree.
-   * Send the player to the audited importer instead of serializing a browser-
-   * authored hand into a route that could appear authoritative.
+   * Open the real persisted Club Arena hand when this example points at a
+   * Club Arena hand UUID (Club Arena Hand History enforces owner RLS). For
+   * external or non-UUID hands, send the player to the audited importer
+   * instead of serializing a browser-authored hand into a retired route.
    */
-  const handleReviewExample = useCallback(() => {
+  const handleReviewExample = useCallback((_leak, example) => {
     if (!guardAction()) return;
+    const rawHandId = String(example?.handId ?? example?.hand_history_id ?? '')
+      .replace(/^club-arena:/, '')
+      .trim();
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawHandId)) {
+      const targetUrl = `/hub/club-arena/hand-history?hand=${encodeURIComponent(rawHandId)}&source=personal-assistant`;
+      // /hub/club-arena/* is a reverse-proxy rewrite to Club Arena's static app,
+      // not a Next.js page bundle - use full document navigation.
+      if (typeof window !== 'undefined') window.location.assign(targetUrl);
+      else router.push(targetUrl);
+      return;
+    }
     router.push('/hub/training/hand-history-upload?source=personal-assistant-leak-example');
   }, [guardAction, router]);
 
@@ -1881,7 +1925,7 @@ export default function LeakFinderPage() {
     setReviewLoading(true);
     setReviewError(null);
     try {
-      const accessToken = getAccessToken();
+      const accessToken = await getFreshAccessToken();
       if (!accessToken) {
         // Signed out: the local fallback is the whole schedule. Not an error.
         setReviewServerRecords([]);
@@ -2391,6 +2435,52 @@ export default function LeakFinderPage() {
                 )}
               </div>
 
+              {linkedClubHand && (
+                <div
+                  role="status"
+                  className={toolStyles.instrumentPanel}
+                  style={{
+                    ...cardCompact,
+                    marginBottom: S.md,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: S.sm,
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 200 }}>
+                    <span style={pill('accent')}>Club Arena Hand Linked</span>
+                    <div style={{ marginTop: S.xs, fontSize: F.bodySm, color: T.text }}>
+                      Run Leak Detection To Audit <span data-pa-verbatim="true">{linkedClubHand.label}</span> Against Verified Solver Evidence.
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: S.xs, flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      className="pa-btn"
+                      style={btn('secondary')}
+                      onClick={() => {
+                        const targetUrl = `/hub/club-arena/hand-history?hand=${encodeURIComponent(linkedClubHand.id)}&source=personal-assistant`;
+                        if (typeof window !== 'undefined') window.location.assign(targetUrl);
+                        else router.push(targetUrl);
+                      }}
+                    >
+                      Open Hand In Club Arena
+                    </button>
+                    <button
+                      type="button"
+                      className="pa-btn"
+                      aria-label="Dismiss linked hand banner"
+                      onClick={() => setLinkedClubHand(null)}
+                      style={iconBtn({ transparent: true, color: T.textMuted })}
+                    >
+                      <X size={18} strokeWidth={2} />
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <AuditReceipt result={detectionResult || (auditJob ? {
                 auditJob,
                 auditProgress: auditJob.progress,
@@ -2696,7 +2786,7 @@ export default function LeakFinderPage() {
               <LeakErrorBoundary label="The Coaching Workspace">
                 <CoachingWorkspace
                   userId={userId}
-                  leaks={selectablePool}
+                  leaks={leaks}
                   onOpenLeak={(id) => { setSelectedLeakId(id); setTab('leaks'); }}
                   onOpenHandReview={handleOpenHandReview}
                   onReviewExample={handleReviewExample}

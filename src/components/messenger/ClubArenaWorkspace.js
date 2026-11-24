@@ -24,7 +24,7 @@ export default function ClubArenaWorkspace({ clubs, open, clubId, folder, onEnte
                 </select>
             </label>
             <div role="tablist" aria-label="Club Arena Inbox" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginTop: 10 }}>
-                {['messages', 'invoices', 'statements', 'notice-board'].map(tab => <button key={tab} type="button" role="tab"
+                {['messages', 'invoices', 'statements', ...(club?.canAccessNoticeBoard === false ? [] : ['notice-board'])].map(tab => <button key={tab} type="button" role="tab"
                     aria-selected={folder === tab} onClick={() => onFolder(tab)}
                     style={{ ...button, flex: 1, fontSize: 12, color: folder === tab ? C.blue : C.text, borderColor: folder === tab ? C.blue : C.border }}>
                     {tab === 'notice-board' ? 'Notice Board' : tab === 'statements' ? 'Statements' : tab === 'invoices' ? 'Invoices' : 'Messages'}
