@@ -157,6 +157,10 @@ export default function LearnIndex({ count, groups }) {
               <Link href="/learn/hands" style={styles.tocLink}>169 Starting Hand Encyclopedia</Link>
               <Link href="/learn/matchups" style={styles.tocLink}>25 Canonical All-In Hand Matchups</Link>
               <Link href="/learn/positions" style={styles.tocLink}>9-Seat Poker Position Encyclopedia</Link>
+              <Link href="/learn/player-types" style={styles.tocLink}>8 Poker Player Archetypes &amp; Exploits</Link>
+              <Link href="/learn/board-textures" style={styles.tocLink}>12 Flop Board Texture Encyclopedia</Link>
+              <Link href="/learn/mental-game" style={styles.tocLink}>Mental Game &amp; Tilt Control Hub</Link>
+              <Link href="/learn/poker-as-a-business" style={styles.tocLink}>Pro Poker Taxes &amp; Schedule C Guide</Link>
               <Link href="/learn/stakes" style={styles.tocLink}>7 Stake Level &amp; Move-Up Guides</Link>
               <Link href="/learn/famous-hands" style={styles.tocLink}>12 Famous Historic Poker Hands</Link>
               <Link href="/learn/roadmaps" style={styles.tocLink}>5 Player Progression Roadmaps</Link>
@@ -170,6 +174,7 @@ export default function LearnIndex({ count, groups }) {
               <Link href="/tools" style={styles.tocLink}>24 Free Poker Calculators &amp; Solvers</Link>
               <Link href="/poker-rooms/states" style={styles.tocLink}>15 US State Poker Laws &amp; Taxes</Link>
               <Link href="/poker-rooms/guides" style={styles.tocLink}>12 US Regional Poker Market Guides</Link>
+              <Link href="/poker-rooms/international" style={styles.tocLink}>10 International Poker Destination Guides</Link>
               <Link href="/poker-rooms/first-time-guide" style={styles.tocLink}>First-Time Live Poker Room Guide</Link>
               <Link href="/poker-rooms/comps-and-tipping-guide" style={styles.tocLink}>Casino Comps &amp; Tipping Guide</Link>
               <Link href="/poker-series/guides" style={styles.tocLink}>10 Major Poker Series Survival Guides</Link>

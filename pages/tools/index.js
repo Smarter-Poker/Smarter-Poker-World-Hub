@@ -7,7 +7,7 @@
  * House style: Title Case, zero em dashes.
  */
 
-import React, { useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import SEOHead, { schemas } from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
@@ -314,6 +314,78 @@ const INTERACTIVE_TOOLS = [
     formula: 'Poker IQ = 100 + 10 * Correct_Domains (100-200 Solver Master Scale)',
   },
   {
+    name: 'PLO Wrap, Redraw & Nut-Out Probability Analyzer',
+    href: '/tools/plo-outs-calculator',
+    mdHref: '/tools/plo-outs-calculator.md',
+    badge: 'PLO Wrap Solver',
+    summary:
+      'Analyzes 13-Out, 16-Out, 17-Out, And 20-Out Pot-Limit Omaha Straight Wraps, Double-Suited Flush Redraws, Nut Vs Dirty Outs, And Pot-Limit Max-Call Thresholds.',
+    formula: '4-Card PLO Flop-To-River Hit % = 1 - ((45 - Outs) / 45) * ((44 - Outs) / 44)',
+  },
+  {
+    name: 'Tournament Late-Registration & Re-Entry ICM EV Calculator',
+    href: '/tools/late-reg-calculator',
+    mdHref: '/tools/late-reg-calculator.md',
+    badge: 'Late-Reg ICM Boost',
+    summary:
+      'Computes ICM Chip Appreciation And Free Dollar Equity Gained When Entering A Tournament At 15BB To 30BB With 40% To 60% Of The Field Already Eliminated.',
+    formula: 'Late-Reg ICM Entry Value = Net_Buy_In * (Field_Remaining_Fraction)^(-0.235)',
+  },
+  {
+    name: 'Poker Winrate Confidence-Interval & Sample Size Calculator',
+    href: '/tools/winrate-confidence-calculator',
+    mdHref: '/tools/winrate-confidence-calculator.md',
+    badge: '70%/95%/99% CI',
+    summary:
+      'Computes 70%, 95%, And 99% Winrate Confidence Bounds, Normal CDF Probability Of Being A True Losing Player, And Required Sample Size In Hands Or Live Hours.',
+    formula: '95% CI = Observed_WR +/- 1.96 * (Std_Dev / Sqrt(Hands / 100))',
+  },
+  {
+    name: 'Live Poker Trip & Festival Budget Planner',
+    href: '/tools/poker-trip-planner',
+    mdHref: '/tools/poker-trip-planner.md',
+    badge: 'Series Budget & ROI',
+    summary:
+      'Calculates Total Travel Overhead (Flights, Hotel, Per Diem), Effective Expense Rake % On Tournament Buy-Ins, Break-Even Gross Winnings, And Net Trip EV.',
+    formula: 'Effective Expense Rake % = Total_Travel_Overhead / Total_Tournament_Action',
+  },
+  {
+    name: 'Poker Action Clock & Home Game Shot-Clock Timer',
+    href: '/tools/shot-clock',
+    mdHref: '/tools/shot-clock.md',
+    badge: 'WPT/Triton Shot Clock',
+    summary:
+      'Full-Featured 15s/20s/30s/45s Tournament Action Clock With 30s/60s Time-Bank Extension Card Inventory Across Seats 1 To 9 And Web Audio Countdown Alerts.',
+    formula: 'Primary Decision Window (15s-45s) + Per-Seat Time-Bank Extension Cards',
+  },
+  {
+    name: 'GTO Geometric Bet-Sizing & Overbet Planner (2e / 3e)',
+    href: '/tools/geometric-bet-calculator',
+    mdHref: '/tools/geometric-bet-calculator.md',
+    badge: '2e / 3e Overbet Math',
+    summary:
+      'Computes Exact Constant Pot-Fraction Geometric Bet Sizes Across 2 Or 3 Streets So The Final Chip Goes All-In On The River Plus Comparison Vs 33%/75%/Jam.',
+    formula: 'Geometric Pot Fraction g = (((2 * Stack + Pot) / Pot)^(1 / Streets) - 1) / 2',
+  },
+  {
+    name: 'Live Cash Game Table-Selection & Profitability Scorecard',
+    href: '/tools/table-selection-calculator',
+    mdHref: '/tools/table-selection-calculator.md',
+    badge: 'Table Selection Grader',
+    summary:
+      'Grades Any Live Cash Table From S-Tier Whale Table To F Immediate Table Change Based On VPIP>40% Players, Stack Depth, Straddles, Bomb Pots, And Rake Cap.',
+    formula: 'Net BB/Hr = Gross_Table_Winrate_BB_Hr - (Hourly_Raked_Pots_Won * Rake_Cap / BB)',
+  },
+  {
+    name: 'MTT Session Schedule & Average Buy-In (ABI) Planner',
+    href: '/tools/mtt-grind-planner',
+    mdHref: '/tools/mtt-grind-planner.md',
+    badge: 'MTT ABI & Exposure',
+    summary:
+      'Calculates Single-Session Tournament Capital Exposure Including Re-Entries, Effective ABI Bankroll Ratios, Session 0-ITM Brick Probability, And Expected Session EV.',
+    formula: 'Session Brick Risk (0 ITMs) = (1 - ITM_Probability)^(Tournaments_In_Session)',
+  },
+  {
     name: 'Embeddable Webmaster Poker Widgets',
     href: '/tools/embeds',
     mdHref: '/tools/embeds.md',
@@ -322,6 +394,70 @@ const INTERACTIVE_TOOLS = [
       'Copy-And-Paste Responsive Iframe Embeds For Poker Blogs, Study Discords, And Card Room Websites With Zero External Script Dependencies.',
     formula: '100% Free Responsive HTML5 Iframe Widgets',
   },
+];
+
+const TOOL_CATEGORY_MAP = {
+  '/tools/poker-odds-calculator': 'Equity & GTO',
+  '/tools/preflop-ranges': 'Equity & GTO',
+  '/tools/pot-odds-calculator': 'Equity & GTO',
+  '/tools/spr-calculator': 'Equity & GTO',
+  '/tools/plo-bet-calculator': 'Equity & GTO',
+  '/tools/3bet-calculator': 'Equity & GTO',
+  '/tools/outs-calculator': 'Equity & GTO',
+  '/tools/iso-calculator': 'Equity & GTO',
+  '/tools/board-texture-analyzer': 'Equity & GTO',
+  '/tools/who-wins-calculator': 'Equity & GTO',
+  '/tools/plo-outs-calculator': 'Equity & GTO',
+  '/tools/geometric-bet-calculator': 'Equity & GTO',
+  '/tools/icm-calculator': 'Tournaments & ICM',
+  '/tools/push-fold-calculator': 'Tournaments & ICM',
+  '/tools/bounty-calculator': 'Tournaments & ICM',
+  '/tools/blind-structure-calculator': 'Tournaments & ICM',
+  '/tools/payout-calculator': 'Tournaments & ICM',
+  '/tools/chop-calculator': 'Tournaments & ICM',
+  '/tools/variance-calculator': 'Tournaments & ICM',
+  '/tools/staking-calculator': 'Tournaments & ICM',
+  '/tools/m-ratio-calculator': 'Tournaments & ICM',
+  '/tools/satellite-calculator': 'Tournaments & ICM',
+  '/tools/late-reg-calculator': 'Tournaments & ICM',
+  '/tools/mtt-grind-planner': 'Tournaments & ICM',
+  '/tools/bankroll-calculator': 'Live Cash & Bankroll',
+  '/tools/poker-winrate-calculator': 'Live Cash & Bankroll',
+  '/tools/rake-calculator': 'Live Cash & Bankroll',
+  '/tools/poker-tax-calculator': 'Live Cash & Bankroll',
+  '/tools/session-planner': 'Live Cash & Bankroll',
+  '/tools/straddle-calculator': 'Live Cash & Bankroll',
+  '/tools/promo-ev-calculator': 'Live Cash & Bankroll',
+  '/tools/winrate-confidence-calculator': 'Live Cash & Bankroll',
+  '/tools/poker-trip-planner': 'Live Cash & Bankroll',
+  '/tools/table-selection-calculator': 'Live Cash & Bankroll',
+  '/tools/side-pot-calculator': 'Home Game & Utilities',
+  '/tools/home-game-kit': 'Home Game & Utilities',
+  '/tools/format-quiz': 'Home Game & Utilities',
+  '/tools/hand-converter': 'Home Game & Utilities',
+  '/tools/mixed-game-placards': 'Home Game & Utilities',
+  '/tools/poker-iq-test': 'Home Game & Utilities',
+  '/tools/shot-clock': 'Home Game & Utilities',
+  '/tools/embeds': 'Home Game & Utilities',
+};
+
+const TOOL_FILTER_CATEGORIES = [
+  'All 42 Tools',
+  'Equity & GTO',
+  'Tournaments & ICM',
+  'Live Cash & Bankroll',
+  'Home Game & Utilities',
+];
+
+const FEATURED_QUICK_LAUNCH = [
+  { label: 'Multiway Odds Engine', href: '/tools/poker-odds-calculator', tag: 'Equity' },
+  { label: '13x13 GTO Ranges', href: '/tools/preflop-ranges', tag: 'Preflop' },
+  { label: 'Tournament ICM Solver', href: '/tools/icm-calculator', tag: 'ICM' },
+  { label: 'Flop Board Texture Analyzer', href: '/tools/board-texture-analyzer', tag: 'Postflop' },
+  { label: 'PLO Wrap & Nut-Out Analyzer', href: '/tools/plo-outs-calculator', tag: 'Omaha' },
+  { label: 'GTO Geometric 2e/3e Sizing', href: '/tools/geometric-bet-calculator', tag: 'Overbets' },
+  { label: 'Late-Reg ICM EV Calculator', href: '/tools/late-reg-calculator', tag: 'MTT Edge' },
+  { label: 'Live Table Selection Grader', href: '/tools/table-selection-calculator', tag: 'Live Cash' },
 ];
 
 const POSITIONAL_CHARTS = [
@@ -354,11 +490,28 @@ const TOOLS_FAQS = [
 const TOOLS = INTERACTIVE_TOOLS;
 
 export default function PokerToolsDirectoryPage() {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeCategory, setActiveCategory] = useState('All 42 Tools');
   const canonicalPath = '/tools';
   const canonicalUrl = `https://smarter.poker${canonicalPath}`;
-  const pageTitle = 'Free Poker Calculators, GTO Solvers & Math Tools';
+  const pageTitle = '42 Free Poker Calculators And Solvers';
   const pageDesc =
-    'Explore All 34 Free Browser-Native Smarter.Poker Tools (33 Interactive Calculators + Embeds & Streamer Bot API): Multiway Equity, Tournament ICM, Chop Calculator, 13x13 GTO Ranges, Pot Odds, Outs, Bankroll RoR, Variance, Push/Fold, PKO Bounties, Winrate, Side Pots, Blind Structure, SPR, PLO Max Bet, Payouts, Rake, 3-Bet Sizing, ISO Sizing, Staking, Tax, Home Game Kit, Format Quiz, Board Texture, M-Ratio, Session Planner, Straddle, Hand Converter, Satellite, Promo EV, Showdown Resolver, Mixed Game Placards, And Poker IQ Test.';
+    'Explore All 42 Free Browser-Native Smarter.Poker Tools (41 Interactive Calculators + Embeds & Streamer Bot API) Covering Equity, GTO Ranges, ICM, PLO Wraps, Geometric Sizing, Late-Reg ICM, Winrate Confidence, Trip Budgets, Shot Clock, Table Selection, And MTT ABI Planning.';
+
+  const filteredTools = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return INTERACTIVE_TOOLS.filter((tool) => {
+      const cat = TOOL_CATEGORY_MAP[tool.href] || 'Home Game & Utilities';
+      const matchesCat = activeCategory === 'All 42 Tools' || cat === activeCategory;
+      const matchesQuery =
+        !q ||
+        tool.name.toLowerCase().includes(q) ||
+        tool.badge.toLowerCase().includes(q) ||
+        tool.summary.toLowerCase().includes(q) ||
+        tool.formula.toLowerCase().includes(q);
+      return matchesCat && matchesQuery;
+    });
+  }, [searchQuery, activeCategory]);
 
   const schema = useMemo(() => {
     const baseSchema = hubProductSchema({
@@ -415,17 +568,123 @@ export default function PokerToolsDirectoryPage() {
           Free Interactive Poker Calculators, GTO Solvers &amp; Tournament Math Tools
         </h1>
 
-        <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
-          <strong>Direct Answer:</strong> Smarter.Poker Provides <strong>34 Free Browser-Native Tools (33 Interactive Calculators + Embeds &amp; Streamer Bot API)</strong> Covering Exact Multiway Hand Equity, Malmuth-Harville ICM Prize Pool Valuation, Tournament Deal &amp; ICM Chop Calculator, 13x13 GTO Preflop Ranges, Pot Odds And Minimum Defense Frequency (MDF), Poker Outs &amp; Rule Of 2 And 4 Calculator, Risk Of Ruin Bankroll Math, Bankroll Variance &amp; Downswing Simulator, Short-Stack Push/Fold Charts, PKO Bounty Discounts, Winrate Conversion, Multi-Way Side Pots, Tournament Blind Schedules, Geometric SPR Bet Sizing, Pot-Limit Omaha Max Bets, Tournament Payout Distributions, Live Cash Rake Comparisons, 3-Bet/4-Bet Sizing, Pre-Flop Isolation Raise Calculator, Poker Staking &amp; Markup Calculator, US Poker Tax &amp; IRS W-2G Calculator, Home Game Blind Timer &amp; Chip Distribution Kit, What Poker Format Fits Your Brain Quiz, Flop Board Texture Analyzer, Tournament M-Ratio Calculator, Live Cash Session Planner, Straddle &amp; Bomb Pot EV Calculator, Hand History Formatter, Satellite Seat-Bubble Calculator, Bad Beat Jackpot &amp; Promo EV Calculator, What Beats What Showdown Resolver, Mixed Game Rotation Tracker &amp; Placards, And 10-Question Poker IQ Test. Every Tool Runs Instantly In Your Browser And Exposes A Dedicated Markdown Endpoint For AI Assistants.
+        <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 24px 0' }}>
+          <strong>Direct Answer:</strong> Smarter.Poker Provides <strong>42 Free Browser-Native Tools (41 Interactive Calculators + Embeds &amp; Streamer Bot API)</strong> Covering Exact Multiway Hand Equity, Malmuth-Harville ICM Prize Pool Valuation, Tournament Deal &amp; ICM Chop Calculator, 13x13 GTO Preflop Ranges, Pot Odds And Minimum Defense Frequency (MDF), Poker Outs &amp; Rule Of 2 And 4, Risk Of Ruin Bankroll Math, Variance &amp; Downswing Simulator, Short-Stack Push/Fold Charts, PKO Bounty Discounts, Winrate Conversion, Multi-Way Side Pots, Tournament Blind Schedules, Geometric SPR Bet Sizing, Pot-Limit Omaha Max Bets, PLO Wrap &amp; Nut-Out Analyzer, Tournament Late-Reg ICM EV Calculator, Winrate Confidence-Interval Calculator, Poker Trip &amp; Series Budget Planner, WPT/Triton Poker Action Shot Clock, GTO Geometric 2e/3e Bet-Sizing Planner, Live Table-Selection Grader, MTT Session &amp; ABI Grind Planner, And 10-Question Poker IQ Test.
         </p>
+
+        {/* Pinned & Featured Quick-Launch Shelf */}
+        <section
+          aria-label="Pinned And Featured Quick-Launch Shelf"
+          style={{
+            background: '#0f172a',
+            border: '1px solid #1e293b',
+            borderRadius: 12,
+            padding: 18,
+            marginBottom: 22,
+          }}
+        >
+          <div style={{ fontSize: 12, fontWeight: 800, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+            Pinned &amp; Featured Quick-Launch Shelf
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(225px, 1fr))', gap: 10 }}>
+            {FEATURED_QUICK_LAUNCH.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '10px 14px',
+                  background: '#070b14',
+                  border: '1px solid #1e293b',
+                  borderRadius: 8,
+                  color: '#f8fafc',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                }}
+              >
+                <span>{item.label}</span>
+                <span style={{ fontSize: 11, color: '#38bdf8', background: '#1e293b', padding: '2px 7px', borderRadius: 4 }}>
+                  {item.tag}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        {/* Instant Search & Category Filter Bar */}
+        <section
+          aria-label="Instant Search And Category Filter Bar"
+          style={{
+            background: '#0f172a',
+            border: '1px solid #1e293b',
+            borderRadius: 12,
+            padding: 18,
+            marginBottom: 28,
+          }}
+        >
+          <div style={{ marginBottom: 12 }}>
+            <label htmlFor="tools-instant-search" style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#38bdf8', marginBottom: 6 }}>
+              Instant Filter Across All 42 Interactive Poker Calculators &amp; Solvers
+            </label>
+            <input
+              id="tools-instant-search"
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Filter By Name, Formula, ICM, PLO Wrap, Geometric 3e, Shot Clock, Late-Reg, Rake..."
+              style={{
+                width: '100%',
+                padding: '11px 14px',
+                background: '#070b14',
+                border: '1px solid #38bdf8',
+                borderRadius: 8,
+                color: '#f8fafc',
+                fontSize: 14,
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {TOOL_FILTER_CATEGORIES.map((cat) => {
+                const isActive = activeCategory === cat;
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setActiveCategory(cat)}
+                    style={{
+                      padding: '7px 13px',
+                      borderRadius: 6,
+                      border: isActive ? '1px solid #38bdf8' : '1px solid #1e293b',
+                      background: isActive ? '#38bdf8' : '#070b14',
+                      color: isActive ? '#070b14' : '#cbd5e1',
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {cat}
+                  </button>
+                );
+              })}
+            </div>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#34d399' }}>
+              Showing {filteredTools.length} Of {INTERACTIVE_TOOLS.length} Tools
+            </span>
+          </div>
+        </section>
 
         {/* Grid Of Interactive Calculators */}
         <section style={{ marginBottom: 44 }}>
           <h2 style={{ fontSize: 22, fontWeight: 700, color: '#f8fafc', margin: '0 0 16px 0' }}>
-            Complete Suite Of Interactive Poker Calculators
+            Complete Suite Of 42 Interactive Poker Calculators ({filteredTools.length} Displayed)
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 18 }}>
-            {INTERACTIVE_TOOLS.map((tool) => (
+            {filteredTools.map((tool) => (
               <div
                 key={tool.href}
                 style={{
@@ -574,8 +833,8 @@ export default function PokerToolsDirectoryPage() {
           canonicalUrl={canonicalUrl}
           badgeType="gto"
           badgeLabel="GTO Math & Solvers"
-          badgeValue="34 Free Poker Calculators"
-          summary="Complete Directory Of 34 Free Browser-Native Poker Calculators, GTO Preflop Range Matrices, And Tournament Director Utilities."
+          badgeValue="42 Free Poker Calculators"
+          summary="Complete Directory Of 42 Free Browser-Native Poker Calculators, GTO Preflop Range Matrices, And Tournament Director Utilities."
           slug="poker-tools-suite"
         />
 

@@ -2,7 +2,7 @@
   "schema_version": "2025-11-25",
   "name": "io.github.smarter-poker/mcp-server",
   "display_name": "Smarter.Poker Live Poker, GTO Strategy & Equity MCP Server",
-  "description": "Official Model Context Protocol (MCP) server for Smarter.Poker providing 45 zero-auth tools for North American live poker room discovery (500+ venues), tournament series schedules, exact Holdem/PLO equity calculation, 100BB 6-Max GTO preflop charts, Malmuth-Harville ICM & final table chop payouts, pot odds/MDF math, hypergeometric draw outs, Brownian variance/downswing simulation, PKO/Mystery Bounty chip equity, multi-way side pot calculation, tournament blind structure generation, SPR geometric bet sizing, PLO max bet & live cash rake math, US poker tax & Form W-2G calculation, tournament staking markup splits, pre-flop isolation raise sizing, home game chip set distribution, Flop Board Texture, Harrington M-Ratio, Cash Session Planner, Straddle & Bomb Pot EV, Hand History Formatter, Satellite Bubble Factor, Bad Beat Jackpot EV, 7-Card Showdown Resolver, 9 table position guides, 15 US state poker law guides, 30 official TDA/RROP floor rulings, 15 poker game variants, 12 US regional poker market guides, 10 major poker series strategy guides, 169 starting hand guides, 25 hand-vs-hand preflop matchups, 15 first-party poker research benchmarks, 30 competitor comparisons, and automated citation/backlink/embed syndication kits.",
+  "description": "Official Model Context Protocol (MCP) server for Smarter.Poker providing 55 zero-auth tools for North American live poker room discovery (500+ venues), 10 international poker destinations, tournament series schedules, exact Holdem/PLO equity calculation, PLO straight wrap outs, 100BB 6-Max GTO preflop charts, Malmuth-Harville ICM & final table chop payouts, late-registration ICM chip appreciation, pot odds/MDF math, hypergeometric draw outs, Brownian variance/downswing simulation, winrate confidence intervals, poker trip expense budgets, 2e/3e geometric bet sizing, live cash table selection scoring, MTT session ABI planning, 8 player archetype exploits, 12 canonical flop board texture guides, PKO/Mystery Bounty chip equity, multi-way side pot calculation, tournament blind structure generation, SPR geometric bet sizing, PLO max bet & live cash rake math, US poker tax & Form W-2G calculation, tournament staking markup splits, pre-flop isolation raise sizing, home game chip set distribution, Flop Board Texture, Harrington M-Ratio, Cash Session Planner, Straddle & Bomb Pot EV, Hand History Formatter, Satellite Bubble Factor, Bad Beat Jackpot EV, 7-Card Showdown Resolver, 9 table position guides, 15 US state poker law guides, 30 official TDA/RROP floor rulings, 15 poker game variants, 12 US regional poker market guides, 10 major poker series strategy guides, 169 starting hand guides, 25 hand-vs-hand preflop matchups, 15 first-party poker research benchmarks, 30 competitor comparisons, and automated citation/backlink/embed syndication kits.",
   "version": "2.0.0",
   "package_version": "1.0.5",
   "homepage": "https://smarter.poker",
@@ -37,11 +37,18 @@
   "capabilities": {
     "tools": true,
     "prompts": true,
-    "resources": true
+    "resources": true,
+    "toolsCount": 55,
+    "promptsCount": 12,
+    "resourceTemplatesCount": 18,
+    "interactiveCalculatorsCount": 42,
+    "streamerBotCommandsCount": 34
   },
-  "tools_count": 45,
-  "prompts_count": 10,
-  "resource_templates_count": 16,
+  "tools_count": 55,
+  "prompts_count": 12,
+  "resource_templates_count": 18,
+  "interactiveCalculatorsCount": 42,
+  "streamerBotCommandsCount": 34,
   "tools": [
     "search_poker_venues",
     "get_venue_details",
@@ -87,7 +94,17 @@
     "calculate_bad_beat_jackpot_ev",
     "resolve_holdem_showdown_winner",
     "get_poker_position_strategy",
-    "get_us_state_poker_guide"
+    "get_us_state_poker_guide",
+    "calculate_plo_wrap_outs",
+    "calculate_late_reg_icm_ev",
+    "calculate_winrate_confidence_interval",
+    "calculate_poker_trip_budget",
+    "calculate_geometric_bet_sizing",
+    "score_live_table_selection",
+    "calculate_mtt_session_abi_plan",
+    "get_player_archetype_exploit",
+    "get_flop_board_texture_guide",
+    "get_international_poker_guide"
   ],
   "supported_tool_aliases": [
     "calculate_poker_tax_w2g",
@@ -106,6 +123,28 @@
     "audit_poker_variance_and_bankroll",
     "prepare_tournament_series_trip",
     "analyze-flop-cbet-texture",
-    "plan-satellite-or-bounty-endgame"
+    "plan-satellite-or-bounty-endgame",
+    "exploit-live-player-archetype",
+    "plan-geometric-overbet-line"
+  ],
+  "resourceTemplates": [
+    "https://smarter.poker/learn/{slug}.md",
+    "https://smarter.poker/learn/category/{category}.md",
+    "https://smarter.poker/glossary/{term}.md",
+    "https://smarter.poker/compare/{slug}.md",
+    "https://smarter.poker/hub/venues/{id}.md",
+    "https://smarter.poker/learn/hands/{hand}.md",
+    "https://smarter.poker/research/{slug}.md",
+    "https://smarter.poker/hub/training/{tool}.md",
+    "https://smarter.poker/rules/{slug}.md",
+    "https://smarter.poker/games/{variant}.md",
+    "https://smarter.poker/poker-rooms/guides/{city}.md",
+    "https://smarter.poker/tools/{calculator}.md",
+    "https://smarter.poker/learn/positions/{pos}.md",
+    "https://smarter.poker/learn/stakes/{stake}.md",
+    "https://smarter.poker/learn/famous-hands/{slug}.md",
+    "https://smarter.poker/poker-rooms/states/{state}.md",
+    "https://smarter.poker/learn/player-types/{type}.md",
+    "https://smarter.poker/poker-rooms/international/{city}.md"
   ]
 }

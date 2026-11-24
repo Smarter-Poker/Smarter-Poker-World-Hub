@@ -295,10 +295,100 @@ export const TOOL_OG_CATALOG = {
     subtitle: 'Interactive 169-Hand RFI, 3-Bet & 4-Bet Equilibrium Grids',
     stat: 'Solver-Verified 6-Max Preflop Charts',
   },
+  'board-texture-analyzer': {
+    title: 'Flop Board Texture & GTO C-Bet Analyzer',
+    subtitle: 'Suit Texture, Connectedness, Range Advantage & Optimal C-Bet Sizing',
+    stat: 'Interactive 3-Card Flop Solver Engine',
+  },
+  'm-ratio-calculator': {
+    title: 'Harrington Tournament M-Ratio & Zone Calculator',
+    subtitle: 'M-Ratio, Short-Handed Effective M, Q-Ratio & Push/Fold Zones',
+    stat: 'Green, Yellow, Orange & Red Zone Math',
+  },
+  'session-planner': {
+    title: 'Live Cash Game Session & Net Hourly EV Planner',
+    subtitle: 'Hourly Winrate, Casino Comps, Session Expenses & Annual Projections',
+    stat: '5% Risk-Of-Ruin Bankroll & Stop-Loss',
+  },
+  'straddle-calculator': {
+    title: 'Live Straddle & Double-Board Bomb Pot EV Calculator',
+    subtitle: 'UTG vs Mississippi Button Straddle & 8-Way Bomb Pot SPR Math',
+    stat: 'Halved Stack Depth & Quartering Protection',
+  },
+  'hand-converter': {
+    title: 'Poker Hand History Formatter (Reddit & Discord)',
+    subtitle: 'Convert Raw Hands Into Suit-Symbol Markdown With Street SPR',
+    stat: '1-Click Shareable Permalink & AI Prompt',
+  },
+  'satellite-calculator': {
+    title: 'Tournament Satellite Bubble Factor & Seat-Lock Calculator',
+    subtitle: 'Target Seat Stack, Survival Thresholds & Fold-AA Bubble Math',
+    stat: 'Win-A-Seat Milestone & Survival Solver',
+  },
+  'promo-ev-calculator': {
+    title: 'Bad Beat Jackpot (BBJ) & High-Hand Promo EV Calculator',
+    subtitle: 'Qualifier Hit Odds, Breakeven Jackpot Pool & Hourly Seat EV',
+    stat: 'Live Casino Promotional Drop Analyzer',
+  },
+  'who-wins-calculator': {
+    title: 'What Beats What? 7-Card Hold\'em Showdown Resolver',
+    subtitle: 'Best 5-Card Hand, Kicker Tie-Breakers & Counterfeited Two-Pair',
+    stat: 'Zero-Error Casino Showdown Referee',
+  },
+  'mixed-game-placards': {
+    title: 'Mixed Game (HORSE / 8-Game) Rotation Tracker & Placards',
+    subtitle: '8-Hand Orbit Counter, Betting Structures & Printable Table Cards',
+    stat: 'HORSE, 8-Game & Dealer\'s Choice Ready',
+  },
+  'poker-iq-test': {
+    title: '10-Question Interactive GTO Poker IQ Diagnostic Test',
+    subtitle: 'Pot Odds, MDF, ICM, PKO Bounties, Combinatorics & TDA Rules',
+    stat: '100 To 200 Quantitative Poker IQ Scale',
+  },
+  'plo-outs-calculator': {
+    title: 'PLO Straight Wrap & Flush Redraw Outs Calculator',
+    subtitle: '13, 16, 17 & 20-Out Omaha Wraps, Nut vs Dirty Outs & Turn+River Equity',
+    stat: '4-Card & 5-Card PLO Hypergeometric Engine',
+  },
+  'late-reg-calculator': {
+    title: 'Tournament Late-Registration ICM Equity Calculator',
+    subtitle: 'Instant ICM Chip Appreciation Entering At 15BB-30BB vs Level 1',
+    stat: 'Malmuth-Harville Late-Reg ROI Solver',
+  },
+  'winrate-confidence-calculator': {
+    title: 'Poker Winrate Confidence Interval & Sample Size Calculator',
+    subtitle: '70%, 95% & 99% BB/100 Confidence Bands & True Loss Probability',
+    stat: 'Standard Error & Proof-Of-Win Sample Math',
+  },
+  'poker-trip-planner': {
+    title: 'Poker Festival & Vegas Trip Expense Overhead Calculator',
+    subtitle: 'Flights, Hotel, Dining, Effective Expense Rake % & Breakeven Target',
+    stat: 'Tournament Series Net Trip EV Planner',
+  },
+  'shot-clock': {
+    title: 'Live Poker Tournament Shot Clock & Time-Bank Timer',
+    subtitle: '15s/30s Action Countdown, Audio Alerts & Printable Time-Bank Cards',
+    stat: 'High-Roller & Home Game Action Clock',
+  },
+  'geometric-bet-calculator': {
+    title: 'Multi-Street 2e & 3e Geometric Bet Sizing Calculator',
+    subtitle: 'Equal Pot-Fraction Flop, Turn & River Sizings To Smoothly Jam Stacks',
+    stat: 'g = (((2S + P)/P)^(1/n) - 1) / 2 Solver',
+  },
+  'table-selection-calculator': {
+    title: 'Live Cash Game Table Selection & Profitability Scorer',
+    subtitle: 'Grade Any Table (S-Tier To F) By VPIP Whales, Stack Depth & Rake Cap',
+    stat: 'Live Table Winrate Multiplier Engine',
+  },
+  'mtt-grind-planner': {
+    title: 'MTT Tournament Grind Session & ABI Bankroll Planner',
+    subtitle: 'Total Session Exposure, ABI Buy-In Ratio & 0-ITM Brick Probability',
+    stat: 'Sunday & Festival Multi-Table Session Math',
+  },
   embeds: {
     title: 'Free Embeddable Poker Calculators, Widgets & Streamer Bot',
     subtitle: 'Copy-Paste Iframe Tools, Nightbot Commands & Authority SVG Badges',
-    stat: '18 Streamer Commands & Webmaster Embeds',
+    stat: '34 Streamer Commands & Webmaster Embeds',
   },
 };
 
@@ -307,6 +397,8 @@ export function renderOgCardSvg({
   title = '',
   subtitle = '',
   stat = '',
+  metric = '',
+  badge = '',
 } = {}) {
   const cleanSlug = String(slug || '')
     .trim()
@@ -322,11 +414,15 @@ export function renderOgCardSvg({
   const resolvedSubtitle =
     subtitle ||
     toolPreset?.subtitle ||
-    '24 Free Interactive Calculators • 169 Hand Guides • 500+ Live Rooms';
+    '42 Free Interactive Calculators • 169 Hand Guides • 500+ Live Rooms';
   const resolvedStat =
+    metric ||
     stat ||
     toolPreset?.stat ||
     '100% Free - Zero Login Required';
+  const resolvedBadge =
+    badge ||
+    'SMARTER.POKER OFFICIAL';
 
   const safeTitle = escapeXml(String(resolvedTitle).slice(0, 86));
   const safeSubtitle = escapeXml(String(resolvedSubtitle).slice(0, 110));
@@ -335,6 +431,8 @@ export function renderOgCardSvg({
       .replace(/\u2014/g, '-')
       .slice(0, 72)
   );
+  const safeBadge = escapeXml(String(resolvedBadge).toUpperCase().slice(0, 36));
+  const badgeBoxWidth = Math.max(290, Math.round(safeBadge.length * 10.5) + 74);
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="${safeTitle}">
   <title>${safeTitle}</title>
@@ -345,34 +443,34 @@ export function renderOgCardSvg({
       <stop offset="100%" stop-color="#0a0f18"/>
     </linearGradient>
     <linearGradient id="cyanBar" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#00d4ff"/>
-      <stop offset="50%" stop-color="#38bdf8"/>
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="50%" stop-color="#00d4ff"/>
       <stop offset="100%" stop-color="#10b981"/>
     </linearGradient>
   </defs>
   <rect width="1200" height="630" fill="#0a0f18"/>
   <rect width="1200" height="630" fill="url(#ogBg)"/>
-  <rect x="0" y="0" width="1200" height="12" fill="#00d4ff"/>
+  <rect x="0" y="0" width="1200" height="12" fill="url(#cyanBar)"/>
   <rect x="64" y="64" width="1072" height="502" rx="24" ry="24" fill="#0d1524" stroke="#00d4ff" stroke-opacity="0.35" stroke-width="2"/>
   <g font-family="Inter, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" text-rendering="geometricPrecision">
-    <rect x="108" y="114" width="290" height="40" rx="20" ry="20" fill="#00d4ff" fill-opacity="0.14" stroke="#00d4ff" stroke-opacity="0.55"/>
-    <circle cx="132" cy="134" r="6" fill="#00d4ff"/>
-    <text x="150" y="140" fill="#00d4ff" font-size="16" font-weight="800" letter-spacing="1.5">SMARTER.POKER OFFICIAL</text>
+    <rect x="108" y="114" width="${badgeBoxWidth}" height="40" rx="20" ry="20" fill="#f59e0b" fill-opacity="0.14" stroke="#f59e0b" stroke-opacity="0.65"/>
+    <circle cx="132" cy="134" r="6" fill="#f59e0b"/>
+    <text x="150" y="140" fill="#fbbf24" font-size="16" font-weight="800" letter-spacing="1.5">${safeBadge}</text>
     <text x="108" y="255" fill="#f8fafc" font-size="44" font-weight="800">${safeTitle}</text>
     <text x="108" y="325" fill="#94a3b8" font-size="25" font-weight="600">${safeSubtitle}</text>
-    <rect x="108" y="388" width="560" height="64" rx="14" ry="14" fill="#071e2e" stroke="#00d4ff" stroke-width="2"/>
+    <rect x="108" y="388" width="640" height="64" rx="14" ry="14" fill="#071e2e" stroke="#00d4ff" stroke-width="2"/>
     <text x="138" y="429" fill="#00d4ff" font-size="24" font-weight="800">${safeStat}</text>
-    <text x="108" y="518" fill="#64748b" font-size="20" font-weight="700">smarter.poker • Open Quantitative Poker Intelligence &amp; 35-Tool MCP Server</text>
+    <text x="108" y="518" fill="#64748b" font-size="20" font-weight="700">smarter.poker • Open Quantitative Poker Intelligence &amp; 55-Tool MCP Server</text>
   </g>
 </svg>`;
 }
 
 export function renderToolOgCard(req, res) {
-  const { slug = '', title = '', subtitle = '', stat = '' } = req?.query || {};
-  const svg = renderOgCardSvg({ slug, title, subtitle, stat });
+  const { slug = '', title = '', subtitle = '', stat = '', metric = '', badge = '' } = req?.query || {};
+  const svg = renderOgCardSvg({ slug, title, subtitle, stat, metric, badge });
   if (res) {
     res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
-    res.setHeader('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=604800');
+    res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=604800, stale-while-revalidate=604800');
     res.setHeader('Access-Control-Allow-Origin', '*');
     return res.status(200).send(svg);
   }

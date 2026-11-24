@@ -161,19 +161,27 @@ export default function PokerPositionDetailPage({ position, allPositions = [] })
             </div>
           </div>
 
-          <div style={styles.quickCrossLinks}>
-            <Link href="/tools/preflop-ranges" style={styles.crossBtnCyan}>
-              Open 13x13 GTO Range Grid
-            </Link>
-            <Link href="/tools/poker-odds-calculator" style={styles.crossBtnEmerald}>
-              Simulate Equity In Odds Calculator
-            </Link>
-            <Link href={POSITIONS_BASE_PATH} style={styles.crossBtnOutline}>
-              All 9 Table Positions
-            </Link>
-            <Link href="/learn/hands" style={styles.crossBtnOutline}>
-              All 169 Starting Hands
-            </Link>
+          <div style={{ marginTop: 14, padding: '14px 16px', background: '#070b14', border: '1px solid #1e293b', borderRadius: 10 }}>
+            <div style={{ fontSize: 11.5, fontWeight: 800, color: '#38bdf8', letterSpacing: '0.06em', marginBottom: 8 }}>
+              INTERACTIVE CALCULATORS FOR THIS SPOT
+            </div>
+            <div style={styles.quickCrossLinks}>
+              <Link href="/tools/preflop-ranges" style={styles.crossBtnCyan}>
+                Open 13x13 GTO Range Grid
+              </Link>
+              <Link href="/tools/poker-odds-calculator" style={styles.crossBtnEmerald}>
+                Simulate Equity In Odds Calculator
+              </Link>
+              <Link href="/tools/geometric-bet-calculator" style={styles.crossBtnOutline}>
+                Geometric 3-Street Bet Sizing Calculator
+              </Link>
+              <Link href="/tools/table-selection-calculator" style={styles.crossBtnOutline}>
+                Seat &amp; Table Selection Calculator
+              </Link>
+              <Link href="/tools/session-planner" style={styles.crossBtnOutline}>
+                Session &amp; Stop-Loss Planner
+              </Link>
+            </div>
           </div>
         </header>
 

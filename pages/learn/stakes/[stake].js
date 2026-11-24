@@ -174,19 +174,27 @@ export default function PokerStakeDetailPage({ stake, otherStakes = [] }) {
             </div>
           </div>
 
-          <div style={styles.quickCrossLinks}>
-            <Link href="/tools/bankroll-calculator" style={styles.crossBtnCyan}>
-              Open Bankroll &amp; Risk Of Ruin Calculator
-            </Link>
-            <Link href="/tools/rake-calculator" style={styles.crossBtnEmerald}>
-              Run Cash Rake Impact Calculator
-            </Link>
-            <Link href={STAKES_BASE_PATH} style={styles.crossBtnOutline}>
-              All 7 Stake Level Guides
-            </Link>
-            <Link href="/learn/roadmaps" style={styles.crossBtnOutline}>
-              5 Player Progression Roadmaps
-            </Link>
+          <div style={{ marginTop: 14, padding: '14px 16px', background: '#070b14', border: '1px solid #1e293b', borderRadius: 10 }}>
+            <div style={{ fontSize: 11.5, fontWeight: 800, color: '#38bdf8', letterSpacing: '0.06em', marginBottom: 8 }}>
+              INTERACTIVE CALCULATORS FOR THIS SPOT
+            </div>
+            <div style={styles.quickCrossLinks}>
+              <Link href="/tools/bankroll-calculator" style={styles.crossBtnCyan}>
+                Bankroll &amp; Risk Of Ruin Calculator
+              </Link>
+              <Link href="/tools/rake-calculator" style={styles.crossBtnEmerald}>
+                Cash Game Rake Impact Calculator
+              </Link>
+              <Link href="/tools/table-selection-calculator" style={styles.crossBtnOutline}>
+                Table Selection Winrate Calculator
+              </Link>
+              <Link href="/tools/session-planner" style={styles.crossBtnOutline}>
+                Session &amp; Stop-Loss Planner
+              </Link>
+              <Link href="/tools/poker-odds-calculator" style={styles.crossBtnOutline}>
+                Live Poker Odds Calculator
+              </Link>
+            </div>
           </div>
         </header>
 

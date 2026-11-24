@@ -16,6 +16,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { renderBoardTextureAnalyzerMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
 
@@ -453,9 +454,19 @@ export default function BoardTextureAnalyzerPage() {
         </h1>
 
         {!isEmbed && (
-          <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
-            <strong>Direct Answer:</strong> Optimal Flop Continuation Betting Is Dictated By <strong>Range Advantage</strong> (Overall Equity Across All Combos) And <strong>Nut Advantage</strong> (Concentration Of Top Sets, Two Pairs, And Straights). Static High-Card Boards Favor High-Frequency <strong>33% Small Range Bets</strong>, While Dynamic Connected Two-Tone Boards Demand <strong>66%-75% Polarized Bets</strong> Or High Check Frequencies.
-          </p>
+          <>
+            <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 22px 0' }}>
+              <strong>Direct Answer:</strong> Optimal Flop Continuation Betting Is Dictated By <strong>Range Advantage</strong> (Overall Equity Across All Combos) And <strong>Nut Advantage</strong> (Concentration Of Top Sets, Two Pairs, And Straights). Static High-Card Boards Favor High-Frequency <strong>33% Small Range Bets</strong>, While Dynamic Connected Two-Tone Boards Demand <strong>66%-75% Polarized Bets</strong> Or High Check Frequencies.
+            </p>
+            <CalculatorShareAndPresets
+              toolTitle="Flop Board Texture And C-Bet Analyzer"
+              toolPath={canonicalPath}
+              summaryText={`Flop ${analysis.flopString} (${analysis.suitTexture}, Connectedness ${analysis.connectedness}/100): ${analysis.strategyLabel} (${analysis.smallBetPct}% Small / ${analysis.bigBetPct}% Big / ${analysis.checkPct}% Check)`}
+              presets={PRESET_BOARDS}
+              onSelectPreset={applyPreset}
+              activePresetId={analysis.flopString}
+            />
+          </>
         )}
 
         <section

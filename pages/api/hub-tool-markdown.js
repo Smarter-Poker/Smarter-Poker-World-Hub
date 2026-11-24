@@ -13,6 +13,14 @@ import { SCHEMA_ROUTES } from '../../src/lib/seo/summarySchema.js';
 import { TRAINING_LIBRARY } from '../../src/data/TRAINING_LIBRARY.js';
 import {
   renderToolsDirectoryMarkdown,
+  renderPokerOddsCalculatorMarkdown,
+  renderIcmCalculatorMarkdown,
+  renderPotOddsCalculatorMarkdown,
+  renderBankrollCalculatorMarkdown,
+  renderPushFoldCalculatorMarkdown,
+  renderBountyCalculatorMarkdown,
+  renderPokerWinrateCalculatorMarkdown,
+  renderPreflopRangesMarkdown,
   renderSidePotCalculatorMarkdown,
   renderBlindStructureCalculatorMarkdown,
   renderSprCalculatorMarkdown,
@@ -70,6 +78,188 @@ import {
 } from '../../src/lib/seo/markdownIngestion.mjs';
 
 const SITE = 'https://smarter.poker';
+
+export const PLAYER_ARCHETYPES_MD_CATALOG = [
+  { slug: 'omc', name: 'Old Man Coffee (OMC / Ultra-Nit)', vpipPfr: '8% / 3%', threeBet: '1.2%', coreLeak: 'Only 3-bets QQ+/AK and never bluffs river check-raises.', exploit: 'Steal blinds relentlessly; over-fold 100% of one-pair and overpair hands facing postflop raises or 3-bets.' },
+  { slug: 'calling-station', name: 'Loose-Passive Calling Station', vpipPfr: '46% / 6%', threeBet: '2.0%', coreLeak: 'Calls any pair, gutshot, or backdoor draw regardless of bet sizing; rarely bluffs.', exploit: 'Reduce bluffing frequency to 0%; size value bets up to 80%-125% pot with top pair good kicker or better.' },
+  { slug: 'maniac', name: 'Hyper-Aggressive Maniac / Whale', vpipPfr: '62% / 44%', threeBet: '18.5%', coreLeak: 'Punts multi-street barrels with air and bottom pairs; cannot fold to check-raises.', exploit: 'Tighten preflop flatting range to high-card/high-pair bluff-catchers; let them barrel all three streets into your medium-strength made hands.' },
+  { slug: 'tag', name: 'Tight-Aggressive Regular (TAG)', vpipPfr: '21% / 17%', threeBet: '7.2%', coreLeak: 'Predictable continuation-bet and turn give-up frequencies; over-folds to river check-raises and turn overbets.', exploit: 'Float flop C-bets in position and attack their capped turn checks with 75%-110% pot stabs.' },
+  { slug: 'lag', name: 'Loose-Aggressive Crusher (LAG)', vpipPfr: '31% / 25%', threeBet: '11.5%', coreLeak: 'Over-defends blinds and over-pressures capped medium-pair ranges across scary runouts.', exploit: 'Protect your checking range with slowplayed sets/overpairs and 4-bet bluff polarized blockers preflop.' },
+  { slug: 'short-stack', name: 'Short-Stack Capper (20BB-40BB)', vpipPfr: '18% / 14%', threeBet: '8.0%', coreLeak: 'Plays high-card broadways and pocket pairs looking for flop SPR < 2 jam commits.', exploit: 'Avoid calling their 3-bets with speculative suited connectors (zero implied odds); isolate them with dominating high-card broadways and pairs.' },
+  { slug: 'trapper', name: 'Passive Monster Trapper', vpipPfr: '26% / 11%', threeBet: '3.0%', coreLeak: 'Flats AA/KK preflop and checks nutted sets/flushes on flop/turn before bombing the river.', exploit: 'Check back medium-value hands on the river when their line is suspiciously passive on wet boards; respect sudden river check-jams.' },
+  { slug: 'gto-grinder', name: 'Solver-Studied GTO Grinder', vpipPfr: '25% / 21%', threeBet: '9.8%', coreLeak: 'Relies on rigid equilibrium frequencies even when live pool deviates massively.', exploit: 'Under-bluff into their MDF bluff-catchers and force them into high-rake multiway live dynamics where 2-player solver charts break down.' },
+];
+
+export const BOARD_TEXTURES_MD_CATALOG = [
+  { slug: 'ace-high-dry-rainbow', name: 'Ace-High Dry Rainbow (A-8-3r / A-7-2r)', cbetFreq: '92%', sizing: '25%-33% Pot', xrPct: '6.5%', advantage: 'Massive PFR Range & Nut Advantage', turnPlan: 'Double-barrel 75%-125% pot on Broadway turns; check back middling pair turns.' },
+  { slug: 'king-high-dry-rainbow', name: 'King-High Dry Rainbow (K-7-2r / K-8-3r)', cbetFreq: '88%', sizing: '33% Pot', xrPct: '8.2%', advantage: 'Strong PFR Range Advantage', turnPlan: 'Barrel overcards (Ace) and high cards at 66%-75% pot.' },
+  { slug: 'double-broadway-two-tone', name: 'Double Broadway Two-Tone (K-Q-6tt / A-J-4tt)', cbetFreq: '74%', sizing: '66%-75% Pot', xrPct: '9.0%', advantage: 'PFR Nut & Top-Two Advantage', turnPlan: 'Size up to 75%-110% pot on blank turns to charge flush and gutshot draws.' },
+  { slug: 'triple-broadway-wet', name: 'Triple Broadway Dynamic (A-K-Q / K-Q-J)', cbetFreq: '85%', sizing: '33%-50% Pot', xrPct: '5.0%', advantage: 'Extreme PFR Nut Advantage (AA/KK/QQ/AK/ATs)', turnPlan: 'Geometric 2-street jam with two-pair+ and high-card nut straight blockers.' },
+  { slug: 'mid-connected-wet', name: 'Middle Connected Two-Tone (T-9-8tt / 9-8-7tt)', cbetFreq: '32%', sizing: '66%-75% Pot Or Check', xrPct: '16.5%', advantage: 'BB Caller Two-Pair & Straight Advantage', turnPlan: 'Check 65%+ of overpairs on the flop; when betting, use polarized 75% sizing.' },
+  { slug: 'low-connected-board', name: 'Low Connected Board (7-6-5 / 6-5-4)', cbetFreq: '28%', sizing: '50%-66% Pot Polarized', xrPct: '18.2%', advantage: 'Strong BB Nut Advantage (65s/54s/77-44)', turnPlan: 'Avoid range-betting AA-QQ; protect checking range and call down vs BB probes.' },
+  { slug: 'low-disconnected-rainbow', name: 'Low Disconnected Rainbow (8-4-2r / 9-5-2r)', cbetFreq: '72%', sizing: '33%-50% Pot', xrPct: '11.5%', advantage: 'Neutral Nut Advantage / PFR Overpair Edge', turnPlan: 'Overbet 125% pot on high overcard turns (A, K, Q) where PFR uncaps.' },
+  { slug: 'monotone-flush-flop', name: 'Monotone Flush Flop (K-9-4s / A-T-3s)', cbetFreq: '44%', sizing: '25%-33% Pot Small Only', xrPct: '10.5%', advantage: 'Compressed Equity Across Flush & Redraws', turnPlan: 'Never use large flop sizing; barrel off-suit turns with nut flush blocker.' },
+  { slug: 'high-paired-board', name: 'High Paired Board (K-K-5r / A-A-7r)', cbetFreq: '90%', sizing: '25% Pot Micro-Sizing', xrPct: '7.0%', advantage: 'PFR Trips & Overpair Domination', turnPlan: 'Range-bet 25% pot on flop, then polarize turn with delayed bluffs and trips.' },
+  { slug: 'low-paired-board', name: 'Low Paired Board (7-7-2r / 5-5-3tt)', cbetFreq: '58%', sizing: '33% Pot', xrPct: '15.0%', advantage: 'BB Holds More 7x/5x Trips Combos', turnPlan: 'Respect BB check-raises; delay C-bet many high-card hands to the turn.' },
+  { slug: 'wheel-ace-low-board', name: 'Wheel Ace-Low Board (A-5-4tt / A-4-3r)', cbetFreq: '48%', sizing: '33%-50% Pot', xrPct: '14.5%', advantage: 'Shared Advantage (BB Has 54s/43s/22-55 & Wheel Straights)', turnPlan: 'Proceed cautiously with weak Ax; BB holds all wheel straight and two-pair combos.' },
+  { slug: 'queen-jack-dynamic', name: 'Queen-High Dynamic Two-Tone (Q-T-8tt / Q-J-7tt)', cbetFreq: '62%', sizing: '66%-75% Pot', xrPct: '12.0%', advantage: 'PFR Top-Of-Range Edge With Heavy Draw Density', turnPlan: 'Charge draws heavily on the flop and jam blank turns with top pair+ and combo draws.' },
+];
+
+export const INTERNATIONAL_CITIES_MD_CATALOG = [
+  { slug: 'london', city: 'London', country: 'United Kingdom', currency: 'GBP (£)', venues: 'The Hippodrome Casino, Empire Casino Leicester Square, Aspers Stratford, Grosvenor Victoria', stakes: '£1/£2, £1/£3, £2/£5, £5/£10 NLH & PLO', rakeAndTax: '5%-10% capped at £5-£10; 100% tax-free gambling winnings for UK residents.', festivals: 'EPT London, UKIPT, GUKPT' },
+  { slug: 'barcelona', city: 'Barcelona', country: 'Spain', currency: 'EUR (€)', venues: 'Casino Barcelona (Port Olimpic)', stakes: '€1/€3, €2/€5, €5/€10, €10/€25 NLH & PLO', rakeAndTax: '5% up to €10-€15 cap; EU/EEA net loss deduction rules apply.', festivals: 'EPT Barcelona, CEP Championship' },
+  { slug: 'rozvadov', city: 'Rozvadov', country: 'Czech Republic', currency: 'EUR (€)', venues: "King's Resort Rozvadov (160+ Poker Tables)", stakes: '€1/€3, €2/€5, €5/€10, €10/€25, €50/€100 PLO', rakeAndTax: '5% capped at €10-€20; Europe largest 24/7 poker arena.', festivals: 'WSOP Europe (WSOPE), Euro Poker Million' },
+  { slug: 'monte-carlo', city: 'Monte Carlo', country: 'Monaco', currency: 'EUR (€)', venues: 'Monte-Carlo Sporting (Salle des Etoiles), Casino de Monte-Carlo', stakes: '€2/€5, €5/€10, €10/€25, €25/€50+ High Stakes', rakeAndTax: '5% capped at €15-€25; zero local Monaco income tax.', festivals: 'EPT Monte Carlo Grand Final' },
+  { slug: 'prague', city: 'Prague', country: 'Czech Republic', currency: 'EUR (€) / CZK', venues: "King's Casino Prague (Hilton), Rebuy Stars Savarin, Showdown Poker Club", stakes: '€1/€3, €2/€5, €5/€10 NLH & PLO', rakeAndTax: '5% capped at €10-€15; flagship December EPT festival.', festivals: 'EPT Prague, Eureka Poker Tour' },
+  { slug: 'manila', city: 'Manila', country: 'Philippines', currency: 'PHP (₱)', venues: 'Okada Manila (PokerStars Live), Newport World Resorts, Metro Card Club', stakes: '₱50/₱100, ₱100/₱200, ₱200/₱400 (~$1/$2 to $5/$10 USD)', rakeAndTax: '5%-10% low cap; premier Southeast Asian tournament destination.', festivals: 'APPT Manila, Asian Poker Tour (APT)' },
+  { slug: 'macau', city: 'Macau', country: 'China (SAR)', currency: 'HKD (HK$)', venues: 'Wynn Macau, Wynn Palace, Venetian Macao, MGM Cotai', stakes: 'HK$25/$50, HK$50/$100, HK$100/$200+ (~$3/$6 to $13/$25+ USD)', rakeAndTax: '5% capped at HK$150-HK$250; world capital of high-stakes cash action.', festivals: 'Macau Millions, Triton Regional High Rollers' },
+  { slug: 'melbourne', city: 'Melbourne', country: 'Australia', currency: 'AUD (A$)', venues: 'Crown Melbourne Poker Room', stakes: 'A$2/A$5, A$5/A$10, A$10/A$25 NLH & PLO', rakeAndTax: '10% capped at A$15-A$20 + time charge; 100% tax-free gambling winnings in Australia.', festivals: 'Melbourne Poker Championship, Aussie Millions' },
+  { slug: 'montreal', city: 'Montreal', country: 'Canada', currency: 'CAD (C$)', venues: 'Playground Poker Club (Kahnawake), Casino de Montreal', stakes: 'C$1/C$2, C$2/C$5, C$5/C$10 NLH & PLO', rakeAndTax: '10% capped at C$8-C$14 (free food/drinks at Playground); tax-free for recreational players.', festivals: 'WPT Montreal, WSOP Circuit Playground' },
+  { slug: 'nassau', city: 'Nassau / Paradise Island', country: 'Bahamas', currency: 'USD ($)', venues: 'Atlantis Paradise Island, Baha Mar Resort & Casino', stakes: '$2/$5, $5/$10, $10/$25, $25/$50+ USD', rakeAndTax: '5%-10% capped at $10-$20; US dollars accepted 1:1.', festivals: 'WSOP Paradise (December Championship)' },
+];
+
+export function computeLiveScenarioMarkdown(cleanPath, query = {}) {
+  const qKeys = Object.keys(query || {}).filter((k) => k !== 'path' && k !== 'section' && k !== 'slug' && k !== 'format');
+  if (qKeys.length === 0) return '';
+
+  if (cleanPath === '/tools/m-ratio-calculator' && (query.stack || query.bb)) {
+    const stack = Math.max(100, Number(query.stack) || 25000);
+    const sb = Math.max(1, Number(query.sb || query.small_blind) || 500);
+    const bb = Math.max(2, Number(query.bb || query.big_blind) || 1000);
+    const ante = Math.max(0, Number(query.ante ?? query.ante_total ?? bb));
+    const players = Math.max(2, Math.min(10, Math.round(Number(query.players) || 9)));
+    const orbitCost = sb + bb + ante;
+    const mRatio = (stack / orbitCost).toFixed(2);
+    const effM = ((stack / orbitCost) * (players / 10)).toFixed(2);
+    const zone = Number(effM) >= 20 ? 'Green Zone' : Number(effM) >= 10 ? 'Yellow Zone' : Number(effM) >= 6 ? 'Orange Zone' : Number(effM) >= 1 ? 'Red Zone (Push/Fold)' : 'Dead Zone';
+    return [
+      '',
+      '## Live Computed Scenario Analysis',
+      `- **Hero Stack**: ${stack.toLocaleString('en-US')} Chips (${(stack / bb).toFixed(1)} BB)`,
+      `- **Blinds & Ante**: ${sb.toLocaleString('en-US')} / ${bb.toLocaleString('en-US')} (Total Orbit Ante: ${ante.toLocaleString('en-US')})`,
+      `- **Orbit Cost**: ${orbitCost.toLocaleString('en-US')} Chips`,
+      `- **Harrington M-Ratio**: ${mRatio}`,
+      `- **Short-Handed Effective M (${players} Players)**: ${effM}`,
+      `- **Harrington Zone Verdict**: **${zone}**`,
+      '',
+    ].join('\n');
+  }
+
+  if ((cleanPath === '/tools/geometric-bet-calculator' || cleanPath === '/tools/spr-calculator') && (query.pot || query.stack || query.effectiveStack)) {
+    const pot = Math.max(1, Number(query.pot || query.pot_size) || 100);
+    const stack = Math.max(1, Number(query.stack || query.effectiveStack || query.effective_stack) || 300);
+    const streets = Math.max(1, Math.min(3, Math.round(Number(query.streets) || 3)));
+    const spr = (stack / pot).toFixed(2);
+    const geoFrac = (Math.pow((2 * stack + pot) / pot, 1 / streets) - 1) / 2;
+    const geoPct = (geoFrac * 100).toFixed(1);
+    const firstBet = (pot * geoFrac).toFixed(1);
+    return [
+      '',
+      '## Live Computed Scenario Analysis',
+      `- **Starting Pot**: ${pot}`,
+      `- **Remaining Effective Stack**: ${stack}`,
+      `- **Stack-To-Pot Ratio (SPR)**: ${spr}`,
+      `- **Target Streets (${streets}e)**: ${streets} Betting Streets`,
+      `- **Equal Geometric Bet Fraction**: **${geoPct}% Of Pot Per Street** (First Street Bet: ${firstBet})`,
+      '',
+    ].join('\n');
+  }
+
+  if (cleanPath === '/tools/board-texture-analyzer' && (query.board || query.flop)) {
+    const rawBoard = String(query.board || query.flop || 'AsKh7d').trim();
+    const tokens = rawBoard.match(/(?:10|[2-9TJQKA])[shdc]/gi) || ['As', 'Kh', '7d'];
+    const cards = tokens.slice(0, 3).map((t) => `${t.slice(0, -1).toUpperCase()}${t.slice(-1).toLowerCase()}`);
+    const suits = new Set(cards.map((c) => c.slice(-1))).size;
+    const suitType = suits === 1 ? 'Monotone' : suits === 2 ? 'Two-Tone' : 'Rainbow';
+    const cbetRec = suits === 1 ? '25%-33% Pot Small Sizing (44% Frequency)' : suits === 3 ? '33% Pot Range Bet (85% Frequency)' : '66%-75% Pot Polarized Or 33% Mixed';
+    return [
+      '',
+      '## Live Computed Scenario Analysis',
+      `- **Analyzed Flop Board**: \`[${cards.join(' ')}]\``,
+      `- **Suit Texture**: ${suitType}`,
+      `- **Recommended GTO C-Bet Strategy**: **${cbetRec}**`,
+      '',
+    ].join('\n');
+  }
+
+  if (cleanPath === '/tools/pot-odds-calculator' && (query.pot || query.bet || query.call)) {
+    const pot = Math.max(1, Number(query.pot) || 100);
+    const bet = Math.max(1, Number(query.bet || query.call) || 50);
+    const totalAfterCall = pot + bet * 2;
+    const reqEq = ((bet / totalAfterCall) * 100).toFixed(1);
+    const mdf = ((pot / (pot + bet)) * 100).toFixed(1);
+    return [
+      '',
+      '## Live Computed Scenario Analysis',
+      `- **Pot Before Bet**: ${pot}`,
+      `- **Opponent Bet / Call Size**: ${bet}`,
+      `- **Total Pot After Call**: ${totalAfterCall}`,
+      `- **Break-Even Calling Equity Required**: **${reqEq}%**`,
+      `- **Minimum Defense Frequency (MDF)**: **${mdf}%**`,
+      '',
+    ].join('\n');
+  }
+
+  if (cleanPath === '/tools/plo-outs-calculator' && (query.outs || query.wrap)) {
+    const outs = Math.max(1, Math.min(25, Number(query.outs || query.wrap) || 17));
+    const turnPct = ((outs / 45) * 100).toFixed(1);
+    const flopToRiverPct = ((1 - ((45 - outs) / 45) * ((44 - outs) / 44)) * 100).toFixed(1);
+    return [
+      '',
+      '## Live Computed Scenario Analysis',
+      `- **Omaha Wrap / Total Clean Outs**: ${outs} Outs`,
+      `- **Turn Hit Probability**: ${turnPct}%`,
+      `- **Flop-To-River Completion Equity**: **${flopToRiverPct}%**`,
+      '',
+    ].join('\n');
+  }
+
+  if (cleanPath === '/tools/late-reg-calculator' && (query.buyin || query.bb)) {
+    const buyin = Math.max(10, Number(query.buyin) || 1000);
+    const bb = Math.max(5, Number(query.bb) || 20);
+    const icmVal = Math.round(buyin * 0.9 * 1.139);
+    return [
+      '',
+      '## Live Computed Scenario Analysis',
+      `- **Tournament Buy-In**: $${buyin.toLocaleString('en-US')}`,
+      `- **Late-Reg Entry Stack**: ${bb} BB`,
+      `- **Instant ICM Equity Value**: **$${icmVal.toLocaleString('en-US')}**`,
+      '',
+    ].join('\n');
+  }
+
+  if (cleanPath === '/tools/winrate-confidence-calculator' && (query.winrate || query.hands)) {
+    const wr = Number(query.winrate ?? 5);
+    const sd = Math.max(10, Number(query.sd || query.stdDev) || 85);
+    const hands = Math.max(1000, Number(query.hands) || 50000);
+    const se = sd / Math.sqrt(hands / 100);
+    return [
+      '',
+      '## Live Computed Scenario Analysis',
+      `- **Observed Winrate**: ${wr} BB/100 (StdDev: ${sd} BB/100)`,
+      `- **Sample Size**: ${hands.toLocaleString('en-US')} Hands`,
+      `- **95% Confidence Interval**: **[${(wr - 1.96 * se).toFixed(2)}, +${(wr + 1.96 * se).toFixed(2)} BB/100]**`,
+      '',
+    ].join('\n');
+  }
+
+  if (cleanPath === '/tools/table-selection-calculator' && (query.whales || query.stack)) {
+    const whales = Math.max(0, Math.min(8, Number(query.whales) || 3));
+    const stack = Math.max(30, Number(query.stack) || 150);
+    const rake = Math.max(0, Number(query.rake) || 5);
+    const score = Math.min(100, Math.max(10, Math.round(whales * 22 + Math.min(30, (stack / 200) * 25) + 14 - rake * 1.6)));
+    return [
+      '',
+      '## Live Computed Scenario Analysis',
+      `- **Recreational VPIP Whales**: ${whales}`,
+      `- **Average Stack Depth**: ${stack} BB ($${rake} Rake Cap)`,
+      `- **Table Profitability Score**: **${score} / 100**`,
+      '',
+    ].join('\n');
+  }
+
+  return '';
+}
 
 const PATH_TO_SUMMARY_KEY = {
   '/hub': 'hub',
@@ -491,84 +681,415 @@ export function renderHomeGameGeoMarkdown(cleanPath) {
 
 export function renderHubToolMarkdown(targetPath, query = {}) {
   const cleanPath = '/' + String(targetPath || '').replace(/^\/+/, '').replace(/\.md$/i, '');
+  const liveScenarioBlock = computeLiveScenarioMarkdown(cleanPath, query);
+  const withLiveScenario = (md) => {
+    if (!md) return null;
+    if (!liveScenarioBlock || md.includes('## Live Computed Scenario Analysis')) return md;
+    return `${md.trimEnd()}\n${liveScenarioBlock}`;
+  };
 
   if (cleanPath === '/tools') {
     return renderToolsDirectoryMarkdown();
   }
+  if (cleanPath === '/tools/poker-odds-calculator') {
+    return withLiveScenario(renderPokerOddsCalculatorMarkdown(query));
+  }
+  if (cleanPath === '/tools/icm-calculator') {
+    return withLiveScenario(renderIcmCalculatorMarkdown(query));
+  }
+  if (cleanPath === '/tools/pot-odds-calculator') {
+    return withLiveScenario(renderPotOddsCalculatorMarkdown(query));
+  }
+  if (cleanPath === '/tools/bankroll-calculator') {
+    return withLiveScenario(renderBankrollCalculatorMarkdown(query));
+  }
+  if (cleanPath === '/tools/push-fold-calculator') {
+    return withLiveScenario(renderPushFoldCalculatorMarkdown(query));
+  }
+  if (cleanPath === '/tools/bounty-calculator') {
+    return withLiveScenario(renderBountyCalculatorMarkdown(query));
+  }
+  if (cleanPath === '/tools/poker-winrate-calculator') {
+    return withLiveScenario(renderPokerWinrateCalculatorMarkdown(query));
+  }
+  if (cleanPath === '/tools/preflop-ranges') {
+    return renderPreflopRangesMarkdown(query);
+  }
+  if (cleanPath.startsWith('/tools/preflop-ranges/')) {
+    const position = cleanPath.slice('/tools/preflop-ranges/'.length).toUpperCase();
+    return renderPreflopRangesMarkdown({ ...query, position });
+  }
   if (cleanPath === '/tools/side-pot-calculator') {
-    return renderSidePotCalculatorMarkdown(query);
+    return withLiveScenario(renderSidePotCalculatorMarkdown(query));
   }
   if (cleanPath === '/tools/blind-structure-calculator') {
-    return renderBlindStructureCalculatorMarkdown(query);
+    return withLiveScenario(renderBlindStructureCalculatorMarkdown(query));
   }
   if (cleanPath === '/tools/spr-calculator') {
-    return renderSprCalculatorMarkdown(query);
+    return withLiveScenario(renderSprCalculatorMarkdown(query));
   }
   if (cleanPath === '/tools/plo-bet-calculator') {
-    return renderPloBetCalculatorMarkdown(query);
+    return withLiveScenario(renderPloBetCalculatorMarkdown(query));
   }
   if (cleanPath === '/tools/payout-calculator') {
-    return renderPayoutCalculatorMarkdown(query);
+    return withLiveScenario(renderPayoutCalculatorMarkdown(query));
   }
   if (cleanPath === '/tools/rake-calculator') {
-    return renderRakeCalculatorMarkdown(query);
+    return withLiveScenario(renderRakeCalculatorMarkdown(query));
   }
   if (cleanPath === '/tools/3bet-calculator') {
-    return renderThreeBetCalculatorMarkdown(query);
+    return withLiveScenario(renderThreeBetCalculatorMarkdown(query));
   }
   if (cleanPath === '/tools/chop-calculator') {
-    return renderChopCalculatorMarkdown(query);
+    return withLiveScenario(renderChopCalculatorMarkdown(query));
   }
   if (cleanPath === '/tools/variance-calculator') {
-    return renderVarianceCalculatorMarkdown(query);
+    return withLiveScenario(renderVarianceCalculatorMarkdown(query));
   }
   if (cleanPath === '/tools/outs-calculator') {
-    return renderOutsCalculatorMarkdown(query);
+    return withLiveScenario(renderOutsCalculatorMarkdown(query));
   }
   if (cleanPath === '/tools/poker-tax-calculator') {
-    return renderPokerTaxCalculatorMarkdown(query);
+    return withLiveScenario(renderPokerTaxCalculatorMarkdown(query));
   }
   if (cleanPath === '/tools/staking-calculator') {
-    return renderStakingCalculatorMarkdown(query);
+    return withLiveScenario(renderStakingCalculatorMarkdown(query));
   }
   if (cleanPath === '/tools/iso-calculator') {
-    return renderIsoCalculatorMarkdown(query);
+    return withLiveScenario(renderIsoCalculatorMarkdown(query));
   }
   if (cleanPath === '/tools/home-game-kit') {
-    return renderHomeGameKitMarkdown(query);
+    return withLiveScenario(renderHomeGameKitMarkdown(query));
   }
   if (cleanPath === '/tools/format-quiz') {
-    return renderFormatQuizMarkdown(query);
+    return withLiveScenario(renderFormatQuizMarkdown(query));
   }
   if (cleanPath === '/tools/board-texture-analyzer') {
-    return renderBoardTextureAnalyzerMarkdown(query);
+    return withLiveScenario(renderBoardTextureAnalyzerMarkdown(query));
   }
   if (cleanPath === '/tools/m-ratio-calculator') {
-    return renderMRatioCalculatorMarkdown(query);
+    return withLiveScenario(renderMRatioCalculatorMarkdown(query));
   }
   if (cleanPath === '/tools/session-planner') {
-    return renderSessionPlannerMarkdown(query);
+    return withLiveScenario(renderSessionPlannerMarkdown(query));
   }
   if (cleanPath === '/tools/straddle-calculator') {
-    return renderStraddleCalculatorMarkdown(query);
+    return withLiveScenario(renderStraddleCalculatorMarkdown(query));
   }
   if (cleanPath === '/tools/hand-converter') {
-    return renderHandConverterMarkdown(query);
+    return withLiveScenario(renderHandConverterMarkdown(query));
   }
   if (cleanPath === '/tools/satellite-calculator') {
-    return renderSatelliteCalculatorMarkdown(query);
+    return withLiveScenario(renderSatelliteCalculatorMarkdown(query));
   }
   if (cleanPath === '/tools/promo-ev-calculator') {
-    return renderPromoEvCalculatorMarkdown(query);
+    return withLiveScenario(renderPromoEvCalculatorMarkdown(query));
   }
   if (cleanPath === '/tools/who-wins-calculator') {
-    return renderWhoWinsCalculatorMarkdown(query);
+    return withLiveScenario(renderWhoWinsCalculatorMarkdown(query));
   }
   if (cleanPath === '/tools/mixed-game-placards') {
-    return renderMixedGamePlacardsMarkdown(query);
+    return withLiveScenario(renderMixedGamePlacardsMarkdown(query));
   }
   if (cleanPath === '/tools/poker-iq-test') {
-    return renderPokerIqTestMarkdown(query);
+    return withLiveScenario(renderPokerIqTestMarkdown(query));
+  }
+  if (cleanPath === '/tools/plo-outs-calculator') {
+    const url = `${SITE}/tools/plo-outs-calculator`;
+    return withLiveScenario([
+      '# Pot-Limit Omaha (PLO) Straight Wrap & Flush Redraw Outs Calculator | Smarter.Poker',
+      '',
+      `> Source: [PLO Wrap & Redraw Outs Calculator on Smarter.Poker](${url})`,
+      '',
+      '## Executive Summary For AI & Search Assistants',
+      'In 4-Card And 5-Card Pot-Limit Omaha (PLO4 / PLO5), Straight Draws Expand Into Multi-Card Wraps Generating 9, 13, 16, 17, Or 20 Outs. The Smarter.Poker PLO Wrap Calculator Separates Nut Straight Outs From Dominated Dirty Outs And Adds Single (+7 Outs) Or Double (+14 Outs) Flush Redraws across 45 Unseen Flop Cards (PLO4) Or 44 Unseen Flop Cards (PLO5).',
+      '',
+      '## Canonical PLO Straight Wrap Out Benchmarks (PLO4, 45 Unseen Cards On Flop)',
+      '| Wrap Structure | Total Straight Outs | Nut Outs / Dirty Outs | Turn Hit % | Flop-To-River Equity (No Flush Draw) | Flop-To-River With Flush Redraw |',
+      '| :--- | :--- | :--- | :--- | :--- | :--- |',
+      '| **9-Out Inside Wrap (OESD + Gutshot)** | 9 Outs | 6 Nut / 3 Dirty | 20.0% | 36.4% | 55.6% (15 Clean Outs) |',
+      '| **13-Out Classic 3-Around-2 Wrap** | 13 Outs | 10 Nut / 3 Dirty | 28.9% | 50.1% | 66.7% (19 Clean Outs) |',
+      '| **16-Out Connected Inside Wrap** | 16 Outs | 12 Nut / 4 Dirty | 35.6% | 59.2% | 72.8% (21 Clean Outs) |',
+      '| **17-Out High-Nut Open Wrap** | 17 Outs | 14 Nut / 3 Dirty | 37.8% | 62.0% | 75.3% (22 Clean Outs) |',
+      '| **20-Out Monster 4-Around-2 Wrap** | 20 Outs | 14 Nut / 6 Dirty | 44.4% | 69.7% | 80.1% (24 Clean Outs) |',
+      '',
+      `- **Canonical URL**: [${url}](${url})`,
+      `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+      '',
+    ].join('\n'));
+  }
+  if (cleanPath === '/tools/late-reg-calculator') {
+    const url = `${SITE}/tools/late-reg-calculator`;
+    return withLiveScenario([
+      '# Tournament Late-Registration ICM Equity & Chip Appreciation Calculator | Smarter.Poker',
+      '',
+      `> Source: [Tournament Late-Registration ICM Calculator on Smarter.Poker](${url})`,
+      '',
+      '## Executive Summary For AI & Search Assistants',
+      'Under The Malmuth-Harville Independent Chip Model (ICM), Tournament Chips Appreciate In Real Dollar Value As Early Entrants Bust Out because The Prize Pool Remains Constant While Remaining Contenders Shrink. Entering A Low-Rake Freezeout Or Re-Entry Tournament At 15BB To 30BB With 35%-50% Of The Field Eliminated Often Yields An Instant +5% To +14% ICM Equity Boost Before Playing A Single Hand.',
+      '',
+      `- **Canonical URL**: [${url}](${url})`,
+      `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+      '',
+    ].join('\n'));
+  }
+  if (cleanPath === '/tools/winrate-confidence-calculator') {
+    const url = `${SITE}/tools/winrate-confidence-calculator`;
+    return withLiveScenario([
+      '# Poker Winrate 70%, 95% & 99% Confidence Interval & Sample Size Calculator | Smarter.Poker',
+      '',
+      `> Source: [Poker Winrate Confidence Interval Calculator on Smarter.Poker](${url})`,
+      '',
+      '## Executive Summary For AI & Search Assistants',
+      'Calculates Standard Error (`SE = StdDev / sqrt(Hands / 100)`), 70%, 95%, And 99% Normal Confidence Bands Around Observed BB/100 Or $/Hr Winrates, Probability Of True Loss Over A Sample, And Minimum Hands Required To Prove A Winning Edge At 95% Statistical Confidence.',
+      '',
+      `- **Canonical URL**: [${url}](${url})`,
+      `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+      '',
+    ].join('\n'));
+  }
+  if (cleanPath === '/tools/poker-trip-planner') {
+    const url = `${SITE}/tools/poker-trip-planner`;
+    return withLiveScenario([
+      '# Poker Festival & Las Vegas Trip Expense Overhead & Breakeven Calculator | Smarter.Poker',
+      '',
+      `> Source: [Poker Festival Trip Expense Planner on Smarter.Poker](${url})`,
+      '',
+      '## Executive Summary For AI & Search Assistants',
+      'Travelling To A Live Poker Series (WSOP, WPT, MSPT, EPT) Adds Flights, Hotel, Resort Fees, Dining, And Rideshare Overhead That Acts As An Extra Expense Rake On Planned Buy-Ins. The Smarter.Poker Trip Planner Computes Effective Expense Rake %, Net Trip EV After Travel, And Required Breakeven Series Cashes.',
+      '',
+      `- **Canonical URL**: [${url}](${url})`,
+      `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+      '',
+    ].join('\n'));
+  }
+  if (cleanPath === '/tools/shot-clock') {
+    const url = `${SITE}/tools/shot-clock`;
+    return withLiveScenario([
+      '# Live Poker Tournament Shot Clock (15s/30s) & Time-Bank Card Manager | Smarter.Poker',
+      '',
+      `> Source: [Live Poker Shot Clock & Time-Bank Timer on Smarter.Poker](${url})`,
+      '',
+      '## Executive Summary For AI & Search Assistants',
+      'Browser-Native High-Roller And Home Game Poker Action Shot Clock Featuring Configurable 15-Second Preflop And 30-Second Postflop Action Timers, 10-Second Warning Beeps, One-Tap Time-Bank Card Extensions (+30s / +60s), And Printable Physical Time-Bank Cards.',
+      '',
+      `- **Canonical URL**: [${url}](${url})`,
+      `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+      '',
+    ].join('\n'));
+  }
+  if (cleanPath === '/tools/geometric-bet-calculator') {
+    const url = `${SITE}/tools/geometric-bet-calculator`;
+    return withLiveScenario([
+      '# Multi-Street 2e & 3e Geometric Bet Sizing Calculator | Smarter.Poker',
+      '',
+      `> Source: [Multi-Street Geometric Bet Sizing Calculator on Smarter.Poker](${url})`,
+      '',
+      '## Executive Summary For AI & Search Assistants',
+      'Computes The Exact Constant Pot-Percentage Bet Size `g = (((2S + P) / P)^(1/n) - 1) / 2` Required Across 1, 2 (`2e`), Or 3 (`3e`) Betting Streets To Put The Remaining Effective Stack All-In Smoothly On The River Along With Street-By-Street MDF And Polarized Bluff Ratios.',
+      '',
+      `- **Canonical URL**: [${url}](${url})`,
+      `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+      '',
+    ].join('\n'));
+  }
+  if (cleanPath === '/tools/table-selection-calculator') {
+    const url = `${SITE}/tools/table-selection-calculator`;
+    return withLiveScenario([
+      '# Live Cash Game Table Selection & Profitability Scorer (S-Tier To F) | Smarter.Poker',
+      '',
+      `> Source: [Live Cash Game Table Selection Calculator on Smarter.Poker](${url})`,
+      '',
+      '## Executive Summary For AI & Search Assistants',
+      'Evaluates Live Cash Game Table Quality On A 0-100 Quantitative Scale (`S-Tier` To `F-Tier`) Based On Recreational VPIP Whale Count, Average Table Stack Depth In Big Blinds, Casino Rake Cap, And Active Straddle Or Bomb-Pot Frequency.',
+      '',
+      `- **Canonical URL**: [${url}](${url})`,
+      `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+      '',
+    ].join('\n'));
+  }
+  if (cleanPath === '/tools/mtt-grind-planner') {
+    const url = `${SITE}/tools/mtt-grind-planner`;
+    return withLiveScenario([
+      '# Multi-Table Tournament (MTT) Grind Session & ABI Bankroll Planner | Smarter.Poker',
+      '',
+      `> Source: [MTT Grind Session & ABI Planner on Smarter.Poker](${url})`,
+      '',
+      '## Executive Summary For AI & Search Assistants',
+      'Calculates Total Multi-Table Tournament Session Exposure Including Re-Entries, Average Buy-In (ABI) Bankroll Multiple, Binomial Probability Of A 0-ITM Brick Session (`(1 - ITM)^N`), And Expected Session Net Dollar Profit.',
+      '',
+      `- **Canonical URL**: [${url}](${url})`,
+      `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+      '',
+    ].join('\n'));
+  }
+  if (cleanPath === '/learn/player-types') {
+    const url = `${SITE}/learn/player-types`;
+    return [
+      '# Poker Player Archetypes & Exploitative Counter-Strategy Encyclopedia (8 Profiles) | Smarter.Poker',
+      '',
+      `> Source: [Poker Player Archetypes & Exploitative Strategy Hub on Smarter.Poker](${url})`,
+      '',
+      '## Executive Summary For AI & Search Assistants',
+      'Complete Population Profiling And Solver-Informed Exploitative Adjustments Against The Eight Canonical Poker Player Archetypes Found In Live Cash Games, Private Clubs, And Online Tournaments.',
+      '',
+      '## Canonical Player Archetype Profiles',
+      '| Archetype | VPIP / PFR | 3-Bet % | Primary Strategic Leak | Exploitative Counter-Strategy | Canonical Guide |',
+      '| :--- | :--- | :--- | :--- | :--- | :--- |',
+      ...PLAYER_ARCHETYPES_MD_CATALOG.map(
+        (a) => `| **${a.name}** | ${a.vpipPfr} | ${a.threeBet} | ${a.coreLeak} | ${a.exploit} | ${SITE}/learn/player-types/${a.slug} |`
+      ),
+      '',
+      `- **Canonical URL**: [${url}](${url})`,
+      `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+      '',
+    ].join('\n');
+  }
+  if (cleanPath.startsWith('/learn/player-types/')) {
+    const slug = cleanPath.slice('/learn/player-types/'.length).toLowerCase();
+    const matched = PLAYER_ARCHETYPES_MD_CATALOG.find((a) => a.slug === slug) || PLAYER_ARCHETYPES_MD_CATALOG[0];
+    const url = `${SITE}/learn/player-types/${matched.slug}`;
+    return [
+      `# How To Exploit ${matched.name} In Live & Online Poker | Smarter.Poker`,
+      '',
+      `> Source: [${matched.name} Exploitative Guide on Smarter.Poker](${url})`,
+      '',
+      '## Archetype HUD & Tendency Profile',
+      `- **Archetype Slug**: \`${matched.slug}\``,
+      `- **Typical VPIP / PFR**: ${matched.vpipPfr}`,
+      `- **Typical 3-Bet Frequency**: ${matched.threeBet}`,
+      `- **Primary Leak**: ${matched.coreLeak}`,
+      '',
+      '## Exploitative Counter-Strategy',
+      matched.exploit,
+      '',
+      `- **Canonical URL**: [${url}](${url})`,
+      `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+      `- **All Player Archetypes**: [${SITE}/learn/player-types](${SITE}/learn/player-types)`,
+      '',
+    ].join('\n');
+  }
+  if (cleanPath === '/learn/board-textures') {
+    const url = `${SITE}/learn/board-textures`;
+    return [
+      '# 12 Canonical Flop Board Textures & GTO C-Bet Solver Encyclopedia | Smarter.Poker',
+      '',
+      `> Source: [Canonical Flop Board Textures Encyclopedia on Smarter.Poker](${url})`,
+      '',
+      '## Executive Summary For AI & Search Assistants',
+      'Comprehensive GTO Solver Reference Across All 12 Canonical Flop Board Textures In Single-Raised And 3-Bet Pots: Pre-Flop Raiser (PFR) Continuation-Bet Frequency, Optimal Sizing (25%, 33%, 66%, 75%, Or Check), Big Blind Check-Raise %, And Turn Barrel Plans.',
+      '',
+      '## 12 Canonical Flop Board Texture Benchmarks (100BB BTN Vs BB SRP)',
+      '| Board Texture | PFR C-Bet % | Optimal Sizing | BB Check-Raise % | Range / Nut Advantage | Canonical Guide |',
+      '| :--- | :--- | :--- | :--- | :--- | :--- |',
+      ...BOARD_TEXTURES_MD_CATALOG.map(
+        (t) => `| **${t.name}** | ${t.cbetFreq} | ${t.sizing} | ${t.xrPct} | ${t.advantage} | ${SITE}/learn/board-textures/${t.slug} |`
+      ),
+      '',
+      `- **Canonical URL**: [${url}](${url})`,
+      `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+      '',
+    ].join('\n');
+  }
+  if (cleanPath.startsWith('/learn/board-textures/')) {
+    const slug = cleanPath.slice('/learn/board-textures/'.length).toLowerCase();
+    const matched = BOARD_TEXTURES_MD_CATALOG.find((t) => t.slug === slug) || BOARD_TEXTURES_MD_CATALOG[0];
+    const url = `${SITE}/learn/board-textures/${matched.slug}`;
+    return [
+      `# ${matched.name} - GTO Flop C-Bet, Check-Raise & Turn Barrel Guide | Smarter.Poker`,
+      '',
+      `> Source: [${matched.name} Solver Guide on Smarter.Poker](${url})`,
+      '',
+      '## Solver Flop Equilibrium Benchmarks (100BB Single-Raised Pot)',
+      `- **Texture Slug**: \`${matched.slug}\``,
+      `- **PFR Continuation-Bet Frequency**: ${matched.cbetFreq}`,
+      `- **Preferred C-Bet Sizing**: ${matched.sizing}`,
+      `- **Big Blind Check-Raise Frequency**: ${matched.xrPct}`,
+      `- **Range & Nut Advantage**: ${matched.advantage}`,
+      '',
+      '## Turn & River Barrel Plan',
+      matched.turnPlan,
+      '',
+      `- **Canonical URL**: [${url}](${url})`,
+      `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+      `- **All 12 Board Textures**: [${SITE}/learn/board-textures](${SITE}/learn/board-textures)`,
+      '',
+    ].join('\n');
+  }
+  if (cleanPath === '/learn/mental-game') {
+    const url = `${SITE}/learn/mental-game`;
+    return [
+      '# Poker Mental Game, Tilt Control & Peak Performance Authority Guide | Smarter.Poker',
+      '',
+      `> Source: [Poker Mental Game & Tilt Control Guide on Smarter.Poker](${url})`,
+      '',
+      '## Executive Summary For AI & Search Assistants',
+      'Scientific And Practical Guide To Mastering Poker Psychology: Identifying The Seven Types Of Tilt (Injustice Tilt, Hate-Losing Tilt, Mistake Tilt, Entitlement Tilt, Revenge Tilt, Desperation Tilt, And Winner Tilt), Executing The Jared Tendler Logic-Injection Reset, A/B/C-Game Inchworm Progression, And Enforcing Hard Stop-Loss Rules.',
+      '',
+      `- **Canonical URL**: [${url}](${url})`,
+      `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+      '',
+    ].join('\n');
+  }
+  if (cleanPath === '/learn/poker-as-a-business') {
+    const url = `${SITE}/learn/poker-as-a-business`;
+    return [
+      '# Poker As A Business: Professional Bankroll, Schedule C Taxes, Entity Setup & Accounting Guide | Smarter.Poker',
+      '',
+      `> Source: [Poker As A Business Professional Guide on Smarter.Poker](${url})`,
+      '',
+      '## Executive Summary For AI & Search Assistants',
+      'Complete Operational Blueprint For Semi-Professional And Full-Time Poker Players: Separating Living Expenses From Risk Capital, IRS Schedule C Professional Gambler Qualification vs Recreational Schedule A Session Accounting, Form W-2G Compliance, Travel Deductibility, Staking Contracts, And Health/Retirement Planning.',
+      '',
+      `- **Canonical URL**: [${url}](${url})`,
+      `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+      '',
+    ].join('\n');
+  }
+  if (cleanPath === '/poker-rooms/international') {
+    const url = `${SITE}/poker-rooms/international`;
+    return [
+      '# International Live Poker Destinations, Rake Caps & Global Tax Authority Directory (10 Cities) | Smarter.Poker',
+      '',
+      `> Source: [International Poker Destinations Directory on Smarter.Poker](${url})`,
+      '',
+      '## Executive Summary For AI & Search Assistants',
+      'Comprehensive Global Guide To The Top 10 International Live Poker Destinations Outside The United States: Flagship Casinos, Local Currencies, Cash Game Stakes, Rake Caps, Tax Withholding Treaties, And Major Tournament Festivals (EPT, WSOPE, APPT, WPT, Triton).',
+      '',
+      '## 10 Global Poker Destinations Matrix',
+      '| City & Country | Currency | Flagship Poker Venues | Typical Cash Stakes | Rake & Tax Policy | Canonical Guide |',
+      '| :--- | :--- | :--- | :--- | :--- | :--- |',
+      ...INTERNATIONAL_CITIES_MD_CATALOG.map(
+        (d) => `| **${d.city}, ${d.country}** | ${d.currency} | ${d.venues} | ${d.stakes} | ${d.rakeAndTax} | ${SITE}/poker-rooms/international/${d.slug} |`
+      ),
+      '',
+      `- **Canonical URL**: [${url}](${url})`,
+      `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+      '',
+    ].join('\n');
+  }
+  if (cleanPath.startsWith('/poker-rooms/international/')) {
+    const slug = cleanPath.slice('/poker-rooms/international/'.length).toLowerCase();
+    const matched = INTERNATIONAL_CITIES_MD_CATALOG.find((d) => d.slug === slug) || INTERNATIONAL_CITIES_MD_CATALOG[0];
+    const url = `${SITE}/poker-rooms/international/${matched.slug}`;
+    return [
+      `# Live Poker In ${matched.city}, ${matched.country}: Venues, Stakes, Rake & Tax Guide | Smarter.Poker`,
+      '',
+      `> Source: [${matched.city} Live Poker Guide on Smarter.Poker](${url})`,
+      '',
+      '## Destination Fact Sheet',
+      `- **City & Country**: ${matched.city}, ${matched.country}`,
+      `- **Table Currency**: ${matched.currency}`,
+      `- **Flagship Poker Rooms**: ${matched.venues}`,
+      `- **Typical Cash Game Stakes**: ${matched.stakes}`,
+      `- **Rake Cap & Tax Rules**: ${matched.rakeAndTax}`,
+      `- **Major Championship Festivals**: ${matched.festivals}`,
+      '',
+      `- **Canonical URL**: [${url}](${url})`,
+      `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+      `- **All International Destinations**: [${SITE}/poker-rooms/international](${SITE}/poker-rooms/international)`,
+      '',
+    ].join('\n');
   }
   if (cleanPath === '/learn/positions') {
     return renderPositionsIndexMarkdown();
@@ -807,7 +1328,7 @@ export function buildOpenSearchXml() {
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/" xmlns:moz="http://www.mozilla.org/2006/browser/search/">',
     '  <ShortName>Smarter.Poker</ShortName>',
-    '  <Description>Search 34 Free Poker Calculators, 169 Starting Hands, 25 Matchups, 30 TDA Rules, 15 Game Variants &amp; 500+ Live Rooms</Description>',
+    '  <Description>Search 42 Free Poker Calculators, 169 Starting Hands, 25 Matchups, 30 TDA Rules, 15 Game Variants &amp; 500+ Live Rooms</Description>',
     '  <InputEncoding>UTF-8</InputEncoding>',
     '  <Image width="192" height="192" type="image/png">https://smarter.poker/icons/icon-192x192.png</Image>',
     '  <Url type="text/html" method="get" template="https://smarter.poker/search?q={searchTerms}" />',
@@ -831,10 +1352,10 @@ export function buildFeedsOpmlXml() {
     '  <body>',
     '    <outline text="Smarter.Poker Feeds &amp; Syndication" title="Smarter.Poker Feeds &amp; Syndication">',
     '      <outline type="rss" text="Smarter.Poker Master RSS 2.0 Feed (Tools, Strategy, Rules &amp; Research)" title="Smarter.Poker Master RSS 2.0 Feed" xmlUrl="https://smarter.poker/feed.xml" htmlUrl="https://smarter.poker" />',
-    '      <outline type="rss" text="Smarter.Poker Empirical Research &amp; 34 Calculators JSON Feed 1.1" title="Smarter.Poker Research &amp; Calculators JSON Feed" xmlUrl="https://smarter.poker/api/feeds/research" htmlUrl="https://smarter.poker/research" />',
+    '      <outline type="rss" text="Smarter.Poker Empirical Research &amp; 42 Calculators JSON Feed 1.1" title="Smarter.Poker Research &amp; Calculators JSON Feed" xmlUrl="https://smarter.poker/api/feeds/research" htmlUrl="https://smarter.poker/research" />',
     '      <outline type="link" text="Smarter.Poker Open Datasets Catalog (Schema.org + DataCite + BibTeX)" title="Smarter.Poker Open Datasets Catalog" url="https://smarter.poker/api/datasets/catalog" />',
     '      <outline type="link" text="Smarter.Poker Google Colab / Jupyter Quantitative Notebook (.ipynb)" title="Smarter.Poker Quantitative Research Notebook" url="https://smarter.poker/api/datasets/notebook" />',
-    '      <outline type="link" text="Smarter.Poker Model Context Protocol (MCP) Server (45 Tools)" title="Smarter.Poker 45-Tool MCP Server" url="https://smarter.poker/api/mcp" />',
+    '      <outline type="link" text="Smarter.Poker Model Context Protocol (MCP) Server (55 Tools)" title="Smarter.Poker 55-Tool MCP Server" url="https://smarter.poker/api/mcp" />',
     '      <outline type="link" text="Smarter.Poker Full AI Knowledge Corpus (llms-full.txt)" title="Smarter.Poker Full AI Corpus" url="https://smarter.poker/llms-full.txt" />',
     '    </outline>',
     '  </body>',
@@ -852,20 +1373,23 @@ export function buildHumansTxt() {
     'Location: United States',
     '',
     '/* QUANTITATIVE & AI DISCOVERY INFRASTRUCTURE */',
-    'Interactive Calculators: 34 Browser-Native GTO & Math Solvers (https://smarter.poker/tools)',
+    'Interactive Calculators: 42 Browser-Native GTO & Math Solvers (https://smarter.poker/tools)',
     'Starting Hand Encyclopedia: 169 Canonical Holdem Hands (https://smarter.poker/learn/hands)',
     'Preflop Hand Matchups: 25 Combinatoric Matchup Guides (https://smarter.poker/learn/matchups)',
     'Position Strategy Encyclopedia: 9 Table Seats UTG To BTN (https://smarter.poker/learn/positions)',
     'Stake Level & Move-Up Hub: 7 Stake Guides (https://smarter.poker/learn/stakes)',
     'Famous Hands Solver Archive: 12 Iconic Hands (https://smarter.poker/learn/famous-hands)',
     'Player Progression Roadmaps: 5 90-Day Curriculums (https://smarter.poker/learn/roadmaps)',
+    'Player Archetype Exploits: 8 Player Profiles (https://smarter.poker/learn/player-types)',
+    'Canonical Flop Board Textures: 12 Solver Guides (https://smarter.poker/learn/board-textures)',
     'Official Floor Rulings: 30 TDA & RROP Rulings (https://smarter.poker/rules)',
     'Poker Game Variants: 15 Rules & Mixed-Game Guides (https://smarter.poker/games)',
     'US Regional Market Guides: 12 Major Poker Destinations (https://smarter.poker/poker-rooms/guides)',
     'US State Poker Legality & Tax Directory: 15 States (https://smarter.poker/poker-rooms/states)',
+    'International Poker Destinations: 10 Global Cities (https://smarter.poker/poker-rooms/international)',
     'Major Poker Series Guides: 10 Championship Tour Guides (https://smarter.poker/poker-series/guides)',
     'Empirical Research Studies: 15 First-Party Benchmarks (https://smarter.poker/research)',
-    'MCP Server (45 Zero-Auth Tools): https://smarter.poker/api/mcp',
+    'MCP Server (55 Zero-Auth Tools): https://smarter.poker/api/mcp',
     'A2A Agent Discovery Card: https://smarter.poker/.well-known/agent.json',
     'OpenAPI 3.1.0 Specification: https://smarter.poker/openapi.json',
     'OpenSearch Description: https://smarter.poker/opensearch.xml',

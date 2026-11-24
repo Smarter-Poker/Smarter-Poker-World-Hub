@@ -17,6 +17,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { renderMixedGamePlacardsMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
 
@@ -314,9 +315,26 @@ export default function MixedGamePlacardsPage() {
         </h1>
 
         {!isEmbed && (
-          <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
-            <strong>Direct Answer:</strong> Official Mixed Game Rotations Like <strong>HORSE (5-Game)</strong> And <strong>8-Game Mix (T-H-O-R-S-E-N-P)</strong> Switch Variants Every <strong>6 Or 8 Dealt Hands</strong> (Or Every 20-Minute Level), Requiring Clear Table Placards That Display The Active Betting Limit (<strong>Fixed-Limit, Pot-Limit, Or No-Limit</strong>) And Any <strong>8-Or-Better Low Qualifier</strong>.
-          </p>
+          <>
+            <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 22px 0' }}>
+              <strong>Direct Answer:</strong> Official Mixed Game Rotations Like <strong>HORSE (5-Game)</strong> And <strong>8-Game Mix (T-H-O-R-S-E-N-P)</strong> Switch Variants Every <strong>6 Or 8 Dealt Hands</strong> (Or Every 20-Minute Level), Requiring Clear Table Placards That Display The Active Betting Limit (<strong>Fixed-Limit, Pot-Limit, Or No-Limit</strong>) And Any <strong>8-Or-Better Low Qualifier</strong>.
+            </p>
+            <CalculatorShareAndPresets
+              toolTitle="Mixed Game Rotation Tracker And Placards"
+              toolPath={canonicalPath}
+              summaryText={`${tracker.presetObj.label} (Hand #${tracker.safeHand}): Active Game = ${tracker.currentGame.name} (${tracker.currentGame.limitType}) | Next Up = ${tracker.nextGame.name}`}
+              presets={[
+                { id: 'p_horse', label: 'HORSE 5-Game (8 Hands/Variant)', preset: 'HORSE', orbit: '8' },
+                { id: 'p_8game', label: 'WSOP 8-Game Mix (6 Hands/Variant)', preset: 'EIGHT_GAME', orbit: '6' },
+                { id: 'p_10game', label: 'Super 10-Game Mix (8 Hands/Variant)', preset: 'TEN_GAME', orbit: '8' },
+              ]}
+              onSelectPreset={(p) => {
+                setPresetId(p.preset);
+                setOrbitMode(p.orbit);
+                setHandCounter(1);
+              }}
+            />
+          </>
         )}
 
         <section

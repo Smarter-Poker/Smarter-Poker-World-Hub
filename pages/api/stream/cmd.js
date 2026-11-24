@@ -206,6 +206,62 @@ export const STREAMER_BOT_COMMANDS = [
     streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=iq&q=${queryencode}}',
     canonicalToolUrl: 'https://smarter.poker/tools/poker-iq-test',
   },
+  {
+    command: '!wrap',
+    description: '4-Card & 5-Card Omaha Straight Wrap Outs, Nut Outs & Turn+River Equity (!wrap 17 or !wrap 20 ds)',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=wrap&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=wrap&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/tools/plo-outs-calculator',
+  },
+  {
+    command: '!latereg',
+    description: 'Tournament Late-Registration ICM Chip Appreciation & Equity Boost (!latereg 1000 20)',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=latereg&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=latereg&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/tools/late-reg-calculator',
+  },
+  {
+    command: '!confidence',
+    description: 'Poker Winrate 70%/95%/99% Confidence Interval & True Loss Probability (!confidence 5 85 50000)',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=confidence&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=confidence&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/tools/winrate-confidence-calculator',
+  },
+  {
+    command: '!trip',
+    description: 'Poker Festival Travel Overhead %, Expense Rake & Breakeven Target (!trip 5 1500 5000)',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=trip&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=trip&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/tools/poker-trip-planner',
+  },
+  {
+    command: '!geo',
+    description: 'Multi-Street 2e & 3e Geometric Pot-Fraction Bet Sizing (!geo 100 300 3)',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=geo&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=geo&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/tools/geometric-bet-calculator',
+  },
+  {
+    command: '!table',
+    description: 'Live Cash Table Selection Profitability Grade & Winrate Multiplier (!table 3 150 5)',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=table&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=table&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/tools/table-selection-calculator',
+  },
+  {
+    command: '!exploit',
+    description: 'Exploitative Counter-Strategy Against Live Player Archetypes (!exploit omc, !exploit station, !exploit maniac)',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=exploit&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=exploit&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/learn/player-types',
+  },
+  {
+    command: '!intl',
+    description: 'International Poker Destination Rooms, Stakes & Tax Rules (!intl london, !intl barcelona, !intl rozvadov)',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=intl&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=intl&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/poker-rooms/international',
+  },
 ];
 
 const PREFLOP_MATCHUPS = [
@@ -676,9 +732,166 @@ export function evaluateStreamCommand({ cmd = 'help', q = '', pot = '', bet = ''
     };
   }
 
+  if (normalizedCmd === 'wrap' || normalizedCmd === 'ploouts') {
+    const numMatch = queryText.match(/\d+/);
+    const rawOuts = numMatch ? parseInt(numMatch[0], 10) : 17;
+    const outs = [9, 13, 16, 17, 20].includes(rawOuts) ? rawOuts : 17;
+    const nutOutsMap = { 9: 6, 13: 10, 16: 12, 17: 14, 20: 14 };
+    const isDs = /\bds|double\b/i.test(queryText);
+    const isFd = !isDs && /\bfd|flush|single\b/i.test(queryText);
+    const extraFlush = isDs ? 14 : isFd ? 7 : 0;
+    const totalOuts = Math.min(25, outs + extraFlush);
+    const turnToRiverPct = ((1 - ((45 - totalOuts) / 45) * ((44 - totalOuts) / 44)) * 100).toFixed(1);
+    const flushTag = isDs ? ' + Double Flush Redraw' : isFd ? ' + Flush Draw' : '';
+
+    return {
+      command: '!wrap',
+      text: `[Smarter.Poker PLO Wrap] ${outs}-Out Omaha Wrap (${nutOutsMap[outs]} Nut Outs)${flushTag}: ${totalOuts} Total Outs = ${turnToRiverPct}% Flop-To-River Equity | Calculator: https://smarter.poker/tools/plo-outs-calculator`,
+      canonicalUrl: 'https://smarter.poker/tools/plo-outs-calculator',
+    };
+  }
+
+  if (normalizedCmd === 'latereg' || normalizedCmd === 'lateregistration') {
+    const nums = queryText
+      .match(/\d+(?:\.\d+)?/g)
+      ?.map((n) => parseFloat(n))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    const buyin = nums && nums.length >= 1 ? Math.round(nums[0]) : 1000;
+    const entryBb = nums && nums.length >= 2 ? Math.round(nums[1]) : 20;
+    const netPool = buyin * 0.9;
+    const icmEq = (netPool * 1.139).toFixed(0);
+    const boostPct = (((parseFloat(icmEq) - buyin) / buyin) * 100).toFixed(1);
+
+    return {
+      command: '!latereg',
+      text: `[Smarter.Poker Late-Reg] $${buyin.toLocaleString()} MTT Entry @ ${entryBb}BB (42% Field Out): Instant ICM Equity = $${Number(icmEq).toLocaleString()} (+${boostPct}% ICM Boost Over Buy-In) | Tool: https://smarter.poker/tools/late-reg-calculator`,
+      canonicalUrl: 'https://smarter.poker/tools/late-reg-calculator',
+    };
+  }
+
+  if (normalizedCmd === 'confidence' || normalizedCmd === 'ci') {
+    const nums = queryText
+      .match(/-?\d+(?:\.\d+)?/g)
+      ?.map((n) => parseFloat(n))
+      .filter((n) => Number.isFinite(n));
+    const wr = nums && nums.length >= 1 ? nums[0] : 5;
+    const sd = nums && nums.length >= 2 ? Math.max(10, nums[1]) : 85;
+    const hands = nums && nums.length >= 3 ? Math.max(1000, Math.round(nums[2])) : 50000;
+    const se = sd / Math.sqrt(hands / 100);
+    const low95 = (wr - 1.96 * se).toFixed(2);
+    const high95 = (wr + 1.96 * se).toFixed(2);
+
+    return {
+      command: '!confidence',
+      text: `[Smarter.Poker Winrate CI] ${wr} BB/100 (${sd} SD) Over ${hands.toLocaleString()} Hands: 95% Confidence = [${low95}, +${high95} BB/100] (SE ${se.toFixed(2)}) | Tool: https://smarter.poker/tools/winrate-confidence-calculator`,
+      canonicalUrl: 'https://smarter.poker/tools/winrate-confidence-calculator',
+    };
+  }
+
+  if (normalizedCmd === 'trip' || normalizedCmd === 'tripbudget') {
+    const nums = queryText
+      .match(/\d+(?:\.\d+)?/g)
+      ?.map((n) => parseFloat(n))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    const nights = nums && nums.length >= 1 ? Math.round(nums[0]) : 5;
+    const expenses = nums && nums.length >= 2 ? Math.round(nums[1]) : 1500;
+    const buyins = nums && nums.length >= 3 ? Math.round(nums[2]) : 5000;
+    const overheadPct = ((expenses / buyins) * 100).toFixed(1);
+    const breakevenTotal = buyins + expenses;
+
+    return {
+      command: '!trip',
+      text: `[Smarter.Poker Trip Planner] ${nights} Nights ($${expenses.toLocaleString()} Travel On $${buyins.toLocaleString()} Buy-Ins): Expense Overhead = ${overheadPct}% | Breakeven Target = $${breakevenTotal.toLocaleString()} | Tool: https://smarter.poker/tools/poker-trip-planner`,
+      canonicalUrl: 'https://smarter.poker/tools/poker-trip-planner',
+    };
+  }
+
+  if (normalizedCmd === 'geo' || normalizedCmd === 'geometric') {
+    const nums = queryText
+      .match(/\d+(?:\.\d+)?/g)
+      ?.map((n) => parseFloat(n))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    const potSize = nums && nums.length >= 1 ? nums[0] : 100;
+    const stackSize = nums && nums.length >= 2 ? nums[1] : 300;
+    const streets = nums && nums.length >= 3 ? Math.min(3, Math.max(1, Math.round(nums[2]))) : 3;
+    const spr = (stackSize / potSize).toFixed(2);
+    const geoPct = (((Math.pow((2 * stackSize + potSize) / potSize, 1 / streets) - 1) / 2) * 100).toFixed(1);
+
+    return {
+      command: '!geo',
+      text: `[Smarter.Poker Geometric Sizing] Pot ${potSize} / Stack ${stackSize} (SPR ${spr}, ${streets}e): Bet ${geoPct}% Of Pot Per Street To Smoothly Jam River | Tool: https://smarter.poker/tools/geometric-bet-calculator`,
+      canonicalUrl: 'https://smarter.poker/tools/geometric-bet-calculator',
+    };
+  }
+
+  if (normalizedCmd === 'table' || normalizedCmd === 'tableselect') {
+    const nums = queryText
+      .match(/\d+(?:\.\d+)?/g)
+      ?.map((n) => parseFloat(n))
+      .filter((n) => Number.isFinite(n) && n >= 0);
+    const whales = nums && nums.length >= 1 ? Math.min(8, Math.round(nums[0])) : 3;
+    const stackBb = nums && nums.length >= 2 ? Math.round(nums[1]) : 150;
+    const rakeCap = nums && nums.length >= 3 ? nums[2] : 5;
+    const score = Math.min(100, Math.max(10, Math.round(whales * 22 + Math.min(30, (stackBb / 200) * 25) + 14 - rakeCap * 1.6)));
+    const grade = score >= 85 ? 'S-Tier' : score >= 70 ? 'A-Tier' : score >= 55 ? 'B-Tier' : 'C-Tier';
+    const mult = (0.45 + (score / 100) * 1.35).toFixed(2);
+
+    return {
+      command: '!table',
+      text: `[Smarter.Poker Table Score] ${whales} Whales, ${stackBb}BB Avg Stack, $${rakeCap} Rake Cap: Grade = ${grade} (${score}/100 | ${mult}x Winrate Multiplier) | Tool: https://smarter.poker/tools/table-selection-calculator`,
+      canonicalUrl: 'https://smarter.poker/tools/table-selection-calculator',
+    };
+  }
+
+  if (normalizedCmd === 'exploit' || normalizedCmd === 'archetype') {
+    const cleanQ = queryText.toLowerCase().trim();
+    const archetypeMap = {
+      omc: { slug: 'omc', label: 'OMC (8/3 Ultra-Nit)', tip: 'Steal Blinds Relentlessly; Fold Overpairs To Any Postflop Raise Or 3-Bet' },
+      nit: { slug: 'omc', label: 'OMC (8/3 Ultra-Nit)', tip: 'Steal Blinds Relentlessly; Fold Overpairs To Any Postflop Raise Or 3-Bet' },
+      station: { slug: 'calling-station', label: 'Calling Station (46/6)', tip: 'Bluff 0% Of Hands; Value-Bet 80%-125% Pot With Top Pair Good Kicker+' },
+      'calling-station': { slug: 'calling-station', label: 'Calling Station (46/6)', tip: 'Bluff 0% Of Hands; Value-Bet 80%-125% Pot With Top Pair Good Kicker+' },
+      maniac: { slug: 'maniac', label: 'Maniac / Whale (62/44)', tip: 'Tighten Flats To High-Card Bluff-Catchers & Let Them Punt 3 Streets' },
+      tag: { slug: 'tag', label: 'TAG Regular (21/17)', tip: 'Float Flop C-Bets IP & Attack Their Capped Turn Checks With 75% Pot' },
+      lag: { slug: 'lag', label: 'LAG Crusher (31/25)', tip: 'Trap With Slowplayed Sets/Overpairs & 4-Bet Bluff Polarized Blockers' },
+      'short-stack': { slug: 'short-stack', label: 'Short-Stack Capper (20-40BB)', tip: 'Fold Speculative Suited Connectors To 3-Bets; Isolate With High Broadways' },
+      trapper: { slug: 'trapper', label: 'Passive Trapper (26/11)', tip: 'Check Back Medium Value On Wet Rivers & Fold To Sudden River Check-Jams' },
+      gto: { slug: 'gto-grinder', label: 'GTO Grinder (25/21)', tip: 'Under-Bluff Their MDF Bluff-Catchers & Exploit High-Rake Multiway Pots' },
+    };
+    const matched = archetypeMap[cleanQ] || archetypeMap.omc;
+
+    return {
+      command: '!exploit',
+      text: `[Smarter.Poker Exploit] Vs ${matched.label}: ${matched.tip} | 8 Player Archetype Guides: https://smarter.poker/learn/player-types`,
+      canonicalUrl: 'https://smarter.poker/learn/player-types',
+    };
+  }
+
+  if (normalizedCmd === 'intl' || normalizedCmd === 'international') {
+    const cleanQ = queryText.toLowerCase().trim().replace(/\s+/g, '-');
+    const intlMap = {
+      london: { slug: 'london', label: 'London, UK (Hippodrome / Empire / Vic)', info: '£1/£2-£5/£10 | 5% Rake Cap | 100% Tax-Free UK Gambling Winnings' },
+      barcelona: { slug: 'barcelona', label: 'Barcelona, Spain (Casino Barcelona)', info: '€1/€3-€10/€25 | 5% Rake Cap | Home Of EPT Barcelona' },
+      rozvadov: { slug: 'rozvadov', label: "Rozvadov, Czechia (King's Resort)", info: '160+ Tables | €1/€3-€50/€100 PLO | Home Of WSOP Europe' },
+      'monte-carlo': { slug: 'monte-carlo', label: 'Monte Carlo, Monaco (Sporting)', info: '€2/€5-€25/€50+ | Zero Local Income Tax | EPT Grand Final' },
+      prague: { slug: 'prague', label: "Prague, Czechia (Hilton King's / Savarin)", info: '€1/€3-€5/€10 | 5% Rake Cap | EPT Prague December Hub' },
+      manila: { slug: 'manila', label: 'Manila, Philippines (Okada / Newport)', info: '₱50/₱100-₱200/₱400 | Low Rake Cap | APPT & APT Hub' },
+      macau: { slug: 'macau', label: 'Macau SAR (Wynn / Venetian)', info: 'HK$25/$50-HK$100/$200+ | High-Stakes Cash Capital Of Asia' },
+      melbourne: { slug: 'melbourne', label: 'Melbourne, Australia (Crown)', info: 'A$2/A$5-A$10/A$25 | 100% Tax-Free Australian Winnings' },
+      montreal: { slug: 'montreal', label: 'Montreal, Canada (Playground)', info: 'C$1/C$2-C$5/C$10 | Free Food/Drinks | Tax-Free Recreational Wins' },
+      nassau: { slug: 'nassau', label: 'Nassau, Bahamas (Atlantis / Baha Mar)', info: '$2/$5-$25/$50+ USD | Home Of WSOP Paradise' },
+    };
+    const matched = intlMap[cleanQ] || intlMap.london;
+
+    return {
+      command: '!intl',
+      text: `[Smarter.Poker International] ${matched.label}: ${matched.info} | Global Hub: https://smarter.poker/poker-rooms/international`,
+      canonicalUrl: 'https://smarter.poker/poker-rooms/international',
+    };
+  }
+
   return {
     command: '!help',
-    text: `[Smarter.Poker Streamer Bot] 26 Commands: !odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, !matchup, !tax, !stake, !iso, !series, !board, !mratio, !straddle, !sat, !bbj, !position, !math, !iq | Setup: https://smarter.poker/tools/embeds`,
+    text: `[Smarter.Poker Streamer Bot] 34 Commands: !odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, !matchup, !tax, !stake, !iso, !series, !board, !mratio, !straddle, !sat, !bbj, !position, !math, !iq, !wrap, !latereg, !confidence, !trip, !geo, !table, !exploit, !intl | Setup: https://smarter.poker/tools/embeds`,
     canonicalUrl: 'https://smarter.poker/tools/embeds',
   };
 }

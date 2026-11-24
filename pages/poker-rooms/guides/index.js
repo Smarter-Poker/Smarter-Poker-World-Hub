@@ -216,8 +216,23 @@ export default function PokerMarketGuidesIndexPage() {
             <Link href="/hub/poker-near-me" style={{ padding: '8px 14px', background: '#25c8ff', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Poker Near Me (324+ Live Venues)
             </Link>
+            <Link href="/poker-rooms/international" style={{ padding: '8px 14px', background: '#10b981', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+              10 International Poker Destination Guides
+            </Link>
             <Link href="/poker-rooms/first-time-guide" style={{ padding: '8px 14px', background: '#020608', color: '#25c8ff', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               First-Time Live Poker Room Survival Guide
+            </Link>
+            <Link href="/learn/player-types" style={{ padding: '8px 14px', background: '#020608', color: '#25c8ff', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+              8 Poker Player Archetypes &amp; Exploits
+            </Link>
+            <Link href="/learn/board-textures" style={{ padding: '8px 14px', background: '#020608', color: '#25c8ff', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+              12 Flop Board Texture Encyclopedia
+            </Link>
+            <Link href="/learn/mental-game" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+              Mental Game &amp; Tilt Control Hub
+            </Link>
+            <Link href="/learn/poker-as-a-business" style={{ padding: '8px 14px', background: '#020608', color: '#f2b84b', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+              Pro Poker Tax &amp; Schedule C Guide
             </Link>
             <Link href="/poker-series/guides" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               10 Major Poker Series Survival Guides

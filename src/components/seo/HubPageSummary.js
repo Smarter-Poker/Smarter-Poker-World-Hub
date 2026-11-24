@@ -1034,6 +1034,136 @@ export const HUB_PAGE_SUMMARIES = {
       { name: 'Personal Assistant Leak Finder', href: '/hub/personal-assistant/leaks', text: 'Run Full Post-Session Hand Audits With Jarvis.' },
     ],
   },
+  'tools-plo-outs-calculator': {
+    heading: 'About The PLO Straight Wrap And Flush Redraw Outs Calculator',
+    lead:
+      'The PLO Straight Wrap And Flush Redraw Outs Calculator Computes Exact Hypergeometric Turn And River Completion Equities For Four-Card And Five-Card Omaha Wraps (9, 13, 16, 17, And 20 Outs), Separating Nut Straight Outs From Dominated Dirty Outs And Accounting For Single Or Double Flush Redraws. Free Omaha Tool.',
+    links: [
+      { name: 'PLO Max Bet Calculator', href: '/tools/plo-bet-calculator', text: 'Compute Exact Dealer 3x Plus Trail Plus Pot Raises.' },
+      { name: 'Holdem And PLO Odds Calculator', href: '/tools/poker-odds-calculator', text: 'Run Full Multiway Card-Vs-Card Omaha Simulations.' },
+      { name: 'Poker Outs Calculator', href: '/tools/outs-calculator', text: 'Review Standard 1-To-21 Out Rule Of 4 And 2 Tables.' },
+    ],
+  },
+  'tools-late-reg-calculator': {
+    heading: 'About The Tournament Late-Registration ICM Equity Calculator',
+    lead:
+      'The Tournament Late-Registration ICM Equity Calculator Uses Malmuth-Harville Prize Pool Math To Measure How Much Tournament Chips Appreciate When Early Entrants Bust Out. Compare Entering At Level 1 Versus Late-Registering At 15BB To 30BB And See The Exact Break-Even Post-Entry ROI Threshold. Free Tournament Tool.',
+    links: [
+      { name: 'Tournament ICM Calculator', href: '/tools/icm-calculator', text: 'Solve Final Table And Bubble Stack Dollar Equities.' },
+      { name: 'Harrington M-Ratio Calculator', href: '/tools/m-ratio-calculator', text: 'Check Your Orbit Survival And Push-Fold Zone On Entry.' },
+      { name: 'MTT Grind Session Planner', href: '/tools/mtt-grind-planner', text: 'Plan Full Tournament Schedules And ABI Exposure.' },
+    ],
+  },
+  'tools-winrate-confidence-calculator': {
+    heading: 'About The Poker Winrate Confidence Interval And Sample Size Calculator',
+    lead:
+      'The Poker Winrate Confidence Interval Calculator Computes Standard Error, 70%, 95%, And 99% Normal Confidence Bands In BB/100 Or Dollars Per Hour, Probability Of True Loss Over A Sample, And The Exact Hand Volume Required To Prove A Winning Edge At 95% Statistical Confidence. Free Quantitative Tool.',
+    links: [
+      { name: 'Poker Variance Simulator', href: '/tools/variance-calculator', text: 'Visualize Multi-Path Brownian Downswings And Confidence Cones.' },
+      { name: 'Bankroll Risk Of Ruin Calculator', href: '/tools/bankroll-calculator', text: 'Convert Your Winrate And StdDev Into Buy-In Cushions.' },
+      { name: 'Winrate And Hourly Calculator', href: '/tools/poker-winrate-calculator', text: 'Convert BB/100 Into Live And Online Hourly Income.' },
+    ],
+  },
+  'tools-poker-trip-planner': {
+    heading: 'About The Poker Festival And Vegas Trip Expense Overhead Calculator',
+    lead:
+      'The Poker Festival Trip Expense Planner Totals Airfare, Hotel Nights, Resort Fees, Dining, And Ground Transport To Compute Your Effective Travel Expense Rake As A Percentage Of Planned Tournament Or Cash Buy-Ins, Along With Your Net Trip EV And Break-Even Series Target. Free Travel Tool.',
+    links: [
+      { name: 'Major Poker Series Guides', href: '/poker-series/guides', text: 'Read Venue Logistics For WSOP, WPT, MSPT And Wynn.' },
+      { name: 'Tournament Staking Calculator', href: '/tools/staking-calculator', text: 'Model Markup Packages To Offset Travel Overhead.' },
+      { name: 'Cash Session Planner', href: '/tools/session-planner', text: 'Project Live Cash Game Hourly Income And Comps.' },
+    ],
+  },
+  'tools-shot-clock': {
+    heading: 'About The Live Poker Tournament Shot Clock And Time-Bank Timer',
+    lead:
+      'The Live Poker Tournament Shot Clock Provides A High-Visibility 15-Second Preflop And 30-Second Postflop Action Countdown With 10-Second Audio Alerts, One-Tap Time-Bank Card Extensions, And Printable Physical Time-Bank Cards For High-Roller Events And Home Games. Free Table Utility.',
+    links: [
+      { name: 'Blind Structure Generator', href: '/tools/blind-structure-calculator', text: 'Build TDA-Compliant Tournament Blind Schedules.' },
+      { name: 'Home Game Setup Kit', href: '/tools/home-game-kit', text: 'Calculate Starting Chip Denominations And Printable Rules.' },
+      { name: 'Mixed Game Placards', href: '/tools/mixed-game-placards', text: 'Track 8-Game And HORSE Dealer Rotations At The Table.' },
+    ],
+  },
+  'tools-geometric-bet-calculator': {
+    heading: 'About The Multi-Street 2e And 3e Geometric Bet Sizing Calculator',
+    lead:
+      'The Multi-Street Geometric Bet Sizing Calculator Solves The Exact Equal Pot-Fraction Bet Size Needed Across One, Two (2e), Or Three (3e) Streets To Put The Remaining Effective Stack All-In Smoothly On The River, Complete With Street-By-Street Pot Progression, MDF, And Polarized Bluff Ratios. Free Solver Tool.',
+    links: [
+      { name: 'SPR Calculator', href: '/tools/spr-calculator', text: 'Check Stack-To-Pot Ratio Commitment Zones On The Flop.' },
+      { name: 'Pot Odds And MDF Calculator', href: '/tools/pot-odds-calculator', text: 'Verify Defender Minimum Defense Frequency And Bluff Alpha.' },
+      { name: 'Flop Board Texture Analyzer', href: '/tools/board-texture-analyzer', text: 'Match Geometric Overbets To Nut-Advantage Boards.' },
+    ],
+  },
+  'tools-table-selection-calculator': {
+    heading: 'About The Live Cash Game Table Selection And Profitability Scorer',
+    lead:
+      'The Live Cash Game Table Selection Scorer Grades Any Live Table From S-Tier To F-Tier On A 100-Point Quantitative Scale Using Recreational VPIP Whale Count, Average Table Stack Depth In Big Blinds, Casino Pot Rake Cap, And Active Straddle Or Bomb-Pot Frequency. Free Live Cash Tool.',
+    links: [
+      { name: 'Live Rake Calculator', href: '/tools/rake-calculator', text: 'Compare Pot Rake Caps Against Timed Seat Rentals.' },
+      { name: 'Straddle And Bomb Pot Calculator', href: '/tools/straddle-calculator', text: 'Measure Effective Stack Compression And Dead Money EV.' },
+      { name: 'Player Archetype Exploit Hub', href: '/learn/player-types', text: 'Counter Calling Stations, Maniacs And OMCs At Your Table.' },
+    ],
+  },
+  'tools-mtt-grind-planner': {
+    heading: 'About The Multi-Table Tournament Session And ABI Bankroll Planner',
+    lead:
+      'The MTT Grind Session And ABI Bankroll Planner Computes Total Session Buy-In Exposure Including Re-Entries, Average Buy-In (ABI) Bankroll Multiples, Binomial Probability Of A Zero-Cash Brick Session, And Expected Net Session Profit Across Your Tournament Schedule. Free MTT Planner.',
+    links: [
+      { name: 'Late-Reg ICM Calculator', href: '/tools/late-reg-calculator', text: 'Find +EV Late-Registration Entry Windows Across Your Schedule.' },
+      { name: 'PKO And Mystery Bounty Calculator', href: '/tools/bounty-calculator', text: 'Convert Knockout Bounties Into Starting-Stack Chips.' },
+      { name: 'Bankroll Risk Of Ruin Calculator', href: '/tools/bankroll-calculator', text: 'Audit Long-Term Tournament Downswing Survival.' },
+    ],
+  },
+  'learn-player-types': {
+    heading: 'About The Poker Player Archetypes And Exploitative Strategy Encyclopedia',
+    lead:
+      'The Poker Player Archetypes Encyclopedia Profiles The Eight Canonical Opponents In Live And Online Poker (OMC, Calling Station, Maniac, TAG, LAG, Short-Stack Capper, Passive Trapper, And GTO Grinder) With Exact VPIP/PFR Ranges, Core Leaks, And Solver-Backed Exploitative Counter-Strategies. Free Strategy Hub.',
+    links: [
+      { name: 'Live Table Selection Scorer', href: '/tools/table-selection-calculator', text: 'Grade Table Profitability From Recreational Player Counts.' },
+      { name: 'Live Poker Tells Guide', href: '/learn/live-poker-tells', text: 'Combine HUD Archetypes With Physical Timing And Sizing Tells.' },
+      { name: 'Position Strategy Hub', href: '/learn/positions', text: 'Compare Exploitative Deviations Against 9-Seat GTO Baselines.' },
+    ],
+  },
+  'learn-board-textures': {
+    heading: 'About The 12 Canonical Flop Board Textures And GTO C-Bet Encyclopedia',
+    lead:
+      'The Canonical Flop Board Textures Encyclopedia Deconstructs The Twelve Fundamental Flop Archetypes In Single-Raised And Three-Bet Pots, Detailing Pre-Flop Raiser Continuation-Bet Frequencies, Optimal Bet Sizings, Big Blind Check-Raise Thresholds, And Turn Barrel Plans. Free Postflop Hub.',
+    links: [
+      { name: 'Interactive Board Texture Analyzer', href: '/tools/board-texture-analyzer', text: 'Enter Any Custom 3-Card Flop For Instant C-Bet Sizing.' },
+      { name: 'Geometric Bet Sizing Calculator', href: '/tools/geometric-bet-calculator', text: 'Plan 2e And 3e Multi-Street Overbet Jam Lines.' },
+      { name: 'Starting Hands Encyclopedia', href: '/learn/hands', text: 'See How All 169 Starting Hands Connect With Flop Textures.' },
+    ],
+  },
+  'learn-mental-game': {
+    heading: 'About The Poker Mental Game, Tilt Control And Peak Performance Hub',
+    lead:
+      'The Poker Mental Game And Tilt Control Hub Covers The Seven Diagnostic Categories Of Tilt, Pre-Session Warmup Protocols, Mid-Session Breathing And Logic-Injection Resets, A-Game To C-Game Inchworm Progression, And Hard Stop-Loss Enforcement For Live And Online Grinders. Free Psychology Guide.',
+    links: [
+      { name: 'Tilt Guard Coach', href: '/hub/training/tilt-guard', text: 'Launch Interactive Mid-Session Emotional Check-Ins.' },
+      { name: 'Pre-Session Warmup Protocol', href: '/hub/training/session-warmup', text: 'Complete The 6-Step Mental Readiness Checklist.' },
+      { name: 'Winrate Confidence Calculator', href: '/tools/winrate-confidence-calculator', text: 'Separate Normal Statistical Variance From Tilt Leaks.' },
+    ],
+  },
+  'learn-poker-as-a-business': {
+    heading: 'About The Poker As A Business And Professional Operations Guide',
+    lead:
+      'The Poker As A Business Guide Provides A Complete Financial And Operational Blueprint For Serious And Professional Players: Segregating Risk Capital From Living Reserves, Qualifying For IRS Schedule C Filing Versus Schedule A Session Accounting, Managing Staking Contracts, And Controlling Festival Travel Overhead. Free Pro Guide.',
+    links: [
+      { name: 'US Poker Tax Calculator', href: '/tools/poker-tax-calculator', text: 'Compare Schedule A Session Caps Against Schedule C Pro Filing.' },
+      { name: 'Poker Trip Expense Planner', href: '/tools/poker-trip-planner', text: 'Calculate Travel Overhead Rake On Festival Buy-Ins.' },
+      { name: 'Bankroll Manager', href: '/hub/bankroll-manager', text: 'Log Every Cash And Tournament Session With Receipt Exports.' },
+    ],
+  },
+  'poker-rooms-international': {
+    heading: 'About The International Live Poker Destinations And Global Tax Directory',
+    lead:
+      'The International Live Poker Destinations Directory Profiles The Ten Premier Global Poker Cities Outside The United States (London, Barcelona, Rozvadov, Monte Carlo, Prague, Manila, Macau, Melbourne, Montreal, And Nassau), Covering Flagship Cardrooms, Currencies, Cash Stakes, Rake Caps, And Local Tax Rules. Free Global Guide.',
+    links: [
+      { name: 'US State Poker Legality Hub', href: '/poker-rooms/states', text: 'Compare Domestic State Tax Withholding And Casino Laws.' },
+      { name: 'US Regional Market Guides', href: '/poker-rooms/guides', text: 'Explore Las Vegas, Los Angeles, Texas And Florida Hubs.' },
+      { name: 'Poker Trip Expense Planner', href: '/tools/poker-trip-planner', text: 'Budget Flights, Hotels And Buy-Ins For International Stops.' },
+    ],
+  },
 };
 
 // The page keys printed on the #ClubArenaConsole chassis instead of the

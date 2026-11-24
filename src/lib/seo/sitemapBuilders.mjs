@@ -57,6 +57,34 @@ export const SITEMAP_SERIES_EVIDENCE_COLUMNS = [
   'scrape_batch_id',
 ].join(', ');
 
+const PLAYER_TYPE_SLUGS = ['omc', 'calling-station', 'maniac', 'tag', 'lag', 'short-stack', 'trapper', 'gto-grinder'];
+const BOARD_TEXTURE_SLUGS = [
+  'ace-high-dry-rainbow',
+  'king-high-dry-rainbow',
+  'double-broadway-two-tone',
+  'triple-broadway-wet',
+  'mid-connected-wet',
+  'low-connected-board',
+  'low-disconnected-rainbow',
+  'monotone-flush-flop',
+  'high-paired-board',
+  'low-paired-board',
+  'wheel-ace-low-board',
+  'queen-jack-dynamic',
+];
+const INTERNATIONAL_CITY_SLUGS = [
+  'london',
+  'barcelona',
+  'rozvadov',
+  'monte-carlo',
+  'prague',
+  'manila',
+  'macau',
+  'melbourne',
+  'montreal',
+  'nassau',
+];
+
 export const LEARN_PAGES = [
   { path: LEARN_PATH, priority: '0.8', changefreq: 'monthly' },
   { path: '/learn/poker-hand-rankings', priority: '0.85', changefreq: 'monthly' },
@@ -64,6 +92,12 @@ export const LEARN_PAGES = [
   { path: '/learn/cheat-sheets', priority: '0.85', changefreq: 'monthly' },
   { path: '/learn/online-vs-live-poker', priority: '0.85', changefreq: 'monthly' },
   { path: '/learn/live-poker-tells', priority: '0.85', changefreq: 'monthly' },
+  { path: '/learn/mental-game', priority: '0.85', changefreq: 'monthly' },
+  { path: '/learn/poker-as-a-business', priority: '0.85', changefreq: 'monthly' },
+  { path: '/learn/player-types', priority: '0.85', changefreq: 'monthly' },
+  ...PLAYER_TYPE_SLUGS.map((slug) => ({ path: `/learn/player-types/${slug}`, priority: '0.8', changefreq: 'monthly' })),
+  { path: '/learn/board-textures', priority: '0.85', changefreq: 'monthly' },
+  ...BOARD_TEXTURE_SLUGS.map((slug) => ({ path: `/learn/board-textures/${slug}`, priority: '0.8', changefreq: 'monthly' })),
   { path: '/learn/hands', priority: '0.8', changefreq: 'monthly' },
   { path: '/learn/matchups', priority: '0.85', changefreq: 'monthly', lastmod: MATCHUPS_AS_OF },
   ...HAND_MATCHUPS.map((m) => ({ path: matchupPath(m.slug), priority: '0.8', changefreq: 'monthly', lastmod: MATCHUPS_AS_OF })),
@@ -104,6 +138,11 @@ export const MARKET_GUIDE_PAGES = [
   ...POKER_MARKET_GUIDES.map((m) => ({ path: marketGuidePath(m.slug), priority: '0.8', changefreq: 'monthly', lastmod: MARKET_GUIDES_AS_OF })),
 ];
 
+export const INTERNATIONAL_POKER_PAGES = [
+  { path: '/poker-rooms/international', priority: '0.85', changefreq: 'monthly', lastmod: MARKET_GUIDES_AS_OF },
+  ...INTERNATIONAL_CITY_SLUGS.map((slug) => ({ path: `/poker-rooms/international/${slug}`, priority: '0.8', changefreq: 'monthly', lastmod: MARKET_GUIDES_AS_OF })),
+];
+
 export const SERIES_GUIDE_PAGES = [
   { path: '/poker-series/guides', priority: '0.85', changefreq: 'monthly', lastmod: SERIES_GUIDES_AS_OF },
   ...SERIES_GUIDES.map((g) => ({ path: seriesGuidePath(g.slug), priority: '0.8', changefreq: 'monthly', lastmod: SERIES_GUIDES_AS_OF })),
@@ -120,6 +159,7 @@ export const STATIC_PAGES = [
   ...RULES_PAGES,
   ...GAMES_PAGES,
   ...MARKET_GUIDE_PAGES,
+  ...INTERNATIONAL_POKER_PAGES,
   ...SERIES_GUIDE_PAGES,
   { path: '/terms', priority: '0.3', changefreq: 'yearly' },
   { path: '/privacy', priority: '0.3', changefreq: 'yearly' },
@@ -191,6 +231,14 @@ export const STATIC_PAGES = [
   { path: '/tools/who-wins-calculator', priority: '0.9', changefreq: 'weekly' },
   { path: '/tools/mixed-game-placards', priority: '0.9', changefreq: 'weekly' },
   { path: '/tools/poker-iq-test', priority: '0.9', changefreq: 'weekly' },
+  { path: '/tools/plo-outs-calculator', priority: '0.9', changefreq: 'weekly' },
+  { path: '/tools/late-reg-calculator', priority: '0.9', changefreq: 'weekly' },
+  { path: '/tools/winrate-confidence-calculator', priority: '0.9', changefreq: 'weekly' },
+  { path: '/tools/poker-trip-planner', priority: '0.9', changefreq: 'weekly' },
+  { path: '/tools/shot-clock', priority: '0.9', changefreq: 'weekly' },
+  { path: '/tools/geometric-bet-calculator', priority: '0.9', changefreq: 'weekly' },
+  { path: '/tools/table-selection-calculator', priority: '0.9', changefreq: 'weekly' },
+  { path: '/tools/mtt-grind-planner', priority: '0.9', changefreq: 'weekly' },
   { path: '/tools/preflop-ranges', priority: '0.9', changefreq: 'weekly' },
   { path: '/tools/preflop-ranges/utg', priority: '0.85', changefreq: 'monthly' },
   { path: '/tools/preflop-ranges/mp', priority: '0.85', changefreq: 'monthly' },
