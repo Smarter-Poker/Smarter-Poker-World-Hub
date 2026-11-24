@@ -513,6 +513,121 @@ function buildTonightFillMonitor({ upcomingTournaments, activeTournaments, recen
     };
 }
 
+function toNonNegInt(value) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed >= 0 ? Math.trunc(parsed) : 0;
+}
+
+export function normalizeIntegrityReview(value) {
+    if (!plainObject(value)) {
+        return {
+            available: false,
+            summary: {
+                total_signals: 0,
+                flagged_signals: 0,
+                high_risk_signals: 0,
+            },
+            flagged_sessions: [],
+            user_aggregates: [],
+        };
+    }
+    const rawSummary = plainObject(value.summary) ? value.summary : {};
+    const flaggedSessions = (Array.isArray(value.flagged_sessions) ? value.flagged_sessions : [])
+        .filter((row) => plainObject(row))
+        .slice(0, 50)
+        .map((row) => ({
+            id: typeof row.id === 'string' ? row.id : null,
+            session_id: typeof row.session_id === 'string' ? row.session_id : null,
+            user_id: typeof row.user_id === 'string' ? row.user_id : null,
+            display_name: typeof row.display_name === 'string' && row.display_name.trim()
+                ? row.display_name.trim()
+                : 'Player',
+            mode: typeof row.mode === 'string' ? row.mode : 'unknown',
+            tab_blur_count: toNonNegInt(row.tab_blur_count),
+            copy_attempt_count: toNonNegInt(row.copy_attempt_count),
+            paste_attempt_count: toNonNegInt(row.paste_attempt_count),
+            avg_answer_ms: finite(row.avg_answer_ms) ? Math.round(Number(row.avg_answer_ms)) : null,
+            min_answer_ms: finite(row.min_answer_ms) ? Math.round(Number(row.min_answer_ms)) : null,
+            fast_correct_count: toNonNegInt(row.fast_correct_count),
+            accuracy_pct: finite(row.accuracy_pct) ? Number(row.accuracy_pct) : null,
+            risk_score: toNonNegInt(row.risk_score),
+            risk_flags: Array.isArray(row.risk_flags)
+                ? row.risk_flags.filter((flag) => typeof flag === 'string')
+                : [],
+            created_at: typeof row.created_at === 'string' ? row.created_at : null,
+        }));
+    const userAggregates = (Array.isArray(value.user_aggregates) ? value.user_aggregates : [])
+        .filter((row) => plainObject(row))
+        .slice(0, 50)
+        .map((row) => ({
+            user_id: typeof row.user_id === 'string' ? row.user_id : null,
+            display_name: typeof row.display_name === 'string' && row.display_name.trim()
+                ? row.display_name.trim()
+                : 'Player',
+            total_sessions: toNonNegInt(row.total_sessions),
+            flagged_sessions: toNonNegInt(row.flagged_sessions),
+            high_risk_sessions: toNonNegInt(row.high_risk_sessions),
+            max_risk_score: toNonNegInt(row.max_risk_score),
+            avg_risk_score: finite(row.avg_risk_score) ? Number(row.avg_risk_score) : 0,
+            total_tab_blurs: toNonNegInt(row.total_tab_blurs),
+            total_copy_paste: toNonNegInt(row.total_copy_paste),
+            last_flagged_at: typeof row.last_flagged_at === 'string' ? row.last_flagged_at : null,
+        }));
+    return {
+        available: value.success === true,
+        summary: {
+            total_signals: toNonNegInt(rawSummary.total_signals),
+            flagged_signals: toNonNegInt(rawSummary.flagged_signals),
+            high_risk_signals: toNonNegInt(rawSummary.high_risk_signals),
+        },
+        flagged_sessions: flaggedSessions,
+        user_aggregates: userAggregates,
+    };
+}
+
+export function normalizePlayerFunnel(value) {
+    if (!plainObject(value)) {
+        return {
+            available: false,
+            window_hours: 24,
+            since: null,
+            solo_sessions_started: 0,
+            solo_sessions_submitted: 0,
+            solo_unique_players: 0,
+            solo_completion_rate_pct: 0,
+            paid_skips_count: 0,
+            pvp_matches_created: 0,
+            pvp_matches_completed: 0,
+            pvp_human_human_count: 0,
+            pvp_human_horse_count: 0,
+            nightly_human_registrations: 0,
+            nightly_reminders_opted_in: 0,
+            nightly_reminders_dispatched: 0,
+            integrity_flagged_sessions: 0,
+        };
+    }
+    return {
+        available: value.success === true,
+        window_hours: finite(value.window_hours) ? Math.trunc(Number(value.window_hours)) : 24,
+        since: typeof value.since === 'string' ? value.since : null,
+        solo_sessions_started: toNonNegInt(value.solo_sessions_started),
+        solo_sessions_submitted: toNonNegInt(value.solo_sessions_submitted),
+        solo_unique_players: toNonNegInt(value.solo_unique_players),
+        solo_completion_rate_pct: finite(value.solo_completion_rate_pct)
+            ? Math.round(Number(value.solo_completion_rate_pct) * 10) / 10
+            : 0,
+        paid_skips_count: toNonNegInt(value.paid_skips_count),
+        pvp_matches_created: toNonNegInt(value.pvp_matches_created),
+        pvp_matches_completed: toNonNegInt(value.pvp_matches_completed),
+        pvp_human_human_count: toNonNegInt(value.pvp_human_human_count),
+        pvp_human_horse_count: toNonNegInt(value.pvp_human_horse_count),
+        nightly_human_registrations: toNonNegInt(value.nightly_human_registrations),
+        nightly_reminders_opted_in: toNonNegInt(value.nightly_reminders_opted_in),
+        nightly_reminders_dispatched: toNonNegInt(value.nightly_reminders_dispatched),
+        integrity_flagged_sessions: toNonNegInt(value.integrity_flagged_sessions),
+    };
+}
+
 /**
  * Build the browser-safe read-only control-room payload.
  *
@@ -551,6 +666,8 @@ export function buildTriviaOperationsSnapshot(input = {}) {
         recentTournaments: input.recentTournaments,
         nowMs,
     });
+    const integrityReview = normalizeIntegrityReview(input.integrityReview);
+    const playerFunnel = normalizePlayerFunnel(input.playerFunnel);
     const issues = [];
 
     for (const source of Object.keys(sourceErrors).sort()) {
@@ -673,6 +790,8 @@ export function buildTriviaOperationsSnapshot(input = {}) {
         ledger_health: ledgerHealth,
         treasury_economics: treasuryEconomics,
         tonight_fill_monitor: tonightFillMonitor,
+        integrity_review: integrityReview,
+        player_funnel: playerFunnel,
         authority,
         available_actions: Object.entries(TRIVIA_OPERATOR_ACTIONS)
             .filter(([, action]) => (
