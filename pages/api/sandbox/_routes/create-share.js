@@ -64,13 +64,13 @@ function generateShortId(length = 6) {
  * Identity comes from the Bearer token ONLY. A creator_id taken from the body
  * or the query string would let anyone revoke anyone else's link.
  */
-async function resolveUserId(supabase, req) {
+async function resolveUser(supabase, req) {
     try {
-        const { user } = await getServerUserWithFallback(req, supabase);
-        return user?.id || null;
+        const { user, status } = await getServerUserWithFallback(req, supabase);
+        return { userId: user?.id || null, authStatus: status || null };
     } catch (e) {
         console.warn('[App] Handled exception:', e?.message || e);
-        return null;
+        return { userId: null, authStatus: null };
     }
 }
 
@@ -94,7 +94,10 @@ function readShareId(req) {
 
 // ── POST: create ───────────────────────────────────────────────────────────
 async function handleCreate(req, res, supabase) {
-    const userId = await resolveUserId(supabase, req);
+    const { userId, authStatus } = await resolveUser(supabase, req);
+    if (authStatus === 503) {
+        return res.status(503).json({ success: false, error: 'Session verification unavailable' });
+    }
 
     const { state_json } = req.body || {};
     if (!state_json || typeof state_json !== 'object' || Array.isArray(state_json)) {
@@ -154,7 +157,10 @@ async function handleCreate(req, res, supabase) {
 
 // ── GET: list the caller's links ───────────────────────────────────────────
 async function handleList(req, res, supabase) {
-    const userId = await resolveUserId(supabase, req);
+    const { userId, authStatus } = await resolveUser(supabase, req);
+    if (authStatus === 503) {
+        return res.status(503).json({ success: false, error: 'Session verification unavailable' });
+    }
     if (!userId) {
         return res.status(401).json({ success: false, error: 'Authentication required' });
     }
@@ -201,7 +207,10 @@ async function handleList(req, res, supabase) {
 
 // ── DELETE: revoke ─────────────────────────────────────────────────────────
 async function handleRevoke(req, res, supabase) {
-    const userId = await resolveUserId(supabase, req);
+    const { userId, authStatus } = await resolveUser(supabase, req);
+    if (authStatus === 503) {
+        return res.status(503).json({ success: false, error: 'Session verification unavailable' });
+    }
     if (!userId) {
         return res.status(401).json({ success: false, error: 'Authentication required' });
     }
@@ -307,16 +316,16 @@ export default async function handler(req, res) {
   try {
       const method = req.method;
 
+      if (method !== 'POST' && method !== 'DELETE' && method !== 'PATCH' && method !== 'GET') {
+          res.setHeader('Allow', 'GET, POST, DELETE, PATCH');
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
+
       // Writes (create/revoke) get the strict bucket; reads (the public view
       // beacon and the authenticated list) get the read bucket so a busy
       // shared link cannot exhaust the write budget.
       const limit = (method === 'PATCH' || method === 'GET') ? (LIMITS.read || READ_LIMIT) : LIMITS.write;
       if (!applyRateLimit(req, res, limit)) return;
-
-      if (method !== 'POST' && method !== 'DELETE' && method !== 'PATCH' && method !== 'GET') {
-          res.setHeader('Allow', 'GET, POST, DELETE, PATCH');
-          return res.status(405).json({ success: false, error: 'Method not allowed' });
-      }
 
       try {
           let supabase;

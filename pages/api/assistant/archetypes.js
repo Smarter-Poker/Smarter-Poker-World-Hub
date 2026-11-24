@@ -19,8 +19,11 @@ import { ARCHETYPE_CONFIG } from '../../../src/lib/sandbox/VillainArchetypeRange
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!url || !key) {
+            throw new Error('SUPABASE_SERVICE_ROLE_KEY and NEXT_PUBLIC_SUPABASE_URL are required');
+        }
         _supabase = createClient(url, key);
     }
     return _supabase;
@@ -60,6 +63,7 @@ function canonicalIndex(id) {
 export default async function handler(req, res) {
   try {
     if (req.method !== 'GET') {
+      res.setHeader('Allow', 'GET');
       return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
@@ -67,9 +71,6 @@ export default async function handler(req, res) {
     // a unique query string per request bypasses the CDN and reaches this
     // handler · and this endpoint needs no auth at all.
     if (!applyRateLimit(req, res, LIMITS.read || { max: 60, windowMs: 60_000 })) return;
-
-    // Villain archetypes are static reference data · safe to cache 1 hour at edge
-    res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');
 
     try {
       const { data: archetypes, error } = await getSupabase()
@@ -80,6 +81,7 @@ export default async function handler(req, res) {
       const rows = (archetypes || []).filter(a => a && a.id);
 
       if (error || rows.length === 0) {
+        res.setHeader('Cache-Control', 'no-store');
         return res.status(200).json({
           success: true,
           archetypes: DEFAULT_ARCHETYPES
@@ -109,6 +111,8 @@ export default async function handler(req, res) {
         };
       });
 
+      // Villain archetypes are static reference data · safe to cache 1 hour at edge only on healthy reads
+      res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');
       return res.status(200).json({
         success: true,
         archetypes: formatted
@@ -116,6 +120,7 @@ export default async function handler(req, res) {
 
     } catch (error) {
       console.warn('Archetypes error:', error);
+      res.setHeader('Cache-Control', 'no-store');
       return res.status(200).json({
         success: true,
         archetypes: DEFAULT_ARCHETYPES

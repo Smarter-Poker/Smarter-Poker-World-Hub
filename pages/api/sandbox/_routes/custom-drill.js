@@ -32,8 +32,11 @@ import {
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!url || !key) {
+            throw new Error('SUPABASE_SERVICE_ROLE_KEY and NEXT_PUBLIC_SUPABASE_URL are required');
+        }
         _supabase = createClient(url, key);
     }
     return _supabase;
@@ -206,9 +209,12 @@ function mapCacheRow(row) {
 
 export default async function handler(req, res) {
   try {
-      if (!applyRateLimit(req, res, LIMITS.read || { max: 60, windowMs: 60_000 })) return;
+      if (req.method !== 'GET') {
+          res.setHeader('Allow', 'GET');
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
 
-      if (req.method !== 'GET') return res.status(405).json({ success: false, error: 'Method not allowed' });
+      if (!applyRateLimit(req, res, LIMITS.read || { max: 60, windowMs: 60_000 })) return;
 
       try {
           const supabase = getSupabase();
@@ -219,7 +225,8 @@ export default async function handler(req, res) {
           let ownedDrillParams = null;
           if (leakId) {
               if (!LEAK_ID_RE.test(leakId)) return res.status(400).json({ success: false, error: 'Invalid leak id' });
-              const { user, error: authError } = await getServerUserWithFallback(req, supabase);
+              const { user, error: authError, status: authStatus } = await getServerUserWithFallback(req, supabase);
+              if (authStatus === 503) return res.status(503).json({ success: false, error: 'Session verification unavailable' });
               if (authError || !user) return res.status(401).json({ success: false, error: 'Authentication required' });
               const ownedLeak = await loadOwnedLeak(supabase, user.id, leakId);
               if (!ownedLeak) {

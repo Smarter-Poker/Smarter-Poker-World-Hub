@@ -16,12 +16,13 @@ function getAdmin() {
 }
 
 async function retentionHandler(req, res) {
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+  res.setHeader('Vary', 'Authorization');
   if (!validateCronAuth(req)) return res.status(401).json({ error: 'Unauthorized' });
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET');
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
-  res.setHeader('Cache-Control', 'no-store');
 
   const admin = getAdmin();
   if (!admin) return res.status(500).json({ status: 'unconfigured', error: 'Missing Supabase Environment Variables' });

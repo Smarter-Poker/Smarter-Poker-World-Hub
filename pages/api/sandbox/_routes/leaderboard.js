@@ -11,12 +11,16 @@ import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/apiErrorHandler';
 import { availabilityFailure } from '../../../../src/lib/personal-assistant/persistenceContract';
+import { utcMondayStartIso } from '../../../../src/lib/personal-assistant/utcWeekWindow.mjs';
 
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!url || !key) {
+            throw new Error('SUPABASE_SERVICE_ROLE_KEY and NEXT_PUBLIC_SUPABASE_URL are required');
+        }
         _supabase = createClient(url, key);
     }
     return _supabase;
@@ -55,32 +59,30 @@ async function fetchWeekRows(supabase, weekStart) {
 
 export default async function handler(req, res) {
   try {
-      if (!applyRateLimit(req, res, LIMITS.read || { max: 120, windowMs: 60_000 })) return;
-
       if (req.method !== 'GET') {
+          res.setHeader('Allow', 'GET');
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
+
+      if (!applyRateLimit(req, res, LIMITS.read || { max: 120, windowMs: 60_000 })) return;
 
       try {
           const supabase = getSupabase();
 
           // Authenticate
           let userId = null;
-          const { user: authUser } = await getServerUserWithFallback(req, supabase);
+          const { user: authUser, status: authStatus } = await getServerUserWithFallback(req, supabase);
+          if (authStatus === 503) {
+              return res.status(503).json({ success: false, error: 'Session verification unavailable' });
+          }
           if (authUser) userId = authUser.id;
 
           if (!userId) {
               return res.status(401).json({ success: false, error: 'Authentication required' });
           }
 
-          // Week boundaries (Monday → Sunday)
-          const now = new Date();
-          const dayOfWeek = now.getDay();
-          const monday = new Date(now);
-          monday.setDate(now.getDate() - ((dayOfWeek + 6) % 7));
-          monday.setHours(0, 0, 0, 0);
-
-          const weekStart = monday.toISOString();
+          // Week boundaries (UTC Monday -> Sunday)
+          const weekStart = utcMondayStartIso();
 
           const { rows, missing } = await fetchWeekRows(supabase, weekStart);
           if (missing) {
