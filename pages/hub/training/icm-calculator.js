@@ -16,6 +16,8 @@ import Head from 'next/head';
 import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { hubProductSchema } from '../../../src/lib/seo/hubPageSchema';
+import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
+import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -1409,6 +1411,21 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
               </Link>
             </div>
           </section>
+
+          <CitationBacklinkBox
+            title="Malmuth-Harville Tournament ICM & Bubble Factor Calculator"
+            canonicalUrl="https://smarter.poker/tools/icm-calculator"
+            badgeType="gto"
+            badgeLabel="GTO Math Verified"
+            badgeValue="Smarter.Poker ICM Solver"
+            summary="Free Tournament Independent Chip Model (ICM) Calculator Converting Chip Stacks To Real Dollar Equity And Bubble Factors."
+            slug="icm-calculator"
+          />
+          <AiPromptLauncher
+            title="Malmuth-Harville Tournament ICM & Bubble Factor Calculator"
+            canonicalUrl="https://smarter.poker/tools/icm-calculator"
+            markdownUrl="https://smarter.poker/tools/icm-calculator.md"
+          />
         </div>
       </div>
     </>

@@ -16,6 +16,7 @@ import {
   buildDataCatalogJsonLd,
   WIKIPEDIA_CITATION_TARGETS,
 } from '../../../src/lib/seo/datasetCatalog.mjs';
+import { findResearchReport } from '../../../src/content/research/reports.js';
 
 export function buildJupyterNotebookPayload() {
   return {
@@ -47,7 +48,7 @@ export function buildJupyterNotebookPayload() {
         "source": [
           "# Smarter.Poker Quantitative Poker Datasets & Reproducible Benchmarks (CC-BY 4.0)\n",
           "\n",
-          "This reproducible Jupyter / Google Colab notebook loads and verifies the published **Smarter.Poker Open Quantitative Poker Research Datasets (`v2026.11.13`, 19 Datasets)** and cross-checks deterministic poker math solvers against the public zero-auth Model Context Protocol (MCP) server (`v1.0.6`, 45 Tools & 10 Prompts).\n",
+          "This reproducible Jupyter / Google Colab notebook loads and verifies the published **Smarter.Poker Open Quantitative Poker Research Datasets (`v2026.11.14`, 22 Datasets)** and cross-checks deterministic poker math solvers against the public zero-auth Model Context Protocol (MCP) server (`v1.0.7`, 55 Tools & 12 Prompts).\n",
           "\n",
           "## 1. Environment, Dependencies & Zero-Credential Guarantee\n",
           "- **Runtime**: `Python >= 3.10` (executed and verified in clean isolated mode `python3 -I` with **zero third-party packages required**; uses only Python standard library modules `json`, `csv`, `io`, `math`, `pathlib`, and `urllib.request`).\n",
@@ -58,14 +59,14 @@ export function buildJupyterNotebookPayload() {
           "1. **Cell 1 (Published Dataset Verification)**:\n",
           "   - Loads `datasets/csv/research-benchmarks-index.csv` (`15` study index rows), `datasets/csv/us-live-poker-room-rake-benchmark-2026.csv` (`6` regional stake/rake structure rows), and `datasets/csv/us-poker-room-census-by-state-2026.csv` (`12` regional market census rows).\n",
           "   - Loads the standalone study JSON files (`tournament-icm-bubble-factor-and-risk-premium-study.json`, `mystery-bounty-vs-pko-ev-and-bounty-power-factor-study.json`, `pot-limit-omaha-plo4-plo5-plo6-equity-and-variance-study.json`).\n",
-          "   - Loads the `4` substantive dataset bundles (`12` regional markets + `10` tournament series; `169` starting hands + `25` canonical all-in matchups; `35`/`45` MCP tools + OpenAPI `3.1.0` spec; `30` floor rule summaries + `15` game variants + `80` glossary terms).\n",
+          "   - Loads the `4` substantive dataset bundles (`12` regional markets + `10` tournament series; `169` starting hands + `25` canonical all-in matchups; `55` MCP tools + OpenAPI `3.1.0` spec; `30` floor rule summaries + `15` game variants + `80` glossary terms).\n",
           "2. **Cell 2 (Malmuth-Harville ICM, Chip Chop & Pot Odds / Draw Outs Reproduction)**:\n",
           "   - For stacks `[500000, 300000, 200000]` and payouts `[10000, 6000, 4000]`, exact Malmuth-Harville ICM equities are `[$7,678.57, $6,550.00, $5,771.43]` (summing to `$20,000.00`).\n",
           "   - For a `$100` pot facing a `$50` bet with `9` flush outs on the flop (`47` unseen cards), required equity is `25.00%`, Minimum Defense Frequency (MDF) is `66.67%`, exact 1-card turn equity is `19.15%` (`9/47`), and exact 2-card flop-to-river equity is `34.97%` (`1 - (38/47)*(37/46)`).\n",
           "3. **Cell 3 (Brownian Winrate Variance & Confidence Interval Verification)**:\n",
           "   - For winrate `5.0 bb/100` and standard deviation `85.0 bb/100` over `100,000` hands (`1,000` 100-hand blocks), expected profit is `+5,000.00 bb`, standard error is `2,687.94 bb`, `95%` confidence interval is `[-268.36 bb, +10,268.36 bb]`, and minimum hands for `95%` certainty of being a winning player (`N_95 = (1.96 * 85 / 5)^2 * 100`) is `111,023` hands.\n",
-          "4. **Cell 4 (v2026.11.13 New Datasets Verification \u2014 US States, Table Positions, Famous Hands & Stake Tiers)**:\n",
-          "   - Loads and cross-verifies both JSON and CSV editions of `us-state-poker-legality-and-tax-2026` (`15` US states), `table-seat-position-gto-benchmarks-2026` (`9` table seat positions), `famous-historic-poker-hands-solver-2026` (`12` historic televised hands), and `stake-level-bankroll-and-rake-benchmarks-2026` (`7` live & online stake tiers), plus `datacatalog.jsonld` (`19` total catalog datasets).\n",
+          "4. **Cell 4 (v2026.11.14 New Datasets Verification - US States, Table Positions, Famous Hands, Stake Tiers, Board Textures, Player Archetypes & International Destinations)**:\n",
+          "   - Loads and cross-verifies both JSON and CSV editions of `us-state-poker-legality-and-tax-2026` (`15` US states), `table-seat-position-gto-benchmarks-2026` (`9` table seat positions), `famous-historic-poker-hands-solver-2026` (`12` historic televised hands), `stake-level-bankroll-and-rake-benchmarks-2026` (`7` live & online stake tiers), `flop-board-textures-gto-cbet-2026` (`12` canonical flop board textures), `poker-player-archetypes-exploits-2026` (`8` player archetypes), and `international-poker-destinations-rake-tax-2026` (`10` international destinations), plus `datacatalog.jsonld` (`22` total catalog datasets).\n",
           "\n",
           "## 3. Methodology & Scope Limitations\n",
           "- **Combinatorial & GTO Preflop Baselines**: 25 preflop matchups use exact 52-card deck enumeration (`1,712,304` five-card boards per suit pairing, zero dead cards). 100BB 6-Max preflop ranges represent chip-EV (`cEV`) equilibrium baselines and do not incorporate live cash-game rake caps or multi-way limped pots.\n",
@@ -116,7 +117,7 @@ export function buildJupyterNotebookPayload() {
           "\n",
           "markets_bundle = load_json(\"bundles/north_american_poker_markets_and_series_2026.json\")\n",
           "gto_bundle = load_json(\"bundles/gto_preflop_169_hands_and_25_matchups_2026.json\")\n",
-          "mcp_bundle = load_json(\"bundles/mcp_35_tools_and_openapi_3_1_spec_v1_0_5.json\")\n",
+          "mcp_bundle = load_json(\"bundles/mcp_55_tools_and_openapi_3_1_spec_v1_0_7.json\")\n",
           "rules_bundle = load_json(\"bundles/official_tda_rrop_30_rules_15_variants_80_glossary_2026.json\")\n",
           "\n",
           "mcp_tools = mcp_bundle.get(\"mcpManifest\", {}).get(\"tools\", [])\n",
@@ -148,7 +149,7 @@ export function buildJupyterNotebookPayload() {
               "6. PLO4/PLO5/PLO6 Variance Study JSON: 4 format rows\n",
               "7. Markets & Series Bundle (10.5281/zenodo.24115447): 12 markets, 10 series\n",
               "8. GTO 169 Hands & 25 Matchups Bundle (10.5281/zenodo.24115452): 169 hands, 25 matchups\n",
-              "9. MCP v1.0.5 & OpenAPI 3.1 Bundle (10.5281/zenodo.24115453): 35 tools\n",
+              "9. MCP v1.0.7 & OpenAPI 3.1 Bundle (10.5281/zenodo.24115453): 55 tools\n",
               "10. Floor Rules, Variants & Glossary Bundle (10.5281/zenodo.24115454): 30 rules, 15 variants, 80 terms\n",
               "\n",
               "Sample Rake Benchmark Row (Las Vegas Strip): {'region_or_model': 'Las Vegas Strip & Regional NV', 'primary_stake': '$1/$3 NLH', 'rake_mechanism': '10% Pot Rake', 'typical_cap_or_down_fee': '$5 To $6 Cap', 'promo_drop': '$1 To $2 Jackpot', 'effective_bb100_cost': '8.5 To 11.0 BB/100'}\n"
@@ -272,7 +273,7 @@ export function buildJupyterNotebookPayload() {
         "execution_count": 4,
         "metadata": {},
         "source": [
-          "# Cell 4: Verify v2026.11.13 New Datasets (US States, Table Positions, Famous Hands & Stake Tiers)\n",
+          "# Cell 4: Verify v2026.11.14 Expanded Datasets (US States, Table Positions, Famous Hands, Stake Tiers, Board Textures, Player Archetypes & International Destinations)\n",
           "states_csv = load_csv(\"datasets/csv/us-state-poker-legality-and-tax-2026.csv\")\n",
           "states_json = load_json(\"datasets/json/us-state-poker-legality-and-tax-2026.json\")\n",
           "positions_csv = load_csv(\"datasets/csv/table-seat-position-gto-benchmarks-2026.csv\")\n",
@@ -281,32 +282,47 @@ export function buildJupyterNotebookPayload() {
           "famous_json = load_json(\"datasets/json/famous-historic-poker-hands-solver-2026.json\")\n",
           "stakes_csv = load_csv(\"datasets/csv/stake-level-bankroll-and-rake-benchmarks-2026.csv\")\n",
           "stakes_json = load_json(\"datasets/json/stake-level-bankroll-and-rake-benchmarks-2026.json\")\n",
+          "textures_csv = load_csv(\"datasets/csv/flop-board-textures-gto-cbet-2026.csv\")\n",
+          "textures_json = load_json(\"datasets/json/flop-board-textures-gto-cbet-2026.json\")\n",
+          "archetypes_csv = load_csv(\"datasets/csv/poker-player-archetypes-exploits-2026.csv\")\n",
+          "archetypes_json = load_json(\"datasets/json/poker-player-archetypes-exploits-2026.json\")\n",
+          "intl_csv = load_csv(\"datasets/csv/international-poker-destinations-rake-tax-2026.csv\")\n",
+          "intl_json = load_json(\"datasets/json/international-poker-destinations-rake-tax-2026.json\")\n",
           "datacatalog = load_json(\"datacatalog.jsonld\")\n",
           "\n",
           "assert len(states_csv) == 15 and len(states_json[\"rows\"]) == 15, \"Expected 15 US states\"\n",
           "assert len(positions_csv) == 9 and len(positions_json[\"rows\"]) == 9, \"Expected 9 table seat positions\"\n",
           "assert len(famous_csv) == 12 and len(famous_json[\"rows\"]) == 12, \"Expected 12 historic televised hands\"\n",
           "assert len(stakes_csv) == 7 and len(stakes_json[\"rows\"]) == 7, \"Expected 7 stake tiers\"\n",
-          "assert len(datacatalog[\"dataset\"]) == 19, f\"Expected 19 catalog datasets, got {len(datacatalog['dataset'])}\"\n",
+          "assert len(textures_csv) == 12 and len(textures_json[\"rows\"]) == 12, \"Expected 12 flop board textures\"\n",
+          "assert len(archetypes_csv) == 8 and len(archetypes_json[\"rows\"]) == 8, \"Expected 8 player archetypes\"\n",
+          "assert len(intl_csv) == 10 and len(intl_json[\"rows\"]) == 10, \"Expected 10 international poker destinations\"\n",
+          "assert len(datacatalog[\"dataset\"]) == 22, f\"Expected 22 catalog datasets, got {len(datacatalog['dataset'])}\"\n",
           "\n",
-          "print(\"=== v2026.11.13 Expanded Datasets & DataCatalog Verification (19 Total Datasets) ===\")\n",
+          "print(\"=== v2026.11.14 Expanded Datasets & DataCatalog Verification (22 Total Datasets) ===\")\n",
           "print(f\"1. US State Poker Legality & Tax (2026): {len(states_csv)} CSV rows / {len(states_json['rows'])} JSON rows (Sample: {states_csv[0]['state_name']} -> {states_csv[0]['state_income_tax_rate']})\")\n",
           "print(f\"2. Table Seat Position GTO Benchmarks (2026): {len(positions_csv)} CSV rows / {len(positions_json['rows'])} JSON rows (BTN RFI: {positions_csv[6]['rfi_pct']}, Winrate: {positions_csv[6]['expected_winrate_bb100']})\")\n",
           "print(f\"3. Famous Historic Poker Hands Solver (2026): {len(famous_csv)} CSV rows / {len(famous_json['rows'])} JSON rows (Sample: {famous_csv[0]['slug']} -> {famous_csv[0]['solver_verdict']})\")\n",
           "print(f\"4. Stake-Level Bankroll & Rake Benchmarks (2026): {len(stakes_csv)} CSV rows / {len(stakes_json['rows'])} JSON rows (Sample: {stakes_csv[0]['stake_code']} -> {stakes_csv[0]['five_pct_ror_recommended_bankroll']})\")\n",
-          "print(f\"5. Schema.org DataCatalog (datacatalog.jsonld): {len(datacatalog['dataset'])} total verified datasets\")\n"
+          "print(f\"5. Flop Board Textures GTO C-Bet (2026): {len(textures_csv)} CSV rows / {len(textures_json['rows'])} JSON rows\")\n",
+          "print(f\"6. Poker Player Archetypes & Exploits (2026): {len(archetypes_csv)} CSV rows / {len(archetypes_json['rows'])} JSON rows\")\n",
+          "print(f\"7. International Poker Destinations Rake & Tax (2026): {len(intl_csv)} CSV rows / {len(intl_json['rows'])} JSON rows\")\n",
+          "print(f\"8. Schema.org DataCatalog (datacatalog.jsonld): {len(datacatalog['dataset'])} total verified datasets\")\n"
         ],
         "outputs": [
           {
             "name": "stdout",
             "output_type": "stream",
             "text": [
-              "=== v2026.11.13 Expanded Datasets & DataCatalog Verification (19 Total Datasets) ===\n",
+              "=== v2026.11.14 Expanded Datasets & DataCatalog Verification (22 Total Datasets) ===\n",
               "1. US State Poker Legality & Tax (2026): 15 CSV rows / 15 JSON rows (Sample: Nevada -> 0.0% (Zero State Income Tax))\n",
               "2. Table Seat Position GTO Benchmarks (2026): 9 CSV rows / 9 JSON rows (BTN RFI: 44.5%, Winrate: +38.5 BB/100)\n",
               "3. Famous Historic Poker Hands Solver (2026): 12 CSV rows / 12 JSON rows (Sample: moneymaker-vs-farha-2003-wsop -> 100% Solver-Approved Ks Nut-Flush Blocker River Shove)\n",
               "4. Stake-Level Bankroll & Rake Benchmarks (2026): 7 CSV rows / 7 JSON rows (Sample: $1/$2 & $1/$3 Live -> $4,500 - $9,000 (20 - 30 Buy-Ins))\n",
-              "5. Schema.org DataCatalog (datacatalog.jsonld): 19 total verified datasets\n"
+              "5. Flop Board Textures GTO C-Bet (2026): 12 CSV rows / 12 JSON rows\n",
+              "6. Poker Player Archetypes & Exploits (2026): 8 CSV rows / 8 JSON rows\n",
+              "7. International Poker Destinations Rake & Tax (2026): 10 CSV rows / 10 JSON rows\n",
+              "8. Schema.org DataCatalog (datacatalog.jsonld): 22 total verified datasets\n"
             ]
           }
         ]
@@ -323,6 +339,7 @@ export default function handler(req, res) {
 
   const { slug = '', format = 'json' } = req.query || {};
   const normalizedFormat = String(format || 'json').toLowerCase();
+  const normalizedSlug = String(slug || '').trim().toLowerCase();
 
   res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -355,6 +372,15 @@ export default function handler(req, res) {
     });
   }
 
+  const catalogPayload = getDatasetCatalogPayload({ slug: normalizedSlug });
+  const matchedDataset = normalizedSlug
+    ? (catalogPayload.datasets || []).find((d) => d.slug.toLowerCase() === normalizedSlug) ||
+      findResearchReport(normalizedSlug)
+    : null;
+
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  return res.status(200).json(getDatasetCatalogPayload({ slug }));
+  return res.status(200).json({
+    ...catalogPayload,
+    ...(normalizedSlug ? { dataset: matchedDataset } : {}),
+  });
 }

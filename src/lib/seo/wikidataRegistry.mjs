@@ -518,8 +518,29 @@ export function resolveToolWikidataLinks(toolKey) {
         links.push(WIKIDATA_ENTITIES[k].wikidata, WIKIDATA_ENTITIES[k].wikipedia);
       }
     }
-  } else if (normalized.includes('freeroll') || normalized.includes('tournament')) {
-    const keys = ['freeroll', 'poker-tournament', 'online-poker', 'texas-holdem', 'omaha-holdem', 'prize-money', 'poker'];
+  } else if (normalized.includes('freeroll') || normalized.includes('tournament') || normalized.includes('mtt') || normalized.includes('shot-clock') || normalized.includes('trip')) {
+    const keys = ['freeroll', 'poker-tournament', 'world-series-of-poker', 'world-poker-tour', 'online-poker', 'texas-holdem', 'omaha-holdem', 'prize-money', 'poker'];
+    for (const k of keys) {
+      if (WIKIDATA_ENTITIES[k]) {
+        links.push(WIKIDATA_ENTITIES[k].wikidata, WIKIDATA_ENTITIES[k].wikipedia);
+      }
+    }
+  } else if (normalized.includes('mixed-game') || normalized.includes('horse') || normalized.includes('placard')) {
+    const keys = ['texas-holdem', 'omaha-holdem', 'seven-card-stud', 'razz', 'poker'];
+    for (const k of keys) {
+      if (WIKIDATA_ENTITIES[k]) {
+        links.push(WIKIDATA_ENTITIES[k].wikidata, WIKIDATA_ENTITIES[k].wikipedia);
+      }
+    }
+  } else if (normalized.includes('board-texture') || normalized.includes('hand-converter') || normalized.includes('iq-test') || normalized.includes('format-quiz') || normalized.includes('session-planner') || normalized.includes('home-game')) {
+    const keys = ['game-theory', 'monte-carlo-method', 'texas-holdem', 'omaha-holdem', 'poker'];
+    for (const k of keys) {
+      if (WIKIDATA_ENTITIES[k]) {
+        links.push(WIKIDATA_ENTITIES[k].wikidata, WIKIDATA_ENTITIES[k].wikipedia);
+      }
+    }
+  } else {
+    const keys = ['game-theory', 'texas-holdem', 'omaha-holdem', 'poker'];
     for (const k of keys) {
       if (WIKIDATA_ENTITIES[k]) {
         links.push(WIKIDATA_ENTITIES[k].wikidata, WIKIDATA_ENTITIES[k].wikipedia);

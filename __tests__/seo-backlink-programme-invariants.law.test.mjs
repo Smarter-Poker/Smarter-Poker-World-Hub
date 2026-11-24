@@ -27,14 +27,14 @@ import {
   MCP_RESOURCE_TEMPLATES,
   MCP_SERVER_INFO,
 } from '../src/lib/mcp/mcpServer.mjs';
-import { ZENODO_RECORDS } from '../src/lib/seo/datasetCatalog.mjs';
+import { ZENODO_RECORDS, getDatasetCatalogPayload, buildDataCatalogJsonLd } from '../src/lib/seo/datasetCatalog.mjs';
 import { buildJupyterNotebookPayload } from '../pages/api/datasets/catalog.js';
 import {
   buildResearchChartSvg,
   extractNumericMetric,
 } from '../pages/api/seo/research-chart.js';
 import { RESEARCH_REPORTS, RESEARCH_DATASET_DOI } from '../src/content/research/reports.js';
-import { renderBadgeSvg } from '../pages/api/seo/badge.js';
+import { renderBadgeSvg, BADGE_PRESETS } from '../pages/api/seo/badge.js';
 import { buildSeriesCalendarIcs } from '../pages/api/seo/series-calendar.js';
 import { SERIES_GUIDES } from '../src/content/guides/seriesGuides.js';
 import {
@@ -42,6 +42,20 @@ import {
   recordSeoTelemetryEvent,
   getSeoTelemetrySnapshot,
 } from '../pages/api/seo/referral-stats.js';
+import {
+  renderEmbedsMarkdown,
+  renderToolsDirectoryMarkdown,
+  renderPressKitMarkdown,
+  renderSearchDirectoryMarkdown,
+} from '../src/lib/seo/markdownIngestion.mjs';
+import { renderHubToolMarkdown } from '../pages/api/hub-tool-markdown.js';
+import { buildResearchJsonFeed } from '../pages/api/feeds/research.js';
+import { buildRssFeedXml } from '../pages/feed.xml.js';
+import { resolveToolWikidataLinks } from '../src/lib/seo/wikidataRegistry.mjs';
+import {
+  INDEXNOW_PRIORITY_URLS,
+  OPENSEARCH_SUGGESTION_INDEX,
+} from '../pages/api/seo/outreach-generator.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
@@ -517,3 +531,310 @@ test('LAW 9: Telemetry enforces strict DNS label boundary matching between Refer
   assert.equal(snap.verified_distribution_surfaces.surface_counts.mcp_tools, 55);
   assert.equal(snap.verified_distribution_surfaces.surface_counts.streamer_chat_commands, 34);
 });
+
+function listFilesystemCalculatorSlugs() {
+  const toolsDir = path.join(ROOT, 'pages/tools');
+  const slugs = new Set();
+  for (const entry of fs.readdirSync(toolsDir, { withFileTypes: true })) {
+    if (entry.isFile() && entry.name.endsWith('.js')) {
+      const slug = entry.name.replace(/\.js$/, '');
+      if (slug !== 'index' && slug !== 'embeds') slugs.add(slug);
+    } else if (entry.isDirectory()) {
+      if (fs.existsSync(path.join(toolsDir, entry.name, 'index.js'))) {
+        slugs.add(entry.name);
+      }
+    }
+  }
+  return [...slugs].sort();
+}
+
+/**
+ * LAW 10: Markdown Ingestion Single-Source-of-Truth Parity (`renderEmbedsMarkdown` & `renderToolsDirectoryMarkdown`)
+ * Why it previously broke: `renderEmbedsMarkdown()` hardcoded only 23 calculators,
+ * 15 badges, and 18 streamer commands, and `renderToolsDirectoryMarkdown()` hardcoded
+ * only 33 calculators ("34 Tools"), so AI crawlers reading `/tools/embeds.md` or
+ * `/tools.md` missed 18 embeddable widgets and 16 streamer commands.
+ */
+test('LAW 10: renderEmbedsMarkdown and renderToolsDirectoryMarkdown dynamically emit every calculator, badge, and streamer command with zero drift', () => {
+  const toolSlugs = listFilesystemCalculatorSlugs();
+  const embedsMd = renderEmbedsMarkdown();
+  const embedUrls = [...embedsMd.matchAll(/- Embed URL: `([^`]+)`/g)].map((m) => m[1]);
+
+  assert.equal(
+    embedUrls.length,
+    OEMBED_CALCULATORS.length,
+    '[LAW 10 VIOLATION] renderEmbedsMarkdown Embed URL count drifted from OEMBED_CALCULATORS'
+  );
+  assert.equal(embedUrls.length, toolSlugs.length);
+
+  for (const badgeKey of Object.keys(BADGE_PRESETS)) {
+    assert.ok(
+      embedsMd.includes(`type=${badgeKey}`),
+      `[LAW 10 VIOLATION] renderEmbedsMarkdown is missing badge preset type=${badgeKey}`
+    );
+  }
+
+  for (const cmd of STREAMER_BOT_COMMANDS) {
+    assert.ok(
+      embedsMd.includes(`\`${cmd.command}\``),
+      `[LAW 10 VIOLATION] renderEmbedsMarkdown is missing streamer command ${cmd.command}`
+    );
+  }
+
+  const toolsDirMd = renderToolsDirectoryMarkdown();
+  for (const slug of toolSlugs) {
+    assert.ok(
+      toolsDirMd.includes(`/tools/${slug}`),
+      `[LAW 10 VIOLATION] renderToolsDirectoryMarkdown is missing /tools/${slug}`
+    );
+  }
+  assert.ok(
+    toolsDirMd.includes('/tools/embeds'),
+    '[LAW 10 VIOLATION] renderToolsDirectoryMarkdown must include /tools/embeds'
+  );
+
+  // Also verify renderHubToolMarkdown('/tools/embeds') and '/tools/what-beats-what' return valid Markdown
+  assert.ok(renderHubToolMarkdown('/tools/embeds')?.includes('Embeddable Poker Widgets'));
+  assert.ok(renderHubToolMarkdown('/tools/what-beats-what')?.includes('https://smarter.poker/tools/who-wins-calculator'));
+});
+
+/**
+ * LAW 11: JSON Feed 1.1 (`/api/feeds/research`) & RSS 2.0 (`/feed.xml`) Full Syndication Parity
+ * Why it previously broke: `pages/api/feeds/research.js` and `pages/feed.xml.js`
+ * maintained separate static arrays of 23 calculators and omitted the 18 newer
+ * calculators and 15 authority hubs.
+ */
+test('LAW 11: JSON Feed 1.1 (/api/feeds/research) and RSS 2.0 (/feed.xml) syndicate every research report, every calculator in pages/tools/, and all authority hubs', () => {
+  const toolSlugs = listFilesystemCalculatorSlugs();
+  const jsonFeed = buildResearchJsonFeed();
+  assert.equal(
+    jsonFeed.items.length,
+    RESEARCH_REPORTS.length + toolSlugs.length,
+    '[LAW 11 VIOLATION] JSON Feed item count must equal RESEARCH_REPORTS.length + toolSlugs.length'
+  );
+
+  const jsonFeedUrls = new Set(jsonFeed.items.map((i) => i.url));
+  const rssXml = buildRssFeedXml();
+
+  for (const slug of toolSlugs) {
+    const url = `https://smarter.poker/tools/${slug}`;
+    assert.ok(jsonFeedUrls.has(url), `[LAW 11 VIOLATION] JSON Feed missing ${url}`);
+    assert.ok(rssXml.includes(url), `[LAW 11 VIOLATION] RSS 2.0 feed.xml missing ${url}`);
+  }
+
+  for (const hubPath of [
+    '/learn/positions',
+    '/learn/stakes',
+    '/learn/famous-hands',
+    '/learn/roadmaps',
+    '/learn/player-types',
+    '/learn/board-textures',
+    '/poker-rooms/states',
+    '/poker-rooms/international',
+    '/learn/mental-game',
+    '/learn/poker-as-a-business',
+    '/learn/poker-math',
+    '/learn/cheat-sheets',
+    '/learn/online-vs-live-poker',
+    '/learn/live-poker-tells',
+    '/poker-rooms/comps-and-tipping-guide',
+    '/search',
+  ]) {
+    assert.ok(
+      rssXml.includes(`https://smarter.poker${hubPath}`),
+      `[LAW 11 VIOLATION] RSS 2.0 feed.xml missing authority hub ${hubPath}`
+    );
+  }
+});
+
+/**
+ * LAW 12: Next.js Content-Negotiation (`Accept: text/markdown`) Un-Shadowed Rewrites
+ * Why it previously broke: `next.config.js` had a catch-all `{ source: '/learn/:slug', destination: '/api/learn-markdown?slug=:slug' }`
+ * in `beforeFiles` that intercepted `Accept: text/markdown` requests for `/learn/player-types`,
+ * `/learn/board-textures`, `/learn/mental-game`, and `/learn/poker-as-a-business` unless
+ * those hubs were placed BEFORE `/learn/:slug`, and 8 new calculators lacked `Accept: text/markdown` rewrites.
+ */
+test('LAW 12: next.config.js defines un-shadowed Accept: text/markdown and .md rewrites for all 41 calculators and all authority hubs', () => {
+  const nextConfigSrc = read('next.config.js');
+  const toolSlugs = listFilesystemCalculatorSlugs();
+
+  for (const slug of toolSlugs) {
+    const pageRel = fs.existsSync(path.join(ROOT, `pages/tools/${slug}.js`))
+      ? `pages/tools/${slug}.js`
+      : `pages/tools/${slug}/index.js`;
+    const pageSrc = read(pageRel);
+    assert.ok(
+      nextConfigSrc.includes(`source: '/tools/${slug}'`) ||
+        (pageSrc.includes('getServerSideProps') && pageSrc.includes('text/markdown')),
+      `[LAW 12 VIOLATION] /tools/${slug} must either define a next.config.js Accept: text/markdown rewrite or handle Accept: text/markdown in getServerSideProps`
+    );
+    assert.ok(
+      nextConfigSrc.includes(`source: '/tools/${slug}.md'`),
+      `[LAW 12 VIOLATION] next.config.js is missing .md rewrite for /tools/${slug}.md`
+    );
+  }
+
+  const catchAllLearnIdx = nextConfigSrc.indexOf("source: '/learn/:slug'");
+  assert.ok(catchAllLearnIdx > 0);
+
+  for (const learnHub of [
+    '/learn/player-types',
+    '/learn/player-types/:type',
+    '/learn/board-textures',
+    '/learn/board-textures/:slug',
+    '/learn/mental-game',
+    '/learn/poker-as-a-business',
+    '/learn/positions',
+    '/learn/stakes',
+    '/learn/famous-hands',
+    '/learn/roadmaps',
+  ]) {
+    const idx = nextConfigSrc.indexOf(`source: '${learnHub}'`);
+    assert.ok(
+      idx > 0 && idx < catchAllLearnIdx,
+      `[LAW 12 VIOLATION] ${learnHub} must appear BEFORE '/learn/:slug' in next.config.js beforeFiles so Accept: text/markdown is not shadowed`
+    );
+  }
+});
+
+/**
+ * LAW 13: Wikidata Entity Resolution Completeness (`resolveToolWikidataLinks`)
+ * Why it previously broke: `resolveToolWikidataLinks(toolKey)` used substring checks
+ * that fell through to `[]` for 10 calculators (`home-game-kit`, `format-quiz`,
+ * `board-texture-analyzer`, `session-planner`, `hand-converter`, `mixed-game-placards`,
+ * `poker-iq-test`, `poker-trip-planner`, `shot-clock`, `mtt-grind-planner`).
+ */
+test('LAW 13: Every calculator in pages/tools/ resolves to at least 2 Wikidata entity URIs in resolveToolWikidataLinks', () => {
+  const toolSlugs = listFilesystemCalculatorSlugs();
+  for (const slug of [...toolSlugs, 'embeds']) {
+    const links = resolveToolWikidataLinks(`/tools/${slug}`);
+    assert.ok(
+      Array.isArray(links) && links.length >= 2,
+      `[LAW 13 VIOLATION] resolveToolWikidataLinks('/tools/${slug}') returned fewer than 2 Wikidata entities: ${JSON.stringify(links)}`
+    );
+  }
+});
+
+/**
+ * LAW 14: 22-Dataset Catalog Parity (`datasetCatalog.mjs` vs `catalog.js` vs `openapi.json`)
+ * Why it previously broke: `Smarter-Poker/smarter-poker-open-datasets` was upgraded to
+ * 19 and then 22 datasets while `src/lib/seo/datasetCatalog.mjs` only iterated over
+ * the 15 `RESEARCH_REPORTS`.
+ */
+test('LAW 14: Dataset catalog, Schema.org DataCatalog JSON-LD, Jupyter notebook, and OpenAPI spec agree on all 22 datasets and MCP v1.0.7 (55 tools)', () => {
+  const catalog = getDatasetCatalogPayload();
+  assert.equal(catalog.datasets_count, 22, '[LAW 14 VIOLATION] datasetCatalog.mjs must expose all 22 datasets');
+  assert.equal(catalog.datasets.length, 22);
+
+  const jsonLd = buildDataCatalogJsonLd();
+  assert.equal(jsonLd.dataset.length, 22, '[LAW 14 VIOLATION] DataCatalog JSON-LD must contain all 22 datasets');
+
+  const nb = buildJupyterNotebookPayload();
+  const nbText = JSON.stringify(nb);
+  assert.ok(nbText.includes('22 Datasets') || nbText.includes('22 datasets'), '[LAW 14 VIOLATION] Jupyter notebook must reference 22 datasets');
+  assert.ok(nbText.includes('v1.0.7'), '[LAW 14 VIOLATION] Jupyter notebook must reference MCP v1.0.7');
+  assert.ok(nbText.includes('55'), '[LAW 14 VIOLATION] Jupyter notebook must reference 55 MCP tools');
+});
+
+/**
+ * LAW 15: Universal Search (`pages/search.js`), OpenSearch & IndexNow Completeness
+ * Why it previously broke: `pages/search.js` omitted the 30 detail pages for
+ * `PLAYER_ARCHETYPES`, `BOARD_TEXTURES`, and `INTERNATIONAL_POKER_GUIDES`, and
+ * `OPENSEARCH_SUGGESTION_INDEX` omitted `poker-winrate-calculator`, `preflop-ranges`,
+ * and 5 authority hubs.
+ */
+test('LAW 15: INDEXNOW_PRIORITY_URLS, OPENSEARCH_SUGGESTION_INDEX, and pages/search.js index all 41 calculators and all authority hub collections', () => {
+  const toolSlugs = listFilesystemCalculatorSlugs();
+  const indexNowSet = new Set(INDEXNOW_PRIORITY_URLS);
+  const openSearchUrls = new Set(OPENSEARCH_SUGGESTION_INDEX.map((item) => item.url));
+  const searchPageSrc = read('pages/search.js');
+
+  for (const slug of toolSlugs) {
+    const url = `https://smarter.poker/tools/${slug}`;
+    assert.ok(indexNowSet.has(url), `[LAW 15 VIOLATION] INDEXNOW_PRIORITY_URLS missing ${url}`);
+    assert.ok(openSearchUrls.has(url), `[LAW 15 VIOLATION] OPENSEARCH_SUGGESTION_INDEX missing ${url}`);
+    assert.ok(searchPageSrc.includes(`/tools/${slug}`), `[LAW 15 VIOLATION] pages/search.js missing /tools/${slug}`);
+  }
+
+  for (const requiredImport of ['PLAYER_ARCHETYPES', 'BOARD_TEXTURES', 'INTERNATIONAL_POKER_GUIDES']) {
+    assert.ok(
+      searchPageSrc.includes(requiredImport),
+      `[LAW 15 VIOLATION] pages/search.js must import and index ${requiredImport} detail pages`
+    );
+  }
+});
+
+/**
+ * LAW 16: CitationBacklinkBox & AiPromptLauncher Universal Wiring
+ * Why it previously broke: `pages/hub/poker-tools.js` (rendered by `/tools/poker-odds-calculator`),
+ * `pages/hub/training/icm-calculator.js` (rendered by `/tools/icm-calculator`), and
+ * `pages/tools/embeds.js` lacked `CitationBacklinkBox` and `AiPromptLauncher`, and
+ * `pages/learn/category/[category].js`, `pages/learn/poker-hand-rankings.js`,
+ * `pages/compare/index.js`, and `pages/glossary/index.js` were missing one of the two.
+ */
+test('LAW 16: Every calculator page in pages/tools/ and every authority hub page wires both CitationBacklinkBox and AiPromptLauncher', () => {
+  const toolSlugs = listFilesystemCalculatorSlugs();
+
+  for (const slug of [...toolSlugs, 'index', 'embeds']) {
+    const pageRel = fs.existsSync(path.join(ROOT, `pages/tools/${slug}.js`))
+      ? `pages/tools/${slug}.js`
+      : `pages/tools/${slug}/index.js`;
+    let effectiveSrc = read(pageRel);
+    if (slug === 'poker-odds-calculator') {
+      effectiveSrc += '\n' + read('pages/hub/poker-tools.js');
+    } else if (slug === 'icm-calculator') {
+      effectiveSrc += '\n' + read('pages/hub/training/icm-calculator.js');
+    } else if (slug === 'preflop-ranges') {
+      effectiveSrc += '\n' + read('pages/tools/preflop-ranges/index.js');
+    }
+
+    assert.ok(
+      effectiveSrc.includes('CitationBacklinkBox'),
+      `[LAW 16 VIOLATION] ${pageRel} must render CitationBacklinkBox`
+    );
+    assert.ok(
+      effectiveSrc.includes('AiPromptLauncher'),
+      `[LAW 16 VIOLATION] ${pageRel} must render AiPromptLauncher`
+    );
+  }
+
+  for (const authorityPage of [
+    'pages/learn/category/[category].js',
+    'pages/learn/poker-hand-rankings.js',
+    'pages/compare/index.js',
+    'pages/glossary/index.js',
+    'pages/press.js',
+    'pages/search.js',
+  ]) {
+    const src = read(authorityPage);
+    assert.ok(src.includes('CitationBacklinkBox'), `[LAW 16 VIOLATION] ${authorityPage} missing CitationBacklinkBox`);
+    assert.ok(src.includes('AiPromptLauncher'), `[LAW 16 VIOLATION] ${authorityPage} missing AiPromptLauncher`);
+  }
+});
+
+/**
+ * LAW 17: Zero Stale Tool/Calculator/Dataset Counts Across Public Discovery Surfaces
+ * Why it previously broke: `pages/press.js`, `pages/search.js`, `pages/api/ai/knowledge-graph.js`,
+ * `pages/api/mcp/index.js`, and `public/llms.txt` retained legacy `"24 Free Calculators"`,
+ * `"35 Zero-Auth MCP Tools"`, `"30-Tool MCP Server"`, or broken `/tools/what-beats-what` links.
+ */
+test('LAW 17: Public discovery surfaces (llms.txt, knowledge-graph.js, press.js, search.js, api/mcp/index.js) contain zero stale 24-calculator or 30/35-MCP-tool claims', () => {
+  const llmsTxt = read('public/llms.txt');
+  assert.ok(!llmsTxt.includes('/tools/what-beats-what'), '[LAW 17 VIOLATION] public/llms.txt must not link to non-existent /tools/what-beats-what');
+  assert.ok(llmsTxt.includes('/tools/who-wins-calculator'), '[LAW 17 VIOLATION] public/llms.txt must link to /tools/who-wins-calculator');
+  assert.ok(llmsTxt.includes('/tools/mixed-game-placards'), '[LAW 17 VIOLATION] public/llms.txt must link to /tools/mixed-game-placards');
+
+  for (const rel of [
+    'pages/press.js',
+    'pages/search.js',
+    'pages/api/ai/knowledge-graph.js',
+    'pages/api/mcp/index.js',
+    'src/lib/seo/markdownIngestion.mjs',
+  ]) {
+    const src = read(rel);
+    assert.ok(!/24\s+(?:Free|Interactive|Browser-Native)/i.test(src), `[LAW 17 VIOLATION] ${rel} still contains stale "24 Free/Interactive/Browser-Native" calculator count`);
+    assert.ok(!/35\s+(?:Zero-Auth|MCP)/i.test(src), `[LAW 17 VIOLATION] ${rel} still contains stale "35 Zero-Auth/MCP" tool count`);
+    assert.ok(!/30-Tool\s+MCP/i.test(src), `[LAW 17 VIOLATION] ${rel} still contains stale "30-Tool MCP" count`);
+  }
+});
+
