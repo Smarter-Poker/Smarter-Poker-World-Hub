@@ -94,23 +94,27 @@ export default function SpotTrainerPage() {
   const requestAbortRef = useRef(null);
 
   const potGeometryEval = useMemo(() => {
-    const basePotBb = Number(spot?.decisionNode?.potBb) > 0 ? Number(spot.decisionNode.potBb) : 12;
-    const spr = Math.round((geoStackBb / basePotBb) * 100) / 100;
-    const potOddsPct = Math.round((geoFacingBetBb / (basePotBb + 2 * geoFacingBetBb)) * 1000) / 10;
-    const mdfPct = Math.round((basePotBb / (basePotBb + geoFacingBetBb)) * 1000) / 10;
-    const geometricSizePct = Math.round((((Math.pow((2 * geoStackBb + basePotBb) / basePotBb, 1 / 2) - 1) / 2) * 100));
+    const basePot = Number(spot?.decisionNode?.potBb) > 0 ? Number(spot.decisionNode.potBb) : 12;
+    const stack = geoStackBb;
+    const facingBet = geoFacingBetBb;
+    const heroCards = Array.isArray(spot?.heroCards) && spot.heroCards.length === 2 ? spot.heroCards : ['Ah', 'Kd'];
+    const boardCards = Array.isArray(spot?.board) && spot.board.length >= 3 ? spot.board : ['Kh', '9d', '4c'];
+    const spr = Math.round((stack / basePot) * 100) / 100;
+    const potOddsPct = Math.round((facingBet / (basePot + 2 * facingBet)) * 1000) / 10;
+    const mdfPct = Math.round((basePot / (basePot + facingBet)) * 1000) / 10;
+    const geometricSizePct = Math.round((((Math.pow((2 * stack + basePot) / basePot, 1 / 2) - 1) / 2) * 100));
     const brain = evaluateTrainingSpotWithHorseBrain({
-      gameType: 'nlh',
-      holeCards: Array.isArray(spot?.heroCards) && spot.heroCards.length === 2 ? spot.heroCards : ['Ah', 'Kd'],
-      boardCards: Array.isArray(spot?.board) && spot.board.length >= 3 ? spot.board : ['Kh', '9d', '4c'],
-      potSizeBb: basePotBb + geoFacingBetBb,
-      toCallBb: geoFacingBetBb,
-      effectiveStackBb: geoStackBb,
+      variant: 'nlh',
+      heroCards,
+      boardCards,
+      pot: basePot,
+      toCall: facingBet,
+      effectiveStackBb: stack,
       street: spot?.street || 'flop',
       heroPosition: spot?.heroPosition || 'BTN',
     });
     return {
-      basePotBb,
+      basePotBb: basePot,
       spr,
       potOddsPct,
       mdfPct,
@@ -498,7 +502,7 @@ export default function SpotTrainerPage() {
             data-geometry-spr={potGeometryEval.spr}
             data-geometry-pot-odds={potGeometryEval.potOddsPct}
             data-geometry-mdf={potGeometryEval.mdfPct}
-            data-geometry-recommended-action={potGeometryEval.brain?.recommendedAction || 'CALL'}
+            data-geometry-recommended-action={potGeometryEval.brain?.correctAnswerText || potGeometryEval.brain?.recommendedAction || 'CALL'}
             style={{
               marginTop: 20,
               padding: '14px 18px',
@@ -512,7 +516,7 @@ export default function SpotTrainerPage() {
                 Postflop Pot Geometry & SPR Sensitivity Lab
               </div>
               <span style={{ fontSize: 12, fontWeight: 800, color: '#4ade80' }}>
-                {`Engine: ${potGeometryEval.brain?.engineModule || 'HorseBrain'} · Action: ${potGeometryEval.brain?.recommendedAction || 'CALL'}`}
+                {`Engine: ${potGeometryEval.brain?.brainEvaluation?.engineModule || potGeometryEval.brain?.engineModule || 'holdem-brain.js'} · Action: ${potGeometryEval.brain?.correctAnswerText || potGeometryEval.brain?.recommendedAction || 'CALL'}`}
               </span>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 12 }}>
@@ -568,7 +572,7 @@ export default function SpotTrainerPage() {
               </div>
             </div>
             <div style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.5 }}>
-              {potGeometryEval.brain?.coachingSummary}
+              {potGeometryEval.brain?.explanation || potGeometryEval.brain?.coachingSummary}
             </div>
           </section>
 

@@ -170,12 +170,17 @@ function normalizeExternalTrainingSessionId(value) {
 }
 
 function createDeliveryFamilyKey(gameId, level, trainerConfig) {
+  const explicitTargetPos = trainerConfig?.targetPositions || trainerConfig?.position || '';
+  const normalizedTargetPos = Array.isArray(explicitTargetPos)
+    ? explicitTargetPos.join(',').toUpperCase()
+    : String(explicitTargetPos).toUpperCase();
   return JSON.stringify({
     gameId,
     level: Math.max(1, Math.min(12, Number(level) || 1)),
     difficulty: String(resolveDeliveryDifficulty(trainerConfig)).toLowerCase(),
     gameMode: String(trainerConfig?.gameMode || 'full').toLowerCase(),
     targetStreet: String(trainerConfig?.targetStreet || trainerConfig?.street || '').toLowerCase() || null,
+    targetPositions: normalizedTargetPos && normalizedTargetPos !== 'ANY' ? normalizedTargetPos : null,
     handSelection: String(trainerConfig?.handSelection || 'all').toLowerCase(),
     variant: String(trainerConfig?.variant || '').toLowerCase() || null,
     duelToken: String(trainerConfig?.duelToken || '').trim() || null,
@@ -594,6 +599,18 @@ export default function useGTOTrainer(
       if (trainerConfig?.gameMode === 'street' && trainerConfig?.targetStreet) {
         params.set('targetStreet', trainerConfig.targetStreet);
       }
+      const prefetchTargetPos = trainerConfig?.targetPositions || trainerConfig?.position;
+      if (prefetchTargetPos && String(prefetchTargetPos).toLowerCase() !== 'any') {
+        params.set(
+          'targetPositions',
+          Array.isArray(prefetchTargetPos)
+            ? prefetchTargetPos.join(',')
+            : String(prefetchTargetPos).toUpperCase(),
+        );
+      }
+      if (trainerConfig?.variant && ['nlh', 'plo4', 'plo5', 'plo6'].includes(String(trainerConfig.variant).toLowerCase())) {
+        params.set('variant', String(trainerConfig.variant).toLowerCase());
+      }
 
       const response = await trainingFetch(`/api/training/batch-preload?${params}`);
       if (!isTrainingLeaseActive(requestLease)) return;
@@ -688,6 +705,18 @@ export default function useGTOTrainer(
       });
       if (trainerConfig?.gameMode === 'street' && trainerConfig?.targetStreet) {
         params.set('targetStreet', trainerConfig.targetStreet);
+      }
+      const prefetchTargetPos = trainerConfig?.targetPositions || trainerConfig?.position;
+      if (prefetchTargetPos && String(prefetchTargetPos).toLowerCase() !== 'any') {
+        params.set(
+          'targetPositions',
+          Array.isArray(prefetchTargetPos)
+            ? prefetchTargetPos.join(',')
+            : String(prefetchTargetPos).toUpperCase(),
+        );
+      }
+      if (trainerConfig?.variant && ['nlh', 'plo4', 'plo5', 'plo6'].includes(String(trainerConfig.variant).toLowerCase())) {
+        params.set('variant', String(trainerConfig.variant).toLowerCase());
       }
 
       const response = await trainingFetch(`/api/training/get-question?${params}`);
@@ -787,6 +816,14 @@ export default function useGTOTrainer(
       gameMode: trainerConfig?.gameMode || 'full',
       handSelection: trainerConfig?.handSelection || 'all',
       targetStreet: trainerConfig?.targetStreet || trainerConfig?.street || null,
+      targetPositions: (() => {
+        const tp = trainerConfig?.targetPositions || trainerConfig?.position;
+        if (!tp || String(tp).toLowerCase() === 'any') return null;
+        return Array.isArray(tp) ? tp.join(',') : String(tp).toUpperCase();
+      })(),
+      variant: trainerConfig?.variant && ['nlh', 'plo4', 'plo5', 'plo6'].includes(String(trainerConfig.variant).toLowerCase())
+        ? String(trainerConfig.variant).toLowerCase()
+        : null,
     };
     if (attemptId) reissueBody.attemptId = attemptId;
     const immutableBody = JSON.stringify(reissueBody);

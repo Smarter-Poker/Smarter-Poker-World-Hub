@@ -56,6 +56,22 @@ export default function FinalTableSimulator() {
   const heroBbEquivalent = Math.max(5, Math.round((Number(heroPlayer?.stack) || 500000) / 20000));
   const icmBrainEval = React.useMemo(() => {
     try {
+      const numericPayouts = (payouts || []).map((p) => Math.max(0, Number(p) || 0));
+      const pool = numericPayouts.reduce((a, b) => a + b, 0) || 1;
+      const firstShare = (numericPayouts[0] || 0) / pool;
+      const heroIcmRow = Array.isArray(icmResults)
+        ? icmResults.find((r) => r.name === 'Hero') || icmResults[0]
+        : icmResults;
+      const resultBf = Number(icmResults?.bubbleFactor || heroIcmRow?.bubbleFactor) || 0;
+      const icmDiffRatio = heroIcmRow && Number(heroIcmRow.chipPct) > 0 && Number(heroIcmRow.icmValue) > 0
+        ? (Number(heroIcmRow.icmValue) / pool) / (Number(heroIcmRow.chipPct) / 100)
+        : 1;
+      const baseBf = heroBbEquivalent <= 20 ? 1.85 : heroBbEquivalent >= 50 ? 1.25 : 1.55;
+      const payoutSkewAdjust = (0.45 - firstShare) * 0.55;
+      const icmPremiumAdjust = (icmDiffRatio - 1) * 0.35;
+      const dynamicBubbleFactor = resultBf > 1
+        ? Number(resultBf.toFixed(2))
+        : Number(Math.max(1.08, Math.min(2.45, baseBf + payoutSkewAdjust + icmPremiumAdjust)).toFixed(2));
       return evaluateTrainingSpotWithHorseBrain({
         gameId: 'mtt-004',
         variant: 'nlh',
@@ -67,7 +83,8 @@ export default function FinalTableSimulator() {
         heroPosition: 'BTN',
         villainPosition: 'BB',
         isICM: true,
-        bubbleFactor: heroBbEquivalent <= 20 ? 1.85 : heroBbEquivalent >= 50 ? 1.25 : 1.55,
+        bubbleFactor: dynamicBubbleFactor,
+        payoutPressure: `Final Table (1st ${(firstShare * 100).toFixed(0)}%, BF ${dynamicBubbleFactor}x)`,
         options: [
           { id: 'raise', text: 'Open 2.1x BB' },
           { id: 'allin', text: `All-In (${heroBbEquivalent} BB)` },
@@ -77,7 +94,7 @@ export default function FinalTableSimulator() {
     } catch {
       return null;
     }
-  }, [heroBbEquivalent]);
+  }, [heroBbEquivalent, payouts, icmResults]);
 
   useEffect(() => {
     let cancelled = false;
@@ -270,7 +287,7 @@ export default function FinalTableSimulator() {
               {icmBrainEval && (
                 <div
                   data-icm-brain-panel="true"
-                  data-brain-engine={icmBrainEval.engineModule}
+                  data-brain-engine={icmBrainEval.brainEvaluation?.engineModule || icmBrainEval.engineModule}
                   style={{
                     marginTop: 20,
                     padding: 16,
@@ -284,11 +301,11 @@ export default function FinalTableSimulator() {
                       Horse Brain & Tournament Brain Tactical Readout
                     </span>
                     <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-amber)' }}>
-                      Hero Depth: {heroBbEquivalent} BB · Engine: {icmBrainEval.engineModule}
+                      Hero Depth: {heroBbEquivalent} BB · Engine: {icmBrainEval.brainEvaluation?.engineModule || icmBrainEval.engineModule}
                     </span>
                   </div>
                   <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.5 }}>
-                    {icmBrainEval.coachingExplanation}
+                    {icmBrainEval.explanation || icmBrainEval.coachingExplanation}
                   </p>
                   <button
                     type="button"

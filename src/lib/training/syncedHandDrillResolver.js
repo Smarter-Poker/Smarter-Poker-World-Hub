@@ -104,7 +104,7 @@ export async function lookupServerSyncedHand({ supabase, userId, syncedHandId })
       .limit(100);
 
     if (Array.isArray(toolRows)) {
-      matchedRecord = toolRows.find((row) => {
+      const candidates = toolRows.filter((row) => {
         const d = row?.data || {};
         return (
           String(row?.record_key || '') === targetId
@@ -113,7 +113,8 @@ export async function lookupServerSyncedHand({ supabase, userId, syncedHandId })
           || String(d.handId || '') === targetId
           || String(d.hand_number || '') === targetId
         );
-      }) || null;
+      });
+      matchedRecord = candidates.find((row) => verifyParticipant(row, userId)) || candidates[0] || null;
     }
 
     if (!matchedRecord) {
@@ -124,7 +125,7 @@ export async function lookupServerSyncedHand({ supabase, userId, syncedHandId })
         .eq('record_key', targetId)
         .limit(5);
       if (Array.isArray(directRows) && directRows.length > 0) {
-        matchedRecord = directRows[0];
+        matchedRecord = directRows.find((row) => verifyParticipant(row, userId)) || directRows[0];
       }
     }
   } catch (_err) {
@@ -182,15 +183,25 @@ export async function lookupServerSyncedHand({ supabase, userId, syncedHandId })
     ? payload.players.find((p) => String(p?.id || p?.userId || p?.playerId || p?.user_id || '').trim() === uid)
     : null;
 
-  const heroCards = parseCardList(
-    payload.hero_cards
-      || payload.heroCards
-      || handData.hero_cards
-      || handData.heroCards
-      || heroFromPlayers?.cards
-      || heroFromPlayers?.holeCards
-      || heroFromPlayers?.hole_cards,
-  );
+  const candidateHeroCardSources = [
+    payload.hero_cards,
+    payload.heroCards,
+    handData.hero_cards,
+    handData.heroCards,
+    payload?.hole_cards?.[uid],
+    handData?.hole_cards?.[uid],
+    heroFromPlayers?.cards,
+    heroFromPlayers?.holeCards,
+    heroFromPlayers?.hole_cards,
+  ];
+  let heroCards = [];
+  for (const src of candidateHeroCardSources) {
+    const parsed = parseCardList(Array.isArray(src) ? src.filter(Boolean) : src);
+    if (parsed.length > 0) {
+      heroCards = parsed;
+      break;
+    }
+  }
   const boardCards = parseCardList(
     payload.board
       || payload.boardCards
@@ -382,7 +393,7 @@ export async function resolveSyncedHandForTrainingDrill({
         : 'river_value';
 
   const primaryQuestionRaw = {
-    id: `curated_synced_${safeHandSlug}_L${level}_h1`,
+    id: `curated_synced_${safeHandSlug}_${hand.variant}_L${level}_h1`,
     type: 'PIO',
     source: 'CURATED_SCENARIO',
     dataQuality: 'CURATED',

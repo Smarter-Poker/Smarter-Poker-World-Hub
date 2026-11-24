@@ -93,10 +93,13 @@ export default function GlossaryPage() {
           ? json.records.find((r) => Array.isArray(r?.payload?.favorites))
           : null;
         if (latest) {
-          setFavorites(new Set(latest.payload.favorites));
-          try {
-            localStorage.setItem('glossary-favorites', JSON.stringify(latest.payload.favorites));
-          } catch (_) {}
+          setFavorites((prev) => {
+            const merged = new Set([...(prev || []), ...(latest.payload.favorites || [])]);
+            try {
+              localStorage.setItem('glossary-favorites', JSON.stringify([...merged]));
+            } catch (_) {}
+            return merged;
+          });
         }
       })
       .catch(() => {});
@@ -123,6 +126,7 @@ export default function GlossaryPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         tool_id: 'glossary',
+        record_key: 'favorites_snapshot',
         record_type: 'favorites_snapshot',
         title: `Glossary Favorites (${list.length})`,
         summary: `Toggled ${term}`,

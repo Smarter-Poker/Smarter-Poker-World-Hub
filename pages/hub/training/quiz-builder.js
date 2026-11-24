@@ -334,10 +334,22 @@ export default function QuizBuilderPage() {
     authedFetch('/api/training/tool-records?tool_id=quiz-builder&limit=20')
       .then((res) => (res && res.ok ? res.json() : null))
       .then((json) => {
-        const rows = Array.isArray(json?.data) ? json.data : [];
-        const remoteQuizzes = rows
-          .map((r) => r?.payload?.quiz)
-          .filter((q) => q && q.id && q.name && Array.isArray(q.questions));
+        const rows = Array.isArray(json?.records) ? json.records : Array.isArray(json?.data) ? json.data : [];
+        const remoteQuizzes = [];
+        rows.forEach((r) => {
+          const single = r?.payload?.quiz || r?.data?.quiz;
+          if (single && single.id && single.name && Array.isArray(single.questions)) {
+            remoteQuizzes.push(single);
+          }
+          const snap = r?.payload?.savedQuizzes || r?.data?.savedQuizzes;
+          if (Array.isArray(snap)) {
+            snap.forEach((q) => {
+              if (q && q.id && q.name && Array.isArray(q.questions)) {
+                remoteQuizzes.push(q);
+              }
+            });
+          }
+        });
         if (remoteQuizzes.length > 0) {
           setSavedQuizzes((prev) => {
             const byId = new Map();
@@ -393,6 +405,7 @@ export default function QuizBuilderPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         tool_id: 'quiz-builder',
+        record_key: String(quiz.id),
         record_type: 'custom_quiz',
         title: quiz.name,
         summary: `${quiz.questions.length} question(s)`,
@@ -410,6 +423,11 @@ export default function QuizBuilderPage() {
     try {
       localStorage.setItem('custom-quizzes', JSON.stringify(updated));
     } catch (e) { console.warn('[App] Handled exception:', e); }
+    authedFetch('/api/training/tool-records', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tool_id: 'quiz-builder', record_key: String(quizId) }),
+    }).catch(() => {});
   };
 
   return (

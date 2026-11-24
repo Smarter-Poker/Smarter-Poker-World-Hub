@@ -84,6 +84,7 @@ export default function MultiTablePage() {
   const [focusedGameId, setFocusedGameId] = useState(null);
   const [tableStates, setTableStates] = useState({});
   const tableStatesRef = React.useRef({});
+  const liveTableTallyRef = React.useRef({});
 
   // #10: a phone cannot show two felts side by side.
   //
@@ -279,6 +280,89 @@ export default function MultiTablePage() {
       );
       const justBecameReady = Boolean(!prev?.awaitingDecision && nextState.awaitingDecision);
 
+      // Update real-time combinedStats as per-hand decisions are graded across tables
+      // without double-counting when SESSION_END arrives.
+      if (!reportedTablesRef.current.has(id)) {
+        const prevTally = liveTableTallyRef.current[id] || {
+          hands: 0,
+          correct: 0,
+          evLoss: 0,
+          measuredEVDecisions: 0,
+          lastCountedKey: null,
+        };
+        const explicitHands = Number(
+          nextState?.totalHands ?? nextState?.questionsAnswered ?? nextState?.handsPlayed,
+        );
+        const explicitCorrect = Number(
+          nextState?.questionsCorrect ?? nextState?.correctCount,
+        );
+        const explicitEvLoss = Number(nextState?.totalEVLoss ?? nextState?.evLoss);
+        const explicitMeasured = Number(nextState?.measuredEVDecisions ?? nextState?.evLossHands);
+
+          let nextHands = prevTally.hands;
+          let nextCorrect = prevTally.correct;
+          let nextEvLoss = prevTally.evLoss;
+          let nextMeasured = prevTally.measuredEVDecisions;
+          let nextCountedKey = prevTally.lastCountedKey;
+
+          if (Number.isFinite(explicitHands) && explicitHands >= prevTally.hands) {
+            nextHands = explicitHands;
+            if (Number.isFinite(explicitCorrect)) nextCorrect = explicitCorrect;
+            if (Number.isFinite(explicitEvLoss)) nextEvLoss = explicitEvLoss;
+            if (Number.isFinite(explicitMeasured)) nextMeasured = explicitMeasured;
+          } else if (justAnswered) {
+            const handKey = `${nextState?.questionNumber || 1}:${nextState?.questionId || 'q'}`;
+            if (handKey !== prevTally.lastCountedKey) {
+              nextCountedKey = handKey;
+              nextHands = prevTally.hands + 1;
+              const isHandCorrect =
+                nextState?.isCorrect !== undefined
+                  ? Boolean(nextState.isCorrect)
+                  : nextState?.feedbackResult
+                    ? nextState.feedbackResult === 'correct'
+                    : true;
+              if (isHandCorrect) nextCorrect = prevTally.correct + 1;
+              if (Number.isFinite(Number(nextState?.lastEVLoss))) {
+                nextEvLoss = prevTally.evLoss + Number(nextState.lastEVLoss);
+                nextMeasured = prevTally.measuredEVDecisions + 1;
+              }
+            }
+          }
+
+          const dHands = nextHands - prevTally.hands;
+          const dCorrect = nextCorrect - prevTally.correct;
+          const dEvLoss = nextEvLoss - prevTally.evLoss;
+          const dMeasured = nextMeasured - prevTally.measuredEVDecisions;
+
+          if (dHands !== 0 || dCorrect !== 0 || dEvLoss !== 0 || dMeasured !== 0) {
+            liveTableTallyRef.current[id] = {
+              hands: nextHands,
+              correct: nextCorrect,
+              evLoss: nextEvLoss,
+              evLossHands: nextMeasured,
+              measuredEVDecisions: nextMeasured,
+              lastCountedKey: nextCountedKey,
+            };
+            setCombinedStats((s) => {
+              const updatedHands = Math.max(0, s.totalHands + dHands);
+              const updatedCorrect = Math.max(0, s.totalCorrect + dCorrect);
+              const updatedEvLoss = Math.max(0, s.totalEVLoss + dEvLoss);
+              const updatedMeasured = Math.max(0, s.measuredEVDecisions + dMeasured);
+              return {
+                ...s,
+                totalHands: updatedHands,
+                hands: updatedHands,
+                totalCorrect: updatedCorrect,
+                correct: updatedCorrect,
+                totalEVLoss: updatedEvLoss,
+                evLoss: updatedEvLoss,
+                measuredEVDecisions: updatedMeasured,
+                evLossHands: updatedMeasured,
+              };
+            });
+          }
+      }
+
       if (justAnswered && visibleGames.length > 1) {
         const startIdx = Math.max(0, visibleGames.indexOf(id));
         for (let offset = 1; offset < visibleGames.length; offset += 1) {
@@ -386,14 +470,48 @@ export default function MultiTablePage() {
       if (reportedTablesRef.current.has(finishedId)) return;
       reportedTablesRef.current.add(finishedId);
 
+      const liveTally = liveTableTallyRef.current[finishedId] || {
+        hands: 0,
+        correct: 0,
+        evLoss: 0,
+        measuredEVDecisions: 0,
+      };
+      const finalHands = Number.isFinite(hands) && hands > 0 ? hands : liveTally.hands;
+      const finalCorrect = Number.isFinite(correct) && (hands > 0 || correct > 0) ? correct : liveTally.correct;
+      const finalEvLoss = hasMeasuredEV ? evLoss : liveTally.evLoss;
+      const finalMeasured = hasMeasuredEV ? measuredEVDecisions : liveTally.measuredEVDecisions;
+
+      const deltaHands = finalHands - liveTally.hands;
+      const deltaCorrect = finalCorrect - liveTally.correct;
+      const deltaEvLoss = finalEvLoss - liveTally.evLoss;
+      const deltaMeasured = finalMeasured - liveTally.measuredEVDecisions;
+
+      liveTableTallyRef.current[finishedId] = {
+        ...liveTally,
+        hands: finalHands,
+        correct: finalCorrect,
+        evLoss: finalEvLoss,
+        measuredEVDecisions: finalMeasured,
+      };
+
       setCompletedTables((prev) => new Set([...prev, finishedId]));
-      setCombinedStats((s) => ({
-        totalHands: s.totalHands + (Number.isFinite(hands) ? hands : 0),
-        totalCorrect: s.totalCorrect + (Number.isFinite(correct) ? correct : 0),
-        totalEVLoss: s.totalEVLoss + evLoss,
-        measuredEVDecisions: s.measuredEVDecisions + (hasMeasuredEV ? measuredEVDecisions : 0),
-        tablesCompleted: s.tablesCompleted + 1,
-      }));
+      setCombinedStats((s) => {
+        const updatedHands = Math.max(0, s.totalHands + deltaHands);
+        const updatedCorrect = Math.max(0, s.totalCorrect + deltaCorrect);
+        const updatedEvLoss = Math.max(0, s.totalEVLoss + deltaEvLoss);
+        const updatedMeasured = Math.max(0, s.measuredEVDecisions + deltaMeasured);
+        return {
+          totalHands: updatedHands,
+          hands: updatedHands,
+          totalCorrect: updatedCorrect,
+          correct: updatedCorrect,
+          totalEVLoss: updatedEvLoss,
+          evLoss: updatedEvLoss,
+          measuredEVDecisions: updatedMeasured,
+          evLossHands: updatedMeasured,
+          tablesCompleted: s.tablesCompleted + 1,
+        };
+      });
     });
     return unsub;
     // runId identifies the run this listener belongs to; re-subscribe when it
@@ -665,6 +783,9 @@ export default function MultiTablePage() {
                           // nothing to the combined stats.
                           setRunId(`mt-${Date.now()}`);
                           reportedTablesRef.current = new Set();
+                          liveTableTallyRef.current = {};
+                          tableStatesRef.current = {};
+                          setTableStates({});
                           setCompletedTables(new Set());
                           setCombinedStats({
                             totalHands: 0,
@@ -698,6 +819,9 @@ export default function MultiTablePage() {
                           setShowSummary(false);
                           setIsStarted(false);
                           reportedTablesRef.current = new Set();
+                          liveTableTallyRef.current = {};
+                          tableStatesRef.current = {};
+                          setTableStates({});
                           setCompletedTables(new Set());
                           setCombinedStats({
                             totalHands: 0,
@@ -903,6 +1027,18 @@ export default function MultiTablePage() {
                 // starts a genuinely new run rather than appending to the last.
                 setRunId(`mt-${Date.now()}`);
                 reportedTablesRef.current = new Set();
+                liveTableTallyRef.current = {};
+                tableStatesRef.current = {};
+                setTableStates({});
+                setCompletedTables(new Set());
+                setCombinedStats({
+                  totalHands: 0,
+                  totalCorrect: 0,
+                  totalEVLoss: 0,
+                  measuredEVDecisions: 0,
+                  tablesCompleted: 0,
+                });
+                hasSavedRef.current = false;
                 setIsStarted(true);
               }}
               whileHover={{ scale: 1.05 }}
@@ -958,6 +1094,9 @@ export default function MultiTablePage() {
                 onClick={() => {
                   setIsStarted(false);
                   reportedTablesRef.current = new Set();
+                  liveTableTallyRef.current = {};
+                  tableStatesRef.current = {};
+                  setTableStates({});
                   setCompletedTables(new Set());
                   setCombinedStats({
                     totalHands: 0,
@@ -1007,7 +1146,24 @@ export default function MultiTablePage() {
                       type="button"
                       data-multitable-variant={v.id}
                       aria-pressed={active}
-                      onClick={() => setSelectedVariant(v.id)}
+                      onClick={() => {
+                        if (selectedVariant === v.id) return;
+                        setSelectedVariant(v.id);
+                        setRunId(`mt-${Date.now()}`);
+                        reportedTablesRef.current = new Set();
+                        liveTableTallyRef.current = {};
+                        tableStatesRef.current = {};
+                        setTableStates({});
+                        setCompletedTables(new Set());
+                        setCombinedStats({
+                          totalHands: 0,
+                          totalCorrect: 0,
+                          totalEVLoss: 0,
+                          measuredEVDecisions: 0,
+                          tablesCompleted: 0,
+                        });
+                        hasSavedRef.current = false;
+                      }}
                       style={{
                         padding: '2px 8px',
                         borderRadius: 6,

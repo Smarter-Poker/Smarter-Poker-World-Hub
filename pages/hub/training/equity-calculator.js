@@ -726,6 +726,15 @@ export default function EquityCalculatorPage() {
     setHorseBrainAnalysis(null);
   }, []);
 
+  // Update board cards
+  const updateBoardCards = useCallback((nextBoard) => {
+    calcSeqRef.current += 1;
+    setBoardCards(nextBoard);
+    setResults(null);
+    setHorseBrainAnalysis(null);
+    setError(null);
+  }, []);
+
   // Load preset
   const loadPreset = useCallback((preset) => {
     calcSeqRef.current += 1;
@@ -1060,7 +1069,7 @@ export default function EquityCalculatorPage() {
               marginBottom: 16,
             }}
           >
-            <BoardPicker boardCards={boardCards} onUpdate={setBoardCards} usedCards={usedCards} />
+            <BoardPicker boardCards={boardCards} onUpdate={updateBoardCards} usedCards={usedCards} />
           </div>
 
           {/* Action Buttons */}

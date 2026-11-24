@@ -159,6 +159,10 @@ export default function SessionWarmupPage() {
             try { localStorage.setItem('warmup-count', String(next)); } catch (_) {}
             return next;
           });
+          const remoteAnswers = records[0]?.payload?.answers;
+          if (remoteAnswers && typeof remoteAnswers === 'object' && Object.keys(remoteAnswers).length > 0) {
+            setAnswers((prev) => (Object.keys(prev).length > 0 ? prev : remoteAnswers));
+          }
         }
       })
       .catch(() => {});
@@ -203,29 +207,28 @@ export default function SessionWarmupPage() {
   useEffect(() => {
     if (completed && !savedRef.current) {
       savedRef.current = true;
-      setCompletionCount((currentCount) => {
-        const newCount = currentCount + 1;
-        try {
-          localStorage.setItem('warmup-count', String(newCount));
-        } catch (e) { console.warn('[App] Handled exception:', e); }
-        authedFetch('/api/training/tool-records', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            tool_id: 'session-warmup',
-            record_type: 'warmup_completed',
-            title: `Session Warmup #${newCount}`,
-            summary: `${answers.mental || 'Ready'} · ${answers.timer || '60 min'}`,
-            payload: {
-              completionCount: newCount,
-              answers,
-            },
-          }),
-        }).catch(() => {});
-        return newCount;
-      });
+      const nextCount = completionCount + 1;
+      setCompletionCount(nextCount);
+      try {
+        localStorage.setItem('warmup-count', String(nextCount));
+      } catch (e) { console.warn('[App] Handled exception:', e); }
+      authedFetch('/api/training/tool-records', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tool_id: 'session-warmup',
+          record_key: `warmup_${nextCount}`,
+          record_type: 'warmup_completed',
+          title: `Session Warmup #${nextCount}`,
+          summary: `${answers.mental || 'Ready'} · ${answers.timer || '60 min'}`,
+          payload: {
+            completionCount: nextCount,
+            answers,
+          },
+        }),
+      }).catch(() => {});
     }
-  }, [completed]);
+  }, [completed, completionCount, answers]);
 
   // Random tip
   const tip = WARMUP_TIPS[Math.floor(Math.random() * WARMUP_TIPS.length)];

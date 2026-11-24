@@ -354,12 +354,18 @@ export default function GtoNewsPage() {
           : null;
         if (latest?.payload) {
           if (Array.isArray(latest.payload.bookmarks)) {
-            setBookmarks(new Set(latest.payload.bookmarks));
-            try { localStorage.setItem('gto-news-bookmarks', JSON.stringify(latest.payload.bookmarks)); } catch (_) {}
+            setBookmarks((prev) => {
+              const merged = new Set([...(prev || []), ...latest.payload.bookmarks]);
+              try { localStorage.setItem('gto-news-bookmarks', JSON.stringify([...merged])); } catch (_) {}
+              return merged;
+            });
           }
           if (Array.isArray(latest.payload.readArticles)) {
-            setReadArticles(new Set(latest.payload.readArticles));
-            try { localStorage.setItem('gto-news-read', JSON.stringify(latest.payload.readArticles)); } catch (_) {}
+            setReadArticles((prev) => {
+              const merged = new Set([...(prev || []), ...latest.payload.readArticles]);
+              try { localStorage.setItem('gto-news-read', JSON.stringify([...merged])); } catch (_) {}
+              return merged;
+            });
           }
         }
       })
@@ -372,6 +378,7 @@ export default function GtoNewsPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         tool_id: 'gto-news',
+        record_key: 'news_progress',
         record_type: 'news_progress',
         title: `GTO News (${bmList.length} Bookmarked, ${readList.length} Read)`,
         summary: summaryText,

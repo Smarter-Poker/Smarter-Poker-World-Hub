@@ -26,14 +26,28 @@ function normalizeClubArenaHand(row, userId) {
     const pid = String(p?.id || p?.userId || p?.playerId || p?.user_id || '').trim();
     return pid === uid;
   }) || null;
-  const heroCards = Array.isArray(hero?.cards)
-    ? hero.cards
-    : Array.isArray(hero?.holeCards)
-      ? hero.holeCards
-      : Array.isArray(hero?.hole_cards)
-        ? hero.hole_cards
-        : [];
-  const board = Array.isArray(row.community_cards) ? row.community_cards : [];
+  const candidateSources = [
+    row?.hole_cards?.[uid],
+    hero?.cards,
+    hero?.holeCards,
+    hero?.hole_cards,
+  ];
+  let heroCards = [];
+  for (const src of candidateSources) {
+    if (Array.isArray(src)) {
+      const cleaned = src.filter((c) => typeof c === 'string' && c.trim().length > 0);
+      if (cleaned.length > 0) {
+        heroCards = cleaned;
+        break;
+      }
+    }
+  }
+  const rawBoard = Array.isArray(row.community_cards) && row.community_cards.length > 0
+    ? row.community_cards
+    : Array.isArray(row.board)
+      ? row.board
+      : [];
+  const board = rawBoard.filter((c) => typeof c === 'string' && c.trim().length > 0);
   return {
     id: String(row.id || row.hand_number || ''),
     heroCards,
@@ -119,12 +133,20 @@ export default async function handler(req, res) {
       const supabase = getSupabase();
 
       if (requestedHandId) {
-        // 1. Check live table hand_history first
-        const { data: liveRow } = await supabase
-          .from('hand_history')
-          .select('id, hand_number, game_variant, players, hole_cards, board, community_cards, button_seat, actions, summary, source, created_at')
-          .eq('id', requestedHandId)
-          .maybeSingle();
+        // 1. Check live table hand_history first (only query .eq('id', ...) when UUID)
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestedHandId);
+        let liveRow = null;
+        try {
+          const hhQuery = supabase
+            .from('hand_history')
+            .select('id, hand_number, game_variant, players, hole_cards, board, community_cards, button_seat, actions, summary, source, created_at');
+          const { data: hhData } = isUuid
+            ? await hhQuery.eq('id', requestedHandId).maybeSingle()
+            : await hhQuery.eq('hand_number', requestedHandId).maybeSingle();
+          liveRow = hhData || null;
+        } catch (_) {
+          liveRow = null;
+        }
 
         if (liveRow) {
           if (!isUserParticipantInHandRow(liveRow, user.id)) {

@@ -73,10 +73,26 @@ export default function IcmSimulatorPage() {
   };
 
   const totalPrizePool = payouts.reduce((a, b) => a + (Number(b) || 0), 0);
-  const totalChips = players.reduce((a, b) => a + (Number(b.stack) || 0), 0);
+  const stacks = players.map((p) => Number(p.stack) || 0);
+  const totalChips = stacks.reduce((a, b) => a + b, 0);
   const heroStackBb = Math.max(5, Math.round((Number(players[0]?.stack) || 500000) / 20000));
   const icmBrainEval = React.useMemo(() => {
     try {
+      const numericPayouts = payouts.map((p) => Math.max(0, Number(p) || 0));
+      const pool = numericPayouts.reduce((a, b) => a + b, 0) || 1;
+      const firstShare = (numericPayouts[0] || 0) / pool;
+      const minCash = numericPayouts.filter((p) => p > 0).slice(-1)[0] || 1;
+      const topToMinRatio = (numericPayouts[0] || minCash) / Math.max(1, minCash);
+      const payoutSkewAdjust = firstShare >= 0.65 ? -0.18 : firstShare <= 0.35 ? 0.22 : (0.5 - firstShare) * 0.6;
+      const validStacks = stacks.filter((s) => s > 0);
+      const minStack = validStacks.length > 0 ? Math.min(...validStacks) : 1;
+      const maxStack = validStacks.length > 0 ? Math.max(...validStacks) : 1;
+      const heroRaw = stacks[0] || 500000;
+      const stackRankPenalty = heroRaw > minStack && heroRaw < maxStack ? 0.18 : heroRaw <= minStack ? 0.25 : -0.12;
+      const baseBf = heroStackBb <= 20 ? 1.85 : heroStackBb >= 50 ? 1.25 : 1.55;
+      const dynamicBubbleFactor = Number(
+        Math.max(1.08, Math.min(2.45, baseBf + payoutSkewAdjust + stackRankPenalty + (topToMinRatio < 3 ? 0.12 : 0))).toFixed(2)
+      );
       return evaluateTrainingSpotWithHorseBrain({
         gameId: 'mtt-001',
         variant: 'nlh',
@@ -88,7 +104,8 @@ export default function IcmSimulatorPage() {
         heroPosition: 'CO',
         villainPosition: 'BTN',
         isICM: true,
-        bubbleFactor: heroStackBb <= 20 ? 1.85 : heroStackBb >= 50 ? 1.25 : 1.55,
+        bubbleFactor: dynamicBubbleFactor,
+        payoutPressure: `Final Table (1st ${(firstShare * 100).toFixed(0)}%, BF ${dynamicBubbleFactor}x)`,
         options: [
           { id: 'raise', text: 'Open 2.1x BB' },
           { id: 'allin', text: `All-In (${heroStackBb} BB)` },
@@ -98,7 +115,7 @@ export default function IcmSimulatorPage() {
     } catch {
       return null;
     }
-  }, [heroStackBb]);
+  }, [heroStackBb, payouts, stacks]);
 
   return (
     <>
@@ -457,7 +474,7 @@ export default function IcmSimulatorPage() {
               {icmBrainEval && (
                 <div
                   data-icm-brain-panel="true"
-                  data-brain-engine={icmBrainEval.engineModule}
+                  data-brain-engine={icmBrainEval.brainEvaluation?.engineModule || icmBrainEval.engineModule}
                   style={{
                     marginTop: 20,
                     padding: 16,
@@ -471,11 +488,11 @@ export default function IcmSimulatorPage() {
                       Horse Brain ICM Pressure Guidance
                     </span>
                     <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-amber)' }}>
-                      Hero Depth: {heroStackBb} BB · Engine: {icmBrainEval.engineModule}
+                      Hero Depth: {heroStackBb} BB · Engine: {icmBrainEval.brainEvaluation?.engineModule || icmBrainEval.engineModule}
                     </span>
                   </div>
                   <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.5 }}>
-                    {icmBrainEval.coachingExplanation}
+                    {icmBrainEval.explanation || icmBrainEval.coachingExplanation}
                   </p>
                   <button
                     type="button"

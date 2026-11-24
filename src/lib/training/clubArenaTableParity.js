@@ -171,9 +171,12 @@ export function computeMainAndSidePots(seats = [], deadPotBb = 0) {
       .reduce((sum, s) => sum + (s.committedBb - prevCap), 0);
 
     const eligible = contributors.filter((s) => !s.folded).map((s) => s.position);
+    const otherActiveCanCall = normalized.some(
+      (s) => !s.folded && s.position !== eligible[0] && !s.allIn && s.stackRemainingBb > 0 && s.committedBb < cap
+    );
 
-    // If only 1 player contributed at the highest tier and nobody else matched it, that slice is an uncalled bet
-    if (contributors.length === 1 && eligible.length === 1 && i === nonZeroLevels.length - 1 && pots.length > 0) {
+    // If only 1 player contributed at the highest tier and nobody else matched it (nor has chips left to call), that slice is an uncalled bet
+    if (contributors.length === 1 && eligible.length === 1 && i === nonZeroLevels.length - 1 && pots.length > 0 && !otherActiveCanCall) {
       uncalledReturnBb = slice;
       uncalledSeatPosition = eligible[0];
       resultingStacks[uncalledSeatPosition] = roundTableUnit((resultingStacks[uncalledSeatPosition] || 0) + slice, 2);
@@ -538,15 +541,21 @@ export function evaluateCustomRaiseSizing({
   const stakesInfo = parseStakesToBlinds(stakes);
   const cleanChosenBb = roundTableUnit(Number(chosenSizingBb) || 0, 2);
   const gradedLabel = String(gradedOption?.label || gradedOption?.text || gradedOption?.id || 'Raise');
-  const labelMatch = gradedLabel.match(/(\d+(?:\.\d+)?)\s*(?:bb|chips|%)/i);
-  const explicitGradedBb = Number(gradedOption?.sizingBb ?? gradedOption?.amountBb ?? (labelMatch ? labelMatch[1] : NaN));
+  const effectivePotAfterCall = Math.max(1, (Number(potBb) || 1) + (Number(callBb) || 0));
+  const unitMatch = gradedLabel.match(/(\d+(?:\.\d+)?)\s*(?:bb|chips)/i);
+  const pctMatch = !unitMatch ? gradedLabel.match(/(\d+(?:\.\d+)?)\s*%/i) : null;
+  const parsedLabelBb = unitMatch
+    ? Number(unitMatch[1])
+    : pctMatch
+      ? roundTableUnit(effectivePotAfterCall * (Number(pctMatch[1]) / 100), 2)
+      : NaN;
+  const explicitGradedBb = Number(gradedOption?.sizingBb ?? gradedOption?.amountBb ?? parsedLabelBb);
   const cleanGradedBb = Number.isFinite(explicitGradedBb) && explicitGradedBb > 0
     ? roundTableUnit(explicitGradedBb, 2)
     : cleanChosenBb;
 
   const deltaBb = roundTableUnit(cleanChosenBb - cleanGradedBb, 2);
   const isExactMatch = Math.abs(deltaBb) < 0.15;
-  const effectivePotAfterCall = Math.max(1, (Number(potBb) || 1) + (Number(callBb) || 0));
   const raiseOverCallBb = Math.max(0, cleanChosenBb - (Number(callBb) || 0));
   const potFractionPct = Math.round((raiseOverCallBb / effectivePotAfterCall) * 100);
 

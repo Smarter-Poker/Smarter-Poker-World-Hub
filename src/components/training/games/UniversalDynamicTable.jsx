@@ -2963,7 +2963,7 @@ function UniversalDynamicTable({
                     }
                     return;
                 }
-                // F/C/R shortcuts for fold/check-call/raise
+                // F/C/R/A/B shortcuts for fold/check-call/raise/all-in/bet
                 const lower = key.toLowerCase();
                 if (lower === 'f') {
                     const opts = displayOptions || [];
@@ -2977,6 +2977,14 @@ function UniversalDynamicTable({
                     const opts = displayOptions || [];
                     const raiseOpt = opts.find(o => /raise|bet|all.in|shove/i.test(o.text || o.label || ''));
                     if (raiseOpt) handleAnswerWithGrouping(raiseOpt.id || raiseOpt);
+                } else if (lower === 'a') {
+                    const opts = displayOptions || [];
+                    const allInOpt = opts.find(o => /all[- ]?in|shove|jam|push|max\s*pot/i.test(o.text || o.label || ''));
+                    if (allInOpt) handleAnswerWithGrouping(allInOpt.id || allInOpt);
+                } else if (lower === 'b') {
+                    const opts = displayOptions || [];
+                    const betOpt = opts.find(o => /\bbet\b/i.test(o.text || o.label || ''));
+                    if (betOpt) handleAnswerWithGrouping(betOpt.id || betOpt);
                 }
             }
         };
@@ -3037,6 +3045,7 @@ function UniversalDynamicTable({
         setTimeExpired(null);
         setHeroActionFlight(null);
         setSliderSizingBb(null);
+        setChosenRaiseInfo(null);
     }, [decisionKey]);
 
     // ARENA_HAND_LOADED is a per-HAND event, so it stays keyed on the hand.
@@ -4788,7 +4797,7 @@ function UniversalDynamicTable({
                                         height: ui(13),
                                     }}
                                 />
-                                <span style={{ ...styles.chipAmount, fontSize: Math.max(12, ui(11)) }}>{amount}</span>
+                                <span style={{ ...styles.chipAmount, fontSize: Math.max(12, ui(11)) }}>{formatTableAmount(amount)}</span>
                             </motion.div>
                         );
                     });
@@ -5073,7 +5082,7 @@ function UniversalDynamicTable({
                                 }}
                             />
                             <span style={{ ...styles.chipAmount, fontSize: Math.max(12, ui(11)) }}>
-                                {heroActionFlight.amount} BB
+                                {formatTableAmount(heroActionFlight.amount)}
                             </span>
                         </motion.div>
                     )}
@@ -5264,10 +5273,11 @@ function UniversalDynamicTable({
                     stakes: scenario?.stakes || trainerConfig?.stakes,
                 });
                 const potLimitMaxBb = Number((basePotBb + 2 * callBb).toFixed(1));
-                const maxRaiseBb = isPotLimit
+                const maxRaiseBb = Number(parityState.maxRaiseToBb) || (isPotLimit
                     ? Math.min(Number(heroStack) || 100, potLimitMaxBb)
-                    : (Number(heroStack) || 100);
-                const minRaiseBb = Math.max(1, Math.min(maxRaiseBb, callBb > 0 ? parityState.minRaiseToBb : 2));
+                    : (Number(heroStack) || 100));
+                const minRaiseBb = Math.max(1, Math.min(maxRaiseBb, Number(parityState.minRaiseToBb) || 2));
+                const isRaiseReopened = Boolean(parityState.reopensAction);
 
                 const aggressiveOptions = (displayOptions || []).slice(0, 9).map((opt, idx) => {
                     const id = opt?.id || String.fromCharCode(97 + idx);
@@ -5351,13 +5361,18 @@ function UniversalDynamicTable({
                                         key={p.id}
                                         type="button"
                                         data-club-arena-preset={p.id}
-                                        onClick={() => setSliderSizingBb(p.bb)}
+                                        disabled={!isRaiseReopened}
+                                        onClick={() => {
+                                            if (!isRaiseReopened) return;
+                                            setSliderSizingBb(p.bb);
+                                        }}
                                         style={{
                                             padding: '2px 7px',
                                             borderRadius: 5,
                                             fontSize: 12,
                                             fontWeight: 800,
-                                            cursor: 'pointer',
+                                            cursor: isRaiseReopened ? 'pointer' : 'not-allowed',
+                                            opacity: isRaiseReopened ? 1 : 0.45,
                                             border: isPresetActive ? '1px solid #fbbf24' : '1px solid rgba(255,255,255,0.14)',
                                             background: isPresetActive ? 'rgba(251,191,36,0.2)' : 'rgba(255,255,255,0.05)',
                                             color: isPresetActive ? '#fde68a' : '#cbd5e1',
@@ -5373,15 +5388,20 @@ function UniversalDynamicTable({
                                 type="range"
                                 data-club-arena-raise-slider="true"
                                 aria-label="Club Arena Bet and Raise Sizing Slider"
+                                disabled={!isRaiseReopened}
                                 min={minRaiseBb}
                                 max={Math.max(minRaiseBb + 0.5, maxRaiseBb)}
                                 step="0.5"
                                 value={effectiveSliderBb}
-                                onChange={(e) => setSliderSizingBb(parseFloat(e.target.value))}
+                                onChange={(e) => {
+                                    if (!isRaiseReopened) return;
+                                    setSliderSizingBb(parseFloat(e.target.value));
+                                }}
                                 style={{
                                     width: isMobile ? 90 : 120,
                                     accentColor: '#f59e0b',
-                                    cursor: 'pointer',
+                                    cursor: isRaiseReopened ? 'pointer' : 'not-allowed',
+                                    opacity: isRaiseReopened ? 1 : 0.45,
                                 }}
                             />
                             <button
@@ -5390,7 +5410,9 @@ function UniversalDynamicTable({
                                 data-matched-action-id={matchedAggressiveOpt.id}
                                 data-chosen-sizing-bb={String(effectiveSliderBb)}
                                 data-graded-sizing-bb={String(matchedAggressiveOpt.bb)}
+                                disabled={!isRaiseReopened}
                                 onClick={() => {
+                                    if (!isRaiseReopened) return;
                                     const customEval = evaluateCustomRaiseSizing({
                                         chosenSizingBb: effectiveSliderBb,
                                         gradedOption: {
@@ -5415,7 +5437,8 @@ function UniversalDynamicTable({
                                     borderRadius: 6,
                                     fontSize: 12,
                                     fontWeight: 900,
-                                    cursor: 'pointer',
+                                    cursor: isRaiseReopened ? 'pointer' : 'not-allowed',
+                                    opacity: isRaiseReopened ? 1 : 0.45,
                                     border: '1px solid rgba(245,158,11,0.65)',
                                     background: 'linear-gradient(180deg, #f59e0b 0%, #d97706 100%)',
                                     color: '#0f172a',

@@ -127,13 +127,13 @@ export function resolveCustomTrainingLaunch(input = {}) {
   const gameId = CANONICAL_GAME_IDS.has(explicitGameId)
     ? explicitGameId
     : canonicalGameFor({ gameType, street, position, actionScenario, stackDepth, variant });
-  const hasFocusConfig = [
-    'format', 'gameType', 'position', 'positions', 'street', 'streets',
+  const hasCustomSolverConfig = [
+    'format', 'gameType',
     'stackDepth', 'stackMin', 'stackMax', 'actionScenario', 'scenarios',
     'handClass', 'boardTexture', 'spotType', 'questionsCount', 'count',
   ].some((key) => input[key] !== undefined && input[key] !== null && input[key] !== '');
 
-  if (CANONICAL_GAME_IDS.has(explicitGameId) && !hasFocusConfig) {
+  if (CANONICAL_GAME_IDS.has(explicitGameId) && !hasCustomSolverConfig) {
     return Object.freeze({ gameId, custom: false, config: null, variant, street, position });
   }
 

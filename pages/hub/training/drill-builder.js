@@ -162,6 +162,22 @@ const PRESETS = [
     },
     color: 'var(--sp-accent-purple)',
   },
+  {
+    id: 'plo6-double-board-prep',
+    name: 'PLO6 Double-Board Prep',
+    desc: '6-Card PLO nut-exclusivity, blocker pressure, and pot-limit math',
+    config: {
+      format: 'cash',
+      variant: 'plo6',
+      positions: ['BTN'],
+      streets: ['flop'],
+      stackMin: 100,
+      stackMax: 100,
+      stackDepth: 100,
+      scenarios: ['cbet'],
+    },
+    color: 'var(--sp-accent-amber)',
+  },
 ];
 
 const FORMATS = [
@@ -386,7 +402,7 @@ export default function DrillBuilderPage() {
               justifyContent: 'center',
             }}
           >
-            \U2190
+            &larr;
           </button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--sp-fg)' }}>
@@ -712,6 +728,7 @@ export default function DrillBuilderPage() {
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
                       {drill.config?.format?.toUpperCase()} |{' '}
+                      {drill.config?.variant?.toUpperCase() || 'NLH'} |{' '}
                       {(drill.config?.positions || []).join(', ') || 'All Positions'} |{' '}
                       {(drill.config?.streets || []).join(', ') || 'All Streets'}
                     </div>
