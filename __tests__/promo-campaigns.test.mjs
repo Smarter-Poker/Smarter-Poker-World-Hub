@@ -11,6 +11,8 @@ import {
     ensureSmsStopFooter,
     importMarketingLeads,
     isAllowedSmarterPokerUrl,
+    normalizeDeliverableEmail,
+    normalizeExplicitTestEmail,
     parseLeadInput,
     renderPromoEmail,
     resolvePromoAudience,
@@ -452,4 +454,40 @@ test('25 free signup chips are gated exclusively behind verified promotional sig
         verifyOtpSrc.indexOf("supabase.rpc('fn_sp_grant_promo_signup_chips'"),
         'verify-otp must verify the HMAC promo token before calling fn_sp_grant_promo_signup_chips'
     );
+});
+
+test('testOnly dispatch accepts admin @smarter.poker inboxes and renders inline status + live preview', async () => {
+    const savedEnv = { ...process.env };
+    process.env.RESEND_BULK_API_KEY = 'pro-bulk-key';
+    process.env.TWILIO_ACCOUNT_SID = 'AC123';
+    process.env.TWILIO_AUTH_TOKEN = 'tok';
+    process.env.TWILIO_PHONE_NUMBER = '+18885551234';
+    try {
+        assert.equal(normalizeDeliverableEmail('admin@smarter.poker'), null);
+        assert.equal(normalizeExplicitTestEmail('admin@smarter.poker'), 'admin@smarter.poker');
+
+        const db = createMockDb();
+        let singlePayload = null;
+        const out = await dispatchPromoCampaign(db, {
+            testOnly: true,
+            channels: 'email',
+            testEmail: 'admin@smarter.poker',
+            sendSingleEmail: async (msg) => {
+                singlePayload = msg;
+                return { ok: true, id: 'em-single-1' };
+            },
+        });
+        assert.equal(out.success, true);
+        assert.equal(out.emailSent, true);
+        assert.deepEqual(singlePayload.to, ['admin@smarter.poker']);
+        assert.match(singlePayload.html, /pt=/);
+
+        const adminPage = read('pages/admin/newsletter.js');
+        assert.match(adminPage, /Live Email Preview/);
+        assert.match(adminPage, /Live SMS Text Preview/);
+        assert.match(adminPage, /promoInlineNotice/);
+        assert.match(adminPage, /promoInlineError/);
+    } finally {
+        process.env = savedEnv;
+    }
 });
