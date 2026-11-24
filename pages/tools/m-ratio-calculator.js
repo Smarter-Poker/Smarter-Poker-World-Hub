@@ -17,6 +17,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderMRatioCalculatorMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
 
 const M_RATIO_BENCHMARK_TABLE = [
@@ -114,6 +115,15 @@ export default function MRatioCalculatorPage({
     if (q.level !== undefined) setLevelMins(Math.max(5, Math.min(120, Number(q.level) || 30)));
     if (q.hph !== undefined) setHandsPerHour(Math.max(10, Math.min(90, Number(q.hph) || 28)));
   }, [router.isReady, router.query]);
+
+  useSolvedSpotUrlSync({
+    stack,
+    sb,
+    bb,
+    ante,
+    players,
+    avg: avgStack,
+  });
 
   const metrics = useMemo(() => {
     const safeStack = Math.max(1, Number(stack) || 24000);

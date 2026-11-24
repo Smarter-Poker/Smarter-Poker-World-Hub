@@ -18,6 +18,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderPromoEvCalculatorMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
 
 const QUALIFIER_TIERS = [
@@ -126,6 +127,16 @@ export default function PromoEvCalculatorPage({
     if (q.hh !== undefined) setHighHandPrize(Math.max(0, Number(q.hh) || 500));
     if (q.tables !== undefined) setActiveTables(Math.max(1, Math.min(100, Number(q.tables) || 12)));
   }, [router.isReady, router.query]);
+
+  useSolvedSpotUrlSync({
+    pool: jackpotPool,
+    qual: qualifier,
+    loser: loserPct,
+    winner: winnerPct,
+    table: tablePct,
+    drop: promoDrop,
+    hh: highHandPrize,
+  });
 
   const metrics = useMemo(() => {
     const safePool = Math.max(10000, Number(jackpotPool) || 250000);

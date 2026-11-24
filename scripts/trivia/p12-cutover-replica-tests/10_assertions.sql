@@ -54,7 +54,8 @@ BEGIN
         rake_amount, final_prize_pool)
     VALUES (v_settlement, 'pvp_match', p_match_id, v_escrow, 'settled', 'win',
             p_created_at + interval '3 minutes', v_journal, 20, 20,
-            0, 0, 0, 18, 2, 18);
+            CASE WHEN p_match_kind = 'human_horse' THEN 10 ELSE 0 END,
+            0, 0, 18, 2, 18);
 
     INSERT INTO public.trivia_settlement_participants (
         settlement_id, user_id, participant_kind, funding_source,
