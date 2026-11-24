@@ -14,7 +14,7 @@ const HERO_CARDS_BY_VARIANT = {
   plo6: ['Kd', 'Td', 'Qh', 'Jh', '9s', '8s'],
 };
 
-const BOARD_CARDS = ['Td', '7h', '3c'];
+const BOARD_CARDS = ['4d', '7h', '3c'];
 
 const pillButtonStyle = (active) => ({
   padding: '7px 12px',

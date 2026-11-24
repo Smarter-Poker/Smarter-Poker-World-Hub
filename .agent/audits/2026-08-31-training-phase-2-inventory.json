@@ -29028,7 +29028,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 151,
+          "line": 152,
           "handler": "() => setActiveVariant(v)",
           "destination": null,
           "type": "button",
@@ -29038,7 +29038,7 @@
         {
           "element": "button",
           "name": "BB",
-          "line": 170,
+          "line": 171,
           "handler": "() => setEffectiveStackBb(stk)",
           "destination": null,
           "type": "button",
@@ -29048,7 +29048,7 @@
         {
           "element": "button",
           "name": "Launch Calibrated Drill In Club Arena →",
-          "line": 188,
+          "line": 189,
           "handler": "() => router.push(arenaHref)",
           "destination": null,
           "type": "button",
@@ -29058,7 +29058,7 @@
         {
           "element": "a",
           "name": "Open Verified Training Report →",
-          "line": 212,
+          "line": 213,
           "handler": null,
           "destination": "/hub/training/gto-reports?source=bankroll-coach",
           "type": null,
@@ -29098,7 +29098,7 @@
       "functions": [
         {
           "name": "BankrollCoachPage",
-          "line": 36,
+          "line": 37,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -29106,7 +29106,7 @@
         },
         {
           "name": "pillButtonStyle",
-          "line": 16,
+          "line": 17,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -67051,7 +67051,7 @@
         {
           "name": "normalizeCardToken",
           "line": 105,
-          "references": 4,
+          "references": 6,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -79184,11 +79184,11 @@
       "effectRef": "pages/hub/training/autopilot.js"
     },
     {
-      "id": "pages/hub/training/bankroll-coach.js:151:1",
+      "id": "pages/hub/training/bankroll-coach.js:152:1",
       "file": "pages/hub/training/bankroll-coach.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 151,
+      "line": 152,
       "handler": "() => setActiveVariant(v)",
       "destination": null,
       "type": "button",
@@ -79197,11 +79197,11 @@
       "effectRef": "pages/hub/training/bankroll-coach.js"
     },
     {
-      "id": "pages/hub/training/bankroll-coach.js:170:2",
+      "id": "pages/hub/training/bankroll-coach.js:171:2",
       "file": "pages/hub/training/bankroll-coach.js",
       "element": "button",
       "name": "BB",
-      "line": 170,
+      "line": 171,
       "handler": "() => setEffectiveStackBb(stk)",
       "destination": null,
       "type": "button",
@@ -79210,11 +79210,11 @@
       "effectRef": "pages/hub/training/bankroll-coach.js"
     },
     {
-      "id": "pages/hub/training/bankroll-coach.js:188:3",
+      "id": "pages/hub/training/bankroll-coach.js:189:3",
       "file": "pages/hub/training/bankroll-coach.js",
       "element": "button",
       "name": "Launch Calibrated Drill In Club Arena →",
-      "line": 188,
+      "line": 189,
       "handler": "() => router.push(arenaHref)",
       "destination": null,
       "type": "button",
@@ -79223,11 +79223,11 @@
       "effectRef": "pages/hub/training/bankroll-coach.js"
     },
     {
-      "id": "pages/hub/training/bankroll-coach.js:212:4",
+      "id": "pages/hub/training/bankroll-coach.js:213:4",
       "file": "pages/hub/training/bankroll-coach.js",
       "element": "a",
       "name": "Open Verified Training Report →",
-      "line": 212,
+      "line": 213,
       "handler": null,
       "destination": "/hub/training/gto-reports?source=bankroll-coach",
       "type": null,
@@ -119108,7 +119108,7 @@
       {
         "file": "pages/hub/training/bankroll-coach.js",
         "name": "BankrollCoachPage",
-        "line": 36,
+        "line": 37,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -129164,7 +129164,7 @@
       {
         "file": "pages/hub/training/bankroll-coach.js",
         "name": "BankrollCoachPage",
-        "line": 36,
+        "line": 37,
         "references": 1,
         "exported": true,
         "defaultExport": true,

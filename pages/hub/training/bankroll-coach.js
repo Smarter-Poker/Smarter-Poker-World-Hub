@@ -1,3 +1,4 @@
+// TRAIN-BANKROLL-A11Y-1: semantic h1 + accessible bankroll reference surface
 import React, { useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';

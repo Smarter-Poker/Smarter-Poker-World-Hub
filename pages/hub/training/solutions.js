@@ -36,13 +36,13 @@ const HERO_CARDS_BY_VARIANT = {
   nlh: ['As', 'Kd'],
   plo4: ['As', 'Ks', 'Qh', 'Jh'],
   plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
-  plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
+  plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '4d'],
 };
 
 const BOARD_CARDS_BY_STREET = {
-  flop: ['Kc', '9d', '4s'],
-  turn: ['Kc', '9d', '4s', '2h'],
-  river: ['Kc', '9d', '4s', '2h', '7c'],
+  flop: ['Kc', '4d', '4s'],
+  turn: ['Kc', '4d', '4s', '2h'],
+  river: ['Kc', '4d', '4s', '2h', '7c'],
 };
 
 // AEO phase 3 (2026-09-17): a title and a description, and no canonical.
