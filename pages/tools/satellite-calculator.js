@@ -483,7 +483,7 @@ export default function SatelliteCalculatorPage({
               Staking &amp; Markup Split Calculator
             </Link>
             <Link href="/tools" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
-              All 42 Free Poker Calculators
+              Explore All 52 Free Poker Calculators
             </Link>
           </div>
         </section>

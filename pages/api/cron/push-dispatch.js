@@ -87,6 +87,8 @@ const DIGEST_LABEL = {
     home_game_invite: 'game invites',
     home_group_announcement: 'group announcements',
     club_announcement: 'club announcements',
+    notice_board_mention: 'notice board mentions',
+    cashout_overdue: 'unfulfilled payouts',
     table_invite: 'table invites',
     tournament_starting: 'tournaments starting',
     // Raw event string again: the engine writes `tournament_resumed` after the
