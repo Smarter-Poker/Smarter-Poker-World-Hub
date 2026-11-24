@@ -41,6 +41,9 @@ import { POKER_STAKES, STAKES_AS_OF, stakePath } from '../../content/learn/stake
 import { FAMOUS_HANDS, FAMOUS_HANDS_AS_OF, famousHandPath } from '../../content/learn/famousHands.js';
 import { POKER_ROADMAPS, ROADMAPS_AS_OF, roadmapPath } from '../../content/learn/roadmaps.js';
 import { US_POKER_STATES, STATES_AS_OF, stateGuidePath } from '../../content/guides/states.js';
+import { PLAYER_ARCHETYPES, PLAYER_TYPES_AS_OF, playerTypePath } from '../../content/learn/playerTypes.js';
+import { BOARD_TEXTURES, BOARD_TEXTURES_AS_OF, boardTexturePath } from '../../content/learn/boardTextures.js';
+import { INTERNATIONAL_POKER_GUIDES, INTERNATIONAL_GUIDES_AS_OF, internationalGuidePath } from '../../content/guides/internationalMarkets.js';
 
 export const SITE_URL = 'https://smarter.poker';
 export const SITEMAP_DB_PAGE_SIZE = 1000;
@@ -57,34 +60,6 @@ export const SITEMAP_SERIES_EVIDENCE_COLUMNS = [
   'scrape_batch_id',
 ].join(', ');
 
-const PLAYER_TYPE_SLUGS = ['omc', 'calling-station', 'maniac', 'tag', 'lag', 'short-stack', 'trapper', 'gto-grinder'];
-const BOARD_TEXTURE_SLUGS = [
-  'ace-high-dry-rainbow',
-  'king-high-dry-rainbow',
-  'double-broadway-two-tone',
-  'triple-broadway-wet',
-  'mid-connected-wet',
-  'low-connected-board',
-  'low-disconnected-rainbow',
-  'monotone-flush-flop',
-  'high-paired-board',
-  'low-paired-board',
-  'wheel-ace-low-board',
-  'queen-jack-dynamic',
-];
-const INTERNATIONAL_CITY_SLUGS = [
-  'london',
-  'barcelona',
-  'rozvadov',
-  'monte-carlo',
-  'prague',
-  'manila',
-  'macau',
-  'melbourne',
-  'montreal',
-  'nassau',
-];
-
 export const LEARN_PAGES = [
   { path: LEARN_PATH, priority: '0.8', changefreq: 'monthly' },
   { path: '/learn/poker-hand-rankings', priority: '0.85', changefreq: 'monthly' },
@@ -94,10 +69,10 @@ export const LEARN_PAGES = [
   { path: '/learn/live-poker-tells', priority: '0.85', changefreq: 'monthly' },
   { path: '/learn/mental-game', priority: '0.85', changefreq: 'monthly' },
   { path: '/learn/poker-as-a-business', priority: '0.85', changefreq: 'monthly' },
-  { path: '/learn/player-types', priority: '0.85', changefreq: 'monthly' },
-  ...PLAYER_TYPE_SLUGS.map((slug) => ({ path: `/learn/player-types/${slug}`, priority: '0.8', changefreq: 'monthly' })),
-  { path: '/learn/board-textures', priority: '0.85', changefreq: 'monthly' },
-  ...BOARD_TEXTURE_SLUGS.map((slug) => ({ path: `/learn/board-textures/${slug}`, priority: '0.8', changefreq: 'monthly' })),
+  { path: '/learn/player-types', priority: '0.85', changefreq: 'monthly', lastmod: PLAYER_TYPES_AS_OF },
+  ...PLAYER_ARCHETYPES.map((a) => ({ path: playerTypePath(a.slug), priority: '0.8', changefreq: 'monthly', lastmod: PLAYER_TYPES_AS_OF })),
+  { path: '/learn/board-textures', priority: '0.85', changefreq: 'monthly', lastmod: BOARD_TEXTURES_AS_OF },
+  ...BOARD_TEXTURES.map((b) => ({ path: boardTexturePath(b.slug), priority: '0.8', changefreq: 'monthly', lastmod: BOARD_TEXTURES_AS_OF })),
   { path: '/learn/hands', priority: '0.8', changefreq: 'monthly' },
   { path: '/learn/matchups', priority: '0.85', changefreq: 'monthly', lastmod: MATCHUPS_AS_OF },
   ...HAND_MATCHUPS.map((m) => ({ path: matchupPath(m.slug), priority: '0.8', changefreq: 'monthly', lastmod: MATCHUPS_AS_OF })),
@@ -139,8 +114,8 @@ export const MARKET_GUIDE_PAGES = [
 ];
 
 export const INTERNATIONAL_POKER_PAGES = [
-  { path: '/poker-rooms/international', priority: '0.85', changefreq: 'monthly', lastmod: MARKET_GUIDES_AS_OF },
-  ...INTERNATIONAL_CITY_SLUGS.map((slug) => ({ path: `/poker-rooms/international/${slug}`, priority: '0.8', changefreq: 'monthly', lastmod: MARKET_GUIDES_AS_OF })),
+  { path: '/poker-rooms/international', priority: '0.85', changefreq: 'monthly', lastmod: INTERNATIONAL_GUIDES_AS_OF },
+  ...INTERNATIONAL_POKER_GUIDES.map((g) => ({ path: internationalGuidePath(g.slug), priority: '0.8', changefreq: 'monthly', lastmod: INTERNATIONAL_GUIDES_AS_OF })),
 ];
 
 export const SERIES_GUIDE_PAGES = [

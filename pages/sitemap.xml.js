@@ -29,6 +29,14 @@ import { POKER_VARIANTS, GAMES_AS_OF, gameVariantPath } from '../src/content/gam
 import { POKER_MARKET_GUIDES, MARKET_GUIDES_AS_OF, marketGuidePath } from '../src/content/guides/markets';
 import { HAND_MATCHUPS, MATCHUPS_AS_OF, matchupPath } from '../src/content/learn/matchups';
 import { SERIES_GUIDES, SERIES_GUIDES_AS_OF, seriesGuidePath } from '../src/content/guides/seriesGuides';
+import { POKER_POSITIONS, POSITIONS_AS_OF, positionPath } from '../src/content/learn/positions';
+import { POKER_STAKES, STAKES_AS_OF, stakePath } from '../src/content/learn/stakes';
+import { FAMOUS_HANDS, FAMOUS_HANDS_AS_OF, famousHandPath } from '../src/content/learn/famousHands';
+import { POKER_ROADMAPS, ROADMAPS_AS_OF, roadmapPath } from '../src/content/learn/roadmaps';
+import { US_POKER_STATES, STATES_AS_OF, stateGuidePath } from '../src/content/guides/states';
+import { PLAYER_ARCHETYPES, PLAYER_TYPES_AS_OF, playerTypePath } from '../src/content/learn/playerTypes';
+import { BOARD_TEXTURES, BOARD_TEXTURES_AS_OF, boardTexturePath } from '../src/content/learn/boardTextures';
+import { INTERNATIONAL_POKER_GUIDES, INTERNATIONAL_GUIDES_AS_OF, internationalGuidePath } from '../src/content/guides/internationalMarkets';
 
 const SITE_URL = 'https://smarter.poker';
 const SITEMAP_DB_PAGE_SIZE = 1000;
@@ -57,33 +65,6 @@ const SITEMAP_SERIES_EVIDENCE_COLUMNS = [
 // never offer a lesson that has no page. Pinned by
 // __tests__/every-lesson-answers-first.law.test.mjs.
 const PREFLOP_POSITIONS = ['utg', 'mp', 'hj', 'co', 'btn', 'sb'];
-const PLAYER_TYPE_SLUGS = ['omc', 'calling-station', 'maniac', 'tag', 'lag', 'short-stack', 'trapper', 'gto-grinder'];
-const BOARD_TEXTURE_SLUGS = [
-  'ace-high-dry-rainbow',
-  'king-high-dry-rainbow',
-  'double-broadway-two-tone',
-  'triple-broadway-wet',
-  'mid-connected-wet',
-  'low-connected-board',
-  'low-disconnected-rainbow',
-  'monotone-flush-flop',
-  'high-paired-board',
-  'low-paired-board',
-  'wheel-ace-low-board',
-  'queen-jack-dynamic',
-];
-const INTERNATIONAL_CITY_SLUGS = [
-  'london',
-  'barcelona',
-  'rozvadov',
-  'monte-carlo',
-  'prague',
-  'manila',
-  'macau',
-  'melbourne',
-  'montreal',
-  'nassau',
-];
 const learnPages = [
   { path: LEARN_PATH, priority: '0.8', changefreq: 'monthly' },
   { path: '/learn/poker-hand-rankings', priority: '0.85', changefreq: 'monthly' },
@@ -93,14 +74,18 @@ const learnPages = [
   { path: '/learn/live-poker-tells', priority: '0.85', changefreq: 'monthly' },
   { path: '/learn/mental-game', priority: '0.85', changefreq: 'monthly' },
   { path: '/learn/poker-as-a-business', priority: '0.85', changefreq: 'monthly' },
-  { path: '/learn/positions', priority: '0.85', changefreq: 'monthly' },
-  { path: '/learn/stakes', priority: '0.85', changefreq: 'monthly' },
-  { path: '/learn/famous-hands', priority: '0.85', changefreq: 'monthly' },
-  { path: '/learn/roadmaps', priority: '0.85', changefreq: 'monthly' },
-  { path: '/learn/player-types', priority: '0.85', changefreq: 'monthly' },
-  ...PLAYER_TYPE_SLUGS.map((slug) => ({ path: `/learn/player-types/${slug}`, priority: '0.8', changefreq: 'monthly' })),
-  { path: '/learn/board-textures', priority: '0.85', changefreq: 'monthly' },
-  ...BOARD_TEXTURE_SLUGS.map((slug) => ({ path: `/learn/board-textures/${slug}`, priority: '0.8', changefreq: 'monthly' })),
+  { path: '/learn/positions', priority: '0.85', changefreq: 'monthly', lastmod: POSITIONS_AS_OF },
+  ...POKER_POSITIONS.map((p) => ({ path: positionPath(p.slug), priority: '0.8', changefreq: 'monthly', lastmod: POSITIONS_AS_OF })),
+  { path: '/learn/stakes', priority: '0.85', changefreq: 'monthly', lastmod: STAKES_AS_OF },
+  ...POKER_STAKES.map((s) => ({ path: stakePath(s.slug), priority: '0.8', changefreq: 'monthly', lastmod: STAKES_AS_OF })),
+  { path: '/learn/famous-hands', priority: '0.85', changefreq: 'monthly', lastmod: FAMOUS_HANDS_AS_OF },
+  ...FAMOUS_HANDS.map((fh) => ({ path: famousHandPath(fh.slug), priority: '0.8', changefreq: 'monthly', lastmod: FAMOUS_HANDS_AS_OF })),
+  { path: '/learn/roadmaps', priority: '0.85', changefreq: 'monthly', lastmod: ROADMAPS_AS_OF },
+  ...POKER_ROADMAPS.map((rm) => ({ path: roadmapPath(rm.slug), priority: '0.8', changefreq: 'monthly', lastmod: ROADMAPS_AS_OF })),
+  { path: '/learn/player-types', priority: '0.85', changefreq: 'monthly', lastmod: PLAYER_TYPES_AS_OF },
+  ...PLAYER_ARCHETYPES.map((a) => ({ path: playerTypePath(a.slug), priority: '0.8', changefreq: 'monthly', lastmod: PLAYER_TYPES_AS_OF })),
+  { path: '/learn/board-textures', priority: '0.85', changefreq: 'monthly', lastmod: BOARD_TEXTURES_AS_OF },
+  ...BOARD_TEXTURES.map((b) => ({ path: boardTexturePath(b.slug), priority: '0.8', changefreq: 'monthly', lastmod: BOARD_TEXTURES_AS_OF })),
   { path: '/learn/hands', priority: '0.8', changefreq: 'monthly' },
   { path: '/learn/matchups', priority: '0.85', changefreq: 'monthly', lastmod: MATCHUPS_AS_OF },
   ...HAND_MATCHUPS.map((m) => ({ path: matchupPath(m.slug), priority: '0.8', changefreq: 'monthly', lastmod: MATCHUPS_AS_OF })),
@@ -121,9 +106,10 @@ const researchPages = [
   { path: '/poker-rooms/guides', priority: '0.85', changefreq: 'monthly', lastmod: MARKET_GUIDES_AS_OF },
   { path: '/poker-rooms/first-time-guide', priority: '0.85', changefreq: 'monthly', lastmod: MARKET_GUIDES_AS_OF },
   { path: '/poker-rooms/comps-and-tipping-guide', priority: '0.85', changefreq: 'monthly', lastmod: MARKET_GUIDES_AS_OF },
-  { path: '/poker-rooms/states', priority: '0.85', changefreq: 'monthly', lastmod: MARKET_GUIDES_AS_OF },
-  { path: '/poker-rooms/international', priority: '0.85', changefreq: 'monthly', lastmod: MARKET_GUIDES_AS_OF },
-  ...INTERNATIONAL_CITY_SLUGS.map((slug) => ({ path: `/poker-rooms/international/${slug}`, priority: '0.8', changefreq: 'monthly', lastmod: MARKET_GUIDES_AS_OF })),
+  { path: '/poker-rooms/states', priority: '0.85', changefreq: 'monthly', lastmod: STATES_AS_OF },
+  ...US_POKER_STATES.map((s) => ({ path: stateGuidePath(s.slug), priority: '0.8', changefreq: 'monthly', lastmod: STATES_AS_OF })),
+  { path: '/poker-rooms/international', priority: '0.85', changefreq: 'monthly', lastmod: INTERNATIONAL_GUIDES_AS_OF },
+  ...INTERNATIONAL_POKER_GUIDES.map((g) => ({ path: internationalGuidePath(g.slug), priority: '0.8', changefreq: 'monthly', lastmod: INTERNATIONAL_GUIDES_AS_OF })),
   ...POKER_MARKET_GUIDES.map((m) => ({ path: marketGuidePath(m.slug), priority: '0.8', changefreq: 'monthly', lastmod: MARKET_GUIDES_AS_OF })),
   { path: '/poker-series/guides', priority: '0.85', changefreq: 'monthly', lastmod: SERIES_GUIDES_AS_OF },
   ...SERIES_GUIDES.map((g) => ({ path: seriesGuidePath(g.slug), priority: '0.8', changefreq: 'monthly', lastmod: SERIES_GUIDES_AS_OF })),
