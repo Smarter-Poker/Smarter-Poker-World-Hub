@@ -2,8 +2,10 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
+import { emitTriviaRealtimeBroadcasts } from '../../../src/lib/trivia/realtimeBroadcast.mjs';
 
 const CODE_RE = /^[A-Z0-9]{6,16}$/;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ALLOWED_STAKES = new Set([10, 25, 50, 100]);
 
 let cachedServiceClient = null;
@@ -26,34 +28,55 @@ function buildPvpHandoff(challenge, existingHandoff = null) {
     if (!CODE_RE.test(challengeCode) || !Number.isInteger(stakeAmount) || !ALLOWED_STAKES.has(stakeAmount)) {
         return existingHandoff || null;
     }
+    const matchId = existingHandoff?.matchId || challenge.matchId || null;
+    const paired = Boolean(existingHandoff?.paired || matchId);
     return {
         ...(existingHandoff && typeof existingHandoff === 'object' ? existingHandoff : {}),
         stake: stakeAmount,
         stakeAmount,
         challengeCode,
         challengeId: existingHandoff?.challengeId || challenge.id || null,
-        matchId: existingHandoff?.matchId || challenge.matchId || null,
+        matchId,
+        paired,
         quoteEndpoint: existingHandoff?.quoteEndpoint || '/api/trivia/pvp/quote',
         joinEndpoint: existingHandoff?.joinEndpoint || '/api/trivia/pvp/join',
+        resumeEndpoint: existingHandoff?.resumeEndpoint || '/api/trivia/pvp/resume',
         requiresServerQuote: true,
         route: existingHandoff?.route
-            || `/hub/trivia/pvp?challenge=${encodeURIComponent(challengeCode)}&stake=${stakeAmount}`,
-        guidance: 'Review Your Server-Quoted Stake And Join The Matched 1v1 Queue.',
+            || `/hub/trivia/pvp?challenge=${encodeURIComponent(challengeCode)}&stake=${stakeAmount}${matchId ? `&match=${encodeURIComponent(matchId)}` : ''}`,
+        guidance: paired
+            ? 'Your Direct Friend Duel Is Active. Resume Your Match Below.'
+            : 'Review Your Server-Quoted Stake And Join The Matched 1v1 Queue.',
     };
 }
 
 function errorStatus(code) {
     switch (code) {
         case 'authentication_required': return 401;
-        case 'not_challenge_owner': return 403;
-        case 'challenge_not_found': return 404;
+        case 'challenger_insufficient_diamonds':
+        case 'accepter_insufficient_diamonds': return 402;
+        case 'not_challenge_owner':
+        case 'unauthorized_recipient': return 403;
+        case 'challenge_not_found':
+        case 'challenged_user_not_found':
+        case 'challenger_profile_not_found':
+        case 'accepter_profile_not_found': return 404;
         case 'invalid_challenge_code':
         case 'invalid_stake_amount':
         case 'invalid_action':
+        case 'invalid_challenged_user_id':
+        case 'cannot_challenge_self':
         case 'cannot_accept_own_challenge': return 400;
         case 'challenge_expired':
+        case 'challenge_cancelled':
         case 'challenge_not_open':
+        case 'challenge_already_accepted':
+        case 'challenger_already_in_match':
+        case 'accepter_already_in_match':
         case 'too_many_open_challenges': return 409;
+        case 'pvp_joins_paused':
+        case 'rules_unavailable':
+        case 'pvp_configuration_unavailable': return 503;
         default: return 500;
     }
 }
@@ -137,11 +160,22 @@ export default async function handler(req, res) {
             const expiresMinutes = Number.isFinite(expiresMinutesRaw)
                 ? Math.min(Math.max(Math.trunc(expiresMinutesRaw), 5), 1440)
                 : 30;
-            const { data, error } = await client.rpc('trivia_friend_challenge_create_v1', {
+            const rawChallengedId = body.challengedUserId ?? body.challenged_user_id ?? null;
+            let challengedUserId = null;
+            if (rawChallengedId !== null && rawChallengedId !== undefined && rawChallengedId !== '') {
+                const candidate = String(rawChallengedId).trim();
+                if (!UUID_RE.test(candidate)) {
+                    return res.status(400).json({ success: false, error: 'invalid_challenged_user_id' });
+                }
+                challengedUserId = candidate.toLowerCase();
+            }
+            const rpcArgs = {
                 p_user_id: user.id,
                 p_stake_amount: stakeAmount,
                 p_expires_minutes: expiresMinutes,
-            });
+                ...(challengedUserId ? { p_challenged_user_id: challengedUserId } : {}),
+            };
+            const { data, error } = await client.rpc('trivia_friend_challenge_create_v1', rpcArgs);
             if (error) {
                 try { reportApiError(error, { route: 'trivia/challenges', operation: 'create', userId: user.id }); } catch (_) {}
                 return res.status(500).json({ success: false, error: 'challenge_create_failed' });
@@ -173,16 +207,56 @@ export default async function handler(req, res) {
                 const code = data?.error || `challenge_${action}_failed`;
                 return res.status(errorStatus(code)).json({ success: false, error: code });
             }
+
+            const { broadcastTargets, ...publicData } = data;
+            const resolvedMatchId = broadcastTargets?.matchId || publicData.challenge?.matchId || null;
+            const challengerId = broadcastTargets?.challengerId || (action === 'cancel' ? user.id : null);
+            const broadcastEntries = [];
+            const signalPayload = {
+                type: 'state_change',
+                entityId: resolvedMatchId || publicData.challenge?.id || challengeCode,
+                state: publicData.challenge?.status || action,
+                action,
+                challengeCode: publicData.challenge?.challengeCode || challengeCode,
+                matchId: resolvedMatchId,
+            };
+
+            if (challengerId) {
+                broadcastEntries.push({
+                    channel: `trivia:pvp:user:${challengerId}`,
+                    event: action === 'accept' ? 'match_update' : 'state_update',
+                    payload: signalPayload,
+                });
+            }
+            if (action === 'accept' && user.id && user.id !== challengerId) {
+                broadcastEntries.push({
+                    channel: `trivia:pvp:user:${user.id}`,
+                    event: 'match_update',
+                    payload: signalPayload,
+                });
+            }
+            if (resolvedMatchId) {
+                broadcastEntries.push({
+                    channel: `trivia:pvp:match:${resolvedMatchId}`,
+                    event: 'match_update',
+                    payload: signalPayload,
+                });
+            }
+            if (broadcastEntries.length > 0) {
+                await emitTriviaRealtimeBroadcasts(broadcastEntries);
+            }
+
             if (action === 'accept') {
-                const pvpHandoff = buildPvpHandoff(data.challenge, data.pvpHandoff);
+                const pvpHandoff = buildPvpHandoff(publicData.challenge, publicData.pvpHandoff);
                 return res.status(200).json({
-                    ...data,
-                    challengeCode: data.challenge?.challengeCode || challengeCode,
-                    stakeAmount: data.challenge?.stakeAmount ?? pvpHandoff?.stakeAmount ?? null,
+                    ...publicData,
+                    challengeCode: publicData.challenge?.challengeCode || challengeCode,
+                    stakeAmount: publicData.challenge?.stakeAmount ?? pvpHandoff?.stakeAmount ?? null,
+                    matchId: resolvedMatchId,
                     pvpHandoff,
                 });
             }
-            return res.status(200).json(data);
+            return res.status(200).json(publicData);
         }
 
         return res.status(400).json({ success: false, error: 'invalid_action' });

@@ -6,8 +6,11 @@ import {
     STREAK_FREEZE_COST_DIAMONDS,
     STREAK_FREEZE_MAX_QUANTITY,
     STREAK_MILESTONES,
+    STREAK_MILESTONE_REWARDS,
+    computeClaimableMilestones,
     computeStreakMilestoneProgress,
     createStreakFreezeRequestKey,
+    createStreakMilestoneRequestKey,
     normalizeStreakFreezePayload,
 } from '../../lib/trivia/streakMilestoneModel.mjs';
 import styles from './StreakFreezeWidget.module.css';
@@ -19,6 +22,15 @@ const PURCHASE_ERROR_COPY = Object.freeze({
     invalid_request_key: 'Purchase Key Was Invalid. Start A Fresh Confirmation.',
     streak_freeze_purchase_failed: 'The Streak Freeze Purchase Could Not Be Completed. You Can Retry Safely.',
     internal_error: 'The Streak Freeze Service Is Temporarily Unavailable. You Can Retry Safely.',
+});
+
+const CLAIM_ERROR_COPY = Object.freeze({
+    authentication_required: 'Sign In Again To Claim Your Milestone Reward.',
+    milestone_not_reached: 'Reach The Required Streak Before Claiming This Milestone.',
+    invalid_milestone_days: 'Selected Milestone Tier Was Not Recognized.',
+    invalid_request_key: 'Claim Key Was Invalid. Retry To Generate A Fresh Key.',
+    milestone_claim_failed: 'Could Not Complete Milestone Reward Claim. Retry Safely.',
+    internal_error: 'Milestone Reward Service Is Temporarily Unavailable. Retry Safely.',
 });
 
 export default function StreakFreezeWidget({
@@ -41,6 +53,10 @@ export default function StreakFreezeWidget({
     const [purchaseError, setPurchaseError] = useState('');
     const [purchaseErrorCode, setPurchaseErrorCode] = useState('');
     const [receipt, setReceipt] = useState(null);
+    const [claimingMilestone, setClaimingMilestone] = useState(null);
+    const [milestoneKeys, setMilestoneKeys] = useState({});
+    const [claimError, setClaimError] = useState('');
+    const [claimReceipt, setClaimReceipt] = useState(null);
 
     const requestGenRef = useRef(0);
     const mountedRef = useRef(true);
@@ -106,6 +122,10 @@ export default function StreakFreezeWidget({
         setPurchaseError('');
         setPurchaseErrorCode('');
         setReceipt(null);
+        setClaimingMilestone(null);
+        setMilestoneKeys({});
+        setClaimError('');
+        setClaimReceipt(null);
         setReadError('');
 
         if (!signedIn) {
@@ -129,6 +149,13 @@ export default function StreakFreezeWidget({
     const resolvedBalance = inventory?.balance != null
         ? inventory.balance
         : (Number.isFinite(Number(initialBalance)) ? Math.max(0, Math.floor(Number(initialBalance))) : null);
+
+    const claimedMilestones = Array.isArray(inventory?.claimedMilestones) ? inventory.claimedMilestones : [];
+    const claimedSet = new Set(claimedMilestones.map((c) => Number(c.milestoneDays)));
+    const effectiveStreak = Math.max(resolvedStreak, resolvedBestStreak);
+    const claimableMilestones = Array.isArray(inventory?.claimableMilestones)
+        ? inventory.claimableMilestones
+        : computeClaimableMilestones(effectiveStreak, claimedMilestones);
 
     const milestone = computeStreakMilestoneProgress(resolvedStreak);
     const atMaxCapacity = resolvedQuantity !== null && resolvedQuantity >= resolvedMax;
@@ -183,6 +210,9 @@ export default function StreakFreezeWidget({
                             currentStreak: resolvedStreak,
                             bestStreak: resolvedBestStreak,
                             balance: resolvedBalance,
+                            claimedMilestones: [],
+                            claimableMilestones: [],
+                            lastFreezeConsumedDate: null,
                         }),
                         ...(Number.isFinite(Number(payload?.balance)) ? { balance: Math.max(0, Math.floor(Number(payload.balance))) } : {}),
                         ...(Number.isFinite(Number(payload?.quantity)) ? { quantity: Math.max(0, Math.floor(Number(payload.quantity))) } : {}),
@@ -202,6 +232,9 @@ export default function StreakFreezeWidget({
                 ...normalized,
                 currentStreak: prev?.currentStreak ?? resolvedStreak,
                 bestStreak: prev?.bestStreak ?? resolvedBestStreak,
+                claimedMilestones: prev?.claimedMilestones ?? [],
+                claimableMilestones: prev?.claimableMilestones ?? [],
+                lastFreezeConsumedDate: prev?.lastFreezeConsumedDate ?? null,
             }));
             setReceipt({
                 referenceId: normalized?.referenceId || null,
@@ -232,6 +265,118 @@ export default function StreakFreezeWidget({
         } finally {
             if (mountedRef.current && opGen === requestGenRef.current) {
                 setSubmitting(false);
+            }
+        }
+    };
+
+    const submitMilestoneClaim = async (milestoneDays) => {
+        if (!signedIn || !online || claimingMilestone !== null) return;
+        const activeKey = milestoneKeys[milestoneDays] || createStreakMilestoneRequestKey(milestoneDays);
+        if (!milestoneKeys[milestoneDays]) {
+            setMilestoneKeys((prev) => ({ ...prev, [milestoneDays]: activeKey }));
+        }
+
+        const opGen = requestGenRef.current;
+        setClaimingMilestone(milestoneDays);
+        setClaimError('');
+
+        try {
+            const response = await authedFetch('/api/trivia/streak-freeze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'claim_milestone',
+                    milestoneDays,
+                    requestKey: activeKey,
+                }),
+            });
+            const payload = await response.json().catch(() => null);
+            if (!mountedRef.current || opGen !== requestGenRef.current) return;
+
+            if (!response.ok || payload?.success !== true) {
+                const code = payload?.error || 'milestone_claim_failed';
+                setClaimError(CLAIM_ERROR_COPY[code] || 'Could Not Complete Milestone Reward Claim. Retry Safely.');
+                if (code === 'invalid_request_key') {
+                    setMilestoneKeys((prev) => {
+                        const next = { ...prev };
+                        delete next[milestoneDays];
+                        return next;
+                    });
+                }
+                return;
+            }
+
+            const claimedEntry = {
+                milestoneDays: Number(payload.milestoneDays) || milestoneDays,
+                rewardDiamonds: Number(payload.rewardDiamonds) || STREAK_MILESTONE_REWARDS[milestoneDays] || 0,
+                journalId: payload.journalId || null,
+                referenceId: payload.referenceId || null,
+                claimedAt: payload.claimedAt || null,
+            };
+
+            setInventory((prev) => {
+                const existing = Array.isArray(prev?.claimedMilestones) ? prev.claimedMilestones : [];
+                const nextClaimed = [
+                    ...existing.filter((item) => Number(item.milestoneDays) !== claimedEntry.milestoneDays),
+                    claimedEntry,
+                ].sort((a, b) => a.milestoneDays - b.milestoneDays);
+                const nextBalance = Number.isFinite(Number(payload.balance))
+                    ? Math.max(0, Math.floor(Number(payload.balance)))
+                    : prev?.balance ?? resolvedBalance;
+                return {
+                    ...(prev || {
+                        itemType: 'streak_shield',
+                        quantity: resolvedQuantity ?? 0,
+                        maxQuantity: resolvedMax,
+                        costDiamonds: resolvedCost,
+                        currentStreak: resolvedStreak,
+                        bestStreak: resolvedBestStreak,
+                        lastFreezeConsumedDate: null,
+                    }),
+                    balance: nextBalance,
+                    claimedMilestones: nextClaimed,
+                    claimableMilestones: computeClaimableMilestones(
+                        Math.max(prev?.currentStreak ?? resolvedStreak, prev?.bestStreak ?? resolvedBestStreak),
+                        nextClaimed,
+                    ),
+                };
+            });
+
+            setClaimReceipt({
+                milestoneDays: claimedEntry.milestoneDays,
+                rewardDiamonds: claimedEntry.rewardDiamonds,
+                diamondsAwarded: Number(payload.diamondsAwarded) || 0,
+                replayed: payload.replayed === true,
+                journalId: claimedEntry.journalId,
+                referenceId: claimedEntry.referenceId,
+                balance: Number.isFinite(Number(payload.balance))
+                    ? Math.max(0, Math.floor(Number(payload.balance)))
+                    : resolvedBalance,
+            });
+            setMilestoneKeys((prev) => {
+                const next = { ...prev };
+                delete next[milestoneDays];
+                return next;
+            });
+
+            if (typeof onBalanceChange === 'function' && Number.isFinite(Number(payload.balance))) {
+                onBalanceChange(Math.max(0, Math.floor(Number(payload.balance))));
+            }
+            if ((Number(payload.diamondsAwarded) || 0) > 0) {
+                try {
+                    eventBus.emit(EventType.DIAMONDS_EARNED, {
+                        amount: Number(payload.diamondsAwarded),
+                        source: 'trivia_streak_milestone',
+                        balance: Number(payload.balance),
+                    });
+                } catch (_) { /* best effort bus emit */ }
+            }
+        } catch (_) {
+            if (!mountedRef.current || opGen !== requestGenRef.current) return;
+            setClaimError('Network Error While Claiming Milestone Reward. Retry Uses The Same Idempotent Key.');
+        } finally {
+            if (mountedRef.current && opGen === requestGenRef.current) {
+                setClaimingMilestone(null);
             }
         }
     };
@@ -283,6 +428,12 @@ export default function StreakFreezeWidget({
                         </div>
                     </dl>
 
+                    {inventory?.lastFreezeConsumedDate ? (
+                        <p className={styles.notice}>
+                            Last Streak Freeze Protected Missed Day <span data-preserve-case="true">{inventory.lastFreezeConsumedDate}</span>.
+                        </p>
+                    ) : null}
+
                     <div className={styles.milestoneBlock}>
                         <div className={styles.milestoneSummary}>
                             <span className="tc-ink--silver">
@@ -311,21 +462,94 @@ export default function StreakFreezeWidget({
                         </div>
                         <ol className={styles.milestoneList} aria-label="Streak Milestones">
                             {STREAK_MILESTONES.map((day) => {
-                                const reached = resolvedStreak >= day;
+                                const claimed = claimedSet.has(day);
+                                const reached = effectiveStreak >= day;
                                 const isNext = milestone.nextMilestone === day;
-                                const nodeClass = reached
+                                const reward = STREAK_MILESTONE_REWARDS[day];
+                                const nodeClass = claimed || reached
                                     ? `${styles.milestoneNode} ${styles.milestoneNodeReached}`
                                     : isNext
                                         ? `${styles.milestoneNode} ${styles.milestoneNodeNext}`
                                         : styles.milestoneNode;
                                 return (
-                                    <li key={day} className={nodeClass} data-milestone-days={day} data-reached={reached ? 'true' : 'false'}>
-                                        {day} Days{reached ? ' Done' : ''}
+                                    <li
+                                        key={day}
+                                        className={nodeClass}
+                                        data-milestone-days={day}
+                                        data-reached={reached ? 'true' : 'false'}
+                                        data-claimed={claimed ? 'true' : 'false'}
+                                    >
+                                        <span>{day} Days</span>
+                                        <span className={styles.milestoneRewardTag}>
+                                            {claimed ? 'Claimed' : `+${reward} Diamonds`}
+                                        </span>
                                     </li>
                                 );
                             })}
                         </ol>
+
+                        {claimableMilestones.length > 0 ? (
+                            <div className={styles.claimBar} role="region" aria-label="Claimable Streak Milestones">
+                                {claimableMilestones.map((day) => {
+                                    const reward = STREAK_MILESTONE_REWARDS[day];
+                                    const isClaiming = claimingMilestone === day;
+                                    return (
+                                        <button
+                                            key={day}
+                                            type="button"
+                                            className={styles.claimButton}
+                                            disabled={!online || claimingMilestone !== null}
+                                            onClick={() => submitMilestoneClaim(day)}
+                                        >
+                                            {isClaiming
+                                                ? `Claiming ${day} Day Reward...`
+                                                : `Claim Milestone Reward (${day} Days, +${formatTriviaDisplayNumber(reward)} Diamonds)`}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        ) : null}
                     </div>
+
+                    {claimError ? (
+                        <div className={styles.errorBox} role="alert">
+                            <p className={styles.errorCopy}>{claimError}</p>
+                        </div>
+                    ) : null}
+
+                    {claimReceipt ? (
+                        <div className={styles.receiptBox} role="status" aria-live="polite">
+                            <span className={styles.receiptHead}>
+                                {claimReceipt.replayed
+                                    ? `Verified ${claimReceipt.milestoneDays} Day Milestone Replay`
+                                    : `${claimReceipt.milestoneDays} Day Milestone Reward Claimed`}
+                            </span>
+                            <dl className={styles.receiptRows}>
+                                <div>
+                                    <dt>Reward Credited</dt>
+                                    <dd className="tc-ink--gold">+{formatTriviaDisplayNumber(claimReceipt.rewardDiamonds)} Diamonds</dd>
+                                </div>
+                                {claimReceipt.referenceId ? (
+                                    <div>
+                                        <dt>Ledger Reference</dt>
+                                        <dd data-preserve-case="true">{claimReceipt.referenceId}</dd>
+                                    </div>
+                                ) : null}
+                                {claimReceipt.journalId ? (
+                                    <div>
+                                        <dt>Journal Record</dt>
+                                        <dd data-preserve-case="true">{claimReceipt.journalId}</dd>
+                                    </div>
+                                ) : null}
+                                {claimReceipt.balance != null ? (
+                                    <div>
+                                        <dt>Balance After</dt>
+                                        <dd>{formatTriviaDisplayNumber(claimReceipt.balance)} Diamonds</dd>
+                                    </div>
+                                ) : null}
+                            </dl>
+                        </div>
+                    ) : null}
 
                     {readError ? (
                         <div className={styles.errorBox} role="alert">

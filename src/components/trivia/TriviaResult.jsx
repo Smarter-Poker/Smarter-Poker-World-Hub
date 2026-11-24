@@ -494,6 +494,7 @@ export default function TriviaResult({
                 streak={streak || 0}
                 player={playerName || 'Smarter.Poker Player'}
                 grid={shareGrid}
+                sessionId={settled !== false ? sessionId : null}
             />
             {canOpenSettledReview ? (
                 <PostSettlementReviewDrawer

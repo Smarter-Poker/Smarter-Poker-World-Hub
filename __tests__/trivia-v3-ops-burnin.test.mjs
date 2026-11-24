@@ -129,7 +129,8 @@ test('operationsSnapshot enforces supervisor treasury_replenish_from_rake valida
             { key: 'treasury_floor', value: 0 },
         ],
         pvpMetrics: {
-            tickets: { matched_human: 6, matched_horse: 4 },
+            matches: { human_human: 6, human_horse: 4 },
+            tickets: { matched_human: 12, matched_horse: 4 },
         },
         activeTournaments: [
             {

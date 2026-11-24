@@ -137,6 +137,7 @@ export default function Phase9SettlementReceipt({
                         streak={streak}
                         player={playerName || 'Smarter.Poker Player'}
                         grid={shareGrid}
+                        sessionId={sessionId}
                     />
                     <PostSettlementReviewDrawer
                         open={reviewDrawerOpen}

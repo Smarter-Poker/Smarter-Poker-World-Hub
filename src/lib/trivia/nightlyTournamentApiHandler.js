@@ -22,6 +22,7 @@ import {
     normalizeNightlyError,
     projectNightlyDto,
 } from './nightlyTournamentPolicy.mjs';
+import { emitTriviaRealtimeBroadcast } from './realtimeBroadcast.mjs';
 
 /** Runs one already-gated nightly action. Exported for the legacy entry alias. */
 export async function runNightlyAction(action, req, res, sb) {
@@ -53,7 +54,39 @@ export async function runNightlyAction(action, req, res, sb) {
         console.error('[trivia nightly] refused to forward forbidden keys:', action, leaked.slice(0, 5));
         return res.status(500).json({ success: false, error: 'internal_error' });
     }
-    return res.status(200).json(projectNightlyDto(action, data));
+    const projected = projectNightlyDto(action, data);
+    if (action === 'enter' || action === 'play') {
+        const tournamentId = built.args?.p_tournament_id || projected?.tournament?.id || null;
+        if (tournamentId) {
+            const playAction = typeof input?.playAction === 'string'
+                ? input.playAction.trim().toLowerCase()
+                : typeof input?.action === 'string'
+                    ? input.action.trim().toLowerCase()
+                    : '';
+            const state = projected?.tournament?.state
+                || projected?.session?.status
+                || (action === 'enter' ? 'entered' : playAction || 'play_updated');
+            const eventName = state === 'settled'
+                ? 'settlement_update'
+                : action === 'enter'
+                    ? 'tournament_update'
+                    : playAction === 'finish'
+                        ? 'round_update'
+                        : 'bracket_update';
+            await emitTriviaRealtimeBroadcast({
+                channel: `trivia:tournament:${tournamentId}`,
+                event: eventName,
+                payload: {
+                    type: 'state_change',
+                    entityId: tournamentId,
+                    tournamentId,
+                    state,
+                    action,
+                },
+            });
+        }
+    }
+    return res.status(200).json(projected);
 }
 
 export function createNightlyTournamentApi({ serviceClient, env = process.env } = {}) {

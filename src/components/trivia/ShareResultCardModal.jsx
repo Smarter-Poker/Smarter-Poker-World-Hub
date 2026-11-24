@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import TriviaConsoleDialog from './console/TriviaConsoleDialog';
 import { TriviaGlassAction } from './console/TriviaConsole';
-import { buildWordleShareText, normalizeGridString } from '../../lib/trivia/socialGrowthHelpers.mjs';
+import {
+    buildWordleShareText,
+    isValidTriviaUuid,
+    normalizeGridString,
+} from '../../lib/trivia/socialGrowthHelpers.mjs';
 
 export default function ShareResultCardModal({
     open,
@@ -14,8 +18,11 @@ export default function ShareResultCardModal({
     player = 'Smarter.Poker Player',
     grid = '',
     shareUrl = 'https://smarter.poker/hub/trivia',
+    sessionId = null,
+    matchId = null,
 }) {
     const [copyState, setCopyState] = useState('idle');
+    const [linkCopyState, setLinkCopyState] = useState('idle');
     const [shareState, setShareState] = useState('idle');
     const resetTimerRef = useRef(null);
 
@@ -23,25 +30,22 @@ export default function ShareResultCardModal({
         if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
     }, []);
 
+    const verifiedSessionId = isValidTriviaUuid(sessionId) ? sessionId.trim() : null;
+    const verifiedMatchId = !verifiedSessionId && isValidTriviaUuid(matchId) ? matchId.trim() : null;
+    const isVerifiedCard = Boolean(verifiedSessionId || verifiedMatchId);
+
     const normalizedGrid = useMemo(
         () => normalizeGridString(grid, score, total),
         [grid, score, total],
     );
 
-    const shareText = useMemo(
-        () => buildWordleShareText({
-            mode,
-            score,
-            total,
-            diamonds,
-            streak,
-            grid: normalizedGrid,
-            url: shareUrl,
-        }),
-        [diamonds, mode, normalizedGrid, score, shareUrl, streak, total],
-    );
-
     const cardUrl = useMemo(() => {
+        if (verifiedSessionId) {
+            return `/api/trivia/og-result-card?sessionId=${encodeURIComponent(verifiedSessionId)}`;
+        }
+        if (verifiedMatchId) {
+            return `/api/trivia/og-result-card?matchId=${encodeURIComponent(verifiedMatchId)}`;
+        }
         const params = new URLSearchParams({
             mode: String(mode || 'daily'),
             score: String(Math.max(0, Math.trunc(Number(score) || 0))),
@@ -52,7 +56,27 @@ export default function ShareResultCardModal({
         });
         if (normalizedGrid) params.set('grid', normalizedGrid);
         return `/api/trivia/og-result-card?${params.toString()}`;
-    }, [diamonds, mode, normalizedGrid, player, score, streak, total]);
+    }, [diamonds, mode, normalizedGrid, player, score, streak, total, verifiedMatchId, verifiedSessionId]);
+
+    const absoluteCardUrl = useMemo(() => {
+        if (typeof window !== 'undefined' && window.location?.origin) {
+            return `${window.location.origin}${cardUrl}`;
+        }
+        return `https://smarter.poker${cardUrl}`;
+    }, [cardUrl]);
+
+    const shareText = useMemo(
+        () => buildWordleShareText({
+            mode,
+            score,
+            total,
+            diamonds,
+            streak,
+            grid: normalizedGrid,
+            url: isVerifiedCard ? absoluteCardUrl : shareUrl,
+        }),
+        [absoluteCardUrl, diamonds, isVerifiedCard, mode, normalizedGrid, score, shareUrl, streak, total],
+    );
 
     const scheduleReset = (setter) => {
         if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
@@ -78,13 +102,29 @@ export default function ShareResultCardModal({
         }
     };
 
+    const handleCopyCardLink = async () => {
+        if (typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
+            setLinkCopyState('unavailable');
+            scheduleReset(setLinkCopyState);
+            return;
+        }
+        try {
+            await navigator.clipboard.writeText(absoluteCardUrl);
+            setLinkCopyState('copied');
+            scheduleReset(setLinkCopyState);
+        } catch {
+            setLinkCopyState('failed');
+            scheduleReset(setLinkCopyState);
+        }
+    };
+
     const handleNativeShare = async () => {
         if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
             try {
                 await navigator.share({
                     title: 'Smarter.Poker Trivia Result',
                     text: shareText,
-                    url: shareUrl,
+                    url: isVerifiedCard ? absoluteCardUrl : shareUrl,
                 });
                 setShareState('shared');
                 scheduleReset(setShareState);
@@ -100,11 +140,17 @@ export default function ShareResultCardModal({
         <TriviaConsoleDialog
             open={open}
             onClose={onClose}
-            eyebrow="Share Result Card"
+            eyebrow={isVerifiedCard ? 'Verified Result Card' : 'Sample Preview Card'}
             title="Casino Realism Result Card"
-            subtitle="Copy Your Score Grid Or Share Your Verified Card"
-            pill={copyState === 'copied' ? 'Copied' : shareState === 'shared' ? 'Shared' : 'Ready'}
-            pillInk={copyState === 'copied' || shareState === 'shared' ? 'green' : 'gold'}
+            subtitle={isVerifiedCard
+                ? 'Server-Verified Settled Result Card Ready To Share'
+                : 'Preview Card Only (Unverified Without A Settled Session Record)'}
+            pill={copyState === 'copied' || linkCopyState === 'copied'
+                ? 'Copied'
+                : shareState === 'shared'
+                    ? 'Shared'
+                    : isVerifiedCard ? 'Verified' : 'Preview'}
+            pillInk={copyState === 'copied' || linkCopyState === 'copied' || shareState === 'shared' || isVerifiedCard ? 'green' : 'gold'}
             secondaryAction={{ label: 'Close', onClick: onClose }}
             primaryAction={{
                 label: copyState === 'copied' ? 'Score Grid Copied' : 'Copy Score Grid',
@@ -115,7 +161,7 @@ export default function ShareResultCardModal({
                 <div style={{ border: '1px solid #6d747c', background: '#050607', padding: '6px' }}>
                     <img
                         src={cardUrl}
-                        alt="Trivia Result Card Preview"
+                        alt={isVerifiedCard ? 'Verified Trivia Result Card' : 'Trivia Result Card Sample Preview'}
                         style={{ display: 'block', width: '100%', height: 'auto' }}
                     />
                 </div>
@@ -141,6 +187,11 @@ export default function ShareResultCardModal({
                         ink="blue"
                         onClick={handleNativeShare}
                     />
+                    <TriviaGlassAction
+                        label={linkCopyState === 'copied' ? 'Card Link Copied' : 'Copy Card Link'}
+                        ink="green"
+                        onClick={handleCopyCardLink}
+                    />
                     <a
                         href={cardUrl}
                         target="_blank"
@@ -151,7 +202,7 @@ export default function ShareResultCardModal({
                         Open Card Image
                     </a>
                 </div>
-                {copyState === 'failed' || copyState === 'unavailable' ? (
+                {copyState === 'failed' || copyState === 'unavailable' || linkCopyState === 'failed' || linkCopyState === 'unavailable' ? (
                     <p className="trivia-console-copy tc-ink--red" role="status">
                         Clipboard Access Was Unavailable. Copy The Score Grid Above Manually.
                     </p>
