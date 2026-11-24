@@ -49,7 +49,7 @@ async function authorizeAdmin(req) {
     if (!user?.id) return null;
     const { data: profile, error } = await sb
         .from('profiles')
-        .select('role, is_admin, phone')
+        .select('role, is_admin')
         .eq('id', user.id)
         .maybeSingle();
     if (error || !profile || (!profile.is_admin && !ADMIN_ROLES.includes(profile.role))) return null;
@@ -57,7 +57,7 @@ async function authorizeAdmin(req) {
         kind: 'admin',
         userId: user.id,
         email: typeof user.email === 'string' ? user.email.trim() : '',
-        phone: typeof profile.phone === 'string' ? profile.phone.trim() : '',
+        phone: typeof user.phone === 'string' ? user.phone.trim() : '',
     };
 }
 
