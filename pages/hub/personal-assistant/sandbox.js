@@ -16,7 +16,6 @@ import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { useHaptics } from '../../../src/hooks/useHaptics';
 import { useModalHistory } from '../../../src/hooks/useModalHistory';
-import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PersonalAssistantCopyPolicy from '../../../src/components/personal-assistant/PersonalAssistantCopyPolicy';
 
 const DESTINATIONS = [
@@ -54,9 +53,8 @@ const DESTINATIONS = [
 
 export default function VerifiedEvidenceSandboxBoundary() {
   const router = useRouter();
-  const { user } = useAvatar();
   const [showMenu, setShowMenu] = useState(false);
-  const menuConfig = getMenuConfig('hub-home', user || null, {}, {});
+  const menuConfig = getMenuConfig('hub-home', null, {}, {});
   const haptic = useHaptics();
   const closeMenu = useCallback(() => setShowMenu(false), []);
   useModalHistory(showMenu, closeMenu);
@@ -85,8 +83,8 @@ export default function VerifiedEvidenceSandboxBoundary() {
         onClose={closeMenu}
         direction="left"
         theme="pa"
-        user={user || null}
-        showProfile={Boolean(user)}
+        user={null}
+        showProfile={false}
         menuItems={menuConfig.menuItems}
         bottomLinks={menuConfig.bottomLinks}
       />
