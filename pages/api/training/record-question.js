@@ -197,9 +197,12 @@ function buildRecordedAnswerResponse({
     return fallback;
   };
 
+  const resolvedIsCorrect = Boolean(storedOr('is_correct', 'canonicalSolverIsCorrect', canonicalGrade.isCorrect));
+
   return {
     success: true,
     idempotentReplay,
+    mistakeEnqueuedToFlashcards: Boolean(!resolvedIsCorrect && Number(persistedEVLoss) >= 0.5),
     submissionId: receiptPayload.jti,
     sessionId: receiptPayload.sessionId,
     attemptId: receiptPayload.attemptId,
@@ -216,7 +219,7 @@ function buildRecordedAnswerResponse({
         'evLossMeasured',
         verified ? canonicalGrade.evLossMeasured : false,
       )),
-      isCorrect: Boolean(storedOr('is_correct', 'canonicalSolverIsCorrect', canonicalGrade.isCorrect)),
+      isCorrect: resolvedIsCorrect,
       gradeMode: storedOr('', 'gradeMode', answerContract?.gradeMode || null),
       difficultyMode: storedOr('', 'difficultyMode', answerContract?.difficultyMode || receiptPayload.difficultyMode),
       rng: storedOr('', 'rng', answerContract?.rng || null),
@@ -270,13 +273,14 @@ export default async function handler(req, res) {
     }
 
     // Require JWT auth for write operations
+    let _authUser = null;
     if (req.method !== 'GET') {
       const _token = req.headers.authorization?.replace('Bearer ', '');
       if (!_token)
         return res.status(401).json({ success: false, error: 'Authentication required' });
       const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
     const authData = { user: authUser };
-      const _authUser = authData?.user;
+      _authUser = authData?.user;
       if (authErr || !_authUser)
         return res.status(401).json({ success: false, error: 'Invalid token' });
       if (req.body) req.body.userId = _authUser.id;
@@ -667,14 +671,61 @@ export default async function handler(req, res) {
         idempotentReplay = true;
       }
 
-      return res.status(200).json(buildRecordedAnswerResponse({
-        answerContract,
-        canonicalQuestion,
-        receiptPayload,
-        servedQuestion,
-        persistedAnswer,
-        idempotentReplay,
-      }));
+      const isCorrect = Boolean(canonicalGrade.isCorrect);
+      const evLoss = persistedEVLoss;
+      const correctAnswer = servedQuestion.correctAnswer;
+      const explanation = servedQuestion.explanation || '';
+      const parsedLevel = receiptPayload.level;
+      if (snapshot && !snapshot.question) {
+        snapshot.question = canonicalQuestion;
+      }
+
+      if (!isCorrect && Number(evLoss) >= 0.5 && _authUser?.id) {
+        try {
+          const mistakePayload = {
+            questionId,
+            gameId,
+            level: parsedLevel,
+            prompt: snapshot?.question?.prompt || snapshot?.question?.scenario?.title || 'GTO Training Spot',
+            correctAction: correctAnswer,
+            explanation: explanation || '',
+            evLossBb: Number(Number(evLoss).toFixed(2)),
+            intervalDays: 1,
+            easeFactor: 2.5,
+            repetitions: 0,
+            nextReviewAt: new Date().toISOString(),
+          };
+          void Promise.resolve(
+            getSupabase()
+              .from('training_tool_records')
+              .upsert(
+                {
+                  user_id: _authUser.id,
+                  tool_id: 'flashcard-srs',
+                  record_type: 'mistake_card',
+                  record_key: `mistake-${String(questionId).slice(0, 80)}`,
+                  data: mistakePayload,
+                  updated_at: new Date().toISOString(),
+                },
+                { onConflict: 'user_id,tool_id,record_key' },
+              ),
+          ).catch(() => {});
+        } catch (_enqueueErr) {
+          void _enqueueErr;
+        }
+      }
+
+      return res.status(200).json({
+        ...buildRecordedAnswerResponse({
+          answerContract,
+          canonicalQuestion,
+          receiptPayload,
+          servedQuestion,
+          persistedAnswer,
+          idempotentReplay,
+        }),
+        mistakeEnqueuedToFlashcards: Boolean(!isCorrect && Number(evLoss) >= 0.5),
+      });
     } catch (error) {
       console.warn('Record question error:', error);
       if (isTrainingPersistenceUnavailable(error)) {
