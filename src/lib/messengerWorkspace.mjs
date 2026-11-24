@@ -68,11 +68,17 @@ export async function getMessengerClubs(db, userId) {
     let activeAgentClubs = null;
     if (agentClubIds.length) {
         try {
-            const { data: agentRows, error: agentErr } = await db.from('agents')
-                .select('club_id,status').eq('user_id', userId).in('club_id', agentClubIds);
-            if (!agentErr && Array.isArray(agentRows)) {
-                activeAgentClubs = new Set(agentRows.filter(a => a.status === 'active').map(a => a.club_id));
+            const collected = new Set();
+            let readable = true;
+            for (const batch of idBatches(agentClubIds)) {
+                const { data: agentRows, error: agentErr } = await db.from('agents')
+                    .select('club_id,status').eq('user_id', userId).in('club_id', batch);
+                if (agentErr || !Array.isArray(agentRows)) { readable = false; break; }
+                for (const row of agentRows) {
+                    if (row.status === 'active') collected.add(row.club_id);
+                }
             }
+            if (readable) activeAgentClubs = collected;
         } catch {
             activeAgentClubs = null;
         }
