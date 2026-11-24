@@ -16,6 +16,8 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
+import GeoCitationCapsule from '../../src/components/seo/GeoCitationCapsule';
+import GeoFollowUpChain from '../../src/components/seo/GeoFollowUpChain';
 import {
   POKER_RULES,
   RULE_CATEGORIES,
@@ -133,7 +135,7 @@ export default function PokerRulesIndexPage() {
   return (
     <div style={styles.page}>
       <SEOHead
-        title="Official Poker Rules and TDA Floor Rulings"
+        title="Official Poker Rules And TDA Floor Rulings"
         description="Complete Encyclopedia Of 30 Official Poker Rules, Tournament TDA Rulings, And Robert's Rules Of Poker Cash Game Procedures: Showdown Order, String Bets, Side Pots, And Straddles."
         canonical={RULES_BASE_PATH}
         markdownUrl="https://smarter.poker/rules.md"
@@ -245,7 +247,7 @@ export default function PokerRulesIndexPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <img
                 src="/api/seo/qr?path=/rules&label=Smarter.Poker%2030-Rule%20Floor%20Reference"
-                alt="QR Code For https://smarter.poker/rules"
+                alt="QR Code For Official Poker Rules Directory"
                 width="68"
                 height="68"
                 style={{ display: 'block', borderRadius: '2px', background: '#ffffff' }}
@@ -418,6 +420,49 @@ export default function PokerRulesIndexPage() {
             ))}
           </div>
         </section>
+
+        <GeoCitationCapsule
+          title="Official Poker TDA & RROP Floor Rulings Reference Capsule"
+          claim="Under Both Poker Tournament Directors Association (TDA) Rules And Robert's Rules Of Poker (RROP), In-Turn Verbal Declarations Are 100% Binding And Single Oversized Chips Default To A Call Without Verbal Raise Announcement."
+          metricLabel="Authoritative Rulings"
+          metricValue="30 TDA & RROP Floor Standards"
+          formulaText="TDA Rule 40 (Verbal Binding) | TDA Rule 44 (Oversized Chip = Call) | Showdown Priority = Last River Aggressor"
+          ifThenBecause="If Tossing A Single Oversized Chip Into The Pot Wishing To Raise -> Then Verbally Declare 'Raise' Before The Chip Crosses The Betting Line -> Because Silent Oversized Chip Actions Are Strictly Ruled A Minimum Call Under TDA Rule 44."
+          quoteText="Clear Floor Rulings Prevent Angle-Shooting And Protect Game Integrity Across Live Casino Cardrooms, Tournament Series, And Private Home Games."
+          quoteAuthor="Smarter.Poker Live Venue Intelligence Team"
+          doi="10.5281/zenodo.24115454"
+          canonicalPath="/rules"
+        />
+
+        <GeoFollowUpChain
+          topicTitle="Official Poker TDA And RROP Floor Rules"
+          followUps={[
+            {
+              question: 'How Do I Calculate Multi-Way All-In Main And Side Pots Accurately At The Table?',
+              answer:
+                'Match Each All-In Short Stack Incrementally Against All Covering Callers From Smallest Stack To Largest Stack. Verify Any 3-Way To 9-Way All-In Split Instantly In The Smarter.Poker Side Pot Calculator.',
+              calculatorHref: '/tools/side-pot-calculator',
+              calculatorLabel: 'Open Multi-Way Side Pot Calculator',
+              markdownHref: '/tools/side-pot-calculator.md',
+            },
+            {
+              question: 'How Do I Generate A TDA-Compliant Tournament Blind Structure And Big Blind Ante Schedule?',
+              answer:
+                'Use The Smarter.Poker Blind Structure Calculator To Build Smooth 15-Minute To 60-Minute Level Progressions With Color-Up Chip Removal Points.',
+              calculatorHref: '/tools/blind-structure-calculator',
+              calculatorLabel: 'Open TDA Blind Structure Generator',
+              markdownHref: '/tools/blind-structure-calculator.md',
+            },
+            {
+              question: 'Where Can I Check Tie-Breaker And Hand Ranking Rules Across Holdem, PLO, Short Deck, And Lowball?',
+              answer:
+                'Consult The Official Poker Hand Rankings Cheat Sheet Or The Showdown Who-Wins Calculator.',
+              calculatorHref: '/tools/who-wins-calculator',
+              calculatorLabel: 'Launch Showdown Who-Wins Calculator',
+              markdownHref: '/learn/poker-hand-rankings.md',
+            },
+          ]}
+        />
 
         <CitationBacklinkBox
           title="Poker Rules & Tournament TDA / RROP Floor Reference Encyclopedia"

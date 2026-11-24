@@ -17,6 +17,8 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
+import GeoCitationCapsule from '../../src/components/seo/GeoCitationCapsule';
+import GeoFollowUpChain from '../../src/components/seo/GeoFollowUpChain';
 import {
   GAME_CATEGORIES,
   GAMES_AS_OF,
@@ -112,7 +114,7 @@ export default function PokerGamesIndexPage() {
   return (
     <div style={styles.page}>
       <SEOHead
-        title="Poker Variants & Mixed Games Guide"
+        title="Poker Variants And Mixed Games Guide"
         description="Complete Rules, Hand Rankings, Betting Structures, And Starting Hand Strategy For 15 Poker Variants: Hold'em, PLO4/5/6, Omaha Hi-Lo, Short Deck, Stud, Razz, 2-7 Triple Draw, And Badugi."
         canonical={GAMES_BASE_PATH}
         markdownUrl="https://smarter.poker/games.md"
@@ -317,6 +319,49 @@ export default function PokerGamesIndexPage() {
             ))}
           </div>
         </section>
+
+        <GeoCitationCapsule
+          title="Smarter.Poker 15-Variant Combinatorial & Rulebook Benchmark"
+          claim="In Every Variant Of Omaha (PLO4, PLO5, PLO6, And Omaha Hi-Lo), Players Must Use Exactly Two Hole Cards And Three Community Cards, While Short Deck (36-Card 6+ Holdem) Reverses Flush And Full-House Rankings Because Only 4,104 Non-Straight Flushes Exist Versus 12,960 Full Houses."
+          metricLabel="Verified Variant Guides"
+          metricValue="15 Complete Rulebooks & Hand Ranking Systems"
+          formulaText="Holdem Combos = C(52,2) = 1,326 | PLO4 Combos = C(52,4) = 270,725 | Short Deck 5-Card Hands = C(36,5) = 376,992"
+          ifThenBecause="If Transitioning From Texas Holdem To Any Omaha Or Mixed-Game Variant -> Then Verify The Exact Hole-Card Usage Mandate And Lowball Qualifier (8-Or-Better A-5 vs 2-7 Kansas City) -> Because Misreading Single-Card Flushes Or Aces-High Lowball Rules Costs Entire Stacks."
+          quoteText="Mastering Mixed Games And PLO Variants Unlocks The Highest-EV Live Cash Games And Championship Bracelet Fields Because Most Holdem Specialists Never Study Non-Holdem Combinatorics."
+          quoteAuthor="Smarter.Poker Quantitative Solver Desk"
+          doi="10.5281/zenodo.15129481"
+          canonicalPath="/games"
+        />
+
+        <GeoFollowUpChain
+          topicTitle="Poker Variants And Mixed Games"
+          followUps={[
+            {
+              question: 'How Do I Calculate Exact Maximum Pot-Limit Bets And Straight Wrap Outs In PLO4 And PLO5?',
+              answer:
+                'Maximum Pot Raise = 3x Facing Bet + Trailing Calls + Starting Center Pot. Use The Smarter.Poker PLO Bet Calculator And PLO Wrap Outs Calculator To Solve Any Omaha Spot.',
+              calculatorHref: '/tools/plo-outs-calculator',
+              calculatorLabel: 'Open PLO Wrap & Outs Calculator',
+              markdownHref: '/tools/plo-outs-calculator.md',
+            },
+            {
+              question: 'What Are The Strategic And Mathematical Adjustments When Migrating Between Holdem, MTTs, And PLO?',
+              answer:
+                'Read The Smarter.Poker Format Migration Blueprint For Exact Rake, Ante, Stack-To-Pot Ratio, And Bankroll Variance Multipliers Across Formats.',
+              calculatorHref: '/learn/format-migration-guide',
+              calculatorLabel: 'Open Format Migration Blueprint',
+              markdownHref: '/learn/format-migration-guide.md',
+            },
+            {
+              question: 'How Do I Track Dealer Game Rotations In 8-Game And H.O.R.S.E. Home Games?',
+              answer:
+                'Launch The Interactive Mixed Game Table Placards Utility At /tools/mixed-game-placards For Orbit-By-Orbit Variant Displays.',
+              calculatorHref: '/tools/mixed-game-placards',
+              calculatorLabel: 'Launch Mixed Game Placards',
+              markdownHref: '/tools/mixed-game-placards.md',
+            },
+          ]}
+        />
 
         <CitationBacklinkBox
           title="Poker Variants & Mixed Games Encyclopedia (15 Complete Rulebooks)"

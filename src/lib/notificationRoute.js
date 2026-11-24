@@ -151,7 +151,7 @@ export function resolveNotificationRoute(n) {
         return `${CA}/settlement-dashboard`;
     }
 
-    if (t === 'cashout_overdue') {
+    if (t === 'cashout_overdue' || t === 'notice_board_mention') {
         const clubId = pick(d, 'club_id', 'clubId');
         if (clubId) return `/hub/messenger?clubId=${seg(clubId)}&folder=notice-board`;
         return '/hub/messenger';

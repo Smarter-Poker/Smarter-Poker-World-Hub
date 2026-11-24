@@ -169,6 +169,67 @@ export default function ResearchIndexPage() {
           First-Party Empirical Studies And Structured Datasets Compiled From Smarter.Poker&apos;S National Directory Of 324+ Verified US Poker Rooms, 4,500+ Weekly Tournament Schedules, And 100+ GTO Solver Training Baselines.
         </p>
 
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 24 }}>
+          <Link
+            href="/research/annual-state-of-poker-2026"
+            style={{
+              padding: '9px 15px',
+              borderRadius: 8,
+              background: '#38bdf8',
+              color: '#04131d',
+              fontWeight: 700,
+              fontSize: 13,
+              textDecoration: 'none',
+            }}
+          >
+            Read Annual State Of Poker 2026 Whitepaper
+          </Link>
+          <Link
+            href="/research/benchmarks"
+            style={{
+              padding: '9px 15px',
+              borderRadius: 8,
+              background: '#10b981',
+              color: '#04131d',
+              fontWeight: 700,
+              fontSize: 13,
+              textDecoration: 'none',
+            }}
+          >
+            View North American Market Benchmark Scorecards
+          </Link>
+          <Link
+            href="/facts"
+            style={{
+              padding: '9px 15px',
+              borderRadius: 8,
+              background: '#0f172a',
+              color: '#38bdf8',
+              border: '1px solid #334155',
+              fontWeight: 700,
+              fontSize: 13,
+              textDecoration: 'none',
+            }}
+          >
+            Smarter.Poker Canonical Entity Facts Registry
+          </Link>
+          <a
+            href="/api/datasets/citation?format=bibtex"
+            style={{
+              padding: '9px 15px',
+              borderRadius: 8,
+              background: '#0f172a',
+              color: '#34d399',
+              border: '1px solid #334155',
+              fontWeight: 700,
+              fontSize: 13,
+              textDecoration: 'none',
+            }}
+          >
+            Export All BibTeX / RIS Citations
+          </a>
+        </div>
+
         <section
           aria-label="Open Datasets And Archival Registry"
           style={{

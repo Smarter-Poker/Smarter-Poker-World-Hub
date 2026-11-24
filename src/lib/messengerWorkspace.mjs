@@ -271,6 +271,18 @@ async function dockHiddenInvoiceThreadIds(db, userId, club) {
         .map(row => row.conversation_id));
 }
 
+async function noticeBoardUnreadMap(db, userId, clubs) {
+    const staffClubIds = clubs.filter(c => c.canAccessNoticeBoard !== false).map(c => c.id);
+    if (!staffClubIds.length || typeof db?.rpc !== 'function') return {};
+    try {
+        const { data, error } = await db.rpc('fn_club_notice_unread_counts', { p_user: userId, p_clubs: staffClubIds });
+        if (error || !data || typeof data !== 'object') return {};
+        return data;
+    } catch {
+        return {};
+    }
+}
+
 export async function getMessengerWorkspace(db, userId, request, internal = {}) {
     if (request.workspace === 'club' && request.folder === 'statements') {
         const inbox = await getMessengerWorkspace(db, userId, { ...request, folder: 'invoices' }, { ...internal, countsOnly: true });
@@ -531,7 +543,13 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
         messages: club.pageId ? selectWorkspaceConversations(conversations, accounting, userId, club, 'messages') : [],
         invoices: selectWorkspaceConversations(conversations, accounting, userId, club, 'invoices'),
     } : null;
+    const noticeUnread = club && club.canAccessNoticeBoard !== false
+        ? (internal.noticeUnreadMap
+            ? Number(internal.noticeUnreadMap[club.id] || 0)
+            : Number((await noticeBoardUnreadMap(db, userId, [club]))[club.id] || 0))
+        : 0;
     return { success: true, clubs, conversations: visible, conversation, weeklySummary, unreadCounts, attentionCounts,
+        ...(club && noticeUnread > 0 ? { noticeBoardUnread: noticeUnread } : (club ? { noticeBoardUnread: 0 } : {})),
         workspace: club ? 'club' : 'social', clubId: club?.id || null, folder, ...(authorizeOne ? { authorizedOnly: true } : {}),
         ...(folders ? { folders } : {}), ...(internal.feed ? { hasOlder } : {}) };
 }
@@ -540,16 +558,19 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
 // membership. Raw participant/message counts include threads nobody can open.
 export async function getMessengerUnreadSummary(db, userId) {
     const clubs = await getMessengerClubs(db, userId);
-    const options = { clubs, countsOnly: true, unreadOnly: true };
+    const noticeUnreadMap = await noticeBoardUnreadMap(db, userId, clubs);
+    const options = { clubs, countsOnly: true, unreadOnly: true, noticeUnreadMap };
     const social = await getMessengerWorkspace(db, userId, { workspace: 'social' }, options);
-    const summary = { social: social.unreadCounts.messages, clubs: {}, total: social.unreadCounts.messages };
+    const summary = { social: social.unreadCounts.messages, clubs: {}, noticeBoard: {}, total: social.unreadCounts.messages };
     // Bound query concurrency for accounts that belong to many clubs.
     for (let start = 0; start < clubs.length; start += 4) {
         const batch = await Promise.all(clubs.slice(start, start + 4).map(club =>
             getMessengerWorkspace(db, userId, { workspace: 'club', clubId: club.id }, options)));
         for (const workspace of batch) {
+            const nbCount = Number(noticeUnreadMap[workspace.clubId] || 0);
             summary.clubs[workspace.clubId] = workspace.unreadCounts;
-            summary.total += workspace.unreadCounts.messages + workspace.unreadCounts.invoices;
+            summary.noticeBoard[workspace.clubId] = nbCount;
+            summary.total += workspace.unreadCounts.messages + workspace.unreadCounts.invoices + nbCount;
         }
     }
     return summary;

@@ -18,6 +18,8 @@ import { AS_OF as COMPARE_AS_OF } from '../src/content/compare/pages.js';
 export async function getServerSideProps({ req, res }) {
   const sitemaps = [
     { loc: '/sitemap-core.xml' },
+    { loc: '/sitemap-tools.xml' },
+    { loc: '/sitemap-authority.xml' },
     { loc: '/sitemap-venues.xml' },
     { loc: '/sitemap-tournaments.xml' },
     { loc: '/sitemap-series.xml' },

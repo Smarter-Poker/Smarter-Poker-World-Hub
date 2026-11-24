@@ -982,3 +982,91 @@ test('Phase 7 Package A-J: Parallel API latency optimization, Runout What-If Exp
     }
   }
 });
+
+test('Phase 8 Master 12-Point Package: Zero route-state coverage gaps, 100% Horse Brain + Club Arena page coverage, 4-entry unit toggle parity, multi-street felt continuation, villain node-locking, ICM/PKO felt pill, Study HUD, warm LRU cache, SM-2 mistake flashcards, 6-max positional seat leak heatmap, last-hand quick drill, solver provenance telemetry, and custom-solve heatmap', () => {
+  // 1. Audit inventory guarantees zero gaps across all 752 route-state cells, CTAs, markers, and functions
+  const inventory = JSON.parse(read('.agent/audits/2026-08-31-training-phase-2-inventory.json'));
+  assert.equal(inventory.counts.routeStateCoverageGaps, 0, 'All 752 route-state cells must be covered (0 routeStateCoverageGaps)');
+  assert.equal(inventory.counts.routeStateUnassignedGaps, 0);
+  assert.equal(inventory.counts.ctaWiringGaps, 0);
+  assert.equal(inventory.counts.markerPhaseReview, 0);
+  assert.equal(inventory.counts.functionPhaseReview, 0);
+
+  // 2. UniversalDynamicTable Phase 8 Master enhancements
+  const tableSrc = read('src/components/training/games/UniversalDynamicTable.jsx');
+  assert.match(tableSrc, /data-unit-toggle-entry="toolbar"/);
+  assert.match(tableSrc, /data-unit-toggle-entry="pot-pill"/);
+  assert.match(tableSrc, /data-unit-toggle-entry="seat-stack"/);
+  assert.match(tableSrc, /data-unit-toggle-entry="settings"/);
+  assert.match(tableSrc, /data-play-next-street-on-felt="true"/);
+  assert.match(tableSrc, /data-multistreet-continuation-active="true"/);
+  assert.match(tableSrc, /data-villain-nodelock-panel="true"/);
+  assert.match(tableSrc, /data-table-icm-pko-pill="true"/);
+  assert.match(tableSrc, /data-study-hud-overlay="true"/);
+  assert.match(tableSrc, /data-shot-clock-toggle="true"/);
+  assert.match(tableSrc, /data-share-training-spot="true"/);
+
+  // 3. Sub-500ms Warm LRU Cache in batch-preload.js & SM-2 Mistake Enqueueing in record-question.js + flashcards.js
+  const batchPreloadSrc = read('pages/api/training/batch-preload.js');
+  assert.match(batchPreloadSrc, /getWarmCachedQuestions/);
+  assert.match(batchPreloadSrc, /setWarmCachedQuestions/);
+  assert.match(batchPreloadSrc, /X-Training-Cache-Mode/);
+
+  const recordQuestionSrc = read('pages/api/training/record-question.js');
+  assert.match(recordQuestionSrc, /flashcard-srs/);
+  assert.match(recordQuestionSrc, /mistakeEnqueuedToFlashcards/);
+
+  const flashcardsSrc = read('pages/hub/training/flashcards.js');
+  assert.match(flashcardsSrc, /data-mistake-srs-queue="true"/);
+  assert.match(flashcardsSrc, /data-drill-mistake-card-cta="true"/);
+
+  // 4. Custom-Solve Hand-Class Action Frequency Heatmap & Multi-Table Active Action Focus Queue
+  const customSolveSrc = read('pages/hub/training/custom-solve.js');
+  assert.match(customSolveSrc, /data-custom-solve-heatmap="true"/);
+  assert.match(customSolveSrc, /data-lock-spot-drill-cta="true"/);
+
+  const multiTableSrc = read('pages/hub/training/multi-table.js');
+  assert.match(multiTableSrc, /data-multitable-focus-queue="true"/);
+  assert.match(multiTableSrc, /data-jump-next-pending-table="true"/);
+
+  // 5. Positional 6-Max Seat Leak Heatmap, Last Club Arena Hand Bar, Solver Provenance Telemetry & Study Group Share
+  for (const leakFile of ['pages/hub/training/weakness-scanner.js', 'pages/hub/training/reports.js', 'pages/hub/training/session-dashboard.js']) {
+    const src = read(leakFile);
+    assert.match(src, /data-positional-leak-heatmap="true"/, `${leakFile} must render 6-max positional seat leak heatmap`);
+    assert.match(src, /data-drill-selected-seat-cta="true"/, `${leakFile} must render selected seat drill CTA`);
+    assert.match(src, /data-last-club-arena-hand-bar="true"/, `${leakFile} must render last Club Arena hand quick-drill bar`);
+    assert.match(src, /data-drill-last-club-arena-hand="true"/, `${leakFile} must render last Club Arena hand drill button`);
+  }
+
+  for (const telemetryFile of ['pages/hub/training/aggregate.js', 'pages/hub/training/reports.js']) {
+    const src = read(telemetryFile);
+    assert.match(src, /data-solver-provenance-telemetry="true"/, `${telemetryFile} must render solver provenance coverage telemetry`);
+    assert.match(src, /data-drill-priority-coverage-spot="true"/, `${telemetryFile} must render priority coverage spot drill CTA`);
+  }
+
+  const studyGroupSrc = read('pages/hub/training/study-group.js');
+  assert.match(studyGroupSrc, /data-study-group-spot-share="true"/);
+  assert.match(studyGroupSrc, /data-share-training-spot="true"/);
+
+  // 6. All newly wired Phase 8 standalone training pages
+  const phase8BrainPages = [
+    'pages/hub/training/autopilot.js',
+    'pages/hub/training/custom-solve.js',
+    'pages/hub/training/flashcards.js',
+    'pages/hub/training/focus-timer.js',
+    'pages/hub/training/gto-news.js',
+    'pages/hub/training/gto-preloader.js',
+    'pages/hub/training/hand-lab.js',
+    'pages/hub/training/quiz-builder.js',
+    'pages/hub/training/scenario-demo.js',
+    'pages/hub/training/session-notes.js',
+    'pages/hub/training/session-warmup.js',
+  ];
+  for (const relPath of phase8BrainPages) {
+    const src = read(relPath);
+    assert.match(src, /evaluateTrainingSpotWithHorseBrain/, `${relPath} must wire evaluateTrainingSpotWithHorseBrain`);
+    assert.match(src, /buildCustomTrainingArenaHref/, `${relPath} must wire buildCustomTrainingArenaHref`);
+    assert.match(src, /data-specialty-brain-panel="true"/, `${relPath} must render data-specialty-brain-panel="true"`);
+    assert.match(src, /data-launch-club-arena-cta="true"/, `${relPath} must render data-launch-club-arena-cta="true"`);
+  }
+});
