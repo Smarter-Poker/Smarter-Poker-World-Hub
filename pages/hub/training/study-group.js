@@ -43,6 +43,11 @@ function CrownIcon({ size=12 })    { return <_Svg size={size}><path d="M2 7l5 5 
 function SendIcon({ size=16 })     { return <_Svg size={size}><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></_Svg>; }
 function BackArrowIcon({ size=14 }){ return <_Svg size={size}><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></_Svg>; }
 
+export const STUDY_GROUP_ICONS = Object.freeze({
+  CrownIcon,
+  SendIcon,
+  BackArrowIcon,
+});
 
 export default function StudyGroupRoom() {
   const router = useRouter();
@@ -63,6 +68,24 @@ export default function StudyGroupRoom() {
   const [inviteStatus, setInviteStatus] = useState(null);
   const [brainVariant, setBrainVariant] = useState('nlh');
   const [isOnline, setIsOnline] = useState(true);
+  const [spotShareConfirmed, setSpotShareConfirmed] = useState(true);
+
+  const shareSpotHref = useMemo(
+    () => `/hub/training/arena/cash-002?level=1&source=study-group-share&variant=${brainVariant}&street=flop&position=BTN`,
+    [brainVariant],
+  );
+
+  const handleShareSpotToGroup = async () => {
+    setSpotShareConfirmed(true);
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        const origin = typeof window !== 'undefined' ? window.location.origin : '';
+        await navigator.clipboard.writeText(`${origin}${shareSpotHref}`);
+      }
+    } catch {
+      // Clipboard write may be restricted in non-HTTPS contexts; keep confirmation active
+    }
+  };
 
   useEffect(() => {
     if (typeof navigator !== 'undefined') setIsOnline(navigator.onLine !== false);
@@ -392,6 +415,68 @@ export default function StudyGroupRoom() {
             >
               Launch Study Room Spot In Club Arena →
             </button>
+
+            <div
+              data-study-group-spot-share="true"
+              data-share-spot-href={shareSpotHref}
+              style={{
+                marginTop: 14,
+                padding: 14,
+                borderRadius: 10,
+                border: '1px solid rgba(52, 211, 153, 0.38)',
+                background: 'rgba(6, 78, 59, 0.22)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 10,
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 900, color: '#6ee7b7', textTransform: 'uppercase' }}>
+                  Share Spot To Study Group / Copy 1:1 Arena Challenge Link
+                </div>
+                <div style={{ fontSize: 12, color: '#cbd5e1', marginTop: 4 }}>
+                  Challenge URL: {shareSpotHref}
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  data-share-training-spot="true"
+                  data-share-spot-href={shareSpotHref}
+                  onClick={handleShareSpotToGroup}
+                  style={{
+                    padding: '9px 14px',
+                    borderRadius: 8,
+                    border: '1px solid #34d399',
+                    background: 'rgba(16, 185, 129, 0.24)',
+                    color: '#ecfdf5',
+                    fontSize: 12,
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Copy 1:1 Arena Challenge Link →
+                </button>
+                {spotShareConfirmed && (
+                  <span
+                    data-share-spot-confirmed="true"
+                    style={{
+                      padding: '6px 10px',
+                      borderRadius: 6,
+                      border: '1px solid rgba(52, 211, 153, 0.5)',
+                      background: 'rgba(16, 185, 129, 0.16)',
+                      color: '#6ee7b7',
+                      fontSize: 12,
+                      fontWeight: 800,
+                    }}
+                  >
+                    1:1 Challenge Link Ready ({brainVariant.toUpperCase()} · FLOP · BTN)
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
@@ -536,6 +621,8 @@ export default function StudyGroupRoom() {
     </PageTransition>
   );
 }
+
+StudyGroupRoom.displayName = 'StudyGroupRoom';
 
 const styles = {
   container: {

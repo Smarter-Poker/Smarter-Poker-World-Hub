@@ -1985,6 +1985,7 @@ function UniversalDynamicTable({
     const [sliderSizingBb, setSliderSizingBb] = React.useState(null);
     const [chosenRaiseInfo, setChosenRaiseInfo] = React.useState(null);
     const [heroActionFlight, setHeroActionFlight] = React.useState(null);
+    const displayInChips = displayMode === 'chips';
     const activeStakesInfo = useMemo(
         () => parseStakesToBlinds(question?.scenario?.stakes || trainerConfig?.stakes),
         [question?.scenario?.stakes, trainerConfig?.stakes]
@@ -1998,8 +1999,13 @@ function UniversalDynamicTable({
             if (savedFelt && ['carbon', 'emerald', 'sapphire', 'crimson'].includes(savedFelt)) {
                 setFeltTheme(savedFelt);
             }
+            const savedUnit = localStorage.getItem('ca_training_display_unit');
             const savedDisp = localStorage.getItem('sp_training_display_mode');
-            if (savedDisp === 'bb' || savedDisp === 'chips') {
+            if (savedUnit === 'CHIPS' || savedUnit === 'chips') {
+                setDisplayMode('chips');
+            } else if (savedUnit === 'BB' || savedUnit === 'bb') {
+                setDisplayMode('bb');
+            } else if (savedDisp === 'bb' || savedDisp === 'chips') {
                 setDisplayMode(savedDisp);
             }
         } catch { /* non-blocking storage read */ }
@@ -2022,10 +2028,16 @@ function UniversalDynamicTable({
     const toggleDisplayMode = useCallback(() => {
         setDisplayMode(prev => {
             const next = prev === 'bb' ? 'chips' : 'bb';
-            try { localStorage.setItem('sp_training_display_mode', next); } catch {}
+            try {
+                localStorage.setItem('sp_training_display_mode', next);
+                localStorage.setItem('ca_training_display_unit', next === 'chips' ? 'CHIPS' : 'BB');
+            } catch {}
             return next;
         });
     }, []);
+    const handleToggleDisplayUnit = useCallback(() => {
+        toggleDisplayMode();
+    }, [toggleDisplayMode]);
     const formatTableAmount = useCallback((bbAmount, { unit = true } = {}) => {
         const num = Number(bbAmount);
         if (!Number.isFinite(num)) return unit ? '0 BB' : '0';
@@ -2139,20 +2151,38 @@ function UniversalDynamicTable({
     // villain is at the same depth as hero, which is what batch-preload already
     // fills in server-side; this mirrors it for the paths that do not.
     const villainStack = scenario.villainStack || heroStack;
-    const pot = scenario.pot || 0;
+    const baseScenarioPot = scenario.pot || 0;
     const villainPosition = scenario.villainPosition || 'BB';
     const villainAction = scenario.action || scenario.villainAction || '';
     const street = scenario.street || '';
 
+    // ═══ TASK 2: FULL MULTI-STREET HAND CONTINUATION ON THE FELT ═══
+    const [continuedBoardCards, setContinuedBoardCards] = React.useState([]);
+    const [continuedPotBonusBb, setContinuedPotBonusBb] = React.useState(0);
+    const [continuedLastAction, setContinuedLastAction] = React.useState(null);
+    React.useEffect(() => {
+        setContinuedBoardCards([]);
+        setContinuedPotBonusBb(0);
+        setContinuedLastAction(null);
+    }, [question?.id, question?.scenario?.id, questionNumber]);
+
+    const pot = useMemo(
+        () => Number(((Number(baseScenarioPot) || 0) + (Number(continuedPotBonusBb) || 0)).toFixed(2)),
+        [baseScenarioPot, continuedPotBonusBb],
+    );
+
     // Fix: clamp the rendered board to the active street so a scenario whose
     // board string already contains turn/river cards doesn't leak them early.
     const visibleBoard = useMemo(() => {
+        if (Array.isArray(continuedBoardCards) && continuedBoardCards.length > 0) {
+            return continuedBoardCards.slice(0, 5);
+        }
         const s = ((isMultiStreetActive ? currentStreet : street) || '').toLowerCase();
         if (s === 'preflop') return [];
         if (s === 'flop') return boardCards.slice(0, 3);
         if (s === 'turn') return boardCards.slice(0, 4);
         return boardCards;
-    }, [boardCards, street, currentStreet, isMultiStreetActive]);
+    }, [boardCards, street, currentStreet, isMultiStreetActive, continuedBoardCards]);
 
     // PHASE 5: Hand Strength evaluation
     const handStrength = useMemo(() => {
@@ -2492,6 +2522,345 @@ function UniversalDynamicTable({
         );
         return { ...top, href };
     }, [activeNormalizedVariant, activeNormalizedStreet, heroPosition, gameId, evLoss, showFeedback, sessionMistakes]);
+
+    // ═══ TASK 2 CONTINUATION HELPERS & EVALUATION ═══
+    const selectedRunoutOption = useMemo(
+        () => candidateRunoutCards.find((c) => c.card === activeRunoutCard) || candidateRunoutCards[0] || { key: 'runout', label: 'Runout Card', card: activeRunoutCard },
+        [candidateRunoutCards, activeRunoutCard],
+    );
+
+    const continuedStreet = useMemo(() => {
+        if (!Array.isArray(continuedBoardCards) || continuedBoardCards.length === 0) return activeNormalizedStreet;
+        if (continuedBoardCards.length <= 3) return 'flop';
+        if (continuedBoardCards.length === 4) return 'turn';
+        return 'river';
+    }, [continuedBoardCards, activeNormalizedStreet]);
+
+    const continuedPotBb = useMemo(
+        () => Number((Math.max(1.5, Number(baseScenarioPot) || 6.5) + (Number(continuedPotBonusBb) || 0)).toFixed(2)),
+        [baseScenarioPot, continuedPotBonusBb],
+    );
+
+    const continuedEvaluation = useMemo(() => {
+        try {
+            const evalBoard = Array.isArray(continuedBoardCards) && continuedBoardCards.length >= 3
+                ? continuedBoardCards.slice(0, 5)
+                : [...whatIfBaseBoard.slice(0, nextStreet === 'turn' ? 3 : 4), activeRunoutCard];
+            const evalStreet = evalBoard.length <= 3 ? 'flop' : evalBoard.length === 4 ? 'turn' : 'river';
+            const res = evaluateTrainingSpotWithHorseBrain({
+                gameId: gameId || 'cash-002',
+                variant: activeNormalizedVariant,
+                street: evalStreet,
+                heroPosition: heroPosition || 'BTN',
+                villainPosition: villainPosition || (heroPosition === 'BB' ? 'BTN' : 'BB'),
+                heroCards,
+                boardCards: evalBoard,
+                potSizeBb: continuedPotBb,
+                facingBetBb: 0,
+                effectiveStackBb: Math.max(10, (Number(heroStack) || 100) - (Number(continuedPotBonusBb) || 0) / 2),
+            });
+            const be = res?.brainEvaluation || {};
+            return {
+                recommendedAction: res?.recommendedAction || res?.correctAnswerText || 'Check',
+                madeHandCategory: res?.madeHandCategory || be.madeHandCategory || 'postflop_hand',
+                handScore: res?.handScore ?? be.handScore ?? 50,
+                options: Array.isArray(res?.options) && res.options.length > 0
+                    ? res.options
+                    : [
+                        { id: 'x', text: 'Check' },
+                        { id: 'b33', text: 'Bet 33% Pot' },
+                        { id: 'b75', text: 'Bet 75% Pot' },
+                        { id: 'allin', text: 'All-In' },
+                    ],
+            };
+        } catch {
+            return {
+                recommendedAction: whatIfEvaluation?.recommendedAction || 'Check',
+                madeHandCategory: whatIfEvaluation?.madeHandCategory || 'postflop_hand',
+                handScore: whatIfEvaluation?.handScore ?? 50,
+                options: [
+                    { id: 'x', text: 'Check' },
+                    { id: 'b33', text: 'Bet 33% Pot' },
+                    { id: 'b75', text: 'Bet 75% Pot' },
+                    { id: 'allin', text: 'All-In' },
+                ],
+            };
+        }
+    }, [continuedBoardCards, whatIfBaseBoard, nextStreet, activeRunoutCard, gameId, activeNormalizedVariant, heroPosition, villainPosition, heroCards, continuedPotBb, heroStack, continuedPotBonusBb, whatIfEvaluation]);
+
+    const handlePlayNextStreetOnFelt = useCallback(() => {
+        const chosenCard = selectedRunoutOption?.card || activeRunoutCard;
+        setContinuedBoardCards((prev) => {
+            const currentBase = Array.isArray(prev) && prev.length >= 3
+                ? prev
+                : whatIfBaseBoard;
+            if (currentBase.length < 3) {
+                return [...whatIfBaseBoard.slice(0, 3)];
+            }
+            if (currentBase.length === 3) {
+                const cardToAdd = currentBase.some((c) => String(c).toLowerCase() === String(chosenCard).toLowerCase())
+                    ? (candidateRunoutCards.find((cand) => !currentBase.some((b) => String(b).toLowerCase() === String(cand.card).toLowerCase()))?.card || '2c')
+                    : chosenCard;
+                return [...currentBase, cardToAdd];
+            }
+            if (currentBase.length === 4) {
+                const nextCands = buildCandidateRunoutCards(heroCards, currentBase);
+                const cardToAdd = !currentBase.some((c) => String(c).toLowerCase() === String(chosenCard).toLowerCase())
+                    ? chosenCard
+                    : (nextCands[0]?.card || '3d');
+                return [...currentBase, cardToAdd];
+            }
+            return [...whatIfBaseBoard.slice(0, 3), chosenCard];
+        });
+        const actionAddBb = Math.max(2, Number(whatIfEvaluation?.recommendedSizingBb) || Number((Math.max(1.5, Number(baseScenarioPot) || 6.5) * 0.5).toFixed(1)));
+        setContinuedPotBonusBb((prev) => Number((prev + actionAddBb).toFixed(2)));
+        setContinuedLastAction(`Dealt ${chosenCard}`);
+        SoundEngine.play('card_flip');
+    }, [selectedRunoutOption, activeRunoutCard, whatIfBaseBoard, candidateRunoutCards, heroCards, whatIfEvaluation, baseScenarioPot]);
+
+    const handleContinuationFeltAction = useCallback((actionKey, actionLabel, addBb = 0) => {
+        setContinuedLastAction(actionLabel);
+        if (addBb > 0) {
+            setContinuedPotBonusBb((prev) => Number((prev + addBb).toFixed(2)));
+            SoundEngine.play('bet');
+        } else {
+            SoundEngine.play('check');
+        }
+        setContinuedBoardCards((prev) => {
+            if (!Array.isArray(prev) || prev.length === 0) return prev;
+            if (prev.length === 4 && actionKey !== 'reset') {
+                const riverCandidates = buildCandidateRunoutCards(heroCards, prev);
+                const riverCard = riverCandidates[0]?.card;
+                if (riverCard && !prev.some((c) => String(c).toLowerCase() === String(riverCard).toLowerCase())) {
+                    return [...prev, riverCard];
+                }
+            }
+            return prev;
+        });
+    }, [heroCards]);
+
+    // ═══ TASK 3: LIVE ON-TABLE VILLAIN TENDENCY / NODE-LOCKING SWITCHER ═══
+    const VILLAIN_NODELOCK_PROFILES = useMemo(() => ({
+        gto: { key: 'gto', label: 'GTO Baseline', vpip: 24, pfr: 19, threeBet: 8 },
+        station: { key: 'station', label: 'Calling Station', vpip: 52, pfr: 10, threeBet: 3 },
+        nit: { key: 'nit', label: 'Over-Folder Nit', vpip: 15, pfr: 12, threeBet: 4 },
+        lag: { key: 'lag', label: 'Maniac LAG', vpip: 44, pfr: 36, threeBet: 16 },
+    }), []);
+    const [villainNodeLockProfile, setVillainNodeLockProfile] = useState('gto');
+    const handleSelectVillainProfile = useCallback((profileKey) => {
+        if (VILLAIN_NODELOCK_PROFILES[profileKey]) {
+            setVillainNodeLockProfile(profileKey);
+        }
+    }, [VILLAIN_NODELOCK_PROFILES]);
+
+    const { gtoBaselineEval, nodeLockedEval, evDeltaBb } = useMemo(() => {
+        const expectedLen = activeNormalizedStreet === 'preflop' ? 0 : activeNormalizedStreet === 'flop' ? 3 : activeNormalizedStreet === 'turn' ? 4 : 5;
+        const seedBoard = ['8d', '5c', '2s', '6h', '3d', '4c', '7h'];
+        const used = new Set((heroCards || []).map((c) => String(c).toLowerCase()));
+        const cleanBoard = [];
+        for (const c of visibleBoard) {
+            if (cleanBoard.length >= expectedLen) break;
+            if (!used.has(String(c).toLowerCase())) {
+                used.add(String(c).toLowerCase());
+                cleanBoard.push(c);
+            }
+        }
+        for (const c of seedBoard) {
+            if (cleanBoard.length >= expectedLen) break;
+            if (!used.has(c.toLowerCase())) {
+                used.add(c.toLowerCase());
+                cleanBoard.push(c);
+            }
+        }
+        const selectedProfileStats = VILLAIN_NODELOCK_PROFILES[villainNodeLockProfile] || VILLAIN_NODELOCK_PROFILES.gto;
+        const baseSpotInput = {
+            gameId: gameId || 'cash-002',
+            variant: activeNormalizedVariant,
+            street: activeNormalizedStreet,
+            heroPosition: heroPosition || 'BTN',
+            villainPosition: villainPosition || (heroPosition === 'BB' ? 'BTN' : 'BB'),
+            heroCards,
+            boardCards: cleanBoard,
+            potSizeBb: Math.max(1.5, Number(pot) || 6.5),
+            facingBetBb: Math.max(0, Number(scenario?.villainBet ?? scenario?.toCall ?? 0)),
+            effectiveStackBb: Math.max(10, Number(heroStack) || 100),
+            isPKO: Boolean(scenario?.isPKO),
+            bountyBb: scenario?.bountyBb ?? null,
+            isICM: Boolean(scenario?.isICM),
+            bubbleFactor: scenario?.bubbleFactor ?? null,
+        };
+        try {
+            const gtoRes = evaluateTrainingSpotWithHorseBrain({
+                ...baseSpotInput,
+                villainStats: VILLAIN_NODELOCK_PROFILES.gto,
+                villainHudStats: VILLAIN_NODELOCK_PROFILES.gto,
+            });
+            const lockedRes = evaluateTrainingSpotWithHorseBrain({
+                ...baseSpotInput,
+                villainStats: selectedProfileStats,
+                villainHudStats: selectedProfileStats,
+                villainArchetype: selectedProfileStats.label,
+            });
+            const gtoTopEv = Number(gtoRes?.actionEVs?.[gtoRes?.correctAnswer] ?? 0);
+            const lockedTopEv = Number(lockedRes?.actionEVs?.[lockedRes?.correctAnswer] ?? 0);
+            const rawDelta = Number((lockedTopEv - gtoTopEv).toFixed(2));
+            return {
+                gtoBaselineEval: {
+                    recommendedAction: gtoRes?.recommendedAction || gtoRes?.correctAnswerText || 'Check',
+                    handScore: gtoRes?.handScore ?? 50,
+                },
+                nodeLockedEval: {
+                    recommendedAction: lockedRes?.recommendedAction || lockedRes?.correctAnswerText || 'Check',
+                    handScore: lockedRes?.handScore ?? 50,
+                    hudExploitAdjustment: lockedRes?.brainEvaluation?.hudExploitAdjustment || {
+                        note: villainNodeLockProfile === 'gto'
+                            ? 'Balanced GTO Baseline'
+                            : `${selectedProfileStats.label} (${selectedProfileStats.vpip}/${selectedProfileStats.pfr}) Exploit Adjustment`,
+                    },
+                },
+                evDeltaBb: Number.isFinite(rawDelta) ? rawDelta : 0,
+            };
+        } catch {
+            return {
+                gtoBaselineEval: { recommendedAction: brainSpotEvaluation?.recommendedAction || 'Check', handScore: 50 },
+                nodeLockedEval: {
+                    recommendedAction: brainSpotEvaluation?.recommendedAction || 'Check',
+                    handScore: 50,
+                    hudExploitAdjustment: { note: 'Balanced GTO Baseline' },
+                },
+                evDeltaBb: 0,
+            };
+        }
+    }, [activeNormalizedStreet, heroCards, visibleBoard, VILLAIN_NODELOCK_PROFILES, villainNodeLockProfile, gameId, activeNormalizedVariant, heroPosition, villainPosition, pot, scenario, heroStack, brainSpotEvaluation]);
+
+    // ═══ TASK 4: LIVE MTT ICM BUBBLE FACTOR & PKO BOUNTY CHIP-EQUIVALENCE HUD PILL ═══
+    const [icmPreviewOverride, setIcmPreviewOverride] = useState(false);
+    const handleToggleIcmPkoPreview = useCallback(() => {
+        setIcmPreviewOverride((prev) => !prev);
+    }, []);
+
+    const { icmBubbleFactor, bountyEquivBb, icmAdjustedAction, isMttOrPkoActive } = useMemo(() => {
+        const gId = String(gameId || '').toLowerCase();
+        const rawBounty = scenario?.bountyBb ?? scenario?.bountyAmount ?? scenario?.bountyChips ?? (typeof scenario?.bounty === 'number' ? scenario.bounty : null);
+        const numericBounty = Number.isFinite(Number(rawBounty)) && Number(rawBounty) > 0 ? Number(rawBounty) : (icmPreviewOverride ? 10 : 0);
+        const rawBf = scenario?.bubbleFactor ?? scenario?.icmBubbleFactor ?? null;
+        const isMttSpot = gameType === 'mtt' || gameType === 'sng' || gameType === 'spins' || gId.startsWith('mtt-') || gId.startsWith('sng-') || Boolean(scenario?.isICM || scenario?.isPKO);
+        const resolvedBf = Number.isFinite(Number(rawBf)) && Number(rawBf) > 0
+            ? Number(Number(rawBf).toFixed(2))
+            : (isMttSpot || icmPreviewOverride) ? 1.28 : 1.00;
+        const resolvedBountyEquiv = Number((numericBounty * 0.35).toFixed(2));
+        let icmAct = brainSpotEvaluation?.recommendedAction || 'Check';
+        try {
+            const expectedLen = activeNormalizedStreet === 'preflop' ? 0 : activeNormalizedStreet === 'flop' ? 3 : activeNormalizedStreet === 'turn' ? 4 : 5;
+            const cleanBoard = visibleBoard.slice(0, expectedLen);
+            if (cleanBoard.length === expectedLen) {
+                const icmEval = evaluateTrainingSpotWithHorseBrain({
+                    gameId: gameId || 'mtt-005',
+                    variant: activeNormalizedVariant,
+                    street: activeNormalizedStreet,
+                    heroPosition: heroPosition || 'BTN',
+                    villainPosition: villainPosition || (heroPosition === 'BB' ? 'BTN' : 'BB'),
+                    heroCards,
+                    boardCards: cleanBoard,
+                    potSizeBb: Math.max(1.5, Number(pot) || 6.5),
+                    facingBetBb: Math.max(0, Number(scenario?.villainBet ?? scenario?.toCall ?? 0)),
+                    effectiveStackBb: Math.max(10, Number(heroStack) || 100),
+                    isICM: resolvedBf > 1.01,
+                    bubbleFactor: resolvedBf,
+                    isPKO: numericBounty > 0,
+                    bountyBb: numericBounty > 0 ? numericBounty : null,
+                });
+                if (icmEval?.recommendedAction) {
+                    icmAct = icmEval.recommendedAction;
+                }
+            }
+        } catch { /* retain baseline recommendedAction */ }
+        return {
+            icmBubbleFactor: resolvedBf.toFixed(2),
+            bountyEquivBb: resolvedBountyEquiv.toFixed(2),
+            icmAdjustedAction: icmAct,
+            isMttOrPkoActive: Boolean(isMttSpot || numericBounty > 0 || icmPreviewOverride),
+        };
+    }, [gameId, scenario, icmPreviewOverride, gameType, brainSpotEvaluation, activeNormalizedStreet, visibleBoard, activeNormalizedVariant, heroPosition, villainPosition, heroCards, pot, heroStack]);
+
+    // ═══ TASK 5: MONOTONIC-SEQUENCE STUDY HUD OVERLAY + 15S SHOT CLOCK + 1-CLICK SHARE SPOT LINK ═══
+    const studyHudSeqRef = useRef(0);
+    const { studyHudSeq, potOddsPct, mdfPct, sprValue } = useMemo(() => {
+        studyHudSeqRef.current += 1;
+        const facingBetBb = Math.max(
+            0,
+            Number(
+                scenario?.villainBet
+                ?? scenario?.toCall
+                ?? (() => {
+                    const callOpt = (options || []).find((o) => /call/i.test(o?.text || ''));
+                    const mMatch = String(callOpt?.text || '').match(/(\d+(?:\.\d+)?)/);
+                    return mMatch ? Number(mMatch[1]) : 0;
+                })(),
+            ) || 0,
+        );
+        const potBb = Math.max(0.5, Number(pot) || 1.5);
+        const effectiveStackBb = Math.max(1, Math.min(Number(heroStack) || 100, Number(villainStack || heroStack) || 100));
+        const computedPotOddsPct = Math.round((facingBetBb / Math.max(0.5, potBb + facingBetBb)) * 1000) / 10;
+        const computedMdfPct = Math.round((1 - (facingBetBb / Math.max(0.5, potBb + facingBetBb))) * 1000) / 10;
+        const computedSprValue = Math.round((effectiveStackBb / Math.max(0.5, potBb)) * 100) / 100;
+        return {
+            studyHudSeq: studyHudSeqRef.current,
+            potOddsPct: computedPotOddsPct,
+            mdfPct: computedMdfPct,
+            sprValue: computedSprValue,
+        };
+    }, [heroCards, visibleBoard, pot, scenario?.villainBet, scenario?.toCall, options, heroStack, villainStack]);
+
+    const [shotClockEnabled, setShotClockEnabled] = useState(false);
+    const [shotClockRemaining, setShotClockRemaining] = useState(15);
+    const handleToggleShotClock = useCallback(() => {
+        setShotClockEnabled((prev) => {
+            const next = !prev;
+            if (next) setShotClockRemaining(15);
+            return next;
+        });
+    }, []);
+    useEffect(() => {
+        setShotClockRemaining(15);
+    }, [question?.id, questionNumber, currentStreet, continuedBoardCards.length]);
+    useEffect(() => {
+        if (!shotClockEnabled || showFeedback) return undefined;
+        const interval = setInterval(() => {
+            setShotClockRemaining((prev) => (prev > 0 ? prev - 1 : 0));
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [shotClockEnabled, showFeedback]);
+    const shotClockSpeedTier = useMemo(() => {
+        if (shotClockRemaining >= 11) return 'LIGHTNING';
+        if (shotClockRemaining >= 6) return 'STANDARD';
+        if (shotClockRemaining >= 1) return 'PRESSURE';
+        return 'EXPIRED';
+    }, [shotClockRemaining]);
+
+    const [shareCopiedToast, setShareCopiedToast] = useState(false);
+    const shareSpotHref = useMemo(() => {
+        const params = new URLSearchParams();
+        params.set('variant', activeNormalizedVariant);
+        params.set('street', continuedStreet || activeNormalizedStreet);
+        params.set('position', String(heroPosition || 'BTN'));
+        params.set('hero', (heroCards || []).join(''));
+        params.set('board', (visibleBoard || []).join(''));
+        params.set('pot', String(Math.max(1.5, Number(pot) || 6.5)));
+        params.set('stack', String(Math.max(10, Number(heroStack) || 100)));
+        return `/hub/training/hand-lab?${params.toString()}`;
+    }, [activeNormalizedVariant, continuedStreet, activeNormalizedStreet, heroPosition, heroCards, visibleBoard, pot, heroStack]);
+
+    const handleShareTrainingSpot = useCallback(() => {
+        try {
+            if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+                const fullUrl = typeof window !== 'undefined' ? `${window.location.origin}${shareSpotHref}` : shareSpotHref;
+                navigator.clipboard.writeText(fullUrl).catch(() => {});
+            }
+        } catch { /* non-blocking clipboard copy */ }
+        setShareCopiedToast(true);
+        setTimeout(() => setShareCopiedToast(false), 2200);
+    }, [shareSpotHref]);
 
     // PHASE 5: Adaptive Difficulty Level (computed from session accuracy)
     const computedDifficulty = useMemo(() => {
@@ -4297,10 +4666,12 @@ function UniversalDynamicTable({
                                 type="button"
                                 data-pot-display-mode-toggle="true"
                                 data-display-toggle-source="toolbar"
+                                data-unit-toggle-entry="toolbar"
+                                data-display-unit={displayInChips ? 'CHIPS' : 'BB'}
                                 data-display-mode={displayMode}
-                                aria-label="Toggle BB or Chips Display Mode"
+                                aria-label="Toggle Display Units Toolbar"
                                 title="Click to toggle stacks and pot between BB and Chips (Club Arena 1:1)"
-                                onClick={toggleDisplayMode}
+                                onClick={handleToggleDisplayUnit}
                                 style={{
                                     padding: '2px 8px',
                                     borderRadius: 5,
@@ -4308,12 +4679,99 @@ function UniversalDynamicTable({
                                     fontWeight: 800,
                                     cursor: 'pointer',
                                     border: '1px solid rgba(251, 191, 36, 0.45)',
-                                    background: displayMode === 'chips' ? 'rgba(251, 191, 36, 0.2)' : 'rgba(255,255,255,0.05)',
+                                    background: displayInChips ? 'rgba(251, 191, 36, 0.2)' : 'rgba(255,255,255,0.05)',
                                     color: '#fbbf24',
                                 }}
                             >
-                                {displayMode === 'chips' ? `CHIPS (${activeStakesInfo.stakesLabel})` : 'UNITS: BB'}
+                                {displayInChips ? `CHIPS (${activeStakesInfo.stakesLabel})` : 'UNITS: BB'}
                             </button>
+                            <button
+                                type="button"
+                                data-unit-toggle-entry="settings"
+                                data-display-unit={displayInChips ? 'CHIPS' : 'BB'}
+                                data-display-mode={displayMode}
+                                aria-label="Toggle Display Units Settings"
+                                title="Toggle Display Units Settings (BB / Chips)"
+                                onClick={handleToggleDisplayUnit}
+                                style={{
+                                    padding: '2px 8px',
+                                    borderRadius: 5,
+                                    fontSize: 12,
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                    border: '1px solid rgba(56, 189, 248, 0.45)',
+                                    background: displayInChips ? 'rgba(56, 189, 248, 0.18)' : 'rgba(255,255,255,0.05)',
+                                    color: '#7dd3fc',
+                                }}
+                            >
+                                {displayInChips ? 'SETTINGS: CHIPS' : 'SETTINGS: BB'}
+                            </button>
+                            <button
+                                type="button"
+                                data-table-icm-pko-pill="true"
+                                data-bubble-factor={icmBubbleFactor}
+                                data-bounty-equivalence-bb={bountyEquivBb}
+                                data-chip-ev-vs-icm-action={icmAdjustedAction}
+                                onClick={handleToggleIcmPkoPreview}
+                                style={{
+                                    padding: '2px 8px',
+                                    borderRadius: 5,
+                                    fontSize: 12,
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                    border: isMttOrPkoActive ? '1px solid rgba(245, 158, 11, 0.65)' : '1px solid rgba(255,255,255,0.14)',
+                                    background: isMttOrPkoActive ? 'rgba(245, 158, 11, 0.18)' : 'rgba(255,255,255,0.04)',
+                                    color: isMttOrPkoActive ? '#fcd34d' : '#cbd5e1',
+                                }}
+                            >
+                                {`ICM BF ${icmBubbleFactor}x · Bounty Eq +${bountyEquivBb} BB · Act: ${icmAdjustedAction}`}
+                            </button>
+                            <button
+                                type="button"
+                                data-shot-clock-toggle="true"
+                                data-shot-clock-remaining={String(shotClockRemaining)}
+                                data-shot-clock-speed-tier={shotClockSpeedTier}
+                                aria-pressed={shotClockEnabled}
+                                onClick={handleToggleShotClock}
+                                style={{
+                                    padding: '2px 8px',
+                                    borderRadius: 5,
+                                    fontSize: 12,
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                    border: shotClockEnabled ? '1px solid rgba(239, 68, 68, 0.7)' : '1px solid rgba(255,255,255,0.14)',
+                                    background: shotClockEnabled ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255,255,255,0.04)',
+                                    color: shotClockEnabled ? '#fca5a5' : '#cbd5e1',
+                                }}
+                            >
+                                {shotClockEnabled ? `15S CLOCK: ${shotClockRemaining}S (${shotClockSpeedTier})` : '15S SHOT CLOCK: OFF'}
+                            </button>
+                        </div>
+
+                        {/* Monotonic-Sequence Study HUD Overlay (Pot Odds / MDF / SPR) */}
+                        <div
+                            data-study-hud-overlay="true"
+                            data-study-hud-seq={String(studyHudSeq)}
+                            data-study-pot-odds-pct={String(potOddsPct)}
+                            data-study-mdf-pct={String(mdfPct)}
+                            data-study-spr={String(sprValue)}
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 8,
+                                padding: '2px 9px',
+                                borderRadius: 5,
+                                background: 'rgba(15, 23, 42, 0.9)',
+                                border: '1px solid rgba(16, 185, 129, 0.42)',
+                                color: '#6ee7b7',
+                                fontSize: 12,
+                                fontWeight: 800,
+                            }}
+                        >
+                            <span>{`Study HUD #${studyHudSeq}`}</span>
+                            <span>{`Pot Odds: ${potOddsPct}%`}</span>
+                            <span>{`MDF: ${mdfPct}%`}</span>
+                            <span>{`SPR: ${sprValue}`}</span>
                         </div>
 
                         {/* Authoritative Tournament & Opponent Telemetry */}
@@ -4388,6 +4846,107 @@ function UniversalDynamicTable({
                                         : 'Villain HUD: GTO Baseline (VPIP/PFR Unavailable)'}
                             </span>
                         </div>
+                        {/* Villain Tendency / Node-Locking Switcher Bar */}
+                        <div
+                            data-villain-nodelock-panel="true"
+                            data-active-villain-profile={villainNodeLockProfile}
+                            data-nodelock-recommended-action={nodeLockedEval.recommendedAction}
+                            data-nodelock-gto-action={gtoBaselineEval.recommendedAction}
+                            data-nodelock-ev-delta-bb={String(evDeltaBb)}
+                            data-nodelock-exploit-note={nodeLockedEval.hudExploitAdjustment?.note || 'Balanced GTO Baseline'}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                flexWrap: 'wrap',
+                                gap: 5,
+                                padding: '2px 7px',
+                                borderRadius: 5,
+                                background: 'rgba(2, 6, 23, 0.85)',
+                                border: '1px solid rgba(168, 85, 247, 0.42)',
+                            }}
+                        >
+                            <span style={{ color: '#d8b4fe', fontWeight: 800, fontSize: 12 }}>Node-Lock Villain:</span>
+                            {Object.values(VILLAIN_NODELOCK_PROFILES).map((prof) => {
+                                const isProfActive = villainNodeLockProfile === prof.key;
+                                return (
+                                    <button
+                                        key={prof.key}
+                                        type="button"
+                                        data-villain-profile-btn={prof.key}
+                                        aria-pressed={isProfActive}
+                                        onClick={() => handleSelectVillainProfile(prof.key)}
+                                        style={{
+                                            padding: '2px 7px',
+                                            borderRadius: 4,
+                                            fontSize: 12,
+                                            fontWeight: 800,
+                                            cursor: 'pointer',
+                                            border: isProfActive ? '1px solid #c084fc' : '1px solid rgba(255,255,255,0.14)',
+                                            background: isProfActive ? 'rgba(168, 85, 247, 0.28)' : 'rgba(255,255,255,0.04)',
+                                            color: isProfActive ? '#f3e8ff' : '#cbd5e1',
+                                        }}
+                                    >
+                                        {`${prof.label} (${prof.vpip}/${prof.pfr})`}
+                                    </button>
+                                );
+                            })}
+                            <span style={{ color: '#53f2a0', fontWeight: 800, fontSize: 12 }}>
+                                {`Act: ${nodeLockedEval.recommendedAction} (GTO: ${gtoBaselineEval.recommendedAction} · ΔEV ${evDeltaBb >= 0 ? '+' : ''}${evDeltaBb} BB)`}
+                            </span>
+                        </div>
+
+                        {/* Live Multi-Street Felt Continuation Banner when active */}
+                        {continuedBoardCards.length > 0 && (
+                            <div
+                                data-multistreet-continuation-active="true"
+                                data-continued-street={continuedStreet}
+                                data-continued-board={continuedBoardCards.join(',')}
+                                data-continued-recommended-action={continuedEvaluation.recommendedAction}
+                                data-continued-pot-bb={String(continuedPotBb)}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    flexWrap: 'wrap',
+                                    gap: 6,
+                                    padding: '3px 9px',
+                                    borderRadius: 6,
+                                    background: 'linear-gradient(90deg, rgba(16, 185, 129, 0.22) 0%, rgba(14, 165, 233, 0.22) 100%)',
+                                    border: '1px solid rgba(52, 211, 153, 0.65)',
+                                    color: '#ecfdf5',
+                                    fontSize: 12,
+                                    fontWeight: 800,
+                                }}
+                            >
+                                <span>{`FELT CONTINUATION (${continuedStreet.toUpperCase()}): [${continuedBoardCards.join(' ')}]`}</span>
+                                <span>{`Pot: ${formatTableAmount(continuedPotBb)}`}</span>
+                                <span>{`Optimal: ${continuedEvaluation.recommendedAction}`}</span>
+                                {continuedLastAction && <span>{`Last: ${continuedLastAction}`}</span>}
+                                {[
+                                    { key: 'check', label: 'Check / Call', addBb: 0 },
+                                    { key: 'bet50', label: 'Bet 50% Pot', addBb: Number((continuedPotBb * 0.5).toFixed(1)) },
+                                    { key: 'bet100', label: 'Bet Pot', addBb: Number(continuedPotBb.toFixed(1)) },
+                                ].map((act) => (
+                                    <button
+                                        key={act.key}
+                                        type="button"
+                                        data-continuation-act-btn={act.key}
+                                        onClick={() => handleContinuationFeltAction(act.key, act.label, act.addBb)}
+                                        style={{
+                                            padding: '2px 7px',
+                                            borderRadius: 4,
+                                            fontSize: 12,
+                                            fontWeight: 800,
+                                            cursor: 'pointer',
+                                            border: '1px solid rgba(52, 211, 153, 0.7)',
+                                            background: 'rgba(6, 78, 59, 0.85)',
+                                            color: '#a7f3d0',
+                                        }}
+                                    >
+                                        {act.label}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 );
             })()}
@@ -4762,17 +5321,19 @@ function UniversalDynamicTable({
                                     <div
                                         data-seat-stack-display="true"
                                         data-display-toggle-source="seat-stack"
+                                        data-unit-toggle-entry="seat-stack"
+                                        data-display-unit={displayInChips ? 'CHIPS' : 'BB'}
                                         data-seat-is-hero={isHero ? 'true' : 'false'}
                                         data-display-mode={displayMode}
                                         data-stack-bb={String(stackSize)}
                                         role="button"
                                         tabIndex={0}
-                                        aria-label={`${seatLabel} Stack Toggle BB or Chips`}
-                                        onClick={toggleDisplayMode}
+                                        aria-label="Toggle Display Units Seat Stack"
+                                        onClick={handleToggleDisplayUnit}
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter' || e.key === ' ') {
                                                 e.preventDefault();
-                                                toggleDisplayMode(e);
+                                                handleToggleDisplayUnit(e);
                                             }
                                         }}
                                         title="Click to toggle BB / Chips (Club Arena 1:1)"
@@ -5292,15 +5853,17 @@ function UniversalDynamicTable({
                         data-club-arena-pot-pill="true"
                         data-pot-display-mode-toggle="true"
                         data-display-toggle-source="pot-pill"
+                        data-unit-toggle-entry="pot-pill"
+                        data-display-unit={displayInChips ? 'CHIPS' : 'BB'}
                         data-display-mode={displayMode}
                         role="button"
                         tabIndex={0}
-                        aria-label="Pot Pill Toggle BB or Chips"
-                        onClick={toggleDisplayMode}
+                        aria-label="Toggle Display Units Pot Pill"
+                        onClick={handleToggleDisplayUnit}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter' || e.key === ' ') {
                                 e.preventDefault();
-                                toggleDisplayMode(e);
+                                handleToggleDisplayUnit(e);
                             }
                         }}
                         title="Click to toggle between BB and Chips (Club Arena 1:1)"
@@ -6320,17 +6883,21 @@ function UniversalDynamicTable({
                                     {`◆ Club Arena Felt: ${feltTheme.charAt(0).toUpperCase() + feltTheme.slice(1)}`}
                                 </button>
                                 <button
+                                    type="button"
                                     data-training-display-mode-toggle="true"
                                     data-display-toggle-source="settings"
+                                    data-unit-toggle-entry="settings"
+                                    data-display-unit={displayInChips ? 'CHIPS' : 'BB'}
                                     data-display-mode={displayMode}
-                                    onClick={toggleDisplayMode}
+                                    aria-label="Toggle Display Units Settings"
+                                    onClick={handleToggleDisplayUnit}
                                     style={{
                                         ...styles.settingsBtn,
-                                        color: displayMode === 'chips' ? '#fbbf24' : 'var(--sp-fg)',
-                                        borderColor: displayMode === 'chips' ? 'rgba(251,191,36,0.4)' : 'rgba(255,255,255,0.1)',
+                                        color: displayInChips ? '#fbbf24' : 'var(--sp-fg)',
+                                        borderColor: displayInChips ? 'rgba(251,191,36,0.4)' : 'rgba(255,255,255,0.1)',
                                     }}
                                 >
-                                    {displayMode === 'chips' ? `◆ Stack & Pot Units: CHIPS (${activeStakesInfo.stakesLabel})` : '◆ Stack & Pot Units: Big Blinds (BB)'}
+                                    {displayInChips ? `◆ Stack & Pot Units: CHIPS (${activeStakesInfo.stakesLabel})` : '◆ Stack & Pot Units: Big Blinds (BB)'}
                                 </button>
                                 {onExit && (
                                     <button onClick={onExit} style={{ ...styles.settingsBtn, color: 'var(--sp-accent-red)', borderColor: 'rgba(239,68,68,0.3)' }}>
@@ -6591,6 +7158,23 @@ function UniversalDynamicTable({
                                             <span>Sizing: <strong style={{ color: '#7dd3fc' }}>{whatIfEvaluation.recommendedSizingBb} BB</strong></span>
                                             <span>Equity Score: <strong>{whatIfEvaluation.handScore}/100</strong></span>
                                             <span>Outs: <strong>{whatIfEvaluation.flushOuts} Flush / {whatIfEvaluation.straightOuts} Straight</strong></span>
+                                            <button
+                                                type="button"
+                                                data-play-next-street-on-felt="true"
+                                                onClick={handlePlayNextStreetOnFelt}
+                                                style={{
+                                                    padding: '5px 11px',
+                                                    borderRadius: 6,
+                                                    fontSize: 12,
+                                                    fontWeight: 900,
+                                                    cursor: 'pointer',
+                                                    border: '1.5px solid #34d399',
+                                                    background: 'linear-gradient(180deg, rgba(16, 185, 129, 0.35) 0%, rgba(5, 150, 105, 0.45) 100%)',
+                                                    color: '#ecfdf5',
+                                                }}
+                                            >
+                                                Play Out Next Street On Felt
+                                            </button>
                                         </div>
                                     </div>
                                 )}
@@ -7926,6 +8510,24 @@ function UniversalDynamicTable({
                                 />
                                 <button
                                     type="button"
+                                    data-share-training-spot="true"
+                                    data-share-spot-href={shareSpotHref}
+                                    onClick={handleShareTrainingSpot}
+                                    style={{
+                                        padding: '8px 14px',
+                                        borderRadius: 8,
+                                        border: '1px solid rgba(56, 189, 248, 0.48)',
+                                        background: 'rgba(56, 189, 248, 0.14)',
+                                        color: '#7dd3fc',
+                                        fontSize: 12,
+                                        fontWeight: 800,
+                                        cursor: 'pointer',
+                                    }}
+                                >
+                                    {shareCopiedToast ? 'Spot Link Copied!' : 'Share This Spot'}
+                                </button>
+                                <button
+                                    type="button"
                                     data-drill-session-mistakes-cta="true"
                                     data-mistake-target-variant={sessionMistakeTarget.variant}
                                     data-mistake-target-street={sessionMistakeTarget.street}
@@ -8011,6 +8613,25 @@ function UniversalDynamicTable({
                                         Review {sessionMistakesListRef.current.length} Mistake{sessionMistakesListRef.current.length > 1 ? 's' : ''}
                                     </motion.button>
                                 )}
+                                <button
+                                    type="button"
+                                    data-share-training-spot="true"
+                                    data-share-spot-href={shareSpotHref}
+                                    onClick={handleShareTrainingSpot}
+                                    style={{
+                                        width: '100%',
+                                        padding: '9px 14px',
+                                        borderRadius: 8,
+                                        border: '1px solid rgba(56, 189, 248, 0.52)',
+                                        background: 'rgba(56, 189, 248, 0.15)',
+                                        color: '#7dd3fc',
+                                        fontSize: 12,
+                                        fontWeight: 800,
+                                        cursor: 'pointer',
+                                    }}
+                                >
+                                    {shareCopiedToast ? 'Spot Link Copied!' : 'Share This Spot'}
+                                </button>
                                 <button
                                     type="button"
                                     data-drill-session-mistakes-cta="true"
