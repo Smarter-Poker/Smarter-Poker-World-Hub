@@ -25,7 +25,7 @@ test('rendered board hydrates socket events, removes pins/tombstones and isolate
   const snapshot=records;
   if(wait)await new Promise(resolve=>{pending=resolve;});
   return {status:allow?200:403,ok:allow,json:async()=>allow?{success:true,entries:snapshot,pinned:snapshot.filter(r=>r.is_pinned),canManage:true,hasMore:false,cursor:null}:{success:false,error:'Active Club Membership Required'}};
- }}),'../../lib/clubNoticeBoard.mjs':synthetic(board), './CashoutRequestActions':synthetic({default:()=>null})};
+ }}),'../../lib/broadcastSync':synthetic({listenBroadcast:()=>()=>{},BROADCAST_TAB_ID:'test-tab'}),'../../lib/clubNoticeBoard.mjs':synthetic(board), './CashoutRequestActions':synthetic({default:()=>null})};
  const source=transformSync(readFileSync('src/components/messenger/NoticeBoard.jsx','utf8'),{loader:'jsx',format:'esm'}).code;
  const module=new vm.SourceTextModule(source,{context});await module.link(name=>modules[name]);await module.evaluate();
  const scrollBox={scrollTop:0,scrollHeight:1000,clientHeight:100,getBoundingClientRect:()=>({top:0}),querySelectorAll:()=>[]};
@@ -134,6 +134,7 @@ test('Telegram-style Notice Board renders member counts, role badges, pinned clu
     }),
    };
   }}),
+  '../../lib/broadcastSync':synthetic({listenBroadcast:()=>()=>{},BROADCAST_TAB_ID:'test-tab'}),
   '../../lib/clubNoticeBoard.mjs':synthetic(board),
   './CashoutRequestActions':synthetic({default:()=>null}),
  };
