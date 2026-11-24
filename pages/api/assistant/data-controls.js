@@ -61,12 +61,14 @@ async function clubArenaHands(userId) {
 
 async function buildExport(userId) {
   const [
-    leaks, decisions, reviews, auditJobs, drillSessions, drillAnswers, drillAttempts,
+    leaks, trainingLeaks, assistantStats, decisions, reviews, auditJobs, drillSessions, drillAnswers, drillAttempts,
     goals, feedback, preferences, lifecycleReceipts, sandboxSessions, savedHands,
     sandboxAnalytics, sandboxQuizResults, coachResults, bookmarks, equityHistory,
     templates, sharedScenarios, solutionBookmarks, sourceHands, privateHandFacts,
   ] = await Promise.all([
     ownerRows('user_leaks', userId),
+    ownerRows('user_training_leaks', userId),
+    db().from('user_assistant_stats').select('*').eq('user_id', userId).maybeSingle(),
     ownerRows('hand_audit_decisions', userId),
     ownerRows('leak_review_state', userId),
     ownerRows('pa_leak_audit_jobs', userId),
@@ -91,13 +93,25 @@ async function buildExport(userId) {
     ownerRows('ca_hand_facts', userId, '*', 'hand_id'),
   ]);
   if (preferences.error) throw preferences.error;
+  if (assistantStats.error) throw assistantStats.error;
   const [handExamples, sandboxResults] = await Promise.all([
     linkedRows('leak_hand_examples', 'leak_id', leaks.map(row => row.id)),
     linkedRows('sandbox_results', 'session_id', sandboxSessions.map(row => row.id)),
   ]);
   const data = {
     coaching: { goals, feedback, preferences: preferences.data || null },
-    analysis: { leaks, decisions, reviews, auditJobs, drillSessions, drillAnswers, drillAttempts, handExamples },
+    analysis: {
+      leaks,
+      trainingLeaks,
+      assistantStats: assistantStats.data || null,
+      decisions,
+      reviews,
+      auditJobs,
+      drillSessions,
+      drillAnswers,
+      drillAttempts,
+      handExamples,
+    },
     sandbox: {
       sessions: sandboxSessions,
       results: sandboxResults,
@@ -151,11 +165,12 @@ async function countOwnerRows(table, userId) {
 
 async function summary(userId) {
   const [
-    leaks, decisions, reviews, goals, feedback, sandboxSessions, savedHands,
+    leaks, trainingLeaks, decisions, reviews, goals, feedback, sandboxSessions, savedHands,
     coachResults, bookmarks, equityHistory, templates, sharedScenarios,
     solutionBookmarks, preference, receipts,
   ] = await Promise.all([
     countOwnerRows('user_leaks', userId),
+    countOwnerRows('user_training_leaks', userId),
     countOwnerRows('hand_audit_decisions', userId),
     countOwnerRows('leak_review_state', userId),
     countOwnerRows('pa_coaching_goals', userId),
@@ -175,7 +190,7 @@ async function summary(userId) {
   if (sharedScenarios.error || preference.error || receipts.error) throw sharedScenarios.error || preference.error || receipts.error;
   return {
     counts: {
-      leaks, decisions, reviews, goals, feedback, sandboxSessions, savedHands,
+      leaks, trainingLeaks, decisions, reviews, goals, feedback, sandboxSessions, savedHands,
       coachResults, bookmarks, equityHistory, templates,
       sharedScenarios: sharedScenarios.count || 0,
       solutionBookmarks,

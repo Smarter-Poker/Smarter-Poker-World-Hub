@@ -259,6 +259,20 @@ export const LEAK_PATTERNS = {
     optimalRange: [50, 60],
     evImpact: 0.07,
   },
+  passive_postflop: {
+    category: 'postflop',
+    name: 'Too Passive Postflop',
+    check: (stats) => stats.aggFactor < 1.5 && stats.postflopActions >= 40,
+    optimalRange: [2.0, 3.5],
+    evImpact: 0.09,
+  },
+  over_aggressive_postflop: {
+    category: 'postflop',
+    name: 'Over-Aggressive Postflop',
+    check: (stats) => stats.aggFactor > 5.0 && stats.postflopActions >= 40,
+    optimalRange: [2.0, 3.5],
+    evImpact: 0.08,
+  },
 };
 
 export const PATTERN_STAT_KEYS = {
@@ -276,6 +290,8 @@ export const PATTERN_STAT_KEYS = {
   lack_of_river_bluffs: ['riverBluffFreq', 'riverBluffOpps'],
   river_overfold: ['riverFoldFreq', 'riverFaced'],
   missing_thin_value: ['riverValueBetFreq', 'riverBetOpps'],
+  passive_postflop: ['aggFactor', 'postflopActions'],
+  over_aggressive_postflop: ['aggFactor', 'postflopActions'],
 };
 
 export const PATTERN_MINIMUM_EVIDENCE = {
@@ -293,6 +309,8 @@ export const PATTERN_MINIMUM_EVIDENCE = {
   lack_of_river_bluffs: ['riverBluffOpps', 21],
   river_overfold: ['riverFaced', 31],
   missing_thin_value: ['riverBetOpps', 26],
+  passive_postflop: ['postflopActions', 40],
+  over_aggressive_postflop: ['postflopActions', 40],
 };
 
 export function patternIsMeasured(stats, leakType) {
@@ -366,11 +384,85 @@ export function normalizeAuditHand(row, userId) {
   };
 }
 
+const SUPPORTED_NLH_VARIANTS = new Set([
+  'nl', 'nlh', 'nlhe', 'holdem', 'holdemnl', 'texasholdem', 'nolimit', 'nolimitholdem',
+]);
+
+/**
+ * Determine whether a Club Arena hand row belongs to standard single-board
+ * No-Limit Hold'em (cash or tournament) and therefore qualifies for NLH
+ * statistical and solver-backed leak analysis.
+ */
+export function classifyHandAuditEligibility(row, { requireExplicitVariant = false } = {}) {
+  const summary = parseHandSummary(row?.summary) || {};
+  const rawVariant = String(row?.game_variant ?? summary?.variant ?? row?.gameType ?? '').trim();
+  const compactVariant = rawVariant.toLowerCase().replace(/[^a-z0-9+]/g, '');
+  const alphaVariant = rawVariant.toLowerCase().replace(/[^a-z]/g, '');
+  const isTournament = Boolean(
+    row?.tournament_id
+    || summary?.tournamentId
+    || summary?.tournament_id
+    || String(row?.format || summary?.format || summary?.gameMode || '').toLowerCase() === 'tournament',
+  );
+  const format = isTournament ? 'tournament' : 'cash';
+
+  const hasVariant = rawVariant.length > 0;
+  const isHoldem = hasVariant
+    ? (SUPPORTED_NLH_VARIANTS.has(alphaVariant) && !/(plo|omaha|ofc|pineapple|short|6\+|stud|razz|badugi|draw|mixed)/.test(compactVariant))
+    : !requireExplicitVariant;
+
+  if (!isHoldem) {
+    return {
+      eligible: false,
+      reason: 'unsupported_variant',
+      variant: rawVariant || 'unknown',
+      format,
+      limitation: `Automated Solver And NLH Leak Analysis Supports Standard Single-Board No-Limit Hold'em Only (${rawVariant || 'Unknown Variant'} Is Explicitly Unmeasured).`,
+    };
+  }
+
+  const isBombPot = (row?.bomb_pot !== null && row?.bomb_pot !== undefined && row?.bomb_pot !== false)
+    || Boolean(summary?.bombPot || summary?.bomb_pot);
+  const isKillPot = (row?.kill_pot !== null && row?.kill_pot !== undefined && row?.kill_pot !== false)
+    || Boolean(summary?.killPot || summary?.kill_pot);
+  const isMultiBoard = (Array.isArray(row?.community_cards2) && row.community_cards2.length > 0)
+    || (Array.isArray(row?.community_cards3) && row.community_cards3.length > 0)
+    || Number(row?.rit_boards ?? summary?.ritBoards ?? summary?.rit_boards ?? 1) > 1;
+
+  if (isBombPot || isKillPot || isMultiBoard) {
+    const specialLabels = [];
+    if (isBombPot) specialLabels.push('Bomb Pot');
+    if (isKillPot) specialLabels.push('Kill Pot');
+    if (isMultiBoard) specialLabels.push('Multi-Board Run-It-Twice');
+    return {
+      eligible: false,
+      reason: 'unsupported_special_format',
+      variant: rawVariant || 'nlh',
+      format,
+      specialFormat: specialLabels.join(', '),
+      limitation: `Special Format Hands (${specialLabels.join(', ')}) Are Excluded From Standard Single-Board NLH Solver And Statistical Leak Grading.`,
+    };
+  }
+
+  return {
+    eligible: true,
+    reason: null,
+    variant: rawVariant || 'nlh',
+    format,
+    limitation: null,
+  };
+}
+
 export function computeStatsFromAuditHands(hands, userId) {
-  const total = hands.length;
   const isHero = (a) => a.player === 'hero' || a.is_hero || a.isHero;
   const act = (a) => (a.action || '').toLowerCase();
   const isAggressive = (a) => ['bet', 'raise', 'allin'].includes(act(a));
+
+  let eligibleHands = 0;
+  let cashHands = 0;
+  let tournamentHands = 0;
+  let excludedUnsupportedHands = 0;
+  let excludedSpecialFormatHands = 0;
 
   let vpipHands = 0;
   let pfrHands = 0;
@@ -390,6 +482,10 @@ export function computeStatsFromAuditHands(hands, userId) {
   let turnFolds = 0;
   let riverFaced = 0;
   let riverFolds = 0;
+  let postflopAggressiveActions = 0;
+  let postflopPassiveActions = 0;
+  let sawFlopHands = 0;
+  let wentToShowdownHands = 0;
 
   const heroFacingBet = (streetActions) => {
     let betSeen = false;
@@ -402,7 +498,17 @@ export function computeStatsFromAuditHands(hands, userId) {
     return { faced: false, folded: false };
   };
 
-  hands.forEach(rawHand => {
+  (Array.isArray(hands) ? hands : []).forEach(rawHand => {
+    const eligibility = classifyHandAuditEligibility(rawHand);
+    if (!eligibility.eligible) {
+      if (eligibility.reason === 'unsupported_special_format') excludedSpecialFormatHands++;
+      else excludedUnsupportedHands++;
+      return;
+    }
+    eligibleHands++;
+    if (eligibility.format === 'tournament') tournamentHands++;
+    else cashHands++;
+
     const hand = normalizeAuditHand(rawHand, userId);
     const actions = hand.actions;
     const pre = actions.filter(a => a.street === 'preflop');
@@ -418,6 +524,7 @@ export function computeStatsFromAuditHands(hands, userId) {
     let heroCalledRaise = false;
     let hero3Bet = false;
     let hero3BetOpp = false;
+    let heroFoldedPreflop = false;
 
     for (const a of pre) {
       const action = act(a);
@@ -431,18 +538,19 @@ export function computeStatsFromAuditHands(hands, userId) {
           } else {
             heroLimped = true;
           }
-        } else if (action === 'raise' || action === 'bet') {
+        } else if (action === 'raise' || action === 'bet' || action === 'allin') {
           heroVpip = true;
           heroPfr = true;
           if (raiseSeen) {
             hero3Bet = true;
             hero3BetOpp = true;
           }
-        } else if (action === 'fold' && raiseSeen) {
-          hero3BetOpp = true;
+        } else if (action === 'fold') {
+          heroFoldedPreflop = true;
+          if (raiseSeen) hero3BetOpp = true;
         }
       }
-      if (action === 'raise' || action === 'bet') raiseSeen = true;
+      if (action === 'raise' || action === 'bet' || action === 'allin') raiseSeen = true;
     }
 
     if (heroVpip) vpipHands++;
@@ -452,6 +560,34 @@ export function computeStatsFromAuditHands(hands, userId) {
     if (hero3BetOpp) {
       threeBetOpps++;
       if (hero3Bet) threeBets++;
+    }
+
+    const postflopActions = [...flop, ...turn, ...river];
+    let heroFoldedPostflop = false;
+    for (const a of postflopActions) {
+      if (!isHero(a)) continue;
+      const action = act(a);
+      if (action === 'bet' || action === 'raise' || action === 'allin') {
+        postflopAggressiveActions++;
+      } else if (action === 'call') {
+        postflopPassiveActions++;
+      } else if (action === 'fold') {
+        heroFoldedPostflop = true;
+      }
+    }
+
+    const summaryObj = parseHandSummary(rawHand?.summary);
+    const boardCards = Array.isArray(rawHand?.community_cards)
+      ? rawHand.community_cards
+      : (Array.isArray(rawHand?.board) ? rawHand.board : []);
+    const heroSawFlop = !heroFoldedPreflop && (flop.length > 0 || boardCards.length >= 3);
+    if (heroSawFlop) {
+      sawFlopHands++;
+      const explicitShowdown = summaryObj?.wentToShowdown === true
+        || summaryObj?.showdown === true
+        || (rawHand?.hole_cards && typeof rawHand.hole_cards === 'object' && Object.keys(rawHand.hole_cards).length >= 2);
+      const reachedRiverShowdown = !heroFoldedPostflop && (explicitShowdown || (river.length > 0 && boardCards.length >= 5));
+      if (reachedRiverShowdown) wentToShowdownHands++;
     }
 
     if (heroPfr && flop.length > 0) {
@@ -476,7 +612,7 @@ export function computeStatsFromAuditHands(hands, userId) {
             heroChecked = true;
           } else if (heroChecked && (betAfterCheck || a.facing_bet)) {
             checkRaiseOpps++;
-            if (act(a) === 'raise') checkRaises++;
+            if (act(a) === 'raise' || act(a) === 'allin') checkRaises++;
             break;
           }
         } else if (heroChecked && !isHero(a) && isAggressive(a)) {
@@ -507,10 +643,22 @@ export function computeStatsFromAuditHands(hands, userId) {
     }
   });
 
+  const total = eligibleHands;
   const pct = (n, d) => (d > 0 ? (n / d) * 100 : null);
+  const postflopActions = postflopAggressiveActions + postflopPassiveActions;
 
   return {
     handsPlayed: total,
+    cashHands,
+    tournamentHands,
+    excludedUnsupportedHands,
+    excludedSpecialFormatHands,
+    formatBreakdown: {
+      cashHands,
+      tournamentHands,
+      excludedUnsupportedHands,
+      excludedSpecialFormatHands,
+    },
     vpip: total > 0 ? (vpipHands / total) * 100 : null,
     pfr: total > 0 ? (pfrHands / total) * 100 : null,
     limpFreq: total > 0 ? (limps / total) * 100 : null,
@@ -532,8 +680,11 @@ export function computeStatsFromAuditHands(hands, userId) {
     riverBluffOpps: 0,
     riverValueBetFreq: null,
     riverBetOpps: 0,
-    aggFactor: null,
-    wtsd: null,
+    postflopAggressiveActions,
+    postflopPassiveActions,
+    postflopActions,
+    aggFactor: postflopPassiveActions > 0 ? +(postflopAggressiveActions / postflopPassiveActions).toFixed(2) : null,
+    wtsd: sawFlopHands > 0 ? +((wentToShowdownHands / sawFlopHands) * 100).toFixed(1) : null,
   };
 }
 
@@ -572,6 +723,8 @@ export function generateExplanation(leakType, currentValue, optimalRange) {
     turn_barrel_too_rare: `You're only barreling the turn ${currentValue}% when you should be at ${optMin}-${optMax}%.`,
     river_overfold: `You're folding ${currentValue}% on the river, much higher than the optimal ${optMin}-${optMax}%.`,
     overfolding_preflop: `Your VPIP of ${currentValue}% is below the optimal ${optMin}-${optMax}%. You're folding too many playable hands preflop.`,
+    passive_postflop: `Your postflop aggression factor of ${currentValue} is below the optimal ${optMin}-${optMax} range. Calling too often instead of betting or raising concedes initiative and value.`,
+    over_aggressive_postflop: `Your postflop aggression factor of ${currentValue} exceeds the optimal ${optMin}-${optMax} range. Over-betting and raising thin ranges exposes you to trap calls and check-raises.`,
   };
   return explanations[leakType] || `Your frequency of ${currentValue}% deviates from optimal (${optMin}-${optMax}%).`;
 }
@@ -592,6 +745,8 @@ export function getCurrentValue(stats, leakType) {
     lack_of_river_bluffs: stats.riverBluffFreq,
     river_overfold: stats.riverFoldFreq,
     missing_thin_value: stats.riverValueBetFreq,
+    passive_postflop: stats.aggFactor,
+    over_aggressive_postflop: stats.aggFactor,
   };
   const value = valueMap[leakType];
   return (value === null || value === undefined) ? 0 : +Number(value).toFixed(1);
@@ -702,6 +857,16 @@ export function checkHandForLeak(hand, leakType) {
       action: 'check river with a made hand (missed thin value)',
       street: 'river',
     },
+    passive_postflop: {
+      check: () => ['flop', 'turn', 'river'].some(street => heroFacingBetDid(street, 'call')),
+      action: 'passive postflop call instead of raising or betting',
+      street: 'flop',
+    },
+    over_aggressive_postflop: {
+      check: () => ['flop', 'turn', 'river'].some(street => onStreet(street).some(a => isHero(a) && ['raise', 'allin'].includes(act(a)))),
+      action: 'high-frequency postflop raise or shove',
+      street: 'flop',
+    },
   };
 
   const pattern = leakPatterns[leakType];
@@ -724,6 +889,8 @@ export function getWhyLeakingEV(leakType) {
     turn_barrel_too_rare: "Not barreling the turn enough lets opponents see cheap rivers and realize equity with draws. Aggressive turn play denies equity and builds pots with value hands.",
     river_overfold: "Folding too much on the river means you're being bluffed profitably. Opponents can bet any two cards knowing you'll fold the majority of your range.",
     overlimping: "Limping is almost always inferior to raising or folding. You build dead money for opponents and play weaker postflop without initiative.",
+    passive_postflop: "Calling too often postflop without raising lets opponents realize equity cheaply and miss thin value with strong holdings.",
+    over_aggressive_postflop: "Excessive postflop betting and raising unbalances your value-to-bluff ratio and lets observant opponents trap you with strong hands.",
   };
   return reasons[leakType] || "This pattern deviates significantly from GTO play and allows opponents to exploit your tendencies.";
 }
@@ -743,6 +910,7 @@ export default {
   patternIsMeasured,
   deviationFromRange,
   parseHandSummary,
+  classifyHandAuditEligibility,
   normalizeAuditHand,
   computeStatsFromAuditHands,
   classifyLeakStatus,

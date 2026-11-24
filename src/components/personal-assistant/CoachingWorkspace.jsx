@@ -395,6 +395,59 @@ export default function CoachingWorkspace({
             ) : <p>No Priority Matches Your Search.</p>}
           </article>
 
+          {Array.isArray(snapshot?.trainingPlan?.modules) && snapshot.trainingPlan.modules.length > 0 && (
+            <article className={`${styles.panel} ${styles.fullWidth}`} aria-label="Deterministic Training Plan">
+              <div className={styles.panelHeading}>
+                <div>
+                  <span className={styles.eyebrow}>Deterministic Training Plan</span>
+                  <h3>{snapshot.trainingPlan.headline}</h3>
+                </div>
+                <Target size={22} aria-hidden="true" />
+              </div>
+              <ol className={styles.priorityList}>
+                {snapshot.trainingPlan.modules.map((mod) => {
+                  const matchedLeak = findLeak(leaks, mod.leakId);
+                  return (
+                    <li key={`plan-${mod.leakId}`}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <strong>{mod.rank}. {mod.title}</strong>
+                          <small>{mod.formatScope} · {mod.cadence}</small>
+                        </div>
+                        <small>{mod.objective}</small>
+                        <Progress
+                          value={mod.mastery?.percent || 0}
+                          label={`Mastery Progress (${mod.mastery?.currentStreak || 0}/${mod.mastery?.targetStreak || 4} Strong Sessions)`}
+                        />
+                        <div className={styles.actionRow}>
+                          <button
+                            type="button"
+                            className={styles.primaryButton}
+                            onClick={() => onTrain?.(matchedLeak || {
+                              id: mod.leakId,
+                              title: mod.title,
+                              leakCategory: mod.category,
+                              recommendedDrill: mod.trainingGameId,
+                            })}
+                          >
+                            Launch Targeted Drill
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.secondaryButton}
+                            onClick={() => { setSelectedLeakId(mod.leakId); setView('evidence'); }}
+                          >
+                            Inspect Evidence
+                          </button>
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
+            </article>
+          )}
+
           <article className={`${styles.panel} ${styles.fullWidth}`}>
             <span className={styles.eyebrow}>Latest Session Debrief</span>
             <h3>{snapshot?.sessionDebrief?.headline}</h3>
