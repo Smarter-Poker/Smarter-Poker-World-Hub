@@ -308,3 +308,4 @@ export function selectServedOptions(readableActions, optimalAction, maxOptions =
 }
 
 export { resolveSyncedHandForTrainingDrill } from '../lib/training/syncedHandDrillResolver.js';
+export { enrichQuestionWithHorseBrain, evaluateTrainingSpotWithHorseBrain } from '../lib/training/horseBrainTrainingAdapter.js';

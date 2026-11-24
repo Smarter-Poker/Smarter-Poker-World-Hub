@@ -1070,3 +1070,50 @@ test('Phase 8 Master 12-Point Package: Zero route-state coverage gaps, 100% Hors
     assert.match(src, /data-launch-club-arena-cta="true"/, `${relPath} must render data-launch-club-arena-cta="true"`);
   }
 });
+
+test('Phase 9 Deep Sweep & Root-Cause Anti-Regression Hardening: LevelSelector query forwarding, Arena exit context preservation, get-question parallel Promise.all & 4-variant Horse Brain enrichment, useGTOTrainer custom-train variant & inside-loop network retry outbox, and 100% dynamic + core page Horse Brain DOM contract', () => {
+  // 1. Root Cause #1: LevelSelector.tsx must forward active variant/street/position/source/duel/syncedHand query params into /hub/training/arena/[gameId] and /auth/login?redirect=...
+  const levelSelectorSrc = read('src/components/training/LevelSelector.tsx');
+  assert.match(levelSelectorSrc, /FORWARDED_ARENA_QUERY_KEYS/, 'LevelSelector.tsx must define FORWARDED_ARENA_QUERY_KEYS');
+  assert.match(levelSelectorSrc, /buildForwardedArenaQuery/, 'LevelSelector.tsx must use buildForwardedArenaQuery so variant/street/position/duelToken/syncedHandId are never stripped on level selection');
+  assert.match(levelSelectorSrc, /data-level-selector-forwarded-variant=/, 'LevelSelector.tsx must expose data-level-selector-forwarded-variant');
+
+  // 2. Root Cause #2: pages/hub/training/arena/[gameId].js must preserve variant & source on handleExit and wire Horse Brain evaluation
+  const arenaPageSrc = read('pages/hub/training/arena/[gameId].js');
+  assert.match(arenaPageSrc, /evaluateTrainingSpotWithHorseBrain/, 'arena/[gameId].js must wire evaluateTrainingSpotWithHorseBrain');
+  assert.match(arenaPageSrc, /buildCustomTrainingArenaHref/, 'arena/[gameId].js must wire buildCustomTrainingArenaHref');
+  assert.match(arenaPageSrc, /exitParams\.set\('variant'/, 'arena/[gameId].js handleExit must preserve router.query.variant when returning to /hub/training/play/[gameId]');
+  assert.match(arenaPageSrc, /data-arena-horse-brain-engine=/, 'arena/[gameId].js must expose data-arena-horse-brain-engine');
+
+  // 3. Root Cause #3: pages/api/training/get-question.js must parallelize GetQuestion:seen-read & GetQuestion:cache-read via Promise.all and enrich variant questions with enrichQuestionWithHorseBrain
+  const getQuestionSrc = read('pages/api/training/get-question.js');
+  assert.match(getQuestionSrc, /Promise\.all\(\[seenPromise,\s*cachePromise\]\)/, 'get-question.js must parallelize user_seen_questions and training_question_cache reads');
+  assert.match(getQuestionSrc, /enrichQuestionWithHorseBrain/, 'get-question.js must import and invoke enrichQuestionWithHorseBrain for variant-aware single-question delivery');
+
+  // 4. Root Cause #4: src/hooks/useGTOTrainer.js must forward variant in custom-train mode, catch transient network errors INSIDE the 3-attempt recordAnswer loop, and persist/flush failed submissions via sp_training_record_outbox
+  const useGtoTrainerSrc = read('src/hooks/useGTOTrainer.js');
+  assert.match(useGtoTrainerSrc, /sp_training_record_outbox/, 'useGTOTrainer.js must maintain an idempotent sessionStorage outbox (sp_training_record_outbox)');
+  assert.match(useGtoTrainerSrc, /enqueueFailedAnswerOutbox/, 'useGTOTrainer.js must enqueue network-failed answer submissions');
+  assert.match(useGtoTrainerSrc, /flushFailedAnswerOutbox/, 'useGTOTrainer.js must flush queued answer submissions when online');
+
+  // 5. Root Cause #5: All 4 dynamic nested pages + pvp-lobby.js + 5 core tool pages must expose the canonical [data-specialty-brain-panel="true"] and [data-launch-club-arena-cta="true"] contract
+  const phase9UnifiedContractPages = [
+    'pages/hub/training/category/[categoryId].js',
+    'pages/hub/training/clinic/[clinicId].js',
+    'pages/hub/training/play/[gameId].js',
+    'pages/hub/training/tournament/[id].js',
+    'pages/hub/training/pvp-lobby.js',
+    'pages/hub/training/equity-calculator.js',
+    'pages/hub/training/final-table-sim.js',
+    'pages/hub/training/icm-simulator.js',
+    'pages/hub/training/live-hud-sync.js',
+    'pages/hub/training/spot-trainer.js',
+  ];
+  for (const relPath of phase9UnifiedContractPages) {
+    const src = read(relPath);
+    assert.match(src, /evaluateTrainingSpotWithHorseBrain/, `${relPath} must wire evaluateTrainingSpotWithHorseBrain`);
+    assert.match(src, /buildCustomTrainingArenaHref/, `${relPath} must wire buildCustomTrainingArenaHref`);
+    assert.match(src, /data-specialty-brain-panel="true"/, `${relPath} must expose data-specialty-brain-panel="true"`);
+    assert.match(src, /data-launch-club-arena-cta="true"/, `${relPath} must expose data-launch-club-arena-cta="true"`);
+  }
+});
