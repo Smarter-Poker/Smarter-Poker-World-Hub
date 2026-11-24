@@ -18,6 +18,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 
 const STAKES_OPTIONS = [
   { id: '1_2', label: '$1/$2 No-Limit Holdem', bb: 2 },
@@ -118,6 +119,15 @@ export default function TableSelectionCalculatorPage() {
     if (q.bomb !== undefined) setBombPotsPerOrbit(Math.max(0, Math.min(3, Number(q.bomb) || 1)));
     if (q.rake !== undefined) setRakeCapDollars(Math.max(1, Number(q.rake) || 6));
   }, [router.isReady, router.query]);
+
+  useSolvedSpotUrlSync({
+    stake: stakeId,
+    recs: recPlayers,
+    depth: avgStackBb,
+    straddle: straddleFreqPct,
+    bomb: bombPotsPerOrbit,
+    rake: rakeCapDollars,
+  });
 
   const handleSelectPreset = (preset) => {
     setActivePresetId(preset.id);

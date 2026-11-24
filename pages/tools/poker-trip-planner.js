@@ -18,6 +18,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 
 const TRIP_PRESETS = [
   {
@@ -160,6 +161,18 @@ export default function PokerTripPlannerPage() {
     if (q.chrs !== undefined) setCashHoursPerDay(Math.max(0, Number(q.chrs) || 2));
     if (q.crate !== undefined) setCashHourlyRate(Number(q.crate) || 45);
   }, [router.isReady, router.query]);
+
+  useSolvedSpotUrlSync({
+    days: tripDays,
+    flight: flightCost,
+    hotel: hotelPerNight,
+    food: dailyPerDiem,
+    buyins: plannedBuyInsTotal,
+    bullets: expectedBulletsMultiplier,
+    roi: expectedRoiPct,
+    chrs: cashHoursPerDay,
+    crate: cashHourlyRate,
+  });
 
   const handleSelectPreset = (preset) => {
     setActivePresetId(preset.id);

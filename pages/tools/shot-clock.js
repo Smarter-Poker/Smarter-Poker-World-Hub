@@ -19,6 +19,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 
 const SHOT_CLOCK_PRESETS = [
   {
@@ -121,6 +122,11 @@ export default function ShotClockPage() {
     }
     if (q.bank !== undefined) setTimeBankSec(Number(q.bank) || 30);
   }, [router.isReady, router.query]);
+
+  useSolvedSpotUrlSync({
+    primary: primarySec,
+    bank: timeBankSec,
+  });
 
   useEffect(() => {
     if (!isRunning) return undefined;

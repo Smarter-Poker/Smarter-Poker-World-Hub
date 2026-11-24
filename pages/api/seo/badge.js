@@ -129,16 +129,19 @@ export function renderBadgeSvg({
 } = {}) {
   const normalizedType = type === 'verified-venue' ? 'directory-listing' : type;
   const preset = PRESETS[normalizedType] || PRESETS.venue;
-  // Prevent self-service venue badges from manufacturing "Verified Room" claims
+  // Prevent self-service venue badges from manufacturing "Verified", "Claimed", or "Official Partner" claims
   let rawLabel = String(label || preset.label).trim();
-  if (
-    (normalizedType === 'venue' || normalizedType === 'directory-listing') &&
-    /verified/i.test(rawLabel)
-  ) {
-    rawLabel = rawLabel.replace(/verified/gi, 'Publicly Listed');
+  let rawValue = String(value || preset.value).trim();
+  if (normalizedType === 'venue' || normalizedType === 'directory-listing') {
+    if (/verified|claimed|official\s+partner/i.test(rawLabel)) {
+      rawLabel = rawLabel.replace(/verified(\s+official\s+partner)?|claimed(\s+venue)?|official\s+partner/gi, 'Publicly Listed');
+    }
+    if (/verified|claimed|official\s+partner/i.test(rawValue)) {
+      rawValue = rawValue.replace(/verified(\s+official\s+partner)?|claimed(\s+venue(\s+partner)?)?|official\s+partner/gi, 'Publicly Listed');
+    }
   }
   const leftText = rawLabel.slice(0, 48);
-  const rightText = String(value || preset.value).slice(0, 56);
+  const rightText = rawValue.slice(0, 56);
   const accentColor = THEME_ACCENTS[theme] || preset.accent;
 
   const leftWidth = estimateTextWidth(leftText) + 16;

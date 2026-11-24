@@ -25,6 +25,9 @@ import { POKER_MARKET_GUIDES } from '../src/content/guides/markets.js';
 import { HAND_MATCHUPS } from '../src/content/learn/matchups.js';
 import { SERIES_GUIDES } from '../src/content/guides/seriesGuides.js';
 import { categoryAnchor } from '../src/lib/learn/learnSite.js';
+import { ZENODO_RECORDS } from '../src/lib/seo/datasetCatalog.mjs';
+import { MCP_TOOLS, MCP_PROMPTS, MCP_RESOURCE_TEMPLATES } from '../src/lib/mcp/mcpServer.mjs';
+import { STREAMER_BOT_COMMANDS } from '../pages/api/stream/cmd.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const LLMS_FULL_PATH = path.join(ROOT, 'public', 'llms-full.txt');
@@ -174,18 +177,13 @@ export function buildCatalogAppendix() {
     '- **Unified JSON-LD Knowledge Graph**: https://smarter.poker/knowledge-graph.jsonld',
     '- **Multilingual AI Grounding Corpus (EN/ES/PT/DE/FR/IT/JA)**: https://smarter.poker/api/ai/corpus (Spanish: https://smarter.poker/llms-es.txt | Portuguese: https://smarter.poker/llms-pt.txt | German: https://smarter.poker/llms-de.txt | French: https://smarter.poker/llms-fr.txt | Italian: https://smarter.poker/llms-it.txt | Japanese: https://smarter.poker/llms-ja.txt)',
     '- **AI Crawler Attribution & Corpus Health Endpoint**: https://smarter.poker/api/ai/crawler-status',
-    '- **MCP Registry Manifest**: https://smarter.poker/.well-known/mcp-registry.json (55 MCP Tools, 12 MCP Prompts, 18 MCP Resource Templates)',
+    `- **MCP Registry Manifest**: https://smarter.poker/.well-known/mcp-registry.json (${MCP_TOOLS.length} MCP Tools, ${MCP_PROMPTS.length} MCP Prompts, ${MCP_RESOURCE_TEMPLATES.length} MCP Resource Templates)`,
     '- **Glama MCP Directory Listing**: https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp (Schema: https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp/schema)',
-    '- **All 55 Zero-Auth MCP Tools**: `search_poker_venues`, `get_venue_details`, `search_tournament_series`, `get_series_details`, `calculate_poker_odds`, `get_preflop_chart`, `calculate_icm_payouts`, `get_poker_term_definition`, `get_freeroll_schedule`, `get_platform_feature_specs`, `search_strategy_lessons`, `get_competitor_comparison`, `lookup_starting_hand`, `get_research_report`, `search_training_simulators`, `calculate_pot_odds_and_mdf`, `calculate_bankroll_risk_of_ruin`, `calculate_bounty_chip_equity`, `calculate_side_pots`, `generate_blind_structure`, `calculate_spr_sizing`, `get_citation_and_backlink_kit`, `lookup_poker_rule`, `lookup_game_variant`, `get_regional_market_guide`, `calculate_plo_max_bet_and_rake`, `calculate_tournament_chop`, `simulate_poker_variance`, `calculate_draw_outs`, `lookup_hand_matchup`, `calculate_poker_taxes_w2g`, `calculate_staking_markup_split`, `calculate_preflop_isolation_raise`, `calculate_home_game_chip_set`, `get_poker_series_strategy_guide`, `analyze_flop_board_texture`, `calculate_tournament_m_ratio`, `calculate_cash_session_plan`, `calculate_straddle_bomb_pot_ev`, `format_poker_hand_history`, `calculate_satellite_bubble_factor`, `calculate_bad_beat_jackpot_ev`, `resolve_holdem_showdown_winner`, `get_poker_position_strategy`, `get_us_state_poker_guide`, `calculate_plo_wrap_outs`, `calculate_late_reg_icm_ev`, `calculate_winrate_confidence_interval`, `calculate_poker_trip_budget`, `calculate_geometric_bet_sizing`, `score_live_table_selection`, `calculate_mtt_session_abi_plan`, `get_player_archetype_exploit`, `get_flop_board_texture_guide`, `get_international_poker_guide`',
-    '- **All 12 MCP Prompts**: `find_live_poker_near_city`, `analyze_icm_final_table`, `explain_poker_strategy_concept`, `compare_poker_software`, `plan_final_table_chop_deal`, `analyze_preflop_hand_matchup`, `audit_poker_variance_and_bankroll`, `prepare_tournament_series_trip`, `analyze-flop-cbet-texture`, `plan-satellite-or-bounty-endgame`, `exploit-live-player-archetype`, `plan-geometric-overbet-line`',
-    '- **Twitch & YouTube Streamer Chatbot Commands API (34 Commands: !odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, !matchup, !tax, !stake, !iso, !series, !board, !mratio, !straddle, !sat, !bbj, !position, !math, !iq, !wrap, !latereg, !confidence, !trip, !geo, !table, !exploit, !intl)**: https://smarter.poker/api/stream/cmd?cmd=help',
-    '- **Self-Archived Zenodo DOIs (6 Deposits)**:',
-    '  - Record 1 (`10.5281/zenodo.24115647`): https://doi.org/10.5281/zenodo.24115647 — Core Open Quantitative Poker Research Datasets (`15` CSV & JSON Datasets)',
-    '  - Record 2 (`10.5281/zenodo.24115636`): https://doi.org/10.5281/zenodo.24115636 — 35-Tool Model Context Protocol (MCP) Server Archive v1.0.5',
-    '  - Record 3 (`10.5281/zenodo.24115447`): https://doi.org/10.5281/zenodo.24115447 — North American Live Poker Room, Regional Market & Tournament Series Benchmark Dataset',
-    '  - Record 4 (`10.5281/zenodo.24115452`): https://doi.org/10.5281/zenodo.24115452 — 100BB 6-Max GTO Preflop Ranges, 169 Starting Hands & 25 Canonical Matchup Benchmarks',
-    '  - Record 5 (`10.5281/zenodo.24115453`): https://doi.org/10.5281/zenodo.24115453 — Smarter.Poker Model Context Protocol (MCP) Server & OpenAPI 3.1 Specification v1.0.5',
-    '  - Record 6 (`10.5281/zenodo.24115454`): https://doi.org/10.5281/zenodo.24115454 — Official Poker Rules (TDA & RROP), 15 Game Variants & 80-Term Quantitative Glossary Corpus',
+    `- **All ${MCP_TOOLS.length} Zero-Auth MCP Tools**: ${MCP_TOOLS.map((t) => `\`${t.name}\``).join(', ')}`,
+    `- **All ${MCP_PROMPTS.length} MCP Prompts**: ${MCP_PROMPTS.map((p) => `\`${p.name}\``).join(', ')}`,
+    `- **Twitch & YouTube Streamer Chatbot Commands API (${STREAMER_BOT_COMMANDS.length} Commands: ${STREAMER_BOT_COMMANDS.map((c) => c.command).join(', ')})**: https://smarter.poker/api/stream/cmd?cmd=help`,
+    `- **Self-Archived Zenodo DOIs (${ZENODO_RECORDS.length} Deposits)**:`,
+    ...ZENODO_RECORDS.map((r, idx) => `  - Record ${idx + 1} (\`${r.doi}\`): ${r.doiUrl} - ${r.title}`),
     '- **Software Heritage (SWHID) Archival Snapshots**:',
     '  - Open Datasets Repository: `swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f` (https://archive.softwareheritage.org/swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f)',
     '  - MCP Server Repository: `swh:1:snp:02b8992833424620305edcfb730b3cf8add15747` (https://archive.softwareheritage.org/swh:1:snp:02b8992833424620305edcfb730b3cf8add15747)',
