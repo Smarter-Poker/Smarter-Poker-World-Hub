@@ -17,7 +17,7 @@ const FB = {
 
 const ICON_MAP = {
   chip_distribution: '💰', cashout_approved: '✅', cashout_cancelled: '↩️',
-  cashout_requested: '📤', tournament_start: '🏆', tournament_created: '🎯',
+  cashout_requested: '📤', cashout_overdue: '⏰', tournament_start: '🏆', tournament_created: '🎯',
   join_request: '🙋', member_approved: '✅', member_removed: '🚫',
   rakeback_claimed: '🎁', settlement_complete: '📊', promo_distributed: '🎁',
   table_opened: '🃏', bbj_won: '🎰', agent_credit: '💳',
