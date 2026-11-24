@@ -17,6 +17,7 @@ import useOnlineStatus from '../../../src/hooks/useOnlineStatus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { formatTriviaDisplayNumber } from '../../../src/lib/trivia/formatTriviaDisplayNumber';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
+import { eloTierInk } from '../../../src/lib/trivia/integrityAndElo.mjs';
 import {
     TRIVIA_PERIOD_FILTERS,
     TRIVIA_SCORE_MODES,
@@ -32,6 +33,7 @@ const SCORE_PAGE_SIZE = 1000;
 const SCORE_PAGE_LIMIT = 20;
 const SOLO_BOARD = 'solo';
 const TOURNAMENT_BOARD = 'tournament';
+const PVP_ELO_BOARD = 'pvp_elo';
 
 function titleName(name) {
     return String(name || '').replace(/(^|[\s_.-])(\p{Ll})/gu, (match, lead, letter) => lead + letter.toUpperCase());
@@ -143,6 +145,34 @@ function SoloRankDock({ currentUserId, ranked, partial, onSignIn }) {
     );
 }
 
+function PvpEloRankDock({ currentUserId, viewerRating, onSignIn }) {
+    if (!currentUserId) {
+        return (
+            <aside className="trivia-progress-rank-dock" aria-labelledby="trivia-your-pvp-elo">
+                <h2 id="trivia-your-pvp-elo" className="trivia-progress-heading">Your PvP Elo</h2>
+                <p>Sign In To Track Your Ranked PvP Elo And Tier.</p>
+                <button type="button" className="tc-word" onClick={onSignIn}>Sign In</button>
+            </aside>
+        );
+    }
+    const tierInk = eloTierInk(viewerRating?.tier || 'Bronze');
+    return (
+        <aside className="trivia-progress-rank-dock" aria-labelledby="trivia-your-pvp-elo">
+            <h2 id="trivia-your-pvp-elo" className="trivia-progress-heading">Your PvP Elo</h2>
+            {viewerRating ? (
+                <ul className="tc-rows" aria-label="Your Ranked PvP Rating">
+                    <li className="tc-row"><span className="tc-row__label">Tier</span><span className={`tc-row__value tc-ink--${tierInk}`}>{viewerRating.tier}</span></li>
+                    <li className="tc-row"><span className="tc-row__label">Elo</span><span className="tc-row__value tc-ink--blue">{formatTriviaDisplayNumber(viewerRating.elo)}</span></li>
+                    <li className="tc-row"><span className="tc-row__label">Peak</span><span className="tc-row__value">{formatTriviaDisplayNumber(viewerRating.peakElo)}</span></li>
+                    <li className="tc-row"><span className="tc-row__label">Record</span><span className="tc-row__value">{viewerRating.gamesPlayed > 0 ? `${formatTriviaDisplayNumber(viewerRating.wins)}W / ${formatTriviaDisplayNumber(viewerRating.losses)}L / ${formatTriviaDisplayNumber(viewerRating.ties)}T` : 'Unrated'}</span></li>
+                </ul>
+            ) : (
+                <p>Complete A Settled Head To Head Match To Enter The Ranked Board.</p>
+            )}
+        </aside>
+    );
+}
+
 function Pager({ page, pageCount, total, label, onPage }) {
     return (
         <nav className="trivia-progress-pager" aria-label={label}>
@@ -165,6 +195,7 @@ export default function TriviaLeaderboard() {
     const [entrantScope, setEntrantScope] = usePersistedState('sp-filters-trivia-leaderboard-entrants', 'human');
     const [page, setPage] = useState(1);
     const [rows, setRows] = useState([]);
+    const [pvpViewer, setPvpViewer] = useState(null);
     const [tournament, setTournament] = useState(null);
     const [tournamentSettled, setTournamentSettled] = useState(false);
     const [tournamentTotal, setTournamentTotal] = useState(0);
@@ -176,7 +207,11 @@ export default function TriviaLeaderboard() {
     const [reloadKey, setReloadKey] = useState(0);
     const lastTournamentQuery = useRef('');
 
-    const validBoard = board === TOURNAMENT_BOARD ? TOURNAMENT_BOARD : SOLO_BOARD;
+    const validBoard = board === TOURNAMENT_BOARD
+        ? TOURNAMENT_BOARD
+        : board === PVP_ELO_BOARD
+            ? PVP_ELO_BOARD
+            : SOLO_BOARD;
     const validMode = TRIVIA_SCORE_MODES.some((option) => option.id === mode) ? mode : 'daily';
     const validPeriod = TRIVIA_PERIOD_FILTERS.some((option) => option.id === period) ? period : 'all';
     const validScope = entrantScope === 'all' ? 'all' : 'human';
@@ -242,11 +277,28 @@ export default function TriviaLeaderboard() {
             lastTournamentQuery.current = tournamentQuery;
         }
 
+        async function loadPvpElo() {
+            if (!online) throw new Error('offline');
+            const response = currentUserId
+                ? await authedFetch('/api/trivia/pvp/ratings?limit=100')
+                : await fetch('/api/trivia/pvp/ratings?limit=100', { credentials: 'include', cache: 'no-store' });
+            const payload = await readJson(response);
+            if (cancelled) return;
+            setRows(Array.isArray(payload.leaderboard) ? payload.leaderboard : []);
+            setPvpViewer(payload.viewer || null);
+            setTournament(null);
+            setTournamentSettled(false);
+            setTournamentTotal(0);
+            setPartial(false);
+            setLoadedAt(new Date());
+        }
+
         async function load() {
             setIsLoading(true);
             setLoadError('');
             try {
                 if (validBoard === SOLO_BOARD) await loadSolo();
+                else if (validBoard === PVP_ELO_BOARD) await loadPvpElo();
                 else await loadTournament();
             } catch (error) {
                 console.warn('[TriviaLeaderboard] Load failed:', error?.message || error);
@@ -276,16 +328,16 @@ export default function TriviaLeaderboard() {
             cancelled = true;
             if (channel) supabase.removeChannel(channel);
         };
-    }, [online, reloadKey, requestPage, validBoard, validMode, validPeriod, validScope]);
+    }, [currentUserId, online, reloadKey, requestPage, validBoard, validMode, validPeriod, validScope]);
 
     const soloPage = useMemo(
-        () => paginateRankedScores(validBoard === SOLO_BOARD ? rows : [], page, PAGE_SIZE),
+        () => paginateRankedScores(validBoard === SOLO_BOARD || validBoard === PVP_ELO_BOARD ? rows : [], page, PAGE_SIZE),
         [page, rows, validBoard],
     );
     const tournamentPageCount = Math.max(1, Math.ceil(tournamentTotal / PAGE_SIZE));
-    const pageRows = validBoard === SOLO_BOARD ? soloPage.items : rows;
-    const pageCount = validBoard === SOLO_BOARD ? soloPage.pageCount : tournamentPageCount;
-    const total = validBoard === SOLO_BOARD ? soloPage.total : tournamentTotal;
+    const pageRows = validBoard === TOURNAMENT_BOARD ? rows : soloPage.items;
+    const pageCount = validBoard === TOURNAMENT_BOARD ? tournamentPageCount : soloPage.pageCount;
+    const total = validBoard === TOURNAMENT_BOARD ? tournamentTotal : soloPage.total;
     const stale = !loadError && (!online || (validBoard === SOLO_BOARD && connectionState === 'stale'));
     const periodLabel = TRIVIA_PERIOD_FILTERS.find((option) => option.id === validPeriod)?.label || 'All Time';
 
@@ -312,7 +364,7 @@ export default function TriviaLeaderboard() {
                                 title="Trivia Leaderboard"
                                 titleAs="h1"
                                 titleId="trivia-leaderboard-title"
-                                subtitle={validBoard === SOLO_BOARD ? `${triviaModeLabel(validMode)} · ${periodLabel}` : 'Official Nightly Results'}
+                                subtitle={validBoard === SOLO_BOARD ? `${triviaModeLabel(validMode)} · ${periodLabel}` : validBoard === PVP_ELO_BOARD ? 'Ranked Head To Head Elo' : 'Official Nightly Results'}
                                 pill={isLoading ? 'Loading' : loadError ? 'Error' : `${formatTriviaDisplayNumber(total)} Entrants`}
                                 pillInk={loadError ? 'red' : total > 0 ? 'green' : 'blue'}
                                 className="trivia-progress-console"
@@ -325,6 +377,7 @@ export default function TriviaLeaderboard() {
                                         <legend className="tc-label">Leaderboard</legend>
                                         <div className="trivia-progress-filter__options">
                                             <button type="button" className="tc-word trivia-progress-filter__option" aria-pressed={validBoard === SOLO_BOARD} onClick={() => setBoard(SOLO_BOARD)}>Solo Scores</button>
+                                            <button type="button" className="tc-word trivia-progress-filter__option" aria-pressed={validBoard === PVP_ELO_BOARD} onClick={() => setBoard(PVP_ELO_BOARD)}>PvP Elo Ratings</button>
                                             <button type="button" className="tc-word trivia-progress-filter__option" aria-pressed={validBoard === TOURNAMENT_BOARD} onClick={() => setBoard(TOURNAMENT_BOARD)}>Nightly Results</button>
                                         </div>
                                     </fieldset>
@@ -344,7 +397,7 @@ export default function TriviaLeaderboard() {
                                                 </div>
                                             </fieldset>
                                         </div>
-                                    ) : (
+                                    ) : validBoard === TOURNAMENT_BOARD ? (
                                         <fieldset className="trivia-progress-filter trivia-progress-filter--entrants">
                                             <legend className="tc-label">Entrants</legend>
                                             <div className="trivia-progress-filter__options">
@@ -352,46 +405,69 @@ export default function TriviaLeaderboard() {
                                                 <button type="button" className="tc-word trivia-progress-filter__option" aria-pressed={validScope === 'all'} onClick={() => setEntrantScope('all')}>All Entrants</button>
                                             </div>
                                         </fieldset>
-                                    )}
+                                    ) : null}
 
                                     {stale ? <section className="trivia-progress-notice trivia-progress-notice--warning" role="status"><p>{online ? 'Live Updates Paused. The Last Verified Board Remains Visible.' : 'Offline. The Last Verified Board Remains Visible.'}</p></section> : null}
                                     {partial ? <section className="trivia-progress-notice trivia-progress-notice--warning" role="status"><p>Partial Board: Some Verified Runs Are Outside The Current Read Window.</p></section> : null}
                                     {validBoard === SOLO_BOARD ? <p className="trivia-progress-intro">One Best Verified {triviaModeLabel(validMode)} Run Per Entrant. Equal Scores Share A Rank, And The Next Rank Skips.</p> : null}
+                                    {validBoard === PVP_ELO_BOARD ? <p className="trivia-progress-intro">Ranked Human Head To Head Elo Ratings. Tiers Span Bronze Through Master Based On Settled Match Results.</p> : null}
                                     {validBoard === TOURNAMENT_BOARD && tournament ? <p className="trivia-progress-intro">{tournament.name || 'Nightly Trivia Tournament'} · {formatEventDate(tournament)} · {validScope === 'human' ? 'Humans Only' : 'Humans And Smarter Horses'}</p> : null}
 
                                     <div className="trivia-progress-leaderboard-grid">
                                         {validBoard === SOLO_BOARD ? <SoloRankDock currentUserId={currentUserId} ranked={rows} partial={partial} onSignIn={() => router.push('/auth/login?redirect=/hub/trivia/leaderboard')} /> : null}
+                                        {validBoard === PVP_ELO_BOARD ? <PvpEloRankDock currentUserId={currentUserId} viewerRating={pvpViewer} onSignIn={() => router.push('/auth/login?redirect=/hub/trivia/leaderboard')} /> : null}
                                         <section className="trivia-progress-board" aria-labelledby="trivia-board-heading">
-                                            <h2 id="trivia-board-heading" className="trivia-progress-heading">{validBoard === SOLO_BOARD ? 'Verified Rankings' : 'Official Results'}</h2>
+                                            <h2 id="trivia-board-heading" className="trivia-progress-heading">{validBoard === SOLO_BOARD ? 'Verified Rankings' : validBoard === PVP_ELO_BOARD ? 'PvP Elo Ratings' : 'Official Results'}</h2>
                                             {!hasMounted || authLoading || isLoading ? (
                                                 <p className="trivia-progress-state trivia-progress-state--loading" role="status">Loading Leaderboard</p>
                                             ) : loadError ? (
                                                 <section className="trivia-progress-state trivia-progress-state--error" role="alert"><p>{loadError}</p></section>
                                             ) : pageRows.length === 0 ? (
-                                                <section className="trivia-progress-state trivia-progress-state--empty"><p>{validBoard === SOLO_BOARD ? `No Verified ${triviaModeLabel(validMode)} Scores Match This Period Yet.` : tournament ? 'Official Results Have Not Posted For This Event Yet.' : 'No Nightly Event Is Available In The Official Schedule Window.'}</p></section>
+                                                <section className="trivia-progress-state trivia-progress-state--empty"><p>{validBoard === SOLO_BOARD ? `No Verified ${triviaModeLabel(validMode)} Scores Match This Period Yet.` : validBoard === PVP_ELO_BOARD ? 'No Ranked PvP Elo Ratings Have Posted Yet.' : tournament ? 'Official Results Have Not Posted For This Event Yet.' : 'No Nightly Event Is Available In The Official Schedule Window.'}</p></section>
                                             ) : (
                                                 <>
                                                     <div className="trivia-progress-table-wrap" tabIndex="0" role="region" aria-label="Paged Trivia Leaderboard">
-                                                        <table className="trivia-progress-table trivia-progress-table--board">
-                                                            <caption>{validBoard === SOLO_BOARD ? `${triviaModeLabel(validMode)} Verified Rankings` : 'Official Nightly Tournament Results'}</caption>
-                                                            <thead><tr><th scope="col">Rank</th><th scope="col">Player</th>{validBoard === TOURNAMENT_BOARD ? <th scope="col">Entrant</th> : null}<th scope="col" className="trivia-progress-table__num">Score</th><th scope="col" className="trivia-progress-table__num">{validBoard === SOLO_BOARD ? 'Accuracy' : 'Payout'}</th></tr></thead>
-                                                            <tbody>
-                                                                {pageRows.map((entry, index) => {
-                                                                    const isCurrent = validBoard === SOLO_BOARD && entry.user_id === currentUserId;
-                                                                    return (
-                                                                        <tr key={`${entry.identity || entry.displayName}-${entry.rank}-${index}`} data-rank-tier={rankTier(entry.rank)} data-current-player={isCurrent ? 'true' : 'false'}>
-                                                                            <td className="trivia-progress-table__rank" data-label="Rank">{rankLabel(entry.rank)}</td>
-                                                                            <th className="trivia-progress-table__player" scope="row" data-label="Player"><span>{titleName(entry.displayName)}{isCurrent ? <span className="trivia-progress-table__you">You</span> : null}</span></th>
-                                                                            {validBoard === TOURNAMENT_BOARD ? <td className="trivia-progress-table__entrant" data-label="Entrant">{entry.participantKind === 'horse' ? 'Smarter Horse' : 'Human'}</td> : null}
-                                                                            <td className="trivia-progress-table__score trivia-progress-table__num" data-label="Score">{formatTriviaDisplayNumber(entry.score)}</td>
-                                                                            <td className="trivia-progress-table__accuracy trivia-progress-table__num" data-label={validBoard === SOLO_BOARD ? 'Accuracy' : 'Payout'}>{validBoard === SOLO_BOARD ? (entry.accuracy === null ? 'Not Available' : `${entry.accuracy}%`) : tournamentPayoutLabel(entry, tournamentSettled)}</td>
-                                                                        </tr>
-                                                                    );
-                                                                })}
-                                                            </tbody>
-                                                        </table>
+                                                        {validBoard === PVP_ELO_BOARD ? (
+                                                            <table className="trivia-progress-table trivia-progress-table--board">
+                                                                <caption>Ranked Head To Head PvP Elo Ratings</caption>
+                                                                <thead><tr><th scope="col">Rank</th><th scope="col">Player</th><th scope="col">Tier</th><th scope="col" className="trivia-progress-table__num">Elo</th><th scope="col" className="trivia-progress-table__num">Record</th></tr></thead>
+                                                                <tbody>
+                                                                    {pageRows.map((entry, index) => {
+                                                                        const isCurrent = entry.userId === currentUserId;
+                                                                        return (
+                                                                            <tr key={`${entry.userId || entry.displayName}-${entry.rank}-${index}`} data-rank-tier={rankTier(entry.rank)} data-current-player={isCurrent ? 'true' : 'false'}>
+                                                                                <td className="trivia-progress-table__rank" data-label="Rank">{rankLabel(entry.rank)}</td>
+                                                                                <th className="trivia-progress-table__player" scope="row" data-label="Player"><span>{titleName(entry.displayName)}{isCurrent ? <span className="trivia-progress-table__you">You</span> : null}</span></th>
+                                                                                <td className={`trivia-progress-table__entrant tc-ink--${eloTierInk(entry.tier)}`} data-label="Tier">{entry.tier}</td>
+                                                                                <td className="trivia-progress-table__score trivia-progress-table__num" data-label="Elo">{formatTriviaDisplayNumber(entry.elo)}</td>
+                                                                                <td className="trivia-progress-table__accuracy trivia-progress-table__num" data-label="Record">{`${formatTriviaDisplayNumber(entry.wins)}W / ${formatTriviaDisplayNumber(entry.losses)}L / ${formatTriviaDisplayNumber(entry.ties)}T`}</td>
+                                                                            </tr>
+                                                                        );
+                                                                    })}
+                                                                </tbody>
+                                                            </table>
+                                                        ) : (
+                                                            <table className="trivia-progress-table trivia-progress-table--board">
+                                                                <caption>{validBoard === SOLO_BOARD ? `${triviaModeLabel(validMode)} Verified Rankings` : 'Official Nightly Tournament Results'}</caption>
+                                                                <thead><tr><th scope="col">Rank</th><th scope="col">Player</th>{validBoard === TOURNAMENT_BOARD ? <th scope="col">Entrant</th> : null}<th scope="col" className="trivia-progress-table__num">Score</th><th scope="col" className="trivia-progress-table__num">{validBoard === SOLO_BOARD ? 'Accuracy' : 'Payout'}</th></tr></thead>
+                                                                <tbody>
+                                                                    {pageRows.map((entry, index) => {
+                                                                        const isCurrent = validBoard === SOLO_BOARD && entry.user_id === currentUserId;
+                                                                        return (
+                                                                            <tr key={`${entry.identity || entry.displayName}-${entry.rank}-${index}`} data-rank-tier={rankTier(entry.rank)} data-current-player={isCurrent ? 'true' : 'false'}>
+                                                                                <td className="trivia-progress-table__rank" data-label="Rank">{rankLabel(entry.rank)}</td>
+                                                                                <th className="trivia-progress-table__player" scope="row" data-label="Player"><span>{titleName(entry.displayName)}{isCurrent ? <span className="trivia-progress-table__you">You</span> : null}</span></th>
+                                                                                {validBoard === TOURNAMENT_BOARD ? <td className="trivia-progress-table__entrant" data-label="Entrant">{entry.participantKind === 'horse' ? 'Smarter Horse' : 'Human'}</td> : null}
+                                                                                <td className="trivia-progress-table__score trivia-progress-table__num" data-label="Score">{formatTriviaDisplayNumber(entry.score)}</td>
+                                                                                <td className="trivia-progress-table__accuracy trivia-progress-table__num" data-label={validBoard === SOLO_BOARD ? 'Accuracy' : 'Payout'}>{validBoard === SOLO_BOARD ? (entry.accuracy === null ? 'Not Available' : `${entry.accuracy}%`) : tournamentPayoutLabel(entry, tournamentSettled)}</td>
+                                                                            </tr>
+                                                                        );
+                                                                    })}
+                                                                </tbody>
+                                                            </table>
+                                                        )}
                                                     </div>
-                                                    <Pager page={validBoard === SOLO_BOARD ? soloPage.page : page} pageCount={pageCount} total={total} label={validBoard === SOLO_BOARD ? 'Verified Ranking Pages' : 'Official Result Pages'} onPage={setPage} />
+                                                    <Pager page={validBoard === TOURNAMENT_BOARD ? page : soloPage.page} pageCount={pageCount} total={total} label={validBoard === SOLO_BOARD ? 'Verified Ranking Pages' : validBoard === PVP_ELO_BOARD ? 'PvP Elo Ranking Pages' : 'Official Result Pages'} onPage={setPage} />
                                                 </>
                                             )}
                                         </section>

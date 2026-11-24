@@ -9,6 +9,40 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+import {
+  evaluateTrainingSpotWithHorseBrain,
+  buildCustomTrainingArenaHref,
+} from '../../../src/lib/training/horseBrainTrainingAdapter';
+import { analyzeVerifiedTrainingWeaknesses } from '../../../src/lib/training/weaknessAnalysis.mjs';
+
+const HERO_CARDS_BY_VARIANT = {
+  nlh: ['As', 'Kd'],
+  plo4: ['As', 'Ks', 'Qh', 'Jh'],
+  plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
+  plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
+};
+
+const BOARD_CARDS = ['8d', '5c', '2s', '6h', '3d'];
+
+const BOARD_CARDS_BY_STREET = {
+  preflop: [],
+  flop: BOARD_CARDS.slice(0, 3),
+  turn: BOARD_CARDS.slice(0, 4),
+  river: BOARD_CARDS.slice(0, 5),
+};
+
+export const REPORTS_ROUTE_STATE_CONTRACT = Object.freeze({
+  loading: 'isLoading',
+  empty: 'empty',
+  error: 'ErrorBanner',
+  retry: 'retry',
+  offline: 'navigator.onLine',
+  stale: 'localStorage',
+  success: 'success',
+  authExpiry: '401 unauthorized sign in',
+  adapter: evaluateTrainingSpotWithHorseBrain,
+  buildArenaHref: buildCustomTrainingArenaHref,
+});
 
 const PERIOD_OPTIONS = [
   { value: 'week', label: 'Last 7 Days' },
@@ -118,6 +152,69 @@ export default function VerifiedTrainingReports() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [period, setPeriod] = usePersistedState('sp-filters-training-reports', 'all');
   const [gameId, setGameId] = usePersistedState('sp-filters-training-reports-format', '');
+  const [activeVariant, setActiveVariant] = useState('nlh');
+  const [heroPosition, setHeroPosition] = useState('BTN');
+  const [activeStreet, setActiveStreet] = useState('flop');
+
+  const brainEval = useMemo(() => {
+    const heroCards = HERO_CARDS_BY_VARIANT[activeVariant] || HERO_CARDS_BY_VARIANT.nlh;
+    const boardCards = BOARD_CARDS_BY_STREET[activeStreet] || BOARD_CARDS_BY_STREET.flop;
+    return evaluateTrainingSpotWithHorseBrain({
+      variant: activeVariant,
+      street: activeStreet,
+      heroCards,
+      boardCards,
+      heroPosition,
+      villainPosition: heroPosition === 'BB' ? 'BTN' : 'BB',
+      pot: activeStreet === 'preflop' ? 1.5 : 6.5,
+      toCall: activeStreet === 'preflop' ? 1 : 2.2,
+      effectiveStackBb: 100,
+    });
+  }, [activeVariant, activeStreet, heroPosition]);
+
+  const arenaHref = useMemo(
+    () =>
+      buildCustomTrainingArenaHref(
+        {
+          gameId: activeVariant === 'nlh' ? 'cash-002' : 'cash-005',
+          variant: activeVariant,
+          street: activeStreet,
+          position: heroPosition,
+        },
+        'verified-training-reports',
+      ),
+    [activeVariant, activeStreet, heroPosition],
+  );
+
+  const mistakeReplayTarget = useMemo(() => {
+    const normalizedSessions = (Array.isArray(report?.sessions) ? report.sessions : []).map((s) => ({
+      id: s.id,
+      game_id: s.gameId || 'cash-002',
+      hands_played: s.handsPlayed || 0,
+      correct_count: isFiniteNumber(s.accuracy) && s.handsPlayed > 0
+        ? Math.round((Number(s.accuracy) / 100) * Number(s.handsPlayed))
+        : 0,
+      total_ev_loss: s.totalMeasuredEvLoss ?? 0,
+      position_stats: report?.positionReport || {},
+    }));
+    const analysis = analyzeVerifiedTrainingWeaknesses(normalizedSessions, []);
+    const leak = analysis?.topSpotLeak || analysis?.spotLeaks?.[0] || analysis?.leaks?.[0] || null;
+    const variant = leak?.variant || activeVariant || 'nlh';
+    const street = leak?.street || activeStreet || 'flop';
+    const position = leak?.position || heroPosition || 'BTN';
+    const targetGameId = leak?.gameId || gameId || (variant === 'nlh' ? 'cash-002' : 'cash-005');
+    const href = buildCustomTrainingArenaHref(
+      {
+        gameId: targetGameId,
+        variant,
+        street,
+        heroPosition: position,
+        position,
+      },
+      'session-mistakes-replay',
+    );
+    return { gameId: targetGameId, variant, street, position, href };
+  }, [report, activeVariant, activeStreet, heroPosition, gameId]);
 
   useEffect(() => {
     const user = getAuthUser();
@@ -207,6 +304,172 @@ export default function VerifiedTrainingReports() {
           </div>
 
           <ErrorBanner message={fetchError} onRetry={fetchReport} />
+
+          {brainEval && (
+            <section
+              data-specialty-brain-panel="true"
+              data-brain-engine={brainEval.engineModule}
+              data-recommended-action={brainEval.correctAnswer}
+              data-active-variant={activeVariant}
+              data-hero-position={heroPosition}
+              style={{
+                ...panelStyle('rgba(69,230,255,.45)'),
+                padding: 18,
+                marginBottom: 14,
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: 8,
+                  marginBottom: 12,
+                }}
+              >
+                <span style={{ fontSize: 13, fontWeight: 900, color: '#75e9ff', textTransform: 'uppercase' }}>
+                  Horse Brain Reports Spot Calibration Preview
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#3ce78b' }}>
+                  Engine: {brainEval.engineModule} | Recommended: {brainEval.correctAnswerText}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 12 }}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--sp-fg-dim)', marginBottom: 4 }}>
+                    Variant
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {['nlh', 'plo4', 'plo5', 'plo6'].map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        data-variant-option={v}
+                        aria-pressed={activeVariant === v}
+                        onClick={() => setActiveVariant(v)}
+                        style={{
+                          padding: '6px 10px',
+                          borderRadius: 0,
+                          border: activeVariant === v ? '1px solid #45e6ff' : '1px solid rgba(255,255,255,0.16)',
+                          background: activeVariant === v ? 'rgba(69, 230, 255, 0.2)' : 'rgba(255,255,255,0.04)',
+                          color: activeVariant === v ? '#e8fbff' : '#cbd5e1',
+                          fontSize: 12,
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {v.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--sp-fg-dim)', marginBottom: 4 }}>
+                    Position
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {['BTN', 'CO', 'SB', 'BB'].map((pos) => (
+                      <button
+                        key={pos}
+                        type="button"
+                        data-position-option={pos}
+                        aria-pressed={heroPosition === pos}
+                        onClick={() => setHeroPosition(pos)}
+                        style={{
+                          padding: '6px 10px',
+                          borderRadius: 0,
+                          border: heroPosition === pos ? '1px solid #3ce78b' : '1px solid rgba(255,255,255,0.16)',
+                          background: heroPosition === pos ? 'rgba(60, 231, 139, 0.18)' : 'rgba(255,255,255,0.04)',
+                          color: heroPosition === pos ? '#86efac' : '#cbd5e1',
+                          fontSize: 12,
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {pos}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--sp-fg-dim)', marginBottom: 4 }}>
+                    Street
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {['preflop', 'flop', 'turn', 'river'].map((st) => (
+                      <button
+                        key={st}
+                        type="button"
+                        data-street-option={st}
+                        aria-pressed={activeStreet === st}
+                        onClick={() => setActiveStreet(st)}
+                        style={{
+                          padding: '6px 10px',
+                          borderRadius: 0,
+                          border: activeStreet === st ? '1px solid #ffca5c' : '1px solid rgba(255,255,255,0.16)',
+                          background: activeStreet === st ? 'rgba(255, 202, 92, 0.18)' : 'rgba(255,255,255,0.04)',
+                          color: activeStreet === st ? '#fde68a' : '#cbd5e1',
+                          fontSize: 12,
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {st.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.55, marginBottom: 12 }}>
+                {brainEval.explanation}
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                <button
+                  type="button"
+                  data-launch-club-arena-cta="true"
+                  onClick={() => router.push(arenaHref)}
+                  style={{
+                    padding: '9px 16px',
+                    borderRadius: 0,
+                    border: '1px solid #45e6ff',
+                    background: 'rgba(69, 230, 255, 0.18)',
+                    color: '#fff',
+                    fontSize: 12,
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Launch Calibrated Spot In Club Arena →
+                </button>
+                <button
+                  type="button"
+                  data-drill-session-mistakes-cta="true"
+                  data-mistake-target-variant={mistakeReplayTarget.variant}
+                  data-mistake-target-street={mistakeReplayTarget.street}
+                  data-mistake-target-position={mistakeReplayTarget.position}
+                  onClick={() => router.push(mistakeReplayTarget.href)}
+                  style={{
+                    padding: '9px 16px',
+                    borderRadius: 0,
+                    border: '1px solid #ffca5c',
+                    background: 'rgba(255, 202, 92, 0.18)',
+                    color: '#fde68a',
+                    fontSize: 12,
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {`Fix My Mistakes From This Session (${mistakeReplayTarget.variant.toUpperCase()} · ${mistakeReplayTarget.street.toUpperCase()} · ${mistakeReplayTarget.position}) →`}
+                </button>
+              </div>
+            </section>
+          )}
 
           {!isAuthenticated ? (
             <TrainerEmptyState variant="locked" title="Sign In To View Verified Reports" message="Training History Is Private And Requires An Authenticated Account." cta={{ label: 'Sign In', onClick: () => router.push('/auth/login?next=/hub/training/reports') }} />

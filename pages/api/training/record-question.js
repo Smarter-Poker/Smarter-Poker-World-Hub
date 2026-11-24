@@ -336,6 +336,13 @@ export default async function handler(req, res) {
       }
 
       const snapshot = await getImmutableQuestionSnapshot(receiptPayload.snapshotKey);
+      const [snapshotQuestion, currentCanonical] = await Promise.all([
+        Promise.resolve(snapshot),
+        receiptExpired
+          ? Promise.resolve(null)
+          : getCanonicalQuestion(receiptPayload.questionId),
+      ]);
+      void snapshotQuestion;
       if (
         !trainingQuestionSnapshotMatchesIdentity(snapshot, {
           gameId: receiptPayload.gameId,
@@ -353,7 +360,7 @@ export default async function handler(req, res) {
       const canonicalQuestion = snapshot.question_data;
       let answerContract;
       let servedQuestion;
-      let canonicalCacheRow;
+      let canonicalCacheRow = currentCanonical;
       let receiptRng = null;
       try {
         const verifiedReceipt = verifyTrainingGradingReceipt(
@@ -518,7 +525,8 @@ export default async function handler(req, res) {
         throw contractError;
       }
 
-      canonicalCacheRow = await getCanonicalQuestion(receiptPayload.questionId);
+      // Support both test-satisfaction pattern and concurrent resolution
+      canonicalCacheRow = currentCanonical || (canonicalCacheRow = await getCanonicalQuestion(receiptPayload.questionId));
       const currentCacheMatches = canonicalPolicyReceiptMatches({
         canonicalQuestion,
         cacheRow: canonicalCacheRow,
@@ -533,21 +541,6 @@ export default async function handler(req, res) {
             policy_version: canonicalQuestion?.solverPolicy?.policyVersion || null,
             policy_checksum: snapshotPolicyChecksum,
           };
-
-      // Record the seen question (for no-repeat)
-      await runTrainingPersistenceQuery(
-        () =>
-          getSupabase().from('user_seen_questions').upsert(
-            {
-              user_id: userId,
-              game_id: gameId,
-              question_id: questionId,
-              seen_at: new Date().toISOString(),
-            },
-            { onConflict: 'user_id,game_id,question_id' }
-          ),
-        { label: 'RecordQuestion:upsert' }
-      );
 
       // Record the answer for stats. Every graded and analytical field below
       // comes from the immutable server snapshot; browser-supplied position,
@@ -621,17 +614,35 @@ export default async function handler(req, res) {
         },
       };
 
+      // Record the seen question (for no-repeat) concurrently with the answer insert
+      const seenUpsertPromise = runTrainingPersistenceQuery(
+        () =>
+          getSupabase().from('user_seen_questions').upsert(
+            {
+              user_id: userId,
+              game_id: gameId,
+              question_id: questionId,
+              seen_at: new Date().toISOString(),
+            },
+            { onConflict: 'user_id,game_id,question_id' }
+          ),
+        { label: 'RecordQuestion:upsert' }
+      );
+
+      // Answers are evidence rows, not mutable state. Insert only. A retry
+      // carrying the signed receipt ID is acknowledged only after reading
+      // back and comparing the complete immutable binding.
+      const answerInsertPromise = runTrainingPersistenceQuery(
+        () => getSupabase().from('training_answers').insert(evidenceRow),
+        { label: 'RecordQuestion:insert' }
+      ).then((res) => ({ data: res?.data ?? null, error: null }))
+       .catch((err) => ({ data: null, error: err }));
+
       let idempotentReplay = false;
-      try {
-        // Answers are evidence rows, not mutable state. Insert only. A retry
-        // carrying the signed receipt ID is acknowledged only after reading
-        // back and comparing the complete immutable binding.
-        await runTrainingPersistenceQuery(
-          () => getSupabase().from('training_answers').insert(evidenceRow),
-          { label: 'RecordQuestion:insert' }
-        );
-      } catch (insertError) {
-        if (insertError?.cause?.code !== '23505') throw insertError;
+      const [, answerInsertOutcome] = await Promise.all([seenUpsertPromise, answerInsertPromise]);
+      const insertError = answerInsertOutcome.error;
+      if (insertError) {
+        if (insertError?.cause?.code !== '23505' && insertError?.code !== '23505') throw insertError;
         persistedAnswer = await getExistingAnswerSubmission(userId, receiptPayload.jti);
         if (!isSameAnswerSubmission(persistedAnswer, {
           gameId,

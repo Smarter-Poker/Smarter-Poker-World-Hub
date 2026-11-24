@@ -45,6 +45,7 @@ import {
     isAuthoritativeRetirementCode,
     triviaRunErrorCode,
 } from '../lib/trivia/runRecoveryPolicy.mjs';
+import useTriviaIntegrityTelemetry from './useTriviaIntegrityTelemetry';
 
 /**
  * Kill switch. Flip to true only AFTER
@@ -242,6 +243,12 @@ export default function useServerGradedRun(mode, opts = {}) {
         return typeof accessToken === 'string' && accessToken ? accessToken : null;
     }, [accessToken, accessTokenProvider]);
 
+    const integrityTelemetry = useTriviaIntegrityTelemetry({
+        active: Boolean(sessionId),
+        accessToken,
+        accessTokenProvider,
+    });
+
     const markRunActive = useCallback(() => {
         if (!activeRunReleaseRef.current) {
             activeRunReleaseRef.current = acquireActiveTriviaRun();
@@ -427,6 +434,7 @@ export default function useServerGradedRun(mode, opts = {}) {
             sessionRef.current = json.sessionId;
             contractSignatureRef.current = json.contractSignature || null;
             markRunActive();
+            integrityTelemetry.resetTelemetry();
             lastSettlementRef.current = null;
             setLastSettlement(null);
             setSessionId(json.sessionId);
@@ -488,7 +496,7 @@ export default function useServerGradedRun(mode, opts = {}) {
                 if (operationScopeRef.current.isCurrent(operationScope)) setIsStarting(false);
             }
         }
-    }, [accountId, captureCurrentOperation, isEnabled, markRunActive, mode, persistRecovery, requireCurrentOperation, resolveAccessToken, retireRecovery]);
+    }, [accountId, captureCurrentOperation, integrityTelemetry.resetTelemetry, isEnabled, markRunActive, mode, persistRecovery, requireCurrentOperation, resolveAccessToken, retireRecovery]);
 
     const start = useCallback((args = {}) => openSession(args, false), [openSession]);
     /**
@@ -528,6 +536,7 @@ export default function useServerGradedRun(mode, opts = {}) {
                 resolveAccessToken
             );
             requireCurrentOperation(operationScope);
+            integrityTelemetry.recordAnswerTiming({ wasCorrect: verdict?.wasCorrect === true });
             if (durableTimeout && !clearPendingTimeout(questionId, id)) {
                 throw recoveryCustodyError();
             }
@@ -573,7 +582,7 @@ export default function useServerGradedRun(mode, opts = {}) {
             }
             throw e;
         }
-    }, [captureCurrentOperation, clearActiveRun, clearPendingTimeout, isEnabled, mode, persistPendingTimeout, requireCurrentOperation, resolveAccessToken, retireRecovery]);
+    }, [captureCurrentOperation, clearActiveRun, clearPendingTimeout, integrityTelemetry.recordAnswerTiming, isEnabled, mode, persistPendingTimeout, requireCurrentOperation, resolveAccessToken, retireRecovery]);
 
     /**
      * Atomically buy/VIP-authorize and bind one Endless/Survival skip. The
@@ -696,6 +705,14 @@ export default function useServerGradedRun(mode, opts = {}) {
             );
             requireCurrentOperation(operationScope);
             requireChallengeSettlementAuthority(mode, json);
+            const totalQuestions = Number.isInteger(json?.total) && json.total > 0
+                ? json.total
+                : (Array.isArray(json?.perQuestion) && json.perQuestion.length > 0 ? json.perQuestion.length : null);
+            const correctCount = Number.isInteger(json?.correct) ? json.correct : null;
+            const accuracyPct = totalQuestions && correctCount !== null
+                ? (correctCount / totalQuestions) * 100
+                : null;
+            integrityTelemetry.flushTelemetry(id, mode, accuracyPct);
             lastSettlementRef.current = json;
             setLastSettlement(json);
             // The session is single-use in memory, but keep the durable
@@ -737,7 +754,7 @@ export default function useServerGradedRun(mode, opts = {}) {
                 if (operationScopeRef.current.isCurrent(operationScope)) setIsSubmitting(false);
             }
         }
-    }, [accountId, captureCurrentOperation, clearActiveRun, isEnabled, mode, persistRecovery, requireCurrentOperation, resolveAccessToken, retireRecovery]);
+    }, [accountId, captureCurrentOperation, clearActiveRun, integrityTelemetry.flushTelemetry, isEnabled, mode, persistRecovery, requireCurrentOperation, resolveAccessToken, retireRecovery]);
 
     const resume = useCallback(async (args = {}) => {
         const operationScope = captureCurrentOperation();
@@ -846,5 +863,6 @@ export default function useServerGradedRun(mode, opts = {}) {
         paidSkip,
         submit,
         reset,
+        integrityTelemetry,
     };
 }

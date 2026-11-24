@@ -488,3 +488,124 @@ export async function resolveSyncedHandForTrainingDrill({
     },
   };
 }
+
+const RANK_HERO_CARDS_BY_VARIANT = Object.freeze({
+  nlh: ['As', 'Kd'],
+  plo4: ['As', 'Ks', 'Qh', 'Jh'],
+  plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
+  plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
+});
+
+const RANK_BOARD_CARDS = Object.freeze(['8d', '5c', '2s', '6h', '3d']);
+
+export function rankImportedHandsByEvLeak(hands = [], defaultVariant = 'nlh') {
+  if (!Array.isArray(hands) || hands.length === 0) return [];
+  const scored = hands.map((hand, idx) => {
+    const rawVar = String(hand?.variant || hand?.gameType || defaultVariant || 'nlh').trim().toLowerCase();
+    const rawHole = Array.isArray(hand?.heroCards)
+      ? hand.heroCards
+      : Array.isArray(hand?.hero?.holeCards)
+        ? hand.hero.holeCards
+        : [];
+    const variant = rawVar === 'plo6' || rawHole.length === 6
+      ? 'plo6'
+      : rawVar === 'plo5' || rawHole.length === 5
+        ? 'plo5'
+        : rawVar === 'plo4' || /plo|omaha/i.test(rawVar) || rawHole.length === 4
+          ? 'plo4'
+          : 'nlh';
+    const rawBoard = Array.isArray(hand?.boardCards) && hand.boardCards.length > 0
+      ? hand.boardCards
+      : Array.isArray(hand?.board) && hand.board.length > 0
+        ? hand.board
+        : [];
+    const street = String(
+      hand?.street
+      || (rawBoard.length >= 5 ? 'river' : rawBoard.length === 4 ? 'turn' : 'flop'),
+    ).toLowerCase();
+    const expectedBoardCount = street === 'preflop' ? 0 : street === 'turn' ? 4 : street === 'river' ? 5 : 3;
+    const boardCards = [...rawBoard];
+    for (const fallbackCard of RANK_BOARD_CARDS) {
+      if (boardCards.length >= expectedBoardCount) break;
+      if (!boardCards.some((c) => String(c).toLowerCase() === fallbackCard.toLowerCase())) {
+        boardCards.push(fallbackCard);
+      }
+    }
+    const finalBoard = expectedBoardCount === 0 ? [] : boardCards.slice(0, expectedBoardCount);
+    const expectedHoleCount = (RANK_HERO_CARDS_BY_VARIANT[variant] || RANK_HERO_CARDS_BY_VARIANT.nlh).length;
+    const heroCards = rawHole.length === expectedHoleCount
+      ? rawHole
+      : (RANK_HERO_CARDS_BY_VARIANT[variant] || RANK_HERO_CARDS_BY_VARIANT.nlh);
+    const heroPosition = String(hand?.heroPosition || hand?.position || hand?.hero?.position || 'BTN').toUpperCase();
+    const potSizeBb = Math.max(1.5, Number(hand?.potSizeBb || hand?.pot || 12) || 12);
+    const facingBetBb = Math.max(0, Number(hand?.facingBetBb ?? 4) || 0);
+    const effectiveStackBb = Math.max(10, Number(hand?.effectiveStackBb || hand?.stackDepth || 100) || 100);
+
+    let brainDecision = null;
+    try {
+      brainDecision = evaluateTrainingSpotWithHorseBrain({
+        variant,
+        street,
+        heroPosition,
+        heroCards,
+        boardCards: finalBoard,
+        potSizeBb,
+        facingBetBb,
+        effectiveStackBb,
+      });
+    } catch (_) {
+      brainDecision = evaluateTrainingSpotWithHorseBrain({
+        variant: 'nlh',
+        street: 'flop',
+        heroPosition: 'BTN',
+        heroCards: ['As', 'Kd'],
+        boardCards: ['8d', '5c', '2s'],
+        potSizeBb,
+        facingBetBb: 4,
+        effectiveStackBb: 100,
+      });
+    }
+
+    const explicitLoss = Number(hand?.estimatedEvLossBb ?? hand?.evLoss);
+    let estimatedEvLossBb;
+    if (Number.isFinite(explicitLoss) && explicitLoss > 0) {
+      estimatedEvLossBb = Number(explicitLoss.toFixed(2));
+    } else {
+      const actionEvValues = Object.values(brainDecision?.actionEVs || {})
+        .map(Number)
+        .filter(Number.isFinite);
+      const maxEv = actionEvValues.length > 0 ? Math.max(...actionEvValues) : 0;
+      const minEv = actionEvValues.length > 0 ? Math.min(...actionEvValues) : 0;
+      const evSpread = Math.max(0.35, maxEv - minEv);
+      const handScoreFactor = Math.max(0.25, (100 - (Number(brainDecision?.handScore) || 55)) / 100);
+      const derived = Math.max(0.25, evSpread * 0.55 + potSizeBb * 0.08 * handScoreFactor);
+      estimatedEvLossBb = Number(derived.toFixed(2));
+    }
+
+    return {
+      ...hand,
+      variant,
+      street,
+      heroPosition,
+      heroCards,
+      board: Array.isArray(hand?.board) && hand.board.length > 0 ? hand.board : finalBoard,
+      boardCards: finalBoard,
+      potSizeBb,
+      estimatedEvLossBb,
+      recommendedAction: brainDecision?.recommendedAction || brainDecision?.correctAnswerText || 'Bet 75% Pot',
+      brainSource: brainDecision?.engineModule || 'holdem-brain.js',
+      _originalIndex: idx,
+    };
+  });
+
+  scored.sort((a, b) => {
+    const diff = b.estimatedEvLossBb - a.estimatedEvLossBb;
+    if (Math.abs(diff) > 1e-9) return diff;
+    return a._originalIndex - b._originalIndex;
+  });
+
+  return scored.map(({ _originalIndex, ...item }, index) => ({
+    ...item,
+    leakPriorityRank: index + 1,
+  }));
+}

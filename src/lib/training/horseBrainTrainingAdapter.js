@@ -30,6 +30,9 @@ import ploCore from '../poker-engine/brain/plo-core.js';
 import plo5Brain from '../poker-engine/brain/plo5-brain.js';
 import plo6Brain from '../poker-engine/brain/plo6-brain.js';
 import tournamentBrain from '../poker-engine/brain/tournament-brain.js';
+import { buildCustomTrainingArenaHref } from './customTrainingLaunchContract.mjs';
+
+export { buildCustomTrainingArenaHref };
 
 const {
   RANKS,
