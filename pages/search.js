@@ -3,7 +3,7 @@
  *  UNIVERSAL POKER SEARCH & COMMAND DIRECTORY (/search)
  * ═══════════════════════════════════════════════════════════════════════════════
  * Real-time search engine across Smarter.Poker's entire structured corpus:
- * 24 Interactive Calculators, 25 Hand Matchups, 30 Official Rules, 15 Game
+ * 42 Interactive Calculators, 25 Hand Matchups, 30 Official Rules, 15 Game
  * Variants, 12 Regional Markets, 10 Major Series Guides, 15 Research Reports,
  * plus Top Starting Hands and Product/Venue Comparisons.
  *
@@ -32,6 +32,9 @@ import { POKER_STAKES, stakePath } from '../src/content/learn/stakes';
 import { FAMOUS_HANDS, famousHandPath } from '../src/content/learn/famousHands';
 import { POKER_ROADMAPS, roadmapPath } from '../src/content/learn/roadmaps';
 import { US_POKER_STATES, stateGuidePath } from '../src/content/guides/states';
+import { PLAYER_ARCHETYPES, playerTypePath } from '../src/content/learn/playerTypes';
+import { BOARD_TEXTURES, boardTexturePath } from '../src/content/learn/boardTextures';
+import { INTERNATIONAL_POKER_GUIDES, internationalGuidePath } from '../src/content/guides/internationalMarkets';
 
 export const POKER_GAMES = POKER_VARIANTS;
 export const POKER_MARKETS = POKER_MARKET_GUIDES;
@@ -179,31 +182,7 @@ const CALCULATOR_ITEMS = [
     title: 'Embeddable Webmaster Poker Widgets & Streamer Bot Suite',
     href: '/tools/embeds',
     badge: 'Free HTML5 Iframes',
-    summary: 'Copy-And-Paste Responsive Calculator Iframe Embeds And 14 Nightbot/StreamElements Commands.',
-  },
-  {
-    title: 'Poker Hand Vs Hand Matchup Odds Directory (25 Matchups)',
-    href: '/learn/matchups',
-    badge: 'Matchup Index',
-    summary: 'Interactive Preflop Equity Directory Covering 25 Canonical Hold\'em All-In Confrontations And Flop Shifts.',
-  },
-  {
-    title: 'Major Live Poker Tournament Series Guides (WSOP, WPT, Wynn)',
-    href: '/poker-series/guides',
-    badge: '10 Series Guides',
-    summary: 'Complete Player Logistics, Rake Comparison, And Registration Timing For 10 Premier North American Series.',
-  },
-  {
-    title: 'First-Time Live Casino Poker Room Etiquette & Survival Guide',
-    href: '/poker-rooms/first-time-guide',
-    badge: 'Live Etiquette',
-    summary: 'Step-By-Step Check-In, Chip Buying, One-Chip Call Rule, And Tipping Etiquette For First-Time Live Players.',
-  },
-  {
-    title: 'Official Smarter.Poker Press Kit, DOIs & Media Fast Facts',
-    href: '/press',
-    badge: 'Media & DOIs',
-    summary: 'Quotable 2026 Industry Benchmarks, 6 Zenodo DOIs, Software Heritage SWHIDs, And Brand Boilerplates.',
+    summary: 'Copy-And-Paste Responsive Calculator Iframe Embeds And 34 Nightbot/StreamElements Commands.',
   },
   {
     title: 'Interactive Flop Board Texture & GTO C-Bet Frequency Analyzer',
@@ -266,66 +245,6 @@ const CALCULATOR_ITEMS = [
     summary: 'Ten-Question Quantitative Poker Assessment Grading Pot Odds, MDF, ICM, Bounties, Board Textures, And TDA Floor Rules.',
   },
   {
-    title: '9-Seat Poker Position Strategy Encyclopedia (UTG To Button & Blinds)',
-    href: '/learn/positions',
-    badge: '9 Table Positions',
-    summary: 'Seat-By-Seat GTO Raise First In (RFI), 3-Bet, Cold-Call, And Expected BB/100 Winrates Across All Nine Table Positions.',
-  },
-  {
-    title: 'Poker Stake Level & Move-Up Readiness Authority Hub',
-    href: '/learn/stakes',
-    badge: '7 Stake Tiers',
-    summary: 'Bankroll Thresholds, Population Tendencies, And Shot-Taking Checklists From $1/$2 Live Cash To $5/$10 And Circuit MTTs.',
-  },
-  {
-    title: 'Famous Historic Poker Hands & GTO Solver Breakdown Archive',
-    href: '/learn/famous-hands',
-    badge: '12 Iconic Hands',
-    summary: 'Twelve Historic Championship And High-Stakes Broadcast Hands Analyzed Street By Street Through A Modern GTO Solver Lens.',
-  },
-  {
-    title: '90-Day Poker Player Progression & Study Roadmaps',
-    href: '/learn/roadmaps',
-    badge: '5 Career Tracks',
-    summary: 'Step-By-Step 90-Day Study Curriculums For Live Cash Beginners, $2/$5 Pros, Circuit MTT Grinders, PLO Players, And Hosts.',
-  },
-  {
-    title: 'US State-By-State Poker Legality, Tax Withholding & Room Directory',
-    href: '/poker-rooms/states',
-    badge: '15 US State Guides',
-    summary: 'State-By-State Legal Status, Minimum Age, W-2G State Tax Withholding Rates, And Rake Models Across Fifteen Top States.',
-  },
-  {
-    title: 'Complete Poker Math Formulas, Equations & Solver Proofs Hub',
-    href: '/learn/poker-math',
-    badge: '12 Core Equations',
-    summary: 'Master Reference For Pot Odds, EV, MDF, Alpha, Geometric Bet Sizing, SPR, ICM, Risk Of Ruin, And Hypergeometric Draws.',
-  },
-  {
-    title: 'Printable One-Page Poker Cheat Sheets & Reference Cards Hub',
-    href: '/learn/cheat-sheets',
-    badge: 'Print-Ready Cards',
-    summary: 'Print-Optimized Reference Cards For Hand Rankings, Rule Of 4 And 2, 6-Max RFI Ranges, 10BB Push/Fold, And Chip Counts.',
-  },
-  {
-    title: 'Online Vs. Live Poker Strategy Transition Authority Guide',
-    href: '/learn/online-vs-live-poker',
-    badge: 'Online To Live',
-    summary: 'Side-By-Side Adjustments For Open-Raise Sizing, Hands Per Hour, Multiway Pots, Rake Caps, And Physical Live Dynamics.',
-  },
-  {
-    title: 'Live Poker Tells, Betting Timing & Anti-Angle-Shooting Encyclopedia',
-    href: '/learn/live-poker-tells',
-    badge: 'Physical Tells & Defense',
-    summary: 'Behavioral Tells, Action-Timing Clues, Chip-Handling Mechanics, And Official TDA Protection Against Live Angle Shots.',
-  },
-  {
-    title: 'Live Casino Poker Comps, Rewards Cards & Dealer Tipping Guide',
-    href: '/poker-rooms/comps-and-tipping-guide',
-    badge: 'Comps & Toke Math',
-    summary: 'Hourly Comp Earning Rates ($1-$3/Hr), Tier Multipliers, Dealer Tipping Standards, And Monthly Comp Offset Calculator.',
-  },
-  {
     title: 'PLO Wrap, Redraw & Nut-Out Probability Analyzer',
     href: '/tools/plo-outs-calculator',
     badge: 'PLO Wrap Solver',
@@ -373,34 +292,140 @@ const CALCULATOR_ITEMS = [
     badge: 'MTT ABI & Exposure',
     summary: 'Calculates Single-Session Tournament Capital Exposure, Effective ABI Ratios, And Session 0-ITM Brick Probability.',
   },
+];
+
+const AUTHORITY_HUB_ITEMS = [
   {
+    category: 'Hand Matchups',
+    title: 'Poker Hand Vs Hand Matchup Odds Directory (25 Matchups)',
+    href: '/learn/matchups',
+    badge: 'Matchup Index',
+    summary: 'Interactive Preflop Equity Directory Covering 25 Canonical Hold\'em All-In Confrontations And Flop Shifts.',
+  },
+  {
+    category: 'Major Series Guides',
+    title: 'Major Live Poker Tournament Series Guides (WSOP, WPT, Wynn)',
+    href: '/poker-series/guides',
+    badge: '10 Series Guides',
+    summary: 'Complete Player Logistics, Rake Comparison, And Registration Timing For 10 Premier North American Series.',
+  },
+  {
+    category: 'Regional Poker Markets',
+    title: 'First-Time Live Casino Poker Room Etiquette & Survival Guide',
+    href: '/poker-rooms/first-time-guide',
+    badge: 'Live Etiquette',
+    summary: 'Step-By-Step Check-In, Chip Buying, One-Chip Call Rule, And Tipping Etiquette For First-Time Live Players.',
+  },
+  {
+    category: 'Research Studies',
+    title: 'Official Smarter.Poker Press Kit, DOIs & Media Fast Facts',
+    href: '/press',
+    badge: 'Media & DOIs',
+    summary: 'Quotable 2026 Industry Benchmarks, 6 Zenodo DOIs, Software Heritage SWHIDs, And Brand Boilerplates.',
+  },
+  {
+    category: 'Table Positions',
+    title: '9-Seat Poker Position Strategy Encyclopedia (UTG To Button & Blinds)',
+    href: '/learn/positions',
+    badge: '9 Table Positions',
+    summary: 'Seat-By-Seat GTO Raise First In (RFI), 3-Bet, Cold-Call, And Expected BB/100 Winrates Across All Nine Table Positions.',
+  },
+  {
+    category: 'Stake Guides',
+    title: 'Poker Stake Level & Move-Up Readiness Authority Hub',
+    href: '/learn/stakes',
+    badge: '7 Stake Tiers',
+    summary: 'Bankroll Thresholds, Population Tendencies, And Shot-Taking Checklists From $1/$2 Live Cash To $5/$10 And Circuit MTTs.',
+  },
+  {
+    category: 'Famous Hands',
+    title: 'Famous Historic Poker Hands & GTO Solver Breakdown Archive',
+    href: '/learn/famous-hands',
+    badge: '12 Iconic Hands',
+    summary: 'Twelve Historic Championship And High-Stakes Broadcast Hands Analyzed Street By Street Through A Modern GTO Solver Lens.',
+  },
+  {
+    category: 'Player Roadmaps',
+    title: '90-Day Poker Player Progression & Study Roadmaps',
+    href: '/learn/roadmaps',
+    badge: '5 Career Tracks',
+    summary: 'Step-By-Step 90-Day Study Curriculums For Live Cash Beginners, $2/$5 Pros, Circuit MTT Grinders, PLO Players, And Hosts.',
+  },
+  {
+    category: 'US State Guides',
+    title: 'US State-By-State Poker Legality, Tax Withholding & Room Directory',
+    href: '/poker-rooms/states',
+    badge: '15 US State Guides',
+    summary: 'State-By-State Legal Status, Minimum Age, W-2G State Tax Withholding Rates, And Rake Models Across Fifteen Top States.',
+  },
+  {
+    category: 'GTO Lessons',
+    title: 'Complete Poker Math Formulas, Equations & Solver Proofs Hub',
+    href: '/learn/poker-math',
+    badge: '12 Core Equations',
+    summary: 'Master Reference For Pot Odds, EV, MDF, Alpha, Geometric Bet Sizing, SPR, ICM, Risk Of Ruin, And Hypergeometric Draws.',
+  },
+  {
+    category: 'GTO Lessons',
+    title: 'Printable One-Page Poker Cheat Sheets & Reference Cards Hub',
+    href: '/learn/cheat-sheets',
+    badge: 'Print-Ready Cards',
+    summary: 'Print-Optimized Reference Cards For Hand Rankings, Rule Of 4 And 2, 6-Max RFI Ranges, 10BB Push/Fold, And Chip Counts.',
+  },
+  {
+    category: 'GTO Lessons',
+    title: 'Online Vs. Live Poker Strategy Transition Authority Guide',
+    href: '/learn/online-vs-live-poker',
+    badge: 'Online To Live',
+    summary: 'Side-By-Side Adjustments For Open-Raise Sizing, Hands Per Hour, Multiway Pots, Rake Caps, And Physical Live Dynamics.',
+  },
+  {
+    category: 'GTO Lessons',
+    title: 'Live Poker Tells, Betting Timing & Anti-Angle-Shooting Encyclopedia',
+    href: '/learn/live-poker-tells',
+    badge: 'Physical Tells & Defense',
+    summary: 'Behavioral Tells, Action-Timing Clues, Chip-Handling Mechanics, And Official TDA Protection Against Live Angle Shots.',
+  },
+  {
+    category: 'Regional Poker Markets',
+    title: 'Live Casino Poker Comps, Rewards Cards & Dealer Tipping Guide',
+    href: '/poker-rooms/comps-and-tipping-guide',
+    badge: 'Comps & Toke Math',
+    summary: 'Hourly Comp Earning Rates ($1-$3/Hr), Tier Multipliers, Dealer Tipping Standards, And Monthly Comp Offset Calculator.',
+  },
+  {
+    category: 'Player Archetypes',
     title: 'Poker Player Types & Exploitative Counter-Strategy Encyclopedia',
     href: '/learn/player-types',
-    badge: 'Player Archetypes',
+    badge: '8 Player Archetypes',
     summary: 'HUD Stat Profiles (VPIP/PFR/3-Bet) And Exploitative Adjustments Against TAG, LAG, Nit, Calling Station, And Maniac Seats.',
   },
   {
+    category: 'Board Textures',
     title: 'Flop Board Texture & GTO C-Bet Strategy Authority Encyclopedia',
     href: '/learn/board-textures',
-    badge: 'Flop Archetypes',
+    badge: '12 Flop Archetypes',
     summary: 'Range Advantage, Nut Advantage, And Optimal 33% Vs 75% C-Bet Frequencies Across Canonical Flop Board Textures.',
   },
   {
+    category: 'GTO Lessons',
     title: 'Poker Mental Game, Tilt Control & A-Game Performance Authority Hub',
     href: '/learn/mental-game',
     badge: 'Tilt & Performance',
     summary: 'Diagnostic Triggers And Counter-Protocols For Injustice Tilt, Revenge Tilt, Downswing Despair, And Stop-Loss Discipline.',
   },
   {
+    category: 'GTO Lessons',
     title: 'Poker As A Business: Professional Bankroll, Taxes, Staking & LLC Guide',
     href: '/learn/poker-as-a-business',
     badge: 'Pro Operations',
     summary: 'Complete Operations Manual For Professional Poker Players Covering Schedule C Filing, Staking Contracts, And Bankroll Reserves.',
   },
   {
+    category: 'International Poker Guides',
     title: 'International Live Poker Destinations & Global Casino Authority Guide',
     href: '/poker-rooms/international',
-    badge: 'Global Poker Hubs',
+    badge: '10 Global Poker Hubs',
     summary: 'International Rake Structures, Currency Rules, And Tax Treaties Across London, Rozvadov, Barcelona, Monte Carlo, And Manila.',
   },
 ];
@@ -481,7 +506,10 @@ const CATEGORIES = [
   'Stake Guides',
   'Famous Hands',
   'Player Roadmaps',
+  'Player Archetypes',
+  'Board Textures',
   'US State Guides',
+  'International Poker Guides',
   'Official Poker Rules',
   'Game Variants',
   'Regional Poker Markets',
@@ -494,6 +522,13 @@ const CATEGORIES = [
 export const SEARCH_INDEX = [
   ...CALCULATOR_ITEMS.map((item) => ({
     category: 'Interactive Calculators',
+    href: item.href,
+    title: item.title,
+    summary: item.summary,
+    badge: item.badge,
+  })),
+  ...AUTHORITY_HUB_ITEMS.map((item) => ({
+    category: item.category,
     href: item.href,
     title: item.title,
     summary: item.summary,
@@ -527,12 +562,33 @@ export const SEARCH_INDEX = [
     summary: rm.summary,
     badge: '90-Day Track',
   })),
+  ...PLAYER_ARCHETYPES.map((pa) => ({
+    category: 'Player Archetypes',
+    href: playerTypePath(pa.slug),
+    title: pa.title,
+    summary: pa.summary,
+    badge: `${pa.code} (${pa.vpipRange} VPIP)`,
+  })),
+  ...BOARD_TEXTURES.map((bt) => ({
+    category: 'Board Textures',
+    href: boardTexturePath(bt.slug),
+    title: bt.title,
+    summary: bt.summary,
+    badge: `${bt.code} (${bt.optimalCbetSize})`,
+  })),
   ...US_POKER_STATES.map((st) => ({
     category: 'US State Guides',
     href: stateGuidePath(st.slug),
     title: st.title,
     summary: st.summary,
     badge: `${st.code} (${st.minAge})`,
+  })),
+  ...INTERNATIONAL_POKER_GUIDES.map((ig) => ({
+    category: 'International Poker Guides',
+    href: internationalGuidePath(ig.slug),
+    title: ig.title,
+    summary: ig.summary,
+    badge: `${ig.city} (${ig.country})`,
   })),
   ...LESSONS.map((l) => ({
     category: 'GTO Lessons',
@@ -628,6 +684,15 @@ export default function UniversalPokerSearchPage() {
   const allGroups = useMemo(() => {
     const q = query.trim().toLowerCase();
     const matchText = (text) => !q || String(text || '').toLowerCase().includes(q);
+    const hubsFor = (cat) =>
+      AUTHORITY_HUB_ITEMS.filter(
+        (item) => item.category === cat && (matchText(item.title) || matchText(item.badge) || matchText(item.summary))
+      ).map((item) => ({
+        title: item.title,
+        href: item.href,
+        badge: item.badge,
+        summary: item.summary,
+      }));
 
     const calculators = CALCULATOR_ITEMS.filter(
       (item) => matchText(item.title) || matchText(item.badge) || matchText(item.summary)
@@ -638,19 +703,22 @@ export default function UniversalPokerSearchPage() {
       summary: item.summary,
     }));
 
-    const matchups = HAND_MATCHUPS.filter(
-      (m) =>
-        matchText(m.title) ||
-        matchText(m.handA) ||
-        matchText(m.handB) ||
-        matchText(m.category) ||
-        matchText(m.summary)
-    ).map((m) => ({
-      title: m.title,
-      href: matchupPath(m.slug),
-      badge: `${m.handA} (${m.handAEquity}%) Vs ${m.handB} (${m.handBEquity}%)`,
-      summary: m.summary,
-    }));
+    const matchups = [
+      ...hubsFor('Hand Matchups'),
+      ...HAND_MATCHUPS.filter(
+        (m) =>
+          matchText(m.title) ||
+          matchText(m.handA) ||
+          matchText(m.handB) ||
+          matchText(m.category) ||
+          matchText(m.summary)
+      ).map((m) => ({
+        title: m.title,
+        href: matchupPath(m.slug),
+        badge: `${m.handA} (${m.handAEquity}%) Vs ${m.handB} (${m.handBEquity}%)`,
+        summary: m.summary,
+      })),
+    ];
 
     const rules = POKER_RULES.filter(
       (r) => matchText(r.title) || matchText(r.category) || matchText(r.tdaRef) || matchText(r.summary)
@@ -670,37 +738,46 @@ export default function UniversalPokerSearchPage() {
       summary: g.summary,
     }));
 
-    const markets = POKER_MARKETS.filter(
-      (m) => matchText(m.regionName) || matchText(m.title) || matchText(m.stateCode) || matchText(m.summary)
-    ).map((m) => ({
-      title: m.title,
-      href: marketGuidePath(m.slug),
-      badge: `${m.stateCode} Market`,
-      summary: m.summary,
-    }));
+    const markets = [
+      ...hubsFor('Regional Poker Markets'),
+      ...POKER_MARKETS.filter(
+        (m) => matchText(m.regionName) || matchText(m.title) || matchText(m.stateCode) || matchText(m.summary)
+      ).map((m) => ({
+        title: m.title,
+        href: marketGuidePath(m.slug),
+        badge: `${m.stateCode} Market`,
+        summary: m.summary,
+      })),
+    ];
 
-    const series = SERIES_GUIDES.filter(
-      (s) =>
-        matchText(s.name) ||
-        matchText(s.shortName) ||
-        matchText(s.hostVenue) ||
-        matchText(s.cityState) ||
-        matchText(s.registrationStrategy)
-    ).map((s) => ({
-      title: s.name,
-      href: seriesGuidePath(s.slug),
-      badge: s.cityState,
-      summary: `${s.hostVenue} (${s.buyInRange} Buy-Ins, ${s.mainEventBuyIn}).`,
-    }));
+    const series = [
+      ...hubsFor('Major Series Guides'),
+      ...SERIES_GUIDES.filter(
+        (s) =>
+          matchText(s.name) ||
+          matchText(s.shortName) ||
+          matchText(s.hostVenue) ||
+          matchText(s.cityState) ||
+          matchText(s.registrationStrategy)
+      ).map((s) => ({
+        title: s.name,
+        href: seriesGuidePath(s.slug),
+        badge: s.cityState,
+        summary: `${s.hostVenue} (${s.buyInRange} Buy-Ins, ${s.mainEventBuyIn}).`,
+      })),
+    ];
 
-    const research = RESEARCH_REPORTS.filter(
-      (r) => matchText(r.title) || matchText(r.category) || matchText(r.summary)
-    ).map((r) => ({
-      title: r.title,
-      href: researchPath(r.slug),
-      badge: r.category,
-      summary: r.summary,
-    }));
+    const research = [
+      ...hubsFor('Research Studies'),
+      ...RESEARCH_REPORTS.filter(
+        (r) => matchText(r.title) || matchText(r.category) || matchText(r.summary)
+      ).map((r) => ({
+        title: r.title,
+        href: researchPath(r.slug),
+        badge: r.category,
+        summary: r.summary,
+      })),
+    ];
 
     const handsSubset = (q ? STARTING_HANDS : STARTING_HANDS.slice(0, 24))
       .filter(
@@ -728,15 +805,18 @@ export default function UniversalPokerSearchPage() {
       summary: c.description,
     }));
 
-    const lessons = LESSONS.filter(
-      (l) => matchText(l.title) || matchText(l.category) || matchText(l.summary)
-    ).map((l) => ({
-      category: 'GTO Lessons',
-      href: `/learn/${l.slug}`,
-      title: l.title,
-      summary: l.summary,
-      badge: 'Lesson',
-    }));
+    const lessons = [
+      ...hubsFor('GTO Lessons'),
+      ...LESSONS.filter(
+        (l) => matchText(l.title) || matchText(l.category) || matchText(l.summary)
+      ).map((l) => ({
+        category: 'GTO Lessons',
+        href: `/learn/${l.slug}`,
+        title: l.title,
+        summary: l.summary,
+        badge: 'Lesson',
+      })),
+    ];
 
     const glossary = GLOSSARY_TERMS.filter(
       (g) =>
@@ -752,50 +832,101 @@ export default function UniversalPokerSearchPage() {
       badge: 'Term',
     }));
 
-    const positions = POKER_POSITIONS.filter(
-      (p) => matchText(p.name) || matchText(p.code) || matchText(p.title) || matchText(p.summary)
-    ).map((p) => ({
-      title: p.title,
-      href: positionPath(p.slug),
-      badge: `${p.code} (${p.rfiPct} RFI)`,
-      summary: p.summary,
-    }));
+    const positions = [
+      ...hubsFor('Table Positions'),
+      ...POKER_POSITIONS.filter(
+        (p) => matchText(p.name) || matchText(p.code) || matchText(p.title) || matchText(p.summary)
+      ).map((p) => ({
+        title: p.title,
+        href: positionPath(p.slug),
+        badge: `${p.code} (${p.rfiPct} RFI)`,
+        summary: p.summary,
+      })),
+    ];
 
-    const stakes = POKER_STAKES.filter(
-      (s) => matchText(s.name) || matchText(s.title) || matchText(s.summary)
-    ).map((s) => ({
-      title: s.title,
-      href: stakePath(s.slug),
-      badge: s.code || 'Stake Tier',
-      summary: s.summary,
-    }));
+    const stakes = [
+      ...hubsFor('Stake Guides'),
+      ...POKER_STAKES.filter(
+        (s) => matchText(s.name) || matchText(s.title) || matchText(s.summary)
+      ).map((s) => ({
+        title: s.title,
+        href: stakePath(s.slug),
+        badge: s.code || 'Stake Tier',
+        summary: s.summary,
+      })),
+    ];
 
-    const famousHands = FAMOUS_HANDS.filter(
-      (fh) => matchText(fh.title) || matchText(fh.players) || matchText(fh.event) || matchText(fh.summary)
-    ).map((fh) => ({
-      title: fh.title,
-      href: famousHandPath(fh.slug),
-      badge: fh.year ? `${fh.year}` : 'Historic Hand',
-      summary: fh.summary,
-    }));
+    const famousHands = [
+      ...hubsFor('Famous Hands'),
+      ...FAMOUS_HANDS.filter(
+        (fh) => matchText(fh.title) || matchText(fh.players) || matchText(fh.event) || matchText(fh.summary)
+      ).map((fh) => ({
+        title: fh.title,
+        href: famousHandPath(fh.slug),
+        badge: fh.year ? `${fh.year}` : 'Historic Hand',
+        summary: fh.summary,
+      })),
+    ];
 
-    const roadmaps = POKER_ROADMAPS.filter(
-      (rm) => matchText(rm.title) || matchText(rm.name) || matchText(rm.summary)
-    ).map((rm) => ({
-      title: rm.title,
-      href: roadmapPath(rm.slug),
-      badge: '90-Day Track',
-      summary: rm.summary,
-    }));
+    const roadmaps = [
+      ...hubsFor('Player Roadmaps'),
+      ...POKER_ROADMAPS.filter(
+        (rm) => matchText(rm.title) || matchText(rm.name) || matchText(rm.summary)
+      ).map((rm) => ({
+        title: rm.title,
+        href: roadmapPath(rm.slug),
+        badge: '90-Day Track',
+        summary: rm.summary,
+      })),
+    ];
 
-    const stateGuides = US_POKER_STATES.filter(
-      (st) => matchText(st.name) || matchText(st.code) || matchText(st.title) || matchText(st.summary)
-    ).map((st) => ({
-      title: st.title,
-      href: stateGuidePath(st.slug),
-      badge: `${st.code} (${st.minAge})`,
-      summary: st.summary,
-    }));
+    const playerArchetypes = [
+      ...hubsFor('Player Archetypes'),
+      ...PLAYER_ARCHETYPES.filter(
+        (pa) => matchText(pa.name) || matchText(pa.code) || matchText(pa.title) || matchText(pa.summary)
+      ).map((pa) => ({
+        title: pa.title,
+        href: playerTypePath(pa.slug),
+        badge: `${pa.code} (${pa.vpipRange} VPIP)`,
+        summary: pa.summary,
+      })),
+    ];
+
+    const boardTextures = [
+      ...hubsFor('Board Textures'),
+      ...BOARD_TEXTURES.filter(
+        (bt) => matchText(bt.name) || matchText(bt.code) || matchText(bt.title) || matchText(bt.summary)
+      ).map((bt) => ({
+        title: bt.title,
+        href: boardTexturePath(bt.slug),
+        badge: `${bt.code} (${bt.optimalCbetSize})`,
+        summary: bt.summary,
+      })),
+    ];
+
+    const stateGuides = [
+      ...hubsFor('US State Guides'),
+      ...US_POKER_STATES.filter(
+        (st) => matchText(st.name) || matchText(st.code) || matchText(st.title) || matchText(st.summary)
+      ).map((st) => ({
+        title: st.title,
+        href: stateGuidePath(st.slug),
+        badge: `${st.code} (${st.minAge})`,
+        summary: st.summary,
+      })),
+    ];
+
+    const internationalGuides = [
+      ...hubsFor('International Poker Guides'),
+      ...INTERNATIONAL_POKER_GUIDES.filter(
+        (ig) => matchText(ig.city) || matchText(ig.country) || matchText(ig.title) || matchText(ig.summary)
+      ).map((ig) => ({
+        title: ig.title,
+        href: internationalGuidePath(ig.slug),
+        badge: `${ig.city} (${ig.country})`,
+        summary: ig.summary,
+      })),
+    ];
 
     return [
       { category: 'Interactive Calculators', items: calculators },
@@ -806,7 +937,10 @@ export default function UniversalPokerSearchPage() {
       { category: 'Stake Guides', items: stakes },
       { category: 'Famous Hands', items: famousHands },
       { category: 'Player Roadmaps', items: roadmaps },
+      { category: 'Player Archetypes', items: playerArchetypes },
+      { category: 'Board Textures', items: boardTextures },
       { category: 'US State Guides', items: stateGuides },
+      { category: 'International Poker Guides', items: internationalGuides },
       { category: 'Official Poker Rules', items: rules },
       { category: 'Game Variants', items: games },
       { category: 'Regional Poker Markets', items: markets },
@@ -845,7 +979,7 @@ export default function UniversalPokerSearchPage() {
       '@id': `${canonicalUrl}#search`,
       name: 'Universal Poker Search & Command Directory',
       description:
-        'Search Across 24 Interactive Poker Calculators, 169 Starting Hands, 25 Hand Matchups, 30 Official Rules, 15 Game Variants, And 15 Research Studies.',
+        'Search Across 42 Interactive Poker Calculators, 169 Starting Hands, 25 Hand Matchups, 30 Official Rules, 15 Game Variants, And 15 Research Studies.',
       url: canonicalUrl,
       inLanguage: 'en-US',
       isPartOf: { '@id': 'https://smarter.poker/#website' },
@@ -865,7 +999,7 @@ export default function UniversalPokerSearchPage() {
     <div style={styles.page}>
       <SEOHead
         title="Universal Poker Search And Command Directory"
-        description="Search Across 24 Interactive Poker Calculators, 169 Starting Hands, 25 Hand Matchups, 30 Official Rules, 15 Game Variants, And 15 Research Studies."
+        description="Search Across 42 Interactive Poker Calculators, 169 Starting Hands, 25 Hand Matchups, 30 Official Rules, 15 Game Variants, And 15 Research Studies."
         canonical="/search"
         jsonLd={jsonLd}
       />
@@ -892,7 +1026,7 @@ export default function UniversalPokerSearchPage() {
           </h1>
 
           <p style={styles.lead}>
-            Instantly Search Across <strong>24 Interactive Poker Calculators</strong>, <strong>169 GTO Starting Hands</strong>, <strong>25 Head-To-Head Matchups</strong>, <strong>30 Official TDA &amp; RROP Rules</strong>, <strong>15 Game Variants</strong>, <strong>12 US Regional Markets</strong>, <strong>10 Major Series Guides</strong>, And <strong>15 Empirical Research Studies</strong>.
+            Instantly Search Across <strong>42 Interactive Poker Calculators</strong>, <strong>169 GTO Starting Hands</strong>, <strong>25 Head-To-Head Matchups</strong>, <strong>30 Official TDA &amp; RROP Rules</strong>, <strong>15 Game Variants</strong>, <strong>12 US Regional Markets</strong>, <strong>10 Major Series Guides</strong>, And <strong>15 Empirical Research Studies</strong>.
           </p>
 
           <div style={styles.searchBoxWrap}>
@@ -1003,7 +1137,7 @@ export default function UniversalPokerSearchPage() {
           badgeType="research"
           badgeLabel="Master Knowledge Index"
           badgeValue="Smarter.Poker Directory"
-          summary="Search Across 24 Interactive Poker Calculators, 169 Starting Hands, 25 Hand Matchups, 30 Official Rules, 15 Game Variants, And 15 Research Studies."
+          summary="Search Across 42 Interactive Poker Calculators, 169 Starting Hands, 25 Hand Matchups, 30 Official Rules, 15 Game Variants, And 15 Research Studies."
           publishedYear="2026"
           slug="smarter-poker-universal-search"
         />

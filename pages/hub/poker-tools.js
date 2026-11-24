@@ -27,6 +27,8 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
+import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
+import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import {
     calculateEquity, makeCard, GAME_CONFIGS, PRESETS, parsePresetHands
 } from '../../src/lib/poker/pokerOddsEngine';
@@ -845,6 +847,20 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
                                 </div>
                             </section>
                             <HubPageSummary surface="poker-tools" />
+                            <CitationBacklinkBox
+                                title="Multiway Poker Odds & Equity Calculator"
+                                canonicalUrl="https://smarter.poker/tools/poker-odds-calculator"
+                                badgeType="gto"
+                                badgeLabel="GTO Math Verified"
+                                badgeValue="Smarter.Poker Odds Solver"
+                                summary="Free Multiway Texas Holdem, PLO4, PLO5, PLO6, 7-Card Stud And Razz Poker Odds And Equity Calculator."
+                                slug="poker-odds-calculator"
+                            />
+                            <AiPromptLauncher
+                                title="Multiway Poker Odds & Equity Calculator"
+                                canonicalUrl="https://smarter.poker/tools/poker-odds-calculator"
+                                markdownUrl="https://smarter.poker/tools/poker-odds-calculator.md"
+                            />
                         </>
                     ) : (
                         <div className="odds-embed-credit">

@@ -5,6 +5,8 @@ import SEOHead, { schemas } from '../../src/components/seo/SEOHead';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { DEAD_TOOL_REPLACEMENTS } from '../../src/lib/seo/backlinkCatalog.mjs';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
+import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import { Code, Copy, Check, ExternalLink, ShieldCheck, Zap } from 'lucide-react';
 
 const WIDGETS = [
@@ -430,6 +432,14 @@ export const PARTNER_BADGES = [
     badgeUrl: 'https://smarter.poker/api/seo/badge?type=venue',
     targetUrl: 'https://smarter.poker/hub/poker-near-me/lobby',
     altText: 'Verified Poker Room: Smarter.Poker Directory',
+  },
+  {
+    id: 'badge-directory-listing',
+    title: 'Public Directory Listing Badge',
+    description: 'For public poker rooms, card clubs, and charity venues indexed in the Smarter.Poker live room directory.',
+    badgeUrl: 'https://smarter.poker/api/seo/badge?type=directory-listing',
+    targetUrl: 'https://smarter.poker/hub/poker-near-me/lobby',
+    altText: 'Public Directory Listing: Smarter.Poker Directory',
   },
   {
     id: 'badge-commander',
@@ -1095,7 +1105,7 @@ export default function WebmasterEmbedPortal() {
         steps: [
           {
             name: 'Select A Poker Widget Or Attribution Badge',
-            text: `Choose from any of the ${WIDGETS.length} interactive poker calculators (Multiway Odds, ICM, GTO Preflop Ranges, Pot Odds, Push/Fold, Bankroll, Bounty, Winrate, Side Pot, Blind Structure, SPR, PLO Max Bet, Payouts, Rake, 3-Bet Sizing, Final Table Chop, Variance, Draw Outs, Poker Tax, Staking, Iso-Raise, Home Game Kit, or Format Quiz), ${PARTNER_BADGES.length} SVG attribution badges, or ${STREAM_CHAT_COMMANDS.length} Nightbot/StreamElements commands.`,
+            text: `Choose from any of the forty-one interactive poker calculators (Multiway Odds, ICM, GTO Preflop Ranges, Pot Odds, Push/Fold, Bankroll, Bounty, Winrate, Side Pot, Blind Structure, SPR, PLO Max Bet, Payouts, Rake, 3-Bet Sizing, Final Table Chop, Variance, Draw Outs, Poker Tax, Staking, Iso-Raise, Home Game Kit, Format Quiz, Board Texture, M-Ratio, Session Planner, Straddle EV, Hand Converter, Satellite Seat-Lock, Promo EV, Showdown Winner, Mixed-Game Placards, Poker IQ Test, Geometric Sizing, Late-Reg ICM, MTT Grind Planner, PLO Wrap Outs, Poker Trip Planner, Shot Clock, Table Selection, or Winrate Confidence), ${PARTNER_BADGES.length} SVG attribution badges, or ${STREAM_CHAT_COMMANDS.length} Nightbot/StreamElements commands.`,
           },
           {
             name: 'Copy The Responsive Iframe Or Badge Snippet',
@@ -1253,10 +1263,10 @@ export default function WebmasterEmbedPortal() {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                 {[
                   { id: 'all', label: `All Widgets (${WIDGETS.length})` },
-                  { id: 'equity', label: 'Equity & Preflop (6)' },
-                  { id: 'tournament', label: 'Tournament & ICM (8)' },
-                  { id: 'cash', label: 'Cash Game & Rake (5)' },
-                  { id: 'bankroll', label: 'Bankroll, Tax & Home Game (4)' },
+                  { id: 'equity', label: `Equity & Preflop (${WIDGETS.filter((w) => (WIDGET_CATEGORY_MAP[w.id] || 'equity') === 'equity').length})` },
+                  { id: 'tournament', label: `Tournament & ICM (${WIDGETS.filter((w) => WIDGET_CATEGORY_MAP[w.id] === 'tournament').length})` },
+                  { id: 'cash', label: `Cash Game & Rake (${WIDGETS.filter((w) => WIDGET_CATEGORY_MAP[w.id] === 'cash').length})` },
+                  { id: 'bankroll', label: `Bankroll, Tax & Home Game (${WIDGETS.filter((w) => WIDGET_CATEGORY_MAP[w.id] === 'bankroll').length})` },
                 ].map((cat) => (
                   <button
                     key={cat.id}
@@ -1492,7 +1502,7 @@ export default function WebmasterEmbedPortal() {
           <section aria-labelledby="streamer-commands-heading" style={{ marginTop: '48px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
               <h2 id="streamer-commands-heading" style={{ fontSize: '1.6rem', fontWeight: 700, margin: 0 }}>
-                26 Twitch, YouTube &amp; Kick Streamer Chatbot Commands (Nightbot / StreamElements)
+                34 Twitch, YouTube &amp; Kick Streamer Chatbot Commands (Nightbot / StreamElements)
               </h2>
               <div style={{ display: 'flex', gap: '8px' }}>
                 {[
@@ -1521,7 +1531,7 @@ export default function WebmasterEmbedPortal() {
               </div>
             </div>
             <p style={{ fontSize: '0.96rem', color: 'rgba(255, 255, 255, 0.72)', lineHeight: 1.6, marginBottom: '24px' }}>
-              Add All 26 Instant Live Poker Equity, Pot Odds, ICM Bubble Factors, Final Table Chop, Variance, Draw Outs, US Poker Tax, Staking Markup, Limper Isolation, Series Survival Guides, Flop Board Texture, Harrington M-Ratio, Straddle &amp; Bomb Pot EV, Satellite Bubble Factor, Bad Beat Jackpot EV, Seat Position Ranges, Poker Math Formulas, GTO IQ Test, PLO Max Bet Math, And Official TDA Floor Rulings Commands Directly To Your Stream Chat. Viewers Type The Command In Chat And Receive An Instant Sub-380-Character Mathematical Answer With Canonical Attribution.
+              Add All 34 Instant Live Poker Equity, Pot Odds, ICM Bubble Factors, Final Table Chop, Variance, Draw Outs, US Poker Tax, Staking Markup, Limper Isolation, Series Survival Guides, Flop Board Texture, Harrington M-Ratio, Straddle &amp; Bomb Pot EV, Satellite Bubble Factor, Bad Beat Jackpot EV, Seat Position Ranges, Poker Math Formulas, GTO IQ Test, PLO Max Bet Math, Omaha Straight Wraps (!Wrap), Late-Registration ICM (!Latereg), Winrate Confidence Intervals (!Confidence), Festival Trip Overhead (!Trip), Geometric 2e/3e Sizing (!Geo), Live Table Selection (!Table), Player Archetype Exploits (!Exploit), International Poker Destinations (!Intl), And Official TDA Floor Rulings Commands Directly To Your Stream Chat. Viewers Type The Command In Chat And Receive An Instant Sub-380-Character Mathematical Answer With Canonical Attribution.
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: '16px' }}>
               {STREAM_CHAT_COMMANDS.map((cmdItem) => {
@@ -1942,7 +1952,7 @@ export default function WebmasterEmbedPortal() {
                   textDecoration: 'none',
                 }}
               >
-                All 34 Free Poker Calculators
+                All 42 Free Poker Calculators
               </Link>
               <Link
                 href="/compare"
@@ -2099,6 +2109,22 @@ export default function WebmasterEmbedPortal() {
               </Link>
             </div>
           </section>
+
+          <CitationBacklinkBox
+            title="Smarter.Poker Free Embeddable Poker Calculators & Streamer Bot API"
+            canonicalUrl="https://smarter.poker/tools/embeds"
+            badgeType="gto"
+            badgeLabel="Embed Widgets Portal"
+            badgeValue="41 Widgets + 16 Badges + 34 Bot Commands"
+            summary="Free Responsive Iframe Widgets, 1-Line JS SDK, 16 SVG Attribution Badges, And 34 Nightbot And StreamElements Chatbot Commands For Poker Webmasters And Streamers."
+            slug="poker-embeds-and-widgets"
+          />
+
+          <AiPromptLauncher
+            title="Smarter.Poker Free Embeddable Poker Calculators & Streamer Bot API"
+            canonicalUrl="https://smarter.poker/tools/embeds"
+            markdownUrl="https://smarter.poker/tools/embeds.md"
+          />
         </main>
       </div>
     </>

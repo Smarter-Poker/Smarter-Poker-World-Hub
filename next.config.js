@@ -1242,7 +1242,7 @@ const nextConfig = {
       // Guarantees max-snippet:-1, max-image-preview:large, max-video-preview:-1
       // and Vary: Accept across all public AEO content and Markdown endpoints.
       {
-        source: '/:path(learn|learn/.*|glossary|glossary/.*|compare|compare/.*|features|features/.*|research|research/.*|rules|rules/.*|games|games/.*|poker-rooms/guides|poker-rooms/guides/.*|tools/.*|about|verification-methodology|editorial-standards|freerolls)',
+        source: '/:path(learn|learn/.*|glossary|glossary/.*|compare|compare/.*|features|features/.*|research|research/.*|rules|rules/.*|games|games/.*|poker-rooms/guides|poker-rooms/guides/.*|poker-rooms/states|poker-rooms/states/.*|poker-rooms/international|poker-rooms/international/.*|poker-rooms/comps-and-tipping-guide|poker-rooms/first-time-guide|poker-series/guides|poker-series/guides/.*|tools|tools/.*|press|search|about|verification-methodology|editorial-standards|freerolls)',
         headers: [
           {
             key: 'X-Robots-Tag',
@@ -1502,6 +1502,36 @@ const nextConfig = {
           destination: '/api/hub-tool-markdown?path=/learn/live-poker-tells',
         },
         {
+          source: '/learn/player-types',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/learn/player-types',
+        },
+        {
+          source: '/learn/player-types/:type',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/learn/player-types/:type',
+        },
+        {
+          source: '/learn/board-textures',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/learn/board-textures',
+        },
+        {
+          source: '/learn/board-textures/:slug',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/learn/board-textures/:slug',
+        },
+        {
+          source: '/learn/mental-game',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/learn/mental-game',
+        },
+        {
+          source: '/learn/poker-as-a-business',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/learn/poker-as-a-business',
+        },
+        {
           source: '/learn/:slug',
           has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
           destination: '/api/learn-markdown?slug=:slug',
@@ -1672,6 +1702,61 @@ const nextConfig = {
           destination: '/api/hub-tool-markdown?path=/tools/poker-iq-test',
         },
         {
+          source: '/tools/plo-outs-calculator',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/plo-outs-calculator',
+        },
+        {
+          source: '/tools/late-reg-calculator',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/late-reg-calculator',
+        },
+        {
+          source: '/tools/winrate-confidence-calculator',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/winrate-confidence-calculator',
+        },
+        {
+          source: '/tools/poker-trip-planner',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/poker-trip-planner',
+        },
+        {
+          source: '/tools/shot-clock',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/shot-clock',
+        },
+        {
+          source: '/tools/geometric-bet-calculator',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/geometric-bet-calculator',
+        },
+        {
+          source: '/tools/table-selection-calculator',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/table-selection-calculator',
+        },
+        {
+          source: '/tools/mtt-grind-planner',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/mtt-grind-planner',
+        },
+        {
+          source: '/tools/what-beats-what',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/who-wins-calculator',
+        },
+        {
+          source: '/poker-rooms/international',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/international',
+        },
+        {
+          source: '/poker-rooms/international/:slug',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/international/:slug',
+        },
+        {
           source: '/poker-rooms/states',
           has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
           destination: '/api/hub-tool-markdown?path=/poker-rooms/states',
@@ -1685,6 +1770,51 @@ const nextConfig = {
           source: '/poker-rooms/comps-and-tipping-guide',
           has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
           destination: '/api/hub-tool-markdown?path=/poker-rooms/comps-and-tipping-guide',
+        },
+        {
+          source: '/learn/player-types',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/learn/player-types',
+        },
+        {
+          source: '/learn/player-types/:type',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/learn/player-types/:type',
+        },
+        {
+          source: '/learn/board-textures',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/learn/board-textures',
+        },
+        {
+          source: '/learn/board-textures/:slug',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/learn/board-textures/:slug',
+        },
+        {
+          source: '/learn/mental-game',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/learn/mental-game',
+        },
+        {
+          source: '/learn/poker-as-a-business',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/learn/poker-as-a-business',
+        },
+        {
+          source: '/poker-rooms/international',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/international',
+        },
+        {
+          source: '/poker-rooms/international/:slug',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/international/:slug',
+        },
+        {
+          source: '/tools/:tool',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/tools/:tool',
         },
         {
           source: '/learn/positions',
@@ -2057,6 +2187,10 @@ const nextConfig = {
         },
         {
           source: '/tools/who-wins-calculator.md',
+          destination: '/api/hub-tool-markdown?path=/tools/who-wins-calculator',
+        },
+        {
+          source: '/tools/what-beats-what.md',
           destination: '/api/hub-tool-markdown?path=/tools/who-wins-calculator',
         },
         {

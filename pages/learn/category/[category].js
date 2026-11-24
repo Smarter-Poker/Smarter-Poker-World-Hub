@@ -13,6 +13,7 @@
 
 import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import {
   LEARN_PATH,
@@ -208,6 +209,16 @@ export default function LearnCategoryPillarPage({ category, intro, lessons, othe
               </li>
             </ul>
           </section>
+
+          <CitationBacklinkBox
+            title={`${category} Poker Strategy Lessons`}
+            canonicalUrl={`${SITE_URL}${path}`}
+            badgeType="gto"
+            badgeLabel={`${category} Strategy Cluster`}
+            badgeValue="Smarter.Poker Strategy Encyclopedia"
+            summary={description}
+            slug={`learn-category-${categoryAnchor(category)}`}
+          />
 
           <AiPromptLauncher
             title={`${category} Poker Strategy Lessons`}
