@@ -356,3 +356,79 @@ assert calls[-1][1]['json']['status'] == 'resolved'
 assert calls[-1][1]['json']['payload']['jobname'] == 'workers-health'
 assert 'resolves' not in calls[-1][1]['json']['payload']
 print('episode-correlation-and-jobname-scope: OK')
+
+# 12. OUTBOX-DRAIN RECOVERY & active_episode_id CLEANUP (incident 7d76c5b8).
+#
+# When initial firing fails transiently, state['alert_sent'] stays False while
+# pending=[firing(ep_1)] and active_episode_id=ep_1. If the 5-minute outbox
+# drain delivers firing(ep_1), pending becomes [] while the caller's in-memory
+# state['alert_sent'] is still False. On recovery, the caller skips
+# _alert(..., recovery=True) and calls _alert_flush(state) with consec_fail=0.
+# _drain_alert_outbox must update entry['alert_sent'] and _alert_flush must
+# emit correlated <ep_1>:resolved and clear active_episode_id so the next
+# outage gets a fresh ep_2 != ep_1.
+d._send_sms = lambda body, **kwargs: True
+for _ in range(10):
+    d._drain_all_alert_outboxes()
+calls.clear()
+d.requests.post = fake_post
+
+DRAIN_JOB = '/api/cron/outbox-drain-recovery-test'
+DRAIN_KEY = f'critical:{DRAIN_JOB}'
+
+# (a) Initial firing fails transiently while transport is offline.
+d._send_sms = offline
+st_drain = d._alert_bind(DRAIN_KEY, {'consec_fail': 2, 'alert_sent': False})
+st_drain['alert_sent'] = d._alert(st_drain, f'CRITICAL {DRAIN_JOB} failed 2x')
+d._alert_flush(st_drain)
+entry_drain = d._alert_persist[DRAIN_KEY]
+assert st_drain['alert_sent'] is False, st_drain
+assert entry_drain['alert_sent'] is False, entry_drain
+assert len(entry_drain['pending']) == 1 and entry_drain['pending'][0]['recovery'] is False, entry_drain
+ep_1 = entry_drain.get('active_episode_id')
+assert isinstance(ep_1, str) and ep_1, entry_drain
+assert entry_drain['pending'][0]['id'] == ep_1, entry_drain
+
+# (b) Transport comes back and _drain_all_alert_outboxes() delivers firing(ep_1).
+d._send_sms = transport
+d._drain_all_alert_outboxes()
+assert len(calls) == 1, calls
+drain_fire = calls[-1][1]['json']
+assert drain_fire['status'] == 'firing', drain_fire
+assert drain_fire['eventKey'] == ep_1, drain_fire
+assert drain_fire['payload']['jobname'] == DRAIN_JOB, drain_fire
+assert entry_drain['pending'] == [], entry_drain
+assert entry_drain['alert_sent'] is True, f'persisted alert_sent must be True after firing drains: {entry_drain}'
+
+# (c) Job recovers (consec_fail = 0) while in-memory st_drain['alert_sent'] is still False.
+assert st_drain['alert_sent'] is False
+st_drain['consec_fail'] = 0
+d._alert_flush(st_drain)
+
+# (d) _alert_flush emits correlated <ep_1>:resolved and clears active_episode_id.
+assert len(calls) == 2, f'expected correlated recovery after outbox-drained firing, got {calls}'
+drain_rec = calls[-1][1]['json']
+assert drain_rec['status'] == 'resolved', drain_rec
+assert drain_rec['eventKey'] == f'{ep_1}:resolved', drain_rec
+assert drain_rec['payload']['resolves'] == ep_1, drain_rec
+assert drain_rec['payload']['jobname'] == DRAIN_JOB, drain_rec
+assert drain_rec['payload']['labels']['job'] == DRAIN_JOB, drain_rec
+assert entry_drain['pending'] == [], entry_drain
+assert entry_drain['alert_sent'] is False, entry_drain
+assert 'active_episode_id' not in entry_drain, f'active_episode_id must be cleared: {entry_drain}'
+
+# Idempotency: flushing again while healthy must not emit a duplicate recovery.
+d._alert_flush(st_drain)
+assert len(calls) == 2, f'healthy re-flush must not emit duplicate recovery: {calls}'
+
+# Next outage (even with identical failure text) must get a brand-new ep_2 != ep_1.
+st_drain['consec_fail'] = 2
+assert d._alert(st_drain, f'CRITICAL {DRAIN_JOB} failed 2x')
+assert len(calls) == 3, calls
+drain_fire2 = calls[-1][1]['json']
+ep_2 = drain_fire2['eventKey']
+assert drain_fire2['status'] == 'firing', drain_fire2
+assert ep_2 != ep_1, f'new outage must get a fresh episode id, got {ep_2} == {ep_1}'
+assert drain_fire2['payload']['jobname'] == DRAIN_JOB, drain_fire2
+assert entry_drain.get('active_episode_id') == ep_2, entry_drain
+print('outbox-drain-recovery: OK')
