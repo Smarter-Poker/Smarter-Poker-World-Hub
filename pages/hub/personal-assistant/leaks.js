@@ -1639,18 +1639,19 @@ export default function LeakFinderPage() {
   }, [router.isReady, router.query?.hand]);
 
   // Deep link: /hub/personal-assistant/leaks?leak=<id>
-  const deepLinkedRef = useRef(false);
+  const deepLinkedTargetRef = useRef(null);
   useEffect(() => {
-    if (deepLinkedRef.current || !router.isReady || leaksLoading) return;
+    if (!router.isReady || leaksLoading) return;
     const raw = router.query?.leak;
     const target = Array.isArray(raw) ? raw[0] : raw;
-    if (!target) { deepLinkedRef.current = true; return; }
+    if (!target) { deepLinkedTargetRef.current = null; return; }
+    if (deepLinkedTargetRef.current === String(target)) return;
     const match = selectablePool.find(l => String(l.id) === String(target));
     if (match) {
       setSelectedLeakId(match.id);
-      deepLinkedRef.current = true;
+      deepLinkedTargetRef.current = String(target);
     } else if (selectablePool.length > 0) {
-      deepLinkedRef.current = true;
+      deepLinkedTargetRef.current = String(target);
     }
   }, [router.isReady, router.query, selectablePool, leaksLoading]);
 
@@ -1671,6 +1672,13 @@ export default function LeakFinderPage() {
 
   const handleRunDetection = useCallback(async () => {
     if (!requireOnline()) return;
+    if (!userId) {
+      setDetectionSummary({
+        type: 'info',
+        text: 'Sign In To Audit Your Club Arena Hands And Detect Leaks.',
+      });
+      return;
+    }
     haptic('medium');
     setDetectionSummary(null);
     let result;
@@ -1749,18 +1757,20 @@ export default function LeakFinderPage() {
 
   useEffect(() => {
     const COOLDOWN_MS = 24 * 60 * 60 * 1000;
-    const KEY = 'pa-auto-detect-last';
-
-    if (autoDetectRef.current) return;                  // once per mount
     if (!paHasAccess || !userId) return;                // entitled + signed in
-    if (leaksLoading || isDetecting) return;            // let loads settle
+    const KEY = `pa-auto-detect-last:${userId}`;
+
+    if (autoDetectRef.current === userId) return;       // once per mount per account
+    if (leaksLoading || leaksError || isDetecting) return;
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+    if (auditJob?.status === 'queued' || auditJob?.status === 'running') return;
     if (leaksAreDemo) return;                           // sample data is not "no leaks"
     if (leaks.length > 0) return;                       // already has real leaks
 
     const last = Number(safeStorage.get(KEY, '0'));
     if (Number.isFinite(last) && last > 0 && Date.now() - last < COOLDOWN_MS) return;
 
-    autoDetectRef.current = true;
+    autoDetectRef.current = userId;
     setAutoDetecting(true);
     (async () => {
       try {
@@ -1772,7 +1782,7 @@ export default function LeakFinderPage() {
         setAutoDetecting(false);
       }
     })();
-  }, [paHasAccess, userId, leaksLoading, isDetecting, leaksAreDemo, leaks.length, runDetection]);
+  }, [paHasAccess, userId, leaksLoading, leaksError, isDetecting, auditJob?.status, leaksAreDemo, leaks.length, runDetection]);
 
   const celebrate = useCallback(async () => {
     if (reduceMotion) return;
@@ -1824,8 +1834,8 @@ export default function LeakFinderPage() {
   const handleOpenHandReview = useCallback((leak) => {
     if (!guardAction()) return;
     const target = leak || selectedLeak;
-    if (!target) return;
-    router.push('/hub/training/hand-history-upload?source=personal-assistant-leaks');
+    const leakParam = target?.id ? `&leak=${encodeURIComponent(String(target.id))}` : '';
+    router.push(`/hub/training/hand-history-upload?source=personal-assistant-leaks${leakParam}`);
   }, [guardAction, router, selectedLeak]);
 
   /**
@@ -2456,6 +2466,17 @@ export default function LeakFinderPage() {
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: S.xs, flexWrap: 'wrap' }}>
+                    {userId && (
+                      <button
+                        type="button"
+                        className="pa-btn"
+                        style={btn('primary')}
+                        disabled={isDetecting}
+                        onClick={handleRunDetection}
+                      >
+                        {isDetecting ? 'Auditing Hands…' : 'Audit This Hand'}
+                      </button>
+                    )}
                     <button
                       type="button"
                       className="pa-btn"

@@ -57,7 +57,11 @@ function boardObject(value) {
     const flop = cards(value.flop || [], 'Flop');
     const turn = value.turn ? cards([value.turn], 'Turn')[0] : null;
     const river = value.river ? cards([value.river], 'River')[0] : null;
-    return validateBoard([...flop, turn, river].filter(Boolean));
+    const combined = [...flop, turn, river].filter(Boolean);
+    if (new Set(combined).size !== combined.length) {
+      throw new NativeSolverImportError('Duplicate Card Found Across Board Streets.');
+    }
+    return validateBoard(combined);
   }
   return validateBoard(cards(value));
 }
@@ -110,14 +114,21 @@ function parseDelimited(input) {
   const rows = csvRows(input);
   if (rows.length < 2) throw new NativeSolverImportError('Solver CSV Needs A Header And At Least One Data Row.');
   const headers = rows[0];
-  return Object.fromEntries(headers.map((header, index) => [header, rows[1][index] ?? '']));
+  const record = Object.create(null);
+  headers.forEach((header, index) => {
+    if (header === '__proto__' || header === 'constructor' || header === 'prototype') return;
+    record[header] = rows[1][index] ?? '';
+  });
+  return { record, extraRows: Math.max(0, rows.length - 2) };
 }
 
 function parseLabelledText(input) {
-  const record = {};
+  const record = Object.create(null);
   for (const line of input.split(/\r?\n/)) {
     const match = line.match(/^\s*([A-Za-z][A-Za-z +_-]{1,40})\s*[:=]\s*(.*?)\s*$/);
-    if (match) record[match[1]] = match[2];
+    if (match && match[1] !== '__proto__' && match[1] !== 'constructor' && match[1] !== 'prototype') {
+      record[match[1]] = match[2];
+    }
   }
   if (!Object.keys(record).length) {
     throw new NativeSolverImportError('The Solver Export Format Was Not Recognized.');
@@ -125,7 +136,7 @@ function parseLabelledText(input) {
   return record;
 }
 
-function normalizeRecord(record, provider) {
+function normalizeRecord(record, provider, warnings = []) {
   const firstVillain = Array.isArray(record?.villains) ? record.villains[0] : null;
   const rawBoard = recordValue(record, 'board') ?? [
     recordValue(record, 'flop'), recordValue(record, 'turn'), recordValue(record, 'river'),
@@ -134,13 +145,17 @@ function normalizeRecord(record, provider) {
   const villainPosition = position(firstVillain?.position ?? recordValue(record, 'villain position', 'villainPosition', 'villain', 'out of position'), 'Villain Position');
   if (heroPosition === villainPosition) throw new NativeSolverImportError('Hero And Villain Positions Must Be Different.');
   const potSize = positiveNumber(recordValue(record, 'pot', 'pot size', 'potSize'), 'Pot Size');
-  const effStack = positiveNumber(recordValue(record, 'effective stack', 'effStack', 'stack', 'effective stack bb'), 'Effective Stack');
-  const villainRange = String(firstVillain?.range ?? recordValue(record, 'villain range', 'oop range', 'range') ?? '').trim();
+  const effStack = positiveNumber(recordValue(record, 'effective stack', 'effectiveStack', 'effStack', 'stack', 'effective stack bb'), 'Effective Stack');
+  const rawRange = String(firstVillain?.range ?? recordValue(record, 'villain range', 'villainRange', 'oop range', 'oopRange', 'range') ?? '').trim();
+  if (rawRange.length > 500) {
+    throw new NativeSolverImportError('Villain Range Must Be No Longer Than 500 Characters.');
+  }
+  const safeProvider = String(provider || 'Smarter.Poker').trim().slice(0, 64) || 'Smarter.Poker';
 
   return {
-    provider,
+    provider: safeProvider,
     formatVersion: 'pa-native-solver-import-v1',
-    warnings: [],
+    warnings,
     state: {
       board: boardObject(rawBoard),
       heroPosition,
@@ -149,7 +164,7 @@ function normalizeRecord(record, provider) {
       villains: [{
         id: 1,
         position: villainPosition,
-        range: villainRange,
+        range: rawRange,
         archetype: { id: 'gto_neutral', name: 'GTO Neutral' },
         stack: effStack,
       }],
@@ -169,24 +184,33 @@ export function parseNativeSolverImport(input, { fileName = '' } = {}) {
   const trimmed = text.trim();
   let provider = 'Smarter.Poker';
   let record;
+  const warnings = [];
   if (trimmed.startsWith('{')) {
     try { record = JSON.parse(trimmed); }
     catch { throw new NativeSolverImportError('Solver JSON Could Not Be Parsed.'); }
-    provider = String(record.provider || record.solver || provider).trim() || provider;
+    provider = String(record.provider || record.solver || provider).trim().slice(0, 64) || provider;
   } else if (/piosolver/i.test(trimmed) || /\.pio$/i.test(fileName)) {
     provider = 'PioSolver';
     record = parseLabelledText(trimmed);
   } else if (/gto\+/i.test(trimmed) || /gto[+_-]?plus/i.test(fileName)) {
     provider = 'GTO+';
-    record = trimmed.includes(',') && trimmed.includes('\n') ? parseDelimited(trimmed) : parseLabelledText(trimmed);
+    if (trimmed.includes(',') && trimmed.includes('\n')) {
+      const parsed = parseDelimited(trimmed);
+      record = parsed.record;
+      if (parsed.extraRows > 0) warnings.push(`Imported The First CSV Row Only (${parsed.extraRows} Additional Row${parsed.extraRows === 1 ? '' : 's'} Ignored).`);
+    } else {
+      record = parseLabelledText(trimmed);
+    }
   } else if (trimmed.includes(',') && trimmed.includes('\n')) {
     provider = 'GTO+';
-    record = parseDelimited(trimmed);
+    const parsed = parseDelimited(trimmed);
+    record = parsed.record;
+    if (parsed.extraRows > 0) warnings.push(`Imported The First CSV Row Only (${parsed.extraRows} Additional Row${parsed.extraRows === 1 ? '' : 's'} Ignored).`);
   } else {
     provider = 'PioSolver';
     record = parseLabelledText(trimmed);
   }
-  return normalizeRecord(record, provider);
+  return normalizeRecord(record, provider, warnings);
 }
 
 export default { parseNativeSolverImport, NativeSolverImportError };

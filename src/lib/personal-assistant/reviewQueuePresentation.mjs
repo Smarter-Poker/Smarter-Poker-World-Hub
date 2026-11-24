@@ -1,5 +1,6 @@
 import { safeStorage } from '../../components/sandbox/paKit';
 import { SCHEMA_VERSION as REVIEW_SCHEMA_VERSION } from '../sandbox/leakReview.js';
+export { dueInLabel, queueReason } from './reviewQueueLabels.mjs';
 
 const REVIEW_STORE_KEY = `pa-leak-review-v${REVIEW_SCHEMA_VERSION}`;
 const LEGACY_REVIEW_STORE_KEYS = ['pa-leak-review-v2', 'pa-leak-review-v1']
@@ -47,27 +48,4 @@ export function definedOnly(obj) {
 export function fromServerReviewRecord(row) {
   if (!row || typeof row !== 'object') return null;
   return { ...row, lastReviewedAt: row.updatedAt || row.createdAt || null };
-}
-
-export function dueInLabel(iso, nowMs) {
-  const time = new Date(iso || '').getTime();
-  if (!Number.isFinite(time) || !Number.isFinite(nowMs) || nowMs <= 0) return null;
-  const days = Math.ceil((time - nowMs) / 86_400_000);
-  if (days <= 0) return 'today';
-  if (days === 1) return 'tomorrow';
-  if (days < 7) return `in ${days} days`;
-  try {
-    return `on ${new Date(time).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`;
-  } catch (_) {
-    return `in ${days} days`;
-  }
-}
-
-export function queueReason(entry) {
-  if (!entry) return '';
-  if (entry.isNew) return 'Not drilled yet';
-  if (entry.revived) return 'Detected again since your last review';
-  const overdue = Math.floor(Number(entry.overdueDays) || 0);
-  if (overdue >= 1) return `${overdue} day${overdue === 1 ? '' : 's'} overdue`;
-  return 'Due today';
 }

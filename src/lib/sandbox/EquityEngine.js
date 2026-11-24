@@ -24,7 +24,7 @@
 
 // The worker body, as a string. Pure data — importing it costs nothing at
 // runtime and it is never touched during SSR. See the worker section below.
-import { EQUITY_WORKER_SOURCE } from './equityWorkerSource';
+import { EQUITY_WORKER_SOURCE } from './equityWorkerSource.js';
 
 /* @equity-core:start */
 
@@ -98,8 +98,8 @@ function evaluateHand(cards) {
     for (let i = 0; i < cards.length; i++) {
         const c = cards[i];
         if (!c || c.length < 2) continue;
-        const v = RANK_VALUES[c[0]];
-        const s = SUIT_INDEX[c[1]];
+        const v = RANK_VALUES[c[0].toUpperCase()];
+        const s = SUIT_INDEX[c[1].toLowerCase()];
         if (!v || s === undefined) continue;
         rankCount[v] += 1;
         suitCount[s] += 1;
@@ -186,13 +186,15 @@ function evaluateHand(cards) {
  */
 function expandNotation(hand) {
     const combos = [];
-    if (!hand || hand.length < 2) return combos;
+    if (!hand || hand.length < 2 || hand.length > 3) return combos;
     const r1 = hand[0].toUpperCase();
     const r2 = hand[1].toUpperCase();
     if (!RANK_VALUES[r1] || !RANK_VALUES[r2]) return combos;
     const suffix = (hand[2] || '').toLowerCase();
+    if (suffix && suffix !== 's' && suffix !== 'o') return combos;
 
     if (r1 === r2) {
+        if (suffix) return combos;
         for (let i = 0; i < 4; i++) {
             for (let j = i + 1; j < 4; j++) combos.push([`${r1}${SUITS[i]}`, `${r2}${SUITS[j]}`]);
         }
@@ -238,6 +240,37 @@ function expandPlus(token) {
     return out;
 }
 
+function expandDash(token) {
+    const parts = token.split('-').map(p => p.trim()).filter(Boolean);
+    if (parts.length !== 2) return [];
+    const [a, b] = parts;
+    if (a.length < 2 || a.length > 3 || b.length < 2 || b.length > 3) return [];
+    const a1 = a[0].toUpperCase(), a2 = a[1].toUpperCase(), sa = (a[2] || '').toLowerCase();
+    const b1 = b[0].toUpperCase(), b2 = b[1].toUpperCase(), sb = (b[2] || '').toLowerCase();
+    if (sa !== sb || (sa && sa !== 's' && sa !== 'o')) return [];
+    const av1 = RANK_VALUES[a1], av2 = RANK_VALUES[a2], bv1 = RANK_VALUES[b1], bv2 = RANK_VALUES[b2];
+    if (!av1 || !av2 || !bv1 || !bv2) return [];
+
+    const out = [];
+    if (a1 === a2 && b1 === b2 && !sa) {
+        const lo = Math.min(av1, bv1), hi = Math.max(av1, bv1);
+        for (let v = lo; v <= hi; v++) {
+            const r = RANKS[v - 2];
+            out.push(`${r}${r}`);
+        }
+        return out;
+    }
+    if (a1 === b1 && a1 !== a2 && b1 !== b2) {
+        const lo = Math.min(av2, bv2), hi = Math.max(av2, bv2);
+        for (let v = lo; v <= hi; v++) {
+            if (v === av1) continue;
+            out.push(`${a1}${RANKS[v - 2]}${sa}`);
+        }
+        return out;
+    }
+    return [];
+}
+
 /**
  * Turn a villain range (array of notations or comma string) into concrete
  * 2-card combos, dropping any combo that collides with a dead card.
@@ -247,6 +280,11 @@ function expandPlus(token) {
  */
 export function expandRangeToCombos(range, deadCards = new Set()) {
     if (!range) return [];
+    const normalizedDead = new Set(
+        Array.from(deadCards || [], (c) => (
+            typeof c === 'string' && c.length >= 2 ? `${c[0].toUpperCase()}${c[1].toLowerCase()}` : c
+        )),
+    );
     const tokens = Array.isArray(range)
         ? range
         : String(range).split(/[,\s]+/);
@@ -256,10 +294,12 @@ export function expandRangeToCombos(range, deadCards = new Set()) {
     tokens.forEach(rawToken => {
         const token = String(rawToken || '').trim();
         if (!token) return;
-        const notations = token.endsWith('+') ? expandPlus(token) : [token];
+        const notations = token.endsWith('+')
+            ? expandPlus(token)
+            : (token.includes('-') ? expandDash(token) : [token]);
         notations.forEach(notation => {
             expandNotation(notation).forEach(([a, b]) => {
-                if (deadCards.has(a) || deadCards.has(b)) return;
+                if (normalizedDead.has(a) || normalizedDead.has(b)) return;
                 const key = a < b ? `${a}${b}` : `${b}${a}`;
                 if (seen.has(key)) return;
                 seen.add(key);
@@ -679,7 +719,16 @@ function asyncRunoutKey(message) {
     if (!message || message.op !== 'runouts') return null;
     const hero = Array.isArray(message.hero) ? message.hero.join('') : String(message.hero || '');
     const board = Array.isArray(message.board) ? message.board.join('') : String(message.board || '');
-    const range = Array.isArray(message.range) ? message.range.join(',') : (message.range || '');
+    let range;
+    if (Array.isArray(message.range)) {
+        range = message.range.join(',');
+    } else if (message.range && typeof message.range === 'object' && Array.isArray(message.range.villains)) {
+        range = 'mw:' + message.range.villains
+            .map(r => (Array.isArray(r) ? r.join(',') : String(r || '')))
+            .join('||');
+    } else {
+        range = message.range || '';
+    }
     const seed = (message.seed === null || message.seed === undefined) ? '' : String(message.seed);
     return `${hero}|${board}|${message.sims}|${range}|${seed}`;
 }
@@ -845,6 +894,7 @@ function dispatch(message, signal) {
             if (!pending.has(id)) return;
             pending.delete(id);
             if (signal && signal.removeEventListener) signal.removeEventListener('abort', cancel);
+            recycleWorker();
             const syncResult = runJobSync(message);
             rememberRunout(message, syncResult);
             resolve(syncResult);

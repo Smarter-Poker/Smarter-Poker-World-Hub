@@ -166,14 +166,15 @@ export default function PersonalAssistantPage() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
-    const handleSandboxUpdate = () => {
+    const handleAssistantUpdate = () => {
       try { refetchSessions?.(); } catch (error) { console.warn('[App] Handled exception:', error?.message || error); }
+      try { refetchStats?.(); } catch (error) { console.warn('[App] Handled exception:', error?.message || error); }
     };
-    window.addEventListener('pa-sandbox-updated', handleSandboxUpdate);
+    window.addEventListener('pa-sandbox-updated', handleAssistantUpdate);
     return () => {
-      window.removeEventListener('pa-sandbox-updated', handleSandboxUpdate);
+      window.removeEventListener('pa-sandbox-updated', handleAssistantUpdate);
     };
-  }, [refetchSessions]);
+  }, [refetchSessions, refetchStats]);
 
   const [dailyHand, setDailyHand] = useState(null);
   const [dailyHandStatus, setDailyHandStatus] = useState('loading');
@@ -244,7 +245,12 @@ export default function PersonalAssistantPage() {
 
   const openGuardedRoute = (route) => {
     haptic('light');
-    if (guardAction()) router.push(route);
+    if (!guardAction()) return;
+    if (String(route || '').startsWith('/hub/club-arena') && typeof window !== 'undefined') {
+      window.location.assign(route);
+      return;
+    }
+    router.push(route);
   };
 
   const openDailyTraining = () => {
@@ -392,10 +398,10 @@ export default function PersonalAssistantPage() {
   const decisionLoop = [
     {
       step: '01',
-      title: 'Train',
-      detail: 'Signed Question And Grading Pipeline',
+      title: 'Play',
+      detail: 'Club Arena Live Tables And History',
       Icon: FlaskConical,
-      route: '/hub/training?source=personal-assistant-loop',
+      route: '/hub/club-arena/hand-history?source=personal-assistant-loop',
     },
     {
       step: '02',
@@ -409,7 +415,7 @@ export default function PersonalAssistantPage() {
       title: 'Train',
       detail: `${handsAnalyzedCount.toLocaleString()} Hand${handsAnalyzedCount === 1 ? '' : 's'} Analyzed`,
       Icon: BrainCircuit,
-      route: '/hub/training',
+      route: '/hub/training?source=personal-assistant-loop',
     },
   ];
 

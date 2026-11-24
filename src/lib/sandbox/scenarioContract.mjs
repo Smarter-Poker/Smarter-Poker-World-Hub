@@ -113,8 +113,12 @@ function normalizeRange(value, path, issues) {
   }
   const combo = '[2-9TJQKA]{2}[so]?';
   const tokenRe = new RegExp(`^(?:${combo}\\+?|${combo}-${combo})$`, 'i');
+  const hasInvalidPairSuffix = (tok) => tok.split('-').some((part) => {
+    const clean = part.replace(/\+$/, '');
+    return clean.length === 3 && clean[0].toUpperCase() === clean[1].toUpperCase();
+  });
   const tokens = source.split(/[,;\n]+/).map(token => token.trim().replace(/10/gi, 'T')).filter(Boolean);
-  if (tokens.length === 0 || tokens.some(token => !tokenRe.test(token))) {
+  if (tokens.length === 0 || tokens.some(token => !tokenRe.test(token) || hasInvalidPairSuffix(token))) {
     issues.push(issue(path, 'invalid_range', 'Poker range must use notation such as AA, AKs, AKo, 22+, or A5s-A2s.'));
     return '';
   }
@@ -189,6 +193,7 @@ function analyzeActionLine(scenario, issues = null) {
   const availableStreet = scenario?.board?.river ? 3 : scenario?.board?.turn ? 2 : scenario?.board?.flop?.length === 3 ? 1 : 0;
   const allSeats = [heroPosition, ...(scenario?.villains || []).map(villain => villain.position)].filter(Boolean);
   const folded = new Set();
+  const allIn = new Set();
   let street = null;
   let pending = new Set();
   let checked = new Set();
@@ -197,6 +202,7 @@ function analyzeActionLine(scenario, issues = null) {
 
   const report = (path, code, message) => { if (issues) issues.push(issue(path, code, message)); };
   const activeSeats = () => allSeats.filter(seat => !folded.has(seat));
+  const actingSeats = () => allSeats.filter(seat => !folded.has(seat) && !allIn.has(seat));
 
   entries.forEach((entry, index) => {
     const streetIndex = STREETS.indexOf(entry.street);
@@ -218,10 +224,11 @@ function analyzeActionLine(scenario, issues = null) {
     const actor = entry.position;
     const hasOutstandingWager = pending.size > 0;
     const kind = actionKind(entry.action, hasOutstandingWager);
-    const activeBefore = activeSeats();
+    const activeBefore = actingSeats();
 
     if (closed) report(path, 'round_closed', 'No action may follow a closed betting round on the same street.');
     if (actor && folded.has(actor)) report(`${path}.position`, 'folded_actor', 'A folded player cannot act again.');
+    if (actor && allIn.has(actor)) report(`${path}.position`, 'all_in_actor', 'An all-in player cannot act again.');
 
     if (hasOutstandingWager) {
       if (actor && !pending.has(actor)) report(`${path}.position`, 'actor_not_pending', 'This player has no action pending.');
@@ -233,10 +240,13 @@ function analyzeActionLine(scenario, issues = null) {
         pending.delete(actor);
       } else if (kind === 'call') {
         pending.delete(actor);
-      } else if (kind === 'raise' || kind === 'allin') {
+      } else if (kind === 'allin') {
+        if (actor) allIn.add(actor);
+        pending = new Set(activeBefore.filter(seat => seat !== actor));
+      } else if (kind === 'raise') {
         pending = new Set(activeBefore.filter(seat => seat !== actor));
       }
-      if ((kind === 'fold' || kind === 'call') && pending.size === 0) closed = true;
+      if ((kind === 'fold' || kind === 'call' || kind === 'allin') && pending.size === 0) closed = true;
     } else {
       const preflop = entry.street === 'preflop';
       if (!preflop && kind === 'call') report(`${path}.action`, 'call_without_wager', 'A postflop call requires an outstanding wager.');
@@ -245,6 +255,7 @@ function analyzeActionLine(scenario, issues = null) {
 
       if (kind === 'fold') folded.add(actor);
       else if (kind === 'bet' || kind === 'raise' || kind === 'allin') {
+        if (kind === 'allin' && actor) allIn.add(actor);
         pending = new Set(activeBefore.filter(seat => seat !== actor));
       } else if (kind === 'check' || (preflop && kind === 'call')) {
         checked.add(actor);
@@ -252,7 +263,7 @@ function analyzeActionLine(scenario, issues = null) {
       }
     }
 
-    if (activeSeats().length <= 1) closed = true;
+    if (activeSeats().length <= 1 || (actingSeats().length === 0 && pending.size === 0)) closed = true;
     hadActions = true;
   });
 

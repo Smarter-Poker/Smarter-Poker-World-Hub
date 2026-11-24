@@ -500,6 +500,10 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'private, no-store, max-age=0');
   res.setHeader('Vary', 'Authorization');
   try {
+    if (req.method !== 'POST') {
+      res.setHeader('Allow', 'POST');
+      return res.status(405).json({ success: false, error: 'Method not allowed' });
+    }
     const workerAuth = openAuditJobToken(req.headers['x-pa-audit-worker'], 'detect');
     // One complete audit may require several signed continuation requests.
     // The generic AI limit (5/minute) made accounts with >500 hands impossible

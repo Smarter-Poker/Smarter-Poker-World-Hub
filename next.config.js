@@ -1304,6 +1304,8 @@ const nextConfig = {
       // Legacy Club Arena "Analyze with Jarvis" links point at /hub/jarvis;
       // route them cleanly into Personal Assistant Leak Finder (preserving query params).
       { source: '/hub/jarvis', destination: '/hub/personal-assistant/leaks', permanent: false },
+      // Legacy /hub/sandbox links route cleanly to the Personal Assistant Sandbox boundary.
+      { source: '/hub/sandbox', destination: '/hub/personal-assistant/sandbox', permanent: false },
       // Retired Club JAQK page IDs still occur in previously shared posts.
       // Keep those backlinks on the same club's current social identity.
       { source: '/hub/social-pages/:legacy([cC][lL][uU][bB]-?[jJ][aA][qQ][kK])/:path*', destination: '/hub/social-pages/the-felt-society/:path*', permanent: true },

@@ -404,7 +404,13 @@ async function verifyLeakOwnership(supabase, userId, leakId) {
 // ─── handler ──────────────────────────────────────────────────────────────────
 
 export default async function handler(req, res) {
+    res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+    res.setHeader('Vary', 'Authorization');
     try {
+        if (!['GET', 'POST'].includes(req.method)) {
+            res.setHeader('Allow', 'GET, POST');
+            return res.status(405).json({ success: false, error: 'Method not allowed' });
+        }
         if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
             if (!applyRateLimit(req, res, LIMITS.write)) return;
         }
@@ -417,17 +423,18 @@ export default async function handler(req, res) {
         let userId = null;
         const authHeader = req.headers.authorization;
         if (authHeader && authHeader.startsWith('Bearer ')) {
-            const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+            const { user: authUser, error: authErr, status: authStatus } = await getServerUserWithFallback(req, getSupabase());
             if (authErr || !authUser) {
-                return res.status(401).json({ success: false, error: 'Invalid or expired token' });
+                return res.status(authStatus === 503 ? 503 : 401).json({
+                    success: false,
+                    error: authStatus === 503 ? 'Session verification unavailable' : 'Invalid or expired token',
+                });
             }
             userId = authUser.id;
         }
 
         if (req.method === 'GET') return handleGet(req, res, userId);
         if (req.method === 'POST') return handlePost(req, res, userId);
-
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
     } catch (err) {
         try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
         console.warn('[API Error]', err);
