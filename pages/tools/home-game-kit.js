@@ -17,6 +17,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderHomeGameKitMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
 
 const STAKE_PRESETS = {
@@ -131,6 +132,13 @@ export default function HomeGameKitPage({
       setGameFormat(STAKE_PRESETS[String(q.preset)].format);
     }
   }, [router.isReady, router.query]);
+
+  useSolvedSpotUrlSync({
+    format: gameFormat,
+    players,
+    set: chipSetSize,
+    preset: presetKey,
+  });
 
   const handleFormatChange = (newFormat) => {
     setGameFormat(newFormat);
@@ -255,6 +263,53 @@ export default function HomeGameKitPage({
             <strong>Direct Answer:</strong> For An 8-To-10 Player Home Game, A <strong>500-Piece Poker Chip Set</strong> Configured With <strong>30 To 36 Physical Chips Per Player Across 3 Active Denominations</strong> Ensures Fast Dealing Without Change-Making Bottlenecks While Reserving Over 200 High-Value Chips In The Bank For Rebuys And Color-Ups.
           </p>
         )}
+
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+            @media print {
+              nav, footer, button, [aria-label="Cite Or Link To This Research"], [aria-label="Verify Or Analyze With AI Assistants"] {
+                display: none !important;
+              }
+              body, main, div, article, section, header, table, th, td {
+                background: #ffffff !important;
+                color: #0f172a !important;
+                border-color: #cbd5e1 !important;
+              }
+            }
+          `,
+          }}
+        />
+
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            padding: '10px 14px',
+            background: '#081217',
+            border: '1px solid #1e293b',
+            borderRadius: '2px',
+            marginBottom: '24px',
+            maxWidth: '460px',
+          }}
+        >
+          <img
+            src="/api/seo/qr?path=%2Ftools%2Fhome-game-kit"
+            alt="Scannable QR Code For Home Game Chip Set And Setup Calculator"
+            width="64"
+            height="64"
+            style={{ display: 'block', borderRadius: '2px', background: '#ffffff' }}
+          />
+          <div>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: '#25c8ff' }}>
+              SCAN FOR HOME GAME CHIP KIT &amp; FLOOR RULES
+            </div>
+            <div style={{ fontSize: '10.5px', color: '#cbd5e1' }}>
+              {canonicalUrl}
+            </div>
+          </div>
+        </div>
 
         {/* Interactive Chip Set Builder */}
         <section

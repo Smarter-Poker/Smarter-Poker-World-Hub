@@ -17,6 +17,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderBoardTextureAnalyzerMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
 
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
@@ -213,6 +214,11 @@ export default function BoardTextureAnalyzerPage() {
       setScenario(String(q.scenario));
     }
   }, [router.isReady, router.query]);
+
+  useSolvedSpotUrlSync({
+    flop: `${card1.rank}${card1.suit}${card2.rank}${card2.suit}${card3.rank}${card3.suit}`,
+    scenario,
+  });
 
   const analysis = useMemo(() => {
     const cards = [card1, card2, card3];

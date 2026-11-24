@@ -9,7 +9,7 @@
  * House style: Title Case, zero em dashes.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -54,8 +54,30 @@ export async function getStaticProps({ params }) {
 }
 
 export default function USStatePokerDetailPage({ stateGuide, peerStates = [] }) {
+  const [copiedCard, setCopiedCard] = useState('');
   const canonicalPath = stateGuidePath(stateGuide.slug);
   const canonicalUrl = `https://smarter.poker${canonicalPath}`;
+
+  const discordFactSheet = `[Smarter.Poker US State Poker Law & Tax Fact Sheet: ${stateGuide.name} (${stateGuide.code})] Status: ${stateGuide.legalStatus} | Min Age: ${stateGuide.minAge} | State Tax: ${stateGuide.stateIncomeTaxRate} | Live Rooms: ${stateGuide.approxLiveRooms} | Rake Model: ${stateGuide.rakeModel} | Source: ${canonicalUrl}`;
+  const redditFactSheet = `**${stateGuide.name} (${stateGuide.code}) - Live & Online Poker Legality, Rake & Tax Fact Sheet**\n- **Legal Cardroom Status:** ${stateGuide.legalStatus}\n- **Minimum Gaming Age:** ${stateGuide.minAge}\n- **State Income Tax / W-2G Rate:** ${stateGuide.stateIncomeTaxRate}\n- **Active Live Poker Rooms:** ${stateGuide.approxLiveRooms}\n- **Standard Rake Model:** ${stateGuide.rakeModel}\n- *Source: [Smarter.Poker ${stateGuide.name} Poker Guide](${canonicalUrl})*`;
+
+  const handleCopyFactSheet = async (type, text) => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(text);
+        setCopiedCard(type);
+        setTimeout(() => setCopiedCard(''), 2200);
+      }
+      if (typeof fetch === 'function') {
+        fetch(
+          `/api/seo/referral-stats?event=record&category=solved_spot_shares&item=state-${encodeURIComponent(stateGuide.slug)}&source=${encodeURIComponent(type)}`,
+          { method: 'POST', keepalive: true }
+        ).catch(() => {});
+      }
+    } catch {
+      // Ignore clipboard failures
+    }
+  };
 
   const jsonLd = [
     {
@@ -173,6 +195,20 @@ export default function USStatePokerDetailPage({ stateGuide, peerStates = [] }) 
             <Link href="/poker-rooms/guides" style={styles.crossBtnOutline}>
               12 Regional City Market Guides
             </Link>
+            <button
+              type="button"
+              onClick={() => handleCopyFactSheet('discord', discordFactSheet)}
+              style={{ ...styles.crossBtnOutline, cursor: 'pointer', color: '#25c8ff', borderColor: 'rgba(37, 200, 255, 0.45)' }}
+            >
+              {copiedCard === 'discord' ? 'Copied Discord Fact Sheet!' : 'Copy Discord State Law Card'}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleCopyFactSheet('reddit', redditFactSheet)}
+              style={{ ...styles.crossBtnOutline, cursor: 'pointer', color: '#34d399', borderColor: 'rgba(52, 211, 153, 0.45)' }}
+            >
+              {copiedCard === 'reddit' ? 'Copied Reddit Markdown!' : 'Copy Reddit / Forum Markdown'}
+            </button>
           </div>
         </header>
 

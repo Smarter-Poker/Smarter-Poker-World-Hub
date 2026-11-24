@@ -16,26 +16,41 @@ import { productOgImage } from '../../lib/seo/productOgImage';
 
 const SOLVED_SPOT_QUERY_SCHEMAS = {
   'pot-odds-calculator': ['pot', 'bet', 'outs', 'street'],
-  'outs-calculator': ['outs', 'street'],
-  'icm-calculator': ['stacks', 'payouts'],
+  'outs-calculator': ['outs', 'street', 'pot', 'call'],
+  'icm-calculator': ['stacks', 'payouts', 'save'],
   'chop-calculator': ['stacks', 'payouts', 'save'],
-  'variance-calculator': ['winrate', 'stddev', 'hands'],
-  'poker-tax-calculator': ['winnings', 'losses', 'status', 'stateTax', 'seTax'],
-  'staking-calculator': ['buyins', 'markup', 'sold', 'share', 'cashes'],
-  'iso-calculator': ['limpers', 'oop', 'env', 'stack', 'bb'],
-  'home-game-kit': ['players', 'format', 'buyin', 'stack'],
-  'push-fold-calculator': ['bb', 'pos', 'ante'],
-  'bankroll-calculator': ['winrate', 'stddev', 'ror', 'stake'],
-  'bounty-calculator': ['startStack', 'startBounty', 'bountyVal', 'format'],
-  'winrate-calculator': ['won', 'hands', 'hours', 'bb'],
-  'side-pot-calculator': ['stacks', 'dead'],
-  'spr-calculator': ['stack', 'pot'],
-  'plo-calculator': ['pot', 'bet', 'calls'],
-  'rake-calculator': ['rakePct', 'cap', 'promo', 'timeFee', 'hph', 'vpip', 'avgPot', 'bb'],
-  '3bet-calculator': ['pos', 'open', 'ip3b', 'oop3b', 'stack'],
-  'blind-structure-calculator': ['stack', 'mins', 'hours', 'ante'],
-  'payout-calculator': ['entries', 'buyin', 'fee', 'paidPct'],
+  'variance-calculator': ['wr', 'sd', 'winrate', 'stddev', 'hands', 'hph', 'bb'],
+  'poker-tax-calculator': ['wins', 'losses', 'winnings', 'status', 'expenses', 'other', 'tourney', 'stateTax', 'seTax'],
+  'staking-calculator': ['package', 'buyins', 'markup', 'sold', 'share', 'cashes', 'roi'],
+  'iso-calculator': ['bb', 'limpers', 'pos', 'oop', 'stack', 'env'],
+  'home-game-kit': ['format', 'players', 'set', 'preset', 'buyin', 'stack'],
+  'push-fold-calculator': ['stack', 'bb', 'pos', 'ante'],
+  'bankroll-calculator': ['wr', 'sd', 'bi', 'dollars', 'winrate', 'stddev', 'ror', 'stake'],
+  'bounty-calculator': ['startStack', 'startBounty', 'targetBounty', 'bountyVal', 'pot', 'call', 'format'],
+  'poker-winrate-calculator': ['profit', 'bb', 'hours', 'hph', 'won', 'hands'],
+  'winrate-calculator': ['profit', 'bb', 'hours', 'hph', 'won', 'hands'],
+  'side-pot-calculator': ['stacks', 'deadMoney', 'dead'],
+  'spr-calculator': ['pot', 'stack'],
+  'plo-bet-calculator': ['pot', 'bet', 'trail', 'hero', 'bomb', 'call', 'calls'],
+  'plo-calculator': ['pot', 'bet', 'trail', 'calls'],
+  'rake-calculator': ['bb', 'pct', 'rakePct', 'cap', 'promo', 'hph', 'pots', 'time', 'timeFee', 'vpip', 'avgPot'],
+  '3bet-calculator': ['open', 'callers', 'stack', 'pos', 'ip3b', 'oop3b'],
+  'blind-structure-calculator': ['players', 'hours', 'stack', 'mins', 'ante'],
+  'payout-calculator': ['entries', 'rebuys', 'buyIn', 'buyin', 'fee', 'added', 'preset', 'paidPct'],
+  'tournament-payout-calculator': ['entries', 'rebuys', 'buyIn', 'buyin', 'fee', 'added', 'preset', 'paidPct'],
   'poker-odds-calculator': ['game', 'board', 'hands'],
+  'board-texture-analyzer': ['flop', 'scenario'],
+  'm-ratio-calculator': ['stack', 'sb', 'bb', 'ante', 'players', 'avg'],
+  'satellite-calculator': ['total', 'seats', 'value', 'rem', 'hero', 'bb'],
+  'session-planner': ['stake', 'wr', 'hrs', 'sess', 'wks', 'comp', 'exp'],
+  'straddle-calculator': ['blinds', 'type', 'stack', 'vpip', 'ante', 'players', 'fmt'],
+  'promo-ev-calculator': ['pool', 'qual', 'loser', 'winner', 'table', 'drop', 'hh'],
+  'who-wins-calculator': ['board', 'p1', 'p2'],
+  'hand-converter': ['stakes', 'stack', 'hero', 'villain', 'cards', 'flop'],
+  'mixed-game-placards': ['preset', 'orbit', 'hand'],
+  'poker-iq-test': ['score'],
+  'format-quiz': ['hours', 'br', 'var', 'focus', 'env'],
+  'preflop-ranges': ['pos', 'action', 'depth'],
 };
 
 export * from '@smarter-poker/commander-shared/components/seo/SEOHead';
@@ -225,12 +240,25 @@ export default function SEOHead(props) {
       pathname === '/tools/iso-calculator' ||
       pathname === '/tools/home-game-kit' ||
       pathname === '/tools/format-quiz' ||
+      pathname === '/tools/board-texture-analyzer' ||
+      pathname === '/tools/m-ratio-calculator' ||
+      pathname === '/tools/session-planner' ||
+      pathname === '/tools/straddle-calculator' ||
+      pathname === '/tools/hand-converter' ||
+      pathname === '/tools/satellite-calculator' ||
+      pathname === '/tools/promo-ev-calculator' ||
+      pathname === '/tools/who-wins-calculator' ||
+      pathname === '/tools/mixed-game-placards' ||
+      pathname === '/tools/poker-iq-test' ||
       pathname === '/rules' ||
       pathname.startsWith('/rules/') ||
       pathname === '/games' ||
       pathname.startsWith('/games/') ||
       pathname === '/poker-rooms/guides' ||
       pathname.startsWith('/poker-rooms/guides/') ||
+      pathname === '/poker-rooms/states' ||
+      pathname.startsWith('/poker-rooms/states/') ||
+      pathname === '/poker-rooms/comps-and-tipping-guide' ||
       pathname === '/poker-rooms/first-time-guide' ||
       pathname === '/poker-series/guides' ||
       pathname.startsWith('/poker-series/guides/') ||

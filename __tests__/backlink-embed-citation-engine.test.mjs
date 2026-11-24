@@ -130,7 +130,7 @@ test('Webmaster Embed Portal (/tools/embeds) ships all 15 calculators, 12 SVG ba
   assert.ok(embedsSrc.includes('syndication-apis-heading'), 'embeds.js renders Open Datasets & Syndication APIs section');
 
   const embedUrls = [...embedsSrc.matchAll(/embedUrl:\s*'([^']+)'/g)].map((m) => m[1]);
-  assert.equal(embedUrls.length, 23, 'all 23 widgets define embedUrl');
+  assert.equal(embedUrls.length, 33, 'all 33 widgets define embedUrl');
   for (const url of embedUrls) {
     assert.ok(
       url.startsWith('https://smarter.poker/tools/') && url.endsWith('?embed=true'),
@@ -734,7 +734,7 @@ test('Phase 6 Partner Installation Suite: oEmbed 1.0 Provider, 1-Line JS Widget 
   assert.equal(invalidOembed.status, 404);
 
   const catalog = buildPartnerInstallationCatalog({ partner: 'upswingpoker.com' });
-  assert.equal(catalog.counts.embeddable_calculators, 23);
+  assert.equal(catalog.counts.embeddable_calculators, 33);
   assert.equal(catalog.counts.svg_attribution_badges, 16);
   assert.equal(catalog.counts.streamer_chat_commands, 26);
   assert.equal(catalog.counts.dead_tool_replacements, 12);
@@ -1056,23 +1056,23 @@ test('Phase 8 Reconciled Acceptance: Solved-Spot Engine, QR Rule Sheets, Dataset
     );
   }
 
-  // 6. Items #7, #8, #9: Executed Notebook, 6 Zenodo DOIs & MCP v1.0.5 35-tool alignment
+  // 6. Items #7, #8, #9: Executed Notebook, 6 Zenodo DOIs & MCP v1.0.6 45-tool alignment
   const nb = buildJupyterNotebookPayload();
   const codeCells = nb.cells.filter((c) => c.cell_type === 'code');
-  assert.equal(codeCells.length, 3);
+  assert.equal(codeCells.length, 4);
   assert.ok(
     codeCells.every((c) => typeof c.execution_count === 'number' && Array.isArray(c.outputs) && c.outputs.length > 0),
     'All notebook code cells have verified execution_count and outputs'
   );
 
   assert.equal(MCP_SERVER_INFO.version, '2.0.0');
-  assert.equal(MCP_SERVER_INFO.packageVersion, '1.0.5');
+  assert.equal(MCP_SERVER_INFO.packageVersion, '1.0.6');
   const mcpManifest = JSON.parse(read('public/.well-known/mcp.json'));
   const mcpRegistry = JSON.parse(read('public/.well-known/mcp-registry.json'));
   assert.equal(mcpManifest.version, '2.0.0');
-  assert.equal(mcpManifest.package_version, '1.0.5');
+  assert.equal(mcpManifest.package_version, '1.0.6');
   assert.equal(mcpRegistry.version, '2.0.0');
-  assert.equal(mcpRegistry.package_version, '1.0.5');
+  assert.equal(mcpRegistry.package_version, '1.0.6');
   assert.deepEqual(mcpManifest.tools, MCP_TOOLS.map((t) => t.name));
   assert.deepEqual(mcpRegistry.tools, MCP_TOOLS.map((t) => t.name));
 
@@ -1119,6 +1119,70 @@ test('Phase 8 Reconciled Acceptance: Solved-Spot Engine, QR Rule Sheets, Dataset
     undefined,
     'Spoofed partner parameter never enters verified_partner_referrers'
   );
+
+  // 8. Phase 9 Full 33-Calculator Solved-Spot Engine, Printable QR Placards & Authority Hub Fact-Sheet Cards
+  const boardSpot = computeValidatedSolvedSpot('board-texture-analyzer', { flop: 'AsKh7d', scenario: 'BTN_VS_BB_SRP' });
+  assert.equal(boardSpot.hasValidatedSpot, true);
+  assert.ok(boardSpot.statValue.includes('Rainbow'));
+
+  const mRatioSpot = computeValidatedSolvedSpot('m-ratio-calculator', { stack: '24000', sb: '400', bb: '800', ante: '800', players: '9' });
+  assert.equal(mRatioSpot.hasValidatedSpot, true);
+  assert.ok(mRatioSpot.statValue.includes('M = 12.0'));
+
+  const satSpot = computeValidatedSolvedSpot('satellite-calculator', { total: '100', seats: '10', rem: '12' });
+  assert.equal(satSpot.hasValidatedSpot, true);
+  assert.ok(satSpot.statValue.includes('Lock 88,000'));
+
+  const sessionSpot = computeValidatedSolvedSpot('session-planner', { stake: '2/5', wr: '9', hrs: '6', comp: '2', exp: '25' });
+  assert.equal(sessionSpot.hasValidatedSpot, true);
+  assert.ok(sessionSpot.statValue.includes('+$257/Session'));
+
+  const straddleSpot = computeValidatedSolvedSpot('straddle-calculator', { blinds: '2/5', stack: '1000', ante: '15', players: '8' });
+  assert.equal(straddleSpot.hasValidatedSpot, true);
+  assert.ok(straddleSpot.statValue.includes('$120 Bomb Pot'));
+
+  const promoSpot = computeValidatedSolvedSpot('promo-ev-calculator', { pool: '250000', qual: 'quad_8s', drop: '2' });
+  assert.equal(promoSpot.hasValidatedSpot, true);
+  assert.ok(promoSpot.statValue.includes('BE $139,200'));
+
+  const sidePotSpot = computeValidatedSolvedSpot('side-pot-calculator', { stacks: '2500,6000,12000', deadMoney: '300' });
+  assert.equal(sidePotSpot.hasValidatedSpot, true);
+  assert.ok(sidePotSpot.statValue.includes('Main Pot 7,800'));
+
+  const blindSpot = computeValidatedSolvedSpot('blind-structure-calculator', { players: '18', hours: '4', stack: '20000', mins: '20' });
+  assert.equal(blindSpot.hasValidatedSpot, true);
+  assert.ok(blindSpot.statValue.includes('20,000 Chips'));
+
+  const payoutSpot = computeValidatedSolvedSpot('payout-calculator', { entries: '100', buyIn: '150', rebuys: '20', added: '500' });
+  assert.equal(payoutSpot.hasValidatedSpot, true);
+  assert.ok(payoutSpot.statValue.includes('$18,500 Pool'));
+
+  const homeKitSpot = computeValidatedSolvedSpot('home-game-kit', { players: '8', format: 'cash', set: '500', preset: 'cash-1-2' });
+  assert.equal(homeKitSpot.hasValidatedSpot, true);
+
+  const quizSpot = computeValidatedSolvedSpot('format-quiz', { hours: '3-5h', br: '50-100', env: 'live' });
+  assert.equal(quizSpot.hasValidatedSpot, true);
+
+  for (const qrPrintablePage of [
+    'pages/tools/mixed-game-placards.js',
+    'pages/learn/cheat-sheets.js',
+    'pages/tools/home-game-kit.js',
+  ]) {
+    const src = read(qrPrintablePage);
+    assert.ok(src.includes('/api/seo/qr?path='), `${qrPrintablePage} embeds scannable QR code`);
+    assert.ok(src.includes('@media print'), `${qrPrintablePage} includes @media print stylesheet`);
+  }
+
+  for (const hubFactSheetPage of [
+    'pages/learn/famous-hands/[slug].js',
+    'pages/learn/positions/[pos].js',
+    'pages/learn/stakes/[stake].js',
+    'pages/poker-rooms/states/[state].js',
+  ]) {
+    const src = read(hubFactSheetPage);
+    assert.ok(src.includes('Copy Reddit / Forum Markdown'), `${hubFactSheetPage} includes 1-click Reddit/Forum fact-sheet copy button`);
+    assert.ok(src.includes('solved_spot_shares'), `${hubFactSheetPage} records solved_spot_shares telemetry on copy`);
+  }
 });
 
 
