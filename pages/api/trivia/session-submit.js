@@ -513,9 +513,12 @@ async function submitV3(req, res, sb, userId, session) {
         console.warn('[trivia session-submit] atomic high-score projection invalid:', normalizedProjection.error);
         return res.status(502).json({ success: false, error: normalizedProjection.error });
     }
+    const servedTotal = Number.isInteger(settled.total)
+        ? settled.total
+        : (Number(settled.graded_total || 0) + Number(settled.voided || 0));
     const response = {
         success: true, sessionId: session.id, mode: session.mode, engine: 'trivia-engine/3',
-        correct: settled.correct, total: settled.graded_total, score: settled.score, voided: settled.voided,
+        correct: settled.correct, total: settled.graded_total, servedTotal, score: settled.score, voided: settled.voided,
         scoreId: settled.score_id ?? null, diamondsAwarded: Number(settled.diamonds_awarded) || 0,
         dailyBonusAwarded: Number(settled.daily_bonus_awarded) || 0,
         newBalance: settled.new_balance == null ? null : Number(settled.new_balance),
