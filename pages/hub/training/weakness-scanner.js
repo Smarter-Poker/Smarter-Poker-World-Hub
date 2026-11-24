@@ -528,10 +528,10 @@ export default function WeaknessScannerPage() {
                     }}
                   >
                     <div style={{ fontSize: 13, fontWeight: 900 }}>{pos}</div>
-                    <div style={{ fontSize: 11, color: '#fca5a5', fontWeight: 700, marginTop: 2 }}>
+                    <div style={{ fontSize: 12, color: '#fca5a5', fontWeight: 700, marginTop: 2 }}>
                       -{metric.evLossBb} BB EV
                     </div>
-                    <div style={{ fontSize: 11, color: '#94a3b8' }}>
+                    <div style={{ fontSize: 12, color: '#94a3b8' }}>
                       {metric.accuracyPct}% Acc
                     </div>
                   </button>

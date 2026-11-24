@@ -126,7 +126,7 @@ export default function CanonicalTrainingRedirect({
                       border: brainVariant === v ? '1px solid #79e6ff' : '1px solid rgba(255,255,255,0.14)',
                       background: brainVariant === v ? 'rgba(121,230,255,0.16)' : 'rgba(255,255,255,0.04)',
                       color: brainVariant === v ? '#79e6ff' : '#b7c9d7',
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: 800,
                       cursor: 'pointer',
                     }}

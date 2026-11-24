@@ -640,10 +640,10 @@ export default function VerifiedTrainingReports() {
                     }}
                   >
                     <div style={{ fontSize: 13, fontWeight: 900 }}>{pos}</div>
-                    <div style={{ fontSize: 11, color: '#fca5a5', fontWeight: 700, marginTop: 2 }}>
+                    <div style={{ fontSize: 12, color: '#fca5a5', fontWeight: 700, marginTop: 2 }}>
                       -{metric.evLossBb} BB EV
                     </div>
-                    <div style={{ fontSize: 11, color: '#94a3b8' }}>
+                    <div style={{ fontSize: 12, color: '#94a3b8' }}>
                       {metric.accuracyPct}% Acc
                     </div>
                   </button>
@@ -696,17 +696,17 @@ export default function VerifiedTrainingReports() {
               <div style={{ padding: 10, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.28)' }}>
                 <div style={{ color: '#94a3b8', fontWeight: 700 }}>Admitted Warehouse Solver Rows</div>
                 <div style={{ color: '#f4fbff', fontSize: 16, fontWeight: 900, marginTop: 3 }}>21,212 Canonical Rows</div>
-                <div style={{ color: '#75e9ff', fontSize: 11, marginTop: 2 }}>Training_Question_Cache + Solved_Spots_Gold</div>
+                <div style={{ color: '#75e9ff', fontSize: 12, marginTop: 2 }}>Training_Question_Cache + Solved_Spots_Gold</div>
               </div>
               <div style={{ padding: 10, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.28)' }}>
                 <div style={{ color: '#94a3b8', fontWeight: 700 }}>Live Horse Brain / PLO Brain Coverage</div>
                 <div style={{ color: '#3ce78b', fontSize: 16, fontWeight: 900, marginTop: 3 }}>100% Real-Time Coverage</div>
-                <div style={{ color: '#cbd5e1', fontSize: 11, marginTop: 2 }}>Holdem-Brain.Js · PLO-Core.Js · PLO5-Brain.Js · PLO6-Brain.Js</div>
+                <div style={{ color: '#cbd5e1', fontSize: 12, marginTop: 2 }}>Holdem-Brain.Js · PLO-Core.Js · PLO5-Brain.Js · PLO6-Brain.Js</div>
               </div>
               <div style={{ padding: 10, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.28)' }}>
                 <div style={{ color: '#94a3b8', fontWeight: 700 }}>Share Of Decisions Served By Engine</div>
                 <div style={{ color: '#ffca5c', fontSize: 16, fontWeight: 900, marginTop: 3 }}>78% Warehouse · 22% Live Brain</div>
-                <div style={{ color: '#cbd5e1', fontSize: 11, marginTop: 2 }}>Zero Static Or Unverified Responses</div>
+                <div style={{ color: '#cbd5e1', fontSize: 12, marginTop: 2 }}>Zero Static Or Unverified Responses</div>
               </div>
             </div>
             <div style={{ fontSize: 12, fontWeight: 800, color: '#cbd5e1', marginBottom: 8 }}>

@@ -572,7 +572,7 @@ export default function HandLabV2() {
                         border: brainVariant === v ? '1px solid #00d4ff' : '1px solid rgba(255,255,255,0.14)',
                         background: brainVariant === v ? 'rgba(0,212,255,0.16)' : 'rgba(255,255,255,0.04)',
                         color: brainVariant === v ? '#67e8f9' : '#cbd5e1',
-                        fontSize: 11,
+                        fontSize: 12,
                         fontWeight: 800,
                         cursor: 'pointer',
                       }}
