@@ -298,7 +298,57 @@ try:
  assert lad3['auto_escalated']==1,lad3
  assert sql('SELECT count(*) FROM club_cashout_escalations WHERE cashout_id='+lit(h_lad['cashout_id'])+';')=='1'
  cases.append('configurable overdue alert ladder (threshold, admin backup, follow-up, auto-escalate) and overdue-only management escalation enforced')
- print(json.dumps({'passed':True,'cases':cases,'migrations':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(list((R/'supabase/migrations').glob('20261117203*.sql'))+list((R/'supabase/migrations').glob('20261124150500_*.sql'))+list((R/'supabase/migrations').glob('20261124180000_*.sql')))},'scope':'Actual transition, ledger triggers, receipt/invoice validation; isolated invoice transport fixture; no production writes'}))
+
+ # Phase 3 hardening migration (20261124190000): canonical lock-order receipt-verified auto-escalation,
+ # fn_notice_cashout_card overdue can_escalate parity, realtime reactions RLS, and create-replay attachment check.
+ sql((R/'supabase/migrations/20261124190000_notice_board_hardening_auto_escalate_realtime_and_parity.sql').read_text())
+ # 7. Create-replay attachment check & reactions staff-scoped RLS.
+ dup_id=op()
+ att_a=[{'url':'https://example.com/a.png','name':'A.png','mime':'image/png'}]
+ att_b=[{'url':'https://example.com/b.png','name':'B.png','mime':'image/png'}]
+ r1=board(OWNER,'create',{'id':dup_id,'content':'Replay Attachment Test','status':'notice','is_pinned':False,'attachments':att_a})
+ r2=board(OWNER,'create',{'id':dup_id,'content':'Replay Attachment Test','status':'notice','is_pinned':False,'attachments':att_a})
+ assert r1['id']==r2['id']
+ board(OWNER,'create',{'id':dup_id,'content':'Replay Attachment Test','status':'notice','is_pinned':False,'attachments':att_b},error='Entry Already Exists')
+ board(AGENT,'toggle_reaction',{'id':dup_id,'reaction':'ack'})
+ assert int(asuser(AGENT,'SELECT count(*) FROM club_notice_board_reactions WHERE notice_id='+lit(dup_id)+';').splitlines()[-1])==1
+ assert int(asuser(PLAYER,'SELECT count(*) FROM club_notice_board_reactions WHERE notice_id='+lit(dup_id)+';').splitlines()[-1])==0
+ # 8. fn_notice_cashout_card.can_escalate parity + receipt-verified auto-escalation without orphans.
+ sql('UPDATE cashout_requests SET created_at=updated_at WHERE id='+lit(h_lad['cashout_id'])+';')
+ decide(h_lad,OWNER,'release')
+ h_p3=hold('Hardening parity and auto-escalate')
+ assert rpc(OWNER,'fn_cashout_request_card',[lit(h_p3['cashout_id'])])['can_escalate'] is False
+ assert rpc(AGENT,'fn_cashout_request_card',[lit(h_p3['cashout_id'])])['can_escalate'] is True
+ # Broken receipt timestamp must NOT auto-escalate or leave an orphan club_notice_board row.
+ sql("UPDATE cashout_requests SET created_at=clock_timestamp()-interval '9 hours' WHERE id="+lit(h_p3['cashout_id'])+';')
+ broken_res=json.loads(asuser(OWNER,'SELECT fn_notify_overdue_cashouts(4,200);',role='service_role').splitlines()[-1])
+ assert broken_res['auto_escalated']==0,broken_res
+ assert sql('SELECT count(*) FROM club_notice_board WHERE cashout_id='+lit(h_p3['cashout_id'])+';')=='0'
+ # Align full hold receipt chain to 9 hours ago -> OWNER sees can_escalate=True AND auto-escalate succeeds cleanly & settles to Club Bank.
+ sql("""
+  BEGIN;
+  SET LOCAL session_replication_role = 'replica';
+  DO $$ DECLARE v_ts timestamptz := clock_timestamp() - interval '9 hours'; v_cid uuid := """ + lit(h_p3['cashout_id']) + """::uuid; v_ev public.accounting_cashier_events%ROWTYPE; v_payload jsonb; v_inv public.settlement_invoices%ROWTYPE; v_body text; BEGIN
+   UPDATE public.cashout_requests SET created_at = v_ts, updated_at = v_ts WHERE id = v_cid;
+   UPDATE public.chip_escrow SET locked_at = v_ts WHERE cashout_request_id = v_cid;
+   UPDATE public.accounting_cashier_events SET occurred_at = v_ts WHERE cashout_id = v_cid AND event_slot = 'hold' RETURNING * INTO v_ev;
+   UPDATE public.chip_ledger SET created_at = v_ts WHERE id = v_ev.source_ledger_id;
+   UPDATE public.chip_transactions SET created_at = v_ts WHERE id = v_ev.source_transaction_id;
+   v_payload := public.fn_cashier_event_payload(v_ev);
+   UPDATE public.settlement_invoices SET breakdown = jsonb_set(breakdown, '{cashier}', v_payload) WHERE id = v_ev.invoice_id RETURNING * INTO v_inv;
+   v_body := public.fn_cashier_document_body(v_ev.id, v_inv.invoice_number);
+   UPDATE public.social_messages m SET content = v_body, media_metadata = jsonb_set(media_metadata, '{cashier}', v_payload) FROM public.accounting_invoice_deliveries d WHERE d.invoice_id = v_ev.invoice_id AND m.id = d.message_id;
+   UPDATE public.notifications n SET data = jsonb_set(data, '{cashier}', v_payload), metadata = jsonb_set(metadata, '{cashier}', v_payload) FROM public.accounting_invoice_deliveries d WHERE d.invoice_id = v_ev.invoice_id AND n.id = d.notification_id;
+  END $$;
+  COMMIT;
+ """)
+ assert rpc(OWNER,'fn_cashout_request_card',[lit(h_p3['cashout_id'])])['can_escalate'] is True
+ good_res=json.loads(asuser(OWNER,'SELECT fn_notify_overdue_cashouts(4,200);',role='service_role').splitlines()[-1])
+ assert good_res['auto_escalated']==1,good_res
+ assert sql('SELECT count(*) FROM club_cashout_escalations WHERE cashout_id='+lit(h_p3['cashout_id'])+';')=='1'
+ decide(h_p3,OWNER)
+ cases.append('hardening pass enforces receipt-verified orphan-free auto-escalation, card can_escalate parity, reactions RLS, and attachment create-replay')
+ print(json.dumps({'passed':True,'cases':cases,'migrations':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(list((R/'supabase/migrations').glob('20261117203*.sql'))+list((R/'supabase/migrations').glob('20261124*.sql')))},'scope':'Actual transition, ledger triggers, receipt/invoice validation; isolated invoice transport fixture; no production writes'}))
 finally:
  if started:cmd('pg_ctl','-D',str(D/'data'),'-m','immediate','stop')
  import shutil;shutil.rmtree(D)

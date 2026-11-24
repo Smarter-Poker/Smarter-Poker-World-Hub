@@ -162,6 +162,15 @@ export function UnreadProvider({ children }) {
                     }, () => {
                         scheduleNotifRefresh();
                     })
+                    .on('postgres_changes', {
+                        event: 'INSERT',
+                        schema: 'public',
+                        table: 'club_notice_board',
+                    }, (payload) => {
+                        if (payload?.new?.author_id && payload.new.author_id !== userId) {
+                            scheduleNotifRefresh();
+                        }
+                    })
                     .subscribe();
             } catch (realtimeErr) {
                 console.warn('[UnreadProvider] notifications realtime subscription failed - falling back to polling:', realtimeErr);
