@@ -366,7 +366,7 @@ export default function PokerMythsDebunkedPage() {
               Format Migration Blueprint
             </Link>
             <Link href="/tools" style={styles.crossBtnOutline}>
-              42 Free Poker Calculators
+              52 Free Poker Calculators
             </Link>
           </div>
         </header>

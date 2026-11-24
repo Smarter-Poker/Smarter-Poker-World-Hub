@@ -357,3 +357,124 @@ test('GEO LAW 8: Topic-Partitioned <20KB Fast-Context Corpora, Dedicated Segment
   assert.ok(fs.existsSync(path.join(ROOT, 'pages/api/ai/geo-directory.geojson.js')), 'pages/api/ai/geo-directory.geojson.js must exist');
   assert.ok(nextConfigSrc.includes('rel="llms-txt"') && nextConfigSrc.includes('/.well-known/ai-facts.json'), 'next.config.js must advertise HTTP Link headers for /llms.txt and /.well-known/ai-facts.json');
 });
+
+test('GEO LAW 9: Universal 52-Calculator SSR Markdown Negotiation & Parameterized Shorthand Alias Law', async () => {
+  const toolFiles = fs
+    .readdirSync(path.join(ROOT, 'pages/tools'))
+    .filter((f) => f.endsWith('.js') && f !== 'index.js' && f !== 'embeds.js');
+  assert.equal(toolFiles.length, 51, 'pages/tools/ must contain 51 standalone calculator route files (52 total with dynamic preflop-ranges/[position].js)');
+
+  for (const tf of toolFiles) {
+    const src = read(`pages/tools/${tf}`);
+    assert.ok(
+      src.includes('export async function getServerSideProps'),
+      `pages/tools/${tf} must export getServerSideProps for direct SSR ?format=md and Accept: text/markdown content negotiation`
+    );
+  }
+
+  const { computeLiveScenarioMarkdown, renderHubToolMarkdown } = await import('../pages/api/hub-tool-markdown.js');
+  const shorthandTests = [
+    ['/tools/multiway-all-in-calculator', { stacks: '40,100,100', eq: '36,34,30' }],
+    ['/tools/mystery-bounty-tracker', { pool: 150000, env: 20, top: 50000 }],
+    ['/tools/bubble-factor-calculator', { hero: 40, villain: 25 }],
+    ['/tools/bluff-catching-calculator', { pot: 100, bet: 75, bluffs: 12, value: 24 }],
+    ['/tools/multi-street-ev-calculator', { pot: 10, f1: 33, f2: 66, f3: 75 }],
+    ['/tools/heads-up-push-fold-calculator', { bb: 10, role: 'sb', ante: 'bba' }],
+    ['/tools/blind-vs-blind-calculator', { bb: 40, action: 'limp' }],
+    ['/tools/shot-taking-calculator', { br: 12000, cur: 300, shot: 500, bullets: 3 }],
+    ['/tools/warmup-cooldown-routine', { sleep: 8, focus: 9, tilt: 2, stop: 5 }],
+    ['/tools/home-game-director', { players: 9, buyin: 100 }],
+  ];
+
+  for (const [toolPath, shorthandQuery] of shorthandTests) {
+    const out = computeLiveScenarioMarkdown(toolPath, shorthandQuery);
+    assert.ok(
+      out && out.includes('## Live Computed Scenario Analysis') && out.includes('Computed Metric'),
+      `computeLiveScenarioMarkdown("${toolPath}", ${JSON.stringify(shorthandQuery)}) must resolve shorthand aliases into a Live Computed Scenario Analysis block`
+    );
+  }
+
+  const pokerRoomsMd = renderHubToolMarkdown('/poker-rooms', {});
+  assert.ok(
+    pokerRoomsMd && pokerRoomsMd.includes('Live Poker Rooms, Travel Corridors & Cardroom Intelligence Hub'),
+    'renderHubToolMarkdown("/poker-rooms") must return the master geographic hub Markdown mirror'
+  );
+  const nextConfigSrc = read('next.config.js');
+  assert.ok(
+    nextConfigSrc.includes("source: '/poker-rooms.md'") && nextConfigSrc.includes("source: '/poker-rooms'"),
+    'next.config.js must register both /poker-rooms.md and /poker-rooms content-negotiation rewrites'
+  );
+});
+
+test('GEO LAW 10: 23-Page GEO Authority & Geographic Hub Citation-Capsule Parity & Zero Stale Counts Law', () => {
+  const ALL_TWENTY_THREE_GEO_HUB_PAGES = [
+    'pages/learn/formulas/index.js',
+    'pages/learn/formulas/[slug].js',
+    'pages/learn/tournament-stages/index.js',
+    'pages/learn/tournament-stages/[stage].js',
+    'pages/learn/leaks/index.js',
+    'pages/learn/leaks/[slug].js',
+    'pages/learn/hud-stats/index.js',
+    'pages/learn/hud-stats/[stat].js',
+    'pages/learn/poker-myths-debunked.js',
+    'pages/learn/format-migration-guide.js',
+    'pages/authors/index.js',
+    'pages/authors/[slug].js',
+    'pages/compare/decision-matrix.js',
+    'pages/poker-rooms/index.js',
+    'pages/poker-rooms/corridors/index.js',
+    'pages/poker-rooms/corridors/[slug].js',
+    'pages/poker-rooms/by-game/index.js',
+    'pages/poker-rooms/by-game/[game].js',
+    'pages/poker-rooms/security-and-disputes-guide.js',
+    'pages/poker-rooms/seasonal-calendar.js',
+    'pages/research/annual-state-of-poker-2026.js',
+    'pages/research/benchmarks.js',
+    'pages/facts.js',
+  ];
+
+  for (const rel of ALL_TWENTY_THREE_GEO_HUB_PAGES) {
+    const src = read(rel);
+    assert.ok(src.includes('GeoCitationCapsule'), `${rel} must render GeoCitationCapsule`);
+    assert.ok(src.includes('GeoFollowUpChain'), `${rel} must render GeoFollowUpChain`);
+    assert.ok(src.includes('HubPageSummary'), `${rel} must render HubPageSummary`);
+    assert.ok(src.includes('AiPromptLauncher'), `${rel} must render AiPromptLauncher`);
+  }
+
+  // Verify zero stale 42-calculator, 55-tool, or 34-command strings across key discovery/embed/badge/author surfaces
+  const countCheckedFiles = [
+    'pages/tools/embeds.js',
+    'pages/api/seo/badge.js',
+    'public/opensearch.xml',
+    'public/api/openapi.json',
+    'src/content/authors.js',
+    'pages/authors/index.js',
+    'pages/compare/decision-matrix.js',
+    'src/lib/seo/outreachEngine.mjs',
+    'src/lib/seo/backlinkCatalog.mjs',
+    'src/lib/mcp/mcpServer.mjs',
+    'pages/search.js',
+    'pages/learn/index.js',
+    'pages/compare/index.js',
+    'pages/press.js',
+    'pages/404.js',
+  ];
+
+  const forbiddenStalePatterns = [
+    /\b42\s+(?:Free\s+)?(?:Interactive\s+|Browser-Native\s+)?(?:Poker\s+)?Calculators\b/i,
+    /\b42-Calculator\s+Suite\b/i,
+    /\b55-Tool\s+(?:Zero-Auth\s+)?MCP\s+Server\b/i,
+    /\b35-tool\s+MCP\s+server\b/i,
+    /\b34\s+(?:Twitch|Streamer|Nightbot|Bot)\b/i,
+    /\b18\s+Twitch\/YouTube\s+streamer\b/i,
+    /Search\s+34\s+interactive\s+poker\s+calculators/i,
+    /across\s+42\s+calculators/i,
+  ];
+
+  for (const rel of countCheckedFiles) {
+    const src = read(rel);
+    for (const pat of forbiddenStalePatterns) {
+      assert.ok(!pat.test(src), `${rel} must not contain stale platform count matching ${pat}`);
+    }
+  }
+});

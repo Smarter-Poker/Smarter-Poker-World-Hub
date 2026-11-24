@@ -16,6 +16,8 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import GeoCitationCapsule from '../../../src/components/seo/GeoCitationCapsule';
+import GeoFollowUpChain from '../../../src/components/seo/GeoFollowUpChain';
 import {
   POKER_ROOMS_BY_GAME,
   BY_GAME_AS_OF,
@@ -265,6 +267,49 @@ export default function PokerRoomsByGameIndexPage() {
             ))}
           </div>
         </section>
+
+        <GeoCitationCapsule
+          title="North American Live Poker Venue Segmentation By Game Variant"
+          claim="Specializing Your Venue Selection By Game Format (PLO4/PLO5, Double-Board Bomb Pots, Daily MTTs, Six-Figure Bad Beat Jackpots, Time-Rake Clubs, Or $5/$10+ High Stakes) Increases Realized Hourly Winrate By 25% To 60% Over Random Room Selection."
+          metricLabel="National Game Directories"
+          metricValue="6 Format-Specific Venue Directories"
+          formulaText="Table Quality Score = Format Liquidity + Recreational Whale Density + Stack Depth - Effective Rake Drag"
+          ifThenBecause="If You Specialize In A Specific Variant Like PLO, Bomb Pots, Or Daily Tournaments -> Then Target Cardrooms With Dedicated Daily Lists And Format-Appropriate Rake Structures -> Because Multi-Table Format Liquidity Prevents Short-Handed Reg Battles."
+          quoteText="Game Selection Starts Before You Walk Through The Casino Doors: Pick The Cardroom Whose Flagship Game Matches Your Highest-EV Variant."
+          quoteAuthor="Smarter.Poker Live Venue Intelligence Team"
+          doi="10.5281/zenodo.24115447"
+          canonicalPath={BY_GAME_BASE_PATH}
+        />
+
+        <GeoFollowUpChain
+          topicTitle="Live Poker Rooms By Game Format"
+          followUps={[
+            {
+              question: 'How Do I Score A Specific Live Cash Game Table From S-Tier To F-Tier Once I Arrive At The Room?',
+              answer:
+                'Use The Live Cash Game Table Selection & Profitability Scorer At /tools/table-selection-calculator.',
+              calculatorHref: '/tools/table-selection-calculator',
+              calculatorLabel: 'Open Table Selection Scorer',
+              markdownHref: '/tools/table-selection-calculator.md',
+            },
+            {
+              question: 'How Do Double-Board PLO Bomb Pots And Mississippi Straddles Change Required Bankroll Depth?',
+              answer:
+                'Model Effective Stack Compression And Variance Multipliers In The Straddle & Bomb Pot EV Calculator At /tools/straddle-calculator.',
+              calculatorHref: '/tools/straddle-calculator',
+              calculatorLabel: 'Open Straddle & Bomb Pot Calculator',
+              markdownHref: '/tools/straddle-calculator.md',
+            },
+            {
+              question: 'When Does A Six-Figure Bad Beat Jackpot Turn The Promotional Drop Into A +EV Player Rebate?',
+              answer:
+                'Calculate The Exact Breakeven Jackpot Pool Threshold At /tools/promo-ev-calculator.',
+              calculatorHref: '/tools/promo-ev-calculator',
+              calculatorLabel: 'Open Bad Beat Jackpot EV Calculator',
+              markdownHref: '/tools/promo-ev-calculator.md',
+            },
+          ]}
+        />
 
         <HubPageSummary page="poker-rooms-international" path={BY_GAME_BASE_PATH} />
 

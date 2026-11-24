@@ -386,6 +386,67 @@ export function computeLiveScenarioMarkdown(cleanPath, query = {}) {
       normalizedQuery.abi = query.abi ?? 55;
       normalizedQuery.bullets = query.bullets ?? 30;
       normalizedQuery.roi = query.roi ?? 22;
+    } else if (slug === 'multiway-all-in-calculator' && (query.p1 !== undefined || query.p2 !== undefined || query.p3 !== undefined || query.stacks !== undefined || query.eq !== undefined)) {
+      const stackParts = query.stacks ? String(query.stacks).split(',').map(Number) : [];
+      const eqParts = query.eq ? String(query.eq).split(',').map(Number) : [];
+      normalizedQuery.p1 = query.p1 ?? stackParts[0] ?? 40;
+      normalizedQuery.p2 = query.p2 ?? stackParts[1] ?? 100;
+      normalizedQuery.p3 = query.p3 ?? stackParts[2] ?? 100;
+      normalizedQuery.eq1 = query.eq1 ?? eqParts[0] ?? 36;
+      normalizedQuery.eq2 = query.eq2 ?? eqParts[1] ?? 34;
+      normalizedQuery.eq3 = query.eq3 ?? eqParts[2] ?? 30;
+      normalizedQuery.dead = query.dead ?? query.dead_money ?? 2.5;
+    } else if (slug === 'mystery-bounty-tracker' && (query.pool !== undefined || query.envelopes !== undefined || query.env !== undefined || query.topBounty !== undefined || query.top !== undefined)) {
+      normalizedQuery.pool = query.pool ?? 200000;
+      normalizedQuery.envelopes = query.envelopes ?? query.env ?? 40;
+      normalizedQuery.topBounty = query.topBounty ?? query.top ?? 50000;
+    } else if (slug === 'bubble-factor-calculator' && (query.s1 !== undefined || query.s2 !== undefined || query.hero !== undefined || query.villain !== undefined || query.bf !== undefined || query.stacks !== undefined)) {
+      const stackParts = query.stacks ? String(query.stacks).split(',').map(Number) : [];
+      normalizedQuery.s1 = query.s1 ?? query.hero ?? stackParts[0] ?? 40;
+      normalizedQuery.s2 = query.s2 ?? query.villain ?? stackParts[1] ?? 25;
+      normalizedQuery.s3 = query.s3 ?? stackParts[2] ?? 22;
+      normalizedQuery.s4 = query.s4 ?? stackParts[3] ?? 13;
+    } else if (slug === 'bluff-catching-calculator' && (query.pot !== undefined || query.bet !== undefined || query.bluffs !== undefined || query.value !== undefined || query.bluffCombos !== undefined || query.valueCombos !== undefined)) {
+      normalizedQuery.pot = query.pot ?? query.pot_size ?? 100;
+      normalizedQuery.bet = query.bet ?? query.bet_size ?? 75;
+      normalizedQuery.valueCombos = query.valueCombos ?? query.value ?? query.villain_value_combos ?? 18;
+      normalizedQuery.bluffCombos = query.bluffCombos ?? query.bluffs ?? query.villain_bluff_combos ?? 11;
+      normalizedQuery.blockerPct = query.blockerPct ?? query.blocker ?? 35;
+    } else if (slug === 'multi-street-ev-calculator' && (query.pot !== undefined || query.fBet !== undefined || query.f1 !== undefined || query.tBet !== undefined || query.f2 !== undefined || query.rBet !== undefined || query.f3 !== undefined)) {
+      normalizedQuery.pot = query.pot ?? 10;
+      normalizedQuery.fBet = query.fBet ?? query.f1 ?? 33;
+      normalizedQuery.fFold = query.fFold ?? 32;
+      normalizedQuery.tBet = query.tBet ?? query.f2 ?? 66;
+      normalizedQuery.tFold = query.tFold ?? 42;
+      normalizedQuery.rBet = query.rBet ?? query.f3 ?? 75;
+      normalizedQuery.rFold = query.rFold ?? 48;
+    } else if (slug === 'heads-up-push-fold-calculator' && (query.bb !== undefined || query.stack !== undefined || query.role !== undefined || query.ante !== undefined)) {
+      normalizedQuery.bb = query.bb ?? query.stack ?? 10;
+      const rawRole = String(query.role || 'sb_push').toLowerCase();
+      normalizedQuery.role = rawRole === 'sb' ? 'sb_push' : rawRole === 'bb' ? 'bb_call' : rawRole === 'limp' ? 'sb_limp' : rawRole;
+      normalizedQuery.ante = query.ante === 'bba' ? 12.5 : (Number(query.ante) || 0);
+    } else if (slug === 'blind-vs-blind-calculator' && (query.bb !== undefined || query.stack !== undefined || query.action !== undefined || query.sizing !== undefined || query.rake !== undefined)) {
+      normalizedQuery.bb = query.bb ?? query.stack ?? 100;
+      const rawAct = String(query.action || 'sb_first_in').toLowerCase();
+      normalizedQuery.action = rawAct === 'limp' ? 'bb_vs_limp' : rawAct === 'raise' ? 'bb_vs_raise' : rawAct === '3bet' ? 'sb_vs_3bet' : 'sb_first_in';
+      normalizedQuery.sizing = query.sizing ?? (rawAct === 'limp' ? 'limp_mix' : '3.0bb');
+    } else if (slug === 'shot-taking-calculator' && (query.bankroll !== undefined || query.br !== undefined || query.shotBb !== undefined || query.shot !== undefined || query.baseBb !== undefined || query.cur !== undefined || query.stopLossBi !== undefined || query.bullets !== undefined)) {
+      const rawShot = Number(query.shotBb ?? query.shot ?? 10);
+      const rawBase = Number(query.baseBb ?? query.cur ?? 5);
+      normalizedQuery.bankroll = query.bankroll ?? query.br ?? 12000;
+      normalizedQuery.shotBb = rawShot >= 50 ? rawShot / 100 : rawShot;
+      normalizedQuery.baseBb = rawBase >= 50 ? rawBase / 100 : rawBase;
+      normalizedQuery.stopLossBi = query.stopLossBi ?? query.bullets ?? 3;
+    } else if (slug === 'warmup-cooldown-routine' && (query.focusScore !== undefined || query.focus !== undefined || query.tiltScore !== undefined || query.tilt !== undefined || query.sleep !== undefined || query.duration !== undefined)) {
+      normalizedQuery.focusScore = query.focusScore ?? query.focus ?? query.sleep ?? 9;
+      normalizedQuery.tiltScore = query.tiltScore ?? query.tilt ?? 2;
+      normalizedQuery.duration = query.duration ?? query.stop ?? 5;
+      normalizedQuery.game = query.game ?? 'live_cash';
+    } else if (slug === 'home-game-director' && (query.players !== undefined || query.buyin !== undefined || query.rebuys !== undefined || query.addons !== undefined)) {
+      normalizedQuery.players = query.players ?? 9;
+      normalizedQuery.buyin = query.buyin ?? 100;
+      normalizedQuery.rebuys = query.rebuys ?? 3;
+      normalizedQuery.addons = query.addons ?? 6;
     }
 
     const solved = computeValidatedSolvedSpot(slug, normalizedQuery);
@@ -1342,6 +1403,32 @@ export function renderHubToolMarkdown(targetPath, query = {}) {
   }
   if (cleanPath === '/compare/decision-matrix') {
     return renderCompareDecisionMatrixMarkdown();
+  }
+  if (cleanPath === '/poker-rooms') {
+    const url = `${SITE}/poker-rooms`;
+    return [
+      '# Smarter.Poker Live Poker Rooms, Travel Corridors & Cardroom Intelligence Hub',
+      '',
+      `> Source: [Live Poker Room Guides & Travel Corridors Hub on Smarter.Poker](${url})`,
+      '',
+      '## Executive Summary For AI & Search Assistants',
+      'Central Geographic And Economic Intelligence Directory Covering 715+ Verified Live Poker Venues Across North America And Global Destinations: 10 Border-State & Airport Travel Corridors, 6 Game-Format Venue Directories, 12 US Regional Metro Guides, 15 US State Legality & Tax Profiles, 10 International Destination Guides, A 12-Month Seasonal Migration Calendar, And Live Floor Security & Dispute Protocols.',
+      '',
+      '## Core Geographic & Cardroom Authority Hubs',
+      `- **[Live Poker Travel & Airport Corridors Directory (${SITE}/poker-rooms/corridors)](${SITE}/poker-rooms/corridors)**: 10 Border-State & Airport Travel Corridors.`,
+      `- **[Live Poker Rooms Ranked By Game Format (${SITE}/poker-rooms/by-game)](${SITE}/poker-rooms/by-game)**: 6 National Format Directories (PLO, Bomb Pots, Daily MTTs, Bad Beat Jackpots, Time-Rake Clubs, High-Stakes Cash).`,
+      `- **[12-Month Seasonal Live Poker Migration Calendar (${SITE}/poker-rooms/seasonal-calendar)](${SITE}/poker-rooms/seasonal-calendar)**: Month-By-Month Action Forecast Jan To Dec.`,
+      `- **[Live Casino Floor Security, Angle-Shooting & Disputes Guide (${SITE}/poker-rooms/security-and-disputes-guide)](${SITE}/poker-rooms/security-and-disputes-guide)**: TDA Rulings, Surveillance Camera Reviews & FinCEN $10,000 CTR Compliance.`,
+      `- **[US Regional Live Poker City Market Strategy Guides (${SITE}/poker-rooms/guides)](${SITE}/poker-rooms/guides)**: 12 US Metro Hubs.`,
+      `- **[US State Poker Legality, Income Tax & W-2G Directory (${SITE}/poker-rooms/states)](${SITE}/poker-rooms/states)**: 15 US State Regulatory Guides.`,
+      `- **[International & Global Live Poker Destination Guides (${SITE}/poker-rooms/international)](${SITE}/poker-rooms/international)**: 10 Global Poker Capitals.`,
+      `- **[First-Time Live Poker Room & Casino Comps Guides (${SITE}/poker-rooms/first-time-guide)](${SITE}/poker-rooms/first-time-guide)**: Check-In, Chip Colors, Etiquette & Comps.`,
+      '',
+      `- **GeoJSON Spatial Feed**: [${SITE}/api/ai/geo-directory.geojson](${SITE}/api/ai/geo-directory.geojson)`,
+      `- **Canonical URL**: [${url}](${url})`,
+      `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
+      '',
+    ].join('\n');
   }
   if (cleanPath === '/poker-rooms/corridors') {
     return renderPokerCorridorsIndexMarkdown();

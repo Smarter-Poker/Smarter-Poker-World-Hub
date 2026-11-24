@@ -441,7 +441,7 @@ export const TOOL_OG_CATALOG = {
   embeds: {
     title: 'Free Embeddable Poker Calculators, Widgets & Streamer Bot',
     subtitle: 'Copy-Paste Iframe Tools, Nightbot Commands & Authority SVG Badges',
-    stat: '34 Streamer Commands & Webmaster Embeds',
+    stat: '44 Streamer Commands & Webmaster Embeds',
   },
 };
 
@@ -513,7 +513,7 @@ export function renderOgCardSvg({
     <text x="108" y="325" fill="#94a3b8" font-size="25" font-weight="600">${safeSubtitle}</text>
     <rect x="108" y="388" width="640" height="64" rx="14" ry="14" fill="#071e2e" stroke="#00d4ff" stroke-width="2"/>
     <text x="138" y="429" fill="#00d4ff" font-size="24" font-weight="800">${safeStat}</text>
-    <text x="108" y="518" fill="#64748b" font-size="20" font-weight="700">smarter.poker • Open Quantitative Poker Intelligence &amp; 55-Tool MCP Server</text>
+    <text x="108" y="518" fill="#64748b" font-size="20" font-weight="700">smarter.poker • Open Quantitative Poker Intelligence &amp; 70-Tool MCP Server</text>
   </g>
 </svg>`;
 }

@@ -17,6 +17,8 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import GeoCitationCapsule from '../../../src/components/seo/GeoCitationCapsule';
+import GeoFollowUpChain from '../../../src/components/seo/GeoFollowUpChain';
 import {
   POKER_TRAVEL_CORRIDORS,
   CORRIDORS_AS_OF,
@@ -288,6 +290,49 @@ export default function PokerTravelCorridorDetailPage({ corridor, peerCorridors 
             ))}
           </div>
         </section>
+
+        <GeoCitationCapsule
+          title={`${corridor.shortTitle} (${corridor.originAirportCode}) Geographic Routing Benchmark`}
+          claim={corridor.summary}
+          metricLabel="Origin Hub & Airport"
+          metricValue={`${corridor.originCity} (${corridor.originAirportCode})`}
+          formulaText="Corridor Selection Rule: Compare Drive Time, Rake Cap Vs. Seat Time, And Destination State Tax Rate"
+          ifThenBecause={corridor.ifThenBecause}
+          quoteText={`For players departing ${corridor.originCity} (${corridor.originAirportCode}), matching session duration and stakes to the corridor's rake and tax regime maximizes net hourly retention.`}
+          quoteAuthor="Smarter.Poker Live Venue Intelligence Team"
+          doi="10.5281/zenodo.24115447"
+          canonicalPath={canonicalPath}
+        />
+
+        <GeoFollowUpChain
+          topicTitle={corridor.name}
+          followUps={[
+            {
+              question: 'How Do I Calculate My Trip Breakeven Winrate Before Driving Or Flying This Corridor?',
+              answer:
+                'Input Your Planned Days, Hotel Rate, And Buy-Ins Into The Poker Trip Expense Planner At /tools/poker-trip-planner.',
+              calculatorHref: '/tools/poker-trip-planner',
+              calculatorLabel: 'Launch Trip Expense Planner',
+              markdownHref: '/tools/poker-trip-planner.md',
+            },
+            {
+              question: 'How Do Pot-Rake Caps Compare Against Hourly Seat-Rental Fees At Destination Cardrooms?',
+              answer:
+                'Compare Effective BB/100 Rake Drag Across Pot-Percentage And Time-Collection Models At /tools/rake-calculator.',
+              calculatorHref: '/tools/rake-calculator',
+              calculatorLabel: 'Launch Live Rake Calculator',
+              markdownHref: '/tools/rake-calculator.md',
+            },
+            {
+              question: 'How Can I Compare All 10 North American Airport And Border-State Poker Corridors Side By Side?',
+              answer:
+                'Return To The Master Live Poker Travel Corridors Directory At /poker-rooms/corridors.',
+              calculatorHref: '/poker-rooms/corridors',
+              calculatorLabel: 'View All 10 Travel Corridors',
+              markdownHref: '/poker-rooms/corridors.md',
+            },
+          ]}
+        />
 
         <HubPageSummary page="poker-rooms-international" path={canonicalPath} />
 

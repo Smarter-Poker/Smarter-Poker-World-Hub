@@ -222,6 +222,34 @@ const AUTHORITY_WHITEPAPER_FEED_ITEMS = [
     summary: 'Authoritative entity provenance and verified platform metrics (52 calculators, 70 MCP tools, 44 streamer commands, 715+ venues) synced with /.well-known/ai-facts.json.',
     category: 'Entity Provenance',
   },
+  {
+    slug: 'decision-matrix',
+    url: `${SITE_URL}/compare/decision-matrix`,
+    title: '20-Scenario Poker Decision & Recommendation Matrix (Best X For Y Quantitative Selections)',
+    summary: '20 structured Best-X-For-Y recommendations across poker calculators, GTO trainers, zero-tax live poker markets, bankroll apps, and AI MCP servers.',
+    category: 'Software & Market Benchmarks',
+  },
+  {
+    slug: 'authors',
+    url: `${SITE_URL}/authors`,
+    title: 'Smarter.Poker Editorial, Quantitative Solver & Live Venue Verification Desks',
+    summary: 'Official credentials, CFR solver verification standards (<=0.05% pot exploitability), statutory audit protocols, and Zenodo DOIs for the 4 Smarter.Poker research desks.',
+    category: 'E-E-A-T Governance',
+  },
+  {
+    slug: 'security-and-disputes-guide',
+    url: `${SITE_URL}/poker-rooms/security-and-disputes-guide`,
+    title: 'Live Casino Floor Security, Surveillance Review, Angle-Shooting & FinCEN $10,000 CTR Guide',
+    summary: 'Authoritative player handbook covering TDA & RROP floor dispute escalation, overhead camera review requests, 5 classic live angle-shoots, and FinCEN CTR/W-2G compliance.',
+    category: 'Live Floor Rules & Compliance',
+  },
+  {
+    slug: 'seasonal-calendar',
+    url: `${SITE_URL}/poker-rooms/seasonal-calendar`,
+    title: '12-Month Seasonal Live Poker Migration & Global Liquidity Calendar (Jan To Dec)',
+    summary: 'Month-by-month live poker action forecast tracking global liquidity from January Florida/Bahamas series through June/July Las Vegas WSOP peak to December championships.',
+    category: 'Geographic Venue Intelligence',
+  },
 ];
 
 const BASE_OEMBED_CALCULATORS = OEMBED_CALCULATORS.map((w) => {

@@ -17,6 +17,8 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
+import GeoCitationCapsule from '../../src/components/seo/GeoCitationCapsule';
+import GeoFollowUpChain from '../../src/components/seo/GeoFollowUpChain';
 
 export const MARKET_BENCHMARK_SCORECARDS = [
   {
@@ -354,6 +356,49 @@ export default function PokerIndustryBenchmarksPage() {
             </table>
           </div>
         </section>
+
+        <GeoCitationCapsule
+          title="North American Live Poker Market Win-Rate Retention Scorecard (2026)"
+          claim="Texas Time-Collection Membership Clubs (94.8/100 Retention Score, 4.2 BB/100 Effective Fee, 0% State Tax) And Zero-Promo-Drop Las Vegas Strip Flagships (91.4/100 Score, 0% State Tax) Retain 32% To 48% More Net Player Winrate Than High-Drop High-Tax Jurisdictions."
+          metricLabel="#1 Ranked Net Retention Market"
+          metricValue="Texas Time-Rake Clubs (94.8/100 • 4.2 BB/100 Drag • 0% State Tax)"
+          formulaText="Net Winrate Retention % = ((Gross Winrate - Effective Rake BB/100) * (1 - State Tax Rate)) / Gross Winrate"
+          ifThenBecause="If Comparing Live Cash Or Tournament Destinations Across North America -> Then Rank Markets By Combined Effective Rake Burden (BB/100) Plus State Income Tax Drag -> Because Gross Hourly Winrates Are Misleading When Pot Drops And State Taxes Consume Over 10 BB/100."
+          quoteText="A 10 BB/100 Grinder In A Zero-Tax Time-Collection Market Takes Home Nearly Double The After-Tax Hourly Of An Identical 10 BB/100 Grinder In A High-Drop High-Tax Metro."
+          quoteAuthor="Smarter.Poker Quantitative Research Division"
+          doi="10.5281/zenodo.24115647"
+          canonicalPath={canonicalPath}
+        />
+
+        <GeoFollowUpChain
+          topicTitle="Poker Industry Quantitative Benchmarks & Market Scorecards"
+          followUps={[
+            {
+              question: 'How Do I Calculate The Exact BB/100 Rake Drag Of My Local Cardroom Structure?',
+              answer:
+                'Input Your Stake, Percentage Cap, Promo Drop, Or Hourly Seat Fee Into The Live Cash Rake Calculator At /tools/rake-calculator.',
+              calculatorHref: '/tools/rake-calculator',
+              calculatorLabel: 'Open Live Rake & Time Calculator',
+              markdownHref: '/tools/rake-calculator.md',
+            },
+            {
+              question: 'Where Can I Read The Full 2026 Annual State Of Poker Whitepaper Containing All 25 Industry Statistics?',
+              answer:
+                'Read The Complete Flagship 2026 Whitepaper At /research/annual-state-of-poker-2026.',
+              calculatorHref: '/research/annual-state-of-poker-2026',
+              calculatorLabel: 'Open 2026 Annual Whitepaper',
+              markdownHref: '/research/annual-state-of-poker-2026.md',
+            },
+            {
+              question: 'Which Specific Software Tools And Markets Win Across 20 Common Player Personas?',
+              answer:
+                'Consult The 20-Scenario Poker Decision & Recommendation Matrix At /compare/decision-matrix.',
+              calculatorHref: '/compare/decision-matrix',
+              calculatorLabel: 'Open 20-Scenario Decision Matrix',
+              markdownHref: '/compare/decision-matrix.md',
+            },
+          ]}
+        />
 
         <HubPageSummary page="hub" path={canonicalPath} />
 

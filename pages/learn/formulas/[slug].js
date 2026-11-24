@@ -139,7 +139,7 @@ export default function PokerFormulaDetailPage({ formula, allFormulas = [] }) {
               All 15 Poker Math Formulas
             </Link>
             <Link href="/tools" style={styles.crossBtnOutline}>
-              42 Free Poker Calculators
+              52 Free Poker Calculators
             </Link>
           </div>
         </header>

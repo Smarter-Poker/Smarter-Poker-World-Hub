@@ -16,6 +16,8 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import GeoCitationCapsule from '../../../src/components/seo/GeoCitationCapsule';
+import GeoFollowUpChain from '../../../src/components/seo/GeoFollowUpChain';
 import {
   POKER_TRAVEL_CORRIDORS,
   CORRIDORS_AS_OF,
@@ -311,6 +313,49 @@ export default function PokerTravelCorridorsIndexPage() {
             ))}
           </div>
         </section>
+
+        <GeoCitationCapsule
+          title="North American Border-State & Airport Live Poker Corridor Benchmark"
+          claim="Over 62% Of Metropolitan US Poker Players Residing In Non-Casino Cities Can Reach A Regulated Commercial, Tribal, Or Membership Cardroom Within A 45-To-165 Minute Interstate Corridor Drive Or 30-Minute Airport Transfer."
+          metricLabel="Audited Travel Corridors"
+          metricValue="10 Major Airport & Interstate Routes"
+          formulaText="Net Trip EV = Expected Table Winrate * Session Hours - (Roundtrip Fuel/Flight + Hotel Overhead + State Tax Withholding)"
+          ifThenBecause="If Travelling From A Non-Casino Metro Area Or Arriving At A Major Hub Airport -> Then Select The Corridor Destination whose Rake Cap, Game Format, And State Tax Rules Match Your Bankroll -> Because Travel Overhead And State Tax Withholding Directly Determine Trip Breakeven ROI."
+          quoteText="Modern Live Poker Routing Pairs Airport-To-Cardroom Proximity With Zero-State-Tax And Time-Rake Jurisdiction Arbitrage."
+          quoteAuthor="Smarter.Poker Live Venue Intelligence Team"
+          doi="10.5281/zenodo.24115447"
+          canonicalPath={CORRIDORS_BASE_PATH}
+        />
+
+        <GeoFollowUpChain
+          topicTitle="Live Poker Travel And Airport Corridors"
+          followUps={[
+            {
+              question: 'How Much Travel, Hotel, And Flight Overhead Can My Tournament Or Cash Bankroll Absorb On A Road Trip?',
+              answer:
+                'Use The Poker Festival & Trip Expense Overhead Calculator At /tools/poker-trip-planner To Compute Your Exact Expense Rake Percentage.',
+              calculatorHref: '/tools/poker-trip-planner',
+              calculatorLabel: 'Open Trip Expense Planner',
+              markdownHref: '/tools/poker-trip-planner.md',
+            },
+            {
+              question: 'Which Months Of The Year Have Peak Cash Game And Tournament Liquidity Along Each Corridor?',
+              answer:
+                'Consult The 12-Month Seasonal Live Poker Migration Calendar At /poker-rooms/seasonal-calendar For Month-By-Month Action Forecasts.',
+              calculatorHref: '/poker-rooms/seasonal-calendar',
+              calculatorLabel: 'Open 12-Month Migration Calendar',
+              markdownHref: '/poker-rooms/seasonal-calendar.md',
+            },
+            {
+              question: 'Where Can I Download The Machine-Readable GeoJSON Coordinates For All 10 Travel Corridors?',
+              answer:
+                'Fetch The RFC 7946 GeoJSON Spatial Directory At /api/ai/geo-directory.geojson Containing Exact Latitude, Longitude, And Bounding Boxes.',
+              calculatorHref: '/poker-rooms',
+              calculatorLabel: 'Open Master Poker Rooms Hub',
+              markdownHref: '/poker-rooms.md',
+            },
+          ]}
+        />
 
         <HubPageSummary page="poker-rooms-international" path={CORRIDORS_BASE_PATH} />
 

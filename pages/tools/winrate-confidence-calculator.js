@@ -566,3 +566,24 @@ export default function WinrateConfidenceCalculatorPage() {
     </div>
   );
 }
+
+export async function getServerSideProps({ req, res, query }) {
+  const accept = String(req?.headers?.accept || '');
+  if (
+    query?.format === 'md' ||
+    query?.format === 'markdown' ||
+    accept.includes('text/markdown') ||
+    req?.url?.includes('format=md')
+  ) {
+    const { renderHubToolMarkdown } = await import('../api/hub-tool-markdown');
+    const md = renderHubToolMarkdown('/tools/winrate-confidence-calculator', query);
+    if (md) {
+      res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+      res.setHeader('Vary', 'Accept');
+      res.write(md);
+      res.end();
+      return { props: {} };
+    }
+  }
+  return { props: {} };
+}
