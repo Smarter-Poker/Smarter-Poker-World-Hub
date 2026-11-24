@@ -17,6 +17,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderFormatQuizMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
 
 const FORMAT_PROFILES = {
@@ -136,6 +137,14 @@ export default function FormatQuizPage({
     if (q.focus && ['postflop', 'icm', 'multiway'].includes(String(q.focus))) setFocus(String(q.focus));
     if (q.env && ['live', 'online'].includes(String(q.env))) setEnv(String(q.env));
   }, [router.isReady, router.query]);
+
+  useSolvedSpotUrlSync({
+    hours,
+    br: bankroll,
+    var: variance,
+    focus,
+    env,
+  });
 
   const diagnosis = useMemo(() => {
     const scores = {

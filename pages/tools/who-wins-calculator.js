@@ -18,6 +18,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderWhoWinsCalculatorMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
 
 const RANK_VALS = {
@@ -305,6 +306,12 @@ export default function WhoWinsCalculatorPage() {
     if (q.p1) setP1Input(String(q.p1));
     if (q.p2) setP2Input(String(q.p2));
   }, [router.isReady, router.query]);
+
+  useSolvedSpotUrlSync({
+    board: boardInput,
+    p1: p1Input,
+    p2: p2Input,
+  });
 
   const showdown = useMemo(() => {
     const boardCards = parseCardList(boardInput).slice(0, 5);

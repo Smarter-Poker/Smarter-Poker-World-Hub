@@ -36,10 +36,8 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      const toolId = String(req.query.toolId || req.query.toolKey || req.query.tool_id || '');
-      const recordType = (req.query.recordType || req.query.record_type)
-        ? String(req.query.recordType || req.query.record_type)
-        : '';
+      const toolId = String(req.query.toolId || req.query.toolKey || '');
+      const recordType = req.query.recordType ? String(req.query.recordType) : '';
       const duelToken = typeof req.query.duelToken === 'string' ? req.query.duelToken.trim() : '';
       const limit = Math.min(100, Math.max(1, Number.parseInt(req.query.limit, 10) || 50));
       if (!SAFE_ID.test(toolId) || (recordType && !SAFE_ID.test(recordType))) {
@@ -236,36 +234,14 @@ export default async function handler(req, res) {
       if (recordType) query = query.eq('record_type', recordType);
       const { data, error } = await query;
       if (error) throw error;
-      const records = (data || []).map((row) => ({
-        ...row,
-        payload: row?.data ?? null,
-      }));
-      return res.status(200).json({ success: true, records });
+      return res.status(200).json({ success: true, records: data || [] });
     }
 
     if (req.method === 'POST') {
-      const toolId = String(req.body?.toolId || req.body?.toolKey || req.body?.tool_id || '');
-      const recordType = String(req.body?.recordType || req.body?.record_type || 'state');
-      const rawData = validObject(req.body?.data)
-        ? req.body.data
-        : validObject(req.body?.payload)
-          ? req.body.payload
-          : null;
-      const data = rawData
-        ? {
-            ...rawData,
-            ...(req.body?.title ? { title: String(req.body.title).slice(0, 200) } : {}),
-            ...(req.body?.summary ? { summary: String(req.body.summary).slice(0, 500) } : {}),
-          }
-        : null;
-      let defaultRecordKey = `${recordType}_${Date.now()}`;
-      if (toolId === 'async-duel' && typeof rawData?.duelToken === 'string') {
-        const parsedDuel = verifyTrainingDuelToken(rawData.duelToken.trim());
-        if (parsedDuel?.duelId) {
-          defaultRecordKey = `${parsedDuel.duelId}:${user.id}`;
-        }
-      }
-      const recordKey = String(req.body?.recordKey || req.body?.record_key || defaultRecordKey);
+      const toolId = String(req.body?.toolId || '');
+      const recordType = String(req.body?.recordType || 'state');
+      const recordKey = String(req.body?.recordKey || '');
+      const data = req.body?.data;
       if (!SAFE_ID.test(toolId) || !SAFE_ID.test(recordType) || !SAFE_KEY.test(recordKey)) {
         return res.status(400).json({ success: false, error: 'Invalid tool record identifiers' });
       }
@@ -291,15 +267,12 @@ export default async function handler(req, res) {
         .maybeSingle();
       if (error) throw error;
       if (!saved) throw new Error('Tool record write returned no row');
-      return res.status(200).json({
-        success: true,
-        record: { ...saved, payload: saved.data },
-      });
+      return res.status(200).json({ success: true, record: saved });
     }
 
     if (req.method === 'DELETE') {
-      const toolId = String(req.body?.toolId || req.body?.toolKey || req.body?.tool_id || '');
-      const recordKey = String(req.body?.recordKey || req.body?.record_key || '');
+      const toolId = String(req.body?.toolId || '');
+      const recordKey = String(req.body?.recordKey || '');
       if (!SAFE_ID.test(toolId) || !SAFE_KEY.test(recordKey)) {
         return res.status(400).json({ success: false, error: 'Invalid tool record identifiers' });
       }

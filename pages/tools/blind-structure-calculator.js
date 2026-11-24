@@ -16,6 +16,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 
 const TDA_CHIP_DISTRIBUTION = [
   { denom: '100 Chip', color: 'Black', qty20k: '10 Chips', value20k: '1,000', colorUp: 'End Of Level 6 (Before 500/1,000)' },
@@ -75,6 +76,23 @@ export default function BlindStructureCalculatorPage({
   const [startingStack, setStartingStack] = useState(initialStartingStack);
   const [levelMinutes, setLevelMinutes] = useState(initialLevelMinutes);
   const [anteFormat, setAnteFormat] = useState(initialAnteFormat);
+
+  useSolvedSpotUrlSync(
+    {
+      players,
+      hours: targetHours,
+      stack: startingStack,
+      mins: levelMinutes,
+      ante: anteFormat === 'no-ante' ? 'none' : 'bba',
+    },
+    {
+      players: (v) => setPlayers(Math.max(2, Math.min(500, Math.round(Number(v) || 18)))),
+      hours: (v) => setTargetHours(Math.max(1, Math.min(14, Number(v) || 4))),
+      stack: (v) => setStartingStack(Math.max(1000, Math.round(Number(v) || 20000))),
+      mins: (v) => setLevelMinutes(Math.max(5, Math.min(60, Math.round(Number(v) || 20)))),
+      ante: (v) => setAnteFormat(String(v).toLowerCase() === 'none' || String(v).toLowerCase() === 'no-ante' ? 'no-ante' : 'bb-ante'),
+    }
+  );
 
   const metrics = useMemo(() => {
     const safePlayers = Math.max(2, Math.min(500, Math.round(Number(players) || 18)));

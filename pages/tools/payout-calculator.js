@@ -16,6 +16,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 
 const PAYOUT_STRUCTURE_PRESETS = [
   {
@@ -125,6 +126,29 @@ export default function PayoutCalculatorPage({
   const [houseFee, setHouseFee] = useState(initialHouseFee);
   const [addedMoney, setAddedMoney] = useState(initialAddedMoney);
   const [presetId, setPresetId] = useState(initialPresetId);
+
+  useSolvedSpotUrlSync(
+    {
+      entries: totalEntries,
+      rebuys: rebuysAddOns,
+      buyIn,
+      fee: houseFee,
+      added: addedMoney,
+      preset: presetId,
+    },
+    {
+      entries: (v) => setTotalEntries(Math.max(2, Math.min(5000, Math.round(Number(v) || 45)))),
+      rebuys: (v) => setRebuysAddOns(Math.max(0, Math.min(5000, Math.round(Number(v) || 0)))),
+      buyIn: (v) => setBuyIn(Math.max(1, Number(v) || 100)),
+      fee: (v) => setHouseFee(Math.max(0, Number(v) || 0)),
+      added: (v) => setAddedMoney(Math.max(0, Number(v) || 0)),
+      preset: (v) => {
+        if (PAYOUT_STRUCTURE_PRESETS.some((p) => p.id === String(v))) {
+          setPresetId(String(v));
+        }
+      },
+    }
+  );
 
   const payoutData = useMemo(() => {
     const safeEntries = Math.max(2, Math.min(5000, Math.round(Number(totalEntries) || 45)));

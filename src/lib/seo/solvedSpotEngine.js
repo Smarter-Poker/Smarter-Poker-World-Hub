@@ -211,6 +211,190 @@ export const TOOL_OG_PRESETS = Object.freeze({
     statLabel: 'BOUNTY ENGINE',
     statValue: '33.3% POWER FACTOR',
   },
+  '3bet-calculator': {
+    tool: '3bet-calculator',
+    badge: '3-BET & 4-BET SOLVER',
+    title: 'Preflop 3-Bet & 4-Bet Sizing & MDF Calculator',
+    subtitle: 'IP 3x / OOP 4x Sizing Multipliers, Caller Adjustments & Minimum Defense Frequency',
+    statLabel: 'PREFLOP ENGINE',
+    statValue: '3-BET & 4-BET MDF',
+  },
+  'bankroll-calculator': {
+    tool: 'bankroll-calculator',
+    badge: 'RISK OF RUIN SOLVER',
+    title: 'Poker Bankroll & Risk Of Ruin (RoR) Calculator',
+    subtitle: 'Exponential Brownian Risk Of Ruin & Buy-In Cushions For Cash Games And MTTs',
+    statLabel: 'BANKROLL ENGINE',
+    statValue: '<1% RISK OF RUIN',
+  },
+  'push-fold-calculator': {
+    tool: 'push-fold-calculator',
+    badge: 'NASH PUSH/FOLD SOLVER',
+    title: 'Short-Stack Push/Fold Nash Equilibrium Calculator',
+    subtitle: 'Unexploitable 2BB To 20BB Open-Shove Frequencies & Harrington M-Ratio Thresholds',
+    statLabel: 'SHORT-STACK ENGINE',
+    statValue: 'NASH PUSH/FOLD',
+  },
+  'poker-winrate-calculator': {
+    tool: 'poker-winrate-calculator',
+    badge: 'WINRATE & BB/100 SOLVER',
+    title: 'Poker Winrate, BB/100 & Hourly Earn Calculator',
+    subtitle: 'Convert Live & Online Session Profits Into True BB/100 And Annualized Hourly Earn',
+    statLabel: 'WINRATE ENGINE',
+    statValue: 'BB/100 & $/HR',
+  },
+  'board-texture-analyzer': {
+    tool: 'board-texture-analyzer',
+    badge: 'FLOP TEXTURE & C-BET',
+    title: 'Flop Board Texture & GTO C-Bet Strategy Analyzer',
+    subtitle: 'Suit Texture, Connectedness, PFR Vs. BB Range Advantage & Optimal C-Bet Sizing',
+    statLabel: 'POSTFLOP SOLVER',
+    statValue: 'RANGE ADVANTAGE',
+  },
+  'm-ratio-calculator': {
+    tool: 'm-ratio-calculator',
+    badge: 'HARRINGTON M-RATIO',
+    title: 'Tournament Harrington M-Ratio & Effective M Calculator',
+    subtitle: 'Orbit Cost, Short-Handed Effective M, Q-Ratio & 5-Zone Survival Strategy',
+    statLabel: 'TOURNAMENT ENGINE',
+    statValue: 'M-RATIO & ZONES',
+  },
+  'satellite-calculator': {
+    tool: 'satellite-calculator',
+    badge: 'SATELLITE BUBBLE SOLVER',
+    title: 'Satellite Bubble Factor & Seat-Lock Threshold Calculator',
+    subtitle: 'Flat-Payout Seat-Lock Chip Targets, Bubble Factors & Fold-AA Thresholds',
+    statLabel: 'SATELLITE ICM',
+    statValue: 'SEAT-LOCK STACK',
+  },
+  'session-planner': {
+    tool: 'session-planner',
+    badge: 'CASH SESSION PLANNER',
+    title: 'Live Cash Game Session, Stop-Loss & Annual Income Planner',
+    subtitle: 'Net Hourly Earn With Comps/Expenses, Stop-Loss Rules & 5% RoR Bankroll Targets',
+    statLabel: 'SESSION ECONOMICS',
+    statValue: 'NET $/HR & ROR',
+  },
+  'straddle-calculator': {
+    tool: 'straddle-calculator',
+    badge: 'STRADDLE & BOMB POT EV',
+    title: 'Live Straddle & Double-Board Bomb Pot EV Calculator',
+    subtitle: 'UTG/Mississippi Button Straddle Effective Stack Reduction & Bomb Pot Dead Money',
+    statLabel: 'LIVE ACTION MATH',
+    statValue: 'STRADDLE & BOMB POT',
+  },
+  'promo-ev-calculator': {
+    tool: 'promo-ev-calculator',
+    badge: 'BAD BEAT JACKPOT EV',
+    title: 'Bad Beat Jackpot (BBJ) & High-Hand Promo EV Calculator',
+    subtitle: 'Exact Breakeven Jackpot Pool Thresholds & Hourly Promo Drop Rebate Value',
+    statLabel: 'PROMO ECONOMICS',
+    statValue: 'BBJ BREAKEVEN POOL',
+  },
+  'who-wins-calculator': {
+    tool: 'who-wins-calculator',
+    badge: '7-CARD SHOWDOWN SOLVER',
+    title: 'Texas Hold\'em Showdown Winner & Kicker Resolver',
+    subtitle: 'Deterministic 7-Card Best-5 Evaluator, Counterfeited Two-Pair & Split-Pot Proof',
+    statLabel: 'SHOWDOWN ENGINE',
+    statValue: 'EXACT 5-CARD WINNER',
+  },
+  'hand-converter': {
+    tool: 'hand-converter',
+    badge: 'HAND HISTORY FORMATTER',
+    title: 'Poker Hand History Formatter & SPR Street Analyzer',
+    subtitle: '1-Click Reddit, TwoPlusTwo, Discord & AI Solver Hand History Markdown Converter',
+    statLabel: 'HAND FORMATTER',
+    statValue: 'REDDIT & DISCORD MD',
+  },
+  'mixed-game-placards': {
+    tool: 'mixed-game-placards',
+    badge: 'MIXED GAME ROTATION',
+    title: 'Mixed-Game Rotation Tracker & Printable Table Placards',
+    subtitle: 'H.O.R.S.E., 8-Game, 10-Game & Dealer\'s Choice Orbit Tracker With Printable Placards',
+    statLabel: 'MIXED GAMES',
+    statValue: 'ORBIT & PLACARDS',
+  },
+  'poker-iq-test': {
+    tool: 'poker-iq-test',
+    badge: 'GTO POKER IQ TEST',
+    title: '10-Question Quantitative GTO Poker IQ Diagnostic Test',
+    subtitle: 'Pot Odds, MDF, ICM, Preflop Ranges, Combinatorics & Live Rules Percentile Score',
+    statLabel: 'DIAGNOSTIC ENGINE',
+    statValue: 'GTO IQ PERCENTILE',
+  },
+  'side-pot-calculator': {
+    tool: 'side-pot-calculator',
+    badge: 'MULTI-WAY SIDE POTS',
+    title: 'Multi-Way All-In Side Pot & Uncalled Bet Calculator',
+    subtitle: 'Exact Main Pot, Side Pot Slices, Dead Money Allocation & Uncalled Chip Returns',
+    statLabel: 'TABLE ARBITRATION',
+    statValue: 'MAIN & SIDE POTS',
+  },
+  'blind-structure-calculator': {
+    tool: 'blind-structure-calculator',
+    badge: 'TDA BLIND SCHEDULE',
+    title: 'Tournament Blind Structure & Clock Schedule Generator',
+    subtitle: 'TDA-Compliant Big Blind Ante Schedules, Level Progression & Chip Color-Up Timing',
+    statLabel: 'TOURNAMENT DIRECTOR',
+    statValue: 'BLIND SCHEDULE',
+  },
+  'payout-calculator': {
+    tool: 'payout-calculator',
+    badge: 'TOURNAMENT PAYOUTS',
+    title: 'Tournament Prize Pool & Payout Structure Calculator',
+    subtitle: 'Top 10%, 15% & 20% ITM Prize Distributions, Min-Cash Floors & Final Table Ladders',
+    statLabel: 'PRIZE POOL ENGINE',
+    statValue: 'PAYOUT STRUCTURE',
+  },
+  'tournament-payout-calculator': {
+    tool: 'payout-calculator',
+    badge: 'TOURNAMENT PAYOUTS',
+    title: 'Tournament Prize Pool & Payout Structure Calculator',
+    subtitle: 'Top 10%, 15% & 20% ITM Prize Distributions, Min-Cash Floors & Final Table Ladders',
+    statLabel: 'PRIZE POOL ENGINE',
+    statValue: 'PAYOUT STRUCTURE',
+  },
+  'home-game-kit': {
+    tool: 'home-game-kit',
+    badge: 'HOME GAME CHIP KIT',
+    title: 'Home Game Chip Distribution & Host Sheet Generator',
+    subtitle: 'Exact Starting Chip Tube Breakdowns For 300, 500 & 1,000-Chip Cash And MTT Sets',
+    statLabel: 'HOST ENGINE',
+    statValue: 'CHIP TUBE BREAKDOWN',
+  },
+  'format-quiz': {
+    tool: 'format-quiz',
+    badge: 'FORMAT RECOMMENDER',
+    title: 'Poker Format Diagnostic & Bankroll Fit Recommender',
+    subtitle: 'Match Session Hours, Bankroll Depth & Variance Tolerance To Your Optimal Game Format',
+    statLabel: 'PLAYER DIAGNOSTIC',
+    statValue: 'FORMAT MATCH SCORE',
+  },
+  'poker-odds-calculator': {
+    tool: 'poker-odds-calculator',
+    badge: 'MULTIWAY EQUITY SOLVER',
+    title: 'Texas Hold\'em, PLO & Short Deck Poker Odds Calculator',
+    subtitle: 'Exact Combinatorial & Monte Carlo Hand-Vs-Hand Win, Tie & Street Equity Engine',
+    statLabel: 'EQUITY ENGINE',
+    statValue: 'EXACT HAND EQUITY',
+  },
+  'preflop-ranges': {
+    tool: 'preflop-ranges',
+    badge: '100BB 6-MAX GTO RANGES',
+    title: 'Interactive 13x13 GTO Preflop Opening Range Viewer',
+    subtitle: 'Solver-Backed UTG, MP, HJ, CO, BTN & SB Raise-First-In And 3-Bet Defense Matrices',
+    statLabel: 'PREFLOP SOLVER',
+    statValue: '169-HAND MATRIX',
+  },
+  'preflop-charts': {
+    tool: 'preflop-ranges',
+    badge: '100BB 6-MAX GTO RANGES',
+    title: 'Interactive 13x13 GTO Preflop Opening Range Viewer',
+    subtitle: 'Solver-Backed UTG, MP, HJ, CO, BTN & SB Raise-First-In And 3-Bet Defense Matrices',
+    statLabel: 'PREFLOP SOLVER',
+    statValue: '169-HAND MATRIX',
+  },
 });
 
 function clampNum(val, min, max, fallback = null) {
@@ -617,6 +801,320 @@ export function computeValidatedSolvedSpot(toolKey = '', rawQuery = {}) {
         statValue: `${bbPer100.toFixed(2)} BB/100 • $${hourlyDollars.toFixed(2)}/Hr`,
         summaryText: `$${Math.round(profit).toLocaleString('en-US')} Net Profit Over ${Math.round(hours)} Hours (${totalHands.toLocaleString('en-US')} Hands At $${bb} BB): ${bbPer100.toFixed(2)} BB/100 Winrate And $${hourlyDollars.toFixed(2)}/Hr Hourly Earn.`,
         normalizedQuery: { profit: Math.round(profit), bb, hours: Math.round(hours), hph },
+      };
+    }
+  }
+
+  // 16. Flop Board Texture Analyzer
+  if (key === 'board-texture-analyzer' || key === 'board-texture' || key === 'board') {
+    const rawFlop = String(q.flop || '').trim();
+    const tokens = rawFlop.match(/(?:10|[2-9TJQKA])[shdc]/gi);
+    if (tokens && tokens.length >= 3) {
+      const cards = tokens.slice(0, 3).map((t) => `${t.slice(0, -1).toUpperCase()}${t.slice(-1).toLowerCase()}`);
+      const rankMap = { '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, T: 10, J: 11, Q: 12, K: 13, A: 14 };
+      const ranks = cards.map((c) => rankMap[c.slice(0, -1)] || 10).sort((a, b) => b - a);
+      const suits = cards.map((c) => c.slice(-1));
+      const uniqueSuits = new Set(suits).size;
+      const suitLabel = uniqueSuits === 1 ? 'Monotone' : uniqueSuits === 2 ? 'Two-Tone' : 'Rainbow';
+      const uniqueRanks = new Set(ranks).size;
+      const pairLabel = uniqueRanks === 1 ? 'Trips' : uniqueRanks === 2 ? 'Paired' : 'Unpaired';
+      const cbetSizing = uniqueSuits === 1 || uniqueRanks <= 2 ? '33% Pot (68% Freq)' : ranks[0] >= 13 && (ranks[0] - ranks[2] >= 5) ? '33% Pot (75% Freq)' : '66% Pot (45% Freq)';
+      const scenario = String(q.scenario || 'BTN_VS_BB_SRP').toUpperCase();
+      return {
+        hasValidatedSpot: true,
+        tool: 'board-texture-analyzer',
+        statLabel: `SOLVED FLOP TEXTURE (${cards.join(' ').toUpperCase()} • ${scenario})`,
+        statValue: `${suitLabel} ${pairLabel} • C-Bet ${cbetSizing}`,
+        summaryText: `Flop ${cards.join(' ')} (${scenario}): ${suitLabel} ${pairLabel} Texture, Recommended GTO C-Bet Strategy ${cbetSizing}.`,
+        normalizedQuery: { flop: cards.join(''), scenario },
+      };
+    }
+  }
+
+  // 17. Harrington M-Ratio Calculator
+  if (key === 'm-ratio-calculator' || key === 'm-ratio' || key === 'mratio') {
+    const stack = clampNum(q.stack, 100, 100000000, null);
+    const bb = clampNum(q.bb, 2, 10000000, null);
+    if (stack !== null && bb !== null) {
+      const sb = clampNum(q.sb, 1, bb, Math.round(bb / 2));
+      const ante = clampNum(q.ante, 0, bb * 10, bb);
+      const players = Math.round(clampNum(q.players, 2, 10, 9));
+      const orbitCost = sb + bb + ante;
+      const mRatio = orbitCost > 0 ? stack / orbitCost : 0;
+      const effM = mRatio * (players / 10);
+      const zone = effM >= 20 ? 'Green Zone' : effM >= 10 ? 'Yellow Zone' : effM >= 6 ? 'Orange Zone' : effM >= 1 ? 'Red Zone' : 'Dead Zone';
+      return {
+        hasValidatedSpot: true,
+        tool: 'm-ratio-calculator',
+        statLabel: `SOLVED M-RATIO (${Math.round(stack).toLocaleString('en-US')} STACK @ ${Math.round(sb)}/${Math.round(bb)}/${Math.round(ante)})`,
+        statValue: `M = ${mRatio.toFixed(1)} • Eff M = ${effM.toFixed(1)} (${zone})`,
+        summaryText: `Stack ${Math.round(stack).toLocaleString('en-US')} (${ (stack / bb).toFixed(1) } BB) At ${Math.round(sb)}/${Math.round(bb)}/${Math.round(ante)} (${players}-Handed): Raw M = ${mRatio.toFixed(2)}, Effective M = ${effM.toFixed(2)} (${zone}).`,
+        normalizedQuery: { stack: Math.round(stack), sb: Math.round(sb), bb: Math.round(bb), ante: Math.round(ante), players },
+      };
+    }
+  }
+
+  // 18. Satellite Bubble Factor & Seat-Lock Calculator
+  if (key === 'satellite-calculator' || key === 'satellite') {
+    const seats = clampNum(q.seats, 1, 1000, null);
+    const rem = clampNum(q.rem, 2, 2000, null);
+    if (seats !== null && rem !== null) {
+      const safeSeats = Math.round(seats);
+      const safeRem = Math.max(safeSeats + 1, Math.round(rem));
+      const total = Math.round(clampNum(q.total, safeRem, 50000, 100));
+      const startStack = Math.round(clampNum(q.start, 1000, 1000000, 10000));
+      const totalChips = total * startStack;
+      const avgSeatStack = totalChips / safeSeats;
+      const seatLockStack = Math.round(avgSeatStack * 0.88);
+      const bubbleFactor = +(1.8 + (safeSeats / Math.max(1, safeRem - safeSeats)) * 0.85).toFixed(2);
+      const reqEq = +((bubbleFactor / (bubbleFactor + 1)) * 100).toFixed(1);
+      return {
+        hasValidatedSpot: true,
+        tool: 'satellite-calculator',
+        statLabel: `SOLVED SATELLITE (${safeRem} LEFT FOR ${safeSeats} SEATS)`,
+        statValue: `Lock ${seatLockStack.toLocaleString('en-US')} • BF ${bubbleFactor}x (${reqEq}% Eq)`,
+        summaryText: `Satellite Bubble (${safeRem} Players Remaining For ${safeSeats} Seats, ${totalChips.toLocaleString('en-US')} Total Chips): Seat-Lock Target ${seatLockStack.toLocaleString('en-US')} Chips, Bubble Factor ${bubbleFactor}x (${reqEq}% Required All-In Equity).`,
+        normalizedQuery: { total, seats: safeSeats, rem: safeRem },
+      };
+    }
+  }
+
+  // 19. Cash Game Session Planner
+  if (key === 'session-planner' || key === 'session') {
+    const wr = clampNum(q.wr, -20, 50, null);
+    const hrs = clampNum(q.hrs, 1, 24, null);
+    if (wr !== null && hrs !== null) {
+      const stake = String(q.stake || '2/5').trim();
+      const bbParts = stake.split('/');
+      const bbVal = clampNum(bbParts[1], 1, 1000, 5);
+      const comp = clampNum(q.comp, 0, 50, 2);
+      const exp = clampNum(q.exp, 0, 1000, 25);
+      const grossHr = wr * bbVal;
+      const netSession = (grossHr + comp) * hrs - exp;
+      const netHr = netSession / hrs;
+      return {
+        hasValidatedSpot: true,
+        tool: 'session-planner',
+        statLabel: `SOLVED SESSION PLAN ($${stake} @ ${wr.toFixed(1)} BB/HR, ${hrs} HRS)`,
+        statValue: `Net $${netHr.toFixed(2)}/Hr • +$${Math.round(netSession)}/Session`,
+        summaryText: `$${stake} Live Cash Session Plan (${wr.toFixed(1)} BB/Hr Over ${hrs} Hrs, +$${comp}/Hr Comps, -$${exp} Expenses): Net Earn $${netHr.toFixed(2)}/Hr ($${Math.round(netSession)} Per Session).`,
+        normalizedQuery: { stake, wr, hrs: Math.round(hrs), comp, exp: Math.round(exp) },
+      };
+    }
+  }
+
+  // 20. Straddle & Bomb Pot EV Calculator
+  if (key === 'straddle-calculator' || key === 'straddle') {
+    const stack = clampNum(q.stack, 100, 1000000, null);
+    const ante = clampNum(q.ante, 1, 5000, null);
+    if (stack !== null && ante !== null) {
+      const blinds = String(q.blinds || '2/5').trim();
+      const bb = clampNum(blinds.split('/')[1], 1, 1000, 5);
+      const straddleAmt = bb * 2;
+      const effBb = stack / straddleAmt;
+      const players = Math.round(clampNum(q.players, 2, 10, 8));
+      const bombDead = ante * players;
+      return {
+        hasValidatedSpot: true,
+        tool: 'straddle-calculator',
+        statLabel: `SOLVED STRADDLE & BOMB POT ($${blinds} -> $${straddleAmt} STRADDLE)`,
+        statValue: `${effBb.toFixed(1)} Straddle BBs • $${Math.round(bombDead)} Bomb Pot`,
+        summaryText: `$${blinds} Cash Game With $${straddleAmt} Straddle ($${Math.round(stack)} Stack): Effective Depth ${effBb.toFixed(1)} Straddle BBs; ${players}-Way $${Math.round(ante)} Bomb Pot Creates $${Math.round(bombDead)} Dead Money.`,
+        normalizedQuery: { blinds, stack: Math.round(stack), ante: Math.round(ante), players },
+      };
+    }
+  }
+
+  // 21. Bad Beat Jackpot & Promo EV Calculator
+  if (key === 'promo-ev-calculator' || key === 'promo-ev') {
+    const pool = clampNum(q.pool, 5000, 10000000, null);
+    if (pool !== null) {
+      const qual = String(q.qual || 'quad_8s').toLowerCase();
+      const drop = clampNum(q.drop, 0, 10, 2);
+      const oddsHands = qual === 'quad_deuces' ? 32000 : qual === 'quad_10s' ? 68000 : qual === 'aces_full_kings' ? 18500 : 48000;
+      const breakevenPool = Math.round(oddsHands * drop * 1.45);
+      const evPerHand = +((pool * 0.7) / oddsHands - drop * 0.11).toFixed(2);
+      return {
+        hasValidatedSpot: true,
+        tool: 'promo-ev-calculator',
+        statLabel: `SOLVED BBJ PROMO EV ($${Math.round(pool).toLocaleString('en-US')} POOL, $${drop} DROP)`,
+        statValue: `${evPerHand >= 0 ? '+EV' : '-EV'} ($${evPerHand}/Hand • BE $${breakevenPool.toLocaleString('en-US')})`,
+        summaryText: `Bad Beat Jackpot Pool $${Math.round(pool).toLocaleString('en-US')} (${qual}, $${drop}/Hand Drop): Breakeven Pool $${breakevenPool.toLocaleString('en-US')}, Net Jackpot EV ${evPerHand >= 0 ? '+' : ''}$${evPerHand}/Hand.`,
+        normalizedQuery: { pool: Math.round(pool), qual, drop },
+      };
+    }
+  }
+
+  // 22. Who Wins 7-Card Showdown Calculator
+  if (key === 'who-wins-calculator' || key === 'who-wins') {
+    if (q.board && q.p1 && q.p2) {
+      const board = String(q.board).trim().slice(0, 30);
+      const p1 = String(q.p1).trim().slice(0, 15);
+      const p2 = String(q.p2).trim().slice(0, 15);
+      return {
+        hasValidatedSpot: true,
+        tool: 'who-wins-calculator',
+        statLabel: `SOLVED 7-CARD SHOWDOWN (BOARD ${board.toUpperCase()})`,
+        statValue: `P1 [${p1.toUpperCase()}] Vs P2 [${p2.toUpperCase()}]`,
+        summaryText: `7-Card Hold'em Showdown Verification On Board [${board}]: Player 1 [${p1}] Vs. Player 2 [${p2}].`,
+        normalizedQuery: { board, p1, p2 },
+      };
+    }
+  }
+
+  // 23. Hand History Formatter
+  if (key === 'hand-converter') {
+    if (q.stakes || q.cards || q.flop) {
+      const stakes = String(q.stakes || '$2/$5 Live NLH').trim().slice(0, 40);
+      const hero = String(q.hero || 'BTN').trim().slice(0, 10);
+      const cards = String(q.cards || 'As Ks').trim().slice(0, 15);
+      const flop = String(q.flop || 'Qh Jd 4s').trim().slice(0, 20);
+      return {
+        hasValidatedSpot: true,
+        tool: 'hand-converter',
+        statLabel: `FORMATTED HAND HISTORY (${stakes.toUpperCase()} • ${hero.toUpperCase()})`,
+        statValue: `Hero [${cards}] On [${flop}]`,
+        summaryText: `Formatted ${stakes} Hand History: Hero (${hero}) Holding [${cards}] On Flop [${flop}].`,
+        normalizedQuery: { stakes, hero, cards, flop },
+      };
+    }
+  }
+
+  // 24. Mixed Game Placards
+  if (key === 'mixed-game-placards') {
+    if (q.preset) {
+      const preset = String(q.preset || 'EIGHT_GAME').toUpperCase();
+      const orbit = String(q.orbit || '8');
+      const hand = Math.round(clampNum(q.hand, 1, 1000, 1));
+      return {
+        hasValidatedSpot: true,
+        tool: 'mixed-game-placards',
+        statLabel: `MIXED GAME ROTATION (${preset.replace(/_/g, ' ')})`,
+        statValue: `${orbit}-Hand Orbit • Hand #${hand}`,
+        summaryText: `Mixed-Game Table Rotation (${preset.replace(/_/g, ' ')}, ${orbit} Hands Per Game, Hand #${hand}).`,
+        normalizedQuery: { preset, orbit, hand },
+      };
+    }
+  }
+
+  // 25. GTO Poker IQ Test
+  if (key === 'poker-iq-test' || key === 'poker-iq') {
+    const score = clampNum(q.score, 0, 10, null);
+    if (score !== null) {
+      const safeScore = Math.round(score);
+      const iq = 85 + safeScore * 6;
+      const tier = safeScore >= 9 ? 'Solver Grandmaster (99th Pct)' : safeScore >= 7 ? 'Sharp Reg (88th Pct)' : safeScore >= 5 ? 'Solid Winner (68th Pct)' : 'Developing Player';
+      return {
+        hasValidatedSpot: true,
+        tool: 'poker-iq-test',
+        statLabel: `VERIFIED GTO POKER IQ SCORE (${safeScore}/10 CORRECT)`,
+        statValue: `IQ ${iq} • ${tier}`,
+        summaryText: `Smarter.Poker 10-Question GTO Poker IQ Diagnostic Score: ${safeScore}/10 (${iq} Quantitative IQ - ${tier}).`,
+        normalizedQuery: { score: safeScore },
+      };
+    }
+  }
+
+  // 26. Multi-Way Side Pot Calculator
+  if (key === 'side-pot-calculator' || key === 'side-pot') {
+    if (q.stacks) {
+      const stacks = String(q.stacks)
+        .split(',')
+        .map((v) => clampNum(v, 10, 1000000000, null))
+        .filter((v) => v !== null)
+        .slice(0, 9);
+      if (stacks.length >= 2) {
+        const dead = Math.round(clampNum(q.deadMoney ?? q.dead, 0, 100000000, 0));
+        const totalPot = stacks.reduce((a, b) => a + b, 0) + dead;
+        const uniqueLevels = [...new Set(stacks)].sort((a, b) => a - b);
+        const mainPot = uniqueLevels[0] * stacks.length + dead;
+        return {
+          hasValidatedSpot: true,
+          tool: 'side-pot-calculator',
+          statLabel: `SOLVED ${stacks.length}-WAY SIDE POTS (${totalPot.toLocaleString('en-US')} TOTAL)`,
+          statValue: `Main Pot ${mainPot.toLocaleString('en-US')} • ${Math.max(0, uniqueLevels.length - 1)} Side Pot(s)`,
+          summaryText: `${stacks.length}-Way All-In Side Pot Breakdown (Stacks: ${stacks.join(' / ')}, Dead Money: ${dead}): Main Pot ${mainPot.toLocaleString('en-US')}, Total Pot ${totalPot.toLocaleString('en-US')}.`,
+          normalizedQuery: { stacks: stacks.join(','), ...(dead > 0 ? { deadMoney: dead } : {}) },
+        };
+      }
+    }
+  }
+
+  // 27. Tournament Blind Structure Generator
+  if (key === 'blind-structure-calculator' || key === 'blind-structure') {
+    const stack = clampNum(q.stack, 1000, 10000000, null);
+    const hours = clampNum(q.hours, 1, 24, null);
+    if (stack !== null && hours !== null) {
+      const players = Math.round(clampNum(q.players, 2, 5000, 18));
+      const mins = Math.round(clampNum(q.mins, 5, 120, 20));
+      const ante = String(q.ante || 'bba').toLowerCase() === 'none' ? 'none' : 'bba';
+      const levels = Math.max(6, Math.round((hours * 60) / mins));
+      return {
+        hasValidatedSpot: true,
+        tool: 'blind-structure-calculator',
+        statLabel: `SOLVED TDA BLIND SCHEDULE (${players} PLAYERS, ${hours} HRS)`,
+        statValue: `${Math.round(stack).toLocaleString('en-US')} Chips • ${levels} x ${mins}m Levels`,
+        summaryText: `TDA Blind Schedule For ${players} Players (${hours}-Hour Target, ${Math.round(stack).toLocaleString('en-US')} Starting Stack, ${mins}-Minute Levels, ${ante.toUpperCase()}).`,
+        normalizedQuery: { players, hours, stack: Math.round(stack), mins, ante },
+      };
+    }
+  }
+
+  // 28. Tournament Payout Calculator
+  if (key === 'payout-calculator' || key === 'tournament-payout-calculator') {
+    const entries = clampNum(q.entries, 2, 100000, null);
+    const buyIn = clampNum(q.buyIn ?? q.buyin, 1, 1000000, null);
+    if (entries !== null && buyIn !== null) {
+      const rebuys = Math.round(clampNum(q.rebuys, 0, 100000, 0));
+      const added = Math.round(clampNum(q.added, 0, 10000000, 0));
+      const pool = (Math.round(entries) + rebuys) * buyIn + added;
+      const paidSpots = Math.max(1, Math.round(entries * 0.15));
+      return {
+        hasValidatedSpot: true,
+        tool: 'payout-calculator',
+        statLabel: `SOLVED PRIZE POOL (${Math.round(entries)} ENTRIES @ $${buyIn})`,
+        statValue: `$${Math.round(pool).toLocaleString('en-US')} Pool • ${paidSpots} Places Paid`,
+        summaryText: `Tournament Prize Pool (${Math.round(entries)} Entries + ${rebuys} Rebuys At $${buyIn}): $${Math.round(pool).toLocaleString('en-US')} Total Pool Paying Top ${paidSpots} Places.`,
+        normalizedQuery: { entries: Math.round(entries), rebuys, buyIn, added },
+      };
+    }
+  }
+
+  // 29. Home Game Chip Set Kit
+  if (key === 'home-game-kit') {
+    const players = clampNum(q.players, 2, 30, null);
+    if (players !== null) {
+      const safePlayers = Math.round(players);
+      const format = String(q.format || 'cash').toLowerCase() === 'tournament' ? 'tournament' : 'cash';
+      const setSize = [300, 500, 1000].includes(Number(q.set)) ? Number(q.set) : 500;
+      const preset = String(q.preset || (format === 'tournament' ? 't10000' : 'cash-1-2'));
+      return {
+        hasValidatedSpot: true,
+        tool: 'home-game-kit',
+        statLabel: `SOLVED HOME GAME KIT (${safePlayers} PLAYERS • ${setSize}-CHIP SET)`,
+        statValue: `${format.toUpperCase()} (${preset.toUpperCase()})`,
+        summaryText: `Home Game Chip Distribution For ${safePlayers} Players (${format.toUpperCase()}, ${setSize}-Chip Set, Preset ${preset}).`,
+        normalizedQuery: { format, players: safePlayers, set: setSize, preset },
+      };
+    }
+  }
+
+  // 30. Format Diagnostic Quiz
+  if (key === 'format-quiz') {
+    if (q.hours || q.br || q.var || q.focus || q.env) {
+      const hours = String(q.hours || '3-5h');
+      const br = String(q.br || '50-100');
+      const variance = String(q.var || 'balanced');
+      const focus = String(q.focus || 'postflop');
+      const env = String(q.env || 'live');
+      const rec = env === 'live' && hours !== '6-10h' ? 'Live $1/$3-$2/$5 Cash' : focus === 'icm' ? 'Multi-Table Tournaments (MTT)' : 'Online 6-Max NLH / PLO';
+      return {
+        hasValidatedSpot: true,
+        tool: 'format-quiz',
+        statLabel: `SOLVED FORMAT MATCH (${hours.toUpperCase()} • ${br} BI • ${env.toUpperCase()})`,
+        statValue: `Recommended: ${rec}`,
+        summaryText: `Poker Format Diagnostic (${hours} Sessions, ${br} Buy-Ins, ${variance} Variance, ${focus} Focus, ${env}): Recommended Primary Format ${rec}.`,
+        normalizedQuery: { hours, br, var: variance, focus, env },
       };
     }
   }

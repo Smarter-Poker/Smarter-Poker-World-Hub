@@ -4,7 +4,7 @@
   "display_name": "Smarter.Poker Live Poker, GTO Strategy & Equity MCP Server",
   "description": "Official Model Context Protocol (MCP) server for Smarter.Poker providing 45 zero-auth tools for North American live poker room discovery (500+ venues), tournament series schedules, exact Holdem/PLO equity calculation, 100BB 6-Max GTO preflop charts, Malmuth-Harville ICM & final table chop payouts, pot odds/MDF math, hypergeometric draw outs, Brownian variance/downswing simulation, PKO/Mystery Bounty chip equity, multi-way side pot calculation, tournament blind structure generation, SPR geometric bet sizing, PLO max bet & live cash rake math, US poker tax & Form W-2G calculation, tournament staking markup splits, pre-flop isolation raise sizing, home game chip set distribution, Flop Board Texture, Harrington M-Ratio, Cash Session Planner, Straddle & Bomb Pot EV, Hand History Formatter, Satellite Bubble Factor, Bad Beat Jackpot EV, 7-Card Showdown Resolver, 9 table position guides, 15 US state poker law guides, 30 official TDA/RROP floor rulings, 15 poker game variants, 12 US regional poker market guides, 10 major poker series strategy guides, 169 starting hand guides, 25 hand-vs-hand preflop matchups, 15 first-party poker research benchmarks, 30 competitor comparisons, and automated citation/backlink/embed syndication kits.",
   "version": "2.0.0",
-  "package_version": "1.0.5",
+  "package_version": "1.0.6",
   "homepage": "https://smarter.poker",
   "documentation_url": "https://smarter.poker/llms.txt",
   "knowledge_graph_url": "https://smarter.poker/knowledge-graph.jsonld",

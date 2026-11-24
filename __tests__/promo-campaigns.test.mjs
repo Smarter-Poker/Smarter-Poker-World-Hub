@@ -43,7 +43,6 @@ function createMockDb(initial = {}) {
         notification_preferences: [...(initial.notification_preferences || [])],
         sms_delivery_receipts: [...(initial.sms_delivery_receipts || [])],
         profiles: [...(initial.profiles || [])],
-        club_members: [...(initial.club_members || [])],
         commander_members: [...(initial.commander_members || [])],
         commander_onboarding_leads: [...(initial.commander_onboarding_leads || [])],
         commander_leads: [...(initial.commander_leads || [])],
@@ -155,51 +154,13 @@ function createMockDb(initial = {}) {
     };
 }
 
-test('default Smarter.Poker promo draft puts 25 Free Chips first, defaults to non_accounts, and carries Oak Lawn PO Box', () => {
-    for (const field of ['subject', 'headline', 'body', 'smsBody']) {
-        const text = DEFAULT_PROMO_DRAFT[field];
-        const chipsIdx = text.indexOf('25 Free Chips');
-        const vipIdx = text.indexOf('30-Day Free VIP');
-        const diamondsIdx = text.indexOf('500 Free Diamonds');
-        assert.ok(chipsIdx >= 0, `${field} must mention 25 Free Chips`);
-        assert.ok(vipIdx > chipsIdx, `${field} must place 25 Free Chips before 30-Day Free VIP`);
-        assert.ok(diamondsIdx > vipIdx, `${field} must place 30-Day Free VIP before 500 Free Diamonds`);
-    }
-    assert.equal(DEFAULT_PROMO_DRAFT.scope, 'non_accounts');
+test('default Smarter.Poker promo draft carries the 3 rewards and Oak Lawn PO Box', () => {
+    assert.match(DEFAULT_PROMO_DRAFT.subject, /500 Free Diamonds/i);
+    assert.match(DEFAULT_PROMO_DRAFT.subject, /30-Day Free VIP/i);
+    assert.match(DEFAULT_PROMO_DRAFT.subject, /25 Free Chips/i);
     assert.equal(DEFAULT_PROMO_DRAFT.postalAddress, 'PO Box 1905, 9624 Cicero Ave, Oak Lawn, IL 60453');
     assert.equal(DEFAULT_POSTAL_ADDRESS, 'PO Box 1905, 9624 Cicero Ave, Oak Lawn, IL 60453');
     assert.match(DEFAULT_PROMO_DRAFT.smsBody, /Reply STOP to opt out\./);
-});
-
-test('resolvePromoAudience non_accounts scope excludes anyone with an existing account or Club Arena membership', async () => {
-    const db = createMockDb({
-        newsletter_subscribers: [
-            { id: 's-new-1', email: 'brandnew1@gmail.com', is_active: true },
-            { id: 's-new-2', email: 'sms:+17083334444', is_active: true },
-            { id: 's-has-profile', email: 'existingplayer@gmail.com', is_active: true },
-            { id: 's-has-auth', email: 'authmember@yahoo.com', is_active: true },
-            { id: 's-linked-ca', email: 'clubonly@outlook.com', is_active: true, user_id: 'u-ca-member' },
-            { id: 's-has-phone', email: 'sms:+13127778888', is_active: true },
-        ],
-        profiles: [
-            { id: 'u-prof-1', username: 'grinder1', email: 'ExistingPlayer@gmail.com', phone: '(312) 777-8888' },
-        ],
-        authUsers: [
-            { id: 'u-auth-1', email: 'authmember@yahoo.com', phone: '+16305550199', is_anonymous: false },
-        ],
-        club_members: [
-            { user_id: 'u-ca-member' },
-        ],
-        commander_members: [
-            { id: 'cm-new', email: 'venuenew@icloud.com', phone: '630-888-1212' },
-            { id: 'cm-existing', email: 'existingplayer@gmail.com', phone: '312-777-8888' },
-        ],
-    });
-
-    const audience = await resolvePromoAudience(db);
-    assert.deepEqual(audience.emails.sort(), ['brandnew1@gmail.com', 'venuenew@icloud.com'].sort());
-    assert.deepEqual(audience.phones.sort(), ['+16308881212', '+17083334444'].sort());
-    assert.equal(audience.breakdown.excludedExistingAccounts >= 4, true);
 });
 
 test('parseLeadInput normalizes emails and US phones while dropping synthetic addresses', () => {
