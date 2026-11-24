@@ -100,10 +100,17 @@ export default function SessionNotesPage() {
         const records = Array.isArray(json?.records) ? json.records : [];
         const latestSnapshot = records.find((r) => Array.isArray(r?.payload?.notes));
         if (latestSnapshot) {
-          setNotes(latestSnapshot.payload.notes);
-          try {
-            localStorage.setItem('session-notes', JSON.stringify(latestSnapshot.payload.notes));
-          } catch (_) {}
+          setNotes((prev) => {
+            const byId = new Map();
+            [...(latestSnapshot.payload.notes || []), ...(prev || [])].forEach((n) => {
+              if (n && n.id) byId.set(n.id, n);
+            });
+            const merged = Array.from(byId.values()).sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));
+            try {
+              localStorage.setItem('session-notes', JSON.stringify(merged));
+            } catch (_) {}
+            return merged;
+          });
         }
       })
       .catch(() => {});
@@ -147,6 +154,7 @@ export default function SessionNotesPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         tool_id: 'session-notes',
+        record_key: 'notes_snapshot',
         record_type: 'notes_snapshot',
         title: `Session Notes (${updatedNotes.length})`,
         summary: summaryText,
@@ -780,11 +788,13 @@ export default function SessionNotesPage() {
                             background: 'none',
                             border: 'none',
                             cursor: 'pointer',
-                            fontSize: 14,
-                            opacity: note.pinned ? 1 : 0.3,
+                            fontSize: 12,
+                            fontWeight: 600,
+                            color: note.pinned ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
+                            opacity: note.pinned ? 1 : 0.6,
                           }}
                         >
-                          
+                          {note.pinned ? 'Pinned' : 'Pin'}
                         </button>
                         <motion.button
                           whileTap={{ scale: 0.9 }}

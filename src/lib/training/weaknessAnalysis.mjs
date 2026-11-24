@@ -51,6 +51,7 @@ function inferPosition({ rawPosition, questionId, gameId } = {}) {
   if (qid.includes('_sb_')) return 'SB';
   if (qid.includes('_btn_')) return 'BTN';
   if (qid.includes('_co_')) return 'CO';
+  if (qid.includes('_hj_')) return 'HJ';
   if (qid.includes('_mp_')) return 'MP';
   if (qid.includes('_utg_')) return 'UTG';
   const gid = String(gameId || '').toLowerCase();
@@ -118,6 +119,7 @@ export function analyzeVerifiedTrainingWeaknesses(sessionsOrOptions, recentAnswe
   let totalCorrect = 0;
   const gameAccuracy = {};
   const spotBuckets = {};
+  const sessionVariantByAttemptOrSessionId = new Map();
 
   const recordSpotDecision = ({
     gameId,
@@ -148,6 +150,26 @@ export function analyzeVerifiedTrainingWeaknesses(sessionsOrOptions, recentAnswe
 
   if (hasSessions) {
     for (const session of sessions) {
+      const rawCfg = session?.trainer_config || session?.session_config;
+      const cfg = rawCfg && typeof rawCfg === 'object' ? rawCfg : {};
+      const sessionVariant = cfg?.variant || session?.variant;
+      if (sessionVariant) {
+        const sIds = [
+          session?.id,
+          session?.session_id,
+          session?.sessionId,
+          session?.attempt_id,
+          session?.attemptId,
+          cfg?.attempt_id,
+          cfg?.attemptId,
+        ]
+          .map((x) => String(x || '').trim())
+          .filter(Boolean);
+        for (const sid of sIds) {
+          sessionVariantByAttemptOrSessionId.set(sid, sessionVariant);
+        }
+      }
+
       const counts = verifiedCounts(session);
       if (!counts) continue;
       totalHands += counts.total;
@@ -164,9 +186,6 @@ export function analyzeVerifiedTrainingWeaknesses(sessionsOrOptions, recentAnswe
         : Math.max(0, counts.total - counts.correct) * 0.65;
       gameAccuracy[gameId].evLossBb = Math.round((gameAccuracy[gameId].evLossBb + fallbackSessEvLoss) * 100) / 100;
 
-      const cfg = session?.trainer_config && typeof session.trainer_config === 'object'
-        ? session.trainer_config
-        : {};
       const handHistory = Array.isArray(session?.hand_history) ? session.hand_history : [];
 
       if (handHistory.length > 0 && !hasAnswers) {
@@ -246,9 +265,18 @@ export function analyzeVerifiedTrainingWeaknesses(sessionsOrOptions, recentAnswe
       const gameId = String(ans?.game_id || ans?.gameId || 'cash-001').trim();
       if (!gameId || NON_SCORING_TOOLS.has(gameId)) continue;
       const isCorrect = Boolean(ans?.is_correct ?? ans?.isCorrect);
+      const ansSessionId = String(
+        ans?.attempt_id || ans?.attemptId || ans?.session_id || ans?.sessionId || ''
+      ).trim();
+      const inheritedSessionVariant = ansSessionId
+        ? sessionVariantByAttemptOrSessionId.get(ansSessionId)
+        : undefined;
+      const qid = ans?.question_id || ans?.questionId;
+      const qidLower = String(qid || '').toLowerCase();
+      const qidSpecifiesVariant = qidLower.includes('plo6') || qidLower.includes('plo5') || qidLower.includes('plo4');
       const variant = inferVariant({
-        rawVariant: ans?.variant,
-        questionId: ans?.question_id || ans?.questionId,
+        rawVariant: ans?.variant || (!qidSpecifiesVariant ? inheritedSessionVariant : undefined),
+        questionId: qid,
         gameId,
       });
       const street = inferStreet({

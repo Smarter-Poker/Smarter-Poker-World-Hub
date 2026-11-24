@@ -49,6 +49,7 @@ export default function HandLabV2() {
   const [equity, setEquity] = useState(null);
   const [results, setResults] = useState(null);
   const [analysisError, setAnalysisError] = useState('');
+  const calcSeqRef = React.useRef(0);
 
   const handleCardSelect = (rank, suit) => {
     fb.click();
@@ -61,19 +62,27 @@ export default function HandLabV2() {
     }
 
     if (selectedSlot?.startsWith('hero')) {
+      calcSeqRef.current += 1;
       const idx = parseInt(selectedSlot.slice(-1), 10) - 1;
       const newHero = [...heroCards];
       newHero[idx] = card;
       setHeroCards(newHero);
+      setEquity(null);
+      setResults(null);
+      setAnalysisError('');
       // Auto advance slot
       if (idx === 0) setSelectedSlot('hero2');
       else if (idx === 1 && !boardCards[0]) setSelectedSlot('board1');
       else setSelectedSlot(null);
     } else if (selectedSlot?.startsWith('board')) {
+      calcSeqRef.current += 1;
       const idx = parseInt(selectedSlot.slice(-1), 10) - 1;
       const newBoard = [...boardCards];
       newBoard[idx] = card;
       setBoardCards(newBoard);
+      setEquity(null);
+      setResults(null);
+      setAnalysisError('');
       // Auto advance
       if (idx < 4) setSelectedSlot(`board${idx + 2}`);
       else setSelectedSlot(null);
@@ -84,6 +93,8 @@ export default function HandLabV2() {
     fb.click();
     if (!heroCards[0] || !heroCards[1]) return;
 
+    calcSeqRef.current += 1;
+    const reqSeq = calcSeqRef.current;
     setAnalyzing(true);
     setAnalysisError('');
     try {
@@ -96,7 +107,9 @@ export default function HandLabV2() {
           iterations: 10000,
         }),
       });
+      if (reqSeq !== calcSeqRef.current) return;
       const payload = await response.json().catch(() => ({}));
+      if (reqSeq !== calcSeqRef.current) return;
       if (!response.ok || !payload.success || payload.results?.length < 2) {
         throw new Error(payload.error || `Equity Request Failed (${response.status})`);
       }
@@ -109,15 +122,20 @@ export default function HandLabV2() {
         horseBrainAnalysis: payload.horseBrainAnalysis || null,
       });
     } catch (error) {
-      setEquity(null);
-      setResults(null);
-      setAnalysisError(error.message || 'Unable To Analyze This Hand.');
+      if (reqSeq === calcSeqRef.current) {
+        setEquity(null);
+        setResults(null);
+        setAnalysisError(error.message || 'Unable To Analyze This Hand.');
+      }
     } finally {
-      setAnalyzing(false);
+      if (reqSeq === calcSeqRef.current) {
+        setAnalyzing(false);
+      }
     }
   };
 
   const clearAll = () => {
+    calcSeqRef.current += 1;
     setHeroCards(['', '']);
     setBoardCards(['', '', '', '', '']);
     setEquity(null);
@@ -236,7 +254,7 @@ export default function HandLabV2() {
                 aria-label="Villain Benchmark Hand"
                 style={styles.rangeSelect}
                 value={villainHand}
-                onChange={(e) => { setVillainHand(e.target.value); setEquity(null); setResults(null); setAnalysisError(''); }}
+                onChange={(e) => { calcSeqRef.current += 1; setVillainHand(e.target.value); setEquity(null); setResults(null); setAnalysisError(''); }}
               >
                 {BENCHMARK_HANDS.map((hand) => <option key={hand.value} value={hand.value}>{hand.label}</option>)}
               </select>
@@ -301,6 +319,7 @@ export default function HandLabV2() {
                   {results.horseBrainAnalysis && (
                     <div
                       data-handlab-brain-panel="true"
+                      data-brain-engine={results.horseBrainAnalysis.engineModule}
                       style={{
                         marginTop: 10,
                         padding: '12px 14px',

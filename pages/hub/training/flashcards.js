@@ -393,18 +393,34 @@ export default function FlashcardsPage() {
     // Trigger initial deck generation after sm2Data loads
     sm2LoadedRef.current = true;
     setDeckGenKey(k => k + 1);
-    authedFetch('/api/training/tool-records?tool_id=flashcards&limit=1')
+    authedFetch('/api/training/tool-records?tool_id=flashcards&limit=50')
       .then((res) => (res && res.ok ? res.json() : null))
       .then((json) => {
-        const remoteSm2 = json?.data?.[0]?.payload?.sm2Data;
+        const rows = Array.isArray(json?.records) ? json.records : Array.isArray(json?.data) ? json.data : [];
+        const remoteSm2 = rows[0]?.payload?.sm2Data || rows[0]?.payload?.sm2Snapshot || rows[0]?.data?.sm2Data || rows[0]?.data?.sm2Snapshot;
         if (remoteSm2 && typeof remoteSm2 === 'object') {
           setSm2Data((prev) => {
-            const merged = { ...remoteSm2, ...prev };
+            const merged = { ...remoteSm2 };
+            Object.entries(prev || {}).forEach(([cardId, localEntry]) => {
+              const remoteEntry = merged[cardId];
+              if (!remoteEntry) {
+                merged[cardId] = localEntry;
+              } else {
+                const localNext = Number(localEntry?.nextReview || 0);
+                const remoteNext = Number(remoteEntry?.nextReview || 0);
+                const localReps = Number(localEntry?.reps || localEntry?.interval || 0);
+                const remoteReps = Number(remoteEntry?.reps || remoteEntry?.interval || 0);
+                if (localNext > remoteNext || (localNext === remoteNext && localReps > remoteReps)) {
+                  merged[cardId] = localEntry;
+                }
+              }
+            });
             try {
               localStorage.setItem('flashcard-sm2', JSON.stringify(merged));
             } catch (_e) {}
             return merged;
           });
+          setDeckGenKey((k) => k + 1);
         }
       })
       .catch(() => {});
@@ -473,6 +489,7 @@ export default function FlashcardsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tool_id: 'flashcards',
+          record_key: 'sm2_state',
           record_type: 'sm2_review',
           title: `Card #${current.id} (${current.cat})`,
           summary: `Quality ${quality} · Interval ${nextStats.interval}d`,
@@ -482,6 +499,7 @@ export default function FlashcardsPage() {
             quality,
             nextStats,
             sm2Data: updated,
+            sm2Snapshot: updated,
           },
         }),
       }).catch(() => {});

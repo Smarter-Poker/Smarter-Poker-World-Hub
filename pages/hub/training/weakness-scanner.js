@@ -132,10 +132,10 @@ export default function WeaknessScannerPage() {
   const leakBrainEval = React.useMemo(() => {
     try {
       const archetypeMap = {
-        'Calling Station': { vpip: 46, pfr: 10, threeBet: 3, toCall: 0, pot: 6.5 },
-        'Aggro 3-Bettor': { vpip: 36, pfr: 30, threeBet: 15, toCall: 5.5, pot: 11.0 },
-        'Tight-Passive Nit': { vpip: 14, pfr: 11, threeBet: 4, toCall: 4.5, pot: 6.5 },
-        'Balanced GTO Reg': { vpip: 25, pfr: 21, threeBet: 8, toCall: 2.2, pot: 6.5 },
+        'Calling Station': { vpip: 48, pfr: 9, threeBet: 2, toCall: 0, pot: 6.5 },
+        'Aggro 3-Bettor': { vpip: 38, pfr: 31, threeBet: 16, toCall: 4.5, pot: 12.0 },
+        'Tight-Passive Nit': { vpip: 13, pfr: 10, threeBet: 3, toCall: 6.0, pot: 7.5 },
+        'Balanced GTO Reg': { vpip: 24, pfr: 20, threeBet: 8, toCall: 2.2, pot: 6.5 },
       };
       const profileCfg = archetypeMap[villainArchetype] || archetypeMap['Calling Station'];
       const heroCardsByVariant = {
@@ -258,7 +258,7 @@ export default function WeaknessScannerPage() {
           {leakBrainEval && (
             <div
               data-leak-brain-panel="true"
-              data-brain-engine={leakBrainEval.engineModule}
+              data-brain-engine={leakBrainEval.brainEvaluation?.engineModule || leakBrainEval.engineModule}
               data-leak-basis={hasVerifiedLeak ? 'verified-history' : 'general-suggestion'}
               data-leak-variant={topLeakVariant}
               data-leak-street={topLeakStreet}
@@ -334,7 +334,7 @@ export default function WeaknessScannerPage() {
                 ))}
               </div>
               <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.5 }}>
-                {leakBrainEval.coachingExplanation}
+                {leakBrainEval.explanation || leakBrainEval.coachingExplanation}
               </p>
               <button
                 type="button"

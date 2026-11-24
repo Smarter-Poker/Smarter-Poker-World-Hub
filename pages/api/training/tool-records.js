@@ -223,6 +223,7 @@ export default async function handler(req, res) {
             opponent: opponentSummary,
           },
           records: participants,
+          data: participants,
         });
       }
 
@@ -240,7 +241,7 @@ export default async function handler(req, res) {
         ...row,
         payload: row?.data ?? null,
       }));
-      return res.status(200).json({ success: true, records });
+      return res.status(200).json({ success: true, records, data: records });
     }
 
     if (req.method === 'POST') {
@@ -298,8 +299,16 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'DELETE') {
-      const toolId = String(req.body?.toolId || req.body?.toolKey || req.body?.tool_id || '');
-      const recordKey = String(req.body?.recordKey || req.body?.record_key || '');
+      const toolId = String(
+        req.body?.toolId || req.body?.toolKey || req.body?.tool_id
+        || req.query?.toolId || req.query?.toolKey || req.query?.tool_id
+        || ''
+      );
+      const recordKey = String(
+        req.body?.recordKey || req.body?.record_key
+        || req.query?.recordKey || req.query?.record_key
+        || ''
+      );
       if (!SAFE_ID.test(toolId) || !SAFE_KEY.test(recordKey)) {
         return res.status(400).json({ success: false, error: 'Invalid tool record identifiers' });
       }

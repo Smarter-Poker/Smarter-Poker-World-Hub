@@ -254,19 +254,18 @@ export function resolvePrimaryTwoCardSubset(heroCards = []) {
   const normalized = (heroCards || []).map(normalizeCardToken).filter(Boolean);
   if (normalized.length < 2) return { notation: 'AA', cards: normalized, strength: 50 };
   if (normalized.length === 2) {
-    const parsed = parseCards(normalized);
+    const notation = formatHandString(normalized[0], normalized[1]);
     return {
-      notation: formatHandString(normalized[0], normalized[1]),
+      notation,
       cards: normalized,
-      strength: getPreflopStrength(parsed),
+      strength: getPreflopStrength(notation),
     };
   }
   const pairs = combinations(normalized, 2);
   let best = null;
   for (const pair of pairs) {
-    const parsed = parseCards(pair);
-    const strength = getPreflopStrength(parsed);
     const notation = formatHandString(pair[0], pair[1]);
+    const strength = getPreflopStrength(notation);
     if (!best || strength > best.strength) {
       best = { notation, cards: pair, strength };
     }
@@ -321,13 +320,13 @@ export function evaluateOmahaExactTwoPlusThree(heroCards = [], boardCards = []) 
   }
 
   const flushDraw = countFlushOuts(parsedHero, parsedBoard);
-  const straightDraw = countStraightOuts(parsedHero, parsedBoard);
   const holeRanks = parsedHero.map((c) => c.rank);
   const boardRanks = parsedBoard.map((c) => c.rank);
+  const straightDraw = countStraightOuts(holeRanks, boardRanks);
   const wrapDraw = detectPLOWrapDraw(holeRanks, boardRanks);
 
   return {
-    madeHand,
+    madeHand: bestCombo.evalResult || madeHand,
     bestTwoHoleCards: bestCombo.twoHole,
     bestThreeBoardCards: bestCombo.threeBoard,
     flushDraw,
@@ -343,15 +342,19 @@ export function evaluateOmahaExactTwoPlusThree(heroCards = [], boardCards = []) 
  */
 export function evaluateTrainingSpotWithHorseBrain({
   gameId = 'cash-001',
-  variant = 'nlh',
+  variant,
+  gameType,
   street = 'flop',
-  heroCards = ['As', 'Kd'],
+  heroCards,
+  holeCards,
   boardCards,
   board,
   heroPosition = 'BTN',
   villainPosition = 'BB',
-  pot = 6.5,
-  toCall = 0,
+  pot,
+  potSizeBb,
+  toCall,
+  toCallBb,
   facingBetBb = 0,
   stackDepth,
   effectiveStackBb,
@@ -364,8 +367,24 @@ export function evaluateTrainingSpotWithHorseBrain({
   villainStats = null,
   villainArchetype = null,
 } = {}) {
-  const resolvedToCall = Number.isFinite(Number(toCall)) && Number(toCall) > 0
-    ? Number(toCall)
+  const resolvedVariant = variant !== undefined && variant !== null && String(variant).trim() !== ''
+    ? variant
+    : gameType !== undefined && gameType !== null && String(gameType).trim() !== ''
+      ? gameType
+      : 'nlh';
+  const resolvedHeroCards = Array.isArray(heroCards)
+    ? heroCards
+    : Array.isArray(holeCards)
+      ? holeCards
+      : ['As', 'Kd'];
+  const resolvedPot = Number.isFinite(Number(pot)) && Number(pot) > 0
+    ? Number(pot)
+    : Number.isFinite(Number(potSizeBb)) && Number(potSizeBb) > 0
+      ? Number(potSizeBb)
+      : 6.5;
+  const rawToCall = toCall !== undefined ? toCall : toCallBb;
+  const resolvedToCall = Number.isFinite(Number(rawToCall)) && Number(rawToCall) > 0
+    ? Number(rawToCall)
     : Number.isFinite(Number(facingBetBb)) && Number(facingBetBb) > 0
       ? Number(facingBetBb)
       : 0;
@@ -383,11 +402,11 @@ export function evaluateTrainingSpotWithHorseBrain({
       ? Number(effectiveStackBb)
       : 100;
   const validation = validateDealAndPotLimitBounds({
-    variant,
+    variant: resolvedVariant,
     street,
-    heroCards,
+    heroCards: resolvedHeroCards,
     boardCards: resolvedBoardCards,
-    pot,
+    pot: resolvedPot,
     toCall: resolvedToCall,
     effectiveStack: resolvedStackDepth,
   });
@@ -490,7 +509,7 @@ export function evaluateTrainingSpotWithHorseBrain({
 
     if (normVariant === 'nlh') {
       engineModule = 'holdem-brain.js';
-      const preflopStrength = getPreflopStrength(parsedHero);
+      const preflopStrength = getPreflopStrength(primarySubset.notation);
       if (normStreet === 'preflop') {
         handScore = preflopStrength;
         madeHandCategory = parsedHero[0].rank === parsedHero[1].rank
@@ -847,11 +866,15 @@ export function evaluateTrainingSpotWithHorseBrain({
       takeaway: explanation,
     };
 
+    const correctAnswerText = options[bestIdx]?.text || correctAnswer;
+
     return {
       ok: true,
+      engineModule: brainEvaluation.engineModule,
       options,
       correctAnswer,
-      correctAnswerText: options[bestIdx]?.text || correctAnswer,
+      correctAnswerText,
+      recommendedAction: correctAnswerText,
       gtoFrequencies,
       actionEVs,
       evLoss: 0,
@@ -861,6 +884,8 @@ export function evaluateTrainingSpotWithHorseBrain({
       potLimitSizing: potLimitBounds,
       brainEvaluation,
       explanation,
+      coachingExplanation: explanation,
+      coachingSummary: explanation,
       structuredExplanation,
     };
   });

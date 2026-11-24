@@ -1907,7 +1907,7 @@
         "/api/training/tool-records"
       ],
       "persistenceWrites": {
-        "localStorage": 6,
+        "localStorage": 4,
         "sessionStorage": 0,
         "inserts": 0,
         "updates": 0,
@@ -20544,7 +20544,7 @@
         },
         {
           "name": "isUserParticipantInHandRow",
-          "line": 45,
+          "line": 59,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -20552,7 +20552,7 @@
         },
         {
           "name": "extractBoardFromParsedHand",
-          "line": 55,
+          "line": 69,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -20560,7 +20560,7 @@
         },
         {
           "name": "buildDrillHrefForHand",
-          "line": 64,
+          "line": 78,
           "references": 6,
           "exported": false,
           "defaultExport": false,
@@ -20568,7 +20568,7 @@
         },
         {
           "name": "handler",
-          "line": 105,
+          "line": 119,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -27409,8 +27409,8 @@
       "ctas": [
         {
           "element": "button",
-          "name": "\\U2190",
-          "line": 373,
+          "name": "←",
+          "line": 389,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": null,
@@ -27458,7 +27458,7 @@
         },
         {
           "name": "Chip",
-          "line": 199,
+          "line": 215,
           "references": 6,
           "exported": false,
           "defaultExport": false,
@@ -27466,7 +27466,7 @@
         },
         {
           "name": "DrillBuilderPage",
-          "line": 226,
+          "line": 242,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -27474,7 +27474,7 @@
         },
         {
           "name": "loadDrills",
-          "line": 240,
+          "line": 256,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -27482,7 +27482,7 @@
         },
         {
           "name": "togglePosition",
-          "line": 273,
+          "line": 289,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -27490,7 +27490,7 @@
         },
         {
           "name": "toggleStreet",
-          "line": 277,
+          "line": 293,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -27498,22 +27498,6 @@
         },
         {
           "name": "selectFormat",
-          "line": 281,
-          "references": 2,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "applyPreset",
-          "line": 288,
-          "references": 2,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "saveDrill",
           "line": 297,
           "references": 2,
           "exported": false,
@@ -27521,8 +27505,24 @@
           "namedFunctionExpression": false
         },
         {
+          "name": "applyPreset",
+          "line": 304,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "saveDrill",
+          "line": 313,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "startDrill",
-          "line": 344,
+          "line": 360,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -27535,7 +27535,7 @@
       "markers": [
         {
           "kind": "PLACEHOLDER",
-          "line": 476,
+          "line": 492,
           "excerpt": "placeholder=\"e.g., SB vs BB 3-Bet Defense\"",
           "disposition": "ui-input-copy",
           "review": "accepted",
@@ -27604,7 +27604,7 @@
         {
           "element": "button",
           "name": "← Training",
-          "line": 879,
+          "line": 888,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": null,
@@ -27614,7 +27614,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 943,
+          "line": 952,
           "handler": "() => changeVariant(v.id)",
           "destination": null,
           "type": "button",
@@ -27624,7 +27624,7 @@
         {
           "element": "button",
           "name": "-Way",
-          "line": 984,
+          "line": 993,
           "handler": "() => changePlayerCount(n)",
           "destination": null,
           "type": null,
@@ -27634,7 +27634,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1068,
+          "line": 1077,
           "handler": "calculate",
           "destination": null,
           "type": null,
@@ -27644,7 +27644,7 @@
         {
           "element": "button",
           "name": "Clear All",
-          "line": 1090,
+          "line": 1099,
           "handler": "clearAll",
           "destination": null,
           "type": null,
@@ -27654,7 +27654,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1221,
+          "line": 1230,
           "handler": "() => loadPreset(preset)",
           "destination": null,
           "type": null,
@@ -27763,7 +27763,7 @@
         },
         {
           "kind": "SIMULATION",
-          "line": 829,
+          "line": 838,
           "excerpt": "name: 'How To Calculate Hand-Vs-Hand Poker Equity With Monte Carlo Simulation',",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -27771,7 +27771,7 @@
         },
         {
           "kind": "SIMULATION",
-          "line": 845,
+          "line": 854,
           "excerpt": "name: 'Run Monte Carlo Equity Simulation',",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -27779,7 +27779,7 @@
         },
         {
           "kind": "SIMULATION",
-          "line": 856,
+          "line": 865,
           "excerpt": "description=\"Calculate hand vs hand equity with Monte Carlo simulation. Compare up to 4 hands pre-flop or on specific boards.\"",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -28025,7 +28025,7 @@
         {
           "element": "button",
           "name": "Back to training hub",
-          "line": 145,
+          "line": 162,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -28035,7 +28035,7 @@
         {
           "element": "button",
           "name": "Practice Final Table ICM In Club Arena →",
-          "line": 293,
+          "line": 310,
           "handler": "() => router.push('/hub/training/arena/mtt-004?level=1')",
           "destination": null,
           "type": "button",
@@ -28045,7 +28045,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 319,
+          "line": 336,
           "handler": "() => {\n                    const nextVisible = !showDealProposal;\n                    setShowDealProposal(nextVisible);\n                    if (nextVisible && icmResults.length > 0) {\n                      authedFetch('/api/training/tool-records', {\n                        method: 'POST',\n                        body: JSON.stringify({\n                          tool_id: 'final-table-sim',\n                          record_type: 'icm_deal_proposal',\n                          payload: {\n                            players: icmResults.map((r) => ({ name: r.name, stack: r.stack, icmValue: r.icmValue })),\n                            payouts,\n                          },\n                        }),\n                      }).catch(() => {});\n                    }\n                  }",
           "destination": null,
           "type": "button",
@@ -28101,7 +28101,7 @@
         },
         {
           "name": "updateStack",
-          "line": 120,
+          "line": 137,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -28109,7 +28109,7 @@
         },
         {
           "name": "formatCurrency",
-          "line": 129,
+          "line": 146,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -28117,7 +28117,7 @@
         },
         {
           "name": "formatNumber",
-          "line": 131,
+          "line": 148,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -28130,7 +28130,7 @@
       "markers": [
         {
           "kind": "SIMULATE",
-          "line": 138,
+          "line": 155,
           "excerpt": "description=\"Simulate Multi-Way Tournament Final Table Prize Pool Equity, Bubble Factors, And ICM Chop Numbers From 9-Handed To Heads-Up On Smarter.Poker.\"",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -28160,7 +28160,7 @@
         {
           "element": "button",
           "name": "←",
-          "line": 519,
+          "line": 537,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": null,
@@ -28232,7 +28232,7 @@
         },
         {
           "name": "manualAdvance",
-          "line": 461,
+          "line": 477,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -28264,7 +28264,7 @@
         {
           "element": "button",
           "name": "Back to training",
-          "line": 253,
+          "line": 231,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -28274,7 +28274,7 @@
         {
           "element": "button",
           "name": "notify ? 'Disable notifications' : 'Enable notifications'",
-          "line": 485,
+          "line": 463,
           "handler": "() => setNotify(!notify)",
           "destination": null,
           "type": "button",
@@ -28298,7 +28298,7 @@
         "authExpiry": false
       },
       "persistenceWrites": {
-        "localStorage": 6,
+        "localStorage": 4,
         "sessionStorage": 0,
         "inserts": 0,
         "updates": 0,
@@ -28362,15 +28362,15 @@
         },
         {
           "name": "recordCompletedFocusBlock",
-          "line": 124,
-          "references": 2,
+          "line": 130,
+          "references": 3,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "changePhase",
-          "line": 208,
+          "line": 186,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -28378,7 +28378,7 @@
         },
         {
           "name": "formatTime",
-          "line": 215,
+          "line": 193,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -28386,7 +28386,7 @@
         },
         {
           "name": "reset",
-          "line": 221,
+          "line": 199,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -28483,7 +28483,7 @@
         {
           "element": "button",
           "name": "Back to training",
-          "line": 169,
+          "line": 173,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -28493,7 +28493,7 @@
         {
           "element": "a",
           "name": "Full Entry:",
-          "line": 334,
+          "line": 338,
           "handler": "(e) => e.stopPropagation()",
           "destination": "glossaryTermPath(t.slug)",
           "type": null,
@@ -28557,7 +28557,7 @@
         },
         {
           "name": "toggleFavorite",
-          "line": 113,
+          "line": 116,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -28570,7 +28570,7 @@
       "markers": [
         {
           "kind": "PLACEHOLDER",
-          "line": 203,
+          "line": 207,
           "excerpt": "placeholder=\"Search terms...\"",
           "disposition": "ui-input-copy",
           "review": "accepted",
@@ -28600,7 +28600,7 @@
         {
           "element": "button",
           "name": "Back to training",
-          "line": 483,
+          "line": 490,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -28610,7 +28610,7 @@
         {
           "element": "button",
           "name": "showBookmarksOnly ? 'Show all articles' : 'Show only bookmarked articles'",
-          "line": 511,
+          "line": 518,
           "handler": "() => setShowBookmarksOnly(!showBookmarksOnly)",
           "destination": null,
           "type": "button",
@@ -28620,7 +28620,7 @@
         {
           "element": "button",
           "name": "`${a.title}${a.isSample ? ' (Sample Content)' : ''}${readArticles.has(a.id) ? ' (Read)' : ''}`",
-          "line": 781,
+          "line": 788,
           "handler": "() => handleExpand(a.id)",
           "destination": null,
           "type": "button",
@@ -28630,7 +28630,7 @@
         {
           "element": "a",
           "name": "Read Full Article",
-          "line": 828,
+          "line": 835,
           "handler": "(e) => e.stopPropagation()",
           "destination": "`/hub/article?id=${encodeURIComponent(a.id)}`",
           "type": null,
@@ -28782,7 +28782,7 @@
         },
         {
           "name": "persistNewsProgress",
-          "line": 369,
+          "line": 375,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -28790,7 +28790,7 @@
         },
         {
           "name": "toggleBookmark",
-          "line": 386,
+          "line": 393,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -28798,7 +28798,7 @@
         },
         {
           "name": "markRead",
-          "line": 401,
+          "line": 408,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -28806,7 +28806,7 @@
         },
         {
           "name": "handleExpand",
-          "line": 416,
+          "line": 423,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -28828,7 +28828,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 605,
+          "line": 612,
           "excerpt": "placeholder=\"Search articles...\"",
           "disposition": "ui-input-copy",
           "review": "accepted",
@@ -29691,7 +29691,7 @@
         {
           "element": "button",
           "name": "← Hub",
-          "line": 141,
+          "line": 159,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": null,
@@ -29701,7 +29701,7 @@
         {
           "element": "button",
           "name": "Clear Board",
-          "line": 148,
+          "line": 166,
           "handler": "clearAll",
           "destination": null,
           "type": null,
@@ -29711,7 +29711,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 360,
+          "line": 379,
           "handler": "() => handleCardSelect(rank, suit)",
           "destination": null,
           "type": null,
@@ -29767,7 +29767,7 @@
         },
         {
           "name": "getSuitColor",
-          "line": 393,
+          "line": 412,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -29775,7 +29775,7 @@
         },
         {
           "name": "handleCardSelect",
-          "line": 53,
+          "line": 54,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -29783,7 +29783,7 @@
         },
         {
           "name": "runAnalysis",
-          "line": 83,
+          "line": 92,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -29791,7 +29791,7 @@
         },
         {
           "name": "clearAll",
-          "line": 120,
+          "line": 137,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -29804,7 +29804,7 @@
       "markers": [
         {
           "kind": "PLACEHOLDER",
-          "line": 177,
+          "line": 195,
           "excerpt": "<span style={styles.placeholder}>Card 1</span>",
           "disposition": "visible-ui-state",
           "review": "accepted",
@@ -29812,7 +29812,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 198,
+          "line": 216,
           "excerpt": "<span style={styles.placeholder}>Card 2</span>",
           "disposition": "visible-ui-state",
           "review": "accepted",
@@ -29820,7 +29820,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 226,
+          "line": 244,
           "excerpt": "<span style={{ ...styles.placeholder, fontSize: 12 }}>",
           "disposition": "visible-ui-state",
           "review": "accepted",
@@ -29828,7 +29828,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 488,
+          "line": 507,
           "excerpt": "placeholder: {",
           "disposition": "visible-ui-state",
           "review": "accepted",
@@ -30100,7 +30100,7 @@
         {
           "element": "button",
           "name": "←",
-          "line": 126,
+          "line": 143,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": null,
@@ -30110,7 +30110,7 @@
         {
           "element": "button",
           "name": "Drill ICM Preflop In Club Arena →",
-          "line": 480,
+          "line": 497,
           "handler": "() => router.push('/hub/training/arena/mtt-001?level=1')",
           "destination": null,
           "type": "button",
@@ -31339,7 +31339,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 826,
+          "line": 950,
           "handler": "() => setSelectedVariant(v.id)",
           "destination": null,
           "type": "button",
@@ -31349,7 +31349,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 869,
+          "line": 993,
           "handler": "() => {\n                        setSelectedGames((prev) => {\n                          if (prev.includes(g.id)) return prev.filter((x) => x !== g.id);\n                          if (prev.length >= tableCount) return [...prev.slice(1), g.id];\n                          return [...prev, g.id];\n                        });\n                      }",
           "destination": null,
           "type": null,
@@ -31359,7 +31359,7 @@
         {
           "element": "button",
           "name": "← Back To Training",
-          "line": 926,
+          "line": 1062,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": null,
@@ -31369,8 +31369,8 @@
         {
           "element": "button",
           "name": "← Exit",
-          "line": 957,
-          "handler": "() => {\n                  setIsStarted(false);\n                  reportedTablesRef.current = new Set();\n                  setCompletedTables(new Set());\n                  setCombinedStats({\n                    totalHands: 0,\n                    totalCorrect: 0,\n                    totalEVLoss: 0,\n                    measuredEVDecisions: 0,\n                    tablesCompleted: 0,\n                  });\n                }",
+          "line": 1093,
+          "handler": "() => {\n                  setIsStarted(false);\n                  reportedTablesRef.current = new Set();\n                  liveTableTallyRef.current = {};\n                  tableStatesRef.current = {};\n                  setTableStates({});\n                  setCompletedTables(new Set());\n                  setCombinedStats({\n                    totalHands: 0,\n                    totalCorrect: 0,\n                    totalEVLoss: 0,\n                    measuredEVDecisions: 0,\n                    tablesCompleted: 0,\n                  });\n                }",
           "destination": null,
           "type": null,
           "disabled": null,
@@ -31379,8 +31379,8 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1005,
-          "handler": "() => setSelectedVariant(v.id)",
+          "line": 1144,
+          "handler": "() => {\n                        if (selectedVariant === v.id) return;\n                        setSelectedVariant(v.id);\n                        setRunId(`mt-${Date.now()}`);\n                        reportedTablesRef.current = new Set();\n                        liveTableTallyRef.current = {};\n                        tableStatesRef.current = {};\n                        setTableStates({});\n                        setCompletedTables(new Set());\n                        setCombinedStats({\n                          totalHands: 0,\n                          totalCorrect: 0,\n                          totalEVLoss: 0,\n                          measuredEVDecisions: 0,\n                          tablesCompleted: 0,\n                        });\n                        hasSavedRef.current = false;\n                      }",
           "destination": null,
           "type": "button",
           "disabled": null,
@@ -31389,7 +31389,7 @@
         {
           "element": "button",
           "name": "TABLE",
-          "line": 1080,
+          "line": 1236,
           "handler": "() => setFocusedGameId(gameId)",
           "destination": null,
           "type": null,
@@ -31437,7 +31437,7 @@
         },
         {
           "name": "check",
-          "line": 109,
+          "line": 110,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -31445,7 +31445,7 @@
         },
         {
           "name": "onKeyDown",
-          "line": 313,
+          "line": 397,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -31453,7 +31453,7 @@
         },
         {
           "name": "saveMultiSession",
-          "line": 408,
+          "line": 526,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -31466,7 +31466,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 197,
+          "line": 198,
           "excerpt": "// on a 60-second fallback -- four times GTOW's longest timebank, and the",
           "disposition": "runtime-resilience-fallback",
           "review": "documented-follow-up",
@@ -33096,7 +33096,7 @@
         {
           "element": "button",
           "name": "←",
-          "line": 440,
+          "line": 458,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": null,
@@ -33160,7 +33160,7 @@
         },
         {
           "name": "addQuestion",
-          "line": 362,
+          "line": 374,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -33168,7 +33168,7 @@
         },
         {
           "name": "removeQuestion",
-          "line": 366,
+          "line": 378,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -33176,7 +33176,7 @@
         },
         {
           "name": "updateQuestion",
-          "line": 371,
+          "line": 383,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -33184,7 +33184,7 @@
         },
         {
           "name": "saveQuiz",
-          "line": 377,
+          "line": 389,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -33192,7 +33192,7 @@
         },
         {
           "name": "deleteQuiz",
-          "line": 407,
+          "line": 420,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -33221,7 +33221,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 520,
+          "line": 538,
           "excerpt": "placeholder=\"e.g. BTN vs BB 3-Bet Defense\"",
           "disposition": "ui-input-copy",
           "review": "accepted",
@@ -34428,7 +34428,7 @@
         {
           "element": "button",
           "name": "←",
-          "line": 300,
+          "line": 308,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": null,
@@ -34438,7 +34438,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 547,
+          "line": 555,
           "handler": "() =>\n                          setSelectedTags(\n                            isActive\n                              ? selectedTags.filter((t) => t !== tag)\n                              : [...selectedTags, tag]\n                          )",
           "destination": null,
           "type": null,
@@ -34448,7 +34448,7 @@
         {
           "element": "button",
           "name": "#",
-          "line": 672,
+          "line": 680,
           "handler": "() => setSearchTerm(searchTerm === tag ? '' : tag)",
           "destination": null,
           "type": null,
@@ -34458,7 +34458,7 @@
         {
           "element": "button",
           "name": "Pin Note",
-          "line": 776,
+          "line": 784,
           "handler": "() => togglePin(note.id)",
           "destination": null,
           "type": null,
@@ -34522,7 +34522,7 @@
         },
         {
           "name": "h",
-          "line": 139,
+          "line": 146,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -34530,7 +34530,7 @@
         },
         {
           "name": "persistNotesToServer",
-          "line": 144,
+          "line": 151,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -34538,7 +34538,7 @@
         },
         {
           "name": "saveNote",
-          "line": 158,
+          "line": 166,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -34546,7 +34546,7 @@
         },
         {
           "name": "togglePin",
-          "line": 185,
+          "line": 193,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -34554,7 +34554,7 @@
         },
         {
           "name": "deleteNote",
-          "line": 194,
+          "line": 202,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -34562,7 +34562,7 @@
         },
         {
           "name": "exportNotes",
-          "line": 247,
+          "line": 255,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -34570,7 +34570,7 @@
         },
         {
           "name": "escCsv",
-          "line": 248,
+          "line": 256,
           "references": 8,
           "exported": false,
           "defaultExport": false,
@@ -34578,7 +34578,7 @@
         },
         {
           "name": "moodObj",
-          "line": 275,
+          "line": 283,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -34591,7 +34591,7 @@
       "markers": [
         {
           "kind": "PLACEHOLDER",
-          "line": 447,
+          "line": 455,
           "excerpt": "placeholder=\"Good reads, correct folds, improved spots...\"",
           "disposition": "ui-input-copy",
           "review": "accepted",
@@ -34599,7 +34599,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 480,
+          "line": 488,
           "excerpt": "placeholder=\"Missed spots, tilt triggers, leaks found...\"",
           "disposition": "ui-input-copy",
           "review": "accepted",
@@ -34607,7 +34607,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 513,
+          "line": 521,
           "excerpt": "placeholder=\"Formatting: **bold**, *italic*, `code`, - bullets...\"",
           "disposition": "ui-input-copy",
           "review": "accepted",
@@ -34615,7 +34615,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 696,
+          "line": 704,
           "excerpt": "placeholder=\"Search notes...\"",
           "disposition": "ui-input-copy",
           "review": "accepted",
@@ -34643,7 +34643,7 @@
         {
           "element": "button",
           "name": "Back to training",
-          "line": 250,
+          "line": 253,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -34653,7 +34653,7 @@
         {
           "element": "button",
           "name": "Quick Complete",
-          "line": 290,
+          "line": 293,
           "handler": "() => {\n                setAnswers({ mental: '8 - Focused', timer: '60 min', goal: 'Play A-Game' });\n                setCompleted(true);\n              }",
           "destination": null,
           "type": "button",
@@ -34810,7 +34810,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 456,
+          "line": 459,
           "excerpt": "placeholder={currentStep.placeholder}",
           "disposition": "ui-input-copy",
           "review": "accepted",
@@ -34818,7 +34818,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 456,
+          "line": 459,
           "excerpt": "placeholder={currentStep.placeholder}",
           "disposition": "ui-input-copy",
           "review": "accepted",
@@ -35491,7 +35491,7 @@
         {
           "element": "button",
           "name": "← Training",
-          "line": 197,
+          "line": 201,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -35501,7 +35501,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 264,
+          "line": 268,
           "handler": "() => setFormat(option.value)",
           "destination": null,
           "type": "button",
@@ -35511,7 +35511,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 276,
+          "line": 280,
           "handler": "() => setPosition(option.value)",
           "destination": null,
           "type": "button",
@@ -35521,7 +35521,7 @@
         {
           "element": "button",
           "name": "Retry",
-          "line": 303,
+          "line": 307,
           "handler": "fetchSpot",
           "destination": null,
           "type": "button",
@@ -35531,7 +35531,7 @@
         {
           "element": "button",
           "name": "Load Another",
-          "line": 345,
+          "line": 349,
           "handler": "fetchSpot",
           "destination": null,
           "type": "button",
@@ -35541,7 +35541,7 @@
         {
           "element": "button",
           "name": "Load Another Audited Spot",
-          "line": 471,
+          "line": 475,
           "handler": "fetchSpot",
           "destination": null,
           "type": "button",
@@ -35551,7 +35551,7 @@
         {
           "element": "button",
           "name": "BB",
-          "line": 523,
+          "line": 527,
           "handler": "() => setGeoStackBb(stk)",
           "destination": null,
           "type": "button",
@@ -35561,7 +35561,7 @@
         {
           "element": "button",
           "name": "BB",
-          "line": 539,
+          "line": 543,
           "handler": "() => setGeoFacingBetBb(bet)",
           "destination": null,
           "type": "button",
@@ -42306,7 +42306,7 @@
         {
           "element": "button",
           "name": "Back to Training",
-          "line": 3599,
+          "line": 3608,
           "handler": "onExit",
           "destination": null,
           "type": null,
@@ -42316,7 +42316,7 @@
         {
           "element": "button",
           "name": "!rngAvailable ? 'RNG Requires A Signed Solver Hand' : (rngMode ? 'RNG on - the drill rolls a die for mixed strategies' : 'RNG off')",
-          "line": 3631,
+          "line": 3640,
           "handler": "() => {\n                                if (solverFrequencyVerified) setRngMode(v => !v);\n                            }",
           "destination": null,
           "type": null,
@@ -42326,7 +42326,7 @@
         {
           "element": "button",
           "name": "`Randomiser direction: ${rngTheme.label}`",
-          "line": 3647,
+          "line": 3656,
           "handler": "() => setRngHighLow(v => (v === 'low' ? 'high' : 'low'))",
           "destination": null,
           "type": null,
@@ -42336,7 +42336,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 3909,
+          "line": 3918,
           "handler": "() => handleSelectVariant(v.id)",
           "destination": null,
           "type": "button",
@@ -42346,7 +42346,7 @@
         {
           "element": "button",
           "name": "Toggle BB or Chips Display Mode",
-          "line": 3948,
+          "line": 3957,
           "handler": "toggleDisplayMode",
           "destination": null,
           "type": "button",
@@ -42356,7 +42356,7 @@
         {
           "element": "button",
           "name": "trainerConfig ? `Custom: ${trainerConfig.label || 'Custom'}` : 'Configure Trainer'",
-          "line": 4114,
+          "line": 4123,
           "handler": "onConfigClick",
           "destination": null,
           "type": null,
@@ -42366,27 +42366,27 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 5350,
-          "handler": "() => setSliderSizingBb(p.bb)",
+          "line": 5360,
+          "handler": "() => {\n                                            if (!isRaiseReopened) return;\n                                            setSliderSizingBb(p.bb);\n                                        }",
           "destination": null,
           "type": "button",
-          "disabled": null,
+          "disabled": "!isRaiseReopened",
           "wiring": "handler"
         },
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 5387,
-          "handler": "() => {\n                                    const customEval = evaluateCustomRaiseSizing({\n                                        chosenSizingBb: effectiveSliderBb,\n                                        gradedOption: {\n                                            id: matchedAggressiveOpt.id,\n                                            label: matchedAggressiveOpt.label,\n                                            sizingBb: matchedAggressiveOpt.bb,\n                                        },\n                                        minRaiseToBb: minRaiseBb,\n                                        maxRaiseToBb: maxRaiseBb,\n                                        potBb: basePotBb,\n                                        callBb,\n                                        variant: currentVariant,\n                                        street: streetLabel.toLowerCase(),\n                                        stakes: scenario?.stakes || trainerConfig?.stakes,\n                                        brainEvaluation: scenario?.brainEvaluation,\n                                    });\n                                    setChosenRaiseInfo(customEval);\n                                    handleAnswerWithGrouping(matchedAggressiveOpt.id);\n                                }",
+          "line": 5407,
+          "handler": "() => {\n                                    if (!isRaiseReopened) return;\n                                    const customEval = evaluateCustomRaiseSizing({\n                                        chosenSizingBb: effectiveSliderBb,\n                                        gradedOption: {\n                                            id: matchedAggressiveOpt.id,\n                                            label: matchedAggressiveOpt.label,\n                                            sizingBb: matchedAggressiveOpt.bb,\n                                        },\n                                        minRaiseToBb: minRaiseBb,\n                                        maxRaiseToBb: maxRaiseBb,\n                                        potBb: basePotBb,\n                                        callBb,\n                                        variant: currentVariant,\n                                        street: streetLabel.toLowerCase(),\n                                        stakes: scenario?.stakes || trainerConfig?.stakes,\n                                        brainEvaluation: scenario?.brainEvaluation,\n                                    });\n                                    setChosenRaiseInfo(customEval);\n                                    handleAnswerWithGrouping(matchedAggressiveOpt.id);\n                                }",
           "destination": null,
           "type": "button",
-          "disabled": null,
+          "disabled": "!isRaiseReopened",
           "wiring": "handler"
         },
         {
           "element": "button",
           "name": "!showFeedback && (mode.id === 'range' || mode.id === 'strategy') ? 'Available After You Answer' : undefined",
-          "line": 5668,
+          "line": 5691,
           "handler": "() => {\n                            if (!showFeedback && (mode.id === 'range' || mode.id === 'strategy')) return;\n                            setActiveMode(mode.id);\n                        }",
           "destination": null,
           "type": null,
@@ -42396,7 +42396,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 5931,
+          "line": 5954,
           "handler": "() => rngAvailable && setRngMode(!rngMode)",
           "destination": null,
           "type": null,
@@ -42406,7 +42406,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 5935,
+          "line": 5958,
           "handler": "() => setRngHighLow(v => (v === 'low' ? 'high' : 'low'))",
           "destination": null,
           "type": null,
@@ -42416,7 +42416,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 5942,
+          "line": 5965,
           "handler": "toggleFourColorDeck",
           "destination": null,
           "type": null,
@@ -42426,7 +42426,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 5953,
+          "line": 5976,
           "handler": "cycleFeltTheme",
           "destination": null,
           "type": null,
@@ -42436,7 +42436,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 5960,
+          "line": 5983,
           "handler": "toggleDisplayMode",
           "destination": null,
           "type": null,
@@ -42446,7 +42446,7 @@
         {
           "element": "button",
           "name": "Quit Session",
-          "line": 5974,
+          "line": 5997,
           "handler": "onExit",
           "destination": null,
           "type": null,
@@ -42456,7 +42456,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 6103,
+          "line": 6126,
           "handler": "() => setFeedbackCollapsed && setFeedbackCollapsed(prev => !prev)",
           "destination": null,
           "type": null,
@@ -42466,7 +42466,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 6476,
+          "line": 6499,
           "handler": "() => setDeepAnalysisOpen(v => !v)",
           "destination": null,
           "type": null,
@@ -42476,7 +42476,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 6682,
+          "line": 6705,
           "handler": "() => setShowWhyDrawer(!showWhyDrawer)",
           "destination": null,
           "type": null,
@@ -42486,7 +42486,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 6695,
+          "line": 6718,
           "handler": "() => setShowRangeGrid(!showRangeGrid)",
           "destination": null,
           "type": null,
@@ -42496,7 +42496,7 @@
         {
           "element": "button",
           "name": "Prev",
-          "line": 7548,
+          "line": 7571,
           "handler": "() => setMistakeReviewIndex(i => Math.max(0, i - 1))",
           "destination": null,
           "type": null,
@@ -42506,7 +42506,7 @@
         {
           "element": "button",
           "name": "Next",
-          "line": 7555,
+          "line": 7578,
           "handler": "() => setMistakeReviewIndex(i => Math.min(mistakes.length - 1, i + 1))",
           "destination": null,
           "type": null,
@@ -42516,7 +42516,7 @@
         {
           "element": "button",
           "name": "Close",
-          "line": 7562,
+          "line": 7585,
           "handler": "() => setShowMistakeReview(false)",
           "destination": null,
           "type": null,
@@ -42788,7 +42788,7 @@
         },
         {
           "name": "getActionButtonStyle",
-          "line": 3079,
+          "line": 3088,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -42796,7 +42796,7 @@
         },
         {
           "name": "handleSelectVariant",
-          "line": 3871,
+          "line": 3880,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -42804,7 +42804,7 @@
         },
         {
           "name": "entryMatchesSeat",
-          "line": 4252,
+          "line": 4261,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -42812,7 +42812,7 @@
         },
         {
           "name": "pick",
-          "line": 5123,
+          "line": 5132,
           "references": 9,
           "exported": false,
           "defaultExport": false,
@@ -42820,7 +42820,7 @@
         },
         {
           "name": "mistakeFeedback",
-          "line": 6542,
+          "line": 6565,
           "references": 6,
           "exported": false,
           "defaultExport": false,
@@ -42900,7 +42900,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 4902,
+          "line": 4911,
           "excerpt": "The denominator counts the dealing placeholder too --",
           "disposition": "poker-normalization-or-ui-state",
           "review": "accepted",
@@ -42908,7 +42908,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 4918,
+          "line": 4927,
           "excerpt": "{/* PREFLOP: Deck placeholder when no board cards */}",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -42916,7 +42916,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 6817,
+          "line": 6840,
           "excerpt": "// Fallback to basic classifier",
           "disposition": "runtime-resilience-fallback",
           "review": "documented-follow-up",
@@ -49667,7 +49667,7 @@
         },
         {
           "name": "createDeliveryContractKey",
-          "line": 197,
+          "line": 202,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -49675,7 +49675,7 @@
         },
         {
           "name": "containsPreAnswerGradingData",
-          "line": 216,
+          "line": 221,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -49683,7 +49683,7 @@
         },
         {
           "name": "assertSignedTrainingDelivery",
-          "line": 241,
+          "line": 246,
           "references": 8,
           "exported": false,
           "defaultExport": false,
@@ -49691,7 +49691,7 @@
         },
         {
           "name": "assertRecordedAnswerAcknowledgement",
-          "line": 333,
+          "line": 338,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -49699,7 +49699,7 @@
         },
         {
           "name": "useGTOTrainer",
-          "line": 351,
+          "line": 356,
           "references": 2,
           "exported": true,
           "defaultExport": true,
@@ -49715,7 +49715,7 @@
         },
         {
           "name": "finalizePersistedAnswer",
-          "line": 1537,
+          "line": 1574,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -49723,7 +49723,7 @@
         },
         {
           "name": "postAttempt",
-          "line": 2469,
+          "line": 2506,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -49750,7 +49750,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 638,
+          "line": 655,
           "excerpt": "* FALLBACK: fetch ONE question from the independent single-question route.",
           "disposition": "training-data-provenance-fallback",
           "review": "documented-follow-up",
@@ -49759,7 +49759,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 640,
+          "line": 657,
           "excerpt": "* ── A FALLBACK THAT CALLS THE ROUTE IT IS FALLING BACK FROM IS NOT ONE ────",
           "disposition": "runtime-resilience-fallback",
           "review": "documented-follow-up",
@@ -49768,7 +49768,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 1040,
+          "line": 1077,
           "excerpt": "// single-question fallback. That fallback intentionally requests one",
           "disposition": "training-data-provenance-fallback",
           "review": "documented-follow-up",
@@ -49777,7 +49777,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 1040,
+          "line": 1077,
           "excerpt": "// single-question fallback. That fallback intentionally requests one",
           "disposition": "training-data-provenance-fallback",
           "review": "documented-follow-up",
@@ -49786,7 +49786,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 2617,
+          "line": 2654,
           "excerpt": "// fallback. Keep the persisted verdict and manual Next on screen so a",
           "disposition": "runtime-resilience-fallback",
           "review": "documented-follow-up",
@@ -49795,7 +49795,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 2706,
+          "line": 2743,
           "excerpt": "// Fallback to single-question mode",
           "disposition": "training-data-provenance-fallback",
           "review": "documented-follow-up",
@@ -49804,7 +49804,7 @@
         },
         {
           "kind": "SIMULATION",
-          "line": 3585,
+          "line": 3622,
           "excerpt": "// ═══ PHASE 229: Runout simulation ═══",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -59847,7 +59847,7 @@
         {
           "name": "roundTableUnit",
           "line": 18,
-          "references": 43,
+          "references": 44,
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -59886,7 +59886,7 @@
         },
         {
           "name": "resolveNextActor",
-          "line": 225,
+          "line": 228,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -59894,7 +59894,7 @@
         },
         {
           "name": "computeClubArenaParityState",
-          "line": 258,
+          "line": 261,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -59902,7 +59902,7 @@
         },
         {
           "name": "applyClubArenaAction",
-          "line": 433,
+          "line": 436,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -59910,7 +59910,7 @@
         },
         {
           "name": "evaluateCustomRaiseSizing",
-          "line": 526,
+          "line": 529,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -61838,7 +61838,7 @@
         },
         {
           "name": "evaluateOmahaExactTwoPlusThree",
-          "line": 282,
+          "line": 281,
           "references": 4,
           "exported": true,
           "defaultExport": false,
@@ -61846,7 +61846,7 @@
         },
         {
           "name": "evaluateTrainingSpotWithHorseBrain",
-          "line": 344,
+          "line": 343,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -65495,7 +65495,7 @@
         },
         {
           "name": "estimateHandEvLossBb",
-          "line": 61,
+          "line": 62,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -65503,7 +65503,7 @@
         },
         {
           "name": "recommendationFor",
-          "line": 74,
+          "line": 75,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -65511,7 +65511,7 @@
         },
         {
           "name": "analyzeVerifiedTrainingWeaknesses",
-          "line": 106,
+          "line": 107,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -65519,7 +65519,7 @@
         },
         {
           "name": "recordSpotDecision",
-          "line": 122,
+          "line": 124,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -72654,7 +72654,7 @@
     {
       "file": "pages/hub/training/focus-timer.js",
       "writes": {
-        "localStorage": 6,
+        "localStorage": 4,
         "sessionStorage": 0,
         "inserts": 0,
         "updates": 0,
@@ -73979,11 +73979,11 @@
       "effectRef": "pages/hub/training/daily-goals.js"
     },
     {
-      "id": "pages/hub/training/drill-builder.js:373:1",
+      "id": "pages/hub/training/drill-builder.js:389:1",
       "file": "pages/hub/training/drill-builder.js",
       "element": "button",
-      "name": "\\U2190",
-      "line": 373,
+      "name": "←",
+      "line": 389,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": null,
@@ -74044,11 +74044,11 @@
       "effectRef": "pages/hub/training/equity-calculator.js"
     },
     {
-      "id": "pages/hub/training/equity-calculator.js:879:5",
+      "id": "pages/hub/training/equity-calculator.js:888:5",
       "file": "pages/hub/training/equity-calculator.js",
       "element": "button",
       "name": "← Training",
-      "line": 879,
+      "line": 888,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": null,
@@ -74057,11 +74057,11 @@
       "effectRef": "pages/hub/training/equity-calculator.js"
     },
     {
-      "id": "pages/hub/training/equity-calculator.js:943:6",
+      "id": "pages/hub/training/equity-calculator.js:952:6",
       "file": "pages/hub/training/equity-calculator.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 943,
+      "line": 952,
       "handler": "() => changeVariant(v.id)",
       "destination": null,
       "type": "button",
@@ -74070,11 +74070,11 @@
       "effectRef": "pages/hub/training/equity-calculator.js"
     },
     {
-      "id": "pages/hub/training/equity-calculator.js:984:7",
+      "id": "pages/hub/training/equity-calculator.js:993:7",
       "file": "pages/hub/training/equity-calculator.js",
       "element": "button",
       "name": "-Way",
-      "line": 984,
+      "line": 993,
       "handler": "() => changePlayerCount(n)",
       "destination": null,
       "type": null,
@@ -74083,11 +74083,11 @@
       "effectRef": "pages/hub/training/equity-calculator.js"
     },
     {
-      "id": "pages/hub/training/equity-calculator.js:1068:8",
+      "id": "pages/hub/training/equity-calculator.js:1077:8",
       "file": "pages/hub/training/equity-calculator.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1068,
+      "line": 1077,
       "handler": "calculate",
       "destination": null,
       "type": null,
@@ -74096,11 +74096,11 @@
       "effectRef": "pages/hub/training/equity-calculator.js"
     },
     {
-      "id": "pages/hub/training/equity-calculator.js:1090:9",
+      "id": "pages/hub/training/equity-calculator.js:1099:9",
       "file": "pages/hub/training/equity-calculator.js",
       "element": "button",
       "name": "Clear All",
-      "line": 1090,
+      "line": 1099,
       "handler": "clearAll",
       "destination": null,
       "type": null,
@@ -74109,11 +74109,11 @@
       "effectRef": "pages/hub/training/equity-calculator.js"
     },
     {
-      "id": "pages/hub/training/equity-calculator.js:1221:10",
+      "id": "pages/hub/training/equity-calculator.js:1230:10",
       "file": "pages/hub/training/equity-calculator.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1221,
+      "line": 1230,
       "handler": "() => loadPreset(preset)",
       "destination": null,
       "type": null,
@@ -74161,11 +74161,11 @@
       "effectRef": "pages/hub/training/famous-finals.js"
     },
     {
-      "id": "pages/hub/training/final-table-sim.js:145:1",
+      "id": "pages/hub/training/final-table-sim.js:162:1",
       "file": "pages/hub/training/final-table-sim.js",
       "element": "button",
       "name": "Back to training hub",
-      "line": 145,
+      "line": 162,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -74174,11 +74174,11 @@
       "effectRef": "pages/hub/training/final-table-sim.js"
     },
     {
-      "id": "pages/hub/training/final-table-sim.js:293:2",
+      "id": "pages/hub/training/final-table-sim.js:310:2",
       "file": "pages/hub/training/final-table-sim.js",
       "element": "button",
       "name": "Practice Final Table ICM In Club Arena →",
-      "line": 293,
+      "line": 310,
       "handler": "() => router.push('/hub/training/arena/mtt-004?level=1')",
       "destination": null,
       "type": "button",
@@ -74187,11 +74187,11 @@
       "effectRef": "pages/hub/training/final-table-sim.js"
     },
     {
-      "id": "pages/hub/training/final-table-sim.js:319:3",
+      "id": "pages/hub/training/final-table-sim.js:336:3",
       "file": "pages/hub/training/final-table-sim.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 319,
+      "line": 336,
       "handler": "() => {\n                    const nextVisible = !showDealProposal;\n                    setShowDealProposal(nextVisible);\n                    if (nextVisible && icmResults.length > 0) {\n                      authedFetch('/api/training/tool-records', {\n                        method: 'POST',\n                        body: JSON.stringify({\n                          tool_id: 'final-table-sim',\n                          record_type: 'icm_deal_proposal',\n                          payload: {\n                            players: icmResults.map((r) => ({ name: r.name, stack: r.stack, icmValue: r.icmValue })),\n                            payouts,\n                          },\n                        }),\n                      }).catch(() => {});\n                    }\n                  }",
       "destination": null,
       "type": "button",
@@ -74200,11 +74200,11 @@
       "effectRef": "pages/hub/training/final-table-sim.js"
     },
     {
-      "id": "pages/hub/training/flashcards.js:519:1",
+      "id": "pages/hub/training/flashcards.js:537:1",
       "file": "pages/hub/training/flashcards.js",
       "element": "button",
       "name": "←",
-      "line": 519,
+      "line": 537,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": null,
@@ -74213,11 +74213,11 @@
       "effectRef": "pages/hub/training/flashcards.js"
     },
     {
-      "id": "pages/hub/training/focus-timer.js:253:1",
+      "id": "pages/hub/training/focus-timer.js:231:1",
       "file": "pages/hub/training/focus-timer.js",
       "element": "button",
       "name": "Back to training",
-      "line": 253,
+      "line": 231,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -74226,11 +74226,11 @@
       "effectRef": "pages/hub/training/focus-timer.js"
     },
     {
-      "id": "pages/hub/training/focus-timer.js:485:2",
+      "id": "pages/hub/training/focus-timer.js:463:2",
       "file": "pages/hub/training/focus-timer.js",
       "element": "button",
       "name": "notify ? 'Disable notifications' : 'Enable notifications'",
-      "line": 485,
+      "line": 463,
       "handler": "() => setNotify(!notify)",
       "destination": null,
       "type": "button",
@@ -74239,11 +74239,11 @@
       "effectRef": "pages/hub/training/focus-timer.js"
     },
     {
-      "id": "pages/hub/training/glossary.js:169:1",
+      "id": "pages/hub/training/glossary.js:173:1",
       "file": "pages/hub/training/glossary.js",
       "element": "button",
       "name": "Back to training",
-      "line": 169,
+      "line": 173,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -74252,11 +74252,11 @@
       "effectRef": "pages/hub/training/glossary.js"
     },
     {
-      "id": "pages/hub/training/glossary.js:334:2",
+      "id": "pages/hub/training/glossary.js:338:2",
       "file": "pages/hub/training/glossary.js",
       "element": "a",
       "name": "Full Entry:",
-      "line": 334,
+      "line": 338,
       "handler": "(e) => e.stopPropagation()",
       "destination": "glossaryTermPath(t.slug)",
       "type": null,
@@ -74265,11 +74265,11 @@
       "effectRef": "pages/hub/training/glossary.js"
     },
     {
-      "id": "pages/hub/training/gto-news.js:483:1",
+      "id": "pages/hub/training/gto-news.js:490:1",
       "file": "pages/hub/training/gto-news.js",
       "element": "button",
       "name": "Back to training",
-      "line": 483,
+      "line": 490,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -74278,11 +74278,11 @@
       "effectRef": "pages/hub/training/gto-news.js"
     },
     {
-      "id": "pages/hub/training/gto-news.js:511:2",
+      "id": "pages/hub/training/gto-news.js:518:2",
       "file": "pages/hub/training/gto-news.js",
       "element": "button",
       "name": "showBookmarksOnly ? 'Show all articles' : 'Show only bookmarked articles'",
-      "line": 511,
+      "line": 518,
       "handler": "() => setShowBookmarksOnly(!showBookmarksOnly)",
       "destination": null,
       "type": "button",
@@ -74291,11 +74291,11 @@
       "effectRef": "pages/hub/training/gto-news.js"
     },
     {
-      "id": "pages/hub/training/gto-news.js:781:3",
+      "id": "pages/hub/training/gto-news.js:788:3",
       "file": "pages/hub/training/gto-news.js",
       "element": "button",
       "name": "`${a.title}${a.isSample ? ' (Sample Content)' : ''}${readArticles.has(a.id) ? ' (Read)' : ''}`",
-      "line": 781,
+      "line": 788,
       "handler": "() => handleExpand(a.id)",
       "destination": null,
       "type": "button",
@@ -74304,11 +74304,11 @@
       "effectRef": "pages/hub/training/gto-news.js"
     },
     {
-      "id": "pages/hub/training/gto-news.js:828:4",
+      "id": "pages/hub/training/gto-news.js:835:4",
       "file": "pages/hub/training/gto-news.js",
       "element": "a",
       "name": "Read Full Article",
-      "line": 828,
+      "line": 835,
       "handler": "(e) => e.stopPropagation()",
       "destination": "`/hub/article?id=${encodeURIComponent(a.id)}`",
       "type": null,
@@ -74590,11 +74590,11 @@
       "effectRef": "pages/hub/training/hand-history-upload.js"
     },
     {
-      "id": "pages/hub/training/hand-lab.js:141:1",
+      "id": "pages/hub/training/hand-lab.js:159:1",
       "file": "pages/hub/training/hand-lab.js",
       "element": "button",
       "name": "← Hub",
-      "line": 141,
+      "line": 159,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": null,
@@ -74603,11 +74603,11 @@
       "effectRef": "pages/hub/training/hand-lab.js"
     },
     {
-      "id": "pages/hub/training/hand-lab.js:148:2",
+      "id": "pages/hub/training/hand-lab.js:166:2",
       "file": "pages/hub/training/hand-lab.js",
       "element": "button",
       "name": "Clear Board",
-      "line": 148,
+      "line": 166,
       "handler": "clearAll",
       "destination": null,
       "type": null,
@@ -74616,11 +74616,11 @@
       "effectRef": "pages/hub/training/hand-lab.js"
     },
     {
-      "id": "pages/hub/training/hand-lab.js:360:3",
+      "id": "pages/hub/training/hand-lab.js:379:3",
       "file": "pages/hub/training/hand-lab.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 360,
+      "line": 379,
       "handler": "() => handleCardSelect(rank, suit)",
       "destination": null,
       "type": null,
@@ -74785,11 +74785,11 @@
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
-      "id": "pages/hub/training/icm-simulator.js:126:1",
+      "id": "pages/hub/training/icm-simulator.js:143:1",
       "file": "pages/hub/training/icm-simulator.js",
       "element": "button",
       "name": "←",
-      "line": 126,
+      "line": 143,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": null,
@@ -74798,11 +74798,11 @@
       "effectRef": "pages/hub/training/icm-simulator.js"
     },
     {
-      "id": "pages/hub/training/icm-simulator.js:480:2",
+      "id": "pages/hub/training/icm-simulator.js:497:2",
       "file": "pages/hub/training/icm-simulator.js",
       "element": "button",
       "name": "Drill ICM Preflop In Club Arena →",
-      "line": 480,
+      "line": 497,
       "handler": "() => router.push('/hub/training/arena/mtt-001?level=1')",
       "destination": null,
       "type": "button",
@@ -75019,11 +75019,11 @@
       "effectRef": "pages/hub/training/milestones.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:826:1",
+      "id": "pages/hub/training/multi-table.js:950:1",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 826,
+      "line": 950,
       "handler": "() => setSelectedVariant(v.id)",
       "destination": null,
       "type": "button",
@@ -75032,11 +75032,11 @@
       "effectRef": "pages/hub/training/multi-table.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:869:2",
+      "id": "pages/hub/training/multi-table.js:993:2",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 869,
+      "line": 993,
       "handler": "() => {\n                        setSelectedGames((prev) => {\n                          if (prev.includes(g.id)) return prev.filter((x) => x !== g.id);\n                          if (prev.length >= tableCount) return [...prev.slice(1), g.id];\n                          return [...prev, g.id];\n                        });\n                      }",
       "destination": null,
       "type": null,
@@ -75045,11 +75045,11 @@
       "effectRef": "pages/hub/training/multi-table.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:926:3",
+      "id": "pages/hub/training/multi-table.js:1062:3",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "← Back To Training",
-      "line": 926,
+      "line": 1062,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": null,
@@ -75058,12 +75058,12 @@
       "effectRef": "pages/hub/training/multi-table.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:957:4",
+      "id": "pages/hub/training/multi-table.js:1093:4",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "← Exit",
-      "line": 957,
-      "handler": "() => {\n                  setIsStarted(false);\n                  reportedTablesRef.current = new Set();\n                  setCompletedTables(new Set());\n                  setCombinedStats({\n                    totalHands: 0,\n                    totalCorrect: 0,\n                    totalEVLoss: 0,\n                    measuredEVDecisions: 0,\n                    tablesCompleted: 0,\n                  });\n                }",
+      "line": 1093,
+      "handler": "() => {\n                  setIsStarted(false);\n                  reportedTablesRef.current = new Set();\n                  liveTableTallyRef.current = {};\n                  tableStatesRef.current = {};\n                  setTableStates({});\n                  setCompletedTables(new Set());\n                  setCombinedStats({\n                    totalHands: 0,\n                    totalCorrect: 0,\n                    totalEVLoss: 0,\n                    measuredEVDecisions: 0,\n                    tablesCompleted: 0,\n                  });\n                }",
       "destination": null,
       "type": null,
       "disabled": null,
@@ -75071,12 +75071,12 @@
       "effectRef": "pages/hub/training/multi-table.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:1005:5",
+      "id": "pages/hub/training/multi-table.js:1144:5",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1005,
-      "handler": "() => setSelectedVariant(v.id)",
+      "line": 1144,
+      "handler": "() => {\n                        if (selectedVariant === v.id) return;\n                        setSelectedVariant(v.id);\n                        setRunId(`mt-${Date.now()}`);\n                        reportedTablesRef.current = new Set();\n                        liveTableTallyRef.current = {};\n                        tableStatesRef.current = {};\n                        setTableStates({});\n                        setCompletedTables(new Set());\n                        setCombinedStats({\n                          totalHands: 0,\n                          totalCorrect: 0,\n                          totalEVLoss: 0,\n                          measuredEVDecisions: 0,\n                          tablesCompleted: 0,\n                        });\n                        hasSavedRef.current = false;\n                      }",
       "destination": null,
       "type": "button",
       "disabled": null,
@@ -75084,11 +75084,11 @@
       "effectRef": "pages/hub/training/multi-table.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:1080:6",
+      "id": "pages/hub/training/multi-table.js:1236:6",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "TABLE",
-      "line": 1080,
+      "line": 1236,
       "handler": "() => setFocusedGameId(gameId)",
       "destination": null,
       "type": null,
@@ -75513,11 +75513,11 @@
       "effectRef": "pages/hub/training/quick-warmup.js"
     },
     {
-      "id": "pages/hub/training/quiz-builder.js:440:1",
+      "id": "pages/hub/training/quiz-builder.js:458:1",
       "file": "pages/hub/training/quiz-builder.js",
       "element": "button",
       "name": "←",
-      "line": 440,
+      "line": 458,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": null,
@@ -75799,11 +75799,11 @@
       "effectRef": "pages/hub/training/session-dashboard.js"
     },
     {
-      "id": "pages/hub/training/session-notes.js:300:1",
+      "id": "pages/hub/training/session-notes.js:308:1",
       "file": "pages/hub/training/session-notes.js",
       "element": "button",
       "name": "←",
-      "line": 300,
+      "line": 308,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": null,
@@ -75812,11 +75812,11 @@
       "effectRef": "pages/hub/training/session-notes.js"
     },
     {
-      "id": "pages/hub/training/session-notes.js:547:2",
+      "id": "pages/hub/training/session-notes.js:555:2",
       "file": "pages/hub/training/session-notes.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 547,
+      "line": 555,
       "handler": "() =>\n                          setSelectedTags(\n                            isActive\n                              ? selectedTags.filter((t) => t !== tag)\n                              : [...selectedTags, tag]\n                          )",
       "destination": null,
       "type": null,
@@ -75825,11 +75825,11 @@
       "effectRef": "pages/hub/training/session-notes.js"
     },
     {
-      "id": "pages/hub/training/session-notes.js:672:3",
+      "id": "pages/hub/training/session-notes.js:680:3",
       "file": "pages/hub/training/session-notes.js",
       "element": "button",
       "name": "#",
-      "line": 672,
+      "line": 680,
       "handler": "() => setSearchTerm(searchTerm === tag ? '' : tag)",
       "destination": null,
       "type": null,
@@ -75838,11 +75838,11 @@
       "effectRef": "pages/hub/training/session-notes.js"
     },
     {
-      "id": "pages/hub/training/session-notes.js:776:4",
+      "id": "pages/hub/training/session-notes.js:784:4",
       "file": "pages/hub/training/session-notes.js",
       "element": "button",
       "name": "Pin Note",
-      "line": 776,
+      "line": 784,
       "handler": "() => togglePin(note.id)",
       "destination": null,
       "type": null,
@@ -75851,11 +75851,11 @@
       "effectRef": "pages/hub/training/session-notes.js"
     },
     {
-      "id": "pages/hub/training/session-warmup.js:250:1",
+      "id": "pages/hub/training/session-warmup.js:253:1",
       "file": "pages/hub/training/session-warmup.js",
       "element": "button",
       "name": "Back to training",
-      "line": 250,
+      "line": 253,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -75864,11 +75864,11 @@
       "effectRef": "pages/hub/training/session-warmup.js"
     },
     {
-      "id": "pages/hub/training/session-warmup.js:290:2",
+      "id": "pages/hub/training/session-warmup.js:293:2",
       "file": "pages/hub/training/session-warmup.js",
       "element": "button",
       "name": "Quick Complete",
-      "line": 290,
+      "line": 293,
       "handler": "() => {\n                setAnswers({ mental: '8 - Focused', timer: '60 min', goal: 'Play A-Game' });\n                setCompleted(true);\n              }",
       "destination": null,
       "type": "button",
@@ -76137,11 +76137,11 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/spot-trainer.js:197:1",
+      "id": "pages/hub/training/spot-trainer.js:201:1",
       "file": "pages/hub/training/spot-trainer.js",
       "element": "button",
       "name": "← Training",
-      "line": 197,
+      "line": 201,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -76150,11 +76150,11 @@
       "effectRef": "pages/hub/training/spot-trainer.js"
     },
     {
-      "id": "pages/hub/training/spot-trainer.js:264:2",
+      "id": "pages/hub/training/spot-trainer.js:268:2",
       "file": "pages/hub/training/spot-trainer.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 264,
+      "line": 268,
       "handler": "() => setFormat(option.value)",
       "destination": null,
       "type": "button",
@@ -76163,11 +76163,11 @@
       "effectRef": "pages/hub/training/spot-trainer.js"
     },
     {
-      "id": "pages/hub/training/spot-trainer.js:276:3",
+      "id": "pages/hub/training/spot-trainer.js:280:3",
       "file": "pages/hub/training/spot-trainer.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 276,
+      "line": 280,
       "handler": "() => setPosition(option.value)",
       "destination": null,
       "type": "button",
@@ -76176,11 +76176,11 @@
       "effectRef": "pages/hub/training/spot-trainer.js"
     },
     {
-      "id": "pages/hub/training/spot-trainer.js:303:4",
+      "id": "pages/hub/training/spot-trainer.js:307:4",
       "file": "pages/hub/training/spot-trainer.js",
       "element": "button",
       "name": "Retry",
-      "line": 303,
+      "line": 307,
       "handler": "fetchSpot",
       "destination": null,
       "type": "button",
@@ -76189,11 +76189,11 @@
       "effectRef": "pages/hub/training/spot-trainer.js"
     },
     {
-      "id": "pages/hub/training/spot-trainer.js:345:5",
+      "id": "pages/hub/training/spot-trainer.js:349:5",
       "file": "pages/hub/training/spot-trainer.js",
       "element": "button",
       "name": "Load Another",
-      "line": 345,
+      "line": 349,
       "handler": "fetchSpot",
       "destination": null,
       "type": "button",
@@ -76202,11 +76202,11 @@
       "effectRef": "pages/hub/training/spot-trainer.js"
     },
     {
-      "id": "pages/hub/training/spot-trainer.js:471:6",
+      "id": "pages/hub/training/spot-trainer.js:475:6",
       "file": "pages/hub/training/spot-trainer.js",
       "element": "button",
       "name": "Load Another Audited Spot",
-      "line": 471,
+      "line": 475,
       "handler": "fetchSpot",
       "destination": null,
       "type": "button",
@@ -76215,11 +76215,11 @@
       "effectRef": "pages/hub/training/spot-trainer.js"
     },
     {
-      "id": "pages/hub/training/spot-trainer.js:523:7",
+      "id": "pages/hub/training/spot-trainer.js:527:7",
       "file": "pages/hub/training/spot-trainer.js",
       "element": "button",
       "name": "BB",
-      "line": 523,
+      "line": 527,
       "handler": "() => setGeoStackBb(stk)",
       "destination": null,
       "type": "button",
@@ -76228,11 +76228,11 @@
       "effectRef": "pages/hub/training/spot-trainer.js"
     },
     {
-      "id": "pages/hub/training/spot-trainer.js:539:8",
+      "id": "pages/hub/training/spot-trainer.js:543:8",
       "file": "pages/hub/training/spot-trainer.js",
       "element": "button",
       "name": "BB",
-      "line": 539,
+      "line": 543,
       "handler": "() => setGeoFacingBetBb(bet)",
       "destination": null,
       "type": "button",
@@ -77918,11 +77918,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:3599:2",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:3608:2",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "Back to Training",
-      "line": 3599,
+      "line": 3608,
       "handler": "onExit",
       "destination": null,
       "type": null,
@@ -77931,11 +77931,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:3631:3",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:3640:3",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "!rngAvailable ? 'RNG Requires A Signed Solver Hand' : (rngMode ? 'RNG on - the drill rolls a die for mixed strategies' : 'RNG off')",
-      "line": 3631,
+      "line": 3640,
       "handler": "() => {\n                                if (solverFrequencyVerified) setRngMode(v => !v);\n                            }",
       "destination": null,
       "type": null,
@@ -77944,11 +77944,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:3647:4",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:3656:4",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "`Randomiser direction: ${rngTheme.label}`",
-      "line": 3647,
+      "line": 3656,
       "handler": "() => setRngHighLow(v => (v === 'low' ? 'high' : 'low'))",
       "destination": null,
       "type": null,
@@ -77957,11 +77957,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:3909:5",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:3918:5",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 3909,
+      "line": 3918,
       "handler": "() => handleSelectVariant(v.id)",
       "destination": null,
       "type": "button",
@@ -77970,11 +77970,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:3948:6",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:3957:6",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "Toggle BB or Chips Display Mode",
-      "line": 3948,
+      "line": 3957,
       "handler": "toggleDisplayMode",
       "destination": null,
       "type": "button",
@@ -77983,11 +77983,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:4114:7",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:4123:7",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "trainerConfig ? `Custom: ${trainerConfig.label || 'Custom'}` : 'Configure Trainer'",
-      "line": 4114,
+      "line": 4123,
       "handler": "onConfigClick",
       "destination": null,
       "type": null,
@@ -77996,37 +77996,37 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5350:8",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5360:8",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 5350,
-      "handler": "() => setSliderSizingBb(p.bb)",
+      "line": 5360,
+      "handler": "() => {\n                                            if (!isRaiseReopened) return;\n                                            setSliderSizingBb(p.bb);\n                                        }",
       "destination": null,
       "type": "button",
-      "disabled": null,
+      "disabled": "!isRaiseReopened",
       "wiring": "handler",
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5387:9",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5407:9",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 5387,
-      "handler": "() => {\n                                    const customEval = evaluateCustomRaiseSizing({\n                                        chosenSizingBb: effectiveSliderBb,\n                                        gradedOption: {\n                                            id: matchedAggressiveOpt.id,\n                                            label: matchedAggressiveOpt.label,\n                                            sizingBb: matchedAggressiveOpt.bb,\n                                        },\n                                        minRaiseToBb: minRaiseBb,\n                                        maxRaiseToBb: maxRaiseBb,\n                                        potBb: basePotBb,\n                                        callBb,\n                                        variant: currentVariant,\n                                        street: streetLabel.toLowerCase(),\n                                        stakes: scenario?.stakes || trainerConfig?.stakes,\n                                        brainEvaluation: scenario?.brainEvaluation,\n                                    });\n                                    setChosenRaiseInfo(customEval);\n                                    handleAnswerWithGrouping(matchedAggressiveOpt.id);\n                                }",
+      "line": 5407,
+      "handler": "() => {\n                                    if (!isRaiseReopened) return;\n                                    const customEval = evaluateCustomRaiseSizing({\n                                        chosenSizingBb: effectiveSliderBb,\n                                        gradedOption: {\n                                            id: matchedAggressiveOpt.id,\n                                            label: matchedAggressiveOpt.label,\n                                            sizingBb: matchedAggressiveOpt.bb,\n                                        },\n                                        minRaiseToBb: minRaiseBb,\n                                        maxRaiseToBb: maxRaiseBb,\n                                        potBb: basePotBb,\n                                        callBb,\n                                        variant: currentVariant,\n                                        street: streetLabel.toLowerCase(),\n                                        stakes: scenario?.stakes || trainerConfig?.stakes,\n                                        brainEvaluation: scenario?.brainEvaluation,\n                                    });\n                                    setChosenRaiseInfo(customEval);\n                                    handleAnswerWithGrouping(matchedAggressiveOpt.id);\n                                }",
       "destination": null,
       "type": "button",
-      "disabled": null,
+      "disabled": "!isRaiseReopened",
       "wiring": "handler",
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5668:10",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5691:10",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "!showFeedback && (mode.id === 'range' || mode.id === 'strategy') ? 'Available After You Answer' : undefined",
-      "line": 5668,
+      "line": 5691,
       "handler": "() => {\n                            if (!showFeedback && (mode.id === 'range' || mode.id === 'strategy')) return;\n                            setActiveMode(mode.id);\n                        }",
       "destination": null,
       "type": null,
@@ -78035,11 +78035,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5931:11",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5954:11",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 5931,
+      "line": 5954,
       "handler": "() => rngAvailable && setRngMode(!rngMode)",
       "destination": null,
       "type": null,
@@ -78048,11 +78048,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5935:12",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5958:12",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 5935,
+      "line": 5958,
       "handler": "() => setRngHighLow(v => (v === 'low' ? 'high' : 'low'))",
       "destination": null,
       "type": null,
@@ -78061,11 +78061,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5942:13",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5965:13",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 5942,
+      "line": 5965,
       "handler": "toggleFourColorDeck",
       "destination": null,
       "type": null,
@@ -78074,11 +78074,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5953:14",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5976:14",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 5953,
+      "line": 5976,
       "handler": "cycleFeltTheme",
       "destination": null,
       "type": null,
@@ -78087,11 +78087,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5960:15",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5983:15",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 5960,
+      "line": 5983,
       "handler": "toggleDisplayMode",
       "destination": null,
       "type": null,
@@ -78100,11 +78100,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5974:16",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5997:16",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "Quit Session",
-      "line": 5974,
+      "line": 5997,
       "handler": "onExit",
       "destination": null,
       "type": null,
@@ -78113,11 +78113,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6103:17",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6126:17",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 6103,
+      "line": 6126,
       "handler": "() => setFeedbackCollapsed && setFeedbackCollapsed(prev => !prev)",
       "destination": null,
       "type": null,
@@ -78126,11 +78126,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6476:18",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6499:18",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 6476,
+      "line": 6499,
       "handler": "() => setDeepAnalysisOpen(v => !v)",
       "destination": null,
       "type": null,
@@ -78139,11 +78139,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6682:19",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6705:19",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 6682,
+      "line": 6705,
       "handler": "() => setShowWhyDrawer(!showWhyDrawer)",
       "destination": null,
       "type": null,
@@ -78152,11 +78152,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6695:20",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6718:20",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 6695,
+      "line": 6718,
       "handler": "() => setShowRangeGrid(!showRangeGrid)",
       "destination": null,
       "type": null,
@@ -78165,11 +78165,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:7548:21",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:7571:21",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "Prev",
-      "line": 7548,
+      "line": 7571,
       "handler": "() => setMistakeReviewIndex(i => Math.max(0, i - 1))",
       "destination": null,
       "type": null,
@@ -78178,11 +78178,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:7555:22",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:7578:22",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "Next",
-      "line": 7555,
+      "line": 7578,
       "handler": "() => setMistakeReviewIndex(i => Math.min(mistakes.length - 1, i + 1))",
       "destination": null,
       "type": null,
@@ -78191,11 +78191,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:7562:23",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:7585:23",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "Close",
-      "line": 7562,
+      "line": 7585,
       "handler": "() => setShowMistakeReview(false)",
       "destination": null,
       "type": null,
@@ -85876,7 +85876,7 @@
         {
           "file": "pages/hub/training/focus-timer.js",
           "writes": {
-            "localStorage": 6,
+            "localStorage": 4,
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
@@ -100891,7 +100891,7 @@
       {
         "file": "pages/hub/training/drill-builder.js",
         "kind": "PLACEHOLDER",
-        "line": 476,
+        "line": 492,
         "excerpt": "placeholder=\"e.g., SB vs BB 3-Bet Defense\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -100909,7 +100909,7 @@
       {
         "file": "pages/hub/training/equity-calculator.js",
         "kind": "SIMULATION",
-        "line": 829,
+        "line": 838,
         "excerpt": "name: 'How To Calculate Hand-Vs-Hand Poker Equity With Monte Carlo Simulation',",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -100918,7 +100918,7 @@
       {
         "file": "pages/hub/training/equity-calculator.js",
         "kind": "SIMULATION",
-        "line": 845,
+        "line": 854,
         "excerpt": "name: 'Run Monte Carlo Equity Simulation',",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -100927,7 +100927,7 @@
       {
         "file": "pages/hub/training/equity-calculator.js",
         "kind": "SIMULATION",
-        "line": 856,
+        "line": 865,
         "excerpt": "description=\"Calculate hand vs hand equity with Monte Carlo simulation. Compare up to 4 hands pre-flop or on specific boards.\"",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -100945,7 +100945,7 @@
       {
         "file": "pages/hub/training/final-table-sim.js",
         "kind": "SIMULATE",
-        "line": 138,
+        "line": 155,
         "excerpt": "description=\"Simulate Multi-Way Tournament Final Table Prize Pool Equity, Bubble Factors, And ICM Chop Numbers From 9-Handed To Heads-Up On Smarter.Poker.\"",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -100963,7 +100963,7 @@
       {
         "file": "pages/hub/training/glossary.js",
         "kind": "PLACEHOLDER",
-        "line": 203,
+        "line": 207,
         "excerpt": "placeholder=\"Search terms...\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -100982,7 +100982,7 @@
       {
         "file": "pages/hub/training/gto-news.js",
         "kind": "PLACEHOLDER",
-        "line": 605,
+        "line": 612,
         "excerpt": "placeholder=\"Search articles...\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -101019,7 +101019,7 @@
       {
         "file": "pages/hub/training/hand-lab.js",
         "kind": "PLACEHOLDER",
-        "line": 177,
+        "line": 195,
         "excerpt": "<span style={styles.placeholder}>Card 1</span>",
         "disposition": "visible-ui-state",
         "review": "accepted",
@@ -101028,7 +101028,7 @@
       {
         "file": "pages/hub/training/hand-lab.js",
         "kind": "PLACEHOLDER",
-        "line": 198,
+        "line": 216,
         "excerpt": "<span style={styles.placeholder}>Card 2</span>",
         "disposition": "visible-ui-state",
         "review": "accepted",
@@ -101037,7 +101037,7 @@
       {
         "file": "pages/hub/training/hand-lab.js",
         "kind": "PLACEHOLDER",
-        "line": 226,
+        "line": 244,
         "excerpt": "<span style={{ ...styles.placeholder, fontSize: 12 }}>",
         "disposition": "visible-ui-state",
         "review": "accepted",
@@ -101046,7 +101046,7 @@
       {
         "file": "pages/hub/training/hand-lab.js",
         "kind": "PLACEHOLDER",
-        "line": 488,
+        "line": 507,
         "excerpt": "placeholder: {",
         "disposition": "visible-ui-state",
         "review": "accepted",
@@ -101091,7 +101091,7 @@
       {
         "file": "pages/hub/training/multi-table.js",
         "kind": "FALLBACK",
-        "line": 197,
+        "line": 198,
         "excerpt": "// on a 60-second fallback -- four times GTOW's longest timebank, and the",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -101192,7 +101192,7 @@
       {
         "file": "pages/hub/training/quiz-builder.js",
         "kind": "PLACEHOLDER",
-        "line": 520,
+        "line": 538,
         "excerpt": "placeholder=\"e.g. BTN vs BB 3-Bet Defense\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -101273,7 +101273,7 @@
       {
         "file": "pages/hub/training/session-notes.js",
         "kind": "PLACEHOLDER",
-        "line": 447,
+        "line": 455,
         "excerpt": "placeholder=\"Good reads, correct folds, improved spots...\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -101282,7 +101282,7 @@
       {
         "file": "pages/hub/training/session-notes.js",
         "kind": "PLACEHOLDER",
-        "line": 480,
+        "line": 488,
         "excerpt": "placeholder=\"Missed spots, tilt triggers, leaks found...\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -101291,7 +101291,7 @@
       {
         "file": "pages/hub/training/session-notes.js",
         "kind": "PLACEHOLDER",
-        "line": 513,
+        "line": 521,
         "excerpt": "placeholder=\"Formatting: **bold**, *italic*, `code`, - bullets...\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -101300,7 +101300,7 @@
       {
         "file": "pages/hub/training/session-notes.js",
         "kind": "PLACEHOLDER",
-        "line": 696,
+        "line": 704,
         "excerpt": "placeholder=\"Search notes...\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -101336,7 +101336,7 @@
       {
         "file": "pages/hub/training/session-warmup.js",
         "kind": "PLACEHOLDER",
-        "line": 456,
+        "line": 459,
         "excerpt": "placeholder={currentStep.placeholder}",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -101345,7 +101345,7 @@
       {
         "file": "pages/hub/training/session-warmup.js",
         "kind": "PLACEHOLDER",
-        "line": 456,
+        "line": 459,
         "excerpt": "placeholder={currentStep.placeholder}",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -101732,7 +101732,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "PLACEHOLDER",
-        "line": 4902,
+        "line": 4911,
         "excerpt": "The denominator counts the dealing placeholder too --",
         "disposition": "poker-normalization-or-ui-state",
         "review": "accepted",
@@ -101741,7 +101741,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "PLACEHOLDER",
-        "line": 4918,
+        "line": 4927,
         "excerpt": "{/* PREFLOP: Deck placeholder when no board cards */}",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -101750,7 +101750,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "FALLBACK",
-        "line": 6817,
+        "line": 6840,
         "excerpt": "// Fallback to basic classifier",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -102602,7 +102602,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "FALLBACK",
-        "line": 638,
+        "line": 655,
         "excerpt": "* FALLBACK: fetch ONE question from the independent single-question route.",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -102612,7 +102612,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "FALLBACK",
-        "line": 640,
+        "line": 657,
         "excerpt": "* ── A FALLBACK THAT CALLS THE ROUTE IT IS FALLING BACK FROM IS NOT ONE ────",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -102622,7 +102622,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "FALLBACK",
-        "line": 1040,
+        "line": 1077,
         "excerpt": "// single-question fallback. That fallback intentionally requests one",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -102632,7 +102632,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "FALLBACK",
-        "line": 1040,
+        "line": 1077,
         "excerpt": "// single-question fallback. That fallback intentionally requests one",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -102642,7 +102642,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "FALLBACK",
-        "line": 2617,
+        "line": 2654,
         "excerpt": "// fallback. Keep the persisted verdict and manual Next on screen so a",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -102652,7 +102652,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "FALLBACK",
-        "line": 2706,
+        "line": 2743,
         "excerpt": "// Fallback to single-question mode",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -102662,7 +102662,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "SIMULATION",
-        "line": 3585,
+        "line": 3622,
         "excerpt": "// ═══ PHASE 229: Runout simulation ═══",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -104154,7 +104154,7 @@
       {
         "file": "pages/api/training/audit-hand-history.js",
         "name": "handler",
-        "line": 105,
+        "line": 119,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -105038,7 +105038,7 @@
       {
         "file": "pages/hub/training/drill-builder.js",
         "name": "DrillBuilderPage",
-        "line": 226,
+        "line": 242,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -108862,7 +108862,7 @@
       {
         "file": "src/lib/training/clubArenaTableParity.js",
         "name": "applyClubArenaAction",
-        "line": 433,
+        "line": 436,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -108877,7 +108877,7 @@
       {
         "file": "src/lib/training/clubArenaTableParity.js",
         "name": "evaluateCustomRaiseSizing",
-        "line": 526,
+        "line": 529,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -109316,7 +109316,7 @@
       {
         "file": "src/lib/training/horseBrainTrainingAdapter.js",
         "name": "evaluateTrainingSpotWithHorseBrain",
-        "line": 344,
+        "line": 343,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -110173,7 +110173,7 @@
       {
         "file": "src/lib/training/weaknessAnalysis.mjs",
         "name": "analyzeVerifiedTrainingWeaknesses",
-        "line": 106,
+        "line": 107,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -110883,7 +110883,7 @@
       {
         "file": "pages/hub/training/drill-builder.js",
         "kind": "PLACEHOLDER",
-        "line": 476,
+        "line": 492,
         "excerpt": "placeholder=\"e.g., SB vs BB 3-Bet Defense\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -110901,7 +110901,7 @@
       {
         "file": "pages/hub/training/equity-calculator.js",
         "kind": "SIMULATION",
-        "line": 829,
+        "line": 838,
         "excerpt": "name: 'How To Calculate Hand-Vs-Hand Poker Equity With Monte Carlo Simulation',",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -110910,7 +110910,7 @@
       {
         "file": "pages/hub/training/equity-calculator.js",
         "kind": "SIMULATION",
-        "line": 845,
+        "line": 854,
         "excerpt": "name: 'Run Monte Carlo Equity Simulation',",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -110919,7 +110919,7 @@
       {
         "file": "pages/hub/training/equity-calculator.js",
         "kind": "SIMULATION",
-        "line": 856,
+        "line": 865,
         "excerpt": "description=\"Calculate hand vs hand equity with Monte Carlo simulation. Compare up to 4 hands pre-flop or on specific boards.\"",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -110937,7 +110937,7 @@
       {
         "file": "pages/hub/training/final-table-sim.js",
         "kind": "SIMULATE",
-        "line": 138,
+        "line": 155,
         "excerpt": "description=\"Simulate Multi-Way Tournament Final Table Prize Pool Equity, Bubble Factors, And ICM Chop Numbers From 9-Handed To Heads-Up On Smarter.Poker.\"",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -110955,7 +110955,7 @@
       {
         "file": "pages/hub/training/glossary.js",
         "kind": "PLACEHOLDER",
-        "line": 203,
+        "line": 207,
         "excerpt": "placeholder=\"Search terms...\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -110974,7 +110974,7 @@
       {
         "file": "pages/hub/training/gto-news.js",
         "kind": "PLACEHOLDER",
-        "line": 605,
+        "line": 612,
         "excerpt": "placeholder=\"Search articles...\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -111011,7 +111011,7 @@
       {
         "file": "pages/hub/training/hand-lab.js",
         "kind": "PLACEHOLDER",
-        "line": 177,
+        "line": 195,
         "excerpt": "<span style={styles.placeholder}>Card 1</span>",
         "disposition": "visible-ui-state",
         "review": "accepted",
@@ -111020,7 +111020,7 @@
       {
         "file": "pages/hub/training/hand-lab.js",
         "kind": "PLACEHOLDER",
-        "line": 198,
+        "line": 216,
         "excerpt": "<span style={styles.placeholder}>Card 2</span>",
         "disposition": "visible-ui-state",
         "review": "accepted",
@@ -111029,7 +111029,7 @@
       {
         "file": "pages/hub/training/hand-lab.js",
         "kind": "PLACEHOLDER",
-        "line": 226,
+        "line": 244,
         "excerpt": "<span style={{ ...styles.placeholder, fontSize: 12 }}>",
         "disposition": "visible-ui-state",
         "review": "accepted",
@@ -111038,7 +111038,7 @@
       {
         "file": "pages/hub/training/hand-lab.js",
         "kind": "PLACEHOLDER",
-        "line": 488,
+        "line": 507,
         "excerpt": "placeholder: {",
         "disposition": "visible-ui-state",
         "review": "accepted",
@@ -111083,7 +111083,7 @@
       {
         "file": "pages/hub/training/multi-table.js",
         "kind": "FALLBACK",
-        "line": 197,
+        "line": 198,
         "excerpt": "// on a 60-second fallback -- four times GTOW's longest timebank, and the",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -111184,7 +111184,7 @@
       {
         "file": "pages/hub/training/quiz-builder.js",
         "kind": "PLACEHOLDER",
-        "line": 520,
+        "line": 538,
         "excerpt": "placeholder=\"e.g. BTN vs BB 3-Bet Defense\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -111265,7 +111265,7 @@
       {
         "file": "pages/hub/training/session-notes.js",
         "kind": "PLACEHOLDER",
-        "line": 447,
+        "line": 455,
         "excerpt": "placeholder=\"Good reads, correct folds, improved spots...\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -111274,7 +111274,7 @@
       {
         "file": "pages/hub/training/session-notes.js",
         "kind": "PLACEHOLDER",
-        "line": 480,
+        "line": 488,
         "excerpt": "placeholder=\"Missed spots, tilt triggers, leaks found...\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -111283,7 +111283,7 @@
       {
         "file": "pages/hub/training/session-notes.js",
         "kind": "PLACEHOLDER",
-        "line": 513,
+        "line": 521,
         "excerpt": "placeholder=\"Formatting: **bold**, *italic*, `code`, - bullets...\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -111292,7 +111292,7 @@
       {
         "file": "pages/hub/training/session-notes.js",
         "kind": "PLACEHOLDER",
-        "line": 696,
+        "line": 704,
         "excerpt": "placeholder=\"Search notes...\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -111328,7 +111328,7 @@
       {
         "file": "pages/hub/training/session-warmup.js",
         "kind": "PLACEHOLDER",
-        "line": 456,
+        "line": 459,
         "excerpt": "placeholder={currentStep.placeholder}",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -111337,7 +111337,7 @@
       {
         "file": "pages/hub/training/session-warmup.js",
         "kind": "PLACEHOLDER",
-        "line": 456,
+        "line": 459,
         "excerpt": "placeholder={currentStep.placeholder}",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -111724,7 +111724,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "PLACEHOLDER",
-        "line": 4902,
+        "line": 4911,
         "excerpt": "The denominator counts the dealing placeholder too --",
         "disposition": "poker-normalization-or-ui-state",
         "review": "accepted",
@@ -111733,7 +111733,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "PLACEHOLDER",
-        "line": 4918,
+        "line": 4927,
         "excerpt": "{/* PREFLOP: Deck placeholder when no board cards */}",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -111742,7 +111742,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "FALLBACK",
-        "line": 6817,
+        "line": 6840,
         "excerpt": "// Fallback to basic classifier",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -112594,7 +112594,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "FALLBACK",
-        "line": 638,
+        "line": 655,
         "excerpt": "* FALLBACK: fetch ONE question from the independent single-question route.",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -112604,7 +112604,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "FALLBACK",
-        "line": 640,
+        "line": 657,
         "excerpt": "* ── A FALLBACK THAT CALLS THE ROUTE IT IS FALLING BACK FROM IS NOT ONE ────",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -112614,7 +112614,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "FALLBACK",
-        "line": 1040,
+        "line": 1077,
         "excerpt": "// single-question fallback. That fallback intentionally requests one",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -112624,7 +112624,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "FALLBACK",
-        "line": 1040,
+        "line": 1077,
         "excerpt": "// single-question fallback. That fallback intentionally requests one",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -112634,7 +112634,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "FALLBACK",
-        "line": 2617,
+        "line": 2654,
         "excerpt": "// fallback. Keep the persisted verdict and manual Next on screen so a",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -112644,7 +112644,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "FALLBACK",
-        "line": 2706,
+        "line": 2743,
         "excerpt": "// Fallback to single-question mode",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -112654,7 +112654,7 @@
       {
         "file": "src/hooks/useGTOTrainer.js",
         "kind": "SIMULATION",
-        "line": 3585,
+        "line": 3622,
         "excerpt": "// ═══ PHASE 229: Runout simulation ═══",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -114146,7 +114146,7 @@
       {
         "file": "pages/api/training/audit-hand-history.js",
         "name": "handler",
-        "line": 105,
+        "line": 119,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -115030,7 +115030,7 @@
       {
         "file": "pages/hub/training/drill-builder.js",
         "name": "DrillBuilderPage",
-        "line": 226,
+        "line": 242,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -118854,7 +118854,7 @@
       {
         "file": "src/lib/training/clubArenaTableParity.js",
         "name": "applyClubArenaAction",
-        "line": 433,
+        "line": 436,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -118869,7 +118869,7 @@
       {
         "file": "src/lib/training/clubArenaTableParity.js",
         "name": "evaluateCustomRaiseSizing",
-        "line": 526,
+        "line": 529,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -119308,7 +119308,7 @@
       {
         "file": "src/lib/training/horseBrainTrainingAdapter.js",
         "name": "evaluateTrainingSpotWithHorseBrain",
-        "line": 344,
+        "line": 343,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -120165,7 +120165,7 @@
       {
         "file": "src/lib/training/weaknessAnalysis.mjs",
         "name": "analyzeVerifiedTrainingWeaknesses",
-        "line": 106,
+        "line": 107,
         "references": 1,
         "exported": true,
         "defaultExport": false,

@@ -737,6 +737,32 @@ test('Personalized leak-to-drill loop identifies highest-EV-loss (variant, stree
         villainPosition: 'BTN',
       });
       assert.equal(evalResult.ok, true, `Expected ${v} ${st} to evaluate without card collision`);
+      assert.ok(evalResult.engineModule, 'Expected top-level engineModule alias');
+      assert.ok(evalResult.recommendedAction, 'Expected top-level recommendedAction alias');
+      assert.ok(evalResult.coachingExplanation, 'Expected top-level coachingExplanation alias');
     }
   }
+
+  // Deep-sweep checks:
+  // 1) NLH preflop AA evaluates to premium handScore (> 80) instead of fallback 20
+  const preflopAa = evaluateTrainingSpotWithHorseBrain({
+    variant: 'nlh',
+    street: 'preflop',
+    heroCards: ['As', 'Ad'],
+    boardCards: [],
+    pot: 1.5,
+    toCall: 1,
+    stackDepth: 100,
+  });
+  assert.ok(preflopAa.brainEvaluation.handScore >= 85, `Expected AA preflop handScore >= 85, got ${preflopAa.brainEvaluation.handScore}`);
+
+  // 2) evaluateCustomRaiseSizing converts %-of-pot label to BB when sizingBb is omitted
+  const pctSizing = evaluateCustomRaiseSizing({
+    chosenSizingBb: 9,
+    potBb: 12,
+    callBb: 0,
+    stakes: '1/2',
+    gradedOption: { id: 'b67', text: 'Bet 67% Pot' },
+  });
+  assert.equal(pctSizing.gradedSizingBb, 8.04);
 });

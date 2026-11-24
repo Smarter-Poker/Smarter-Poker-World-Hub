@@ -111,7 +111,13 @@ export default function FocusTimerPage() {
             .filter((entry) => entry && entry.time);
           if (entries.length > 0) {
             setSessionLog((prev) => {
-              const merged = prev.length >= entries.length ? prev : entries.slice(0, 20);
+              const byId = new Map();
+              [...entries, ...prev].forEach((e) => {
+                if (e && e.id && !byId.has(e.id)) byId.set(e.id, e);
+              });
+              const merged = Array.from(byId.values())
+                .sort((a, b) => Number(b.id) - Number(a.id))
+                .slice(0, 20);
               try { localStorage.setItem('focus-timer-log', JSON.stringify(merged)); } catch (_) {}
               return merged;
             });
@@ -142,6 +148,7 @@ export default function FocusTimerPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         tool_id: 'focus-timer',
+        record_key: `focus_block_${next}`,
         record_type: 'focus_block',
         title: `Focus Block #${next}`,
         summary: `${phase.mins}m completed at ${entry.time}`,
@@ -162,36 +169,7 @@ export default function FocusTimerPage() {
       setIsActive(false);
       if (phase.id === 'focus' && !savedRef.current) {
         savedRef.current = true;
-        const next = completedBlocks + 1;
-        setCompletedBlocks(next);
-        try {
-          localStorage.setItem('focus-timer-completed', next.toString());
-        } catch (e) { console.warn('[App] Handled exception:', e); }
-        // Log the session
-        const entry = {
-          id: Date.now(),
-          time: new Date().toLocaleTimeString(),
-          duration: phase.mins,
-        };
-        const newLog = [entry, ...sessionLog].slice(0, 20);
-        setSessionLog(newLog);
-        try {
-          localStorage.setItem('focus-timer-log', JSON.stringify(newLog));
-        } catch (e) { console.warn('[App] Handled exception:', e); }
-        authedFetch('/api/training/tool-records', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            tool_id: 'focus-timer',
-            record_type: 'focus_block',
-            title: `Focus Block #${next}`,
-            summary: `${phase.mins}m completed at ${entry.time}`,
-            payload: {
-              completedBlocks: next,
-              entry,
-            },
-          }),
-        }).catch(() => {});
+        const next = recordCompletedFocusBlock();
         // A focus block is productivity history, not a graded poker decision.
         // Keep it out of training sessions, streaks, accuracy, and leaderboards.
         setTimeout(() => {
