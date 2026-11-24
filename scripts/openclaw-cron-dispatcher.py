@@ -1012,13 +1012,13 @@ OVERFLOW_CRONS = ALL_CRONS
 # settlement. The workers route holds a database lease with a fencing token
 # per invocation, so an active/passive dispatcher pair can never both act, and
 # it only calls the authoritative trivia_tournament_* RPCs.
-# Enabling is root's Phase 12 cutover step: flip the constant below in a
-# reviewed PR in the same window that retires the dormant Vercel tick, with
-# TRIVIA_TOURNAMENTS_ENABLED (and, separately, TRIVIA_TOURNAMENT_HORSES_ENABLED)
-# set on the workers host. Every minute; the worker keeps ticking for ~45 s
-# while an event is in its population or live window.
+# Phase 12 cutover (2026-11-24): all five database competitive cutover
+# certificates (including tournament_scheduler v2) are certified and enabled;
+# TRIVIA_TOURNAMENTS_ENABLED and TRIVIA_TOURNAMENT_HORSES_ENABLED are set on
+# the workers host. Every minute; the worker keeps ticking for ~45 s while an
+# event is in its population or live window.
 TRIVIA_NIGHTLY_TOURNAMENT_JOB = '/api/cron/trivia-nightly-tournament'
-TRIVIA_NIGHTLY_TOURNAMENT_SCHEDULE_ENABLED = False
+TRIVIA_NIGHTLY_TOURNAMENT_SCHEDULE_ENABLED = True
 FLAG_GATED_CRONS = [
     (TRIVIA_NIGHTLY_TOURNAMENT_JOB, dict(minute='*'), TRIVIA_NIGHTLY_TOURNAMENT_SCHEDULE_ENABLED),
 ]

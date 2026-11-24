@@ -113,12 +113,14 @@ run_psql() {
 run_psql -f "$repo_root/scripts/trivia/p12-cutover-replica-tests/00_fixture.sql"
 run_psql -f "$repo_root/supabase/migrations/20261006014200_trivia_p12_competitive_cutover_authority.sql"
 run_psql -f "$repo_root/supabase/migrations/20261008181229_trivia_zero_canary_funding_validation.sql"
+run_psql -f "$repo_root/supabase/migrations/20261124041500_trivia_pvp_horse_ready_subsidy_fix.sql"
 run_psql -f "$repo_root/scripts/trivia/p12-cutover-replica-tests/10_assertions.sql"
 run_psql -f "$repo_root/scripts/trivia/p12-cutover-replica-tests/20_metrics_before.sql"
 run_psql -f "$repo_root/supabase/migrations/20261008153740_trivia_metrics_use_builtin_wall_clock.sql"
 run_psql -f "$repo_root/scripts/trivia/p12-cutover-replica-tests/30_metrics_after.sql"
 
 run_psql -f "$repo_root/scripts/trivia/p12-cutover-replica-tests/40_canary_funding.sql"
+run_psql -f "$repo_root/scripts/trivia/p12-cutover-replica-tests/50_pvp_horse_subsidy.sql"
 
 # Exercise the exact documented forward rollback, then reapply the guarded
 # correction in this disposable database. Production history is never replayed.
@@ -127,6 +129,14 @@ sed -n '/^\/\*$/,/^\*\/$/{ /^\/\*$/d; /^\*\/$/d; p; }' \
 run_psql -c "DO \$rollback\$ BEGIN IF md5(pg_get_functiondef('public.trivia_competitive_tournament_canary_ready_v1(uuid,integer,boolean)'::regprocedure)) <> '8735454d414ecd263951bb6b867a9a48' THEN RAISE EXCEPTION 'forward rollback did not restore predecessor'; END IF; END \$rollback\$;"
 run_psql -f "$repo_root/supabase/migrations/20261008181229_trivia_zero_canary_funding_validation.sql"
 run_psql -f "$repo_root/scripts/trivia/p12-cutover-replica-tests/40_canary_funding.sql"
+
+# Prove predecessor rejects real Phase 2 human_horse (held_total=20, subsidy_total=10),
+# forward rollback restores exact predecessor MD5, and guarded reapply passes.
+sed -n '/^\/\*$/,/^\*\/$/{ /^\/\*$/d; /^\*\/$/d; p; }' \
+  "$repo_root/supabase/migrations/20261124041500_trivia_pvp_horse_ready_subsidy_fix.sql" | run_psql
+run_psql -c "DO \$rollback_pvp\$ BEGIN IF md5(pg_get_functiondef('public.trivia_competitive_pvp_paid_ready_v1(uuid)'::regprocedure)) <> '34cf6358080e6cea095fd079057281c0' THEN RAISE EXCEPTION 'forward rollback did not restore pvp_paid_ready predecessor'; END IF; IF public.trivia_competitive_pvp_paid_ready_v1('93000000-0000-4000-8000-000000000003') THEN RAISE EXCEPTION 'predecessor should reject real Phase 2 human_horse held_total=20, subsidy_total=10'; END IF; END \$rollback_pvp\$;"
+run_psql -f "$repo_root/supabase/migrations/20261124041500_trivia_pvp_horse_ready_subsidy_fix.sql"
+run_psql -f "$repo_root/scripts/trivia/p12-cutover-replica-tests/50_pvp_horse_subsidy.sql"
 
 peak_kb="$(space_kb)"
 echo "p12-cutover-pg17 space_peak_free_kb=$peak_kb"
