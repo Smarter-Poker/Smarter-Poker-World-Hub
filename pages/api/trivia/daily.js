@@ -421,12 +421,12 @@ async function resolveV3DailyRoster(supabase, today) {
         console.warn('[Trivia API] v3 daily snapshot items fetch failed:', itemsErr?.message || 'empty_items');
         return [];
     }
-    const revisionIds = items.map(item => item?.revision_id).filter(Boolean);
+    const revisionIds = items.map(item => item?.revision_id).filter(Boolean).slice(0, ROSTER_SIZE);
     if (revisionIds.length === 0) return [];
     const { data: revisions, error: revErr } = await supabase
         .from('trivia_question_revisions')
         .select('id, question_id, category, difficulty, question, options')
-        .in('id', revisionIds);
+        .in('id', revisionIds.slice(0, ROSTER_SIZE));
     if (revErr || !Array.isArray(revisions)) {
         console.warn('[Trivia API] v3 daily revision projection failed:', revErr?.message || 'invalid_revisions');
         return [];
