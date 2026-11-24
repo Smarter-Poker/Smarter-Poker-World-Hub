@@ -269,9 +269,9 @@ test('forward rollback is pasteable, admission-first, recovery-preserving and sc
     assert.doesNotMatch(rollback, /DROP\s+(?:FUNCTION|TABLE|TRIGGER)/i);
 });
 
-test('canonical schedules remain dormant and Phase 5/6 reports are prerequisites only', () => {
+test('canonical OpenClaw nightly schedule is enabled for Phase 12 while Phase 5/6 historical reports remain preserved', () => {
     assert.match(sql, /trivia_tournament_scheduler_job\(\)[\s\S]*openclaw:trivia-nightly-tournament/i);
-    assert.match(dispatcher, /^TRIVIA_NIGHTLY_TOURNAMENT_SCHEDULE_ENABLED = False$/m);
+    assert.match(dispatcher, /^TRIVIA_NIGHTLY_TOURNAMENT_SCHEDULE_ENABLED = True$/m);
     assert.match(dispatcher, /^TRIVIA_NIGHTLY_TOURNAMENT_JOB = '\/api\/cron\/trivia-nightly-tournament'$/m);
     assert.match(p5, /Flags turned on:\s*none/i);
     assert.match(p5, /Production money canaries[\s\S]*only rolled-back rehearsals ran/i);
@@ -311,4 +311,32 @@ test('forward free-canary validator matches immutable admission without weakenin
     assert.match(runner, /40_canary_funding\.sql/);
     const admission = read('supabase/migrations/20261001200000_trivia_p6_nightly_tournament_engine.sql');
     assert.match(admission, /CASE WHEN v_fee = 0 THEN 'none' WHEN p_kind = 'human' THEN 'player_wallet'/);
+});
+
+test('forward PvP horse subsidy validator matches Phase 2 trivia_ledger_subsidy accounting without weakening checks', () => {
+    const fix = read('supabase/migrations/20261124041500_trivia_pvp_horse_ready_subsidy_fix.sql');
+    const executable = fix.slice(fix.indexOf('BEGIN;'), fix.indexOf('-- FORWARD ROLLBACK'));
+    assert.match(executable, /s\.held_total = s\.gross_pool/);
+    assert.match(executable, /s\.subsidy_total = CASE WHEN m\.match_kind = 'human_horse' THEN m\.stake_amount ELSE 0 END/);
+    assert.doesNotMatch(executable, /s\.held_total \+ s\.subsidy_total = s\.gross_pool/);
+    assert.match(executable, /md5\(pg_catalog\.pg_get_functiondef/);
+    assert.match(executable, /34cf6358080e6cea095fd079057281c0/);
+    assert.doesNotMatch(executable, /GRANT|INSERT INTO|UPDATE public\.|DELETE FROM/i);
+    const runner = read('scripts/trivia/p12-cutover-replica-tests/run.sh');
+    assert.ok(runner.indexOf('20261124041500_trivia_pvp_horse_ready_subsidy_fix.sql') < runner.indexOf('10_assertions.sql'));
+    assert.match(runner, /50_pvp_horse_subsidy\.sql/);
+    const ledger = read('supabase/migrations/20260930043221_trivia_p2_ledger_foundation.sql');
+    assert.match(ledger, /SET held_total = held_total \+ p_amount, subsidy_total = subsidy_total \+ p_amount/);
+});
+
+test('Phase 12 cutover activation migration certifies all five gates with pre-flight, post-apply and forward rollback', () => {
+    const cert = read('supabase/migrations/20261124041600_trivia_p12_enable_competitive_certificates.sql');
+    const executable = cert.slice(0, cert.indexOf('-- FORWARD ROLLBACK'));
+    for (const gate of ['pvp_public', 'pvp_horses', 'tournament_public', 'tournament_horses', 'tournament_scheduler']) {
+        assert.match(executable, new RegExp(`'${gate}'`));
+    }
+    assert.match(executable, /trivia_competitive_global_ledger_clean_v1\(\)/);
+    assert.match(executable, /trivia_competitive_treasury_available_v1\(\) < 25000/);
+    assert.match(cert, /-- FORWARD ROLLBACK:/);
+    assert.match(cert, /forward rollback drain incomplete/);
 });

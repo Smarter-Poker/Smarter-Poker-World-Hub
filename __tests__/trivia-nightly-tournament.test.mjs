@@ -182,9 +182,9 @@ test('engine migration moves money only through Phase 2 and stays owner/service-
     assert.match(sql, /the trivia_tournaments engine must stay uncapped/);
 });
 
-test('the nightly OpenClaw job ships defined, routed to the workers VM and disabled', () => {
+test('the nightly OpenClaw job is defined, routed to the workers VM and enabled for Phase 12', () => {
     const py = read('scripts/openclaw-cron-dispatcher.py');
-    assert.match(py, /^TRIVIA_NIGHTLY_TOURNAMENT_SCHEDULE_ENABLED = False$/m, 'enabling is the Phase 12 cutover');
+    assert.match(py, /^TRIVIA_NIGHTLY_TOURNAMENT_SCHEDULE_ENABLED = True$/m, 'Phase 12 cutover enabled canonical nightly schedule');
     assert.match(py, /^TRIVIA_NIGHTLY_TOURNAMENT_JOB = '\/api\/cron\/trivia-nightly-tournament'$/m);
     assert.match(py, /'\/api\/cron\/trivia-nightly-tournament':\s+'\/cron\/trivia-nightly-tournament',/);
     assert.doesNotMatch(py, /^\s*\('\/api\/cron\/trivia-nightly-tournament'\s*,/m, 'never a literal ALL_CRONS entry');
