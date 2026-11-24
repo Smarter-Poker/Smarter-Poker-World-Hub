@@ -17,6 +17,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderPromoEvCalculatorMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
@@ -293,9 +294,26 @@ export default function PromoEvCalculatorPage({
         </h1>
 
         {!isEmbed && (
-          <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
-            <strong>Direct Answer:</strong> Live Casino <strong>Bad Beat Jackpots</strong> And <strong>Hourly High-Hand Promotions</strong> Turn Mathematically Positive EV (+EV) Once The Progressive Pool Crosses The <strong>Breakeven Jackpot Threshold</strong> For Its Qualifier Tier (Approximately <strong>$42,000 For Aces Full Of Tens</strong>, <strong>$115,000 For Quad 2s</strong>, And <strong>$245,000 For Quad 8s</strong> Under A Standard Promo Drop).
-          </p>
+          <>
+            <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 22px 0' }}>
+              <strong>Direct Answer:</strong> Live Casino <strong>Bad Beat Jackpots</strong> And <strong>Hourly High-Hand Promotions</strong> Turn Mathematically Positive EV (+EV) Once The Progressive Pool Crosses The <strong>Breakeven Jackpot Threshold</strong> For Its Qualifier Tier (Approximately <strong>$42,000 For Aces Full Of Tens</strong>, <strong>$115,000 For Quad 2s</strong>, And <strong>$245,000 For Quad 8s</strong> Under A Standard Promo Drop).
+            </p>
+            <CalculatorShareAndPresets
+              toolTitle="Bad Beat Jackpot And High-Hand EV Calculator"
+              toolPath={canonicalPath}
+              summaryText={`BBJ Pool $${metrics.safePool.toLocaleString('en-US')} (${metrics.tierObj.label}): Net Promo EV = $${metrics.netPromoEvHour}/Hr | Breakeven Pool = $${metrics.breakevenPool.toLocaleString('en-US')}`}
+              presets={[
+                { id: 'quad_2s_180k', label: '$180,000 BBJ (Quad 2s+ Beaten) + $500/Hr High Hand', pool: 180000, tier: 'QUAD_2S', hh: 500 },
+                { id: 'aces_full_65k', label: '$65,000 BBJ (Aces Full Of Tens+) + $300/Hr High Hand', pool: 65000, tier: 'ACES_FULL_TENS', hh: 300 },
+                { id: 'quad_8s_350k', label: '$350,000 Mega BBJ (Quad 8s+ Beaten)', pool: 350000, tier: 'QUAD_8S', hh: 400 },
+              ]}
+              onSelectPreset={(p) => {
+                setJackpotPool(p.pool);
+                setQualifier(p.tier);
+                setHighHandPrize(p.hh);
+              }}
+            />
+          </>
         )}
 
         <section

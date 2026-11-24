@@ -185,36 +185,47 @@ export default function FamousHandDetailPage({ hand, peerHands = [] }) {
             </div>
           </div>
 
-          <div style={styles.quickCrossLinks}>
-            <Link
-              href={`/tools/poker-odds-calculator?hand1=${encodeURIComponent(hand.heroHandCode)}&hand2=${encodeURIComponent(hand.villainHandCode)}`}
-              style={styles.crossBtnCyan}
-            >
-              Simulate {hand.heroHandCode} Vs {hand.villainHandCode} In Odds Calculator
-            </Link>
-            <Link href="/tools/pot-odds-calculator" style={styles.crossBtnEmerald}>
-              Pot Odds &amp; MDF Solver
-            </Link>
-            <Link href={FAMOUS_HANDS_BASE_PATH} style={styles.crossBtnOutline}>
-              All 12 Famous Poker Hands
-            </Link>
-            <Link href="/learn/matchups" style={styles.crossBtnOutline}>
-              25 All-In Hand Matchups
-            </Link>
-            <button
-              type="button"
-              onClick={() => handleCopyFactSheet('discord', discordFactSheet)}
-              style={{ ...styles.crossBtnOutline, cursor: 'pointer', color: '#25c8ff', borderColor: 'rgba(37, 200, 255, 0.45)' }}
-            >
-              {copiedCard === 'discord' ? 'Copied Discord Fact Sheet!' : 'Copy Discord Hand Fact Sheet'}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleCopyFactSheet('reddit', redditFactSheet)}
-              style={{ ...styles.crossBtnOutline, cursor: 'pointer', color: '#34d399', borderColor: 'rgba(52, 211, 153, 0.45)' }}
-            >
-              {copiedCard === 'reddit' ? 'Copied Reddit Markdown!' : 'Copy Reddit / Forum Markdown'}
-            </button>
+          <div style={{ marginTop: 14, padding: '14px 16px', background: '#070b14', border: '1px solid #1e293b', borderRadius: 10 }}>
+            <div style={{ fontSize: 11.5, fontWeight: 800, color: '#38bdf8', letterSpacing: '0.06em', marginBottom: 8 }}>
+              INTERACTIVE CALCULATORS FOR THIS SPOT
+            </div>
+            <div style={styles.quickCrossLinks}>
+              <Link
+                href={`/tools/poker-odds-calculator?hand1=${encodeURIComponent(hand.heroHandCode)}&hand2=${encodeURIComponent(hand.villainHandCode)}`}
+                style={styles.crossBtnCyan}
+              >
+                Simulate {hand.heroHandCode} Vs {hand.villainHandCode} In Odds Calculator
+              </Link>
+              <Link href="/tools/geometric-bet-calculator" style={styles.crossBtnEmerald}>
+                Geometric 3-Street Bet &amp; Overbet Calculator
+              </Link>
+              <Link href="/tools/pot-odds-calculator" style={styles.crossBtnOutline}>
+                Pot Odds &amp; MDF Solver
+              </Link>
+              <Link href="/tools/board-texture-analyzer" style={styles.crossBtnOutline}>
+                Flop Board Texture Analyzer
+              </Link>
+              <Link href={FAMOUS_HANDS_BASE_PATH} style={styles.crossBtnOutline}>
+                All 12 Famous Poker Hands
+              </Link>
+              <Link href="/learn/matchups" style={styles.crossBtnOutline}>
+                25 All-In Hand Matchups
+              </Link>
+              <button
+                type="button"
+                onClick={() => handleCopyFactSheet('discord', discordFactSheet)}
+                style={{ ...styles.crossBtnOutline, cursor: 'pointer', color: '#25c8ff', borderColor: 'rgba(37, 200, 255, 0.45)' }}
+              >
+                {copiedCard === 'discord' ? 'Copied Discord Fact Sheet!' : 'Copy Discord Hand Fact Sheet'}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleCopyFactSheet('reddit', redditFactSheet)}
+                style={{ ...styles.crossBtnOutline, cursor: 'pointer', color: '#34d399', borderColor: 'rgba(52, 211, 153, 0.45)' }}
+              >
+                {copiedCard === 'reddit' ? 'Copied Reddit Markdown!' : 'Copy Reddit / Forum Markdown'}
+              </button>
+            </div>
           </div>
         </header>
 

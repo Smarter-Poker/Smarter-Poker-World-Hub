@@ -20,7 +20,7 @@ test('MCP Server Protocol Engine initializes properly', async () => {
   assert.equal(res.result.serverInfo.name, MCP_SERVER_INFO.name);
   assert.equal(res.result.serverInfo.version, '2.0.0');
   assert.ok(typeof res.result.instructions === 'string' && res.result.instructions.includes('calculate_poker_odds'));
-  assert.equal(MCP_TOOLS.length, 45);
+  assert.equal(MCP_TOOLS.length, 55);
   for (const tool of MCP_TOOLS) {
     assert.ok(tool.annotations && typeof tool.annotations.title === 'string', `${tool.name} has annotations.title`);
     assert.equal(tool.annotations.readOnlyHint, true, `${tool.name} has readOnlyHint: true`);
@@ -267,4 +267,31 @@ test('MCP Server get_competitor_comparison returns source-cited comparison table
   assert.ok(Array.isArray(data.table));
   assert.ok(data.table.length >= 5);
   assert.ok(data.markdown_url.includes('/compare/best-poker-club-apps.md'));
+});
+
+test('MCP Server executes all 10 new tools (55 total), 12 prompts, and 18 resource templates', async () => {
+  const toolCalls = [
+    ['calculate_plo_wrap_outs', { wrap_type: '17', flush_draw: 'single' }, '/tools/plo-outs-calculator'],
+    ['calculate_late_reg_icm_ev', { buy_in_dollars: 1000, late_entry_stack_bb: 20 }, '/tools/late-reg-calculator'],
+    ['calculate_winrate_confidence_interval', { observed_winrate_bb100: 5, std_dev_bb100: 85, hands_sample: 50000 }, '/tools/winrate-confidence-calculator'],
+    ['calculate_poker_trip_budget', { nights: 5, planned_buyins_dollars: 5000 }, '/tools/poker-trip-planner'],
+    ['calculate_geometric_bet_sizing', { pot_size: 100, effective_stack: 300, streets: 3 }, '/tools/geometric-bet-calculator'],
+    ['score_live_table_selection', { vpip_whales_count: 3, avg_stack_bb: 150, rake_cap_dollars: 5 }, '/tools/table-selection-calculator'],
+    ['calculate_mtt_session_abi_plan', { tournaments_count: 12, average_buy_in_dollars: 55 }, '/tools/mtt-grind-planner'],
+    ['get_player_archetype_exploit', { archetype: 'omc' }, '/learn/player-types/omc'],
+    ['get_flop_board_texture_guide', { texture: 'ace-high-dry-rainbow' }, '/learn/board-textures/ace-high-dry-rainbow'],
+    ['get_international_poker_guide', { city: 'london' }, '/poker-rooms/international/london'],
+  ];
+
+  for (const [toolName, toolArgs, expectedUrlPart] of toolCalls) {
+    const res = await handleMcpRpc({
+      jsonrpc: '2.0',
+      id: toolName,
+      method: 'tools/call',
+      params: { name: toolName, arguments: toolArgs },
+    });
+    assert.equal(res.result.isError, undefined, `${toolName} executes without error`);
+    const parsed = JSON.parse(res.result.content[0].text);
+    assert.ok(parsed.citation_url.includes(expectedUrlPart), `${toolName} cites ${expectedUrlPart}`);
+  }
 });

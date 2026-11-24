@@ -16,6 +16,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderHandConverterMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
@@ -258,9 +259,31 @@ export default function HandConverterPage() {
         </h1>
 
         {!isEmbed && (
-          <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
-            <strong>Direct Answer:</strong> Convert Raw Live Or Online Hand Notes Into Clean, Suit-Symbol <strong>Reddit Markdown</strong>, <strong>Discord &amp; X Share Cards</strong>, <strong>Deep-Link Permalinks</strong>, And <strong>ChatGPT / Claude Solver Review Prompts</strong> In Seconds.
-          </p>
+          <>
+            <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 22px 0' }}>
+              <strong>Direct Answer:</strong> Convert Raw Live Or Online Hand Notes Into Clean, Suit-Symbol <strong>Reddit Markdown</strong>, <strong>Discord &amp; X Share Cards</strong>, <strong>Deep-Link Permalinks</strong>, And <strong>ChatGPT / Claude Solver Review Prompts</strong> In Seconds.
+            </p>
+            <CalculatorShareAndPresets
+              toolTitle="Poker Hand History Formatter And Converter"
+              toolPath={canonicalPath}
+              summaryText={`${stakes} (${effectiveStack}): Hero (${heroPos}) ${outputs.prettyHeroCards} Vs Villain (${villainPos}) On [${outputs.prettyFlop}] [${outputs.prettyTurn}] [${outputs.prettyRiver}]`}
+              presets={[
+                { id: 'ak_royal_redraw', label: 'BTN Vs BB: As Ks Turn Nut Straight + Royal Redraw', stakes: '$2/$5 Live NLH', stack: '100BB ($500)', hero: 'BTN', villain: 'BB', cards: 'As Ks', flop: 'Qh Jd 4s', turn: 'Ts', river: '2d' },
+                { id: '3bp_overpair', label: 'CO Vs BTN 3-Bet Pot: Qc Qd On Low Connected 8h 7h 5c', stakes: '100BB 6-Max Online', stack: '100BB', hero: 'CO', villain: 'BTN', cards: 'Qc Qd', flop: '8h 7h 5c', turn: '2s', river: 'Kc' },
+                { id: 'mtt_icm_spot', label: 'Final Table Bubble: Ah Qh Facing 22BB Jam', stakes: '$500 MTT', stack: '24BB', hero: 'CO', villain: 'BTN', cards: 'Ah Qh', flop: 'Kh Tc 3h', turn: '9s', river: 'Jh' },
+              ]}
+              onSelectPreset={(p) => {
+                setStakes(p.stakes);
+                setEffectiveStack(p.stack);
+                setHeroPos(p.hero);
+                setVillainPos(p.villain);
+                setHeroCards(p.cards);
+                setFlopBoard(p.flop);
+                setTurnCard(p.turn);
+                setRiverCard(p.river);
+              }}
+            />
+          </>
         )}
 
         <section

@@ -17,6 +17,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderPokerIqTestMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
@@ -362,9 +363,16 @@ export default function PokerIqTestPage() {
         </h1>
 
         {!isEmbed && (
-          <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
-            <strong>Direct Answer:</strong> Benchmark Your Quantitative Poker Mastery On A <strong>100 To 200 Poker IQ Scale</strong> Across Ten Essential Domains: <strong>Pot Odds &amp; MDF, Positional RFI, Satellite ICM, PKO Bounties, Flop C-Bet Textures, Official TDA Rules, 3-Bet Sizing, SPR Commitment, Combinatorics, And Risk Of Ruin</strong>.
-          </p>
+          <>
+            <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 22px 0' }}>
+              <strong>Direct Answer:</strong> Benchmark Your Quantitative Poker Mastery On A <strong>100 To 200 Poker IQ Scale</strong> Across Ten Essential Domains: <strong>Pot Odds &amp; MDF, Positional RFI, Satellite ICM, PKO Bounties, Flop C-Bet Textures, Official TDA Rules, 3-Bet Sizing, SPR Commitment, Combinatorics, And Risk Of Ruin</strong>.
+            </p>
+            <CalculatorShareAndPresets
+              toolTitle="GTO And Live Poker IQ Diagnostic Test"
+              toolPath={canonicalPath}
+              summaryText={`Quantitative Poker IQ Score: ${diagnosis.iqScore}/200 (${diagnosis.tierLabel} - ${diagnosis.correctCount}/10 Correct Domains)`}
+            />
+          </>
         )}
 
         <section

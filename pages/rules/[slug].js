@@ -156,11 +156,76 @@ export default function PokerRuleDetailPage({ rule, peerRules = [] }) {
             <h1 style={styles.h1}>{rule.h1}</h1>
 
             <div id="quick-answer-summary" style={styles.summaryBox}>
-              <div style={styles.summaryLabel}>FLOOR RULE REFERENCE SUMMARY (CITING {rule.tdaRef})</div>
+              <div style={styles.summaryLabel}>10-SECOND FLOOR QUICK-RULING CARD (CITING {rule.tdaRef})</div>
               <p style={styles.summaryText}>{rule.summary}</p>
               <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#94a3b8', lineHeight: 1.5 }}>
                 {"Source Attribution: Independent Educational Reference Summary Citing Published Poker Tournament Directors Association (TDA) Rules And Robert's Rules Of Poker (RROP). Smarter.Poker Is An Independent Publisher; In Any Live Cardroom Or Tournament, The Supervising Floor Director And Posted House Rules Hold Final Authority."}
               </p>
+              <div style={{ marginTop: '12px', display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  onClick={() => handleCopyRuling('quick-citation', groupChatRulingText)}
+                  style={{
+                    padding: '8px 13px',
+                    fontSize: '12px',
+                    fontWeight: 800,
+                    background: rulingCopiedKey === 'quick-citation' ? '#10b981' : '#f2b84b',
+                    color: '#020608',
+                    border: 'none',
+                    borderRadius: '2px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {rulingCopiedKey === 'quick-citation'
+                    ? 'Copied Official Ruling Summary + Canonical URL'
+                    : '10-Second Floor Quick-Ruling Card & Copy Citation'}
+                </button>
+                <Link
+                  href="/tools/who-wins-calculator"
+                  style={{
+                    padding: '7px 12px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    background: '#101a20',
+                    color: '#25c8ff',
+                    border: '1px solid #25c8ff',
+                    borderRadius: '2px',
+                    textDecoration: 'none',
+                  }}
+                >
+                  Who Wins Showdown Calculator
+                </Link>
+                <Link
+                  href="/tools/side-pot-calculator"
+                  style={{
+                    padding: '7px 12px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    background: '#101a20',
+                    color: '#25c8ff',
+                    border: '1px solid #1e293b',
+                    borderRadius: '2px',
+                    textDecoration: 'none',
+                  }}
+                >
+                  Side Pot Calculator
+                </Link>
+                <Link
+                  href="/tools/shot-clock"
+                  style={{
+                    padding: '7px 12px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    background: '#101a20',
+                    color: '#f2b84b',
+                    border: '1px solid #1e293b',
+                    borderRadius: '2px',
+                    textDecoration: 'none',
+                  }}
+                >
+                  TDA Shot Clock Timer
+                </Link>
+              </div>
             </div>
 
             <div

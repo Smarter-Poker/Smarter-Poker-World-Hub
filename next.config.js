@@ -2068,6 +2068,70 @@ const nextConfig = {
           destination: '/api/hub-tool-markdown?path=/tools/poker-iq-test',
         },
         {
+          source: '/tools/plo-outs-calculator.md',
+          destination: '/api/hub-tool-markdown?path=/tools/plo-outs-calculator',
+        },
+        {
+          source: '/tools/late-reg-calculator.md',
+          destination: '/api/hub-tool-markdown?path=/tools/late-reg-calculator',
+        },
+        {
+          source: '/tools/winrate-confidence-calculator.md',
+          destination: '/api/hub-tool-markdown?path=/tools/winrate-confidence-calculator',
+        },
+        {
+          source: '/tools/poker-trip-planner.md',
+          destination: '/api/hub-tool-markdown?path=/tools/poker-trip-planner',
+        },
+        {
+          source: '/tools/shot-clock.md',
+          destination: '/api/hub-tool-markdown?path=/tools/shot-clock',
+        },
+        {
+          source: '/tools/geometric-bet-calculator.md',
+          destination: '/api/hub-tool-markdown?path=/tools/geometric-bet-calculator',
+        },
+        {
+          source: '/tools/table-selection-calculator.md',
+          destination: '/api/hub-tool-markdown?path=/tools/table-selection-calculator',
+        },
+        {
+          source: '/tools/mtt-grind-planner.md',
+          destination: '/api/hub-tool-markdown?path=/tools/mtt-grind-planner',
+        },
+        {
+          source: '/learn/player-types.md',
+          destination: '/api/hub-tool-markdown?path=/learn/player-types',
+        },
+        {
+          source: '/learn/player-types/:type.md',
+          destination: '/api/hub-tool-markdown?path=/learn/player-types/:type',
+        },
+        {
+          source: '/learn/board-textures.md',
+          destination: '/api/hub-tool-markdown?path=/learn/board-textures',
+        },
+        {
+          source: '/learn/board-textures/:slug.md',
+          destination: '/api/hub-tool-markdown?path=/learn/board-textures/:slug',
+        },
+        {
+          source: '/learn/mental-game.md',
+          destination: '/api/hub-tool-markdown?path=/learn/mental-game',
+        },
+        {
+          source: '/learn/poker-as-a-business.md',
+          destination: '/api/hub-tool-markdown?path=/learn/poker-as-a-business',
+        },
+        {
+          source: '/poker-rooms/international.md',
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/international',
+        },
+        {
+          source: '/poker-rooms/international/:slug.md',
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/international/:slug',
+        },
+        {
           source: '/learn/poker-hand-rankings.md',
           destination: '/api/hub-tool-markdown?path=/learn/poker-hand-rankings',
         },

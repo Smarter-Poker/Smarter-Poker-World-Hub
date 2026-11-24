@@ -16,6 +16,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderSessionPlannerMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
@@ -282,9 +283,28 @@ export default function SessionPlannerPage({
         </h1>
 
         {!isEmbed && (
-          <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
-            <strong>Direct Answer:</strong> True Live Cash Game Profitability Equals <strong>Gross Hourly Winrate + Casino Comps Minus Session Expenses And Tips</strong>, Protected By A Strict <strong>2.5 To 3.0 Buy-In Session Stop-Loss</strong> And A Dedicated Bankroll Of <strong>20 To 35 Full Buy-Ins</strong> To Keep Risk Of Ruin Under 5%.
-          </p>
+          <>
+            <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 22px 0' }}>
+              <strong>Direct Answer:</strong> True Live Cash Game Profitability Equals <strong>Gross Hourly Winrate + Casino Comps Minus Session Expenses And Tips</strong>, Protected By A Strict <strong>2.5 To 3.0 Buy-In Session Stop-Loss</strong> And A Dedicated Bankroll Of <strong>20 To 35 Full Buy-Ins</strong> To Keep Risk Of Ruin Under 5%.
+            </p>
+            <CalculatorShareAndPresets
+              toolTitle="Live Cash Game Session And Hourly Planner"
+              toolPath={canonicalPath}
+              summaryText={`${metrics.stakeObj.label} (${metrics.safeBuyInBb}BB Buy-In, ${metrics.safeWrBbHr} BB/Hr): Net Hourly = $${metrics.netHourly}/Hr | Projected Annual Net = $${metrics.annualNet.toLocaleString('en-US')} | Stop-Loss = $${metrics.stopLossDollars}`}
+              presets={[
+                { id: 'wknd_1_3', label: 'Weekend $1/$3 Side Hustle (12 Hrs/Wk)', stake: '1/3', buyin: 100, wr: 9.5, hrs: 6, sess: 2 },
+                { id: 'pro_2_5', label: 'Full-Time $2/$5 Grinder (32 Hrs/Wk)', stake: '2/5', buyin: 100, wr: 9, hrs: 8, sess: 4 },
+                { id: 'deep_5_10', label: 'High-Action $5/$10 Pro (30 Hrs/Wk)', stake: '5/10', buyin: 150, wr: 7.5, hrs: 6, sess: 5 },
+              ]}
+              onSelectPreset={(p) => {
+                setStake(p.stake);
+                setBuyInBb(p.buyin);
+                setWinRateBbHr(p.wr);
+                setHoursPerSession(p.hrs);
+                setSessionsPerWeek(p.sess);
+              }}
+            />
+          </>
         )}
 
         <section

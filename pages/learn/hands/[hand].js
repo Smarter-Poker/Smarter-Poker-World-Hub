@@ -175,6 +175,84 @@ export default function StartingHandDetailPage({ hand }) {
           {hand.summary}
         </p>
 
+        <section
+          aria-label="Interactive Solver And Equity Quick-Launch"
+          style={{
+            marginBottom: 28,
+            padding: 20,
+            background: 'linear-gradient(180deg, #0c182c 0%, #091220 100%)',
+            borderRadius: 12,
+            border: '1px solid #38bdf8',
+          }}
+        >
+          <div style={{ fontSize: 11.5, fontWeight: 800, color: '#38bdf8', letterSpacing: '0.06em', marginBottom: 6 }}>
+            INTERACTIVE SOLVER &amp; EQUITY QUICK-LAUNCH FOR {hand.code}
+          </div>
+          <h2 style={{ fontSize: 19, fontWeight: 800, color: '#f8fafc', margin: '0 0 12px 0' }}>
+            Test {hand.name} ({hand.code}) In Smarter.Poker Live Solvers &amp; Calculators
+          </h2>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+            <Link
+              href={`/tools/poker-odds-calculator?hand1=${encodeURIComponent(hand.code)}`}
+              style={{
+                padding: '9px 14px',
+                borderRadius: 8,
+                background: '#38bdf8',
+                color: '#04131d',
+                fontWeight: 700,
+                fontSize: 13,
+                textDecoration: 'none',
+              }}
+            >
+              Test {hand.code} Live Equity In Odds Calculator
+            </Link>
+            <Link
+              href="/tools/preflop-ranges"
+              style={{
+                padding: '9px 14px',
+                borderRadius: 8,
+                background: '#10b981',
+                color: '#04131d',
+                fontWeight: 700,
+                fontSize: 13,
+                textDecoration: 'none',
+              }}
+            >
+              View 100BB 6-Max GTO Matrix
+            </Link>
+            <Link
+              href="/tools/board-texture-analyzer"
+              style={{
+                padding: '9px 14px',
+                borderRadius: 8,
+                background: '#0f172a',
+                color: '#38bdf8',
+                border: '1px solid #334155',
+                fontWeight: 700,
+                fontSize: 13,
+                textDecoration: 'none',
+              }}
+            >
+              Analyze C-Bet Strategy On Any Flop
+            </Link>
+            <Link
+              href="/learn/positions"
+              style={{
+                padding: '9px 14px',
+                borderRadius: 8,
+                background: '#0f172a',
+                color: '#34d399',
+                border: '1px solid #334155',
+                fontWeight: 700,
+                fontSize: 13,
+                textDecoration: 'none',
+              }}
+            >
+              Compare Positional Winrates
+            </Link>
+          </div>
+        </section>
+
         <section style={{ marginBottom: 32, padding: 20, background: '#0f172a', borderRadius: 12, border: '1px solid #1e293b' }}>
           <h2 style={{ fontSize: 20, fontWeight: 700, color: '#f8fafc', margin: '0 0 14px 0' }}>
             Combinatoric Fact Sheet For {hand.name} ({hand.code})

@@ -280,14 +280,23 @@ export default function PokerMatchupDetailPage({ matchup, peerMatchups = [] }) {
           </div>
 
           <div style={styles.quickCrossLinks}>
-            <Link href={`/tools/poker-odds-calculator?hand1=${encodeURIComponent(matchup.handA)}&hand2=${encodeURIComponent(matchup.handB)}`} style={styles.crossBtnCyan}>
-              Open In Odds Calculator
+            <Link
+              href={`/tools/poker-odds-calculator?hand1=${encodeURIComponent(matchup.handA)}&hand2=${encodeURIComponent(matchup.handB)}`}
+              style={styles.crossBtnCyan}
+            >
+              Run This Matchup In Live Odds Calculator
             </Link>
-            <Link href="/tools/pot-odds-calculator" style={styles.crossBtnEmerald}>
+            <Link href="/tools/board-texture-analyzer" style={styles.crossBtnEmerald}>
+              Analyze Flop Textures For This Matchup
+            </Link>
+            <Link href="/tools/who-wins-calculator" style={styles.crossBtnOutline}>
+              Verify Showdown In Who Wins Calculator
+            </Link>
+            <Link href="/tools/pot-odds-calculator" style={styles.crossBtnOutline}>
               Run Pot Odds &amp; EV Calculator
             </Link>
-            <Link href="/learn/hands" style={styles.crossBtnOutline}>
-              Browse All 169 Starting Hands
+            <Link href="/learn/board-textures" style={styles.crossBtnOutline}>
+              12 Flop Texture Encyclopedia
             </Link>
             <Link href={MATCHUPS_BASE_PATH} style={styles.crossBtnOutline}>
               All 25 Hand Matchups

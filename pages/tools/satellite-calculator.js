@@ -17,6 +17,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderSatelliteCalculatorMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
@@ -274,9 +275,30 @@ export default function SatelliteCalculatorPage({
         </h1>
 
         {!isEmbed && (
-          <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
-            <strong>Direct Answer:</strong> In An Equal-Payout Satellite Where 1st Through Nth Place Win Identical Seats, Chips Above The <strong>Target Seat Stack (Total Chips / Seats Awarded)</strong> Carry Near-Zero Marginal Value, Producing Extreme <strong>4.5x To 8.0x Bubble Factors</strong> Where Even <strong>KK Or AA Must Fold</strong> Facing A Covering All-In.
-          </p>
+          <>
+            <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 22px 0' }}>
+              <strong>Direct Answer:</strong> In An Equal-Payout Satellite Where 1st Through Nth Place Win Identical Seats, Chips Above The <strong>Target Seat Stack (Total Chips / Seats Awarded)</strong> Carry Near-Zero Marginal Value, Producing Extreme <strong>4.5x To 8.0x Bubble Factors</strong> Where Even <strong>KK Or AA Must Fold</strong> Facing A Covering All-In.
+            </p>
+            <CalculatorShareAndPresets
+              toolTitle="Tournament Satellite Seat-Bubble Calculator"
+              toolPath={canonicalPath}
+              summaryText={`Satellite Bubble (${metrics.safeSeats} Seats, ${metrics.safeRem} Left): Target Stack = ${metrics.targetSeatStack.toLocaleString('en-US')} | Hero Seat Lock = ${metrics.seatLockPct}% | Bubble Factor = ${metrics.bubbleFactor}x (Req Equity ${metrics.reqCallingEquity}%)`}
+              presets={[
+                { id: 'wsop_main_sat', label: 'WSOP $10K Main Satellite Bubble (10 Seats / 11 Left)', total: 100, start: 15000, seats: 10, val: 10000, rem: 11, hero: 145000, bb: 6000 },
+                { id: 'wpt_milestone', label: 'WPT $3,500 Milestone Satellite (5 Seats / 7 Left)', total: 50, start: 20000, seats: 5, val: 3500, rem: 7, hero: 135000, bb: 8000 },
+                { id: 'short_stack_sat', label: 'Short-Stack Bubble Survival (8 Seats / 9 Left)', total: 80, start: 10000, seats: 8, val: 1100, rem: 9, hero: 45000, bb: 5000 },
+              ]}
+              onSelectPreset={(p) => {
+                setTotalPlayers(p.total);
+                setStartingStack(p.start);
+                setSeatsAwarded(p.seats);
+                setSeatValue(p.val);
+                setPlayersRemaining(p.rem);
+                setHeroStack(p.hero);
+                setBigBlind(p.bb);
+              }}
+            />
+          </>
         )}
 
         <section

@@ -16,6 +16,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderMRatioCalculatorMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
@@ -287,9 +288,30 @@ export default function MRatioCalculatorPage({
         </h1>
 
         {!isEmbed && (
-          <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
-            <strong>Direct Answer:</strong> Dan Harrington <strong>M-Ratio</strong> Divides Your Chip Stack By The Cost Of One Full Orbit (<strong>Small Blind + Big Blind + Orbit Antes</strong>). Multiply M By <strong>(Players At Table / 10)</strong> To Compute <strong>Effective M</strong> For Short-Handed Tables, And Divide Your Stack By The Tournament Average To Track Your <strong>Q-Ratio</strong>.
-          </p>
+          <>
+            <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 22px 0' }}>
+              <strong>Direct Answer:</strong> Dan Harrington <strong>M-Ratio</strong> Divides Your Chip Stack By The Cost Of One Full Orbit (<strong>Small Blind + Big Blind + Orbit Antes</strong>). Multiply M By <strong>(Players At Table / 10)</strong> To Compute <strong>Effective M</strong> For Short-Handed Tables, And Divide Your Stack By The Tournament Average To Track Your <strong>Q-Ratio</strong>.
+            </p>
+            <CalculatorShareAndPresets
+              toolTitle="Tournament M-Ratio And Q-Ratio Calculator"
+              toolPath={canonicalPath}
+              summaryText={`Stack ${metrics.safeStack} (${metrics.stackBb}BB) At ${metrics.safeSb}/${metrics.safeBb}/${metrics.safeAnte} (${metrics.safePlayers}-Handed): M = ${metrics.mRatio} | Effective M = ${metrics.effectiveM} (${metrics.zoneLabel}) | Q-Ratio = ${metrics.qRatio}`}
+              presets={[
+                { id: 'green_deep', label: 'Green Zone Deep Stack (60,000 At 400/800/800)', stack: 60000, sb: 400, bb: 800, ante: 800, players: 9, avg: 45000 },
+                { id: 'orange_re_steal', label: 'Orange Zone Re-Steal (16,000 At 500/1000/1000)', stack: 16000, sb: 500, bb: 1000, ante: 1000, players: 9, avg: 35000 },
+                { id: 'red_push_fold', label: 'Red Zone Push/Fold (11,000 At 1000/2000/2000)', stack: 11000, sb: 1000, bb: 2000, ante: 2000, players: 8, avg: 48000 },
+                { id: 'ft_short_5h', label: 'Final Table 5-Handed (120,000 At 5000/10000/10000)', stack: 120000, sb: 5000, bb: 10000, ante: 10000, players: 5, avg: 240000 },
+              ]}
+              onSelectPreset={(p) => {
+                setStack(p.stack);
+                setSb(p.sb);
+                setBb(p.bb);
+                setAnte(p.ante);
+                setPlayers(p.players);
+                setAvgStack(p.avg);
+              }}
+            />
+          </>
         )}
 
         <section

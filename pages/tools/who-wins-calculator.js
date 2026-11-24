@@ -17,6 +17,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderWhoWinsCalculatorMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
@@ -459,9 +460,26 @@ export default function WhoWinsCalculatorPage() {
         </h1>
 
         {!isEmbed && (
-          <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
-            <strong>Direct Answer:</strong> In Texas Holdem, Only The <strong>Best 5 Cards Out Of 7</strong> Count At Showdown. A 6th Or 7th Card Never Breaks A Tie, Suits Have Equal Rank, And Pairing The Board Higher Than Your Pocket Pair <strong>Counterfeits</strong> Your Lower Pair So The Highest Single Kicker Wins.
-          </p>
+          <>
+            <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 22px 0' }}>
+              <strong>Direct Answer:</strong> In Texas Holdem, Only The <strong>Best 5 Cards Out Of 7</strong> Count At Showdown. A 6th Or 7th Card Never Breaks A Tie, Suits Have Equal Rank, And Pairing The Board Higher Than Your Pocket Pair <strong>Counterfeits</strong> Your Lower Pair So The Highest Single Kicker Wins.
+            </p>
+            <CalculatorShareAndPresets
+              toolTitle="What Beats What? Hold'em Showdown Resolver"
+              toolPath={canonicalPath}
+              summaryText={`Board [${boardInput}] | P1 (${p1Input}) Vs P2 (${p2Input}): ${showdown.winnerBanner}`}
+              presets={[
+                { id: 'counterfeit_2p', label: 'Counterfeited Two Pair (Ks Kd 9h 9c 2s: As 4d Vs 7h 7c)', board: 'Ks Kd 9h 9c 2s', p1: 'As 4d', p2: '7h 7c' },
+                { id: '5card_chop', label: '5-Card Kicker Split Pot (As Kd Qc Jd 2h: Ah 8s Vs Ac 6d)', board: 'As Kd Qc Jd 2h', p1: 'Ah 8s', p2: 'Ac 6d' },
+                { id: 'flush_kicker', label: '6-Card Flush Tie-Breaker (As Ks 9s 4s 2d: Qs 3h Vs Js Tc)', board: 'As Ks 9s 4s 2d', p1: 'Qs 3h', p2: 'Js Tc' },
+              ]}
+              onSelectPreset={(p) => {
+                setBoardInput(p.board);
+                setP1Input(p.p1);
+                setP2Input(p.p2);
+              }}
+            />
+          </>
         )}
 
         <section

@@ -341,8 +341,8 @@ test('Automated Outreach & Multilingual Syndication Engine (/api/seo/outreach-ge
   assert.equal(pkg.multilingual_bundles.length, 7);
 });
 
-test('Twitch & YouTube Streamer Chatbot API (/api/stream/cmd) evaluates !odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, !matchup, !tax, !stake, !iso, !series, !board, !mratio, !straddle, !sat, !bbj, !position, !math, and !iq', () => {
-  assert.equal(STREAMER_BOT_COMMANDS.length, 26);
+test('Twitch & YouTube Streamer Chatbot API (/api/stream/cmd) evaluates !odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, !matchup, !tax, !stake, !iso, !series, !board, !mratio, !straddle, !sat, !bbj, !position, !math, !iq, !wrap, !latereg, !confidence, !trip, !geo, !table, !exploit, and !intl', () => {
+  assert.equal(STREAMER_BOT_COMMANDS.length, 34);
 
   const oddsRes = evaluateStreamCommand({ cmd: 'odds', q: 'AA vs KK' });
   assert.ok(oddsRes.text.includes('81.9% vs 18.1%'));
@@ -504,7 +504,13 @@ test('Zero broken internal URLs or em dashes exist across backlinkCatalog, outre
         urlPath !== '/learn/cheat-sheets' &&
         urlPath !== '/learn/online-vs-live-poker' &&
         urlPath !== '/learn/live-poker-tells' &&
-        urlPath !== '/learn/poker-hand-rankings'
+        urlPath !== '/learn/poker-hand-rankings' &&
+        urlPath !== '/learn/player-types' &&
+        !urlPath.startsWith('/learn/player-types/') &&
+        urlPath !== '/learn/board-textures' &&
+        !urlPath.startsWith('/learn/board-textures/') &&
+        urlPath !== '/learn/mental-game' &&
+        urlPath !== '/learn/poker-as-a-business'
       ) {
         const s = urlPath.replace('/learn/', '');
         assert.ok(lessonSlugs.has(s), `[${rel}] broken /learn/ lesson slug: ${clean}`);
@@ -591,13 +597,13 @@ test('25-Item Free Discovery, Viral Calculators, Matchups, Series Guides, Press 
   assert.equal(SERIES_GUIDES.length, 10, '10 major poker series strategy guides');
   assert.equal(getSeriesGuideBySlug('wsop-las-vegas')?.shortName, 'WSOP Las Vegas');
 
-  assert.equal(MCP_TOOLS.length, 45, '45 zero-auth MCP tools');
-  assert.equal(MCP_RESOURCE_TEMPLATES.length, 16, '16 MCP resource templates');
+  assert.equal(MCP_TOOLS.length, 55, '55 zero-auth MCP tools');
+  assert.equal(MCP_RESOURCE_TEMPLATES.length, 18, '18 MCP resource templates');
 
   const a2a = buildA2AAgentCard();
   assert.equal(a2a.schemaVersion, '1.0');
-  assert.equal(a2a.capabilities.mcpTools, 45);
-  assert.equal(a2a.capabilities.mcpResources, 16);
+  assert.equal(a2a.capabilities.mcpTools, 55);
+  assert.equal(a2a.capabilities.mcpResources, 18);
 
   const taxRes = await executeMcpTool('calculate_poker_taxes_w2g', {
     gross_winnings: 35000,
@@ -736,7 +742,7 @@ test('Phase 6 Partner Installation Suite: oEmbed 1.0 Provider, 1-Line JS Widget 
   const catalog = buildPartnerInstallationCatalog({ partner: 'upswingpoker.com' });
   assert.equal(catalog.counts.embeddable_calculators, 33);
   assert.equal(catalog.counts.svg_attribution_badges, 16);
-  assert.equal(catalog.counts.streamer_chat_commands, 26);
+  assert.equal(catalog.counts.streamer_chat_commands, 34);
   assert.equal(catalog.counts.dead_tool_replacements, 12);
   assert.equal(catalog.counts.zenodo_dataset_deposits, 6);
   assert.ok(catalog.one_line_sdk_example.includes('data-partner="upswingpoker.com"'));
@@ -766,11 +772,11 @@ test('Phase 6 Partner Installation Suite: oEmbed 1.0 Provider, 1-Line JS Widget 
   const llmsFullTxt = read('public/llms-full.txt');
   const aiPluginJson = read('public/.well-known/ai-plugin.json');
   const openApiJson = read('public/api/openapi.json');
-  assert.ok(llmsTxt.includes('All 45 Zero-Auth MCP Tools'));
+  assert.ok(llmsTxt.includes('All 55 Zero-Auth MCP Tools'));
   assert.ok(llmsTxt.includes('!tax, !stake, !iso, !series'));
-  assert.ok(llmsFullTxt.includes('All 45 Zero-Auth MCP Tools'));
-  assert.ok(aiPluginJson.includes('45 zero-auth MCP tools'));
-  assert.ok(openApiJson.includes('45 Tools'));
+  assert.ok(llmsFullTxt.includes('All 55 Zero-Auth MCP Tools'));
+  assert.ok(aiPluginJson.includes('55 zero-auth MCP tools'));
+  assert.ok(openApiJson.includes('55 Tools'));
 
   const embedsMd = renderEmbedsMarkdown();
   for (const cmd of ['!tax', '!stake', '!iso', '!series']) {

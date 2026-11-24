@@ -325,6 +325,150 @@ const CALCULATOR_ITEMS = [
     badge: 'Comps & Toke Math',
     summary: 'Hourly Comp Earning Rates ($1-$3/Hr), Tier Multipliers, Dealer Tipping Standards, And Monthly Comp Offset Calculator.',
   },
+  {
+    title: 'PLO Wrap, Redraw & Nut-Out Probability Analyzer',
+    href: '/tools/plo-outs-calculator',
+    badge: 'PLO Wrap Solver',
+    summary: 'Calculates Turn, River, And Combined Flop-To-River Equity For 13/16/17/20-Out PLO Straight Wraps And Nut Flush Redraws.',
+  },
+  {
+    title: 'Tournament Late-Registration & Re-Entry ICM EV Calculator',
+    href: '/tools/late-reg-calculator',
+    badge: 'Late-Reg ICM Boost',
+    summary: 'Computes ICM Chip Appreciation And Free Dollar Equity Gained When Late-Registering At 15BB To 30BB.',
+  },
+  {
+    title: 'Poker Winrate Confidence-Interval & Sample Size Calculator',
+    href: '/tools/winrate-confidence-calculator',
+    badge: '70%/95%/99% CI',
+    summary: 'Calculates 70%, 95%, And 99% Winrate Confidence Bounds, True Losing Probability, And Sample Size Requirements.',
+  },
+  {
+    title: 'Live Poker Trip & Festival Budget Planner',
+    href: '/tools/poker-trip-planner',
+    badge: 'Series Budget & ROI',
+    summary: 'Computes Total Travel Overhead, Effective Expense Rake % On Buy-Ins, Break-Even Gross Winnings, And Net Trip EV.',
+  },
+  {
+    title: 'Poker Action Clock & Home Game Shot-Clock Timer',
+    href: '/tools/shot-clock',
+    badge: 'WPT/Triton Shot Clock',
+    summary: 'Interactive 15s-45s Tournament Action Clock With 30s/60s Time-Bank Extension Cards Across All 9 Seats.',
+  },
+  {
+    title: 'GTO Geometric Bet-Sizing & Overbet Planner (2e / 3e)',
+    href: '/tools/geometric-bet-calculator',
+    badge: '2e / 3e Overbet Math',
+    summary: 'Calculates Constant Pot-Fraction Geometric Bet Sizes Across 2 Or 3 Streets To Put The Final Chip All-In On The River.',
+  },
+  {
+    title: 'Live Cash Game Table-Selection & Profitability Scorecard',
+    href: '/tools/table-selection-calculator',
+    badge: 'Table Selection Grader',
+    summary: 'Grades Live Cash Game Tables From S-Tier Whale Table To F Immediate Table Change Based On Rec Density And Rake Drag.',
+  },
+  {
+    title: 'MTT Session Schedule & Average Buy-In (ABI) Planner',
+    href: '/tools/mtt-grind-planner',
+    badge: 'MTT ABI & Exposure',
+    summary: 'Calculates Single-Session Tournament Capital Exposure, Effective ABI Ratios, And Session 0-ITM Brick Probability.',
+  },
+  {
+    title: 'Poker Player Types & Exploitative Counter-Strategy Encyclopedia',
+    href: '/learn/player-types',
+    badge: 'Player Archetypes',
+    summary: 'HUD Stat Profiles (VPIP/PFR/3-Bet) And Exploitative Adjustments Against TAG, LAG, Nit, Calling Station, And Maniac Seats.',
+  },
+  {
+    title: 'Flop Board Texture & GTO C-Bet Strategy Authority Encyclopedia',
+    href: '/learn/board-textures',
+    badge: 'Flop Archetypes',
+    summary: 'Range Advantage, Nut Advantage, And Optimal 33% Vs 75% C-Bet Frequencies Across Canonical Flop Board Textures.',
+  },
+  {
+    title: 'Poker Mental Game, Tilt Control & A-Game Performance Authority Hub',
+    href: '/learn/mental-game',
+    badge: 'Tilt & Performance',
+    summary: 'Diagnostic Triggers And Counter-Protocols For Injustice Tilt, Revenge Tilt, Downswing Despair, And Stop-Loss Discipline.',
+  },
+  {
+    title: 'Poker As A Business: Professional Bankroll, Taxes, Staking & LLC Guide',
+    href: '/learn/poker-as-a-business',
+    badge: 'Pro Operations',
+    summary: 'Complete Operations Manual For Professional Poker Players Covering Schedule C Filing, Staking Contracts, And Bankroll Reserves.',
+  },
+  {
+    title: 'International Live Poker Destinations & Global Casino Authority Guide',
+    href: '/poker-rooms/international',
+    badge: 'Global Poker Hubs',
+    summary: 'International Rake Structures, Currency Rules, And Tax Treaties Across London, Rozvadov, Barcelona, Monte Carlo, And Manila.',
+  },
+];
+
+const QUICK_ANSWERS = [
+  {
+    keywords: ['mdf', 'minimum defense frequency'],
+    title: 'Minimum Defense Frequency (MDF) Formula',
+    answer: 'MDF = Current Pot / (Current Pot + Opponent Bet). Versus A 50% Half-Pot Bet, MDF = 66.7%; Versus A 100% Pot Bet, MDF = 50.0%.',
+    toolLabel: 'Open Pot Odds & MDF Calculator',
+    toolHref: '/tools/pot-odds-calculator',
+  },
+  {
+    keywords: ['pot odds', 'required equity', 'calling odds'],
+    title: 'Pot Odds & Required Break-Even Calling Equity',
+    answer: 'Required Equity % = Call Amount / (Pot + Opponent Bet + Your Call). Calling A Full Pot Bet Requires Exactly 33.3% Equity.',
+    toolLabel: 'Open Pot Odds Calculator',
+    toolHref: '/tools/pot-odds-calculator',
+  },
+  {
+    keywords: ['spr', 'stack to pot ratio', 'geometric', '2e', '3e'],
+    title: 'Stack-To-Pot Ratio (SPR) & Geometric Sizing (g)',
+    answer: 'SPR = Effective Stack / Flop Pot. Constant n-Street Geometric Bet Fraction g = (((2 * Stack + Pot) / Pot)^(1 / n) - 1) / 2.',
+    toolLabel: 'Open GTO Geometric Bet Calculator',
+    toolHref: '/tools/geometric-bet-calculator',
+  },
+  {
+    keywords: ['m-ratio', 'm ratio', 'harrington', 'effective m', 'q-ratio'],
+    title: 'Dan Harrington M-Ratio & Short-Handed Effective M',
+    answer: 'M = Stack / (Small Blind + Big Blind + Total Orbit Antes). Effective M = M * (Active Players / 10). Red Zone Push/Fold Begins At M <= 5.',
+    toolLabel: 'Open Tournament M-Ratio Calculator',
+    toolHref: '/tools/m-ratio-calculator',
+  },
+  {
+    keywords: ['icm', 'independent chip model', 'bubble factor', 'chop'],
+    title: 'Malmuth-Harville ICM & Tournament Bubble Factor',
+    answer: 'P(1st Place) = Player Chips / Total Chips In Play. Bubble Factor = Dollar Equity Lost On Elimination / Dollar Equity Gained On Double-Up.',
+    toolLabel: 'Open Tournament ICM Calculator',
+    toolHref: '/tools/icm-calculator',
+  },
+  {
+    keywords: ['aa vs kk', 'aces vs kings', 'kk vs aa'],
+    title: 'Pocket Aces (AA) Vs Pocket Kings (KK) All-In Equity',
+    answer: 'Pre-Flop All-In Equity: Pocket Aces Wins 81.95% | Pocket Kings Wins 17.59% | Tie Split 0.46% (Approximately 4.5-To-1 Favorite).',
+    toolLabel: 'Open Multiway Poker Odds Calculator',
+    toolHref: '/tools/poker-odds-calculator',
+  },
+  {
+    keywords: ['aks', 'big slick', 'ace king suited'],
+    title: 'Ace-King Suited (AKs - Big Slick) Starting Hand Profile',
+    answer: 'Rank #4 Of 169 Starting Hands (4 Combos, 0.30% Deal Frequency). Holds 67.0% Equity Vs Random Hand And 46.2% Flip Equity Vs Pocket Queens.',
+    toolLabel: 'Inspect AKs Strategy Profile',
+    toolHref: '/learn/hands/aks',
+  },
+  {
+    keywords: ['string bet', 'one chip rule', 'oversized chip'],
+    title: 'Official TDA String Bet & Oversized One-Chip Call Rule',
+    answer: 'TDA Rule 42 & 45: Raising Requires Either A Single Verbal Declaration ("Raise") Before Touching Chips Or Pushing Out The Full Amount In One Motion.',
+    toolLabel: 'Read Official TDA Rules Directory',
+    toolHref: '/rules',
+  },
+  {
+    keywords: ['plo wrap', 'wrap outs', '13-out', '17-out', '20-out'],
+    title: 'Pot-Limit Omaha (PLO) Straight Wrap Hit Probabilities',
+    answer: 'Out Of 45 Unseen Turn Cards: 13-Out Wrap Hits 50.1% By River | 16-Out Wrap Hits 59.1% | 17-Out Wrap Hits 61.9% | 20-Out Mega Wrap Hits 69.7%.',
+    toolLabel: 'Open PLO Wrap & Nut-Out Calculator',
+    toolHref: '/tools/plo-outs-calculator',
+  },
 ];
 
 const CATEGORIES = [
@@ -685,6 +829,14 @@ export default function UniversalPokerSearchPage() {
     [visibleGroups]
   );
 
+  const matchedQuickAnswer = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q || q.length < 2) return null;
+    return QUICK_ANSWERS.find((qa) =>
+      qa.keywords.some((kw) => q.includes(kw) || kw.includes(q))
+    ) || null;
+  }, [query]);
+
   const canonicalUrl = 'https://smarter.poker/search';
 
   const jsonLd = [
@@ -770,6 +922,43 @@ export default function UniversalPokerSearchPage() {
             ))}
           </div>
         </header>
+
+        {matchedQuickAnswer && (
+          <section
+            aria-label="Instant Inline Quick-Answer Card"
+            style={{
+              backgroundColor: '#111a2a',
+              border: '2px solid #00d4ff',
+              borderRadius: '8px',
+              padding: '20px 22px',
+              marginBottom: '20px',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '8px' }}>
+              <span style={styles.cyanBadge}>INSTANT FORMULA &amp; SOLVER QUICK ANSWER</span>
+              <Link
+                href={matchedQuickAnswer.toolHref}
+                style={{
+                  backgroundColor: '#00d4ff',
+                  color: '#0a0f18',
+                  fontSize: '12.5px',
+                  fontWeight: 800,
+                  padding: '7px 14px',
+                  borderRadius: '6px',
+                  textDecoration: 'none',
+                }}
+              >
+                {matchedQuickAnswer.toolLabel}
+              </Link>
+            </div>
+            <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#f8fafc', margin: '0 0 6px' }}>
+              {matchedQuickAnswer.title}
+            </h2>
+            <p style={{ fontSize: '14.5px', lineHeight: 1.6, color: '#cbd5e1', margin: 0 }}>
+              {matchedQuickAnswer.answer}
+            </p>
+          </section>
+        )}
 
         <div style={styles.resultsSummaryBar}>
           <span style={styles.resultsCountText}>

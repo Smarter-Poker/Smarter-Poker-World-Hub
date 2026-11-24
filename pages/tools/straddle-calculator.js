@@ -17,6 +17,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderStraddleCalculatorMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
@@ -282,9 +283,28 @@ export default function StraddleCalculatorPage({
         </h1>
 
         {!isEmbed && (
-          <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
-            <strong>Direct Answer:</strong> A <strong>2x Live Straddle</strong> Cuts Effective Stack Depth In Half And Turns The Straddle Into The Effective Third Blind, While An 8-Handed <strong>Double-Board Bomb Pot</strong> Creates An Instant Low-SPR Flop Pot Where Committing On Only One Board Risks Getting <strong>Quartered For 25% Equity</strong>.
-          </p>
+          <>
+            <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 22px 0' }}>
+              <strong>Direct Answer:</strong> A <strong>2x Live Straddle</strong> Cuts Effective Stack Depth In Half And Turns The Straddle Into The Effective Third Blind, While An 8-Handed <strong>Double-Board Bomb Pot</strong> Creates An Instant Low-SPR Flop Pot Where Committing On Only One Board Risks Getting <strong>Quartered For 25% Equity</strong>.
+            </p>
+            <CalculatorShareAndPresets
+              toolTitle="Poker Straddle And Bomb Pot EV Calculator"
+              toolPath={canonicalPath}
+              summaryText={`${metrics.blindObj.label} (${metrics.straddledBbs} Straddled BBs) | Bomb Pot Pool $${metrics.bombPool} (SPR ${metrics.bombSpr})`}
+              presets={[
+                { id: 'tx_2_5_btn', label: 'Texas $2/$5 Mississippi BTN Straddle + $15 PLO4 Bomb Pot', blinds: '2/5', type: 'MISSISSIPPI_BTN', stack: 1000, ante: 15, format: 'DOUBLE_PLO4' },
+                { id: 'utg_1_3', label: 'Casino $1/$3 UTG $6 Straddle ($400 Stack)', blinds: '1/3', type: 'UTG_2X', stack: 400, ante: 10, format: 'SINGLE_NLH' },
+                { id: 'high_5_10_plo5', label: '$5/$10 Deep Stack + $25 Double-Board PLO5 Bomb Pot', blinds: '5/10', type: 'MISSISSIPPI_BTN', stack: 2500, ante: 25, format: 'DOUBLE_PLO5' },
+              ]}
+              onSelectPreset={(p) => {
+                setBlinds(p.blinds);
+                setStraddleType(p.type);
+                setStack(p.stack);
+                setBombAnte(p.ante);
+                setBombFormat(p.format);
+              }}
+            />
+          </>
         )}
 
         <section
