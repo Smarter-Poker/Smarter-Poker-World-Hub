@@ -11,10 +11,10 @@
     "dynamicGameRouteExpansions": 214,
     "trainingApiRouteTemplates": 54,
     "apiReferencePrefixes": 3,
-    "dependencyFiles": 376,
-    "componentFiles": 53,
+    "dependencyFiles": 377,
+    "componentFiles": 54,
     "hookFiles": 14,
-    "ctas": 648,
+    "ctas": 650,
     "dialogs": 12,
     "persistenceFiles": 87,
     "realtimeFiles": 6,
@@ -11745,6 +11745,8 @@
       },
       "reachableFiles": [
         "pages/hub/training/icm-calculator.js",
+        "src/components/seo/AiPromptLauncher.js",
+        "src/components/seo/CitationBacklinkBox.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/VerifiedToolGateway.jsx",
         "src/data/TRAINING_LIBRARY.js",
@@ -11769,6 +11771,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/shareImageMetadata.mjs",
+        "src/lib/seo/solvedSpotEngine.js",
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
@@ -11850,6 +11853,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/icm-calculator.js",
+            "src/components/seo/CitationBacklinkBox.js",
             "src/lib/authUtils.js",
             "src/lib/poker-engine/ChipBridge.js",
             "src/lib/poker-engine/SupabaseResilience.js",
@@ -34923,6 +34927,8 @@
     {
       "file": "pages/hub/training/icm-calculator.js",
       "imports": [
+        "src/components/seo/AiPromptLauncher.js",
+        "src/components/seo/CitationBacklinkBox.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/VerifiedToolGateway.jsx",
         "src/engine/EventBus.js",
@@ -34946,7 +34952,7 @@
         {
           "element": "button",
           "name": "← Training",
-          "line": 407,
+          "line": 409,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": null,
@@ -34956,7 +34962,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 470,
+          "line": 472,
           "handler": "() => loadPreset(p)",
           "destination": null,
           "type": null,
@@ -34966,7 +34972,7 @@
         {
           "element": "button",
           "name": "-",
-          "line": 522,
+          "line": 524,
           "handler": "removePlayer",
           "destination": null,
           "type": null,
@@ -34976,7 +34982,7 @@
         {
           "element": "button",
           "name": "+",
-          "line": 541,
+          "line": 543,
           "handler": "addPlayer",
           "destination": null,
           "type": null,
@@ -34986,7 +34992,7 @@
         {
           "element": "button",
           "name": "-",
-          "line": 635,
+          "line": 637,
           "handler": "removePrize",
           "destination": null,
           "type": null,
@@ -34996,7 +35002,7 @@
         {
           "element": "button",
           "name": "+",
-          "line": 654,
+          "line": 656,
           "handler": "addPrize",
           "destination": null,
           "type": null,
@@ -35006,7 +35012,7 @@
         {
           "element": "button",
           "name": "Practice Tournament Spot In Club Arena →",
-          "line": 835,
+          "line": 837,
           "handler": "() => router.push(arenaHref)",
           "destination": null,
           "type": "button",
@@ -35016,7 +35022,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1141,
+          "line": 1143,
           "handler": "() => setIcmView(tab.key)",
           "destination": null,
           "type": null,
@@ -35026,7 +35032,7 @@
         {
           "element": "button",
           "name": "View Freeroll Schedule",
-          "line": 1209,
+          "line": 1211,
           "handler": "() => router.push('/freerolls')",
           "destination": null,
           "type": null,
@@ -35036,7 +35042,7 @@
         {
           "element": "link",
           "name": "Compare ICM Calculator Vs. ICMIZER",
-          "line": 1342,
+          "line": 1344,
           "handler": null,
           "destination": "/compare",
           "type": null,
@@ -35046,7 +35052,7 @@
         {
           "element": "link",
           "name": "Play Daily Freerolls",
-          "line": 1359,
+          "line": 1361,
           "handler": null,
           "destination": "/freerolls",
           "type": null,
@@ -35056,7 +35062,7 @@
         {
           "element": "link",
           "name": "Poker Odds Calculator",
-          "line": 1376,
+          "line": 1378,
           "handler": null,
           "destination": "/tools/poker-odds-calculator",
           "type": null,
@@ -35066,7 +35072,7 @@
         {
           "element": "link",
           "name": "13x13 GTO Preflop Ranges",
-          "line": 1393,
+          "line": 1395,
           "handler": null,
           "destination": "/tools/preflop-ranges",
           "type": null,
@@ -35106,7 +35112,7 @@
       "functions": [
         {
           "name": "ICMCalculatorPage",
-          "line": 190,
+          "line": 192,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -45700,6 +45706,84 @@
         "usePrefersReducedMotion",
         "skeleton"
       ],
+      "markers": []
+    },
+    {
+      "file": "src/components/seo/AiPromptLauncher.js",
+      "imports": [],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [
+        {
+          "element": "a",
+          "name": "<dynamic>",
+          "line": 85,
+          "handler": null,
+          "destination": "p.href",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        },
+        {
+          "element": "link",
+          "name": "Universal Search (Cmd+K)",
+          "line": 105,
+          "handler": null,
+          "destination": "/search",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
+        }
+      ],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "AiPromptLauncher",
+          "line": 14,
+          "references": 2,
+          "exported": true,
+          "defaultExport": true,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "handleKeyDown",
+          "line": 21,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [],
       "markers": []
     },
     {
@@ -76546,6 +76630,14 @@
     },
     {
       "from": "pages/hub/training/icm-calculator.js",
+      "to": "src/components/seo/AiPromptLauncher.js"
+    },
+    {
+      "from": "pages/hub/training/icm-calculator.js",
+      "to": "src/components/seo/CitationBacklinkBox.js"
+    },
+    {
+      "from": "pages/hub/training/icm-calculator.js",
       "to": "src/components/seo/SEOHead.js"
     },
     {
@@ -79418,6 +79510,7 @@
     "src/components/poker/ProgressStrip.jsx",
     "src/components/poker/QuizAnswer.jsx",
     "src/components/sandbox/paTokens.js",
+    "src/components/seo/AiPromptLauncher.js",
     "src/components/seo/CitationBacklinkBox.js",
     "src/components/seo/HubPageSummary.js",
     "src/components/seo/SEOHead.js",
@@ -82903,11 +82996,11 @@
       "effectRef": "pages/hub/training/hand-lab.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:407:1",
+      "id": "pages/hub/training/icm-calculator.js:409:1",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "button",
       "name": "← Training",
-      "line": 407,
+      "line": 409,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": null,
@@ -82916,11 +83009,11 @@
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:470:2",
+      "id": "pages/hub/training/icm-calculator.js:472:2",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 470,
+      "line": 472,
       "handler": "() => loadPreset(p)",
       "destination": null,
       "type": null,
@@ -82929,11 +83022,11 @@
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:522:3",
+      "id": "pages/hub/training/icm-calculator.js:524:3",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "button",
       "name": "-",
-      "line": 522,
+      "line": 524,
       "handler": "removePlayer",
       "destination": null,
       "type": null,
@@ -82942,11 +83035,11 @@
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:541:4",
+      "id": "pages/hub/training/icm-calculator.js:543:4",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "button",
       "name": "+",
-      "line": 541,
+      "line": 543,
       "handler": "addPlayer",
       "destination": null,
       "type": null,
@@ -82955,11 +83048,11 @@
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:635:5",
+      "id": "pages/hub/training/icm-calculator.js:637:5",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "button",
       "name": "-",
-      "line": 635,
+      "line": 637,
       "handler": "removePrize",
       "destination": null,
       "type": null,
@@ -82968,11 +83061,11 @@
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:654:6",
+      "id": "pages/hub/training/icm-calculator.js:656:6",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "button",
       "name": "+",
-      "line": 654,
+      "line": 656,
       "handler": "addPrize",
       "destination": null,
       "type": null,
@@ -82981,11 +83074,11 @@
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:835:7",
+      "id": "pages/hub/training/icm-calculator.js:837:7",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "button",
       "name": "Practice Tournament Spot In Club Arena →",
-      "line": 835,
+      "line": 837,
       "handler": "() => router.push(arenaHref)",
       "destination": null,
       "type": "button",
@@ -82994,11 +83087,11 @@
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:1141:8",
+      "id": "pages/hub/training/icm-calculator.js:1143:8",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1141,
+      "line": 1143,
       "handler": "() => setIcmView(tab.key)",
       "destination": null,
       "type": null,
@@ -83007,11 +83100,11 @@
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:1209:9",
+      "id": "pages/hub/training/icm-calculator.js:1211:9",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "button",
       "name": "View Freeroll Schedule",
-      "line": 1209,
+      "line": 1211,
       "handler": "() => router.push('/freerolls')",
       "destination": null,
       "type": null,
@@ -83020,11 +83113,11 @@
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:1342:10",
+      "id": "pages/hub/training/icm-calculator.js:1344:10",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "link",
       "name": "Compare ICM Calculator Vs. ICMIZER",
-      "line": 1342,
+      "line": 1344,
       "handler": null,
       "destination": "/compare",
       "type": null,
@@ -83033,11 +83126,11 @@
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:1359:11",
+      "id": "pages/hub/training/icm-calculator.js:1361:11",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "link",
       "name": "Play Daily Freerolls",
-      "line": 1359,
+      "line": 1361,
       "handler": null,
       "destination": "/freerolls",
       "type": null,
@@ -83046,11 +83139,11 @@
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:1376:12",
+      "id": "pages/hub/training/icm-calculator.js:1378:12",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "link",
       "name": "Poker Odds Calculator",
-      "line": 1376,
+      "line": 1378,
       "handler": null,
       "destination": "/tools/poker-odds-calculator",
       "type": null,
@@ -83059,11 +83152,11 @@
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
-      "id": "pages/hub/training/icm-calculator.js:1393:13",
+      "id": "pages/hub/training/icm-calculator.js:1395:13",
       "file": "pages/hub/training/icm-calculator.js",
       "element": "link",
       "name": "13x13 GTO Preflop Ranges",
-      "line": 1393,
+      "line": 1395,
       "handler": null,
       "destination": "/tools/preflop-ranges",
       "type": null,
@@ -87204,6 +87297,32 @@
       "disabled": "isDisabled",
       "wiring": "handler",
       "effectRef": "src/components/poker/QuizAnswer.jsx"
+    },
+    {
+      "id": "src/components/seo/AiPromptLauncher.js:85:1",
+      "file": "src/components/seo/AiPromptLauncher.js",
+      "element": "a",
+      "name": "<dynamic>",
+      "line": 85,
+      "handler": null,
+      "destination": "p.href",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "src/components/seo/AiPromptLauncher.js"
+    },
+    {
+      "id": "src/components/seo/AiPromptLauncher.js:105:2",
+      "file": "src/components/seo/AiPromptLauncher.js",
+      "element": "link",
+      "name": "Universal Search (Cmd+K)",
+      "line": 105,
+      "handler": null,
+      "destination": "/search",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
+      "effectRef": "src/components/seo/AiPromptLauncher.js"
     },
     {
       "id": "src/components/seo/CitationBacklinkBox.js:209:1",
@@ -99208,6 +99327,8 @@
       "file": "pages/hub/training/icm-calculator.js",
       "reachableFiles": [
         "pages/hub/training/icm-calculator.js",
+        "src/components/seo/AiPromptLauncher.js",
+        "src/components/seo/CitationBacklinkBox.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/VerifiedToolGateway.jsx",
         "src/data/TRAINING_LIBRARY.js",
@@ -99232,6 +99353,7 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/shareImageMetadata.mjs",
+        "src/lib/seo/solvedSpotEngine.js",
         "src/lib/seo/wikidataRegistry.mjs",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
@@ -99250,6 +99372,7 @@
       ],
       "apiReferences": [
         "/api/og/tool-card",
+        "/api/seo/referral-stats",
         "/api/training/challenges",
         "/api/training/icm-calc",
         "/api/training/save-session"
@@ -111516,6 +111639,16 @@
       "tests": []
     },
     {
+      "file": "src/components/seo/AiPromptLauncher.js",
+      "reachableFiles": [
+        "src/components/seo/AiPromptLauncher.js"
+      ],
+      "apiReferences": [],
+      "persistence": [],
+      "realtime": [],
+      "tests": []
+    },
+    {
       "file": "src/components/seo/CitationBacklinkBox.js",
       "reachableFiles": [
         "src/components/seo/CitationBacklinkBox.js",
@@ -116664,7 +116797,8 @@
       "realtime": [],
       "tests": [
         "__tests__/aeo-tool-schemas.test.mjs",
-        "__tests__/backlink-embed-citation-engine.test.mjs"
+        "__tests__/backlink-embed-citation-engine.test.mjs",
+        "__tests__/seo-backlink-programme-invariants.law.test.mjs"
       ]
     },
     {
@@ -123069,7 +123203,7 @@
       {
         "file": "pages/hub/training/icm-calculator.js",
         "name": "ICMCalculatorPage",
-        "line": 190,
+        "line": 192,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -126118,6 +126252,7 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "__tests__/aeo-tool-schemas.test.mjs",
+          "__tests__/seo-backlink-programme-invariants.law.test.mjs",
           "src/lib/seo/hubPageSchema.js"
         ]
       },
@@ -133156,7 +133291,7 @@
       {
         "file": "pages/hub/training/icm-calculator.js",
         "name": "ICMCalculatorPage",
-        "line": 190,
+        "line": 192,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -136205,6 +136340,7 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "__tests__/aeo-tool-schemas.test.mjs",
+          "__tests__/seo-backlink-programme-invariants.law.test.mjs",
           "src/lib/seo/hubPageSchema.js"
         ]
       },

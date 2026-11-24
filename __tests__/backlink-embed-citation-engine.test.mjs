@@ -152,7 +152,7 @@ test('Webmaster Embed Portal (/tools/embeds) ships all 15 calculators, 12 SVG ba
 
   const md = renderEmbedsMarkdown();
   const mdEmbedUrls = [...md.matchAll(/- Embed URL: `([^`]+)`/g)].map((m) => m[1]);
-  assert.equal(mdEmbedUrls.length, 23, 'renderEmbedsMarkdown lists 23 Embed URLs');
+  assert.equal(mdEmbedUrls.length, 41, 'renderEmbedsMarkdown lists 41 Embed URLs');
   for (const url of mdEmbedUrls) {
     assert.ok(
       url.startsWith('https://smarter.poker/tools/') && url.endsWith('?embed=true'),
@@ -230,11 +230,11 @@ test('All authority page templates wire CitationBacklinkBox with 7 citation form
   }
 });
 
-test('JSON Feed 1.1 (/api/feeds/research) and RSS 2.0 (/feed.xml) syndicate all 15 research studies and 23 calculators with canonical backlinks', () => {
+test('JSON Feed 1.1 (/api/feeds/research) and RSS 2.0 (/feed.xml) syndicate all 15 research studies and 41 calculators with canonical backlinks', () => {
   const jsonFeed = buildResearchJsonFeed();
   assert.equal(jsonFeed.version, 'https://jsonfeed.org/version/1.1');
   assert.equal(jsonFeed.feed_url, 'https://smarter.poker/api/feeds/research');
-  assert.equal(jsonFeed.items.length, 38);
+  assert.equal(jsonFeed.items.length, 56);
 
   for (const item of jsonFeed.items) {
     assert.match(item.url, /^https:\/\/smarter\.poker\//);
@@ -297,7 +297,7 @@ test('Backlink & Dead-Tool Replacement Catalog maps legacy poker tools, director
 
 test('Open Dataset Catalog (/api/datasets/catalog) serves Schema.org DataCatalog, Zenodo metadata, CITATION.cff, provenance rights, and Wikipedia citations', () => {
   const payload = getDatasetCatalogPayload();
-  assert.equal(payload.datasets_count, 15);
+  assert.equal(payload.datasets_count, 22);
   assert.equal(payload.wikipedia_targets_count, WIKIPEDIA_CITATION_TARGETS.length);
   assert.ok(WIKIPEDIA_CITATION_TARGETS.length >= 6);
   assert.ok(payload.provenance_and_redistribution_rights);
@@ -315,7 +315,7 @@ test('Open Dataset Catalog (/api/datasets/catalog) serves Schema.org DataCatalog
 
   const jsonLd = buildDataCatalogJsonLd();
   assert.equal(jsonLd['@type'], 'DataCatalog');
-  assert.equal(jsonLd.dataset.length, 15);
+  assert.equal(jsonLd.dataset.length, 22);
 
   for (const wiki of WIKIPEDIA_CITATION_TARGETS) {
     assert.ok(wiki.citeWebTemplate.includes('{{cite web'));

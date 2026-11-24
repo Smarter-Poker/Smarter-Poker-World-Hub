@@ -19,6 +19,7 @@
 import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
+import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import {
   GLOSSARY_TERMS,
   GLOSSARY_URL,
@@ -154,6 +155,12 @@ export default function GlossaryIndexPage() {
             summary="Canonical DefinedTermSet reference dictionary defining tournament ICM, GTO solver concepts, live poker floor rules, and private club terminology."
             publishedYear="2026"
             slug="smarter-poker-glossary-index"
+          />
+
+          <AiPromptLauncher
+            title="Smarter.Poker Official Poker & GTO Strategy Glossary"
+            canonicalUrl="https://smarter.poker/glossary"
+            markdownUrl="https://smarter.poker/glossary.md"
           />
 
           <p style={styles.compliance}>Free To Play. 18+. Diamonds And Chips Have No Cash Value.</p>

@@ -12,6 +12,13 @@
  */
 
 import { RESEARCH_REPORTS } from '../../content/research/reports.js';
+import { US_POKER_STATES } from '../../content/guides/states.js';
+import { POKER_POSITIONS } from '../../content/learn/positions.js';
+import { FAMOUS_HANDS } from '../../content/learn/famousHands.js';
+import { POKER_STAKES } from '../../content/learn/stakes.js';
+import { BOARD_TEXTURES } from '../../content/learn/boardTextures.js';
+import { PLAYER_ARCHETYPES } from '../../content/learn/playerTypes.js';
+import { INTERNATIONAL_POKER_GUIDES } from '../../content/guides/internationalMarkets.js';
 
 export const ZENODO_RECORDS = [
   {
@@ -20,8 +27,8 @@ export const ZENODO_RECORDS = [
     conceptDoi: '10.5281/zenodo.24095048',
     doiUrl: 'https://doi.org/10.5281/zenodo.24115647',
     zenodoUrl: 'https://zenodo.org/records/24115647',
-    title: 'Core Open Quantitative Poker Research Datasets (15 CSV & JSON Datasets)',
-    datasetCount: 15,
+    title: 'Core Open Quantitative Poker Research Datasets (22 CSV & JSON Datasets)',
+    datasetCount: 22,
     swhid: 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
   },
   {
@@ -30,8 +37,8 @@ export const ZENODO_RECORDS = [
     conceptDoi: '10.5281/zenodo.24095056',
     doiUrl: 'https://doi.org/10.5281/zenodo.24115636',
     zenodoUrl: 'https://zenodo.org/records/24115636',
-    title: '30-Tool Model Context Protocol (MCP) Server Archive',
-    toolCount: 30,
+    title: '55-Tool Model Context Protocol (MCP) Server Archive',
+    toolCount: 55,
     swhid: 'swh:1:snp:02b8992833424620305edcfb730b3cf8add15747',
   },
   {
@@ -58,7 +65,8 @@ export const ZENODO_RECORDS = [
     conceptDoi: '10.5281/zenodo.24095596',
     doiUrl: 'https://doi.org/10.5281/zenodo.24115453',
     zenodoUrl: 'https://zenodo.org/records/24115453',
-    title: 'Smarter.Poker Model Context Protocol (MCP) Server & OpenAPI 3.1 Specification v1.0.2',
+    title: 'Smarter.Poker 55-Tool Model Context Protocol (MCP) Server & OpenAPI 3.1 Specification v1.0.7',
+    toolCount: 55,
     swhid: 'swh:1:snp:02b8992833424620305edcfb730b3cf8add15747',
   },
   {
@@ -72,22 +80,208 @@ export const ZENODO_RECORDS = [
   },
 ];
 
-export const STATIC_DATASETS = RESEARCH_REPORTS.map((study) => ({
-  slug: study.slug,
-  title: study.title,
-  shortTitle: study.shortTitle,
-  category: study.category,
-  publishedDate: study.publishedDate,
-  modifiedDate: study.modifiedDate,
-  summary: study.summary,
-  doi: study.doi || null,
-  doiUrl: study.doiUrl || null,
-  zenodoUrl: study.zenodoUrl || null,
-  collectionDoi: study.collectionDoi || '10.5281/zenodo.24115647',
-  collectionDoiUrl: study.collectionDoiUrl || 'https://doi.org/10.5281/zenodo.24115647',
-  collectionZenodoUrl: study.collectionZenodoUrl || 'https://zenodo.org/records/24115647',
-  swhid: study.swhid || 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
-}));
+export const AUTHORITY_HUB_DATASETS = [
+  {
+    slug: 'us-state-poker-legality-and-tax-2026',
+    title: 'US State-By-State Poker Legality, Tax Withholding & Live Cardroom Benchmark Dataset (2026)',
+    shortTitle: 'US State Poker Legality & Tax Benchmarks (2026)',
+    category: 'Regulatory & Tax Economics',
+    publishedDate: '2026-11-10',
+    modifiedDate: '2026-11-24',
+    canonicalUrl: 'https://smarter.poker/poker-rooms/states',
+    markdownUrl: 'https://smarter.poker/poker-rooms/states.md',
+    summary: `State-By-State Legal Status, Minimum Age, State Income Tax Withholding Rates, And Rake Models Across ${US_POKER_STATES.length} Leading US Poker Jurisdictions.`,
+    rowCount: US_POKER_STATES.length,
+    rows: US_POKER_STATES,
+    keyFindings: [
+      'Nevada, Texas, And Florida Levy 0.0% State Individual Income Tax On Poker And Tournament Winnings.',
+      'Pennsylvania, New Jersey, Michigan, And Nevada Share Regulated Multi-State Online Poker Liquidity Under MSIGA.',
+      'Texas Private Membership Card Clubs Operate With 0% Pot Rake Under Hourly Seat-Access Fee Models.',
+    ],
+    doi: '10.5281/zenodo.24115647',
+    doiUrl: 'https://doi.org/10.5281/zenodo.24115647',
+    zenodoUrl: 'https://zenodo.org/records/24115647',
+    collectionDoi: '10.5281/zenodo.24115647',
+    collectionDoiUrl: 'https://doi.org/10.5281/zenodo.24115647',
+    collectionZenodoUrl: 'https://zenodo.org/records/24115647',
+    swhid: 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
+  },
+  {
+    slug: 'table-seat-position-gto-benchmarks-2026',
+    title: '9-Seat Table Position GTO Raise-First-In (RFI), 3-Bet & Winrate Benchmark Dataset (2026)',
+    shortTitle: '9-Seat Table Position GTO Benchmarks (2026)',
+    category: 'GTO Preflop & Positional Strategy',
+    publishedDate: '2026-11-10',
+    modifiedDate: '2026-11-24',
+    canonicalUrl: 'https://smarter.poker/learn/positions',
+    markdownUrl: 'https://smarter.poker/learn/positions.md',
+    summary: `Seat-By-Seat 100BB Raise-First-In (RFI), 3-Bet, Cold-Call, And Expected BB/100 Winrate Benchmarks Across All ${POKER_POSITIONS.length} Canonical Poker Table Positions.`,
+    rowCount: POKER_POSITIONS.length,
+    rows: POKER_POSITIONS,
+    keyFindings: [
+      'Raise-First-In (RFI) Frequencies Scale Monotonically From 10.5% Under The Gun (UTG) To 44.5% On The Dealer Button (BTN).',
+      'The Dealer Button Generates The Highest Expected Long-Term Winrate At +38.5 BB/100 Due To Absolute Postflop Positional Closure.',
+      'Modern GTO Small Blind Strategy Uses A 13.5% Linear 3-Bet-Or-Fold Approach against Open Raises To Avoid Raked Out-Of-Position Multiway Pots.',
+    ],
+    doi: '10.5281/zenodo.24115647',
+    doiUrl: 'https://doi.org/10.5281/zenodo.24115647',
+    zenodoUrl: 'https://zenodo.org/records/24115647',
+    collectionDoi: '10.5281/zenodo.24115647',
+    collectionDoiUrl: 'https://doi.org/10.5281/zenodo.24115647',
+    collectionZenodoUrl: 'https://zenodo.org/records/24115647',
+    swhid: 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
+  },
+  {
+    slug: 'famous-historic-poker-hands-solver-2026',
+    title: 'Famous Historic Televised & Championship Poker Hands GTO Solver Audit Dataset (2026)',
+    shortTitle: 'Famous Historic Poker Hands Solver Dataset (2026)',
+    category: 'GTO Solver & Historical Forensics',
+    publishedDate: '2026-11-10',
+    modifiedDate: '2026-11-24',
+    canonicalUrl: 'https://smarter.poker/learn/famous-hands',
+    markdownUrl: 'https://smarter.poker/learn/famous-hands.md',
+    summary: `Combinatoric Equity, Blocker Removal, Minimum Defense Frequency (MDF), And GTO Solver Verdicts Across ${FAMOUS_HANDS.length} Iconic Televised And WSOP Championship Hands.`,
+    rowCount: FAMOUS_HANDS.length,
+    rows: FAMOUS_HANDS,
+    keyFindings: [
+      'Chris Moneymaker\'s 2003 WSOP River All-In Bluff Held The Bare King Of Spades Blocker Against A 36.7% Minimum Defense Frequency Threshold.',
+      'In The 2022 Garrett Adelstein (8c 7c) Vs. Robbi Jade Lew (Jc 4h) Turn All-In, 8c 7c Held A 53.4% To 46.6% Mathematical Equity Lead.',
+      'Final Table ICM Risk Premiums Add 15% To 22% Extra Required Calling Equity On High-Roller Pay-Jump Bubbles.',
+    ],
+    doi: '10.5281/zenodo.24115647',
+    doiUrl: 'https://doi.org/10.5281/zenodo.24115647',
+    zenodoUrl: 'https://zenodo.org/records/24115647',
+    collectionDoi: '10.5281/zenodo.24115647',
+    collectionDoiUrl: 'https://doi.org/10.5281/zenodo.24115647',
+    collectionZenodoUrl: 'https://zenodo.org/records/24115647',
+    swhid: 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
+  },
+  {
+    slug: 'stake-level-bankroll-and-rake-benchmarks-2026',
+    title: 'Live & Online Poker Stake-Level Bankroll, Rake Drag & Winrate Benchmark Dataset (2026)',
+    shortTitle: 'Stake-Level Bankroll & Rake Benchmarks (2026)',
+    category: 'Bankroll & Stake Progression',
+    publishedDate: '2026-11-10',
+    modifiedDate: '2026-11-24',
+    canonicalUrl: 'https://smarter.poker/learn/stakes',
+    markdownUrl: 'https://smarter.poker/learn/stakes.md',
+    summary: `Recommended 5% Risk-Of-Ruin Bankrolls, Rake Profiles, Hourly Winrate Expectations, And Move-Up Criteria Across ${POKER_STAKES.length} Live And Online Stake Tiers.`,
+    rowCount: POKER_STAKES.length,
+    rows: POKER_STAKES,
+    keyFindings: [
+      'Stepping Up From $1/$2 To $2/$5 Live Cash Cuts Relative Rake Cap Drag From 3.0 BB Per Pot Down To 1.2 BB Per Pot.',
+      'Live Pot-Limit Omaha ($1/$2/$5 And $5/$5) Requires 40 To 50 Full Buy-Ins Due To Compressed 60/40 All-In Equity Variance.',
+      'Live Multi-Table Tournament Grinders Require 100 To 150 Average Buy-Ins Despite Sustaining 35% To 85% ROI In Soft Regional Fields.',
+    ],
+    doi: '10.5281/zenodo.24115647',
+    doiUrl: 'https://doi.org/10.5281/zenodo.24115647',
+    zenodoUrl: 'https://zenodo.org/records/24115647',
+    collectionDoi: '10.5281/zenodo.24115647',
+    collectionDoiUrl: 'https://doi.org/10.5281/zenodo.24115647',
+    collectionZenodoUrl: 'https://zenodo.org/records/24115647',
+    swhid: 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
+  },
+  {
+    slug: 'flop-board-textures-gto-cbet-2026',
+    title: '12 Canonical Flop Board Textures GTO C-Bet Frequency, Sizing & Check-Raise Dataset (2026)',
+    shortTitle: 'Flop Board Textures GTO C-Bet Dataset (2026)',
+    category: 'GTO Postflop & Board Texture Analysis',
+    publishedDate: '2026-11-24',
+    modifiedDate: '2026-11-24',
+    canonicalUrl: 'https://smarter.poker/learn/board-textures',
+    markdownUrl: 'https://smarter.poker/learn/board-textures.md',
+    summary: `Range Advantage, Nut Advantage, Optimal GTO C-Bet Frequency, Bet Sizing, And Check-Raise Benchmarks Across ${BOARD_TEXTURES.length} Canonical No-Limit Hold'em Flop Board Textures.`,
+    rowCount: BOARD_TEXTURES.length,
+    rows: BOARD_TEXTURES,
+    keyFindings: [
+      'Static Dry High Flops (A-7-2r And K-7-2r) Support 85% To 96% Small 33% Pot Range Continuation Bets From The In-Position Preflop Raiser.',
+      'Low Connected Dynamic Flops (8-7-6 Two-Tone) Shift Nut Advantage To The Big Blind Defender, Forcing The Preflop Raiser To Check 65% To 78% Of Hands.',
+      'Low-Paired Textures (7-4-4 Rainbow) Trigger The Highest Big Blind Check-Raise Frequencies In Hold\'em At 19% To 26%.',
+    ],
+    doi: '10.5281/zenodo.24115647',
+    doiUrl: 'https://doi.org/10.5281/zenodo.24115647',
+    zenodoUrl: 'https://zenodo.org/records/24115647',
+    collectionDoi: '10.5281/zenodo.24115647',
+    collectionDoiUrl: 'https://doi.org/10.5281/zenodo.24115647',
+    collectionZenodoUrl: 'https://zenodo.org/records/24115647',
+    swhid: 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
+  },
+  {
+    slug: 'poker-player-archetypes-exploits-2026',
+    title: '8 Canonical Poker Player Archetypes HUD VPIP/PFR/3-Bet & Exploitative Strategy Dataset (2026)',
+    shortTitle: 'Poker Player Archetypes & Exploits Dataset (2026)',
+    category: 'Population MDA & Exploitative Strategy',
+    publishedDate: '2026-11-24',
+    modifiedDate: '2026-11-24',
+    canonicalUrl: 'https://smarter.poker/learn/player-types',
+    markdownUrl: 'https://smarter.poker/learn/player-types.md',
+    summary: `HUD VPIP, PFR, 3-Bet, And WTSD Stat Profiles Plus Preflop, Postflop, And Bet-Sizing Exploits Across ${PLAYER_ARCHETYPES.length} Canonical Live And Online Poker Player Archetypes.`,
+    rowCount: PLAYER_ARCHETYPES.length,
+    rows: PLAYER_ARCHETYPES,
+    keyFindings: [
+      'Old Man Coffee (OMC) Profiles Exhibit 8% To 13% VPIP And 0.8% To 1.5% 3-Betting Restricted Almost Exclusively To KK+ And AA.',
+      'Loose-Passive Calling Stations (42% To 68% VPIP) Display Inelastic Postflop Calling, Making 75% To 100% Pot Value Sizing Superior To 33% Solver C-Bets.',
+      'Standard ABC Tight-Aggressive (TAG) Regulars Under-Bluff River Triple-Barrel Lines By 8% To 12% Compared To GTO Equilibrium.',
+    ],
+    doi: '10.5281/zenodo.24115647',
+    doiUrl: 'https://doi.org/10.5281/zenodo.24115647',
+    zenodoUrl: 'https://zenodo.org/records/24115647',
+    collectionDoi: '10.5281/zenodo.24115647',
+    collectionDoiUrl: 'https://doi.org/10.5281/zenodo.24115647',
+    collectionZenodoUrl: 'https://zenodo.org/records/24115647',
+    swhid: 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
+  },
+  {
+    slug: 'international-poker-destinations-rake-tax-2026',
+    title: '10 Premier International Live Poker Destinations Currency, Rake Cap & Gaming Tax Dataset (2026)',
+    shortTitle: 'International Poker Destinations Rake & Tax Dataset (2026)',
+    category: 'Global Cardroom & Festival Economics',
+    publishedDate: '2026-11-24',
+    modifiedDate: '2026-11-24',
+    canonicalUrl: 'https://smarter.poker/poker-rooms/international',
+    markdownUrl: 'https://smarter.poker/poker-rooms/international.md',
+    summary: `Table Currencies, Typical Cash Game Stakes, Rake Caps, Flagship Series, And Visitor Gaming Tax Rules Across ${INTERNATIONAL_POKER_GUIDES.length} Premier Global Poker Hubs.`,
+    rowCount: INTERNATIONAL_POKER_GUIDES.length,
+    rows: INTERNATIONAL_POKER_GUIDES,
+    keyFindings: [
+      'European Flagship Rooms In London, Barcelona, And Rozvadov Charge 4% To 5% Pot Rake With Higher Caps (£10-£12 Or €10-€20) Compared To US 10% $5-$7 Cap Rooms.',
+      'United Kingdom, Monaco, Canada, Australia, Macau, And The Bahamas Levy 0% Casino Cage Withholding Tax On Recreational Poker Winnings.',
+      'King\'s Resort Rozvadov (160+ Tables) Operates 100% In Euros (€) While Macau Poker Rooms Operate Exclusively In Hong Kong Dollars (HKD).',
+    ],
+    doi: '10.5281/zenodo.24115647',
+    doiUrl: 'https://doi.org/10.5281/zenodo.24115647',
+    zenodoUrl: 'https://zenodo.org/records/24115647',
+    collectionDoi: '10.5281/zenodo.24115647',
+    collectionDoiUrl: 'https://doi.org/10.5281/zenodo.24115647',
+    collectionZenodoUrl: 'https://zenodo.org/records/24115647',
+    swhid: 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
+  },
+];
+
+export const STATIC_DATASETS = [
+  ...RESEARCH_REPORTS.map((study) => ({
+    slug: study.slug,
+    title: study.title,
+    shortTitle: study.shortTitle,
+    category: study.category,
+    publishedDate: study.publishedDate,
+    modifiedDate: study.modifiedDate,
+    canonicalUrl: `https://smarter.poker/research/${study.slug}`,
+    markdownUrl: `https://smarter.poker/research/${study.slug}.md`,
+    summary: study.summary,
+    keyFindings: study.keyFindings || [],
+    rowCount: study.table?.rows?.length || 0,
+    rows: study.table?.rows || [],
+    doi: study.doi || null,
+    doiUrl: study.doiUrl || null,
+    zenodoUrl: study.zenodoUrl || null,
+    collectionDoi: study.collectionDoi || '10.5281/zenodo.24115647',
+    collectionDoiUrl: study.collectionDoiUrl || 'https://doi.org/10.5281/zenodo.24115647',
+    collectionZenodoUrl: study.collectionZenodoUrl || 'https://zenodo.org/records/24115647',
+    swhid: study.swhid || 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
+  })),
+  ...AUTHORITY_HUB_DATASETS,
+];
 
 export const WIKIPEDIA_CITATION_TARGETS = [
   {
@@ -202,9 +396,13 @@ export const WIKIPEDIA_CITATION_TARGETS = [
 
 export function buildZenodoMetadata() {
   return {
-    title: 'Smarter.Poker 2026 Open Quantitative Poker Research & Live Cardroom Benchmark Datasets',
+    title: 'Smarter.Poker 2026 Open Quantitative Poker Research & Live Cardroom Benchmark Datasets (22 Datasets)',
     upload_type: 'dataset',
-    publication_date: '2026-11-09',
+    publication_date: '2026-11-14',
+    version: '2026.11.14',
+    dataset_count: 22,
+    mcp_tool_count: 55,
+    mcp_spec_version: 'v1.0.7',
     doi: '10.5281/zenodo.24115647',
     conceptrecid: '24095048',
     swhid: 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
@@ -215,7 +413,7 @@ export function buildZenodoMetadata() {
       },
     ],
     description:
-      'Open CC-BY 4.0 datasets covering 324+ US live poker venues, rake and time-charge benchmarks, Malmuth-Harville ICM bubble factors, PKO and Mystery Bounty chip equivalents, 169-hand preflop GTO matrices, and poker bankroll risk-of-ruin simulations.',
+      'Open CC-BY 4.0 catalog of 22 quantitative poker research and authority benchmark datasets covering 324+ US live poker venues, 15 US state legality and tax benchmarks, 10 international poker destinations, 9 table seat positions, 8 player archetypes, 12 canonical flop board textures, 12 historic televised hands, 7 stake tiers, Malmuth-Harville ICM bubble factors, PKO and Mystery Bounty chip equivalents, 169-hand preflop GTO matrices, and a 55-Tool Model Context Protocol (MCP) Server Archive (v1.0.7).',
     access_right: 'open',
     license: 'cc-by-4.0',
     keywords: [
@@ -296,16 +494,16 @@ export function buildCitationCff() {
   return [
     'cff-version: 1.2.0',
     'message: "If You Use Smarter.Poker Quantitative Datasets Or Solvers In Your Research, Please Cite Them As Below."',
-    'title: "Smarter.Poker Open Quantitative Poker Research & GTO Solver Benchmarks (2026)"',
+    'title: "Smarter.Poker Open Quantitative Poker Research & GTO Solver Benchmarks (22 Datasets, 2026)"',
     'type: dataset',
     'doi: "10.5281/zenodo.24115647"',
     'identifiers:',
     '  - type: doi',
     '    value: "10.5281/zenodo.24115647"',
-    '    description: "Core Open Quantitative Poker Research Datasets"',
+    '    description: "Core Open Quantitative Poker Research Datasets (22 CSV & JSON Datasets)"',
     '  - type: doi',
     '    value: "10.5281/zenodo.24115636"',
-    '    description: "30-Tool Model Context Protocol (MCP) Server Archive"',
+    '    description: "55-Tool Model Context Protocol (MCP) Server Archive"',
     '  - type: doi',
     '    value: "10.5281/zenodo.24115447"',
     '    description: "North American Live Poker Room, Regional Market & Tournament Series Benchmark Dataset"',
@@ -314,7 +512,7 @@ export function buildCitationCff() {
     '    description: "100BB 6-Max GTO Preflop Ranges, 169 Starting Hands & 25 Canonical Matchup Benchmarks"',
     '  - type: doi',
     '    value: "10.5281/zenodo.24115453"',
-    '    description: "Smarter.Poker Model Context Protocol (MCP) Server & OpenAPI 3.1 Specification v1.0.2"',
+    '    description: "Smarter.Poker 55-Tool Model Context Protocol (MCP) Server & OpenAPI 3.1 Specification v1.0.7"',
     '  - type: doi',
     '    value: "10.5281/zenodo.24115454"',
     '    description: "Official Poker Rules (TDA & RROP), 15 Game Variants & 80-Term Quantitative Glossary Corpus"',
@@ -325,8 +523,8 @@ export function buildCitationCff() {
     'authors:',
     '  - name: "Smarter.Poker Research Division"',
     '    website: "https://smarter.poker/research"',
-    'version: "2026.11"',
-    'date-released: "2026-11-09"',
+    'version: "2026.11.14"',
+    'date-released: "2026-11-14"',
     'license: "CC-BY-4.0"',
     'url: "https://smarter.poker/research"',
     'repository-code: "https://github.com/Smarter-Poker/smarter-poker-open-datasets"',
@@ -335,91 +533,97 @@ export function buildCitationCff() {
 }
 
 export function buildDataCatalogJsonLd() {
-  const studyDatasets = RESEARCH_REPORTS.map((study) => ({
-    '@type': 'Dataset',
-    '@id': `https://smarter.poker/research/${study.slug}#dataset`,
-    name: study.title,
-    description: study.summary,
-    url: `https://smarter.poker/research/${study.slug}`,
-    inLanguage: 'en-US',
-    datePublished: study.publishedDate,
-    dateModified: study.modifiedDate,
-    temporalCoverage: '2026',
-    license: 'https://creativecommons.org/licenses/by/4.0/',
-    isAccessibleForFree: true,
-    keywords: [study.category, 'Poker Research', 'Smarter.Poker Dataset', study.shortTitle],
-    sameAs: [
-      ...(study.doiUrl && study.zenodoUrl ? [study.doiUrl, study.zenodoUrl] : []),
-      'https://github.com/Smarter-Poker/smarter-poker-open-datasets',
-      'https://archive.softwareheritage.org/swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
-    ],
-    identifier: [
-      ...(study.doi
-        ? [
-            {
-              '@type': 'PropertyValue',
-              propertyID: 'DOI',
-              value: study.doi,
-              url: study.doiUrl,
-            },
-          ]
-        : []),
-      {
+  const studyDatasets = STATIC_DATASETS.map((study) => {
+    const canonicalPageUrl = study.canonicalUrl || `https://smarter.poker/research/${study.slug}`;
+    const markdownPageUrl = study.markdownUrl || `${canonicalPageUrl}.md`;
+    return {
+      '@type': 'Dataset',
+      '@id': `${canonicalPageUrl}#dataset`,
+      name: study.title,
+      description: study.summary,
+      url: canonicalPageUrl,
+      inLanguage: 'en-US',
+      version: '2026.11.14',
+      datePublished: study.publishedDate,
+      dateModified: study.modifiedDate,
+      temporalCoverage: '2026',
+      license: 'https://creativecommons.org/licenses/by/4.0/',
+      isAccessibleForFree: true,
+      keywords: [study.category, 'Poker Research', 'Smarter.Poker Dataset', study.shortTitle],
+      sameAs: [
+        ...(study.doiUrl && study.zenodoUrl ? [study.doiUrl, study.zenodoUrl] : []),
+        'https://github.com/Smarter-Poker/smarter-poker-open-datasets',
+        'https://archive.softwareheritage.org/swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
+      ],
+      identifier: [
+        ...(study.doi
+          ? [
+              {
+                '@type': 'PropertyValue',
+                propertyID: 'DOI',
+                value: study.doi,
+                url: study.doiUrl,
+              },
+            ]
+          : []),
+        {
+          '@type': 'PropertyValue',
+          propertyID: 'SWHID',
+          value: study.swhid || 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
+          url: 'https://archive.softwareheritage.org/swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
+        },
+      ],
+      creator: {
+        '@type': 'Organization',
+        '@id': 'https://smarter.poker/#organization',
+        name: 'Smarter.Poker Research Division',
+        url: 'https://smarter.poker',
+      },
+      publisher: {
+        '@type': 'Organization',
+        '@id': 'https://smarter.poker/#organization',
+        name: 'Smarter.Poker',
+        url: 'https://smarter.poker',
+      },
+      includedInDataCatalog: {
+        '@type': 'DataCatalog',
+        '@id': 'https://smarter.poker/api/datasets/catalog#datacatalog',
+        name: 'Smarter.Poker Open Quantitative Poker & Live Cardroom Data Catalog',
+        url: 'https://smarter.poker/research',
+      },
+      distribution: [
+        {
+          '@type': 'DataDownload',
+          encodingFormat: 'text/html',
+          contentUrl: canonicalPageUrl,
+        },
+        {
+          '@type': 'DataDownload',
+          encodingFormat: 'text/markdown',
+          contentUrl: markdownPageUrl,
+        },
+        {
+          '@type': 'DataDownload',
+          encodingFormat: 'application/json',
+          contentUrl: `https://smarter.poker/api/datasets/catalog?slug=${study.slug}`,
+        },
+      ],
+      variableMeasured: (study.keyFindings || []).map((finding, idx) => ({
         '@type': 'PropertyValue',
-        propertyID: 'SWHID',
-        value: study.swhid || 'swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
-        url: 'https://archive.softwareheritage.org/swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f',
-      },
-    ],
-    creator: {
-      '@type': 'Organization',
-      '@id': 'https://smarter.poker/#organization',
-      name: 'Smarter.Poker Research Division',
-      url: 'https://smarter.poker',
-    },
-    publisher: {
-      '@type': 'Organization',
-      '@id': 'https://smarter.poker/#organization',
-      name: 'Smarter.Poker',
-      url: 'https://smarter.poker',
-    },
-    includedInDataCatalog: {
-      '@type': 'DataCatalog',
-      '@id': 'https://smarter.poker/api/datasets/catalog#datacatalog',
-      name: 'Smarter.Poker Open Quantitative Poker & Live Cardroom Data Catalog',
-      url: 'https://smarter.poker/research',
-    },
-    distribution: [
-      {
-        '@type': 'DataDownload',
-        encodingFormat: 'text/html',
-        contentUrl: `https://smarter.poker/research/${study.slug}`,
-      },
-      {
-        '@type': 'DataDownload',
-        encodingFormat: 'text/markdown',
-        contentUrl: `https://smarter.poker/research/${study.slug}.md`,
-      },
-      {
-        '@type': 'DataDownload',
-        encodingFormat: 'application/json',
-        contentUrl: `https://smarter.poker/api/datasets/catalog?slug=${study.slug}`,
-      },
-    ],
-    variableMeasured: (study.keyFindings || []).map((finding, idx) => ({
-      '@type': 'PropertyValue',
-      name: `${study.shortTitle} Finding ${idx + 1}`,
-      description: finding,
-    })),
-  }));
+        name: `${study.shortTitle} Finding ${idx + 1}`,
+        description: finding,
+      })),
+    };
+  });
 
   return {
     '@context': 'https://schema.org',
     '@type': 'DataCatalog',
     '@id': 'https://smarter.poker/api/datasets/catalog#datacatalog',
     name: 'Smarter.Poker Open Quantitative Poker & Live Cardroom Data Catalog',
+    version: '2026.11.14',
     description:
-      'Public CC-BY 4.0 catalog of 15 quantitative poker research datasets, 169 starting hand preflop frequency matrices, and 324+ US live cardroom benchmarks.',
+      'Public CC-BY 4.0 catalog of 22 quantitative poker research and authority benchmark datasets, 169 starting hand preflop frequency matrices, 55-Tool Model Context Protocol (MCP) Server Archive (v1.0.7), and 324+ US live cardroom benchmarks.',
     url: 'https://smarter.poker/research',
     inLanguage: 'en-US',
     license: 'https://creativecommons.org/licenses/by/4.0/',
@@ -466,6 +670,7 @@ export function buildDataCatalogJsonLd() {
       name: 'Smarter.Poker',
       url: 'https://smarter.poker',
     },
+    datasetCount: 22,
     dataset: studyDatasets,
   };
 }
@@ -478,7 +683,7 @@ export const DATASET_PROVENANCE_AND_RIGHTS = {
     'Exact combinatoric and Monte Carlo poker equity tables generated by Smarter.Poker solver engines',
     'Malmuth-Harville Independent Chip Model (ICM) bubble factor and risk-premium benchmark tables',
     '100BB 6-Max Game Theory Optimal (GTO) preflop opening and 3-bet frequency matrices across all 169 canonical hands',
-    'Aggregated statistical benchmark summaries in the 15 first-party /research/* studies compiled from public house rules and published tournament schedules',
+    'Aggregated statistical benchmark summaries in the 22 first-party /research/* and authority hub datasets compiled from public house rules and published tournament schedules',
   ],
   excluded_from_bulk_redistribution: [
     'Third-party competitor trademarks and external website copy cited under fair-use comparison rules in /compare/*',
@@ -490,21 +695,26 @@ export const DATASET_PROVENANCE_AND_RIGHTS = {
 
 export function getDatasetCatalogPayload({ slug = '' } = {}) {
   const normalizedSlug = String(slug || '').trim().toLowerCase();
-  const filteredStudies = normalizedSlug
-    ? RESEARCH_REPORTS.filter((s) => s.slug.toLowerCase() === normalizedSlug)
-    : RESEARCH_REPORTS;
+  const filteredDatasets = normalizedSlug
+    ? STATIC_DATASETS.filter((s) => s.slug.toLowerCase() === normalizedSlug)
+    : STATIC_DATASETS;
 
   return {
-    schema_version: '2026-11-09',
+    schema_version: '2026.11.14',
+    dataset_version: '2026.11.14',
+    mcp_spec_version: 'v1.0.7',
+    mcp_tools_count: 55,
     platform: 'Smarter.Poker Open Data & Academic Citation Hub',
     canonical_research_hub: 'https://smarter.poker/research',
     catalog_endpoint: 'https://smarter.poker/api/datasets/catalog',
     json_feed_endpoint: 'https://smarter.poker/api/feeds/research',
     license: 'Creative Commons Attribution 4.0 International (CC-BY 4.0)',
     provenance_and_redistribution_rights: DATASET_PROVENANCE_AND_RIGHTS,
-    datasets_count: filteredStudies.length,
+    datasets_count: filteredDatasets.length,
+    total_datasets_count: STATIC_DATASETS.length,
+    datasets: filteredDatasets,
     zenodo_records: ZENODO_RECORDS,
-    static_datasets: STATIC_DATASETS,
+    static_datasets: filteredDatasets,
     wikipedia_targets_count: WIKIPEDIA_CITATION_TARGETS.length,
     zenodo_metadata: buildZenodoMetadata(),
     citation_cff: buildCitationCff(),
