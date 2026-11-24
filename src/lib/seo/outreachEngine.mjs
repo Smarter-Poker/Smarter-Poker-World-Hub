@@ -264,7 +264,7 @@ Smarter.Poker Quantitative Research Division`,
 To make hand breakdowns faster for your viewers and chat, we launched two free creator utilities on Smarter.Poker:
 
 1. Show-Notes Attribution Links: Drop exact preflop range, ICM, and pot-odds calculator links into your YouTube/Podcast descriptions so viewers can run the math alongside your episode: https://smarter.poker/tools/poker-odds-calculator
-2. Twitch / YouTube Nightbot & StreamElements Commands (!odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, !matchup): Add live poker math directly to your stream chat with zero setup: https://smarter.poker/api/stream/cmd?cmd=help
+2. Twitch / YouTube Nightbot & StreamElements Commands (34 Commands: !odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, !matchup, !tax, !stake, !iso, !series, !board, !mratio, !straddle, !sat, !bbj, !position, !math, !iq, !wrap, !latereg, !confidence, !trip, !geo, !table, !exploit, !intl): Add live poker math directly to your stream chat with zero setup: https://smarter.poker/api/stream/cmd?cmd=help
 
 All embed codes and streamer widgets are available at: https://smarter.poker/tools/embeds
 

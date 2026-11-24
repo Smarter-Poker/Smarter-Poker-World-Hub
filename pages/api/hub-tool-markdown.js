@@ -32,6 +32,7 @@ import {
 } from '../../src/content/guides/internationalMarkets.js';
 import {
   renderToolsDirectoryMarkdown,
+  renderEmbedsMarkdown,
   renderPokerOddsCalculatorMarkdown,
   renderIcmCalculatorMarkdown,
   renderPotOddsCalculatorMarkdown,
@@ -794,7 +795,7 @@ export function renderHomeGameGeoMarkdown(cleanPath) {
     '## Free Host & Table Calculators',
     `- **[Tournament Blind Structure Calculator](${SITE}/tools/blind-structure-calculator)**: Build TDA-Compliant Home Game Blind Schedules And Chip Color Distributions.`,
     `- **[Multi-Way Side Pot Calculator](${SITE}/tools/side-pot-calculator)**: Split Main Pots And Side Pots Instantly At The Table.`,
-    `- **[All Free Poker Tools & Solvers](${SITE}/tools)**: Complete Suite Of 9 Interactive Poker Calculators.`,
+    `- **[All Free Poker Tools & Solvers](${SITE}/tools)**: Complete Suite Of 42 Interactive Poker Calculators.`,
     '',
   ].join('\n');
 }
@@ -810,6 +811,9 @@ export function renderHubToolMarkdown(targetPath, query = {}) {
 
   if (cleanPath === '/tools') {
     return renderToolsDirectoryMarkdown();
+  }
+  if (cleanPath === '/tools/embeds') {
+    return renderEmbedsMarkdown();
   }
   if (cleanPath === '/tools/poker-odds-calculator') {
     return withLiveScenario(renderPokerOddsCalculatorMarkdown(query));
@@ -905,7 +909,11 @@ export function renderHubToolMarkdown(targetPath, query = {}) {
   if (cleanPath === '/tools/promo-ev-calculator') {
     return withLiveScenario(renderPromoEvCalculatorMarkdown(query));
   }
-  if (cleanPath === '/tools/who-wins-calculator') {
+  if (
+    cleanPath === '/tools/who-wins-calculator' ||
+    cleanPath === '/tools/what-beats-what' ||
+    cleanPath === '/tools/showdown-calculator'
+  ) {
     return withLiveScenario(renderWhoWinsCalculatorMarkdown(query));
   }
   if (cleanPath === '/tools/mixed-game-placards') {

@@ -15,14 +15,6 @@ import { POKER_VARIANTS, gameVariantPath } from '../src/content/games/variants.j
 import { POKER_MARKET_GUIDES, marketGuidePath } from '../src/content/guides/markets.js';
 import { HAND_MATCHUPS, matchupPath } from '../src/content/learn/matchups.js';
 import { SERIES_GUIDES, seriesGuidePath } from '../src/content/guides/seriesGuides.js';
-import { PLAYER_ARCHETYPES, playerTypePath } from '../src/content/learn/playerTypes.js';
-import { BOARD_TEXTURES, boardTexturePath } from '../src/content/learn/boardTextures.js';
-import { INTERNATIONAL_POKER_GUIDES, internationalGuidePath } from '../src/content/guides/internationalMarkets.js';
-import { POKER_POSITIONS, positionPath } from '../src/content/learn/positions.js';
-import { POKER_STAKES, stakePath } from '../src/content/learn/stakes.js';
-import { FAMOUS_HANDS, famousHandPath } from '../src/content/learn/famousHands.js';
-import { POKER_ROADMAPS, roadmapPath } from '../src/content/learn/roadmaps.js';
-import { US_POKER_STATES, stateGuidePath } from '../src/content/guides/states.js';
 import { SITE_URL, sendSitemapXmlResponse } from '../src/lib/seo/sitemapBuilders.mjs';
 import { xmlEscape } from '../src/lib/videoLibraryWatch.mjs';
 
@@ -272,37 +264,37 @@ const TOOL_ITEMS = [
         pubDate: LEARN_MODIFIED,
     },
     {
-        title: 'Flop Board Texture & GTO C-Bet Frequency Analyzer',
+        title: 'Flop Board Texture & GTO C-Bet Strategy Analyzer',
         link: `${SITE_URL}/tools/board-texture-analyzer`,
-        description: 'Classify Any 3-Card Flop By Suit Texture, Pairing, Connectedness Score, PFR Vs BB Range/Nut Advantage, And Solver C-Bet Sizing.',
+        description: 'Classify Any 3-Card Flop By Suit Texture, Connectedness, Range/Nut Advantage, And Optimal GTO C-Bet Sizing.',
         category: 'Poker Tools',
         pubDate: LEARN_MODIFIED,
     },
     {
         title: 'Tournament Harrington M-Ratio & Effective M Calculator',
         link: `${SITE_URL}/tools/m-ratio-calculator`,
-        description: 'Compute Orbit Cost, Raw Harrington M-Ratio, Short-Handed Effective M, Q-Ratio, And 5-Zone Tournament Survival Strategy.',
+        description: 'Compute Orbit Cost, Harrington M-Ratio, Short-Handed Effective M, Q-Ratio, And 5-Zone Survival Strategy.',
         category: 'Poker Tools',
         pubDate: LEARN_MODIFIED,
     },
     {
         title: 'Live Cash Game Session, Stop-Loss & Annual Income Planner',
         link: `${SITE_URL}/tools/session-planner`,
-        description: 'Project Net Hourly And Annual Cash-Game Income After Comps And Expenses, Stop-Loss Limits, And 5% Risk-Of-Ruin Bankroll Targets.',
+        description: 'Project Net Hourly And Annual Cash-Game Income After Comps And Expenses With Stop-Loss And Bankroll Targets.',
         category: 'Poker Tools',
         pubDate: LEARN_MODIFIED,
     },
     {
         title: 'Live Straddle & Double-Board Bomb Pot EV Calculator',
         link: `${SITE_URL}/tools/straddle-calculator`,
-        description: 'Calculate UTG And Mississippi Button Straddle Effective Stack Reduction, Steal Thresholds, And Multi-Way Bomb Pot Dead Money Math.',
+        description: 'Calculate UTG And Mississippi Button Straddle Effective Stack Reduction And Double-Board Bomb Pot Quartering Math.',
         category: 'Poker Tools',
         pubDate: LEARN_MODIFIED,
     },
     {
         title: 'Poker Hand History Formatter & SPR Street Analyzer',
         link: `${SITE_URL}/tools/hand-converter`,
-        description: 'Convert Raw Poker Hand Details Into Clean Reddit, TwoPlusTwo, Discord, And AI Solver Markdown With Street-By-Street SPR.',
+        description: 'Convert Raw Poker Hand Details Into Clean Reddit, TwoPlusTwo, Discord, And AI Solver Markdown With Street SPR.',
         category: 'Poker Tools',
         pubDate: LEARN_MODIFIED,
     },
@@ -316,84 +308,84 @@ const TOOL_ITEMS = [
     {
         title: 'Bad Beat Jackpot (BBJ) & High-Hand Promo EV Calculator',
         link: `${SITE_URL}/tools/promo-ev-calculator`,
-        description: 'Calculate Exact Bad Beat Jackpot Breakeven Pool Thresholds, Table-Share EV, And Hourly High-Hand Promo Drop Rebates.',
+        description: 'Calculate Exact Bad Beat Jackpot Breakeven Pool Thresholds, Table-Share EV, And Hourly High-Hand Promo Rebates.',
         category: 'Poker Tools',
         pubDate: LEARN_MODIFIED,
     },
     {
-        title: 'Texas Hold\'em Showdown Winner & Kicker Resolver',
+        title: 'Texas Holdem Showdown Winner & Kicker Resolver',
         link: `${SITE_URL}/tools/who-wins-calculator`,
-        description: 'Evaluate Any Two Hold\'em Hands Across A 5-Card Board To Determine The Exact Winning 5-Card Hand, Kicker, Or Split Pot.',
+        description: 'Evaluate Any Two Holdem Hands Across A 5-Card Board To Determine The Exact Winning 5-Card Hand, Kicker, Or Split Pot.',
         category: 'Poker Tools',
         pubDate: LEARN_MODIFIED,
     },
     {
         title: 'Mixed-Game Rotation Tracker & Printable Table Placards',
         link: `${SITE_URL}/tools/mixed-game-placards`,
-        description: 'Interactive H.O.R.S.E., 8-Game, And 10-Game Orbit Rotation Tracker With Printable Table Placards And Dealing Rules.',
+        description: 'Interactive HORSE, 8-Game, And 10-Game Orbit Rotation Tracker With Printable Table Placards And Dealing Rules.',
         category: 'Poker Tools',
         pubDate: LEARN_MODIFIED,
     },
     {
         title: '10-Question Quantitative GTO Poker IQ Diagnostic Test',
         link: `${SITE_URL}/tools/poker-iq-test`,
-        description: 'Test Pot Odds, MDF, Malmuth-Harville ICM, Preflop Ranges, Combinatorics, And TDA Rules With Instant Percentile Scoring.',
+        description: 'Test Pot Odds, MDF, Malmuth-Harville ICM, Preflop Ranges, Combinatorics, And TDA Rules With Percentile Scoring.',
         category: 'Poker Tools',
         pubDate: LEARN_MODIFIED,
     },
     {
         title: 'PLO4 & PLO5 Straight Wrap Outs & Nut Equity Calculator',
         link: `${SITE_URL}/tools/plo-outs-calculator`,
-        description: 'Compute 13-Out, 16-Out, 17-Out, And 20-Out Omaha Straight Wrap Plus Flush Redraw Hypergeometric Turn-And-River Equity And Nut-Out Ratios.',
+        description: 'Compute 13, 16, 17, And 20-Out Omaha Straight Wrap Plus Flush Redraw Hypergeometric Turn-And-River Equity.',
         category: 'Poker Tools',
         pubDate: LEARN_MODIFIED,
     },
     {
         title: 'Tournament Late-Registration ICM & Equity Boost Calculator',
         link: `${SITE_URL}/tools/late-reg-calculator`,
-        description: 'Calculate Tournament Late-Registration ICM Starting-Stack Equity Appreciation, Elimination Boost, And Registration Overlay Advantage.',
+        description: 'Calculate Tournament Late-Registration ICM Starting-Stack Equity Appreciation, Elimination Boost, And Overlay Advantage.',
         category: 'Poker Tools',
         pubDate: LEARN_MODIFIED,
     },
     {
         title: 'Poker Winrate Confidence Interval (70% / 95% / 99%) Calculator',
         link: `${SITE_URL}/tools/winrate-confidence-calculator`,
-        description: 'Compute 70%, 95%, And 99% BB/100 Winrate Confidence Bounds, True Probability Of Loss, And Hands Required For Statistical Proof.',
+        description: 'Compute 70%, 95%, And 99% BB/100 Winrate Confidence Bounds, True Probability Of Loss, And Proof-Of-Win Sample Size.',
         category: 'Poker Tools',
         pubDate: LEARN_MODIFIED,
     },
     {
         title: 'Poker Trip, Travel Overhead & Breakeven EV Planner',
         link: `${SITE_URL}/tools/poker-trip-planner`,
-        description: 'Calculate Live Poker Festival Flight, Hotel, And Per-Diem Expense Drag Against Cash-Game Hours And Tournament Buy-In Volume.',
+        description: 'Calculate Live Poker Festival Flight, Hotel, And Per-Diem Expense Drag Against Cash Hours And Tournament Volume.',
         category: 'Poker Tools',
         pubDate: LEARN_MODIFIED,
     },
     {
         title: 'TDA Tournament Shot Clock & Time-Bank Manager',
         link: `${SITE_URL}/tools/shot-clock`,
-        description: 'Live Tournament Action Timer Supporting 15s, 20s, And 30s Shot Clocks, 30-Second Time-Bank Extensions, And TDA First-Action Adjustments.',
+        description: 'Live Tournament Action Timer Supporting 15s, 20s, And 30s Shot Clocks, Time-Bank Extensions, And Printable Cards.',
         category: 'Poker Tools',
         pubDate: LEARN_MODIFIED,
     },
     {
         title: 'Geometric Bet Sizing (2e & 3e) Street Calculator',
         link: `${SITE_URL}/tools/geometric-bet-calculator`,
-        description: 'Compute Exact 1-Street, 2-Street (2e), And 3-Street (3e) Geometric Pot-Fraction Bet Sizing And Villain MDF Across Flop, Turn, And River.',
+        description: 'Compute Exact 1-Street, 2-Street (2e), And 3-Street (3e) Geometric Pot-Fraction Bet Sizing And Villain MDF.',
         category: 'Poker Tools',
         pubDate: LEARN_MODIFIED,
     },
     {
         title: 'Live Cash Game Table Selection & Winrate Multiplier Calculator',
         link: `${SITE_URL}/tools/table-selection-calculator`,
-        description: 'Score Live Cash Game Table Profitability From Recreational Player Count, Average Stack Depth, VPIP Splashiness, And Hourly Rake Drag.',
+        description: 'Score Live Cash Game Table Profitability From Recreational Player Count, Average Stack Depth, And Hourly Rake Drag.',
         category: 'Poker Tools',
         pubDate: LEARN_MODIFIED,
     },
     {
         title: 'MTT Sunday Grind Schedule, ABI & Bankroll Planner',
         link: `${SITE_URL}/tools/mtt-grind-planner`,
-        description: 'Model Multi-Table Tournament Session Buy-In Exposure, Average Buy-In (ABI), Peak Concurrent Table Load, And 100-To-300 ABI Bankroll Cushions.',
+        description: 'Model Multi-Table Tournament Session Buy-In Exposure, Average Buy-In (ABI), And 100-To-300 ABI Bankroll Cushions.',
         category: 'Poker Tools',
         pubDate: LEARN_MODIFIED,
     },
@@ -405,6 +397,27 @@ const TOOL_ITEMS = [
         pubDate: LEARN_MODIFIED,
     },
     {
+        title: 'Live Casino Poker Comps, Rewards Cards & Dealer Tipping Guide',
+        link: `${SITE_URL}/poker-rooms/comps-and-tipping-guide`,
+        description: 'Complete Financial Guide To Live Poker Room Player Rewards, Comp Earning Rates, And Cash/Tournament Dealer Toke Standards.',
+        category: 'Live Poker Guides',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'US State-By-State Poker Legality, Tax Withholding & Live Room Directory',
+        link: `${SITE_URL}/poker-rooms/states`,
+        description: 'State-By-State Regulatory Guide Covering Commercial Casinos, Tribal Gaming, Social Card Clubs, And W-2G Tax Withholding.',
+        category: 'Live Poker Guides',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'International Live Poker Destinations & Global Travel Guides',
+        link: `${SITE_URL}/poker-rooms/international`,
+        description: 'Flagship Cardrooms, Cash Game Stakes, Rake Caps, Currency Rules, And Visitor Tax Laws Across 10 Global Poker Destinations.',
+        category: 'Live Poker Guides',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
         title: 'Smarter.Poker Official Press Kit & 2026 Industry Benchmarks',
         link: `${SITE_URL}/press`,
         description: 'Quotable 2026 US Poker Industry Fast Facts, Official Brand Boilerplates, And Media Citation Snippets.',
@@ -412,9 +425,100 @@ const TOOL_ITEMS = [
         pubDate: LEARN_MODIFIED,
     },
     {
+        title: 'Universal Poker Search & Command Directory',
+        link: `${SITE_URL}/search`,
+        description: 'Instant Command Palette And Search Directory Indexing 42 Interactive Calculators, 55 MCP Tools, And 500+ Live Poker Rooms.',
+        category: 'Poker Tools',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
         title: 'Official Poker Hand Rankings Chart & Tie-Breaker Cheat Sheet',
         link: `${SITE_URL}/learn/poker-hand-rankings`,
         description: 'Complete 52-Card High Hand Rankings, 5-Card And 7-Card Combinatorics, Short Deck 6+ Rules, Omaha Must-Use-Two Rules, And Lowball Systems.',
+        category: 'Poker Rules & Strategy',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: '9-Seat Poker Position Strategy Encyclopedia (UTG To Button & Blinds)',
+        link: `${SITE_URL}/learn/positions`,
+        description: 'Exact 100BB Solver Raise First In (RFI), 3-Bet, Cold-Call, And Expected BB/100 Winrate Benchmarks Across All Nine Seats.',
+        category: 'Poker Rules & Strategy',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'Poker Stake Level & Move-Up Readiness Authority Hub',
+        link: `${SITE_URL}/learn/stakes`,
+        description: 'Quantitative Breakdown Of Live Cash, Online Cash, PLO, And Tournament Stake Tiers With Bankroll And Shot-Taking Checklists.',
+        category: 'Poker Rules & Strategy',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'Famous Historic Poker Hands & GTO Solver Breakdown Archive',
+        link: `${SITE_URL}/learn/famous-hands`,
+        description: 'Twelve Iconic Championship Poker Hands Deconstructed Street By Street Through A Modern GTO Solver Lens.',
+        category: 'Poker Rules & Strategy',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: '90-Day Poker Player Progression & Study Roadmaps',
+        link: `${SITE_URL}/learn/roadmaps`,
+        description: 'Structured 90-Day Step-By-Step Study And Bankroll Curriculums For Five Distinct Live And Online Player Tracks.',
+        category: 'Poker Rules & Strategy',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'Poker Player Archetypes & Exploitative Counter-Strategy Encyclopedia',
+        link: `${SITE_URL}/learn/player-types`,
+        description: 'Quantitative VPIP/PFR/3-Bet HUD Profiles, Behavioral Tells, And Street-By-Street Exploits For 8 Poker Player Archetypes.',
+        category: 'Poker Rules & Strategy',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: '12 Canonical Flop Board Textures & GTO C-Bet Strategy Encyclopedia',
+        link: `${SITE_URL}/learn/board-textures`,
+        description: 'Solver Range Advantage, Nut Advantage, Optimal C-Bet Frequencies, Sizing Splits, And Turn Barrel Plans Across 12 Flop Textures.',
+        category: 'Poker Rules & Strategy',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'Poker Mental Game, Tilt Control & Peak Performance Authority Guide',
+        link: `${SITE_URL}/learn/mental-game`,
+        description: 'Scientific Guide To Mastering Poker Psychology, The Seven Types Of Tilt, Logic-Injection Resets, And A-Game Stop-Loss Rules.',
+        category: 'Poker Rules & Strategy',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'Poker As A Business: Professional Bankroll, Schedule C Taxes & Operations',
+        link: `${SITE_URL}/learn/poker-as-a-business`,
+        description: 'Operational Blueprint For Professional Poker Players Covering Risk Capital, IRS Schedule C Vs Schedule A Taxes, And Form W-2G.',
+        category: 'Poker Rules & Strategy',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'Complete Poker Math Formulas, Equations & Solver Proofs Reference Hub',
+        link: `${SITE_URL}/learn/poker-math`,
+        description: 'Core Poker Math Equations Covering Pot Odds, EV, Minimum Defense Frequency (MDF), SPR, Geometric Sizing, And Risk Of Ruin.',
+        category: 'Poker Rules & Strategy',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'Printable One-Page Poker Cheat Sheets & Reference Cards Hub',
+        link: `${SITE_URL}/learn/cheat-sheets`,
+        description: 'Print-Ready Reference Cards For Hand Rankings, Rule Of 4 And 2 Draw Odds, 6-Max GTO RFI Charts, And Push/Fold Grids.',
+        category: 'Poker Rules & Strategy',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'Online Vs. Live Poker Strategy Transition Guide',
+        link: `${SITE_URL}/learn/online-vs-live-poker`,
+        description: 'Quantitative Comparison Of Online 6-Max Play Versus Live 9-Handed Casino Poker Sizing, Pace, Multiway Frequencies, And Rake.',
+        category: 'Poker Rules & Strategy',
+        pubDate: LEARN_MODIFIED,
+    },
+    {
+        title: 'Live Poker Tells, Betting Timing & Anti-Angle-Shooting Encyclopedia',
+        link: `${SITE_URL}/learn/live-poker-tells`,
+        description: 'Empirical Guide To Live Casino Behavioral Tells, Action-Timing Patterns, Chip Mechanics, And TDA Angle-Shoot Defenses.',
         category: 'Poker Rules & Strategy',
         pubDate: LEARN_MODIFIED,
     },
@@ -561,94 +665,6 @@ export function buildRssFeedXml() {
                 guid: url,
                 description: `${guide.hostVenue} (${guide.cityState}) - ${guide.buyInRange} Buy-Ins, ${guide.blindStructureRating} Structure.`,
                 category: 'Major Poker Series Guides',
-                pubDate: learnDate,
-            };
-        }),
-        ...POKER_POSITIONS.map((pos) => {
-            const url = `${SITE_URL}${positionPath(pos.slug)}`;
-            return {
-                title: pos.title || pos.name,
-                link: url,
-                guid: url,
-                description: pos.summary || '',
-                category: `Poker Position Strategy (${pos.seatType})`,
-                pubDate: learnDate,
-            };
-        }),
-        ...POKER_STAKES.map((stake) => {
-            const url = `${SITE_URL}${stakePath(stake.slug)}`;
-            return {
-                title: stake.title || stake.name,
-                link: url,
-                guid: url,
-                description: stake.summary || '',
-                category: 'Poker Stake Level Guides',
-                pubDate: learnDate,
-            };
-        }),
-        ...FAMOUS_HANDS.map((hand) => {
-            const url = `${SITE_URL}${famousHandPath(hand.slug)}`;
-            return {
-                title: hand.title || hand.h1,
-                link: url,
-                guid: url,
-                description: hand.summary || '',
-                category: 'Famous Historic Poker Hands Solver Archive',
-                pubDate: learnDate,
-            };
-        }),
-        ...POKER_ROADMAPS.map((rm) => {
-            const url = `${SITE_URL}${roadmapPath(rm.slug)}`;
-            return {
-                title: rm.title || rm.name,
-                link: url,
-                guid: url,
-                description: rm.summary || '',
-                category: '90-Day Poker Progression Roadmaps',
-                pubDate: learnDate,
-            };
-        }),
-        ...PLAYER_ARCHETYPES.map((arch) => {
-            const url = `${SITE_URL}${playerTypePath(arch.slug)}`;
-            return {
-                title: arch.title || arch.name,
-                link: url,
-                guid: url,
-                description: arch.summary || '',
-                category: `Poker Player Archetypes (${arch.category})`,
-                pubDate: learnDate,
-            };
-        }),
-        ...BOARD_TEXTURES.map((tex) => {
-            const url = `${SITE_URL}${boardTexturePath(tex.slug)}`;
-            return {
-                title: tex.title || tex.name,
-                link: url,
-                guid: url,
-                description: tex.summary || '',
-                category: `Flop Board Textures (${tex.category})`,
-                pubDate: learnDate,
-            };
-        }),
-        ...US_POKER_STATES.map((st) => {
-            const url = `${SITE_URL}${stateGuidePath(st.slug)}`;
-            return {
-                title: st.title || `${st.name} Live & Online Poker Guide`,
-                link: url,
-                guid: url,
-                description: st.summary || '',
-                category: 'US State Poker Legality & Tax Guides',
-                pubDate: learnDate,
-            };
-        }),
-        ...INTERNATIONAL_POKER_GUIDES.map((intl) => {
-            const url = `${SITE_URL}${internationalGuidePath(intl.slug)}`;
-            return {
-                title: intl.title || `${intl.city}, ${intl.country} Live Poker Guide`,
-                link: url,
-                guid: url,
-                description: intl.summary || '',
-                category: `International Poker Guides (${intl.region})`,
                 pubDate: learnDate,
             };
         }),

@@ -11,7 +11,7 @@
 // TRAIN-CATCH-FIX-1 - replaced silent catch blocks with console.warn-backed handlers
 // TRAIN-CSS-TOKENS-BATCH4-15 - hex sweep batch 4: literals routed to --sp-* tokens
 // TRAIN-CSS-GRADIENT-ADOPT-7 - gradient hex routed to rgba(var(--sp-*-rgb), 1)
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
@@ -29,7 +29,31 @@ import FeedbackCard from '../../../src/components/poker/FeedbackCard';
 import DailyPersonalQuiz from '../../../src/components/training/DailyPersonalQuiz';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
 import { trainingSourcePresentation } from '../../../src/lib/training/cacheTruthContract.mjs';
+import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
+import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
 import styles from '../../../src/styles/training/daily-challenge-casino.module.css';
+
+const HERO_CARDS_BY_VARIANT = {
+  nlh: ['As', 'Kd'],
+  plo4: ['As', 'Ks', 'Qh', 'Jh'],
+  plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
+  plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
+};
+
+const BOARD_CARDS = ['8d', '5c', '2s'];
+
+const pillButtonStyle = (active) => ({
+  padding: '7px 12px',
+  borderRadius: 6,
+  fontSize: 12,
+  fontWeight: 800,
+  cursor: 'pointer',
+  border: active ? '1px solid #67e8f9' : '1px solid rgba(255,255,255,0.16)',
+  background: active
+    ? 'linear-gradient(180deg, rgba(8,145,178,0.75), rgba(3,50,74,0.92))'
+    : 'rgba(255,255,255,0.05)',
+  color: active ? '#e8fbff' : '#cbd5e1',
+});
 // TRAIN-WIRE-FX-4d - adoption: feedback hook for daily-challenge.fresh.js
 
 /**
@@ -157,8 +181,41 @@ export default function DailyChallengePage() {
   // TO EVERYONE"). The server sends no grading receipt and no answer key to
   // them, so answering is a signed-in action and the page says so.
   const [signedOut, setSignedOut] = useState(false);
+  const [activeVariant, setActiveVariant] = useState('nlh');
+  const [effectiveStackBb, setEffectiveStackBb] = useState(100);
   const completionResponseTimeRef = useRef(0);
   const answered = useRef(false);
+
+  const heroCards = HERO_CARDS_BY_VARIANT[activeVariant] || HERO_CARDS_BY_VARIANT.nlh;
+  const boardCards = BOARD_CARDS;
+
+  const brainEval = useMemo(
+    () =>
+      evaluateTrainingSpotWithHorseBrain({
+        variant: activeVariant,
+        street: 'flop',
+        heroCards,
+        boardCards,
+        pot: 6.5,
+        toCall: 2.2,
+        effectiveStackBb,
+      }),
+    [activeVariant, heroCards, boardCards, effectiveStackBb]
+  );
+
+  const arenaHref = useMemo(
+    () =>
+      buildCustomTrainingArenaHref(
+        {
+          gameId: activeVariant === 'nlh' ? 'cash-002' : 'cash-005',
+          variant: activeVariant,
+          street: 'flop',
+          stackDepth: effectiveStackBb,
+        },
+        'daily-challenge'
+      ),
+    [activeVariant, effectiveStackBb]
+  );
 
   // Fetch daily challenge
   const fetchChallenge = useCallback(async () => {
@@ -495,6 +552,106 @@ export default function DailyChallengePage() {
         </header>
 
         <div className={`sp-command-main ${styles.commandDeck}`}>
+          {brainEval && (
+            <div
+              data-specialty-brain-panel="true"
+              data-brain-engine={brainEval.engineModule}
+              data-recommended-action={brainEval.correctAnswer}
+              data-active-variant={activeVariant}
+              style={{
+                marginBottom: 20,
+                padding: 18,
+                borderRadius: 12,
+                border: '1px solid rgba(56,189,248,0.40)',
+                background: 'rgba(15,23,42,0.82)',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: 8,
+                  marginBottom: 14,
+                }}
+              >
+                <div style={{ fontSize: 13, fontWeight: 900, color: '#67e8f9', textTransform: 'uppercase' }}>
+                  Horse Brain Spot Calibration Panel
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 800, color: '#4ade80' }}>
+                  {`Engine: ${brainEval.engineModule} · Recommended: ${brainEval.correctAnswerText}`}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 14 }}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>
+                    Variant
+                  </div>
+                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                    {['nlh', 'plo4', 'plo5', 'plo6'].map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        data-variant-option={v}
+                        onClick={() => setActiveVariant(v)}
+                        style={pillButtonStyle(activeVariant === v)}
+                      >
+                        {v.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>
+                    Stack Depth
+                  </div>
+                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                    {[20, 40, 100, 200].map((stk) => (
+                      <button
+                        key={stk}
+                        type="button"
+                        data-stack-option={stk}
+                        onClick={() => setEffectiveStackBb(stk)}
+                        style={pillButtonStyle(effectiveStackBb === stk)}
+                      >
+                        {stk} BB
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.55, marginBottom: 14 }}>
+                {brainEval.explanation}
+              </div>
+
+              <button
+                type="button"
+                data-launch-club-arena-cta="true"
+                data-launch-href={arenaHref}
+                onClick={() => router.push(arenaHref)}
+                style={{
+                  display: 'inline-flex',
+                  minHeight: 44,
+                  alignItems: 'center',
+                  padding: '0 18px',
+                  borderRadius: 8,
+                  border: '1px solid #67e8f9',
+                  background: 'linear-gradient(180deg, #0891b2, #075985)',
+                  color: '#fff',
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                  fontSize: 13,
+                }}
+              >
+                Launch Calibrated Drill In Club Arena →
+              </button>
+            </div>
+          )}
+
           <section className={styles.metrics} aria-label="Daily Challenge Status">
             <div><span>Current Run</span><strong>{currentStreak}</strong><small>Day Streak</small></div>
             <div><span>History</span><strong>{completedDays.length}</strong><small>Days Completed</small></div>

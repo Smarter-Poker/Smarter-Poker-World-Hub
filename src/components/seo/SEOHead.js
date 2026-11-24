@@ -304,14 +304,6 @@ export default function SEOHead(props) {
       resolvedMarkdownUrl = 'https://smarter.poker/tools/preflop-ranges.md';
     } else if (pathname === '/tools/preflop-ranges/[position]' || pathname.startsWith('/tools/preflop-ranges/')) {
       resolvedMarkdownUrl = cleanCanon ? `${cleanCanon}.md` : 'https://smarter.poker/tools/preflop-ranges.md';
-    } else if (
-      pathname === '/tools/pot-odds-calculator' ||
-      pathname === '/tools/push-fold-calculator' ||
-      pathname === '/tools/bankroll-calculator' ||
-      pathname === '/tools/bounty-calculator' ||
-      pathname === '/tools/poker-winrate-calculator'
-    ) {
-      resolvedMarkdownUrl = `https://smarter.poker${pathname}.md`;
     } else if (pathname === '/about') {
       resolvedMarkdownUrl = 'https://smarter.poker/about.md';
     } else if (pathname === '/freerolls' || pathname === '/hub/freerolls') {

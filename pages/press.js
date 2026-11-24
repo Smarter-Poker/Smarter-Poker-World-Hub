@@ -49,8 +49,8 @@ const INDUSTRY_FAST_FACTS = [
   },
   {
     metric: 'Smarter.Poker Free-To-Play & Math Ecosystem',
-    benchmark2026: '42 Free Calculators, 55 Zero-Auth MCP Tools, 169 Hand Guides, 30 Official Rules, 15 Studies',
-    context: '100% Browser-Native With Dedicated .md Markdown And 55-Tool MCP Endpoints For AI Assistants And Journalists.',
+    benchmark2026: '42 Free Calculators, 169 Hand Guides, 30 Official Rules, 15 Studies',
+    context: '100% Browser-Native With Dedicated .md Markdown And MCP Endpoints For AI Assistants And Journalists.',
     sourcePath: '/tools',
   },
 ];
@@ -59,17 +59,17 @@ const BRAND_BOILERPLATES = [
   {
     id: 'short',
     label: 'Short Boilerplate (1 Sentence / 35 Words)',
-    text: 'Smarter.Poker Is The Unified Poker Ecosystem Combining A 324-Venue Live Poker Near Me Directory, 42 Free GTO And Tournament Math Calculators, 55 Zero-Auth MCP Tools, Club Arena Social Poker, And Club Commander Cardroom Management Software.',
+    text: 'Smarter.Poker Is The Unified Poker Ecosystem Combining A 324-Venue Live Poker Near Me Directory, 42 Free GTO And Tournament Math Calculators, Club Arena Social Poker, And Club Commander Cardroom Management Software.',
   },
   {
     id: 'medium',
     label: 'Medium Boilerplate (2 Sentences / 75 Words)',
-    text: 'Smarter.Poker (Published By Smarter Software Inc.) Is The Premier Online And Live Poker Intelligence Platform Serving Players, Club Operators, And Tournament Directors Across North America. The Platform Integrates Real-Time Waitlists And Schedules For 324+ Verified US Poker Rooms, 42 Browser-Native Poker Math Calculators, A 55-Tool Zero-Auth MCP Server, 169 GTO Starting Hand Charts, 15 Empirical Industry Benchmark Studies, Club Arena Online Play, And Club Commander Cardroom Operations Software.',
+    text: 'Smarter.Poker (Published By Smarter Software Inc.) Is The Premier Online And Live Poker Intelligence Platform Serving Players, Club Operators, And Tournament Directors Across North America. The Platform Integrates Real-Time Waitlists And Schedules For 324+ Verified US Poker Rooms, 42 Browser-Native Poker Math Calculators, 169 GTO Starting Hand Charts, 15 Empirical Industry Benchmark Studies, Club Arena Online Play, And Club Commander Cardroom Operations Software.',
   },
   {
     id: 'long',
     label: 'Long Press Boilerplate (Full Media Attribution Paragraph)',
-    text: 'Operated By Smarter Software Inc., Smarter.Poker Is The All-In-One Poker Technology, Data Research, And Cardroom Management Ecosystem. For Everyday Players, Smarter.Poker Provides Free Access To 42 Interactive GTO And Tournament Calculators, 55 Zero-Auth Model Context Protocol (MCP) Tools, 169 Canonical Starting Hand Strategy Guides, 25 Head-To-Head Matchup Solvers, 30 Official TDA And Robert\'s Rules Of Poker Floor Rulings, And Real-Time Live Discovery Across 324+ US Poker Venues And 4,500+ Weekly Tournaments. For Private Clubs And Commercial Cardrooms, Smarter.Poker Powers Club Arena And Club Commander, Delivering Waitlist Automation, Tournament Clocks, Floor Management, And Transparent Player Analytics Under Creative Commons CC BY 4.0 Open Data Attribution.',
+    text: 'Operated By Smarter Software Inc., Smarter.Poker Is The All-In-One Poker Technology, Data Research, And Cardroom Management Ecosystem. For Everyday Players, Smarter.Poker Provides Free Access To 42 Interactive GTO And Tournament Calculators, 169 Canonical Starting Hand Strategy Guides, 25 Head-To-Head Matchup Solvers, 30 Official TDA And Robert\'s Rules Of Poker Floor Rulings, And Real-Time Live Discovery Across 324+ US Poker Venues And 4,500+ Weekly Tournaments. For Private Clubs And Commercial Cardrooms, Smarter.Poker Powers Club Arena And Club Commander, Delivering Waitlist Automation, Tournament Clocks, Floor Management, And Transparent Player Analytics Under Creative Commons CC BY 4.0 Open Data Attribution.',
   },
 ];
 
@@ -110,7 +110,7 @@ const ARCHIVAL_REGISTRIES = [
     scope: '15 Open Quantitative Poker Research CSV & JSON Datasets',
   },
   {
-    label: 'Zenodo Deposit 2 (30-Tool MCP Server Archive)',
+    label: 'Zenodo Deposit 2 (55-Tool MCP Server Archive)',
     identifier: 'DOI: 10.5281/zenodo.24115636 (Concept DOI: 10.5281/zenodo.24095056)',
     href: 'https://doi.org/10.5281/zenodo.24115636',
     scope: 'Model Context Protocol JSON-RPC 2.0 Server & Manifests',
@@ -128,7 +128,7 @@ const ARCHIVAL_REGISTRIES = [
     scope: '100BB 6-Max Preflop Charts, 169 Starting Hands & 25 Canonical Matchup Benchmarks',
   },
   {
-    label: 'Zenodo Deposit 5 (MCP Server & OpenAPI 3.1 Specification V1.0.2)',
+    label: 'Zenodo Deposit 5 (MCP Server & OpenAPI 3.1 Specification V1.0.7)',
     identifier: 'DOI: 10.5281/zenodo.24115453 (Concept DOI: 10.5281/zenodo.24095596)',
     href: 'https://doi.org/10.5281/zenodo.24115453',
     scope: 'Model Context Protocol Server & OpenAPI 3.1 Specification Release Archive',
@@ -146,7 +146,7 @@ const ARCHIVAL_REGISTRIES = [
     scope: 'Cryptographic Git Snapshot Of smarter-poker-open-datasets',
   },
   {
-    label: 'Software Heritage Archive (30-Tool MCP Server)',
+    label: 'Software Heritage Archive (55-Tool MCP Server)',
     identifier: 'swh:1:snp:02b8992833424620305edcfb730b3cf8add15747',
     href: 'https://archive.softwareheritage.org/swh:1:snp:02b8992833424620305edcfb730b3cf8add15747',
     scope: 'Cryptographic Git Snapshot Of smarter-poker-mcp',
@@ -155,7 +155,7 @@ const ARCHIVAL_REGISTRIES = [
     label: 'Glama AI Model Context Protocol Directory Listing',
     identifier: 'glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp',
     href: 'https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp',
-    scope: '30 Deterministic Poker Math & Venue Discovery Tools',
+    scope: '55 Deterministic Poker Math & Venue Discovery Tools',
   },
 ];
 

@@ -10,7 +10,7 @@
 
 // TRAIN-CSS-TOKENS-BATCH4-16 — hex sweep batch 4: literals routed to --sp-* tokens
 // TRAIN-CSS-GRADIENT-ADOPT-50 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -21,6 +21,29 @@ import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
+import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
+
+const HERO_CARDS_BY_VARIANT = {
+  nlh: ['As', 'Kd'],
+  plo4: ['As', 'Ks', 'Qh', 'Jh'],
+  plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
+  plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
+};
+
+const BOARD_CARDS = ['8d', '5c', '2s'];
+
+const pillButtonStyle = (active) => ({
+  padding: '7px 12px',
+  borderRadius: 6,
+  fontSize: 12,
+  fontWeight: 800,
+  cursor: 'pointer',
+  border: active ? '1px solid #67e8f9' : '1px solid rgba(255,255,255,0.16)',
+  background: active
+    ? 'linear-gradient(180deg, rgba(8,145,178,0.75), rgba(3,50,74,0.92))'
+    : 'rgba(255,255,255,0.05)',
+  color: active ? '#e8fbff' : '#cbd5e1',
+});
 
 // TRAIN-CSS-MOTION-ADOPT-9 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
@@ -396,11 +419,14 @@ function DayCard({ dayPlan, isToday, onStartArea, completedGames }) {
                 const isDone = completedGames.has(area.gameId);
 
                 return (
-                  <motion.div
+                  <motion.button
+                    type="button"
                     key={areaIdx}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => onStartArea(area)}
                     style={{
+                      width: '100%',
+                      textAlign: 'left',
                       padding: '12px 14px',
                       borderRadius: 10,
                       background: isDone ? 'rgba(34,197,94,0.06)' : 'rgba(255,255,255,0.02)',
@@ -440,7 +466,7 @@ function DayCard({ dayPlan, isToday, onStartArea, completedGames }) {
                       </div>
                       <div style={{ fontSize: 12, color: 'var(--sp-fg-faint)' }}>Goal: {area.goal}%</div>
                     </div>
-                  </motion.div>
+                  </motion.button>
                 );
               })}
             </div>
@@ -466,6 +492,39 @@ export default function StudyPlanPage() {
   const [sessions, setSessions] = useState(null);
   const [fetchError, setFetchError] = useState(null);
   const [signedOut, setSignedOut] = useState(false);
+  const [activeVariant, setActiveVariant] = useState('nlh');
+  const [effectiveStackBb, setEffectiveStackBb] = useState(100);
+
+  const heroCards = HERO_CARDS_BY_VARIANT[activeVariant] || HERO_CARDS_BY_VARIANT.nlh;
+  const boardCards = BOARD_CARDS;
+
+  const brainEval = useMemo(
+    () =>
+      evaluateTrainingSpotWithHorseBrain({
+        variant: activeVariant,
+        street: 'flop',
+        heroCards,
+        boardCards,
+        pot: 6.5,
+        toCall: 2.2,
+        effectiveStackBb,
+      }),
+    [activeVariant, heroCards, boardCards, effectiveStackBb]
+  );
+
+  const arenaHref = useMemo(
+    () =>
+      buildCustomTrainingArenaHref(
+        {
+          gameId: activeVariant === 'nlh' ? 'cash-002' : 'cash-005',
+          variant: activeVariant,
+          street: 'flop',
+          stackDepth: effectiveStackBb,
+        },
+        'study-plan'
+      ),
+    [activeVariant, effectiveStackBb]
+  );
 
   // Get current day of week (0 = Monday)
   const today = new Date();
@@ -648,6 +707,106 @@ export default function StudyPlanPage() {
         </div>
 
         <div className="sp-journey-main" style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
+          {brainEval && (
+            <div
+              data-specialty-brain-panel="true"
+              data-brain-engine={brainEval.engineModule}
+              data-recommended-action={brainEval.correctAnswer}
+              data-active-variant={activeVariant}
+              style={{
+                marginBottom: 20,
+                padding: 18,
+                borderRadius: 12,
+                border: '1px solid rgba(56,189,248,0.40)',
+                background: 'rgba(15,23,42,0.82)',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: 8,
+                  marginBottom: 14,
+                }}
+              >
+                <div style={{ fontSize: 13, fontWeight: 900, color: '#67e8f9', textTransform: 'uppercase' }}>
+                  Horse Brain Spot Calibration Panel
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 800, color: '#4ade80' }}>
+                  {`Engine: ${brainEval.engineModule} · Recommended: ${brainEval.correctAnswerText}`}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 14 }}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>
+                    Variant
+                  </div>
+                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                    {['nlh', 'plo4', 'plo5', 'plo6'].map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        data-variant-option={v}
+                        onClick={() => setActiveVariant(v)}
+                        style={pillButtonStyle(activeVariant === v)}
+                      >
+                        {v.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>
+                    Stack Depth
+                  </div>
+                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                    {[20, 40, 100, 200].map((stk) => (
+                      <button
+                        key={stk}
+                        type="button"
+                        data-stack-option={stk}
+                        onClick={() => setEffectiveStackBb(stk)}
+                        style={pillButtonStyle(effectiveStackBb === stk)}
+                      >
+                        {stk} BB
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.55, marginBottom: 14 }}>
+                {brainEval.explanation}
+              </div>
+
+              <button
+                type="button"
+                data-launch-club-arena-cta="true"
+                data-launch-href={arenaHref}
+                onClick={() => router.push(arenaHref)}
+                style={{
+                  display: 'inline-flex',
+                  minHeight: 44,
+                  alignItems: 'center',
+                  padding: '0 18px',
+                  borderRadius: 8,
+                  border: '1px solid #67e8f9',
+                  background: 'linear-gradient(180deg, #0891b2, #075985)',
+                  color: '#fff',
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                  fontSize: 13,
+                }}
+              >
+                Launch Calibrated Drill In Club Arena →
+              </button>
+            </div>
+          )}
+
           {!loading && signedOut && (
             <div
               role="status"

@@ -23,15 +23,14 @@ import { POKER_VARIANTS, GAMES_AS_OF } from '../../../src/content/games/variants
 import { POKER_MARKET_GUIDES, MARKET_GUIDES_AS_OF } from '../../../src/content/guides/markets.js';
 import { HAND_MATCHUPS, MATCHUPS_AS_OF } from '../../../src/content/learn/matchups.js';
 import { SERIES_GUIDES, SERIES_GUIDES_AS_OF } from '../../../src/content/guides/seriesGuides.js';
-import { PLAYER_ARCHETYPES, PLAYER_TYPES_AS_OF } from '../../../src/content/learn/playerTypes.js';
-import { BOARD_TEXTURES, BOARD_TEXTURES_AS_OF } from '../../../src/content/learn/boardTextures.js';
-import { INTERNATIONAL_POKER_GUIDES, INTERNATIONAL_GUIDES_AS_OF } from '../../../src/content/guides/internationalMarkets.js';
 import { POKER_POSITIONS, POSITIONS_AS_OF } from '../../../src/content/learn/positions.js';
 import { POKER_STAKES, STAKES_AS_OF } from '../../../src/content/learn/stakes.js';
 import { FAMOUS_HANDS, FAMOUS_HANDS_AS_OF } from '../../../src/content/learn/famousHands.js';
 import { POKER_ROADMAPS, ROADMAPS_AS_OF } from '../../../src/content/learn/roadmaps.js';
+import { PLAYER_ARCHETYPES, PLAYER_TYPES_AS_OF } from '../../../src/content/learn/playerTypes.js';
+import { BOARD_TEXTURES, BOARD_TEXTURES_AS_OF } from '../../../src/content/learn/boardTextures.js';
 import { US_POKER_STATES, STATES_AS_OF } from '../../../src/content/guides/states.js';
-import { MCP_TOOLS } from '../../../src/lib/mcp/mcpServer.mjs';
+import { INTERNATIONAL_POKER_GUIDES, INTERNATIONAL_GUIDES_AS_OF } from '../../../src/content/guides/internationalMarkets.js';
 import { SCHEMA_ROUTES } from '../../../src/lib/seo/summarySchema.js';
 import { getHubPageSummaries } from '../../../src/lib/seo/hubPageSummariesData.js';
 import { TRAINING_LIBRARY } from '../../../src/data/TRAINING_LIBRARY.js';
@@ -320,7 +319,7 @@ export function buildKnowledgeGraph() {
       {
         '@type': 'CollectionPage',
         '@id': `${SITE}/learn/stakes#stakes`,
-        name: 'Smarter.Poker Poker Stake Level & Move-Up Readiness Authority Hub',
+        name: 'Smarter.Poker Stake Level & Move-Up Readiness Authority Hub',
         url: `${SITE}/learn/stakes`,
         dateModified: STAKES_AS_OF,
         publisher: { '@id': `${SITE}/#organization` },
@@ -329,7 +328,7 @@ export function buildKnowledgeGraph() {
       {
         '@type': 'CollectionPage',
         '@id': `${SITE}/learn/famous-hands#famous-hands`,
-        name: 'Smarter.Poker Famous Historic Poker Hands GTO Solver Breakdown Archive',
+        name: 'Smarter.Poker Famous Historic Poker Hands & GTO Solver Archive',
         url: `${SITE}/learn/famous-hands`,
         dateModified: FAMOUS_HANDS_AS_OF,
         publisher: { '@id': `${SITE}/#organization` },
@@ -338,7 +337,7 @@ export function buildKnowledgeGraph() {
       {
         '@type': 'CollectionPage',
         '@id': `${SITE}/learn/roadmaps#roadmaps`,
-        name: 'Smarter.Poker 90-Day Poker Player Progression & Study Roadmaps',
+        name: 'Smarter.Poker 90-Day Structured Poker Player Progression Roadmaps',
         url: `${SITE}/learn/roadmaps`,
         dateModified: ROADMAPS_AS_OF,
         publisher: { '@id': `${SITE}/#organization` },
@@ -347,7 +346,7 @@ export function buildKnowledgeGraph() {
       {
         '@type': 'CollectionPage',
         '@id': `${SITE}/learn/player-types#player-types`,
-        name: 'Smarter.Poker Poker Player Archetypes & Exploitative Strategy Encyclopedia',
+        name: 'Smarter.Poker 8 Poker Player Archetypes & Exploitative Strategy Hub',
         url: `${SITE}/learn/player-types`,
         dateModified: PLAYER_TYPES_AS_OF,
         publisher: { '@id': `${SITE}/#organization` },
@@ -356,7 +355,7 @@ export function buildKnowledgeGraph() {
       {
         '@type': 'CollectionPage',
         '@id': `${SITE}/learn/board-textures#board-textures`,
-        name: 'Smarter.Poker Canonical Flop Board Texture & GTO C-Bet Encyclopedia',
+        name: 'Smarter.Poker 12 Canonical Flop Board Textures & GTO C-Bet Encyclopedia',
         url: `${SITE}/learn/board-textures`,
         dateModified: BOARD_TEXTURES_AS_OF,
         publisher: { '@id': `${SITE}/#organization` },
@@ -364,8 +363,8 @@ export function buildKnowledgeGraph() {
       },
       {
         '@type': 'CollectionPage',
-        '@id': `${SITE}/poker-rooms/states#us-states`,
-        name: 'Smarter.Poker US State-By-State Poker Legality, Tax & Live Room Directory',
+        '@id': `${SITE}/poker-rooms/states#states`,
+        name: 'Smarter.Poker 15 US State Poker Legality, Tax Withholding & Room Directory',
         url: `${SITE}/poker-rooms/states`,
         dateModified: STATES_AS_OF,
         publisher: { '@id': `${SITE}/#organization` },
@@ -373,8 +372,8 @@ export function buildKnowledgeGraph() {
       },
       {
         '@type': 'CollectionPage',
-        '@id': `${SITE}/poker-rooms/international#international-markets`,
-        name: 'Smarter.Poker International & Global Live Poker Destination Guides',
+        '@id': `${SITE}/poker-rooms/international#international`,
+        name: 'Smarter.Poker 10 International Live Poker Destinations & Global Casino Authority Guide',
         url: `${SITE}/poker-rooms/international`,
         dateModified: INTERNATIONAL_GUIDES_AS_OF,
         publisher: { '@id': `${SITE}/#organization` },
@@ -392,9 +391,9 @@ export function buildKnowledgeGraph() {
       {
         '@type': 'WebPage',
         '@id': `${SITE}/press#press-kit`,
-        name: `Smarter.Poker Official Media & Press Fact Sheet (42 Calculators & ${MCP_TOOLS.length} MCP Tools)`,
+        name: 'Smarter.Poker Official Media & Press Fact Sheet (42 Calculators & 55 MCP Tools)',
         description:
-          `Verified 2026 Industry Benchmarks, CC-BY 4.0 Open Datasets, Academic Citations (BibTeX/APA), 42 Free Poker Calculators And ${MCP_TOOLS.length} Zero-Auth MCP Tools.`,
+          'Verified 2026 Industry Benchmarks, CC-BY 4.0 Open Datasets, Academic Citations (BibTeX/APA), 42 Free Poker Calculators And 55 Zero-Auth MCP Tools.',
         url: `${SITE}/press`,
         publisher: { '@id': `${SITE}/#organization` },
       },

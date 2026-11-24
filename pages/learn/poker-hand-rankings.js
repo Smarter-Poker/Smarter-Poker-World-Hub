@@ -20,6 +20,7 @@ import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
+import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 
 const PAGE_PATH = '/learn/poker-hand-rankings';
 const PAGE_URL = 'https://smarter.poker/learn/poker-hand-rankings';
@@ -585,6 +586,12 @@ export default function PokerHandRankingsPage() {
           badgeValue="2,598,960 Exact Combos"
           summary="Complete mathematical breakdown of the 10 standard poker hand rankings, Short Deck 6+ probabilities, Omaha 2-card rules, and lowball systems published by Smarter.Poker."
           slug="poker-hand-rankings-cheat-sheet"
+        />
+
+        <AiPromptLauncher
+          title="Official Poker Hand Rankings & Tie-Breaker Cheat Sheet"
+          canonicalUrl="https://smarter.poker/learn/poker-hand-rankings"
+          markdownUrl="https://smarter.poker/learn/poker-hand-rankings.md"
         />
 
         <p style={styles.complianceFooter}>
