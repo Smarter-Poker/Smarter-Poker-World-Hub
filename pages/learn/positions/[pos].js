@@ -10,7 +10,7 @@
  * House style: Title Case, zero em dashes.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -52,8 +52,31 @@ export async function getStaticProps({ params }) {
 }
 
 export default function PokerPositionDetailPage({ position, allPositions = [] }) {
+  const [copiedCard, setCopiedCard] = useState('');
   const canonicalPath = positionPath(position.slug);
   const canonicalUrl = `https://smarter.poker${canonicalPath}`;
+
+  const positionAssumptions = '100BB Effective Stack; 6-Max & 9-Max Rake-Adjusted Solver Equilibrium (5% Capped Rake); 1,326 Starting Hand Combinations';
+  const discordFactSheet = `[Smarter.Poker Position GTO Fact Sheet: ${position.name} (${position.code})] RFI: ${position.rfiPct} | 3-Bet: ${position.threeBetPct} | Cold-Call: ${position.coldCallPct} | Winrate: ${position.expectedWinrateBb100} | Assumptions: ${positionAssumptions} | Guide: ${canonicalUrl}`;
+  const redditFactSheet = `**${position.name} (${position.code}) - 100BB GTO Positional Fact Sheet**\n- **Raise-First-In (RFI):** ${position.rfiPct}\n- **3-Bet Frequency:** ${position.threeBetPct}\n- **Cold-Call Frequency:** ${position.coldCallPct}\n- **Expected Long-Term Winrate:** ${position.expectedWinrateBb100}\n- **Solver Assumptions:** ${positionAssumptions}\n- *Source: [Smarter.Poker ${position.code} Strategy Guide](${canonicalUrl})*`;
+
+  const handleCopyFactSheet = async (type, text) => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(text);
+        setCopiedCard(type);
+        setTimeout(() => setCopiedCard(''), 2200);
+      }
+      if (typeof fetch === 'function') {
+        fetch(
+          `/api/seo/referral-stats?event=record&category=solved_spot_shares&item=position-${encodeURIComponent(position.slug)}&source=${encodeURIComponent(type)}`,
+          { method: 'POST', keepalive: true }
+        ).catch(() => {});
+      }
+    } catch {
+      // Ignore clipboard failures
+    }
+  };
 
   const jsonLd = [
     {
@@ -181,6 +204,26 @@ export default function PokerPositionDetailPage({ position, allPositions = [] })
               <Link href="/tools/session-planner" style={styles.crossBtnOutline}>
                 Session &amp; Stop-Loss Planner
               </Link>
+              <Link href={POSITIONS_BASE_PATH} style={styles.crossBtnOutline}>
+                All 9 Table Positions
+              </Link>
+              <Link href="/learn/hands" style={styles.crossBtnOutline}>
+                All 169 Starting Hands
+              </Link>
+              <button
+                type="button"
+                onClick={() => handleCopyFactSheet('discord', discordFactSheet)}
+                style={{ ...styles.crossBtnOutline, cursor: 'pointer', color: '#25c8ff', borderColor: 'rgba(37, 200, 255, 0.45)' }}
+              >
+                {copiedCard === 'discord' ? 'Copied Discord Fact Sheet!' : 'Copy Discord Position Card'}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleCopyFactSheet('reddit', redditFactSheet)}
+                style={{ ...styles.crossBtnOutline, cursor: 'pointer', color: '#34d399', borderColor: 'rgba(52, 211, 153, 0.45)' }}
+              >
+                {copiedCard === 'reddit' ? 'Copied Reddit Markdown!' : 'Copy Reddit / Forum Markdown'}
+              </button>
             </div>
           </div>
         </header>

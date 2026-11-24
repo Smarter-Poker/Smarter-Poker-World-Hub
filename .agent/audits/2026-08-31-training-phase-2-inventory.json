@@ -24928,7 +24928,7 @@
         {
           "name": "validObject",
           "line": 21,
-          "references": 2,
+          "references": 4,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -24943,7 +24943,7 @@
         },
         {
           "name": "countAnswersForAttempt",
-          "line": 88,
+          "line": 90,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -24951,7 +24951,7 @@
         },
         {
           "name": "buildPlayerSummary",
-          "line": 136,
+          "line": 138,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -39184,7 +39184,7 @@
       "functions": [
         {
           "name": "normalizeJsonLdGraph",
-          "line": 97,
+          "line": 112,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -39192,7 +39192,7 @@
         },
         {
           "name": "usePathname",
-          "line": 131,
+          "line": 146,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -39200,7 +39200,7 @@
         },
         {
           "name": "SEOHead",
-          "line": 144,
+          "line": 159,
           "references": 4,
           "exported": true,
           "defaultExport": true,
@@ -57360,15 +57360,15 @@
       "functions": [
         {
           "name": "clampNum",
-          "line": 216,
-          "references": 54,
+          "line": 400,
+          "references": 87,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "computeMalmuthHarvilleIcm",
-          "line": 223,
+          "line": 407,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -57376,7 +57376,7 @@
         },
         {
           "name": "recurse",
-          "line": 230,
+          "line": 414,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -57384,7 +57384,7 @@
         },
         {
           "name": "computeValidatedSolvedSpot",
-          "line": 255,
+          "line": 439,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -57392,7 +57392,7 @@
         },
         {
           "name": "buildSolvedSpotOgImageUrl",
-          "line": 638,
+          "line": 1136,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -57400,7 +57400,7 @@
         },
         {
           "name": "useSolvedSpotUrlSync",
-          "line": 664,
+          "line": 1162,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -57413,7 +57413,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 216,
+          "line": 400,
           "excerpt": "function clampNum(val, min, max, fallback = null) {",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -57421,7 +57421,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 217,
+          "line": 401,
           "excerpt": "if (val === undefined || val === null || String(val).trim() === '') return fallback;",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -57429,7 +57429,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 219,
+          "line": 403,
           "excerpt": "if (!Number.isFinite(n)) return fallback;",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -103147,7 +103147,7 @@
       {
         "file": "src/lib/seo/solvedSpotEngine.js",
         "kind": "FALLBACK",
-        "line": 216,
+        "line": 400,
         "excerpt": "function clampNum(val, min, max, fallback = null) {",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -103156,7 +103156,7 @@
       {
         "file": "src/lib/seo/solvedSpotEngine.js",
         "kind": "FALLBACK",
-        "line": 217,
+        "line": 401,
         "excerpt": "if (val === undefined || val === null || String(val).trim() === '') return fallback;",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -103165,7 +103165,7 @@
       {
         "file": "src/lib/seo/solvedSpotEngine.js",
         "kind": "FALLBACK",
-        "line": 219,
+        "line": 403,
         "excerpt": "if (!Number.isFinite(n)) return fallback;",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -108248,7 +108248,7 @@
       {
         "file": "src/lib/seo/solvedSpotEngine.js",
         "name": "buildSolvedSpotOgImageUrl",
-        "line": 638,
+        "line": 1136,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -113147,7 +113147,7 @@
       {
         "file": "src/lib/seo/solvedSpotEngine.js",
         "kind": "FALLBACK",
-        "line": 216,
+        "line": 400,
         "excerpt": "function clampNum(val, min, max, fallback = null) {",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -113156,7 +113156,7 @@
       {
         "file": "src/lib/seo/solvedSpotEngine.js",
         "kind": "FALLBACK",
-        "line": 217,
+        "line": 401,
         "excerpt": "if (val === undefined || val === null || String(val).trim() === '') return fallback;",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -113165,7 +113165,7 @@
       {
         "file": "src/lib/seo/solvedSpotEngine.js",
         "kind": "FALLBACK",
-        "line": 219,
+        "line": 403,
         "excerpt": "if (!Number.isFinite(n)) return fallback;",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -118248,7 +118248,7 @@
       {
         "file": "src/lib/seo/solvedSpotEngine.js",
         "name": "buildSolvedSpotOgImageUrl",
-        "line": 638,
+        "line": 1136,
         "references": 1,
         "exported": true,
         "defaultExport": false,

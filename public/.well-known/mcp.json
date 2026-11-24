@@ -2,7 +2,7 @@
   "mcpVersion": "2024-11-05",
   "name": "smarter-poker-mcp-server",
   "version": "2.0.0",
-  "package_version": "1.0.5",
+  "package_version": "1.0.6",
   "title": "Smarter.Poker Quantitative Poker & Live Venue MCP Server",
   "description": "Zero-auth Model Context Protocol (MCP) server providing 55 deterministic poker equity, Malmuth-Harville ICM, tournament chop, Flop Board Texture, PLO Straight Wrap Outs, Late-Reg ICM EV, Winrate Confidence Intervals, Poker Trip Budget, Multi-Street Geometric Bet Sizing, Live Table Selection Scorer, MTT Session ABI Planner, 8 Player Archetype Exploits, 12 Canonical Board Texture Guides, 10 International Poker Destination Guides, Harrington M-Ratio, Satellite Bubble Factor, Straddle & Bomb Pot EV, Bad Beat Jackpot EV, Cash Session Planner, 7-Card Showdown Resolver, Hand History Formatter, GTO 169-hand preflop range, 25 canonical hand-vs-hand matchups, 9 table position guides, 15 US state poker law guides, 10 major poker series strategy guides, US poker tax, tournament staking markup, live rake vs time-collection, 30 TDA floor rulings, 15 game variants, 12 regional market guides, and North American live poker room intelligence tools.",
   "homepage": "https://smarter.poker",

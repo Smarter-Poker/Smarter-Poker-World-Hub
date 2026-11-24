@@ -19,6 +19,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderSatelliteCalculatorMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
 
 const SATELLITE_BENCHMARK_TABLE = [
@@ -118,6 +119,14 @@ export default function SatelliteCalculatorPage({
     if (q.hero !== undefined) setHeroStack(Math.max(100, Number(q.hero) || 105000));
     if (q.bb !== undefined) setBigBlind(Math.max(10, Number(q.bb) || 4000));
   }, [router.isReady, router.query]);
+
+  useSolvedSpotUrlSync({
+    total: totalPlayers,
+    seats: seatsAwarded,
+    rem: playersRemaining,
+    hero: heroStack,
+    bb: bigBlind,
+  });
 
   const metrics = useMemo(() => {
     const safeTotal = Math.max(2, Number(totalPlayers) || 100);

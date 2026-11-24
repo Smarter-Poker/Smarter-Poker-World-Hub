@@ -10,7 +10,7 @@
  * House style: Title Case, zero em dashes.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -55,8 +55,31 @@ export async function getStaticProps({ params }) {
 }
 
 export default function FamousHandDetailPage({ hand, peerHands = [] }) {
+  const [copiedCard, setCopiedCard] = useState('');
   const canonicalPath = famousHandPath(hand.slug);
   const canonicalUrl = `https://smarter.poker${canonicalPath}`;
+
+  const solverAssumptions = '52-Card Deck Combinatorial & Minimum Defense Frequency (MDF) Analysis; Exact Known Televised Hole Cards & Board Runout';
+  const discordFactSheet = `[Smarter.Poker Historic Hand Solver Breakdown: ${hand.title} (${hand.year} ${hand.event})] Hero: ${hand.heroPlayer} | Opponent: ${hand.villainPlayer} | Board: ${hand.boardRunout} | Pot: ${hand.potSize} | Verdict: ${hand.solverVerdict} | Assumptions: ${solverAssumptions} | Full Guide: ${canonicalUrl}`;
+  const redditFactSheet = `**${hand.title} (${hand.year} ${hand.event}) - GTO Solver Breakdown**\n- **Hero Holding:** ${hand.heroPlayer}\n- **Opposing Holding:** ${hand.villainPlayer}\n- **Board Runout:** ${hand.boardRunout}\n- **Pot / Stakes:** ${hand.potSize}\n- **Solver Verdict:** ${hand.solverVerdict}\n- **Methodology & Assumptions:** ${solverAssumptions}\n- *Source: [Smarter.Poker Historic Hand Analysis](${canonicalUrl})*`;
+
+  const handleCopyFactSheet = async (type, text) => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(text);
+        setCopiedCard(type);
+        setTimeout(() => setCopiedCard(''), 2200);
+      }
+      if (typeof fetch === 'function') {
+        fetch(
+          `/api/seo/referral-stats?event=record&category=solved_spot_shares&item=famous-hand-${encodeURIComponent(hand.slug)}&source=${encodeURIComponent(type)}`,
+          { method: 'POST', keepalive: true }
+        ).catch(() => {});
+      }
+    } catch {
+      // Ignore clipboard failures
+    }
+  };
 
   const jsonLd = [
     {
@@ -185,6 +208,23 @@ export default function FamousHandDetailPage({ hand, peerHands = [] }) {
               <Link href={FAMOUS_HANDS_BASE_PATH} style={styles.crossBtnOutline}>
                 All 12 Famous Poker Hands
               </Link>
+              <Link href="/learn/matchups" style={styles.crossBtnOutline}>
+                25 All-In Hand Matchups
+              </Link>
+              <button
+                type="button"
+                onClick={() => handleCopyFactSheet('discord', discordFactSheet)}
+                style={{ ...styles.crossBtnOutline, cursor: 'pointer', color: '#25c8ff', borderColor: 'rgba(37, 200, 255, 0.45)' }}
+              >
+                {copiedCard === 'discord' ? 'Copied Discord Fact Sheet!' : 'Copy Discord Hand Fact Sheet'}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleCopyFactSheet('reddit', redditFactSheet)}
+                style={{ ...styles.crossBtnOutline, cursor: 'pointer', color: '#34d399', borderColor: 'rgba(52, 211, 153, 0.45)' }}
+              >
+                {copiedCard === 'reddit' ? 'Copied Reddit Markdown!' : 'Copy Reddit / Forum Markdown'}
+              </button>
             </div>
           </div>
         </header>

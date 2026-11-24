@@ -19,6 +19,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderPokerIqTestMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
 
 const IQ_QUESTIONS = [
@@ -211,6 +212,11 @@ export default function PokerIqTestPage() {
       }
     }
   }, [router.isReady, router.query]);
+
+  useSolvedSpotUrlSync({
+    ans: answers.join(','),
+    score: answers.filter((a, i) => a === IQ_QUESTIONS[i]?.correctIdx).length,
+  });
 
   const diagnosis = useMemo(() => {
     let correctCount = 0;

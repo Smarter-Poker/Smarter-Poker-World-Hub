@@ -19,6 +19,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderMixedGamePlacardsMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
 
 const GAME_LIBRARY = {
@@ -195,6 +196,12 @@ export default function MixedGamePlacardsPage() {
     if (q.hand !== undefined) setHandCounter(Math.max(1, Number(q.hand) || 1));
   }, [router.isReady, router.query]);
 
+  useSolvedSpotUrlSync({
+    preset: presetId,
+    orbit: orbitMode,
+    hand: handCounter,
+  });
+
   const tracker = useMemo(() => {
     const presetObj = ROTATION_PRESETS.find((p) => p.id === presetId) || ROTATION_PRESETS[1];
     const handsPerSwitch = orbitMode === '6' ? 6 : 8;
@@ -336,6 +343,53 @@ export default function MixedGamePlacardsPage() {
             />
           </>
         )}
+
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+            @media print {
+              nav, footer, button, [aria-label="Cite Or Link To This Research"], [aria-label="Verify Or Analyze With AI Assistants"] {
+                display: none !important;
+              }
+              body, main, div, article, section, header, table, th, td {
+                background: #ffffff !important;
+                color: #0f172a !important;
+                border-color: #cbd5e1 !important;
+              }
+            }
+          `,
+          }}
+        />
+
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            padding: '10px 14px',
+            background: '#081217',
+            border: '1px solid #1e293b',
+            borderRadius: '2px',
+            marginBottom: '24px',
+            maxWidth: '460px',
+          }}
+        >
+          <img
+            src="/api/seo/qr?path=%2Ftools%2Fmixed-game-placards"
+            alt="Scannable QR Code For Mixed Game Rotation Tracker And Table Placards"
+            width="64"
+            height="64"
+            style={{ display: 'block', borderRadius: '2px', background: '#ffffff' }}
+          />
+          <div>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: '#25c8ff' }}>
+              SCAN FOR LIVE MIXED-GAME ROTATION TRACKER
+            </div>
+            <div style={{ fontSize: '10.5px', color: '#cbd5e1' }}>
+              {canonicalUrl}
+            </div>
+          </div>
+        </div>
 
         <section
           aria-label="Interactive Mixed Game Rotation Tracker"

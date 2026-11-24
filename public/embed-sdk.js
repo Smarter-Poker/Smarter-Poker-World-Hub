@@ -152,6 +152,66 @@
       title: 'Poker Format Selector & Study Roadmap Quiz',
       anchor: 'Smarter.Poker Format Selector Quiz',
       height: 780
+    },
+    'board-texture-analyzer': {
+      path: '/tools/board-texture-analyzer',
+      title: 'Flop Board Texture & GTO C-Bet Strategy Analyzer',
+      anchor: 'Smarter.Poker Flop Board Texture & C-Bet Analyzer',
+      height: 780
+    },
+    'm-ratio-calculator': {
+      path: '/tools/m-ratio-calculator',
+      title: 'Tournament Harrington M-Ratio & Effective M Calculator',
+      anchor: 'Smarter.Poker Harrington M-Ratio Calculator',
+      height: 760
+    },
+    'session-planner': {
+      path: '/tools/session-planner',
+      title: 'Live Cash Game Session, Stop-Loss & Annual Income Planner',
+      anchor: 'Smarter.Poker Cash Game Session & Bankroll Planner',
+      height: 780
+    },
+    'straddle-calculator': {
+      path: '/tools/straddle-calculator',
+      title: 'Live Straddle & Double-Board Bomb Pot EV Calculator',
+      anchor: 'Smarter.Poker Live Straddle & Bomb Pot Calculator',
+      height: 780
+    },
+    'hand-converter': {
+      path: '/tools/hand-converter',
+      title: 'Poker Hand History Formatter & SPR Street Analyzer',
+      anchor: 'Smarter.Poker Hand History Formatter',
+      height: 820
+    },
+    'satellite-calculator': {
+      path: '/tools/satellite-calculator',
+      title: 'Satellite Bubble Factor & Seat-Lock Threshold Calculator',
+      anchor: 'Smarter.Poker Satellite Bubble & Seat-Lock Calculator',
+      height: 760
+    },
+    'promo-ev-calculator': {
+      path: '/tools/promo-ev-calculator',
+      title: 'Bad Beat Jackpot (BBJ) & High-Hand Promo EV Calculator',
+      anchor: 'Smarter.Poker Bad Beat Jackpot & Promo EV Calculator',
+      height: 780
+    },
+    'who-wins-calculator': {
+      path: '/tools/who-wins-calculator',
+      title: 'Texas Hold\'em Showdown Winner & Kicker Resolver',
+      anchor: 'Smarter.Poker Hold\'em Showdown Winner Calculator',
+      height: 780
+    },
+    'mixed-game-placards': {
+      path: '/tools/mixed-game-placards',
+      title: 'Mixed-Game Rotation Tracker & Printable Table Placards',
+      anchor: 'Smarter.Poker Mixed-Game Rotation & Table Placards',
+      height: 800
+    },
+    'poker-iq-test': {
+      path: '/tools/poker-iq-test',
+      title: '10-Question Quantitative GTO Poker IQ Diagnostic Test',
+      anchor: 'Smarter.Poker GTO Poker IQ Test',
+      height: 820
     }
   };
 

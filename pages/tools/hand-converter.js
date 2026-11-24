@@ -18,6 +18,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderHandConverterMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
 
 const GAME_STAKES = [
@@ -100,6 +101,15 @@ export default function HandConverterPage() {
     if (q.turn) setTurnCard(String(q.turn));
     if (q.river) setRiverCard(String(q.river));
   }, [router.isReady, router.query]);
+
+  useSolvedSpotUrlSync({
+    stakes,
+    stack: effectiveStack,
+    hero: heroPos,
+    villain: villainPos,
+    cards: heroCards,
+    flop: flopBoard,
+  });
 
   const outputs = useMemo(() => {
     const prettyHeroCards = formatCardsWithSuits(heroCards);

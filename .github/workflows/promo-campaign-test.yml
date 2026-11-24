@@ -4,13 +4,28 @@ on:
   workflow_dispatch:
     inputs:
       action:
-        description: 'Operation (preview or single-recipient test only)'
+        description: 'Operation (preview, test, or send)'
         required: true
         default: 'preview'
         type: choice
         options:
           - 'preview'
           - 'test'
+          - 'send'
+      scope:
+        description: 'Target audience scope'
+        required: true
+        default: 'non_accounts'
+        type: choice
+        options:
+          - 'non_accounts'
+          - 'subscribers_only'
+          - 'all'
+      confirm_send:
+        description: 'Type SEND_LIVE_PROMO to authorize action=send'
+        required: false
+        default: ''
+        type: string
       test_email:
         description: 'Single test email recipient (for action=test)'
         required: false
@@ -29,12 +44,14 @@ concurrency:
 jobs:
   promo-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 6
     steps:
-      - name: Invoke live /api/news/promo-campaign preview or single test
+      - name: Invoke live /api/news/promo-campaign
         env:
           SIGNING_SECRET: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           PROMO_ACTION: ${{ inputs.action }}
+          PROMO_SCOPE: ${{ inputs.scope }}
+          CONFIRM_SEND: ${{ inputs.confirm_send }}
           TEST_EMAIL: ${{ inputs.test_email }}
           TEST_PHONE: ${{ inputs.test_phone }}
         run: |
@@ -44,15 +61,23 @@ jobs:
             const secret = (process.env.SIGNING_SECRET || '').trim();
             if (!secret) throw new Error('SUPABASE_SERVICE_ROLE_KEY secret is missing');
             const action = (process.env.PROMO_ACTION || 'preview').trim();
-            if (action !== 'preview' && action !== 'test') {
-              throw new Error('Only preview or test actions are permitted');
+            const scope = (process.env.PROMO_SCOPE || 'non_accounts').trim();
+            const confirmSend = (process.env.CONFIRM_SEND || '').trim();
+            if (!['preview', 'test', 'send'].includes(action)) {
+              throw new Error('Only preview, test, or send actions are permitted');
+            }
+            if (action === 'send' && confirmSend !== 'SEND_LIVE_PROMO') {
+              throw new Error('confirm_send must equal SEND_LIVE_PROMO for action=send');
             }
             const testEmail = (process.env.TEST_EMAIL || '').trim().toLowerCase();
             const testPhone = (process.env.TEST_PHONE || '').trim();
             const ts = String(Math.floor(Date.now() / 1000));
+            const sigPayload = action === 'send'
+              ? `${ts}:${action}:${testEmail}:${testPhone}:${confirmSend}`
+              : `${ts}:${action}:${testEmail}:${testPhone}`;
             const sig = crypto
               .createHmac('sha256', secret)
-              .update(`${ts}:${action}:${testEmail}:${testPhone}`)
+              .update(sigPayload)
               .digest('hex');
 
             const res = await fetch('https://smarter.poker/api/news/promo-campaign', {
@@ -64,6 +89,8 @@ jobs:
               },
               body: JSON.stringify({
                 action,
+                scope,
+                confirmSend,
                 testEmail,
                 testPhone,
               }),

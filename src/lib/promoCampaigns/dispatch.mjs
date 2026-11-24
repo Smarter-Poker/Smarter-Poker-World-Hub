@@ -38,15 +38,15 @@ export const DEFAULT_SITE_URL = 'https://smarter.poker';
 export const DEFAULT_POSTAL_ADDRESS = 'PO Box 1905, 9624 Cicero Ave, Oak Lawn, IL 60453';
 
 export const DEFAULT_PROMO_DRAFT = {
-    subject: 'Claim 500 Free Diamonds, 30-Day Free VIP & 25 Free Chips on Smarter.Poker',
-    headline: '500 Free Diamonds + 30-Day Free VIP + 25 Free Chips',
-    body: 'Train with GTO poker tools, discover live poker games near you, and take a seat in Club Arena on Smarter.Poker.\n\nCreate your free account through this exclusive promotion and verify your phone number to instantly receive 500 Free Diamonds, a 30-Day Free VIP Card, and 25 Free Chips in Kings Club (Club Code 25450).',
+    subject: 'Claim 25 Free Chips, 30-Day Free VIP & 500 Free Diamonds on Smarter.Poker',
+    headline: '25 Free Chips + 30-Day Free VIP + 500 Free Diamonds',
+    body: 'Train with GTO poker tools, discover live poker games near you, and take a seat in Club Arena on Smarter.Poker.\n\nCreate your free account through this exclusive promotion and verify your phone number to instantly receive 25 Free Chips in Kings Club (Club Code 25450), a 30-Day Free VIP Card, and 500 Free Diamonds.',
     ctaLabel: 'Claim Your Free Rewards',
     ctaUrl: 'https://smarter.poker/auth/signup?redirect=%2Fhub%2Fclub-arena%2F%3Fjoin%3D25450',
-    smsBody: 'Smarter.Poker: Claim 500 Free Diamonds, 30-Day Free VIP + 25 Free Chips in Kings Club (Code 25450): https://smarter.poker/go/promo Reply STOP to opt out.',
+    smsBody: 'Smarter.Poker: Claim 25 Free Chips + 30-Day Free VIP + 500 Free Diamonds in Kings Club (Code 25450): https://smarter.poker/go/promo Reply STOP to opt out.',
     postalAddress: DEFAULT_POSTAL_ADDRESS,
     channels: 'both',
-    scope: 'all',
+    scope: 'non_accounts',
 };
 
 function escapeHtml(value) {
@@ -105,12 +105,15 @@ export function verifyOperatorTestSignature({
     action,
     testEmail = '',
     testPhone = '',
+    confirmSend = '',
     timestampHeader = '',
     signatureHeader = '',
     secret = process.env.SUPABASE_SERVICE_ROLE_KEY || '',
     nowMs = Date.now(),
 } = {}) {
-    if (action !== 'test' && action !== 'preview') return false;
+    const isSend = action === 'send';
+    if (action !== 'test' && action !== 'preview' && !isSend) return false;
+    if (isSend && String(confirmSend || '').trim() !== 'SEND_LIVE_PROMO') return false;
     const key = String(secret || '').trim();
     const tsRaw = String(timestampHeader || '').trim();
     const sigRaw = String(signatureHeader || '').trim().toLowerCase();
@@ -118,7 +121,8 @@ export function verifyOperatorTestSignature({
     const tsSec = tsRaw.length > 10 ? Math.floor(Number(tsRaw) / 1000) : Number(tsRaw);
     const nowSec = Math.floor(nowMs / 1000);
     if (!Number.isFinite(tsSec) || Math.abs(nowSec - tsSec) > 90) return false;
-    const msg = `${tsRaw}:${action}:${String(testEmail || '').trim().toLowerCase()}:${String(testPhone || '').trim()}`;
+    const baseMsg = `${tsRaw}:${action}:${String(testEmail || '').trim().toLowerCase()}:${String(testPhone || '').trim()}`;
+    const msg = isSend ? `${baseMsg}:SEND_LIVE_PROMO` : baseMsg;
     const expected = crypto.createHmac('sha256', key).update(msg).digest('hex');
     const a = Buffer.from(sigRaw, 'hex');
     const b = Buffer.from(expected, 'hex');
@@ -390,16 +394,44 @@ async function fetchPaged(queryBuilderFactory, maxRows = 15000) {
 /**
  * Resolve the complete deduplicated, suppression-filtered promotional audience.
  *
+ * scope === 'non_accounts' (default) includes active newsletter_subscribers +
+ * Commander non-account leads/members while strictly excluding any email, phone,
+ * or user_id that already belongs to an existing Smarter.Poker account
+ * (profiles / auth.users) or Club Arena membership (club_members).
  * scope === 'all' merges newsletter_subscribers + profiles + auth.users +
  * commander_members + commander_onboarding_leads + commander_leads +
  * commander_home_members.
  * scope === 'subscribers_only' uses active newsletter_subscribers only.
  */
-export async function resolvePromoAudience(sb, { scope = 'all' } = {}) {
+export async function resolvePromoAudience(sb, { scope = 'non_accounts' } = {}) {
+    const cleanScope = ['non_accounts', 'subscribers_only', 'all'].includes(scope) ? scope : 'non_accounts';
     const suppressedEmails = new Set();
     const suppressedPhones = new Set();
     const emailMutedUsers = new Set();
     const smsMutedUsers = new Set();
+    const existingAccountUserIds = new Set();
+    const existingAccountEmails = new Set();
+    const existingAccountPhones = new Set();
+    const existingAccountPhoneDigits10 = new Set();
+
+    const phoneDigits10 = (raw) => {
+        const d = String(raw || '').replace(/\D/g, '');
+        return d.length >= 10 ? d.slice(-10) : '';
+    };
+
+    const recordExistingEmail = (raw) => {
+        const lowered = String(raw || '').trim().toLowerCase().replace(/^[<("']+|[>)"',;]+$/g, '');
+        if (lowered) existingAccountEmails.add(lowered);
+        const clean = normalizeDeliverableEmail(raw);
+        if (clean) existingAccountEmails.add(clean);
+    };
+
+    const recordExistingPhone = (raw) => {
+        const clean = sendablePhone(raw);
+        if (clean) existingAccountPhones.add(clean);
+        const d10 = phoneDigits10(raw);
+        if (d10) existingAccountPhoneDigits10.add(d10);
+    };
 
     // 1. Explicit newsletter / SMS opt-outs and bounces
     const inactiveSubs = await fetchPaged((from, to) =>
@@ -462,6 +494,59 @@ export async function resolvePromoAudience(sb, { scope = 'all' } = {}) {
         // Non-fatal in unit mocks; sendSms also calls fn_sms_number_is_suppressed per recipient.
     }
 
+    // Load profiles, auth.users, and club_members when needed for 'non_accounts' exclusion or 'all' inclusion
+    let loadedProfiles = [];
+    const loadedAuthUsers = [];
+    if (cleanScope === 'non_accounts' || cleanScope === 'all') {
+        loadedProfiles = await fetchPaged((from, to) =>
+            sb
+                .from('profiles')
+                .select('id, email, phone, username')
+                .order('id', { ascending: true })
+                .range(from, to)
+        , 25000);
+        for (const p of loadedProfiles) {
+            if (p?.id) existingAccountUserIds.add(String(p.id));
+            if (p?.email) recordExistingEmail(p.email);
+            if (p?.phone) recordExistingPhone(p.phone);
+        }
+
+        if (sb?.auth?.admin?.listUsers) {
+            try {
+                for (let page = 1; page <= 20; page += 1) {
+                    const { data: authPage, error: authErr } = await sb.auth.admin.listUsers({ page, perPage: 1000 });
+                    if (authErr || !authPage?.users?.length) break;
+                    for (const u of authPage.users) {
+                        loadedAuthUsers.push(u);
+                        if (u?.id) existingAccountUserIds.add(String(u.id));
+                        if (u?.email) recordExistingEmail(u.email);
+                        if (u?.phone) recordExistingPhone(u.phone);
+                    }
+                    if (authPage.users.length < 1000) break;
+                }
+            } catch (_authListErr) {
+                // Continue gracefully if auth admin API is unavailable.
+            }
+        }
+
+        if (cleanScope === 'non_accounts') {
+            try {
+                const clubMembers = await fetchPaged((from, to) =>
+                    sb
+                        .from('club_members')
+                        .select('user_id')
+                        .order('user_id', { ascending: true })
+                        .range(from, to)
+                , 25000);
+                for (const m of clubMembers) {
+                    if (m?.user_id) existingAccountUserIds.add(String(m.user_id));
+                }
+            } catch (_clubMembersErr) {
+                // Non-fatal in lightweight test doubles without club_members.
+            }
+        }
+    }
+
     const emails = new Set();
     const phones = new Set();
     const breakdown = {
@@ -471,6 +556,7 @@ export async function resolvePromoAudience(sb, { scope = 'all' } = {}) {
         profilePhones: 0,
         commanderEmails: 0,
         commanderPhones: 0,
+        excludedExistingAccounts: 0,
         suppressedEmails: suppressedEmails.size,
         suppressedPhones: suppressedPhones.size,
     };
@@ -479,6 +565,10 @@ export async function resolvePromoAudience(sb, { scope = 'all' } = {}) {
         if (emails.size >= MAX_PROMO_EMAILS) return;
         const clean = normalizeDeliverableEmail(raw);
         if (!clean || suppressedEmails.has(clean) || emails.has(clean)) return;
+        if (cleanScope === 'non_accounts' && existingAccountEmails.has(clean)) {
+            breakdown.excludedExistingAccounts += 1;
+            return;
+        }
         emails.add(clean);
         breakdown[bucket] = (breakdown[bucket] || 0) + 1;
     };
@@ -487,6 +577,13 @@ export async function resolvePromoAudience(sb, { scope = 'all' } = {}) {
         if (phones.size >= MAX_PROMO_PHONES) return;
         const clean = sendablePhone(raw);
         if (!clean || suppressedPhones.has(clean) || phones.has(clean)) return;
+        if (
+            cleanScope === 'non_accounts' &&
+            (existingAccountPhones.has(clean) || existingAccountPhoneDigits10.has(phoneDigits10(clean)))
+        ) {
+            breakdown.excludedExistingAccounts += 1;
+            return;
+        }
         phones.add(clean);
         breakdown[bucket] = (breakdown[bucket] || 0) + 1;
     };
@@ -495,12 +592,16 @@ export async function resolvePromoAudience(sb, { scope = 'all' } = {}) {
     const activeSubs = await fetchPaged((from, to) =>
         sb
             .from('newsletter_subscribers')
-            .select('id, email, is_active')
+            .select('id, email, is_active, user_id')
             .or('is_active.is.null,is_active.eq.true')
             .order('id', { ascending: true })
             .range(from, to)
     );
     for (const row of activeSubs) {
+        if (cleanScope === 'non_accounts' && row?.user_id && existingAccountUserIds.has(String(row.user_id))) {
+            breakdown.excludedExistingAccounts += 1;
+            continue;
+        }
         const raw = String(row?.email || '').trim();
         if (raw.toLowerCase().startsWith('sms:')) {
             addPhone(raw, 'subscriberPhones');
@@ -509,43 +610,27 @@ export async function resolvePromoAudience(sb, { scope = 'all' } = {}) {
         }
     }
 
-    // 5. Existing database profiles, auth users, and Commander contacts when scope === 'all'
-    if (scope !== 'subscribers_only') {
-        const profiles = await fetchPaged((from, to) =>
-            sb
-                .from('profiles')
-                .select('id, email, phone, username')
-                .order('id', { ascending: true })
-                .range(from, to)
-        );
-        const syntheticUserIds = new Set();
-        for (const p of profiles) {
-            const id = String(p?.id || '');
-            const uname = String(p?.username || '');
-            if (!id || id.startsWith('00000000-0000-0000-0000-') || SYNTHETIC_USERNAME_RE.test(uname)) {
-                if (id) syntheticUserIds.add(id);
-                continue;
-            }
-            if (!emailMutedUsers.has(id) && p.email) addEmail(p.email, 'profileEmails');
-            if (!smsMutedUsers.has(id) && p.phone) addPhone(p.phone, 'profilePhones');
-        }
-
-        // Include auth.users emails/phones for real accounts whose profiles.email was left null
-        if (sb?.auth?.admin?.listUsers) {
-            try {
-                for (let page = 1; page <= 10; page += 1) {
-                    const { data: authPage, error: authErr } = await sb.auth.admin.listUsers({ page, perPage: 1000 });
-                    if (authErr || !authPage?.users?.length) break;
-                    for (const u of authPage.users) {
-                        if (!u?.id || u.is_anonymous || syntheticUserIds.has(u.id)) continue;
-                        if (String(u.id).startsWith('00000000-0000-0000-0000-')) continue;
-                        if (!emailMutedUsers.has(u.id) && u.email) addEmail(u.email, 'profileEmails');
-                        if (!smsMutedUsers.has(u.id) && u.phone) addPhone(u.phone, 'profilePhones');
-                    }
-                    if (authPage.users.length < 1000) break;
+    // 5. Existing database profiles & auth.users ONLY when cleanScope === 'all',
+    //    plus Commander leads/members when cleanScope is 'non_accounts' or 'all'.
+    if (cleanScope !== 'subscribers_only') {
+        if (cleanScope === 'all') {
+            const syntheticUserIds = new Set();
+            for (const p of loadedProfiles) {
+                const id = String(p?.id || '');
+                const uname = String(p?.username || '');
+                if (!id || id.startsWith('00000000-0000-0000-0000-') || SYNTHETIC_USERNAME_RE.test(uname)) {
+                    if (id) syntheticUserIds.add(id);
+                    continue;
                 }
-            } catch (_authListErr) {
-                // Continue gracefully if auth admin API is unavailable.
+                if (!emailMutedUsers.has(id) && p.email) addEmail(p.email, 'profileEmails');
+                if (!smsMutedUsers.has(id) && p.phone) addPhone(p.phone, 'profilePhones');
+            }
+
+            for (const u of loadedAuthUsers) {
+                if (!u?.id || u.is_anonymous || syntheticUserIds.has(u.id)) continue;
+                if (String(u.id).startsWith('00000000-0000-0000-0000-')) continue;
+                if (!emailMutedUsers.has(u.id) && u.email) addEmail(u.email, 'profileEmails');
+                if (!smsMutedUsers.has(u.id) && u.phone) addPhone(u.phone, 'profilePhones');
             }
         }
 
@@ -651,7 +736,7 @@ export async function dispatchPromoCampaign(
         smsBody = DEFAULT_PROMO_DRAFT.smsBody,
         postalAddress = DEFAULT_POSTAL_ADDRESS,
         channels = 'both',
-        scope = 'all',
+        scope = DEFAULT_PROMO_DRAFT.scope,
         dryRun = true,
         testOnly = false,
         testEmail = '',
@@ -670,7 +755,7 @@ export async function dispatchPromoCampaign(
     const cleanCtaUrl = String(ctaUrl || DEFAULT_PROMO_DRAFT.ctaUrl).trim();
     const cleanPostal = String(postalAddress || DEFAULT_POSTAL_ADDRESS).trim().slice(0, 240);
     const cleanChannels = ['email', 'sms', 'both'].includes(channels) ? channels : 'both';
-    const cleanScope = scope === 'subscribers_only' ? 'subscribers_only' : 'all';
+    const cleanScope = ['non_accounts', 'subscribers_only', 'all'].includes(scope) ? scope : 'non_accounts';
     const wantEmail = cleanChannels === 'email' || cleanChannels === 'both';
     const wantSms = cleanChannels === 'sms' || cleanChannels === 'both';
     const finalSmsBody = ensureSmsStopFooter(smsBody);
