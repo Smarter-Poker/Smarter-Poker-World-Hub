@@ -376,6 +376,7 @@ import './trivia-phase-7-tournament-consumer-model.test.mjs';
 import './trivia-pvp-token-rollover.test.mjs';
 // Trivia Phase 3: eligibility-only paid/competitive pools, engine v3 golden seeds.
 import './trivia-phase-3-engine.test.mjs';
+import './trivia-p3-v3-hardening.test.mjs';
 // Trivia Phase 3: the spend route refuses a stray trivia_entry charge.
 import './trivia-entry-spend-retired.test.mjs';
 import './trivia-ui-foundation.test.mjs';
