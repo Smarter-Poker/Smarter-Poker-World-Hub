@@ -1,22 +1,20 @@
 /**
- * /admin/trivia-pool — Live trivia question pool dashboard
- * ═══════════════════════════════════════════════════════════════════════════
- * Phase 51 (2026-05-05). Visualizes the gap to 1500/category target across
- * all 10 categories, separated into Track A (deterministic) and Track B
- * (Grok). Per-difficulty bucket gaps are shown so you can spot stalled
- * easy/medium/hard fills at a glance.
+ * /admin/trivia-pool - Live trivia question pool dashboard & curation workbench
  *
- * Auth: same posture as /admin/signup-health (admin secret OR is_admin).
- * No write actions — pure read-only operator view. Reload to refresh.
- * ═══════════════════════════════════════════════════════════════════════════
+ * Visualizes per-category pool targets, 90-day eligible supply alerts,
+ * Track A/B coverage, Fact-Check Audit, Phase 54 Quality Systems,
+ * Batch Curation Queue, and Empirical Difficulty Calibration.
  */
 import crypto from 'node:crypto';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { authedFetch } from '../../src/lib/authUtils';
 import { createClient } from '../../src/lib/supabaseServerClient';
 import { getServerUserWithFallback } from '../../src/lib/serverAuth';
 import consoleStyles from '../../src/components/admin/OperatorAdminSurface.module.css';
 
 const TARGET_PER_CATEGORY = 1500;
 const SIXTY_DAY_FLOOR = 1200;
+const NINETY_DAY_FLOOR = 1800;
 const TRACK_A = ['gto_theory', 'gto_scenarios', 'cash_game_situations', 'mtt_situations', 'icm_chip_ev'];
 const TRACK_B = ['poker_history', 'famous_hands', 'player_profiles', 'tournament_facts', 'rule_knowledge'];
 const ALL = [...TRACK_A, ...TRACK_B];
@@ -33,8 +31,13 @@ const PRETTY = {
     rule_knowledge: 'Rules & Etiquette',
 };
 
+const WORKBENCH_TABS = [
+    { id: 'overview', label: 'Pool Overview' },
+    { id: 'curation', label: 'Batch Curation Queue' },
+    { id: 'calibration', label: 'Empirical Difficulty Calibration' },
+];
+
 export async function getServerSideProps({ req }) {
-    // Support constant-time admin secret, Bearer token, or browser session cookie via getServerUserWithFallback
     const adminSecret = typeof req.headers['x-admin-secret'] === 'string' ? req.headers['x-admin-secret'] : '';
     const envSecret = typeof process.env.ADMIN_ROUTE_SECRET === 'string' ? process.env.ADMIN_ROUTE_SECRET : '';
     const hasAdminSecret = Boolean(
@@ -54,17 +57,18 @@ export async function getServerSideProps({ req }) {
         if (uErr || !user?.id) {
             return { redirect: { destination: '/auth/login?redirect=/admin/trivia-pool', permanent: false } };
         }
-        const { data: profile } = await adm
-            .from('profiles').select('is_admin').eq('id', user.id).maybeSingle();
-        if (!profile?.is_admin) return { props: { error: 'Forbidden - admin only' } };
+        const [{ data: profile }, { data: opContext }] = await Promise.all([
+            adm.from('profiles').select('is_admin').eq('id', user.id).maybeSingle(),
+            adm.rpc('trivia_operator_context_v1', { p_operator_id: user.id }),
+        ]);
+        const isOperator = opContext && opContext.allowed === true;
+        if (!profile?.is_admin && !isOperator) return { props: { error: 'Forbidden - admin only' } };
     }
 
-    // Pull per-category counts in parallel
     const fetches = ALL.flatMap(cat => ['easy', 'medium', 'hard'].map(diff =>
         adm.from('trivia_questions').select('id', { count: 'exact', head: true }).eq('category', cat).eq('difficulty', diff)
             .then(r => ({ cat, diff, count: r.count || 0 }))
     ));
-    // Source mix
     const sourceFetches = ['deterministic', 'grok-3-mini', 'legacy_v12', 'cron-generate:grok-3-mini'].map(src =>
         adm.from('trivia_questions').select('id', { count: 'exact', head: true }).eq('source', src)
             .then(r => ({ src, count: r.count || 0 }))
@@ -72,35 +76,30 @@ export async function getServerSideProps({ req }) {
     const nullSourceFetch = adm.from('trivia_questions').select('id', { count: 'exact', head: true }).is('source', null)
         .then(r => ({ src: 'null', count: r.count || 0 }));
 
-    // Phase 52: audit pipeline state
     const auditPromises = [
         adm.from('trivia_questions').select('id', { count: 'exact', head: true }).in('source', ['grok-3-mini', 'grok-3', 'cron-generate:grok-3-mini']),
         adm.from('trivia_questions').select('id', { count: 'exact', head: true }).in('source', ['grok-3-mini', 'grok-3', 'cron-generate:grok-3-mini']).not('last_audited_at', 'is', null),
         adm.from('trivia_questions').select('id', { count: 'exact', head: true }).eq('audit_verified', true),
         adm.from('trivia_questions').select('id', { count: 'exact', head: true }).eq('audit_verified', false),
-        adm.from('trivia_quality_audits').select('id', { count: 'exact', head: true }).gte('audited_at', new Date(Date.now() - 24*60*60*1000).toISOString()),
+        adm.from('trivia_quality_audits').select('id', { count: 'exact', head: true }).gte('audited_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()),
         adm.from('trivia_quality_audits').select('question_id, audited_at, confidence, reasoning, corrected_answer_text, new_quality_score').eq('verified', false).gte('confidence', 0.7).order('audited_at', { ascending: false }).limit(8),
     ];
 
-    // Phase 54: quality-system state
     const phase54Promises = [
-        // Latest health snapshot per category
         adm.from('trivia_category_health').select('category, pass_rate, generation_paused, pause_reason, snapshot_at, audited_count').order('snapshot_at', { ascending: false }).limit(50),
-        // Unresolved reports
         adm.from('trivia_question_reports').select('id', { count: 'exact', head: true }).is('resolved_at', null),
         adm.from('trivia_question_reports').select('id, question_id, reason, note, created_at').is('resolved_at', null).order('created_at', { ascending: false }).limit(8),
-        // Latest regression test failures
-        adm.from('trivia_regression_runs').select('test_name, category, passed, metric, threshold, ran_at, details').gte('ran_at', new Date(Date.now() - 48*60*60*1000).toISOString()).eq('passed', false).order('ran_at', { ascending: false }).limit(10),
-        // Embed/theme backfill progress
+        adm.from('trivia_regression_runs').select('test_name, category, passed, metric, threshold, ran_at, details').gte('ran_at', new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()).eq('passed', false).order('ran_at', { ascending: false }).limit(10),
         adm.from('trivia_questions').select('id', { count: 'exact', head: true }).is('embedding', null),
         adm.from('trivia_questions').select('id', { count: 'exact', head: true }).is('theme', null),
     ];
 
-    const [counts, sources, auditResults, p54Results] = await Promise.all([
+    const [counts, sources, auditResults, p54Results, calibrationRes] = await Promise.all([
         Promise.all(fetches),
         Promise.all([...sourceFetches, nullSourceFetch]),
         Promise.all(auditPromises),
         Promise.all(phase54Promises),
+        adm.rpc('trivia_question_calibration_report_v1', { p_min_shown: 15, p_limit: 100 }),
     ]);
 
     const audit = {
@@ -112,7 +111,6 @@ export async function getServerSideProps({ req }) {
         recentFlagged: auditResults[5].data || [],
     };
 
-    // Pivot health: latest snapshot per category
     const healthByCategory = {};
     for (const row of p54Results[0].data || []) {
         if (!healthByCategory[row.category]) healthByCategory[row.category] = row;
@@ -127,7 +125,6 @@ export async function getServerSideProps({ req }) {
         themeBacklog: p54Results[5].count || 0,
     };
 
-    // Pivot per-cat counts
     const byCat = {};
     for (const cat of ALL) byCat[cat] = { easy: 0, medium: 0, hard: 0, total: 0 };
     for (const { cat, diff, count } of counts) {
@@ -135,12 +132,21 @@ export async function getServerSideProps({ req }) {
         byCat[cat].total += count;
     }
 
+    const initialCalibration = calibrationRes?.data?.success ? {
+        minShown: Number(calibrationRes.data.min_shown) || 15,
+        ninetyDayTarget: Number(calibrationRes.data.ninety_day_target_per_category) || NINETY_DAY_FLOOR,
+        summary: calibrationRes.data.summary || {},
+        outliers: Array.isArray(calibrationRes.data.outliers) ? calibrationRes.data.outliers : [],
+        categoryDepth: Array.isArray(calibrationRes.data.category_depth) ? calibrationRes.data.category_depth : [],
+    } : null;
+
     return {
         props: {
             byCat,
             sources,
             audit,
             phase54,
+            initialCalibration,
             generatedAt: new Date().toISOString(),
         },
     };
@@ -186,188 +192,714 @@ function CatRow({ catId, counts, track }) {
     );
 }
 
-export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, generatedAt, error }) {
+function formatFlagLabel(flag) {
+    if (flag === 'easy_too_hard') return 'Easy Too Hard (<35%)';
+    if (flag === 'hard_too_easy') return 'Hard Too Easy (>85%)';
+    if (flag === 'high_skip_rate') return 'High Skip Rate';
+    if (flag === 'high_report_outlier') return 'High Report Outlier';
+    return flag;
+}
+
+export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, initialCalibration, generatedAt, error }) {
+    const [activeTab, setActiveTab] = useState('overview');
+    const [queueMode, setQueueMode] = useState('review_queue');
+    const [queueCategory, setQueueCategory] = useState('all');
+    const [minShown, setMinShown] = useState(initialCalibration?.minShown || 15);
+    const [workbenchData, setWorkbenchData] = useState(() => (
+        initialCalibration ? {
+            calibration: {
+                minShown: initialCalibration.minShown,
+                ninetyDayTarget: initialCalibration.ninetyDayTarget,
+                summary: initialCalibration.summary,
+                outliers: initialCalibration.outliers,
+            },
+            categoryDepth: initialCalibration.categoryDepth,
+            categoryDepthAlerts: (initialCalibration.categoryDepth || []).filter(r => r.below_90_day_supply),
+            queue: { mode: 'review_queue', category: 'all', items: [] },
+        } : null
+    ));
+    const [queueLoaded, setQueueLoaded] = useState(false);
+    const [workbenchLoading, setWorkbenchLoading] = useState(false);
+    const [workbenchError, setWorkbenchError] = useState('');
+    const [selectedIds, setSelectedIds] = useState([]);
+    const [curationReason, setCurationReason] = useState('');
+    const [calibrationReason, setCalibrationReason] = useState('Empirical Difficulty Calibration Re-Tier');
+    const [actionBusy, setActionBusy] = useState(false);
+    const [actionFeedback, setActionFeedback] = useState(null);
+
+    const loadWorkbench = useCallback(async ({ mode = queueMode, category = queueCategory, min = minShown } = {}) => {
+        setWorkbenchLoading(true);
+        setWorkbenchError('');
+        try {
+            const params = new URLSearchParams({
+                queue: mode,
+                category,
+                minShown: String(min),
+                limit: '50',
+            });
+            const resp = await authedFetch(`/api/admin/trivia-pool-curate?${params.toString()}`);
+            const payload = await resp.json();
+            if (!resp.ok || !payload?.success) {
+                setWorkbenchError(payload?.error || 'Unable To Load Pool Curation Workbench');
+                setWorkbenchLoading(false);
+                return;
+            }
+            setWorkbenchData(payload);
+            setQueueLoaded(true);
+            setSelectedIds([]);
+        } catch (_err) {
+            setWorkbenchError('Unable To Load Pool Curation Workbench');
+        } finally {
+            setWorkbenchLoading(false);
+        }
+    }, [minShown, queueCategory, queueMode]);
+
+    useEffect(() => {
+        if ((activeTab === 'curation' || activeTab === 'calibration') && !queueLoaded && !workbenchLoading) {
+            loadWorkbench();
+        }
+    }, [activeTab, loadWorkbench, queueLoaded, workbenchLoading]);
+
+    const runBatchCurate = async ({ questionIds, action, reason }) => {
+        const trimmedReason = String(reason || '').trim();
+        if (!Array.isArray(questionIds) || questionIds.length === 0) {
+            setActionFeedback({ kind: 'error', text: 'Select At Least One Question First.' });
+            return;
+        }
+        if (trimmedReason.length < 8) {
+            setActionFeedback({ kind: 'error', text: 'Enter An Audit Reason (At Least 8 Characters).' });
+            return;
+        }
+        setActionBusy(true);
+        setActionFeedback(null);
+        try {
+            const resp = await authedFetch('/api/admin/trivia-pool-curate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    questionIds,
+                    action,
+                    reason: trimmedReason,
+                }),
+            });
+            const payload = await resp.json();
+            if (!resp.ok || !payload?.success) {
+                setActionFeedback({
+                    kind: 'error',
+                    text: `Batch Action Rejected: ${payload?.error || 'curation_failed'}`,
+                });
+                setActionBusy(false);
+                return;
+            }
+            setActionFeedback({
+                kind: 'success',
+                text: `Action ${payload.action} Applied To ${payload.affectedCount} Question(s). Receipt ${String(payload.receiptId || '').slice(0, 8)}`,
+            });
+            setSelectedIds([]);
+            await loadWorkbench();
+        } catch (_err) {
+            setActionFeedback({ kind: 'error', text: 'Batch Curation Request Failed.' });
+        } finally {
+            setActionBusy(false);
+        }
+    };
+
+    const queueItems = useMemo(() => workbenchData?.queue?.items || [], [workbenchData]);
+    const calibrationOutliers = useMemo(() => workbenchData?.calibration?.outliers || [], [workbenchData]);
+    const calibrationSummary = useMemo(() => workbenchData?.calibration?.summary || {}, [workbenchData]);
+    const categoryDepthAlerts = useMemo(() => workbenchData?.categoryDepthAlerts || [], [workbenchData]);
+    const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+
+    const toggleSelectId = (id) => {
+        setSelectedIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedIds.length === queueItems.length && queueItems.length > 0) {
+            setSelectedIds([]);
+        } else {
+            setSelectedIds(queueItems.map((item) => item.questionId));
+        }
+    };
+
     if (error) {
         return <main className={consoleStyles.surface}><div className={consoleStyles.state} role="alert" style={{ padding: 24, color: '#ff7a7a' }}>Error: {error}</div></main>;
     }
+
     const totalCount = ALL.reduce((s, c) => s + (byCat[c]?.total || 0), 0);
     const targetTotal = ALL.length * TARGET_PER_CATEGORY;
     const overallPct = Math.round((totalCount / targetTotal) * 100);
-
     const trackATotal = TRACK_A.reduce((s, c) => s + (byCat[c]?.total || 0), 0);
     const trackBTotal = TRACK_B.reduce((s, c) => s + (byCat[c]?.total || 0), 0);
 
     return (
         <main className={consoleStyles.surface} style={{ background: '#0a0a15', minHeight: '100vh', color: '#fff', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-            <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+            <div style={{ maxWidth: 1140, margin: '0 auto' }}>
                 <div className={consoleStyles.responsiveGrid} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'baseline', gap: 12, marginBottom: 8 }}>
                     <h1 style={{ fontSize: 28, fontWeight: 700, margin: 0 }}>Trivia Pool Dashboard</h1>
                     <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.72)' }}>
                         Generated {new Date(generatedAt).toLocaleString()} · <a href="/admin/trivia-pool" style={{ color: '#00D4FF' }}>Reload</a>
                     </div>
                 </div>
-                <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, marginBottom: 24 }}>
-                    Phase 49 Target: 1,500 Per Category · 60-Day Floor: 1,200 · 20/50/30 Easy/Medium/Hard Mix
+                <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, marginBottom: 18 }}>
+                    Phase 49 Target: 1,500 Per Category · 60-Day Floor: 1,200 · 90-Day Supply Alert: 1,800 Eligible · 20/50/30 Easy/Medium/Hard Mix
                 </div>
 
-                {/* Top summary cards */}
-                <div className={consoleStyles.responsiveGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 32 }}>
-                    <Card title="Pool total" value={`${totalCount.toLocaleString()} / ${targetTotal.toLocaleString()}`} subtitle={`${overallPct}% complete`} color={overallPct >= 100 ? '#22c55e' : overallPct >= 50 ? '#fbbf24' : '#ef4444'} />
-                    <Card title="Track A (deterministic)" value={`${trackATotal.toLocaleString()} / 7,500`} subtitle={`${Math.round((trackATotal / 7500) * 100)}% - solver-grounded`} color="#22c55e" />
-                    <Card title="Track B (Grok-3-mini)" value={`${trackBTotal.toLocaleString()} / 7,500`} subtitle={`${Math.round((trackBTotal / 7500) * 100)}% - fact-verified`} color="#06b6d4" />
-                </div>
-
-                {/* Per-category table */}
-                <div className={consoleStyles.tableWell} tabIndex={0} role="region" aria-label="Trivia Questions By Category" style={{ marginBottom: 24 }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead>
-                            <tr style={{ background: 'rgba(255,255,255,0.05)' }}>
-                                <th style={{ padding: '12px 12px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.5 }}>CATEGORY</th>
-                                <th style={{ padding: '12px 8px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.5 }}>EASY (300)</th>
-                                <th style={{ padding: '12px 8px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.5 }}>MEDIUM (750)</th>
-                                <th style={{ padding: '12px 8px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.5 }}>HARD (450)</th>
-                                <th style={{ padding: '12px 12px', textAlign: 'right', fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.5 }}>TOTAL</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {TRACK_A.map(cat => <CatRow key={cat} catId={cat} counts={byCat[cat]} track="A" />)}
-                            <tr><td colSpan={5} style={{ padding: '8px 12px', background: 'rgba(255,255,255,0.02)', fontSize: 12, color: 'rgba(255,255,255,0.72)', letterSpacing: 0.5 }}>TRACK B</td></tr>
-                            {TRACK_B.map(cat => <CatRow key={cat} catId={cat} counts={byCat[cat]} track="B" />)}
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* Source mix */}
-                <div className={consoleStyles.panel} style={{ padding: 20, marginBottom: 24 }}>
-                    <h3 style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.5, margin: '0 0 12px 0' }}>SOURCE MIX</h3>
-                    <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap' }}>
-                        {sources.map(({ src, count }) => (
-                            <div key={src} style={{ display: 'flex', flexDirection: 'column' }}>
-                                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.72)' }}>{src === 'null' ? 'unset (legacy)' : src}</span>
-                                <span style={{ fontSize: 22, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{count.toLocaleString()}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Phase 52: fact-check audit panel */}
-                {audit && (
-                    <div className={consoleStyles.panel} style={{ padding: 20, marginBottom: 24 }}>
-                        <h3 style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.5, margin: '0 0 12px 0' }}>FACT-CHECK AUDIT (Track B Only)</h3>
-                        <div className={consoleStyles.responsiveGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 16 }}>
-                            <Card title="Grok questions" value={audit.grokTotal.toLocaleString()} subtitle="Track B total" color="#06b6d4" />
-                            <Card title="Audited" value={`${audit.grokAudited.toLocaleString()} / ${audit.grokTotal.toLocaleString()}`} subtitle={`${audit.grokTotal > 0 ? Math.round((audit.grokAudited / audit.grokTotal) * 100) : 0}% reviewed`} color="#fbbf24" />
-                            <Card title="Verified" value={audit.verifiedTrue.toLocaleString()} subtitle="quality_score = 9" color="#22c55e" />
-                            <Card title="Flagged" value={audit.verifiedFalse.toLocaleString()} subtitle="quality_score = 2 (excluded)" color="#ef4444" />
-                            <Card title="Last 24h" value={audit.auditedLast24h.toLocaleString()} subtitle="reviewed today" color="#a855f7" />
+                {/* Category Depth Alerts (Below 90-Day Supply) */}
+                {categoryDepthAlerts.length > 0 && (
+                    <section
+                        className={consoleStyles.panel}
+                        role="status"
+                        aria-label="Category Depth Alerts Below 90-Day Supply"
+                        style={{ padding: 16, marginBottom: 20, border: '1px solid rgba(251,191,36,0.45)', background: 'rgba(251,191,36,0.08)' }}
+                    >
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#fbbf24', marginBottom: 8 }}>
+                            Category Depth Alerts: {categoryDepthAlerts.length} Categories Below 90-Day Supply ({NINETY_DAY_FLOOR.toLocaleString()} Eligible)
                         </div>
-                        {audit.recentFlagged.length > 0 && (
-                            <>
-                                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 8, marginTop: 4 }}>RECENT FLAGGED - Needs Human Review</div>
-                                <div style={{ background: 'rgba(239,68,68,0.04)', borderRadius: 8, overflow: 'hidden' }}>
-                                    {audit.recentFlagged.map((f, i) => (
-                                        <div key={i} style={{ padding: '10px 12px', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none', fontSize: 12 }}>
-                                            <div style={{ display: 'flex', gap: 12, marginBottom: 4 }}>
-                                                <span style={{ color: '#ef4444', fontWeight: 600 }}>Conf {Math.round(f.confidence * 100)}%</span>
-                                                <span style={{ color: 'rgba(255,255,255,0.72)' }}>{new Date(f.audited_at).toLocaleString()}</span>
-                                                <code style={{ color: 'rgba(255,255,255,0.72)', fontSize: 12 }}>{f.question_id.slice(0, 8)}</code>
-                                            </div>
-                                            <div style={{ color: 'rgba(255,255,255,0.85)', lineHeight: 1.5 }}>{f.reasoning}</div>
-                                            {f.corrected_answer_text && (
-                                                <div style={{ marginTop: 4, color: '#65e8aa', fontSize: 12 }}>
-                                                    Suggested Correct Answer: <strong>{f.corrected_answer_text}</strong>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: 8 }}>
+                            {categoryDepthAlerts.map((alertRow) => (
+                                <div key={alertRow.category} style={{ padding: '8px 10px', borderRadius: 6, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(251,191,36,0.28)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{PRETTY[alertRow.category] || alertRow.category}</div>
+                                    <div style={{ fontSize: 12, color: '#fbbf24' }}>
+                                        {Number(alertRow.eligible_count || 0).toLocaleString()} Eligible ({alertRow.days_of_supply}d Supply)
+                                    </div>
+                                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.72)' }}>
+                                        Shortfall {Number(alertRow.shortfall_90_day || 0).toLocaleString()} · Queue {Number(alertRow.review_queue_count || 0).toLocaleString()}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                )}
+
+                {/* Workbench Tab Bar */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 22 }} role="tablist" aria-label="Trivia Pool Workbench Views">
+                    {WORKBENCH_TABS.map((tab) => {
+                        const isActive = activeTab === tab.id;
+                        return (
+                            <button
+                                key={tab.id}
+                                type="button"
+                                role="tab"
+                                aria-selected={isActive}
+                                aria-pressed={isActive}
+                                onClick={() => setActiveTab(tab.id)}
+                                style={{
+                                    padding: '10px 16px',
+                                    borderRadius: 8,
+                                    fontSize: 13,
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    border: isActive ? '1px solid #38bdf8' : '1px solid rgba(255,255,255,0.2)',
+                                    background: isActive ? 'rgba(56,189,248,0.22)' : 'rgba(255,255,255,0.05)',
+                                    color: isActive ? '#e0f2fe' : 'rgba(255,255,255,0.82)',
+                                }}
+                            >
+                                {tab.label}
+                            </button>
+                        );
+                    })}
+                </div>
+
+                {actionFeedback && (
+                    <div
+                        role={actionFeedback.kind === 'error' ? 'alert' : 'status'}
+                        style={{
+                            padding: '12px 14px',
+                            marginBottom: 18,
+                            borderRadius: 8,
+                            fontSize: 13,
+                            fontWeight: 600,
+                            background: actionFeedback.kind === 'error' ? 'rgba(239,68,68,0.16)' : 'rgba(34,197,94,0.16)',
+                            border: `1px solid ${actionFeedback.kind === 'error' ? 'rgba(239,68,68,0.45)' : 'rgba(34,197,94,0.45)'}`,
+                            color: actionFeedback.kind === 'error' ? '#fecaca' : '#bbf7d0',
+                        }}
+                    >
+                        {actionFeedback.text}
+                    </div>
+                )}
+
+                {/* Overview Tab */}
+                {activeTab === 'overview' && (
+                    <>
+                        <div className={consoleStyles.responsiveGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 32 }}>
+                            <Card title="Pool Total" value={`${totalCount.toLocaleString()} / ${targetTotal.toLocaleString()}`} subtitle={`${overallPct}% complete`} color={overallPct >= 100 ? '#22c55e' : overallPct >= 50 ? '#fbbf24' : '#ef4444'} />
+                            <Card title="Track A (Deterministic)" value={`${trackATotal.toLocaleString()} / 7,500`} subtitle={`${Math.round((trackATotal / 7500) * 100)}% - solver-grounded`} color="#22c55e" />
+                            <Card title="Track B (Grok-3-Mini)" value={`${trackBTotal.toLocaleString()} / 7,500`} subtitle={`${Math.round((trackBTotal / 7500) * 100)}% - fact-verified`} color="#06b6d4" />
+                        </div>
+
+                        <div className={consoleStyles.tableWell} tabIndex={0} role="region" aria-label="Trivia Questions By Category" style={{ marginBottom: 24 }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                <thead>
+                                    <tr style={{ background: 'rgba(255,255,255,0.05)' }}>
+                                        <th style={{ padding: '12px 12px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.5 }}>CATEGORY</th>
+                                        <th style={{ padding: '12px 8px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.5 }}>EASY (300)</th>
+                                        <th style={{ padding: '12px 8px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.5 }}>MEDIUM (750)</th>
+                                        <th style={{ padding: '12px 8px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.5 }}>HARD (450)</th>
+                                        <th style={{ padding: '12px 12px', textAlign: 'right', fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.5 }}>TOTAL</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {TRACK_A.map(cat => <CatRow key={cat} catId={cat} counts={byCat[cat]} track="A" />)}
+                                    <tr><td colSpan={5} style={{ padding: '8px 12px', background: 'rgba(255,255,255,0.02)', fontSize: 12, color: 'rgba(255,255,255,0.72)', letterSpacing: 0.5 }}>TRACK B</td></tr>
+                                    {TRACK_B.map(cat => <CatRow key={cat} catId={cat} counts={byCat[cat]} track="B" />)}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div className={consoleStyles.panel} style={{ padding: 20, marginBottom: 24 }}>
+                            <h3 style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.5, margin: '0 0 12px 0' }}>SOURCE MIX</h3>
+                            <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap' }}>
+                                {sources.map(({ src, count }) => (
+                                    <div key={src} style={{ display: 'flex', flexDirection: 'column' }}>
+                                        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.72)' }}>{src === 'null' ? 'Unset (Legacy)' : src}</span>
+                                        <span style={{ fontSize: 22, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{count.toLocaleString()}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {audit && (
+                            <div className={consoleStyles.panel} style={{ padding: 20, marginBottom: 24 }}>
+                                <h3 style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.5, margin: '0 0 12px 0' }}>FACT-CHECK AUDIT (Track B Only)</h3>
+                                <div className={consoleStyles.responsiveGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 16 }}>
+                                    <Card title="Grok Questions" value={audit.grokTotal.toLocaleString()} subtitle="Track B total" color="#06b6d4" />
+                                    <Card title="Audited" value={`${audit.grokAudited.toLocaleString()} / ${audit.grokTotal.toLocaleString()}`} subtitle={`${audit.grokTotal > 0 ? Math.round((audit.grokAudited / audit.grokTotal) * 100) : 0}% reviewed`} color="#fbbf24" />
+                                    <Card title="Verified" value={audit.verifiedTrue.toLocaleString()} subtitle="quality_score = 9" color="#22c55e" />
+                                    <Card title="Flagged" value={audit.verifiedFalse.toLocaleString()} subtitle="quality_score = 2 (excluded)" color="#ef4444" />
+                                    <Card title="Last 24h" value={audit.auditedLast24h.toLocaleString()} subtitle="reviewed today" color="#a855f7" />
+                                </div>
+                                {audit.recentFlagged.length > 0 && (
+                                    <>
+                                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 8, marginTop: 4 }}>RECENT FLAGGED - Needs Human Review</div>
+                                        <div style={{ background: 'rgba(239,68,68,0.04)', borderRadius: 8, overflow: 'hidden' }}>
+                                            {audit.recentFlagged.map((f, i) => (
+                                                <div key={i} style={{ padding: '10px 12px', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none', fontSize: 12 }}>
+                                                    <div style={{ display: 'flex', gap: 12, marginBottom: 4 }}>
+                                                        <span style={{ color: '#ef4444', fontWeight: 600 }}>Conf {Math.round(f.confidence * 100)}%</span>
+                                                        <span style={{ color: 'rgba(255,255,255,0.72)' }}>{new Date(f.audited_at).toLocaleString()}</span>
+                                                        <code style={{ color: 'rgba(255,255,255,0.72)', fontSize: 12 }}>{f.question_id.slice(0, 8)}</code>
+                                                    </div>
+                                                    <div style={{ color: 'rgba(255,255,255,0.85)', lineHeight: 1.5 }}>{f.reasoning}</div>
+                                                    {f.corrected_answer_text && (
+                                                        <div style={{ marginTop: 4, color: '#65e8aa', fontSize: 12 }}>
+                                                            Suggested Correct Answer: <strong>{f.corrected_answer_text}</strong>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            )}
+                                            ))}
                                         </div>
-                                    ))}
-                                </div>
-                            </>
+                                    </>
+                                )}
+                            </div>
                         )}
-                    </div>
+
+                        {phase54 && (
+                            <div className={consoleStyles.panel} style={{ padding: 20, marginBottom: 24 }}>
+                                <h3 style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.5, margin: '0 0 12px 0' }}>QUALITY SYSTEMS (Phase 54)</h3>
+                                <div className={consoleStyles.responsiveGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 16 }}>
+                                    <Card title="Paused Categories" value={phase54.pausedCategories.length.toString()} subtitle={phase54.pausedCategories.length === 0 ? 'all generating' : phase54.pausedCategories.map(c => c.category).join(', ').slice(0, 40)} color={phase54.pausedCategories.length > 0 ? '#ef4444' : '#22c55e'} />
+                                    <Card title="Open Reports" value={phase54.unresolvedReportCount.toString()} subtitle="users flagged" color={phase54.unresolvedReportCount > 0 ? '#fbbf24' : '#22c55e'} />
+                                    <Card title="Regression Failures" value={phase54.recentRegressionFailures.length.toString()} subtitle="last 48h" color={phase54.recentRegressionFailures.length > 0 ? '#ef4444' : '#22c55e'} />
+                                    <Card title="Embedding Backlog" value={phase54.embeddingBacklog.toLocaleString()} subtitle="questions un-embedded" color="#a855f7" />
+                                    <Card title="Theme Backlog" value={phase54.themeBacklog.toLocaleString()} subtitle="questions un-tagged" color="#a855f7" />
+                                </div>
+
+                                {phase54.categoryHealth.length > 0 && (
+                                    <div style={{ marginBottom: 16 }}>
+                                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>CIRCUIT BREAKER - Per-Category Audit Pass Rate</div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 8 }}>
+                                            {phase54.categoryHealth.map(h => (
+                                                <div key={h.category} style={{ padding: '8px 10px', borderRadius: 6, background: h.generation_paused ? 'rgba(239,68,68,0.12)' : 'rgba(34,197,94,0.06)', border: '1px solid ' + (h.generation_paused ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.15)') }}>
+                                                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.72)' }}>{h.category}</div>
+                                                    <div style={{ fontSize: 14, fontWeight: 600, color: h.generation_paused ? '#ef4444' : '#22c55e' }}>
+                                                        {h.pass_rate !== null ? Math.round(h.pass_rate * 100) + '%' : 'no data'}
+                                                        {h.generation_paused && <span style={{ marginLeft: 6, fontSize: 12, color: '#ff7a7a' }}>PAUSED</span>}
+                                                    </div>
+                                                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.72)' }}>N={h.audited_count}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {phase54.recentReports.length > 0 && (
+                                    <div style={{ marginBottom: 16 }}>
+                                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>RECENT USER REPORTS</div>
+                                        <div style={{ background: 'rgba(251,191,36,0.04)', borderRadius: 8, overflow: 'hidden' }}>
+                                            {phase54.recentReports.map((r, i) => (
+                                                <div key={r.id} style={{ padding: '8px 12px', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none', fontSize: 12 }}>
+                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+                                                        <span style={{ color: '#fbbf24', fontWeight: 600, minWidth: 100 }}>{r.reason}</span>
+                                                        <code style={{ color: 'rgba(255,255,255,0.72)', fontSize: 12 }}>{r.question_id.slice(0, 8)}</code>
+                                                        <span style={{ color: 'rgba(255,255,255,0.72)', marginLeft: 'auto' }}>{new Date(r.created_at).toLocaleString()}</span>
+                                                    </div>
+                                                    {r.note && <div style={{ marginTop: 4, color: 'rgba(255,255,255,0.7)' }}>"{r.note}"</div>}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {phase54.recentRegressionFailures.length > 0 && (
+                                    <div>
+                                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>REGRESSION TEST FAILURES - Last 48h</div>
+                                        <div style={{ background: 'rgba(239,68,68,0.04)', borderRadius: 8, overflow: 'hidden' }}>
+                                            {phase54.recentRegressionFailures.map((f, i) => (
+                                                <div key={i} style={{ padding: '8px 12px', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none', fontSize: 12, color: 'rgba(255,255,255,0.85)' }}>
+                                                    <span style={{ color: '#ef4444', fontWeight: 600 }}>{f.test_name}</span>
+                                                    {f.category && <span style={{ marginLeft: 8, color: 'rgba(255,255,255,0.72)' }}>{f.category}</span>}
+                                                    <span style={{ marginLeft: 8 }}>Metric {f.metric} (Threshold {f.threshold})</span>
+                                                    <span style={{ marginLeft: 'auto', color: 'rgba(255,255,255,0.72)', fontSize: 12 }}>{new Date(f.ran_at).toLocaleString()}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        <div style={{ background: 'rgba(0,212,255,0.08)', border: '1px solid rgba(0,212,255,0.3)', borderRadius: 12, padding: 16, fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>
+                            <div style={{ fontWeight: 600, marginBottom: 6 }}>How The Refill Works</div>
+                            <div style={{ lineHeight: 1.6 }}>
+                                Every 4 Hours, The Openclaw Dispatcher Fires <code style={{ background: 'rgba(0,0,0,0.4)', padding: '1px 5px', borderRadius: 3 }}>{'/cron/generate-trivia-questions'}</code> On
+                                The Workers VM. The Handler Picks The Most-Undertarget Bucket, Runs Track A (Deterministic, Free) For Strategy
+                                Categories Or Track B (Grok-3-Mini, ~$0.002 Per Batch) For Fact Categories, And Inserts Directly Into
+                                <code style={{ background: 'rgba(0,0,0,0.4)', padding: '1px 5px', borderRadius: 3, margin: '0 4px' }}>{'trivia_questions'}</code>.
+                                At ~30 Questions Per Tick × 6 Ticks/Day, The Pool Fills In ~5-6 Weeks At Well Under $20 Total Grok Spend.
+                            </div>
+                        </div>
+                    </>
                 )}
 
-                {/* Phase 54: quality systems panel */}
-                {phase54 && (
-                    <div className={consoleStyles.panel} style={{ padding: 20, marginBottom: 24 }}>
-                        <h3 style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.5, margin: '0 0 12px 0' }}>QUALITY SYSTEMS (Phase 54)</h3>
-
-                        {/* Top tile row */}
-                        <div className={consoleStyles.responsiveGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 16 }}>
-                            <Card title="Paused categories" value={phase54.pausedCategories.length.toString()} subtitle={phase54.pausedCategories.length === 0 ? 'all generating' : phase54.pausedCategories.map(c => c.category).join(', ').slice(0, 40)} color={phase54.pausedCategories.length > 0 ? '#ef4444' : '#22c55e'} />
-                            <Card title="Open reports" value={phase54.unresolvedReportCount.toString()} subtitle="users flagged" color={phase54.unresolvedReportCount > 0 ? '#fbbf24' : '#22c55e'} />
-                            <Card title="Regression failures" value={phase54.recentRegressionFailures.length.toString()} subtitle="last 48h" color={phase54.recentRegressionFailures.length > 0 ? '#ef4444' : '#22c55e'} />
-                            <Card title="Embedding backlog" value={phase54.embeddingBacklog.toLocaleString()} subtitle="questions un-embedded" color="#a855f7" />
-                            <Card title="Theme backlog" value={phase54.themeBacklog.toLocaleString()} subtitle="questions un-tagged" color="#a855f7" />
+                {/* Batch Curation Queue Tab */}
+                {activeTab === 'curation' && (
+                    <section className={consoleStyles.panel} style={{ padding: 20 }} aria-label="Batch Curation Queue">
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', marginBottom: 16 }}>
+                            <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Batch Curation Queue</h2>
+                            <div style={{ display: 'flex', gap: 8, marginLeft: 'auto', flexWrap: 'wrap' }}>
+                                <button
+                                    type="button"
+                                    aria-pressed={queueMode === 'review_queue'}
+                                    onClick={() => {
+                                        setQueueMode('review_queue');
+                                        loadWorkbench({ mode: 'review_queue', category: queueCategory, min: minShown });
+                                    }}
+                                    style={{
+                                        padding: '8px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                                        border: '1px solid rgba(255,255,255,0.22)',
+                                        background: queueMode === 'review_queue' ? 'rgba(56,189,248,0.25)' : 'rgba(255,255,255,0.06)',
+                                        color: '#fff',
+                                    }}
+                                >
+                                    Review Queue ({Number(calibrationSummary.total_review_queue || 0).toLocaleString()})
+                                </button>
+                                <button
+                                    type="button"
+                                    aria-pressed={queueMode === 'unaudited'}
+                                    onClick={() => {
+                                        setQueueMode('unaudited');
+                                        loadWorkbench({ mode: 'unaudited', category: queueCategory, min: minShown });
+                                    }}
+                                    style={{
+                                        padding: '8px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                                        border: '1px solid rgba(255,255,255,0.22)',
+                                        background: queueMode === 'unaudited' ? 'rgba(56,189,248,0.25)' : 'rgba(255,255,255,0.06)',
+                                        color: '#fff',
+                                    }}
+                                >
+                                    Un-Audited ({Number(calibrationSummary.total_unaudited || 0).toLocaleString()})
+                                </button>
+                                <select
+                                    aria-label="Filter Curation Category"
+                                    value={queueCategory}
+                                    onChange={(e) => {
+                                        const nextCat = e.target.value;
+                                        setQueueCategory(nextCat);
+                                        loadWorkbench({ mode: queueMode, category: nextCat, min: minShown });
+                                    }}
+                                    style={{
+                                        padding: '8px 10px', borderRadius: 6, fontSize: 12,
+                                        background: '#111827', color: '#fff', border: '1px solid rgba(255,255,255,0.22)',
+                                    }}
+                                >
+                                    <option value="all">All Categories</option>
+                                    {ALL.map((cat) => (
+                                        <option key={cat} value={cat}>{PRETTY[cat]}</option>
+                                    ))}
+                                </select>
+                                <button
+                                    type="button"
+                                    onClick={() => loadWorkbench()}
+                                    disabled={workbenchLoading}
+                                    style={{
+                                        padding: '8px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                                        background: 'rgba(255,255,255,0.09)', color: '#fff', border: '1px solid rgba(255,255,255,0.22)',
+                                    }}
+                                >
+                                    {workbenchLoading ? 'Refreshing' : 'Refresh Queue'}
+                                </button>
+                            </div>
                         </div>
 
-                        {/* Circuit breaker / category health */}
-                        {phase54.categoryHealth.length > 0 && (
-                            <div style={{ marginBottom: 16 }}>
-                                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>CIRCUIT BREAKER - Per-Category Audit Pass Rate</div>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 8 }}>
-                                    {phase54.categoryHealth.map(h => (
-                                        <div key={h.category} style={{ padding: '8px 10px', borderRadius: 6, background: h.generation_paused ? 'rgba(239,68,68,0.12)' : 'rgba(34,197,94,0.06)', border: '1px solid ' + (h.generation_paused ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.15)') }}>
-                                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.72)' }}>{h.category}</div>
-                                            <div style={{ fontSize: 14, fontWeight: 600, color: h.generation_paused ? '#ef4444' : '#22c55e' }}>
-                                                {h.pass_rate !== null ? Math.round(h.pass_rate * 100) + '%' : 'no data'}
-                                                {h.generation_paused && <span style={{ marginLeft: 6, fontSize: 12, color: '#ff7a7a' }}>PAUSED</span>}
-                                            </div>
-                                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.72)' }}>N={h.audited_count}</div>
-                                        </div>
-                                    ))}
-                                </div>
+                        {workbenchError && (
+                            <div role="alert" style={{ padding: 12, marginBottom: 14, borderRadius: 8, background: 'rgba(239,68,68,0.14)', color: '#fecaca', fontSize: 13 }}>
+                                {workbenchError}
                             </div>
                         )}
 
-                        {/* Recent user reports */}
-                        {phase54.recentReports.length > 0 && (
-                            <div style={{ marginBottom: 16 }}>
-                                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>RECENT USER REPORTS</div>
-                                <div style={{ background: 'rgba(251,191,36,0.04)', borderRadius: 8, overflow: 'hidden' }}>
-                                    {phase54.recentReports.map((r, i) => (
-                                        <div key={r.id} style={{ padding: '8px 12px', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none', fontSize: 12 }}>
-                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-                                                <span style={{ color: '#fbbf24', fontWeight: 600, minWidth: 100 }}>{r.reason}</span>
-                                                <code style={{ color: 'rgba(255,255,255,0.72)', fontSize: 12 }}>{r.question_id.slice(0, 8)}</code>
-                                                <span style={{ color: 'rgba(255,255,255,0.72)', marginLeft: 'auto' }}>{new Date(r.created_at).toLocaleString()}</span>
-                                            </div>
-                                            {r.note && <div style={{ marginTop: 4, color: 'rgba(255,255,255,0.7)' }}>"{r.note}"</div>}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+                        {/* Batch action controls */}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', padding: 12, marginBottom: 16, borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: '#93c5fd' }}>
+                                Selected: {selectedIds.length} / {queueItems.length}
+                            </span>
+                            <input
+                                type="text"
+                                aria-label="Batch Curation Reason"
+                                placeholder="Required Audit Reason (Min 8 Characters)"
+                                value={curationReason}
+                                onChange={(e) => setCurationReason(e.target.value)}
+                                style={{
+                                    flex: '1 1 260px', padding: '8px 10px', borderRadius: 6, fontSize: 13,
+                                    background: '#0b1020', color: '#fff', border: '1px solid rgba(255,255,255,0.22)',
+                                }}
+                            />
+                            <button
+                                type="button"
+                                disabled={actionBusy || selectedIds.length === 0}
+                                onClick={() => runBatchCurate({ questionIds: selectedIds, action: 'approve', reason: curationReason })}
+                                style={{ padding: '8px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: '#166534', color: '#fff', border: '1px solid #22c55e' }}
+                            >
+                                Approve Selected
+                            </button>
+                            <button
+                                type="button"
+                                disabled={actionBusy || selectedIds.length === 0}
+                                onClick={() => runBatchCurate({ questionIds: selectedIds, action: 'quarantine', reason: curationReason })}
+                                style={{ padding: '8px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: '#991b1b', color: '#fff', border: '1px solid #ef4444' }}
+                            >
+                                Quarantine Selected
+                            </button>
+                            <button
+                                type="button"
+                                disabled={actionBusy || selectedIds.length === 0}
+                                onClick={() => runBatchCurate({ questionIds: selectedIds, action: 'set_difficulty_easy', reason: curationReason })}
+                                style={{ padding: '8px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(251,191,36,0.2)', color: '#fde68a', border: '1px solid rgba(251,191,36,0.45)' }}
+                            >
+                                Re-Tier Easy
+                            </button>
+                            <button
+                                type="button"
+                                disabled={actionBusy || selectedIds.length === 0}
+                                onClick={() => runBatchCurate({ questionIds: selectedIds, action: 'set_difficulty_medium', reason: curationReason })}
+                                style={{ padding: '8px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(59,130,246,0.22)', color: '#bfdbfe', border: '1px solid rgba(59,130,246,0.45)' }}
+                            >
+                                Re-Tier Medium
+                            </button>
+                            <button
+                                type="button"
+                                disabled={actionBusy || selectedIds.length === 0}
+                                onClick={() => runBatchCurate({ questionIds: selectedIds, action: 'set_difficulty_hard', reason: curationReason })}
+                                style={{ padding: '8px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(168,85,247,0.22)', color: '#e9d5ff', border: '1px solid rgba(168,85,247,0.45)' }}
+                            >
+                                Re-Tier Hard
+                            </button>
+                        </div>
 
-                        {/* Recent regression failures */}
-                        {phase54.recentRegressionFailures.length > 0 && (
-                            <div>
-                                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>REGRESSION TEST FAILURES - Last 48h</div>
-                                <div style={{ background: 'rgba(239,68,68,0.04)', borderRadius: 8, overflow: 'hidden' }}>
-                                    {phase54.recentRegressionFailures.map((f, i) => (
-                                        <div key={i} style={{ padding: '8px 12px', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none', fontSize: 12, color: 'rgba(255,255,255,0.85)' }}>
-                                            <span style={{ color: '#ef4444', fontWeight: 600 }}>{f.test_name}</span>
-                                            {f.category && <span style={{ marginLeft: 8, color: 'rgba(255,255,255,0.72)' }}>{f.category}</span>}
-                                            <span style={{ marginLeft: 8 }}>Metric {f.metric} (Threshold {f.threshold})</span>
-                                            <span style={{ marginLeft: 'auto', color: 'rgba(255,255,255,0.72)', fontSize: 12 }}>{new Date(f.ran_at).toLocaleString()}</span>
-                                        </div>
-                                    ))}
-                                </div>
+                        {workbenchLoading ? (
+                            <div role="status" style={{ padding: 20, fontSize: 13, color: 'rgba(255,255,255,0.72)' }}>Loading Curation Queue</div>
+                        ) : queueItems.length === 0 ? (
+                            <div role="status" style={{ padding: 20, fontSize: 13, color: 'rgba(255,255,255,0.72)' }}>No Questions Match The Selected Queue Filter.</div>
+                        ) : (
+                            <div className={consoleStyles.tableWell} tabIndex={0} role="region" aria-label="Curation Queue Questions">
+                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                    <thead>
+                                        <tr style={{ background: 'rgba(255,255,255,0.05)' }}>
+                                            <th style={{ padding: '10px 10px', textAlign: 'left', fontSize: 12 }}>
+                                                <input
+                                                    type="checkbox"
+                                                    aria-label="Select All Questions"
+                                                    checked={queueItems.length > 0 && selectedIds.length === queueItems.length}
+                                                    onChange={toggleSelectAll}
+                                                />
+                                            </th>
+                                            <th style={{ padding: '10px 10px', textAlign: 'left', fontSize: 12, color: 'rgba(255,255,255,0.68)' }}>CATEGORY</th>
+                                            <th style={{ padding: '10px 10px', textAlign: 'left', fontSize: 12, color: 'rgba(255,255,255,0.68)' }}>DIFFICULTY</th>
+                                            <th style={{ padding: '10px 10px', textAlign: 'left', fontSize: 12, color: 'rgba(255,255,255,0.68)' }}>QUALITY</th>
+                                            <th style={{ padding: '10px 10px', textAlign: 'left', fontSize: 12, color: 'rgba(255,255,255,0.68)' }}>QUESTION</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {queueItems.map((item) => (
+                                            <tr key={item.questionId} style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                                                <td style={{ padding: '10px 10px', verticalAlign: 'top' }}>
+                                                    <input
+                                                        type="checkbox"
+                                                        aria-label={`Select Question ${item.questionId.slice(0, 8)}`}
+                                                        checked={selectedSet.has(item.questionId)}
+                                                        onChange={() => toggleSelectId(item.questionId)}
+                                                    />
+                                                </td>
+                                                <td style={{ padding: '10px 10px', fontSize: 12, verticalAlign: 'top', whiteSpace: 'nowrap' }}>
+                                                    {PRETTY[item.category] || item.category}
+                                                </td>
+                                                <td style={{ padding: '10px 10px', fontSize: 12, verticalAlign: 'top', textTransform: 'capitalize' }}>
+                                                    {item.difficulty}
+                                                </td>
+                                                <td style={{ padding: '10px 10px', fontSize: 12, verticalAlign: 'top' }}>
+                                                    {item.qualityScore ?? 'Unset'}
+                                                </td>
+                                                <td style={{ padding: '10px 10px', fontSize: 13, lineHeight: 1.45 }}>
+                                                    <div>{item.question}</div>
+                                                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 4 }}>
+                                                        ID {item.questionId.slice(0, 8)} · Source {item.source}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
                             </div>
                         )}
-                    </div>
+                    </section>
                 )}
 
-                {/* Operational hints */}
-                <div style={{ background: 'rgba(0,212,255,0.08)', border: '1px solid rgba(0,212,255,0.3)', borderRadius: 12, padding: 16, fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>
-                    <div style={{ fontWeight: 600, marginBottom: 6 }}>How The Refill Works</div>
-                    <div style={{ lineHeight: 1.6 }}>
-                        Every 4 Hours, The Openclaw Dispatcher Fires <code style={{ background: 'rgba(0,0,0,0.4)', padding: '1px 5px', borderRadius: 3 }}>{'/cron/generate-trivia-questions'}</code> On
-                        The Workers VM. The Handler Picks The Most-Undertarget Bucket, Runs Track A (Deterministic, Free) For Strategy
-                        Categories Or Track B (Grok-3-Mini, ~$0.002 Per Batch) For Fact Categories, And Inserts Directly Into
-                        <code style={{ background: 'rgba(0,0,0,0.4)', padding: '1px 5px', borderRadius: 3, margin: '0 4px' }}>{'trivia_questions'}</code>.
-                        At ~30 Questions Per Tick × 6 Ticks/Day, The Pool Fills In ~5-6 Weeks At Well Under $20 Total Grok Spend.
-                    </div>
-                </div>
+                {/* Empirical Difficulty Calibration Tab */}
+                {activeTab === 'calibration' && (
+                    <section className={consoleStyles.panel} style={{ padding: 20 }} aria-label="Empirical Difficulty Calibration">
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', marginBottom: 16 }}>
+                            <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Empirical Difficulty Calibration</h2>
+                            <div style={{ display: 'flex', gap: 10, marginLeft: 'auto', alignItems: 'center', flexWrap: 'wrap' }}>
+                                <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                    <span>Min Shown</span>
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        max={1000}
+                                        value={minShown}
+                                        onChange={(e) => setMinShown(Math.max(1, Number.parseInt(e.target.value || '15', 10) || 15))}
+                                        style={{ width: 72, padding: '6px 8px', borderRadius: 6, fontSize: 12, background: '#0b1020', color: '#fff', border: '1px solid rgba(255,255,255,0.22)' }}
+                                    />
+                                </label>
+                                <button
+                                    type="button"
+                                    onClick={() => loadWorkbench({ mode: queueMode, category: queueCategory, min: minShown })}
+                                    disabled={workbenchLoading}
+                                    style={{ padding: '8px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(56,189,248,0.22)', color: '#e0f2fe', border: '1px solid #38bdf8' }}
+                                >
+                                    {workbenchLoading ? 'Analyzing' : 'Run Calibration Report'}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className={consoleStyles.responsiveGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 18 }}>
+                            <Card title="Flagged Outliers" value={String(calibrationSummary.flagged_count || 0)} subtitle={`Min shown >= ${minShown}`} color="#fbbf24" />
+                            <Card title="Easy Too Hard" value={String(calibrationSummary.easy_too_hard_count || 0)} subtitle="Solve rate < 35%" color="#ef4444" />
+                            <Card title="Hard Too Easy" value={String(calibrationSummary.hard_too_easy_count || 0)} subtitle="Solve rate > 85%" color="#22c55e" />
+                            <Card title="Skip Or Report Outliers" value={String((calibrationSummary.high_skip_count || 0) + (calibrationSummary.high_report_count || 0))} subtitle="High skip or open reports" color="#a855f7" />
+                        </div>
+
+                        <div style={{ marginBottom: 16 }}>
+                            <label style={{ display: 'block', fontSize: 12, color: 'rgba(255,255,255,0.78)', marginBottom: 6 }}>
+                                Re-Tier Audit Reason
+                            </label>
+                            <input
+                                type="text"
+                                aria-label="Calibration Re-Tier Reason"
+                                value={calibrationReason}
+                                onChange={(e) => setCalibrationReason(e.target.value)}
+                                style={{ width: '100%', padding: '8px 10px', borderRadius: 6, fontSize: 13, background: '#0b1020', color: '#fff', border: '1px solid rgba(255,255,255,0.22)' }}
+                            />
+                        </div>
+
+                        {calibrationOutliers.length === 0 ? (
+                            <div role="status" style={{ padding: 20, fontSize: 13, color: 'rgba(255,255,255,0.75)' }}>
+                                No Empirical Difficulty Outliers Exceed The Current Threshold (Min Shown {minShown}).
+                            </div>
+                        ) : (
+                            <div className={consoleStyles.tableWell} tabIndex={0} role="region" aria-label="Empirical Difficulty Outliers">
+                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                    <thead>
+                                        <tr style={{ background: 'rgba(255,255,255,0.05)' }}>
+                                            <th style={{ padding: '10px 10px', textAlign: 'left', fontSize: 12, color: 'rgba(255,255,255,0.68)' }}>QUESTION</th>
+                                            <th style={{ padding: '10px 10px', textAlign: 'left', fontSize: 12, color: 'rgba(255,255,255,0.68)' }}>TIER</th>
+                                            <th style={{ padding: '10px 10px', textAlign: 'left', fontSize: 12, color: 'rgba(255,255,255,0.68)' }}>SOLVE RATE</th>
+                                            <th style={{ padding: '10px 10px', textAlign: 'left', fontSize: 12, color: 'rgba(255,255,255,0.68)' }}>FLAGS</th>
+                                            <th style={{ padding: '10px 10px', textAlign: 'right', fontSize: 12, color: 'rgba(255,255,255,0.68)' }}>ONE-CLICK RE-TIER</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {calibrationOutliers.map((row) => (
+                                            <tr key={row.question_id} style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                                                <td style={{ padding: '10px 10px', fontSize: 13, lineHeight: 1.45 }}>
+                                                    <div>{row.question_preview}</div>
+                                                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 4 }}>
+                                                        {PRETTY[row.category] || row.category} · ID {row.question_id.slice(0, 8)} · Shown {row.shown_count}
+                                                    </div>
+                                                </td>
+                                                <td style={{ padding: '10px 10px', fontSize: 12, textTransform: 'capitalize' }}>
+                                                    <div>Current: {row.difficulty}</div>
+                                                    {row.suggested_difficulty && (
+                                                        <div style={{ color: '#fbbf24' }}>Suggested: {row.suggested_difficulty}</div>
+                                                    )}
+                                                </td>
+                                                <td style={{ padding: '10px 10px', fontSize: 12 }}>
+                                                    <div>{row.solve_rate !== null ? `${Math.round(Number(row.solve_rate) * 100)}%` : 'N/A'}</div>
+                                                    <div style={{ color: 'rgba(255,255,255,0.6)' }}>
+                                                        Skip {row.skip_rate !== null ? `${Math.round(Number(row.skip_rate) * 100)}%` : '0%'} · Reports {row.open_reports}
+                                                    </div>
+                                                </td>
+                                                <td style={{ padding: '10px 10px', fontSize: 12 }}>
+                                                    {(row.flags || []).map((flag) => (
+                                                        <span key={flag} style={{ display: 'inline-block', marginRight: 6, marginBottom: 4, padding: '2px 8px', borderRadius: 999, background: 'rgba(251,191,36,0.16)', color: '#fde68a', fontSize: 12 }}>
+                                                            {formatFlagLabel(flag)}
+                                                        </span>
+                                                    ))}
+                                                </td>
+                                                <td style={{ padding: '10px 10px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                                                    <div style={{ display: 'inline-flex', gap: 6 }}>
+                                                        <button
+                                                            type="button"
+                                                            disabled={actionBusy}
+                                                            onClick={() => runBatchCurate({ questionIds: [row.question_id], action: 'set_difficulty_easy', reason: calibrationReason })}
+                                                            style={{ padding: '6px 8px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(251,191,36,0.2)', color: '#fde68a', border: '1px solid rgba(251,191,36,0.45)' }}
+                                                        >
+                                                            Easy
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            disabled={actionBusy}
+                                                            onClick={() => runBatchCurate({ questionIds: [row.question_id], action: 'set_difficulty_medium', reason: calibrationReason })}
+                                                            style={{ padding: '6px 8px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(59,130,246,0.22)', color: '#bfdbfe', border: '1px solid rgba(59,130,246,0.45)' }}
+                                                        >
+                                                            Medium
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            disabled={actionBusy}
+                                                            onClick={() => runBatchCurate({ questionIds: [row.question_id], action: 'set_difficulty_hard', reason: calibrationReason })}
+                                                            style={{ padding: '6px 8px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(168,85,247,0.22)', color: '#e9d5ff', border: '1px solid rgba(168,85,247,0.45)' }}
+                                                        >
+                                                            Hard
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            disabled={actionBusy}
+                                                            onClick={() => runBatchCurate({ questionIds: [row.question_id], action: 'quarantine', reason: calibrationReason })}
+                                                            style={{ padding: '6px 8px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: '#991b1b', color: '#fff', border: '1px solid #ef4444' }}
+                                                        >
+                                                            Quarantine
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </section>
+                )}
             </div>
         </main>
     );

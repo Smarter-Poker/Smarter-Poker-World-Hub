@@ -18,7 +18,7 @@
     "dialogs": 12,
     "persistenceFiles": 88,
     "realtimeFiles": 6,
-    "tests": 181,
+    "tests": 182,
     "markerCandidates": 377,
     "possibleUnwiredFunctions": 408,
     "routeStateCells": 752,
@@ -21343,7 +21343,8 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
-            "__tests__/training-spot-study-authority.test.mjs"
+            "__tests__/training-spot-study-authority.test.mjs",
+            "__tests__/trivia-study-pool-curation.test.mjs"
           ]
         },
         "empty": {
@@ -21374,7 +21375,8 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
-            "__tests__/training-spot-study-authority.test.mjs"
+            "__tests__/training-spot-study-authority.test.mjs",
+            "__tests__/trivia-study-pool-curation.test.mjs"
           ]
         },
         "error": {
@@ -21402,7 +21404,8 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
-            "__tests__/training-spot-study-authority.test.mjs"
+            "__tests__/training-spot-study-authority.test.mjs",
+            "__tests__/trivia-study-pool-curation.test.mjs"
           ]
         },
         "retry": {
@@ -21422,7 +21425,8 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
-            "__tests__/training-spot-study-authority.test.mjs"
+            "__tests__/training-spot-study-authority.test.mjs",
+            "__tests__/trivia-study-pool-curation.test.mjs"
           ]
         },
         "success": {
@@ -21443,7 +21447,8 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
-            "__tests__/training-spot-study-authority.test.mjs"
+            "__tests__/training-spot-study-authority.test.mjs",
+            "__tests__/trivia-study-pool-curation.test.mjs"
           ]
         },
         "stale": {
@@ -21465,7 +21470,8 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
-            "__tests__/training-spot-study-authority.test.mjs"
+            "__tests__/training-spot-study-authority.test.mjs",
+            "__tests__/trivia-study-pool-curation.test.mjs"
           ]
         },
         "offline": {
@@ -21481,7 +21487,8 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
-            "__tests__/training-spot-study-authority.test.mjs"
+            "__tests__/training-spot-study-authority.test.mjs",
+            "__tests__/trivia-study-pool-curation.test.mjs"
           ]
         },
         "authExpiry": {
@@ -21499,7 +21506,8 @@
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
-            "__tests__/training-spot-study-authority.test.mjs"
+            "__tests__/training-spot-study-authority.test.mjs",
+            "__tests__/trivia-study-pool-curation.test.mjs"
           ]
         }
       },
@@ -21510,7 +21518,8 @@
         "__tests__/training-reconciled-workflows.test.mjs",
         "__tests__/training-reference-is-public-b.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs",
-        "__tests__/training-spot-study-authority.test.mjs"
+        "__tests__/training-spot-study-authority.test.mjs",
+        "__tests__/trivia-study-pool-curation.test.mjs"
       ],
       "uncoveredStates": []
     },
@@ -82215,6 +82224,7 @@
     "__tests__/training-tournaments-read-contract.test.mjs",
     "__tests__/training-verified-leaderboard.test.mjs",
     "__tests__/training-verified-report-authority.test.mjs",
+    "__tests__/trivia-study-pool-curation.test.mjs",
     "__tests__/world-command-navigation-state.test.mjs",
     "__tests__/world-hub-connection-hardening.test.mjs",
     "__tests__/world-menu-mobile-phase3.test.mjs",
@@ -123987,6 +123997,7 @@
         "__tests__/training-reference-is-public-c.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs",
         "__tests__/training-surface-inventory-classifier.test.mjs",
+        "__tests__/trivia-study-pool-curation.test.mjs",
         "__tests__/world-hub-connection-hardening.test.mjs",
         "__tests__/world-menu-mobile-phase3.test.mjs"
       ]
@@ -130088,6 +130099,7 @@
           "pages/hub/trivia/leaderboard.js",
           "pages/hub/trivia/settings.js",
           "pages/hub/trivia/stats.js",
+          "pages/hub/trivia/study.js",
           "pages/hub/trivia/survival-game.js",
           "pages/hub/trivia/tournaments.js",
           "pages/hub/user/[username].js",
@@ -140255,6 +140267,7 @@
           "pages/hub/trivia/leaderboard.js",
           "pages/hub/trivia/settings.js",
           "pages/hub/trivia/stats.js",
+          "pages/hub/trivia/study.js",
           "pages/hub/trivia/survival-game.js",
           "pages/hub/trivia/tournaments.js",
           "pages/hub/user/[username].js",
