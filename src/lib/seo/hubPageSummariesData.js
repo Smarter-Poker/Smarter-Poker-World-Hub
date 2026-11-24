@@ -1390,7 +1390,7 @@ export const HUB_PAGE_SUMMARIES = {
   'poker-rooms-security-and-disputes-guide': {
     heading: 'About The Live Poker Room Security, Floor Dispute Escalation And Angle-Shot Protection Guide',
     lead:
-      'The Live Poker Room Security And Floor Disputes Guide Details Official TDA And Robert\'s Rules Of Poker Protocols For Protecting Your Hand At Showdown, Requesting Overhead Surveillance Camera Reviews Before The Next Deal, Defending Against Eight Classic Table Angle Shots, And Managing Casino Cage Boxes And FinCEN $10,000 CTR Filings. Free Protection Guide.',
+      'The Live Poker Room Security And Floor Disputes Guide Details Official TDA And Robert Rules Of Poker Protocols For Protecting Your Hand At Showdown, Requesting Overhead Surveillance Camera Reviews Before The Next Deal, Defending Against Eight Classic Table Angle Shots, And Managing Casino Cage Boxes And FinCEN $10,000 CTR Filings. Free Protection Guide.',
     metrics: [
       { label: 'Official Rule Citations', value: '2024/2026 TDA & RROP Standards' },
       { label: 'Angle Shots Documented', value: '8 Common Live Table Traps & Defenses' },
@@ -1429,7 +1429,7 @@ export const HUB_PAGE_SUMMARIES = {
     links: [
       { name: '15 Empirical Research Studies', href: '/research', text: 'Browse All First-Party Rake, ICM And Solver Benchmark Studies.' },
       { name: '2026 Master Benchmark Tables', href: '/research/benchmarks', text: 'Inspect Consolidated Rake, Variance, RFI And ICM Data Tables.' },
-      { name: 'Open Datasets & Colab Notebook', href: '/api/datasets/catalog', text: 'Download JSON-LD, BibTeX And Python Jupyter Research Data.' },
+      { name: 'Canonical Fact Ledger', href: '/facts', text: 'Verify Platform Entity Counts And Machine-Readable JSON Facts.' },
     ],
   },
   'research-benchmarks': {

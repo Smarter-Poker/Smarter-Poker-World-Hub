@@ -44,6 +44,13 @@ import { US_POKER_STATES, STATES_AS_OF, stateGuidePath } from '../../content/gui
 import { PLAYER_ARCHETYPES, PLAYER_TYPES_AS_OF, playerTypePath } from '../../content/learn/playerTypes.js';
 import { BOARD_TEXTURES, BOARD_TEXTURES_AS_OF, boardTexturePath } from '../../content/learn/boardTextures.js';
 import { INTERNATIONAL_POKER_GUIDES, INTERNATIONAL_GUIDES_AS_OF, internationalGuidePath } from '../../content/guides/internationalMarkets.js';
+import { POKER_FORMULAS, FORMULAS_AS_OF, formulaPath } from '../../content/learn/formulas.js';
+import { TOURNAMENT_STAGES, TOURNAMENT_STAGES_AS_OF, tournamentStagePath } from '../../content/learn/tournamentStages.js';
+import { POKER_LEAKS, LEAKS_AS_OF, leakPath } from '../../content/learn/leaks.js';
+import { HUD_STATS, HUD_STATS_AS_OF, hudStatPath } from '../../content/learn/hudStats.js';
+import { EDITORIAL_AUTHORS, AUTHORS_AS_OF, authorPath } from '../../content/authors.js';
+import { POKER_TRAVEL_CORRIDORS, CORRIDORS_AS_OF, corridorGuidePath } from '../../content/guides/corridors.js';
+import { POKER_ROOMS_BY_GAME, BY_GAME_AS_OF, byGameGuidePath } from '../../content/guides/byGame.js';
 
 export const SITE_URL = 'https://smarter.poker';
 export const SITEMAP_DB_PAGE_SIZE = 1000;
@@ -60,97 +67,13 @@ export const SITEMAP_SERIES_EVIDENCE_COLUMNS = [
   'scrape_batch_id',
 ].join(', ');
 
-export const FORMULAS_SLUG_LIST = [
-  'pot-odds',
-  'mdf',
-  'bluff-breakeven-alpha',
-  'polarized-bluff-to-value-ratio',
-  'spr',
-  'geometric-bet-sizing',
-  'malmuth-harville-icm',
-  'bubble-factor',
-  'pko-bounty-chip-conversion',
-  'mystery-bounty-envelope-ev',
-  'hypergeometric-draw-odds',
-  'rule-of-4-and-2',
-  'expected-value-ev',
-  'brownian-risk-of-ruin',
-  'harrington-m-ratio',
-];
-
-export const MTT_STAGE_SLUG_LIST = [
-  'early-deepstack',
-  'ante-kickoff',
-  'middle-accumulation',
-  'late-reg-close',
-  'money-bubble',
-  'in-the-money-laddering',
-  'final-two-tables',
-  'final-table-icm',
-  'heads-up-title',
-];
-
-export const POKER_LEAK_SLUG_LIST = [
-  'over-limping-preflop',
-  'passive-bb-under-defense',
-  'over-calling-3bets-oop',
-  'auto-cbetting-wet-low-boards',
-  'one-and-done-turn-giveups',
-  'over-calling-river-raises',
-  'under-bluffing-river-missed-draws',
-  'ignoring-icm-bubble-factors',
-  'under-adjusting-pko-bounties',
-  'multiway-top-pair-overvaluation',
-  'telegraphed-bet-sizing-tells',
-  'playing-under-rolled-shot-tilt',
-];
-
-export const HUD_STAT_SLUG_LIST = [
-  'vpip',
-  'pfr',
-  '3bet',
-  'fold-to-3bet',
-  '4bet',
-  'cbet-flop',
-  'cbet-turn',
-  'fold-to-flop-cbet',
-  'check-raise-flop',
-  'wtsd',
-  'wsd',
-  'wwsf',
-  'af',
-  'steal-pct',
-  'fold-bb-to-steal',
-];
-
-export const AUTHOR_SLUG_LIST = [
-  'quantitative-research-group',
-  'live-cardroom-operations-desk',
-  'tournament-icm-and-bounty-lab',
-  'plo-and-mixed-games-faculty',
-];
-
-export const CORRIDOR_SLUG_LIST = [
-  'atlanta-to-cherokee-and-florida',
-  'nyc-to-borgata-and-parx',
-  'chicago-to-hammond-and-elgin',
-  'dallas-to-winstar-and-champions',
-  'boston-to-encore-and-foxwoods',
-  'seattle-to-portland-and-tulalip',
-  'bay-area-san-jose-to-oaks-and-graton',
-  'dc-baltimore-to-md-live-and-mgm-national-harbor',
-  'phoenix-to-talking-stick-and-desert-diamond',
-  'detroit-to-mgm-grand-motorcity-and-caesars-windsor',
-];
-
-export const ROOMS_BY_GAME_SLUG_LIST = [
-  'plo',
-  'big-o',
-  'mixed-games',
-  'stud',
-  'high-stakes-nlh',
-  'daily-tournaments',
-];
+export const FORMULAS_SLUG_LIST = POKER_FORMULAS.map((f) => f.slug);
+export const MTT_STAGE_SLUG_LIST = TOURNAMENT_STAGES.map((s) => s.slug);
+export const POKER_LEAK_SLUG_LIST = POKER_LEAKS.map((l) => l.slug);
+export const HUD_STAT_SLUG_LIST = HUD_STATS.map((h) => h.slug);
+export const AUTHOR_SLUG_LIST = EDITORIAL_AUTHORS.map((a) => a.slug);
+export const CORRIDOR_SLUG_LIST = POKER_TRAVEL_CORRIDORS.map((c) => c.slug);
+export const ROOMS_BY_GAME_SLUG_LIST = POKER_ROOMS_BY_GAME.map((g) => g.slug);
 
 export const LEARN_PAGES = [
   { path: LEARN_PATH, priority: '0.8', changefreq: 'monthly' },
@@ -161,14 +84,14 @@ export const LEARN_PAGES = [
   { path: '/learn/live-poker-tells', priority: '0.85', changefreq: 'monthly' },
   { path: '/learn/mental-game', priority: '0.85', changefreq: 'monthly' },
   { path: '/learn/poker-as-a-business', priority: '0.85', changefreq: 'monthly' },
-  { path: '/learn/formulas', priority: '0.85', changefreq: 'monthly' },
-  ...FORMULAS_SLUG_LIST.map((slug) => ({ path: `/learn/formulas/${slug}`, priority: '0.8', changefreq: 'monthly' })),
-  { path: '/learn/tournament-stages', priority: '0.85', changefreq: 'monthly' },
-  ...MTT_STAGE_SLUG_LIST.map((slug) => ({ path: `/learn/tournament-stages/${slug}`, priority: '0.8', changefreq: 'monthly' })),
-  { path: '/learn/leaks', priority: '0.85', changefreq: 'monthly' },
-  ...POKER_LEAK_SLUG_LIST.map((slug) => ({ path: `/learn/leaks/${slug}`, priority: '0.8', changefreq: 'monthly' })),
-  { path: '/learn/hud-stats', priority: '0.85', changefreq: 'monthly' },
-  ...HUD_STAT_SLUG_LIST.map((slug) => ({ path: `/learn/hud-stats/${slug}`, priority: '0.8', changefreq: 'monthly' })),
+  { path: '/learn/formulas', priority: '0.85', changefreq: 'monthly', lastmod: FORMULAS_AS_OF },
+  ...POKER_FORMULAS.map((f) => ({ path: formulaPath(f.slug), priority: '0.8', changefreq: 'monthly', lastmod: FORMULAS_AS_OF })),
+  { path: '/learn/tournament-stages', priority: '0.85', changefreq: 'monthly', lastmod: TOURNAMENT_STAGES_AS_OF },
+  ...TOURNAMENT_STAGES.map((s) => ({ path: tournamentStagePath(s.slug), priority: '0.8', changefreq: 'monthly', lastmod: TOURNAMENT_STAGES_AS_OF })),
+  { path: '/learn/leaks', priority: '0.85', changefreq: 'monthly', lastmod: LEAKS_AS_OF },
+  ...POKER_LEAKS.map((l) => ({ path: leakPath(l.slug), priority: '0.8', changefreq: 'monthly', lastmod: LEAKS_AS_OF })),
+  { path: '/learn/hud-stats', priority: '0.85', changefreq: 'monthly', lastmod: HUD_STATS_AS_OF },
+  ...HUD_STATS.map((h) => ({ path: hudStatPath(h.slug), priority: '0.8', changefreq: 'monthly', lastmod: HUD_STATS_AS_OF })),
   { path: '/learn/poker-myths-debunked', priority: '0.85', changefreq: 'monthly' },
   { path: '/learn/format-migration-guide', priority: '0.85', changefreq: 'monthly' },
   { path: '/learn/player-types', priority: '0.85', changefreq: 'monthly', lastmod: PLAYER_TYPES_AS_OF },
@@ -214,10 +137,10 @@ export const MARKET_GUIDE_PAGES = [
   { path: '/poker-rooms/comps-and-tipping-guide', priority: '0.85', changefreq: 'monthly', lastmod: MARKET_GUIDES_AS_OF },
   { path: '/poker-rooms/security-and-disputes-guide', priority: '0.85', changefreq: 'monthly', lastmod: MARKET_GUIDES_AS_OF },
   { path: '/poker-rooms/seasonal-calendar', priority: '0.85', changefreq: 'monthly', lastmod: MARKET_GUIDES_AS_OF },
-  { path: '/poker-rooms/corridors', priority: '0.85', changefreq: 'monthly', lastmod: MARKET_GUIDES_AS_OF },
-  ...CORRIDOR_SLUG_LIST.map((slug) => ({ path: `/poker-rooms/corridors/${slug}`, priority: '0.8', changefreq: 'monthly', lastmod: MARKET_GUIDES_AS_OF })),
-  { path: '/poker-rooms/by-game', priority: '0.85', changefreq: 'monthly', lastmod: MARKET_GUIDES_AS_OF },
-  ...ROOMS_BY_GAME_SLUG_LIST.map((slug) => ({ path: `/poker-rooms/by-game/${slug}`, priority: '0.8', changefreq: 'monthly', lastmod: MARKET_GUIDES_AS_OF })),
+  { path: '/poker-rooms/corridors', priority: '0.85', changefreq: 'monthly', lastmod: CORRIDORS_AS_OF },
+  ...POKER_TRAVEL_CORRIDORS.map((c) => ({ path: corridorGuidePath(c.slug), priority: '0.8', changefreq: 'monthly', lastmod: CORRIDORS_AS_OF })),
+  { path: '/poker-rooms/by-game', priority: '0.85', changefreq: 'monthly', lastmod: BY_GAME_AS_OF },
+  ...POKER_ROOMS_BY_GAME.map((g) => ({ path: byGameGuidePath(g.slug), priority: '0.8', changefreq: 'monthly', lastmod: BY_GAME_AS_OF })),
   { path: '/poker-rooms/states', priority: '0.85', changefreq: 'monthly', lastmod: STATES_AS_OF },
   ...US_POKER_STATES.map((s) => ({ path: stateGuidePath(s.slug), priority: '0.8', changefreq: 'monthly', lastmod: STATES_AS_OF })),
   ...POKER_MARKET_GUIDES.map((m) => ({ path: marketGuidePath(m.slug), priority: '0.8', changefreq: 'monthly', lastmod: MARKET_GUIDES_AS_OF })),
@@ -234,8 +157,8 @@ export const SERIES_GUIDE_PAGES = [
 ];
 
 export const AUTHORS_PAGES = [
-  { path: '/authors', priority: '0.8', changefreq: 'monthly' },
-  ...AUTHOR_SLUG_LIST.map((slug) => ({ path: `/authors/${slug}`, priority: '0.75', changefreq: 'monthly' })),
+  { path: '/authors', priority: '0.8', changefreq: 'monthly', lastmod: AUTHORS_AS_OF },
+  ...EDITORIAL_AUTHORS.map((a) => ({ path: authorPath(a.slug), priority: '0.75', changefreq: 'monthly', lastmod: AUTHORS_AS_OF })),
 ];
 
 export const TOOLS_PAGES = [
