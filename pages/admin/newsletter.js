@@ -6,15 +6,15 @@ import { getFreshAccessToken } from '../../src/lib/authUtils';
 import styles from '../../src/components/admin/NewsletterOperations.module.css';
 
 const INITIAL_PROMO_DRAFT = {
-    subject: 'Claim 500 Free Diamonds, 30-Day Free VIP & 25 Free Chips on Smarter.Poker',
-    headline: '500 Free Diamonds + 30-Day Free VIP + 25 Free Chips',
-    body: 'Train with GTO poker tools, discover live poker games near you, and take a seat in Club Arena on Smarter.Poker.\n\nCreate your free account through this exclusive promotion and verify your phone number to instantly receive 500 Free Diamonds, a 30-Day Free VIP Card, and 25 Free Chips in Kings Club (Club Code 25450).',
+    subject: 'Claim 25 Free Chips, 30-Day Free VIP & 500 Free Diamonds on Smarter.Poker',
+    headline: '25 Free Chips + 30-Day Free VIP + 500 Free Diamonds',
+    body: 'Train with GTO poker tools, discover live poker games near you, and take a seat in Club Arena on Smarter.Poker.\n\nCreate your free account through this exclusive promotion and verify your phone number to instantly receive 25 Free Chips in Kings Club (Club Code 25450), a 30-Day Free VIP Card, and 500 Free Diamonds.',
     ctaLabel: 'Claim Your Free Rewards',
     ctaUrl: 'https://smarter.poker/auth/signup?redirect=%2Fhub%2Fclub-arena%2F%3Fjoin%3D25450',
-    smsBody: 'Smarter.Poker: Claim 500 Free Diamonds, 30-Day Free VIP + 25 Free Chips in Kings Club (Code 25450): https://smarter.poker/go/promo Reply STOP to opt out.',
+    smsBody: 'Smarter.Poker: Claim 25 Free Chips + 30-Day Free VIP + 500 Free Diamonds in Kings Club (Code 25450): https://smarter.poker/go/promo Reply STOP to opt out.',
     postalAddress: 'PO Box 1905, 9624 Cicero Ave, Oak Lawn, IL 60453',
     channels: 'both',
-    scope: 'all',
+    scope: 'non_accounts',
 };
 
 function formatDate(value) {
@@ -377,8 +377,9 @@ export default function NewsletterOperations() {
                                 <label>
                                     Target Audience
                                     <select value={promoDraft.scope} onChange={(e) => updatePromoField('scope', e.target.value)}>
-                                        <option value="all">Full Database Plus Imported List</option>
+                                        <option value="non_accounts">New Leads Only (No Existing Account Or Club Arena)</option>
                                         <option value="subscribers_only">Imported And Subscribed List Only</option>
+                                        <option value="all">Full Database Plus Imported List</option>
                                     </select>
                                 </label>
                             </div>
@@ -466,7 +467,7 @@ export default function NewsletterOperations() {
                                         <div className={styles.breakdownCard}><span>Deduplicated Emails</span><strong>{promoPreview.emailRecipients}</strong></div>
                                         <div className={styles.breakdownCard}><span>Deduplicated Phones</span><strong>{promoPreview.smsRecipients}</strong></div>
                                         <div className={styles.breakdownCard}><span>Imported Or Subscribed</span><strong>{(promoPreview.breakdown?.subscriberEmails || 0) + (promoPreview.breakdown?.subscriberPhones || 0)}</strong></div>
-                                        <div className={styles.breakdownCard}><span>Database Accounts And Leads</span><strong>{(promoPreview.breakdown?.profileEmails || 0) + (promoPreview.breakdown?.profilePhones || 0) + (promoPreview.breakdown?.commanderEmails || 0) + (promoPreview.breakdown?.commanderPhones || 0)}</strong></div>
+                                        <div className={styles.breakdownCard}><span>{promoDraft.scope === 'non_accounts' ? 'Excluded Existing Accounts' : 'Database Accounts And Leads'}</span><strong>{promoDraft.scope === 'non_accounts' ? (promoPreview.breakdown?.excludedExistingAccounts || 0) : (promoPreview.breakdown?.profileEmails || 0) + (promoPreview.breakdown?.profilePhones || 0) + (promoPreview.breakdown?.commanderEmails || 0) + (promoPreview.breakdown?.commanderPhones || 0)}</strong></div>
                                         <div className={styles.breakdownCard}><span>Suppressed Emails</span><strong>{promoPreview.breakdown?.suppressedEmails || 0}</strong></div>
                                         <div className={styles.breakdownCard}><span>Suppressed Phones</span><strong>{promoPreview.breakdown?.suppressedPhones || 0}</strong></div>
                                     </div>
