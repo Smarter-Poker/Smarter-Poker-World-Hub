@@ -86,7 +86,7 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
     const rosterDialogRef = useRef(null);
     const noteIntent = useRef(null);
     const scroller = useRef(null);
-    const state = useRef({ rows: [], pinRows: [], cursor: null, alive: true, loading: false, events: [], generation: 0, epoch: 0 });
+    const state = useRef({ rows: [], pinRows: [], members: [], cursor: null, alive: true, loading: false, events: [], generation: 0, epoch: 0 });
     const anchor = useRef(null);
     const createIntent = useRef(null);
     const highlightTimer = useRef(null);
@@ -173,7 +173,7 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
     function clearAccess() {
         const s = state.current;
         s.denied = true; s.epoch++; s.generation++; s.loading = false; s.refreshAfterLoad = false;
-        s.events = []; s.rows = []; s.pinRows = []; s.cursor = null;
+        s.events = []; s.rows = []; s.pinRows = []; s.members = []; s.cursor = null;
         setRows([]); setPins([]); setCanManage(false); setViewerRole(null);
         setMembers([]); setMemberCount(0); setRoleCounts(normalizeRoleCounts(null, 0));
         setOverduePayouts([]); setHasMore(false); setNewItems(false);
@@ -201,17 +201,33 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
         return result;
     }
 
+    function enrichWithRoster(entries) {
+        const byId = new Map((state.current.members || []).map(m => [m.user_id, m]));
+        return entries.map(row => {
+            if (!row || !row.author_id || (row.author_name && row.author_role)) return row;
+            const staff = byId.get(row.author_id);
+            if (!staff) return row;
+            return {
+                ...row,
+                author_name: row.author_name ?? staff.display_name ?? staff.username,
+                author_avatar: row.author_avatar ?? staff.avatar_url,
+                author_role: row.author_role ?? staff.role,
+            };
+        });
+    }
+
     function accept(entries) {
+        const enriched = enrichWithRoster(entries);
         const box = scroller.current;
         const bottom = !box || box.scrollHeight - box.scrollTop - box.clientHeight < 80;
         captureAnchor(bottom);
         const oldest = state.current.rows.find(row => !row.is_deleted);
-        const updates = entries.filter(row => state.current.rows.some(old => old.id === row.id) || !oldest || compareNotices(row, oldest) >= 0);
+        const updates = enriched.filter(row => state.current.rows.some(old => old.id === row.id) || !oldest || compareNotices(row, oldest) >= 0);
         const knownIds = new Set(state.current.rows.map(row => row.id));
         const hasNewEntries = updates.some(row => !row.is_deleted && !knownIds.has(row.id));
         state.current.rows = mergeNotices(state.current.rows, updates);
         setRows(state.current.rows);
-        state.current.pinRows = mergeNotices(state.current.pinRows, entries);
+        state.current.pinRows = mergeNotices(state.current.pinRows, enriched);
         setPins(pendingPins(state.current.pinRows));
         if (!bottom && hasNewEntries) setNewItems(true);
     }
@@ -246,6 +262,7 @@ export default function NoticeBoard({ club, userId, theme: C, onBack }) {
             setViewerRole(page.viewerRole || null);
             const nextMembers = Array.isArray(page.members) ? page.members : [];
             const nextCount = Number.isFinite(Number(page.memberCount)) ? Number(page.memberCount) : nextMembers.length;
+            state.current.members = nextMembers;
             setMembers(nextMembers);
             setMemberCount(nextCount);
             setRoleCounts(normalizeRoleCounts(page.roleCounts, nextCount));

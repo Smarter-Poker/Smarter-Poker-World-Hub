@@ -242,6 +242,7 @@ jobs:
           __tests__/messenger-callers-use-the-route-method.test.mjs
           __tests__/club-notice-board.test.mjs
           __tests__/club-notice-board-component.test.mjs
+          __tests__/payout-owner-notifications-and-notice-board.law.test.mjs
           __tests__/messenger-send-reliability.test.mjs
           __tests__/messenger-send-operation.test.mjs
           __tests__/messenger-send-live-safety.test.mjs

@@ -175,9 +175,34 @@ try:
  # Second call is strictly idempotent (at-most-once).
  res_again=json.loads(asuser(OWNER,'SELECT fn_notify_overdue_cashouts(4,200);',role='service_role').splitlines()[-1])
  assert res_again['notified']==0,res_again
+ # Concurrent >4h overdue scans emit strictly one owner notification for a newly aged request.
+ sql('UPDATE cashout_requests SET created_at=updated_at WHERE id='+lit(h_fresh['cashout_id'])+';')
+ decide(h_fresh,AGENT)
+ h_conc=hold('Concurrent overdue scan')
+ sql("UPDATE cashout_requests SET created_at=clock_timestamp()-interval '6 hours' WHERE id="+lit(h_conc['cashout_id'])+';')
+ with ThreadPoolExecutor(max_workers=2) as pool:
+  conc_results=list(pool.map(lambda _:json.loads(asuser(OWNER,'SELECT fn_notify_overdue_cashouts(4,200);',role='service_role').splitlines()[-1]),range(2)))
+ assert sum(r['notified'] for r in conc_results)==1,conc_results
+ assert sql("SELECT count(*) FROM cashout_overdue_owner_notifications WHERE cashout_id="+lit(h_conc['cashout_id'])+';')=='1'
+ # Direct downline player of OWNER (>5h pending) does NOT trigger duplicate cashout_overdue.
+ sql('UPDATE cashout_requests SET created_at=updated_at WHERE id='+lit(h_conc['cashout_id'])+';')
+ decide(h_conc,AGENT)
+ sql('UPDATE club_members SET agent_id='+lit(OWNER)+' WHERE club_id='+lit(C)+' AND user_id='+lit(PLAYER)+';')
+ h_own=hold('Owner direct downline')
+ sql("UPDATE cashout_requests SET created_at=clock_timestamp()-interval '6 hours' WHERE id="+lit(h_own['cashout_id'])+';')
+ res_own=json.loads(asuser(OWNER,'SELECT fn_notify_overdue_cashouts(4,200);',role='service_role').splitlines()[-1])
+ assert res_own['notified']==0,res_own
+ sql('UPDATE cashout_requests SET created_at=updated_at WHERE id='+lit(h_own['cashout_id'])+';')
+ a_own=decide(h_own,OWNER,'release')
+ aud_own=json.loads(sql('SELECT to_jsonb(audience_user_ids) FROM accounting_cashier_events WHERE id='+lit(a_own['event_id'])+';'))
+ assert sorted(aud_own)==sorted([PLAYER,OWNER]),aud_own
+ sql('UPDATE club_members SET agent_id='+lit(AGENT)+' WHERE club_id='+lit(C)+' AND user_id='+lit(PLAYER)+';')
+ # Re-seed an overdue request so Notice Board overduePayouts read is also verified below.
+ h_fresh=hold('Pending for Notice Board overdue list')
+ sql("UPDATE cashout_requests SET created_at=clock_timestamp()-interval '5 hours' WHERE id="+lit(h_fresh['cashout_id'])+';')
  # Authenticated role cannot invoke fn_notify_overdue_cashouts.
  asuser(AGENT,'SELECT fn_notify_overdue_cashouts(4,200);',error='permission denied')
- cases.append('unfulfilled >4h downline cashout notifies owner exactly once with Notice Board deep link')
+ cases.append('unfulfilled >4h downline cashout notifies owner exactly once (including concurrent scans) and skips owner direct downline')
  # 3. Telegram-style Notice Board: pin regular club notice, author metadata, roster & roleCounts, overduePayouts, club rename sync.
  pinned_notice=board(OWNER,'create',{'id':op(),'content':'Pinned Club Announcement','status':'notice','is_pinned':True})
  assert pinned_notice['is_pinned'] is True and pinned_notice['author_name'] and pinned_notice['author_role']=='owner',pinned_notice
@@ -189,6 +214,7 @@ try:
  agent_read=board(AGENT,'read')
  assert agent_read['viewerRole']=='agent' and agent_read['overduePayouts']==[] and agent_read['memberCount']==6
  sql("UPDATE clubs SET name='Renamed Kings Club' WHERE id="+lit(C)+';')
+ sql('SELECT fn_sync_club_staff_notice_group('+lit(C)+');')
  assert sql('SELECT sc.group_name FROM club_messenger_staff_notice_groups g JOIN social_conversations sc ON sc.id=g.conversation_id WHERE g.club_id='+lit(C)+';')=='Renamed Kings Club - Notice Board'
  cases.append('Telegram Notice Board pins regular notices, enriches author/roster/roleCounts/overduePayouts, and syncs club renames')
  print(json.dumps({'passed':True,'cases':cases,'migrations':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(list((R/'supabase/migrations').glob('20261117203*.sql'))+list((R/'supabase/migrations').glob('20261124150500_*.sql')))},'scope':'Actual transition, ledger triggers, receipt/invoice validation; isolated invoice transport fixture; no production writes'}))

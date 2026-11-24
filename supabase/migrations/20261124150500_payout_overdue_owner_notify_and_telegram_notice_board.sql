@@ -256,9 +256,11 @@ BEGIN
 END $function$;
 
 -- 2. At-most-once >4-hour unfulfilled downline payout notification to club owner.
+-- Note: club_id intentionally omits a foreign key onto public.clubs so creating
+-- this table never acquires a lock on the live gameplay clubs table.
 CREATE TABLE public.cashout_overdue_owner_notifications (
   cashout_id uuid PRIMARY KEY REFERENCES public.cashout_requests(id) ON DELETE CASCADE,
-  club_id uuid NOT NULL REFERENCES public.clubs(id),
+  club_id uuid NOT NULL,
   owner_id uuid NOT NULL,
   assigned_agent_id uuid NOT NULL,
   player_id uuid NOT NULL,
@@ -308,6 +310,7 @@ BEGIN
     WHERE cr.status = 'pending'
       AND cr.created_at <= v_cutoff
       AND c.owner_id IS NOT NULL
+      AND cr.agent_id IS NOT NULL
       AND cr.agent_id IS DISTINCT FROM c.owner_id
       AND NOT EXISTS (
         SELECT 1 FROM public.cashout_overdue_owner_notifications n
@@ -425,12 +428,6 @@ BEGIN
  AND NOT EXISTS(SELECT 1 FROM public.social_conversation_participants p WHERE p.conversation_id=v_conversation AND p.user_id=m.user_id);
 END $function$;
 REVOKE ALL ON FUNCTION public.fn_sync_club_staff_notice_group(uuid) FROM PUBLIC, anon, authenticated, service_role;
-
-DROP TRIGGER IF EXISTS club_staff_notice_owner ON public.clubs;
-CREATE CONSTRAINT TRIGGER club_staff_notice_owner
-  AFTER UPDATE OF owner_id, name ON public.clubs
-  DEFERRABLE INITIALLY DEFERRED
-  FOR EACH ROW EXECUTE FUNCTION public.fn_club_staff_notice_role_event();
 
 -- 5. Enrich notice entries with author display name, avatar, and club role.
 CREATE OR REPLACE FUNCTION public.fn_notice_entry(p_actor uuid, p_notice uuid)
@@ -552,6 +549,7 @@ BEGIN
    JOIN public.clubs c ON c.id = cr.club_id
    WHERE cr.club_id = p_club
      AND cr.status = 'pending'
+     AND cr.agent_id IS NOT NULL
      AND cr.agent_id IS DISTINCT FROM c.owner_id
      AND cr.created_at <= clock_timestamp() - interval '4 hours';
   ELSE
