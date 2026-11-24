@@ -23,44 +23,80 @@ function getSupabase() {
 }
 
 export default async function handler(req, res) {
-  // [Phase 6.1.15] Rate limit writes · prevents enumeration + drain attacks.
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+  res.setHeader('Vary', 'Authorization');
+  if (!['GET', 'POST'].includes(req.method)) {
+    res.setHeader('Allow', 'GET, POST');
+    return res.status(405).json({ error: 'Method not allowed' });
   }
-
+  // [Phase 6.1.15] Rate limit both reads and writes · prevents enumeration + drain attacks.
+  const limit = req.method === 'GET' ? (LIMITS.read || { max: 60, windowMs: 60_000 }) : LIMITS.write;
+  if (!applyRateLimit(req, res, limit)) return;
 
       const supabase = getSupabase();
   try {
       // Auth guard
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'Auth required' });
-      const { user: authUser, error: authErr } = await getServerUserWithFallback(req, supabase);
-      if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
+      const { user: authUser, error: authErr, status: authStatus } = await getServerUserWithFallback(req, supabase);
+      if (authErr || !authUser) {
+          return res.status(authStatus === 503 ? 503 : 401).json({
+              error: authStatus === 503 ? 'Session verification unavailable' : 'Invalid token',
+          });
+      }
       const userId = authUser.id; // Trust JWT, not client-supplied value
 
       if (req.method === 'POST') {
           const { spotId, userAction } = req.body || {};
-          if (!spotId || !userAction) {
+          if (typeof spotId !== 'string' || !spotId.trim() || typeof userAction !== 'string' || !userAction.trim()) {
               return res.status(400).json({ error: 'Missing required fields' });
           }
+          const cleanSpotId = spotId.trim().slice(0, 120);
+          const cleanUserAction = userAction.trim().slice(0, 40);
 
-          let canonical = curatedWeeklySpotById(String(spotId));
+          let canonical = curatedWeeklySpotById(cleanSpotId);
           if (!canonical) {
               const { data, error: spotError } = await supabase
-                  .from('sandbox_weekly_spots').select('id, correct_action').eq('id', spotId).maybeSingle();
-              if (spotError || !data) return res.status(404).json({ error: 'Quiz spot not found' });
+                  .from('sandbox_weekly_spots').select('id, correct_action').eq('id', cleanSpotId).maybeSingle();
+              if (spotError) {
+                  if (spotError.code === '42P01' || spotError.code === 'PGRST205') {
+                      return res.status(503).json(persistenceFailure('Quiz spots are temporarily unavailable.', 'storage_unavailable'));
+                  }
+                  return res.status(503).json(persistenceFailure('Quiz spot lookup failed.', 'read_failed'));
+              }
+              if (!data) return res.status(404).json({ error: 'Quiz spot not found' });
               canonical = data;
           }
           const correctAction = String(canonical.correct_action || '').slice(0, 40);
           if (!correctAction) return res.status(422).json({ error: 'Quiz spot has no answer key' });
-          const isCorrect = gradeAction(userAction, correctAction);
+          const isCorrect = gradeAction(cleanUserAction, correctAction);
 
           try {
+              // Answer-once deduplication per (user_id, scenario_hash) prevents
+              // farming streaks/leaderboard scores by replaying the same spot.
+              const { data: existingAnswer, error: existingErr } = await supabase
+                  .from('sandbox_quiz_results')
+                  .select('id, is_correct, correct_action')
+                  .eq('user_id', userId)
+                  .eq('scenario_hash', cleanSpotId)
+                  .limit(1)
+                  .maybeSingle();
+              if (existingErr && existingErr.code !== '42P01') {
+                  console.warn('Quiz dedup check error:', existingErr);
+              }
+              if (existingAnswer) {
+                  return res.status(200).json(persistedResult({
+                      isCorrect: Boolean(existingAnswer.is_correct),
+                      correctAction: existingAnswer.correct_action || correctAction,
+                      alreadyAnswered: true,
+                  }));
+              }
+
               // Save quiz result
               const { error } = await supabase.from('sandbox_quiz_results').insert({
                   user_id: userId,
-                  scenario_hash: String(spotId).slice(0, 120),
-                  user_action: String(userAction).slice(0, 40),
+                  scenario_hash: cleanSpotId,
+                  user_action: cleanUserAction,
                   correct_action: String(correctAction).slice(0, 40),
                   is_correct: typeof isCorrect === 'boolean' ? isCorrect : null,
               });

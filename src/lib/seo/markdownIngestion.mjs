@@ -646,7 +646,7 @@ export function renderVirtualSandboxMarkdown({ canonicalUrl = 'https://smarter.p
     `> Source: [Virtual Poker Sandbox on Smarter.Poker](${canonicalUrl})`,
     '',
     '## Executive Summary For AI & Search Assistants',
-    'The Smarter.Poker Virtual Sandbox (https://smarter.poker/hub/sandbox) Is An Interactive 3D Poker Simulation Laboratory. Players And Coaches Construct Custom Board Textures, Assign Player Stacks And Holdings, Simulate 10,000 Turn And River Runouts, Model Multiway Pot Equities, And Replay Epic Hands In Real Time In Any Web Browser.',
+    'The Smarter.Poker Virtual Sandbox (https://smarter.poker/hub/personal-assistant/sandbox) Connects Players To Verified GTO Training, Audited Spot Study, Leak Finder, And Club Arena Hand History Analysis In Any Web Browser.',
     '',
     '## Core Capabilities & Features',
     '- **Custom Board & Table Setup**: Configure Stacks, Positions, Hole Cards, And Dealer Button For 2 To 9 Players.',

@@ -21,10 +21,14 @@ function getSupabase() {
 }
 
 export default async function handler(req, res) {
-  // [Phase 6.1.15] Rate limit writes · prevents enumeration + drain attacks.
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+  res.setHeader('Vary', 'Authorization');
+  if (!['GET', 'POST', 'DELETE'].includes(req.method)) {
+    res.setHeader('Allow', 'GET, POST, DELETE');
+    return res.status(405).json({ error: 'Method not allowed' });
   }
+  const limit = req.method === 'GET' ? (LIMITS.read || { max: 60, windowMs: 60_000 }) : LIMITS.write;
+  if (!applyRateLimit(req, res, limit)) return;
 
     try {
         // Extract user from auth header
@@ -32,10 +36,14 @@ export default async function handler(req, res) {
         const token = authHeader?.replace('Bearer ', '');
         if (!token) return res.status(401).json({ error: 'Unauthorized' });
 
-        const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+        const { user: authUser, error: authErr, status: authStatus } = await getServerUserWithFallback(req, getSupabase());
 
         const user = authUser;
-        if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+        if (authErr || !user) {
+            return res.status(authStatus === 503 ? 503 : 401).json({
+                error: authStatus === 503 ? 'Session verification unavailable' : 'Invalid token',
+            });
+        }
 
         if (req.method === 'GET') {
             const { data, error } = await getSupabase()

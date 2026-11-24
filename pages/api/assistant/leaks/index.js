@@ -89,7 +89,13 @@ async function readCombinedLeakCounts(userId) {
 }
 
 export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+  res.setHeader('Vary', 'Authorization');
   try {
+    if (!['GET', 'POST', 'PATCH', 'DELETE'].includes(req.method)) {
+      res.setHeader('Allow', 'GET, POST, PATCH, DELETE');
+      return res.status(405).json({ success: false, error: 'Method not allowed' });
+    }
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
     }

@@ -22,11 +22,21 @@ async function latestJob(userId) {
 }
 
 export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+  res.setHeader('Vary', 'Authorization');
   try {
+    if (!['GET', 'POST'].includes(req.method)) {
+      res.setHeader('Allow', 'GET, POST');
+      return res.status(405).json({ success: false, error: 'Method not allowed' });
+    }
     if (!applyRateLimit(req, res, LIMIT)) return;
-    if (!['GET', 'POST'].includes(req.method)) return res.status(405).json({ success: false, error: 'Method not allowed' });
-    const { user, error } = await getServerUserWithFallback(req, db());
-    if (error || !user) return res.status(401).json({ success: false, error: 'Authentication required' });
+    const { user, error, status: authStatus } = await getServerUserWithFallback(req, db());
+    if (error || !user) {
+      return res.status(authStatus === 503 ? 503 : 401).json({
+        success: false,
+        error: authStatus === 503 ? 'Session verification unavailable' : 'Authentication required',
+      });
+    }
 
     if (req.method === 'GET') {
       const { data, error: readError } = await latestJob(user.id);

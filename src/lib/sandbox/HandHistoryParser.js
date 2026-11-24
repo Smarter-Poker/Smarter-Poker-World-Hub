@@ -89,9 +89,10 @@ function detectBigBlind(text) {
         const bb = parseFloat(levelMatch[2].replace(/,/g, ''));
         if (bb > 0) return bb;
     }
-    // Cash: "($0.50/$1.00 USD)" or "(50/100)"
-    const cashMatch = text.match(/\(\s*\$?(\d[\d,.]*)\s*\/\s*\$?(\d[\d,.]*)/);
-    if (cashMatch) {
+    // Cash: "($0.50/$1.00 USD)" or "(€0.50/€1.00 EUR)" or "(50/100)"
+    // Exclude date headers like "(2026/11/24 ...)" by requiring no 4-digit year and no trailing "/DD".
+    const cashMatch = text.match(/\(\s*[$€£]?(\d[\d,.]*)\s*\/\s*[$€£]?(\d[\d,.]*)(?!\s*\/)/);
+    if (cashMatch && !(cashMatch[1].length === 4 && Number(cashMatch[1]) >= 1990 && Number(cashMatch[1]) <= 2100)) {
         const bb = parseFloat(cashMatch[2].replace(/,/g, ''));
         if (bb > 0) return bb;
     }
@@ -133,7 +134,7 @@ function parseAllActions(text, positionOf = {}) {
         const line = rawLine.trim();
         if (!line) continue;
 
-        const streetHeader = line.match(/\*\*\*\s*(FLOP|TURN|RIVER)\s*\*\*\*/i);
+        const streetHeader = line.match(/\*\*\*\s*(?:FIRST\s+)?(FLOP|TURN|RIVER)\s*\*\*\*/i);
         if (streetHeader) {
             street = streetHeader[1].toLowerCase();
             continue;
@@ -149,7 +150,8 @@ function parseAllActions(text, positionOf = {}) {
         if (verb === 'folds') action = 'fold';
         else if (verb === 'checks') action = 'check';
         else if (verb === 'calls') action = 'call';
-        else action = 'raise'; // bets | raises
+        else if (verb === 'bets') action = 'bet';
+        else action = 'raise';
 
         // PokerStars writes all-ins as "raises $X to $Y and is all-in".
         if (/and is all[- ]?in/i.test(line)) action = 'allin';
@@ -230,18 +232,21 @@ function parsePokerStars(text) {
         result.heroHand = { card1: heroCards[0], card2: heroCards[1] };
     }
 
-    // Parse seats: "Seat 3: Hero ($512.30 in chips)"
-    const seatLines = text.match(/Seat \d+: .+/g) || [];
+    // Parse seats ONLY from the header before HOLE CARDS / SUMMARY so
+    // "*** SUMMARY *** Seat 3: Hero (button) showed [Ah Kd] and won ($15)"
+    // never creates phantom seats or overwrites starting stacks.
+    const seatSection = text.split(/\*\*\*\s*(?:HOLE CARDS|SUMMARY)\s*\*\*\*/i)[0] || text;
+    const seatLines = seatSection.match(/Seat \d+: .+/g) || [];
     const seats = {};
     for (const line of seatLines) {
-        const m = line.match(/Seat (\d+): (.+?) \(\s*\$?([\d,.]+)/);
+        const m = line.match(/Seat (\d+): (.+?) \(\s*[$€£]?([\d,.]+)/);
         if (m) {
             seats[m[2].trim()] = { seat: parseInt(m[1], 10), stack: parseFloat(m[3].replace(/,/g, '')) };
         }
     }
 
     // Detect button seat
-    const btnMatch = text.match(/Seat #(\d+) is the button/i);
+    const btnMatch = seatSection.match(/Seat #(\d+) is the button/i);
     const btnSeat = btnMatch ? parseInt(btnMatch[1], 10) : null;
 
     const positionOf = assignSeats(result, seats, btnSeat, heroName, bbSize);
@@ -252,10 +257,10 @@ function parsePokerStars(text) {
         result.heroPosition = normalizePosition(labelled?.[1]) || null;
     }
 
-    // Parse board
-    const flopMatch = text.match(/\*\*\* FLOP \*\*\*[^[]*\[(.+?)\]/i);
-    const turnMatch = text.match(/\*\*\* TURN \*\*\* .+? \[(.+?)\]/i);
-    const riverMatch = text.match(/\*\*\* RIVER \*\*\* .+? \[(.+?)\]/i);
+    // Parse board (supports standard PokerStars, single-bracket turn/river, and GGPoker FIRST FLOP/TURN/RIVER)
+    const flopMatch = text.match(/\*\*\*\s*(?:FIRST\s+)?FLOP\s*\*\*\*[^[\n]*\[([^\]]+)\]/i);
+    const turnMatch = text.match(/\*\*\*\s*(?:FIRST\s+)?TURN\s*\*\*\*[^[\n]*(?:\[[^\]]+\]\s*)?\[([^\]]+)\]/i);
+    const riverMatch = text.match(/\*\*\*\s*(?:FIRST\s+)?RIVER\s*\*\*\*[^[\n]*(?:\[[^\]]+\]\s*)?\[([^\]]+)\]/i);
 
     if (flopMatch) result.board.flop = parseCards(flopMatch[1]).slice(0, 3);
     if (turnMatch) result.board.turn = parseCards(turnMatch[1])[0] || null;
@@ -294,11 +299,12 @@ function parse888(text) {
         result.heroHand = { card1: heroCards[0], card2: heroCards[1] };
     }
 
-    // 888 seat lines: "Seat 4: PlayerName ( $124.50 )"
+    // 888 seat lines: "Seat 4: PlayerName ( $124.50 )" — header only (exclude summary)
     const seats = {};
-    const seatLines = text.match(/Seat \d+: .+/g) || [];
+    const seatSection = text.split(/\*\*\s*(?:Dealing down cards|Summary)\s*\*\*/i)[0] || text;
+    const seatLines = seatSection.match(/Seat \d+: .+/g) || [];
     for (const line of seatLines) {
-        const m = line.match(/Seat (\d+): (.+?) \(\s*\$?([\d,.]+)/);
+        const m = line.match(/Seat (\d+): (.+?) \(\s*[$€£]?([\d,.]+)/);
         if (m) {
             seats[m[2].trim()] = { seat: parseInt(m[1], 10), stack: parseFloat(m[3].replace(/,/g, '')) };
         }
@@ -354,6 +360,7 @@ function parse888Actions(text, positionOf = {}) {
         if (verb === 'folds') action = 'fold';
         else if (verb === 'checks') action = 'check';
         else if (verb === 'calls') action = 'call';
+        else if (verb === 'bets') action = 'bet';
         else action = 'raise';
 
         if (/all[- ]?in/i.test(line)) action = 'allin';

@@ -39,9 +39,6 @@ export default async function handler(req, res) {
 
       const supabase = getSupabase();
 
-      // Weekly spot is static, refreshed once/day · cache 1 hour at edge
-      res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');
-
       try {
           // Try to fetch from DB first · getSupabase() already falls back to the
           // anon key, so no env guard is needed (and referencing undefined env
@@ -60,6 +57,7 @@ export default async function handler(req, res) {
           }
 
           if (!error && data && data.length > 0) {
+              res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');
               return res.status(200).json({ spot: data[0], source: 'database' });
           }
 
@@ -67,9 +65,15 @@ export default async function handler(req, res) {
           const weekNum = Math.floor((Date.now() - new Date('2026-01-01T00:00:00Z').getTime()) / (7 * 24 * 60 * 60 * 1000));
           const spot = CURATED_SPOTS[((weekNum % CURATED_SPOTS.length) + CURATED_SPOTS.length) % CURATED_SPOTS.length];
 
-          return res.status(200).json({ spot, source: 'curated' });
+          // Never CDN-cache transient DB error fallbacks for an hour.
+          res.setHeader(
+              'Cache-Control',
+              error ? 'no-store' : 'public, s-maxage=3600, stale-while-revalidate=7200',
+          );
+          return res.status(200).json({ spot, source: error ? 'fallback' : 'curated' });
       } catch (err) {
           console.warn('Weekly spot error:', err);
+          res.setHeader('Cache-Control', 'no-store');
           // Always return a spot, even on error
           return res.status(200).json({ spot: CURATED_SPOTS[0], source: 'fallback' });
       }

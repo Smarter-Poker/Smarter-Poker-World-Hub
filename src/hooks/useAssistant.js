@@ -736,16 +736,22 @@ export function useBookmarks(limit = 15, authState) {
         ? (authUserId ? { id: authUserId } : null)
         : getAuthUser();
 
+      const safeJsonParse = (raw, fallback) => {
+        if (typeof raw !== 'string') return raw ?? fallback;
+        try { return JSON.parse(raw); } catch { return fallback; }
+      };
+
       if (!user) {
         if (typeof window !== 'undefined') {
-          const stored = JSON.parse(localStorage.getItem('sandbox_bookmarks') || '[]');
+          const parsedStore = safeJsonParse(localStorage.getItem('sandbox_bookmarks') || '[]', []);
+          const stored = Array.isArray(parsedStore) ? parsedStore : [];
           const formatted = stored.slice(0, limit).map(b => ({
             ...b,
             title: b.label || 'Saved Scenario',
             stack: `${b.hero_stack || 100}BB`,
             type: 'bookmark',
-            villain_config: typeof b.villains === 'string' ? JSON.parse(b.villains) : b.villains,
-            action_history: typeof b.action_history === 'string' ? JSON.parse(b.action_history) : b.action_history,
+            villain_config: safeJsonParse(b.villains, []),
+            action_history: safeJsonParse(b.action_history, []),
           }));
           if (requestId === requestIdRef.current) setBookmarks(formatted);
         } else {
@@ -780,8 +786,8 @@ export function useBookmarks(limit = 15, authState) {
           board_flop: b.board_flop,
           board_turn: b.board_turn,
           board_river: b.board_river,
-          villain_config: typeof b.villains === 'string' ? JSON.parse(b.villains) : b.villains,
-          action_history: typeof b.action_history === 'string' ? JSON.parse(b.action_history) : b.action_history,
+          villain_config: safeJsonParse(b.villains, []),
+          action_history: safeJsonParse(b.action_history, []),
           pot_size_bb: b.pot_size_bb,
         }));
         setBookmarks(formatted);
