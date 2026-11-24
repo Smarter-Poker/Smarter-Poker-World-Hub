@@ -22,6 +22,10 @@ import {
     customTrainingConfigFromQuery,
     isCanonicalTrainingGameId,
 } from '../../../../src/lib/training/customTrainingLaunchContract.mjs';
+import {
+    evaluateTrainingSpotWithHorseBrain,
+    buildCustomTrainingArenaHref,
+} from '../../../../src/lib/training/horseBrainTrainingAdapter';
 
 const GodModeArena = dynamic(() => import('../../../../src/components/training/GodModeArena'), {
     ssr: false,
@@ -232,10 +236,56 @@ export default function TrainingArenaPage() {
         : null;
     const gameName = game?.name || 'Training Game';
     const level = parseInt(queryLevel, 10) || 1;
+    const activeArenaVariant = typeof router.query.variant === 'string' && ['nlh', 'plo4', 'plo5', 'plo6'].includes(router.query.variant.trim().toLowerCase())
+        ? router.query.variant.trim().toLowerCase()
+        : 'nlh';
+
+    const arenaBrainPreview = useMemo(() => {
+        const heroCards = activeArenaVariant === 'plo6'
+            ? ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d']
+            : activeArenaVariant === 'plo5'
+                ? ['As', 'Ks', 'Qh', 'Jh', 'Td']
+                : activeArenaVariant === 'plo4'
+                    ? ['As', 'Ks', 'Qh', 'Jh']
+                    : ['As', 'Kd'];
+        return evaluateTrainingSpotWithHorseBrain({
+            variant: activeArenaVariant,
+            street: 'flop',
+            heroPosition: 'BTN',
+            villainPosition: 'BB',
+            heroCards,
+            boardCards: ['Qs', '7d', '2c'],
+            potSizeBb: 12,
+            facingBetBb: 4,
+            effectiveStackBb: 100,
+        });
+    }, [activeArenaVariant]);
+
+    const arenaCanonicalHref = useMemo(() => {
+        return buildCustomTrainingArenaHref(
+            {
+                gameId: typeof gameId === 'string' ? gameId : 'cash-001',
+                format: 'cash',
+                variant: activeArenaVariant,
+                streets: ['flop'],
+                positions: ['BTN'],
+                stackDepth: 100,
+            },
+            typeof router.query.source === 'string' && router.query.source ? router.query.source : 'training-arena',
+        );
+    }, [gameId, activeArenaVariant, router.query.source]);
 
     // Handle arena exit — return to level selector
     const handleExit = useCallback(() => {
-        router.push(`/hub/training/play/${gameId}`);
+        const exitParams = new URLSearchParams();
+        if (typeof router.query.variant === 'string' && router.query.variant) {
+            exitParams.set('variant', router.query.variant);
+        }
+        if (typeof router.query.source === 'string' && router.query.source) {
+            exitParams.set('source', router.query.source);
+        }
+        const qs = exitParams.toString();
+        router.push(qs ? `/hub/training/play/${gameId}?${qs}` : `/hub/training/play/${gameId}`);
     }, [router, gameId]);
 
     // Handle session complete
@@ -314,6 +364,12 @@ export default function TrainingArenaPage() {
                 <title>{gameName} - Level {level} | Smarter.Poker GTO Training</title>
                 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
             </Head>
+            <div
+                aria-hidden="true"
+                data-arena-horse-brain-engine={arenaBrainPreview?.engineModule || 'holdem-brain.js'}
+                data-arena-canonical-href={arenaCanonicalHref}
+                style={{ display: 'none' }}
+            />
             {syncedHandId && (
                 <div
                     data-synced-hand-banner="true"

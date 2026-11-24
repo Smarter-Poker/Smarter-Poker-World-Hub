@@ -22,7 +22,12 @@ import { applyDeterministicEnginePatches } from '../../../src/engines/determinis
 // 2026-07-19 engine-audit runtime patches (see that module's header)
 applyDeterministicEnginePatches(deterministicEngine);
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { sanitizeParam, withTiming, reconcileAnswerKey } from '../../../src/utils/trainingApiUtils';
+import {
+  sanitizeParam,
+  withTiming,
+  reconcileAnswerKey,
+  evaluateTrainingSpotWithHorseBrain,
+} from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { filterCachedRowsForGame } from '../../../src/lib/training/cacheContract.mjs';
 import { enforceTrainingQuestionContract, isTrainingQuestionValid } from '../../../src/lib/training/questionContract.mjs';
@@ -54,6 +59,63 @@ import {
   cacheRowIsServingEligible,
   withPersistedCacheReceipt,
 } from '../../../src/lib/training/cacheTruthPersistence.mjs';
+
+function applyHorseBrainEnrichment(question, { gameId, level, variant } = {}) {
+  if (!question || typeof question !== 'object') return question;
+  const scenario = question.scenario && typeof question.scenario === 'object'
+    ? question.scenario
+    : {};
+  if (scenario.brainEvaluation?.engineModule) return question;
+  const resolvedVariant = variant
+    || scenario.variant
+    || (['cash-005', 'cash-015', 'mtt-018'].includes(String(gameId)) ? 'plo4' : 'nlh');
+  if (typeof evaluateTrainingSpotWithHorseBrain !== 'function') {
+    return question;
+  }
+  try {
+    const brainEval = evaluateTrainingSpotWithHorseBrain({
+      gameId,
+      variant: resolvedVariant,
+      street: scenario.street || 'flop',
+      heroCards: Array.isArray(question.heroCards) && question.heroCards.length > 0
+        ? question.heroCards
+        : undefined,
+      boardCards: Array.isArray(question.boardCards)
+        ? question.boardCards
+        : Array.isArray(scenario.boardCards)
+          ? scenario.boardCards
+          : undefined,
+      heroPosition: scenario.heroPosition || 'BTN',
+      villainPosition: scenario.villainPosition || 'BB',
+      pot: scenario.pot,
+      toCall: scenario.toCall,
+      stackDepth: scenario.stackDepth || scenario.heroStack || 100,
+      isPKO: Boolean(scenario.isPKO),
+      bountyBb: scenario.bountyBb,
+      isICM: Boolean(scenario.isICM),
+      bubbleFactor: scenario.bubbleFactor,
+      villainStats: scenario.villainStats,
+    });
+    if (!brainEval?.ok) return question;
+    return {
+      ...question,
+      scenario: {
+        ...scenario,
+        variant: resolvedVariant,
+        holeCardCount: Array.isArray(question.heroCards)
+          ? question.heroCards.length
+          : (resolvedVariant === 'plo6' ? 6 : resolvedVariant === 'plo5' ? 5 : resolvedVariant === 'plo4' ? 4 : 2),
+        bettingStructure: String(resolvedVariant).startsWith('plo') ? 'pot_limit' : 'no_limit',
+        brainEvaluation: brainEval.brainEvaluation,
+        madeHandCategory: scenario.madeHandCategory || brainEval.madeHandCategory,
+        potLimitSizing: scenario.potLimitSizing || brainEval.potLimitSizing,
+      },
+      level: level ?? question.level,
+    };
+  } catch (_enrichErr) {
+    return question;
+  }
+}
 
 // ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
 let _supabase = null;
@@ -97,8 +159,13 @@ export default async function handler(req, res) {
       gameMode: rawGameMode,
       handSelection: rawHandSelection,
       targetStreet: rawTargetStreet,
+      variant: rawVariant,
     } = req.query;
     const gameId = sanitizeParam(rawGameId, 100);
+    const normalizedRawVariant = sanitizeParam(rawVariant, 16)?.toLowerCase() || '';
+    const requestedVariant = ['nlh', 'plo4', 'plo5', 'plo6'].includes(normalizedRawVariant)
+      ? normalizedRawVariant
+      : null;
     const level = Math.min(12, Math.max(1, parseInt(rawLevel, 10) || 1));
     const engineType = ['PIO', 'CHART', 'SCENARIO'].includes(rawEngine) ? rawEngine : 'PIO';
     const difficulty = ['beginner', 'standard', 'expert', 'simple', 'grouped', 'exact'].includes(String(rawDifficulty).toLowerCase())
@@ -121,7 +188,12 @@ export default async function handler(req, res) {
         code: 'TRAINING_ATTEMPT_SELECTION_INVALID',
       });
     }
-    const attemptSelection = { gameMode, handSelection, targetStreet };
+    const attemptSelection = {
+      gameMode,
+      handSelection,
+      targetStreet,
+      ...(requestedVariant ? { variant: requestedVariant } : {}),
+    };
     const handOrdinal = Math.min(
       trainingMasteryMinimum(level),
       Math.max(1, Number.parseInt(rawHandOrdinal, 10) || 1),
@@ -221,9 +293,16 @@ export default async function handler(req, res) {
           userId,
           delivery: recovered,
         });
+        const recoveredQuestion = (requestedVariant || ['cash-005', 'cash-015', 'mtt-018'].includes(gameId))
+          ? applyHorseBrainEnrichment(recovered.questions[0], {
+              gameId,
+              level,
+              variant: requestedVariant || undefined,
+            })
+          : recovered.questions[0];
         return res.status(200).json({
           success: true,
-          question: recovered.questions[0],
+          question: recoveredQuestion,
           level,
           sessionId: trainingSessionId,
           attemptId: recovered.attemptId,
@@ -236,59 +315,57 @@ export default async function handler(req, res) {
       }
 
       // ═══════════════════════════════════════════════════════════════════
-      // STEP 2: GET SEEN QUESTIONS (No-Repeat Logic)
-      // ═══════════════════════════════════════════════════════════════════
-      let seenQuestionIds = [];
-      if (userId) {
-        try {
-          const { data: seen } = await runTrainingPersistenceQuery(
-            () => getSupabase()
-              .from('user_seen_questions')
-              .select('question_id')
-              .eq('user_id', userId)
-              .eq('game_id', gameId)
-              .limit(100),
-            { label: 'GetQuestion:seen-read' },
-          );
-          seenQuestionIds = (seen || []).map((s) => s.question_id);
-        } catch (seenError) {
-          // Seen history is an optimization, not grading truth. Bound the wait
-          // and continue without de-duplication rather than hanging delivery.
-          console.warn('[Training] Seen history unavailable; continuing without exclusion:', seenError.message);
-        }
-      }
-
-      // ═══════════════════════════════════════════════════════════════════
-      // STEP 3: CACHED QUESTIONS — PRIMARY SOURCE (Phase 92 reorder)
+      // STEP 2 & 3: PARALLEL SEEN QUESTIONS & CACHED QUESTIONS READ
       // ═══════════════════════════════════════════════════════════════════
       // Cache rows are the canonical truth: pre-rebalanced (Phase 77/78/79/80
       // pedagogical curve), pre-enriched (Phase 83/88 contextual explanations),
       // and pre-validated (Phase 82 integrity audit: 0 issues across 27,413 rows).
       // Fresh-from-solver regeneration loses all of that pedagogical work, so
       // we try cache FIRST and fall back to engines only on cache miss.
+      let seenQuestionIds = [];
       let question = null;
       let canonicalPayload = null;
 
       {
-        let cachedQuestions;
-        try {
-          const cachedResult = await runTrainingPersistenceQuery(
-            () => getSupabase()
-              .from('training_question_cache')
-              .select('id, question_data, question_id, engine_type, question_kind, canonical_policy, source_classification, quality_status, policy_version, policy_checksum, generated_at, source_created_at')
-              .eq('game_id', gameId)
-              .eq('level', level)
-              .in('quality_status', ['active', 'active_fallback'])
-              .limit(50),
-            { label: 'GetQuestion:cache-read' },
-          );
-          cachedQuestions = cachedResult.data;
-        } catch (cacheError) {
-          if (isTrainingPersistenceUnavailable(cacheError)) {
+        const seenPromise = userId
+          ? runTrainingPersistenceQuery(
+              () => getSupabase()
+                .from('user_seen_questions')
+                .select('question_id')
+                .eq('user_id', userId)
+                .eq('game_id', gameId)
+                .limit(100),
+              { label: 'GetQuestion:seen-read' },
+            ).catch((seenError) => {
+              // Seen history is an optimization, not grading truth. Bound the wait
+              // and continue without de-duplication rather than hanging delivery.
+              console.warn('[Training] Seen history unavailable; continuing without exclusion:', seenError.message);
+              return { data: [] };
+            })
+          : Promise.resolve({ data: [] });
+
+        const cachePromise = runTrainingPersistenceQuery(
+          () => getSupabase()
+            .from('training_question_cache')
+            .select('id, question_data, question_id, engine_type, question_kind, canonical_policy, source_classification, quality_status, policy_version, policy_checksum, generated_at, source_created_at')
+            .eq('game_id', gameId)
+            .eq('level', level)
+            .in('quality_status', ['active', 'active_fallback'])
+            .limit(50),
+          { label: 'GetQuestion:cache-read' },
+        ).then((cachedResult) => ({ data: cachedResult?.data, error: null }))
+          .catch((cacheError) => ({ data: null, error: cacheError }));
+
+        const [seenOutcome, cacheOutcome] = await Promise.all([seenPromise, cachePromise]);
+        seenQuestionIds = (seenOutcome?.data || []).map((s) => s.question_id);
+
+        if (cacheOutcome.error) {
+          if (isTrainingPersistenceUnavailable(cacheOutcome.error)) {
             return res.status(503).json(trainingPersistenceUnavailableBody());
           }
-          throw cacheError;
+          throw cacheOutcome.error;
         }
+        const cachedQuestions = cacheOutcome.data;
 
         // roadmap #16 -- same declared-street rule the batch route applies. The
         // cache is the primary source here too (Phase 92 reorder), so a game
@@ -337,7 +414,10 @@ export default async function handler(req, res) {
       // ═══════════════════════════════════════════════════════════════════
       // STEP 4: DETERMINISTIC ENGINE — FALLBACK (cache miss only)
       // ═══════════════════════════════════════════════════════════════════
-      const pioConfig = pioQueryService.getGameConfig(gameId);
+      const basePioConfig = pioQueryService.getGameConfig(gameId);
+      const pioConfig = requestedVariant && basePioConfig
+        ? { ...basePioConfig, variant: requestedVariant }
+        : basePioConfig;
       const scenarioConfig = getGameScenarioConfig(gameId);
 
       if (!question && pioConfig) {
@@ -494,7 +574,14 @@ export default async function handler(req, res) {
         }
         return res.status(503).json(trainingPersistenceUnavailableBody());
       }
-      const servedQuestion = delivery.questions[0];
+      let servedQuestion = delivery.questions[0];
+      if (requestedVariant || ['cash-005', 'cash-015', 'mtt-018'].includes(gameId)) {
+        servedQuestion = applyHorseBrainEnrichment(servedQuestion, {
+          gameId,
+          level,
+          variant: requestedVariant || undefined,
+        });
+      }
       try {
         await recordTrainingQuestionsServedForAttempt(getSupabase(), {
           userId,
