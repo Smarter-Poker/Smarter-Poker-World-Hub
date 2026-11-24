@@ -328,9 +328,9 @@ export function getSeoTelemetrySnapshot({ includeRecent = false } = {}) {
         ],
       },
       surface_counts: {
-        embeddable_calculators: 41,
-        mcp_tools: 55,
-        streamer_chat_commands: 34,
+        embeddable_calculators: 50,
+        mcp_tools: 70,
+        streamer_chat_commands: 44,
         svg_research_charts: 15,
         ics_calendar_feeds: 11,
         svg_attribution_badges: 16,

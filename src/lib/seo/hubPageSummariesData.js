@@ -1127,8 +1127,414 @@ export const HUB_PAGE_SUMMARIES = {
       { name: 'Live Cash Rake Calculator', href: '/tools/rake-calculator', text: 'Compare International Rake Caps And Time Collections.' },
     ],
   },
+  'learn-formulas': {
+    heading: 'About The Poker Math Formulas And Equations Encyclopedia',
+    lead:
+      'The Poker Math Formulas Encyclopedia Documents The Fifteen Core Algebraic Invariants Behind Game Theory Optimal Poker: Pot Odds, Minimum Defense Frequency, Expected Value, Stack-To-Pot Ratio, Kelly Criterion, Risk Of Ruin, Malmuth-Harville ICM, Bubble Factor, Bounty Chip Equivalence, Fold Equity, Geometric Bet Sizing, Bluff-To-Value Ratio, Harrington M-Ratio, G-Bucks, And Bayes Range Updating. Free Reference.',
+    links: [
+      { name: 'Pot Odds And MDF Calculator', href: '/tools/pot-odds-calculator', text: 'Verify Breakeven Calling Equity And Minimum Defense Thresholds.' },
+      { name: 'Tournament ICM Calculator', href: '/tools/icm-calculator', text: 'Solve Malmuth-Harville Prize Pool Equities And Bubble Factors.' },
+      { name: 'Geometric Bet Sizing Solver', href: '/tools/geometric-bet-calculator', text: 'Compute 2e And 3e Multi-Street Overbet Fractions.' },
+    ],
+  },
+  'learn-tournament-stages': {
+    heading: 'About The MTT Tournament Stage Strategy Playbooks',
+    lead:
+      'The MTT Tournament Stage Strategy Playbooks Deconstruct Multi-Table Tournament Progression Across Eight Chronological Phases From Level 1 Deepstack Play Through Late Registration Entry, Pre-Bubble Stack Accumulation, Direct Money Bubble Pressure, In-The-Money Laddering, Final Two Tables Reshoving, 9-Handed Final Table ICM Combat, And Heads-Up For The Title. Free Tournament Blueprint.',
+    links: [
+      { name: 'Late-Reg ICM Calculator', href: '/tools/late-reg-calculator', text: 'Measure Instant Dollar Equity Gained By Entering At 15BB To 30BB.' },
+      { name: 'Final Table ICM Simulator', href: '/hub/training/final-table-sim', text: 'Practice Pay-Jump And Deal Decisions Across 9-Max Final Tables.' },
+      { name: 'Push-Fold Nash Calculator', href: '/tools/push-fold-calculator', text: 'Inspect Short-Stack All-In Jamming Ranges By Seat And Stack.' },
+    ],
+  },
+  'learn-leaks': {
+    heading: 'About The Poker Leak Diagnostic And Fix Encyclopedia',
+    lead:
+      'The Poker Leak Diagnostic And Fix Encyclopedia Profiles The Twelve Highest-Cost Expected Value Leaks In Cash Games And Tournaments, Detailing The Exact HUD Symptom Metric, Winrate Cost In Big Blinds Per Hundred Hands, Root Behavioral Cause, And Deterministic GTO Solver Cure Paired With Corrective Drills. Free Diagnostic Guide.',
+    links: [
+      { name: 'Automated Weakness Scanner', href: '/hub/training/weakness-scanner', text: 'Scan Your Graded Training History By Position And Street.' },
+      { name: 'Jarvis Leak Finder', href: '/hub/personal-assistant/leaks', text: 'Run Post-Session Hand Audits For Recurring EV Bleeds.' },
+      { name: 'Poker HUD Stats Hub', href: '/learn/hud-stats', text: 'Compare Your Database Metrics Against 15 GTO Solver Targets.' },
+    ],
+  },
+  'learn-hud-stats': {
+    heading: 'About The Poker HUD Stats And Population Tendencies Encyclopedia',
+    lead:
+      'The Poker HUD Stats Encyclopedia Covers All Fifteen Canonical Tracking Metrics (VPIP, PFR, 3-Bet, Fold-To-3-Bet, 4-Bet, Flop C-Bet, Fold-To-Flop-C-Bet, Turn C-Bet, WTSD, W$SD, WWSF, Aggression Factor, Steal, Fold-BB-To-Steal, And Flop Check-Raise) With Exact 6-Max And 9-Max GTO Targets, Population Averages, Sample Thresholds, And Exploits. Free Analytics Hub.',
+    links: [
+      { name: 'Player Archetype Exploits', href: '/learn/player-types', text: 'Map HUD Stat Profiles To The 8 Canonical Player Archetypes.' },
+      { name: '100BB Preflop Range Matrix', href: '/tools/preflop-ranges', text: 'Inspect Exact 13x13 Opening And 3-Betting Matrices.' },
+      { name: 'Poker Leak Encyclopedia', href: '/learn/leaks', text: 'Fix Your Own Out-Of-Bounds HUD Frequencies.' },
+    ],
+  },
+  'learn-poker-myths-debunked': {
+    heading: 'About Poker Myths Debunked By GTO Solvers',
+    lead:
+      'Poker Myths Debunked By GTO Solvers Fact-Checks Fifteen Widespread Table Folklore Claims Against Counterfactual Regret Minimization Equilibrium And Exact 52-Card Hypergeometric Combinatorics, Disproving Full-Pot Dry-Flop Protection Bets, UTG Small-Pair Limping, Passive Ace-King Flatting, Cold-Calling 3-Bets Out Of Position, And Risk-Averse Bubble Chip-Leader Play Across Live And Online Games. Free Fact-Check Hub.',
+    links: [
+      { name: 'Flop Board Texture Hub', href: '/learn/board-textures', text: 'See Why Dry High-Card Boards Favor Small 33% Range C-Bets.' },
+      { name: '25 All-In Hand Matchups', href: '/learn/matchups', text: 'Verify Exact Combinatorial Equities For Classic Preflop Matchups.' },
+      { name: 'Poker Math Formulas Hub', href: '/learn/formulas', text: 'Review The 15 Algebraic Equations Behind Solver Strategy.' },
+    ],
+  },
+  'learn-format-migration-guide': {
+    heading: 'About The Poker Format Transition And Migration Blueprint',
+    lead:
+      'The Poker Format Migration Blueprint Provides A Structured Mathematical Matrix For Players Transitioning Between Live Full-Ring Cash, Online 6-Max Cash, Multi-Table Tournaments, And Pot-Limit Omaha, Covering Adjustments For Rake Caps, Big Blind Antes, Stack-To-Pot Ratios, ICM Bubble Factors, And Two-Card Omaha Mandates. Free Transition Guide.',
+    links: [
+      { name: 'Best Poker Format Quiz', href: '/tools/format-quiz', text: 'Match Your Bankroll And Schedule To The Ideal Poker Format.' },
+      { name: 'PLO Wrap Outs Calculator', href: '/tools/plo-outs-calculator', text: 'Count Nut Straight Wraps And Flush Redraws In 4-Card And 5-Card PLO.' },
+      { name: 'Live Cash Rake Calculator', href: '/tools/rake-calculator', text: 'Measure How Casino Pot Drop And Time Charges Affect Ranges.' },
+    ],
+  },
+  'authors-index': {
+    heading: 'About The Smarter Poker Editorial And Solver Methodology Team',
+    lead:
+      'The Editorial And Solver Methodology Team Directory Profiles The Four Specialized Research And Verification Desks At Smarter Poker: The Quantitative Solver Desk, Live Venue Intelligence Team, Tournament And ICM Research Group, And AI And MCP Protocol Engineering Desk, Complete With Zenodo DOIs And Audit Protocols. Free Governance Hub.',
+    links: [
+      { name: 'Verification Methodology', href: '/verification-methodology', text: 'Read How Smarter Poker Audits Solver Baselines And Venue Records.' },
+      { name: 'Original Poker Research', href: '/research', text: 'Explore First-Party Quantitative Studies And Open Datasets.' },
+      { name: 'Decision Matrix', href: '/compare/decision-matrix', text: 'Review 20 Quantitative Best-X-For-Y Tool And Market Selections.' },
+    ],
+  },
+  'compare-decision-matrix': {
+    heading: 'About The Poker Decision And Recommendation Matrix',
+    lead:
+      'The Poker Decision And Recommendation Matrix Evaluates Twenty Specific Player Personas And Scenarios To Recommend The Optimal Calculator, GTO Trainer, Live Tax Jurisdiction, Bankroll Tracker, Venue Operating System, Or AI MCP Endpoint, Complete With Explicit Selection Criteria, Quantitative Justifications, And Runner-Up Comparisons. Free Decision Guide.',
+    links: [
+      { name: 'All 30 Comparison Reports', href: '/compare', text: 'Read Full Side-By-Side Feature And Pricing Comparisons.' },
+      { name: '52 Free Poker Calculators', href: '/tools', text: 'Launch Every Browser-Native Solver And Table Utility Instantly.' },
+      { name: 'Editorial Audit Desks', href: '/authors', text: 'Meet The 4 Quantitative And Venue Verification Teams.' },
+    ],
+  },
+  'tools-multiway-all-in-calculator': {
+    heading: 'About The 3-Way And 4-Way Multiway All-In Main And Side-Pot EV Calculator',
+    lead:
+      'The 3-Way And 4-Way Multiway All-In Pot And Side-Pot Expected Value Calculator Slices Unequal Player Chip Commitments Into A Main Pot And Sequential Side Pots With Dead-Money Allocation, Computing Exact Dollar And Chip Expected Value, Breakeven Equity Thresholds, And Uncalled Overbet Returns Across Complex Multiway Showdowns. Free Multiway Solver.',
+    metrics: [
+      { label: 'Supported All-In Way Count', value: '3-Way & 4-Way Showdowns' },
+      { label: 'Pot Slicing Method', value: 'Main Pot + Sequential Side Pots' },
+      { label: 'Core Equation', value: 'EV = P_main*Main + P_side*Side - Risk' },
+    ],
+    links: [
+      { name: 'Multi-Way Side Pot Calculator', href: '/tools/side-pot-calculator', text: 'Split Main And Side Pots For Up To 9 All-In Players.' },
+      { name: 'Multiway Poker Odds Calculator', href: '/tools/poker-odds-calculator', text: 'Simulate Exact 3-Way And 4-Way Holdem And PLO Equities.' },
+      { name: 'Pot Odds And MDF Calculator', href: '/tools/pot-odds-calculator', text: 'Verify Heads-Up Calling Equity And Minimum Defense Thresholds.' },
+    ],
+  },
+  'tools-mystery-bounty-tracker': {
+    heading: 'About The Live Mystery Bounty Pool Tracker And Envelope EV Calculator',
+    lead:
+      'The Live Mystery Bounty Pool Tracker Dynamically Recalculates Remaining Unopened Envelope Expected Value As Prizes Are Pulled On Day 2, Converting Average Envelope Dollar Value Into Starting-Stack Chip Equivalence, Top-Chest Hit Probability, And Adjusted All-In Calling Equity Thresholds For Covering Stacks. Free Tournament Bounty Tool.',
+    metrics: [
+      { label: 'Core Valuation Model', value: 'Remaining Pool / Live Envelopes' },
+      { label: 'Chip Conversion Basis', value: 'Avg Envelope EV To Starting Stack' },
+      { label: 'Top-Prize Tracking', value: 'Live Hypergeometric Draw Odds' },
+    ],
+    links: [
+      { name: 'PKO And Bounty Calculator', href: '/tools/bounty-calculator', text: 'Compute Progressive Knockout Bounty Power Factors And Chip Discounts.' },
+      { name: 'Tournament ICM Calculator', href: '/tools/icm-calculator', text: 'Balance Final Table Survival Pressure Against Bounty Hunting.' },
+      { name: 'MTT Tournament Stages Hub', href: '/learn/tournament-stages', text: 'Master In-The-Money And Mystery Bounty Phase Adjustments.' },
+    ],
+  },
+  'tools-bubble-factor-calculator': {
+    heading: 'About The Tournament ICM Bubble Factor And Risk Premium Matrix Calculator',
+    lead:
+      'The Tournament ICM Bubble Factor And Risk Premium Matrix Calculator Uses Recursive Malmuth-Harville Prize Pool Equities To Compute Pairwise Bubble Factors (Dollar Equity Lost Divided By Dollar Equity Gained), ICM Risk Premium Percentages, And Exact All-In Calling Equity Thresholds Across Every Seat Collision At A Final Table. Free ICM Tool.',
+    metrics: [
+      { label: 'Bubble Factor Formula', value: 'BF = DollarEV_Lost / DollarEV_Gained' },
+      { label: 'Required All-In Equity', value: 'Eq_Req = BF / (BF + 1)' },
+      { label: 'Typical Final Table Range', value: '1.25x Short To 3.80x+ Mid-Stack' },
+    ],
+    links: [
+      { name: 'Tournament ICM Calculator', href: '/tools/icm-calculator', text: 'Convert Full Final Table Chip Counts Into Real Dollar Equities.' },
+      { name: 'Satellite Seat-Bubble Calculator', href: '/tools/satellite-calculator', text: 'Solve Equal-Prize Satellite Survival And AA/KK Fold Thresholds.' },
+      { name: 'Final Table Chop Calculator', href: '/tools/chop-calculator', text: 'Compare Malmuth-Harville ICM Chops Against Chip Chops.' },
+    ],
+  },
+  'tools-bluff-catching-calculator': {
+    heading: 'About The River Bluff-Catching, Minimum Defense Frequency And Blocker EV Calculator',
+    lead:
+      'The River Bluff-Catching And Blocker Expected Value Calculator Evaluates Polarized River Calling Decisions By Combining Pot-Odds Break-Even Bluff Frequency (Alpha), Defender Minimum Defense Frequency (MDF), And Card-Removal Blocker Multipliers That Discount Villain Nut Value Combinations Or Eliminate Missed Flush And Straight Draw Bluffs. Free Postflop Solver.',
+    metrics: [
+      { label: 'Break-Even Bluff Alpha', value: 'Alpha = Bet / (Pot + 2 * Bet)' },
+      { label: 'Minimum Defense (MDF)', value: 'MDF = Pot / (Pot + Bet)' },
+      { label: 'Blocker Card Removal', value: 'Value vs Bluff Combo Ratio Shift' },
+    ],
+    links: [
+      { name: 'Pot Odds And MDF Calculator', href: '/tools/pot-odds-calculator', text: 'Review Standard Bet Sizing Pot Odds And MDF Reference Tables.' },
+      { name: 'Multi-Street Barrel Calculator', href: '/tools/multi-street-ev-calculator', text: 'Analyze Flop-Turn-River Cumulative Fold Equity And Sizing.' },
+      { name: 'Geometric Bet Sizing Solver', href: '/tools/geometric-bet-calculator', text: 'Compute 2e And 3e Polarized River Overbet Jam Lines.' },
+    ],
+  },
+  'tools-multi-street-ev-calculator': {
+    heading: 'About The Multi-Street Flop-Turn-River Barrel And Cumulative Fold Equity Calculator',
+    lead:
+      'The Multi-Street Barrel And Cumulative Fold Equity Calculator Models Street-By-Street Pot Growth, Remaining Stack-To-Pot Ratio Compression, Sequential Villain Call-Through Probability, And Cumulative Double-Barrel And Triple-Barrel Bluff Breakeven Thresholds Across Flop, Turn, And River Betting Lines In Single-Raised, Three-Bet, And Four-Bet Pots For Cash And Tournament Play. Free Postflop Planner.',
+    metrics: [
+      { label: 'Call-Through Formula', value: 'P_SD = (1 - f1)*(1 - f2)*(1 - f3)' },
+      { label: 'Cumulative Fold Equity', value: 'FE_Total = 1 - P_Showdown' },
+      { label: 'Streets Modeled', value: 'Flop, Turn & River Barrel Lines' },
+    ],
+    links: [
+      { name: 'Geometric Bet Sizing Calculator', href: '/tools/geometric-bet-calculator', text: 'Solve Equal Pot-Fraction 2e And 3e All-In Barrel Sizings.' },
+      { name: 'SPR Commitment Calculator', href: '/tools/spr-calculator', text: 'Verify Stack-To-Pot Ratio Zones Before Launching Triple Barrels.' },
+      { name: 'River Bluff-Catching Calculator', href: '/tools/bluff-catching-calculator', text: 'Evaluate River MDF And Card-Removal Blocker Thresholds.' },
+    ],
+  },
+  'tools-heads-up-push-fold-calculator': {
+    heading: 'About The Heads-Up And 3-Max Short-Stack Nash Push/Fold/Limp Equilibrium Solver',
+    lead:
+      'The Heads-Up And 3-Max Short-Stack Nash Equilibrium Solver Computes Unexploitable 1BB-To-25BB Small Blind Open-Shove, Limp-Trap, Limp-Fold, Min-Raise, And Big Blind All-In Calling Ranges Across Zero-Ante Spin-And-Go, Hyper-Turbo Heads-Up Sit-And-Go, And Big-Blind-Ante Multi-Table Tournament Finale Structures With Interactive 13x13 Hand Matrix Charts For Every Stack Depth. Free Short-Stack Chart.',
+    metrics: [
+      { label: 'Solved Stack Depth Window', value: '1 BB To 25 BB Effective' },
+      { label: 'Equilibrium Formats', value: 'Heads-Up (2-Max) & 3-Max Finale' },
+      { label: 'SB Action Branches', value: 'Open-Shove, Limp-Trap & Min-Raise' },
+    ],
+    links: [
+      { name: '6-Max Push/Fold Calculator', href: '/tools/push-fold-calculator', text: 'Compare Full-Table 6-Max And 9-Max Short-Stack Shove Charts.' },
+      { name: 'Blind-Vs-Blind GTO Matrix', href: '/tools/blind-vs-blind-calculator', text: 'Transition To 20BB-100BB Deep SB Vs BB Limp And Raise Strategy.' },
+      { name: '13x13 GTO Preflop Ranges', href: '/tools/preflop-ranges', text: 'Browse Full 100BB 6-Max Opening And 3-Betting Matrices.' },
+    ],
+  },
+  'tools-blind-vs-blind-calculator': {
+    heading: 'About The Blind-Vs-Blind (SB Vs BB) GTO Range And Limp-Raise Matrix Calculator',
+    lead:
+      'The Blind-Vs-Blind GTO Range And Limp-Raise Matrix Calculator Solves Small Blind Versus Big Blind Confrontations When Folded To The Small Blind From 20BB To 100BB Effective Stacks, Detailing SB Limp/Complete Frequencies, SB 3x Open-Raise Shares, BB Isolation-Raise Thresholds, And SB Limp-3-Bet Traps Across Live And Online Rake Regimes. Free BvB Solver.',
+    metrics: [
+      { label: '100BB Low-Rake SB VPIP', value: '54.0% (26.5% Limp / 27.5% Raise)' },
+      { label: '40BB MTT Ante SB VPIP', value: '78.5% (52.0% Limp / 26.5% Raise)' },
+      { label: 'BB Iso-Raise Target', value: '3.5x - 4.0x vs Capped SB Limps' },
+    ],
+    links: [
+      { name: 'Small Blind 100BB GTO Chart', href: '/tools/preflop-ranges/sb', text: 'Inspect The Complete 13x13 Small Blind Opening Matrix.' },
+      { name: 'Heads-Up Nash Push/Fold Solver', href: '/tools/heads-up-push-fold-calculator', text: 'Switch To 1BB-25BB Short-Stack SB Vs BB Nash Charts.' },
+      { name: '9-Seat Position Strategy Hub', href: '/learn/positions', text: 'Compare Small Blind And Big Blind Winrate Benchmarks.' },
+    ],
+  },
+  'tools-shot-taking-calculator': {
+    heading: 'About The Bankroll Shot-Taking, Stake Move-Up And Stop-Loss Ladder Calculator',
+    lead:
+      'The Bankroll Shot-Taking And Stake Move-Up Ladder Calculator Designs A Mathematically Protected Two-Tier Move-Up Plan For Cash Game And Tournament Grinders, Specifying Exact Higher-Stake Shot Buy-In Budgets, Hard Drop-Down Bankroll Floors, Remaining Base-Stake Buy-In Cushions After A Failed Shot, And Combined Brownian Risk Of Ruin. Free Bankroll Tool.',
+    metrics: [
+      { label: 'Recommended Shot Budget', value: '3 To 5 Higher-Stake Buy-Ins' },
+      { label: 'Base Cushion Preserved', value: '30+ Base Buy-Ins On Drop-Down' },
+      { label: 'Target Combined RoR', value: '< 1.0% Brownian Risk Of Ruin' },
+    ],
+    links: [
+      { name: 'Bankroll Risk Of Ruin Calculator', href: '/tools/bankroll-calculator', text: 'Compute Single-Stake Brownian Risk Of Ruin And Variance.' },
+      { name: 'Stake Level Move-Up Hub', href: '/learn/stakes', text: 'Read Full Move-Up Readiness Checklists Across 7 Stake Tiers.' },
+      { name: 'Cash Session Planner', href: '/tools/session-planner', text: 'Project Annual Net Income After Moving Up Stakes.' },
+    ],
+  },
+  'tools-warmup-cooldown-routine': {
+    heading: 'About The Pre-Session Mental Game Warm-Up And Post-Session Cooldown Builder',
+    lead:
+      'The Pre-Session Mental Game Warm-Up And Post-Session Cooldown Builder Evaluates Your Sleep Quality, Emotional Baseline, C-Game Tilt Triggers, And Hard Buy-In Stop-Loss Contract To Generate A 0-To-100 A-Game Readiness Score Before You Sit Down, Paired With A Structured Post-Session Decision Grading Journal. Free Mental Game Utility.',
+    metrics: [
+      { label: 'A-Game Readiness Scale', value: '0 To 100 Diagnostic Score' },
+      { label: 'Pre-Session Duration', value: '3-Minute Checklist & Reset' },
+      { label: 'Stop-Loss Contract', value: '1.5 To 3.0 Buy-Ins Hard Cap' },
+    ],
+    links: [
+      { name: 'Poker Mental Game Guide', href: '/learn/mental-game', text: 'Master The 7 Types Of Tilt And Jared Tendler Logic Injection.' },
+      { name: 'Tilt Guard Emotional Coach', href: '/hub/training/tilt-guard', text: 'Run Mid-Session Breathing And Cognitive Reframing Resets.' },
+      { name: '5-Minute Speed Warmup Drill', href: '/hub/training/quick-warmup', text: 'Calibrate Tactical Decision Speed On 10 Solved Hands.' },
+    ],
+  },
+  'tools-home-game-director': {
+    heading: 'About The Home Game Host Director: Live Waitlist, Seat Draw And Payout Ledger',
+    lead:
+      'The Home Game Host Director Is An All-In-One Browser Console For Private Poker Hosts That Combines Fisher-Yates Cryptographic Table And Seat Randomization, Live Waitlist Management, Initial Buy-In And Rebuy Accounting, Cage Balance Verification (Total Buy-Ins Equal Total Cashouts), And Minimum-Transfer Net Settlement Pairing. Free Host Console.',
+    metrics: [
+      { label: 'Seat Draw Algorithm', value: 'Fisher-Yates Balanced Table Assignment' },
+      { label: 'Ledger Integrity Rule', value: 'Total Buy-Ins == Total Cashouts' },
+      { label: 'Settlement Optimization', value: 'Minimum Pairwise Transfer Graph' },
+    ],
+    links: [
+      { name: 'Home Game Chip Set Calculator', href: '/tools/home-game-kit', text: 'Calculate Optimal 300/500/1000 Chip Denominations And Tubes.' },
+      { name: 'Blind Structure Generator', href: '/tools/blind-structure-calculator', text: 'Generate TDA-Compliant Home Tournament Blind Schedules.' },
+      { name: 'Club Commander Software', href: '/features/club-commander', text: 'Upgrade To Multi-Screen TV Clocks And Two-Way Player SMS.' },
+    ],
+  },
+  'poker-rooms-corridors': {
+    heading: 'About The 10 Major Airport, Interstate And Cross-Border Live Poker Travel Corridors',
+    lead:
+      'The Live Poker Travel Corridors Directory Maps The Ten Highest-Traffic North American Airport, Interstate, And Cross-Border Poker Routes, Connecting Non-Casino Metropolitan Areas To Their Closest Legal Commercial, Tribal, And Social-Membership Cardrooms With Exact Driving Times, Flagship Venues, Rake Caps, And State Tax Rules. Free Travel Hub.',
+    metrics: [
+      { label: 'Indexed Travel Corridors', value: '10 Major Airport & Border Routes' },
+      { label: 'Connected Venue Database', value: '715+ Verified North American Rooms' },
+      { label: 'Routing Coverage', value: 'Drive Times, Airports, Rake & Tax' },
+    ],
+    links: [
+      { name: 'US Regional Poker Market Guides', href: '/poker-rooms/guides', text: 'Deep-Dive Guides To The Top 12 US Live Poker Destinations.' },
+      { name: 'US State Legality & Tax Hub', href: '/poker-rooms/states', text: 'Compare Rake Models And State W-2G Tax Withholding Rules.' },
+      { name: 'Poker Trip Expense Planner', href: '/tools/poker-trip-planner', text: 'Calculate Travel Expense Rake On Planned Trip Buy-Ins.' },
+    ],
+  },
+  'poker-rooms-by-game': {
+    heading: 'About The Live Poker Rooms By Game Variant Directory (PLO, Big O, Mixed And High-Stakes)',
+    lead:
+      'The Live Poker Rooms By Game Variant Directory Groups North America Verified Cardrooms By The Specific Action They Spread Regularly: 4-Card And 5-Card Pot-Limit Omaha (PLO), 5-Card Omaha Hi-Lo (Big O), Fixed-Limit Mixed Games (HORSE / 8-Game / 2-7 Triple Draw), 7-Card Stud, Deepstack $5/$10+ NLH, And Daily Guaranteed MTTs. Free Variant Directory.',
+    metrics: [
+      { label: 'Variant Directories', value: '6 Specialized Game Categories' },
+      { label: 'Verified Room Coverage', value: '715+ North American Venues' },
+      { label: 'Tracked Action Metrics', value: 'Typical Stakes, Caps & Peak Days' },
+    ],
+    links: [
+      { name: '15 Poker Game Variant Rules', href: '/games', text: 'Review Official Dealing Rules And Starting Hands For Every Game.' },
+      { name: 'Mixed Game Rotation Placards', href: '/tools/mixed-game-placards', text: 'Print Table Placards For HORSE, 8-Game And Dealer Choice.' },
+      { name: 'PLO Max Bet & Bomb Pot Solver', href: '/tools/plo-bet-calculator', text: 'Calculate 3x Plus Trail Pot Raises And Double-Board Equity.' },
+    ],
+  },
+  'poker-rooms-security-and-disputes-guide': {
+    heading: 'About The Live Poker Room Security, Floor Dispute Escalation And Angle-Shot Protection Guide',
+    lead:
+      'The Live Poker Room Security And Floor Disputes Guide Details Official TDA And Robert\'s Rules Of Poker Protocols For Protecting Your Hand At Showdown, Requesting Overhead Surveillance Camera Reviews Before The Next Deal, Defending Against Eight Classic Table Angle Shots, And Managing Casino Cage Boxes And FinCEN $10,000 CTR Filings. Free Protection Guide.',
+    metrics: [
+      { label: 'Official Rule Citations', value: '2024/2026 TDA & RROP Standards' },
+      { label: 'Angle Shots Documented', value: '8 Common Live Table Traps & Defenses' },
+      { label: 'Cash Compliance Threshold', value: '$10,000 FinCEN CTR & $5,000 W-2G' },
+    ],
+    links: [
+      { name: '30 Official TDA Floor Rulings', href: '/rules', text: 'Look Up Exact Rulings For String Bets, One-Chip Calls And Showdowns.' },
+      { name: 'Live Poker Tells & Etiquette', href: '/learn/live-poker-tells', text: 'Recognize Physical Timing Tells And Prevent Accidental Angles.' },
+      { name: 'First-Time Live Poker Guide', href: '/poker-rooms/first-time-guide', text: 'Learn Check-In, Chip Colors, Buying In And Tipping Standards.' },
+    ],
+  },
+  'poker-rooms-seasonal-calendar': {
+    heading: 'About The 12-Month Live Poker Series, Circuit And Festival Seasonal Planning Calendar',
+    lead:
+      'The 12-Month Live Poker Seasonal Planning Calendar Maps The Annual Global Tournament And Cash-Game Migration Cycle From January Through December, Highlighting When Liquidity Peaks In South Florida, Los Angeles, Texas, Las Vegas (Summer WSOP And December WPT/WSOP Paradise), Atlantic City, Cherokee, And European EPT Stops. Free Circuit Planner.',
+    metrics: [
+      { label: 'Annual Planning Horizon', value: '12 Months (January - December)' },
+      { label: 'Tracked Weekly Tournaments', value: '4,500+ Recurring & Festival Events' },
+      { label: 'Major Tour Coverage', value: 'WSOP, WPT, MSPT, RGPS, PGT & EPT' },
+    ],
+    links: [
+      { name: '10 Major Series Strategy Guides', href: '/poker-series/guides', text: 'Read Structure Ratings And Late-Reg Strategy For Flagship Tours.' },
+      { name: 'Live Poker Events Calendar', href: '/hub/events-calendar', text: 'Search Dated Tournament Schedules Across North America.' },
+      { name: 'Poker Festival Trip Planner', href: '/tools/poker-trip-planner', text: 'Budget Flights, Lodging And Buy-In Overhead For Any Stop.' },
+    ],
+  },
+  'research-annual-state-of-poker-2026': {
+    heading: 'About The 2026 Annual State Of Live And Online Poker Industry Whitepaper',
+    lead:
+      'The 2026 Annual State Of Live And Online Poker Whitepaper Synthesizes First-Party Quantitative Research Across 715+ Verified North American Cardrooms, 4,500+ Weekly Recurring Tournaments, 15 State Tax And Rake Regimes, And 10 Million Simulated GTO Solver Hand Histories Under CC-BY 4.0 Attribution (Zenodo DOI 10.5281/zenodo.15129481). Free Industry Report.',
+    metrics: [
+      { label: 'Verified Live Venue Sample', value: '715+ North American Poker Rooms' },
+      { label: 'Solver Benchmark Corpus', value: '10,000,000+ CFR Simulated Hands' },
+      { label: 'Archival Citation DOI', value: '10.5281/zenodo.15129481 (CC-BY 4.0)' },
+    ],
+    links: [
+      { name: '15 Empirical Research Studies', href: '/research', text: 'Browse All First-Party Rake, ICM And Solver Benchmark Studies.' },
+      { name: '2026 Master Benchmark Tables', href: '/research/benchmarks', text: 'Inspect Consolidated Rake, Variance, RFI And ICM Data Tables.' },
+      { name: 'Open Datasets & Colab Notebook', href: '/api/datasets/catalog', text: 'Download JSON-LD, BibTeX And Python Jupyter Research Data.' },
+    ],
+  },
+  'research-benchmarks': {
+    heading: 'About The 2026 Master Quantitative Poker Benchmark Tables (Rake, Variance, ICM And GTO)',
+    lead:
+      'The 2026 Master Quantitative Poker Benchmark Tables Consolidate Smarter Poker First-Party Reference Datasets Onto One Citable Page: 6-Max And 9-Max GTO Positional RFI And 3-Bet Frequencies, Format Standard Deviations (BB/100), US Regional Casino Rake Drag (BB/100), Tournament ICM Bubble Factors, And 15 HUD Population Baselines. Free Data Reference.',
+    metrics: [
+      { label: 'Consolidated Data Tables', value: '6 Master Quantitative Matrices' },
+      { label: 'License & Reuse Policy', value: 'CC-BY 4.0 Open Attribution' },
+      { label: 'Archival Citation DOI', value: '10.5281/zenodo.15129481' },
+    ],
+    links: [
+      { name: '2026 State Of Poker Whitepaper', href: '/research/annual-state-of-poker-2026', text: 'Read The Flagship Annual Industry Report And Methodology.' },
+      { name: '15 Empirical Research Reports', href: '/research', text: 'Explore Individual Deep-Dive Studies On Rake, Waitlists And GTO.' },
+      { name: 'Canonical Fact Ledger', href: '/facts', text: 'Verify Platform Entity Counts And Machine-Readable JSON Facts.' },
+    ],
+  },
+  'facts-ledger': {
+    heading: 'About The Smarter Poker Canonical Fact Ledger, Provenance And AI Verification Hub',
+    lead:
+      'The Smarter Poker Canonical Fact Ledger Publishes Authoritative, Machine-Verifiable Platform Counts, Organizational Provenance, Free-To-Play Compliance Disclosures, Explicit Anti-Hallucination Disambiguation Rules, Archival Dataset DOIs (10.5281/zenodo.15129481), And Direct Discovery Endpoints For Generative Search Engines And Large Language Model Agents, Synchronized With /.well-known/ai-facts.json And /api/ai/facts In Real Time. Free Verification Hub.',
+    metrics: [
+      { label: 'Interactive Calculators', value: '52 Deterministic Browser Solvers' },
+      { label: 'Zero-Auth MCP Server', value: '70 Tools / 14 Prompts / 24 Templates' },
+      { label: 'Verified Venue Directory', value: '715+ Live North American Rooms' },
+    ],
+    links: [
+      { name: 'Verification Methodology', href: '/verification-methodology', text: 'Review The 5-Stage Venue And Solver Verification Pipeline.' },
+      { name: 'Editorial & Research Faculty', href: '/authors', text: 'Meet The 4 Specialized Quantitative And Cardroom Audit Desks.' },
+      { name: 'Official Press & Media Kit', href: '/press', text: 'Access Brand Facts, Boilerplate And CC-BY 4.0 Industry Citations.' },
+    ],
+  },
 };
+
+const PATH_ALIAS_ENTRIES = [
+  ['/tools/plo-outs-calculator', 'tools-plo-outs-calculator'],
+  ['/tools/late-reg-calculator', 'tools-late-reg-calculator'],
+  ['/tools/winrate-confidence-calculator', 'tools-winrate-confidence-calculator'],
+  ['/tools/poker-trip-planner', 'tools-poker-trip-planner'],
+  ['/tools/shot-clock', 'tools-shot-clock'],
+  ['/tools/geometric-bet-calculator', 'tools-geometric-bet-calculator'],
+  ['/tools/table-selection-calculator', 'tools-table-selection-calculator'],
+  ['/tools/mtt-grind-planner', 'tools-mtt-grind-planner'],
+  ['/tools/multiway-all-in-calculator', 'tools-multiway-all-in-calculator'],
+  ['/tools/mystery-bounty-tracker', 'tools-mystery-bounty-tracker'],
+  ['/tools/bubble-factor-calculator', 'tools-bubble-factor-calculator'],
+  ['/tools/bluff-catching-calculator', 'tools-bluff-catching-calculator'],
+  ['/tools/multi-street-ev-calculator', 'tools-multi-street-ev-calculator'],
+  ['/tools/heads-up-push-fold-calculator', 'tools-heads-up-push-fold-calculator'],
+  ['/tools/blind-vs-blind-calculator', 'tools-blind-vs-blind-calculator'],
+  ['/tools/shot-taking-calculator', 'tools-shot-taking-calculator'],
+  ['/tools/warmup-cooldown-routine', 'tools-warmup-cooldown-routine'],
+  ['/tools/home-game-director', 'tools-home-game-director'],
+  ['/learn/player-types', 'learn-player-types'],
+  ['/learn/board-textures', 'learn-board-textures'],
+  ['/learn/mental-game', 'learn-mental-game'],
+  ['/learn/poker-as-a-business', 'learn-poker-as-a-business'],
+  ['/poker-rooms/international', 'poker-rooms-international'],
+  ['/learn/formulas', 'learn-formulas'],
+  ['/learn/tournament-stages', 'learn-tournament-stages'],
+  ['/learn/leaks', 'learn-leaks'],
+  ['/learn/hud-stats', 'learn-hud-stats'],
+  ['/learn/poker-myths-debunked', 'learn-poker-myths-debunked'],
+  ['/learn/format-migration-guide', 'learn-format-migration-guide'],
+  ['/authors', 'authors-index'],
+  ['authors', 'authors-index'],
+  ['/compare/decision-matrix', 'compare-decision-matrix'],
+  ['/poker-rooms/corridors', 'poker-rooms-corridors'],
+  ['/poker-rooms/by-game', 'poker-rooms-by-game'],
+  ['/poker-rooms/security-and-disputes-guide', 'poker-rooms-security-and-disputes-guide'],
+  ['/poker-rooms/seasonal-calendar', 'poker-rooms-seasonal-calendar'],
+  ['/research/annual-state-of-poker-2026', 'research-annual-state-of-poker-2026'],
+  ['/research/benchmarks', 'research-benchmarks'],
+  ['/facts', 'facts-ledger'],
+  ['facts', 'facts-ledger'],
+];
+
+const PATH_ALIAS_MAP = new Map(PATH_ALIAS_ENTRIES);
 
 export function getHubPageSummaries() {
   return HUB_PAGE_SUMMARIES;
+}
+
+export function getHubPageSummary(pageOrPath) {
+  if (!pageOrPath) return null;
+  const raw = String(pageOrPath).trim().replace(/\.md$/i, '');
+  if (HUB_PAGE_SUMMARIES[raw]) return HUB_PAGE_SUMMARIES[raw];
+  if (PATH_ALIAS_MAP.has(raw) && HUB_PAGE_SUMMARIES[PATH_ALIAS_MAP.get(raw)]) {
+    return HUB_PAGE_SUMMARIES[PATH_ALIAS_MAP.get(raw)];
+  }
+  const withSlash = raw.startsWith('/') ? raw : `/${raw}`;
+  if (HUB_PAGE_SUMMARIES[withSlash]) return HUB_PAGE_SUMMARIES[withSlash];
+  if (PATH_ALIAS_MAP.has(withSlash) && HUB_PAGE_SUMMARIES[PATH_ALIAS_MAP.get(withSlash)]) {
+    return HUB_PAGE_SUMMARIES[PATH_ALIAS_MAP.get(withSlash)];
+  }
+  const slugified = raw.replace(/^\/+/, '').replace(/\//g, '-');
+  if (HUB_PAGE_SUMMARIES[slugified]) return HUB_PAGE_SUMMARIES[slugified];
+  const parentPath = withSlash.replace(/\/[^/]+$/, '');
+  if (parentPath && parentPath !== withSlash) {
+    if (HUB_PAGE_SUMMARIES[parentPath]) return HUB_PAGE_SUMMARIES[parentPath];
+    if (PATH_ALIAS_MAP.has(parentPath) && HUB_PAGE_SUMMARIES[PATH_ALIAS_MAP.get(parentPath)]) {
+      return HUB_PAGE_SUMMARIES[PATH_ALIAS_MAP.get(parentPath)];
+    }
+    const parentSlugified = parentPath.replace(/^\/+/, '').replace(/\//g, '-');
+    if (HUB_PAGE_SUMMARIES[parentSlugified]) return HUB_PAGE_SUMMARIES[parentSlugified];
+  }
+  return null;
 }

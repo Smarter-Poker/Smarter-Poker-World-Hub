@@ -388,6 +388,56 @@ export const TOOL_OG_CATALOG = {
     subtitle: 'Total Session Exposure, ABI Buy-In Ratio & 0-ITM Brick Probability',
     stat: 'Sunday & Festival Multi-Table Session Math',
   },
+  'multiway-all-in-calculator': {
+    title: 'Multiway All-In EV & Side Pot Equity Calculator',
+    subtitle: '3-Way And 4-Way Pre-Flop Main Pot + Side Pot Breakdown & Net EV',
+    stat: 'Exact Multi-Stack All-In EV Solver',
+  },
+  'mystery-bounty-tracker': {
+    title: 'Live Day-2 Mystery Bounty Envelope Removal Tracker',
+    subtitle: 'Dynamic Average Remaining Bounty Value, Chip Equivalence & Odds Discount',
+    stat: 'Real-Time Mystery Envelope EV Engine',
+  },
+  'bubble-factor-calculator': {
+    title: 'Final Table Pairwise ICM Bubble Factor & Equity Matrix',
+    subtitle: 'Full N x N Hero Vs. Villain Malmuth-Harville Bubble Factors & Calling Equity',
+    stat: 'Complete Pairwise Final Table ICM Matrix',
+  },
+  'bluff-catching-calculator': {
+    title: 'River Bluff-Catching, Card-Removal Blockers & MDF Solver',
+    subtitle: 'Minimum Defense Frequency, Blocker Removal Adjustment & Exact Call EV',
+    stat: 'Polarized River Overbet & Blocker Solver',
+  },
+  'multi-street-ev-calculator': {
+    title: 'Multi-Street Double & Triple-Barrel Fold-Equity EV Solver',
+    subtitle: 'Flop-Turn-River Cumulative Fold Equity, Pot Growth & Breakeven Bluff Math',
+    stat: '3-Street Barrel Geometry & Fold-Equity Engine',
+  },
+  'heads-up-push-fold-calculator': {
+    title: 'Heads-Up & 3-Max Spin Push/Fold Nash Equilibrium Solver',
+    subtitle: '1BB-25BB Unexploitable Small Blind Shove, Big Blind Call & Limp-Trap Grids',
+    stat: '169-Hand Heads-Up Nash Equilibrium Matrix',
+  },
+  'blind-vs-blind-calculator': {
+    title: 'Blind-Vs-Blind (SB Vs. BB) Limp, Open & 3-Bet Matrix Explorer',
+    subtitle: '100BB, 50BB & 25BB Small Blind Limp/Raise And Big Blind Iso-Raise Grids',
+    stat: 'Solver-Backed SB Vs. BB 13x13 Explorer',
+  },
+  'shot-taking-calculator': {
+    title: '2-Tier Bankroll Shot-Taking & Move-Down Stop-Loss Planner',
+    subtitle: 'Mandatory Move-Down Trigger Floors, Blended Risk Of Ruin & Rebuild Hours',
+    stat: 'Disciplined Stake-Climbing Bankroll Architecture',
+  },
+  'warmup-cooldown-routine': {
+    title: 'Interactive Poker Pre-Session Warmup & Cooldown Audit Tool',
+    subtitle: 'Flash Pot-Odds Math Drill, A-Game Readiness Score & Post-Session Audit',
+    stat: 'Quantitative Mindset & Flash Math Diagnostic',
+  },
+  'home-game-director': {
+    title: 'Live Home Game Tournament Director Clock & Payout Console',
+    subtitle: 'Interactive Blind Timer, Rebuy/Add-On Prize Pool Counter & Table M-Ratio',
+    stat: 'Full-Screen Home Game Tournament Console',
+  },
   embeds: {
     title: 'Free Embeddable Poker Calculators, Widgets & Streamer Bot',
     subtitle: 'Copy-Paste Iframe Tools, Nightbot Commands & Authority SVG Badges',
@@ -417,7 +467,7 @@ export function renderOgCardSvg({
   const resolvedSubtitle =
     subtitle ||
     toolPreset?.subtitle ||
-    '42 Free Interactive Calculators • 169 Hand Guides • 500+ Live Rooms';
+    '52 Free Interactive Calculators • 169 Hand Guides • 500+ Live Rooms';
   const resolvedStat =
     metric ||
     stat ||

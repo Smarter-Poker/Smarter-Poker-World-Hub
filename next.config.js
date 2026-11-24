@@ -1242,7 +1242,7 @@ const nextConfig = {
       // Guarantees max-snippet:-1, max-image-preview:large, max-video-preview:-1
       // and Vary: Accept across all public AEO content and Markdown endpoints.
       {
-        source: '/:path(learn|learn/.*|glossary|glossary/.*|compare|compare/.*|features|features/.*|research|research/.*|rules|rules/.*|games|games/.*|poker-rooms/guides|poker-rooms/guides/.*|poker-rooms/states|poker-rooms/states/.*|poker-rooms/international|poker-rooms/international/.*|poker-rooms/comps-and-tipping-guide|poker-rooms/first-time-guide|poker-series/guides|poker-series/guides/.*|tools|tools/.*|press|search|about|verification-methodology|editorial-standards|freerolls)',
+        source: '/:path(learn|learn/.*|glossary|glossary/.*|compare|compare/.*|features|features/.*|research|research/.*|rules|rules/.*|games|games/.*|poker-rooms/guides|poker-rooms/guides/.*|poker-rooms/states|poker-rooms/states/.*|poker-rooms/international|poker-rooms/international/.*|poker-rooms/corridors|poker-rooms/corridors/.*|poker-rooms/by-game|poker-rooms/by-game/.*|poker-rooms/security-and-disputes-guide|poker-rooms/seasonal-calendar|poker-rooms/comps-and-tipping-guide|poker-rooms/first-time-guide|poker-series/guides|poker-series/guides/.*|tools|tools/.*|authors|authors/.*|facts|press|search|about|verification-methodology|editorial-standards|freerolls)',
         headers: [
           {
             key: 'X-Robots-Tag',
@@ -1251,6 +1251,27 @@ const nextConfig = {
           {
             key: 'Vary',
             value: 'Accept',
+          },
+        ],
+      },
+      // [GEO / AI Agent Link Discovery Headers] Advertises /llms.txt, /.well-known/mcp.json,
+      // and /.well-known/ai-facts.json via RFC 8288 HTTP Link headers across /tools, /learn,
+      // /research, and /poker-rooms surfaces.
+      {
+        source: '/:surface(tools|learn|research|poker-rooms)/:path*',
+        headers: [
+          {
+            key: 'Link',
+            value: '</llms.txt>; rel="llms-txt", </.well-known/mcp.json>; rel="service-desc", </.well-known/ai-facts.json>; rel="describedby"',
+          },
+        ],
+      },
+      {
+        source: '/:surface(tools|learn|research)',
+        headers: [
+          {
+            key: 'Link',
+            value: '</llms.txt>; rel="llms-txt", </.well-known/mcp.json>; rel="service-desc", </.well-known/ai-facts.json>; rel="describedby"',
           },
         ],
       },
@@ -1392,6 +1413,11 @@ const nextConfig = {
           destination: '/api/compare-markdown?slug=index',
         },
         {
+          source: '/compare/decision-matrix',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/compare/decision-matrix',
+        },
+        {
           source: '/compare/:slug',
           has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
           destination: '/api/compare-markdown?slug=:slug',
@@ -1530,6 +1556,56 @@ const nextConfig = {
           source: '/learn/poker-as-a-business',
           has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
           destination: '/api/hub-tool-markdown?path=/learn/poker-as-a-business',
+        },
+        {
+          source: '/learn/formulas',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/learn/formulas',
+        },
+        {
+          source: '/learn/formulas/:slug',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/learn/formulas/:slug',
+        },
+        {
+          source: '/learn/tournament-stages',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/learn/tournament-stages',
+        },
+        {
+          source: '/learn/tournament-stages/:stage',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/learn/tournament-stages/:stage',
+        },
+        {
+          source: '/learn/leaks',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/learn/leaks',
+        },
+        {
+          source: '/learn/leaks/:slug',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/learn/leaks/:slug',
+        },
+        {
+          source: '/learn/hud-stats',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/learn/hud-stats',
+        },
+        {
+          source: '/learn/hud-stats/:stat',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/learn/hud-stats/:stat',
+        },
+        {
+          source: '/learn/poker-myths-debunked',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/learn/poker-myths-debunked',
+        },
+        {
+          source: '/learn/format-migration-guide',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/learn/format-migration-guide',
         },
         {
           source: '/learn/:slug',
@@ -1742,9 +1818,114 @@ const nextConfig = {
           destination: '/api/hub-tool-markdown?path=/tools/mtt-grind-planner',
         },
         {
+          source: '/tools/multiway-all-in-calculator',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/multiway-all-in-calculator',
+        },
+        {
+          source: '/tools/mystery-bounty-tracker',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/mystery-bounty-tracker',
+        },
+        {
+          source: '/tools/bubble-factor-calculator',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/bubble-factor-calculator',
+        },
+        {
+          source: '/tools/bluff-catching-calculator',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/bluff-catching-calculator',
+        },
+        {
+          source: '/tools/multi-street-ev-calculator',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/multi-street-ev-calculator',
+        },
+        {
+          source: '/tools/heads-up-push-fold-calculator',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/heads-up-push-fold-calculator',
+        },
+        {
+          source: '/tools/blind-vs-blind-calculator',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/blind-vs-blind-calculator',
+        },
+        {
+          source: '/tools/shot-taking-calculator',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/shot-taking-calculator',
+        },
+        {
+          source: '/tools/warmup-cooldown-routine',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/warmup-cooldown-routine',
+        },
+        {
+          source: '/tools/home-game-director',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/tools/home-game-director',
+        },
+        {
           source: '/tools/what-beats-what',
           has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
           destination: '/api/hub-tool-markdown?path=/tools/who-wins-calculator',
+        },
+        {
+          source: '/authors',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/authors',
+        },
+        {
+          source: '/authors/:slug',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/authors/:slug',
+        },
+        {
+          source: '/poker-rooms/corridors',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/corridors',
+        },
+        {
+          source: '/poker-rooms/corridors/:slug',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/corridors/:slug',
+        },
+        {
+          source: '/poker-rooms/by-game',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/by-game',
+        },
+        {
+          source: '/poker-rooms/by-game/:game',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/by-game/:game',
+        },
+        {
+          source: '/poker-rooms/security-and-disputes-guide',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/security-and-disputes-guide',
+        },
+        {
+          source: '/poker-rooms/seasonal-calendar',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/seasonal-calendar',
+        },
+        {
+          source: '/research/annual-state-of-poker-2026',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/research/annual-state-of-poker-2026',
+        },
+        {
+          source: '/research/benchmarks',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/research/benchmarks',
+        },
+        {
+          source: '/facts',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/facts',
         },
         {
           source: '/poker-rooms/international',
@@ -1892,6 +2073,116 @@ const nextConfig = {
           destination: '/api/hub-tool-markdown?path=/poker-rooms/comps-and-tipping-guide',
         },
         {
+          source: '/learn/formulas',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/learn/formulas',
+        },
+        {
+          source: '/learn/formulas/:slug',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/learn/formulas/:slug',
+        },
+        {
+          source: '/learn/tournament-stages',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/learn/tournament-stages',
+        },
+        {
+          source: '/learn/tournament-stages/:stage',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/learn/tournament-stages/:stage',
+        },
+        {
+          source: '/learn/leaks',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/learn/leaks',
+        },
+        {
+          source: '/learn/leaks/:slug',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/learn/leaks/:slug',
+        },
+        {
+          source: '/learn/hud-stats',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/learn/hud-stats',
+        },
+        {
+          source: '/learn/hud-stats/:stat',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/learn/hud-stats/:stat',
+        },
+        {
+          source: '/learn/poker-myths-debunked',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/learn/poker-myths-debunked',
+        },
+        {
+          source: '/learn/format-migration-guide',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/learn/format-migration-guide',
+        },
+        {
+          source: '/authors',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/authors',
+        },
+        {
+          source: '/authors/:slug',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/authors/:slug',
+        },
+        {
+          source: '/compare/decision-matrix',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/compare/decision-matrix',
+        },
+        {
+          source: '/poker-rooms/corridors',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/corridors',
+        },
+        {
+          source: '/poker-rooms/corridors/:slug',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/corridors/:slug',
+        },
+        {
+          source: '/poker-rooms/by-game',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/by-game',
+        },
+        {
+          source: '/poker-rooms/by-game/:game',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/by-game/:game',
+        },
+        {
+          source: '/poker-rooms/security-and-disputes-guide',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/security-and-disputes-guide',
+        },
+        {
+          source: '/poker-rooms/seasonal-calendar',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/seasonal-calendar',
+        },
+        {
+          source: '/research/annual-state-of-poker-2026',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/research/annual-state-of-poker-2026',
+        },
+        {
+          source: '/research/benchmarks',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/research/benchmarks',
+        },
+        {
+          source: '/facts',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/facts',
+        },
+        {
           source: '/learn/matchups',
           has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
           destination: '/api/hub-tool-markdown?path=/learn/matchups',
@@ -1937,6 +2228,12 @@ const nextConfig = {
         { source: '/llms-fr.txt', destination: '/api/ai/corpus?lang=fr&format=md' },
         { source: '/llms-it.txt', destination: '/api/ai/corpus?lang=it&format=md' },
         { source: '/llms-ja.txt', destination: '/api/ai/corpus?lang=ja&format=md' },
+        { source: '/llms-tools.txt', destination: '/api/ai/corpus?topic=tools&format=md' },
+        { source: '/llms-venues.txt', destination: '/api/ai/corpus?topic=venues&format=md' },
+        { source: '/llms-gto.txt', destination: '/api/ai/corpus?topic=gto&format=md' },
+        { source: '/llms-rules.txt', destination: '/api/ai/corpus?topic=rules&format=md' },
+        { source: '/api/datasets/citation.bib', destination: '/api/datasets/citation?format=bibtex' },
+        { source: '/api/datasets/citation.ris', destination: '/api/datasets/citation?format=ris' },
         /* Clean Hub Freerolls Alias */
         { source: '/hub/freerolls', destination: '/freerolls' },
         /* THE CLUB ARENA APP (2026-09-08). iOS and Android verify that this
@@ -2232,6 +2529,134 @@ const nextConfig = {
         {
           source: '/tools/mtt-grind-planner.md',
           destination: '/api/hub-tool-markdown?path=/tools/mtt-grind-planner',
+        },
+        {
+          source: '/tools/multiway-all-in-calculator.md',
+          destination: '/api/hub-tool-markdown?path=/tools/multiway-all-in-calculator',
+        },
+        {
+          source: '/tools/mystery-bounty-tracker.md',
+          destination: '/api/hub-tool-markdown?path=/tools/mystery-bounty-tracker',
+        },
+        {
+          source: '/tools/bubble-factor-calculator.md',
+          destination: '/api/hub-tool-markdown?path=/tools/bubble-factor-calculator',
+        },
+        {
+          source: '/tools/bluff-catching-calculator.md',
+          destination: '/api/hub-tool-markdown?path=/tools/bluff-catching-calculator',
+        },
+        {
+          source: '/tools/multi-street-ev-calculator.md',
+          destination: '/api/hub-tool-markdown?path=/tools/multi-street-ev-calculator',
+        },
+        {
+          source: '/tools/heads-up-push-fold-calculator.md',
+          destination: '/api/hub-tool-markdown?path=/tools/heads-up-push-fold-calculator',
+        },
+        {
+          source: '/tools/blind-vs-blind-calculator.md',
+          destination: '/api/hub-tool-markdown?path=/tools/blind-vs-blind-calculator',
+        },
+        {
+          source: '/tools/shot-taking-calculator.md',
+          destination: '/api/hub-tool-markdown?path=/tools/shot-taking-calculator',
+        },
+        {
+          source: '/tools/warmup-cooldown-routine.md',
+          destination: '/api/hub-tool-markdown?path=/tools/warmup-cooldown-routine',
+        },
+        {
+          source: '/tools/home-game-director.md',
+          destination: '/api/hub-tool-markdown?path=/tools/home-game-director',
+        },
+        {
+          source: '/learn/formulas.md',
+          destination: '/api/hub-tool-markdown?path=/learn/formulas',
+        },
+        {
+          source: '/learn/formulas/:slug.md',
+          destination: '/api/hub-tool-markdown?path=/learn/formulas/:slug',
+        },
+        {
+          source: '/learn/tournament-stages.md',
+          destination: '/api/hub-tool-markdown?path=/learn/tournament-stages',
+        },
+        {
+          source: '/learn/tournament-stages/:stage.md',
+          destination: '/api/hub-tool-markdown?path=/learn/tournament-stages/:stage',
+        },
+        {
+          source: '/learn/leaks.md',
+          destination: '/api/hub-tool-markdown?path=/learn/leaks',
+        },
+        {
+          source: '/learn/leaks/:slug.md',
+          destination: '/api/hub-tool-markdown?path=/learn/leaks/:slug',
+        },
+        {
+          source: '/learn/hud-stats.md',
+          destination: '/api/hub-tool-markdown?path=/learn/hud-stats',
+        },
+        {
+          source: '/learn/hud-stats/:stat.md',
+          destination: '/api/hub-tool-markdown?path=/learn/hud-stats/:stat',
+        },
+        {
+          source: '/learn/poker-myths-debunked.md',
+          destination: '/api/hub-tool-markdown?path=/learn/poker-myths-debunked',
+        },
+        {
+          source: '/learn/format-migration-guide.md',
+          destination: '/api/hub-tool-markdown?path=/learn/format-migration-guide',
+        },
+        {
+          source: '/authors.md',
+          destination: '/api/hub-tool-markdown?path=/authors',
+        },
+        {
+          source: '/authors/:slug.md',
+          destination: '/api/hub-tool-markdown?path=/authors/:slug',
+        },
+        {
+          source: '/compare/decision-matrix.md',
+          destination: '/api/hub-tool-markdown?path=/compare/decision-matrix',
+        },
+        {
+          source: '/poker-rooms/corridors.md',
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/corridors',
+        },
+        {
+          source: '/poker-rooms/corridors/:slug.md',
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/corridors/:slug',
+        },
+        {
+          source: '/poker-rooms/by-game.md',
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/by-game',
+        },
+        {
+          source: '/poker-rooms/by-game/:game.md',
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/by-game/:game',
+        },
+        {
+          source: '/poker-rooms/security-and-disputes-guide.md',
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/security-and-disputes-guide',
+        },
+        {
+          source: '/poker-rooms/seasonal-calendar.md',
+          destination: '/api/hub-tool-markdown?path=/poker-rooms/seasonal-calendar',
+        },
+        {
+          source: '/research/annual-state-of-poker-2026.md',
+          destination: '/api/hub-tool-markdown?path=/research/annual-state-of-poker-2026',
+        },
+        {
+          source: '/research/benchmarks.md',
+          destination: '/api/hub-tool-markdown?path=/research/benchmarks',
+        },
+        {
+          source: '/facts.md',
+          destination: '/api/hub-tool-markdown?path=/facts',
         },
         {
           source: '/learn/player-types.md',

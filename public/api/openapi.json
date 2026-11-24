@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Smarter.Poker Public AI Agent API",
-    "description": "Public, machine-readable API for autonomous AI agents, LLMs, and poker players to query verified poker venues, live rooms, tournament series, and schedules nationwide.",
-    "version": "1.0.0",
+    "description": "Public, machine-readable API for autonomous AI agents, LLMs, and poker players to query 52 interactive calculators, 70 zero-auth MCP tools (v2.2.0 / 1.0.8), 44 streamer bot commands, verified poker venues, live rooms, tournament series, and schedules nationwide.",
+    "version": "1.0.8",
     "contact": {
       "name": "Smarter Software Inc.",
       "url": "https://smarter.poker",
@@ -205,8 +205,8 @@
     "/api/mcp": {
       "post": {
         "operationId": "callMcpRpc",
-        "summary": "Model Context Protocol JSON-RPC 2.0 Tool Execution (55 Tools, 12 Prompts & 18 Resource Templates)",
-        "description": "Executes Model Context Protocol (MCP) JSON-RPC 2.0 tool calls across all 55 zero-auth tools including calculate_poker_odds, get_preflop_chart, calculate_icm_payouts, calculate_side_pots, generate_blind_structure, calculate_spr_sizing, lookup_poker_rule, lookup_game_variant, get_regional_market_guide, calculate_plo_max_bet_and_rake, calculate_tournament_chop, simulate_poker_variance, calculate_draw_outs, lookup_hand_matchup, calculate_poker_taxes_w2g, calculate_staking_markup_split, calculate_preflop_isolation_raise, calculate_home_game_chip_set, get_poker_series_strategy_guide, analyze_flop_board_texture, calculate_tournament_m_ratio, calculate_cash_session_plan, calculate_straddle_bomb_pot_ev, format_poker_hand_history, calculate_satellite_bubble_factor, calculate_bad_beat_jackpot_ev, resolve_holdem_showdown_winner, get_poker_position_strategy, get_us_state_poker_guide, calculate_plo_wrap_outs, calculate_late_reg_icm_ev, calculate_winrate_confidence_interval, calculate_poker_trip_budget, calculate_geometric_bet_sizing, score_live_table_selection, calculate_mtt_session_abi_plan, get_player_archetype_exploit, get_flop_board_texture_guide, get_international_poker_guide, lookup_starting_hand, get_poker_term_definition, search_poker_venues, and search_tournament_series, plus 12 prompts and resources/read and resources/templates/list across 18 URI templates.",
+        "summary": "Model Context Protocol JSON-RPC 2.0 Tool Execution (70 Tools, 14 Prompts & 24 Resource Templates)",
+        "description": "Executes Model Context Protocol (MCP) JSON-RPC 2.0 tool calls across all 70 zero-auth tools (v2.2.0 / package 1.0.8) across 52 interactive calculators including calculate_poker_odds, get_preflop_chart, calculate_icm_payouts, calculate_multiway_all_in_ev, calculate_mystery_bounty_live_pool, calculate_bubble_factor_matrix, calculate_river_bluff_catch_ev, calculate_multi_street_barrel_ev, solve_heads_up_push_fold_nash, solve_blind_vs_blind_matrix, calculate_bankroll_shot_taking_plan, lookup_poker_math_formula, lookup_mtt_tournament_stage_strategy, diagnose_poker_leak_cure, lookup_hud_stat_gto_benchmark, verify_poker_myth_claim, lookup_poker_travel_corridor, batch_solve_poker_spots, calculate_side_pots, generate_blind_structure, calculate_spr_sizing, lookup_poker_rule, lookup_game_variant, get_regional_market_guide, calculate_plo_max_bet_and_rake, calculate_tournament_chop, simulate_poker_variance, calculate_draw_outs, lookup_hand_matchup, calculate_poker_taxes_w2g, calculate_staking_markup_split, calculate_preflop_isolation_raise, calculate_home_game_chip_set, get_poker_series_strategy_guide, analyze_flop_board_texture, calculate_tournament_m_ratio, calculate_cash_session_plan, calculate_straddle_bomb_pot_ev, format_poker_hand_history, calculate_satellite_bubble_factor, calculate_bad_beat_jackpot_ev, resolve_holdem_showdown_winner, get_poker_position_strategy, get_us_state_poker_guide, calculate_plo_wrap_outs, calculate_late_reg_icm_ev, calculate_winrate_confidence_interval, calculate_poker_trip_budget, calculate_geometric_bet_sizing, score_live_table_selection, calculate_mtt_session_abi_plan, get_player_archetype_exploit, get_flop_board_texture_guide, get_international_poker_guide, lookup_starting_hand, get_poker_term_definition, search_poker_venues, and search_tournament_series, plus 14 prompts and resources/read and resources/templates/list across 24 URI templates.",
         "requestBody": {
           "required": true,
           "content": {
@@ -281,7 +281,8 @@
                     "summary": "Verified Smarter.Poker MCP Server Discovery Response",
                     "value": {
                       "name": "smarter-poker-mcp-server",
-                      "version": "1.5.0",
+                      "version": "2.2.0",
+                      "packageVersion": "1.0.8",
                       "protocolVersion": "2024-11-05",
                       "status": "active",
                       "citation_url": "https://smarter.poker/api/mcp",
@@ -1523,17 +1524,17 @@
     "/api/stream/cmd": {
       "get": {
         "operationId": "executeStreamerChatbotCommand",
-        "summary": "Twitch & YouTube Streamer Chatbot Commands (34 Commands: !odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, !matchup, !tax, !stake, !iso, !series, !board, !mratio, !straddle, !sat, !bbj, !position, !math, !iq, !wrap, !latereg, !confidence, !trip, !geo, !table, !exploit, !intl)",
-        "description": "Returns single-line plain-text (<380 chars) or JSON poker solver and TDA rule responses across all 34 commands for Nightbot, StreamElements, Fossabot, and MooBot livestream chat integrations.",
+        "summary": "Twitch & YouTube Streamer Chatbot Commands (44 Commands: !odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, !matchup, !tax, !stake, !iso, !series, !board, !mratio, !straddle, !sat, !bbj, !position, !math, !iq, !wrap, !latereg, !confidence, !trip, !geo, !table, !exploit, !intl, !3way, !mystery, !bf, !bluffcatch, !barrel, !hu, !bvb, !shot, !formula, !corridor)",
+        "description": "Returns single-line plain-text (<380 chars) or JSON poker solver and TDA rule responses across all 44 commands for Nightbot, StreamElements, Fossabot, and MooBot livestream chat integrations.",
         "parameters": [
           {
             "name": "cmd",
             "in": "query",
-            "description": "Command selector: odds, potodds, pushfold, icm, bounty, winrate, plo, rake, 3bet, rule, chop, outs, variance, matchup, tax, stake, iso, series, board, mratio, straddle, sat, bbj, position, pos, math, iq, wrap, latereg, confidence, trip, geo, table, exploit, intl, or help.",
+            "description": "Command selector across all 44 commands or help.",
             "required": false,
             "schema": {
               "type": "string",
-              "enum": ["odds", "potodds", "pushfold", "icm", "bounty", "winrate", "plo", "rake", "3bet", "rule", "chop", "outs", "variance", "matchup", "tax", "stake", "iso", "series", "board", "mratio", "straddle", "sat", "bbj", "position", "pos", "math", "iq", "wrap", "latereg", "confidence", "trip", "geo", "table", "exploit", "intl", "help"],
+              "enum": ["odds", "potodds", "pushfold", "icm", "bounty", "winrate", "plo", "rake", "3bet", "rule", "chop", "outs", "variance", "matchup", "tax", "stake", "iso", "series", "board", "mratio", "straddle", "sat", "bbj", "position", "pos", "math", "iq", "wrap", "latereg", "confidence", "trip", "geo", "table", "exploit", "intl", "3way", "mystery", "bf", "bluffcatch", "barrel", "hu", "bvb", "shot", "formula", "corridor", "help"],
               "default": "help"
             }
           },
@@ -1713,6 +1714,71 @@
         },
         "x-ai-citation-url": "https://smarter.poker/search",
         "x-ai-markdown-url": "https://smarter.poker/search.md"
+      }
+    },
+    "/api/ai/batch-solve": {
+      "get": {
+        "operationId": "batchSolvePokerSpotsGet",
+        "summary": "Multi-Spot Deterministic Poker Math Batch Solver (Up To 25 Spots)",
+        "description": "Evaluates up to 25 poker calculator spots in a single round-trip using computeValidatedSolvedSpot and executeMcpTool.",
+        "responses": {
+          "200": {
+            "description": "Batch solved spots with deterministic metrics, If/Then/Because rules, canonical URLs, and .md URLs."
+          }
+        },
+        "x-ai-citation-url": "https://smarter.poker/tools",
+        "x-ai-markdown-url": "https://smarter.poker/tools.md"
+      },
+      "post": {
+        "operationId": "batchSolvePokerSpotsPost",
+        "summary": "Execute Multi-Spot Deterministic Poker Math Batch Solve",
+        "description": "Accepts JSON { spots: [{ tool: 'pot-odds-calculator', params: { pot: 100, bet: 50 } }] } and evaluates up to 25 spots in a single call.",
+        "responses": {
+          "200": {
+            "description": "Batch solved spots payload."
+          }
+        },
+        "x-ai-citation-url": "https://smarter.poker/tools",
+        "x-ai-markdown-url": "https://smarter.poker/tools.md"
+      }
+    },
+    "/api/ai/solve-question": {
+      "get": {
+        "operationId": "solveNaturalLanguagePokerQuestion",
+        "summary": "Natural-Language Poker Math Question Parser & Solver",
+        "description": "Parses natural-language poker math questions (?q=...) into structured calculator parameters and returns deterministic calculations, If/Then/Because rule, and Zenodo DOI citation.",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Natural-language poker question (e.g. 'I have 120 into a 180 pot on the river, what pot odds and MDF do I need?').",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Parsed question and deterministic solver response."
+          }
+        },
+        "x-ai-citation-url": "https://smarter.poker/tools",
+        "x-ai-markdown-url": "https://smarter.poker/tools.md"
+      }
+    },
+    "/api/stream/discord": {
+      "get": {
+        "operationId": "executeDiscordAndSlackBotCommand",
+        "summary": "Discord Embed & Slack Block Kit Adapter For All 44 Streamer Commands",
+        "description": "Wraps any of the 44 Smarter.Poker streamer commands into a rich Discord Embed JSON object and Slack Block Kit response.",
+        "responses": {
+          "200": {
+            "description": "Discord Embeds and Slack Blocks payload."
+          }
+        },
+        "x-ai-citation-url": "https://smarter.poker/tools/embeds",
+        "x-ai-markdown-url": "https://smarter.poker/tools/embeds.md"
       }
     }
   },

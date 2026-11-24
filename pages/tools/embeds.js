@@ -420,6 +420,106 @@ const WIDGETS = [
     width: '100%',
     creditAnchor: 'Smarter.Poker Winrate Confidence Calculator',
   },
+  {
+    id: 'multiway-all-in-calculator',
+    title: 'Multiway All-In EV & Side Pot Equity Calculator',
+    description: 'Slices 3-way and 4-way pre-flop all-in confrontations into main pot and sequential side pots with exact equity weighting and net EV per stack.',
+    embedUrl: 'https://smarter.poker/tools/multiway-all-in-calculator?embed=true',
+    landerUrl: 'https://smarter.poker/tools/multiway-all-in-calculator',
+    height: 780,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Multiway All-In EV Calculator',
+  },
+  {
+    id: 'mystery-bounty-tracker',
+    title: 'Live Day-2 Mystery Bounty Envelope Removal Tracker',
+    description: 'Live Day-2 Mystery Bounty envelope removal tracker dynamically recomputing average remaining bounty value, chip equivalence, and pot odds discount.',
+    embedUrl: 'https://smarter.poker/tools/mystery-bounty-tracker?embed=true',
+    landerUrl: 'https://smarter.poker/tools/mystery-bounty-tracker',
+    height: 780,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Mystery Bounty Envelope Tracker',
+  },
+  {
+    id: 'bubble-factor-calculator',
+    title: 'Final Table Pairwise ICM Bubble Factor & Equity Matrix',
+    description: 'Computes the complete final table N x N pairwise Malmuth-Harville ICM bubble factor and required all-in calling equity matrix for every stack pair.',
+    embedUrl: 'https://smarter.poker/tools/bubble-factor-calculator?embed=true',
+    landerUrl: 'https://smarter.poker/tools/bubble-factor-calculator',
+    height: 800,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Final Table Bubble Factor Matrix',
+  },
+  {
+    id: 'bluff-catching-calculator',
+    title: 'River Bluff-Catching, Card-Removal Blockers & MDF Solver',
+    description: 'Calculates river Minimum Defense Frequency (MDF), polarized bluff-to-value ratios, actual villain bluff share after Hero blocker removal, and exact call EV.',
+    embedUrl: 'https://smarter.poker/tools/bluff-catching-calculator?embed=true',
+    landerUrl: 'https://smarter.poker/tools/bluff-catching-calculator',
+    height: 760,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker River Bluff-Catching Solver',
+  },
+  {
+    id: 'multi-street-ev-calculator',
+    title: 'Multi-Street Double & Triple-Barrel Fold-Equity EV Solver',
+    description: 'Solves flop-turn-river double and triple-barrel cumulative fold equity, street-by-street pot growth geometry, and multi-street bluff breakeven frequencies.',
+    embedUrl: 'https://smarter.poker/tools/multi-street-ev-calculator?embed=true',
+    landerUrl: 'https://smarter.poker/tools/multi-street-ev-calculator',
+    height: 780,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Multi-Street Barrel EV Solver',
+  },
+  {
+    id: 'heads-up-push-fold-calculator',
+    title: 'Heads-Up & 3-Max Spin Push/Fold Nash Equilibrium Solver',
+    description: 'Interactive 13x13 Heads-Up and 3-Max Spin/Hyper SNG 1BB-25BB Nash equilibrium Small Blind push, Big Blind call, and limp-trap hand matrix explorer.',
+    embedUrl: 'https://smarter.poker/tools/heads-up-push-fold-calculator?embed=true',
+    landerUrl: 'https://smarter.poker/tools/heads-up-push-fold-calculator',
+    height: 820,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Heads-Up Push/Fold Nash Solver',
+  },
+  {
+    id: 'blind-vs-blind-calculator',
+    title: 'Blind-Vs-Blind (SB Vs. BB) Limp, Open & 3-Bet Matrix Explorer',
+    description: 'Explores 100BB, 50BB, and 25BB Blind-vs-Blind Small Blind limp/raise strategies and Big Blind iso-raise/3-bet defense frequencies across a 13x13 grid.',
+    embedUrl: 'https://smarter.poker/tools/blind-vs-blind-calculator?embed=true',
+    landerUrl: 'https://smarter.poker/tools/blind-vs-blind-calculator',
+    height: 820,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Blind-Vs-Blind SB Vs. BB Explorer',
+  },
+  {
+    id: 'shot-taking-calculator',
+    title: '2-Tier Bankroll Shot-Taking & Move-Down Stop-Loss Planner',
+    description: 'Plans disciplined higher-stake shot-taking with mandatory move-down stop-loss triggers, blended Risk of Ruin, and rebuild duration at base stakes.',
+    embedUrl: 'https://smarter.poker/tools/shot-taking-calculator?embed=true',
+    landerUrl: 'https://smarter.poker/tools/shot-taking-calculator',
+    height: 760,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Bankroll Shot-Taking Planner',
+  },
+  {
+    id: 'warmup-cooldown-routine',
+    title: 'Interactive Poker Pre-Session Warmup & Post-Session Cooldown Tool',
+    description: 'Combines a pre-session pot-odds and MDF flash math warmup drill with an A-Game readiness scorecard and post-session decision quality cooldown audit.',
+    embedUrl: 'https://smarter.poker/tools/warmup-cooldown-routine?embed=true',
+    landerUrl: 'https://smarter.poker/tools/warmup-cooldown-routine',
+    height: 800,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Pre-Session Warmup & Cooldown Tool',
+  },
+  {
+    id: 'home-game-director',
+    title: 'Live Home Game Tournament Director Clock & Payout Console',
+    description: 'Full-screen home game tournament director blind timer with live rebuy/add-on prize pool counter, table average Harrington M-Ratio monitor, and payout splitter.',
+    embedUrl: 'https://smarter.poker/tools/home-game-director?embed=true',
+    landerUrl: 'https://smarter.poker/tools/home-game-director',
+    height: 800,
+    width: '100%',
+    creditAnchor: 'Smarter.Poker Home Game Tournament Director',
+  },
 ];
 
 export const EMBEDDABLE_TOOLS = WIDGETS;
@@ -930,6 +1030,116 @@ export const STREAM_CHAT_COMMANDS = [
     nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=intl&q=$(querystring))',
     toolUrl: 'https://smarter.poker/poker-rooms/international',
   },
+  {
+    id: 'cmd-3way',
+    command: '!3way',
+    cmd: '!3way',
+    query: '45 30 25',
+    desc: '3-Way & 4-Way multiway all-in main & side pot EV calculator',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=3way&q=45+30+25',
+    title: '3-Way & 4-Way Multiway All-In Main & Side Pot EV Command (!3way 45 30 25)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=3way&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/tools/multiway-all-in-calculator',
+  },
+  {
+    id: 'cmd-mystery',
+    command: '!mystery',
+    cmd: '!mystery',
+    query: '120000 40',
+    desc: 'Live mystery bounty remaining envelope pool EV & chip equivalence',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=mystery&q=120000+40',
+    title: 'Live Mystery Bounty Remaining Envelope Pool EV Command (!mystery 120000 40)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=mystery&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/tools/mystery-bounty-tracker',
+  },
+  {
+    id: 'cmd-bf',
+    command: '!bf',
+    cmd: '!bf',
+    query: '40 25',
+    desc: 'Pairwise final table ICM bubble factor & required all-in equity',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=bf&q=40+25',
+    title: 'Pairwise Final Table ICM Bubble Factor Command (!bf 40 25)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=bf&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/tools/bubble-factor-calculator',
+  },
+  {
+    id: 'cmd-bluffcatch',
+    command: '!bluffcatch',
+    cmd: '!bluffcatch',
+    query: '100 75',
+    desc: 'River bluff-catching EV, Minimum Defense Frequency (MDF) & blocker removal',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=bluffcatch&q=100+75',
+    title: 'River Bluff-Catching EV & Blocker Removal Command (!bluffcatch 100 75)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=bluffcatch&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/tools/bluff-catching-calculator',
+  },
+  {
+    id: 'cmd-barrel',
+    command: '!barrel',
+    cmd: '!barrel',
+    query: '33 75 100',
+    desc: 'Flop-turn-river multi-street cumulative fold equity & triple-barrel EV',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=barrel&q=33+75+100',
+    title: 'Flop-Turn-River Multi-Street Cumulative Fold Equity Command (!barrel 33 75 100)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=barrel&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/tools/multi-street-ev-calculator',
+  },
+  {
+    id: 'cmd-hu',
+    command: '!hu',
+    cmd: '!hu',
+    query: '12 sb',
+    desc: 'Heads-Up & 3-Max short-stack (1BB-25BB) Nash push/fold/limp equilibrium',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=hu&q=12+sb',
+    title: 'Heads-Up & 3-Max Short-Stack Nash Push/Fold Command (!hu 12 sb)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=hu&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/tools/heads-up-push-fold-calculator',
+  },
+  {
+    id: 'cmd-bvb',
+    command: '!bvb',
+    cmd: '!bvb',
+    query: '100 cash',
+    desc: 'Small Blind vs Big Blind (BvB) GTO limp/raise/3-bet equilibrium',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=bvb&q=100+cash',
+    title: 'Small Blind Vs. Big Blind (BvB) GTO Limp/Raise Command (!bvb 100 cash)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=bvb&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/tools/blind-vs-blind-calculator',
+  },
+  {
+    id: 'cmd-shot',
+    command: '!shot',
+    cmd: '!shot',
+    query: '12000 300 500',
+    desc: 'Two-tier bankroll shot-taking & mandatory stop-loss trigger planner',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=shot&q=12000+300+500',
+    title: 'Two-Tier Bankroll Shot-Taking & Stop-Loss Command (!shot 12000 300 500)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=shot&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/tools/shot-taking-calculator',
+  },
+  {
+    id: 'cmd-formula',
+    command: '!formula',
+    cmd: '!formula',
+    query: 'mdf',
+    desc: 'Poker math equations encyclopedia with LaTeX & worked examples',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=formula&q=mdf',
+    title: 'Poker Math Equations Encyclopedia Command (!formula mdf / !formula bf)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=formula&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/learn/formulas',
+  },
+  {
+    id: 'cmd-corridor',
+    command: '!corridor',
+    cmd: '!corridor',
+    query: 'nyc',
+    desc: 'Closest legal live poker rooms by metro & airport travel corridor',
+    example: 'https://smarter.poker/api/stream/cmd?cmd=corridor&q=nyc',
+    title: 'Closest Legal Live Poker Rooms By Travel Corridor Command (!corridor nyc / !corridor atlanta)',
+    nightbot: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=corridor&q=$(querystring))',
+    toolUrl: 'https://smarter.poker/poker-rooms/corridors',
+  },
 ];
 
 export const STREAMER_COMMANDS = STREAM_CHAT_COMMANDS;
@@ -994,6 +1204,16 @@ const WIDGET_CATEGORY_MAP = {
   'table-selection-calculator': 'cash',
   'poker-trip-planner': 'bankroll',
   'winrate-confidence-calculator': 'bankroll',
+  'multiway-all-in-calculator': 'equity',
+  'mystery-bounty-tracker': 'tournament',
+  'bubble-factor-calculator': 'tournament',
+  'bluff-catching-calculator': 'equity',
+  'multi-street-ev-calculator': 'equity',
+  'heads-up-push-fold-calculator': 'tournament',
+  'blind-vs-blind-calculator': 'equity',
+  'shot-taking-calculator': 'bankroll',
+  'warmup-cooldown-routine': 'bankroll',
+  'home-game-director': 'bankroll',
 };
 
 export default function WebmasterEmbedPortal() {
@@ -1105,7 +1325,7 @@ export default function WebmasterEmbedPortal() {
         steps: [
           {
             name: 'Select A Poker Widget Or Attribution Badge',
-            text: `Choose from any of the forty-one interactive poker calculators (Multiway Odds, ICM, GTO Preflop Ranges, Pot Odds, Push/Fold, Bankroll, Bounty, Winrate, Side Pot, Blind Structure, SPR, PLO Max Bet, Payouts, Rake, 3-Bet Sizing, Final Table Chop, Variance, Draw Outs, Poker Tax, Staking, Iso-Raise, Home Game Kit, Format Quiz, Board Texture, M-Ratio, Session Planner, Straddle EV, Hand Converter, Satellite Seat-Lock, Promo EV, Showdown Winner, Mixed-Game Placards, Poker IQ Test, Geometric Sizing, Late-Reg ICM, MTT Grind Planner, PLO Wrap Outs, Poker Trip Planner, Shot Clock, Table Selection, or Winrate Confidence), ${PARTNER_BADGES.length} SVG attribution badges, or ${STREAM_CHAT_COMMANDS.length} Nightbot/StreamElements commands.`,
+            text: `Choose from any of the fifty interactive poker calculators (Multiway Odds, ICM, GTO Preflop Ranges, Pot Odds, Push/Fold, Bankroll, Bounty, Winrate, Side Pot, Blind Structure, SPR, PLO Max Bet, Payouts, Rake, 3-Bet Sizing, Final Table Chop, Variance, Draw Outs, Poker Tax, Staking, Iso-Raise, Home Game Kit, Format Quiz, Board Texture, M-Ratio, Session Planner, Straddle EV, Hand Converter, Satellite Seat-Lock, Promo EV, Showdown Winner, Mixed-Game Placards, Poker IQ Test, Geometric Sizing, Late-Reg ICM, MTT Grind Planner, PLO Wrap Outs, Poker Trip Planner, Shot Clock, Table Selection, Winrate Confidence, Multiway All-In EV, Mystery Bounty Tracker, Bubble Factor Matrix, River Bluff-Catching, Multi-Street Barrel EV, Heads-Up Push/Fold Nash, Blind-Vs-Blind Explorer, Bankroll Shot-Taking Planner, Warmup & Cooldown Routine, or Home Game Tournament Director), ${PARTNER_BADGES.length} SVG attribution badges, or ${STREAM_CHAT_COMMANDS.length} Nightbot/StreamElements commands.`,
           },
           {
             name: 'Copy The Responsive Iframe Or Badge Snippet',
@@ -1952,7 +2172,7 @@ export default function WebmasterEmbedPortal() {
                   textDecoration: 'none',
                 }}
               >
-                All 42 Free Poker Calculators
+                Explore All 52 Free Poker Calculators
               </Link>
               <Link
                 href="/compare"
@@ -2115,7 +2335,7 @@ export default function WebmasterEmbedPortal() {
             canonicalUrl="https://smarter.poker/tools/embeds"
             badgeType="gto"
             badgeLabel="Embed Widgets Portal"
-            badgeValue="41 Widgets + 16 Badges + 34 Bot Commands"
+            badgeValue="50 Widgets + 16 Badges + 34 Bot Commands"
             summary="Free Responsive Iframe Widgets, 1-Line JS SDK, 16 SVG Attribution Badges, And 34 Nightbot And StreamElements Chatbot Commands For Poker Webmasters And Streamers."
             slug="poker-embeds-and-widgets"
           />

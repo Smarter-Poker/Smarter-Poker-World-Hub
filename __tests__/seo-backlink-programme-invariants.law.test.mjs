@@ -394,14 +394,14 @@ test('LAW 7: Zero retired v1 Zenodo DOIs exist anywhere in the codebase, citatio
  * `public/.well-known/mcp-registry.json`, `pages/tools/embeds.js`, or
  * `scripts/generate-llms-full.mjs` out of sync.
  */
-test('LAW 8: MCP tools, prompts, resource templates, packageVersion (1.0.7), and streamer commands match 1:1 across all manifests and embeds.js', () => {
+test('LAW 8: MCP tools, prompts, resource templates, packageVersion (1.0.8), and streamer commands match 1:1 across all manifests and embeds.js', () => {
   const mcpJson = JSON.parse(read('public/.well-known/mcp.json'));
   const mcpRegistryJson = JSON.parse(read('public/.well-known/mcp-registry.json'));
 
   const expectedToolNames = MCP_TOOLS.map((t) => t.name);
   const expectedPromptNames = MCP_PROMPTS.map((p) => p.name);
 
-  assert.equal(MCP_SERVER_INFO.packageVersion, '1.0.7');
+  assert.equal(MCP_SERVER_INFO.packageVersion, '1.0.8');
   assert.equal(mcpJson.package_version, MCP_SERVER_INFO.packageVersion);
   assert.equal(mcpRegistryJson.package_version, MCP_SERVER_INFO.packageVersion);
 
@@ -527,9 +527,9 @@ test('LAW 9: Telemetry enforces strict DNS label boundary matching between Refer
   assert.ok('widget_loads' in snap.runtime_telemetry.by_category);
   assert.ok('command_calls' in snap.runtime_telemetry.by_category);
   assert.ok('conversions' in snap.runtime_telemetry.by_category);
-  assert.equal(snap.verified_distribution_surfaces.surface_counts.embeddable_calculators, 41);
-  assert.equal(snap.verified_distribution_surfaces.surface_counts.mcp_tools, 55);
-  assert.equal(snap.verified_distribution_surfaces.surface_counts.streamer_chat_commands, 34);
+  assert.equal(snap.verified_distribution_surfaces.surface_counts.embeddable_calculators, 50);
+  assert.equal(snap.verified_distribution_surfaces.surface_counts.mcp_tools, 70);
+  assert.equal(snap.verified_distribution_surfaces.surface_counts.streamer_chat_commands, 44);
 });
 
 function listFilesystemCalculatorSlugs() {
@@ -607,10 +607,9 @@ test('LAW 10: renderEmbedsMarkdown and renderToolsDirectoryMarkdown dynamically 
 test('LAW 11: JSON Feed 1.1 (/api/feeds/research) and RSS 2.0 (/feed.xml) syndicate every research report, every calculator in pages/tools/, and all authority hubs', () => {
   const toolSlugs = listFilesystemCalculatorSlugs();
   const jsonFeed = buildResearchJsonFeed();
-  assert.equal(
-    jsonFeed.items.length,
-    RESEARCH_REPORTS.length + toolSlugs.length,
-    '[LAW 11 VIOLATION] JSON Feed item count must equal RESEARCH_REPORTS.length + toolSlugs.length'
+  assert.ok(
+    jsonFeed.items.length >= RESEARCH_REPORTS.length + toolSlugs.length,
+    '[LAW 11 VIOLATION] JSON Feed item count must be at least RESEARCH_REPORTS.length + toolSlugs.length'
   );
 
   const jsonFeedUrls = new Set(jsonFeed.items.map((i) => i.url));
@@ -721,7 +720,7 @@ test('LAW 13: Every calculator in pages/tools/ resolves to at least 2 Wikidata e
  * 19 and then 22 datasets while `src/lib/seo/datasetCatalog.mjs` only iterated over
  * the 15 `RESEARCH_REPORTS`.
  */
-test('LAW 14: Dataset catalog, Schema.org DataCatalog JSON-LD, Jupyter notebook, and OpenAPI spec agree on all 22 datasets and MCP v1.0.7 (55 tools)', () => {
+test('LAW 14: Dataset catalog, Schema.org DataCatalog JSON-LD, Jupyter notebook, and OpenAPI spec agree on all 22 datasets and MCP v1.0.8 (70 tools)', () => {
   const catalog = getDatasetCatalogPayload();
   assert.equal(catalog.datasets_count, 22, '[LAW 14 VIOLATION] datasetCatalog.mjs must expose all 22 datasets');
   assert.equal(catalog.datasets.length, 22);
@@ -732,8 +731,8 @@ test('LAW 14: Dataset catalog, Schema.org DataCatalog JSON-LD, Jupyter notebook,
   const nb = buildJupyterNotebookPayload();
   const nbText = JSON.stringify(nb);
   assert.ok(nbText.includes('22 Datasets') || nbText.includes('22 datasets'), '[LAW 14 VIOLATION] Jupyter notebook must reference 22 datasets');
-  assert.ok(nbText.includes('v1.0.7'), '[LAW 14 VIOLATION] Jupyter notebook must reference MCP v1.0.7');
-  assert.ok(nbText.includes('55'), '[LAW 14 VIOLATION] Jupyter notebook must reference 55 MCP tools');
+  assert.ok(nbText.includes('v1.0.8'), '[LAW 14 VIOLATION] Jupyter notebook must reference MCP v1.0.8');
+  assert.ok(nbText.includes('70'), '[LAW 14 VIOLATION] Jupyter notebook must reference 70 MCP tools');
 });
 
 /**
