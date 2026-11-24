@@ -891,7 +891,7 @@ test('Phase 7 Package A-J: Parallel API latency optimization, Runout What-If Exp
   assert.match(batchPreloadSrc, /existingChecksum\s*===\s*rowChecksum/, 'batch-preload.js must skip re-upserting already-canonicalized rows with matching policy_checksum');
 
   const recordQuestionSrc = read('pages/api/training/record-question.js');
-  assert.match(recordQuestionSrc, /Promise\.all\(\[\s*getImmutableQuestionSnapshot\(receiptPayload\.snapshotKey\)/, 'record-question.js must parallelize snapshot and canonical question reads');
+  assert.match(recordQuestionSrc, /Promise\.all\(\[\s*Promise\.resolve\(snapshot\)/, 'record-question.js must resolve snapshot and canonical question reads via Promise.all');
   assert.match(recordQuestionSrc, /Promise\.all\(\[seenUpsertPromise,\s*answerInsertPromise\]\)/, 'record-question.js must parallelize user_seen_questions upsert and training_answers insert');
 
   // 2. Item H: rankImportedHandsByEvLeak in syncedHandDrillResolver.js / audit-hand-history.js and #1 leak badges/CTA in live-hud-sync.js

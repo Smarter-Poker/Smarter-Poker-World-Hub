@@ -335,13 +335,14 @@ export default async function handler(req, res) {
         throw contractError;
       }
 
+      const snapshot = await getImmutableQuestionSnapshot(receiptPayload.snapshotKey);
       const [snapshotQuestion, currentCanonical] = await Promise.all([
-        getImmutableQuestionSnapshot(receiptPayload.snapshotKey),
+        Promise.resolve(snapshot),
         receiptExpired
           ? Promise.resolve(null)
           : getCanonicalQuestion(receiptPayload.questionId),
       ]);
-      const snapshot = snapshotQuestion;
+      void snapshotQuestion;
       if (
         !trainingQuestionSnapshotMatchesIdentity(snapshot, {
           gameId: receiptPayload.gameId,
@@ -639,10 +640,9 @@ export default async function handler(req, res) {
 
       let idempotentReplay = false;
       const [, answerInsertOutcome] = await Promise.all([seenUpsertPromise, answerInsertPromise]);
-      const answerInsertError = answerInsertOutcome.error;
-      if (answerInsertError) {
-        const errorCode = answerInsertError?.cause?.code || answerInsertError?.code;
-        if (errorCode !== '23505') throw answerInsertError;
+      const insertError = answerInsertOutcome.error;
+      if (insertError) {
+        if (insertError?.cause?.code !== '23505' && insertError?.code !== '23505') throw insertError;
         persistedAnswer = await getExistingAnswerSubmission(userId, receiptPayload.jti);
         if (!isSameAnswerSubmission(persistedAnswer, {
           gameId,
