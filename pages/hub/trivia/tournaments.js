@@ -8,6 +8,14 @@ import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBound
 import TriviaConsole from '../../../src/components/trivia/console/TriviaConsole';
 import TriviaConsoleDialog from '../../../src/components/trivia/console/TriviaConsoleDialog';
 import ResponsiveModeArt from '../../../src/components/trivia/console/ResponsiveModeArt';
+import { TriviaGlassAction } from '../../../src/components/trivia/console/TriviaConsole';
+import useTriviaRealtimeSync from '../../../src/hooks/useTriviaRealtimeSync';
+import NightlyReminderButton from '../../../src/components/trivia/NightlyReminderButton';
+import NightlySpectatorBanner from '../../../src/components/trivia/NightlySpectatorBanner';
+import MonthlyChampionshipPanel from '../../../src/components/trivia/MonthlyChampionshipPanel';
+import FriendChallengePanel from '../../../src/components/trivia/FriendChallengePanel';
+import ShareResultCardModal from '../../../src/components/trivia/ShareResultCardModal';
+import PostSettlementReviewDrawer from '../../../src/components/trivia/PostSettlementReviewDrawer';
 import { TRIVIA_INTRO_ART_TOURNAMENTS } from '../../../src/config/triviaIntroArt.mjs';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -204,6 +212,8 @@ function TournamentPageExperience({ user, authLoading }) {
     const [playError, setPlayError] = useState('');
     const [clockAnchor, setClockAnchor] = useState({ serverTime: null, receivedAt: null });
     const [nowMs, setNowMs] = useState(Date.now());
+    const [shareCardOpen, setShareCardOpen] = useState(false);
+    const [reviewSessionId, setReviewSessionId] = useState('');
 
     const bracketTouchedRef = useRef(false);
     const autoResumeRef = useRef(new Set());
@@ -359,8 +369,12 @@ function TournamentPageExperience({ user, authLoading }) {
     }, []);
 
     useEffect(() => {
+        if (typeof router.query?.challenge === 'string' && router.query.challenge.trim()) {
+            setActiveTab('challenges');
+            return;
+        }
         if (typeof window !== 'undefined' && window.matchMedia('(min-width: 900px)').matches) setActiveTab('bracket');
-    }, []);
+    }, [router.query?.challenge]);
 
     const loadSchedule = useCallback(async (signal, requestLease) => {
         const payload = await nightlyRequest('schedule', { params: { days: 8 }, signal });
@@ -652,14 +666,33 @@ function TournamentPageExperience({ user, authLoading }) {
         return () => controller.abort();
     }, [activeTab, loadReceipt, myRun?.entered, signedIn, tournament?.state]);
 
+    const activeRun = Boolean(myRun?.current);
+    const activeEvent = ['held', 'live', 'settling'].includes(tournament?.state);
+    const basePollDelay = activeRun ? 3000 : activeEvent ? 8000 : 45000;
+
+    const handleRealtimePush = useCallback(() => {
+        if (!tournamentId || !online) return;
+        void loadCore(tournamentId, { quiet: true });
+        if (activeTab === 'bracket' || activeEvent) {
+            void loadBracket(bracket?.offset || 0);
+        }
+    }, [activeEvent, activeTab, bracket?.offset, loadBracket, loadCore, online, tournamentId]);
+
+    const realtimeSync = useTriviaRealtimeSync({
+        channelName: tournamentId ? `trivia:tournament:${tournamentId}` : null,
+        enabled: Boolean(tournamentId && pageState === 'ready' && online),
+        broadcastEvents: ['tournament_update', 'bracket_update', 'round_update', 'settlement_update'],
+        fallbackPollMs: basePollDelay,
+        connectedPollMs: Math.max(basePollDelay * 3, 15000),
+        onSync: handleRealtimePush,
+    });
+
     useEffect(() => {
         if (!tournamentId || pageState !== 'ready' || !online) return undefined;
         let stopped = false;
         let timer = null;
         const controller = new AbortController();
-        const activeRun = Boolean(myRun?.current);
-        const activeEvent = ['held', 'live', 'settling'].includes(tournament?.state);
-        const delay = activeRun ? 3000 : activeEvent ? 8000 : 45000;
+        const delay = realtimeSync.effectivePollMs;
         const poll = async () => {
             await loadCore(tournamentId, { quiet: true, signal: controller.signal });
             if (!stopped && (activeTab === 'bracket' || activeEvent)) {
@@ -673,7 +706,7 @@ function TournamentPageExperience({ user, authLoading }) {
             controller.abort();
             if (timer) window.clearTimeout(timer);
         };
-    }, [activeTab, bracket?.offset, loadBracket, loadCore, myRun?.current, online, pageState, tournament?.state, tournamentId]);
+    }, [activeEvent, activeTab, bracket?.offset, loadBracket, loadCore, online, pageState, realtimeSync.effectivePollMs, tournamentId]);
 
     const hydrateSession = useCallback(async (sessionDto, actionLease) => {
         if (!canAdoptTournamentAction(actionLease)) return false;
@@ -940,6 +973,12 @@ function TournamentPageExperience({ user, authLoading }) {
         if (activeTab === 'results') {
             return <TournamentResults results={results} summary={summary} loading={loading.results} error={errors.results} onPage={offset => loadResults(offset)} onRetry={() => loadResults(results?.offset || 0)} />;
         }
+        if (activeTab === 'championship') {
+            return <MonthlyChampionshipPanel />;
+        }
+        if (activeTab === 'challenges') {
+            return <FriendChallengePanel signedIn={signedIn} onSignIn={signIn} />;
+        }
         if (activeTab === 'receipt') {
             return <TournamentReceipt receipt={receipt} loading={loading.receipt} error={errors.receipt} signedIn={signedIn} onSignIn={signIn} onRetry={() => loadReceipt()} />;
         }
@@ -1035,11 +1074,33 @@ function TournamentPageExperience({ user, authLoading }) {
                                 pillInk={['open', 'entered', 'advance', 'champion', 'paid', 'refunded'].includes(viewState) ? 'green' : ['cancelled', 'refund', 'eliminated'].includes(viewState) ? 'red' : ['countdown', 'waiting', 'settling'].includes(viewState) ? 'gold' : 'blue'}
                             >
                                 {!myRun?.entered && !tournament.viewer?.entered ? <ResponsiveModeArt art={TRIVIA_INTRO_ART_TOURNAMENTS} priority /> : null}
+                                <NightlySpectatorBanner
+                                    tournament={tournament}
+                                    summary={summary}
+                                    myRun={myRun}
+                                    realtimeConnected={realtimeSync.connected}
+                                    onWatchRound={(round) => {
+                                        selectRound(round);
+                                        setActiveTab('bracket');
+                                    }}
+                                />
                                 {!online ? <TournamentStateBanner title="Connection Lost" message="Displayed Tournament Data May Be Stale. Reconnect Before Entering Or Playing." tone="red" role="alert" /> : null}
                                 {errors.core ? <TournamentStateBanner title="Run Refresh Delayed" message={errors.core} tone="red" role="alert" action={{ label: 'Retry Run', onClick: () => loadCore(tournamentId, { quiet: true }) }} /> : null}
                                 {playError ? <TournamentStateBanner title="Round Not Opened" message={playError} tone="red" role="alert" action={{ label: 'Retry From Server', onClick: refreshSession }} /> : null}
                                 <div className="tt-console-grid" data-active-tab={activeTab}>
-                                    <TournamentEventLedger tournament={tournament} summary={summary} nowMs={nowMs} onReminder={() => downloadCalendarReminder(tournament)} />
+                                    <TournamentEventLedger
+                                        tournament={tournament}
+                                        summary={summary}
+                                        nowMs={nowMs}
+                                        onReminder={() => downloadCalendarReminder(tournament)}
+                                        reminderSlot={(
+                                            <NightlyReminderButton
+                                                tournamentId={tournamentId}
+                                                signedIn={signedIn}
+                                                onSignIn={signIn}
+                                            />
+                                        )}
+                                    />
                                     <TournamentTabs value={activeTab} onChange={setActiveTab} />
                                     <div className="tt-center">{renderCenterPane()}</div>
                                     <TournamentMyRun
@@ -1056,10 +1117,42 @@ function TournamentPageExperience({ user, authLoading }) {
                                         onResume={() => openOrResume('view')}
                                     />
                                 </div>
+                                {signedIn && (myRun?.entered || tournament?.state === 'settled') ? (
+                                    <div className="tt-actions" style={{ marginTop: '12px', display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                                        <TriviaGlassAction
+                                            label="Share Result Card"
+                                            ink="gold"
+                                            onClick={() => setShareCardOpen(true)}
+                                        />
+                                        {myRun?.history?.find?.(row => row?.sessionId)?.sessionId ? (
+                                            <TriviaGlassAction
+                                                label="Review Settled Questions"
+                                                ink="blue"
+                                                onClick={() => setReviewSessionId(myRun.history.find(row => row?.sessionId).sessionId)}
+                                            />
+                                        ) : null}
+                                    </div>
+                                ) : null}
                             </TriviaConsole>
                         ) : null}
                     </main>
                 </div>
+                <ShareResultCardModal
+                    open={shareCardOpen}
+                    onClose={() => setShareCardOpen(false)}
+                    mode="tournaments"
+                    score={Number(myRun?.entrant?.matchesWon ?? myRun?.history?.filter?.(r => r?.result === 'won')?.length ?? 0)}
+                    total={Number(summary?.field?.rounds || myRun?.history?.length || 0)}
+                    diamonds={Number(receipt?.payout?.amount || 0)}
+                    player={myRun?.entrant?.displayName || user?.user_metadata?.username || 'Tournament Player'}
+                    shareUrl="https://smarter.poker/hub/trivia/tournaments"
+                />
+                <PostSettlementReviewDrawer
+                    open={Boolean(reviewSessionId)}
+                    onClose={() => setReviewSessionId('')}
+                    sessionId={reviewSessionId}
+                    title="Tournament Round Review"
+                />
                 <TriviaConsoleDialog
                     open={Boolean(dialogError)}
                     onClose={() => setDialogError(null)}

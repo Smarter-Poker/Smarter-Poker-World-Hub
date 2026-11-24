@@ -11,9 +11,11 @@
  * prints only its body-level actions (Share, Spin, Review) as lit words.
  */
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import Link from 'next/link';
 import { formatTriviaDisplayNumber } from '../../lib/trivia/formatTriviaDisplayNumber';
+import ShareResultCardModal from './ShareResultCardModal';
+import PostSettlementReviewDrawer from './PostSettlementReviewDrawer';
 // confetti loaded lazily on first use
 let _confetti = null;
 async function fireConfetti(opts) {
@@ -58,6 +60,8 @@ export default function TriviaResult({
     personalBest = null,       // best score for this mode, for a comparison line
     beatPersonalBest = false,
     actionsInFooter = false,   // the page owns Back To Trivia / Play Again
+    sessionId = null,          // settled session UUID for server-verified review drawer
+    playerName = '',           // optional player display name for result card
 }) {
     // Guard: totalQuestions of 0 (or a missing prop) produced NaN% in the ring
     // and grade 'F'. Display components in this repo must degrade gracefully.
@@ -79,7 +83,17 @@ export default function TriviaResult({
 
     // Review mode state
     const [showReview, setShowReview] = useState(false);
+    const [shareCardOpen, setShareCardOpen] = useState(false);
+    const [verifiedReviewOpen, setVerifiedReviewOpen] = useState(false);
     const canReview = questions && answers && questions.length > 0;
+    const shareGrid = useMemo(() => {
+        if (!Array.isArray(questions) || !Array.isArray(answers) || questions.length === 0) return '';
+        return questions.slice(0, 20).map((q, idx) => {
+            const ans = answers[idx];
+            if (ans === -1 || ans === -2 || ans === undefined || ans === null) return 'S';
+            return ans === q?.correct_index ? 'C' : 'W';
+        }).join('');
+    }, [answers, questions]);
 
     // Share state
     const [shareLabel, setShareLabel] = useState('Share Result');
@@ -428,6 +442,22 @@ export default function TriviaResult({
                 <button type="button" className="result-action result-action--share tc-word" onClick={handleShare}>
                     {shareLabel}
                 </button>
+                <button
+                    type="button"
+                    className="result-action result-action--share-card tc-word tc-ink--gold"
+                    onClick={() => setShareCardOpen(true)}
+                >
+                    Share Result Card
+                </button>
+                {sessionId ? (
+                    <button
+                        type="button"
+                        className="result-action result-action--verified-review tc-word tc-ink--blue"
+                        onClick={() => setVerifiedReviewOpen(true)}
+                    >
+                        Verified Review & Train
+                    </button>
+                ) : null}
 
                 {showSpinButton && onSpinWheel && (
                     <button type="button" className="result-action result-action--spin-wheel tc-word tc-ink--gold" onClick={onSpinWheel}>
@@ -452,6 +482,24 @@ export default function TriviaResult({
                     </button>
                 )}
             </div>
+            <ShareResultCardModal
+                open={shareCardOpen}
+                onClose={() => setShareCardOpen(false)}
+                mode={mode || 'daily'}
+                score={safeCorrect}
+                total={safeTotal}
+                diamonds={stakePot || diamondsEarned || 0}
+                streak={streak || 0}
+                player={playerName || 'Smarter.Poker Player'}
+                grid={shareGrid}
+            />
+            {sessionId ? (
+                <PostSettlementReviewDrawer
+                    open={verifiedReviewOpen}
+                    onClose={() => setVerifiedReviewOpen(false)}
+                    sessionId={sessionId}
+                />
+            ) : null}
         </div>
     );
 }

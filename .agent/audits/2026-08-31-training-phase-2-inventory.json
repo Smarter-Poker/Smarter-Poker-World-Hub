@@ -18,7 +18,7 @@
     "dialogs": 12,
     "persistenceFiles": 88,
     "realtimeFiles": 6,
-    "tests": 182,
+    "tests": 183,
     "markerCandidates": 377,
     "possibleUnwiredFunctions": 408,
     "routeStateCells": 752,
@@ -7257,6 +7257,7 @@
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-retired-achievement-challenge-authority.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
+            "__tests__/trivia-realtime-social-growth.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -7307,6 +7308,7 @@
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-retired-achievement-challenge-authority.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
+            "__tests__/trivia-realtime-social-growth.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -7357,6 +7359,7 @@
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-retired-achievement-challenge-authority.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
+            "__tests__/trivia-realtime-social-growth.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -7389,6 +7392,7 @@
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-retired-achievement-challenge-authority.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
+            "__tests__/trivia-realtime-social-growth.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -7428,6 +7432,7 @@
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-retired-achievement-challenge-authority.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
+            "__tests__/trivia-realtime-social-growth.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -7471,6 +7476,7 @@
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-retired-achievement-challenge-authority.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
+            "__tests__/trivia-realtime-social-growth.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -7493,6 +7499,7 @@
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-retired-achievement-challenge-authority.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
+            "__tests__/trivia-realtime-social-growth.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -7519,6 +7526,7 @@
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-retired-achievement-challenge-authority.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
+            "__tests__/trivia-realtime-social-growth.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         }
@@ -7532,6 +7540,7 @@
         "__tests__/training-request-deadline.test.mjs",
         "__tests__/training-retired-achievement-challenge-authority.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs",
+        "__tests__/trivia-realtime-social-growth.test.mjs",
         "e2e/020-hamburger.spec.ts"
       ],
       "uncoveredStates": []
@@ -12363,6 +12372,7 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
+            "__tests__/trivia-realtime-social-growth.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -12399,6 +12409,7 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
+            "__tests__/trivia-realtime-social-growth.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -12434,6 +12445,7 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
+            "__tests__/trivia-realtime-social-growth.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -12459,6 +12471,7 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
+            "__tests__/trivia-realtime-social-growth.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -12486,6 +12499,7 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
+            "__tests__/trivia-realtime-social-growth.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -12514,6 +12528,7 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
+            "__tests__/trivia-realtime-social-growth.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -12535,6 +12550,7 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
+            "__tests__/trivia-realtime-social-growth.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -12558,6 +12574,7 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
+            "__tests__/trivia-realtime-social-growth.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         }
@@ -12575,6 +12592,7 @@
         "__tests__/phase23-calculator-schema.test.mjs",
         "__tests__/seo-backlink-programme-invariants.law.test.mjs",
         "__tests__/training-phase-3-adversarial.test.mjs",
+        "__tests__/trivia-realtime-social-growth.test.mjs",
         "e2e/020-hamburger.spec.ts"
       ],
       "uncoveredStates": []
@@ -24530,6 +24548,7 @@
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-specialty-pages-phase-7.test.mjs",
             "__tests__/training-tournaments-read-contract.test.mjs",
+            "__tests__/trivia-realtime-social-growth.test.mjs",
             "__tests__/world-hub-connection-hardening.test.mjs"
           ]
         },
@@ -24582,6 +24601,7 @@
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-specialty-pages-phase-7.test.mjs",
             "__tests__/training-tournaments-read-contract.test.mjs",
+            "__tests__/trivia-realtime-social-growth.test.mjs",
             "__tests__/world-hub-connection-hardening.test.mjs"
           ]
         },
@@ -24633,6 +24653,7 @@
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-specialty-pages-phase-7.test.mjs",
             "__tests__/training-tournaments-read-contract.test.mjs",
+            "__tests__/trivia-realtime-social-growth.test.mjs",
             "__tests__/world-hub-connection-hardening.test.mjs"
           ]
         },
@@ -24666,6 +24687,7 @@
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-specialty-pages-phase-7.test.mjs",
             "__tests__/training-tournaments-read-contract.test.mjs",
+            "__tests__/trivia-realtime-social-growth.test.mjs",
             "__tests__/world-hub-connection-hardening.test.mjs"
           ]
         },
@@ -24707,6 +24729,7 @@
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-specialty-pages-phase-7.test.mjs",
             "__tests__/training-tournaments-read-contract.test.mjs",
+            "__tests__/trivia-realtime-social-growth.test.mjs",
             "__tests__/world-hub-connection-hardening.test.mjs"
           ]
         },
@@ -24753,6 +24776,7 @@
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-specialty-pages-phase-7.test.mjs",
             "__tests__/training-tournaments-read-contract.test.mjs",
+            "__tests__/trivia-realtime-social-growth.test.mjs",
             "__tests__/world-hub-connection-hardening.test.mjs"
           ]
         },
@@ -24777,6 +24801,7 @@
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-specialty-pages-phase-7.test.mjs",
             "__tests__/training-tournaments-read-contract.test.mjs",
+            "__tests__/trivia-realtime-social-growth.test.mjs",
             "__tests__/world-hub-connection-hardening.test.mjs"
           ]
         },
@@ -24806,6 +24831,7 @@
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-specialty-pages-phase-7.test.mjs",
             "__tests__/training-tournaments-read-contract.test.mjs",
+            "__tests__/trivia-realtime-social-growth.test.mjs",
             "__tests__/world-hub-connection-hardening.test.mjs"
           ]
         }
@@ -24821,6 +24847,7 @@
         "__tests__/training-request-deadline.test.mjs",
         "__tests__/training-specialty-pages-phase-7.test.mjs",
         "__tests__/training-tournaments-read-contract.test.mjs",
+        "__tests__/trivia-realtime-social-growth.test.mjs",
         "__tests__/world-hub-connection-hardening.test.mjs"
       ],
       "uncoveredStates": []
@@ -82224,6 +82251,7 @@
     "__tests__/training-tournaments-read-contract.test.mjs",
     "__tests__/training-verified-leaderboard.test.mjs",
     "__tests__/training-verified-report-authority.test.mjs",
+    "__tests__/trivia-realtime-social-growth.test.mjs",
     "__tests__/trivia-study-pool-curation.test.mjs",
     "__tests__/world-command-navigation-state.test.mjs",
     "__tests__/world-hub-connection-hardening.test.mjs",
@@ -93079,7 +93107,8 @@
         "__tests__/training-reconciled-workflows.test.mjs",
         "__tests__/training-request-deadline.test.mjs",
         "__tests__/training-retired-achievement-challenge-authority.test.mjs",
-        "__tests__/training-runtime-wiring.test.mjs"
+        "__tests__/training-runtime-wiring.test.mjs",
+        "__tests__/trivia-realtime-social-growth.test.mjs"
       ]
     },
     {
@@ -95985,6 +96014,7 @@
         "__tests__/training-request-deadline.test.mjs",
         "__tests__/training-specialty-pages-phase-7.test.mjs",
         "__tests__/training-tournaments-read-contract.test.mjs",
+        "__tests__/trivia-realtime-social-growth.test.mjs",
         "__tests__/world-hub-connection-hardening.test.mjs"
       ]
     },
@@ -99053,7 +99083,8 @@
         "__tests__/training-reconciled-workflows.test.mjs",
         "__tests__/training-request-deadline.test.mjs",
         "__tests__/training-retired-achievement-challenge-authority.test.mjs",
-        "__tests__/training-runtime-wiring.test.mjs"
+        "__tests__/training-runtime-wiring.test.mjs",
+        "__tests__/trivia-realtime-social-growth.test.mjs"
       ]
     },
     {
@@ -116114,6 +116145,7 @@
         "__tests__/training-request-deadline.test.mjs",
         "__tests__/training-specialty-pages-phase-7.test.mjs",
         "__tests__/training-tournaments-read-contract.test.mjs",
+        "__tests__/trivia-realtime-social-growth.test.mjs",
         "__tests__/world-hub-connection-hardening.test.mjs"
       ]
     },
