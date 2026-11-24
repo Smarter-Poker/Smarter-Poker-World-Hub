@@ -132,8 +132,10 @@
 
 .milestoneNode {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 2px;
     padding: 5px 4px;
     border: 1px solid #6d747c;
     background: #000000;
@@ -143,6 +145,44 @@
     letter-spacing: 0.06em;
     text-transform: uppercase;
     text-align: center;
+}
+
+.milestoneRewardTag {
+    font-size: 10px;
+    font-weight: 700;
+    color: #ffd700;
+}
+
+.claimBar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.claimButton {
+    min-height: 44px;
+    padding: 8px 14px;
+    border: 1px solid #35d95a;
+    background: #000000;
+    color: #35d95a;
+    font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+.claimButton:disabled {
+    border-color: #6d747c;
+    color: #9aa5b3;
+    cursor: not-allowed;
+}
+
+.claimButton:focus-visible {
+    outline: 3px solid #45adff;
+    outline-offset: 2px;
 }
 
 .milestoneNodeReached {

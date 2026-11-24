@@ -31,6 +31,7 @@ import {
     toPvpHistoryDto,
     toPvpQuoteDto,
 } from './pvpMatchmakingPolicy.mjs';
+import { emitTriviaRealtimeBroadcasts } from './realtimeBroadcast.mjs';
 
 export const PVP_ROUTE_ACTIONS = Object.freeze({
     quote: { methods: ['GET'], limit: { ...LIMITS.read, scope: 'trivia-pvp-quote' } },
@@ -133,6 +134,37 @@ export function createPvpRoute(action, { serviceClient, env = process.env, sleep
                 } catch (_eloError) {
                     // Elo rating projection is idempotent and non-blocking; never alter settlement DTO.
                 }
+            }
+            if (action === 'join' || action === 'cancel' || dto?.state === 'result' || dto?.state === 'dealing' || dto?.state === 'settling') {
+                const broadcastEntries = [];
+                const entityId = dto?.match?.id || dto?.ticket?.id || user.id;
+                const safePayload = {
+                    type: 'state_change',
+                    entityId,
+                    state: dto?.state || action,
+                    action,
+                    matchId: dto?.match?.id || null,
+                };
+                if (dto?.match?.id) {
+                    broadcastEntries.push({
+                        channel: `trivia:pvp:match:${dto.match.id}`,
+                        event: dto.state === 'result' ? 'settlement_update' : 'match_update',
+                        payload: safePayload,
+                    });
+                }
+                if (dto?.ticket?.id) {
+                    broadcastEntries.push({
+                        channel: `trivia:pvp:ticket:${dto.ticket.id}`,
+                        event: 'ticket_update',
+                        payload: safePayload,
+                    });
+                }
+                broadcastEntries.push({
+                    channel: `trivia:pvp:user:${user.id}`,
+                    event: dto?.state === 'result' ? 'settlement_update' : 'state_update',
+                    payload: safePayload,
+                });
+                await emitTriviaRealtimeBroadcasts(broadcastEntries, { env });
             }
             console.log(JSON.stringify({
                 event: 'trivia_pvp_api', action, state: dto.state,

@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import { TriviaGlassAction } from './console/TriviaConsole';
+import TriviaAnswerOption from './TriviaAnswerOption';
 import { authedFetch } from '../../lib/authUtils';
+import { toTitleCase } from '../../lib/trivia/titleCase';
 
 const MAX_PLAYER_OPTIONS = [16, 32, 64, 128, 256];
 const QUESTION_COUNT_OPTIONS = [10, 20];
@@ -30,6 +32,12 @@ function formatClubNightStart(isoValue) {
     });
 }
 
+function formatElapsedSeconds(elapsedMs) {
+    const ms = Number(elapsedMs);
+    if (!Number.isFinite(ms) || ms < 0) return '0.0s';
+    return `${(ms / 1000).toFixed(1)}s`;
+}
+
 function statusLabel(status) {
     switch (status) {
         case 'registration':
@@ -54,9 +62,11 @@ function statusInk(status) {
 function friendlyClubNightError(code, fallback) {
     const map = {
         authentication_required: 'Sign In To Access Private Club Trivia Nights.',
-        club_host_forbidden: 'Only Club Owners And Admins Can Host Or Cancel Club Trivia Nights.',
-        club_membership_required: 'Active Membership In This Club Is Required To Register.',
+        club_host_forbidden: 'Only Club Owners And Admins Can Manage Club Trivia Nights.',
+        club_membership_required: 'Active Membership In This Club Is Required.',
+        not_registered_for_tournament: 'Register For This Club Trivia Night Before Playing.',
         club_not_found: 'Selected Club Is Not Active Or Could Not Be Found.',
+        club_tournament_not_found: 'That Club Trivia Night Could Not Be Found.',
         club_active_limit_reached: 'This Club Already Has The Maximum Active Trivia Nights Scheduled.',
         invalid_title: 'Event Title Must Be Between 3 And 80 Characters.',
         scheduled_start_must_be_future: 'Start Time Must Be At Least 2 Minutes In The Future.',
@@ -64,8 +74,12 @@ function friendlyClubNightError(code, fallback) {
         paid_club_escrow_not_enabled: 'Club Trivia Nights V1 Runs Free-Roll Bragging-Rights Events Only (0 Diamonds).',
         tournament_full: 'This Private Club Trivia Night Is Full.',
         tournament_not_in_registration: 'Registration Is Closed For This Event.',
+        tournament_not_live: 'This Club Trivia Night Is Not Currently Live.',
+        minimum_entrants_required: 'At Least 2 Registered Club Members Are Required To Start.',
+        insufficient_eligible_questions: 'Not Enough Verified Trivia Questions Are Available Right Now.',
         registration_closed: 'Start Time Has Passed For This Event.',
         cannot_cancel_started_tournament: 'Only Events In Registration Can Be Cancelled.',
+        invalid_answers: 'Select Answers Before Submitting Your Club Night Run.',
     };
     return map[code] || fallback || 'Could Not Complete That Club Trivia Action Right Now.';
 }
@@ -92,6 +106,16 @@ const LABEL_STYLE = {
     color: 'var(--tc-ink-silver, #CBD5E1)',
 };
 
+const PANEL_BOX_STYLE = {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    padding: '14px',
+    borderRadius: '10px',
+    border: '1px solid rgba(69, 173, 255, 0.4)',
+    background: 'rgba(5, 10, 20, 0.85)',
+};
+
 export default function ClubTriviaNightsPanel({
     signedIn = false,
     onSignIn,
@@ -111,6 +135,16 @@ export default function ClubTriviaNightsPanel({
     const [maxPlayers, setMaxPlayers] = useState(64);
     const [questionCount, setQuestionCount] = useState(10);
 
+    // Active in-panel server-graded question runner state
+    const [activeRun, setActiveRun] = useState(null);
+    const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
+    const [selectedAnswers, setSelectedAnswers] = useState([]);
+    const runStartedAtRef = useRef(0);
+
+    // Active standings / winner / post-settlement review drawer state
+    const [resultsView, setResultsView] = useState(null);
+    const [lastSubmission, setLastSubmission] = useState(null);
+
     const hostableClubs = useMemo(
         () => clubs.filter((club) => club && club.canHost === true),
         [clubs],
@@ -120,6 +154,8 @@ export default function ClubTriviaNightsPanel({
         if (!signedIn) {
             setClubs([]);
             setItems([]);
+            setActiveRun(null);
+            setResultsView(null);
             setLoading(false);
             setError('');
             return;
@@ -235,6 +271,179 @@ export default function ClubTriviaNightsPanel({
         }
     };
 
+    const handleStartNight = async (item) => {
+        if (!signedIn) {
+            onSignIn?.();
+            return;
+        }
+        setBusyKey(`start:${item.id}`);
+        setError('');
+        setNotice('');
+        try {
+            const response = await authedFetch('/api/trivia/club-nights', {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'start',
+                    clubTournamentId: item.id,
+                }),
+            });
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok || payload?.success !== true) {
+                throw new Error(friendlyClubNightError(payload?.error));
+            }
+            setNotice(`${item.title} Is Live Now With ${payload.questionCount || item.questionCount} Verified Questions.`);
+            await loadClubNights();
+        } catch (err) {
+            setError(err?.message || 'Could Not Start Club Trivia Night.');
+        } finally {
+            setBusyKey('');
+        }
+    };
+
+    const loadResultsView = useCallback(async (tournamentId) => {
+        if (!signedIn || !tournamentId) return;
+        setBusyKey(`results:${tournamentId}`);
+        setError('');
+        try {
+            const response = await authedFetch(
+                `/api/trivia/club-nights?tournamentId=${encodeURIComponent(tournamentId)}&view=results`,
+                { method: 'GET', cache: 'no-store' },
+            );
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok || payload?.success !== true) {
+                throw new Error(friendlyClubNightError(payload?.error, 'Could Not Load Club Standings.'));
+            }
+            setResultsView(payload);
+        } catch (err) {
+            setError(err?.message || 'Could Not Load Club Standings.');
+        } finally {
+            setBusyKey('');
+        }
+    }, [signedIn]);
+
+    const handleCompleteNight = async (item) => {
+        if (!signedIn) {
+            onSignIn?.();
+            return;
+        }
+        setBusyKey(`complete:${item.id}`);
+        setError('');
+        setNotice('');
+        try {
+            const response = await authedFetch('/api/trivia/club-nights', {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'complete',
+                    clubTournamentId: item.id,
+                }),
+            });
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok || payload?.success !== true) {
+                throw new Error(friendlyClubNightError(payload?.error));
+            }
+            const champName = payload?.champion?.displayName;
+            setNotice(
+                champName
+                    ? `Finalized ${item.title}. Club Champion: ${champName}.`
+                    : `Finalized ${item.title}. Official Standings Posted.`,
+            );
+            await loadClubNights();
+            await loadResultsView(item.id);
+        } catch (err) {
+            setError(err?.message || 'Could Not Finalize Club Trivia Night.');
+        } finally {
+            setBusyKey('');
+        }
+    };
+
+    const handleOpenPlayRunner = async (item) => {
+        if (!signedIn) {
+            onSignIn?.();
+            return;
+        }
+        setBusyKey(`play:${item.id}`);
+        setError('');
+        setNotice('');
+        setLastSubmission(null);
+        try {
+            const response = await authedFetch(
+                `/api/trivia/club-nights?tournamentId=${encodeURIComponent(item.id)}&view=questions`,
+                { method: 'GET', cache: 'no-store' },
+            );
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok || payload?.success !== true) {
+                throw new Error(friendlyClubNightError(payload?.error, 'Could Not Load Club Night Questions.'));
+            }
+            if (payload.alreadySubmitted) {
+                setNotice(`You Already Submitted Answers For ${item.title}. Showing Current Standings.`);
+                await loadResultsView(item.id);
+                return;
+            }
+            const questions = Array.isArray(payload.questions) ? payload.questions : [];
+            if (questions.length === 0) {
+                throw new Error('No Questions Were Loaded For This Club Night.');
+            }
+            setResultsView(null);
+            setActiveRun({
+                clubTournamentId: payload.clubTournamentId || item.id,
+                title: payload.title || item.title,
+                questions,
+            });
+            setSelectedAnswers(new Array(questions.length).fill(-1));
+            setCurrentQuestionIdx(0);
+            runStartedAtRef.current = Date.now();
+        } catch (err) {
+            setError(err?.message || 'Could Not Open Club Night Play Runner.');
+        } finally {
+            setBusyKey('');
+        }
+    };
+
+    const handleSelectOption = (optionIndex) => {
+        setSelectedAnswers((prev) => {
+            const next = [...prev];
+            next[currentQuestionIdx] = optionIndex;
+            return next;
+        });
+    };
+
+    const handleSubmitAnswers = async () => {
+        if (!activeRun || !signedIn) return;
+        const elapsedMs = Math.max(0, Date.now() - (runStartedAtRef.current || Date.now()));
+        setBusyKey(`submit:${activeRun.clubTournamentId}`);
+        setError('');
+        setNotice('');
+        try {
+            const response = await authedFetch('/api/trivia/club-nights', {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'submit',
+                    clubTournamentId: activeRun.clubTournamentId,
+                    answers: selectedAnswers,
+                    elapsedMs,
+                }),
+            });
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok || payload?.success !== true) {
+                throw new Error(friendlyClubNightError(payload?.error, 'Could Not Submit Your Club Night Answers.'));
+            }
+            const finishedId = activeRun.clubTournamentId;
+            setLastSubmission(payload);
+            setActiveRun(null);
+            setNotice(
+                payload.autoCompleted
+                    ? `Submitted ${payload.correctCount} Of ${payload.totalQuestions} Correct (${payload.score} Pts). All Entrants Finished And Official Results Are Settled.`
+                    : `Submitted ${payload.correctCount} Of ${payload.totalQuestions} Correct (${payload.score} Pts, Current Rank #${payload.rank}).`,
+            );
+            await loadClubNights();
+            await loadResultsView(finishedId);
+        } catch (err) {
+            setError(err?.message || 'Could Not Submit Your Club Night Answers.');
+        } finally {
+            setBusyKey('');
+        }
+    };
+
     const handleCreateSubmit = async (event) => {
         event.preventDefault();
         if (!signedIn) {
@@ -288,6 +497,9 @@ export default function ClubTriviaNightsPanel({
         }
     };
 
+    const activeQuestion = activeRun?.questions?.[currentQuestionIdx] || null;
+    const answeredCount = selectedAnswers.filter((choice) => Number.isInteger(choice) && choice >= 0).length;
+
     return (
         <section
             className="tt-section"
@@ -322,6 +534,172 @@ export default function ClubTriviaNightsPanel({
                 <div role="alert" style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start' }}>
                     <p className="trivia-console-copy tc-ink--red" style={{ margin: 0 }}>{error}</p>
                     <TriviaGlassAction label="Retry Club Nights" ink="red" onClick={() => loadClubNights()} />
+                </div>
+            ) : null}
+
+            {signedIn && activeRun && activeQuestion ? (
+                <div style={PANEL_BOX_STYLE} role="region" aria-label="Club Trivia Night Play Runner">
+                    <div className="tt-section-head">
+                        <strong className="tc-ink--gold">{activeRun.title}</strong>
+                        <span className="tc-ink--blue">
+                            Question {currentQuestionIdx + 1} Of {activeRun.questions.length} | Answered: {answeredCount}/{activeRun.questions.length}
+                        </span>
+                    </div>
+
+                    <p className="trivia-console-copy tc-ink--silver" style={{ margin: 0, fontSize: '15px', fontWeight: 600 }}>
+                        {toTitleCase(activeQuestion.questionText)}
+                    </p>
+
+                    <div className="tt-options" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {(activeQuestion.options || []).map((option, idx) => (
+                            <TriviaAnswerOption
+                                key={`${activeQuestion.position}-${idx}`}
+                                index={idx}
+                                option={toTitleCase(String(option))}
+                                selectedAnswer={selectedAnswers[currentQuestionIdx] >= 0 ? selectedAnswers[currentQuestionIdx] : null}
+                                showResult={false}
+                                disabled={busyKey === `submit:${activeRun.clubTournamentId}`}
+                                onSelect={handleSelectOption}
+                            />
+                        ))}
+                    </div>
+
+                    <p className="trivia-console-copy tc-ink--muted" style={{ margin: 0, fontSize: '12px' }}>
+                        All Answers Are Graded Strictly On The Server. Correct Answers And Explanations Unlock Only After Settlement.
+                    </p>
+
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                            <TriviaGlassAction
+                                label="Previous"
+                                ink="blue"
+                                disabled={currentQuestionIdx === 0}
+                                onClick={() => setCurrentQuestionIdx((idx) => Math.max(0, idx - 1))}
+                            />
+                            {currentQuestionIdx < activeRun.questions.length - 1 ? (
+                                <TriviaGlassAction
+                                    label="Next Question"
+                                    ink="gold"
+                                    onClick={() => setCurrentQuestionIdx((idx) => Math.min(activeRun.questions.length - 1, idx + 1))}
+                                />
+                            ) : null}
+                            <TriviaGlassAction
+                                label="Exit Runner"
+                                ink="red"
+                                disabled={busyKey === `submit:${activeRun.clubTournamentId}`}
+                                onClick={() => setActiveRun(null)}
+                            />
+                        </div>
+
+                        <TriviaGlassAction
+                            label={busyKey === `submit:${activeRun.clubTournamentId}` ? 'Submitting...' : 'Submit Club Night Answers'}
+                            ink="green"
+                            disabled={busyKey === `submit:${activeRun.clubTournamentId}`}
+                            onClick={handleSubmitAnswers}
+                        />
+                    </div>
+                </div>
+            ) : null}
+
+            {signedIn && resultsView ? (
+                <div style={PANEL_BOX_STYLE} role="region" aria-label="Club Trivia Night Standings">
+                    <div className="tt-section-head">
+                        <strong className="tc-ink--gold">
+                            {resultsView.title} | {resultsView.status === 'settled' ? 'Final Standings' : 'Live Standings'}
+                        </strong>
+                        <span className="tc-ink--blue">
+                            Submissions: {resultsView.submissionCount || 0} / {resultsView.entrantCount || 0}
+                        </span>
+                    </div>
+
+                    {resultsView.status === 'settled' && resultsView.champion ? (
+                        <div
+                            style={{
+                                padding: '10px 12px',
+                                borderRadius: '8px',
+                                border: '1px solid rgba(250, 204, 21, 0.5)',
+                                background: 'rgba(250, 204, 21, 0.08)',
+                            }}
+                        >
+                            <strong className="tc-ink--gold">
+                                Club Champion: {resultsView.champion.displayName} | {resultsView.champion.score} Pts ({resultsView.champion.correctCount}/{resultsView.champion.totalQuestions} In {formatElapsedSeconds(resultsView.champion.elapsedMs)})
+                            </strong>
+                        </div>
+                    ) : null}
+
+                    {lastSubmission && lastSubmission.clubTournamentId === resultsView.clubTournamentId ? (
+                        <p className="trivia-console-copy tc-ink--green" style={{ margin: 0, fontSize: '13px' }}>
+                            Your Recorded Score: {lastSubmission.score} Pts ({lastSubmission.correctCount}/{lastSubmission.totalQuestions} Correct In {formatElapsedSeconds(lastSubmission.elapsedMs)})
+                        </p>
+                    ) : null}
+
+                    {Array.isArray(resultsView.standings) && resultsView.standings.length > 0 ? (
+                        <ol className="tc-rows" aria-label="Club Standings Leaderboard" style={{ display: 'flex', flexDirection: 'column', gap: '6px', margin: 0, padding: 0, listStyle: 'none' }}>
+                            {resultsView.standings.map((row) => (
+                                <li
+                                    key={`${row.rank}-${row.userId}`}
+                                    className="tc-row"
+                                    style={{
+                                        padding: '8px 10px',
+                                        borderRadius: '8px',
+                                        border: row.isChampion
+                                            ? '1px solid rgba(250, 204, 21, 0.5)'
+                                            : '1px solid rgba(148, 163, 184, 0.2)',
+                                        background: row.isViewer ? 'rgba(69, 173, 255, 0.12)' : 'rgba(10, 18, 32, 0.5)',
+                                        display: 'flex',
+                                        flexWrap: 'wrap',
+                                        justifyContent: 'space-between',
+                                        gap: '8px',
+                                    }}
+                                >
+                                    <span className={row.isChampion ? 'tc-ink--gold' : 'tc-ink--silver'} style={{ fontWeight: 700 }}>
+                                        #{row.rank} {row.displayName}{row.isViewer ? ' (You)' : ''}{row.isChampion ? ' | Champion' : ''}
+                                    </span>
+                                    <span className="tc-ink--green" style={{ fontSize: '13px', fontWeight: 700 }}>
+                                        {row.score} Pts | {row.correctCount}/{row.totalQuestions} | {formatElapsedSeconds(row.elapsedMs)}
+                                    </span>
+                                </li>
+                            ))}
+                        </ol>
+                    ) : (
+                        <p className="trivia-console-copy tc-ink--muted" style={{ margin: 0 }}>
+                            No Club Members Have Submitted Answers Yet. Standings Update As Entrants Finish.
+                        </p>
+                    )}
+
+                    {resultsView.status === 'settled' && Array.isArray(resultsView.review) && resultsView.review.length > 0 ? (
+                        <details style={{ marginTop: '4px' }}>
+                            <summary className="tc-ink--blue" style={{ cursor: 'pointer', fontWeight: 700, fontSize: '13px' }}>
+                                Settled Question Review ({resultsView.review.length} Questions)
+                            </summary>
+                            <ol style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingLeft: '18px', marginTop: '8px' }}>
+                                {resultsView.review.map((q) => (
+                                    <li key={q.position} style={{ fontSize: '13px', color: '#E2E8F0' }}>
+                                        <div><strong>{toTitleCase(q.questionText)}</strong></div>
+                                        <div className="tc-ink--green">
+                                            Official Answer: {toTitleCase(String(q.options?.[q.correctIndex] || ''))}
+                                        </div>
+                                        {q.explanation ? (
+                                            <div className="tc-ink--muted">{q.explanation}</div>
+                                        ) : null}
+                                    </li>
+                                ))}
+                            </ol>
+                        </details>
+                    ) : null}
+
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                        <TriviaGlassAction
+                            label="Refresh Standings"
+                            ink="blue"
+                            onClick={() => loadResultsView(resultsView.clubTournamentId)}
+                        />
+                        <TriviaGlassAction
+                            label="Close Standings"
+                            ink="red"
+                            onClick={() => setResultsView(null)}
+                        />
+                    </div>
                 </div>
             ) : null}
 
@@ -495,9 +873,16 @@ export default function ClubTriviaNightsPanel({
                         <ul className="tc-rows" aria-label="Private Club Trivia Nights" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                             {items.map((item) => {
                                 const isReg = item.status === 'registration';
-                                const isFull = Number(item.entrantCount || 0) >= Number(item.maxPlayers || 64);
+                                const isLive = item.status === 'live';
+                                const isSettled = item.status === 'settled';
+                                const entrants = Number(item.entrantCount || 0);
+                                const isFull = entrants >= Number(item.maxPlayers || 64);
                                 const actionPending = busyKey === `join:${item.id}` || busyKey === `leave:${item.id}`;
                                 const cancelPending = busyKey === `cancel:${item.id}`;
+                                const startPending = busyKey === `start:${item.id}`;
+                                const completePending = busyKey === `complete:${item.id}`;
+                                const playPending = busyKey === `play:${item.id}`;
+                                const resultsPending = busyKey === `results:${item.id}`;
 
                                 return (
                                     <li
@@ -526,11 +911,14 @@ export default function ClubTriviaNightsPanel({
 
                                         <div className="tc-ink--muted" style={{ fontSize: '13px' }}>
                                             Starts: {formatClubNightStart(item.scheduledStartAt)} | {item.questionCount} Questions | Free-Roll (0 Diamonds)
+                                            {isSettled && item.championDisplayName ? ` | Champion: ${item.championDisplayName}` : ''}
                                         </div>
 
                                         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
                                             <span className="tc-ink--blue" style={{ fontSize: '13px', fontWeight: 700 }}>
-                                                Entrants: {item.entrantCount} / {item.maxPlayers} | Code: {item.inviteCode}
+                                                Entrants: {entrants} / {item.maxPlayers}
+                                                {isLive || isSettled ? ` | Submitted: ${Number(item.submissionCount || 0)}` : ''}
+                                                {` | Code: ${item.inviteCode}`}
                                             </span>
 
                                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
@@ -553,6 +941,38 @@ export default function ClubTriviaNightsPanel({
                                                         ink={item.viewerRegistered ? 'red' : 'green'}
                                                         disabled={actionPending || (!item.viewerRegistered && isFull)}
                                                         onClick={() => handleToggleRegistration(item)}
+                                                    />
+                                                ) : null}
+                                                {isReg && item.viewerCanManage ? (
+                                                    <TriviaGlassAction
+                                                        label={startPending ? 'Starting...' : 'Start Club Night'}
+                                                        ink="gold"
+                                                        disabled={startPending || entrants < 2}
+                                                        onClick={() => handleStartNight(item)}
+                                                    />
+                                                ) : null}
+                                                {isLive && item.viewerRegistered && !item.viewerSubmitted ? (
+                                                    <TriviaGlassAction
+                                                        label={playPending ? 'Loading...' : 'Play Now'}
+                                                        ink="green"
+                                                        disabled={playPending}
+                                                        onClick={() => handleOpenPlayRunner(item)}
+                                                    />
+                                                ) : null}
+                                                {isLive && item.viewerCanManage ? (
+                                                    <TriviaGlassAction
+                                                        label={completePending ? 'Finalizing...' : 'Finalize Results'}
+                                                        ink="gold"
+                                                        disabled={completePending}
+                                                        onClick={() => handleCompleteNight(item)}
+                                                    />
+                                                ) : null}
+                                                {isLive || isSettled ? (
+                                                    <TriviaGlassAction
+                                                        label={resultsPending ? 'Loading...' : isSettled ? 'View Results' : 'View Standings'}
+                                                        ink="blue"
+                                                        disabled={resultsPending}
+                                                        onClick={() => loadResultsView(item.id)}
                                                     />
                                                 ) : null}
                                                 {isReg && item.viewerCanManage ? (

@@ -118,7 +118,7 @@ test('pages/api/trivia/club-nights.js enforces auth, rate limits, strict validat
     assert.match(api, /LIMITS\.write/);
     assert.match(api, /Cache-Control', 'private, no-store, max-age=0'/);
     assert.match(api, /res\.status\(401\)\.json\(\{\s*success:\s*false,\s*error:\s*'authentication_required'\s*\}\)/);
-    assert.match(api, /VALID_ACTIONS = new Set\(\['create', 'join', 'leave', 'cancel'\]\)/);
+    assert.match(api, /VALID_ACTIONS = new Set\(\['create', 'join', 'leave', 'cancel', 'start', 'submit', 'complete'\]\)/);
     assert.match(api, /paid_club_escrow_not_enabled/);
     assert.match(api, /trivia_club_tournament_list_v1/);
     assert.match(api, /trivia_club_tournament_create_v1/);

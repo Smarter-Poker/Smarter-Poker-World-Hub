@@ -434,8 +434,13 @@ function buildTreasuryEconomics({ ledgerAccounts, ledgerConfig, ledgerHealth, cu
     const tournamentRake = normalizeRakeAccount(accountsByCode.get('house:rake:tournament') || null, 'house:rake:tournament');
     const pvpRake = normalizeRakeAccount(accountsByCode.get('house:rake:pvp') || null, 'house:rake:pvp');
 
-    const humanMatches = finite(pvp?.tickets?.matched_human) ? Number(pvp.tickets.matched_human) : null;
-    const horseMatches = finite(pvp?.tickets?.matched_horse) ? Number(pvp.tickets.matched_horse) : null;
+    const hasMatchMix = finite(pvp?.matches?.human_human) || finite(pvp?.matches?.human_horse);
+    const humanMatches = hasMatchMix
+        ? (finite(pvp?.matches?.human_human) ? Number(pvp.matches.human_human) : 0)
+        : (finite(pvp?.tickets?.matched_human) ? Number(pvp.tickets.matched_human) : null);
+    const horseMatches = hasMatchMix
+        ? (finite(pvp?.matches?.human_horse) ? Number(pvp.matches.human_horse) : 0)
+        : (finite(pvp?.tickets?.matched_horse) ? Number(pvp.tickets.matched_horse) : null);
     const totalMatches = humanMatches !== null && horseMatches !== null ? humanMatches + horseMatches : null;
     const humanSharePct = totalMatches && totalMatches > 0
         ? Math.round((humanMatches / totalMatches) * 1000) / 10

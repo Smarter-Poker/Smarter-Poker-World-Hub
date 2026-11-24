@@ -4,9 +4,11 @@ import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const VALID_ACTIONS = new Set(['create', 'join', 'leave', 'cancel']);
+const VALID_ACTIONS = new Set(['create', 'join', 'leave', 'cancel', 'start', 'submit', 'complete']);
+const VALID_GET_VIEWS = new Set(['questions', 'results']);
 const VALID_QUESTION_COUNTS = new Set([10, 20]);
 const VALID_ENTRY_FEES = new Set([0, 10, 25, 50]);
+const MAX_ELAPSED_MS = 86400000;
 
 let cachedServiceClient = null;
 function serviceClient() {
@@ -27,6 +29,7 @@ function mapDomainErrorStatus(code) {
             return 401;
         case 'club_host_forbidden':
         case 'club_membership_required':
+        case 'not_registered_for_tournament':
             return 403;
         case 'club_not_found':
         case 'club_tournament_not_found':
@@ -36,10 +39,34 @@ function mapDomainErrorStatus(code) {
         case 'tournament_not_in_registration':
         case 'registration_closed':
         case 'cannot_cancel_started_tournament':
+        case 'minimum_entrants_required':
+        case 'tournament_not_live':
+        case 'insufficient_eligible_questions':
+        case 'tournament_questions_missing':
             return 409;
         default:
             return 400;
     }
+}
+
+function sanitizeAnswerFreeQuestions(data) {
+    const questions = Array.isArray(data?.questions)
+        ? data.questions.map((q) => ({
+            position: Number(q?.position || 0),
+            questionText: typeof q?.questionText === 'string' ? q.questionText : '',
+            options: Array.isArray(q?.options) ? q.options : [],
+            category: typeof q?.category === 'string' ? q.category : 'general',
+        }))
+        : [];
+    return {
+        success: true,
+        clubTournamentId: data.clubTournamentId,
+        title: data.title,
+        status: data.status,
+        questionCount: Number(data.questionCount || questions.length),
+        alreadySubmitted: Boolean(data.alreadySubmitted),
+        questions,
+    };
 }
 
 export default async function handler(req, res) {
@@ -66,6 +93,51 @@ export default async function handler(req, res) {
 
     try {
         if (req.method === 'GET') {
+            const rawTournamentId = typeof req.query?.tournamentId === 'string' ? req.query.tournamentId.trim() : '';
+            const rawView = typeof req.query?.view === 'string' ? req.query.view.trim().toLowerCase() : '';
+
+            if (rawTournamentId || rawView) {
+                if (!UUID_RE.test(rawTournamentId)) {
+                    return res.status(400).json({ success: false, error: 'invalid_club_tournament_id' });
+                }
+                if (!VALID_GET_VIEWS.has(rawView)) {
+                    return res.status(400).json({ success: false, error: 'invalid_view' });
+                }
+
+                if (rawView === 'questions') {
+                    const { data, error } = await client.rpc('trivia_club_tournament_questions_v1', {
+                        p_user_id: user.id,
+                        p_club_tournament_id: rawTournamentId,
+                    });
+                    if (error) {
+                        try { reportApiError(error, { route: 'trivia/club-nights', operation: 'questions', userId: user.id, clubTournamentId: rawTournamentId }); } catch (_) {}
+                        return res.status(500).json({ success: false, error: 'club_night_questions_failed' });
+                    }
+                    if (!data || data.success !== true) {
+                        const code = data?.error || 'club_night_questions_failed';
+                        return res.status(mapDomainErrorStatus(code)).json({ success: false, error: code });
+                    }
+                    return res.status(200).json(sanitizeAnswerFreeQuestions(data));
+                }
+
+                const { data, error } = await client.rpc('trivia_club_tournament_results_v1', {
+                    p_user_id: user.id,
+                    p_club_tournament_id: rawTournamentId,
+                });
+                if (error) {
+                    try { reportApiError(error, { route: 'trivia/club-nights', operation: 'results', userId: user.id, clubTournamentId: rawTournamentId }); } catch (_) {}
+                    return res.status(500).json({ success: false, error: 'club_night_results_failed' });
+                }
+                if (!data || data.success !== true) {
+                    const code = data?.error || 'club_night_results_failed';
+                    return res.status(mapDomainErrorStatus(code)).json({ success: false, error: code });
+                }
+                if (data.status !== 'settled') {
+                    return res.status(200).json({ ...data, champion: null, review: null });
+                }
+                return res.status(200).json(data);
+            }
+
             const limitRaw = Number(req.query?.limit);
             const limit = Number.isFinite(limitRaw)
                 ? Math.min(Math.max(Math.trunc(limitRaw), 1), 50)
@@ -185,6 +257,80 @@ export default async function handler(req, res) {
             }
             if (!data || data.success !== true) {
                 const code = data?.error || 'club_night_join_failed';
+                return res.status(mapDomainErrorStatus(code)).json({ success: false, error: code });
+            }
+            return res.status(200).json(data);
+        }
+
+        if (action === 'start') {
+            const { data, error } = await client.rpc('trivia_club_tournament_start_v1', {
+                p_host_user_id: user.id,
+                p_club_tournament_id: clubTournamentId,
+            });
+            if (error) {
+                try { reportApiError(error, { route: 'trivia/club-nights', operation: 'start', userId: user.id, clubTournamentId }); } catch (_) {}
+                return res.status(500).json({ success: false, error: 'club_night_start_failed' });
+            }
+            if (!data || data.success !== true) {
+                const code = data?.error || 'club_night_start_failed';
+                return res.status(mapDomainErrorStatus(code)).json({
+                    success: false,
+                    error: code,
+                    ...(Number.isFinite(data?.entrantCount) ? { entrantCount: data.entrantCount } : {}),
+                    ...(Number.isFinite(data?.minimumEntrants) ? { minimumEntrants: data.minimumEntrants } : {}),
+                });
+            }
+            return res.status(200).json(data);
+        }
+
+        if (action === 'submit') {
+            if (!Array.isArray(body.answers) || body.answers.length === 0 || body.answers.length > 20) {
+                return res.status(400).json({ success: false, error: 'invalid_answers' });
+            }
+            const normalizedAnswers = [];
+            for (const entry of body.answers) {
+                if (entry === null || entry === undefined) {
+                    normalizedAnswers.push(-1);
+                } else if (Number.isInteger(entry) && entry >= -1 && entry <= 7) {
+                    normalizedAnswers.push(entry);
+                } else {
+                    return res.status(400).json({ success: false, error: 'invalid_answers' });
+                }
+            }
+
+            const elapsedRaw = body.elapsedMs === undefined || body.elapsedMs === null ? 0 : Number(body.elapsedMs);
+            if (!Number.isInteger(elapsedRaw) || elapsedRaw < 0 || elapsedRaw > MAX_ELAPSED_MS) {
+                return res.status(400).json({ success: false, error: 'invalid_elapsed_ms' });
+            }
+
+            const { data, error } = await client.rpc('trivia_club_tournament_submit_v1', {
+                p_user_id: user.id,
+                p_club_tournament_id: clubTournamentId,
+                p_answers: normalizedAnswers,
+                p_elapsed_ms: elapsedRaw,
+            });
+            if (error) {
+                try { reportApiError(error, { route: 'trivia/club-nights', operation: 'submit', userId: user.id, clubTournamentId }); } catch (_) {}
+                return res.status(500).json({ success: false, error: 'club_night_submit_failed' });
+            }
+            if (!data || data.success !== true) {
+                const code = data?.error || 'club_night_submit_failed';
+                return res.status(mapDomainErrorStatus(code)).json({ success: false, error: code });
+            }
+            return res.status(200).json(data);
+        }
+
+        if (action === 'complete') {
+            const { data, error } = await client.rpc('trivia_club_tournament_complete_v1', {
+                p_host_user_id: user.id,
+                p_club_tournament_id: clubTournamentId,
+            });
+            if (error) {
+                try { reportApiError(error, { route: 'trivia/club-nights', operation: 'complete', userId: user.id, clubTournamentId }); } catch (_) {}
+                return res.status(500).json({ success: false, error: 'club_night_complete_failed' });
+            }
+            if (!data || data.success !== true) {
+                const code = data?.error || 'club_night_complete_failed';
                 return res.status(mapDomainErrorStatus(code)).json({ success: false, error: code });
             }
             return res.status(200).json(data);
