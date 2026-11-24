@@ -1287,7 +1287,18 @@ test('Phase 10 Live-Play Parity & Complete Game Coverage: 5 variants (NLH, PLO4,
   const isolationViolation = verifyTrainingPracticeIsolation({ tableName: 'diamond_ledger' });
   assert.equal(isolationViolation.isolated, false);
 
-  // 7. UniversalDynamicTable Phase 10 Live-Play Parity DOM Contracts
+  // 7. UniversalDynamicTable Phase 10 Live-Play Parity DOM Contracts & PokerSoundManager API Contract
+  const { PokerSoundManager } = await import('../src/components/poker/PokerSoundManager.js');
+  const testSoundMgr = new PokerSoundManager();
+  assert.equal(typeof testSoundMgr.isEnabled, 'function', 'PokerSoundManager must expose isEnabled() method');
+  assert.equal(testSoundMgr.isEnabled(), true);
+  assert.equal(testSoundMgr.enabled, true);
+  testSoundMgr.setEnabled(false);
+  assert.equal(testSoundMgr.isEnabled(), false);
+  assert.equal(testSoundMgr.enabled, false);
+  testSoundMgr.setSoundPack('minimal');
+  assert.equal(testSoundMgr.soundPack, 'minimal');
+
   const tableSrc = read('src/components/training/games/UniversalDynamicTable.jsx');
   assert.match(tableSrc, /data-plo8-hilo-pill="true"/, 'UniversalDynamicTable must expose PLO8 Hi-Lo 8-or-Better pill');
   assert.match(tableSrc, /data-betting-structure-selector="true"/, 'UniversalDynamicTable must expose Betting Structure switcher');

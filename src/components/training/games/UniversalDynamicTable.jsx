@@ -2150,7 +2150,9 @@ function UniversalDynamicTable({
         if (gameType === 'mtt' || gameType === 'sng' || Boolean(scenario?.isICM || scenario?.isPKO)) return 'mtt';
         return 'cash';
     });
-    const [isAudioMuted, setIsAudioMuted] = React.useState(() => (soundManager ? !soundManager.isEnabled() : false));
+    const [isAudioMuted, setIsAudioMuted] = React.useState(() =>
+        Boolean(soundManager ? !(typeof soundManager.isEnabled === 'function' ? soundManager.isEnabled() : soundManager.enabled) : false)
+    );
     const [audioPack, setAudioPack] = React.useState(() => (soundManager?.soundPack || 'casino'));
     const [continuationStreetIndex, setContinuationStreetIndex] = React.useState(0);
 
