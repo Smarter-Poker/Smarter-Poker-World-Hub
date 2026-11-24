@@ -54,9 +54,15 @@ export default function NewsletterOperations() {
     const [search, setSearch] = useState('');
     const [page, setPage] = useState(1);
     const [days, setDays] = useState(7);
-    const [articleLimit, setArticleLimit] = useState(8);
+    const [articleLimit, setArticleLimit] = useState(5);
+    const [digestAudience, setDigestAudience] = useState('opted_in_all');
+    const [digestTestSegment, setDigestTestSegment] = useState('active_member');
     const [preview, setPreview] = useState(null);
     const [running, setRunning] = useState('');
+    const [updateBadge, setUpdateBadge] = useState('Platform Upgrade');
+    const [updateTitle, setUpdateTitle] = useState('');
+    const [updateSummary, setUpdateSummary] = useState('');
+    const [updateCtaUrl, setUpdateCtaUrl] = useState('https://smarter.poker/hub/club-arena/');
 
     // Promotional campaign & bulk lead import state
     const [promoMeta, setPromoMeta] = useState(null);
@@ -294,7 +300,7 @@ export default function NewsletterOperations() {
 
     const runDigest = async (dryRun) => {
         if (!token) return;
-        if (!dryRun && !window.confirm(`Send this newsletter to ${preview?.recipients ?? data?.stats?.active ?? 0} active subscribers now? This cannot be undone.`)) return;
+        if (!dryRun && !window.confirm(`Send Weekly Wire Edition #${preview?.editionNumber || ''} to ${preview?.recipients ?? data?.stats?.active ?? 0} opted-in recipients now? This cannot be undone.`)) return;
         setRunning(dryRun ? 'preview' : 'send');
         setError('');
         setNotice('');
@@ -303,6 +309,7 @@ export default function NewsletterOperations() {
                 dryRun: dryRun ? '1' : '0',
                 days: String(days),
                 limit: String(articleLimit),
+                audience: digestAudience,
             });
             const response = await fetch(`/api/news/digest?${params}`, {
                 method: 'POST',
@@ -310,13 +317,84 @@ export default function NewsletterOperations() {
             });
             const body = await response.json();
             if (!response.ok || !body.success) throw new Error(body.error || 'Newsletter operation failed');
-            if (dryRun) setPreview(body);
-            else {
+            if (dryRun) {
+                setPreview(body);
+                setNotice(`Weekly Wire Preview Ready: ${body.recipients || 0} Opted-In Recipients, ${(body.platformUpdates || []).length} Upgrades, ${body.articles || 0} Deduplicated Stories.`);
+            } else {
                 setPreview(null);
+                setNotice(`Weekly Wire Sent: ${body.sent || 0} Delivered.`);
                 await load(token, 1, search);
             }
         } catch (err) {
             setError(err?.message || 'Newsletter operation failed');
+        } finally {
+            setRunning('');
+        }
+    };
+
+    const sendTestDigest = async () => {
+        if (!token) return;
+        if (!testEmail.trim()) {
+            setError('Enter A Test Email Recipient Above First.');
+            return;
+        }
+        setRunning('digest-test');
+        setError('');
+        setNotice('');
+        try {
+            const response = await fetch('/api/news/digest', {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action: 'test',
+                    testEmail: testEmail.trim(),
+                    segment: digestTestSegment,
+                    days,
+                    limit: articleLimit,
+                }),
+            });
+            const body = await response.json();
+            if (!response.ok || !body.success) throw new Error(body.error || 'Test Weekly Wire send failed');
+            setNotice(`Test Weekly Wire Sent To ${body.targetEmail || testEmail.trim()} (${body.segment} View).`);
+        } catch (err) {
+            setError(err?.message || 'Test Weekly Wire send failed');
+        } finally {
+            setRunning('');
+        }
+    };
+
+    const queuePlatformUpdate = async (event) => {
+        event.preventDefault();
+        if (!token || !updateTitle.trim() || !updateSummary.trim()) return;
+        setRunning('queue-update');
+        setError('');
+        setNotice('');
+        try {
+            const response = await fetch('/api/news/digest', {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action: 'queue_update',
+                    badge: updateBadge,
+                    title: updateTitle,
+                    summary: updateSummary,
+                    ctaUrl: updateCtaUrl,
+                }),
+            });
+            const body = await response.json();
+            if (!response.ok || !body.success) throw new Error(body.error || 'Unable to queue platform update');
+            setUpdateTitle('');
+            setUpdateSummary('');
+            setPreview(null);
+            setNotice('Platform Upgrade Queued For The Next Weekly Wire Edition (Single-Use Guaranteed).');
+        } catch (err) {
+            setError(err?.message || 'Unable to queue platform update');
         } finally {
             setRunning('');
         }
@@ -582,26 +660,32 @@ export default function NewsletterOperations() {
                 <section className={styles.dispatch}>
                     <div className={styles.sectionHeading}>
                         <div>
-                            <p className={styles.eyebrow}>Dispatch Circuit</p>
-                            <h2>Build The Next Wire</h2>
+                            <p className={styles.eyebrow}>Weekly Wire V2 (Zero-Repeat Engine)</p>
+                            <h2>Smarter.Poker Upgrades, Segmented Promos And Poker News</h2>
                         </div>
                         <OperatorGlyph kind="shield" size={22} />
                     </div>
                     <div className={styles.dispatchBody}>
                         <div className={styles.controls}>
                             <label>
+                                Audience Scope
+                                <select value={digestAudience} onChange={(e) => { setDigestAudience(e.target.value); setPreview(null); }}>
+                                    <option value="opted_in_all">All Opted-In Players And Subscribers</option>
+                                    <option value="subscribers_only">Newsletter Subscribers Only</option>
+                                </select>
+                            </label>
+                            <label>
                                 Story Window
                                 <select value={days} onChange={(e) => { setDays(Number(e.target.value)); setPreview(null); }}>
-                                    <option value={1}>Past 24 Hours</option>
                                     <option value={3}>Past 3 Days</option>
                                     <option value={7}>Past 7 Days</option>
                                     <option value={14}>Past 14 Days</option>
                                 </select>
                             </label>
                             <label>
-                                Story Count
+                                Poker Stories
                                 <select value={articleLimit} onChange={(e) => { setArticleLimit(Number(e.target.value)); setPreview(null); }}>
-                                    {[5, 6, 8, 10, 12].map((count) => <option key={count} value={count}>{count} Stories</option>)}
+                                    {[4, 5, 6, 8].map((count) => <option key={count} value={count}>{count} Stories</option>)}
                                 </select>
                             </label>
                             <button className={styles.previewButton} onClick={() => runDigest(true)} disabled={Boolean(running)}>
@@ -612,34 +696,57 @@ export default function NewsletterOperations() {
                                 {running === 'send' ? <OperatorGlyph kind="refresh" size={15} className={styles.spin} /> : <OperatorGlyph kind="send" size={15} />}
                                 Confirm And Send
                             </button>
+                            <label>
+                                Test Segment View
+                                <select value={digestTestSegment} onChange={(e) => setDigestTestSegment(e.target.value)}>
+                                    <option value="active_member">Active Member Spotlight</option>
+                                    <option value="inactive_21d">3-Week Inactive Welcome-Back</option>
+                                    <option value="non_account">New-Lead Signup Bonus</option>
+                                </select>
+                            </label>
+                            <button type="button" className={styles.previewButton} onClick={sendTestDigest} disabled={Boolean(running)}>
+                                {running === 'digest-test' ? <OperatorGlyph kind="refresh" size={15} className={styles.spin} /> : <OperatorGlyph kind="mail" size={15} />}
+                                Send Test Weekly Wire
+                            </button>
                         </div>
                         <div className={styles.preview}>
                             {preview ? (
                                 <>
-                                    <p className={styles.previewLabel}>Validated Dispatch</p>
-                                    <h3>{preview.subject || 'No publishable stories found'}</h3>
+                                    <p className={styles.previewLabel}>Edition #{preview.editionNumber || 1} Validated (Zero Repeats)</p>
+                                    <h3>{preview.subject || 'No Publishable Stories Found'}</h3>
                                     <dl>
-                                        <div><dt>Recipients</dt><dd>{preview.recipients}</dd></div>
-                                        <div><dt>Stories</dt><dd>{preview.articles}</dd></div>
-                                        <div><dt>Email Provider</dt><dd>{preview.emailConfigured ? 'Ready' : 'Not configured'}</dd></div>
+                                        <div><dt>Opted-In Total</dt><dd>{preview.recipients}</dd></div>
+                                        <div><dt>Platform Upgrades</dt><dd>{(preview.platformUpdates || []).length}</dd></div>
+                                        <div><dt>Deduped Stories</dt><dd>{preview.articles}</dd></div>
+                                        <div><dt>New Leads / Inactive / Active</dt><dd>{preview.segmentCounts?.non_account || 0} / {preview.segmentCounts?.inactive_21d || 0} / {preview.segmentCounts?.active_member || 0}</dd></div>
+                                        <div><dt>Tool Spotlight</dt><dd>{preview.toolSpotlight?.title || 'None'}</dd></div>
+                                        <div><dt>Duplicates Blocked</dt><dd>{(preview.diagnostics?.skippedPreviouslySent || 0) + (preview.diagnostics?.skippedStoryDuplicates || 0) + (preview.diagnostics?.skippedStubs || 0)}</dd></div>
                                     </dl>
+                                    {(preview.platformUpdates || []).length > 0 && (
+                                        <p>
+                                            Upgrades In This Issue: <strong>{(preview.platformUpdates || []).map((u) => u.title).join(' | ')}</strong>
+                                        </p>
+                                    )}
                                     <p>No Email Was Sent During This Preview.</p>
                                 </>
                             ) : (
                                 <div className={styles.previewEmpty}>
                                     <OperatorGlyph kind="radio" size={28} />
-                                    <p>Run A Preview To Resolve The Real Subject, Current Stories, And Exact Active Audience Before Send Unlocks.</p>
+                                    <p>Run Safe Preview To Curate Fresh Smarter.Poker Upgrades, Deduplicated Poker Stories, Tool Of The Week, And Segmented Recipient Counts.</p>
                                 </div>
                             )}
                         </div>
                         <aside className={styles.storyRail}>
-                            <p className={styles.previewLabel}>Latest Eligible Signals</p>
-                            {(data?.recentArticles || []).slice(0, 8).map((article, index) => (
-                                <div key={article.id}>
-                                    <span>{String(index + 1).padStart(2, '0')}</span>
-                                    <p>{article.title}<small>{article.source_name} · {formatDate(article.published_at)}</small></p>
-                                </div>
-                            ))}
+                            <p className={styles.previewLabel}>Queue Custom Platform Upgrade</p>
+                            <form onSubmit={queuePlatformUpdate} style={{ display: 'grid', gap: 10 }}>
+                                <input value={updateBadge} onChange={(e) => setUpdateBadge(e.target.value)} placeholder="Badge Label" />
+                                <input value={updateTitle} onChange={(e) => setUpdateTitle(e.target.value)} placeholder="Upgrade Or Optimization Headline" />
+                                <textarea rows={3} value={updateSummary} onChange={(e) => setUpdateSummary(e.target.value)} placeholder="Short Player-Facing Summary" />
+                                <input value={updateCtaUrl} onChange={(e) => setUpdateCtaUrl(e.target.value)} placeholder="https://smarter.poker/hub" />
+                                <button type="submit" className={styles.previewButton} disabled={Boolean(running) || !token || !updateTitle.trim() || !updateSummary.trim()}>
+                                    Queue For Next Wire
+                                </button>
+                            </form>
                         </aside>
                     </div>
                 </section>

@@ -1,64 +1,90 @@
 /**
- * News Hub API - Weekly Email Digest
+ * Smarter.Poker Weekly Wire V2 API (/api/news/digest)
  *
- * Sends the recent poker_news headlines to the active newsletter subscribers.
+ * Upgraded multi-section intelligence newsletter combining:
+ *   1. Smarter.Poker Platform Upgrades, Optimizations & Enhancements (lifetime single-use)
+ *   2. Audience-Segmented Promotion Banner (New-Lead Signup vs 21d Inactive Welcome-Back vs Active Member Spotlight)
+ *   3. Storyline-Deduplicated World Poker News with hero thumbnails & non-echoing meta descriptions
+ *   4. Rotating Tool / GTO Trainer Spotlight of the Week (lifetime single-use)
  *
- * POST (or GET, for schedulers that can only issue GET) /api/news/digest
- *   Auth   : Authorization: Bearer $CRON_SECRET  OR  x-admin-key: $ADMIN_API_KEY
- *   Query  : ?dryRun=1   count recipients + render the subject, send nothing
- *            ?days=7     look-back window for articles (1..30)
- *            ?limit=8    headlines per email (1..20)
+ * Strictly enforces a permanent Zero-Repeat Ledger in `public.newsletter_campaigns.article_ids`
+ * so no article UUID, storyline cluster, platform upgrade, or tool spotlight ever repeats.
  *
- * SAFETY (this endpoint has a real, irreversible side effect):
- *   - Credentials are required in EVERY environment. There is no NODE_ENV
- *     escape hatch, so a preview deploy can never mail the real list.
- *   - Recipients come only from rows this route read back and re-validated;
- *     an address that fails EMAIL_RE is dropped rather than sent to.
- *   - MAX_RECIPIENTS / SEND_BATCH_SIZE are hard ceilings on blast radius.
- *   - Nothing is sent when there are no articles — no empty digests.
- *   - Every email carries a working unsubscribe link (CAN-SPAM).
- *
- * NOTE ON THE TABLE NAME: the shared contract called this list
- * 'news_subscribers', but pages/api/news/subscribe.js — the only writer —
- * actually writes 'newsletter_subscribers' (columns: id, email, source,
- * is_active, unsubscribed_at). This route reads the real table; inventing
- * a second one would have made the digest silently mail nobody.
+ * POST (or GET, for schedulers) /api/news/digest
+ *   Auth  : Verified admin Supabase JWT, Authorization: Bearer $CRON_SECRET,
+ *           x-admin-key: $ADMIN_API_KEY, OR 90s HMAC x-operator-signature (preview/test only)
+ *   Query : ?dryRun=1                     preview curated edition + segment counts, send nothing
+ *           ?days=7                       look-back window for poker_news (1..30)
+ *           ?limit=5                      poker_news stories per edition (1..12)
+ *           ?audience=opted_in_all        'opted_in_all' (default) or 'subscribers_only'
+ *   Body  : { action: 'test', testEmail, segment? }           -> send single [TEST] edition
+ *           { action: 'queue_update', badge, title, summary, ctaUrl } -> queue custom Platform Upgrade
  */
 import crypto from 'crypto';
 import { Resend } from 'resend';
 import { resendApiKey, resendFrom } from '../../../src/lib/email/resendAccount.mjs';
+import { sendEmail as sendSingleDigestEmail } from '../../../src/lib/dailyDigest/delivery.mjs';
+import {
+    DEFAULT_POSTAL_ADDRESS,
+    isAllowedSmarterPokerUrl,
+    verifyOperatorTestSignature,
+} from '../../../src/lib/promoCampaigns/dispatch.mjs';
+import {
+    buildPromoBlockForSegment,
+    curateWeeklyWireEdition,
+    normalizeExplicitTestEmail,
+    renderWeeklyWireEmail,
+    resolveWeeklyWireRecipients,
+} from '../../../src/lib/newsletter/weeklyWireEngine.mjs';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 
+export const config = { maxDuration: 300 };
+
 let _supabase = null;
 function getSupabase() {
-    if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        _supabase = createClient(url, key);
-    }
+    if (!_supabase) _supabase = createClient();
     return _supabase;
 }
 
-// Admin/maintenance guard: CRON_SECRET bearer (cron jobs) or x-admin-key
-// (operators). Credentials are required in EVERY environment — this route
-// sends real email, so there is deliberately no NODE_ENV escape hatch.
 async function authorize(req) {
-    const cronSecret = process.env.CRON_SECRET;
-    if (cronSecret && req.headers.authorization === `Bearer ${cronSecret}`) return { kind: 'cron', userId: null };
-    const adminKey = process.env.ADMIN_API_KEY;
-    if (adminKey && req.headers['x-admin-key'] === adminKey) return { kind: 'operator', userId: null };
+    const cronSecret = (process.env.CRON_SECRET || '').trim();
+    if (cronSecret && req.headers.authorization === `Bearer ${cronSecret}`) {
+        return { kind: 'cron', userId: null };
+    }
+    const adminKey = (process.env.ADMIN_API_KEY || '').trim();
+    if (adminKey && req.headers['x-admin-key'] === adminKey) {
+        return { kind: 'operator', userId: null };
+    }
+
+    if (req.method === 'POST' && req.body && typeof req.body === 'object') {
+        const bodyAction = String(req.body.action || '').trim();
+        const isDry = ['1', 'true', 'yes'].includes(String(req.query?.dryRun || '').toLowerCase());
+        const effectiveAction = bodyAction === 'test' ? 'test' : isDry || bodyAction === 'preview' ? 'preview' : '';
+        if (
+            effectiveAction &&
+            verifyOperatorTestSignature({
+                action: effectiveAction,
+                testEmail: req.body.testEmail || '',
+                testPhone: '',
+                timestampHeader: req.headers['x-operator-timestamp'] || '',
+                signatureHeader: req.headers['x-operator-signature'] || '',
+            })
+        ) {
+            return { kind: 'operator_test', userId: null };
+        }
+    }
 
     const { user } = await getServerUserWithFallback(req, getSupabase());
     if (!user?.id) return null;
     const { data: profile } = await getSupabase()
         .from('profiles')
-        .select('role')
+        .select('role, is_admin')
         .eq('id', user.id)
         .maybeSingle();
-    if (!profile || !['admin', 'superadmin', 'god'].includes(profile.role)) return null;
+    if (!profile || (!profile.is_admin && !['admin', 'superadmin', 'god'].includes(profile.role))) return null;
     return { kind: 'admin', userId: user.id };
 }
 
@@ -70,25 +96,14 @@ function clampInt(value, fallback, min, max) {
 
 const safeQ = (v) => (Array.isArray(v) ? String(v[0]) : v == null ? v : String(v));
 
-// Practical email shape check — identical to subscribe.js.
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const MAX_EMAIL_LENGTH = 254;
-
-// Used only when NEWS_DIGEST_FROM is unset. Clearly named so an operator can
-// grep for it if digests start bouncing from an unverified domain.
 const DEFAULT_DIGEST_FROM = 'Smarter.Poker News <news@smarter.poker>';
 const DEFAULT_SITE_URL = 'https://smarter.poker';
-
-// Hard caps — the blast radius of one invocation.
-const MAX_RECIPIENTS = 5000;     // refuse to mail a list larger than this
-const RECIPIENT_PAGE_SIZE = 1000; // PostgREST returns at most 1000 rows/request
-const SEND_BATCH_SIZE = 100;      // Resend's batch endpoint limit
-
+const MAX_RECIPIENTS = 5000;
+const SEND_BATCH_SIZE = 100;
 const DEFAULT_WINDOW_DAYS = 7;
-const DEFAULT_ARTICLE_COUNT = 8;
+const DEFAULT_ARTICLE_COUNT = 5;
 
 function log(event, fields) {
-    // Structured, greppable, and free of PII — counts only, never addresses.
     try {
         console.log('[News Digest]', JSON.stringify({ event, ...fields }));
     } catch (_e) {
@@ -96,11 +111,6 @@ function log(event, fields) {
     }
 }
 
-// ── Unsubscribe tokens ──────────────────────────────────────────────────────
-// Verified by pages/api/news/subscribe.js. The two helpers are intentionally
-// duplicated there rather than shared through src/lib — an unsubscribe secret
-// must never be reachable from anything a page can import, and pages/api/** is
-// the only place these files are ever loaded. Keep the two copies identical.
 function unsubscribeSecret() {
     return (
         process.env.NEWSLETTER_UNSUBSCRIBE_SECRET ||
@@ -114,11 +124,6 @@ function b64url(buf) {
     return Buffer.from(buf).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-/**
- * Mint a signed, stateless unsubscribe token for an address.
- * Falls back to the bare email when no secret is configured — subscribe.js
- * accepts both forms, so the link keeps working either way.
- */
 function makeUnsubscribeToken(email) {
     const secret = unsubscribeSecret();
     const normalized = String(email).trim().toLowerCase();
@@ -128,95 +133,6 @@ function makeUnsubscribeToken(email) {
     return `${payload}.${sig}`;
 }
 
-function escapeHtml(value) {
-    return String(value == null ? '' : value)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-}
-
-function truncate(value, max) {
-    const s = String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
-    return s.length > max ? `${s.slice(0, max - 1).trimEnd()}…` : s;
-}
-
-function articleUrl(siteUrl, article) {
-    return `${siteUrl}/hub/article?id=${encodeURIComponent(article.id)}`;
-}
-
-/** Subject line is derived from the real lead headline — never a placeholder. */
-function renderSubject(articles) {
-    const lead = truncate(articles[0]?.title || '', 70);
-    const others = articles.length - 1;
-    if (!lead) return 'Your Smarter.Poker news digest';
-    return others > 0
-        ? `${lead} (+${others} more) - Smarter.Poker`
-        : `${lead} - Smarter.Poker`;
-}
-
-function renderHtml(articles, siteUrl, unsubscribeUrl) {
-    const items = articles
-        .map((a) => {
-            const title = escapeHtml(a.title || 'Untitled');
-            const blurb = escapeHtml(truncate(a.summary || a.excerpt || a.content || '', 180));
-            const source = escapeHtml(a.source_name || 'Smarter.Poker');
-            const href = escapeHtml(articleUrl(siteUrl, a));
-            return `<tr><td style="padding:0 0 22px">
-<a href="${href}" style="color:#5ef5f0;font-size:17px;font-weight:600;text-decoration:none">${title}</a>
-<div style="color:#7f93a8;font-size:12px;margin:4px 0 6px">${source}</div>
-${blurb ? `<div style="color:#b9c9d8;font-size:14px;line-height:1.5">${blurb}</div>` : ''}
-</td></tr>`;
-        })
-        .join('\n');
-
-    const unsub = escapeHtml(unsubscribeUrl);
-    return `<!doctype html>
-<html lang="en">
-<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /></head>
-<body style="margin:0;background:#0a0e17;color:#e6f7ff;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0a0e17">
-<tr><td align="center" style="padding:32px 16px">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px">
-<tr><td style="padding:0 0 24px">
-<div style="font-size:20px;font-weight:700">Smarter.Poker News</div>
-<div style="color:#7f93a8;font-size:13px;margin-top:4px">This week in poker</div>
-</td></tr>
-${items}
-<tr><td style="padding:8px 0 0;border-top:1px solid #1c2734">
-<div style="color:#7f93a8;font-size:12px;line-height:1.6;padding-top:16px">
-You are receiving this because you subscribed to the Smarter.Poker news digest.<br />
-<a href="${unsub}" style="color:#7f93a8">Unsubscribe</a> &middot;
-<a href="${escapeHtml(siteUrl)}/hub/news" style="color:#7f93a8">Read the News Hub</a>
-</div>
-</td></tr>
-</table>
-</td></tr>
-</table>
-</body>
-</html>`;
-}
-
-function renderText(articles, siteUrl, unsubscribeUrl) {
-    const lines = articles.map(
-        (a) => `- ${truncate(a.title || 'Untitled', 120)}\n  ${articleUrl(siteUrl, a)}`
-    );
-    return [
-        'Smarter.Poker News - this week in poker',
-        '',
-        ...lines,
-        '',
-        `Unsubscribe: ${unsubscribeUrl}`
-    ].join('\n');
-}
-
-/**
- * Send one Resend batch.
- * Retries once without the optional List-Unsubscribe headers, because some
- * Resend API versions reject unknown per-message fields in batch mode and we
- * would rather ship the digest than lose it over a deliverability nicety.
- */
 async function sendBatch(resend, messages) {
     const attempt = async (payload) => {
         const result = await resend.batch.send(payload);
@@ -227,7 +143,7 @@ async function sendBatch(resend, messages) {
     try {
         await attempt(messages);
         return { sent: messages.length, failed: 0, error: null };
-    } catch (error) {
+    } catch (_firstErr) {
         try {
             await attempt(messages.map(({ headers, ...rest }) => rest));
             return { sent: messages.length, failed: 0, error: null };
@@ -235,255 +151,386 @@ async function sendBatch(resend, messages) {
             return {
                 sent: 0,
                 failed: messages.length,
-                error: retryError?.message || String(retryError)
+                error: retryError?.message || String(retryError),
             };
         }
     }
 }
 
 export default async function handler(req, res) {
-  // GET is accepted because Vercel Cron (and GitHub Actions curl) issue GET
-  // with the CRON_SECRET bearer header; auth below is what gates the send.
-  if (!['GET', 'POST'].includes(req.method)) {
-      return res.status(405).json({ success: false, error: 'Method not allowed' });
-  }
-  if (!applyRateLimit(req, res, req.method === 'GET' ? LIMITS.read : LIMITS.write)) return;
-  const authorization = await authorize(req);
-  if (!authorization) {
-      log('unauthorized', { method: req.method });
-      return res.status(401).json({ success: false, error: 'Unauthorized' });
-  }
+    res.setHeader('Cache-Control', 'private, no-store');
 
-  let campaignId = null;
-  try {
-      const dryRun = ['1', 'true', 'yes'].includes(String(safeQ(req.query.dryRun) || '').toLowerCase());
-      const days = clampInt(safeQ(req.query.days), DEFAULT_WINDOW_DAYS, 1, 30);
-      const articleLimit = clampInt(safeQ(req.query.limit), DEFAULT_ARTICLE_COUNT, 1, 20);
+    if (!['GET', 'POST'].includes(req.method)) {
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
+    }
+    if (!applyRateLimit(req, res, req.method === 'GET' ? LIMITS.read : LIMITS.write)) return;
 
-      const apiKey = resendApiKey();
-      // A dry run touches no mail provider, so it is allowed to answer even
-      // without a key (that is how you verify the recipient count on a machine
-      // that has no secrets); the response flags emailConfigured: false so the
-      // caller cannot mistake it for a working send path.
-      if (!apiKey && !dryRun) {
-          // Degrade gracefully: no crash, no partial send, and the key itself
-          // is never echoed back.
-          log('not_configured', { reason: 'RESEND_API_KEY missing' });
-          return res.status(503).json({
-              success: false,
-              error: 'Email is not configured (RESEND_API_KEY is not set). No digest was sent.'
-          });
-      }
+    const authorization = await authorize(req);
+    if (!authorization) {
+        log('unauthorized', { method: req.method });
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
 
-      const from = resendFrom(process.env.NEWS_DIGEST_FROM || DEFAULT_DIGEST_FROM);
-      const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || DEFAULT_SITE_URL).replace(/\/+$/, '');
-      const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+    const sb = getSupabase();
+    const bodyObj = req.method === 'POST' && req.body && typeof req.body === 'object' ? req.body : {};
+    const bodyAction = String(bodyObj.action || '').trim();
 
-      // ── Articles ────────────────────────────────────────────────────────
-      const { data: articleRows, error: articleError } = await getSupabase()
-          .from('poker_news')
-          .select('id, title, summary, excerpt, content, source_name, source_url, category, published_at')
-          .eq('is_published', true)
-          .gte('published_at', since)
-          .order('published_at', { ascending: false })
-          .limit(articleLimit);
+    let campaignId = null;
+    try {
+        // ── Queue a custom Smarter.Poker Platform Upgrade / Optimization ──
+        if (req.method === 'POST' && bodyAction === 'queue_update') {
+            const badge = String(bodyObj.badge || 'Platform Upgrade').trim().slice(0, 40);
+            const title = String(bodyObj.title || '').trim().slice(0, 160);
+            const summary = String(bodyObj.summary || '').trim().slice(0, 420);
+            const ctaUrl = String(bodyObj.ctaUrl || 'https://smarter.poker/hub').trim();
 
-      if (articleError) throw articleError;
+            if (!title || !summary) {
+                return res.status(400).json({ success: false, error: 'Upgrade headline and summary are required.' });
+            }
+            if (!isAllowedSmarterPokerUrl(ctaUrl)) {
+                return res.status(400).json({ success: false, error: 'Destination URL must be an https://smarter.poker link.' });
+            }
 
-      const articles = (articleRows || []).filter((a) => a && a.id && a.title);
+            const slug = `sp-update-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
+            const uniqueSourceUrl = `${ctaUrl}${ctaUrl.includes('#') ? '-' : '#'}${slug}`;
 
-      if (articles.length === 0) {
-          // Never mail an empty or padded digest. Real data or nothing.
-          log('skipped', { reason: 'no articles in window', days });
-          return res.status(200).json({
-              success: true,
-              dryRun,
-              sent: 0,
-              recipients: 0,
-              articles: 0,
-              subject: null,
-              message: `No published articles in the last ${days} day(s) - nothing sent.`
-          });
-      }
+            const { data: inserted, error: insertErr } = await sb
+                .from('poker_news')
+                .insert({
+                    slug,
+                    title,
+                    summary,
+                    excerpt: summary,
+                    source_name: 'Smarter.Poker',
+                    source_url: uniqueSourceUrl,
+                    image_caption: badge,
+                    category: 'platform_update',
+                    is_published: false,
+                    published_at: new Date().toISOString(),
+                })
+                .select('id, slug, title, summary, image_caption, source_url')
+                .maybeSingle();
 
-      const subject = renderSubject(articles);
+            if (insertErr) throw insertErr;
+            return res.status(200).json({
+                success: true,
+                queuedUpdate: inserted,
+                message: 'Platform upgrade queued for the next Weekly Wire edition.',
+            });
+        }
 
-      // ── Recipients ──────────────────────────────────────────────────────
-      // Paged read: PostgREST caps a response at 1000 rows, so a single
-      // select would silently truncate a larger list.
-      const emails = [];
-      const seen = new Set();
-      let dropped = 0;
+        const dryRun =
+            bodyAction === 'preview' ||
+            ['1', 'true', 'yes'].includes(String(safeQ(req.query.dryRun) || '').toLowerCase());
+        const isTestSend = bodyAction === 'test';
+        const days = clampInt(bodyObj.days ?? safeQ(req.query.days), DEFAULT_WINDOW_DAYS, 1, 30);
+        const articleLimit = clampInt(bodyObj.limit ?? safeQ(req.query.limit), DEFAULT_ARTICLE_COUNT, 1, 12);
+        const audienceMode =
+            (bodyObj.audience ?? safeQ(req.query.audience)) === 'subscribers_only'
+                ? 'subscribers_only'
+                : 'opted_in_all';
+        const excludedArticleIds = Array.isArray(bodyObj.excludedArticleIds) ? bodyObj.excludedArticleIds : [];
 
-      for (let offset = 0; offset < MAX_RECIPIENTS; offset += RECIPIENT_PAGE_SIZE) {
-          const upper = Math.min(offset + RECIPIENT_PAGE_SIZE, MAX_RECIPIENTS) - 1;
-          const { data: page, error: subError } = await getSupabase()
-              .from('newsletter_subscribers')
-              .select('id, email, is_active')
-              // Rows inserted by subscribe.js rely on the column default, which
-              // can leave is_active NULL — treat NULL as active, and only
-              // exclude an explicit false. Exclude sms:+... contacts stored in
-              // newsletter_subscribers so digest drops count malformed emails only.
-              .like('email', '%@%')
-              .or('is_active.is.null,is_active.eq.true')
-              .order('id', { ascending: true })
-              .range(offset, upper);
+        const apiKey = resendApiKey();
+        if (!apiKey && !dryRun) {
+            log('not_configured', { reason: 'Resend API key missing' });
+            return res.status(503).json({
+                success: false,
+                error: 'Email provider is not configured. No Weekly Wire digest was sent.',
+            });
+        }
 
-          if (subError) throw subError;
-          if (!page || page.length === 0) break;
+        const from = resendFrom(process.env.NEWS_DIGEST_FROM || DEFAULT_DIGEST_FROM);
+        const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || DEFAULT_SITE_URL).replace(/\/+$/, '');
 
-          for (const row of page) {
-              const email = typeof row?.email === 'string' ? row.email.trim().toLowerCase() : '';
-              // Re-validate every address we read back. A malformed row must
-              // never reach the mail provider.
-              if (!email || email.length > MAX_EMAIL_LENGTH || !EMAIL_RE.test(email)) {
-                  dropped += 1;
-                  continue;
-              }
-              if (seen.has(email)) continue;
-              seen.add(email);
-              emails.push(email);
-          }
+        const edition = await curateWeeklyWireEdition(sb, {
+            days,
+            articleLimit,
+            updateLimit: 2,
+            excludedArticleIds,
+            enrichMetaDescriptions: true,
+        });
 
-          if (page.length < RECIPIENT_PAGE_SIZE) break;
-      }
+        // Dry-well zero-repeat safeguard: never mail an empty or recycled edition.
+        const hasMinimumFreshContent =
+            edition.articles.length >= 3 ||
+            (edition.platformUpdates.length >= 1 && edition.articles.length >= 2);
 
-      const recipients = emails.length;
+        if (!hasMinimumFreshContent && !dryRun && !isTestSend) {
+            log('skipped_insufficient_fresh_content', {
+                days,
+                freshArticles: edition.articles.length,
+                freshUpdates: edition.platformUpdates.length,
+            });
+            return res.status(200).json({
+                success: true,
+                dryRun: false,
+                skipped: true,
+                sent: 0,
+                recipients: 0,
+                articles: edition.articles.length,
+                platformUpdates: edition.platformUpdates.length,
+                subject: null,
+                message: 'Skipped send: insufficient net-new un-sent stories since the last edition.',
+            });
+        }
 
-      if (dryRun) {
-          log('dry_run', { recipients, articles: articles.length, dropped, days });
-          return res.status(200).json({
-              success: true,
-              dryRun: true,
-              recipients,
-              subject,
-              articles: articles.length,
-              droppedInvalid: dropped,
-              from,
-              emailConfigured: Boolean(apiKey),
-              sent: 0,
-              message: 'Dry run - no email was sent.'
-          });
-      }
+        // ── Single-Recipient Test Send (does not consume Zero-Repeat Ledger) ──
+        if (isTestSend) {
+            const targetEmail = normalizeExplicitTestEmail(bodyObj.testEmail || safeQ(req.query.testEmail) || '');
+            if (!targetEmail) {
+                return res.status(400).json({ success: false, error: 'Enter a valid test email address.' });
+            }
+            const previewSegment = ['non_account', 'inactive_21d', 'active_member'].includes(bodyObj.segment)
+                ? bodyObj.segment
+                : 'active_member';
+            const unsubUrl = `${siteUrl}/api/news/subscribe?unsubscribe=${encodeURIComponent(makeUnsubscribeToken(targetEmail))}`;
+            const promoBlock = buildPromoBlockForSegment(previewSegment, {
+                activePromo: edition.activePromo,
+                siteUrl,
+            });
+            const rendered = renderWeeklyWireEmail({
+                edition,
+                promoBlock,
+                siteUrl,
+                postalAddress: DEFAULT_POSTAL_ADDRESS,
+                unsubscribeUrl: unsubUrl,
+                subjectOverride: `[TEST] ${edition.subject}`,
+            });
 
-      if (recipients === 0) {
-          log('skipped', { reason: 'no active subscribers', dropped });
-          return res.status(200).json({
-              success: true,
-              dryRun: false,
-              sent: 0,
-              recipients: 0,
-              articles: articles.length,
-              subject,
-              message: 'No active subscribers - nothing sent.'
-          });
-      }
+            const sendRes = await sendSingleDigestEmail({
+                to: [targetEmail],
+                subject: `[TEST] ${edition.subject}`,
+                html: rendered.html,
+                text: rendered.text,
+                from: process.env.NEWS_DIGEST_FROM || DEFAULT_DIGEST_FROM,
+                headers: {
+                    'List-Unsubscribe': `<${unsubUrl}>`,
+                    'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+                },
+            });
 
-      // ── Send ────────────────────────────────────────────────────────────
-      // Claim an auditable campaign row before the first irreversible provider
-      // call. A database failure aborts the send instead of creating untracked
-      // email activity.
-      const { data: campaign, error: campaignError } = await getSupabase()
-          .from('newsletter_campaigns')
-          .insert({
-              subject,
-              status: 'sending',
-              lookback_days: days,
-              article_limit: articleLimit,
-              article_ids: articles.map((article) => article.id),
-              recipient_count: recipients,
-              created_by: authorization.userId,
-          })
-          .select('id')
-          .maybeSingle();
-      if (campaignError) throw campaignError;
-      if (!campaign?.id) throw new Error('Campaign audit row was not created');
-      campaignId = campaign.id;
+            if (!sendRes?.ok) {
+                return res.status(502).json({
+                    success: false,
+                    error: sendRes?.error || 'Unable to send test Weekly Wire email.',
+                });
+            }
 
-      const resend = new Resend(apiKey);
-      let sent = 0;
-      let failed = 0;
-      const errors = [];
+            return res.status(200).json({
+                success: true,
+                testOnly: true,
+                targetEmail,
+                segment: previewSegment,
+                from,
+                subject: `[TEST] ${edition.subject}`,
+                editionNumber: edition.editionNumber,
+                platformUpdatesCount: edition.platformUpdates.length,
+                articlesCount: edition.articles.length,
+                toolSpotlight: edition.toolSpotlight?.title || null,
+            });
+        }
 
-      for (let i = 0; i < emails.length; i += SEND_BATCH_SIZE) {
-          const chunk = emails.slice(i, i + SEND_BATCH_SIZE);
-          const messages = chunk.map((email) => {
-              const unsubscribeUrl =
-                  `${siteUrl}/api/news/subscribe?unsubscribe=${encodeURIComponent(makeUnsubscribeToken(email))}`;
-              return {
-                  from,
-                  to: [email],
-                  subject,
-                  html: renderHtml(articles, siteUrl, unsubscribeUrl),
-                  text: renderText(articles, siteUrl, unsubscribeUrl),
-                  headers: {
-                      'List-Unsubscribe': `<${unsubscribeUrl}>`,
-                      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
-                  }
-              };
-          });
+        // ── Resolve Unified Opted-In Segmented Audience ──
+        const audienceRes = await resolveWeeklyWireRecipients(sb, { audienceMode });
+        const recipientsList = audienceRes.recipients.slice(0, MAX_RECIPIENTS);
+        const recipientsCount = recipientsList.length;
 
-          const result = await sendBatch(resend, messages);
-          sent += result.sent;
-          failed += result.failed;
-          if (result.error && errors.length < 5) errors.push(result.error);
-      }
+        if (dryRun) {
+            const sampleUnsub = `${siteUrl}/api/news/subscribe?unsubscribe=preview`;
+            const segmentPreviews = {
+                non_account: renderWeeklyWireEmail({
+                    edition,
+                    promoBlock: buildPromoBlockForSegment('non_account', { activePromo: edition.activePromo, siteUrl }),
+                    siteUrl,
+                    unsubscribeUrl: sampleUnsub,
+                }).html,
+                inactive_21d: renderWeeklyWireEmail({
+                    edition,
+                    promoBlock: buildPromoBlockForSegment('inactive_21d', { activePromo: edition.activePromo, siteUrl }),
+                    siteUrl,
+                    unsubscribeUrl: sampleUnsub,
+                }).html,
+                active_member: renderWeeklyWireEmail({
+                    edition,
+                    promoBlock: buildPromoBlockForSegment('active_member', { activePromo: edition.activePromo, siteUrl }),
+                    siteUrl,
+                    unsubscribeUrl: sampleUnsub,
+                }).html,
+            };
 
-      log('sent', { sent, failed, recipients, articles: articles.length, dropped });
+            log('dry_run', {
+                recipients: recipientsCount,
+                articles: edition.articles.length,
+                updates: edition.platformUpdates.length,
+                days,
+            });
 
-      const campaignStatus = failed === 0 ? 'sent' : sent > 0 ? 'partial' : 'failed';
-      const { error: campaignUpdateError } = await getSupabase()
-          .from('newsletter_campaigns')
-          .update({
-              status: campaignStatus,
-              sent_count: sent,
-              failed_count: failed,
-              error_summary: errors.length ? errors.join(' | ').slice(0, 1000) : null,
-              completed_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-          })
-          .eq('id', campaignId);
-      if (campaignUpdateError) {
-          // Provider activity already happened. Surface the audit failure and
-          // keep the structured log; never pretend the operation is healthy.
-          log('campaign_audit_failed', { campaignId, sent, failed });
-          return res.status(500).json({
-              success: false,
-              sent,
-              failed,
-              recipients,
-              error: 'Email was processed but campaign history could not be finalized.'
-          });
-      }
+            return res.status(200).json({
+                success: true,
+                dryRun: true,
+                editionNumber: edition.editionNumber,
+                audienceMode,
+                recipients: recipientsCount,
+                segmentCounts: audienceRes.segmentCounts,
+                subject: edition.subject,
+                articles: edition.articles.length,
+                articleItems: edition.articles,
+                platformUpdates: edition.platformUpdates,
+                toolSpotlight: edition.toolSpotlight,
+                activePromo: edition.activePromo,
+                diagnostics: edition.diagnostics,
+                segmentPreviews,
+                droppedInvalid: audienceRes.droppedInvalid,
+                from,
+                emailConfigured: Boolean(apiKey),
+                sent: 0,
+                message: 'Dry run - no email was sent.',
+            });
+        }
 
-      return res.status(200).json({
-          success: failed === 0,
-          dryRun: false,
-          sent,
-          failed,
-          recipients,
-          articles: articles.length,
-          droppedInvalid: dropped,
-          campaignId,
-          subject,
-          errors: errors.length ? errors : undefined
-      });
-  } catch (error) {
-      if (campaignId) {
-          try {
-              await getSupabase()
-                  .from('newsletter_campaigns')
-                  .update({
-                      status: 'failed',
-                      error_summary: String(error?.message || error).slice(0, 1000),
-                      completed_at: new Date().toISOString(),
-                      updated_at: new Date().toISOString(),
-                  })
-                  .eq('id', campaignId);
-          } catch (_auditError) { /* original failure wins */ }
-      }
-      try { reportApiError(error, req); } catch (_e) { /* noop */ }
-      console.warn('[News Digest] Error:', error?.message || error);
-      return res.status(500).json({ success: false, error: 'Digest failed' });
-  }
+        if (recipientsCount === 0) {
+            log('skipped', { reason: 'no opted-in recipients', dropped: audienceRes.droppedInvalid });
+            return res.status(200).json({
+                success: true,
+                dryRun: false,
+                sent: 0,
+                recipients: 0,
+                articles: edition.articles.length,
+                subject: edition.subject,
+                message: 'No active opted-in recipients - nothing sent.',
+            });
+        }
+
+        // ── Persist Campaign Row + Permanent Zero-Repeat Ledger UUIDs Before Send ──
+        const { data: campaign, error: campaignError } = await sb
+            .from('newsletter_campaigns')
+            .insert({
+                subject: edition.subject.slice(0, 200),
+                status: 'sending',
+                lookback_days: days,
+                article_limit: Math.max(1, Math.min(20, edition.articles.length || articleLimit)),
+                article_ids: edition.ledgerUuidsToRecord,
+                recipient_count: recipientsCount,
+                created_by: authorization.userId,
+            })
+            .select('id')
+            .maybeSingle();
+
+        if (campaignError) throw campaignError;
+        if (!campaign?.id) throw new Error('Campaign audit row was not created');
+        campaignId = campaign.id;
+
+        const resend = new Resend(apiKey);
+        let sent = 0;
+        let failed = 0;
+        const errors = [];
+
+        for (let i = 0; i < recipientsList.length; i += SEND_BATCH_SIZE) {
+            const chunk = recipientsList.slice(i, i + SEND_BATCH_SIZE);
+            const messages = chunk.map((recipient) => {
+                const unsubscribeUrl = `${siteUrl}/api/news/subscribe?unsubscribe=${encodeURIComponent(
+                    makeUnsubscribeToken(recipient.email)
+                )}`;
+                const promoBlock = buildPromoBlockForSegment(recipient.segment, {
+                    userId: recipient.userId || '',
+                    activePromo: edition.activePromo,
+                    siteUrl,
+                });
+                const rendered = renderWeeklyWireEmail({
+                    edition,
+                    promoBlock,
+                    siteUrl,
+                    postalAddress: DEFAULT_POSTAL_ADDRESS,
+                    unsubscribeUrl,
+                });
+                return {
+                    from,
+                    to: [recipient.email],
+                    subject: edition.subject,
+                    html: rendered.html,
+                    text: rendered.text,
+                    headers: {
+                        'List-Unsubscribe': `<${unsubscribeUrl}>`,
+                        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+                    },
+                };
+            });
+
+            const result = await sendBatch(resend, messages);
+            sent += result.sent;
+            failed += result.failed;
+            if (result.error && errors.length < 5) errors.push(result.error);
+        }
+
+        log('sent', {
+            campaignId,
+            editionNumber: edition.editionNumber,
+            sent,
+            failed,
+            recipients: recipientsCount,
+            articles: edition.articles.length,
+            updates: edition.platformUpdates.length,
+        });
+
+        const campaignStatus = failed === 0 ? 'sent' : sent > 0 ? 'partial' : 'failed';
+        const { error: campaignUpdateError } = await sb
+            .from('newsletter_campaigns')
+            .update({
+                status: campaignStatus,
+                sent_count: sent,
+                failed_count: failed,
+                error_summary: errors.length ? errors.join(' | ').slice(0, 1000) : null,
+                completed_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+            })
+            .eq('id', campaignId);
+
+        if (campaignUpdateError) {
+            log('campaign_audit_failed', { campaignId, sent, failed });
+            return res.status(500).json({
+                success: false,
+                sent,
+                failed,
+                recipients: recipientsCount,
+                error: 'Email was processed but campaign history could not be finalized.',
+            });
+        }
+
+        return res.status(200).json({
+            success: failed === 0,
+            dryRun: false,
+            editionNumber: edition.editionNumber,
+            sent,
+            failed,
+            recipients: recipientsCount,
+            segmentCounts: audienceRes.segmentCounts,
+            articles: edition.articles.length,
+            platformUpdates: edition.platformUpdates.length,
+            toolSpotlight: edition.toolSpotlight?.title || null,
+            droppedInvalid: audienceRes.droppedInvalid,
+            campaignId,
+            subject: edition.subject,
+            errors: errors.length ? errors : undefined,
+        });
+    } catch (error) {
+        if (campaignId) {
+            try {
+                await sb
+                    .from('newsletter_campaigns')
+                    .update({
+                        status: 'failed',
+                        error_summary: String(error?.message || error).slice(0, 1000),
+                        completed_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString(),
+                    })
+                    .eq('id', campaignId);
+            } catch (_auditErr) {
+                /* best effort */
+            }
+        }
+        try { reportApiError(error, req); } catch (_e) { /* noop */ }
+        log('error', { message: error?.message || String(error) });
+        return res.status(500).json({ success: false, error: error?.message || 'Weekly Wire digest failed' });
+    }
 }
