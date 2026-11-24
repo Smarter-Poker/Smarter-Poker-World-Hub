@@ -89,9 +89,11 @@ export default async function handler(req, res) {
           // ── Street breakdown ───────────────────────────────────────
           const streets = {};
 
+          const trendStartMs = Date.parse(trendStart);
           rows.forEach(r => {
-              if (r.created_at && r.created_at >= trendStart) {
-                  const day = r.created_at.slice(0, 10);
+              const createdMs = r.created_at ? Date.parse(r.created_at) : Number.NaN;
+              if (Number.isFinite(createdMs) && createdMs >= trendStartMs) {
+                  const day = new Date(createdMs).toISOString().slice(0, 10);
                   if (!buckets[day]) buckets[day] = { total: 0, correct: 0 };
                   buckets[day].total++;
                   if (r.is_correct) buckets[day].correct++;

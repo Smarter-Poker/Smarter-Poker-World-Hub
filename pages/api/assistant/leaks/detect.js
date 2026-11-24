@@ -83,29 +83,63 @@ async function getPlayerStats(supabase, userId) {
   // absent so patternIsMeasured skips those patterns · the house rule that a
   // number which was never measured is never presented as if it was.
   try {
-    const { data: rpcStats, error: rpcErr } = await supabase.rpc('ca_player_stats_full', {
+    let rpcStats = null;
+    let rpcErr = null;
+    // Prefer Club Arena's cash-separated RPC (postflop-only AF + recorded
+    // opportunity denominators), trying chips first and diamonds second before
+    // falling back to ca_player_stats_full for legacy aggregate rows.
+    const separatedChipsRes = await supabase.rpc('ca_player_stats_overview_separated', {
       p_user: userId,
+      p_game_mode: 'cash',
+      p_asset: 'chips',
     });
-    if (rpcErr) {
-      console.warn('[LeakDetect] ca_player_stats_full failed:', rpcErr.message);
+    if (!separatedChipsRes?.error && separatedChipsRes?.data?.overall?.total_hands > 0) {
+      rpcStats = separatedChipsRes.data;
+    } else {
+      const separatedDiamondsRes = !separatedChipsRes?.error
+        ? await supabase.rpc('ca_player_stats_overview_separated', {
+          p_user: userId,
+          p_game_mode: 'cash',
+          p_asset: 'diamonds',
+        })
+        : null;
+      if (!separatedDiamondsRes?.error && separatedDiamondsRes?.data?.overall?.total_hands > 0) {
+        rpcStats = separatedDiamondsRes.data;
+      } else {
+        const fullRes = await supabase.rpc('ca_player_stats_full', {
+          p_user: userId,
+        });
+        rpcStats = fullRes?.data;
+        rpcErr = fullRes?.error || separatedChipsRes?.error;
+      }
+    }
+    if (rpcErr && !rpcStats) {
+      console.warn('[LeakDetect] Club Arena stats RPC failed:', rpcErr.message);
     } else if (rpcStats?.overall?.total_hands > 0) {
       const o = rpcStats.overall;
+      // ca_player_stats_overview_separated places metric_availability under
+      // quality.metric_availability (stripping it from overall).
+      const avail = rpcStats?.quality?.metric_availability || o.metric_availability || {};
+      const threeBetMeasured = avail.three_bet_percent !== false
+        && (avail.three_bet_opportunities === undefined || Number(avail.three_bet_opportunities) > 0);
       finalStats = normalizeStats({
         // normalizeStats scales anything in (0,1] from fraction to percent, and
         // every value below is a fraction, so the units line up.
         hands_played: o.total_hands,
         vpip: o.vpip,
         pfr: o.pfr,
-        three_bet_percentage: o.three_bet_percent,
-        cbet_percentage: o.cbet_flop,
-        aggression_factor: o.aggression_factor,
+        three_bet_percentage: threeBetMeasured ? o.three_bet_percent : null,
+        cbet_percentage: avail.cbet_flop === false ? null : o.cbet_flop,
+        cbet_opportunities: avail.cbet_flop_opportunities ?? null,
+        aggression_factor: avail.aggression_factor === false ? null : o.aggression_factor,
+        wtsd: avail.wtsd === false ? null : o.wtsd,
       });
       // The window this was computed over, so callers can say so honestly.
       finalStats.analysisWindowHands = o.total_hands;
       finalStats.lifetimeHands = rpcStats?.lifetime?.hands ?? o.total_hands;
     }
   } catch (e) {
-    console.warn('[LeakDetect] ca_player_stats_full threw:', e?.message || e);
+    console.warn('[LeakDetect] Club Arena stats RPC threw:', e?.message || e);
   }
 
   // 1. Try to get aggregated stats from live hand history
@@ -231,7 +265,7 @@ function normalizeStats(stats) {
     riverValueBetFreq: asPercent(stats.river_value_bet_freq),
     riverBetOpps: num(stats.river_bet_opportunities) ?? 0,
     aggFactor: num(stats.aggression_factor, stats.af),
-    wtsd: num(stats.wtsd, stats.went_to_showdown),
+    wtsd: asPercent(stats.wtsd, stats.went_to_showdown),
   };
 }
 
@@ -463,6 +497,8 @@ function evidenceReceipt({ liveHands, solverEvidence, clubArenaSync }) {
 
 export default async function handler(req, res) {
   attachPersonalAssistantTiming(res, 'leak_detection');
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+  res.setHeader('Vary', 'Authorization');
   try {
     const workerAuth = openAuditJobToken(req.headers['x-pa-audit-worker'], 'detect');
     // One complete audit may require several signed continuation requests.
@@ -873,6 +909,7 @@ export default async function handler(req, res) {
       };
       const resolutionCandidates = Object.entries(existingLeakMap || {})
         .filter(([leakType, existingLeak]) =>
+          existingLeak.detector_managed !== false &&
           ((LEAK_PATTERNS[leakType] && stats && patternIsMeasured(stats, leakType)) ||
             (['training_solver', 'solver_engine'].includes(existingLeak.source_system)
               && (solverScopeCanResolve(leakType)
@@ -1017,7 +1054,7 @@ export async function linkHandExamples(userId, leaksWithIds, db = getSupabase())
     const needsStatisticalCandidates = leaksWithIds.some(leak => leak.sourceHandExternalIds === null);
     const handsById = new Map();
     const readErrors = [];
-    const select = 'id, actions, players, summary, hole_cards, board, button_seat, pot_size, created_at';
+    const select = 'id, actions, players, summary, hole_cards, board, community_cards, button_seat, pot_size, created_at';
     const readOwnedHands = async (membershipKey, ids = null) => {
       let query = db.from('hand_history')
         .select(select)
@@ -1046,6 +1083,33 @@ export async function linkHandExamples(userId, leaksWithIds, db = getSupabase())
       .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || ''))
         || String(b.id).localeCompare(String(a.id)));
     if (!hands || hands.length === 0) return { persisted: true, linked: 0 };
+
+    // Hydrate the authenticated player's own private cards from owner-scoped
+    // ca_hand_facts so folded/mucked Club Arena leak examples still display
+    // hero's real holding instead of null. Never leaks opponent cards.
+    const privateHeroCardsByHand = new Map();
+    const handIds = hands.map(h => String(h.id)).filter(Boolean);
+    for (let index = 0; index < handIds.length; index += 200) {
+      const batch = handIds.slice(index, index + 200);
+      try {
+        const factRes = await db
+          .from('ca_hand_facts')
+          .select('hand_id, hole_cards')
+          .eq('user_id', userId)
+          .in('hand_id', batch)
+          .limit(batch.length);
+        if (!factRes?.error && Array.isArray(factRes?.data)) {
+          for (const fact of factRes.data) {
+            const normalizedCards = toCardCodes(fact?.hole_cards);
+            if (normalizedCards && normalizedCards.length >= 2) {
+              privateHeroCardsByHand.set(String(fact.hand_id), normalizedCards);
+            }
+          }
+        }
+      } catch (_) {
+        // Optional enrichment: fall back to hand_history.hole_cards / summary.
+      }
+    }
 
     const examples = [];
 
@@ -1088,13 +1152,12 @@ export async function linkHandExamples(userId, leaksWithIds, db = getSupabase())
           leak_id: leak.id,
           hand_history_id: hand.id,
           hand_data: {
-            // Hero's own showdown holding, if this hand reached showdown and
-            // they were in it. Null when the hand ended before showdown or the
-            // hero mucked · mucked cards are deliberately never persisted.
-            // Both normalised to "Ah"-style codes · see toCardCode() above for
-            // why the raw engine shapes could not be stored as-is.
-            hero_cards: toCardCodes(rawHand.hole_cards?.[userId] || summaryHero?.holeCards),
-            board: toCardCodes(rawHand.board || summary?.communityCards),
+            // Hero's own cards: owner-scoped ca_hand_facts covers folded/mucked
+            // hands privately for this user; showdown hole_cards / summary are
+            // fallback sources. Never leaks opponent holdings.
+            hero_cards: privateHeroCardsByHand.get(String(rawHand.id))
+              || toCardCodes(rawHand.hole_cards?.[userId] || summaryHero?.holeCards),
+            board: toCardCodes(rawHand.community_cards || rawHand.board || summary?.communityCards),
             button_seat: rawHand.button_seat ?? summary?.buttonSeat ?? null,
             pot_size: rawHand.pot_size ?? (summary?.pots || []).reduce((sum, p) => sum + (Number(p?.amount) || 0), 0),
             leak_action: leakMatch.action,

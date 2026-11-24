@@ -62,14 +62,15 @@ export function useAssistantStats(authState) {
 
       const response = await fetch('/api/assistant/stats', {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        cache: 'no-store',
         ...(controller ? { signal: controller.signal } : {}),
       });
-      const data = await response.json();
+      const data = await response.json().catch(() => null);
       if (requestId !== requestIdRef.current) return;
 
       // A 401/500 must not read as "no data" — surface it.
-      if (!response.ok || data.success === false) {
-        setError(data.error || `HTTP ${response.status}`);
+      if (!response.ok || !data || data.success === false) {
+        setError(data?.error || `HTTP ${response.status}`);
         return;
       }
 
@@ -998,7 +999,7 @@ export function useLeakDetection() {
   const [error, setError] = useState(null);
   const requestIdRef = useRef(0);
 
-  const applyJob = useCallback(job => {
+  const applyJob = useCallback((job, { initialRestore = false } = {}) => {
     setAuditJob(job || null);
     if (!job) return null;
     const active = job.status === 'queued' || job.status === 'running';
@@ -1008,25 +1009,30 @@ export function useLeakDetection() {
       const completed = { ...job.result, auditProgress: job.progress || job.result.auditProgress, auditJob: job };
       setDetectionResult(completed);
       setError(null);
-      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('pa-data-updated'));
+      if (!initialRestore && typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('pa-data-updated'));
+      }
       return completed;
     }
     if (job.status === 'failed') {
       setDetectionResult(previous => ({ ...(previous || {}), auditProgress: job.progress || null, auditJob: job }));
-      setError(job.error?.message || 'The durable audit stopped. Restarting will resume from its saved checkpoint.');
+      if (!initialRestore) {
+        setError(job.error?.message || 'The durable audit stopped. Restarting will resume from its saved checkpoint.');
+      }
     }
     return job;
   }, []);
 
-  const readJob = useCallback(async () => {
+  const readJob = useCallback(async (options = {}) => {
     const token = await getAuthToken();
     if (!token) return null;
     const response = await fetch('/api/assistant/leaks/audit-jobs', {
       headers: { 'Authorization': `Bearer ${token}` },
+      cache: 'no-store',
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok || payload.success === false) throw new Error(payload.error || `Audit progress failed (${response.status})`);
-    return applyJob(payload.job);
+    return applyJob(payload.job, options);
   }, [applyJob]);
 
   const runDetection = useCallback(async () => {
@@ -1038,6 +1044,7 @@ export function useLeakDetection() {
       // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
       const token = await getAuthToken();
       if (!token) {
+        setIsDetecting(false);
         setError('Must be logged in to run leak detection');
         return { success: false, error: 'Not logged in' };
       }
@@ -1055,7 +1062,13 @@ export function useLeakDetection() {
       if (!response.ok || data.success === false) {
         setIsDetecting(false);
         setError(data.error || `Detection failed (${response.status})`);
-        return { success: false, code: data.code, error: data.error || `HTTP ${response.status}` };
+        return {
+          success: false,
+          code: data.code,
+          blocked: data.blocked === true,
+          contextState: data.contextState || null,
+          error: data.error || `HTTP ${response.status}`,
+        };
       }
       applyJob(data.job);
       return { success: true, accepted: true, message: 'Your durable audit is running. You can safely leave this page and return later.', job: data.job };
@@ -1072,16 +1085,20 @@ export function useLeakDetection() {
   // reloads/devices; unmounting stops only this viewer, never the server job.
   useEffect(() => {
     let cancelled = false;
-    readJob().catch(err => { if (!cancelled) console.warn('[useLeakDetection] Restore failed:', err?.message || err); });
+    readJob({ initialRestore: true }).catch(err => { if (!cancelled) console.warn('[useLeakDetection] Restore failed:', err?.message || err); });
     return () => { cancelled = true; requestIdRef.current += 1; };
   }, [readJob]);
 
   useEffect(() => {
     if (!isDetecting) return undefined;
     let cancelled = false;
+    let inFlight = false;
     const poll = async () => {
+      if (inFlight || (typeof document !== 'undefined' && document.visibilityState === 'hidden')) return;
+      inFlight = true;
       try { if (!cancelled) await readJob(); }
       catch (err) { if (!cancelled) console.warn('[useLeakDetection] Poll failed:', err?.message || err); }
+      finally { inFlight = false; }
     };
     const timer = setInterval(poll, 2000);
     return () => { cancelled = true; clearInterval(timer); };
@@ -1140,6 +1157,13 @@ export function useLeakHandExamples(leakId) {
   useEffect(() => {
     if (leakId) {
       fetchExamples();
+    } else {
+      requestIdRef.current += 1;
+      activeAbortRef.current?.abort();
+      activeAbortRef.current = null;
+      setExamples([]);
+      setError(null);
+      setIsLoading(false);
     }
     return () => {
       requestIdRef.current += 1;

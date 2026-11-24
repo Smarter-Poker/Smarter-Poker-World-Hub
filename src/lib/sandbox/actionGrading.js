@@ -1,10 +1,16 @@
-const WORD_BUCKETS = {
-  small: 'small', third: 'small', half: 'medium', medium: 'medium',
-  large: 'large', big: 'large', pot: 'pot', overbet: 'pot',
-};
+const WORD_BUCKETS = [
+  [/\bsmall\b/, 'small'],
+  [/\bthird\b/, 'small'],
+  [/\bhalf\b/, 'medium'],
+  [/\bmedium\b/, 'medium'],
+  [/\blarge\b/, 'large'],
+  [/\bbig\b/, 'large'],
+  [/\boverbet\b/, 'pot'],
+  [/\bpot\b/, 'pot'],
+];
 
 export function sizeBucketFromPercent(pct) {
-  if (pct == null || !Number.isFinite(pct)) return null;
+  if (pct == null || !Number.isFinite(pct) || pct <= 0) return null;
   if (pct >= 100) return 'pot';
   if (pct > 75) return 'large';
   if (pct > 40) return 'medium';
@@ -15,21 +21,29 @@ export function parseActionLabel(label) {
   const raw = String(label || '').trim().toLowerCase();
   if (!raw) return { type: null, size: null };
   let type = null;
-  if (/all[- ]?in|allin|shove/.test(raw)) type = 'allin';
-  else if (raw.includes('fold')) type = 'fold';
-  else if (raw.includes('check')) type = 'check';
-  else if (/raise|3-?bet/.test(raw)) type = 'raise';
-  else if (raw.includes('call')) type = 'call';
-  else if (raw.includes('bet')) type = 'bet';
+  if (/\b(?:all[- ]?in|allin|shove|jam)\b/.test(raw)) type = 'allin';
+  else if (/\bfold\b/.test(raw) || raw.startsWith('fold')) type = 'fold';
+  else if (/\bcheck[- ]?raise\b|\braise\b|\b[3-9]-?bet\b|\bopen[- ]?raise\b/.test(raw)) type = 'raise';
+  else if (/\bcheck\b/.test(raw) || raw.startsWith('check')) type = 'check';
+  else if (/\bcall\b/.test(raw) || raw.startsWith('call')) type = 'call';
+  else if (/\bbet\b/.test(raw) || raw.startsWith('bet')) type = 'bet';
   else type = raw.split(/[\s_]/)[0] || null;
 
   let size = null;
   if (type === 'bet' || type === 'raise') {
-    const match = raw.match(/(\d+(?:\.\d+)?)\s*%/) || raw.match(/^(?:bet|raise)[_\s-](\d+(?:\.\d+)?)$/);
-    if (match) size = sizeBucketFromPercent(Number.parseFloat(match[1]));
-    else {
-      for (const word of Object.keys(WORD_BUCKETS)) {
-        if (raw.includes(word)) { size = WORD_BUCKETS[word]; break; }
+    const fractionMatch = raw.match(/(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/);
+    const pctMatch = raw.match(/(\d+(?:\.\d+)?)\s*%/) || raw.match(/^(?:bet|raise)[_\s-](\d+(?:\.\d+)?)$/);
+    if (fractionMatch) {
+      const num = Number.parseFloat(fractionMatch[1]);
+      const den = Number.parseFloat(fractionMatch[2]);
+      if (Number.isFinite(num) && Number.isFinite(den) && den > 0) {
+        size = sizeBucketFromPercent((num / den) * 100);
+      }
+    } else if (pctMatch) {
+      size = sizeBucketFromPercent(Number.parseFloat(pctMatch[1]));
+    } else {
+      for (const [pattern, bucket] of WORD_BUCKETS) {
+        if (pattern.test(raw)) { size = bucket; break; }
       }
     }
   }
