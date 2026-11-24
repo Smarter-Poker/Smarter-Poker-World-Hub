@@ -671,44 +671,55 @@ test('the atomic invalid-question refusal stays retryable without recording a no
 });
 
 test('GTO renders are answer-gated by the immutable bound-revision review RPC', async () => {
-    const questionId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
-    const locked = loadGtoRenderReview({ success: false, error: 'answer_not_bound' });
-    const lockedRes = apiResponse();
-    await locked.handler({
-        method: 'POST',
-        headers: { authorization: 'Bearer test-token' },
-        body: { question_id: questionId, session_id: SESSION },
-    }, lockedRes);
-    assert.equal(lockedRes.statusCode, 409);
-    assert.deepEqual(lockedRes.body, { success: false, error: 'answer_not_bound' });
-    assert.deepEqual(locked.calls, [{
-        name: 'trivia_session_question_review_v1',
-        args: { p_session_id: SESSION, p_user_id: USER, p_question_id: questionId },
-    }]);
+    const prevUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const prevKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.supabase.co';
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key';
+    try {
+        const questionId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+        const locked = loadGtoRenderReview({ success: false, error: 'answer_not_bound' });
+        const lockedRes = apiResponse();
+        await locked.handler({
+            method: 'POST',
+            headers: { authorization: 'Bearer test-token' },
+            body: { question_id: questionId, session_id: SESSION },
+        }, lockedRes);
+        assert.equal(lockedRes.statusCode, 409);
+        assert.deepEqual(lockedRes.body, { success: false, error: 'answer_not_bound' });
+        assert.deepEqual(locked.calls, [{
+            name: 'trivia_session_question_review_v1',
+            args: { p_session_id: SESSION, p_user_id: USER, p_question_id: questionId },
+        }]);
 
-    const wrongMode = loadGtoRenderReview({ success: true, mode: 'daily' });
-    const wrongModeRes = apiResponse();
-    await wrongMode.handler({
-        method: 'POST',
-        headers: { authorization: 'Bearer test-token' },
-        body: { question_id: questionId, session_id: SESSION },
-    }, wrongModeRes);
-    assert.equal(wrongModeRes.statusCode, 400);
-    assert.deepEqual(wrongModeRes.body, { success: false, error: 'unsupported_session_mode' });
+        const wrongMode = loadGtoRenderReview({ success: true, mode: 'daily' });
+        const wrongModeRes = apiResponse();
+        await wrongMode.handler({
+            method: 'POST',
+            headers: { authorization: 'Bearer test-token' },
+            body: { question_id: questionId, session_id: SESSION },
+        }, wrongModeRes);
+        assert.equal(wrongModeRes.statusCode, 400);
+        assert.deepEqual(wrongModeRes.body, { success: false, error: 'unsupported_session_mode' });
 
-    const voided = loadGtoRenderReview({ success: true, mode: 'gto', outcome: 'voided', voided: true });
-    const voidedRes = apiResponse();
-    await voided.handler({
-        method: 'POST',
-        headers: { authorization: 'Bearer test-token' },
-        body: { question_id: questionId, session_id: SESSION },
-    }, voidedRes);
-    assert.equal(voidedRes.statusCode, 422);
-    assert.deepEqual(voidedRes.body, { success: false, error: 'solver_analysis_unavailable' });
-    assert.deepEqual(voided.calls, [{
-        name: 'trivia_session_question_review_v1',
-        args: { p_session_id: SESSION, p_user_id: USER, p_question_id: questionId },
-    }]);
+        const voided = loadGtoRenderReview({ success: true, mode: 'gto', outcome: 'voided', voided: true });
+        const voidedRes = apiResponse();
+        await voided.handler({
+            method: 'POST',
+            headers: { authorization: 'Bearer test-token' },
+            body: { question_id: questionId, session_id: SESSION },
+        }, voidedRes);
+        assert.equal(voidedRes.statusCode, 422);
+        assert.deepEqual(voidedRes.body, { success: false, error: 'solver_analysis_unavailable' });
+        assert.deepEqual(voided.calls, [{
+            name: 'trivia_session_question_review_v1',
+            args: { p_session_id: SESSION, p_user_id: USER, p_question_id: questionId },
+        }]);
+    } finally {
+        if (prevUrl === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+        else process.env.NEXT_PUBLIC_SUPABASE_URL = prevUrl;
+        if (prevKey === undefined) delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+        else process.env.SUPABASE_SERVICE_ROLE_KEY = prevKey;
+    }
 });
 
 test('strategy projections expose table facts and real solver numbers without answer-bearing metadata', () => {

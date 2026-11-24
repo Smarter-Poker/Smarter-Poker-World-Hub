@@ -689,6 +689,8 @@ export default function TimeAttackPage() {
                                         onComplete={handleComplete}
                                         dailyDiamondsEarned={dailyDiamondsEarned}
                                         serverGrader={gradeAnswer}
+                                        sessionId={serverRun.sessionId}
+                                        accountId={userId}
                                     />
                                 </section>
                             )}

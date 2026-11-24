@@ -45,9 +45,10 @@ const RENDER_CLAIM_LEASE_SECONDS = 180;
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        _supabase = createClient(url, key);
+        const url = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
+        const key = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+        if (!url || !key) throw new Error('Supabase server credentials not configured');
+        _supabase = createClient(url, key, { auth: { persistSession: false } });
     }
     return _supabase;
 }
@@ -85,19 +86,20 @@ export default async function handler(req, res) {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
 
-      // BUG #268 FIX: Require JWT or admin auth — calls paid Grok API
-      const adminSecret = req.headers['x-admin-secret'];
-      const envSecret = process.env.ADMIN_ROUTE_SECRET;
-      const hasAdminAuth = envSecret && adminSecret === envSecret;
+      // BUG #268 FIX: Require JWT/session or constant-time admin secret — calls paid Grok API
+      const adminSecret = typeof req.headers['x-admin-secret'] === 'string' ? req.headers['x-admin-secret'] : '';
+      const envSecret = typeof process.env.ADMIN_ROUTE_SECRET === 'string' ? process.env.ADMIN_ROUTE_SECRET : '';
+      const hasAdminAuth = Boolean(
+          envSecret
+          && adminSecret
+          && Buffer.byteLength(adminSecret) === Buffer.byteLength(envSecret)
+          && crypto.timingSafeEqual(Buffer.from(adminSecret), Buffer.from(envSecret))
+      );
       let authenticatedUserId = null;
 
       if (!hasAdminAuth) {
-          const token = req.headers.authorization?.replace('Bearer ', '');
-          if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-          const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-    const authData = { user: authUser };
-          const user = authData?.user;
-          if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+          const { user, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+          if (authErr || !user) return res.status(401).json({ success: false, error: 'Authentication required' });
           authenticatedUserId = user.id;
       }
 
@@ -254,7 +256,7 @@ export default async function handler(req, res) {
           console.warn('[Trivia-GTO-Panel] Error:', error);
           return res.status(500).json({
               success: false,
-              error: error.message,
+              error: 'render_failed',
           });
       }
 

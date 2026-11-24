@@ -177,16 +177,33 @@ export default function TriviaOperationsPage() {
         return () => { cancelled = true; };
     }, []);
 
+    function resolveAccessToken() {
+        const fresh = readLocalAccessToken();
+        if (fresh) tokenRef.current = fresh;
+        return tokenRef.current;
+    }
+
     async function refreshSnapshot() {
-        if (!tokenRef.current) return;
-        const { response, body } = await fetchOperations(tokenRef.current);
+        const token = resolveAccessToken();
+        if (!token) {
+            window.location.replace('/auth/login?redirect=' + encodeURIComponent('/admin/trivia-operations'));
+            return;
+        }
+        const { response, body } = await fetchOperations(token);
+        if (response.status === 401) {
+            window.location.replace('/auth/login?redirect=' + encodeURIComponent('/admin/trivia-operations'));
+            return;
+        }
         if (body?.generated_at) setState({ loading: false, snapshot: body, error: null });
         else if (response.status !== 503) setState((current) => ({ ...current, error: body?.error || 'Unable to refresh operations data.' }));
     }
 
     async function executeAction(input, retry = false) {
-        const token = tokenRef.current;
-        if (!token) return;
+        const token = resolveAccessToken();
+        if (!token) {
+            window.location.replace('/auth/login?redirect=' + encodeURIComponent('/admin/trivia-operations'));
+            return;
+        }
         const operation = retry ? input : { ...input, requestKey: requestKey() };
         setActionState({ busy: true, item: null, error: null, pending: operation });
         try {
@@ -195,11 +212,19 @@ export default function TriviaOperationsPage() {
                 headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify(operation),
             });
+            if (response.status === 401) {
+                window.location.replace('/auth/login?redirect=' + encodeURIComponent('/admin/trivia-operations'));
+                return;
+            }
             const body = await response.json().catch(() => ({}));
             const item = body?.item || null;
             if (item?.receiptId) {
                 setActionState({ busy: false, item, error: body.success ? null : item.result?.detail || item.result?.error || 'Action was not completed.', pending: null });
-                await refreshSnapshot();
+                try {
+                    await refreshSnapshot();
+                } catch (_refreshError) {
+                    // Preserve the confirmed durable receipt even if the follow-up read fails.
+                }
                 return;
             }
             const unknownOutcome = response.status >= 500;
@@ -218,12 +243,19 @@ export default function TriviaOperationsPage() {
     }
 
     async function runLookup() {
-        const token = tokenRef.current;
-        if (!token) return;
+        const token = resolveAccessToken();
+        if (!token) {
+            window.location.replace('/auth/login?redirect=' + encodeURIComponent('/admin/trivia-operations'));
+            return;
+        }
         setLookupState({ busy: true, result: null, error: null });
         try {
             const query = `?lookupKind=${encodeURIComponent(lookupForm.kind)}&lookupId=${encodeURIComponent(lookupForm.targetId.trim())}`;
-            const { body } = await fetchOperations(token, query);
+            const { response, body } = await fetchOperations(token, query);
+            if (response.status === 401) {
+                window.location.replace('/auth/login?redirect=' + encodeURIComponent('/admin/trivia-operations'));
+                return;
+            }
             if (!body?.support_lookup) throw new Error(body?.error || 'Support lookup failed.');
             setLookupState({ busy: false, result: body.support_lookup, error: null });
         } catch (error) {
@@ -472,6 +504,8 @@ export default function TriviaOperationsPage() {
             <Panel title="Scheduler ownership">
                 <div style={S.grid}>
                     <Metric label="Active owner observed" value={scheduler.active_owner_observed} />
+                    <Metric label="Last owner run" value={fmtTime(scheduler.last_owner_run_at)} />
+                    <Metric label="Recent runs" value={Array.isArray(scheduler.recent_runs) ? scheduler.recent_runs.length : 0} />
                     <Metric label="Current holder" value={scheduler.lease?.holder_id} />
                     <Metric label="Fencing token" value={scheduler.lease?.fencing_token} />
                     <Metric label="Lease expires" value={fmtTime(scheduler.lease?.expires_at)} />

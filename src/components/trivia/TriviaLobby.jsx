@@ -528,10 +528,10 @@ export default function TriviaLobby({
               ? 'Unavailable'
               : !profileDataReady
                 ? 'Verified At Entry'
-              : isVip
-                ? 'VIP Free'
-                : variableCost
-                  ? 'Variable'
+              : variableCost
+                ? 'Variable'
+                : isVip
+                  ? 'VIP Free'
                   : cost > 0
                     ? `${cost} Diamonds`
                     : 'Free';

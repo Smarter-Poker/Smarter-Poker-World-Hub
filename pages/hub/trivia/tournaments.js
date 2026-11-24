@@ -789,7 +789,10 @@ function TournamentPageExperience({ user, authLoading }) {
             await loadCore(actionLease.tournamentId, { quiet: true });
             if (!canAdoptTournamentAction(actionLease)) return;
             await loadReceipt();
-            if (canAdoptTournamentAction(actionLease)) setActiveTab('run');
+            if (canAdoptTournamentAction(actionLease)) {
+                const narrowViewport = typeof window === 'undefined' || window.innerWidth < 900;
+                setActiveTab(narrowViewport ? 'run' : 'bracket');
+            }
         } catch (error) {
             if (canAdoptTournamentAction(actionLease)) {
                 setDialogError({ code: error?.code || 'internal_error', message: displayError(error) });
@@ -810,7 +813,13 @@ function TournamentPageExperience({ user, authLoading }) {
                 body: { tournamentId: actionLease.tournamentId, action: 'view' },
             });
             if (!canAdoptTournamentAction(actionLease)) return;
-            await hydrateSession(payload, actionLease);
+            if (payload.seat_finished) {
+                setSession(null);
+                setActiveQuestion(null);
+                await loadCore(actionLease.tournamentId, { quiet: true });
+                return;
+            }
+            await hydrateSession(payload.session || payload, actionLease);
         } catch (error) {
             if (!canAdoptTournamentAction(actionLease)) return;
             setPlayError(displayError(error));

@@ -25,6 +25,7 @@ export const TRIVIA_OPERATIONS_SLOS = Object.freeze({
     pvpFallbackP95Ms: 45_000,
     settlementP95Ms: 10_000,
     upcomingTournamentInstances: 7,
+    schedulerLivenessWindowMs: 180_000,
 });
 
 export const TRIVIA_OPERATIONS_CONTRACT = 'trivia-operations/1';
@@ -276,11 +277,25 @@ function schedulerState(lease, runs, nowMs) {
         && !lease?.released_at
         && Number.isFinite(expiresMs)
         && expiresMs > nowMs;
-    const unfinishedOwners = recentRuns.filter((run) => run?.outcome === 'owner' && !run?.finished_at);
+    const ownerRuns = recentRuns.filter((run) => run?.outcome === 'owner');
+    const unfinishedOwners = ownerRuns.filter((run) => !run?.finished_at);
+    let lastOwnerRunAt = null;
+    let lastOwnerFinishedMs = Number.NaN;
+    for (const run of ownerRuns) {
+        const finishedMs = run?.finished_at ? Date.parse(run.finished_at) : Number.NaN;
+        if (Number.isFinite(finishedMs) && (!Number.isFinite(lastOwnerFinishedMs) || finishedMs > lastOwnerFinishedMs)) {
+            lastOwnerFinishedMs = finishedMs;
+            lastOwnerRunAt = run.finished_at;
+        }
+    }
+    const recentOwnerRunObserved = Number.isFinite(lastOwnerFinishedMs)
+        && lastOwnerFinishedMs >= nowMs - TRIVIA_OPERATIONS_SLOS.schedulerLivenessWindowMs
+        && lastOwnerFinishedMs <= nowMs + 60_000;
     return {
         lease: lease || null,
         recent_runs: recentRuns,
-        active_owner_observed: leaseActive,
+        active_owner_observed: leaseActive || recentOwnerRunObserved,
+        last_owner_run_at: lastOwnerRunAt,
         unfinished_owner_runs: unfinishedOwners.length,
     };
 }

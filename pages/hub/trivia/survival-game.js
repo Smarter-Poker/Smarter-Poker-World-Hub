@@ -207,6 +207,7 @@ export default function SurvivalGamePage() {
         screenShake: true,  // Screen shake effect
         intensity: 'high'   // 'low', 'medium', 'high'
     });
+    const settingsLoadedRef = useRef(false);
     const reduceMotion = usePhase9ReducedMotion();
 
     // NOTE: the speed-bonus diamonds are gone with the move to server
@@ -345,6 +346,7 @@ export default function SurvivalGamePage() {
                 setSettings(prev => ({ ...prev, ...parsed }));
             }
         } catch (e) { console.warn("[survival-game.js]", e); }
+        settingsLoadedRef.current = true;
     }, [avatarUser?.id, authLoading]);
 
     // Realtime: Sync diamond balance when it changes externally
@@ -369,7 +371,9 @@ export default function SurvivalGamePage() {
 
     // Save settings to localStorage when changed. Merged so this page never
     // clobbers keys owned by the settings page (difficulty / timerEnabled / ...).
+    // Guarded by settingsLoadedRef so initial default state never wipes saved prefs.
     useEffect(() => {
+        if (!settingsLoadedRef.current) return;
         try {
             let existing = {};
             try { existing = JSON.parse(localStorage.getItem('trivia_settings') || '{}') || {}; } catch (e) { existing = {}; }
@@ -569,14 +573,15 @@ export default function SurvivalGamePage() {
                 const correct = authoritativeSurvivalCorrect(settled.correct);
                 if (correct === null) throw new Error('survival_score_authority_missing');
                 const awarded = Math.max(0, Number(settled.diamondsAwarded) || 0);
+                const passedRecovered = correct >= recoveredConfig.minCorrect;
                 serverResultRef.current = settled;
                 setSettlementResult(settled);
-                survivalParentSessionRef.current = settled.sessionId || null;
+                survivalParentSessionRef.current = passedRecovered ? (settled.sessionId || null) : null;
                 correctCountRef.current = correct;
                 setCorrectCount(correct);
                 setLastLevelAwarded(awarded);
                 setTotalDiamondsEarned(awarded);
-                setGameState(correct >= recoveredConfig.minCorrect
+                setGameState(passedRecovered
                     ? (recoveredLevel >= LEVEL_CONFIG.length ? 'victory' : 'levelComplete')
                     : 'gameOver');
                 return;
@@ -1185,9 +1190,11 @@ export default function SurvivalGamePage() {
                 if (submittedLevel === null) throw new Error('survival_level_authority_missing');
                 const submittedCorrect = authoritativeSurvivalCorrect(submitted?.correct);
                 if (submittedCorrect === null) throw new Error('survival_score_authority_missing');
+                const submittedConfig = LEVEL_CONFIG[submittedLevel - 1];
+                const passedSubmitted = Boolean(submittedConfig) && submittedCorrect >= submittedConfig.minCorrect;
                 serverResultRef.current = submitted;
                 setSettlementResult(submitted);
-                survivalParentSessionRef.current = submitted.sessionId;
+                survivalParentSessionRef.current = passedSubmitted ? submitted.sessionId : null;
                 setCurrentLevel(submittedLevel);
                 writeRecoveredLevel(userId, submittedLevel);
                 savePhaseRef.current = 1;
@@ -1303,12 +1310,13 @@ export default function SurvivalGamePage() {
         startLevel(currentLevel + 1);
     }
 
-    function restartFromLevel(level) {
+    function restartFromLevel(_level) {
+        survivalParentSessionRef.current = null;
         setTotalDiamondsEarned(0);
         setCapReachedThisRun(false);
         serverRun.acknowledgeSettlement();
         forceNewLevelRef.current = true;
-        startLevel(level);
+        startLevel(1);
     }
 
     function backToLobby() {
@@ -1577,7 +1585,7 @@ export default function SurvivalGamePage() {
                                         </div>
 
                                         <p className="trivia-challenge-note">
-                                            Retries Are Free. The Entry Cost Applies Only When Starting A New Run.
+                                            Passing A Level Continues Free To The Next Level. Failing Or Starting Over Begins A New Paid Run At Level 1.
                                         </p>
                                         </div>
                                     </section>
@@ -1703,12 +1711,11 @@ export default function SurvivalGamePage() {
                                                         type="button"
                                                         role="switch"
                                                         aria-labelledby="survival-audio-label"
-                                                        aria-checked={!reduceMotion && settings.audio}
-                                                        disabled={reduceMotion}
+                                                        aria-checked={settings.audio}
                                                         className="trivia-challenge-switch"
                                                         onClick={() => triviaAudio.setMuted(settings.audio)}
                                                     >
-                                                        {reduceMotion ? 'Reduced' : settings.audio ? 'On' : 'Off'}
+                                                        {settings.audio ? 'On' : 'Off'}
                                                     </button>
                                                 </div>
                                                 <div className="trivia-challenge-setting">
@@ -1835,6 +1842,8 @@ export default function SurvivalGamePage() {
                                             <div className="trivia-challenge-report">
                                                 <ReportQuestionButton
                                                     questionId={currentQuestion.id}
+                                                    sessionId={serverRun.sessionId}
+                                                    accountId={userId}
                                                     userToken={accessToken}
                                                 />
                                             </div>

@@ -137,8 +137,8 @@ export const TRIVIA_MODES = {
     survival: {
         id: 'survival',
         name: 'Survival Mode',
-        description: 'Answer until you miss. Rewards stack!',
-        questionsCount: 100, // Unlimited effectively
+        description: '10 Levels • 20 Questions Per Level',
+        questionsCount: 20, // Per level (10 escalating levels)
         timeLimit: null,
         diamondCost: 10, // restored - survival pays via award_trivia_run now
         diamondReward: 1, // Per correct answer
@@ -202,8 +202,8 @@ export const TRIVIA_MODES = {
     mixed: {
         id: 'mixed',
         name: 'Mixed Bag',
-        description: 'All Categories • Rotating Mix',
-        questionsCount: 20,
+        description: '21 Questions • 7 Rotating Categories',
+        questionsCount: 21,
         timeLimit: null,
         diamondCost: 10, // restored ccbfa17b - mixed pays via award_trivia_run now
         diamondReward: 5,
@@ -239,8 +239,8 @@ export const TRIVIA_MODES = {
     pvp: {
         id: 'pvp',
         name: 'Heads-Up',
-        description: '10 Questions • Head To Head',
-        questionsCount: 10,
+        description: '20 Questions • Head To Head',
+        questionsCount: 20,
         timeLimit: 40,
         diamondCost: 0,
         diamondReward: 0,

@@ -24,6 +24,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 import {
@@ -465,6 +466,7 @@ export default async function handler(req, res) {
           res.setHeader('Allow', 'GET');
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
+      if (!applyRateLimit(req, res, LIMITS.read)) return;
 
       const today = getTodayCST();
 
@@ -526,13 +528,14 @@ export default async function handler(req, res) {
           // (matches the "10 Questions Fresh Every Day" banner).
           questions = questions.slice(0, ROSTER_SIZE).map(toPublicQuestion);
 
-          // Real user stats if Bearer JWT present.
+          // Real user stats if Bearer JWT or session cookie present.
           let userStats = { totalPlayed: 0, bestScore: 0, currentStreak: 0 };
           let hasPlayedToday = false;
           let todayScore = null;
           let seenCount = 0;
           const authHeader = req.headers.authorization;
-          if (authHeader?.startsWith('Bearer ')) {
+          const hasCookie = Boolean(req.headers.cookie);
+          if (authHeader?.startsWith('Bearer ') || hasCookie) {
               try {
                   // Resolve identity through the shared server-auth helper so
                   // the session-cookie fallback keeps working alongside the

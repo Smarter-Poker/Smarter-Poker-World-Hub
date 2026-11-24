@@ -21,6 +21,7 @@
 // raw '@supabase/supabase-js' (build-safety-gate CHECK 3 blocks the raw import,
 // and the patched client carries the JWT-decode/GoTrue resilience fixes).
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 
@@ -35,23 +36,17 @@ export default async function handler(req, res) {
     }
     if (!applyRateLimit(req, res, LIMITS.write)) return;
 
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    const srKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!url || !anonKey || !srKey) {
+    const url = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
+    const srKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+    if (!url || !srKey) {
       return res.status(500).json({ error: 'Server misconfigured' });
     }
 
-    const auth = req.headers.authorization;
-    if (!auth?.startsWith('Bearer ')) {
+    const adm = createClient(url, srKey, { auth: { persistSession: false } });
+    const { user: authUser, error: uErr } = await getServerUserWithFallback(req, adm);
+    if (uErr || !authUser?.id) {
       return res.status(401).json({ error: 'Authentication required' });
     }
-    const sb = createClient(url, anonKey);
-    const { data: userData, error: uErr } = await sb.auth.getUser(auth.slice(7).trim());
-    if (uErr || !userData?.user?.id) {
-      return res.status(401).json({ error: 'Invalid token' });
-    }
-    const authUser = userData.user;
     const userId = authUser.id;
 
     const { question_id, reason, note } = req.body || {};
@@ -81,7 +76,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'session_id must be a valid UUID when supplied' });
     }
     const sessionId = typeof suppliedSessionId === 'string' ? suppliedSessionId : null;
-    const adm = createClient(url, srKey, { auth: { persistSession: false } });
     const { data: result, error: rpcErr } = await adm.rpc('trivia_submit_question_report_v2', {
       p_user_id: userId,
       p_question_id: question_id,

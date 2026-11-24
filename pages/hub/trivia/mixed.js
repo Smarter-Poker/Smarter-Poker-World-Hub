@@ -885,6 +885,8 @@ export default function MixedModePage() {
                                             <ReportQuestionButton
                                                 key={currentQuestion.id}
                                                 questionId={currentQuestion.id}
+                                                sessionId={serverRun.sessionId}
+                                                accountId={userId}
                                                 userToken={accessToken}
                                             />
                                         </div>
