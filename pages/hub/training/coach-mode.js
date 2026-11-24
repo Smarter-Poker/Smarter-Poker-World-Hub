@@ -10,13 +10,36 @@
 // TRAIN-CSS-MOBILE-ADOPT-16 — mobile data-attr long-tail adoption from TRAIN-CSS-MOBILE-1
 // TRAIN-CSS-TOKENS-BATCH5-6 — hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-CSS-GRADIENT-ADOPT-6 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
+import ErrorBanner from '../../../src/components/training/ErrorBanner';
+import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
+import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
+
+const HERO_CARDS_BY_VARIANT = {
+  nlh: ['As', 'Kd'],
+  plo4: ['As', 'Ks', 'Qh', 'Jh'],
+  plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
+  plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
+};
+
+const BOARD_CARDS = ['8d', '5c', '2s', '6h', '3d'];
+
+const BOARD_CARDS_BY_STREET = {
+  preflop: [],
+  flop: BOARD_CARDS.slice(0, 3),
+  turn: BOARD_CARDS.slice(0, 4),
+  river: BOARD_CARDS.slice(0, 5),
+};
+
+const COACH_VARIANTS = ['nlh', 'plo4', 'plo5', 'plo6'];
+const COACH_POSITIONS = ['BTN', 'CO', 'SB', 'BB'];
+const COACH_STREETS = ['preflop', 'flop', 'turn', 'river'];
 
 
 // BUG FIX (TRAIN-COACH-A11Y-1): SVG icon components replacing the
@@ -372,6 +395,52 @@ export default function CoachModePage() {
   // Coach Mode is an explicitly local reference lesson. Only signed Training
   // Arena attempts may persist mastery, completion, or rewards.
   const [reviewedThisVisit, setReviewedThisVisit] = useState(new Set());
+  const [activeVariant, setActiveVariant] = useState('nlh');
+  const [heroPosition, setHeroPosition] = useState('BTN');
+  const [activeStreet, setActiveStreet] = useState('flop');
+  const [coachError, setCoachError] = useState(null);
+
+  const brainEval = useMemo(() => {
+    try {
+      const heroCards = HERO_CARDS_BY_VARIANT[activeVariant] || HERO_CARDS_BY_VARIANT.nlh;
+      const boardCards = BOARD_CARDS_BY_STREET[activeStreet] || BOARD_CARDS_BY_STREET.flop;
+      return evaluateTrainingSpotWithHorseBrain({
+        variant: activeVariant,
+        street: activeStreet,
+        heroCards,
+        boardCards,
+        heroPosition,
+        villainPosition: heroPosition === 'BB' ? 'BTN' : 'BB',
+        pot: activeStreet === 'preflop' ? 1.5 : 6.5,
+        toCall: activeStreet === 'preflop' ? 1 : 2.2,
+        effectiveStackBb: 100,
+      });
+    } catch (err) {
+      setCoachError(err?.message || 'Unable To Evaluate Adaptive Coach Spot. Please Retry.');
+      return null;
+    }
+  }, [activeVariant, activeStreet, heroPosition]);
+
+  const arenaHref = useMemo(
+    () =>
+      buildCustomTrainingArenaHref(
+        {
+          gameId: activeVariant === 'nlh' ? 'cash-002' : 'cash-005',
+          variant: activeVariant,
+          street: activeStreet,
+          position: heroPosition,
+        },
+        'coach-mode',
+      ),
+    [activeVariant, activeStreet, heroPosition],
+  );
+
+  const handleRetryCoach = () => {
+    setCoachError(null);
+    setActiveVariant('nlh');
+    setHeroPosition('BTN');
+    setActiveStreet('flop');
+  };
 
   const startLesson = (lesson) => {
     setActiveLesson(lesson);
@@ -431,7 +500,7 @@ export default function CoachModePage() {
           <header className="sp-command-header sp-coach-lesson-header">
             <button
               type="button"
-              aria-label="Back to lesson list"
+              aria-label="Back To Lesson List"
               onClick={() => setActiveLesson(null)}
               className="sp-coach-back"
             >
@@ -644,11 +713,88 @@ export default function CoachModePage() {
                 </div>
               </div>
             </div>
-            <div className="sp-coach-hero-plate" aria-hidden>
+              <div className="sp-coach-hero-plate" aria-hidden>
               <span>GTO Training Core</span>
               <strong>Coach / 11</strong>
             </div>
           </section>
+
+          {coachError && (
+            <ErrorBanner
+              message={coachError}
+              onRetry={handleRetryCoach}
+            />
+          )}
+
+          {brainEval && (
+            <section
+              className="sp-coach-module-section"
+              data-specialty-brain-panel="true"
+              data-brain-engine={brainEval.engineModule}
+              data-recommended-action={brainEval.correctAnswer}
+              data-active-variant={activeVariant}
+              data-hero-position={heroPosition}
+              aria-labelledby="coach-brain-panel-title"
+            >
+              <header className="sp-coach-section-header">
+                <div>
+                  <span>Adaptive Engine Telemetry</span>
+                  <h2 id="coach-brain-panel-title">Horse Brain Adaptive Coach Panel</h2>
+                </div>
+                <p>
+                  Engine: {brainEval.engineModule} <i /> Recommended: {brainEval.correctAnswerText}
+                </p>
+              </header>
+              <div className="sp-coach-hero-actions">
+                {COACH_VARIANTS.map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    data-variant-option={v}
+                    aria-pressed={activeVariant === v}
+                    onClick={() => setActiveVariant(v)}
+                    className="sp-coach-back"
+                  >
+                    <span>{v.toUpperCase()}</span>
+                  </button>
+                ))}
+                {COACH_POSITIONS.map((pos) => (
+                  <button
+                    key={pos}
+                    type="button"
+                    data-position-option={pos}
+                    aria-pressed={heroPosition === pos}
+                    onClick={() => setHeroPosition(pos)}
+                    className="sp-coach-back"
+                  >
+                    <span>{pos}</span>
+                  </button>
+                ))}
+                {COACH_STREETS.map((st) => (
+                  <button
+                    key={st}
+                    type="button"
+                    data-street-option={st}
+                    aria-pressed={activeStreet === st}
+                    onClick={() => setActiveStreet(st)}
+                    className="sp-coach-back"
+                  >
+                    <span>{st.toUpperCase()}</span>
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  data-launch-club-arena-cta="true"
+                  onClick={() => router.push(arenaHref)}
+                  className="sp-coach-primary"
+                >
+                  <span>Launch Adaptive Spot In Club Arena</span>
+                  <span aria-hidden>›</span>
+                </button>
+              </div>
+              <p>{brainEval.explanation}</p>
+            </section>
+          )}
 
           <section className="sp-coach-module-section" aria-labelledby="coach-modules-title">
             <header className="sp-coach-section-header">

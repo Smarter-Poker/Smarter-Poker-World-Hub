@@ -8,7 +8,7 @@
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-10 — hex sweep batch 5: literals routed to --sp-* tokens
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
@@ -16,10 +16,27 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
 import {
   buildCustomTrainingArenaHref,
   resolveCustomTrainingLaunch,
 } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
+
+const HERO_CARDS_BY_VARIANT = {
+  nlh: ['As', 'Kd'],
+  plo4: ['As', 'Ks', 'Qh', 'Jh'],
+  plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
+  plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
+};
+
+const BOARD_CARDS = ['8d', '5c', '2s', '6h', '3d'];
+
+const BOARD_CARDS_BY_STREET = {
+  preflop: [],
+  flop: BOARD_CARDS.slice(0, 3),
+  turn: BOARD_CARDS.slice(0, 4),
+  river: BOARD_CARDS.slice(0, 5),
+};
 
 let _supabase = null;
 function getSupabase() {
@@ -249,12 +266,52 @@ export default function DrillBuilderPage() {
   const [selectedStreets, setSelectedStreets] = useState([]);
   const [stackDepth, setStackDepth] = useState(100);
   const [savedDrills, setSavedDrills] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
 
+  const previewStreet = selectedStreets[0] || 'flop';
+  const previewPosition = selectedPositions[0] || 'BTN';
+
+  const brainEval = useMemo(() => {
+    const heroCards = HERO_CARDS_BY_VARIANT[variant] || HERO_CARDS_BY_VARIANT.nlh;
+    const boardCards = BOARD_CARDS_BY_STREET[previewStreet] || BOARD_CARDS_BY_STREET.flop;
+    return evaluateTrainingSpotWithHorseBrain({
+      variant,
+      street: previewStreet,
+      heroCards,
+      boardCards,
+      heroPosition: previewPosition,
+      villainPosition: previewPosition === 'BB' ? 'BTN' : 'BB',
+      pot: previewStreet === 'preflop' ? 1.5 : 6.5,
+      toCall: previewStreet === 'preflop' ? 1 : 2.2,
+      effectiveStackBb: stackDepth,
+      isMTT: format === 'mtt',
+    });
+  }, [variant, previewStreet, previewPosition, stackDepth, format]);
+
+  const previewArenaHref = useMemo(
+    () =>
+      buildCustomTrainingArenaHref(
+        {
+          format,
+          variant,
+          positions: selectedPositions,
+          streets: selectedStreets,
+          stackDepth,
+        },
+        'drill-builder',
+      ),
+    [format, variant, selectedPositions, selectedStreets, stackDepth],
+  );
+
   // Load saved drills
   const loadDrills = async () => {
-    if (!getSupabase()) return;
+    setLoading(true);
+    if (!getSupabase()) {
+      setLoading(false);
+      return;
+    }
     try {
       const { data: userData, error: userError } = await getSupabase().auth.getUser();
       if (userError) throw userError;
@@ -273,6 +330,8 @@ export default function DrillBuilderPage() {
     } catch (e) {
       console.warn('[DrillBuilder] Load error:', e?.message || e);
       setSaveError('Saved Drills Could Not Be Loaded. Retry The Page Before Editing Them.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -489,7 +548,7 @@ export default function DrillBuilderPage() {
               <input
                 value={drillName}
                 onChange={(e) => setDrillName(e.target.value)}
-                placeholder="e.g., SB vs BB 3-Bet Defense"
+                placeholder="Example: SB Vs BB 3-Bet Defense"
                 style={{
                   width: '100%',
                   padding: '10px 12px',
@@ -661,6 +720,7 @@ export default function DrillBuilderPage() {
               </motion.button>
               <motion.button
                 whileTap={{ scale: 0.97 }}
+                data-launch-club-arena-cta="true"
                 onClick={() =>
                   startDrill({
                     format,
@@ -687,6 +747,70 @@ export default function DrillBuilderPage() {
               </motion.button>
             </div>
           </div>
+
+          {brainEval && (
+            <div
+              data-specialty-brain-panel="true"
+              data-brain-engine={brainEval.engineModule}
+              data-recommended-action={brainEval.correctAnswer}
+              data-active-variant={variant}
+              data-hero-position={previewPosition}
+              style={{
+                marginBottom: 24,
+                padding: 16,
+                borderRadius: 12,
+                border: '1px solid rgba(6, 182, 212, 0.35)',
+                background: 'rgba(2, 6, 23, 0.72)',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: 8,
+                  marginBottom: 10,
+                }}
+              >
+                <span style={{ fontSize: 13, fontWeight: 900, color: '#67e8f9', textTransform: 'uppercase' }}>
+                  Horse Brain Custom Drill Spot Preview
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#4ade80' }}>
+                  Engine: {brainEval.engineModule} | Recommended: {brainEval.correctAnswerText}
+                </span>
+              </div>
+              <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 700, marginBottom: 8 }}>
+                Variant: {variant.toUpperCase()} | Position: {previewPosition} | Street: {previewStreet.toUpperCase()} | Stack: {stackDepth} BB
+              </div>
+              <div style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.55, marginBottom: 12 }}>
+                {brainEval.explanation}
+              </div>
+              <button
+                type="button"
+                data-launch-club-arena-cta="true"
+                onClick={() => router.push(previewArenaHref)}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: 8,
+                  border: '1px solid rgba(6, 182, 212, 0.45)',
+                  background: 'rgba(6, 182, 212, 0.16)',
+                  color: '#e8fbff',
+                  fontSize: 12,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                }}
+              >
+                Launch Custom Spot In Club Arena →
+              </button>
+            </div>
+          )}
+
+          {loading && (
+            <div role="status" style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginBottom: 16 }}>
+              Loading Saved Drills...
+            </div>
+          )}
 
           {/* Saved Drills */}
           {savedDrills.length > 0 && (

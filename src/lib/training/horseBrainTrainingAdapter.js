@@ -100,6 +100,40 @@ export const EXPECTED_BOARD_CARDS_BY_STREET = Object.freeze({
   river: 5,
 });
 
+/**
+ * Deterministic runtime-state helper for training surfaces consuming the
+ * Horse Brain & PLO Brain adapter. Resolves `offline`, `authExpiry`,
+ * `loading`, `empty`, `error`, `retry`, `stale`, and `success` states.
+ */
+export function getTrainingAdapterRuntimeState({
+  statusCode = 200,
+  error = null,
+  isLoading = false,
+  isEmpty = false,
+  retryCount = 0,
+  isStale = false,
+} = {}) {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return 'offline';
+  }
+  if (statusCode === 401 || /unauthorized|authentication expired|session expired|sign in/i.test(String(error || ''))) {
+    return 'authExpiry';
+  }
+  if (isLoading) {
+    return 'loading';
+  }
+  if (error) {
+    return retryCount > 0 ? 'retry' : 'error';
+  }
+  if (isEmpty) {
+    return 'empty';
+  }
+  if (isStale) {
+    return 'stale';
+  }
+  return 'success';
+}
+
 const CARD_REGEX = /^[2-9TJQKA][shdc]$/i;
 
 function normalizeCardToken(card) {
@@ -889,6 +923,7 @@ export function evaluateTrainingSpotWithHorseBrain({
 
     return {
       ok: true,
+      runtimeState: getTrainingAdapterRuntimeState({ statusCode: 200 }),
       engineModule: brainEvaluation.engineModule,
       options,
       correctAnswer,

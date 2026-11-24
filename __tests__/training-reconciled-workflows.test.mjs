@@ -17,7 +17,12 @@ import {
 import {
   evaluateTrainingSpotWithHorseBrain,
   validateDealAndPotLimitBounds,
+  resolvePrimaryTwoCardSubset,
+  evaluateOmahaExactTwoPlusThree,
 } from '../src/lib/training/horseBrainTrainingAdapter.js';
+import brainCore from '../src/lib/poker-engine/brain/core.js';
+
+const { getPreflopStrength } = brainCore;
 import {
   resolveSyncedHandForTrainingDrill,
 } from '../src/lib/training/syncedHandDrillResolver.js';
@@ -765,4 +770,116 @@ test('Personalized leak-to-drill loop identifies highest-EV-loss (variant, stree
     gradedOption: { id: 'b67', text: 'Bet 67% Pot' },
   });
   assert.equal(pctSizing.gradedSizingBb, 8.04);
+});
+
+test('Root-cause regression hardening laws: preflop notation lookup, Omaha straight outs, zero preset card collisions, zero client-card URL params, and study-tool record_key contracts', async () => {
+  // 1. Preflop Strength Lookup Invariance (getPreflopStrength & resolvePrimaryTwoCardSubset)
+  assert.ok(
+    getPreflopStrength('AA') > getPreflopStrength('KK'),
+    `Expected getPreflopStrength('AA') (${getPreflopStrength('AA')}) > getPreflopStrength('KK') (${getPreflopStrength('KK')})`,
+  );
+  assert.ok(
+    getPreflopStrength('KK') > getPreflopStrength('AKs'),
+    `Expected getPreflopStrength('KK') (${getPreflopStrength('KK')}) > getPreflopStrength('AKs') (${getPreflopStrength('AKs')})`,
+  );
+  assert.ok(
+    getPreflopStrength('AKs') > getPreflopStrength('72o'),
+    `Expected getPreflopStrength('AKs') (${getPreflopStrength('AKs')}) > getPreflopStrength('72o') (${getPreflopStrength('72o')})`,
+  );
+
+  const primarySubset = resolvePrimaryTwoCardSubset(['7c', '2d', 'As', 'Ad']);
+  assert.equal(primarySubset.notation, 'AA');
+  assert.ok(
+    primarySubset.strength >= 85,
+    `Expected resolvePrimaryTwoCardSubset(['7c', '2d', 'As', 'Ad']).strength >= 85, got ${primarySubset.strength}`,
+  );
+
+  // 2. Omaha Straight/Wrap Out Counting Invariance (evaluateOmahaExactTwoPlusThree)
+  const omahaWrapEval = evaluateOmahaExactTwoPlusThree(['Jc', 'Td', '9s', '6h'], ['8c', '7d', '2s']);
+  const omahaStraightOuts = Number(
+    omahaWrapEval.straightOuts ?? omahaWrapEval.straightDraw?.outs ?? omahaWrapEval.wrapDraw?.wrapOuts ?? 0,
+  );
+  assert.ok(
+    omahaStraightOuts >= 8,
+    `Expected straightOuts >= 8 on wrap board ['Jc', 'Td', '9s', '6h'] vs ['8c', '7d', '2s'], got ${omahaStraightOuts}`,
+  );
+
+  // 3. Static Source Scan Across ALL pages/hub/training/*.js Files for Disjoint Hero/Board Presets
+  const trainingPagesDir = path.join(ROOT, 'pages/hub/training');
+  const trainingPageFiles = fs
+    .readdirSync(trainingPagesDir)
+    .filter((file) => file.endsWith('.js'))
+    .sort();
+  assert.ok(trainingPageFiles.length > 0, 'Expected pages/hub/training/*.js files to exist');
+
+  for (const file of trainingPageFiles) {
+    const src = read(path.join('pages/hub/training', file));
+
+    // 4. Forbid client-controlled card URL params across all training pages
+    assert.doesNotMatch(
+      src,
+      /syncedHeroCards=|syncedBoard=/,
+      `Forbidden client-card URL param found in pages/hub/training/${file}`,
+    );
+
+    const heroBlockMatch = src.match(/(?:HERO_CARDS_BY_VARIANT|heroCardsByVariant)\s*=\s*\{[\s\S]*?\};/);
+    const boardBlockMatch = src.match(
+      /(?:BOARD_CARDS_BY_STREET|BOARD_CARDS|boardByStreet)\s*=\s*(?:\{[\s\S]*?\}|\[[\s\S]*?\]);/,
+    );
+    if (heroBlockMatch && boardBlockMatch) {
+      const extractCards = (block) =>
+        [
+          ...new Set(
+            (block.match(/['"]([2-9TJQKA][shdc])['"]/gi) || []).map((token) =>
+              token.slice(1, -1).toUpperCase(),
+            ),
+          ),
+        ];
+      const heroCards = extractCards(heroBlockMatch[0]);
+      const boardCards = extractCards(boardBlockMatch[0]);
+      const overlap = heroCards.filter((card) => boardCards.includes(card));
+      assert.equal(
+        overlap.length,
+        0,
+        `Preset card collision in pages/hub/training/${file}: overlapping cards [${overlap.join(', ')}]`,
+      );
+    }
+  }
+
+  // 5. Static Source Scan Across Study-Tool Pages for Cross-Device Sync Contracts
+  const flashcardsSrc = read('pages/hub/training/flashcards.js');
+  assert.match(flashcardsSrc, /json\?\.records/, 'flashcards.js must check json?.records');
+  assert.match(flashcardsSrc, /setDeckGenKey/, 'flashcards.js must call setDeckGenKey');
+  assert.match(flashcardsSrc, /record_key:\s*'sm2_state'/, "flashcards.js must send record_key: 'sm2_state'");
+
+  const quizBuilderSrc = read('pages/hub/training/quiz-builder.js');
+  assert.match(quizBuilderSrc, /json\?\.records/, 'quiz-builder.js must check json?.records');
+  assert.match(quizBuilderSrc, /record_key:\s*String\(quiz\.id\)/, 'quiz-builder.js must send record_key: String(quiz.id)');
+  assert.match(quizBuilderSrc, /const deleteQuiz[\s\S]*?method:\s*'DELETE'/, "quiz-builder.js deleteQuiz must send method: 'DELETE'");
+
+  for (const studyToolFile of ['session-notes.js', 'glossary.js', 'gto-news.js', 'hand-lab.js']) {
+    const toolSrc = read(path.join('pages/hub/training', studyToolFile));
+    assert.match(
+      toolSrc,
+      /\/api\/training\/tool-records[\s\S]*?method:\s*'POST'[\s\S]*?record_key:/,
+      `pages/hub/training/${studyToolFile} must include record_key in /api/training/tool-records POST payload`,
+    );
+  }
+
+  const toolRecordsApiSrc = read('pages/api/training/tool-records.js');
+  assert.match(toolRecordsApiSrc, /req\.body\?\.toolId[\s\S]*?req\.body\?\.tool_id/, 'tool-records.js must normalize toolId and tool_id');
+  assert.match(toolRecordsApiSrc, /req\.body\?\.recordKey[\s\S]*?req\.body\?\.record_key/, 'tool-records.js must normalize recordKey and record_key');
+  assert.match(toolRecordsApiSrc, /req\.body\?\.data[\s\S]*?req\.body\?\.payload/, 'tool-records.js must normalize data and payload');
+
+  // 6. Club Arena 1:1 Table Play & Multi-Caller Pot Invariance
+  const liveRaisePots = computeMainAndSidePots([
+    { position: 'BTN', committedBb: 12, stackRemainingBb: 88, folded: false, allIn: false },
+    { position: 'BB', committedBb: 4, stackRemainingBb: 88, folded: false, allIn: false },
+  ]);
+  assert.equal(
+    liveRaisePots.uncalledReturnBb,
+    0,
+    'Live raise must never be prematurely refunded while an active player still has chips behind to call',
+  );
+  assert.equal(liveRaisePots.totalPotBb, 16);
 });
