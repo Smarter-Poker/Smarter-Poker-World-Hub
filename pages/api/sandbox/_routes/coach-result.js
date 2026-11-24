@@ -13,8 +13,11 @@ import { gradeAction } from '../../../../src/lib/sandbox/actionGrading';
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!url || !key) {
+            throw new Error('SUPABASE_SERVICE_ROLE_KEY and NEXT_PUBLIC_SUPABASE_URL are required');
+        }
         _supabase = createClient(url, key);
     }
     return _supabase;
@@ -84,20 +87,24 @@ async function loadOwnedSessionResult(supabase, sessionId, userId) {
 
 export default async function handler(req, res) {
   try {
+      if (req.method !== 'POST') {
+          res.setHeader('Allow', 'POST');
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+      }
+
       // Unbounded writes feed the leaderboard/session-stats aggregations —
       // limit before doing any work.
       if (!applyRateLimit(req, res, LIMITS.write)) return;
-
-      if (req.method !== 'POST') {
-          return res.status(405).json({ success: false, error: 'Method not allowed' });
-      }
 
       try {
           const supabase = getSupabase();
 
           // Authenticate
           let userId = null;
-          const { user: authUser } = await getServerUserWithFallback(req, supabase);
+          const { user: authUser, status: authStatus } = await getServerUserWithFallback(req, supabase);
+          if (authStatus === 503) {
+              return res.status(503).json({ success: false, error: 'Session verification unavailable' });
+          }
           if (authUser) userId = authUser.id;
 
           // Guest submissions are allowed but not stored

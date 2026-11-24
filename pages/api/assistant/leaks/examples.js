@@ -13,8 +13,11 @@ import { reportApiError } from '../../../../src/lib/apiErrorHandler';
 let _supabase = null;
 function getSupabase() {
   if (!_supabase) {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) {
+      throw new Error('SUPABASE_SERVICE_ROLE_KEY and NEXT_PUBLIC_SUPABASE_URL are required');
+    }
     _supabase = createClient(url, key);
   }
   return _supabase;
@@ -25,15 +28,18 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'private, no-store, max-age=0');
   res.setHeader('Vary', 'Authorization');
-  if (!applyRateLimit(req, res, LIMITS.read || { max: 120, windowMs: 60_000 })) return;
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET');
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
+  if (!applyRateLimit(req, res, LIMITS.read || { max: 120, windowMs: 60_000 })) return;
 
   try {
     const supabase = getSupabase();
-    const { user, error: authError } = await getServerUserWithFallback(req, supabase);
+    const { user, error: authError, status: authStatus } = await getServerUserWithFallback(req, supabase);
+    if (authStatus === 503) {
+      return res.status(503).json({ success: false, error: 'Session verification unavailable' });
+    }
     if (authError || !user) {
       return res.status(401).json({ success: false, error: 'Authentication required' });
     }

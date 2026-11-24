@@ -388,13 +388,113 @@ test('Fortress [API security & headers]: all PA/Sandbox private APIs enforce no-
     'data-controls.js must check export byte size BEFORE inserting receipt',
   );
 
-  // weekly-spot.js must never CDN-cache fallback errors
+  // weekly-spot.js and archetypes.js must never CDN-cache fallback errors
   const weeklySpot = read('pages/api/assistant/sandbox/weekly-spot.js');
   assert.match(weeklySpot, /no-store/);
+  const archetypes = read('pages/api/assistant/archetypes.js');
+  assert.match(archetypes, /no-store/);
+  assert.ok(
+    archetypes.indexOf("Cache-Control', 'no-store'") < archetypes.indexOf('public, s-maxage=3600'),
+    'archetypes.js must set no-store on fallback and only set s-maxage on healthy DB reads',
+  );
 
   // sandbox-quiz.js must deduplicate repeated answers per (user_id, scenario_hash)
   const quiz = read('pages/api/assistant/sandbox/sandbox-quiz.js');
   assert.match(quiz, /alreadyAnswered:\s*true/);
+
+  // save-hand.js DELETE must select deleted rows and return 404 when nothing matched
+  const saveHand = read('pages/api/sandbox/_routes/save-hand.js');
+  assert.match(saveHand, /\.delete\(\)[\s\S]{0,120}\.select\(['"]id['"]\)/);
+  assert.match(saveHand, /status\(404\)\.json\(\{\s*success:\s*false,\s*error:\s*['"]Saved hand not found['"]/);
+});
+
+test('Fortress [Recursive Directory-Wide API Law]: zero anon fallbacks, zero hardcoded URLs, 405-before-rateLimit, private no-store, and 503 auth propagation across ALL PA/Sandbox routes', () => {
+  const walkJs = (dir, out = []) => {
+    const abs = path.join(ROOT, dir);
+    if (!fs.existsSync(abs)) return out;
+    for (const entry of fs.readdirSync(abs, { withFileTypes: true })) {
+      const rel = path.posix.join(dir, entry.name);
+      if (entry.isDirectory()) walkJs(rel, out);
+      else if (entry.name.endsWith('.js') || entry.name.endsWith('.mjs')) out.push(rel);
+    }
+    return out;
+  };
+
+  const allRoutes = [
+    ...walkJs('pages/api/assistant'),
+    ...walkJs('pages/api/sandbox'),
+    ...walkJs('app/api/assistant'),
+  ].sort();
+
+  assert.ok(allRoutes.length >= 28, `Expected >= 28 PA/Sandbox routes, discovered ${allRoutes.length}`);
+
+  const PUBLIC_EDGE_ROUTES = new Set([
+    'pages/api/assistant/archetypes.js',
+    'pages/api/assistant/sandbox/weekly-spot.js',
+  ]);
+  const CRON_AUTH_FIRST_ROUTES = new Set([
+    'pages/api/assistant/retention-maintenance.js',
+  ]);
+
+  for (const rel of allRoutes) {
+    const src = read(rel);
+
+    // Law 1: Zero silent anon-key fallbacks or hardcoded Supabase URLs anywhere
+    assert.doesNotMatch(
+      src,
+      /NEXT_PUBLIC_SUPABASE_ANON_KEY/,
+      `${rel} must never silently fall back to NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+    );
+    assert.doesNotMatch(
+      src,
+      /kuklfnapbkmacvwxktbh\.supabase\.co/,
+      `${rel} must never hardcode a Supabase project URL`,
+    );
+
+    // Law 2: Every non-public route directly under pages/api/assistant/** (and sandbox dispatcher) sets private no-store + Vary: Authorization
+    if (rel.startsWith('pages/api/assistant/') && !PUBLIC_EDGE_ROUTES.has(rel) && rel !== 'pages/api/assistant/setup-database.js') {
+      assert.match(src, /private,\s*no-store/i, `${rel} must set Cache-Control: private, no-store`);
+      assert.match(src, /Vary['"],\s*['"]Authorization/i, `${rel} must set Vary: Authorization`);
+    }
+
+    // Law 3: Every handler with both req.method check and applyRateLimit checks method BEFORE burning rate-limit budget
+    if (!CRON_AUTH_FIRST_ROUTES.has(rel) && src.includes('export default') && src.includes('applyRateLimit')) {
+      const handlerBody = src.slice(src.indexOf('export default'));
+      const methodIdx = handlerBody.search(/req\.method\b|const method = req\.method/);
+      const rateIdx = handlerBody.search(/applyRateLimit\s*\(/);
+      if (methodIdx !== -1 && rateIdx !== -1) {
+        assert.ok(
+          methodIdx < rateIdx,
+          `${rel} must validate req.method BEFORE calling applyRateLimit so invalid-method probes cannot exhaust rate-limit quotas`,
+        );
+      }
+    }
+
+    // Law 4: Every route calling getServerUserWithFallback propagates 503 auth outages
+    if (src.includes('getServerUserWithFallback(')) {
+      assert.match(
+        src,
+        /503/,
+        `${rel} calls getServerUserWithFallback and must propagate 503 auth outages instead of collapsing to 401/guest`,
+      );
+    }
+  }
+});
+
+test('Fortress [UTC Week Boundaries]: leaderboards use UTC Monday boundaries across weekdays, Sundays, and DST transitions', async () => {
+  const { utcMondayStartIso } = await import('../src/lib/personal-assistant/utcWeekWindow.mjs');
+
+  assert.equal(utcMondayStartIso(new Date('2026-11-23T00:00:00Z')), '2026-11-23T00:00:00.000Z');
+  assert.equal(utcMondayStartIso(new Date('2026-11-24T20:15:00Z')), '2026-11-23T00:00:00.000Z');
+  assert.equal(utcMondayStartIso(new Date('2026-11-29T23:59:59Z')), '2026-11-23T00:00:00.000Z');
+  assert.equal(utcMondayStartIso(new Date('2026-11-01T06:30:00Z')), '2026-10-26T00:00:00.000Z');
+  assert.equal(utcMondayStartIso('not-a-date'), null);
+
+  for (const rel of ['pages/api/sandbox/_routes/leaderboard.js', 'pages/api/sandbox/_routes/quiz-leaderboard.js']) {
+    const src = read(rel);
+    assert.match(src, /utcMondayStartIso/, `${rel} must use utcMondayStartIso`);
+    assert.doesNotMatch(src, /\.getDay\(\)|\.setHours\(/, `${rel} must never use local-timezone getDay()/setHours()`);
+  }
 });
 
 test('Fortress [Routing, AEO & UI Wiring]: zero dead /hub/sandbox or /hub/jarvis routes, fresh auth tokens, and clean PA UI', () => {
