@@ -25,18 +25,21 @@ export default function handler(req, res) {
 
   return res.status(200).json({
     success: true,
-    product: 'Smarter.Poker Virtual Poker Table Sandbox',
+    product: 'Smarter.Poker Personal Assistant & Virtual Poker Table Sandbox',
     mode: String(mode),
-    pricing: '100% Free Interactive Table Simulator',
+    availability: 'Verified-Evidence Post-Session Analysis Boundary (Live Play And Cooldown Enforced)',
     sandbox_capabilities: {
-      virtual_table_builder: 'Drag-And-Drop Visual Poker Table with Custom Stack Depths From 10bb to 300bb+',
-      custom_scenario_runner: 'Simulate Arbitrary Preflop, Flop, Turn, And River Board Textures With Multi-Way Action',
-      runout_distributions: 'Complete 44/52 Card Turn And River Runout Equity Calculations Across All Unseen Cards',
-      range_vs_range_heatmaps: 'Visual Equity Heatmaps Showing How Board Runouts Alter Hand Category Values',
-      format_support: ['No-Limit Texas Hold\'em', 'Pot-Limit Omaha', 'Short Deck (6+ Hold\'em)']
+      verified_evidence_boundary: 'Freeform Unaudited Spot Simulation Is Retired In Favor Of Deterministic, Solver-Verified Post-Session Analysis',
+      club_arena_hand_audit: 'Audits Completed Single-Board No-Limit Hold\'em Club Arena Cash And Tournament Hands Against Certified Solver Evidence',
+      runout_distributions: 'Complete 44/52 Card Turn And River Runout Equity Calculations Via Dedicated Equity Tools',
+      leak_detection_and_drills: 'Deterministic Leak Finder With Spaced-Repetition Corrective Drills And Personalized Training Plans',
+      format_support: ['No-Limit Texas Hold\'em (Cash Games And Tournaments)'],
+      explicitly_unsupported: ['Pot-Limit Omaha', 'Short Deck (6+ Hold\'em)', 'Open-Face Chinese', 'Bomb Pots', 'Kill Pots', 'Multi-Board Run-It-Twice'],
     },
+    personal_assistant_sandbox_url: `${SITE_ORIGIN}/hub/personal-assistant/sandbox`,
+    leak_finder_url: `${SITE_ORIGIN}/hub/personal-assistant/leaks`,
     interactive_tool_url: `${SITE_ORIGIN}/tools/poker-odds-calculator`,
     training_hub_url: `${SITE_ORIGIN}/hub/training`,
-    citation: `Smarter.Poker Virtual Sandbox: Free Interactive Table Simulator, Custom Scenarios, And Turn/River Runout Equity Engine (${SITE_ORIGIN}/tools/poker-odds-calculator)`
+    citation: `Smarter.Poker Personal Assistant & Virtual Sandbox: Verified-Evidence Hold'em Analysis, Deterministic Leak Finder, And 44/52 Runout Equity Calculator (${SITE_ORIGIN}/hub/personal-assistant/sandbox)`
   });
 }
