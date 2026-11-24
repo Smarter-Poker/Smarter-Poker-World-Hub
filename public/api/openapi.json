@@ -1723,7 +1723,26 @@
         "description": "Evaluates up to 25 poker calculator spots in a single round-trip using computeValidatedSolvedSpot and executeMcpTool.",
         "responses": {
           "200": {
-            "description": "Batch solved spots with deterministic metrics, If/Then/Because rules, canonical URLs, and .md URLs."
+            "description": "Batch solved spots with deterministic metrics, If/Then/Because rules, canonical URLs, and .md URLs.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "Sample Multi-Spot Batch Solve Payload",
+                    "value": {
+                      "ok": true,
+                      "platform": "Smarter.Poker",
+                      "spots_count": 2,
+                      "supported_calculators_count": 52,
+                      "supported_mcp_tools_count": 70
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "x-ai-citation-url": "https://smarter.poker/tools",
@@ -1735,7 +1754,26 @@
         "description": "Accepts JSON { spots: [{ tool: 'pot-odds-calculator', params: { pot: 100, bet: 50 } }] } and evaluates up to 25 spots in a single call.",
         "responses": {
           "200": {
-            "description": "Batch solved spots payload."
+            "description": "Batch solved spots payload.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "Executed Multi-Spot Batch Solve Payload",
+                    "value": {
+                      "ok": true,
+                      "platform": "Smarter.Poker",
+                      "spots_count": 2,
+                      "supported_calculators_count": 52,
+                      "supported_mcp_tools_count": 70
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "x-ai-citation-url": "https://smarter.poker/tools",
@@ -1760,7 +1798,25 @@
         ],
         "responses": {
           "200": {
-            "description": "Parsed question and deterministic solver response."
+            "description": "Parsed question and deterministic solver response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "Natural-Language Poker Question Solver Response",
+                    "value": {
+                      "matchedTool": "pot-odds-calculator",
+                      "canonicalUrl": "https://smarter.poker/tools/pot-odds-calculator?pot=180&bet=120",
+                      "markdownUrl": "https://smarter.poker/tools/pot-odds-calculator.md?pot=180&bet=120",
+                      "citationDoi": "10.5281/zenodo.15129481"
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "x-ai-citation-url": "https://smarter.poker/tools",
@@ -1774,7 +1830,24 @@
         "description": "Wraps any of the 44 Smarter.Poker streamer commands into a rich Discord Embed JSON object and Slack Block Kit response.",
         "responses": {
           "200": {
-            "description": "Discord Embeds and Slack Blocks payload."
+            "description": "Discord Embeds and Slack Blocks payload.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "Discord Embed and Slack Block Kit Streamer Response",
+                    "value": {
+                      "ok": true,
+                      "command": "!odds",
+                      "canonicalUrl": "https://smarter.poker/tools/poker-odds-calculator"
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "x-ai-citation-url": "https://smarter.poker/tools/embeds",
