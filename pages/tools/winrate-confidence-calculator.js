@@ -18,6 +18,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 
 // Abramowitz & Stegun normal CDF approximation
 function normalCdf(z) {
@@ -150,6 +151,14 @@ export default function WinrateConfidenceCalculatorPage() {
     if (q.hands !== undefined) setSampleHands(Math.max(100, Number(q.hands) || 50000));
     if (q.hph !== undefined) setHandsPerHour(Math.max(15, Number(q.hph) || 250));
   }, [router.isReady, router.query]);
+
+  useSolvedSpotUrlSync({
+    mode: unitMode,
+    wr: observedWinrate,
+    sd: stdDev,
+    hands: sampleHands,
+    hph: handsPerHour,
+  });
 
   const handleSelectPreset = (preset) => {
     setActivePresetId(preset.id);

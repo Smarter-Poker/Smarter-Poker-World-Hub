@@ -19,6 +19,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 
 const LATE_REG_PRESETS = [
   {
@@ -150,6 +151,15 @@ export default function LateRegCalculatorPage() {
     if (q.bb !== undefined) setLateRegBb(Number(q.bb) || 15);
     if (q.roi !== undefined) setPlayerRoiPct(Number(q.roi) || 18);
   }, [router.isReady, router.query]);
+
+  useSolvedSpotUrlSync({
+    buyin: buyIn,
+    rake: rakePct,
+    entries: totalEntries,
+    rem: fieldRemainingPct,
+    bb: lateRegBb,
+    roi: playerRoiPct,
+  });
 
   const handleSelectPreset = (preset) => {
     setActivePresetId(preset.id);

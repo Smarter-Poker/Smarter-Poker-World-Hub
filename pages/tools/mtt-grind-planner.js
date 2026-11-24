@@ -18,6 +18,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 
 const MTT_GRIND_PRESETS = [
   {
@@ -111,6 +112,15 @@ export default function MttGrindPlannerPage() {
     if (q.roi !== undefined) setExpectedRoiPct(Number(q.roi) || 22);
     if (q.br !== undefined) setTotalBankroll(Math.max(50, Number(q.br) || 12000));
   }, [router.isReady, router.query]);
+
+  useSolvedSpotUrlSync({
+    mtts: numTournaments,
+    abi: abiDollars,
+    bullets: bulletAllowancePct,
+    field: avgFieldSize,
+    roi: expectedRoiPct,
+    br: totalBankroll,
+  });
 
   const handleSelectPreset = (preset) => {
     setActivePresetId(preset.id);

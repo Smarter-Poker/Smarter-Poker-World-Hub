@@ -10,7 +10,7 @@
  * House style: Title Case, zero em dashes.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -52,8 +52,31 @@ export async function getStaticProps({ params }) {
 }
 
 export default function InternationalPokerGuideDetailPage({ guide, allGuides = [] }) {
+  const [copiedCard, setCopiedCard] = useState('');
   const canonicalPath = internationalGuidePath(guide.slug);
   const canonicalUrl = `https://smarter.poker${canonicalPath}`;
+
+  const destinationAssumptions = `As Of ${INTERNATIONAL_GUIDES_AS_OF}; Statutory Visitor Gaming Tax & Casino Cage Rules In ${guide.country} (${guide.currency})`;
+  const discordFactSheet = `[Smarter.Poker International Poker Guide: ${guide.city}, ${guide.country}] Currency: ${guide.currency} | Stakes: ${guide.typicalStakes} | Rake Cap: ${guide.rakeCap} | Series: ${guide.flagshipSeries} | Assumptions: ${destinationAssumptions} | Guide: ${canonicalUrl}`;
+  const redditFactSheet = `**${guide.city}, ${guide.country} - International Live Poker Destination Fact Sheet**\n- **Table Currency:** ${guide.currency}\n- **Typical Cash Game Stakes:** ${guide.typicalStakes}\n- **Rake Percentage & Cap:** ${guide.rakeCap}\n- **Flagship Tournament Series:** ${guide.flagshipSeries}\n- **Jurisdiction Assumptions:** ${destinationAssumptions}\n- *Source: [Smarter.Poker ${guide.city} Poker Destination Guide](${canonicalUrl})*`;
+
+  const handleCopyFactSheet = async (type, text) => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(text);
+        setCopiedCard(type);
+        setTimeout(() => setCopiedCard(''), 2200);
+      }
+      if (typeof fetch === 'function') {
+        fetch(
+          `/api/seo/referral-stats?event=record&category=solved_spot_shares&item=international-${encodeURIComponent(guide.slug)}&source=${encodeURIComponent(type)}`,
+          { method: 'POST', keepalive: true }
+        ).catch(() => {});
+      }
+    } catch {
+      // Ignore clipboard failures
+    }
+  };
 
   const jsonLd = [
     {
@@ -167,6 +190,20 @@ export default function InternationalPokerGuideDetailPage({ guide, allGuides = [
             <Link href={INTERNATIONAL_BASE_PATH} style={styles.crossBtnOutline}>
               All 10 Global Destinations
             </Link>
+            <button
+              type="button"
+              onClick={() => handleCopyFactSheet('discord', discordFactSheet)}
+              style={{ ...styles.crossBtnOutline, cursor: 'pointer', color: '#25c8ff', borderColor: 'rgba(37, 200, 255, 0.45)' }}
+            >
+              {copiedCard === 'discord' ? 'Copied Discord Fact Sheet!' : 'Copy Discord Destination Card'}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleCopyFactSheet('reddit', redditFactSheet)}
+              style={{ ...styles.crossBtnOutline, cursor: 'pointer', color: '#34d399', borderColor: 'rgba(52, 211, 153, 0.45)' }}
+            >
+              {copiedCard === 'reddit' ? 'Copied Reddit Markdown!' : 'Copy Reddit / Forum Markdown'}
+            </button>
           </div>
         </header>
 

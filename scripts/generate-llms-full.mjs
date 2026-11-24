@@ -24,9 +24,10 @@ import { POKER_VARIANTS } from '../src/content/games/variants.js';
 import { POKER_MARKET_GUIDES } from '../src/content/guides/markets.js';
 import { HAND_MATCHUPS } from '../src/content/learn/matchups.js';
 import { SERIES_GUIDES } from '../src/content/guides/seriesGuides.js';
+import { categoryAnchor } from '../src/lib/learn/learnSite.js';
+import { ZENODO_RECORDS } from '../src/lib/seo/datasetCatalog.mjs';
 import { MCP_TOOLS, MCP_PROMPTS, MCP_RESOURCE_TEMPLATES } from '../src/lib/mcp/mcpServer.mjs';
 import { STREAMER_BOT_COMMANDS } from '../pages/api/stream/cmd.js';
-import { categoryAnchor } from '../src/lib/learn/learnSite.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const LLMS_FULL_PATH = path.join(ROOT, 'public', 'llms-full.txt');
@@ -181,13 +182,8 @@ export function buildCatalogAppendix() {
     `- **All ${MCP_TOOLS.length} Zero-Auth MCP Tools**: ${MCP_TOOLS.map((t) => `\`${t.name}\``).join(', ')}`,
     `- **All ${MCP_PROMPTS.length} MCP Prompts**: ${MCP_PROMPTS.map((p) => `\`${p.name}\``).join(', ')}`,
     `- **Twitch & YouTube Streamer Chatbot Commands API (${STREAMER_BOT_COMMANDS.length} Commands: ${STREAMER_BOT_COMMANDS.map((c) => c.command).join(', ')})**: https://smarter.poker/api/stream/cmd?cmd=help`,
-    '- **Self-Archived Zenodo DOIs (6 Deposits)**:',
-    '  - Record 1 (`10.5281/zenodo.24115647`): https://doi.org/10.5281/zenodo.24115647 — Core Open Quantitative Poker Research Datasets (`15` CSV & JSON Datasets)',
-    '  - Record 2 (`10.5281/zenodo.24115636`): https://doi.org/10.5281/zenodo.24115636 — 35-Tool Model Context Protocol (MCP) Server Archive v1.0.5',
-    '  - Record 3 (`10.5281/zenodo.24115447`): https://doi.org/10.5281/zenodo.24115447 — North American Live Poker Room, Regional Market & Tournament Series Benchmark Dataset',
-    '  - Record 4 (`10.5281/zenodo.24115452`): https://doi.org/10.5281/zenodo.24115452 — 100BB 6-Max GTO Preflop Ranges, 169 Starting Hands & 25 Canonical Matchup Benchmarks',
-    '  - Record 5 (`10.5281/zenodo.24115453`): https://doi.org/10.5281/zenodo.24115453 — Smarter.Poker Model Context Protocol (MCP) Server & OpenAPI 3.1 Specification v1.0.5',
-    '  - Record 6 (`10.5281/zenodo.24115454`): https://doi.org/10.5281/zenodo.24115454 — Official Poker Rules (TDA & RROP), 15 Game Variants & 80-Term Quantitative Glossary Corpus',
+    `- **Self-Archived Zenodo DOIs (${ZENODO_RECORDS.length} Deposits)**:`,
+    ...ZENODO_RECORDS.map((r, idx) => `  - Record ${idx + 1} (\`${r.doi}\`): ${r.doiUrl} - ${r.title}`),
     '- **Software Heritage (SWHID) Archival Snapshots**:',
     '  - Open Datasets Repository: `swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f` (https://archive.softwareheritage.org/swh:1:snp:ff23640ad24a3a825d320bae8621fd50ba58c16f)',
     '  - MCP Server Repository: `swh:1:snp:02b8992833424620305edcfb730b3cf8add15747` (https://archive.softwareheritage.org/swh:1:snp:02b8992833424620305edcfb730b3cf8add15747)',
