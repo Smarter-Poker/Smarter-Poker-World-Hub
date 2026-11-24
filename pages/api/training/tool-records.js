@@ -93,14 +93,16 @@ export default async function handler(req, res) {
         const challengerUserId = String(duelPayload.challengerId || duelPayload.challengerUserId || '');
         const challengerCandidates = participants.filter(
           (r) =>
-            (challengerUserId && String(r?.user_id || '') === challengerUserId) ||
-            String(r?.data?.role || '') === 'challenger' ||
-            String(r?.data?.attemptId || '') === String(duelPayload.challengerAttemptId || '')
+            String(r?.data?.role || '') !== 'opponent' &&
+            ((challengerUserId && String(r?.user_id || '') === challengerUserId) ||
+              String(r?.data?.role || '') === 'challenger' ||
+              String(r?.data?.attemptId || '') === String(duelPayload.challengerAttemptId || ''))
         );
         // Prefer the challenger attempt that actually has recorded answers (in case minting created a seed attempt first)
         const challengerRecord =
           challengerCandidates.find((r) => countAnswersForAttempt(r?.data?.attemptId) > 0) ||
           challengerCandidates[0] ||
+          participants.find((r) => String(r?.data?.role || '') !== 'opponent') ||
           participants[0] ||
           null;
 
@@ -112,16 +114,21 @@ export default async function handler(req, res) {
           (r) =>
             r?.data?.attemptId &&
             String(r.data.attemptId) !== challengerAttemptId &&
-            String(r.data.attemptId) !== String(duelPayload.challengerAttemptId || '') &&
             (String(r?.data?.role || '') === 'opponent' ||
-              (challengerUserId && String(r?.user_id || '') !== challengerUserId))
+              (String(r.data.attemptId) !== String(duelPayload.challengerAttemptId || '') &&
+                challengerUserId &&
+                String(r?.user_id || '') !== challengerUserId))
         );
         const opponentRecord =
           opponentCandidates.find(
             (r) => challengerUserId && String(r?.user_id || '') !== challengerUserId && countAnswersForAttempt(r?.data?.attemptId) > 0
           ) ||
+          opponentCandidates.find(
+            (r) => String(r?.data?.role || '') === 'opponent' && countAnswersForAttempt(r?.data?.attemptId) > 0
+          ) ||
           opponentCandidates.find((r) => countAnswersForAttempt(r?.data?.attemptId) > 0) ||
           opponentCandidates.find((r) => challengerUserId && String(r?.user_id || '') !== challengerUserId) ||
+          opponentCandidates.find((r) => String(r?.data?.role || '') === 'opponent') ||
           opponentCandidates[0] ||
           null;
 
