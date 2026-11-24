@@ -393,6 +393,7 @@ def _drain_alert_outbox(entry, key=None, limit=20):
         delivered += 1
         entry['last_digest'] = None if event['recovery'] else event['digest']
         entry['last_sent_at'] = time.time()
+        entry['alert_sent'] = not event['recovery']
         _alert_state_save()
     return True
 
@@ -415,20 +416,32 @@ def _alert_flush(state):
         return
     entry = _alert_persist.setdefault(key, {})
     entry['consec_fail'] = state.get('consec_fail', 0)
-    entry['alert_sent'] = bool(state.get('alert_sent'))
+    entry['alert_sent'] = (
+        bool(state.get('alert_sent'))
+        if entry['consec_fail'] == 0
+        else bool(state.get('alert_sent') or entry.get('alert_sent'))
+    )
     for numeric in ('pages_sent', 'last_page_at', 'failing_since'):
         if numeric in state:
             entry[numeric] = state[numeric]
     pending = entry.setdefault('pending', [])
     jobname = _alert_jobname(key)
-    # A condition can recover before its first delivery succeeds. Keep both
-    # transitions, including when the caller has cleared alert_sent already.
-    if state.get('consec_fail', 0) == 0 and pending and not pending[-1]['recovery']:
-        resolves = entry.pop('active_episode_id', None) or pending[-1].get('id')
+    # A condition can recover before its first delivery succeeds, or after the
+    # five-minute outbox drain delivers firing while the caller's in-memory
+    # alert_sent is still False. Keep the correlated recovery transition and
+    # clear active_episode_id in both cases.
+    has_pending_firing = bool(pending and not pending[-1]['recovery'])
+    if state.get('consec_fail', 0) == 0 and (
+        has_pending_firing or bool(entry.get('active_episode_id'))
+    ):
+        resolves = entry.pop('active_episode_id', None) or (
+            pending[-1].get('id') if has_pending_firing else None
+        )
         event_id = f'{resolves}:resolved' if resolves else str(uuid.uuid4())
         pending.append({'id': event_id, 'body': '[RESOLVED] ' + key,
                         'recovery': True, 'digest': None,
                         'resolves': resolves, 'jobname': jobname})
+        entry['last_digest'] = None
     _alert_state_save()
     _drain_alert_outbox(entry, key=key)
 
