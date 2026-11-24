@@ -273,12 +273,6 @@ const staticPages = [
   { path: '/tools/warmup-cooldown-routine', priority: '0.9', changefreq: 'weekly' },
   { path: '/tools/home-game-director', priority: '0.9', changefreq: 'weekly' },
   { path: '/tools/preflop-ranges', priority: '0.9', changefreq: 'weekly' },
-  { path: '/tools/preflop-ranges/utg', priority: '0.85', changefreq: 'monthly' },
-  { path: '/tools/preflop-ranges/mp', priority: '0.85', changefreq: 'monthly' },
-  { path: '/tools/preflop-ranges/hj', priority: '0.85', changefreq: 'monthly' },
-  { path: '/tools/preflop-ranges/co', priority: '0.85', changefreq: 'monthly' },
-  { path: '/tools/preflop-ranges/btn', priority: '0.85', changefreq: 'monthly' },
-  { path: '/tools/preflop-ranges/sb', priority: '0.85', changefreq: 'monthly' },
   { path: '/tools/embeds', priority: '0.8', changefreq: 'monthly' },
   { path: '/freerolls', priority: '0.9', changefreq: 'daily' },
 

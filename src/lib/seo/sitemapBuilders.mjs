@@ -75,8 +75,11 @@ export const AUTHOR_SLUG_LIST = EDITORIAL_AUTHORS.map((a) => a.slug);
 export const CORRIDOR_SLUG_LIST = POKER_TRAVEL_CORRIDORS.map((c) => c.slug);
 export const ROOMS_BY_GAME_SLUG_LIST = POKER_ROOMS_BY_GAME.map((g) => g.slug);
 
+export const PREFLOP_POSITIONS = ['utg', 'mp', 'hj', 'co', 'btn', 'sb'];
+
 export const LEARN_PAGES = [
   { path: LEARN_PATH, priority: '0.8', changefreq: 'monthly' },
+  ...PREFLOP_POSITIONS.map((pos) => ({ path: `/tools/preflop-ranges/${pos}`, priority: '0.85', changefreq: 'monthly' })),
   { path: '/learn/poker-hand-rankings', priority: '0.85', changefreq: 'monthly' },
   { path: '/learn/poker-math', priority: '0.85', changefreq: 'monthly' },
   { path: '/learn/cheat-sheets', priority: '0.85', changefreq: 'monthly' },
@@ -214,12 +217,7 @@ export const TOOLS_PAGES = [
   { path: '/tools/warmup-cooldown-routine', priority: '0.9', changefreq: 'weekly' },
   { path: '/tools/home-game-director', priority: '0.9', changefreq: 'weekly' },
   { path: '/tools/preflop-ranges', priority: '0.9', changefreq: 'weekly' },
-  { path: '/tools/preflop-ranges/utg', priority: '0.85', changefreq: 'monthly' },
-  { path: '/tools/preflop-ranges/mp', priority: '0.85', changefreq: 'monthly' },
-  { path: '/tools/preflop-ranges/hj', priority: '0.85', changefreq: 'monthly' },
-  { path: '/tools/preflop-ranges/co', priority: '0.85', changefreq: 'monthly' },
-  { path: '/tools/preflop-ranges/btn', priority: '0.85', changefreq: 'monthly' },
-  { path: '/tools/preflop-ranges/sb', priority: '0.85', changefreq: 'monthly' },
+  ...PREFLOP_POSITIONS.map((pos) => ({ path: `/tools/preflop-ranges/${pos}`, priority: '0.85', changefreq: 'monthly' })),
   { path: '/tools/embeds', priority: '0.8', changefreq: 'monthly' },
 ];
 

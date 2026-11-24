@@ -19,7 +19,7 @@
     "persistenceFiles": 87,
     "realtimeFiles": 6,
     "tests": 181,
-    "markerCandidates": 372,
+    "markerCandidates": 375,
     "possibleUnwiredFunctions": 408,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 36,
@@ -45958,7 +45958,7 @@
         {
           "element": "link",
           "name": "<dynamic>",
-          "line": 1214,
+          "line": 1621,
           "handler": null,
           "destination": "link.href",
           "type": null,
@@ -45968,7 +45968,7 @@
         {
           "element": "link",
           "name": "Terms",
-          "line": 1225,
+          "line": 1632,
           "handler": null,
           "destination": "/terms",
           "type": null,
@@ -45978,7 +45978,7 @@
         {
           "element": "link",
           "name": "Privacy",
-          "line": 1228,
+          "line": 1635,
           "handler": null,
           "destination": "/privacy",
           "type": null,
@@ -46018,7 +46018,15 @@
       "functions": [
         {
           "name": "usesConsoleDress",
-          "line": 1178,
+          "line": 1558,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "lookupHubSummaryEntry",
+          "line": 1563,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -46026,7 +46034,7 @@
         },
         {
           "name": "HubPageSummary",
-          "line": 1183,
+          "line": 1589,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -46041,6 +46049,30 @@
           "kind": "SIMULATE",
           "line": 116,
           "excerpt": "{ name: 'Risk Of Ruin Analyzer', href: '/hub/training/risk-analyzer', text: 'Simulate Monte Carlo Bankroll Trajectories And Downswings.' },",
+          "disposition": "domain-simulation",
+          "review": "accepted",
+          "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
+        },
+        {
+          "kind": "SIMULATE",
+          "line": 1258,
+          "excerpt": "{ name: 'Multiway Poker Odds Calculator', href: '/tools/poker-odds-calculator', text: 'Simulate Exact 3-Way And 4-Way Holdem And PLO Equities.' },",
+          "disposition": "domain-simulation",
+          "review": "accepted",
+          "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
+        },
+        {
+          "kind": "SIMULATED",
+          "line": 1460,
+          "excerpt": "'The 2026 Annual State Of Live And Online Poker Whitepaper Synthesizes First-Party Quantitative Research Across 715+ Verified North American Cardrooms, 4,500+ Weekly Recurring Tournaments, 15 State Tax And Rake Regimes, And 10 Million Simul",
+          "disposition": "domain-simulation",
+          "review": "accepted",
+          "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
+        },
+        {
+          "kind": "SIMULATED",
+          "line": 1463,
+          "excerpt": "{ label: 'Solver Benchmark Corpus', value: '10,000,000+ CFR Simulated Hands' },",
           "disposition": "domain-simulation",
           "review": "accepted",
           "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
@@ -46094,7 +46126,7 @@
       "functions": [
         {
           "name": "normalizeJsonLdGraph",
-          "line": 120,
+          "line": 130,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -46102,7 +46134,7 @@
         },
         {
           "name": "usePathname",
-          "line": 154,
+          "line": 164,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -46110,7 +46142,7 @@
         },
         {
           "name": "SEOHead",
-          "line": 167,
+          "line": 177,
           "references": 4,
           "exported": true,
           "defaultExport": true,
@@ -64286,23 +64318,23 @@
       "functions": [
         {
           "name": "clampNum",
-          "line": 464,
-          "references": 121,
+          "line": 544,
+          "references": 173,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "computeMalmuthHarvilleIcm",
-          "line": 471,
-          "references": 2,
+          "line": 551,
+          "references": 5,
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "recurse",
-          "line": 478,
+          "line": 558,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -64310,7 +64342,7 @@
         },
         {
           "name": "computeValidatedSolvedSpot",
-          "line": 503,
+          "line": 583,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -64318,7 +64350,7 @@
         },
         {
           "name": "buildSolvedSpotOgImageUrl",
-          "line": 1408,
+          "line": 1735,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -64326,7 +64358,7 @@
         },
         {
           "name": "useSolvedSpotUrlSync",
-          "line": 1434,
+          "line": 1761,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -64339,7 +64371,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 464,
+          "line": 544,
           "excerpt": "function clampNum(val, min, max, fallback = null) {",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -64347,7 +64379,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 465,
+          "line": 545,
           "excerpt": "if (val === undefined || val === null || String(val).trim() === '') return fallback;",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -64355,7 +64387,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 467,
+          "line": 547,
           "excerpt": "if (!Number.isFinite(n)) return fallback;",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -64363,7 +64395,7 @@
         },
         {
           "kind": "SIMULATION",
-          "line": 1371,
+          "line": 1451,
           "excerpt": "summaryText: `${game.toUpperCase()} Combinatorial Equity Simulation: ${hand1} Vs. ${hand2}${board ? ` On Board [${board}]` : ' (52-Card Pre-Flop Enumeration)'}.`,",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -64539,7 +64571,7 @@
         },
         {
           "name": "resolveToolWikidataLinks",
-          "line": 474,
+          "line": 532,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -87390,11 +87422,11 @@
       "effectRef": "src/components/seo/CitationBacklinkBox.js"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:1214:1",
+      "id": "src/components/seo/HubPageSummary.js:1621:1",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "<dynamic>",
-      "line": 1214,
+      "line": 1621,
       "handler": null,
       "destination": "link.href",
       "type": null,
@@ -87403,11 +87435,11 @@
       "effectRef": "src/components/seo/HubPageSummary.js"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:1225:2",
+      "id": "src/components/seo/HubPageSummary.js:1632:2",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "Terms",
-      "line": 1225,
+      "line": 1632,
       "handler": null,
       "destination": "/terms",
       "type": null,
@@ -87416,11 +87448,11 @@
       "effectRef": "src/components/seo/HubPageSummary.js"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:1228:3",
+      "id": "src/components/seo/HubPageSummary.js:1635:3",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "Privacy",
-      "line": 1228,
+      "line": 1635,
       "handler": null,
       "destination": "/privacy",
       "type": null,
@@ -119454,6 +119486,33 @@
         "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
       },
       {
+        "file": "src/components/seo/HubPageSummary.js",
+        "kind": "SIMULATE",
+        "line": 1258,
+        "excerpt": "{ name: 'Multiway Poker Odds Calculator', href: '/tools/poker-odds-calculator', text: 'Simulate Exact 3-Way And 4-Way Holdem And PLO Equities.' },",
+        "disposition": "domain-simulation",
+        "review": "accepted",
+        "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
+      },
+      {
+        "file": "src/components/seo/HubPageSummary.js",
+        "kind": "SIMULATED",
+        "line": 1460,
+        "excerpt": "'The 2026 Annual State Of Live And Online Poker Whitepaper Synthesizes First-Party Quantitative Research Across 715+ Verified North American Cardrooms, 4,500+ Weekly Recurring Tournaments, 15 State Tax And Rake Regimes, And 10 Million Simul",
+        "disposition": "domain-simulation",
+        "review": "accepted",
+        "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
+      },
+      {
+        "file": "src/components/seo/HubPageSummary.js",
+        "kind": "SIMULATED",
+        "line": 1463,
+        "excerpt": "{ label: 'Solver Benchmark Corpus', value: '10,000,000+ CFR Simulated Hands' },",
+        "disposition": "domain-simulation",
+        "review": "accepted",
+        "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
+      },
+      {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
         "line": 1467,
@@ -121082,7 +121141,7 @@
       {
         "file": "src/lib/seo/solvedSpotEngine.js",
         "kind": "FALLBACK",
-        "line": 464,
+        "line": 544,
         "excerpt": "function clampNum(val, min, max, fallback = null) {",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -121091,7 +121150,7 @@
       {
         "file": "src/lib/seo/solvedSpotEngine.js",
         "kind": "FALLBACK",
-        "line": 465,
+        "line": 545,
         "excerpt": "if (val === undefined || val === null || String(val).trim() === '') return fallback;",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -121100,7 +121159,7 @@
       {
         "file": "src/lib/seo/solvedSpotEngine.js",
         "kind": "FALLBACK",
-        "line": 467,
+        "line": 547,
         "excerpt": "if (!Number.isFinite(n)) return fallback;",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -121109,7 +121168,7 @@
       {
         "file": "src/lib/seo/solvedSpotEngine.js",
         "kind": "SIMULATION",
-        "line": 1371,
+        "line": 1451,
         "excerpt": "summaryText: `${game.toUpperCase()} Combinatorial Equity Simulation: ${hand1} Vs. ${hand2}${board ? ` On Board [${board}]` : ' (52-Card Pre-Flop Enumeration)'}.`,",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -123998,7 +124057,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "name": "HubPageSummary",
-        "line": 1183,
+        "line": 1589,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -124007,6 +124066,10 @@
         "review": "accepted",
         "rationale": "Default export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "pages/authors/[slug].js",
+          "pages/authors/index.js",
+          "pages/compare/decision-matrix.js",
+          "pages/facts.js",
           "pages/hub/bankroll-manager.js",
           "pages/hub/commander/home-games/index.js",
           "pages/hub/commander/index.js",
@@ -124085,7 +124148,36 @@
           "pages/hub/trivia/survival-game.js",
           "pages/hub/trivia/time-attack.js",
           "pages/hub/trivia/tournaments.js",
-          "pages/hub/video-library.js"
+          "pages/hub/video-library.js",
+          "pages/learn/format-migration-guide.js",
+          "pages/learn/formulas/[slug].js",
+          "pages/learn/formulas/index.js",
+          "pages/learn/hud-stats/[stat].js",
+          "pages/learn/hud-stats/index.js",
+          "pages/learn/leaks/[slug].js",
+          "pages/learn/leaks/index.js",
+          "pages/learn/poker-myths-debunked.js",
+          "pages/learn/tournament-stages/[stage].js",
+          "pages/learn/tournament-stages/index.js",
+          "pages/poker-rooms/by-game/[game].js",
+          "pages/poker-rooms/by-game/index.js",
+          "pages/poker-rooms/corridors/[slug].js",
+          "pages/poker-rooms/corridors/index.js",
+          "pages/poker-rooms/index.js",
+          "pages/poker-rooms/seasonal-calendar.js",
+          "pages/poker-rooms/security-and-disputes-guide.js",
+          "pages/research/annual-state-of-poker-2026.js",
+          "pages/research/benchmarks.js",
+          "pages/tools/blind-vs-blind-calculator.js",
+          "pages/tools/bluff-catching-calculator.js",
+          "pages/tools/bubble-factor-calculator.js",
+          "pages/tools/heads-up-push-fold-calculator.js",
+          "pages/tools/home-game-director.js",
+          "pages/tools/multi-street-ev-calculator.js",
+          "pages/tools/multiway-all-in-calculator.js",
+          "pages/tools/mystery-bounty-tracker.js",
+          "pages/tools/shot-taking-calculator.js",
+          "pages/tools/warmup-cooldown-routine.js"
         ]
       },
       {
@@ -126042,13 +126134,18 @@
           "pages/tools/3bet-calculator.js",
           "pages/tools/bankroll-calculator.js",
           "pages/tools/blind-structure-calculator.js",
+          "pages/tools/blind-vs-blind-calculator.js",
+          "pages/tools/bluff-catching-calculator.js",
           "pages/tools/board-texture-analyzer.js",
           "pages/tools/bounty-calculator.js",
+          "pages/tools/bubble-factor-calculator.js",
           "pages/tools/chop-calculator.js",
           "pages/tools/embeds.js",
           "pages/tools/format-quiz.js",
           "pages/tools/geometric-bet-calculator.js",
           "pages/tools/hand-converter.js",
+          "pages/tools/heads-up-push-fold-calculator.js",
+          "pages/tools/home-game-director.js",
           "pages/tools/home-game-kit.js",
           "pages/tools/index.js",
           "pages/tools/iso-calculator.js",
@@ -126056,6 +126153,9 @@
           "pages/tools/m-ratio-calculator.js",
           "pages/tools/mixed-game-placards.js",
           "pages/tools/mtt-grind-planner.js",
+          "pages/tools/multi-street-ev-calculator.js",
+          "pages/tools/multiway-all-in-calculator.js",
+          "pages/tools/mystery-bounty-tracker.js",
           "pages/tools/outs-calculator.js",
           "pages/tools/payout-calculator.js",
           "pages/tools/plo-bet-calculator.js",
@@ -126072,12 +126172,14 @@
           "pages/tools/satellite-calculator.js",
           "pages/tools/session-planner.js",
           "pages/tools/shot-clock.js",
+          "pages/tools/shot-taking-calculator.js",
           "pages/tools/side-pot-calculator.js",
           "pages/tools/spr-calculator.js",
           "pages/tools/staking-calculator.js",
           "pages/tools/straddle-calculator.js",
           "pages/tools/table-selection-calculator.js",
           "pages/tools/variance-calculator.js",
+          "pages/tools/warmup-cooldown-routine.js",
           "pages/tools/who-wins-calculator.js",
           "pages/tools/winrate-confidence-calculator.js",
           "src/lib/seo/summarySchema.js"
@@ -126175,7 +126277,7 @@
       {
         "file": "src/lib/seo/solvedSpotEngine.js",
         "name": "buildSolvedSpotOgImageUrl",
-        "line": 1408,
+        "line": 1735,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -126242,7 +126344,7 @@
       {
         "file": "src/lib/seo/wikidataRegistry.mjs",
         "name": "resolveToolWikidataLinks",
-        "line": 474,
+        "line": 532,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -129542,6 +129644,33 @@
         "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
       },
       {
+        "file": "src/components/seo/HubPageSummary.js",
+        "kind": "SIMULATE",
+        "line": 1258,
+        "excerpt": "{ name: 'Multiway Poker Odds Calculator', href: '/tools/poker-odds-calculator', text: 'Simulate Exact 3-Way And 4-Way Holdem And PLO Equities.' },",
+        "disposition": "domain-simulation",
+        "review": "accepted",
+        "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
+      },
+      {
+        "file": "src/components/seo/HubPageSummary.js",
+        "kind": "SIMULATED",
+        "line": 1460,
+        "excerpt": "'The 2026 Annual State Of Live And Online Poker Whitepaper Synthesizes First-Party Quantitative Research Across 715+ Verified North American Cardrooms, 4,500+ Weekly Recurring Tournaments, 15 State Tax And Rake Regimes, And 10 Million Simul",
+        "disposition": "domain-simulation",
+        "review": "accepted",
+        "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
+      },
+      {
+        "file": "src/components/seo/HubPageSummary.js",
+        "kind": "SIMULATED",
+        "line": 1463,
+        "excerpt": "{ label: 'Solver Benchmark Corpus', value: '10,000,000+ CFR Simulated Hands' },",
+        "disposition": "domain-simulation",
+        "review": "accepted",
+        "rationale": "Poker/training simulation is an intentional product capability; solver provenance is audited separately."
+      },
+      {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
         "line": 1467,
@@ -131170,7 +131299,7 @@
       {
         "file": "src/lib/seo/solvedSpotEngine.js",
         "kind": "FALLBACK",
-        "line": 464,
+        "line": 544,
         "excerpt": "function clampNum(val, min, max, fallback = null) {",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -131179,7 +131308,7 @@
       {
         "file": "src/lib/seo/solvedSpotEngine.js",
         "kind": "FALLBACK",
-        "line": 465,
+        "line": 545,
         "excerpt": "if (val === undefined || val === null || String(val).trim() === '') return fallback;",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -131188,7 +131317,7 @@
       {
         "file": "src/lib/seo/solvedSpotEngine.js",
         "kind": "FALLBACK",
-        "line": 467,
+        "line": 547,
         "excerpt": "if (!Number.isFinite(n)) return fallback;",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -131197,7 +131326,7 @@
       {
         "file": "src/lib/seo/solvedSpotEngine.js",
         "kind": "SIMULATION",
-        "line": 1371,
+        "line": 1451,
         "excerpt": "summaryText: `${game.toUpperCase()} Combinatorial Equity Simulation: ${hand1} Vs. ${hand2}${board ? ` On Board [${board}]` : ' (52-Card Pre-Flop Enumeration)'}.`,",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -134086,7 +134215,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "name": "HubPageSummary",
-        "line": 1183,
+        "line": 1589,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -134095,6 +134224,10 @@
         "review": "accepted",
         "rationale": "Default export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "pages/authors/[slug].js",
+          "pages/authors/index.js",
+          "pages/compare/decision-matrix.js",
+          "pages/facts.js",
           "pages/hub/bankroll-manager.js",
           "pages/hub/commander/home-games/index.js",
           "pages/hub/commander/index.js",
@@ -134173,7 +134306,36 @@
           "pages/hub/trivia/survival-game.js",
           "pages/hub/trivia/time-attack.js",
           "pages/hub/trivia/tournaments.js",
-          "pages/hub/video-library.js"
+          "pages/hub/video-library.js",
+          "pages/learn/format-migration-guide.js",
+          "pages/learn/formulas/[slug].js",
+          "pages/learn/formulas/index.js",
+          "pages/learn/hud-stats/[stat].js",
+          "pages/learn/hud-stats/index.js",
+          "pages/learn/leaks/[slug].js",
+          "pages/learn/leaks/index.js",
+          "pages/learn/poker-myths-debunked.js",
+          "pages/learn/tournament-stages/[stage].js",
+          "pages/learn/tournament-stages/index.js",
+          "pages/poker-rooms/by-game/[game].js",
+          "pages/poker-rooms/by-game/index.js",
+          "pages/poker-rooms/corridors/[slug].js",
+          "pages/poker-rooms/corridors/index.js",
+          "pages/poker-rooms/index.js",
+          "pages/poker-rooms/seasonal-calendar.js",
+          "pages/poker-rooms/security-and-disputes-guide.js",
+          "pages/research/annual-state-of-poker-2026.js",
+          "pages/research/benchmarks.js",
+          "pages/tools/blind-vs-blind-calculator.js",
+          "pages/tools/bluff-catching-calculator.js",
+          "pages/tools/bubble-factor-calculator.js",
+          "pages/tools/heads-up-push-fold-calculator.js",
+          "pages/tools/home-game-director.js",
+          "pages/tools/multi-street-ev-calculator.js",
+          "pages/tools/multiway-all-in-calculator.js",
+          "pages/tools/mystery-bounty-tracker.js",
+          "pages/tools/shot-taking-calculator.js",
+          "pages/tools/warmup-cooldown-routine.js"
         ]
       },
       {
@@ -136130,13 +136292,18 @@
           "pages/tools/3bet-calculator.js",
           "pages/tools/bankroll-calculator.js",
           "pages/tools/blind-structure-calculator.js",
+          "pages/tools/blind-vs-blind-calculator.js",
+          "pages/tools/bluff-catching-calculator.js",
           "pages/tools/board-texture-analyzer.js",
           "pages/tools/bounty-calculator.js",
+          "pages/tools/bubble-factor-calculator.js",
           "pages/tools/chop-calculator.js",
           "pages/tools/embeds.js",
           "pages/tools/format-quiz.js",
           "pages/tools/geometric-bet-calculator.js",
           "pages/tools/hand-converter.js",
+          "pages/tools/heads-up-push-fold-calculator.js",
+          "pages/tools/home-game-director.js",
           "pages/tools/home-game-kit.js",
           "pages/tools/index.js",
           "pages/tools/iso-calculator.js",
@@ -136144,6 +136311,9 @@
           "pages/tools/m-ratio-calculator.js",
           "pages/tools/mixed-game-placards.js",
           "pages/tools/mtt-grind-planner.js",
+          "pages/tools/multi-street-ev-calculator.js",
+          "pages/tools/multiway-all-in-calculator.js",
+          "pages/tools/mystery-bounty-tracker.js",
           "pages/tools/outs-calculator.js",
           "pages/tools/payout-calculator.js",
           "pages/tools/plo-bet-calculator.js",
@@ -136160,12 +136330,14 @@
           "pages/tools/satellite-calculator.js",
           "pages/tools/session-planner.js",
           "pages/tools/shot-clock.js",
+          "pages/tools/shot-taking-calculator.js",
           "pages/tools/side-pot-calculator.js",
           "pages/tools/spr-calculator.js",
           "pages/tools/staking-calculator.js",
           "pages/tools/straddle-calculator.js",
           "pages/tools/table-selection-calculator.js",
           "pages/tools/variance-calculator.js",
+          "pages/tools/warmup-cooldown-routine.js",
           "pages/tools/who-wins-calculator.js",
           "pages/tools/winrate-confidence-calculator.js",
           "src/lib/seo/summarySchema.js"
@@ -136263,7 +136435,7 @@
       {
         "file": "src/lib/seo/solvedSpotEngine.js",
         "name": "buildSolvedSpotOgImageUrl",
-        "line": 1408,
+        "line": 1735,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -136330,7 +136502,7 @@
       {
         "file": "src/lib/seo/wikidataRegistry.mjs",
         "name": "resolveToolWikidataLinks",
-        "line": 474,
+        "line": 532,
         "references": 1,
         "exported": true,
         "defaultExport": false,
