@@ -3,7 +3,7 @@
 Generated from the physical Pages Router tree and `src/config/world-footer-navigation.json`.
 Dynamic routes are shown using their source parameter names. Runtime verification uses representative reachable parameters where authentication or data is required.
 
-**Total applicable physical routes: 200.**
+**Total applicable physical routes: 201.**
 
 ## Coverage summary
 
@@ -144,6 +144,7 @@ Dynamic routes are shown using their source parameter names. Runtime verificatio
 | `/hub/trivia/pvp` | Poker Trivia | App-shell legacy/generic footer | `footer-poker-trivia-v2.png` | PASS | PASS |
 | `/hub/trivia/settings` | Poker Trivia | App-shell legacy/generic footer | `footer-poker-trivia-v2.png` | PASS | PASS |
 | `/hub/trivia/stats` | Poker Trivia | App-shell legacy/generic footer | `footer-poker-trivia-v2.png` | PASS | PASS |
+| `/hub/trivia/study` | Poker Trivia | App-shell legacy/generic footer | `footer-poker-trivia-v2.png` | PASS | PASS |
 | `/hub/trivia/survival` | Poker Trivia | App-shell legacy/generic footer | `footer-poker-trivia-v2.png` | PASS | PASS |
 | `/hub/trivia/survival-game` | Poker Trivia | App-shell legacy/generic footer | `footer-poker-trivia-v2.png` | PASS | PASS |
 | `/hub/trivia/time-attack` | Poker Trivia | App-shell legacy/generic footer | `footer-poker-trivia-v2.png` | PASS | PASS |
