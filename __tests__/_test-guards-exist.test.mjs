@@ -872,6 +872,7 @@ import './fleet-content-cleanup-migration.test.mjs';
 import './promo-campaigns.test.mjs';
 import './aeo-discovery-hardening.law.test.mjs';
 import './trivia-p11-deadlock-and-sim.test.mjs';
+import './trivia-realtime-social-growth.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
     const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');

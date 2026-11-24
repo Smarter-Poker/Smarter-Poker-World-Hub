@@ -17,6 +17,8 @@ export const TOURNAMENT_TABS = Object.freeze([
     { id: 'bracket', label: 'Bracket' },
     { id: 'field', label: 'Field' },
     { id: 'results', label: 'Results' },
+    { id: 'championship', label: 'Championship' },
+    { id: 'challenges', label: 'Duels' },
     { id: 'receipt', label: 'Receipt' },
     { id: 'history', label: 'History' },
 ]);
