@@ -9,7 +9,7 @@
  */
 
 // TRAIN-CSS-TOKENS-BATCH4-3 — hex sweep batch 4: literals routed to --sp-* tokens
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
@@ -17,8 +17,47 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { authedFetch } from '../../../src/lib/authUtils';
 import { createBoundedTrainingFetch } from '../../../src/lib/training/boundedTrainingFetch';
+import { evaluateTrainingSpotWithHorseBrain, buildCustomTrainingArenaHref } from '../../../src/lib/training/horseBrainTrainingAdapter';
 
 const trainingFetch = createBoundedTrainingFetch(authedFetch);
+
+const PREVIEW_HERO_CARDS_BY_VARIANT = {
+  nlh: ['As', 'Kd'],
+  plo4: ['As', 'Ks', 'Qh', 'Jh'],
+  plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
+  plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
+};
+
+const HEATMAP_HAND_CLASSES_BY_VARIANT = {
+  nlh: [
+    { label: 'AA', cards: ['As', 'Ah'] },
+    { label: 'KK', cards: ['Ks', 'Kh'] },
+    { label: 'AKs', cards: ['As', 'Ks'] },
+    { label: 'AQs', cards: ['As', 'Qs'] },
+    { label: 'KQs', cards: ['Ks', 'Qs'] },
+    { label: 'JTs', cards: ['Js', 'Ts'] },
+    { label: '98s', cards: ['9s', '8s'] },
+    { label: '77', cards: ['7s', '7h'] },
+  ],
+  plo4: [
+    { label: 'AAKKds', cards: ['As', 'Ks', 'Ah', 'Kh'] },
+    { label: 'AKQJds', cards: ['As', 'Qs', 'Kh', 'Jh'] },
+    { label: 'KQT9ds', cards: ['Ks', 'Ts', 'Qh', '9h'] },
+    { label: 'J987ds', cards: ['Js', '8s', '9h', '7h'] },
+  ],
+  plo5: [
+    { label: 'AAKKds', cards: ['As', 'Ks', 'Ah', 'Kh', 'Qd'] },
+    { label: 'AKQJds', cards: ['As', 'Qs', 'Kh', 'Jh', 'Td'] },
+    { label: 'KQT9ds', cards: ['Ks', 'Ts', 'Qh', '9h', '8d'] },
+    { label: 'J987ds', cards: ['Js', '8s', '9h', '7h', '6d'] },
+  ],
+  plo6: [
+    { label: 'AAKKds', cards: ['As', 'Ks', 'Ah', 'Kh', 'Qd', 'Jd'] },
+    { label: 'AKQJds', cards: ['As', 'Qs', 'Kh', 'Jh', 'Td', '9d'] },
+    { label: 'KQT9ds', cards: ['Ks', 'Ts', 'Qh', '9h', '8d', '7d'] },
+    { label: 'J987ds', cards: ['Js', '8s', '9h', '7h', '6d', '5d'] },
+  ],
+};
 
 // TRAIN-CSS-MOTION-ADOPT-11 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
@@ -385,13 +424,92 @@ export default function CustomSolvePage() {
   const [villainPos, setVillainPos] = useState('BB');
   const [stackDepth, setStackDepth] = useState(100);
   const [boardCards, setBoardCards] = useState([null, null, null, null, null]);
+  const [activeVariant, setActiveVariant] = useState('nlh');
 
   // Results state
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const selectedBoardCount = boardCards.filter(Boolean).length;
+  const selectedBoard = useMemo(() => boardCards.filter(Boolean), [boardCards]);
+  const selectedBoardCount = selectedBoard.length;
   const isPreflopRfi = selectedBoardCount < 3;
+
+  const effectiveBrainStreet = useMemo(() => {
+    if (selectedBoardCount >= 5) return 'river';
+    if (selectedBoardCount === 4) return 'turn';
+    if (selectedBoardCount === 3) return 'flop';
+    return 'flop';
+  }, [selectedBoardCount]);
+
+  const effectiveBrainBoard = useMemo(() => {
+    if (selectedBoardCount >= 5) return selectedBoard.slice(0, 5);
+    if (selectedBoardCount === 4) return selectedBoard.slice(0, 4);
+    if (selectedBoardCount === 3) return selectedBoard.slice(0, 3);
+    return ['Qc', '8d', '3c'];
+  }, [selectedBoard, selectedBoardCount]);
+
+  const brainEval = useMemo(() => {
+    const heroCards = PREVIEW_HERO_CARDS_BY_VARIANT[activeVariant] || PREVIEW_HERO_CARDS_BY_VARIANT.nlh;
+    return evaluateTrainingSpotWithHorseBrain({
+      variant: activeVariant,
+      street: effectiveBrainStreet,
+      heroCards,
+      boardCards: effectiveBrainBoard,
+      heroPosition: heroPos,
+      villainPosition: heroPos === villainPos ? (heroPos === 'BB' ? 'BTN' : 'BB') : villainPos,
+      pot: 6.5,
+      toCall: 0,
+      effectiveStackBb: stackDepth,
+    });
+  }, [activeVariant, effectiveBrainStreet, effectiveBrainBoard, heroPos, villainPos, stackDepth]);
+
+  const heatmapCells = useMemo(() => {
+    const handList = HEATMAP_HAND_CLASSES_BY_VARIANT[activeVariant] || HEATMAP_HAND_CLASSES_BY_VARIANT.nlh;
+    return handList.map((handEntry) => {
+      const cellEval = evaluateTrainingSpotWithHorseBrain({
+        variant: activeVariant,
+        street: effectiveBrainStreet,
+        heroCards: handEntry.cards,
+        boardCards: effectiveBrainBoard,
+        heroPosition: heroPos,
+        villainPosition: heroPos === villainPos ? (heroPos === 'BB' ? 'BTN' : 'BB') : villainPos,
+        pot: 6.5,
+        toCall: 0,
+        effectiveStackBb: stackDepth,
+      });
+      const bestOptionId = cellEval.correctAnswer;
+      const topFreq = Number(cellEval.gtoFrequencies?.[bestOptionId] || 0);
+      const topEv = Number(cellEval.actionEVs?.[bestOptionId] || 0);
+      return {
+        label: handEntry.label,
+        cards: handEntry.cards,
+        recommendedAction: cellEval.correctAnswerText,
+        recommendedId: bestOptionId,
+        frequencyPct: topFreq,
+        evBb: topEv,
+        handScore: cellEval.handScore,
+        category: cellEval.madeHandCategory,
+        frequencies: cellEval.gtoFrequencies || {},
+        options: cellEval.options || [],
+      };
+    });
+  }, [activeVariant, effectiveBrainStreet, effectiveBrainBoard, heroPos, villainPos, stackDepth]);
+
+  const arenaLaunchHref = useMemo(
+    () =>
+      buildCustomTrainingArenaHref(
+        {
+          gameId: activeVariant === 'nlh' ? 'cash-002' : 'cash-005',
+          variant: activeVariant,
+          street: effectiveBrainStreet,
+          position: heroPos,
+          stackDepth,
+          questionsCount: 10,
+        },
+        'custom-solve',
+      ),
+    [activeVariant, effectiveBrainStreet, heroPos, stackDepth],
+  );
 
   useEffect(() => {
     if (!isPreflopRfi) return;
@@ -789,6 +907,199 @@ export default function CustomSolvePage() {
               config={{ stackDepth, boardCards }}
               result={result}
             />
+          )}
+
+          {/* Hand-Class Action Frequency Matrix / Heatmap */}
+          <div
+            data-custom-solve-heatmap="true"
+            style={{
+              marginTop: 18,
+              marginBottom: 18,
+              padding: 18,
+              borderRadius: 14,
+              border: '1px solid rgba(56, 189, 248, 0.35)',
+              background: 'rgba(15, 23, 42, 0.72)',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 8,
+                marginBottom: 12,
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 900, color: '#7dd3fc', textTransform: 'uppercase' }}>
+                  Hand-Class Action Frequency Matrix &amp; Heatmap
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
+                  Live Horse Brain Action Frequencies On [{effectiveBrainBoard.join(' ')}] At {stackDepth}BB ({activeVariant.toUpperCase()})
+                </div>
+              </div>
+              <button
+                type="button"
+                data-lock-spot-drill-cta="true"
+                onClick={() => router.push(arenaLaunchHref)}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: 8,
+                  border: '1px solid rgba(52, 211, 153, 0.5)',
+                  background: 'rgba(16, 185, 129, 0.18)',
+                  color: '#6ee7b7',
+                  fontSize: 12,
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                }}
+              >
+                Lock Spot &amp; Drill 10 Hands On Club Arena Felt →
+              </button>
+            </div>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+                gap: 10,
+              }}
+            >
+              {heatmapCells.map((cell) => {
+                const isAggressive = /^b|^r|allin/i.test(String(cell.recommendedId || ''));
+                return (
+                  <div
+                    key={cell.label}
+                    data-heatmap-hand-cell={cell.label}
+                    style={{
+                      padding: 12,
+                      borderRadius: 10,
+                      border: isAggressive
+                        ? '1px solid rgba(248, 113, 113, 0.4)'
+                        : '1px solid rgba(52, 211, 153, 0.35)',
+                      background: isAggressive
+                        ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.16), rgba(15, 23, 42, 0.85))'
+                        : 'linear-gradient(135deg, rgba(16, 185, 129, 0.16), rgba(15, 23, 42, 0.85))',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: 4,
+                      }}
+                    >
+                      <span style={{ fontSize: 14, fontWeight: 900, color: '#fff' }}>
+                        {cell.label}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 800,
+                          color: isAggressive ? '#fca5a5' : '#6ee7b7',
+                        }}
+                      >
+                        {cell.frequencyPct}%
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', marginBottom: 2 }}>
+                      {cell.recommendedAction}
+                    </div>
+                    <div style={{ fontSize: 12, color: '#94a3b8' }}>
+                      Score {cell.handScore}/100 · EV {cell.evBb >= 0 ? `+${cell.evBb}` : cell.evBb} BB
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 4-Variant Horse Brain Spot Preview & 1-Click Club Arena Launcher */}
+          {brainEval && (
+            <div
+              data-specialty-brain-panel="true"
+              data-brain-engine={brainEval.engineModule}
+              data-recommended-action={brainEval.correctAnswer}
+              data-active-variant={activeVariant}
+              data-hero-position={heroPos}
+              style={{
+                padding: 18,
+                borderRadius: 14,
+                border: '1px solid rgba(56, 189, 248, 0.4)',
+                background: 'rgba(2, 6, 23, 0.78)',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: 8,
+                  marginBottom: 12,
+                }}
+              >
+                <span style={{ fontSize: 13, fontWeight: 900, color: '#79e6ff', textTransform: 'uppercase' }}>
+                  Horse Brain 4-Variant Spot Preview
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#fbbf24' }}>
+                  Engine: {brainEval.engineModule} | Recommended: {brainEval.correctAnswerText}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 12 }}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 4 }}>
+                    Variant
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {['nlh', 'plo4', 'plo5', 'plo6'].map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        aria-pressed={activeVariant === v}
+                        onClick={() => setActiveVariant(v)}
+                        style={{
+                          padding: '6px 12px',
+                          borderRadius: 6,
+                          border: activeVariant === v ? '1px solid #38bdf8' : '1px solid rgba(255,255,255,0.16)',
+                          background: activeVariant === v ? 'rgba(56, 189, 248, 0.22)' : 'rgba(255,255,255,0.04)',
+                          color: activeVariant === v ? '#7dd3fc' : '#cbd5e1',
+                          fontSize: 12,
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {v.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <p style={{ margin: '0 0 14px', fontSize: 12, color: '#cbd5e1', lineHeight: 1.55 }}>
+                {brainEval.explanation}
+              </p>
+
+              <button
+                type="button"
+                data-launch-club-arena-cta="true"
+                onClick={() => router.push(arenaLaunchHref)}
+                style={{
+                  padding: '10px 16px',
+                  borderRadius: 8,
+                  border: '1px solid #38bdf8',
+                  background: 'rgba(56, 189, 248, 0.2)',
+                  color: '#fff',
+                  fontSize: 13,
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                }}
+              >
+                Practice Target Spot In Club Arena →
+              </button>
+            </div>
           )}
         </div>
       </div>
