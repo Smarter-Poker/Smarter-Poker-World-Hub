@@ -140,7 +140,7 @@ export function v3ErrorStatus(code) {
         case 'answer_not_bound': case 'answer_not_revealed': case 'answer_already_recorded':
         case 'question_still_valid': case 'revision_provenance_unavailable': case 'revision_not_found':
         case 'not_engine_v3': case 'not_legacy_session': case 'settlement_snapshot_invalid':
-        case 'answer_record_invalid': case 'reveal_policy_unavailable':
+        case 'answer_record_invalid': case 'answer_sequence_invalid': case 'reveal_policy_unavailable':
         case 'strategy_mode_category_mismatch': return 409;
         default: return 500;
     }

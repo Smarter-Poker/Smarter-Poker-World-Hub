@@ -348,6 +348,17 @@ async function startOrResumeSoloV3(res, sb, userId, mode, sessionId, parentSessi
         return res.status(500).json({ success: false, error: 'session_resume_failed' });
     }
     if (resumeOnly) body.resumed = true;
+    // Feed the 60-day no-repeat window immediately on fresh V3 starts (matching
+    // legacy session-start) so abandoned V3 sessions do not repeat before expiry.
+    if (!body.resumed) {
+        const servedIds = (Array.isArray(body.questions) ? body.questions : [])
+            .map(q => q?.id)
+            .filter(id => typeof id === 'string');
+        if (servedIds.length > 0) {
+            recordQuestionsSeen(sb, userId, servedIds, mode)
+                .catch(e => console.warn('[trivia session-start] v3 history record failed:', e?.message || e));
+        }
+    }
     res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
     return res.status(200).json(body);
 }
@@ -989,6 +1000,14 @@ export default async function handler(req, res) {
             if (existing.engine_version) {
                 if (existing.user_id !== userId || existing.status !== 'open') {
                     return res.status(409).json({ success: false, error: 'session_not_resumable' });
+                }
+                const deadline = validateTriviaSessionDeadline(existing.expires_at, {
+                    mode: existing.mode,
+                    createdAt: existing.created_at,
+                });
+                if (!deadline.ok) {
+                    return res.status(deadline.error === 'session_expired' ? 410 : 502)
+                        .json({ success: false, error: deadline.error });
                 }
                 return startOrResumeSoloV3(res, sb, userId, mode, startNonce, parentSessionId, true);
             }
