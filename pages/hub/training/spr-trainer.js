@@ -156,7 +156,7 @@ export default function SprTrainerPage() {
 
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 14 }}>
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>
                     Variant
                   </div>
                   <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
@@ -175,7 +175,7 @@ export default function SprTrainerPage() {
                 </div>
 
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>
                     Stack Depth
                   </div>
                   <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
@@ -194,7 +194,7 @@ export default function SprTrainerPage() {
                 </div>
 
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>
                     Pot Size
                   </div>
                   <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
@@ -213,7 +213,7 @@ export default function SprTrainerPage() {
                 </div>
 
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>
                     Facing Bet Size
                   </div>
                   <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
@@ -241,25 +241,25 @@ export default function SprTrainerPage() {
                 }}
               >
                 <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: '8px 10px' }}>
-                  <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 700 }}>SPR</div>
+                  <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 700 }}>SPR</div>
                   <div style={{ fontSize: 15, fontWeight: 900, color: '#f8fafc' }}>{geometryEval.spr}</div>
                 </div>
                 <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: '8px 10px' }}>
-                  <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 700 }}>Pot Odds %</div>
+                  <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 700 }}>Pot Odds %</div>
                   <div style={{ fontSize: 15, fontWeight: 900, color: '#fbbf24' }}>{geometryEval.potOddsPct}%</div>
                 </div>
                 <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: '8px 10px' }}>
-                  <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 700 }}>MDF %</div>
+                  <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 700 }}>MDF %</div>
                   <div style={{ fontSize: 15, fontWeight: 900, color: '#38bdf8' }}>{geometryEval.mdfPct}%</div>
                 </div>
                 <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: '8px 10px' }}>
-                  <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 700 }}>Pot-Limit Max Bet</div>
+                  <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 700 }}>Pot-Limit Max Bet</div>
                   <div style={{ fontSize: 15, fontWeight: 900, color: '#c084fc' }}>
                     {geometryEval.potLimitMaxBetBb} BB
                   </div>
                 </div>
                 <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: '8px 10px' }}>
-                  <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 700 }}>Recommended Action</div>
+                  <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 700 }}>Recommended Action</div>
                   <div style={{ fontSize: 14, fontWeight: 900, color: '#4ade80' }}>
                     {geometryEval.brainEval.correctAnswerText}
                   </div>
