@@ -164,6 +164,73 @@ test('Leak Finder wires the complete coaching and exact-hand continuity workspac
   assert.match(workspace, /timeZone: 'UTC'/);
 });
 
+test('evidence inspector matches Club Arena examples by handId and aligns 42-char slugs', () => {
+  const handUuid = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+  const longSpotType = 'single_raised_pot_in_position_facing_check_raise_river_overbet';
+  const longDecision = {
+    hand_external_id: `club-arena:${handUuid}`,
+    decision_key: 'river-overbet-decision',
+    evidence_scope: 'club_arena',
+    game_id: 'cash',
+    street: 'river',
+    hero_position: 'BTN',
+    spot_type: longSpotType,
+    solver_verified: true,
+    solver_source: 'solver|hand-audit-v3',
+    classification: 'mistake',
+    audited_at: '2026-11-24T12:00:00.000Z',
+  };
+  const chainByExample = buildEvidenceChain(
+    { id: 'stat-leak-1', title: 'River Defense' },
+    [longDecision],
+    [],
+    {},
+    [{ handId: handUuid, snapshot: {} }],
+  );
+  assert.equal(chainByExample[0].detail, `club-arena:${handUuid}`);
+  assert.equal(chainByExample[1].detail, 'river-overbet-decision');
+  assert.equal(chainByExample[2].state, 'verified');
+
+  const truncatedLeakType = `solver_club_arena_cash_river_btn_${longSpotType.slice(0, 42)}`;
+  const chainBySlug = buildEvidenceChain(
+    { id: truncatedLeakType, leakType: truncatedLeakType },
+    [longDecision],
+    [],
+    {},
+  );
+  assert.equal(chainBySlug[1].detail, 'river-overbet-decision');
+});
+
+test('Personal Assistant wiring uses fresh auth tokens, Club Arena hand replay, and Jarvis redirect', () => {
+  const workspace = read('src/components/personal-assistant/CoachingWorkspace.jsx');
+  const leaksPage = read('pages/hub/personal-assistant/leaks.js');
+  const nextConfig = read('next.config.js');
+  const sandboxPage = read('pages/hub/personal-assistant/sandbox.js');
+  const detectApi = read('pages/api/assistant/leaks/detect.js');
+  const drill = read('src/components/sandbox/QuickSpotDrill.jsx');
+
+  assert.match(workspace, /getFreshAccessToken/);
+  assert.doesNotMatch(workspace, /\bgetAccessToken\b/);
+  assert.match(workspace, /pa-data-updated/);
+  assert.match(workspace, /pa-leak-review-updated/);
+
+  assert.match(leaksPage, /getFreshAccessToken/);
+  assert.doesNotMatch(leaksPage, /\bgetAccessToken\b/);
+  assert.match(leaksPage, /\/hub\/club-arena\/hand-history\?hand=/);
+  assert.match(leaksPage, /Club Arena Hand Linked/);
+
+  assert.match(nextConfig, /source:\s*'\/hub\/jarvis'[\s\S]*destination:\s*'\/hub\/personal-assistant\/leaks'/);
+  assert.match(sandboxPage, /\/hub\/personal-assistant\/leaks\?source=assistant-sandbox-retired/);
+  assert.match(sandboxPage, /\/hub\/club-arena\/hand-history\?source=assistant-sandbox-retired/);
+
+  assert.match(detectApi, /ca_player_stats_overview_separated/);
+  assert.match(detectApi, /ca_hand_facts/);
+  assert.match(detectApi, /community_cards/);
+
+  assert.match(drill, /if\s*\(!sessionId\)\s*return/);
+  assert.match(drill, /if\s*\(hasVerifiedDrillToken\)/);
+});
+
 test('Phase 7 is permanently included in the leak engine and production watchdog gates', () => {
   const pkg = JSON.parse(read('package.json'));
   const watchdog = read('scripts/verify-pa-production-hardening.mjs');

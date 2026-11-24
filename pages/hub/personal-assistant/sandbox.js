@@ -37,6 +37,18 @@ const DESTINATIONS = [
     href: '/hub/training/hand-history-upload?source=assistant-sandbox-retired',
     primary: false,
   },
+  {
+    title: 'Open Leak Finder',
+    description: 'Audit Your Persisted Club Arena Hands Against Verified Solver Evidence And Track Active Leaks.',
+    href: '/hub/personal-assistant/leaks?source=assistant-sandbox-retired',
+    primary: false,
+  },
+  {
+    title: 'Open Club Arena Hand History',
+    description: 'Replay Your Persisted Club Arena Cash And Tournament Hands Directly Under Your Own Session.',
+    href: '/hub/club-arena/hand-history?source=assistant-sandbox-retired',
+    primary: false,
+  },
 ];
 
 export default function VerifiedEvidenceSandboxBoundary() {

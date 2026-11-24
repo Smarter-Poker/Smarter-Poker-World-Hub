@@ -75,24 +75,7 @@ export async function getUserContextState(supabase, userId) {
       return CONTEXT_STATES.LIVE_PLAY;
     }
 
-    // CHECK 13 (2026-08-14): the "active arena match" check queried
-    // arena_matches.status/started_at — neither column exists (the table
-    // stores COMPLETED match records: result, score, created_at) and no
-    // live-arena-state table exists in the schema. The query 42703'd on
-    // every call, so this branch has never once returned ARENA_ACTIVE /
-    // ARENA_POST_MATCH_LOCKED — behavior is unchanged by removing it. If a
-    // live arena state ever ships, reintroduce the check against the real
-    // table rather than resurrecting this one.
-
-    // 2026-08-15 CHECK 13: the "active training session" check queried
-    // training_sessions.status — the column does not exist (rows are
-    // completed-session records with no live state), so the query 42703'd on
-    // every call and this branch never once returned TRAINING_MODE early.
-    // Removed; behavior is unchanged (TRAINING_MODE remains the fallthrough
-    // default below). If live training state ever ships, check it against
-    // the real table that carries it.
-
-    // Check for recently ended session (within cooldown period)
+    // Check for recently ended poker session (within cooldown period)
     const cooldownMs = 5 * 60 * 1000; // 5 minute cooldown
     const { data: recentSessions, error: recentSessionsError } = await supabase
       .from('poker_sessions')
@@ -105,11 +88,31 @@ export async function getUserContextState(supabase, userId) {
 
     if (recentSessionsError) return CONTEXT_STATES.SESSION_ACTIVE_UNKNOWN;
 
+    // Check live Club Arena seats (Hetzner writes active seating to table_seats,
+    // not poker_sessions). A player seated with left_at IS NULL is in live play.
+    const { data: activeClubSeats, error: activeClubSeatsError } = await supabase
+      .from('table_seats')
+      .select('id, table_id, left_at')
+      .eq('user_id', userId)
+      .is('left_at', null)
+      .limit(1);
+
+    if (activeClubSeatsError) {
+      // Missing relation in an isolated test schema does not create a fake
+      // outage, but any real database/network error fails closed.
+      const code = String(activeClubSeatsError?.code || '');
+      if (code !== '42P01' && code !== 'PGRST205') {
+        return CONTEXT_STATES.SESSION_ACTIVE_UNKNOWN;
+      }
+    } else if (activeClubSeats && activeClubSeats.length > 0) {
+      return CONTEXT_STATES.LIVE_PLAY;
+    }
+
     if (recentSessions && recentSessions.length > 0) {
       return CONTEXT_STATES.SESSION_ENDED_VERIFIED;
     }
 
-    // No active session, training mode allowed
+    // No active session or live Club Arena seat, training mode allowed
     return CONTEXT_STATES.TRAINING_MODE;
 
   } catch (error) {

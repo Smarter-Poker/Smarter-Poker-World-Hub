@@ -10,8 +10,11 @@ const SUITS = 'cdhs';
 const MATCHER_VERSION = 'hand-audit-v3';
 const LOOKUP_FAILED_SOURCE = `${MATCHER_VERSION}:lookup-failed`;
 const FORCED_ACTIONS = new Set([
-  'ante', 'smallblind', 'bigblind', 'blind', 'straddle', 'post', 'posts',
+  'ante', 'sb', 'bb', 'smallblind', 'bigblind', 'blind', 'straddle', 'post', 'posts',
   'return', 'returnedbet', 'refund', 'collect', 'collected', 'payout', 'win', 'wins',
+]);
+const BLIND_POST_ACTIONS = new Set([
+  'ante', 'sb', 'bb', 'smallblind', 'bigblind', 'blind', 'straddle', 'post', 'posts',
 ]);
 const HOLDEM_VARIANTS = new Set([
   'nl', 'nlh', 'nlhe', 'holdem', 'holdemnl', 'texasholdem', 'nolimit', 'nolimitholdem',
@@ -38,10 +41,15 @@ function playerId(player) {
   return player?.userId ?? player?.id ?? player?.playerId ?? player?.player_id ?? null;
 }
 
+function isSupportedHoldemVariant(value) {
+  const normalized = String(value || '').trim().toLowerCase().replace(/[^a-z]/g, '');
+  return HOLDEM_VARIANTS.has(normalized);
+}
+
 export function clubArenaHandRejectionReason(row, userId) {
   const summary = parseJson(row?.summary) || {};
   const gameType = String(row?.game_variant || summary?.variant || '').trim().toLowerCase();
-  if (!['nlh', 'nlhe', 'no-limit-holdem', 'holdem'].includes(gameType)) return 'unsupported_variant';
+  if (!isSupportedHoldemVariant(gameType)) return 'unsupported_variant';
   const rawPlayers = Array.isArray(summary.players) && summary.players.length > 0
     ? summary.players
     : (Array.isArray(row?.players) ? row.players : []);
@@ -80,9 +88,23 @@ function cards(value) {
   return (Array.isArray(value) ? value : []).map(cardCode).filter(Boolean);
 }
 
+function normalizedRawAction(action) {
+  return String(action?.action || action?.type || '').toLowerCase().replace(/[-_\s]/g, '');
+}
+
+function isForcedAction(action) {
+  if (action?.historyEvent === 'uncalled_bet_returned') return true;
+  if (String(action?.origin || '').toLowerCase() === 'forced') {
+    const raw = normalizedRawAction(action);
+    if (BLIND_POST_ACTIONS.has(raw) || /^(small|big)?blind|ante|straddle/.test(raw)) return true;
+  }
+  const raw = normalizedRawAction(action);
+  return FORCED_ACTIONS.has(raw) || /^(small|big)?blind|ante|straddle|returned?bet|refund|collect|payout/.test(raw);
+}
+
 function actionName(action) {
-  const raw = String(action?.action || action?.type || '').toLowerCase().replace(/[-_\s]/g, '');
-  if (FORCED_ACTIONS.has(raw) || /^(small|big)?blind|ante|straddle|returned?bet|refund|collect|payout/.test(raw)) return null;
+  if (isForcedAction(action)) return null;
+  const raw = normalizedRawAction(action);
   if (/allin|shove|jam/.test(raw)) return 'allin';
   if (raw.startsWith('fold')) return 'fold';
   if (raw.startsWith('check')) return 'check';
@@ -123,7 +145,7 @@ export function normalizeClubArenaHand(row, userId) {
   const gameType = String(row?.game_variant || summary?.variant || '').trim().toLowerCase();
   // Missing/unsupported variants must never be silently priced with NLHE
   // ranges. A false solver match is worse than leaving a hand unpriced.
-  if (!['nlh', 'nlhe', 'no-limit-holdem', 'holdem'].includes(gameType)) return null;
+  if (!isSupportedHoldemVariant(gameType)) return null;
   const rawPlayers = Array.isArray(summary.players) && summary.players.length > 0
     ? summary.players
     : (Array.isArray(row?.players) ? row.players : []);
@@ -131,6 +153,7 @@ export function normalizeClubArenaHand(row, userId) {
   if (!heroRaw) return null;
 
   const bigBlind = Number(summary.bigBlind ?? summary.big_blind ?? row?.big_blind);
+  const smallBlind = Number(summary.smallBlind ?? summary.small_blind ?? row?.small_blind);
   const players = positionedPlayers(
     rawPlayers,
     summary.buttonSeat ?? summary.button_seat ?? row?.button_seat,
@@ -152,55 +175,190 @@ export function normalizeClubArenaHand(row, userId) {
 
   const summaryStreets = summary.streets || {};
   const topLevelActions = Array.isArray(row?.actions) ? row.actions : [];
-  const streetActions = (street) => {
+  const heroNames = [heroRaw.displayName, heroRaw.username, heroRaw.name]
+    .filter(Boolean).map(name => String(name).trim().toLowerCase());
+
+  const rawActionsForStreet = (street) => {
     const summaryActions = summaryStreets?.[street]?.actions;
-    const source = Array.isArray(summaryActions) && summaryActions.length > 0
+    if (Array.isArray(summaryActions) && summaryActions.length > 0) return summaryActions;
+    return topLevelActions.filter(action => String(action?.street || action?.stage || 'preflop').toLowerCase() === street);
+  };
+
+  const resolveActor = (action) => {
+    const explicitId = action?.playerId ?? action?.userId ?? action?.player_id;
+    const hasExplicitId = explicitId !== null && explicitId !== undefined && String(explicitId) !== '';
+    let actor = hasExplicitId
+      ? players.find(player => String(player.id) === String(explicitId))
+      : null;
+    if (!actor && action?.seat !== null && action?.seat !== undefined && Number.isFinite(Number(action.seat))) {
+      actor = players.find(player => Number(player.seat) === Number(action.seat)) || null;
+    }
+    const resolvedId = hasExplicitId ? explicitId : (actor?.id ?? null);
+    const actionPlayer = action?.player || action?.playerName || action?.username || actor?.name || '';
+    // An explicit player id (or seat-resolved id) is authoritative even when
+    // a legacy boolean incorrectly says isHero. Without an id, require an
+    // identity-bound name match; never trust an unscoped isHero flag by itself.
+    const isHero = (resolvedId !== null && resolvedId !== undefined && String(resolvedId) !== '')
+      ? String(resolvedId) === String(userId)
+      : heroNames.includes(String(actionPlayer).trim().toLowerCase());
+    return {
+      actor,
+      playerId: resolvedId,
+      playerName: actionPlayer,
+      position: actor?.position || String(action?.position || '').toUpperCase(),
+      isHero,
+      actorKey: resolvedId !== null && resolvedId !== undefined && String(resolvedId) !== ''
+        ? `id:${String(resolvedId)}`
+        : (action?.seat !== null && action?.seat !== undefined
+          ? `seat:${Number(action.seat)}`
+          : `name:${String(actionPlayer).trim().toLowerCase()}`),
+    };
+  };
+
+  // Reconstruct deterministic running pot/street contributions from blinds and
+  // actions so real Hetzner rows (which omit per-action potBefore/sizingPct)
+  // carry exact potBeforeBB and sizingPct into solver matching.
+  const preflopRaw = rawActionsForStreet('preflop');
+  const hasExplicitBlindPosts = preflopRaw.some(action => {
+    const raw = normalizedRawAction(action);
+    return BLIND_POST_ACTIONS.has(raw) || /^(small|big)?blind|ante|straddle/.test(raw);
+  });
+  const hasKnownBlinds = Number.isFinite(bigBlind) && bigBlind > 0;
+  let runningPot = 0;
+  let hasTrackablePot = hasExplicitBlindPosts || hasKnownBlinds;
+  const preflopContrib = new Map();
+  let preflopCurrentBet = 0;
+  if (!hasExplicitBlindPosts && hasKnownBlinds) {
+    const sbAmount = Number.isFinite(smallBlind) && smallBlind > 0 ? smallBlind : (bigBlind / 2);
+    runningPot = sbAmount + bigBlind;
+    preflopCurrentBet = bigBlind;
+    const sbPosition = players.length === 2 ? 'BTN' : 'SB';
+    const sbPlayer = players.find(player => player.position === sbPosition);
+    const bbPlayer = players.find(player => player.position === 'BB');
+    if (sbPlayer?.id !== null && sbPlayer?.id !== undefined) preflopContrib.set(`id:${String(sbPlayer.id)}`, sbAmount);
+    if (bbPlayer?.id !== null && bbPlayer?.id !== undefined) preflopContrib.set(`id:${String(bbPlayer.id)}`, bigBlind);
+  }
+
+  const normalizeStreet = (street) => {
+    const summaryActions = summaryStreets?.[street]?.actions;
+    const usedSummaryActions = Array.isArray(summaryActions) && summaryActions.length > 0;
+    const source = usedSummaryActions
       ? summaryActions
       : topLevelActions.filter(action => String(action?.street || action?.stage || 'preflop').toLowerCase() === street);
-    return source.map(action => {
-      const actionPlayer = action.player || action.playerName || action.username || '';
-      const actionPlayerId = action.playerId ?? action.userId ?? action.player_id;
-      const hasPlayerId = actionPlayerId !== null && actionPlayerId !== undefined && String(actionPlayerId) !== '';
-      const heroNames = [heroRaw.displayName, heroRaw.username, heroRaw.name]
-        .filter(Boolean).map(name => String(name).trim().toLowerCase());
-      // An explicit player id is authoritative even when a legacy boolean
-      // incorrectly says isHero. Without an id, require an identity-bound
-      // name match; never trust an unscoped isHero flag by itself.
-      const isHero = hasPlayerId
-        ? String(actionPlayerId) === String(userId)
-        : heroNames.includes(String(actionPlayer).trim().toLowerCase());
-      const actor = players.find(player => String(player.id) === String(actionPlayerId));
-      const amount = Number(action.amount) || 0;
-      const rawPotBefore = [
+    const streetContrib = street === 'preflop' ? preflopContrib : new Map();
+    let currentBet = street === 'preflop' ? preflopCurrentBet : 0;
+    const normalized = [];
+
+    for (const action of source) {
+      const amount = Number(action?.amount) || 0;
+      const raw = normalizedRawAction(action);
+      const { playerId: actionPlayerId, playerName: actionPlayer, position, isHero, actorKey } = resolveActor(action);
+
+      if (action?.historyEvent === 'uncalled_bet_returned' || raw === 'return' || raw === 'returnedbet' || raw === 'refund') {
+        if (amount > 0 && runningPot >= amount) runningPot -= amount;
+        continue;
+      }
+
+      if (isForcedAction(action)) {
+        if (amount > 0 && (BLIND_POST_ACTIONS.has(raw) || /^(small|big)?blind|ante|straddle/.test(raw))) {
+          runningPot += amount;
+          hasTrackablePot = true;
+          if (!action?.dead && raw !== 'ante') {
+            const nextContrib = (streetContrib.get(actorKey) || 0) + amount;
+            streetContrib.set(actorKey, nextContrib);
+            if (nextContrib > currentBet) currentBet = nextContrib;
+          }
+        }
+        continue;
+      }
+
+      const normalizedAction = actionName(action);
+      if (!normalizedAction) continue;
+
+      const explicitPotBefore = [
         action.potBefore, action.pot_before, action.potSizeBefore, action.pot_size_before,
       ].map(Number).find(value => Number.isFinite(value) && value >= 0);
       const explicitSizing = [
         action.sizingPct, action.sizing_pct, action.sizePct, action.size_pct,
         action.betPctPot, action.bet_pct_pot, action.potPercentage, action.pot_percentage,
       ].map(Number).find(value => Number.isFinite(value) && value > 0);
-      const normalizedAction = actionName(action);
-      const computedBetSizing = normalizedAction === 'bet' && rawPotBefore > 0 && amount > 0
-        ? (amount / rawPotBefore) * 100
+      const explicitCurrentBetBefore = Number.isFinite(Number(action.currentBetBefore))
+        ? Number(action.currentBetBefore)
         : null;
-      return {
+      const explicitRaiseTo = Number.isFinite(Number(action.raiseTo)) ? Number(action.raiseTo) : null;
+
+      const potBefore = explicitPotBefore ?? (hasTrackablePot ? runningPot : null);
+      const currentBetBefore = explicitCurrentBetBefore ?? currentBet;
+      const prevContrib = streetContrib.get(actorKey) || 0;
+
+      let raiseTo = explicitRaiseTo;
+      let delta = 0;
+      if (normalizedAction === 'bet') {
+        delta = Math.max(0, amount);
+        raiseTo = raiseTo ?? (prevContrib + delta);
+      } else if (normalizedAction === 'raise') {
+        raiseTo = raiseTo ?? (amount > prevContrib && amount >= currentBetBefore ? amount : prevContrib + amount);
+        delta = Math.max(0, raiseTo - prevContrib);
+      } else if (normalizedAction === 'call') {
+        delta = Math.max(0, amount);
+      } else if (normalizedAction === 'allin') {
+        if (amount > currentBetBefore) {
+          raiseTo = raiseTo ?? amount;
+          delta = Math.max(0, raiseTo - prevContrib);
+        } else {
+          delta = Math.max(0, amount);
+        }
+      }
+
+      let computedSizing = null;
+      const canDeriveRaiseSizing = (explicitRaiseTo !== null && explicitCurrentBetBefore !== null)
+        || (!usedSummaryActions && String(row?.source || '').toLowerCase() === 'manual' && hasTrackablePot);
+      if (normalizedAction === 'bet' && potBefore > 0 && delta > 0) {
+        computedSizing = (delta / potBefore) * 100;
+      } else if (
+        normalizedAction === 'raise'
+        && canDeriveRaiseSizing
+        && potBefore !== null && potBefore >= 0
+        && raiseTo !== null && raiseTo > currentBetBefore
+      ) {
+        const callCost = Math.max(0, currentBetBefore - prevContrib);
+        const potAfterCall = potBefore + callCost;
+        const raiseOver = raiseTo - currentBetBefore;
+        if (potAfterCall > 0 && raiseOver > 0) {
+          computedSizing = (raiseOver / potAfterCall) * 100;
+        }
+      }
+
+      normalized.push({
         player: actionPlayer,
         playerId: actionPlayerId,
-        position: actor?.position || String(action.position || '').toUpperCase(),
+        position,
         action: normalizedAction,
         amount,
         amountBB: Number.isFinite(bigBlind) && bigBlind > 0 ? amount / bigBlind : null,
-        potBefore: rawPotBefore ?? null,
-        potBeforeBB: rawPotBefore !== undefined && Number.isFinite(bigBlind) && bigBlind > 0
-          ? rawPotBefore / bigBlind
+        potBefore,
+        potBeforeBB: potBefore !== null && Number.isFinite(bigBlind) && bigBlind > 0
+          ? potBefore / bigBlind
           : null,
-        sizingPct: explicitSizing ?? computedBetSizing,
-        currentBetBefore: Number.isFinite(Number(action.currentBetBefore)) ? Number(action.currentBetBefore) : null,
-        raiseTo: Number.isFinite(Number(action.raiseTo)) ? Number(action.raiseTo) : null,
+        sizingPct: explicitSizing ?? computedSizing,
+        currentBetBefore,
+        raiseTo,
         isHero,
-      };
-    }).filter(action => action.action);
+      });
+
+      if (delta > 0) {
+        const basePot = explicitPotBefore !== undefined ? explicitPotBefore : runningPot;
+        runningPot = basePot + delta;
+        const nextContrib = prevContrib + delta;
+        streetContrib.set(actorKey, nextContrib);
+        if (nextContrib > currentBet) currentBet = nextContrib;
+      }
+    }
+
+    return normalized;
   };
 
+  const preflopActions = normalizeStreet('preflop');
   const flop = cards(summaryStreets?.flop?.cards || summaryStreets?.flop?.board);
   const turnCards = cards(summaryStreets?.turn?.cards || [summaryStreets?.turn?.card]);
   const riverCards = cards(summaryStreets?.river?.cards || [summaryStreets?.river?.card]);
@@ -210,11 +368,22 @@ export function normalizeClubArenaHand(row, userId) {
   const finalFlop = flop.length >= 3 ? flop.slice(0, 3) : fallbackBoard.slice(0, 3);
   const turn = turnCards[0] || fallbackBoard[3] || '';
   const river = riverCards[0] || fallbackBoard[4] || '';
+  const flopActions = finalFlop.length >= 3 ? normalizeStreet('flop') : [];
+  const turnActions = turn ? normalizeStreet('turn') : [];
+  const riverActions = river ? normalizeStreet('river') : [];
 
   const rawFormat = String(summary.format || row?.format || '').trim().toLowerCase();
-  const format = ['tournament', 'mtt'].includes(rawFormat)
+  const hasTournamentId = row?.tournament_id !== null
+    && row?.tournament_id !== undefined
+    && String(row.tournament_id).trim() !== '';
+  const isCashClubRow = !hasTournamentId && (
+    row?.tournament_id === null
+    || Boolean(row?.table_id)
+    || ['manual', 'wh-engine', 'engine-api'].includes(String(row?.source || '').trim().toLowerCase())
+  );
+  const format = ['tournament', 'mtt'].includes(rawFormat) || hasTournamentId
     ? 'tournament'
-    : (['cash', 'ring'].includes(rawFormat) ? 'cash' : null);
+    : (['cash', 'ring'].includes(rawFormat) || isCashClubRow ? 'cash' : null);
 
   return {
     id: `club-arena:${row.id || summary.id || summary.handId || row.hand_number}`,
@@ -233,10 +402,10 @@ export function normalizeClubArenaHand(row, userId) {
       stack: heroPlayer?.stack || null,
     },
     streets: {
-      preflop: { actions: streetActions('preflop') },
-      flop: finalFlop.length >= 3 ? { board: finalFlop, actions: streetActions('flop') } : null,
-      turn: turn ? { card: turn, actions: streetActions('turn') } : null,
-      river: river ? { card: river, actions: streetActions('river') } : null,
+      preflop: { actions: preflopActions },
+      flop: finalFlop.length >= 3 ? { board: finalFlop, actions: flopActions } : null,
+      turn: turn ? { card: turn, actions: turnActions } : null,
+      river: river ? { card: river, actions: riverActions } : null,
     },
   };
 }
@@ -733,7 +902,7 @@ async function fetchClubHandsForKey(db, userId, key, {
   let result;
   try {
     let query = db.from('hand_history')
-        .select('id, hand_number, game_variant, players, hole_cards, board, community_cards, button_seat, actions, summary, source, created_at')
+        .select('id, hand_number, table_id, tournament_id, game_variant, small_blind, big_blind, pot_size, players, hole_cards, board, community_cards, button_seat, actions, summary, source, created_at')
         // postgrest-js stringifies primitive arrays but not arrays of objects
         // in this dependency generation. Passing the object array directly
         // produces `22P02 invalid input syntax for type json` in production.

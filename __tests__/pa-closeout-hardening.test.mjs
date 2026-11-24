@@ -25,6 +25,30 @@ test('context authority fails closed when the recent-session query fails', async
   assert.equal(await getUserContextState(db, 'user-1'), CONTEXT_STATES.SESSION_ACTIVE_UNKNOWN);
 });
 
+test('context authority blocks live play when user holds an active Club Arena table seat', async () => {
+  const db = {
+    from(table) {
+      if (table === 'table_seats') {
+        return queryResult({ data: [{ id: 'seat-1', table_id: 'table-9', left_at: null }], error: null });
+      }
+      return queryResult({ data: [], error: null });
+    },
+  };
+  assert.equal(await getUserContextState(db, 'user-1'), CONTEXT_STATES.LIVE_PLAY);
+});
+
+test('context authority fails closed when Club Arena table_seats lookup errors', async () => {
+  const db = {
+    from(table) {
+      if (table === 'table_seats') {
+        return queryResult({ data: null, error: { code: '08006', message: 'connection lost' } });
+      }
+      return queryResult({ data: [], error: null });
+    },
+  };
+  assert.equal(await getUserContextState(db, 'user-1'), CONTEXT_STATES.SESSION_ACTIVE_UNKNOWN);
+});
+
 test('action grading never celebrates a mismatched bet-size bucket', () => {
   assert.equal(gradeAction('Bet 33%', 'Bet 150%'), false);
   assert.equal(gradeAction('Bet 50%', 'Bet 66%'), true);

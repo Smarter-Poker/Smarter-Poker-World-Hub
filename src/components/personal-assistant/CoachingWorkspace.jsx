@@ -4,7 +4,7 @@ import {
   Crosshair, Database, Download, Flag, Gauge, ListChecks, MessageSquareWarning, RefreshCw,
   Search, ShieldCheck, Target, Trash2, Trophy,
 } from 'lucide-react';
-import { getAccessToken } from '../../lib/authUtils';
+import { getFreshAccessToken } from '../../lib/authUtils';
 import { useLeakHandExamples } from '../../hooks/useAssistant';
 import { buildEvidenceChain } from '../../lib/personal-assistant/coachingIntelligence.mjs';
 import styles from './CoachingWorkspace.module.css';
@@ -97,7 +97,7 @@ export default function CoachingWorkspace({
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
 
   const apiRequest = useCallback(async (method = 'GET', body = null) => {
-    const token = getAccessToken();
+    const token = await getFreshAccessToken();
     if (!token) throw new Error('Sign In To Load Your Coaching Workspace');
     const response = await fetch('/api/assistant/coaching', {
       method,
@@ -139,6 +139,17 @@ export default function CoachingWorkspace({
 
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined' || !userId) return undefined;
+    const onRefresh = () => { load(); };
+    window.addEventListener('pa-data-updated', onRefresh);
+    window.addEventListener('pa-leak-review-updated', onRefresh);
+    return () => {
+      window.removeEventListener('pa-data-updated', onRefresh);
+      window.removeEventListener('pa-leak-review-updated', onRefresh);
+    };
+  }, [load, userId]);
+
   const write = useCallback(async (body, successText, { reload = true } = {}) => {
     setSaving(true);
     setStatus(null);
@@ -156,7 +167,7 @@ export default function CoachingWorkspace({
   }, [apiRequest, load]);
 
   const lifecycleRequest = useCallback(async (method = 'GET', body = null) => {
-    const token = getAccessToken();
+    const token = await getFreshAccessToken();
     if (!token) throw new Error('Sign In To Manage Your Personal Assistant Data');
     const response = await fetch('/api/assistant/data-controls', {
       method,

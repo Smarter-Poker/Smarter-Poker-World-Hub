@@ -337,7 +337,13 @@ export default function QuickSpotDrill({ onClose, onReviewComplete, customParams
 
     // ── persistence ───────────────────────────────────────────────────────
     const persistResult = useCallback(async (q, pick, isCorrect) => {
+        const sessionId = q?.session_id ?? q?.sessionId ?? null;
+        // /api/sandbox/coach-result requires a verified server sessionId (422 otherwise).
+        // Verified leak drills already persist their locked answers via /api/assistant/leaks/drill-answer,
+        // and practice-only drills must not spam guaranteed 422 requests.
+        if (!sessionId) return;
         const payload = {
+            sessionId,
             hand: q?.hero_hand || 'drill',
             position: q?.hero_position || null,
             street: (q?.street || 'preflop'),
@@ -374,13 +380,10 @@ export default function QuickSpotDrill({ onClose, onReviewComplete, customParams
 
     // ── spaced-repetition outcome (review runs only) ──────────────────────
     /**
-     * Posts { leakId, outcome } and shows the resulting interval.
-     *
-     * The schedule is computed SERVER-SIDE and echoed back even when it could
-     * not be stored (table not migrated, demo leak, signed out) · in that case
-     * `persisted:false` comes back and we keep the record locally instead.
-     * If the request fails outright we grade locally so the drill still ends
-     * with a real, honest next-review date rather than a dead end.
+     * Posts { leakId, outcome, drillToken } when a server-verified drill token
+     * is present and shows the resulting interval. For practice-only drills
+     * (no drillToken), skips the guaranteed-400 server post and grades locally
+     * so the drill ends cleanly with an honest device-local next-review date.
      */
     const submitReview = useCallback(async (correct, total) => {
         if (!reviewLeakId || !(total > 0)) return;
@@ -394,37 +397,41 @@ export default function QuickSpotDrill({ onClose, onReviewComplete, customParams
         let serverState = null;
         let persisted = false;
         let reached = false;
-        const reviewController = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        const hasVerifiedDrillToken = typeof drillToken === 'string' && drillToken.length > 0;
+        const reviewController = hasVerifiedDrillToken && typeof AbortController !== 'undefined'
+            ? new AbortController()
+            : null;
         const reviewDeadline = reviewController
             ? setTimeout(() => reviewController.abort(), 15000)
             : null;
 
-        try {
-            const outcome = { correct, total, reviewId };
-            const requestBody = { leakId: reviewLeakId, outcome };
-            if (typeof drillToken === 'string' && drillToken) requestBody.drillToken = drillToken;
-            const res = await authedFetch('/api/assistant/leaks/review', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requestBody),
-                ...(reviewController ? { signal: reviewController.signal } : {}),
-            });
-            const ct = res.headers.get('content-type') || '';
-            if (ct.includes('application/json')) {
-                const json = await res.json().catch(() => null);
-                if (res.ok && json && json.success) {
-                    reached = true;
-                    serverState = json.state || json.record || null;
-                    persisted = json.persisted === true;
+        if (hasVerifiedDrillToken) {
+            try {
+                const outcome = { correct, total, reviewId };
+                const requestBody = { leakId: reviewLeakId, outcome, drillToken };
+                const res = await authedFetch('/api/assistant/leaks/review', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody),
+                    ...(reviewController ? { signal: reviewController.signal } : {}),
+                });
+                const ct = res.headers.get('content-type') || '';
+                if (ct.includes('application/json')) {
+                    const json = await res.json().catch(() => null);
+                    if (res.ok && json && json.success) {
+                        reached = true;
+                        serverState = json.state || json.record || null;
+                        persisted = json.persisted === true;
+                    }
                 }
+            } catch (e) {
+                console.warn('[QuickSpotDrill] review post failed:', e?.message || e);
+            } finally {
+                if (reviewDeadline) clearTimeout(reviewDeadline);
             }
-        } catch (e) {
-            console.warn('[QuickSpotDrill] review post failed:', e?.message || e);
-        } finally {
-            if (reviewDeadline) clearTimeout(reviewDeadline);
         }
 
-        if (drillToken && !reached) {
+        if (hasVerifiedDrillToken && !reached) {
             setReview({ status: 'error', intervalDays: null, persisted: false, verificationPending: true });
             return;
         }

@@ -942,6 +942,150 @@ await test('carries a real engine raise size through recorder persistence into e
   assert.equal(audit.analyses[0].decisions[0].classification, 'best');
 });
 
+await test('audits a real Hetzner 6-max cash hand without summary, reconstructing pot, sizing, forced blinds, and heads-up flop villain', async () => {
+  const hetznerHandId = '11111111-2222-4333-8444-555555555555';
+  const hetznerRow = {
+    id: hetznerHandId,
+    hand_number: 901,
+    table_id: 'table-cash-9',
+    tournament_id: null,
+    game_variant: 'texas_holdem',
+    small_blind: 1,
+    big_blind: 2,
+    pot_size: 24,
+    button_seat: 1,
+    source: 'manual',
+    summary: null,
+    hole_cards: {},
+    community_cards: ['Qs', '7h', '2c'],
+    players: [
+      { userId, username: 'Hero', seat: 1, stack: 200 },
+      { userId: 'sb-player', username: 'SB', seat: 2, stack: 200 },
+      { userId: villainId, username: 'BB', seat: 3, stack: 200 },
+      { userId: 'utg-player', username: 'UTG', seat: 4, stack: 200 },
+      { userId: 'mp-player', username: 'MP', seat: 5, stack: 200 },
+      { userId: 'co-player', username: 'CO', seat: 6, stack: 200 },
+    ],
+    actions: [
+      { seat: 2, userId: 'sb-player', stage: 'preflop', action: 'sb', amount: 1, origin: 'forced' },
+      { seat: 3, userId: villainId, stage: 'preflop', action: 'bb', amount: 2, origin: 'forced' },
+      { seat: 4, userId: 'utg-player', stage: 'preflop', action: 'fold' },
+      { seat: 5, userId: 'mp-player', stage: 'preflop', action: 'fold' },
+      { seat: 6, userId: 'co-player', stage: 'preflop', action: 'fold' },
+      { seat: 1, userId, stage: 'preflop', action: 'raise', amount: 6 },
+      { seat: 2, userId: 'sb-player', stage: 'preflop', action: 'fold' },
+      { seat: 3, userId: villainId, stage: 'preflop', action: 'call', amount: 4 },
+      { seat: 3, userId: villainId, stage: 'flop', action: 'check' },
+      { seat: 1, stage: 'flop', action: 'bet', amount: 13 },
+      { seat: 3, userId: villainId, stage: 'flop', action: 'fold' },
+      { seat: 1, userId, stage: 'flop', action: 'return', amount: 13, historyEvent: 'uncalled_bet_returned' },
+    ],
+    created_at: '2026-11-24T12:00:00.000Z',
+  };
+
+  let selectClause = '';
+  const db = {
+    rpc: async () => ({ data: { success: true, upserted: 2, removed: 0 }, error: null }),
+    from(table) {
+      if (table === 'hand_history') {
+        let membership = null;
+        const chain = {
+          select: (cols) => { selectClause = cols; return chain; },
+          contains: (_column, value) => { membership = value; return chain; },
+          in: () => chain, order: () => chain, lte: () => chain, or: () => chain,
+          range: async () => ({ data: JSON.parse(membership || '[]')?.[0]?.userId ? [hetznerRow] : [], error: null }),
+        };
+        return chain;
+      }
+      if (table === 'ca_hand_facts') {
+        const chain = {
+          select: () => chain, eq: () => chain, in: () => chain,
+          limit: async () => ({ data: [{ hand_id: hetznerHandId, hole_cards: [51, 46] }], error: null }),
+        };
+        return chain;
+      }
+      if (table === 'hand_audit_decisions') {
+        const chain = { eq: () => chain, in: () => chain, limit: async () => ({ data: [], error: null }) };
+        return { select: () => chain };
+      }
+      if (table === 'training_question_cache') {
+        let streetFilter = null;
+        const chain = {
+          select: () => chain,
+          like: () => chain,
+          in: () => chain,
+          eq: (col, val) => {
+            if (col === 'question_data->scenario->>street') streetFilter = val;
+            return chain;
+          },
+          limit: async () => ({
+            data: streetFilter === 'flop' ? [cacheRow({
+              source: 'DETERMINISTIC_SOLVER',
+              solverProvenance,
+              heroCards: ['As', 'Kh'],
+              scenario: {
+                street: 'flop',
+                heroPosition: 'BTN',
+                villainPosition: 'BB',
+                heroHand: 'AKo',
+                nodeType: 'hero_bets_or_checks',
+                boardCards: ['Qs', '7h', '2c'],
+                tableSize: 6,
+                stackDepth: 100,
+                potSize: 6.5,
+                actionHistory: [
+                  { street: 'preflop', position: 'UTG', action: 'fold' },
+                  { street: 'preflop', position: 'MP', action: 'fold' },
+                  { street: 'preflop', position: 'CO', action: 'fold' },
+                  { street: 'preflop', position: 'BTN', action: 'raise_80' },
+                  { street: 'preflop', position: 'SB', action: 'fold' },
+                  { street: 'preflop', position: 'BB', action: 'call' },
+                  { street: 'flop', position: 'BB', action: 'check' },
+                ],
+              },
+              options: [
+                { id: 'x', text: 'Check' },
+                { id: 'b100', text: 'Bet 100%' },
+              ],
+              correctAnswer: 'b100',
+              gtoFrequencies: { x: 15, b100: 85 },
+            }, 'hetzner-flop-cbet-q', 'cash-flop-cbet')] : [],
+            error: null,
+          }),
+        };
+        return chain;
+      }
+      throw new Error(`Unexpected table ${table}`);
+    },
+  };
+
+  const normalized = normalizeClubArenaHand({ ...hetznerRow, hero_private_cards: ['As', 'Kh'] }, userId);
+  assert.equal(normalized.format, 'cash');
+  assert.equal(normalized.bigBlind, 2);
+  assert.equal(normalized.hero.stack, 100);
+  // Forced sb/bb and uncalled_bet_returned must not leak into voluntary actions.
+  assert.equal(normalized.streets.preflop.actions.length, 6);
+  assert.equal(normalized.streets.flop.actions.length, 3);
+  assert.equal(normalized.streets.flop.actions[1].isHero, true);
+  assert.equal(normalized.streets.flop.actions[1].potBeforeBB, 6.5);
+  assert.equal(normalized.streets.flop.actions[1].sizingPct, 100);
+
+  // Tournament rows without summary still derive tournament format via tournament_id.
+  const tourney = normalizeClubArenaHand({
+    ...hetznerRow,
+    tournament_id: 'tourney-42',
+    hero_private_cards: ['As', 'Kh'],
+  }, userId);
+  assert.equal(tourney.format, 'tournament');
+
+  const result = await syncClubArenaHandsForAudit(db, userId);
+  assert.match(selectClause, /\btournament_id\b/);
+  assert.match(selectClause, /\bsmall_blind\b/);
+  assert.match(selectClause, /\bbig_blind\b/);
+  assert.equal(result.handsEligible, 1);
+  assert.equal(result.solverVerified, 1, 'real Hetzner 6-max cash flop c-bet must solver-verify');
+});
+
 await test('makes each Personal Assistant tool card one full-card button', () => {
   const source = readFileSync(resolve('pages/hub/personal-assistant/index.js'), 'utf8');
   assert.ok(source.includes('className={styles.systemCardTrigger}'));
