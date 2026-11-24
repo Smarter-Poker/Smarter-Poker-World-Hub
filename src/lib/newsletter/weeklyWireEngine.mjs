@@ -358,9 +358,9 @@ export async function curateWeeklyWireEdition(
     try {
         const { data: queuedRows } = await sb
             .from('poker_news')
-            .select('id, slug, title, summary, excerpt, source_url, image_caption, created_at')
+            .select('id, slug, title, summary, excerpt, source_url, image_caption, published_at')
             .eq('category', 'platform_update')
-            .order('created_at', { ascending: true })
+            .order('published_at', { ascending: true })
             .limit(50);
         customQueueUpdates = (queuedRows || [])
             .filter((r) => r?.id && r?.title && !ledger.consumedIds.has(String(r.id).toLowerCase()))
