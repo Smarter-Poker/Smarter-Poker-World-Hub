@@ -200,7 +200,53 @@ export default function PrintablePokerCheatSheetsPage() {
               12 Poker Math Formulas
             </Link>
           </div>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '10px 14px',
+              background: '#081217',
+              border: '1px solid #1e293b',
+              borderRadius: '2px',
+              marginTop: '14px',
+              maxWidth: '460px',
+            }}
+          >
+            <img
+              src="/api/seo/qr?path=%2Flearn%2Fcheat-sheets"
+              alt="Scannable QR Code For Smarter.Poker Printable Poker Cheat Sheets"
+              width="64"
+              height="64"
+              style={{ display: 'block', borderRadius: '2px', background: '#ffffff' }}
+            />
+            <div>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: '#25c8ff' }}>
+                SCAN FOR INTERACTIVE CHEAT SHEETS &amp; GTO SOLVERS
+              </div>
+              <div style={{ fontSize: '10.5px', color: '#cbd5e1' }}>
+                {canonicalUrl}
+              </div>
+            </div>
+          </div>
         </header>
+
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+            @media print {
+              nav, footer, button, [aria-label="Cite Or Link To This Research"], [aria-label="Verify Or Analyze With AI Assistants"] {
+                display: none !important;
+              }
+              body, main, div, article, section, header, table, th, td {
+                background: #ffffff !important;
+                color: #0f172a !important;
+                border-color: #cbd5e1 !important;
+              }
+            }
+          `,
+          }}
+        />
 
         {/* Sheet 1: Official Poker Hand Rankings */}
         <section aria-label="Cheat Sheet 1 Official Poker Hand Rankings" style={styles.sectionPlate}>

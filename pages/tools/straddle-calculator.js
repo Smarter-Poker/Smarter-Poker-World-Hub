@@ -18,6 +18,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderStraddleCalculatorMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
 
 const BASE_BLINDS = [
@@ -129,6 +130,15 @@ export default function StraddleCalculatorPage({
     if (q.players !== undefined) setBombPlayers(Math.max(6, Math.min(9, Math.round(Number(q.players) || 8))));
     if (q.format && BOMB_FORMATS.some((f) => f.id === q.format)) setBombFormat(String(q.format));
   }, [router.isReady, router.query]);
+
+  useSolvedSpotUrlSync({
+    blinds,
+    type: straddleType,
+    stack,
+    vpip: tableVpip,
+    ante: bombAnte,
+    players: bombPlayers,
+  });
 
   const metrics = useMemo(() => {
     const blindObj = BASE_BLINDS.find((b) => b.id === blinds) || BASE_BLINDS[1];

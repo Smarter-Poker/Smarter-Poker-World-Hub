@@ -15,6 +15,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 
 const SIDE_POT_BENCHMARKS = [
   {
@@ -71,6 +72,24 @@ export default function SidePotCalculatorPage({
 }) {
   const [stacks, setStacks] = useState(initialStacks);
   const [deadMoney, setDeadMoney] = useState(initialDeadMoney);
+
+  useSolvedSpotUrlSync(
+    {
+      stacks: stacks.join(','),
+      deadMoney,
+    },
+    {
+      stacks: (v) => {
+        const parsed = String(v)
+          .split(',')
+          .map((n) => Math.max(10, Math.round(Number(n) || 0)))
+          .filter((n) => n >= 10)
+          .slice(0, 9);
+        if (parsed.length >= 2) setStacks(parsed);
+      },
+      deadMoney: (v) => setDeadMoney(Math.max(0, Math.round(Number(v) || 0))),
+    }
+  );
 
   const updateStack = (index, val) => {
     const next = [...stacks];

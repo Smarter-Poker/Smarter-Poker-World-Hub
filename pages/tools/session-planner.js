@@ -17,6 +17,7 @@ import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderSessionPlannerMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
 
 const STAKES = [
@@ -127,6 +128,15 @@ export default function SessionPlannerPage({
     if (q.comp !== undefined) setCompRate(Math.max(0, Math.min(20, Number(q.comp) || 2)));
     if (q.exp !== undefined) setExpensesPerSession(Math.max(0, Math.min(500, Number(q.exp) || 18)));
   }, [router.isReady, router.query]);
+
+  useSolvedSpotUrlSync({
+    stake,
+    wr: winRateBbHr,
+    hrs: hoursPerSession,
+    sess: sessionsPerWeek,
+    comp: compRate,
+    exp: expensesPerSession,
+  });
 
   const metrics = useMemo(() => {
     const stakeObj = STAKES.find((s) => s.id === stake) || STAKES[2];
