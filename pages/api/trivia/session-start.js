@@ -322,7 +322,10 @@ async function enrichV3StartResponse(sb, mode, sessionId, userId, body) {
  * create_trivia_session_v2 path and returns an answer-free DTO. Also serves resumes of
  * any v3 session regardless of the flag, so a run started under v3 always finishes there.
  */
-async function startOrResumeSoloV3(res, sb, userId, mode, sessionId, parentSessionId, resumeOnly) {
+async function startOrResumeSoloV3(res, sb, userId, mode, sessionId, parentSessionId, resumeOnly, difficulty = null) {
+    const survivalDifficulty = mode === 'survival' && typeof difficulty === 'string' && VALID_DIFFICULTIES.has(difficulty)
+        ? difficulty
+        : null;
     const { data, error } = resumeOnly
         ? await sb.rpc('trivia_session_view_v3', { p_session_id: sessionId, p_user_id: userId })
         : await sb.rpc('trivia_start_solo_session_v3', {
@@ -330,6 +333,7 @@ async function startOrResumeSoloV3(res, sb, userId, mode, sessionId, parentSessi
             p_user_id: userId,
             p_mode: mode,
             p_parent_session_id: mode === 'survival' ? (parentSessionId || null) : null,
+            ...(mode === 'survival' ? { p_difficulty: survivalDifficulty } : {}),
         });
     if (error) {
         console.warn('[trivia session-start] v3 start failed:', error.message || error);
@@ -1014,7 +1018,10 @@ export default async function handler(req, res) {
             return serveExistingSoloSession(res, sb, userId, existing);
         }
         if (isSoloEngineV3Enabled(process.env)) {
-            return startOrResumeSoloV3(res, sb, userId, mode, startNonce, parentSessionId, false);
+            const survivalDifficulty = mode === 'survival' && typeof difficulty === 'string' && VALID_DIFFICULTIES.has(difficulty)
+                ? difficulty
+                : null;
+            return startOrResumeSoloV3(res, sb, userId, mode, startNonce, parentSessionId, false, survivalDifficulty);
         }
 
         const wanted = expectedSoloQuestionCount(mode);

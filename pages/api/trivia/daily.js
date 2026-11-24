@@ -27,6 +27,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
+import { isSoloEngineV3Enabled } from '../../../src/lib/trivia/phase3Engine.mjs';
 import {
     getRecentlySeenIds,
     recordQuestionsSeen,
@@ -390,6 +391,64 @@ function toPublicQuestion(question) {
     return safe;
 }
 
+const V3_DAILY_PROFILE_ID = 'solo.daily/roster@1';
+
+/**
+ * Resolve today's canonical 10-question Daily roster via the V3 deterministic
+ * roster RPC (`trivia_build_roster_v1`) so `/api/trivia/daily` serves the exact
+ * same answer-free question set that V3 `/api/trivia/session-start` deals.
+ */
+async function resolveV3DailyRoster(supabase, today) {
+    const { data: snap, error: snapErr } = await supabase.rpc('trivia_build_roster_v1', {
+        p_scope_kind: 'daily',
+        p_scope_id: today,
+        p_profile_id: V3_DAILY_PROFILE_ID,
+        p_player_ids: [],
+        p_exclude_question_ids: [],
+    });
+    if (snapErr || snap?.success !== true || !snap?.snapshot_id) {
+        console.warn('[Trivia API] v3 daily roster build failed:', snapErr?.message || snap?.error || 'invalid_snapshot');
+        return [];
+    }
+    const { data: items, error: itemsErr } = await supabase
+        .from('trivia_roster_snapshot_items')
+        .select('position, question_id, revision_id')
+        .eq('snapshot_id', snap.snapshot_id)
+        .eq('round_no', 1)
+        .order('position', { ascending: true })
+        .limit(ROSTER_SIZE);
+    if (itemsErr || !Array.isArray(items) || items.length === 0) {
+        console.warn('[Trivia API] v3 daily snapshot items fetch failed:', itemsErr?.message || 'empty_items');
+        return [];
+    }
+    const revisionIds = items.map(item => item?.revision_id).filter(Boolean).slice(0, ROSTER_SIZE);
+    if (revisionIds.length === 0) return [];
+    const { data: revisions, error: revErr } = await supabase
+        .from('trivia_question_revisions')
+        .select('id, question_id, category, difficulty, question, options')
+        .in('id', revisionIds.slice(0, ROSTER_SIZE));
+    if (revErr || !Array.isArray(revisions)) {
+        console.warn('[Trivia API] v3 daily revision projection failed:', revErr?.message || 'invalid_revisions');
+        return [];
+    }
+    const byRevisionId = new Map(revisions.map(row => [row.id, row]));
+    return items
+        .map(item => {
+            const rev = byRevisionId.get(item.revision_id);
+            if (!rev || rev.question_id !== item.question_id || !Array.isArray(rev.options) || rev.options.length < 2) {
+                return null;
+            }
+            return toPublicQuestion({
+                id: rev.question_id,
+                category: rev.category ?? null,
+                difficulty: rev.difficulty ?? null,
+                question: rev.question,
+                options: rev.options,
+            });
+        })
+        .filter(Boolean);
+}
+
 /**
  * Build (and persist) today's roster from the live pool.
  * Prefers questions never used, or last used outside the no-repeat window.
@@ -472,35 +531,51 @@ export default async function handler(req, res) {
 
       try {
           const supabase = getSupabase();
+          const v3Enabled = isSoloEngineV3Enabled(process.env);
 
-          // Phase 55: enforce gameplay quality floor (qs >= 6) so reported-bad
-          // (qs=2 via 3-strike auto-demote) and unclear-English (qs=4 via Flesch
-          // check in audit cron) questions never land on the public daily roster.
-          const { data: rosterRows, error } = await supabase
-              .from('trivia_eligible_questions_serving_v1')
-              .select(PUBLIC_QUESTION_COLUMNS)
-              .eq('daily_date', today)
-              .gte('quality_score', QUALITY_FLOOR)
-              .order('order_index', { ascending: true })
-              // Secondary sort makes ordering deterministic inside each
-              // order_index tie group (10 categories share each slot number),
-              // so every player sees the same roster in the same order.
-              .order('id', { ascending: true })
-              .limit(100);
-
-          if (error) {
-              console.warn('[Trivia API] Database error:', error);
-          }
-
-          let questions = rosterRows || [];
+          let questions = [];
           let rosterSource = 'daily_date';
 
-          // No roster tagged for today — build one from the live pool.
+          if (v3Enabled) {
+              questions = await resolveV3DailyRoster(supabase, today);
+              if (questions.length >= ROSTER_SIZE) {
+                  rosterSource = 'v3_roster';
+              } else {
+                  console.warn(`[Trivia API] v3 daily roster returned ${questions.length}/${ROSTER_SIZE}; falling back to daily_date`);
+                  questions = [];
+              }
+          }
+
           if (questions.length < ROSTER_SIZE) {
-              const built = await buildRosterFromPool(supabase, today);
-              if (built.length > questions.length) {
-                  questions = built;
-                  rosterSource = 'pool';
+              // Phase 55: enforce gameplay quality floor (qs >= 6) so reported-bad
+              // (qs=2 via 3-strike auto-demote) and unclear-English (qs=4 via Flesch
+              // check in audit cron) questions never land on the public daily roster.
+              const { data: rosterRows, error } = await supabase
+                  .from('trivia_eligible_questions_serving_v1')
+                  .select(PUBLIC_QUESTION_COLUMNS)
+                  .eq('daily_date', today)
+                  .gte('quality_score', QUALITY_FLOOR)
+                  .order('order_index', { ascending: true })
+                  // Secondary sort makes ordering deterministic inside each
+                  // order_index tie group (10 categories share each slot number),
+                  // so every player sees the same roster in the same order.
+                  .order('id', { ascending: true })
+                  .limit(100);
+
+              if (error) {
+                  console.warn('[Trivia API] Database error:', error);
+              }
+
+              questions = rosterRows || [];
+              rosterSource = 'daily_date';
+
+              // No roster tagged for today — build one from the live pool.
+              if (questions.length < ROSTER_SIZE) {
+                  const built = await buildRosterFromPool(supabase, today);
+                  if (built.length > questions.length) {
+                      questions = built;
+                      rosterSource = 'pool';
+                  }
               }
           }
 

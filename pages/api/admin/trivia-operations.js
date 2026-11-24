@@ -144,6 +144,16 @@ async function getSnapshot(req, res, client, operator) {
         client.from('trivia_pvp_engine_config')
             .select('joins_enabled,horses_enabled,lease_seconds,heartbeat_seconds,dead_ticket_grace_seconds,max_search_seconds,horse_concurrency_ceiling,dealing_seconds,result_visible_seconds,updated_at')
             .eq('id', 1).maybeSingle(),
+        client.from('trivia_ledger_switches')
+            .select('key,enabled,reason,updated_at')
+            .eq('key', 'solo_journal').maybeSingle(),
+        client.rpc('trivia_ledger_health_v1'),
+        client.from('trivia_ledger_accounts')
+            .select('account_code,kind,balance,min_balance,state')
+            .in('account_code', ['treasury:trivia', 'house:rake:tournament', 'house:rake:pvp']),
+        client.from('trivia_ledger_config')
+            .select('key,value')
+            .in('key', ['treasury_warning_level', 'treasury_floor', 'treasury_daily_subsidy_ceiling', 'treasury_exposure_ceiling']),
     ];
     if (lookup) {
         reads.push(lookup.kind === 'settlement'
@@ -163,7 +173,8 @@ async function getSnapshot(req, res, client, operator) {
         operationsHealthResult, cutoverStatusResult, operatorEventsResult, upcomingResult, activeResult,
         recentResult, tournamentRoundsResult, tournamentMatchupsResult,
         schedulerLeaseResult, schedulerRunsResult, alertsResult, quarantineResult,
-        questionQuarantineResult, pvpConfigResult, supportLookupResult,
+        questionQuarantineResult, pvpConfigResult, soloJournalSwitchResult,
+        ledgerHealthResult, ledgerAccountsResult, ledgerConfigResult, supportLookupResult,
     ] = await Promise.all(reads);
 
     const namedResults = {
@@ -184,6 +195,10 @@ async function getSnapshot(req, res, client, operator) {
         historical_quarantine: quarantineResult,
         question_quarantine: questionQuarantineResult,
         pvp_config: pvpConfigResult,
+        solo_journal_switch: soloJournalSwitchResult,
+        ledger_health: ledgerHealthResult,
+        ledger_accounts: ledgerAccountsResult,
+        ledger_config: ledgerConfigResult,
     };
     if (lookup) namedResults.support_lookup = supportLookupResult;
     const sourceErrors = {};
@@ -215,6 +230,10 @@ async function getSnapshot(req, res, client, operator) {
         quarantineRows: quarantineResult.data || [],
         questionQuarantineRows: questionQuarantineResult.data || [],
         pvpConfig: pvpConfigResult.data || null,
+        soloJournalSwitch: soloJournalSwitchResult.data || null,
+        ledgerHealth: ledgerHealthResult.data || null,
+        ledgerAccounts: ledgerAccountsResult.data || [],
+        ledgerConfig: ledgerConfigResult.data || [],
         sourceErrors,
     });
     return res.status(snapshot.healthy ? 200 : 503).json(snapshot);
