@@ -41,6 +41,19 @@ function fmtTime(value) {
     return Number.isNaN(date.getTime()) ? '-' : date.toLocaleString();
 }
 
+function fmtCountdown(targetIso, nowMs) {
+    if (!targetIso) return '-';
+    const targetMs = Date.parse(targetIso);
+    if (!Number.isFinite(targetMs)) return '-';
+    const diffSec = Math.ceil((targetMs - nowMs) / 1000);
+    if (diffSec <= 0) return 'Reached';
+    const hours = Math.floor(diffSec / 3600);
+    const minutes = Math.floor((diffSec % 3600) / 60);
+    const seconds = diffSec % 60;
+    if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
+    return `${minutes}m ${seconds}s`;
+}
+
 async function fetchOperations(token, query = '') {
     const response = await fetch(`/api/admin/trivia-operations${query}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -139,10 +152,17 @@ export default function TriviaOperationsPage() {
     const [pvpReason, setPvpReason] = useState('');
     const [tournamentForm, setTournamentForm] = useState({ targetId: '', reason: '' });
     const [settlementForm, setSettlementForm] = useState({ targetId: '', reason: '' });
+    const [replenishForm, setReplenishForm] = useState({ amount: '', reason: '' });
     const [incidentForm, setIncidentForm] = useState({ incidentKey: '', severity: 'warning', status: 'open', note: '', reason: '' });
     const [lookupForm, setLookupForm] = useState({ kind: 'user', targetId: '' });
     const [lookupState, setLookupState] = useState({ busy: false, result: null, error: null });
+    const [clockNowMs, setClockNowMs] = useState(() => Date.now());
     const tokenRef = useRef(null);
+
+    useEffect(() => {
+        const timer = setInterval(() => setClockNowMs(Date.now()), 1000);
+        return () => clearInterval(timer);
+    }, []);
 
     useEffect(() => {
         let cancelled = false;
@@ -277,12 +297,19 @@ export default function TriviaOperationsPage() {
     const upcoming = data.tournaments?.upcoming || [];
     const active = data.tournaments?.active || [];
     const capabilities = new Set(data.authority?.capabilities || []);
+    const roles = new Set(data.authority?.roles || []);
     const can = (capability) => capabilities.has(capability);
+    const isSupervisor = roles.has('supervisor');
     const pvpConfig = data.pvp_config || {};
     const cutoverStatus = data.cutover_status || {};
     const cutoverGates = cutoverStatus.gates || {};
     const treasury = cutoverStatus.treasury || {};
     const recoveryStatus = cutoverStatus.recovery_status || null;
+    const soloJournalSwitch = data.db_switches?.solo_journal || null;
+    const tonightFill = data.tonight_fill_monitor || null;
+    const economics = data.treasury_economics || {};
+    const rakeAccounts = economics.rake_accounts || {};
+    const pvpMix = economics.pvp_24h_mix || {};
 
     return (
         <main className={consoleStyles.surface} style={S.page}>
@@ -325,8 +352,88 @@ export default function TriviaOperationsPage() {
                     {Object.entries(data.controls || {}).map(([name, enabled]) => (
                         <Metric key={name} label={name.replaceAll('_', ' ')} value={enabled} />
                     ))}
+                    <Metric
+                        label="solo journal (DB switch)"
+                        value={soloJournalSwitch ? soloJournalSwitch.enabled : 'Unavailable'}
+                        detail={soloJournalSwitch?.updated_at ? `Updated ${fmtTime(soloJournalSwitch.updated_at)}` : undefined}
+                    />
                 </div>
-                <p style={S.note}>These Are Public Deployment Flags. Runtime Engine Switches Remain Separate Canary Controls, And Supported Recovery Actions Require Named Capabilities And Immutable Receipts.</p>
+                <p style={S.note}>These Are Public Deployment Flags Alongside The Authoritative Solo Journal Database Switch. Runtime Engine Switches Remain Separate Canary Controls, And Supported Recovery Actions Require Named Capabilities And Immutable Receipts.</p>
+            </Panel>
+
+            <Panel title="Tonight at 8:00 PM CT fill monitor">
+                {tonightFill ? (
+                    <div style={S.grid}>
+                        <Metric label="Scheduled date (CT)" value={tonightFill.scheduled_local_date} />
+                        <Metric label="Lifecycle status" value={tonightFill.lifecycle_state} detail={tonightFill.horse_population_mode ? `Population: ${tonightFill.horse_population_mode}` : undefined} />
+                        <Metric label="Horses entered vs target" value={`${fmt(tonightFill.horses_entered)} / ${fmt(tonightFill.horse_target)}`} detail={`${fmt(tonightFill.fill_pct)}% filled (${fmt(tonightFill.horses_remaining)} remaining)`} />
+                        <Metric label="Humans entered" value={tonightFill.humans_entered} />
+                        <Metric label="Countdown to 7:15 PM CT fill" value={fmtCountdown(tonightFill.fill_starts_at, clockNowMs)} detail={fmtTime(tonightFill.fill_starts_at)} />
+                        <Metric label="Countdown to 7:58 PM CT reconcile" value={fmtCountdown(tonightFill.reconcile_at, clockNowMs)} detail={fmtTime(tonightFill.reconcile_at)} />
+                        <Metric label="Countdown to 8:00 PM CT start" value={fmtCountdown(tonightFill.starts_at, clockNowMs)} detail={fmtTime(tonightFill.starts_at)} />
+                    </div>
+                ) : (
+                    <p style={S.muted}>No Nightly Tournament Instance Was Found For Tonight.</p>
+                )}
+            </Panel>
+
+            <Panel title="Unit-economics and treasury headroom">
+                <div style={S.grid}>
+                    <Metric
+                        label="Treasury balance vs warning"
+                        value={fmt(economics.treasury_balance)}
+                        detail={`Warning threshold: ${fmt(economics.treasury_warning_level)} (${economics.treasury_below_warning ? 'Below warning' : 'Above warning'})`}
+                    />
+                    <Metric label="Headroom above 6,000 warning" value={economics.treasury_headroom_above_warning} />
+                    <Metric label="Tournament rake balance" value={rakeAccounts.tournament?.balance} detail={`Available: ${fmt(rakeAccounts.tournament?.available)}`} />
+                    <Metric label="PvP rake balance" value={rakeAccounts.pvp?.balance} detail={`Available: ${fmt(rakeAccounts.pvp?.available)}`} />
+                    <Metric label="Total available rake" value={rakeAccounts.total_available} />
+                    <Metric
+                        label="24h PvP human vs horse mix"
+                        value={pvpMix.total_matches ? `${fmt(pvpMix.human_matches)} H / ${fmt(pvpMix.horse_matches)} B` : 'No matches'}
+                        detail={pvpMix.total_matches ? `${pvpMix.human_share_pct}% human / ${pvpMix.horse_share_pct}% horse` : 'Last 24 hours'}
+                    />
+                </div>
+                {isSupervisor ? (
+                    <div style={{ marginTop: 18 }}>
+                        <div style={S.formGrid}>
+                            <label style={S.label}>Replenish Amount (Diamonds)
+                                <input
+                                    type="number"
+                                    min={1}
+                                    max={Math.max(1, Number(rakeAccounts.total_available || 0))}
+                                    style={S.input}
+                                    value={replenishForm.amount}
+                                    onChange={(event) => setReplenishForm({ ...replenishForm, amount: event.target.value })}
+                                    placeholder={`Max ${fmt(rakeAccounts.total_available || 0)}`}
+                                />
+                            </label>
+                            <label style={S.label}>Required Operational Reason
+                                <textarea
+                                    style={S.textarea}
+                                    value={replenishForm.reason}
+                                    onChange={(event) => setReplenishForm({ ...replenishForm, reason: event.target.value })}
+                                />
+                            </label>
+                        </div>
+                        <div style={S.actions}>
+                            <ActionButton
+                                disabled={actionState.busy || !(Number(rakeAccounts.total_available || 0) > 0)}
+                                onClick={() => executeAction({
+                                    action: 'treasury_replenish_from_rake',
+                                    reason: replenishForm.reason,
+                                    targetId: null,
+                                    payload: { replenishAmount: Number.parseInt(replenishForm.amount, 10) },
+                                })}
+                            >
+                                Replenish Treasury From Rake
+                            </ActionButton>
+                        </div>
+                        <p style={S.note}>Posts A Balanced Double-Entry Journal Debiting Accumulated Tournament And PvP Rake Accounts And Crediting The Trivia Treasury With An Immutable Supervisor Receipt.</p>
+                    </div>
+                ) : (
+                    <p style={S.note}>Treasury Replenishment From Rake Requires Supervisor Authority.</p>
+                )}
             </Panel>
 
             <Panel title="Durable database cutover authority">

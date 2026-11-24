@@ -1082,6 +1082,117 @@ def active_flag_gated_crons():
     return [(path, kwargs) for path, kwargs, enabled in FLAG_GATED_CRONS if enabled is True]
 
 
+# ─── Phase 12 (2026-11-24): Read-only 7:00 PM CT nightly tournament pre-flight ─
+# Non-destructive readiness check running once per Chicago day inside the
+# existing TRIVIA_NIGHTLY_TOURNAMENT_JOB flow during 19:00-19:04 America/Chicago
+# (one hour before 8:00 PM CT start, 15 min before 7:15 PM CT horse fill).
+# Reads only trivia_tournament_health_v1, trivia_ledger_health_v1, and
+# trivia_competitive_cutover_status_v1; never mutates DB state and never blocks
+# the primary nightly tick if transient network errors occur.
+TRIVIA_NIGHTLY_PREFLIGHT_HOUR_CT = 19
+TRIVIA_NIGHTLY_PREFLIGHT_MINUTE_MAX = 4
+TRIVIA_NIGHTLY_PREFLIGHT_TREASURY_WARN = 6000
+_trivia_preflight_state = {'consec_fail': 0, 'alert_sent': False, 'last_date': None}
+
+
+def _chicago_local_now(now_utc=None):
+    """Return current America/Chicago wall-clock datetime using stdlib zoneinfo."""
+    dt = now_utc or datetime.now(timezone.utc)
+    try:
+        from zoneinfo import ZoneInfo
+        return dt.astimezone(ZoneInfo('America/Chicago'))
+    except Exception:
+        return dt
+
+
+def evaluate_trivia_nightly_preflight(tournament_health, ledger_health, cutover_status):
+    """Pure read-only evaluator for the 7:00 PM CT nightly tournament pre-flight."""
+    failures = []
+    warnings = []
+    if not isinstance(tournament_health, dict) or tournament_health.get('healthy') is not True:
+        failures.append('trivia_tournament_health_v1 unhealthy')
+    upcoming = (tournament_health or {}).get('upcoming_public_instances')
+    if not isinstance(upcoming, int) or upcoming < 7:
+        failures.append(f'upcoming_public_instances={upcoming} (<7)')
+    if not isinstance(ledger_health, dict) or ledger_health.get('healthy') is not True:
+        failures.append('trivia_ledger_health_v1 unhealthy')
+    elif int(ledger_health.get('exception_count') or 0) > 0:
+        failures.append(f"ledger exception_count={ledger_health.get('exception_count')}")
+    if not isinstance(cutover_status, dict) or cutover_status.get('ledger_clean') is not True:
+        failures.append('competitive_cutover ledger_clean is false')
+    gates = (cutover_status or {}).get('gates') or {}
+    for gate_name in ('tournament_public', 'tournament_horses', 'tournament_scheduler'):
+        if (gates.get(gate_name) or {}).get('enabled') is not True:
+            failures.append(f'cutover gate {gate_name} disabled')
+    treasury = (cutover_status or {}).get('treasury') or {}
+    balance = treasury.get('balance')
+    if isinstance(balance, (int, float)) and balance < TRIVIA_NIGHTLY_PREFLIGHT_TREASURY_WARN:
+        warnings.append(f'treasury balance {balance} below warning threshold {TRIVIA_NIGHTLY_PREFLIGHT_TREASURY_WARN}')
+    status = 'fail' if failures else ('warning' if warnings else 'ready')
+    return {
+        'status': status,
+        'failures': failures,
+        'warnings': warnings,
+        'upcoming_public_instances': upcoming,
+        'treasury_balance': balance,
+    }
+
+
+def _trivia_nightly_preflight_readiness(now_utc=None):
+    """Run non-destructive 7:00 PM CT pre-flight check once per Chicago evening."""
+    local_dt = _chicago_local_now(now_utc)
+    if local_dt.hour != TRIVIA_NIGHTLY_PREFLIGHT_HOUR_CT or local_dt.minute > TRIVIA_NIGHTLY_PREFLIGHT_MINUTE_MAX:
+        return None
+    local_date = local_dt.date().isoformat()
+    if _trivia_preflight_state.get('last_date') == local_date:
+        return None
+    sb_url = os.environ.get('NEXT_PUBLIC_SUPABASE_URL', '').rstrip('/')
+    sb_key = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
+    if not sb_url or not sb_key:
+        log.warning('[trivia-nightly-preflight] skipped: Supabase config unavailable')
+        return None
+    headers = {
+        'apikey': sb_key,
+        'Authorization': f'Bearer {sb_key}',
+        'Content-Type': 'application/json',
+    }
+    try:
+        t_resp = requests.post(f'{sb_url}/rest/v1/rpc/trivia_tournament_health_v1', headers=headers, json={}, timeout=10)
+        l_resp = requests.post(f'{sb_url}/rest/v1/rpc/trivia_ledger_health_v1', headers=headers, json={}, timeout=10)
+        c_resp = requests.post(f'{sb_url}/rest/v1/rpc/trivia_competitive_cutover_status_v1', headers=headers, json={}, timeout=10)
+        if t_resp.status_code != 200 or l_resp.status_code != 200 or c_resp.status_code != 200:
+            log.warning(
+                '[trivia-nightly-preflight] read-only RPC check returned HTTP %s/%s/%s',
+                t_resp.status_code, l_resp.status_code, c_resp.status_code,
+            )
+            return None
+        report = evaluate_trivia_nightly_preflight(t_resp.json(), l_resp.json(), c_resp.json())
+        report['local_date'] = local_date
+        _trivia_preflight_state['last_date'] = local_date
+        log_line = '[trivia-nightly-preflight] ' + json.dumps(report, sort_keys=True, separators=(',', ':'))
+        if report['status'] == 'fail':
+            log.error(log_line)
+            _trivia_preflight_state['consec_fail'] = int(_trivia_preflight_state.get('consec_fail', 0)) + 1
+            _trivia_preflight_state['alert_sent'] = _alert(
+                _trivia_preflight_state,
+                f"Trivia 7:00 PM CT pre-flight FAILED ({local_date}): {'; '.join(report['failures'])}",
+            )
+        elif report['status'] == 'warning':
+            log.warning(log_line)
+            _trivia_preflight_state['consec_fail'] = 0
+        else:
+            log.info(log_line)
+            if _trivia_preflight_state.get('alert_sent'):
+                _alert(_trivia_preflight_state, f'Trivia 7:00 PM CT pre-flight READY ({local_date})', recovery=True)
+            _trivia_preflight_state['consec_fail'] = 0
+            _trivia_preflight_state['alert_sent'] = False
+        _alert_flush(_trivia_preflight_state)
+        return report
+    except Exception as exc:
+        log.warning(f'[trivia-nightly-preflight] probe error ({type(exc).__name__}): {exc}')
+        return None
+
+
 # Host-portability (2026-08-29). SCRAPER_PY used to resolve only against
 # Path.home()/'Documents'/... — Dan's Mac. On the Hetzner dispatcher the file was
 # absent, should_skip_on_secondary() skipped all five video-library jobs every
@@ -2194,6 +2305,7 @@ _alert_state_load()
 _alert_bind('workers-health', _workers_health_state)
 _alert_bind('auth-drift', _auth_drift_state)
 _alert_bind('pnm-directory-health', _pnm_directory_health_state)
+_alert_bind('trivia-nightly-preflight', _trivia_preflight_state)
 
 
 INTERNAL_JOBS = {
@@ -2249,6 +2361,11 @@ def make_job(path):
                 log.error(f'❌ {path} script error: {e}')
     elif _workers_dispatch(path):
         def _job():
+            if path == TRIVIA_NIGHTLY_TOURNAMENT_JOB:
+                try:
+                    _trivia_nightly_preflight_readiness()
+                except Exception as exc:
+                    log.warning(f'[trivia-nightly-preflight] non-fatal wrapper error: {type(exc).__name__}: {exc}')
             fire_cron(path)   # fire_cron auto-routes to workers via _workers_dispatch
     elif path in SCRIPT_JOBS:
         extra_args = SCRIPT_JOBS[path]
