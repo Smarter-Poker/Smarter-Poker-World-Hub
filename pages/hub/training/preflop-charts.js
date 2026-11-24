@@ -23,6 +23,8 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import BottomSheet from '../../../src/components/ui/BottomSheet';
 import useVIPGate from '../../../src/hooks/useVIPGate';
 import VIPGateModal from '../../../src/components/ui/VIPGateModal';
+import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
+import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
 
 // TRAIN-CSS-MOTION-ADOPT-18 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
@@ -35,6 +37,17 @@ const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 
 const SUPPORTED_GAME_TYPE = 'cash_6max';
 const SUPPORTED_STACK_DEPTH = 100;
+
+const CALIBRATION_HERO_CARDS_BY_VARIANT = Object.freeze({
+  nlh: ['As', 'Ks'],
+  plo4: ['As', 'Ks', 'Qh', 'Jh'],
+  plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
+  plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
+});
+
+const CALIBRATION_VARIANTS = Object.freeze(['nlh', 'plo4', 'plo5', 'plo6']);
+const CALIBRATION_POSITIONS = Object.freeze(['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB']);
+const CALIBRATION_STACKS = Object.freeze([20, 40, 100]);
 
 const SCENARIOS = [
   { value: 'rfi', label: 'RFI (Raise First In)', desc: 'Open-raising range' },
@@ -83,6 +96,39 @@ export default function PreflopCharts() {
   const [compareStats, setCompareStats] = useState(null);
   const [compareActions, setCompareActions] = useState([]);
   const [loadingCompare, setLoadingCompare] = useState(false);
+
+  // Horse Brain Calibration Panel state
+  const [activeVariant, setActiveVariant] = useState('nlh');
+  const [heroPosition, setHeroPosition] = useState('BTN');
+  const [effectiveStackBb, setEffectiveStackBb] = useState(100);
+
+  const heroCards = CALIBRATION_HERO_CARDS_BY_VARIANT[activeVariant] || CALIBRATION_HERO_CARDS_BY_VARIANT.nlh;
+
+  const brainEval = useMemo(() => {
+    return evaluateTrainingSpotWithHorseBrain({
+      variant: activeVariant,
+      street: 'preflop',
+      heroCards,
+      boardCards: [],
+      heroPosition,
+      villainPosition: heroPosition === 'BB' ? 'BTN' : 'BB',
+      pot: 1.5,
+      toCall: 1,
+      effectiveStackBb,
+    });
+  }, [activeVariant, heroCards, heroPosition, effectiveStackBb]);
+
+  const arenaHref = useMemo(() => {
+    return buildCustomTrainingArenaHref(
+      {
+        gameId: activeVariant === 'nlh' ? 'cash-001' : 'cash-005',
+        variant: activeVariant,
+        street: 'preflop',
+        position: heroPosition,
+      },
+      'preflop-charts',
+    );
+  }, [activeVariant, heroPosition]);
 
   // Displayed positions depend on scenario
   const displayedPositions = useMemo(
@@ -790,6 +836,157 @@ export default function PreflopCharts() {
             </p>
             <div style={{ height: 20 }} />
           </div>
+
+          {brainEval && (
+            <div
+              data-specialty-brain-panel="true"
+              data-brain-engine={brainEval.engineModule}
+              data-recommended-action={brainEval.correctAnswer}
+              data-active-variant={activeVariant}
+              data-hero-position={heroPosition}
+              style={{
+                maxWidth: 700,
+                margin: '24px auto 0',
+                padding: 18,
+                borderRadius: 12,
+                border: '1px solid rgba(56, 189, 248, 0.35)',
+                background: 'rgba(15, 23, 42, 0.72)',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: 8,
+                  marginBottom: 14,
+                }}
+              >
+                <span style={{ fontSize: 13, fontWeight: 900, color: '#67e8f9', textTransform: 'uppercase' }}>
+                  Horse Brain Range &amp; Preflop Calibration Panel
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#4ade80' }}>
+                  {`Engine: ${brainEval.engineModule} | Recommended: ${brainEval.correctAnswerText}`}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 14 }}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>
+                    Variant
+                  </div>
+                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                    {CALIBRATION_VARIANTS.map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        data-variant-option={v}
+                        aria-pressed={activeVariant === v}
+                        onClick={() => setActiveVariant(v)}
+                        style={{
+                          padding: '6px 12px',
+                          borderRadius: 6,
+                          fontSize: 12,
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          border: activeVariant === v ? '1px solid #67e8f9' : '1px solid rgba(255,255,255,0.16)',
+                          background: activeVariant === v ? 'rgba(8,145,178,0.45)' : 'rgba(255,255,255,0.05)',
+                          color: activeVariant === v ? '#e8fbff' : '#cbd5e1',
+                        }}
+                      >
+                        {v.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>
+                    Hero Position
+                  </div>
+                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                    {CALIBRATION_POSITIONS.map((pos) => (
+                      <button
+                        key={pos}
+                        type="button"
+                        data-position-option={pos}
+                        aria-pressed={heroPosition === pos}
+                        onClick={() => setHeroPosition(pos)}
+                        style={{
+                          padding: '6px 12px',
+                          borderRadius: 6,
+                          fontSize: 12,
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          border: heroPosition === pos ? '1px solid #67e8f9' : '1px solid rgba(255,255,255,0.16)',
+                          background: heroPosition === pos ? 'rgba(8,145,178,0.45)' : 'rgba(255,255,255,0.05)',
+                          color: heroPosition === pos ? '#e8fbff' : '#cbd5e1',
+                        }}
+                      >
+                        {pos}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>
+                    Stack Depth
+                  </div>
+                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                    {CALIBRATION_STACKS.map((stk) => (
+                      <button
+                        key={stk}
+                        type="button"
+                        data-stack-option={stk}
+                        aria-pressed={effectiveStackBb === stk}
+                        onClick={() => setEffectiveStackBb(stk)}
+                        style={{
+                          padding: '6px 12px',
+                          borderRadius: 6,
+                          fontSize: 12,
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          border: effectiveStackBb === stk ? '1px solid #67e8f9' : '1px solid rgba(255,255,255,0.16)',
+                          background: effectiveStackBb === stk ? 'rgba(8,145,178,0.45)' : 'rgba(255,255,255,0.05)',
+                          color: effectiveStackBb === stk ? '#e8fbff' : '#cbd5e1',
+                        }}
+                      >
+                        {stk} BB
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 10, fontSize: 13, fontWeight: 800, color: '#6ee7b7' }}>
+                {`Recommended Action: ${brainEval.correctAnswerText} (${brainEval.correctAnswer}) | Hand Score: ${brainEval.handScore}/100`}
+              </div>
+              <p style={{ margin: '0 0 14px', fontSize: 12, color: '#cbd5e1', lineHeight: 1.6 }}>
+                {brainEval.explanation}
+              </p>
+
+              <button
+                type="button"
+                data-launch-club-arena-cta="true"
+                data-launch-href={arenaHref}
+                onClick={() => router.push(arenaHref)}
+                style={{
+                  padding: '10px 16px',
+                  borderRadius: 8,
+                  border: '1px solid #38bdf8',
+                  background: 'rgba(56, 189, 248, 0.2)',
+                  color: '#fff',
+                  fontSize: 13,
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                }}
+              >
+                Practice Preflop Spot In Club Arena →
+              </button>
+            </div>
+          )}
         </div>
       </div>
       <VIPGateModal 

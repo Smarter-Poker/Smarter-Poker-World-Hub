@@ -22,6 +22,8 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../src/engine/EventBus';
 import { authedFetch } from '../../../src/lib/authUtils';
 import VerifiedToolGateway from '../../../src/components/training/VerifiedToolGateway';
+import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
+import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
 
 // FAQ reference: What is ICM in tournament poker?
 const ICM_CALCULATOR_FAQS = [
@@ -310,6 +312,54 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
   }, [stacks, prizes, prizePool]);
 
   const totalChips = stacks.reduce((s, v) => s + v, 0);
+
+  const heroStackBb = useMemo(() => {
+    const heroRaw = Math.max(100, Number(stacks[0]) || 25000);
+    return Math.max(5, Math.min(120, Math.round(heroRaw / 1000)));
+  }, [stacks]);
+
+  const dynamicBubbleFactor = useMemo(() => {
+    const resultBf = Number(results?.bubbleFactor);
+    if (Number.isFinite(resultBf) && resultBf > 1.0) {
+      return Number(resultBf.toFixed(2));
+    }
+    const numericPrizes = (prizes || []).map((p) => Math.max(0, Number(p) || 0));
+    const sumPrizes = numericPrizes.reduce((a, b) => a + b, 0) || 100;
+    const firstShare = (numericPrizes[0] || 40) / sumPrizes;
+    const isBubble = stacks.length > prizes.length;
+    const baseBf = heroStackBb <= 15 ? 1.92 : heroStackBb <= 25 ? 1.65 : 1.35;
+    const skewAdjust = (0.45 - firstShare) * 0.6 + (isBubble ? 0.25 : 0);
+    return Number(Math.max(1.08, Math.min(2.6, baseBf + skewAdjust)).toFixed(2));
+  }, [results, prizes, stacks.length, heroStackBb]);
+
+  const arenaHref = useMemo(
+    () => buildCustomTrainingArenaHref({ gameId: 'mtt-013', variant: 'nlh' }, 'icm-calculator'),
+    []
+  );
+
+  const brainEval = useMemo(() => {
+    try {
+      const toCallBb = heroStackBb <= 18 ? Math.max(4, Math.round(heroStackBb * 0.75)) : 6;
+      return evaluateTrainingSpotWithHorseBrain({
+        gameId: 'mtt-013',
+        variant: 'nlh',
+        street: 'preflop',
+        heroCards: ['Ad', 'Js'],
+        boardCards: [],
+        heroPosition: 'CO',
+        villainPosition: 'BTN',
+        pot: 2.5,
+        toCall: toCallBb,
+        effectiveStackBb: heroStackBb,
+        isICM: true,
+        isPKO: false,
+        bubbleFactor: dynamicBubbleFactor,
+        payoutPressure: `${stacks.length} Players / ${prizes.length} Paid (Pool $${prizePool}, BF ${dynamicBubbleFactor}x)`,
+      });
+    } catch {
+      return null;
+    }
+  }, [heroStackBb, dynamicBubbleFactor, stacks.length, prizes.length, prizePool]);
 
   const schema = useMemo(() => {
     const canonicalPath = router.pathname === '/tools/icm-calculator' ? '/tools/icm-calculator' : '/hub/training/icm-calculator';
@@ -744,6 +794,61 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
               }}
             >
               {error}
+            </div>
+          )}
+
+          {/* Horse Brain Tournament & ICM/PKO Engine Panel */}
+          {brainEval && (
+            <div
+              data-specialty-brain-panel="true"
+              data-brain-engine={brainEval.engineModule}
+              data-recommended-action={brainEval.correctAnswer}
+              data-bubble-factor={String(dynamicBubbleFactor)}
+              style={{
+                marginBottom: 16,
+                padding: '14px 16px',
+                borderRadius: 12,
+                border: '1px solid rgba(168, 85, 247, 0.35)',
+                background: 'rgba(15, 23, 42, 0.72)',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: 8,
+                  marginBottom: 8,
+                }}
+              >
+                <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-accent-purple)' }}>
+                  Horse Brain Tournament &amp; ICM/PKO Engine Panel
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-amber)' }}>
+                  Hero Depth: {heroStackBb} BB | BF: {dynamicBubbleFactor}x | Action: {brainEval.recommendedAction}
+                </span>
+              </div>
+              <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.55 }}>
+                {brainEval.explanation}
+              </p>
+              <button
+                type="button"
+                data-launch-club-arena-cta="true"
+                onClick={() => router.push(arenaHref)}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: 8,
+                  border: '1px solid rgba(168, 85, 247, 0.5)',
+                  background: 'rgba(168, 85, 247, 0.16)',
+                  color: '#fff',
+                  fontSize: 12,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                }}
+              >
+                Practice Tournament Spot In Club Arena →
+              </button>
             </div>
           )}
 
