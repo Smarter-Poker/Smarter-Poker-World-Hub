@@ -6,16 +6,17 @@ import styles from './VerificationConsole.module.css';
 export default function VerificationConsole({ checking, alreadyVerified, stage, busy, error,
     phone, digits, code, codeRef, cooldown, formatPhone, onPhoneChange, onCodeChange,
     sendCode, verifyCode, skip, goHub, changePhone, doneLead, vipDays, welcomeDiamonds,
-    bonusDiamonds, packageStatus, continueLabel }) {
+    bonusDiamonds, promoChips = 0, packageStatus, continueLabel }) {
     if (stage === 'done' && !alreadyVerified) return <main className={styles.confirmationPage}>
         <section className={styles.confirmationToast} role="status" aria-live="polite" aria-atomic="true">
             <span className={styles.confirmationMark} aria-hidden="true" />
             <h1>Phone Verified</h1>
             <p>{doneLead}</p>
-            {(vipDays > 0 || welcomeDiamonds > 0 || bonusDiamonds > 0) && <p className={styles.confirmationRewards}>
+            {(vipDays > 0 || welcomeDiamonds > 0 || bonusDiamonds > 0 || promoChips > 0) && <p className={styles.confirmationRewards}>
                 {vipDays > 0 && <span>{vipDays}-Day VIP Activated</span>}
                 {welcomeDiamonds > 0 && <span>{welcomeDiamonds} Welcome Diamonds Added</span>}
                 {bonusDiamonds > 0 && <span>{bonusDiamonds} Verification Diamonds Added</span>}
+                {promoChips > 0 && <span>{promoChips} Free Chips Added In Kings Club</span>}
             </p>}
             <span className={styles.confirmationDestination}>{continueLabel ? 'Opening Your Club...' : 'Opening The Hub...'}</span>
         </section>
@@ -40,6 +41,7 @@ export default function VerificationConsole({ checking, alreadyVerified, stage, 
                 {packageStatus === 'withheld_disposable' ? 'Welcome Package Not Eligible' : <>
                     <span>{vipDays > 0 ? `${vipDays}-Day VIP Activated` : 'VIP Already On Your Account'}</span>
                     <span>{welcomeDiamonds > 0 ? `+${welcomeDiamonds} Diamonds Added` : packageStatus === 'mint_refused' ? 'Diamonds Pending' : 'Welcome Diamonds Already Claimed'}</span>
+                    {promoChips > 0 && <span>+{promoChips} Free Chips In Kings Club</span>}
                 </>}
             </div>}
             <form onSubmit={(event) => { event.preventDefault(); if (!checking && !busy && (complete || (isCode ? code.length === 4 : digits.length === 10 && cooldown === 0))) action(); }}>

@@ -54,6 +54,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { isDisposableEmail } from '../../../src/lib/antiAbuse';
 import { welcomePackageAlreadyPaid } from '../../../src/lib/welcomePackage';
+import { isValidDeviceUuid, verifyPromoSignupToken } from '../../../src/lib/promoCampaigns/promoSignupToken.mjs';
 
 let _supabase = null;
 function getSupabase() {
@@ -101,7 +102,11 @@ async function resolveAuthedUser(req, supabase) {
         if (error || !data?.user?.id) {
             return { userId: null, error: 'Invalid or expired session' };
         }
-        return { userId: data.user.id, email: typeof data.user.email === 'string' ? data.user.email.trim() : '' };
+        return {
+            userId: data.user.id,
+            email: typeof data.user.email === 'string' ? data.user.email.trim() : '',
+            userMetadata: data.user.user_metadata || {},
+        };
     } catch (err) {
         console.warn('[verify-otp] auth.getUser threw:', err?.message || err);
         return { userId: null, error: 'Invalid or expired session' };
@@ -125,7 +130,7 @@ export default async function handler(req, res) {
       // A present-but-invalid token is rejected outright so a stale session
       // is never mistaken for a signed-out caller.
       // ═══════════════════════════════════════════════════════════════════
-      const { userId: authedUserId, email: authedEmail, error: authError } = await resolveAuthedUser(req, supabase);
+      const { userId: authedUserId, email: authedEmail, userMetadata: authedUserMetadata, error: authError } = await resolveAuthedUser(req, supabase);
       if (authError) {
           return res.status(401).json({ success: false, error: authError });
       }
@@ -301,6 +306,8 @@ export default async function handler(req, res) {
           let vipGranted      = false;
           let diamondsAwarded = 0;
           let welcomeDiamonds = 0;
+          let promoChipsGranted = 0;
+          let promoChipsStatus  = null;
           // What happened to the welcome package, for an honest success screen:
           //   'granted'            paid now
           //   'already_claimed'    this account was paid before (replayed)
@@ -478,6 +485,44 @@ export default async function handler(req, res) {
                           });
                       if (err_diamond_transactions_tcij9) console.warn('[Supabase] Silent mutation failed in diamond_transactions:', err_diamond_transactions_tcij9.message);
                   }
+
+                  // ── Promotional 25 Free Chips in KINGS CLUB (Dan 2026-11-23) ──
+                  // Owner direction: "free chips should be granted at sign up
+                  // through this promotion only". Only accounts carrying an
+                  // unforgeable HMAC-signed promo signup token (from the Email
+                  // CTA or /go/promo SMS link) qualify; organic signups never
+                  // call fn_sp_grant_promo_signup_chips.
+                  const candidatePromoToken =
+                      (typeof req.body?.promoToken === 'string' && req.body.promoToken.trim()) ||
+                      (typeof authedUserMetadata?.promo_signup_token === 'string' && authedUserMetadata.promo_signup_token.trim()) ||
+                      '';
+                  if (!isDisposable && candidatePromoToken) {
+                      const promoCheck = verifyPromoSignupToken(candidatePromoToken);
+                      if (!promoCheck.valid) {
+                          promoChipsStatus = `invalid_promo_token:${promoCheck.reason}`;
+                      } else {
+                          const rawDeviceId = typeof req.body?.deviceId === 'string' ? req.body.deviceId.trim().toLowerCase() : '';
+                          const validDeviceId = isValidDeviceUuid(rawDeviceId) ? rawDeviceId : null;
+                          try {
+                              const { data: chipGrant, error: chipErr } = await supabase.rpc('fn_sp_grant_promo_signup_chips', {
+                                  p_user_id: authedUserId,
+                                  p_device_id: validDeviceId,
+                              });
+                              if (chipErr) {
+                                  console.warn('[verify-otp] fn_sp_grant_promo_signup_chips failed:', chipErr.message);
+                                  promoChipsStatus = 'rpc_error';
+                              } else {
+                                  promoChipsStatus = chipGrant?.status || null;
+                                  if (chipGrant?.ok && !chipGrant?.replayed) {
+                                      promoChipsGranted = Number(chipGrant.amount || 0);
+                                  }
+                              }
+                          } catch (chipThrow) {
+                              console.warn('[verify-otp] fn_sp_grant_promo_signup_chips threw (non-blocking):', chipThrow?.message || chipThrow);
+                              promoChipsStatus = 'rpc_exception';
+                          }
+                      }
+                  }
               }
           } catch (profileErr) {
               // Never answer "verified" on a path that may not have saved.
@@ -495,6 +540,8 @@ export default async function handler(req, res) {
               vipGranted,
               diamondsAwarded,
               welcomeDiamonds,
+              promoChipsGranted,
+              promoChipsStatus,
               vipDays: vipGranted ? PHONE_VIP_TRIAL_DAYS : 0,
               packageStatus,
           });

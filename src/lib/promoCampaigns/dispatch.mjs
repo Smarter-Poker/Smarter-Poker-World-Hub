@@ -17,6 +17,7 @@
 import crypto from 'crypto';
 import { resendApiKey, resendFrom } from '../email/resendAccount.mjs';
 import { sendSms as defaultSendSms } from '../dailyDigest/delivery.mjs';
+import { buildPromoSignupUrl } from './promoSignupToken.mjs';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const EMAIL_SCAN_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,24}/gi;
@@ -39,10 +40,10 @@ export const DEFAULT_POSTAL_ADDRESS = 'PO Box 1905, 9624 Cicero Ave, Oak Lawn, I
 export const DEFAULT_PROMO_DRAFT = {
     subject: 'Claim 500 Free Diamonds, 30-Day Free VIP & 25 Free Chips on Smarter.Poker',
     headline: '500 Free Diamonds + 30-Day Free VIP + 25 Free Chips',
-    body: 'Train with GTO poker tools, discover live poker games near you, and take a seat in Club Arena on Smarter.Poker.\n\nCreate or sign in to your free account, verify your phone to unlock 500 Free Diamonds plus a 30-Day Free VIP Card, and join Kings Club (Club Code 25450) in Club Arena for 25 Free Chips.',
+    body: 'Train with GTO poker tools, discover live poker games near you, and take a seat in Club Arena on Smarter.Poker.\n\nCreate your free account through this exclusive promotion and verify your phone number to instantly receive 500 Free Diamonds, a 30-Day Free VIP Card, and 25 Free Chips in Kings Club (Club Code 25450).',
     ctaLabel: 'Claim Your Free Rewards',
-    ctaUrl: 'https://smarter.poker/auth/signup?next=%2Fhub%2Fclub-arena%2F%3Fjoin%3D25450',
-    smsBody: 'Smarter.Poker: Claim 500 Free Diamonds, 30-Day Free VIP + 25 Free Chips in Kings Club (Code 25450): https://smarter.poker/auth/signup Reply STOP to opt out.',
+    ctaUrl: 'https://smarter.poker/auth/signup?redirect=%2Fhub%2Fclub-arena%2F%3Fjoin%3D25450',
+    smsBody: 'Smarter.Poker: Claim 500 Free Diamonds, 30-Day Free VIP + 25 Free Chips in Kings Club (Code 25450): https://smarter.poker/go/promo Reply STOP to opt out.',
     postalAddress: DEFAULT_POSTAL_ADDRESS,
     channels: 'both',
     scope: 'all',
@@ -651,6 +652,7 @@ export async function dispatchPromoCampaign(
     const apiKey = resendApiKey();
     const from = resendFrom(process.env.NEWS_DIGEST_FROM || DEFAULT_PROMO_FROM);
     const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || DEFAULT_SITE_URL).replace(/\/+$/, '');
+    const signedCtaUrl = buildPromoSignupUrl(cleanCtaUrl, { siteUrl });
     const emailConfigured = Boolean(apiKey);
     const smsConfigured = Boolean(
         (process.env.TWILIO_ACCOUNT_SID || '').trim() &&
@@ -675,7 +677,7 @@ export async function dispatchPromoCampaign(
                 headline: cleanHeadline,
                 body: cleanBody,
                 ctaLabel: cleanCtaLabel,
-                ctaUrl: cleanCtaUrl,
+                ctaUrl: signedCtaUrl,
                 postalAddress: cleanPostal,
                 siteUrl,
                 unsubscribeUrl,
@@ -724,7 +726,7 @@ export async function dispatchPromoCampaign(
         headline: cleanHeadline,
         body: cleanBody,
         ctaLabel: cleanCtaLabel,
-        ctaUrl: cleanCtaUrl,
+        ctaUrl: signedCtaUrl,
         postalAddress: cleanPostal,
         siteUrl,
         unsubscribeUrl: sampleUnsubUrl,
@@ -811,7 +813,7 @@ export async function dispatchPromoCampaign(
                         headline: cleanHeadline,
                         body: cleanBody,
                         ctaLabel: cleanCtaLabel,
-                        ctaUrl: cleanCtaUrl,
+                        ctaUrl: signedCtaUrl,
                         postalAddress: cleanPostal,
                         siteUrl,
                         unsubscribeUrl,

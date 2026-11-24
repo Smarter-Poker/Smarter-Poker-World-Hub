@@ -38,6 +38,11 @@ import {
 } from '../../src/lib/authErrors';
 import { redeemPendingSignupCodes } from '../../src/lib/pendingSignupCodes.mjs';
 import { attributionForNewAccount } from '../../src/lib/acquisition/firstTouch.mjs';
+import {
+    cleanPromoTokenShape,
+    readPendingPromoSignupToken,
+    rememberPromoSignupToken,
+} from '../../src/lib/promoCampaigns/promoSignupToken.mjs';
 
 // Email-link `type` values that Supabase produces.
 // https://supabase.com/docs/reference/javascript/auth-verifyotp
@@ -345,6 +350,22 @@ export default function AuthCallback() {
                     const acquisition = attributionForNewAccount(user, window, Date.now(), attrParam || null);
                     if (acquisition) await supabase.auth.updateUser({ data: acquisition });
                 } catch (_attrErr) { /* non-blocking */ }
+
+                // ── 6.45 Promotional signup token persistence (Dan 2026-11-23).
+                //      Carry ?pt= into localStorage and new-account metadata so
+                //      /hub/verify-phone -> /api/sms/verify-otp grants 25 chips
+                //      for promotional signups only.
+                try {
+                    const rawQueryPt = Array.isArray(router.query.pt) ? router.query.pt[0] : router.query.pt;
+                    if (rawQueryPt) rememberPromoSignupToken(rawQueryPt);
+                    const pendingPt = cleanPromoTokenShape(rawQueryPt)
+                        || cleanPromoTokenShape(user?.user_metadata?.promo_signup_token)
+                        || readPendingPromoSignupToken();
+                    const createdAgeMs = Date.now() - Date.parse(user.created_at || '');
+                    if (pendingPt && Number.isFinite(createdAgeMs) && createdAgeMs < 30 * 24 * 60 * 60 * 1000 && !user?.user_metadata?.promo_signup_token) {
+                        await supabase.auth.updateUser({ data: { promo_signup_token: pendingPt } });
+                    }
+                } catch (_ptErr) { /* non-blocking */ }
 
                 // ── 6.5 Redeem pending promo code / referral code ──
                 // One helper for both verification doors (link here, six-digit

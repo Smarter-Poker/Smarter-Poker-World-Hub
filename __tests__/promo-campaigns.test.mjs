@@ -16,6 +16,20 @@ import {
     resolvePromoAudience,
 } from '../src/lib/promoCampaigns/dispatch.mjs';
 import { verifySvixSignature } from '../src/lib/email/svixSignature.mjs';
+import {
+    CLUB_ARENA_DEVICE_ID_KEY,
+    KINGS_CLUB_JOIN_PATH,
+    PROMO_SIGNUP_STORAGE_KEY,
+    buildPromoSignupUrl,
+    clearPendingPromoSignupToken,
+    getOrCreateClubArenaDeviceId,
+    isValidDeviceUuid,
+    readPendingPromoSignupToken,
+    rememberPromoSignupToken,
+    signPromoSignupToken,
+    verifyPromoSignupToken,
+} from '../src/lib/promoCampaigns/promoSignupToken.mjs';
+import { authSwitchHref } from '../src/lib/clubInvite.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
@@ -365,4 +379,77 @@ test('promo sender routes use resendAccount.mjs and admin authorization guards',
     assert.match(apiSrc, /\['admin', 'superadmin', 'god'\]/);
     assert.doesNotMatch(apiSrc, /process\.env\.RESEND_API_KEY/);
     assert.match(subscribeSrc, /source:\s*'unsubscribe'/);
+});
+
+test('signPromoSignupToken and verifyPromoSignupToken enforce HMAC authenticity and expiration', () => {
+    const secret = 'test-promo-hmac-secret-20261123';
+    const nowMs = Date.parse('2026-11-23T23:00:00Z');
+    const token = signPromoSignupToken({ campaign: 'sp_promo_20261123', ttlDays: 30, nowMs, secret });
+    assert.ok(token.includes('.'));
+
+    const ok = verifyPromoSignupToken(token, { nowMs: nowMs + 60_000, secret });
+    assert.equal(ok.valid, true);
+    assert.equal(ok.campaign, 'sp_promo_20261123');
+
+    const tampered = `${token.slice(0, -2)}zz`;
+    assert.deepEqual(verifyPromoSignupToken(tampered, { nowMs, secret }), { valid: false, reason: 'bad_signature' });
+    assert.deepEqual(verifyPromoSignupToken(token, { nowMs, secret: 'wrong-secret' }), { valid: false, reason: 'bad_signature' });
+    assert.deepEqual(verifyPromoSignupToken(token, { nowMs: nowMs + 31 * 86400 * 1000, secret }), { valid: false, reason: 'expired' });
+    assert.deepEqual(verifyPromoSignupToken('', { nowMs, secret }), { valid: false, reason: 'missing' });
+    assert.deepEqual(verifyPromoSignupToken('not-a-valid-token', { nowMs, secret }), { valid: false, reason: 'malformed' });
+});
+
+test('buildPromoSignupUrl, storage helpers, device ID helper, and authSwitchHref preserve promo attribution', () => {
+    const secret = 'test-promo-url-secret';
+    const nowMs = Date.parse('2026-11-23T23:00:00Z');
+    const built = new URL(buildPromoSignupUrl('https://smarter.poker/auth/signup', { secret, nowMs }));
+    assert.equal(built.pathname, '/auth/signup');
+    assert.equal(built.searchParams.get('redirect'), KINGS_CLUB_JOIN_PATH);
+    const pt = built.searchParams.get('pt');
+    assert.equal(verifyPromoSignupToken(pt, { secret, nowMs }).valid, true);
+
+    const store = new Map();
+    const fakeStorage = {
+        getItem: (k) => (store.has(k) ? store.get(k) : null),
+        setItem: (k, v) => store.set(k, String(v)),
+        removeItem: (k) => store.delete(k),
+    };
+    assert.equal(rememberPromoSignupToken(pt, fakeStorage), pt);
+    assert.equal(store.get(PROMO_SIGNUP_STORAGE_KEY), pt);
+    assert.equal(readPendingPromoSignupToken(fakeStorage), pt);
+    clearPendingPromoSignupToken(fakeStorage);
+    assert.equal(readPendingPromoSignupToken(fakeStorage), null);
+
+    const devId = getOrCreateClubArenaDeviceId(fakeStorage);
+    assert.equal(isValidDeviceUuid(devId), true);
+    assert.equal(store.get(CLUB_ARENA_DEVICE_ID_KEY), devId);
+    assert.equal(getOrCreateClubArenaDeviceId(fakeStorage), devId);
+
+    const switched = authSwitchHref('/auth/login', { redirect: KINGS_CLUB_JOIN_PATH, pt });
+    assert.match(switched, new RegExp(`pt=${encodeURIComponent(pt).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
+    assert.match(DEFAULT_PROMO_DRAFT.smsBody, /https:\/\/smarter\.poker\/go\/promo/);
+});
+
+test('25 free signup chips are gated exclusively behind verified promotional signup tokens', () => {
+    const goPromoSrc = read('pages/go/promo.js');
+    const signupSrc = read('pages/auth/signup.js');
+    const callbackSrc = read('pages/auth/callback.js');
+    const verifyPhoneSrc = read('pages/hub/verify-phone.js');
+    const consoleSrc = read('src/components/gates/VerificationConsole.jsx');
+    const verifyOtpSrc = read('pages/api/sms/verify-otp.js');
+
+    assert.match(goPromoSrc, /buildPromoSignupUrl\(/);
+    assert.match(goPromoSrc, /permanent:\s*false/);
+    assert.match(signupSrc, /promo_signup_token:\s*promoSignupToken/);
+    assert.match(callbackSrc, /promo_signup_token:\s*pendingPt/);
+    assert.match(verifyPhoneSrc, /getOrCreateClubArenaDeviceId/);
+    assert.match(verifyPhoneSrc, /\/hub\/club-arena\/\?welcome=chips/);
+    assert.match(consoleSrc, /Free Chips Added In Kings Club/);
+    assert.match(verifyOtpSrc, /verifyPromoSignupToken\(candidatePromoToken\)/);
+    assert.match(verifyOtpSrc, /supabase\.rpc\('fn_sp_grant_promo_signup_chips'/);
+    assert.ok(
+        verifyOtpSrc.indexOf('verifyPromoSignupToken(candidatePromoToken)') <
+        verifyOtpSrc.indexOf("supabase.rpc('fn_sp_grant_promo_signup_chips'"),
+        'verify-otp must verify the HMAC promo token before calling fn_sp_grant_promo_signup_chips'
+    );
 });
