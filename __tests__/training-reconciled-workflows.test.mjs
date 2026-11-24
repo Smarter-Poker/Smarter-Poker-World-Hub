@@ -883,3 +883,102 @@ test('Root-cause regression hardening laws: preflop notation lookup, Omaha strai
   );
   assert.equal(liveRaisePots.totalPotBb, 16);
 });
+
+test('Phase 7 Package A-J: Parallel API latency optimization, Runout What-If Explorer, Omaha Best-5 Pill, Mistake Replay, Hand Leak Priority, Duel Hand-by-Hand Comparison, Dynamic Leak Curriculum, and 11-Page Horse Brain Expansion', async () => {
+  // 1. Item A & E: batch-preload.js & record-question.js Promise.all parallelization and checksum-gated canonical write skip
+  const batchPreloadSrc = read('pages/api/training/batch-preload.js');
+  assert.match(batchPreloadSrc, /Promise\.all\(\[seenPromise,\s*cachePromise\]\)/, 'batch-preload.js must parallelize user_seen_questions and training_question_cache reads');
+  assert.match(batchPreloadSrc, /existingChecksum\s*===\s*rowChecksum/, 'batch-preload.js must skip re-upserting already-canonicalized rows with matching policy_checksum');
+
+  const recordQuestionSrc = read('pages/api/training/record-question.js');
+  assert.match(recordQuestionSrc, /Promise\.all\(\[\s*Promise\.resolve\(snapshot\)/, 'record-question.js must resolve snapshot and canonical question reads via Promise.all');
+  assert.match(recordQuestionSrc, /Promise\.all\(\[seenUpsertPromise,\s*answerInsertPromise\]\)/, 'record-question.js must parallelize user_seen_questions upsert and training_answers insert');
+
+  // 2. Item H: rankImportedHandsByEvLeak in syncedHandDrillResolver.js / audit-hand-history.js and #1 leak badges/CTA in live-hud-sync.js
+  const { rankImportedHandsByEvLeak } = await import('../src/lib/training/syncedHandDrillResolver.js');
+  assert.equal(typeof rankImportedHandsByEvLeak, 'function');
+  const auditApiPhase7Src = read('pages/api/training/audit-hand-history.js');
+  assert.match(auditApiPhase7Src, /rankImportedHandsByEvLeak/);
+  assert.match(auditApiPhase7Src, /topLeakHand/);
+  const rankedHands = rankImportedHandsByEvLeak([
+    { id: 'h-low', variant: 'nlh', street: 'flop', heroPosition: 'BTN', heroCards: ['As', 'Kd'], boardCards: ['8d', '5c', '2s'], potSizeBb: 6, facingBetBb: 2, evLoss: 0.35 },
+    { id: 'h-high', variant: 'plo5', street: 'turn', heroPosition: 'BB', heroCards: ['As', 'Ks', 'Qh', 'Jh', 'Td'], boardCards: ['8d', '5c', '2s', '6h'], potSizeBb: 24, facingBetBb: 16, evLoss: 3.85 },
+  ]);
+  assert.equal(rankedHands.length, 2);
+  assert.equal(rankedHands[0].id, 'h-high');
+  assert.equal(rankedHands[0].leakPriorityRank, 1);
+  assert.equal(rankedHands[1].id, 'h-low');
+  assert.equal(rankedHands[1].leakPriorityRank, 2);
+  assert.ok(rankedHands[0].estimatedEvLossBb > rankedHands[1].estimatedEvLossBb);
+
+  const liveHudSyncSrc = read('pages/hub/training/live-hud-sync.js');
+  assert.match(liveHudSyncSrc, /data-hand-leak-priority=/);
+  assert.match(liveHudSyncSrc, /data-estimated-ev-loss-bb=/);
+  assert.match(liveHudSyncSrc, /data-train-top-imported-leak="true"/);
+
+  // 3. Item B, F, G: UniversalDynamicTable Runout What-If Explorer, Omaha 2-Hole+3-Board Best-5 Pill, and Session Mistake Replay CTA
+  const universalTableSrc = read('src/components/training/games/UniversalDynamicTable.jsx');
+  assert.match(universalTableSrc, /data-runout-whatif-explorer="true"/);
+  assert.match(universalTableSrc, /data-runout-card-option=/);
+  assert.match(universalTableSrc, /data-whatif-recommended-action=/);
+  assert.match(universalTableSrc, /data-omaha-best-five-highlight="true"/);
+  assert.match(universalTableSrc, /data-omaha-best-two-hole=/);
+  assert.match(universalTableSrc, /data-omaha-best-three-board=/);
+  assert.match(universalTableSrc, /data-drill-session-mistakes-cta="true"/);
+
+  for (const mistakeSurface of ['pages/hub/training/session-dashboard.js', 'pages/hub/training/reports.js']) {
+    const surfaceSrc = read(mistakeSurface);
+    assert.match(surfaceSrc, /data-drill-session-mistakes-cta="true"/, `${mistakeSurface} must expose data-drill-session-mistakes-cta="true"`);
+    assert.match(surfaceSrc, /data-mistake-target-variant=/, `${mistakeSurface} must expose data-mistake-target-variant`);
+    assert.match(surfaceSrc, /data-mistake-target-street=/, `${mistakeSurface} must expose data-mistake-target-street`);
+    assert.match(surfaceSrc, /data-mistake-target-position=/, `${mistakeSurface} must expose data-mistake-target-position`);
+  }
+
+  // 4. Item I: Completed Duel Hand 1-10 Side-by-Side Comparison + Rematch button in pvp-lobby.js
+  const pvpLobbySrc = read('pages/hub/training/pvp-lobby.js');
+  assert.match(pvpLobbySrc, /scoreboard\.status\s*===\s*'completed'/);
+  assert.match(pvpLobbySrc, /data-duel-hand-by-hand="true"/);
+  assert.match(pvpLobbySrc, /data-duel-hand-row=/);
+  assert.match(pvpLobbySrc, /data-duel-rematch-btn="true"/);
+
+  // 5. Item J: Live Leak-Driven Weekly Curriculum in study-plan.js and jarvis.js
+  for (const curriculumFile of ['pages/hub/training/study-plan.js', 'pages/hub/training/jarvis.js']) {
+    const curSrc = read(curriculumFile);
+    assert.match(curSrc, /analyzeVerifiedTrainingWeaknesses/, `${curriculumFile} must import analyzeVerifiedTrainingWeaknesses`);
+    assert.match(curSrc, /data-dynamic-leak-curriculum="true"/, `${curriculumFile} must expose data-dynamic-leak-curriculum="true"`);
+    assert.match(curSrc, /data-leak-variant=/, `${curriculumFile} must expose data-leak-variant`);
+    assert.match(curSrc, /data-leak-street=/, `${curriculumFile} must expose data-leak-street`);
+    assert.match(curSrc, /data-leak-position=/, `${curriculumFile} must expose data-leak-position`);
+    assert.match(curSrc, /data-drill-priority-leak-cta="true"/, `${curriculumFile} must expose data-drill-priority-leak-cta="true"`);
+  }
+
+  // 6. Item C & D: Offline equity fallback + 13 newly wired Horse Brain Spot Preview & 1:1 Club Arena Launcher surfaces
+  const equityCalcSrc = read('pages/hub/training/equity-calculator.js');
+  assert.match(equityCalcSrc, /data-offline-equity-fallback="true"/);
+
+  const newlyWiredBrainPages = [
+    'pages/hub/training/aggregate.js',
+    'pages/hub/training/gto-reports.js',
+    'pages/hub/training/reports.js',
+    'pages/hub/training/tournaments.js',
+    'pages/hub/training/challenges.js',
+    'pages/hub/training/community-leaderboard.js',
+    'pages/hub/training/study-group.js',
+    'pages/hub/training/study-group-finder.js',
+    'pages/hub/training/training-feed.js',
+    'pages/hub/training/achievements.js',
+    'pages/hub/training/milestones.js',
+    'pages/hub/training/streaks.js',
+    'pages/hub/training/progress.js',
+    'pages/hub/training/leaderboard.js',
+  ];
+  for (const relPath of newlyWiredBrainPages) {
+    const pageSrc = read(relPath);
+    assert.match(pageSrc, /evaluateTrainingSpotWithHorseBrain/, `${relPath} must wire evaluateTrainingSpotWithHorseBrain`);
+    assert.match(pageSrc, /buildCustomTrainingArenaHref/, `${relPath} must wire buildCustomTrainingArenaHref`);
+    if (relPath !== 'pages/hub/training/gto-reports.js') {
+      assert.match(pageSrc, /data-specialty-brain-panel="true"/, `${relPath} must render data-specialty-brain-panel="true"`);
+      assert.match(pageSrc, /data-launch-club-arena-cta="true"/, `${relPath} must render data-launch-club-arena-cta="true"`);
+    }
+  }
+});
