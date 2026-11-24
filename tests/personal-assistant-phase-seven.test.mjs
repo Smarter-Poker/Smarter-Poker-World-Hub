@@ -201,6 +201,29 @@ test('evidence inspector matches Club Arena examples by handId and aligns 42-cha
   assert.equal(chainBySlug[1].detail, 'river-overbet-decision');
 });
 
+test('coaching intelligence never turns null dates into 1970 epoch events or misclassifies PIO/lookup-failed sources', () => {
+  const activeUnreviewed = [
+    {
+      id: 'leak-unreviewed', title: 'Turn C-Bet', status: 'emerging', totalSamples: 12,
+      mistakeCount: 4, occurrenceCount: 4, evLossMeasured: false, evLossBB: null,
+      firstDetected: '2026-11-20T00:00:00.000Z', resolvedAt: null,
+    },
+  ];
+  const snapshot = buildCoachingSnapshot({ leaks: activeUnreviewed, decisions: [], reviews: [], now });
+  assert.equal(snapshot.priorities[0].due, false);
+  assert.equal(snapshot.priorities[0].dueAt, null);
+  assert.equal(snapshot.summary.due, 0);
+  assert.equal(snapshot.timeline.some(event => event.type === 'resolved'), false);
+
+  const cov = decisionCoverage([
+    { solver_verified: true, solver_source: 'PIO|hand-audit-v3', ev_loss_measured: true, ev_loss: 0.4 },
+    { solver_verified: false, solver_source: 'hand-audit-v3:lookup-failed', ev_loss_measured: false },
+  ]);
+  assert.equal(cov.solverEvidence, 1);
+  assert.equal(cov.aiGuidance, 0);
+  assert.equal(cov.unclassified, 1);
+});
+
 test('Personal Assistant wiring uses fresh auth tokens, Club Arena hand replay, and Jarvis redirect', () => {
   const workspace = read('src/components/personal-assistant/CoachingWorkspace.jsx');
   const leaksPage = read('pages/hub/personal-assistant/leaks.js');

@@ -10,11 +10,13 @@ const SUITS = 'cdhs';
 const MATCHER_VERSION = 'hand-audit-v3';
 const LOOKUP_FAILED_SOURCE = `${MATCHER_VERSION}:lookup-failed`;
 const FORCED_ACTIONS = new Set([
-  'ante', 'sb', 'bb', 'smallblind', 'bigblind', 'blind', 'straddle', 'post', 'posts',
-  'return', 'returnedbet', 'refund', 'collect', 'collected', 'payout', 'win', 'wins',
+  'ante', 'sb', 'bb', 'smallblind', 'bigblind', 'blind', 'straddle', 'killblind', 'bombante',
+  'post', 'posts', 'return', 'returnedbet', 'refund', 'collect', 'collected', 'payout',
+  'win', 'wins', 'discard',
 ]);
 const BLIND_POST_ACTIONS = new Set([
-  'ante', 'sb', 'bb', 'smallblind', 'bigblind', 'blind', 'straddle', 'post', 'posts',
+  'ante', 'sb', 'bb', 'smallblind', 'bigblind', 'blind', 'straddle', 'killblind', 'bombante',
+  'post', 'posts',
 ]);
 const HOLDEM_VARIANTS = new Set([
   'nl', 'nlh', 'nlhe', 'holdem', 'holdemnl', 'texasholdem', 'nolimit', 'nolimitholdem',
@@ -46,10 +48,19 @@ function isSupportedHoldemVariant(value) {
   return HOLDEM_VARIANTS.has(normalized);
 }
 
+function isUnsupportedSpecialFormat(row) {
+  if (row?.bomb_pot !== null && row?.bomb_pot !== undefined) return true;
+  if (row?.kill_pot !== null && row?.kill_pot !== undefined) return true;
+  if (Array.isArray(row?.community_cards2) && row.community_cards2.length > 0) return true;
+  if (Array.isArray(row?.community_cards3) && row.community_cards3.length > 0) return true;
+  return false;
+}
+
 export function clubArenaHandRejectionReason(row, userId) {
   const summary = parseJson(row?.summary) || {};
   const gameType = String(row?.game_variant || summary?.variant || '').trim().toLowerCase();
   if (!isSupportedHoldemVariant(gameType)) return 'unsupported_variant';
+  if (isUnsupportedSpecialFormat(row)) return 'unsupported_special_format';
   const rawPlayers = Array.isArray(summary.players) && summary.players.length > 0
     ? summary.players
     : (Array.isArray(row?.players) ? row.players : []);
@@ -94,12 +105,12 @@ function normalizedRawAction(action) {
 
 function isForcedAction(action) {
   if (action?.historyEvent === 'uncalled_bet_returned') return true;
-  if (String(action?.origin || '').toLowerCase() === 'forced') {
-    const raw = normalizedRawAction(action);
-    if (BLIND_POST_ACTIONS.has(raw) || /^(small|big)?blind|ante|straddle/.test(raw)) return true;
-  }
   const raw = normalizedRawAction(action);
-  return FORCED_ACTIONS.has(raw) || /^(small|big)?blind|ante|straddle|returned?bet|refund|collect|payout/.test(raw);
+  if (/^ritboard\d*/.test(raw)) return true;
+  if (String(action?.origin || '').toLowerCase() === 'forced') {
+    if (BLIND_POST_ACTIONS.has(raw) || /^(small|big)?blind|ante|straddle|killblind|bombante/.test(raw)) return true;
+  }
+  return FORCED_ACTIONS.has(raw) || /^(small|big)?blind|ante|straddle|killblind|bombante|returned?bet|refund|collect|payout/.test(raw);
 }
 
 function actionName(action) {
@@ -143,9 +154,10 @@ function positionedPlayers(rawPlayers, buttonSeat, bigBlind) {
 export function normalizeClubArenaHand(row, userId) {
   const summary = parseJson(row?.summary) || {};
   const gameType = String(row?.game_variant || summary?.variant || '').trim().toLowerCase();
-  // Missing/unsupported variants must never be silently priced with NLHE
+  // Missing/unsupported variants or special formats (bomb pots, kill pots,
+  // multi-board hands) must never be silently priced with single-board NLHE
   // ranges. A false solver match is worse than leaving a hand unpriced.
-  if (!isSupportedHoldemVariant(gameType)) return null;
+  if (!isSupportedHoldemVariant(gameType) || isUnsupportedSpecialFormat(row)) return null;
   const rawPlayers = Array.isArray(summary.players) && summary.players.length > 0
     ? summary.players
     : (Array.isArray(row?.players) ? row.players : []);
@@ -306,13 +318,15 @@ export function normalizeClubArenaHand(row, userId) {
           raiseTo = raiseTo ?? amount;
           delta = Math.max(0, raiseTo - prevContrib);
         } else {
-          delta = Math.max(0, amount);
+          // Hetzner records all_in.amount as total street commitment (stack + bet),
+          // so subtract prevContrib to avoid double-counting blinds/prior bets.
+          delta = Math.max(0, amount - prevContrib);
         }
       }
 
       let computedSizing = null;
       const canDeriveRaiseSizing = (explicitRaiseTo !== null && explicitCurrentBetBefore !== null)
-        || (!usedSummaryActions && String(row?.source || '').toLowerCase() === 'manual' && hasTrackablePot);
+        || (!usedSummaryActions && ['manual', 'wh-engine', 'engine-api'].includes(String(row?.source || '').toLowerCase()) && hasTrackablePot);
       if (normalizedAction === 'bet' && potBefore > 0 && delta > 0) {
         computedSizing = (delta / potBefore) * 100;
       } else if (
@@ -399,7 +413,9 @@ export function normalizeClubArenaHand(row, userId) {
       name: heroPlayer?.name || heroRaw.displayName || heroRaw.username || 'Hero',
       position: heroPlayer?.position || heroRaw.position || '',
       holeCards: heroCards,
-      stack: heroPlayer?.stack || null,
+      stack: (Number.isFinite(Number(row?.hero_effective_stack_bb)) && Number(row?.hero_effective_stack_bb) > 0)
+        ? Number(row.hero_effective_stack_bb)
+        : (heroPlayer?.stack || null),
     },
     streets: {
       preflop: { actions: preflopActions },
@@ -424,13 +440,14 @@ const PRIVATE_FACT_BATCH_SIZE = 200;
 async function fetchPrivateHeroCards(db, userId, handRows) {
   const handIds = [...new Set(handRows.map(row => String(row?.id || '')).filter(Boolean))];
   const byHandId = new Map();
+  const effectiveStackByHandId = new Map();
   let available = true;
   for (let index = 0; index < handIds.length; index += PRIVATE_FACT_BATCH_SIZE) {
     const batch = handIds.slice(index, index + PRIVATE_FACT_BATCH_SIZE);
     let result;
     try {
       result = await db.from('ca_hand_facts')
-        .select('hand_id, hole_cards')
+        .select('hand_id, hole_cards, effective_stack_bb_at_deal')
         .eq('user_id', userId)
         .in('hand_id', batch)
         .limit(batch.length);
@@ -445,9 +462,13 @@ async function fetchPrivateHeroCards(db, userId, handRows) {
     for (const fact of result?.data || []) {
       const privateCards = cards(fact?.hole_cards);
       if (privateCards.length >= 2) byHandId.set(String(fact.hand_id), privateCards);
+      const dealtStackBB = Number(fact?.effective_stack_bb_at_deal);
+      if (Number.isFinite(dealtStackBB) && dealtStackBB > 0) {
+        effectiveStackByHandId.set(String(fact.hand_id), dealtStackBB);
+      }
     }
   }
-  return { available, byHandId };
+  return { available, byHandId, effectiveStackByHandId };
 }
 
 function handNotation(value) {
@@ -902,7 +923,7 @@ async function fetchClubHandsForKey(db, userId, key, {
   let result;
   try {
     let query = db.from('hand_history')
-        .select('id, hand_number, table_id, tournament_id, game_variant, small_blind, big_blind, pot_size, players, hole_cards, board, community_cards, button_seat, actions, summary, source, created_at')
+        .select('id, hand_number, table_id, tournament_id, game_variant, small_blind, big_blind, pot_size, players, hole_cards, board, community_cards, community_cards2, community_cards3, bomb_pot, kill_pot, rit_boards, button_seat, actions, summary, source, created_at')
         // postgrest-js stringifies primitive arrays but not arrays of objects
         // in this dependency generation. Passing the object array directly
         // produces `22P02 invalid input syntax for type json` in production.
@@ -932,9 +953,22 @@ async function fetchClubHandsForKey(db, userId, key, {
   };
 }
 
+function parseTimestampMicros(value) {
+  if (!value) return [Number.NEGATIVE_INFINITY, 0];
+  const str = String(value);
+  const ms = Date.parse(str);
+  if (!Number.isFinite(ms)) return [Number.NEGATIVE_INFINITY, 0];
+  const fracMatch = /\.(\d+)/.exec(str);
+  const subMs = fracMatch ? Number(fracMatch[1].slice(3, 6).padEnd(3, '0')) : 0;
+  return [ms, subMs];
+}
+
 function compareHandKeyDescending(a, b) {
-  const timeOrder = String(b?.created_at || '').localeCompare(String(a?.created_at || ''));
-  return timeOrder || String(b?.id || '').localeCompare(String(a?.id || ''));
+  const [msA, subA] = parseTimestampMicros(a?.created_at);
+  const [msB, subB] = parseTimestampMicros(b?.created_at);
+  if (msB !== msA) return msB - msA;
+  if (subB !== subA) return subB - subA;
+  return String(b?.id || '').localeCompare(String(a?.id || ''));
 }
 
 async function fetchExistingAuditRows(db, userId, externalIds) {
@@ -1015,10 +1049,17 @@ export async function syncClubArenaHandsForAudit(db, userId, {
   let privateCardsRecovered = 0;
   const rowsWithPrivateCards = handRows.map(row => {
     const privateCards = privateFacts.byHandId.get(String(row.id));
-    if (!privateCards) return row;
-    const hadPublicCards = cards(row?.hole_cards?.[userId]).length >= 2;
-    if (!hadPublicCards) privateCardsRecovered += 1;
-    return { ...row, hero_private_cards: privateCards };
+    const dealtStackBB = privateFacts.effectiveStackByHandId?.get(String(row.id)) ?? null;
+    if (!privateCards && dealtStackBB === null) return row;
+    if (privateCards) {
+      const hadPublicCards = cards(row?.hole_cards?.[userId]).length >= 2;
+      if (!hadPublicCards) privateCardsRecovered += 1;
+    }
+    return {
+      ...row,
+      ...(privateCards ? { hero_private_cards: privateCards } : {}),
+      ...(dealtStackBB !== null ? { hero_effective_stack_bb: dealtStackBB } : {}),
+    };
   });
   const rejectionReasons = rowsWithPrivateCards.map(row => clubArenaHandRejectionReason(row, userId));
   const normalized = rowsWithPrivateCards.map(row => normalizeClubArenaHand(row, userId)).filter(Boolean);

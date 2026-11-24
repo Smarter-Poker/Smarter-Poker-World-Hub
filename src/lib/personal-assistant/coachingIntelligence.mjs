@@ -15,7 +15,8 @@ function clamp(value, min, max) {
 }
 
 function iso(value) {
-  const parsed = new Date(value || 0);
+  if (value === null || value === undefined || value === '') return null;
+  const parsed = new Date(value);
   return Number.isFinite(parsed.getTime()) ? parsed.toISOString() : null;
 }
 
@@ -115,9 +116,14 @@ export function decisionCoverage(decisions = [], rejected = {}) {
   const partiallyMatched = rows.filter(row => row.solver_verified !== true && count(row.match_tier) > 0).length;
   const sourceCounts = rows.reduce((result, row) => {
     const raw = String(row.solver_source || '').toLowerCase();
-    const key = raw.includes('ai') ? 'aiGuidance'
+    const isLookupFailure = raw.includes('lookup-failed') || raw.includes('unpriced');
+    const isSolverSource = row.solver_verified === true
+      || /\b(solver|pio|pio_database|chart|deterministic_solver|local_solver|legacy_strategy_archive)\b/.test(raw)
+      || raw.includes('solver');
+    const isAiSource = !isLookupFailure && (/\bai\b/.test(raw) || /(?:^|[_|: -])ai(?:[_|: -]|$)/.test(raw));
+    const key = isSolverSource ? 'solverEvidence'
+      : isAiSource ? 'aiGuidance'
       : raw.includes('offline') ? 'offlineEstimate'
-      : raw.includes('solver') ? 'solverEvidence'
       : 'unclassified';
     result[key] += 1;
     return result;

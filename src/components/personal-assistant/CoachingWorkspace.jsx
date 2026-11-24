@@ -112,10 +112,13 @@ export default function CoachingWorkspace({
     return payload;
   }, []);
 
+  const hydratedPrefsForUserRef = useRef(null);
+
   const load = useCallback(async () => {
     if (!userId) {
       setLoading(false);
       setWorkspace(null);
+      hydratedPrefsForUserRef.current = null;
       return;
     }
     setLoading(true);
@@ -123,10 +126,13 @@ export default function CoachingWorkspace({
     try {
       const payload = await apiRequest();
       setWorkspace(payload);
-      const saved = payload.preferences?.saved_view;
-      if (VIEWS.some(item => item.id === saved)) setView(saved);
-      if (['guided', 'detailed', 'expert'].includes(payload.preferences?.analysis_depth)) {
-        setAnalysisDepth(payload.preferences.analysis_depth);
+      if (hydratedPrefsForUserRef.current !== userId) {
+        hydratedPrefsForUserRef.current = userId;
+        const saved = payload.preferences?.saved_view;
+        if (VIEWS.some(item => item.id === saved)) setView(saved);
+        if (['guided', 'detailed', 'expert'].includes(payload.preferences?.analysis_depth)) {
+          setAnalysisDepth(payload.preferences.analysis_depth);
+        }
       }
       const first = payload.snapshot?.priorities?.[0]?.id;
       setSelectedLeakId(current => current || first || null);
@@ -209,7 +215,7 @@ export default function CoachingWorkspace({
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
       setStatus({ tone: 'success', text: 'Verified Personal Assistant Export Downloaded' });
       await loadLifecycle();
     } catch (requestError) {
@@ -577,6 +583,7 @@ export default function CoachingWorkspace({
                   await lifecycleRequest('POST', { action: 'save_retention', retentionDays: event.target.value });
                   setStatus({ tone: 'success', text: 'Personal Assistant Retention Policy Saved' });
                   await loadLifecycle();
+                  if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('pa-data-updated'));
                 } catch (requestError) {
                   setStatus({ tone: 'danger', text: requestError?.message || 'Retention Policy Could Not Be Saved' });
                 } finally {
@@ -635,6 +642,7 @@ export default function CoachingWorkspace({
                       setStatus({ tone: 'success', text: 'Personal Assistant Data Removed And Lifecycle Receipt Recorded' });
                       await load();
                       await loadLifecycle();
+                      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('pa-data-updated'));
                     } catch (requestError) {
                       setStatus({ tone: 'danger', text: requestError?.message || 'Personal Assistant Data Could Not Be Removed' });
                     } finally {

@@ -242,8 +242,23 @@ export default async function handler(req, res) {
           const effectivePosition = ownedDrillParams?.position ?? position;
           const effectiveGame = ownedDrillParams?.game ?? game;
 
-          // Apply filters. Stored values are lowercase ("flop", "BTN") while
-          // the builder sends "Flop"/"BTN"; ilike is case-insensitive.
+          const ALLOWED_STREETS = new Set(['preflop', 'flop', 'turn', 'river']);
+          const ALLOWED_POSITIONS = new Set(['UTG', 'UTG1', 'UTG+1', 'UTG2', 'UTG+2', 'LJ', 'MP', 'MP+1', 'HJ', 'CO', 'BTN', 'SB', 'BB']);
+          const rawStreet = Array.isArray(effectiveStreet) ? effectiveStreet[0] : effectiveStreet;
+          const cleanStreet = rawStreet && String(rawStreet).trim().toLowerCase() !== 'any'
+            ? String(rawStreet).trim().toLowerCase()
+            : null;
+          const rawPosition = Array.isArray(effectivePosition) ? effectivePosition[0] : effectivePosition;
+          const cleanPosition = rawPosition && String(rawPosition).trim().toLowerCase() !== 'any'
+            ? String(rawPosition).trim().toUpperCase()
+            : null;
+          if (cleanStreet && !ALLOWED_STREETS.has(cleanStreet)) {
+            return res.status(400).json({ success: false, error: 'Invalid street filter' });
+          }
+          if (cleanPosition && !ALLOWED_POSITIONS.has(cleanPosition)) {
+            return res.status(400).json({ success: false, error: 'Invalid position filter' });
+          }
+
           // A solver leak knows which Training Arena game produced it. Keep
           // that identity through the review handoff instead of serving an
           // unrelated question that only shares street and position.
@@ -253,11 +268,11 @@ export default async function handler(req, res) {
               let query = supabase.from('training_question_cache')
                   .select('id, question_id, question_data, canonical_policy, source_classification, quality_status, policy_version, policy_checksum')
                   .in('quality_status', ['active', 'active_fallback']);
-              if (effectiveStreet && effectiveStreet !== 'Any') {
-                  query = query.ilike('question_data->scenario->>street', `${String(effectiveStreet).slice(0, 20)}%`);
+              if (cleanStreet) {
+                  query = query.eq('question_data->scenario->>street', cleanStreet);
               }
-              if (effectivePosition && effectivePosition !== 'Any') {
-                  query = query.ilike('question_data->scenario->>heroPosition', `${String(effectivePosition).slice(0, 20)}%`);
+              if (cleanPosition) {
+                  query = query.eq('question_data->scenario->>heroPosition', cleanPosition);
               }
               if (gameIds.length === 1) query = query.eq('game_id', gameIds[0]);
               else if (gameIds.length > 1) query = query.in('game_id', gameIds);
@@ -274,15 +289,16 @@ export default async function handler(req, res) {
               const { data, error } = await buildQuery().range(from, from + PAGE_SIZE - 1);
               if (error) {
                   if (error.code === '42P01') {
-                      return res.status(200).json({ success: true, pool: [], questions: [] });
+                      return res.status(503).json({ success: false, error: 'Practice drill bank is temporarily unavailable.' });
                   }
                   throw error;
               }
               const page = data || [];
               if (ownedDrillParams?.rewardEligible) {
                   for (const row of page) {
+                      if (!cacheRowIsServingEligible(row)) continue;
                       const hydratedQuestion = cacheQuestionFromRow(row);
-                      if (!hydratedQuestion || !cacheRowIsServingEligible(row)) continue;
+                      if (!hydratedQuestion) continue;
                       const exactScope = matchesExactSolverScope(hydratedQuestion, ownedDrillParams.leak);
                       const honestQuestion = honestPracticeQuestion(hydratedQuestion);
                       const mapped = mapCacheRow(honestQuestion ? {
@@ -299,10 +315,18 @@ export default async function handler(req, res) {
                       ) mappedRows.push(mapCacheRow({ ...row, question_data: hydratedQuestion }));
                   }
               } else {
-                  mappedRows.push(...page.map((row) => ({
-                      ...row,
-                      question_data: honestPracticeQuestion(cacheQuestionFromRow(row)),
-                  })).map(mapCacheRow).filter(Boolean));
+                  // Verify serving eligibility on the raw row BEFORE injecting canonical_policy
+                  // via cacheQuestionFromRow so tampered question_data is always rejected.
+                  for (const row of page) {
+                      if (!cacheRowIsServingEligible(row)) continue;
+                      const hydratedQuestion = cacheQuestionFromRow(row);
+                      if (!hydratedQuestion) continue;
+                      const mapped = mapCacheRow({
+                          ...row,
+                          question_data: honestPracticeQuestion(hydratedQuestion),
+                      });
+                      if (mapped) mappedRows.push(mapped);
+                  }
               }
               if (page.length < PAGE_SIZE) break;
           }

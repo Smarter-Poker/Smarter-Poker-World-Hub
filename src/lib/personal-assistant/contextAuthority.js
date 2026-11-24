@@ -89,7 +89,8 @@ export async function getUserContextState(supabase, userId) {
     if (recentSessionsError) return CONTEXT_STATES.SESSION_ACTIVE_UNKNOWN;
 
     // Check live Club Arena seats (Hetzner writes active seating to table_seats,
-    // not poker_sessions). A player seated with left_at IS NULL is in live play.
+    // not poker_sessions). A player seated with left_at IS NULL is in live play,
+    // and a recently vacated seat enters the same 5-minute post-session cooldown.
     const { data: activeClubSeats, error: activeClubSeatsError } = await supabase
       .from('table_seats')
       .select('id, table_id, left_at')
@@ -98,10 +99,10 @@ export async function getUserContextState(supabase, userId) {
       .limit(1);
 
     if (activeClubSeatsError) {
-      // Missing relation in an isolated test schema does not create a fake
-      // outage, but any real database/network error fails closed.
+      // Only ignore missing-relation 42P01 in isolated test schemas; fail closed
+      // on real database/network/schema-cache errors in production.
       const code = String(activeClubSeatsError?.code || '');
-      if (code !== '42P01' && code !== 'PGRST205') {
+      if (code !== '42P01') {
         return CONTEXT_STATES.SESSION_ACTIVE_UNKNOWN;
       }
     } else if (activeClubSeats && activeClubSeats.length > 0) {
@@ -109,6 +110,23 @@ export async function getUserContextState(supabase, userId) {
     }
 
     if (recentSessions && recentSessions.length > 0) {
+      return CONTEXT_STATES.SESSION_ENDED_VERIFIED;
+    }
+
+    const { data: recentClubSeats, error: recentClubSeatsError } = await supabase
+      .from('table_seats')
+      .select('id, left_at')
+      .eq('user_id', userId)
+      .not('left_at', 'is', null)
+      .gte('left_at', new Date(Date.now() - cooldownMs).toISOString())
+      .limit(1);
+
+    if (recentClubSeatsError) {
+      const code = String(recentClubSeatsError?.code || '');
+      if (code !== '42P01') {
+        return CONTEXT_STATES.SESSION_ACTIVE_UNKNOWN;
+      }
+    } else if (recentClubSeats && recentClubSeats.length > 0) {
       return CONTEXT_STATES.SESSION_ENDED_VERIFIED;
     }
 

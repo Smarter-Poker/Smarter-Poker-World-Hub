@@ -332,21 +332,37 @@ export function normalizeAuditHand(row, userId) {
     }
   }
 
+  const FORCED_AUDIT_ACTIONS = new Set([
+    'sb', 'bb', 'smallblind', 'bigblind', 'blind', 'ante', 'straddle',
+    'killblind', 'bombante', 'post', 'posts', 'return', 'returnedbet',
+    'refund', 'collect', 'collected', 'payout', 'win', 'wins', 'discard',
+  ]);
+
   return {
     ...row,
-    actions: actions.map(action => {
-      const actionPlayerId = action?.playerId ?? action?.userId ?? action?.player_id;
-      const actionName = action?.player ?? action?.username ?? action?.name;
-      return {
-        ...action,
-        action: String(action?.action || action?.type || '').replace('all_in', 'allin').toLowerCase(),
-        street: String(action?.street || 'preflop').toLowerCase(),
-        is_hero: action?.is_hero === true || action?.isHero === true
-          || String(actionPlayerId) === String(heroId)
-          || (!!hero?.displayName && actionName === hero.displayName)
-          || (!!hero?.username && actionName === hero.username),
-      };
-    }),
+    actions: actions
+      .filter(action => {
+        if (!action || action?.historyEvent === 'uncalled_bet_returned') return false;
+        const compact = String(action?.action || action?.type || '').toLowerCase().replace(/[-_\s]/g, '');
+        if (FORCED_AUDIT_ACTIONS.has(compact) || /^ritboard\d*/.test(compact)) return false;
+        if (String(action?.origin || '').toLowerCase() === 'forced' && /^(small|big)?blind|ante|straddle|kill/.test(compact)) {
+          return false;
+        }
+        return true;
+      })
+      .map(action => {
+        const actionPlayerId = action?.playerId ?? action?.userId ?? action?.player_id;
+        const actionName = action?.player ?? action?.username ?? action?.name;
+        return {
+          ...action,
+          action: String(action?.action || action?.type || '').replace('all_in', 'allin').toLowerCase(),
+          street: String(action?.street || action?.stage || 'preflop').toLowerCase(),
+          is_hero: action?.is_hero === true || action?.isHero === true
+            || String(actionPlayerId) === String(heroId)
+            || (!!hero?.displayName && actionName === hero.displayName)
+            || (!!hero?.username && actionName === hero.username),
+        };
+      }),
   };
 }
 
@@ -354,7 +370,7 @@ export function computeStatsFromAuditHands(hands, userId) {
   const total = hands.length;
   const isHero = (a) => a.player === 'hero' || a.is_hero || a.isHero;
   const act = (a) => (a.action || '').toLowerCase();
-  const isAggressive = (a) => ['bet', 'raise'].includes(act(a));
+  const isAggressive = (a) => ['bet', 'raise', 'allin'].includes(act(a));
 
   let vpipHands = 0;
   let pfrHands = 0;
@@ -601,9 +617,11 @@ const SUIT_LETTER = { clubs: 'c', diamonds: 'd', hearts: 'h', spades: 's' };
 export function toCardCode(card) {
   if (!card) return null;
   if (typeof card === 'object') {
-    const rank = String(card.rank ?? '').trim();
-    const suit = SUIT_LETTER[String(card.suit ?? '').trim().toLowerCase()];
-    return rank && suit ? `${rank}${suit}` : null;
+    const rawRank = String(card.rank ?? '').trim().toUpperCase();
+    const rank = rawRank === '10' ? 'T' : rawRank;
+    const rawSuit = String(card.suit ?? '').trim().toLowerCase();
+    const suit = SUIT_LETTER[rawSuit] || (/^[cdhs]$/.test(rawSuit) ? rawSuit : null);
+    return /^[2-9TJQKA]$/.test(rank) && suit ? `${rank}${suit}` : null;
   }
   if (typeof card !== 'string') return null;
   const raw = card.trim();
@@ -628,7 +646,7 @@ export function checkHandForLeak(hand, leakType) {
 
   const isHero = (a) => a.player === 'hero' || a.is_hero || a.isHero;
   const act = (a) => (a.action || '').toLowerCase();
-  const isAggressive = (a) => ['bet', 'raise'].includes(act(a));
+  const isAggressive = (a) => ['bet', 'raise', 'allin'].includes(act(a));
   const onStreet = (s) => actions.filter(a => a.street === s);
 
   const heroFacingBetDid = (street, response) => {

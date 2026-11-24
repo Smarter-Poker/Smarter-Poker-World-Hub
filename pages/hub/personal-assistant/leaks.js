@@ -146,8 +146,9 @@ function slugFromTitle(title) {
   return title.trim().toLowerCase().replace(/\s+/g, '_');
 }
 
-/** Total BB bled by a leak = per-occurrence EV loss x occurrences. */
+/** Total BB bled by a leak = per-occurrence EV loss x occurrences (priced leaks only). */
 function totalBleed(leak) {
+  if (!hasPricedEv(leak)) return 0;
   return Math.abs(num(leak?.evLossBB)) * Math.max(0, num(leak?.occurrenceCount));
 }
 
@@ -1839,7 +1840,11 @@ export default function LeakFinderPage() {
       .replace(/^club-arena:/, '')
       .trim();
     if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawHandId)) {
-      router.push(`/hub/club-arena/hand-history?hand=${encodeURIComponent(rawHandId)}&source=personal-assistant`);
+      const targetUrl = `/hub/club-arena/hand-history?hand=${encodeURIComponent(rawHandId)}&source=personal-assistant`;
+      // /hub/club-arena/* is a reverse-proxy rewrite to Club Arena's static app,
+      // not a Next.js page bundle - use full document navigation.
+      if (typeof window !== 'undefined') window.location.assign(targetUrl);
+      else router.push(targetUrl);
       return;
     }
     router.push('/hub/training/hand-history-upload?source=personal-assistant-leak-example');
@@ -2446,7 +2451,7 @@ export default function LeakFinderPage() {
                 >
                   <div style={{ flex: 1, minWidth: 200 }}>
                     <span style={pill('accent')}>Club Arena Hand Linked</span>
-                    <div style={{ marginTop: S.xs, fontSize: F.sm, color: T.text }}>
+                    <div style={{ marginTop: S.xs, fontSize: F.bodySm, color: T.text }}>
                       Run Leak Detection To Audit <span data-pa-verbatim="true">{linkedClubHand.label}</span> Against Verified Solver Evidence.
                     </div>
                   </div>
@@ -2455,7 +2460,11 @@ export default function LeakFinderPage() {
                       type="button"
                       className="pa-btn"
                       style={btn('secondary')}
-                      onClick={() => router.push(`/hub/club-arena/hand-history?hand=${encodeURIComponent(linkedClubHand.id)}&source=personal-assistant`)}
+                      onClick={() => {
+                        const targetUrl = `/hub/club-arena/hand-history?hand=${encodeURIComponent(linkedClubHand.id)}&source=personal-assistant`;
+                        if (typeof window !== 'undefined') window.location.assign(targetUrl);
+                        else router.push(targetUrl);
+                      }}
                     >
                       Open Hand In Club Arena
                     </button>
@@ -2777,7 +2786,7 @@ export default function LeakFinderPage() {
               <LeakErrorBoundary label="The Coaching Workspace">
                 <CoachingWorkspace
                   userId={userId}
-                  leaks={selectablePool}
+                  leaks={leaks}
                   onOpenLeak={(id) => { setSelectedLeakId(id); setTab('leaks'); }}
                   onOpenHandReview={handleOpenHandReview}
                   onReviewExample={handleReviewExample}

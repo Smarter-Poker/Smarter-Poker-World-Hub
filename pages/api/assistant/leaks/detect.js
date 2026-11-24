@@ -86,34 +86,49 @@ async function getPlayerStats(supabase, userId) {
     let rpcStats = null;
     let rpcErr = null;
     // Prefer Club Arena's cash-separated RPC (postflop-only AF + recorded
-    // opportunity denominators), falling back to ca_player_stats_full when
-    // unavailable or when a player only has legacy aggregate rows.
-    const separatedRes = await supabase.rpc('ca_player_stats_overview_separated', {
+    // opportunity denominators), trying chips first and diamonds second before
+    // falling back to ca_player_stats_full for legacy aggregate rows.
+    const separatedChipsRes = await supabase.rpc('ca_player_stats_overview_separated', {
       p_user: userId,
       p_game_mode: 'cash',
       p_asset: 'chips',
     });
-    if (!separatedRes?.error && separatedRes?.data?.overall?.total_hands > 0) {
-      rpcStats = separatedRes.data;
+    if (!separatedChipsRes?.error && separatedChipsRes?.data?.overall?.total_hands > 0) {
+      rpcStats = separatedChipsRes.data;
     } else {
-      const fullRes = await supabase.rpc('ca_player_stats_full', {
-        p_user: userId,
-      });
-      rpcStats = fullRes?.data;
-      rpcErr = fullRes?.error || separatedRes?.error;
+      const separatedDiamondsRes = !separatedChipsRes?.error
+        ? await supabase.rpc('ca_player_stats_overview_separated', {
+          p_user: userId,
+          p_game_mode: 'cash',
+          p_asset: 'diamonds',
+        })
+        : null;
+      if (!separatedDiamondsRes?.error && separatedDiamondsRes?.data?.overall?.total_hands > 0) {
+        rpcStats = separatedDiamondsRes.data;
+      } else {
+        const fullRes = await supabase.rpc('ca_player_stats_full', {
+          p_user: userId,
+        });
+        rpcStats = fullRes?.data;
+        rpcErr = fullRes?.error || separatedChipsRes?.error;
+      }
     }
     if (rpcErr && !rpcStats) {
       console.warn('[LeakDetect] Club Arena stats RPC failed:', rpcErr.message);
     } else if (rpcStats?.overall?.total_hands > 0) {
       const o = rpcStats.overall;
-      const avail = o.metric_availability || {};
+      // ca_player_stats_overview_separated places metric_availability under
+      // quality.metric_availability (stripping it from overall).
+      const avail = rpcStats?.quality?.metric_availability || o.metric_availability || {};
+      const threeBetMeasured = avail.three_bet_percent !== false
+        && (avail.three_bet_opportunities === undefined || Number(avail.three_bet_opportunities) > 0);
       finalStats = normalizeStats({
         // normalizeStats scales anything in (0,1] from fraction to percent, and
         // every value below is a fraction, so the units line up.
         hands_played: o.total_hands,
         vpip: o.vpip,
         pfr: o.pfr,
-        three_bet_percentage: avail.three_bet_percent === false ? null : o.three_bet_percent,
+        three_bet_percentage: threeBetMeasured ? o.three_bet_percent : null,
         cbet_percentage: avail.cbet_flop === false ? null : o.cbet_flop,
         cbet_opportunities: avail.cbet_flop_opportunities ?? null,
         aggression_factor: avail.aggression_factor === false ? null : o.aggression_factor,
@@ -250,7 +265,7 @@ function normalizeStats(stats) {
     riverValueBetFreq: asPercent(stats.river_value_bet_freq),
     riverBetOpps: num(stats.river_bet_opportunities) ?? 0,
     aggFactor: num(stats.aggression_factor, stats.af),
-    wtsd: num(stats.wtsd, stats.went_to_showdown),
+    wtsd: asPercent(stats.wtsd, stats.went_to_showdown),
   };
 }
 
@@ -482,6 +497,8 @@ function evidenceReceipt({ liveHands, solverEvidence, clubArenaSync }) {
 
 export default async function handler(req, res) {
   attachPersonalAssistantTiming(res, 'leak_detection');
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+  res.setHeader('Vary', 'Authorization');
   try {
     const workerAuth = openAuditJobToken(req.headers['x-pa-audit-worker'], 'detect');
     // One complete audit may require several signed continuation requests.
@@ -892,6 +909,7 @@ export default async function handler(req, res) {
       };
       const resolutionCandidates = Object.entries(existingLeakMap || {})
         .filter(([leakType, existingLeak]) =>
+          existingLeak.detector_managed !== false &&
           ((LEAK_PATTERNS[leakType] && stats && patternIsMeasured(stats, leakType)) ||
             (['training_solver', 'solver_engine'].includes(existingLeak.source_system)
               && (solverScopeCanResolve(leakType)

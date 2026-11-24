@@ -442,7 +442,17 @@ export function getHeroDecisionPoints(hand) {
 
     const points = [];
     const streets = ['preflop', 'flop', 'turn', 'river'];
-    const opponents = (hand.players || []).filter(player => String(player.id) !== String(hand.hero.id));
+    const heroIdPresent = hand.hero.id !== null && hand.hero.id !== undefined && String(hand.hero.id) !== '';
+    const heroNameLower = String(hand.hero.name || '').trim().toLowerCase();
+    const opponents = (hand.players || []).filter(player => {
+        if (heroIdPresent && player?.id !== null && player?.id !== undefined && String(player.id) !== '') {
+            return String(player.id) !== String(hand.hero.id);
+        }
+        if (heroNameLower && player?.name) {
+            return String(player.name).trim().toLowerCase() !== heroNameLower;
+        }
+        return true;
+    });
     const foldedKeys = new Set();
     const completedActions = [];
 
@@ -484,7 +494,8 @@ export function getHeroDecisionPoints(hand) {
                     );
                 });
                 const prior = streetData.actions.slice(0, actionIndex);
-                const priorRaises = prior.filter(a => a.action === 'raise' || a.action === 'bet');
+                const isAggro = (a) => a.action === 'raise' || a.action === 'bet' || a.action === 'allin';
+                const priorRaises = prior.filter(isAggro);
                 const heroPriorRaises = priorRaises.filter(a => a.isHero);
                 const callsAfterRaise = priorRaises.length > 0
                     ? prior.slice(prior.lastIndexOf(priorRaises[priorRaises.length - 1]) + 1)
@@ -499,7 +510,7 @@ export function getHeroDecisionPoints(hand) {
                 } else {
                     const lastHeroIndex = prior.map(a => a.isHero).lastIndexOf(true);
                     const sinceHero = prior.slice(lastHeroIndex + 1);
-                    nodeClass = sinceHero.some(a => !a.isHero && (a.action === 'bet' || a.action === 'raise'))
+                    nodeClass = sinceHero.some(a => !a.isHero && isAggro(a))
                         ? 'hero_faces_bet'
                         : 'hero_bets_or_checks';
                 }
@@ -515,7 +526,7 @@ export function getHeroDecisionPoints(hand) {
                     position: hand.hero.position,
                     nodeClass,
                     villainPosition: [...prior].reverse()
-                        .find(a => !a.isHero && (a.action === 'bet' || a.action === 'raise'))?.position
+                        .find(a => !a.isHero && isAggro(a))?.position
                         || (activeOpponents.length === 1 ? activeOpponents[0].position : '')
                         || '',
                     priorActions: [...completedActions, ...prior].map(priorAction => ({

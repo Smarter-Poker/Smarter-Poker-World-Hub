@@ -49,10 +49,46 @@ test('context authority fails closed when Club Arena table_seats lookup errors',
   assert.equal(await getUserContextState(db, 'user-1'), CONTEXT_STATES.SESSION_ACTIVE_UNKNOWN);
 });
 
-test('action grading never celebrates a mismatched bet-size bucket', () => {
+test('action grading classifies check-raise, 4-bet, jam, and fractional pot bets accurately', () => {
   assert.equal(gradeAction('Bet 33%', 'Bet 150%'), false);
   assert.equal(gradeAction('Bet 50%', 'Bet 66%'), true);
   assert.equal(gradeAction('Check', 'Bet 33%'), false);
+  assert.equal(gradeAction('Check', 'Check-Raise'), false);
+  assert.equal(gradeAction('Check-Raise', 'Raise'), true);
+  assert.equal(gradeAction('Bet', '4-Bet'), false);
+  assert.equal(gradeAction('4-Bet', 'Raise'), true);
+  assert.equal(gradeAction('Jam', 'All-In'), true);
+  assert.equal(gradeAction('Bet 1/3 Pot', 'Bet Pot'), false);
+  assert.equal(gradeAction('Bet 1/3 Pot', 'Bet 33%'), true);
+  assert.equal(gradeAction('Bet 1/2 Pot', 'Bet 50%'), true);
+  assert.equal(gradeAction('Bet 2/3 Pot', 'Bet 66%'), true);
+});
+
+test('context authority enforces Club Arena post-session cooldown and fails closed on schema cache error', async () => {
+  const recentLeftAt = new Date(Date.now() - 60_000).toISOString();
+  let tableSeatCall = 0;
+  const dbCooldown = {
+    from(table) {
+      if (table === 'table_seats') {
+        tableSeatCall += 1;
+        return queryResult(tableSeatCall === 1
+          ? { data: [], error: null }
+          : { data: [{ id: 'seat-2', left_at: recentLeftAt }], error: null });
+      }
+      return queryResult({ data: [], error: null });
+    },
+  };
+  assert.equal(await getUserContextState(dbCooldown, 'user-1'), CONTEXT_STATES.SESSION_ENDED_VERIFIED);
+
+  const dbSchemaMiss = {
+    from(table) {
+      if (table === 'table_seats') {
+        return queryResult({ data: null, error: { code: 'PGRST205', message: 'schema cache miss' } });
+      }
+      return queryResult({ data: [], error: null });
+    },
+  };
+  assert.equal(await getUserContextState(dbSchemaMiss, 'user-1'), CONTEXT_STATES.SESSION_ACTIVE_UNKNOWN);
 });
 
 test('legacy hand normalization rejects unscoped cards and conflicting hero flags', () => {

@@ -1078,6 +1078,29 @@ await test('audits a real Hetzner 6-max cash hand without summary, reconstructin
   }, userId);
   assert.equal(tourney.format, 'tournament');
 
+  // Special formats (NLH bomb pots, kill pots, multi-board) must be rejected before solver matching.
+  assert.equal(
+    normalizeClubArenaHand({ ...hetznerRow, bomb_pot: { ante: 4 }, hero_private_cards: ['As', 'Kh'] }, userId),
+    null,
+  );
+  assert.equal(
+    normalizeClubArenaHand({ ...hetznerRow, kill_pot: { active: true }, hero_private_cards: ['As', 'Kh'] }, userId),
+    null,
+  );
+  assert.equal(
+    normalizeClubArenaHand({ ...hetznerRow, community_cards2: ['Kd', '9c', '4s'], hero_private_cards: ['As', 'Kh'] }, userId),
+    null,
+  );
+
+  // Dealt effective_stack_bb_at_deal from ca_hand_facts overrides post-hand ending stack.
+  const dealtStackHand = normalizeClubArenaHand({
+    ...hetznerRow,
+    players: hetznerRow.players.map((p) => (p.userId === userId ? { ...p, stack: 20 } : p)),
+    hero_effective_stack_bb: 100,
+    hero_private_cards: ['As', 'Kh'],
+  }, userId);
+  assert.equal(dealtStackHand.hero.stack, 100);
+
   const result = await syncClubArenaHandsForAudit(db, userId);
   assert.match(selectClause, /\btournament_id\b/);
   assert.match(selectClause, /\bsmall_blind\b/);

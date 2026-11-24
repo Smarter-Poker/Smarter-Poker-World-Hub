@@ -61,6 +61,10 @@ export default function VerifiedEvidenceSandboxBoundary() {
 
   const go = (href) => {
     haptic('light');
+    if (href.startsWith('/hub/club-arena/') && typeof window !== 'undefined') {
+      window.location.assign(href);
+      return;
+    }
     router.push(href);
   };
 
