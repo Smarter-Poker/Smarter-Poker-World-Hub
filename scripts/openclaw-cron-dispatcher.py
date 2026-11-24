@@ -363,12 +363,31 @@ def _alert_bind(key, state):
     return state
 
 
-def _drain_alert_outbox(entry, limit=20):
+def _alert_jobname(key):
+    """Extract the stable job/check scope name from an alert persistence key."""
+    if not isinstance(key, str):
+        return None
+    trimmed = key.strip()
+    if not trimmed or trimmed == 'unknown':
+        return None
+    if trimmed.startswith('critical:'):
+        trimmed = trimmed[len('critical:'):].strip()
+    return trimmed[:120] or None
+
+
+def _drain_alert_outbox(entry, key=None, limit=20):
     delivered = 0
     pending = entry.setdefault('pending', [])
+    fallback_jobname = _alert_jobname(key)
     while pending and delivered < limit:
         event = pending[0]
-        if not _send_sms(event['body'], event_key=event['id'], recovery=event['recovery']):
+        if not _send_sms(
+            event['body'],
+            event_key=event['id'],
+            recovery=event['recovery'],
+            resolves=event.get('resolves'),
+            jobname=event.get('jobname') or fallback_jobname,
+        ):
             return False
         pending.pop(0)
         delivered += 1
@@ -382,10 +401,10 @@ def _drain_alert_outbox(entry, limit=20):
 def _drain_all_alert_outboxes():
     # Independent of a retired/daily producer: retry on the five-minute health tick.
     deadline = time.monotonic() + 10
-    for entry in list(_alert_persist.values()):
+    for key, entry in list(_alert_persist.items()):
         if time.monotonic() >= deadline:
             break
-        if not _drain_alert_outbox(entry, limit=1):
+        if not _drain_alert_outbox(entry, key=key, limit=1):
             break  # common transport is unavailable; preserve every remaining event
 
 
@@ -401,13 +420,17 @@ def _alert_flush(state):
         if numeric in state:
             entry[numeric] = state[numeric]
     pending = entry.setdefault('pending', [])
+    jobname = _alert_jobname(key)
     # A condition can recover before its first delivery succeeds. Keep both
     # transitions, including when the caller has cleared alert_sent already.
     if state.get('consec_fail', 0) == 0 and pending and not pending[-1]['recovery']:
-        pending.append({'id': str(uuid.uuid4()), 'body': '[RESOLVED] ' + key,
-                        'recovery': True, 'digest': None})
+        resolves = entry.pop('active_episode_id', None) or pending[-1].get('id')
+        event_id = f'{resolves}:resolved' if resolves else str(uuid.uuid4())
+        pending.append({'id': event_id, 'body': '[RESOLVED] ' + key,
+                        'recovery': True, 'digest': None,
+                        'resolves': resolves, 'jobname': jobname})
     _alert_state_save()
-    _drain_alert_outbox(entry)
+    _drain_alert_outbox(entry, key=key)
 
 
 @_with_alert_lock
@@ -415,10 +438,14 @@ def _alert(state, body, recovery=False):
     """Persist each transition before delivery; retry the same event receipt.
 
     A fresh failure following a recovery gets a new identity even when its
-    text is identical. Undelivered firing and recovery events survive restart.
+    text is identical. Firing re-pages within one episode reuse the episode's
+    eventKey, and recovery emits `<episode_id>:resolved` with `payload.resolves`
+    equal to the firing `episode_id` so the reliability controller correlates
+    and auto-resolves the exact episode. Undelivered events survive restart.
     """
     key = state.get('_key', 'unknown')
     entry = _alert_persist.setdefault(key, {})
+    jobname = _alert_jobname(key)
     digest = hashlib.sha256(body.encode('utf-8')).hexdigest()[:16]
     now = time.time()
     pending = entry.setdefault('pending', [])
@@ -429,13 +456,26 @@ def _alert(state, body, recovery=False):
     last = pending[-1] if pending else None
     event = last if last and last['digest'] == digest and last['recovery'] == recovery else None
     if event is None:
-        event = {'id': str(uuid.uuid4()), 'body': body, 'digest': digest, 'recovery': recovery}
+        if recovery:
+            resolves = entry.pop('active_episode_id', None)
+            if not resolves and last and not last.get('recovery'):
+                resolves = last.get('id')
+            event_id = f'{resolves}:resolved' if resolves else str(uuid.uuid4())
+            event = {'id': event_id, 'body': body, 'digest': digest, 'recovery': True,
+                     'resolves': resolves, 'jobname': jobname}
+        else:
+            episode_id = entry.get('active_episode_id')
+            if not isinstance(episode_id, str) or not episode_id:
+                episode_id = str(uuid.uuid4())
+                entry['active_episode_id'] = episode_id
+            event = {'id': episode_id, 'body': body, 'digest': digest, 'recovery': False,
+                     'jobname': jobname}
         pending.append(event)
     # Clear the cooldown on recovery whether transport is online or offline.
     if recovery:
         entry['last_digest'] = None
     _alert_state_save()
-    _drain_alert_outbox(entry)
+    _drain_alert_outbox(entry, key=key)
     sent = event not in pending
     if sent:
         entry['last_digest'] = None if recovery else digest
@@ -1677,7 +1717,7 @@ def fire_script(path: str, extra_args: list):
         _critical_record(path, False, f'{type(e).__name__}: {e}')
 
 
-def _send_sms(body: str, event_key=None, recovery=False):
+def _send_sms(body: str, event_key=None, recovery=False, resolves=None, jobname=None):
     """Legacy call site name: deliver to the durable Codex inbox, never SMS.
 
     The caller's existing pending/retry state is acknowledged only after the
@@ -1687,13 +1727,20 @@ def _send_sms(body: str, event_key=None, recovery=False):
         log.error('[alert] Operational inbox authentication is missing')
         return False
     try:
+        alert_payload = {'message': body}
+        if isinstance(resolves, str) and resolves.strip():
+            alert_payload['resolves'] = resolves.strip()
+        if isinstance(jobname, str) and jobname.strip():
+            clean_job = jobname.strip()[:120]
+            alert_payload['jobname'] = clean_job
+            alert_payload['labels'] = {'job': clean_job, 'jobname': clean_job}
         payload = {
             'source': 'openclaw',
             'eventKey': event_key or str(uuid.uuid4()),
             'alertname': 'OpenClawOperationalAlert',
             'status': 'resolved' if recovery else 'firing',
             'severity': 'critical',
-            'payload': {'message': body},
+            'payload': alert_payload,
         }
         resp = requests.post(
             BASE_URL + '/api/internal/operational-alert',
