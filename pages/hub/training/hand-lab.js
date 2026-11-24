@@ -26,6 +26,7 @@ const VARIANTS = [
   { id: 'plo4', label: 'PLO4 (4 Cards)', holeCount: 4 },
   { id: 'plo5', label: 'PLO5 (5 Cards)', holeCount: 5 },
   { id: 'plo6', label: 'PLO6 (6 Cards)', holeCount: 6 },
+  { id: 'plo8', label: 'PLO8 (4 Cards Hi-Lo)', holeCount: 4 },
 ];
 const BENCHMARK_HANDS_BY_VARIANT = {
   nlh: [
@@ -49,6 +50,11 @@ const BENCHMARK_HANDS_BY_VARIANT = {
     { value: 'QhJdTc9h8d7c', label: 'Q♥ J♦ T♣ 9♥ 8♦ 7♣ - 6-Card Rundown' },
     { value: 'AhAsKhKsQhQs', label: 'A♥ A♠ K♥ K♠ Q♥ Q♠ - 6-Card Broadway' },
     { value: 'JcTc9d8d7c6d', label: 'J♣ T♣ 9♦ 8♦ 7♣ 6♦ - Connected 6-Card' },
+  ],
+  plo8: [
+    { value: 'As2sKd3d', label: 'A♠ 2♠ K♦ 3♦ - Nut Low + High Suit' },
+    { value: 'Ah2h3c4c', label: 'A♥ 2♥ 3♣ 4♣ - Double-Suited Wheel' },
+    { value: 'Ad3dKhQh', label: 'A♦ 3♦ K♥ Q♥ - Two-Way Scoop Hand' },
   ],
 };
 
@@ -92,9 +98,11 @@ export default function HandLabV2() {
             ? ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d']
             : brainVariant === 'plo5'
               ? ['As', 'Ks', 'Qh', 'Jh', 'Td']
-              : brainVariant === 'plo4'
-                ? ['As', 'Ks', 'Qh', 'Jh']
-                : ['As', 'Kd'],
+              : brainVariant === 'plo8'
+                ? ['As', '2s', 'Kh', '3h']
+                : brainVariant === 'plo4'
+                  ? ['As', 'Ks', 'Qh', 'Jh']
+                  : ['As', 'Kd'],
         boardCards: ['Qs', '7d', '2c'],
         potSizeBb: 12,
         facingBetBb: 4,
@@ -560,7 +568,7 @@ export default function HandLabV2() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
                 <span style={{ fontWeight: 800, color: 'var(--sp-accent-cyan)' }}>Horse Brain Spot Preview</span>
                 <div style={{ display: 'flex', gap: 6 }}>
-                  {['nlh', 'plo4', 'plo5', 'plo6'].map((v) => (
+                  {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
                     <button
                       key={v}
                       type="button"

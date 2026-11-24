@@ -9,7 +9,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { sanitizeParam, withTiming, reconcileAnswerKey, resolveSyncedHandForTrainingDrill } from '../../../src/utils/trainingApiUtils';
+import { sanitizeParam, withTiming, reconcileAnswerKey, resolveSyncedHandForTrainingDrill, evaluateTrainingSpotWithHorseBrain } from '../../../src/utils/trainingApiUtils';
 import { deterministicEngine } from '../../../src/engines/DeterministicGTOEngine';
 import { applyDeterministicEnginePatches } from '../../../src/engines/deterministicEnginePatches';
 // 2026-07-19 engine-audit runtime patches (see that module's header)
@@ -81,6 +81,245 @@ function getSupabase() {
 const WARM_QUESTION_CACHE = new Map();
 const WARM_CACHE_TTL_MS = 60_000;
 const WARM_CACHE_MAX_ENTRIES = 64;
+
+export function buildWarmCacheKey({
+    gameId,
+    level,
+    variant = null,
+    bettingStructure = null,
+    format = null,
+} = {}) {
+    if (!gameId) return '';
+    const normLevel = Math.min(12, Math.max(1, parseInt(level, 10) || 1));
+    const normVariant = variant ? String(variant).trim().toLowerCase() : 'default';
+    const normBetting = bettingStructure ? String(bettingStructure).trim().toLowerCase() : 'default';
+    const normFormat = format ? String(format).trim().toLowerCase() : 'default';
+    return `${gameId}:L${normLevel}:v=${normVariant}:bs=${normBetting}:fmt=${normFormat}`;
+}
+
+const PLO8_CURATED_HANDS = [
+    ['As', '2s', 'Kd', '3d'],
+    ['Ah', '2c', '4h', '5c'],
+    ['Ad', '3d', 'Qh', 'Jc'],
+    ['Ac', '2d', '5c', '6d'],
+    ['As', '3s', '4d', '7d'],
+    ['Ah', '2h', 'Ks', 'Qs'],
+];
+
+const PLO4_CURATED_HANDS = [
+    ['As', 'Ks', 'Qh', 'Jd'],
+    ['Ah', 'Kh', 'Tc', '9c'],
+    ['Ad', 'Kd', 'Qc', 'Jc'],
+    ['As', 'Ah', 'Ks', 'Kh'],
+    ['Qd', 'Qc', '7h', '7c'],
+    ['8h', '6c', '5d', '3h'],
+];
+
+const PLO5_CURATED_HANDS = [
+    ['As', 'Ks', 'Qh', 'Jd', 'Tc'],
+    ['Ah', 'Kh', 'Qc', 'Jc', '9d'],
+    ['Ad', 'Kd', 'Qh', 'Ts', '9s'],
+    ['As', 'Ah', 'Ks', 'Kh', 'Qd'],
+    ['Qd', 'Qc', '7h', '7c', 'Ac'],
+    ['8h', '6c', '5d', '3h', '2d'],
+];
+
+const PLO6_CURATED_HANDS = [
+    ['As', 'Ks', 'Qh', 'Jd', 'Tc', '9h'],
+    ['Ah', 'Kh', 'Qc', 'Jc', '9d', '8d'],
+    ['Ad', 'Kd', 'Qh', 'Ts', '9s', '8c'],
+    ['As', 'Ah', 'Ks', 'Kh', 'Qd', 'Jc'],
+    ['Qd', 'Qc', '7h', '7c', 'Ac', 'Kc'],
+    ['8h', '6c', '5d', '3h', '2d', '9c'],
+];
+
+const NLH_CURATED_HANDS = [
+    ['As', 'Kd'],
+    ['Ah', 'Kc'],
+    ['Ks', 'Qd'],
+    ['Ad', 'Jc'],
+    ['Qd', 'Qc'],
+    ['8h', '3d'],
+];
+
+const FALLBACK_NON_COLLIDING_DECK = [
+    'As', '2s', '3d', '4h', '5c', '6s', '7d', '8h', '9c', 'Ts', 'Jd', 'Qh', 'Kc',
+    'Ah', '2h', '3c', '4s', '5d', '6h', '7c', '8s', '9d', 'Th', 'Jc', 'Qs', 'Kd',
+    'Ad', '2d', '3s', '4c', '5h', '6c', '7s', '8d', '9h', 'Tc', 'Js', 'Qd', 'Kh',
+    'Ac', '2c', '3h', '4d', '5s', '6d', '7h', '8c', '9s', 'Td', 'Jh', 'Qc', 'Ks',
+];
+
+function dealNonCollidingHoleCards(basePreset, boardCards = [], holeCardsCount = 4) {
+    const boardSet = new Set(
+        (Array.isArray(boardCards) ? boardCards : [])
+            .map((c) => String(c || '').trim().toLowerCase())
+            .filter(Boolean),
+    );
+    const chosen = [];
+    const chosenSet = new Set();
+    for (const card of Array.isArray(basePreset) ? basePreset : []) {
+        const clean = String(card || '').trim();
+        const lower = clean.toLowerCase();
+        if (clean.length === 2 && !boardSet.has(lower) && !chosenSet.has(lower)) {
+            chosen.push(`${clean[0].toUpperCase()}${clean[1].toLowerCase()}`);
+            chosenSet.add(lower);
+            if (chosen.length === holeCardsCount) return chosen;
+        }
+    }
+    for (const card of FALLBACK_NON_COLLIDING_DECK) {
+        const lower = card.toLowerCase();
+        if (!boardSet.has(lower) && !chosenSet.has(lower)) {
+            chosen.push(card);
+            chosenSet.add(lower);
+            if (chosen.length === holeCardsCount) return chosen;
+        }
+    }
+    return chosen.slice(0, holeCardsCount);
+}
+
+export function adaptQuestionToVariant(question, requestedVariant, index = 0, extraOptions = {}) {
+    if (!question || typeof question !== 'object') return question;
+    const scenario = question.scenario && typeof question.scenario === 'object' ? question.scenario : {};
+    const rawVar = String(requestedVariant || extraOptions?.variant || scenario.variant || '').trim().toLowerCase();
+    const normVariant = ['plo8', 'omaha8', 'plo_hilo'].includes(rawVar)
+        ? 'plo8'
+        : ['plo6', 'omaha6'].includes(rawVar)
+            ? 'plo6'
+            : ['plo5', 'omaha5'].includes(rawVar)
+                ? 'plo5'
+                : ['plo4', 'omaha4', 'plo', 'omaha'].includes(rawVar)
+                    ? 'plo4'
+                    : rawVar === 'nlh' || rawVar === 'holdem'
+                        ? 'nlh'
+                        : null;
+
+    const rawBetting = String(extraOptions?.bettingStructure || scenario.bettingStructure || '').trim().toLowerCase();
+    const resolvedBettingStructure = ['no_limit', 'pot_limit', 'fixed_limit'].includes(rawBetting)
+        ? rawBetting
+        : (normVariant && normVariant.startsWith('plo'))
+            ? 'pot_limit'
+            : 'no_limit';
+
+    const rawFormat = String(extraOptions?.format || scenario.format || '').trim().toLowerCase();
+    const resolvedFormat = ['cash', 'mtt', 'spins', 'hu'].includes(rawFormat)
+        ? rawFormat
+        : (extraOptions?.gameId && String(extraOptions.gameId).startsWith('mtt-'))
+            ? 'mtt'
+            : (extraOptions?.gameId && String(extraOptions.gameId).startsWith('spins-'))
+                ? 'spins'
+                : 'cash';
+
+    const effectiveVariant = normVariant || scenario.variant || 'nlh';
+    const holeCardsCount = effectiveVariant === 'plo6' ? 6
+        : effectiveVariant === 'plo5' ? 5
+        : (effectiveVariant === 'plo4' || effectiveVariant === 'plo8') ? 4
+        : 2;
+
+    const boardCards = Array.isArray(question.boardCards)
+        ? question.boardCards
+        : Array.isArray(scenario.boardCards)
+            ? scenario.boardCards
+            : [];
+
+    let heroCards = Array.isArray(question.heroCards) ? [...question.heroCards] : [];
+    const presetPool = effectiveVariant === 'plo8' ? PLO8_CURATED_HANDS
+        : effectiveVariant === 'plo6' ? PLO6_CURATED_HANDS
+        : effectiveVariant === 'plo5' ? PLO5_CURATED_HANDS
+        : effectiveVariant === 'plo4' ? PLO4_CURATED_HANDS
+        : NLH_CURATED_HANDS;
+
+    if (
+        heroCards.length !== holeCardsCount
+        || (effectiveVariant === 'plo8' && !scenario.hiLo && scenario.variant !== 'plo8')
+    ) {
+        const preset = presetPool[Math.abs(Number(index) || 0) % presetPool.length];
+        heroCards = dealNonCollidingHoleCards(preset, boardCards, holeCardsCount);
+    } else {
+        heroCards = dealNonCollidingHoleCards(heroCards, boardCards, holeCardsCount);
+    }
+
+    let brainResult = null;
+    if (typeof evaluateTrainingSpotWithHorseBrain === 'function') {
+        try {
+            brainResult = evaluateTrainingSpotWithHorseBrain({
+                gameId: extraOptions?.gameId || question.gameId || 'cash-001',
+                variant: effectiveVariant,
+                bettingStructure: resolvedBettingStructure,
+                format: resolvedFormat,
+                street: scenario.street || question.street || (boardCards.length === 0 ? 'preflop' : boardCards.length === 3 ? 'flop' : boardCards.length === 4 ? 'turn' : 'river'),
+                heroCards,
+                boardCards,
+                heroPosition: scenario.heroPosition || 'BTN',
+                villainPosition: scenario.villainPosition || 'BB',
+                pot: scenario.pot,
+                toCall: scenario.toCall,
+                stackDepth: scenario.stackDepth || scenario.heroStack || 100,
+                isPKO: Boolean(scenario.isPKO),
+                bountyBb: scenario.bountyBb,
+                isICM: Boolean(scenario.isICM || resolvedFormat === 'mtt'),
+                bubbleFactor: scenario.bubbleFactor,
+                villainStats: scenario.villainStats,
+            });
+        } catch (_err) {
+            brainResult = null;
+        }
+    }
+
+    const isPlo8 = effectiveVariant === 'plo8';
+    const plo8LowEvaluation = isPlo8
+        ? (brainResult?.plo8LowEvaluation || brainResult?.brainEvaluation?.plo8LowEvaluation || scenario.plo8LowEvaluation || null)
+        : (brainResult?.plo8LowEvaluation || null);
+    const engineModule = isPlo8
+        ? 'plo8-brain.js'
+        : (brainResult?.engineModule || brainResult?.brainEvaluation?.engineModule || scenario.brainEvaluation?.engineModule || null);
+
+    const mergedBrainEvaluation = brainResult?.brainEvaluation
+        ? {
+            ...brainResult.brainEvaluation,
+            ...(isPlo8 ? { engineModule: 'plo8-brain.js', hiLo: true, plo8LowEvaluation } : {}),
+            bettingStructure: resolvedBettingStructure,
+            format: resolvedFormat,
+        }
+        : (scenario.brainEvaluation
+            ? {
+                ...scenario.brainEvaluation,
+                ...(isPlo8 ? { engineModule: 'plo8-brain.js', hiLo: true, plo8LowEvaluation } : {}),
+                bettingStructure: resolvedBettingStructure,
+                format: resolvedFormat,
+            }
+            : (isPlo8
+                ? {
+                    engineModule: 'plo8-brain.js',
+                    variant: 'plo8',
+                    hiLo: true,
+                    plo8LowEvaluation,
+                    bettingStructure: resolvedBettingStructure,
+                    format: resolvedFormat,
+                }
+                : null));
+
+    return {
+        ...question,
+        heroCards,
+        variant: effectiveVariant,
+        bettingStructure: resolvedBettingStructure,
+        format: resolvedFormat,
+        ...(engineModule ? { engineModule } : {}),
+        ...(isPlo8 ? { hiLo: true, plo8LowEvaluation } : {}),
+        scenario: {
+            ...scenario,
+            variant: effectiveVariant,
+            holeCardCount: heroCards.length,
+            bettingStructure: resolvedBettingStructure,
+            format: resolvedFormat,
+            ...(engineModule ? { engineModule } : {}),
+            ...(isPlo8 ? { hiLo: true, plo8LowEvaluation } : {}),
+            ...(mergedBrainEvaluation ? { brainEvaluation: mergedBrainEvaluation } : {}),
+            ...(brainResult?.madeHandCategory && !scenario.madeHandCategory ? { madeHandCategory: brainResult.madeHandCategory } : {}),
+            ...(brainResult?.potLimitSizing && !scenario.potLimitSizing ? { potLimitSizing: brainResult.potLimitSizing } : {}),
+        },
+    };
+}
 
 export function getWarmCachedQuestions(cacheKey) {
     if (!cacheKey || typeof cacheKey !== 'string') return null;
@@ -200,6 +439,8 @@ export default async function handler(req, res) {
           gameMode: rawGameMode,
           handSelection: rawHandSelection,
           variant: rawVariant,
+          bettingStructure: rawBettingStructure,
+          format: rawFormat,
           duelToken: rawDuelToken,
           duelRole: rawDuelRole,
           createDuel: rawCreateDuel,
@@ -210,8 +451,19 @@ export default async function handler(req, res) {
       const gameId = sanitizeParam(rawGameId, 100);
       const syncedHandId = sanitizeParam(rawSyncedHandId, 120);
       const normalizedRawVariant = sanitizeParam(rawVariant, 16)?.toLowerCase() || '';
-      const requestedVariant = ['nlh', 'plo4', 'plo5', 'plo6'].includes(normalizedRawVariant)
-          ? normalizedRawVariant
+      const mappedRawVariant = ['plo8', 'omaha8', 'plo_hilo'].includes(normalizedRawVariant)
+          ? 'plo8'
+          : normalizedRawVariant;
+      const requestedVariant = ['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].includes(mappedRawVariant)
+          ? mappedRawVariant
+          : null;
+      const normalizedRawBettingStructure = sanitizeParam(rawBettingStructure, 24)?.toLowerCase() || '';
+      const requestedBettingStructure = ['no_limit', 'pot_limit', 'fixed_limit'].includes(normalizedRawBettingStructure)
+          ? normalizedRawBettingStructure
+          : null;
+      const normalizedRawFormat = sanitizeParam(rawFormat, 24)?.toLowerCase() || '';
+      const requestedFormat = ['cash', 'mtt', 'spins', 'hu'].includes(normalizedRawFormat)
+          ? normalizedRawFormat
           : null;
       const createDuelRequested = String(rawCreateDuel || '') === '1';
       const trimmedDuelToken = typeof rawDuelToken === 'string' ? rawDuelToken.trim() : '';
@@ -223,9 +475,12 @@ export default async function handler(req, res) {
               code: 'TRAINING_DUEL_TOKEN_INVALID',
           });
       }
-      const effectiveVariant = duelPayload?.variant && ['nlh', 'plo4', 'plo5', 'plo6'].includes(String(duelPayload.variant))
+      const effectiveVariant = duelPayload?.variant && ['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].includes(String(duelPayload.variant))
           ? String(duelPayload.variant)
           : requestedVariant;
+      const effectiveBettingStructure = requestedBettingStructure
+          || (effectiveVariant && String(effectiveVariant).startsWith('plo') ? 'pot_limit' : null);
+      const effectiveFormat = requestedFormat || null;
       const attestationContinuationRequested =
           rawAttestationContinuationRule !== undefined
           || rawAttestationContinuationPrecommit !== undefined;
@@ -345,6 +600,8 @@ export default async function handler(req, res) {
               handSelection,
               targetStreet: enforcedTargetStreet,
               ...(effectiveVariant ? { variant: effectiveVariant } : {}),
+              ...(effectiveBettingStructure ? { bettingStructure: effectiveBettingStructure } : {}),
+              ...(effectiveFormat ? { format: effectiveFormat } : {}),
               ...(duelPayload?.duelId ? { duelId: String(duelPayload.duelId) } : {}),
               ...(syncedHandId ? { syncedHandId: String(syncedHandId) } : {}),
               ...(attestationContinuationPrecommit
@@ -375,6 +632,20 @@ export default async function handler(req, res) {
                           userId: _authUser.id,
                           delivery: recovered,
                       });
+                      const shouldAdaptRecovered = Boolean(
+                          effectiveVariant
+                          || effectiveBettingStructure
+                          || effectiveFormat
+                          || ['cash-005', 'cash-015', 'mtt-018'].includes(gameId),
+                      );
+                      const adaptedRecoveredQuestions = shouldAdaptRecovered
+                          ? recovered.questions.map((q, idx) => adaptQuestionToVariant(q, effectiveVariant, idx, {
+                              gameId,
+                              variant: effectiveVariant,
+                              bettingStructure: effectiveBettingStructure,
+                              format: effectiveFormat,
+                          }))
+                          : recovered.questions;
                       return res.status(200).json({
                           success: true,
                           gameId,
@@ -383,8 +654,8 @@ export default async function handler(req, res) {
                           attemptId: recovered.attemptId,
                           sessionKind: recovered.sessionKind,
                           targetHands: recovered.targetHands,
-                          count: recovered.questions.length,
-                          questions: recovered.questions,
+                          count: adaptedRecoveredQuestions.length,
+                          questions: adaptedRecoveredQuestions,
                       });
                   }
               } catch (recoveryError) {
@@ -440,13 +711,21 @@ export default async function handler(req, res) {
                .catch((e) => ({ data: [], error: e }))
               : Promise.resolve({ data: [], error: null });
 
-          const warmCacheKey = !duelPayload ? `${gameId}:L${gameLevel}` : '';
-          const warmCachedRows = warmCacheKey ? getWarmCachedQuestions(`${gameId}:L${gameLevel}`) : null;
+          const warmCacheKey = !duelPayload
+              ? buildWarmCacheKey({
+                  gameId,
+                  level: gameLevel,
+                  variant: effectiveVariant,
+                  bettingStructure: effectiveBettingStructure,
+                  format: effectiveFormat,
+              })
+              : '';
+          const warmCachedRows = warmCacheKey ? getWarmCachedQuestions(warmCacheKey) : null;
           const warmHit = Array.isArray(warmCachedRows) && warmCachedRows.length > 0;
           res.setHeader('X-Training-Cache-Mode', warmHit ? 'WARM_MEM' : 'DB_READ');
 
           const cachePromise = warmHit
-              ? Promise.resolve({ data: getWarmCachedQuestions(`${gameId}:L${gameLevel}`), error: null })
+              ? Promise.resolve({ data: getWarmCachedQuestions(warmCacheKey), error: null })
               : runTrainingPersistenceQuery(
                   () => {
                       let query = getSupabase()
@@ -462,8 +741,8 @@ export default async function handler(req, res) {
                   },
                   { label: 'BatchPreload:cache-read' },
               ).then((res) => {
-                  if (!duelPayload && Array.isArray(res?.data) && res.data.length > 0) {
-                      setWarmCachedQuestions(`${gameId}:L${gameLevel}`, res?.data);
+                  if (!duelPayload && warmCacheKey && Array.isArray(res?.data) && res.data.length > 0) {
+                      setWarmCachedQuestions(warmCacheKey, res?.data);
                   }
                   return { data: res?.data, error: null };
               })
@@ -513,7 +792,7 @@ export default async function handler(req, res) {
               || (['cash-005', 'cash-015', 'mtt-018'].includes(gameId) ? 'plo4' : null);
           const expectedHoleCardCount = targetVariantFilter === 'plo6' ? 6
               : targetVariantFilter === 'plo5' ? 5
-              : targetVariantFilter === 'plo4' ? 4
+              : (targetVariantFilter === 'plo4' || targetVariantFilter === 'plo8') ? 4
               : targetVariantFilter === 'nlh' ? 2
               : null;
           const requiresPkoScenarioTelemetry = ['mtt-005', 'mtt-020'].includes(gameId);
@@ -540,6 +819,7 @@ export default async function handler(req, res) {
                       const cards = Array.isArray(q.heroCards) ? q.heroCards : [];
                       if (cards.length !== expectedHoleCardCount) return false;
                       if (!q.scenario?.brainEvaluation?.engineModule) return false;
+                      if (targetVariantFilter === 'plo8' && !q.scenario?.hiLo && q.scenario?.variant !== 'plo8') return false;
                   }
                   if (requiresPkoScenarioTelemetry && (!Number.isFinite(Number(q.scenario?.bountyBb)) || !q.scenario?.brainEvaluation?.engineModule)) {
                       return false;
@@ -870,7 +1150,7 @@ export default async function handler(req, res) {
           const canonicalPairs = [];
           const canonicalQuestionIds = new Set();
           const questionKind = String(gameId).startsWith('psy-') ? 'SCENARIO'
-              : (pioQueryService.getGameConfig(gameId)?.sourceOfTruth === 'ICMIZER' && !['plo4', 'plo5', 'plo6'].includes(effectiveVariant || '')) ? 'CHART' : 'PIO';
+              : (pioQueryService.getGameConfig(gameId)?.sourceOfTruth === 'ICMIZER' && !['plo4', 'plo5', 'plo6', 'plo8'].includes(effectiveVariant || '')) ? 'CHART' : 'PIO';
           const gameType = String(gameId).startsWith('mtt-') ? 'tournament'
               : String(gameId).startsWith('spins-') ? 'sng' : 'cash';
           for (const question of configuredCandidates) {
@@ -1034,8 +1314,8 @@ export default async function handler(req, res) {
                       receiptByQuestionId.get(questionId),
                   );
               });
-              if (!duelPayload && !warmHit && Array.isArray(persisted.data) && persisted.data.length > 0) {
-                  setWarmCachedQuestions(`${gameId}:L${gameLevel}`, [...(questions || []), ...persisted.data]);
+              if (!duelPayload && !warmHit && warmCacheKey && Array.isArray(persisted.data) && persisted.data.length > 0) {
+                  setWarmCachedQuestions(warmCacheKey, [...(questions || []), ...persisted.data]);
               }
           } catch (canonicalizeError) {
               console.warn('[BatchPreload] Refusing to serve uncanonicalized questions:', canonicalizeError.message);
@@ -1077,6 +1357,21 @@ export default async function handler(req, res) {
               console.warn('[BatchPreload] Delivered question audit failed:', servedAuditError?.message || servedAuditError);
               return res.status(503).json(trainingPersistenceUnavailableBody());
           }
+
+          const shouldAdaptServed = Boolean(
+              effectiveVariant
+              || effectiveBettingStructure
+              || effectiveFormat
+              || ['cash-005', 'cash-015', 'mtt-018'].includes(gameId),
+          );
+          const finalDeliveredQuestions = shouldAdaptServed
+              ? (delivery.questions || []).map((q, idx) => adaptQuestionToVariant(q, effectiveVariant, idx, {
+                  gameId,
+                  variant: effectiveVariant,
+                  bettingStructure: effectiveBettingStructure,
+                  format: effectiveFormat,
+              }))
+              : delivery.questions;
 
           let duelResponse = null;
           if (createDuelRequested || duelPayload) {
@@ -1161,8 +1456,11 @@ export default async function handler(req, res) {
               attemptId: delivery.attemptId,
               sessionKind: delivery.sessionKind,
               targetHands: delivery.targetHands,
-              count: delivery.questions.length,
-              questions: delivery.questions,
+              count: finalDeliveredQuestions.length,
+              questions: finalDeliveredQuestions,
+              ...(effectiveVariant ? { variant: effectiveVariant } : {}),
+              ...(effectiveBettingStructure ? { bettingStructure: effectiveBettingStructure } : {}),
+              ...(effectiveFormat ? { format: effectiveFormat } : {}),
               ...(duelResponse ? { duel: duelResponse } : {}),
               ...(syncedResolution?.syncedHand ? { syncedHand: syncedResolution.syncedHand } : {}),
               ...(attestationContinuationCohort

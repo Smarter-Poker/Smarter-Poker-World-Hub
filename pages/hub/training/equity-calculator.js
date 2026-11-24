@@ -50,6 +50,7 @@ const EQUITY_VARIANTS = [
   { id: 'plo4', label: 'PLO4 (4c)', holeCount: 4 },
   { id: 'plo5', label: 'PLO5 (5c)', holeCount: 5 },
   { id: 'plo6', label: 'PLO6 (6c)', holeCount: 6 },
+  { id: 'plo8', label: 'PLO8 (4c Hi-Lo)', holeCount: 4 },
 ];
 
 const PRESETS = [
@@ -63,6 +64,7 @@ const PRESETS = [
   { name: 'PLO4: AAKKds vs Rundown', variant: 'plo4', hands: ['AhAsKhKs', 'JhTh9d8d'], board: [] },
   { name: 'PLO5: Wrap vs Top Set', variant: 'plo5', hands: ['AhKhQhJdTc', '9s9d9c2h3d'], board: ['9h', '8h', '2c'] },
   { name: 'PLO6: 6-Card High Clash', variant: 'plo6', hands: ['AhAsKhKsQhQs', 'JhTh9h8d7d6c'], board: [] },
+  { name: 'PLO8: As2sKd3d vs QhQcJdTd', variant: 'plo8', hands: ['As2sKd3d', 'QhQcJdTd'], board: [] },
 ];
 
 
@@ -719,6 +721,7 @@ export default function EquityCalculatorPage() {
       plo4: ['As', 'Ks', 'Qh', 'Jh'],
       plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
       plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
+      plo8: ['As', '2s', 'Kd', '3d'],
     };
     const playerEvals = activeHands.map((playerCards, idx) => {
       const heroCards =
@@ -1141,6 +1144,25 @@ export default function EquityCalculatorPage() {
             ))}
           </div>
 
+          {variant === 'plo8' && (
+            <div
+              data-plo8-equity-banner="true"
+              style={{
+                marginBottom: 14,
+                padding: '8px 14px',
+                borderRadius: 8,
+                background: 'rgba(16, 185, 129, 0.12)',
+                border: '1px solid rgba(52, 211, 153, 0.35)',
+                color: '#6ee7b7',
+                fontSize: 12,
+                fontWeight: 800,
+                letterSpacing: '0.02em',
+              }}
+            >
+              PLO8 Hi-Lo 8-Or-Better (2 Hole + 3 Board)
+            </div>
+          )}
+
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 16 }}>
             <span
               style={{
@@ -1395,7 +1417,7 @@ export default function EquityCalculatorPage() {
                 </span>
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-                {['nlh', 'plo4', 'plo5', 'plo6'].map((v) => {
+                {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => {
                   const mappedId = v === 'nlh' ? 'holdem' : v;
                   const isActive = variant === mappedId;
                   return (

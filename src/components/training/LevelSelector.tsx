@@ -94,6 +94,7 @@ const LEVEL_DATA_TIMEOUT_MS = 8_000;
 
 const FORWARDED_ARENA_QUERY_KEYS = [
     'variant',
+    'bettingStructure',
     'street',
     'position',
     'targetStreet',
