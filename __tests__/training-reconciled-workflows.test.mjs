@@ -1085,10 +1085,11 @@ test('Phase 9 Deep Sweep & Root-Cause Anti-Regression Hardening: LevelSelector q
   assert.match(arenaPageSrc, /exitParams\.set\('variant'/, 'arena/[gameId].js handleExit must preserve router.query.variant when returning to /hub/training/play/[gameId]');
   assert.match(arenaPageSrc, /data-arena-horse-brain-engine=/, 'arena/[gameId].js must expose data-arena-horse-brain-engine');
 
-  // 3. Root Cause #3: pages/api/training/get-question.js must parallelize GetQuestion:seen-read & GetQuestion:cache-read via Promise.all and enrich variant questions with enrichQuestionWithHorseBrain
+  // 3. Root Cause #3: pages/api/training/get-question.js must parallelize GetQuestion:seen-read & GetQuestion:cache-read via Promise.all and enrich variant questions with evaluateTrainingSpotWithHorseBrain
   const getQuestionSrc = read('pages/api/training/get-question.js');
   assert.match(getQuestionSrc, /Promise\.all\(\[seenPromise,\s*cachePromise\]\)/, 'get-question.js must parallelize user_seen_questions and training_question_cache reads');
-  assert.match(getQuestionSrc, /enrichQuestionWithHorseBrain/, 'get-question.js must import and invoke enrichQuestionWithHorseBrain for variant-aware single-question delivery');
+  assert.match(getQuestionSrc, /evaluateTrainingSpotWithHorseBrain/, 'get-question.js must import and invoke evaluateTrainingSpotWithHorseBrain for variant-aware single-question delivery');
+  assert.match(getQuestionSrc, /applyHorseBrainEnrichment/, 'get-question.js must apply Horse Brain enrichment to variant questions');
 
   // 4. Root Cause #4: src/hooks/useGTOTrainer.js must forward variant in custom-train mode, catch transient network errors INSIDE the 3-attempt recordAnswer loop, and persist/flush failed submissions via sp_training_record_outbox
   const useGtoTrainerSrc = read('src/hooks/useGTOTrainer.js');

@@ -26,7 +26,6 @@ import {
   sanitizeParam,
   withTiming,
   reconcileAnswerKey,
-  enrichQuestionWithHorseBrain,
   evaluateTrainingSpotWithHorseBrain,
 } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
@@ -63,10 +62,6 @@ import {
 
 function applyHorseBrainEnrichment(question, { gameId, level, variant } = {}) {
   if (!question || typeof question !== 'object') return question;
-  if (typeof enrichQuestionWithHorseBrain === 'function') {
-    const direct = enrichQuestionWithHorseBrain(question, { gameId, level, variant });
-    if (direct && typeof direct === 'object') return direct;
-  }
   const scenario = question.scenario && typeof question.scenario === 'object'
     ? question.scenario
     : {};

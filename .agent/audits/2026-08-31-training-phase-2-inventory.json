@@ -28816,7 +28816,6 @@
         "src/lib/training/cacheContract.mjs",
         "src/lib/training/cacheTruthPersistence.mjs",
         "src/lib/training/gradingReceipt.mjs",
-        "src/lib/training/horseBrainTrainingAdapter.js",
         "src/lib/training/questionContract.mjs",
         "src/lib/training/questionSelectionContract.mjs",
         "src/lib/training/sessionAttemptContract.mjs",
@@ -28862,7 +28861,7 @@
       "functions": [
         {
           "name": "applyHorseBrainEnrichment",
-          "line": 62,
+          "line": 64,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -28870,7 +28869,7 @@
         },
         {
           "name": "getSupabase",
-          "line": 125,
+          "line": 127,
           "references": 10,
           "exported": false,
           "defaultExport": false,
@@ -28878,7 +28877,7 @@
         },
         {
           "name": "handler",
-          "line": 135,
+          "line": 137,
           "references": 2,
           "exported": true,
           "defaultExport": true,
@@ -28886,7 +28885,7 @@
         },
         {
           "name": "normalizeCampaignQuestionWithoutFabrication",
-          "line": 653,
+          "line": 655,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -28894,7 +28893,7 @@
         },
         {
           "name": "buildCanonicalCandidate",
-          "line": 227,
+          "line": 229,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -28902,7 +28901,7 @@
         },
         {
           "name": "recoverWithConfig",
-          "line": 247,
+          "line": 249,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -28913,7 +28912,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 418,
+          "line": 420,
           "excerpt": "// STEP 4: DETERMINISTIC ENGINE — FALLBACK (cache miss only)",
           "disposition": "training-data-provenance-fallback",
           "review": "documented-follow-up",
@@ -28922,7 +28921,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 473,
+          "line": 475,
           "excerpt": "// There is deliberately no second, permissive legacy PIO fallback here.",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -28930,7 +28929,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 483,
+          "line": 485,
           "excerpt": "// STEP 4: ENGINE-ONLY — No AI fallback",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -28938,7 +28937,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 485,
+          "line": 487,
           "excerpt": "// sealed Supabase cache. Local postflop heuristics are never an API fallback.",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -28946,7 +28945,7 @@
         },
         {
           "kind": "SIMULATED",
-          "line": 517,
+          "line": 519,
           "excerpt": "// legacy, heuristic, simulated, and incomplete rows cannot reach here.",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -28954,7 +28953,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 636,
+          "line": 638,
           "excerpt": "// This was a ~180-line LLM-fallback that hallucinated training questions when",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -79552,10 +79551,6 @@
     },
     {
       "from": "pages/api/training/get-question.js",
-      "to": "src/lib/training/horseBrainTrainingAdapter.js"
-    },
-    {
-      "from": "pages/api/training/get-question.js",
       "to": "src/lib/training/questionContract.mjs"
     },
     {
@@ -129716,7 +129711,7 @@
       {
         "file": "pages/api/training/get-question.js",
         "kind": "FALLBACK",
-        "line": 418,
+        "line": 420,
         "excerpt": "// STEP 4: DETERMINISTIC ENGINE — FALLBACK (cache miss only)",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -129726,7 +129721,7 @@
       {
         "file": "pages/api/training/get-question.js",
         "kind": "FALLBACK",
-        "line": 473,
+        "line": 475,
         "excerpt": "// There is deliberately no second, permissive legacy PIO fallback here.",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -129735,7 +129730,7 @@
       {
         "file": "pages/api/training/get-question.js",
         "kind": "FALLBACK",
-        "line": 483,
+        "line": 485,
         "excerpt": "// STEP 4: ENGINE-ONLY — No AI fallback",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -129744,7 +129739,7 @@
       {
         "file": "pages/api/training/get-question.js",
         "kind": "FALLBACK",
-        "line": 485,
+        "line": 487,
         "excerpt": "// sealed Supabase cache. Local postflop heuristics are never an API fallback.",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -129753,7 +129748,7 @@
       {
         "file": "pages/api/training/get-question.js",
         "kind": "SIMULATED",
-        "line": 517,
+        "line": 519,
         "excerpt": "// legacy, heuristic, simulated, and incomplete rows cannot reach here.",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -129762,7 +129757,7 @@
       {
         "file": "pages/api/training/get-question.js",
         "kind": "FALLBACK",
-        "line": 636,
+        "line": 638,
         "excerpt": "// This was a ~180-line LLM-fallback that hallucinated training questions when",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -138439,7 +138434,6 @@
           "__tests__/training-reconciled-workflows.test.mjs",
           "pages/api/training/audit-hand-history.js",
           "pages/api/training/equity.js",
-          "pages/api/training/get-question.js",
           "pages/hub/training/achievements.js",
           "pages/hub/training/aggregate.js",
           "pages/hub/training/analyzer.js",
@@ -138536,7 +138530,8 @@
           "src/components/training/CanonicalTrainingRedirect.jsx",
           "src/components/training/games/UniversalDynamicTable.jsx",
           "src/lib/training/curatedPokerConcepts.js",
-          "src/lib/training/syncedHandDrillResolver.js"
+          "src/lib/training/syncedHandDrillResolver.js",
+          "src/utils/trainingApiUtils.js"
         ]
       },
       {
@@ -139924,7 +139919,7 @@
       {
         "file": "pages/api/training/get-question.js",
         "kind": "FALLBACK",
-        "line": 418,
+        "line": 420,
         "excerpt": "// STEP 4: DETERMINISTIC ENGINE — FALLBACK (cache miss only)",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -139934,7 +139929,7 @@
       {
         "file": "pages/api/training/get-question.js",
         "kind": "FALLBACK",
-        "line": 473,
+        "line": 475,
         "excerpt": "// There is deliberately no second, permissive legacy PIO fallback here.",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -139943,7 +139938,7 @@
       {
         "file": "pages/api/training/get-question.js",
         "kind": "FALLBACK",
-        "line": 483,
+        "line": 485,
         "excerpt": "// STEP 4: ENGINE-ONLY — No AI fallback",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -139952,7 +139947,7 @@
       {
         "file": "pages/api/training/get-question.js",
         "kind": "FALLBACK",
-        "line": 485,
+        "line": 487,
         "excerpt": "// sealed Supabase cache. Local postflop heuristics are never an API fallback.",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -139961,7 +139956,7 @@
       {
         "file": "pages/api/training/get-question.js",
         "kind": "SIMULATED",
-        "line": 517,
+        "line": 519,
         "excerpt": "// legacy, heuristic, simulated, and incomplete rows cannot reach here.",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -139970,7 +139965,7 @@
       {
         "file": "pages/api/training/get-question.js",
         "kind": "FALLBACK",
-        "line": 636,
+        "line": 638,
         "excerpt": "// This was a ~180-line LLM-fallback that hallucinated training questions when",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -148647,7 +148642,6 @@
           "__tests__/training-reconciled-workflows.test.mjs",
           "pages/api/training/audit-hand-history.js",
           "pages/api/training/equity.js",
-          "pages/api/training/get-question.js",
           "pages/hub/training/achievements.js",
           "pages/hub/training/aggregate.js",
           "pages/hub/training/analyzer.js",
@@ -148744,7 +148738,8 @@
           "src/components/training/CanonicalTrainingRedirect.jsx",
           "src/components/training/games/UniversalDynamicTable.jsx",
           "src/lib/training/curatedPokerConcepts.js",
-          "src/lib/training/syncedHandDrillResolver.js"
+          "src/lib/training/syncedHandDrillResolver.js",
+          "src/utils/trainingApiUtils.js"
         ]
       },
       {
