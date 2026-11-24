@@ -91,11 +91,37 @@ test('noticePage preserves staff roster, role counts, overdue payouts and Telegr
  assert.equal(merged[0].author_role, 'owner');
 });
 
-test('overdue cashout notifications route to club Notice Board and respect cashier push prefs', async () => {
+test('overdue cashout and notice mention notifications route to club Notice Board and respect push prefs', async () => {
  const { resolveNotificationRoute } = await import('../src/lib/notificationRoute.js');
  const { eventToTypeKey } = await import('../src/lib/push/push-prefs.js');
  assert.equal(resolveNotificationRoute({ type: 'cashout_overdue', data: { club_id: clubId } }), `/hub/messenger?clubId=${clubId}&folder=notice-board`);
  assert.equal(eventToTypeKey('cashout_overdue'), 'cashier');
+ assert.equal(resolveNotificationRoute({ type: 'notice_board_mention', data: { club_id: clubId } }), `/hub/messenger?clubId=${clubId}&folder=notice-board`);
+ assert.equal(eventToTypeKey('notice_board_mention'), 'club_announcement');
+});
+
+test('Phase 2 actions (mark_read, toggle_reaction, update_alert_settings, attachments, mentions, refreshMeta, paginated) validate strictly', () => {
+ assert.deepEqual(validateNoticeRequest('PATCH', { clubId, action: 'mark_read', payload: { lastNoticeId: id } }), { clubId, action: 'mark_read', payload: { lastNoticeId: id } });
+ assert.throws(() => validateNoticeRequest('PATCH', { clubId, action: 'mark_read', payload: { lastNoticeId: 'bad' } }), { status: 400 });
+ assert.deepEqual(validateNoticeRequest('PATCH', { clubId, action: 'toggle_reaction', payload: { id, reaction: 'ack' } }), { clubId, action: 'toggle_reaction', payload: { id, reaction: 'ack' } });
+ assert.throws(() => validateNoticeRequest('PATCH', { clubId, action: 'toggle_reaction', payload: { id, reaction: 'bogus' } }), { status: 400 });
+ assert.deepEqual(
+  validateNoticeRequest('PATCH', { clubId, action: 'update_alert_settings', payload: { overdue_threshold_hours: 4, followup_threshold_hours: 12, notify_admins: true, auto_escalate_hours: 24 } }).payload,
+  { overdue_threshold_hours: 4, followup_threshold_hours: 12, notify_admins: true, auto_escalate_hours: 24 }
+ );
+ assert.throws(() => validateNoticeRequest('PATCH', { clubId, action: 'update_alert_settings', payload: { overdue_threshold_hours: 6, followup_threshold_hours: 4 } }), { status: 400 });
+ assert.throws(() => validateNoticeRequest('PUT', { clubId, payload: { id, content: 'Hi', status: 'notice', attachments: [{ url: 'http://insecure.example/x.png' }] } }), { status: 400 });
+ const rich = validateNoticeRequest('PUT', { clubId, payload: { id, content: 'Hi @AllStaff', status: 'notice', attachments: [{ url: 'https://cdn.example/a.png', name: 'Proof' }], mention_all: true } });
+ assert.equal(rich.payload.attachments[0].url, 'https://cdn.example/a.png');
+ assert.equal(rich.payload.mention_all, true);
+ assert.deepEqual(validateNoticeRequest('POST', { clubId, payload: { refreshMeta: true } }), { clubId, action: 'read', payload: { refreshMeta: true } });
+ assert.throws(() => validateNoticeRequest('POST', { clubId, payload: { refreshMeta: true, before: '2026-11-24T12:00:00Z', beforeId: id } }), { status: 400 });
+ const paged = noticePage({ rows: [{ id, created_at: '2026-11-24T12:00:00Z' }], pinned: [], paginated: true, canManage: true, viewerRole: 'owner' });
+ assert.equal(paged.paginated, true);
+ assert.equal(paged.entries.length, 1);
+ const meta = noticePage({ metaOnly: true, canManage: true, viewerRole: 'owner', memberCount: 55, roleCounts: { total: 55 }, members: [], overduePayouts: [] });
+ assert.equal(meta.metaOnly, true);
+ assert.equal(meta.memberCount, 55);
 });
 
 

@@ -78,6 +78,39 @@ function getSupabase() {
     return _supabase;
 }
 
+const WARM_QUESTION_CACHE = new Map();
+const WARM_CACHE_TTL_MS = 60_000;
+const WARM_CACHE_MAX_ENTRIES = 64;
+
+export function getWarmCachedQuestions(cacheKey) {
+    if (!cacheKey || typeof cacheKey !== 'string') return null;
+    const entry = WARM_QUESTION_CACHE.get(cacheKey);
+    if (!entry) return null;
+    if (Date.now() - entry.timestamp > WARM_CACHE_TTL_MS) {
+        WARM_QUESTION_CACHE.delete(cacheKey);
+        return null;
+    }
+    WARM_QUESTION_CACHE.delete(cacheKey);
+    WARM_QUESTION_CACHE.set(cacheKey, entry);
+    return Array.isArray(entry.rows) ? entry.rows : null;
+}
+
+export function setWarmCachedQuestions(cacheKey, rows) {
+    if (!cacheKey || typeof cacheKey !== 'string' || !Array.isArray(rows) || rows.length === 0) {
+        return;
+    }
+    if (WARM_QUESTION_CACHE.has(cacheKey)) {
+        WARM_QUESTION_CACHE.delete(cacheKey);
+    } else if (WARM_QUESTION_CACHE.size >= WARM_CACHE_MAX_ENTRIES) {
+        const oldestKey = WARM_QUESTION_CACHE.keys().next().value;
+        if (oldestKey !== undefined) WARM_QUESTION_CACHE.delete(oldestKey);
+    }
+    WARM_QUESTION_CACHE.set(cacheKey, {
+        rows,
+        timestamp: Date.now(),
+    });
+}
+
 /**
  * Losslessly normalize a canonical row, then enforce the receipt authority
  * boundary. This deliberately does not add cards, a board, seats, a street,
@@ -407,22 +440,34 @@ export default async function handler(req, res) {
                .catch((e) => ({ data: [], error: e }))
               : Promise.resolve({ data: [], error: null });
 
-          const cachePromise = runTrainingPersistenceQuery(
-              () => {
-                  let query = getSupabase()
-                      .from('training_question_cache')
-                      .select('id, question_id, question_data, engine_type, question_kind, canonical_policy, source_classification, quality_status, policy_version, policy_checksum, generated_at, source_created_at')
-                      .eq('game_id', gameId)
-                      .eq('level', gameLevel)
-                      .in('quality_status', ['active', 'active_fallback']);
-                  if (duelPayload?.questionIds?.length > 0) {
-                      query = query.in('question_id', duelPayload.questionIds.slice(0, 30));
+          const warmCacheKey = !duelPayload ? `${gameId}:L${gameLevel}` : '';
+          const warmCachedRows = warmCacheKey ? getWarmCachedQuestions(`${gameId}:L${gameLevel}`) : null;
+          const warmHit = Array.isArray(warmCachedRows) && warmCachedRows.length > 0;
+          res.setHeader('X-Training-Cache-Mode', warmHit ? 'WARM_MEM' : 'DB_READ');
+
+          const cachePromise = warmHit
+              ? Promise.resolve({ data: getWarmCachedQuestions(`${gameId}:L${gameLevel}`), error: null })
+              : runTrainingPersistenceQuery(
+                  () => {
+                      let query = getSupabase()
+                          .from('training_question_cache')
+                          .select('id, question_id, question_data, engine_type, question_kind, canonical_policy, source_classification, quality_status, policy_version, policy_checksum, generated_at, source_created_at')
+                          .eq('game_id', gameId)
+                          .eq('level', gameLevel)
+                          .in('quality_status', ['active', 'active_fallback']);
+                      if (duelPayload?.questionIds?.length > 0) {
+                          query = query.in('question_id', duelPayload.questionIds.slice(0, 30));
+                      }
+                      return query.limit(Math.max(100, candidateQuestionCount * 3));
+                  },
+                  { label: 'BatchPreload:cache-read' },
+              ).then((res) => {
+                  if (!duelPayload && Array.isArray(res?.data) && res.data.length > 0) {
+                      setWarmCachedQuestions(`${gameId}:L${gameLevel}`, res?.data);
                   }
-                  return query.limit(Math.max(100, candidateQuestionCount * 3));
-              },
-              { label: 'BatchPreload:cache-read' },
-          ).then((res) => ({ data: res?.data, error: null }))
-           .catch((err) => ({ data: null, error: err }));
+                  return { data: res?.data, error: null };
+              })
+               .catch((err) => ({ data: null, error: err }));
 
           const [seenOutcome, cacheOutcome] = await Promise.all([seenPromise, cachePromise]);
 
@@ -989,6 +1034,9 @@ export default async function handler(req, res) {
                       receiptByQuestionId.get(questionId),
                   );
               });
+              if (!duelPayload && !warmHit && Array.isArray(persisted.data) && persisted.data.length > 0) {
+                  setWarmCachedQuestions(`${gameId}:L${gameLevel}`, [...(questions || []), ...persisted.data]);
+              }
           } catch (canonicalizeError) {
               console.warn('[BatchPreload] Refusing to serve uncanonicalized questions:', canonicalizeError.message);
               return res.status(503).json(trainingPersistenceUnavailableBody());

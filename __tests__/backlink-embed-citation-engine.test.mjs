@@ -130,7 +130,7 @@ test('Webmaster Embed Portal (/tools/embeds) ships all 15 calculators, 12 SVG ba
   assert.ok(embedsSrc.includes('syndication-apis-heading'), 'embeds.js renders Open Datasets & Syndication APIs section');
 
   const embedUrls = [...embedsSrc.matchAll(/embedUrl:\s*'([^']+)'/g)].map((m) => m[1]);
-  assert.equal(embedUrls.length, 41, 'all 41 widgets define embedUrl');
+  assert.equal(embedUrls.length, 51, 'all 51 widgets define embedUrl');
   for (const url of embedUrls) {
     assert.ok(
       url.startsWith('https://smarter.poker/tools/') && url.endsWith('?embed=true'),
@@ -152,7 +152,7 @@ test('Webmaster Embed Portal (/tools/embeds) ships all 15 calculators, 12 SVG ba
 
   const md = renderEmbedsMarkdown();
   const mdEmbedUrls = [...md.matchAll(/- Embed URL: `([^`]+)`/g)].map((m) => m[1]);
-  assert.equal(mdEmbedUrls.length, 41, 'renderEmbedsMarkdown lists 41 Embed URLs');
+  assert.equal(mdEmbedUrls.length, 51, 'renderEmbedsMarkdown lists 51 Embed URLs');
   for (const url of mdEmbedUrls) {
     assert.ok(
       url.startsWith('https://smarter.poker/tools/') && url.endsWith('?embed=true'),
@@ -230,11 +230,11 @@ test('All authority page templates wire CitationBacklinkBox with 7 citation form
   }
 });
 
-test('JSON Feed 1.1 (/api/feeds/research) and RSS 2.0 (/feed.xml) syndicate all 15 research studies and 41 calculators with canonical backlinks', () => {
+test('JSON Feed 1.1 (/api/feeds/research) and RSS 2.0 (/feed.xml) syndicate all 15 research studies and 51 calculators with canonical backlinks', () => {
   const jsonFeed = buildResearchJsonFeed();
   assert.equal(jsonFeed.version, 'https://jsonfeed.org/version/1.1');
   assert.equal(jsonFeed.feed_url, 'https://smarter.poker/api/feeds/research');
-  assert.equal(jsonFeed.items.length, 56);
+  assert.equal(jsonFeed.items.length, 77);
 
   for (const item of jsonFeed.items) {
     assert.match(item.url, /^https:\/\/smarter\.poker\//);
@@ -342,7 +342,7 @@ test('Automated Outreach & Multilingual Syndication Engine (/api/seo/outreach-ge
 });
 
 test('Twitch & YouTube Streamer Chatbot API (/api/stream/cmd) evaluates !odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, !matchup, !tax, !stake, !iso, !series, !board, !mratio, !straddle, !sat, !bbj, !position, !math, !iq, !wrap, !latereg, !confidence, !trip, !geo, !table, !exploit, and !intl', () => {
-  assert.equal(STREAMER_BOT_COMMANDS.length, 34);
+  assert.equal(STREAMER_BOT_COMMANDS.length, 44);
 
   const oddsRes = evaluateStreamCommand({ cmd: 'odds', q: 'AA vs KK' });
   assert.ok(oddsRes.text.includes('81.9% vs 18.1%'));
@@ -465,10 +465,16 @@ test('Zero broken internal URLs or em dashes exist across backlinkCatalog, outre
     for (const rawUrl of urls) {
       const clean = rawUrl.replace(/[.,;:)]+$/, '');
       const urlPath = clean.replace('https://smarter.poker', '').replace(/\.md$/, '');
-      if (urlPath.startsWith('/compare/') && urlPath !== '/compare') {
+      if (urlPath.startsWith('/compare/') && urlPath !== '/compare' && urlPath !== '/compare/decision-matrix') {
         const s = urlPath.replace('/compare/', '');
         assert.ok(compareSlugs.has(s), `[${rel}] broken /compare/ slug: ${clean}`);
-      } else if (urlPath.startsWith('/research/') && urlPath !== '/research' && urlPath !== '/research/') {
+      } else if (
+        urlPath.startsWith('/research/') &&
+        urlPath !== '/research' &&
+        urlPath !== '/research/' &&
+        urlPath !== '/research/annual-state-of-poker-2026' &&
+        urlPath !== '/research/benchmarks'
+      ) {
         const s = urlPath.replace('/research/', '');
         assert.ok(researchSlugs.has(s), `[${rel}] broken /research/ slug: ${clean}`);
       } else if (urlPath.startsWith('/rules/') && urlPath !== '/rules') {
@@ -510,7 +516,17 @@ test('Zero broken internal URLs or em dashes exist across backlinkCatalog, outre
         urlPath !== '/learn/board-textures' &&
         !urlPath.startsWith('/learn/board-textures/') &&
         urlPath !== '/learn/mental-game' &&
-        urlPath !== '/learn/poker-as-a-business'
+        urlPath !== '/learn/poker-as-a-business' &&
+        urlPath !== '/learn/formulas' &&
+        !urlPath.startsWith('/learn/formulas/') &&
+        urlPath !== '/learn/tournament-stages' &&
+        !urlPath.startsWith('/learn/tournament-stages/') &&
+        urlPath !== '/learn/leaks' &&
+        !urlPath.startsWith('/learn/leaks/') &&
+        urlPath !== '/learn/hud-stats' &&
+        !urlPath.startsWith('/learn/hud-stats/') &&
+        urlPath !== '/learn/poker-myths-debunked' &&
+        urlPath !== '/learn/format-migration-guide'
       ) {
         const s = urlPath.replace('/learn/', '');
         assert.ok(lessonSlugs.has(s), `[${rel}] broken /learn/ lesson slug: ${clean}`);
@@ -597,13 +613,13 @@ test('25-Item Free Discovery, Viral Calculators, Matchups, Series Guides, Press 
   assert.equal(SERIES_GUIDES.length, 10, '10 major poker series strategy guides');
   assert.equal(getSeriesGuideBySlug('wsop-las-vegas')?.shortName, 'WSOP Las Vegas');
 
-  assert.equal(MCP_TOOLS.length, 55, '55 zero-auth MCP tools');
-  assert.equal(MCP_RESOURCE_TEMPLATES.length, 18, '18 MCP resource templates');
+  assert.equal(MCP_TOOLS.length, 70, '70 zero-auth MCP tools');
+  assert.equal(MCP_RESOURCE_TEMPLATES.length, 24, '24 MCP resource templates');
 
   const a2a = buildA2AAgentCard();
   assert.equal(a2a.schemaVersion, '1.0');
-  assert.equal(a2a.capabilities.mcpTools, 55);
-  assert.equal(a2a.capabilities.mcpResources, 18);
+  assert.equal(a2a.capabilities.mcpTools, 70);
+  assert.equal(a2a.capabilities.mcpResources, 24);
 
   const taxRes = await executeMcpTool('calculate_poker_taxes_w2g', {
     gross_winnings: 35000,
@@ -740,9 +756,9 @@ test('Phase 6 Partner Installation Suite: oEmbed 1.0 Provider, 1-Line JS Widget 
   assert.equal(invalidOembed.status, 404);
 
   const catalog = buildPartnerInstallationCatalog({ partner: 'upswingpoker.com' });
-  assert.equal(catalog.counts.embeddable_calculators, 41);
+  assert.equal(catalog.counts.embeddable_calculators, 51);
   assert.equal(catalog.counts.svg_attribution_badges, 16);
-  assert.equal(catalog.counts.streamer_chat_commands, 34);
+  assert.equal(catalog.counts.streamer_chat_commands, 44);
   assert.equal(catalog.counts.dead_tool_replacements, 12);
   assert.equal(catalog.counts.zenodo_dataset_deposits, 6);
   assert.ok(catalog.one_line_sdk_example.includes('data-partner="upswingpoker.com"'));
@@ -772,11 +788,11 @@ test('Phase 6 Partner Installation Suite: oEmbed 1.0 Provider, 1-Line JS Widget 
   const llmsFullTxt = read('public/llms-full.txt');
   const aiPluginJson = read('public/.well-known/ai-plugin.json');
   const openApiJson = read('public/api/openapi.json');
-  assert.ok(llmsTxt.includes('All 55 Zero-Auth MCP Tools'));
+  assert.ok(llmsTxt.includes('All 70 Zero-Auth MCP Tools'));
   assert.ok(llmsTxt.includes('!tax, !stake, !iso, !series'));
-  assert.ok(llmsFullTxt.includes('All 55 Zero-Auth MCP Tools'));
-  assert.ok(aiPluginJson.includes('55 zero-auth MCP tools'));
-  assert.ok(openApiJson.includes('55 Tools'));
+  assert.ok(llmsFullTxt.includes('All 70 Zero-Auth MCP Tools'));
+  assert.ok(aiPluginJson.includes('70 zero-auth MCP tools'));
+  assert.ok(openApiJson.includes('70 Tools'));
 
   const embedsMd = renderEmbedsMarkdown();
   for (const cmd of ['!tax', '!stake', '!iso', '!series']) {
@@ -1071,14 +1087,14 @@ test('Phase 8 Reconciled Acceptance: Solved-Spot Engine, QR Rule Sheets, Dataset
     'All notebook code cells have verified execution_count and outputs'
   );
 
-  assert.equal(MCP_SERVER_INFO.version, '2.0.0');
-  assert.equal(MCP_SERVER_INFO.packageVersion, '1.0.7');
+  assert.equal(MCP_SERVER_INFO.version, '2.2.0');
+  assert.equal(MCP_SERVER_INFO.packageVersion, '1.0.8');
   const mcpManifest = JSON.parse(read('public/.well-known/mcp.json'));
   const mcpRegistry = JSON.parse(read('public/.well-known/mcp-registry.json'));
-  assert.equal(mcpManifest.version, '2.0.0');
-  assert.equal(mcpManifest.package_version, '1.0.7');
-  assert.equal(mcpRegistry.version, '2.0.0');
-  assert.equal(mcpRegistry.package_version, '1.0.7');
+  assert.equal(mcpManifest.version, '2.2.0');
+  assert.equal(mcpManifest.package_version, '1.0.8');
+  assert.equal(mcpRegistry.version, '2.2.0');
+  assert.equal(mcpRegistry.package_version, '1.0.8');
   assert.deepEqual(mcpManifest.tools, MCP_TOOLS.map((t) => t.name));
   assert.deepEqual(mcpRegistry.tools, MCP_TOOLS.map((t) => t.name));
 

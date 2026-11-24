@@ -177,7 +177,7 @@ try:
  assert res_again['notified']==0,res_again
  # Concurrent >4h overdue scans emit strictly one owner notification for a newly aged request.
  sql('UPDATE cashout_requests SET created_at=updated_at WHERE id='+lit(h_fresh['cashout_id'])+';')
- decide(h_fresh,AGENT)
+ decide(h_fresh,AGENT,'release')
  h_conc=hold('Concurrent overdue scan')
  sql("UPDATE cashout_requests SET created_at=clock_timestamp()-interval '6 hours' WHERE id="+lit(h_conc['cashout_id'])+';')
  with ThreadPoolExecutor(max_workers=2) as pool:
@@ -217,7 +217,88 @@ try:
  sql('SELECT fn_sync_club_staff_notice_group('+lit(C)+');')
  assert sql('SELECT sc.group_name FROM club_messenger_staff_notice_groups g JOIN social_conversations sc ON sc.id=g.conversation_id WHERE g.club_id='+lit(C)+';')=='Renamed Kings Club - Notice Board'
  cases.append('Telegram Notice Board pins regular notices, enriches author/roster/roleCounts/overduePayouts, and syncs club renames')
- print(json.dumps({'passed':True,'cases':cases,'migrations':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(list((R/'supabase/migrations').glob('20261117203*.sql'))+list((R/'supabase/migrations').glob('20261124150500_*.sql')))},'scope':'Actual transition, ledger triggers, receipt/invoice validation; isolated invoice transport fixture; no production writes'}))
+
+ # Phase 2 migration (20261124180000): read receipts/unread counts, reactions/acks, attachments, @mentions,
+ # pagination skip, configurable overdue settings/escalation ladder, and management overdue escalation.
+ sql((R/'supabase/migrations/20261124180000_notice_board_phase2_reads_acks_media_mentions_and_overdue_config.sql').read_text())
+ # 4. Unread counts, read receipts, and Seen By counts.
+ unread_before=json.loads(asuser(OWNER,"SELECT fn_club_notice_unread_counts("+lit(AGENT)+", ARRAY["+lit(C)+"]::uuid[]);",role='service_role').splitlines()[-1])
+ assert unread_before[C]>=1,unread_before
+ mark_res=board(AGENT,'mark_read',{'lastNoticeId':pinned_notice['id']})
+ assert mark_res['markedRead'] is True,mark_res
+ unread_after=json.loads(asuser(OWNER,"SELECT fn_club_notice_unread_counts("+lit(AGENT)+", ARRAY["+lit(C)+"]::uuid[]);",role='service_role').splitlines()[-1])
+ assert unread_after[C]==0,unread_after
+ # Read-only agent can acknowledge & toggle reactions; author + reader increment seen_count.
+ ack_entry=board(AGENT,'toggle_reaction',{'id':pinned_notice['id'],'reaction':'ack'})
+ assert ack_entry['reactions']['ack']==1 and 'ack' in ack_entry['my_reactions'] and ack_entry['seen_count']>=2 and len(ack_entry['ack_users'])==1,ack_entry
+ ack_off=board(AGENT,'toggle_reaction',{'id':pinned_notice['id'],'reaction':'ack'})
+ assert ack_off['reactions']['ack']==0 and ack_off['my_reactions']==[],ack_off
+ cases.append('Notice Board tracks per-staff unread counts, read receipts (Seen By), and read-only agent acknowledgments/reactions')
+ # 5. Attachments (HTTPS only) + @mention notifications + group-name self-heal on write + pagination/metaOnly optimization.
+ board(OWNER,'create',{'id':op(),'content':'Bad URL','status':'notice','attachments':[{'url':'javascript:alert(1)'}]},error='Attachment URL Must Use HTTPS')
+ agent_mentions_before=int(sql("SELECT count(*) FROM notifications WHERE user_id="+lit(AGENT)+" AND type='notice_board_mention';"))
+ sql("UPDATE clubs SET name='Kings Club Live' WHERE id="+lit(C)+';')
+ rich=board(OWNER,'create',{
+  'id':op(),'content':'@Agent Please Review Receipt','status':'notice','is_pinned':False,
+  'attachments':[{'url':'https://example.com/receipt.png','name':'Receipt.png','mime':'image/png'}],
+  'mention_user_ids':[AGENT],
+ })
+ assert len(rich['attachments'])==1 and rich['attachments'][0]['url']=='https://example.com/receipt.png',rich
+ assert AGENT in rich['mentions'],rich
+ assert int(sql("SELECT count(*) FROM notifications WHERE user_id="+lit(AGENT)+" AND type='notice_board_mention';"))==agent_mentions_before+1
+ assert sql('SELECT sc.group_name FROM club_messenger_staff_notice_groups g JOIN social_conversations sc ON sc.id=g.conversation_id WHERE g.club_id='+lit(C)+';')=='Kings Club Live - Notice Board'
+ paged=board(OWNER,'read',{'before':rich['created_at'],'beforeId':rich['id']})
+ assert paged.get('paginated') is True and 'members' not in paged and 'overduePayouts' not in paged,paged
+ meta_only=board(OWNER,'read',{'refreshMeta':True})
+ assert meta_only.get('metaOnly') is True and meta_only['memberCount']==6 and 'rows' not in meta_only,meta_only
+ cases.append('Notice Board validates HTTPS attachments, notifies @mentioned staff, self-heals group name on write, and optimizes pagination/metaOnly reads')
+ # 6. Configurable overdue alert settings, escalation ladder (followup + admin alerts + auto-escalate), and manual management overdue escalation.
+ board(AGENT,'update_alert_settings',{'overdue_threshold_hours':2,'notify_admins':True},error='Club Owner Or Co-Owner Required')
+ board(ADMIN,'update_alert_settings',{'overdue_threshold_hours':2,'notify_admins':True},error='Club Owner Or Co-Owner Required')
+ cfg=board(OWNER,'update_alert_settings',{'overdue_threshold_hours':2,'followup_threshold_hours':6,'notify_admins':True,'auto_escalate_hours':8})
+ assert cfg['alertSettings']['overdue_threshold_hours']==2 and cfg['alertSettings']['followup_threshold_hours']==6 and cfg['alertSettings']['notify_admins'] is True and cfg['alertSettings']['auto_escalate_hours']==8,cfg
+ # Fresh (<2h) request CANNOT be escalated by OWNER (still assigned cashier only).
+ sql('UPDATE cashout_requests SET created_at=updated_at WHERE id='+lit(h_fresh['cashout_id'])+';')
+ decide(h_fresh,AGENT,'release')
+ h_mgmt=hold('Fresh request cannot be escalated by owner')
+ rpc(OWNER,'fn_cashout_escalate_v2',[lit(h_mgmt['cashout_id']),lit(C),lit(OWNER),lit(op())],error='Assigned Active Cashier Required')
+ # Simulate a real 3h-old hold with cryptographically consistent timestamps across its hold receipt chain.
+ sql("""
+  BEGIN;
+  SET LOCAL session_replication_role = 'replica';
+  DO $$ DECLARE v_ts timestamptz := clock_timestamp() - interval '3 hours'; v_cid uuid := """ + lit(h_mgmt['cashout_id']) + """::uuid; v_ev public.accounting_cashier_events%ROWTYPE; v_payload jsonb; v_inv public.settlement_invoices%ROWTYPE; v_body text; BEGIN
+   UPDATE public.cashout_requests SET created_at = v_ts, updated_at = v_ts WHERE id = v_cid;
+   UPDATE public.chip_escrow SET locked_at = v_ts WHERE cashout_request_id = v_cid;
+   UPDATE public.accounting_cashier_events SET occurred_at = v_ts WHERE cashout_id = v_cid AND event_slot = 'hold' RETURNING * INTO v_ev;
+   UPDATE public.chip_ledger SET created_at = v_ts WHERE id = v_ev.source_ledger_id;
+   UPDATE public.chip_transactions SET created_at = v_ts WHERE id = v_ev.source_transaction_id;
+   v_payload := public.fn_cashier_event_payload(v_ev);
+   UPDATE public.settlement_invoices SET breakdown = jsonb_set(breakdown, '{cashier}', v_payload) WHERE id = v_ev.invoice_id RETURNING * INTO v_inv;
+   v_body := public.fn_cashier_document_body(v_ev.id, v_inv.invoice_number);
+   UPDATE public.social_messages m SET content = v_body, media_metadata = jsonb_set(media_metadata, '{cashier}', v_payload) FROM public.accounting_invoice_deliveries d WHERE d.invoice_id = v_ev.invoice_id AND m.id = d.message_id;
+   UPDATE public.notifications n SET data = jsonb_set(data, '{cashier}', v_payload), metadata = jsonb_set(metadata, '{cashier}', v_payload) FROM public.accounting_invoice_deliveries d WHERE d.invoice_id = v_ev.invoice_id AND n.id = d.notification_id;
+  END $$;
+  COMMIT;
+ """)
+ esc_mgmt=rpc(OWNER,'fn_cashout_escalate_v2',[lit(h_mgmt['cashout_id']),lit(C),lit(OWNER),lit(op())])
+ assert esc_mgmt['is_escalated'] is True,esc_mgmt
+ decide(h_mgmt,OWNER)
+ # Escalation ladder: 3h notifies owner+co-owner+admin (initial), 7h sends followup once, 9h auto-escalates to Club Bank.
+ h_lad=hold('Escalation ladder cashout')
+ sql("UPDATE cashout_requests SET created_at=clock_timestamp()-interval '3 hours' WHERE id="+lit(h_lad['cashout_id'])+';')
+ lad1=json.loads(asuser(OWNER,'SELECT fn_notify_overdue_cashouts(4,200);',role='service_role').splitlines()[-1])
+ assert lad1['notified']==3 and lad1['followups']==0 and lad1['auto_escalated']==0,lad1
+ lad1_dup=json.loads(asuser(OWNER,'SELECT fn_notify_overdue_cashouts(4,200);',role='service_role').splitlines()[-1])
+ assert lad1_dup['notified']==0,lad1_dup
+ sql("UPDATE cashout_requests SET created_at=clock_timestamp()-interval '7 hours' WHERE id="+lit(h_lad['cashout_id'])+';')
+ lad2=json.loads(asuser(OWNER,'SELECT fn_notify_overdue_cashouts(4,200);',role='service_role').splitlines()[-1])
+ assert lad2['followups']==3 and lad2['auto_escalated']==0,lad2
+ sql("UPDATE cashout_requests SET created_at=clock_timestamp()-interval '9 hours' WHERE id="+lit(h_lad['cashout_id'])+';')
+ lad3=json.loads(asuser(OWNER,'SELECT fn_notify_overdue_cashouts(4,200);',role='service_role').splitlines()[-1])
+ assert lad3['auto_escalated']==1,lad3
+ assert sql('SELECT count(*) FROM club_cashout_escalations WHERE cashout_id='+lit(h_lad['cashout_id'])+';')=='1'
+ cases.append('configurable overdue alert ladder (threshold, admin backup, follow-up, auto-escalate) and overdue-only management escalation enforced')
+ print(json.dumps({'passed':True,'cases':cases,'migrations':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(list((R/'supabase/migrations').glob('20261117203*.sql'))+list((R/'supabase/migrations').glob('20261124150500_*.sql'))+list((R/'supabase/migrations').glob('20261124180000_*.sql')))},'scope':'Actual transition, ledger triggers, receipt/invoice validation; isolated invoice transport fixture; no production writes'}))
 finally:
  if started:cmd('pg_ctl','-D',str(D/'data'),'-m','immediate','stop')
  import shutil;shutil.rmtree(D)

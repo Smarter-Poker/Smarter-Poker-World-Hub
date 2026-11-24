@@ -469,12 +469,79 @@ export function resolveTournamentWikidataLinks(tournament) {
 }
 
 /**
+ * Explicit tool slug to Wikidata entity mapping (each with >= 2 Q-IDs)
+ */
+export const TOOL_WIKIDATA_MAP = {
+  'poker-odds-calculator': ['texas-holdem', 'omaha-holdem', 'monte-carlo-method', 'game-theory', 'poker'],
+  'icm-calculator': ['independent-chip-model', 'poker-tournament', 'prize-money', 'game-theory', 'poker'],
+  'preflop-ranges': ['game-theory', 'texas-holdem', 'poker'],
+  'pot-odds-calculator': ['game-theory', 'texas-holdem', 'omaha-holdem', 'poker'],
+  'bankroll-calculator': ['game-theory', 'monte-carlo-method', 'texas-holdem', 'poker'],
+  'push-fold-calculator': ['poker-tournament', 'independent-chip-model', 'game-theory', 'texas-holdem', 'poker'],
+  'bounty-calculator': ['poker-tournament', 'prize-money', 'independent-chip-model', 'game-theory', 'poker'],
+  'poker-winrate-calculator': ['texas-holdem', 'online-poker', 'game-theory', 'poker'],
+  'side-pot-calculator': ['texas-holdem', 'omaha-holdem', 'poker-tournament', 'poker'],
+  'blind-structure-calculator': ['poker-tournament', 'world-series-of-poker', 'texas-holdem', 'poker'],
+  'spr-calculator': ['game-theory', 'texas-holdem', 'omaha-holdem', 'poker'],
+  'plo-bet-calculator': ['omaha-holdem', 'game-theory', 'poker'],
+  'payout-calculator': ['poker-tournament', 'prize-money', 'independent-chip-model', 'poker'],
+  'rake-calculator': ['texas-holdem', 'omaha-holdem', 'game-theory', 'poker'],
+  '3bet-calculator': ['game-theory', 'texas-holdem', 'poker'],
+  'chop-calculator': ['independent-chip-model', 'poker-tournament', 'prize-money', 'game-theory', 'poker'],
+  'variance-calculator': ['monte-carlo-method', 'game-theory', 'texas-holdem', 'poker'],
+  'outs-calculator': ['texas-holdem', 'omaha-holdem', 'game-theory', 'poker'],
+  'poker-tax-calculator': ['poker-tournament', 'prize-money', 'texas-holdem', 'poker'],
+  'staking-calculator': ['poker-tournament', 'prize-money', 'world-series-of-poker', 'poker'],
+  'iso-calculator': ['game-theory', 'texas-holdem', 'poker'],
+  'home-game-kit': ['texas-holdem', 'poker-tournament', 'poker'],
+  'format-quiz': ['texas-holdem', 'omaha-holdem', 'poker-tournament', 'poker'],
+  'board-texture-analyzer': ['game-theory', 'texas-holdem', 'monte-carlo-method', 'poker'],
+  'm-ratio-calculator': ['poker-tournament', 'independent-chip-model', 'texas-holdem', 'poker'],
+  'session-planner': ['texas-holdem', 'game-theory', 'poker'],
+  'straddle-calculator': ['texas-holdem', 'omaha-holdem', 'game-theory', 'poker'],
+  'hand-converter': ['texas-holdem', 'omaha-holdem', 'online-poker', 'poker'],
+  'satellite-calculator': ['poker-tournament', 'independent-chip-model', 'world-series-of-poker', 'poker'],
+  'promo-ev-calculator': ['texas-holdem', 'prize-money', 'game-theory', 'poker'],
+  'who-wins-calculator': ['texas-holdem', 'omaha-holdem', 'poker'],
+  'mixed-game-placards': ['texas-holdem', 'omaha-holdem', 'seven-card-stud', 'razz', 'poker'],
+  'poker-iq-test': ['game-theory', 'independent-chip-model', 'texas-holdem', 'poker'],
+  'plo-outs-calculator': ['omaha-holdem', 'game-theory', 'monte-carlo-method', 'poker'],
+  'late-reg-calculator': ['independent-chip-model', 'poker-tournament', 'prize-money', 'game-theory', 'poker'],
+  'winrate-confidence-calculator': ['monte-carlo-method', 'game-theory', 'texas-holdem', 'poker'],
+  'poker-trip-planner': ['poker-tournament', 'world-series-of-poker', 'world-poker-tour', 'poker'],
+  'shot-clock': ['poker-tournament', 'world-poker-tour', 'texas-holdem', 'poker'],
+  'geometric-bet-calculator': ['game-theory', 'texas-holdem', 'omaha-holdem', 'poker'],
+  'table-selection-calculator': ['texas-holdem', 'omaha-holdem', 'game-theory', 'poker'],
+  'mtt-grind-planner': ['poker-tournament', 'online-poker', 'prize-money', 'poker'],
+  'multiway-all-in-calculator': ['texas-holdem', 'omaha-holdem', 'monte-carlo-method', 'game-theory', 'poker'],
+  'mystery-bounty-tracker': ['poker-tournament', 'prize-money', 'independent-chip-model', 'game-theory', 'poker'],
+  'bubble-factor-calculator': ['independent-chip-model', 'poker-tournament', 'prize-money', 'game-theory', 'poker'],
+  'bluff-catching-calculator': ['game-theory', 'texas-holdem', 'monte-carlo-method', 'poker'],
+  'multi-street-ev-calculator': ['game-theory', 'texas-holdem', 'omaha-holdem', 'poker'],
+  'heads-up-push-fold-calculator': ['game-theory', 'poker-tournament', 'texas-holdem', 'poker'],
+  'blind-vs-blind-calculator': ['game-theory', 'texas-holdem', 'poker'],
+  'shot-taking-calculator': ['game-theory', 'monte-carlo-method', 'texas-holdem', 'poker'],
+  'warmup-cooldown-routine': ['game-theory', 'texas-holdem', 'poker-tournament', 'poker'],
+  'home-game-director': ['poker-tournament', 'prize-money', 'texas-holdem', 'poker'],
+  'embeds': ['poker', 'texas-holdem', 'game-theory'],
+};
+
+/**
  * Resolves Wikidata and Wikipedia disambiguation links for poker tools and concepts.
  */
 export function resolveToolWikidataLinks(toolKey) {
   if (!toolKey) return [];
   const normalized = normalizeEntityKey(toolKey);
   const links = [];
+
+  if (TOOL_WIKIDATA_MAP[normalized]) {
+    for (const k of TOOL_WIKIDATA_MAP[normalized]) {
+      if (WIKIDATA_ENTITIES[k]) {
+        links.push(WIKIDATA_ENTITIES[k].wikidata, WIKIDATA_ENTITIES[k].wikipedia);
+      }
+    }
+    return links.filter((l, idx, arr) => arr.indexOf(l) === idx);
+  }
 
   if (normalized.includes('icm')) {
     const keys = ['independent-chip-model', 'game-theory', 'texas-holdem', 'poker'];

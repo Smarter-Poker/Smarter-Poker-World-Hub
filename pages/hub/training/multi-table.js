@@ -1211,6 +1211,122 @@ export default function MultiTablePage() {
               </div>
             </div>
 
+            {/* Live Multi-Table Decision Queue & Per-Table EV Ledger Bar */}
+            <div
+              data-multitable-focus-queue="true"
+              style={{
+                padding: '6px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 8,
+                borderBottom: '1px solid rgba(255,255,255,0.06)',
+                background: 'rgba(2, 6, 23, 0.72)',
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 800,
+                  color: '#7dd3fc',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Action Queue &amp; EV Ledger:
+              </span>
+              {visibleGames.map((gameId, idx) => {
+                const tally = liveTableTallyRef.current[gameId] || {
+                  hands: 0,
+                  correct: 0,
+                  evLoss: 0,
+                };
+                const tState = tableStates[gameId] || {};
+                const answeredCount = Number(
+                  tally.hands || tState.totalHands || tState.questionsAnswered || 0,
+                );
+                const correctCount = Number(
+                  tally.correct || tState.questionsCorrect || tState.correctCount || 0,
+                );
+                const accPct = answeredCount > 0 ? Math.round((correctCount / answeredCount) * 100) : 0;
+                const evLossVal = Number(tally.evLoss || tState.totalEVLoss || tState.evLoss || 0);
+                const isFocusedTable = gameId === activeGameId;
+                const isDoneTable = completedTables.has(gameId) || Boolean(tState.gameComplete);
+                const isPendingDecision = !isDoneTable && !tState.showFeedback;
+                const gameLabel = MULTI_TABLE_GAMES.find((g) => g.id === gameId)?.name || gameId;
+
+                return (
+                  <button
+                    key={gameId}
+                    type="button"
+                    data-multitable-ledger-pill={gameId}
+                    data-active-table={isFocusedTable ? 'true' : 'false'}
+                    data-table-status={isDoneTable ? 'completed' : isPendingDecision ? 'pending' : 'answered'}
+                    onClick={() => setFocusedGameId(gameId)}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: 8,
+                      cursor: 'pointer',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      border: isFocusedTable
+                        ? '1px solid rgba(0, 212, 255, 0.65)'
+                        : isPendingDecision
+                          ? '1px solid rgba(251, 191, 36, 0.45)'
+                          : '1px solid rgba(255, 255, 255, 0.12)',
+                      background: isFocusedTable
+                        ? 'rgba(0, 212, 255, 0.18)'
+                        : isPendingDecision
+                          ? 'rgba(251, 191, 36, 0.1)'
+                          : 'rgba(255, 255, 255, 0.04)',
+                      color: isFocusedTable ? '#67e8f9' : '#e2e8f0',
+                    }}
+                  >
+                    <span>T{idx + 1} · {gameLabel}</span>
+                    <span style={{ color: '#94a3b8' }}>({answeredCount}H · {accPct}%)</span>
+                    <span style={{ color: evLossVal > 0 ? '#f87171' : '#86efac' }}>
+                      -{evLossVal.toFixed(2)} BB
+                    </span>
+                  </button>
+                );
+              })}
+
+              <button
+                type="button"
+                data-jump-next-pending-table="true"
+                onClick={() => {
+                  if (visibleGames.length === 0) return;
+                  const curIdx = Math.max(0, visibleGames.indexOf(activeGameId));
+                  for (let offset = 1; offset <= visibleGames.length; offset += 1) {
+                    const candidateId = visibleGames[(curIdx + offset) % visibleGames.length];
+                    if (completedTables.has(candidateId)) continue;
+                    const candidateState = tableStates[candidateId];
+                    if (!candidateState?.gameComplete && !candidateState?.showFeedback) {
+                      setFocusedGameId(candidateId);
+                      return;
+                    }
+                  }
+                  const nextId = visibleGames[(curIdx + 1) % visibleGames.length];
+                  if (nextId) setFocusedGameId(nextId);
+                }}
+                style={{
+                  marginLeft: 'auto',
+                  padding: '5px 12px',
+                  borderRadius: 8,
+                  border: '1px solid rgba(56, 189, 248, 0.5)',
+                  background: 'rgba(56, 189, 248, 0.18)',
+                  color: '#e0f2fe',
+                  fontSize: 12,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                }}
+              >
+                Jump To Next Pending Table →
+              </button>
+            </div>
+
             {/* Table switcher — phones only. See the isPhone note: below the
                 break exactly one felt is on screen, so the player needs a way
                 to reach the others. A completed table keeps its slot rather

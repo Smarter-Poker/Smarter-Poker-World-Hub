@@ -138,5 +138,15 @@
       "authenticated": false,
       "service_role": false
     }
+  },
+  {
+    "file": "supabase/migrations/20261124180000_notice_board_phase2_reads_acks_media_mentions_and_overdue_config.sql",
+    "signature": "public.fn_notice_entry(uuid,uuid)",
+    "source_sha256": "c943cb402910d7ea0b298f435476913e116ec65371642c40ea6bc0625746d67b",
+    "execute": {
+      "anon": false,
+      "authenticated": false,
+      "service_role": false
+    }
   }
 ]

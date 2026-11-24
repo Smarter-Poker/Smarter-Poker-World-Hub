@@ -25,7 +25,13 @@ export default async function handler(req, res) {
             const status = { '42501': 403, '22023': 400, '22P02': 400, '22007': 400, '40001': 409, P0002: 404 }[error.code] || 503;
             return res.status(status).json({ success: false, error: status === 503 ? 'Notice Board Unavailable' : error.message });
         }
-        return res.status(200).json({ success: true, ...(action === 'read' ? noticePage(data) : { entry: data }) });
+        if (action === 'read') {
+            return res.status(200).json({ success: true, ...noticePage(data) });
+        }
+        if (action === 'mark_read' || action === 'update_alert_settings') {
+            return res.status(200).json({ success: true, ...(data && typeof data === 'object' ? data : {}) });
+        }
+        return res.status(200).json({ success: true, entry: data });
     } catch (error) {
         return res.status(error.status || 503).json({ success: false, error: error.status ? error.message : 'Notice Board Unavailable' });
     }

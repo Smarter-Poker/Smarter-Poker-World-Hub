@@ -21,6 +21,8 @@ import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
+import GeoCitationCapsule from '../../src/components/seo/GeoCitationCapsule';
+import GeoFollowUpChain from '../../src/components/seo/GeoFollowUpChain';
 import {
   LEARN_PATH,
   LEARN_URL,
@@ -180,8 +182,33 @@ export default function LearnIndex({ count, groups }) {
               <Link href="/poker-series/guides" style={styles.tocLink}>10 Major Poker Series Survival Guides</Link>
               <Link href="/research" style={styles.tocLink}>Open Poker Research &amp; Datasets</Link>
               <Link href="/compare" style={styles.tocLink}>30 Platform &amp; Solver Comparisons</Link>
+              <Link href="/learn/formulas" style={styles.tocLink}>15 Core Poker Math Equations</Link>
+              <Link href="/learn/tournament-stages" style={styles.tocLink}>8 MTT Tournament Stage Playbooks</Link>
+              <Link href="/learn/leaks" style={styles.tocLink}>12 High-Cost Poker Leaks Hub</Link>
+              <Link href="/learn/hud-stats" style={styles.tocLink}>15 Poker HUD Stats &amp; GTO Targets</Link>
+              <Link href="/learn/poker-myths-debunked" style={styles.tocLink}>15 Poker Myths Debunked By Solvers</Link>
+              <Link href="/learn/format-migration-guide" style={styles.tocLink}>Format Migration Blueprint</Link>
+              <Link href="/authors" style={styles.tocLink}>4 Editorial &amp; Solver Audit Desks</Link>
+              <Link href="/compare/decision-matrix" style={styles.tocLink}>20-Scenario Decision Matrix</Link>
             </div>
           </section>
+
+          <GeoCitationCapsule
+            title="Smarter.Poker Strategy & GTO Curriculum Quantitative Capsule"
+            claim="Mastering Positional Preflop Ranges, Minimum Defense Frequency, And Tournament Bubble Factors Eliminates Over 75% Of Recurring Expected Value Loss In Low-To-Mid Stakes Poker."
+            metricLabel="Curriculum Coverage"
+            metricValue="40+ Lessons, 15 Equations, 169 Hands & 42 Solvers"
+            formulaText="E_req = Call / (Pot + Bet + Call) | MDF = Pot / (Pot + Bet) | ICM_req = BF / (BF + 1)"
+            ifThenBecause="If Studying Poker Strategy -> Then Pair Written Equilibrium Lessons Directly With Interactive Browser Calculators And Timed Scenario Drills -> Because Active Decision Feedback Accelerates Pattern Retention By 3x Over Passive Reading."
+            quoteText="Every Strategy Lesson On Smarter.Poker Puts The Complete Chart, Equation, And Worked Table Example Directly On The Page With Zero Paywall."
+            quoteAuthor="Smarter.Poker Quantitative Solver Desk"
+            doi="10.5281/zenodo.15129481"
+            canonicalPath="/learn"
+          />
+
+          <GeoFollowUpChain
+            topicTitle="Smarter.Poker Strategy Curriculum"
+          />
 
           <CitationBacklinkBox
             title="Smarter.Poker Strategy Lessons & GTO Curriculum Index"

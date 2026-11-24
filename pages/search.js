@@ -182,7 +182,7 @@ const CALCULATOR_ITEMS = [
     title: 'Embeddable Webmaster Poker Widgets & Streamer Bot Suite',
     href: '/tools/embeds',
     badge: 'Free HTML5 Iframes',
-    summary: 'Copy-And-Paste Responsive Calculator Iframe Embeds And 34 Nightbot/StreamElements Commands.',
+    summary: 'Copy-And-Paste Responsive Calculator Iframe Embeds And 44 Nightbot/StreamElements/Discord Commands.',
   },
   {
     title: 'Interactive Flop Board Texture & GTO C-Bet Frequency Analyzer',
@@ -291,6 +291,66 @@ const CALCULATOR_ITEMS = [
     href: '/tools/mtt-grind-planner',
     badge: 'MTT ABI & Exposure',
     summary: 'Calculates Single-Session Tournament Capital Exposure, Effective ABI Ratios, And Session 0-ITM Brick Probability.',
+  },
+  {
+    title: '3-Way & 4-Way Multiway All-In Main & Side-Pot EV Calculator',
+    href: '/tools/multiway-all-in-calculator',
+    badge: '3-Way/4-Way All-In EV',
+    summary: 'Computes Exact Main-Pot And Sequential Side-Pot Expected Value, Dead-Money Allocation, And Multiway Calling Equity Thresholds.',
+  },
+  {
+    title: 'Live Mystery Bounty Pool Tracker & Envelope EV Calculator',
+    href: '/tools/mystery-bounty-tracker',
+    badge: 'Live Envelope Tracker',
+    summary: 'Tracks Remaining Unopened Mystery Bounty Envelopes In Real Time To Compute Average Knockout EV, Chip Equivalence, And Top-Chest Odds.',
+  },
+  {
+    title: 'Tournament ICM Bubble Factor & Risk Premium Matrix Calculator',
+    href: '/tools/bubble-factor-calculator',
+    badge: 'Pairwise ICM Matrix',
+    summary: 'Computes Pairwise Malmuth-Harville ICM Bubble Factors, Risk Premium Percentages, And Final Table All-In Calling Equity Thresholds.',
+  },
+  {
+    title: 'River Bluff-Catching, Minimum Defense Frequency & Blocker EV Calculator',
+    href: '/tools/bluff-catching-calculator',
+    badge: 'River Blocker & MDF',
+    summary: 'Evaluates River Bluff-Catching Expected Value Using Pot-Odds Alpha, Defender MDF, And Card-Removal Blocker Ratios.',
+  },
+  {
+    title: 'Multi-Street Flop-Turn-River Barrel & Cumulative Fold Equity Calculator',
+    href: '/tools/multi-street-ev-calculator',
+    badge: '3-Street Barrel EV',
+    summary: 'Models Street-By-Street Pot Growth, Remaining SPR Compression, And Cumulative Triple-Barrel Bluff Breakeven Thresholds.',
+  },
+  {
+    title: 'Heads-Up (HU) & 3-Max Short-Stack Nash Push/Fold/Limp Equilibrium Solver',
+    href: '/tools/heads-up-push-fold-calculator',
+    badge: '1BB-25BB HU Nash',
+    summary: 'Unexploitable 1BB-To-25BB Heads-Up And 3-Max Small Blind Push/Limp And Big Blind Call Nash Equilibrium Charts.',
+  },
+  {
+    title: 'Blind-Vs-Blind (SB Vs BB) GTO Range & Limp-Raise Matrix Calculator',
+    href: '/tools/blind-vs-blind-calculator',
+    badge: 'SB Vs BB Equilibrium',
+    summary: 'Solves Small Blind Versus Big Blind Limp, Open-Raise, Iso-Raise, And Limp-3-Bet Frequencies From 20BB To 100BB.',
+  },
+  {
+    title: 'Bankroll Shot-Taking, Stake Move-Up & Stop-Loss Ladder Calculator',
+    href: '/tools/shot-taking-calculator',
+    badge: '2-Tier Move-Up Plan',
+    summary: 'Builds A Disciplined Two-Tier Bankroll Move-Up Plan With Exact Shot Buy-In Budgets, Hard Drop-Down Floors, And Combined RoR.',
+  },
+  {
+    title: 'Pre-Session Mental Game Warm-Up & Post-Session Cooldown Builder',
+    href: '/tools/warmup-cooldown-routine',
+    badge: 'A-Game Readiness',
+    summary: 'Three-Minute Pre-Session A-Game Readiness Diagnostic, Hard Stop-Loss Contract, And Post-Session Decision Grading Journal.',
+  },
+  {
+    title: 'Home Game Host Director: Live Waitlist, Random Seat Draw & Payout Ledger',
+    href: '/tools/home-game-director',
+    badge: 'Host Console & Ledger',
+    summary: 'Browser-Native Home Poker Table Seat Randomizer, Buy-In And Rebuy Audit Ledger, And Minimum-Transfer Net Settlement Solver.',
   },
 ];
 
@@ -427,6 +487,111 @@ const AUTHORITY_HUB_ITEMS = [
     href: '/poker-rooms/international',
     badge: '10 Global Poker Hubs',
     summary: 'International Rake Structures, Currency Rules, And Tax Treaties Across London, Rozvadov, Barcelona, Monte Carlo, And Manila.',
+  },
+  {
+    category: 'GTO Lessons',
+    title: 'Poker Math Formulas Encyclopedia: 15 Core Equations, LaTeX & Worked Examples',
+    href: '/learn/formulas',
+    badge: '15 Algebraic Proofs',
+    summary: 'Complete Algebraic Derivations, LaTeX Equations, And Worked Table Examples For Pot Odds, MDF, ICM, Bubble Factor, SPR, And RoR.',
+  },
+  {
+    category: 'GTO Lessons',
+    title: '8 Multi-Table Tournament (MTT) Stages Strategy Playbook',
+    href: '/learn/tournament-stages',
+    badge: '8 MTT Phases',
+    summary: 'Chronological MTT Playbook Covering Early Deepstack Levels, Antes, Late-Reg Close, Money Bubble, ITM, Final Table ICM, And Heads-Up.',
+  },
+  {
+    category: 'GTO Lessons',
+    title: '12 Common Poker Leaks, BB/100 Winrate Cost & GTO Solver Cure Directory',
+    href: '/learn/leaks',
+    badge: '12 Leak Diagnostics',
+    summary: 'Diagnostic Database Of The 12 Most Expensive Preflop, Postflop, And ICM Leaks With HUD Thresholds And Solver Remediation Drills.',
+  },
+  {
+    category: 'GTO Lessons',
+    title: '15 Poker HUD Statistics Encyclopedia: Formulas, GTO Targets & Exploits',
+    href: '/learn/hud-stats',
+    badge: '15 HUD Metrics',
+    summary: 'Quantitative Reference For 15 Essential HUD Statistics (VPIP, PFR, 3-Bet, C-Bet, WTSD, W$SD, WWSF, AF) With 6-Max/9-Max GTO Targets.',
+  },
+  {
+    category: 'GTO Lessons',
+    title: '15 Common Poker Myths Debunked By GTO Solvers & Combinatorics',
+    href: '/learn/poker-myths-debunked',
+    badge: '15 Solver Fact-Checks',
+    summary: 'Fact-Checked Debunking Of 15 Widespread Table Folklore Claims Using CFR Solver Equilibriums And 52-Card Combinatorics.',
+  },
+  {
+    category: 'GTO Lessons',
+    title: 'Cross-Format Poker Strategy Migration Matrix (6 Transition Blueprints)',
+    href: '/learn/format-migration-guide',
+    badge: '6 Format Blueprints',
+    summary: 'Six Mathematical Transition Blueprints For Players Switching Between Live Cash, Online 6-Max, MTT Tournaments, And PLO.',
+  },
+  {
+    category: 'Research Studies',
+    title: 'Smarter.Poker Quantitative Research Faculty & Editorial Verification Team',
+    href: '/authors',
+    badge: '4 Research Desks',
+    summary: 'Profiles And Audit Credentials For Smarter.Poker Quantitative Solver, Cardroom Operations, Tournament ICM, And PLO Research Desks.',
+  },
+  {
+    category: 'Comparisons',
+    title: 'Interactive Poker Software, Solver, Bankroll & Cardroom Decision Matrix',
+    href: '/compare/decision-matrix',
+    badge: '20-Scenario Matrix',
+    summary: 'Twenty-Scenario Quantitative Recommendation Matrix Comparing GTO Solvers, Calculators, Venue Directories, And Private Club Platforms.',
+  },
+  {
+    category: 'Regional Poker Markets',
+    title: '10 Major Airport, Interstate & Cross-Border Live Poker Travel Corridors',
+    href: '/poker-rooms/corridors',
+    badge: '10 Travel Corridors',
+    summary: 'Geographic Routing Directory Connecting Major Non-Casino Metros And Airports To Their Closest Legal Live Poker Rooms.',
+  },
+  {
+    category: 'Regional Poker Markets',
+    title: 'Best Live Poker Rooms By Game Variant (PLO, Big O, Mixed, Stud & High-Stakes)',
+    href: '/poker-rooms/by-game',
+    badge: '6 Variant Directories',
+    summary: 'Curated Directory Grouping 715+ North American Poker Rooms By PLO, Big O, Mixed Games, 7-Card Stud, High-Stakes NLH, And Daily MTTs.',
+  },
+  {
+    category: 'Regional Poker Markets',
+    title: 'Live Poker Room Security, Floor Dispute Escalation & Angle-Shot Protection Guide',
+    href: '/poker-rooms/security-and-disputes-guide',
+    badge: 'Security & Disputes',
+    summary: 'Official TDA And RROP Protocols For Floor Disputes, Surveillance Reviews, Cage Safety, And Defending Against 8 Common Angle Shots.',
+  },
+  {
+    category: 'Regional Poker Markets',
+    title: '12-Month Live Poker Series, Circuit & Festival Seasonal Planning Calendar',
+    href: '/poker-rooms/seasonal-calendar',
+    badge: '12-Month Circuit',
+    summary: 'Month-By-Month Global Live Poker Circuit Planner Mapping Peak Tournament Festivals And Cash Game Liquidity From January To December.',
+  },
+  {
+    category: 'Research Studies',
+    title: '2026 Annual State Of Live & Online Poker Industry Whitepaper',
+    href: '/research/annual-state-of-poker-2026',
+    badge: '2026 Flagship Whitepaper',
+    summary: 'Flagship 2026 Quantitative Industry Report Synthesizing 715+ Venues, 4,500+ Weekly Tournaments, And 10M+ Simulated GTO Hands.',
+  },
+  {
+    category: 'Research Studies',
+    title: '2026 Master Quantitative Poker Benchmark Tables (Rake, Variance, ICM & GTO)',
+    href: '/research/benchmarks',
+    badge: '6 Master Tables',
+    summary: 'Single-Page Master Reference Consolidating All First-Party Smarter.Poker Rake, Winrate, Standard Deviation, ICM, And HUD Benchmark Tables.',
+  },
+  {
+    category: 'Research Studies',
+    title: 'Smarter.Poker Canonical Fact Ledger, Entity Provenance & AI Verification Hub',
+    href: '/facts',
+    badge: 'Entity Fact Ledger',
+    summary: 'Authoritative Fact Sheet And Machine-Verifiable Provenance Ledger Synchronized With /.well-known/ai-facts.json.',
   },
 ];
 
@@ -979,7 +1144,7 @@ export default function UniversalPokerSearchPage() {
       '@id': `${canonicalUrl}#search`,
       name: 'Universal Poker Search & Command Directory',
       description:
-        'Search Across 42 Interactive Poker Calculators, 169 Starting Hands, 25 Hand Matchups, 30 Official Rules, 15 Game Variants, And 15 Research Studies.',
+        'Search Across 52 Interactive Poker Calculators, 70 MCP Tools, 169 Starting Hands, 25 Hand Matchups, 30 Official Rules, 15 Game Variants, And 15 Research Studies.',
       url: canonicalUrl,
       inLanguage: 'en-US',
       isPartOf: { '@id': 'https://smarter.poker/#website' },
@@ -999,7 +1164,7 @@ export default function UniversalPokerSearchPage() {
     <div style={styles.page}>
       <SEOHead
         title="Universal Poker Search And Command Directory"
-        description="Search Across 42 Interactive Poker Calculators, 169 Starting Hands, 25 Hand Matchups, 30 Official Rules, 15 Game Variants, And 15 Research Studies."
+        description="Search Across 52 Interactive Poker Calculators, 70 MCP Tools, 169 Starting Hands, 25 Hand Matchups, 30 Official Rules, 15 Game Variants, And 15 Research Studies."
         canonical="/search"
         jsonLd={jsonLd}
       />
@@ -1018,7 +1183,7 @@ export default function UniversalPokerSearchPage() {
         <header style={styles.heroPlate}>
           <div style={styles.badgeRow}>
             <span style={styles.cyanBadge}>UNIFIED KNOWLEDGE GRAPH SEARCH</span>
-            <span style={styles.emeraldBadge}>300+ INDEXED CALCULATORS, HANDS, RULES &amp; GUIDES</span>
+            <span style={styles.emeraldBadge}>350+ INDEXED CALCULATORS, HANDS, RULES &amp; GUIDES</span>
           </div>
 
           <h1 style={styles.h1}>
@@ -1026,7 +1191,7 @@ export default function UniversalPokerSearchPage() {
           </h1>
 
           <p style={styles.lead}>
-            Instantly Search Across <strong>42 Interactive Poker Calculators</strong>, <strong>169 GTO Starting Hands</strong>, <strong>25 Head-To-Head Matchups</strong>, <strong>30 Official TDA &amp; RROP Rules</strong>, <strong>15 Game Variants</strong>, <strong>12 US Regional Markets</strong>, <strong>10 Major Series Guides</strong>, And <strong>15 Empirical Research Studies</strong>.
+            Instantly Search Across <strong>52 Interactive Poker Calculators</strong>, <strong>70 Zero-Auth MCP Tools</strong>, <strong>169 GTO Starting Hands</strong>, <strong>25 Head-To-Head Matchups</strong>, <strong>30 Official TDA &amp; RROP Rules</strong>, <strong>15 Game Variants</strong>, <strong>12 US Regional Markets</strong>, <strong>10 Major Series Guides</strong>, And <strong>15 Empirical Research Studies</strong>.
           </p>
 
           <div style={styles.searchBoxWrap}>
@@ -1137,7 +1302,7 @@ export default function UniversalPokerSearchPage() {
           badgeType="research"
           badgeLabel="Master Knowledge Index"
           badgeValue="Smarter.Poker Directory"
-          summary="Search Across 42 Interactive Poker Calculators, 169 Starting Hands, 25 Hand Matchups, 30 Official Rules, 15 Game Variants, And 15 Research Studies."
+          summary="Search Across 52 Interactive Poker Calculators, 70 MCP Tools, 169 Starting Hands, 25 Hand Matchups, 30 Official Rules, 15 Game Variants, And 15 Research Studies."
           publishedYear="2026"
           slug="smarter-poker-universal-search"
         />

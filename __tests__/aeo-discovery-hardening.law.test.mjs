@@ -279,18 +279,18 @@ test('Law 6: Zero Stale Platform Counts Across Discovery, Corpus, Knowledge Grap
 
   assert.match(
     crawlerStatusSrc,
-    /interactive_calculators:\s*42\b/,
-    'corpus_inventory.interactive_calculators in pages/api/ai/crawler-status.js must equal 42'
+    /interactive_calculators:\s*52\b/,
+    'corpus_inventory.interactive_calculators in pages/api/ai/crawler-status.js must equal 52'
   );
   assert.match(
     crawlerStatusSrc,
     /mcp_tools:\s*MCP_TOOLS\.length\b/,
     'corpus_inventory.mcp_tools in pages/api/ai/crawler-status.js must equal MCP_TOOLS.length'
   );
-  assert.equal(MCP_TOOLS.length, 55, 'MCP_TOOLS.length must equal 55');
+  assert.equal(MCP_TOOLS.length, 70, 'MCP_TOOLS.length must equal 70');
 });
 
-test('Law 7: 42-Calculator Feature, Schema, OG Preset & ShareBar Completeness Law', async () => {
+test('Law 7: 52-Calculator Feature, Schema, OG Preset & ShareBar Completeness Law', async () => {
   const { TOOL_OG_CATALOG } = await import('../pages/api/seo/badge.js');
   const { INDEXNOW_PRIORITY_URLS } = await import('../pages/api/seo/outreach-generator.js');
   const { OEMBED_CALCULATORS } = await import('../pages/api/seo/oembed.js');
@@ -299,7 +299,7 @@ test('Law 7: 42-Calculator Feature, Schema, OG Preset & ShareBar Completeness La
     .readdirSync(path.join(ROOT, 'pages/tools'))
     .filter((f) => f.endsWith('.js') && f !== 'index.js');
 
-  assert.equal(toolFiles.length, 42, `pages/tools/ must contain all 42 tool .js files (found ${toolFiles.length})`);
+  assert.equal(toolFiles.length, 52, `pages/tools/ must contain all 52 tool .js files (found ${toolFiles.length})`);
 
   const toolsIndexSrc = read('pages/tools/index.js');
   const embedsSrc = read('pages/tools/embeds.js');
@@ -477,8 +477,8 @@ test('Law 10: Knowledge Graph & Multilingual Corpus Entity Completeness Law', as
   const toolsNode = collectionByUrl.get('https://smarter.poker/tools');
   assert.equal(
     toolsNode?.numberOfItems,
-    42,
-    'Knowledge Graph CollectionPage for /tools must have numberOfItems === 42'
+    52,
+    'Knowledge Graph CollectionPage for /tools must have numberOfItems === 52'
   );
 
   const expectedLangs = ['en', 'es', 'pt', 'de', 'fr', 'it', 'ja'];
@@ -487,12 +487,12 @@ test('Law 10: Knowledge Graph & Multilingual Corpus Entity Completeness Law', as
     assert.ok(entry, `MULTILINGUAL_CORPUS must include language "${lang}"`);
     const blob = JSON.stringify(entry);
     assert.ok(
-      blob.includes('42'),
-      `MULTILINGUAL_CORPUS.${lang} must cite 42 calculators`
+      blob.includes('52'),
+      `MULTILINGUAL_CORPUS.${lang} must cite 52 calculators`
     );
     assert.ok(
-      blob.includes('55'),
-      `MULTILINGUAL_CORPUS.${lang} must cite 55 MCP tools`
+      blob.includes('70'),
+      `MULTILINGUAL_CORPUS.${lang} must cite 70 MCP tools`
     );
   }
 });

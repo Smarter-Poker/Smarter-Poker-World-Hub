@@ -48,7 +48,7 @@ export function buildJupyterNotebookPayload() {
         "source": [
           "# Smarter.Poker Quantitative Poker Datasets & Reproducible Benchmarks (CC-BY 4.0)\n",
           "\n",
-          "This reproducible Jupyter / Google Colab notebook loads and verifies the published **Smarter.Poker Open Quantitative Poker Research Datasets (`v2026.11.14`, 22 Datasets)** and cross-checks deterministic poker math solvers against the public zero-auth Model Context Protocol (MCP) server (`v1.0.7`, 55 Tools & 12 Prompts).\n",
+          "This reproducible Jupyter / Google Colab notebook loads and verifies the published **Smarter.Poker Open Quantitative Poker Research Datasets (`v2026.11.14`, 22 Datasets)** and cross-checks deterministic poker math solvers against the public zero-auth Model Context Protocol (MCP) server (`v1.0.8`, 70 Tools & 14 Prompts).\n",
           "\n",
           "## 1. Environment, Dependencies & Zero-Credential Guarantee\n",
           "- **Runtime**: `Python >= 3.10` (executed and verified in clean isolated mode `python3 -I` with **zero third-party packages required**; uses only Python standard library modules `json`, `csv`, `io`, `math`, `pathlib`, and `urllib.request`).\n",

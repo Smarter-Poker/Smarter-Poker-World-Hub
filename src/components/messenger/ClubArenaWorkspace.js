@@ -1,11 +1,15 @@
 import React from 'react';
 
-export default function ClubArenaWorkspace({ clubs, open, clubId, folder, onEnter, onExit, onFolder, unreadCounts, attentionCounts, clubUnread, theme: C }) {
+export default function ClubArenaWorkspace({ clubs, open, clubId, folder, onEnter, onExit, onFolder, unreadCounts, attentionCounts, clubUnread, noticeBoardUnread, clubNoticeUnread, theme: C }) {
     if (!clubs.length) return null;
     const club = clubs.find(c => c.id === clubId);
     const button = { background: C.card, color: C.text, border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 8px', cursor: 'pointer', font: 'inherit' };
     const badge = (count, label = 'Unread') => count > 0 ? <span aria-label={`${count} ${label}`} style={{ display: 'inline-block', marginLeft: 6, minWidth: 20, padding: '1px 5px', borderRadius: 12, background: C.red || '#E4405F', color: '#fff', fontSize: 12, fontWeight: 700 }}>{count > 99 ? '99+' : count}</span> : null;
-    const clubTotal = Object.values(clubUnread || {}).reduce((sum, counts) => sum + counts.messages + counts.invoices, 0);
+    const clubTotal = Object.entries(clubUnread || {}).reduce((sum, [id, counts]) => sum + (counts?.messages || 0) + (counts?.invoices || 0) + (clubNoticeUnread?.[id] || 0), 0)
+        + Object.entries(clubNoticeUnread || {}).reduce((sum, [id, count]) => (clubUnread?.[id] ? sum : sum + (count || 0)), 0);
+    const activeNoticeUnread = noticeBoardUnread !== undefined && noticeBoardUnread !== null
+        ? Number(noticeBoardUnread || 0)
+        : Number(clubNoticeUnread?.[clubId] || 0);
     return <section aria-label="Club Arena" style={{ padding: '8px 16px 12px', borderBottom: `1px solid ${C.border}` }}>
         <button type="button" aria-expanded={open} aria-controls="club-arena-workspace"
             style={{ ...button, width: '100%', textAlign: 'left', fontWeight: 700 }}
@@ -18,7 +22,7 @@ export default function ClubArenaWorkspace({ clubs, open, clubId, folder, onEnte
                 <select aria-label="Your Club" value={clubId || ''} onChange={e => onEnter(clubs.find(c => c.id === e.target.value))}
                     style={{ ...button, width: '100%', marginTop: 5 }}>
                     {clubs.map(c => {
-                        const count = (clubUnread?.[c.id]?.messages || 0) + (clubUnread?.[c.id]?.invoices || 0);
+                        const count = (clubUnread?.[c.id]?.messages || 0) + (clubUnread?.[c.id]?.invoices || 0) + (clubNoticeUnread?.[c.id] || 0);
                         return <option key={c.id} value={c.id}>{c.name}{count > 0 ? ` (${count} Unread)` : ''}</option>;
                     })}
                 </select>
@@ -30,6 +34,7 @@ export default function ClubArenaWorkspace({ clubs, open, clubId, folder, onEnte
                     {tab === 'notice-board' ? 'Notice Board' : tab === 'statements' ? 'Statements' : tab === 'invoices' ? 'Invoices' : 'Messages'}
                     {['messages', 'invoices'].includes(tab) && badge(tab === 'invoices' ? (attentionCounts?.invoices ?? unreadCounts?.invoices) : unreadCounts?.messages,
                         tab === 'invoices' && attentionCounts?.invoices !== undefined ? 'Needs Attention' : 'Unread')}
+                    {tab === 'notice-board' && badge(activeNoticeUnread, 'Unread')}
                 </button>)}
             </div>
             {folder === 'invoices' && <p style={{ fontSize: 12, lineHeight: 1.5, color: C.textSec, margin: '10px 0 0' }}>
