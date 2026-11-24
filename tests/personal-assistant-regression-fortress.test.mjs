@@ -412,8 +412,8 @@ test('Fortress [Routing, AEO & UI Wiring]: zero dead /hub/sandbox or /hub/jarvis
   assert.match(useAssistantSrc, /pa-data-updated/);
 
   const sandboxPage = read('pages/hub/personal-assistant/sandbox.js');
-  assert.match(sandboxPage, /useAvatar/);
-  assert.match(sandboxPage, /showProfile=\{Boolean\(user\)\}/);
+  assert.doesNotMatch(sandboxPage, /useStudyDeck|useAvatar|assistantAuth/);
+  assert.match(sandboxPage, /verified-evidence-required/);
 
   const leaksPage = read('pages/hub/personal-assistant/leaks.js');
   assert.match(leaksPage, /pa-auto-detect-last:\$\{userId\}/);
