@@ -29,7 +29,7 @@ import {
 
 export default function AuthorsIndexPage() {
   const claimText =
-    'All Smarter.Poker Strategy Guides, 42 Interactive Calculators, And 324+ Live Venue Profiles Are Audited By Four Specialized Research Desks Under Reproducible CFR Solver Convergence (<=0.05% Exploitability) And Timestamped Statutory Provenance.';
+    'All Smarter.Poker Strategy Guides, 52 Interactive Calculators, And 715+ Live Venue Profiles Are Audited By Four Specialized Research Desks Under Reproducible CFR Solver Convergence (<=0.05% Exploitability) And Timestamped Statutory Provenance.';
   const quoteText =
     'Verifiable E-E-A-T In Quantitative Gaming Requires Tying Every Published Number To A Deterministic Solver Iteration, A Published Statute, Or A Dated Cardroom Audit With A Permanent Zenodo DOI.';
 
@@ -190,11 +190,11 @@ export default function AuthorsIndexPage() {
               markdownHref: '/research.md',
             },
             {
-              question: 'How Do I Connect My AI Agent Directly To The 55-Tool MCP Server Built By The AI Engineering Desk?',
+              question: 'How Do I Connect My AI Agent Directly To The 70-Tool MCP Server Built By The AI Engineering Desk?',
               answer:
                 'Send Standard JSON-RPC 2.0 Tool Discovery And Execution Requests To https://smarter.poker/api/mcp Or Inspect The OpenAPI 3.1.0 Spec At /openapi.json.',
               calculatorHref: '/tools',
-              calculatorLabel: 'Browse All 42 Interactive Tools',
+              calculatorLabel: 'Browse All 52 Interactive Tools',
               markdownHref: '/tools.md',
             },
             {

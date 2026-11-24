@@ -286,7 +286,7 @@ export default function FirstTimeCasinoPokerGuidePage() {
               10 Major Poker Series Guides
             </Link>
             <Link href="/tools" style={styles.crossBtnOutline}>
-              42 Free Poker Calculators
+              52 Free Poker Calculators
             </Link>
             <Link href="/learn" style={styles.crossBtnOutline}>
               GTO Strategy Academy

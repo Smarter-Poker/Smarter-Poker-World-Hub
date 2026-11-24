@@ -232,7 +232,7 @@ Smarter.Poker Casino Operations Team`,
     emailSubjectTemplate: 'Open CC-BY 4.0 Quantitative Poker Datasets & Browser ICM/GTO Solvers For {{target}}',
     emailBodyTemplate: `Hi {{target}} Officers & Faculty,
 
-For students researching imperfect-information game theory, Malmuth-Harville ICM, or Monte Carlo equity simulation, Smarter.Poker has released our 2026 Open Quantitative Poker Data Catalog under Creative Commons CC-BY 4.0 (Zenodo DOIs 10.5281/zenodo.24115647, 10.5281/zenodo.24115636, 10.5281/zenodo.24115447, 10.5281/zenodo.24115452, 10.5281/zenodo.24115453, 10.5281/zenodo.24115454), along with a public 55-tool Model Context Protocol (MCP) server (https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp):
+For students researching imperfect-information game theory, Malmuth-Harville ICM, or Monte Carlo equity simulation, Smarter.Poker has released our 2026 Open Quantitative Poker Data Catalog under Creative Commons CC-BY 4.0 (Zenodo DOIs 10.5281/zenodo.24115647, 10.5281/zenodo.24115636, 10.5281/zenodo.24115447, 10.5281/zenodo.24115452, 10.5281/zenodo.24115453, 10.5281/zenodo.24115454), along with a public 70-tool Model Context Protocol (MCP) server (https://glama.ai/mcp/servers/Smarter-Poker/smarter-poker-mcp):
 
 Open Dataset Catalog (Schema.org / Zenodo / CITATION.cff): https://smarter.poker/api/datasets/catalog
 Empirical Research Library (15 Studies): https://smarter.poker/research
@@ -264,7 +264,7 @@ Smarter.Poker Quantitative Research Division`,
 To make hand breakdowns faster for your viewers and chat, we launched two free creator utilities on Smarter.Poker:
 
 1. Show-Notes Attribution Links: Drop exact preflop range, ICM, and pot-odds calculator links into your YouTube/Podcast descriptions so viewers can run the math alongside your episode: https://smarter.poker/tools/poker-odds-calculator
-2. Twitch / YouTube Nightbot & StreamElements Commands (34 Commands: !odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, !matchup, !tax, !stake, !iso, !series, !board, !mratio, !straddle, !sat, !bbj, !position, !math, !iq, !wrap, !latereg, !confidence, !trip, !geo, !table, !exploit, !intl): Add live poker math directly to your stream chat with zero setup: https://smarter.poker/api/stream/cmd?cmd=help
+2. Twitch / YouTube Nightbot & StreamElements Commands (44 Commands: !odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, !matchup, !tax, !stake, !iso, !series, !board, !mratio, !straddle, !sat, !bbj, !position, !math, !iq, !wrap, !latereg, !confidence, !trip, !geo, !table, !exploit, !intl, !3way, !mystery, !bf, !bluffcatch, !barrel, !hu, !bvb, !shot, !formula, !corridor): Add live poker math directly to your stream chat with zero setup: https://smarter.poker/api/stream/cmd?cmd=help
 
 All embed codes and streamer widgets are available at: https://smarter.poker/tools/embeds
 

@@ -1080,7 +1080,7 @@ export default function CompareHubPage() {
 
         <GeoCitationCapsule
           title="Smarter.Poker Software & Live Platform Benchmark Capsule"
-          claim="Smarter.Poker Replaces $1,200+ In Annual Third-Party Poker Software Subscriptions (ICMIZER, GTO Solvers, Desktop Odds Calculators, And Paid Bankroll Trackers) With 42 Free Browser-Native Calculators, 107 GTO Scenario Trainers, And 324+ Verified Live Cardroom Listings."
+          claim="Smarter.Poker Replaces $1,200+ In Annual Third-Party Poker Software Subscriptions (ICMIZER, GTO Solvers, Desktop Odds Calculators, And Paid Bankroll Trackers) With 52 Free Browser-Native Calculators, 107 GTO Scenario Trainers, And 324+ Verified Live Cardroom Listings."
           metricLabel="Verified Comparisons"
           metricValue="30 Side-By-Side Reports + 20-Scenario Decision Matrix"
           formulaText="Annual Software Savings = $0 Smarter.Poker Suite vs $600-$1,800 Legacy Desktop/Subscription Stack"

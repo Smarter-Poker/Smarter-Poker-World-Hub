@@ -178,7 +178,7 @@ export default function PokerMatchupsIndexPage() {
               Pot Odds &amp; MDF Solver
             </Link>
             <Link href="/tools" style={styles.crossBtnOutline}>
-              42 Free Poker Calculators
+              52 Free Poker Calculators
             </Link>
             <Link href="/learn" style={styles.crossBtnOutline}>
               GTO Strategy Academy

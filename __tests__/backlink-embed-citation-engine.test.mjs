@@ -234,7 +234,7 @@ test('JSON Feed 1.1 (/api/feeds/research) and RSS 2.0 (/feed.xml) syndicate all 
   const jsonFeed = buildResearchJsonFeed();
   assert.equal(jsonFeed.version, 'https://jsonfeed.org/version/1.1');
   assert.equal(jsonFeed.feed_url, 'https://smarter.poker/api/feeds/research');
-  assert.equal(jsonFeed.items.length, 77);
+  assert.equal(jsonFeed.items.length, 81);
 
   for (const item of jsonFeed.items) {
     assert.match(item.url, /^https:\/\/smarter\.poker\//);

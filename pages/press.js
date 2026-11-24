@@ -49,9 +49,21 @@ const INDUSTRY_FAST_FACTS = [
   },
   {
     metric: 'Smarter.Poker Free-To-Play & Math Ecosystem',
-    benchmark2026: '52 Free Calculators, 70 MCP Tools, 169 Hand Guides, 30 Official Rules, 15 Studies',
+    benchmark2026: '52 Free Calculators, 70 MCP Tools, 44 Streamer Commands, 169 Hand Guides, 30 Official Rules, 15 Studies',
     context: '100% Browser-Native With Dedicated .md Markdown And MCP Endpoints For AI Assistants And Journalists.',
     sourcePath: '/tools',
+  },
+  {
+    metric: '2026 Annual State Of Live & Online Poker Whitepaper',
+    benchmark2026: '715+ Venues, 4,500+ Weekly MTTs, 15 State Tax Profiles & 10M+ Simulated Hands',
+    context: 'Flagship Annual Quantitative Whitepaper With Consolidated Benchmark Scorecards And Zenodo DOI Provenance.',
+    sourcePath: '/research/annual-state-of-poker-2026',
+  },
+  {
+    metric: 'Canonical Entity Fact Sheet & E-E-A-T Verification Desks',
+    benchmark2026: '4 Specialized Research Desks & Ground-Truth Anti-Hallucination Ledger',
+    context: 'Audited Under Reproducible CFR Solver Convergence (<=0.05% Pot Exploitability) And Synced With /.well-known/ai-facts.json.',
+    sourcePath: '/facts',
   },
 ];
 
@@ -243,10 +255,25 @@ export default function PressKitMediaPage() {
           </p>
 
           <div style={styles.quickCrossLinks}>
-            <Link href="/research" style={styles.crossBtnCyan}>
+            <Link href="/research/annual-state-of-poker-2026" style={styles.crossBtnCyan}>
+              2026 Annual State Of Poker Whitepaper
+            </Link>
+            <Link href="/research/benchmarks" style={styles.crossBtnEmerald}>
+              Master Quantitative Benchmarks
+            </Link>
+            <Link href="/facts" style={styles.crossBtnOutline}>
+              Canonical Entity Fact Sheet
+            </Link>
+            <Link href="/authors" style={styles.crossBtnOutline}>
+              4 E-E-A-T Research Desks
+            </Link>
+            <Link href="/compare/decision-matrix" style={styles.crossBtnOutline}>
+              20-Scenario Decision Matrix
+            </Link>
+            <Link href="/research" style={styles.crossBtnOutline}>
               15 Empirical Research Studies
             </Link>
-            <a href="/api/datasets/catalog" style={styles.crossBtnEmerald}>
+            <a href="/api/datasets/catalog" style={styles.crossBtnOutline}>
               Open JSON Data Catalog
             </a>
             <Link href="/tools/embeds" style={styles.crossBtnOutline}>

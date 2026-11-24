@@ -196,9 +196,9 @@ export const EDITORIAL_AUTHORS = [
     primaryDoi: '10.5281/zenodo.15129481',
     orcidStyleId: 'https://smarter.poker/authors/ai-mcp-protocol-engineering#org',
     summary:
-      'The Smarter.Poker AI & MCP Protocol Engineering Team Builds The Machine-Readable Infrastructure That Allows ChatGPT, Perplexity, Claude, Google Gemini, And Autonomous AI Agents To Execute Deterministic Poker Math Without Hallucination: The 55-Tool Zero-Auth MCP Server, OpenAPI 3.1.0 Spec, A2A Agent Card, And Universal Text/Markdown Negotiation.',
+      'The Smarter.Poker AI & MCP Protocol Engineering Team Builds The Machine-Readable Infrastructure That Allows ChatGPT, Perplexity, Claude, Google Gemini, And Autonomous AI Agents To Execute Deterministic Poker Math Without Hallucination: The 70-Tool Zero-Auth MCP Server, OpenAPI 3.1.0 Spec, A2A Agent Card, And Universal Text/Markdown Negotiation.',
     credentials: [
-      '55-Tool Zero-Auth Model Context Protocol (MCP) JSON-RPC 2.0 Server At /api/mcp For Direct LLM Tool Calling.',
+      '70-Tool Zero-Auth Model Context Protocol (MCP) JSON-RPC 2.0 Server At /api/mcp For Direct LLM Tool Calling.',
       'OpenAPI 3.1.0 REST Specification (/openapi.json) & A2A 1.0 Agent Discovery Card (/.well-known/agent.json).',
       'Universal HTTP Content Negotiation (Accept: text/markdown And .md Twin Routes) Across All Calculators, Guides, And Directories.',
       'Unified Schema.org JSON-LD Knowledge Graph (/knowledge-graph.jsonld) With Wikidata Entity Grounding.',
@@ -215,7 +215,7 @@ export const EDITORIAL_AUTHORS = [
       },
     ],
     verifiedCalculators: [
-      { name: '55-Tool MCP Server Endpoint (/api/mcp)', href: '/api/mcp' },
+      { name: '70-Tool MCP Server Endpoint (/api/mcp)', href: '/api/mcp' },
       { name: 'OpenAPI 3.1.0 Specification (/openapi.json)', href: '/openapi.json' },
       { name: 'Full AI Knowledge Corpus (/llms-full.txt)', href: '/llms-full.txt' },
       { name: 'Unified Knowledge Graph (/knowledge-graph.jsonld)', href: '/knowledge-graph.jsonld' },

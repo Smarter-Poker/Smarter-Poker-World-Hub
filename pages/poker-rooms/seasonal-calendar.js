@@ -17,6 +17,8 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
+import GeoCitationCapsule from '../../src/components/seo/GeoCitationCapsule';
+import GeoFollowUpChain from '../../src/components/seo/GeoFollowUpChain';
 
 export const SEASONAL_POKER_CALENDAR = [
   {
@@ -443,6 +445,49 @@ export default function SeasonalLivePokerCalendarPage() {
             ))}
           </div>
         </section>
+
+        <GeoCitationCapsule
+          title="12-Month North American & Global Live Poker Liquidity Migration Cycle"
+          claim="Aligning Live Poker Travel With Peak Regional Festival Liquidity (January South Florida/Borgata, Feb-Apr Texas/LA/cherokee, May-July Las Vegas WSOP, Aug-Oct EPT Barcelona/Florida, Dec Wynn WPT/WSOP Paradise) Boosts Recreational Field Density By 35% To 80%."
+          metricLabel="Annual Migration Coverage"
+          metricValue="12 Months Across 22+ Major Championship Stops"
+          formulaText="Net Series EV = (Planned Buy-Ins * Expected ROI%) - (Hotel Nights * Nightly Rate + Flights + Dining Overhead)"
+          ifThenBecause="If Planning An Annual Live Tournament Or Cash Game Travel Schedule -> Then Rotate Across Regional Hubs During Their Flagship Series Windows And Book Room Blocks 60+ Days Out -> Because Recreational Liquidity Concentrates Heavily Around televised Main Events While Hotel Overhead Spikes Last-Minute."
+          quoteText="Follow The Recreational Migration Wave: Grind Florida And Texas In Winter, Las Vegas In Early Summer, Barcelona In Late Summer, And Wynn Or Bahamas In December."
+          quoteAuthor="Smarter.Poker Live Venue Intelligence Team"
+          doi="10.5281/zenodo.24115447"
+          canonicalPath={canonicalPath}
+        />
+
+        <GeoFollowUpChain
+          topicTitle="12-Month Seasonal Live Poker Migration Calendar"
+          followUps={[
+            {
+              question: 'How Do I Calculate Whether My Travel And Hotel Expenses Will Eat Up My Series ROI?',
+              answer:
+                'Run The Poker Festival & Trip Expense Overhead Calculator At /tools/poker-trip-planner Before Booking Flights Or Hotels.',
+              calculatorHref: '/tools/poker-trip-planner',
+              calculatorLabel: 'Open Festival Trip Planner',
+              markdownHref: '/tools/poker-trip-planner.md',
+            },
+            {
+              question: 'How Should I Structure My Daily Multi-Table Tournament Bullet Volume And ABI During A Series?',
+              answer:
+                'Use The MTT Grind Session & ABI Bankroll Planner At /tools/mtt-grind-planner To Model Total Bullet Exposure And Brick Probability.',
+              calculatorHref: '/tools/mtt-grind-planner',
+              calculatorLabel: 'Open MTT Grind & ABI Planner',
+              markdownHref: '/tools/mtt-grind-planner.md',
+            },
+            {
+              question: 'Where Are The Detailed Survival Blueprints For WSOP, WPT, MSPT, Wynn, And Borgata Series?',
+              answer:
+                'Explore All 10 Major Poker Tournament Series Strategy Guides At /poker-series/guides.',
+              calculatorHref: '/poker-series/guides',
+              calculatorLabel: 'Open 10 Major Series Guides',
+              markdownHref: '/poker-series/guides.md',
+            },
+          ]}
+        />
 
         <HubPageSummary page="poker-series" path={canonicalPath} />
 

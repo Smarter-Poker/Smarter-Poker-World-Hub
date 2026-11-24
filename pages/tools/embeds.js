@@ -1722,7 +1722,7 @@ export default function WebmasterEmbedPortal() {
           <section aria-labelledby="streamer-commands-heading" style={{ marginTop: '48px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
               <h2 id="streamer-commands-heading" style={{ fontSize: '1.6rem', fontWeight: 700, margin: 0 }}>
-                34 Twitch, YouTube &amp; Kick Streamer Chatbot Commands (Nightbot / StreamElements)
+                44 Twitch, YouTube &amp; Kick Streamer Chatbot Commands (Nightbot / StreamElements)
               </h2>
               <div style={{ display: 'flex', gap: '8px' }}>
                 {[
@@ -1751,7 +1751,7 @@ export default function WebmasterEmbedPortal() {
               </div>
             </div>
             <p style={{ fontSize: '0.96rem', color: 'rgba(255, 255, 255, 0.72)', lineHeight: 1.6, marginBottom: '24px' }}>
-              Add All 34 Instant Live Poker Equity, Pot Odds, ICM Bubble Factors, Final Table Chop, Variance, Draw Outs, US Poker Tax, Staking Markup, Limper Isolation, Series Survival Guides, Flop Board Texture, Harrington M-Ratio, Straddle &amp; Bomb Pot EV, Satellite Bubble Factor, Bad Beat Jackpot EV, Seat Position Ranges, Poker Math Formulas, GTO IQ Test, PLO Max Bet Math, Omaha Straight Wraps (!Wrap), Late-Registration ICM (!Latereg), Winrate Confidence Intervals (!Confidence), Festival Trip Overhead (!Trip), Geometric 2e/3e Sizing (!Geo), Live Table Selection (!Table), Player Archetype Exploits (!Exploit), International Poker Destinations (!Intl), And Official TDA Floor Rulings Commands Directly To Your Stream Chat. Viewers Type The Command In Chat And Receive An Instant Sub-380-Character Mathematical Answer With Canonical Attribution.
+              Add All 44 Instant Live Poker Equity, Pot Odds, ICM Bubble Factors, Final Table Chop, Variance, Draw Outs, US Poker Tax, Staking Markup, Limper Isolation, Series Survival Guides, Flop Board Texture, Harrington M-Ratio, Straddle &amp; Bomb Pot EV, Satellite Bubble Factor, Bad Beat Jackpot EV, Seat Position Ranges, Poker Math Formulas, GTO IQ Test, PLO Max Bet Math, Omaha Straight Wraps (!Wrap), Late-Registration ICM (!Latereg), Winrate Confidence Intervals (!Confidence), Festival Trip Overhead (!Trip), Geometric 2e/3e Sizing (!Geo), Live Table Selection (!Table), Player Archetype Exploits (!Exploit), International Poker Destinations (!Intl), Multiway All-In EV (!3way), Mystery Bounty Pool (!Mystery), Pairwise Bubble Factors (!Bf), River Bluff-Catching (!Bluffcatch), Triple-Barrel EV (!Barrel), Heads-Up Nash (!HU), Blind-Vs-Blind (!Bvb), Bankroll Shot-Taking (!Shot), Equations Encyclopedia (!Formula), Travel Corridors (!Corridor), And Official TDA Floor Rulings Commands Directly To Your Stream Chat. Viewers Type The Command In Chat And Receive An Instant Sub-380-Character Mathematical Answer With Canonical Attribution.
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: '16px' }}>
               {STREAM_CHAT_COMMANDS.map((cmdItem) => {
@@ -2335,8 +2335,8 @@ export default function WebmasterEmbedPortal() {
             canonicalUrl="https://smarter.poker/tools/embeds"
             badgeType="gto"
             badgeLabel="Embed Widgets Portal"
-            badgeValue="50 Widgets + 16 Badges + 34 Bot Commands"
-            summary="Free Responsive Iframe Widgets, 1-Line JS SDK, 16 SVG Attribution Badges, And 34 Nightbot And StreamElements Chatbot Commands For Poker Webmasters And Streamers."
+            badgeValue="51 Widgets + 16 Badges + 44 Bot Commands"
+            summary="Free Responsive Iframe Widgets, 1-Line JS SDK, 16 SVG Attribution Badges, And 44 Nightbot And StreamElements Chatbot Commands For Poker Webmasters And Streamers."
             slug="poker-embeds-and-widgets"
           />
 
