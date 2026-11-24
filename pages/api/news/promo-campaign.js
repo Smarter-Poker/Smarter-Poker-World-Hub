@@ -27,6 +27,7 @@ import {
     DEFAULT_POSTAL_ADDRESS,
     DEFAULT_PROMO_DRAFT,
     DEFAULT_PROMO_FROM,
+    DEFAULT_WELCOME_BACK_DRAFT,
     dispatchPromoCampaign,
     importMarketingLeads,
     verifyOperatorTestSignature,
@@ -118,6 +119,7 @@ export default async function handler(req, res) {
                 viewerEmail: auth.email || '',
                 viewerPhone: auth.phone || '',
                 defaultDraft: DEFAULT_PROMO_DRAFT,
+                welcomeBackDraft: DEFAULT_WELCOME_BACK_DRAFT,
             });
         }
 

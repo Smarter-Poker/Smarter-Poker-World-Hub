@@ -19,6 +19,7 @@ on:
         type: choice
         options:
           - 'non_accounts'
+          - 'inactive_21d'
           - 'subscribers_only'
           - 'all'
       confirm_send:

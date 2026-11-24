@@ -18,6 +18,15 @@ import crypto from 'crypto';
 import { resendApiKey, resendFrom } from '../email/resendAccount.mjs';
 import { sendEmail as defaultSendSingleEmail, sendSms as defaultSendSms } from '../dailyDigest/delivery.mjs';
 import { buildPromoSignupUrl } from './promoSignupToken.mjs';
+import {
+    DEFAULT_WELCOME_BACK_DRAFT,
+    WELCOME_BACK_CODE,
+    WELCOME_BACK_INACTIVE_DAYS,
+    buildWelcomeBackOfferUrl,
+    isWelcomeBackCtaUrl,
+} from './welcomeBackOffer.mjs';
+
+export { DEFAULT_WELCOME_BACK_DRAFT };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const EMAIL_SCAN_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,24}/gi;
@@ -398,13 +407,21 @@ async function fetchPaged(queryBuilderFactory, maxRows = 15000) {
  * Commander non-account leads/members while strictly excluding any email, phone,
  * or user_id that already belongs to an existing Smarter.Poker account
  * (profiles / auth.users) or Club Arena membership (club_members).
+ * scope === 'inactive_21d' includes ONLY existing real human Smarter.Poker
+ * accounts with zero sign-in, Club Arena, browser-binding, or training activity
+ * in the past 21 days (and who have not yet accepted WELCOME_BACK_3WK_202611).
  * scope === 'all' merges newsletter_subscribers + profiles + auth.users +
  * commander_members + commander_onboarding_leads + commander_leads +
  * commander_home_members.
  * scope === 'subscribers_only' uses active newsletter_subscribers only.
  */
-export async function resolvePromoAudience(sb, { scope = 'non_accounts' } = {}) {
-    const cleanScope = ['non_accounts', 'subscribers_only', 'all'].includes(scope) ? scope : 'non_accounts';
+export async function resolvePromoAudience(
+    sb,
+    { scope = 'non_accounts', nowMs = Date.now(), minInactiveDays = WELCOME_BACK_INACTIVE_DAYS } = {}
+) {
+    const cleanScope = ['non_accounts', 'inactive_21d', 'subscribers_only', 'all'].includes(scope)
+        ? scope
+        : 'non_accounts';
     const suppressedEmails = new Set();
     const suppressedPhones = new Set();
     const emailMutedUsers = new Set();
@@ -413,6 +430,17 @@ export async function resolvePromoAudience(sb, { scope = 'non_accounts' } = {}) 
     const existingAccountEmails = new Set();
     const existingAccountPhones = new Set();
     const existingAccountPhoneDigits10 = new Set();
+    const emailToUserId = new Map();
+
+    const maxTs = (...vals) => {
+        let best = 0;
+        for (const v of vals) {
+            if (!v) continue;
+            const ms = typeof v === 'number' ? v : Date.parse(String(v));
+            if (Number.isFinite(ms) && ms > best) best = ms;
+        }
+        return best;
+    };
 
     const phoneDigits10 = (raw) => {
         const d = String(raw || '').replace(/\D/g, '');
@@ -494,17 +522,28 @@ export async function resolvePromoAudience(sb, { scope = 'non_accounts' } = {}) 
         // Non-fatal in unit mocks; sendSms also calls fn_sms_number_is_suppressed per recipient.
     }
 
-    // Load profiles, auth.users, and club_members when needed for 'non_accounts' exclusion or 'all' inclusion
+    // Load profiles, auth.users, and club_members when needed for 'non_accounts', 'inactive_21d', or 'all'
     let loadedProfiles = [];
     const loadedAuthUsers = [];
-    if (cleanScope === 'non_accounts' || cleanScope === 'all') {
-        loadedProfiles = await fetchPaged((from, to) =>
-            sb
-                .from('profiles')
-                .select('id, email, phone, username')
-                .order('id', { ascending: true })
-                .range(from, to)
-        , 25000);
+    const clubActivityByUser = new Map();
+    const browserSeenByUser = new Map();
+    const trainingSeenByUser = new Map();
+    const alreadyRedeemedWelcomeBackUsers = new Set();
+
+    if (cleanScope === 'non_accounts' || cleanScope === 'inactive_21d' || cleanScope === 'all') {
+        loadedProfiles = await fetchPaged(
+            (from, to) =>
+                sb
+                    .from('profiles')
+                    .select(
+                        cleanScope === 'inactive_21d'
+                            ? 'id, email, phone, username, is_horse, created_at, last_login, last_active, last_seen'
+                            : 'id, email, phone, username'
+                    )
+                    .order('id', { ascending: true })
+                    .range(from, to),
+            25000
+        );
         for (const p of loadedProfiles) {
             if (p?.id) existingAccountUserIds.add(String(p.id));
             if (p?.email) recordExistingEmail(p.email);
@@ -529,20 +568,99 @@ export async function resolvePromoAudience(sb, { scope = 'non_accounts' } = {}) 
             }
         }
 
-        if (cleanScope === 'non_accounts') {
+        if (cleanScope === 'non_accounts' || cleanScope === 'inactive_21d') {
             try {
-                const clubMembers = await fetchPaged((from, to) =>
-                    sb
-                        .from('club_members')
-                        .select('user_id')
-                        .order('user_id', { ascending: true })
-                        .range(from, to)
-                , 25000);
+                const clubMembers = await fetchPaged(
+                    (from, to) =>
+                        sb
+                            .from('club_members')
+                            .select(
+                                cleanScope === 'inactive_21d'
+                                    ? 'user_id, is_bot, last_active_at, last_active'
+                                    : 'user_id'
+                            )
+                            .order('user_id', { ascending: true })
+                            .range(from, to),
+                    25000
+                );
                 for (const m of clubMembers) {
-                    if (m?.user_id) existingAccountUserIds.add(String(m.user_id));
+                    if (!m?.user_id) continue;
+                    const uid = String(m.user_id);
+                    existingAccountUserIds.add(uid);
+                    if (cleanScope === 'inactive_21d' && m.is_bot !== true) {
+                        const prev = clubActivityByUser.get(uid) || 0;
+                        clubActivityByUser.set(uid, Math.max(prev, maxTs(m.last_active_at, m.last_active)));
+                    }
                 }
             } catch (_clubMembersErr) {
                 // Non-fatal in lightweight test doubles without club_members.
+            }
+        }
+
+        if (cleanScope === 'inactive_21d') {
+            try {
+                const bindings = await fetchPaged(
+                    (from, to) =>
+                        sb
+                            .from('ca_browser_bindings')
+                            .select('user_id, last_seen')
+                            .order('user_id', { ascending: true })
+                            .range(from, to),
+                    25000
+                );
+                for (const b of bindings) {
+                    if (!b?.user_id) continue;
+                    const uid = String(b.user_id);
+                    browserSeenByUser.set(uid, Math.max(browserSeenByUser.get(uid) || 0, maxTs(b.last_seen)));
+                }
+            } catch (_bindingErr) {
+                // Non-fatal in lightweight mocks.
+            }
+
+            try {
+                const trainingRows = await fetchPaged(
+                    (from, to) =>
+                        sb
+                            .from('training_progress')
+                            .select('user_id, last_played_at')
+                            .order('user_id', { ascending: true })
+                            .range(from, to),
+                    25000
+                );
+                for (const t of trainingRows) {
+                    if (!t?.user_id) continue;
+                    const uid = String(t.user_id);
+                    trainingSeenByUser.set(uid, Math.max(trainingSeenByUser.get(uid) || 0, maxTs(t.last_played_at)));
+                }
+            } catch (_trainingErr) {
+                // Non-fatal in lightweight mocks.
+            }
+
+            try {
+                const { data: wbCode } = await sb
+                    .from('promo_codes')
+                    .select('id')
+                    .eq('code', WELCOME_BACK_CODE)
+                    .maybeSingle();
+                if (wbCode?.id) {
+                    const redemptions = await fetchPaged(
+                        (from, to) =>
+                            sb
+                                .from('promo_code_redemptions')
+                                .select('user_id, reward_applied')
+                                .eq('promo_code_id', wbCode.id)
+                                .order('id', { ascending: true })
+                                .range(from, to),
+                        25000
+                    );
+                    for (const r of redemptions) {
+                        if (r?.user_id && r?.reward_applied) {
+                            alreadyRedeemedWelcomeBackUsers.add(String(r.user_id));
+                        }
+                    }
+                }
+            } catch (_redeemErr) {
+                // Non-fatal in lightweight mocks.
             }
         }
     }
@@ -557,11 +675,13 @@ export async function resolvePromoAudience(sb, { scope = 'non_accounts' } = {}) 
         commanderEmails: 0,
         commanderPhones: 0,
         excludedExistingAccounts: 0,
+        excludedRecentActiveUsers: 0,
+        inactiveEligibleAccounts: 0,
         suppressedEmails: suppressedEmails.size,
         suppressedPhones: suppressedPhones.size,
     };
 
-    const addEmail = (raw, bucket) => {
+    const addEmail = (raw, bucket, userId = '') => {
         if (emails.size >= MAX_PROMO_EMAILS) return;
         const clean = normalizeDeliverableEmail(raw);
         if (!clean || suppressedEmails.has(clean) || emails.has(clean)) return;
@@ -570,6 +690,9 @@ export async function resolvePromoAudience(sb, { scope = 'non_accounts' } = {}) 
             return;
         }
         emails.add(clean);
+        if (userId && !emailToUserId.has(clean)) {
+            emailToUserId.set(clean, String(userId));
+        }
         breakdown[bucket] = (breakdown[bucket] || 0) + 1;
     };
 
@@ -587,6 +710,62 @@ export async function resolvePromoAudience(sb, { scope = 'non_accounts' } = {}) 
         phones.add(clean);
         breakdown[bucket] = (breakdown[bucket] || 0) + 1;
     };
+
+    if (cleanScope === 'inactive_21d') {
+        const cutoffMs = nowMs - Math.max(1, Number(minInactiveDays) || WELCOME_BACK_INACTIVE_DAYS) * 86_400_000;
+        const authById = new Map();
+        for (const u of loadedAuthUsers) {
+            if (u?.id) authById.set(String(u.id), u);
+        }
+
+        const seenUserIds = new Set();
+        for (const p of loadedProfiles) {
+            const id = String(p?.id || '');
+            const uname = String(p?.username || '');
+            const authUser = authById.get(id);
+            if (
+                !id ||
+                id.startsWith('00000000-0000-0000-0000-') ||
+                p?.is_horse === true ||
+                authUser?.is_anonymous === true ||
+                SYNTHETIC_USERNAME_RE.test(uname)
+            ) {
+                continue;
+            }
+            seenUserIds.add(id);
+            if (alreadyRedeemedWelcomeBackUsers.has(id)) continue;
+
+            const lastTouchMs = maxTs(
+                p.created_at,
+                p.last_login,
+                p.last_active,
+                p.last_seen,
+                authUser?.created_at,
+                authUser?.last_sign_in_at,
+                clubActivityByUser.get(id) || 0,
+                browserSeenByUser.get(id) || 0,
+                trainingSeenByUser.get(id) || 0
+            );
+
+            if (lastTouchMs >= cutoffMs) {
+                breakdown.excludedRecentActiveUsers += 1;
+                continue;
+            }
+
+            breakdown.inactiveEligibleAccounts += 1;
+            const candidateEmail = p.email || authUser?.email || '';
+            const candidatePhone = p.phone || authUser?.phone || '';
+            if (!emailMutedUsers.has(id) && candidateEmail) addEmail(candidateEmail, 'profileEmails', id);
+            if (!smsMutedUsers.has(id) && candidatePhone) addPhone(candidatePhone, 'profilePhones');
+        }
+
+        return {
+            emails: [...emails],
+            phones: [...phones],
+            emailToUserId,
+            breakdown,
+        };
+    }
 
     // 4. Active newsletter & imported leads
     const activeSubs = await fetchPaged((from, to) =>
@@ -622,14 +801,14 @@ export async function resolvePromoAudience(sb, { scope = 'non_accounts' } = {}) 
                     if (id) syntheticUserIds.add(id);
                     continue;
                 }
-                if (!emailMutedUsers.has(id) && p.email) addEmail(p.email, 'profileEmails');
+                if (!emailMutedUsers.has(id) && p.email) addEmail(p.email, 'profileEmails', id);
                 if (!smsMutedUsers.has(id) && p.phone) addPhone(p.phone, 'profilePhones');
             }
 
             for (const u of loadedAuthUsers) {
                 if (!u?.id || u.is_anonymous || syntheticUserIds.has(u.id)) continue;
                 if (String(u.id).startsWith('00000000-0000-0000-0000-')) continue;
-                if (!emailMutedUsers.has(u.id) && u.email) addEmail(u.email, 'profileEmails');
+                if (!emailMutedUsers.has(u.id) && u.email) addEmail(u.email, 'profileEmails', u.id);
                 if (!smsMutedUsers.has(u.id) && u.phone) addPhone(u.phone, 'profilePhones');
             }
         }
@@ -674,6 +853,7 @@ export async function resolvePromoAudience(sb, { scope = 'non_accounts' } = {}) 
     return {
         emails: [...emails],
         phones: [...phones],
+        emailToUserId,
         breakdown,
     };
 }
@@ -728,12 +908,12 @@ async function sendResendBatch(resend, messages) {
 export async function dispatchPromoCampaign(
     sb,
     {
-        subject = DEFAULT_PROMO_DRAFT.subject,
-        headline = DEFAULT_PROMO_DRAFT.headline,
-        body = DEFAULT_PROMO_DRAFT.body,
-        ctaLabel = DEFAULT_PROMO_DRAFT.ctaLabel,
-        ctaUrl = DEFAULT_PROMO_DRAFT.ctaUrl,
-        smsBody = DEFAULT_PROMO_DRAFT.smsBody,
+        subject,
+        headline,
+        body,
+        ctaLabel,
+        ctaUrl,
+        smsBody,
         postalAddress = DEFAULT_POSTAL_ADDRESS,
         channels = 'both',
         scope = DEFAULT_PROMO_DRAFT.scope,
@@ -747,18 +927,21 @@ export async function dispatchPromoCampaign(
         sendSms = defaultSendSms,
     } = {}
 ) {
+    const cleanScope = ['non_accounts', 'inactive_21d', 'subscribers_only', 'all'].includes(scope)
+        ? scope
+        : 'non_accounts';
+    const baseDraft = cleanScope === 'inactive_21d' ? DEFAULT_WELCOME_BACK_DRAFT : DEFAULT_PROMO_DRAFT;
     const effectiveResendFactory = resendFactory || ((key) => createHttpResendBatchSender(key));
-    const cleanSubject = String(subject || '').trim().slice(0, 180);
-    const cleanHeadline = String(headline || '').trim().slice(0, 200);
-    const cleanBody = String(body || '').trim().slice(0, 8000);
-    const cleanCtaLabel = String(ctaLabel || 'Claim Your Free Rewards').trim().slice(0, 80);
-    const cleanCtaUrl = String(ctaUrl || DEFAULT_PROMO_DRAFT.ctaUrl).trim();
+    const cleanSubject = String(subject ?? baseDraft.subject).trim().slice(0, 180);
+    const cleanHeadline = String(headline ?? baseDraft.headline).trim().slice(0, 200);
+    const cleanBody = String(body ?? baseDraft.body).trim().slice(0, 8000);
+    const cleanCtaLabel = String(ctaLabel ?? baseDraft.ctaLabel).trim().slice(0, 80);
+    const cleanCtaUrl = String(ctaUrl ?? baseDraft.ctaUrl).trim();
     const cleanPostal = String(postalAddress || DEFAULT_POSTAL_ADDRESS).trim().slice(0, 240);
     const cleanChannels = ['email', 'sms', 'both'].includes(channels) ? channels : 'both';
-    const cleanScope = ['non_accounts', 'subscribers_only', 'all'].includes(scope) ? scope : 'non_accounts';
     const wantEmail = cleanChannels === 'email' || cleanChannels === 'both';
     const wantSms = cleanChannels === 'sms' || cleanChannels === 'both';
-    const finalSmsBody = ensureSmsStopFooter(smsBody);
+    const finalSmsBody = ensureSmsStopFooter(smsBody ?? baseDraft.smsBody);
 
     if (wantEmail && (!cleanSubject || !cleanHeadline || !cleanBody)) {
         throw new Error('Subject, headline, and body are required for email campaigns');
@@ -776,7 +959,12 @@ export async function dispatchPromoCampaign(
     const apiKey = resendApiKey();
     const from = resendFrom(process.env.NEWS_DIGEST_FROM || DEFAULT_PROMO_FROM);
     const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || DEFAULT_SITE_URL).replace(/\/+$/, '');
-    const signedCtaUrl = buildPromoSignupUrl(cleanCtaUrl, { siteUrl });
+    const isWelcomeBackOffer = isWelcomeBackCtaUrl(cleanCtaUrl);
+    const buildSignedRecipientUrl = (recipientUserId = '') =>
+        isWelcomeBackOffer
+            ? buildWelcomeBackOfferUrl(cleanCtaUrl, { userId: recipientUserId, siteUrl })
+            : buildPromoSignupUrl(cleanCtaUrl, { siteUrl });
+    const signedCtaUrl = buildSignedRecipientUrl('');
     const emailConfigured = Boolean(apiKey);
     const smsConfigured = Boolean(
         (process.env.TWILIO_ACCOUNT_SID || '').trim() &&
@@ -948,12 +1136,13 @@ export async function dispatchPromoCampaign(
                 const chunk = targetEmails.slice(i, i + EMAIL_BATCH_SIZE);
                 const messages = chunk.map((email) => {
                     const unsubscribeUrl = `${siteUrl}/api/news/subscribe?unsubscribe=${encodeURIComponent(makeUnsubscribeToken(email))}`;
+                    const recipientCtaUrl = buildSignedRecipientUrl(audience.emailToUserId?.get(email) || '');
                     const rendered = renderPromoEmail({
                         subject: cleanSubject,
                         headline: cleanHeadline,
                         body: cleanBody,
                         ctaLabel: cleanCtaLabel,
-                        ctaUrl: signedCtaUrl,
+                        ctaUrl: recipientCtaUrl,
                         postalAddress: cleanPostal,
                         siteUrl,
                         unsubscribeUrl,

@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import {
     DEFAULT_POSTAL_ADDRESS,
     DEFAULT_PROMO_DRAFT,
+    DEFAULT_WELCOME_BACK_DRAFT,
     dispatchPromoCampaign,
     ensureSmsStopFooter,
     importMarketingLeads,
@@ -18,6 +19,15 @@ import {
     resolvePromoAudience,
     verifyOperatorTestSignature,
 } from '../src/lib/promoCampaigns/dispatch.mjs';
+import {
+    KINGS_CLUB_UUID,
+    WELCOME_BACK_CODE,
+    acceptWelcomeBackOffer,
+    buildWelcomeBackOfferUrl,
+    inspectWelcomeBackOfferStatus,
+    signWelcomeBackOfferToken,
+    verifyWelcomeBackOfferToken,
+} from '../src/lib/promoCampaigns/welcomeBackOffer.mjs';
 import { verifySvixSignature } from '../src/lib/email/svixSignature.mjs';
 import {
     CLUB_ARENA_DEVICE_ID_KEY,
@@ -44,6 +54,10 @@ function createMockDb(initial = {}) {
         sms_delivery_receipts: [...(initial.sms_delivery_receipts || [])],
         profiles: [...(initial.profiles || [])],
         club_members: [...(initial.club_members || [])],
+        ca_browser_bindings: [...(initial.ca_browser_bindings || [])],
+        training_progress: [...(initial.training_progress || [])],
+        promo_codes: [...(initial.promo_codes || [])],
+        promo_code_redemptions: [...(initial.promo_code_redemptions || [])],
         commander_members: [...(initial.commander_members || [])],
         commander_onboarding_leads: [...(initial.commander_onboarding_leads || [])],
         commander_leads: [...(initial.commander_leads || [])],
@@ -55,7 +69,9 @@ function createMockDb(initial = {}) {
         let rows = () => [...(tables[tableName] || [])];
         const filters = [];
         let pendingInsert = null;
+        let pendingInsertErr = null;
         let pendingUpdate = null;
+        let pendingDelete = false;
 
         const applyFilters = () =>
             rows().filter((row) => filters.every((fn) => fn(row)));
@@ -97,6 +113,17 @@ function createMockDb(initial = {}) {
             },
             insert(payload) {
                 const items = Array.isArray(payload) ? payload : [payload];
+                if (tableName === 'promo_code_redemptions') {
+                    for (const item of items) {
+                        const dup = tables.promo_code_redemptions.find(
+                            (r) => r.promo_code_id === item.promo_code_id && r.user_id === item.user_id
+                        );
+                        if (dup) {
+                            pendingInsertErr = { code: '23505', message: 'duplicate key value violates unique constraint' };
+                            return builder;
+                        }
+                    }
+                }
                 pendingInsert = items.map((item, idx) => ({
                     id: item.id || `${tableName}-${tables[tableName].length + idx + 1}`,
                     ...item,
@@ -108,7 +135,14 @@ function createMockDb(initial = {}) {
                 pendingUpdate = patch;
                 return builder;
             },
+            delete() {
+                pendingDelete = true;
+                return builder;
+            },
             maybeSingle() {
+                if (pendingInsertErr) {
+                    return Promise.resolve({ data: null, error: pendingInsertErr });
+                }
                 if (pendingInsert) {
                     return Promise.resolve({ data: pendingInsert[0] || null, error: null });
                 }
@@ -122,6 +156,15 @@ function createMockDb(initial = {}) {
             },
             then(resolve, reject) {
                 try {
+                    if (pendingInsertErr) {
+                        return Promise.resolve({ data: null, error: pendingInsertErr }).then(resolve, reject);
+                    }
+                    if (pendingDelete) {
+                        const matched = new Set(applyFilters());
+                        const removed = tables[tableName].filter((r) => matched.has(r));
+                        tables[tableName] = tables[tableName].filter((r) => !matched.has(r));
+                        return Promise.resolve({ data: removed, error: null }).then(resolve, reject);
+                    }
                     if (pendingUpdate) {
                         const matched = applyFilters();
                         for (const row of matched) Object.assign(row, pendingUpdate);
@@ -142,6 +185,7 @@ function createMockDb(initial = {}) {
     return {
         tables,
         from: (name) => makeQuery(name),
+        rpc: initial.rpc || (async () => ({ data: { success: true }, error: null })),
         auth: initial.authUsers
             ? {
                   admin: {
@@ -578,4 +622,227 @@ test('testOnly dispatch accepts admin @smarter.poker inboxes and renders inline 
     } finally {
         process.env = savedEnv;
     }
+});
+
+test('3-week inactive Welcome-Back preset orders 25 Free Chips, 500 Diamonds, and 1-Month VIP and resolves inactive_21d accurately', async () => {
+    for (const field of ['subject', 'headline', 'body', 'smsBody']) {
+        const text = DEFAULT_WELCOME_BACK_DRAFT[field];
+        const chipsIdx = text.indexOf('25 Free Chips');
+        const diamondsIdx = text.indexOf('500');
+        const vipIdx = text.search(/1-Month Free VIP|1 Month of Free VIP/i);
+        assert.ok(chipsIdx >= 0, `${field} must mention 25 Free Chips`);
+        assert.ok(diamondsIdx > chipsIdx, `${field} must place 25 Free Chips before 500 Diamonds`);
+        assert.ok(vipIdx > diamondsIdx, `${field} must place 500 Diamonds before 1-Month VIP`);
+    }
+    assert.equal(DEFAULT_WELCOME_BACK_DRAFT.scope, 'inactive_21d');
+    assert.equal(DEFAULT_WELCOME_BACK_DRAFT.ctaLabel, 'Accept Your Offer');
+    assert.equal(DEFAULT_WELCOME_BACK_DRAFT.ctaUrl, 'https://smarter.poker/promo/welcome-back');
+    assert.match(DEFAULT_WELCOME_BACK_DRAFT.smsBody, /https:\/\/smarter\.poker\/go\/welcome-back/);
+    assert.equal(DEFAULT_WELCOME_BACK_DRAFT.smsBody.length <= 160, true);
+
+    const nowMs = Date.parse('2026-11-24T04:00:00Z');
+    const uInactive = '11111111-1111-4111-8111-111111111111';
+    const uRecentSignin = '22222222-2222-4222-8222-222222222222';
+    const uRecentClubPlay = '33333333-3333-4333-8333-333333333333';
+    const uHorse = '44444444-4444-4444-8444-444444444444';
+
+    const db = createMockDb({
+        profiles: [
+            {
+                id: uInactive,
+                username: 'dormantpro',
+                email: 'dormant@gmail.com',
+                phone: '708-333-4444',
+                is_horse: false,
+                created_at: '2026-08-01T00:00:00Z',
+                last_login: '2026-10-15T00:00:00Z',
+                last_active: '2026-10-18T00:00:00Z',
+            },
+            {
+                id: uRecentSignin,
+                username: 'recentlogin',
+                email: 'recent@gmail.com',
+                phone: '312-444-5555',
+                is_horse: false,
+                created_at: '2026-07-01T00:00:00Z',
+                last_login: '2026-10-01T00:00:00Z',
+            },
+            {
+                id: uRecentClubPlay,
+                username: 'grinder21',
+                email: 'grinder@yahoo.com',
+                phone: '630-777-8888',
+                is_horse: false,
+                created_at: '2026-07-01T00:00:00Z',
+                last_login: '2026-09-01T00:00:00Z',
+            },
+            {
+                id: uHorse,
+                username: 'horsebot',
+                email: 'realhumanlooking@gmail.com',
+                phone: '773-888-9999',
+                is_horse: true,
+                created_at: '2026-06-01T00:00:00Z',
+            },
+        ],
+        authUsers: [
+            { id: uInactive, email: 'dormant@gmail.com', last_sign_in_at: '2026-10-18T00:00:00Z', created_at: '2026-08-01T00:00:00Z' },
+            { id: uRecentSignin, email: 'recent@gmail.com', last_sign_in_at: '2026-11-20T00:00:00Z', created_at: '2026-07-01T00:00:00Z' },
+            { id: uRecentClubPlay, email: 'grinder@yahoo.com', last_sign_in_at: '2026-09-01T00:00:00Z', created_at: '2026-07-01T00:00:00Z' },
+        ],
+        club_members: [
+            { user_id: uRecentClubPlay, is_bot: false, last_active_at: '2026-11-15T12:00:00Z' },
+        ],
+    });
+
+    const audience = await resolvePromoAudience(db, { scope: 'inactive_21d', nowMs });
+    assert.deepEqual(audience.emails, ['dormant@gmail.com']);
+    assert.deepEqual(audience.phones, ['+17083334444']);
+    assert.equal(audience.emailToUserId.get('dormant@gmail.com'), uInactive);
+    assert.equal(audience.breakdown.inactiveEligibleAccounts, 1);
+    assert.equal(audience.breakdown.excludedRecentActiveUsers, 2);
+});
+
+test('acceptWelcomeBackOffer enforces HMAC + 3-week inactivity, grants 25 Chips + 500 Diamonds + 30d VIP once, and rolls back on RPC failure', async () => {
+    const secret = 'test-welcome-back-hmac-secret-20261123';
+    const nowMs = Date.parse('2026-11-24T04:00:00Z');
+    const uDormant = 'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa';
+    const uOther = 'bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb';
+    const uActive = 'cccccccc-3333-4333-8333-cccccccccccc';
+
+    const userBoundUrl = new URL(
+        buildWelcomeBackOfferUrl('https://smarter.poker/promo/welcome-back', { userId: uDormant, nowMs, secret })
+    );
+    const wbUser = userBoundUrl.searchParams.get('wb');
+    const verified = verifyWelcomeBackOfferToken(wbUser, { nowMs, secret });
+    assert.equal(verified.valid, true);
+    assert.equal(verified.userId, uDormant);
+
+    const wbShared = signWelcomeBackOfferToken({ nowMs, secret });
+
+    let shouldFailDiamonds = true;
+    const rpcCalls = [];
+    const joinCalls = [];
+
+    const db = createMockDb({
+        profiles: [
+            {
+                id: uDormant,
+                username: 'comebackkid',
+                is_horse: false,
+                is_vip: false,
+                vip_tier: null,
+                vip_expires_at: null,
+                created_at: '2026-06-01T00:00:00Z',
+                last_active: '2026-10-10T00:00:00Z',
+            },
+            {
+                id: uActive,
+                username: 'dailygrinder',
+                is_horse: false,
+                is_vip: false,
+                vip_tier: null,
+                vip_expires_at: null,
+                created_at: '2026-06-01T00:00:00Z',
+                last_active: '2026-11-22T00:00:00Z',
+            },
+        ],
+        club_members: [
+            { user_id: uActive, club_id: KINGS_CLUB_UUID, status: 'active', last_active_at: '2026-11-22T18:00:00Z' },
+        ],
+        rpc: async (fnName, args) => {
+            rpcCalls.push({ fnName, args });
+            if (fnName === 'fn_promo_disburse') {
+                return { data: { success: true, transaction_id: 'tx-chip-25', club_id: KINGS_CLUB_UUID }, error: null };
+            }
+            if (fnName === 'add_diamonds_to_balance') {
+                if (shouldFailDiamonds) {
+                    return { data: null, error: { message: 'transient diamond lock' } };
+                }
+                return { data: { success: true, transaction_id: 'tx-diam-500' }, error: null };
+            }
+            return { data: { success: true }, error: null };
+        },
+    });
+
+    // 1. Wrong account cannot use another player's user-bound email link
+    const wrongAccount = await inspectWelcomeBackOfferStatus(db, {
+        user: { id: uOther, created_at: '2026-05-01T00:00:00Z' },
+        token: wbUser,
+        nowMs,
+        secret,
+    });
+    assert.equal(wrongAccount.eligible, false);
+    assert.equal(wrongAccount.reason, 'wrong_account');
+
+    // 2. Active player (< 21 days) cannot claim via shared SMS link
+    const activeBlocked = await acceptWelcomeBackOffer(db, {
+        user: { id: uActive, created_at: '2026-06-01T00:00:00Z' },
+        token: wbShared,
+        nowMs,
+        secret,
+    });
+    assert.equal(activeBlocked.success, false);
+    assert.equal(activeBlocked.status, 'recently_active');
+
+    // 3. Transient failure rolls back promo_code_redemptions lock so player can retry
+    await assert.rejects(
+        () =>
+            acceptWelcomeBackOffer(db, {
+                user: { id: uDormant, created_at: '2026-06-01T00:00:00Z' },
+                accessToken: 'jwt-dormant',
+                token: wbUser,
+                userSupabaseFactory: () => ({
+                    rpc: async (name, args) => {
+                        joinCalls.push({ name, args });
+                        return { data: { success: true }, error: null };
+                    },
+                }),
+                nowMs,
+                secret,
+            }),
+        /transient diamond lock/
+    );
+    assert.equal(db.tables.promo_code_redemptions.length, 0, 'failed claim must roll back redemption lock');
+
+    // 4. Retry succeeds cleanly and grants 25 Free Chips + 500 Diamonds + 30-Day VIP
+    shouldFailDiamonds = false;
+    const accepted = await acceptWelcomeBackOffer(db, {
+        user: { id: uDormant, created_at: '2026-06-01T00:00:00Z' },
+        accessToken: 'jwt-dormant',
+        token: wbUser,
+        userSupabaseFactory: () => ({
+            rpc: async (name, args) => {
+                joinCalls.push({ name, args });
+                return { data: { success: true }, error: null };
+            },
+        }),
+        nowMs,
+        secret,
+    });
+
+    assert.equal(accepted.success, true);
+    assert.equal(accepted.alreadyClaimed, false);
+    assert.equal(accepted.chipsAwarded, 25);
+    assert.equal(accepted.diamondsAwarded, 500);
+    assert.equal(accepted.vipDaysAwarded, 30);
+    assert.equal(joinCalls.some((c) => c.name === 'fn_join_club_atomic' && c.args.p_identifier === '25450'), true);
+
+    const updatedProfile = db.tables.profiles.find((p) => p.id === uDormant);
+    assert.equal(updatedProfile.is_vip, true);
+    assert.equal(updatedProfile.vip_expires_at, new Date(nowMs + 30 * 86_400_000).toISOString());
+
+    // 5. Second click returns alreadyClaimed=true without invoking chip/diamond RPCs again
+    const callCountAfterFirst = rpcCalls.length;
+    const secondClick = await acceptWelcomeBackOffer(db, {
+        user: { id: uDormant, created_at: '2026-06-01T00:00:00Z' },
+        accessToken: 'jwt-dormant',
+        token: wbUser,
+        nowMs,
+        secret,
+    });
+    assert.equal(secondClick.success, true);
+    assert.equal(secondClick.alreadyClaimed, true);
+    assert.equal(rpcCalls.length, callCountAfterFirst, 'duplicate click must not re-run chip or diamond RPCs');
+    assert.equal(db.tables.promo_codes[0].code, WELCOME_BACK_CODE);
 });

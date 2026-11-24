@@ -17,6 +17,18 @@ const INITIAL_PROMO_DRAFT = {
     scope: 'non_accounts',
 };
 
+const WELCOME_BACK_PROMO_DRAFT = {
+    subject: 'We Miss You At The Tables: Accept 25 Free Chips, 500 Free Diamonds & 1-Month Free VIP',
+    headline: '25 Free Chips + 500 Free Diamonds + 1-Month Free VIP',
+    body: 'It has been a few weeks since we last saw you on Smarter.Poker, and your seat in Kings Club (Club Code 25450) is waiting.\n\nClick below to accept your exclusive Welcome-Back Offer and unlock 25 Free Chips, 500 Free Diamonds, and 1 Month of Free VIP Access.',
+    ctaLabel: 'Accept Your Offer',
+    ctaUrl: 'https://smarter.poker/promo/welcome-back',
+    smsBody: 'Smarter.Poker: Accept your Welcome-Back Offer for 25 Free Chips, 500 Diamonds + 1-Month Free VIP: https://smarter.poker/go/welcome-back Reply STOP to opt out.',
+    postalAddress: 'PO Box 1905, 9624 Cicero Ave, Oak Lawn, IL 60453',
+    channels: 'both',
+    scope: 'inactive_21d',
+};
+
 function formatDate(value) {
     if (!value) return '-';
     const date = new Date(value);
@@ -161,6 +173,18 @@ export default function NewsletterOperations() {
         // Initial auth bootstrap only.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    const applyPromoPreset = (preset) => {
+        setPromoTouched(true);
+        setPromoPreview(null);
+        setPromoInlineError('');
+        setPromoInlineNotice('');
+        if (preset === 'welcome_back') {
+            setPromoDraft({ ...WELCOME_BACK_PROMO_DRAFT, ...(promoMeta?.welcomeBackDraft || {}) });
+        } else {
+            setPromoDraft({ ...INITIAL_PROMO_DRAFT, ...(promoMeta?.defaultDraft || {}) });
+        }
+    };
 
     const updatePromoField = (field, value) => {
         setPromoTouched(true);
@@ -365,6 +389,14 @@ export default function NewsletterOperations() {
                     </div>
                     <div className={styles.promoGrid}>
                         <div className={styles.promoForm}>
+                            <div className={styles.actionRow}>
+                                <button type="button" className={styles.previewButton} onClick={() => applyPromoPreset('signup')} disabled={Boolean(running)}>
+                                    Load New-Signup Campaign
+                                </button>
+                                <button type="button" className={styles.previewButton} onClick={() => applyPromoPreset('welcome_back')} disabled={Boolean(running)}>
+                                    Load 3-Week Welcome-Back Offer
+                                </button>
+                            </div>
                             <div className={styles.fieldRow}>
                                 <label>
                                     Delivery Channels
@@ -378,6 +410,7 @@ export default function NewsletterOperations() {
                                     Target Audience
                                     <select value={promoDraft.scope} onChange={(e) => updatePromoField('scope', e.target.value)}>
                                         <option value="non_accounts">New Leads Only (No Existing Account Or Club Arena)</option>
+                                        <option value="inactive_21d">Inactive Players (No Sign-In Or Play In Past 3 Weeks)</option>
                                         <option value="subscribers_only">Imported And Subscribed List Only</option>
                                         <option value="all">Full Database Plus Imported List</option>
                                     </select>
@@ -466,8 +499,8 @@ export default function NewsletterOperations() {
                                     <div className={styles.breakdownGrid}>
                                         <div className={styles.breakdownCard}><span>Deduplicated Emails</span><strong>{promoPreview.emailRecipients}</strong></div>
                                         <div className={styles.breakdownCard}><span>Deduplicated Phones</span><strong>{promoPreview.smsRecipients}</strong></div>
-                                        <div className={styles.breakdownCard}><span>Imported Or Subscribed</span><strong>{(promoPreview.breakdown?.subscriberEmails || 0) + (promoPreview.breakdown?.subscriberPhones || 0)}</strong></div>
-                                        <div className={styles.breakdownCard}><span>{promoDraft.scope === 'non_accounts' ? 'Excluded Existing Accounts' : 'Database Accounts And Leads'}</span><strong>{promoDraft.scope === 'non_accounts' ? (promoPreview.breakdown?.excludedExistingAccounts || 0) : (promoPreview.breakdown?.profileEmails || 0) + (promoPreview.breakdown?.profilePhones || 0) + (promoPreview.breakdown?.commanderEmails || 0) + (promoPreview.breakdown?.commanderPhones || 0)}</strong></div>
+                                        <div className={styles.breakdownCard}><span>{promoDraft.scope === 'inactive_21d' ? 'Inactive Eligible Accounts' : 'Imported Or Subscribed'}</span><strong>{promoDraft.scope === 'inactive_21d' ? (promoPreview.breakdown?.inactiveEligibleAccounts || 0) : (promoPreview.breakdown?.subscriberEmails || 0) + (promoPreview.breakdown?.subscriberPhones || 0)}</strong></div>
+                                        <div className={styles.breakdownCard}><span>{promoDraft.scope === 'non_accounts' ? 'Excluded Existing Accounts' : promoDraft.scope === 'inactive_21d' ? 'Excluded Recent Active' : 'Database Accounts And Leads'}</span><strong>{promoDraft.scope === 'non_accounts' ? (promoPreview.breakdown?.excludedExistingAccounts || 0) : promoDraft.scope === 'inactive_21d' ? (promoPreview.breakdown?.excludedRecentActiveUsers || 0) : (promoPreview.breakdown?.profileEmails || 0) + (promoPreview.breakdown?.profilePhones || 0) + (promoPreview.breakdown?.commanderEmails || 0) + (promoPreview.breakdown?.commanderPhones || 0)}</strong></div>
                                         <div className={styles.breakdownCard}><span>Suppressed Emails</span><strong>{promoPreview.breakdown?.suppressedEmails || 0}</strong></div>
                                         <div className={styles.breakdownCard}><span>Suppressed Phones</span><strong>{promoPreview.breakdown?.suppressedPhones || 0}</strong></div>
                                     </div>
