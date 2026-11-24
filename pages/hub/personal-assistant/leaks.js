@@ -1609,12 +1609,18 @@ export default function LeakFinderPage() {
 
   // Deep link: /hub/personal-assistant/leaks?hand=<uuid> (or legacy /hub/jarvis JSON summary)
   const [linkedClubHand, setLinkedClubHand] = useState(null);
+  const [linkedHandAudit, setLinkedHandAudit] = useState(null);
+  const [linkedHandLoading, setLinkedHandLoading] = useState(false);
+  const [linkedHandError, setLinkedHandError] = useState(null);
+
   useEffect(() => {
     if (!router.isReady) return;
     const raw = router.query?.hand;
     const value = Array.isArray(raw) ? raw[0] : raw;
     if (!value) {
       setLinkedClubHand(null);
+      setLinkedHandAudit(null);
+      setLinkedHandError(null);
       return;
     }
     const trimmed = String(value).trim();
@@ -1636,21 +1642,95 @@ export default function LeakFinderPage() {
       }
     }
     setLinkedClubHand(null);
+    setLinkedHandAudit(null);
+    setLinkedHandError(null);
   }, [router.isReady, router.query?.hand]);
 
-  // Deep link: /hub/personal-assistant/leaks?leak=<id>
-  const deepLinkedRef = useRef(false);
+  const fetchLinkedHandAudit = useCallback(async (handId, { method = 'GET', signal } = {}) => {
+    const token = await getFreshAccessToken();
+    if (!token) throw new Error('Sign In To Audit This Club Arena Hand.');
+    const url = method === 'POST'
+      ? '/api/assistant/leaks/hand-audit'
+      : `/api/assistant/leaks/hand-audit?hand=${encodeURIComponent(handId)}`;
+    const response = await fetch(url, {
+      method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        ...(method === 'POST' ? { 'Content-Type': 'application/json' } : {}),
+      },
+      ...(method === 'POST' ? { body: JSON.stringify({ handId }) } : {}),
+      signal,
+    });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok || !payload?.success) {
+      const err = new Error(payload?.error || `Hand Audit Failed With HTTP ${response.status}.`);
+      err.status = response.status;
+      err.code = payload?.code || null;
+      throw err;
+    }
+    return payload;
+  }, []);
+
+  // Automatically load and audit the exact linked Club Arena hand whenever the
+  // URL's ?hand=<uuid> changes (including switching between two linked hands in
+  // an already-open Personal Assistant tab). Aborts stale in-flight requests.
   useEffect(() => {
-    if (deepLinkedRef.current || !router.isReady || leaksLoading) return;
+    const handId = linkedClubHand?.id;
+    if (!handId || !userId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(handId)) {
+      setLinkedHandAudit(null);
+      setLinkedHandError(null);
+      setLinkedHandLoading(false);
+      return undefined;
+    }
+    const controller = new AbortController();
+    setLinkedHandAudit(null);
+    setLinkedHandError(null);
+    setLinkedHandLoading(true);
+    fetchLinkedHandAudit(handId, { method: 'GET', signal: controller.signal })
+      .then((payload) => {
+        if (!controller.signal.aborted) setLinkedHandAudit(payload);
+      })
+      .catch((err) => {
+        if (controller.signal.aborted || isAbortError(err)) return;
+        setLinkedHandError(err?.message || 'Could Not Audit This Club Arena Hand.');
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLinkedHandLoading(false);
+      });
+    return () => controller.abort();
+  }, [fetchLinkedHandAudit, linkedClubHand?.id, userId]);
+
+  const handleAuditLinkedHand = useCallback(async () => {
+    const handId = linkedClubHand?.id;
+    if (!handId || !userId) return;
+    if (!requireOnline()) return;
+    setLinkedHandLoading(true);
+    setLinkedHandError(null);
+    try {
+      const payload = await fetchLinkedHandAudit(handId, { method: 'POST' });
+      setLinkedHandAudit(payload);
+      if (payload.persisted) refetchLeaks();
+    } catch (err) {
+      setLinkedHandError(err?.message || 'Could Not Persist Hand Audit.');
+    } finally {
+      setLinkedHandLoading(false);
+    }
+  }, [fetchLinkedHandAudit, linkedClubHand?.id, refetchLeaks, requireOnline, userId]);
+
+  // Deep link: /hub/personal-assistant/leaks?leak=<id>
+  const deepLinkedTargetRef = useRef(null);
+  useEffect(() => {
+    if (!router.isReady || leaksLoading) return;
     const raw = router.query?.leak;
     const target = Array.isArray(raw) ? raw[0] : raw;
-    if (!target) { deepLinkedRef.current = true; return; }
+    if (!target) { deepLinkedTargetRef.current = null; return; }
+    if (deepLinkedTargetRef.current === String(target)) return;
     const match = selectablePool.find(l => String(l.id) === String(target));
     if (match) {
       setSelectedLeakId(match.id);
-      deepLinkedRef.current = true;
+      deepLinkedTargetRef.current = String(target);
     } else if (selectablePool.length > 0) {
-      deepLinkedRef.current = true;
+      deepLinkedTargetRef.current = String(target);
     }
   }, [router.isReady, router.query, selectablePool, leaksLoading]);
 
@@ -1671,6 +1751,13 @@ export default function LeakFinderPage() {
 
   const handleRunDetection = useCallback(async () => {
     if (!requireOnline()) return;
+    if (!userId) {
+      setDetectionSummary({
+        type: 'info',
+        text: 'Sign In To Audit Your Club Arena Hands And Detect Leaks.',
+      });
+      return;
+    }
     haptic('medium');
     setDetectionSummary(null);
     let result;
@@ -1749,18 +1836,20 @@ export default function LeakFinderPage() {
 
   useEffect(() => {
     const COOLDOWN_MS = 24 * 60 * 60 * 1000;
-    const KEY = 'pa-auto-detect-last';
-
-    if (autoDetectRef.current) return;                  // once per mount
     if (!paHasAccess || !userId) return;                // entitled + signed in
-    if (leaksLoading || isDetecting) return;            // let loads settle
+    const KEY = `pa-auto-detect-last:${userId}`;
+
+    if (autoDetectRef.current === userId) return;       // once per mount per account
+    if (leaksLoading || leaksError || isDetecting) return;
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+    if (auditJob?.status === 'queued' || auditJob?.status === 'running') return;
     if (leaksAreDemo) return;                           // sample data is not "no leaks"
     if (leaks.length > 0) return;                       // already has real leaks
 
     const last = Number(safeStorage.get(KEY, '0'));
     if (Number.isFinite(last) && last > 0 && Date.now() - last < COOLDOWN_MS) return;
 
-    autoDetectRef.current = true;
+    autoDetectRef.current = userId;
     setAutoDetecting(true);
     (async () => {
       try {
@@ -1772,7 +1861,7 @@ export default function LeakFinderPage() {
         setAutoDetecting(false);
       }
     })();
-  }, [paHasAccess, userId, leaksLoading, isDetecting, leaksAreDemo, leaks.length, runDetection]);
+  }, [paHasAccess, userId, leaksLoading, leaksError, isDetecting, auditJob?.status, leaksAreDemo, leaks.length, runDetection]);
 
   const celebrate = useCallback(async () => {
     if (reduceMotion) return;
@@ -1824,8 +1913,8 @@ export default function LeakFinderPage() {
   const handleOpenHandReview = useCallback((leak) => {
     if (!guardAction()) return;
     const target = leak || selectedLeak;
-    if (!target) return;
-    router.push('/hub/training/hand-history-upload?source=personal-assistant-leaks');
+    const leakParam = target?.id ? `&leak=${encodeURIComponent(String(target.id))}` : '';
+    router.push(`/hub/training/hand-history-upload?source=personal-assistant-leaks${leakParam}`);
   }, [guardAction, router, selectedLeak]);
 
   /**
@@ -2436,49 +2525,196 @@ export default function LeakFinderPage() {
               </div>
 
               {linkedClubHand && (
-                <div
-                  role="status"
+                <section
+                  role="region"
+                  aria-label="Linked Club Arena Hand Audit"
+                  data-testid="linked-hand-audit-panel"
                   className={toolStyles.instrumentPanel}
                   style={{
                     ...cardCompact,
                     marginBottom: S.md,
                     display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
+                    flexDirection: 'column',
                     gap: S.sm,
-                    flexWrap: 'wrap',
                   }}
                 >
-                  <div style={{ flex: 1, minWidth: 200 }}>
-                    <span style={pill('accent')}>Club Arena Hand Linked</span>
-                    <div style={{ marginTop: S.xs, fontSize: F.bodySm, color: T.text }}>
-                      Run Leak Detection To Audit <span data-pa-verbatim="true">{linkedClubHand.label}</span> Against Verified Solver Evidence.
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: S.sm, flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, minWidth: 200 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: S.xs, flexWrap: 'wrap' }}>
+                        <span style={pill('accent')}>Club Arena Hand Linked</span>
+                        {linkedHandAudit?.hand?.formatLabel && (
+                          <span style={pill('muted')}>{linkedHandAudit.hand.formatLabel}</span>
+                        )}
+                        {linkedHandAudit?.hand?.variant && (
+                          <span style={pill('muted')} data-pa-verbatim="true">{String(linkedHandAudit.hand.variant).toUpperCase()}</span>
+                        )}
+                        {linkedHandAudit?.supported === false && (
+                          <span style={pill('warn')}>Unsupported Format · Unmeasured</span>
+                        )}
+                        {linkedHandAudit?.supported === true && linkedHandAudit?.audited === false && (
+                          <span style={pill('warn')}>Unmeasured Under Retention Policy</span>
+                        )}
+                      </div>
+                      <div style={{ marginTop: S.xs, fontSize: F.bodySm, color: T.text }}>
+                        <strong data-pa-verbatim="true">{linkedClubHand.label}</strong>
+                        {linkedHandAudit?.hand?.stakes ? ` · ${linkedHandAudit.hand.stakes}` : ''}
+                        {Array.isArray(linkedHandAudit?.hand?.heroCards) && linkedHandAudit.hand.heroCards.length >= 2 && (
+                          <> · Hero <span data-pa-verbatim="true">{linkedHandAudit.hand.heroCards.join(' ')}</span></>
+                        )}
+                        {Array.isArray(linkedHandAudit?.hand?.board) && linkedHandAudit.hand.board.length > 0 && (
+                          <> · Board <span data-pa-verbatim="true">{linkedHandAudit.hand.board.join(' ')}</span></>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: S.xs, flexWrap: 'wrap' }}>
+                      {userId && (
+                        <button
+                          type="button"
+                          className="pa-btn"
+                          style={btn('primary')}
+                          disabled={linkedHandLoading}
+                          onClick={handleAuditLinkedHand}
+                        >
+                          {linkedHandLoading ? 'Auditing Hand…' : 'Audit This Hand'}
+                        </button>
+                      )}
+                      {linkedHandAudit?.trainingAction && (
+                        <button
+                          type="button"
+                          className="pa-btn"
+                          style={btn('primary')}
+                          onClick={() => {
+                            const matched = linkedHandAudit.trainingAction.leakId
+                              ? selectablePool.find(l => String(l.id) === String(linkedHandAudit.trainingAction.leakId))
+                              : null;
+                            if (matched) {
+                              handleStartReview({ leak: matched, drill: linkedHandAudit.trainingAction.drillParams });
+                            } else {
+                              handleStartReview({
+                                leak: {
+                                  id: linkedHandAudit.trainingAction.leakId || `hand:${linkedClubHand.id}`,
+                                  title: linkedHandAudit.trainingAction.title,
+                                  leakType: linkedHandAudit.matchedLeaks?.[0]?.leakType || 'spot_review',
+                                  leakCategory: linkedHandAudit.matchedLeaks?.[0]?.category || 'flop',
+                                  recommendedDrill: linkedHandAudit.trainingAction.drillParams?.game || null,
+                                },
+                                drill: linkedHandAudit.trainingAction.drillParams,
+                              });
+                            }
+                          }}
+                        >
+                          Drill This Spot
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="pa-btn"
+                        style={btn('secondary')}
+                        onClick={() => {
+                          const targetUrl = linkedHandAudit?.returnToClubArenaHref
+                            || `/hub/club-arena/hand-history?hand=${encodeURIComponent(linkedClubHand.id)}&source=personal-assistant`;
+                          if (typeof window !== 'undefined') window.location.assign(targetUrl);
+                          else router.push(targetUrl);
+                        }}
+                      >
+                        Return To Hand In Club Arena
+                      </button>
+                      <button
+                        type="button"
+                        className="pa-btn"
+                        aria-label="Dismiss linked hand audit"
+                        onClick={() => {
+                          setLinkedClubHand(null);
+                          setLinkedHandAudit(null);
+                          setLinkedHandError(null);
+                        }}
+                        style={iconBtn({ transparent: true, color: T.textMuted })}
+                      >
+                        <X size={18} strokeWidth={2} />
+                      </button>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: S.xs, flexWrap: 'wrap' }}>
-                    <button
-                      type="button"
-                      className="pa-btn"
-                      style={btn('secondary')}
-                      onClick={() => {
-                        const targetUrl = `/hub/club-arena/hand-history?hand=${encodeURIComponent(linkedClubHand.id)}&source=personal-assistant`;
-                        if (typeof window !== 'undefined') window.location.assign(targetUrl);
-                        else router.push(targetUrl);
-                      }}
-                    >
-                      Open Hand In Club Arena
-                    </button>
-                    <button
-                      type="button"
-                      className="pa-btn"
-                      aria-label="Dismiss linked hand banner"
-                      onClick={() => setLinkedClubHand(null)}
-                      style={iconBtn({ transparent: true, color: T.textMuted })}
-                    >
-                      <X size={18} strokeWidth={2} />
-                    </button>
-                  </div>
-                </div>
+
+                  {!userId && (
+                    <div style={{ fontSize: F.bodySm, color: T.textMuted }}>
+                      Sign In To Load Verified Solver Decisions For This Club Arena Hand.
+                    </div>
+                  )}
+
+                  {linkedHandLoading && (
+                    <div style={{ fontSize: F.bodySm, color: T.textMuted }} aria-busy="true">
+                      Loading Verified Audit For <span data-pa-verbatim="true">{linkedClubHand.label}</span>…
+                    </div>
+                  )}
+
+                  {linkedHandError && !linkedHandLoading && (
+                    <div role="alert" style={{ fontSize: F.bodySm, color: T.danger }}>
+                      {linkedHandError}
+                    </div>
+                  )}
+
+                  {linkedHandAudit?.limitation && !linkedHandLoading && (
+                    <div style={{ fontSize: F.bodySm, color: T.textMuted }}>
+                      {linkedHandAudit.limitation}
+                    </div>
+                  )}
+
+                  {!linkedHandLoading && Array.isArray(linkedHandAudit?.decisions) && linkedHandAudit.decisions.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: S.xs }}>
+                      <div style={{ fontSize: F.caption, color: T.textMuted }}>
+                        {linkedHandAudit.solverVerifiedCount} Solver Verified · {linkedHandAudit.unpricedCount} Explicitly Unmeasured
+                      </div>
+                      {linkedHandAudit.decisions.map((decision, idx) => (
+                        <div
+                          key={decision.decisionKey || `${decision.street}-${idx}`}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: S.xs,
+                            flexWrap: 'wrap',
+                            padding: `${S.xs}px ${S.sm}px`,
+                            borderRadius: R.sm,
+                            background: T.surface2,
+                            fontSize: F.bodySm,
+                          }}
+                        >
+                          <span>
+                            <strong style={{ textTransform: 'capitalize' }}>{decision.street}</strong>
+                            {decision.heroPosition ? ` · ${decision.heroPosition}` : ''}
+                            {decision.playerAction ? ` · Played ${decision.playerAction}` : ''}
+                            {decision.solverVerified && decision.solverAction ? ` · Solver ${decision.solverAction}` : ''}
+                          </span>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: S.xs }}>
+                            <span style={pill(decision.solverVerified ? (decision.classification === 'correct' ? 'success' : 'warn') : 'muted')}>
+                              {decision.solverVerified ? decision.classification : 'Unmeasured'}
+                            </span>
+                            {decision.evLossMeasured && decision.evLoss != null && (
+                              <span style={numeric}>{Number(decision.evLoss).toFixed(2)} BB</span>
+                            )}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {!linkedHandLoading && Array.isArray(linkedHandAudit?.matchedLeaks) && linkedHandAudit.matchedLeaks.length > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: S.xs, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: F.caption, color: T.textMuted }}>Connected Leaks:</span>
+                      {linkedHandAudit.matchedLeaks.map((ml) => (
+                        <button
+                          key={ml.id}
+                          type="button"
+                          className="pa-btn"
+                          style={btn('secondary')}
+                          onClick={() => setSelectedLeakId(ml.id)}
+                        >
+                          {ml.title}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </section>
               )}
 
               <AuditReceipt result={detectionResult || (auditJob ? {

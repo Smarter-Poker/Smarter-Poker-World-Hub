@@ -701,7 +701,12 @@ async function findQuestion(db, hand, point) {
 
 function summary(row) {
   return {
+    decisionKey: row.decision_key || null,
+    gameId: row.game_id || null,
     street: row.street,
+    heroPosition: row.hero_position || null,
+    villainPosition: row.villain_position || null,
+    spotType: row.spot_type || 'general',
     playerAction: row.player_action,
     solverAction: row.solver_action,
     classification: row.classification,

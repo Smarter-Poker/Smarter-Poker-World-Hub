@@ -310,6 +310,10 @@ export default function TriviaOperationsPage() {
     const economics = data.treasury_economics || {};
     const rakeAccounts = economics.rake_accounts || {};
     const pvpMix = economics.pvp_24h_mix || {};
+    const integrityReview = data.integrity_review || {};
+    const integritySummary = integrityReview.summary || {};
+    const flaggedSessions = Array.isArray(integrityReview.flagged_sessions) ? integrityReview.flagged_sessions : [];
+    const playerFunnel = data.player_funnel || {};
 
     return (
         <main className={consoleStyles.surface} style={S.page}>
@@ -636,6 +640,83 @@ export default function TriviaOperationsPage() {
                     <Metric label="Open terminal settlements" value={pvp.ledger_variance?.terminal_matches_with_open_settlement} />
                     <Metric label="Terminal escrow variance" value={pvp.ledger_variance?.terminal_escrow_abs_total} />
                 </div>
+            </Panel>
+
+            <Panel title="24h Player Funnel And Conversion Analytics">
+                <div style={S.grid}>
+                    <Metric
+                        label="Solo Sessions Started"
+                        value={playerFunnel.solo_sessions_started ?? 0}
+                        detail={`Unique Players: ${fmt(playerFunnel.solo_unique_players ?? 0)}`}
+                    />
+                    <Metric label="Solo Sessions Submitted" value={playerFunnel.solo_sessions_submitted ?? 0} />
+                    <Metric label="Solo Completion Rate" value={`${Number(playerFunnel.solo_completion_rate_pct ?? 0).toFixed(1)}%`} />
+                    <Metric label="Paid Skips" value={playerFunnel.paid_skips_count ?? 0} />
+                    <Metric
+                        label="PvP Matches Created"
+                        value={playerFunnel.pvp_matches_created ?? 0}
+                        detail={`Completed: ${fmt(playerFunnel.pvp_matches_completed ?? 0)}`}
+                    />
+                    <Metric
+                        label="PvP H2H Vs Horse Mix"
+                        value={`${fmt(playerFunnel.pvp_human_human_count ?? 0)} H2H / ${fmt(playerFunnel.pvp_human_horse_count ?? 0)} Horse`}
+                    />
+                    <Metric label="Nightly Human Registrations" value={playerFunnel.nightly_human_registrations ?? 0} />
+                    <Metric
+                        label="Nightly Reminder Opt-Ins"
+                        value={playerFunnel.nightly_reminders_opted_in ?? 0}
+                        detail={`Dispatched: ${fmt(playerFunnel.nightly_reminders_dispatched ?? 0)}`}
+                    />
+                    <Metric label="Integrity Flagged (24h)" value={playerFunnel.integrity_flagged_sessions ?? 0} />
+                </div>
+                <p style={S.note}>Aggregated From Authoritative Solo Sessions, Paid Skip Receipts, PvP Matches, Nightly Entrants And Reminder Tables Over The Trailing 24 Hours.</p>
+            </Panel>
+
+            <Panel title="Anti-Cheat Integrity Review Queue">
+                <div style={{ ...S.grid, marginBottom: 16 }}>
+                    <Metric label="Total Signals" value={integritySummary.total_signals ?? 0} />
+                    <Metric label="Flagged Sessions" value={integritySummary.flagged_signals ?? 0} />
+                    <Metric label="High-Risk Signals" value={integritySummary.high_risk_signals ?? 0} detail="Risk Score 50 Or Higher" />
+                </div>
+                {flaggedSessions.length ? (
+                    <div className={consoleStyles.tableWell} style={S.tableWell} tabIndex={0} role="region" aria-label="Anti-Cheat Integrity Review Queue">
+                        <table style={S.table}>
+                            <thead>
+                                <tr>
+                                    <th style={S.th}>Player</th>
+                                    <th style={S.th}>Mode</th>
+                                    <th style={S.th}>Risk Score</th>
+                                    <th style={S.th}>Risk Flags</th>
+                                    <th style={S.th}>Tab Blurs</th>
+                                    <th style={S.th}>Copy / Paste</th>
+                                    <th style={S.th}>Avg Answer Ms</th>
+                                    <th style={S.th}>Recorded</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {flaggedSessions.map((row) => (
+                                    <tr key={row.id || row.session_id}>
+                                        <td style={S.td}>{fmt(row.display_name)}</td>
+                                        <td style={S.td}>{fmt(row.mode)}</td>
+                                        <td style={S.td}>
+                                            <span style={{ ...S.badge, minHeight: 24, padding: '2px 10px', background: Number(row.risk_score) >= 50 ? '#7f1d1d' : '#78350f' }}>
+                                                {fmt(row.risk_score)}
+                                            </span>
+                                        </td>
+                                        <td style={S.td}>{Array.isArray(row.risk_flags) && row.risk_flags.length ? row.risk_flags.join(', ') : '-'}</td>
+                                        <td style={S.td}>{fmt(row.tab_blur_count)}</td>
+                                        <td style={S.td}>{`${fmt(row.copy_attempt_count)} / ${fmt(row.paste_attempt_count)}`}</td>
+                                        <td style={S.td}>{fmtMs(row.avg_answer_ms)}</td>
+                                        <td style={S.td}>{fmtTime(row.created_at)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                ) : (
+                    <p style={S.muted}>No Flagged Integrity Sessions Were Recorded.</p>
+                )}
+                <p style={S.note}>Integrity Signals Are Strictly Non-Punitive Review Telemetry And Never Block Gameplay Or Degrade Operations Health.</p>
             </Panel>
 
             <Panel title="Question serving and review">

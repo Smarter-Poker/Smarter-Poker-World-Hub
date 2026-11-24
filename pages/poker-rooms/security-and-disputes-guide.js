@@ -20,6 +20,8 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
+import GeoCitationCapsule from '../../src/components/seo/GeoCitationCapsule';
+import GeoFollowUpChain from '../../src/components/seo/GeoFollowUpChain';
 
 const ANGLE_SHOOTS_TABLE = [
   {
@@ -359,6 +361,49 @@ export default function PokerSecurityAndDisputesGuidePage() {
             ))}
           </div>
         </section>
+
+        <GeoCitationCapsule
+          title="Live Casino Floor Dispute Escalation, Surveillance Review & FinCEN CTR Standard"
+          claim="Under Poker TDA And Robert Rules Of Poker Standards, Any Floor RulingOr Pot Reconstruction Must Be Requested Before The Next Hand Deal Begins, And Any Cash Transaction Exceeding $10,000 In A Single Gaming Day Triggers Mandatory FinCEN Form 112 Currency Transaction Reporting (CTR)."
+          metricLabel="Statutory & Floor Standards"
+          metricValue="2024/2026 Poker TDA + RROP v11 + 31 CFR 1021.311"
+          formulaText="Dispute Escalation Chain: Table Dealer -> Floor Supervisor -> Poker Room Manager -> State/Tribal Gaming Agent"
+          ifThenBecause="If An Opponent Executes An Ambiguous Bet Motion Or The Pot Count Is Disputed -> Then Freeze Your Hole Cards And Request A Floor Supervisor And Overhead Camera Review Before The Next Deal Starts -> Because Surrendering Your Cards Into The Muck Or Allowing The Next Shuffle Extinguishes Most Reconstruction Remedies."
+          quoteText="Never Release Your Cards Until The Pot Is Physically Pushed To You, And Never Break A $12,000 Cash-Out Into Two $6,000 Cage Visits To Avoid A CTR."
+          quoteAuthor="Smarter.Poker Live Venue Intelligence Team"
+          doi="10.5281/zenodo.24115454"
+          canonicalPath={canonicalPath}
+        />
+
+        <GeoFollowUpChain
+          topicTitle="Live Casino Floor Security, Angle-Shooting & Dispute Resolution"
+          followUps={[
+            {
+              question: 'Where Can I Look Up All 30 Official Poker TDA And Robert Rules Of Poker Floor Rulings?',
+              answer:
+                'Browse The Complete 30-Rule Official Floor Rulings Encyclopedia At /rules Covering One-Chip Calls, String Bets, And Showdown Order.',
+              calculatorHref: '/rules',
+              calculatorLabel: 'Open 30 Official Floor Rules',
+              markdownHref: '/rules.md',
+            },
+            {
+              question: 'How Do IRS Form W-2G ($5,000 Net Tournament Threshold) And State Tax Withholding Affect Live Cashes?',
+              answer:
+                'Calculate Exact Federal And State Poker Tax Obligations Using The US Poker Tax & W-2G Estimator At /tools/poker-tax-calculator.',
+              calculatorHref: '/tools/poker-tax-calculator',
+              calculatorLabel: 'Open US Poker Tax Calculator',
+              markdownHref: '/tools/poker-tax-calculator.md',
+            },
+            {
+              question: 'How do I Resolve A Multiway Side-Pot Or Tied Kicker Showdown Dispute At The Table?',
+              answer:
+                'Verify Exact Pot Slices In The 9-Player Side Pot Calculator (/tools/side-pot-calculator) And Kicker Rules In The Showdown Resolver (/tools/who-wins-calculator).',
+              calculatorHref: '/tools/side-pot-calculator',
+              calculatorLabel: 'Open Side Pot Calculator',
+              markdownHref: '/tools/side-pot-calculator.md',
+            },
+          ]}
+        />
 
         <HubPageSummary page="learn-poker-as-a-business" path={canonicalPath} />
 

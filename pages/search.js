@@ -3,7 +3,7 @@
  *  UNIVERSAL POKER SEARCH & COMMAND DIRECTORY (/search)
  * ═══════════════════════════════════════════════════════════════════════════════
  * Real-time search engine across Smarter.Poker's entire structured corpus:
- * 42 Interactive Calculators, 25 Hand Matchups, 30 Official Rules, 15 Game
+ * 52 Interactive Calculators, 25 Hand Matchups, 30 Official Rules, 15 Game
  * Variants, 12 Regional Markets, 10 Major Series Guides, 15 Research Reports,
  * plus Top Starting Hands and Product/Venue Comparisons.
  *

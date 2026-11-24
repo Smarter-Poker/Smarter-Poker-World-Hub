@@ -10,6 +10,8 @@ import { attachPersonalAssistantTiming } from '../../../../src/lib/personal-assi
  */
 export default async function handler(req, res) {
   attachPersonalAssistantTiming(res, 'sandbox_analysis_retired');
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+  res.setHeader('Vary', 'Authorization');
 
   try {
     const rl = rateLimit(req, LIMITS.write);

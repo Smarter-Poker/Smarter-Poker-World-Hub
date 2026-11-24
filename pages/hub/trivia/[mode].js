@@ -1743,6 +1743,7 @@ export default function TriviaModePage() {
                                     currentUserId={userId}
                                     onRetryStatus={() => loadDailyAccountState(userId)}
                                     onRetryLeaderboard={loadDailyLeaderboard}
+                                    onBalanceChange={setUserDiamonds}
                                 />
                             ) : (
                                 <div className={isPhase9KnowledgeMode ? 'phase9-intro-layout' : undefined}>
@@ -1957,6 +1958,7 @@ export default function TriviaModePage() {
                                     modeLabel={modeName}
                                     correctCount={result.correctCount}
                                     totalQuestions={result.totalQuestions}
+                                    showShareReviewActions={false}
                                 />
                             ) : null}
 

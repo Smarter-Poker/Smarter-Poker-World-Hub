@@ -1193,6 +1193,68 @@ def _trivia_nightly_preflight_readiness(now_utc=None):
         return None
 
 
+# ─── Wave 2 Track 4 (2026-11-24): 7:45 PM CT nightly reminder dispatch ───────
+# Idempotently dispatches in-app reminders for opted-in players during the
+# 19:40-19:59 America/Chicago pre-start window (20 min before 8:00 PM CT).
+# Calls trivia_dispatch_nightly_reminders_v1 (FOR UPDATE SKIP LOCKED + stamps
+# notified_at) inside a non-fatal try/except so it NEVER blocks or interferes
+# with nightly tournament lifecycle advancement.
+TRIVIA_NIGHTLY_REMINDER_HOUR_CT = 19
+TRIVIA_NIGHTLY_REMINDER_MINUTE_MIN = 40
+TRIVIA_NIGHTLY_REMINDER_MINUTE_MAX = 59
+TRIVIA_NIGHTLY_REMINDER_WINDOW_MINUTES = 20
+
+
+def is_trivia_nightly_reminder_window(now_utc=None):
+    """Return True during the 19:40-19:59 America/Chicago pre-start reminder window."""
+    local_dt = _chicago_local_now(now_utc)
+    return (
+        local_dt.hour == TRIVIA_NIGHTLY_REMINDER_HOUR_CT
+        and TRIVIA_NIGHTLY_REMINDER_MINUTE_MIN <= local_dt.minute <= TRIVIA_NIGHTLY_REMINDER_MINUTE_MAX
+    )
+
+
+def _trivia_nightly_reminder_dispatch(now_utc=None):
+    """Invoke idempotent trivia_dispatch_nightly_reminders_v1 during 7:40-7:59 PM CT."""
+    if not is_trivia_nightly_reminder_window(now_utc):
+        return None
+    sb_url = os.environ.get('NEXT_PUBLIC_SUPABASE_URL', '').rstrip('/')
+    sb_key = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
+    if not sb_url or not sb_key:
+        log.warning('[trivia-nightly-reminders] skipped: Supabase config unavailable')
+        return None
+    headers = {
+        'apikey': sb_key,
+        'Authorization': f'Bearer {sb_key}',
+        'Content-Type': 'application/json',
+    }
+    try:
+        resp = requests.post(
+            f'{sb_url}/rest/v1/rpc/trivia_dispatch_nightly_reminders_v1',
+            headers=headers,
+            json={'p_window_minutes': TRIVIA_NIGHTLY_REMINDER_WINDOW_MINUTES},
+            timeout=10,
+        )
+        if resp.status_code != 200:
+            log.warning(
+                '[trivia-nightly-reminders] RPC returned HTTP %s',
+                resp.status_code,
+            )
+            return None
+        payload = resp.json() if hasattr(resp, 'json') else {}
+        dispatched = int((payload or {}).get('dispatched_count') or 0)
+        skipped_reason = (payload or {}).get('skipped_reason')
+        tournament_id = (payload or {}).get('tournament_id')
+        log.info(
+            '[trivia-nightly-reminders] dispatched_count=%s tournament_id=%s skipped_reason=%s',
+            dispatched, tournament_id, skipped_reason,
+        )
+        return payload
+    except Exception as exc:
+        log.warning(f'[trivia-nightly-reminders] non-fatal dispatch error ({type(exc).__name__}): {exc}')
+        return None
+
+
 # Host-portability (2026-08-29). SCRAPER_PY used to resolve only against
 # Path.home()/'Documents'/... — Dan's Mac. On the Hetzner dispatcher the file was
 # absent, should_skip_on_secondary() skipped all five video-library jobs every
@@ -2366,6 +2428,10 @@ def make_job(path):
                     _trivia_nightly_preflight_readiness()
                 except Exception as exc:
                     log.warning(f'[trivia-nightly-preflight] non-fatal wrapper error: {type(exc).__name__}: {exc}')
+                try:
+                    _trivia_nightly_reminder_dispatch()
+                except Exception as exc:
+                    log.warning(f'[trivia-nightly-reminders] non-fatal wrapper error: {type(exc).__name__}: {exc}')
             fire_cron(path)   # fire_cron auto-routes to workers via _workers_dispatch
     elif path in SCRIPT_JOBS:
         extra_args = SCRIPT_JOBS[path]

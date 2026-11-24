@@ -13,6 +13,7 @@ try {
  await build({entryPoints:[path.join(root,'__tests__/fixtures/notice-payout-ui.jsx')],outfile:path.join(scratch,'fixture.js'),bundle:true,format:'iife',loader:{'.js':'jsx'},plugins:[{name:'isolated-transport',setup(b){
   b.onResolve({filter:/lib\/authUtils$/},()=>({path:'auth',namespace:'fixture'}));
   b.onResolve({filter:/lib\/supabase$/},()=>({path:'supabase',namespace:'fixture'}));
+  b.onResolve({filter:/^@smarter-poker\/commander-shared\/lib\/broadcastSync$/},()=>({path:path.join(root,'node_modules/@smarter-poker/commander-shared/src/lib/broadcastSync.js')}));
   b.onLoad({filter:/.*/,namespace:'fixture'},args=>({contents:args.path==='auth'?"export const getAccessToken=()=>null;export async function authedFetch(url,options){const r=await window.testRequest(options.method,JSON.parse(options.body));return {ok:r.status<400,status:r.status,json:async()=>r.body};}":`export const supabase={rpc:(name,args)=>window.testRpc(name,args),channel:()=>{const listeners=[];const channel={on:(kind,filter,fn)=>{listeners.push({filter,fn});return channel;},subscribe:fn=>{window.emitNotice=(table,row)=>listeners.filter(x=>x.filter.table===table).forEach(x=>x.fn({new:row}));return channel;}};return channel;},removeChannel:async()=>{}};`}));
  }}]});
  server=createServer((req,res)=>{res.setHeader('Content-Type',req.url==='/fixture.js'?'text/javascript':'text/html');res.end(req.url==='/fixture.js'?readFileSync(path.join(scratch,'fixture.js')):'<!doctype html><html><meta name="viewport" content="width=device-width, initial-scale=1"><body style="margin:0;background:#18191b;color:white;font-family:system-ui"><div id="root"></div><script src="/fixture.js"></script></body></html>');});
@@ -76,6 +77,115 @@ try {
  deferRead=true;releaseRead=null;await page.evaluate(()=>window.dispatchEvent(new Event('focus')));await page.waitForFunction(()=>true);assert(releaseRead);
  status='approved';await page.evaluate(()=>window.dispatchEvent(new Event('focus')));await page.waitForFunction(()=>document.body.textContent.includes('Accepted · Chips Sent To The Club Chip Bank'));
  releaseRead();await page.evaluate(()=>new Promise(resolve=>setTimeout(resolve,100)));
- assert(!await page.evaluate(()=>document.body.textContent.includes('Awaiting Owner')),'Older pending read cannot restore a terminal request');
- assert.deepEqual(errors,[]);console.log('Notice payout browser passed: original request escalation/retry, agent read-only, manager note/bank approval, mobile layout and immediate history revocation.');
+  assert(!await page.evaluate(()=>document.body.textContent.includes('Awaiting Owner')),'Older pending read cannot restore a terminal request');
+
+  // Desktop (1280x800) + Two-Tab interactive Notice Board verification:
+  // roster, search, pins, unread divider, read receipts, reactions, View Card under filter,
+  // Message Agent destination, live second-session updates, and BroadcastChannel cross-tab read sync.
+  const ownerId='10000000-0000-4000-8000-000000000002';
+  const agentId='10000000-0000-4000-8000-000000000009';
+  const adminId='10000000-0000-4000-8000-000000000010';
+  const agent2Id='10000000-0000-4000-8000-000000000011';
+  const notice1Id='30000000-0000-4000-8000-000000000010';
+  const notice2Id='30000000-0000-4000-8000-000000000011';
+  const staffMembers=[
+    {user_id:ownerId,display_name:'Club Owner',username:'clubowner',role:'owner',is_online:true},
+    {user_id:adminId,display_name:'Club Admin',username:'clubadmin',role:'admin',is_online:true},
+    {user_id:agentId,display_name:'Agent Alpha',username:'agentalpha',role:'agent',is_online:true},
+    {user_id:agent2Id,display_name:'Agent Beta',username:'agentbeta',role:'sub_agent',is_online:false},
+  ];
+  let tab2AckCount=1,tab2SeenCount=2,tab2Unread=1,tab2PrevRead='2026-11-17T19:50:00Z';
+  const regularNotice=()=>({
+    id:notice1Id,club_id:clubId,author_id:adminId,author_name:'Club Admin',author_role:'admin',
+    content:'Weekly Settlement Window Opens At 8 PM',status:'notice',is_pinned:true,version:1,
+    created_at:'2026-11-17T20:05:00Z',seen_count:tab2SeenCount,
+    reactions:{ack:tab2AckCount,thumbs_up:0,fire:0,eyes:0},my_reactions:tab2AckCount>1?['ack']:[],
+    ack_users:tab2AckCount>1?['Club Admin','Club Owner']:['Club Admin'],attachments:[],mentions:[],
+  });
+  const liveEntries=()=>[row(),regularNotice()];
+  const liveOverdue=()=>[{
+    cashout_id:cashoutId,player_id:'40000000-0000-4000-8000-000000000001',player_name:'Fixture Player',
+    agent_id:agentId,agent_name:'Agent Alpha',amount:'500.00',created_at:'2026-11-17T14:00:00Z',
+    hours_pending:6,is_escalated:true,
+  }];
+  const roleCounts={owner:1,co_owner:0,admin:1,super_agent:0,agent:1,sub_agent:1,management:2,agents:2,online:3,total:4};
+  const desktopPage=await browser.newPage(),tab2Page=await browser.newPage();
+  desktopPage.on('pageerror',e=>errors.push(`desktop:${e.message}`));
+  tab2Page.on('pageerror',e=>errors.push(`tab2:${e.message}`));
+  const bindBoardMock=async(targetPage,isTab2)=>{
+    await targetPage.exposeFunction('testRpc',async()=>({data:null,error:null}));
+    await targetPage.exposeFunction('testRequest',async(method,body)=>{
+      if(method==='PATCH'&&body.action==='mark_read'){
+        if(!isTab2){tab2Unread=0;tab2PrevRead=null;}
+        return {status:200,body:{success:true,unreadCount:0}};
+      }
+      if(method==='PATCH'&&body.action==='toggle_reaction'){
+        tab2AckCount=tab2AckCount>1?1:2;
+        return {status:200,body:{success:true,entry:regularNotice()}};
+      }
+      if(body?.refreshMeta){
+        return {status:200,body:{success:true,metaOnly:true,canManage:true,viewerRole:'owner',memberCount:4,roleCounts,members:staffMembers,overduePayouts:liveOverdue(),alertSettings:{overdue_threshold_hours:4,followup_threshold_hours:null,notify_admins:false,auto_escalate_hours:null}}};
+      }
+      return {status:200,body:{
+        success:true,entries:liveEntries(),pinned:[row(),regularNotice()],canManage:true,viewerRole:'owner',
+        memberCount:4,roleCounts,members:staffMembers,overduePayouts:liveOverdue(),
+        alertSettings:{overdue_threshold_hours:4,followup_threshold_hours:null,notify_admins:false,auto_escalate_hours:null},
+        unreadCount:isTab2?tab2Unread:1,previousLastReadAt:isTab2?tab2PrevRead:'2026-11-17T19:50:00Z',
+        hasMore:false,cursor:null,
+      }};
+    });
+  };
+  await bindBoardMock(desktopPage,false);
+  await bindBoardMock(tab2Page,true);
+  await desktopPage.setViewport({width:1280,height:800});
+  await tab2Page.setViewport({width:1280,height:800});
+  await desktopPage.goto(`http://127.0.0.1:${server.address().port}`);
+  await tab2Page.goto(`http://127.0.0.1:${server.address().port}`);
+  // Open Tab 2 first with unread divider visible (unreadCount=1), verify self-broadcast keeps divider visible,
+  // then open Tab 1 which marks read and broadcasts BroadcastChannel sync -> Tab 2 clears Unread Messages without reload.
+  await tab2Page.evaluate(()=>window.showFixture('board',10));
+  await tab2Page.waitForFunction(()=>document.body.textContent.includes('Weekly Settlement Window Opens At 8 PM'));
+  await tab2Page.waitForFunction(()=>document.body.textContent.includes('Unread Messages'));
+  await tab2Page.waitForFunction(()=>document.body.textContent.includes('2/4 Seen'));
+  assert(await tab2Page.evaluate(()=>document.documentElement.scrollWidth<=1280),'Desktop board overflows');
+  await new Promise(resolve=>setTimeout(resolve,600));
+  assert(await tab2Page.evaluate(()=>document.body.textContent.includes('Unread Messages')),'Own mark_read broadcast must not wipe active tab unread divider');
+  // Now open Tab 1 (reads & broadcasts smarter_poker_unread_sync -> Tab 2 must clear Unread Messages without reload).
+  await desktopPage.evaluate(()=>window.showFixture('board',11));
+  await desktopPage.waitForFunction(()=>document.body.textContent.includes('Staff (4)'),{polling:50});
+  await tab2Page.waitForFunction(()=>!document.body.textContent.includes('Unread Messages'),{polling:50});
+  // Verify Roster modal, search, role counts, and Agents filter on Desktop.
+  await desktopPage.evaluate(()=>{document.querySelector('[aria-label="View Staff And Agents"]').click();});
+  await desktopPage.waitForFunction(()=>document.body.textContent.includes('Fixture Club · Notice Board Staff')&&document.body.textContent.includes('Agent Alpha'),{polling:50});
+  await desktopPage.evaluate(()=>{const dlg=document.querySelector('dialog[open]');if(dlg)dlg.close();});
+  // Verify View Card clears an active filter (Notices) and highlights/scrolls to the escalated payout card.
+  await desktopPage.evaluate(()=>{[...document.querySelectorAll('button')].find(b=>b.textContent.trim().startsWith('Notices')).click();});
+  await desktopPage.waitForFunction(id=>!document.querySelector(`[data-notice-id="${id}"]`),{polling:50},row().id);
+  await desktopPage.evaluate(()=>{const btn=document.querySelector('[aria-label*="Unfulfilled Payouts"] button');if(btn)btn.click();});
+  await desktopPage.waitForFunction(()=>[...document.querySelectorAll('button')].some(b=>b.textContent.trim()==='View Card'),{polling:50});
+  await desktopPage.evaluate(()=>{[...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='View Card').click();});
+  await desktopPage.waitForFunction(id=>Boolean(document.querySelector(`[data-notice-id="${id}"]`)),{polling:50},row().id);
+  // Verify Message Agent calls onMessageMember with exact agent identity & prefilled DM text.
+  await desktopPage.evaluate(()=>{[...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Message Agent').click();});
+  const messaged=await desktopPage.evaluate(()=>window.__messagedMembers);
+  assert.equal(messaged.length,1,'Message Agent must invoke onMessageMember');
+  assert.equal(messaged[0].member.user_id,agentId);
+  assert.match(messaged[0].prefill,/Fixture Player/i);
+  // Verify reaction toggle + live club_notice_board_reads + club_notice_board_reactions updates in Tab 2 without reload.
+  await desktopPage.evaluate(()=>{[...document.querySelectorAll('button')].find(b=>b.textContent.includes('Confirm')).click();});
+  await desktopPage.waitForFunction(()=>document.body.textContent.includes('Confirmed'),{polling:50});
+  tab2SeenCount=3;
+  await tab2Page.evaluate(({clubId})=>{
+    window.emitNotice('club_notice_board_reactions',{club_id:clubId});
+    window.emitNotice('club_notice_board_reads',{club_id:clubId});
+  },{clubId});
+  await tab2Page.waitForFunction(()=>document.body.textContent.includes('3/4 Seen')&&document.body.textContent.includes('Confirmed'),{polling:50});
+  // Verify live notice push arrives in Tab 2 without reload.
+  await tab2Page.evaluate(({clubId,notice2Id,adminId})=>{
+    window.emitNotice('club_notice_board',{id:notice2Id,club_id:clubId,author_id:adminId,content:'Live Realtime Notice Arrival',status:'notice',is_pinned:false,version:1,created_at:'2026-11-17T20:10:00Z'});
+  },{clubId,notice2Id,adminId});
+  await tab2Page.waitForFunction(()=>document.body.textContent.includes('Live Realtime Notice Arrival')&&document.body.textContent.includes('Club Admin'),{polling:50});
+  await desktopPage.close();await tab2Page.close();
+
+  assert.deepEqual(errors,[]);console.log('Notice payout browser passed: mobile + desktop, roster, filters, View Card, Message Agent, reactions, live read receipts, cross-tab BroadcastChannel sync, and immediate history revocation.');
 }finally{if(browser)await browser.close();if(server)await new Promise(resolve=>server.close(resolve));rmSync(scratch,{recursive:true,force:true});}

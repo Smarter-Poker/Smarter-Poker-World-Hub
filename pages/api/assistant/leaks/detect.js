@@ -28,6 +28,7 @@ import {
   patternIsMeasured,
   deviationFromRange,
   parseHandSummary,
+  classifyHandAuditEligibility,
   normalizeAuditHand,
   computeStatsFromAuditHands,
   classifyLeakStatus,
@@ -66,77 +67,154 @@ function getSupabase() {
 // LEAK DETECTION ENGINE
 // ═══════════════════════════════════════════════════════════════════════
 
+function mergeSeparatedStatsSlices(slices) {
+  const valid = (slices || []).filter(slice => slice?.data?.overall?.total_hands > 0);
+  if (valid.length === 0) return null;
+
+  const totalHands = valid.reduce((sum, slice) => sum + Number(slice.data.overall.total_hands || 0), 0);
+  const lifetimeHands = valid.reduce((sum, slice) => sum + Number(slice.data?.lifetime?.hands ?? slice.data.overall.total_hands ?? 0), 0);
+
+  const weightedRate = (readValue, readWeight, isAvailable) => {
+    let numerator = 0;
+    let denominator = 0;
+    for (const slice of valid) {
+      const o = slice.data.overall;
+      const avail = slice.data?.quality?.metric_availability || o.metric_availability || {};
+      if (!isAvailable(o, avail)) continue;
+      const val = readValue(o, avail);
+      const weight = Number(readWeight(o, avail));
+      if (val === null || val === undefined || !Number.isFinite(Number(val)) || !Number.isFinite(weight) || weight <= 0) continue;
+      numerator += Number(val) * weight;
+      denominator += weight;
+    }
+    return denominator > 0 ? numerator / denominator : null;
+  };
+
+  const sumCount = (readCount) => {
+    let total = 0;
+    let seen = false;
+    for (const slice of valid) {
+      const o = slice.data.overall;
+      const avail = slice.data?.quality?.metric_availability || o.metric_availability || {};
+      const val = readCount(o, avail);
+      if (val !== null && val !== undefined && Number.isFinite(Number(val))) {
+        total += Number(val);
+        seen = true;
+      }
+    }
+    return seen ? total : null;
+  };
+
+  const cashHands = valid
+    .filter(slice => slice.mode === 'cash')
+    .reduce((sum, slice) => sum + Number(slice.data.overall.total_hands || 0), 0);
+  const tournamentHands = valid
+    .filter(slice => slice.mode === 'tournament')
+    .reduce((sum, slice) => sum + Number(slice.data.overall.total_hands || 0), 0);
+
+  const normalized = normalizeStats({
+    hands_played: totalHands,
+    vpip: weightedRate((o) => o.vpip, (o) => o.total_hands, () => true),
+    pfr: weightedRate((o) => o.pfr, (o) => o.total_hands, () => true),
+    three_bet_percentage: weightedRate(
+      (o) => o.three_bet_percent,
+      (o, avail) => avail.three_bet_opportunities ?? o.total_hands,
+      (_o, avail) => avail.three_bet_percent !== false
+        && (avail.three_bet_opportunities === undefined || Number(avail.three_bet_opportunities) > 0),
+    ),
+    cbet_percentage: weightedRate(
+      (o) => o.cbet_flop,
+      (o, avail) => avail.cbet_flop_opportunities ?? o.total_hands,
+      (_o, avail) => avail.cbet_flop !== false,
+    ),
+    cbet_opportunities: sumCount((_o, avail) => avail.cbet_flop_opportunities),
+    aggression_factor: weightedRate(
+      (o) => o.aggression_factor,
+      (o, avail) => avail.aggression_factor_actions ?? avail.postflop_actions ?? o.total_hands,
+      (_o, avail) => avail.aggression_factor !== false,
+    ),
+    postflop_actions: sumCount((_o, avail) => avail.aggression_factor_actions ?? avail.postflop_actions),
+    wtsd: weightedRate(
+      (o) => o.wtsd,
+      (o, avail) => avail.wtsd_opportunities ?? o.total_hands,
+      (_o, avail) => avail.wtsd !== false,
+    ),
+  });
+  normalized.analysisWindowHands = totalHands;
+  normalized.lifetimeHands = lifetimeHands;
+  normalized.cashHands = cashHands;
+  normalized.tournamentHands = tournamentHands;
+  normalized.formatBreakdown = {
+    cashHands,
+    tournamentHands,
+    sources: valid.map(slice => `${slice.mode}:${slice.asset}`),
+  };
+  return normalized;
+}
+
 async function getPlayerStats(supabase, userId) {
   let finalStats = null;
 
-  // 0. PREFERRED: the same RPC the Club Arena stats page reads.
-  //
-  // Two reasons this comes first. Correctness: the player_stats read below is
-  // `.eq('user_id', …).maybeSingle()`, and player_stats holds ONE ROW PER CLUB ·
-  // so for any player in two or more clubs it errors and silently falls through,
-  // which is the same bug that made the stats page show "No Stats Yet".
-  // Consistency: the assistant told a player one story about their game while
-  // the stats page told another. Both now derive from hand_history.
+  // 0. PREFERRED: the same RPC the Club Arena stats page reads, covering BOTH
+  // live Cash games AND Tournaments (chips and diamonds) before falling back to
+  // ca_player_stats_full for legacy aggregate rows.
   //
   // Only exactly-mappable fields are passed through. Anything this RPC does not
   // measure (opportunity counts, street-by-street fold frequencies) is left
   // absent so patternIsMeasured skips those patterns · the house rule that a
   // number which was never measured is never presented as if it was.
   try {
-    let rpcStats = null;
-    let rpcErr = null;
-    // Prefer Club Arena's cash-separated RPC (postflop-only AF + recorded
-    // opportunity denominators), trying chips first and diamonds second before
-    // falling back to ca_player_stats_full for legacy aggregate rows.
-    const separatedChipsRes = await supabase.rpc('ca_player_stats_overview_separated', {
-      p_user: userId,
-      p_game_mode: 'cash',
-      p_asset: 'chips',
-    });
-    if (!separatedChipsRes?.error && separatedChipsRes?.data?.overall?.total_hands > 0) {
-      rpcStats = separatedChipsRes.data;
-    } else {
-      const separatedDiamondsRes = !separatedChipsRes?.error
-        ? await supabase.rpc('ca_player_stats_overview_separated', {
-          p_user: userId,
-          p_game_mode: 'cash',
-          p_asset: 'diamonds',
-        })
-        : null;
-      if (!separatedDiamondsRes?.error && separatedDiamondsRes?.data?.overall?.total_hands > 0) {
-        rpcStats = separatedDiamondsRes.data;
-      } else {
-        const fullRes = await supabase.rpc('ca_player_stats_full', {
-          p_user: userId,
-        });
-        rpcStats = fullRes?.data;
-        rpcErr = fullRes?.error || separatedChipsRes?.error;
-      }
-    }
-    if (rpcErr && !rpcStats) {
-      console.warn('[LeakDetect] Club Arena stats RPC failed:', rpcErr.message);
-    } else if (rpcStats?.overall?.total_hands > 0) {
-      const o = rpcStats.overall;
-      // ca_player_stats_overview_separated places metric_availability under
-      // quality.metric_availability (stripping it from overall).
-      const avail = rpcStats?.quality?.metric_availability || o.metric_availability || {};
-      const threeBetMeasured = avail.three_bet_percent !== false
-        && (avail.three_bet_opportunities === undefined || Number(avail.three_bet_opportunities) > 0);
-      finalStats = normalizeStats({
-        // normalizeStats scales anything in (0,1] from fraction to percent, and
-        // every value below is a fraction, so the units line up.
-        hands_played: o.total_hands,
-        vpip: o.vpip,
-        pfr: o.pfr,
-        three_bet_percentage: threeBetMeasured ? o.three_bet_percent : null,
-        cbet_percentage: avail.cbet_flop === false ? null : o.cbet_flop,
-        cbet_opportunities: avail.cbet_flop_opportunities ?? null,
-        aggression_factor: avail.aggression_factor === false ? null : o.aggression_factor,
-        wtsd: avail.wtsd === false ? null : o.wtsd,
+    const separatedQueries = [
+      { mode: 'cash', asset: 'chips' },
+      { mode: 'cash', asset: 'diamonds' },
+      { mode: 'tournament', asset: 'chips' },
+      { mode: 'tournament', asset: 'diamonds' },
+    ];
+    const separatedResults = await Promise.all(
+      separatedQueries.map(async ({ mode, asset }) => {
+        try {
+          const res = await supabase.rpc('ca_player_stats_overview_separated', {
+            p_user: userId,
+            p_game_mode: mode,
+            p_asset: asset,
+          });
+          return { mode, asset, data: res?.error ? null : res?.data, error: res?.error || null };
+        } catch (err) {
+          return { mode, asset, data: null, error: err };
+        }
+      }),
+    );
+
+    finalStats = mergeSeparatedStatsSlices(separatedResults);
+
+    if (!finalStats) {
+      const fullRes = await supabase.rpc('ca_player_stats_full', {
+        p_user: userId,
       });
-      // The window this was computed over, so callers can say so honestly.
-      finalStats.analysisWindowHands = o.total_hands;
-      finalStats.lifetimeHands = rpcStats?.lifetime?.hands ?? o.total_hands;
+      const rpcStats = fullRes?.data;
+      const rpcErr = fullRes?.error || separatedResults.find(r => r.error)?.error;
+      if (rpcErr && !rpcStats) {
+        console.warn('[LeakDetect] Club Arena stats RPC failed:', rpcErr.message);
+      } else if (rpcStats?.overall?.total_hands > 0) {
+        const o = rpcStats.overall;
+        const avail = rpcStats?.quality?.metric_availability || o.metric_availability || {};
+        const threeBetMeasured = avail.three_bet_percent !== false
+          && (avail.three_bet_opportunities === undefined || Number(avail.three_bet_opportunities) > 0);
+        finalStats = normalizeStats({
+          hands_played: o.total_hands,
+          vpip: o.vpip,
+          pfr: o.pfr,
+          three_bet_percentage: threeBetMeasured ? o.three_bet_percent : null,
+          cbet_percentage: avail.cbet_flop === false ? null : o.cbet_flop,
+          cbet_opportunities: avail.cbet_flop_opportunities ?? null,
+          aggression_factor: avail.aggression_factor === false ? null : o.aggression_factor,
+          postflop_actions: avail.aggression_factor_actions ?? avail.postflop_actions ?? null,
+          wtsd: avail.wtsd === false ? null : o.wtsd,
+        });
+        finalStats.analysisWindowHands = o.total_hands;
+        finalStats.lifetimeHands = rpcStats?.lifetime?.hands ?? o.total_hands;
+        finalStats.formatBreakdown = { cashHands: null, tournamentHands: null, sources: ['ca_player_stats_full'] };
+      }
     }
   } catch (e) {
     console.warn('[LeakDetect] Club Arena stats RPC threw:', e?.message || e);
@@ -166,10 +244,12 @@ async function getPlayerStats(supabase, userId) {
     if (altStats) {
       finalStats = normalizeStats(altStats);
     } else {
-      // Try to compute from live hand history · only fetch what we read
+      // Try to compute from live hand history · fetch variant & special-format
+      // metadata so non-NLH variants, bomb/kill pots, and multi-board RIT are
+      // excluded and Cash vs Tournament counts stay explicit.
       const queryHands = (key) => supabase
         .from('hand_history')
-        .select('id, actions, players, summary, created_at')
+        .select('id, tournament_id, game_variant, bomb_pot, kill_pot, rit_boards, community_cards, community_cards2, community_cards3, hole_cards, actions, players, summary, created_at')
         .contains('players', JSON.stringify([{ [key]: userId }]))
         .order('created_at', { ascending: false })
         .limit(2000);
@@ -265,6 +345,7 @@ function normalizeStats(stats) {
     riverValueBetFreq: asPercent(stats.river_value_bet_freq),
     riverBetOpps: num(stats.river_bet_opportunities) ?? 0,
     aggFactor: num(stats.aggression_factor, stats.af),
+    postflopActions: num(stats.postflop_actions, stats.aggression_factor_actions),
     wtsd: asPercent(stats.wtsd, stats.went_to_showdown),
   };
 }
@@ -500,6 +581,10 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'private, no-store, max-age=0');
   res.setHeader('Vary', 'Authorization');
   try {
+    if (req.method !== 'POST') {
+      res.setHeader('Allow', 'POST');
+      return res.status(405).json({ success: false, error: 'Method not allowed' });
+    }
     const workerAuth = openAuditJobToken(req.headers['x-pa-audit-worker'], 'detect');
     // One complete audit may require several signed continuation requests.
     // The generic AI limit (5/minute) made accounts with >500 hands impossible
@@ -1007,6 +1092,7 @@ export default async function handler(req, res) {
           },
         },
         evidencePartial,
+        formatCoverage: stats?.formatBreakdown || null,
         clubArenaSync,
         leaksDetected: detectedLeaks.length,
         leaks: detectedLeaks,
@@ -1054,7 +1140,7 @@ export async function linkHandExamples(userId, leaksWithIds, db = getSupabase())
     const needsStatisticalCandidates = leaksWithIds.some(leak => leak.sourceHandExternalIds === null);
     const handsById = new Map();
     const readErrors = [];
-    const select = 'id, actions, players, summary, hole_cards, board, community_cards, button_seat, pot_size, created_at';
+    const select = 'id, tournament_id, game_variant, bomb_pot, kill_pot, rit_boards, actions, players, summary, hole_cards, board, community_cards, community_cards2, community_cards3, button_seat, pot_size, created_at';
     const readOwnedHands = async (membershipKey, ids = null) => {
       let query = db.from('hand_history')
         .select(select)
@@ -1080,6 +1166,7 @@ export async function linkHandExamples(userId, leaksWithIds, db = getSupabase())
       return { persisted: false, linked: 0, reason: 'hand_history_read_failed' };
     }
     const hands = [...handsById.values()]
+      .filter(hand => exactExternalIds.includes(String(hand.id)) || classifyHandAuditEligibility(hand).eligible)
       .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || ''))
         || String(b.id).localeCompare(String(a.id)));
     if (!hands || hands.length === 0) return { persisted: true, linked: 0 };

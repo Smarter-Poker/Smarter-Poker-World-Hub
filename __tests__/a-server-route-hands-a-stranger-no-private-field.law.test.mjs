@@ -79,6 +79,7 @@ const REVIEWED = {
   'pages/api/store/checkout-status.js': "SELF: the caller's own wallet after the session is proved theirs",
   'pages/api/store/create-checkout-session.js': "SELF: the caller's own Stripe customer",
   'pages/api/store/diamond-transactions.js': "SELF: the caller's own balance",
+  'pages/api/trivia/streak-freeze.js': "SELF: the caller's own Diamond balance for streak freeze vault, private no-store",
   'pages/api/user/get-header-stats.js': "SELF: the caller's own header, no-store",
   'pages/api/user/profile.js': "SELF: the caller's own row, private cache",
   'pages/api/vip/check-status.js': "SELF: the caller's own balance",

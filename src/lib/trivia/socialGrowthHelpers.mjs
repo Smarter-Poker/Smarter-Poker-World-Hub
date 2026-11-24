@@ -6,6 +6,11 @@
  */
 
 export const VALID_CHALLENGE_STAKES = Object.freeze([10, 25, 50, 100]);
+export const TRIVIA_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function isValidTriviaUuid(value) {
+    return typeof value === 'string' && TRIVIA_UUID_RE.test(value.trim());
+}
 
 export const TRAINING_SPOT_BY_CATEGORY = Object.freeze({
     gto_scenarios: Object.freeze({ label: 'Train GTO Spots', href: '/hub/training/spot-trainer' }),
@@ -148,6 +153,8 @@ export function buildResultCardSvg({
     streak = 0,
     player = 'Smarter.Poker Player',
     grid = '',
+    verified = false,
+    verificationId = '',
 } = {}) {
     const safeScore = clampNonNegativeInt(score, 9999);
     const safeTotal = clampNonNegativeInt(total, 9999);
@@ -159,6 +166,14 @@ export function buildResultCardSvg({
     const pct = safeTotal > 0 ? Math.round((Math.min(safeScore, safeTotal) / safeTotal) * 100) : 100;
     const scoreLine = safeTotal > 0 ? `${safeScore} / ${safeTotal}` : `${safeScore}`;
     const normalizedGrid = normalizeGridString(grid, safeScore, safeTotal);
+
+    const isVerified = verified === true;
+    const safeRef = escapeSvgText(verificationId || '', 16);
+    const sealText = isVerified
+        ? (safeRef ? `VERIFIED RESULT | #${safeRef}` : 'VERIFIED RESULT')
+        : 'SAMPLE PREVIEW | UNVERIFIED';
+    const sealStroke = isVerified ? '#35d95a' : '#f02849';
+    const sealColor = isVerified ? '#35d95a' : '#ffd700';
 
     const tileSize = 36;
     const tileGap = 10;
@@ -179,6 +194,8 @@ export function buildResultCardSvg({
   <rect x="28" y="28" width="1144" height="574" rx="12" fill="#000000" stroke="#6d747c" stroke-width="2" />
   <rect x="44" y="44" width="1112" height="542" rx="8" fill="none" stroke="${grade.accent}" stroke-width="1.5" stroke-opacity="0.65" />
   <text x="64" y="96" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="22" font-weight="700" letter-spacing="3" fill="#45adff">SMARTER.POKER TRIVIA</text>
+  <rect x="430" y="68" width="340" height="36" rx="6" fill="#050607" stroke="${sealStroke}" stroke-width="2" />
+  <text x="600" y="92" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15" font-weight="800" letter-spacing="1.2" fill="${sealColor}">${sealText}</text>
   <text x="1136" y="96" text-anchor="end" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="20" font-weight="600" fill="#9aa5b3">${modeTitle}</text>
   <line x1="64" y1="120" x2="1136" y2="120" stroke="#6d747c" stroke-width="1" stroke-opacity="0.5" />
   <text x="64" y="182" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="30" font-weight="700" fill="#f4f7fb">${safePlayer}</text>

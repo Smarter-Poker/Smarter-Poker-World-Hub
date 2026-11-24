@@ -870,6 +870,7 @@ import './training-reconciled-workflows.test.mjs';
 import './hub-settings-rail-opt-in.test.mjs';
 import './fleet-content-cleanup-migration.test.mjs';
 import './promo-campaigns.test.mjs';
+import './weekly-wire-newsletter.test.mjs';
 import './aeo-discovery-hardening.law.test.mjs';
 import './geo-generative-engine-optimization.law.test.mjs';
 import './trivia-p11-deadlock-and-sim.test.mjs';
@@ -878,6 +879,13 @@ import './trivia-study-pool-curation.test.mjs';
 import './trivia-v3-ops-burnin.test.mjs';
 import './trivia-realtime-social-growth.test.mjs';
 import './trivia-pvp-realtime-duel.test.mjs';
+import './trivia-ops-alerts-reminders.test.mjs';
+import './trivia-club-nights.test.mjs';
+import './trivia-streak-study-lobby.test.mjs';
+import './trivia-pvp-elo-duel-realtime.test.mjs';
+import './trivia-streak-champ-og.test.mjs';
+import './trivia-club-spectator-training.test.mjs';
+import './trivia-ops-reconcile-fix.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
     const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');

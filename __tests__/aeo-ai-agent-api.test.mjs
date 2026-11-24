@@ -270,6 +270,9 @@ test('GET /api/ai/sandbox returns virtual table simulation and runout distributi
   assert.equal(body.success, true);
   assert.ok(body.product.includes('Virtual Poker Table Sandbox'));
   assert.ok(body.sandbox_capabilities.runout_distributions.includes('44/52'));
+  assert.deepEqual(body.sandbox_capabilities.format_support, ['No-Limit Texas Hold\'em (Cash Games And Tournaments)']);
+  assert.ok(Array.isArray(body.sandbox_capabilities.explicitly_unsupported) && body.sandbox_capabilities.explicitly_unsupported.includes('Pot-Limit Omaha'));
+  assert.ok(body.personal_assistant_sandbox_url.includes('/hub/personal-assistant/sandbox'));
   assert.ok(body.interactive_tool_url.includes('/tools/poker-odds-calculator'));
   assert.ok(!JSON.stringify(body).includes('—'), 'Must contain zero em dashes');
 });

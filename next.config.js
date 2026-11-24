@@ -1304,6 +1304,8 @@ const nextConfig = {
       // Legacy Club Arena "Analyze with Jarvis" links point at /hub/jarvis;
       // route them cleanly into Personal Assistant Leak Finder (preserving query params).
       { source: '/hub/jarvis', destination: '/hub/personal-assistant/leaks', permanent: false },
+      // Legacy /hub/sandbox links route cleanly to the Personal Assistant Sandbox boundary.
+      { source: '/hub/sandbox', destination: '/hub/personal-assistant/sandbox', permanent: false },
       // Retired Club JAQK page IDs still occur in previously shared posts.
       // Keep those backlinks on the same club's current social identity.
       { source: '/hub/social-pages/:legacy([cC][lL][uU][bB]-?[jJ][aA][qQ][kK])/:path*', destination: '/hub/social-pages/the-felt-society/:path*', permanent: true },
@@ -1886,6 +1888,11 @@ const nextConfig = {
           destination: '/api/hub-tool-markdown?path=/authors/:slug',
         },
         {
+          source: '/poker-rooms',
+          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
+          destination: '/api/hub-tool-markdown?path=/poker-rooms',
+        },
+        {
           source: '/poker-rooms/corridors',
           has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
           destination: '/api/hub-tool-markdown?path=/poker-rooms/corridors',
@@ -2141,6 +2148,11 @@ const nextConfig = {
           destination: '/api/hub-tool-markdown?path=/compare/decision-matrix',
         },
         {
+          source: '/poker-rooms',
+          has: [{ type: 'query', key: 'format', value: 'md' }],
+          destination: '/api/hub-tool-markdown?path=/poker-rooms',
+        },
+        {
           source: '/poker-rooms/corridors',
           has: [{ type: 'query', key: 'format', value: 'md' }],
           destination: '/api/hub-tool-markdown?path=/poker-rooms/corridors',
@@ -2184,16 +2196,6 @@ const nextConfig = {
           source: '/facts',
           has: [{ type: 'query', key: 'format', value: 'md' }],
           destination: '/api/hub-tool-markdown?path=/facts',
-        },
-        {
-          source: '/learn/matchups',
-          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
-          destination: '/api/hub-tool-markdown?path=/learn/matchups',
-        },
-        {
-          source: '/learn/matchups/:slug',
-          has: [{ type: 'header', key: 'accept', value: '.*text/markdown.*' }],
-          destination: '/api/hub-tool-markdown?path=/learn/matchups/:slug',
         },
         {
           source: '/poker-series/guides',
@@ -2626,6 +2628,10 @@ const nextConfig = {
           destination: '/api/hub-tool-markdown?path=/compare/decision-matrix',
         },
         {
+          source: '/poker-rooms.md',
+          destination: '/api/hub-tool-markdown?path=/poker-rooms',
+        },
+        {
           source: '/poker-rooms/corridors.md',
           destination: '/api/hub-tool-markdown?path=/poker-rooms/corridors',
         },
@@ -2840,10 +2846,6 @@ const nextConfig = {
         {
           source: '/poker-rooms/guides/:city.md',
           destination: '/api/hub-tool-markdown?path=/poker-rooms/guides/:city',
-        },
-        {
-          source: '/openapi.json',
-          destination: '/api/openapi',
         },
         {
           source: '/api/seo/backlink-opportunities',

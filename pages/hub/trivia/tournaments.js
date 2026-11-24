@@ -14,6 +14,7 @@ import NightlyReminderButton from '../../../src/components/trivia/NightlyReminde
 import NightlySpectatorBanner from '../../../src/components/trivia/NightlySpectatorBanner';
 import MonthlyChampionshipPanel from '../../../src/components/trivia/MonthlyChampionshipPanel';
 import FriendChallengePanel from '../../../src/components/trivia/FriendChallengePanel';
+import ClubTriviaNightsPanel from '../../../src/components/trivia/ClubTriviaNightsPanel';
 import ShareResultCardModal from '../../../src/components/trivia/ShareResultCardModal';
 import PostSettlementReviewDrawer from '../../../src/components/trivia/PostSettlementReviewDrawer';
 import { TRIVIA_INTRO_ART_TOURNAMENTS } from '../../../src/config/triviaIntroArt.mjs';
@@ -55,7 +56,7 @@ const BRACKET_PAGE_SIZE = 64;
 const FIELD_PAGE_SIZE = 50;
 const RESULTS_PAGE_SIZE = 50;
 const HISTORY_PAGE_SIZE = 20;
-const EVENT_REQUEST_LANES = Object.freeze(['core', 'bracket', 'field', 'results', 'receipt', 'action']);
+const EVENT_REQUEST_LANES = Object.freeze(['core', 'bracket', 'spectator', 'field', 'results', 'receipt', 'action']);
 
 export function getServerSideProps() {
     return triviaTournamentPageReleaseResult(process.env);
@@ -194,6 +195,7 @@ function TournamentPageExperience({ user, authLoading }) {
     const [currentMatch, setCurrentMatch] = useState(null);
     const [receipt, setReceipt] = useState(null);
     const [bracket, setBracket] = useState(null);
+    const [spectatorMatchups, setSpectatorMatchups] = useState([]);
     const [field, setField] = useState(null);
     const [results, setResults] = useState(null);
     const [history, setHistory] = useState(null);
@@ -231,6 +233,15 @@ function TournamentPageExperience({ user, authLoading }) {
     }
 
     useEffect(() => () => requestAuthorityRef.current.invalidateAll(), []);
+
+    useEffect(() => {
+        if (!router.isReady) return;
+        const tabParam = typeof router.query?.tab === 'string' ? router.query.tab.trim() : '';
+        const clubCodeParam = typeof router.query?.clubCode === 'string' ? router.query.clubCode.trim() : '';
+        if (tabParam === 'club-nights' || clubCodeParam) {
+            setActiveTab('club-nights');
+        }
+    }, [router.isReady, router.query?.clubCode, router.query?.tab]);
 
     useEffect(() => {
         journeyTrackerRef.current.track('nightly_tournament', 'impression', {
@@ -294,6 +305,7 @@ function TournamentPageExperience({ user, authLoading }) {
         setCurrentMatch(null);
         setReceipt(null);
         setBracket(null);
+        setSpectatorMatchups([]);
         setField(null);
         setResults(null);
         setSession(null);
@@ -473,6 +485,46 @@ function TournamentPageExperience({ user, authLoading }) {
         }
     }, [bracketRound, online, setLaneError, setLaneLoading, tournamentId]);
 
+    const loadSpectatorMatchups = useCallback(async (signal) => {
+        if (!tournamentId || !online) return;
+        const state = tournament?.state;
+        if (!['held', 'live', 'settling', 'settled'].includes(state)) {
+            setSpectatorMatchups([]);
+            return;
+        }
+        const totalRounds = Number(summary?.field?.rounds || tournament?.format?.rounds || 0);
+        const currentRound = Number(summary?.currentRound || tournament?.currentRound || 1);
+        const semiRound = totalRounds >= 2 ? totalRounds - 1 : 1;
+        const finalRound = totalRounds >= 1 ? totalRounds : currentRound;
+        const targetRounds = state === 'settled' || (totalRounds >= 2 && currentRound >= semiRound)
+            ? Array.from(new Set([finalRound, semiRound].filter((r) => Number.isInteger(r) && r >= 1)))
+            : [Math.max(1, currentRound)];
+
+        const id = tournamentId;
+        const requestLease = requestAuthorityRef.current.begin('spectator');
+        try {
+            const responses = await Promise.all(
+                targetRounds.map((round) => nightlyRequest('bracket', {
+                    params: { tournamentId: id, round, offset: 0, limit: 4 },
+                    signal,
+                }).catch(() => null)),
+            );
+            if (tournamentIdRef.current !== id || !requestAuthorityRef.current.isCurrent(requestLease)) return;
+            const merged = [];
+            const seenIds = new Set();
+            for (const payload of responses) {
+                for (const item of payload?.items || []) {
+                    if (!item || (item.matchupId && seenIds.has(item.matchupId))) continue;
+                    if (item.matchupId) seenIds.add(item.matchupId);
+                    merged.push(item);
+                }
+            }
+            setSpectatorMatchups(merged);
+        } catch (error) {
+            if (error?.name === 'AbortError') return;
+        }
+    }, [online, summary?.currentRound, summary?.field?.rounds, tournament?.currentRound, tournament?.format?.rounds, tournament?.state, tournamentId]);
+
     const loadField = useCallback(async (offset = 0, signal) => {
         if (!tournamentId || !online) return;
         const id = tournamentId;
@@ -650,6 +702,13 @@ function TournamentPageExperience({ user, authLoading }) {
     }, [bracketRound, loadBracket, pageState, tournamentId]);
 
     useEffect(() => {
+        if (!tournamentId || pageState !== 'ready') return undefined;
+        const controller = new AbortController();
+        void loadSpectatorMatchups(controller.signal);
+        return () => controller.abort();
+    }, [loadSpectatorMatchups, pageState, tournamentId]);
+
+    useEffect(() => {
         const controller = new AbortController();
         if (activeTab === 'field' && !field) void loadField(0, controller.signal);
         if (activeTab === 'results' && !results) void loadResults(0, controller.signal);
@@ -676,7 +735,10 @@ function TournamentPageExperience({ user, authLoading }) {
         if (activeTab === 'bracket' || activeEvent) {
             void loadBracket(bracket?.offset || 0);
         }
-    }, [activeEvent, activeTab, bracket?.offset, loadBracket, loadCore, online, tournamentId]);
+        if (activeEvent || tournament?.state === 'settled') {
+            void loadSpectatorMatchups();
+        }
+    }, [activeEvent, activeTab, bracket?.offset, loadBracket, loadCore, loadSpectatorMatchups, online, tournament?.state, tournamentId]);
 
     const realtimeSync = useTriviaRealtimeSync({
         channelName: tournamentId ? `trivia:tournament:${tournamentId}` : null,
@@ -698,6 +760,9 @@ function TournamentPageExperience({ user, authLoading }) {
             if (!stopped && (activeTab === 'bracket' || activeEvent)) {
                 await loadBracket(bracket?.offset || 0, controller.signal);
             }
+            if (!stopped && (activeEvent || tournament?.state === 'settled')) {
+                await loadSpectatorMatchups(controller.signal);
+            }
             if (!stopped) timer = window.setTimeout(poll, delay);
         };
         timer = window.setTimeout(poll, delay);
@@ -706,7 +771,7 @@ function TournamentPageExperience({ user, authLoading }) {
             controller.abort();
             if (timer) window.clearTimeout(timer);
         };
-    }, [activeEvent, activeTab, bracket?.offset, loadBracket, loadCore, online, pageState, realtimeSync.effectivePollMs, tournamentId]);
+    }, [activeEvent, activeTab, bracket?.offset, loadBracket, loadCore, loadSpectatorMatchups, online, pageState, realtimeSync.effectivePollMs, tournament?.state, tournamentId]);
 
     const hydrateSession = useCallback(async (sessionDto, actionLease) => {
         if (!canAdoptTournamentAction(actionLease)) return false;
@@ -979,6 +1044,9 @@ function TournamentPageExperience({ user, authLoading }) {
         if (activeTab === 'challenges') {
             return <FriendChallengePanel signedIn={signedIn} onSignIn={signIn} />;
         }
+        if (activeTab === 'club-nights') {
+            return <ClubTriviaNightsPanel signedIn={signedIn} onSignIn={signIn} />;
+        }
         if (activeTab === 'receipt') {
             return <TournamentReceipt receipt={receipt} loading={loading.receipt} error={errors.receipt} signedIn={signedIn} onSignIn={signIn} onRetry={() => loadReceipt()} />;
         }
@@ -1034,6 +1102,7 @@ function TournamentPageExperience({ user, authLoading }) {
                             >
                                 <ResponsiveModeArt art={TRIVIA_INTRO_ART_TOURNAMENTS} priority />
                                 <TournamentStateBanner title="No Event In This Schedule Window" message="The Server Has Not Published A Nightly Tournament Yet. No Entry Or Diamond Hold Was Created." tone="muted" />
+                                <ClubTriviaNightsPanel signedIn={signedIn} onSignIn={signIn} />
                             </TriviaConsole>
                         ) : null}
 
@@ -1078,6 +1147,9 @@ function TournamentPageExperience({ user, authLoading }) {
                                     tournament={tournament}
                                     summary={summary}
                                     myRun={myRun}
+                                    featuredMatchups={spectatorMatchups.length > 0 ? spectatorMatchups : (bracket?.items || []).slice(0, 4)}
+                                    champion={summary?.result?.champion || null}
+                                    nowMs={nowMs}
                                     realtimeConnected={realtimeSync.connected}
                                     onWatchRound={(round) => {
                                         selectRound(round);

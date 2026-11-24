@@ -148,7 +148,7 @@ export default function PokerSeriesGuidesIndexPage() {
               Final Table ICM Chop Solver
             </Link>
             <Link href="/tools" style={styles.crossBtnOutline}>
-              42 Free Poker Calculators
+              52 Free Poker Calculators
             </Link>
             <Link href="/poker-rooms/guides" style={styles.crossBtnOutline}>
               12 Regional Cash Market Guides

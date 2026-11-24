@@ -257,6 +257,7 @@ export default function QuickSpotDrill({ onClose, onReviewComplete, customParams
     const questionsRef = useRef([]);
     const abortRef = useRef(null);
     const answerAbortRef = useRef(null);
+    const reviewAbortRef = useRef(null);
     const runIdRef = useRef(0);
     const lastOutcomeRef = useRef(null);
     const answerLockedRef = useRef(false);
@@ -268,6 +269,7 @@ export default function QuickSpotDrill({ onClose, onReviewComplete, customParams
         runIdRef.current += 1;
         try { abortRef.current?.abort(); } catch (e) { /* noop */ }
         try { answerAbortRef.current?.abort(); } catch (e) { /* noop */ }
+        try { reviewAbortRef.current?.abort(); } catch (e) { /* noop */ }
     }, []);
 
     const activeParams = ignoreFilters ? null : customParams;
@@ -406,6 +408,7 @@ export default function QuickSpotDrill({ onClose, onReviewComplete, customParams
      */
     const submitReview = useCallback(async (correct, total) => {
         if (!reviewLeakId || !(total > 0)) return;
+        const submitRunId = runIdRef.current;
         const priorAttempt = lastOutcomeRef.current;
         const reviewId = priorAttempt?.correct === correct && priorAttempt?.total === total && priorAttempt?.reviewId
             ? priorAttempt.reviewId
@@ -417,9 +420,11 @@ export default function QuickSpotDrill({ onClose, onReviewComplete, customParams
         let persisted = false;
         let reached = false;
         const hasVerifiedDrillToken = typeof drillToken === 'string' && drillToken.length > 0;
+        try { reviewAbortRef.current?.abort(); } catch (e) { /* noop */ }
         const reviewController = hasVerifiedDrillToken && typeof AbortController !== 'undefined'
             ? new AbortController()
             : null;
+        reviewAbortRef.current = reviewController;
         const reviewDeadline = reviewController
             ? setTimeout(() => reviewController.abort(), 15000)
             : null;
@@ -447,8 +452,11 @@ export default function QuickSpotDrill({ onClose, onReviewComplete, customParams
                 console.warn('[QuickSpotDrill] review post failed:', e?.message || e);
             } finally {
                 if (reviewDeadline) clearTimeout(reviewDeadline);
+                if (reviewAbortRef.current === reviewController) reviewAbortRef.current = null;
             }
         }
+
+        if (submitRunId !== runIdRef.current) return;
 
         if (hasVerifiedDrillToken && !reached) {
             setReview({ status: 'error', intervalDays: null, persisted: false, verificationPending: true });
@@ -827,8 +835,9 @@ export default function QuickSpotDrill({ onClose, onReviewComplete, customParams
                 <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
                     <h4 style={{ fontSize: F.h3, fontWeight: 800, color: T.text, margin: 0 }}>Quit This Drill?</h4>
                     <p style={{ fontSize: F.bodySm, color: T.textMuted, margin: 0, lineHeight: 1.45 }}>
-                        You Have Answered {answeredSoFar} Of {questions.length} Spots. Answered Spots Are Already Saved,
-                        But The Rest Of This Run Will Be Discarded.
+                        {drillToken
+                            ? `You Have Answered ${answeredSoFar} Of ${questions.length} Spots. Verified Answers Are Already Locked, But The Rest Of This Run Will Be Discarded.`
+                            : `You Have Answered ${answeredSoFar} Of ${questions.length} Practice Spots. Practice Mode Progress Is Local To This Run And Will Be Discarded.`}
                     </p>
                     <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
                         <button

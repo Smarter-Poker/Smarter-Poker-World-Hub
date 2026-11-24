@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { openDeletionChallenge, retentionDays, sealDeletionChallenge } from '../../../src/lib/personal-assistant/dataLifecycle.mjs';
+import { openDeletionChallenge, retentionDays, sanitizeExportHandRow, sealDeletionChallenge } from '../../../src/lib/personal-assistant/dataLifecycle.mjs';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
@@ -55,18 +55,20 @@ async function clubArenaHands(userId) {
     readAll(() => db().from('hand_history').select('*')
       .contains('players', JSON.stringify([{ id: userId }])).order('created_at', { ascending: true }), 'Club Arena Hands'),
   ]);
-  return [...new Map([...modern, ...legacy].map(row => [String(row.id), row])).values()]
+  return [...new Map([...modern, ...legacy].map(row => [String(row.id), sanitizeExportHandRow(row, userId)])).values()]
     .sort((a, b) => String(a.created_at || '').localeCompare(String(b.created_at || '')));
 }
 
 async function buildExport(userId) {
   const [
-    leaks, decisions, reviews, auditJobs, drillSessions, drillAnswers, drillAttempts,
+    leaks, trainingLeaks, assistantStats, decisions, reviews, auditJobs, drillSessions, drillAnswers, drillAttempts,
     goals, feedback, preferences, lifecycleReceipts, sandboxSessions, savedHands,
     sandboxAnalytics, sandboxQuizResults, coachResults, bookmarks, equityHistory,
     templates, sharedScenarios, solutionBookmarks, sourceHands, privateHandFacts,
   ] = await Promise.all([
     ownerRows('user_leaks', userId),
+    ownerRows('user_training_leaks', userId),
+    db().from('user_assistant_stats').select('*').eq('user_id', userId).maybeSingle(),
     ownerRows('hand_audit_decisions', userId),
     ownerRows('leak_review_state', userId),
     ownerRows('pa_leak_audit_jobs', userId),
@@ -91,13 +93,25 @@ async function buildExport(userId) {
     ownerRows('ca_hand_facts', userId, '*', 'hand_id'),
   ]);
   if (preferences.error) throw preferences.error;
+  if (assistantStats.error) throw assistantStats.error;
   const [handExamples, sandboxResults] = await Promise.all([
     linkedRows('leak_hand_examples', 'leak_id', leaks.map(row => row.id)),
     linkedRows('sandbox_results', 'session_id', sandboxSessions.map(row => row.id)),
   ]);
   const data = {
     coaching: { goals, feedback, preferences: preferences.data || null },
-    analysis: { leaks, decisions, reviews, auditJobs, drillSessions, drillAnswers, drillAttempts, handExamples },
+    analysis: {
+      leaks,
+      trainingLeaks,
+      assistantStats: assistantStats.data || null,
+      decisions,
+      reviews,
+      auditJobs,
+      drillSessions,
+      drillAnswers,
+      drillAttempts,
+      handExamples,
+    },
     sandbox: {
       sessions: sandboxSessions,
       results: sandboxResults,
@@ -119,8 +133,12 @@ async function buildExport(userId) {
       ? [[group, value.length]]
       : Object.entries(value || {}).filter(([, rows]) => Array.isArray(rows)).map(([name, rows]) => [`${group}.${name}`, rows.length])
   )));
+  const serialized = JSON.stringify(data);
+  if (Buffer.byteLength(serialized, 'utf8') > 7_500_000) {
+    throw new RangeError('Personal Assistant Export Exceeds The 8 MB Response Limit. Contact Support For A Full Archive.');
+  }
   const generatedAt = new Date().toISOString();
-  const fingerprint = createHash('sha256').update(JSON.stringify(data)).digest('hex');
+  const fingerprint = createHash('sha256').update(serialized).digest('hex');
   const receipt = await db().from('pa_data_lifecycle_receipts').insert({
     user_id: userId,
     action: 'export',
@@ -147,11 +165,12 @@ async function countOwnerRows(table, userId) {
 
 async function summary(userId) {
   const [
-    leaks, decisions, reviews, goals, feedback, sandboxSessions, savedHands,
+    leaks, trainingLeaks, decisions, reviews, goals, feedback, sandboxSessions, savedHands,
     coachResults, bookmarks, equityHistory, templates, sharedScenarios,
     solutionBookmarks, preference, receipts,
   ] = await Promise.all([
     countOwnerRows('user_leaks', userId),
+    countOwnerRows('user_training_leaks', userId),
     countOwnerRows('hand_audit_decisions', userId),
     countOwnerRows('leak_review_state', userId),
     countOwnerRows('pa_coaching_goals', userId),
@@ -171,7 +190,7 @@ async function summary(userId) {
   if (sharedScenarios.error || preference.error || receipts.error) throw sharedScenarios.error || preference.error || receipts.error;
   return {
     counts: {
-      leaks, decisions, reviews, goals, feedback, sandboxSessions, savedHands,
+      leaks, trainingLeaks, decisions, reviews, goals, feedback, sandboxSessions, savedHands,
       coachResults, bookmarks, equityHistory, templates,
       sharedScenarios: sharedScenarios.count || 0,
       solutionBookmarks,
@@ -185,7 +204,7 @@ async function summary(userId) {
 
 async function saveRetention(userId, value) {
   const days = retentionDays(value);
-  const current = await db().from('pa_coaching_preferences').select('saved_view, analysis_depth, panel_layout')
+  const current = await db().from('pa_coaching_preferences').select('saved_view, analysis_depth, panel_layout, last_retention_run_at')
     .eq('user_id', userId).maybeSingle();
   if (current.error) throw current.error;
   const { data, error } = await db().from('pa_coaching_preferences').upsert({
@@ -194,7 +213,7 @@ async function saveRetention(userId, value) {
     analysis_depth: current.data?.analysis_depth || 'guided',
     panel_layout: current.data?.panel_layout || {},
     retention_days: days,
-    last_retention_run_at: null,
+    last_retention_run_at: current.data?.last_retention_run_at ?? null,
     updated_at: new Date().toISOString(),
   }, { onConflict: 'user_id' }).select('retention_days, last_retention_run_at').maybeSingle();
   if (error || !data) throw error || new Error('Retention Preference Could Not Be Saved.');
@@ -202,16 +221,22 @@ async function saveRetention(userId, value) {
 }
 
 export default async function handler(req, res) {
-  const limit = req.method === 'GET' ? (LIMITS.read || { max: 60, windowMs: 60_000 }) : LIMITS.write;
-  if (!applyRateLimit(req, res, limit)) return;
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+  res.setHeader('Vary', 'Authorization');
   if (!['GET', 'POST', 'DELETE'].includes(req.method)) {
     res.setHeader('Allow', 'GET, POST, DELETE');
     return res.status(405).json({ success: false, error: 'Method Not Allowed' });
   }
-  res.setHeader('Cache-Control', 'private, no-store');
+  const limit = req.method === 'GET' ? (LIMITS.read || { max: 60, windowMs: 60_000 }) : LIMITS.write;
+  if (!applyRateLimit(req, res, limit)) return;
   try {
-    const { user, error } = await getServerUserWithFallback(req, db());
-    if (error || !user) return res.status(401).json({ success: false, error: 'Authentication Required' });
+    const { user, error, status: authStatus } = await getServerUserWithFallback(req, db());
+    if (error || !user) {
+      return res.status(authStatus === 503 ? 503 : 401).json({
+        success: false,
+        error: authStatus === 503 ? 'Session Verification Temporarily Unavailable' : 'Authentication Required',
+      });
+    }
 
     if (req.method === 'GET') return res.status(200).json({ success: true, ...(await summary(user.id)) });
 

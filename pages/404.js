@@ -106,6 +106,36 @@ const RECOVERY_ROUTES = [
         href: '/hub/club-arena',
         badge: 'Play Free',
     },
+    {
+        title: 'Poker Math Formulas Hub',
+        subtitle: '15 Core GTO & ICM Equations With LaTeX Proofs & Worked Examples',
+        href: '/learn/formulas',
+        badge: '15 Formulas',
+    },
+    {
+        title: 'Live Poker Rooms & Corridors',
+        subtitle: '10 Airport Travel Corridors, 6 Game-Format Directories & State Taxes',
+        href: '/poker-rooms',
+        badge: 'Geo Hubs',
+    },
+    {
+        title: '20-Scenario Decision Matrix',
+        subtitle: 'Quantitative Best-X-For-Y Poker Software & Market Recommendations',
+        href: '/compare/decision-matrix',
+        badge: 'Best X For Y',
+    },
+    {
+        title: '2026 Annual Poker Whitepaper',
+        subtitle: 'Flagship Live & Online Industry Report, Benchmarks & Entity Facts',
+        href: '/research/annual-state-of-poker-2026',
+        badge: '2026 Report',
+    },
+    {
+        title: 'Canonical Entity Fact Sheet',
+        subtitle: 'Verified Platform Ground-Truth Ledger & 4 E-E-A-T Research Desks',
+        href: '/facts',
+        badge: 'Verified Facts',
+    },
 ];
 
 export default function Custom404() {

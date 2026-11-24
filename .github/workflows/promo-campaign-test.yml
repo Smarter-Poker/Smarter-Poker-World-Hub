@@ -3,6 +3,14 @@ name: Promo Campaign Preview & Single Test Dispatch
 on:
   workflow_dispatch:
     inputs:
+      target:
+        description: 'Endpoint target (promo or weekly_wire)'
+        required: true
+        default: 'promo'
+        type: choice
+        options:
+          - 'promo'
+          - 'weekly_wire'
       action:
         description: 'Operation (preview, test, or send)'
         required: true
@@ -50,6 +58,7 @@ jobs:
       - name: Invoke live /api/news/promo-campaign
         env:
           SIGNING_SECRET: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PROMO_TARGET: ${{ inputs.target }}
           PROMO_ACTION: ${{ inputs.action }}
           PROMO_SCOPE: ${{ inputs.scope }}
           CONFIRM_SEND: ${{ inputs.confirm_send }}
@@ -61,17 +70,21 @@ jobs:
           (async () => {
             const secret = (process.env.SIGNING_SECRET || '').trim();
             if (!secret) throw new Error('SUPABASE_SERVICE_ROLE_KEY secret is missing');
+            const target = (process.env.PROMO_TARGET || 'promo').trim();
             const action = (process.env.PROMO_ACTION || 'preview').trim();
             const scope = (process.env.PROMO_SCOPE || 'non_accounts').trim();
             const confirmSend = (process.env.CONFIRM_SEND || '').trim();
             if (!['preview', 'test', 'send'].includes(action)) {
               throw new Error('Only preview, test, or send actions are permitted');
             }
+            if (target === 'weekly_wire' && action === 'send') {
+              throw new Error('Use admin dashboard or Tuesday schedule for full Weekly Wire send');
+            }
             if (action === 'send' && confirmSend !== 'SEND_LIVE_PROMO') {
               throw new Error('confirm_send must equal SEND_LIVE_PROMO for action=send');
             }
             const testEmail = (process.env.TEST_EMAIL || '').trim().toLowerCase();
-            const testPhone = (process.env.TEST_PHONE || '').trim();
+            const testPhone = target === 'weekly_wire' ? '' : (process.env.TEST_PHONE || '').trim();
             const ts = String(Math.floor(Date.now() / 1000));
             const sigPayload = action === 'send'
               ? `${ts}:${action}:${testEmail}:${testPhone}:${confirmSend}`
@@ -81,7 +94,11 @@ jobs:
               .update(sigPayload)
               .digest('hex');
 
-            const res = await fetch('https://smarter.poker/api/news/promo-campaign', {
+            const endpoint = target === 'weekly_wire'
+              ? `https://smarter.poker/api/news/digest${action === 'preview' ? '?dryRun=1' : ''}`
+              : 'https://smarter.poker/api/news/promo-campaign';
+
+            const res = await fetch(endpoint, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

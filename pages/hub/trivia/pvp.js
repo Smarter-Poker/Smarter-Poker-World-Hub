@@ -187,6 +187,9 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
                 challengeCode: acceptedCode || challenge.challengeCode,
                 stakeAmount: stakeAmount ?? challenge.stakeAmount,
             });
+            if (challenge.matchId) {
+                setRealtimeEventCount((count) => count + 1);
+            }
         }
     }, []);
 

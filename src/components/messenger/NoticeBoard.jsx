@@ -1,6 +1,7 @@
 import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { authedFetch, getAccessToken } from '../../lib/authUtils';
+import { listenBroadcast, BROADCAST_TAB_ID } from '../../lib/broadcastSync';
 import CashoutRequestActions from './CashoutRequestActions';
 import {
     mergeNotices,
@@ -108,6 +109,7 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
     const [overduePayouts, setOverduePayouts] = useState([]);
     const [alertSettings, setAlertSettings] = useState(() => ({ ...DEFAULT_ALERT_SETTINGS }));
     const [previousLastReadAt, setPreviousLastReadAt] = useState(null);
+    const [initialUnreadCount, setInitialUnreadCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [olderLoading, setOlderLoading] = useState(false);
     const [error, setError] = useState('');
@@ -133,6 +135,7 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
     const [pinsExpanded, setPinsExpanded] = useState(false);
     const [overdueExpanded, setOverdueExpanded] = useState(false);
     const [highlightedId, setHighlightedId] = useState(null);
+    const [pendingJumpId, setPendingJumpId] = useState(null);
     const [searchOpen, setSearchOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterKind, setFilterKind] = useState('all');
@@ -220,7 +223,7 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
         setRows([]); setPins([]); setCanManage(false); setViewerRole(null);
         setMembers([]); setMemberCount(0); setRoleCounts(normalizeRoleCounts(null, 0));
         setOverduePayouts([]); setAlertSettings({ ...DEFAULT_ALERT_SETTINGS });
-        setPreviousLastReadAt(null); setHasMore(false); setNewItems(false);
+        setPreviousLastReadAt(null); setInitialUnreadCount(0); setHasMore(false); setNewItems(false);
         setEditing(null); setDraft(''); setAttachments([]); setMentionUserIds([]); setMentionAll(false);
         setMentionPickerOpen(false); setNoteTarget(null); setNoteDraft('');
         setMemberFilter(null); setRosterOpen(false); setSettingsOpen(false); setLightboxImage(null);
@@ -251,7 +254,12 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
         if (!state.current.alive || state.current.denied) return;
         const payload = latestNoticeId ? { lastNoticeId: latestNoticeId } : {};
         void request('PATCH', payload, 'mark_read')
-            .then(res => { if (res && state.current.alive) onMarkRead?.(club.id); })
+            .then(res => {
+                if (res && state.current.alive) {
+                    state.current.selfMarkReadAt = Date.now();
+                    onMarkRead?.(club.id);
+                }
+            })
             .catch(() => { /* best-effort read receipt */ });
     }
 
@@ -352,6 +360,7 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
             if (!s.capturedInitialRead) {
                 s.capturedInitialRead = true;
                 setPreviousLastReadAt(page.previousLastReadAt || null);
+                setInitialUnreadCount(Number(page.unreadCount || 0));
             }
             setHasMore(more);
             setError('');
@@ -392,6 +401,14 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
                 scheduleMetaRefresh();
             }).on('postgres_changes', { event: '*', schema: 'public', table: 'cashout_requests', filter: `club_id=eq.${club.id}` }, () => {
                 scheduleMetaRefresh();
+            }).on('postgres_changes', { event: '*', schema: 'public', table: 'club_notice_board_reactions', filter: `club_id=eq.${club.id}` }, () => {
+                if (!s.alive || s.denied) return;
+                if (s.loading) s.refreshAfterLoad = true;
+                else void hydrate();
+            }).on('postgres_changes', { event: '*', schema: 'public', table: 'club_notice_board_reads', filter: `club_id=eq.${club.id}` }, () => {
+                if (!s.alive || s.denied) return;
+                if (s.loading) s.refreshAfterLoad = true;
+                else void hydrate();
             }).subscribe(status => {
                 if (!s.alive) return;
                 setLive(status === 'SUBSCRIBED');
@@ -407,6 +424,16 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
         void hydrate();
         const refresh = () => { if (document.visibilityState === 'visible') void hydrate(); };
         const offline = () => { clearAccess(); setError('You Are Offline. Reconnect To Check Notice Board Access.'); };
+        const stopUnreadSync = listenBroadcast('smarter_poker_unread_sync', msg => {
+            const isRefresh = msg === 'refresh_unread' || msg?.action === 'refresh_unread';
+            if (!isRefresh || !s.alive || s.denied) return;
+            if (msg?.tabId && msg.tabId === BROADCAST_TAB_ID) return;
+            if (s.selfMarkReadAt && Date.now() - s.selfMarkReadAt < 500) return;
+            setPreviousLastReadAt(null);
+            setInitialUnreadCount(0);
+            if (s.loading) s.refreshAfterLoad = true;
+            else void hydrate();
+        });
         window.addEventListener('offline', offline);
         window.addEventListener('online', refresh);
         window.addEventListener('focus', refresh);
@@ -415,6 +442,7 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
             s.alive = false; s.generation++; s.epoch++;
             if (s.metaTimer) { clearTimeout(s.metaTimer); s.metaTimer = null; }
             if (highlightTimer.current) clearTimeout(highlightTimer.current);
+            stopUnreadSync?.();
             window.removeEventListener('offline', offline);
             window.removeEventListener('online', refresh); window.removeEventListener('focus', refresh);
             document.removeEventListener('visibilitychange', refresh); void supabase.removeChannel(channel);
@@ -499,6 +527,13 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
         }
     }
 
+    const ESCALATE_ERROR_COPY = {
+        cashier_request_already_escalated: 'This Payout Request Was Already Escalated To The Club Bank.',
+        cashier_request_already_terminal: 'This Payout Request Was Already Decided.',
+        cashier_account_changed: 'Your Session Changed. Refresh And Try Again.',
+        'Assigned Active Cashier Required': 'Only The Assigned Agent Or Club Management After The Overdue Window Can Escalate This Payout.',
+    };
+
     async function escalateOverduePayout(item) {
         if (!item?.cashout_id || escalatingId || item.is_escalated) return;
         let opId = escalateIntents.current.get(item.cashout_id);
@@ -509,17 +544,28 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
         setEscalatingId(item.cashout_id);
         setError('');
         try {
-            const { error: rpcError } = await supabase.rpc('fn_cashout_escalate_v2', {
+            const { data, error: rpcError } = await supabase.rpc('fn_cashout_escalate_v2', {
                 p_cashout_id: item.cashout_id,
                 p_club_id: club.id,
                 p_expected_actor_id: userId,
                 p_op_id: opId,
             });
-            if (rpcError) throw new Error(rpcError.message || 'Could Not Escalate Payout Request');
+            if (rpcError) {
+                const raw = String(rpcError.message || '');
+                const matched = Object.keys(ESCALATE_ERROR_COPY).find(k => raw.includes(k));
+                if (matched === 'cashier_request_already_escalated' || matched === 'cashier_request_already_terminal') {
+                    escalateIntents.current.delete(item.cashout_id);
+                    await hydrate();
+                }
+                throw new Error(matched ? ESCALATE_ERROR_COPY[matched] : 'Could Not Escalate Payout Request. Refresh And Try Again.');
+            }
+            if (!data || data.success !== true || data.contract_version !== 1 || data.is_escalated !== true || data.cashout_id !== item.cashout_id) {
+                throw new Error('Escalation Receipt Was Unconfirmed. Refresh Or Retry The Same Action.');
+            }
             escalateIntents.current.delete(item.cashout_id);
             await hydrate();
         } catch (failure) {
-            if (state.current.alive) setError(failure.message || 'Could Not Escalate Payout Request');
+            if (state.current.alive) setError(failure.message || 'Could Not Escalate Payout Request.');
         } finally {
             if (state.current.alive) setEscalatingId(null);
         }
@@ -616,21 +662,24 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
     function selectMention(member) {
         if (member === 'ALL') {
             setMentionAll(true);
-            setDraft(prev => prev.replace(/(?:^|\s)@[^\s@]{0,24}$/, m => `${m.startsWith(' ') ? ' ' : ''}@AllStaff `));
-            if (!draft.match(/(?:^|\s)@[^\s@]{0,24}$/)) {
-                setDraft(prev => `${prev}${prev && !prev.endsWith(' ') ? ' ' : ''}@AllStaff `);
-            }
+            setDraft(prev => {
+                if (/(?:^|\s)@AllStaff(?:\s|$)/i.test(prev)) {
+                    return prev.replace(/(?:^|\s)@[^\s@]{0,24}$/, m => (m.startsWith(' ') ? ' ' : ''));
+                }
+                if (/(?:^|\s)@[^\s@]{0,24}$/.test(prev)) {
+                    return prev.replace(/(?:^|\s)@[^\s@]{0,24}$/, m => `${m.startsWith(' ') ? ' ' : ''}@AllStaff `);
+                }
+                return `${prev}${prev && !prev.endsWith(' ') ? ' ' : ''}@AllStaff `;
+            });
             setMentionPickerOpen(false);
             setMentionFilter('');
             return;
         }
         const tag = `@${member.username || (member.display_name || 'Staff').replace(/\s+/g, '')}`;
         setMentionUserIds(prev => (prev.includes(member.user_id) ? prev : [...prev, member.user_id]));
-        if (draft.match(/(?:^|\s)@[^\s@]{0,24}$/)) {
-            setDraft(prev => prev.replace(/(?:^|\s)@[^\s@]{0,24}$/, m => `${m.startsWith(' ') ? ' ' : ''}${tag} `));
-        } else {
-            setDraft(prev => `${prev}${prev && !prev.endsWith(' ') ? ' ' : ''}${tag} `);
-        }
+        setDraft(prev => (/(?:^|\s)@[^\s@]{0,24}$/.test(prev)
+            ? prev.replace(/(?:^|\s)@[^\s@]{0,24}$/, m => `${m.startsWith(' ') ? ' ' : ''}${tag} `)
+            : `${prev}${prev && !prev.endsWith(' ') ? ' ' : ''}${tag} `));
         setMentionPickerOpen(false);
         setMentionFilter('');
     }
@@ -686,18 +735,37 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
         if (await mutate('PATCH', noteIntent.current, 'add_note')) { noteIntent.current = null; setNoteTarget(null); setNoteDraft(''); }
     }
 
-    function jumpToNotice(id) {
-        const box = scroller.current;
-        if (box && typeof box.querySelector === 'function') {
-            const node = box.querySelector(`[data-notice-id="${id}"]`);
-            if (node && typeof node.scrollIntoView === 'function') {
-                node.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-        }
+    function highlightNotice(id) {
         setHighlightedId(id);
         if (highlightTimer.current) clearTimeout(highlightTimer.current);
         highlightTimer.current = setTimeout(() => setHighlightedId(null), 1800);
     }
+
+    function jumpToNotice(id) {
+        if (!id) return;
+        const box = scroller.current;
+        const node = box && typeof box.querySelector === 'function' ? box.querySelector(`[data-notice-id="${id}"]`) : null;
+        if (node && typeof node.scrollIntoView === 'function') {
+            node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            highlightNotice(id);
+            return;
+        }
+        setFilterKind('all');
+        setSearchQuery('');
+        setMemberFilter(null);
+        setPendingJumpId(id);
+    }
+
+    useEffect(() => {
+        if (!pendingJumpId) return;
+        const box = scroller.current;
+        const node = box && typeof box.querySelector === 'function' ? box.querySelector(`[data-notice-id="${pendingJumpId}"]`) : null;
+        if (node && typeof node.scrollIntoView === 'function') {
+            node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        highlightNotice(pendingJumpId);
+        setPendingJumpId(null);
+    }, [pendingJumpId, rows, filterKind, searchQuery, memberFilter]);
 
     const visibleRows = useMemo(() => {
         const active = rows.filter(row => !row.is_deleted);
@@ -725,12 +793,18 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
     }, [rows, filterKind, searchQuery, memberFilter]);
 
     const firstUnreadId = useMemo(() => {
-        if (!previousLastReadAt) return null;
-        const cutoff = Date.parse(previousLastReadAt);
-        if (!Number.isFinite(cutoff)) return null;
-        const hit = visibleRows.find(r => r.author_id !== userId && Date.parse(r.created_at) > cutoff);
-        return hit?.id || null;
-    }, [visibleRows, previousLastReadAt, userId]);
+        if (previousLastReadAt) {
+            const cutoff = Date.parse(previousLastReadAt);
+            if (!Number.isFinite(cutoff)) return null;
+            const hit = visibleRows.find(r => r.author_id !== userId && Date.parse(r.created_at) > cutoff);
+            return hit?.id || null;
+        }
+        if (initialUnreadCount > 0) {
+            const hit = visibleRows.find(r => r.author_id !== userId);
+            return hit?.id || null;
+        }
+        return null;
+    }, [visibleRows, previousLastReadAt, initialUnreadCount, userId]);
 
     const feedCounts = useMemo(() => {
         const active = rows.filter(row => !row.is_deleted);
@@ -1324,7 +1398,18 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
                                                     Message Agent
                                                 </button>
                                             )}
-                                            {!item.is_escalated && (
+                                            {item.is_escalated ? (() => {
+                                                const linked = [...rows, ...pins].find(r => !r.is_deleted && r.cashout_id === item.cashout_id);
+                                                return linked ? (
+                                                    <button
+                                                        type="button"
+                                                        style={{ ...button, padding: '4px 8px', fontSize: 11, borderColor: accentBlue, color: accentBlue, fontWeight: 700 }}
+                                                        onClick={() => jumpToNotice(linked.id)}
+                                                    >
+                                                        View Card
+                                                    </button>
+                                                ) : null;
+                                            })() : (
                                                 <button
                                                     type="button"
                                                     disabled={Boolean(escalatingId)}

@@ -1,3 +1,5 @@
+import { leakToDrill, leakToTrainingGame, resolutionProgress, RETIRE_AFTER_STRONG } from '../sandbox/leakReview.js';
+
 const DAY_MS = 86_400_000;
 
 function finite(value) {
@@ -262,9 +264,127 @@ export function buildProgressTimeline(leaks = [], reviewRecords = []) {
   return events.sort((a, b) => b.at.localeCompare(a.at)).slice(0, 100);
 }
 
-export function buildCoachingSnapshot({ leaks = [], decisions = [], reviews = [], rejected = {}, now = Date.now(), versions = {} } = {}) {
+function inferFormatScope(leak, relatedDecisions) {
+  const gameIds = [
+    leak?.recommendedDrill,
+    leak?.recommended_drill,
+    ...(relatedDecisions || []).map(row => row?.game_id),
+  ].filter(Boolean).map(v => String(v).toLowerCase());
+  const hasMtt = gameIds.some(id => id.startsWith('mtt-') || id.includes('tournament'));
+  const hasCash = gameIds.some(id => id.startsWith('cash-'));
+  if (hasMtt && hasCash) return 'Cash And Tournament NLH';
+  if (hasMtt) return 'Tournament NLH';
+  if (hasCash) return 'Cash NLH';
+  const source = String(leak?.sourceSystem || leak?.source_system || '').toLowerCase();
+  if (source.includes('training')) return 'Training Solver NLH';
+  return 'Club Arena NLH';
+}
+
+/**
+ * Deterministic Training Plan generator.
+ * Turns ranked active leaks, audited Club Arena/Training decisions, and
+ * spaced-repetition review state into an ordered, reproducible training plan
+ * with concrete drill targets, mastery thresholds, and hand evidence links.
+ */
+export function buildTrainingPlan({
+  leaks = [],
+  decisions = [],
+  reviews = [],
+  coverage = {},
+  now = Date.now(),
+  availableGameIds = null,
+} = {}) {
+  const priorities = rankCoachingPriorities(leaks, reviews, coverage, now);
+  const leakById = new Map((Array.isArray(leaks) ? leaks : []).map(item => [leakId(item), item]));
+  const reviewByLeak = new Map((Array.isArray(reviews) ? reviews : []).map(row => [String(row?.leak_id ?? row?.leakId ?? ''), row]));
+  const decisionList = Array.isArray(decisions) ? decisions : [];
+
+  const modules = priorities.slice(0, 6).map((priority, index) => {
+    const rawLeak = leakById.get(priority.id) || priority;
+    const review = reviewByLeak.get(priority.id) || null;
+    const currentStreak = count(review?.strong_streak ?? review?.strongStreak);
+    const targetStreak = RETIRE_AFTER_STRONG;
+    const progress = resolutionProgress(review ? {
+      leakId: priority.id,
+      strongStreak: currentStreak,
+      reps: count(review.reps),
+      lapses: count(review.lapses),
+      intervalDays: finite(review.interval_days ?? review.intervalDays) ?? 0,
+      retired: review.retired === true,
+      lastScore: finite(review.last_score ?? review.lastScore),
+      lastReviewedAt: review.last_reviewed_at ?? review.lastReviewedAt ?? review.updated_at ?? null,
+      history: Array.isArray(review.history) ? review.history : [],
+    } : null);
+    const relatedDecisions = decisionList.filter(row => {
+      const keys = [row?.leak_id, row?.leak_type, row?.spot_type, row?.game_id, decisionLeakType(row)].filter(Boolean).map(String);
+      return keys.includes(priority.id) || keys.includes(String(rawLeak?.leakType || rawLeak?.leak_type || ''));
+    });
+    const exampleHands = [...new Set(
+      relatedDecisions
+        .map(row => String(row?.hand_external_id || '').replace(/^club-arena:/, '').trim())
+        .filter(Boolean),
+    )].slice(0, 3);
+    const drillParams = leakToDrill(rawLeak);
+    const trainingGameId = leakToTrainingGame(rawLeak, availableGameIds) || drillParams?.game || null;
+    const formatScope = inferFormatScope(rawLeak, relatedDecisions);
+    const mastered = progress?.retired === true;
+    const targetSessions = mastered ? 0 : Math.max(1, targetStreak - currentStreak);
+    const cadence = priority.due
+      ? 'Review Due Today'
+      : (review?.due_at || review?.dueAt ? 'Scheduled Spaced Review' : 'Start Baseline Drill');
+
+    return {
+      rank: index + 1,
+      leakId: priority.id,
+      title: priority.title,
+      category: priority.category,
+      status: priority.status,
+      formatScope,
+      cadence,
+      due: priority.due,
+      dueAt: priority.dueAt,
+      priorityScore: priority.score,
+      confidence: priority.confidence,
+      measuredEvLoss: priority.measuredEvLoss,
+      mistakes: priority.mistakes,
+      samples: priority.samples,
+      drillParams,
+      trainingGameId,
+      exampleHands,
+      mastery: {
+        currentStreak,
+        targetStreak,
+        percent: progress?.percent || 0,
+        stage: progress?.stage || 'not-started',
+        mastered,
+        targetAccuracyPercent: 85,
+        remainingSessions: targetSessions,
+      },
+      objective: priority.measuredEvLoss !== null
+        ? `Recover ${priority.measuredEvLoss.toFixed(2)} BB Per Spot By Completing ${targetSessions} Focused ${drillParams?.street || 'Spot'} Drill Session${targetSessions === 1 ? '' : 's'} At 85% Or Higher.`
+        : `Complete ${targetSessions} Focused ${drillParams?.street || 'Spot'} Drill Session${targetSessions === 1 ? '' : 's'} At 85% Or Higher And Re-Audit Fresh Club Arena Hands.`,
+    };
+  });
+
+  const dueCount = modules.filter(item => item.due).length;
+  const masteredCount = modules.filter(item => item.mastery.mastered).length;
+  return {
+    version: 'pa-training-plan-v1',
+    generatedAt: new Date(now).toISOString(),
+    totalModules: modules.length,
+    dueNowCount: dueCount,
+    masteredCount,
+    headline: modules.length
+      ? `${modules.length} Targeted Drill Module${modules.length === 1 ? '' : 's'} Ordered By Impact`
+      : 'No Active Training Plan Modules Are Pending',
+    modules,
+  };
+}
+
+export function buildCoachingSnapshot({ leaks = [], decisions = [], reviews = [], rejected = {}, now = Date.now(), versions = {}, availableGameIds = null } = {}) {
   const coverage = decisionCoverage(decisions, rejected);
   const priorities = rankCoachingPriorities(leaks, reviews, coverage, now);
+  const trainingPlan = buildTrainingPlan({ leaks, decisions, reviews, coverage, now, availableGameIds });
   const active = priorities.length;
   const resolved = (Array.isArray(leaks) ? leaks : []).filter(leak => leakStatus(leak) === 'resolved').length;
   const due = priorities.filter(priority => priority.due).length;
@@ -276,6 +396,7 @@ export function buildCoachingSnapshot({ leaks = [], decisions = [], reviews = []
     evidenceFingerprint: evidenceFingerprint({ leaks, decisions, reviews, rejected }),
     coverage,
     priorities,
+    trainingPlan,
     timeline: buildProgressTimeline(leaks, reviews),
     summary: { active, resolved, due, measuredEvLoss: Math.round(measuredLoss * 100) / 100 },
     nextBestAction: top ? {

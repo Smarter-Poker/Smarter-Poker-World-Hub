@@ -560,12 +560,13 @@ export function useThrottledRefresh(fn, { enabled = true, minIntervalMs = 60000,
         fnRef.current?.();
     }, [minIntervalMs]);
 
+    const eventsKey = Array.isArray(events) ? events.join('|') : '';
     useEffect(() => {
-        if (!enabled || typeof document === 'undefined') return undefined;
+        if (!enabled || typeof document === 'undefined' || typeof window === 'undefined') return undefined;
         run(true);
         const onVisible = () => { if (document.visibilityState === 'visible') run(false); };
         document.addEventListener('visibilitychange', onVisible);
-        const extra = events.map(name => {
+        const extra = (Array.isArray(events) ? events : []).map(name => {
             const h = () => run(true);
             window.addEventListener(name, h);
             return [name, h];
@@ -574,7 +575,7 @@ export function useThrottledRefresh(fn, { enabled = true, minIntervalMs = 60000,
             document.removeEventListener('visibilitychange', onVisible);
             extra.forEach(([name, h]) => window.removeEventListener(name, h));
         };
-    }, [enabled, run, events.join('|')]);
+    }, [enabled, run, eventsKey]);
 
     return run;
 }
@@ -597,17 +598,17 @@ export function isAbortError(e) {
 }
 
 /**
- * Deep-links a position/street focus into the sandbox. The sandbox page reads
- * `p` (hero position) and the leak-practice trio (leak/leakType/drill).
+ * Deep-links a position/street focus into the Personal Assistant Leak Finder
+ * where active corrective drills actually run (never the retired sandbox boundary).
  */
 export function buildPracticeHref({ position = null, street = null, label = null } = {}) {
     const params = new URLSearchParams();
-    if (position && position !== 'Any') params.set('p', position);
+    if (position && position !== 'Any') params.set('position', position);
     const type = label || [position, street].filter(Boolean).join(' ');
     if (type) params.set('leakType', type);
-    if (street && street !== 'Any') params.set('drill', String(street).toLowerCase());
+    if (street && street !== 'Any') params.set('street', String(street).toLowerCase());
     const qs = params.toString();
-    return `/hub/personal-assistant/sandbox${qs ? `?${qs}` : ''}`;
+    return `/hub/personal-assistant/leaks${qs ? `?${qs}` : ''}`;
 }
 
 export const kitTokens = { T, F, S, R, Z, btn, iconBtn };

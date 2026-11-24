@@ -40,7 +40,7 @@ const INDEX_FAQS = [
   },
   {
     q: 'Where Can I Solve All 15 Poker Math Equations Interactively In My Browser?',
-    a: 'Every Formula In This Encyclopedia Links Directly To Its Free Browser-Native Solver Inside The Smarter.Poker 42-Calculator Suite At /tools, With Zero Sign-In Or Subscription Required.',
+    a: 'Every Formula In This Encyclopedia Links Directly To Its Free Browser-Native Solver Inside The Smarter.Poker 52-Calculator Suite At /tools, With Zero Sign-In Or Subscription Required.',
   },
 ];
 
@@ -154,7 +154,7 @@ export default function PokerFormulasIndexPage() {
 
           <div style={styles.quickCrossLinks}>
             <Link href="/tools" style={styles.crossBtnCyan}>
-              Open All 42 Free Poker Calculators
+              Open All 52 Free Poker Calculators
             </Link>
             <Link href="/learn/poker-math" style={styles.crossBtnEmerald}>
               Interactive Pot Odds Sandbox

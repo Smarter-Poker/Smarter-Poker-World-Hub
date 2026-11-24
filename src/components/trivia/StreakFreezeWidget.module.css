@@ -1,0 +1,374 @@
+/*
+ * Streak Freeze Economy & Milestone Widget (#SmarterCasinoRealism).
+ * Approved Trivia Console schema inks only; zero hover rules.
+ */
+.card {
+    display: grid;
+    gap: 12px;
+    min-width: 0;
+    padding: 14px;
+    background: #050607;
+    border: 1px solid #6d747c;
+    box-shadow: inset 0 1px 0 rgb(228 231 236 / 18%);
+    color: #e4e7ec;
+    font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
+    font-variant-numeric: tabular-nums lining-nums;
+}
+
+.header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 6px 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #6d747c;
+}
+
+.headingGroup {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+}
+
+.eyebrow {
+    color: #9aa5b3;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.title {
+    margin: 0;
+    color: #f4f7fb;
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: 0.03em;
+}
+
+.inventoryBadge {
+    color: #45adff;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px 12px;
+    margin: 0;
+}
+
+.metricItem {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+    padding-top: 6px;
+    border-top: 1px solid rgb(109 116 124 / 55%);
+}
+
+.metricItem dt {
+    color: #9aa5b3;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.metricItem dd {
+    margin: 0;
+    color: #f4f7fb;
+    font-size: 15px;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+}
+
+.milestoneBlock {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+}
+
+.milestoneSummary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 4px 12px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.progressTrack {
+    width: 100%;
+    height: 10px;
+    background: #000000;
+    border: 1px solid #6d747c;
+    overflow: hidden;
+}
+
+.progressFill {
+    height: 100%;
+    background: #ffd700;
+}
+
+.progressFillComplete {
+    height: 100%;
+    background: #35d95a;
+}
+
+.milestoneList {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.milestoneNode {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 5px 4px;
+    border: 1px solid #6d747c;
+    background: #000000;
+    color: #9aa5b3;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-align: center;
+}
+
+.milestoneRewardTag {
+    font-size: 10px;
+    font-weight: 700;
+    color: #ffd700;
+}
+
+.claimBar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.claimButton {
+    min-height: 44px;
+    padding: 8px 14px;
+    border: 1px solid #35d95a;
+    background: #000000;
+    color: #35d95a;
+    font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+.claimButton:disabled {
+    border-color: #6d747c;
+    color: #9aa5b3;
+    cursor: not-allowed;
+}
+
+.claimButton:focus-visible {
+    outline: 3px solid #45adff;
+    outline-offset: 2px;
+}
+
+.milestoneNodeReached {
+    border-color: #35d95a;
+    color: #35d95a;
+}
+
+.milestoneNodeNext {
+    border-color: #ffd700;
+    color: #ffd700;
+}
+
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 12px;
+    padding-top: 8px;
+    border-top: 1px solid #6d747c;
+}
+
+.actionButton {
+    min-height: 44px;
+    padding: 8px 14px;
+    border: 1px solid #ffd700;
+    background: #000000;
+    color: #ffd700;
+    font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+.actionButton:disabled {
+    border-color: #6d747c;
+    color: #9aa5b3;
+    cursor: not-allowed;
+}
+
+.actionButton:focus-visible,
+.confirmButton:focus-visible,
+.cancelButton:focus-visible {
+    outline: 3px solid #45adff;
+    outline-offset: 2px;
+}
+
+.confirmBox {
+    display: grid;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid #ffd700;
+    background: #000000;
+}
+
+.confirmCopy {
+    margin: 0;
+    color: #e4e7ec;
+    font-family: Inter, system-ui, sans-serif;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.confirmActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+.confirmButton {
+    min-height: 44px;
+    padding: 8px 14px;
+    border: 1px solid #35d95a;
+    background: #050607;
+    color: #35d95a;
+    font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+.confirmButton:disabled {
+    border-color: #6d747c;
+    color: #9aa5b3;
+    cursor: not-allowed;
+}
+
+.cancelButton {
+    min-height: 44px;
+    padding: 8px 12px;
+    border: 1px solid #6d747c;
+    background: #050607;
+    color: #e4e7ec;
+    font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+.notice {
+    margin: 0;
+    color: #9aa5b3;
+    font-family: Inter, system-ui, sans-serif;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.errorBox {
+    display: grid;
+    gap: 8px;
+    padding: 10px 12px;
+    border-left: 4px solid #f02849;
+    background: #000000;
+}
+
+.errorCopy {
+    margin: 0;
+    color: #ff5b6e;
+    font-family: Inter, system-ui, sans-serif;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.receiptBox {
+    display: grid;
+    gap: 6px;
+    padding: 10px 12px;
+    border-left: 4px solid #35d95a;
+    background: #000000;
+}
+
+.receiptHead {
+    color: #35d95a;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.receiptRows {
+    display: grid;
+    gap: 4px;
+    margin: 0;
+}
+
+.receiptRows > div {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 4px 12px;
+    font-size: 12px;
+}
+
+.receiptRows dt {
+    color: #9aa5b3;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.receiptRows dd {
+    margin: 0;
+    color: #e4e7ec;
+    overflow-wrap: anywhere;
+    text-align: right;
+}
+
+@media (max-width: 520px) {
+    .metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (forced-colors: active) {
+    .progressFill,
+    .progressFillComplete {
+        background: Highlight;
+    }
+}

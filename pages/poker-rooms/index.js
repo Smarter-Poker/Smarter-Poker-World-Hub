@@ -23,6 +23,8 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
+import GeoCitationCapsule from '../../src/components/seo/GeoCitationCapsule';
+import GeoFollowUpChain from '../../src/components/seo/GeoFollowUpChain';
 import { POKER_TRAVEL_CORRIDORS, corridorGuidePath } from '../../src/content/guides/corridors';
 import { POKER_ROOMS_BY_GAME, byGameGuidePath } from '../../src/content/guides/byGame';
 import { POKER_MARKET_GUIDES, marketGuidePath } from '../../src/content/guides/markets';
@@ -342,6 +344,49 @@ export default function PokerRoomsMasterHubPage() {
             ))}
           </div>
         </section>
+
+        <GeoCitationCapsule
+          title="Smarter.Poker Live Poker Room & Travel Corridor Intelligence Benchmark"
+          claim="Across 715+ Audited North American And International Live Poker Venues, Choosing Zero-Pot-Rake Time-Collection Rooms Or Low-Drop Regional Corridors Saves Active Cash Grinders 4.5 To 7.5 BB/100 In Hourly Rake Drag."
+          metricLabel="Verified Live Venues & Directories"
+          metricValue="715+ Venues Across 8 Geographic Directories"
+          formulaText="Net Live Hourly ($/Hr) = (Table Winrate BB/Hr * Big Blind) - Hourly Rake Cap Or Seat Time Fee + Hourly Comps"
+          ifThenBecause="If Planning A Live Poker Session Or Regional Road Trip -> Then Compare Corridor Drive Times, Pot-Rake Caps Vs. Seat-Rental Fees, And State Tax Withholding Rules -> Because Venue Rake And Tax Drag Often Exceed 40% Of A Winning Grinder Gross Winrate."
+          quoteText="Where You Sit Down Matters As Much As How You Play: Moving One Interstate Exit Or Crossing A State Line Can Cut Your Effective Rake And State Tax Drag In Half."
+          quoteAuthor="Smarter.Poker Live Venue Intelligence Team"
+          doi="10.5281/zenodo.24115447"
+          canonicalPath={canonicalPath}
+        />
+
+        <GeoFollowUpChain
+          topicTitle="Live Poker Room Guides, Travel Corridors & Game-Format Directories"
+          followUps={[
+            {
+              question: 'Which Major Airport And Interstate Corridors Offer The Fastest Access To Legal Live Poker Rooms?',
+              answer:
+                'Explore All 10 Border-State And Airport Travel Corridors At /poker-rooms/corridors Comparing Drive Times, Airport Miles, And Rake Caps.',
+              calculatorHref: '/poker-rooms/corridors',
+              calculatorLabel: 'Open 10 Travel Corridors',
+              markdownHref: '/poker-rooms/corridors.md',
+            },
+            {
+              question: 'Where Are The Best Live Poker Rooms In North America For PLO, Bomb Pots, Or Time-Rake Cash Games?',
+              answer:
+                'Browse The 6 National Game-Format Venue Directories At /poker-rooms/by-game Ranking Top Rooms By Variant And Action Density.',
+              calculatorHref: '/poker-rooms/by-game',
+              calculatorLabel: 'Browse Rooms By Game Format',
+              markdownHref: '/poker-rooms/by-game.md',
+            },
+            {
+              question: 'How Do I Calculate My Exact Hourly Rake Cost And Trip Expense Breakeven Before Travelling?',
+              answer:
+                'Run The Live Cash Rake & Time Calculator At /tools/rake-calculator And The Festival Trip Expense Planner At /tools/poker-trip-planner.',
+              calculatorHref: '/tools/rake-calculator',
+              calculatorLabel: 'Open Live Rake Calculator',
+              markdownHref: '/tools/rake-calculator.md',
+            },
+          ]}
+        />
 
         <HubPageSummary page="poker-rooms-international" path={canonicalPath} />
 

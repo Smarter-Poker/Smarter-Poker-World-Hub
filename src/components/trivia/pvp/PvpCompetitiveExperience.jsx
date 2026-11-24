@@ -1581,6 +1581,8 @@ export default function PvpCompetitiveExperience({
                         streak={0}
                         player={playerShareName}
                         shareUrl="https://smarter.poker/hub/trivia/pvp"
+                        matchId={effectiveShareMatch?.id || effectiveShareMatch?.matchId || result?.matchId || null}
+                        sessionId={effectiveReviewSessionId || null}
                     />
                 </>
             ) : null}

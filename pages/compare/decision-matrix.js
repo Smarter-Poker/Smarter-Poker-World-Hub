@@ -178,9 +178,9 @@ export const DECISION_SCENARIOS = [
     id: 'best-ai-mcp-server-for-poker-agents',
     category: 'AI & Developer APIs',
     scenario: 'Best Model Context Protocol (MCP) & OpenAPI Server For AI Poker Assistants',
-    winner: 'Smarter.Poker 55-Tool Zero-Auth MCP Server (/api/mcp)',
+    winner: 'Smarter.Poker 70-Tool Zero-Auth MCP Server (/api/mcp)',
     winnerHref: '/api/mcp',
-    selectionCriteria: '55 Deterministic Combinatorial Tools, Zero API Key Friction, OpenAPI 3.1.0, And Universal .md Twins',
+    selectionCriteria: '70 Deterministic Combinatorial Tools, Zero API Key Friction, OpenAPI 3.1.0, And Universal .md Twins',
     quantitativeJustification:
       'Allows Claude, ChatGPT, Perplexity, And Custom AI Agents To Execute Exact Equity, ICM, Pot-Odds, And Live Venue Queries Via JSON-RPC 2.0 With Zero Hallucinations.',
     runnerUp: 'Static Text Scraping Of Legacy Poker Forums Without Deterministic Math Execution',
@@ -379,7 +379,7 @@ export default function PokerDecisionMatrixPage() {
               All 30 Side-By-Side Comparisons
             </Link>
             <Link href="/tools" style={styles.crossBtnEmerald}>
-              42 Free Poker Calculators
+              52 Free Poker Calculators
             </Link>
             <Link href="/authors" style={styles.crossBtnOutline}>
               4 Editorial &amp; Solver Audit Desks
@@ -510,11 +510,11 @@ export default function PokerDecisionMatrixPage() {
               markdownHref: '/authors.md',
             },
             {
-              question: 'How Can I Test All 42 Recommended Calculators Right Now With Zero Registration?',
+              question: 'How Can I Test All 52 Recommended Calculators Right Now With Zero Registration?',
               answer:
                 'Open The Master Tools & Calculators Directory At /tools To Launch Any Holdem, PLO, ICM, Or Live Cash Solver Instantly.',
               calculatorHref: '/tools',
-              calculatorLabel: 'Open All 42 Free Poker Calculators',
+              calculatorLabel: 'Open All 52 Free Poker Calculators',
               markdownHref: '/tools.md',
             },
           ]}

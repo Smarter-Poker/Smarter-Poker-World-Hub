@@ -9,11 +9,14 @@ import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../../src/lib/apiErrorHandler';
 import { ephemeralResult, persistedResult, persistenceFailure } from '../../../../src/lib/personal-assistant/persistenceContract';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!url || !key) throw new Error('Sandbox Equity Snapshot Service Is Not Configured.');
         _supabase = createClient(url, key);
     }
     return _supabase;
@@ -26,20 +29,26 @@ function clampOptional(value, max) {
 }
 
 export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+  res.setHeader('Vary', 'Authorization');
   try {
-      // Fires once per analyzed street — bound it like every other write.
-      if (!applyRateLimit(req, res, LIMITS.write)) return;
-
       if (req.method !== 'POST') {
+          res.setHeader('Allow', 'POST');
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
+
+      // Fires once per analyzed street — bound it like every other write.
+      if (!applyRateLimit(req, res, LIMITS.write)) return;
 
       try {
           const supabase = getSupabase();
 
           // Authenticate
           let userId = null;
-          const { user: authUser } = await getServerUserWithFallback(req, supabase);
+          const { user: authUser, status: authStatus } = await getServerUserWithFallback(req, supabase);
+          if (authStatus === 503) {
+              return res.status(503).json({ success: false, error: 'Session verification unavailable' });
+          }
           if (authUser) userId = authUser.id;
 
           // Guest submissions not stored
@@ -53,6 +62,31 @@ export default async function handler(req, res) {
               return res.status(400).json({ success: false, error: 'Missing required fields: heroHand, street' });
           }
 
+          let verifiedSessionId = null;
+          if (sessionId !== undefined && sessionId !== null && sessionId !== '') {
+              const sid = String(sessionId).trim();
+              if (!UUID_RE.test(sid)) {
+                  return res.status(400).json({ success: false, error: 'Invalid sessionId format' });
+              }
+              const { data: ownedSession, error: sessionErr } = await supabase
+                  .from('sandbox_sessions')
+                  .select('id')
+                  .eq('id', sid)
+                  .eq('user_id', userId)
+                  .maybeSingle();
+              if (sessionErr) {
+                  return res.status(503).json(persistenceFailure(
+                      'Session ownership could not be verified. Try again shortly.',
+                      'storage_unavailable',
+                      { stored: false },
+                  ));
+              }
+              if (!ownedSession) {
+                  return res.status(404).json({ success: false, error: 'Session not found' });
+              }
+              verifiedSessionId = sid;
+          }
+
           const equity = typeof equityPct === 'number' && isFinite(equityPct)
               ? Math.min(100, Math.max(0, equityPct))
               : null;
@@ -61,7 +95,7 @@ export default async function handler(req, res) {
               .from('sandbox_equity_history')
               .insert({
                   user_id: userId,
-                  session_id: sessionId || null,
+                  session_id: verifiedSessionId,
                   hero_hand: String(heroHand).slice(0, 8),
                   villain_range: clampOptional(villainRange, 400),
                   street: String(street).slice(0, 10),

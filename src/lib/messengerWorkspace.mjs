@@ -3,6 +3,7 @@ import { compareConversations, conversationHasCounterpart } from './messengerOrg
 // Server-side workspace selection. A page identity or URL is never membership.
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ADMIN_ROLES = new Set(['owner', 'co_owner', 'admin']);
+const AGENT_ROLES = new Set(['super_agent', 'agent', 'sub_agent']);
 const STAFF_ROLES = new Set(['owner', 'co_owner', 'admin', 'super_agent', 'agent', 'sub_agent']);
 
 function fail(status, message) {
@@ -60,16 +61,40 @@ export async function getMessengerClubs(db, userId) {
         .eq('membership_lifecycle_status', 'active').in('status', ['active', 'approved']), 'club_id');
     const ids = memberships.map(m => m.club_id);
     if (!ids.length) return [];
-    const clubs = await byIds(db, 'clubs', 'id,name,avatar_url', 'id', ids);
+    const clubs = await byIds(db, 'clubs', 'id,name,avatar_url,owner_id', 'id', ids);
     const socialPages = (await byIds(db, 'social_pages', 'id,name,avatar_url,linked_entity_id,linked_entity_type', 'linked_entity_id', ids))
         .filter(p => p.linked_entity_type === 'club');
+    const agentClubIds = memberships.filter(m => AGENT_ROLES.has(m.role)).map(m => m.club_id);
+    let activeAgentClubs = null;
+    if (agentClubIds.length) {
+        try {
+            const collected = new Set();
+            let readable = true;
+            for (const batch of idBatches(agentClubIds)) {
+                const { data: agentRows, error: agentErr } = await db.from('agents')
+                    .select('club_id,status').eq('user_id', userId).in('club_id', batch);
+                if (agentErr || !Array.isArray(agentRows)) { readable = false; break; }
+                for (const row of agentRows) {
+                    if (row.status === 'active') collected.add(row.club_id);
+                }
+            }
+            if (readable) activeAgentClubs = collected;
+        } catch {
+            activeAgentClubs = null;
+        }
+    }
     return clubs.map(club => {
-        const role = memberships.find(m => m.club_id === club.id)?.role || null;
+        const rawRole = memberships.find(m => m.club_id === club.id)?.role || null;
+        const isOwner = club.owner_id === userId || rawRole === 'owner';
+        const role = isOwner ? 'owner' : rawRole;
+        const canAccessNoticeBoard = isOwner
+            || ADMIN_ROLES.has(role)
+            || (AGENT_ROLES.has(role) && (activeAgentClubs === null || activeAgentClubs.has(club.id)));
         return {
             id: club.id, name: club.name, avatar_url: club.avatar_url,
             pageId: socialPages.find(p => p.linked_entity_id === club.id)?.id || null,
-            canManage: ADMIN_ROLES.has(role),
-            canAccessNoticeBoard: STAFF_ROLES.has(role),
+            canManage: isOwner || ADMIN_ROLES.has(role),
+            canAccessNoticeBoard: canAccessNoticeBoard && STAFF_ROLES.has(role),
             role,
         };
     });

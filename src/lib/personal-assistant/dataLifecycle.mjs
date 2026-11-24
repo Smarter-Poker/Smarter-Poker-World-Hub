@@ -53,4 +53,33 @@ export function retentionDays(value) {
   return days;
 }
 
-export default { sealDeletionChallenge, openDeletionChallenge, retentionDays };
+export function sanitizeExportHandRow(row, userId) {
+  if (!row || typeof row !== 'object') return row;
+  const uid = String(userId || '');
+  const sanitizePlayer = (player) => {
+    if (!player || typeof player !== 'object') return player;
+    const pid = String(player.userId ?? player.user_id ?? player.id ?? '');
+    const isOwner = Boolean(uid && pid === uid);
+    const showed = Boolean(
+      player.showed === true
+      || player.shown === true
+      || player.showedCards === true
+      || player.showed_cards === true
+      || player.wentToShowdown === true
+    );
+    if (isOwner || showed) return player;
+    const clean = { ...player };
+    delete clean.cards;
+    delete clean.hole_cards;
+    delete clean.holeCards;
+    return clean;
+  };
+  const next = { ...row };
+  if (Array.isArray(row.players)) next.players = row.players.map(sanitizePlayer);
+  if (row.hand_data && typeof row.hand_data === 'object' && Array.isArray(row.hand_data.players)) {
+    next.hand_data = { ...row.hand_data, players: row.hand_data.players.map(sanitizePlayer) };
+  }
+  return next;
+}
+
+export default { sealDeletionChallenge, openDeletionChallenge, retentionDays, sanitizeExportHandRow };

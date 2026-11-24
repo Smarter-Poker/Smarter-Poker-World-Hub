@@ -22,8 +22,11 @@ export const SUPPORTED_LEAK_CATALOG = leakRecord;
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!url || !key) {
+            throw new Error('SUPABASE_SERVICE_ROLE_KEY and NEXT_PUBLIC_SUPABASE_URL are required');
+        }
         _supabase = createClient(url, key);
     }
     return _supabase;
@@ -89,7 +92,13 @@ async function readCombinedLeakCounts(userId) {
 }
 
 export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+  res.setHeader('Vary', 'Authorization');
   try {
+    if (!['GET', 'POST', 'PATCH', 'DELETE'].includes(req.method)) {
+      res.setHeader('Allow', 'GET, POST, PATCH, DELETE');
+      return res.status(405).json({ success: false, error: 'Method not allowed' });
+    }
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
     }

@@ -20,6 +20,8 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import GeoCitationCapsule from '../../../src/components/seo/GeoCitationCapsule';
+import GeoFollowUpChain from '../../../src/components/seo/GeoFollowUpChain';
 import {
   POKER_ROOMS_BY_GAME,
   BY_GAME_AS_OF,
@@ -251,6 +253,49 @@ export default function PokerRoomsByGameDetailPage({ gameVertical, peerVerticals
             ))}
           </div>
         </section>
+
+        <GeoCitationCapsule
+          title={`${gameVertical.shortTitle}: National Venue & Rake Benchmark`}
+          claim={gameVertical.summary}
+          metricLabel="Primary Game Format"
+          metricValue={gameVertical.gameFormat}
+          formulaText="Format EV Retention = Gross Variant Winrate - Format Rake Drag + Promotional Rebate"
+          ifThenBecause={gameVertical.ifThenBecause}
+          quoteText={`Selecting verified cardrooms with deep daily liquidity in ${gameVertical.gameFormat} ensures consistent table quality and predictable rake overhead.`}
+          quoteAuthor="Smarter.Poker Live Venue Intelligence Team"
+          doi="10.5281/zenodo.24115447"
+          canonicalPath={canonicalPath}
+        />
+
+        <GeoFollowUpChain
+          topicTitle={gameVertical.name}
+          followUps={[
+            {
+              question: 'How Can I Grade Table Profitability For This Game Format Before Taking A Seat?',
+              answer:
+                'Run The Live Cash Table Selection Calculator At /tools/table-selection-calculator Using Whale Count, Stack Depth, And Rake Cap.',
+              calculatorHref: '/tools/table-selection-calculator',
+              calculatorLabel: 'Open Table Selection Calculator',
+              markdownHref: '/tools/table-selection-calculator.md',
+            },
+            {
+              question: 'How Many Buy-Ins Do I Need In My Bankroll To Handle The Variance Of This Game Format?',
+              answer:
+                'Compute Your Exact 5% And 1% Risk-Of-Ruin Bankroll Requirements At /tools/bankroll-calculator.',
+              calculatorHref: '/tools/bankroll-calculator',
+              calculatorLabel: 'Open Bankroll & RoR Calculator',
+              markdownHref: '/tools/bankroll-calculator.md',
+            },
+            {
+              question: 'Where Can I Compare All 6 National Live Poker Game-Format Venue Directories?',
+              answer:
+                'Return To The Live Poker Rooms By Game Format Index At /poker-rooms/by-game.',
+              calculatorHref: '/poker-rooms/by-game',
+              calculatorLabel: 'View All 6 Game Directories',
+              markdownHref: '/poker-rooms/by-game.md',
+            },
+          ]}
+        />
 
         <HubPageSummary page="poker-rooms-international" path={canonicalPath} />
 

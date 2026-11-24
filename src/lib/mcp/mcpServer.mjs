@@ -697,7 +697,7 @@ export const MCP_TOOLS = [
   },
   {
     name: 'get_citation_and_backlink_kit',
-    description: 'Retrieve ready-to-paste HTML backlinks, SVG authority/award badges, Markdown/Substack citations, TwoPlusTwo/CardsChat BBCode, Wikipedia {{cite web}} templates, BibTeX academic records, Zenodo DOIs, Software Heritage SWHIDs, Glama MCP listing, all 18 Twitch/YouTube streamer chatbot commands (!odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, !matchup, !tax, !stake, !iso, !series), and multilingual embeds across 7 languages (en, es, pt, de, fr, it, ja).',
+    description: 'Retrieve ready-to-paste HTML backlinks, SVG authority/award badges, Markdown/Substack citations, TwoPlusTwo/CardsChat BBCode, Wikipedia {{cite web}} templates, BibTeX academic records, Zenodo DOIs, Software Heritage SWHIDs, Glama MCP listing, all 44 Twitch/YouTube streamer chatbot commands (!odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, !matchup, !tax, !stake, !iso, !series, !board, !mratio, !straddle, !sat, !bbj, !position, !math, !iq, !wrap, !latereg, !confidence, !trip, !geo, !table, !exploit, !intl, !3way, !mystery, !bf, !bluffcatch, !barrel, !hu, !bvb, !shot, !formula, !corridor), and multilingual embeds across 7 languages (en, es, pt, de, fr, it, ja).',
     annotations: {
       title: 'Get Academic DOI Citation & Streamer Backlink Kit',
       readOnlyHint: true,

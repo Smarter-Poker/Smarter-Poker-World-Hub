@@ -7,8 +7,9 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 let _supabase = null;
 function getSupabase() {
   if (!_supabase) {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) throw new Error('Coaching Workspace Service Is Not Configured.');
     _supabase = createClient(url, key);
   }
   return _supabase;
@@ -195,18 +196,24 @@ async function writePreferences(supabase, userId, body) {
 }
 
 export default async function handler(req, res) {
-  const limit = req.method === 'GET' ? (LIMITS.read || { max: 60, windowMs: 60_000 }) : LIMITS.write;
-  if (!applyRateLimit(req, res, limit)) return;
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+  res.setHeader('Vary', 'Authorization');
   if (!['GET', 'POST'].includes(req.method)) {
     res.setHeader('Allow', 'GET, POST');
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
-  res.setHeader('Cache-Control', 'private, no-store');
+  const limit = req.method === 'GET' ? (LIMITS.read || { max: 60, windowMs: 60_000 }) : LIMITS.write;
+  if (!applyRateLimit(req, res, limit)) return;
 
   try {
     const supabase = getSupabase();
-    const { user, error } = await getServerUserWithFallback(req, supabase);
-    if (error || !user) return res.status(401).json({ success: false, error: 'Authentication required' });
+    const { user, error, status: authStatus } = await getServerUserWithFallback(req, supabase);
+    if (error || !user) {
+      return res.status(authStatus === 503 ? 503 : 401).json({
+        success: false,
+        error: authStatus === 503 ? 'Session verification unavailable' : 'Authentication required',
+      });
+    }
 
     if (req.method === 'GET') {
       const workspace = await readWorkspace(supabase, user.id);

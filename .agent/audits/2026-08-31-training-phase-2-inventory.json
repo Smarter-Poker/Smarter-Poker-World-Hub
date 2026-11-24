@@ -18,7 +18,7 @@
     "dialogs": 12,
     "persistenceFiles": 90,
     "realtimeFiles": 6,
-    "tests": 183,
+    "tests": 184,
     "markerCandidates": 381,
     "possibleUnwiredFunctions": 405,
     "routeStateCells": 752,
@@ -10317,7 +10317,8 @@
           ],
           "tests": [
             "__tests__/training-authored-surface-authority.test.mjs",
-            "__tests__/training-runtime-wiring.test.mjs"
+            "__tests__/training-runtime-wiring.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         },
         "empty": {
@@ -10345,7 +10346,8 @@
           ],
           "tests": [
             "__tests__/training-authored-surface-authority.test.mjs",
-            "__tests__/training-runtime-wiring.test.mjs"
+            "__tests__/training-runtime-wiring.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         },
         "error": {
@@ -10364,7 +10366,8 @@
           ],
           "tests": [
             "__tests__/training-authored-surface-authority.test.mjs",
-            "__tests__/training-runtime-wiring.test.mjs"
+            "__tests__/training-runtime-wiring.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         },
         "retry": {
@@ -10376,7 +10379,8 @@
           ],
           "tests": [
             "__tests__/training-authored-surface-authority.test.mjs",
-            "__tests__/training-runtime-wiring.test.mjs"
+            "__tests__/training-runtime-wiring.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         },
         "success": {
@@ -10391,7 +10395,8 @@
           ],
           "tests": [
             "__tests__/training-authored-surface-authority.test.mjs",
-            "__tests__/training-runtime-wiring.test.mjs"
+            "__tests__/training-runtime-wiring.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         },
         "stale": {
@@ -10406,7 +10411,8 @@
           ],
           "tests": [
             "__tests__/training-authored-surface-authority.test.mjs",
-            "__tests__/training-runtime-wiring.test.mjs"
+            "__tests__/training-runtime-wiring.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         },
         "offline": {
@@ -10418,7 +10424,8 @@
           ],
           "tests": [
             "__tests__/training-authored-surface-authority.test.mjs",
-            "__tests__/training-runtime-wiring.test.mjs"
+            "__tests__/training-runtime-wiring.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         },
         "authExpiry": {
@@ -10429,13 +10436,15 @@
           ],
           "tests": [
             "__tests__/training-authored-surface-authority.test.mjs",
-            "__tests__/training-runtime-wiring.test.mjs"
+            "__tests__/training-runtime-wiring.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         }
       },
       "existingTests": [
         "__tests__/training-authored-surface-authority.test.mjs",
-        "__tests__/training-runtime-wiring.test.mjs"
+        "__tests__/training-runtime-wiring.test.mjs",
+        "__tests__/trivia-club-spectator-training.test.mjs"
       ],
       "uncoveredStates": []
     },
@@ -11369,7 +11378,8 @@
             "__tests__/llms-txt-states-the-entity.law.test.mjs",
             "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         },
         "empty": {
@@ -11400,7 +11410,8 @@
             "__tests__/llms-txt-states-the-entity.law.test.mjs",
             "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         },
         "error": {
@@ -11425,7 +11436,8 @@
             "__tests__/llms-txt-states-the-entity.law.test.mjs",
             "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         },
         "retry": {
@@ -11443,7 +11455,8 @@
             "__tests__/llms-txt-states-the-entity.law.test.mjs",
             "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         },
         "success": {
@@ -11463,7 +11476,8 @@
             "__tests__/llms-txt-states-the-entity.law.test.mjs",
             "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         },
         "stale": {
@@ -11484,7 +11498,8 @@
             "__tests__/llms-txt-states-the-entity.law.test.mjs",
             "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         },
         "offline": {
@@ -11497,7 +11512,8 @@
             "__tests__/llms-txt-states-the-entity.law.test.mjs",
             "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         },
         "authExpiry": {
@@ -11512,7 +11528,8 @@
             "__tests__/llms-txt-states-the-entity.law.test.mjs",
             "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         }
       },
@@ -11521,7 +11538,8 @@
         "__tests__/llms-txt-states-the-entity.law.test.mjs",
         "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
         "__tests__/training-phase-3-adversarial.test.mjs",
-        "__tests__/training-reconciled-workflows.test.mjs"
+        "__tests__/training-reconciled-workflows.test.mjs",
+        "__tests__/trivia-club-spectator-training.test.mjs"
       ],
       "uncoveredStates": []
     },
@@ -12979,6 +12997,7 @@
           ],
           "tests": [
             "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -13023,6 +13042,7 @@
           ],
           "tests": [
             "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -13065,6 +13085,7 @@
           ],
           "tests": [
             "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -13087,6 +13108,7 @@
           ],
           "tests": [
             "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -13119,6 +13141,7 @@
           ],
           "tests": [
             "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -13156,6 +13179,7 @@
           ],
           "tests": [
             "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -13170,6 +13194,7 @@
           ],
           "tests": [
             "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -13188,12 +13213,14 @@
           ],
           "tests": [
             "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         }
       },
       "existingTests": [
         "__tests__/training-reconciled-workflows.test.mjs",
+        "__tests__/trivia-club-spectator-training.test.mjs",
         "e2e/020-hamburger.spec.ts"
       ],
       "uncoveredStates": []
@@ -13712,7 +13739,8 @@
           ],
           "tests": [
             "__tests__/phases-35-50-aeo.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         },
         "empty": {
@@ -13740,7 +13768,8 @@
           ],
           "tests": [
             "__tests__/phases-35-50-aeo.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         },
         "error": {
@@ -13763,7 +13792,8 @@
           ],
           "tests": [
             "__tests__/phases-35-50-aeo.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         },
         "retry": {
@@ -13777,7 +13807,8 @@
           ],
           "tests": [
             "__tests__/phases-35-50-aeo.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         },
         "success": {
@@ -13793,7 +13824,8 @@
           ],
           "tests": [
             "__tests__/phases-35-50-aeo.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         },
         "stale": {
@@ -13810,7 +13842,8 @@
           ],
           "tests": [
             "__tests__/phases-35-50-aeo.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         },
         "offline": {
@@ -13821,7 +13854,8 @@
           ],
           "tests": [
             "__tests__/phases-35-50-aeo.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         },
         "authExpiry": {
@@ -13834,13 +13868,15 @@
           ],
           "tests": [
             "__tests__/phases-35-50-aeo.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         }
       },
       "existingTests": [
         "__tests__/phases-35-50-aeo.test.mjs",
-        "__tests__/training-reconciled-workflows.test.mjs"
+        "__tests__/training-reconciled-workflows.test.mjs",
+        "__tests__/trivia-club-spectator-training.test.mjs"
       ],
       "uncoveredStates": []
     },
@@ -17434,7 +17470,9 @@
             "src/lib/poker-engine/brain/core.js",
             "src/lib/training/horseBrainTrainingAdapter.js"
           ],
-          "tests": []
+          "tests": [
+            "__tests__/trivia-club-spectator-training.test.mjs"
+          ]
         },
         "empty": {
           "status": "implemented-or-detected",
@@ -17457,7 +17495,9 @@
             "src/utils/trainingApiUtils.js",
             "src/utils/v2Matrix.js"
           ],
-          "tests": []
+          "tests": [
+            "__tests__/trivia-club-spectator-training.test.mjs"
+          ]
         },
         "error": {
           "status": "implemented-or-detected",
@@ -17473,7 +17513,9 @@
             "src/services/SolverPolicyService.js",
             "src/utils/trainingApiUtils.js"
           ],
-          "tests": []
+          "tests": [
+            "__tests__/trivia-club-spectator-training.test.mjs"
+          ]
         },
         "retry": {
           "status": "implemented-or-detected",
@@ -17482,7 +17524,9 @@
             "src/lib/poker-engine/SupabaseResilience.js",
             "src/lib/training/horseBrainTrainingAdapter.js"
           ],
-          "tests": []
+          "tests": [
+            "__tests__/trivia-club-spectator-training.test.mjs"
+          ]
         },
         "success": {
           "status": "implemented-or-detected",
@@ -17494,7 +17538,9 @@
             "src/lib/training/horseBrainTrainingAdapter.js",
             "src/lib/training/solverMatrixTrust.js"
           ],
-          "tests": []
+          "tests": [
+            "__tests__/trivia-club-spectator-training.test.mjs"
+          ]
         },
         "stale": {
           "status": "implemented-or-detected",
@@ -17506,24 +17552,32 @@
             "src/lib/training/horseBrainTrainingAdapter.js",
             "src/utils/v2Matrix.js"
           ],
-          "tests": []
+          "tests": [
+            "__tests__/trivia-club-spectator-training.test.mjs"
+          ]
         },
         "offline": {
           "status": "implemented-or-detected",
           "evidence": [
             "src/lib/training/horseBrainTrainingAdapter.js"
           ],
-          "tests": []
+          "tests": [
+            "__tests__/trivia-club-spectator-training.test.mjs"
+          ]
         },
         "authExpiry": {
           "status": "implemented-or-detected",
           "evidence": [
             "src/lib/training/horseBrainTrainingAdapter.js"
           ],
-          "tests": []
+          "tests": [
+            "__tests__/trivia-club-spectator-training.test.mjs"
+          ]
         }
       },
-      "existingTests": [],
+      "existingTests": [
+        "__tests__/trivia-club-spectator-training.test.mjs"
+      ],
       "uncoveredStates": []
     },
     {
@@ -22811,7 +22865,8 @@
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-solutions-v2-authority.test.mjs",
-            "__tests__/training-solver-contract.test.mjs"
+            "__tests__/training-solver-contract.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         },
         "empty": {
@@ -22850,7 +22905,8 @@
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-solutions-v2-authority.test.mjs",
-            "__tests__/training-solver-contract.test.mjs"
+            "__tests__/training-solver-contract.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         },
         "error": {
@@ -22884,7 +22940,8 @@
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-solutions-v2-authority.test.mjs",
-            "__tests__/training-solver-contract.test.mjs"
+            "__tests__/training-solver-contract.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         },
         "retry": {
@@ -22907,7 +22964,8 @@
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-solutions-v2-authority.test.mjs",
-            "__tests__/training-solver-contract.test.mjs"
+            "__tests__/training-solver-contract.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         },
         "success": {
@@ -22930,7 +22988,8 @@
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-solutions-v2-authority.test.mjs",
-            "__tests__/training-solver-contract.test.mjs"
+            "__tests__/training-solver-contract.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         },
         "stale": {
@@ -22955,7 +23014,8 @@
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-solutions-v2-authority.test.mjs",
-            "__tests__/training-solver-contract.test.mjs"
+            "__tests__/training-solver-contract.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         },
         "offline": {
@@ -22974,7 +23034,8 @@
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-solutions-v2-authority.test.mjs",
-            "__tests__/training-solver-contract.test.mjs"
+            "__tests__/training-solver-contract.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         },
         "authExpiry": {
@@ -22995,7 +23056,8 @@
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-solutions-v2-authority.test.mjs",
-            "__tests__/training-solver-contract.test.mjs"
+            "__tests__/training-solver-contract.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         }
       },
@@ -23008,7 +23070,8 @@
         "__tests__/training-reference-is-public-b.test.mjs",
         "__tests__/training-request-deadline.test.mjs",
         "__tests__/training-solutions-v2-authority.test.mjs",
-        "__tests__/training-solver-contract.test.mjs"
+        "__tests__/training-solver-contract.test.mjs",
+        "__tests__/trivia-club-spectator-training.test.mjs"
       ],
       "uncoveredStates": []
     },
@@ -23085,6 +23148,7 @@
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-spot-study-authority.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs",
             "__tests__/trivia-study-pool-curation.test.mjs"
           ]
         },
@@ -23119,6 +23183,7 @@
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-spot-study-authority.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs",
             "__tests__/trivia-study-pool-curation.test.mjs"
           ]
         },
@@ -23148,6 +23213,7 @@
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-spot-study-authority.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs",
             "__tests__/trivia-study-pool-curation.test.mjs"
           ]
         },
@@ -23169,6 +23235,7 @@
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-spot-study-authority.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs",
             "__tests__/trivia-study-pool-curation.test.mjs"
           ]
         },
@@ -23191,6 +23258,7 @@
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-spot-study-authority.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs",
             "__tests__/trivia-study-pool-curation.test.mjs"
           ]
         },
@@ -23214,6 +23282,7 @@
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-spot-study-authority.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs",
             "__tests__/trivia-study-pool-curation.test.mjs"
           ]
         },
@@ -23231,6 +23300,7 @@
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-spot-study-authority.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs",
             "__tests__/trivia-study-pool-curation.test.mjs"
           ]
         },
@@ -23250,6 +23320,7 @@
             "__tests__/training-reference-is-public-b.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
             "__tests__/training-spot-study-authority.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs",
             "__tests__/trivia-study-pool-curation.test.mjs"
           ]
         }
@@ -23262,6 +23333,7 @@
         "__tests__/training-reference-is-public-b.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs",
         "__tests__/training-spot-study-authority.test.mjs",
+        "__tests__/trivia-club-spectator-training.test.mjs",
         "__tests__/trivia-study-pool-curation.test.mjs"
       ],
       "uncoveredStates": []
@@ -23378,7 +23450,9 @@
             "src/lib/poker-engine/brain/core.js",
             "src/lib/training/horseBrainTrainingAdapter.js"
           ],
-          "tests": []
+          "tests": [
+            "__tests__/trivia-club-spectator-training.test.mjs"
+          ]
         },
         "empty": {
           "status": "implemented-or-detected",
@@ -23416,7 +23490,9 @@
             "src/utils/trainingApiUtils.js",
             "src/utils/v2Matrix.js"
           ],
-          "tests": []
+          "tests": [
+            "__tests__/trivia-club-spectator-training.test.mjs"
+          ]
         },
         "error": {
           "status": "implemented-or-detected",
@@ -23454,7 +23530,9 @@
             "src/stores/toastStore.js",
             "src/utils/trainingApiUtils.js"
           ],
-          "tests": []
+          "tests": [
+            "__tests__/trivia-club-spectator-training.test.mjs"
+          ]
         },
         "retry": {
           "status": "implemented-or-detected",
@@ -23473,7 +23551,9 @@
             "src/lib/training/horseBrainTrainingAdapter.js",
             "src/tutorials/personal-assistant.js"
           ],
-          "tests": []
+          "tests": [
+            "__tests__/trivia-club-spectator-training.test.mjs"
+          ]
         },
         "success": {
           "status": "implemented-or-detected",
@@ -23501,7 +23581,9 @@
             "src/services/avatar-service.js",
             "src/stores/toastStore.js"
           ],
-          "tests": []
+          "tests": [
+            "__tests__/trivia-club-spectator-training.test.mjs"
+          ]
         },
         "stale": {
           "status": "implemented-or-detected",
@@ -23534,7 +23616,9 @@
             "src/tutorials/personal-assistant.js",
             "src/utils/v2Matrix.js"
           ],
-          "tests": []
+          "tests": [
+            "__tests__/trivia-club-spectator-training.test.mjs"
+          ]
         },
         "offline": {
           "status": "implemented-or-detected",
@@ -23543,7 +23627,9 @@
             "src/contexts/AvatarContext.jsx",
             "src/lib/training/horseBrainTrainingAdapter.js"
           ],
-          "tests": []
+          "tests": [
+            "__tests__/trivia-club-spectator-training.test.mjs"
+          ]
         },
         "authExpiry": {
           "status": "implemented-or-detected",
@@ -23557,10 +23643,14 @@
             "src/lib/training/horseBrainTrainingAdapter.js",
             "src/services/avatar-service.js"
           ],
-          "tests": []
+          "tests": [
+            "__tests__/trivia-club-spectator-training.test.mjs"
+          ]
         }
       },
-      "existingTests": [],
+      "existingTests": [
+        "__tests__/trivia-club-spectator-training.test.mjs"
+      ],
       "uncoveredStates": []
     },
     {
@@ -25676,7 +25766,8 @@
           ],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "__tests__/training-runtime-wiring.test.mjs"
+            "__tests__/training-runtime-wiring.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         },
         "empty": {
@@ -25719,7 +25810,8 @@
           ],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "__tests__/training-runtime-wiring.test.mjs"
+            "__tests__/training-runtime-wiring.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         },
         "error": {
@@ -25761,7 +25853,8 @@
           ],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "__tests__/training-runtime-wiring.test.mjs"
+            "__tests__/training-runtime-wiring.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         },
         "retry": {
@@ -25783,7 +25876,8 @@
           ],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "__tests__/training-runtime-wiring.test.mjs"
+            "__tests__/training-runtime-wiring.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         },
         "success": {
@@ -25814,7 +25908,8 @@
           ],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "__tests__/training-runtime-wiring.test.mjs"
+            "__tests__/training-runtime-wiring.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         },
         "stale": {
@@ -25850,7 +25945,8 @@
           ],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "__tests__/training-runtime-wiring.test.mjs"
+            "__tests__/training-runtime-wiring.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         },
         "offline": {
@@ -25864,7 +25960,8 @@
           ],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "__tests__/training-runtime-wiring.test.mjs"
+            "__tests__/training-runtime-wiring.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         },
         "authExpiry": {
@@ -25882,13 +25979,15 @@
           ],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "__tests__/training-runtime-wiring.test.mjs"
+            "__tests__/training-runtime-wiring.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs"
           ]
         }
       },
       "existingTests": [
         "__tests__/training-phase-3-adversarial.test.mjs",
-        "__tests__/training-runtime-wiring.test.mjs"
+        "__tests__/training-runtime-wiring.test.mjs",
+        "__tests__/trivia-club-spectator-training.test.mjs"
       ],
       "uncoveredStates": []
     },
@@ -26414,6 +26513,7 @@
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-specialty-pages-phase-7.test.mjs",
             "__tests__/training-tournaments-read-contract.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs",
             "__tests__/trivia-realtime-social-growth.test.mjs",
             "__tests__/world-hub-connection-hardening.test.mjs"
           ]
@@ -26469,6 +26569,7 @@
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-specialty-pages-phase-7.test.mjs",
             "__tests__/training-tournaments-read-contract.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs",
             "__tests__/trivia-realtime-social-growth.test.mjs",
             "__tests__/world-hub-connection-hardening.test.mjs"
           ]
@@ -26521,6 +26622,7 @@
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-specialty-pages-phase-7.test.mjs",
             "__tests__/training-tournaments-read-contract.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs",
             "__tests__/trivia-realtime-social-growth.test.mjs",
             "__tests__/world-hub-connection-hardening.test.mjs"
           ]
@@ -26555,6 +26657,7 @@
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-specialty-pages-phase-7.test.mjs",
             "__tests__/training-tournaments-read-contract.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs",
             "__tests__/trivia-realtime-social-growth.test.mjs",
             "__tests__/world-hub-connection-hardening.test.mjs"
           ]
@@ -26597,6 +26700,7 @@
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-specialty-pages-phase-7.test.mjs",
             "__tests__/training-tournaments-read-contract.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs",
             "__tests__/trivia-realtime-social-growth.test.mjs",
             "__tests__/world-hub-connection-hardening.test.mjs"
           ]
@@ -26644,6 +26748,7 @@
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-specialty-pages-phase-7.test.mjs",
             "__tests__/training-tournaments-read-contract.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs",
             "__tests__/trivia-realtime-social-growth.test.mjs",
             "__tests__/world-hub-connection-hardening.test.mjs"
           ]
@@ -26669,6 +26774,7 @@
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-specialty-pages-phase-7.test.mjs",
             "__tests__/training-tournaments-read-contract.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs",
             "__tests__/trivia-realtime-social-growth.test.mjs",
             "__tests__/world-hub-connection-hardening.test.mjs"
           ]
@@ -26699,6 +26805,7 @@
             "__tests__/training-request-deadline.test.mjs",
             "__tests__/training-specialty-pages-phase-7.test.mjs",
             "__tests__/training-tournaments-read-contract.test.mjs",
+            "__tests__/trivia-club-spectator-training.test.mjs",
             "__tests__/trivia-realtime-social-growth.test.mjs",
             "__tests__/world-hub-connection-hardening.test.mjs"
           ]
@@ -26715,6 +26822,7 @@
         "__tests__/training-request-deadline.test.mjs",
         "__tests__/training-specialty-pages-phase-7.test.mjs",
         "__tests__/training-tournaments-read-contract.test.mjs",
+        "__tests__/trivia-club-spectator-training.test.mjs",
         "__tests__/trivia-realtime-social-growth.test.mjs",
         "__tests__/world-hub-connection-hardening.test.mjs"
       ],
@@ -62637,7 +62745,7 @@
       },
       "realtime": {
         "channels": 1,
-        "postgresChanges": 3,
+        "postgresChanges": 4,
         "webSockets": 0,
         "eventSources": 0
       },
@@ -62652,7 +62760,7 @@
         },
         {
           "name": "useUnreadCount",
-          "line": 241,
+          "line": 250,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -62685,14 +62793,14 @@
         {
           "name": "scheduleNotifRefresh",
           "line": 101,
-          "references": 4,
+          "references": 5,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "tick",
-          "line": 183,
+          "line": 192,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -62700,7 +62808,7 @@
         },
         {
           "name": "onVisibility",
-          "line": 193,
+          "line": 202,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -62708,7 +62816,7 @@
         },
         {
           "name": "setAndBroadcastUnreadCount",
-          "line": 214,
+          "line": 223,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -74005,7 +74113,7 @@
         },
         {
           "name": "runWithConcurrency",
-          "line": 718,
+          "line": 723,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -74013,7 +74121,7 @@
         },
         {
           "name": "replacePersistedDecisionEvidence",
-          "line": 739,
+          "line": 744,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -74021,7 +74129,7 @@
         },
         {
           "name": "auditParsedHands",
-          "line": 766,
+          "line": 771,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -74029,7 +74137,7 @@
         },
         {
           "name": "fetchClubHandsForKey",
-          "line": 917,
+          "line": 922,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -74037,7 +74145,7 @@
         },
         {
           "name": "parseTimestampMicros",
-          "line": 956,
+          "line": 961,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -74045,7 +74153,7 @@
         },
         {
           "name": "compareHandKeyDescending",
-          "line": 966,
+          "line": 971,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -74053,7 +74161,7 @@
         },
         {
           "name": "fetchExistingAuditRows",
-          "line": 974,
+          "line": 979,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -74061,7 +74169,7 @@
         },
         {
           "name": "auditRowTime",
-          "line": 989,
+          "line": 994,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -74069,7 +74177,7 @@
         },
         {
           "name": "syncClubArenaHandsForAudit",
-          "line": 995,
+          "line": 1000,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -85723,6 +85831,7 @@
     "__tests__/training-tournaments-read-contract.test.mjs",
     "__tests__/training-verified-leaderboard.test.mjs",
     "__tests__/training-verified-report-authority.test.mjs",
+    "__tests__/trivia-club-spectator-training.test.mjs",
     "__tests__/trivia-realtime-social-growth.test.mjs",
     "__tests__/trivia-study-pool-curation.test.mjs",
     "__tests__/world-command-navigation-state.test.mjs",
@@ -86777,7 +86886,7 @@
       "file": "src/hooks/useUnreadCount.jsx",
       "subscriptions": {
         "channels": 1,
-        "postgresChanges": 3,
+        "postgresChanges": 4,
         "webSockets": 0,
         "eventSources": 0
       }
@@ -100537,6 +100646,7 @@
         "__tests__/training-request-deadline.test.mjs",
         "__tests__/training-specialty-pages-phase-7.test.mjs",
         "__tests__/training-tournaments-read-contract.test.mjs",
+        "__tests__/trivia-club-spectator-training.test.mjs",
         "__tests__/trivia-realtime-social-growth.test.mjs",
         "__tests__/world-hub-connection-hardening.test.mjs"
       ]
@@ -101064,7 +101174,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 3,
+            "postgresChanges": 4,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -102691,7 +102801,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 3,
+            "postgresChanges": 4,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -103426,7 +103536,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 3,
+            "postgresChanges": 4,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -103889,7 +103999,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 3,
+            "postgresChanges": 4,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -104348,7 +104458,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 3,
+            "postgresChanges": 4,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -106278,7 +106388,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 3,
+            "postgresChanges": 4,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -106880,7 +106990,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 3,
+            "postgresChanges": 4,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -109142,7 +109252,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 3,
+            "postgresChanges": 4,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -110095,7 +110205,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 3,
+            "postgresChanges": 4,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -110573,7 +110683,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 3,
+            "postgresChanges": 4,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -111030,7 +111140,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 3,
+            "postgresChanges": 4,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -112303,7 +112413,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 3,
+            "postgresChanges": 4,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -113499,7 +113609,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 3,
+            "postgresChanges": 4,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -114262,7 +114372,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 3,
+            "postgresChanges": 4,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -115120,7 +115230,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 3,
+            "postgresChanges": 4,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -115581,7 +115691,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 3,
+            "postgresChanges": 4,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -119400,7 +119510,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 3,
+            "postgresChanges": 4,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -119855,7 +119965,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 3,
+            "postgresChanges": 4,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -120489,7 +120599,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 3,
+            "postgresChanges": 4,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -121114,7 +121224,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 3,
+            "postgresChanges": 4,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -121562,7 +121672,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 3,
+            "postgresChanges": 4,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -122195,7 +122305,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 3,
+            "postgresChanges": 4,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -122650,7 +122760,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 3,
+            "postgresChanges": 4,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -123128,7 +123238,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 3,
+            "postgresChanges": 4,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -123145,6 +123255,7 @@
         "__tests__/training-request-deadline.test.mjs",
         "__tests__/training-specialty-pages-phase-7.test.mjs",
         "__tests__/training-tournaments-read-contract.test.mjs",
+        "__tests__/trivia-club-spectator-training.test.mjs",
         "__tests__/trivia-realtime-social-growth.test.mjs",
         "__tests__/world-hub-connection-hardening.test.mjs"
       ]
@@ -126478,7 +126589,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 3,
+            "postgresChanges": 4,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -127979,7 +128090,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 3,
+            "postgresChanges": 4,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -140116,7 +140227,7 @@
       {
         "file": "src/lib/training/handAuditEngine.js",
         "name": "syncClubArenaHandsForAudit",
-        "line": 995,
+        "line": 1000,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -150281,7 +150392,7 @@
       {
         "file": "src/lib/training/handAuditEngine.js",
         "name": "syncClubArenaHandsForAudit",
-        "line": 995,
+        "line": 1000,
         "references": 1,
         "exported": true,
         "defaultExport": false,

@@ -61,6 +61,7 @@ export default function TriviaResult({
     beatPersonalBest = false,
     actionsInFooter = false,   // the page owns Back To Trivia / Play Again
     sessionId = null,          // settled session UUID for server-verified review drawer
+    settled = true,            // false if caller has not yet settled the session
     playerName = '',           // optional player display name for result card
 }) {
     // Guard: totalQuestions of 0 (or a missing prop) produced NaN% in the ring
@@ -86,6 +87,7 @@ export default function TriviaResult({
     const [shareCardOpen, setShareCardOpen] = useState(false);
     const [verifiedReviewOpen, setVerifiedReviewOpen] = useState(false);
     const canReview = questions && answers && questions.length > 0;
+    const canOpenSettledReview = Boolean(sessionId && settled !== false);
     const shareGrid = useMemo(() => {
         if (!Array.isArray(questions) || !Array.isArray(answers) || questions.length === 0) return '';
         return questions.slice(0, 20).map((q, idx) => {
@@ -447,15 +449,15 @@ export default function TriviaResult({
                     className="result-action result-action--share-card tc-word tc-ink--gold"
                     onClick={() => setShareCardOpen(true)}
                 >
-                    Share Result Card
+                    Share Score Card
                 </button>
-                {sessionId ? (
+                {canOpenSettledReview ? (
                     <button
                         type="button"
                         className="result-action result-action--verified-review tc-word tc-ink--blue"
                         onClick={() => setVerifiedReviewOpen(true)}
                     >
-                        Verified Review & Train
+                        Review Questions
                     </button>
                 ) : null}
 
@@ -492,8 +494,9 @@ export default function TriviaResult({
                 streak={streak || 0}
                 player={playerName || 'Smarter.Poker Player'}
                 grid={shareGrid}
+                sessionId={settled !== false ? sessionId : null}
             />
-            {sessionId ? (
+            {canOpenSettledReview ? (
                 <PostSettlementReviewDrawer
                     open={verifiedReviewOpen}
                     onClose={() => setVerifiedReviewOpen(false)}
