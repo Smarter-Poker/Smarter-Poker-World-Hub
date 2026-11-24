@@ -1,5 +1,182 @@
-import CanonicalTrainingRedirect from '../../../src/components/training/CanonicalTrainingRedirect';
+import React, { useState, useMemo } from 'react';
+import { useRouter } from 'next/router';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
+import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
+
+const VERIFIED_DRILL = '/hub/training/arena/adv-015?level=1&source=player-profiles';
+
+const VARIANTS = [
+  { id: 'nlh', label: 'NLHE (2 Cards)', heroCards: ['Ad', 'Jc'] },
+  { id: 'plo4', label: 'PLO4 (4 Cards)', heroCards: ['Ad', 'Kd', 'Jc', 'Tc'] },
+  { id: 'plo5', label: 'PLO5 (5 Cards)', heroCards: ['Ad', 'Kd', 'Jc', 'Tc', '9s'] },
+  { id: 'plo6', label: 'PLO6 (6 Cards)', heroCards: ['Ad', 'Kd', 'Jc', 'Tc', '9s', '8h'] },
+];
+
+const PLAYER_ARCHETYPES = [
+  { id: 'Loose-Passive Calling Station', label: 'Calling Station (48/9)', vpip: 48, pfr: 9, threeBet: 2, pot: 10, toCall: 0 },
+  { id: 'Tight-Passive Nit', label: 'Tight-Passive Nit (12/9)', vpip: 12, pfr: 9, threeBet: 3, pot: 12, toCall: 8 },
+  { id: 'Loose-Aggressive Maniac', label: 'Hyper-LAG Maniac (45/36)', vpip: 45, pfr: 36, threeBet: 17, pot: 14, toCall: 6 },
+  { id: 'Solver GTO Grinder', label: 'GTO Grinder (25/21)', vpip: 25, pfr: 21, threeBet: 9, pot: 10, toCall: 4 },
+];
 
 export default function PlayerProfilesPage() {
-  return <CanonicalTrainingRedirect title="Population Reads" description="Opening the authored population-read curriculum. Selecting a profile no longer awards an automatic correct answer." href="/hub/training/arena/adv-015?level=1&source=player-profiles" action="Continue To Population Reads" shellClassName="sp-training-intelligence sp-training-intelligence--profiles" headerClassName="sp-intelligence-header" mainClassName="sp-intelligence-main" />;
+  const router = useRouter();
+  const [activeVariant, setActiveVariant] = useState('nlh');
+  const [activeArchetypeId, setActiveArchetypeId] = useState(PLAYER_ARCHETYPES[0].id);
+
+  const activeVariantSpec = VARIANTS.find((v) => v.id === activeVariant) || VARIANTS[0];
+  const activeArchetype = PLAYER_ARCHETYPES.find((a) => a.id === activeArchetypeId) || PLAYER_ARCHETYPES[0];
+
+  const brainEval = useMemo(() => {
+    return evaluateTrainingSpotWithHorseBrain({
+      gameId: 'adv-015',
+      variant: activeVariantSpec.id,
+      heroCards: activeVariantSpec.heroCards,
+      boardCards: ['Jh', '7c', '2d'],
+      street: 'flop',
+      pot: activeArchetype.pot,
+      toCall: activeArchetype.toCall,
+      effectiveStackBb: 100,
+      heroPosition: 'BTN',
+      villainPosition: 'BB',
+      villainStats: {
+        vpip: activeArchetype.vpip,
+        pfr: activeArchetype.pfr,
+        threeBet: activeArchetype.threeBet,
+      },
+      villainArchetype: activeArchetype.id,
+    });
+  }, [activeVariantSpec, activeArchetype]);
+
+  const launchHref = useMemo(
+    () => buildCustomTrainingArenaHref({ gameId: 'adv-003', variant: activeVariantSpec.id }, 'player-profiles'),
+    [activeVariantSpec.id],
+  );
+
+  const exploitDelta = brainEval?.brainEvaluation?.hudExploitAdjustment?.scoreDelta ?? 0;
+
+  return (
+    <>
+      <SEOHead title="Population Reads - Smarter.Poker" description="Opening the authored population-read curriculum. Selecting a profile no longer awards an automatic correct answer." noindex />
+      <main className="sp-training-intelligence sp-training-intelligence--profiles" style={{ minHeight: 'calc(100dvh - 70px)', padding: 'clamp(30px, 8vw, 90px) 18px', background: 'radial-gradient(circle at 50% 15%, #12354d 0, #050910 50%, #020407 100%)', color: '#fff' }}>
+        <section className="sp-intelligence-main" style={{ position: 'relative', maxWidth: 760, margin: '0 auto', padding: 'clamp(24px, 5vw, 48px)', border: '1px solid rgba(145,229,255,.45)', background: 'linear-gradient(145deg, rgba(20,42,60,.97), rgba(4,9,15,.98))', boxShadow: 'inset 0 1px rgba(255,255,255,.25), 0 30px 70px rgba(0,0,0,.55)' }}>
+          <div style={{ position: 'relative' }}>
+            <div className="sp-intelligence-header" style={{ color: '#79e6ff', fontSize: 12, fontWeight: 900, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Verified Club Arena Drill</div>
+            <h1 style={{ margin: '12px 0 10px', fontSize: 'clamp(30px, 6vw, 54px)', lineHeight: 1 }}>Population Reads</h1>
+            <p style={{ margin: 0, color: '#b7c9d7', lineHeight: 1.7 }}>Profile Villain VPIP, PFR, And 3-Bet HUD Archetypes To Quantify Exploitative Score Adjustments With Production Horse Brain.</p>
+
+            {brainEval && (
+              <div
+                data-specialty-brain-panel="true"
+                data-brain-engine={brainEval.engineModule}
+                data-recommended-action={brainEval.correctAnswer}
+                data-villain-vpip={String(activeArchetype.vpip)}
+                data-exploit-delta={String(exploitDelta)}
+                style={{ marginTop: 24, padding: 20, border: '1px solid rgba(56, 189, 248, 0.4)', background: 'rgba(2, 6, 23, 0.72)' }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+                  <span style={{ fontSize: 13, fontWeight: 900, color: '#79e6ff', textTransform: 'uppercase' }}>
+                    Horse Brain Exploitative Deviation Panel
+                  </span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#fbbf24' }}>
+                    Engine: {brainEval.engineModule} | VPIP: {activeArchetype.vpip}% | PFR: {activeArchetype.pfr}% | Delta: {exploitDelta >= 0 ? `+${exploitDelta}` : exploitDelta}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+                  {VARIANTS.map((v) => (
+                    <button
+                      key={v.id}
+                      type="button"
+                      data-variant-btn={v.id}
+                      aria-pressed={activeVariant === v.id}
+                      onClick={() => setActiveVariant(v.id)}
+                      style={{
+                        padding: '6px 12px',
+                        border: activeVariant === v.id ? '1px solid #38bdf8' : '1px solid rgba(255,255,255,0.16)',
+                        background: activeVariant === v.id ? 'rgba(56, 189, 248, 0.22)' : 'rgba(255,255,255,0.04)',
+                        color: activeVariant === v.id ? '#7dd3fc' : '#cbd5e1',
+                        fontSize: 12,
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {v.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+                  {PLAYER_ARCHETYPES.map((arch) => (
+                    <button
+                      key={arch.id}
+                      type="button"
+                      data-archetype-btn={arch.id}
+                      aria-pressed={activeArchetypeId === arch.id}
+                      onClick={() => setActiveArchetypeId(arch.id)}
+                      style={{
+                        padding: '6px 12px',
+                        border: activeArchetypeId === arch.id ? '1px solid #34d399' : '1px solid rgba(255,255,255,0.14)',
+                        background: activeArchetypeId === arch.id ? 'rgba(52, 211, 153, 0.18)' : 'rgba(255,255,255,0.04)',
+                        color: activeArchetypeId === arch.id ? '#6ee7b7' : '#94a3b8',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {arch.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div style={{ marginBottom: 10, fontSize: 13, fontWeight: 800, color: '#6ee7b7' }}>
+                  Recommended Action: {brainEval.correctAnswerText} ({brainEval.correctAnswer}) | Hand Score: {brainEval.handScore}/100
+                </div>
+                <p style={{ margin: '0 0 16px', fontSize: 12, color: '#cbd5e1', lineHeight: 1.6 }}>
+                  {brainEval.explanation}
+                </p>
+
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+                  <button
+                    type="button"
+                    data-launch-club-arena-cta="true"
+                    onClick={() => router.push(launchHref)}
+                    style={{
+                      padding: '10px 16px',
+                      border: '1px solid #38bdf8',
+                      background: 'rgba(56, 189, 248, 0.2)',
+                      color: '#fff',
+                      fontSize: 13,
+                      fontWeight: 900,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Practice Exploit In Club Arena →
+                  </button>
+                  <a
+                    href={VERIFIED_DRILL}
+                    style={{
+                      display: 'inline-flex',
+                      minHeight: 40,
+                      alignItems: 'center',
+                      padding: '0 16px',
+                      border: '1px solid #a5efff',
+                      background: 'linear-gradient(180deg, #2a6077, #07131d)',
+                      color: '#fff',
+                      fontSize: 13,
+                      fontWeight: 900,
+                      textDecoration: 'none',
+                    }}
+                  >
+                    Continue To Population Reads →
+                  </a>
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      </main>
+    </>
+  );
 }

@@ -142,13 +142,15 @@ export default function PvPLobbyPage() {
       source: 'pvp-duel',
     });
     if (role === 'challenger') {
-      const chalSession = `duel_chal_${Date.now().toString(36)}`;
+      const chalSession = duelObj.challengerSessionId || `duel_chal_${duelObj.duelId}`;
       params.set('session', chalSession);
       params.set('sessionId', chalSession);
+      params.set('duelRole', 'challenger');
     } else if (role === 'opponent') {
-      const oppSession = `duel_opp_${Date.now().toString(36)}`;
+      const oppSession = `duel_opp_${duelObj.duelId}`;
       params.set('session', oppSession);
       params.set('sessionId', oppSession);
+      params.set('duelRole', 'opponent');
     }
     return `/hub/training/arena/${encodeURIComponent(duelObj.gameId || 'mtt-015')}?${params.toString()}`;
   };

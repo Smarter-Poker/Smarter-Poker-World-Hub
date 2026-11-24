@@ -168,6 +168,7 @@ export default async function handler(req, res) {
           handSelection: rawHandSelection,
           variant: rawVariant,
           duelToken: rawDuelToken,
+          duelRole: rawDuelRole,
           createDuel: rawCreateDuel,
           syncedHandId: rawSyncedHandId,
           attestationContinuationRule: rawAttestationContinuationRule,
@@ -1022,10 +1023,14 @@ export default async function handler(req, res) {
                           challengerAttemptId: delivery.attemptId,
                       });
                   const isChallengerUser = !duelPayload
-                      || String(_authUser.id) === String(duelPayload.challengerId || '')
-                      || String(delivery.attemptId) === String(duelPayload.challengerAttemptId || '');
-                  const role = isChallengerUser ? 'challenger' : 'opponent';
-                  const recordKey = `${activeDuelId}_${String(delivery.attemptId || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 16)}`.slice(0, 150);
+                      || (rawDuelRole !== 'opponent' && (
+                          String(_authUser.id) === String(duelPayload.challengerId || '')
+                          || String(delivery.attemptId) === String(duelPayload.challengerAttemptId || '')
+                      ));
+                  const role = rawDuelRole === 'opponent' ? 'opponent' : (isChallengerUser ? 'challenger' : 'opponent');
+                  const recordKey = role === 'opponent' && String(_authUser.id) === String(duelPayload?.challengerId || '')
+                      ? `${activeDuelId}:opponent:${_authUser.id}`
+                      : `${activeDuelId}:${_authUser.id}`;
                   await getSupabase()
                       .from('training_tool_records')
                       .upsert({

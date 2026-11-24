@@ -20,12 +20,36 @@ import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
 const SUITS = ['♠', '♥', '♦', '♣'];
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 const SUIT_CODES = { '♠': 's', '♥': 'h', '♦': 'd', '♣': 'c' };
-const BENCHMARK_HANDS = [
-  { value: '9c8d', label: '9♣ 8♦ - Connected Hand' },
-  { value: 'QhJd', label: 'Q♥ J♦ - Broadway Hand' },
-  { value: 'KhKd', label: 'K♥ K♦ - Premium Pair' },
-  { value: 'AhAd', label: 'A♥ A♦ - Pocket Aces' },
+const VARIANTS = [
+  { id: 'nlh', label: 'NLHE (2 Cards)', holeCount: 2 },
+  { id: 'plo4', label: 'PLO4 (4 Cards)', holeCount: 4 },
+  { id: 'plo5', label: 'PLO5 (5 Cards)', holeCount: 5 },
+  { id: 'plo6', label: 'PLO6 (6 Cards)', holeCount: 6 },
 ];
+const BENCHMARK_HANDS_BY_VARIANT = {
+  nlh: [
+    { value: '9c8d', label: '9♣ 8♦ - Connected Hand' },
+    { value: 'QhJd', label: 'Q♥ J♦ - Broadway Hand' },
+    { value: 'KhKd', label: 'K♥ K♦ - Premium Pair' },
+    { value: 'AhAd', label: 'A♥ A♦ - Pocket Aces' },
+  ],
+  plo4: [
+    { value: 'QhJdTc9h', label: 'Q♥ J♦ T♣ 9♥ - Double-Suited Rundown' },
+    { value: 'AhAsKhKs', label: 'A♥ A♠ K♥ K♠ - Double-Suited Aces' },
+    { value: 'JcTc9d8d', label: 'J♣ T♣ 9♦ 8♦ - Mid Rundown' },
+    { value: 'KdQdJdTd', label: 'K♦ Q♦ J♦ T♦ - Broadway Rundown' },
+  ],
+  plo5: [
+    { value: 'QhJdTc9h8d', label: 'Q♥ J♦ T♣ 9♥ 8♦ - 5-Card Rundown' },
+    { value: 'AhAsKhKsQh', label: 'A♥ A♠ K♥ K♠ Q♥ - 5-Card Aces' },
+    { value: 'JcTc9d8d7c', label: 'J♣ T♣ 9♦ 8♦ 7♣ - Connected 5-Card' },
+  ],
+  plo6: [
+    { value: 'QhJdTc9h8d7c', label: 'Q♥ J♦ T♣ 9♥ 8♦ 7♣ - 6-Card Rundown' },
+    { value: 'AhAsKhKsQhQs', label: 'A♥ A♠ K♥ K♠ Q♥ Q♠ - 6-Card Broadway' },
+    { value: 'JcTc9d8d7c6d', label: 'J♣ T♣ 9♦ 8♦ 7♣ 6♦ - Connected 6-Card' },
+  ],
+};
 
 function cardToAscii(card) {
   return card ? `${card[0]}${SUIT_CODES[card[1]] || card[1]}` : '';
@@ -38,6 +62,7 @@ export default function HandLabV2() {
 
   // UI States
   const [selectedSlot, setSelectedSlot] = useState(null); // 'hero1', 'hero2', 'board1', etc
+  const [variant, setVariant] = useState('nlh');
 
   // Hand State
   const [heroCards, setHeroCards] = useState(['', '']);
@@ -51,6 +76,60 @@ export default function HandLabV2() {
   const [analysisError, setAnalysisError] = useState('');
   const calcSeqRef = React.useRef(0);
 
+  const variantSpec = VARIANTS.find((v) => v.id === variant) || VARIANTS[0];
+  const benchmarkHands = BENCHMARK_HANDS_BY_VARIANT[variant] || BENCHMARK_HANDS_BY_VARIANT.nlh;
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const res = await authedFetch('/api/training/tool-records?tool_id=hand-lab&limit=5');
+        if (!active || !res.ok) return;
+        const payload = await res.json().catch(() => ({}));
+        if (!active || !payload?.success || !Array.isArray(payload.records) || payload.records.length === 0) return;
+        const latest = payload.records.find((r) => r?.record_key === 'latest_analysis') || payload.records[0];
+        const saved = latest?.data || latest?.payload;
+        if (!saved || calcSeqRef.current > 0) return;
+        const savedVariant = VARIANTS.some((v) => v.id === saved.variant) ? saved.variant : 'nlh';
+        const savedHoleCount = (VARIANTS.find((v) => v.id === savedVariant) || VARIANTS[0]).holeCount;
+        setVariant(savedVariant);
+        if (Array.isArray(saved.heroCards) && saved.heroCards.length === savedHoleCount) {
+          setHeroCards(saved.heroCards);
+        }
+        if (Array.isArray(saved.boardCards) && saved.boardCards.length === 5) {
+          setBoardCards(saved.boardCards);
+        }
+        if (typeof saved.villainHand === 'string' && saved.villainHand) {
+          setVillainHand(saved.villainHand);
+        }
+        if (saved.equity !== undefined && saved.equity !== null) {
+          setEquity(String(saved.equity));
+        }
+        if (saved.results && typeof saved.results === 'object') {
+          setResults(saved.results);
+        }
+      } catch (_err) {
+        // Non-fatal hydration warning
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleVariantChange = (nextVariant) => {
+    const spec = VARIANTS.find((v) => v.id === nextVariant) || VARIANTS[0];
+    calcSeqRef.current += 1;
+    setVariant(spec.id);
+    setHeroCards(Array(spec.holeCount).fill(''));
+    const nextBenchmarks = BENCHMARK_HANDS_BY_VARIANT[spec.id] || BENCHMARK_HANDS_BY_VARIANT.nlh;
+    setVillainHand(nextBenchmarks[0].value);
+    setEquity(null);
+    setResults(null);
+    setAnalysisError('');
+    setSelectedSlot('hero1');
+  };
+
   const handleCardSelect = (rank, suit) => {
     fb.click();
     const card = `${rank}${suit}`;
@@ -63,7 +142,7 @@ export default function HandLabV2() {
 
     if (selectedSlot?.startsWith('hero')) {
       calcSeqRef.current += 1;
-      const idx = parseInt(selectedSlot.slice(-1), 10) - 1;
+      const idx = parseInt(selectedSlot.slice(4), 10) - 1;
       const newHero = [...heroCards];
       newHero[idx] = card;
       setHeroCards(newHero);
@@ -71,12 +150,12 @@ export default function HandLabV2() {
       setResults(null);
       setAnalysisError('');
       // Auto advance slot
-      if (idx === 0) setSelectedSlot('hero2');
-      else if (idx === 1 && !boardCards[0]) setSelectedSlot('board1');
+      if (idx + 1 < heroCards.length) setSelectedSlot(`hero${idx + 2}`);
+      else if (!boardCards[0]) setSelectedSlot('board1');
       else setSelectedSlot(null);
     } else if (selectedSlot?.startsWith('board')) {
       calcSeqRef.current += 1;
-      const idx = parseInt(selectedSlot.slice(-1), 10) - 1;
+      const idx = parseInt(selectedSlot.slice(5), 10) - 1;
       const newBoard = [...boardCards];
       newBoard[idx] = card;
       setBoardCards(newBoard);
@@ -89,9 +168,11 @@ export default function HandLabV2() {
     }
   };
 
+  const isHeroComplete = heroCards.length === variantSpec.holeCount && heroCards.every(Boolean);
+
   const runAnalysis = async () => {
     fb.click();
-    if (!heroCards[0] || !heroCards[1]) return;
+    if (!isHeroComplete) return;
 
     calcSeqRef.current += 1;
     const reqSeq = calcSeqRef.current;
@@ -103,7 +184,7 @@ export default function HandLabV2() {
         body: JSON.stringify({
           hands: [heroCards.map(cardToAscii).join(''), villainHand],
           board: boardCards.filter(Boolean).map(cardToAscii),
-          variant: 'holdem',
+          variant,
           iterations: 10000,
         }),
       });
@@ -114,13 +195,32 @@ export default function HandLabV2() {
         throw new Error(payload.error || `Equity Request Failed (${response.status})`);
       }
 
-      setEquity(Number(payload.results[0].equity).toFixed(1));
-      setResults({
+      const computedEquity = Number(payload.results[0].equity).toFixed(1);
+      const computedResults = {
         opponentEquity: Number(payload.results[1].equity).toFixed(1),
         iterations: payload.totalIterations,
         boardSize: payload.boardSize,
         horseBrainAnalysis: payload.horseBrainAnalysis || null,
-      });
+      };
+      setEquity(computedEquity);
+      setResults(computedResults);
+
+      authedFetch('/api/training/tool-records', {
+        method: 'POST',
+        body: JSON.stringify({
+          tool_id: 'hand-lab',
+          record_type: 'hand_analysis',
+          record_key: 'latest_analysis',
+          data: {
+            variant,
+            heroCards,
+            boardCards,
+            villainHand,
+            equity: computedEquity,
+            results: computedResults,
+          },
+        }),
+      }).catch(() => {});
     } catch (error) {
       if (reqSeq === calcSeqRef.current) {
         setEquity(null);
@@ -136,7 +236,7 @@ export default function HandLabV2() {
 
   const clearAll = () => {
     calcSeqRef.current += 1;
-    setHeroCards(['', '']);
+    setHeroCards(Array(variantSpec.holeCount).fill(''));
     setBoardCards(['', '', '', '', '']);
     setEquity(null);
     setResults(null); // Clear results on clearAll
@@ -172,50 +272,64 @@ export default function HandLabV2() {
           {/* Left: Interactive Canvas */}
           <div style={styles.canvasCol}>
             <div style={styles.canvasArea}>
-              <h3 style={styles.sectionTitle}>1. Your Hole Cards</h3>
-              <div style={styles.heroRow}>
-                <div
-                  role="button"
-                  tabIndex={0}
-                  aria-pressed={selectedSlot === 'hero1'}
-                  aria-label="Select first hole card"
-                  style={{
-                    ...styles.cardSlot,
-                    border:
-                      selectedSlot === 'hero1'
-                        ? '2px solid #00d4ff'
-                        : '2px dashed rgba(255,255,255,0.2)',
-                  }}
-                  onClick={() => setSelectedSlot('hero1')}
-                  onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedSlot('hero1'); } }}
-                >
-                  {heroCards[0] ? (
-                    <PlayingCard card={heroCards[0]} size="md" priority />
-                  ) : (
-                    <span style={styles.placeholder}>Card 1</span>
-                  )}
-                </div>
-                <div
-                  role="button"
-                  tabIndex={0}
-                  aria-pressed={selectedSlot === 'hero2'}
-                  aria-label="Select second hole card"
-                  style={{
-                    ...styles.cardSlot,
-                    border:
-                      selectedSlot === 'hero2'
-                        ? '2px solid #00d4ff'
-                        : '2px dashed rgba(255,255,255,0.2)',
-                  }}
-                  onClick={() => setSelectedSlot('hero2')}
-                  onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedSlot('hero2'); } }}
-                >
-                  {heroCards[1] ? (
-                    <PlayingCard card={heroCards[1]} size="md" priority />
-                  ) : (
-                    <span style={styles.placeholder}>Card 2</span>
-                  )}
-                </div>
+              <div data-handlab-variant-selector="true" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
+                {VARIANTS.map((v) => (
+                  <button
+                    key={v.id}
+                    type="button"
+                    data-variant-option={v.id}
+                    aria-pressed={variant === v.id}
+                    onClick={() => handleVariantChange(v.id)}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: 8,
+                      border: variant === v.id ? '1px solid #00d4ff' : '1px solid rgba(255,255,255,0.16)',
+                      background: variant === v.id ? 'rgba(0, 212, 255, 0.18)' : 'rgba(255,255,255,0.04)',
+                      color: variant === v.id ? '#67e8f9' : '#cbd5e1',
+                      fontSize: 12,
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {v.label}
+                  </button>
+                ))}
+              </div>
+
+              <h3 style={styles.sectionTitle}>1. Your Hole Cards ({variantSpec.holeCount} Cards)</h3>
+              <div style={{ ...styles.heroRow, flexWrap: 'wrap' }}>
+                {heroCards.map((cardValue, idx) => {
+                  const slotKey = `hero${idx + 1}`;
+                  return (
+                    <div
+                      key={slotKey}
+                      role="button"
+                      tabIndex={0}
+                      aria-pressed={selectedSlot === slotKey}
+                      aria-label={`Select hole card ${idx + 1}`}
+                      style={{
+                        ...styles.cardSlot,
+                        border:
+                          selectedSlot === slotKey
+                            ? '2px solid #00d4ff'
+                            : '2px dashed rgba(255,255,255,0.2)',
+                      }}
+                      onClick={() => setSelectedSlot(slotKey)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          setSelectedSlot(slotKey);
+                        }
+                      }}
+                    >
+                      {cardValue ? (
+                        <PlayingCard card={cardValue} size="md" priority />
+                      ) : (
+                        <span style={styles.placeholder}>Card {idx + 1}</span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
               <h3 style={styles.sectionTitle}>2. Board (Optional)</h3>
@@ -256,7 +370,7 @@ export default function HandLabV2() {
                 value={villainHand}
                 onChange={(e) => { calcSeqRef.current += 1; setVillainHand(e.target.value); setEquity(null); setResults(null); setAnalysisError(''); }}
               >
-                {BENCHMARK_HANDS.map((hand) => <option key={hand.value} value={hand.value}>{hand.label}</option>)}
+                {benchmarkHands.map((hand) => <option key={hand.value} value={hand.value}>{hand.label}</option>)}
               </select>
               <div style={{ margin: '-28px 0 28px', color: 'var(--sp-fg-faint)', fontSize: 12 }}>Exact Hand Vs Hand Equity - Not A Range Estimate</div>
 
@@ -264,8 +378,8 @@ export default function HandLabV2() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={runAnalysis}
-                disabled={!heroCards[0] || !heroCards[1] || analyzing}
-                style={{ ...styles.analyzeBtn, opacity: !heroCards[0] || !heroCards[1] ? 0.5 : 1 }}
+                disabled={!isHeroComplete || analyzing}
+                style={{ ...styles.analyzeBtn, opacity: !isHeroComplete ? 0.5 : 1 }}
               >
                 {analyzing ? 'RUNNING MONTE CARLO (10k Iterations)...' : 'ANALYZE EQUITY'}
               </motion.button>
@@ -280,7 +394,7 @@ export default function HandLabV2() {
                   style={styles.resultsBox}
                 >
                   <div style={{ fontSize: 14, color: 'var(--sp-fg-muted)', fontWeight: 700 }}>
-                    Hero Equity Vs {BENCHMARK_HANDS.find((hand) => hand.value === villainHand)?.label || villainHand}
+                    Hero Equity Vs {benchmarkHands.find((hand) => hand.value === villainHand)?.label || villainHand}
                   </div>
                   <div
                     style={{
@@ -343,6 +457,14 @@ export default function HandLabV2() {
                           </span>
                         )}
                       </div>
+                      {Array.isArray(results.horseBrainAnalysis.omahaBestTwoHole) &&
+                        results.horseBrainAnalysis.omahaBestTwoHole.length === 2 &&
+                        Array.isArray(results.horseBrainAnalysis.omahaBestThreeBoard) &&
+                        results.horseBrainAnalysis.omahaBestThreeBoard.length === 3 && (
+                          <div data-omaha-best-combination="true" style={{ color: '#fde68a', fontWeight: 700, marginBottom: 4 }}>
+                            {`2-Hole + 3-Board Omaha Combo: ${results.horseBrainAnalysis.omahaBestTwoHole.join(' ')} + ${results.horseBrainAnalysis.omahaBestThreeBoard.join(' ')}`}
+                          </div>
+                        )}
                       <div style={{ color: '#cbd5e1' }}>
                         {results.horseBrainAnalysis.coachingSummary}
                       </div>

@@ -389,13 +389,32 @@ export function evaluateTrainingSpotWithHorseBrain({
       ? Number(facingBetBb)
       : 0;
   const resolvedIsICM = Boolean(isICM || isMTT);
-  const resolvedBoardCards = boardCards !== undefined
+  const rawBoardCards = boardCards !== undefined
     ? boardCards
     : board !== undefined
       ? board
       : String(street || '').toLowerCase() === 'preflop'
         ? []
         : ['Qs', '7d', '2c'];
+  const usedCardLower = new Set(
+    (Array.isArray(resolvedHeroCards) ? resolvedHeroCards : [])
+      .map(normalizeCardToken)
+      .filter(Boolean)
+      .map((c) => c.toLowerCase()),
+  );
+  const fallbackBoardPool = ['8d', '5c', '2s', '6h', '3d', '4c', '7h', '2d', '3s', '4h', '5s', '6d'];
+  const resolvedBoardCards = Array.isArray(rawBoardCards)
+    ? rawBoardCards.map((card) => {
+        const norm = normalizeCardToken(card);
+        if (norm && !usedCardLower.has(norm.toLowerCase())) {
+          usedCardLower.add(norm.toLowerCase());
+          return norm;
+        }
+        const replacement = fallbackBoardPool.find((candidate) => !usedCardLower.has(candidate.toLowerCase())) || card;
+        if (replacement) usedCardLower.add(String(replacement).toLowerCase());
+        return replacement;
+      })
+    : rawBoardCards;
   const resolvedStackDepth = Number.isFinite(Number(stackDepth))
     ? Number(stackDepth)
     : Number.isFinite(Number(effectiveStackBb))

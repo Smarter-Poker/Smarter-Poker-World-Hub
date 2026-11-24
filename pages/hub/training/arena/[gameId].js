@@ -158,7 +158,12 @@ export default function TrainingArenaPage() {
             const duelToken = typeof router.query.duelToken === 'string' && router.query.duelToken.trim()
                 ? router.query.duelToken.trim()
                 : null;
-            if (!baseConfig && !variant && !targetStreet && !targetPosition && !duelToken && !syncedHandId) {
+            const duelRole = router.query.duelRole === 'opponent'
+                ? 'opponent'
+                : router.query.duelRole === 'challenger'
+                    ? 'challenger'
+                    : null;
+            if (!baseConfig && !variant && !targetStreet && !targetPosition && !duelToken && !duelRole && !syncedHandId) {
                 return { config: null, error: null };
             }
             return {
@@ -168,6 +173,7 @@ export default function TrainingArenaPage() {
                     ...(targetStreet ? { targetStreet, gameMode: 'street' } : {}),
                     ...(targetPosition ? { targetPositions: targetPosition, ...(baseConfig ? { position: targetPosition } : {}) } : {}),
                     ...(duelToken ? { duelToken } : {}),
+                    ...(duelRole ? { duelRole } : {}),
                     ...(syncedHandId ? { syncedHandId } : {}),
                 },
                 error: null,

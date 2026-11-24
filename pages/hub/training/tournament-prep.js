@@ -1,5 +1,5 @@
 // TRAIN-CSS-TOKENS-BATCH5-59 — hex sweep batch 5: literals routed to --sp-* tokens
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useMemo } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
@@ -9,6 +9,8 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
+import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
 
 // BUG FIX (TRAIN-TPP-A11Y-1): SVG icons replacing the bare back-arrow +
 // strategy-tip lightbulb. Strict build-safety rules from PR #362/#365/#369
@@ -100,6 +102,46 @@ export default function TournamentPrepPlanner() {
   const mDenom = currentBlindInfo.sb + currentBlindInfo.bb + currentBlindInfo.ante * 9;
   const initialM = mDenom > 0 ? startStack / mDenom : 0;
   const initialBBs = currentBlindInfo.bb > 0 ? startStack / currentBlindInfo.bb : 0;
+
+  const effectiveStackBb = useMemo(
+    () => Math.max(5, Math.min(200, Math.round(initialBBs || 20))),
+    [initialBBs]
+  );
+
+  const dynamicBubbleFactor = useMemo(() => {
+    const levelFactor = 1.05 + currentLevel * 0.08;
+    const depthFactor = effectiveStackBb <= 15 ? 0.35 : effectiveStackBb <= 25 ? 0.2 : 0;
+    return Number(Math.max(1.1, Math.min(2.4, levelFactor + depthFactor)).toFixed(2));
+  }, [currentLevel, effectiveStackBb]);
+
+  const arenaHref = useMemo(
+    () => buildCustomTrainingArenaHref({ gameId: 'mtt-001', variant: 'nlh' }, 'tournament-prep'),
+    []
+  );
+
+  const brainEval = useMemo(() => {
+    try {
+      const toCallBb = effectiveStackBb <= 18 ? Math.max(3, Math.round(effectiveStackBb * 0.7)) : 2.5;
+      return evaluateTrainingSpotWithHorseBrain({
+        gameId: 'mtt-001',
+        variant: 'nlh',
+        street: 'preflop',
+        heroCards: ['As', 'Qh'],
+        boardCards: [],
+        heroPosition: 'BTN',
+        villainPosition: 'BB',
+        pot: 2.5,
+        toCall: toCallBb,
+        effectiveStackBb,
+        isICM: true,
+        isPKO: false,
+        bubbleFactor: dynamicBubbleFactor,
+        payoutPressure: `Level ${currentLevel} (${effectiveStackBb} BB, M ${initialM.toFixed(1)}, BF ${dynamicBubbleFactor}x)`,
+      });
+    } catch {
+      return null;
+    }
+  }, [currentLevel, effectiveStackBb, dynamicBubbleFactor, initialM]);
 
   const [activeTab, setActiveTab] = useState('structure');
 
@@ -259,6 +301,55 @@ export default function TournamentPrepPlanner() {
                 </span>
               </div>
             </div>
+
+            {brainEval && (
+              <div
+                data-specialty-brain-panel="true"
+                data-brain-engine={brainEval.engineModule}
+                data-recommended-action={brainEval.correctAnswer}
+                data-bubble-factor={String(dynamicBubbleFactor)}
+                style={{ ...styles.card, marginTop: 16 }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: 6,
+                    marginBottom: 10,
+                  }}
+                >
+                  <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-accent-cyan)' }}>
+                    Horse Brain Tournament &amp; ICM/PKO Engine Panel
+                  </span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-amber)' }}>
+                    Level {currentLevel} | {effectiveStackBb} BB | BF {dynamicBubbleFactor}x
+                  </span>
+                </div>
+                <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.55 }}>
+                  {brainEval.explanation}
+                </p>
+                <button
+                  type="button"
+                  data-launch-club-arena-cta="true"
+                  onClick={() => router.push(arenaHref)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: 8,
+                    border: '1px solid rgba(0, 212, 255, 0.45)',
+                    background: 'rgba(0, 212, 255, 0.14)',
+                    color: '#fff',
+                    fontSize: 12,
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Practice Tournament Spot In Club Arena →
+                </button>
+              </div>
+            )}
           </div>
 
           {/* RIGHT COLUMN: Analysis Display */}

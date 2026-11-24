@@ -1037,6 +1037,9 @@ export default function useGTOTrainer(
         if (trainerConfig?.duelToken && typeof trainerConfig.duelToken === 'string') {
           params.set('duelToken', trainerConfig.duelToken.trim());
         }
+        if (trainerConfig?.duelRole) {
+          params.set('duelRole', trainerConfig.duelRole);
+        }
         if (trainerConfig?.syncedHandId && typeof trainerConfig.syncedHandId === 'string') {
           params.set('syncedHandId', trainerConfig.syncedHandId.trim());
         }

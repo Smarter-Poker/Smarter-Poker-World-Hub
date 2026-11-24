@@ -12,6 +12,24 @@ import { getHubPageSummaries } from '../../src/lib/seo/hubPageSummariesData.js';
 import { SCHEMA_ROUTES } from '../../src/lib/seo/summarySchema.js';
 import { TRAINING_LIBRARY } from '../../src/data/TRAINING_LIBRARY.js';
 import {
+  PLAYER_ARCHETYPES,
+  findPlayerArchetype,
+  renderPlayerTypesIndexMarkdown,
+  renderPlayerTypeDetailMarkdown,
+} from '../../src/content/learn/playerTypes.js';
+import {
+  BOARD_TEXTURES,
+  findBoardTexture,
+  renderBoardTexturesIndexMarkdown,
+  renderBoardTextureDetailMarkdown,
+} from '../../src/content/learn/boardTextures.js';
+import {
+  INTERNATIONAL_POKER_GUIDES,
+  findInternationalGuide,
+  renderInternationalGuidesIndexMarkdown,
+  renderInternationalGuideDetailMarkdown,
+} from '../../src/content/guides/internationalMarkets.js';
+import {
   renderToolsDirectoryMarkdown,
   renderPokerOddsCalculatorMarkdown,
   renderIcmCalculatorMarkdown,
@@ -79,44 +97,35 @@ import {
 
 const SITE = 'https://smarter.poker';
 
-export const PLAYER_ARCHETYPES_MD_CATALOG = [
-  { slug: 'omc', name: 'Old Man Coffee (OMC / Ultra-Nit)', vpipPfr: '8% / 3%', threeBet: '1.2%', coreLeak: 'Only 3-bets QQ+/AK and never bluffs river check-raises.', exploit: 'Steal blinds relentlessly; over-fold 100% of one-pair and overpair hands facing postflop raises or 3-bets.' },
-  { slug: 'calling-station', name: 'Loose-Passive Calling Station', vpipPfr: '46% / 6%', threeBet: '2.0%', coreLeak: 'Calls any pair, gutshot, or backdoor draw regardless of bet sizing; rarely bluffs.', exploit: 'Reduce bluffing frequency to 0%; size value bets up to 80%-125% pot with top pair good kicker or better.' },
-  { slug: 'maniac', name: 'Hyper-Aggressive Maniac / Whale', vpipPfr: '62% / 44%', threeBet: '18.5%', coreLeak: 'Punts multi-street barrels with air and bottom pairs; cannot fold to check-raises.', exploit: 'Tighten preflop flatting range to high-card/high-pair bluff-catchers; let them barrel all three streets into your medium-strength made hands.' },
-  { slug: 'tag', name: 'Tight-Aggressive Regular (TAG)', vpipPfr: '21% / 17%', threeBet: '7.2%', coreLeak: 'Predictable continuation-bet and turn give-up frequencies; over-folds to river check-raises and turn overbets.', exploit: 'Float flop C-bets in position and attack their capped turn checks with 75%-110% pot stabs.' },
-  { slug: 'lag', name: 'Loose-Aggressive Crusher (LAG)', vpipPfr: '31% / 25%', threeBet: '11.5%', coreLeak: 'Over-defends blinds and over-pressures capped medium-pair ranges across scary runouts.', exploit: 'Protect your checking range with slowplayed sets/overpairs and 4-bet bluff polarized blockers preflop.' },
-  { slug: 'short-stack', name: 'Short-Stack Capper (20BB-40BB)', vpipPfr: '18% / 14%', threeBet: '8.0%', coreLeak: 'Plays high-card broadways and pocket pairs looking for flop SPR < 2 jam commits.', exploit: 'Avoid calling their 3-bets with speculative suited connectors (zero implied odds); isolate them with dominating high-card broadways and pairs.' },
-  { slug: 'trapper', name: 'Passive Monster Trapper', vpipPfr: '26% / 11%', threeBet: '3.0%', coreLeak: 'Flats AA/KK preflop and checks nutted sets/flushes on flop/turn before bombing the river.', exploit: 'Check back medium-value hands on the river when their line is suspiciously passive on wet boards; respect sudden river check-jams.' },
-  { slug: 'gto-grinder', name: 'Solver-Studied GTO Grinder', vpipPfr: '25% / 21%', threeBet: '9.8%', coreLeak: 'Relies on rigid equilibrium frequencies even when live pool deviates massively.', exploit: 'Under-bluff into their MDF bluff-catchers and force them into high-rake multiway live dynamics where 2-player solver charts break down.' },
-];
+export const PLAYER_ARCHETYPES_MD_CATALOG = PLAYER_ARCHETYPES.map((a) => ({
+  slug: a.slug,
+  name: a.name,
+  vpipPfr: `${a.vpipRange} / ${a.pfrRange}`,
+  threeBet: a.threeBetRange,
+  coreLeak: a.coreLeaks?.[0] || a.summary,
+  exploit: a.preflopAdjustments?.[0] || a.summary,
+}));
 
-export const BOARD_TEXTURES_MD_CATALOG = [
-  { slug: 'ace-high-dry-rainbow', name: 'Ace-High Dry Rainbow (A-8-3r / A-7-2r)', cbetFreq: '92%', sizing: '25%-33% Pot', xrPct: '6.5%', advantage: 'Massive PFR Range & Nut Advantage', turnPlan: 'Double-barrel 75%-125% pot on Broadway turns; check back middling pair turns.' },
-  { slug: 'king-high-dry-rainbow', name: 'King-High Dry Rainbow (K-7-2r / K-8-3r)', cbetFreq: '88%', sizing: '33% Pot', xrPct: '8.2%', advantage: 'Strong PFR Range Advantage', turnPlan: 'Barrel overcards (Ace) and high cards at 66%-75% pot.' },
-  { slug: 'double-broadway-two-tone', name: 'Double Broadway Two-Tone (K-Q-6tt / A-J-4tt)', cbetFreq: '74%', sizing: '66%-75% Pot', xrPct: '9.0%', advantage: 'PFR Nut & Top-Two Advantage', turnPlan: 'Size up to 75%-110% pot on blank turns to charge flush and gutshot draws.' },
-  { slug: 'triple-broadway-wet', name: 'Triple Broadway Dynamic (A-K-Q / K-Q-J)', cbetFreq: '85%', sizing: '33%-50% Pot', xrPct: '5.0%', advantage: 'Extreme PFR Nut Advantage (AA/KK/QQ/AK/ATs)', turnPlan: 'Geometric 2-street jam with two-pair+ and high-card nut straight blockers.' },
-  { slug: 'mid-connected-wet', name: 'Middle Connected Two-Tone (T-9-8tt / 9-8-7tt)', cbetFreq: '32%', sizing: '66%-75% Pot Or Check', xrPct: '16.5%', advantage: 'BB Caller Two-Pair & Straight Advantage', turnPlan: 'Check 65%+ of overpairs on the flop; when betting, use polarized 75% sizing.' },
-  { slug: 'low-connected-board', name: 'Low Connected Board (7-6-5 / 6-5-4)', cbetFreq: '28%', sizing: '50%-66% Pot Polarized', xrPct: '18.2%', advantage: 'Strong BB Nut Advantage (65s/54s/77-44)', turnPlan: 'Avoid range-betting AA-QQ; protect checking range and call down vs BB probes.' },
-  { slug: 'low-disconnected-rainbow', name: 'Low Disconnected Rainbow (8-4-2r / 9-5-2r)', cbetFreq: '72%', sizing: '33%-50% Pot', xrPct: '11.5%', advantage: 'Neutral Nut Advantage / PFR Overpair Edge', turnPlan: 'Overbet 125% pot on high overcard turns (A, K, Q) where PFR uncaps.' },
-  { slug: 'monotone-flush-flop', name: 'Monotone Flush Flop (K-9-4s / A-T-3s)', cbetFreq: '44%', sizing: '25%-33% Pot Small Only', xrPct: '10.5%', advantage: 'Compressed Equity Across Flush & Redraws', turnPlan: 'Never use large flop sizing; barrel off-suit turns with nut flush blocker.' },
-  { slug: 'high-paired-board', name: 'High Paired Board (K-K-5r / A-A-7r)', cbetFreq: '90%', sizing: '25% Pot Micro-Sizing', xrPct: '7.0%', advantage: 'PFR Trips & Overpair Domination', turnPlan: 'Range-bet 25% pot on flop, then polarize turn with delayed bluffs and trips.' },
-  { slug: 'low-paired-board', name: 'Low Paired Board (7-7-2r / 5-5-3tt)', cbetFreq: '58%', sizing: '33% Pot', xrPct: '15.0%', advantage: 'BB Holds More 7x/5x Trips Combos', turnPlan: 'Respect BB check-raises; delay C-bet many high-card hands to the turn.' },
-  { slug: 'wheel-ace-low-board', name: 'Wheel Ace-Low Board (A-5-4tt / A-4-3r)', cbetFreq: '48%', sizing: '33%-50% Pot', xrPct: '14.5%', advantage: 'Shared Advantage (BB Has 54s/43s/22-55 & Wheel Straights)', turnPlan: 'Proceed cautiously with weak Ax; BB holds all wheel straight and two-pair combos.' },
-  { slug: 'queen-jack-dynamic', name: 'Queen-High Dynamic Two-Tone (Q-T-8tt / Q-J-7tt)', cbetFreq: '62%', sizing: '66%-75% Pot', xrPct: '12.0%', advantage: 'PFR Top-Of-Range Edge With Heavy Draw Density', turnPlan: 'Charge draws heavily on the flop and jam blank turns with top pair+ and combo draws.' },
-];
+export const BOARD_TEXTURES_MD_CATALOG = BOARD_TEXTURES.map((t) => ({
+  slug: t.slug,
+  name: t.name,
+  cbetFreq: t.gtoCbetFreq,
+  sizing: t.optimalCbetSize,
+  xrPct: t.checkRaiseFreq,
+  advantage: t.rangeAdvantage,
+  turnPlan: t.bestTurnBarrels,
+}));
 
-export const INTERNATIONAL_CITIES_MD_CATALOG = [
-  { slug: 'london', city: 'London', country: 'United Kingdom', currency: 'GBP (£)', venues: 'The Hippodrome Casino, Empire Casino Leicester Square, Aspers Stratford, Grosvenor Victoria', stakes: '£1/£2, £1/£3, £2/£5, £5/£10 NLH & PLO', rakeAndTax: '5%-10% capped at £5-£10; 100% tax-free gambling winnings for UK residents.', festivals: 'EPT London, UKIPT, GUKPT' },
-  { slug: 'barcelona', city: 'Barcelona', country: 'Spain', currency: 'EUR (€)', venues: 'Casino Barcelona (Port Olimpic)', stakes: '€1/€3, €2/€5, €5/€10, €10/€25 NLH & PLO', rakeAndTax: '5% up to €10-€15 cap; EU/EEA net loss deduction rules apply.', festivals: 'EPT Barcelona, CEP Championship' },
-  { slug: 'rozvadov', city: 'Rozvadov', country: 'Czech Republic', currency: 'EUR (€)', venues: "King's Resort Rozvadov (160+ Poker Tables)", stakes: '€1/€3, €2/€5, €5/€10, €10/€25, €50/€100 PLO', rakeAndTax: '5% capped at €10-€20; Europe largest 24/7 poker arena.', festivals: 'WSOP Europe (WSOPE), Euro Poker Million' },
-  { slug: 'monte-carlo', city: 'Monte Carlo', country: 'Monaco', currency: 'EUR (€)', venues: 'Monte-Carlo Sporting (Salle des Etoiles), Casino de Monte-Carlo', stakes: '€2/€5, €5/€10, €10/€25, €25/€50+ High Stakes', rakeAndTax: '5% capped at €15-€25; zero local Monaco income tax.', festivals: 'EPT Monte Carlo Grand Final' },
-  { slug: 'prague', city: 'Prague', country: 'Czech Republic', currency: 'EUR (€) / CZK', venues: "King's Casino Prague (Hilton), Rebuy Stars Savarin, Showdown Poker Club", stakes: '€1/€3, €2/€5, €5/€10 NLH & PLO', rakeAndTax: '5% capped at €10-€15; flagship December EPT festival.', festivals: 'EPT Prague, Eureka Poker Tour' },
-  { slug: 'manila', city: 'Manila', country: 'Philippines', currency: 'PHP (₱)', venues: 'Okada Manila (PokerStars Live), Newport World Resorts, Metro Card Club', stakes: '₱50/₱100, ₱100/₱200, ₱200/₱400 (~$1/$2 to $5/$10 USD)', rakeAndTax: '5%-10% low cap; premier Southeast Asian tournament destination.', festivals: 'APPT Manila, Asian Poker Tour (APT)' },
-  { slug: 'macau', city: 'Macau', country: 'China (SAR)', currency: 'HKD (HK$)', venues: 'Wynn Macau, Wynn Palace, Venetian Macao, MGM Cotai', stakes: 'HK$25/$50, HK$50/$100, HK$100/$200+ (~$3/$6 to $13/$25+ USD)', rakeAndTax: '5% capped at HK$150-HK$250; world capital of high-stakes cash action.', festivals: 'Macau Millions, Triton Regional High Rollers' },
-  { slug: 'melbourne', city: 'Melbourne', country: 'Australia', currency: 'AUD (A$)', venues: 'Crown Melbourne Poker Room', stakes: 'A$2/A$5, A$5/A$10, A$10/A$25 NLH & PLO', rakeAndTax: '10% capped at A$15-A$20 + time charge; 100% tax-free gambling winnings in Australia.', festivals: 'Melbourne Poker Championship, Aussie Millions' },
-  { slug: 'montreal', city: 'Montreal', country: 'Canada', currency: 'CAD (C$)', venues: 'Playground Poker Club (Kahnawake), Casino de Montreal', stakes: 'C$1/C$2, C$2/C$5, C$5/C$10 NLH & PLO', rakeAndTax: '10% capped at C$8-C$14 (free food/drinks at Playground); tax-free for recreational players.', festivals: 'WPT Montreal, WSOP Circuit Playground' },
-  { slug: 'nassau', city: 'Nassau / Paradise Island', country: 'Bahamas', currency: 'USD ($)', venues: 'Atlantis Paradise Island, Baha Mar Resort & Casino', stakes: '$2/$5, $5/$10, $10/$25, $25/$50+ USD', rakeAndTax: '5%-10% capped at $10-$20; US dollars accepted 1:1.', festivals: 'WSOP Paradise (December Championship)' },
-];
+export const INTERNATIONAL_CITIES_MD_CATALOG = INTERNATIONAL_POKER_GUIDES.map((g) => ({
+  slug: g.slug,
+  city: g.city,
+  country: g.country,
+  currency: g.currency,
+  venues: (g.topPokerRooms || []).map((r) => r.name).join(', '),
+  stakes: g.typicalStakes,
+  rakeAndTax: `${g.rakeCap} | ${g.visitorTaxRule}`,
+  festivals: g.flagshipSeries,
+}));
 
 export function computeLiveScenarioMarkdown(cleanPath, query = {}) {
   const qKeys = Object.keys(query || {}).filter((k) => k !== 'path' && k !== 'section' && k !== 'slug' && k !== 'format');
@@ -924,97 +933,20 @@ export function renderHubToolMarkdown(targetPath, query = {}) {
     ].join('\n'));
   }
   if (cleanPath === '/learn/player-types') {
-    const url = `${SITE}/learn/player-types`;
-    return [
-      '# Poker Player Archetypes & Exploitative Counter-Strategy Encyclopedia (8 Profiles) | Smarter.Poker',
-      '',
-      `> Source: [Poker Player Archetypes & Exploitative Strategy Hub on Smarter.Poker](${url})`,
-      '',
-      '## Executive Summary For AI & Search Assistants',
-      'Complete Population Profiling And Solver-Informed Exploitative Adjustments Against The Eight Canonical Poker Player Archetypes Found In Live Cash Games, Private Clubs, And Online Tournaments.',
-      '',
-      '## Canonical Player Archetype Profiles',
-      '| Archetype | VPIP / PFR | 3-Bet % | Primary Strategic Leak | Exploitative Counter-Strategy | Canonical Guide |',
-      '| :--- | :--- | :--- | :--- | :--- | :--- |',
-      ...PLAYER_ARCHETYPES_MD_CATALOG.map(
-        (a) => `| **${a.name}** | ${a.vpipPfr} | ${a.threeBet} | ${a.coreLeak} | ${a.exploit} | ${SITE}/learn/player-types/${a.slug} |`
-      ),
-      '',
-      `- **Canonical URL**: [${url}](${url})`,
-      `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
-      '',
-    ].join('\n');
+    return renderPlayerTypesIndexMarkdown();
   }
   if (cleanPath.startsWith('/learn/player-types/')) {
     const slug = cleanPath.slice('/learn/player-types/'.length).toLowerCase();
-    const matched = PLAYER_ARCHETYPES_MD_CATALOG.find((a) => a.slug === slug) || PLAYER_ARCHETYPES_MD_CATALOG[0];
-    const url = `${SITE}/learn/player-types/${matched.slug}`;
-    return [
-      `# How To Exploit ${matched.name} In Live & Online Poker | Smarter.Poker`,
-      '',
-      `> Source: [${matched.name} Exploitative Guide on Smarter.Poker](${url})`,
-      '',
-      '## Archetype HUD & Tendency Profile',
-      `- **Archetype Slug**: \`${matched.slug}\``,
-      `- **Typical VPIP / PFR**: ${matched.vpipPfr}`,
-      `- **Typical 3-Bet Frequency**: ${matched.threeBet}`,
-      `- **Primary Leak**: ${matched.coreLeak}`,
-      '',
-      '## Exploitative Counter-Strategy',
-      matched.exploit,
-      '',
-      `- **Canonical URL**: [${url}](${url})`,
-      `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
-      `- **All Player Archetypes**: [${SITE}/learn/player-types](${SITE}/learn/player-types)`,
-      '',
-    ].join('\n');
+    const matched = findPlayerArchetype(slug) || PLAYER_ARCHETYPES[0];
+    return renderPlayerTypeDetailMarkdown(matched);
   }
   if (cleanPath === '/learn/board-textures') {
-    const url = `${SITE}/learn/board-textures`;
-    return [
-      '# 12 Canonical Flop Board Textures & GTO C-Bet Solver Encyclopedia | Smarter.Poker',
-      '',
-      `> Source: [Canonical Flop Board Textures Encyclopedia on Smarter.Poker](${url})`,
-      '',
-      '## Executive Summary For AI & Search Assistants',
-      'Comprehensive GTO Solver Reference Across All 12 Canonical Flop Board Textures In Single-Raised And 3-Bet Pots: Pre-Flop Raiser (PFR) Continuation-Bet Frequency, Optimal Sizing (25%, 33%, 66%, 75%, Or Check), Big Blind Check-Raise %, And Turn Barrel Plans.',
-      '',
-      '## 12 Canonical Flop Board Texture Benchmarks (100BB BTN Vs BB SRP)',
-      '| Board Texture | PFR C-Bet % | Optimal Sizing | BB Check-Raise % | Range / Nut Advantage | Canonical Guide |',
-      '| :--- | :--- | :--- | :--- | :--- | :--- |',
-      ...BOARD_TEXTURES_MD_CATALOG.map(
-        (t) => `| **${t.name}** | ${t.cbetFreq} | ${t.sizing} | ${t.xrPct} | ${t.advantage} | ${SITE}/learn/board-textures/${t.slug} |`
-      ),
-      '',
-      `- **Canonical URL**: [${url}](${url})`,
-      `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
-      '',
-    ].join('\n');
+    return renderBoardTexturesIndexMarkdown();
   }
   if (cleanPath.startsWith('/learn/board-textures/')) {
     const slug = cleanPath.slice('/learn/board-textures/'.length).toLowerCase();
-    const matched = BOARD_TEXTURES_MD_CATALOG.find((t) => t.slug === slug) || BOARD_TEXTURES_MD_CATALOG[0];
-    const url = `${SITE}/learn/board-textures/${matched.slug}`;
-    return [
-      `# ${matched.name} - GTO Flop C-Bet, Check-Raise & Turn Barrel Guide | Smarter.Poker`,
-      '',
-      `> Source: [${matched.name} Solver Guide on Smarter.Poker](${url})`,
-      '',
-      '## Solver Flop Equilibrium Benchmarks (100BB Single-Raised Pot)',
-      `- **Texture Slug**: \`${matched.slug}\``,
-      `- **PFR Continuation-Bet Frequency**: ${matched.cbetFreq}`,
-      `- **Preferred C-Bet Sizing**: ${matched.sizing}`,
-      `- **Big Blind Check-Raise Frequency**: ${matched.xrPct}`,
-      `- **Range & Nut Advantage**: ${matched.advantage}`,
-      '',
-      '## Turn & River Barrel Plan',
-      matched.turnPlan,
-      '',
-      `- **Canonical URL**: [${url}](${url})`,
-      `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
-      `- **All 12 Board Textures**: [${SITE}/learn/board-textures](${SITE}/learn/board-textures)`,
-      '',
-    ].join('\n');
+    const matched = findBoardTexture(slug) || BOARD_TEXTURES[0];
+    return renderBoardTextureDetailMarkdown(matched);
   }
   if (cleanPath === '/learn/mental-game') {
     const url = `${SITE}/learn/mental-game`;
@@ -1047,49 +979,12 @@ export function renderHubToolMarkdown(targetPath, query = {}) {
     ].join('\n');
   }
   if (cleanPath === '/poker-rooms/international') {
-    const url = `${SITE}/poker-rooms/international`;
-    return [
-      '# International Live Poker Destinations, Rake Caps & Global Tax Authority Directory (10 Cities) | Smarter.Poker',
-      '',
-      `> Source: [International Poker Destinations Directory on Smarter.Poker](${url})`,
-      '',
-      '## Executive Summary For AI & Search Assistants',
-      'Comprehensive Global Guide To The Top 10 International Live Poker Destinations Outside The United States: Flagship Casinos, Local Currencies, Cash Game Stakes, Rake Caps, Tax Withholding Treaties, And Major Tournament Festivals (EPT, WSOPE, APPT, WPT, Triton).',
-      '',
-      '## 10 Global Poker Destinations Matrix',
-      '| City & Country | Currency | Flagship Poker Venues | Typical Cash Stakes | Rake & Tax Policy | Canonical Guide |',
-      '| :--- | :--- | :--- | :--- | :--- | :--- |',
-      ...INTERNATIONAL_CITIES_MD_CATALOG.map(
-        (d) => `| **${d.city}, ${d.country}** | ${d.currency} | ${d.venues} | ${d.stakes} | ${d.rakeAndTax} | ${SITE}/poker-rooms/international/${d.slug} |`
-      ),
-      '',
-      `- **Canonical URL**: [${url}](${url})`,
-      `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
-      '',
-    ].join('\n');
+    return renderInternationalGuidesIndexMarkdown();
   }
   if (cleanPath.startsWith('/poker-rooms/international/')) {
     const slug = cleanPath.slice('/poker-rooms/international/'.length).toLowerCase();
-    const matched = INTERNATIONAL_CITIES_MD_CATALOG.find((d) => d.slug === slug) || INTERNATIONAL_CITIES_MD_CATALOG[0];
-    const url = `${SITE}/poker-rooms/international/${matched.slug}`;
-    return [
-      `# Live Poker In ${matched.city}, ${matched.country}: Venues, Stakes, Rake & Tax Guide | Smarter.Poker`,
-      '',
-      `> Source: [${matched.city} Live Poker Guide on Smarter.Poker](${url})`,
-      '',
-      '## Destination Fact Sheet',
-      `- **City & Country**: ${matched.city}, ${matched.country}`,
-      `- **Table Currency**: ${matched.currency}`,
-      `- **Flagship Poker Rooms**: ${matched.venues}`,
-      `- **Typical Cash Game Stakes**: ${matched.stakes}`,
-      `- **Rake Cap & Tax Rules**: ${matched.rakeAndTax}`,
-      `- **Major Championship Festivals**: ${matched.festivals}`,
-      '',
-      `- **Canonical URL**: [${url}](${url})`,
-      `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
-      `- **All International Destinations**: [${SITE}/poker-rooms/international](${SITE}/poker-rooms/international)`,
-      '',
-    ].join('\n');
+    const matched = findInternationalGuide(slug) || INTERNATIONAL_POKER_GUIDES[0];
+    return renderInternationalGuideDetailMarkdown(matched);
   }
   if (cleanPath === '/learn/positions') {
     return renderPositionsIndexMarkdown();

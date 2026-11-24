@@ -1,5 +1,5 @@
 /**
- * MENTAL GAME JOURNAL — Tilt & Trigger Tracking
+ * MENTAL GAME JOURNAL - Tilt & Trigger Tracking
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Tracks sleep quality, caffeine, states, and tilt triggers.
  * Backed by dedicated non-graded tool records so journal entries never affect
@@ -9,9 +9,9 @@
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
-// TRAIN-CSS-TOKENS-BATCH5-29 — hex sweep batch 5: literals routed to --sp-* tokens
-// TRAIN-CSS-GRADIENT-ADOPT-22 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
-import React, { useState, useEffect } from 'react';
+// TRAIN-CSS-TOKENS-BATCH5-29 - hex sweep batch 5: literals routed to --sp-* tokens
+// TRAIN-CSS-GRADIENT-ADOPT-22 - gradient hex routed to rgba(var(--sp-*-rgb), 1)
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -21,7 +21,9 @@ import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { SkeletonBox } from '../../../src/components/ui/SkeletonLoader';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
-// TRAIN-WIRE-EMPTY-1c — adoption: shared empty-state primitive
+import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
+import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
+// TRAIN-WIRE-EMPTY-1c - adoption: shared empty-state primitive
 
 
 // BUG FIX (TRAIN-JOURNAL-A11Y-1): SVG icons replacing the mental-journal
@@ -78,6 +80,28 @@ const TRIGGERS = [
 
 const LOCAL_JOURNAL_KEY = 'training-mental-journal-v2';
 
+const HERO_CARDS_BY_VARIANT = {
+  nlh: ['As', 'Kd'],
+  plo4: ['As', 'Ks', 'Qh', 'Jh'],
+  plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
+  plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
+};
+
+const BOARD_CARDS = ['Qs', '7d', '2c'];
+
+const pillButtonStyle = (active) => ({
+  padding: '7px 12px',
+  borderRadius: 6,
+  fontSize: 12,
+  fontWeight: 800,
+  cursor: 'pointer',
+  border: active ? '1px solid #67e8f9' : '1px solid rgba(255,255,255,0.16)',
+  background: active
+    ? 'linear-gradient(180deg, rgba(8,145,178,0.75), rgba(3,50,74,0.92))'
+    : 'rgba(255,255,255,0.05)',
+  color: active ? '#e8fbff' : '#cbd5e1',
+});
+
 function readLocalEntries() {
   try {
     const value = JSON.parse(localStorage.getItem(LOCAL_JOURNAL_KEY) || '[]');
@@ -104,6 +128,34 @@ export default function MentalJournalPage() {
   const [savedToast, setSavedToast] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [fetchError, setFetchError] = useState(null);
+  const [activeVariant, setActiveVariant] = useState('nlh');
+  const [effectiveStackBb, setEffectiveStackBb] = useState(100);
+
+  const heroCards = HERO_CARDS_BY_VARIANT[activeVariant] || HERO_CARDS_BY_VARIANT.nlh;
+  const boardCards = BOARD_CARDS;
+
+  const brainEval = useMemo(
+    () =>
+      evaluateTrainingSpotWithHorseBrain({
+        variant: activeVariant,
+        street: 'flop',
+        heroCards,
+        boardCards,
+        pot: 6.5,
+        toCall: 2.2,
+        effectiveStackBb,
+      }),
+    [activeVariant, heroCards, boardCards, effectiveStackBb]
+  );
+
+  const arenaHref = useMemo(
+    () =>
+      buildCustomTrainingArenaHref(
+        { gameId: activeVariant === 'nlh' ? 'psy-001' : 'cash-005', variant: activeVariant },
+        'mental-journal'
+      ),
+    [activeVariant]
+  );
 
   // Fetch history on mount or when switching to 'history'
   useEffect(() => {
@@ -123,24 +175,32 @@ export default function MentalJournalPage() {
       }
       const res = await authedFetch('/api/training/tool-records?toolId=mental-journal&recordType=entry&limit=50');
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const data = await res.json();
-      if (data.success && Array.isArray(data.records)) {
-        const parsed = data.records
-          .filter((record) => record.data?.mindState)
-          .map((record) => ({
-            id: record.record_key,
-            date: new Date(record.data.clientCreatedAt || record.created_at).toLocaleDateString('en-US', {
-              month: 'short',
-              day: 'numeric',
-              hour: 'numeric',
-              minute: '2-digit',
-            }),
-            sleep: record.data.sleep ?? 7,
-            caffeine: record.data.caffeine ?? 0,
-            mindState: record.data.mindState || 'zone',
-            triggers: record.data.triggers || [],
-            notes: record.data.notes || '',
-          }));
+      const json = await res.json();
+      const rawRecords = Array.isArray(json.records)
+        ? json.records
+        : Array.isArray(json.data)
+          ? json.data
+          : [];
+      if ((json.success || rawRecords.length > 0) && Array.isArray(rawRecords)) {
+        const parsed = rawRecords
+          .filter((record) => record.data?.mindState || record.mindState)
+          .map((record) => {
+            const recData = record.data || record;
+            return {
+              id: record.record_key || record.id,
+              date: new Date(recData.clientCreatedAt || record.created_at).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+              }),
+              sleep: recData.sleep ?? 7,
+              caffeine: recData.caffeine ?? 0,
+              mindState: recData.mindState || 'zone',
+              triggers: recData.triggers || [],
+              notes: recData.notes || '',
+            };
+          });
         setEntries(parsed);
       }
     } catch (e) {
@@ -273,6 +333,107 @@ export default function MentalJournalPage() {
 
         <div style={{ padding: '20px', maxWidth: 600, margin: '0 auto' }}>
           <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); if (view === 'history') fetchHistory(); }} />
+
+          {brainEval && (
+            <div
+              data-specialty-brain-panel="true"
+              data-brain-engine={brainEval.engineModule}
+              data-recommended-action={brainEval.correctAnswer}
+              data-active-variant={activeVariant}
+              style={{
+                marginBottom: 20,
+                padding: 18,
+                borderRadius: 12,
+                border: '1px solid rgba(56,189,248,0.40)',
+                background: 'rgba(15,23,42,0.82)',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: 8,
+                  marginBottom: 14,
+                }}
+              >
+                <div style={{ fontSize: 13, fontWeight: 900, color: '#67e8f9', textTransform: 'uppercase' }}>
+                  Horse Brain Session &amp; Mindset Coaching Panel
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 800, color: '#4ade80' }}>
+                  {`Engine: ${brainEval.engineModule} · Recommended: ${brainEval.correctAnswerText}`}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 14 }}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>
+                    Variant
+                  </div>
+                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                    {['nlh', 'plo4', 'plo5', 'plo6'].map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        data-variant-option={v}
+                        onClick={() => setActiveVariant(v)}
+                        style={pillButtonStyle(activeVariant === v)}
+                      >
+                        {v.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>
+                    Risk / Stack Profile
+                  </div>
+                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                    {[20, 40, 100, 200].map((stk) => (
+                      <button
+                        key={stk}
+                        type="button"
+                        data-stack-option={stk}
+                        onClick={() => setEffectiveStackBb(stk)}
+                        style={pillButtonStyle(effectiveStackBb === stk)}
+                      >
+                        {stk} BB
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.55, marginBottom: 14 }}>
+                {brainEval.explanation}
+              </div>
+
+              <button
+                type="button"
+                data-launch-club-arena-cta="true"
+                data-launch-href={arenaHref}
+                onClick={() => router.push(arenaHref)}
+                style={{
+                  display: 'inline-flex',
+                  minHeight: 44,
+                  alignItems: 'center',
+                  padding: '0 18px',
+                  borderRadius: 8,
+                  border: '1px solid #67e8f9',
+                  background: 'linear-gradient(180deg, #0891b2, #075985)',
+                  color: '#fff',
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                  fontSize: 13,
+                }}
+              >
+                Launch Calibrated Drill In Club Arena →
+              </button>
+            </div>
+          )}
+
           {/* View Toggle */}
           <div
             role="group"

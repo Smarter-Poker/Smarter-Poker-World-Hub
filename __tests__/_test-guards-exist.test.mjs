@@ -867,6 +867,7 @@ import './training-reconciled-workflows.test.mjs';
 import './hub-settings-rail-opt-in.test.mjs';
 import './fleet-content-cleanup-migration.test.mjs';
 import './promo-campaigns.test.mjs';
+import './aeo-discovery-hardening.law.test.mjs';
 import './trivia-hardening-20261124.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
