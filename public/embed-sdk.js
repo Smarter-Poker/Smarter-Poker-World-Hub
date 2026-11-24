@@ -212,6 +212,54 @@
       title: '10-Question Quantitative GTO Poker IQ Diagnostic Test',
       anchor: 'Smarter.Poker GTO Poker IQ Test',
       height: 820
+    },
+    'geometric-bet-calculator': {
+      path: '/tools/geometric-bet-calculator',
+      title: 'Geometric Bet Sizing (2e & 3e) Street Calculator',
+      anchor: 'Smarter.Poker Geometric Bet Sizing Calculator',
+      height: 780
+    },
+    'late-reg-calculator': {
+      path: '/tools/late-reg-calculator',
+      title: 'Tournament Late-Registration ICM & Equity Boost Calculator',
+      anchor: 'Smarter.Poker Late-Registration ICM Calculator',
+      height: 780
+    },
+    'mtt-grind-planner': {
+      path: '/tools/mtt-grind-planner',
+      title: 'MTT Sunday Grind Schedule, ABI & Bankroll Planner',
+      anchor: 'Smarter.Poker MTT Grind & ABI Planner',
+      height: 800
+    },
+    'plo-outs-calculator': {
+      path: '/tools/plo-outs-calculator',
+      title: 'PLO4 & PLO5 Straight Wrap Outs & Nut Equity Calculator',
+      anchor: 'Smarter.Poker PLO Wrap & Outs Calculator',
+      height: 780
+    },
+    'poker-trip-planner': {
+      path: '/tools/poker-trip-planner',
+      title: 'Poker Trip, Travel Overhead & Breakeven EV Planner',
+      anchor: 'Smarter.Poker Festival Trip & Overhead Planner',
+      height: 800
+    },
+    'shot-clock': {
+      path: '/tools/shot-clock',
+      title: 'TDA Tournament Shot Clock & Time-Bank Manager',
+      anchor: 'Smarter.Poker TDA Tournament Shot Clock',
+      height: 760
+    },
+    'table-selection-calculator': {
+      path: '/tools/table-selection-calculator',
+      title: 'Live Cash Game Table Selection & Winrate Multiplier Calculator',
+      anchor: 'Smarter.Poker Live Table Selection Calculator',
+      height: 780
+    },
+    'winrate-confidence-calculator': {
+      path: '/tools/winrate-confidence-calculator',
+      title: 'Poker Winrate Confidence Interval (70% / 95% / 99%) Calculator',
+      anchor: 'Smarter.Poker Winrate Confidence Calculator',
+      height: 780
     }
   };
 

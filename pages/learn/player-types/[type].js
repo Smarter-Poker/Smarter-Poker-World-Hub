@@ -9,7 +9,7 @@
  * House style: Title Case, zero em dashes.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -51,8 +51,31 @@ export async function getStaticProps({ params }) {
 }
 
 export default function PokerPlayerTypeDetailPage({ archetype, allArchetypes = [] }) {
+  const [copiedCard, setCopiedCard] = useState('');
   const canonicalPath = playerTypePath(archetype.slug);
   const canonicalUrl = `https://smarter.poker${canonicalPath}`;
+
+  const archetypeAssumptions = '100BB 6-Max & 9-Max Cash Game Population Frequencies; Deviation From 5% Capped Rake GTO Baseline';
+  const discordFactSheet = `[Smarter.Poker Player Archetype Exploit Sheet: ${archetype.name} (${archetype.code})] VPIP: ${archetype.vpipRange} | PFR: ${archetype.pfrRange} | 3-Bet: ${archetype.threeBetRange} | WTSD: ${archetype.wtsdRange} | Assumptions: ${archetypeAssumptions} | Guide: ${canonicalUrl}`;
+  const redditFactSheet = `**${archetype.name} (${archetype.code}) - Exploitative Counter-Strategy Fact Sheet**\n- **VPIP Range:** ${archetype.vpipRange}\n- **PFR Range:** ${archetype.pfrRange}\n- **3-Bet Frequency:** ${archetype.threeBetRange}\n- **Went To Showdown (WTSD):** ${archetype.wtsdRange}\n- **Model Assumptions:** ${archetypeAssumptions}\n- *Source: [Smarter.Poker ${archetype.name} Exploit Guide](${canonicalUrl})*`;
+
+  const handleCopyFactSheet = async (type, text) => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(text);
+        setCopiedCard(type);
+        setTimeout(() => setCopiedCard(''), 2200);
+      }
+      if (typeof fetch === 'function') {
+        fetch(
+          `/api/seo/referral-stats?event=record&category=solved_spot_shares&item=player-type-${encodeURIComponent(archetype.slug)}&source=${encodeURIComponent(type)}`,
+          { method: 'POST', keepalive: true }
+        ).catch(() => {});
+      }
+    } catch {
+      // Ignore clipboard failures
+    }
+  };
 
   const jsonLd = [
     {
@@ -169,6 +192,20 @@ export default function PokerPlayerTypeDetailPage({ archetype, allArchetypes = [
             <Link href={PLAYER_TYPES_BASE_PATH} style={styles.crossBtnOutline}>
               All 8 Player Archetypes
             </Link>
+            <button
+              type="button"
+              onClick={() => handleCopyFactSheet('discord', discordFactSheet)}
+              style={{ ...styles.crossBtnOutline, cursor: 'pointer', color: '#25c8ff', borderColor: 'rgba(37, 200, 255, 0.45)' }}
+            >
+              {copiedCard === 'discord' ? 'Copied Discord Fact Sheet!' : 'Copy Discord Exploit Card'}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleCopyFactSheet('reddit', redditFactSheet)}
+              style={{ ...styles.crossBtnOutline, cursor: 'pointer', color: '#34d399', borderColor: 'rgba(52, 211, 153, 0.45)' }}
+            >
+              {copiedCard === 'reddit' ? 'Copied Reddit Markdown!' : 'Copy Reddit / Forum Markdown'}
+            </button>
           </div>
         </header>
 

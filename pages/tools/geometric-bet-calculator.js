@@ -19,6 +19,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 
 const GEOMETRIC_PRESETS = [
   {
@@ -94,6 +95,12 @@ export default function GeometricBetCalculatorPage() {
     if (q.stack !== undefined) setEffectiveStack(Math.max(1, Number(q.stack) || 97));
     if (q.mode === '3e' || q.mode === '2e' || q.mode === 'check_2e') setStreetMode(q.mode);
   }, [router.isReady, router.query]);
+
+  useSolvedSpotUrlSync({
+    pot: potSize,
+    stack: effectiveStack,
+    mode: streetMode,
+  });
 
   const handleSelectPreset = (preset) => {
     setActivePresetId(preset.id);
