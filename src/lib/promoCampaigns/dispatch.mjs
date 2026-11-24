@@ -16,7 +16,7 @@
  */
 import crypto from 'crypto';
 import { resendApiKey, resendFrom } from '../email/resendAccount.mjs';
-import { sendSms as defaultSendSms } from '../dailyDigest/delivery.mjs';
+import { sendEmail as defaultSendSingleEmail, sendSms as defaultSendSms } from '../dailyDigest/delivery.mjs';
 import { buildPromoSignupUrl } from './promoSignupToken.mjs';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -85,6 +85,19 @@ export function normalizeDeliverableEmail(raw) {
     if (!email || email.length > MAX_EMAIL_LENGTH) return null;
     if (!EMAIL_RE.test(email)) return null;
     if (SYNTHETIC_EMAIL_RE.test(email)) return null;
+    return email;
+}
+
+/**
+ * Validate an explicit admin test-send target email. Unlike mass audience
+ * resolution (which excludes internal @smarter.poker horse/probe addresses),
+ * an administrator testing their own @smarter.poker inbox must be permitted.
+ */
+export function normalizeExplicitTestEmail(raw) {
+    const email = String(raw || '').trim().toLowerCase().replace(/^[<("']+|[>)"',;]+$/g, '');
+    if (!email || email.length > MAX_EMAIL_LENGTH) return null;
+    if (!EMAIL_RE.test(email)) return null;
+    if (/(?:\.invalid|\.local)$/i.test(email)) return null;
     return email;
 }
 
@@ -620,10 +633,12 @@ export async function dispatchPromoCampaign(
         testEmail = '',
         testPhone = '',
         createdBy = null,
-        resendFactory = (key) => createHttpResendBatchSender(key),
+        resendFactory = null,
+        sendSingleEmail = defaultSendSingleEmail,
         sendSms = defaultSendSms,
     } = {}
 ) {
+    const effectiveResendFactory = resendFactory || ((key) => createHttpResendBatchSender(key));
     const cleanSubject = String(subject || '').trim().slice(0, 180);
     const cleanHeadline = String(headline || '').trim().slice(0, 200);
     const cleanBody = String(body || '').trim().slice(0, 8000);
@@ -662,12 +677,12 @@ export async function dispatchPromoCampaign(
 
     // Single-recipient test send (does not message the full audience)
     if (testOnly) {
-        const targetEmail = wantEmail && testEmail ? normalizeDeliverableEmail(testEmail) : null;
+        const targetEmail = wantEmail && testEmail ? normalizeExplicitTestEmail(testEmail) : null;
         const targetPhone = wantSms && testPhone ? sendablePhone(testPhone) : null;
         if (!targetEmail && !targetPhone) {
-            throw new Error('Enter a valid test email or test phone number for the selected channel');
+            throw new Error('Enter a valid test email or US mobile phone number for the selected channel');
         }
-        const testOutcome = { emailSent: false, smsSent: false, errors: [] };
+        const testOutcome = { emailSent: false, smsSent: false, targetEmail, targetPhone, errors: [] };
 
         if (targetEmail) {
             if (!emailConfigured) throw new Error('Resend API key is not configured');
@@ -682,22 +697,38 @@ export async function dispatchPromoCampaign(
                 siteUrl,
                 unsubscribeUrl,
             });
-            const resend = resendFactory(apiKey);
-            const batchRes = await sendResendBatch(resend, [
-                {
-                    from,
+            if (resendFactory) {
+                const resend = effectiveResendFactory(apiKey);
+                const batchRes = await sendResendBatch(resend, [
+                    {
+                        from,
+                        to: [targetEmail],
+                        subject: `[TEST] ${cleanSubject}`,
+                        html: rendered.html,
+                        text: rendered.text,
+                        headers: {
+                            'List-Unsubscribe': `<${unsubscribeUrl}>`,
+                            'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+                        },
+                    },
+                ]);
+                if (batchRes.sent > 0) testOutcome.emailSent = true;
+                else testOutcome.errors.push(batchRes.error || 'Test email failed');
+            } else {
+                const singleRes = await sendSingleEmail({
                     to: [targetEmail],
                     subject: `[TEST] ${cleanSubject}`,
                     html: rendered.html,
                     text: rendered.text,
+                    from: process.env.NEWS_DIGEST_FROM || DEFAULT_PROMO_FROM,
                     headers: {
                         'List-Unsubscribe': `<${unsubscribeUrl}>`,
                         'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
                     },
-                },
-            ]);
-            if (batchRes.sent > 0) testOutcome.emailSent = true;
-            else testOutcome.errors.push(batchRes.error || 'Test email failed');
+                });
+                if (singleRes?.ok) testOutcome.emailSent = true;
+                else testOutcome.errors.push(singleRes?.error || 'Test email failed');
+            }
         }
 
         if (targetPhone) {
@@ -803,7 +834,7 @@ export async function dispatchPromoCampaign(
 
     try {
         if (wantEmail && targetEmails.length > 0) {
-            const resend = resendFactory(apiKey);
+            const resend = effectiveResendFactory(apiKey);
             for (let i = 0; i < targetEmails.length; i += EMAIL_BATCH_SIZE) {
                 const chunk = targetEmails.slice(i, i + EMAIL_BATCH_SIZE);
                 const messages = chunk.map((email) => {

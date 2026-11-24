@@ -49,11 +49,16 @@ async function authorizeAdmin(req) {
     if (!user?.id) return null;
     const { data: profile, error } = await sb
         .from('profiles')
-        .select('role')
+        .select('role, is_admin, phone')
         .eq('id', user.id)
         .maybeSingle();
-    if (error || !profile || !ADMIN_ROLES.includes(profile.role)) return null;
-    return { kind: 'admin', userId: user.id };
+    if (error || !profile || (!profile.is_admin && !ADMIN_ROLES.includes(profile.role))) return null;
+    return {
+        kind: 'admin',
+        userId: user.id,
+        email: typeof user.email === 'string' ? user.email.trim() : '',
+        phone: typeof profile.phone === 'string' ? profile.phone.trim() : '',
+    };
 }
 
 export default async function handler(req, res) {
@@ -86,6 +91,8 @@ export default async function handler(req, res) {
                 postalAddress: DEFAULT_POSTAL_ADDRESS,
                 emailConfigured,
                 smsConfigured,
+                viewerEmail: auth.email || '',
+                viewerPhone: auth.phone || '',
                 defaultDraft: DEFAULT_PROMO_DRAFT,
             });
         }

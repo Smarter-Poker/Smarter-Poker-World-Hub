@@ -8,10 +8,10 @@ import styles from '../../src/components/admin/NewsletterOperations.module.css';
 const INITIAL_PROMO_DRAFT = {
     subject: 'Claim 500 Free Diamonds, 30-Day Free VIP & 25 Free Chips on Smarter.Poker',
     headline: '500 Free Diamonds + 30-Day Free VIP + 25 Free Chips',
-    body: 'Train with GTO poker tools, discover live poker games near you, and take a seat in Club Arena on Smarter.Poker.\n\nCreate or sign in to your free account, verify your phone to unlock 500 Free Diamonds plus a 30-Day Free VIP Card, and join Kings Club (Club Code 25450) in Club Arena for 25 Free Chips.',
+    body: 'Train with GTO poker tools, discover live poker games near you, and take a seat in Club Arena on Smarter.Poker.\n\nCreate your free account through this exclusive promotion and verify your phone number to instantly receive 500 Free Diamonds, a 30-Day Free VIP Card, and 25 Free Chips in Kings Club (Club Code 25450).',
     ctaLabel: 'Claim Your Free Rewards',
-    ctaUrl: 'https://smarter.poker/auth/signup?next=%2Fhub%2Fclub-arena%2F%3Fjoin%3D25450',
-    smsBody: 'Smarter.Poker: Claim 500 Free Diamonds, 30-Day Free VIP + 25 Free Chips in Kings Club (Code 25450): https://smarter.poker/auth/signup Reply STOP to opt out.',
+    ctaUrl: 'https://smarter.poker/auth/signup?redirect=%2Fhub%2Fclub-arena%2F%3Fjoin%3D25450',
+    smsBody: 'Smarter.Poker: Claim 500 Free Diamonds, 30-Day Free VIP + 25 Free Chips in Kings Club (Code 25450): https://smarter.poker/go/promo Reply STOP to opt out.',
     postalAddress: 'PO Box 1905, 9624 Cicero Ave, Oak Lawn, IL 60453',
     channels: 'both',
     scope: 'all',
@@ -49,7 +49,10 @@ export default function NewsletterOperations() {
     // Promotional campaign & bulk lead import state
     const [promoMeta, setPromoMeta] = useState(null);
     const [promoDraft, setPromoDraft] = useState(INITIAL_PROMO_DRAFT);
+    const [promoTouched, setPromoTouched] = useState(false);
     const [promoPreview, setPromoPreview] = useState(null);
+    const [promoInlineNotice, setPromoInlineNotice] = useState('');
+    const [promoInlineError, setPromoInlineError] = useState('');
     const [testEmail, setTestEmail] = useState('');
     const [testPhone, setTestPhone] = useState('');
     const [leadInput, setLeadInput] = useState('');
@@ -127,13 +130,19 @@ export default function NewsletterOperations() {
             if (response.ok && body?.success) {
                 setPromoMeta(body);
                 if (body.defaultDraft) {
-                    setPromoDraft((prev) => ({ ...body.defaultDraft, ...prev }));
+                    setPromoDraft((prev) => (promoTouched ? prev : { ...prev, ...body.defaultDraft }));
+                }
+                if (body.viewerEmail) {
+                    setTestEmail((prev) => (prev.trim() ? prev : body.viewerEmail));
+                }
+                if (body.viewerPhone) {
+                    setTestPhone((prev) => (prev.trim() ? prev : body.viewerPhone));
                 }
             }
         } catch (_err) {
             // Non-blocking metadata load; individual actions report their own errors.
         }
-    }, []);
+    }, [promoTouched]);
 
     useEffect(() => {
         let active = true;
@@ -154,12 +163,20 @@ export default function NewsletterOperations() {
     }, []);
 
     const updatePromoField = (field, value) => {
+        setPromoTouched(true);
         setPromoDraft((prev) => ({ ...prev, [field]: value }));
         setPromoPreview(null);
     };
 
     const runPromoAction = async (action) => {
-        if (!token) return;
+        if (!token) {
+            setPromoInlineError('Sign In With An Administrator Account To Continue.');
+            return;
+        }
+        if (action === 'test' && !testEmail.trim() && !testPhone.trim()) {
+            setPromoInlineError('Enter A Test Email Address Or US Mobile Number Above First.');
+            return;
+        }
         if (action === 'send') {
             const count = promoPreview?.recipients || 0;
             if (!count) return;
@@ -170,6 +187,8 @@ export default function NewsletterOperations() {
         setRunning(`promo-${action}`);
         setError('');
         setNotice('');
+        setPromoInlineError('');
+        setPromoInlineNotice('');
         try {
             const response = await fetch('/api/admin/promo-campaign', {
                 method: 'POST',
@@ -190,19 +209,26 @@ export default function NewsletterOperations() {
             }
             if (action === 'preview') {
                 setPromoPreview(body);
+                setPromoInlineNotice(`Preview Ready: ${body.emailRecipients || 0} Deliverable Emails And ${body.smsRecipients || 0} Mobile Numbers.`);
             } else if (action === 'test') {
                 const parts = [];
-                if (body.emailSent) parts.push(`email sent to ${testEmail}`);
-                if (body.smsSent) parts.push(`SMS sent to ${testPhone}`);
+                if (body.emailSent) parts.push(`Email Sent To ${body.targetEmail || testEmail.trim()}`);
+                if (body.smsSent) parts.push(`SMS Sent To ${body.targetPhone || testPhone.trim()}`);
                 if (body.errors?.length) throw new Error(body.errors.join(' | '));
-                setNotice(`Test dispatch complete (${parts.join(', ') || 'verified'}).`);
+                const msg = `Test Message Sent (${parts.join(' + ') || 'Verified'}).`;
+                setNotice(msg);
+                setPromoInlineNotice(msg);
             } else if (action === 'send') {
                 setPromoPreview(null);
-                setNotice(`Promotion dispatched: ${body.emailSent || 0} email(s) sent, ${body.smsSent || 0} SMS sent${body.failed ? `, ${body.failed} failed` : ''}.`);
+                const msg = `Promotion Dispatched: ${body.emailSent || 0} Emails Sent, ${body.smsSent || 0} Texts Sent${body.failed ? `, ${body.failed} Failed` : ''}.`;
+                setNotice(msg);
+                setPromoInlineNotice(msg);
                 await load(token, 1, search);
             }
         } catch (err) {
-            setError(err?.message || 'Promotional campaign operation failed');
+            const msg = err?.message || 'Promotional campaign operation failed';
+            setError(msg);
+            setPromoInlineError(msg);
         } finally {
             setRunning('');
         }
@@ -402,19 +428,29 @@ export default function NewsletterOperations() {
                                 <div className={styles.fieldRow}>
                                     <label>
                                         Test Email Recipient
-                                        <input value={testEmail} onChange={(e) => setTestEmail(e.target.value)} placeholder="you@example.com" />
+                                        <input value={testEmail} onChange={(e) => { setTestEmail(e.target.value); setPromoInlineError(''); }} placeholder="you@example.com" />
                                     </label>
                                     <label>
                                         Test SMS Phone
-                                        <input value={testPhone} onChange={(e) => setTestPhone(e.target.value)} placeholder="+17085551234" />
+                                        <input value={testPhone} onChange={(e) => { setTestPhone(e.target.value); setPromoInlineError(''); }} placeholder="+17085551234" />
                                     </label>
                                 </div>
                                 <div className={styles.actionRow}>
-                                    <button type="button" className={styles.previewButton} onClick={() => runPromoAction('test')} disabled={Boolean(running) || !token || (!testEmail.trim() && !testPhone.trim())}>
+                                    <button type="button" className={styles.previewButton} onClick={() => runPromoAction('test')} disabled={Boolean(running)}>
                                         {running === 'promo-test' ? <OperatorGlyph kind="refresh" size={15} className={styles.spin} /> : <OperatorGlyph kind="mail" size={15} />}
-                                        Send Single Test Message
+                                        {running === 'promo-test' ? 'Sending Test Message...' : 'Send Single Test Message'}
                                     </button>
                                 </div>
+                                {promoInlineError && (
+                                    <div className={styles.inlineAlert} role="alert">
+                                        <OperatorGlyph kind="alert" size={15} /> {promoInlineError}
+                                    </div>
+                                )}
+                                {promoInlineNotice && (
+                                    <div className={styles.inlineSuccess} role="status">
+                                        <OperatorGlyph kind="check" size={15} /> {promoInlineNotice}
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -434,18 +470,37 @@ export default function NewsletterOperations() {
                                         <div className={styles.breakdownCard}><span>Suppressed Emails</span><strong>{promoPreview.breakdown?.suppressedEmails || 0}</strong></div>
                                         <div className={styles.breakdownCard}><span>Suppressed Phones</span><strong>{promoPreview.breakdown?.suppressedPhones || 0}</strong></div>
                                     </div>
-                                    {promoPreview.smsPreview && (
-                                        <div>
-                                            <p className={styles.previewLabel}>Resolved SMS Copy</p>
-                                            <div className={styles.smsPreviewBox}>{promoPreview.smsPreview}</div>
-                                        </div>
-                                    )}
                                     <p className={styles.senderMeta}>Preview Complete. No Email Or Text Was Sent During Preview.</p>
                                 </>
                             ) : (
-                                <div className={styles.previewEmpty}>
-                                    <OperatorGlyph kind="spark" size={28} />
-                                    <p>Click Run Promo Preview To Deduplicate Imported Leads Plus Database Accounts, Apply Unsubscribe And Carrier Suppressions, And Unlock Send.</p>
+                                <p className={styles.senderMeta}>Click Run Promo Preview To Count Deduplicated Emails And Phones And Unlock Confirm And Send Promo.</p>
+                            )}
+
+                            {(promoDraft.channels === 'both' || promoDraft.channels === 'email') && (
+                                <div>
+                                    <p className={styles.previewLabel}>Live Email Preview</p>
+                                    <div className={styles.senderMeta} style={{ marginBottom: 8 }}>
+                                        <div>Subject: <strong>{promoDraft.subject}</strong></div>
+                                    </div>
+                                    <div className={styles.emailPreviewCard}>
+                                        <div className={styles.emailPreviewBrand}>SMARTER.POKER</div>
+                                        <div className={styles.emailPreviewHeadline}>{promoDraft.headline || promoDraft.subject}</div>
+                                        <div className={styles.emailPreviewBody}>{promoDraft.body}</div>
+                                        <span className={styles.emailPreviewButton}>{promoDraft.ctaLabel || 'Claim Your Free Rewards'}</span>
+                                        <div className={styles.emailPreviewFooter}>
+                                            <div>Smarter.Poker &middot; {promoDraft.postalAddress}</div>
+                                            <div>Unsubscribe &middot; Visit Smarter.Poker</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {(promoDraft.channels === 'both' || promoDraft.channels === 'sms') && (
+                                <div>
+                                    <p className={styles.previewLabel}>Live SMS Text Preview</p>
+                                    <div className={styles.smsPreviewBox}>
+                                        {promoPreview?.smsPreview || promoDraft.smsBody}
+                                    </div>
                                 </div>
                             )}
                         </div>
