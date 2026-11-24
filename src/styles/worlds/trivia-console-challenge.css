@@ -608,6 +608,22 @@
     color: var(--tc-ink-muted);
 }
 
+.phase9-settlement__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 18px;
+    align-items: center;
+    padding-top: 1.4cqw;
+    border-top: var(--tc-rule);
+    box-shadow: var(--tc-rule-lit);
+}
+
+.phase9-settlement__action {
+    min-height: 44px;
+    padding: 0 6px;
+    touch-action: manipulation;
+}
+
 .phase9-review-list > li {
     display: grid;
     align-items: start;

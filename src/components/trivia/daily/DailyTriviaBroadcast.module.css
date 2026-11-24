@@ -108,6 +108,10 @@
     text-align: right;
 }
 
+.streakVault {
+    min-width: 0;
+}
+
 .leaderboard,
 .receipt {
     display: grid;
@@ -278,6 +282,7 @@
         grid-row: 1;
     }
 
+    .streakVault,
     .leaderboard {
         grid-column: 1 / -1;
     }

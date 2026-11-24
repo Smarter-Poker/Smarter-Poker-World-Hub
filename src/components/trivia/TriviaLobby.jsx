@@ -4,7 +4,9 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { authedFetch } from '../../lib/authUtils';
 import { acquireScrollLock } from '../../lib/scrollLock';
 import TriviaFrameCard from './console/TriviaFrameCard';
 import TriviaConsole from './console/TriviaConsole';
@@ -128,6 +130,42 @@ export default function TriviaLobby({
   const [isRouting, setIsRouting] = useState(false);
   const [routeError, setRouteError] = useState('');
   const [quickStakesArtReady, setQuickStakesArtReady] = useState(false);
+  const [pvpEloBadge, setPvpEloBadge] = useState(null);
+
+  useEffect(() => {
+    setPvpEloBadge(null);
+    if (authState !== 'authenticated' || !accountKey) return undefined;
+    const controller = new AbortController();
+    let active = true;
+    const loadPvpElo = async () => {
+      try {
+        const response = await authedFetch('/api/trivia/pvp/ratings?limit=1', {
+          method: 'GET',
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+        if (!active || !response.ok) return;
+        const payload = await response.json().catch(() => null);
+        if (!active || payload?.success !== true) return;
+        const viewer = payload?.viewer;
+        if (viewer && Number.isFinite(Number(viewer.elo))) {
+          setPvpEloBadge({
+            elo: Math.round(Number(viewer.elo)),
+            tier: typeof viewer.tier === 'string' && viewer.tier ? viewer.tier : 'Bronze',
+            unrated: viewer.unrated === true,
+          });
+        }
+      } catch (error) {
+        if (error?.name === 'AbortError') return;
+        // Non-blocking Elo pill degrades silently if ratings endpoint is unavailable.
+      }
+    };
+    void loadPvpElo();
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [accountKey, authState]);
 
   useEffect(() => {
     const section = quickStakesRef.current;
@@ -441,6 +479,23 @@ export default function TriviaLobby({
         </div>
       ) : null}
 
+      <nav className="lobby-utility-bar" aria-label="Trivia Quick Access">
+        <Link href="/hub/trivia/study" className="tc-word tc-ink--blue lobby-utility-link">
+          Study Your Misses
+        </Link>
+        {pvpEloBadge ? (
+          availabilityFor('pvp').enabled ? (
+            <Link href="/hub/trivia/pvp" className="lobby-elo-pill tc-ink--gold">
+              PvP Elo {pvpEloBadge.elo.toLocaleString('en-US')} / {printTitle(pvpEloBadge.tier)}
+            </Link>
+          ) : (
+            <span className="lobby-elo-pill tc-ink--gold">
+              PvP Elo {pvpEloBadge.elo.toLocaleString('en-US')} / {printTitle(pvpEloBadge.tier)}
+            </span>
+          )
+        ) : null}
+      </nav>
+
       {/* Keyed by account identity only. Every identity change (signed out to
           an account, one account to another, an account to signed out) still
           remounts, so no frame shows the previous account's state. The
@@ -745,6 +800,54 @@ export default function TriviaLobby({
                 }
 
                 .player-data-notice__retry:focus-visible {
+                    outline: 3px solid var(--tc-ink-blue);
+                    outline-offset: 2px;
+                }
+
+                .lobby-utility-bar {
+                    display: flex;
+                    flex-wrap: wrap;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 8px 14px;
+                    margin-top: 10px;
+                    padding: 4px 2px;
+                    border-top: var(--tc-rule);
+                    border-bottom: var(--tc-rule);
+                    box-shadow: var(--tc-rule-lit);
+                }
+
+                .lobby-utility-link {
+                    display: inline-flex;
+                    align-items: center;
+                    min-height: 44px;
+                    padding: 0 4px;
+                    font-size: 13px;
+                    font-weight: 800;
+                    letter-spacing: 0.1em;
+                    text-decoration: none;
+                    text-transform: uppercase;
+                    touch-action: manipulation;
+                }
+
+                .lobby-elo-pill {
+                    display: inline-flex;
+                    align-items: center;
+                    min-height: 44px;
+                    padding: 0 10px;
+                    border: 1px solid #6d747c;
+                    background: #050607;
+                    font-size: 12px;
+                    font-weight: 800;
+                    letter-spacing: 0.08em;
+                    text-decoration: none;
+                    text-transform: uppercase;
+                    white-space: nowrap;
+                    touch-action: manipulation;
+                }
+
+                .lobby-utility-link:focus-visible,
+                .lobby-elo-pill:focus-visible {
                     outline: 3px solid var(--tc-ink-blue);
                     outline-offset: 2px;
                 }

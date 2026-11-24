@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import ResponsiveModeArt from '../console/ResponsiveModeArt';
+import StreakFreezeWidget from '../StreakFreezeWidget';
 import { printPlayerName } from '../LeaderboardDisplay';
 import { formatTriviaDisplayNumber } from '../../../lib/trivia/formatTriviaDisplayNumber';
 import { formatDailyResetCountdown, normalizeDailyLeaderboard, projectDailyAttempt } from './dailyTriviaModel.mjs';
@@ -74,6 +75,7 @@ export default function DailyTriviaBroadcast({
     currentUserId = null,
     onRetryStatus,
     onRetryLeaderboard,
+    onBalanceChange,
 }) {
     // Keep server and first client render identical; the browser replaces this
     // neutral label immediately with its Chicago-anchored countdown.
@@ -118,6 +120,18 @@ export default function DailyTriviaBroadcast({
                     <button type="button" className="tc-word" onClick={onRetryStatus}>Retry Attempt Status</button>
                 ) : null}
             </section>
+
+            <div className={styles.streakVault}>
+                <StreakFreezeWidget
+                    signedIn={Boolean(signedIn)}
+                    online={online}
+                    userId={currentUserId}
+                    currentStreak={userStreak}
+                    bestStreak={bestStreak}
+                    initialBalance={userDiamonds}
+                    onBalanceChange={onBalanceChange}
+                />
+            </div>
 
             <DailyLeaderboard
                 state={leaderboardState}
