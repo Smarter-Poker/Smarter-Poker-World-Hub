@@ -15,6 +15,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderVarianceCalculatorMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
@@ -294,9 +295,28 @@ export default function VarianceCalculatorPage({
         </h1>
 
         {!isEmbed && (
-          <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
-            <strong>Direct Answer:</strong> Poker Variance Scales With The <strong>Square Root Of Hand Volume</strong> While Expected Value Grows Linearly. Even A Strong <strong>4.5 BB/100 Winner In 6-Max NLHE (85 BB/100 SD)</strong> Faces A <strong>12.0% Probability Of Being A Net Loser Over 50,000 Hands</strong> And Requires <strong>137,088 Hands</strong> To Prove A Positive Winrate With 95% Statistical Confidence.
-          </p>
+          <>
+            <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 22px 0' }}>
+              <strong>Direct Answer:</strong> Poker Variance Scales With The <strong>Square Root Of Hand Volume</strong> While Expected Value Grows Linearly. Even A Strong <strong>4.5 BB/100 Winner In 6-Max NLHE (85 BB/100 SD)</strong> Faces A <strong>12.0% Probability Of Being A Net Loser Over 50,000 Hands</strong> And Requires <strong>137,088 Hands</strong> To Prove A Positive Winrate With 95% Statistical Confidence.
+            </p>
+            <CalculatorShareAndPresets
+              toolTitle="Poker Variance And Downswing Simulator"
+              toolPath={canonicalPath}
+              summaryText={`${metrics.safeWr} BB/100 Winrate (${metrics.safeSd} BB/100 SD) Over ${metrics.safeHands.toLocaleString('en-US')} Hands: Expected EV = ${metrics.expectedEvBb.toLocaleString('en-US')} BB | Loss Probability = ${metrics.probLossPct}%`}
+              presets={[
+                { id: 'p_online_6max', label: 'Online 6-Max Winner (4.5 BB/100, 85 SD, 50K Hands)', wr: 4.5, sd: 85, hands: 50000, hph: 200, bb: 2 },
+                { id: 'p_live_crusher', label: 'Live $2/$5 Crusher (9.0 BB/100, 75 SD, 30K Hands)', wr: 9.0, sd: 75, hands: 30000, hph: 30, bb: 5 },
+                { id: 'p_plo_highvar', label: 'PLO 6-Max Specialist (5.0 BB/100, 135 SD, 100K Hands)', wr: 5.0, sd: 135, hands: 100000, hph: 150, bb: 5 },
+              ]}
+              onSelectPreset={(p) => {
+                setWinrate(p.wr);
+                setSd(p.sd);
+                setHands(p.hands);
+                setHandsPerHour(p.hph);
+                setBigBlind(p.bb);
+              }}
+            />
+          </>
         )}
 
         {/* Interactive Simulator */}
@@ -627,7 +647,7 @@ export default function VarianceCalculatorPage({
               Poker Format Selector Quiz
             </Link>
             <Link href="/tools" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
-              All 24 Poker Calculators
+              All 42 Free Poker Calculators
             </Link>
           </div>
         </section>

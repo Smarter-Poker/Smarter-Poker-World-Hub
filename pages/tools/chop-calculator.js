@@ -16,6 +16,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderChopCalculatorMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
@@ -325,9 +326,27 @@ export default function ChopCalculatorPage({
         </h1>
 
         {!isEmbed && (
-          <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
-            <strong>Direct Answer:</strong> An <strong>Independent Chip Model (ICM) Chop</strong> Recursively Computes Each Seat Exact Probability Of Finishing In Every Remaining Payout Spot Using The Malmuth-Harville Theorem, Whereas A <strong>Linear Chip Chop</strong> Awards Everyone Last-Place Money And Splits The Surplus Strictly By Chip Percentage. Adding A <strong>10% Winner Save Amount</strong> Locks Up Immediate Equity While Preserving Championship Competition.
-          </p>
+          <>
+            <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 22px 0' }}>
+              <strong>Direct Answer:</strong> An <strong>Independent Chip Model (ICM) Chop</strong> Recursively Computes Each Seat Exact Probability Of Finishing In Every Remaining Payout Spot Using The Malmuth-Harville Theorem, Whereas A <strong>Linear Chip Chop</strong> Awards Everyone Last-Place Money And Splits The Surplus Strictly By Chip Percentage. Adding A <strong>10% Winner Save Amount</strong> Locks Up Immediate Equity While Preserving Championship Competition.
+            </p>
+            <CalculatorShareAndPresets
+              toolTitle="Final Table Deal And ICM Chop Calculator"
+              toolPath={canonicalPath}
+              summaryText={`${dealMetrics.safeCount}-Handed Final Table (Prize Pool $${dealMetrics.totalPrizePool.toLocaleString('en-US')}, Save $${dealMetrics.safeSave.toLocaleString('en-US')}): Leader ICM = $${dealMetrics.rows[0]?.icmChop.toLocaleString('en-US')} Vs Chip Chop = $${dealMetrics.rows[0]?.chipChop.toLocaleString('en-US')}`}
+              presets={[
+                { id: 'ft_4h_leader', label: '4-Handed Dominant Leader (450K / 320K / 210K / 120K)', count: 4, stacks: [450000, 320000, 210000, 120000, 80000, 50000], payouts: [15000, 10000, 7000, 5000, 3500, 2500], save: 1500 },
+                { id: 'ft_3h_even', label: '3-Handed Balanced Podium ($30K / $20K / $14K)', count: 3, stacks: [400000, 360000, 320000, 120000, 80000, 50000], payouts: [30000, 20000, 14000, 5000, 3500, 2500], save: 3000 },
+                { id: 'ft_2h_hu', label: 'Heads-Up 2:1 Chip Lead ($25K Vs $15K)', count: 2, stacks: [800000, 400000, 210000, 120000, 80000, 50000], payouts: [25000, 15000, 7000, 5000, 3500, 2500], save: 2000 },
+              ]}
+              onSelectPreset={(p) => {
+                setPlayerCount(p.count);
+                setStacks(p.stacks);
+                setPayouts(p.payouts);
+                setSaveAmount(p.save);
+              }}
+            />
+          </>
         )}
 
         {/* Interactive Final Table Deal Panel */}
@@ -644,7 +663,7 @@ export default function ChopCalculatorPage({
               US Poker Tax &amp; Form W-2G Calculator
             </Link>
             <Link href="/tools" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
-              All 24 Poker Calculators
+              All 42 Free Poker Calculators
             </Link>
           </div>
         </section>

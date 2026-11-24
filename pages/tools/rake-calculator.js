@@ -16,6 +16,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 
@@ -91,6 +92,41 @@ export default function RakeCalculatorPage({
   const [handsPerHour, setHandsPerHour] = useState(initialHandsPerHour);
   const [potsWonPerHour, setPotsWonPerHour] = useState(initialPotsWonPerHour);
   const [timeChargeHalfHour, setTimeChargeHalfHour] = useState(initialTimeChargeHalfHour);
+  const [activePresetId, setActivePresetId] = useState('vegas-2-5');
+
+  const RAKE_PRESETS = [
+    {
+      id: 'vegas-1-3',
+      label: 'Vegas $1/$3 (10% Up To $5 + $2)',
+      values: { bb: 3, pct: 10, cap: 5, promo: 2, hph: 28, pots: 3.2, time: 6 },
+    },
+    {
+      id: 'vegas-2-5',
+      label: 'Vegas $2/$5 (10% Up To $6 + $2)',
+      values: { bb: 5, pct: 10, cap: 6, promo: 2, hph: 28, pots: 3.5, time: 7 },
+    },
+    {
+      id: 'la-5-5',
+      label: 'LA $5/$5 Flat Drop ($7 + $1)',
+      values: { bb: 5, pct: 15, cap: 7, promo: 1, hph: 27, pots: 3.5, time: 7 },
+    },
+    {
+      id: 'texas-2-5',
+      label: 'Texas $2/$5 Timed Seat ($13/Hr)',
+      values: { bb: 5, pct: 10, cap: 6, promo: 2, hph: 30, pots: 4.2, time: 6.5 },
+    },
+  ];
+
+  const handleSelectPreset = (preset) => {
+    setActivePresetId(preset.id);
+    setBigBlind(preset.values.bb);
+    setRakePercent(preset.values.pct);
+    setRakeCap(preset.values.cap);
+    setPromoDrop(preset.values.promo);
+    setHandsPerHour(preset.values.hph);
+    setPotsWonPerHour(preset.values.pots);
+    setTimeChargeHalfHour(preset.values.time);
+  };
 
   useSolvedSpotUrlSync(
     {
@@ -227,6 +263,15 @@ export default function RakeCalculatorPage({
         <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
           <strong>Direct Answer:</strong> In A Standard US Live Cash Game Charging <strong>10% Up To A $6 Cap Plus A $2 Promotional Drop</strong>, A Player Winning 3.5 Pots Per Hour Pays <strong>$24.22 Per Hour ($24,220 Per 1,000 Hours)</strong> In Combined Rake. Switching To A <strong>$7 Per Half-Hour Timed Seat Charge ($14/Hr)</strong> Saves Active Players Over <strong>$10,000 Per Year</strong> And Enables Profitable Wider Preflop Ranges.
         </p>
+
+        <CalculatorShareAndPresets
+          toolTitle="Live Cash Game Rake & Time Calculator"
+          toolPath={canonicalPath}
+          summaryText={`$${metrics.safeBb} BB Live Cash (${metrics.safePotsWon} Pots Won/Hr): Percentage Drop Rake = $${metrics.hourlyPotRakeDollars}/Hr (${metrics.potRakeBbPer100} BB/100) Vs Timed Seat = $${metrics.hourlyTimeChargeDollars}/Hr (${metrics.timeChargeBbPer100} BB/100) | Cheaper Model: ${metrics.cheaperModel}`}
+          presets={RAKE_PRESETS}
+          onSelectPreset={handleSelectPreset}
+          activePresetId={activePresetId}
+        />
 
         {/* Interactive Rake vs Time Calculator */}
         <section

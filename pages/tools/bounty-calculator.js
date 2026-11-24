@@ -14,6 +14,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 
@@ -133,20 +134,24 @@ export default function BountyCalculatorPage({
         ['PKO & Mystery Bounty Calculator', canonicalPath],
       ],
       faqs: BOUNTY_CALCULATOR_FAQS,
-      steps: [
-        {
-          name: 'Enter Tournament Starting Stack And Initial Bounty',
-          text: 'Input The Event Starting Chip Count And Initial Knockout Value To Establish The Baseline 33.3% Bounty Power Factor.',
-        },
-        {
-          name: 'Input Target Opponent Bounty And Pot Size',
-          text: 'Enter The Covered Opponent Current Bounty Alongside The Chip Pot And Required Call Amount.',
-        },
-        {
-          name: 'Compare Standard Vs. Bounty-Adjusted Required Equity',
-          text: 'Review The Exact Chip Equivalent Added To The Pot And The Reduced Break-Even Equity Needed To Call Profitably.',
-        },
-      ],
+      howTo: {
+        name: 'How To Convert PKO And Mystery Bounties Into Tournament Chip Equity',
+        description: pageDesc,
+        steps: [
+          {
+            name: 'Enter Tournament Starting Stack And Initial Bounty',
+            text: 'Input The Event Starting Chip Count And Initial Knockout Value To Establish The Baseline 33.3% Bounty Power Factor.',
+          },
+          {
+            name: 'Input Target Opponent Bounty And Pot Size',
+            text: 'Enter The Covered Opponent Current Bounty Alongside The Chip Pot And Required Call Amount.',
+          },
+          {
+            name: 'Compare Standard Vs. Bounty-Adjusted Required Equity',
+            text: 'Review The Exact Chip Equivalent Added To The Pot And The Reduced Break-Even Equity Needed To Call Profitably.',
+          },
+        ],
+      },
     });
   }, [pageDesc]);
 
@@ -172,9 +177,27 @@ export default function BountyCalculatorPage({
           PKO &amp; Mystery Bounty Chip Equity &amp; Pot Odds Calculator
         </h1>
 
-        <p style={{ fontSize: 17, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
+        <p style={{ fontSize: 17, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 22px 0' }}>
           In Progressive Knockout (PKO) And Mystery Bounty Tournaments, Eliminating A Covered Opponent Awards Immediate Cash Plus Added Bounty Equity, Lowering The Break-Even Equity Required To Call An All-In. Enter Your Tournament Starting Stack, Bounty Values, And Current Pot Below To Calculate Exact Bounty Chip Equivalents And Adjusted Calling Thresholds.
         </p>
+
+        <CalculatorShareAndPresets
+          toolTitle="PKO And Mystery Bounty Chip Equity Calculator"
+          toolPath={canonicalPath}
+          summaryText={`Target Bounty $${metrics.safeTargetBounty} (${metrics.bountyMultiplier}x Start): +${metrics.bountyChipEquivalent} Chip Equiv | Adjusted Req Equity = ${metrics.bountyAdjustedReqEquity}% (-${metrics.equityDiscount}% Discount)`}
+          presets={[
+            { id: 'p_level1_pko', label: 'Early PKO 1x Starting Bounty (10K Call Into 12K Pot)', startStack: 20000, startBounty: 50, targetBounty: 50, pot: 12000, call: 10000 },
+            { id: 'p_mid_2x', label: 'Mid-Stage 2x Doubled Bounty ($100 Target Bounty)', startStack: 20000, startBounty: 50, targetBounty: 100, pot: 15000, call: 10000 },
+            { id: 'p_super_4x', label: 'Late-Stage 4x Super Bounty ($200 Target Bounty)', startStack: 20000, startBounty: 50, targetBounty: 200, pot: 35000, call: 25000 },
+          ]}
+          onSelectPreset={(p) => {
+            setStartingStack(p.startStack);
+            setStartBounty(p.startBounty);
+            setTargetBounty(p.targetBounty);
+            setPotChips(p.pot);
+            setCallChips(p.call);
+          }}
+        />
 
         {/* Interactive Calculator Grid */}
         <section style={{

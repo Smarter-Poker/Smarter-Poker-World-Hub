@@ -561,7 +561,7 @@ export function buildOembedPayload({
   const hrefWithUtm = `${canonicalUrl}${landerUtmSuffix}`;
   const fallbackTitle =
     pathname === '/'
-      ? 'Smarter.Poker: GTO Poker Training, 24 Free Calculators & Live Poker Room Directory'
+      ? 'Smarter.Poker: GTO Poker Training, 42 Free Calculators & Live Poker Room Directory'
       : `Smarter.Poker Reference (${pathname})`;
   const html = `<div class="smarter-poker-embed-card" style="padding:16px 20px;background:#0d1524;border:1px solid rgba(56,189,248,0.3);border-radius:10px;color:#f8fafc;font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;"><a href="${escapeHtml(hrefWithUtm)}" target="_blank" rel="noopener" style="color:#38bdf8;font-size:15px;font-weight:700;text-decoration:none;">${escapeHtml(fallbackTitle)}</a><p style="margin:6px 0 0 0;font-size:12.5px;color:#94a3b8;">Interactive Poker Calculators, GTO Preflop Ranges, And Empirical Benchmarks At Smarter.Poker</p></div>`;
 

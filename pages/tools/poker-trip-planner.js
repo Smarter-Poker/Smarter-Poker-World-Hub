@@ -272,6 +272,24 @@ export default function PokerTripPlannerPage() {
         ['Poker Trip Budget Planner', canonicalPath],
       ],
       faqs: TRIP_PLANNER_FAQS,
+      howTo: {
+        name: 'How To Calculate Your Live Poker Trip Budget And Expense Rake',
+        description: pageDesc,
+        steps: [
+          {
+            name: 'Enter Trip Duration, Flights, Hotel Nightly Rate, And Daily Per Diem',
+            text: 'Input Your Total Travel Days And Fixed Lodging, Airfare, And Food Overhead Costs.',
+          },
+          {
+            name: 'Set Planned Tournament Buy-Ins, Re-Entry Multiplier, And Cash Game Hours',
+            text: 'Enter Your Tournament Schedule Action, Expected ROI, And Supplemental Cash Game Hourly Winrate.',
+          },
+          {
+            name: 'Review Expense Rake Percentage, Break-Even Winnings, And Net Trip EV',
+            text: 'Verify That Your Projected Gross Poker EV Exceeds Travel Overhead And Check Recommended Trip Bankroll.',
+          },
+        ],
+      },
     });
   }, [pageDesc]);
 

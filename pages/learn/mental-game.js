@@ -635,3 +635,26 @@ const styles = {
   faqQ: { fontSize: 16, fontWeight: 700, color: '#f8fafc', margin: '0 0 6px 0' },
   faqA: { fontSize: 14, lineHeight: 1.6, color: '#cbd5e1', margin: 0 },
 };
+
+export async function getServerSideProps({ req, res, query }) {
+  const accept = String(req?.headers?.accept || '');
+  if (
+    query?.format === 'md' ||
+    query?.format === 'markdown' ||
+    accept.includes('text/markdown') ||
+    req?.url?.includes('format=md')
+  ) {
+    const { renderHubToolMarkdown } = await import('../api/hub-tool-markdown');
+    const md = renderHubToolMarkdown('/learn/mental-game', query);
+    if (md) {
+      res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+      res.setHeader('Vary', 'Accept');
+      res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
+      res.write(md);
+      res.end();
+      return { props: {} };
+    }
+  }
+  return { props: {} };
+}
+

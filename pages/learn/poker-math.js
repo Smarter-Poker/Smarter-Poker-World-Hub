@@ -288,7 +288,7 @@ export default function PokerMathReferencePage() {
 
           <div style={styles.quickCrossLinks}>
             <Link href="/tools" style={styles.crossBtnCyan}>
-              All 24 Free Poker Calculators
+              All 42 Free Poker Calculators
             </Link>
             <Link href="/tools/pot-odds-calculator" style={styles.crossBtnEmerald}>
               Pot Odds &amp; MDF Calculator

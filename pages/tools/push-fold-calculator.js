@@ -14,6 +14,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 
@@ -156,20 +157,24 @@ export default function PushFoldCalculatorPage({
         ['Push/Fold Short-Stack Calculator', canonicalPath],
       ],
       faqs: PUSH_FOLD_CALCULATOR_FAQS,
-      steps: [
-        {
-          name: 'Enter Effective Stack Size In Big Blinds (BB)',
-          text: 'Input The Effective Short Stack Depth Between 2 BB And 25 BB To Compute Risk-To-Reward Ratios.',
-        },
-        {
-          name: 'Select Table Position And Ante Structure',
-          text: 'Choose Your Seat From Under The Gun (UTG) Through Small Blind (SB) And Set The Table Ante Percentage.',
-        },
-        {
-          name: 'Review Nash Equilibrium Shove And Call Ranges',
-          text: 'Inspect The Recommended Open-Shove Percentage, Combo Count, M-Ratio, And Big Blind Calling Threshold.',
-        },
-      ],
+      howTo: {
+        name: 'How To Calculate Short-Stack Push/Fold Nash Equilibrium Ranges',
+        description: pageDesc,
+        steps: [
+          {
+            name: 'Enter Effective Stack Size In Big Blinds (BB)',
+            text: 'Input The Effective Short Stack Depth Between 2 BB And 25 BB To Compute Risk-To-Reward Ratios.',
+          },
+          {
+            name: 'Select Table Position And Ante Structure',
+            text: 'Choose Your Seat From Under The Gun (UTG) Through Small Blind (SB) And Set The Table Ante Percentage.',
+          },
+          {
+            name: 'Review Nash Equilibrium Shove And Call Ranges',
+            text: 'Inspect The Recommended Open-Shove Percentage, Combo Count, M-Ratio, And Big Blind Calling Threshold.',
+          },
+        ],
+      },
     });
   }, [pageDesc]);
 
@@ -195,9 +200,26 @@ export default function PushFoldCalculatorPage({
           Poker Push/Fold Short-Stack Chart &amp; Nash Equilibrium Calculator
         </h1>
 
-        <p style={{ fontSize: 17, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
+        <p style={{ fontSize: 17, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 22px 0' }}>
           Short-Stack Push/Fold Strategy Governs Tournament Play Below 15 Big Blinds Where Open-Shoving Maximizes Fold Equity And Eliminates Postflop Positional Disadvantage. Enter Your Effective Stack Depth, Table Position, And Ante Structure Below To Compute Exact Chip-EV Nash Equilibrium Shoving Frequencies, Big Blind Calling Thresholds, And Dead-Money Risk/Reward Metrics.
         </p>
+
+        <CalculatorShareAndPresets
+          toolTitle="Poker Push/Fold Short-Stack Chart Calculator"
+          toolPath={canonicalPath}
+          summaryText={`${metrics.safeBb} BB At ${metrics.posKey} (${metrics.safeAnte}% Ante): Nash Shove = ${metrics.shovePct}% (${metrics.combosShoved} Combos) | BB Call = ${metrics.callPct}%`}
+          presets={[
+            { id: 'p_10bb_btn', label: '10 BB Button Steal With Big Blind Ante (12.5%)', stack: 10, pos: 'BTN', ante: 12.5 },
+            { id: 'p_8bb_sb', label: '8 BB Small Blind Vs Big Blind Battle', stack: 8, pos: 'SB', ante: 12.5 },
+            { id: 'p_12bb_co', label: '12 BB Cutoff Late-Position Shove', stack: 12, pos: 'CO', ante: 12.5 },
+            { id: 'p_6bb_utg', label: '6 BB Under The Gun Emergency Jam', stack: 6, pos: 'UTG', ante: 12.5 },
+          ]}
+          onSelectPreset={(p) => {
+            setStackBb(p.stack);
+            setPosition(p.pos);
+            setAntePct(p.ante);
+          }}
+        />
 
         {/* Interactive Calculator Grid */}
         <section style={{

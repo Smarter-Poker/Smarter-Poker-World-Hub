@@ -16,6 +16,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderStakingCalculatorMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
@@ -255,9 +256,29 @@ export default function StakingCalculatorPage({
         </h1>
 
         {!isEmbed && (
-          <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
-            <strong>Direct Answer:</strong> In Tournament Staking, An Investor Buying Share <strong>S%</strong> Of A Package At <strong>Markup M</strong> Pays <strong>Package * S% * M</strong> Upfront And Receives <strong>S% Of Gross Cashes</strong>. For An Investor To Break Even ($0 EV), The Player True ROI Must At Least Equal <strong>(Markup - 1) * 100%</strong>.
-          </p>
+          <>
+            <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 22px 0' }}>
+              <strong>Direct Answer:</strong> In Tournament Staking, An Investor Buying Share <strong>S%</strong> Of A Package At <strong>Markup M</strong> Pays <strong>Package * S% * M</strong> Upfront And Receives <strong>S% Of Gross Cashes</strong>. For An Investor To Break Even ($0 EV), The Player True ROI Must At Least Equal <strong>(Markup - 1) * 100%</strong>.
+            </p>
+            <CalculatorShareAndPresets
+              toolTitle="Poker Staking And Markup Split Calculator"
+              toolPath={canonicalPath}
+              summaryText={`$${metrics.safePackage.toLocaleString('en-US')} Package @ ${metrics.safeMarkup}x Markup (${metrics.safeSoldPct}% Sold): 1% Costs $${metrics.costPerOnePctAtMarkup} | Breakeven ROI = +${metrics.requiredBreakevenRoiPct}%`}
+              presets={[
+                { id: 'wsop_10k_pack', label: '$10,000 WSOP Package @ 1.15x Markup (50% Sold)', pkg: 10000, mu: 1.15, sold: 50, share: 10, cashes: 24000, roi: 25 },
+                { id: 'regional_5k', label: '$5,000 Circuit Series @ 1.08x Markup (40% Sold)', pkg: 5000, mu: 1.08, sold: 40, share: 10, cashes: 11000, roi: 22 },
+                { id: 'high_roller_25k', label: '$25,000 High Roller Shot @ 1.00x Par (60% Sold)', pkg: 25000, mu: 1.0, sold: 60, share: 20, cashes: 45000, roi: 15 },
+              ]}
+              onSelectPreset={(p) => {
+                setPackageBuyIns(p.pkg);
+                setMarkup(p.mu);
+                setActionSoldPct(p.sold);
+                setInvestorSharePct(p.share);
+                setTotalCashes(p.cashes);
+                setTrueRoiPct(p.roi);
+              }}
+            />
+          </>
         )}
 
         {/* Interactive Staking Calculator */}
@@ -579,7 +600,7 @@ export default function StakingCalculatorPage({
               Variance &amp; Downswing Simulator
             </Link>
             <Link href="/tools" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
-              All 24 Poker Calculators
+              All 42 Free Poker Calculators
             </Link>
           </div>
         </section>

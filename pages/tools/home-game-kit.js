@@ -16,6 +16,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderHomeGameKitMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
@@ -259,9 +260,28 @@ export default function HomeGameKitPage({
         </h1>
 
         {!isEmbed && (
-          <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
-            <strong>Direct Answer:</strong> For An 8-To-10 Player Home Game, A <strong>500-Piece Poker Chip Set</strong> Configured With <strong>30 To 36 Physical Chips Per Player Across 3 Active Denominations</strong> Ensures Fast Dealing Without Change-Making Bottlenecks While Reserving Over 200 High-Value Chips In The Bank For Rebuys And Color-Ups.
-          </p>
+          <>
+            <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 22px 0' }}>
+              <strong>Direct Answer:</strong> For An 8-To-10 Player Home Game, A <strong>500-Piece Poker Chip Set</strong> Configured With <strong>30 To 36 Physical Chips Per Player Across 3 Active Denominations</strong> Ensures Fast Dealing Without Change-Making Bottlenecks While Reserving Over 200 High-Value Chips In The Bank For Rebuys And Color-Ups.
+            </p>
+            <CalculatorShareAndPresets
+              toolTitle="Home Game Chip Set And Setup Calculator"
+              toolPath={canonicalPath}
+              summaryText={`${kitMetrics.activePreset.label} (${kitMetrics.safePlayers} Players, ${kitMetrics.safeSetSize} Chip Set): ${kitMetrics.chipsPerPlayer} Chips/Player (${kitMetrics.totalStartingChipsIssued} Issued, ${kitMetrics.remainingBankReserveChips} Reserve)`}
+              presets={[
+                { id: 'p_cash_25_50', label: '$0.25/$0.50 Micro Cash (8 Players / 500 Set)', format: 'cash', players: 8, set: 500, preset: 'cash-25-50' },
+                { id: 'p_cash_1_2', label: '$1/$2 Standard Cash (9 Players / 500 Set)', format: 'cash', players: 9, set: 500, preset: 'cash-1-2' },
+                { id: 'p_t10k', label: 'T10,000 Single-Table MTT (9 Players / 500 Set)', format: 'tournament', players: 9, set: 500, preset: 't10000' },
+                { id: 'p_t25k', label: 'T25,000 Deepstack MTT (10 Players / 1000 Set)', format: 'tournament', players: 10, set: 1000, preset: 't25000' },
+              ]}
+              onSelectPreset={(p) => {
+                setGameFormat(p.format);
+                setPlayers(p.players);
+                setChipSetSize(p.set);
+                setPresetKey(p.preset);
+              }}
+            />
+          </>
         )}
 
         <style
@@ -591,7 +611,7 @@ export default function HomeGameKitPage({
               Full Poker Hand Rankings Cheat Sheet
             </Link>
             <Link href="/tools" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
-              All 24 Poker Calculators
+              All 42 Free Poker Calculators
             </Link>
           </div>
         </section>

@@ -721,7 +721,7 @@ export default function WhoWinsCalculatorPage() {
               30 Official TDA Floor Rulings
             </Link>
             <Link href="/tools" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
-              All 34 Poker Calculators
+              All 42 Free Poker Calculators
             </Link>
           </div>
         </section>

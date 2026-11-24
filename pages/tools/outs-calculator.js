@@ -16,6 +16,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderOutsCalculatorMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
@@ -258,9 +259,28 @@ export default function OutsCalculatorPage({
         </h1>
 
         {!isEmbed && (
-          <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
-            <strong>Direct Answer:</strong> With <strong>47 Unseen Cards On The Flop</strong> And <strong>46 On The Turn</strong>, A 9-Out Flush Draw Hits On The Turn <strong>19.15% Of The Time</strong>, On The River <strong>19.57% Of The Time</strong>, And Across Both Streets Combined <strong>34.97% Of The Time</strong> (Versus 36.0% Using The Rule Of 4).
-          </p>
+          <>
+            <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 22px 0' }}>
+              <strong>Direct Answer:</strong> With <strong>47 Unseen Cards On The Flop</strong> And <strong>46 On The Turn</strong>, A 9-Out Flush Draw Hits On The Turn <strong>19.15% Of The Time</strong>, On The River <strong>19.57% Of The Time</strong>, And Across Both Streets Combined <strong>34.97% Of The Time</strong> (Versus 36.0% Using The Rule Of 4).
+            </p>
+            <CalculatorShareAndPresets
+              toolTitle="Poker Outs And Draw Probability Calculator"
+              toolPath={canonicalPath}
+              summaryText={`${metrics.safeOuts} Clean Outs On ${metrics.isTurn ? 'Turn' : 'Flop'}: Exact Hit Equity = ${metrics.activeExactPct}% Vs Required Pot Odds = ${metrics.requiredBreakEvenPct}%`}
+              presets={[
+                { id: 'p_flush_9', label: '9-Out Flush Draw Facing Half-Pot Bet ($50 Into $100)', outs: 9, street: 'flop', pot: 150, call: 50 },
+                { id: 'p_oesd_8', label: '8-Out Open-Ended Straight Facing 75% Bet ($75 Into $100)', outs: 8, street: 'flop', pot: 175, call: 75 },
+                { id: 'p_combo_15', label: '15-Out Monster Combo Draw Facing Full-Pot Jam', outs: 15, street: 'flop', pot: 200, call: 100 },
+                { id: 'p_gutshot_turn', label: '4-Out Turn Gutshot Facing 33% Bet ($33 Into $100)', outs: 4, street: 'turn', pot: 133, call: 33 },
+              ]}
+              onSelectPreset={(p) => {
+                setOuts(p.outs);
+                setStreet(p.street);
+                setPotSize(p.pot);
+                setCallSize(p.call);
+              }}
+            />
+          </>
         )}
 
         {/* Interactive Outs Panel */}
@@ -526,7 +546,7 @@ export default function OutsCalculatorPage({
               PLO Max Bet &amp; Bomb Pot Calculator
             </Link>
             <Link href="/tools" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
-              All 24 Poker Calculators
+              All 42 Free Poker Calculators
             </Link>
           </div>
         </section>

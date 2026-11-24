@@ -15,6 +15,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 
@@ -162,20 +163,24 @@ export default function BlindStructureCalculatorPage({
         ['Blind Structure Calculator', canonicalPath],
       ],
       faqs: BLIND_STRUCTURE_CALCULATOR_FAQS,
-      steps: [
-        {
-          name: 'Configure Entrants, Starting Stack, And Level Length',
-          text: 'Select Expected Players, Starting Chip Stack, And Blind Level Duration In Minutes.',
-        },
-        {
-          name: 'Choose Big Blind Ante Or Classic No-Ante Format',
-          text: 'Toggle Big Blind Ante To Compute Exact Orbit Cost And Estimated Finish Level.',
-        },
-        {
-          name: 'Review Blind Progression And TDA Chip Distribution',
-          text: 'Use The Generated Level-By-Level Schedule And Starting Chip Breakdown To Run Your Home Game Or Club Tournament.',
-        },
-      ],
+      howTo: {
+        name: 'How To Generate A Balanced Poker Tournament Blind Structure',
+        description: pageDesc,
+        steps: [
+          {
+            name: 'Configure Entrants, Starting Stack, And Level Length',
+            text: 'Select Expected Players, Starting Chip Stack, And Blind Level Duration In Minutes.',
+          },
+          {
+            name: 'Choose Big Blind Ante Or Classic No-Ante Format',
+            text: 'Toggle Big Blind Ante To Compute Exact Orbit Cost And Estimated Finish Level.',
+          },
+          {
+            name: 'Review Blind Progression And TDA Chip Distribution',
+            text: 'Use The Generated Level-By-Level Schedule And Starting Chip Breakdown To Run Your Home Game Or Club Tournament.',
+          },
+        ],
+      },
     });
   }, [pageDesc]);
 
@@ -201,9 +206,26 @@ export default function BlindStructureCalculatorPage({
           Poker Tournament Blind Structure &amp; Chip Distribution Generator
         </h1>
 
-        <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
+        <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 22px 0' }}>
           <strong>Direct Answer:</strong> A No-Limit Hold&apos;Em Tournament Reaches Heads-Up Completion When <strong>Total Chips In Play Equal 20 To 30 Big Blinds</strong>. By Scaling Level Increases Between <strong>25% And 50% Per Level</strong> And Issuing <strong>29 Physical Chips Per Player</strong> Across Four Standard TDA Denominations, Tournament Directors Guarantee A Smooth Clock Without Abrupt Shove-Fest Jumps.
         </p>
+
+        <CalculatorShareAndPresets
+          toolTitle="Poker Tournament Blind Structure And Chip Calculator"
+          toolPath={canonicalPath}
+          summaryText={`${metrics.safePlayers} Entries (${metrics.safeStack.toLocaleString('en-US')} Stack, ${metrics.safeMins}-Min Levels): Est Finish At Level ${metrics.finishLevel} (~${(metrics.estimatedDurationMinutes / 60).toFixed(1)} Hrs)`}
+          presets={[
+            { id: 'p_home_9p', label: '9-Player Home Game Turbo (10K Stack / 15-Min Levels)', players: 9, stack: 10000, mins: 15, ante: 'bb-ante' },
+            { id: 'p_club_27p', label: '27-Player Club Nightly (20K Stack / 20-Min Levels)', players: 27, stack: 20000, mins: 20, ante: 'bb-ante' },
+            { id: 'p_deep_80p', label: '80-Player Weekend Deepstack (30K Stack / 30-Min Levels)', players: 80, stack: 30000, mins: 30, ante: 'bb-ante' },
+          ]}
+          onSelectPreset={(p) => {
+            setPlayers(p.players);
+            setStartingStack(p.stack);
+            setLevelMinutes(p.mins);
+            setAnteFormat(p.ante);
+          }}
+        />
 
         {/* Interactive Blind Generator Panel */}
         <section

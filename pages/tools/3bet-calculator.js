@@ -15,6 +15,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 
@@ -89,6 +90,38 @@ export default function ThreeBetCalculatorPage({
   const [callersBetween, setCallersBetween] = useState(initialCallersBetween);
   const [effectiveStackBb, setEffectiveStackBb] = useState(initialEffectiveStackBb);
   const [position, setPosition] = useState(initialPosition);
+  const [activePresetId, setActivePresetId] = useState('ip-vs-2.5');
+
+  const THREE_BET_PRESETS = [
+    {
+      id: 'ip-vs-2.5',
+      label: '100BB IP 3-Bet Vs 2.5BB Open (7.5BB)',
+      values: { open: 2.5, callers: 0, stack: 100, pos: 'IP' },
+    },
+    {
+      id: 'oop-vs-2.5',
+      label: '100BB OOP Blind 3-Bet Vs 2.5BB Open (10BB)',
+      values: { open: 2.5, callers: 0, stack: 100, pos: 'OOP' },
+    },
+    {
+      id: 'oop-squeeze-1',
+      label: '100BB OOP Squeeze Vs 2.5BB + 1 Caller (12.5BB)',
+      values: { open: 2.5, callers: 1, stack: 100, pos: 'OOP' },
+    },
+    {
+      id: 'live-deep-squeeze',
+      label: '150BB Live IP Squeeze Vs 4BB + 2 Callers (22BB)',
+      values: { open: 4.0, callers: 2, stack: 150, pos: 'IP' },
+    },
+  ];
+
+  const handleSelectPreset = (preset) => {
+    setActivePresetId(preset.id);
+    setOpenSizeBb(preset.values.open);
+    setCallersBetween(preset.values.callers);
+    setEffectiveStackBb(preset.values.stack);
+    setPosition(preset.values.pos);
+  };
 
   useSolvedSpotUrlSync(
     { open: openSizeBb, callers: callersBetween, stack: effectiveStackBb, pos: position },
@@ -221,6 +254,15 @@ export default function ThreeBetCalculatorPage({
         <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
           <strong>Direct Answer:</strong> At 100BB Stack Depth, Optimal GTO 3-Bet Sizing Is <strong>3.0x The Open Size In Position (IP)</strong> And <strong>4.0x The Open Size Out Of Position (OOP)</strong>, Adding <strong>+1.0x Per Cold-Caller</strong> For Multiway Squeezes. When Facing A 3-Bet, Optimal 4-Bet Sizing Is <strong>2.15x In Position</strong> And <strong>2.45x Out Of Position</strong>.
         </p>
+
+        <CalculatorShareAndPresets
+          toolTitle="GTO 3-Bet, 4-Bet & Squeeze Sizing Calculator"
+          toolPath={canonicalPath}
+          summaryText={`${metrics.safeStack}BB ${position} Vs ${metrics.safeOpen}BB Open (+${metrics.safeCallers} Callers): Recommended 3-Bet = ${metrics.recommendedThreeBetBb}BB (${metrics.baseMultiplier}x) | Villain MDF = ${metrics.villainMdfPct}% | Optimal 4-Bet = ${metrics.optimalFourBetBb}BB | Flop SPR = ${metrics.flopSprIfCalled}`}
+          presets={THREE_BET_PRESETS}
+          onSelectPreset={handleSelectPreset}
+          activePresetId={activePresetId}
+        />
 
         {/* Interactive 3-Bet / 4-Bet Solver */}
         <section

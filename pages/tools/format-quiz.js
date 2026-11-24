@@ -16,6 +16,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderFormatQuizMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
@@ -307,9 +308,29 @@ export default function FormatQuizPage({
         </h1>
 
         {!isEmbed && (
-          <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
-            <strong>Direct Answer:</strong> Choosing The Right Primary Poker Format Depends On Five Quantitative Constraints: <strong>Session Block Duration</strong>, <strong>Bankroll Depth In Buy-Ins</strong>, <strong>Standard Deviation Tolerance</strong>, <strong>Mathematical Preference</strong>, And <strong>Live Vs. Online Environment</strong>. Use This 5-Parameter Diagnostic To Match Your Profile And Generate A Custom 7-Day Study Roadmap.
-          </p>
+          <>
+            <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 22px 0' }}>
+              <strong>Direct Answer:</strong> Choosing The Right Primary Poker Format Depends On Five Quantitative Constraints: <strong>Session Block Duration</strong>, <strong>Bankroll Depth In Buy-Ins</strong>, <strong>Standard Deviation Tolerance</strong>, <strong>Mathematical Preference</strong>, And <strong>Live Vs. Online Environment</strong>. Use This 5-Parameter Diagnostic To Match Your Profile And Generate A Custom 7-Day Study Roadmap.
+            </p>
+            <CalculatorShareAndPresets
+              toolTitle="Poker Format Selector And Study Plan Quiz"
+              toolPath={canonicalPath}
+              summaryText={`Primary Match: ${diagnosis.winner.profile.name} (${diagnosis.winner.matchPct}% Match) | Bankroll Cushion: ${diagnosis.winner.profile.bankrollCushion}`}
+              presets={[
+                { id: 'p_live_cash', label: 'Evening Live $1/$3-$2/$5 Grinder (3-5h / Low Variance)', hours: '3-5h', br: '20-30', var: 'low', focus: 'postflop', env: 'live' },
+                { id: 'p_online_6max', label: 'Online 6-Max Solver Grinder (1-2h / 50-100 BI)', hours: '1-2h', br: '50-100', var: 'balanced', focus: 'postflop', env: 'online' },
+                { id: 'p_mtt_pro', label: 'Weekend Circuit MTT Trophy Hunter (6-10h / 150+ BI)', hours: '6-10h', br: '150+', var: 'high', focus: 'icm', env: 'live' },
+                { id: 'p_plo_specialist', label: 'High-Action PLO4/PLO5 Specialist (3-5h / 150+ BI)', hours: '3-5h', br: '150+', var: 'high', focus: 'multiway', env: 'live' },
+              ]}
+              onSelectPreset={(p) => {
+                setHours(p.hours);
+                setBankroll(p.br);
+                setVariance(p.var);
+                setFocus(p.focus);
+                setEnv(p.env);
+              }}
+            />
+          </>
         )}
 
         {/* Interactive 5-Parameter Diagnostic */}
@@ -584,7 +605,7 @@ export default function FormatQuizPage({
           </h2>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
             <Link href="/tools" style={{ padding: '8px 14px', background: '#25c8ff', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
-              All 24 Free Poker Calculators
+              All 42 Free Poker Calculators
             </Link>
             <Link href="/tools/bankroll-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#f2b84b', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Bankroll &amp; Risk Of Ruin Calculator

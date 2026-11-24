@@ -236,3 +236,264 @@ test('Law 5: Markdown mirrors and MCP tools for player-types, board-textures, an
   assert.equal(intlMcp.slug, 'london-united-kingdom');
   assert.equal(intlMcp.canonical_url, 'https://smarter.poker/poker-rooms/international/london-united-kingdom');
 });
+
+test('Law 6: Zero Stale Platform Counts Across Discovery, Corpus, Knowledge Graph, Press, Search & Tool Footers', async () => {
+  const { MCP_TOOLS } = await import('../src/lib/mcp/mcpServer.mjs');
+  const crawlerStatusSrc = read('pages/api/ai/crawler-status.js');
+
+  const STALE_PATTERNS = [
+    '24 Free Poker Calculators',
+    '34 Interactive Calculators',
+    '34 Poker Calculators',
+    '35 Zero-Auth MCP',
+    '35 MCP Tools',
+    '45 Zero-Auth MCP',
+  ];
+
+  const targetFiles = [
+    'pages/api/ai/corpus.js',
+    'pages/api/ai/knowledge-graph.js',
+    'pages/api/ai/crawler-status.js',
+    'src/lib/seo/markdownIngestion.mjs',
+    'pages/404.js',
+    'pages/press.js',
+    'pages/search.js',
+    'pages/feed.xml.js',
+    ...fs
+      .readdirSync(path.join(ROOT, 'pages/tools'))
+      .filter((f) => f.endsWith('.js'))
+      .map((f) => `pages/tools/${f}`),
+  ];
+
+  assert.ok(targetFiles.length >= 50, `Expected at least 50 target files, found ${targetFiles.length}`);
+
+  for (const rel of targetFiles) {
+    const src = read(rel);
+    for (const stale of STALE_PATTERNS) {
+      assert.ok(
+        !src.includes(stale),
+        `${rel} must not contain stale count string "${stale}"`
+      );
+    }
+  }
+
+  assert.match(
+    crawlerStatusSrc,
+    /interactive_calculators:\s*42\b/,
+    'corpus_inventory.interactive_calculators in pages/api/ai/crawler-status.js must equal 42'
+  );
+  assert.match(
+    crawlerStatusSrc,
+    /mcp_tools:\s*MCP_TOOLS\.length\b/,
+    'corpus_inventory.mcp_tools in pages/api/ai/crawler-status.js must equal MCP_TOOLS.length'
+  );
+  assert.equal(MCP_TOOLS.length, 55, 'MCP_TOOLS.length must equal 55');
+});
+
+test('Law 7: 42-Calculator Feature, Schema, OG Preset & ShareBar Completeness Law', async () => {
+  const { TOOL_OG_CATALOG } = await import('../pages/api/seo/badge.js');
+  const { INDEXNOW_PRIORITY_URLS } = await import('../pages/api/seo/outreach-generator.js');
+  const { OEMBED_CALCULATORS } = await import('../pages/api/seo/oembed.js');
+
+  const toolFiles = fs
+    .readdirSync(path.join(ROOT, 'pages/tools'))
+    .filter((f) => f.endsWith('.js') && f !== 'index.js');
+
+  assert.equal(toolFiles.length, 42, `pages/tools/ must contain all 42 tool .js files (found ${toolFiles.length})`);
+
+  const toolsIndexSrc = read('pages/tools/index.js');
+  const embedsSrc = read('pages/tools/embeds.js');
+  const oembedUrls = new Set(OEMBED_CALCULATORS.map((c) => c.landerUrl));
+  const indexNowSet = new Set(INDEXNOW_PRIORITY_URLS);
+
+  const THIN_ALIASES = new Set([
+    'poker-odds-calculator.js',
+    'icm-calculator.js',
+    'preflop-ranges.js',
+  ]);
+
+  for (const file of toolFiles) {
+    const slug = file.replace(/\.js$/, '');
+    const route = `/tools/${slug}`;
+    const fullUrl = `https://smarter.poker${route}`;
+
+    assert.ok(
+      toolsIndexSrc.includes(`'${route}'`),
+      `pages/tools/index.js must list ${route}`
+    );
+    assert.ok(
+      Boolean(TOOL_OG_CATALOG[slug]),
+      `TOOL_OG_CATALOG in pages/api/seo/badge.js must include "${slug}"`
+    );
+    assert.ok(
+      indexNowSet.has(fullUrl),
+      `INDEXNOW_PRIORITY_URLS in pages/api/seo/outreach-generator.js must include ${fullUrl}`
+    );
+
+    if (file !== 'embeds.js') {
+      assert.ok(
+        oembedUrls.has(fullUrl),
+        `OEMBED_CALCULATORS in pages/api/seo/oembed.js must include ${fullUrl}`
+      );
+      assert.ok(
+        embedsSrc.includes(fullUrl),
+        `pages/tools/embeds.js must include ${fullUrl}`
+      );
+    }
+
+    if (file !== 'embeds.js' && !THIN_ALIASES.has(file)) {
+      const toolSrc = read(`pages/tools/${file}`);
+      assert.ok(
+        toolSrc.includes('CalculatorShareAndPresets'),
+        `pages/tools/${file} must include CalculatorShareAndPresets`
+      );
+      assert.ok(
+        toolSrc.includes('AiPromptLauncher'),
+        `pages/tools/${file} must include AiPromptLauncher`
+      );
+      assert.ok(
+        toolSrc.includes('CitationBacklinkBox'),
+        `pages/tools/${file} must include CitationBacklinkBox`
+      );
+      assert.ok(
+        toolSrc.includes('useSolvedSpotUrlSync'),
+        `pages/tools/${file} must include useSolvedSpotUrlSync`
+      );
+      assert.ok(
+        toolSrc.includes('hubProductSchema') && (toolSrc.includes('howTo') || toolSrc.includes('steps:')),
+        `pages/tools/${file} must include howTo / steps in hubProductSchema`
+      );
+    }
+  }
+});
+
+test('Law 8: Next.Config Content-Negotiation Routing Order & No-Shadowing Law', () => {
+  const nextConfigSrc = read('next.config.js');
+  const beforeFilesMatch = nextConfigSrc.match(/beforeFiles:\s*\[([\s\S]*?)\],\s*afterFiles:/);
+  assert.ok(beforeFilesMatch, 'next.config.js must define rewrites().beforeFiles before afterFiles');
+  const beforeFilesBlock = beforeFilesMatch[1];
+
+  const catchAllPattern = "source: '/learn/:slug'";
+  const catchAllIdx = beforeFilesBlock.indexOf(catchAllPattern);
+  assert.ok(catchAllIdx > -1, "rewrites().beforeFiles must include source: '/learn/:slug'");
+
+  const REQUIRED_LEARN_HUBS_BEFORE_CATCHALL = [
+    '/learn/hands',
+    '/learn/category/:category',
+    '/learn/poker-hand-rankings',
+    '/learn/matchups',
+    '/learn/positions',
+    '/learn/stakes',
+    '/learn/famous-hands',
+    '/learn/roadmaps',
+    '/learn/player-types',
+    '/learn/board-textures',
+    '/learn/mental-game',
+    '/learn/poker-as-a-business',
+    '/learn/poker-math',
+    '/learn/cheat-sheets',
+    '/learn/online-vs-live-poker',
+    '/learn/live-poker-tells',
+  ];
+
+  for (const hubSource of REQUIRED_LEARN_HUBS_BEFORE_CATCHALL) {
+    const hubPattern = `source: '${hubSource}'`;
+    const hubIdx = beforeFilesBlock.indexOf(hubPattern);
+    assert.ok(
+      hubIdx > -1,
+      `rewrites().beforeFiles in next.config.js must include ${hubPattern}`
+    );
+    assert.ok(
+      hubIdx < catchAllIdx,
+      `${hubPattern} must appear BEFORE ${catchAllPattern} in rewrites().beforeFiles so /learn/:slug never shadows it`
+    );
+  }
+});
+
+test('Law 9: Universal Parameterized Live Scenario Markdown Law', async () => {
+  const { computeLiveScenarioMarkdown } = await import('../pages/api/hub-tool-markdown.js');
+
+  const scenarios = [
+    ['/tools/m-ratio-calculator', { stack: '25000', sb: '500', bb: '1000', ante: '1000', players: '9' }],
+    ['/tools/geometric-bet-calculator', { pot: '100', stack: '300', streets: '3' }],
+    ['/tools/pot-odds-calculator', { pot: '100', bet: '50' }],
+    ['/tools/plo-outs-calculator', { outs: '17', wrap: '17' }],
+    ['/tools/late-reg-calculator', { buyin: '1000', bb: '20', rem: '50' }],
+    ['/tools/winrate-confidence-calculator', { winrate: '5', sd: '85', hands: '50000' }],
+    ['/tools/table-selection-calculator', { whales: '3', stack: '150', rake: '5' }],
+    ['/tools/icm-calculator', { stacks: '50000,30000,20000', payouts: '5000,3000,2000' }],
+    ['/tools/bankroll-calculator', { wr: '5', sd: '85', bi: '30' }],
+    ['/tools/push-fold-calculator', { stack: '12', pos: 'BTN' }],
+    ['/tools/bounty-calculator', { startStack: '10000', startBounty: '50', targetBounty: '100', pot: '12000', call: '8000' }],
+    ['/tools/rake-calculator', { bb: '5', cap: '6', promo: '2', time: '7' }],
+    ['/tools/3bet-calculator', { open: '2.5', callers: '1', pos: 'IP', stack: '100' }],
+    ['/tools/poker-tax-calculator', { wins: '85000', losses: '40000', status: 'recreational' }],
+    ['/tools/staking-calculator', { package: '10000', markup: '1.2', sold: '50' }],
+    ['/tools/mtt-grind-planner', { mtts: '12', abi: '55', bullets: '30', roi: '22' }],
+    ['/tools/poker-trip-planner', { days: '7', flight: '480', hotel: '165', food: '85', buyins: '10000' }],
+  ];
+
+  for (const [route, query] of scenarios) {
+    const md = computeLiveScenarioMarkdown(route, query);
+    assert.ok(
+      md && md.includes('## Live Computed Scenario Analysis'),
+      `computeLiveScenarioMarkdown("${route}", ${JSON.stringify(query)}) must emit "## Live Computed Scenario Analysis"`
+    );
+    assert.ok(
+      !md.includes('\u2014'),
+      `computeLiveScenarioMarkdown("${route}") must not contain em dashes`
+    );
+  }
+});
+
+test('Law 10: Knowledge Graph & Multilingual Corpus Entity Completeness Law', async () => {
+  const { buildKnowledgeGraph } = await import('../pages/api/ai/knowledge-graph.js');
+  const { MULTILINGUAL_CORPUS } = await import('../pages/api/ai/corpus.js');
+
+  const kg = buildKnowledgeGraph();
+  const graphNodes = Array.isArray(kg?.['@graph']) ? kg['@graph'] : [];
+  const collectionPages = graphNodes.filter((n) => n?.['@type'] === 'CollectionPage');
+  const collectionByUrl = new Map(collectionPages.map((n) => [n.url, n]));
+
+  const requiredCollections = [
+    'https://smarter.poker/learn/positions',
+    'https://smarter.poker/learn/stakes',
+    'https://smarter.poker/learn/famous-hands',
+    'https://smarter.poker/learn/roadmaps',
+    'https://smarter.poker/learn/player-types',
+    'https://smarter.poker/learn/board-textures',
+    'https://smarter.poker/poker-rooms/states',
+    'https://smarter.poker/poker-rooms/international',
+    'https://smarter.poker/tools',
+  ];
+
+  for (const url of requiredCollections) {
+    assert.ok(
+      collectionByUrl.has(url),
+      `Knowledge Graph @graph must include a CollectionPage node for ${url}`
+    );
+  }
+
+  const toolsNode = collectionByUrl.get('https://smarter.poker/tools');
+  assert.equal(
+    toolsNode?.numberOfItems,
+    42,
+    'Knowledge Graph CollectionPage for /tools must have numberOfItems === 42'
+  );
+
+  const expectedLangs = ['en', 'es', 'pt', 'de', 'fr', 'it', 'ja'];
+  for (const lang of expectedLangs) {
+    const entry = MULTILINGUAL_CORPUS[lang];
+    assert.ok(entry, `MULTILINGUAL_CORPUS must include language "${lang}"`);
+    const blob = JSON.stringify(entry);
+    assert.ok(
+      blob.includes('42'),
+      `MULTILINGUAL_CORPUS.${lang} must cite 42 calculators`
+    );
+    assert.ok(
+      blob.includes('55'),
+      `MULTILINGUAL_CORPUS.${lang} must cite 55 MCP tools`
+    );
+  }
+});
+

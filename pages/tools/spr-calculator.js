@@ -15,6 +15,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 
@@ -176,20 +177,24 @@ export default function SprCalculatorPage({
         ['SPR & Geometric Calculator', canonicalPath],
       ],
       faqs: SPR_CALCULATOR_FAQS,
-      steps: [
-        {
-          name: 'Enter Current Pot Size And Effective Remaining Stack',
-          text: 'Input The Pot At The Start Of The Flop Or Turn And The Smaller Remaining Chip Stack.',
-        },
-        {
-          name: 'Inspect Exact SPR And Strategic Commitment Zone',
-          text: 'Review Whether The Hand Falls In A Low, Medium, Or Deep SPR Commitment Zone.',
-        },
-        {
-          name: 'Apply 2-Street Or 3-Street Geometric Bet Sizing',
-          text: 'Use The Exact Street-By-Street Chip Bet Amounts To Build The Pot Smoothly To All-In.',
-        },
-      ],
+      howTo: {
+        name: 'How To Calculate Stack-To-Pot Ratio (SPR) And Geometric Bet Sizing',
+        description: pageDesc,
+        steps: [
+          {
+            name: 'Enter Current Pot Size And Effective Remaining Stack',
+            text: 'Input The Pot At The Start Of The Flop Or Turn And The Smaller Remaining Chip Stack.',
+          },
+          {
+            name: 'Inspect Exact SPR And Strategic Commitment Zone',
+            text: 'Review Whether The Hand Falls In A Low, Medium, Or Deep SPR Commitment Zone.',
+          },
+          {
+            name: 'Apply 2-Street Or 3-Street Geometric Bet Sizing',
+            text: 'Use The Exact Street-By-Street Chip Bet Amounts To Build The Pot Smoothly To All-In.',
+          },
+        ],
+      },
     });
   }, [pageDesc]);
 
@@ -215,9 +220,25 @@ export default function SprCalculatorPage({
           Poker Stack-To-Pot Ratio (SPR) &amp; Geometric Bet Sizing Calculator
         </h1>
 
-        <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
+        <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 22px 0' }}>
           <strong>Direct Answer:</strong> Stack-To-Pot Ratio Is Calculated By Dividing The <strong>Effective Remaining Stack By The Current Pot Size</strong> (<code>SPR = Effective Stack / Pot</code>). To Put All Remaining Chips In Smoothly Using Equal Percentage Bets Across <code>N</code> Streets, GTO Solvers Use The <strong>Geometric Bet Sizing Formula</strong>: <code>S = 0.5 * ((1 + 2 * SPR)^(1 / N) - 1)</code>.
         </p>
+
+        <CalculatorShareAndPresets
+          toolTitle="Poker SPR And Geometric Bet Sizing Calculator"
+          toolPath={canonicalPath}
+          summaryText={`Flop Pot ${metrics.safePot}, Effective Stack ${metrics.safeStack} (${metrics.spr} SPR): 3-Street Geo = ${metrics.geo3Pct}% Pot | 2-Street Geo = ${metrics.geo2Pct}% Pot`}
+          presets={[
+            { id: 'p_4bet_pot', label: '4-Bet Pot Low SPR (45 BB Pot / 78 BB Stack = 1.73 SPR)', pot: 45, stack: 78 },
+            { id: 'p_3bet_pot', label: '100BB 3-Bet Pot (22 BB Pot / 89 BB Stack = 4.05 SPR)', pot: 22, stack: 89 },
+            { id: 'p_srp_hu', label: '100BB Single-Raised Pot (7.5 BB Pot / 97 BB Stack = 12.9 SPR)', pot: 7.5, stack: 97 },
+            { id: 'p_deep_cash', label: '200BB Deep Live Cash ($60 Pot / $970 Stack = 16.2 SPR)', pot: 60, stack: 970 },
+          ]}
+          onSelectPreset={(p) => {
+            setPotSize(p.pot);
+            setEffectiveStack(p.stack);
+          }}
+        />
 
         {/* Interactive SPR & Geometric Calculator */}
         <section

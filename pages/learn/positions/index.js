@@ -195,7 +195,7 @@ export default function PokerPositionsIndexPage() {
               Printable Poker Cheat Sheets
             </Link>
             <Link href="/tools" style={styles.crossBtnOutline}>
-              24 Free Poker Calculators
+              42 Free Poker Calculators
             </Link>
           </div>
         </header>

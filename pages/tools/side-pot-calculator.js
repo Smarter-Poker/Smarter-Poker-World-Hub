@@ -14,6 +14,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 
@@ -171,20 +172,24 @@ export default function SidePotCalculatorPage({
         ['Side Pot Calculator', canonicalPath],
       ],
       faqs: SIDE_POT_CALCULATOR_FAQS,
-      steps: [
-        {
-          name: 'Enter All-In Chip Commitments For Each Player',
-          text: 'Input The Total Chips Committed By Up To 9 All-In Or Calling Players.',
-        },
-        {
-          name: 'Add Dead Money From Folded Blinds Or Antes',
-          text: 'Enter Any Dead Chips From Folded Players Or Big Blind Antes That Belong In The Main Pot.',
-        },
-        {
-          name: 'Review Main Pot, Side Pots, And Uncalled Returns',
-          text: 'Inspect The Exact Chip Total And Eligible Contenders For The Main Pot And Every Sequential Side Pot.',
-        },
-      ],
+      howTo: {
+        name: 'How To Calculate Multi-Way All-In Main And Side Pots',
+        description: pageDesc,
+        steps: [
+          {
+            name: 'Enter All-In Chip Commitments For Each Player',
+            text: 'Input The Total Chips Committed By Up To 9 All-In Or Calling Players.',
+          },
+          {
+            name: 'Add Dead Money From Folded Blinds Or Antes',
+            text: 'Enter Any Dead Chips From Folded Players Or Big Blind Antes That Belong In The Main Pot.',
+          },
+          {
+            name: 'Review Main Pot, Side Pots, And Uncalled Returns',
+            text: 'Inspect The Exact Chip Total And Eligible Contenders For The Main Pot And Every Sequential Side Pot.',
+          },
+        ],
+      },
     });
   }, [pageDesc]);
 
@@ -210,9 +215,24 @@ export default function SidePotCalculatorPage({
           Poker Side Pot &amp; Multi-Way All-In Payout Calculator
         </h1>
 
-        <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
+        <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 22px 0' }}>
           <strong>Direct Answer:</strong> In Any Multi-Way All-In Poker Hand, No Player May Win More Chips From An Opponent Than The Exact Stack Amount That Player Risked. Contributions Up To The Shortest All-In Stack Form The <strong>Main Pot</strong> (Plus All Dead Blinds, Antes, And Folded Bets), While Deeper Stacks Are Sliced Into Sequential <strong>Side Pots</strong> Contested Only By Players Who Covered Those Tiers.
         </p>
+
+        <CalculatorShareAndPresets
+          toolTitle="Poker Side Pot And Multi-Way All-In Payout Calculator"
+          toolPath={canonicalPath}
+          summaryText={`${stacks.length}-Way All-In (${metrics.totalPotInPlay.toLocaleString('en-US')} Total Chips, ${metrics.safeDead} Dead): ${metrics.contestedPotCount} Contested Pots | Uncalled Return: ${metrics.uncalledReturn.toLocaleString('en-US')}`}
+          presets={[
+            { id: 'p_3way_classic', label: '3-Way All-In (2,000 / 5,000 / 9,000 + 300 Dead)', stacks: [2000, 5000, 9000], dead: 300 },
+            { id: 'p_4way_even_top', label: '4-Way Equal Top Stacks (1,500 / 4,000 / 10,000 / 10,000)', stacks: [1500, 4000, 10000, 10000], dead: 450 },
+            { id: 'p_5way_chaos', label: '5-Way Final Table All-In (1,000 / 1,800 / 2,500 / 4,000 / 6,000)', stacks: [1000, 1800, 2500, 4000, 6000], dead: 250 },
+          ]}
+          onSelectPreset={(p) => {
+            setStacks(p.stacks);
+            setDeadMoney(p.dead);
+          }}
+        />
 
         {/* Interactive Side Pot Builder */}
         <section

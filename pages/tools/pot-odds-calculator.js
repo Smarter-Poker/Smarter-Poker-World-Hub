@@ -14,6 +14,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 
@@ -134,20 +135,24 @@ export default function PotOddsCalculatorPage({
         ['Pot Odds & MDF Calculator', canonicalPath],
       ],
       faqs: POT_ODDS_CALCULATOR_FAQS,
-      steps: [
-        {
-          name: 'Enter Current Pot And Facing Bet Size',
-          text: 'Input The Pot Size Before The Bet And The Bet Amount You Are Facing To Compute Exact Pot Odds And Break-Even Equity.',
-        },
-        {
-          name: 'Review Minimum Defense Frequency (MDF) And Bluff Ratio',
-          text: 'Inspect The Exact MDF Percentage And Optimal Polarized River Bluff-To-Value Ratio For That Bet Sizing.',
-        },
-        {
-          name: 'Compare Against Your Draw Outs',
-          text: 'Select Your Number Of Unseen Outs To Verify Whether Calling One Street Or All-In On The Flop Is Positive Expected Value (+EV).',
-        },
-      ],
+      howTo: {
+        name: 'How To Calculate Poker Pot Odds, Break-Even Equity, And MDF',
+        description: pageDesc,
+        steps: [
+          {
+            name: 'Enter Current Pot And Facing Bet Size',
+            text: 'Input The Pot Size Before The Bet And The Bet Amount You Are Facing To Compute Exact Pot Odds And Break-Even Equity.',
+          },
+          {
+            name: 'Review Minimum Defense Frequency (MDF) And Bluff Ratio',
+            text: 'Inspect The Exact MDF Percentage And Optimal Polarized River Bluff-To-Value Ratio For That Bet Sizing.',
+          },
+          {
+            name: 'Compare Against Your Draw Outs',
+            text: 'Select Your Number Of Unseen Outs To Verify Whether Calling One Street Or All-In On The Flop Is Positive Expected Value (+EV).',
+          },
+        ],
+      },
     });
   }, [pageDesc]);
 
@@ -173,9 +178,26 @@ export default function PotOddsCalculatorPage({
           Poker Pot Odds, Required Equity &amp; Minimum Defense Frequency (MDF) Calculator
         </h1>
 
-        <p style={{ fontSize: 17, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
+        <p style={{ fontSize: 17, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 22px 0' }}>
           Pot Odds Measure The Ratio Of The Current Pot To The Cost Of A Call, Determining The Exact Break-Even Equity Required To Continue Profitably. Enter Any Pot Size, Facing Bet, And Draw Outs Below To Calculate Required Calling Equity, Minimum Defense Frequency (MDF), Polarized Bluff Ratios, And Exact Hypergeometric Draw Probabilities.
         </p>
+
+        <CalculatorShareAndPresets
+          toolTitle="Poker Pot Odds, Required Equity And MDF Calculator"
+          toolPath={canonicalPath}
+          summaryText={`Pot $${metrics.safePot}, Facing Bet $${metrics.safeBet} (${metrics.betPctOfPot}% Pot): Pot Odds ${metrics.potOddsRatio}:1 | Req Equity = ${metrics.reqEquity}% | MDF = ${metrics.mdf}%`}
+          presets={[
+            { id: 'p_33_cbet', label: '33% Small Range C-Bet ($33 Into $100 | 4 Outs)', pot: 100, bet: 33, outs: 4 },
+            { id: 'p_50_half', label: '50% Half-Pot Bet ($50 Into $100 | 9-Out Flush Draw)', pot: 100, bet: 50, outs: 9 },
+            { id: 'p_75_polar', label: '75% Polarized Bet ($75 Into $100 | 8-Out OESD)', pot: 100, bet: 75, outs: 8 },
+            { id: 'p_150_overbet', label: '150% River Overbet ($150 Into $100 | 15-Out Combo)', pot: 100, bet: 150, outs: 15 },
+          ]}
+          onSelectPreset={(p) => {
+            setPotSize(p.pot);
+            setBetSize(p.bet);
+            setOuts(p.outs);
+          }}
+        />
 
         {/* Interactive Calculator Grid */}
         <section style={{

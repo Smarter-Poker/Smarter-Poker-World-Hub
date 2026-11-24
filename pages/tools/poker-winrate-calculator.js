@@ -14,6 +14,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 
@@ -128,20 +129,24 @@ export default function PokerWinrateCalculatorPage({
         ['Poker Winrate & BB/100 Calculator', canonicalPath],
       ],
       faqs: POKER_WINRATE_CALCULATOR_FAQS,
-      steps: [
-        {
-          name: 'Enter Total Net Profit And Big Blind Size',
-          text: 'Input Your Net Dollar Profit Across Your Sample And The Big Blind Stake ($2, $3, $5, Or $10).',
-        },
-        {
-          name: 'Input Total Hours Played And Hands Per Hour',
-          text: 'Use 28 Hands/Hr For Live Full-Ring Dealers, 85 Hands/Hr For Single Online 6-Max Tables, Or 320+ Hands/Hr For Multi-Tabling.',
-        },
-        {
-          name: 'Inspect BB/100 Winrate And 95% Confidence Interval',
-          text: 'Review Your Exact BB/100 Winrate, Hourly Earnings ($/Hr), And Statistical Confidence Interval Bounds.',
-        },
-      ],
+      howTo: {
+        name: 'How To Convert Poker Hourly Winrate Into BB/100 And Confidence Bounds',
+        description: pageDesc,
+        steps: [
+          {
+            name: 'Enter Total Net Profit And Big Blind Size',
+            text: 'Input Your Net Dollar Profit Across Your Sample And The Big Blind Stake ($2, $3, $5, Or $10).',
+          },
+          {
+            name: 'Input Total Hours Played And Hands Per Hour',
+            text: 'Use 28 Hands/Hr For Live Full-Ring Dealers, 85 Hands/Hr For Single Online 6-Max Tables, Or 320+ Hands/Hr For Multi-Tabling.',
+          },
+          {
+            name: 'Inspect BB/100 Winrate And 95% Confidence Interval',
+            text: 'Review Your Exact BB/100 Winrate, Hourly Earnings ($/Hr), And Statistical Confidence Interval Bounds.',
+          },
+        ],
+      },
     });
   }, [pageDesc]);
 
@@ -167,9 +172,26 @@ export default function PokerWinrateCalculatorPage({
           Poker Winrate, BB/100 &amp; Hourly Rate Variance Calculator
         </h1>
 
-        <p style={{ fontSize: 17, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
+        <p style={{ fontSize: 17, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 22px 0' }}>
           Poker Winrate Is Standardized In Big Blinds Won Per 100 Hands (BB/100) Online And Big Blinds Won Per Hour (BB/Hr) In Live Card Rooms. Enter Your Net Profit, Stake Size, Total Hours, And Table Pace Below To Convert Between $/Hour, BB/Hour, And BB/100 While Computing Your 95% Statistical Confidence Interval.
         </p>
+
+        <CalculatorShareAndPresets
+          toolTitle="Poker Winrate, BB/100 And Hourly Rate Calculator"
+          toolPath={canonicalPath}
+          summaryText={`Net Profit $${metrics.safeProfit} Over ${metrics.safeHours} Hrs (${metrics.totalHands} Hands): ${metrics.bbPer100} BB/100 ($${metrics.hourlyDollars}/Hr) | 95% CI: ${metrics.ciLow} To ${metrics.ciHigh} BB/100`}
+          presets={[
+            { id: 'p_live_1_3', label: 'Live $1/$3 Winner ($3,600 Over 150 Hrs @ 28 Hands/Hr)', profit: 3600, bb: 3, hours: 150, hph: 28 },
+            { id: 'p_live_2_5', label: 'Live $2/$5 Crusher ($9,000 Over 200 Hrs @ 28 Hands/Hr)', profit: 9000, bb: 5, hours: 200, hph: 28 },
+            { id: 'p_online_4tab', label: 'Online 6-Max 4-Tabler ($3,200 Over 100 Hrs @ 320 Hands/Hr)', profit: 3200, bb: 2, hours: 100, hph: 320 },
+          ]}
+          onSelectPreset={(p) => {
+            setProfitDollars(p.profit);
+            setBigBlindDollars(p.bb);
+            setHoursPlayed(p.hours);
+            setHandsPerHour(p.hph);
+          }}
+        />
 
         {/* Interactive Calculator Grid */}
         <section style={{
