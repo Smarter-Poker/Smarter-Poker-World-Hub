@@ -18,6 +18,7 @@ import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
 import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 
 const PLO_WRAP_TYPES = [
   {
@@ -218,6 +219,14 @@ export default function PloOutsCalculatorPage() {
     if (q.pot !== undefined) setPotSize(Math.max(1, Number(q.pot) || 120));
     if (q.bet !== undefined) setBetFacing(Math.max(0, Number(q.bet) || 120));
   }, [router.isReady, router.query]);
+
+  useSolvedSpotUrlSync({
+    wrap: wrapType,
+    outs: totalOuts,
+    nut: nutOuts,
+    pot: potSize,
+    bet: betFacing,
+  });
 
   const handleSelectWrapType = (nextId) => {
     setWrapType(nextId);

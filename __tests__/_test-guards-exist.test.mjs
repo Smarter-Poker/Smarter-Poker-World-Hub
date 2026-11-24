@@ -862,6 +862,7 @@ import './digest-shows-the-fix.test.mjs';
 import './notifications-is-the-top-menu-setting.law.test.mjs';
 import './weekly-rakeback-credit-notices.test.mjs';
 import './backlink-embed-citation-engine.test.mjs';
+import './seo-backlink-programme-invariants.law.test.mjs';
 import './aeo-traffic-expansion-master.test.mjs';
 import './training-reconciled-workflows.test.mjs';
 import './hub-settings-rail-opt-in.test.mjs';

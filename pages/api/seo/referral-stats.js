@@ -145,15 +145,27 @@ export function classifyTelemetryRequest(req, { partner = '' } = {}) {
     extractVerifiedExternalHost(headers.referer || headers.referrer || '') ||
     extractVerifiedExternalHost(headers.origin || '');
 
-  const claimedPartner = sanitizeTelemetryToken(partner || '', 64).split('/')[0];
+  const claimedPartner = sanitizeTelemetryToken(partner || '', 64)
+    .split('/')[0]
+    .replace(/^www\./, '');
   const isSelfOrLocalClaim =
     !claimedPartner ||
     claimedPartner === 'localhost' ||
     claimedPartner === '127.0.0.1' ||
     claimedPartner === 'smarter.poker' ||
-    claimedPartner.endsWith('.smarter.poker');
+    claimedPartner.endsWith('.smarter.poker') ||
+    !claimedPartner.includes('.');
 
-  const isVerifiedPartnerInstall = Boolean(refererHost && !isCrawler);
+  const refererMatchesClaimedPartner = isSelfOrLocalClaim
+    ? Boolean(refererHost)
+    : Boolean(
+        refererHost &&
+          (refererHost === claimedPartner || refererHost.endsWith(`.${claimedPartner}`))
+      );
+
+  const isVerifiedPartnerInstall = Boolean(
+    refererHost && !isCrawler && refererMatchesClaimedPartner
+  );
   const hasVerifiedBotHeaders = Boolean(
     headers['nightbot-response-url'] ||
       headers['nightbot-channel'] ||
@@ -311,17 +323,17 @@ export function getSeoTelemetrySnapshot({ includeRecent = false } = {}) {
           'swh:1:snp:02b8992833424620305edcfb730b3cf8add15747',
         ],
         github_releases: [
-          'https://github.com/Smarter-Poker/smarter-poker-mcp/releases/tag/v1.0.5',
-          'https://github.com/Smarter-Poker/smarter-poker-open-datasets/releases/tag/v2026.11.12',
+          'https://github.com/Smarter-Poker/smarter-poker-mcp/releases/tag/v1.0.7',
+          'https://github.com/Smarter-Poker/smarter-poker-open-datasets/releases/tag/v2026.11.13',
         ],
       },
       surface_counts: {
-        embeddable_calculators: 23,
-        mcp_tools: 35,
-        streamer_chat_commands: 18,
+        embeddable_calculators: 41,
+        mcp_tools: 55,
+        streamer_chat_commands: 34,
         svg_research_charts: 15,
         ics_calendar_feeds: 11,
-        svg_attribution_badges: 8,
+        svg_attribution_badges: 16,
       },
     },
     runtime_telemetry: {

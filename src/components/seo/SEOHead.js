@@ -48,9 +48,17 @@ const SOLVED_SPOT_QUERY_SCHEMAS = {
   'who-wins-calculator': ['board', 'p1', 'p2'],
   'hand-converter': ['stakes', 'stack', 'hero', 'villain', 'cards', 'flop'],
   'mixed-game-placards': ['preset', 'orbit', 'hand'],
-  'poker-iq-test': ['score'],
+  'poker-iq-test': ['score', 'ans'],
   'format-quiz': ['hours', 'br', 'var', 'focus', 'env'],
   'preflop-ranges': ['pos', 'action', 'depth'],
+  'geometric-bet-calculator': ['pot', 'stack', 'mode'],
+  'late-reg-calculator': ['buyin', 'rake', 'entries', 'rem', 'bb', 'roi'],
+  'mtt-grind-planner': ['mtts', 'abi', 'bullets', 'field', 'roi', 'br'],
+  'plo-outs-calculator': ['wrap', 'outs', 'nut', 'pot', 'bet'],
+  'poker-trip-planner': ['days', 'flight', 'hotel', 'food', 'buyins', 'bullets', 'roi', 'chrs', 'crate'],
+  'shot-clock': ['primary', 'bank'],
+  'table-selection-calculator': ['stake', 'recs', 'depth', 'straddle', 'bomb', 'rake'],
+  'winrate-confidence-calculator': ['mode', 'wr', 'sd', 'hands', 'hph'],
 };
 
 export * from '@smarter-poker/commander-shared/components/seo/SEOHead';
@@ -250,6 +258,14 @@ export default function SEOHead(props) {
       pathname === '/tools/who-wins-calculator' ||
       pathname === '/tools/mixed-game-placards' ||
       pathname === '/tools/poker-iq-test' ||
+      pathname === '/tools/geometric-bet-calculator' ||
+      pathname === '/tools/late-reg-calculator' ||
+      pathname === '/tools/mtt-grind-planner' ||
+      pathname === '/tools/plo-outs-calculator' ||
+      pathname === '/tools/poker-trip-planner' ||
+      pathname === '/tools/shot-clock' ||
+      pathname === '/tools/table-selection-calculator' ||
+      pathname === '/tools/winrate-confidence-calculator' ||
       pathname === '/rules' ||
       pathname.startsWith('/rules/') ||
       pathname === '/games' ||
@@ -258,6 +274,8 @@ export default function SEOHead(props) {
       pathname.startsWith('/poker-rooms/guides/') ||
       pathname === '/poker-rooms/states' ||
       pathname.startsWith('/poker-rooms/states/') ||
+      pathname === '/poker-rooms/international' ||
+      pathname.startsWith('/poker-rooms/international/') ||
       pathname === '/poker-rooms/comps-and-tipping-guide' ||
       pathname === '/poker-rooms/first-time-guide' ||
       pathname === '/poker-series/guides' ||
