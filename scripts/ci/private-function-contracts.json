@@ -148,5 +148,15 @@
       "authenticated": false,
       "service_role": false
     }
+  },
+  {
+    "file": "supabase/migrations/20261124190000_notice_board_hardening_auto_escalate_realtime_and_parity.sql",
+    "signature": "public.fn_notice_cashout_card(uuid,uuid)",
+    "source_sha256": "bb611751f354416a1d637c9caf3b29ab858745437a6971f542b326739a07effa",
+    "execute": {
+      "anon": false,
+      "authenticated": false,
+      "service_role": false
+    }
   }
 ]

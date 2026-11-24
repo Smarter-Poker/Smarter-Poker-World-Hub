@@ -125,6 +125,14 @@ test('Phase 2 actions (mark_read, toggle_reaction, update_alert_settings, attach
 });
 
 
+test('non-staff deep-link to folder=notice-board safely falls back to messages', async () => {
+ const { resolveMessengerClubEntry } = await import('../src/lib/messengerClubEntry.mjs');
+ const staffClub = { id: clubId, pageId: id, canAccessNoticeBoard: true };
+ const playerClub = { id: clubId, pageId: id, canAccessNoticeBoard: false };
+ assert.equal(resolveMessengerClubEntry([staffClub], { clubId, folder: 'notice-board' })?.folder, 'notice-board');
+ assert.equal(resolveMessengerClubEntry([playerClub], { clubId, folder: 'notice-board' })?.folder, 'messages');
+});
+
 test('manager payout notes require a bounded note and stable operation identity', () => {
  const payload={id,version:1,note:'  Please Help  ',op_id:clubId};
  assert.deepEqual(validateNoticeRequest('PATCH',{clubId,action:'add_note',payload}),{clubId,action:'add_note',payload:{...payload,note:'Please Help'}});

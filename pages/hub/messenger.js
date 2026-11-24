@@ -2755,8 +2755,10 @@ function MessengerPage() {
 
     const enterClubWorkspace = (club, folder = 'messages') => {
         if (!club || !joinedClubs.some(c => c.id === club.id)) return;
-        setWorkspaceSelection({ clubId: club.id, folder: ['invoices', 'statements', 'notice-board'].includes(folder) ? folder : 'messages' });
-        if (['statements', 'notice-board'].includes(folder)) setShowSidebar(false);
+        const normalizedFolder = ['invoices', 'statements', 'notice-board'].includes(folder) ? folder : 'messages';
+        const safeFolder = normalizedFolder === 'notice-board' && club.canAccessNoticeBoard === false ? 'messages' : normalizedFolder;
+        setWorkspaceSelection({ clubId: club.id, folder: safeFolder });
+        if (['statements', 'notice-board'].includes(safeFolder)) setShowSidebar(false);
         const page = club.canManage && ownedPages.find(p => p.id === club.pageId);
         if (page) switchToClub(page);
         else switchToPersonal();
@@ -3520,6 +3522,7 @@ function MessengerPage() {
                                 onMarkRead={() => {
                                     setWorkspaceUnread(prev => prev && prev.key === workspaceKey ? { ...prev, noticeBoardUnread: 0 } : prev);
                                     refreshUnread?.();
+                                    broadcastSync('smarter_poker_unread_sync', 'refresh_unread');
                                 }}
                                 onMessageMember={(member, prefillText) => {
                                     if (!member?.user_id || member.user_id === user.id) return;
