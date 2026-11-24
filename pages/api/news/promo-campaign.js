@@ -59,6 +59,7 @@ async function authorizeAdmin(req) {
                 action,
                 testEmail: req.body.testEmail || '',
                 testPhone: req.body.testPhone || '',
+                confirmSend: req.body.confirmSend || '',
                 timestampHeader: req.headers['x-operator-timestamp'] || '',
                 signatureHeader: req.headers['x-operator-signature'] || '',
             })
