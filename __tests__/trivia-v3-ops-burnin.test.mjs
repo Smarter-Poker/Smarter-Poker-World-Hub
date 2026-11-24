@@ -261,12 +261,14 @@ test('verify-nightly-burnin grades 7-night window against all 6 Phase 12 SLOs', 
 test('OpenClaw 7:00 PM CT read-only pre-flight evaluator grades ready, warning, and fail accurately', () => {
     const pyCode = `
 import importlib.util, json, sys, types
-# Stub apscheduler if not installed in this Python env
-for mod in ('apscheduler', 'apscheduler.schedulers', 'apscheduler.schedulers.blocking', 'apscheduler.triggers', 'apscheduler.triggers.cron'):
+# Stub apscheduler and requests if not installed in this Python env
+for mod in ('requests', 'apscheduler', 'apscheduler.schedulers', 'apscheduler.schedulers.blocking', 'apscheduler.triggers', 'apscheduler.triggers.cron'):
     if mod not in sys.modules:
         m = types.ModuleType(mod)
         m.BlockingScheduler = object
         m.CronTrigger = object
+        m.RequestException = Exception
+        m.exceptions = types.SimpleNamespace(Timeout=TimeoutError)
         sys.modules[mod] = m
 spec = importlib.util.spec_from_file_location('oc', 'scripts/openclaw-cron-dispatcher.py')
 mod = importlib.util.module_from_spec(spec)
