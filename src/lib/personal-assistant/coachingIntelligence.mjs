@@ -15,7 +15,8 @@ function clamp(value, min, max) {
 }
 
 function iso(value) {
-  const parsed = new Date(value || 0);
+  if (value === null || value === undefined || value === '') return null;
+  const parsed = new Date(value);
   return Number.isFinite(parsed.getTime()) ? parsed.toISOString() : null;
 }
 
@@ -50,7 +51,7 @@ function slug(value, fallback) {
   const normalized = String(value || fallback).trim().toLowerCase()
     .replace(/[^a-z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '');
-  return normalized || fallback;
+  return (normalized || fallback).slice(0, 42);
 }
 
 function decisionLeakType(row) {
@@ -115,9 +116,14 @@ export function decisionCoverage(decisions = [], rejected = {}) {
   const partiallyMatched = rows.filter(row => row.solver_verified !== true && count(row.match_tier) > 0).length;
   const sourceCounts = rows.reduce((result, row) => {
     const raw = String(row.solver_source || '').toLowerCase();
-    const key = raw.includes('ai') ? 'aiGuidance'
+    const isLookupFailure = raw.includes('lookup-failed') || raw.includes('unpriced');
+    const isSolverSource = row.solver_verified === true
+      || /\b(solver|pio|pio_database|chart|deterministic_solver|local_solver|legacy_strategy_archive)\b/.test(raw)
+      || raw.includes('solver');
+    const isAiSource = !isLookupFailure && (/\bai\b/.test(raw) || /(?:^|[_|: -])ai(?:[_|: -]|$)/.test(raw));
+    const key = isSolverSource ? 'solverEvidence'
+      : isAiSource ? 'aiGuidance'
       : raw.includes('offline') ? 'offlineEstimate'
-      : raw.includes('solver') ? 'solverEvidence'
       : 'unclassified';
     result[key] += 1;
     return result;
@@ -198,12 +204,20 @@ export function rankCoachingPriorities(leaks = [], reviewRecords = [], coverage 
 
 export function buildEvidenceChain(leak, decisions = [], reviewRecords = [], versions = {}, examples = []) {
   const id = leakId(leak);
-  const example = Array.isArray(examples) ? examples[0] : null;
-  const snapshot = example?.snapshot && typeof example.snapshot === 'object' ? example.snapshot : {};
-  const exampleExternalIds = [
-    snapshot.external_id, snapshot.externalId, snapshot.hand_external_id,
-    snapshot.hand_id, snapshot.handId,
-  ].filter(Boolean).map(String);
+  const exampleList = Array.isArray(examples) ? examples : [];
+  const example = exampleList[0] || null;
+  const exampleExternalIds = [...new Set(exampleList.flatMap(item => {
+    const snap = item?.snapshot && typeof item.snapshot === 'object' ? item.snapshot : {};
+    const rawHandId = item?.handId ?? item?.hand_history_id ?? snap.hand_id ?? snap.handId ?? null;
+    const ids = [
+      snap.external_id, snap.externalId, snap.hand_external_id,
+      rawHandId,
+    ].filter(Boolean).map(String);
+    if (rawHandId && !String(rawHandId).startsWith('club-arena:')) {
+      ids.push(`club-arena:${rawHandId}`);
+    }
+    return ids;
+  }))];
   const decisionRows = (Array.isArray(decisions) ? decisions : []).filter(row => {
     const keys = [row?.leak_id, row?.leak_type, row?.spot_type, row?.game_id, decisionLeakType(row)].filter(Boolean).map(String);
     return keys.includes(id)

@@ -100,20 +100,23 @@ export default async function handler(req, res) {
     // HARDENED: March 7, 2026 · REMOVED req.query.userId fallback (IDOR vulnerability).
     // userId MUST come from JWT only. The global fetch interceptor auto-injects JWT.
     let userId = null;
-    const { status } = req.query;
-    if (status && !PATCH_STATUSES.has(String(status).trim().toLowerCase())) {
+    const rawStatus = Array.isArray(req.query.status) ? req.query.status[0] : req.query.status;
+    const status = rawStatus ? String(rawStatus).trim().toLowerCase() : null;
+    if (status && !PATCH_STATUSES.has(status)) {
       return res.status(400).json({ success: false, error: 'Unsupported leak status' });
     }
 
     // Extract userId from JWT · this is the ONLY trusted source
     const authHeader = req.headers.authorization;
     if (authHeader?.startsWith('Bearer ')) {
-      const token = authHeader.replace('Bearer ', '');
-      const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+      const { user: authUser, error: authErr, status: authStatus } = await getServerUserWithFallback(req, getSupabase());
       if (authErr || !authUser) {
         // A token was presented but is invalid/expired · tell the client to
         // refresh instead of silently serving demo data
-        return res.status(401).json({ success: false, error: 'Invalid or expired token' });
+        return res.status(authStatus || 401).json({
+          success: false,
+          error: authStatus === 503 ? 'Session verification unavailable' : 'Invalid or expired token',
+        });
       }
       userId = authUser.id;
     }

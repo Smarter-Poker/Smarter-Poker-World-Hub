@@ -235,6 +235,7 @@ const FOCUSABLE = 'a[href],button:not([disabled]),textarea:not([disabled]),input
  * shortcut handler ran as well.
  */
 const openSheets = [];
+let savedBodyOverflow = '';
 
 export function BottomSheet({
     open = true,
@@ -271,8 +272,10 @@ export function BottomSheet({
     useEffect(() => {
         if (!open || typeof document === 'undefined') return undefined;
         previouslyFocused.current = document.activeElement;
-        const prevOverflow = document.body.style.overflow;
-        document.body.style.overflow = 'hidden';
+        if (openSheets.length === 0) {
+            savedBodyOverflow = document.body.style.overflow;
+            document.body.style.overflow = 'hidden';
+        }
 
         const token = {};
         openSheets.push(token);
@@ -282,6 +285,7 @@ export function BottomSheet({
             // so no sibling sheet listener and no page-level shortcut sees it.
             if (openSheets[openSheets.length - 1] !== token) return;
             if (e.key === 'Escape') {
+                if (hideClose) return;
                 e.preventDefault();
                 e.stopPropagation();
                 e.stopImmediatePropagation?.();
@@ -294,8 +298,14 @@ export function BottomSheet({
             if (nodes.length === 0) return;
             const first = nodes[0];
             const last = nodes[nodes.length - 1];
-            if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-            else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+            const active = document.activeElement;
+            if (e.shiftKey && (active === first || active === sheetRef.current || !sheetRef.current.contains(active))) {
+                e.preventDefault();
+                last.focus();
+            } else if (!e.shiftKey && (active === last || !sheetRef.current.contains(active))) {
+                e.preventDefault();
+                first.focus();
+            }
         };
         document.addEventListener('keydown', onKey, true);
 
@@ -311,10 +321,12 @@ export function BottomSheet({
             const at = openSheets.indexOf(token);
             if (at >= 0) openSheets.splice(at, 1);
             document.removeEventListener('keydown', onKey, true);
-            document.body.style.overflow = prevOverflow;
+            if (openSheets.length === 0) {
+                document.body.style.overflow = savedBodyOverflow;
+            }
             try { previouslyFocused.current?.focus?.({ preventScroll: true }); } catch (e) { /* node gone */ }
         };
-    }, [open, closeSheet]);
+    }, [open, closeSheet, hideClose]);
 
     const motionProps = reduce
         ? { initial: false, animate: { opacity: 1 }, exit: { opacity: 0 }, transition: { duration: 0 } }
@@ -363,7 +375,7 @@ export function BottomSheet({
 
                         <div className="pa-sheet-telemetry" aria-hidden="true">
                             <span>Smarter.Poker</span>
-                            <span>Jarvis // Module Active</span>
+                            <span>Personal Assistant // Module Active</span>
                         </div>
 
                         <div className="pa-sheet-header" style={sheetHeader}>

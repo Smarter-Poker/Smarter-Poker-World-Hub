@@ -853,6 +853,12 @@ export function reviewStats(records, now) {
         }
         const key = dayKey(toMs(rec.lastReviewedAt));
         if (key) reviewDays.add(key);
+        if (Array.isArray(rec.history)) {
+            for (const entry of rec.history) {
+                const entryKey = dayKey(toMs(entry?.at));
+                if (entryKey) reviewDays.add(entryKey);
+            }
+        }
     }
 
     let streak = 0;

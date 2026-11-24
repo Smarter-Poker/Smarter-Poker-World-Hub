@@ -36,12 +36,31 @@ function publicAuditValue(value) {
     .map(([key, child]) => [key, publicAuditValue(child)]));
 }
 
+const PAGE_LEVEL_METRICS = new Set([
+  'handsScanned',
+  'handsEligible',
+  'privateCardsRecovered',
+  'handsMissingPrivateCards',
+  'handsRejectedBeforeAudit',
+  'handsSkippedNoHeroDecisions',
+  'handsAlreadyCurrent',
+]);
+
 export function mergeAuditJobProgress(previous, detection, batchDurationMs = 0, options = {}) {
   const prior = previous && typeof previous === 'object' ? previous : {};
   const sync = detection?.clubArenaSync || {};
   const next = { ...prior };
   const acceptedBatch = detection?.success === true && options.countAcceptedBatch !== false;
+  const pageRetrying = sync.truncated === true;
   for (const [target, source] of Object.entries(METRIC_MAP)) {
+    if (target === 'handsScanned' && acceptedBatch && Number.isFinite(Number(sync.cumulativeHandsFound))) {
+      next.handsScanned = Math.max(number(prior.handsScanned), number(sync.cumulativeHandsFound));
+      continue;
+    }
+    if (pageRetrying && PAGE_LEVEL_METRICS.has(target)) {
+      next[target] = number(prior[target]);
+      continue;
+    }
     next[target] = number(prior[target]) + (acceptedBatch ? number(sync[source]) : 0);
   }
   const completedBatch = acceptedBatch && detection?.clubArenaSync && typeof detection.clubArenaSync === 'object';
