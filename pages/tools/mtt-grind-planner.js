@@ -208,6 +208,24 @@ export default function MttGrindPlannerPage() {
         ['MTT Schedule & ABI Planner', canonicalPath],
       ],
       faqs: MTT_GRIND_FAQS,
+      howTo: {
+        name: 'How To Plan An MTT Session Schedule And ABI Bankroll',
+        description: pageDesc,
+        steps: [
+          {
+            name: 'Enter Planned Tournaments, Average Buy-In (ABI), And Re-Entry Allowance',
+            text: 'Set The Number Of MTTs In Your Session, Your Average Buy-In, And Expected Re-Entry Bullet Percentage.',
+          },
+          {
+            name: 'Input Average Field Size, Expected ROI, And Total Bankroll',
+            text: 'Specify Your Average Tournament Field Size, Projected ROI Percentage, And Dedicated MTT Bankroll.',
+          },
+          {
+            name: 'Evaluate Total Session Exposure, Zero-Cash Brick Risk, And ABI Cushion',
+            text: 'Review Your Effective ABI Bankroll Multiple, Session Brick Probability, And Expected Net Session EV.',
+          },
+        ],
+      },
     });
   }, [pageDesc]);
 

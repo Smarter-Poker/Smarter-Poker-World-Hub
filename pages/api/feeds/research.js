@@ -4,7 +4,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * Implements the JSON Feed 1.1 specification (https://jsonfeed.org/version/1.1)
- * for Smarter.Poker's 15 first-party poker industry research studies and 8
+ * for Smarter.Poker's 15 first-party poker industry research studies and 42
  * interactive solver calculators.
  *
  * Every feed item includes `content_html` with embedded canonical attribution
@@ -177,6 +177,139 @@ const SYNDICATED_CALCULATORS = [
     url: `${SITE_URL}/tools/format-quiz`,
     summary: 'Match Your Session Schedule, Bankroll Cushion, And Risk Tolerance To Your Optimal Poker Format And Study Plan.',
     badgeValue: 'Format Diagnostic Quiz',
+  },
+  {
+    slug: 'board-texture-analyzer',
+    title: 'Smarter.Poker Flop Board Texture & GTO C-Bet Strategy Analyzer',
+    url: `${SITE_URL}/tools/board-texture-analyzer`,
+    summary: 'Classify Any 3-Card Flop By Suit Texture, Pairing, Connectedness, PFR Vs BB Range/Nut Advantage, And Solver C-Bet Sizing.',
+    badgeValue: 'Flop Texture & C-Bet Solver',
+  },
+  {
+    slug: 'm-ratio-calculator',
+    title: 'Smarter.Poker Tournament Harrington M-Ratio & Effective M Calculator',
+    url: `${SITE_URL}/tools/m-ratio-calculator`,
+    summary: 'Compute Orbit Cost, Raw Harrington M-Ratio, Short-Handed Effective M, Q-Ratio, And 5-Zone Tournament Survival Strategy.',
+    badgeValue: 'Harrington M-Ratio Solver',
+  },
+  {
+    slug: 'session-planner',
+    title: 'Smarter.Poker Live Cash Game Session, Stop-Loss & Annual Income Planner',
+    url: `${SITE_URL}/tools/session-planner`,
+    summary: 'Project Net Hourly And Annual Cash-Game Income After Comps And Expenses, Stop-Loss Limits, And 5% Risk-Of-Ruin Bankroll Targets.',
+    badgeValue: 'Cash Session & Income Planner',
+  },
+  {
+    slug: 'straddle-calculator',
+    title: 'Smarter.Poker Live Straddle & Double-Board Bomb Pot EV Calculator',
+    url: `${SITE_URL}/tools/straddle-calculator`,
+    summary: 'Calculate UTG And Mississippi Button Straddle Effective Stack Reduction, Steal Thresholds, And Multi-Way Bomb Pot Dead Money Math.',
+    badgeValue: 'Straddle & Bomb Pot Solver',
+  },
+  {
+    slug: 'hand-converter',
+    title: 'Smarter.Poker Poker Hand History Formatter & SPR Street Analyzer',
+    url: `${SITE_URL}/tools/hand-converter`,
+    summary: 'Convert Raw Poker Hand Details Into Clean Reddit, TwoPlusTwo, Discord, And AI Solver Markdown With Street-By-Street SPR.',
+    badgeValue: 'Hand History Formatter',
+  },
+  {
+    slug: 'satellite-calculator',
+    title: 'Smarter.Poker Satellite Bubble Factor & Seat-Lock Threshold Calculator',
+    url: `${SITE_URL}/tools/satellite-calculator`,
+    summary: 'Compute Flat-Payout Tournament Satellite Seat-Lock Chip Targets, Bubble Factors, And Fold-AA Survival Thresholds.',
+    badgeValue: 'Satellite Seat-Lock Solver',
+  },
+  {
+    slug: 'promo-ev-calculator',
+    title: 'Smarter.Poker Bad Beat Jackpot (BBJ) & High-Hand Promo EV Calculator',
+    url: `${SITE_URL}/tools/promo-ev-calculator`,
+    summary: 'Calculate Exact Bad Beat Jackpot Breakeven Pool Thresholds, Table-Share EV, And Hourly High-Hand Promo Drop Rebates.',
+    badgeValue: 'BBJ & High-Hand EV Engine',
+  },
+  {
+    slug: 'who-wins-calculator',
+    title: 'Smarter.Poker Texas Hold\'em Showdown Winner & Kicker Resolver',
+    url: `${SITE_URL}/tools/who-wins-calculator`,
+    summary: 'Evaluate Any Two Hold\'em Hands Across A 5-Card Board To Determine The Exact Winning 5-Card Hand, Kicker, Or Split Pot.',
+    badgeValue: '7-Card Showdown Resolver',
+  },
+  {
+    slug: 'mixed-game-placards',
+    title: 'Smarter.Poker Mixed-Game Rotation Tracker & Printable Table Placards',
+    url: `${SITE_URL}/tools/mixed-game-placards`,
+    summary: 'Interactive H.O.R.S.E., 8-Game, And 10-Game Orbit Rotation Tracker With Printable Table Placards And Dealing Rules.',
+    badgeValue: 'Mixed-Game Orbit Tracker',
+  },
+  {
+    slug: 'poker-iq-test',
+    title: 'Smarter.Poker 10-Question Quantitative GTO Poker IQ Diagnostic Test',
+    url: `${SITE_URL}/tools/poker-iq-test`,
+    summary: 'Test Pot Odds, MDF, Malmuth-Harville ICM, Preflop Ranges, Combinatorics, And TDA Rules With Instant Percentile Scoring.',
+    badgeValue: 'Quantitative Poker IQ Test',
+  },
+  {
+    slug: 'plo-outs-calculator',
+    title: 'Smarter.Poker PLO4 & PLO5 Straight Wrap Outs & Nut Equity Calculator',
+    url: `${SITE_URL}/tools/plo-outs-calculator`,
+    summary: 'Compute 13-Out, 16-Out, 17-Out, And 20-Out Omaha Straight Wrap Plus Flush Redraw Hypergeometric Turn-And-River Equity And Nut-Out Ratios.',
+    badgeValue: 'PLO Wrap & Nut-Out Solver',
+  },
+  {
+    slug: 'late-reg-calculator',
+    title: 'Smarter.Poker Tournament Late-Registration ICM & Equity Boost Calculator',
+    url: `${SITE_URL}/tools/late-reg-calculator`,
+    summary: 'Calculate Tournament Late-Registration ICM Starting-Stack Equity Appreciation, Elimination Boost, And Registration Overlay Advantage.',
+    badgeValue: 'Late-Reg ICM Boost Engine',
+  },
+  {
+    slug: 'winrate-confidence-calculator',
+    title: 'Smarter.Poker Winrate Confidence Interval (70% / 95% / 99%) Calculator',
+    url: `${SITE_URL}/tools/winrate-confidence-calculator`,
+    summary: 'Compute 70%, 95%, And 99% BB/100 Winrate Confidence Bounds, True Probability Of Loss, And Hands Required For Statistical Proof.',
+    badgeValue: 'Winrate Confidence Solver',
+  },
+  {
+    slug: 'poker-trip-planner',
+    title: 'Smarter.Poker Festival Trip, Travel Overhead & Breakeven EV Planner',
+    url: `${SITE_URL}/tools/poker-trip-planner`,
+    summary: 'Calculate Live Poker Festival Flight, Hotel, And Per-Diem Expense Drag Against Cash-Game Hours And Tournament Buy-In Volume.',
+    badgeValue: 'Festival Trip & EV Planner',
+  },
+  {
+    slug: 'shot-clock',
+    title: 'Smarter.Poker TDA Tournament Shot Clock & Time-Bank Manager',
+    url: `${SITE_URL}/tools/shot-clock`,
+    summary: 'Live Tournament Action Timer Supporting 15s, 20s, And 30s Shot Clocks, 30-Second Time-Bank Extensions, And TDA First-Action Adjustments.',
+    badgeValue: 'TDA Action Shot Clock',
+  },
+  {
+    slug: 'geometric-bet-calculator',
+    title: 'Smarter.Poker Geometric Bet Sizing (2e & 3e) Street Calculator',
+    url: `${SITE_URL}/tools/geometric-bet-calculator`,
+    summary: 'Compute Exact 1-Street, 2-Street (2e), And 3-Street (3e) Geometric Pot-Fraction Bet Sizing And Villain MDF Across Flop, Turn, And River.',
+    badgeValue: 'Geometric 2e/3e Bet Solver',
+  },
+  {
+    slug: 'table-selection-calculator',
+    title: 'Smarter.Poker Live Cash Game Table Selection & Winrate Multiplier Calculator',
+    url: `${SITE_URL}/tools/table-selection-calculator`,
+    summary: 'Score Live Cash Game Table Profitability From Recreational Player Count, Average Stack Depth, VPIP Splashiness, And Hourly Rake Drag.',
+    badgeValue: 'Table Selection EV Scorer',
+  },
+  {
+    slug: 'mtt-grind-planner',
+    title: 'Smarter.Poker MTT Sunday Grind Schedule, ABI & Bankroll Planner',
+    url: `${SITE_URL}/tools/mtt-grind-planner`,
+    summary: 'Model Multi-Table Tournament Session Buy-In Exposure, Average Buy-In (ABI), Peak Concurrent Table Load, And 100-To-300 ABI Bankroll Cushions.',
+    badgeValue: 'MTT Grind & ABI Architect',
+  },
+  {
+    slug: 'embeds',
+    title: 'Smarter.Poker Free Webmaster Calculator Widgets & Attribution Badges',
+    url: `${SITE_URL}/tools/embeds`,
+    summary: 'Embed Free Responsive Poker Odds Calculators, ICM Solvers, GTO Preflop Charts, And Verified SVG Authority Badges On Any Website.',
+    badgeValue: 'Webmaster Embed SDK',
   },
 ];
 

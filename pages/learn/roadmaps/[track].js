@@ -172,7 +172,7 @@ export default function PokerRoadmapDetailPage({ roadmap, otherRoadmaps = [] }) 
               9-Seat Position Encyclopedia
             </Link>
             <Link href="/tools" style={styles.crossBtnOutline}>
-              24 Free Poker Calculators
+              42 Free Poker Calculators
             </Link>
           </div>
         </header>

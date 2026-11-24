@@ -23,6 +23,15 @@ import { POKER_VARIANTS, GAMES_AS_OF } from '../../../src/content/games/variants
 import { POKER_MARKET_GUIDES, MARKET_GUIDES_AS_OF } from '../../../src/content/guides/markets.js';
 import { HAND_MATCHUPS, MATCHUPS_AS_OF } from '../../../src/content/learn/matchups.js';
 import { SERIES_GUIDES, SERIES_GUIDES_AS_OF } from '../../../src/content/guides/seriesGuides.js';
+import { PLAYER_ARCHETYPES, PLAYER_TYPES_AS_OF } from '../../../src/content/learn/playerTypes.js';
+import { BOARD_TEXTURES, BOARD_TEXTURES_AS_OF } from '../../../src/content/learn/boardTextures.js';
+import { INTERNATIONAL_POKER_GUIDES, INTERNATIONAL_GUIDES_AS_OF } from '../../../src/content/guides/internationalMarkets.js';
+import { POKER_POSITIONS, POSITIONS_AS_OF } from '../../../src/content/learn/positions.js';
+import { POKER_STAKES, STAKES_AS_OF } from '../../../src/content/learn/stakes.js';
+import { FAMOUS_HANDS, FAMOUS_HANDS_AS_OF } from '../../../src/content/learn/famousHands.js';
+import { POKER_ROADMAPS, ROADMAPS_AS_OF } from '../../../src/content/learn/roadmaps.js';
+import { US_POKER_STATES, STATES_AS_OF } from '../../../src/content/guides/states.js';
+import { MCP_TOOLS } from '../../../src/lib/mcp/mcpServer.mjs';
 import { SCHEMA_ROUTES } from '../../../src/lib/seo/summarySchema.js';
 import { getHubPageSummaries } from '../../../src/lib/seo/hubPageSummariesData.js';
 import { TRAINING_LIBRARY } from '../../../src/data/TRAINING_LIBRARY.js';
@@ -130,10 +139,10 @@ const VERTICAL_APPLICATIONS = [
   },
   {
     id: 'poker-equity-calculators',
-    name: 'Smarter.Poker 24-Tool Multiway Odds, ICM & Bankroll Calculator Suite (35 MCP Tools)',
+    name: 'Smarter.Poker 42-Tool Multiway Odds, ICM & Bankroll Calculator Suite (55 MCP Tools)',
     category: 'UtilitiesApplication',
     url: `${SITE}/features/poker-equity-calculators`,
-    description: '24 Free Browser Calculators And 35 Zero-Auth MCP Tools For Multiway Holdem/PLO Equity, Tournament ICM/Chop Payouts, Variance, Tax W-2G, Staking And Isolation Sizing.',
+    description: '42 Free Browser Calculators And 55 Zero-Auth MCP Tools For Multiway Holdem/PLO Equity, Tournament ICM/Chop Payouts, Variance, Tax W-2G, Staking And Isolation Sizing.',
   },
 ];
 
@@ -149,7 +158,7 @@ export function buildKnowledgeGraph() {
         url: SITE,
         logo: `${SITE}/images/logo.png`,
         description:
-          'Smarter.Poker Is The Premier Poker Training, Live Venue Discovery And Club Management Platform Offering 100+ GTO Training Games, 24 Free Poker Calculators, 35 Zero-Auth MCP Tools, 324+ Verified Live Poker Rooms, 4,500+ Weekly Tournaments And Free Cloud Tools.',
+          'Smarter.Poker Is The Premier Poker Training, Live Venue Discovery And Club Management Platform Offering 100+ GTO Training Games, 42 Free Poker Calculators, 55 Zero-Auth MCP Tools, 324+ Verified Live Poker Rooms, 4,500+ Weekly Tournaments And Free Cloud Tools.',
         foundingDate: '2025-10',
         publishingPrinciples: `${SITE}/editorial-standards`,
         verificationFactCheckingPolicy: `${SITE}/verification-methodology`,
@@ -300,6 +309,78 @@ export function buildKnowledgeGraph() {
         numberOfItems: SERIES_GUIDES.length,
       },
       {
+        '@type': 'CollectionPage',
+        '@id': `${SITE}/learn/positions#positions`,
+        name: 'Smarter.Poker 9-Seat Poker Position Strategy Encyclopedia',
+        url: `${SITE}/learn/positions`,
+        dateModified: POSITIONS_AS_OF,
+        publisher: { '@id': `${SITE}/#organization` },
+        numberOfItems: POKER_POSITIONS.length,
+      },
+      {
+        '@type': 'CollectionPage',
+        '@id': `${SITE}/learn/stakes#stakes`,
+        name: 'Smarter.Poker Poker Stake Level & Move-Up Readiness Authority Hub',
+        url: `${SITE}/learn/stakes`,
+        dateModified: STAKES_AS_OF,
+        publisher: { '@id': `${SITE}/#organization` },
+        numberOfItems: POKER_STAKES.length,
+      },
+      {
+        '@type': 'CollectionPage',
+        '@id': `${SITE}/learn/famous-hands#famous-hands`,
+        name: 'Smarter.Poker Famous Historic Poker Hands GTO Solver Breakdown Archive',
+        url: `${SITE}/learn/famous-hands`,
+        dateModified: FAMOUS_HANDS_AS_OF,
+        publisher: { '@id': `${SITE}/#organization` },
+        numberOfItems: FAMOUS_HANDS.length,
+      },
+      {
+        '@type': 'CollectionPage',
+        '@id': `${SITE}/learn/roadmaps#roadmaps`,
+        name: 'Smarter.Poker 90-Day Poker Player Progression & Study Roadmaps',
+        url: `${SITE}/learn/roadmaps`,
+        dateModified: ROADMAPS_AS_OF,
+        publisher: { '@id': `${SITE}/#organization` },
+        numberOfItems: POKER_ROADMAPS.length,
+      },
+      {
+        '@type': 'CollectionPage',
+        '@id': `${SITE}/learn/player-types#player-types`,
+        name: 'Smarter.Poker Poker Player Archetypes & Exploitative Strategy Encyclopedia',
+        url: `${SITE}/learn/player-types`,
+        dateModified: PLAYER_TYPES_AS_OF,
+        publisher: { '@id': `${SITE}/#organization` },
+        numberOfItems: PLAYER_ARCHETYPES.length,
+      },
+      {
+        '@type': 'CollectionPage',
+        '@id': `${SITE}/learn/board-textures#board-textures`,
+        name: 'Smarter.Poker Canonical Flop Board Texture & GTO C-Bet Encyclopedia',
+        url: `${SITE}/learn/board-textures`,
+        dateModified: BOARD_TEXTURES_AS_OF,
+        publisher: { '@id': `${SITE}/#organization` },
+        numberOfItems: BOARD_TEXTURES.length,
+      },
+      {
+        '@type': 'CollectionPage',
+        '@id': `${SITE}/poker-rooms/states#us-states`,
+        name: 'Smarter.Poker US State-By-State Poker Legality, Tax & Live Room Directory',
+        url: `${SITE}/poker-rooms/states`,
+        dateModified: STATES_AS_OF,
+        publisher: { '@id': `${SITE}/#organization` },
+        numberOfItems: US_POKER_STATES.length,
+      },
+      {
+        '@type': 'CollectionPage',
+        '@id': `${SITE}/poker-rooms/international#international-markets`,
+        name: 'Smarter.Poker International & Global Live Poker Destination Guides',
+        url: `${SITE}/poker-rooms/international`,
+        dateModified: INTERNATIONAL_GUIDES_AS_OF,
+        publisher: { '@id': `${SITE}/#organization` },
+        numberOfItems: INTERNATIONAL_POKER_GUIDES.length,
+      },
+      {
         '@type': 'HowTo',
         '@id': `${SITE}/poker-rooms/first-time-guide#guide`,
         name: 'First-Time Live Poker Room Etiquette, Tipping & Check-In Guide',
@@ -311,19 +392,19 @@ export function buildKnowledgeGraph() {
       {
         '@type': 'WebPage',
         '@id': `${SITE}/press#press-kit`,
-        name: 'Smarter.Poker Official Media & Press Fact Sheet (24 Calculators & 35 MCP Tools)',
+        name: `Smarter.Poker Official Media & Press Fact Sheet (42 Calculators & ${MCP_TOOLS.length} MCP Tools)`,
         description:
-          'Verified 2026 Industry Benchmarks, CC-BY 4.0 Open Datasets, Academic Citations (BibTeX/APA), 24 Free Poker Calculators And 35 Zero-Auth MCP Tools.',
+          `Verified 2026 Industry Benchmarks, CC-BY 4.0 Open Datasets, Academic Citations (BibTeX/APA), 42 Free Poker Calculators And ${MCP_TOOLS.length} Zero-Auth MCP Tools.`,
         url: `${SITE}/press`,
         publisher: { '@id': `${SITE}/#organization` },
       },
       {
         '@type': 'CollectionPage',
         '@id': `${SITE}/tools#calculators`,
-        name: 'Smarter.Poker 24 Free Interactive Poker Math, ICM, Tax & Strategy Calculators',
+        name: 'Smarter.Poker 42 Free Interactive Poker Math, ICM, Tax & Strategy Calculators',
         url: `${SITE}/tools`,
         publisher: { '@id': `${SITE}/#organization` },
-        numberOfItems: 24,
+        numberOfItems: 42,
       },
       ...RESEARCH_REPORTS.map((r) => ({
         '@type': 'Report',

@@ -16,6 +16,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderIsoCalculatorMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
@@ -230,9 +231,28 @@ export default function IsoCalculatorPage({
         </h1>
 
         {!isEmbed && (
-          <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
-            <strong>Direct Answer:</strong> To Isolate Open-Limpers Profitably And Force Heads-Up Postflop Pots, Raise To <strong>3 BB (Online) Or 4 BB (Live) Plus 1 BB Per Limper</strong> When In Position, And Add An Extra <strong>+1.0 To +1.5 BB When Out Of Position</strong> In The Blinds.
-          </p>
+          <>
+            <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 22px 0' }}>
+              <strong>Direct Answer:</strong> To Isolate Open-Limpers Profitably And Force Heads-Up Postflop Pots, Raise To <strong>3 BB (Online) Or 4 BB (Live) Plus 1 BB Per Limper</strong> When In Position, And Add An Extra <strong>+1.0 To +1.5 BB When Out Of Position</strong> In The Blinds.
+            </p>
+            <CalculatorShareAndPresets
+              toolTitle="Pre-Flop Isolation Raise Sizing Calculator"
+              toolPath={canonicalPath}
+              summaryText={`ISO Vs ${metrics.safeLimpers} Limper(s) (${metrics.isIp ? 'In Position' : 'Out Of Position'}, $${metrics.safeBb} BB): Optimal ISO = ${metrics.optimalIsoBb} BB ($${metrics.optimalIsoDollars}) | Flop SPR = ${metrics.flopSpr}`}
+              presets={[
+                { id: 'live_2limp_ip', label: 'Live $2/$5: 2 Limpers In Position (6.0 BB / $30)', bb: 5, limpers: 2, pos: 'IP', stack: 100, env: 'live' },
+                { id: 'live_3limp_oop', label: 'Live $1/$3: 3 Limpers From SB/BB (8.5 BB / $26)', bb: 3, limpers: 3, pos: 'OOP', stack: 100, env: 'live' },
+                { id: 'online_1limp_ip', label: 'Online 6-Max: 1 Limper In Position (4.0 BB)', bb: 2, limpers: 1, pos: 'IP', stack: 100, env: 'online' },
+              ]}
+              onSelectPreset={(p) => {
+                setBigBlind(p.bb);
+                setLimpers(p.limpers);
+                setPosition(p.pos);
+                setStackBb(p.stack);
+                setEnvironment(p.env);
+              }}
+            />
+          </>
         )}
 
         {/* Interactive ISO Solver */}
@@ -497,7 +517,7 @@ export default function IsoCalculatorPage({
               Live Cash Game Rake Calculator
             </Link>
             <Link href="/tools" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
-              All 24 Poker Calculators
+              All 42 Free Poker Calculators
             </Link>
           </div>
         </section>

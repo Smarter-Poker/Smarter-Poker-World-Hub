@@ -1942,7 +1942,7 @@ export default function WebmasterEmbedPortal() {
                   textDecoration: 'none',
                 }}
               >
-                All 34 Free Poker Calculators
+                All 42 Free Poker Calculators
               </Link>
               <Link
                 href="/compare"

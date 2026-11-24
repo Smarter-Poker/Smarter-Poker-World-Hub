@@ -218,6 +218,24 @@ export default function GeometricBetCalculatorPage() {
         ['GTO Geometric Bet Sizing Calculator', canonicalPath],
       ],
       faqs: GEOMETRIC_FAQS,
+      howTo: {
+        name: 'How To Calculate 2-Street And 3-Street Geometric Bet Sizing',
+        description: pageDesc,
+        steps: [
+          {
+            name: 'Enter Current Pot Size And Remaining Effective Stack',
+            text: 'Input The Starting Pot Size And Effective Stack In Big Blinds Or Dollars.',
+          },
+          {
+            name: 'Choose 2-Street (2e) Or 3-Street (3e) Geometric Commitment',
+            text: 'Select Whether You Want To Put The Remaining Stack All-In Across Two Streets Or Three Streets.',
+          },
+          {
+            name: 'Review Exact Geometric Percentage And Street-By-Street Bet Plan',
+            text: 'Apply The Constant Pot Percentage G, Required Villain MDF, And Balanced Bluff Frequency On Each Street.',
+          },
+        ],
+      },
     });
   }, [pageDesc]);
 

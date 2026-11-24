@@ -241,7 +241,7 @@ export default function PokerMarketGuidesIndexPage() {
               US Live Poker Room Rake Benchmark Study
             </Link>
             <Link href="/tools" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
-              24 Free Poker Calculators &amp; Tools
+              42 Free Poker Calculators &amp; Tools
             </Link>
             <Link href="/learn" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
               GTO Strategy Academy

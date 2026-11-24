@@ -324,6 +324,24 @@ export default function PloOutsCalculatorPage() {
         ['PLO Wrap & Nut-Out Calculator', canonicalPath],
       ],
       faqs: PLO_OUTS_FAQS,
+      howTo: {
+        name: 'How To Calculate PLO Straight Wrap Outs And Nut-Adjusted Equity',
+        description: pageDesc,
+        steps: [
+          {
+            name: 'Select Your PLO Straight Wrap Or Combo Draw Structure',
+            text: 'Choose A 9-Out, 13-Out, 16-Out, 17-Out, Or 20-Out Wrap Preset Or Enter Custom Total And Nut Outs.',
+          },
+          {
+            name: 'Enter Current Pot Size And Bet Facing You',
+            text: 'Input The Flop Or Turn Pot And Villain Bet Size To Compute Required Pot-Odds Call Equity.',
+          },
+          {
+            name: 'Compare Raw Hit Probability Against Nut-Adjusted Equity',
+            text: 'Check Next-Card And Flop-To-River Hit Rates Alongside Dirty-Out Discounted Equity And Max Call Threshold.',
+          },
+        ],
+      },
     });
   }, [pageDesc]);
 

@@ -12,7 +12,7 @@ const RECOVERY_ROUTES = [
     },
     {
         title: 'All Free Poker Tools & Solvers',
-        subtitle: '34 Interactive Calculators, ICM Solvers & GTO Range Tools',
+        subtitle: '42 Interactive Calculators, ICM Solvers & GTO Range Tools',
         href: '/tools',
         badge: 'Tools Hub',
     },

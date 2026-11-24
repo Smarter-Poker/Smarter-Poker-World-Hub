@@ -11,6 +11,7 @@
 import { getHubPageSummaries } from '../../src/lib/seo/hubPageSummariesData.js';
 import { SCHEMA_ROUTES } from '../../src/lib/seo/summarySchema.js';
 import { TRAINING_LIBRARY } from '../../src/data/TRAINING_LIBRARY.js';
+import { computeValidatedSolvedSpot } from '../../src/lib/seo/solvedSpotEngine.js';
 import {
   PLAYER_ARCHETYPES,
   findPlayerArchetype,
@@ -252,9 +253,9 @@ export function computeLiveScenarioMarkdown(cleanPath, query = {}) {
     ].join('\n');
   }
 
-  if (cleanPath === '/tools/table-selection-calculator' && (query.whales || query.stack)) {
-    const whales = Math.max(0, Math.min(8, Number(query.whales) || 3));
-    const stack = Math.max(30, Number(query.stack) || 150);
+  if (cleanPath === '/tools/table-selection-calculator' && (query.whales || query.stack || query.recs || query.depth)) {
+    const whales = Math.max(0, Math.min(8, Number(query.whales ?? query.recs) || 3));
+    const stack = Math.max(30, Number(query.stack ?? query.depth) || 150);
     const rake = Math.max(0, Number(query.rake) || 5);
     const score = Math.min(100, Math.max(10, Math.round(whales * 22 + Math.min(30, (stack / 200) * 25) + 14 - rake * 1.6)));
     return [
@@ -265,6 +266,116 @@ export function computeLiveScenarioMarkdown(cleanPath, query = {}) {
       `- **Table Profitability Score**: **${score} / 100**`,
       '',
     ].join('\n');
+  }
+
+  if (cleanPath.startsWith('/tools/')) {
+    const slug = cleanPath.slice('/tools/'.length).replace(/\/.*$/, '');
+    const normalizedQuery = { ...query };
+
+    if ((slug === 'icm-calculator' || slug === 'chop-calculator') && (query.stacks || query.payouts)) {
+      normalizedQuery.stacks = query.stacks || '50000,30000,20000';
+      normalizedQuery.payouts = query.payouts || '5000,3000,2000';
+    } else if (slug === 'bankroll-calculator' && (query.wr !== undefined || query.winrate !== undefined || query.sd !== undefined || query.stdDev !== undefined || query.bi !== undefined || query.buyins !== undefined)) {
+      normalizedQuery.wr = query.wr ?? query.winrate ?? 5;
+      normalizedQuery.sd = query.sd ?? query.stdDev ?? 85;
+      normalizedQuery.bi = query.bi ?? query.buyins ?? 30;
+    } else if (slug === 'push-fold-calculator' && (query.stack !== undefined || query.bb !== undefined || query.pos !== undefined || query.position !== undefined)) {
+      normalizedQuery.stack = query.stack ?? query.bb ?? 12;
+      normalizedQuery.pos = query.pos ?? query.position ?? 'BTN';
+    } else if (slug === 'bounty-calculator' && (query.startStack !== undefined || query.startBounty !== undefined || query.targetBounty !== undefined || query.pot !== undefined || query.call !== undefined)) {
+      normalizedQuery.startStack = query.startStack ?? 10000;
+      normalizedQuery.startBounty = query.startBounty ?? 50;
+      normalizedQuery.targetBounty = query.targetBounty ?? 100;
+      normalizedQuery.pot = query.pot ?? 12000;
+      normalizedQuery.call = query.call ?? 8000;
+    } else if (slug === 'poker-winrate-calculator' && (query.profit !== undefined || query.bb !== undefined || query.hours !== undefined || query.wr !== undefined || query.winrate !== undefined || query.hands !== undefined)) {
+      const bbVal = Number(query.bb) || 5;
+      const handsVal = Number(query.hands) || 2800;
+      const hphVal = Number(query.hph) || 28;
+      const hrsVal = Number(query.hours) || Math.max(1, Math.round(handsVal / hphVal));
+      const wrVal = Number(query.wr ?? query.winrate ?? 6);
+      const profitVal = query.profit !== undefined ? Number(query.profit) : (wrVal * (handsVal / 100) * bbVal);
+      normalizedQuery.profit = profitVal;
+      normalizedQuery.bb = bbVal;
+      normalizedQuery.hours = hrsVal;
+      normalizedQuery.hph = hphVal;
+    } else if (slug === 'variance-calculator' && (query.wr !== undefined || query.winrate !== undefined || query.sd !== undefined || query.stdDev !== undefined || query.hands !== undefined)) {
+      normalizedQuery.wr = query.wr ?? query.winrate ?? 5;
+      normalizedQuery.sd = query.sd ?? query.stdDev ?? 85;
+      normalizedQuery.hands = query.hands ?? 50000;
+    } else if (slug === 'side-pot-calculator' && (query.stacks !== undefined || query.deadMoney !== undefined || query.dead !== undefined)) {
+      normalizedQuery.stacks = query.stacks || '100,250,400';
+      normalizedQuery.deadMoney = query.deadMoney ?? query.dead ?? 0;
+    } else if (slug === 'plo-bet-calculator' && (query.pot !== undefined || query.bet !== undefined || query.call !== undefined || query.trail !== undefined)) {
+      normalizedQuery.pot = query.pot ?? 100;
+      normalizedQuery.bet = query.bet ?? query.call ?? 50;
+      normalizedQuery.trail = query.trail ?? 0;
+    } else if (slug === 'rake-calculator' && (query.bb !== undefined || query.cap !== undefined || query.promo !== undefined || query.time !== undefined)) {
+      normalizedQuery.bb = query.bb ?? 5;
+      normalizedQuery.cap = query.cap ?? 6;
+      normalizedQuery.promo = query.promo ?? 2;
+      normalizedQuery.time = query.time ?? 7;
+    } else if (slug === '3bet-calculator' && (query.open !== undefined || query.callers !== undefined || query.pos !== undefined || query.stack !== undefined)) {
+      normalizedQuery.open = query.open ?? 2.5;
+      normalizedQuery.stack = query.stack ?? 100;
+      normalizedQuery.callers = query.callers ?? 0;
+      normalizedQuery.pos = query.pos ?? 'IP';
+    } else if (slug === 'outs-calculator' && (query.outs !== undefined || query.street !== undefined)) {
+      normalizedQuery.outs = query.outs ?? 9;
+      normalizedQuery.street = query.street ?? 'flop';
+    } else if (slug === 'poker-tax-calculator' && (query.wins !== undefined || query.losses !== undefined || query.status !== undefined)) {
+      normalizedQuery.wins = query.wins ?? 85000;
+      normalizedQuery.losses = query.losses ?? 40000;
+      normalizedQuery.status = query.status ?? 'recreational';
+    } else if (slug === 'staking-calculator' && (query.package !== undefined || query.markup !== undefined || query.sold !== undefined)) {
+      normalizedQuery.package = query.package ?? 10000;
+      normalizedQuery.markup = query.markup ?? 1.2;
+      normalizedQuery.sold = query.sold ?? 50;
+    } else if (slug === 'iso-calculator' && (query.bb !== undefined || query.limpers !== undefined || query.pos !== undefined || query.stack !== undefined)) {
+      normalizedQuery.bb = query.bb ?? 5;
+      normalizedQuery.limpers = query.limpers ?? 2;
+      normalizedQuery.stack = query.stack ?? 100;
+      normalizedQuery.pos = query.pos ?? 'IP';
+    } else if (slug === 'session-planner' && (query.stake !== undefined || query.wr !== undefined || query.hrs !== undefined)) {
+      normalizedQuery.stake = query.stake ?? '2/5';
+      normalizedQuery.wr = query.wr ?? 8;
+      normalizedQuery.hrs = query.hrs ?? 6;
+    } else if (slug === 'straddle-calculator' && (query.stack !== undefined || query.ante !== undefined || query.players !== undefined)) {
+      normalizedQuery.stack = query.stack ?? 1000;
+      normalizedQuery.ante = query.ante ?? 10;
+      normalizedQuery.players = query.players ?? 8;
+    } else if (slug === 'satellite-calculator' && (query.total !== undefined || query.seats !== undefined || query.hero !== undefined || query.rem !== undefined)) {
+      const seatsVal = Number(query.seats) || 10;
+      normalizedQuery.total = query.total ?? 100;
+      normalizedQuery.seats = seatsVal;
+      normalizedQuery.rem = query.rem ?? (seatsVal + 2);
+    } else if (slug === 'promo-ev-calculator' && (query.pool !== undefined || query.drop !== undefined)) {
+      normalizedQuery.pool = query.pool ?? 150000;
+      normalizedQuery.drop = query.drop ?? 2;
+    } else if (slug === 'poker-trip-planner' && (query.days !== undefined || query.flight !== undefined || query.hotel !== undefined || query.food !== undefined || query.buyins !== undefined)) {
+      normalizedQuery.days = query.days ?? 7;
+      normalizedQuery.buyins = query.buyins ?? 10000;
+      normalizedQuery.flight = query.flight ?? 480;
+      normalizedQuery.hotel = query.hotel ?? 165;
+      normalizedQuery.food = query.food ?? 85;
+    } else if (slug === 'mtt-grind-planner' && (query.mtts !== undefined || query.abi !== undefined || query.bullets !== undefined || query.roi !== undefined)) {
+      normalizedQuery.mtts = query.mtts ?? 12;
+      normalizedQuery.abi = query.abi ?? 55;
+      normalizedQuery.bullets = query.bullets ?? 30;
+      normalizedQuery.roi = query.roi ?? 22;
+    }
+
+    const solved = computeValidatedSolvedSpot(slug, normalizedQuery);
+    if (solved && solved.hasValidatedSpot) {
+      return [
+        '',
+        '## Live Computed Scenario Analysis',
+        `- **Scenario Label**: ${solved.statLabel}`,
+        `- **Computed Metric**: **${solved.statValue}**`,
+        `- **Detailed Analysis**: ${solved.summaryText}`,
+        '',
+      ].join('\n');
+    }
   }
 
   return '';

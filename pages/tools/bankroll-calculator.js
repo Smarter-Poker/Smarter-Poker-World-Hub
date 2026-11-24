@@ -14,6 +14,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 
@@ -117,20 +118,24 @@ export default function BankrollCalculatorPage({
         ['Bankroll & Risk Of Ruin Calculator', canonicalPath],
       ],
       faqs: BANKROLL_CALCULATOR_FAQS,
-      steps: [
-        {
-          name: 'Enter True Winrate (BB/100)',
-          text: 'Input Your Expected True Winrate In Big Blinds Per 100 Hands After Rake.',
-        },
-        {
-          name: 'Select Game Standard Deviation (BB/100)',
-          text: 'Use 70 BB/100 For Live Full-Ring NLH, 85 BB/100 For Online 6-Max NLH, Or 135+ BB/100 For Pot-Limit Omaha.',
-        },
-        {
-          name: 'Evaluate Risk Of Ruin And Required Buy-Ins',
-          text: 'Review Your Exact Risk Of Ruin Percentage And The Buy-In Thresholds Required For 5% And 1% Risk Of Ruin.',
-        },
-      ],
+      howTo: {
+        name: 'How To Calculate Poker Bankroll Requirements And Risk Of Ruin',
+        description: pageDesc,
+        steps: [
+          {
+            name: 'Enter True Winrate (BB/100)',
+            text: 'Input Your Expected True Winrate In Big Blinds Per 100 Hands After Rake.',
+          },
+          {
+            name: 'Select Game Standard Deviation (BB/100)',
+            text: 'Use 70 BB/100 For Live Full-Ring NLH, 85 BB/100 For Online 6-Max NLH, Or 135+ BB/100 For Pot-Limit Omaha.',
+          },
+          {
+            name: 'Evaluate Risk Of Ruin And Required Buy-Ins',
+            text: 'Review Your Exact Risk Of Ruin Percentage And The Buy-In Thresholds Required For 5% And 1% Risk Of Ruin.',
+          },
+        ],
+      },
     });
   }, [pageDesc]);
 
@@ -156,9 +161,27 @@ export default function BankrollCalculatorPage({
           Poker Bankroll Management &amp; Risk Of Ruin (RoR) Calculator
         </h1>
 
-        <p style={{ fontSize: 17, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
+        <p style={{ fontSize: 17, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 22px 0' }}>
           Risk Of Ruin Measures The Mathematical Probability Of Depleting Your Entire Poker Bankroll Given Your True Winrate (BB/100), Standard Deviation (SD), And Total Buy-Ins. Use The Interactive Calculator Below To Compute Your Exact Downswing Survival Odds And Required Buy-In Buffer Across Cash Games, Pot-Limit Omaha, And Tournaments.
         </p>
+
+        <CalculatorShareAndPresets
+          toolTitle="Poker Bankroll And Risk Of Ruin Calculator"
+          toolPath={canonicalPath}
+          summaryText={`${stats.bi} Buy-Ins ($${stats.totalBankrollDollars}) At ${stats.wr} BB/100 (${stats.sd} SD): Risk Of Ruin = ${stats.rorPct}% | 1% Pro Threshold = ${stats.buyInsForOnePctRor} Buy-Ins`}
+          presets={[
+            { id: 'p_live_1_3', label: 'Live $1/$3 Grinder (8.0 BB/100, 70 SD, 25 Buy-Ins)', wr: 8, sd: 70, bi: 25, dollars: 300 },
+            { id: 'p_online_6max', label: 'Online 6-Max Reg (4.5 BB/100, 85 SD, 40 Buy-Ins)', wr: 4.5, sd: 85, bi: 40, dollars: 200 },
+            { id: 'p_plo4_deep', label: 'PLO4 Specialist (5.0 BB/100, 135 SD, 85 Buy-Ins)', wr: 5, sd: 135, bi: 85, dollars: 500 },
+            { id: 'p_live_2_5', label: 'Live $2/$5 Pro (9.0 BB/100, 75 SD, 30 Buy-Ins)', wr: 9, sd: 75, bi: 30, dollars: 500 },
+          ]}
+          onSelectPreset={(p) => {
+            setWinrate(p.wr);
+            setStdDev(p.sd);
+            setBuyIns(p.bi);
+            setBuyInDollars(p.dollars);
+          }}
+        />
 
         {/* Interactive Calculator Grid */}
         <section style={{

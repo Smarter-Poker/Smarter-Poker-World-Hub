@@ -541,3 +541,26 @@ const styles = {
     marginBottom: 22,
   },
 };
+
+export async function getServerSideProps({ req, res, query }) {
+  const accept = String(req?.headers?.accept || '');
+  if (
+    query?.format === 'md' ||
+    query?.format === 'markdown' ||
+    accept.includes('text/markdown') ||
+    req?.url?.includes('format=md')
+  ) {
+    const { renderHubToolMarkdown } = await import('../api/hub-tool-markdown');
+    const md = renderHubToolMarkdown('/learn/poker-as-a-business', query);
+    if (md) {
+      res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+      res.setHeader('Vary', 'Accept');
+      res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
+      res.write(md);
+      res.end();
+      return { props: {} };
+    }
+  }
+  return { props: {} };
+}
+

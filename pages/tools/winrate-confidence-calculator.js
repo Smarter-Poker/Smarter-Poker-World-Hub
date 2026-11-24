@@ -252,6 +252,24 @@ export default function WinrateConfidenceCalculatorPage() {
         ['Winrate Confidence Calculator', canonicalPath],
       ],
       faqs: WINRATE_CONF_FAQS,
+      howTo: {
+        name: 'How To Calculate Your Poker Winrate Confidence Interval And Loss Probability',
+        description: pageDesc,
+        steps: [
+          {
+            name: 'Choose Online (BB/100) Or Live Cash (BB/Hr) Winrate Mode',
+            text: 'Toggle Between Online Big Blinds Per 100 Hands And Live Cash Game Hourly Winrate.',
+          },
+          {
+            name: 'Enter Observed Winrate, Standard Deviation, And Sample Size',
+            text: 'Input Your Measured Winrate, Format Standard Deviation, And Total Hands Or Live Hours Logged.',
+          },
+          {
+            name: 'Inspect 70%, 95%, And 99% Confidence Bounds And True-Loser Probability',
+            text: 'Review Your True Winrate Confidence Intervals And The Exact Sample Size Needed For +-2 BB/100 Precision.',
+          },
+        ],
+      },
     });
   }, [pageDesc]);
 

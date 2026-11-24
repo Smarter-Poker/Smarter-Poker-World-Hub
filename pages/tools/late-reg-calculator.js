@@ -256,6 +256,24 @@ export default function LateRegCalculatorPage() {
         ['Tournament Late-Reg ICM Calculator', canonicalPath],
       ],
       faqs: LATE_REG_FAQS,
+      howTo: {
+        name: 'How To Calculate Tournament Late-Registration ICM Equity Gain',
+        description: pageDesc,
+        steps: [
+          {
+            name: 'Enter Tournament Buy-In, Rake Percentage, And Total Entries',
+            text: 'Input The Gross Buy-In, House Rake Fee Percentage, And Projected Total Field Size.',
+          },
+          {
+            name: 'Set Remaining Field Percentage And Late-Reg Stack Depth',
+            text: 'Enter The Percentage Of Entrants Still Alive At Max Late-Reg And Your Starting Big Blind Stack.',
+          },
+          {
+            name: 'Compare Level 1 Vs Max Late-Reg ICM Entry Value And Net EV',
+            text: 'Inspect The Free ICM Dollar Equity Gained And Minimum Required Player ROI To Enter Profitably.',
+          },
+        ],
+      },
     });
   }, [pageDesc]);
 

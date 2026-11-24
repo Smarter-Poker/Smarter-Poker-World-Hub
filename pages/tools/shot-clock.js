@@ -195,6 +195,24 @@ export default function ShotClockPage() {
         ['Poker Action Clock & Shot Timer', canonicalPath],
       ],
       faqs: SHOT_CLOCK_FAQS,
+      howTo: {
+        name: 'How To Run A Tournament Poker Action Clock With Time-Bank Cards',
+        description: pageDesc,
+        steps: [
+          {
+            name: 'Select Action Clock Preset And Primary Countdown Duration',
+            text: 'Choose Between WPT 30-Second, Triton High-Roller 20-Second, Or Home Game 45-Second Decision Timers.',
+          },
+          {
+            name: 'Start The Decision Timer And Advance Active Seats',
+            text: 'Press Start Or Next Hand/Player To Reset The Primary Shot Clock As Action Moves Around The Table.',
+          },
+          {
+            name: 'Spend Or Reload Seat Time-Bank Extension Cards',
+            text: 'Click Burn Time-Bank Card For Seats 1 Through 9 To Add +30s Or +60s When A Player Faces A Major Decision.',
+          },
+        ],
+      },
     });
   }, [pageDesc]);
 

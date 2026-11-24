@@ -16,6 +16,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 
@@ -146,6 +147,7 @@ export default function PloBetCalculatorPage({
   const [riverBetToCall, setRiverBetToCall] = useState(initialRiverBetToCall);
   const [board1Equity, setBoard1Equity] = useState(initialBoard1Equity);
   const [board2Equity, setBoard2Equity] = useState(initialBoard2Equity);
+  const [activePresetId, setActivePresetId] = useState('postflop-raise');
 
   useSolvedSpotUrlSync(
     {
@@ -171,6 +173,7 @@ export default function PloBetCalculatorPage({
   );
 
   const applyPreset = (preset) => {
+    setActivePresetId(preset.id);
     setPreviousPot(preset.previousPot);
     setLastBet(preset.lastBet);
     setTrailCalls(preset.trailCalls);
@@ -309,6 +312,15 @@ export default function PloBetCalculatorPage({
         <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
           <strong>Direct Answer:</strong> In Pot-Limit Omaha, The Maximum Legal Raise Equals The <strong>Full Size Of The Pot After You First Call The Bet Facing You</strong>. Professional Dealers Compute The Total Bet In One Step Using The <strong>3x Plus Trail Formula</strong>: <code>Max Bet = (3 * Last Bet) + Trailing Calls + Previous Pot</code>.
         </p>
+
+        <CalculatorShareAndPresets
+          toolTitle="PLO Max Bet & Bomb Pot Calculator"
+          toolPath={canonicalPath}
+          summaryText={`PLO Pot-Limit Raise: Previous Pot ${betMetrics.safePrevPot} BB + Last Bet ${betMetrics.safeLastBet} BB + Trail ${betMetrics.safeTrail} BB -> Max Total Bet = ${betMetrics.maxTotalBetToLine} BB (Raise On Top: +${betMetrics.maxRaiseOnTop} BB)`}
+          presets={PLO_PRESETS}
+          onSelectPreset={applyPreset}
+          activePresetId={activePresetId}
+        />
 
         {/* Interactive Pot-Limit Bet Solver */}
         <section

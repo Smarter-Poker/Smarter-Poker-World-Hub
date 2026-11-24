@@ -230,11 +230,11 @@ test('All authority page templates wire CitationBacklinkBox with 7 citation form
   }
 });
 
-test('JSON Feed 1.1 (/api/feeds/research) and RSS 2.0 (/feed.xml) syndicate all 15 research studies and 23 calculators with canonical backlinks', () => {
+test('JSON Feed 1.1 (/api/feeds/research) and RSS 2.0 (/feed.xml) syndicate all 15 research studies and 42 calculators with canonical backlinks', () => {
   const jsonFeed = buildResearchJsonFeed();
   assert.equal(jsonFeed.version, 'https://jsonfeed.org/version/1.1');
   assert.equal(jsonFeed.feed_url, 'https://smarter.poker/api/feeds/research');
-  assert.equal(jsonFeed.items.length, 38);
+  assert.equal(jsonFeed.items.length, 57);
 
   for (const item of jsonFeed.items) {
     assert.match(item.url, /^https:\/\/smarter\.poker\//);

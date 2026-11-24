@@ -17,6 +17,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 import { renderPokerTaxCalculatorMarkdown } from '../../src/lib/seo/markdownIngestion.mjs';
@@ -237,9 +238,29 @@ export default function PokerTaxCalculatorPage({
         </h1>
 
         {!isEmbed && (
-          <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 18px 0' }}>
-            <strong>Direct Answer:</strong> Under US Internal Revenue Code Section 165D, Poker Players Must Report <strong>100% Of Gross Winning Sessions Separately From Gross Losing Sessions</strong>, And Deductible Losses Cannot Exceed Gross Gambling Winnings. Casinos Issue <strong>IRS Form W-2G</strong> Whenever A Single Poker Tournament Payout Exceeds <strong>$5,000 Net Of Buy-In</strong>.
-          </p>
+          <>
+            <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 18px 0' }}>
+              <strong>Direct Answer:</strong> Under US Internal Revenue Code Section 165D, Poker Players Must Report <strong>100% Of Gross Winning Sessions Separately From Gross Losing Sessions</strong>, And Deductible Losses Cannot Exceed Gross Gambling Winnings. Casinos Issue <strong>IRS Form W-2G</strong> Whenever A Single Poker Tournament Payout Exceeds <strong>$5,000 Net Of Buy-In</strong>.
+            </p>
+            <CalculatorShareAndPresets
+              toolTitle="US Poker Tax And Form W-2G Calculator"
+              toolPath={canonicalPath}
+              summaryText={`Net Taxable Poker Profit: $${taxMetrics.netGamblingProfit.toLocaleString('en-US')} | Estimated Federal Tax: $${taxMetrics.totalEstimatedFederalTax.toLocaleString('en-US')} (${taxMetrics.marginalRatePct}% Bracket) | W-2G Trigger: ${taxMetrics.triggersW2G ? 'Yes' : 'No'}`}
+              presets={[
+                { id: 'rec_side_hustle', label: 'Recreational Side Grinder ($48K Wins / $22K Losses)', wins: 48000, losses: 22000, status: 'recreational', expenses: 0, income: 85000, tourney: 6500 },
+                { id: 'pro_schedule_c', label: 'Schedule C Full-Time Pro ($120K Wins / $55K Losses)', wins: 120000, losses: 55000, status: 'pro', expenses: 12000, income: 0, tourney: 18500 },
+                { id: 'wsop_bink', label: 'Major Festival Score ($85K Wins / $15K Losses)', wins: 85000, losses: 15000, status: 'recreational', expenses: 0, income: 110000, tourney: 52000 },
+              ]}
+              onSelectPreset={(p) => {
+                setWinSessions(p.wins);
+                setLossSessions(p.losses);
+                setFilingStatus(p.status);
+                setBusinessExpenses(p.expenses);
+                setOtherIncome(p.income);
+                setSingleTournamentNet(p.tourney);
+              }}
+            />
+          </>
         )}
 
         {/* Educational Tax Disclaimer */}
@@ -547,7 +568,7 @@ export default function PokerTaxCalculatorPage({
               Live &amp; Online Winrate Calculator
             </Link>
             <Link href="/tools" style={{ padding: '8px 14px', background: '#020608', color: '#e2e8f0', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
-              All 24 Poker Calculators
+              All 42 Free Poker Calculators
             </Link>
           </div>
         </section>

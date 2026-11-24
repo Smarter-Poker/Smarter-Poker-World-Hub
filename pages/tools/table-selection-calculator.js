@@ -231,6 +231,24 @@ export default function TableSelectionCalculatorPage() {
         ['Live Table Selection Calculator', canonicalPath],
       ],
       faqs: TABLE_SELECTION_FAQS,
+      howTo: {
+        name: 'How To Grade A Live Cash Game Poker Table And Project Hourly Winrate',
+        description: pageDesc,
+        steps: [
+          {
+            name: 'Select Stake Level And Count Recreational VPIP>40% Players',
+            text: 'Choose Your Live Cash Game Stake And Enter How Many Loose Action Players Are Seated.',
+          },
+          {
+            name: 'Input Average Table Stack Depth, Straddle Frequency, And Bomb Pots',
+            text: 'Set Average Effective Stack In Big Blinds, Orbit Straddle Percentage, And Bomb Pots Per Hour.',
+          },
+          {
+            name: 'Read Your Table Tier Grade (S To F) And Net Hourly Winrate After Rake',
+            text: 'Inspect Your Projected BB/Hr, Net Dollars Per Hour After Rake Cap, And Table-Change Recommendation.',
+          },
+        ],
+      },
     });
   }, [pageDesc]);
 

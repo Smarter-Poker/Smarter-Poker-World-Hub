@@ -15,6 +15,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import AiPromptLauncher from '../../src/components/seo/AiPromptLauncher';
 import CitationBacklinkBox from '../../src/components/seo/CitationBacklinkBox';
 import FaqSection from '../../src/components/seo/FaqSection';
+import CalculatorShareAndPresets from '../../src/components/tools/CalculatorShareAndPresets';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import { useSolvedSpotUrlSync } from '../../src/lib/seo/solvedSpotEngine';
 
@@ -126,6 +127,40 @@ export default function PayoutCalculatorPage({
   const [houseFee, setHouseFee] = useState(initialHouseFee);
   const [addedMoney, setAddedMoney] = useState(initialAddedMoney);
   const [presetId, setPresetId] = useState(initialPresetId);
+  const [activeScenarioId, setActiveScenarioId] = useState('club-nightly');
+
+  const PAYOUT_SCENARIO_PRESETS = [
+    {
+      id: 'sng-9max',
+      label: '9-Max Single-Table SNG ($50)',
+      values: { entries: 9, rebuys: 0, buyIn: 50, fee: 5, added: 0, preset: 'top-15-tda' },
+    },
+    {
+      id: 'club-nightly',
+      label: '45-Entry Nightly Club MTT ($100)',
+      values: { entries: 45, rebuys: 15, buyIn: 100, fee: 15, added: 500, preset: 'top-15-tda' },
+    },
+    {
+      id: 'weekend-deep',
+      label: '150-Entry Weekend Deepstack ($250)',
+      values: { entries: 150, rebuys: 40, buyIn: 250, fee: 35, added: 1500, preset: 'top-15-tda' },
+    },
+    {
+      id: 'home-flat',
+      label: '20-Player Home Game Top 20% ($40)',
+      values: { entries: 20, rebuys: 6, buyIn: 40, fee: 0, added: 0, preset: 'top-20-flat' },
+    },
+  ];
+
+  const handleSelectScenario = (preset) => {
+    setActiveScenarioId(preset.id);
+    setTotalEntries(preset.values.entries);
+    setRebuysAddOns(preset.values.rebuys);
+    setBuyIn(preset.values.buyIn);
+    setHouseFee(preset.values.fee);
+    setAddedMoney(preset.values.added);
+    setPresetId(preset.values.preset);
+  };
 
   useSolvedSpotUrlSync(
     {
@@ -289,6 +324,15 @@ export default function PayoutCalculatorPage({
         <p style={{ fontSize: 16, lineHeight: 1.65, color: '#cbd5e1', margin: '0 0 28px 0' }}>
           <strong>Direct Answer:</strong> Standard Tournament Directors Association (TDA) Payout Schedules Reward <strong>15% Of Total Entrants</strong> With A Minimum Cash Between <strong>1.6x And 2.0x The Initial Buy-In</strong>, Scaling Smoothly Via A Power-Law Curve So Every Elimination Jump Increases Net Dollar Equity.
         </p>
+
+        <CalculatorShareAndPresets
+          toolTitle="Poker Tournament Payout Calculator"
+          toolPath={canonicalPath}
+          summaryText={`${payoutData.safeEntries} Entries (+${payoutData.safeRebuys} Rebuys) @ $${payoutData.safeBuyIn}: Net Prize Pool = $${payoutData.netPrizePool.toLocaleString('en-US')} | ${payoutData.placesPaid} Places Paid | 1st Place = $${payoutData.firstPrize.toLocaleString('en-US')} | Min-Cash = $${payoutData.minCashPrize.toLocaleString('en-US')}`}
+          presets={PAYOUT_SCENARIO_PRESETS}
+          onSelectPreset={handleSelectScenario}
+          activePresetId={activeScenarioId}
+        />
 
         {/* Interactive Payout Structure Generator */}
         <section

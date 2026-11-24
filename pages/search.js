@@ -3,7 +3,7 @@
  *  UNIVERSAL POKER SEARCH & COMMAND DIRECTORY (/search)
  * ═══════════════════════════════════════════════════════════════════════════════
  * Real-time search engine across Smarter.Poker's entire structured corpus:
- * 24 Interactive Calculators, 25 Hand Matchups, 30 Official Rules, 15 Game
+ * 42 Interactive Poker Calculators, 25 Hand Matchups, 30 Official Rules, 15 Game
  * Variants, 12 Regional Markets, 10 Major Series Guides, 15 Research Reports,
  * plus Top Starting Hands and Product/Venue Comparisons.
  *
@@ -845,7 +845,7 @@ export default function UniversalPokerSearchPage() {
       '@id': `${canonicalUrl}#search`,
       name: 'Universal Poker Search & Command Directory',
       description:
-        'Search Across 24 Interactive Poker Calculators, 169 Starting Hands, 25 Hand Matchups, 30 Official Rules, 15 Game Variants, And 15 Research Studies.',
+        'Search Across 42 Interactive Poker Calculators, 169 Starting Hands, 25 Hand Matchups, 30 Official Rules, 15 Game Variants, And 15 Research Studies.',
       url: canonicalUrl,
       inLanguage: 'en-US',
       isPartOf: { '@id': 'https://smarter.poker/#website' },
@@ -865,7 +865,7 @@ export default function UniversalPokerSearchPage() {
     <div style={styles.page}>
       <SEOHead
         title="Universal Poker Search And Command Directory"
-        description="Search Across 24 Interactive Poker Calculators, 169 Starting Hands, 25 Hand Matchups, 30 Official Rules, 15 Game Variants, And 15 Research Studies."
+        description="Search Across 42 Interactive Poker Calculators, 169 Starting Hands, 25 Hand Matchups, 30 Official Rules, 15 Game Variants, And 15 Research Studies."
         canonical="/search"
         jsonLd={jsonLd}
       />
@@ -892,7 +892,7 @@ export default function UniversalPokerSearchPage() {
           </h1>
 
           <p style={styles.lead}>
-            Instantly Search Across <strong>24 Interactive Poker Calculators</strong>, <strong>169 GTO Starting Hands</strong>, <strong>25 Head-To-Head Matchups</strong>, <strong>30 Official TDA &amp; RROP Rules</strong>, <strong>15 Game Variants</strong>, <strong>12 US Regional Markets</strong>, <strong>10 Major Series Guides</strong>, And <strong>15 Empirical Research Studies</strong>.
+            Instantly Search Across <strong>42 Interactive Poker Calculators</strong>, <strong>169 GTO Starting Hands</strong>, <strong>25 Head-To-Head Matchups</strong>, <strong>30 Official TDA &amp; RROP Rules</strong>, <strong>15 Game Variants</strong>, <strong>12 US Regional Markets</strong>, <strong>10 Major Series Guides</strong>, And <strong>15 Empirical Research Studies</strong>.
           </p>
 
           <div style={styles.searchBoxWrap}>
@@ -1003,7 +1003,7 @@ export default function UniversalPokerSearchPage() {
           badgeType="research"
           badgeLabel="Master Knowledge Index"
           badgeValue="Smarter.Poker Directory"
-          summary="Search Across 24 Interactive Poker Calculators, 169 Starting Hands, 25 Hand Matchups, 30 Official Rules, 15 Game Variants, And 15 Research Studies."
+          summary="Search Across 42 Interactive Poker Calculators, 169 Starting Hands, 25 Hand Matchups, 30 Official Rules, 15 Game Variants, And 15 Research Studies."
           publishedYear="2026"
           slug="smarter-poker-universal-search"
         />

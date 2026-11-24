@@ -11,7 +11,7 @@ export const PRODUCT_OG_IMAGES = Object.freeze([
   },
   {
     prefix: '/hub/training',
-    image: 'https://smarter.poker/api/og/tool-card?tool=training&badge=GTO+TRAINING+SUITE&title=Smarter.Poker+GTO+Training+And+Simulators&subtitle=107+Scenario+Games+And+36+Interactive+Solvers&statLabel=SOLVER+DRILLS&statValue=100%25+FREE',
+    image: 'https://smarter.poker/api/og/tool-card?tool=training&badge=GTO+TRAINING+SUITE&title=Smarter.Poker+GTO+Training+And+Simulators&subtitle=107+Scenario+Games+And+42+Interactive+Solvers&statLabel=SOLVER+DRILLS&statValue=100%25+FREE',
   },
   {
     prefix: '/hub/trivia',
