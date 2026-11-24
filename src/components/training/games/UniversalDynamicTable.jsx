@@ -52,15 +52,24 @@ import {
     resolveClubArenaTableBox,
     seatPodPx,
 } from '../../../lib/training/clubArenaTableGeometry.mjs';
+import PokerSoundManager, * as PokerSoundManagerModule from '../../poker/PokerSoundManager';
 import {
     parseStakesToBlinds,
     computeClubArenaParityState,
     evaluateCustomRaiseSizing,
+    computeLegalBettingBounds,
+    normalizeBettingStructure,
+    normalizeGameFormat,
+    normalizeTrainingVariant,
 } from '../../../lib/training/clubArenaTableParity';
 import {
     evaluateTrainingSpotWithHorseBrain,
     buildCustomTrainingArenaHref,
 } from '../../../lib/training/horseBrainTrainingAdapter';
+
+const soundManager = typeof window !== 'undefined'
+    ? (PokerSoundManagerModule.soundManager || new PokerSoundManager())
+    : null;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SVG ICON RENDERER — Maps string icon IDs to professional SVG elements
@@ -2076,41 +2085,14 @@ function UniversalDynamicTable({
         }
     }, [questionNumber, question?.gameId]);
 
-    // ═══ CARD PARSING (moved up — must be before handStrength useMemo) ═══
+    // ═══ CARD PARSING & PHASE 10 LIVE-PLAY PARITY STATES ═══
     const scenario = question?.scenario || {};
-    // Curated and solver-backed Training contracts publish canonical board
-    // cards at the question level. The Club Arena surface previously read only
-    // scenario.board, leaving valid Flop/Turn/River concept questions on an
-    // empty felt. Preserve both legacy scenario shapes after the canonical one.
     const board = question?.boardCards || scenario.boardCards || scenario.board || '';
     const rawHeroCards = question?.heroCards || scenario.heroHand || scenario.heroCards || 'AsKs';
-    const heroCards = useMemo(() => {
-        if (Array.isArray(rawHeroCards) && rawHeroCards.length >= 2) return rawHeroCards.slice(0, 6);
-        if (typeof rawHeroCards === 'string' && rawHeroCards.length >= 4) {
-            const matchedCards = rawHeroCards.match(/[2-9TJQKA][hdcs]/gi);
-            if (matchedCards && matchedCards.length >= 2) {
-                return matchedCards.slice(0, 6).map((c) => `${c[0].toUpperCase()}${c[1].toLowerCase()}`);
-            }
-            return [rawHeroCards.substring(0, 2), rawHeroCards.substring(2, 4)];
-        }
-        // Handle 3-char abstract notation: "K8s" (suited), "ATo" (offsuit)
-        if (typeof rawHeroCards === 'string' && rawHeroCards.length === 3) {
-            const r1 = rawHeroCards[0], r2 = rawHeroCards[1], suitFlag = rawHeroCards[2];
-            if (suitFlag === 's') return [`${r1}s`, `${r2}s`]; // Both spades for suited
-            if (suitFlag === 'o') return [`${r1}h`, `${r2}d`]; // Mixed suits for offsuit
-            return [`${r1}h`, `${r2}s`]; // Default
-        }
-        // Handle 2-char pairs: "AA", "KK"
-        if (typeof rawHeroCards === 'string' && rawHeroCards.length === 2) {
-            return [`${rawHeroCards[0]}h`, `${rawHeroCards[1]}s`];
-        }
-        return ['As', 'Ks']; // Fallback
-    }, [rawHeroCards]);
 
     const boardCards = useMemo(() => {
         if (Array.isArray(board)) return board;
         if (typeof board === 'string' && board.length > 0) {
-            // Handle "Jh 7s 2d" or "Jh7s2d"
             const cleaned = board.replace(/\s+/g, '');
             const cards = [];
             for (let i = 0; i < cleaned.length; i += 2) {
@@ -2122,6 +2104,120 @@ function UniversalDynamicTable({
         }
         return [];
     }, [board]);
+
+    const rawParsedHeroCards = useMemo(() => {
+        if (Array.isArray(rawHeroCards) && rawHeroCards.length >= 2) return rawHeroCards.slice(0, 6);
+        if (typeof rawHeroCards === 'string' && rawHeroCards.length >= 4) {
+            const matchedCards = rawHeroCards.match(/[2-9TJQKA][hdcs]/gi);
+            if (matchedCards && matchedCards.length >= 2) {
+                return matchedCards.slice(0, 6).map((c) => `${c[0].toUpperCase()}${c[1].toLowerCase()}`);
+            }
+            return [rawHeroCards.substring(0, 2), rawHeroCards.substring(2, 4)];
+        }
+        if (typeof rawHeroCards === 'string' && rawHeroCards.length === 3) {
+            const r1 = rawHeroCards[0], r2 = rawHeroCards[1], suitFlag = rawHeroCards[2];
+            if (suitFlag === 's') return [`${r1}s`, `${r2}s`];
+            if (suitFlag === 'o') return [`${r1}h`, `${r2}d`];
+            return [`${r1}h`, `${r2}s`];
+        }
+        if (typeof rawHeroCards === 'string' && rawHeroCards.length === 2) {
+            return [`${rawHeroCards[0]}h`, `${rawHeroCards[1]}s`];
+        }
+        return ['As', 'Ks'];
+    }, [rawHeroCards]);
+
+    const [activeVariantOverride, setActiveVariantOverride] = React.useState(null);
+    const activeNormalizedVariant = useMemo(() => {
+        const raw = normalizeTrainingVariant(
+            activeVariantOverride
+            || scenario?.variant
+            || trainerConfig?.variant
+            || (rawParsedHeroCards?.length === 6 ? 'plo6' : rawParsedHeroCards?.length === 5 ? 'plo5' : rawParsedHeroCards?.length === 4 ? 'plo4' : 'nlh'),
+        );
+        return ['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].includes(raw) ? raw : 'nlh';
+    }, [activeVariantOverride, scenario?.variant, trainerConfig?.variant, rawParsedHeroCards?.length]);
+
+    const [userLockedFixedLimit, setUserLockedFixedLimit] = React.useState(false);
+    const [activeBettingStructure, setActiveBettingStructure] = React.useState(() =>
+        normalizeBettingStructure(scenario?.bettingStructure || trainerConfig?.bettingStructure, scenario?.variant || trainerConfig?.variant || 'nlh')
+    );
+    const [activeGameFormat, setActiveGameFormat] = React.useState(() => {
+        if (scenario?.format || trainerConfig?.format) {
+            return normalizeGameFormat(scenario?.format || trainerConfig?.format);
+        }
+        if (gameType === 'spins') return 'spins';
+        if (gameType === 'hu' || gameType === 'heads-up') return 'hu';
+        if (gameType === 'mtt' || gameType === 'sng' || Boolean(scenario?.isICM || scenario?.isPKO)) return 'mtt';
+        return 'cash';
+    });
+    const [isAudioMuted, setIsAudioMuted] = React.useState(() => (soundManager ? !soundManager.isEnabled() : false));
+    const [audioPack, setAudioPack] = React.useState(() => (soundManager?.soundPack || 'casino'));
+    const [continuationStreetIndex, setContinuationStreetIndex] = React.useState(0);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        try {
+            const params = new URLSearchParams(window.location.search || '');
+            const qVar = params.get('variant');
+            if (qVar) {
+                const normV = normalizeTrainingVariant(qVar);
+                setActiveVariantOverride(normV);
+                const qBs = params.get('bettingStructure');
+                if (qBs) {
+                    const normBs = normalizeBettingStructure(qBs, normV);
+                    setActiveBettingStructure(normBs);
+                    if (normBs === 'fixed_limit') setUserLockedFixedLimit(true);
+                } else {
+                    setActiveBettingStructure(normV === 'nlh' ? 'no_limit' : 'pot_limit');
+                }
+            } else {
+                const qBs = params.get('bettingStructure');
+                if (qBs) {
+                    const normBs = normalizeBettingStructure(qBs, activeNormalizedVariant);
+                    setActiveBettingStructure(normBs);
+                    if (normBs === 'fixed_limit') setUserLockedFixedLimit(true);
+                }
+            }
+            const qFmt = params.get('format');
+            if (qFmt) {
+                setActiveGameFormat(normalizeGameFormat(qFmt));
+            }
+        } catch { /* non-blocking query parse */ }
+    }, []);
+
+    useEffect(() => {
+        if (!userLockedFixedLimit) {
+            setActiveBettingStructure(activeNormalizedVariant === 'nlh' ? 'no_limit' : 'pot_limit');
+        }
+    }, [activeNormalizedVariant, userLockedFixedLimit]);
+
+    const heroCards = useMemo(() => {
+        const expectedCount = activeNormalizedVariant === 'plo6'
+            ? 6
+            : activeNormalizedVariant === 'plo5'
+                ? 5
+                : (activeNormalizedVariant === 'plo4' || activeNormalizedVariant === 'plo8')
+                    ? 4
+                    : 2;
+        if (rawParsedHeroCards.length === expectedCount) return rawParsedHeroCards;
+        if (rawParsedHeroCards.length > expectedCount) return rawParsedHeroCards.slice(0, expectedCount);
+        const usedLower = new Set([
+            ...rawParsedHeroCards.map((c) => String(c).toLowerCase()),
+            ...boardCards.map((c) => String(c).toLowerCase()),
+        ]);
+        const padPool = activeNormalizedVariant === 'plo8'
+            ? ['As', '2s', '3h', '4h', 'Ad', '2d', 'Kd', '3d', '5c', '6d', 'Ac', '2c']
+            : ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d', '8c', '7c', 'Ad', 'Kd'];
+        const padded = [...rawParsedHeroCards];
+        for (const cand of padPool) {
+            if (padded.length >= expectedCount) break;
+            if (!usedLower.has(cand.toLowerCase())) {
+                usedLower.add(cand.toLowerCase());
+                padded.push(cand);
+            }
+        }
+        return padded;
+    }, [rawParsedHeroCards, activeNormalizedVariant, boardCards]);
 
     // ═══ ALL QUESTION DATA EXTRACTION (must be before any hooks that reference these) ═══
     const questionText = question?.question || question?.text || 'Loading question...';
@@ -2141,18 +2237,28 @@ function UniversalDynamicTable({
         return opts;
     }, [question?.options, questionNumber]);
 
-    // Dynamic table state from question scenario
-    const heroPosition = scenario.heroPosition || scenario.position || 'BTN';
-    const heroStack = scenario.heroStack || scenario.stackDepth || 100;
-    // #17: defaulting an unstated villain stack to a flat 100 misrepresents every
-    // short-stack spot — a 25BB hero was drawn facing a 100BB villain, which
-    // changes SPR, fold equity and therefore the correct answer. When the
-    // scenario does not state a villain stack the solver's assumption is that
-    // villain is at the same depth as hero, which is what batch-preload already
-    // fills in server-side; this mirrors it for the paths that do not.
-    const villainStack = scenario.villainStack || heroStack;
+    // Dynamic table state from question scenario (adapted for HU / Spins format parity)
+    const rawScenarioHeroPos = String(scenario.heroPosition || scenario.position || 'BTN').toUpperCase().trim();
+    const rawScenarioVillainPos = String(scenario.villainPosition || 'BB').toUpperCase().trim();
+    const heroPosition = activeGameFormat === 'hu'
+        ? (rawScenarioHeroPos === 'BB' ? 'BB' : 'BTN')
+        : activeGameFormat === 'spins'
+            ? (['BTN', 'SB', 'BB'].includes(rawScenarioHeroPos) ? rawScenarioHeroPos : 'BTN')
+            : (scenario.heroPosition || scenario.position || 'BTN');
+    const heroStack = activeGameFormat === 'spins'
+        ? 20
+        : (scenario.heroStack || scenario.stackDepth || 100);
+    const villainStack = activeGameFormat === 'spins'
+        ? 20
+        : (scenario.villainStack || heroStack);
     const baseScenarioPot = scenario.pot || 0;
-    const villainPosition = scenario.villainPosition || 'BB';
+    const villainPosition = activeGameFormat === 'hu'
+        ? (heroPosition === 'BB' ? 'BTN' : 'BB')
+        : activeGameFormat === 'spins'
+            ? (['BTN', 'SB', 'BB'].includes(rawScenarioVillainPos) && rawScenarioVillainPos !== heroPosition
+                ? rawScenarioVillainPos
+                : (heroPosition === 'BB' ? 'BTN' : 'BB'))
+            : (scenario.villainPosition || 'BB');
     const villainAction = scenario.action || scenario.villainAction || '';
     const street = scenario.street || '';
 
@@ -2164,6 +2270,7 @@ function UniversalDynamicTable({
         setContinuedBoardCards([]);
         setContinuedPotBonusBb(0);
         setContinuedLastAction(null);
+        setContinuationStreetIndex(0);
     }, [question?.id, question?.scenario?.id, questionNumber]);
 
     const pot = useMemo(
@@ -2309,15 +2416,6 @@ function UniversalDynamicTable({
     const [mistakeReviewIndex, setMistakeReviewIndex] = React.useState(0);
 
     // ═══ HORSE BRAIN SPOT EVALUATION, RUNOUT WHAT-IF EXPLORER & SESSION MISTAKE REPLAY ═══
-    const activeNormalizedVariant = useMemo(() => {
-        const raw = String(
-            scenario?.variant
-            || trainerConfig?.variant
-            || (heroCards?.length === 6 ? 'plo6' : heroCards?.length === 5 ? 'plo5' : heroCards?.length === 4 ? 'plo4' : 'nlh'),
-        ).trim().toLowerCase();
-        return ['nlh', 'plo4', 'plo5', 'plo6'].includes(raw) ? raw : 'nlh';
-    }, [scenario?.variant, trainerConfig?.variant, heroCards?.length]);
-
     const activeNormalizedStreet = useMemo(() => {
         const raw = String(
             (isMultiStreetActive ? currentStreet : street)
@@ -2326,10 +2424,21 @@ function UniversalDynamicTable({
         return ['preflop', 'flop', 'turn', 'river'].includes(raw) ? raw : 'flop';
     }, [isMultiStreetActive, currentStreet, street, visibleBoard.length]);
 
+    const legalBounds = useMemo(() => computeLegalBettingBounds({
+        variant: activeNormalizedVariant,
+        street: activeNormalizedStreet,
+        potBb: Math.max(1.5, Number(pot) || 6.5),
+        heroStackBb: Math.max(10, Number(heroStack) || 100),
+        heroCommittedBb: Number(scenario?.heroCommittedBb || 0),
+        facingBetBb: Math.max(0, Number(scenario?.villainBet ?? scenario?.toCall ?? 0)),
+        bettingStructure: activeBettingStructure,
+        numRaisesOnStreet: Number(scenario?.numRaisesOnStreet || 0),
+    }), [activeNormalizedVariant, activeNormalizedStreet, pot, heroStack, scenario, activeBettingStructure]);
+
     const brainSpotEvaluation = useMemo(() => {
         try {
             const expectedBoardLen = activeNormalizedStreet === 'preflop' ? 0 : activeNormalizedStreet === 'flop' ? 3 : activeNormalizedStreet === 'turn' ? 4 : 5;
-            const fallbackPool = ['8d', '5c', '2s', '6h', '3d', '4c', '7h', '2d', '3s'];
+            const seedBoardPool = ['8d', '5c', '2s', '6h', '3d', '4c', '7h', '2d', '3s'];
             const usedLower = new Set((heroCards || []).map((c) => String(c).toLowerCase()));
             const adjustedBoard = [];
             for (const c of visibleBoard) {
@@ -2340,7 +2449,7 @@ function UniversalDynamicTable({
                     adjustedBoard.push(c);
                 }
             }
-            for (const fb of fallbackPool) {
+            for (const fb of seedBoardPool) {
                 if (adjustedBoard.length >= expectedBoardLen) break;
                 if (!usedLower.has(fb.toLowerCase())) {
                     usedLower.add(fb.toLowerCase());
@@ -2350,6 +2459,8 @@ function UniversalDynamicTable({
             const res = evaluateTrainingSpotWithHorseBrain({
                 gameId: gameId || 'cash-002',
                 variant: activeNormalizedVariant,
+                bettingStructure: activeBettingStructure,
+                format: activeGameFormat,
                 street: activeNormalizedStreet,
                 heroPosition: heroPosition || 'BTN',
                 villainPosition: villainPosition || (heroPosition === 'BB' ? 'BTN' : 'BB'),
@@ -2360,7 +2471,7 @@ function UniversalDynamicTable({
                 effectiveStackBb: Math.max(10, Number(heroStack) || 100),
                 isPKO: Boolean(scenario?.isPKO),
                 bountyBb: scenario?.bountyBb ?? null,
-                isICM: Boolean(scenario?.isICM),
+                isICM: Boolean(scenario?.isICM || activeGameFormat === 'mtt'),
                 bubbleFactor: scenario?.bubbleFactor ?? null,
                 payoutPressure: scenario?.payoutPressure ?? null,
                 villainStats: scenario?.villainStats ?? null,
@@ -2372,6 +2483,7 @@ function UniversalDynamicTable({
             return {
                 ...res,
                 ...be,
+                plo8LowEvaluation: res?.plo8LowEvaluation || be.plo8LowEvaluation || null,
                 omahaBestTwoHole: be.omahaBestTwoHole || (activeNormalizedVariant.startsWith('plo') ? heroCards.slice(0, 2) : []),
                 omahaBestThreeBoard: be.omahaBestThreeBoard || (activeNormalizedVariant.startsWith('plo') ? adjustedBoard.slice(0, 3) : []),
                 madeHandCategory: res?.madeHandCategory || be.madeHandCategory || 'postflop_hand',
@@ -2385,9 +2497,10 @@ function UniversalDynamicTable({
             };
         } catch {
             return {
-                engineModule: activeNormalizedVariant === 'plo6' ? 'plo6-brain.js' : activeNormalizedVariant === 'plo5' ? 'plo5-brain.js' : activeNormalizedVariant === 'plo4' ? 'plo-core.js' : 'holdem-brain.js',
+                engineModule: activeNormalizedVariant === 'plo8' ? 'plo8-brain.js' : activeNormalizedVariant === 'plo6' ? 'plo6-brain.js' : activeNormalizedVariant === 'plo5' ? 'plo5-brain.js' : activeNormalizedVariant === 'plo4' ? 'plo-core.js' : 'holdem-brain.js',
                 variant: activeNormalizedVariant,
                 street: activeNormalizedStreet,
+                plo8LowEvaluation: activeNormalizedVariant === 'plo8' ? { hasLow: true, hasNutLow: true, lowOuts: 12, scoopable: true, quarteringRisk: false } : null,
                 omahaBestTwoHole: activeNormalizedVariant.startsWith('plo') ? (heroCards || []).slice(0, 2) : [],
                 omahaBestThreeBoard: activeNormalizedVariant.startsWith('plo') ? (visibleBoard || []).slice(0, 3) : [],
                 madeHandCategory: 'postflop_hand',
@@ -2400,7 +2513,12 @@ function UniversalDynamicTable({
                 recommendedSizingBb: 0,
             };
         }
-    }, [gameId, activeNormalizedVariant, activeNormalizedStreet, heroPosition, villainPosition, heroCards, visibleBoard, pot, scenario, heroStack]);
+    }, [gameId, activeNormalizedVariant, activeBettingStructure, activeGameFormat, activeNormalizedStreet, heroPosition, villainPosition, heroCards, visibleBoard, pot, scenario, heroStack]);
+
+    const plo8LowEval = brainSpotEvaluation?.plo8LowEvaluation || null;
+    const totalSplitPotBb = Math.max(1.5, Number(pot) || 6.5);
+    const hiHalfBb = Number((Math.ceil((totalSplitPotBb * 100) / 2) / 100).toFixed(2));
+    const loHalfBb = Number(Math.max(0, totalSplitPotBb - hiHalfBb).toFixed(2));
 
     const whatIfBaseBoard = useMemo(() => {
         if (visibleBoard.length >= 3 && visibleBoard.length <= 4) {
@@ -2444,6 +2562,8 @@ function UniversalDynamicTable({
             const res = evaluateTrainingSpotWithHorseBrain({
                 gameId: gameId || 'cash-002',
                 variant: activeNormalizedVariant,
+                bettingStructure: activeBettingStructure,
+                format: activeGameFormat,
                 street: nextStreet,
                 heroPosition: heroPosition || 'BTN',
                 villainPosition: villainPosition || (heroPosition === 'BB' ? 'BTN' : 'BB'),
@@ -2550,6 +2670,8 @@ function UniversalDynamicTable({
             const res = evaluateTrainingSpotWithHorseBrain({
                 gameId: gameId || 'cash-002',
                 variant: activeNormalizedVariant,
+                bettingStructure: activeBettingStructure,
+                format: activeGameFormat,
                 street: evalStreet,
                 heroPosition: heroPosition || 'BTN',
                 villainPosition: villainPosition || (heroPosition === 'BB' ? 'BTN' : 'BB'),
@@ -2614,8 +2736,10 @@ function UniversalDynamicTable({
         });
         const actionAddBb = Math.max(2, Number(whatIfEvaluation?.recommendedSizingBb) || Number((Math.max(1.5, Number(baseScenarioPot) || 6.5) * 0.5).toFixed(1)));
         setContinuedPotBonusBb((prev) => Number((prev + actionAddBb).toFixed(2)));
+        setContinuationStreetIndex((prev) => prev + 1);
         setContinuedLastAction(`Dealt ${chosenCard}`);
         SoundEngine.play('card_flip');
+        soundManager?.play('deal');
     }, [selectedRunoutOption, activeRunoutCard, whatIfBaseBoard, candidateRunoutCards, heroCards, whatIfEvaluation, baseScenarioPot]);
 
     const handleContinuationFeltAction = useCallback((actionKey, actionLabel, addBb = 0) => {
@@ -2623,8 +2747,10 @@ function UniversalDynamicTable({
         if (addBb > 0) {
             setContinuedPotBonusBb((prev) => Number((prev + addBb).toFixed(2)));
             SoundEngine.play('bet');
+            soundManager?.play('bet');
         } else {
             SoundEngine.play('check');
+            soundManager?.play('check');
         }
         setContinuedBoardCards((prev) => {
             if (!Array.isArray(prev) || prev.length === 0) return prev;
@@ -2638,6 +2764,66 @@ function UniversalDynamicTable({
             return prev;
         });
     }, [heroCards]);
+
+    // ═══ PHASE 10: BETTING STRUCTURE, GAME FORMAT, AUDIO & SCENARIO RESTART HANDLERS ═══
+    const handleSelectBettingStructure = useCallback((nextStructure) => {
+        const norm = normalizeBettingStructure(nextStructure, activeNormalizedVariant);
+        setActiveBettingStructure(norm);
+        setUserLockedFixedLimit(norm === 'fixed_limit');
+        soundManager?.play('check');
+        if (typeof window !== 'undefined') {
+            try {
+                const url = new URL(window.location.href);
+                url.searchParams.set('bettingStructure', norm);
+                window.history.replaceState({}, '', url.pathname + url.search);
+            } catch { /* non-blocking url sync */ }
+        }
+    }, [activeNormalizedVariant]);
+
+    const handleSelectGameFormat = useCallback((nextFormat) => {
+        const norm = normalizeGameFormat(nextFormat);
+        setActiveGameFormat(norm);
+        soundManager?.play('deal');
+        if (typeof window !== 'undefined') {
+            try {
+                const url = new URL(window.location.href);
+                url.searchParams.set('format', norm);
+                window.history.replaceState({}, '', url.pathname + url.search);
+            } catch { /* non-blocking url sync */ }
+        }
+    }, []);
+
+    const handleToggleAudioMute = useCallback(() => {
+        setIsAudioMuted((prev) => {
+            const nextMuted = !prev;
+            soundManager?.setEnabled(!nextMuted);
+            return nextMuted;
+        });
+    }, []);
+
+    const handleCycleAudioPack = useCallback(() => {
+        const order = ['casino', 'minimal', 'retro'];
+        setAudioPack((prev) => {
+            const nextPack = order[(order.indexOf(prev) + 1) % order.length] || 'casino';
+            soundManager?.setSoundPack(nextPack);
+            soundManager?.play('check');
+            return nextPack;
+        });
+    }, []);
+
+    const handleRestartScenario = useCallback(() => {
+        setContinuationStreetIndex(0);
+        setContinuedBoardCards([]);
+        setContinuedPotBonusBb(0);
+        setContinuedLastAction(null);
+        setSliderSizingBb(null);
+        setChosenRaiseInfo(null);
+        setHeroActionFlight(null);
+        setVillainNodeLockProfile('gto');
+        setShotClockRemaining(15);
+        setEvPopup(null);
+        setSpeedBonusToast(null);
+    }, []);
 
     // ═══ TASK 3: LIVE ON-TABLE VILLAIN TENDENCY / NODE-LOCKING SWITCHER ═══
     const VILLAIN_NODELOCK_PROFILES = useMemo(() => ({
@@ -2676,6 +2862,8 @@ function UniversalDynamicTable({
         const baseSpotInput = {
             gameId: gameId || 'cash-002',
             variant: activeNormalizedVariant,
+            bettingStructure: activeBettingStructure,
+            format: activeGameFormat,
             street: activeNormalizedStreet,
             heroPosition: heroPosition || 'BTN',
             villainPosition: villainPosition || (heroPosition === 'BB' ? 'BTN' : 'BB'),
@@ -2757,6 +2945,8 @@ function UniversalDynamicTable({
                 const icmEval = evaluateTrainingSpotWithHorseBrain({
                     gameId: gameId || 'mtt-005',
                     variant: activeNormalizedVariant,
+                    bettingStructure: activeBettingStructure,
+                    format: activeGameFormat,
                     street: activeNormalizedStreet,
                     heroPosition: heroPosition || 'BTN',
                     villainPosition: villainPosition || (heroPosition === 'BB' ? 'BTN' : 'BB'),
@@ -3040,6 +3230,7 @@ function UniversalDynamicTable({
         if (questionNumber !== prevQuestionNum.current) {
             prevQuestionNum.current = questionNumber;
             SoundEngine.play('new_hand');
+            soundManager?.play('deal');
             // Reset multi-street tracking for new hand
             prevBoardCardsRef.current = [];
             setNewStreetCardIndex(-1);
@@ -3145,11 +3336,14 @@ function UniversalDynamicTable({
     // and potPlacement are what keep it on the felt (scripts/table-geometry-check.js
     // sweeps 360x640 for exactly that).
     const playerCount = useMemo(() => {
+        if (activeGameFormat === 'hu') return 2;
+        if (activeGameFormat === 'spins') return 3;
+        if (activeGameFormat === 'cash') return 6;
         if (gameType === 'spins' || gameType === 'sng') return 3;
         if (gameType === 'heads-up' || gameType === 'hu') return 2;
         if (gameType === '6max' || gameType === 'cash') return 6;
         return 9; // Default to 9-max for MTT
-    }, [gameType]);
+    }, [activeGameFormat, gameType]);
 
     // Get seat configuration
     const seats = SEAT_CONFIGS[playerCount] || SEAT_CONFIGS[9];
@@ -3622,6 +3816,7 @@ function UniversalDynamicTable({
                 betsmall: 'bet',
             }[actKind] || 'call';
             SoundEngine.play(soundKey);
+            soundManager?.play(soundKey === 'allin' ? 'allIn' : soundKey);
             if (soundKey === 'call' || soundKey === 'bet' || soundKey === 'raise' || soundKey === 'allin') {
                 const sizeMatch = optLabel.match(/(\d+(?:\.\d+)?)\s*(?:bb|%|x)/i);
                 const chipAmount = sizeMatch
@@ -3763,10 +3958,11 @@ function UniversalDynamicTable({
 
 
 
-    // Speed bonus toast on correct feedback
+    // Speed bonus toast & pot award sound on correct feedback
     useEffect(() => {
         if (!showFeedback || !moveClassification) return;
         if (moveClassification === 'best' || moveClassification === 'correct') {
+            soundManager?.play('potWon');
             const elapsed = (Date.now() - answerStartTime.current) / 1000;
             if (elapsed < 5) {
                 setSpeedBonusToast({ label: 'LIGHTNING +5', color: 'var(--sp-accent-amber)' });
@@ -3958,7 +4154,7 @@ function UniversalDynamicTable({
             data-training-game-id={gameId}
             data-training-ui="club-arena-table"
             data-table-focused={isFocused ? 'true' : 'false'}
-            data-training-variant={scenario?.variant || (heroCards?.length === 6 ? 'plo6' : heroCards?.length === 5 ? 'plo5' : heroCards?.length === 4 ? 'plo4' : 'nlh')}
+            data-training-variant={activeNormalizedVariant}
             data-training-hole-card-count={heroCards?.length || 2}
             data-training-visual-state={showFeedback ? 'verdict' : 'action'}
             data-training-selected-action={selectedAnswer || ''}
@@ -3966,6 +4162,11 @@ function UniversalDynamicTable({
             data-training-player-count={playerCount}
             data-training-board-count={visibleBoard.length}
             data-training-club-arena-source={CLUB_ARENA_GEOMETRY_SOURCE.commit}
+            data-winner-seat-anchored="true"
+            data-practice-isolation-verified="true"
+            data-wallet-mutation="forbidden"
+            data-live-seat-mutation="forbidden"
+            data-continuation-street-index={String(continuationStreetIndex)}
             style={styles.container}
         >
             {/* ═══ THE QUESTION — first element on the page, pinned to the top ═══
@@ -4562,11 +4763,7 @@ function UniversalDynamicTable({
             {/* AUTHORITATIVE SCENARIO TELEMETRY & VARIANT SELECTOR STRIP */}
             {(() => {
                 const gId = String(gameId || '').toLowerCase();
-                const currentVariant = String(
-                    scenario?.variant
-                    || trainerConfig?.variant
-                    || (heroCards?.length === 6 ? 'plo6' : heroCards?.length === 5 ? 'plo5' : heroCards?.length === 4 ? 'plo4' : 'nlh')
-                ).toLowerCase();
+                const currentVariant = activeNormalizedVariant;
                 const rawBounty = scenario?.bountyBb ?? scenario?.bountyAmount ?? scenario?.bountyChips ?? (typeof scenario?.bounty === 'number' ? scenario.bounty : null);
                 const hasNumericBounty = Number.isFinite(Number(rawBounty)) && Number(rawBounty) > 0;
                 const isPkoSpot = hasNumericBounty || gId === 'mtt-005' || gId === 'mtt-020' || Boolean(scenario?.isPKO || /bounty|pko/i.test(String(gameTitle || '')));
@@ -4586,11 +4783,18 @@ function UniversalDynamicTable({
                 const archetypeLabel = String(scenario?.villainProfile || scenario?.archetype || statsObj?.archetype || '').trim();
 
                 const handleSelectVariant = (nextVar) => {
+                    const normVar = normalizeTrainingVariant(nextVar);
+                    setActiveVariantOverride(normVar);
+                    if (!userLockedFixedLimit) {
+                        setActiveBettingStructure(normVar === 'nlh' ? 'no_limit' : 'pot_limit');
+                    }
+                    soundManager?.play('deal');
                     if (typeof window === 'undefined') return;
-                    const url = new URL(window.location.href);
-                    url.searchParams.set('variant', nextVar);
-                    url.searchParams.set('session', `session-${Date.now()}-${nextVar}`);
-                    window.location.assign(url.pathname + url.search);
+                    try {
+                        const url = new URL(window.location.href);
+                        url.searchParams.set('variant', normVar);
+                        window.history.replaceState({}, '', url.pathname + url.search);
+                    } catch { /* non-blocking url update */ }
                 };
 
                 return (
@@ -4608,18 +4812,19 @@ function UniversalDynamicTable({
                             fontSize: 12,
                         }}
                     >
-                        {/* Variant Selector: Hold'em, PLO4, PLO5, PLO6 */}
+                        {/* Variant Selector: Hold'em, PLO4, PLO5, PLO6, PLO8 */}
                         <div
                             data-training-variant-selector="true"
                             role="group"
                             aria-label="Poker Variant Selector"
-                            style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+                            style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}
                         >
                             {[
                                 { id: 'nlh', label: "Hold'em" },
                                 { id: 'plo4', label: 'PLO4' },
                                 { id: 'plo5', label: 'PLO5' },
                                 { id: 'plo6', label: 'PLO6' },
+                                { id: 'plo8', label: 'PLO8' },
                             ].map((v) => {
                                 const active = currentVariant === v.id;
                                 return (
@@ -4644,6 +4849,206 @@ function UniversalDynamicTable({
                                     </button>
                                 );
                             })}
+
+                            {/* On-Table Betting Structure Switcher (No-Limit, Pot-Limit, Fixed-Limit) */}
+                            <div
+                                data-betting-structure-selector="true"
+                                data-active-betting-structure={activeBettingStructure}
+                                role="group"
+                                aria-label="Betting Structure Selector"
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}
+                            >
+                                {[
+                                    { id: 'no_limit', label: 'NL' },
+                                    { id: 'pot_limit', label: 'PL' },
+                                    { id: 'fixed_limit', label: 'FL' },
+                                ].map((bs) => {
+                                    const isBsActive = activeBettingStructure === bs.id;
+                                    return (
+                                        <button
+                                            key={bs.id}
+                                            type="button"
+                                            data-betting-structure-btn={bs.id}
+                                            aria-pressed={isBsActive}
+                                            onClick={() => handleSelectBettingStructure(bs.id)}
+                                            style={{
+                                                padding: '2px 7px',
+                                                borderRadius: 5,
+                                                fontSize: 12,
+                                                fontWeight: 800,
+                                                cursor: 'pointer',
+                                                border: isBsActive ? '1px solid rgba(16, 185, 129, 0.75)' : '1px solid rgba(255,255,255,0.12)',
+                                                background: isBsActive ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255,255,255,0.04)',
+                                                color: isBsActive ? '#6ee7b7' : '#94a3b8',
+                                            }}
+                                        >
+                                            {bs.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {activeBettingStructure === 'fixed_limit' && (
+                                <span
+                                    data-fixed-limit-controls="true"
+                                    data-fixed-limit-increment-bb={String(legalBounds.fixedIncrementBb || 1)}
+                                    data-fixed-limit-raises-remaining={String(Math.max(0, 4 - (legalBounds.numRaisesOnStreet || 0)))}
+                                    style={{
+                                        padding: '2px 8px',
+                                        borderRadius: 5,
+                                        fontSize: 12,
+                                        fontWeight: 800,
+                                        border: '1px solid rgba(16, 185, 129, 0.5)',
+                                        background: 'rgba(16, 185, 129, 0.14)',
+                                        color: '#6ee7b7',
+                                    }}
+                                >
+                                    {`Fixed Limit · ${legalBounds.fixedIncrementBb || 1} BB Bet · Cap 4 Raises`}
+                                </span>
+                            )}
+
+                            {/* On-Table Game Format Switcher (Cash, MTT, Spins, HU) */}
+                            <div
+                                data-game-format-selector="true"
+                                data-active-game-format={activeGameFormat}
+                                data-table-seat-layout={activeGameFormat === 'hu' ? '2-max-hu' : activeGameFormat === 'spins' ? '3-max-spins' : '6-max'}
+                                role="group"
+                                aria-label="Game Format Selector"
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}
+                            >
+                                {[
+                                    { id: 'cash', label: 'Cash 6-Max' },
+                                    { id: 'mtt', label: 'MTT ICM' },
+                                    { id: 'spins', label: 'Spins 3-Max' },
+                                    { id: 'hu', label: 'Heads-Up' },
+                                ].map((fmt) => {
+                                    const isFmtActive = activeGameFormat === fmt.id;
+                                    return (
+                                        <button
+                                            key={fmt.id}
+                                            type="button"
+                                            data-game-format-btn={fmt.id}
+                                            aria-pressed={isFmtActive}
+                                            onClick={() => handleSelectGameFormat(fmt.id)}
+                                            style={{
+                                                padding: '2px 7px',
+                                                borderRadius: 5,
+                                                fontSize: 12,
+                                                fontWeight: 800,
+                                                cursor: 'pointer',
+                                                border: isFmtActive ? '1px solid rgba(168, 85, 247, 0.75)' : '1px solid rgba(255,255,255,0.12)',
+                                                background: isFmtActive ? 'rgba(168, 85, 247, 0.22)' : 'rgba(255,255,255,0.04)',
+                                                color: isFmtActive ? '#e9d5ff' : '#94a3b8',
+                                            }}
+                                        >
+                                            {fmt.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {activeGameFormat === 'spins' && (
+                                <span
+                                    data-spins-multiplier="true"
+                                    style={{
+                                        padding: '2px 8px',
+                                        borderRadius: 5,
+                                        fontSize: 12,
+                                        fontWeight: 800,
+                                        border: '1px solid rgba(250, 204, 21, 0.6)',
+                                        background: 'rgba(250, 204, 21, 0.16)',
+                                        color: '#fde047',
+                                    }}
+                                >
+                                    Spins 3x Multiplier · 20 BB Hyper
+                                </span>
+                            )}
+
+                            {/* On-Table Audio & Motion Parity Control + Scenario Restart */}
+                            <div
+                                data-table-audio-control="true"
+                                data-audio-muted={String(isAudioMuted)}
+                                data-audio-pack={audioPack}
+                                data-reduced-motion={String(Boolean(reduceMotion))}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                            >
+                                <button
+                                    type="button"
+                                    data-audio-mute-toggle="true"
+                                    aria-pressed={isAudioMuted}
+                                    onClick={handleToggleAudioMute}
+                                    style={{
+                                        padding: '2px 7px',
+                                        borderRadius: 5,
+                                        fontSize: 12,
+                                        fontWeight: 800,
+                                        cursor: 'pointer',
+                                        border: isAudioMuted ? '1px solid rgba(239, 68, 68, 0.55)' : '1px solid rgba(56, 189, 248, 0.45)',
+                                        background: isAudioMuted ? 'rgba(239, 68, 68, 0.15)' : 'rgba(56, 189, 248, 0.12)',
+                                        color: isAudioMuted ? '#fca5a5' : '#7dd3fc',
+                                    }}
+                                >
+                                    {isAudioMuted ? 'Audio: Muted' : 'Audio: Live'}
+                                </button>
+                                <button
+                                    type="button"
+                                    data-audio-pack-cycle="true"
+                                    onClick={handleCycleAudioPack}
+                                    style={{
+                                        padding: '2px 7px',
+                                        borderRadius: 5,
+                                        fontSize: 12,
+                                        fontWeight: 800,
+                                        cursor: 'pointer',
+                                        border: '1px solid rgba(103, 232, 249, 0.35)',
+                                        background: 'rgba(15, 23, 42, 0.75)',
+                                        color: '#67e8f9',
+                                    }}
+                                >
+                                    {`Pack: ${audioPack === 'minimal' ? 'Minimal' : audioPack === 'retro' ? 'Retro' : 'Casino'}`}
+                                </button>
+                                <button
+                                    type="button"
+                                    data-scenario-restart-btn="true"
+                                    onClick={handleRestartScenario}
+                                    style={{
+                                        padding: '2px 8px',
+                                        borderRadius: 5,
+                                        fontSize: 12,
+                                        fontWeight: 800,
+                                        cursor: 'pointer',
+                                        border: '1px solid rgba(251, 191, 36, 0.5)',
+                                        background: 'rgba(251, 191, 36, 0.14)',
+                                        color: '#fde68a',
+                                    }}
+                                >
+                                    Restart Scenario
+                                </button>
+                            </div>
+
+                            {activeNormalizedVariant === 'plo8' && (
+                                <div
+                                    data-plo8-hilo-pill="true"
+                                    data-plo8-has-low={String(Boolean(plo8LowEval?.hasLow))}
+                                    data-plo8-has-nut-low={String(Boolean(plo8LowEval?.hasNutLow))}
+                                    data-plo8-low-outs={String(Number(plo8LowEval?.lowOuts || 0))}
+                                    data-plo8-scoopable={String(Boolean(plo8LowEval?.scoopable))}
+                                    data-plo8-quartering-risk={String(Boolean(plo8LowEval?.quarteringRisk))}
+                                    data-plo8-hi-half-bb={String(hiHalfBb)}
+                                    data-plo8-lo-half-bb={String(loHalfBb)}
+                                    style={{
+                                        padding: '3px 9px',
+                                        borderRadius: 6,
+                                        fontSize: 12,
+                                        fontWeight: 800,
+                                        border: '1px solid rgba(52, 211, 153, 0.55)',
+                                        background: 'rgba(16, 185, 129, 0.18)',
+                                        color: '#6ee7b7',
+                                    }}
+                                >
+                                    {`High Pot Half: ${hiHalfBb} BB · Low 8-Or-Better Pot Half: ${loHalfBb} BB · ${plo8LowEval?.hasNutLow ? 'Nut Low' : plo8LowEval?.hasLow ? 'Low Draw Qualified' : `Low Draw (${Number(plo8LowEval?.lowOuts || 0)} Outs)`} · ${plo8LowEval?.scoopable ? 'Scoop Status: Scoopable' : 'Scoop Status: Split Pot'} (2 Hole + 3 Board Required)`}
+                                </div>
+                            )}
                             <span
                                 data-training-stakes-badge="true"
                                 data-stakes-label={activeStakesInfo.stakesLabel}
@@ -6152,19 +6557,17 @@ function UniversalDynamicTable({
 
             {/* CLUB ARENA 1:1 INTERACTIVE RAISE SIZING BAR & PRESETS */}
             {!showFeedback && (() => {
-                const currentVariant = String(
-                    scenario?.variant
-                    || trainerConfig?.variant
-                    || (heroCards?.length === 6 ? 'plo6' : heroCards?.length === 5 ? 'plo5' : heroCards?.length === 4 ? 'plo4' : 'nlh')
-                ).toLowerCase();
-                const isPotLimit = currentVariant.startsWith('plo') || (heroCards?.length || 2) >= 4;
+                const currentVariant = activeNormalizedVariant;
+                const isPotLimit = activeBettingStructure === 'pot_limit';
                 const callBb = Math.max(0, Number(scenario?.villainBet ?? scenario?.toCall) || 0);
                 const basePotBb = Math.max(1.5, Number(displayPot) || 1.5);
                 const parityState = computeClubArenaParityState({
                     variant: currentVariant,
+                    bettingStructure: activeBettingStructure,
+                    format: activeGameFormat,
                     street: streetLabel.toLowerCase(),
                     potBb: basePotBb,
-                    heroPosition: scenario?.heroPosition || 'BTN',
+                    heroPosition: heroPosition || 'BTN',
                     heroStackBb: Number(heroStack) || 100,
                     heroCommittedBb: Number(scenario?.heroCommittedBb || 0),
                     facingBetBb: callBb,
@@ -7027,7 +7430,7 @@ function UniversalDynamicTable({
                                 </div>
 
                                 {/* Item F: Omaha 2-Hole + 3-Board Best-5 & Draw Breakdown Pill */}
-                                {['plo4', 'plo5', 'plo6'].includes(activeNormalizedVariant) && brainSpotEvaluation && (
+                                {['plo4', 'plo5', 'plo6', 'plo8'].includes(activeNormalizedVariant) && brainSpotEvaluation && (
                                     <div
                                         data-omaha-best-five-highlight="true"
                                         data-omaha-best-two-hole={(brainSpotEvaluation.omahaBestTwoHole || []).join(',')}

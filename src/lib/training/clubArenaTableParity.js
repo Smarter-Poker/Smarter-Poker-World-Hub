@@ -2,17 +2,262 @@
  * Club Arena 1:1 Decision-Level Table Parity Engine
  *
  * Ensures Training Hub and Club Arena compute identical legal action buttons,
- * min/max raise bounds (No-Limit vs Pot-Limit), short all-in reopening rules,
+ * min/max raise bounds (No-Limit, Pot-Limit, Fixed-Limit), short all-in reopening rules,
  * multiway main/side pots, stakes-aware chip conversions (e.g. 0.25/0.50),
- * and custom raise sizing feedback.
+ * Heads-Up / Spins / 6-Max action order, Hi-Lo 8-or-better showdown split allocation,
+ * practice currency isolation, and custom raise sizing feedback.
  */
+
+import handEvaluator from '../poker-engine/HandEvaluator.js';
+import deckModule from '../poker-engine/Deck.js';
+
+const { evaluateHoldem, evaluateOmaha, evaluateLow } = handEvaluator;
+const { parseCards: parseDeckCards, cardToString } = deckModule;
+
+export const SIX_MAX_POSITIONS = Object.freeze(['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB']);
+export const HEADS_UP_POSITIONS = Object.freeze(['BTN', 'BB']);
+export const SPINS_POSITIONS = Object.freeze(['BTN', 'SB', 'BB']);
 
 const POSITION_ORDER_POSTFLOP = ['SB', 'BB', 'UTG', 'UTG+1', 'MP', 'LJ', 'HJ', 'CO', 'BTN'];
 const POSITION_ORDER_PREFLOP = ['UTG', 'UTG+1', 'MP', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
 
+export const HOLE_CARD_COUNT_BY_VARIANT = Object.freeze({
+  nlh: 2,
+  flh: 2,
+  plo: 4,
+  plo4: 4,
+  plo5: 5,
+  plo6: 6,
+  plo8: 4,
+  flo: 4,
+  flo8: 4,
+});
+
+export function normalizeTrainingVariant(variantRaw = 'nlh') {
+  const v = String(variantRaw || 'nlh').trim().toLowerCase();
+  if (
+    v === 'plo8' ||
+    v === 'omaha8' ||
+    v === 'omaha_hi_lo' ||
+    v === 'plo_hilo' ||
+    v === 'plo-hi-lo' ||
+    v === 'flo8' ||
+    v === 'o8' ||
+    v === 'omaha_hilo'
+  ) {
+    return 'plo8';
+  }
+  if (v === 'plo6' || v === '6-card-plo' || v === 'plo-6' || v === 'omaha6') return 'plo6';
+  if (v === 'plo5' || v === '5-card-plo' || v === 'plo-5' || v === 'omaha5') return 'plo5';
+  if (v === 'plo' || v === 'plo4' || v === '4-card-plo' || v === 'plo-4' || v === 'omaha' || v === 'omaha4' || v === 'flo') {
+    return 'plo4';
+  }
+  return 'nlh';
+}
+
+export function isHiLoVariant(variantRaw = 'nlh') {
+  return normalizeTrainingVariant(variantRaw) === 'plo8';
+}
+
 export function isPotLimitVariant(variantRaw = 'nlh') {
-  const v = String(variantRaw || 'nlh').toLowerCase();
-  return v.startsWith('plo') || v.includes('omaha') || v.includes('pot_limit') || v.includes('pot-limit');
+  const v = String(variantRaw || 'nlh').trim().toLowerCase();
+  if (v === 'flh' || v === 'flo' || v === 'flo8' || v.includes('fixed_limit') || v.includes('fixed-limit')) {
+    return false;
+  }
+  const norm = normalizeTrainingVariant(v);
+  return (
+    norm.startsWith('plo') ||
+    v.startsWith('plo') ||
+    v.includes('omaha') ||
+    v.includes('pot_limit') ||
+    v.includes('pot-limit')
+  );
+}
+
+export function normalizeBettingStructure(bettingStructure, variantRaw = 'nlh') {
+  const bs = String(bettingStructure || '').trim().toLowerCase();
+  const rawV = String(variantRaw || '').trim().toLowerCase();
+  if (
+    bs === 'fixed_limit' ||
+    bs === 'fixed-limit' ||
+    bs === 'fl' ||
+    bs === 'limit' ||
+    rawV === 'flh' ||
+    rawV === 'flo' ||
+    rawV === 'flo8'
+  ) {
+    return 'fixed_limit';
+  }
+  if (
+    bs === 'pot_limit' ||
+    bs === 'pot-limit' ||
+    bs === 'pl' ||
+    (isPotLimitVariant(variantRaw) && bs !== 'no_limit' && bs !== 'no-limit' && bs !== 'nl')
+  ) {
+    return 'pot_limit';
+  }
+  return 'no_limit';
+}
+
+export function normalizeGameFormat(formatRaw = 'cash') {
+  const f = String(formatRaw || 'cash').trim().toLowerCase();
+  if (f === 'hu' || f === 'heads_up' || f === 'headsup' || f === '2max' || f === '2-max' || f === 'hu_cash') {
+    return 'hu';
+  }
+  if (f === 'spins' || f === 'spin' || f === 'spin_and_go' || f === '3max' || f === '3-max' || f === 'spin_3max') {
+    return 'spins';
+  }
+  if (f === 'mtt' || f === 'tournament' || f === 'sng' || f === 'icm' || f.startsWith('mtt_')) {
+    return 'mtt';
+  }
+  return 'cash';
+}
+
+export function computeLegalBettingBounds({
+  variant = 'nlh',
+  street = 'flop',
+  potBb = 6.5,
+  heroStackBb = 100,
+  heroCommittedBb = 0,
+  facingBetBb = 0,
+  lastRaiseIncrementBb = null,
+  bigBlindBb = 1,
+  bettingStructure = null,
+  numRaisesOnStreet = 0,
+  maxRaisesPerRound = 4,
+} = {}) {
+  const normVariant = normalizeTrainingVariant(variant);
+  const activeBettingStructure = normalizeBettingStructure(bettingStructure, variant);
+  const isPotLimit = activeBettingStructure === 'pot_limit';
+  const isFixedLimit = activeBettingStructure === 'fixed_limit';
+  const normStreet = String(street || 'preflop').trim().toLowerCase();
+
+  const cleanBb = Math.max(0.01, roundTableUnit(Number(bigBlindBb) || 1, 2));
+  const cleanPotBb = Math.max(0, roundTableUnit(Number(potBb) || 0, 2));
+  const cleanStackBb = Math.max(0, roundTableUnit(Number(heroStackBb) || 0, 2));
+  const cleanCommittedBb = Math.max(0, roundTableUnit(Number(heroCommittedBb) || 0, 2));
+  const cleanFacingBetBb = Math.max(0, roundTableUnit(Number(facingBetBb) || 0, 2));
+
+  const toCallBb = Math.max(0, roundTableUnit(cleanFacingBetBb - cleanCommittedBb, 2));
+  const callAmountBb = Math.min(cleanStackBb, toCallBb);
+  const heroMaxTotalToBb = roundTableUnit(cleanCommittedBb + cleanStackBb, 2);
+
+  const canCheck = toCallBb <= 0;
+  const canCall = toCallBb > 0 && cleanStackBb > 0;
+
+  if (isFixedLimit) {
+    const fixedIncrementBb =
+      normStreet === 'turn' || normStreet === 'river'
+        ? Number((2 * cleanBb).toFixed(2))
+        : Number((1 * cleanBb).toFixed(2));
+    const cleanNumRaises = Math.max(0, Number(numRaisesOnStreet || 0));
+    const cleanMaxRaises = Math.max(1, Number(maxRaisesPerRound || 4));
+    const raiseCapReached = cleanNumRaises >= cleanMaxRaises;
+    const canRaise = !raiseCapReached && cleanStackBb > toCallBb && heroMaxTotalToBb > cleanFacingBetBb;
+
+    const targetFixedTotalBb = Number((cleanFacingBetBb + fixedIncrementBb).toFixed(2));
+    const minRaiseToBb = canRaise ? Math.min(heroMaxTotalToBb, targetFixedTotalBb) : heroMaxTotalToBb;
+    const maxRaiseToBb = minRaiseToBb;
+    const isShortAllInOnly = canRaise && heroMaxTotalToBb < targetFixedTotalBb;
+
+    const presets = canRaise
+      ? [
+          {
+            id: cleanFacingBetBb > 0 ? 'fixed_raise' : 'fixed_bet',
+            label: cleanFacingBetBb > 0 ? `Raise ${fixedIncrementBb} BB` : `Bet ${fixedIncrementBb} BB`,
+            amountBb: minRaiseToBb,
+          },
+        ]
+      : [];
+
+    return {
+      variant: normVariant,
+      bettingStructure: activeBettingStructure,
+      isPotLimit: false,
+      isFixedLimit: true,
+      fixedIncrementBb,
+      numRaisesOnStreet: cleanNumRaises,
+      maxRaisesPerRound: cleanMaxRaises,
+      raiseCapReached,
+      canCheck,
+      canCall,
+      canRaise,
+      toCallBb,
+      callAmountBb,
+      minRaiseIncrementBb: fixedIncrementBb,
+      minRaiseToBb,
+      maxRaiseToBb,
+      maxPotLimitRaiseToBb: null,
+      isShortAllInOnly,
+      presets,
+    };
+  }
+
+  const rawIncrement =
+    Number.isFinite(Number(lastRaiseIncrementBb)) && Number(lastRaiseIncrementBb) > 0
+      ? Number(lastRaiseIncrementBb)
+      : cleanFacingBetBb > 0
+        ? cleanFacingBetBb
+        : cleanBb;
+  const minRaiseIncrementBb = Math.max(cleanBb, roundTableUnit(rawIncrement, 2));
+  const unboundedMinRaiseToBb =
+    cleanFacingBetBb > 0
+      ? roundTableUnit(cleanFacingBetBb + minRaiseIncrementBb, 2)
+      : cleanBb;
+  const minRaiseToBb = roundTableUnit(Math.min(heroMaxTotalToBb, unboundedMinRaiseToBb), 2);
+
+  // Pot-Limit maximum total bet/raise-to: currentPot + 2 * callAmount + heroCommitted
+  const maxPotLimitRaiseToBb = roundTableUnit(
+    cleanPotBb + 2 * callAmountBb + cleanCommittedBb,
+    2
+  );
+  const maxRaiseToBb = isPotLimit
+    ? roundTableUnit(Math.min(heroMaxTotalToBb, Math.max(minRaiseToBb, maxPotLimitRaiseToBb)), 2)
+    : heroMaxTotalToBb;
+
+  const canRaise = cleanStackBb > toCallBb && maxRaiseToBb > cleanFacingBetBb;
+  const isShortAllInOnly = canRaise && heroMaxTotalToBb < unboundedMinRaiseToBb;
+
+  const effectivePotAfterCall = roundTableUnit(cleanPotBb + callAmountBb, 2);
+  const clampRaise = (val) => roundTableUnit(Math.max(minRaiseToBb, Math.min(maxRaiseToBb, val)), 2);
+
+  const presets = canRaise
+    ? isPotLimit
+      ? [
+          { id: 'p33', label: '33% Pot', amountBb: clampRaise(cleanFacingBetBb + effectivePotAfterCall * 0.33) },
+          { id: 'p50', label: '50% Pot', amountBb: clampRaise(cleanFacingBetBb + effectivePotAfterCall * 0.5) },
+          { id: 'p75', label: '75% Pot', amountBb: clampRaise(cleanFacingBetBb + effectivePotAfterCall * 0.75) },
+          { id: 'pot', label: 'Pot', amountBb: maxRaiseToBb },
+        ]
+      : [
+          { id: 'p33', label: '33% Pot', amountBb: clampRaise(cleanFacingBetBb + effectivePotAfterCall * 0.33) },
+          { id: 'p67', label: '67% Pot', amountBb: clampRaise(cleanFacingBetBb + effectivePotAfterCall * 0.67) },
+          { id: 'pot', label: 'Pot', amountBb: clampRaise(cleanFacingBetBb + effectivePotAfterCall) },
+          { id: 'allin', label: 'All-In', amountBb: heroMaxTotalToBb },
+        ]
+    : [];
+
+  return {
+    variant: normVariant,
+    bettingStructure: activeBettingStructure,
+    isPotLimit,
+    isFixedLimit: false,
+    fixedIncrementBb: null,
+    numRaisesOnStreet: Math.max(0, Number(numRaisesOnStreet || 0)),
+    maxRaisesPerRound: Math.max(1, Number(maxRaisesPerRound || 4)),
+    raiseCapReached: false,
+    canCheck,
+    canCall,
+    canRaise,
+    toCallBb,
+    callAmountBb,
+    minRaiseIncrementBb,
+    minRaiseToBb,
+    maxRaiseToBb,
+    maxPotLimitRaiseToBb: isPotLimit ? maxRaiseToBb : null,
+    isShortAllInOnly,
+    presets,
+  };
 }
 
 export function roundTableUnit(value, decimals = 2) {
@@ -143,10 +388,19 @@ export function computeMainAndSidePots(seats = [], deadPotBb = 0) {
   ).sort((a, b) => a - b);
 
   if (nonZeroLevels.length === 0) {
+    const defaultEligible = normalized.filter((s) => !s.folded).map((s) => s.position);
     return {
       mainPotBb: baseDeadBb,
+      mainPot: {
+        name: 'Main Pot',
+        amountBb: baseDeadBb,
+        eligiblePositions: defaultEligible,
+        eligibleSeatIds: defaultEligible,
+      },
       sidePots: [],
-      pots: baseDeadBb > 0 ? [{ name: 'Main Pot', amountBb: baseDeadBb, eligiblePositions: normalized.filter((s) => !s.folded).map((s) => s.position) }] : [],
+      pots: baseDeadBb > 0
+        ? [{ name: 'Main Pot', amountBb: baseDeadBb, eligiblePositions: defaultEligible, eligibleSeatIds: defaultEligible }]
+        : [],
       totalPotBb: baseDeadBb,
       uncalledReturnBb: 0,
       uncalledSeatPosition: null,
@@ -201,6 +455,7 @@ export function computeMainAndSidePots(seats = [], deadPotBb = 0) {
         amountBb: sliceAmountBb,
         capPerPlayerBb: cap,
         eligiblePositions: eligible,
+        eligibleSeatIds: eligible,
       });
     }
 
@@ -208,11 +463,15 @@ export function computeMainAndSidePots(seats = [], deadPotBb = 0) {
   }
 
   const mainPotBb = pots.length > 0 ? pots[0].amountBb : baseDeadBb;
+  const mainPot = pots.length > 0
+    ? pots[0]
+    : { name: 'Main Pot', amountBb: baseDeadBb, eligiblePositions: [], eligibleSeatIds: [] };
   const sidePots = pots.slice(1);
   const totalPotBb = roundTableUnit(pots.reduce((acc, p) => acc + p.amountBb, 0), 2);
 
   return {
     mainPotBb,
+    mainPot,
     sidePots,
     pots,
     totalPotBb,
@@ -222,30 +481,108 @@ export function computeMainAndSidePots(seats = [], deadPotBb = 0) {
   };
 }
 
+export function computePotBreakdown(input = {}, deadPotArg = 0) {
+  if (Array.isArray(input)) {
+    return computeMainAndSidePots(input, deadPotArg);
+  }
+  const seats = Array.isArray(input?.seats) ? input.seats : [];
+  const deadPotBb = input?.deadPotBb ?? deadPotArg ?? 0;
+  return computeMainAndSidePots(seats, deadPotBb);
+}
+
 /**
  * Determines the next actor in Club Arena seat order who is neither folded nor all-in.
+ * Supports both seat-object arrays (`seats`) and position-list invocation (`activePositions`, `currentActor`, `format`).
  */
-export function resolveNextActor({ seats = [], currentActorPosition = 'BTN', street = 'flop', highestBetBb = 0, actedPositions = [] }) {
-  const activeSeats = (Array.isArray(seats) ? seats : []).filter((s) => !s?.folded);
+export function resolveNextActor({
+  seats = null,
+  activePositions = SIX_MAX_POSITIONS,
+  currentActorPosition = null,
+  currentActor = null,
+  lastAggressor = null,
+  street = 'flop',
+  highestBetBb = 0,
+  actedPositions = [],
+  foldedPositions = [],
+  allInPositions = [],
+  format = 'cash',
+} = {}) {
+  const normStreet = String(street || 'flop').trim().toLowerCase();
+  const normFormat = normalizeGameFormat(format);
+  const currPos = String(currentActorPosition || currentActor || '').trim().toUpperCase();
+
+  const foldedSet = new Set((Array.isArray(foldedPositions) ? foldedPositions : []).map((p) => String(p).toUpperCase()));
+  const allInSet = new Set((Array.isArray(allInPositions) ? allInPositions : []).map((p) => String(p).toUpperCase()));
+
+  const rawSeatList = Array.isArray(seats) && seats.length > 0
+    ? seats.map((s, idx) => {
+        const pos = String(s?.position || s?.seatId || s?.id || `SEAT_${idx + 1}`).toUpperCase();
+        return {
+          position: pos,
+          folded: Boolean(s?.folded || foldedSet.has(pos)),
+          allIn: Boolean(s?.allIn || allInSet.has(pos) || (s?.stackRemainingBb !== undefined && Number(s.stackRemainingBb) <= 0)),
+          committedBb: Number(s?.committedBb ?? 0),
+          hasExplicitStack: s?.stackRemainingBb !== undefined || s?.stackBb !== undefined,
+          stackRemainingBb: Number(s?.stackRemainingBb ?? s?.stackBb ?? 100),
+        };
+      })
+    : (Array.isArray(activePositions) ? activePositions : SIX_MAX_POSITIONS).map((posRaw) => {
+        const pos = String(posRaw || '').toUpperCase();
+        return {
+          position: pos,
+          folded: foldedSet.has(pos),
+          allIn: allInSet.has(pos),
+          committedBb: 0,
+          hasExplicitStack: false,
+          stackRemainingBb: 100,
+        };
+      });
+
+  const activeSeats = rawSeatList.filter((s) => !s.folded);
   if (activeSeats.length <= 1) return null;
 
-  const order = String(street || 'flop').toLowerCase() === 'preflop' ? POSITION_ORDER_PREFLOP : POSITION_ORDER_POSTFLOP;
+  const isHeadsUp =
+    normFormat === 'hu' ||
+    rawSeatList.length === 2 ||
+    (activeSeats.length === 2 && !Array.isArray(seats) && Array.isArray(activePositions) && activePositions.length === 2);
+
+  let order;
+  if (isHeadsUp) {
+    order = normStreet === 'preflop'
+      ? ['BTN', 'SB', 'BB']
+      : ['BB', 'BTN', 'SB'];
+  } else if (normFormat === 'spins') {
+    order = normStreet === 'preflop'
+      ? ['BTN', 'SB', 'BB']
+      : ['SB', 'BB', 'BTN'];
+  } else {
+    order = normStreet === 'preflop' ? POSITION_ORDER_PREFLOP : POSITION_ORDER_POSTFLOP;
+  }
+
   const sorted = [...activeSeats].sort((a, b) => {
     const idxA = order.indexOf(String(a.position || '').toUpperCase());
     const idxB = order.indexOf(String(b.position || '').toUpperCase());
     return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
   });
 
-  const currPos = String(currentActorPosition || '').toUpperCase();
+  if (!currPos) {
+    const firstEligible = sorted.find((s) => !s.allIn);
+    return firstEligible ? firstEligible.position : null;
+  }
+
   const currIdx = sorted.findIndex((s) => String(s.position || '').toUpperCase() === currPos);
   const actedSet = new Set((Array.isArray(actedPositions) ? actedPositions : []).map((p) => String(p).toUpperCase()));
   actedSet.add(currPos);
+  const cleanAggressor = lastAggressor ? String(lastAggressor).trim().toUpperCase() : null;
 
   for (let offset = 1; offset <= sorted.length; offset += 1) {
     const candidate = sorted[(Math.max(0, currIdx) + offset) % sorted.length];
     const pos = String(candidate.position || '').toUpperCase();
     if (pos === currPos) continue;
-    const isAllIn = Boolean(candidate.allIn || Number(candidate.stackRemainingBb ?? candidate.stackBb ?? 0) <= 0);
+    if (cleanAggressor && pos === cleanAggressor && actedSet.has(pos) && candidate.committedBb >= highestBetBb) {
+      continue;
+    }
+    const isAllIn = Boolean(candidate.allIn || (candidate.hasExplicitStack && candidate.stackRemainingBb <= 0));
     if (isAllIn) continue;
     const committed = Number(candidate.committedBb ?? 0);
     if (committed < highestBetBb || !actedSet.has(pos)) {
@@ -273,22 +610,37 @@ export function computeClubArenaParityState({
   seats = null,
   stakes = null,
   actedPositions = [],
+  bettingStructure = null,
+  format = 'cash',
+  numRaisesOnStreet = 0,
+  maxRaisesPerRound = 4,
 } = {}) {
-  const isPotLimit = isPotLimitVariant(variant);
+  const activeBettingStructure = normalizeBettingStructure(bettingStructure, variant);
+  const isPotLimit = activeBettingStructure === 'pot_limit';
+  const isFixedLimit = activeBettingStructure === 'fixed_limit';
+  const normFormat = normalizeGameFormat(format);
   const stakesInfo = parseStakesToBlinds(stakes);
   const cleanHeroCommittedBb = Math.max(0, roundTableUnit(Number(heroCommittedBb) || 0, 2));
   const cleanHeroStackBb = Math.max(0, roundTableUnit(Number(heroStackBb) || 0, 2));
   const cleanFacingBetBb = Math.max(0, roundTableUnit(Number(facingBetBb) || 0, 2));
   const cleanPrevBetBb = Math.max(0, roundTableUnit(Number(previousBetBb) || 0, 2));
+  const normStreet = String(street || 'flop').toLowerCase();
 
   // Total increment of the latest bet/raise above the prior bet
   const latestRaiseIncrementBb = roundTableUnit(Math.max(0, cleanFacingBetBb - cleanPrevBetBb), 2);
-  const fullRaiseIncrementBb = roundTableUnit(
-    Number.isFinite(Number(lastFullRaiseIncrementBb)) && Number(lastFullRaiseIncrementBb) > 0
-      ? Number(lastFullRaiseIncrementBb)
-      : Math.max(1, cleanPrevBetBb > 0 ? cleanPrevBetBb : cleanFacingBetBb || 1),
-    2
-  );
+  const fixedIncrementBb = isFixedLimit
+    ? normStreet === 'turn' || normStreet === 'river'
+      ? 2
+      : 1
+    : null;
+  const fullRaiseIncrementBb = isFixedLimit
+    ? fixedIncrementBb
+    : roundTableUnit(
+        Number.isFinite(Number(lastFullRaiseIncrementBb)) && Number(lastFullRaiseIncrementBb) > 0
+          ? Number(lastFullRaiseIncrementBb)
+          : Math.max(1, cleanPrevBetBb > 0 ? cleanPrevBetBb : cleanFacingBetBb || 1),
+        2
+      );
 
   const rawCallNeededBb = Math.max(0, roundTableUnit(cleanFacingBetBb - cleanHeroCommittedBb, 2));
   const callAmountBb = Math.min(cleanHeroStackBb, rawCallNeededBb);
@@ -345,11 +697,13 @@ export function computeClubArenaParityState({
   );
 
   const heroMaxTotalToBb = roundTableUnit(cleanHeroCommittedBb + cleanHeroStackBb, 2);
+  const raiseCapReached = isFixedLimit && Number(numRaisesOnStreet || 0) >= Number(maxRaisesPerRound || 4);
 
   // Min Raise-To in BB:
   // If facing a bet, minRaiseTo = facingBet + max(1, fullRaiseIncrement). Capped at hero's all-in total.
-  const minRaiseUnboundedBb =
-    cleanFacingBetBb > 0
+  const minRaiseUnboundedBb = isFixedLimit
+    ? roundTableUnit(cleanFacingBetBb + fixedIncrementBb, 2)
+    : cleanFacingBetBb > 0
       ? roundTableUnit(cleanFacingBetBb + Math.max(1, fullRaiseIncrementBb), 2)
       : 1;
   const minRaiseToBb = roundTableUnit(Math.min(heroMaxTotalToBb, minRaiseUnboundedBb), 2);
@@ -363,14 +717,17 @@ export function computeClubArenaParityState({
     currentPotBeforeCallBb + 2 * callAmountBb + cleanHeroCommittedBb,
     2
   );
-  const maxRaiseToBb = isPotLimit
-    ? roundTableUnit(Math.min(heroMaxTotalToBb, Math.max(minRaiseToBb, potLimitMaxRaiseToBb)), 2)
-    : heroMaxTotalToBb;
+  const maxRaiseToBb = isFixedLimit
+    ? minRaiseToBb
+    : isPotLimit
+      ? roundTableUnit(Math.min(heroMaxTotalToBb, Math.max(minRaiseToBb, potLimitMaxRaiseToBb)), 2)
+      : heroMaxTotalToBb;
 
   const canCheck = rawCallNeededBb <= 0;
   const canCall = rawCallNeededBb > 0 && cleanHeroStackBb > 0;
   const canRaise =
     reopensAction &&
+    !raiseCapReached &&
     cleanHeroStackBb > rawCallNeededBb &&
     maxRaiseToBb > cleanFacingBetBb;
 
@@ -379,7 +736,7 @@ export function computeClubArenaParityState({
     legalActions.push('check');
     if (canRaise) {
       legalActions.push('bet');
-      if (!isPotLimit || maxRaiseToBb >= heroMaxTotalToBb) {
+      if ((!isPotLimit && !isFixedLimit) || maxRaiseToBb >= heroMaxTotalToBb) {
         legalActions.push('all_in');
       }
     }
@@ -390,7 +747,7 @@ export function computeClubArenaParityState({
     }
     if (canRaise) {
       legalActions.push('raise');
-      if (!isPotLimit || maxRaiseToBb >= heroMaxTotalToBb) {
+      if ((!isPotLimit && !isFixedLimit) || maxRaiseToBb >= heroMaxTotalToBb) {
         if (!legalActions.includes('all_in')) legalActions.push('all_in');
       }
     }
@@ -398,8 +755,13 @@ export function computeClubArenaParityState({
 
   return {
     variant: String(variant || 'nlh').toLowerCase(),
+    bettingStructure: activeBettingStructure,
+    format: normFormat,
     isPotLimit,
-    street: String(street || 'flop').toLowerCase(),
+    isFixedLimit,
+    fixedIncrementBb,
+    raiseCapReached,
+    street: normStreet,
     heroPosition: String(heroPosition || 'BTN').toUpperCase(),
     stakes: stakesInfo,
     potBeforeActionBb: currentPotBeforeCallBb,
@@ -596,5 +958,259 @@ export function evaluateCustomRaiseSizing({
     exactSizeVerdict,
     minRaiseToBb,
     maxRaiseToBb,
+  };
+}
+
+function splitPortionAmongWinners(portionBb, winnerSeatIds, payoutsBySeatId) {
+  if (!Array.isArray(winnerSeatIds) || winnerSeatIds.length === 0 || portionBb <= 0) {
+    return {};
+  }
+  const totalCents = Math.round(portionBb * 100);
+  const baseShareCents = Math.floor(totalCents / winnerSeatIds.length);
+  let remainderCents = totalCents - baseShareCents * winnerSeatIds.length;
+  const splitMap = {};
+
+  for (const seatId of winnerSeatIds) {
+    let shareCents = baseShareCents;
+    if (remainderCents > 0) {
+      shareCents += 1;
+      remainderCents -= 1;
+    }
+    const shareBb = roundTableUnit(shareCents / 100, 2);
+    splitMap[seatId] = roundTableUnit((splitMap[seatId] || 0) + shareBb, 2);
+    payoutsBySeatId[seatId] = roundTableUnit((payoutsBySeatId[seatId] || 0) + shareBb, 2);
+  }
+  return splitMap;
+}
+
+/**
+ * Evaluates a complete Showdown (Hold'em or Omaha 2-hole + 3-board, High-only or Hi-Lo 8-or-better)
+ * and allocates Main Pot + Side Pots with odd-cent rules.
+ */
+export function evaluateShowdownAndAllocatePots({
+  seats = [],
+  boardCards = [],
+  deadPotBb = 0,
+  variant = 'nlh',
+  hiLo = false,
+} = {}) {
+  const normVariant = normalizeTrainingVariant(variant);
+  const isHiLo = Boolean(hiLo || isHiLoVariant(variant));
+  const isOmaha = normVariant.startsWith('plo');
+  const boardInts = parseDeckCards(Array.isArray(boardCards) ? boardCards : []);
+
+  const normalizedSeats = (Array.isArray(seats) ? seats : []).map((s, idx) => {
+    const rawId = s?.seatId || s?.id;
+    const position = String(s?.position || rawId || `SEAT_${idx + 1}`).toUpperCase();
+    const seatId = rawId ? String(rawId) : position;
+    const holeCardsRaw = Array.isArray(s?.holeCards)
+      ? s.holeCards
+      : Array.isArray(s?.heroCards)
+        ? s.heroCards
+        : Array.isArray(s?.cards)
+          ? s.cards
+          : [];
+    const holeInts = holeCardsRaw.length > 0 ? parseDeckCards(holeCardsRaw) : [];
+
+    let highEval = null;
+    let lowEval = null;
+
+    if (!s?.folded && boardInts.length >= 3) {
+      if (isOmaha && holeInts.length >= 4) {
+        highEval = evaluateOmaha(holeInts, boardInts);
+        if (isHiLo) {
+          lowEval = evaluateLow(null, {
+            omaha: true,
+            holeCards: holeInts,
+            boardCards: boardInts,
+          });
+        }
+      } else if (holeInts.length >= 2 && holeInts.length + boardInts.length >= 5) {
+        highEval = evaluateHoldem([...holeInts, ...boardInts]);
+        if (isHiLo) {
+          lowEval = evaluateLow([...holeInts, ...boardInts], { omaha: false });
+        }
+      }
+    }
+
+    return {
+      ...s,
+      seatId,
+      position,
+      holeCards: holeCardsRaw,
+      committedBb: roundTableUnit(Number(s?.committedBb ?? s?.committed ?? 0), 2),
+      stackRemainingBb: roundTableUnit(Number(s?.stackRemainingBb ?? s?.stackBb ?? 0), 2),
+      folded: Boolean(s?.folded),
+      highHand: highEval
+        ? {
+            score: highEval.score,
+            category: highEval.category,
+            categoryName: highEval.categoryName,
+            description: highEval.description,
+            bestFiveCards: Array.isArray(highEval.bestCards) ? highEval.bestCards.map(cardToString) : [],
+            bestTwoHoleCards: Array.isArray(highEval.bestHole) ? highEval.bestHole.map(cardToString) : null,
+            bestThreeBoardCards: Array.isArray(highEval.bestBoard) ? highEval.bestBoard.map(cardToString) : null,
+          }
+        : null,
+      hasQualifyingLow: Boolean(lowEval),
+      lowHand: lowEval
+        ? {
+            score: lowEval.score,
+            ranks: lowEval.ranks,
+            description: lowEval.description,
+            bestFiveCards: Array.isArray(lowEval.cards) ? lowEval.cards.map(cardToString) : [],
+          }
+        : null,
+    };
+  });
+
+  const seatByPos = new Map();
+  for (const s of normalizedSeats) {
+    seatByPos.set(s.position, s);
+    seatByPos.set(s.seatId, s);
+    seatByPos.set(String(s.seatId).toUpperCase(), s);
+  }
+
+  const potBreakdown = computePotBreakdown({
+    seats: normalizedSeats.map((s) => ({
+      ...s,
+      position: s.seatId,
+    })),
+    deadPotBb,
+  });
+
+  const payoutsBySeatId = Object.fromEntries(normalizedSeats.map((s) => [s.seatId, 0]));
+  const allHighWinners = new Set();
+  const allLowWinners = new Set();
+  const allocatedPots = [];
+
+  for (const pot of potBreakdown.pots) {
+    const eligibleIds = Array.isArray(pot.eligibleSeatIds)
+      ? pot.eligibleSeatIds
+      : Array.isArray(pot.eligiblePositions)
+        ? pot.eligiblePositions
+        : [];
+    const eligibleSeats = eligibleIds
+      .map((id) => seatByPos.get(String(id).toUpperCase()))
+      .filter((s) => s && !s.folded);
+
+    if (eligibleSeats.length === 0) continue;
+
+    // Sort eligible seats by postflop position order so odd 0.01 BB goes to the first seat in position order
+    const orderedEligible = [...eligibleSeats].sort((a, b) => {
+      const idxA = POSITION_ORDER_POSTFLOP.indexOf(a.position);
+      const idxB = POSITION_ORDER_POSTFLOP.indexOf(b.position);
+      return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+    });
+
+    const seatsWithHigh = orderedEligible.filter((s) => s.highHand);
+    const bestHighScore = seatsWithHigh.length > 0
+      ? Math.max(...seatsWithHigh.map((s) => s.highHand.score))
+      : -Infinity;
+    const potHighWinners = seatsWithHigh.length > 0
+      ? seatsWithHigh.filter((s) => s.highHand.score === bestHighScore).map((s) => s.seatId)
+      : [orderedEligible[0].seatId];
+
+    for (const w of potHighWinners) allHighWinners.add(w);
+
+    const qualifyingLowSeats = isHiLo
+      ? orderedEligible.filter((s) => s.hasQualifyingLow && s.lowHand)
+      : [];
+
+    let hiPortionBb = pot.amountBb;
+    let loPortionBb = 0;
+    let potLowWinners = [];
+
+    if (isHiLo && qualifyingLowSeats.length > 0) {
+      hiPortionBb = roundTableUnit(Math.ceil((pot.amountBb * 100) / 2) / 100, 2);
+      loPortionBb = roundTableUnit(pot.amountBb - hiPortionBb, 2);
+
+      const bestLowScore = Math.min(...qualifyingLowSeats.map((s) => s.lowHand.score));
+      potLowWinners = qualifyingLowSeats
+        .filter((s) => s.lowHand.score === bestLowScore)
+        .map((s) => s.seatId);
+      for (const w of potLowWinners) allLowWinners.add(w);
+    }
+
+    const highPayouts = splitPortionAmongWinners(hiPortionBb, potHighWinners, payoutsBySeatId);
+    const lowPayouts = loPortionBb > 0
+      ? splitPortionAmongWinners(loPortionBb, potLowWinners, payoutsBySeatId)
+      : {};
+
+    allocatedPots.push({
+      name: pot.name,
+      amountBb: pot.amountBb,
+      eligibleSeatIds: eligibleIds,
+      eligiblePositions: eligibleIds,
+      hiPortionBb,
+      loPortionBb,
+      highWinners: potHighWinners,
+      lowWinners: potLowWinners,
+      highPayouts,
+      lowPayouts,
+      hasQualifyingLow: qualifyingLowSeats.length > 0,
+    });
+  }
+
+  const anyQualifyingLow = normalizedSeats.some((s) => !s.folded && s.hasQualifyingLow);
+
+  return {
+    variant: normVariant,
+    isHiLo,
+    pots: allocatedPots,
+    payoutsBySeatId,
+    highWinners: [...allHighWinners],
+    lowWinners: [...allLowWinners],
+    hasQualifyingLow: anyQualifyingLow,
+    evaluatedSeats: normalizedSeats,
+  };
+}
+
+const FORBIDDEN_LIVE_TABLES_OR_ENDPOINTS = Object.freeze([
+  'wallets',
+  'diamond_ledger',
+  'club_transactions',
+  'cash_game_seats',
+  'live_tables',
+  'rake_records',
+  'tournament_payouts',
+]);
+
+/**
+ * Verifies that training mode is strictly isolated from live wallets,
+ * live tables, live payouts/rake, and live leaderboards.
+ */
+export function verifyTrainingPracticeIsolation(context = {}) {
+  const targetEndpoint = String(context?.targetEndpoint || context?.endpoint || '').toLowerCase();
+  const tableName = String(context?.tableName || context?.table || '').toLowerCase();
+
+  for (const forbidden of FORBIDDEN_LIVE_TABLES_OR_ENDPOINTS) {
+    if (
+      tableName === forbidden ||
+      tableName.includes(forbidden) ||
+      targetEndpoint.includes(forbidden)
+    ) {
+      return {
+        isolated: false,
+        violation: `Forbidden live financial or game resource referenced in training mode: ${forbidden}`,
+        targetEndpoint: context?.targetEndpoint || null,
+        tableName: context?.tableName || null,
+        currencyMode: 'PRACTICE_EV_BB_ONLY',
+        walletMutationAllowed: false,
+        liveSeatMutationAllowed: false,
+        livePayoutCreationAllowed: false,
+        liveStatsContaminationAllowed: false,
+      };
+    }
+  }
+
+  return {
+    isolated: true,
+    currencyMode: 'PRACTICE_EV_BB_ONLY',
+    walletMutationAllowed: false,
+    liveSeatMutationAllowed: false,
+    livePayoutCreationAllowed: false,
+    liveStatsContaminationAllowed: false,
+    verifiedAt: 'HARDCODED_STATIC_CONTRACT',
   };
 }

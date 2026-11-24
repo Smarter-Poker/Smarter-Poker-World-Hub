@@ -60,61 +60,263 @@ import {
   withPersistedCacheReceipt,
 } from '../../../src/lib/training/cacheTruthPersistence.mjs';
 
-function applyHorseBrainEnrichment(question, { gameId, level, variant } = {}) {
+const PLO8_CURATED_HANDS = [
+  ['As', '2s', 'Kd', '3d'],
+  ['Ah', '2c', '4h', '5c'],
+  ['Ad', '3d', 'Qh', 'Jc'],
+  ['Ac', '2d', '5c', '6d'],
+  ['As', '3s', '4d', '7d'],
+  ['Ah', '2h', 'Ks', 'Qs'],
+];
+
+const PLO4_CURATED_HANDS = [
+  ['As', 'Ks', 'Qh', 'Jd'],
+  ['Ah', 'Kh', 'Tc', '9c'],
+  ['Ad', 'Kd', 'Qc', 'Jc'],
+  ['As', 'Ah', 'Ks', 'Kh'],
+  ['Qd', 'Qc', '7h', '7c'],
+  ['8h', '6c', '5d', '3h'],
+];
+
+const PLO5_CURATED_HANDS = [
+  ['As', 'Ks', 'Qh', 'Jd', 'Tc'],
+  ['Ah', 'Kh', 'Qc', 'Jc', '9d'],
+  ['Ad', 'Kd', 'Qh', 'Ts', '9s'],
+  ['As', 'Ah', 'Ks', 'Kh', 'Qd'],
+  ['Qd', 'Qc', '7h', '7c', 'Ac'],
+  ['8h', '6c', '5d', '3h', '2d'],
+];
+
+const PLO6_CURATED_HANDS = [
+  ['As', 'Ks', 'Qh', 'Jd', 'Tc', '9h'],
+  ['Ah', 'Kh', 'Qc', 'Jc', '9d', '8d'],
+  ['Ad', 'Kd', 'Qh', 'Ts', '9s', '8c'],
+  ['As', 'Ah', 'Ks', 'Kh', 'Qd', 'Jc'],
+  ['Qd', 'Qc', '7h', '7c', 'Ac', 'Kc'],
+  ['8h', '6c', '5d', '3h', '2d', '9c'],
+];
+
+const NLH_CURATED_HANDS = [
+  ['As', 'Kd'],
+  ['Ah', 'Kc'],
+  ['Ks', 'Qd'],
+  ['Ad', 'Jc'],
+  ['Qd', 'Qc'],
+  ['8h', '3d'],
+];
+
+const FALLBACK_NON_COLLIDING_DECK = [
+  'As', '2s', '3d', '4h', '5c', '6s', '7d', '8h', '9c', 'Ts', 'Jd', 'Qh', 'Kc',
+  'Ah', '2h', '3c', '4s', '5d', '6h', '7c', '8s', '9d', 'Th', 'Jc', 'Qs', 'Kd',
+  'Ad', '2d', '3s', '4c', '5h', '6c', '7s', '8d', '9h', 'Tc', 'Js', 'Qd', 'Kh',
+  'Ac', '2c', '3h', '4d', '5s', '6d', '7h', '8c', '9s', 'Td', 'Jh', 'Qc', 'Ks',
+];
+
+function dealNonCollidingHoleCards(basePreset, boardCards = [], holeCardsCount = 4) {
+  const boardSet = new Set(
+    (Array.isArray(boardCards) ? boardCards : [])
+      .map((c) => String(c || '').trim().toLowerCase())
+      .filter(Boolean),
+  );
+  const chosen = [];
+  const chosenSet = new Set();
+  for (const card of Array.isArray(basePreset) ? basePreset : []) {
+    const clean = String(card || '').trim();
+    const lower = clean.toLowerCase();
+    if (clean.length === 2 && !boardSet.has(lower) && !chosenSet.has(lower)) {
+      chosen.push(`${clean[0].toUpperCase()}${clean[1].toLowerCase()}`);
+      chosenSet.add(lower);
+      if (chosen.length === holeCardsCount) return chosen;
+    }
+  }
+  for (const card of FALLBACK_NON_COLLIDING_DECK) {
+    const lower = card.toLowerCase();
+    if (!boardSet.has(lower) && !chosenSet.has(lower)) {
+      chosen.push(card);
+      chosenSet.add(lower);
+      if (chosen.length === holeCardsCount) return chosen;
+    }
+  }
+  return chosen.slice(0, holeCardsCount);
+}
+
+export function applyHorseBrainEnrichment(questionPayload, gameIdOrOpts = {}, reqQuery = {}) {
+  const question = questionPayload;
   if (!question || typeof question !== 'object') return question;
   const scenario = question.scenario && typeof question.scenario === 'object'
     ? question.scenario
     : {};
-  if (scenario.brainEvaluation?.engineModule) return question;
-  const resolvedVariant = variant
-    || scenario.variant
+
+  let gameId = null;
+  let level = question.level;
+  let rawVariantInput = null;
+  let rawBettingInput = null;
+  let rawFormatInput = null;
+
+  if (typeof gameIdOrOpts === 'string') {
+    gameId = gameIdOrOpts;
+    if (reqQuery && typeof reqQuery === 'object') {
+      if (reqQuery.level !== undefined) level = reqQuery.level;
+      rawVariantInput = reqQuery.variant;
+      rawBettingInput = reqQuery.bettingStructure;
+      rawFormatInput = reqQuery.format;
+    }
+  } else if (gameIdOrOpts && typeof gameIdOrOpts === 'object') {
+    gameId = gameIdOrOpts.gameId || reqQuery?.gameId || question.gameId;
+    if (gameIdOrOpts.level !== undefined) level = gameIdOrOpts.level;
+    else if (reqQuery?.level !== undefined) level = reqQuery.level;
+    rawVariantInput = gameIdOrOpts.variant ?? reqQuery?.variant;
+    rawBettingInput = gameIdOrOpts.bettingStructure ?? reqQuery?.bettingStructure;
+    rawFormatInput = gameIdOrOpts.format ?? reqQuery?.format;
+  }
+
+  const rawVar = String(rawVariantInput || scenario.variant || '').trim().toLowerCase();
+  const mappedVariant = ['plo8', 'omaha8', 'plo_hilo'].includes(rawVar)
+    ? 'plo8'
+    : ['plo6', 'omaha6'].includes(rawVar)
+      ? 'plo6'
+      : ['plo5', 'omaha5'].includes(rawVar)
+        ? 'plo5'
+        : ['plo4', 'omaha4', 'plo', 'omaha'].includes(rawVar)
+          ? 'plo4'
+          : (rawVar === 'nlh' || rawVar === 'holdem')
+            ? 'nlh'
+            : null;
+  const resolvedVariant = mappedVariant
     || (['cash-005', 'cash-015', 'mtt-018'].includes(String(gameId)) ? 'plo4' : 'nlh');
-  if (typeof evaluateTrainingSpotWithHorseBrain !== 'function') {
-    return question;
+
+  const normBettingRaw = String(rawBettingInput || scenario.bettingStructure || '').trim().toLowerCase();
+  const resolvedBettingStructure = ['no_limit', 'pot_limit', 'fixed_limit'].includes(normBettingRaw)
+    ? normBettingRaw
+    : String(resolvedVariant).startsWith('plo')
+      ? 'pot_limit'
+      : 'no_limit';
+
+  const normFormatRaw = String(rawFormatInput || scenario.format || '').trim().toLowerCase();
+  const resolvedFormat = ['cash', 'mtt', 'spins', 'hu'].includes(normFormatRaw)
+    ? normFormatRaw
+    : String(gameId || '').startsWith('mtt-')
+      ? 'mtt'
+      : String(gameId || '').startsWith('spins-')
+        ? 'spins'
+        : 'cash';
+
+  const expectedHoleCount = resolvedVariant === 'plo6' ? 6
+    : resolvedVariant === 'plo5' ? 5
+    : (resolvedVariant === 'plo4' || resolvedVariant === 'plo8') ? 4
+    : 2;
+
+  const boardCards = Array.isArray(question.boardCards)
+    ? question.boardCards
+    : Array.isArray(scenario.boardCards)
+      ? scenario.boardCards
+      : [];
+
+  let heroCards = Array.isArray(question.heroCards) ? [...question.heroCards] : [];
+  const presetPool = resolvedVariant === 'plo8' ? PLO8_CURATED_HANDS
+    : resolvedVariant === 'plo6' ? PLO6_CURATED_HANDS
+    : resolvedVariant === 'plo5' ? PLO5_CURATED_HANDS
+    : resolvedVariant === 'plo4' ? PLO4_CURATED_HANDS
+    : NLH_CURATED_HANDS;
+
+  const seedIdx = String(question.id || gameId || '')
+    .split('')
+    .reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+
+  if (
+    heroCards.length !== expectedHoleCount
+    || (resolvedVariant === 'plo8' && !scenario.hiLo && scenario.variant !== 'plo8')
+  ) {
+    const preset = presetPool[Math.abs(seedIdx) % presetPool.length];
+    heroCards = dealNonCollidingHoleCards(preset, boardCards, expectedHoleCount);
+  } else {
+    heroCards = dealNonCollidingHoleCards(heroCards, boardCards, expectedHoleCount);
   }
-  try {
-    const brainEval = evaluateTrainingSpotWithHorseBrain({
-      gameId,
-      variant: resolvedVariant,
-      street: scenario.street || 'flop',
-      heroCards: Array.isArray(question.heroCards) && question.heroCards.length > 0
-        ? question.heroCards
-        : undefined,
-      boardCards: Array.isArray(question.boardCards)
-        ? question.boardCards
-        : Array.isArray(scenario.boardCards)
-          ? scenario.boardCards
-          : undefined,
-      heroPosition: scenario.heroPosition || 'BTN',
-      villainPosition: scenario.villainPosition || 'BB',
-      pot: scenario.pot,
-      toCall: scenario.toCall,
-      stackDepth: scenario.stackDepth || scenario.heroStack || 100,
-      isPKO: Boolean(scenario.isPKO),
-      bountyBb: scenario.bountyBb,
-      isICM: Boolean(scenario.isICM),
-      bubbleFactor: scenario.bubbleFactor,
-      villainStats: scenario.villainStats,
-    });
-    if (!brainEval?.ok) return question;
-    return {
-      ...question,
-      scenario: {
-        ...scenario,
+
+  let brainEval = null;
+  if (typeof evaluateTrainingSpotWithHorseBrain === 'function') {
+    try {
+      brainEval = evaluateTrainingSpotWithHorseBrain({
+        gameId,
         variant: resolvedVariant,
-        holeCardCount: Array.isArray(question.heroCards)
-          ? question.heroCards.length
-          : (resolvedVariant === 'plo6' ? 6 : resolvedVariant === 'plo5' ? 5 : resolvedVariant === 'plo4' ? 4 : 2),
-        bettingStructure: String(resolvedVariant).startsWith('plo') ? 'pot_limit' : 'no_limit',
-        brainEvaluation: brainEval.brainEvaluation,
-        madeHandCategory: scenario.madeHandCategory || brainEval.madeHandCategory,
-        potLimitSizing: scenario.potLimitSizing || brainEval.potLimitSizing,
-      },
-      level: level ?? question.level,
-    };
-  } catch (_enrichErr) {
-    return question;
+        bettingStructure: resolvedBettingStructure,
+        format: resolvedFormat,
+        street: scenario.street || (boardCards.length === 0 ? 'preflop' : boardCards.length === 3 ? 'flop' : boardCards.length === 4 ? 'turn' : 'river'),
+        heroCards,
+        boardCards: boardCards.length > 0 ? boardCards : undefined,
+        heroPosition: scenario.heroPosition || 'BTN',
+        villainPosition: scenario.villainPosition || 'BB',
+        pot: scenario.pot,
+        toCall: scenario.toCall,
+        stackDepth: scenario.stackDepth || scenario.heroStack || 100,
+        isPKO: Boolean(scenario.isPKO),
+        bountyBb: scenario.bountyBb,
+        isICM: Boolean(scenario.isICM || resolvedFormat === 'mtt'),
+        bubbleFactor: scenario.bubbleFactor,
+        villainStats: scenario.villainStats,
+      });
+    } catch (_enrichErr) {
+      brainEval = null;
+    }
   }
+
+  const isPlo8 = resolvedVariant === 'plo8';
+  const plo8LowEvaluation = isPlo8
+    ? (brainEval?.plo8LowEvaluation || brainEval?.brainEvaluation?.plo8LowEvaluation || scenario.plo8LowEvaluation || null)
+    : (brainEval?.plo8LowEvaluation || null);
+  const engineModule = isPlo8
+    ? 'plo8-brain.js'
+    : (brainEval?.engineModule || brainEval?.brainEvaluation?.engineModule || scenario.brainEvaluation?.engineModule || null);
+
+  const mergedBrainEvaluation = brainEval?.brainEvaluation
+    ? {
+        ...brainEval.brainEvaluation,
+        ...(isPlo8 ? { engineModule: 'plo8-brain.js', hiLo: true, plo8LowEvaluation } : {}),
+        bettingStructure: resolvedBettingStructure,
+        format: resolvedFormat,
+      }
+    : (scenario.brainEvaluation
+      ? {
+          ...scenario.brainEvaluation,
+          ...(isPlo8 ? { engineModule: 'plo8-brain.js', hiLo: true, plo8LowEvaluation } : {}),
+          bettingStructure: resolvedBettingStructure,
+          format: resolvedFormat,
+        }
+      : (isPlo8
+        ? {
+            engineModule: 'plo8-brain.js',
+            variant: 'plo8',
+            hiLo: true,
+            plo8LowEvaluation,
+            bettingStructure: resolvedBettingStructure,
+            format: resolvedFormat,
+          }
+        : null));
+
+  return {
+    ...question,
+    heroCards,
+    variant: resolvedVariant,
+    bettingStructure: resolvedBettingStructure,
+    format: resolvedFormat,
+    plo8LowEvaluation,
+    ...(engineModule ? { engineModule } : {}),
+    ...(isPlo8 ? { hiLo: true } : {}),
+    scenario: {
+      ...scenario,
+      variant: resolvedVariant,
+      holeCardCount: heroCards.length,
+      bettingStructure: resolvedBettingStructure,
+      format: resolvedFormat,
+      plo8LowEvaluation,
+      ...(engineModule ? { engineModule } : {}),
+      ...(isPlo8 ? { hiLo: true } : {}),
+      ...(mergedBrainEvaluation ? { brainEvaluation: mergedBrainEvaluation } : {}),
+      madeHandCategory: scenario.madeHandCategory || brainEval?.madeHandCategory,
+      potLimitSizing: scenario.potLimitSizing || brainEval?.potLimitSizing,
+    },
+    level: level ?? question.level,
+  };
 }
 
 // ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
@@ -160,11 +362,24 @@ export default async function handler(req, res) {
       handSelection: rawHandSelection,
       targetStreet: rawTargetStreet,
       variant: rawVariant,
+      bettingStructure: rawBettingStructure,
+      format: rawFormat,
     } = req.query;
     const gameId = sanitizeParam(rawGameId, 100);
     const normalizedRawVariant = sanitizeParam(rawVariant, 16)?.toLowerCase() || '';
-    const requestedVariant = ['nlh', 'plo4', 'plo5', 'plo6'].includes(normalizedRawVariant)
-      ? normalizedRawVariant
+    const mappedRawVariant = ['plo8', 'omaha8', 'plo_hilo'].includes(normalizedRawVariant)
+      ? 'plo8'
+      : normalizedRawVariant;
+    const requestedVariant = ['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].includes(mappedRawVariant)
+      ? mappedRawVariant
+      : null;
+    const normalizedRawBettingStructure = sanitizeParam(rawBettingStructure, 24)?.toLowerCase() || '';
+    const requestedBettingStructure = ['no_limit', 'pot_limit', 'fixed_limit'].includes(normalizedRawBettingStructure)
+      ? normalizedRawBettingStructure
+      : null;
+    const normalizedRawFormat = sanitizeParam(rawFormat, 24)?.toLowerCase() || '';
+    const requestedFormat = ['cash', 'mtt', 'spins', 'hu'].includes(normalizedRawFormat)
+      ? normalizedRawFormat
       : null;
     const level = Math.min(12, Math.max(1, parseInt(rawLevel, 10) || 1));
     const engineType = ['PIO', 'CHART', 'SCENARIO'].includes(rawEngine) ? rawEngine : 'PIO';
@@ -193,6 +408,8 @@ export default async function handler(req, res) {
       handSelection,
       targetStreet,
       ...(requestedVariant ? { variant: requestedVariant } : {}),
+      ...(requestedBettingStructure ? { bettingStructure: requestedBettingStructure } : {}),
+      ...(requestedFormat ? { format: requestedFormat } : {}),
     };
     const handOrdinal = Math.min(
       trainingMasteryMinimum(level),
@@ -293,11 +510,18 @@ export default async function handler(req, res) {
           userId,
           delivery: recovered,
         });
-        const recoveredQuestion = (requestedVariant || ['cash-005', 'cash-015', 'mtt-018'].includes(gameId))
-          ? applyHorseBrainEnrichment(recovered.questions[0], {
-              gameId,
+        const recoveredQuestion = (
+          requestedVariant
+          || requestedBettingStructure
+          || requestedFormat
+          || ['cash-005', 'cash-015', 'mtt-018'].includes(gameId)
+        )
+          ? applyHorseBrainEnrichment(recovered.questions[0], gameId, {
+              ...req.query,
               level,
               variant: requestedVariant || undefined,
+              bettingStructure: requestedBettingStructure || undefined,
+              format: requestedFormat || undefined,
             })
           : recovered.questions[0];
         return res.status(200).json({
@@ -311,6 +535,9 @@ export default async function handler(req, res) {
           passThreshold: TRAINING_CONFIG.passThresholds[level] || 85,
           gameType,
           engineType,
+          ...(requestedVariant ? { variant: requestedVariant } : {}),
+          ...(requestedBettingStructure ? { bettingStructure: requestedBettingStructure } : {}),
+          ...(requestedFormat ? { format: requestedFormat } : {}),
         });
       }
 
@@ -575,11 +802,18 @@ export default async function handler(req, res) {
         return res.status(503).json(trainingPersistenceUnavailableBody());
       }
       let servedQuestion = delivery.questions[0];
-      if (requestedVariant || ['cash-005', 'cash-015', 'mtt-018'].includes(gameId)) {
-        servedQuestion = applyHorseBrainEnrichment(servedQuestion, {
-          gameId,
+      if (
+        requestedVariant
+        || requestedBettingStructure
+        || requestedFormat
+        || ['cash-005', 'cash-015', 'mtt-018'].includes(gameId)
+      ) {
+        servedQuestion = applyHorseBrainEnrichment(servedQuestion, gameId, {
+          ...req.query,
           level,
           variant: requestedVariant || undefined,
+          bettingStructure: requestedBettingStructure || undefined,
+          format: requestedFormat || undefined,
         });
       }
       try {
@@ -603,6 +837,9 @@ export default async function handler(req, res) {
         passThreshold: TRAINING_CONFIG.passThresholds[level] || 85,
         gameType, // Return game type for debugging
         engineType,
+        ...(requestedVariant ? { variant: requestedVariant } : {}),
+        ...(requestedBettingStructure ? { bettingStructure: requestedBettingStructure } : {}),
+        ...(requestedFormat ? { format: requestedFormat } : {}),
       });
     } catch (error) {
       console.warn('[Training] ✕ Get question error:', error);

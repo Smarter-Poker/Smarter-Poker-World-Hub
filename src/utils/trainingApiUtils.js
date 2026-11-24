@@ -308,4 +308,21 @@ export function selectServedOptions(readableActions, optimalAction, maxOptions =
 }
 
 export { resolveSyncedHandForTrainingDrill } from '../lib/training/syncedHandDrillResolver.js';
-export { evaluateTrainingSpotWithHorseBrain } from '../lib/training/horseBrainTrainingAdapter.js';
+export {
+    evaluateTrainingSpotWithHorseBrain,
+    validateDealAndPotLimitBounds,
+    normalizeVariant as normalizeHorseBrainVariant,
+} from '../lib/training/horseBrainTrainingAdapter.js';
+export {
+    HOLE_CARD_COUNT_BY_VARIANT,
+    normalizeTrainingVariant,
+    isHiLoVariant,
+    isPotLimitVariant,
+    normalizeBettingStructure,
+    normalizeGameFormat,
+    computeLegalBettingBounds,
+    computePotBreakdown,
+    resolveNextActor,
+    evaluateShowdownAndAllocatePots,
+    verifyTrainingPracticeIsolation,
+} from '../lib/training/clubArenaTableParity.js';

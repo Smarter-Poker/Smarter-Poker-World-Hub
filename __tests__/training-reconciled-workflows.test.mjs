@@ -1118,3 +1118,183 @@ test('Phase 9 Deep Sweep & Root-Cause Anti-Regression Hardening: LevelSelector q
     assert.match(src, /data-launch-club-arena-cta="true"/, `${relPath} must expose data-launch-club-arena-cta="true"`);
   }
 });
+
+test('Phase 10 Live-Play Parity & Complete Game Coverage: 5 variants (NLH, PLO4, PLO5, PLO6, PLO8 Hi-Lo 8-or-Better), 3 betting structures (No-Limit, Pot-Limit, Fixed-Limit), 4 formats (Cash, MTT, Spins 3-Max, Heads-Up), 50/50 Hi-Lo pot split, PokerSoundManager audio parity, and Practice Isolation', async () => {
+  const parityModule = await import('../src/lib/training/clubArenaTableParity.js');
+  const {
+    HOLE_CARD_COUNT_BY_VARIANT,
+    normalizeTrainingVariant,
+    isHiLoVariant,
+    normalizeBettingStructure,
+    normalizeGameFormat,
+    computeLegalBettingBounds,
+    resolveNextActor,
+    evaluateShowdownAndAllocatePots,
+    verifyTrainingPracticeIsolation,
+  } = parityModule;
+
+  // 1. 5-Variant normalization & exact hole-card requirements (NLH=2, PLO4=4, PLO5=5, PLO6=6, PLO8=4)
+  assert.equal(normalizeTrainingVariant('plo8'), 'plo8');
+  assert.equal(normalizeTrainingVariant('omaha8'), 'plo8');
+  assert.equal(normalizeTrainingVariant('plo_hilo'), 'plo8');
+  assert.equal(isHiLoVariant('plo8'), true);
+  assert.equal(isHiLoVariant('plo4'), false);
+  assert.equal(HOLE_CARD_COUNT_BY_VARIANT.nlh, 2);
+  assert.equal(HOLE_CARD_COUNT_BY_VARIANT.plo4, 4);
+  assert.equal(HOLE_CARD_COUNT_BY_VARIANT.plo5, 5);
+  assert.equal(HOLE_CARD_COUNT_BY_VARIANT.plo6, 6);
+  assert.equal(HOLE_CARD_COUNT_BY_VARIANT.plo8, 4);
+
+  // 2. 3 Betting structures: No-Limit, Pot-Limit, and Fixed-Limit (1 BB preflop/flop, 2 BB turn/river, 4-raise cap)
+  assert.equal(normalizeBettingStructure('fixed_limit', 'nlh'), 'fixed_limit');
+  assert.equal(normalizeBettingStructure('pot_limit', 'plo8'), 'pot_limit');
+  assert.equal(normalizeBettingStructure('no_limit', 'nlh'), 'no_limit');
+
+  const flFlopBounds = computeLegalBettingBounds({
+    variant: 'nlh',
+    bettingStructure: 'fixed_limit',
+    street: 'flop',
+    potBb: 6,
+    heroStackBb: 50,
+    heroCommittedBb: 1,
+    facingBetBb: 2,
+    bigBlindBb: 1,
+    numRaisesOnStreet: 1,
+    maxRaisesPerRound: 4,
+  });
+  assert.equal(flFlopBounds.isFixedLimit, true);
+  assert.equal(flFlopBounds.fixedIncrementBb, 1);
+  assert.equal(flFlopBounds.canRaise, true);
+  assert.equal(flFlopBounds.minRaiseToBb, 3);
+  assert.equal(flFlopBounds.maxRaiseToBb, 3);
+
+  const flTurnBounds = computeLegalBettingBounds({
+    variant: 'plo8',
+    bettingStructure: 'fixed_limit',
+    street: 'turn',
+    potBb: 12,
+    heroStackBb: 50,
+    heroCommittedBb: 0,
+    facingBetBb: 2,
+    bigBlindBb: 1,
+    numRaisesOnStreet: 2,
+    maxRaisesPerRound: 4,
+  });
+  assert.equal(flTurnBounds.isFixedLimit, true);
+  assert.equal(flTurnBounds.fixedIncrementBb, 2);
+  assert.equal(flTurnBounds.minRaiseToBb, 4);
+  assert.equal(flTurnBounds.maxRaiseToBb, 4);
+
+  const flCappedBounds = computeLegalBettingBounds({
+    variant: 'nlh',
+    bettingStructure: 'fixed_limit',
+    street: 'river',
+    potBb: 24,
+    heroStackBb: 50,
+    heroCommittedBb: 4,
+    facingBetBb: 8,
+    bigBlindBb: 1,
+    numRaisesOnStreet: 4,
+    maxRaisesPerRound: 4,
+  });
+  assert.equal(flCappedBounds.raiseCapReached, true);
+  assert.equal(flCappedBounds.canRaise, false);
+
+  // 3. 4 Formats: Cash (6-max), MTT, Spins (3-max), Heads-Up (2-max BTN=SB first preflop, BB first postflop)
+  assert.equal(normalizeGameFormat('hu'), 'hu');
+  assert.equal(normalizeGameFormat('spins'), 'spins');
+  assert.equal(normalizeGameFormat('mtt'), 'mtt');
+  assert.equal(normalizeGameFormat('cash'), 'cash');
+
+  const huPreflopOrder = resolveNextActor({
+    format: 'hu',
+    street: 'preflop',
+    activePositions: ['BTN', 'BB'],
+    actedPositions: [],
+  });
+  assert.equal(huPreflopOrder, 'BTN', 'In Heads-Up preflop, Dealer/BTN (Small Blind) acts first');
+
+  const huPostflopOrder = resolveNextActor({
+    format: 'hu',
+    street: 'flop',
+    activePositions: ['BTN', 'BB'],
+    actedPositions: [],
+  });
+  assert.equal(huPostflopOrder, 'BB', 'In Heads-Up postflop, Big Blind acts first and Dealer/BTN acts last');
+
+  const spinsPreflopOrder = resolveNextActor({
+    format: 'spins',
+    street: 'preflop',
+    activePositions: ['BTN', 'SB', 'BB'],
+    actedPositions: [],
+  });
+  assert.equal(spinsPreflopOrder, 'BTN', 'In 3-Max Spins preflop, BTN acts first');
+
+  // 4. PLO8 Hi-Lo 8-or-Better Showdown & 50/50 High/Low Split vs 100% High Scoop
+  const hiLoSplitShowdown = evaluateShowdownAndAllocatePots({
+    variant: 'plo8',
+    hiLo: true,
+    boardCards: ['7s', '6d', '5c', 'Kh', 'Kd'],
+    seats: [
+      { id: 'hero', position: 'BTN', committedBb: 20, folded: false, holeCards: ['As', '2s', '3h', '4c'] },
+      { id: 'villain', position: 'BB', committedBb: 20, folded: false, holeCards: ['Ks', 'Kc', 'Qh', 'Jd'] },
+    ],
+  });
+  assert.equal(hiLoSplitShowdown.isHiLo, true);
+  assert.equal(hiLoSplitShowdown.hasQualifyingLow, true);
+  assert.equal(hiLoSplitShowdown.payoutsBySeatId.villain, 20, 'Villain wins 50% High half with quad Kings');
+  assert.equal(hiLoSplitShowdown.payoutsBySeatId.hero, 20, 'Hero wins 50% Low half with A-2 with 7-6-5 board');
+
+  const hiOnlyShowdown = evaluateShowdownAndAllocatePots({
+    variant: 'plo8',
+    hiLo: true,
+    boardCards: ['Ks', 'Qd', 'Jc', 'Th', '9d'],
+    seats: [
+      { id: 'hero', position: 'BTN', committedBb: 20, folded: false, holeCards: ['As', '2s', '3h', '4c'] },
+      { id: 'villain', position: 'BB', committedBb: 20, folded: false, holeCards: ['Ah', 'Kh', 'Qc', 'Jd'] },
+    ],
+  });
+  assert.equal(hiOnlyShowdown.hasQualifyingLow, false, 'Board K-Q-J-T-9 has fewer than 3 cards <= 8 so no Low can qualify');
+  assert.equal(hiOnlyShowdown.payoutsBySeatId.villain, 40, 'When no Low qualifies, 100% of pot goes to best High hand');
+
+  // 5. Horse Brain PLO8 & Fixed-Limit Evaluation
+  const plo8BrainSpot = evaluateTrainingSpotWithHorseBrain({
+    variant: 'plo8',
+    bettingStructure: 'pot_limit',
+    format: 'cash',
+    street: 'flop',
+    heroPosition: 'BTN',
+    villainPosition: 'BB',
+    heroCards: ['As', '2s', 'Kd', '3d'],
+    boardCards: ['7s', '6d', '2c'],
+    potSizeBb: 12,
+    facingBetBb: 4,
+    effectiveStackBb: 100,
+  });
+  assert.equal(plo8BrainSpot.ok, true);
+  assert.equal(plo8BrainSpot.engineModule, 'plo8-brain.js');
+  assert.ok(plo8BrainSpot.plo8LowEvaluation, 'Expected plo8LowEvaluation on PLO8 Horse Brain evaluation');
+  assert.equal(plo8BrainSpot.plo8LowEvaluation.hasLow, true);
+  assert.equal(plo8BrainSpot.plo8LowEvaluation.hasNutLow, true);
+
+  // 6. Practice Isolation Contract
+  const isolationClean = verifyTrainingPracticeIsolation({ mode: 'training-arena' });
+  assert.equal(isolationClean.isolated, true);
+  assert.equal(isolationClean.walletMutationAllowed, false);
+  assert.equal(isolationClean.liveSeatMutationAllowed, false);
+  assert.equal(isolationClean.livePayoutCreationAllowed, false);
+
+  const isolationViolation = verifyTrainingPracticeIsolation({ tableName: 'diamond_ledger' });
+  assert.equal(isolationViolation.isolated, false);
+
+  // 7. UniversalDynamicTable Phase 10 Live-Play Parity DOM Contracts
+  const tableSrc = read('src/components/training/games/UniversalDynamicTable.jsx');
+  assert.match(tableSrc, /data-plo8-hilo-pill="true"/, 'UniversalDynamicTable must expose PLO8 Hi-Lo 8-or-Better pill');
+  assert.match(tableSrc, /data-betting-structure-selector="true"/, 'UniversalDynamicTable must expose Betting Structure switcher');
+  assert.match(tableSrc, /data-fixed-limit-controls="true"/, 'UniversalDynamicTable must expose Fixed-Limit controls');
+  assert.match(tableSrc, /data-game-format-selector="true"/, 'UniversalDynamicTable must expose Game Format switcher');
+  assert.match(tableSrc, /data-table-audio-control="true"/, 'UniversalDynamicTable must expose Live Audio & Motion control');
+  assert.match(tableSrc, /data-scenario-restart-btn="true"/, 'UniversalDynamicTable must expose Scenario Restart button');
+  assert.match(tableSrc, /data-winner-seat-anchored="true"/, 'UniversalDynamicTable must expose winner-seat anchoring');
+  assert.match(tableSrc, /data-practice-isolation-verified="true"/, 'UniversalDynamicTable must expose practice isolation verification');
+});

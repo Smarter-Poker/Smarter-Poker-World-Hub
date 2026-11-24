@@ -697,8 +697,14 @@ export default function useGTOTrainer(
             : String(prefetchTargetPos).toUpperCase(),
         );
       }
-      if (trainerConfig?.variant && ['nlh', 'plo4', 'plo5', 'plo6'].includes(String(trainerConfig.variant).toLowerCase())) {
+      if (trainerConfig?.variant && ['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].includes(String(trainerConfig.variant).toLowerCase())) {
         params.set('variant', String(trainerConfig.variant).toLowerCase());
+      }
+      if (trainerConfig?.bettingStructure && ['no_limit', 'pot_limit', 'fixed_limit'].includes(String(trainerConfig.bettingStructure).toLowerCase())) {
+        params.set('bettingStructure', String(trainerConfig.bettingStructure).toLowerCase());
+      }
+      if (trainerConfig?.format && ['cash', 'mtt', 'spins', 'hu'].includes(String(trainerConfig.format).toLowerCase())) {
+        params.set('format', String(trainerConfig.format).toLowerCase());
       }
 
       const response = await trainingFetch(`/api/training/batch-preload?${params}`);
@@ -804,8 +810,14 @@ export default function useGTOTrainer(
             : String(prefetchTargetPos).toUpperCase(),
         );
       }
-      if (trainerConfig?.variant && ['nlh', 'plo4', 'plo5', 'plo6'].includes(String(trainerConfig.variant).toLowerCase())) {
+      if (trainerConfig?.variant && ['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].includes(String(trainerConfig.variant).toLowerCase())) {
         params.set('variant', String(trainerConfig.variant).toLowerCase());
+      }
+      if (trainerConfig?.bettingStructure && ['no_limit', 'pot_limit', 'fixed_limit'].includes(String(trainerConfig.bettingStructure).toLowerCase())) {
+        params.set('bettingStructure', String(trainerConfig.bettingStructure).toLowerCase());
+      }
+      if (trainerConfig?.format && ['cash', 'mtt', 'spins', 'hu'].includes(String(trainerConfig.format).toLowerCase())) {
+        params.set('format', String(trainerConfig.format).toLowerCase());
       }
 
       const response = await trainingFetch(`/api/training/get-question?${params}`);
@@ -910,8 +922,14 @@ export default function useGTOTrainer(
         if (!tp || String(tp).toLowerCase() === 'any') return null;
         return Array.isArray(tp) ? tp.join(',') : String(tp).toUpperCase();
       })(),
-      variant: trainerConfig?.variant && ['nlh', 'plo4', 'plo5', 'plo6'].includes(String(trainerConfig.variant).toLowerCase())
+      variant: trainerConfig?.variant && ['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].includes(String(trainerConfig.variant).toLowerCase())
         ? String(trainerConfig.variant).toLowerCase()
+        : null,
+      bettingStructure: trainerConfig?.bettingStructure && ['no_limit', 'pot_limit', 'fixed_limit'].includes(String(trainerConfig.bettingStructure).toLowerCase())
+        ? String(trainerConfig.bettingStructure).toLowerCase()
+        : null,
+      format: trainerConfig?.format && ['cash', 'mtt', 'spins', 'hu'].includes(String(trainerConfig.format).toLowerCase())
+        ? String(trainerConfig.format).toLowerCase()
         : null,
     };
     if (attemptId) reissueBody.attemptId = attemptId;
@@ -1073,8 +1091,14 @@ export default function useGTOTrainer(
         if (trainerConfig.spotType) {
           params.set('spotType', trainerConfig.spotType);
         }
-        if (trainerConfig.variant && ['nlh', 'plo4', 'plo5', 'plo6'].includes(String(trainerConfig.variant).toLowerCase())) {
+        if (trainerConfig.variant && ['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].includes(String(trainerConfig.variant).toLowerCase())) {
           params.set('variant', String(trainerConfig.variant).toLowerCase());
+        }
+        if (trainerConfig.bettingStructure && ['no_limit', 'pot_limit', 'fixed_limit'].includes(String(trainerConfig.bettingStructure).toLowerCase())) {
+          params.set('bettingStructure', String(trainerConfig.bettingStructure).toLowerCase());
+        }
+        if (trainerConfig.format && ['cash', 'mtt', 'spins', 'hu'].includes(String(trainerConfig.format).toLowerCase())) {
+          params.set('format', String(trainerConfig.format).toLowerCase());
         }
         apiUrl = `/api/training/custom-train?${params}`;
         console.debug(`[GTOTrainer] Custom trainer: ${trainerConfig.label || 'custom config'}`);
@@ -1123,8 +1147,14 @@ export default function useGTOTrainer(
               : String(explicitTargetPosition).toUpperCase(),
           );
         }
-        if (trainerConfig?.variant && ['nlh', 'plo4', 'plo5', 'plo6'].includes(String(trainerConfig.variant).toLowerCase())) {
+        if (trainerConfig?.variant && ['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].includes(String(trainerConfig.variant).toLowerCase())) {
           params.set('variant', String(trainerConfig.variant).toLowerCase());
+        }
+        if (trainerConfig?.bettingStructure && ['no_limit', 'pot_limit', 'fixed_limit'].includes(String(trainerConfig.bettingStructure).toLowerCase())) {
+          params.set('bettingStructure', String(trainerConfig.bettingStructure).toLowerCase());
+        }
+        if (trainerConfig?.format && ['cash', 'mtt', 'spins', 'hu'].includes(String(trainerConfig.format).toLowerCase())) {
+          params.set('format', String(trainerConfig.format).toLowerCase());
         }
         if (trainerConfig?.duelToken && typeof trainerConfig.duelToken === 'string') {
           params.set('duelToken', trainerConfig.duelToken.trim());
@@ -1149,6 +1179,8 @@ export default function useGTOTrainer(
         && !trainerConfig?.duelToken
         && !trainerConfig?.targetStreet
         && !trainerConfig?.targetPositions
+        && !trainerConfig?.bettingStructure
+        && !trainerConfig?.format
         && (!trainerConfig?.variant || trainerConfig.variant === 'nlh');
       const browserIsOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
 

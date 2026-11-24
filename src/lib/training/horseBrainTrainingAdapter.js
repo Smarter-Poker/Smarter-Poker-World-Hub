@@ -29,8 +29,15 @@ import holdemBrain from '../poker-engine/brain/holdem-brain.js';
 import ploCore from '../poker-engine/brain/plo-core.js';
 import plo5Brain from '../poker-engine/brain/plo5-brain.js';
 import plo6Brain from '../poker-engine/brain/plo6-brain.js';
+import plo8Brain from '../poker-engine/brain/plo8-brain.js';
 import tournamentBrain from '../poker-engine/brain/tournament-brain.js';
 import { buildCustomTrainingArenaHref } from './customTrainingLaunchContract.mjs';
+import {
+  computeLegalBettingBounds,
+  normalizeBettingStructure,
+  normalizeGameFormat,
+  isHiLoVariant,
+} from './clubArenaTableParity.js';
 
 export { buildCustomTrainingArenaHref };
 
@@ -82,6 +89,8 @@ const {
   makePLO6Decision,
 } = plo6Brain;
 
+const { evaluatePLO8Low } = plo8Brain;
+
 const {
   detectTournamentStage,
   getICMRangeAdjustment,
@@ -94,7 +103,31 @@ export const EXPECTED_HOLE_CARDS_BY_VARIANT = Object.freeze({
   plo4: 4,
   plo5: 5,
   plo6: 6,
+  plo8: 4,
 });
+
+export function normalizeVariant(variantRaw = 'nlh') {
+  const v = String(variantRaw || 'nlh').trim().toLowerCase();
+  if (
+    v === 'plo8' ||
+    v === 'omaha8' ||
+    v === 'omaha_hi_lo' ||
+    v === 'plo_hilo' ||
+    v === 'plo-hi-lo' ||
+    v === 'flo8' ||
+    v === 'o8' ||
+    v === 'omaha_hilo'
+  ) {
+    return 'plo8';
+  }
+  if (v === 'plo6' || v === '6-card-plo' || v === 'plo-6' || v === 'omaha6') return 'plo6';
+  if (v === 'plo5' || v === '5-card-plo' || v === 'plo-5' || v === 'omaha5') return 'plo5';
+  if (v === 'plo' || v === 'plo4' || v === '4-card-plo' || v === 'plo-4' || v === 'omaha' || v === 'omaha4' || v === 'flo') {
+    return 'plo4';
+  }
+  if (v === 'nlh' || v === 'holdem' || v === 'nlhe' || v === 'flh') return 'nlh';
+  return v;
+}
 
 export const EXPECTED_BOARD_CARDS_BY_STREET = Object.freeze({
   preflop: 0,
@@ -182,8 +215,10 @@ export function validateDealAndPotLimitBounds({
   pot = 6.5,
   toCall = 0,
   effectiveStack = 100,
+  bettingStructure = null,
+  format = 'cash',
 } = {}) {
-  const normVariant = String(variant || 'nlh').trim().toLowerCase();
+  const normVariant = normalizeVariant(variant);
   const expectedHoleCount = EXPECTED_HOLE_CARDS_BY_VARIANT[normVariant];
   if (!expectedHoleCount) {
     return {
@@ -242,10 +277,26 @@ export function validateDealAndPotLimitBounds({
   const numericPot = Math.max(0.5, Number(pot) || 6.5);
   const numericToCall = Math.max(0, Number(toCall) || 0);
   const numericStack = Math.max(1, Number(effectiveStack) || 100);
+  const activeBettingStructure = normalizeBettingStructure(bettingStructure, variant);
+  const normFormat = normalizeGameFormat(format);
+  const isFixedLimit = activeBettingStructure === 'fixed_limit';
+  const isPotLimit = activeBettingStructure === 'pot_limit';
+
+  const legalBounds = computeLegalBettingBounds({
+    variant: normVariant,
+    street: normStreet,
+    potBb: numericPot,
+    heroStackBb: numericStack,
+    heroCommittedBb: 0,
+    facingBetBb: numericToCall,
+    bettingStructure: activeBettingStructure,
+  });
 
   // Pot-Limit rule: max total bet/raise = current pot + 2 * callAmount, capped at effectiveStack
   const rawMaxPotAction = Number((numericPot + 2 * numericToCall).toFixed(2));
-  const maxPotBetOrRaise = Number(Math.min(numericStack, rawMaxPotAction).toFixed(2));
+  const maxPotBetOrRaise = isFixedLimit
+    ? legalBounds.minRaiseToBb
+    : Number(Math.min(numericStack, rawMaxPotAction).toFixed(2));
   const halfPotBetOrRaise = Number(Math.min(numericStack, Math.max(1, (numericPot + numericToCall) * 0.5 + numericToCall)).toFixed(2));
   const twoThirdsPotBetOrRaise = Number(Math.min(numericStack, Math.max(1, (numericPot + numericToCall) * 0.67 + numericToCall)).toFixed(2));
   const thirdPotBet = Number(Math.min(numericStack, Math.max(1, numericPot * 0.33)).toFixed(2));
@@ -255,14 +306,21 @@ export function validateDealAndPotLimitBounds({
     ok: true,
     variant: normVariant,
     street: normStreet,
+    bettingStructure: activeBettingStructure,
+    format: normFormat,
     heroCards: normalizedHero,
     boardCards: normalizedBoard,
     pot: numericPot,
     toCall: numericToCall,
     effectiveStack: numericStack,
-    isPotLimit: normVariant.startsWith('plo'),
+    isPotLimit,
+    isFixedLimit,
+    isHiLo: isHiLoVariant(normVariant),
+    legalBounds,
     potLimitBounds: {
-      formula: 'maxRaise = min(effectiveStack, pot + 2 * callAmount)',
+      formula: isFixedLimit
+        ? 'fixedLimit = smallBet (1 BB preflop/flop) or bigBet (2 BB turn/river)'
+        : 'maxRaise = min(effectiveStack, pot + 2 * callAmount)',
       rawMaxPotAction,
       maxPotBetOrRaise,
       maxBetBb: maxPotBetOrRaise,
@@ -270,6 +328,7 @@ export function validateDealAndPotLimitBounds({
       twoThirdsPotBetOrRaise,
       halfPotBetOrRaise,
       thirdPotBet,
+      fixedIncrementBb: legalBounds.fixedIncrementBb,
     },
   };
 }
@@ -381,6 +440,8 @@ export function evaluateTrainingSpotWithHorseBrain({
   gameId = 'cash-001',
   variant,
   gameType,
+  bettingStructure = null,
+  format = null,
   street = 'flop',
   heroCards,
   holeCards,
@@ -409,11 +470,19 @@ export function evaluateTrainingSpotWithHorseBrain({
     : gameType !== undefined && gameType !== null && String(gameType).trim() !== ''
       ? gameType
       : 'nlh';
+  const normVariantPreview = normalizeVariant(resolvedVariant);
+  const defaultHeroForVariant = EXPECTED_HOLE_CARDS_BY_VARIANT[normVariantPreview] === 6
+    ? ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d']
+    : EXPECTED_HOLE_CARDS_BY_VARIANT[normVariantPreview] === 5
+      ? ['As', 'Ks', 'Qh', 'Jh', 'Td']
+      : EXPECTED_HOLE_CARDS_BY_VARIANT[normVariantPreview] === 4
+        ? ['As', '2s', 'Kh', '3h']
+        : ['As', 'Kd'];
   const resolvedHeroCards = Array.isArray(heroCards)
     ? heroCards
     : Array.isArray(holeCards)
       ? holeCards
-      : ['As', 'Kd'];
+      : defaultHeroForVariant;
   const resolvedPot = Number.isFinite(Number(pot)) && Number(pot) > 0
     ? Number(pot)
     : Number.isFinite(Number(potSizeBb)) && Number(potSizeBb) > 0
@@ -425,7 +494,10 @@ export function evaluateTrainingSpotWithHorseBrain({
     : Number.isFinite(Number(facingBetBb)) && Number(facingBetBb) > 0
       ? Number(facingBetBb)
       : 0;
-  const resolvedIsICM = Boolean(isICM || isMTT);
+  const resolvedFormat = normalizeGameFormat(
+    format || (isMTT || isICM ? 'mtt' : gameType || 'cash'),
+  );
+  const resolvedIsICM = Boolean(isICM || isMTT || resolvedFormat === 'mtt');
   const rawBoardCards = boardCards !== undefined
     ? boardCards
     : board !== undefined
@@ -465,6 +537,8 @@ export function evaluateTrainingSpotWithHorseBrain({
     pot: resolvedPot,
     toCall: resolvedToCall,
     effectiveStack: resolvedStackDepth,
+    bettingStructure,
+    format: resolvedFormat,
   });
 
   if (!validation.ok) {
@@ -474,12 +548,16 @@ export function evaluateTrainingSpotWithHorseBrain({
   const {
     variant: normVariant,
     street: normStreet,
+    bettingStructure: activeBettingStructure,
+    format: normFormat,
     heroCards: cleanHero,
     boardCards: cleanBoard,
     pot: cleanPot,
     toCall: cleanToCall,
     effectiveStack: cleanStack,
     isPotLimit,
+    isFixedLimit,
+    legalBounds,
     potLimitBounds,
   } = validation;
 
@@ -490,12 +568,16 @@ export function evaluateTrainingSpotWithHorseBrain({
     && !['BTN'].includes(String(villainPosition || '').toUpperCase());
 
   // Build legal actions for the brain's decision function
-  const maxBetOrRaise = isPotLimit
-    ? potLimitBounds.maxPotBetOrRaise
-    : cleanStack;
-  const minBetOrRaise = cleanToCall > 0
-    ? Math.min(maxBetOrRaise, Math.max(2, cleanToCall * 2))
-    : Math.min(maxBetOrRaise, 1);
+  const maxBetOrRaise = isFixedLimit
+    ? legalBounds.minRaiseToBb
+    : isPotLimit
+      ? potLimitBounds.maxPotBetOrRaise
+      : cleanStack;
+  const minBetOrRaise = isFixedLimit
+    ? legalBounds.minRaiseToBb
+    : cleanToCall > 0
+      ? Math.min(maxBetOrRaise, Math.max(2, cleanToCall * 2))
+      : Math.min(maxBetOrRaise, 1);
 
   const brainLegalActions = cleanToCall > 0
     ? [
@@ -525,8 +607,8 @@ export function evaluateTrainingSpotWithHorseBrain({
     position: heroPosition,
     myPosition: heroPosition,
     isIP,
-    numActivePlayers: 2,
-    numPlayers: 6,
+    numActivePlayers: normFormat === 'hu' ? 2 : normFormat === 'spins' ? 3 : 2,
+    numPlayers: normFormat === 'hu' ? 2 : normFormat === 'spins' ? 3 : 6,
     players: [
       { id: 'hero-brain', position: heroPosition, stack: cleanStack, invested: cleanPot / 2, folded: false },
       { id: 'villain-brain', position: villainPosition, stack: cleanStack, invested: cleanPot / 2 + cleanToCall, folded: false },
@@ -562,6 +644,7 @@ export function evaluateTrainingSpotWithHorseBrain({
     let rawBrainDecision = null;
     let preflopProfile = null;
     let boardProfile = null;
+    let plo8LowEvaluation = null;
 
     if (normVariant === 'nlh') {
       engineModule = 'holdem-brain.js';
@@ -692,6 +775,108 @@ export function evaluateTrainingSpotWithHorseBrain({
         boardProfile = boardTex;
       }
       rawBrainDecision = makePLO6Decision('hero-brain', gameState, brainLegalActions);
+    } else if (normVariant === 'plo8') {
+      engineModule = 'plo8-brain.js';
+      const rawPreflopScore = classifyPLOPreflop(parsedHero);
+      const baseHighPreflop = typeof rawPreflopScore === 'number'
+        ? rawPreflopScore
+        : (Number(rawPreflopScore?.score) || 50);
+
+      // Evaluate preflop A2/A3/23 wheel-card coordination
+      const lowRanksInHole = [...new Set(
+        parsedHero
+          .map((c) => (c.rank === 12 ? -1 : c.rank))
+          .filter((r) => r <= 6),
+      )].sort((a, b) => a - b);
+      const hasAce = lowRanksInHole.includes(-1);
+      const hasDeuce = lowRanksInHole.includes(0);
+      const hasTrey = lowRanksInHole.includes(1);
+      const hasFour = lowRanksInHole.includes(2);
+      const hasA2 = hasAce && hasDeuce;
+      const hasA3 = hasAce && hasTrey;
+      const has23 = hasDeuce && hasTrey;
+
+      const omahaEval = evaluateOmahaExactTwoPlusThree(cleanHero, cleanBoard);
+      bestTwoHoleCards = omahaEval.bestTwoHoleCards;
+      bestThreeBoardCards = omahaEval.bestThreeBoardCards;
+      flushOuts = Number(omahaEval.flushDraw?.outs) || 0;
+      isNutFlushDraw = Boolean(omahaEval.flushDraw?.isNutFlushDraw || omahaEval.flushDraw?.isNut);
+      straightOuts = Math.max(Number(omahaEval.straightDraw?.outs) || 0, Number(omahaEval.wrapDraw?.wrapOuts) || 0);
+      wrapType = omahaEval.wrapDraw?.wrapType || omahaEval.straightDraw?.type || 'none';
+
+      const lowInfo = parsedBoard.length >= 3
+        ? evaluatePLO8Low(parsedHero, parsedBoard)
+        : {
+            hasLow: false,
+            hasNutLow: false,
+            lowRanks: lowRanksInHole.map((r) => (r === -1 ? 'A' : RANKS[r])),
+            lowOuts: hasA2 ? 12 : hasA3 ? 9 : has23 ? 6 : lowRanksInHole.length >= 2 ? 4 : 0,
+            hasNutLowDraw: Boolean(hasA2 || (hasA3 && hasFour)),
+            scoopable: Boolean(hasA2 || hasA3),
+            quarteringRisk: !hasAce && has23,
+            lowValueDiscount: hasA2 ? 1.0 : hasA3 ? 0.85 : 0.65,
+            isCounterfeited: false,
+            counterfeitOuts: 0,
+            counterfeitVulnerability: 0,
+          };
+
+      const hasNutLowDraw = Boolean(
+        lowInfo.hasNutLowDraw ||
+        (!lowInfo.hasLow && Number(lowInfo.lowOuts || 0) >= 6 && (hasA2 || hasA3)),
+      );
+      const quarteringRiskBool = typeof lowInfo.quarteringRisk === 'boolean'
+        ? lowInfo.quarteringRisk
+        : lowInfo.quarteringRisk === 'high' || lowInfo.quarteringRisk === 'medium';
+
+      plo8LowEvaluation = {
+        hasLow: Boolean(lowInfo.hasLow),
+        hasNutLow: Boolean(lowInfo.hasNutLow),
+        lowRanks: lowInfo.lowRanks || (lowRanksInHole.length >= 2 ? lowRanksInHole.map((r) => (r === -1 ? 'A' : RANKS[r])) : null),
+        lowOuts: Number(lowInfo.lowOuts || 0),
+        hasNutLowDraw,
+        scoopable: Boolean(lowInfo.scoopable || (lowInfo.hasLow && (Number(omahaEval.madeHand?.strength) || 0) >= 55)),
+        quarteringRisk: quarteringRiskBool,
+        lowValueDiscount: Number(lowInfo.lowValueDiscount ?? 1),
+        isCounterfeited: Boolean(lowInfo.isCounterfeited),
+        counterfeitOuts: Number(lowInfo.counterfeitOuts || 0),
+        counterfeitVulnerability: Number(lowInfo.counterfeitVulnerability || 0),
+      };
+
+      if (normStreet === 'preflop') {
+        const wheelBonus = hasA2 ? 22 : hasA3 ? 14 : has23 ? 7 : lowRanksInHole.length >= 3 ? 5 : -8;
+        handScore = Math.max(10, Math.min(100, Math.round(baseHighPreflop * 0.72 + wheelBonus)));
+        const wheelTag = hasA2 ? 'A2 Nut-Low Wheel Core' : hasA3 ? 'A3 Low Core' : has23 ? '23 Non-Nut Low' : 'High-Only';
+        madeHandCategory = `PLO8 Preflop (${wheelTag})`;
+        preflopProfile = { score: handScore, wheelTag, hasA2, hasA3, lowCardCount: lowRanksInHole.length };
+      } else {
+        const highBase = Number(omahaEval.madeHand?.strength) || 35;
+        const highDrawBonus = Math.min(20, flushOuts * 1.3 + straightOuts * 1.0);
+        const highComponent = Math.min(100, highBase + highDrawBonus);
+        let lowComponent = 0;
+        if (plo8LowEvaluation.hasNutLow) {
+          lowComponent = Math.round(42 * plo8LowEvaluation.lowValueDiscount);
+        } else if (plo8LowEvaluation.hasLow) {
+          lowComponent = Math.round(24 * plo8LowEvaluation.lowValueDiscount);
+        } else if (plo8LowEvaluation.lowOuts > 0) {
+          lowComponent = Math.min(18, Math.round(plo8LowEvaluation.lowOuts * 1.1));
+        }
+        const twoWayScoopBonus =
+          (plo8LowEvaluation.hasNutLow || plo8LowEvaluation.hasNutLowDraw) && highComponent >= 55
+            ? 14
+            : 0;
+        const quarteringPenalty = plo8LowEvaluation.quarteringRisk && highComponent < 45 ? 10 : 0;
+        handScore = Math.max(10, Math.min(100, Math.round(highComponent * 0.62 + lowComponent + twoWayScoopBonus - quarteringPenalty)));
+        const lowLabel = plo8LowEvaluation.hasNutLow
+          ? 'Nut Low'
+          : plo8LowEvaluation.hasLow
+            ? 'Qualifying Low'
+            : plo8LowEvaluation.lowOuts > 0
+              ? `Low Draw (${plo8LowEvaluation.lowOuts} outs)`
+              : 'No Qualifying Low';
+        madeHandCategory = `${omahaEval.madeHand?.category || 'plo8_high'} + ${lowLabel}`;
+        boardProfile = analyzePLOBoardTexture(parsedBoard);
+      }
+      rawBrainDecision = makePLOFallbackDecision('hero-brain', gameState, brainLegalActions);
     }
 
     // Apply Tournament ICM / Bubble Factor adjustments via `tournament-brain.js`
@@ -778,7 +963,23 @@ export function evaluateTrainingSpotWithHorseBrain({
 
     // Build the 4 canonical action options for this street & variant
     let options = [];
-    if (isPotLimit) {
+    if (legalBounds.isFixedLimit) {
+      if (cleanToCall > 0) {
+        options = [
+          { id: 'f', text: 'Fold' },
+          { id: 'c', text: `Call ${cleanToCall} BB` },
+          { id: 'r_fl', text: `Raise To ${legalBounds.minRaiseToBb} BB (Fixed Limit)` },
+          { id: 'c_odds', text: `Call ${cleanToCall} BB (Pot Odds)` },
+        ];
+      } else {
+        options = [
+          { id: 'x', text: 'Check' },
+          { id: 'b_fl', text: `Bet ${legalBounds.fixedIncrementBb} BB (Fixed Limit)` },
+          { id: 'b_val', text: `Bet ${legalBounds.fixedIncrementBb} BB (Value/Protection)` },
+          { id: 'f', text: 'Fold' },
+        ];
+      }
+    } else if (isPotLimit) {
       if (cleanToCall > 0) {
         options = [
           { id: 'f', text: 'Fold' },
@@ -868,14 +1069,26 @@ export function evaluateTrainingSpotWithHorseBrain({
       actionEVs[opt.id] = Number((baseEv - evPenalty).toFixed(2));
     });
 
-    const omahaRuleSummary = isPotLimit && cleanBoard.length >= 3
-      ? `Omaha 2-Hole + 3-Board Evaluation (${engineModule}): Best 5-card hand uses hole [${bestTwoHoleCards.join(' ')}] + board [${bestThreeBoardCards.join(' ')}] → ${madeHandCategory} (Flush Outs: ${flushOuts}${isNutFlushDraw ? ' [Nut]' : ''}, Straight/Wrap Outs: ${straightOuts}${wrapType !== 'none' ? ` [${wrapType}]` : ''}). Pot-Limit max action = pot (${cleanPot} BB) + 2 × call (${cleanToCall} BB) = ${potLimitBounds.maxPotBetOrRaise} BB.`
+    const isOmahaVariant = normVariant.startsWith('plo');
+    const plo8SummaryNote = normVariant === 'plo8' && plo8LowEvaluation
+      ? `Hi-Lo 8-or-Better Split Analysis (plo8-brain.js): Qualifying Low = ${plo8LowEvaluation.hasLow ? (plo8LowEvaluation.hasNutLow ? 'NUT LOW' : 'YES') : 'NO'}${plo8LowEvaluation.hasNutLowDraw ? ' (Nut Low Draw)' : ''}, Low Outs = ${plo8LowEvaluation.lowOuts}, Scoopable = ${plo8LowEvaluation.scoopable ? 'YES' : 'NO'}, Quartering Risk = ${plo8LowEvaluation.quarteringRisk ? 'ELEVATED' : 'LOW'} (Discount ${plo8LowEvaluation.lowValueDiscount}). Both High and Low strictly require 2 hole cards + 3 board cards.`
+      : null;
+
+    const sizingRuleNote = legalBounds.isFixedLimit
+      ? `Fixed-Limit increment = ${legalBounds.fixedIncrementBb} BB (${normStreet === 'turn' || normStreet === 'river' ? 'Big Bet' : 'Small Bet'}), min/max raise-to = ${legalBounds.minRaiseToBb} BB.`
       : isPotLimit
-        ? `Omaha Preflop Evaluation (${engineModule}): ${madeHandCategory} (Primary 2-card subset: ${primarySubset.notation}, Score: ${handScore}/100). Pot-Limit max raise = ${potLimitBounds.maxPotBetOrRaise} BB.`
-        : `Hold'em Evaluation (${engineModule}): Hero [${cleanHero.join(' ')}] (${primarySubset.notation}) on ${cleanBoard.length ? `[${cleanBoard.join(' ')}]` : 'Preflop'} → ${madeHandCategory} (Strength: ${handScore}/100).`;
+        ? `Pot-Limit max action = pot (${cleanPot} BB) + 2 × call (${cleanToCall} BB) = ${potLimitBounds.maxPotBetOrRaise} BB.`
+        : `No-Limit effective stack = ${cleanStack} BB.`;
+
+    const omahaRuleSummary = isOmahaVariant && cleanBoard.length >= 3
+      ? `Omaha 2-Hole + 3-Board Evaluation (${engineModule}): Best 5-card hand uses hole [${bestTwoHoleCards.join(' ')}] + board [${bestThreeBoardCards.join(' ')}] → ${madeHandCategory} (Flush Outs: ${flushOuts}${isNutFlushDraw ? ' [Nut]' : ''}, Straight/Wrap Outs: ${straightOuts}${wrapType !== 'none' ? ` [${wrapType}]` : ''}). ${sizingRuleNote}`
+      : isOmahaVariant
+        ? `Omaha Preflop Evaluation (${engineModule}): ${madeHandCategory} (Primary 2-card subset: ${primarySubset.notation}, Score: ${handScore}/100). ${sizingRuleNote}`
+        : `Hold'em Evaluation (${engineModule}): Hero [${cleanHero.join(' ')}] (${primarySubset.notation}) on ${cleanBoard.length ? `[${cleanBoard.join(' ')}]` : 'Preflop'} → ${madeHandCategory} (Strength: ${handScore}/100). ${sizingRuleNote}`;
 
     const contextNotes = [
       omahaRuleSummary,
+      plo8SummaryNote,
       icmAdjustment ? `ICM / Payout Pressure (tournament-brain.js): ${icmAdjustment.payoutPressure} tightens continuation threshold by ${icmAdjustment.tightenPercent}%.` : null,
       pkoBountyAdjustment ? `PKO Bounty Math: ${pkoBountyAdjustment.bountyBb} BB bounty adds +${pkoBountyAdjustment.bountyChipEquivalenceBb} BB chip equivalence (-${pkoBountyAdjustment.effectivePotOddsDiscountPct}% required equity).` : null,
       hudExploitAdjustment ? `Exploit Telemetry: ${hudExploitAdjustment.note}` : null,
@@ -888,18 +1101,22 @@ export function evaluateTrainingSpotWithHorseBrain({
       engineModule,
       variant: normVariant,
       street: normStreet,
-      bettingStructure: isPotLimit ? 'pot_limit' : 'no_limit',
+      bettingStructure: legalBounds.bettingStructure,
+      format: normFormat,
       handScore,
       madeHandCategory,
       primaryTwoCardSubset: primarySubset.notation,
-      omahaBestTwoHole: isPotLimit ? bestTwoHoleCards : null,
-      omahaBestThreeBoard: isPotLimit && cleanBoard.length >= 3 ? bestThreeBoardCards : null,
+      omahaBestTwoHole: isOmahaVariant ? bestTwoHoleCards : null,
+      omahaBestThreeBoard: isOmahaVariant && cleanBoard.length >= 3 ? bestThreeBoardCards : null,
       flushOuts,
       isNutFlushDraw,
       straightOuts,
       wrapType,
+      plo8LowEvaluation,
       potLimitMaxBetBb: isPotLimit ? potLimitBounds.maxPotBetOrRaise : null,
+      fixedIncrementBb: legalBounds.fixedIncrementBb,
       potLimitBounds,
+      legalBounds,
       icmAdjustment,
       pkoBountyAdjustment,
       hudExploitAdjustment,
@@ -908,13 +1125,18 @@ export function evaluateTrainingSpotWithHorseBrain({
 
     const structuredExplanation = {
       verdict: `${options[bestIdx].text} is the highest-EV action (${gtoFrequencies[correctAnswer]}% frequency, ${actionEVs[correctAnswer] >= 0 ? '+' : ''}${actionEVs[correctAnswer]} BB).`,
-      why: omahaRuleSummary,
+      why: [omahaRuleSummary, plo8SummaryNote].filter(Boolean).join(' '),
       keyFactors: [
-        `Engine Authority: ${engineModule} (${normVariant.toUpperCase()} ${normStreet.toUpperCase()})`,
+        `Engine Authority: ${engineModule} (${normVariant.toUpperCase()} ${normStreet.toUpperCase()} · ${legalBounds.bettingStructure.toUpperCase()} · ${normFormat.toUpperCase()})`,
         `Hero Holding: ${cleanHero.join(' ')} (${madeHandCategory}, Score ${handScore}/100)`,
-        isPotLimit
-          ? `Pot-Limit Sizing Bound: max = ${cleanPot} + 2×${cleanToCall} = ${potLimitBounds.maxPotBetOrRaise} BB`
-          : `Effective Stack: ${cleanStack} BB | Pot: ${cleanPot} BB`,
+        legalBounds.isFixedLimit
+          ? `Fixed-Limit Sizing Bound: increment = ${legalBounds.fixedIncrementBb} BB (raise-to ${legalBounds.minRaiseToBb} BB)`
+          : isPotLimit
+            ? `Pot-Limit Sizing Bound: max = ${cleanPot} + 2×${cleanToCall} = ${potLimitBounds.maxPotBetOrRaise} BB`
+            : `Effective Stack: ${cleanStack} BB | Pot: ${cleanPot} BB`,
+        ...(plo8LowEvaluation
+          ? [`Hi-Lo Low Status: ${plo8LowEvaluation.hasNutLow ? 'Nut Low' : plo8LowEvaluation.hasLow ? 'Qualifying Low' : `${plo8LowEvaluation.lowOuts} Low Outs`} (Scoopable: ${plo8LowEvaluation.scoopable ? 'Yes' : 'No'})`]
+          : []),
         ...(icmAdjustment ? [`ICM Pressure: BF ${icmAdjustment.bubbleFactor}x (${icmAdjustment.payoutPressure})`] : []),
         ...(pkoBountyAdjustment ? [`PKO Bounty: ${pkoBountyAdjustment.bountyBb} BB (+${pkoBountyAdjustment.bountyChipEquivalenceBb} BB chip eq)`] : []),
         ...(hudExploitAdjustment ? [`Villain HUD: VPIP ${hudExploitAdjustment.vpip}% / PFR ${hudExploitAdjustment.pfr}% (${hudExploitAdjustment.profile})`] : []),
@@ -924,10 +1146,46 @@ export function evaluateTrainingSpotWithHorseBrain({
 
     const correctAnswerText = options[bestIdx]?.text || correctAnswer;
 
+    const scenario = {
+      gameId,
+      variant: normVariant,
+      street: normStreet,
+      bettingStructure: legalBounds.bettingStructure,
+      format: normFormat,
+      heroPosition: String(heroPosition || 'BTN').toUpperCase(),
+      villainPosition: String(villainPosition || 'BB').toUpperCase(),
+      pot: cleanPot,
+      toCall: cleanToCall,
+      stackDepth: cleanStack,
+      holeCardCount: EXPECTED_HOLE_CARDS_BY_VARIANT[normVariant],
+      madeHandCategory,
+      plo8LowEvaluation,
+    };
+
+    const gtoData = {
+      engineModule: brainEvaluation.engineModule,
+      variant: normVariant,
+      bettingStructure: legalBounds.bettingStructure,
+      format: normFormat,
+      frequencies: gtoFrequencies,
+      evByAction: actionEVs,
+      recommendedAction: correctAnswer,
+      recommendedActionText: correctAnswerText,
+      handScore,
+      madeHandCategory,
+      plo8LowEvaluation,
+    };
+
     return {
       ok: true,
       runtimeState: getTrainingAdapterRuntimeState({ statusCode: 200 }),
       engineModule: brainEvaluation.engineModule,
+      variant: normVariant,
+      bettingStructure: legalBounds.bettingStructure,
+      format: normFormat,
+      plo8LowEvaluation,
+      scenario,
+      gtoData,
       options,
       correctAnswer,
       correctAnswerText,
@@ -939,6 +1197,7 @@ export function evaluateTrainingSpotWithHorseBrain({
       madeHandCategory,
       primaryTwoCardSubset: primarySubset.notation,
       potLimitSizing: potLimitBounds,
+      legalBounds,
       brainEvaluation,
       explanation,
       coachingExplanation: explanation,

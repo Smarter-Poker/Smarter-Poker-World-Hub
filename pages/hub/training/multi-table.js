@@ -140,7 +140,7 @@ export default function MultiTablePage() {
     if (Number.isFinite(requested) && requested >= 2 && requested <= 4) {
       setTableCount(requested);
     }
-    if (typeof q.variant === 'string' && ['nlh', 'plo4', 'plo5', 'plo6'].includes(q.variant.toLowerCase())) {
+    if (typeof q.variant === 'string' && ['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].includes(q.variant.toLowerCase())) {
       setSelectedVariant(q.variant.toLowerCase());
     }
     if (typeof q.game === 'string' && q.game) {

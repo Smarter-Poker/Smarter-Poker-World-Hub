@@ -148,7 +148,17 @@ export default function TrainingArenaPage() {
             const rawVariant = typeof router.query.variant === 'string'
                 ? router.query.variant.trim().toLowerCase()
                 : '';
-            const variant = ['nlh', 'plo4', 'plo5', 'plo6'].includes(rawVariant) ? rawVariant : null;
+            const variant = ['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].includes(rawVariant) ? rawVariant : null;
+            const rawBettingStructure = typeof router.query.bettingStructure === 'string'
+                ? router.query.bettingStructure.trim().toLowerCase()
+                : '';
+            const bettingStructure = ['no_limit', 'pot_limit', 'fixed_limit'].includes(rawBettingStructure)
+                ? rawBettingStructure
+                : null;
+            const rawFormat = typeof router.query.format === 'string'
+                ? router.query.format.trim().toLowerCase()
+                : '';
+            const format = ['cash', 'mtt', 'spins', 'hu'].includes(rawFormat) ? rawFormat : null;
             const rawStreet = typeof (router.query.street || router.query.targetStreet) === 'string'
                 ? String(router.query.street || router.query.targetStreet).trim().toLowerCase()
                 : '';
@@ -167,13 +177,15 @@ export default function TrainingArenaPage() {
                 : router.query.duelRole === 'challenger'
                     ? 'challenger'
                     : null;
-            if (!baseConfig && !variant && !targetStreet && !targetPosition && !duelToken && !duelRole && !syncedHandId) {
+            if (!baseConfig && !variant && !bettingStructure && !format && !targetStreet && !targetPosition && !duelToken && !duelRole && !syncedHandId) {
                 return { config: null, error: null };
             }
             return {
                 config: {
                     ...(baseConfig || {}),
                     ...(variant ? { variant } : {}),
+                    ...(bettingStructure ? { bettingStructure } : {}),
+                    ...(format ? { format } : {}),
                     ...(targetStreet ? { targetStreet, gameMode: 'street' } : {}),
                     ...(targetPosition ? { targetPositions: targetPosition, ...(baseConfig ? { position: targetPosition } : {}) } : {}),
                     ...(duelToken ? { duelToken } : {}),
@@ -236,7 +248,7 @@ export default function TrainingArenaPage() {
         : null;
     const gameName = game?.name || 'Training Game';
     const level = parseInt(queryLevel, 10) || 1;
-    const activeArenaVariant = typeof router.query.variant === 'string' && ['nlh', 'plo4', 'plo5', 'plo6'].includes(router.query.variant.trim().toLowerCase())
+    const activeArenaVariant = typeof router.query.variant === 'string' && ['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].includes(router.query.variant.trim().toLowerCase())
         ? router.query.variant.trim().toLowerCase()
         : 'nlh';
 
@@ -245,9 +257,11 @@ export default function TrainingArenaPage() {
             ? ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d']
             : activeArenaVariant === 'plo5'
                 ? ['As', 'Ks', 'Qh', 'Jh', 'Td']
-                : activeArenaVariant === 'plo4'
-                    ? ['As', 'Ks', 'Qh', 'Jh']
-                    : ['As', 'Kd'];
+                : activeArenaVariant === 'plo8'
+                    ? ['As', '2s', 'Kd', '3d']
+                    : activeArenaVariant === 'plo4'
+                        ? ['As', 'Ks', 'Qh', 'Jh']
+                        : ['As', 'Kd'];
         return evaluateTrainingSpotWithHorseBrain({
             variant: activeArenaVariant,
             street: 'flop',

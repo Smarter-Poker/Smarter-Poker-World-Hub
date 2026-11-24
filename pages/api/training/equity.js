@@ -29,6 +29,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
+import plo8Brain from '../../../src/lib/poker-engine/brain/plo8-brain.js';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -111,7 +112,7 @@ function bestOf7(hole, board, shortDeck) {
 
 /**
  * Omaha 5-card evaluator: MUST use strictly 2 hole cards + 3 board cards.
- * Supports PLO4 (4 hole), PLO5 (5 hole), and PLO6 (6 hole).
+ * Supports PLO4 (4 hole), PLO5 (5 hole), PLO6 (6 hole), and PLO8 (4 hole).
  */
 function bestOmaha5(hole, board) {
     let best = -1;
@@ -134,13 +135,59 @@ function bestOmaha5(hole, board) {
     return best;
 }
 
-function normalizeEquityVariant(rawVariant) {
+/**
+ * PLO8 8-or-Better Low evaluator: MUST use strictly 2 hole cards + 3 board cards.
+ * Ranks 2..8 correspond to 0..6, Ace (12) maps to -1 (lowest rank = 1).
+ * A qualifying 8-or-better low requires 5 unique ranks all <= 8 (mapped rank <= 6).
+ * Lower numeric value is a stronger low (wheel 5-4-3-2-A is the minimum possible score).
+ * Returns Infinity if no qualifying 8-or-better low exists.
+ */
+function toLowRankValue(cardInt) {
+    const r = getRank(cardInt);
+    return r === 12 ? 1 : r + 2; // Ace=1, 2=2, ..., 8=8, 9=9, ..., K=13
+}
+
+export function bestOmahaLow8(hole, board) {
+    let bestLowScore = Infinity;
+    const hLen = hole.length;
+    const bLen = board.length;
+    if (hLen < 2 || bLen < 3) return Infinity;
+    for (let hi = 0; hi < hLen - 1; hi++) {
+        const hr0 = toLowRankValue(hole[hi]);
+        if (hr0 > 8) continue;
+        for (let hj = hi + 1; hj < hLen; hj++) {
+            const hr1 = toLowRankValue(hole[hj]);
+            if (hr1 > 8 || hr1 === hr0) continue;
+            for (let bi = 0; bi < bLen - 2; bi++) {
+                const br0 = toLowRankValue(board[bi]);
+                if (br0 > 8 || br0 === hr0 || br0 === hr1) continue;
+                for (let bj = bi + 1; bj < bLen - 1; bj++) {
+                    const br1 = toLowRankValue(board[bj]);
+                    if (br1 > 8 || br1 === hr0 || br1 === hr1 || br1 === br0) continue;
+                    for (let bk = bj + 1; bk < bLen; bk++) {
+                        const br2 = toLowRankValue(board[bk]);
+                        if (br2 > 8 || br2 === hr0 || br2 === hr1 || br2 === br0 || br2 === br1) continue;
+                        const lowRanks = [hr0, hr1, br0, br1, br2].sort((a, b) => b - a);
+                        const score = lowRanks[0] * 10000 + lowRanks[1] * 1000 + lowRanks[2] * 100 + lowRanks[3] * 10 + lowRanks[4];
+                        if (score < bestLowScore) bestLowScore = score;
+                    }
+                }
+            }
+        }
+    }
+    return bestLowScore;
+}
+
+export function normalizeEquityVariant(rawVariant) {
     const v = String(rawVariant || 'holdem').trim().toLowerCase();
-    if (v === 'plo6' || v === 'omaha6') return { key: 'plo6', holeCount: 6, isOmaha: true, isShortDeck: false };
-    if (v === 'plo5' || v === 'omaha5') return { key: 'plo5', holeCount: 5, isOmaha: true, isShortDeck: false };
-    if (v === 'plo4' || v === 'omaha4' || v === 'plo' || v === 'omaha') return { key: 'plo4', holeCount: 4, isOmaha: true, isShortDeck: false };
-    if (v === 'short_deck' || v === 'shortdeck') return { key: 'short_deck', holeCount: 2, isOmaha: false, isShortDeck: true };
-    return { key: 'nlh', holeCount: 2, isOmaha: false, isShortDeck: false };
+    if (v === 'plo8' || v === 'omaha8' || v === 'plo_hilo' || v === 'omahahilo') {
+        return { key: 'plo8', holeCount: 4, isOmaha: true, isHiLo: true, isShortDeck: false };
+    }
+    if (v === 'plo6' || v === 'omaha6') return { key: 'plo6', holeCount: 6, isOmaha: true, isHiLo: false, isShortDeck: false };
+    if (v === 'plo5' || v === 'omaha5') return { key: 'plo5', holeCount: 5, isOmaha: true, isHiLo: false, isShortDeck: false };
+    if (v === 'plo4' || v === 'omaha4' || v === 'plo' || v === 'omaha') return { key: 'plo4', holeCount: 4, isOmaha: true, isHiLo: false, isShortDeck: false };
+    if (v === 'short_deck' || v === 'shortdeck') return { key: 'short_deck', holeCount: 2, isOmaha: false, isHiLo: false, isShortDeck: true };
+    return { key: 'nlh', holeCount: 2, isOmaha: false, isHiLo: false, isShortDeck: false };
 }
 
 function shufflePartial(arr, count) {
@@ -150,10 +197,11 @@ function shufflePartial(arr, count) {
     }
 }
 
-function calcEquity(players, board, variant = 'holdem', iterations = 5000) {
+export function calcEquity(players, board, variant = 'holdem', iterations = 5000) {
     const variantSpec = normalizeEquityVariant(variant);
     const isShortDeck = variantSpec.isShortDeck;
     const isOmaha = variantSpec.isOmaha;
+    const isHiLo = Boolean(variantSpec.isHiLo);
     const evalFn = isOmaha
         ? (hole, b) => bestOmaha5(hole, b)
         : (hole, b) => bestOf7(hole, b, isShortDeck);
@@ -164,47 +212,101 @@ function calcEquity(players, board, variant = 'holdem', iterations = 5000) {
     const remaining = [];
     for (let c = minCard; c < 52; c++) { if (!dead.has(c)) remaining.push(c); }
     const cardsNeeded = 5 - board.length;
-    if (cardsNeeded <= 0) {
-        // Complete board — evaluate once
-        let bestScore = -1, bestCount = 0;
-        const scores = [];
-        for (const p of players) {
-            const s = evalFn(p.holeCards, board);
-            scores.push(s);
-            if (s > bestScore) { bestScore = s; bestCount = 1; } else if (s === bestScore) bestCount++;
-        }
-        return {
-            boardSize: board.length,
-            players: players.map((p, i) => ({
-                id: p.id,
-                equity: scores[i] === bestScore ? (bestCount === 1 ? 100 : Math.round(1000 / bestCount) / 10) : 0,
-                wins: scores[i] === bestScore && bestCount === 1 ? 1 : 0,
-                ties: scores[i] === bestScore && bestCount > 1 ? 1 : 0,
-            })),
-        };
-    }
+    const totalRuns = cardsNeeded <= 0 ? 1 : iterations;
+
+    const totalShare = new Array(players.length).fill(0);
+    const highShare = new Array(players.length).fill(0);
+    const lowShare = new Array(players.length).fill(0);
+    const scoopCount = new Array(players.length).fill(0);
     const wins = new Array(players.length).fill(0);
     const ties = new Array(players.length).fill(0);
-    for (let iter = 0; iter < iterations; iter++) {
-        shufflePartial(remaining, cardsNeeded);
-        const simBoard = [...board];
-        for (let i = 0; i < cardsNeeded; i++) simBoard.push(remaining[remaining.length - 1 - i]);
-        let bestScore = -1, bestCount = 0;
-        const scores = new Array(players.length);
-        for (let p = 0; p < players.length; p++) {
-            scores[p] = evalFn(players[p].holeCards, simBoard);
-            if (scores[p] > bestScore) { bestScore = scores[p]; bestCount = 1; }
-            else if (scores[p] === bestScore) bestCount++;
+    let lowQualifiedRuns = 0;
+
+    for (let iter = 0; iter < totalRuns; iter++) {
+        let simBoard = board;
+        if (cardsNeeded > 0) {
+            shufflePartial(remaining, cardsNeeded);
+            simBoard = [...board];
+            for (let i = 0; i < cardsNeeded; i++) simBoard.push(remaining[remaining.length - 1 - i]);
         }
+
+        let bestHigh = -1, bestHighCount = 0;
+        const highScores = new Array(players.length);
         for (let p = 0; p < players.length; p++) {
-            if (scores[p] === bestScore) { if (bestCount === 1) wins[p]++; else ties[p]++; }
+            highScores[p] = evalFn(players[p].holeCards, simBoard);
+            if (highScores[p] > bestHigh) { bestHigh = highScores[p]; bestHighCount = 1; }
+            else if (highScores[p] === bestHigh) bestHighCount++;
+        }
+
+        if (!isHiLo) {
+            for (let p = 0; p < players.length; p++) {
+                if (highScores[p] === bestHigh) {
+                    const share = 1 / bestHighCount;
+                    totalShare[p] += share;
+                    highShare[p] += share;
+                    if (bestHighCount === 1) {
+                        wins[p]++;
+                        scoopCount[p]++;
+                    } else {
+                        ties[p]++;
+                    }
+                }
+            }
+            continue;
+        }
+
+        // Hi-Lo 8-or-better evaluation on this runout
+        let bestLow = Infinity, bestLowCount = 0;
+        const lowScores = new Array(players.length);
+        for (let p = 0; p < players.length; p++) {
+            lowScores[p] = bestOmahaLow8(players[p].holeCards, simBoard);
+            if (lowScores[p] < bestLow) { bestLow = lowScores[p]; bestLowCount = 1; }
+            else if (lowScores[p] === bestLow && bestLow !== Infinity) bestLowCount++;
+        }
+
+        const hasQualifyingLow = bestLow !== Infinity && bestLowCount > 0;
+        if (hasQualifyingLow) lowQualifiedRuns++;
+
+        for (let p = 0; p < players.length; p++) {
+            const hShare = highScores[p] === bestHigh ? (1 / bestHighCount) : 0;
+            const lShare = (hasQualifyingLow && lowScores[p] === bestLow) ? (1 / bestLowCount) : 0;
+            highShare[p] += hShare;
+            lowShare[p] += lShare;
+
+            const runTotalShare = hasQualifyingLow
+                ? (0.5 * hShare + 0.5 * lShare)
+                : hShare;
+            totalShare[p] += runTotalShare;
+
+            if (runTotalShare >= 0.999999) {
+                wins[p]++;
+                scoopCount[p]++;
+            } else if (runTotalShare > 0) {
+                ties[p]++;
+            }
         }
     }
+
+    const roundPct = (val) => Math.round((val / totalRuns) * 1000) / 10;
+    const equities = players.map((_, i) => roundPct(totalShare[i]));
+    const highEquities = players.map((_, i) => roundPct(highShare[i]));
+    const lowEquities = players.map((_, i) => (isHiLo ? roundPct(lowShare[i]) : 0));
+    const scoopRates = players.map((_, i) => roundPct(scoopCount[i]));
+
     return {
         boardSize: board.length,
+        hiLoSplit: isHiLo,
+        lowQualifiedRate: isHiLo ? roundPct(lowQualifiedRuns) : 0,
+        equities,
+        highEquities,
+        lowEquities,
+        scoopRates,
         players: players.map((p, i) => ({
             id: p.id,
-            equity: Math.round(((wins[i] + ties[i] / 2) / iterations) * 1000) / 10,
+            equity: equities[i],
+            highEquity: highEquities[i],
+            lowEquity: lowEquities[i],
+            scoopRate: scoopRates[i],
             wins: wins[i],
             ties: ties[i],
         })),
@@ -329,6 +431,16 @@ export default async function handler(req, res) {
           const result = calcEquity(validPlayers, boardCards, variant, iterations);
 
           let horseBrainAnalysis = null;
+          let plo8LowEvaluation = null;
+          if (variantSpec.isHiLo && typeof plo8Brain?.evaluatePLO8Low === 'function' && validPlayers[0]?.holeCards) {
+              try {
+                  const parsedHole = validPlayers[0].holeCards.map((c) => ({ rank: getRank(c), suit: getSuit(c) }));
+                  const parsedBoard = boardCards.map((c) => ({ rank: getRank(c), suit: getSuit(c) }));
+                  plo8LowEvaluation = plo8Brain.evaluatePLO8Low(parsedHole, parsedBoard);
+              } catch (_plo8Err) {
+                  plo8LowEvaluation = null;
+              }
+          }
           if (!variantSpec.isShortDeck && [0, 3, 4, 5].includes(boardCardStrings.length) && validPlayers[0]?.cardStrings) {
               try {
                   const street = boardCardStrings.length === 0
@@ -351,8 +463,8 @@ export default async function handler(req, res) {
                       facingBetBb: 0,
                   });
                   horseBrainAnalysis = {
-                      engineModule: evalResult.brainEvaluation.engineModule,
-                      variant: evalResult.brainEvaluation.variant,
+                      engineModule: variantSpec.isHiLo ? 'plo8-brain.js' : evalResult.brainEvaluation.engineModule,
+                      variant: variantSpec.key,
                       street: evalResult.brainEvaluation.street,
                       bettingStructure: evalResult.brainEvaluation.bettingStructure,
                       madeHandCategory: evalResult.madeHandCategory,
@@ -361,9 +473,20 @@ export default async function handler(req, res) {
                       recommendedAction: evalResult.correctAnswerText,
                       potLimitMaxBetBb: evalResult.brainEvaluation.potLimitMaxBetBb ?? evalResult.brainEvaluation.potLimitBounds?.maxPotBetOrRaise ?? null,
                       coachingSummary: evalResult.explanation,
+                      ...(variantSpec.isHiLo ? { hiLo: true, plo8LowEvaluation: evalResult.plo8LowEvaluation || plo8LowEvaluation } : {}),
                   };
               } catch (_brainErr) {
-                  horseBrainAnalysis = null;
+                  if (variantSpec.isHiLo) {
+                      horseBrainAnalysis = {
+                          engineModule: 'plo8-brain.js',
+                          variant: 'plo8',
+                          hiLo: true,
+                          bettingStructure: 'pot_limit',
+                          plo8LowEvaluation,
+                      };
+                  } else {
+                      horseBrainAnalysis = null;
+                  }
               }
           }
 
@@ -371,11 +494,20 @@ export default async function handler(req, res) {
               success: true,
               variant: variantSpec.key,
               holeCardsPerPlayer: variantSpec.holeCount,
+              hiLoSplit: Boolean(result.hiLoSplit),
+              equities: result.equities,
+              highEquities: result.highEquities,
+              lowEquities: result.lowEquities,
+              scoopRates: result.scoopRates,
+              ...(variantSpec.isHiLo ? { lowQualifiedRate: result.lowQualifiedRate, plo8LowEvaluation } : {}),
               heroEquity: result.players[0]?.equity ?? null,
               villainEquity: result.players[1]?.equity ?? null,
               results: result.players.map((p, i) => ({
                   hand: hands[i],
                   equity: p.equity,
+                  highEquity: p.highEquity,
+                  lowEquity: p.lowEquity,
+                  scoopRate: p.scoopRate,
                   wins: p.wins,
                   ties: p.ties,
               })),
