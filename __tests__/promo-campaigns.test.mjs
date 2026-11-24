@@ -16,6 +16,7 @@ import {
     parseLeadInput,
     renderPromoEmail,
     resolvePromoAudience,
+    verifyOperatorTestSignature,
 } from '../src/lib/promoCampaigns/dispatch.mjs';
 import { verifySvixSignature } from '../src/lib/email/svixSignature.mjs';
 import {
@@ -370,9 +371,11 @@ test('verifySvixSignature validates Resend bounce webhook signatures and rejects
     assert.equal(verifySvixSignature(rawBody, headers, '', nowMs), false);
 });
 
-test('promo sender routes use resendAccount.mjs and admin authorization guards', () => {
+test('promo sender routes use resendAccount.mjs and admin authorization guards', async () => {
     const dispatchSrc = read('src/lib/promoCampaigns/dispatch.mjs');
-    const apiSrc = read('pages/api/admin/promo-campaign.js');
+    const apiSrc = read('pages/api/news/promo-campaign.js');
+    const adminAliasSrc = read('pages/api/admin/promo-campaign.js');
+    const adminPageSrc = read('pages/admin/newsletter.js');
     const subscribeSrc = read('pages/api/news/subscribe.js');
 
     assert.match(dispatchSrc, /resendAccount\.mjs/);
@@ -380,7 +383,53 @@ test('promo sender routes use resendAccount.mjs and admin authorization guards',
     assert.match(apiSrc, /getServerUserWithFallback/);
     assert.match(apiSrc, /\['admin', 'superadmin', 'god'\]/);
     assert.doesNotMatch(apiSrc, /process\.env\.RESEND_API_KEY/);
+    assert.match(adminAliasSrc, /from '\.\.\/news\/promo-campaign'/);
+    assert.match(adminPageSrc, /\/api\/news\/promo-campaign/);
+    assert.doesNotMatch(adminPageSrc, /\/api\/admin\/promo-campaign/);
     assert.match(subscribeSrc, /source:\s*'unsubscribe'/);
+
+    const secret = 'test-signing-key-32-bytes-minimum';
+    const nowMs = 1_764_000_000_000;
+    const ts = String(Math.floor(nowMs / 1000));
+    const sig = crypto.createHmac('sha256', secret).update(`${ts}:test:ops@smarter.poker:+17082223333`).digest('hex');
+    assert.equal(
+        verifyOperatorTestSignature({
+            action: 'test',
+            testEmail: 'ops@smarter.poker',
+            testPhone: '+17082223333',
+            timestampHeader: ts,
+            signatureHeader: sig,
+            secret,
+            nowMs,
+        }),
+        true
+    );
+    assert.equal(
+        verifyOperatorTestSignature({
+            action: 'send',
+            testEmail: 'ops@smarter.poker',
+            testPhone: '+17082223333',
+            timestampHeader: ts,
+            signatureHeader: sig,
+            secret,
+            nowMs,
+        }),
+        false,
+        'full broadcast send is never permitted via operator test signature'
+    );
+    assert.equal(
+        verifyOperatorTestSignature({
+            action: 'test',
+            testEmail: 'ops@smarter.poker',
+            testPhone: '+17082223333',
+            timestampHeader: ts,
+            signatureHeader: sig,
+            secret,
+            nowMs: nowMs + 120_000,
+        }),
+        false,
+        'stale signatures past 90s are rejected'
+    );
 });
 
 test('signPromoSignupToken and verifyPromoSignupToken enforce HMAC authenticity and expiration', () => {
