@@ -242,12 +242,31 @@ export default function LiveHudSyncPage() {
   const [importFeedback, setImportFeedback] = useState(null);
   const [lookupHandId, setLookupHandId] = useState('');
   const [lookupStatus, setLookupStatus] = useState(null);
+  const [previewVariant, setPreviewVariant] = useState('nlh');
 
   const rankedHands = useMemo(() => scoreAndRankHandsClient(hands), [hands]);
   const topLeakHand = useMemo(
     () => rankedHands.find((h) => h.leakPriorityRank === 1) || rankedHands[0] || null,
     [rankedHands],
   );
+
+  const hudBrainPreview = useMemo(() => {
+    const activeVar = previewVariant || topLeakHand?.variant || 'nlh';
+    try {
+      return evaluateTrainingSpotWithHorseBrain({
+        variant: activeVar,
+        street: 'flop',
+        heroPosition: topLeakHand?.heroPosition || 'BTN',
+        heroCards: HERO_CARDS_BY_VARIANT[activeVar] || HERO_CARDS_BY_VARIANT.nlh,
+        boardCards: BOARD_CARDS.slice(0, 3),
+        potSizeBb: Number(topLeakHand?.potSizeBb || 12) || 12,
+        facingBetBb: 4,
+        effectiveStackBb: 100,
+      });
+    } catch (_) {
+      return null;
+    }
+  }, [previewVariant, topLeakHand]);
 
   const handleTrainTopImportedLeak = useCallback(() => {
     const target = topLeakHand || scoreAndRankHandsClient(PRESET_IMPORTED_HANDS)[0];
@@ -589,6 +608,10 @@ export default function LiveHudSyncPage() {
               {/* Top-Level 1-Click CTA for #1 Highest EV Leak */}
               {topLeakHand && (
                 <div
+                  data-specialty-brain-panel="true"
+                  data-brain-engine={hudBrainPreview?.engineModule || topLeakHand.brainSource || 'holdem-brain.js'}
+                  data-recommended-action={hudBrainPreview?.recommendedAction || topLeakHand.recommendedAction || 'Bet 75% Pot'}
+                  data-active-variant={previewVariant}
                   style={{
                     marginTop: 14,
                     padding: '14px 16px',
@@ -606,11 +629,34 @@ export default function LiveHudSyncPage() {
                       #1 Highest EV Leak Detected · Hand #{topLeakHand.id} ({String(topLeakHand.variant || 'nlh').toUpperCase()} · {String(topLeakHand.street || 'flop').toUpperCase()} · {topLeakHand.heroPosition || 'BTN'})
                     </div>
                     <div style={{ marginTop: 4, color: '#e2e8f0', fontSize: 12 }}>
-                      Est. EV Leak: <strong style={{ color: '#fca5a5' }}>-{topLeakHand.estimatedEvLossBb} BB</strong> · Horse Brain Action: <strong style={{ color: '#77f2b4' }}>{topLeakHand.recommendedAction}</strong> ({topLeakHand.brainSource})
+                      {`Est. EV Leak: -${topLeakHand.estimatedEvLossBb} BB · Horse Brain Action: ${hudBrainPreview?.recommendedAction || topLeakHand.recommendedAction} (${hudBrainPreview?.engineModule || topLeakHand.brainSource})`}
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                      {['nlh', 'plo4', 'plo5', 'plo6'].map((v) => (
+                        <button
+                          key={v}
+                          type="button"
+                          data-brain-variant-tab={v}
+                          onClick={() => setPreviewVariant(v)}
+                          style={{
+                            padding: '4px 10px',
+                            borderRadius: 6,
+                            fontSize: 12,
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            border: previewVariant === v ? '1px solid #fbbf24' : '1px solid rgba(251,191,36,.28)',
+                            background: previewVariant === v ? 'rgba(217,119,6,.36)' : 'rgba(15,23,42,.65)',
+                            color: previewVariant === v ? '#fffbeb' : '#cbd5e1',
+                          }}
+                        >
+                          {v.toUpperCase()}
+                        </button>
+                      ))}
                     </div>
                   </div>
                   <button
                     type="button"
+                    data-launch-club-arena-cta="true"
                     data-train-top-imported-leak="true"
                     onClick={handleTrainTopImportedLeak}
                     style={{
