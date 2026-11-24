@@ -10,7 +10,7 @@
 
 // TRAIN-CSS-TOKENS-BATCH5-9 - hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-DAILY-GOALS-A11Y-1 - semantic SVG icons and accessible daily goal plates
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -21,8 +21,27 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
+import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
+import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
 import casinoStyles from '../../../src/styles/training/daily-goals-casino.module.css';
+
+const HERO_CARDS_BY_VARIANT = {
+  nlh: ['As', 'Kd'],
+  plo4: ['As', 'Ks', 'Qh', 'Jh'],
+  plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
+  plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
+};
+
+const BOARD_CARDS = ['8d', '5c', '2s', '6h', '3d'];
+
+const BOARD_CARDS_BY_STREET = {
+  preflop: [],
+  flop: BOARD_CARDS.slice(0, 3),
+  turn: BOARD_CARDS.slice(0, 4),
+  river: BOARD_CARDS.slice(0, 5),
+};
 
 const ICON_PROPS = {
   fill: 'none',
@@ -150,7 +169,40 @@ export default function DailyGoalsPage() {
   const [dailyBonus, setDailyBonus] = useState(null);
   const [fetchError, setFetchError] = useState(null);
   const [signedOut, setSignedOut] = useState(false);
+  const [activeVariant, setActiveVariant] = useState('nlh');
+  const [heroPosition, setHeroPosition] = useState('BTN');
+  const [activeStreet, setActiveStreet] = useState('flop');
   const streakDays = Number(dailyBonus?.streakDays) || 0;
+
+  const brainEval = useMemo(() => {
+    const heroCards = HERO_CARDS_BY_VARIANT[activeVariant] || HERO_CARDS_BY_VARIANT.nlh;
+    const boardCards = BOARD_CARDS_BY_STREET[activeStreet] || BOARD_CARDS_BY_STREET.flop;
+    return evaluateTrainingSpotWithHorseBrain({
+      variant: activeVariant,
+      street: activeStreet,
+      heroCards,
+      boardCards,
+      heroPosition,
+      villainPosition: heroPosition === 'BB' ? 'BTN' : 'BB',
+      pot: activeStreet === 'preflop' ? 1.5 : 6.5,
+      toCall: activeStreet === 'preflop' ? 1 : 2.2,
+      effectiveStackBb: 100,
+    });
+  }, [activeVariant, activeStreet, heroPosition]);
+
+  const arenaHref = useMemo(
+    () =>
+      buildCustomTrainingArenaHref(
+        {
+          gameId: activeVariant === 'nlh' ? 'cash-002' : 'cash-005',
+          variant: activeVariant,
+          street: activeStreet,
+          position: heroPosition,
+        },
+        'daily-goals',
+      ),
+    [activeVariant, activeStreet, heroPosition],
+  );
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -245,8 +297,154 @@ export default function DailyGoalsPage() {
         </div>
 
         <div className={`sp-journey-main ${casinoStyles.main}`}>
+          {brainEval && (
+            <div
+              data-specialty-brain-panel="true"
+              data-brain-engine={brainEval.engineModule}
+              data-recommended-action={brainEval.correctAnswer}
+              data-active-variant={activeVariant}
+              data-hero-position={heroPosition}
+              className={casinoStyles.panel}
+              style={{
+                padding: '16px 18px',
+                marginBottom: 16,
+                border: '1px solid rgba(37, 200, 255, 0.35)',
+                background: 'rgba(6, 15, 24, 0.85)',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: 8,
+                  marginBottom: 12,
+                }}
+              >
+                <span style={{ fontSize: 13, fontWeight: 900, color: '#25c8ff', textTransform: 'uppercase' }}>
+                  Horse Brain Daily Goal Spot Preview
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#39d59b' }}>
+                  Engine: {brainEval.engineModule} | Recommended: {brainEval.correctAnswerText}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 12 }}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: '#8ca4b0', marginBottom: 4 }}>
+                    Variant
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {['nlh', 'plo4', 'plo5', 'plo6'].map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        data-variant-option={v}
+                        aria-pressed={activeVariant === v}
+                        onClick={() => setActiveVariant(v)}
+                        style={{
+                          padding: '6px 10px',
+                          borderRadius: 2,
+                          border: activeVariant === v ? '1px solid #25c8ff' : '1px solid rgba(255,255,255,0.16)',
+                          background: activeVariant === v ? 'rgba(37, 200, 255, 0.2)' : 'rgba(255,255,255,0.04)',
+                          color: activeVariant === v ? '#e8fbff' : '#cbd5e1',
+                          fontSize: 12,
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {v.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: '#8ca4b0', marginBottom: 4 }}>
+                    Position
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {['BTN', 'CO', 'SB', 'BB'].map((pos) => (
+                      <button
+                        key={pos}
+                        type="button"
+                        data-position-option={pos}
+                        aria-pressed={heroPosition === pos}
+                        onClick={() => setHeroPosition(pos)}
+                        style={{
+                          padding: '6px 10px',
+                          borderRadius: 2,
+                          border: heroPosition === pos ? '1px solid #39d59b' : '1px solid rgba(255,255,255,0.16)',
+                          background: heroPosition === pos ? 'rgba(57, 213, 155, 0.18)' : 'rgba(255,255,255,0.04)',
+                          color: heroPosition === pos ? '#39d59b' : '#cbd5e1',
+                          fontSize: 12,
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {pos}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: '#8ca4b0', marginBottom: 4 }}>
+                    Street
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {['preflop', 'flop', 'turn', 'river'].map((st) => (
+                      <button
+                        key={st}
+                        type="button"
+                        data-street-option={st}
+                        aria-pressed={activeStreet === st}
+                        onClick={() => setActiveStreet(st)}
+                        style={{
+                          padding: '6px 10px',
+                          borderRadius: 2,
+                          border: activeStreet === st ? '1px solid #f2b84b' : '1px solid rgba(255,255,255,0.16)',
+                          background: activeStreet === st ? 'rgba(242, 184, 75, 0.18)' : 'rgba(255,255,255,0.04)',
+                          color: activeStreet === st ? '#f2b84b' : '#cbd5e1',
+                          fontSize: 12,
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {st.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.55, marginBottom: 12 }}>
+                {brainEval.explanation}
+              </div>
+
+              <button
+                type="button"
+                data-launch-club-arena-cta="true"
+                onClick={() => router.push(arenaHref)}
+                style={{
+                  padding: '10px 14px',
+                  borderRadius: 2,
+                  border: '1px solid #25c8ff',
+                  background: 'rgba(37, 200, 255, 0.2)',
+                  color: '#fff',
+                  fontSize: 12,
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                }}
+              >
+                Launch Daily Goal Spot In Club Arena →
+              </button>
+            </div>
+          )}
+
           {loading && (
-            <div style={{ padding: '20px 0' }} role="status" aria-label="Loading daily goals">
+            <div style={{ padding: '20px 0' }} role="status" aria-label="Loading Daily Goals">
               <SkeletonLoader variant="rows" rows={4} />
             </div>
           )}
@@ -394,8 +592,22 @@ export default function DailyGoalsPage() {
               )}
 
               {/* Goals List */}
+              {(() => {
+                const goals = Array.isArray(data?.goals) ? data.goals : [];
+                if (goals.length === 0) {
+                  return (
+                    <TrainerEmptyState
+                      variant="no-data"
+                      title="No Daily Goals Found"
+                      message="Start A Verified Training Session To Populate Your Daily Challenges."
+                      compact
+                    />
+                  );
+                }
+                return null;
+              })()}
               <AnimatePresence>
-                {data.goals.map((g, i) => {
+                {(data.goals || []).map((g, i) => {
                   const isComplete = g.current >= g.target;
                   const percent = Math.min(100, (g.current / g.target) * 100);
                   return (

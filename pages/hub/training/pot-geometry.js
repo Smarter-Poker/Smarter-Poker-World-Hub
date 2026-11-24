@@ -11,7 +11,7 @@ const HERO_CARDS_BY_VARIANT = {
   nlh: ['As', 'Kd'],
   plo4: ['As', 'Ks', 'Qh', 'Jh'],
   plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
-  plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '4d'],
+  plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
 };
 
 const BOARD_CARDS = ['Kc', '4d', '4s'];

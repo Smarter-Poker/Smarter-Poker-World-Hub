@@ -71,21 +71,43 @@ PREMIUM_HANDS.forEach((h, i) => { PREFLOP_STRENGTH[h] = 95 - i * 2; });
 STRONG_HANDS.forEach((h, i) => { PREFLOP_STRENGTH[h] = 75 - i * 2; });
 PLAYABLE_HANDS.forEach((h, i) => { PREFLOP_STRENGTH[h] = 52 - i * 2; });
 
-function formatHandString(card1Str, card2Str) {
-    const r1 = RANKS.indexOf(card1Str[0]);
-    const r2 = RANKS.indexOf(card2Str[0]);
-    const s1 = card1Str[1];
-    const s2 = card2Str[1];
+function formatHandString(card1, card2) {
+    const toCardStr = (c) => {
+        if (typeof c === 'string') return c.trim();
+        if (c && typeof c === 'object' && typeof c.str === 'string' && c.str.length >= 2) return c.str.trim();
+        if (c && typeof c === 'object' && typeof c.rank === 'number') {
+            const rChar = c.rank <= 12 ? RANKS[c.rank] : RANKS[c.rank - 2];
+            const sChar = typeof c.suit === 'number' ? (SUITS[c.suit] || 'c') : String(c.suit || 'c')[0];
+            if (rChar && sChar) return `${rChar}${sChar}`;
+        }
+        return cardIntToString(c);
+    };
+    const c1 = toCardStr(card1);
+    const c2 = toCardStr(card2);
+    const r1 = RANKS.indexOf(c1[0] ? c1[0].toUpperCase() : '');
+    const r2 = RANKS.indexOf(c2[0] ? c2[0].toUpperCase() : '');
+    const s1 = c1[1] ? c1[1].toLowerCase() : '';
+    const s2 = c2[1] ? c2[1].toLowerCase() : '';
     const [highR, lowR] = r1 >= r2 ? [r1, r2] : [r2, r1];
-    const highRank = RANKS[highR];
-    const lowRank = RANKS[lowR];
+    const highRank = RANKS[highR] || '2';
+    const lowRank = RANKS[lowR] || '2';
     if (highR === lowR) return `${highRank}${lowRank}`;
     const suited = s1 === s2 ? 's' : 'o';
     return `${highRank}${lowRank}${suited}`;
 }
 
-function getPreflopStrength(handStr) {
-    return PREFLOP_STRENGTH[handStr] || 20;
+function getPreflopStrength(handInput) {
+    if (Array.isArray(handInput) && handInput.length >= 2) {
+        const notation = formatHandString(handInput[0], handInput[1]);
+        return PREFLOP_STRENGTH[notation] || 20;
+    }
+    if (typeof handInput === 'string') {
+        const trimmed = handInput.trim();
+        return PREFLOP_STRENGTH[trimmed]
+            || (trimmed.length === 4 ? PREFLOP_STRENGTH[formatHandString(trimmed.slice(0, 2), trimmed.slice(2, 4))] : undefined)
+            || 20;
+    }
+    return 20;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

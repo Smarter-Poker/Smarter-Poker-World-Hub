@@ -19,7 +19,25 @@ import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { normalizeScoreToPercent } from '../../../src/engines/GTOScoreEngine';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
+import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
 // TRAIN-WIRE-EMPTY-1a — adoption: shared empty-state primitive
+
+const HERO_CARDS_BY_VARIANT = {
+  nlh: ['As', 'Kd'],
+  plo4: ['As', 'Ks', 'Qh', 'Jh'],
+  plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
+  plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
+};
+
+const BOARD_CARDS = ['8d', '5c', '2s', '6h', '3d'];
+
+const BOARD_CARDS_BY_STREET = {
+  preflop: [],
+  flop: BOARD_CARDS.slice(0, 3),
+  turn: BOARD_CARDS.slice(0, 4),
+  river: BOARD_CARDS.slice(0, 5),
+};
 
 function nullableNumber(value) {
   if (value === null || value === undefined || value === '') return null;
@@ -600,6 +618,39 @@ export default function SessionDashboard() {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
   const [timeRange, setTimeRange] = useState('all'); // 'week' | 'month' | 'all'
+  const [activeVariant, setActiveVariant] = useState('nlh');
+  const [heroPosition, setHeroPosition] = useState('BTN');
+  const [activeStreet, setActiveStreet] = useState('flop');
+
+  const brainEval = useMemo(() => {
+    const heroCards = HERO_CARDS_BY_VARIANT[activeVariant] || HERO_CARDS_BY_VARIANT.nlh;
+    const boardCards = BOARD_CARDS_BY_STREET[activeStreet] || BOARD_CARDS_BY_STREET.flop;
+    return evaluateTrainingSpotWithHorseBrain({
+      variant: activeVariant,
+      street: activeStreet,
+      heroCards,
+      boardCards,
+      heroPosition,
+      villainPosition: heroPosition === 'BB' ? 'BTN' : 'BB',
+      pot: activeStreet === 'preflop' ? 1.5 : 6.5,
+      toCall: activeStreet === 'preflop' ? 1 : 2.2,
+      effectiveStackBb: 100,
+    });
+  }, [activeVariant, activeStreet, heroPosition]);
+
+  const arenaHref = useMemo(
+    () =>
+      buildCustomTrainingArenaHref(
+        {
+          gameId: activeVariant === 'nlh' ? 'cash-002' : 'cash-005',
+          variant: activeVariant,
+          street: activeStreet,
+          position: heroPosition,
+        },
+        'session-dashboard',
+      ),
+    [activeVariant, activeStreet, heroPosition],
+  );
 
   // Shared fetch function — used by initial load, retry button, and EventBus
   const fetchSessions = useCallback(async ({ silent = false } = {}) => {
@@ -806,6 +857,152 @@ export default function SessionDashboard() {
           {/* Error State */}
           <ErrorBanner message={fetchError} onRetry={() => { setLoading(true); fetchSessions(); }} />
 
+          {brainEval && (
+            <div
+              data-specialty-brain-panel="true"
+              data-brain-engine={brainEval.engineModule}
+              data-recommended-action={brainEval.correctAnswer}
+              data-active-variant={activeVariant}
+              data-hero-position={heroPosition}
+              style={{
+                marginBottom: 16,
+                padding: 18,
+                borderRadius: 12,
+                border: '1px solid rgba(0, 212, 255, 0.35)',
+                background: 'rgba(2, 6, 23, 0.78)',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: 8,
+                  marginBottom: 12,
+                }}
+              >
+                <span style={{ fontSize: 13, fontWeight: 900, color: 'var(--sp-accent-cyan)', textTransform: 'uppercase' }}>
+                  Horse Brain Session Dashboard Spot Preview
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-green)' }}>
+                  Engine: {brainEval.engineModule} | Recommended: {brainEval.correctAnswerText}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 12 }}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--sp-fg-dim)', marginBottom: 4 }}>
+                    Variant
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {['nlh', 'plo4', 'plo5', 'plo6'].map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        data-variant-option={v}
+                        aria-pressed={activeVariant === v}
+                        onClick={() => setActiveVariant(v)}
+                        style={{
+                          padding: '6px 10px',
+                          borderRadius: 6,
+                          border: activeVariant === v ? '1px solid #00d4ff' : '1px solid rgba(255,255,255,0.16)',
+                          background: activeVariant === v ? 'rgba(0, 212, 255, 0.2)' : 'rgba(255,255,255,0.04)',
+                          color: activeVariant === v ? '#e8fbff' : '#cbd5e1',
+                          fontSize: 12,
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {v.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--sp-fg-dim)', marginBottom: 4 }}>
+                    Position
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {['BTN', 'CO', 'SB', 'BB'].map((pos) => (
+                      <button
+                        key={pos}
+                        type="button"
+                        data-position-option={pos}
+                        aria-pressed={heroPosition === pos}
+                        onClick={() => setHeroPosition(pos)}
+                        style={{
+                          padding: '6px 10px',
+                          borderRadius: 6,
+                          border: heroPosition === pos ? '1px solid #22c55e' : '1px solid rgba(255,255,255,0.16)',
+                          background: heroPosition === pos ? 'rgba(34, 197, 94, 0.18)' : 'rgba(255,255,255,0.04)',
+                          color: heroPosition === pos ? '#86efac' : '#cbd5e1',
+                          fontSize: 12,
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {pos}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--sp-fg-dim)', marginBottom: 4 }}>
+                    Street
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {['preflop', 'flop', 'turn', 'river'].map((st) => (
+                      <button
+                        key={st}
+                        type="button"
+                        data-street-option={st}
+                        aria-pressed={activeStreet === st}
+                        onClick={() => setActiveStreet(st)}
+                        style={{
+                          padding: '6px 10px',
+                          borderRadius: 6,
+                          border: activeStreet === st ? '1px solid #fbbf24' : '1px solid rgba(255,255,255,0.16)',
+                          background: activeStreet === st ? 'rgba(251, 191, 36, 0.18)' : 'rgba(255,255,255,0.04)',
+                          color: activeStreet === st ? '#fde68a' : '#cbd5e1',
+                          fontSize: 12,
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {st.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.55, marginBottom: 12 }}>
+                {brainEval.explanation}
+              </div>
+
+              <button
+                type="button"
+                data-launch-club-arena-cta="true"
+                onClick={() => router.push(arenaHref)}
+                style={{
+                  padding: '9px 16px',
+                  borderRadius: 8,
+                  border: '1px solid #00d4ff',
+                  background: 'rgba(0, 212, 255, 0.18)',
+                  color: '#fff',
+                  fontSize: 12,
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                }}
+              >
+                Launch Calibrated Spot In Club Arena →
+              </button>
+            </div>
+          )}
+
           {loading ? (
             <div style={{ marginTop: 24 }}>
               <DashboardSkeleton />
@@ -945,8 +1142,8 @@ export default function SessionDashboard() {
                   {filteredSessions.length === 0 ? (
                     <TrainerEmptyState
                       variant="no-data"
-                      title="No sessions yet"
-                      message="Start training to see your progress here."
+                      title="No Sessions Yet"
+                      message="Start Training To See Your Progress Here."
                       compact
                     />
                   ) : (

@@ -8,7 +8,7 @@
  * ~85 functions, ~6100 lines
  */
 
-const { getHash, getAdvancedModule, getPersonalityModule, chatMessages, RANK_ORDER, parseCards } = require('./core');
+const { getHash, getAdvancedModule, getPersonalityModule, chatMessages, RANK_ORDER, parseCard, parseCards } = require('./core');
 const { getStreetMemory, analyzeStreetNarrative, recordStreetAction, applyMultiwayEquityDiscount,
         getOOPPositionalGuard, evaluateDonkBet, detectReverseImplied,
         detectNutBiasExploitBoard, reevaluatePLORunoutEquity } = require('./anti-exploit');
@@ -164,9 +164,22 @@ function classifyPLOPreflop(cards) {
  * @param {number[]} boardRanks - Board card rank values
  * @returns {{ outs: number, type: string, hasNutStraightDraw: boolean }}
  */
-function countStraightOuts(holeRanks, boardRanks) {
-    const allRanks = [...holeRanks, ...boardRanks];
-    const maxBoardRank = Math.max(...boardRanks, 0);
+function countStraightOuts(holeInput, boardInput) {
+    const toRankInt = (item) => {
+        if (typeof item === 'number' && Number.isFinite(item)) return item;
+        if (item && typeof item === 'object' && Number.isFinite(item.rank)) return item.rank;
+        if (typeof item === 'string') {
+            const parsed = parseCard(item);
+            if (parsed && Number.isFinite(parsed.rank)) return parsed.rank;
+        }
+        return null;
+    };
+    const normHoleRanks = (Array.isArray(holeInput) ? holeInput : []).map(toRankInt).filter((r) => r !== null);
+    const normBoardRanks = (Array.isArray(boardInput) ? boardInput : []).map(toRankInt).filter((r) => r !== null);
+    const holeRanks = normHoleRanks;
+    const boardRanks = normBoardRanks;
+    const allRanks = [...normHoleRanks, ...normBoardRanks];
+    const maxBoardRank = Math.max(...normBoardRanks, 0);
     let bestOuts = 0;
     let bestType = 'none';
     let hasNutDraw = false;
