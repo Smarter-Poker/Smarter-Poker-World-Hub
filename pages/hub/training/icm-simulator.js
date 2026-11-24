@@ -16,7 +16,17 @@ import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { authedFetch } from '../../../src/lib/authUtils';
-import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
+import {
+  evaluateTrainingSpotWithHorseBrain,
+  buildCustomTrainingArenaHref,
+} from '../../../src/lib/training/horseBrainTrainingAdapter';
+
+const ICM_SIM_HERO_CARDS_BY_VARIANT = {
+  nlh: ['Ad', 'Js'],
+  plo4: ['Ad', 'Kd', 'Qs', 'Js'],
+  plo5: ['Ad', 'Kd', 'Qs', 'Js', 'Th'],
+  plo6: ['Ad', 'Kd', 'Qs', 'Js', 'Th', '9h'],
+};
 
 export default function IcmSimulatorPage() {
   const router = useRouter();
@@ -33,6 +43,7 @@ export default function IcmSimulatorPage() {
   const [equities, setEquities] = useState([]);
   const [calculating, setCalculating] = useState(false);
   const [calculationError, setCalculationError] = useState('');
+  const [icmVariant, setIcmVariant] = useState('nlh');
 
 
 
@@ -95,8 +106,8 @@ export default function IcmSimulatorPage() {
       );
       return evaluateTrainingSpotWithHorseBrain({
         gameId: 'mtt-001',
-        variant: 'nlh',
-        heroCards: ['Ad', 'Js'],
+        variant: icmVariant,
+        heroCards: ICM_SIM_HERO_CARDS_BY_VARIANT[icmVariant] || ICM_SIM_HERO_CARDS_BY_VARIANT.nlh,
         boardCards: [],
         street: 'preflop',
         pot: 2.5,
@@ -115,7 +126,22 @@ export default function IcmSimulatorPage() {
     } catch {
       return null;
     }
-  }, [heroStackBb, payouts, stacks]);
+  }, [heroStackBb, payouts, stacks, icmVariant]);
+
+  const icmArenaHref = React.useMemo(
+    () =>
+      buildCustomTrainingArenaHref(
+        {
+          format: 'mtt',
+          variant: icmVariant,
+          streets: ['preflop'],
+          positions: ['CO'],
+          stackDepth: heroStackBb,
+        },
+        'icm-simulator',
+      ),
+    [icmVariant, heroStackBb],
+  );
 
   return (
     <>
@@ -473,8 +499,10 @@ export default function IcmSimulatorPage() {
 
               {icmBrainEval && (
                 <div
+                  data-specialty-brain-panel="true"
                   data-icm-brain-panel="true"
                   data-brain-engine={icmBrainEval.brainEvaluation?.engineModule || icmBrainEval.engineModule}
+                  data-recommended-action={icmBrainEval.recommendedAction || icmBrainEval.correctAnswerText || 'Call'}
                   style={{
                     marginTop: 20,
                     padding: 16,
@@ -488,16 +516,40 @@ export default function IcmSimulatorPage() {
                       Horse Brain ICM Pressure Guidance
                     </span>
                     <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-amber)' }}>
-                      Hero Depth: {heroStackBb} BB · Engine: {icmBrainEval.brainEvaluation?.engineModule || icmBrainEval.engineModule}
+                      {`Hero Depth: ${heroStackBb} BB · Engine: ${icmBrainEval.brainEvaluation?.engineModule || icmBrainEval.engineModule}`}
                     </span>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                    {['nlh', 'plo4', 'plo5', 'plo6'].map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        data-brain-variant-tab={v}
+                        onClick={() => setIcmVariant(v)}
+                        style={{
+                          padding: '4px 10px',
+                          borderRadius: 6,
+                          fontSize: 12,
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          border: icmVariant === v ? '1px solid rgba(56, 189, 248, 0.7)' : '1px solid rgba(255,255,255,0.12)',
+                          background: icmVariant === v ? 'rgba(56, 189, 248, 0.24)' : 'rgba(255,255,255,0.04)',
+                          color: icmVariant === v ? '#e0f2fe' : 'var(--sp-fg-muted)',
+                        }}
+                      >
+                        {v.toUpperCase()}
+                      </button>
+                    ))}
                   </div>
                   <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.5 }}>
                     {icmBrainEval.explanation || icmBrainEval.coachingExplanation}
                   </p>
                   <button
                     type="button"
+                    data-launch-club-arena-cta="true"
                     data-launch-icm-arena="true"
-                    onClick={() => router.push('/hub/training/arena/mtt-001?level=1')}
+                    data-launch-href={icmArenaHref}
+                    onClick={() => router.push(icmArenaHref)}
                     style={{
                       padding: '8px 14px',
                       borderRadius: 8,

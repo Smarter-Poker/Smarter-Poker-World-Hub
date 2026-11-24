@@ -877,6 +877,9 @@ import './trivia-integrity-elo-horse.test.mjs';
 import './trivia-study-pool-curation.test.mjs';
 import './trivia-v3-ops-burnin.test.mjs';
 import './trivia-realtime-social-growth.test.mjs';
+import './trivia-pvp-realtime-duel.test.mjs';
+import './trivia-ops-alerts-reminders.test.mjs';
+import './trivia-club-nights.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
     const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');

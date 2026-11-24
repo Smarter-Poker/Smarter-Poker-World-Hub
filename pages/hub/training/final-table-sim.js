@@ -10,7 +10,17 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
+import {
+  evaluateTrainingSpotWithHorseBrain,
+  buildCustomTrainingArenaHref,
+} from '../../../src/lib/training/horseBrainTrainingAdapter';
+
+const FTS_HERO_CARDS_BY_VARIANT = {
+  nlh: ['Ah', 'Qs'],
+  plo4: ['Ah', 'Kh', 'Qs', 'Js'],
+  plo5: ['Ah', 'Kh', 'Qs', 'Js', 'Td'],
+  plo6: ['Ah', 'Kh', 'Qs', 'Js', 'Td', '9d'],
+};
 
 // BUG FIX (TRAIN-FTS-A11Y-1): SVG back-arrow + button hardening for the
 // final-table simulator. Page was already emoji-free in rendered output.
@@ -50,6 +60,7 @@ export default function FinalTableSimulator() {
   const [calculating, setCalculating] = useState(true);
   const [calculationError, setCalculationError] = useState('');
   const [showDealProposal, setShowDealProposal] = useState(false);
+  const [ftVariant, setFtVariant] = useState('nlh');
 
   const totalChips = players.reduce((sum, p) => sum + (Number(p.stack) || 0), 0) || 1;
   const heroPlayer = players.find((p) => p.name === 'Hero') || players[0];
@@ -74,8 +85,8 @@ export default function FinalTableSimulator() {
         : Number(Math.max(1.08, Math.min(2.45, baseBf + payoutSkewAdjust + icmPremiumAdjust)).toFixed(2));
       return evaluateTrainingSpotWithHorseBrain({
         gameId: 'mtt-004',
-        variant: 'nlh',
-        heroCards: ['Ah', 'Qs'],
+        variant: ftVariant,
+        heroCards: FTS_HERO_CARDS_BY_VARIANT[ftVariant] || FTS_HERO_CARDS_BY_VARIANT.nlh,
         boardCards: [],
         street: 'preflop',
         pot: 2.5,
@@ -94,7 +105,22 @@ export default function FinalTableSimulator() {
     } catch {
       return null;
     }
-  }, [heroBbEquivalent, payouts, icmResults]);
+  }, [heroBbEquivalent, payouts, icmResults, ftVariant]);
+
+  const ftArenaHref = React.useMemo(
+    () =>
+      buildCustomTrainingArenaHref(
+        {
+          format: 'mtt',
+          variant: ftVariant,
+          streets: ['preflop'],
+          positions: ['BTN'],
+          stackDepth: heroBbEquivalent,
+        },
+        'final-table-sim',
+      ),
+    [ftVariant, heroBbEquivalent],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -286,8 +312,10 @@ export default function FinalTableSimulator() {
 
               {icmBrainEval && (
                 <div
+                  data-specialty-brain-panel="true"
                   data-icm-brain-panel="true"
                   data-brain-engine={icmBrainEval.brainEvaluation?.engineModule || icmBrainEval.engineModule}
+                  data-recommended-action={icmBrainEval.recommendedAction || icmBrainEval.correctAnswerText || 'Call'}
                   style={{
                     marginTop: 20,
                     padding: 16,
@@ -298,19 +326,43 @@ export default function FinalTableSimulator() {
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
                     <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-accent-cyan)' }}>
-                      Horse Brain & Tournament Brain Tactical Readout
+                      Horse Brain &amp; Tournament Brain Tactical Readout
                     </span>
                     <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-amber)' }}>
-                      Hero Depth: {heroBbEquivalent} BB · Engine: {icmBrainEval.brainEvaluation?.engineModule || icmBrainEval.engineModule}
+                      {`Hero Depth: ${heroBbEquivalent} BB · Engine: ${icmBrainEval.brainEvaluation?.engineModule || icmBrainEval.engineModule}`}
                     </span>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                    {['nlh', 'plo4', 'plo5', 'plo6'].map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        data-brain-variant-tab={v}
+                        onClick={() => setFtVariant(v)}
+                        style={{
+                          padding: '4px 10px',
+                          borderRadius: 6,
+                          fontSize: 12,
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          border: ftVariant === v ? '1px solid rgba(56, 189, 248, 0.7)' : '1px solid rgba(255,255,255,0.12)',
+                          background: ftVariant === v ? 'rgba(56, 189, 248, 0.24)' : 'rgba(255,255,255,0.04)',
+                          color: ftVariant === v ? '#e0f2fe' : 'var(--sp-fg-muted)',
+                        }}
+                      >
+                        {v.toUpperCase()}
+                      </button>
+                    ))}
                   </div>
                   <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.5 }}>
                     {icmBrainEval.explanation || icmBrainEval.coachingExplanation}
                   </p>
                   <button
                     type="button"
+                    data-launch-club-arena-cta="true"
                     data-launch-ft-arena="true"
-                    onClick={() => router.push('/hub/training/arena/mtt-004?level=1')}
+                    data-launch-href={ftArenaHref}
+                    onClick={() => router.push(ftArenaHref)}
                     style={{
                       padding: '8px 14px',
                       borderRadius: 8,

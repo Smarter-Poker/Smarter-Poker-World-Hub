@@ -17,6 +17,31 @@ function serviceClient() {
     return cachedServiceClient;
 }
 
+function buildPvpHandoff(challenge, existingHandoff = null) {
+    if (!challenge || typeof challenge !== 'object') return existingHandoff || null;
+    const challengeCode = String(
+        existingHandoff?.challengeCode || challenge.challengeCode || '',
+    ).trim().toUpperCase();
+    const stakeAmount = Number(existingHandoff?.stake ?? challenge.stakeAmount);
+    if (!CODE_RE.test(challengeCode) || !Number.isInteger(stakeAmount) || !ALLOWED_STAKES.has(stakeAmount)) {
+        return existingHandoff || null;
+    }
+    return {
+        ...(existingHandoff && typeof existingHandoff === 'object' ? existingHandoff : {}),
+        stake: stakeAmount,
+        stakeAmount,
+        challengeCode,
+        challengeId: existingHandoff?.challengeId || challenge.id || null,
+        matchId: existingHandoff?.matchId || challenge.matchId || null,
+        quoteEndpoint: existingHandoff?.quoteEndpoint || '/api/trivia/pvp/quote',
+        joinEndpoint: existingHandoff?.joinEndpoint || '/api/trivia/pvp/join',
+        requiresServerQuote: true,
+        route: existingHandoff?.route
+            || `/hub/trivia/pvp?challenge=${encodeURIComponent(challengeCode)}&stake=${stakeAmount}`,
+        guidance: 'Review Your Server-Quoted Stake And Join The Matched 1v1 Queue.',
+    };
+}
+
 function errorStatus(code) {
     switch (code) {
         case 'authentication_required': return 401;
@@ -71,7 +96,13 @@ export default async function handler(req, res) {
                     const code = data?.error || 'challenge_not_found';
                     return res.status(errorStatus(code)).json({ success: false, error: code });
                 }
-                return res.status(200).json(data);
+                const pvpHandoff = buildPvpHandoff(data.challenge, data.pvpHandoff);
+                return res.status(200).json({
+                    ...data,
+                    challengeCode: data.challenge?.challengeCode || rawCode,
+                    stakeAmount: data.challenge?.stakeAmount ?? null,
+                    pvpHandoff,
+                });
             }
 
             if (authError || !user?.id) {
@@ -141,6 +172,15 @@ export default async function handler(req, res) {
             if (!data || data.success !== true) {
                 const code = data?.error || `challenge_${action}_failed`;
                 return res.status(errorStatus(code)).json({ success: false, error: code });
+            }
+            if (action === 'accept') {
+                const pvpHandoff = buildPvpHandoff(data.challenge, data.pvpHandoff);
+                return res.status(200).json({
+                    ...data,
+                    challengeCode: data.challenge?.challengeCode || challengeCode,
+                    stakeAmount: data.challenge?.stakeAmount ?? pvpHandoff?.stakeAmount ?? null,
+                    pvpHandoff,
+                });
             }
             return res.status(200).json(data);
         }

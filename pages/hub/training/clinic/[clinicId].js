@@ -1,8 +1,9 @@
-import { useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 import { getClinicById } from '../../../../src/data/TRAINING_CLINICS';
+import { evaluateTrainingSpotWithHorseBrain, buildCustomTrainingArenaHref } from '../../../../src/lib/training/horseBrainTrainingAdapter';
 
 // Each remediation clinic now launches a real catalog drill whose answers are
 // graded by the same deterministic engine as the 107-game training library.
@@ -45,6 +46,21 @@ export default function ClinicPlayPage() {
   const clinic = useMemo(() => (clinicId ? getClinicById(clinicId) : null), [clinicId]);
   const gameId = CLINIC_GAME_MAP[clinicId];
 
+  const [brainVariant, setBrainVariant] = useState('nlh');
+  const brainPreview = useMemo(() => {
+    return evaluateTrainingSpotWithHorseBrain({
+      variant: brainVariant,
+      street: 'flop',
+      heroPosition: 'BTN',
+      villainPosition: 'BB',
+      heroCards: brainVariant === 'plo6' ? ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'] : brainVariant === 'plo5' ? ['As', 'Ks', 'Qh', 'Jh', 'Td'] : brainVariant === 'plo4' ? ['As', 'Ks', 'Qh', 'Jh'] : ['As', 'Kd'],
+      boardCards: ['Qs', '7d', '2c'],
+      potSizeBb: 12,
+      facingBetBb: 4,
+      effectiveStackBb: 100,
+    });
+  }, [brainVariant]);
+
   useEffect(() => {
     if (!router.isReady || !clinic || !gameId) return;
     router.replace({
@@ -72,6 +88,62 @@ export default function ClinicPlayPage() {
             <a href={href} style={{ display: 'inline-flex', minHeight: 48, alignItems: 'center', padding: '0 20px', marginTop: 24, border: '1px solid #a5efff', background: 'linear-gradient(180deg, #2a6077, #07131d)', color: '#fff', fontWeight: 900, textDecoration: 'none' }}>
               {clinic && gameId ? 'Continue To Verified Drill →' : 'Return To Training Hub →'}
             </a>
+
+            <div
+              data-specialty-brain-panel="true"
+              data-brain-engine={brainPreview?.engineModule || 'holdem-brain.js'}
+              data-recommended-action={brainPreview?.recommendedAction || 'Call'}
+              style={{
+                marginTop: 28,
+                padding: 18,
+                border: '1px solid rgba(105,207,244,.32)',
+                background: 'rgba(6, 16, 26, 0.85)',
+              }}
+            >
+              <div style={{ color: '#79e6ff', fontSize: 12, fontWeight: 900, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                Horse Brain Clinic Calibration
+              </div>
+              <div style={{ marginTop: 6, color: '#e6f6ff', fontSize: 14, fontWeight: 800 }}>
+                Recommended Action: {brainPreview?.recommendedAction || 'Call'} · Score: {brainPreview?.handScore ?? 50} / 100
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginTop: 14 }}>
+                {['nlh', 'plo4', 'plo5', 'plo6'].map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    data-brain-variant-tab={v}
+                    onClick={() => setBrainVariant(v)}
+                    style={{
+                      padding: '6px 12px',
+                      border: brainVariant === v ? '1px solid #79e6ff' : '1px solid rgba(255,255,255,0.2)',
+                      background: brainVariant === v ? 'rgba(14,116,144,0.5)' : 'rgba(255,255,255,0.06)',
+                      color: '#fff',
+                      fontSize: 12,
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {v.toUpperCase()}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  data-launch-club-arena-cta="true"
+                  onClick={() => router.push(buildCustomTrainingArenaHref({ format: 'cash', variant: brainVariant, streets: ['flop'], positions: ['BTN'], stackDepth: 100 }, 'clinic'))}
+                  style={{
+                    padding: '8px 14px',
+                    border: '1px solid #a5efff',
+                    background: 'linear-gradient(180deg, #2a6077, #07131d)',
+                    color: '#fff',
+                    fontSize: 12,
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Launch 1:1 Club Arena Drill
+                </button>
+              </div>
+            </div>
           </div>
         </section>
       </main>

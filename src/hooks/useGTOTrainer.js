@@ -33,6 +33,95 @@ import {
 
 const trainingFetch = createBoundedTrainingFetch(authedFetch);
 
+const RECORD_OUTBOX_STORAGE_KEY = 'sp_training_record_outbox';
+const RECORD_OUTBOX_MAX_ENTRIES = 25;
+
+function readFailedAnswerOutbox() {
+  if (typeof sessionStorage === 'undefined') return [];
+  try {
+    const raw = sessionStorage.getItem(RECORD_OUTBOX_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parsed.filter((item) => item && typeof item === 'object' && item.submissionId);
+    }
+    if (parsed && typeof parsed === 'object') {
+      return Object.values(parsed).filter((item) => item && typeof item === 'object' && item.submissionId);
+    }
+    return [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function writeFailedAnswerOutbox(entries) {
+  if (typeof sessionStorage === 'undefined') return;
+  try {
+    const valid = (Array.isArray(entries) ? entries : [])
+      .filter((item) => item && typeof item === 'object' && item.submissionId)
+      .slice(-RECORD_OUTBOX_MAX_ENTRIES);
+    if (valid.length === 0) {
+      sessionStorage.removeItem(RECORD_OUTBOX_STORAGE_KEY);
+    } else {
+      sessionStorage.setItem(RECORD_OUTBOX_STORAGE_KEY, JSON.stringify(valid));
+    }
+  } catch (_) {
+    /* ignore storage quota errors */
+  }
+}
+
+export function enqueueFailedAnswerOutbox(submissionPayload) {
+  if (!submissionPayload || typeof submissionPayload !== 'object' || !submissionPayload.submissionId) {
+    return [];
+  }
+  const existing = readFailedAnswerOutbox();
+  const deduped = existing.filter(
+    (entry) => String(entry.submissionId) !== String(submissionPayload.submissionId),
+  );
+  const next = [
+    ...deduped,
+    {
+      ...submissionPayload,
+      queuedAt: Date.now(),
+    },
+  ].slice(-RECORD_OUTBOX_MAX_ENTRIES);
+  writeFailedAnswerOutbox(next);
+  return next;
+}
+
+export async function flushFailedAnswerOutbox(trainingFetchFn = trainingFetch) {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return { flushed: 0, remaining: readFailedAnswerOutbox().length };
+  }
+  const queue = readFailedAnswerOutbox();
+  if (queue.length === 0) return { flushed: 0, remaining: 0 };
+
+  const remaining = [];
+  let flushed = 0;
+
+  for (const item of queue) {
+    try {
+      const response = await trainingFetchFn('/api/training/record-question', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(item),
+      });
+      if (response.ok || (response.status >= 400 && response.status < 500 && response.status !== 429)) {
+        flushed += 1;
+      } else {
+        remaining.push(item);
+      }
+    } catch (_) {
+      remaining.push(item);
+    }
+  }
+
+  writeFailedAnswerOutbox(remaining);
+  return { flushed, remaining: remaining.length };
+}
+
 /**
  * roadmap #3 — GAME MODE.
  * GTO Wizard offers Full Hand (play the hand out across streets), Spot (a
@@ -984,6 +1073,9 @@ export default function useGTOTrainer(
         if (trainerConfig.spotType) {
           params.set('spotType', trainerConfig.spotType);
         }
+        if (trainerConfig.variant && ['nlh', 'plo4', 'plo5', 'plo6'].includes(String(trainerConfig.variant).toLowerCase())) {
+          params.set('variant', String(trainerConfig.variant).toLowerCase());
+        }
         apiUrl = `/api/training/custom-train?${params}`;
         console.debug(`[GTOTrainer] Custom trainer: ${trainerConfig.label || 'custom config'}`);
       } else {
@@ -1327,34 +1419,67 @@ export default function useGTOTrainer(
       }
 
       const { questionId, selectedAnswer } = submission;
+      const submissionPayload = {
+        userId,
+        gameId,
+        questionId,
+        policyChecksum: submission.policyChecksum || null,
+        submissionId: submission.submissionId,
+        sessionId: submission.sessionId,
+        attemptId: submission.attemptId,
+        snapshotKey: submission.snapshotKey,
+        sessionKind: submission.sessionKind,
+        sessionTargetHands: submission.sessionTargetHands,
+        handOrdinal: submission.handOrdinal,
+        decisionOrdinal: submission.decisionOrdinal,
+        countsTowardCompletion: submission.countsTowardCompletion,
+        practiceOnly: submission.practiceOnly,
+        gradingReceipt: submission.gradingReceipt,
+        selectedAnswer,
+        gradingMode: submission.gradingMode,
+        rng: submission.rng,
+      };
+      let lastNetworkFailure = false;
       try {
         for (let attempt = 0; attempt < 3; attempt++) {
-          const response = await trainingFetch('/api/training/record-question', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              userId,
-              gameId,
-              questionId,
-              policyChecksum: submission.policyChecksum || null,
-              submissionId: submission.submissionId,
-              sessionId: submission.sessionId,
-              attemptId: submission.attemptId,
-              snapshotKey: submission.snapshotKey,
-              sessionKind: submission.sessionKind,
-              sessionTargetHands: submission.sessionTargetHands,
-              handOrdinal: submission.handOrdinal,
-              decisionOrdinal: submission.decisionOrdinal,
-              countsTowardCompletion: submission.countsTowardCompletion,
-              practiceOnly: submission.practiceOnly,
-              gradingReceipt: submission.gradingReceipt,
-              selectedAnswer,
-              gradingMode: submission.gradingMode,
-              rng: submission.rng,
-            }),
-          });
+          let response;
+          try {
+            response = await trainingFetch('/api/training/record-question', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                userId,
+                gameId,
+                questionId,
+                policyChecksum: submission.policyChecksum || null,
+                submissionId: submission.submissionId,
+                sessionId: submission.sessionId,
+                attemptId: submission.attemptId,
+                snapshotKey: submission.snapshotKey,
+                sessionKind: submission.sessionKind,
+                sessionTargetHands: submission.sessionTargetHands,
+                handOrdinal: submission.handOrdinal,
+                decisionOrdinal: submission.decisionOrdinal,
+                countsTowardCompletion: submission.countsTowardCompletion,
+                practiceOnly: submission.practiceOnly,
+                gradingReceipt: submission.gradingReceipt,
+                selectedAnswer,
+                gradingMode: submission.gradingMode,
+                rng: submission.rng,
+              }),
+            });
+          } catch (networkErr) {
+            lastNetworkFailure = true;
+            if (attempt === 2) {
+              enqueueFailedAnswerOutbox(submissionPayload);
+              throw networkErr;
+            }
+            await new Promise((resolve) => setTimeout(resolve, 250 * (2 ** attempt)));
+            continue;
+          }
+          lastNetworkFailure = false;
           if (response.ok) {
             const payload = await response.json().catch(() => ({}));
             assertRecordedAnswerAcknowledgement(payload, submission);
@@ -1362,6 +1487,7 @@ export default function useGTOTrainer(
             if (!serverEvidence || !payload?.feedback || typeof serverEvidence.isCorrect !== 'boolean') {
               throw new Error('The Training server did not return an authoritative verdict and feedback reveal.');
             }
+            void flushFailedAnswerOutbox(trainingFetch);
             return {
               ok: true,
               evidence: serverEvidence,
@@ -1386,11 +1512,15 @@ export default function useGTOTrainer(
           }
           const retryable = response.status === 429 || response.status >= 500;
           if (!retryable || attempt === 2) {
+            if (retryable) lastNetworkFailure = true;
             throw new Error(detail || `Answer persistence failed (${response.status})`);
           }
           await new Promise(resolve => setTimeout(resolve, 250 * (2 ** attempt)));
         }
       } catch (err) {
+        if (lastNetworkFailure) {
+          enqueueFailedAnswerOutbox(submissionPayload);
+        }
         console.warn('[Training] Answer evidence was not persisted:', err?.message || err);
         return { ok: false, error: err?.message || 'Answer persistence failed' };
       }
@@ -3149,6 +3279,15 @@ export default function useGTOTrainer(
     sessionConfigContractKey,
     showFeedback,
   ]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const handleOnlineFlush = () => {
+      void flushFailedAnswerOutbox(trainingFetch);
+    };
+    window.addEventListener('online', handleOnlineFlush);
+    return () => window.removeEventListener('online', handleOnlineFlush);
+  }, []);
 
   return {
     // Current state
