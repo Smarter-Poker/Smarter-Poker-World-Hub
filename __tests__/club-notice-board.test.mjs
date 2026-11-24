@@ -57,11 +57,45 @@ test('realtime timezone suffixes and microseconds preserve chronological UUID or
 test('create retries use the same canonical text and pin state as persistence without mutating input', () => {
  const payload={id,content:'  Club Notice  ',status:'notice',is_pinned:true};
  const first=validateNoticeRequest('PUT',{clubId,payload});
- assert.deepEqual(first.payload,{id,content:'Club Notice',status:'notice',is_pinned:false});
+ assert.deepEqual(first.payload,{id,content:'Club Notice',status:'notice',is_pinned:true});
  assert.deepEqual(payload,{id,content:'  Club Notice  ',status:'notice',is_pinned:true});
  assert.deepEqual(validateNoticeRequest('PUT',{clubId,payload:{...payload}}).payload,first.payload);
+ const paid=validateNoticeRequest('PUT',{clubId,payload:{...payload,status:'paid',is_pinned:true}});
+ assert.equal(paid.payload.is_pinned,false);
  const payout=validateNoticeRequest('PUT',{clubId,payload:{...payload,status:'pending_payout'}});
  assert.equal(payout.payload.is_pinned,true);
+});
+
+test('noticePage preserves staff roster, role counts, overdue payouts and Telegram-style summary', async () => {
+ const { formatMemberSummary, pinnedNotices } = await import('../src/lib/clubNoticeBoard.mjs');
+ const rows = [{ id, created_at: '2026-11-24T12:00:00Z', status: 'notice', is_pinned: true, is_deleted: false, version: 1, author_name: 'KingFish', author_role: 'owner' }];
+ const page = noticePage({
+  rows,
+  pinned: rows,
+  canManage: true,
+  viewerRole: 'owner',
+  memberCount: 55,
+  roleCounts: { owner: 1, co_owner: 1, admin: 2, super_agent: 40, agent: 10, sub_agent: 1, management: 4, agents: 51, online: 3, total: 55 },
+  members: [{ user_id: id, display_name: 'KingFish', username: 'kingfish', role: 'owner', is_online: true }],
+  overduePayouts: [{ cashout_id: clubId, player_name: 'Breezy', agent_name: 'Probyourmom', amount: '200.00', hours_pending: 6 }],
+ });
+ assert.equal(page.memberCount, 55);
+ assert.equal(page.roleCounts.agents, 51);
+ assert.equal(page.roleCounts.management, 4);
+ assert.equal(page.members.length, 1);
+ assert.equal(page.overduePayouts.length, 1);
+ assert.equal(formatMemberSummary(page.roleCounts, page.memberCount), '55 Members · 4 Admins · 51 Agents · 3 Online');
+ assert.equal(pinnedNotices([...rows, { ...rows[0], id: clubId, status: 'paid', is_pinned: true }]).length, 1);
+ const merged = mergeNotices(rows, [{ id, created_at: '2026-11-24T12:00:00Z', status: 'notice', is_pinned: false, is_deleted: false, version: 2 }]);
+ assert.equal(merged[0].author_name, 'KingFish');
+ assert.equal(merged[0].author_role, 'owner');
+});
+
+test('overdue cashout notifications route to club Notice Board and respect cashier push prefs', async () => {
+ const { resolveNotificationRoute } = await import('../src/lib/notificationRoute.js');
+ const { eventToTypeKey } = await import('../src/lib/push/push-prefs.js');
+ assert.equal(resolveNotificationRoute({ type: 'cashout_overdue', data: { club_id: clubId } }), `/hub/messenger?clubId=${clubId}&folder=notice-board`);
+ assert.equal(eventToTypeKey('cashout_overdue'), 'cashier');
 });
 
 

@@ -3,6 +3,7 @@ import { compareConversations, conversationHasCounterpart } from './messengerOrg
 // Server-side workspace selection. A page identity or URL is never membership.
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ADMIN_ROLES = new Set(['owner', 'co_owner', 'admin']);
+const STAFF_ROLES = new Set(['owner', 'co_owner', 'admin', 'super_agent', 'agent', 'sub_agent']);
 
 function fail(status, message) {
     throw Object.assign(new Error(message), { status });
@@ -62,11 +63,16 @@ export async function getMessengerClubs(db, userId) {
     const clubs = await byIds(db, 'clubs', 'id,name,avatar_url', 'id', ids);
     const socialPages = (await byIds(db, 'social_pages', 'id,name,avatar_url,linked_entity_id,linked_entity_type', 'linked_entity_id', ids))
         .filter(p => p.linked_entity_type === 'club');
-    return clubs.map(club => ({
-        id: club.id, name: club.name, avatar_url: club.avatar_url,
-        pageId: socialPages.find(p => p.linked_entity_id === club.id)?.id || null,
-        canManage: ADMIN_ROLES.has(memberships.find(m => m.club_id === club.id)?.role),
-    }));
+    return clubs.map(club => {
+        const role = memberships.find(m => m.club_id === club.id)?.role || null;
+        return {
+            id: club.id, name: club.name, avatar_url: club.avatar_url,
+            pageId: socialPages.find(p => p.linked_entity_id === club.id)?.id || null,
+            canManage: ADMIN_ROLES.has(role),
+            canAccessNoticeBoard: STAFF_ROLES.has(role),
+            role,
+        };
+    });
 }
 
 async function accountingMap(db, ids, userId) {

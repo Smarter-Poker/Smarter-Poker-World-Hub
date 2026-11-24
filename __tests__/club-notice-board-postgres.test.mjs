@@ -56,7 +56,7 @@ test('native board authorization, cursors, duplicate writes, CAS, audit and real
   await db.query('BEGIN');
   try {
    for (const status of ['notice','pending_payout','paid']) {
-    const input={id:randomUUID(),content:'  Canonical Notice  ',status,is_pinned:true};
+    const input={id:randomUUID(),content:'  Canonical Notice  ',status,is_pinned:status!=='notice'};
     const payload=validateNoticeRequest('PUT',{clubId:club,payload:input}).payload;
     const first=await rpc(admin,club,'create',payload);
     assert.equal(first.content,'Canonical Notice');

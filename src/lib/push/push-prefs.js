@@ -219,6 +219,7 @@ const EVENT_ALIASES = {
     // 95% of all outbox traffic. Not again on the money paths.
     cashout_request: 'cashier',
     cashout_request_escrow: 'cashier',
+    cashout_overdue: 'cashier',
     cashout_approved: 'cashier',
     cashout_cancelled: 'cashier',
     cashout_denied: 'cashier',
