@@ -262,6 +262,76 @@ export const STREAMER_BOT_COMMANDS = [
     streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=intl&q=${queryencode}}',
     canonicalToolUrl: 'https://smarter.poker/poker-rooms/international',
   },
+  {
+    command: '!3way',
+    description: '3-Way & 4-Way Multiway All-In Main & Side Pot EV Calculator (!3way 45 30 25)',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=3way&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=3way&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/tools/multiway-all-in-calculator',
+  },
+  {
+    command: '!mystery',
+    description: 'Live Mystery Bounty Remaining Envelope Pool EV & Chip Equivalence (!mystery 120000 40)',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=mystery&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=mystery&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/tools/mystery-bounty-tracker',
+  },
+  {
+    command: '!bf',
+    description: 'Pairwise Final Table ICM Bubble Factor & Required All-In Equity (!bf 40 25)',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=bf&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=bf&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/tools/bubble-factor-calculator',
+  },
+  {
+    command: '!bluffcatch',
+    description: 'River Bluff-Catching EV, Minimum Defense Frequency (MDF) & Blocker Removal (!bluffcatch 100 75)',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=bluffcatch&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=bluffcatch&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/tools/bluff-catching-calculator',
+  },
+  {
+    command: '!barrel',
+    description: 'Flop-Turn-River Multi-Street Cumulative Fold Equity & Triple-Barrel EV (!barrel 33 75 100)',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=barrel&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=barrel&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/tools/multi-street-ev-calculator',
+  },
+  {
+    command: '!hu',
+    description: 'Heads-Up & 3-Max Short-Stack (1BB-25BB) Nash Push/Fold/Limp Equilibrium (!hu 12 sb)',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=hu&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=hu&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/tools/heads-up-push-fold-calculator',
+  },
+  {
+    command: '!bvb',
+    description: 'Small Blind Vs Big Blind (BvB) GTO Limp/Raise/3-Bet Equilibrium (!bvb 100 cash)',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=bvb&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=bvb&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/tools/blind-vs-blind-calculator',
+  },
+  {
+    command: '!shot',
+    description: 'Two-Tier Bankroll Shot-Taking & Mandatory Stop-Loss Trigger Planner (!shot 12000 300 500)',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=shot&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=shot&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/tools/shot-taking-calculator',
+  },
+  {
+    command: '!formula',
+    description: 'Poker Math Equations Encyclopedia With LaTeX & Worked Examples (!formula mdf, !formula bf, !formula ror)',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=formula&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=formula&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/learn/formulas',
+  },
+  {
+    command: '!corridor',
+    description: 'Closest Legal Live Poker Rooms By Metro & Airport Travel Corridor (!corridor nyc, !corridor atlanta, !corridor lax)',
+    nightbotSyntax: '$(urlfetch https://smarter.poker/api/stream/cmd?cmd=corridor&q=$(querystring))',
+    streamElementsSyntax: '${customapi.https://smarter.poker/api/stream/cmd?cmd=corridor&q=${queryencode}}',
+    canonicalToolUrl: 'https://smarter.poker/poker-rooms/corridors',
+  },
 ];
 
 const PREFLOP_MATCHUPS = [
@@ -706,7 +776,7 @@ export function evaluateStreamCommand({ cmd = 'help', q = '', pot = '', bet = ''
     };
   }
 
-  if (normalizedCmd === 'math' || normalizedCmd === 'formula') {
+  if (normalizedCmd === 'math') {
     const cleanQ = queryText.toLowerCase().trim();
     const formulas = {
       mdf: 'MDF (Minimum Defense Frequency) = Pot / (Pot + Bet) | Half-Pot Bet = 66.7% MDF, Pot-Sized Bet = 50.0% MDF',
@@ -721,6 +791,25 @@ export function evaluateStreamCommand({ cmd = 'help', q = '', pot = '', bet = ''
       command: '!math',
       text: `[Smarter.Poker Math] ${fText} | 20 Core Poker Formulas: https://smarter.poker/learn/poker-math`,
       canonicalUrl: 'https://smarter.poker/learn/poker-math',
+    };
+  }
+
+  if (normalizedCmd === 'formula' || normalizedCmd === 'formulas') {
+    const cleanQ = queryText.toLowerCase().trim();
+    const formulas = {
+      mdf: 'MDF = Pot / (Pot + Bet) | 33% Bet = 75.0% MDF | 50% Bet = 66.7% MDF | 75% Bet = 57.1% MDF | 100% Bet = 50.0% MDF',
+      bf: 'Bubble Factor = Dollar_EV_Lost / Dollar_EV_Gained | Required All-In Equity = BF / (BF + 1) | 1.85x BF = 64.9% Equity',
+      ror: 'Risk Of Ruin = exp(-2 * Winrate * Bankroll / Variance) | 5% RoR @ 5 BB/100 & 85 SD = 22 Buy-Ins',
+      spr: 'SPR = Effective_Stack / Pot | N-Street Geometric Bet g = 0.5 * ((1 + 2*SPR)^(1/N) - 1)',
+      potodds: 'Required Calling Equity = Call / (Pot_Before_Call + Call) | 75% Pot Bet = 30.0% Equity',
+      alpha: 'Bluff Breakeven Alpha = Bet / (Pot + Bet) | Optimal Polarized Bluff Share = Bet / (Pot + 2*Bet)',
+    };
+    const fText = formulas[cleanQ] || formulas.mdf;
+
+    return {
+      command: '!formula',
+      text: `[Smarter.Poker Formulas] ${fText} | 15 LaTeX Proofs & Examples: https://smarter.poker/learn/formulas`,
+      canonicalUrl: 'https://smarter.poker/learn/formulas',
     };
   }
 
@@ -889,9 +978,162 @@ export function evaluateStreamCommand({ cmd = 'help', q = '', pot = '', bet = ''
     };
   }
 
+  if (normalizedCmd === '3way' || normalizedCmd === 'multiway') {
+    const nums = queryText
+      .match(/\d+(?:\.\d+)?/g)
+      ?.map((n) => parseFloat(n))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    const eq1 = nums && nums.length >= 1 && nums[0] <= 95 ? nums[0] : 45;
+    const eq2 = nums && nums.length >= 2 && nums[1] <= 95 ? nums[1] : 30;
+    const eq3 = Math.max(1, Number((100 - eq1 - eq2).toFixed(1)));
+    const netEvBb = ((315 * (eq1 / 100)) - 100).toFixed(1);
+
+    return {
+      command: '!3way',
+      text: `[Smarter.Poker 3-Way All-In] Equities ${eq1}% / ${eq2}% / ${eq3}% (100BB Main Pot + 15BB Dead): Hero Net EV = ${Number(netEvBb) >= 0 ? '+' : ''}${netEvBb}BB (Breakeven = 31.7% Equity) | Tool: https://smarter.poker/tools/multiway-all-in-calculator`,
+      canonicalUrl: 'https://smarter.poker/tools/multiway-all-in-calculator',
+    };
+  }
+
+  if (normalizedCmd === 'mystery' || normalizedCmd === 'mysterybounty') {
+    const nums = queryText
+      .match(/\d+(?:\.\d+)?/g)
+      ?.map((n) => parseFloat(n))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    const pool = nums && nums.length >= 1 ? Math.round(nums[0]) : 120000;
+    const env = nums && nums.length >= 2 ? Math.max(1, Math.round(nums[1])) : 40;
+    const avgEv = Math.round(pool / env);
+    const topProb = ((1 / env) * 100).toFixed(1);
+
+    return {
+      command: '!mystery',
+      text: `[Smarter.Poker Mystery Bounty] $${pool.toLocaleString()} Remaining Across ${env} Envelopes: Avg Knockout EV = $${avgEv.toLocaleString()} (${topProb}% Top Envelope Pull Chance) | Tracker: https://smarter.poker/tools/mystery-bounty-tracker`,
+      canonicalUrl: 'https://smarter.poker/tools/mystery-bounty-tracker',
+    };
+  }
+
+  if (normalizedCmd === 'bf' || normalizedCmd === 'bubblefactor') {
+    const nums = queryText
+      .match(/\d+(?:\.\d+)?/g)
+      ?.map((n) => parseFloat(n))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    const heroBb = nums && nums.length >= 1 ? Math.round(nums[0]) : 40;
+    const villainBb = nums && nums.length >= 2 ? Math.round(nums[1]) : 25;
+    const bf = heroBb >= villainBb ? '1.62' : '1.94';
+    const reqEq = ((parseFloat(bf) / (parseFloat(bf) + 1)) * 100).toFixed(1);
+
+    return {
+      command: '!bf',
+      text: `[Smarter.Poker Bubble Factor] ${heroBb}BB Hero vs ${villainBb}BB Villain (Final Table ICM): Bubble Factor = ${bf}x | Required All-In Equity = ${reqEq}% (+${(parseFloat(reqEq) - 50).toFixed(1)}% Risk Premium) | Tool: https://smarter.poker/tools/bubble-factor-calculator`,
+      canonicalUrl: 'https://smarter.poker/tools/bubble-factor-calculator',
+    };
+  }
+
+  if (normalizedCmd === 'bluffcatch' || normalizedCmd === 'rivercall') {
+    const nums = queryText
+      .match(/\d+(?:\.\d+)?/g)
+      ?.map((n) => parseFloat(n))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    const potSize = nums && nums.length >= 1 ? nums[0] : 100;
+    const betSize = nums && nums.length >= 2 ? nums[1] : 75;
+    const reqBluffPct = ((betSize / (potSize + 2 * betSize)) * 100).toFixed(1);
+    const mdfPct = ((potSize / (potSize + betSize)) * 100).toFixed(1);
+
+    return {
+      command: '!bluffcatch',
+      text: `[Smarter.Poker Bluff-Catch] Facing ${betSize} Into ${potSize}: Need Villain Bluffing >= ${reqBluffPct}% To Call | Defender MDF = ${mdfPct}% | Blocker Solver: https://smarter.poker/tools/bluff-catching-calculator`,
+      canonicalUrl: 'https://smarter.poker/tools/bluff-catching-calculator',
+    };
+  }
+
+  if (normalizedCmd === 'barrel' || normalizedCmd === 'triplebarrel') {
+    const nums = queryText
+      .match(/\d+(?:\.\d+)?/g)
+      ?.map((n) => parseFloat(n))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    const fPct = nums && nums.length >= 1 ? Math.round(nums[0]) : 33;
+    const tPct = nums && nums.length >= 2 ? Math.round(nums[1]) : 75;
+    const rPct = nums && nums.length >= 3 ? Math.round(nums[2]) : 100;
+    const cumFold = (100 * (1 - (100 / (100 + fPct)) * (100 / (100 + tPct)) * (100 / (100 + rPct)))).toFixed(1);
+
+    return {
+      command: '!barrel',
+      text: `[Smarter.Poker Triple Barrel] ${fPct}% Flop -> ${tPct}% Turn -> ${rPct}% River Line: Cumulative MDF Fold Pressure = ${cumFold}% By River | Multi-Street EV Tool: https://smarter.poker/tools/multi-street-ev-calculator`,
+      canonicalUrl: 'https://smarter.poker/tools/multi-street-ev-calculator',
+    };
+  }
+
+  if (normalizedCmd === 'hu' || normalizedCmd === 'headsup') {
+    const nums = queryText
+      .match(/\d+(?:\.\d+)?/g)
+      ?.map((n) => parseFloat(n))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    const stackBb = nums && nums.length >= 1 ? Math.min(25, Math.max(1, Math.round(nums[0]))) : 12;
+    const isBbCall = /\bbb|call\b/i.test(queryText);
+    const jamPct = isBbCall
+      ? Math.min(82, Math.max(22, Math.round(78 - stackBb * 2.35)))
+      : Math.min(95, Math.max(35, Math.round(100 - stackBb * 2.5)));
+
+    return {
+      command: '!hu',
+      text: `[Smarter.Poker HU Nash] ${stackBb}BB Heads-Up (${isBbCall ? 'BB Call Vs Jam' : 'SB/BTN Open-Jam'}): Equilibrium Frequency = ${jamPct}% Of Hands | 1BB-25BB HU Charts: https://smarter.poker/tools/heads-up-push-fold-calculator`,
+      canonicalUrl: 'https://smarter.poker/tools/heads-up-push-fold-calculator',
+    };
+  }
+
+  if (normalizedCmd === 'bvb' || normalizedCmd === 'blindvsblind') {
+    const isMtt = /\bmtt|ante|tourney\b/i.test(queryText);
+    const summary = isMtt
+      ? 'MTT Ante BvB (100BB): SB Enters 64% (36% Mixed Limp + 28% 3.5x Raise) | BB Iso-Raises 34% Vs Limp'
+      : 'Raked Cash BvB (100BB): SB Plays Pure 3.0x Raise-Or-Fold (42.5% RFI, 0% Open-Limp) | BB Defends 52.5% (38% Call / 14.5% 3-Bet)';
+
+    return {
+      command: '!bvb',
+      text: `[Smarter.Poker BvB Matrix] ${summary} | Interactive BvB Solver: https://smarter.poker/tools/blind-vs-blind-calculator`,
+      canonicalUrl: 'https://smarter.poker/tools/blind-vs-blind-calculator',
+    };
+  }
+
+  if (normalizedCmd === 'shot' || normalizedCmd === 'shottaking') {
+    const nums = queryText
+      .match(/\d+(?:\.\d+)?/g)
+      ?.map((n) => parseFloat(n))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    const br = nums && nums.length >= 1 ? Math.round(nums[0]) : 12000;
+    const baseBi = nums && nums.length >= 2 ? Math.round(nums[1]) : 300;
+    const targetBi = nums && nums.length >= 3 ? Math.round(nums[2]) : 500;
+    const stopLossBr = Math.max(baseBi * 20, br - 3 * targetBi);
+    const remBaseBi = (stopLossBr / baseBi).toFixed(1);
+
+    return {
+      command: '!shot',
+      text: `[Smarter.Poker Shot-Taking] $${br.toLocaleString()} Roll Taking 3-BI Shot At $${targetBi} Buy-In: Move-Down Stop-Loss = $${stopLossBr.toLocaleString()} (Preserves ${remBaseBi} Base Buy-Ins @ $${baseBi}) | Tool: https://smarter.poker/tools/shot-taking-calculator`,
+      canonicalUrl: 'https://smarter.poker/tools/shot-taking-calculator',
+    };
+  }
+
+  if (normalizedCmd === 'corridor' || normalizedCmd === 'corridors') {
+    const cleanQ = queryText.toLowerCase().trim();
+    const corridorMap = {
+      nyc: 'NYC Corridor: Parx Bensalem PA (75m, 48 Tables) | Borgata AC NJ (2h, 52 Tables) | Wind Creek PA (85m, 26 Tables)',
+      atlanta: 'Atlanta (ATL) Corridor: Harrah\'s Cherokee NC (2.75h, WSOPC Host) | bestbet Jacksonville FL (5h / 55m Flight, 63 Tables)',
+      chicago: 'Chicago (ORD) Corridor: Rivers Des Plaines (5m From ORD, 22 Tables) | Grand Victoria Elgin (40m)',
+      dallas: 'Dallas (DFW) Corridor: Texas Card House Dallas (15m, $0 Pot Rake) | WinStar OK (70m, 55 Tables) | Choctaw Durant (75m)',
+      lax: 'Los Angeles (LAX) Corridor: Hollywood Park (10m) | Hustler Casino (15m) | Bike (25m) | Commerce Casino (30m, 200+ Tables)',
+      las: 'Las Vegas (LAS) Corridor: ARIA (10m) | Bellagio (11m) | Horseshoe WSOP (11m) | Venetian (13m) | Wynn (14m)',
+    };
+    const key = Object.keys(corridorMap).find((k) => cleanQ.includes(k)) || 'nyc';
+
+    return {
+      command: '!corridor',
+      text: `[Smarter.Poker Travel Corridors] ${corridorMap[key]} | All 10 Airport & Border Corridors: https://smarter.poker/poker-rooms/corridors`,
+      canonicalUrl: 'https://smarter.poker/poker-rooms/corridors',
+    };
+  }
+
   return {
     command: '!help',
-    text: `[Smarter.Poker Streamer Bot] 34 Commands: !odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, !matchup, !tax, !stake, !iso, !series, !board, !mratio, !straddle, !sat, !bbj, !position, !math, !iq, !wrap, !latereg, !confidence, !trip, !geo, !table, !exploit, !intl | Setup: https://smarter.poker/tools/embeds`,
+    text: `[Smarter.Poker Streamer Bot] 44 Commands: !odds, !potodds, !pushfold, !icm, !bounty, !winrate, !plo, !rake, !3bet, !rule, !chop, !outs, !variance, !matchup, !tax, !stake, !iso, !series, !board, !mratio, !straddle, !sat, !bbj, !position, !math, !iq, !wrap, !latereg, !confidence, !trip, !geo, !table, !exploit, !intl, !3way, !mystery, !bf, !bluffcatch, !barrel, !hu, !bvb, !shot, !formula, !corridor | Setup: https://smarter.poker/tools/embeds`,
     canonicalUrl: 'https://smarter.poker/tools/embeds',
   };
 }

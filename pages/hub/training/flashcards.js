@@ -19,6 +19,62 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { authedFetch } from '../../../src/lib/authUtils';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 import ProgressStrip from '../../../src/components/poker/ProgressStrip';
+import { evaluateTrainingSpotWithHorseBrain, buildCustomTrainingArenaHref } from '../../../src/lib/training/horseBrainTrainingAdapter';
+
+const HERO_CARDS_BY_VARIANT = {
+  nlh: ['As', 'Kd'],
+  plo4: ['As', 'Ks', 'Qh', 'Jh'],
+  plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
+  plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
+};
+
+const BOARD_CARDS_BY_STREET = {
+  flop: ['Kc', '8d', '3s'],
+  turn: ['Kc', '8d', '3s', '5h'],
+  river: ['Kc', '8d', '3s', '5h', '9c'],
+};
+
+const DEFAULT_MISTAKE_QUEUE = [
+  {
+    questionId: 'cash-002-flop-btn-bb-ak',
+    gameId: 'cash-002',
+    level: 1,
+    prompt: 'BTN Single-Raised Pot On Kc-8d-3s Flop With Top Pair Top Kicker',
+    correctAction: 'b33',
+    explanation: 'Small range continuation bet leverages range advantage on a dry king-high texture.',
+    evLossBb: 1.35,
+    intervalDays: 1,
+    easeFactor: 2.5,
+    repetitions: 0,
+    nextReviewAt: '2026-11-24T00:00:00.000Z',
+  },
+  {
+    questionId: 'cash-004-turn-bb-btn-xr',
+    gameId: 'cash-004',
+    level: 1,
+    prompt: 'BB Check-Raise Defense On Turn 5h After Calling Dry Flop C-Bet',
+    correctAction: 'c',
+    explanation: 'Protect checking range with medium-strength showdown hands against second barrel.',
+    evLossBb: 0.92,
+    intervalDays: 2,
+    easeFactor: 2.4,
+    repetitions: 1,
+    nextReviewAt: '2026-11-24T00:00:00.000Z',
+  },
+  {
+    questionId: 'mtt-001-preflop-sb-bb-icm',
+    gameId: 'mtt-001',
+    level: 2,
+    prompt: '20BB Bubble Blind Battle From Small-Blind Under Heavy ICM Pressure',
+    correctAction: 'f',
+    explanation: 'Elevated bubble factor penalizes marginal offsuit shoves into covering Big-Blind stack.',
+    evLossBb: 1.78,
+    intervalDays: 1,
+    easeFactor: 2.3,
+    repetitions: 0,
+    nextReviewAt: '2026-11-24T00:00:00.000Z',
+  },
+];
 
 // TRAIN-CSS-MOTION-ADOPT-13 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
@@ -384,6 +440,40 @@ export default function FlashcardsPage() {
   // Track deck generation trigger — only category filter change should regenerate
   const [deckGenKey, setDeckGenKey] = useState(0);
   const sm2LoadedRef = useRef(false);
+  const [activeVariant, setActiveVariant] = useState('nlh');
+  const [heroPosition, setHeroPosition] = useState('BTN');
+  const [activeStreet, setActiveStreet] = useState('flop');
+  const [mistakeCards, setMistakeCards] = useState(DEFAULT_MISTAKE_QUEUE);
+
+  const brainEval = useMemo(() => {
+    const heroCards = HERO_CARDS_BY_VARIANT[activeVariant] || HERO_CARDS_BY_VARIANT.nlh;
+    const boardCards = BOARD_CARDS_BY_STREET[activeStreet] || BOARD_CARDS_BY_STREET.flop;
+    return evaluateTrainingSpotWithHorseBrain({
+      variant: activeVariant,
+      street: activeStreet,
+      heroCards,
+      boardCards,
+      heroPosition,
+      villainPosition: heroPosition === 'BB' ? 'BTN' : 'BB',
+      pot: 6.5,
+      toCall: 0,
+      effectiveStackBb: 100,
+    });
+  }, [activeVariant, activeStreet, heroPosition]);
+
+  const arenaHref = useMemo(
+    () =>
+      buildCustomTrainingArenaHref(
+        {
+          gameId: activeVariant === 'nlh' ? 'cash-002' : 'cash-005',
+          variant: activeVariant,
+          street: activeStreet,
+          position: heroPosition,
+        },
+        'flashcards-brain',
+      ),
+    [activeVariant, activeStreet, heroPosition],
+  );
 
   useEffect(() => {
     try {
@@ -421,6 +511,31 @@ export default function FlashcardsPage() {
             return merged;
           });
           setDeckGenKey((k) => k + 1);
+        }
+      })
+      .catch(() => {});
+    authedFetch('/api/training/tool-records?tool_id=flashcard-srs&limit=25')
+      .then((res) => (res && res.ok ? res.json() : null))
+      .then((json) => {
+        const rows = Array.isArray(json?.records) ? json.records : Array.isArray(json?.data) ? json.data : [];
+        const parsedMistakes = rows
+          .map((row) => row?.payload || row?.data || null)
+          .filter((item) => item && (item.questionId || item.prompt))
+          .map((item, idx) => ({
+            questionId: String(item.questionId || `mistake-card-${idx + 1}`),
+            gameId: String(item.gameId || 'cash-002'),
+            level: Number(item.level) || 1,
+            prompt: String(item.prompt || 'GTO Training Spot'),
+            correctAction: String(item.correctAction || 'Check / Call'),
+            explanation: String(item.explanation || ''),
+            evLossBb: Number(Number(item.evLossBb ?? 0.75).toFixed(2)),
+            intervalDays: Number(item.intervalDays) || 1,
+            easeFactor: Number(item.easeFactor) || 2.5,
+            repetitions: Number(item.repetitions) || 0,
+            nextReviewAt: String(item.nextReviewAt || '2026-11-24T00:00:00.000Z'),
+          }));
+        if (parsedMistakes.length > 0) {
+          setMistakeCards(parsedMistakes);
         }
       })
       .catch(() => {});
@@ -714,7 +829,7 @@ export default function FlashcardsPage() {
             <div>
               <TrainerEmptyState
                 variant="complete"
-                title="All caught up"
+                title="All Caught Up"
                 message="You've reviewed all due cards for this category today."
                 compact
               />
@@ -850,6 +965,276 @@ export default function FlashcardsPage() {
                   {current ? previewInterval(2, sm2Data, current.id) : '2 days'}
                 </span>
               </motion.button>
+            </div>
+          )}
+
+          {/* My Live Session Mistake Flashcards (SM-2 Queue) */}
+          <div
+            data-mistake-srs-queue="true"
+            style={{
+              marginTop: 24,
+              padding: 18,
+              borderRadius: 14,
+              border: '1px solid rgba(248, 113, 113, 0.3)',
+              background: 'rgba(15, 23, 42, 0.75)',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 8,
+                marginBottom: 12,
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: '#fca5a5' }}>
+                  My Live Session Mistake Flashcards (SM-2 Queue)
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
+                  Auto-Enqueued Hands With 0.50+ BB EV Loss From Live Training Sessions
+                </div>
+              </div>
+              <span
+                style={{
+                  padding: '3px 8px',
+                  borderRadius: 6,
+                  background: 'rgba(239, 68, 68, 0.14)',
+                  border: '1px solid rgba(239, 68, 68, 0.35)',
+                  color: '#fca5a5',
+                  fontSize: 12,
+                  fontWeight: 800,
+                }}
+              >
+                {mistakeCards.length} Queued Cards
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {mistakeCards.map((card) => {
+                const drillHref = buildCustomTrainingArenaHref(
+                  {
+                    gameId: card.gameId || 'cash-002',
+                    variant: activeVariant,
+                    street: activeStreet,
+                    position: heroPosition,
+                  },
+                  'flashcards-mistake-srs',
+                );
+                return (
+                  <div
+                    key={card.questionId}
+                    data-mistake-srs-card={card.questionId}
+                    style={{
+                      padding: 12,
+                      borderRadius: 10,
+                      background: 'rgba(2, 6, 23, 0.65)',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: 8,
+                        marginBottom: 6,
+                      }}
+                    >
+                      <span style={{ fontSize: 12, fontWeight: 800, color: '#7dd3fc' }}>
+                        {String(card.gameId || 'cash-002').toUpperCase()} · Level {card.level || 1}
+                      </span>
+                      <span
+                        data-mistake-ev-loss-bb={card.evLossBb}
+                        style={{
+                          padding: '2px 7px',
+                          borderRadius: 4,
+                          background: 'rgba(239, 68, 68, 0.16)',
+                          color: '#f87171',
+                          fontSize: 12,
+                          fontWeight: 800,
+                        }}
+                      >
+                        -{Number(card.evLossBb || 0).toFixed(2)} BB EV Loss
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)', marginBottom: 4 }}>
+                      {card.prompt}
+                    </div>
+                    <div style={{ fontSize: 12, color: '#86efac', fontWeight: 700, marginBottom: 4 }}>
+                      Optimal Action: {String(card.correctAction || '').toUpperCase()} · Interval: {card.intervalDays}d · Ease: {Number(card.easeFactor || 2.5).toFixed(1)}
+                    </div>
+                    {card.explanation ? (
+                      <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginBottom: 10, lineHeight: 1.45 }}>
+                        {card.explanation}
+                      </div>
+                    ) : null}
+                    <button
+                      type="button"
+                      data-drill-mistake-card-cta="true"
+                      onClick={() => router.push(drillHref)}
+                      style={{
+                        padding: '7px 12px',
+                        borderRadius: 8,
+                        border: '1px solid rgba(56, 189, 248, 0.45)',
+                        background: 'rgba(56, 189, 248, 0.16)',
+                        color: '#e0f2fe',
+                        fontSize: 12,
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Drill This Mistake On Club Arena Felt →
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 4-Variant Horse Brain Spot Preview & 1-Click Club Arena Launcher */}
+          {brainEval && (
+            <div
+              data-specialty-brain-panel="true"
+              data-brain-engine={brainEval.engineModule}
+              data-recommended-action={brainEval.correctAnswer}
+              data-active-variant={activeVariant}
+              data-hero-position={heroPosition}
+              style={{
+                marginTop: 20,
+                padding: 18,
+                borderRadius: 14,
+                border: '1px solid rgba(56, 189, 248, 0.4)',
+                background: 'rgba(2, 6, 23, 0.78)',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: 8,
+                  marginBottom: 12,
+                }}
+              >
+                <span style={{ fontSize: 13, fontWeight: 900, color: '#79e6ff', textTransform: 'uppercase' }}>
+                  Horse Brain Spot Preview &amp; Arena Drill
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#fbbf24' }}>
+                  Engine: {brainEval.engineModule} | Recommended: {brainEval.correctAnswerText}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 12 }}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 4 }}>
+                    Variant
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {['nlh', 'plo4', 'plo5', 'plo6'].map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        aria-pressed={activeVariant === v}
+                        onClick={() => setActiveVariant(v)}
+                        style={{
+                          padding: '5px 10px',
+                          borderRadius: 6,
+                          border: activeVariant === v ? '1px solid #38bdf8' : '1px solid rgba(255,255,255,0.16)',
+                          background: activeVariant === v ? 'rgba(56, 189, 248, 0.22)' : 'rgba(255,255,255,0.04)',
+                          color: activeVariant === v ? '#7dd3fc' : '#cbd5e1',
+                          fontSize: 12,
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {v.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 4 }}>
+                    Position
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {['BTN', 'CO', 'SB', 'BB'].map((pos) => (
+                      <button
+                        key={pos}
+                        type="button"
+                        aria-pressed={heroPosition === pos}
+                        onClick={() => setHeroPosition(pos)}
+                        style={{
+                          padding: '5px 10px',
+                          borderRadius: 6,
+                          border: heroPosition === pos ? '1px solid #34d399' : '1px solid rgba(255,255,255,0.16)',
+                          background: heroPosition === pos ? 'rgba(52, 211, 153, 0.18)' : 'rgba(255,255,255,0.04)',
+                          color: heroPosition === pos ? '#6ee7b7' : '#cbd5e1',
+                          fontSize: 12,
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {pos}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 4 }}>
+                    Street
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {['flop', 'turn', 'river'].map((st) => (
+                      <button
+                        key={st}
+                        type="button"
+                        aria-pressed={activeStreet === st}
+                        onClick={() => setActiveStreet(st)}
+                        style={{
+                          padding: '5px 10px',
+                          borderRadius: 6,
+                          border: activeStreet === st ? '1px solid #fbbf24' : '1px solid rgba(255,255,255,0.16)',
+                          background: activeStreet === st ? 'rgba(251, 191, 36, 0.18)' : 'rgba(255,255,255,0.04)',
+                          color: activeStreet === st ? '#fde68a' : '#cbd5e1',
+                          fontSize: 12,
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {st.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <p style={{ margin: '0 0 14px', fontSize: 12, color: '#cbd5e1', lineHeight: 1.55 }}>
+                {brainEval.explanation}
+              </p>
+
+              <button
+                type="button"
+                data-launch-club-arena-cta="true"
+                onClick={() => router.push(arenaHref)}
+                style={{
+                  padding: '10px 16px',
+                  borderRadius: 8,
+                  border: '1px solid #38bdf8',
+                  background: 'rgba(56, 189, 248, 0.2)',
+                  color: '#fff',
+                  fontSize: 13,
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                }}
+              >
+                Practice Target Spot In Club Arena →
+              </button>
             </div>
           )}
         </div>

@@ -70,7 +70,8 @@ export default async function handler(req, res) {
     return res.status(200).json({
       name: MCP_SERVER_INFO.name,
       version: MCP_SERVER_INFO.version,
-      description: 'Smarter.Poker Model Context Protocol (MCP) Server exposing 55 zero-auth poker mathematics, ICM/Chop, variance, GTO preflop, live cardroom, tax/staking, and TDA rules tools, 12 prompts, and 18 resource templates.',
+      packageVersion: MCP_SERVER_INFO.packageVersion,
+      description: 'Smarter.Poker Model Context Protocol (MCP) Server v2.2.0 exposing 70 zero-auth deterministic poker mathematics, ICM/Chop, variance, GTO preflop, live cardroom, tax/staking, and TDA rules tools across 52 interactive calculators, 14 prompts, and 24 resource templates.',
       protocolVersion: '2024-11-05',
       status: 'active',
       transport: ['http-jsonrpc', 'sse'],

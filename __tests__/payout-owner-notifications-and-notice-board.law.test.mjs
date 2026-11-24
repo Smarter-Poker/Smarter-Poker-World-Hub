@@ -22,12 +22,14 @@ const root = join(import.meta.dirname, '..');
 const read = (rel) => readFileSync(join(root, rel), 'utf8');
 
 const migration = read('supabase/migrations/20261124150500_payout_overdue_owner_notify_and_telegram_notice_board.sql');
+const migrationP2 = read('supabase/migrations/20261124180000_notice_board_phase2_reads_acks_media_mentions_and_overdue_config.sql');
 const boardLib = read('src/lib/clubNoticeBoard.mjs');
 const boardUi = read('src/components/messenger/NoticeBoard.jsx');
 const workspace = read('src/lib/messengerWorkspace.mjs');
 const workspaceUi = read('src/components/messenger/ClubArenaWorkspace.js');
 const routeLib = read('src/lib/notificationRoute.js');
 const pushPrefs = read('src/lib/push/push-prefs.js');
+const pushDispatch = read('pages/api/cron/push-dispatch.js');
 const bellUi = read('src/components/club-arena/NotificationBell.js');
 const workflow = read('.github/workflows/build-safety-gate.yml');
 
@@ -73,4 +75,32 @@ test('LAW 3: Notice Board preserves member counts, role counts, roster, regular-
 
 test('LAW 4: this anti-regression law remains wired into the required build-safety-gate workflow', () => {
     assert.match(workflow, /__tests__\/payout-owner-notifications-and-notice-board\.law\.test\.mjs/);
+});
+
+test('LAW 5: Phase 2 migration preserves zero live-table DDL locks while enforcing read receipts, reactions, attachments, @mentions, and pagination skip', () => {
+    assert.doesNotMatch(migrationP2, /REFERENCES\s+public\.(clubs|profiles|club_members)/i, 'Phase 2 migration must never lock live gameplay tables');
+    assert.doesNotMatch(migrationP2, /TRIGGER\s+.*\s+ON\s+public\.(clubs|profiles|club_members)/i, 'Phase 2 migration must never add triggers to live gameplay tables');
+    assert.match(migrationP2, /CREATE TABLE public\.club_notice_board_reads/);
+    assert.match(migrationP2, /CREATE TABLE public\.club_notice_board_reactions/);
+    assert.match(migrationP2, /CREATE OR REPLACE FUNCTION public\.fn_club_notice_unread_counts/);
+    assert.match(migrationP2, /'paginated',\s*true/);
+    assert.match(migrationP2, /'metaOnly',\s*true/);
+    assert.match(migrationP2, /'notice_board_mention'/);
+    assert.match(workspace, /fn_club_notice_unread_counts/);
+    assert.match(workspaceUi, /activeNoticeUnread/);
+    assert.match(boardUi, /notice-unread-divider/);
+    assert.match(boardUi, /toggle_reaction/);
+    assert.match(boardUi, /Escalate To Bank/);
+    assert.match(boardUi, /Message Agent/);
+});
+
+test('LAW 6: Configurable overdue escalation ladder, management overdue escalation, and push digest labels remain wired', () => {
+    assert.match(migrationP2, /CREATE TABLE public\.club_payout_alert_settings/);
+    assert.match(migrationP2, /CREATE TABLE public\.cashout_overdue_alert_deliveries/);
+    assert.match(migrationP2, /v_is_overdue_mgmt/);
+    assert.match(pushPrefs, /notice_board_mention:\s*'club_announcement'/);
+    assert.match(routeLib, /t === 'notice_board_mention'/);
+    assert.match(bellUi, /notice_board_mention:/);
+    assert.match(pushDispatch, /cashout_overdue:\s*'unfulfilled payouts'/);
+    assert.match(pushDispatch, /notice_board_mention:\s*'notice board mentions'/);
 });
