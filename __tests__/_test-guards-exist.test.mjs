@@ -879,6 +879,7 @@ import './trivia-v3-ops-burnin.test.mjs';
 import './trivia-realtime-social-growth.test.mjs';
 import './trivia-pvp-realtime-duel.test.mjs';
 import './trivia-ops-alerts-reminders.test.mjs';
+import './trivia-club-nights.test.mjs';
 import './trivia-streak-study-lobby.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
