@@ -77,6 +77,12 @@ async function generatedRoutes() {
   const { GLOSSARY_TERMS, GLOSSARY_PATH, glossaryTermPath } = await import('../src/content/glossary/terms.js');
   out.add(GLOSSARY_PATH);
   for (const term of GLOSSARY_TERMS) out.add(glossaryTermPath(term.slug));
+  const { LEARN_PAGES, MARKET_GUIDE_PAGES, INTERNATIONAL_POKER_PAGES, SERIES_GUIDE_PAGES, RESEARCH_PAGES, RULES_PAGES, GAMES_PAGES } = await import('../src/lib/seo/sitemapBuilders.mjs');
+  for (const group of [LEARN_PAGES, MARKET_GUIDE_PAGES, INTERNATIONAL_POKER_PAGES, SERIES_GUIDE_PAGES, RESEARCH_PAGES, RULES_PAGES, GAMES_PAGES]) {
+    for (const entry of group || []) {
+      if (entry?.path) out.add(entry.path);
+    }
+  }
   return out;
 }
 

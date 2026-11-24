@@ -46,6 +46,9 @@ import { POKER_VARIANTS, GAMES_AS_OF, getGameVariantBySlug } from '../../content
 import { POKER_MARKET_GUIDES, MARKET_GUIDES_AS_OF } from '../../content/guides/markets.js';
 import { HAND_MATCHUPS, getMatchupBySlug } from '../../content/learn/matchups.js';
 import { SERIES_GUIDES, getSeriesGuideBySlug } from '../../content/guides/seriesGuides.js';
+import { PLAYER_ARCHETYPES, findPlayerArchetype } from '../../content/learn/playerTypes.js';
+import { BOARD_TEXTURES, findBoardTexture } from '../../content/learn/boardTextures.js';
+import { INTERNATIONAL_POKER_GUIDES, findInternationalGuide } from '../../content/guides/internationalMarkets.js';
 
 export const getHandMatchupBySlug = getMatchupBySlug;
 
@@ -5973,16 +5976,15 @@ export async function executeMcpTool(rawName, args, { origin = SITE_ORIGIN } = {
     }
 
     case 'get_player_archetype_exploit': {
-      const archetypesCatalog = [
-        { slug: 'omc', name: 'Old Man Coffee (OMC / Ultra-Nit)', vpip_pfr: '8% / 3%', three_bet_pct: '1.2%', core_leak: 'Only 3-bets QQ+/AK and never bluffs river check-raises.', exploitative_counter: 'Steal blinds relentlessly; over-fold 100% of one-pair and overpair hands facing postflop raises or 3-bets.' },
-        { slug: 'calling-station', name: 'Loose-Passive Calling Station', vpip_pfr: '46% / 6%', three_bet_pct: '2.0%', core_leak: 'Calls any pair, gutshot, or backdoor draw regardless of bet sizing; rarely bluffs.', exploitative_counter: 'Reduce bluffing frequency to 0%; size value bets up to 80%-125% pot with top pair good kicker or better.' },
-        { slug: 'maniac', name: 'Hyper-Aggressive Maniac / Whale', vpip_pfr: '62% / 44%', three_bet_pct: '18.5%', core_leak: 'Punts multi-street barrels with air and bottom pairs; cannot fold to check-raises.', exploitative_counter: 'Tighten preflop flatting range to high-card/high-pair bluff-catchers; let them barrel all three streets into your medium-strength made hands.' },
-        { slug: 'tag', name: 'Tight-Aggressive Regular (TAG)', vpip_pfr: '21% / 17%', three_bet_pct: '7.2%', core_leak: 'Predictable continuation-bet and turn give-up frequencies; over-folds to river check-raises and turn overbets.', exploitative_counter: 'Float flop C-bets in position and attack their capped turn checks with 75%-110% pot stabs.' },
-        { slug: 'lag', name: 'Loose-Aggressive Crusher (LAG)', vpip_pfr: '31% / 25%', three_bet_pct: '11.5%', core_leak: 'Over-defends blinds and over-pressures capped medium-pair ranges across scary runouts.', exploitative_counter: 'Protect your checking range with slowplayed sets/overpairs and 4-bet bluff polarized blockers preflop.' },
-        { slug: 'short-stack', name: 'Short-Stack Capper (20BB-40BB)', vpip_pfr: '18% / 14%', three_bet_pct: '8.0%', core_leak: 'Plays high-card broadways and pocket pairs looking for flop SPR < 2 jam commits.', exploitative_counter: 'Avoid calling their 3-bets with speculative suited connectors (zero implied odds); isolate them with dominating high-card broadways and pairs.' },
-        { slug: 'trapper', name: 'Passive Monster Trapper', vpip_pfr: '26% / 11%', three_bet_pct: '3.0%', core_leak: 'Flats AA/KK preflop and checks nutted sets/flushes on flop/turn before bombing the river.', exploitative_counter: 'Check back medium-value hands on the river when their line is suspiciously passive on wet boards; respect sudden river check-jams.' },
-        { slug: 'gto-grinder', name: 'Solver-Studied GTO Grinder', vpip_pfr: '25% / 21%', three_bet_pct: '9.8%', core_leak: 'Relies on rigid equilibrium frequencies even when live pool deviates massively; assumes opponents bluff balanced river ratios.', exploitative_counter: 'Avoid ego battles; under-bluff into their MDF bluff-catchers and force them into high-rake multiway live dynamics where 2-player solver charts break down.' },
-      ];
+      const archetypesCatalog = PLAYER_ARCHETYPES.map((a) => ({
+        slug: a.slug,
+        code: a.code,
+        name: a.name,
+        vpip_pfr: `${a.vpipRange} / ${a.pfrRange}`,
+        three_bet_pct: a.threeBetRange,
+        core_leak: a.coreLeaks?.[0] || a.summary,
+        exploitative_counter: a.preflopAdjustments?.[0] || a.summary,
+      }));
 
       const rawType = String(args?.archetype || args?.type || '').trim().toLowerCase();
       if (!rawType) {
@@ -6009,16 +6011,8 @@ export async function executeMcpTool(rawName, args, { origin = SITE_ORIGIN } = {
         };
       }
 
-      const aliasMap = {
-        nit: 'omc',
-        'old-man-coffee': 'omc',
-        station: 'calling-station',
-        whale: 'maniac',
-        shortstack: 'short-stack',
-        gto: 'gto-grinder',
-      };
-      const targetSlug = aliasMap[rawType] || rawType;
-      const matched = archetypesCatalog.find((a) => a.slug === targetSlug || a.slug.includes(targetSlug)) || archetypesCatalog[0];
+      const found = findPlayerArchetype(rawType);
+      const matched = archetypesCatalog.find((a) => a.slug === found?.slug || a.slug === rawType || a.slug.includes(rawType)) || archetypesCatalog[0];
 
       return {
         content: [
@@ -6041,20 +6035,16 @@ export async function executeMcpTool(rawName, args, { origin = SITE_ORIGIN } = {
     }
 
     case 'get_flop_board_texture_guide': {
-      const texturesCatalog = [
-        { slug: 'ace-high-dry-rainbow', name: 'Ace-High Dry Rainbow (A-8-3r / A-7-2r)', pfr_cbet_freq_pct: 92, optimal_cbet_sizing: '25%-33% Pot', bb_check_raise_pct: 6.5, range_advantage: 'Massive PFR Range & Nut Advantage', turn_plan: 'Double-barrel 75%-125% pot on Broadway turns; check back middling pair turns.' },
-        { slug: 'king-high-dry-rainbow', name: 'King-High Dry Rainbow (K-7-2r / K-8-3r)', pfr_cbet_freq_pct: 88, optimal_cbet_sizing: '33% Pot', bb_check_raise_pct: 8.2, range_advantage: 'Strong PFR Range Advantage', turn_plan: 'Barrel overcards (Ace) and high cards at 66%-75% pot.' },
-        { slug: 'double-broadway-two-tone', name: 'Double Broadway Two-Tone (K-Q-6tt / A-J-4tt)', pfr_cbet_freq_pct: 74, optimal_cbet_sizing: '66%-75% Pot', bb_check_raise_pct: 9.0, range_advantage: 'PFR Nut & Top-Two Advantage', turn_plan: 'Size up to 75%-110% pot on blank turns to charge flush and gutshot draws.' },
-        { slug: 'triple-broadway-wet', name: 'Triple Broadway Dynamic (A-K-Q / K-Q-J)', pfr_cbet_freq_pct: 85, optimal_cbet_sizing: '33%-50% Pot', bb_check_raise_pct: 5.0, range_advantage: 'Extreme PFR Nut Advantage (AA/KK/QQ/AK/ATs)', turn_plan: 'Geometric 2-street jam with two-pair+ and high-card nut straight blockers.' },
-        { slug: 'mid-connected-wet', name: 'Middle Connected Two-Tone (T-9-8tt / 9-8-7tt)', pfr_cbet_freq_pct: 32, optimal_cbet_sizing: '66%-75% Pot Or Check', bb_check_raise_pct: 16.5, range_advantage: 'BB Caller Two-Pair & Straight Advantage', turn_plan: 'Check 65%+ of overpairs on the flop; when betting, use polarized 75% sizing.' },
-        { slug: 'low-connected-board', name: 'Low Connected Board (7-6-5 / 6-5-4)', pfr_cbet_freq_pct: 28, optimal_cbet_sizing: '50%-66% Pot Polarized', bb_check_raise_pct: 18.2, range_advantage: 'Strong BB Nut Advantage (65s/54s/77-44)', turn_plan: 'Avoid range-betting AA-QQ; protect checking range and call down vs BB probes.' },
-        { slug: 'low-disconnected-rainbow', name: 'Low Disconnected Rainbow (8-4-2r / 9-5-2r)', pfr_cbet_freq_pct: 72, optimal_cbet_sizing: '33%-50% Pot', bb_check_raise_pct: 11.5, range_advantage: 'Neutral Nut Advantage / PFR Overpair Edge', turn_plan: 'Overbet 125% pot on high overcard turns (A, K, Q) where PFR uncaps.' },
-        { slug: 'monotone-flush-flop', name: 'Monotone Flush Flop (K-9-4s / A-T-3s)', pfr_cbet_freq_pct: 44, optimal_cbet_sizing: '25%-33% Pot Small Only', bb_check_raise_pct: 10.5, range_advantage: 'Compressed Equity Across Flush & Redraws', turn_plan: 'Never use large flop sizing; barrel off-suit turns with nut flush blocker.' },
-        { slug: 'high-paired-board', name: 'High Paired Board (K-K-5r / A-A-7r)', pfr_cbet_freq_pct: 90, optimal_cbet_sizing: '25% Pot Micro-Sizing', bb_check_raise_pct: 7.0, range_advantage: 'PFR Trips & Overpair Domination', turn_plan: 'Range-bet 25% pot on flop, then polarize turn with delayed bluffs and trips.' },
-        { slug: 'low-paired-board', name: 'Low Paired Board (7-7-2r / 5-5-3tt)', pfr_cbet_freq_pct: 58, optimal_cbet_sizing: '33% Pot', bb_check_raise_pct: 15.0, range_advantage: 'BB Holds More 7x/5x Trips Combos', turn_plan: 'Respect BB check-raises; delay C-bet many high-card hands to the turn.' },
-        { slug: 'wheel-ace-low-board', name: 'Wheel Ace-Low Board (A-5-4tt / A-4-3r)', pfr_cbet_freq_pct: 48, optimal_cbet_sizing: '33%-50% Pot', bb_check_raise_pct: 14.5, range_advantage: 'Shared Advantage (BB Has 54s/43s/22-55 & Wheel Straights)', turn_plan: 'Proceed cautiously with weak Ax; BB holds all wheel straight and two-pair combos.' },
-        { slug: 'queen-jack-dynamic', name: 'Queen-High Dynamic Two-Tone (Q-T-8tt / Q-J-7tt)', pfr_cbet_freq_pct: 62, optimal_cbet_sizing: '66%-75% Pot', bb_check_raise_pct: 12.0, range_advantage: 'PFR Top-Of-Range Edge With Heavy Draw Density', turn_plan: 'Charge draws heavily on the flop and jam blank turns with top pair+ and combo draws.' },
-      ];
+      const texturesCatalog = BOARD_TEXTURES.map((t) => ({
+        slug: t.slug,
+        code: t.code,
+        name: t.name,
+        pfr_cbet_freq_pct: t.gtoCbetFreq,
+        optimal_cbet_sizing: t.optimalCbetSize,
+        bb_check_raise_pct: t.checkRaiseFreq,
+        range_advantage: t.rangeAdvantage,
+        turn_plan: t.bestTurnBarrels,
+      }));
 
       const rawSlug = String(args?.texture || args?.slug || '').trim().toLowerCase();
       if (!rawSlug) {
@@ -6081,7 +6071,8 @@ export async function executeMcpTool(rawName, args, { origin = SITE_ORIGIN } = {
         };
       }
 
-      const matched = texturesCatalog.find((t) => t.slug === rawSlug || t.slug.includes(rawSlug) || t.name.toLowerCase().includes(rawSlug)) || texturesCatalog[0];
+      const found = findBoardTexture(rawSlug);
+      const matched = texturesCatalog.find((t) => t.slug === found?.slug || t.slug === rawSlug || t.slug.includes(rawSlug) || t.name.toLowerCase().includes(rawSlug)) || texturesCatalog[0];
       return {
         content: [
           {
@@ -6103,18 +6094,16 @@ export async function executeMcpTool(rawName, args, { origin = SITE_ORIGIN } = {
     }
 
     case 'get_international_poker_guide': {
-      const intlCatalog = [
-        { slug: 'london', city: 'London', country: 'United Kingdom', currency: 'GBP (£)', flagship_venues: ['The Hippodrome Casino (PokerStars Live)', 'Empire Casino Leicester Square', 'Aspers Westfield Stratford', 'The Victoria (Grosvenor Vic)'], typical_stakes: '£1/£2, £1/£3, £2/£5, £5/£10 NLH & PLO', rake_and_tax: '5%-10% capped at £5-£10; UK gambling winnings are 100% tax-free for UK residents.', major_festivals: 'EPT London, UKIPT, GUKPT Goliath Qualifiers' },
-        { slug: 'barcelona', city: 'Barcelona', country: 'Spain', currency: 'EUR (€)', flagship_venues: ['Casino Barcelona (Port Olimpic)'], typical_stakes: '€1/€3, €2/€5, €5/€10, €10/€25 NLH & PLO', rake_and_tax: '5% up to €10-€15 cap; EU/EEA players deduct losses against winnings.', major_festivals: 'EPT Barcelona (Largest EPT Stop In Europe), CEP Championship' },
-        { slug: 'rozvadov', city: 'Rozvadov', country: 'Czech Republic', currency: 'EUR (€)', flagship_venues: ["King's Resort Rozvadov (160+ Poker Tables)"], typical_stakes: '€1/€3, €2/€5, €5/€10, €10/€25, €50/€100 PLO', rake_and_tax: '5% capped at €10-€20; 24/7 cash action on the German-Czech border.', major_festivals: 'WSOP Europe (WSOPE), German Poker Days, Euro Poker Million' },
-        { slug: 'monte-carlo', city: 'Monte Carlo', country: 'Monaco', currency: 'EUR (€)', flagship_venues: ['Monte-Carlo Sporting (Salle des Etoiles)', 'Casino de Monte-Carlo'], typical_stakes: '€2/€5, €5/€10, €10/€25, €25/€50+ High Stakes', rake_and_tax: '5% capped at €15-€25; zero local Monaco income tax.', major_festivals: 'EPT Monte Carlo Grand Final & Super High Roller Bowl' },
-        { slug: 'prague', city: 'Prague', country: 'Czech Republic', currency: 'EUR (€) / CZK', flagship_venues: ["King's Casino Prague (Hilton Prague)", 'Rebuy Stars Casino Savarin', 'Showdown Poker Club'], typical_stakes: '€1/€3, €2/€5, €5/€10 NLH & PLO', rake_and_tax: '5% capped at €10-€15; festive December EPT hub.', major_festivals: 'EPT Prague & Eureka Poker Tour Championship' },
-        { slug: 'manila', city: 'Manila', country: 'Philippines', currency: 'PHP (₱)', flagship_venues: ['Okada Manila (PokerStars Live)', 'Newport World Resorts', 'Metro Card Club'], typical_stakes: '₱50/₱100, ₱100/₱200, ₱200/₱400 (~$1/$2 to $5/$10 USD)', rake_and_tax: '5%-10% low cap; premier Southeast Asian tournament hub.', major_festivals: 'APPT Manila, Asian Poker Tour (APT) Manila' },
-        { slug: 'macau', city: 'Macau', country: 'China (SAR)', currency: 'HKD (HK$)', flagship_venues: ['Wynn Macau & Wynn Palace', 'Venetian Macao', 'MGM Cotai'], typical_stakes: 'HK$25/$50, HK$50/$100, HK$100/$200 (~$3/$6 to $13/$25 USD)', rake_and_tax: '5% capped at HK$150-HK$250; world capital of high-stakes cash games.', major_festivals: 'Macau Millions & Triton High Roller Regional Stops' },
-        { slug: 'melbourne', city: 'Melbourne', country: 'Australia', currency: 'AUD (A$)', flagship_venues: ['Crown Melbourne Poker Room'], typical_stakes: 'A$2/A$5, A$5/A$10, A$10/A$25 NLH & PLO', rake_and_tax: '10% capped at A$15-A$20 + time charge; gambling winnings are tax-free in Australia.', major_festivals: 'Melbourne Poker Championship & Aussie Millions Heritage Series' },
-        { slug: 'montreal', city: 'Montreal', country: 'Canada', currency: 'CAD (C$)', flagship_venues: ['Playground Poker Club (Kahnawake)', 'Casino de Montreal'], typical_stakes: 'C$1/C$2, C$2/C$5, C$5/C$10 NLH & PLO', rake_and_tax: '10% capped at C$8-C$14 (free food/drinks at Playground); zero Canadian tax for recreational players.', major_festivals: 'WPT Montreal, WSOP Circuit Playground' },
-        { slug: 'nassau', city: 'Nassau / Paradise Island', country: 'Bahamas', currency: 'USD ($)', flagship_venues: ['Atlantis Paradise Island', 'Baha Mar Resort & Casino'], typical_stakes: '$2/$5, $5/$10, $10/$25, $25/$50+ USD', rake_and_tax: '5%-10% capped at $10-$20; US dollars accepted 1:1.', major_festivals: 'WSOP Paradise (December Championship)' },
-      ];
+      const intlCatalog = INTERNATIONAL_POKER_GUIDES.map((g) => ({
+        slug: g.slug,
+        city: g.city,
+        country: g.country,
+        currency: g.currency,
+        flagship_venues: (g.topPokerRooms || []).map((r) => r.name),
+        typical_stakes: g.typicalStakes,
+        rake_and_tax: `${g.rakeCap} | ${g.visitorTaxRule}`,
+        major_festivals: g.flagshipSeries,
+      }));
 
       const rawCity = String(args?.city || args?.slug || '').trim().toLowerCase();
       if (!rawCity) {
@@ -6141,7 +6130,8 @@ export async function executeMcpTool(rawName, args, { origin = SITE_ORIGIN } = {
         };
       }
 
-      const matched = intlCatalog.find((d) => d.slug === rawCity || d.slug.includes(rawCity) || d.city.toLowerCase().includes(rawCity) || d.country.toLowerCase().includes(rawCity)) || intlCatalog[0];
+      const found = findInternationalGuide(rawCity);
+      const matched = intlCatalog.find((d) => d.slug === found?.slug || d.slug === rawCity || d.slug.includes(rawCity) || d.city.toLowerCase().includes(rawCity) || d.country.toLowerCase().includes(rawCity)) || intlCatalog[0];
       return {
         content: [
           {
