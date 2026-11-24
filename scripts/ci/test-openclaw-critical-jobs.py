@@ -279,3 +279,80 @@ for _ in range(10):
     d._drain_all_alert_outboxes()
 assert all(not entry.get('pending') for entry in d._alert_persist.values())
 print('structured-recovery-and-independent-retry: OK')
+
+# 11. EPISODE CORRELATION + STRUCTURED JOBNAME SCOPE (incident 7d76c5b8).
+#
+# Prior to 2026-11-24, every firing and recovery event minted an unrelated
+# random UUID eventKey with no `payload.resolves` and no `payload.jobname`, so
+# reliability_ingest_alert rejected 100% of OpenClaw recoveries as
+# `resolved_not_of_this_episode` and collapsed unrelated jobs into scope `{}`.
+calls.clear()
+d.requests.post = fake_post
+d._send_sms = transport
+
+TRIVIA = '/api/cron/trivia-nightly-tournament'
+assert TRIVIA in d.CRITICAL_JOBS
+d._critical_record(TRIVIA, False, 'HTTP 500 missed_nightly_instance')
+d._critical_record(TRIVIA, False, 'HTTP 500 missed_nightly_instance')
+assert len(calls) == 1, calls
+fire_body = calls[-1][1]['json']
+ep_id = fire_body['eventKey']
+assert fire_body['status'] == 'firing'
+assert fire_body['payload']['jobname'] == TRIVIA
+assert fire_body['payload']['labels']['job'] == TRIVIA
+assert 'resolves' not in fire_body['payload']
+
+# Re-page during the same outage reuses the exact same episode eventKey.
+st_trivia = d._critical_state[TRIVIA]
+st_trivia['last_page_at'] -= 3601
+st_trivia['failing_since'] -= 3601
+d._critical_record(TRIVIA, False, 'HTTP 500 missed_nightly_instance')
+assert len(calls) == 2, calls
+repage_body = calls[-1][1]['json']
+assert repage_body['status'] == 'firing'
+assert repage_body['eventKey'] == ep_id
+assert repage_body['payload']['jobname'] == TRIVIA
+
+# Recovery correlates directly to the firing episode via both :resolved suffix
+# and payload.resolves, and keeps the identical jobname scope.
+d._critical_record(TRIVIA, True)
+assert len(calls) == 3, calls
+rec_body = calls[-1][1]['json']
+assert rec_body['status'] == 'resolved'
+assert rec_body['eventKey'] == f'{ep_id}:resolved'
+assert rec_body['payload']['resolves'] == ep_id
+assert rec_body['payload']['jobname'] == TRIVIA
+assert rec_body['payload']['labels']['job'] == TRIVIA
+
+# A subsequent episode after recovery gets a fresh episode eventKey.
+d._critical_record(TRIVIA, False, 'HTTP 500 second outage')
+d._critical_record(TRIVIA, False, 'HTTP 500 second outage')
+assert len(calls) == 4, calls
+fire2_body = calls[-1][1]['json']
+assert fire2_body['eventKey'] != ep_id
+assert fire2_body['payload']['jobname'] == TRIVIA
+
+# Offline recovery via _alert_flush links recovery to the queued firing event.
+d._send_sms = offline
+st_flush = d._alert_bind('critical:/api/cron/flush-corr-test', {'consec_fail': 2, 'alert_sent': False})
+assert not d._alert(st_flush, 'CRITICAL flush test')
+st_flush['consec_fail'] = 0
+d._alert_flush(st_flush)
+p_flush = d._alert_persist['critical:/api/cron/flush-corr-test']['pending']
+assert len(p_flush) == 2
+assert p_flush[1]['recovery'] is True
+assert p_flush[1]['resolves'] == p_flush[0]['id']
+assert p_flush[1]['id'] == f"{p_flush[0]['id']}:resolved"
+assert p_flush[1]['jobname'] == '/api/cron/flush-corr-test'
+
+# Legacy state with no active_episode_id recovers cleanly without error.
+calls.clear()
+d._send_sms = transport
+st_legacy = d._alert_bind('workers-health', {'consec_fail': 2, 'alert_sent': True})
+d._alert_persist.setdefault('workers-health', {}).pop('active_episode_id', None)
+assert d._alert(st_legacy, '✅ workers RECOVERED', recovery=True)
+assert len(calls) == 1
+assert calls[-1][1]['json']['status'] == 'resolved'
+assert calls[-1][1]['json']['payload']['jobname'] == 'workers-health'
+assert 'resolves' not in calls[-1][1]['json']['payload']
+print('episode-correlation-and-jobname-scope: OK')
