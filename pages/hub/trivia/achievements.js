@@ -6,6 +6,7 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import TriviaConsole from '../../../src/components/trivia/console/TriviaConsole';
 import ResponsiveModeArt from '../../../src/components/trivia/console/ResponsiveModeArt';
+import StreakFreezeWidget from '../../../src/components/trivia/StreakFreezeWidget';
 import { TRIVIA_INTRO_ART } from '../../../src/config/triviaIntroArt.mjs';
 import { authedFetch, getAuthUser } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
@@ -344,6 +345,12 @@ export default function TriviaAchievements() {
                                                 <li className="tc-row"><span className="tc-row__label">Settled Diamonds</span><span className="tc-row__value tc-ink--gold">{formatTriviaDisplayNumber(summary.settledDiamonds)}</span></li>
                                             </ul>
                                         </section>
+                                        <StreakFreezeWidget
+                                            signedIn={Boolean(userId)}
+                                            online={online}
+                                            userId={userId}
+                                            className="trivia-progress-section"
+                                        />
                                         {items.length === 0 ? <section className="trivia-progress-empty"><p className="trivia-progress-empty-copy">No Achievement Definitions Are Available From The Server.</p></section> : categories.map(([category, categoryItems]) => (
                                             <section className="trivia-progress-section trivia-progress-achievement-category" key={category} aria-labelledby={`trivia-achievement-${category}`}>
                                                 <h2 id={`trivia-achievement-${category}`} className="trivia-progress-heading">{printTitle(category)}</h2>
