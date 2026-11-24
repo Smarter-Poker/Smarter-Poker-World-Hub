@@ -127,6 +127,13 @@ export function createPvpRoute(action, { serviceClient, env = process.env, sleep
                     if (!again.error && again.data?.success === true) dto = toPvpDto(again.data);
                 }
             }
+            if (dto?.state === 'result' && dto?.match?.id) {
+                try {
+                    await sb.rpc('trivia_pvp_update_rating_v1', { p_match_id: dto.match.id });
+                } catch (_eloError) {
+                    // Elo rating projection is idempotent and non-blocking; never alter settlement DTO.
+                }
+            }
             console.log(JSON.stringify({
                 event: 'trivia_pvp_api', action, state: dto.state,
                 join: dto.join || undefined, cancel: dto.cancel || undefined,

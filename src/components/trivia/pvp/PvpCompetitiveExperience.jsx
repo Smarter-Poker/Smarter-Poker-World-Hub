@@ -317,7 +317,13 @@ function PvpHistory({ history, loading, error, onPage, onRetry }) {
     );
 }
 
-export default function PvpCompetitiveExperience({ user, authLoading, pvpHorsesEnabled = false }) {
+export default function PvpCompetitiveExperience({
+    user,
+    authLoading,
+    pvpHorsesEnabled = false,
+    onMatchActiveChange = null,
+    onMatchSettled = null,
+}) {
     const router = useRouter();
     const serverRun = useServerGradedRun('pvp', { accessTokenProvider: getFreshAccessToken });
 
@@ -787,7 +793,14 @@ export default function PvpCompetitiveExperience({ user, authLoading, pvpHorsesE
         if (!settlementReference || historySettlementRef.current === settlementReference) return;
         historySettlementRef.current = settlementReference;
         void loadHistory(0);
-    }, [dto?.result?.settlementReference, dto?.state, loadHistory]);
+        if (typeof onMatchSettled === 'function') onMatchSettled();
+    }, [dto?.result?.settlementReference, dto?.state, loadHistory, onMatchSettled]);
+
+    useEffect(() => {
+        if (typeof onMatchActiveChange !== 'function') return;
+        const isActive = !showLobby && ACTIVE_SESSION_STATES.has(dto?.state || '');
+        onMatchActiveChange(isActive);
+    }, [dto?.state, onMatchActiveChange, showLobby]);
 
     const handleJoin = useCallback(async () => {
         if (busyAction || !isAuthoritativePvpQuote(quote)) return;
