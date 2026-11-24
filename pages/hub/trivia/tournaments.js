@@ -14,6 +14,7 @@ import NightlyReminderButton from '../../../src/components/trivia/NightlyReminde
 import NightlySpectatorBanner from '../../../src/components/trivia/NightlySpectatorBanner';
 import MonthlyChampionshipPanel from '../../../src/components/trivia/MonthlyChampionshipPanel';
 import FriendChallengePanel from '../../../src/components/trivia/FriendChallengePanel';
+import ClubTriviaNightsPanel from '../../../src/components/trivia/ClubTriviaNightsPanel';
 import ShareResultCardModal from '../../../src/components/trivia/ShareResultCardModal';
 import PostSettlementReviewDrawer from '../../../src/components/trivia/PostSettlementReviewDrawer';
 import { TRIVIA_INTRO_ART_TOURNAMENTS } from '../../../src/config/triviaIntroArt.mjs';
@@ -231,6 +232,15 @@ function TournamentPageExperience({ user, authLoading }) {
     }
 
     useEffect(() => () => requestAuthorityRef.current.invalidateAll(), []);
+
+    useEffect(() => {
+        if (!router.isReady) return;
+        const tabParam = typeof router.query?.tab === 'string' ? router.query.tab.trim() : '';
+        const clubCodeParam = typeof router.query?.clubCode === 'string' ? router.query.clubCode.trim() : '';
+        if (tabParam === 'club-nights' || clubCodeParam) {
+            setActiveTab('club-nights');
+        }
+    }, [router.isReady, router.query?.clubCode, router.query?.tab]);
 
     useEffect(() => {
         journeyTrackerRef.current.track('nightly_tournament', 'impression', {
@@ -979,6 +989,9 @@ function TournamentPageExperience({ user, authLoading }) {
         if (activeTab === 'challenges') {
             return <FriendChallengePanel signedIn={signedIn} onSignIn={signIn} />;
         }
+        if (activeTab === 'club-nights') {
+            return <ClubTriviaNightsPanel signedIn={signedIn} onSignIn={signIn} />;
+        }
         if (activeTab === 'receipt') {
             return <TournamentReceipt receipt={receipt} loading={loading.receipt} error={errors.receipt} signedIn={signedIn} onSignIn={signIn} onRetry={() => loadReceipt()} />;
         }
@@ -1034,6 +1047,7 @@ function TournamentPageExperience({ user, authLoading }) {
                             >
                                 <ResponsiveModeArt art={TRIVIA_INTRO_ART_TOURNAMENTS} priority />
                                 <TournamentStateBanner title="No Event In This Schedule Window" message="The Server Has Not Published A Nightly Tournament Yet. No Entry Or Diamond Hold Was Created." tone="muted" />
+                                <ClubTriviaNightsPanel signedIn={signedIn} onSignIn={signIn} />
                             </TriviaConsole>
                         ) : null}
 
