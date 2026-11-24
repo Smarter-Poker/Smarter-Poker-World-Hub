@@ -72,6 +72,7 @@ export class PokerSoundManager {
   }
 
   setEnabled(enabled) { this._enabled = !!enabled; }
+  isEnabled() { return this._enabled; }
   setVolume(vol) { this._volume = Math.max(0, Math.min(1, vol)); }
   get enabled() { return this._enabled; }
   get volume() { return this._volume; }
