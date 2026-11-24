@@ -178,7 +178,7 @@ async function fetchQueueItems(client, { queueMode, category, limit }) {
     const { data: questions, error: qError } = await client
         .from('trivia_questions')
         .select('id, question, options, correct_index, audit_verified, source')
-        .in('id', ids);
+        .in('id', ids.slice(0, 100));
     if (qError) throw qError;
 
     const byId = new Map((questions || []).map((q) => [q.id, q]));
