@@ -14,7 +14,7 @@ import { useRouter } from 'next/router';
 import Image from 'next/image';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
-import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
@@ -23,6 +23,7 @@ import TrainerEmptyState from '../../../src/components/training/TrainerEmptyStat
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
 import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
+import { analyzeVerifiedTrainingWeaknesses } from '../../../src/lib/training/weaknessAnalysis.mjs';
 // TRAIN-WIRE-EMPTY-5d — adoption: shared empty-state primitive
 
 const HERO_CARDS_BY_VARIANT = {
@@ -112,6 +113,8 @@ export default function JarvisDashboard() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [insights, setInsights] = useState(null);
+  const [sessions, setSessions] = useState([]);
+  const [recentAnswers, setRecentAnswers] = useState([]);
   const [fetchError, setFetchError] = useState(null);
   const [activeVariant, setActiveVariant] = useState('nlh');
   const [heroPosition, setHeroPosition] = useState('BTN');
@@ -147,6 +150,58 @@ export default function JarvisDashboard() {
     [activeVariant, activeStreet, heroPosition],
   );
 
+  const leakAnalysis = useMemo(() => {
+    const rawAnalysis = analyzeVerifiedTrainingWeaknesses(
+      Array.isArray(sessions) ? sessions : [],
+      Array.isArray(recentAnswers) ? recentAnswers : [],
+    );
+    const verifiedTop = rawAnalysis?.topSpotLeak || rawAnalysis?.spotLeaks?.[0] || rawAnalysis?.leaks?.[0] || null;
+    const hasVerifiedLeak = Boolean(verifiedTop && (verifiedTop.sample || verifiedTop.sampleCount || 0) >= 3);
+    const topLeak = hasVerifiedLeak
+      ? {
+          gameId: verifiedTop.gameId || 'cash-002',
+          variant: verifiedTop.variant || activeVariant || 'nlh',
+          street: verifiedTop.street || activeStreet || 'flop',
+          position: verifiedTop.position || heroPosition || 'BTN',
+          sampleSize: Number(verifiedTop.sample || verifiedTop.sampleCount || 3),
+          evLossBb: Number(verifiedTop.evLossBb || 0),
+          avgEvLossBb: Number(verifiedTop.avgEvLossBb || Number(((verifiedTop.evLossBb || 0) / Math.max(1, verifiedTop.sample || 1)).toFixed(2))),
+          accuracy: Number(verifiedTop.acc ?? 60),
+        }
+      : {
+          gameId: activeVariant === 'nlh' ? 'cash-002' : 'cash-005',
+          variant: activeVariant || 'nlh',
+          street: activeStreet || 'flop',
+          position: heroPosition || 'BTN',
+          sampleSize: Number(rawAnalysis?.totalHands || 0),
+          evLossBb: 0,
+          avgEvLossBb: 0,
+          accuracy: Number(rawAnalysis?.overallAcc ? Math.round(rawAnalysis.overallAcc) : 75),
+        };
+    return {
+      hasVerifiedLeak,
+      topLeak,
+      rawAnalysis,
+    };
+  }, [sessions, recentAnswers, activeVariant, activeStreet, heroPosition]);
+
+  const topLeak = leakAnalysis.topLeak;
+  const topLeakDrillHref = useMemo(
+    () =>
+      buildCustomTrainingArenaHref(
+        {
+          gameId: topLeak.gameId,
+          variant: topLeak.variant,
+          street: topLeak.street,
+          heroPosition: topLeak.position,
+          position: topLeak.position,
+          stackDepth: 100,
+        },
+        'dynamic-leak-curriculum',
+      ),
+    [topLeak],
+  );
+
   useEffect(() => {
     const _c = new AbortController();
 
@@ -167,15 +222,32 @@ export default function JarvisDashboard() {
       setLoading(true);
       setFetchError(null);
       const authUser = getAuthUser();
+      const token = getAccessToken();
       setUser(authUser);
 
-      if (authUser) {
-        const response = await authedFetch(`/api/jarvis/user-insights`, { signal });
-        if (!response.ok) throw new Error(`Request failed (${response.status})`);
-        const data = await response.json();
+      if (authUser || token) {
+        try {
+          const sessRes = await authedFetch(`/api/training/get-sessions?limit=50&includeAnswers=1`, { signal });
+          if (sessRes.ok) {
+            const sessData = await sessRes.json();
+            if (sessData?.success) {
+              if (Array.isArray(sessData.sessions)) setSessions(sessData.sessions);
+              if (Array.isArray(sessData.recentAnswers)) setRecentAnswers(sessData.recentAnswers);
+            }
+          }
+        } catch (sessErr) {
+          if (sessErr?.name === 'AbortError') return;
+          console.warn('Jarvis session weakness fetch fallback:', sessErr);
+        }
 
-        if (data.success) {
-          setInsights(data.insights);
+        if (authUser) {
+          const response = await authedFetch(`/api/jarvis/user-insights`, { signal });
+          if (!response.ok) throw new Error(`Request failed (${response.status})`);
+          const data = await response.json();
+
+          if (data.success) {
+            setInsights(data.insights);
+          }
         }
       }
       setLoading(false);
@@ -223,6 +295,58 @@ export default function JarvisDashboard() {
             </div>
             <h1 style={styles.title}>JARVIS Dashboard</h1>
             <p style={styles.subtitle}>Your AI Training Coach</p>
+          </div>
+
+          <div
+            data-dynamic-leak-curriculum="true"
+            data-leak-variant={topLeak.variant}
+            data-leak-street={topLeak.street}
+            data-leak-position={topLeak.position}
+            data-leak-sample-count={topLeak.sampleSize}
+            data-leak-basis={leakAnalysis.hasVerifiedLeak ? 'verified-history' : 'baseline-calibration'}
+            style={{
+              marginBottom: 20,
+              padding: 18,
+              borderRadius: 12,
+              border: '1px solid rgba(251, 191, 36, 0.42)',
+              background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.85))',
+            }}
+          >
+            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <div style={{ fontSize: 13, fontWeight: 900, color: '#fbbf24', textTransform: 'uppercase' }}>
+                #1 Priority Leak Curriculum: {String(topLeak.variant).toUpperCase()} · {String(topLeak.street).toUpperCase()} · {topLeak.position}
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 800, color: leakAnalysis.hasVerifiedLeak ? '#4ade80' : '#94a3b8' }}>
+                {leakAnalysis.hasVerifiedLeak ? 'Verified Leak History' : 'Baseline Calibration'} · N = {topLeak.sampleSize}
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, fontSize: 12, color: '#e2e8f0', marginBottom: 12 }}>
+              <span>Target Module: <strong>{topLeak.gameId}</strong></span>
+              <span>Sample Count: <strong>N = {topLeak.sampleSize}</strong></span>
+              <span>Total EV Loss: <strong>{topLeak.evLossBb} BB</strong></span>
+              <span>Avg EV Loss: <strong>{topLeak.avgEvLossBb} BB/Hand</strong></span>
+            </div>
+            <button
+              type="button"
+              data-drill-priority-leak-cta="true"
+              data-drill-href={topLeakDrillHref}
+              onClick={() => router.push(topLeakDrillHref)}
+              style={{
+                display: 'inline-flex',
+                minHeight: 40,
+                alignItems: 'center',
+                padding: '0 16px',
+                borderRadius: 8,
+                border: '1px solid #fbbf24',
+                background: 'linear-gradient(180deg, rgba(217, 119, 6, 0.48), rgba(146, 64, 14, 0.72))',
+                color: '#fef3c7',
+                fontSize: 12,
+                fontWeight: 900,
+                cursor: 'pointer',
+              }}
+            >
+              Drill Priority #1 Leak In Club Arena ({String(topLeak.variant).toUpperCase()} · {String(topLeak.street).toUpperCase()} · {topLeak.position}) →
+            </button>
           </div>
 
           {brainEval && (

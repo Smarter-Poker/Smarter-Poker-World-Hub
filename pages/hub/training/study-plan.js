@@ -15,13 +15,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
 import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
+import { analyzeVerifiedTrainingWeaknesses } from '../../../src/lib/training/weaknessAnalysis.mjs';
 
 const HERO_CARDS_BY_VARIANT = {
   nlh: ['As', 'Kd'],
@@ -309,6 +310,7 @@ function DayCard({ dayPlan, isToday, onStartArea, completedGames }) {
     >
       {/* Header */}
       <motion.button
+        type="button"
         onClick={() => setExpanded(!expanded)}
         whileTap={{ scale: 0.99 }}
         style={{
@@ -490,6 +492,7 @@ export default function StudyPlanPage() {
   // empty array means the server successfully verified that this player has no
   // completed sessions yet, which is the only state that may use a starter plan.
   const [sessions, setSessions] = useState(null);
+  const [recentAnswers, setRecentAnswers] = useState([]);
   const [fetchError, setFetchError] = useState(null);
   const [signedOut, setSignedOut] = useState(false);
   const [activeVariant, setActiveVariant] = useState('nlh');
@@ -526,6 +529,58 @@ export default function StudyPlanPage() {
     [activeVariant, effectiveStackBb]
   );
 
+  const leakAnalysis = useMemo(() => {
+    const rawAnalysis = analyzeVerifiedTrainingWeaknesses(
+      Array.isArray(sessions) ? sessions : [],
+      Array.isArray(recentAnswers) ? recentAnswers : [],
+    );
+    const verifiedTop = rawAnalysis?.topSpotLeak || rawAnalysis?.spotLeaks?.[0] || rawAnalysis?.leaks?.[0] || null;
+    const hasVerifiedLeak = Boolean(verifiedTop && (verifiedTop.sample || verifiedTop.sampleCount || 0) >= 3);
+    const topLeak = hasVerifiedLeak
+      ? {
+          gameId: verifiedTop.gameId || 'cash-002',
+          variant: verifiedTop.variant || activeVariant || 'nlh',
+          street: verifiedTop.street || 'flop',
+          position: verifiedTop.position || 'BB',
+          sampleSize: Number(verifiedTop.sample || verifiedTop.sampleCount || 3),
+          evLossBb: Number(verifiedTop.evLossBb || 0),
+          avgEvLossBb: Number(verifiedTop.avgEvLossBb || Number(((verifiedTop.evLossBb || 0) / Math.max(1, verifiedTop.sample || 1)).toFixed(2))),
+          accuracy: Number(verifiedTop.acc ?? 60),
+        }
+      : {
+          gameId: activeVariant === 'nlh' ? 'cash-002' : 'cash-005',
+          variant: activeVariant || 'nlh',
+          street: 'flop',
+          position: 'BB',
+          sampleSize: Number(rawAnalysis?.totalHands || 0),
+          evLossBb: 0,
+          avgEvLossBb: 0,
+          accuracy: Number(rawAnalysis?.overallAcc ? Math.round(rawAnalysis.overallAcc) : 75),
+        };
+    return {
+      hasVerifiedLeak,
+      topLeak,
+      rawAnalysis,
+    };
+  }, [sessions, recentAnswers, activeVariant]);
+
+  const topLeak = leakAnalysis.topLeak;
+  const topLeakDrillHref = useMemo(
+    () =>
+      buildCustomTrainingArenaHref(
+        {
+          gameId: topLeak.gameId,
+          variant: topLeak.variant,
+          street: topLeak.street,
+          heroPosition: topLeak.position,
+          position: topLeak.position,
+          stackDepth: effectiveStackBb,
+        },
+        'dynamic-leak-curriculum',
+      ),
+    [topLeak, effectiveStackBb],
+  );
+
   // Get current day of week (0 = Monday)
   const today = new Date();
   const todayIdx = (today.getDay() + 6) % 7; // JS Sunday=0 → shift so Monday=0
@@ -535,24 +590,28 @@ export default function StudyPlanPage() {
     setFetchError(null);
     setPlan(null);
     const user = getAuthUser();
-    if (!user?.id) {
+    const token = getAccessToken();
+    if (!user?.id && !token) {
       setSignedOut(true);
       setSessions(null);
+      setRecentAnswers([]);
       setLoading(false);
       return;
     }
     setSignedOut(false);
     try {
-      const res = await authedFetch(`/api/training/get-sessions?limit=100`);
+      const res = await authedFetch(`/api/training/get-sessions?limit=50&includeAnswers=1`);
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data?.success !== true || !Array.isArray(data.sessions)) {
         throw new Error('Verified Training history was not returned.');
       }
       setSessions(data.sessions);
+      setRecentAnswers(Array.isArray(data.recentAnswers) ? data.recentAnswers : []);
     } catch (e) {
       console.warn('[StudyPlan] Fetch error:', e);
       setSessions(null);
+      setRecentAnswers([]);
       setFetchError('Unable To Load Study Plan Data. Please Try Again.');
     } finally {
       setLoading(false);
@@ -652,6 +711,7 @@ export default function StudyPlanPage() {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button
+              type="button"
               onClick={() => router.push('/hub/training')}
               style={{
                 background: 'rgba(255,255,255,0.05)',
@@ -688,6 +748,7 @@ export default function StudyPlanPage() {
           </div>
           {plan && (
             <motion.button
+              type="button"
               whileTap={{ scale: 0.95 }}
               onClick={regeneratePlan}
               style={{
@@ -707,6 +768,58 @@ export default function StudyPlanPage() {
         </div>
 
         <div className="sp-journey-main" style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
+          <div
+            data-dynamic-leak-curriculum="true"
+            data-leak-variant={topLeak.variant}
+            data-leak-street={topLeak.street}
+            data-leak-position={topLeak.position}
+            data-leak-sample-count={topLeak.sampleSize}
+            data-leak-basis={leakAnalysis.hasVerifiedLeak ? 'verified-history' : 'baseline-calibration'}
+            style={{
+              marginBottom: 18,
+              padding: 16,
+              borderRadius: 12,
+              border: '1px solid rgba(251, 191, 36, 0.42)',
+              background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.85))',
+            }}
+          >
+            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <div style={{ fontSize: 13, fontWeight: 900, color: '#fbbf24', textTransform: 'uppercase' }}>
+                #1 Priority Leak Curriculum: {String(topLeak.variant).toUpperCase()} · {String(topLeak.street).toUpperCase()} · {topLeak.position}
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 800, color: leakAnalysis.hasVerifiedLeak ? '#4ade80' : '#94a3b8' }}>
+                {leakAnalysis.hasVerifiedLeak ? 'Verified Leak History' : 'Baseline Calibration'} · N = {topLeak.sampleSize}
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, fontSize: 12, color: '#e2e8f0', marginBottom: 12 }}>
+              <span>Target Module: <strong>{topLeak.gameId}</strong></span>
+              <span>Sample Count: <strong>N = {topLeak.sampleSize}</strong></span>
+              <span>Total EV Loss: <strong>{topLeak.evLossBb} BB</strong></span>
+              <span>Avg EV Loss: <strong>{topLeak.avgEvLossBb} BB/Hand</strong></span>
+            </div>
+            <button
+              type="button"
+              data-drill-priority-leak-cta="true"
+              data-drill-href={topLeakDrillHref}
+              onClick={() => router.push(topLeakDrillHref)}
+              style={{
+                display: 'inline-flex',
+                minHeight: 40,
+                alignItems: 'center',
+                padding: '0 16px',
+                borderRadius: 8,
+                border: '1px solid #fbbf24',
+                background: 'linear-gradient(180deg, rgba(217, 119, 6, 0.48), rgba(146, 64, 14, 0.72))',
+                color: '#fef3c7',
+                fontSize: 12,
+                fontWeight: 900,
+                cursor: 'pointer',
+              }}
+            >
+              Drill Priority #1 Leak In Club Arena ({String(topLeak.variant).toUpperCase()} · {String(topLeak.street).toUpperCase()} · {topLeak.position}) →
+            </button>
+          </div>
+
           {brainEval && (
             <div
               data-specialty-brain-panel="true"
@@ -1036,6 +1149,7 @@ export default function StudyPlanPage() {
                   </div>
                 </div>
                 <motion.button
+                  type="button"
                   whileTap={{ scale: 0.95 }}
                   onClick={() => handleStartArea(focus, 'focus-0')}
                   style={{

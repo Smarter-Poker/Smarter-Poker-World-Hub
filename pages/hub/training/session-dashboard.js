@@ -19,8 +19,11 @@ import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { normalizeScoreToPercent } from '../../../src/engines/GTOScoreEngine';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
-import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
-import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
+import {
+  evaluateTrainingSpotWithHorseBrain,
+  buildCustomTrainingArenaHref,
+} from '../../../src/lib/training/horseBrainTrainingAdapter';
+import { analyzeVerifiedTrainingWeaknesses } from '../../../src/lib/training/weaknessAnalysis.mjs';
 // TRAIN-WIRE-EMPTY-1a — adoption: shared empty-state primitive
 
 const HERO_CARDS_BY_VARIANT = {
@@ -503,6 +506,7 @@ function CoachingCard({ session }) {
       }}
     >
       <button
+        type="button"
         onClick={() => setExpanded(!expanded)}
         style={{
           width: '100%',
@@ -652,6 +656,26 @@ export default function SessionDashboard() {
     [activeVariant, activeStreet, heroPosition],
   );
 
+  const mistakeReplayTarget = useMemo(() => {
+    const analysis = analyzeVerifiedTrainingWeaknesses(Array.isArray(sessions) ? sessions : [], []);
+    const leak = analysis?.topSpotLeak || analysis?.spotLeaks?.[0] || analysis?.leaks?.[0] || null;
+    const variant = leak?.variant || activeVariant || 'nlh';
+    const street = leak?.street || activeStreet || 'flop';
+    const position = leak?.position || heroPosition || 'BTN';
+    const gameId = leak?.gameId || (variant === 'nlh' ? 'cash-002' : 'cash-005');
+    const href = buildCustomTrainingArenaHref(
+      {
+        gameId,
+        variant,
+        street,
+        heroPosition: position,
+        position,
+      },
+      'session-mistakes-replay',
+    );
+    return { gameId, variant, street, position, href };
+  }, [sessions, activeVariant, activeStreet, heroPosition]);
+
   // Shared fetch function — used by initial load, retry button, and EventBus
   const fetchSessions = useCallback(async ({ silent = false } = {}) => {
     try {
@@ -792,6 +816,7 @@ export default function SessionDashboard() {
         <div className="sp-intelligence-header" style={{ padding: '20px 24px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button
+              type="button"
               onClick={() => router.push('/hub/training')}
               style={{
                 background: 'rgba(255,255,255,0.06)',
@@ -835,6 +860,7 @@ export default function SessionDashboard() {
             ].map((t) => (
               <button
                 key={t.key}
+                type="button"
                 onClick={() => setTimeRange(t.key)}
                 aria-label={`Filter by ${t.label}`}
                 aria-pressed={timeRange === t.key}
@@ -983,23 +1009,45 @@ export default function SessionDashboard() {
                 {brainEval.explanation}
               </div>
 
-              <button
-                type="button"
-                data-launch-club-arena-cta="true"
-                onClick={() => router.push(arenaHref)}
-                style={{
-                  padding: '9px 16px',
-                  borderRadius: 8,
-                  border: '1px solid #00d4ff',
-                  background: 'rgba(0, 212, 255, 0.18)',
-                  color: '#fff',
-                  fontSize: 12,
-                  fontWeight: 900,
-                  cursor: 'pointer',
-                }}
-              >
-                Launch Calibrated Spot In Club Arena →
-              </button>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                <button
+                  type="button"
+                  data-launch-club-arena-cta="true"
+                  onClick={() => router.push(arenaHref)}
+                  style={{
+                    padding: '9px 16px',
+                    borderRadius: 8,
+                    border: '1px solid #00d4ff',
+                    background: 'rgba(0, 212, 255, 0.18)',
+                    color: '#fff',
+                    fontSize: 12,
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Launch Calibrated Spot In Club Arena →
+                </button>
+                <button
+                  type="button"
+                  data-drill-session-mistakes-cta="true"
+                  data-mistake-target-variant={mistakeReplayTarget.variant}
+                  data-mistake-target-street={mistakeReplayTarget.street}
+                  data-mistake-target-position={mistakeReplayTarget.position}
+                  onClick={() => router.push(mistakeReplayTarget.href)}
+                  style={{
+                    padding: '9px 16px',
+                    borderRadius: 8,
+                    border: '1px solid #fbbf24',
+                    background: 'rgba(251, 191, 36, 0.18)',
+                    color: '#fde68a',
+                    fontSize: 12,
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {`Fix My Mistakes From This Session (${mistakeReplayTarget.variant.toUpperCase()} · ${mistakeReplayTarget.street.toUpperCase()} · ${mistakeReplayTarget.position}) →`}
+                </button>
+              </div>
             </div>
           )}
 
