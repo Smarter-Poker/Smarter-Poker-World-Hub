@@ -76,12 +76,14 @@ export default async function handler(req, res) {
         const profileMap = new Map();
 
         if (userIds.length > 0) {
-            const { data: profiles } = await sb
-                .from('profiles')
-                .select('id, display_name, username, is_horse')
-                .in('id', userIds);
-            for (const profile of Array.isArray(profiles) ? profiles : []) {
-                profileMap.set(profile.id, profile);
+            for (let offset = 0; offset < userIds.length; offset += 50) {
+                const { data: profiles } = await sb
+                    .from('profiles')
+                    .select('id, display_name, username, is_horse')
+                    .in('id', userIds.slice(offset, offset + 50));
+                for (const profile of Array.isArray(profiles) ? profiles : []) {
+                    profileMap.set(profile.id, profile);
+                }
             }
         }
 
