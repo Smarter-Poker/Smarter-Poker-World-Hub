@@ -62,7 +62,8 @@ export default function PrizeWheel({
     onClose,
     streakMultiplier = 1,
     prizeId = null, // server-resolved outcome - preferred
-    prizeAmount = null // server-resolved amount (multiplier already applied)
+    prizeAmount = null, // server-resolved amount (multiplier already applied)
+    mode = 'daily',
 }) {
     const [isSpinning, setIsSpinning] = useState(false);
     const [result, setResult] = useState(null);
@@ -237,6 +238,7 @@ export default function PrizeWheel({
         : undefined;
 
     const resultInk = result ? (INK_BY_PRIZE_COLOR[result.prize.color] || 'silver') : 'silver';
+    const isDailyMode = !mode || mode === 'daily';
 
     return (
         <div className={`prize-wheel-overlay ${styles.overlay}`}>
@@ -244,7 +246,7 @@ export default function PrizeWheel({
                 open
                 onClose={canClose ? onClose : undefined}
                 closeOnBackdrop={canClose}
-                eyebrow="Daily Reward"
+                eyebrow={isDailyMode ? 'Daily Reward' : 'Bonus Reward'}
                 title="Prize Wheel"
                 subtitle={isSpinning ? 'Resolving Your Reward' : result ? 'Reward Ready To Claim' : 'One Spin Per Perfect Game'}
                 pill={streakMultiplier > 1 ? `${streakMultiplier}X Bonus` : 'Perfect Run'}
@@ -252,7 +254,9 @@ export default function PrizeWheel({
                 secondaryAction={secondaryAction}
             >
                 <div className={styles.container}>
-                    <p className={`tc-label ${styles.kicker}`}>Daily Spin</p>
+                    <p className={`tc-label ${styles.kicker}`}>
+                        {isDailyMode ? <>Daily Spin</> : <>Bonus Spin</>}
+                    </p>
 
                     {streakMultiplier > 1 && (
                         <p className={`tc-ink--gold ${styles.notice}`}>

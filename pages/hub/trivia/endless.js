@@ -224,6 +224,7 @@ export default function EndlessModePage() {
         screenShake: true,  // Screen shake effect
         intensity: 'high'   // 'low', 'medium', 'high'
     });
+    const settingsLoadedRef = useRef(false);
 
     const startTimeRef = useRef(null);
     const [gameDurationSec, setGameDurationSec] = useState(0);
@@ -351,6 +352,7 @@ export default function EndlessModePage() {
                     setSettings(prev => ({ ...prev, ...parsed }));
                 }
             } catch (e) { console.warn("[endless.js]", e); }
+            settingsLoadedRef.current = true;
 
             // Questions are dealt by the server when a game starts - nothing
             // to preload here.
@@ -419,7 +421,9 @@ export default function EndlessModePage() {
     // Save settings to localStorage when changed. Merges into whatever the
     // settings page stored so this page never clobbers keys it doesn't own
     // (difficulty / timerEnabled / hintsEnabled live in the same object).
+    // Guarded by settingsLoadedRef so initial default state never wipes saved prefs.
     useEffect(() => {
+        if (!settingsLoadedRef.current) return;
         try {
             let existing = {};
             try { existing = JSON.parse(localStorage.getItem('trivia_settings') || '{}') || {}; } catch (e) { existing = {}; }
@@ -1615,12 +1619,11 @@ export default function EndlessModePage() {
                                                         type="button"
                                                         role="switch"
                                                         aria-labelledby="endless-audio-label"
-                                                        aria-checked={!reduceMotion && settings.audio}
-                                                        disabled={reduceMotion}
+                                                        aria-checked={settings.audio}
                                                         className="trivia-challenge-switch"
                                                         onClick={() => triviaAudio.setMuted(settings.audio)}
                                                     >
-                                                        {reduceMotion ? 'Reduced' : settings.audio ? 'On' : 'Off'}
+                                                        {settings.audio ? 'On' : 'Off'}
                                                     </button>
                                                 </div>
                                                 <div className="trivia-challenge-setting">
@@ -1722,6 +1725,8 @@ export default function EndlessModePage() {
                                             <div className="trivia-challenge-report">
                                                 <ReportQuestionButton
                                                     questionId={currentQuestion.id}
+                                                    sessionId={serverRun.sessionId}
+                                                    accountId={userId}
                                                     userToken={accessToken}
                                                 />
                                             </div>

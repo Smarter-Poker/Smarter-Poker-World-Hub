@@ -343,6 +343,7 @@ export default function TriviaModePage() {
                         setUserDiamonds(profile.diamonds || 0);
                     }
 
+                    let arcadeFreeEntryCount = 0;
                     if (mode === 'arcade') {
                         setArcadeInventory(prev => ({ ...prev, status: 'loading' }));
                         const { data: itemRows, error: itemError } = await supabase
@@ -356,9 +357,10 @@ export default function TriviaModePage() {
                             setArcadeInventory({ streakShield: 0, freeEntry: 0, status: 'error' });
                         } else {
                             const itemMap = new Map((itemRows || []).map(item => [item.item_type, Number(item.quantity) || 0]));
+                            arcadeFreeEntryCount = itemMap.get('arcade_ticket') || 0;
                             setArcadeInventory({
                                 streakShield: itemMap.get('streak_shield') || 0,
-                                freeEntry: itemMap.get('arcade_ticket') || 0,
+                                freeEntry: arcadeFreeEntryCount,
                                 status: 'ready',
                             });
                         }
@@ -403,10 +405,10 @@ export default function TriviaModePage() {
                         }
                     } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
-                    // Check arcade diamonds. VIPs play free (see startGame), so
-                    // they skip the gate. The old `sessionStorage.trivia_paid`
-                    // escape hatch is gone - nothing writes that flag any more.
-                    if (mode === 'arcade' && !vipStatus) {
+                    // Check arcade diamonds. VIPs and arcade_ticket holders play
+                    // free on the server (create_trivia_session_v2), so both skip
+                    // the client insufficient-diamond gate.
+                    if (mode === 'arcade' && !vipStatus && arcadeFreeEntryCount < 1) {
                         const arcadeCost = modeConfig?.diamondCost || 0;
                         if (arcadeCost > 0) {
                             const diamonds = profile?.diamonds ?? (await getUserDiamonds(currentUserId));
@@ -2008,6 +2010,7 @@ export default function TriviaModePage() {
                     {/* Prize Wheel - only shows on 100% perfect score */}
                     {showPrizeWheel && (
                         <PrizeWheel
+                            mode={mode}
                             streakMultiplier={getStreakTier(userStreak).multiplier}
                             prizeId={wheelPrize?.prizeId || null}
                             prizeAmount={wheelPrize?.prizeAmount ?? null}

@@ -383,6 +383,7 @@ import './trivia-ui-foundation.test.mjs';
 // Trivia Phase 2: versioned rules seed parity, conserving money helpers,
 // ledger migration ACLs with every switch OFF, and the lifeline/audit wiring.
 import './trivia-ledger-phase-2.test.mjs';
+import './trivia-hardening-20261124.test.mjs';
 import './world-command-destinations.test.mjs';
 import './world-command-menu-law.test.mjs';
 import './world-menu-presentation.test.mjs';

@@ -134,7 +134,7 @@ async function getSnapshot(req, res, client, operator) {
         client.from('trivia_tournament_scheduler_runs')
             .select('run_id,job_identity,holder_id,outcome,fencing_token,started_at,finished_at,ticks,alerts,healthy')
             .eq('job_identity', 'openclaw:trivia-nightly-tournament')
-            .order('started_at', { ascending: false }).limit(12),
+            .order('started_at', { ascending: false }).limit(25),
         client.from('trivia_ops_alert_state')
             .select('alertname,severity,episode_key,firing_since,last_seen_at,last_summary')
             .is('resolved_at', null).order('firing_since', { ascending: true }).limit(100),

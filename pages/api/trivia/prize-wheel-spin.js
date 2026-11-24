@@ -3,7 +3,7 @@ import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { serviceClient } from './tournament-lifecycle';
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function handler(req, res) {
     try {

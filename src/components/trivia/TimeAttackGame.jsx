@@ -33,6 +33,8 @@ export default function TimeAttackGame({
     // /api/trivia/report-question requires a Bearer token, so when the page
     // does not supply one we resolve it from the live session below.
     userToken = null,
+    sessionId = null,
+    accountId = null,
     // Server-authoritative grader (same contract as TriviaGame's):
     //   async ({questionId, displayIndex}) =>
     //     {wasCorrect, correctDisplayIndex, explanation}
@@ -322,6 +324,8 @@ export default function TimeAttackGame({
                         <ReportQuestionButton
                             key={currentQuestion.id}
                             questionId={currentQuestion.id}
+                            sessionId={sessionId}
+                            accountId={accountId}
                             userToken={reportToken}
                         />
                     </div>

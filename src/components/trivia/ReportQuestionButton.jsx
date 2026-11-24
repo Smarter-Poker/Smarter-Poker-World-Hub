@@ -10,6 +10,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import TriviaConsoleDialog from './console/TriviaConsoleDialog';
+import { getAccessToken } from '../../lib/authUtils';
 import { toTitleCase } from '../../lib/trivia/titleCase';
 
 const REASONS = [
@@ -55,11 +56,12 @@ export default function ReportQuestionButton({ questionId, sessionId, accountId,
         setSubmitting(true);
         setError(null);
         try {
+            const freshToken = getAccessToken() || userToken;
             const res = await fetch('/api/trivia/report-question', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    ...(userToken ? { 'Authorization': `Bearer ${userToken}` } : {}),
+                    ...(freshToken ? { 'Authorization': `Bearer ${freshToken}` } : {}),
                 },
                 body: JSON.stringify({
                     question_id: questionId,

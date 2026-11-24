@@ -10,7 +10,9 @@
  * No write actions — pure read-only operator view. Reload to refresh.
  * ═══════════════════════════════════════════════════════════════════════════
  */
-import { createClient } from '@supabase/supabase-js';
+import crypto from 'node:crypto';
+import { createClient } from '../../src/lib/supabaseServerClient';
+import { getServerUserWithFallback } from '../../src/lib/serverAuth';
 import consoleStyles from '../../src/components/admin/OperatorAdminSurface.module.css';
 
 const TARGET_PER_CATEGORY = 1500;
@@ -32,34 +34,30 @@ const PRETTY = {
 };
 
 export async function getServerSideProps({ req }) {
-    // Same auth pattern as /admin/signup-health: admin secret OR Bearer with is_admin
-    const adminSecret = req.headers['x-admin-secret'];
-    const envSecret = process.env.ADMIN_ROUTE_SECRET;
-    const hasAdminSecret = envSecret && adminSecret === envSecret;
+    // Support constant-time admin secret, Bearer token, or browser session cookie via getServerUserWithFallback
+    const adminSecret = typeof req.headers['x-admin-secret'] === 'string' ? req.headers['x-admin-secret'] : '';
+    const envSecret = typeof process.env.ADMIN_ROUTE_SECRET === 'string' ? process.env.ADMIN_ROUTE_SECRET : '';
+    const hasAdminSecret = Boolean(
+        envSecret
+        && adminSecret
+        && Buffer.byteLength(adminSecret) === Buffer.byteLength(envSecret)
+        && crypto.timingSafeEqual(Buffer.from(adminSecret), Buffer.from(envSecret))
+    );
 
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    const srKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const url = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
+    const srKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+    if (!url || !srKey) return { props: { error: 'Server misconfigured (missing Supabase env)' } };
+    const adm = createClient(url, srKey, { auth: { persistSession: false } });
 
     if (!hasAdminSecret) {
-        const auth = req.headers.authorization;
-        if (!auth?.startsWith('Bearer ')) {
+        const { user, error: uErr } = await getServerUserWithFallback(req, adm);
+        if (uErr || !user?.id) {
             return { redirect: { destination: '/auth/login?redirect=/admin/trivia-pool', permanent: false } };
         }
-        if (!url || !anonKey || !srKey) return { props: { error: 'Server misconfigured (missing Supabase env)' } };
-        const sb = createClient(url, anonKey);
-        const { data: userData, error: uErr } = await sb.auth.getUser(auth.slice(7));
-        if (uErr || !userData?.user) {
-            return { redirect: { destination: '/auth/login?redirect=/admin/trivia-pool', permanent: false } };
-        }
-        const adminClient = createClient(url, srKey);
-        const { data: profile } = await adminClient
-            .from('profiles').select('is_admin').eq('id', userData.user.id).maybeSingle();
+        const { data: profile } = await adm
+            .from('profiles').select('is_admin').eq('id', user.id).maybeSingle();
         if (!profile?.is_admin) return { props: { error: 'Forbidden - admin only' } };
     }
-
-    if (!url || !srKey) return { props: { error: 'Server misconfigured' } };
-    const adm = createClient(url, srKey, { auth: { persistSession: false } });
 
     // Pull per-category counts in parallel
     const fetches = ALL.flatMap(cat => ['easy', 'medium', 'hard'].map(diff =>
@@ -363,10 +361,10 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, ge
                 <div style={{ background: 'rgba(0,212,255,0.08)', border: '1px solid rgba(0,212,255,0.3)', borderRadius: 12, padding: 16, fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>
                     <div style={{ fontWeight: 600, marginBottom: 6 }}>How The Refill Works</div>
                     <div style={{ lineHeight: 1.6 }}>
-                        Every 4 Hours, The Openclaw Dispatcher Fires <code style={{ background: 'rgba(0,0,0,0.4)', padding: '1px 5px', borderRadius: 3 }}>/Cron/Generate-Trivia-Questions</code> On
+                        Every 4 Hours, The Openclaw Dispatcher Fires <code style={{ background: 'rgba(0,0,0,0.4)', padding: '1px 5px', borderRadius: 3 }}>{'/cron/generate-trivia-questions'}</code> On
                         The Workers VM. The Handler Picks The Most-Undertarget Bucket, Runs Track A (Deterministic, Free) For Strategy
                         Categories Or Track B (Grok-3-Mini, ~$0.002 Per Batch) For Fact Categories, And Inserts Directly Into
-                        <code style={{ background: 'rgba(0,0,0,0.4)', padding: '1px 5px', borderRadius: 3, margin: '0 4px' }}>Trivia_Questions</code>.
+                        <code style={{ background: 'rgba(0,0,0,0.4)', padding: '1px 5px', borderRadius: 3, margin: '0 4px' }}>{'trivia_questions'}</code>.
                         At ~30 Questions Per Tick × 6 Ticks/Day, The Pool Fills In ~5-6 Weeks At Well Under $20 Total Grok Spend.
                     </div>
                 </div>

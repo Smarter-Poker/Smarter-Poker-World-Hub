@@ -43,7 +43,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { requireAdminSecret } from '../../../src/lib/trivia/adminAuth';
 
@@ -88,9 +88,9 @@ export function prizeSchedule(entrantCount) {
 let _sb = null;
 export function serviceClient() {
     if (!_sb) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-        if (!key) throw new Error('SUPABASE_SERVICE_ROLE_KEY not configured');
+        const url = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
+        const key = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+        if (!url || !key) throw new Error('Supabase server credentials not configured');
         _sb = createClient(url, key, { auth: { persistSession: false } });
     }
     return _sb;
