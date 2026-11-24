@@ -6,6 +6,8 @@ import { TRIVIA_INTRO_ART_PVP } from '../../../config/triviaIntroArt.mjs';
 import { createCompetitiveJourneyTracker } from '../../../lib/trivia/competitiveJourneyAnalytics.mjs';
 import ResponsiveModeArt from '../console/ResponsiveModeArt';
 import TriviaConsole, { TriviaGlassAction } from '../console/TriviaConsole';
+import PostSettlementReviewDrawer from '../PostSettlementReviewDrawer';
+import ShareResultCardModal from '../ShareResultCardModal';
 import {
     applyPvpAnswerReceipt,
     createPvpClientNonce,
@@ -323,6 +325,14 @@ export default function PvpCompetitiveExperience({
     pvpHorsesEnabled = false,
     onMatchActiveChange = null,
     onMatchSettled = null,
+    onSyncContextChange = null,
+    realtimeConnected = false,
+    realtimePollMs = null,
+    realtimeEventCount = 0,
+    preferredStake = null,
+    activeChallenge = null,
+    settledSessionId = '',
+    settledMatch = null,
 }) {
     const router = useRouter();
     const serverRun = useServerGradedRun('pvp', { accessTokenProvider: getFreshAccessToken });
@@ -352,6 +362,8 @@ export default function PvpCompetitiveExperience({
     const [history, setHistory] = useState(null);
     const [historyLoading, setHistoryLoading] = useState(false);
     const [historyError, setHistoryError] = useState(null);
+    const [reviewDrawerOpen, setReviewDrawerOpen] = useState(false);
+    const [shareModalOpen, setShareModalOpen] = useState(false);
 
     const latestDtoRef = useRef(null);
     const joinNonceRef = useRef(null);
@@ -363,6 +375,8 @@ export default function PvpCompetitiveExperience({
     const historySettlementRef = useRef(null);
     const historyRequestSequenceRef = useRef(0);
     const staleQuoteRecoveryRef = useRef(false);
+    const appliedPreferredStakeRef = useRef(null);
+    const lastRealtimeEventRef = useRef(realtimeEventCount);
     const dtoAuthorityRef = useRef(null);
     const quoteAuthorityRef = useRef(null);
     const journeyTrackerRef = useRef(null);
@@ -502,8 +516,11 @@ export default function PvpCompetitiveExperience({
         setHistory(null);
         setHistoryLoading(false);
         setHistoryError(null);
+        setReviewDrawerOpen(false);
+        setShareModalOpen(false);
         setQuote(null);
         setSelectedStake(null);
+        appliedPreferredStakeRef.current = null;
         setBusyAction(null);
         setFinishing(false);
         historyRequestSequenceRef.current += 1;
@@ -558,9 +575,19 @@ export default function PvpCompetitiveExperience({
 
     useEffect(() => {
         if (!isAuthoritativePvpQuote(quote)) return;
+        const requestedStake = Number(preferredStake);
+        if (
+            Number.isInteger(requestedStake)
+            && appliedPreferredStakeRef.current !== requestedStake
+            && quote.stakes.some((entry) => entry.stake === requestedStake && entry.stake <= quote.balance)
+        ) {
+            appliedPreferredStakeRef.current = requestedStake;
+            setSelectedStake(requestedStake);
+            return;
+        }
         const available = quote.stakes.some((entry) => entry.stake === selectedStake && entry.stake <= quote.balance);
         if (!available) setSelectedStake(defaultPvpStake(quote));
-    }, [quote, selectedStake]);
+    }, [preferredStake, quote, selectedStake]);
 
     useEffect(() => {
         const hasDeadline = dto?.ticket?.horseEligibleAt || dto?.ticket?.searchExpiresAt || dto?.match?.deadlineAt;
@@ -633,8 +660,11 @@ export default function PvpCompetitiveExperience({
 
     useEffect(() => {
         if (!user?.id || bootState !== 'ready' || showLobby) return undefined;
-        const delay = pvpPollDelay(dto);
-        if (delay == null) return undefined;
+        const baseDelay = pvpPollDelay(dto);
+        if (baseDelay == null) return undefined;
+        const delay = realtimeConnected && Number.isFinite(realtimePollMs) && realtimePollMs >= baseDelay
+            ? Math.min(10_000, Math.floor(realtimePollMs))
+            : baseDelay;
         let disposed = false;
         let timer = null;
         const controller = new AbortController();
@@ -663,7 +693,40 @@ export default function PvpCompetitiveExperience({
             controller.abort();
             if (timer) window.clearTimeout(timer);
         };
-    }, [bootState, dto, readLatestStatus, showLobby, user?.id]);
+    }, [bootState, dto, readLatestStatus, realtimeConnected, realtimePollMs, showLobby, user?.id]);
+
+    useEffect(() => {
+        if (typeof onSyncContextChange !== 'function') return;
+        const state = showLobby ? 'idle' : (dto?.state || 'idle');
+        const basePollMs = !user?.id || bootState !== 'ready' || showLobby ? null : pvpPollDelay(dto);
+        onSyncContextChange({
+            active: Boolean(user?.id && bootState === 'ready' && !showLobby && isActivePvpState(state)),
+            state,
+            ticketId: dto?.ticket?.id || null,
+            matchId: dto?.match?.id || null,
+            basePollMs,
+            heartbeatSeconds: Number(dto?.heartbeatSeconds) || null,
+        });
+    }, [bootState, dto, onSyncContextChange, showLobby, user?.id]);
+
+    useEffect(() => {
+        if (realtimeEventCount <= lastRealtimeEventRef.current) return undefined;
+        lastRealtimeEventRef.current = realtimeEventCount;
+        const current = latestDtoRef.current;
+        if (!user?.id || bootState !== 'ready' || showLobby || !current || !isActivePvpState(current.state)) {
+            return undefined;
+        }
+        const controller = new AbortController();
+        void readLatestStatus({
+            action: current.state === 'searching' ? 'heartbeat' : 'status',
+            signal: controller.signal,
+        }).catch((error) => {
+            if (error?.name === 'AbortError') return;
+            setConnection('reconnecting');
+            setConnectionMessage(pvpErrorCopy(error));
+        });
+        return () => controller.abort();
+    }, [bootState, readLatestStatus, realtimeEventCount, showLobby, user?.id]);
 
     const markSessionFinishedLocally = useCallback((matchId) => {
         const current = latestDtoRef.current;
@@ -793,8 +856,21 @@ export default function PvpCompetitiveExperience({
         if (!settlementReference || historySettlementRef.current === settlementReference) return;
         historySettlementRef.current = settlementReference;
         void loadHistory(0);
-        if (typeof onMatchSettled === 'function') onMatchSettled();
-    }, [dto?.result?.settlementReference, dto?.state, loadHistory, onMatchSettled]);
+        if (typeof onMatchSettled === 'function') {
+            onMatchSettled({
+                match: dto?.match || null,
+                result: dto?.result || null,
+                sessionId: dto?.match?.mySessionId || serverRun.sessionId || null,
+            });
+        }
+    }, [dto?.match, dto?.result, dto?.state, loadHistory, onMatchSettled, serverRun.sessionId]);
+
+    useEffect(() => {
+        if (showLobby || dto?.state !== 'result') {
+            setReviewDrawerOpen(false);
+            setShareModalOpen(false);
+        }
+    }, [dto?.state, showLobby]);
 
     useEffect(() => {
         if (typeof onMatchActiveChange !== 'function') return;
@@ -998,6 +1074,8 @@ export default function PvpCompetitiveExperience({
     const handlePlayAgain = useCallback(async () => {
         if (!TERMINAL_STATES.has(latestDtoRef.current?.state)) return;
         setShowLobby(true);
+        setReviewDrawerOpen(false);
+        setShareModalOpen(false);
         setNotice(null);
         setActionError(null);
         setQuestions([]);
@@ -1021,6 +1099,16 @@ export default function PvpCompetitiveExperience({
     const currentQuestion = questions[questionIndex] || null;
     const match = dto?.match || null;
     const result = dto?.result || null;
+    const isSettledResult = effectiveState === 'result'
+        && Boolean(result?.settlementReference && result?.settledAt);
+    const effectiveReviewSessionId = isSettledResult
+        ? (match?.mySessionId || serverRun.sessionId || settledSessionId || '')
+        : '';
+    const effectiveShareMatch = isSettledResult ? (match || settledMatch) : null;
+    const playerShareName = user?.user_metadata?.username
+        || user?.user_metadata?.display_name
+        || user?.email?.split?.('@')?.[0]
+        || 'Smarter.Poker Player';
     const reconnectProps = {
         connection,
         connectionMessage,
@@ -1066,7 +1154,15 @@ export default function PvpCompetitiveExperience({
                 pillInk="blue"
                 className="trivia-pvp-console"
                 secondaryAction={{ label: 'Trivia Lobby', onClick: () => router.push('/hub/trivia') }}
-                primaryAction={{ label: 'Sign In', onClick: () => router.push('/auth/login?redirect=/hub/trivia/pvp') }}
+                primaryAction={{
+                    label: 'Sign In',
+                    onClick: () => {
+                        const target = typeof router.asPath === 'string' && router.asPath.startsWith('/hub/trivia/pvp')
+                            ? router.asPath
+                            : '/hub/trivia/pvp';
+                        router.push(`/auth/login?redirect=${encodeURIComponent(target)}`);
+                    },
+                }}
             >
                 <div className="trivia-pvp-layout trivia-pvp-layout--idle">
                     <PvpArt priority />
@@ -1132,6 +1228,11 @@ export default function PvpCompetitiveExperience({
                     <p className="trivia-pvp-copy">
                         Choose A Diamond Stake. The Server Checks Your Balance, Searches For A Human First And Commits The Stake Only When A Match Is Made.
                     </p>
+                    {activeChallenge?.challengeCode ? (
+                        <p className="trivia-pvp-notice" data-tone="info">
+                            Friend Duel {activeChallenge.challengeCode} ({formatDiamonds(activeChallenge.stakeAmount)} Diamonds). Review The Server Quote Below And Join When Ready.
+                        </p>
+                    ) : null}
                     <LiveNotices {...reconnectProps} />
                     {quoteLoading ? <p className="trivia-pvp-state" aria-live="polite">Loading Current Terms.</p> : null}
                     {quoteError ? (
@@ -1364,6 +1465,25 @@ export default function PvpCompetitiveExperience({
                                 <DataRow label="Payout" value={`${formatDiamonds(result.payout)} Diamonds`} ink={result.payout > 0 ? 'green' : 'silver'} />
                                 <DataRow label="Net" value={`${formatNet(result.net)} Diamonds`} ink={pvpOutcomeInk(result)} />
                             </dl>
+                            {isSettledResult ? (
+                                <div
+                                    className="trivia-pvp-result-actions"
+                                    style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '14px' }}
+                                >
+                                    {effectiveReviewSessionId ? (
+                                        <TriviaGlassAction
+                                            label="Review Match Questions"
+                                            ink="blue"
+                                            onClick={() => setReviewDrawerOpen(true)}
+                                        />
+                                    ) : null}
+                                    <TriviaGlassAction
+                                        label="Share Result Card"
+                                        ink="gold"
+                                        onClick={() => setShareModalOpen(true)}
+                                    />
+                                </div>
+                            ) : null}
                         </>
                     ) : (
                         <p className="trivia-pvp-notice" data-tone="danger">The Result State Arrived Without Its Settlement Record. Restore The Latest Server State.</p>
@@ -1442,6 +1562,27 @@ export default function PvpCompetitiveExperience({
                     onPage={(offset) => loadHistory(offset)}
                     onRetry={() => loadHistory(history?.offset || 0)}
                 />
+            ) : null}
+            {isSettledResult ? (
+                <>
+                    <PostSettlementReviewDrawer
+                        open={reviewDrawerOpen && Boolean(effectiveReviewSessionId)}
+                        onClose={() => setReviewDrawerOpen(false)}
+                        sessionId={effectiveReviewSessionId}
+                        title="PvP Match Question Review"
+                    />
+                    <ShareResultCardModal
+                        open={shareModalOpen && Boolean(result)}
+                        onClose={() => setShareModalOpen(false)}
+                        mode="pvp"
+                        score={Number(result?.myCorrect ?? 0)}
+                        total={Number(effectiveShareMatch?.questionCount ?? 20)}
+                        diamonds={Number(result?.payout ?? 0)}
+                        streak={0}
+                        player={playerShareName}
+                        shareUrl="https://smarter.poker/hub/trivia/pvp"
+                    />
+                </>
             ) : null}
         </TriviaConsole>
     );

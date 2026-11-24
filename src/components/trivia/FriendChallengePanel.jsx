@@ -8,6 +8,9 @@ export default function FriendChallengePanel({
     signedIn = false,
     onSignIn,
     initialCode = '',
+    shareBasePath = '/hub/trivia/pvp',
+    onChallengeLoaded = null,
+    onChallengeAccepted = null,
 }) {
     const router = useRouter();
     const [stake, setStake] = useState(25);
@@ -29,6 +32,13 @@ export default function FriendChallengePanel({
             const payload = await response.json().catch(() => ({}));
             if (response.ok && payload?.success && payload.challenge) {
                 setIncoming(payload.challenge);
+                setError('');
+                if (typeof onChallengeLoaded === 'function') {
+                    onChallengeLoaded({
+                        challenge: payload.challenge,
+                        pvpHandoff: payload.pvpHandoff || null,
+                    });
+                }
             } else {
                 setIncoming(null);
                 if (payload?.error) setError('That Friend Challenge Link Is Expired Or Unavailable.');
@@ -36,7 +46,7 @@ export default function FriendChallengePanel({
         } catch {
             setIncoming(null);
         }
-    }, []);
+    }, [onChallengeLoaded]);
 
     const loadMyChallenges = useCallback(async () => {
         if (!signedIn) {
@@ -66,7 +76,8 @@ export default function FriendChallengePanel({
         const origin = typeof window !== 'undefined' && window.location?.origin
             ? window.location.origin
             : 'https://smarter.poker';
-        return `${origin}/hub/trivia/tournaments?challenge=${encodeURIComponent(challengeCode)}`;
+        const basePath = shareBasePath && shareBasePath.startsWith('/') ? shareBasePath : '/hub/trivia/pvp';
+        return `${origin}${basePath}?challenge=${encodeURIComponent(challengeCode)}`;
     };
 
     const handleCopyLink = async (challengeCode) => {
@@ -148,9 +159,29 @@ export default function FriendChallengePanel({
                 throw new Error(payload?.error || 'Could Not Accept Challenge.');
             }
             setIncoming(payload.challenge);
-            const targetRoute = payload.pvpHandoff?.route || `/hub/trivia/pvp?challenge=${encodeURIComponent(challengeCode)}`;
-            setNotice('Challenge Accepted. Opening 1v1 PvP Desk...');
-            void router.push(targetRoute);
+            const matchedStake = payload.stakeAmount ?? payload.pvpHandoff?.stakeAmount ?? payload.challenge?.stakeAmount ?? null;
+            const resolvedCode = payload.challengeCode ?? payload.challenge?.challengeCode ?? challengeCode;
+            const targetRoute = payload.pvpHandoff?.route
+                || `/hub/trivia/pvp?challenge=${encodeURIComponent(resolvedCode)}${matchedStake ? `&stake=${matchedStake}` : ''}`;
+            if (typeof onChallengeAccepted === 'function') {
+                onChallengeAccepted({
+                    challenge: payload.challenge,
+                    pvpHandoff: payload.pvpHandoff || null,
+                    stakeAmount: matchedStake,
+                    challengeCode: resolvedCode,
+                });
+            }
+            if (router.pathname === '/hub/trivia/pvp') {
+                setNotice(
+                    matchedStake
+                        ? `Challenge Accepted. ${matchedStake} Diamond Stake Selected. Confirm Server Quote To Join.`
+                        : 'Challenge Accepted. Confirm Your Server Quote Below To Join.',
+                );
+                void router.replace(targetRoute, undefined, { shallow: true });
+            } else {
+                setNotice('Challenge Accepted. Opening 1v1 PvP Desk...');
+                void router.push(targetRoute);
+            }
         } catch (err) {
             const code = err?.message || '';
             setError(

@@ -92,6 +92,40 @@ const LEVEL_COLORS = Array.from({ length: Object.keys(LEVEL_REGISTRY || {}).leng
 // leave the page on "Loading Levels..." when an upstream request stalls.
 const LEVEL_DATA_TIMEOUT_MS = 8_000;
 
+const FORWARDED_ARENA_QUERY_KEYS = [
+    'variant',
+    'street',
+    'position',
+    'targetStreet',
+    'targetPositions',
+    'source',
+    'duelToken',
+    'duelRole',
+    'syncedHandId',
+    'stackDepth',
+    'format',
+] as const;
+
+function buildForwardedArenaQuery(
+    query: Record<string, string | string[] | undefined> | undefined,
+    gameId: string,
+    level: number,
+): Record<string, string> {
+    const forwarded: Record<string, string> = {
+        gameId: String(gameId),
+        level: String(level),
+    };
+    if (!query) return forwarded;
+    for (const key of FORWARDED_ARENA_QUERY_KEYS) {
+        const raw = query[key];
+        const value = Array.isArray(raw) ? raw[0] : raw;
+        if (typeof value === 'string' && value.trim()) {
+            forwarded[key] = value.trim();
+        }
+    }
+    return forwarded;
+}
+
 async function withLevelDataDeadline<T>(request: (signal: AbortSignal) => Promise<T>): Promise<T> {
     const controller = new AbortController();
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
@@ -480,16 +514,25 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
 
             if (!authToken) {
                 setStartingLevel(null);
+                const loginQuery = buildForwardedArenaQuery(router.query, gameId, level);
+                const redirectParams = new URLSearchParams();
+                for (const [k, v] of Object.entries(loginQuery)) {
+                    if (k !== 'gameId' && v) {
+                        redirectParams.set(k, v);
+                    }
+                }
+                const redirectQs = redirectParams.toString();
                 await router.push({
                     pathname: '/auth/login',
-                    query: { redirect: `/hub/training/arena/${gameId}?level=${level}` },
+                    query: { redirect: redirectQs ? `/hub/training/arena/${gameId}?${redirectQs}` : `/hub/training/arena/${gameId}?level=${level}` },
                 });
                 return;
             }
 
+            const forwardedQuery = buildForwardedArenaQuery(router.query, gameId, level);
             const navigated = await router.push({
                 pathname: '/hub/training/arena/[gameId]',
-                query: { gameId, level: String(level) },
+                query: forwardedQuery,
             });
             if (navigated === false) {
                 throw new Error('The Training Arena Did Not Accept This Launch.');
@@ -529,7 +572,11 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
 
     if (!loading && launchError && !gameData) {
         return (
-            <main className="sp-level-selector" style={{ ...styles.container, ...styles.errorShell }}>
+            <main
+                className="sp-level-selector"
+                data-level-selector-forwarded-variant={String(router.query?.variant || 'nlh')}
+                style={{ ...styles.container, ...styles.errorShell }}
+            >
                 <div role="alert" style={styles.errorPanel}>
                     <h1 style={styles.errorTitle}>Training Launch Unavailable</h1>
                     <p style={styles.errorCopy}>{launchError}</p>
@@ -542,7 +589,11 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
     }
 
     return (
-        <div className="sp-level-selector" style={styles.container}>
+        <div
+            className="sp-level-selector"
+            data-level-selector-forwarded-variant={String(router.query?.variant || 'nlh')}
+            style={styles.container}
+        >
             {launchError && (
                 <div role="alert" style={styles.inlineError}>
                     {launchError}

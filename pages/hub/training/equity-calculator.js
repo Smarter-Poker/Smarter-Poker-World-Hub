@@ -19,7 +19,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../src/engine/EventBus';
 import { authedFetch } from '../../../src/lib/authUtils';
-import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
+import {
+  evaluateTrainingSpotWithHorseBrain,
+  buildCustomTrainingArenaHref,
+} from '../../../src/lib/training/horseBrainTrainingAdapter';
 
 // TRAIN-CSS-MOTION-ADOPT-12 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
@@ -785,6 +788,34 @@ export default function EquityCalculatorPage() {
     return localBrainAnalysis;
   }, [isOffline, offlineFallbackUsed, buildLocalOfflineEvaluation]);
 
+  const liveBrainSpotPreview = useMemo(() => {
+    if (horseBrainAnalysis) return horseBrainAnalysis;
+    const { localBrainAnalysis } = buildLocalOfflineEvaluation();
+    return localBrainAnalysis;
+  }, [horseBrainAnalysis, buildLocalOfflineEvaluation]);
+
+  const equityArenaHref = useMemo(() => {
+    const adapterVariant = variant === 'holdem' ? 'nlh' : variant;
+    const resolvedStreet =
+      boardCards.length >= 5
+        ? 'river'
+        : boardCards.length === 4
+          ? 'turn'
+          : boardCards.length >= 3
+            ? 'flop'
+            : 'preflop';
+    return buildCustomTrainingArenaHref(
+      {
+        format: 'cash',
+        variant: adapterVariant,
+        streets: [resolvedStreet],
+        positions: ['BTN'],
+        stackDepth: 100,
+      },
+      'equity-calculator',
+    );
+  }, [variant, boardCards.length]);
+
   // All used cards (deduplication)
   const usedCards = useMemo(() => {
     const set = new Set();
@@ -1340,6 +1371,79 @@ export default function EquityCalculatorPage() {
             </div>
           )}
 
+          {/* Horse Brain 4-Variant Spot Preview & 1:1 Club Arena Launcher */}
+          {liveBrainSpotPreview && (
+            <div
+              data-specialty-brain-panel="true"
+              data-equity-brain-panel="true"
+              data-brain-engine={liveBrainSpotPreview.engineModule || 'holdem-brain.js'}
+              data-recommended-action={liveBrainSpotPreview.recommendedAction || 'Call'}
+              style={{
+                marginBottom: 18,
+                padding: '14px 16px',
+                borderRadius: 12,
+                background: 'rgba(15, 23, 42, 0.78)',
+                border: '1px solid rgba(56, 189, 248, 0.35)',
+              }}
+            >
+              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 800, color: '#67e8f9', textTransform: 'uppercase' }}>
+                  Horse Brain &amp; Omaha Brain Spot Preview
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 800, color: '#4ade80' }}>
+                  {`Engine: ${liveBrainSpotPreview.engineModule} · Recommended: ${liveBrainSpotPreview.recommendedAction || 'Call'}`}
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                {['nlh', 'plo4', 'plo5', 'plo6'].map((v) => {
+                  const mappedId = v === 'nlh' ? 'holdem' : v;
+                  const isActive = variant === mappedId;
+                  return (
+                    <button
+                      key={v}
+                      type="button"
+                      data-brain-variant-tab={v}
+                      onClick={() => changeVariant(mappedId)}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: 6,
+                        fontSize: 12,
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        border: isActive ? '1px solid #67e8f9' : '1px solid rgba(255,255,255,0.12)',
+                        background: isActive ? 'rgba(6,182,212,0.28)' : 'rgba(255,255,255,0.04)',
+                        color: isActive ? '#e0f2fe' : 'var(--sp-fg-muted)',
+                      }}
+                    >
+                      {v.toUpperCase()}
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{ fontSize: 12, color: '#e2e8f0', lineHeight: 1.5, marginBottom: 10 }}>
+                {liveBrainSpotPreview.coachingSummary}
+              </div>
+              <button
+                type="button"
+                data-launch-club-arena-cta="true"
+                data-launch-href={equityArenaHref}
+                onClick={() => router.push(equityArenaHref)}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: 8,
+                  border: '1px solid rgba(56, 189, 248, 0.5)',
+                  background: 'rgba(56, 189, 248, 0.16)',
+                  color: '#e0f2fe',
+                  fontSize: 12,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                }}
+              >
+                Practice Equity Spot In Club Arena →
+              </button>
+            </div>
+          )}
+
           {/* Results */}
           <AnimatePresence>
             {results && (
@@ -1377,6 +1481,7 @@ export default function EquityCalculatorPage() {
                   <div
                     data-equity-brain-panel="true"
                     data-brain-engine={horseBrainAnalysis.engineModule}
+                    data-recommended-action={horseBrainAnalysis.recommendedAction || 'Call'}
                     style={{
                       marginTop: 14,
                       padding: '12px 14px',
