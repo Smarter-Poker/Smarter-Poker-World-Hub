@@ -163,23 +163,28 @@ export default function FriendChallengePanel({
             const resolvedCode = payload.challengeCode ?? payload.challenge?.challengeCode ?? challengeCode;
             const targetRoute = payload.pvpHandoff?.route
                 || `/hub/trivia/pvp?challenge=${encodeURIComponent(resolvedCode)}${matchedStake ? `&stake=${matchedStake}` : ''}`;
+            const resolvedMatchId = payload.matchId ?? payload.pvpHandoff?.matchId ?? payload.challenge?.matchId ?? null;
+            const isPaired = Boolean(payload.pvpHandoff?.paired || resolvedMatchId);
             if (typeof onChallengeAccepted === 'function') {
                 onChallengeAccepted({
                     challenge: payload.challenge,
                     pvpHandoff: payload.pvpHandoff || null,
                     stakeAmount: matchedStake,
                     challengeCode: resolvedCode,
+                    matchId: resolvedMatchId,
                 });
             }
             if (router.pathname === '/hub/trivia/pvp') {
                 setNotice(
-                    matchedStake
-                        ? `Challenge Accepted. ${matchedStake} Diamond Stake Selected. Confirm Server Quote To Join.`
-                        : 'Challenge Accepted. Confirm Your Server Quote Below To Join.',
+                    isPaired
+                        ? 'Match Paired: Entering Live Duel...'
+                        : matchedStake
+                            ? `Challenge Accepted. ${matchedStake} Diamond Stake Selected. Confirm Server Quote To Join.`
+                            : 'Challenge Accepted. Confirm Your Server Quote Below To Join.',
                 );
                 void router.replace(targetRoute, undefined, { shallow: true });
             } else {
-                setNotice('Challenge Accepted. Opening 1v1 PvP Desk...');
+                setNotice(isPaired ? 'Match Paired: Entering Live Duel...' : 'Challenge Accepted. Opening 1v1 PvP Desk...');
                 void router.push(targetRoute);
             }
         } catch (err) {

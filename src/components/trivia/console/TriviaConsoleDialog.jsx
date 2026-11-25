@@ -29,6 +29,8 @@ export default function TriviaConsoleDialog({
     const titleId = `trivia-console-dialog-${generatedId.replace(/:/g, '')}`;
     const dialogRef = useRef(null);
     const returnFocusRef = useRef(null);
+    const onCloseRef = useRef(onClose);
+    onCloseRef.current = onClose;
 
     useEffect(() => {
         if (!open) return undefined;
@@ -38,7 +40,7 @@ export default function TriviaConsoleDialog({
 
         const dialog = dialogRef.current;
         const focusables = () => Array.from(dialog?.querySelectorAll(FOCUSABLE) || []);
-        window.requestAnimationFrame(() => {
+        const rafId = window.requestAnimationFrame(() => {
             const nodes = focusables();
             (nodes[nodes.length - 1] || dialog)?.focus();
         });
@@ -46,7 +48,7 @@ export default function TriviaConsoleDialog({
         const onKeyDown = event => {
             if (event.key === 'Escape') {
                 event.preventDefault();
-                onClose?.();
+                onCloseRef.current?.();
                 return;
             }
             if (event.key !== 'Tab') return;
@@ -68,11 +70,12 @@ export default function TriviaConsoleDialog({
         };
         document.addEventListener('keydown', onKeyDown);
         return () => {
+            window.cancelAnimationFrame(rafId);
             document.removeEventListener('keydown', onKeyDown);
             document.body.style.overflow = previousOverflow;
             returnFocusRef.current?.focus?.();
         };
-    }, [open, onClose]);
+    }, [open]);
 
     if (!open) return null;
 

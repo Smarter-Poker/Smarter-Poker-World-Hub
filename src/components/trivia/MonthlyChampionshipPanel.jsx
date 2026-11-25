@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { authedFetch } from '../../lib/authUtils';
 import { TriviaGlassAction } from './console/TriviaConsole';
 import { exactDiamonds } from './tournaments/tournamentModel.mjs';
@@ -14,8 +14,10 @@ export default function MonthlyChampionshipPanel() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [data, setData] = useState(null);
+    const requestIdRef = useRef(0);
 
     const loadStandings = useCallback(async (signal) => {
+        const requestId = ++requestIdRef.current;
         setLoading(true);
         setError('');
         try {
@@ -24,15 +26,18 @@ export default function MonthlyChampionshipPanel() {
                 { method: 'GET', cache: 'no-store', signal },
             );
             const payload = await response.json().catch(() => ({}));
+            if (signal?.aborted || requestIdRef.current !== requestId) return;
             if (!response.ok || payload?.success !== true) {
                 throw new Error(payload?.error || 'Could Not Load Championship Standings.');
             }
             setData(payload);
         } catch (err) {
-            if (err?.name === 'AbortError') return;
+            if (err?.name === 'AbortError' || signal?.aborted || requestIdRef.current !== requestId) return;
             setError('Could Not Load Monthly Championship Standings Right Now.');
         } finally {
-            setLoading(false);
+            if (!signal?.aborted && requestIdRef.current === requestId) {
+                setLoading(false);
+            }
         }
     }, [includeHorses]);
 

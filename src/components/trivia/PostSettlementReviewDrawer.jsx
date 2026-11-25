@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import TriviaConsoleDialog from './console/TriviaConsoleDialog';
 import { TriviaGlassAction } from './console/TriviaConsole';
@@ -16,9 +16,27 @@ export default function PostSettlementReviewDrawer({
     const [error, setError] = useState('');
     const [lockedMessage, setLockedMessage] = useState('');
     const [review, setReview] = useState(null);
+    const requestIdRef = useRef(0);
+    const activeControllerRef = useRef(null);
+
+    useEffect(() => {
+        activeControllerRef.current?.abort();
+        activeControllerRef.current = null;
+        requestIdRef.current += 1;
+        setReview(null);
+        setError('');
+        setLockedMessage('');
+        setLoading(false);
+    }, [sessionId]);
+
+    useEffect(() => () => {
+        activeControllerRef.current?.abort();
+        activeControllerRef.current = null;
+    }, []);
 
     const loadReview = useCallback(async (signal) => {
         if (!sessionId) return;
+        const requestId = ++requestIdRef.current;
         setLoading(true);
         setError('');
         setLockedMessage('');
@@ -28,6 +46,7 @@ export default function PostSettlementReviewDrawer({
                 { method: 'GET', signal },
             );
             const payload = await response.json().catch(() => ({}));
+            if (signal?.aborted || requestIdRef.current !== requestId) return;
             if (response.status === 409 && payload?.error === 'review_not_available_before_settlement') {
                 setReview(null);
                 setLockedMessage('Question Review Unlocks Automatically After Your Match Or Round Settles.');
@@ -38,19 +57,34 @@ export default function PostSettlementReviewDrawer({
             }
             setReview(payload);
         } catch (err) {
-            if (err?.name === 'AbortError') return;
+            if (err?.name === 'AbortError' || signal?.aborted || requestIdRef.current !== requestId) return;
             setError(err?.message || 'Could Not Load Question Review.');
         } finally {
-            setLoading(false);
+            if (!signal?.aborted && requestIdRef.current === requestId) {
+                setLoading(false);
+            }
         }
     }, [sessionId]);
 
+    const triggerLoadReview = useCallback(() => {
+        if (!sessionId) return null;
+        activeControllerRef.current?.abort();
+        const controller = new AbortController();
+        activeControllerRef.current = controller;
+        void loadReview(controller.signal);
+        return controller;
+    }, [loadReview, sessionId]);
+
     useEffect(() => {
         if (!open || !sessionId) return undefined;
-        const controller = new AbortController();
-        void loadReview(controller.signal);
-        return () => controller.abort();
-    }, [loadReview, open, sessionId]);
+        const controller = triggerLoadReview();
+        return () => {
+            controller?.abort();
+            if (activeControllerRef.current === controller) {
+                activeControllerRef.current = null;
+            }
+        };
+    }, [open, sessionId, triggerLoadReview]);
 
     const items = Array.isArray(review?.items) ? review.items : [];
 
@@ -64,7 +98,7 @@ export default function PostSettlementReviewDrawer({
             pill={loading ? 'Loading' : lockedMessage ? 'Locked' : items.length > 0 ? `${items.length} Questions` : 'Review'}
             pillInk={lockedMessage ? 'gold' : error ? 'red' : 'blue'}
             secondaryAction={{ label: 'Close Review', onClick: onClose }}
-            primaryAction={error ? { label: 'Retry', onClick: () => loadReview() } : undefined}
+            primaryAction={error ? { label: 'Retry', onClick: () => triggerLoadReview() } : undefined}
         >
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '62vh', overflowY: 'auto' }}>
                 {loading ? (
@@ -81,7 +115,7 @@ export default function PostSettlementReviewDrawer({
                 {error ? (
                     <div role="alert" style={{ padding: '12px', border: '1px solid #f02849', background: '#050607' }}>
                         <p className="trivia-console-copy tc-ink--red">{error}</p>
-                        <TriviaGlassAction label="Retry Review" ink="red" onClick={() => loadReview()} />
+                        <TriviaGlassAction label="Retry Review" ink="red" onClick={() => triggerLoadReview()} />
                     </div>
                 ) : null}
 

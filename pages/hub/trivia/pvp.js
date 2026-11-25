@@ -9,7 +9,6 @@ import PvpCompetitiveExperience from '../../../src/components/trivia/pvp/PvpComp
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import useTriviaIntegrityTelemetry from '../../../src/hooks/useTriviaIntegrityTelemetry';
 import useTriviaRealtimeSync from '../../../src/hooks/useTriviaRealtimeSync';
 import { getFreshAccessToken } from '../../../src/lib/authUtils';
 import { formatTriviaDisplayNumber } from '../../../src/lib/trivia/formatTriviaDisplayNumber';
@@ -86,6 +85,7 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
     });
     const [realtimeEventCount, setRealtimeEventCount] = useState(0);
     const [activeChallenge, setActiveChallenge] = useState(null);
+    const [pairedMatchId, setPairedMatchId] = useState(null);
     const [settledMatch, setSettledMatch] = useState(null);
     const [settledSessionId, setSettledSessionId] = useState('');
 
@@ -103,19 +103,16 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
 
     const preferredStake = activeChallenge?.stakeAmount ?? queryStake ?? null;
 
-    useTriviaIntegrityTelemetry({
-        active: matchActive,
-        accessTokenProvider: getFreshAccessToken,
-    });
-
     const handleRealtimePush = useCallback(() => {
         setRealtimeEventCount((count) => count + 1);
     }, []);
 
+    // Keep trivia:pvp:user:${user.id} subscribed whenever signed in on /hub/trivia/pvp
+    // (including idle) so a waiting challenger immediately wakes when their friend accepts.
     const realtimeChannelName = useMemo(() => {
-        if (!user?.id || !syncContext.active) return null;
-        if (syncContext.matchId) return `trivia:pvp:match:${syncContext.matchId}`;
-        if (syncContext.ticketId) return `trivia:pvp:ticket:${syncContext.ticketId}`;
+        if (!user?.id) return null;
+        if (syncContext.active && syncContext.matchId) return `trivia:pvp:match:${syncContext.matchId}`;
+        if (syncContext.active && syncContext.ticketId) return `trivia:pvp:ticket:${syncContext.ticketId}`;
         return `trivia:pvp:user:${user.id}`;
     }, [syncContext.active, syncContext.matchId, syncContext.ticketId, user?.id]);
 
@@ -130,7 +127,7 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
 
     const realtimeSync = useTriviaRealtimeSync({
         channelName: realtimeChannelName,
-        enabled: Boolean(user?.id && syncContext.active && realtimeChannelName),
+        enabled: Boolean(user?.id && realtimeChannelName),
         broadcastEvents: PVP_REALTIME_EVENTS,
         fallbackPollMs,
         connectedPollMs,
@@ -170,24 +167,47 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
         });
     }, []);
 
-    const handleChallengeLoaded = useCallback(({ challenge } = {}) => {
+    const handleChallengeLoaded = useCallback(({ challenge, pvpHandoff } = {}) => {
         if (!challenge) return;
+        const resolvedMatchId = pvpHandoff?.matchId || challenge.matchId || null;
+        const nextChallenge = {
+            ...challenge,
+            matchId: resolvedMatchId,
+            pvpHandoff: pvpHandoff || challenge.pvpHandoff || null,
+        };
         setActiveChallenge((prev) => {
-            if (prev?.challengeCode === challenge.challengeCode && prev?.status === challenge.status) {
+            if (
+                prev?.challengeCode === nextChallenge.challengeCode
+                && prev?.status === nextChallenge.status
+                && prev?.matchId === nextChallenge.matchId
+            ) {
                 return prev;
             }
-            return challenge;
+            return nextChallenge;
         });
+        if (resolvedMatchId) {
+            setPairedMatchId(resolvedMatchId);
+        }
+        if (resolvedMatchId || pvpHandoff?.paired) {
+            setRealtimeEventCount((count) => count + 1);
+        }
     }, []);
 
-    const handleChallengeAccepted = useCallback(({ challenge, stakeAmount, challengeCode: acceptedCode } = {}) => {
-        if (challenge) {
+    const handleChallengeAccepted = useCallback(({ challenge, pvpHandoff, stakeAmount, challengeCode: acceptedCode, matchId } = {}) => {
+        if (challenge || pvpHandoff) {
+            const resolvedMatchId = matchId || pvpHandoff?.matchId || challenge?.matchId || null;
+            const isPaired = Boolean(pvpHandoff?.paired || resolvedMatchId);
             setActiveChallenge({
-                ...challenge,
-                challengeCode: acceptedCode || challenge.challengeCode,
-                stakeAmount: stakeAmount ?? challenge.stakeAmount,
+                ...(challenge || {}),
+                challengeCode: acceptedCode || challenge?.challengeCode || pvpHandoff?.challengeCode || '',
+                stakeAmount: stakeAmount ?? challenge?.stakeAmount ?? pvpHandoff?.stakeAmount ?? null,
+                matchId: resolvedMatchId,
+                pvpHandoff: pvpHandoff || challenge?.pvpHandoff || null,
             });
-            if (challenge.matchId) {
+            if (resolvedMatchId) {
+                setPairedMatchId(resolvedMatchId);
+            }
+            if (isPaired) {
                 setRealtimeEventCount((count) => count + 1);
             }
         }
@@ -202,6 +222,7 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
 
     useEffect(() => {
         if (!user?.id) {
+            setPairedMatchId(null);
             setSettledMatch(null);
             setSettledSessionId('');
         }
@@ -295,6 +316,7 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
                         realtimeEventCount={realtimeEventCount}
                         preferredStake={preferredStake}
                         activeChallenge={activeChallenge}
+                        pairedMatchId={pairedMatchId}
                         settledSessionId={settledSessionId}
                         settledMatch={settledMatch}
                     />
