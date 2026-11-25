@@ -139,17 +139,86 @@ test('1-tap start flow, preset summary, and progressive disclosures are wired ac
     /\.sp-club-gto-desktop-rail\s*\{[\s\S]*?pointer-events:\s*none;/m.test(table),
     'sp-club-gto-desktop-rail must have pointer-events: none so it never intercepts clicks on action or raise controls',
   );
+
+  // Phase 15 progressive disclosures and 1-tap preset summaries across secondary subpages
+  const multiTable = read('pages/hub/training/multi-table.js');
+  assert.ok(multiTable.includes('data-multitable-preset-summary="true"'), 'multi-table.js must display active preset summary bar');
+  assert.ok(multiTable.includes('data-multitable-advanced-disclosure="true"'), 'multi-table.js must wrap per-pane rotation & drill grid inside an advanced disclosure');
+
+  const categoryPage = read('pages/hub/training/category/[categoryId].js');
+  assert.ok(categoryPage.includes('data-category-preset-summary="true"'), 'category/[categoryId].js must display 1-tap sector preset summary');
+  assert.ok(categoryPage.includes('data-category-quick-start="true"'), 'category/[categoryId].js must provide 1-tap Start Sector Training CTA');
+
+  const sessionDashboard = read('pages/hub/training/session-dashboard.js');
+  assert.ok(sessionDashboard.includes('data-dashboard-detailed-diagnostics="true"'), 'session-dashboard.js must wrap specialized split-pot & pacing diagnostics inside a disclosure');
+
+  const autopilot = read('pages/hub/training/autopilot.js');
+  assert.ok(autopilot.includes('data-autopilot-preset-summary="true"'), 'autopilot.js must display preset queue summary');
+
+  const jarvis = read('pages/hub/training/jarvis.js');
+  assert.ok(jarvis.includes('data-jarvis-detailed-metrics="true"'), 'jarvis.js must wrap secondary bankroll & weekly metrics inside a disclosure');
+
+  const quizBuilder = read('pages/hub/training/quiz-builder.js');
+  assert.ok(quizBuilder.includes('data-quiz-builder-advanced="true"'), 'quiz-builder.js must wrap reference panel inside a disclosure');
+});
+
+test('100% of Training Hub routes adopt the MTT Lobby #040d18 canvas or shared MTT/casino module tokens with zero legacy #0a0a1a/#0a0a12/#0a0a0a backgrounds', () => {
+  function walkRoutes(dir) {
+    let out = [];
+    for (const ent of fs.readdirSync(path.join(ROOT, dir), { withFileTypes: true })) {
+      const rel = path.join(dir, ent.name);
+      if (ent.isDirectory()) out = out.concat(walkRoutes(rel));
+      else if (rel.endsWith('.js') || rel.endsWith('.jsx')) out.push(rel);
+    }
+    return out;
+  }
+
+  const allRoutes = ['pages/hub/training.js', ...walkRoutes('pages/hub/training')];
+  assert.ok(allRoutes.length >= 95, `Expected at least 95 Training route files, found ${allRoutes.length}`);
+
+  const canonicalRedirect = read('src/components/training/CanonicalTrainingRedirect.jsx');
+  assert.ok(canonicalRedirect.includes('#040d18'), 'CanonicalTrainingRedirect.jsx must use #040d18 MTT Lobby canvas');
+  assert.ok(canonicalRedirect.includes('#688299'), 'CanonicalTrainingRedirect.jsx must use #688299 steel border');
+  assert.ok(canonicalRedirect.includes("'plo8'"), 'CanonicalTrainingRedirect.jsx must include plo8 variant tab');
+
+  const gameCard = read('src/components/training/GameCard.jsx');
+  assert.ok(gameCard.includes('#688299'), 'GameCard.jsx must use #688299 steel border');
+  assert.ok(gameCard.includes('#087cfa'), 'GameCard.jsx must use #087cfa royal-blue action CTA');
+
+  for (const rel of allRoutes) {
+    const src = read(rel);
+    assert.ok(
+      !src.includes('#0a0a1a') && !src.includes('#0a0a12') && !src.includes('#0a0a0a'),
+      `${rel} still contains legacy #0a0a1a / #0a0a12 / #0a0a0a background`,
+    );
+    assert.ok(
+      !src.includes('radial-gradient(circle at 50% 15%, #12354d'),
+      `${rel} still contains legacy radial-gradient(circle at 50% 15%, #12354d) background`,
+    );
+  }
 });
 
 test('no Training component has synchronous Temporal Dead Zone (TDZ) const/let references before declaration', () => {
   const parser = require('@babel/parser');
   const traverse = require('@babel/traverse').default;
+  function walkRoutes(dir) {
+    let out = [];
+    for (const ent of fs.readdirSync(path.join(ROOT, dir), { withFileTypes: true })) {
+      const rel = path.join(dir, ent.name);
+      if (ent.isDirectory()) out = out.concat(walkRoutes(rel));
+      else if (rel.endsWith('.js') || rel.endsWith('.jsx')) out.push(rel);
+    }
+    return out;
+  }
   const files = [
     'src/components/training/games/UniversalDynamicTable.jsx',
     'src/components/training/GodModeArena.jsx',
     'src/components/training/SessionSetupModal.jsx',
     'src/components/training/TrainerConfigModal.jsx',
+    'src/components/training/CanonicalTrainingRedirect.jsx',
+    'src/components/training/GameCard.jsx',
     'pages/hub/training.js',
+    ...walkRoutes('pages/hub/training'),
   ];
   const violations = [];
   for (const rel of files) {

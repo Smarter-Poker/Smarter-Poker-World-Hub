@@ -612,6 +612,16 @@ export default function JarvisDashboard() {
                 </div>
               )}
 
+              {/* Bankroll & Weekly Progress (Progressive Disclosure) */}
+              <details
+                className="sp-mtt-disclosure"
+                data-jarvis-detailed-metrics="true"
+                open
+              >
+                <summary>
+                  <span>Detailed Bankroll &amp; Weekly Activity Telemetry</span>
+                </summary>
+                <div className="sp-mtt-disclosure__body">
               {/* Bankroll Summary */}
               {insights?.bankroll && (
                 <div style={styles.section}>
@@ -730,6 +740,8 @@ export default function JarvisDashboard() {
                   </div>
                 </div>
               </div>
+                </div>
+              </details>
             </div>
           )}
         </div>
@@ -758,7 +770,7 @@ function StatCard({ label, value, icon, iconKind }) {
 const styles = {
   container: {
     minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-    background: '#0a0a0a',
+    background: '#040d18',
     color: '#FFFFFF',
   },
   content: {

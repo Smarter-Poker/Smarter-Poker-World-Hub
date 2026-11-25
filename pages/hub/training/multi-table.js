@@ -679,7 +679,7 @@ export default function MultiTablePage() {
       <div
         style={{
           minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
+          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
@@ -942,9 +942,29 @@ export default function MultiTablePage() {
             >
               Multi-Table Practice
             </h1>
-            <p style={{ fontSize: 13, color: 'var(--sp-fg-muted)', marginBottom: 32 }}>
+            <p style={{ fontSize: 13, color: 'var(--sp-fg-muted)', marginBottom: 18 }}>
               Train On Multiple Tables Simultaneously To Build Speed And Accuracy Under Pressure.
             </p>
+
+            {/* 1-Tap Active Preset Summary Bar */}
+            <div
+              data-multitable-preset-summary="true"
+              style={{
+                marginBottom: 20,
+                padding: '12px 14px',
+                border: '1px solid #688299',
+                borderTopColor: '#aec0d0',
+                background: 'linear-gradient(180deg, rgba(9, 23, 39, 0.96) 0%, rgba(3, 11, 20, 0.98) 100%)',
+                textAlign: 'left',
+              }}
+            >
+              <div style={{ fontSize: 12, fontWeight: 800, color: '#8fd0ff', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Active Multi-Table Preset
+              </div>
+              <div style={{ marginTop: 4, fontSize: 13, fontWeight: 700, color: '#f2f7fb' }}>
+                {tableCount} Tables · {selectedVariant.toUpperCase()} ({selectedVariant === 'nlh' ? 'No-Limit' : 'Pot-Limit'}) · 6-Max Cash · 100 BB
+              </div>
+            </div>
 
             {/* Table Count Selector */}
             <div style={{ marginBottom: 28 }}>
@@ -1046,8 +1066,18 @@ export default function MultiTablePage() {
               </div>
             </div>
 
-            {/* Per-Pane Mixed-Game & Mixed-Format Configuration Controls */}
-            <div style={{ marginBottom: 24, textAlign: 'left' }}>
+            {/* Per-Pane Mixed-Game & Mixed-Format Configuration Controls (Progressive Disclosure) */}
+            <details
+              className="sp-mtt-disclosure"
+              data-multitable-advanced-disclosure="true"
+              open
+              style={{ marginBottom: 24, textAlign: 'left' }}
+            >
+              <summary>
+                <span>Advanced Per-Pane Rotation &amp; Drill Mix</span>
+              </summary>
+              <div className="sp-mtt-disclosure__body">
+              <div style={{ marginBottom: 20 }}>
               <div
                 style={{
                   display: 'flex',
@@ -1255,6 +1285,8 @@ export default function MultiTablePage() {
                 })}
               </div>
             </div>
+              </div>
+            </details>
 
             <motion.button
               onClick={() => {

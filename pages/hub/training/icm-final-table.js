@@ -64,7 +64,7 @@ export default function IcmFinalTablePage() {
         style={{
           minHeight: 'calc(100dvh - 70px)',
           padding: 'clamp(30px, 8vw, 90px) 18px',
-          background: 'radial-gradient(circle at 50% 15%, #12354d 0, #050910 50%, #020407 100%)',
+          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
           color: '#fff',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
@@ -75,8 +75,7 @@ export default function IcmFinalTablePage() {
             maxWidth: 780,
             margin: '0 auto',
             padding: 'clamp(24px, 5vw, 44px)',
-            border: '1px solid rgba(145,229,255,.45)',
-            background: 'linear-gradient(145deg, rgba(20,42,60,.97), rgba(4,9,15,.98))',
+            border: '1px solid #688299', borderTopColor: '#aec0d0', background: 'linear-gradient(180deg, rgba(9, 23, 39, 0.96) 0%, rgba(3, 11, 20, 0.98) 100%)',
             boxShadow: 'inset 0 1px rgba(255,255,255,.25), 0 30px 70px rgba(0,0,0,.55)',
           }}
         >
@@ -291,7 +290,7 @@ export default function IcmFinalTablePage() {
                     padding: '0 18px',
                     borderRadius: 8,
                     border: '1px solid #a5efff',
-                    background: 'linear-gradient(180deg, #2a6077, #07131d)',
+                    background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)',
                     color: '#fff',
                     fontSize: 13,
                     fontWeight: 900,
@@ -312,7 +311,7 @@ export default function IcmFinalTablePage() {
                 padding: '0 20px',
                 marginTop: 20,
                 border: '1px solid #a5efff',
-                background: 'linear-gradient(180deg, #2a6077, #07131d)',
+                background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)',
                 color: '#fff',
                 fontWeight: 900,
                 textDecoration: 'none',

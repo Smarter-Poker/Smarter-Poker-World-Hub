@@ -34,7 +34,7 @@ const GodModeArena = dynamic(() => import('../../../src/components/training/GodM
     <div
       style={{
         minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-        background: '#0a0a1a',
+        background: '#040d18',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -410,7 +410,7 @@ export default function AutopilotPage() {
       <div
         style={{
           minHeight: '100dvh',
-          background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
+          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
@@ -642,10 +642,25 @@ export default function AutopilotPage() {
                 <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--sp-fg)', marginBottom: 6 }}>
                   3 Weak Spots Detected
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginBottom: 20, lineHeight: 1.5 }}>
+                <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginBottom: 14, lineHeight: 1.5 }}>
                   We Analyzed Your Training History And Found Areas
                   <br />
                   That Need The Most Attention. One Click To Start.
+                </div>
+                <div
+                  data-autopilot-preset-summary="true"
+                  style={{
+                    marginBottom: 16,
+                    padding: '10px 12px',
+                    border: '1px solid #688299',
+                    borderTopColor: '#aec0d0',
+                    background: 'linear-gradient(180deg, rgba(9, 23, 39, 0.96) 0%, rgba(3, 11, 20, 0.98) 100%)',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: '#dbe8f2',
+                  }}
+                >
+                  Preset Queue: {weakSpots.map((s) => s.name).join(' → ')} · Standard Timer · 100 BB
                 </div>
                 <motion.button
                   whileHover={{ scale: 1.02 }}

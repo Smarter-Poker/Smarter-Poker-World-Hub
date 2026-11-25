@@ -419,8 +419,8 @@ export default function LiveHudSyncPage() {
               <meta name="robots" content="noindex, nofollow" />
       </Head>
       <UniversalHeader pageDepth={2} />
-      <main style={{ minHeight: 'calc(100dvh - 70px)', padding: 'clamp(26px, 7vw, 82px) 18px', background: 'radial-gradient(circle at 50% 8%, #14394f 0, #060b12 43%, #020407 100%)', color: '#f7fbff' }}>
-        <section style={{ position: 'relative', maxWidth: 860, margin: '0 auto', border: '1px solid rgba(157,232,255,.46)', background: 'linear-gradient(145deg, rgba(18,42,59,.98), rgba(4,9,15,.99))', boxShadow: 'inset 0 1px rgba(255,255,255,.25), inset 0 -24px 55px rgba(0,0,0,.42), 0 32px 76px rgba(0,0,0,.55)', padding: 'clamp(24px, 5vw, 48px)' }}>
+      <main style={{ minHeight: 'calc(100dvh - 70px)', padding: 'clamp(26px, 7vw, 82px) 18px', background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)', color: '#f7fbff' }}>
+        <section style={{ position: 'relative', maxWidth: 860, margin: '0 auto', border: '1px solid #688299', borderTopColor: '#aec0d0', background: 'linear-gradient(180deg, rgba(9, 23, 39, 0.96) 0%, rgba(3, 11, 20, 0.98) 100%)', boxShadow: 'inset 0 1px rgba(255,255,255,.25), inset 0 -24px 55px rgba(0,0,0,.42), 0 32px 76px rgba(0,0,0,.55)', padding: 'clamp(24px, 5vw, 48px)' }}>
           <div aria-hidden="true" style={{ position: 'absolute', inset: 7, border: '1px solid rgba(93,201,240,.16)', pointerEvents: 'none' }} />
           <div style={{ position: 'relative' }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 9, color: '#ffcc71', fontSize: 12, fontWeight: 900, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
@@ -527,7 +527,7 @@ export default function LiveHudSyncPage() {
                       minHeight: 40,
                       padding: '0 18px',
                       border: '1px solid #a5efff',
-                      background: 'linear-gradient(180deg, #2a6077, #07131d)',
+                      background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)',
                       color: '#fff',
                       fontSize: 12,
                       fontWeight: 900,
@@ -786,7 +786,7 @@ export default function LiveHudSyncPage() {
             <div style={{ marginTop: 28, padding: '20px', border: '1px solid rgba(102,211,246,.24)', background: 'rgba(0,0,0,.22)' }}>
               <div style={{ color: '#82e7ff', fontSize: 12, fontWeight: 900, textTransform: 'capitalize' }}>Supported Workflow</div>
               <p style={{ margin: '8px 0 0', color: '#a9becd', fontSize: 13, lineHeight: 1.65 }}>Import A Real Hand-History File For Analysis And Review. Imported Decisions Are Parsed And Audited; They Are Not Replaced With Generated Device Telemetry.</p>
-              <a href="/hub/training/hand-history-upload" style={{ display: 'inline-flex', minHeight: 48, alignItems: 'center', padding: '0 20px', marginTop: 18, border: '1px solid #a5efff', background: 'linear-gradient(180deg, #2a6077, #07131d)', color: '#fff', fontSize: 13, fontWeight: 900, textDecoration: 'none', textTransform: 'capitalize' }}>
+              <a href="/hub/training/hand-history-upload" style={{ display: 'inline-flex', minHeight: 48, alignItems: 'center', padding: '0 20px', marginTop: 18, border: '1px solid #a5efff', background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)', color: '#fff', fontSize: 13, fontWeight: 900, textDecoration: 'none', textTransform: 'capitalize' }}>
                 Open Hand History Import →
               </a>
             </div>

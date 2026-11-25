@@ -759,7 +759,7 @@ function ActivityCard({ date, category, questions, correct, accuracy }) {
 const styles = {
   container: {
     minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-    background: '#0a0a0a',
+    background: '#040d18',
     color: '#FFFFFF',
   },
   content: {
@@ -934,7 +934,7 @@ const styles = {
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    background: '#0a0a0a',
+    background: '#040d18',
     color: '#FFFFFF',
   },
   spinner: {

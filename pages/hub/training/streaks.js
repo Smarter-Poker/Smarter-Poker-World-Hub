@@ -395,7 +395,7 @@ export default function StreaksPage() {
             padding: 18,
             borderRadius: 2,
             border: '1px solid #25c8ff',
-            background: 'linear-gradient(180deg, #0d1a22, #060d12)',
+            background: 'linear-gradient(180deg, #091727 0%, #040d18 100%)',
           }}
         >
           <div
@@ -648,7 +648,7 @@ export default function StreaksPage() {
                   padding: '12px 16px',
                   borderRadius: '2px',
                   marginBottom: 16,
-                  background: 'linear-gradient(180deg, #0d1a22, #060d12)',
+                  background: 'linear-gradient(180deg, #091727 0%, #040d18 100%)',
                   border: '1px solid rgba(239,68,68,0.45)',
                   borderLeft: '3px solid #f2b84b',
                   display: 'flex',
@@ -1005,7 +1005,7 @@ const styles = {
     padding: '0 14px',
     border: '1px solid #536a76',
     borderRadius: '2px',
-    background: 'linear-gradient(180deg, #0d1a22, #060d12)',
+    background: 'linear-gradient(180deg, #091727 0%, #040d18 100%)',
     color: '#e7f0f4',
     fontSize: '12px',
     fontWeight: 700,
@@ -1044,7 +1044,7 @@ const styles = {
   heroSection: {
     textAlign: 'center',
     padding: '40px 20px',
-    background: 'linear-gradient(180deg, #0d1a22, #060d12)',
+    background: 'linear-gradient(180deg, #091727 0%, #040d18 100%)',
     border: '1px solid #536a76',
     borderLeft: '3px solid #25c8ff',
     borderRadius: '2px',
@@ -1096,7 +1096,7 @@ const styles = {
     margin: '20px auto 0',
   },
   nextMilestoneCard: {
-    background: 'linear-gradient(180deg, #0d1a22, #060d12)',
+    background: 'linear-gradient(180deg, #091727 0%, #040d18 100%)',
     border: '1px solid #536a76',
     borderLeft: '3px solid #f2b84b',
     borderRadius: '2px',
@@ -1189,7 +1189,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
-    background: 'linear-gradient(180deg, #0d1a22, #060d12)',
+    background: 'linear-gradient(180deg, #091727 0%, #040d18 100%)',
     border: '1px solid #415866',
     borderLeft: '3px solid #25c8ff',
     borderRadius: '2px',
