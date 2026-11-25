@@ -3470,26 +3470,6 @@ function UniversalDynamicTable({
     const [bbjPlateVisible, setBbjPlateVisible] = useState(true);
     const bbjPoolAmount = useMemo(() => 142850 + ((questionNumber || 1) * 125), [questionNumber]);
 
-    const allInEquityOffer = useMemo(
-        () => evaluateAllInEquityAndInsuranceOffer({
-            variant: activeNormalizedVariant,
-            potBb: Math.max(4, Number(pot) || 24),
-            heroEquityPct: Number(activeVillainHandObj?.equityPct || 68.4),
-            houseMarginPct: 5.0,
-        }),
-        [activeNormalizedVariant, pot, activeVillainHandObj?.equityPct],
-    );
-
-    const rabbitHuntOutcome = useMemo(
-        () => resolveRabbitHuntBoard({
-            visibleBoardCards: visibleBoard,
-            heroCards,
-            villainCards: activeVillainHandObj?.cards || [],
-            fullCompletedBoard: completedFiveCardBoard,
-        }),
-        [visibleBoard, heroCards, activeVillainHandObj?.cards, completedFiveCardBoard],
-    );
-
     const preActionStatus = useMemo(
         () => evaluatePreActionSelection({
             selectedPreAction: armedPreAction,
@@ -3497,23 +3477,6 @@ function UniversalDynamicTable({
             previousToCallBb: Math.max(0, Number(scenario?.previousBetBb) || 0),
         }),
         [armedPreAction, scenario?.villainBet, scenario?.toCall, scenario?.previousBetBb],
-    );
-
-    const fullHandBranchComparison = useMemo(
-        () => evaluateFullHandLineAndBranchComparison({
-            gameId: gameId || 'cash-005',
-            variant: activeNormalizedVariant,
-            bettingStructure: activeBettingStructure,
-            format: activeGameFormat,
-            heroCards,
-            fullBoardCards: completedFiveCardBoard,
-            heroPosition: heroPosition || 'BTN',
-            villainPosition: villainPosition || 'BB',
-            basePotBb: Math.max(1.5, Number(pot) || 6.5),
-            effectiveStackBb: Math.max(10, Number(heroStack) || 100),
-            chosenBranch: activeLineBranch,
-        }),
-        [gameId, activeNormalizedVariant, activeBettingStructure, activeGameFormat, heroCards, completedFiveCardBoard, heroPosition, villainPosition, pot, heroStack, activeLineBranch],
     );
 
     const heroActedFenceStatus = useMemo(
@@ -3699,6 +3662,43 @@ function UniversalDynamicTable({
     }, [activeNormalizedVariant, heroCards, completedFiveCardBoard]);
 
     const activeVillainHandObj = villainBucketCatalog[activeVillainBucket] || villainBucketCatalog.two_way_scoop;
+
+    const allInEquityOffer = useMemo(
+        () => evaluateAllInEquityAndInsuranceOffer({
+            variant: activeNormalizedVariant,
+            potBb: Math.max(4, Number(pot) || 24),
+            heroEquityPct: Number(activeVillainHandObj?.equityPct || 68.4),
+            houseMarginPct: 5.0,
+        }),
+        [activeNormalizedVariant, pot, activeVillainHandObj?.equityPct],
+    );
+
+    const rabbitHuntOutcome = useMemo(
+        () => resolveRabbitHuntBoard({
+            visibleBoardCards: visibleBoard,
+            heroCards,
+            villainCards: activeVillainHandObj?.cards || [],
+            fullCompletedBoard: completedFiveCardBoard,
+        }),
+        [visibleBoard, heroCards, activeVillainHandObj?.cards, completedFiveCardBoard],
+    );
+
+    const fullHandBranchComparison = useMemo(
+        () => evaluateFullHandLineAndBranchComparison({
+            gameId: gameId || 'cash-005',
+            variant: activeNormalizedVariant,
+            bettingStructure: activeBettingStructure,
+            format: activeGameFormat,
+            heroCards,
+            fullBoardCards: completedFiveCardBoard,
+            heroPosition: heroPosition || 'BTN',
+            villainPosition: villainPosition || 'BB',
+            basePotBb: Math.max(1.5, Number(pot) || 6.5),
+            effectiveStackBb: Math.max(10, Number(heroStack) || 100),
+            chosenBranch: activeLineBranch,
+        }),
+        [gameId, activeNormalizedVariant, activeBettingStructure, activeGameFormat, heroCards, completedFiveCardBoard, heroPosition, villainPosition, pot, heroStack, activeLineBranch],
+    );
 
     const showdownOutcome = useMemo(() => {
         const potTotal = Math.max(2, Number(pot) || 6.5);

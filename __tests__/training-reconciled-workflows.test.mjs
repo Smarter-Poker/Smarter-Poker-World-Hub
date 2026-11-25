@@ -1800,4 +1800,15 @@ test('Phase 13 True 1:1 Club Arena Clone Parity & 20-Point Master Package works 
       `Expected UniversalDynamicTable.jsx to include Phase 13 Club Arena clone contract: ${selector}`,
     );
   }
+
+  // 14. Anti-Regression TDZ Ordering Law: activeVillainHandObj & completedFiveCardBoard must be declared before allInEquityOffer, rabbitHuntOutcome, and fullHandBranchComparison
+  const idxCompletedBoard = tableSrc.indexOf('const completedFiveCardBoard = useMemo(');
+  const idxVillainObj = tableSrc.indexOf('const activeVillainHandObj =');
+  const idxAllInOffer = tableSrc.indexOf('const allInEquityOffer = useMemo(');
+  const idxRabbitOutcome = tableSrc.indexOf('const rabbitHuntOutcome = useMemo(');
+  const idxFullHandBranch = tableSrc.indexOf('const fullHandBranchComparison = useMemo(');
+  assert.ok(idxCompletedBoard > 0 && idxVillainObj > idxCompletedBoard, 'activeVillainHandObj must follow completedFiveCardBoard');
+  assert.ok(idxAllInOffer > idxVillainObj, 'allInEquityOffer must be declared after activeVillainHandObj (zero TDZ)');
+  assert.ok(idxRabbitOutcome > idxVillainObj, 'rabbitHuntOutcome must be declared after activeVillainHandObj and completedFiveCardBoard (zero TDZ)');
+  assert.ok(idxFullHandBranch > idxCompletedBoard, 'fullHandBranchComparison must be declared after completedFiveCardBoard (zero TDZ)');
 });
