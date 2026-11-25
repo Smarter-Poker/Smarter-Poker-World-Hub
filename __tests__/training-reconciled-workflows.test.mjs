@@ -1446,4 +1446,11 @@ test('Phase 11 Master 16-Point Package: Showdown Reveal, 100% 5-Variant PLO8 Hub
     assert.match(src, /data-decision-pacing-telemetry="true"/, `${diagPage} must render Decision Pacing telemetry`);
     assert.match(src, /data-drill-shot-clock-cta="true"/, `${diagPage} must render Shot-Clock Drill CTA`);
   }
+
+  const weaknessScannerSrc = read('pages/hub/training/weakness-scanner.js');
+  assert.match(
+    weaknessScannerSrc,
+    /const\s+\[activeVariant,\s*setActiveVariant\]\s*=\s*useState\(null\)/,
+    'weakness-scanner.js must initialize activeVariant to null so verified topLeak.variant is never masked by a hardcoded nlh default',
+  );
 });

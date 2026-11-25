@@ -161,7 +161,7 @@ export default function WeaknessScannerPage() {
   const [fetchError, setFetchError] = useState(null);
   const [timeFilter, setTimeFilter] = useState('all');
   const [villainArchetype, setVillainArchetype] = useState('Calling Station');
-  const [activeVariant, setActiveVariant] = useState('nlh');
+  const [activeVariant, setActiveVariant] = useState(null);
   const [selectedLeakSeat, setSelectedLeakSeat] = useState('BB');
   const [lastClubArenaHand, setLastClubArenaHand] = useState(DEFAULT_LAST_HAND);
 
