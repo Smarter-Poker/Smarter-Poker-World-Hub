@@ -58,7 +58,7 @@ async function notifyCompletion(job, result) {
   if (error && error.code !== '23505') console.warn('[PA Audit Worker] Completion notification failed:', error.message);
 }
 
-async function processClaimedJob(job, workerToken, origin) {
+async function processClaimedJob(job, workerToken, origin, { fullRescan = false } = {}) {
   const startedAt = Date.now();
   let response;
   let body = {};
@@ -67,7 +67,11 @@ async function processClaimedJob(job, workerToken, origin) {
     response = await fetch(`${origin}/api/assistant/leaks/detect`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-pa-audit-worker': detectToken },
-      body: JSON.stringify({ jobId: job.id, auditCursor: job.audit_cursor || null }),
+      body: JSON.stringify({
+        jobId: job.id,
+        auditCursor: job.audit_cursor || null,
+        ...(fullRescan && !job.audit_cursor ? { fullRescan: true } : {}),
+      }),
     });
     body = await response.json().catch(() => ({}));
   } catch (error) {
@@ -191,6 +195,8 @@ async function processClaimedJob(job, workerToken, origin) {
 async function handlePost(request) {
   const token = openAuditJobToken(request.headers.get('x-pa-audit-worker'), 'kick');
   if (!token) return Response.json({ success: false, error: 'Invalid worker token' }, { status: 401 });
+  const requestBody = await request.json().catch(() => ({}));
+  const fullRescan = requestBody?.fullRescan === true;
   const workerToken = newWorkerToken();
   const { data, error } = await db().rpc('claim_pa_leak_audit_job', {
     p_job_id: token.jobId,
@@ -215,7 +221,9 @@ async function handlePost(request) {
       // former worker -> detector -> worker HTTP chain hit Vercel's recursive
       // invocation guard after four pages and failed valid audits with 508.
       while (activeJob && batchesProcessed < MAX_BATCHES_PER_INVOCATION && Date.now() < deadline) {
-        const outcome = await processClaimedJob(activeJob, workerToken, origin);
+        const outcome = await processClaimedJob(activeJob, workerToken, origin, {
+          fullRescan: fullRescan && batchesProcessed === 0,
+        });
         activeJob = outcome?.continueJob || null;
         batchesProcessed += 1;
       }

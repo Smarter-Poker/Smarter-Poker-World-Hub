@@ -843,6 +843,21 @@ function AuditReceipt({ result }) {
           Coverage Funnel · {num(progress.coverage.scanned).toLocaleString()} Scanned → {num(progress.coverage.eligible).toLocaleString()} Eligible → {num(progress.coverage.privateCardsAvailable).toLocaleString()} Private Cards Available → {num(progress.coverage.heroDecisions).toLocaleString()} Hero Decisions → {num(progress.coverage.exactSolverMatches).toLocaleString()} Exact Solver Matches → {num(progress.coverage.unpriced).toLocaleString()} Unpriced → {num(progress.coverage.leaks).toLocaleString()} Leaks
         </p>
       )}
+      {(result.caHandFactsSummary || progress.caHandFactsSummary) && (() => {
+        const facts = result.caHandFactsSummary || progress.caHandFactsSummary;
+        const stacks = facts.tournamentByStack || {};
+        return (
+          <p className={toolStyles.auditReceiptNote}>
+            Format Coverage · {num(facts.cashHands).toLocaleString()} Cash NLH Hands · {num(facts.tournamentHands).toLocaleString()} Tournament NLH Hands ({num(stacks.short).toLocaleString()} Short, {num(stacks.mid).toLocaleString()} Mid, {num(stacks.deep).toLocaleString()} Deep)
+            {num(facts.excludedUnsupportedHands) > 0 ? ` · ${num(facts.excludedUnsupportedHands).toLocaleString()} Non-NLH Excluded` : ''}
+          </p>
+        );
+      })()}
+      {(sync.incrementalStop === true || progress.incrementalStop === true) && (
+        <p className={toolStyles.auditReceiptNote} data-tone="success">
+          Incremental Watermark Sync · Stopped At Previously Audited Hands. Use Full Re-Audit To Re-Check Older History.
+        </p>
+      )}
       {result.evidencePartial && (
         <p className={toolStyles.auditReceiptNote} data-tone="warn">
           Historical Evidence Coverage Is Partial. Unverified Or Missing Canonical Training Rows Were Excluded; Club Arena Findings And Saved Leak Records Still Reconciled Independently.
@@ -1647,6 +1662,20 @@ export default function LeakFinderPage() {
     setLinkedHandError(null);
   }, [router.isReady, router.query?.hand]);
 
+  useEffect(() => {
+    if (!router.isReady) return;
+    const rawFmt = Array.isArray(router.query?.format) ? router.query.format[0] : router.query?.format;
+    const fmt = String(rawFmt || '').trim().toLowerCase();
+    if (fmt === 'cash' || fmt === 'tournament' || fmt === 'all') {
+      setFormatFilter(fmt);
+    }
+    const rawTab = Array.isArray(router.query?.tab) ? router.query.tab[0] : router.query?.tab;
+    const nextTab = String(rawTab || '').trim().toLowerCase();
+    if (nextTab === 'leaks' || nextTab === 'coaching' || nextTab === 'insights') {
+      setTab(nextTab);
+    }
+  }, [router.isReady, router.query?.format, router.query?.tab]);
+
   const fetchLinkedHandAudit = useCallback(async (handId, { method = 'GET', signal } = {}) => {
     const token = await getFreshAccessToken();
     if (!token) throw new Error('Sign In To Audit This Club Arena Hand.');
@@ -1750,7 +1779,7 @@ export default function LeakFinderPage() {
     return () => clearTimeout(t);
   }, [detectionSummary]);
 
-  const handleRunDetection = useCallback(async () => {
+  const executeDetection = useCallback(async ({ fullRescan = false } = {}) => {
     if (!requireOnline()) return;
     if (!userId) {
       setDetectionSummary({
@@ -1763,7 +1792,7 @@ export default function LeakFinderPage() {
     setDetectionSummary(null);
     let result;
     try {
-      result = await runDetection();
+      result = await runDetection({ fullRescan });
     } catch (e) {
       setDetectionSummary({ type: 'error', text: friendlyDetectionError(e?.message || e) });
       return;
@@ -1789,7 +1818,17 @@ export default function LeakFinderPage() {
     } else {
       setDetectionSummary({ type: 'error', text: friendlyDetectionError(result?.error) });
     }
-  }, [runDetection, requireOnline, haptic]);
+  }, [runDetection, requireOnline, haptic, userId]);
+
+  const handleRunDetection = useCallback(async () => {
+    if (!requireOnline()) return;
+    return executeDetection({ fullRescan: false });
+  }, [requireOnline, executeDetection]);
+
+  const handleFullRescan = useCallback(async () => {
+    if (!requireOnline()) return;
+    return executeDetection({ fullRescan: true });
+  }, [requireOnline, executeDetection]);
 
   const announcedAuditRef = useRef(null);
   useEffect(() => {
@@ -2492,7 +2531,20 @@ export default function LeakFinderPage() {
                       <span>Import Recent Club Arena Hands, Match The Same Solver Ranges Used In Training, And Rebuild Your Leak Queue.</span>
                     </span>
                   </div>
-                  {detectButton(true, toolStyles.scanButton)}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: S.xs, flexWrap: 'wrap' }}>
+                    {detectButton(true, toolStyles.scanButton)}
+                    {!isDetecting && userId && (
+                      <button
+                        type="button"
+                        className="pa-btn"
+                        style={btn('secondary')}
+                        onClick={handleFullRescan}
+                      >
+                        <RotateCcw size={16} strokeWidth={2} aria-hidden="true" />
+                        Full Re-Audit
+                      </button>
+                    )}
+                  </div>
                 </div>
                 {isDetecting && (
                   <div style={{ padding: `0 ${S.md}px ${S.md}px` }} aria-live="polite">

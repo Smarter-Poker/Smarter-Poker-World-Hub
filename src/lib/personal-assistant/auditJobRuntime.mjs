@@ -70,6 +70,10 @@ export function mergeAuditJobProgress(previous, detection, batchDurationMs = 0, 
   next.totalProcessingMs = number(prior.totalProcessingMs) + next.lastBatchMs;
   next.lastUpdatedAt = new Date().toISOString();
   next.complete = !sync.auditCursor && detection?.auditInProgress !== true && detection?.success === true;
+  if (sync.incrementalStop === true) next.incrementalStop = true;
+  if (detection?.caHandFactsSummary && typeof detection.caHandFactsSummary === 'object') {
+    next.caHandFactsSummary = detection.caHandFactsSummary;
+  }
   next.coverage = {
     scanned: next.handsScanned,
     eligible: next.handsEligible,
@@ -103,14 +107,14 @@ export function publicAuditJob(row) {
   };
 }
 
-export async function kickAuditWorker(job, { origin = getAuditWorkerOrigin(), fetchImpl = fetch } = {}) {
+export async function kickAuditWorker(job, { origin = getAuditWorkerOrigin(), fetchImpl = fetch, fullRescan = false } = {}) {
   const token = sealAuditJobToken({ jobId: job?.id, userId: job?.user_id, purpose: 'kick' });
   if (!token) return { ok: false, status: 503, error: 'Audit worker signing is unavailable.' };
   try {
     const response = await fetchImpl(`${origin}/api/assistant/leaks/audit-worker`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-pa-audit-worker': token },
-      body: JSON.stringify({ jobId: job.id }),
+      body: JSON.stringify({ jobId: job.id, ...(fullRescan ? { fullRescan: true } : {}) }),
     });
     return { ok: response.ok, status: response.status };
   } catch (error) {

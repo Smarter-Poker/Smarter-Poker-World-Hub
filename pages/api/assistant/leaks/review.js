@@ -277,6 +277,9 @@ function mapRow(row, nowMs) {
     if (row.history !== undefined) {
         mapped.history = Array.isArray(row.history) ? row.history.slice(-HISTORY_MAX) : [];
     }
+    if (row.remediation_baseline_at !== undefined) {
+        mapped.remediationBaselineAt = row.remediation_baseline_at || null;
+    }
 
     return mapped;
 }

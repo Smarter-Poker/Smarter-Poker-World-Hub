@@ -1041,7 +1041,7 @@ export function useLeakDetection() {
     return applyJob(payload.job, options);
   }, [applyJob]);
 
-  const runDetection = useCallback(async () => {
+  const runDetection = useCallback(async ({ fullRescan = false } = {}) => {
     const requestId = ++requestIdRef.current;
     try {
       setIsDetecting(true);
@@ -1061,7 +1061,7 @@ export function useLeakDetection() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: '{}',
+        body: JSON.stringify({ fullRescan: Boolean(fullRescan) }),
       });
       const data = await response.json().catch(() => ({}));
       if (requestId !== requestIdRef.current) return { success: false, superseded: true };
