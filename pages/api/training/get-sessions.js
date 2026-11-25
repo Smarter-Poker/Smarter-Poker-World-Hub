@@ -133,13 +133,23 @@ export default async function handler(req, res) {
                   const { data: answerRows } = await runTrainingPersistenceQuery(
                       () => getSupabase()
                           .from('training_answers')
-                          .select('id, game_id, question_id, answer_id, is_correct, hero_position, villain_position, street, classification, ev_loss, ev_loss_measured, spot_type, answered_at')
+                          .select('id, game_id, question_id, answer_id, is_correct, hero_position, villain_position, street, classification, ev_loss, ev_loss_measured, spot_type, evidence_metadata, answered_at')
                           .eq('user_id', user.id)
                           .order('answered_at', { ascending: false })
                           .limit(200),
                       { label: 'TrainingSessions.recentAnswers' },
                   );
-                  return Array.isArray(answerRows) ? answerRows : [];
+                  return Array.isArray(answerRows)
+                      ? answerRows.map((row) => ({
+                          ...row,
+                          ...(row?.evidence_metadata?.variant ? { variant: row.evidence_metadata.variant } : {}),
+                          ...(row?.evidence_metadata?.bettingStructure ? { bettingStructure: row.evidence_metadata.bettingStructure } : {}),
+                          ...(row?.evidence_metadata?.format ? { format: row.evidence_metadata.format } : {}),
+                          ...(Number.isFinite(Number(row?.evidence_metadata?.timeSpentMs))
+                              ? { timeSpentMs: Number(row.evidence_metadata.timeSpentMs) }
+                              : {}),
+                      }))
+                      : [];
               } catch (_) {
                   return [];
               }

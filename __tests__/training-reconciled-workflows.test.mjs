@@ -1082,7 +1082,7 @@ test('Phase 9 Deep Sweep & Root-Cause Anti-Regression Hardening: LevelSelector q
   const arenaPageSrc = read('pages/hub/training/arena/[gameId].js');
   assert.match(arenaPageSrc, /evaluateTrainingSpotWithHorseBrain/, 'arena/[gameId].js must wire evaluateTrainingSpotWithHorseBrain');
   assert.match(arenaPageSrc, /buildCustomTrainingArenaHref/, 'arena/[gameId].js must wire buildCustomTrainingArenaHref');
-  assert.match(arenaPageSrc, /exitParams\.set\('variant'/, 'arena/[gameId].js handleExit must preserve router.query.variant when returning to /hub/training/play/[gameId]');
+  assert.match(arenaPageSrc, /\['variant',\s*'bettingStructure',\s*'format',\s*'street',\s*'position',\s*'source'\]/, 'arena/[gameId].js handleExit must preserve router.query.variant and full context when returning to /hub/training/play/[gameId]');
   assert.match(arenaPageSrc, /data-arena-horse-brain-engine=/, 'arena/[gameId].js must expose data-arena-horse-brain-engine');
 
   // 3. Root Cause #3: pages/api/training/get-question.js must parallelize GetQuestion:seen-read & GetQuestion:cache-read via Promise.all and enrich variant questions with evaluateTrainingSpotWithHorseBrain
@@ -1453,4 +1453,124 @@ test('Phase 11 Master 16-Point Package: Showdown Reveal, 100% 5-Variant PLO8 Hub
     /const\s+\[activeVariant,\s*setActiveVariant\]\s*=\s*useState\(null\)/,
     'weakness-scanner.js must initialize activeVariant to null so verified topLeak.variant is never masked by a hardcoded nlh default',
   );
+});
+
+test('Phase 12 Deep Sweep & Root-Cause Anti-Regression Hardening Laws: 100% non-redirect page contract across all 93 pages, end-to-end timeSpentMs & variant/bettingStructure/format persistence pipeline, Arena exit full query preservation & zero display:none, and SSG module-scope createClient guard', () => {
+  // 1. Law #1 (Root Causes #2 & #3): 100% of non-redirect pages in pages/hub/training/ (including nested directories) MUST expose data-specialty-brain-panel, data-launch-club-arena-cta, and plo8
+  const walkTrainingPages = (dir) => {
+    let out = [];
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        out = out.concat(walkTrainingPages(fullPath));
+      } else if (fullPath.endsWith('.js') || fullPath.endsWith('.jsx') || fullPath.endsWith('.tsx')) {
+        out.push(fullPath);
+      }
+    }
+    return out;
+  };
+
+  const allTrainingPagePaths = walkTrainingPages(path.join(ROOT, 'pages/hub/training')).sort();
+  let nonRedirectCount = 0;
+  for (const absPath of allTrainingPagePaths) {
+    const relPath = path.relative(ROOT, absPath);
+    const src = fs.readFileSync(absPath, 'utf8');
+    if (src.includes('CanonicalTrainingRedirect')) continue;
+    nonRedirectCount += 1;
+    assert.ok(
+      src.includes('data-specialty-brain-panel'),
+      `Non-redirect training page ${relPath} is missing data-specialty-brain-panel`,
+    );
+    assert.ok(
+      src.includes('data-launch-club-arena-cta'),
+      `Non-redirect training page ${relPath} is missing data-launch-club-arena-cta`,
+    );
+    assert.ok(
+      src.includes('plo8'),
+      `Non-redirect training page ${relPath} is missing 5-variant plo8 coverage`,
+    );
+  }
+  assert.ok(
+    nonRedirectCount >= 90,
+    `Expected at least 90 non-redirect training pages, scanned ${nonRedirectCount}`,
+  );
+
+  // 2. Law #2 (Root Cause #1): End-to-End Decision Pacing (timeSpentMs) & Variant/BettingStructure/Format Metadata Persistence Pipeline
+  const useGtoTrainerSrc = read('src/hooks/useGTOTrainer.js');
+  assert.match(
+    useGtoTrainerSrc,
+    /questionActivatedAtRef\s*=\s*useRef\(Date\.now\(\)\)/,
+    'useGTOTrainer.js must track question activation timestamp via questionActivatedAtRef',
+  );
+  assert.match(
+    useGtoTrainerSrc,
+    /questionActivatedAtRef\.current\s*=\s*Date\.now\(\)/,
+    'useGTOTrainer.js must reset questionActivatedAtRef.current when activating a new training question',
+  );
+  assert.match(
+    useGtoTrainerSrc,
+    /timeSpentMs:\s*Math\.max\(50,\s*Date\.now\(\)\s*-\s*\(questionActivatedAtRef\.current/,
+    'useGTOTrainer.js must compute bounded timeSpentMs in submitAnswer',
+  );
+  assert.match(
+    useGtoTrainerSrc,
+    /timeSpentMs:\s*submissionPayload\.timeSpentMs/,
+    'useGTOTrainer.js must pass timeSpentMs into recordAnswer POST payload',
+  );
+
+  const recordQuestionSrc = read('pages/api/training/record-question.js');
+  assert.match(
+    recordQuestionSrc,
+    /plo8LowEvaluation:\s*[\s\S]*?canonicalScenario\.plo8LowEvaluation/,
+    'record-question.js buildRecordedAnswerResponse must return plo8LowEvaluation in feedback',
+  );
+  assert.match(
+    recordQuestionSrc,
+    /evidence_metadata:\s*\{[\s\S]*?variant:\s*canonicalScenario\.variant[\s\S]*?bettingStructure:\s*canonicalScenario\.bettingStructure[\s\S]*?format:\s*canonicalScenario\.format[\s\S]*?timeSpentMs:/,
+    'record-question.js must persist variant, bettingStructure, format, and timeSpentMs inside evidence_metadata',
+  );
+  assert.match(
+    recordQuestionSrc,
+    /const\s+mistakePayload\s*=\s*\{[\s\S]*?variant:\s*canonicalScenario\.variant[\s\S]*?bettingStructure:\s*canonicalScenario\.bettingStructure[\s\S]*?format:\s*canonicalScenario\.format[\s\S]*?street:\s*canonicalScenario\.street[\s\S]*?position:\s*canonicalScenario\.heroPosition/,
+    'record-question.js mistakePayload must persist variant, bettingStructure, format, street, and position for flashcard-srs mistake cards',
+  );
+
+  const getSessionsSrc = read('pages/api/training/get-sessions.js');
+  assert.match(
+    getSessionsSrc,
+    /evidence_metadata/,
+    'get-sessions.js must select evidence_metadata from training_answers',
+  );
+  assert.match(
+    getSessionsSrc,
+    /row\?\.evidence_metadata\?\.variant[\s\S]*?row\?\.evidence_metadata\?\.bettingStructure[\s\S]*?row\?\.evidence_metadata\?\.format[\s\S]*?row\?\.evidence_metadata\?\.timeSpentMs/,
+    'get-sessions.js must project variant, bettingStructure, format, and timeSpentMs onto recentAnswers rows',
+  );
+
+  // 3. Law #3 (Root Cause #4): Arena Exit Full Context Preservation & Zero display:none
+  const arenaPageSrc = read('pages/hub/training/arena/[gameId].js');
+  assert.match(
+    arenaPageSrc,
+    /\['variant',\s*'bettingStructure',\s*'format',\s*'street',\s*'position',\s*'source'\]/,
+    'arena/[gameId].js handleExit must preserve variant, bettingStructure, format, street, position, and source',
+  );
+  assert.doesNotMatch(
+    arenaPageSrc,
+    /display:\s*['"]none['"]/,
+    'arena/[gameId].js must not use display: none on its Horse Brain metadata contract element',
+  );
+
+  // 4. Law #4 (Root Cause #5): SSG Module-Scope createClient Guard
+  const drillBuilderSrc = read('pages/hub/training/drill-builder.js');
+  const createClientLines = drillBuilderSrc
+    .split('\n')
+    .filter((line) => line.includes('createClient('));
+  assert.ok(createClientLines.length > 0, 'Expected drill-builder.js to call createClient');
+  for (const line of createClientLines) {
+    assert.match(
+      line,
+      /typeof\s+window\s*!==\s*['"]undefined['"]/,
+      `Every createClient( call in drill-builder.js must have a same-line typeof window !== 'undefined' guard: ${line}`,
+    );
+  }
 });

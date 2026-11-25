@@ -19,6 +19,8 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import { normalizeTrainingSessionConfig } from '../../../src/lib/training/sessionConfigContract.mjs';
 import { savePracticeSession } from '../../../src/lib/training/practiceSession';
+import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
+import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import PokerSoundManager from '../../../src/components/poker/PokerSoundManager';
 
@@ -279,6 +281,41 @@ export default function MultiTablePage() {
   );
   const activeGameId =
     focusedGameId && visibleGames.includes(focusedGameId) ? focusedGameId : visibleGames[0];
+
+  const multiTableBrainEval = useMemo(() => {
+    try {
+      const heroCardsByVariant = {
+        nlh: ['As', 'Kd'],
+        plo4: ['As', 'Ks', 'Qh', 'Jd'],
+        plo5: ['As', 'Ks', 'Qh', 'Jd', 'Tc'],
+        plo6: ['As', 'Ks', 'Qh', 'Jd', 'Tc', '9h'],
+        plo8: ['As', 'Ks', 'Qh', 'Jd'],
+      };
+      return evaluateTrainingSpotWithHorseBrain({
+        gameId: activeGameId || 'cash-002',
+        variant: selectedVariant,
+        street: 'flop',
+        heroCards: heroCardsByVariant[selectedVariant] || heroCardsByVariant.nlh,
+        boardCards: ['8d', '5c', '2s'],
+        heroPosition: 'BTN',
+        villainPosition: 'BB',
+        pot: 8.5,
+        toCall: 3.0,
+        effectiveStackBb: 100,
+      });
+    } catch {
+      return null;
+    }
+  }, [activeGameId, selectedVariant]);
+
+  const multiTableSingleArenaHref = useMemo(
+    () =>
+      buildCustomTrainingArenaHref(
+        { gameId: activeGameId || 'cash-002', variant: selectedVariant },
+        'multi-table',
+      ),
+    [activeGameId, selectedVariant],
+  );
 
   // Automatic focus progression to the next unanswered table when a table's
   // hand is answered (showFeedback transitions false -> true) or completed.
@@ -1275,6 +1312,51 @@ export default function MultiTablePage() {
             >
               ← Back To Training
             </button>
+
+            {multiTableBrainEval && (
+              <div
+                data-specialty-brain-panel="true"
+                data-brain-engine={multiTableBrainEval.engineModule}
+                data-recommended-action={multiTableBrainEval.correctAnswer}
+                style={{
+                  marginTop: 24,
+                  padding: '14px 16px',
+                  borderRadius: 12,
+                  textAlign: 'left',
+                  background: 'rgba(15, 23, 42, 0.72)',
+                  border: '1px solid rgba(56, 189, 248, 0.35)',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: '#7dd3fc' }}>
+                    Horse Brain Multi-Table Preview ({selectedVariant.toUpperCase()})
+                  </span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#fbbf24' }}>
+                    Engine: {multiTableBrainEval.engineModule} | Recommended: {multiTableBrainEval.recommendedAction}
+                  </span>
+                </div>
+                <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.5 }}>
+                  {multiTableBrainEval.explanation}
+                </p>
+                <button
+                  type="button"
+                  data-launch-club-arena-cta="true"
+                  onClick={() => router.push(multiTableSingleArenaHref)}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: 8,
+                    border: '1px solid rgba(56, 189, 248, 0.5)',
+                    background: 'rgba(56, 189, 248, 0.16)',
+                    color: '#e0f2fe',
+                    fontSize: 12,
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Warm Up Focused Table In 1:1 Club Arena →
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           /* Playing Screen — Multi Table Grid */

@@ -608,6 +608,7 @@ export default function useGTOTrainer(
   const [handSummary, setHandSummary] = useState(null);
   const [lastSelectedAction, setLastSelectedAction] = useState(null);
   const multiStreetHandRef = useRef(null);
+  const questionActivatedAtRef = useRef(Date.now());
 
   const activateNewTrainingQuestion = useCallback((question) => {
     if (!question) throw new Error('A signed Training question is required.');
@@ -618,6 +619,7 @@ export default function useGTOTrainer(
     // only after record-question persists the decision and reveals that
     // canonical action in its feedback response.
     multiStreetHandRef.current = null;
+    questionActivatedAtRef.current = Date.now();
     setIsMultiStreetActive(false);
     setCurrentStreet(street);
     setCurrentQuestion(question);
@@ -1470,6 +1472,9 @@ export default function useGTOTrainer(
         selectedAnswer,
         gradingMode: submission.gradingMode,
         rng: submission.rng,
+        timeSpentMs: Number.isFinite(Number(submission.timeSpentMs))
+          ? Math.max(50, Math.round(Number(submission.timeSpentMs)))
+          : null,
       };
       let lastNetworkFailure = false;
       try {
@@ -1500,6 +1505,7 @@ export default function useGTOTrainer(
                 selectedAnswer,
                 gradingMode: submission.gradingMode,
                 rng: submission.rng,
+                timeSpentMs: submissionPayload.timeSpentMs,
               }),
             });
           } catch (networkErr) {
@@ -1725,6 +1731,7 @@ export default function useGTOTrainer(
         selectedAnswer: selectedOptionId,
         gradingMode: gradingContext.difficultyMode || resolveDifficultyMode(),
         rng: submittedRng,
+        timeSpentMs: Math.max(50, Date.now() - (questionActivatedAtRef.current || Date.now())),
       };
       const submissionLease = captureTrainingLease();
       if (

@@ -11,19 +11,27 @@ export default function BountyTrainerPage() {
   const [potBb, setPotBb] = useState(6.5);
   const [toCallBb, setToCallBb] = useState(12);
   const [bubbleFactor, setBubbleFactor] = useState(1.25);
+  const [brainVariant, setBrainVariant] = useState('nlh');
 
   const arenaHref = useMemo(
-    () => buildCustomTrainingArenaHref({ gameId: 'mtt-005', variant: 'nlh' }, 'bounty-trainer'),
-    []
+    () => buildCustomTrainingArenaHref({ gameId: 'mtt-005', variant: brainVariant }, 'bounty-trainer'),
+    [brainVariant]
   );
 
   const brainEval = useMemo(() => {
     try {
+      const heroCardsByVariant = {
+        nlh: ['Ad', 'Ts'],
+        plo4: ['As', 'Ks', 'Qh', 'Jh'],
+        plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
+        plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
+        plo8: ['As', '2s', 'Kd', '3d'],
+      };
       return evaluateTrainingSpotWithHorseBrain({
         gameId: 'mtt-005',
-        variant: 'nlh',
+        variant: brainVariant,
         street: 'preflop',
-        heroCards: ['Ad', 'Ts'],
+        heroCards: heroCardsByVariant[brainVariant] || heroCardsByVariant.nlh,
         boardCards: [],
         heroPosition: 'BTN',
         villainPosition: 'BB',
@@ -38,7 +46,7 @@ export default function BountyTrainerPage() {
     } catch {
       return null;
     }
-  }, [bountyBb, effectiveStackBb, potBb, toCallBb, bubbleFactor]);
+  }, [bountyBb, effectiveStackBb, potBb, toCallBb, bubbleFactor, brainVariant]);
 
   const pkoAdj = brainEval?.brainEvaluation?.pkoBountyAdjustment;
 
@@ -119,6 +127,29 @@ export default function BountyTrainerPage() {
                   <span style={{ fontSize: 12, fontWeight: 700, color: '#fbbf24' }}>
                     Engine: {brainEval.engineModule} | Recommended: {brainEval.recommendedAction}
                   </span>
+                </div>
+
+                <div data-variant-selector="true" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
+                  {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      data-variant-option={v}
+                      onClick={() => setBrainVariant(v)}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: 6,
+                        fontSize: 12,
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        border: brainVariant === v ? '1px solid #79e6ff' : '1px solid rgba(255,255,255,0.14)',
+                        background: brainVariant === v ? 'rgba(121, 230, 255, 0.2)' : 'rgba(255,255,255,0.04)',
+                        color: brainVariant === v ? '#e0f2fe' : '#b7c9d7',
+                      }}
+                    >
+                      {v.toUpperCase()}
+                    </button>
+                  ))}
                 </div>
 
                 <div

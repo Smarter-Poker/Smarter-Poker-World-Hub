@@ -245,6 +245,13 @@ function buildRecordedAnswerResponse({
       explanation: servedQuestion.explanation || '',
       structuredExplanation: servedQuestion.structuredExplanation || canonicalQuestion?.structuredExplanation || null,
       brainEvaluation: canonicalScenario.brainEvaluation || servedQuestion.scenario?.brainEvaluation || null,
+      plo8LowEvaluation:
+        canonicalScenario.plo8LowEvaluation
+        || canonicalQuestion?.plo8LowEvaluation
+        || servedQuestion?.plo8LowEvaluation
+        || servedQuestion?.scenario?.plo8LowEvaluation
+        || canonicalScenario.brainEvaluation?.plo8LowEvaluation
+        || null,
       gtoFrequencies: verified ? (servedQuestion.gtoFrequencies || null) : null,
       frequencies: verified ? (servedQuestion.frequencies || null) : null,
       rawFrequencies: verified ? (servedQuestion.rawFrequencies || null) : null,
@@ -613,6 +620,12 @@ export default async function handler(req, res) {
           sourceClassification: evidencePolicy.source_classification,
           policyVersion: evidencePolicy.policy_version,
           policyChecksum: evidencePolicy.policy_checksum,
+          variant: canonicalScenario.variant || canonicalQuestion?.variant || 'nlh',
+          bettingStructure: canonicalScenario.bettingStructure || canonicalQuestion?.bettingStructure || null,
+          format: canonicalScenario.format || canonicalQuestion?.format || null,
+          timeSpentMs: Number.isFinite(Number(req.body?.timeSpentMs ?? req.body?.decisionTimeMs))
+            ? Math.max(0, Math.min(600000, Math.round(Number(req.body.timeSpentMs ?? req.body.decisionTimeMs))))
+            : null,
           ...(verified ? { sourceChecksum: canonicalGrade.sourceChecksum } : {}),
           ...(verified ? {} : { reason: 'question_not_solver_verified' }),
         },
@@ -686,6 +699,11 @@ export default async function handler(req, res) {
             questionId,
             gameId,
             level: parsedLevel,
+            variant: canonicalScenario.variant || canonicalQuestion?.variant || 'nlh',
+            bettingStructure: canonicalScenario.bettingStructure || canonicalQuestion?.bettingStructure || null,
+            format: canonicalScenario.format || canonicalQuestion?.format || 'cash',
+            street: canonicalScenario.street || 'flop',
+            position: canonicalScenario.heroPosition || canonicalScenario.position || 'BB',
             prompt: snapshot?.question?.prompt || snapshot?.question?.scenario?.title || 'GTO Training Spot',
             correctAction: correctAnswer,
             explanation: explanation || '',

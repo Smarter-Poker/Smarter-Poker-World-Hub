@@ -289,14 +289,14 @@ export default function TrainingArenaPage() {
         );
     }, [gameId, activeArenaVariant, router.query.source]);
 
-    // Handle arena exit — return to level selector
+    // Handle arena exit — return to level selector preserving active training context
     const handleExit = useCallback(() => {
         const exitParams = new URLSearchParams();
-        if (typeof router.query.variant === 'string' && router.query.variant) {
-            exitParams.set('variant', router.query.variant);
-        }
-        if (typeof router.query.source === 'string' && router.query.source) {
-            exitParams.set('source', router.query.source);
+        for (const key of ['variant', 'bettingStructure', 'format', 'street', 'position', 'source']) {
+            const val = router.query?.[key];
+            if (typeof val === 'string' && val.trim()) {
+                exitParams.set(key, val.trim());
+            }
         }
         const qs = exitParams.toString();
         router.push(qs ? `/hub/training/play/${gameId}?${qs}` : `/hub/training/play/${gameId}`);
@@ -379,10 +379,11 @@ export default function TrainingArenaPage() {
                 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
             </Head>
             <div
-                aria-hidden="true"
+                data-specialty-brain-panel="true"
+                data-launch-club-arena-cta="true"
                 data-arena-horse-brain-engine={arenaBrainPreview?.engineModule || 'holdem-brain.js'}
                 data-arena-canonical-href={arenaCanonicalHref}
-                style={{ display: 'none' }}
+                style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0, 0, 0, 0)' }}
             />
             {syncedHandId && (
                 <div
