@@ -22,6 +22,44 @@ function readLocalAccessToken() {
     }
 }
 
+async function refreshOperatorAccessToken() {
+    try {
+        const { supabase } = await import('../../src/lib/supabase');
+        const { data } = await supabase.auth.refreshSession();
+        return data?.session?.access_token || null;
+    } catch (_error) {
+        return null;
+    }
+}
+
+async function fetchWithTokenRefresh(urlOrRequest, init = {}, initialToken = null) {
+    let token = initialToken || readLocalAccessToken();
+    if (!token) {
+        token = await refreshOperatorAccessToken();
+    }
+    if (!token) {
+        return { response: { status: 401, ok: false }, token: null };
+    }
+    const execute = typeof urlOrRequest === 'function'
+        ? urlOrRequest
+        : (activeToken) => fetch(urlOrRequest, {
+            ...init,
+            headers: {
+                ...(init.headers || {}),
+                Authorization: `Bearer ${activeToken}`,
+            },
+        });
+    let response = await execute(token);
+    if (response.status === 401) {
+        const refreshed = await refreshOperatorAccessToken();
+        if (refreshed && refreshed !== token) {
+            token = refreshed;
+            response = await execute(token);
+        }
+    }
+    return { response, token };
+}
+
 function fmt(value) {
     if (value === null || value === undefined || value === '') return '-';
     if (typeof value === 'boolean') return value ? 'Enabled' : 'Disabled';
@@ -83,12 +121,16 @@ function fmtCountdown(targetIso, nowMs) {
     return `${minutes}m ${seconds}s`;
 }
 
-async function fetchOperations(token, query = '') {
-    const response = await fetch(`/api/admin/trivia-operations${query}`, {
-        headers: { Authorization: `Bearer ${token}` },
-    });
-    const body = await response.json().catch(() => ({}));
-    return { response, body };
+async function fetchOperations(initialToken, query = '') {
+    const { response, token } = await fetchWithTokenRefresh(
+        (token) => fetch(`/api/admin/trivia-operations${query}`, {
+            headers: { Authorization: `Bearer ${token}` },
+        }),
+        {},
+        initialToken,
+    );
+    const body = typeof response?.json === 'function' ? await response.json().catch(() => ({})) : {};
+    return { response, body, token };
 }
 
 function requestKey() {
@@ -196,14 +238,11 @@ export default function TriviaOperationsPage() {
     useEffect(() => {
         let cancelled = false;
         (async () => {
-            const token = readLocalAccessToken();
-            if (!token) {
-                window.location.replace('/auth/login?redirect=' + encodeURIComponent('/admin/trivia-operations'));
-                return;
-            }
-            tokenRef.current = token;
+            const initialToken = readLocalAccessToken();
+            if (initialToken) tokenRef.current = initialToken;
             try {
-                const { response, body } = await fetchOperations(token);
+                const { response, body, token: activeToken } = await fetchOperations(initialToken);
+                if (activeToken) tokenRef.current = activeToken;
                 if (response.status === 401) {
                     window.location.replace('/auth/login?redirect=' + encodeURIComponent('/admin/trivia-operations'));
                     return;
@@ -234,11 +273,8 @@ export default function TriviaOperationsPage() {
 
     async function refreshSnapshot() {
         const token = resolveAccessToken();
-        if (!token) {
-            window.location.replace('/auth/login?redirect=' + encodeURIComponent('/admin/trivia-operations'));
-            return;
-        }
-        const { response, body } = await fetchOperations(token);
+        const { response, body, token: activeToken } = await fetchOperations(token);
+        if (activeToken) tokenRef.current = activeToken;
         if (response.status === 401) {
             window.location.replace('/auth/login?redirect=' + encodeURIComponent('/admin/trivia-operations'));
             return;
@@ -249,23 +285,24 @@ export default function TriviaOperationsPage() {
 
     async function executeAction(input, retry = false) {
         const token = resolveAccessToken();
-        if (!token) {
-            window.location.replace('/auth/login?redirect=' + encodeURIComponent('/admin/trivia-operations'));
-            return;
-        }
         const operation = retry ? input : { ...input, requestKey: requestKey() };
         setActionState({ busy: true, item: null, error: null, pending: operation });
         try {
-            const response = await fetch('/api/admin/trivia-operations', {
-                method: 'POST',
-                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify(operation),
-            });
+            const { response, token: activeToken } = await fetchWithTokenRefresh(
+                '/api/admin/trivia-operations',
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(operation),
+                },
+                token,
+            );
+            if (activeToken) tokenRef.current = activeToken;
             if (response.status === 401) {
                 window.location.replace('/auth/login?redirect=' + encodeURIComponent('/admin/trivia-operations'));
                 return;
             }
-            const body = await response.json().catch(() => ({}));
+            const body = typeof response?.json === 'function' ? await response.json().catch(() => ({})) : {};
             const item = body?.item || null;
             if (item?.receiptId) {
                 setActionState({ busy: false, item, error: body.success ? null : item.result?.detail || item.result?.error || 'Action was not completed.', pending: null });
@@ -293,14 +330,11 @@ export default function TriviaOperationsPage() {
 
     async function runLookup() {
         const token = resolveAccessToken();
-        if (!token) {
-            window.location.replace('/auth/login?redirect=' + encodeURIComponent('/admin/trivia-operations'));
-            return;
-        }
         setLookupState({ busy: true, result: null, error: null });
         try {
             const query = `?lookupKind=${encodeURIComponent(lookupForm.kind)}&lookupId=${encodeURIComponent(lookupForm.targetId.trim())}`;
-            const { response, body } = await fetchOperations(token, query);
+            const { response, body, token: activeToken } = await fetchOperations(token, query);
+            if (activeToken) tokenRef.current = activeToken;
             if (response.status === 401) {
                 window.location.replace('/auth/login?redirect=' + encodeURIComponent('/admin/trivia-operations'));
                 return;

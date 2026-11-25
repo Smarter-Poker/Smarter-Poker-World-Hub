@@ -6,12 +6,81 @@
  * Batch Curation Queue, and Empirical Difficulty Calibration.
  */
 import crypto from 'node:crypto';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { authedFetch } from '../../src/lib/authUtils';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { getAccessToken } from '../../src/lib/authUtils';
 import { createClient } from '../../src/lib/supabaseServerClient';
 import { getServerUserWithFallback } from '../../src/lib/serverAuth';
 import { formatQualityIssueLabel } from '../../src/lib/trivia/questionQualityAudit.mjs';
 import consoleStyles from '../../src/components/admin/OperatorAdminSurface.module.css';
+
+const ADMIN_POOL_PATH = '/admin/trivia-pool';
+
+async function refreshPoolAccessToken() {
+    try {
+        const { supabase } = await import('../../src/lib/supabase');
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        return refreshed?.session?.access_token || null;
+    } catch (_err) {
+        return null;
+    }
+}
+
+async function fetchPoolWithTokenRefresh(url, init = {}) {
+    let token = getAccessToken();
+    if (!token) {
+        token = await refreshPoolAccessToken();
+    }
+    if (!token) {
+        return { response: null, unauthenticated: true };
+    }
+    const buildHeaders = (accessToken) => ({
+        ...(init.headers || {}),
+        Authorization: `Bearer ${accessToken}`,
+    });
+    let response = await fetch(url, { ...init, headers: buildHeaders(token) });
+    if (response.status === 401) {
+        const freshToken = await refreshPoolAccessToken();
+        if (freshToken && freshToken !== token) {
+            response = await fetch(url, { ...init, headers: buildHeaders(freshToken) });
+        }
+    }
+    return { response, unauthenticated: response.status === 401 };
+}
+
+function redirectToPoolLogin() {
+    if (typeof window !== 'undefined') {
+        window.location.replace('/auth/login?redirect=' + encodeURIComponent(ADMIN_POOL_PATH));
+    }
+}
+
+function buildCategoryCounts(statusCategories, categoryDepth) {
+    const counts = {};
+    for (const cat of ALL) {
+        counts[cat] = { easy: 0, medium: 0, hard: 0, total: 0 };
+    }
+    if (statusCategories && typeof statusCategories === 'object') {
+        for (const cat of ALL) {
+            const row = statusCategories[cat];
+            if (row && typeof row === 'object') {
+                counts[cat] = {
+                    easy: Number(row.easy) || 0,
+                    medium: Number(row.medium) || 0,
+                    hard: Number(row.hard) || 0,
+                    total: Number(row.total) || 0,
+                };
+            }
+        }
+        return counts;
+    }
+    if (Array.isArray(categoryDepth)) {
+        for (const row of categoryDepth) {
+            if (row?.category && counts[row.category]) {
+                counts[row.category].total = Number(row.total_questions ?? row.eligible_count) || 0;
+            }
+        }
+    }
+    return counts;
+}
 
 const TARGET_PER_CATEGORY = 1500;
 const SIXTY_DAY_FLOOR = 1200;
@@ -56,7 +125,7 @@ export async function getServerSideProps({ req }) {
     if (!hasAdminSecret) {
         const { user, error: uErr } = await getServerUserWithFallback(req, adm);
         if (uErr || !user?.id) {
-            return { redirect: { destination: '/auth/login?redirect=/admin/trivia-pool', permanent: false } };
+            return { props: { requiresClientAuth: true } };
         }
         const [{ data: profile }, { data: opContext }] = await Promise.all([
             adm.from('profiles').select('is_admin').eq('id', user.id).maybeSingle(),
@@ -201,12 +270,29 @@ function formatFlagLabel(flag) {
     return flag;
 }
 
-export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, initialCalibration, generatedAt, error }) {
+export default function TriviaPoolDashboard({
+    byCat = null,
+    sources = null,
+    audit = null,
+    phase54 = null,
+    initialCalibration = null,
+    generatedAt = null,
+    error = null,
+    requiresClientAuth = false,
+}) {
     const [activeTab, setActiveTab] = useState('overview');
     const [queueMode, setQueueMode] = useState('review_queue');
     const [queueCategory, setQueueCategory] = useState('all');
     const [thinCategoriesFirst, setThinCategoriesFirst] = useState(true);
     const [minShown, setMinShown] = useState(initialCalibration?.minShown || 15);
+    const [poolByCat, setPoolByCat] = useState(() => byCat || null);
+    const [poolSources] = useState(() => (Array.isArray(sources) ? sources : null));
+    const [poolAudit] = useState(() => audit || null);
+    const [poolPhase54] = useState(() => phase54 || null);
+    const [poolGeneratedAt, setPoolGeneratedAt] = useState(() => generatedAt || null);
+    const [poolRecommendations, setPoolRecommendations] = useState([]);
+    const [clientLoading, setClientLoading] = useState(() => Boolean(requiresClientAuth && !byCat && !error));
+    const [clientError, setClientError] = useState(() => error || '');
     const [workbenchData, setWorkbenchData] = useState(() => (
         initialCalibration ? {
             calibration: {
@@ -223,11 +309,79 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, in
     const [queueLoaded, setQueueLoaded] = useState(false);
     const [workbenchLoading, setWorkbenchLoading] = useState(false);
     const [workbenchError, setWorkbenchError] = useState('');
+    const [workbenchAttempted, setWorkbenchAttempted] = useState(false);
+    const workbenchAttemptedRef = useRef(false);
     const [selectedIds, setSelectedIds] = useState([]);
     const [curationReason, setCurationReason] = useState('');
     const [calibrationReason, setCalibrationReason] = useState('Empirical Difficulty Calibration Re-Tier');
     const [actionBusy, setActionBusy] = useState(false);
     const [actionFeedback, setActionFeedback] = useState(null);
+
+    useEffect(() => {
+        if (!requiresClientAuth || byCat || error) return undefined;
+        let cancelled = false;
+        (async () => {
+            setClientLoading(true);
+            setClientError('');
+            try {
+                const initialParams = new URLSearchParams({
+                    queue: 'review_queue',
+                    category: 'all',
+                    priority: 'thin_categories',
+                    minShown: '15',
+                    limit: '50',
+                });
+                const [curateRes, statusRes] = await Promise.all([
+                    fetchPoolWithTokenRefresh(`/api/admin/trivia-pool-curate?${initialParams.toString()}`),
+                    fetchPoolWithTokenRefresh('/api/admin/trivia-pool-status'),
+                ]);
+                if (cancelled) return;
+                if (curateRes.unauthenticated && statusRes.unauthenticated) {
+                    redirectToPoolLogin();
+                    return;
+                }
+                const curatePayload = curateRes.response?.ok
+                    ? await curateRes.response.json().catch(() => null)
+                    : null;
+                const statusPayload = statusRes.response?.ok
+                    ? await statusRes.response.json().catch(() => null)
+                    : null;
+                if (cancelled) return;
+                if (!curatePayload?.success && !statusPayload?.categories) {
+                    if (curateRes.response?.status === 403 || statusRes.response?.status === 403) {
+                        setClientError('Forbidden - Trivia Operator Or Admin Access Required.');
+                    } else if (curateRes.unauthenticated) {
+                        redirectToPoolLogin();
+                        return;
+                    } else {
+                        setClientError('Unable To Load Trivia Pool Dashboard.');
+                    }
+                    setClientLoading(false);
+                    return;
+                }
+                if (curatePayload?.success) {
+                    setWorkbenchData(curatePayload);
+                    setQueueLoaded(true);
+                    workbenchAttemptedRef.current = true;
+                    setWorkbenchAttempted(true);
+                }
+                const nextByCat = buildCategoryCounts(
+                    statusPayload?.categories || null,
+                    curatePayload?.categoryDepth || null,
+                );
+                setPoolByCat(nextByCat);
+                setPoolRecommendations(Array.isArray(statusPayload?.recommendations) ? statusPayload.recommendations : []);
+                setPoolGeneratedAt(curatePayload?.generatedAt || new Date().toISOString());
+                setClientLoading(false);
+            } catch (_err) {
+                if (!cancelled) {
+                    setClientError('Unable To Load Trivia Pool Dashboard.');
+                    setClientLoading(false);
+                }
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [byCat, error, requiresClientAuth]);
 
     const loadWorkbench = useCallback(async ({
         mode = queueMode,
@@ -235,6 +389,8 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, in
         min = minShown,
         thinFirst = thinCategoriesFirst,
     } = {}) => {
+        workbenchAttemptedRef.current = true;
+        setWorkbenchAttempted(true);
         setWorkbenchLoading(true);
         setWorkbenchError('');
         try {
@@ -245,8 +401,12 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, in
                 minShown: String(min),
                 limit: '50',
             });
-            const resp = await authedFetch(`/api/admin/trivia-pool-curate?${params.toString()}`);
-            const payload = await resp.json();
+            const { response: resp, unauthenticated } = await fetchPoolWithTokenRefresh(`/api/admin/trivia-pool-curate?${params.toString()}`);
+            if (unauthenticated || !resp) {
+                redirectToPoolLogin();
+                return;
+            }
+            const payload = await resp.json().catch(() => null);
             if (!resp.ok || !payload?.success) {
                 setWorkbenchError(payload?.error || 'Unable To Load Pool Curation Workbench');
                 setWorkbenchLoading(false);
@@ -263,10 +423,12 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, in
     }, [minShown, queueCategory, queueMode, thinCategoriesFirst]);
 
     useEffect(() => {
-        if ((activeTab === 'curation' || activeTab === 'calibration') && !queueLoaded && !workbenchLoading) {
+        if ((activeTab === 'curation' || activeTab === 'calibration') && !queueLoaded && !workbenchAttempted && !workbenchAttemptedRef.current) {
+            workbenchAttemptedRef.current = true;
+            setWorkbenchAttempted(true);
             loadWorkbench();
         }
-    }, [activeTab, loadWorkbench, queueLoaded, workbenchLoading]);
+    }, [activeTab, loadWorkbench, queueLoaded, workbenchAttempted]);
 
     const runBatchCurate = async ({ questionIds, action, reason }) => {
         const trimmedReason = String(reason || '').trim();
@@ -281,7 +443,7 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, in
         setActionBusy(true);
         setActionFeedback(null);
         try {
-            const resp = await authedFetch('/api/admin/trivia-pool-curate', {
+            const { response: resp, unauthenticated } = await fetchPoolWithTokenRefresh('/api/admin/trivia-pool-curate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -290,7 +452,11 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, in
                     reason: trimmedReason,
                 }),
             });
-            const payload = await resp.json();
+            if (unauthenticated || !resp) {
+                redirectToPoolLogin();
+                return;
+            }
+            const payload = await resp.json().catch(() => null);
             if (!resp.ok || !payload?.success) {
                 setActionFeedback({
                     kind: 'error',
@@ -343,15 +509,22 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, in
         [queueItems]
     );
 
-    if (error) {
-        return <main className={consoleStyles.surface}><div className={consoleStyles.state} role="alert" style={{ padding: 24, color: '#ff7a7a' }}>Error: {error}</div></main>;
+    if (clientLoading) {
+        return <main className={consoleStyles.surface}><div className={consoleStyles.state} role="status" style={{ padding: 24 }}>Loading Trivia Pool Dashboard...</div></main>;
     }
 
-    const totalCount = ALL.reduce((s, c) => s + (byCat[c]?.total || 0), 0);
+    if (clientError) {
+        return <main className={consoleStyles.surface}><div className={consoleStyles.state} role="alert" style={{ padding: 24, color: '#ff7a7a' }}>Error: {clientError}</div></main>;
+    }
+
+    const activeByCat = poolByCat || buildCategoryCounts(null, workbenchData?.categoryDepth || null);
+    const emptyCounts = { easy: 0, medium: 0, hard: 0, total: 0 };
+    const totalCount = ALL.reduce((s, c) => s + (activeByCat[c]?.total || 0), 0);
     const targetTotal = ALL.length * TARGET_PER_CATEGORY;
     const overallPct = Math.round((totalCount / targetTotal) * 100);
-    const trackATotal = TRACK_A.reduce((s, c) => s + (byCat[c]?.total || 0), 0);
-    const trackBTotal = TRACK_B.reduce((s, c) => s + (byCat[c]?.total || 0), 0);
+    const trackATotal = TRACK_A.reduce((s, c) => s + (activeByCat[c]?.total || 0), 0);
+    const trackBTotal = TRACK_B.reduce((s, c) => s + (activeByCat[c]?.total || 0), 0);
+    const displayGeneratedAt = poolGeneratedAt || new Date().toISOString();
 
     return (
         <main className={consoleStyles.surface} style={{ background: '#0a0a15', minHeight: '100vh', color: '#fff', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
@@ -359,7 +532,7 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, in
                 <div className={consoleStyles.responsiveGrid} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'baseline', gap: 12, marginBottom: 8 }}>
                     <h1 style={{ fontSize: 28, fontWeight: 700, margin: 0 }}>Trivia Pool Dashboard</h1>
                     <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.72)' }}>
-                        Generated {new Date(generatedAt).toLocaleString()} · <a href="/admin/trivia-pool" style={{ color: '#00D4FF' }}>Reload</a>
+                        Generated {new Date(displayGeneratedAt).toLocaleString()} · <a href="/admin/trivia-pool" style={{ color: '#00D4FF' }}>Reload</a>
                     </div>
                 </div>
                 <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, marginBottom: 18 }}>
@@ -461,40 +634,53 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, in
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {TRACK_A.map(cat => <CatRow key={cat} catId={cat} counts={byCat[cat]} track="A" />)}
+                                    {TRACK_A.map(cat => <CatRow key={cat} catId={cat} counts={activeByCat[cat] || emptyCounts} track="A" />)}
                                     <tr><td colSpan={5} style={{ padding: '8px 12px', background: 'rgba(255,255,255,0.02)', fontSize: 12, color: 'rgba(255,255,255,0.72)', letterSpacing: 0.5 }}>TRACK B</td></tr>
-                                    {TRACK_B.map(cat => <CatRow key={cat} catId={cat} counts={byCat[cat]} track="B" />)}
+                                    {TRACK_B.map(cat => <CatRow key={cat} catId={cat} counts={activeByCat[cat] || emptyCounts} track="B" />)}
                                 </tbody>
                             </table>
                         </div>
 
-                        <div className={consoleStyles.panel} style={{ padding: 20, marginBottom: 24 }}>
-                            <h3 style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.5, margin: '0 0 12px 0' }}>SOURCE MIX</h3>
-                            <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap' }}>
-                                {sources.map(({ src, count }) => (
-                                    <div key={src} style={{ display: 'flex', flexDirection: 'column' }}>
-                                        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.72)' }}>{src === 'null' ? 'Unset (Legacy)' : src}</span>
-                                        <span style={{ fontSize: 22, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{count.toLocaleString()}</span>
-                                    </div>
-                                ))}
+                        {poolRecommendations.length > 0 && (
+                            <div className={consoleStyles.panel} style={{ padding: 20, marginBottom: 24 }}>
+                                <h3 style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.5, margin: '0 0 12px 0' }}>POOL RECOMMENDATIONS</h3>
+                                <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.6, fontSize: 13, color: 'rgba(255,255,255,0.86)' }}>
+                                    {poolRecommendations.map((rec, idx) => (
+                                        <li key={idx}>{rec}</li>
+                                    ))}
+                                </ul>
                             </div>
-                        </div>
+                        )}
 
-                        {audit && (
+                        {poolSources && poolSources.length > 0 && (
+                            <div className={consoleStyles.panel} style={{ padding: 20, marginBottom: 24 }}>
+                                <h3 style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.5, margin: '0 0 12px 0' }}>SOURCE MIX</h3>
+                                <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap' }}>
+                                    {poolSources.map(({ src, count }) => (
+                                        <div key={src} style={{ display: 'flex', flexDirection: 'column' }}>
+                                            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.72)' }}>{src === 'null' ? 'Unset (Legacy)' : src}</span>
+                                            <span style={{ fontSize: 22, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{count.toLocaleString()}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {poolAudit && (
                             <div className={consoleStyles.panel} style={{ padding: 20, marginBottom: 24 }}>
                                 <h3 style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.5, margin: '0 0 12px 0' }}>FACT-CHECK AUDIT (Track B Only)</h3>
                                 <div className={consoleStyles.responsiveGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 16 }}>
-                                    <Card title="Grok Questions" value={audit.grokTotal.toLocaleString()} subtitle="Track B total" color="#06b6d4" />
-                                    <Card title="Audited" value={`${audit.grokAudited.toLocaleString()} / ${audit.grokTotal.toLocaleString()}`} subtitle={`${audit.grokTotal > 0 ? Math.round((audit.grokAudited / audit.grokTotal) * 100) : 0}% reviewed`} color="#fbbf24" />
-                                    <Card title="Verified" value={audit.verifiedTrue.toLocaleString()} subtitle="quality_score = 9" color="#22c55e" />
-                                    <Card title="Flagged" value={audit.verifiedFalse.toLocaleString()} subtitle="quality_score = 2 (excluded)" color="#ef4444" />
-                                    <Card title="Last 24h" value={audit.auditedLast24h.toLocaleString()} subtitle="reviewed today" color="#a855f7" />
+                                    <Card title="Grok Questions" value={poolAudit.grokTotal.toLocaleString()} subtitle="Track B total" color="#06b6d4" />
+                                    <Card title="Audited" value={`${poolAudit.grokAudited.toLocaleString()} / ${poolAudit.grokTotal.toLocaleString()}`} subtitle={`${poolAudit.grokTotal > 0 ? Math.round((poolAudit.grokAudited / poolAudit.grokTotal) * 100) : 0}% reviewed`} color="#fbbf24" />
+                                    <Card title="Verified" value={poolAudit.verifiedTrue.toLocaleString()} subtitle="quality_score = 9" color="#22c55e" />
+                                    <Card title="Flagged" value={poolAudit.verifiedFalse.toLocaleString()} subtitle="quality_score = 2 (excluded)" color="#ef4444" />
+                                    <Card title="Last 24h" value={poolAudit.auditedLast24h.toLocaleString()} subtitle="reviewed today" color="#a855f7" />
                                 </div>
-                                {audit.recentFlagged.length > 0 && (
+                                {poolAudit.recentFlagged.length > 0 && (
                                     <>
                                         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 8, marginTop: 4 }}>RECENT FLAGGED - Needs Human Review</div>
                                         <div style={{ background: 'rgba(239,68,68,0.04)', borderRadius: 8, overflow: 'hidden' }}>
-                                            {audit.recentFlagged.map((f, i) => (
+                                            {poolAudit.recentFlagged.map((f, i) => (
                                                 <div key={i} style={{ padding: '10px 12px', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none', fontSize: 12 }}>
                                                     <div style={{ display: 'flex', gap: 12, marginBottom: 4 }}>
                                                         <span style={{ color: '#ef4444', fontWeight: 600 }}>Conf {Math.round(f.confidence * 100)}%</span>
@@ -515,22 +701,22 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, in
                             </div>
                         )}
 
-                        {phase54 && (
+                        {poolPhase54 && (
                             <div className={consoleStyles.panel} style={{ padding: 20, marginBottom: 24 }}>
                                 <h3 style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.5, margin: '0 0 12px 0' }}>QUALITY SYSTEMS (Phase 54)</h3>
                                 <div className={consoleStyles.responsiveGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 16 }}>
-                                    <Card title="Paused Categories" value={phase54.pausedCategories.length.toString()} subtitle={phase54.pausedCategories.length === 0 ? 'all generating' : phase54.pausedCategories.map(c => c.category).join(', ').slice(0, 40)} color={phase54.pausedCategories.length > 0 ? '#ef4444' : '#22c55e'} />
-                                    <Card title="Open Reports" value={phase54.unresolvedReportCount.toString()} subtitle="users flagged" color={phase54.unresolvedReportCount > 0 ? '#fbbf24' : '#22c55e'} />
-                                    <Card title="Regression Failures" value={phase54.recentRegressionFailures.length.toString()} subtitle="last 48h" color={phase54.recentRegressionFailures.length > 0 ? '#ef4444' : '#22c55e'} />
-                                    <Card title="Embedding Backlog" value={phase54.embeddingBacklog.toLocaleString()} subtitle="questions un-embedded" color="#a855f7" />
-                                    <Card title="Theme Backlog" value={phase54.themeBacklog.toLocaleString()} subtitle="questions un-tagged" color="#a855f7" />
+                                    <Card title="Paused Categories" value={poolPhase54.pausedCategories.length.toString()} subtitle={poolPhase54.pausedCategories.length === 0 ? 'all generating' : poolPhase54.pausedCategories.map(c => c.category).join(', ').slice(0, 40)} color={poolPhase54.pausedCategories.length > 0 ? '#ef4444' : '#22c55e'} />
+                                    <Card title="Open Reports" value={poolPhase54.unresolvedReportCount.toString()} subtitle="users flagged" color={poolPhase54.unresolvedReportCount > 0 ? '#fbbf24' : '#22c55e'} />
+                                    <Card title="Regression Failures" value={poolPhase54.recentRegressionFailures.length.toString()} subtitle="last 48h" color={poolPhase54.recentRegressionFailures.length > 0 ? '#ef4444' : '#22c55e'} />
+                                    <Card title="Embedding Backlog" value={poolPhase54.embeddingBacklog.toLocaleString()} subtitle="questions un-embedded" color="#a855f7" />
+                                    <Card title="Theme Backlog" value={poolPhase54.themeBacklog.toLocaleString()} subtitle="questions un-tagged" color="#a855f7" />
                                 </div>
 
-                                {phase54.categoryHealth.length > 0 && (
+                                {poolPhase54.categoryHealth.length > 0 && (
                                     <div style={{ marginBottom: 16 }}>
                                         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>CIRCUIT BREAKER - Per-Category Audit Pass Rate</div>
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 8 }}>
-                                            {phase54.categoryHealth.map(h => (
+                                            {poolPhase54.categoryHealth.map(h => (
                                                 <div key={h.category} style={{ padding: '8px 10px', borderRadius: 6, background: h.generation_paused ? 'rgba(239,68,68,0.12)' : 'rgba(34,197,94,0.06)', border: '1px solid ' + (h.generation_paused ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.15)') }}>
                                                     <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.72)' }}>{h.category}</div>
                                                     <div style={{ fontSize: 14, fontWeight: 600, color: h.generation_paused ? '#ef4444' : '#22c55e' }}>
@@ -544,11 +730,11 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, in
                                     </div>
                                 )}
 
-                                {phase54.recentReports.length > 0 && (
+                                {poolPhase54.recentReports.length > 0 && (
                                     <div style={{ marginBottom: 16 }}>
                                         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>RECENT USER REPORTS</div>
                                         <div style={{ background: 'rgba(251,191,36,0.04)', borderRadius: 8, overflow: 'hidden' }}>
-                                            {phase54.recentReports.map((r, i) => (
+                                            {poolPhase54.recentReports.map((r, i) => (
                                                 <div key={r.id} style={{ padding: '8px 12px', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none', fontSize: 12 }}>
                                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
                                                         <span style={{ color: '#fbbf24', fontWeight: 600, minWidth: 100 }}>{r.reason}</span>
@@ -562,11 +748,11 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, in
                                     </div>
                                 )}
 
-                                {phase54.recentRegressionFailures.length > 0 && (
+                                {poolPhase54.recentRegressionFailures.length > 0 && (
                                     <div>
                                         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>REGRESSION TEST FAILURES - Last 48h</div>
                                         <div style={{ background: 'rgba(239,68,68,0.04)', borderRadius: 8, overflow: 'hidden' }}>
-                                            {phase54.recentRegressionFailures.map((f, i) => (
+                                            {poolPhase54.recentRegressionFailures.map((f, i) => (
                                                 <div key={i} style={{ padding: '8px 12px', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none', fontSize: 12, color: 'rgba(255,255,255,0.85)' }}>
                                                     <span style={{ color: '#ef4444', fontWeight: 600 }}>{f.test_name}</span>
                                                     {f.category && <span style={{ marginLeft: 8, color: 'rgba(255,255,255,0.72)' }}>{f.category}</span>}
@@ -681,8 +867,16 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, in
                         </div>
 
                         {workbenchError && (
-                            <div role="alert" style={{ padding: 12, marginBottom: 14, borderRadius: 8, background: 'rgba(239,68,68,0.14)', color: '#fecaca', fontSize: 13 }}>
-                                {workbenchError}
+                            <div role="alert" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: 12, marginBottom: 14, borderRadius: 8, background: 'rgba(239,68,68,0.14)', color: '#fecaca', fontSize: 13 }}>
+                                <span>{workbenchError}</span>
+                                <button
+                                    type="button"
+                                    disabled={workbenchLoading}
+                                    onClick={() => loadWorkbench()}
+                                    style={{ padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(239,68,68,0.28)', color: '#fff', border: '1px solid rgba(239,68,68,0.55)' }}
+                                >
+                                    Retry
+                                </button>
                             </div>
                         )}
 
