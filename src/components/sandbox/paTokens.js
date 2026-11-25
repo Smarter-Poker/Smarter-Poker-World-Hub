@@ -135,14 +135,14 @@ export const sheetBackdrop = {
 
 export const sheet = {
     width: '100%', maxWidth: 680,
-    background: `linear-gradient(180deg, #132633 0, ${T.surface} 52px, #03090E 100%)`,
+    background: `linear-gradient(180deg, #0D1E32 0, ${T.surface} 52px, #040D18 100%)`,
     border: `1px solid ${T.borderHi}`, borderBottom: 0,
     borderRadius: R.sheet, boxShadow: E.sheet, zIndex: Z.sheet,
     maxHeight: '85dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden',
     paddingBottom: 'env(safe-area-inset-bottom,0px)',
 };
 
-export const sheetGrip = { width: 54, height: 3, borderRadius: R.pill, background: T.accent, boxShadow: `0 0 12px ${T.accent}`, margin: '10px auto 6px' };
+export const sheetGrip = { width: 48, height: 4, borderRadius: R.pill, background: T.borderHi, margin: '10px auto 8px' };
 
 export const sheetHeader = {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: S.sm,

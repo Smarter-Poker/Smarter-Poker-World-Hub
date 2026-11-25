@@ -182,12 +182,12 @@ export function classifyFindingHonesty(leak, reviewRecord = null) {
     leak.source_system === 'ca_hand_facts',
   );
 
-  if (!hasSolverEvidence && !hasMeasuredEv && sampleSize <= 0) {
+  if (!hasSolverEvidence && !hasMeasuredEv) {
     return {
       code: 'unmeasured',
       label: 'Unavailable Metric',
       tone: 'neutral',
-      detail: 'No verified decision metric is available yet for this spot.',
+      detail: 'No verified solver evidence or measured EV metric is available yet for this spot.',
     };
   }
 
@@ -308,12 +308,24 @@ export function resolveHomePrimaryState({
     };
   }
 
-  if (isSignedIn && !isDemo && (sessionsReviewed > 0 || handsAnalyzed === 0)) {
+  if (isSignedIn && !isDemo && sessionsReviewed > 0 && handsAnalyzed === 0) {
     return {
       state: 'history_no_analysis',
       badge: 'Ready To Analyze',
       title: 'Analyze Your Recent Club Arena Play',
       summary: `One click scans your ${PA_ANALYSIS_DEFAULTS.scopeSummary}. No setup required.`,
+      ctaLabel: 'Analyze My Play',
+      ctaAction: 'analyze_now',
+      disabled: false,
+    };
+  }
+
+  if (isSignedIn && !isDemo && handsAnalyzed > 0) {
+    return {
+      state: 'finding_ready',
+      badge: 'Up To Date',
+      title: 'No Active Leaks Across Analyzed Hands',
+      summary: `${handsAnalyzed.toLocaleString()} analyzed hand${handsAnalyzed === 1 ? '' : 's'} checked with no active leaks. Scan again after your next Club Arena session.`,
       ctaLabel: 'Analyze My Play',
       ctaAction: 'analyze_now',
       disabled: false,

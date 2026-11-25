@@ -402,8 +402,8 @@ function ReviewQueueCard({
           {isDetecting
             ? 'Detection is running · anything it finds will be waiting here as a scheduled review.'
             : isDemo
-              ? 'Reviews start on your own hands. Run leak detection below and each leak found becomes a scheduled, repeating drill.'
-              : 'No review queue yet. Run leak detection below and each leak found becomes a scheduled, repeating drill.'}
+              ? 'Reviews Start On Your Own Hands. Run Leak Detection Above And Each Leak Found Becomes A Scheduled, Repeating Drill.'
+              : 'No Review Queue Yet. Run Leak Detection Above And Each Leak Found Becomes A Scheduled, Repeating Drill.'}
         </p>
         {errorNote}
       </section>
@@ -1204,6 +1204,9 @@ function LeakDetail({
 
   const resolvedWhen = relativeDate(leak.resolvedAt);
   const trackingSince = relativeDate(leak.firstDetected);
+  const detailHonesty = classifyFindingHonesty(leak, {
+    retired: Boolean(reviewRecord?.remediationMastered || leak.remediationMastered),
+  });
 
   return (
     <div>
@@ -1212,6 +1215,9 @@ function LeakDetail({
         <LeakStatusBadge status={leak.status} />
         {leak.sourceSystem && <SourceBadge source={leak.sourceSystem} />}
         <ConfidenceBadge confidence={leak.confidence} />
+        <span style={pill(detailHonesty.tone)} title={detailHonesty.detail}>
+          {detailHonesty.label}
+        </span>
       </div>
 
       {(trackingSince || resolvedWhen) && (
@@ -2345,11 +2351,12 @@ export default function LeakFinderPage() {
     if (statusFilter !== 'all') list = list.filter(l => l.status === statusFilter);
     if (formatFilter !== 'all') {
       list = list.filter((l) => {
-        const hay = `${l.leakType || ''} ${l.recommendedDrill || ''} ${l.title || ''} ${l.situationClass || ''}`.toLowerCase();
+        const hay = `${l.leakType || ''} ${l.recommendedDrill || ''} ${l.title || ''} ${l.situationClass || ''} ${l.gameFormat || ''} ${l.format || ''}`.toLowerCase();
         const isTournament = hay.includes('mtt_') || hay.includes('mtt-') || hay.includes('tournament');
-        const isCash = hay.includes('cash_') || hay.includes('cash-') || hay.includes('cash nlh');
-        if (formatFilter === 'tournament') return isTournament;
-        return isCash || !isTournament;
+        const isCash = hay.includes('cash_') || hay.includes('cash-') || hay.includes('cash nlh') || hay.includes('cash_game');
+        if (formatFilter === 'tournament') return isTournament && !isCash;
+        if (formatFilter === 'cash') return isCash && !isTournament;
+        return true;
       });
     }
     if (needle) {
@@ -2545,7 +2552,17 @@ export default function LeakFinderPage() {
                     </span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: S.xs }}>
-                    {detectButton(true, toolStyles.scanButton)}
+                    {(!authInitializing && !userId) ? (
+                      <a
+                        href="/auth/login"
+                        className={`pa-btn ${toolStyles.scanButton}`}
+                        style={{ ...btn('primary', { full: true }), textDecoration: 'none' }}
+                      >
+                        Sign In To Analyze
+                      </a>
+                    ) : (
+                      detectButton(true, toolStyles.scanButton)
+                    )}
                   </div>
                 </div>
                 {isDetecting && (
@@ -2657,6 +2674,7 @@ export default function LeakFinderPage() {
               </details>
 
               {/* Due for review · the spaced-repetition entry point */}
+              {(authInitializing || Boolean(userId)) && (
               <LeakErrorBoundary label="The review queue">
                 <ReviewQueueCard
                   loading={leaksLoading || !reviewNowMs || (reviewLoading && !reviewLoaded)}
@@ -2673,6 +2691,7 @@ export default function LeakFinderPage() {
                   onOpenLeak={(l) => l && setSelectedLeakId(l.id)}
                 />
               </LeakErrorBoundary>
+              )}
 
               {reviewReceipt && (
                 <section
@@ -2993,7 +3012,13 @@ export default function LeakFinderPage() {
                 <summary>
                   <span>Stats &amp; Audit Details</span>
                   <small>
-                    {leaksAreDemo ? 'Sample Mode' : `${stats.leaksFound} Active · ${stats.handsAnalyzed ?? 0} Hands`}
+                    {(!authInitializing && !userId)
+                      ? 'Sign In Required'
+                      : (leaksError || statsError)
+                        ? 'Not Available'
+                        : leaksAreDemo
+                          ? 'Sample Mode'
+                          : `${stats.leaksFound} Active · ${stats.handsAnalyzed === null ? 'Not Available' : `${stats.handsAnalyzed} Hands`}`}
                   </small>
                 </summary>
                 <div className="pa-disclosure-body" style={{ display: 'flex', flexDirection: 'column', gap: S.sm }}>
@@ -3072,7 +3097,27 @@ export default function LeakFinderPage() {
                 </div>
               </details>
 
-              {/* Load error (never replaces the empty state / detect button) */}
+              {/* Signed-out calm gate vs signed-in load error */}
+              {(!authInitializing && !userId) ? (
+                <section
+                  className={toolStyles.instrumentPanel}
+                  style={{ ...card, marginBottom: S.md, textAlign: 'center', display: 'grid', justifyItems: 'center', gap: S.sm }}
+                  aria-label="Leak Finder Sign In"
+                >
+                  <strong style={{ fontSize: F.h3, color: T.text }}>Sign In To View Your Club Arena Leaks</strong>
+                  <p style={{ margin: 0, fontSize: F.bodySm, color: T.textMuted, maxWidth: '42ch', lineHeight: 1.45 }}>
+                    Sign In With Your Smarter.Poker Account To Audit Your Completed Cash And Tournament Hands Automatically.
+                  </p>
+                  <a
+                    href="/auth/login"
+                    className="pa-btn"
+                    style={{ ...btn('primary'), textDecoration: 'none' }}
+                  >
+                    Sign In
+                  </a>
+                </section>
+              ) : (
+              <>
               {leaksError && !leaksLoading && (
                 <div style={{ marginBottom: S.md }}>
                   <ErrorState
@@ -3097,7 +3142,7 @@ export default function LeakFinderPage() {
                     <div key={i} className="leak-skeleton" style={styles.skeletonCard} />
                   ))}
                 </div>
-              ) : activeLeaks.length === 0 ? (
+              ) : leaksError ? null : activeLeaks.length === 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
                   <EmptyState
                     compact
@@ -3167,7 +3212,7 @@ export default function LeakFinderPage() {
                           type="button"
                           className="pa-btn"
                           style={btn('secondary')}
-                          onClick={() => { setQuery(''); setStatusFilter('all'); setFormatFilter('all'); }}
+                          onClick={handleResetAnalysisSettings}
                         >
                           Reset Filters
                         </button>
@@ -3249,6 +3294,8 @@ export default function LeakFinderPage() {
                     </div>
                   )}
                 </>
+              )}
+              </>
               )}
             </section>
           ) : tab === 'insights' ? (
@@ -3409,10 +3456,8 @@ export default function LeakFinderPage() {
           .leak-card {
             -webkit-tap-highlight-color: transparent;
             touch-action: manipulation;
-            transition: transform .12s ease, background .12s ease, border-color .12s ease;
           }
           .leak-card:active {
-            transform: scale(0.985);
             background: rgba(255, 255, 255, 0.06);
           }
           .leak-card:focus-visible {
@@ -3420,13 +3465,10 @@ export default function LeakFinderPage() {
             outline-offset: 2px;
           }
           .leaks-page {
-            background-image:
-              linear-gradient(rgba(99,231,255,.025) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(99,231,255,.02) 1px, transparent 1px);
-            background-size: 28px 28px;
+            background-color: #040D18;
           }
           .leak-skeleton {
-            animation: leakSkeletonPulse 1.4s ease-in-out infinite;
+            opacity: 0.5;
           }
           @keyframes leakSkeletonPulse {
             0%, 100% { opacity: 0.35; }
@@ -3444,38 +3486,41 @@ export default function LeakFinderPage() {
             top: 0;
             bottom: 0;
             left: 0;
-            width: 40%;
+            width: 100%;
+            opacity: 0.6;
             border-radius: ${R.pill}px;
             background: linear-gradient(90deg, ${T.accent}, ${T.accentPress});
-            animation: leakProgressSlide 1.2s ease-in-out infinite;
           }
           @keyframes leakProgressSlide {
             0% { transform: translateX(-110%); }
             100% { transform: translateX(300%); }
           }
-          @media (prefers-reduced-motion: reduce) {
-            .leak-skeleton { animation: none; opacity: 0.5; }
-            .leak-progress > span { animation: none; width: 100%; opacity: 0.5; }
-            .leak-card:active { transform: none; }
-            *, *::before, *::after {
-              animation-duration: 0.01ms !important;
-              animation-iteration-count: 1 !important;
-              transition-duration: 0.01ms !important;
-              scroll-behavior: auto !important;
+          @media (prefers-reduced-motion: no-preference) {
+            .leak-card {
+              transition: transform .12s ease, background .12s ease, border-color .12s ease;
+            }
+            .leak-card:active {
+              transform: scale(0.985);
+            }
+            .leak-skeleton {
+              animation: leakSkeletonPulse 1.4s ease-in-out infinite;
+            }
+            .leak-progress > span {
+              width: 40%;
+              opacity: 1;
+              animation: leakProgressSlide 1.2s ease-in-out infinite;
             }
           }
           /* The shell carries its padding as an inline style, which a plain
              rule cannot override · hence !important on this one declaration. */
           @media (min-width: 769px) {
             .leaks-shell {
-              padding-left: max(24px, env(safe-area-inset-left, 0px)) !important;
-              padding-right: max(24px, env(safe-area-inset-right, 0px)) !important;
+              padding-left: max(20px, env(safe-area-inset-left, 0px)) !important;
+              padding-right: max(20px, env(safe-area-inset-right, 0px)) !important;
             }
-            .leak-stat-grid { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
-            .leak-list-grid { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px !important; }
-            .leak-insights-grid { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
-            .leak-insights-grid > :first-child,
-            .leak-insights-grid > :last-child { grid-column: 1 / -1; }
+            .leak-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+            .leak-list-grid { display: grid !important; grid-template-columns: minmax(0, 1fr); gap: 12px !important; }
+            .leak-insights-grid { display: grid !important; grid-template-columns: minmax(0, 1fr); align-items: start; }
           }
         ` }} />
       </div>
