@@ -3,8 +3,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { deterministicUuid } from '../../../src/lib/promoCampaigns/welcomeBackOffer.mjs';
-import { buildSignedEmailImageUrl } from '../../../src/lib/newsletter/emailImageProxy.mjs';
-import * as emailImageProxy from '../../../src/lib/newsletter/emailImageProxy.mjs';
+import { buildSignedEmailImageUrl, buildSpotCardImageUrl } from '../../../src/lib/newsletter/emailImageProxy.mjs';
 import * as wireCatalog from '../../../src/lib/newsletter/weeklyWireCatalog.mjs';
 import * as wireEngine from '../../../src/lib/newsletter/weeklyWireEngine.mjs';
 import { VIDEO_ROW_FIELDS, normaliseVideoRow, watchPath } from '../../../src/lib/videoLibraryWatch.mjs';
@@ -33,6 +32,7 @@ function serializeSpot(spot) {
         category: cleanCopy(spot.category || 'GTO Decision Spot'),
         title: cleanCopy(spot.title),
         situation: cleanCopy(spot.situation),
+        imageUrl: buildSpotCardImageUrl(spot.slug, { relative: true }),
         options: (spot.options || []).map((o) => ({
             key: String(o.key),
             label: cleanCopy(o.label),
@@ -473,11 +473,7 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
     };
 
     const spot = issue?.spotOfTheWeek || null;
-    const spotImgSrc = spot
-        ? emailImageProxy.buildSpotCardImageUrl
-            ? emailImageProxy.buildSpotCardImageUrl(spot.slug, { relative: true })
-            : FALLBACK_HERO_SRC
-        : FALLBACK_HERO_SRC;
+    const spotImgSrc = spot?.imageUrl || FALLBACK_HERO_SRC;
     const video = issue?.videoOfTheWeek || null;
     const tool = issue?.toolSpotlight || null;
     const [selectedSpotPick, setSelectedSpotPick] = useState('');
