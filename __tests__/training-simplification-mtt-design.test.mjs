@@ -135,6 +135,10 @@ test('1-tap start flow, preset summary, and progressive disclosures are wired ac
   const table = read('src/components/training/games/UniversalDynamicTable.jsx');
   assert.ok(table.includes('data-table-study-tools-disclosure="true"'), 'UniversalDynamicTable must wrap secondary table & study tools inside a collapsible disclosure');
   assert.ok(table.includes('data-posthand-simulators-disclosure="true"'), 'UniversalDynamicTable must wrap post-hand simulators inside a collapsible disclosure');
+  assert.ok(
+    /\.sp-club-gto-desktop-rail\s*\{[\s\S]*?pointer-events:\s*none;/m.test(table),
+    'sp-club-gto-desktop-rail must have pointer-events: none so it never intercepts clicks on action or raise controls',
+  );
 });
 
 test('no Training component has synchronous Temporal Dead Zone (TDZ) const/let references before declaration', () => {
