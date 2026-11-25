@@ -16,7 +16,11 @@
  */
 import crypto from 'crypto';
 import { resendApiKey, resendFrom } from '../email/resendAccount.mjs';
-import { sendEmail as defaultSendSingleEmail, sendSms as defaultSendSms } from '../dailyDigest/delivery.mjs';
+import {
+    filterSuppressedPhones,
+    sendEmail as defaultSendSingleEmail,
+    sendSms as defaultSendSms,
+} from '../dailyDigest/delivery.mjs';
 import { buildPromoSignupUrl } from './promoSignupToken.mjs';
 import {
     DEFAULT_WELCOME_BACK_DRAFT,
@@ -337,14 +341,24 @@ export async function importMarketingLeads(sb, { rawText = '', emails = [], phon
 
     const safeSource = /^[a-z0-9_-]{1,40}$/i.test(String(source || '')) ? String(source) : 'admin_import';
     const candidateEmails = [...emailSet];
-    const candidateSmsKeys = [...phoneSet].map((p) => `sms:${p}`);
+    const suppressedCarrierPhones = await filterSuppressedPhones(sb, [...phoneSet]);
+    let carrierSuppressedSkipped = 0;
+    const deliverablePhones = [];
+    for (const p of phoneSet) {
+        if (suppressedCarrierPhones.has(p)) {
+            carrierSuppressedSkipped += 1;
+        } else {
+            deliverablePhones.push(p);
+        }
+    }
+    const candidateSmsKeys = deliverablePhones.map((p) => `sms:${p}`);
     const allKeys = [...candidateEmails, ...candidateSmsKeys];
 
     let importedEmails = 0;
     let importedPhones = 0;
     let alreadyActiveEmails = 0;
     let alreadyActivePhones = 0;
-    let optedOutPreserved = 0;
+    let optedOutPreserved = carrierSuppressedSkipped;
 
     for (let i = 0; i < allKeys.length; i += IMPORT_CHUNK_SIZE) {
         const chunk = allKeys.slice(i, i + IMPORT_CHUNK_SIZE);
@@ -817,6 +831,12 @@ export async function resolvePromoAudience(
             if (!smsMutedUsers.has(id) && candidatePhone) addPhone(candidatePhone, 'profilePhones');
         }
 
+        const inactiveSuppressed = await filterSuppressedPhones(sb, [...phones]);
+        if (inactiveSuppressed.size > 0) {
+            for (const sp of inactiveSuppressed) phones.delete(sp);
+            breakdown.profilePhones = Math.max(0, breakdown.profilePhones - inactiveSuppressed.size);
+        }
+
         return {
             emails: [...emails],
             phones: [...phones],
@@ -899,6 +919,11 @@ export async function resolvePromoAudience(
                 // Non-blocking if an auxiliary table is empty or omitted in a test double.
             }
         }
+    }
+
+    const carrierSuppressed = await filterSuppressedPhones(sb, [...phones]);
+    if (carrierSuppressed.size > 0) {
+        for (const sp of carrierSuppressed) phones.delete(sp);
     }
 
     return {

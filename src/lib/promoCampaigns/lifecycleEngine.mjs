@@ -27,7 +27,7 @@
  */
 import crypto from 'crypto';
 import { resendApiKey, resendFrom } from '../email/resendAccount.mjs';
-import { sendSms as defaultSendSms } from '../dailyDigest/delivery.mjs';
+import { filterSuppressedPhones, sendSms as defaultSendSms } from '../dailyDigest/delivery.mjs';
 import {
     DEFAULT_POSTAL_ADDRESS,
     DEFAULT_PROMO_FROM,
@@ -697,6 +697,20 @@ export async function runLifecycleRetention(
                 .range(offset, upper),
         25000
     );
+
+    // 6b. Filter candidate phones against the hashed carrier suppression registry
+    // (sms_delivery_receipts.to_number is blanked on permanent carrier refusal).
+    const candidateLifecyclePhones = [];
+    for (const p of profileRows) {
+        const cleanPhone = sendablePhone(p?.phone);
+        if (cleanPhone && !suppressedPhones.has(cleanPhone)) {
+            candidateLifecyclePhones.push(cleanPhone);
+        }
+    }
+    const hashSuppressedPhones = await filterSuppressedPhones(supabase, candidateLifecyclePhones);
+    for (const sp of hashSuppressedPhones) {
+        suppressedPhones.add(sp);
+    }
 
     const queues = {
         unverified_48h: [],
