@@ -642,3 +642,18 @@ test('V4 LAW 7: cold-lead sunset shield, webhook open/click engagement stamping,
     assert.match(adminSrc, /Mobile 375px/);
     assert.doesNotMatch(adminSrc, FORBIDDEN_PALETTE_HEX_RE, 'Admin newsletter studio must never use yellow or purple hexes');
 });
+
+// ── LAW 8: Client Bundle Isolation (No Server/Sharp Imports Inside React Render) ─
+test('V4 LAW 8: /hub/wire and /hub/wire/[edition] client components never reference emailImageProxy, wireEngine, or server-only modules outside getServerSideProps', () => {
+    for (const rel of ['pages/hub/wire/index.js', 'pages/hub/wire/[edition].js']) {
+        const src = readRepo(rel);
+        const defaultExportIdx = src.indexOf('export default function');
+        assert.ok(defaultExportIdx > 0, `${rel} must define export default function`);
+        const clientComponentBody = src.slice(defaultExportIdx);
+        assert.doesNotMatch(
+            clientComponentBody,
+            /\b(?:emailImageProxy|buildSignedEmailImageUrl|buildSpotCardImageUrl|wireEngine|wireCatalog|createClient|sharp)\b/,
+            `${rel} client component body must read pre-serialized SSR props only so Webpack never bundles sharp or node:* builtins into the browser`
+        );
+    }
+});

@@ -10,7 +10,7 @@
  * GET   dashboard counts, subscribers, deliverability readiness, and campaign history
  * PATCH activate/deactivate one subscriber (clearing stale `snooze:*` / opt-out `source` tags on reactivate)
  */
-import dns from 'node:dns';
+import dns from 'dns';
 import { createClient } from '../../../src/lib/supabaseServerClient.js';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth.js';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit.js';
