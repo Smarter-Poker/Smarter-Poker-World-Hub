@@ -1,5 +1,5 @@
 const NON_SCORING_TOOLS = new Set(['focus-timer', 'risk-analyzer', 'gto-preloader']);
-const VALID_VARIANTS = new Set(['nlh', 'plo4', 'plo5', 'plo6']);
+const VALID_VARIANTS = new Set(['nlh', 'plo4', 'plo5', 'plo6', 'plo8']);
 const VALID_STREETS = new Set(['preflop', 'flop', 'turn', 'river']);
 const VALID_POSITIONS = new Set(['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB', 'BB']);
 
@@ -15,6 +15,7 @@ function inferVariant({ rawVariant, questionId, gameId, holeCards } = {}) {
   const v = String(rawVariant || '').trim().toLowerCase();
   if (VALID_VARIANTS.has(v)) return v;
   const qid = String(questionId || '').toLowerCase();
+  if (qid.includes('plo8')) return 'plo8';
   if (qid.includes('plo6')) return 'plo6';
   if (qid.includes('plo5')) return 'plo5';
   if (qid.includes('plo4')) return 'plo4';
@@ -273,7 +274,7 @@ export function analyzeVerifiedTrainingWeaknesses(sessionsOrOptions, recentAnswe
         : undefined;
       const qid = ans?.question_id || ans?.questionId;
       const qidLower = String(qid || '').toLowerCase();
-      const qidSpecifiesVariant = qidLower.includes('plo6') || qidLower.includes('plo5') || qidLower.includes('plo4');
+      const qidSpecifiesVariant = qidLower.includes('plo8') || qidLower.includes('plo6') || qidLower.includes('plo5') || qidLower.includes('plo4');
       const variant = inferVariant({
         rawVariant: ans?.variant || (!qidSpecifiesVariant ? inheritedSessionVariant : undefined),
         questionId: qid,

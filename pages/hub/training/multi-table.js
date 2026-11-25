@@ -993,7 +993,6 @@ export default function MultiTablePage() {
                       width: 64,
                       height: 64,
                       borderRadius: 12,
-                      border: 'none',
                       cursor: 'pointer',
                       fontSize: 22,
                       fontWeight: 800,
@@ -1269,7 +1268,6 @@ export default function MultiTablePage() {
                       style={{
                         padding: '10px 12px',
                         borderRadius: 8,
-                        border: 'none',
                         cursor: 'pointer',
                         fontSize: 12,
                         fontWeight: 600,

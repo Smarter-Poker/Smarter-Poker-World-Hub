@@ -138,7 +138,7 @@ export default function MixedStrategyTrainer() {
         <div style={{ display: 'flex', gap: 4, marginBottom: 16, overflowX: 'auto' }}>
           {SCENARIOS.map((s, i) => (
             <button key={s.id} onClick={() => setScenarioIdx(i)} style={{
-              padding: '5px 10px', borderRadius: 5, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
+              padding: '5px 10px', borderRadius: 5, cursor: 'pointer', whiteSpace: 'nowrap',
               background: scenarioIdx === i ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.04)',
               color: scenarioIdx === i ? '#3b82f6' : '#94a3b8', fontSize: 12, fontWeight: 600,
               border: scenarioIdx === i ? '1px solid rgba(59,130,246,0.3)' : '1px solid transparent',
@@ -232,7 +232,7 @@ export default function MixedStrategyTrainer() {
         <div style={{ display: 'grid', gridTemplateColumns: `repeat(${scenario.actions.length}, 1fr)`, gap: 8, marginBottom: 16 }}>
           {scenario.actions.map((a, i) => (
             <button key={i} onClick={() => recordAction(i)} style={{
-              padding: '14px 8px', borderRadius: 8, border: 'none', cursor: 'pointer',
+              padding: '14px 8px', borderRadius: 8, cursor: 'pointer',
               background: `${a.color}15`, color: a.color, fontSize: 14, fontWeight: 700,
               border: `1px solid ${a.color}30`, transition: 'all 0.2s',
             }}>

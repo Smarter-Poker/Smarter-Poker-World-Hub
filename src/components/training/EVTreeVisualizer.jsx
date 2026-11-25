@@ -343,7 +343,7 @@ export default function EVTreeVisualizer() {
         <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
           {SCENARIOS.map((s, i) => (
             <button key={s.id} onClick={() => { setSelectedScenario(i); setExpanded({}); }} style={{
-              padding: '6px 12px', borderRadius: 6, border: 'none', cursor: 'pointer',
+              padding: '6px 12px', borderRadius: 6, cursor: 'pointer',
               background: selectedScenario === i ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.04)',
               color: selectedScenario === i ? '#3b82f6' : '#94a3b8',
               fontSize: 12, fontWeight: 600,
