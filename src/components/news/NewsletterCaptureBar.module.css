@@ -1,0 +1,214 @@
+.floatingWrap {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: calc(74px + env(safe-area-inset-bottom, 0px));
+  z-index: 920;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.floatingCard {
+  pointer-events: auto;
+  width: 100%;
+  max-width: 920px;
+  background: linear-gradient(135deg, #0b1118 0%, #101a24 100%);
+  border: 1px solid #1b2c3d;
+  border-left: 3px solid #4fc1b3;
+  border-radius: 14px;
+  padding: 14px 18px;
+  box-shadow: 0 18px 44px rgba(5, 7, 10, 0.82);
+  color: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+.inlineWrap {
+  width: 100%;
+  margin: 28px 0 12px 0;
+}
+
+.inlineCard {
+  width: 100%;
+  background: linear-gradient(135deg, #0b1118 0%, #101a24 100%);
+  border: 1px solid #1b2c3d;
+  border-left: 3px solid #4fc1b3;
+  border-radius: 14px;
+  padding: 22px 22px;
+  color: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+.innerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.copyCol {
+  flex: 1 1 280px;
+  min-width: 220px;
+}
+
+.eyebrowRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.eyebrow {
+  color: #4fc1b3;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+}
+
+.badge {
+  background: rgba(96, 165, 250, 0.14);
+  border: 1px solid rgba(96, 165, 250, 0.35);
+  color: #60a5fa;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.headline {
+  margin: 0;
+  color: #ffffff;
+  font-size: 15.5px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.subcopy {
+  margin: 4px 0 0 0;
+  color: #b7cadc;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.formRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 320px;
+  max-width: 440px;
+}
+
+.emailInput {
+  flex: 1 1 auto;
+  min-width: 0;
+  background: #05070a;
+  border: 1px solid #1b2c3d;
+  border-radius: 9px;
+  padding: 10px 13px;
+  color: #ffffff;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.18s ease;
+}
+
+.emailInput::placeholder {
+  color: #7f95ab;
+}
+
+.emailInput:focus {
+  border-color: #4fc1b3;
+}
+
+.submitBtn {
+  flex: 0 0 auto;
+  background: #4fc1b3;
+  color: #05070a;
+  border: none;
+  border-radius: 9px;
+  padding: 10px 16px;
+  font-size: 13.5px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.18s ease, transform 0.15s ease;
+}
+
+.submitBtn:hover:not(:disabled) {
+  opacity: 0.92;
+}
+
+.submitBtn:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+
+.dismissBtn {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #1b2c3d;
+  background: #05070a;
+  color: #9fb3c8;
+  font-size: 16px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.dismissBtn:hover {
+  border-color: #60a5fa;
+  color: #ffffff;
+}
+
+.confirmedRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.confirmedText {
+  color: #4fc1b3;
+  font-size: 14.5px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.errorText {
+  margin-top: 8px;
+  color: #60a5fa;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+@media (min-width: 960px) {
+  .floatingWrap {
+    bottom: 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  .floatingWrap {
+    left: 10px;
+    right: 10px;
+    bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .floatingCard {
+    padding: 12px 14px;
+  }
+
+  .formRow {
+    width: 100%;
+    max-width: none;
+  }
+
+  .subcopy {
+    display: none;
+  }
+}

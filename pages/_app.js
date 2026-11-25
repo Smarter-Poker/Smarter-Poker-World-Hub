@@ -240,6 +240,11 @@ const WorldCommandDock = dynamic(() => import('../src/components/ui/WorldCommand
   loading: () => null,
 });
 
+const NewsletterCaptureBar = dynamic(
+  () => import('../src/components/news/NewsletterCaptureBar'),
+  { ssr: false, loading: () => null }
+);
+
 // Operator chrome is substantial and belongs only to /horses and admin routes.
 // Keep its custom vector and machined-frame stylesheet out of the public shell.
 const OperatorConsoleShell = dynamic(() => import('../src/components/admin/OperatorConsoleShell'));
@@ -286,6 +291,7 @@ const HUB_ROUTES_WITHOUT_SHARED_HEADER = new Set([
   '/hub/admin/daily-content',
   '/hub/admin/diamond-liability',
   '/hub/commander',
+  '/hub/email-preferences',
   '/hub/godmode',
   '/hub/gto-trainer',
   '/hub/hand-history',
@@ -314,6 +320,8 @@ const HUB_ROUTES_WITHOUT_SHARED_HEADER = new Set([
   '/hub/tournaments',
   '/hub/trivia/survival',
   '/hub/verify-phone',
+  '/hub/wire',
+  '/hub/wire/[edition]',
 ]);
 // GlobalReportBugButton removed — bug reporting is inside every HamburgerMenu via ReportBugWidget
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1249,6 +1257,9 @@ export default function App({ Component, pageProps }) {
                                   browser reports offline after hydration). */}
                               <HubErrorBoundary name="Offline Bar" fallback={<></>}>
                                 <OfflineBar />
+                              </HubErrorBoundary>
+                              <HubErrorBoundary name="Newsletter Capture" fallback={<></>}>
+                                {!isEmbedded && <NewsletterCaptureBar />}
                               </HubErrorBoundary>
                               {/* Page tutorials (Dan 2026-09-03): one provider for
                                   every route; the prompt, the tour and the

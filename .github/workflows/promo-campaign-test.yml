@@ -4,13 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       target:
-        description: 'Endpoint target (promo or weekly_wire)'
+        description: 'Endpoint target (promo, weekly_wire, or lifecycle)'
         required: true
         default: 'promo'
         type: choice
         options:
           - 'promo'
           - 'weekly_wire'
+          - 'lifecycle'
       action:
         description: 'Operation (preview, test, or send)'
         required: true
@@ -77,14 +78,14 @@ jobs:
             if (!['preview', 'test', 'send'].includes(action)) {
               throw new Error('Only preview, test, or send actions are permitted');
             }
-            if (target === 'weekly_wire' && action === 'send') {
-              throw new Error('Use admin dashboard or Tuesday schedule for full Weekly Wire send');
+            if ((target === 'weekly_wire' || target === 'lifecycle') && action === 'send') {
+              throw new Error(`Use admin dashboard or daily schedule for full ${target} send`);
             }
             if (action === 'send' && confirmSend !== 'SEND_LIVE_PROMO') {
               throw new Error('confirm_send must equal SEND_LIVE_PROMO for action=send');
             }
             const testEmail = (process.env.TEST_EMAIL || '').trim().toLowerCase();
-            const testPhone = target === 'weekly_wire' ? '' : (process.env.TEST_PHONE || '').trim();
+            const testPhone = (target === 'weekly_wire' || target === 'lifecycle') ? '' : (process.env.TEST_PHONE || '').trim();
             const ts = String(Math.floor(Date.now() / 1000));
             const sigPayload = action === 'send'
               ? `${ts}:${action}:${testEmail}:${testPhone}:${confirmSend}`
@@ -96,7 +97,9 @@ jobs:
 
             const endpoint = target === 'weekly_wire'
               ? `https://smarter.poker/api/news/digest${action === 'preview' ? '?dryRun=1' : ''}`
-              : 'https://smarter.poker/api/news/promo-campaign';
+              : target === 'lifecycle'
+                ? 'https://smarter.poker/api/news/lifecycle'
+                : 'https://smarter.poker/api/news/promo-campaign';
 
             const res = await fetch(endpoint, {
               method: 'POST',

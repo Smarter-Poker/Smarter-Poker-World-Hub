@@ -10,8 +10,18 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { verifySvixSignature } from '../../../src/lib/email/svixSignature.mjs';
+import {
+    applyCampaignTelemetryEvent,
+    extractResendCampaignId,
+    parseCampaignTelemetrySummary,
+} from '../../../src/lib/promoCampaigns/lifecycleEngine.mjs';
 
-export { verifySvixSignature };
+export {
+    verifySvixSignature,
+    extractResendCampaignId,
+    parseCampaignTelemetrySummary,
+    applyCampaignTelemetryEvent,
+};
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -32,6 +42,7 @@ export const config = {
 };
 
 const SUPPRESS_EVENTS = new Set(['email.bounced', 'email.complained']);
+const TELEMETRY_EVENTS = new Set(['email.opened', 'email.clicked']);
 
 export default async function handler(req, res) {
     res.setHeader('Cache-Control', 'no-store');
@@ -59,6 +70,51 @@ export default async function handler(req, res) {
     }
 
     const type = String(event?.type || '');
+    if (TELEMETRY_EVENTS.has(type)) {
+        const campaignId = extractResendCampaignId(event?.data?.tags ?? event?.tags);
+        if (!campaignId) {
+            return res.status(200).json({ ok: true, ignored: true, reason: 'missing_campaign_id', type });
+        }
+        try {
+            const sb = createClient();
+            const { data: campaign, error: readErr } = await sb
+                .from('newsletter_campaigns')
+                .select('id, status, error_summary')
+                .eq('id', campaignId)
+                .maybeSingle();
+
+            if (readErr || !campaign || campaign.status !== 'sent') {
+                return res.status(200).json({
+                    ok: true,
+                    ignored: true,
+                    reason: campaign ? 'non_sent_status' : 'not_found',
+                    type,
+                });
+            }
+
+            const updated = applyCampaignTelemetryEvent(campaign.error_summary, type);
+            await sb
+                .from('newsletter_campaigns')
+                .update({
+                    error_summary: updated.errorSummary,
+                    updated_at: new Date().toISOString(),
+                })
+                .eq('id', campaign.id);
+
+            return res.status(200).json({
+                ok: true,
+                tracked: true,
+                type,
+                campaignId,
+                opens: updated.opens,
+                clicks: updated.clicks,
+            });
+        } catch (err) {
+            console.error('[resend-webhook-telemetry]', String(err?.message || err));
+            return res.status(200).json({ ok: true, ignored: true, reason: 'telemetry_update_error', type });
+        }
+    }
+
     if (!SUPPRESS_EVENTS.has(type)) {
         return res.status(200).json({ ok: true, ignored: true, type });
     }
