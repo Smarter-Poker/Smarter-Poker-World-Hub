@@ -132,14 +132,14 @@ async function readLatestSessionWindow(supabase, userId) {
   } catch (_) { /* optional source */ }
   try {
     const { data, error } = await supabase.from('table_seats')
-      .select('created_at, left_at')
+      .select('joined_at, left_at')
       .eq('user_id', userId)
       .not('left_at', 'is', null)
       .order('left_at', { ascending: false })
       .limit(1);
     if (!error && Array.isArray(data) && data[0]) {
       const endMs = new Date(data[0].left_at).getTime();
-      const startMs = data[0].created_at ? new Date(data[0].created_at).getTime() : NaN;
+      const startMs = data[0].joined_at ? new Date(data[0].joined_at).getTime() : NaN;
       if (Number.isFinite(endMs)) {
         windows.push({ endMs, startMs: Number.isFinite(startMs) && startMs <= endMs ? startMs : endMs - SESSION_FALLBACK_MS, source: 'club_arena_seat' });
       }

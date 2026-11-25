@@ -666,6 +666,7 @@ test('coaching API reads live table state, session window and hand play times fa
   const coaching = read('pages/api/assistant/coaching.js');
   assert.match(coaching, /checkSandboxAccess\(supabase, userId\)/);
   assert.match(coaching, /return \{ active: true, cooldown: false \};/, 'fails closed');
+  assert.match(coaching, /from\('table_seats'\)\s*\.select\('joined_at, left_at'\)/, 'table_seats uses real joined_at column, never phantom created_at');
   assert.match(coaching, /from\('hand_history'\)/);
   assert.match(coaching, /liveTable,\s*sessionWindow,/);
   assert.match(coaching, /const rejected = audit\?\.progress \|\| \{\};/);
