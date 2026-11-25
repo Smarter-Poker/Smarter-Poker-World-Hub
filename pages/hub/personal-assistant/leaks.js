@@ -1513,6 +1513,8 @@ export default function LeakFinderPage() {
   const [sortMode, setSortMode] = useState(PA_ANALYSIS_DEFAULTS.sortMode);
   const [statusFilter, setStatusFilter] = useState(PA_ANALYSIS_DEFAULTS.statusFilter);
   const [formatFilter, setFormatFilter] = useState(PA_ANALYSIS_DEFAULTS.format);
+  const [practiceLength, setPracticeLength] = useState(PA_ANALYSIS_DEFAULTS.practiceLength);
+  const [practiceDifficulty, setPracticeDifficulty] = useState(PA_ANALYSIS_DEFAULTS.practiceDifficulty);
   const [query, setQuery] = useState('');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [pastOpen, setPastOpen] = useState(false);
@@ -1524,28 +1526,47 @@ export default function LeakFinderPage() {
     setSortMode(saved.sortMode);
     setStatusFilter(saved.statusFilter);
     setFormatFilter(saved.format);
+    setPracticeLength(saved.practiceLength);
+    setPracticeDifficulty(saved.practiceDifficulty);
   }, [userId]);
+
+  const persistPrefs = useCallback((patch) => {
+    if (typeof window === 'undefined') return;
+    saveAssistantPreferences(window.localStorage, userId, {
+      format: formatFilter,
+      sortMode,
+      statusFilter,
+      practiceLength,
+      practiceDifficulty,
+      ...patch,
+    });
+  }, [userId, formatFilter, sortMode, statusFilter, practiceLength, practiceDifficulty]);
 
   const updateSortMode = useCallback((nextSort) => {
     setSortMode(nextSort);
-    if (typeof window !== 'undefined') {
-      saveAssistantPreferences(window.localStorage, userId, { format: formatFilter, sortMode: nextSort, statusFilter });
-    }
-  }, [userId, formatFilter, statusFilter]);
+    persistPrefs({ sortMode: nextSort });
+  }, [persistPrefs]);
 
   const updateFormatFilter = useCallback((nextFormat) => {
     setFormatFilter(nextFormat);
-    if (typeof window !== 'undefined') {
-      saveAssistantPreferences(window.localStorage, userId, { format: nextFormat, sortMode, statusFilter });
-    }
-  }, [userId, sortMode, statusFilter]);
+    persistPrefs({ format: nextFormat });
+  }, [persistPrefs]);
 
   const updateStatusFilter = useCallback((nextStatus) => {
     setStatusFilter(nextStatus);
-    if (typeof window !== 'undefined') {
-      saveAssistantPreferences(window.localStorage, userId, { format: formatFilter, sortMode, statusFilter: nextStatus });
-    }
-  }, [userId, formatFilter, sortMode]);
+    persistPrefs({ statusFilter: nextStatus });
+  }, [persistPrefs]);
+
+  const updatePracticeLength = useCallback((nextLengthRaw) => {
+    const nextLength = Number(nextLengthRaw) || PA_ANALYSIS_DEFAULTS.practiceLength;
+    setPracticeLength(nextLength);
+    persistPrefs({ practiceLength: nextLength });
+  }, [persistPrefs]);
+
+  const updatePracticeDifficulty = useCallback((nextDifficulty) => {
+    setPracticeDifficulty(nextDifficulty);
+    persistPrefs({ practiceDifficulty: nextDifficulty });
+  }, [persistPrefs]);
 
   const handleResetAnalysisSettings = useCallback(() => {
     const defaults = typeof window !== 'undefined'
@@ -1554,6 +1575,8 @@ export default function LeakFinderPage() {
     setSortMode(defaults.sortMode);
     setFormatFilter(defaults.format);
     setStatusFilter(defaults.statusFilter);
+    setPracticeLength(defaults.practiceLength);
+    setPracticeDifficulty(defaults.practiceDifficulty);
     setQuery('');
     toast.success('Analysis Settings Reset To Defaults');
   }, [userId]);
@@ -1562,6 +1585,8 @@ export default function LeakFinderPage() {
     format: formatFilter,
     sortMode,
     statusFilter,
+    practiceLength,
+    practiceDifficulty,
   });
   const activeScopeSummary = describeAnalysisScope({
     format: formatFilter,
@@ -2325,9 +2350,9 @@ export default function LeakFinderPage() {
       : (target.leakId !== undefined ? target.leakId : targetLeak.id);
     setReviewSession({
       leakId: resolvedLeakId != null && String(resolvedLeakId).trim() !== '' ? String(resolvedLeakId) : null,
-      params,
+      params: { ...params, limit: String(practiceLength) },
     });
-  }, [guardAction, reviewQueue, handleOpenHandReview]);
+  }, [guardAction, reviewQueue, handleOpenHandReview, practiceLength]);
 
   const handleReviewComplete = useCallback((receipt) => {
     if (!receipt || receipt.status !== 'done') return;
@@ -2647,6 +2672,28 @@ export default function LeakFinderPage() {
                       { value: 'persistent', label: 'Persistent' },
                       { value: 'emerging', label: 'Emerging' },
                       { value: 'improving', label: 'Improving' },
+                    ]}
+                  />
+                  <Segmented
+                    idPrefix="practice-length"
+                    label="Practice Session Length"
+                    value={String(practiceLength)}
+                    onChange={updatePracticeLength}
+                    options={[
+                      { value: '5', label: '5 Spots' },
+                      { value: '10', label: '10 Spots' },
+                      { value: '20', label: '20 Spots' },
+                    ]}
+                  />
+                  <Segmented
+                    idPrefix="practice-pacing"
+                    label="Drill Pacing"
+                    value={practiceDifficulty}
+                    onChange={updatePracticeDifficulty}
+                    options={[
+                      { value: 'fundamentals', label: '25s' },
+                      { value: 'adaptive', label: '15s' },
+                      { value: 'pressure', label: '10s' },
                     ]}
                   />
                   <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
@@ -3409,6 +3456,7 @@ export default function LeakFinderPage() {
             <QuickSpotDrill
               customParams={reviewSession.params}
               reviewLeakId={reviewSession.leakId}
+              practiceDifficulty={practiceDifficulty}
               onReviewComplete={handleReviewComplete}
               onClose={closeReviewSession}
             />

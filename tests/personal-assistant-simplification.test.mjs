@@ -8,9 +8,11 @@ import {
   classifyFindingHonesty,
   countActivePreferenceOverrides,
   describeAnalysisScope,
+  describePracticePreset,
   loadAssistantPreferences,
   preferenceStorageKey,
   resetAssistantPreferences,
+  resolveDrillTiming,
   sanitizeAssistantPreferences,
   saveAssistantPreferences,
 } from '../src/lib/personal-assistant/assistantDefaults.mjs';
@@ -170,4 +172,26 @@ test('Personal Assistant surfaces align to approved MTT lobby design tokens, opt
   assert.doesNotMatch(leaksSrc, /return isCash \|\| !isTournament/, 'Cash filter must never lump untagged/unknown formats into Cash NLH');
   assert.match(leaksSrc, /onClick=\{handleResetAnalysisSettings\}/, 'Reset Filters must persist reset preferences');
   assert.match(leaksSrc, /detailHonesty/, 'LeakDetail must display finding honesty badge');
+
+  // Phase 3 practice preset wiring & global world palette alignment
+  assert.equal(resolveDrillTiming('fundamentals').durationSeconds, 25);
+  assert.equal(resolveDrillTiming('adaptive').durationSeconds, 15);
+  assert.equal(resolveDrillTiming('pressure').durationSeconds, 10);
+  assert.equal(resolveDrillTiming('bogus').durationSeconds, 15);
+  assert.equal(
+    describePracticePreset({ practiceLength: 20, practiceDifficulty: 'pressure' }),
+    '20 Spots · Pressure · 10s',
+  );
+  assert.equal(
+    countActivePreferenceOverrides({ practiceLength: 5, practiceDifficulty: 'fundamentals' }),
+    2,
+  );
+
+  const quickDrillSrc = fs.readFileSync(path.resolve('src/components/sandbox/QuickSpotDrill.jsx'), 'utf8');
+  const worldCss = fs.readFileSync(path.resolve('src/styles/worlds/personal-assistant.css'), 'utf8');
+  assert.match(quickDrillSrc, /resolveDrillTiming/, 'QuickSpotDrill must derive timer pacing from resolveDrillTiming');
+  assert.match(leaksSrc, /practiceDifficulty=\{practiceDifficulty\}/, 'Leak Finder must pass practiceDifficulty into QuickSpotDrill');
+  assert.match(leaksSrc, /limit:\s*String\(practiceLength\)/, 'Leak Finder must pass practiceLength into drill review params');
+  assert.match(worldCss, /#040d18/i, 'Global PA world stylesheet must align to #040d18 MTT lobby canvas');
+  assert.match(worldCss, /#087cfa/i, 'Global PA world stylesheet must align to #087cfa MTT lobby primary');
 });

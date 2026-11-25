@@ -31,6 +31,26 @@ const VALID_FORMATS = new Set(['all', 'cash', 'tournament']);
 const VALID_SORTS = new Set(['impact', 'recent', 'confidence']);
 const VALID_STATUSES = new Set(['all', 'persistent', 'emerging', 'improving']);
 const VALID_DEPTHS = new Set(['guided', 'detailed', 'expert']);
+const VALID_DIFFICULTIES = new Set(['fundamentals', 'adaptive', 'pressure']);
+
+export function resolveDrillTiming(practiceDifficulty = PA_ANALYSIS_DEFAULTS.practiceDifficulty) {
+  const difficulty = VALID_DIFFICULTIES.has(practiceDifficulty)
+    ? practiceDifficulty
+    : PA_ANALYSIS_DEFAULTS.practiceDifficulty;
+  if (difficulty === 'fundamentals') {
+    return { difficulty, durationSeconds: 25, label: 'Fundamentals · 25s' };
+  }
+  if (difficulty === 'pressure') {
+    return { difficulty, durationSeconds: 10, label: 'Pressure · 10s' };
+  }
+  return { difficulty: 'adaptive', durationSeconds: 15, label: 'Adaptive · 15s' };
+}
+
+export function describePracticePreset(prefs = {}) {
+  const clean = sanitizeAssistantPreferences(prefs);
+  const timing = resolveDrillTiming(clean.practiceDifficulty);
+  return `${clean.practiceLength} Spots · ${timing.label}`;
+}
 
 export function sanitizeAssistantPreferences(raw = {}) {
   const input = raw && typeof raw === 'object' ? raw : {};
@@ -42,6 +62,9 @@ export function sanitizeAssistantPreferences(raw = {}) {
   const practiceLength = Number.isFinite(practiceLengthRaw)
     ? Math.max(5, Math.min(20, Math.round(practiceLengthRaw)))
     : PA_ANALYSIS_DEFAULTS.practiceLength;
+  const practiceDifficulty = VALID_DIFFICULTIES.has(input.practiceDifficulty)
+    ? input.practiceDifficulty
+    : PA_ANALYSIS_DEFAULTS.practiceDifficulty;
   return {
     version: PA_PREFS_VERSION,
     format,
@@ -49,6 +72,7 @@ export function sanitizeAssistantPreferences(raw = {}) {
     statusFilter,
     analysisDepth,
     practiceLength,
+    practiceDifficulty,
   };
 }
 
@@ -101,6 +125,7 @@ export function countActivePreferenceOverrides(prefs = {}) {
   if (clean.statusFilter !== PA_ANALYSIS_DEFAULTS.statusFilter) count += 1;
   if (clean.analysisDepth !== PA_ANALYSIS_DEFAULTS.analysisDepth) count += 1;
   if (clean.practiceLength !== PA_ANALYSIS_DEFAULTS.practiceLength) count += 1;
+  if (clean.practiceDifficulty !== PA_ANALYSIS_DEFAULTS.practiceDifficulty) count += 1;
   return count;
 }
 

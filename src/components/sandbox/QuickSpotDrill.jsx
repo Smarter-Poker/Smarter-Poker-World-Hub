@@ -25,6 +25,7 @@ import { authedFetch } from '../../lib/authUtils';
 import { lockedDrillResult } from '../../lib/personal-assistant/lockedDrillResult';
 import { readPersistenceResponse } from '../../lib/personal-assistant/persistenceContract';
 import { gradeReview, migrateRecord, SCHEMA_VERSION as REVIEW_SCHEMA_VERSION } from '../../lib/sandbox/leakReview';
+import { PA_ANALYSIS_DEFAULTS, resolveDrillTiming } from '../../lib/personal-assistant/assistantDefaults.mjs';
 import { T, F, S, R, btn, pill, numeric } from './paTokens';
 import {
     BottomSheet, PAStyles, Skeleton, EmptyState, ErrorState,
@@ -220,8 +221,16 @@ function ensureAnswerable(q) {
     return { ...q, options: shuffle(repaired.slice(0, 4)), correct_answer: correct };
 }
 
-export default function QuickSpotDrill({ onClose, onReviewComplete, customParams, reviewLeakId = null }) {
+export default function QuickSpotDrill({
+    onClose,
+    onReviewComplete,
+    customParams,
+    reviewLeakId = null,
+    practiceDifficulty = PA_ANALYSIS_DEFAULTS.practiceDifficulty,
+}) {
     const reduce = usePrefersReducedMotion();
+    const drillTiming = useMemo(() => resolveDrillTiming(practiceDifficulty), [practiceDifficulty]);
+    const spotDuration = drillTiming.durationSeconds || DURATION;
 
     const [questions, setQuestions] = useState([]);
     const [currentIdx, setCurrentIdx] = useState(0);
@@ -230,7 +239,7 @@ export default function QuickSpotDrill({ onClose, onReviewComplete, customParams
     const [score, setScore] = useState({ correct: 0, total: 0 });
     const [misses, setMisses] = useState([]);
     const [streak, setStreak] = useState(0);
-    const [timer, setTimer] = useState(DURATION);
+    const [timer, setTimer] = useState(spotDuration);
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState(null);
     const [loadErrorPermanent, setLoadErrorPermanent] = useState(false);
@@ -248,8 +257,8 @@ export default function QuickSpotDrill({ onClose, onReviewComplete, customParams
     const [answerError, setAnswerError] = useState(null);
     const [isSubmittingAnswer, setIsSubmittingAnswer] = useState(false);
 
-    const deadlineRef = useRef(DURATION * 1000);
-    const remainingRef = useRef(DURATION);
+    const deadlineRef = useRef(spotDuration * 1000);
+    const remainingRef = useRef(spotDuration);
     const pausedRef = useRef(false);
     const confirmQuitRef = useRef(false);
     const timerQuestionKeyRef = useRef(null);
@@ -647,8 +656,8 @@ export default function QuickSpotDrill({ onClose, onReviewComplete, customParams
         const qKey = `${runIdRef.current}:${currentIdx}:${questions.length}`;
         if (timerQuestionKeyRef.current !== qKey || remainingRef.current <= 0) {
             timerQuestionKeyRef.current = qKey;
-            remainingRef.current = DURATION;
-            setTimer(DURATION);
+            remainingRef.current = spotDuration;
+            setTimer(spotDuration);
         }
         deadlineRef.current = Date.now() + remainingRef.current * 1000;
         pausedRef.current = false;
@@ -665,7 +674,7 @@ export default function QuickSpotDrill({ onClose, onReviewComplete, customParams
         }, 250);
 
         return () => clearInterval(id);
-    }, [currentIdx, loading, revealed, finished, confirmQuit, questions.length, handleTimeout, answerError]);
+    }, [currentIdx, loading, revealed, finished, confirmQuit, questions.length, handleTimeout, answerError, spotDuration]);
 
     // Backgrounding a phone for ten seconds must not auto-fail the question.
     useEffect(() => {
@@ -1089,12 +1098,18 @@ export default function QuickSpotDrill({ onClose, onReviewComplete, customParams
                 /* ── question ─────────────────────────────────────────── */
                 <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
                     <div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: S.sm, marginBottom: S.xs }}>
+                            <span style={{ fontSize: F.caption, fontWeight: 700, color: T.textMuted, ...numeric }}>
+                                Spot {Math.min(currentIdx + 1, Math.max(1, questions.length))} Of {Math.max(1, questions.length)}
+                            </span>
+                            <span style={pill('neutral')}>{drillTiming.label}</span>
+                        </div>
                         <div style={{ height: 6, borderRadius: R.pill, background: T.surface2, overflow: 'hidden' }}>
                             <div
                                 style={{
                                     height: '100%', borderRadius: R.pill,
                                     background: timer <= 5 ? T.danger : T.accent,
-                                    width: `${(timer / DURATION) * 100}%`,
+                                    width: `${Math.min(100, Math.max(0, (timer / spotDuration) * 100))}%`,
                                     transition: reduce ? 'none' : 'width 0.25s linear, background 0.3s',
                                 }}
                             />
