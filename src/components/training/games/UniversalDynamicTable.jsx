@@ -3449,10 +3449,10 @@ function UniversalDynamicTable({
         setArmedPreAction(null);
         setFoldProtectionPendingOptionId(null);
         handleRotateDealerButton();
-        if (typeof onNextQuestion === 'function' && showFeedback) {
-            onNextQuestion();
+        if (typeof onNextHand === 'function' && showFeedback) {
+            onNextHand();
         }
-    }, [handleRotateDealerButton, onNextQuestion, showFeedback]);
+    }, [handleRotateDealerButton, onNextHand, showFeedback]);
 
     // Item 19: Continuous Session Stack Drift & Practice Auto Top-Up to 100 BB
     const [autoTopUpEnabled, setAutoTopUpEnabled] = useState(true);

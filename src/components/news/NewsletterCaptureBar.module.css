@@ -61,7 +61,7 @@
 
 .eyebrow {
   color: #4fc1b3;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 1.8px;
   text-transform: uppercase;
@@ -71,7 +71,7 @@
   background: rgba(96, 165, 250, 0.14);
   border: 1px solid rgba(96, 165, 250, 0.35);
   color: #60a5fa;
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 700;
   padding: 2px 8px;
   border-radius: 999px;
@@ -123,6 +123,7 @@
 
 .submitBtn {
   flex: 0 0 auto;
+  min-height: 44px;
   background: #4fc1b3;
   color: #05070a;
   border: none;
@@ -146,8 +147,8 @@
 
 .dismissBtn {
   flex: 0 0 auto;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   border-radius: 8px;
   border: 1px solid #1b2c3d;
   background: #05070a;
