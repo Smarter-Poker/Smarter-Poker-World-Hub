@@ -22,6 +22,7 @@ import TriviaResult from '../../../src/components/trivia/TriviaResult';
 import LeaderboardDisplay from '../../../src/components/trivia/LeaderboardDisplay';
 import { TRIVIA_MODES, calculateDiamonds, CATEGORY_MAPPINGS, DAILY_DIAMOND_CAPS } from '../../../src/lib/trivia/triviaEngine';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
+import { latestVerifiedUsernames } from '../../../src/lib/trivia/publicLeaderboardNames.mjs';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 import { formatTriviaDisplayNumber } from '../../../src/lib/trivia/formatTriviaDisplayNumber';
 import { getDailyDiamondsEarned, clampToCap } from '../../../src/lib/trivia/diamondCap';
@@ -731,8 +732,10 @@ export default function TriviaModePage() {
         setDailyLeaderboardState('loading');
         setDailyLeaderboardError(null);
         try {
-            // trivia_streaks.user_id references auth.users, not profiles, so
-            // usernames are fetched in a second explicit read.
+            // trivia_streaks.user_id references auth.users, not profiles. Names
+            // come from the verified score rows (trivia_scores.username), the
+            // public surface a signed-out visitor may read; anon has no SELECT
+            // on public.profiles (see publicLeaderboardNames.mjs).
             const { data: streakData, error: streakError } = await supabase
                 .from('trivia_streaks')
                 .select('user_id, current_streak, best_streak')
@@ -750,19 +753,15 @@ export default function TriviaModePage() {
             }
 
             const userIds = rows.map(s => s.user_id);
-            const [profilesResponse, scoresResponse] = await Promise.all([
-                supabase.from('profiles').select('id, username').in('id', userIds),
-                supabase
-                    .from('trivia_scores')
-                    .select('user_id, correct_count, total_questions')
-                    .eq('mode', 'daily')
-                    .in('user_id', userIds),
-            ]);
-            if (profilesResponse.error) throw profilesResponse.error;
+            const scoresResponse = await supabase
+                .from('trivia_scores')
+                .select('user_id, username, correct_count, total_questions, play_date, created_at')
+                .eq('mode', 'daily')
+                .eq('server_verified', true)
+                .in('user_id', userIds);
             if (scoresResponse.error) throw scoresResponse.error;
 
-            const usernameMap = {};
-            (profilesResponse.data || []).forEach(p => { usernameMap[p.id] = p.username; });
+            const usernameMap = latestVerifiedUsernames(scoresResponse.data);
             const accuracyMap = {};
             const gamesMap = {};
             (scoresResponse.data || []).forEach(score => {

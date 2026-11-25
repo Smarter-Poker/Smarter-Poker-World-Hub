@@ -209,14 +209,14 @@ export default function TimeAttackPage() {
     }
 
     async function loadLeaderboard() {
+        // Names come from trivia_scores.username on verified rows: signed-out
+        // visitors run as anon, which has no SELECT on public.profiles, so a
+        // profiles embed here fails with 42501 (see publicLeaderboardNames.mjs).
         const { data } = await supabase
             .from('trivia_scores')
-            .select(`
-                correct_count,
-                user_id,
-                profiles!inner(username)
-            `)
+            .select('correct_count, user_id, username')
             .eq('mode', 'time-attack')
+            .eq('server_verified', true)
             .order('correct_count', { ascending: false })
             .limit(10);
 
@@ -235,7 +235,7 @@ export default function TimeAttackPage() {
                 .slice(0, 10)
                 .map((entry, idx) => ({
                     rank: idx + 1,
-                    username: entry.profiles?.username || 'Anonymous',
+                    username: entry.username || 'Anonymous',
                     score: entry.correct_count
                 })));
         }

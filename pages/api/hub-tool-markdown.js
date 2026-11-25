@@ -30,6 +30,13 @@ import {
   renderInternationalGuidesIndexMarkdown,
   renderInternationalGuideDetailMarkdown,
 } from '../../src/content/guides/internationalMarkets.js';
+// The HUD stat Markdown twins render from the same catalog as the HTML pages
+// (/learn/hud-stats and /learn/hud-stats/[stat]), so the .md route can never
+// serve a slug, field or stat the page does not have.
+import {
+  renderHudStatsIndexMarkdown,
+  renderHudStatDetailMarkdown,
+} from '../../src/content/learn/hudStats.js';
 import {
   renderToolsDirectoryMarkdown,
   renderEmbedsMarkdown,
@@ -101,8 +108,6 @@ import {
   renderTournamentStageDetailMarkdown,
   renderPokerLeaksIndexMarkdown,
   renderPokerLeakDetailMarkdown,
-  renderHudStatsIndexMarkdown,
-  renderHudStatDetailMarkdown,
   renderPokerMythsDebunkedMarkdown,
   renderFormatMigrationGuideMarkdown,
   renderAuthorsIndexMarkdown,

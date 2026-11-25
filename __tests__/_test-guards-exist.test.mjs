@@ -886,6 +886,8 @@ import './trivia-pvp-elo-duel-realtime.test.mjs';
 import './trivia-streak-champ-og.test.mjs';
 import './trivia-club-spectator-training.test.mjs';
 import './trivia-ops-reconcile-fix.test.mjs';
+import './hud-stats-markdown-twin.test.mjs';
+import './trivia-public-leaderboards-do-not-read-profiles.test.mjs';
 import './trivia-burnin-scorecard-ops.test.mjs';
 import './trivia-push-worker-rt.test.mjs';
 import './trivia-pool-quality-audit.test.mjs';
