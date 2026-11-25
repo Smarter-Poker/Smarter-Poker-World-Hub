@@ -4743,7 +4743,7 @@ function GodModeArenaInner({
                   </motion.div>
                 )}
 
-                {/* Advanced Settings (Difficulty + Timer Selectors) Disclosure */}
+                {/* Difficulty + Timer Selectors */}
                 <details
                   className="sp-mtt-disclosure sp-arena-lobby__panel sp-arena-lobby__panel--controls"
                   data-arena-advanced-settings="true"
