@@ -5054,6 +5054,7 @@ function UniversalDynamicTable({
                         justify-content: center;
                         box-sizing: border-box;
                         padding: 19px;
+                        pointer-events: none;
                         border: 1px solid rgba(159,224,244,.46);
                         border-radius: 6px;
                         background: linear-gradient(180deg,rgba(63,82,93,.88) 0,rgba(18,31,40,.96) 10%,rgba(2,8,13,.97) 72%,rgba(24,42,51,.96) 100%);
@@ -5830,7 +5831,6 @@ function UniversalDynamicTable({
                         <details
                             className="sp-mtt-disclosure"
                             data-table-study-tools-disclosure="true"
-                            open
                             style={{ width: '100%' }}
                         >
                             <summary style={{ minHeight: 36, padding: '4px 10px', fontSize: 12, fontWeight: 800, cursor: 'pointer', color: '#83deff' }}>
@@ -9021,7 +9021,6 @@ function UniversalDynamicTable({
                                 <details
                                     className="sp-mtt-disclosure"
                                     data-posthand-simulators-disclosure="true"
-                                    open
                                     style={{ marginTop: 10, width: '100%' }}
                                 >
                                     <summary style={{ minHeight: 38, padding: '6px 10px', fontSize: 12, fontWeight: 800, cursor: 'pointer', color: '#83deff' }}>
