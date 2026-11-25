@@ -228,7 +228,7 @@ export default function CustomRakePage() {
       <div
         style={{
           minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: '#0a0a1a',
+          background: '#040d18',
           color: '#e4e6eb',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
@@ -637,7 +637,7 @@ export default function CustomRakePage() {
                 padding: '0 18px',
                 borderRadius: 8,
                 border: '1px solid #67e8f9',
-                background: 'linear-gradient(180deg, #0891b2, #075985)',
+                background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)',
                 color: '#fff',
                 fontWeight: 900,
                 cursor: 'pointer',

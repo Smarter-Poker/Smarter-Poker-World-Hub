@@ -162,7 +162,7 @@ export default function RiskAnalyzerPage() {
         className="sp-training-tool sp-training-tool--analysis sp-analysis-risk"
         style={{
           minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: '#0B0D11',
+          background: '#040d18',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', sans-serif",
           paddingBottom: 60,
@@ -641,7 +641,7 @@ export default function RiskAnalyzerPage() {
                   padding: '0 18px',
                   borderRadius: 8,
                   border: '1px solid #67e8f9',
-                  background: 'linear-gradient(180deg, #0891b2, #075985)',
+                  background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)',
                   color: '#fff',
                   fontWeight: 900,
                   cursor: 'pointer',

@@ -3,8 +3,8 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .shell {
-  --dc-obsidian: #020608;
-  --dc-gunmetal: #101a20;
+  --dc-obsidian: #040d18;
+  --dc-gunmetal: #091727;
   --dc-chrome: #c8d3da;
   --dc-cyan: #25c8ff;
   --dc-gold: #f2b84b;
@@ -14,10 +14,10 @@
   max-width: 100vw;
   overflow-x: clip;
   padding-bottom: 88px;
-  color: #eef6f9;
+  color: #f2f7fb;
   background:
-    radial-gradient(circle at 50% 0%, rgba(37, 200, 255, 0.11), transparent 34rem),
-    linear-gradient(180deg, #05090c 0%, var(--dc-obsidian) 72%);
+    radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 34rem),
+    linear-gradient(180deg, #040d18 0%, #02070d 100%);
   font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 

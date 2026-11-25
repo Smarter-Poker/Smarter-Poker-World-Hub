@@ -14,7 +14,7 @@
     "dependencyFiles": 384,
     "componentFiles": 55,
     "hookFiles": 14,
-    "ctas": 825,
+    "ctas": 826,
     "dialogs": 12,
     "persistenceFiles": 91,
     "realtimeFiles": 6,
@@ -1266,7 +1266,7 @@
         "success": false,
         "authExpiry": false
       },
-      "ctaCount": 4,
+      "ctaCount": 5,
       "dialogCount": 0,
       "apiReferences": [],
       "persistenceWrites": {
@@ -5982,6 +5982,7 @@
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-retired-client-mutations.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-verified-report-authority.test.mjs"
           ]
         },
@@ -6045,6 +6046,7 @@
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-retired-client-mutations.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-verified-report-authority.test.mjs"
           ]
         },
@@ -6099,6 +6101,7 @@
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-retired-client-mutations.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-verified-report-authority.test.mjs"
           ]
         },
@@ -6125,6 +6128,7 @@
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-retired-client-mutations.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-verified-report-authority.test.mjs"
           ]
         },
@@ -6157,6 +6161,7 @@
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-retired-client-mutations.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-verified-report-authority.test.mjs"
           ]
         },
@@ -6194,6 +6199,7 @@
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-retired-client-mutations.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-verified-report-authority.test.mjs"
           ]
         },
@@ -6212,6 +6218,7 @@
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-retired-client-mutations.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-verified-report-authority.test.mjs"
           ]
         },
@@ -6233,6 +6240,7 @@
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-retired-client-mutations.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-verified-report-authority.test.mjs"
           ]
         }
@@ -6242,6 +6250,7 @@
         "__tests__/training-client-endpoint-wiring.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs",
         "__tests__/training-retired-client-mutations.test.mjs",
+        "__tests__/training-simplification-mtt-design.test.mjs",
         "__tests__/training-verified-report-authority.test.mjs"
       ],
       "uncoveredStates": []
@@ -7106,6 +7115,7 @@
         "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
         "src/lib/training/solverRowIdentity.mjs",
+        "src/lib/training/trainingPresets.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/SolverPolicyService.js",
         "src/services/avatar-service.js",
@@ -7141,7 +7151,8 @@
           ],
           "tests": [
             "__tests__/training-casino-realism-catalog.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs"
           ]
         },
         "empty": {
@@ -7177,6 +7188,7 @@
             "src/lib/training/horseBrainTrainingAdapter.js",
             "src/lib/training/solverPolicyContract.js",
             "src/lib/training/solverRowIdentity.mjs",
+            "src/lib/training/trainingPresets.mjs",
             "src/services/SolverPolicyService.js",
             "src/stores/pageOverlayStore.js",
             "src/utils/trainingApiUtils.js",
@@ -7184,7 +7196,8 @@
           ],
           "tests": [
             "__tests__/training-casino-realism-catalog.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs"
           ]
         },
         "error": {
@@ -7226,7 +7239,8 @@
           ],
           "tests": [
             "__tests__/training-casino-realism-catalog.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs"
           ]
         },
         "retry": {
@@ -7248,7 +7262,8 @@
           ],
           "tests": [
             "__tests__/training-casino-realism-catalog.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs"
           ]
         },
         "success": {
@@ -7280,7 +7295,8 @@
           ],
           "tests": [
             "__tests__/training-casino-realism-catalog.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs"
           ]
         },
         "stale": {
@@ -7309,6 +7325,7 @@
             "src/lib/supabaseKeys.js",
             "src/lib/training/cacheTruthContract.mjs",
             "src/lib/training/horseBrainTrainingAdapter.js",
+            "src/lib/training/trainingPresets.mjs",
             "src/services/avatar-service.js",
             "src/stores/pageOverlayStore.js",
             "src/tutorials/index.js",
@@ -7317,7 +7334,8 @@
           ],
           "tests": [
             "__tests__/training-casino-realism-catalog.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs"
           ]
         },
         "offline": {
@@ -7329,7 +7347,8 @@
           ],
           "tests": [
             "__tests__/training-casino-realism-catalog.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs"
           ]
         },
         "authExpiry": {
@@ -7347,13 +7366,15 @@
           ],
           "tests": [
             "__tests__/training-casino-realism-catalog.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs"
           ]
         }
       },
       "existingTests": [
         "__tests__/training-casino-realism-catalog.test.mjs",
-        "__tests__/training-reconciled-workflows.test.mjs"
+        "__tests__/training-reconciled-workflows.test.mjs",
+        "__tests__/training-simplification-mtt-design.test.mjs"
       ],
       "uncoveredStates": []
     },
@@ -14025,7 +14046,8 @@
           "tests": [
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-legacy-consumer-authority.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs"
           ]
         },
         "empty": {
@@ -14072,7 +14094,8 @@
           "tests": [
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-legacy-consumer-authority.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs"
           ]
         },
         "error": {
@@ -14116,7 +14139,8 @@
           "tests": [
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-legacy-consumer-authority.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs"
           ]
         },
         "retry": {
@@ -14141,7 +14165,8 @@
           "tests": [
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-legacy-consumer-authority.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs"
           ]
         },
         "success": {
@@ -14174,7 +14199,8 @@
           "tests": [
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-legacy-consumer-authority.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs"
           ]
         },
         "stale": {
@@ -14211,7 +14237,8 @@
           "tests": [
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-legacy-consumer-authority.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs"
           ]
         },
         "offline": {
@@ -14226,7 +14253,8 @@
           "tests": [
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-legacy-consumer-authority.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs"
           ]
         },
         "authExpiry": {
@@ -14246,14 +14274,16 @@
           "tests": [
             "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
             "__tests__/training-legacy-consumer-authority.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs"
           ]
         }
       },
       "existingTests": [
         "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
         "__tests__/training-legacy-consumer-authority.test.mjs",
-        "__tests__/training-reconciled-workflows.test.mjs"
+        "__tests__/training-reconciled-workflows.test.mjs",
+        "__tests__/training-simplification-mtt-design.test.mjs"
       ],
       "uncoveredStates": []
     },
@@ -15689,6 +15719,7 @@
           "tests": [
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-session-config-contract.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-verified-report-authority.test.mjs"
           ]
         },
@@ -15746,6 +15777,7 @@
           "tests": [
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-session-config-contract.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-verified-report-authority.test.mjs"
           ]
         },
@@ -15791,6 +15823,7 @@
           "tests": [
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-session-config-contract.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-verified-report-authority.test.mjs"
           ]
         },
@@ -15811,6 +15844,7 @@
           "tests": [
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-session-config-contract.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-verified-report-authority.test.mjs"
           ]
         },
@@ -15836,6 +15870,7 @@
           "tests": [
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-session-config-contract.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-verified-report-authority.test.mjs"
           ]
         },
@@ -15867,6 +15902,7 @@
           "tests": [
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-session-config-contract.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-verified-report-authority.test.mjs"
           ]
         },
@@ -15881,6 +15917,7 @@
           "tests": [
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-session-config-contract.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-verified-report-authority.test.mjs"
           ]
         },
@@ -15899,6 +15936,7 @@
           "tests": [
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-session-config-contract.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-verified-report-authority.test.mjs"
           ]
         }
@@ -15906,6 +15944,7 @@
       "existingTests": [
         "__tests__/training-reconciled-workflows.test.mjs",
         "__tests__/training-session-config-contract.test.mjs",
+        "__tests__/training-simplification-mtt-design.test.mjs",
         "__tests__/training-verified-report-authority.test.mjs"
       ],
       "uncoveredStates": []
@@ -19914,7 +19953,8 @@
           ],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs"
           ]
         },
         "empty": {
@@ -19944,7 +19984,8 @@
           ],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs"
           ]
         },
         "error": {
@@ -19966,7 +20007,8 @@
           ],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs"
           ]
         },
         "retry": {
@@ -19981,7 +20023,8 @@
           ],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs"
           ]
         },
         "success": {
@@ -19998,7 +20041,8 @@
           ],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs"
           ]
         },
         "stale": {
@@ -20016,7 +20060,8 @@
           ],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs"
           ]
         },
         "offline": {
@@ -20027,7 +20072,8 @@
           ],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs"
           ]
         },
         "authExpiry": {
@@ -20040,13 +20086,15 @@
           ],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "__tests__/training-reconciled-workflows.test.mjs"
+            "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs"
           ]
         }
       },
       "existingTests": [
         "__tests__/training-phase-3-adversarial.test.mjs",
-        "__tests__/training-reconciled-workflows.test.mjs"
+        "__tests__/training-reconciled-workflows.test.mjs",
+        "__tests__/training-simplification-mtt-design.test.mjs"
       ],
       "uncoveredStates": []
     },
@@ -21854,6 +21902,7 @@
             "__tests__/training-arena-review-gateway-authority.test.mjs",
             "__tests__/training-coaching-summary-authority.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-verified-report-authority.test.mjs"
           ]
         },
@@ -21886,6 +21935,7 @@
             "__tests__/training-arena-review-gateway-authority.test.mjs",
             "__tests__/training-coaching-summary-authority.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-verified-report-authority.test.mjs"
           ]
         },
@@ -21912,6 +21962,7 @@
             "__tests__/training-arena-review-gateway-authority.test.mjs",
             "__tests__/training-coaching-summary-authority.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-verified-report-authority.test.mjs"
           ]
         },
@@ -21931,6 +21982,7 @@
             "__tests__/training-arena-review-gateway-authority.test.mjs",
             "__tests__/training-coaching-summary-authority.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-verified-report-authority.test.mjs"
           ]
         },
@@ -21950,6 +22002,7 @@
             "__tests__/training-arena-review-gateway-authority.test.mjs",
             "__tests__/training-coaching-summary-authority.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-verified-report-authority.test.mjs"
           ]
         },
@@ -21970,6 +22023,7 @@
             "__tests__/training-arena-review-gateway-authority.test.mjs",
             "__tests__/training-coaching-summary-authority.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-verified-report-authority.test.mjs"
           ]
         },
@@ -21983,6 +22037,7 @@
             "__tests__/training-arena-review-gateway-authority.test.mjs",
             "__tests__/training-coaching-summary-authority.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-verified-report-authority.test.mjs"
           ]
         },
@@ -21997,6 +22052,7 @@
             "__tests__/training-arena-review-gateway-authority.test.mjs",
             "__tests__/training-coaching-summary-authority.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
+            "__tests__/training-simplification-mtt-design.test.mjs",
             "__tests__/training-verified-report-authority.test.mjs"
           ]
         }
@@ -22005,6 +22061,7 @@
         "__tests__/training-arena-review-gateway-authority.test.mjs",
         "__tests__/training-coaching-summary-authority.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs",
+        "__tests__/training-simplification-mtt-design.test.mjs",
         "__tests__/training-verified-report-authority.test.mjs"
       ],
       "uncoveredStates": []
@@ -33684,7 +33741,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 776,
+          "line": 791,
           "handler": "() => setBrainVariant(v)",
           "destination": null,
           "type": "button",
@@ -33694,7 +33751,7 @@
         {
           "element": "button",
           "name": "Launch 1:1 Club Arena Drill",
-          "line": 803,
+          "line": 818,
           "handler": "() => router.push(buildCustomTrainingArenaHref({ format: 'cash', variant: brainVariant, streets: ['flop'], positions: ['BTN'], stackDepth: 100 }, 'autopilot'))",
           "destination": null,
           "type": "button",
@@ -33890,7 +33947,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 153,
+          "line": 152,
           "handler": "() => setActiveVariant(v)",
           "destination": null,
           "type": "button",
@@ -33900,7 +33957,7 @@
         {
           "element": "button",
           "name": "BB",
-          "line": 172,
+          "line": 171,
           "handler": "() => setEffectiveStackBb(stk)",
           "destination": null,
           "type": "button",
@@ -33910,7 +33967,7 @@
         {
           "element": "button",
           "name": "Launch Calibrated Drill In Club Arena →",
-          "line": 190,
+          "line": 189,
           "handler": "() => router.push(arenaHref)",
           "destination": null,
           "type": "button",
@@ -33920,7 +33977,7 @@
         {
           "element": "a",
           "name": "Open Verified Training Report →",
-          "line": 214,
+          "line": 213,
           "handler": null,
           "destination": "/hub/training/gto-reports?source=bankroll-coach",
           "type": null,
@@ -33997,7 +34054,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 169,
+          "line": 168,
           "handler": "() => setActiveVariant(v)",
           "destination": null,
           "type": "button",
@@ -34007,7 +34064,7 @@
         {
           "element": "button",
           "name": "BB",
-          "line": 188,
+          "line": 187,
           "handler": "() => setStackDepthBb(stk)",
           "destination": null,
           "type": "button",
@@ -34017,7 +34074,7 @@
         {
           "element": "button",
           "name": "BB",
-          "line": 207,
+          "line": 206,
           "handler": "() => setPotBb(p)",
           "destination": null,
           "type": "button",
@@ -34027,7 +34084,7 @@
         {
           "element": "button",
           "name": "BB",
-          "line": 226,
+          "line": 225,
           "handler": "() => setFacingBetBb(bet)",
           "destination": null,
           "type": "button",
@@ -34037,7 +34094,7 @@
         {
           "element": "button",
           "name": "Practice Geometry Spot In Club Arena →",
-          "line": 280,
+          "line": 279,
           "handler": "() => router.push(geometryEval.arenaHref)",
           "destination": null,
           "type": "button",
@@ -34047,7 +34104,7 @@
         {
           "element": "a",
           "name": "Continue To Blind Defense →",
-          "line": 301,
+          "line": 300,
           "handler": null,
           "destination": "VERIFIED_DRILL",
           "type": null,
@@ -34305,10 +34362,12 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/hooks/useTrainingBus.js",
         "src/hooks/useTrainingProgress.js",
-        "src/lib/training/horseBrainTrainingAdapter.js"
+        "src/lib/training/horseBrainTrainingAdapter.js",
+        "src/lib/training/trainingPresets.mjs"
       ],
       "links": [
         "/hub/training",
+        "/hub/training/arena/",
         "/hub/training/play/"
       ],
       "apiReferences": [],
@@ -34317,7 +34376,7 @@
         {
           "element": "button",
           "name": "Return To Training",
-          "line": 103,
+          "line": 106,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -34327,7 +34386,7 @@
         {
           "element": "button",
           "name": "Training Hub",
-          "line": 127,
+          "line": 130,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -34336,8 +34395,18 @@
         },
         {
           "element": "button",
+          "name": "Start Sector Training →",
+          "line": 169,
+          "handler": "() => router.push(`/hub/training/arena/${featuredGame.id}?level=1`)",
+          "destination": null,
+          "type": "button",
+          "disabled": null,
+          "wiring": "handler"
+        },
+        {
+          "element": "button",
           "name": "<dynamic>",
-          "line": 173,
+          "line": 221,
           "handler": "() => setBrainVariant(v)",
           "destination": null,
           "type": "button",
@@ -34347,7 +34416,7 @@
         {
           "element": "button",
           "name": "Launch 1:1 Club Arena Drill",
-          "line": 191,
+          "line": 239,
           "handler": "() => router.push(buildCustomTrainingArenaHref({ format: 'cash', variant: brainVariant, streets: ['flop'], positions: ['BTN'], stackDepth: 100 }, 'category'))",
           "destination": null,
           "type": "button",
@@ -34387,7 +34456,7 @@
       "functions": [
         {
           "name": "CategoryPage",
-          "line": 53,
+          "line": 54,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -36604,7 +36673,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 165,
+          "line": 164,
           "handler": "() => setActiveVariant(v)",
           "destination": null,
           "type": "button",
@@ -36614,7 +36683,7 @@
         {
           "element": "button",
           "name": "BB",
-          "line": 184,
+          "line": 183,
           "handler": "() => setStackDepthBb(stk)",
           "destination": null,
           "type": "button",
@@ -36624,7 +36693,7 @@
         {
           "element": "button",
           "name": "BB",
-          "line": 203,
+          "line": 202,
           "handler": "() => setPotBb(p)",
           "destination": null,
           "type": "button",
@@ -36634,7 +36703,7 @@
         {
           "element": "button",
           "name": "BB",
-          "line": 222,
+          "line": 221,
           "handler": "() => setFacingBetBb(bet)",
           "destination": null,
           "type": "button",
@@ -36644,7 +36713,7 @@
         {
           "element": "button",
           "name": "Practice Geometry Spot In Club Arena →",
-          "line": 276,
+          "line": 275,
           "handler": "() => router.push(geometryEval.arenaHref)",
           "destination": null,
           "type": "button",
@@ -36654,7 +36723,7 @@
         {
           "element": "a",
           "name": "Continue To EV Calculations →",
-          "line": 297,
+          "line": 296,
           "handler": null,
           "destination": "CANONICAL_ARENA_HREF",
           "type": null,
@@ -36736,7 +36805,7 @@
         {
           "element": "button",
           "name": "Back To Training Hub",
-          "line": 110,
+          "line": 109,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -36746,7 +36815,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 230,
+          "line": 229,
           "handler": "() => setActiveVariant(v)",
           "destination": null,
           "type": "button",
@@ -36756,7 +36825,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 257,
+          "line": 256,
           "handler": "() => setHeroPosition(pos)",
           "destination": null,
           "type": "button",
@@ -36766,7 +36835,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 284,
+          "line": 283,
           "handler": "() => setActiveStreet(st)",
           "destination": null,
           "type": "button",
@@ -36776,7 +36845,7 @@
         {
           "element": "button",
           "name": "Practice Target Spot In Club Arena →",
-          "line": 310,
+          "line": 309,
           "handler": "() => router.push(arenaHref)",
           "destination": null,
           "type": "button",
@@ -36786,7 +36855,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 331,
+          "line": 330,
           "handler": "() => router.push(route.href)",
           "destination": null,
           "type": "button",
@@ -38128,7 +38197,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 148,
+          "line": 147,
           "handler": "() => setActiveVariant(v)",
           "destination": null,
           "type": "button",
@@ -38138,7 +38207,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 175,
+          "line": 174,
           "handler": "() => setHeroPosition(pos)",
           "destination": null,
           "type": "button",
@@ -38148,7 +38217,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 202,
+          "line": 201,
           "handler": "() => setActiveStreet(st)",
           "destination": null,
           "type": "button",
@@ -38158,7 +38227,7 @@
         {
           "element": "button",
           "name": "Practice Target Spot In Club Arena →",
-          "line": 229,
+          "line": 228,
           "handler": "() => router.push(arenaHref)",
           "destination": null,
           "type": "button",
@@ -38168,7 +38237,7 @@
         {
           "element": "a",
           "name": "Open GTO Reports →",
-          "line": 245,
+          "line": 244,
           "handler": null,
           "destination": "/hub/training/gto-reports",
           "type": null,
@@ -39337,7 +39406,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 136,
+          "line": 135,
           "handler": "() => setBrainVariant(v)",
           "destination": null,
           "type": "button",
@@ -39347,7 +39416,7 @@
         {
           "element": "button",
           "name": "Practice Tournament Spot In Club Arena →",
-          "line": 283,
+          "line": 282,
           "handler": "() => router.push(arenaHref)",
           "destination": null,
           "type": "button",
@@ -39357,7 +39426,7 @@
         {
           "element": "a",
           "name": "Continue To Final Table ICM →",
-          "line": 306,
+          "line": 305,
           "handler": null,
           "destination": "arenaHref || '/hub/training/arena/mtt-004?level=1&source=icm-final-table'",
           "type": null,
@@ -39764,7 +39833,7 @@
         },
         {
           "name": "StatCard",
-          "line": 745,
+          "line": 757,
           "references": 10,
           "exported": false,
           "defaultExport": false,
@@ -40826,7 +40895,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 136,
+          "line": 135,
           "handler": "() => setActiveVariant(v)",
           "destination": null,
           "type": "button",
@@ -40836,7 +40905,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 147,
+          "line": 146,
           "handler": "() => setStreet(st)",
           "destination": null,
           "type": "button",
@@ -40846,7 +40915,7 @@
         {
           "element": "button",
           "name": "BB",
-          "line": 158,
+          "line": 157,
           "handler": "() => setEffectiveStackBb(stk)",
           "destination": null,
           "type": "button",
@@ -40856,7 +40925,7 @@
         {
           "element": "button",
           "name": "BB",
-          "line": 169,
+          "line": 168,
           "handler": "() => setPot(p)",
           "destination": null,
           "type": "button",
@@ -40866,7 +40935,7 @@
         {
           "element": "button",
           "name": "BB",
-          "line": 180,
+          "line": 179,
           "handler": "() => setToCall(bet)",
           "destination": null,
           "type": "button",
@@ -40876,7 +40945,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 191,
+          "line": 190,
           "handler": "() => setRakeEnv(rk)",
           "destination": null,
           "type": "button",
@@ -40886,7 +40955,7 @@
         {
           "element": "button",
           "name": "Practice Equilibrium Spot In Club Arena →",
-          "line": 218,
+          "line": 217,
           "handler": "() => router.push(arenaHref)",
           "destination": null,
           "type": "button",
@@ -40896,7 +40965,7 @@
         {
           "element": "a",
           "name": "Continue To Mixed Strategy Training →",
-          "line": 238,
+          "line": 237,
           "handler": null,
           "destination": "CANONICAL_MIXED_ARENA_HREF",
           "type": null,
@@ -40984,7 +41053,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1022,
+          "line": 1042,
           "handler": "() => {\n                        setSelectedVariant(v.id);\n                        setPaneConfigs(resolveDefaultPaneConfigs(v.id));\n                      }",
           "destination": null,
           "type": "button",
@@ -40994,7 +41063,7 @@
         {
           "element": "button",
           "name": "Apply Mixed 4-Game Rotation (NLH + PLO4 + PLO5 + PLO8)",
-          "line": 1072,
+          "line": 1102,
           "handler": "() => {\n                    setTableCount(4);\n                    setSelectedVariant('nlh');\n                    setPaneConfigs([\n                      { variant: 'nlh', bettingStructure: 'no_limit', format: 'cash' },\n                      { variant: 'plo4', bettingStructure: 'pot_limit', format: 'mtt' },\n                      { variant: 'plo5', bettingStructure: 'pot_limit', format: 'cash' },\n                      { variant: 'plo8', bettingStructure: 'fixed_limit', format: 'cash' },\n                    ]);\n                  }",
           "destination": null,
           "type": "button",
@@ -41004,7 +41073,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1230,
+          "line": 1260,
           "handler": "() => {\n                        setSelectedGames((prev) => {\n                          if (prev.includes(g.id)) return prev.filter((x) => x !== g.id);\n                          if (prev.length >= tableCount) return [...prev.slice(1), g.id];\n                          return [...prev, g.id];\n                        });\n                      }",
           "destination": null,
           "type": null,
@@ -41014,7 +41083,7 @@
         {
           "element": "button",
           "name": "← Back To Training",
-          "line": 1299,
+          "line": 1331,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": null,
@@ -41024,7 +41093,7 @@
         {
           "element": "button",
           "name": "Warm Up Focused Table In 1:1 Club Arena →",
-          "line": 1341,
+          "line": 1373,
           "handler": "() => router.push(multiTableSingleArenaHref)",
           "destination": null,
           "type": "button",
@@ -41034,7 +41103,7 @@
         {
           "element": "button",
           "name": "← Exit",
-          "line": 1375,
+          "line": 1407,
           "handler": "() => {\n                  setIsStarted(false);\n                  reportedTablesRef.current = new Set();\n                  liveTableTallyRef.current = {};\n                  tableStatesRef.current = {};\n                  setTableStates({});\n                  setCompletedTables(new Set());\n                  setCombinedStats({\n                    totalHands: 0,\n                    totalCorrect: 0,\n                    totalEVLoss: 0,\n                    measuredEVDecisions: 0,\n                    tablesCompleted: 0,\n                  });\n                }",
           "destination": null,
           "type": null,
@@ -41044,7 +41113,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1427,
+          "line": 1459,
           "handler": "() => {\n                        if (selectedVariant === v.id) return;\n                        setSelectedVariant(v.id);\n                        setPaneConfigs(resolveDefaultPaneConfigs(v.id));\n                        setRunId(`mt-${Date.now()}`);\n                        reportedTablesRef.current = new Set();\n                        liveTableTallyRef.current = {};\n                        tableStatesRef.current = {};\n                        setTableStates({});\n                        setCompletedTables(new Set());\n                        setCombinedStats({\n                          totalHands: 0,\n                          totalCorrect: 0,\n                          totalEVLoss: 0,\n                          measuredEVDecisions: 0,\n                          tablesCompleted: 0,\n                        });\n                        hasSavedRef.current = false;\n                      }",
           "destination": null,
           "type": "button",
@@ -41054,7 +41123,7 @@
         {
           "element": "button",
           "name": "T · ( H · %) - BB",
-          "line": 1542,
+          "line": 1574,
           "handler": "() => setFocusedGameId(gameId)",
           "destination": null,
           "type": "button",
@@ -41064,7 +41133,7 @@
         {
           "element": "button",
           "name": "Jump To Next Pending Table →",
-          "line": 1580,
+          "line": 1612,
           "handler": "() => {\n                  if (visibleGames.length === 0) return;\n                  const curIdx = Math.max(0, visibleGames.indexOf(activeGameId));\n                  for (let offset = 1; offset <= visibleGames.length; offset += 1) {\n                    const candidateId = visibleGames[(curIdx + offset) % visibleGames.length];\n                    if (completedTables.has(candidateId)) continue;\n                    const candidateState = tableStates[candidateId];\n                    if (!candidateState?.gameComplete && !candidateState?.showFeedback) {\n                      setFocusedGameId(candidateId);\n                      return;\n                    }\n                  }\n                  const nextId = visibleGames[(curIdx + 1) % visibleGames.length];\n                  if (nextId) setFocusedGameId(nextId);\n                }",
           "destination": null,
           "type": "button",
@@ -41074,7 +41143,7 @@
         {
           "element": "button",
           "name": "TABLE",
-          "line": 1636,
+          "line": 1668,
           "handler": "() => setFocusedGameId(gameId)",
           "destination": null,
           "type": null,
@@ -41193,7 +41262,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 162,
+          "line": 161,
           "handler": "() => setActiveVariant(v)",
           "destination": null,
           "type": "button",
@@ -41203,7 +41272,7 @@
         {
           "element": "button",
           "name": "BB",
-          "line": 181,
+          "line": 180,
           "handler": "() => setStackDepthBb(stk)",
           "destination": null,
           "type": "button",
@@ -41213,7 +41282,7 @@
         {
           "element": "button",
           "name": "BB",
-          "line": 200,
+          "line": 199,
           "handler": "() => setPotBb(p)",
           "destination": null,
           "type": "button",
@@ -41223,7 +41292,7 @@
         {
           "element": "button",
           "name": "BB",
-          "line": 219,
+          "line": 218,
           "handler": "() => setFacingBetBb(bet)",
           "destination": null,
           "type": "button",
@@ -41233,7 +41302,7 @@
         {
           "element": "button",
           "name": "Practice Geometry Spot In Club Arena →",
-          "line": 273,
+          "line": 272,
           "handler": "() => router.push(geometryEval.arenaHref)",
           "destination": null,
           "type": "button",
@@ -41243,7 +41312,7 @@
         {
           "element": "a",
           "name": "Continue To Multi-Way Pots →",
-          "line": 294,
+          "line": 293,
           "handler": null,
           "destination": "VERIFIED_DRILL",
           "type": null,
@@ -41846,7 +41915,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 148,
+          "line": 147,
           "handler": "() => setActiveVariant(v)",
           "destination": null,
           "type": "button",
@@ -41856,7 +41925,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 175,
+          "line": 174,
           "handler": "() => setHeroPosition(pos)",
           "destination": null,
           "type": "button",
@@ -41866,7 +41935,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 202,
+          "line": 201,
           "handler": "() => setActiveStreet(st)",
           "destination": null,
           "type": "button",
@@ -41876,7 +41945,7 @@
         {
           "element": "button",
           "name": "Practice Target Spot In Club Arena →",
-          "line": 229,
+          "line": 228,
           "handler": "() => router.push(arenaHref)",
           "destination": null,
           "type": "button",
@@ -41886,7 +41955,7 @@
         {
           "element": "a",
           "name": "Open GTO Reports →",
-          "line": 245,
+          "line": 244,
           "handler": null,
           "destination": "/hub/training/gto-reports",
           "type": null,
@@ -42357,7 +42426,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 165,
+          "line": 164,
           "handler": "() => setActiveVariant(v)",
           "destination": null,
           "type": "button",
@@ -42367,7 +42436,7 @@
         {
           "element": "button",
           "name": "BB",
-          "line": 184,
+          "line": 183,
           "handler": "() => setStackDepthBb(stk)",
           "destination": null,
           "type": "button",
@@ -42377,7 +42446,7 @@
         {
           "element": "button",
           "name": "BB",
-          "line": 203,
+          "line": 202,
           "handler": "() => setPotBb(p)",
           "destination": null,
           "type": "button",
@@ -42387,7 +42456,7 @@
         {
           "element": "button",
           "name": "BB",
-          "line": 222,
+          "line": 221,
           "handler": "() => setFacingBetBb(bet)",
           "destination": null,
           "type": "button",
@@ -42397,7 +42466,7 @@
         {
           "element": "button",
           "name": "Practice Geometry Spot In Club Arena →",
-          "line": 276,
+          "line": 275,
           "handler": "() => router.push(geometryEval.arenaHref)",
           "destination": null,
           "type": "button",
@@ -42407,7 +42476,7 @@
         {
           "element": "a",
           "name": "Continue To SPR Mastery →",
-          "line": 297,
+          "line": 296,
           "handler": null,
           "destination": "CANONICAL_ARENA_HREF",
           "type": null,
@@ -42483,7 +42552,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 153,
+          "line": 152,
           "handler": "() => setActiveVariant(v)",
           "destination": null,
           "type": "button",
@@ -42493,7 +42562,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 173,
+          "line": 172,
           "handler": "() => setHeroPosition(pos)",
           "destination": null,
           "type": "button",
@@ -42503,7 +42572,7 @@
         {
           "element": "button",
           "name": "BB",
-          "line": 193,
+          "line": 192,
           "handler": "() => setEffectiveStackBb(stk)",
           "destination": null,
           "type": "button",
@@ -42513,7 +42582,7 @@
         {
           "element": "button",
           "name": "Practice Preflop Spot In Club Arena →",
-          "line": 216,
+          "line": 215,
           "handler": "() => router.push(arenaHref)",
           "destination": null,
           "type": "button",
@@ -42523,7 +42592,7 @@
         {
           "element": "a",
           "name": "Continue To Preflop Blueprint →",
-          "line": 233,
+          "line": 232,
           "handler": null,
           "destination": "VERIFIED_DRILL",
           "type": null,
@@ -43524,7 +43593,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 723,
+          "line": 732,
           "handler": "() => setBrainVariant(v)",
           "destination": null,
           "type": "button",
@@ -43534,7 +43603,7 @@
         {
           "element": "button",
           "name": "Launch 1:1 Club Arena Drill",
-          "line": 750,
+          "line": 759,
           "handler": "() => router.push(buildCustomTrainingArenaHref({ format: 'cash', variant: brainVariant, streets: ['flop'], positions: ['BTN'], stackDepth: 100 }, 'quiz-builder'))",
           "destination": null,
           "type": "button",
@@ -43943,7 +44012,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 153,
+          "line": 152,
           "handler": "() => setActiveVariant(v)",
           "destination": null,
           "type": "button",
@@ -43953,7 +44022,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 173,
+          "line": 172,
           "handler": "() => setHeroPosition(pos)",
           "destination": null,
           "type": "button",
@@ -43963,7 +44032,7 @@
         {
           "element": "button",
           "name": "BB",
-          "line": 193,
+          "line": 192,
           "handler": "() => setEffectiveStackBb(stk)",
           "destination": null,
           "type": "button",
@@ -43973,7 +44042,7 @@
         {
           "element": "button",
           "name": "Practice Preflop Spot In Club Arena →",
-          "line": 216,
+          "line": 215,
           "handler": "() => router.push(arenaHref)",
           "destination": null,
           "type": "button",
@@ -43983,7 +44052,7 @@
         {
           "element": "a",
           "name": "Continue To Range Construction →",
-          "line": 233,
+          "line": 232,
           "handler": null,
           "destination": "VERIFIED_DRILL",
           "type": null,
@@ -44299,7 +44368,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 154,
+          "line": 153,
           "handler": "() => setActiveVariant(v)",
           "destination": null,
           "type": "button",
@@ -44309,7 +44378,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 174,
+          "line": 173,
           "handler": "() => setHeroPosition(pos)",
           "destination": null,
           "type": "button",
@@ -44319,7 +44388,7 @@
         {
           "element": "button",
           "name": "BB",
-          "line": 194,
+          "line": 193,
           "handler": "() => setEffectiveStackBb(stk)",
           "destination": null,
           "type": "button",
@@ -44329,7 +44398,7 @@
         {
           "element": "button",
           "name": "Practice Preflop Spot In Club Arena →",
-          "line": 217,
+          "line": 216,
           "handler": "() => router.push(arenaHref)",
           "destination": null,
           "type": "button",
@@ -44339,7 +44408,7 @@
         {
           "element": "a",
           "name": "Open Preflop Charts →",
-          "line": 234,
+          "line": 233,
           "handler": null,
           "destination": "/hub/training/preflop-charts",
           "type": null,
@@ -45337,7 +45406,7 @@
         {
           "element": "button",
           "name": "Fix My #1 PLO8 / Fixed-Limit Leak →",
-          "line": 1417,
+          "line": 1428,
           "handler": "() => router.push(plo8FixLeakHref)",
           "destination": null,
           "type": "button",
@@ -45347,7 +45416,7 @@
         {
           "element": "button",
           "name": "Drill Under 15s Shot-Clock Pressure →",
-          "line": 1485,
+          "line": 1496,
           "handler": "() => router.push(shotClockDrillHref)",
           "destination": null,
           "type": "button",
@@ -46965,7 +47034,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 165,
+          "line": 164,
           "handler": "() => setActiveVariant(v)",
           "destination": null,
           "type": "button",
@@ -46975,7 +47044,7 @@
         {
           "element": "button",
           "name": "BB",
-          "line": 184,
+          "line": 183,
           "handler": "() => setStackDepthBb(stk)",
           "destination": null,
           "type": "button",
@@ -46985,7 +47054,7 @@
         {
           "element": "button",
           "name": "BB",
-          "line": 203,
+          "line": 202,
           "handler": "() => setPotBb(p)",
           "destination": null,
           "type": "button",
@@ -46995,7 +47064,7 @@
         {
           "element": "button",
           "name": "BB",
-          "line": 222,
+          "line": 221,
           "handler": "() => setFacingBetBb(bet)",
           "destination": null,
           "type": "button",
@@ -47005,7 +47074,7 @@
         {
           "element": "button",
           "name": "Practice Geometry Spot In Club Arena →",
-          "line": 276,
+          "line": 275,
           "handler": "() => router.push(geometryEval.arenaHref)",
           "destination": null,
           "type": "button",
@@ -47015,7 +47084,7 @@
         {
           "element": "a",
           "name": "Continue To SPR Mastery →",
-          "line": 297,
+          "line": 296,
           "handler": null,
           "destination": "CANONICAL_ARENA_HREF",
           "type": null,
@@ -48315,7 +48384,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 165,
+          "line": 164,
           "handler": "() => setActiveVariant(v)",
           "destination": null,
           "type": "button",
@@ -48325,7 +48394,7 @@
         {
           "element": "button",
           "name": "BB",
-          "line": 184,
+          "line": 183,
           "handler": "() => setStackDepthBb(stk)",
           "destination": null,
           "type": "button",
@@ -48335,7 +48404,7 @@
         {
           "element": "button",
           "name": "BB",
-          "line": 203,
+          "line": 202,
           "handler": "() => setPotBb(p)",
           "destination": null,
           "type": "button",
@@ -48345,7 +48414,7 @@
         {
           "element": "button",
           "name": "BB",
-          "line": 222,
+          "line": 221,
           "handler": "() => setFacingBetBb(bet)",
           "destination": null,
           "type": "button",
@@ -48355,7 +48424,7 @@
         {
           "element": "button",
           "name": "Practice Geometry Spot In Club Arena →",
-          "line": 276,
+          "line": 275,
           "handler": "() => router.push(geometryEval.arenaHref)",
           "destination": null,
           "type": "button",
@@ -48365,7 +48434,7 @@
         {
           "element": "a",
           "name": "Continue To Multi-Way Pots →",
-          "line": 297,
+          "line": 296,
           "handler": null,
           "destination": "CANONICAL_ARENA_HREF",
           "type": null,
@@ -48853,7 +48922,7 @@
         {
           "element": "link",
           "name": "← All Tournaments",
-          "line": 105,
+          "line": 114,
           "handler": null,
           "destination": "/hub/training/tournaments",
           "type": null,
@@ -48863,7 +48932,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 147,
+          "line": 156,
           "handler": "() => setBrainVariant(v)",
           "destination": null,
           "type": "button",
@@ -48873,7 +48942,7 @@
         {
           "element": "button",
           "name": "Launch 1:1 Club Arena Drill",
-          "line": 166,
+          "line": 175,
           "handler": "() => router.push(buildCustomTrainingArenaHref({ format: 'cash', variant: brainVariant, streets: ['flop'], positions: ['BTN'], stackDepth: 100 }, 'tournament'))",
           "destination": null,
           "type": "button",
@@ -48883,7 +48952,7 @@
         {
           "element": "button",
           "name": "Tournament Runs Reopen After Attempt-Bound Settlement Is Certified",
-          "line": 288,
+          "line": 297,
           "handler": null,
           "destination": null,
           "type": "button",
@@ -48893,7 +48962,7 @@
         {
           "element": "link",
           "name": "Tournaments Lobby",
-          "line": 337,
+          "line": 346,
           "handler": null,
           "destination": "/hub/training/tournaments",
           "type": null,
@@ -51992,7 +52061,7 @@
         {
           "element": "button",
           "name": "Retry Redirect",
-          "line": 92,
+          "line": 113,
           "handler": "retryRedirect",
           "destination": null,
           "type": "button",
@@ -52002,7 +52071,7 @@
         {
           "element": "a",
           "name": "→",
-          "line": 98,
+          "line": 119,
           "handler": null,
           "destination": "href",
           "type": null,
@@ -52012,7 +52081,7 @@
         {
           "element": "button",
           "name": "Launch 1:1 Club Arena Drill",
-          "line": 101,
+          "line": 138,
           "handler": "retryRedirect",
           "destination": null,
           "type": "button",
@@ -52022,7 +52091,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 118,
+          "line": 171,
           "handler": "() => setBrainVariant(v)",
           "destination": null,
           "type": "button",
@@ -83092,6 +83161,10 @@
       "to": "src/lib/training/horseBrainTrainingAdapter.js"
     },
     {
+      "from": "pages/hub/training/category/[categoryId].js",
+      "to": "src/lib/training/trainingPresets.mjs"
+    },
+    {
       "from": "pages/hub/training/challenges.js",
       "to": "src/components/seo/HubPageSummary.js"
     },
@@ -88528,11 +88601,11 @@
       "effectRef": "pages/hub/training/autopilot.js"
     },
     {
-      "id": "pages/hub/training/autopilot.js:776:2",
+      "id": "pages/hub/training/autopilot.js:791:2",
       "file": "pages/hub/training/autopilot.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 776,
+      "line": 791,
       "handler": "() => setBrainVariant(v)",
       "destination": null,
       "type": "button",
@@ -88541,11 +88614,11 @@
       "effectRef": "pages/hub/training/autopilot.js"
     },
     {
-      "id": "pages/hub/training/autopilot.js:803:3",
+      "id": "pages/hub/training/autopilot.js:818:3",
       "file": "pages/hub/training/autopilot.js",
       "element": "button",
       "name": "Launch 1:1 Club Arena Drill",
-      "line": 803,
+      "line": 818,
       "handler": "() => router.push(buildCustomTrainingArenaHref({ format: 'cash', variant: brainVariant, streets: ['flop'], positions: ['BTN'], stackDepth: 100 }, 'autopilot'))",
       "destination": null,
       "type": "button",
@@ -88554,11 +88627,11 @@
       "effectRef": "pages/hub/training/autopilot.js"
     },
     {
-      "id": "pages/hub/training/bankroll-coach.js:153:1",
+      "id": "pages/hub/training/bankroll-coach.js:152:1",
       "file": "pages/hub/training/bankroll-coach.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 153,
+      "line": 152,
       "handler": "() => setActiveVariant(v)",
       "destination": null,
       "type": "button",
@@ -88567,11 +88640,11 @@
       "effectRef": "pages/hub/training/bankroll-coach.js"
     },
     {
-      "id": "pages/hub/training/bankroll-coach.js:172:2",
+      "id": "pages/hub/training/bankroll-coach.js:171:2",
       "file": "pages/hub/training/bankroll-coach.js",
       "element": "button",
       "name": "BB",
-      "line": 172,
+      "line": 171,
       "handler": "() => setEffectiveStackBb(stk)",
       "destination": null,
       "type": "button",
@@ -88580,11 +88653,11 @@
       "effectRef": "pages/hub/training/bankroll-coach.js"
     },
     {
-      "id": "pages/hub/training/bankroll-coach.js:190:3",
+      "id": "pages/hub/training/bankroll-coach.js:189:3",
       "file": "pages/hub/training/bankroll-coach.js",
       "element": "button",
       "name": "Launch Calibrated Drill In Club Arena →",
-      "line": 190,
+      "line": 189,
       "handler": "() => router.push(arenaHref)",
       "destination": null,
       "type": "button",
@@ -88593,11 +88666,11 @@
       "effectRef": "pages/hub/training/bankroll-coach.js"
     },
     {
-      "id": "pages/hub/training/bankroll-coach.js:214:4",
+      "id": "pages/hub/training/bankroll-coach.js:213:4",
       "file": "pages/hub/training/bankroll-coach.js",
       "element": "a",
       "name": "Open Verified Training Report →",
-      "line": 214,
+      "line": 213,
       "handler": null,
       "destination": "/hub/training/gto-reports?source=bankroll-coach",
       "type": null,
@@ -88606,11 +88679,11 @@
       "effectRef": "pages/hub/training/bankroll-coach.js"
     },
     {
-      "id": "pages/hub/training/blind-defense.js:169:1",
+      "id": "pages/hub/training/blind-defense.js:168:1",
       "file": "pages/hub/training/blind-defense.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 169,
+      "line": 168,
       "handler": "() => setActiveVariant(v)",
       "destination": null,
       "type": "button",
@@ -88619,11 +88692,11 @@
       "effectRef": "pages/hub/training/blind-defense.js"
     },
     {
-      "id": "pages/hub/training/blind-defense.js:188:2",
+      "id": "pages/hub/training/blind-defense.js:187:2",
       "file": "pages/hub/training/blind-defense.js",
       "element": "button",
       "name": "BB",
-      "line": 188,
+      "line": 187,
       "handler": "() => setStackDepthBb(stk)",
       "destination": null,
       "type": "button",
@@ -88632,11 +88705,11 @@
       "effectRef": "pages/hub/training/blind-defense.js"
     },
     {
-      "id": "pages/hub/training/blind-defense.js:207:3",
+      "id": "pages/hub/training/blind-defense.js:206:3",
       "file": "pages/hub/training/blind-defense.js",
       "element": "button",
       "name": "BB",
-      "line": 207,
+      "line": 206,
       "handler": "() => setPotBb(p)",
       "destination": null,
       "type": "button",
@@ -88645,11 +88718,11 @@
       "effectRef": "pages/hub/training/blind-defense.js"
     },
     {
-      "id": "pages/hub/training/blind-defense.js:226:4",
+      "id": "pages/hub/training/blind-defense.js:225:4",
       "file": "pages/hub/training/blind-defense.js",
       "element": "button",
       "name": "BB",
-      "line": 226,
+      "line": 225,
       "handler": "() => setFacingBetBb(bet)",
       "destination": null,
       "type": "button",
@@ -88658,11 +88731,11 @@
       "effectRef": "pages/hub/training/blind-defense.js"
     },
     {
-      "id": "pages/hub/training/blind-defense.js:280:5",
+      "id": "pages/hub/training/blind-defense.js:279:5",
       "file": "pages/hub/training/blind-defense.js",
       "element": "button",
       "name": "Practice Geometry Spot In Club Arena →",
-      "line": 280,
+      "line": 279,
       "handler": "() => router.push(geometryEval.arenaHref)",
       "destination": null,
       "type": "button",
@@ -88671,11 +88744,11 @@
       "effectRef": "pages/hub/training/blind-defense.js"
     },
     {
-      "id": "pages/hub/training/blind-defense.js:301:6",
+      "id": "pages/hub/training/blind-defense.js:300:6",
       "file": "pages/hub/training/blind-defense.js",
       "element": "a",
       "name": "Continue To Blind Defense →",
-      "line": 301,
+      "line": 300,
       "handler": null,
       "destination": "VERIFIED_DRILL",
       "type": null,
@@ -88775,11 +88848,11 @@
       "effectRef": "pages/hub/training/bounty-trainer.js"
     },
     {
-      "id": "pages/hub/training/category/[categoryId].js:103:1",
+      "id": "pages/hub/training/category/[categoryId].js:106:1",
       "file": "pages/hub/training/category/[categoryId].js",
       "element": "button",
       "name": "Return To Training",
-      "line": 103,
+      "line": 106,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -88788,11 +88861,11 @@
       "effectRef": "pages/hub/training/category/[categoryId].js"
     },
     {
-      "id": "pages/hub/training/category/[categoryId].js:127:2",
+      "id": "pages/hub/training/category/[categoryId].js:130:2",
       "file": "pages/hub/training/category/[categoryId].js",
       "element": "button",
       "name": "Training Hub",
-      "line": 127,
+      "line": 130,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -88801,11 +88874,24 @@
       "effectRef": "pages/hub/training/category/[categoryId].js"
     },
     {
-      "id": "pages/hub/training/category/[categoryId].js:173:3",
+      "id": "pages/hub/training/category/[categoryId].js:169:3",
+      "file": "pages/hub/training/category/[categoryId].js",
+      "element": "button",
+      "name": "Start Sector Training →",
+      "line": 169,
+      "handler": "() => router.push(`/hub/training/arena/${featuredGame.id}?level=1`)",
+      "destination": null,
+      "type": "button",
+      "disabled": null,
+      "wiring": "handler",
+      "effectRef": "pages/hub/training/category/[categoryId].js"
+    },
+    {
+      "id": "pages/hub/training/category/[categoryId].js:221:4",
       "file": "pages/hub/training/category/[categoryId].js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 173,
+      "line": 221,
       "handler": "() => setBrainVariant(v)",
       "destination": null,
       "type": "button",
@@ -88814,11 +88900,11 @@
       "effectRef": "pages/hub/training/category/[categoryId].js"
     },
     {
-      "id": "pages/hub/training/category/[categoryId].js:191:4",
+      "id": "pages/hub/training/category/[categoryId].js:239:5",
       "file": "pages/hub/training/category/[categoryId].js",
       "element": "button",
       "name": "Launch 1:1 Club Arena Drill",
-      "line": 191,
+      "line": 239,
       "handler": "() => router.push(buildCustomTrainingArenaHref({ format: 'cash', variant: brainVariant, streets: ['flop'], positions: ['BTN'], stackDepth: 100 }, 'category'))",
       "destination": null,
       "type": "button",
@@ -89880,11 +89966,11 @@
       "effectRef": "pages/hub/training/ev-heatmap.js"
     },
     {
-      "id": "pages/hub/training/ev-trainer.js:165:1",
+      "id": "pages/hub/training/ev-trainer.js:164:1",
       "file": "pages/hub/training/ev-trainer.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 165,
+      "line": 164,
       "handler": "() => setActiveVariant(v)",
       "destination": null,
       "type": "button",
@@ -89893,11 +89979,11 @@
       "effectRef": "pages/hub/training/ev-trainer.js"
     },
     {
-      "id": "pages/hub/training/ev-trainer.js:184:2",
+      "id": "pages/hub/training/ev-trainer.js:183:2",
       "file": "pages/hub/training/ev-trainer.js",
       "element": "button",
       "name": "BB",
-      "line": 184,
+      "line": 183,
       "handler": "() => setStackDepthBb(stk)",
       "destination": null,
       "type": "button",
@@ -89906,11 +89992,11 @@
       "effectRef": "pages/hub/training/ev-trainer.js"
     },
     {
-      "id": "pages/hub/training/ev-trainer.js:203:3",
+      "id": "pages/hub/training/ev-trainer.js:202:3",
       "file": "pages/hub/training/ev-trainer.js",
       "element": "button",
       "name": "BB",
-      "line": 203,
+      "line": 202,
       "handler": "() => setPotBb(p)",
       "destination": null,
       "type": "button",
@@ -89919,11 +90005,11 @@
       "effectRef": "pages/hub/training/ev-trainer.js"
     },
     {
-      "id": "pages/hub/training/ev-trainer.js:222:4",
+      "id": "pages/hub/training/ev-trainer.js:221:4",
       "file": "pages/hub/training/ev-trainer.js",
       "element": "button",
       "name": "BB",
-      "line": 222,
+      "line": 221,
       "handler": "() => setFacingBetBb(bet)",
       "destination": null,
       "type": "button",
@@ -89932,11 +90018,11 @@
       "effectRef": "pages/hub/training/ev-trainer.js"
     },
     {
-      "id": "pages/hub/training/ev-trainer.js:276:5",
+      "id": "pages/hub/training/ev-trainer.js:275:5",
       "file": "pages/hub/training/ev-trainer.js",
       "element": "button",
       "name": "Practice Geometry Spot In Club Arena →",
-      "line": 276,
+      "line": 275,
       "handler": "() => router.push(geometryEval.arenaHref)",
       "destination": null,
       "type": "button",
@@ -89945,11 +90031,11 @@
       "effectRef": "pages/hub/training/ev-trainer.js"
     },
     {
-      "id": "pages/hub/training/ev-trainer.js:297:6",
+      "id": "pages/hub/training/ev-trainer.js:296:6",
       "file": "pages/hub/training/ev-trainer.js",
       "element": "a",
       "name": "Continue To EV Calculations →",
-      "line": 297,
+      "line": 296,
       "handler": null,
       "destination": "CANONICAL_ARENA_HREF",
       "type": null,
@@ -89958,11 +90044,11 @@
       "effectRef": "pages/hub/training/ev-trainer.js"
     },
     {
-      "id": "pages/hub/training/famous-finals.js:110:1",
+      "id": "pages/hub/training/famous-finals.js:109:1",
       "file": "pages/hub/training/famous-finals.js",
       "element": "button",
       "name": "Back To Training Hub",
-      "line": 110,
+      "line": 109,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -89971,11 +90057,11 @@
       "effectRef": "pages/hub/training/famous-finals.js"
     },
     {
-      "id": "pages/hub/training/famous-finals.js:230:2",
+      "id": "pages/hub/training/famous-finals.js:229:2",
       "file": "pages/hub/training/famous-finals.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 230,
+      "line": 229,
       "handler": "() => setActiveVariant(v)",
       "destination": null,
       "type": "button",
@@ -89984,11 +90070,11 @@
       "effectRef": "pages/hub/training/famous-finals.js"
     },
     {
-      "id": "pages/hub/training/famous-finals.js:257:3",
+      "id": "pages/hub/training/famous-finals.js:256:3",
       "file": "pages/hub/training/famous-finals.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 257,
+      "line": 256,
       "handler": "() => setHeroPosition(pos)",
       "destination": null,
       "type": "button",
@@ -89997,11 +90083,11 @@
       "effectRef": "pages/hub/training/famous-finals.js"
     },
     {
-      "id": "pages/hub/training/famous-finals.js:284:4",
+      "id": "pages/hub/training/famous-finals.js:283:4",
       "file": "pages/hub/training/famous-finals.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 284,
+      "line": 283,
       "handler": "() => setActiveStreet(st)",
       "destination": null,
       "type": "button",
@@ -90010,11 +90096,11 @@
       "effectRef": "pages/hub/training/famous-finals.js"
     },
     {
-      "id": "pages/hub/training/famous-finals.js:310:5",
+      "id": "pages/hub/training/famous-finals.js:309:5",
       "file": "pages/hub/training/famous-finals.js",
       "element": "button",
       "name": "Practice Target Spot In Club Arena →",
-      "line": 310,
+      "line": 309,
       "handler": "() => router.push(arenaHref)",
       "destination": null,
       "type": "button",
@@ -90023,11 +90109,11 @@
       "effectRef": "pages/hub/training/famous-finals.js"
     },
     {
-      "id": "pages/hub/training/famous-finals.js:331:6",
+      "id": "pages/hub/training/famous-finals.js:330:6",
       "file": "pages/hub/training/famous-finals.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 331,
+      "line": 330,
       "handler": "() => router.push(route.href)",
       "destination": null,
       "type": "button",
@@ -90517,11 +90603,11 @@
       "effectRef": "pages/hub/training/gto-preloader.js"
     },
     {
-      "id": "pages/hub/training/gto-scorecard.js:148:1",
+      "id": "pages/hub/training/gto-scorecard.js:147:1",
       "file": "pages/hub/training/gto-scorecard.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 148,
+      "line": 147,
       "handler": "() => setActiveVariant(v)",
       "destination": null,
       "type": "button",
@@ -90530,11 +90616,11 @@
       "effectRef": "pages/hub/training/gto-scorecard.js"
     },
     {
-      "id": "pages/hub/training/gto-scorecard.js:175:2",
+      "id": "pages/hub/training/gto-scorecard.js:174:2",
       "file": "pages/hub/training/gto-scorecard.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 175,
+      "line": 174,
       "handler": "() => setHeroPosition(pos)",
       "destination": null,
       "type": "button",
@@ -90543,11 +90629,11 @@
       "effectRef": "pages/hub/training/gto-scorecard.js"
     },
     {
-      "id": "pages/hub/training/gto-scorecard.js:202:3",
+      "id": "pages/hub/training/gto-scorecard.js:201:3",
       "file": "pages/hub/training/gto-scorecard.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 202,
+      "line": 201,
       "handler": "() => setActiveStreet(st)",
       "destination": null,
       "type": "button",
@@ -90556,11 +90642,11 @@
       "effectRef": "pages/hub/training/gto-scorecard.js"
     },
     {
-      "id": "pages/hub/training/gto-scorecard.js:229:4",
+      "id": "pages/hub/training/gto-scorecard.js:228:4",
       "file": "pages/hub/training/gto-scorecard.js",
       "element": "button",
       "name": "Practice Target Spot In Club Arena →",
-      "line": 229,
+      "line": 228,
       "handler": "() => router.push(arenaHref)",
       "destination": null,
       "type": "button",
@@ -90569,11 +90655,11 @@
       "effectRef": "pages/hub/training/gto-scorecard.js"
     },
     {
-      "id": "pages/hub/training/gto-scorecard.js:245:5",
+      "id": "pages/hub/training/gto-scorecard.js:244:5",
       "file": "pages/hub/training/gto-scorecard.js",
       "element": "a",
       "name": "Open GTO Reports →",
-      "line": 245,
+      "line": 244,
       "handler": null,
       "destination": "/hub/training/gto-reports",
       "type": null,
@@ -91193,11 +91279,11 @@
       "effectRef": "pages/hub/training/icm-calculator.js"
     },
     {
-      "id": "pages/hub/training/icm-final-table.js:136:1",
+      "id": "pages/hub/training/icm-final-table.js:135:1",
       "file": "pages/hub/training/icm-final-table.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 136,
+      "line": 135,
       "handler": "() => setBrainVariant(v)",
       "destination": null,
       "type": "button",
@@ -91206,11 +91292,11 @@
       "effectRef": "pages/hub/training/icm-final-table.js"
     },
     {
-      "id": "pages/hub/training/icm-final-table.js:283:2",
+      "id": "pages/hub/training/icm-final-table.js:282:2",
       "file": "pages/hub/training/icm-final-table.js",
       "element": "button",
       "name": "Practice Tournament Spot In Club Arena →",
-      "line": 283,
+      "line": 282,
       "handler": "() => router.push(arenaHref)",
       "destination": null,
       "type": "button",
@@ -91219,11 +91305,11 @@
       "effectRef": "pages/hub/training/icm-final-table.js"
     },
     {
-      "id": "pages/hub/training/icm-final-table.js:306:3",
+      "id": "pages/hub/training/icm-final-table.js:305:3",
       "file": "pages/hub/training/icm-final-table.js",
       "element": "a",
       "name": "Continue To Final Table ICM →",
-      "line": 306,
+      "line": 305,
       "handler": null,
       "destination": "arenaHref || '/hub/training/arena/mtt-004?level=1&source=icm-final-table'",
       "type": null,
@@ -91661,11 +91747,11 @@
       "effectRef": "pages/hub/training/milestones.js"
     },
     {
-      "id": "pages/hub/training/mixed-strategy-lab.js:136:1",
+      "id": "pages/hub/training/mixed-strategy-lab.js:135:1",
       "file": "pages/hub/training/mixed-strategy-lab.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 136,
+      "line": 135,
       "handler": "() => setActiveVariant(v)",
       "destination": null,
       "type": "button",
@@ -91674,11 +91760,11 @@
       "effectRef": "pages/hub/training/mixed-strategy-lab.js"
     },
     {
-      "id": "pages/hub/training/mixed-strategy-lab.js:147:2",
+      "id": "pages/hub/training/mixed-strategy-lab.js:146:2",
       "file": "pages/hub/training/mixed-strategy-lab.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 147,
+      "line": 146,
       "handler": "() => setStreet(st)",
       "destination": null,
       "type": "button",
@@ -91687,11 +91773,11 @@
       "effectRef": "pages/hub/training/mixed-strategy-lab.js"
     },
     {
-      "id": "pages/hub/training/mixed-strategy-lab.js:158:3",
+      "id": "pages/hub/training/mixed-strategy-lab.js:157:3",
       "file": "pages/hub/training/mixed-strategy-lab.js",
       "element": "button",
       "name": "BB",
-      "line": 158,
+      "line": 157,
       "handler": "() => setEffectiveStackBb(stk)",
       "destination": null,
       "type": "button",
@@ -91700,11 +91786,11 @@
       "effectRef": "pages/hub/training/mixed-strategy-lab.js"
     },
     {
-      "id": "pages/hub/training/mixed-strategy-lab.js:169:4",
+      "id": "pages/hub/training/mixed-strategy-lab.js:168:4",
       "file": "pages/hub/training/mixed-strategy-lab.js",
       "element": "button",
       "name": "BB",
-      "line": 169,
+      "line": 168,
       "handler": "() => setPot(p)",
       "destination": null,
       "type": "button",
@@ -91713,11 +91799,11 @@
       "effectRef": "pages/hub/training/mixed-strategy-lab.js"
     },
     {
-      "id": "pages/hub/training/mixed-strategy-lab.js:180:5",
+      "id": "pages/hub/training/mixed-strategy-lab.js:179:5",
       "file": "pages/hub/training/mixed-strategy-lab.js",
       "element": "button",
       "name": "BB",
-      "line": 180,
+      "line": 179,
       "handler": "() => setToCall(bet)",
       "destination": null,
       "type": "button",
@@ -91726,11 +91812,11 @@
       "effectRef": "pages/hub/training/mixed-strategy-lab.js"
     },
     {
-      "id": "pages/hub/training/mixed-strategy-lab.js:191:6",
+      "id": "pages/hub/training/mixed-strategy-lab.js:190:6",
       "file": "pages/hub/training/mixed-strategy-lab.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 191,
+      "line": 190,
       "handler": "() => setRakeEnv(rk)",
       "destination": null,
       "type": "button",
@@ -91739,11 +91825,11 @@
       "effectRef": "pages/hub/training/mixed-strategy-lab.js"
     },
     {
-      "id": "pages/hub/training/mixed-strategy-lab.js:218:7",
+      "id": "pages/hub/training/mixed-strategy-lab.js:217:7",
       "file": "pages/hub/training/mixed-strategy-lab.js",
       "element": "button",
       "name": "Practice Equilibrium Spot In Club Arena →",
-      "line": 218,
+      "line": 217,
       "handler": "() => router.push(arenaHref)",
       "destination": null,
       "type": "button",
@@ -91752,11 +91838,11 @@
       "effectRef": "pages/hub/training/mixed-strategy-lab.js"
     },
     {
-      "id": "pages/hub/training/mixed-strategy-lab.js:238:8",
+      "id": "pages/hub/training/mixed-strategy-lab.js:237:8",
       "file": "pages/hub/training/mixed-strategy-lab.js",
       "element": "a",
       "name": "Continue To Mixed Strategy Training →",
-      "line": 238,
+      "line": 237,
       "handler": null,
       "destination": "CANONICAL_MIXED_ARENA_HREF",
       "type": null,
@@ -91765,11 +91851,11 @@
       "effectRef": "pages/hub/training/mixed-strategy-lab.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:1022:1",
+      "id": "pages/hub/training/multi-table.js:1042:1",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1022,
+      "line": 1042,
       "handler": "() => {\n                        setSelectedVariant(v.id);\n                        setPaneConfigs(resolveDefaultPaneConfigs(v.id));\n                      }",
       "destination": null,
       "type": "button",
@@ -91778,11 +91864,11 @@
       "effectRef": "pages/hub/training/multi-table.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:1072:2",
+      "id": "pages/hub/training/multi-table.js:1102:2",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "Apply Mixed 4-Game Rotation (NLH + PLO4 + PLO5 + PLO8)",
-      "line": 1072,
+      "line": 1102,
       "handler": "() => {\n                    setTableCount(4);\n                    setSelectedVariant('nlh');\n                    setPaneConfigs([\n                      { variant: 'nlh', bettingStructure: 'no_limit', format: 'cash' },\n                      { variant: 'plo4', bettingStructure: 'pot_limit', format: 'mtt' },\n                      { variant: 'plo5', bettingStructure: 'pot_limit', format: 'cash' },\n                      { variant: 'plo8', bettingStructure: 'fixed_limit', format: 'cash' },\n                    ]);\n                  }",
       "destination": null,
       "type": "button",
@@ -91791,11 +91877,11 @@
       "effectRef": "pages/hub/training/multi-table.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:1230:3",
+      "id": "pages/hub/training/multi-table.js:1260:3",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1230,
+      "line": 1260,
       "handler": "() => {\n                        setSelectedGames((prev) => {\n                          if (prev.includes(g.id)) return prev.filter((x) => x !== g.id);\n                          if (prev.length >= tableCount) return [...prev.slice(1), g.id];\n                          return [...prev, g.id];\n                        });\n                      }",
       "destination": null,
       "type": null,
@@ -91804,11 +91890,11 @@
       "effectRef": "pages/hub/training/multi-table.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:1299:4",
+      "id": "pages/hub/training/multi-table.js:1331:4",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "← Back To Training",
-      "line": 1299,
+      "line": 1331,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": null,
@@ -91817,11 +91903,11 @@
       "effectRef": "pages/hub/training/multi-table.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:1341:5",
+      "id": "pages/hub/training/multi-table.js:1373:5",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "Warm Up Focused Table In 1:1 Club Arena →",
-      "line": 1341,
+      "line": 1373,
       "handler": "() => router.push(multiTableSingleArenaHref)",
       "destination": null,
       "type": "button",
@@ -91830,11 +91916,11 @@
       "effectRef": "pages/hub/training/multi-table.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:1375:6",
+      "id": "pages/hub/training/multi-table.js:1407:6",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "← Exit",
-      "line": 1375,
+      "line": 1407,
       "handler": "() => {\n                  setIsStarted(false);\n                  reportedTablesRef.current = new Set();\n                  liveTableTallyRef.current = {};\n                  tableStatesRef.current = {};\n                  setTableStates({});\n                  setCompletedTables(new Set());\n                  setCombinedStats({\n                    totalHands: 0,\n                    totalCorrect: 0,\n                    totalEVLoss: 0,\n                    measuredEVDecisions: 0,\n                    tablesCompleted: 0,\n                  });\n                }",
       "destination": null,
       "type": null,
@@ -91843,11 +91929,11 @@
       "effectRef": "pages/hub/training/multi-table.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:1427:7",
+      "id": "pages/hub/training/multi-table.js:1459:7",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1427,
+      "line": 1459,
       "handler": "() => {\n                        if (selectedVariant === v.id) return;\n                        setSelectedVariant(v.id);\n                        setPaneConfigs(resolveDefaultPaneConfigs(v.id));\n                        setRunId(`mt-${Date.now()}`);\n                        reportedTablesRef.current = new Set();\n                        liveTableTallyRef.current = {};\n                        tableStatesRef.current = {};\n                        setTableStates({});\n                        setCompletedTables(new Set());\n                        setCombinedStats({\n                          totalHands: 0,\n                          totalCorrect: 0,\n                          totalEVLoss: 0,\n                          measuredEVDecisions: 0,\n                          tablesCompleted: 0,\n                        });\n                        hasSavedRef.current = false;\n                      }",
       "destination": null,
       "type": "button",
@@ -91856,11 +91942,11 @@
       "effectRef": "pages/hub/training/multi-table.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:1542:8",
+      "id": "pages/hub/training/multi-table.js:1574:8",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "T · ( H · %) - BB",
-      "line": 1542,
+      "line": 1574,
       "handler": "() => setFocusedGameId(gameId)",
       "destination": null,
       "type": "button",
@@ -91869,11 +91955,11 @@
       "effectRef": "pages/hub/training/multi-table.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:1580:9",
+      "id": "pages/hub/training/multi-table.js:1612:9",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "Jump To Next Pending Table →",
-      "line": 1580,
+      "line": 1612,
       "handler": "() => {\n                  if (visibleGames.length === 0) return;\n                  const curIdx = Math.max(0, visibleGames.indexOf(activeGameId));\n                  for (let offset = 1; offset <= visibleGames.length; offset += 1) {\n                    const candidateId = visibleGames[(curIdx + offset) % visibleGames.length];\n                    if (completedTables.has(candidateId)) continue;\n                    const candidateState = tableStates[candidateId];\n                    if (!candidateState?.gameComplete && !candidateState?.showFeedback) {\n                      setFocusedGameId(candidateId);\n                      return;\n                    }\n                  }\n                  const nextId = visibleGames[(curIdx + 1) % visibleGames.length];\n                  if (nextId) setFocusedGameId(nextId);\n                }",
       "destination": null,
       "type": "button",
@@ -91882,11 +91968,11 @@
       "effectRef": "pages/hub/training/multi-table.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:1636:10",
+      "id": "pages/hub/training/multi-table.js:1668:10",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "TABLE",
-      "line": 1636,
+      "line": 1668,
       "handler": "() => setFocusedGameId(gameId)",
       "destination": null,
       "type": null,
@@ -91895,11 +91981,11 @@
       "effectRef": "pages/hub/training/multi-table.js"
     },
     {
-      "id": "pages/hub/training/multiway-postflop.js:162:1",
+      "id": "pages/hub/training/multiway-postflop.js:161:1",
       "file": "pages/hub/training/multiway-postflop.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 162,
+      "line": 161,
       "handler": "() => setActiveVariant(v)",
       "destination": null,
       "type": "button",
@@ -91908,11 +91994,11 @@
       "effectRef": "pages/hub/training/multiway-postflop.js"
     },
     {
-      "id": "pages/hub/training/multiway-postflop.js:181:2",
+      "id": "pages/hub/training/multiway-postflop.js:180:2",
       "file": "pages/hub/training/multiway-postflop.js",
       "element": "button",
       "name": "BB",
-      "line": 181,
+      "line": 180,
       "handler": "() => setStackDepthBb(stk)",
       "destination": null,
       "type": "button",
@@ -91921,11 +92007,11 @@
       "effectRef": "pages/hub/training/multiway-postflop.js"
     },
     {
-      "id": "pages/hub/training/multiway-postflop.js:200:3",
+      "id": "pages/hub/training/multiway-postflop.js:199:3",
       "file": "pages/hub/training/multiway-postflop.js",
       "element": "button",
       "name": "BB",
-      "line": 200,
+      "line": 199,
       "handler": "() => setPotBb(p)",
       "destination": null,
       "type": "button",
@@ -91934,11 +92020,11 @@
       "effectRef": "pages/hub/training/multiway-postflop.js"
     },
     {
-      "id": "pages/hub/training/multiway-postflop.js:219:4",
+      "id": "pages/hub/training/multiway-postflop.js:218:4",
       "file": "pages/hub/training/multiway-postflop.js",
       "element": "button",
       "name": "BB",
-      "line": 219,
+      "line": 218,
       "handler": "() => setFacingBetBb(bet)",
       "destination": null,
       "type": "button",
@@ -91947,11 +92033,11 @@
       "effectRef": "pages/hub/training/multiway-postflop.js"
     },
     {
-      "id": "pages/hub/training/multiway-postflop.js:273:5",
+      "id": "pages/hub/training/multiway-postflop.js:272:5",
       "file": "pages/hub/training/multiway-postflop.js",
       "element": "button",
       "name": "Practice Geometry Spot In Club Arena →",
-      "line": 273,
+      "line": 272,
       "handler": "() => router.push(geometryEval.arenaHref)",
       "destination": null,
       "type": "button",
@@ -91960,11 +92046,11 @@
       "effectRef": "pages/hub/training/multiway-postflop.js"
     },
     {
-      "id": "pages/hub/training/multiway-postflop.js:294:6",
+      "id": "pages/hub/training/multiway-postflop.js:293:6",
       "file": "pages/hub/training/multiway-postflop.js",
       "element": "a",
       "name": "Continue To Multi-Way Pots →",
-      "line": 294,
+      "line": 293,
       "handler": null,
       "destination": "VERIFIED_DRILL",
       "type": null,
@@ -92233,11 +92319,11 @@
       "effectRef": "pages/hub/training/nodelocking.js"
     },
     {
-      "id": "pages/hub/training/performance-heatmap.js:148:1",
+      "id": "pages/hub/training/performance-heatmap.js:147:1",
       "file": "pages/hub/training/performance-heatmap.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 148,
+      "line": 147,
       "handler": "() => setActiveVariant(v)",
       "destination": null,
       "type": "button",
@@ -92246,11 +92332,11 @@
       "effectRef": "pages/hub/training/performance-heatmap.js"
     },
     {
-      "id": "pages/hub/training/performance-heatmap.js:175:2",
+      "id": "pages/hub/training/performance-heatmap.js:174:2",
       "file": "pages/hub/training/performance-heatmap.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 175,
+      "line": 174,
       "handler": "() => setHeroPosition(pos)",
       "destination": null,
       "type": "button",
@@ -92259,11 +92345,11 @@
       "effectRef": "pages/hub/training/performance-heatmap.js"
     },
     {
-      "id": "pages/hub/training/performance-heatmap.js:202:3",
+      "id": "pages/hub/training/performance-heatmap.js:201:3",
       "file": "pages/hub/training/performance-heatmap.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 202,
+      "line": 201,
       "handler": "() => setActiveStreet(st)",
       "destination": null,
       "type": "button",
@@ -92272,11 +92358,11 @@
       "effectRef": "pages/hub/training/performance-heatmap.js"
     },
     {
-      "id": "pages/hub/training/performance-heatmap.js:229:4",
+      "id": "pages/hub/training/performance-heatmap.js:228:4",
       "file": "pages/hub/training/performance-heatmap.js",
       "element": "button",
       "name": "Practice Target Spot In Club Arena →",
-      "line": 229,
+      "line": 228,
       "handler": "() => router.push(arenaHref)",
       "destination": null,
       "type": "button",
@@ -92285,11 +92371,11 @@
       "effectRef": "pages/hub/training/performance-heatmap.js"
     },
     {
-      "id": "pages/hub/training/performance-heatmap.js:245:5",
+      "id": "pages/hub/training/performance-heatmap.js:244:5",
       "file": "pages/hub/training/performance-heatmap.js",
       "element": "a",
       "name": "Open GTO Reports →",
-      "line": 245,
+      "line": 244,
       "handler": null,
       "destination": "/hub/training/gto-reports",
       "type": null,
@@ -92467,11 +92553,11 @@
       "effectRef": "pages/hub/training/position-mastery.js"
     },
     {
-      "id": "pages/hub/training/pot-geometry.js:165:1",
+      "id": "pages/hub/training/pot-geometry.js:164:1",
       "file": "pages/hub/training/pot-geometry.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 165,
+      "line": 164,
       "handler": "() => setActiveVariant(v)",
       "destination": null,
       "type": "button",
@@ -92480,11 +92566,11 @@
       "effectRef": "pages/hub/training/pot-geometry.js"
     },
     {
-      "id": "pages/hub/training/pot-geometry.js:184:2",
+      "id": "pages/hub/training/pot-geometry.js:183:2",
       "file": "pages/hub/training/pot-geometry.js",
       "element": "button",
       "name": "BB",
-      "line": 184,
+      "line": 183,
       "handler": "() => setStackDepthBb(stk)",
       "destination": null,
       "type": "button",
@@ -92493,11 +92579,11 @@
       "effectRef": "pages/hub/training/pot-geometry.js"
     },
     {
-      "id": "pages/hub/training/pot-geometry.js:203:3",
+      "id": "pages/hub/training/pot-geometry.js:202:3",
       "file": "pages/hub/training/pot-geometry.js",
       "element": "button",
       "name": "BB",
-      "line": 203,
+      "line": 202,
       "handler": "() => setPotBb(p)",
       "destination": null,
       "type": "button",
@@ -92506,11 +92592,11 @@
       "effectRef": "pages/hub/training/pot-geometry.js"
     },
     {
-      "id": "pages/hub/training/pot-geometry.js:222:4",
+      "id": "pages/hub/training/pot-geometry.js:221:4",
       "file": "pages/hub/training/pot-geometry.js",
       "element": "button",
       "name": "BB",
-      "line": 222,
+      "line": 221,
       "handler": "() => setFacingBetBb(bet)",
       "destination": null,
       "type": "button",
@@ -92519,11 +92605,11 @@
       "effectRef": "pages/hub/training/pot-geometry.js"
     },
     {
-      "id": "pages/hub/training/pot-geometry.js:276:5",
+      "id": "pages/hub/training/pot-geometry.js:275:5",
       "file": "pages/hub/training/pot-geometry.js",
       "element": "button",
       "name": "Practice Geometry Spot In Club Arena →",
-      "line": 276,
+      "line": 275,
       "handler": "() => router.push(geometryEval.arenaHref)",
       "destination": null,
       "type": "button",
@@ -92532,11 +92618,11 @@
       "effectRef": "pages/hub/training/pot-geometry.js"
     },
     {
-      "id": "pages/hub/training/pot-geometry.js:297:6",
+      "id": "pages/hub/training/pot-geometry.js:296:6",
       "file": "pages/hub/training/pot-geometry.js",
       "element": "a",
       "name": "Continue To SPR Mastery →",
-      "line": 297,
+      "line": 296,
       "handler": null,
       "destination": "CANONICAL_ARENA_HREF",
       "type": null,
@@ -92545,11 +92631,11 @@
       "effectRef": "pages/hub/training/pot-geometry.js"
     },
     {
-      "id": "pages/hub/training/preflop-advisor.js:153:1",
+      "id": "pages/hub/training/preflop-advisor.js:152:1",
       "file": "pages/hub/training/preflop-advisor.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 153,
+      "line": 152,
       "handler": "() => setActiveVariant(v)",
       "destination": null,
       "type": "button",
@@ -92558,11 +92644,11 @@
       "effectRef": "pages/hub/training/preflop-advisor.js"
     },
     {
-      "id": "pages/hub/training/preflop-advisor.js:173:2",
+      "id": "pages/hub/training/preflop-advisor.js:172:2",
       "file": "pages/hub/training/preflop-advisor.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 173,
+      "line": 172,
       "handler": "() => setHeroPosition(pos)",
       "destination": null,
       "type": "button",
@@ -92571,11 +92657,11 @@
       "effectRef": "pages/hub/training/preflop-advisor.js"
     },
     {
-      "id": "pages/hub/training/preflop-advisor.js:193:3",
+      "id": "pages/hub/training/preflop-advisor.js:192:3",
       "file": "pages/hub/training/preflop-advisor.js",
       "element": "button",
       "name": "BB",
-      "line": 193,
+      "line": 192,
       "handler": "() => setEffectiveStackBb(stk)",
       "destination": null,
       "type": "button",
@@ -92584,11 +92670,11 @@
       "effectRef": "pages/hub/training/preflop-advisor.js"
     },
     {
-      "id": "pages/hub/training/preflop-advisor.js:216:4",
+      "id": "pages/hub/training/preflop-advisor.js:215:4",
       "file": "pages/hub/training/preflop-advisor.js",
       "element": "button",
       "name": "Practice Preflop Spot In Club Arena →",
-      "line": 216,
+      "line": 215,
       "handler": "() => router.push(arenaHref)",
       "destination": null,
       "type": "button",
@@ -92597,11 +92683,11 @@
       "effectRef": "pages/hub/training/preflop-advisor.js"
     },
     {
-      "id": "pages/hub/training/preflop-advisor.js:233:5",
+      "id": "pages/hub/training/preflop-advisor.js:232:5",
       "file": "pages/hub/training/preflop-advisor.js",
       "element": "a",
       "name": "Continue To Preflop Blueprint →",
-      "line": 233,
+      "line": 232,
       "handler": null,
       "destination": "VERIFIED_DRILL",
       "type": null,
@@ -93104,11 +93190,11 @@
       "effectRef": "pages/hub/training/quiz-builder.js"
     },
     {
-      "id": "pages/hub/training/quiz-builder.js:723:2",
+      "id": "pages/hub/training/quiz-builder.js:732:2",
       "file": "pages/hub/training/quiz-builder.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 723,
+      "line": 732,
       "handler": "() => setBrainVariant(v)",
       "destination": null,
       "type": "button",
@@ -93117,11 +93203,11 @@
       "effectRef": "pages/hub/training/quiz-builder.js"
     },
     {
-      "id": "pages/hub/training/quiz-builder.js:750:3",
+      "id": "pages/hub/training/quiz-builder.js:759:3",
       "file": "pages/hub/training/quiz-builder.js",
       "element": "button",
       "name": "Launch 1:1 Club Arena Drill",
-      "line": 750,
+      "line": 759,
       "handler": "() => router.push(buildCustomTrainingArenaHref({ format: 'cash', variant: brainVariant, streets: ['flop'], positions: ['BTN'], stackDepth: 100 }, 'quiz-builder'))",
       "destination": null,
       "type": "button",
@@ -93273,11 +93359,11 @@
       "effectRef": "pages/hub/training/rake-solutions.js"
     },
     {
-      "id": "pages/hub/training/range-advisor.js:153:1",
+      "id": "pages/hub/training/range-advisor.js:152:1",
       "file": "pages/hub/training/range-advisor.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 153,
+      "line": 152,
       "handler": "() => setActiveVariant(v)",
       "destination": null,
       "type": "button",
@@ -93286,11 +93372,11 @@
       "effectRef": "pages/hub/training/range-advisor.js"
     },
     {
-      "id": "pages/hub/training/range-advisor.js:173:2",
+      "id": "pages/hub/training/range-advisor.js:172:2",
       "file": "pages/hub/training/range-advisor.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 173,
+      "line": 172,
       "handler": "() => setHeroPosition(pos)",
       "destination": null,
       "type": "button",
@@ -93299,11 +93385,11 @@
       "effectRef": "pages/hub/training/range-advisor.js"
     },
     {
-      "id": "pages/hub/training/range-advisor.js:193:3",
+      "id": "pages/hub/training/range-advisor.js:192:3",
       "file": "pages/hub/training/range-advisor.js",
       "element": "button",
       "name": "BB",
-      "line": 193,
+      "line": 192,
       "handler": "() => setEffectiveStackBb(stk)",
       "destination": null,
       "type": "button",
@@ -93312,11 +93398,11 @@
       "effectRef": "pages/hub/training/range-advisor.js"
     },
     {
-      "id": "pages/hub/training/range-advisor.js:216:4",
+      "id": "pages/hub/training/range-advisor.js:215:4",
       "file": "pages/hub/training/range-advisor.js",
       "element": "button",
       "name": "Practice Preflop Spot In Club Arena →",
-      "line": 216,
+      "line": 215,
       "handler": "() => router.push(arenaHref)",
       "destination": null,
       "type": "button",
@@ -93325,11 +93411,11 @@
       "effectRef": "pages/hub/training/range-advisor.js"
     },
     {
-      "id": "pages/hub/training/range-advisor.js:233:5",
+      "id": "pages/hub/training/range-advisor.js:232:5",
       "file": "pages/hub/training/range-advisor.js",
       "element": "a",
       "name": "Continue To Range Construction →",
-      "line": 233,
+      "line": 232,
       "handler": null,
       "destination": "VERIFIED_DRILL",
       "type": null,
@@ -93494,11 +93580,11 @@
       "effectRef": "pages/hub/training/range-builder.js"
     },
     {
-      "id": "pages/hub/training/range-explorer.js:154:1",
+      "id": "pages/hub/training/range-explorer.js:153:1",
       "file": "pages/hub/training/range-explorer.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 154,
+      "line": 153,
       "handler": "() => setActiveVariant(v)",
       "destination": null,
       "type": "button",
@@ -93507,11 +93593,11 @@
       "effectRef": "pages/hub/training/range-explorer.js"
     },
     {
-      "id": "pages/hub/training/range-explorer.js:174:2",
+      "id": "pages/hub/training/range-explorer.js:173:2",
       "file": "pages/hub/training/range-explorer.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 174,
+      "line": 173,
       "handler": "() => setHeroPosition(pos)",
       "destination": null,
       "type": "button",
@@ -93520,11 +93606,11 @@
       "effectRef": "pages/hub/training/range-explorer.js"
     },
     {
-      "id": "pages/hub/training/range-explorer.js:194:3",
+      "id": "pages/hub/training/range-explorer.js:193:3",
       "file": "pages/hub/training/range-explorer.js",
       "element": "button",
       "name": "BB",
-      "line": 194,
+      "line": 193,
       "handler": "() => setEffectiveStackBb(stk)",
       "destination": null,
       "type": "button",
@@ -93533,11 +93619,11 @@
       "effectRef": "pages/hub/training/range-explorer.js"
     },
     {
-      "id": "pages/hub/training/range-explorer.js:217:4",
+      "id": "pages/hub/training/range-explorer.js:216:4",
       "file": "pages/hub/training/range-explorer.js",
       "element": "button",
       "name": "Practice Preflop Spot In Club Arena →",
-      "line": 217,
+      "line": 216,
       "handler": "() => router.push(arenaHref)",
       "destination": null,
       "type": "button",
@@ -93546,11 +93632,11 @@
       "effectRef": "pages/hub/training/range-explorer.js"
     },
     {
-      "id": "pages/hub/training/range-explorer.js:234:5",
+      "id": "pages/hub/training/range-explorer.js:233:5",
       "file": "pages/hub/training/range-explorer.js",
       "element": "a",
       "name": "Open Preflop Charts →",
-      "line": 234,
+      "line": 233,
       "handler": null,
       "destination": "/hub/training/preflop-charts",
       "type": null,
@@ -94105,11 +94191,11 @@
       "effectRef": "pages/hub/training/session-dashboard.js"
     },
     {
-      "id": "pages/hub/training/session-dashboard.js:1417:12",
+      "id": "pages/hub/training/session-dashboard.js:1428:12",
       "file": "pages/hub/training/session-dashboard.js",
       "element": "button",
       "name": "Fix My #1 PLO8 / Fixed-Limit Leak →",
-      "line": 1417,
+      "line": 1428,
       "handler": "() => router.push(plo8FixLeakHref)",
       "destination": null,
       "type": "button",
@@ -94118,11 +94204,11 @@
       "effectRef": "pages/hub/training/session-dashboard.js"
     },
     {
-      "id": "pages/hub/training/session-dashboard.js:1485:13",
+      "id": "pages/hub/training/session-dashboard.js:1496:13",
       "file": "pages/hub/training/session-dashboard.js",
       "element": "button",
       "name": "Drill Under 15s Shot-Clock Pressure →",
-      "line": 1485,
+      "line": 1496,
       "handler": "() => router.push(shotClockDrillHref)",
       "destination": null,
       "type": "button",
@@ -94833,11 +94919,11 @@
       "effectRef": "pages/hub/training/spot-trainer.js"
     },
     {
-      "id": "pages/hub/training/spr-trainer.js:165:1",
+      "id": "pages/hub/training/spr-trainer.js:164:1",
       "file": "pages/hub/training/spr-trainer.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 165,
+      "line": 164,
       "handler": "() => setActiveVariant(v)",
       "destination": null,
       "type": "button",
@@ -94846,11 +94932,11 @@
       "effectRef": "pages/hub/training/spr-trainer.js"
     },
     {
-      "id": "pages/hub/training/spr-trainer.js:184:2",
+      "id": "pages/hub/training/spr-trainer.js:183:2",
       "file": "pages/hub/training/spr-trainer.js",
       "element": "button",
       "name": "BB",
-      "line": 184,
+      "line": 183,
       "handler": "() => setStackDepthBb(stk)",
       "destination": null,
       "type": "button",
@@ -94859,11 +94945,11 @@
       "effectRef": "pages/hub/training/spr-trainer.js"
     },
     {
-      "id": "pages/hub/training/spr-trainer.js:203:3",
+      "id": "pages/hub/training/spr-trainer.js:202:3",
       "file": "pages/hub/training/spr-trainer.js",
       "element": "button",
       "name": "BB",
-      "line": 203,
+      "line": 202,
       "handler": "() => setPotBb(p)",
       "destination": null,
       "type": "button",
@@ -94872,11 +94958,11 @@
       "effectRef": "pages/hub/training/spr-trainer.js"
     },
     {
-      "id": "pages/hub/training/spr-trainer.js:222:4",
+      "id": "pages/hub/training/spr-trainer.js:221:4",
       "file": "pages/hub/training/spr-trainer.js",
       "element": "button",
       "name": "BB",
-      "line": 222,
+      "line": 221,
       "handler": "() => setFacingBetBb(bet)",
       "destination": null,
       "type": "button",
@@ -94885,11 +94971,11 @@
       "effectRef": "pages/hub/training/spr-trainer.js"
     },
     {
-      "id": "pages/hub/training/spr-trainer.js:276:5",
+      "id": "pages/hub/training/spr-trainer.js:275:5",
       "file": "pages/hub/training/spr-trainer.js",
       "element": "button",
       "name": "Practice Geometry Spot In Club Arena →",
-      "line": 276,
+      "line": 275,
       "handler": "() => router.push(geometryEval.arenaHref)",
       "destination": null,
       "type": "button",
@@ -94898,11 +94984,11 @@
       "effectRef": "pages/hub/training/spr-trainer.js"
     },
     {
-      "id": "pages/hub/training/spr-trainer.js:297:6",
+      "id": "pages/hub/training/spr-trainer.js:296:6",
       "file": "pages/hub/training/spr-trainer.js",
       "element": "a",
       "name": "Continue To SPR Mastery →",
-      "line": 297,
+      "line": 296,
       "handler": null,
       "destination": "CANONICAL_ARENA_HREF",
       "type": null,
@@ -95496,11 +95582,11 @@
       "effectRef": "pages/hub/training/table-wizard.js"
     },
     {
-      "id": "pages/hub/training/three-way-postflop.js:165:1",
+      "id": "pages/hub/training/three-way-postflop.js:164:1",
       "file": "pages/hub/training/three-way-postflop.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 165,
+      "line": 164,
       "handler": "() => setActiveVariant(v)",
       "destination": null,
       "type": "button",
@@ -95509,11 +95595,11 @@
       "effectRef": "pages/hub/training/three-way-postflop.js"
     },
     {
-      "id": "pages/hub/training/three-way-postflop.js:184:2",
+      "id": "pages/hub/training/three-way-postflop.js:183:2",
       "file": "pages/hub/training/three-way-postflop.js",
       "element": "button",
       "name": "BB",
-      "line": 184,
+      "line": 183,
       "handler": "() => setStackDepthBb(stk)",
       "destination": null,
       "type": "button",
@@ -95522,11 +95608,11 @@
       "effectRef": "pages/hub/training/three-way-postflop.js"
     },
     {
-      "id": "pages/hub/training/three-way-postflop.js:203:3",
+      "id": "pages/hub/training/three-way-postflop.js:202:3",
       "file": "pages/hub/training/three-way-postflop.js",
       "element": "button",
       "name": "BB",
-      "line": 203,
+      "line": 202,
       "handler": "() => setPotBb(p)",
       "destination": null,
       "type": "button",
@@ -95535,11 +95621,11 @@
       "effectRef": "pages/hub/training/three-way-postflop.js"
     },
     {
-      "id": "pages/hub/training/three-way-postflop.js:222:4",
+      "id": "pages/hub/training/three-way-postflop.js:221:4",
       "file": "pages/hub/training/three-way-postflop.js",
       "element": "button",
       "name": "BB",
-      "line": 222,
+      "line": 221,
       "handler": "() => setFacingBetBb(bet)",
       "destination": null,
       "type": "button",
@@ -95548,11 +95634,11 @@
       "effectRef": "pages/hub/training/three-way-postflop.js"
     },
     {
-      "id": "pages/hub/training/three-way-postflop.js:276:5",
+      "id": "pages/hub/training/three-way-postflop.js:275:5",
       "file": "pages/hub/training/three-way-postflop.js",
       "element": "button",
       "name": "Practice Geometry Spot In Club Arena →",
-      "line": 276,
+      "line": 275,
       "handler": "() => router.push(geometryEval.arenaHref)",
       "destination": null,
       "type": "button",
@@ -95561,11 +95647,11 @@
       "effectRef": "pages/hub/training/three-way-postflop.js"
     },
     {
-      "id": "pages/hub/training/three-way-postflop.js:297:6",
+      "id": "pages/hub/training/three-way-postflop.js:296:6",
       "file": "pages/hub/training/three-way-postflop.js",
       "element": "a",
       "name": "Continue To Multi-Way Pots →",
-      "line": 297,
+      "line": 296,
       "handler": null,
       "destination": "CANONICAL_ARENA_HREF",
       "type": null,
@@ -95691,11 +95777,11 @@
       "effectRef": "pages/hub/training/tournament-prep.js"
     },
     {
-      "id": "pages/hub/training/tournament/[id].js:105:1",
+      "id": "pages/hub/training/tournament/[id].js:114:1",
       "file": "pages/hub/training/tournament/[id].js",
       "element": "link",
       "name": "← All Tournaments",
-      "line": 105,
+      "line": 114,
       "handler": null,
       "destination": "/hub/training/tournaments",
       "type": null,
@@ -95704,11 +95790,11 @@
       "effectRef": "pages/hub/training/tournament/[id].js"
     },
     {
-      "id": "pages/hub/training/tournament/[id].js:147:2",
+      "id": "pages/hub/training/tournament/[id].js:156:2",
       "file": "pages/hub/training/tournament/[id].js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 147,
+      "line": 156,
       "handler": "() => setBrainVariant(v)",
       "destination": null,
       "type": "button",
@@ -95717,11 +95803,11 @@
       "effectRef": "pages/hub/training/tournament/[id].js"
     },
     {
-      "id": "pages/hub/training/tournament/[id].js:166:3",
+      "id": "pages/hub/training/tournament/[id].js:175:3",
       "file": "pages/hub/training/tournament/[id].js",
       "element": "button",
       "name": "Launch 1:1 Club Arena Drill",
-      "line": 166,
+      "line": 175,
       "handler": "() => router.push(buildCustomTrainingArenaHref({ format: 'cash', variant: brainVariant, streets: ['flop'], positions: ['BTN'], stackDepth: 100 }, 'tournament'))",
       "destination": null,
       "type": "button",
@@ -95730,11 +95816,11 @@
       "effectRef": "pages/hub/training/tournament/[id].js"
     },
     {
-      "id": "pages/hub/training/tournament/[id].js:288:4",
+      "id": "pages/hub/training/tournament/[id].js:297:4",
       "file": "pages/hub/training/tournament/[id].js",
       "element": "button",
       "name": "Tournament Runs Reopen After Attempt-Bound Settlement Is Certified",
-      "line": 288,
+      "line": 297,
       "handler": null,
       "destination": null,
       "type": "button",
@@ -95743,11 +95829,11 @@
       "effectRef": "pages/hub/training/tournament/[id].js"
     },
     {
-      "id": "pages/hub/training/tournament/[id].js:337:5",
+      "id": "pages/hub/training/tournament/[id].js:346:5",
       "file": "pages/hub/training/tournament/[id].js",
       "element": "link",
       "name": "Tournaments Lobby",
-      "line": 337,
+      "line": 346,
       "handler": null,
       "destination": "/hub/training/tournaments",
       "type": null,
@@ -96614,11 +96700,11 @@
       "effectRef": "src/components/store/StoreToast.jsx"
     },
     {
-      "id": "src/components/training/CanonicalTrainingRedirect.jsx:92:1",
+      "id": "src/components/training/CanonicalTrainingRedirect.jsx:113:1",
       "file": "src/components/training/CanonicalTrainingRedirect.jsx",
       "element": "button",
       "name": "Retry Redirect",
-      "line": 92,
+      "line": 113,
       "handler": "retryRedirect",
       "destination": null,
       "type": "button",
@@ -96627,11 +96713,11 @@
       "effectRef": "src/components/training/CanonicalTrainingRedirect.jsx"
     },
     {
-      "id": "src/components/training/CanonicalTrainingRedirect.jsx:98:2",
+      "id": "src/components/training/CanonicalTrainingRedirect.jsx:119:2",
       "file": "src/components/training/CanonicalTrainingRedirect.jsx",
       "element": "a",
       "name": "→",
-      "line": 98,
+      "line": 119,
       "handler": null,
       "destination": "href",
       "type": null,
@@ -96640,11 +96726,11 @@
       "effectRef": "src/components/training/CanonicalTrainingRedirect.jsx"
     },
     {
-      "id": "src/components/training/CanonicalTrainingRedirect.jsx:101:3",
+      "id": "src/components/training/CanonicalTrainingRedirect.jsx:138:3",
       "file": "src/components/training/CanonicalTrainingRedirect.jsx",
       "element": "button",
       "name": "Launch 1:1 Club Arena Drill",
-      "line": 101,
+      "line": 138,
       "handler": "retryRedirect",
       "destination": null,
       "type": "button",
@@ -96653,11 +96739,11 @@
       "effectRef": "src/components/training/CanonicalTrainingRedirect.jsx"
     },
     {
-      "id": "src/components/training/CanonicalTrainingRedirect.jsx:118:4",
+      "id": "src/components/training/CanonicalTrainingRedirect.jsx:171:4",
       "file": "src/components/training/CanonicalTrainingRedirect.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 118,
+      "line": 171,
       "handler": "() => setBrainVariant(v)",
       "destination": null,
       "type": "button",
@@ -104235,6 +104321,7 @@
         "__tests__/training-client-endpoint-wiring.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs",
         "__tests__/training-retired-client-mutations.test.mjs",
+        "__tests__/training-simplification-mtt-design.test.mjs",
         "__tests__/training-verified-report-authority.test.mjs"
       ]
     },
@@ -105172,6 +105259,7 @@
         "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
         "src/lib/training/solverRowIdentity.mjs",
+        "src/lib/training/trainingPresets.mjs",
         "src/lib/world-menu/navigationState.mjs",
         "src/services/SolverPolicyService.js",
         "src/services/avatar-service.js",
@@ -105462,6 +105550,17 @@
           }
         },
         {
+          "file": "src/lib/training/trainingPresets.mjs",
+          "writes": {
+            "localStorage": 4,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
           "file": "src/services/SolverPolicyService.js",
           "writes": {
             "localStorage": 0,
@@ -105555,7 +105654,8 @@
       ],
       "tests": [
         "__tests__/training-casino-realism-catalog.test.mjs",
-        "__tests__/training-reconciled-workflows.test.mjs"
+        "__tests__/training-reconciled-workflows.test.mjs",
+        "__tests__/training-simplification-mtt-design.test.mjs"
       ]
     },
     {
@@ -112227,7 +112327,8 @@
       "tests": [
         "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
         "__tests__/training-legacy-consumer-authority.test.mjs",
-        "__tests__/training-reconciled-workflows.test.mjs"
+        "__tests__/training-reconciled-workflows.test.mjs",
+        "__tests__/training-simplification-mtt-design.test.mjs"
       ]
     },
     {
@@ -113995,6 +114096,7 @@
       "tests": [
         "__tests__/training-reconciled-workflows.test.mjs",
         "__tests__/training-session-config-contract.test.mjs",
+        "__tests__/training-simplification-mtt-design.test.mjs",
         "__tests__/training-verified-report-authority.test.mjs"
       ]
     },
@@ -118395,7 +118497,8 @@
       "realtime": [],
       "tests": [
         "__tests__/training-phase-3-adversarial.test.mjs",
-        "__tests__/training-reconciled-workflows.test.mjs"
+        "__tests__/training-reconciled-workflows.test.mjs",
+        "__tests__/training-simplification-mtt-design.test.mjs"
       ]
     },
     {
@@ -119990,6 +120093,7 @@
       "tests": [
         "__tests__/training-coaching-summary-authority.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs",
+        "__tests__/training-simplification-mtt-design.test.mjs",
         "__tests__/training-verified-report-authority.test.mjs"
       ]
     },
@@ -126518,7 +126622,9 @@
         }
       ],
       "realtime": [],
-      "tests": []
+      "tests": [
+        "__tests__/training-simplification-mtt-design.test.mjs"
+      ]
     },
     {
       "file": "src/components/training/Card.tsx",
@@ -126655,7 +126761,9 @@
       "apiReferences": [],
       "persistence": [],
       "realtime": [],
-      "tests": []
+      "tests": [
+        "__tests__/training-simplification-mtt-design.test.mjs"
+      ]
     },
     {
       "file": "src/components/training/GameUIRouter.jsx",
@@ -138167,7 +138275,7 @@
       {
         "file": "pages/hub/training/category/[categoryId].js",
         "name": "CategoryPage",
-        "line": 53,
+        "line": 54,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -148582,7 +148690,7 @@
       {
         "file": "pages/hub/training/category/[categoryId].js",
         "name": "CategoryPage",
-        "line": 53,
+        "line": 54,
         "references": 1,
         "exported": true,
         "defaultExport": true,

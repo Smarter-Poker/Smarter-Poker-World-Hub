@@ -5,8 +5,8 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .shell {
-  --dg-obsidian: #020608;
-  --dg-gunmetal: #101a20;
+  --dg-obsidian: #040d18;
+  --dg-gunmetal: #091727;
   --dg-cyan: #25c8ff;
   --dg-gold: #f2b84b;
   --dg-emerald: #39d59b;
@@ -17,10 +17,10 @@
   box-sizing: border-box;
   padding-bottom: 88px !important;
   background:
-    radial-gradient(circle at 50% 0%, rgba(37, 200, 255, .13), transparent 30rem),
+    radial-gradient(circle at 50% 0%, rgba(16, 118, 226, .14), transparent 30rem),
     repeating-linear-gradient(90deg, transparent 0 119px, rgba(37, 200, 255, .018) 120px),
-    #020608 !important;
-  color: #eaf2f6;
+    #040d18 !important;
+  color: #f2f7fb;
   font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 

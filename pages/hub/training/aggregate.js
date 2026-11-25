@@ -332,7 +332,7 @@ export default function AggregateReports() {
                   padding: '0 16px',
                   borderRadius: 8,
                   border: '1px solid #67e8f9',
-                  background: 'linear-gradient(180deg, #0891b2, #075985)',
+                  background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)',
                   color: '#fff',
                   fontSize: 12,
                   fontWeight: 900,
@@ -489,8 +489,7 @@ export default function AggregateReports() {
             box-sizing: border-box;
             color: var(--sp-fg, #e9f8ff);
             background:
-              radial-gradient(circle at 50% 5%, rgba(0, 174, 255, 0.20), transparent 34%),
-              linear-gradient(180deg, #02070c 0%, #06121b 54%, #010407 100%);
+              radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%);
           }
           .aggregate-panel {
             width: min(920px, 100%);
@@ -499,7 +498,7 @@ export default function AggregateReports() {
             box-sizing: border-box;
             border: 1px solid rgba(133, 224, 255, 0.34);
             border-radius: 16px;
-            background: linear-gradient(145deg, rgba(10, 31, 45, 0.97), rgba(2, 9, 15, 0.99));
+            background: linear-gradient(180deg, rgba(9, 23, 39, 0.96) 0%, rgba(3, 11, 20, 0.98) 100%);
             box-shadow: inset 0 1px rgba(255,255,255,0.13), 0 30px 80px rgba(0,0,0,0.55), 0 0 40px rgba(0,174,255,0.08);
           }
           .aggregate-back, .aggregate-actions button {

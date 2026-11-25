@@ -102,8 +102,7 @@ export default function FamousFinalsArchivePage() {
           overflowX: 'clip',
           padding: '32px 18px 80px',
           color: 'var(--sp-fg)',
-          background:
-            'radial-gradient(circle at 50% 0%, rgba(0,168,255,0.15), transparent 42%), linear-gradient(180deg, #07111b 0%, #03070c 100%)',
+          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
         }}
       >
         <section style={{ width: '100%', maxWidth: 760, margin: '0 auto' }}>

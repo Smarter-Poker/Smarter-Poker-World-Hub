@@ -101,6 +101,15 @@ export default function TrainingTournamentDetail() {
       />
       <UniversalHeader />
 
+      <div
+        className="sp-mtt-page-shell"
+        style={{
+          minHeight: 'calc(100dvh - 70px)',
+          background:
+            'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
+          color: '#f2f7fb',
+        }}
+      >
       <div style={{ maxWidth: 820, margin: '0 auto', padding: '16px 14px 48px' }}>
         <Link
           href="/hub/training/tournaments"
@@ -381,6 +390,7 @@ export default function TrainingTournamentDetail() {
             </section>
           </>
         )}
+      </div>
       </div>
     </PageTransition>
   );

@@ -154,7 +154,7 @@ export default function IcmSimulatorPage() {
       <div
         style={{
           minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: '#0a0a1a',
+          background: '#040d18',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', sans-serif",
         }}

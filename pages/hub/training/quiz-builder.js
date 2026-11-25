@@ -464,7 +464,7 @@ export default function QuizBuilderPage() {
       <div
         style={{
           minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
+          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
@@ -702,13 +702,22 @@ export default function QuizBuilderPage() {
             </>
           )}
 
-          {/* Horse Brain Spot Preview & 1:1 Club Arena Launcher */}
+          {/* Horse Brain Spot Preview & 1:1 Club Arena Launcher (Progressive Disclosure) */}
+          <details
+            className="sp-mtt-disclosure"
+            data-quiz-builder-advanced="true"
+            open
+            style={{ marginTop: 18 }}
+          >
+            <summary>
+              <span>Horse Brain Spot Reference &amp; 1:1 Club Arena Launcher</span>
+            </summary>
+            <div className="sp-mtt-disclosure__body">
           <div
             data-specialty-brain-panel="true"
             data-brain-engine={brainPreview?.engineModule || 'holdem-brain.js'}
             data-recommended-action={brainPreview?.recommendedAction || 'Call'}
             style={{
-              marginTop: 18,
               padding: '14px 16px',
               borderRadius: 14,
               border: '1px solid rgba(0,212,255,0.22)',
@@ -766,6 +775,8 @@ export default function QuizBuilderPage() {
               Launch 1:1 Club Arena Drill
             </button>
           </div>
+            </div>
+          </details>
         </div>
       </div>
       <HubPageSummary page="training-quiz-builder" />

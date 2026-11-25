@@ -86,14 +86,14 @@ export default function GameCard({ game, onClick, index = 0, image, progress }) 
                     min-height: 430px;
                     padding: 7px !important;
                     overflow: hidden;
-                    border: 1px solid #607987 !important;
-                    border-top: 2px solid #d9edf4 !important;
-                    border-bottom-color: #17272f !important;
+                    border: 1px solid #688299 !important;
+                    border-top: 2px solid #aec0d0 !important;
+                    border-bottom-color: #1e334a !important;
                     border-radius: 0 !important;
                     clip-path: none !important;
-                    color: #edf8fb !important;
-                    background: linear-gradient(145deg, #243741 0%, #091116 9%, #020507 82%, #14242c 100%) !important;
-                    box-shadow: inset 0 1px rgba(255,255,255,.18), inset 0 0 36px rgba(0,0,0,.72), 0 24px 46px rgba(0,0,0,.66) !important;
+                    color: #f2f7fb !important;
+                    background: linear-gradient(180deg, #091727 0%, #050e19 62%, #030b14 100%) !important;
+                    box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 16px 38px rgba(0,0,0,.62) !important;
                     text-align: left;
                     cursor: pointer;
                     transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
@@ -102,8 +102,8 @@ export default function GameCard({ game, onClick, index = 0, image, progress }) 
                 .sp-casino-game-card:focus-visible {
                     z-index: 2;
                     transform: translateY(-4px);
-                    border-color: #a9eaff !important;
-                    box-shadow: inset 0 1px #fff, inset 0 0 34px rgba(0,0,0,.66), 0 30px 58px rgba(0,0,0,.76), 0 0 28px color-mix(in srgb, var(--game-accent) 24%, transparent) !important;
+                    border-color: #83deff !important;
+                    box-shadow: inset 0 1px #fff, 0 24px 48px rgba(0,0,0,.76), 0 0 28px color-mix(in srgb, var(--game-accent) 24%, transparent) !important;
                     outline: none;
                 }
                 .sp-casino-game-rail {
@@ -230,14 +230,14 @@ export default function GameCard({ game, onClick, index = 0, image, progress }) 
                     display: flex;
                     align-items: center;
                     justify-content: space-between;
-                    min-height: 42px;
+                    min-height: 44px;
                     margin-top: 14px;
                     padding: 0 12px;
-                    border: 1px solid #425864;
-                    border-top-color: #98adb6;
-                    color: #e6f2f6;
-                    background: linear-gradient(180deg, #21313a, #070b0e 72%);
-                    box-shadow: inset 0 1px rgba(255,255,255,.1), 0 6px 14px rgba(0,0,0,.55);
+                    border: 1px solid #56d8ff;
+                    border-top-color: #b9f3ff;
+                    color: #ffffff;
+                    background: linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%);
+                    box-shadow: inset 0 1px rgba(255,255,255,.32), 0 6px 14px rgba(0,74,184,.38);
                     font: 700 12px/1 var(--font-orbitron, 'Orbitron'), sans-serif;
                     letter-spacing: .09em;
                     text-transform: uppercase;

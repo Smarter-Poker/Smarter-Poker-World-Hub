@@ -1007,7 +1007,7 @@ export default function SessionDashboard() {
         className="sp-training-intelligence sp-training-intelligence--session-dashboard"
         style={{
           minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
+          background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
@@ -1373,6 +1373,17 @@ export default function SessionDashboard() {
             </button>
           </div>
 
+          {/* PLO8 Hi-Lo & Fixed-Limit Leak Diagnostics + Decision Pacing (Progressive Disclosure) */}
+          <details
+            className="sp-mtt-disclosure"
+            data-dashboard-detailed-diagnostics="true"
+            open
+            style={{ marginBottom: 16 }}
+          >
+            <summary>
+              <span>Specialized Split-Pot &amp; Shot-Clock Pacing Diagnostics</span>
+            </summary>
+            <div className="sp-mtt-disclosure__body">
           {/* PLO8 Hi-Lo & Fixed-Limit Leak Diagnostics Panel */}
           <div
             data-plo8-leak-diagnostics="true"
@@ -1502,6 +1513,8 @@ export default function SessionDashboard() {
               Drill Under 15s Shot-Clock Pressure →
             </button>
           </div>
+            </div>
+          </details>
 
           {loading ? (
             <div style={{ marginTop: 24 }}>

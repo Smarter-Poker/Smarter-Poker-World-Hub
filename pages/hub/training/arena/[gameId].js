@@ -32,7 +32,7 @@ const GodModeArena = dynamic(() => import('../../../../src/components/training/G
     loading: () => (
         <div style={{
             minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-            background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 100%)',
+            background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -72,7 +72,7 @@ class ArenaErrorBoundary extends React.Component {
             return (
                 <div style={{
                     minHeight: '100dvh',
-                    background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 100%)',
+                    background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     color: '#94a3b8', fontFamily: "'Inter', sans-serif", padding: 24,
                 }}>
@@ -351,7 +351,7 @@ export default function TrainingArenaPage() {
         return (
             <div style={{
                 minHeight: '100dvh',
-                background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 100%)',
+                background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontFamily: "'Inter', -apple-system, sans-serif",
             }}>

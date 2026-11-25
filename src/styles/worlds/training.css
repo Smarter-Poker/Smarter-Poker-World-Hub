@@ -2992,10 +2992,10 @@ body.world-training .sp-training-tool--analysis {
     --sp-analysis-panel: rgba(4, 16, 25, 0.94);
     min-height: 100dvh !important;
     background:
-        radial-gradient(circle at 82% 8%, rgba(35, 215, 255, 0.13), transparent 30%),
+        radial-gradient(circle at 82% 8%, rgba(16, 118, 226, 0.14), transparent 30%),
         linear-gradient(90deg, rgba(139, 234, 255, 0.035) 1px, transparent 1px) 0 0 / 46px 46px,
         linear-gradient(rgba(139, 234, 255, 0.025) 1px, transparent 1px) 0 0 / 46px 46px,
-        linear-gradient(180deg, #071520 0%, #020a11 48%, #01060a 100%) !important;
+        linear-gradient(180deg, #040d18 0%, #030b14 48%, #02070d 100%) !important;
 }
 
 body.world-training .sp-training-analysis-header {
@@ -3226,11 +3226,11 @@ body.world-training .sp-training-journey {
     overflow-x: clip !important;
     color: #edfaff !important;
     background:
-        radial-gradient(circle at 78% 6%, rgba(0, 149, 255, 0.16), transparent 31%),
+        radial-gradient(circle at 78% 6%, rgba(16, 118, 226, 0.16), transparent 31%),
         radial-gradient(circle at 9% 41%, rgba(73, 222, 255, 0.08), transparent 26%),
         linear-gradient(rgba(66, 195, 255, 0.025) 1px, transparent 1px),
         linear-gradient(90deg, rgba(66, 195, 255, 0.025) 1px, transparent 1px),
-        linear-gradient(145deg, #02070b 0%, #07131c 48%, #02070a 100%) !important;
+        linear-gradient(145deg, #040d18 0%, #091727 48%, #02070d 100%) !important;
     background-size: auto, auto, 34px 34px, 34px 34px, auto !important;
     font-family: var(--sp-font-ui, "Rajdhani", "Arial Narrow", sans-serif) !important;
 }
@@ -3543,10 +3543,10 @@ body.world-training .sp-training-intelligence {
     --intel-panel: rgba(3, 13, 20, 0.96);
     color: #edfaff !important;
     background:
-        radial-gradient(circle at 78% 4%, rgba(31, 177, 255, 0.15), transparent 31%),
+        radial-gradient(circle at 78% 4%, rgba(16, 118, 226, 0.15), transparent 31%),
         linear-gradient(rgba(73, 202, 255, 0.025) 1px, transparent 1px),
         linear-gradient(90deg, rgba(73, 202, 255, 0.025) 1px, transparent 1px),
-        linear-gradient(145deg, #02070b 0%, #07131c 48%, #02070a 100%) !important;
+        linear-gradient(145deg, #040d18 0%, #091727 48%, #02070d 100%) !important;
     background-size: auto, 38px 38px, 38px 38px, auto !important;
 }
 
