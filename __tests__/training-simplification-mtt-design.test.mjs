@@ -187,3 +187,38 @@ test('no Training component has synchronous Temporal Dead Zone (TDZ) const/let r
   }
   assert.deepEqual(violations, [], `TDZ violations detected:\n${violations.join('\n')}`);
 });
+
+test('evaluateMultiwayPostflopSpot and evaluateFullHandLineAndBranchComparison succeed across preflop, flop, turn, and river for all variants', async () => {
+  const {
+    evaluateMultiwayPostflopSpot,
+    evaluateFullHandLineAndBranchComparison,
+  } = await import('../src/lib/training/horseBrainTrainingAdapter.js');
+
+  const variants = [
+    ['nlh', ['As', 'Kd']],
+    ['plo4', ['As', 'Ks', 'Qh', 'Jd']],
+    ['plo5', ['As', 'Ks', 'Qh', 'Jd', 'Tc']],
+    ['plo6', ['As', 'Ks', 'Qh', 'Jd', 'Tc', '9c']],
+    ['plo8', ['As', '2s', 'Kh', '3h']],
+  ];
+
+  for (const [variant, heroCards] of variants) {
+    for (const street of ['preflop', 'flop', 'turn', 'river']) {
+      const res = evaluateMultiwayPostflopSpot({
+        variant,
+        street,
+        activePlayerCount: 3,
+        heroCards,
+        boardCards: ['Qs', '8s', '3d'], // intentionally pass 3 board cards even on preflop/turn/river to prove alignment
+      });
+      assert.equal(res.ok, true, `evaluateMultiwayPostflopSpot must succeed for ${variant} on ${street}`);
+    }
+    const lineRes = evaluateFullHandLineAndBranchComparison({
+      variant,
+      heroCards,
+      fullBoardCards: ['Qs', '8s', '3d', 'Jh', '2c'],
+    });
+    assert.equal(lineRes.ok, true, `evaluateFullHandLineAndBranchComparison must succeed for ${variant}`);
+    assert.equal(lineRes.streetEvaluations.length, 4);
+  }
+});

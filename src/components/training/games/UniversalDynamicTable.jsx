@@ -3404,7 +3404,7 @@ function UniversalDynamicTable({
             variant: activeNormalizedVariant,
             bettingStructure: activeBettingStructure,
             format: activeGameFormat,
-            street: activeNormalizedStreet,
+            street: activeNormalizedStreet === 'preflop' ? 'flop' : activeNormalizedStreet,
             activePlayerCount: multiwayActiveCount,
             heroCards,
             boardCards: visibleBoard.length >= 3 ? visibleBoard : ['Qs', '8s', '3d'],
