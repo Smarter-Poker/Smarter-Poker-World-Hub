@@ -215,7 +215,7 @@ export async function findSolvedSpotV2Match(db, hand, point) {
     const res = await db
       .from('solved_spots_gold')
       .select('id, scenario_hash, game_type, stack_depth, street, strategy_matrix_v2, solved_v2_at, quality_status')
-      .in('scenario_hash', candidateHashes)
+      .in('scenario_hash', candidateHashes.slice(0, 12))
       .not('solved_v2_at', 'is', null)
       .not('strategy_matrix_v2', 'is', null)
       .limit(12);
