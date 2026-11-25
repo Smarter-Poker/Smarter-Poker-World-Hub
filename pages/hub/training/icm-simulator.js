@@ -26,6 +26,7 @@ const ICM_SIM_HERO_CARDS_BY_VARIANT = {
   plo4: ['Ad', 'Kd', 'Qs', 'Js'],
   plo5: ['Ad', 'Kd', 'Qs', 'Js', 'Th'],
   plo6: ['Ad', 'Kd', 'Qs', 'Js', 'Th', '9h'],
+  plo8: ['Ad', 'Kd', 'Qs', 'Js'],
 };
 
 export default function IcmSimulatorPage() {
@@ -520,7 +521,7 @@ export default function IcmSimulatorPage() {
                     </span>
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-                    {['nlh', 'plo4', 'plo5', 'plo6'].map((v) => (
+                    {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
                       <button
                         key={v}
                         type="button"

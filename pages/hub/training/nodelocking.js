@@ -11,6 +11,7 @@ const VARIANTS = [
   { id: 'plo4', label: 'PLO4 (4 Cards)', heroCards: ['Ah', 'Kh', 'Qd', 'Jd'] },
   { id: 'plo5', label: 'PLO5 (5 Cards)', heroCards: ['Ah', 'Kh', 'Qd', 'Jd', 'Ts'] },
   { id: 'plo6', label: 'PLO6 (6 Cards)', heroCards: ['Ah', 'Kh', 'Qd', 'Jd', 'Ts', '9c'] },
+  { id: 'plo8', label: 'PLO8 (Hi-Lo)', heroCards: ['Ah', 'Kh', 'Qd', 'Jd'] },
 ];
 
 const NODE_LOCK_PRESETS = [

@@ -65,7 +65,7 @@ export default function CategoryPage() {
             street: 'flop',
             heroPosition: 'BTN',
             villainPosition: 'BB',
-            heroCards: brainVariant === 'plo6' ? ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'] : brainVariant === 'plo5' ? ['As', 'Ks', 'Qh', 'Jh', 'Td'] : brainVariant === 'plo4' ? ['As', 'Ks', 'Qh', 'Jh'] : ['As', 'Kd'],
+            heroCards: brainVariant === 'plo6' ? ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'] : brainVariant === 'plo5' ? ['As', 'Ks', 'Qh', 'Jh', 'Td'] : (brainVariant === 'plo4' || brainVariant === 'plo8') ? ['As', 'Ks', 'Qh', 'Jh'] : ['As', 'Kd'],
             boardCards: ['Qs', '7d', '2c'],
             potSizeBb: 12,
             facingBetBb: 4,
@@ -169,7 +169,7 @@ export default function CategoryPage() {
                                 </div>
                             </div>
                             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
-                                {['nlh', 'plo4', 'plo5', 'plo6'].map((v) => (
+                                {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
                                     <button
                                         key={v}
                                         type="button"
