@@ -41,6 +41,43 @@ export const config = {
     },
 };
 
+const ENGAGEMENT_STAMPABLE_SOURCES = new Set(['owner_list_20261118', 'admin_import']);
+
+/**
+ * Cold-lead sunset shield: a real open or click proves the address is alive, so
+ * stamp `engaged:YYYY-MM-DD` on active imported/unlabelled subscriber rows. Never
+ * overwrites `pref:*`, `snooze:*`, unsubscribe or bounce/complaint sources.
+ */
+export function isEngagementStampableSource(source) {
+    const raw = String(source || '').trim();
+    if (!raw) return true;
+    return ENGAGEMENT_STAMPABLE_SOURCES.has(raw) || raw.startsWith('engaged:');
+}
+
+export async function stampSubscriberEngagement(sb, recipientEmail, { now = new Date() } = {}) {
+    const email = String(recipientEmail || '').trim().toLowerCase();
+    if (!email || email.length > 254 || !EMAIL_RE.test(email)) return 0;
+    const stamp = `engaged:${now.toISOString().slice(0, 10)}`;
+    let stamped = 0;
+    try {
+        const { data: rows } = await sb
+            .from('newsletter_subscribers')
+            .select('id, source, is_active')
+            .ilike('email', email)
+            .limit(20);
+        for (const row of Array.isArray(rows) ? rows : []) {
+            if (!row?.id || row.is_active === false) continue;
+            if (!isEngagementStampableSource(row.source)) continue;
+            if (String(row.source || '').trim() === stamp) continue;
+            await sb.from('newsletter_subscribers').update({ source: stamp }).eq('id', row.id);
+            stamped += 1;
+        }
+    } catch (err) {
+        console.error('[resend-webhook-engagement]', String(err?.message || err));
+    }
+    return stamped;
+}
+
 const SUPPRESS_EVENTS = new Set(['email.bounced', 'email.complained']);
 const TELEMETRY_EVENTS = new Set(['email.opened', 'email.clicked']);
 const TRACKABLE_CAMPAIGN_STATUSES = new Set(['sending', 'sent', 'partial']);
@@ -72,9 +109,22 @@ export default async function handler(req, res) {
 
     const type = String(event?.type || '');
     if (TELEMETRY_EVENTS.has(type)) {
+        const rawEngagedTo = event?.data?.to;
+        const engagedRecipients = (Array.isArray(rawEngagedTo) ? rawEngagedTo : rawEngagedTo ? [rawEngagedTo] : [])
+            .map((addr) => String(addr || '').trim().toLowerCase())
+            .filter((addr) => addr.length <= 254 && EMAIL_RE.test(addr))
+            .slice(0, 5);
+        let engagementStamped = 0;
+        for (const recipientEmail of engagedRecipients) {
+            try {
+                engagementStamped += await stampSubscriberEngagement(createClient(), recipientEmail);
+            } catch {
+                /* engagement stamp is best-effort and never blocks telemetry */
+            }
+        }
         const campaignId = extractResendCampaignId(event?.data?.tags ?? event?.tags);
         if (!campaignId) {
-            return res.status(200).json({ ok: true, ignored: true, reason: 'missing_campaign_id', type });
+            return res.status(200).json({ ok: true, ignored: true, reason: 'missing_campaign_id', type, engagementStamped });
         }
         try {
             const sb = createClient();
@@ -90,6 +140,7 @@ export default async function handler(req, res) {
                     ignored: true,
                     reason: campaign ? 'untrackable_status' : 'not_found',
                     type,
+                    engagementStamped,
                 });
             }
 
@@ -109,10 +160,11 @@ export default async function handler(req, res) {
                 campaignId,
                 opens: updated.opens,
                 clicks: updated.clicks,
+                engagementStamped,
             });
         } catch (err) {
             console.error('[resend-webhook-telemetry]', String(err?.message || err));
-            return res.status(200).json({ ok: true, ignored: true, reason: 'telemetry_update_error', type });
+            return res.status(200).json({ ok: true, ignored: true, reason: 'telemetry_update_error', type, engagementStamped });
         }
     }
 

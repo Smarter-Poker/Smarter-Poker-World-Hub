@@ -156,6 +156,40 @@ export default function WeeklyWireArchivePage({ editions = [], livePreview = nul
     const pageDesc =
         'Read Every Issue Of The Smarter.Poker Weekly Wire: Curated World Poker News, Solver Decision Spots, Pro Poker Calculators, And Platform Upgrades.';
     const ogImageUrl = livePreview?.ogImageUrl || 'https://smarter.poker/api/news/email-image?fallback=1&m=hero';
+    const jsonLd = {
+        '@context': 'https://schema.org',
+        '@graph': [
+            {
+                '@type': 'CollectionPage',
+                '@id': `${canonicalUrl}#collection`,
+                url: canonicalUrl,
+                name: 'Smarter.Poker Weekly Wire Archive',
+                description: pageDesc,
+                inLanguage: 'en-US',
+                image: ogImageUrl,
+                isPartOf: { '@type': 'WebSite', name: 'Smarter.Poker', url: 'https://smarter.poker' },
+                publisher: { '@type': 'Organization', name: 'Smarter.Poker', url: 'https://smarter.poker' },
+                mainEntity: {
+                    '@type': 'ItemList',
+                    numberOfItems: editions.length,
+                    itemListElement: editions.slice(0, 25).map((ed, i) => ({
+                        '@type': 'ListItem',
+                        position: i + 1,
+                        url: `https://smarter.poker/hub/wire/${ed.editionNumber}`,
+                        name: ed.subject,
+                    })),
+                },
+            },
+            {
+                '@type': 'BreadcrumbList',
+                itemListElement: [
+                    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://smarter.poker/' },
+                    { '@type': 'ListItem', position: 2, name: 'Hub', item: 'https://smarter.poker/hub' },
+                    { '@type': 'ListItem', position: 3, name: 'Weekly Wire', item: canonicalUrl },
+                ],
+            },
+        ],
+    };
 
     return (
         <>
@@ -171,6 +205,18 @@ export default function WeeklyWireArchivePage({ editions = [], livePreview = nul
                 <meta key="twitter-title" name="twitter:title" content={pageTitle} />
                 <meta key="twitter-description" name="twitter:description" content={pageDesc} />
                 <meta key="twitter-image" name="twitter:image" content={ogImageUrl} />
+                <link
+                    key="wire-rss"
+                    rel="alternate"
+                    type="application/rss+xml"
+                    title="Smarter.Poker Weekly Wire RSS"
+                    href="https://smarter.poker/api/news/wire-rss"
+                />
+                <script
+                    key="wire-jsonld"
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
+                />
             </Head>
 
             <main
@@ -225,6 +271,26 @@ export default function WeeklyWireArchivePage({ editions = [], livePreview = nul
                                 >
                                     Live News Hub &rarr;
                                 </Link>
+                                <a
+                                    href="/api/news/wire-rss"
+                                    type="application/rss+xml"
+                                    style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        color: '#e2e8f0',
+                                        background: '#101a24',
+                                        border: '1px solid #1b2c3d',
+                                        borderRadius: '999px',
+                                        padding: '3px 12px',
+                                        fontSize: '12.5px',
+                                        fontWeight: 700,
+                                        textDecoration: 'none',
+                                    }}
+                                >
+                                    <span aria-hidden="true" style={{ color: '#4fc1b3' }}>&#9679;</span>
+                                    RSS Feed
+                                </a>
                                 <Link
                                     href="/hub/club-arena/"
                                     style={{

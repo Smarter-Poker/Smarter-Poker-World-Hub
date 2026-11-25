@@ -64,6 +64,7 @@ import {
     buildSignedEmailImageUrl,
     fetchAndNormalizeEmailImage,
     verifyEmailImageSignature,
+    verifySpotCardImageSignature,
 } from '../src/lib/newsletter/emailImageProxy.mjs';
 import {
     ACTIVE_MEMBER_PROMO_ROTATION,
@@ -112,6 +113,12 @@ function routeExistsInRepo(urlPathname) {
     if (clean === '/hub/club-arena') return true; // Rewritten to Club Arena origin in next.config.js / vercel.json
     if (/^\/hub\/wire\/[^/]+$/.test(clean)) {
         return fs.existsSync(path.join(ROOT, 'pages/hub/wire/[edition].js'));
+    }
+    if (/^\/hub\/venues\/[^/]+$/.test(clean)) {
+        return fs.existsSync(path.join(ROOT, 'pages/hub/venues/[id].js'));
+    }
+    if (/^\/hub\/video-library\/watch\/[^/]+(?:\/[^/]+)*$/.test(clean)) {
+        return fs.existsSync(path.join(ROOT, 'pages/hub/video-library/watch/[videoId]/[[...slug]].js'));
     }
     const candidates = [
         `pages${clean}.js`,
@@ -233,8 +240,8 @@ test('LAW 1: every <img> in Weekly Wire, Welcome, Lifecycle, and Promo emails us
     ];
 
     const wireImgs = extractAttrValues(htmlPayloads[0], 'img', 'src');
-    // 1 masthead crest + 3 stories (including the story with empty image_url!) = 4 images
-    assert.equal(wireImgs.length, 4, 'Masthead crest + all 3 story thumbnails must populate');
+    // 1 masthead crest + 3 stories (including the story with empty image_url!) + 1 Spot Of The Week felt card = 5 images
+    assert.equal(wireImgs.length, 5, 'Masthead crest + all 3 story thumbnails + Spot Of The Week felt card must populate');
 
     for (const html of htmlPayloads) {
         const rawSrcs = extractAttrValues(html, 'img', 'src');
@@ -246,6 +253,13 @@ test('LAW 1: every <img> in Weekly Wire, Welcome, Lifecycle, and Promo emails us
             assert.equal(parsed.pathname, EMAIL_IMAGE_PATH, `Email images must use ${EMAIL_IMAGE_PATH}: ${decoded}`);
 
             if (parsed.searchParams.get('brand') === 'crest' || parsed.searchParams.get('fallback') === '1') {
+                continue;
+            }
+            const spotSlug = parsed.searchParams.get('spot');
+            if (spotSlug) {
+                const s = parsed.searchParams.get('s');
+                const verifiedSpot = verifySpotCardImageSignature(spotSlug, s);
+                assert.ok(verifiedSpot, `Every Spot Of The Week email image URL must carry a valid HMAC signature: ${decoded}`);
                 continue;
             }
             const u = parsed.searchParams.get('u');

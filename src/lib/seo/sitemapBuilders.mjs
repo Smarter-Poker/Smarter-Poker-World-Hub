@@ -249,6 +249,7 @@ export const STATIC_PAGES = [
   { path: '/hub/home-games', priority: '0.9', changefreq: 'daily' },
   { path: '/hub/training', priority: '0.9', changefreq: 'weekly' },
   { path: '/hub/news', priority: '0.9', changefreq: 'hourly' },
+  { path: '/hub/wire', priority: '0.85', changefreq: 'weekly' },
   { path: '/hub/video-library', priority: '0.8', changefreq: 'daily' },
   { path: '/hub/video-library/channels', priority: '0.8', changefreq: 'weekly' },
   { path: '/hub/video-library/players', priority: '0.8', changefreq: 'weekly' },

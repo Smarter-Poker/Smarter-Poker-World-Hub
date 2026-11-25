@@ -31,6 +31,8 @@
 import crypto from 'node:crypto';
 import sharp from 'sharp';
 import { assertFetchableUrl, fetchGuarded } from '../security/fetchableUrl.js';
+import { SPOT_OF_THE_WEEK_CATALOG } from './weeklyWireCatalog.mjs';
+import { buildSpotFeltSvg } from './spotCardSvg.mjs';
 
 export const EMAIL_IMAGE_PATH = '/api/news/email-image';
 export const DEFAULT_SITE_ORIGIN = 'https://smarter.poker';
@@ -404,5 +406,67 @@ export async function fetchAndNormalizeEmailImage(
         return renderVanguardFallbackImage(cleanMode);
     } finally {
         if (timer) clearTimeout(timer);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Spot Of The Week poker-felt card graphic (`?spot=<slug>&s=<sig>`)
+// ---------------------------------------------------------------------------
+
+export const SPOT_IMAGE_DIMENSIONS = { width: 600, height: 240 };
+
+function cleanSpotSlug(spotSlug) {
+    return typeof spotSlug === 'string' ? spotSlug.trim() : '';
+}
+
+export function computeSpotCardImageSignature(spotSlug, { secret = '' } = {}) {
+    const key = resolveEmailImageSecret(secret);
+    const cleanSlug = cleanSpotSlug(spotSlug);
+    if (!key || !cleanSlug) return '';
+    return toBase64Url(crypto.createHmac('sha256', key).update('sp-spot:v1:' + cleanSlug).digest());
+}
+
+/** Returns the matching catalog spot when the signature is valid, otherwise `null`. */
+export function verifySpotCardImageSignature(spotSlug, signature, { secret = '' } = {}) {
+    const cleanSlug = cleanSpotSlug(spotSlug);
+    if (!cleanSlug || cleanSlug.length > 200) return null;
+    if (typeof signature !== 'string' || signature.length !== SIG_LENGTH) return null;
+
+    const expected = computeSpotCardImageSignature(cleanSlug, { secret });
+    if (!expected || expected.length !== SIG_LENGTH) return null;
+
+    const sigBuf = Buffer.from(signature, 'utf8');
+    const expBuf = Buffer.from(expected, 'utf8');
+    if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) return null;
+
+    return SPOT_OF_THE_WEEK_CATALOG.find((s) => s.slug === cleanSlug) || null;
+}
+
+export function buildSpotCardImageUrl(
+    spotSlug,
+    { siteUrl = DEFAULT_SITE_ORIGIN, relative = false, secret = '' } = {}
+) {
+    const cleanSite = relative ? '' : String(siteUrl || DEFAULT_SITE_ORIGIN).replace(/\/+$/, '');
+    const cleanSlug = cleanSpotSlug(spotSlug);
+    const known = SPOT_OF_THE_WEEK_CATALOG.some((s) => s.slug === cleanSlug);
+    const sig = known ? computeSpotCardImageSignature(cleanSlug, { secret }) : '';
+    if (!known || !sig) {
+        return `${cleanSite}${EMAIL_IMAGE_PATH}?fallback=1&m=hero`;
+    }
+    return `${cleanSite}${EMAIL_IMAGE_PATH}?spot=${encodeURIComponent(cleanSlug)}&s=${encodeURIComponent(sig)}`;
+}
+
+/** Rasterize the pure-vector poker-felt SVG into a progressive 600x240 JPEG. */
+export async function renderSpotCardImage(spot) {
+    try {
+        const { width, height } = SPOT_IMAGE_DIMENSIONS;
+        const buffer = await sharp(Buffer.from(buildSpotFeltSvg(spot, { width, height })))
+            .resize(width, height)
+            .flatten({ background: '#060d14' })
+            .jpeg({ quality: 88, progressive: true, chromaSubsampling: '4:4:4' })
+            .toBuffer();
+        return { buffer, contentType: 'image/jpeg', status: 'spot' };
+    } catch {
+        return { buffer: EMERGENCY_PNG_BUFFER, contentType: 'image/png', status: 'emergency_fallback' };
     }
 }

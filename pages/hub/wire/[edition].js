@@ -4,11 +4,24 @@ import { useState } from 'react';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { deterministicUuid } from '../../../src/lib/promoCampaigns/welcomeBackOffer.mjs';
 import { buildSignedEmailImageUrl } from '../../../src/lib/newsletter/emailImageProxy.mjs';
+import * as emailImageProxy from '../../../src/lib/newsletter/emailImageProxy.mjs';
 import * as wireCatalog from '../../../src/lib/newsletter/weeklyWireCatalog.mjs';
 import * as wireEngine from '../../../src/lib/newsletter/weeklyWireEngine.mjs';
+import { VIDEO_ROW_FIELDS, normaliseVideoRow, watchPath } from '../../../src/lib/videoLibraryWatch.mjs';
+import { isVideoLibraryVideoAllowed } from '../../../src/lib/videoLibraryAvailability.js';
+import {
+    VIDEO_LIBRARY_POKER_TYPES,
+    dedupeVideos,
+    isCasinoGameFiledAsPoker,
+    isDisplayableVideoTitle,
+} from '../../../src/lib/videoLibraryCuration.mjs';
 
 const UUID_SHAPE_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const FALLBACK_THUMB_SRC = '/api/news/email-image?fallback=1&m=thumb';
+const FALLBACK_HERO_SRC = '/api/news/email-image?fallback=1&m=hero';
+// File-extension label: kept as a constant because ".ics" is a literal extension, not prose.
+const CALENDAR_ICS_LABEL = 'Add To Calendar (.ics)';
+const KINGS_CLUB_ID = 'a41434bb-8d0c-400a-8f0d-e8b3d65afed4';
 
 function isWeeklyWireCampaign(row) {
     return wireEngine.isWeeklyWireDigestCampaign(row);
@@ -30,6 +43,54 @@ function serializeSpot(spot) {
         evSummary: cleanCopy(spot.evSummary || ''),
         targetUrl: String(spot.targetUrl || 'https://smarter.poker/hub/training/hand-lab'),
     };
+}
+
+function serializeVideo(video) {
+    if (!video || !video.videoId) return null;
+    const rawWatch = String(video.watchPath || '/hub/video-library');
+    return {
+        videoId: String(video.videoId),
+        title: cleanCopy(video.title || 'Featured Poker Video'),
+        sourceName: cleanCopy(video.sourceName || 'Smarter.Poker Video Library'),
+        duration: cleanCopy(video.duration || ''),
+        views: cleanCopy(video.views || ''),
+        thumbnailUrl: buildSignedEmailImageUrl(video.thumbnailUrl || '', {
+            relative: true,
+            mode: 'thumb',
+        }),
+        watchPath: rawWatch.startsWith('/') ? rawWatch : '/hub/video-library',
+    };
+}
+
+async function resolveMatchedHistoricalVideo(sb, idSet) {
+    if (!idSet || idSet.size === 0 || typeof wireEngine.videoMarkerUuid !== 'function') return null;
+    try {
+        const { data } = await sb
+            .from('video_library_public_catalog')
+            .select(VIDEO_ROW_FIELDS)
+            .in('type', VIDEO_LIBRARY_POKER_TYPES)
+            .order('views_count', { ascending: false })
+            .order('scraped_at', { ascending: false })
+            .limit(80);
+        const candidates = dedupeVideos(
+            (data || [])
+                .map((row) => normaliseVideoRow(row))
+                .filter((v) => isVideoLibraryVideoAllowed(v) && isDisplayableVideoTitle(v.rawTitle ?? v.title) && !isCasinoGameFiledAsPoker(v))
+        );
+        const found = candidates.find((v) => idSet.has(wireEngine.videoMarkerUuid(v.videoId)));
+        if (!found) return null;
+        return serializeVideo({
+            videoId: found.videoId,
+            title: found.title,
+            sourceName: found.sourceName,
+            duration: found.duration,
+            views: found.views,
+            thumbnailUrl: found.thumbnail,
+            watchPath: watchPath(found),
+        });
+    } catch {
+        return null;
+    }
 }
 
 function parseSubjectEditionNumber(subject) {
@@ -61,7 +122,66 @@ function formatPublishedDate(iso) {
     });
 }
 
-export async function getServerSideProps({ params, res }) {
+function formatChips(n) {
+    return Math.max(0, Math.round(Number(n) || 0)).toLocaleString('en-US');
+}
+
+function describeBuyIn(row) {
+    const buyIn = Number(row?.buy_in_amount || 0);
+    const fee = Number(row?.buy_in_fee || 0);
+    if (buyIn <= 0 && fee <= 0) return 'Freeroll';
+    return fee > 0 ? `${formatChips(buyIn)} + ${formatChips(fee)} Chips` : `${formatChips(buyIn)} Chips`;
+}
+
+async function loadKingsClubSchedule(sb) {
+    try {
+        const nowIso = new Date().toISOString();
+        const { data } = await sb
+            .from('tournaments')
+            .select('id, name, game_type, buy_in_amount, buy_in_fee, guaranteed_prize, start_time, status')
+            .eq('club_id', KINGS_CLUB_ID)
+            .in('status', ['ANNOUNCED', 'RUNNING', 'SCHEDULED'])
+            .gte('start_time', nowIso)
+            .order('start_time', { ascending: true })
+            .limit(3);
+        return (data || [])
+            .filter((t) => t && t.id && t.name && t.start_time)
+            .slice(0, 3)
+            .map((t) => ({
+                id: String(t.id),
+                name: cleanCopy(t.name),
+                gameType: cleanCopy(String(t.game_type || 'Poker').replace(/_/g, ' ')),
+                buyInLabel: describeBuyIn(t),
+                guaranteeLabel: Number(t.guaranteed_prize || 0) > 0 ? `${formatChips(t.guaranteed_prize)} Chips GTD` : '',
+                startTime: new Date(t.start_time).toISOString(),
+                status: String(t.status || ''),
+            }));
+    } catch {
+        return [];
+    }
+}
+
+function formatTournamentStart(iso) {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    return `${d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'America/Chicago' })} ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Chicago' })} CT`;
+}
+
+export async function getServerSideProps(ctx) {
+    const result = await getWireIssueProps(ctx);
+    if (result?.props?.issue) {
+        let kingsSchedule = [];
+        try {
+            kingsSchedule = await loadKingsClubSchedule(createClient());
+        } catch {
+            kingsSchedule = [];
+        }
+        return { ...result, props: { ...result.props, kingsSchedule } };
+    }
+    return result;
+}
+
+async function getWireIssueProps({ params, res }) {
     res.setHeader('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=600');
 
     const rawParam = String(params?.edition || '').trim().toLowerCase();
@@ -181,6 +301,8 @@ export async function getServerSideProps({ params, res }) {
                 toolsCatalog.find((t) => idSet.has(wireEngine.toolMarkerUuid(t.slug))) ||
                 (toolsCatalog.length > 0 ? toolsCatalog[(editionNumber - 1) % toolsCatalog.length] : null);
 
+            const matchedVideo = await resolveMatchedHistoricalVideo(sb, idSet);
+
             const leadRawHero =
                 newsRows.find((r) => r && r.category !== 'platform_update' && r.image_url)?.image_url || '';
 
@@ -198,6 +320,7 @@ export async function getServerSideProps({ params, res }) {
                         platformUpdates,
                         articles: orderedNews,
                         spotOfTheWeek: serializeSpot(matchedSpot),
+                        videoOfTheWeek: matchedVideo,
                         toolSpotlight: matchedTool
                             ? {
                                   slug: String(matchedTool.slug),
@@ -265,6 +388,7 @@ export async function getServerSideProps({ params, res }) {
                         category: cleanCopy(String(a.category || 'POKER NEWS')),
                     })),
                     spotOfTheWeek: serializeSpot(liveSpot),
+                    videoOfTheWeek: serializeVideo(curated?.videoOfTheWeek || null),
                     toolSpotlight: liveTool
                         ? {
                               slug: String(liveTool.slug),
@@ -324,14 +448,38 @@ function toInternalHref(url, fallback = '/hub') {
     return fallback;
 }
 
-export default function WeeklyWireEditionPage({ issue }) {
+export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
     const editionNum = Number(issue?.editionNumber || 1);
     const canonicalUrl = `https://smarter.poker/hub/wire/${editionNum}`;
     const metaTitle = `${issue?.subject || `Smarter.Poker Weekly Wire #${editionNum}`} | Smarter.Poker`;
     const metaDesc = `Read Smarter.Poker Weekly Wire Edition #${editionNum}: Platform Upgrades, Solver Spot Of The Week, World Poker News, And Pro Calculator Spotlights.`;
     const ogImageUrl = issue?.ogImageUrl || 'https://smarter.poker/api/news/email-image?fallback=1&m=hero';
+    const publishedIso = issue?.publishedAt || null;
+    const jsonLd = {
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        mainEntityOfPage: { '@type': 'WebPage', '@id': canonicalUrl },
+        url: canonicalUrl,
+        headline: String(issue?.subject || `Smarter.Poker Weekly Wire #${editionNum}`).slice(0, 110),
+        description: metaDesc,
+        image: ogImageUrl,
+        ...(publishedIso ? { datePublished: publishedIso, dateModified: publishedIso } : {}),
+        author: { '@type': 'Organization', name: 'Smarter.Poker' },
+        publisher: { '@type': 'Organization', name: 'Smarter.Poker' },
+        isPartOf: {
+            '@type': 'CreativeWorkSeries',
+            name: 'Smarter.Poker Weekly Wire',
+            url: 'https://smarter.poker/hub/wire',
+        },
+    };
 
     const spot = issue?.spotOfTheWeek || null;
+    const spotImgSrc = spot
+        ? emailImageProxy.buildSpotCardImageUrl
+            ? emailImageProxy.buildSpotCardImageUrl(spot.slug, { relative: true })
+            : FALLBACK_HERO_SRC
+        : FALLBACK_HERO_SRC;
+    const video = issue?.videoOfTheWeek || null;
     const tool = issue?.toolSpotlight || null;
     const [selectedSpotPick, setSelectedSpotPick] = useState('');
 
@@ -350,6 +498,18 @@ export default function WeeklyWireEditionPage({ issue }) {
                 <meta key="twitter-title" name="twitter:title" content={metaTitle} />
                 <meta key="twitter-description" name="twitter:description" content={metaDesc} />
                 <meta key="twitter-image" name="twitter:image" content={ogImageUrl} />
+                <link
+                    key="wire-rss"
+                    rel="alternate"
+                    type="application/rss+xml"
+                    title="Smarter.Poker Weekly Wire RSS"
+                    href="https://smarter.poker/api/news/wire-rss"
+                />
+                <script
+                    key="wire-jsonld"
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
+                />
             </Head>
 
             <main
@@ -534,6 +694,31 @@ export default function WeeklyWireEditionPage({ issue }) {
                             <h2 style={{ margin: '0 0 8px 0', fontSize: '20px', fontWeight: 800, color: '#ffffff', lineHeight: 1.3 }}>
                                 {spot.title}
                             </h2>
+                            <img
+                                src={spotImgSrc}
+                                alt={`Spot Of The Week Card: ${spot.title}`}
+                                width={600}
+                                height={240}
+                                loading="lazy"
+                                onError={(e) => {
+                                    if (!e.currentTarget.dataset.fb) {
+                                        e.currentTarget.dataset.fb = '1';
+                                        e.currentTarget.src = FALLBACK_HERO_SRC;
+                                    }
+                                }}
+                                style={{
+                                    display: 'block',
+                                    width: '100%',
+                                    maxWidth: '600px',
+                                    height: 'auto',
+                                    aspectRatio: '600 / 240',
+                                    objectFit: 'cover',
+                                    borderRadius: '12px',
+                                    border: '1px solid #1b2c3d',
+                                    background: '#0b1520',
+                                    margin: '0 0 14px 0',
+                                }}
+                            />
                             <p style={{ margin: '0 0 16px 0', color: '#d0deec', fontSize: '14.5px', lineHeight: 1.6 }}>
                                 {spot.situation}
                             </p>
@@ -719,6 +904,76 @@ export default function WeeklyWireEditionPage({ issue }) {
                         </section>
                     )}
 
+                    {video && (
+                        <section
+                            aria-label="Video Of The Week"
+                            style={{
+                                background: '#0b1118',
+                                border: '1px solid #1b2c3d',
+                                borderRadius: '16px',
+                                padding: '20px 22px',
+                                marginBottom: '28px',
+                            }}
+                        >
+                            <div
+                                style={{
+                                    color: '#60a5fa',
+                                    fontSize: '11.5px',
+                                    fontWeight: 800,
+                                    letterSpacing: '1.6px',
+                                    textTransform: 'uppercase',
+                                    marginBottom: '10px',
+                                }}
+                            >
+                                Video Of The Week
+                            </div>
+                            <Link
+                                href={video.watchPath || '/hub/video-library'}
+                                style={{
+                                    display: 'flex',
+                                    gap: '16px',
+                                    alignItems: 'flex-start',
+                                    textDecoration: 'none',
+                                    color: '#ffffff',
+                                }}
+                            >
+                                <img
+                                    src={video.thumbnailUrl || FALLBACK_THUMB_SRC}
+                                    alt={video.title || 'Video Of The Week'}
+                                    width={112}
+                                    height={78}
+                                    loading="lazy"
+                                    onError={(ev) => {
+                                        if (!ev.currentTarget.dataset.fb) {
+                                            ev.currentTarget.dataset.fb = '1';
+                                            ev.currentTarget.src = FALLBACK_THUMB_SRC;
+                                        }
+                                    }}
+                                    style={{
+                                        width: '112px',
+                                        height: '78px',
+                                        objectFit: 'cover',
+                                        borderRadius: '8px',
+                                        border: '1px solid #1b2c3d',
+                                        background: '#0b1520',
+                                        flexShrink: 0,
+                                    }}
+                                />
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <h2 style={{ margin: '0 0 6px 0', fontSize: '17.5px', fontWeight: 800, lineHeight: 1.35, color: '#ffffff' }}>
+                                        {video.title}
+                                    </h2>
+                                    <div style={{ color: '#9fb3c8', fontSize: '13px', marginBottom: '8px' }}>
+                                        {[video.sourceName, video.duration].filter(Boolean).join(' - ')}
+                                    </div>
+                                    <span style={{ color: '#4fc1b3', fontSize: '13.5px', fontWeight: 800 }}>
+                                        Watch In Video Library &rarr;
+                                    </span>
+                                </div>
+                            </Link>
+                        </section>
+                    )}
+
                     {tool && (
                         <section
                             aria-label="Tool Spotlight Of The Week"
@@ -764,6 +1019,84 @@ export default function WeeklyWireEditionPage({ issue }) {
                             >
                                 Open Free Calculator &rarr;
                             </Link>
+                        </section>
+                    )}
+
+                    {kingsSchedule.length > 0 && (
+                        <section
+                            aria-label="Kings Club Upcoming Schedule"
+                            style={{
+                                background: '#0b1118',
+                                border: '1px solid #1b2c3d',
+                                borderRadius: '16px',
+                                padding: '22px',
+                                marginBottom: '28px',
+                            }}
+                        >
+                            <h2
+                                style={{
+                                    margin: '0 0 12px 0',
+                                    color: '#4fc1b3',
+                                    fontSize: '13px',
+                                    fontWeight: 800,
+                                    letterSpacing: '1.8px',
+                                    textTransform: 'uppercase',
+                                }}
+                            >
+                                Kings Club Upcoming Schedule
+                            </h2>
+                            <div style={{ display: 'grid', gap: '12px' }}>
+                                {kingsSchedule.map((t) => (
+                                    <div
+                                        key={t.id}
+                                        style={{
+                                            background: '#101a24',
+                                            border: '1px solid #1b2c3d',
+                                            borderRadius: '12px',
+                                            padding: '16px 18px',
+                                        }}
+                                    >
+                                        <div style={{ color: '#ffffff', fontSize: '16.5px', fontWeight: 800, lineHeight: 1.35 }}>{t.name}</div>
+                                        <div style={{ color: '#b7cadc', fontSize: '13.5px', margin: '4px 0 12px 0', lineHeight: 1.5 }}>
+                                            {formatTournamentStart(t.startTime)} &middot; {t.gameType} &middot; {t.buyInLabel}
+                                            {t.guaranteeLabel ? ` - ${t.guaranteeLabel}` : ''}
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                                            <Link
+                                                href="/hub/club-arena/?join=25450"
+                                                style={{
+                                                    display: 'inline-block',
+                                                    background: '#4fc1b3',
+                                                    color: '#05070a',
+                                                    textDecoration: 'none',
+                                                    fontWeight: 800,
+                                                    fontSize: '13px',
+                                                    padding: '9px 16px',
+                                                    borderRadius: '8px',
+                                                }}
+                                            >
+                                                Join Club 25450
+                                            </Link>
+                                            <a
+                                                href={`/api/news/calendar-ics?tid=${encodeURIComponent(t.id)}`}
+                                                style={{
+                                                    display: 'inline-block',
+                                                    background: '#0b1118',
+                                                    border: '1px solid #1b2c3d',
+                                                    color: '#60a5fa',
+                                                    textDecoration: 'none',
+                                                    fontWeight: 800,
+                                                    fontSize: '13px',
+                                                    padding: '9px 16px',
+                                                    borderRadius: '8px',
+                                                }}
+                                            >
+                                                {CALENDAR_ICS_LABEL}
+                                            </a>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </section>
                     )}
 
