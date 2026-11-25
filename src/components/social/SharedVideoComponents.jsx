@@ -139,7 +139,7 @@ export function VideoThumbnail({ url, style = {}, onValidated }) {
         style={{
           width: '100%',
           height: '100%',
-          objectFit: 'cover',
+          objectFit: 'contain',
           display: isLoaded && !thumbnailError ? 'block' : 'none',
           ...style,
         }}
@@ -156,6 +156,16 @@ export function VideoThumbnail({ url, style = {}, onValidated }) {
 
 export function VideoPostWrapper({ url, onValidVideoClick, children }) {
   const [isVideoValid, setIsVideoValid] = useState(null);
+  const [mediaSize, setMediaSize] = useState(null);
+  const isYouTube = isYouTubeUrl(url);
+  const aspectRatio = !isYouTube && mediaSize && mediaSize.url === url ? mediaSize.ratio : 16 / 9;
+
+  // Older uploads may have no poster. Read the native video's dimensions
+  // when available, or the fallback poster's dimensions if the video failed.
+  const rememberMediaSize = (width, height) => {
+    const ratio = width / height;
+    if (Number.isFinite(ratio) && ratio > 0) setMediaSize({ url, ratio });
+  };
 
   const handleClick = () => {
     if (isVideoValid === false) {
@@ -168,20 +178,32 @@ export function VideoPostWrapper({ url, onValidVideoClick, children }) {
   return (
     <div
       onClick={handleClick}
+      onLoadedMetadataCapture={(event) => {
+        const { videoWidth, videoHeight } = event.target;
+        rememberMediaSize(videoWidth, videoHeight);
+      }}
+      onLoadCapture={(event) => {
+        if (isYouTube || event.target.tagName !== 'IMG') return;
+        const { naturalWidth, naturalHeight } = event.target;
+        rememberMediaSize(naturalWidth, naturalHeight);
+      }}
       style={{
         position: 'relative',
         cursor: isVideoValid === false ? 'not-allowed' : 'pointer',
-        aspectRatio: '16/9',
-        maxHeight: 400,
+        width: '100%',
+        aspectRatio,
+        maxHeight: aspectRatio < 16 / 9 ? 'min(540px, 72svh)' : 400,
         background: '#000',
         overflow: 'hidden',
       }}
     >
-      {isYouTubeUrl(url) ? (
-        <VideoThumbnail url={url} onValidated={(valid) => setIsVideoValid(valid)} />
-      ) : (
-        children
-      )}
+      <div style={{ position: 'absolute', inset: 0 }}>
+        {isYouTube ? (
+          <VideoThumbnail url={url} onValidated={(valid) => setIsVideoValid(valid)} />
+        ) : (
+          children
+        )}
+      </div>
 
       {isVideoValid !== false && (
         <div
@@ -407,7 +429,7 @@ export function FeedVideoPoster({ videoUrl, thumbnailUrl }) {
           src={thumbnailUrl}
           alt=""
           loading="lazy"
-          style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#000' }}
+          style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000', display: 'block' }}
           onError={() => setImgFailed(true)}
           onLoad={async (event) => {
             if (await decodedPreviewIsUsable(event.currentTarget) === false) setImgFailed(true);
@@ -424,7 +446,7 @@ export function FeedVideoPoster({ videoUrl, thumbnailUrl }) {
         <YouTubePosterImg
           videoId={ytId}
           alt=""
-          style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#000' }}
+          style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000', display: 'block' }}
           onExhausted={() => setYtPosterFailed(true)}
         />
       );
@@ -451,7 +473,7 @@ export function FeedVideoPoster({ videoUrl, thumbnailUrl }) {
         src={thumbnailUrl}
         alt=""
         loading="lazy"
-        style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#000' }}
+        style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000', display: 'block' }}
         onError={() => setImgFailed(true)}
         onLoad={async (event) => {
           if (await decodedPreviewIsUsable(event.currentTarget) === false) setImgFailed(true);
@@ -511,7 +533,7 @@ export function FeedVideoPoster({ videoUrl, thumbnailUrl }) {
       // load failures so the gradient-placeholder branch above renders
       // on the next pass.
       onError={() => setVideoFailed(true)}
-      style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#000' }}
+      style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000', display: 'block' }}
     />
   );
 }

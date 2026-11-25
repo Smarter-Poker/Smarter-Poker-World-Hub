@@ -170,7 +170,7 @@ export default function FeedVideoPlayer({ post, posterUrl = null, onOpen }) {
         playsInline
         loop
         onError={() => setVideoFailed(true)}
-        style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#000', display: 'block' }}
+        style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000', display: 'block' }}
       />
       <button
         type="button"
