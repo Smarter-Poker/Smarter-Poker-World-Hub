@@ -225,7 +225,7 @@ async function fetchRawQueueItems(client, { queueMode, category, priorityMode, l
                 .is('audit_verified', null);
             if (typeof thinQuery.in === 'function') {
                 const { data: thinData, error: thinError } = await thinQuery
-                    .in('category', thinCats)
+                    .in('category', thinCats.slice(0, 10))
                     .order('created_at', { ascending: false })
                     .limit(limit);
                 if (thinError) throw thinError;
@@ -271,7 +271,7 @@ async function fetchRawQueueItems(client, { queueMode, category, priorityMode, l
             .select(reviewSelect);
         if (typeof thinReviewQuery.in === 'function') {
             const { data: thinRows, error: thinError } = await thinReviewQuery
-                .in('category', thinCats)
+                .in('category', thinCats.slice(0, 10))
                 .order('priority', { ascending: true })
                 .order('created_at', { ascending: true })
                 .limit(limit);
