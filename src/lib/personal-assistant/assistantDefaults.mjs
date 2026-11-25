@@ -76,6 +76,15 @@ export function sanitizeAssistantPreferences(raw = {}) {
   };
 }
 
+export function getSafeLocalStorage() {
+  if (typeof window === 'undefined') return null;
+  try {
+    return window.localStorage || null;
+  } catch {
+    return null;
+  }
+}
+
 export function preferenceStorageKey(userId) {
   const id = typeof userId === 'string' && userId.trim() ? userId.trim() : 'guest';
   return `${PA_PREFS_STORAGE_PREFIX}:${id}`;
@@ -191,11 +200,14 @@ export function classifyFindingHonesty(leak, reviewRecord = null) {
   }
 
   const occurrences = Number(leak.occurrences ?? leak.occurrenceCount ?? leak.occurrence_count ?? 0);
-  const sampleSize = Number(leak.sampleSize ?? leak.sample_size ?? occurrences);
+  const sampleSize = Number(
+    leak.sampleSize ?? leak.sample_size ?? leak.totalSamples ?? leak.total_samples ?? occurrences,
+  );
   const confidence = String(leak.confidence || '').toLowerCase();
+  const rawEvMeasured = leak.evLossMeasured ?? leak.ev_loss_measured;
+  const rawEvValue = Number(leak.evLossBB ?? leak.avg_ev_loss_bb);
   const hasMeasuredEv =
-    leak.evLossMeasured === true ||
-    (Number.isFinite(Number(leak.evLossBB)) && Number(leak.evLossBB) > 0);
+    rawEvMeasured === true && Number.isFinite(rawEvValue) && rawEvValue > 0;
   const hasSolverEvidence = Boolean(
     leak.solverEvidence ||
     leak.solverVerified ||
@@ -254,6 +266,7 @@ export function resolveHomePrimaryState({
   activeLeaksCount = 0,
   topLeakTitle = null,
   handsAnalyzed = 0,
+  availableClubArenaHands = 0,
   sessionsReviewed = 0,
   hasPracticeInProgress = false,
   trainingPlanTitle = null,
@@ -333,24 +346,30 @@ export function resolveHomePrimaryState({
     };
   }
 
-  if (isSignedIn && !isDemo && sessionsReviewed > 0 && handsAnalyzed === 0) {
+  const analyzedNumeric = typeof handsAnalyzed === 'number' && Number.isFinite(handsAnalyzed) ? handsAnalyzed : 0;
+  const clubHandsNumeric = typeof availableClubArenaHands === 'number' && Number.isFinite(availableClubArenaHands) ? availableClubArenaHands : 0;
+  const sessionsNumeric = typeof sessionsReviewed === 'number' && Number.isFinite(sessionsReviewed) ? sessionsReviewed : 0;
+
+  if (isSignedIn && !isDemo && (clubHandsNumeric > 0 || sessionsNumeric > 0) && analyzedNumeric === 0) {
     return {
       state: 'history_no_analysis',
       badge: 'Ready To Analyze',
       title: 'Analyze Your Recent Club Arena Play',
-      summary: `One click scans your ${PA_ANALYSIS_DEFAULTS.scopeSummary}. No setup required.`,
+      summary: clubHandsNumeric > 0
+        ? `${clubHandsNumeric.toLocaleString()} completed Club Arena hand${clubHandsNumeric === 1 ? '' : 's'} ready to scan with verified defaults.`
+        : `One click scans your ${PA_ANALYSIS_DEFAULTS.scopeSummary}. No setup required.`,
       ctaLabel: 'Analyze My Play',
       ctaAction: 'analyze_now',
       disabled: false,
     };
   }
 
-  if (isSignedIn && !isDemo && handsAnalyzed > 0) {
+  if (isSignedIn && !isDemo && analyzedNumeric > 0) {
     return {
       state: 'finding_ready',
       badge: 'Up To Date',
       title: 'No Active Leaks Across Analyzed Hands',
-      summary: `${handsAnalyzed.toLocaleString()} analyzed hand${handsAnalyzed === 1 ? '' : 's'} checked with no active leaks. Scan again after your next Club Arena session.`,
+      summary: `${analyzedNumeric.toLocaleString()} analyzed hand${analyzedNumeric === 1 ? '' : 's'} checked with no active leaks. Scan again after your next Club Arena session.`,
       ctaLabel: 'Analyze My Play',
       ctaAction: 'analyze_now',
       disabled: false,

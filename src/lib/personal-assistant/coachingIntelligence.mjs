@@ -474,7 +474,14 @@ export function buildCoachingSnapshot({ leaks = [], decisions = [], reviews = []
   const active = priorities.length;
   const resolved = (Array.isArray(leaks) ? leaks : []).filter(leak => leakStatus(leak) === 'resolved').length;
   const due = priorities.filter(priority => priority.due).length;
-  const measuredLoss = priorities.reduce((sum, priority) => sum + ((priority.measuredEvLoss || 0) * Math.max(1, priority.mistakes)), 0);
+  const measuredPriorities = priorities.filter(
+    priority => typeof priority.measuredEvLoss === 'number' && Number.isFinite(priority.measuredEvLoss),
+  );
+  const measuredLoss = measuredPriorities.length > 0
+    ? Math.round(
+        measuredPriorities.reduce((sum, priority) => sum + (priority.measuredEvLoss * Math.max(1, priority.mistakes)), 0) * 100,
+      ) / 100
+    : null;
   const top = priorities[0] || null;
   return {
     generatedAt: new Date(now).toISOString(),
@@ -485,7 +492,7 @@ export function buildCoachingSnapshot({ leaks = [], decisions = [], reviews = []
     priorities,
     trainingPlan,
     timeline: buildProgressTimeline(leaks, reviews),
-    summary: { active, resolved, due, measuredEvLoss: Math.round(measuredLoss * 100) / 100 },
+    summary: { active, resolved, due, measuredEvLoss: measuredLoss },
     nextBestAction: top ? {
       leakId: top.id,
       title: top.title,
@@ -502,7 +509,7 @@ export function buildCoachingSnapshot({ leaks = [], decisions = [], reviews = []
       focus: priorities.slice(0, 3).map((priority, index) => ({ ...priority, rank: index + 1, targetReviews: priority.due ? 3 : 2 })),
       reviewLoad: due,
       verifiedCoverage: coverage.verifiedPercent,
-      measuredEvLoss: Math.round(measuredLoss * 100) / 100,
+      measuredEvLoss: measuredLoss,
     },
   };
 }

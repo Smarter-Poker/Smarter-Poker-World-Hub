@@ -142,6 +142,9 @@ export default function PersonalAssistantPage() {
 
   const [dataLoading, setDataLoading] = useState(true);
   useEffect(() => {
+    setDataLoading(true);
+  }, [user?.id]);
+  useEffect(() => {
     if (!statsLoading && !sessionsLoading) setDataLoading(false);
   }, [statsLoading, sessionsLoading]);
   useLoadFailsafe(dataLoading, setDataLoading);
@@ -306,19 +309,25 @@ export default function PersonalAssistantPage() {
   ) || null;
 
   const dataSyncError = statsError || sessionsError;
-  const statsUnavailable = !user?.id || Boolean(statsDemo || stats?.isDemo || statsError);
+  const isSignedOut = !user?.id;
+  const isSampleStats = Boolean(statsDemo || stats?.isDemo);
+  const statsUnavailable = isSignedOut || isSampleStats || Boolean(statsError) || statsLoading;
   const parseMetric = (val) => (
     !statsUnavailable && typeof val === 'number' && Number.isFinite(val) ? val : null
   );
   const activeLeakCount = parseMetric(stats?.leaksFound);
   const resolvedLeakCount = parseMetric(stats?.resolvedLeaks);
   const handsAnalyzedCount = parseMetric(stats?.handsAnalyzed);
+  const availableClubArenaHands = parseMetric(stats?.availableClubArenaHands);
   const sessionsReviewedCount = parseMetric(stats?.sessionsReviewed);
   const sandboxSessionsCount = parseMetric(stats?.sandboxSessions);
   const trainingPlan = coachingSnapshot?.trainingPlan || null;
-  const reviewDueCount = Number(coachingSnapshot?.summary?.reviewsDue || 0);
+  const reviewDueCount = Number(
+    coachingSnapshot?.summary?.due ?? coachingSnapshot?.trainingPlan?.dueNowCount ?? 0,
+  );
   const topPriority = coachingSnapshot?.priorities?.[0] || null;
   const activeAuditRunning = Boolean(coachingSnapshot?.activeAuditRunning);
+  const activeAuditProgressText = coachingSnapshot?.activeAuditProgressText || null;
 
   const retryAssistantData = useCallback(async () => {
     if (isRetrying) return;
@@ -344,10 +353,12 @@ export default function PersonalAssistantPage() {
     isSignedIn: Boolean(user?.id),
     isDemo: Boolean(statsDemo || stats?.isDemo),
     auditRunning: activeAuditRunning,
+    auditProgressText: activeAuditProgressText,
     reviewDueCount,
     activeLeaksCount: activeLeakCount ?? 0,
     topLeakTitle: topPriority?.title || trainingPlan?.modules?.[0]?.title || null,
     handsAnalyzed: handsAnalyzedCount ?? 0,
+    availableClubArenaHands: availableClubArenaHands ?? 0,
     sessionsReviewed: sessionsReviewedCount ?? 0,
     hasPracticeInProgress: Boolean(Array.isArray(trainingPlan?.modules) && trainingPlan.modules.length > 0),
     trainingPlanTitle: trainingPlan?.modules?.[0]?.title || null,
@@ -379,6 +390,14 @@ export default function PersonalAssistantPage() {
     openGuardedRoute('/hub/training?source=personal-assistant-hero');
   };
 
+  const unavailableLabel = isSignedOut
+    ? 'Sign In To View'
+    : statsError
+      ? 'Retry To Load'
+      : isSampleStats
+        ? 'Sample View'
+        : 'Not Audited Yet';
+
   const decisionLoop = [
     {
       step: '01',
@@ -391,7 +410,7 @@ export default function PersonalAssistantPage() {
       step: '02',
       title: 'Diagnose',
       detail: activeLeakCount === null
-        ? 'Sign In To Audit'
+        ? (isSignedOut ? 'Sign In To Audit' : statsError ? 'Retry Live Data' : 'Run Leak Audit')
         : `${activeLeakCount.toLocaleString()} Active Leak${activeLeakCount === 1 ? '' : 's'}`,
       Icon: ScanSearch,
       route: '/hub/personal-assistant/leaks',
@@ -411,28 +430,28 @@ export default function PersonalAssistantPage() {
     {
       title: 'Active Leaks',
       value: activeLeakCount,
-      label: resolvedLeakCount === null ? 'Sign In To View' : `${resolvedLeakCount.toLocaleString()} Resolved`,
+      label: resolvedLeakCount === null ? unavailableLabel : `${resolvedLeakCount.toLocaleString()} Resolved`,
       Icon: Droplet,
       route: '/hub/personal-assistant/leaks',
     },
     {
       title: 'Hands Analyzed',
       value: handsAnalyzedCount,
-      label: handsAnalyzedCount === null ? 'Sign In To View' : 'Verified Audits',
+      label: handsAnalyzedCount === null ? unavailableLabel : 'Verified Audits',
       Icon: Layers,
       route: '/hub/personal-assistant/leaks',
     },
     {
       title: 'Sessions Reviewed',
       value: sessionsReviewedCount,
-      label: sessionsReviewedCount === null ? 'Sign In To View' : 'Records',
+      label: sessionsReviewedCount === null ? unavailableLabel : 'Records',
       Icon: History,
       route: '/hub/personal-assistant/sandbox',
     },
     {
       title: 'Archived Sessions',
       value: sandboxSessionsCount,
-      label: sandboxSessionsCount === null ? 'Sign In To View' : 'Archive',
+      label: sandboxSessionsCount === null ? unavailableLabel : 'Archive',
       Icon: FlaskConical,
       route: '/hub/personal-assistant/sandbox',
     },
@@ -462,7 +481,7 @@ export default function PersonalAssistantPage() {
       detail: statsBusy
         ? 'Checking Progress'
         : resolvedLeakCount === null
-          ? 'Sign In To Audit'
+          ? unavailableLabel
           : `${resolvedLeakCount.toLocaleString()} Resolved`,
       Icon: ScanSearch,
       onClick: () => openGuardedRoute('/hub/personal-assistant/leaks'),
@@ -690,21 +709,23 @@ export default function PersonalAssistantPage() {
                         aria-label={`${system.action}. ${system.description}`}
                       >
                         <span className={styles.systemCardInner}>
-                          <div className={styles.systemCopy}>
-                            <div>
+                          <span className={styles.systemCopy}>
+                            <span style={{ display: 'block' }}>
                               <span className={styles.systemEyebrow}>{system.eyebrow}</span>
-                              <h3>{system.title}</h3>
-                              <p>{system.description}</p>
-                              <ul>
+                              <strong style={{ display: 'block', margin: '4px 0', fontSize: 16, color: '#f1f5fc' }}>{system.title}</strong>
+                              <span style={{ display: 'block', color: '#b6c8d6', fontSize: 13, lineHeight: 1.45, marginBottom: 8 }}>{system.description}</span>
+                              <span style={{ display: 'grid', gap: 4 }}>
                                 {system.features.map((feature) => (
-                                  <li key={feature}><CheckCircle2 size={13} aria-hidden="true" />{feature}</li>
+                                  <span key={feature} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#dce5ef' }}>
+                                    <CheckCircle2 size={13} aria-hidden="true" />{feature}
+                                  </span>
                                 ))}
-                              </ul>
-                            </div>
+                              </span>
+                            </span>
                             <span className={styles.secondaryButton}>
                               {system.action}<ChevronRight size={15} aria-hidden="true" />
                             </span>
-                          </div>
+                          </span>
                         </span>
                       </button>
                     </article>
@@ -793,7 +814,7 @@ export default function PersonalAssistantPage() {
                       </div>
                       <div className={styles.dailyCopy}>
                         <span className={styles.dailyEyebrow}>
-                          {dailyHand.position || 'BTN'} · {Number(dailyHand.pot) > 0 ? `Pot ${Number(dailyHand.pot)} BB` : 'Daily Scenario'}
+                          {dailyHand.position || 'Daily Spot'} · {Number(dailyHand.pot) > 0 ? `Pot ${Number(dailyHand.pot)} BB` : 'Daily Scenario'}
                         </span>
                         <h3>{dailyHand.title || 'What Is The Best Line?'}</h3>
                         {boardCards.length > 0 && (
