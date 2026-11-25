@@ -291,6 +291,7 @@ const HUB_ROUTES_WITHOUT_SHARED_HEADER = new Set([
   '/hub/admin/daily-content',
   '/hub/admin/diamond-liability',
   '/hub/commander',
+  '/hub/email-preferences',
   '/hub/godmode',
   '/hub/gto-trainer',
   '/hub/hand-history',
@@ -319,6 +320,8 @@ const HUB_ROUTES_WITHOUT_SHARED_HEADER = new Set([
   '/hub/tournaments',
   '/hub/trivia/survival',
   '/hub/verify-phone',
+  '/hub/wire',
+  '/hub/wire/[edition]',
 ]);
 // GlobalReportBugButton removed — bug reporting is inside every HamburgerMenu via ReportBugWidget
 // ═══════════════════════════════════════════════════════════════════════════

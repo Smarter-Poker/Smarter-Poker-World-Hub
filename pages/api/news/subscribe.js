@@ -375,7 +375,7 @@ export default async function handler(req, res) {
                 try {
                     const { data: profileRows } = await getSupabase()
                         .from('profiles')
-                        .select('id, username, email')
+                        .select('id, username')
                         .ilike('email', normalizedEmail)
                         .limit(1);
 
