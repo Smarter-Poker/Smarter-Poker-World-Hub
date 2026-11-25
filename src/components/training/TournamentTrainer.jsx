@@ -219,7 +219,7 @@ export default function TournamentTrainer() {
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
         {STAGES.map(s => (
           <button key={s.id} onClick={() => changeStage(s.id)} style={{
-            padding: '6px 12px', borderRadius: 6, border: 'none', cursor: 'pointer',
+            padding: '6px 12px', borderRadius: 6, cursor: 'pointer',
             background: stage === s.id ? `${s.color}30` : 'rgba(255,255,255,0.06)',
             color: stage === s.id ? s.color : '#94a3b8', fontSize: 12, fontWeight: 600,
             border: stage === s.id ? `1px solid ${s.color}40` : '1px solid transparent',
@@ -315,7 +315,7 @@ export default function TournamentTrainer() {
 
             return (
               <button key={i} onClick={() => handleSelect(i)} disabled={selectedOption !== null} style={{
-                padding: '12px 16px', borderRadius: 8, border: 'none', cursor: selectedOption !== null ? 'default' : 'pointer',
+                padding: '12px 16px', borderRadius: 8, cursor: selectedOption !== null ? 'default' : 'pointer',
                 background: showResult
                   ? isCorrect
                     ? 'rgba(34,197,94,0.15)'

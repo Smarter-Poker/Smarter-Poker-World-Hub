@@ -131,7 +131,7 @@ export default function HandNoteTagger() {
           }}>All ({hands.length})</button>
           {tagCounts.filter(t => t.count > 0).map(t => (
             <button key={t.id} onClick={() => setFilterTag(filterTag === t.id ? null : t.id)} style={{
-              padding: '3px 8px', borderRadius: 4, border: 'none', cursor: 'pointer',
+              padding: '3px 8px', borderRadius: 4, cursor: 'pointer',
               background: filterTag === t.id ? `${t.color}20` : 'rgba(255,255,255,0.04)',
               color: filterTag === t.id ? t.color : '#64748b', fontSize: 12, fontWeight: 600,
               border: filterTag === t.id ? `1px solid ${t.color}30` : '1px solid transparent',

@@ -161,7 +161,7 @@ export default function RiskAnalyzerPage() {
       <div
         className="sp-training-tool sp-training-tool--analysis sp-analysis-risk"
         style={{
-          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
+          minHeight: '100dvh', width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: '#040d18',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', sans-serif",

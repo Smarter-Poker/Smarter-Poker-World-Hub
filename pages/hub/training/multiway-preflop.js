@@ -452,7 +452,6 @@ export default function MultiwayPreflopPage() {
                 style={{
                   padding: '12px 14px',
                   borderRadius: 10,
-                  border: 'none',
                   cursor: 'pointer',
                   textAlign: 'left',
                   background:

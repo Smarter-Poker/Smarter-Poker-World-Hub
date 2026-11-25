@@ -538,7 +538,7 @@ export function createSignedTrainingDuelToken({
     duelId: String(duelId || randomUUID()).slice(0, 80),
     gameId: String(gameId).slice(0, 80),
     level: Math.min(12, Math.max(1, Number(level) || 1)),
-    variant: ['nlh', 'plo4', 'plo5', 'plo6'].includes(String(variant || '').toLowerCase())
+    variant: ['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].includes(String(variant || '').toLowerCase())
       ? String(variant).toLowerCase()
       : 'nlh',
     targetHands: Math.min(30, Math.max(1, Number(targetHands) || normalizedIds.length)),

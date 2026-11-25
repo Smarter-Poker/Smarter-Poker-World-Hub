@@ -1244,7 +1244,7 @@ export class DeterministicGTOEngine {
             seenIds,
         });
 
-        if (['plo4', 'plo5', 'plo6'].includes(String(gameConfig?.variant || '').toLowerCase())) {
+        if (['plo4', 'plo5', 'plo6', 'plo8'].includes(String(gameConfig?.variant || '').toLowerCase())) {
             return curatedFallback();
         }
 
