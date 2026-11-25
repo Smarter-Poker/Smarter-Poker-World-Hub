@@ -11,9 +11,10 @@ const HERO_CARDS_BY_VARIANT = {
   plo4: ['As', 'Ks', 'Qh', 'Jh'],
   plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
   plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
+  plo8: ['As', 'Ks', 'Qh', 'Jh'],
 };
 
-const VARIANTS = ['nlh', 'plo4', 'plo5', 'plo6'];
+const VARIANTS = ['nlh', 'plo4', 'plo5', 'plo6', 'plo8'];
 const POSITIONS = ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
 const STACK_DEPTHS = [20, 40, 100];
 

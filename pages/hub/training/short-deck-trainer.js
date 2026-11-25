@@ -33,6 +33,7 @@ const BRAIN_HERO_BY_VARIANT = {
   plo4: ['As', 'Ks', 'Qh', 'Jh'],
   plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
   plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
+  plo8: ['As', 'Ks', 'Qh', 'Jh'],
 };
 
 const BRAIN_BOARD_BY_STREET = {
@@ -717,7 +718,7 @@ export default function ShortDeckTrainerPage() {
               <div>
                 <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>Variant</div>
                 <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                  {['nlh', 'plo4', 'plo5', 'plo6'].map((v) => (
+                  {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
                     <button key={v} type="button" data-variant-option={v} onClick={() => setActiveVariant(v)} style={pillStyle(activeVariant === v)}>
                       {v.toUpperCase()}
                     </button>

@@ -27,6 +27,7 @@ const HERO_CARDS_BY_VARIANT = {
   plo4: ['As', 'Ks', 'Qh', 'Jh'],
   plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
   plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
+  plo8: ['As', 'Ks', 'Qh', 'Jh'],
 };
 
 const BOARD_CARDS = ['8d', '5c', '2s', '6h', '3d'];
@@ -208,6 +209,7 @@ const DRILL_VARIANTS = [
   { id: 'plo4', label: 'PLO4' },
   { id: 'plo5', label: 'PLO5' },
   { id: 'plo6', label: 'PLO6' },
+  { id: 'plo8', label: 'PLO8' },
 ];
 
 const STACK_DEPTHS = {

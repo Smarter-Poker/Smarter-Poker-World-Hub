@@ -23,6 +23,7 @@ const HERO_CARDS_BY_VARIANT = {
   plo4: ['Ac', 'Kc', 'Qd', 'Jd'],
   plo5: ['Ac', 'Kc', 'Qd', 'Jd', 'Ts'],
   plo6: ['Ac', 'Kc', 'Qd', 'Jd', 'Ts', '9s'],
+  plo8: ['Ac', 'Kc', 'Qd', 'Jd'],
 };
 
 const BOARD_BY_STREET = {
@@ -572,7 +573,7 @@ export default function RakeSolutionsPage() {
               <div>
                 <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>Variant</div>
                 <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                  {['nlh', 'plo4', 'plo5', 'plo6'].map((v) => (
+                  {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
                     <button key={v} type="button" data-variant-option={v} onClick={() => setActiveVariant(v)} style={pillStyle(activeVariant === v)}>
                       {v.toUpperCase()}
                     </button>
