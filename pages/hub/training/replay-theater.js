@@ -270,6 +270,7 @@ function MistakeCard({ mistake, onPractice }) {
               <div style={{ display: 'flex', gap: 8 }}>
                 <motion.button
                   whileTap={{ scale: 0.97 }}
+                  data-drill-similar-spot-cta="true"
                   onClick={() => onPractice(mistake)}
                   style={{
                     flex: 1,
@@ -551,6 +552,7 @@ export default function ReplayTheaterPage() {
               <button
                 type="button"
                 data-launch-club-arena-cta="true"
+                data-drill-similar-spot-cta="true"
                 data-launch-href={arenaHref}
                 onClick={() => router.push(arenaHref)}
                 style={{

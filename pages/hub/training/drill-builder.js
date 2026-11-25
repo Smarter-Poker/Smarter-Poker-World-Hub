@@ -21,6 +21,7 @@ import {
   buildCustomTrainingArenaHref,
   resolveCustomTrainingLaunch,
 } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
+import { encodeSharedDrillPack } from '../../../src/lib/training/trainingPresets.mjs';
 
 const HERO_CARDS_BY_VARIANT = {
   nlh: ['As', 'Kd'],
@@ -193,6 +194,39 @@ const PRESETS = [
     },
     color: 'var(--sp-accent-amber)',
   },
+  {
+    id: 'plo8_scoop_quartering_defense',
+    name: 'PLO8 Scoop & Quartering Defense',
+    desc: '4-Card Omaha Hi-Lo 8-or-Better two-way scoop and nut-low protection',
+    config: {
+      format: 'cash',
+      variant: 'plo8',
+      positions: ['BTN'],
+      streets: ['flop'],
+      stackMin: 100,
+      stackMax: 100,
+      stackDepth: 100,
+      scenarios: ['plo8_scoop'],
+    },
+    color: 'var(--sp-accent-green)',
+  },
+  {
+    id: 'fixed_limit_cap_geometry',
+    name: 'Fixed-Limit Cap & Turn Geometry',
+    desc: 'Fixed-Limit 1 BB small-bet / 2 BB big-bet transitions and 4-raise caps',
+    config: {
+      format: 'cash',
+      variant: 'nlh',
+      bettingStructure: 'fixed_limit',
+      positions: ['BTN'],
+      streets: ['turn'],
+      stackMin: 60,
+      stackMax: 60,
+      stackDepth: 60,
+      scenarios: ['fixed_limit_cap'],
+    },
+    color: 'var(--sp-accent-blue)',
+  },
 ];
 
 const FORMATS = [
@@ -268,6 +302,46 @@ export default function DrillBuilderPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
+  const [sharedPackCopied, setSharedPackCopied] = useState(false);
+
+  const sharedDrillPackToken = useMemo(
+    () =>
+      encodeSharedDrillPack({
+        title: drillName.trim() || `${variant.toUpperCase()} ${format.toUpperCase()} Study Pack`,
+        format,
+        variant,
+        heroPosition: selectedPositions[0] || 'BTN',
+        targetStreet: selectedStreets[0] || 'flop',
+        stackDepthBb: stackDepth,
+        questionsCount: 10,
+      }),
+    [drillName, format, variant, selectedPositions, selectedStreets, stackDepth],
+  );
+
+  const copySharedDrillPackLink = async () => {
+    const baseHref = buildCustomTrainingArenaHref(
+      {
+        format,
+        variant,
+        positions: selectedPositions,
+        streets: selectedStreets,
+        stackDepth,
+      },
+      'shared-drill-pack',
+    );
+    const sep = baseHref.includes('?') ? '&' : '?';
+    const relativeUrl = `${baseHref}${sep}pack=${encodeURIComponent(sharedDrillPackToken)}`;
+    const fullUrl = typeof window !== 'undefined' ? `${window.location.origin}${relativeUrl}` : relativeUrl;
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(fullUrl);
+      }
+    } catch (_) {
+      /* ignore clipboard restrictions */
+    }
+    setSharedPackCopied(true);
+    setTimeout(() => setSharedPackCopied(false), 2600);
+  };
 
   const previewStreet = selectedStreets[0] || 'flop';
   const previewPosition = selectedPositions[0] || 'BTN';
@@ -700,13 +774,14 @@ export default function DrillBuilderPage() {
             </div>
 
             {/* Actions */}
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <motion.button
                 whileTap={{ scale: 0.97 }}
                 onClick={saveDrill}
                 disabled={saving || !drillName.trim()}
                 style={{
                   flex: 1,
+                  minWidth: 130,
                   padding: '12px 0',
                   borderRadius: 10,
                   border: '1px solid rgba(255,255,255,0.1)',
@@ -718,6 +793,28 @@ export default function DrillBuilderPage() {
                 }}
               >
                 {saving ? 'Saving...' : 'Save Drill'}
+              </motion.button>
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                type="button"
+                data-copy-shared-drill-pack="true"
+                data-shared-pack-token={sharedDrillPackToken}
+                onClick={copySharedDrillPackLink}
+                style={{
+                  flex: 1,
+                  minWidth: 165,
+                  padding: '12px 10px',
+                  borderRadius: 7,
+                  border: '1px solid #688299',
+                  borderTopColor: '#aec0d0',
+                  background: 'linear-gradient(180deg, #13253a 0%, #091727 60%, #060e18 100%)',
+                  color: '#83deff',
+                  fontSize: 12,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                }}
+              >
+                {sharedPackCopied ? 'Shared Pack Link Copied!' : 'Copy Shared Drill Pack Link'}
               </motion.button>
               <motion.button
                 whileTap={{ scale: 0.97 }}
@@ -733,6 +830,7 @@ export default function DrillBuilderPage() {
                 }
                 style={{
                   flex: 1,
+                  minWidth: 130,
                   padding: '12px 0',
                   borderRadius: 7,
                   border: '1px solid #56d8ff',

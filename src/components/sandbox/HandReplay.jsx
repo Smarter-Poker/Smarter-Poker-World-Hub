@@ -26,6 +26,7 @@ import { motion } from 'framer-motion';
 import { Film, ChevronLeft, ChevronRight, RotateCcw, TrendingDown, Archive } from 'lucide-react';
 import { T, F, S, R, btn, pill, numeric } from './paTokens';
 import { BottomSheet, PAStyles, EmptyState, Segmented, usePrefersReducedMotion } from './paKit';
+import { buildCustomTrainingArenaHref } from '../../lib/training/customTrainingLaunchContract.mjs';
 
 const FILTERS = [
     { value: 'all', label: 'All' },
@@ -162,6 +163,25 @@ export default function HandReplay({ sessionLog = [], onLoadScenario, onClose })
         buzz(15);
         onClose?.();
     }, [entry, playable, onLoadScenario, onClose, buzz]);
+
+    const drillSimilarSpotHref = useMemo(() => {
+        const rawHand = String(entry?.hand || '').trim();
+        const cardCount = (rawHand.match(/[2-9TJQKA][cdhs]/gi) || []).length;
+        const variant = entry?.variant
+            || (cardCount === 6 ? 'plo6' : cardCount === 5 ? 'plo5' : cardCount === 4 ? 'plo4' : 'nlh');
+        const street = String(entry?.street || 'flop').toLowerCase();
+        const position = String(entry?.position || 'BTN').toUpperCase();
+        return buildCustomTrainingArenaHref(
+            {
+                format: 'cash',
+                variant,
+                streets: [['preflop', 'flop', 'turn', 'river'].includes(street) ? street : 'flop'],
+                positions: [['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB', 'BB'].includes(position) ? position : 'BTN'],
+                stackDepth: Number(entry?.stackDepth) || 100,
+            },
+            'sandbox-hand-replay',
+        );
+    }, [entry]);
 
     const dragProps = reduce ? {} : {
         drag: 'x',
@@ -340,6 +360,24 @@ export default function HandReplay({ sessionLog = [], onLoadScenario, onClose })
                                     {archived && entry?.createdAt
                                         ? ` · ${new Date(entry.createdAt).toLocaleDateString()}`
                                         : ''}
+                                </div>
+                                <div style={{ marginTop: S.md }}>
+                                    <a
+                                        href={drillSimilarSpotHref}
+                                        data-drill-similar-spot-cta="true"
+                                        className="pa-btn"
+                                        style={{
+                                            ...btn('secondary', { block: true }),
+                                            textDecoration: 'none',
+                                            fontSize: F.caption,
+                                            fontWeight: 800,
+                                            color: '#83deff',
+                                            borderColor: '#688299',
+                                            background: 'linear-gradient(180deg, #13253a 0%, #091727 60%, #060e18 100%)',
+                                        }}
+                                    >
+                                        Drill Similar Spot In Club Arena (10 Hands) →
+                                    </a>
                                 </div>
 
                                 {/* Only claim "no verdict" when the row genuinely has none. */}

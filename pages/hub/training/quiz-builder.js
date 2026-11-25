@@ -20,6 +20,7 @@ import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 import { evaluateTrainingSpotWithHorseBrain, buildCustomTrainingArenaHref } from '../../../src/lib/training/horseBrainTrainingAdapter';
+import { encodeSharedDrillPack } from '../../../src/lib/training/trainingPresets.mjs';
 // TRAIN-WIRE-EMPTY-8b — adoption: shared empty-state primitive
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -326,6 +327,45 @@ export default function QuizBuilderPage() {
   const [savedQuizzes, setSavedQuizzes] = useState([]);
   const [tab, setTab] = useState('build');
   const [brainVariant, setBrainVariant] = useState('nlh');
+  const [sharedPackCopied, setSharedPackCopied] = useState(false);
+  const sharedQuizPackToken = useMemo(() => {
+    const firstQ = questions[0] || DEFAULT_QUESTION;
+    return encodeSharedDrillPack({
+      title: quizName.trim() || `${brainVariant.toUpperCase()} Custom Study Pack`,
+      format: 'cash',
+      variant: brainVariant,
+      heroPosition: firstQ.position || 'BTN',
+      targetStreet: String(firstQ.street || 'flop').toLowerCase(),
+      stackDepthBb: 100,
+      questionsCount: Math.max(5, questions.length || 10),
+    });
+  }, [quizName, brainVariant, questions]);
+
+  const copySharedQuizPackLink = useCallback(async () => {
+    const firstQ = questions[0] || DEFAULT_QUESTION;
+    const baseHref = buildCustomTrainingArenaHref(
+      {
+        format: 'cash',
+        variant: brainVariant,
+        streets: [String(firstQ.street || 'flop').toLowerCase()],
+        positions: [firstQ.position || 'BTN'],
+        stackDepth: 100,
+      },
+      'shared-drill-pack',
+    );
+    const sep = baseHref.includes('?') ? '&' : '?';
+    const relativeUrl = `${baseHref}${sep}pack=${encodeURIComponent(sharedQuizPackToken)}`;
+    const fullUrl = typeof window !== 'undefined' ? `${window.location.origin}${relativeUrl}` : relativeUrl;
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(fullUrl);
+      }
+    } catch (_) {
+      /* ignore clipboard restrictions */
+    }
+    setSharedPackCopied(true);
+    setTimeout(() => setSharedPackCopied(false), 2600);
+  }, [questions, brainVariant, sharedQuizPackToken]);
   const brainPreview = useMemo(
     () =>
       evaluateTrainingSpotWithHorseBrain({
@@ -600,13 +640,14 @@ export default function QuizBuilderPage() {
                 ))}
               </AnimatePresence>
 
-              {/* Add + Save */}
-              <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+              {/* Add + Save + Share Study Group Pack */}
+              <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
                 <motion.button
                   whileTap={{ scale: 0.97 }}
                   onClick={addQuestion}
                   style={{
                     flex: 1,
+                    minWidth: 130,
                     padding: '12px',
                     borderRadius: 10,
                     border: '1px solid rgba(255,255,255,0.08)',
@@ -621,10 +662,33 @@ export default function QuizBuilderPage() {
                 </motion.button>
                 <motion.button
                   whileTap={{ scale: 0.97 }}
+                  type="button"
+                  data-copy-shared-drill-pack="true"
+                  data-shared-pack-token={sharedQuizPackToken}
+                  onClick={copySharedQuizPackLink}
+                  style={{
+                    flex: 1,
+                    minWidth: 165,
+                    padding: '12px 10px',
+                    borderRadius: 7,
+                    border: '1px solid #688299',
+                    borderTopColor: '#aec0d0',
+                    background: 'linear-gradient(180deg, #13253a 0%, #091727 60%, #060e18 100%)',
+                    color: '#83deff',
+                    fontSize: 12,
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {sharedPackCopied ? 'Shared Pack Link Copied!' : 'Copy Shared Drill Pack Link'}
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
                   onClick={saveQuiz}
                   disabled={!quizName.trim()}
                   style={{
                     flex: 1,
+                    minWidth: 130,
                     padding: '12px',
                     borderRadius: 10,
                     border: 'none',
