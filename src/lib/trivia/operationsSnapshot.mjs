@@ -633,6 +633,154 @@ export function normalizePlayerFunnel(value) {
     };
 }
 
+export const BURNIN_SLO_KEYS = Object.freeze([
+    'horse_target_exact',
+    'start_within_60s',
+    'all_charged_in_bracket',
+    'within_event_budget',
+    'settlement_within_slo',
+    'zero_escrow_and_variance',
+]);
+
+function nullableNumber(value) {
+    return finite(value) ? Number(value) : null;
+}
+
+function nullableInt(value) {
+    return finite(value) ? Math.trunc(Number(value)) : null;
+}
+
+export function normalizeBurnInScorecard(value) {
+    if (!plainObject(value)) {
+        return {
+            available: false,
+            contract: 'trivia-phase12-burnin/1',
+            generated_at: null,
+            window: {
+                start_date: '2026-11-24',
+                end_date: '2026-11-30',
+                days: 7,
+            },
+            scorecard: '0/7',
+            certified: false,
+            passed: 0,
+            failed: 0,
+            pending: 0,
+            scheduled: 0,
+            total: 7,
+            ledger_clean: null,
+            summary: {
+                passed: 0,
+                failed: 0,
+                pending: 0,
+                scheduled: 0,
+                total: 7,
+                ledger_clean: null,
+            },
+            nights: [],
+        };
+    }
+
+    const rawWindow = plainObject(value.window) ? value.window : {};
+    const rawSummary = plainObject(value.summary) ? value.summary : {};
+    const days = finite(rawWindow.days)
+        ? Math.min(31, Math.max(1, Math.trunc(Number(rawWindow.days))))
+        : (finite(value.total) ? Math.min(31, Math.max(1, Math.trunc(Number(value.total)))) : 7);
+    const startDate = typeof rawWindow.start_date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(rawWindow.start_date)
+        ? rawWindow.start_date
+        : '2026-11-24';
+    const endDate = typeof rawWindow.end_date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(rawWindow.end_date)
+        ? rawWindow.end_date
+        : '2026-11-30';
+
+    const nights = (Array.isArray(value.nights) ? value.nights : [])
+        .filter((row) => plainObject(row))
+        .slice(0, 31)
+        .map((row) => {
+            const rawSlos = plainObject(row.slos) ? row.slos : {};
+            const slos = {};
+            let slosPassed = 0;
+            for (const key of BURNIN_SLO_KEYS) {
+                const entry = plainObject(rawSlos[key]) ? rawSlos[key] : {};
+                const passed = entry.passed === true;
+                if (passed) slosPassed += 1;
+                slos[key] = {
+                    passed,
+                    detail: typeof entry.detail === 'string' ? entry.detail : '',
+                };
+            }
+            const status = ['passed', 'pending', 'failed'].includes(row.status) ? row.status : 'failed';
+            return {
+                date: typeof row.date === 'string' ? row.date : '',
+                tournament_id: typeof row.tournament_id === 'string' ? row.tournament_id : null,
+                start_time: typeof row.start_time === 'string' ? row.start_time : null,
+                lifecycle_state: typeof row.lifecycle_state === 'string' ? row.lifecycle_state : 'missing',
+                horse_target: nullableInt(row.horse_target),
+                horses_entered: nullableInt(row.horses_entered),
+                humans_entered: toNonNegInt(row.humans_entered),
+                start_delay_seconds: nullableNumber(row.start_delay_seconds),
+                event_duration_seconds: nullableNumber(row.event_duration_seconds),
+                event_budget_seconds: finite(row.event_budget_seconds) ? Math.trunc(Number(row.event_budget_seconds)) : 3600,
+                stuck_rounds: toNonNegInt(row.stuck_rounds),
+                settlement_state: typeof row.settlement_state === 'string' ? row.settlement_state : null,
+                settlement_latency_seconds: nullableNumber(row.settlement_latency_seconds),
+                settlement_sla_seconds: finite(row.settlement_sla_seconds) ? Math.trunc(Number(row.settlement_sla_seconds)) : 60,
+                charged_entrants: nullableInt(row.charged_entrants),
+                excluded_charged_entrants: nullableInt(row.excluded_charged_entrants),
+                escrow_balance: nullableInt(row.escrow_balance),
+                ledger_variance: toNonNegInt(row.ledger_variance),
+                status,
+                slos_passed: slosPassed,
+                slos,
+            };
+        });
+
+    const passed = finite(value.passed)
+        ? toNonNegInt(value.passed)
+        : (finite(rawSummary.passed) ? toNonNegInt(rawSummary.passed) : nights.filter((n) => n.status === 'passed').length);
+    const failed = finite(value.failed)
+        ? toNonNegInt(value.failed)
+        : (finite(rawSummary.failed) ? toNonNegInt(rawSummary.failed) : nights.filter((n) => n.status === 'failed').length);
+    const pending = finite(value.pending)
+        ? toNonNegInt(value.pending)
+        : (finite(rawSummary.pending) ? toNonNegInt(rawSummary.pending) : nights.filter((n) => n.status === 'pending').length);
+    const scheduled = finite(value.scheduled)
+        ? toNonNegInt(value.scheduled)
+        : (finite(rawSummary.scheduled) ? toNonNegInt(rawSummary.scheduled) : nights.filter((n) => n.tournament_id !== null).length);
+    const ledgerClean = typeof value.ledger_clean === 'boolean'
+        ? value.ledger_clean
+        : (typeof rawSummary.ledger_clean === 'boolean' ? rawSummary.ledger_clean : null);
+    const certified = passed === days && failed === 0 && ledgerClean === true && days > 0;
+
+    return {
+        available: nights.length > 0 || typeof value.scorecard === 'string',
+        contract: typeof value.contract === 'string' ? value.contract : 'trivia-phase12-burnin/1',
+        generated_at: typeof value.generated_at === 'string' ? value.generated_at : null,
+        window: {
+            start_date: startDate,
+            end_date: endDate,
+            days,
+        },
+        scorecard: `${passed}/${days}`,
+        certified,
+        passed,
+        failed,
+        pending,
+        scheduled,
+        total: days,
+        ledger_clean: ledgerClean,
+        summary: {
+            passed,
+            failed,
+            pending,
+            scheduled,
+            total: days,
+            ledger_clean: ledgerClean,
+        },
+        nights,
+    };
+}
+
 /**
  * Build the browser-safe read-only control-room payload.
  *
@@ -673,6 +821,7 @@ export function buildTriviaOperationsSnapshot(input = {}) {
     });
     const integrityReview = normalizeIntegrityReview(input.integrityReview);
     const playerFunnel = normalizePlayerFunnel(input.playerFunnel);
+    const burnInScorecard = normalizeBurnInScorecard(input.burnInScorecard);
     const issues = [];
 
     for (const source of Object.keys(sourceErrors).sort()) {
@@ -795,6 +944,7 @@ export function buildTriviaOperationsSnapshot(input = {}) {
         ledger_health: ledgerHealth,
         treasury_economics: treasuryEconomics,
         tonight_fill_monitor: tonightFillMonitor,
+        burnin_scorecard: burnInScorecard,
         integrity_review: integrityReview,
         player_funnel: playerFunnel,
         authority,

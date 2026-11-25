@@ -7,9 +7,12 @@ import {
 } from './tournaments/tournamentModel.mjs';
 import { toTitleCase } from '../../lib/trivia/titleCase';
 
-function matchupStageLabel(matchup, totalRounds, semiRound, finalRound) {
+export function matchupStageLabel(matchup, totalRounds, semiRound, finalRound) {
     const round = Number(matchup?.roundNumber || 0);
-    const slot = Number(matchup?.slot || 1);
+    const rawSlot = matchup?.slot;
+    const slot = rawSlot !== null && rawSlot !== undefined && rawSlot !== '' && Number.isFinite(Number(rawSlot))
+        ? Number(rawSlot) + 1
+        : 1;
     if (totalRounds >= 1 && round === finalRound) return 'Championship Final';
     if (totalRounds >= 2 && round === semiRound) return `Semifinal ${slot}`;
     return `Round ${round || 1} Match ${slot}`;
