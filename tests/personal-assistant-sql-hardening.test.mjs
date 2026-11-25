@@ -60,3 +60,28 @@ test('PA watermark and single-round-trip linked-hand RPC migration enforces owne
   assert.match(sql, /REVOKE ALL ON FUNCTION public\.get_pa_linked_hand_bundle\(uuid, uuid\) FROM authenticated;/);
   assert.match(sql, /GRANT EXECUTE ON FUNCTION public\.get_pa_linked_hand_bundle\(uuid, uuid\) TO service_role;/);
 });
+
+const PHASE_2B_MIGRATION_PATH = path.resolve(
+  'supabase/migrations/20261125033000_pa_commit_review_remediation_baseline.sql',
+);
+
+test('PA Phase 2B review remediation baseline migration backfills retired rows, stamps once on mastery, and preserves service_role-only EXECUTE', () => {
+  const sql = fs.readFileSync(PHASE_2B_MIGRATION_PATH, 'utf8');
+
+  assert.match(
+    sql,
+    /UPDATE public\.leak_review_state[\s\S]*?SET remediation_baseline_at = COALESCE\(updated_at, created_at, now\(\)\)[\s\S]*?WHERE retired = true[\s\S]*?AND remediation_baseline_at IS NULL;/,
+  );
+  assert.match(
+    sql,
+    /CREATE OR REPLACE FUNCTION public\.commit_leak_review_state\([\s\S]*?SECURITY DEFINER[\s\S]*?SET search_path = public, pg_temp/,
+  );
+  assert.match(
+    sql,
+    /remediation_baseline_at = COALESCE\(\s*public\.leak_review_state\.remediation_baseline_at,\s*CASE WHEN EXCLUDED\.retired THEN now\(\) ELSE NULL END\s*\)/,
+  );
+  assert.match(sql, /REVOKE ALL ON FUNCTION public\.commit_leak_review_state\(uuid, text, text, timestamp with time zone, jsonb\) FROM PUBLIC;/);
+  assert.match(sql, /REVOKE ALL ON FUNCTION public\.commit_leak_review_state\(uuid, text, text, timestamp with time zone, jsonb\) FROM anon;/);
+  assert.match(sql, /REVOKE ALL ON FUNCTION public\.commit_leak_review_state\(uuid, text, text, timestamp with time zone, jsonb\) FROM authenticated;/);
+  assert.match(sql, /GRANT EXECUTE ON FUNCTION public\.commit_leak_review_state\(uuid, text, text, timestamp with time zone, jsonb\) TO service_role;/);
+});
