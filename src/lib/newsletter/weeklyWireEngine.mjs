@@ -656,7 +656,7 @@ async function loadVideoOfTheWeek(sb, { consumedIds, fetchVideosFn }) {
             const { data, error } = await sb
                 .from('video_library_public_catalog')
                 .select(VIDEO_ROW_FIELDS)
-                .in('type', VIDEO_LIBRARY_POKER_TYPES)
+                .in('type', ['cash', 'tournament'])
                 .order('views_count', { ascending: false })
                 .order('scraped_at', { ascending: false })
                 .limit(40);

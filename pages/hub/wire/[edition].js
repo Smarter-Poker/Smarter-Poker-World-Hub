@@ -10,7 +10,6 @@ import * as wireEngine from '../../../src/lib/newsletter/weeklyWireEngine.mjs';
 import { VIDEO_ROW_FIELDS, normaliseVideoRow, watchPath } from '../../../src/lib/videoLibraryWatch.mjs';
 import { isVideoLibraryVideoAllowed } from '../../../src/lib/videoLibraryAvailability.js';
 import {
-    VIDEO_LIBRARY_POKER_TYPES,
     dedupeVideos,
     isCasinoGameFiledAsPoker,
     isDisplayableVideoTitle,
@@ -68,7 +67,7 @@ async function resolveMatchedHistoricalVideo(sb, idSet) {
         const { data } = await sb
             .from('video_library_public_catalog')
             .select(VIDEO_ROW_FIELDS)
-            .in('type', VIDEO_LIBRARY_POKER_TYPES)
+            .in('type', ['cash', 'tournament'])
             .order('views_count', { ascending: false })
             .order('scraped_at', { ascending: false })
             .limit(80);
