@@ -75668,7 +75668,7 @@
         },
         {
           "name": "evaluateFullHandLineAndBranchComparison",
-          "line": 1398,
+          "line": 1419,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -132746,7 +132746,8 @@
       ],
       "realtime": [],
       "tests": [
-        "__tests__/training-reconciled-workflows.test.mjs"
+        "__tests__/training-reconciled-workflows.test.mjs",
+        "__tests__/training-simplification-mtt-design.test.mjs"
       ]
     },
     {
@@ -142758,7 +142759,7 @@
       {
         "file": "src/lib/training/horseBrainTrainingAdapter.js",
         "name": "evaluateFullHandLineAndBranchComparison",
-        "line": 1398,
+        "line": 1419,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -153173,7 +153174,7 @@
       {
         "file": "src/lib/training/horseBrainTrainingAdapter.js",
         "name": "evaluateFullHandLineAndBranchComparison",
-        "line": 1398,
+        "line": 1419,
         "references": 1,
         "exported": true,
         "defaultExport": false,

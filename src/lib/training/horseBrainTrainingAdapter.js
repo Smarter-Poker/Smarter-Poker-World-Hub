@@ -1336,14 +1336,35 @@ export function evaluateMultiwayPostflopSpot({
   villainPosition = 'BB',
 } = {}) {
   const cleanPlayers = Math.max(2, Math.min(6, Math.round(Number(activePlayerCount) || 2)));
+  const normStreet = String(street || 'flop').trim().toLowerCase();
+  const expectedBoardCount = EXPECTED_BOARD_CARDS_BY_STREET[normStreet] ?? 3;
+  const seedBoard = ['Qs', '8s', '3d', 'Jh', '2c', '7h', '4c'];
+  const usedCards = new Set((Array.isArray(heroCards) ? heroCards : []).map((c) => String(c).toLowerCase()));
+  const alignedBoard = [];
+  for (const c of (Array.isArray(boardCards) ? boardCards : [])) {
+    if (alignedBoard.length >= expectedBoardCount) break;
+    const low = String(c).toLowerCase();
+    if (!usedCards.has(low)) {
+      usedCards.add(low);
+      alignedBoard.push(c);
+    }
+  }
+  for (const c of seedBoard) {
+    if (alignedBoard.length >= expectedBoardCount) break;
+    const low = c.toLowerCase();
+    if (!usedCards.has(low)) {
+      usedCards.add(low);
+      alignedBoard.push(c);
+    }
+  }
   const baseEval = evaluateTrainingSpotWithHorseBrain({
     gameId,
     variant,
     bettingStructure,
     format,
-    street,
+    street: normStreet,
     heroCards,
-    boardCards,
+    boardCards: alignedBoard,
     potSizeBb,
     facingBetBb,
     effectiveStackBb,
