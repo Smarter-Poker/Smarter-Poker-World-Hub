@@ -660,7 +660,7 @@ export default function NewsletterOperations() {
                 <section className={styles.dispatch}>
                     <div className={styles.sectionHeading}>
                         <div>
-                            <p className={styles.eyebrow}>Weekly Wire V2 (Zero-Repeat Engine)</p>
+                            <p className={styles.eyebrow}>Weekly Wire V2</p>
                             <h2>Smarter.Poker Upgrades, Segmented Promos And Poker News</h2>
                         </div>
                         <OperatorGlyph kind="shield" size={22} />
@@ -712,7 +712,7 @@ export default function NewsletterOperations() {
                         <div className={styles.preview}>
                             {preview ? (
                                 <>
-                                    <p className={styles.previewLabel}>Edition #{preview.editionNumber || 1} Validated (Zero Repeats)</p>
+                                    <p className={styles.previewLabel}>Edition #{preview.editionNumber || 1} Preview Ready</p>
                                     <h3>{preview.subject || 'No Publishable Stories Found'}</h3>
                                     <dl>
                                         <div><dt>Opted-In Total</dt><dd>{preview.recipients}</dd></div>

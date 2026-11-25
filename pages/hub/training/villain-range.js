@@ -11,6 +11,7 @@ const VARIANTS = [
   { id: 'plo4', label: 'PLO4 (4 Cards)', heroCards: ['Ac', 'Kc', 'Qh', 'Jh'] },
   { id: 'plo5', label: 'PLO5 (5 Cards)', heroCards: ['Ac', 'Kc', 'Qh', 'Jh', 'Td'] },
   { id: 'plo6', label: 'PLO6 (6 Cards)', heroCards: ['Ac', 'Kc', 'Qh', 'Jh', 'Td', '9d'] },
+  { id: 'plo8', label: 'PLO8 (Hi-Lo)', heroCards: ['Ac', 'Kc', 'Qh', 'Jh'] },
 ];
 
 const VILLAIN_RANGES = [

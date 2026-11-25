@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import {
     PLATFORM_UPDATES_CATALOG,
     TOOL_SPOTLIGHT_CATALOG,
@@ -331,4 +334,26 @@ test('resolveWeeklyWireRecipients and renderWeeklyWireEmail segment Promo CTAs a
     assert.match(rendered.html, /PO Box 1905, 9624 Cicero Ave, Oak Lawn, IL 60453/);
     assert.match(rendered.html, /Tool Spotlight Of The Week/);
     assert.match(rendered.text, /PO Box 1905, 9624 Cicero Ave, Oak Lawn, IL 60453/);
+
+    const bannedPalette = /#(fbbf24|f59e0b|fcd34d|fde047|eab308|facc15|d97706|c084fc|a855f7|8b5cf6|7c3aed|9333ea|d8b4fe|e9d5ff)\b/i;
+    assert.doesNotMatch(rendered.html, bannedPalette, 'Weekly Wire HTML must never use yellow or purple fonts');
+    assert.doesNotMatch(rendered.html, /\b(zero[- ]repeats?|0 repeats?)\b/i, 'Weekly Wire HTML must not show a Zero Repeats badge/button');
+});
+
+test('newsletter studio and welcome-back surfaces never use yellow/purple fonts or Zero Repeats UI badges', () => {
+    const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+    const bannedPalette = /#(fbbf24|f59e0b|fcd34d|fde047|eab308|facc15|d97706|c084fc|a855f7|8b5cf6|7c3aed|9333ea|d8b4fe|e9d5ff)\b/i;
+
+    for (const rel of [
+        'src/lib/newsletter/weeklyWireEngine.mjs',
+        'pages/admin/newsletter.js',
+        'pages/promo/welcome-back.js',
+        'src/components/admin/NewsletterOperations.module.css',
+    ]) {
+        const src = fs.readFileSync(path.join(repoRoot, rel), 'utf8');
+        assert.doesNotMatch(src, bannedPalette, `${rel} must not use yellow or purple colors`);
+    }
+
+    const adminUi = fs.readFileSync(path.join(repoRoot, 'pages/admin/newsletter.js'), 'utf8');
+    assert.doesNotMatch(adminUi, /zero[- ]repeats?|0 repeats?/i, 'admin/newsletter.js must not display Zero Repeats UI copy');
 });

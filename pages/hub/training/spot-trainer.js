@@ -28,6 +28,7 @@ const SPOT_HERO_CARDS_BY_VARIANT = {
   plo4: ['Ah', 'Kh', 'Qd', 'Jd'],
   plo5: ['Ah', 'Kh', 'Qd', 'Jd', 'Tc'],
   plo6: ['Ah', 'Kh', 'Qd', 'Jd', 'Tc', '9c'],
+  plo8: ['Ah', 'Kh', 'Qd', 'Jd'],
 };
 
 const FORMAT_OPTIONS = [
@@ -556,7 +557,7 @@ export default function SpotTrainerPage() {
               <div>
                 <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', fontWeight: 700, marginBottom: 4 }}>Variant</div>
                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                  {['nlh', 'plo4', 'plo5', 'plo6'].map((v) => (
+                  {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
                     <button
                       key={v}
                       type="button"

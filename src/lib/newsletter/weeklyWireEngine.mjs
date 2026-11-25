@@ -849,12 +849,12 @@ ${a.summary ? `<div style="color:#adc0d4;font-size:13px;line-height:1.5;">${esca
     const tool = edition.toolSpotlight;
     const toolHtml = tool
         ? `<tr><td style="padding:10px 0 6px 0;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#101726;border:1px solid #273452;border-radius:12px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0f1824;border:1px solid #1e3246;border-radius:12px;">
 <tr><td style="padding:18px 20px;">
-<div style="color:#c084fc;font-size:11px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;">Tool Spotlight Of The Week &middot; ${escapeHtml(tool.category)}</div>
+<div style="color:#60a5fa;font-size:11px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;">Tool Spotlight Of The Week &middot; ${escapeHtml(tool.category)}</div>
 <div style="margin:6px 0 6px 0;color:#ffffff;font-size:17px;font-weight:800;">${escapeHtml(tool.title)}</div>
 <div style="color:#bdcde0;font-size:13.5px;line-height:1.55;margin-bottom:12px;">${escapeHtml(tool.tip)}</div>
-<a href="${escapeHtml(tool.url)}" style="display:inline-block;background:#233252;color:#e9f1fb;text-decoration:none;font-weight:700;font-size:13px;padding:9px 16px;border-radius:7px;">Open Free Tool &rarr;</a>
+<a href="${escapeHtml(tool.url)}" style="display:inline-block;background:#1c324a;color:#e9f1fb;text-decoration:none;font-weight:700;font-size:13px;padding:9px 16px;border-radius:7px;">Open Free Tool &rarr;</a>
 </td></tr>
 </table>
 </td></tr>`
@@ -887,7 +887,7 @@ ${updatesHtml ? `<div style="color:#60a5fa;font-size:12px;font-weight:800;letter
 
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:10px 0 24px 0;background:linear-gradient(135deg,#0c2624 0%,#0f1d2d 100%);border:1px solid #255c56;border-radius:12px;">
 <tr><td style="padding:20px 22px;">
-<div style="color:#fbbf24;font-size:11px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;">${escapeHtml(promo.eyebrow)}</div>
+<div style="color:#4fc1b3;font-size:11px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;">${escapeHtml(promo.eyebrow)}</div>
 <div style="color:#ffffff;font-size:19px;font-weight:800;margin:6px 0 8px 0;line-height:1.3;">${escapeHtml(promo.headline)}</div>
 <div style="color:#d1e3e0;font-size:14px;line-height:1.55;margin-bottom:16px;">${escapeHtml(promo.body)}</div>
 <a href="${escapeHtml(promo.ctaUrl)}" style="display:inline-block;background:#4fc1b3;color:#041e1b;text-decoration:none;font-weight:800;font-size:14px;padding:12px 22px;border-radius:8px;">${escapeHtml(promo.ctaLabel)}</a>

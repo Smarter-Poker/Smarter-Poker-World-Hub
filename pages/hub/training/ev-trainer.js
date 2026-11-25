@@ -12,6 +12,7 @@ const HERO_CARDS_BY_VARIANT = {
   plo4: ['Ac', 'Qc', 'Kh', 'Jh'],
   plo5: ['Ac', 'Qc', 'Kh', 'Jh', 'Ts'],
   plo6: ['Ac', 'Qc', 'Kh', 'Jh', 'Ts', '9s'],
+  plo8: ['Ac', 'Qc', 'Kh', 'Jh'],
 };
 
 const BOARD_CARDS = ['Jc', '7c', '2d'];
@@ -160,7 +161,7 @@ export default function EvTrainerPage() {
                     Variant
                   </div>
                   <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                    {['nlh', 'plo4', 'plo5', 'plo6'].map((v) => (
+                    {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
                       <button
                         key={v}
                         type="button"

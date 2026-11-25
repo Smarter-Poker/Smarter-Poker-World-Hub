@@ -26,6 +26,7 @@ const PREVIEW_HERO_CARDS_BY_VARIANT = {
   plo4: ['As', 'Ks', 'Qh', 'Jh'],
   plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
   plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
+  plo8: ['As', 'Ks', 'Qh', 'Jh'],
 };
 
 const HEATMAP_HAND_CLASSES_BY_VARIANT = {
@@ -56,6 +57,12 @@ const HEATMAP_HAND_CLASSES_BY_VARIANT = {
     { label: 'AKQJds', cards: ['As', 'Qs', 'Kh', 'Jh', 'Td', '9d'] },
     { label: 'KQT9ds', cards: ['Ks', 'Ts', 'Qh', '9h', '8d', '7d'] },
     { label: 'J987ds', cards: ['Js', '8s', '9h', '7h', '6d', '5d'] },
+  ],
+  plo8: [
+    { label: 'AA23ds', cards: ['As', '2s', 'Ah', '3h'] },
+    { label: 'AAK2ds', cards: ['As', '2s', 'Ah', 'Kh'] },
+    { label: 'A234ds', cards: ['As', '3s', '2h', '4h'] },
+    { label: 'AKQJds', cards: ['As', 'Qs', 'Kh', 'Jh'] },
   ],
 };
 
@@ -1054,7 +1061,7 @@ export default function CustomSolvePage() {
                     Variant
                   </div>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    {['nlh', 'plo4', 'plo5', 'plo6'].map((v) => (
+                    {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
                       <button
                         key={v}
                         type="button"

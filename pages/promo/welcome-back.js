@@ -189,7 +189,7 @@ export default function WelcomeBackOfferPage() {
                             <div style={{ color: '#8fa6bc', fontSize: '12.5px', marginTop: '4px' }}>Instant Wallet Credit</div>
                         </div>
                         <div style={{ background: '#101a24', border: '1px solid #1f3347', borderRadius: '12px', padding: '16px 14px' }}>
-                            <div style={{ color: '#fbbf24', fontSize: '22px', fontWeight: 800 }}>1-Month VIP</div>
+                            <div style={{ color: '#ffffff', fontSize: '22px', fontWeight: 800 }}>1-Month VIP</div>
                             <div style={{ color: '#8fa6bc', fontSize: '12.5px', marginTop: '4px' }}>30 Days Full VIP Access</div>
                         </div>
                     </div>

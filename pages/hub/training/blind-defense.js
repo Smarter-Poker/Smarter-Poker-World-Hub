@@ -12,6 +12,7 @@ const HERO_CARDS_BY_VARIANT = {
   plo4: ['Kd', 'Td', 'Qh', 'Jh'],
   plo5: ['Kd', 'Td', 'Qh', 'Jh', '9s'],
   plo6: ['Kd', 'Td', 'Qh', 'Jh', '9s', '8s'],
+  plo8: ['Kd', 'Td', 'Qh', 'Jh'],
 };
 
 const BOARD_CARDS = ['4d', '7h', '3c'];
@@ -164,7 +165,7 @@ export default function BlindDefensePage() {
                     Variant
                   </div>
                   <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                    {['nlh', 'plo4', 'plo5', 'plo6'].map((v) => (
+                    {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
                       <button
                         key={v}
                         type="button"

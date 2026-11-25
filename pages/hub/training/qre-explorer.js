@@ -23,6 +23,7 @@ const HERO_CARDS_BY_VARIANT = {
   plo4: ['As', 'Jh', 'Kd', 'Qd'],
   plo5: ['As', 'Jh', 'Kd', 'Qd', 'Tc'],
   plo6: ['As', 'Jh', 'Kd', 'Qd', 'Tc', '9c'],
+  plo8: ['As', 'Jh', 'Kd', 'Qd'],
 };
 
 const BOARD_BY_STREET = {
@@ -632,7 +633,7 @@ export default function QREExplorerPage() {
               <div>
                 <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>Variant</div>
                 <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                  {['nlh', 'plo4', 'plo5', 'plo6'].map((v) => (
+                  {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
                     <button key={v} type="button" data-variant-option={v} onClick={() => setActiveVariant(v)} style={pillStyle(activeVariant === v)}>
                       {v.toUpperCase()}
                     </button>

@@ -343,7 +343,7 @@ test('buildTrainingPlan produces deterministic ordered modules with Cash/Tournam
   const snapshot = buildCoachingSnapshot({ leaks, decisions, reviews, now });
   const plan = buildTrainingPlan({ leaks, decisions, reviews, coverage: snapshot.coverage, now });
 
-  assert.equal(plan.version, 'pa-training-plan-v1');
+  assert.equal(plan.version, 'pa-training-plan-v2');
   assert.equal(plan.totalModules, 2);
   assert.equal(plan.dueNowCount, 1);
   assert.equal(plan.modules[0].leakId, 'leak-mtt-1');

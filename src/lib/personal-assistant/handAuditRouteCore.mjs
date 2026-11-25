@@ -84,6 +84,33 @@ function formatDecisionRow(row) {
   };
 }
 
+function buildStreetTimeline(normalizedHand) {
+  const streets = normalizedHand?.streets || {};
+  const ordered = [];
+  for (const street of ['preflop', 'flop', 'turn', 'river']) {
+    const actions = Array.isArray(streets[street]?.actions) ? streets[street].actions : [];
+    if (actions.length === 0) continue;
+    ordered.push({
+      street,
+      board: street === 'preflop'
+        ? []
+        : (street === 'flop'
+            ? (normalizedHand.board || []).slice(0, 3)
+            : (street === 'turn'
+                ? (normalizedHand.board || []).slice(0, 4)
+                : (normalizedHand.board || []).slice(0, 5))),
+      actions: actions.slice(0, 12).map(a => ({
+        position: a.position || null,
+        action: a.action || null,
+        amount: Number.isFinite(Number(a.amount)) ? Number(a.amount) : null,
+        potBeforeBB: Number.isFinite(Number(a.potBeforeBB)) ? +Number(a.potBeforeBB).toFixed(2) : null,
+        isHero: a.isHero === true,
+      })),
+    });
+  }
+  return ordered;
+}
+
 export function returnUrlForHand(handId, leakId = null) {
   const params = new URLSearchParams({
     hand: String(handId),
@@ -153,44 +180,84 @@ export async function executeSingleHandAudit(req, res, {
       });
     }
 
-    const readOwnedHand = (membershipKey) => db
-      .from('hand_history')
-      .select(HAND_SELECT)
-      .eq('id', handId)
-      .contains('players', JSON.stringify([{ [membershipKey]: user.id }]))
-      .maybeSingle();
-
-    const [modernRes, legacyRes] = await Promise.all([
-      readOwnedHand('userId'),
-      readOwnedHand('id'),
-    ]);
-    if (modernRes?.error && legacyRes?.error) {
-      throw modernRes.error;
-    }
-    const handRow = modernRes?.data || legacyRes?.data || null;
-    if (!handRow) {
-      return res.status(404).json({
-        success: false,
-        error: 'Hand Not Found In Your Club Arena History.',
-      });
-    }
-
-    // Permitted owner-only private card lookup from ca_hand_facts.
-    // Preserves Club Arena card-retention policy (never stores or synthesizes
-    // mucked/preflop-fold hole cards).
+    // Fast path: single-round-trip owner-scoped RPC (`get_pa_linked_hand_bundle`)
+    // when available in the database, with transparent fallback to direct
+    // owner-scoped queries so rolling deployments never fail.
+    let handRow = null;
     let privateCards = [];
-    try {
-      const factRes = await db
-        .from('ca_hand_facts')
-        .select('hand_id, hole_cards')
-        .eq('user_id', user.id)
-        .eq('hand_id', handId)
-        .maybeSingle();
-      if (!factRes?.error && factRes?.data?.hole_cards) {
-        privateCards = toCardCodes(factRes.data.hole_cards) || [];
+    let preloadedDecisions = null;
+    let preloadedLeaks = null;
+    let usedSingleRoundTrip = false;
+
+    if (typeof db.rpc === 'function') {
+      try {
+        const bundleRes = await db.rpc('get_pa_linked_hand_bundle', {
+          p_user_id: user.id,
+          p_hand_id: handId,
+        });
+        if (!bundleRes?.error && bundleRes?.data && typeof bundleRes.data === 'object' && 'found' in bundleRes.data) {
+          usedSingleRoundTrip = true;
+          if (!bundleRes.data.found) {
+            return res.status(404).json({
+              success: false,
+              error: 'Hand Not Found In Your Club Arena History.',
+            });
+          }
+          handRow = bundleRes.data.hand || null;
+          if (bundleRes.data.fact?.hole_cards) {
+            privateCards = toCardCodes(bundleRes.data.fact.hole_cards) || [];
+          }
+          if (Array.isArray(bundleRes.data.decisions)) {
+            preloadedDecisions = bundleRes.data.decisions;
+          }
+          if (Array.isArray(bundleRes.data.leaks)) {
+            preloadedLeaks = bundleRes.data.leaks;
+          }
+        }
+      } catch (_) {
+        usedSingleRoundTrip = false;
       }
-    } catch (_) {
-      privateCards = [];
+    }
+
+    if (!usedSingleRoundTrip) {
+      const readOwnedHand = (membershipKey) => db
+        .from('hand_history')
+        .select(HAND_SELECT)
+        .eq('id', handId)
+        .contains('players', JSON.stringify([{ [membershipKey]: user.id }]))
+        .maybeSingle();
+
+      const [modernRes, legacyRes] = await Promise.all([
+        readOwnedHand('userId'),
+        readOwnedHand('id'),
+      ]);
+      if (modernRes?.error && legacyRes?.error) {
+        throw modernRes.error;
+      }
+      handRow = modernRes?.data || legacyRes?.data || null;
+      if (!handRow) {
+        return res.status(404).json({
+          success: false,
+          error: 'Hand Not Found In Your Club Arena History.',
+        });
+      }
+
+      // Permitted owner-only private card lookup from ca_hand_facts.
+      // Preserves Club Arena card-retention policy (never stores or synthesizes
+      // mucked/preflop-fold hole cards).
+      try {
+        const factRes = await db
+          .from('ca_hand_facts')
+          .select('hand_id, hole_cards')
+          .eq('user_id', user.id)
+          .eq('hand_id', handId)
+          .maybeSingle();
+        if (!factRes?.error && factRes?.data?.hole_cards) {
+          privateCards = toCardCodes(factRes.data.hole_cards) || [];
+        }
+      } catch (_) {
+        privateCards = [];
+      }
     }
 
     const hydratedRow = privateCards.length >= 2
@@ -272,16 +339,21 @@ export async function executeSingleHandAudit(req, res, {
 
     const shouldAuditNow = req.method === 'POST';
     if (!shouldAuditNow) {
-      const existingRes = await db
-        .from('hand_audit_decisions')
-        .select('decision_key, game_id, street, hero_position, villain_position, spot_type, player_action, solver_action, selected_frequency, optimal_frequency, classification, ev_loss, ev_loss_measured, solver_verified, solver_source, match_tier')
-        .eq('user_id', user.id)
-        .eq('hand_external_id', externalId)
-        .order('audited_at', { ascending: true })
-        .limit(12);
-      if (!existingRes?.error && Array.isArray(existingRes.data) && existingRes.data.length > 0) {
-        decisions = existingRes.data.map(formatDecisionRow);
+      if (Array.isArray(preloadedDecisions) && preloadedDecisions.length > 0) {
+        decisions = preloadedDecisions.map(formatDecisionRow);
         persisted = true;
+      } else {
+        const existingRes = await db
+          .from('hand_audit_decisions')
+          .select('decision_key, game_id, street, hero_position, villain_position, spot_type, player_action, solver_action, selected_frequency, optimal_frequency, classification, ev_loss, ev_loss_measured, solver_verified, solver_source, match_tier')
+          .eq('user_id', user.id)
+          .eq('hand_external_id', externalId)
+          .order('audited_at', { ascending: true })
+          .limit(12);
+        if (!existingRes?.error && Array.isArray(existingRes.data) && existingRes.data.length > 0) {
+          decisions = existingRes.data.map(formatDecisionRow);
+          persisted = true;
+        }
       }
     }
 
@@ -309,16 +381,18 @@ export async function executeSingleHandAudit(req, res, {
     );
 
     const normalizedForPatterns = normalizeAuditHand(hydratedRow, user.id);
-    const leaksRes = await db
-      .from('user_leaks')
-      .select('id, leak_type, leak_category, situation_class, status, avg_ev_loss_bb, occurrence_count, recommended_drill, source_system, is_active')
-      .eq('user_id', user.id)
-      .order('updated_at', { ascending: false })
-      .limit(100);
+    let rawOwnedLeaks = preloadedLeaks;
+    if (!Array.isArray(rawOwnedLeaks)) {
+      const leaksRes = await db
+        .from('user_leaks')
+        .select('id, leak_type, leak_category, situation_class, status, avg_ev_loss_bb, occurrence_count, recommended_drill, source_system, is_active')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false })
+        .limit(100);
+      rawOwnedLeaks = (!leaksRes?.error && Array.isArray(leaksRes.data)) ? leaksRes.data : [];
+    }
 
-    const ownedLeaks = (!leaksRes?.error && Array.isArray(leaksRes.data))
-      ? leaksRes.data.map(normalizeUserLeakRow)
-      : [];
+    const ownedLeaks = rawOwnedLeaks.map(normalizeUserLeakRow);
 
     const matchedLeaks = ownedLeaks.filter(leak => {
       if (auditLeakTypes.has(leak.leak_type)) return true;
@@ -327,41 +401,64 @@ export async function executeSingleHandAudit(req, res, {
     }).slice(0, 5);
 
     const primaryLeak = matchedLeaks[0] || null;
-    const mistakeDecision = decisions.find(d => d.solverVerified && d.classification !== 'correct') || decisions[0] || null;
+    // Seed drills from the largest EV-loss verified mistake in the hand first.
+    const verifiedMistakes = decisions
+      .filter(d => d.solverVerified && d.classification !== 'correct')
+      .sort((a, b) => (Math.abs(Number(b.evLoss) || 0) - Math.abs(Number(a.evLoss) || 0)));
+    const mistakeDecision = verifiedMistakes[0] || decisions[0] || null;
     const trainingAction = primaryLeak
       ? {
           leakId: String(primaryLeak.id),
           title: primaryLeak.situation_class || primaryLeak.leak_type,
           status: primaryLeak.status,
-          drillParams: leakToDrill(primaryLeak),
+          street: mistakeDecision?.street || primaryLeak.leak_category || null,
+          position: mistakeDecision?.heroPosition || null,
+          evLossBB: mistakeDecision?.evLossMeasured ? mistakeDecision.evLoss : (primaryLeak.avg_ev_loss_bb ?? null),
+          drillParams: {
+            ...leakToDrill(primaryLeak),
+            ...(mistakeDecision?.gameId ? { game: mistakeDecision.gameId } : {}),
+            ...(mistakeDecision?.street ? { street: String(mistakeDecision.street).replace(/^\w/, c => c.toUpperCase()) } : {}),
+            ...(mistakeDecision?.heroPosition ? { position: mistakeDecision.heroPosition } : {}),
+          },
         }
       : (mistakeDecision
           ? {
               leakId: null,
               title: `${String(mistakeDecision.street || 'Flop').replace(/^\w/, c => c.toUpperCase())} ${mistakeDecision.heroPosition || ''} Decision Review`.trim(),
               status: 'spot_review',
-              drillParams: leakToDrill({
-                leakCategory: mistakeDecision.street,
-                leakType: mistakeDecision.spotType,
-                recommendedDrill: mistakeDecision.gameId,
-                heroPosition: mistakeDecision.heroPosition,
-              }),
+              street: mistakeDecision.street || null,
+              position: mistakeDecision.heroPosition || null,
+              evLossBB: mistakeDecision.evLossMeasured ? mistakeDecision.evLoss : null,
+              drillParams: {
+                ...leakToDrill({
+                  leakCategory: mistakeDecision.street,
+                  leakType: mistakeDecision.spotType,
+                  recommendedDrill: mistakeDecision.gameId,
+                  heroPosition: mistakeDecision.heroPosition,
+                }),
+                ...(mistakeDecision.gameId ? { game: mistakeDecision.gameId } : {}),
+                ...(mistakeDecision.street ? { street: String(mistakeDecision.street).replace(/^\w/, c => c.toUpperCase()) } : {}),
+                ...(mistakeDecision.heroPosition ? { position: mistakeDecision.heroPosition } : {}),
+              },
             }
           : null);
 
     const solverVerifiedCount = decisions.filter(d => d.solverVerified).length;
     const unpricedCount = decisions.length - solverVerifiedCount;
+    const streetTimeline = buildStreetTimeline(normalizedHand);
 
     return res.status(200).json({
       success: true,
       supported: true,
       audited: true,
       persisted,
+      singleRoundTrip: usedSingleRoundTrip,
       reason: null,
       limitation: solverVerifiedCount === 0 && decisions.length > 0
         ? 'No Exact Certified Solver Node Matched This Board And Action Line. Decisions Remain Explicitly Unmeasured Rather Than Estimated.'
         : null,
       hand: handMeta,
+      streetTimeline,
       decisions,
       solverVerifiedCount,
       unpricedCount,

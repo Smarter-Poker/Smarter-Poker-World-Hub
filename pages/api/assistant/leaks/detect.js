@@ -20,6 +20,7 @@ import {
 } from '../../../../src/lib/training/cacheTruthPersistence.mjs';
 import { readLeakStatsAggregate } from '../../../../src/lib/personal-assistant/leakStats';
 import { syncClubArenaHandsForAudit } from '../../../../src/lib/training/handAuditEngine';
+import { analyzeCaHandFacts } from '../../../../src/lib/personal-assistant/caHandFactsAnalyzer.mjs';
 import {
   toUserLeakPersistenceRow,
   generateLeakFix,
@@ -572,6 +573,63 @@ function evidenceReceipt({ liveHands, solverEvidence, clubArenaSync }) {
   };
 }
 
+function isMissingColumnError(error) {
+  const code = String(error?.code || '');
+  const message = String(error?.message || '').toLowerCase();
+  return code === '42703' || code === 'PGRST204' || message.includes('does not exist') || message.includes('schema cache');
+}
+
+async function readAuditWatermark(db, userId) {
+  try {
+    const { data, error } = await db
+      .from('user_assistant_stats')
+      .select('last_audited_hand_at, last_audited_hand_id, last_audited_matcher_version')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (error) return null;
+    if (!data?.last_audited_hand_at || !data?.last_audited_hand_id) return null;
+    return {
+      createdAt: data.last_audited_hand_at,
+      id: String(data.last_audited_hand_id),
+      matcherVersion: data.last_audited_matcher_version || null,
+    };
+  } catch (_) {
+    return null;
+  }
+}
+
+async function readCaHandFactsAnalysis(db, userId) {
+  try {
+    const { data, error } = await db
+      .from('ca_hand_facts')
+      .select('hand_id, tournament_id, played_at, game_variant, effective_stack_bb_at_deal, position, vpip, pfr, three_bet, three_bet_opportunity, faced_three_bet, folded_to_three_bet, squeeze_opportunity, squeezed, steal_opportunity, stole, blind_defense_opportunity, defended_blind, had_cbet_flop_opp, cbet_flop_opportunity, cbet_flop, barrel_turn_opportunity, barreled_turn, barrel_river_opportunity, barreled_river, check_raise_opportunity, check_raised, donk_opportunity, donk_bet, probe_opportunity, probe_bet, saw_flop, went_to_showdown, won_at_showdown, aggressive_actions_flop, passive_actions_flop, aggressive_actions_turn, passive_actions_turn, aggressive_actions_river, passive_actions_river, af_bet_raise_actions, af_call_actions, created_at')
+      .eq('user_id', userId)
+      .order('played_at', { ascending: false })
+      .limit(2000);
+    if (error || !Array.isArray(data) || data.length === 0) return null;
+    return analyzeCaHandFacts(data);
+  } catch (_) {
+    return null;
+  }
+}
+
+async function upsertAssistantStatsWithWatermark(db, payload, watermark) {
+  const withWatermark = watermark?.createdAt && watermark?.id
+    ? {
+        ...payload,
+        last_audited_hand_at: watermark.createdAt,
+        last_audited_hand_id: watermark.id,
+        last_audited_matcher_version: watermark.matcherVersion || null,
+      }
+    : payload;
+  const firstAttempt = await db.from('user_assistant_stats').upsert(withWatermark, { onConflict: 'user_id' });
+  if (!firstAttempt.error) return firstAttempt;
+  if (withWatermark !== payload && isMissingColumnError(firstAttempt.error)) {
+    return db.from('user_assistant_stats').upsert(payload, { onConflict: 'user_id' });
+  }
+  return firstAttempt;
+}
+
 // ═══════════════════════════════════════════════════════════════════════
 // API HANDLER
 // ═══════════════════════════════════════════════════════════════════════
@@ -655,10 +713,16 @@ export default async function handler(req, res) {
     }
 
     try {
+      const fullRescan = Boolean(req.body?.fullRescan);
+      const sinceBoundary = (!auditCursor && !fullRescan)
+        ? await readAuditWatermark(getSupabase(), userId)
+        : null;
       const clubArenaSync = await syncClubArenaHandsForAudit(getSupabase(), userId, {
         limit: AUDIT_HAND_BATCH_SIZE,
         maxDecisions: AUDIT_DECISION_BATCH_SIZE,
         cursor: auditCursor,
+        sinceBoundary,
+        fullRescan,
       });
       if (clubArenaSync?.continuation) {
         const continuation = clubArenaSync.continuation;
@@ -705,14 +769,34 @@ export default async function handler(req, res) {
         });
       }
 
-      // Live tendencies and solver-graded training decisions are separate
-      // evidence sets. They must never be blended into one invented frequency.
-      const stats = await getPlayerStats(getSupabase(), userId);
+      // Live tendencies, format-scoped ca_hand_facts, and solver-graded decisions
+      // are separate evidence sets. They must never be blended into one invented frequency.
+      const [stats, caHandFactsResult] = await Promise.all([
+        getPlayerStats(getSupabase(), userId),
+        readCaHandFactsAnalysis(getSupabase(), userId),
+      ]);
       // Read solver evidence after syncing so newly audited Club Arena
       // decisions are included in this same scan.
       const solverEvidence = await getSolverTrainingEvidence(getSupabase(), userId);
-      const liveHands = stats?.handsPlayed || 0;
+      const liveHands = Math.max(stats?.handsPlayed || 0, caHandFactsResult?.totalEligibleHands || 0);
       const solverDecisions = solverEvidence.decisions.length;
+      const watermarkToSave = clubArenaSync?.complete === true && clubArenaSync?.latestHandWatermark
+        ? clubArenaSync.latestHandWatermark
+        : null;
+      const caHandFactsSummary = caHandFactsResult
+        ? {
+            totalEligibleHands: caHandFactsResult.totalEligibleHands,
+            excludedUnsupportedHands: caHandFactsResult.excludedUnsupportedHands,
+            cashHands: caHandFactsResult.cash?.hands || 0,
+            tournamentHands: caHandFactsResult.tournament?.hands || 0,
+            tournamentByStack: {
+              short: caHandFactsResult.tournamentByStack?.short?.hands || 0,
+              mid: caHandFactsResult.tournamentByStack?.mid?.hands || 0,
+              deep: caHandFactsResult.tournamentByStack?.deep?.hands || 0,
+            },
+            detectedCount: caHandFactsResult.detectedLeaks?.length || 0,
+          }
+        : null;
       const sourceCompleteness = {
         trainingSolver: solverEvidence.sources?.training?.complete === true,
         handAudit: solverEvidence.sources?.handAudit?.complete === true,
@@ -737,11 +821,11 @@ export default async function handler(req, res) {
         const { data: current, error: readError } = await getSupabase()
           .from('user_assistant_stats').select('total_hands_analyzed').eq('user_id', userId).maybeSingle();
         if (readError) return false;
-        const { error: writeError } = await getSupabase().from('user_assistant_stats').upsert({
+        const { error: writeError } = await upsertAssistantStatsWithWatermark(getSupabase(), {
           user_id: userId,
           total_hands_analyzed: Math.max(Number(current?.total_hands_analyzed) || 0, auditedHandTotal),
           updated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id' });
+        }, watermarkToSave);
         return !writeError;
       };
 
@@ -835,6 +919,44 @@ export default async function handler(req, res) {
             mistakeCount: leak.occurrence_count,
           });
         }
+      }
+
+      // Append format-scoped, position- & street-specific deterministic leaks
+      // measured directly from Club Arena ca_hand_facts opportunity columns
+      // (separating Cash NLH vs. stack-depth-aware Tournament NLH baselines).
+      const detectedLeakTypeSet = new Set(detectedLeaks.map(l => l.leak_type));
+      for (const factLeak of (caHandFactsResult?.detectedLeaks || [])) {
+        if (detectedLeakTypeSet.has(factLeak.leak_type)) continue;
+        const existingLeak = existingLeakMap[factLeak.leak_type];
+        const status = classifyLeakStatus(existingLeak, factLeak.current_frequency, factLeak.optimal_range);
+        if (!status) continue;
+        const confidence = factLeak.total_samples >= 80 ? 'high' : factLeak.total_samples >= 40 ? 'medium' : 'low';
+        detectedLeaks.push({
+          user_id: userId,
+          leak_type: factLeak.leak_type,
+          leak_category: factLeak.leak_category,
+          situation_class: factLeak.situation_class,
+          status,
+          source_system: 'ca_hand_facts',
+          confidence,
+          avg_ev_loss_bb: factLeak.avg_ev_loss_bb,
+          ev_loss_measured: false,
+          occurrence_count: factLeak.occurrence_count,
+          optimal_frequency: factLeak.optimal_frequency,
+          current_frequency: factLeak.current_frequency,
+          recommended_drill: factLeak.recommended_drill,
+          first_detected_at: existingLeak?.first_detected_at || now,
+          last_detected_at: now,
+          trend_data: updateTrendData(existingLeak?.trend_data, factLeak.current_frequency),
+          explanation: factLeak.explanation,
+          why_leaking_ev: factLeak.why_leaking_ev,
+          suggested_fix: existingLeak?.suggested_fix || generateLeakFix(factLeak),
+        });
+        detectedLeakTypeSet.add(factLeak.leak_type);
+        persistenceEvidence.set(factLeak.leak_type, {
+          totalSamples: factLeak.total_samples,
+          mistakeCount: factLeak.occurrence_count,
+        });
       }
 
       // Append solver-derived leaks. Their occurrence count is the number of
@@ -992,10 +1114,17 @@ export default async function handler(req, res) {
           || solverEvidence.sources?.training?.integrityComplete !== true) return false;
         return detectedTypes.has(canonicalType) || solverRecoveryByType.get(canonicalType) === true;
       };
+      const canResolveCaFactLeak = (leakType) => {
+        if (!caHandFactsResult) return false;
+        if (String(leakType).startsWith('cash_')) return (caHandFactsResult.cash?.hands || 0) >= 100;
+        if (String(leakType).startsWith('mtt_')) return (caHandFactsResult.tournament?.hands || 0) >= 100;
+        return false;
+      };
       const resolutionCandidates = Object.entries(existingLeakMap || {})
         .filter(([leakType, existingLeak]) =>
           existingLeak.detector_managed !== false &&
           ((LEAK_PATTERNS[leakType] && stats && patternIsMeasured(stats, leakType)) ||
+            (existingLeak.source_system === 'ca_hand_facts' && canResolveCaFactLeak(leakType)) ||
             (['training_solver', 'solver_engine'].includes(existingLeak.source_system)
               && (solverScopeCanResolve(leakType)
                 || supersededSolverScopeCanResolve(leakType, existingLeak)))) &&
@@ -1053,15 +1182,13 @@ export default async function handler(req, res) {
           // Atomic Upsert for Stats Sync · SET (not accumulate) hands analyzed so
           // re-running detection on the same hands doesn't inflate the counter.
           // Solver decisions are not hands; one hand can expose many decisions.
-          const { error: statsWriteErr } = await getSupabase()
-            .from('user_assistant_stats')
-            .upsert({
-              user_id: userId,
-              total_hands_analyzed: Math.max(currentHands, auditedHandTotal),
-              active_leaks_count: activeLeaks,
-              resolved_leaks_count: resolvedLeaksCount,
-              updated_at: new Date().toISOString()
-            }, { onConflict: 'user_id' });
+          const { error: statsWriteErr } = await upsertAssistantStatsWithWatermark(getSupabase(), {
+            user_id: userId,
+            total_hands_analyzed: Math.max(currentHands, auditedHandTotal),
+            active_leaks_count: activeLeaks,
+            resolved_leaks_count: resolvedLeaksCount,
+            updated_at: new Date().toISOString(),
+          }, watermarkToSave);
           if (statsWriteErr) {
             statsSynced = false;
             console.warn('[LeakDetect] Assistant stats sync failed:', statsWriteErr.message);
@@ -1093,6 +1220,7 @@ export default async function handler(req, res) {
         },
         evidencePartial,
         formatCoverage: stats?.formatBreakdown || null,
+        caHandFactsSummary,
         clubArenaSync,
         leaksDetected: detectedLeaks.length,
         leaks: detectedLeaks,

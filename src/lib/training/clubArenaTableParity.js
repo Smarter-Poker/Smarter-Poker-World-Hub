@@ -1214,3 +1214,359 @@ export function verifyTrainingPracticeIsolation(context = {}) {
     verifiedAt: 'HARDCODED_STATIC_CONTRACT',
   };
 }
+
+export const TABLE_RULE_MODES = Object.freeze([
+  'standard',
+  'bb_ante',
+  'utg_straddle',
+  'bomb_pot',
+  'double_board_bomb_pot',
+]);
+
+export function normalizeTableRule(rule = 'standard') {
+  const r = String(rule || 'standard').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  if (r === 'bb_ante' || r === 'big_blind_ante' || r === 'bba') return 'bb_ante';
+  if (r === 'utg_straddle' || r === 'straddle' || r === 'utg_straddle_2bb') return 'utg_straddle';
+  if (r === 'double_board_bomb_pot' || r === 'double_bomb_pot' || r === 'db_bomb_pot' || r === 'double_board') {
+    return 'double_board_bomb_pot';
+  }
+  if (r === 'bomb_pot' || r === 'bombpot') return 'bomb_pot';
+  if (TABLE_RULE_MODES.includes(r)) return r;
+  return 'standard';
+}
+
+export function computeTableRuleDeadMoney({
+  tableRule = 'standard',
+  basePotBb = 6.5,
+  playerCount = 6,
+  bigBlindBb = 1,
+  anteBb = null,
+} = {}) {
+  const normRule = normalizeTableRule(tableRule);
+  const cleanBb = Math.max(0.01, roundTableUnit(Number(bigBlindBb) || 1, 2));
+  const cleanPlayers = Math.max(2, Math.round(Number(playerCount) || 6));
+
+  let deadMoneyAddedBb = 0;
+  let effectiveMinOpenBb = 2;
+  let skipsPreflop = false;
+  let isDoubleBoard = false;
+  let ruleLabel = 'Standard Blinds';
+
+  if (normRule === 'bb_ante') {
+    deadMoneyAddedBb = Number((anteBb ?? 1) * cleanBb);
+    effectiveMinOpenBb = 2.2;
+    skipsPreflop = false;
+    isDoubleBoard = false;
+    ruleLabel = 'BB Ante (1 BB)';
+  } else if (normRule === 'utg_straddle') {
+    deadMoneyAddedBb = Number(2 * cleanBb);
+    effectiveMinOpenBb = 4;
+    skipsPreflop = false;
+    isDoubleBoard = false;
+    ruleLabel = 'UTG Straddle (2 BB)';
+  } else if (normRule === 'bomb_pot') {
+    deadMoneyAddedBb = Number((anteBb ?? 4) * cleanPlayers * cleanBb);
+    effectiveMinOpenBb = 0;
+    skipsPreflop = true;
+    isDoubleBoard = false;
+    ruleLabel = 'Bomb Pot (4 BB Ante)';
+  } else if (normRule === 'double_board_bomb_pot') {
+    deadMoneyAddedBb = Number((anteBb ?? 4) * cleanPlayers * cleanBb);
+    effectiveMinOpenBb = 0;
+    skipsPreflop = true;
+    isDoubleBoard = true;
+    ruleLabel = 'Double-Board Bomb Pot (2x 4 BB)';
+  }
+
+  const cleanBasePotBb = roundTableUnit(Number(basePotBb || 0), 2);
+  const cleanDeadAddedBb = roundTableUnit(deadMoneyAddedBb, 2);
+
+  return {
+    tableRule: normRule,
+    ruleLabel,
+    basePotBb: cleanBasePotBb,
+    deadMoneyAddedBb: cleanDeadAddedBb,
+    adjustedPotBb: roundTableUnit(cleanBasePotBb + cleanDeadAddedBb, 2),
+    effectiveMinOpenBb,
+    skipsPreflop,
+    isDoubleBoard,
+  };
+}
+
+const CANONICAL_52_CARD_DECK = Object.freeze([
+  'As', 'Ks', 'Qs', 'Js', 'Ts', '9s', '8s', '7s', '6s', '5s', '4s', '3s', '2s',
+  'Ah', 'Kh', 'Qh', 'Jh', 'Th', '9h', '8h', '7h', '6h', '5h', '4h', '3h', '2h',
+  'Ad', 'Kd', 'Qd', 'Jd', 'Td', '9d', '8d', '7d', '6d', '5d', '4d', '3d', '2d',
+  'Ac', 'Kc', 'Qc', 'Jc', 'Tc', '9c', '8c', '7c', '6c', '5c', '4c', '3c', '2c',
+]);
+
+function normalizeRitCardList(cards, usedSet) {
+  const result = [];
+  if (!Array.isArray(cards)) return result;
+  for (const raw of cards) {
+    if (typeof raw !== 'string') continue;
+    const trimmed = raw.trim();
+    if (trimmed.length !== 2) continue;
+    const formatted = `${trimmed[0].toUpperCase()}${trimmed[1].toLowerCase()}`;
+    const key = formatted.toLowerCase();
+    if (!usedSet.has(key)) {
+      usedSet.add(key);
+      result.push(formatted);
+    }
+  }
+  return result;
+}
+
+export function evaluateRunItTwiceShowdown({
+  variant = 'nlh',
+  hiLo = false,
+  seats = [],
+  baseBoardCards = [],
+  board1Cards = null,
+  board2Cards = null,
+  deadPotBb = 0,
+} = {}) {
+  const normVariant = normalizeTrainingVariant(variant);
+  const resolvedIsHiLo = Boolean(hiLo || isHiLoVariant(normVariant));
+  const usedCardsLower = new Set();
+
+  for (const s of Array.isArray(seats) ? seats : []) {
+    const hole = Array.isArray(s?.holeCards)
+      ? s.holeCards
+      : Array.isArray(s?.heroCards)
+        ? s.heroCards
+        : Array.isArray(s?.cards)
+          ? s.cards
+          : [];
+    normalizeRitCardList(hole, usedCardsLower);
+  }
+
+  const sharedUsed = new Set(usedCardsLower);
+  const cleanBaseBoard = normalizeRitCardList(baseBoardCards, sharedUsed);
+
+  const usedForBoards = new Set(sharedUsed);
+  const seedBoard1 = Array.isArray(board1Cards) && board1Cards.length > 0
+    ? [...cleanBaseBoard, ...normalizeRitCardList(board1Cards, usedForBoards)]
+    : [...cleanBaseBoard];
+  const resolvedBoard1 = seedBoard1.slice(0, 5);
+  for (const c of resolvedBoard1) {
+    usedForBoards.add(c.toLowerCase());
+  }
+
+  const seedBoard2 = Array.isArray(board2Cards) && board2Cards.length > 0
+    ? [...cleanBaseBoard, ...normalizeRitCardList(board2Cards, usedForBoards)]
+    : [...cleanBaseBoard];
+  const resolvedBoard2 = seedBoard2.slice(0, 5);
+  for (const c of resolvedBoard2) {
+    usedForBoards.add(c.toLowerCase());
+  }
+
+  for (const candidate of CANONICAL_52_CARD_DECK) {
+    if (resolvedBoard1.length >= 5) break;
+    if (!usedForBoards.has(candidate.toLowerCase())) {
+      usedForBoards.add(candidate.toLowerCase());
+      resolvedBoard1.push(candidate);
+    }
+  }
+
+  for (const candidate of CANONICAL_52_CARD_DECK) {
+    if (resolvedBoard2.length >= 5) break;
+    if (!usedForBoards.has(candidate.toLowerCase())) {
+      usedForBoards.add(candidate.toLowerCase());
+      resolvedBoard2.push(candidate);
+    }
+  }
+
+  const cleanDeadPot = Math.max(0, roundTableUnit(Number(deadPotBb) || 0, 2));
+  const halfDeadPot1 = roundTableUnit(Math.ceil((cleanDeadPot * 100) / 2) / 100, 2);
+  const halfDeadPot2 = roundTableUnit(cleanDeadPot - halfDeadPot1, 2);
+
+  const halfSeats1 = (Array.isArray(seats) ? seats : []).map((s) => {
+    const comm = Math.max(0, roundTableUnit(Number(s?.committedBb ?? s?.committed ?? 0), 2));
+    const half1 = roundTableUnit(Math.ceil((comm * 100) / 2) / 100, 2);
+    return { ...s, committedBb: half1 };
+  });
+  const halfSeats2 = (Array.isArray(seats) ? seats : []).map((s) => {
+    const comm = Math.max(0, roundTableUnit(Number(s?.committedBb ?? s?.committed ?? 0), 2));
+    const half1 = roundTableUnit(Math.ceil((comm * 100) / 2) / 100, 2);
+    const half2 = roundTableUnit(comm - half1, 2);
+    return { ...s, committedBb: half2 };
+  });
+
+  const board1Showdown = evaluateShowdownAndAllocatePots({
+    seats: halfSeats1,
+    boardCards: resolvedBoard1,
+    deadPotBb: halfDeadPot1,
+    variant: normVariant,
+    hiLo: resolvedIsHiLo,
+  });
+
+  const board2Showdown = evaluateShowdownAndAllocatePots({
+    seats: halfSeats2,
+    boardCards: resolvedBoard2,
+    deadPotBb: halfDeadPot2,
+    variant: normVariant,
+    hiLo: resolvedIsHiLo,
+  });
+
+  const combinedPayoutsBySeatId = {};
+  const allSeatIds = new Set([
+    ...Object.keys(board1Showdown.payoutsBySeatId || {}),
+    ...Object.keys(board2Showdown.payoutsBySeatId || {}),
+  ]);
+
+  let totalAllocatedBb = 0;
+  for (const seatId of allSeatIds) {
+    const p1 = Number(board1Showdown.payoutsBySeatId?.[seatId] || 0);
+    const p2 = Number(board2Showdown.payoutsBySeatId?.[seatId] || 0);
+    const sum = roundTableUnit(p1 + p2, 2);
+    combinedPayoutsBySeatId[seatId] = sum;
+    totalAllocatedBb = roundTableUnit(totalAllocatedBb + sum, 2);
+  }
+
+  let scoopWinner = null;
+  if (totalAllocatedBb > 0) {
+    for (const [seatId, payout] of Object.entries(combinedPayoutsBySeatId)) {
+      if (Math.abs(payout - totalAllocatedBb) < 0.005) {
+        scoopWinner = seatId;
+        break;
+      }
+    }
+  }
+
+  return {
+    variant: normVariant,
+    isHiLo: resolvedIsHiLo,
+    board1Cards: resolvedBoard1,
+    board2Cards: resolvedBoard2,
+    board1Showdown,
+    board2Showdown,
+    combinedPayoutsBySeatId,
+    scoopWinner,
+  };
+}
+
+export function rotateDealerButtonPosition(currentButtonPosition = 'BTN', format = 'cash') {
+  const normFormat = normalizeGameFormat(format);
+  const curr = String(currentButtonPosition || 'BTN').trim().toUpperCase();
+  const ring = normFormat === 'hu'
+    ? HEADS_UP_POSITIONS
+    : normFormat === 'spins'
+      ? SPINS_POSITIONS
+      : SIX_MAX_POSITIONS;
+  const idx = ring.indexOf(curr);
+  if (idx === -1) return ring[0];
+  return ring[(idx + 1) % ring.length];
+}
+
+export function formatTrainingHandAsPokerStarsHistory({
+  handId,
+  gameId = 'cash-001',
+  variant = 'nlh',
+  bettingStructure = 'no_limit',
+  format = 'cash',
+  tableRule = 'standard',
+  stakesLabel = '1/2',
+  heroPosition = 'BTN',
+  villainPosition = 'BB',
+  heroStackBb = 100,
+  villainStackBb = 100,
+  heroCards = ['As', 'Kd'],
+  villainCards = ['Qh', 'Qc'],
+  boardCards = ['Qs', '7d', '2c'],
+  secondBoardCards = null,
+  potBb = 12,
+  facingBetBb = 4,
+  heroAction = 'Call',
+  recommendedAction = 'Call',
+  evVerdict = '+0.00 BB',
+} = {}) {
+  const rawHandDigits = String(handId || '20261124001').replace(/\D+/g, '');
+  const cleanHandId = rawHandDigits.length >= 6 ? rawHandDigits : `20261124${rawHandDigits.padStart(4, '0')}`;
+  const normVariant = normalizeTrainingVariant(variant);
+  const normStructure = normalizeBettingStructure(bettingStructure, normVariant);
+  const normFormat = normalizeGameFormat(format);
+  const ruleInfo = computeTableRuleDeadMoney({ tableRule, basePotBb: potBb });
+  const parsedStakes = parseStakesToBlinds(stakesLabel);
+  const stakesHeader = parsedStakes.hasExplicitStakes
+    ? `$${parsedStakes.smallBlind}/$${parsedStakes.bigBlind}`
+    : `$1/$2`;
+
+  const structureLabel = normStructure === 'fixed_limit'
+    ? 'Fixed Limit'
+    : normStructure === 'pot_limit'
+      ? 'Pot Limit'
+      : 'No Limit';
+  const gameTitle = normVariant === 'plo8'
+    ? 'Omaha Hi/Lo'
+    : normVariant === 'plo6'
+      ? '6-Card Omaha'
+      : normVariant === 'plo5'
+        ? '5-Card Omaha'
+        : normVariant === 'plo4'
+          ? 'Omaha'
+          : "Hold'em";
+  const variantHeader = `${ gameTitle } ${ structureLabel }`;
+  const maxSeats = normFormat === 'hu' ? 2 : normFormat === 'spins' ? 3 : 6;
+  const cleanHeroCards = Array.isArray(heroCards) && heroCards.length > 0 ? heroCards : ['As', 'Kd'];
+  const cleanVillainCards = Array.isArray(villainCards) && villainCards.length > 0 ? villainCards : ['Qh', 'Qc'];
+  const cleanBoard = Array.isArray(boardCards) ? boardCards.filter(Boolean) : [];
+  const cleanSecondBoard = Array.isArray(secondBoardCards) ? secondBoardCards.filter(Boolean) : [];
+
+  const lines = [
+    `PokerStars Hand #${cleanHandId}: ${variantHeader} (${stakesHeader} USD) - 2026/11/24 12:00:00 ET`,
+    `Table 'ClubArena_${gameId}_${String(format || 'cash').toUpperCase()}' ${maxSeats}-max Seat #1 is the button`,
+    `Seat 1: Hero (${heroStackBb} BB in chips)`,
+    `Seat 2: Villain (${villainStackBb} BB in chips)`,
+  ];
+
+  if (ruleInfo.tableRule !== 'standard') {
+    lines.push(`Hero: posts table rule ${ruleInfo.ruleLabel} (+${ruleInfo.deadMoneyAddedBb} BB dead money)`);
+  } else {
+    lines.push(`Hero (${heroPosition}): posts small blind 0.5 BB`);
+    lines.push(`Villain (${villainPosition}): posts big blind 1 BB`);
+  }
+
+  lines.push('*** HOLE CARDS ***');
+  lines.push(`Dealt to Hero [${cleanHeroCards.join(' ')}]`);
+  lines.push(`Dealt to Villain [${cleanVillainCards.join(' ')}]`);
+
+  if (cleanBoard.length < 3) {
+    if (Number(facingBetBb) > 0) {
+      lines.push(`Villain: bets ${facingBetBb} BB`);
+    }
+    lines.push(`Hero: ${heroAction}`);
+  } else {
+    const flop = cleanBoard.slice(0, 3);
+    lines.push(`*** FLOP *** [${flop.join(' ')}]`);
+    if (cleanBoard.length === 3) {
+      if (Number(facingBetBb) > 0) lines.push(`Villain: bets ${facingBetBb} BB`);
+      lines.push(`Hero: ${heroAction}`);
+    }
+    if (cleanBoard.length >= 4) {
+      const turnCard = cleanBoard[3];
+      lines.push(`*** TURN *** [${flop.join(' ')}] [${turnCard}]`);
+      if (cleanBoard.length === 4) {
+        if (Number(facingBetBb) > 0) lines.push(`Villain: bets ${facingBetBb} BB`);
+        lines.push(`Hero: ${heroAction}`);
+      }
+    }
+    if (cleanBoard.length >= 5) {
+      const riverCard = cleanBoard[4];
+      lines.push(`*** RIVER *** [${cleanBoard.slice(0, 4).join(' ')}] [${riverCard}]`);
+      if (Number(facingBetBb) > 0) lines.push(`Villain: bets ${facingBetBb} BB`);
+      lines.push(`Hero: ${heroAction}`);
+    }
+  }
+
+  if (cleanSecondBoard.length >= 3) {
+    lines.push(`Board 2: [${cleanSecondBoard.join(' ')}]`);
+  }
+
+  lines.push(`*** SUMMARY *** Total pot ${potBb} BB | Horse Brain GTO Verdict: ${recommendedAction} (${evVerdict})`);
+  lines.push(`Board [${cleanBoard.join(' ')}]`);
+  lines.push(`Seat 1: Hero (${heroPosition}) showed [${cleanHeroCards.join(' ')}] and executed ${heroAction}`);
+  lines.push(`Seat 2: Villain (${villainPosition}) showed [${cleanVillainCards.join(' ')}]`);
+
+  return lines.join('\n');
+}

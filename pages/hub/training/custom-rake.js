@@ -21,6 +21,7 @@ const HERO_CARDS_BY_VARIANT = {
   plo4: ['As', 'Qs', 'Kh', 'Jh'],
   plo5: ['As', 'Qs', 'Kh', 'Jh', 'Td'],
   plo6: ['As', 'Qs', 'Kh', 'Jh', 'Td', '9d'],
+  plo8: ['As', 'Qs', 'Kh', 'Jh'],
 };
 
 const BOARD_BY_STREET = {
@@ -543,7 +544,7 @@ export default function CustomRakePage() {
               <div>
                 <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>Variant</div>
                 <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                  {['nlh', 'plo4', 'plo5', 'plo6'].map((v) => (
+                  {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
                     <button key={v} type="button" data-variant-option={v} onClick={() => setActiveVariant(v)} style={pillStyle(activeVariant === v)}>
                       {v.toUpperCase()}
                     </button>

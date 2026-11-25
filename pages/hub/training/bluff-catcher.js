@@ -11,6 +11,7 @@ const VARIANTS = [
   { id: 'plo4', label: 'PLO4 (4 Cards)', heroCards: ['As', 'Kh', 'Qd', 'Jc'] },
   { id: 'plo5', label: 'PLO5 (5 Cards)', heroCards: ['As', 'Kh', 'Qd', 'Jc', '9s'] },
   { id: 'plo6', label: 'PLO6 (6 Cards)', heroCards: ['As', 'Kh', 'Qd', 'Jc', '9s', '8d'] },
+  { id: 'plo8', label: 'PLO8 (Hi-Lo)', heroCards: ['As', 'Kh', 'Qd', 'Jc'] },
 ];
 
 const RIVER_PROFILES = [
