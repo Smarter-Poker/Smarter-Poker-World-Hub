@@ -82,6 +82,7 @@ test('a native row is a muted video with its poster and one 44px Unmute control'
   assert.ok(video, 'a <video> element');
   assert.equal(video.props.src, `${NATIVE_URL}#t=0.001`, 'the first-frame fragment iOS needs');
   assert.equal(video.props.poster, POSTER);
+  assert.equal(video.props.style.objectFit, 'contain', 'show the full poster and decoded video');
   assert.equal(video.props.muted, true, 'muted until the viewer says otherwise');
   assert.equal(video.props.playsInline, true);
   assert.equal(video.props.loop, true);
@@ -101,6 +102,48 @@ test('a native row is a muted video with its poster and one 44px Unmute control'
   assert.match(html, /<video [^>]*src="https:\/\/cdn\.smarter\.poker\/clips\/river-bluff\.mp4#t=0\.001"/);
   assert.match(html, /<button [^>]*aria-label="Unmute"/);
   assert.ok(!html.includes('data-feed-poster'), 'no poster component while the video plays');
+});
+
+test('the single video tile follows decoded portrait, square and landscape dimensions', () => {
+  const { module: { VideoPostWrapper } } = loadSurface(SHARED_FILE);
+  const props = { url: NATIVE_URL };
+  const initial = VideoPostWrapper(props);
+  assert.equal(initial.props.style.aspectRatio, 16 / 9);
+  assert.deepEqual(initial.props.children[0].props.style, { position: 'absolute', inset: 0 });
+  for (const [videoWidth, videoHeight, ratio, maxHeight] of [
+    [1080, 1920, 9 / 16, 'min(540px, 72svh)'],
+    [1080, 1080, 1, 'min(540px, 72svh)'],
+    [1920, 1080, 16 / 9, 400],
+  ]) {
+    VideoPostWrapper(props).props.onLoadedMetadataCapture({ target: { videoWidth, videoHeight } });
+    const style = VideoPostWrapper(props).props.style;
+    assert.equal(style.width, '100%', 'center the contained video when its height is capped');
+    assert.equal(style.aspectRatio, ratio);
+    assert.equal(style.maxHeight, maxHeight);
+  }
+  const second = { url: 'https://cdn.smarter.poker/clips/next.mp4' };
+  assert.equal(VideoPostWrapper(second).props.style.aspectRatio, 16 / 9);
+  VideoPostWrapper(second).props.onLoadedMetadataCapture({ target: { videoWidth: 1080, videoHeight: 0 } });
+  assert.equal(VideoPostWrapper(second).props.style.aspectRatio, 16 / 9);
+  VideoPostWrapper(second).props.onLoadCapture({
+    target: { tagName: 'IMG', naturalWidth: 720, naturalHeight: 1280 },
+  });
+  assert.equal(VideoPostWrapper(second).props.style.aspectRatio, 9 / 16);
+  assert.equal(VideoPostWrapper({ url: YOUTUBE_URL }).props.style.aspectRatio, 16 / 9);
+});
+
+test('the feed fallback shows the complete thumbnail or first decoded frame', () => {
+  const { module: { FeedVideoPoster } } = loadSurface(SHARED_FILE, {
+    mocks: { 'src/lib/articlePreviewMetadata.mjs': { isArticlePreviewImage: () => true } },
+  });
+  const poster = FeedVideoPoster({ videoUrl: NATIVE_URL, thumbnailUrl: POSTER });
+  assert.equal(poster.type, 'img');
+  assert.equal(poster.props.style.objectFit, 'contain');
+  poster.props.onError();
+  const video = FeedVideoPoster({ videoUrl: NATIVE_URL, thumbnailUrl: POSTER });
+  assert.equal(video.type, 'video');
+  assert.equal(video.props.poster, undefined, 'do not repeatedly load a failed poster');
+  assert.equal(video.props.style.objectFit, 'contain');
 });
 
 test('the control toggles Unmute and Mute, mutes the element, stops the tile click and remembers the choice', () => {
