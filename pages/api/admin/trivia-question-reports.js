@@ -8,6 +8,7 @@
  * Auth: the admin/cron secret (requireAdminSecret) - never a browser session.
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { requireAdminSecret } from '../../../src/lib/trivia/adminAuth';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 
@@ -16,16 +17,17 @@ const STATES = new Set(['triaged', 'upheld', 'dismissed', 'duplicate']);
 
 export default async function handler(req, res) {
     try {
+        res.setHeader('Cache-Control', 'private, no-store, max-age=0');
         if (req.method !== 'GET' && req.method !== 'POST') {
             res.setHeader('Allow', 'GET, POST');
             return res.status(405).json({ success: false, error: 'Method not allowed' });
         }
+        if (!applyRateLimit(req, res, req.method === 'POST' ? LIMITS.write : LIMITS.read)) return;
         if (!requireAdminSecret(req, res, { label: 'trivia-question-reports' })) return;
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
         const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
         if (!url || !key) return res.status(500).json({ success: false, error: 'server_misconfigured' });
         const sb = createClient(url, key, { auth: { persistSession: false } });
-        res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
         if (req.method === 'GET') {
             const { data, error } = await sb.from('trivia_question_report_queue_v1')
                 .select('report_id, question_id, state, valid, reason, note, created_at, age_hours, open_valid_for_question, reject_reasons, category, difficulty, triaged_at, triaged_by')

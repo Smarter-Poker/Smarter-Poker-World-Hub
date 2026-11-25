@@ -169,6 +169,7 @@ function getSupabase() {
 
 async function handler(req, res) {
     try {
+        if (typeof res?.setHeader === 'function') res.setHeader('Cache-Control', 'private, no-store, max-age=0');
         if (!requireAdminSecret(req, res, { label: 'trivia-pool-guard' })) return;
 
         const supabase = getSupabase();
@@ -287,7 +288,7 @@ async function handler(req, res) {
         try { reportApiError(err, req); } catch (_e) { console.warn('[App] Handled exception:', _e?.message || _e); }
         console.warn('[TriviaPoolGuard] fatal:', err?.message || err);
         if (!res.headersSent) {
-            return res.status(500).json({ healthy: false, error: err?.message || 'Internal server error' });
+            return res.status(500).json({ healthy: false, error: 'trivia_pool_guard_failed' });
         }
     }
 }

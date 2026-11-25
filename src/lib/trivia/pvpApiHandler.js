@@ -130,9 +130,16 @@ export function createPvpRoute(action, { serviceClient, env = process.env, sleep
             }
             if (dto?.state === 'result' && dto?.match?.id) {
                 try {
-                    await sb.rpc('trivia_pvp_update_rating_v1', { p_match_id: dto.match.id });
-                } catch (_eloError) {
-                    // Elo rating projection is idempotent and non-blocking; never alter settlement DTO.
+                    const { data: eloData, error: eloErr } = await sb.rpc('trivia_pvp_update_rating_v1', {
+                        p_match_id: dto.match.id,
+                    });
+                    if (eloErr) {
+                        console.warn('[trivia pvp] elo update rpc error:', dto.match.id, eloErr.message || eloErr);
+                    } else if (eloData && eloData.success === false && eloData.skipped !== true) {
+                        console.warn('[trivia pvp] elo update rejected:', dto.match.id, eloData.error || 'unknown');
+                    }
+                } catch (eloError) {
+                    console.warn('[trivia pvp] elo update threw:', dto.match.id, eloError?.message || eloError);
                 }
             }
             if (action === 'join' || action === 'cancel' || dto?.state === 'result' || dto?.state === 'dealing' || dto?.state === 'settling') {

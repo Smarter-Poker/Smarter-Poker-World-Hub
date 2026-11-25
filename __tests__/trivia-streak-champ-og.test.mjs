@@ -188,7 +188,7 @@ test('OG result cards distinguish DB-verified VERIFIED RESULT seals from unverif
     assert.match(ogRoute, /\.in\('status', \['complete', 'completed'\]\)/);
     assert.match(ogRoute, /verified: true/);
     assert.match(ogRoute, /verified: false/);
-    assert.match(ogRoute, /select\('display_name, username'\)/);
+    assert.match(ogRoute, /select\('display_name, username, is_horse'\)/);
     assert.doesNotMatch(ogRoute, /full_name/, 'OG route never selects legal full_name');
     assert.doesNotMatch(ogRoute, /from ['"]@supabase\/supabase-js['"]/);
 

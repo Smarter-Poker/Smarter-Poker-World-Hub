@@ -717,8 +717,8 @@ export default async function handler(req, res) {
           }
           const leaderboard = [...bestByUser.values()].sort((a, b) => b.score - a.score).slice(0, 10);
 
-          // CRITICAL: do not s-maxage cache personalized data. Drop CDN cache when auth header was used.
-          if (!authHeader) {
+          // CRITICAL: do not s-maxage cache personalized data. Drop CDN cache when auth header or session cookie was used.
+          if (!authHeader && !hasCookie) {
               res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');
           } else {
               res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
@@ -741,6 +741,7 @@ export default async function handler(req, res) {
           // Make outages visible instead of masking them as a healthy 200.
           try { reportApiError(error, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
 
+          res.setHeader('Cache-Control', 'no-store');
           return res.status(200).json({
               success: true,
               degraded: true,

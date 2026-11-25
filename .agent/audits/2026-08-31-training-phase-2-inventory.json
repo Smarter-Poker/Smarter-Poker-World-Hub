@@ -13304,7 +13304,6 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "__tests__/trivia-realtime-social-growth.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -13343,7 +13342,6 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "__tests__/trivia-realtime-social-growth.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -13379,7 +13377,6 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "__tests__/trivia-realtime-social-growth.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -13405,7 +13402,6 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "__tests__/trivia-realtime-social-growth.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -13433,7 +13429,6 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "__tests__/trivia-realtime-social-growth.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -13462,7 +13457,6 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "__tests__/trivia-realtime-social-growth.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -13484,7 +13478,6 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "__tests__/trivia-realtime-social-growth.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -13508,7 +13501,6 @@
             "__tests__/phase23-calculator-schema.test.mjs",
             "__tests__/seo-backlink-programme-invariants.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs",
-            "__tests__/trivia-realtime-social-growth.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         }
@@ -13526,7 +13518,6 @@
         "__tests__/phase23-calculator-schema.test.mjs",
         "__tests__/seo-backlink-programme-invariants.law.test.mjs",
         "__tests__/training-phase-3-adversarial.test.mjs",
-        "__tests__/trivia-realtime-social-growth.test.mjs",
         "e2e/020-hamburger.spec.ts"
       ],
       "uncoveredStates": []
@@ -13740,7 +13731,8 @@
           "tests": [
             "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
-            "__tests__/trivia-club-spectator-training.test.mjs"
+            "__tests__/trivia-club-spectator-training.test.mjs",
+            "__tests__/trivia-realtime-social-growth.test.mjs"
           ]
         },
         "empty": {
@@ -13769,7 +13761,8 @@
           "tests": [
             "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
-            "__tests__/trivia-club-spectator-training.test.mjs"
+            "__tests__/trivia-club-spectator-training.test.mjs",
+            "__tests__/trivia-realtime-social-growth.test.mjs"
           ]
         },
         "error": {
@@ -13793,7 +13786,8 @@
           "tests": [
             "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
-            "__tests__/trivia-club-spectator-training.test.mjs"
+            "__tests__/trivia-club-spectator-training.test.mjs",
+            "__tests__/trivia-realtime-social-growth.test.mjs"
           ]
         },
         "retry": {
@@ -13808,7 +13802,8 @@
           "tests": [
             "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
-            "__tests__/trivia-club-spectator-training.test.mjs"
+            "__tests__/trivia-club-spectator-training.test.mjs",
+            "__tests__/trivia-realtime-social-growth.test.mjs"
           ]
         },
         "success": {
@@ -13825,7 +13820,8 @@
           "tests": [
             "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
-            "__tests__/trivia-club-spectator-training.test.mjs"
+            "__tests__/trivia-club-spectator-training.test.mjs",
+            "__tests__/trivia-realtime-social-growth.test.mjs"
           ]
         },
         "stale": {
@@ -13843,7 +13839,8 @@
           "tests": [
             "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
-            "__tests__/trivia-club-spectator-training.test.mjs"
+            "__tests__/trivia-club-spectator-training.test.mjs",
+            "__tests__/trivia-realtime-social-growth.test.mjs"
           ]
         },
         "offline": {
@@ -13855,7 +13852,8 @@
           "tests": [
             "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
-            "__tests__/trivia-club-spectator-training.test.mjs"
+            "__tests__/trivia-club-spectator-training.test.mjs",
+            "__tests__/trivia-realtime-social-growth.test.mjs"
           ]
         },
         "authExpiry": {
@@ -13869,14 +13867,16 @@
           "tests": [
             "__tests__/phases-35-50-aeo.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
-            "__tests__/trivia-club-spectator-training.test.mjs"
+            "__tests__/trivia-club-spectator-training.test.mjs",
+            "__tests__/trivia-realtime-social-growth.test.mjs"
           ]
         }
       },
       "existingTests": [
         "__tests__/phases-35-50-aeo.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs",
-        "__tests__/trivia-club-spectator-training.test.mjs"
+        "__tests__/trivia-club-spectator-training.test.mjs",
+        "__tests__/trivia-realtime-social-growth.test.mjs"
       ],
       "uncoveredStates": []
     },
