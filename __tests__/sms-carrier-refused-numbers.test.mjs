@@ -8,7 +8,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { sendSms } from '../src/lib/dailyDigest/delivery.mjs';
+import { filterSuppressedPhones, sendSms } from '../src/lib/dailyDigest/delivery.mjs';
+import { importMarketingLeads, resolvePromoAudience } from '../src/lib/promoCampaigns/dispatch.mjs';
 
 const TWILIO = { TWILIO_ACCOUNT_SID: 'AC1', TWILIO_AUTH_TOKEN: 't', TWILIO_PHONE_NUMBER: '+18885550000' };
 
@@ -81,4 +82,110 @@ test('the verify screen watches the code it sent and offers a resend on a refusa
     assert.match(src, /setError\(codeNotDeliveredMessage\(answer\.reason\)\);\s*setCooldown\(0\);/);
     const send = readFileSync(new URL('../pages/api/sms/send-otp.js', import.meta.url), 'utf8');
     assert.match(send, /messageId: message\?\.sid \|\| null/);
+});
+
+test('filterSuppressedPhones chunks candidates and reads fn_sms_filter_suppressed_phones', async () => {
+    const calls = [];
+    const sb = {
+        async rpc(fn, params) {
+            calls.push({ fn, phones: params.p_phones });
+            return { data: params.p_phones.filter((p) => p.endsWith('0006')), error: null };
+        },
+    };
+    const res = await filterSuppressedPhones(
+        sb,
+        ['+15025550006', '+15025550001', '+15025550006', '+15025560006'],
+        { chunkSize: 2 }
+    );
+    assert.equal(calls.length, 2);
+    assert.equal(calls[0].fn, 'fn_sms_filter_suppressed_phones');
+    assert.deepEqual([...res].sort(), ['+15025550006', '+15025560006']);
+});
+
+test('importMarketingLeads skips carrier-suppressed phones without inserting them into newsletter_subscribers', async () => {
+    const inserted = [];
+    const sb = {
+        async rpc(fn, params) {
+            if (fn === 'fn_sms_filter_suppressed_phones') {
+                return { data: params.p_phones.filter((p) => p === '+15025550006'), error: null };
+            }
+            return { data: [], error: null };
+        },
+        from(table) {
+            assert.equal(table, 'newsletter_subscribers');
+            return {
+                select() {
+                    return {
+                        async in() {
+                            return { data: [], error: null };
+                        },
+                    };
+                },
+                async insert(rows) {
+                    inserted.push(...rows);
+                    return { error: null };
+                },
+            };
+        },
+    };
+    const summary = await importMarketingLeads(sb, {
+        phones: ['+15025550006', '+15025550009'],
+        source: 'commander_import',
+    });
+    assert.equal(summary.importedPhones, 1);
+    assert.equal(summary.optedOutPreserved, 1);
+    assert.deepEqual(
+        inserted.map((r) => r.email),
+        ['sms:+15025550009']
+    );
+});
+
+test('resolvePromoAudience excludes carrier-suppressed commander_members phones even when sms_delivery_receipts.to_number is blanked', async () => {
+    const tables = {
+        newsletter_subscribers: [],
+        notification_preferences: [],
+        // Production trigger blanks to_number on 30006/30005 receipts; old reader missed these.
+        sms_delivery_receipts: [{ to_number: null, status: 'undelivered', error_code: 30006 }],
+        profiles: [],
+        commander_members: [
+            { id: '1', email: null, phone: '+15025550006' },
+            { id: '2', email: null, phone: '+15025550099' },
+        ],
+        commander_onboarding_leads: [],
+        commander_leads: [],
+        commander_home_members: [],
+    };
+    const makeQuery = (rows) => {
+        const q = {
+            select() { return q; },
+            eq() { return q; },
+            in() { return q; },
+            or() { return q; },
+            not() { return q; },
+            order() { return q; },
+            async range(from, to) {
+                return { data: rows.slice(from, to + 1), error: null };
+            },
+        };
+        return q;
+    };
+    const sb = {
+        async rpc(fn, params) {
+            if (fn === 'fn_sms_filter_suppressed_phones') {
+                return { data: params.p_phones.filter((p) => p === '+15025550006'), error: null };
+            }
+            return { data: [], error: null };
+        },
+        from(table) {
+            return makeQuery(tables[table] || []);
+        },
+    };
+    const audience = await resolvePromoAudience(sb, { scope: 'all' });
+    assert.deepEqual(audience.phones, ['+15025550099']);
+});
+
+test('lifecycleEngine wires filterSuppressedPhones against hashed carrier suppressions', () => {
+    const src = readFileSync(new URL('../src/lib/promoCampaigns/lifecycleEngine.mjs', import.meta.url), 'utf8');
+    assert.match(src, /import\s*\{[^}]*filterSuppressedPhones[^}]*\}\s*from\s*'\.\.\/dailyDigest\/delivery\.mjs'/);
+    assert.match(src, /await filterSuppressedPhones\(supabase,\s*candidateLifecyclePhones\)/);
 });

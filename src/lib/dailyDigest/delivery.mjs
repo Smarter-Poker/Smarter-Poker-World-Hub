@@ -151,6 +151,35 @@ export async function smsNumberSuppressed(to, { sb = null } = {}) {
     }
 }
 
+/**
+ * Batch-checks candidate phone strings against smarter_private.sms_suppressed_numbers
+ * via public.fn_sms_filter_suppressed_phones(text[]). Because trg_sms_receipt_suppresses_refused_number
+ * blanks sms_delivery_receipts.to_number on permanent carrier refusal, batch audience
+ * builders cannot rely on reading to_number from sms_delivery_receipts alone.
+ * Returns a Set of matching input phone strings (never throws in unit mocks without rpc).
+ */
+export async function filterSuppressedPhones(sb, candidatePhones, { chunkSize = 500 } = {}) {
+    const suppressed = new Set();
+    if (!sb || typeof sb.rpc !== 'function' || !Array.isArray(candidatePhones) || candidatePhones.length === 0) {
+        return suppressed;
+    }
+    const unique = [...new Set(candidatePhones.filter((p) => typeof p === 'string' && p.trim()))];
+    for (let i = 0; i < unique.length; i += chunkSize) {
+        const chunk = unique.slice(i, i + chunkSize);
+        try {
+            const { data, error } = await sb.rpc('fn_sms_filter_suppressed_phones', { p_phones: chunk });
+            if (!error && Array.isArray(data)) {
+                for (const p of data) {
+                    if (typeof p === 'string' && p.trim()) suppressed.add(p.trim());
+                }
+            }
+        } catch {
+            // Non-fatal in lightweight test mocks without the RPC.
+        }
+    }
+    return suppressed;
+}
+
 /** Texts the owner by default; pass `to` (E.164) to text someone else. */
 export async function sendSms(body, { fetchImpl = fetch, to: toOverride = null, sb = null, suppressionCheck = smsNumberSuppressed } = {}) {
     const sid = trim(process.env.TWILIO_ACCOUNT_SID);
