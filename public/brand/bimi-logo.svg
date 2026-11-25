@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.2" baseProfile="tiny-ps" viewBox="0 0 512 512">
+  <title>Smarter.Poker</title>
+  <rect x="0" y="0" width="512" height="512" fill="#05070a"/>
+  <polygon fill="#1b2c3d" points="256,56 412,114 398,282 332,388 256,452 180,388 114,282 100,114"/>
+  <polygon fill="#4fc1b3" points="256,66 110,120 124,278 186,380 256,440 256,66"/>
+  <polygon fill="#60a5fa" points="256,66 402,120 388,278 326,380 256,440 256,66"/>
+  <polygon fill="#0b1118" points="256,82 386,130 374,272 316,368 256,422 196,368 138,272 126,130"/>
+  <polygon fill="#101a24" points="256,96 370,140 360,266 306,354 256,404 256,96"/>
+  <path fill="#ffffff" d="M256 134 C256 134 162 212 162 268 C162 302 188 324 218 324 C232 324 243 318 250 308 L238 356 L214 372 L298 372 L274 356 L262 308 C269 318 280 324 294 324 C324 324 350 302 350 268 C350 212 256 134 256 134 Z"/>
+  <polygon fill="#4fc1b3" points="256,194 286,242 256,290 226,242"/>
+  <polygon fill="#0b1118" points="256,212 272,242 256,272 240,242"/>
+</svg>

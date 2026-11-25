@@ -1,11 +1,11 @@
 /**
- * Smarter.Poker Weekly Wire V2 — Curated Non-Repeating Content Catalogs
+ * Smarter.Poker Weekly Wire - Curated Non-Repeating Content Catalogs
  *
  * Every entry has a permanent, immutable `slug`. When included in a sent
- * newsletter edition, `deterministicUuid('sp-update:' + slug)` or
- * `deterministicUuid('sp-tool:' + slug)` is recorded in
- * `public.newsletter_campaigns.article_ids`, guaranteeing lifetime single-use
- * across automated and manual Weekly Wire dispatches.
+ * newsletter edition, `deterministicUuid('sp-update:' + slug)`,
+ * `deterministicUuid('sp-tool:' + slug)`, or `deterministicUuid('sp-spot:' + slug)`
+ * is recorded in `public.newsletter_campaigns.article_ids`, guaranteeing lifetime
+ * single-use across automated and manual Weekly Wire dispatches.
  */
 
 export const PLATFORM_UPDATES_CATALOG = [
@@ -153,7 +153,7 @@ export const TOOL_SPOTLIGHT_CATALOG = [
     { slug: 'bluff-catching-calculator', category: 'River Decisions', title: 'River Bluff-Catching & MDF Calculator', tip: 'Compare villain value-to-bluff combos against pot odds to make disciplined, emotion-free river hero calls or folds.', url: 'https://smarter.poker/tools/bluff-catching-calculator' },
     { slug: 'spr-calculator', category: 'Cash Strategy', title: 'Stack-To-Pot Ratio (SPR) Planner', tip: 'Plan preflop pot sizes intentionally so top pair lands in low-SPR comfort or suited connectors keep high-SPR maneuverability.', url: 'https://smarter.poker/tools/spr-calculator' },
     { slug: 'bankroll-calculator', category: 'Risk Management', title: 'Cash & MTT Bankroll Requirement Calculator', tip: 'Dial in your comfort risk-of-ruin threshold to see how many buy-ins your current stake and game format actually demand.', url: 'https://smarter.poker/tools/bankroll-calculator' },
-    { slug: 'satellite-calculator', category: 'Qualifier Strategy', title: 'Satellite Seat-Lock & Fold Equity Tool', tip: 'In milestone and survival satellites, chip EV is wrong near the bubble — calculate when folding Aces preflop is mathematically mandatory.', url: 'https://smarter.poker/tools/satellite-calculator' },
+    { slug: 'satellite-calculator', category: 'Qualifier Strategy', title: 'Satellite Seat-Lock & Fold Equity Tool', tip: 'In milestone and survival satellites, chip EV is wrong near the bubble - calculate when folding Aces preflop is mathematically mandatory.', url: 'https://smarter.poker/tools/satellite-calculator' },
     { slug: 'blind-vs-blind-calculator', category: 'Positional Battles', title: 'Small Blind vs. Big Blind Combat Tool', tip: 'Wide ranges and zero uncapped callers make BvB unique. Sharpen limp-stab, raise-size, and 3-bet defense thresholds.', url: 'https://smarter.poker/tools/blind-vs-blind-calculator' },
     { slug: 'board-texture-analyzer', category: 'Range Advantage', title: 'Flop Board Texture & Nut-Advantage Analyzer', tip: 'Classify any three-card flop by connectivity, dynamic draw density, and caller vs. raiser range advantage.', url: 'https://smarter.poker/tools/board-texture-analyzer' },
     { slug: 'multi-street-ev-calculator', category: 'Deep Analysis', title: 'Multi-Street Decision Tree EV Calculator', tip: 'Map barrel-turn / give-up-river vs. check-call lines side by side to quantify which line prints the highest expected value.', url: 'https://smarter.poker/tools/multi-street-ev-calculator' },
@@ -170,11 +170,11 @@ export const TOOL_SPOTLIGHT_CATALOG = [
     { slug: 'hand-converter', category: 'Study Workflow', title: 'Instant Poker Hand History Formatter', tip: 'Convert raw hand notes into clean, readable street-by-street action for solver review or strategy discussion.', url: 'https://smarter.poker/tools/hand-converter' },
     { slug: 'm-ratio-calculator', category: 'Tournament Tempo', title: 'Harrington M-Ratio & Effective Orbit Meter', tip: 'Include blinds AND big-blind antes in your true cost-per-orbit calculation as levels escalate.', url: 'https://smarter.poker/tools/m-ratio-calculator' },
     { slug: 'staking-calculator', category: 'Backing & Swaps', title: 'Tournament Staking, Markup & Piece-Swap Calculator', tip: 'Track makeup, markup, and percentage swaps cleanly with zero post-score math disputes.', url: 'https://smarter.poker/tools/staking-calculator' },
-    { slug: 'training-blind-defense', category: 'GTO Trainer', title: 'Big Blind Defense Interactive Trainer', tip: 'Stop over-folding or Spew-3-betting from the Big Blind — drill exact call vs. raise mixes across every open size.', url: 'https://smarter.poker/hub/training/blind-defense' },
+    { slug: 'training-blind-defense', category: 'GTO Trainer', title: 'Big Blind Defense Interactive Trainer', tip: 'Stop over-folding or Spew-3-betting from the Big Blind - drill exact call vs. raise mixes across every open size.', url: 'https://smarter.poker/hub/training/blind-defense' },
     { slug: 'training-bluff-catcher', category: 'GTO Trainer', title: 'Bluff-Catcher & Blocker Recognition Trainer', tip: 'Learn which suit and rank blockers flip a close river spot from a snap-fold into a high-EV call.', url: 'https://smarter.poker/hub/training/bluff-catcher' },
     { slug: 'training-bounty-trainer', category: 'GTO Trainer', title: 'Progressive Knockout (PKO) Spot Trainer', tip: 'Practice real covered vs. covering stack scenarios where bounty pressure warps standard tournament ranges.', url: 'https://smarter.poker/hub/training/bounty-trainer' },
     { slug: 'training-position-mastery', category: 'GTO Trainer', title: '6-Max & 9-Max Position Mastery Trainer', tip: 'Lock in disciplined UTG/MP tightness and relentless CO/BTN pressure through rapid-fire positional reps.', url: 'https://smarter.poker/hub/training/position-mastery' },
-    { slug: 'training-pot-geometry', category: 'GTO Trainer', title: 'Pot Geometry & Overbet Sizing Trainer', tip: 'Spot polarized nut-advantage turns and rivers where 125%–200% pot overbets outperform standard 2/3-pot bets.', url: 'https://smarter.poker/hub/training/pot-geometry' },
+    { slug: 'training-pot-geometry', category: 'GTO Trainer', title: 'Pot Geometry & Overbet Sizing Trainer', tip: 'Spot polarized nut-advantage turns and rivers where 125%-200% pot overbets outperform standard 2/3-pot bets.', url: 'https://smarter.poker/hub/training/pot-geometry' },
 ];
 
 export const ACTIVE_MEMBER_PROMO_ROTATION = [
@@ -182,7 +182,7 @@ export const ACTIVE_MEMBER_PROMO_ROTATION = [
         slug: 'kings-club-action-bbj',
         eyebrow: 'Club Arena Spotlight',
         headline: 'Cash Tables, Spin Matches & Bad Beat Jackpot Running Now In Kings Club',
-        body: 'Jump straight into NLH, PLO4, PLO5, and fast 3-handed Spin games in Kings Club (Code 25450) — every qualifying cash hand feeds the live Bad Beat Jackpot pool.',
+        body: 'Jump straight into NLH, PLO4, PLO5, and fast 3-handed Spin games in Kings Club (Code 25450) - every qualifying cash hand feeds the live Bad Beat Jackpot pool.',
         ctaLabel: 'Enter Kings Club',
         ctaUrl: 'https://smarter.poker/hub/club-arena/?join=25450',
     },
@@ -198,7 +198,7 @@ export const ACTIVE_MEMBER_PROMO_ROTATION = [
         slug: 'plo-hand-lab-challenge',
         eyebrow: 'GTO Lab Challenge',
         headline: 'Test Your Edge In The New 4-Variant NLH & PLO4/5/6 Hand Lab',
-        body: 'Run a 10-hand diagnostic session and see your exact EV score by street and position — 100% integrated with your Smarter.Poker profile.',
+        body: 'Run a 10-hand diagnostic session and see your exact EV score by street and position - 100% integrated with your Smarter.Poker profile.',
         ctaLabel: 'Start 10-Hand Drill',
         ctaUrl: 'https://smarter.poker/hub/training/hand-lab',
     },
@@ -209,5 +209,200 @@ export const ACTIVE_MEMBER_PROMO_ROTATION = [
         body: 'Go head-to-head against live players or push your Solo Survival high score across tournament math, poker history, and GTO theory.',
         ctaLabel: 'Enter Trivia Arena',
         ctaUrl: 'https://smarter.poker/hub/trivia',
+    },
+];
+
+export const SPOT_OF_THE_WEEK_CATALOG = [
+    {
+        slug: 'btn-vs-bb-turn-overbet-brick-202611',
+        category: 'Single-Raised Pot',
+        title: 'BTN vs. BB Turn Nut-Advantage Overbet On A Brick',
+        situation: '100bb 6-Max NLH. BTN opens 2.5bb with As Kd, BB defends. Flop Ks 8c 3d (5.5bb): BB checks, BTN c-bets 1.8bb, BB calls. Turn 2h (9.1bb): BB checks. What is the highest-EV solver sizing?',
+        options: [
+            { key: 'A', label: 'Check Back For Pot Control' },
+            { key: 'B', label: 'Bet 33% Pot (3.0bb)' },
+            { key: 'C', label: 'Overbet 135% Pot (12.3bb)' },
+        ],
+        targetUrl: 'https://smarter.poker/hub/training/hand-lab',
+    },
+    {
+        slug: 'bb-river-bluffcatch-missed-flush-202611',
+        category: 'River Bluff-Catching',
+        title: 'Blocker Selection Facing Polarized River Triple-Barrel',
+        situation: '100bb Cash NLH. CO opens 2.5bb, Hero calls in BB with Kh Td. Board runs Ks 9s 4c - 6d - 2h. CO barrels 33% flop, 75% turn, and 125% pot on the brick river. Notice Hero holds no spades.',
+        options: [
+            { key: 'A', label: 'Call (Unblocks Missed Spades)' },
+            { key: 'B', label: 'Fold (Dominated By KQ/KJ)' },
+            { key: 'C', label: 'Check-Jam All-In As A Bluff' },
+        ],
+        targetUrl: 'https://smarter.poker/hub/training/hand-lab',
+    },
+    {
+        slug: 'icm-final-table-payjump-aqo-202611',
+        category: 'ICM Final Table',
+        title: '6-Handed Final Table Pay-Jump Clash Against Chip Leader',
+        situation: 'MTT Final Table, 6 left, two 4bb micro-stacks at the table. Chip leader (65bb) opens CO to 2.2bb. Hero sits on BTN with 24bb holding Ad Qs. Steep pay jump between 6th and 4th.',
+        options: [
+            { key: 'A', label: '3-Bet Jam 24bb For Max Fold Equity' },
+            { key: 'B', label: '3-Bet To 6.2bb And Call A 4-Bet' },
+            { key: 'C', label: 'Fold Or Flat Tight Due To Bubble Factor' },
+        ],
+        targetUrl: 'https://smarter.poker/hub/training/hand-lab',
+    },
+    {
+        slug: 'co-vs-btn-3bet-pot-low-connected-202611',
+        category: '3-Bet Pot Defense',
+        title: 'Out-Of-Position 3-Bettor On 7-6-5 Two-Tone Flop',
+        situation: '100bb 6-Max NLH. BTN opens 2.5bb, Hero 3-bets SB to 11bb with Ac Ah, and BTN calls in position. Flop 7s 6s 5d (23bb). How does SB construct flop c-betting range on this low connected board?',
+        options: [
+            { key: 'A', label: 'Range C-Bet 33% Pot (7.6bb)' },
+            { key: 'B', label: 'High-Frequency Check To Protect Equity' },
+            { key: 'C', label: 'Pot-Sized Bet (23bb) Immediately' },
+        ],
+        targetUrl: 'https://smarter.poker/hub/training/hand-lab',
+    },
+    {
+        slug: 'pko-covered-vs-covering-bounty-call-202611',
+        category: 'PKO Bounty Math',
+        title: 'Calling An All-In With Double Starting Bounty On The Line',
+        situation: 'PKO MTT (50% bounty pool). MP shoves 14bb holding a 2.5x starting bounty (worth ~7.5bb in chip-equivalent equity). Hero covers in BB (42bb) with Ks Tc, 12.5bb to call into 15.5bb + bounty.',
+        options: [
+            { key: 'A', label: 'Fold (Too Dominated By Ax/Pairs)' },
+            { key: 'B', label: 'Call (Bounty Drops Required Equity To ~34%)' },
+            { key: 'C', label: 'Only Call With KQs Or Better' },
+        ],
+        targetUrl: 'https://smarter.poker/hub/training/hand-lab',
+    },
+    {
+        slug: 'plo4-bare-nut-flush-blocker-river-202611',
+        category: 'PLO4 Nut Advantage',
+        title: 'PLO4 Bare Ace-Of-Hearts Blocker On A Paired Flush River',
+        situation: '100bb PLO4 Cash. BTN opens pot, BB calls. Board Jh 9h 4c - 4d - 2h (24bb). BB checks river. Hero on BTN holds Ah Ks Qd Tc (air, holding the nut heart blocker, zero boat blockers).',
+        options: [
+            { key: 'A', label: 'Check Back And Concede Pot' },
+            { key: 'B', label: 'Bet Half-Pot (12bb) To Target Weak Pairs' },
+            { key: 'C', label: 'Pot-Size Bluff (24bb) Leveraging Ah Blocker' },
+        ],
+        targetUrl: 'https://smarter.poker/hub/training/hand-lab',
+    },
+    {
+        slug: 'bvb-limp-stab-checkraise-paired-board-202611',
+        category: 'Blind vs. Blind',
+        title: 'SB Limp Strategy & Turn Barrel After BB Checks Flop',
+        situation: '100bb 6-Max NLH. Action folds to Hero in SB with Qh 8h (mixed limp/raise). Hero completes, BB checks. Flop Ks 8d 4s (2bb): Hero bets 1bb, BB calls. Turn Th (4bb) brings flush redraw.',
+        options: [
+            { key: 'A', label: 'Check-Call Turn To Keep Bluffs In' },
+            { key: 'B', label: 'Barrel 75% Pot (3bb) For Value/Equity Denial' },
+            { key: 'C', label: 'Check-Fold To Any Sized Bet' },
+        ],
+        targetUrl: 'https://smarter.poker/hub/training/hand-lab',
+    },
+    {
+        slug: 'multiway-3way-top-pair-tightening-202611',
+        category: 'Multiway Postflop',
+        title: '3-Way Single-Raised Pot With Top Pair Good Kicker',
+        situation: '100bb Live/Club NLH. HJ opens 3bb with As Qc, CO flats, BB defends (3-way, 9.5bb pot). Flop Qd 9s 8s. BB checks. With two uncapped callers holding dense sets/two-pairs/draws, Hero acts.',
+        options: [
+            { key: 'A', label: 'Check High Frequency Or Small 25% Bet' },
+            { key: 'B', label: 'Bet 80% Pot (7.6bb) For Heavy Protection' },
+            { key: 'C', label: 'Overbet 120% Pot To Fold Out Draws' },
+        ],
+        targetUrl: 'https://smarter.poker/hub/training/hand-lab',
+    },
+    {
+        slug: 'mtt-13bb-btn-shove-vs-minraise-202611',
+        category: 'Short-Stack Push/Fold',
+        title: '13bb Button Open-Jam vs. Min-Raise With Big Blind Ante',
+        situation: 'MTT with 1bb Big Blind Ante, 13bb effective. Folds to Hero on BTN holding 6s 5s. SB has 16bb (tight reg), BB has 38bb (active defender). Compare min-raising 2bb vs. open-rip 13bb.',
+        options: [
+            { key: 'A', label: 'Open-Jam 13bb To Realize Full Equity' },
+            { key: 'B', label: 'Min-Raise 2bb And Fold To 3-Bet Jam' },
+            { key: 'C', label: 'Open-Fold 65s At 13bb Depth' },
+        ],
+        targetUrl: 'https://smarter.poker/hub/training/hand-lab',
+    },
+    {
+        slug: '4bet-pot-ak-missed-low-spr-202611',
+        category: '4-Bet Pot Commitment',
+        title: 'Playing Unimproved AKs At SPR 1.8 In A 4-Bet Pot',
+        situation: '100bb 6-Max NLH. CO opens 2.5bb, BTN 3-bets 7.5bb, Hero in CO 4-bets 21bb with As Ks, BTN calls (43.5bb pot, 79bb behind, SPR 1.8). Flop Jd 7s 3s giving Hero nut flush draw + 2 overs.',
+        options: [
+            { key: 'A', label: 'C-Bet 25% Pot (11bb) And Call A Jam' },
+            { key: 'B', label: 'Open-Shove 79bb Into 43.5bb On Flop' },
+            { key: 'C', label: 'Check-Fold Facing Half-Pot Bet' },
+        ],
+        targetUrl: 'https://smarter.poker/hub/training/hand-lab',
+    },
+    {
+        slug: 'bb-checkraise-backdoor-equity-monotone-202611',
+        category: 'Check-Raise Geometry',
+        title: 'Big Blind Check-Raise Construction Vs. Small C-Bet',
+        situation: '100bb Cash NLH. BTN opens 2.5bb, Hero defends BB with Jc Tc. Flop 9c 6s 2d (5.5bb): Hero checks, BTN c-bets 1.8bb (33%). Hero has two overs, gutshot-ready backdoor straight, and backdoor clubs.',
+        options: [
+            { key: 'A', label: 'Fold Immediately Facing 33% Sizing' },
+            { key: 'B', label: 'Check-Raise To 6.5bb At Solver Mix' },
+            { key: 'C', label: 'Min-Click Check-Raise To 3.6bb' },
+        ],
+        targetUrl: 'https://smarter.poker/hub/training/hand-lab',
+    },
+    {
+        slug: 'turn-probe-bet-after-flop-checkthrough-202611',
+        category: 'Turn Probe Defense',
+        title: 'Out-Of-Position Turn Probe Sizing After Flop Checks Through',
+        situation: '100bb 6-Max NLH. CO opens 2.5bb, Hero calls BB with Ac 9d. Flop Ad 8c 4h checks through (5.5bb). Turn 3s pairs nothing; CO capped many strong Ax combos by checking back dry Ace-high flop.',
+        options: [
+            { key: 'A', label: 'Check Again To Trap CO Bluffs' },
+            { key: 'B', label: 'Probe Bet 75% Pot (4.1bb) Polarized' },
+            { key: 'C', label: 'Probe Bet 20% Pot (1.1bb) Block' },
+        ],
+        targetUrl: 'https://smarter.poker/hub/training/hand-lab',
+    },
+    {
+        slug: 'satellite-stone-bubble-kk-fold-math-202611',
+        category: 'Satellite Bubble Lock',
+        title: 'Stone Bubble Survival Satellite: Pocket Kings Facing Shove',
+        situation: '11 Players Remain For 10 Identical $1,100 Seats. Two short stacks sit at 1.5bb and 2bb. Chip leader (40bb) shoves UTG into Hero in BB sitting comfortably in 3rd place with 22bb and Kc Kd.',
+        options: [
+            { key: 'A', label: 'Snap-Call With Pocket Kings' },
+            { key: 'B', label: 'Fold KK (Seat Probability >98% By Folding)' },
+            { key: 'C', label: 'Call Only If Suited Aces Are Folded' },
+        ],
+        targetUrl: 'https://smarter.poker/hub/training/hand-lab',
+    },
+    {
+        slug: 'plo5-wrap-plus-flushdraw-spr3-202611',
+        category: 'PLO5 Wrap Equity',
+        title: '5-Card Omaha 17-Out Wrap Vs. Top Set Commitment',
+        situation: '100bb PLO5 Cash. Single-raised pot 3-way (12bb). Flop Ks Jd Tc. Hero on BTN holds Qs 9s 8d 7c 2s (13-card nut wrap + king-high spade backdoor, no flush draw). Pot-sized bet of 12bb in front.',
+        options: [
+            { key: 'A', label: 'Call In Position To Realize Clean Wrap Outs' },
+            { key: 'B', label: 'Repot All-In Without A Flush Redraw' },
+            { key: 'C', label: 'Fold Because PLO5 Requires Nut Flush Draw' },
+        ],
+        targetUrl: 'https://smarter.poker/hub/training/hand-lab',
+    },
+    {
+        slug: 'deepstack-150bb-river-2x-overbet-nuts-202611',
+        category: 'Deep-Stack Overbet',
+        title: '150bb Deep River 2x Pot Sizing With Nut Straight',
+        situation: '150bb Cash NLH. BTN opens 2.5bb with 9h 8h, BB calls. Board Qs Jd 4c - Ts - 2d (38bb pot, 131bb behind). BB checks river after calling flop and turn. BTN holds the nut straight unblocking KQ/QJ.',
+        options: [
+            { key: 'A', label: 'Bet 50% Pot (19bb) For Safe Thin Calls' },
+            { key: 'B', label: 'Overbet 175% Pot (66bb) Polarized' },
+            { key: 'C', label: 'Check Back Fearing AK Broadway' },
+        ],
+        targetUrl: 'https://smarter.poker/hub/training/hand-lab',
+    },
+    {
+        slug: 'spin-3max-hu-9bb-limp-trap-nash-202611',
+        category: 'Spin & HU Endgame',
+        title: 'Heads-Up 9bb Spin Match: Limp-Trap Vs. Open-Shove AA',
+        situation: 'Club Arena Spin Match Heads-Up Finale, 9bb effective stacks (no ante). Hero is on BTN/SB dealt As Ad against an aggressive opponent who iso-shoves 38% of hands facing a limp.',
+        options: [
+            { key: 'A', label: 'Limp 0.5bb To Induce Wide Iso-Shoves' },
+            { key: 'B', label: 'Open-Jam 9bb Directly' },
+            { key: 'C', label: 'Raise To 3bb Non-All-In' },
+        ],
+        targetUrl: 'https://smarter.poker/hub/training/hand-lab',
     },
 ];

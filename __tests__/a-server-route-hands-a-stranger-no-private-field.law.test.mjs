@@ -72,6 +72,7 @@ const REVIEWED = {
   'pages/api/horses/fleet-admin.js': 'STAFF: withOperatorRoute fleet.read (balances only with money.read)',
   'pages/api/horses/mint.js': 'STAFF: withOperatorRoute money.read / money.write',
   'pages/api/live-help/start-conversation.js': 'SELF: greets the caller in their own support thread',
+  'pages/api/news/digest.js': "STAFF: CRON_SECRET or verified admin role; sends each recipient's own Diamond balance only in their own email",
   'pages/api/poker/ai-hand-reader.js': "SELF: the caller's own balance gates VIP, never returned",
   'pages/api/poker/player-preferences.js': "SELF: verified contributionSession JWT selects only session.user.id; private no-store response goes only to that caller",
   'pages/api/public/home-games/[slug].js': 'not profiles: city/state there are the group\'s own columns',
