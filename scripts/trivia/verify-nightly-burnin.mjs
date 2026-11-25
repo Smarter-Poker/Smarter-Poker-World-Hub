@@ -18,6 +18,7 @@
  *   node scripts/trivia/verify-nightly-burnin.mjs
  *   node scripts/trivia/verify-nightly-burnin.mjs --json
  *   node scripts/trivia/verify-nightly-burnin.mjs --start=2026-11-24 --days=7
+ *   node scripts/trivia/verify-nightly-burnin.mjs --rpc
  */
 
 import { execFileSync } from 'node:child_process';
@@ -247,12 +248,10 @@ WITH target_tournaments AS (
            (SELECT count(*)::integer FROM public.trivia_tournament_entrants e
              WHERE e.tournament_id = m.tournament_id AND e.entry_state = 'entered'
                AND (COALESCE(e.in_field, false) = false OR e.seed_number IS NULL)) AS excluded_charged_entrants,
-           COALESCE((SELECT sum(abs(
-               (COALESCE(s.held_total, 0) + COALESCE(s.subsidy_total, 0))
-               - (COALESCE(s.released_total, 0) + COALESCE(s.refunded_total, 0) + COALESCE(s.rake_amount, 0) + COALESCE(s.paid_total, 0))
-           ))::bigint FROM public.trivia_settlements s
-             WHERE s.subject_type = 'tournament' AND s.subject_id = m.tournament_id
-               AND s.state IN ('settled', 'refunded', 'voided')), 0) AS ledger_variance
+           COALESCE((SELECT sum(abs(COALESCE(r.unexplained_variance, 0)))::bigint
+             FROM public.trivia_ledger_recon_tournament r
+             WHERE r.subject_id = m.tournament_id
+               AND r.state IN ('settled', 'refunded', 'voided')), 0) AS ledger_variance
       FROM public.trivia_tournament_metrics_v1 m
       JOIN public.trivia_tournaments t ON t.id = m.tournament_id
      WHERE m.schedule_kind = 'public_nightly'
@@ -267,6 +266,70 @@ SELECT jsonb_build_object(
 `;
 }
 
+export function compareBurnInScorecards(cliReport, rpcReport) {
+    const mismatches = [];
+    if (!cliReport || typeof cliReport !== 'object') {
+        return { match: false, mismatches: ['Missing CLI scorecard report'] };
+    }
+    if (!rpcReport || typeof rpcReport !== 'object') {
+        return { match: false, mismatches: ['Missing RPC scorecard report'] };
+    }
+    const rpcSummary = rpcReport.summary || rpcReport;
+    if (cliReport.scorecard !== rpcReport.scorecard) {
+        mismatches.push(`scorecard mismatch: cli=${cliReport.scorecard} rpc=${rpcReport.scorecard}`);
+    }
+    if (Boolean(cliReport.certified) !== Boolean(rpcReport.certified)) {
+        mismatches.push(`certified mismatch: cli=${cliReport.certified} rpc=${rpcReport.certified}`);
+    }
+    for (const key of ['passed', 'failed', 'pending', 'scheduled', 'total']) {
+        const cliVal = Number(cliReport.summary?.[key]);
+        const rpcVal = Number(rpcSummary?.[key]);
+        if (cliVal !== rpcVal) {
+            mismatches.push(`summary.${key} mismatch: cli=${cliVal} rpc=${rpcVal}`);
+        }
+    }
+    if (cliReport.summary?.ledger_clean !== rpcSummary?.ledger_clean) {
+        mismatches.push(`summary.ledger_clean mismatch: cli=${cliReport.summary?.ledger_clean} rpc=${rpcSummary?.ledger_clean}`);
+    }
+
+    const cliNights = Array.isArray(cliReport.nights) ? cliReport.nights : [];
+    const rpcNights = Array.isArray(rpcReport.nights) ? rpcReport.nights : [];
+    if (cliNights.length !== rpcNights.length) {
+        mismatches.push(`nights.length mismatch: cli=${cliNights.length} rpc=${rpcNights.length}`);
+    }
+    const count = Math.min(cliNights.length, rpcNights.length);
+    for (let i = 0; i < count; i += 1) {
+        const cn = cliNights[i];
+        const rn = rpcNights[i];
+        const label = cn?.date || `night[${i}]`;
+        for (const field of ['date', 'tournament_id', 'lifecycle_state', 'status', 'horse_target', 'horses_entered', 'humans_entered']) {
+            if ((cn?.[field] ?? null) !== (rn?.[field] ?? null)) {
+                mismatches.push(`${label}.${field} mismatch: cli=${cn?.[field]} rpc=${rn?.[field]}`);
+            }
+        }
+        const sloKeys = Object.keys(cn?.slos || {});
+        for (const sloKey of sloKeys) {
+            const cPassed = Boolean(cn?.slos?.[sloKey]?.passed);
+            const rPassed = Boolean(rn?.slos?.[sloKey]?.passed);
+            if (cPassed !== rPassed) {
+                mismatches.push(`${label}.slos.${sloKey}.passed mismatch: cli=${cPassed} rpc=${rPassed}`);
+            }
+        }
+    }
+    return { match: mismatches.length === 0, mismatches };
+}
+
+export function buildRpcBurnInSql(startDate = DEFAULT_BURNIN_START, days = DEFAULT_BURNIN_DAYS) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(startDate))) {
+        throw new Error(`Invalid startDate for burn-in RPC: ${startDate}`);
+    }
+    const safeDays = Number.parseInt(String(days), 10);
+    if (!Number.isInteger(safeDays) || safeDays < 1 || safeDays > 31) {
+        throw new Error(`Invalid days for burn-in RPC: ${days}`);
+    }
+    return `SELECT public.trivia_nightly_burnin_scorecard_v1('${startDate}'::date, ${safeDays}) AS payload;`;
+}
+
 function resolveLinkedRepoCwd() {
     const cwd = process.cwd();
     if (existsSync(resolve(cwd, 'supabase/.temp/project-ref'))) return cwd;
@@ -275,8 +338,7 @@ function resolveLinkedRepoCwd() {
     return cwd;
 }
 
-function queryLiveBurnIn(startDate, endDate) {
-    const sql = buildBurnInSql(startDate, endDate);
+function runLinkedPayloadSql(sql) {
     const stdout = execFileSync('supabase', ['db', 'query', '--linked', sql], {
         cwd: resolveLinkedRepoCwd(),
         encoding: 'utf8',
@@ -295,10 +357,19 @@ function queryLiveBurnIn(startDate, endDate) {
     return payload;
 }
 
-function parseCliArgs(argv) {
-    const opts = { startDate: DEFAULT_BURNIN_START, days: DEFAULT_BURNIN_DAYS, jsonOnly: false };
+function queryLiveBurnIn(startDate, endDate) {
+    return runLinkedPayloadSql(buildBurnInSql(startDate, endDate));
+}
+
+function queryLiveBurnInRpc(startDate, days) {
+    return runLinkedPayloadSql(buildRpcBurnInSql(startDate, days));
+}
+
+export function parseCliArgs(argv) {
+    const opts = { startDate: DEFAULT_BURNIN_START, days: DEFAULT_BURNIN_DAYS, jsonOnly: false, verifyRpc: false };
     for (const arg of argv) {
         if (arg === '--json') opts.jsonOnly = true;
+        else if (arg === '--rpc') opts.verifyRpc = true;
         else if (arg.startsWith('--start=')) {
             const val = arg.slice('--start='.length).trim();
             if (!/^\d{4}-\d{2}-\d{2}$/.test(val)) throw new Error(`Invalid --start date: ${val}`);
@@ -323,13 +394,33 @@ if (isMain) {
             days: opts.days,
             ledgerHealth: live.ledger_health || null,
         });
+        let rpcParity = null;
+        if (opts.verifyRpc) {
+            const rpcReport = queryLiveBurnInRpc(opts.startDate, opts.days);
+            const parity = compareBurnInScorecards(report, rpcReport);
+            rpcParity = {
+                matched: parity.match,
+                mismatches: parity.mismatches,
+                rpc_scorecard: rpcReport.scorecard,
+                rpc_certified: rpcReport.certified,
+            };
+            report.rpc_parity = rpcParity;
+        }
         if (opts.jsonOnly) {
             process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
         } else {
             process.stdout.write(`${formatHumanScorecard(report)}\n`);
+            if (rpcParity) {
+                const status = rpcParity.matched ? 'MATCH' : `MISMATCH (${rpcParity.mismatches.length})`;
+                process.stdout.write(`RPC Parity (trivia_nightly_burnin_scorecard_v1): ${status}\n`);
+                for (const m of rpcParity.mismatches) {
+                    process.stdout.write(`  - ${m}\n`);
+                }
+            }
             process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
         }
-        process.exitCode = report.summary.failed > 0 ? 1 : 0;
+        const failed = report.summary.failed > 0 || (rpcParity !== null && !rpcParity.matched);
+        process.exitCode = failed ? 1 : 0;
     } catch (error) {
         console.error(`[verify-nightly-burnin] ERROR: ${error?.message || error}`);
         process.exitCode = 2;
