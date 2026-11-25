@@ -112,10 +112,16 @@ async function hasAdminRole(req) {
         if (authErr || !authUser) return false;
         const { data: prof } = await supabase
             .from('profiles')
-            .select('role')
+            .select('is_admin, role')
             .eq('id', authUser.id)
             .maybeSingle();
-        return !!prof && ['admin', 'superadmin', 'god'].includes(prof.role);
+        if (prof && (prof.is_admin === true || ['admin', 'superadmin', 'god'].includes(prof.role))) {
+            return true;
+        }
+        const { data: opCtx, error: opErr } = await supabase.rpc('trivia_operator_context_v1', {
+            p_operator_id: authUser.id,
+        });
+        return !opErr && opCtx?.allowed === true;
     } catch (err) {
         console.warn('[Trivia Pool Status] role lookup failed:', err?.message || err);
         return false;
@@ -124,10 +130,8 @@ async function hasAdminRole(req) {
 
 export default async function handler(req, res) {
   try {
-    // [Phase 6.1.15] Rate limit writes — prevents enumeration + drain attacks.
-    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-      if (!applyRateLimit(req, res, LIMITS.write)) return;
-    }
+    res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+    if (!applyRateLimit(req, res, ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) ? LIMITS.write : LIMITS.read)) return;
 
     // Auth is required for EVERY method, including GET. Either credential is
     // accepted: an admin/superadmin/god session token, or the machine secret.

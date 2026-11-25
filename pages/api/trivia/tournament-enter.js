@@ -10,6 +10,7 @@ import {
 /** Nightly tournament entry (Phase 6 engine; Phase 2 ledger hold). */
 export default async function handler(req, res) {
     try {
+        res.setHeader('Cache-Control', 'private, no-store, max-age=0');
         if (req.method !== 'POST') {
             res.setHeader('Allow', 'POST');
             return res.status(405).json({ success: false, error: 'Method not allowed' });

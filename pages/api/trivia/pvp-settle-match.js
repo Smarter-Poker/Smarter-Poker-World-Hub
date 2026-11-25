@@ -83,6 +83,20 @@ export function pvpPotMath(stake) {
     return { stake: s, totalPot, rakeAmount, winnerPayout: totalPot - rakeAmount };
 }
 
+/** Apply idempotent PvP Elo rating update, surfacing RPC error objects cleanly without altering settlement. */
+async function updatePvpEloRating(sb, matchId, context) {
+    try {
+        const { data, error } = await sb.rpc('trivia_pvp_update_rating_v1', { p_match_id: matchId });
+        if (error) {
+            console.warn(`[pvp-settle-match] elo update failed (${context}):`, matchId, error.message || error);
+        } else if (data && data.success === false && data.skipped !== true) {
+            console.warn(`[pvp-settle-match] elo update rejected (${context}):`, matchId, data.error || 'unknown');
+        }
+    } catch (eloError) {
+        console.warn(`[pvp-settle-match] elo update threw (${context}):`, matchId, eloError?.message || eloError);
+    }
+}
+
 /** Record display stats from the completed match exactly once. */
 async function recordPvpStats(sb, matchId) {
     const { data, error } = await sb.rpc('record_trivia_pvp_stats_v2', { p_match_id: matchId });
@@ -162,6 +176,8 @@ export async function settlePvpMatch(sb, match, { force = false } = {}) {
         };
     }
 
+    await updatePvpEloRating(sb, match.id, 'settlePvpMatch');
+
     return {
         settled: true,
         replayed: validation.replayed,
@@ -228,11 +244,7 @@ export default async function handler(req, res) {
             }
             const dto = toPvpDto(v2);
             if (dto?.state === 'result' && dto?.match?.id) {
-                try {
-                    await sb.rpc('trivia_pvp_update_rating_v1', { p_match_id: dto.match.id });
-                } catch (_eloError) {
-                    // Elo rating update is idempotent and must never alter diamond settlement.
-                }
+                await updatePvpEloRating(sb, dto.match.id, 'handler_v2');
             }
             res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
             return res.status(200).json(dto);
@@ -246,11 +258,7 @@ export default async function handler(req, res) {
             return res.status(503).json({ success: false, error: result.pendingReason || 'settlement_unavailable' });
         }
         if (result.settled === true) {
-            try {
-                await sb.rpc('trivia_pvp_update_rating_v1', { p_match_id: matchId });
-            } catch (_eloError) {
-                // Elo rating update is idempotent and must never alter diamond settlement.
-            }
+            await updatePvpEloRating(sb, matchId, 'handler_v1');
         }
 
         // Shape for the caller's perspective. Correct counts are only exposed

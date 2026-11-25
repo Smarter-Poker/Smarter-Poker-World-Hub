@@ -63,21 +63,6 @@ export async function requireTriviaOperator(req, res, client) {
         return null;
     }
 
-    const { data, error: contextError } = await client.rpc('trivia_operator_context_v1', {
-        p_operator_id: user.id,
-    });
-    if (contextError) {
-        console.warn('[trivia-pool-curate] operator context unavailable:', contextError.code || 'read_failed');
-        res.status(503).json({ success: false, error: 'operator_context_unavailable' });
-        return null;
-    }
-
-    const context = normalizeOperatorContext(data);
-    if (!context.allowed) {
-        res.status(403).json({ success: false, error: 'trivia_operator_required' });
-        return null;
-    }
-
     let isAdminProfile = false;
     const { data: profile } = await client
         .from('profiles')
@@ -86,6 +71,21 @@ export async function requireTriviaOperator(req, res, client) {
         .maybeSingle();
     if (profile && (profile.is_admin === true || ['admin', 'superadmin', 'god'].includes(profile.role))) {
         isAdminProfile = true;
+    }
+
+    const { data, error: contextError } = await client.rpc('trivia_operator_context_v1', {
+        p_operator_id: user.id,
+    });
+    if (contextError && !isAdminProfile) {
+        console.warn('[trivia-pool-curate] operator context unavailable:', contextError.code || 'read_failed');
+        res.status(503).json({ success: false, error: 'operator_context_unavailable' });
+        return null;
+    }
+
+    const context = normalizeOperatorContext(contextError ? null : data);
+    if (!context.allowed && !isAdminProfile) {
+        res.status(403).json({ success: false, error: 'trivia_operator_required' });
+        return null;
     }
 
     const canCurate = context.roles.includes('supervisor')
