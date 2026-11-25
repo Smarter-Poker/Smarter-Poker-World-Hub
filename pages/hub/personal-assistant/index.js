@@ -51,6 +51,7 @@ import { useOnlineStatus, OFFLINE_TOAST } from '../../../src/hooks/useOnlineStat
 import { useHaptics } from '../../../src/hooks/useHaptics';
 import { useModalHistory } from '../../../src/hooks/useModalHistory';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
+import { getFreshAccessToken } from '../../../src/lib/authUtils';
 import { useRecentSessions, useAssistantStats } from '../../../src/hooks/useAssistant';
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 import styles from '../../../src/styles/worlds/PersonalAssistantHub.module.css';
@@ -179,6 +180,38 @@ export default function PersonalAssistantPage() {
   const [dailyHand, setDailyHand] = useState(null);
   const [dailyHandStatus, setDailyHandStatus] = useState('loading');
   const [dailyHandReloadKey, setDailyHandReloadKey] = useState(0);
+  const [trainingPlan, setTrainingPlan] = useState(null);
+
+  useEffect(() => {
+    if (authInitializing || !user?.id) {
+      setTrainingPlan(null);
+      return undefined;
+    }
+    let cancelled = false;
+    const controller = new AbortController();
+    const loadPlan = async () => {
+      try {
+        const token = await getFreshAccessToken();
+        if (!token || cancelled) return;
+        const response = await fetch('/api/assistant/coaching', {
+          cache: 'no-store',
+          headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
+        });
+        const payload = await response.json().catch(() => null);
+        if (!cancelled && response.ok && payload?.success && payload?.snapshot?.trainingPlan) {
+          setTrainingPlan(payload.snapshot.trainingPlan);
+        }
+      } catch (_) {
+        // Optional enrichment on hub overview; Leak Finder holds full retry UI.
+      }
+    };
+    loadPlan();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [authInitializing, user?.id]);
   useEffect(() => {
     let cancelled = false;
 
@@ -638,6 +671,29 @@ export default function PersonalAssistantPage() {
                   </button>
                 ))}
               </div>
+              {Array.isArray(trainingPlan?.modules) && trainingPlan.modules.length > 0 && (
+                <div className={styles.missionPrimary} aria-label="Deterministic Training Plan Preview">
+                  <span className={styles.missionTarget} aria-hidden="true"><CheckCircle2 size={24} /></span>
+                  <div className={styles.missionCopy}>
+                    <span className={styles.missionBadge}>
+                      {trainingPlan.modules[0].formatScope} · {trainingPlan.modules[0].tableVerification?.label || 'Training In Progress'}
+                    </span>
+                    <h3>Next Drill: {trainingPlan.modules[0].title}</h3>
+                    <p>{trainingPlan.modules[0].objective}</p>
+                    <span className={styles.missionSignal}>
+                      <Activity size={13} aria-hidden="true" />
+                      {trainingPlan.totalModules} Active Module{trainingPlan.totalModules === 1 ? '' : 's'} · {trainingPlan.tableVerifiedCount || 0} Confirmed Fixed At Tables
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={() => openGuardedRoute('/hub/personal-assistant/leaks?tab=coaching')}
+                  >
+                    Open Training Plan<ChevronRight size={16} aria-hidden="true" />
+                  </button>
+                </div>
+              )}
             </div>
           </section>
 

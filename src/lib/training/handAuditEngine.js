@@ -4,6 +4,7 @@ import {
   cacheQuestionFromRow,
   cacheRowIsServingEligible,
 } from './cacheTruthPersistence.mjs';
+import { findDirectCorpusSolverMatch } from './directSolverMatcher.mjs';
 
 const RANKS = '23456789TJQKA';
 const SUITS = 'cdhs';
@@ -809,9 +810,16 @@ export async function auditParsedHands(db, userId, hands, {
   // of serial database round trips or an unbounded connection spike.
   const signatureItems = [...new Map(work.map(item => [item.signature, item])).values()];
   const candidateCache = new Map();
+  const directMatchCache = new Map();
   await runWithConcurrency(signatureItems, queryConcurrency, async ({ signature, hand, point }) => {
-    try { candidateCache.set(signature, await findQuestion(db, hand, point) || false); }
-    catch (error) {
+    try {
+      const cacheCandidate = await findQuestion(db, hand, point) || false;
+      candidateCache.set(signature, cacheCandidate);
+      if (!cacheCandidate || cacheCandidate.matchTier !== 1) {
+        const direct = await findDirectCorpusSolverMatch(db, hand, point);
+        if (direct?.solverVerified) directMatchCache.set(signature, direct);
+      }
+    } catch (error) {
       console.warn('[HandAudit] Solver question lookup failed:', error.message);
       candidateCache.set(signature, LOOKUP_FAILED_SOURCE);
     }
@@ -821,25 +829,48 @@ export async function auditParsedHands(db, userId, hands, {
       const cached = candidateCache.get(signature);
       const lookupFailed = cached === LOOKUP_FAILED_SOURCE;
       const candidate = !lookupFailed && cached ? cached : null;
+      const directMatch = !lookupFailed ? (directMatchCache.get(signature) || null) : null;
       if (lookupFailed) solverLookupFailures += 1;
       const answer = candidate ? mapPlayedAction(candidate.question_data, point) : null;
-      const grade = answer
+      const cacheGrade = answer
         ? gradeCanonicalPolicyDecision(candidate.canonical_policy, answer)
         : null;
-      const solverVerified = !!(grade?.solverVerified && candidate?.matchTier === 1);
-      if (candidate) matched++;
+      const cacheVerified = !!(cacheGrade?.solverVerified && candidate?.matchTier === 1);
+      const useDirect = !cacheVerified && directMatch?.solverVerified === true;
+      const grade = cacheVerified
+        ? cacheGrade
+        : (useDirect
+          ? {
+              solverVerified: true,
+              optimalAction: directMatch.solverAction,
+              selectedFrequency: directMatch.selectedFrequency,
+              optimalFrequency: directMatch.optimalFrequency,
+              classification: directMatch.classification,
+              evLoss: directMatch.evLoss,
+              evLossMeasured: !!directMatch.evLossMeasured,
+              solverSource: directMatch.solverSource,
+            }
+          : cacheGrade);
+      const solverVerified = !!(grade?.solverVerified && (candidate?.matchTier === 1 || useDirect));
+      if (candidate || useDirect) matched++;
       if (solverVerified) verified++;
       const now = new Date().toISOString();
       const row = {
         user_id: userId,
         hand_external_id: externalHandId,
         decision_key: `${point.street}:${index}`,
-        question_id: candidate?.question_id || null,
-        game_id: candidate?.game_id || (hand.format === 'tournament' ? 'mtt-hand-audit' : 'cash-hand-audit'),
+        question_id: cacheVerified ? (candidate?.question_id || null) : (useDirect ? directMatch.questionId : (candidate?.question_id || null)),
+        game_id: cacheVerified
+          ? (candidate?.game_id || (hand.format === 'tournament' ? 'mtt-hand-audit' : 'cash-hand-audit'))
+          : (useDirect ? directMatch.gameId : (candidate?.game_id || (hand.format === 'tournament' ? 'mtt-hand-audit' : 'cash-hand-audit'))),
         street: point.street,
         hero_position: point.position || null,
-        villain_position: candidate?.question_data?.scenario?.villainPosition || null,
-        spot_type: candidate?.question_data?.scenario?.nodeType || candidate?.question_data?.scenario?.spotType || 'hand_history',
+        villain_position: cacheVerified
+          ? (candidate?.question_data?.scenario?.villainPosition || null)
+          : (useDirect ? directMatch.villainPosition : (candidate?.question_data?.scenario?.villainPosition || null)),
+        spot_type: cacheVerified
+          ? (candidate?.question_data?.scenario?.nodeType || candidate?.question_data?.scenario?.spotType || 'hand_history')
+          : (useDirect ? directMatch.spotType : (candidate?.question_data?.scenario?.nodeType || candidate?.question_data?.scenario?.spotType || 'hand_history')),
         hero_hand: handNotation(point.holeCards),
         board_cards: point.board || [],
         player_action: point.action,
@@ -861,7 +892,7 @@ export async function auditParsedHands(db, userId, hands, {
           : (solverVerified
             ? `${grade.solverSource || candidate?.question_data?.source || 'solver'}|${MATCHER_VERSION}`
             : `${candidate?.question_data?.source ? `${candidate.question_data.source}|` : ''}${MATCHER_VERSION}:unpriced`),
-        match_tier: candidate?.matchTier || null,
+        match_tier: cacheVerified ? candidate?.matchTier : (useDirect ? directMatch.matchTier : (candidate?.matchTier || null)),
         audited_at: now,
         updated_at: now,
       };

@@ -51,10 +51,11 @@ export default async function handler(req, res) {
     if (!access.allowed || !isFeatureAccessible(access.accessLevel, 'leak_finder_detect')) {
       return res.status(403).json({ success: false, blocked: true, contextState: access.contextState, error: access.message });
     }
+    const fullRescan = Boolean(req.body?.fullRescan);
     const { data, error: startError } = await db().rpc('start_or_resume_pa_leak_audit_job', { p_user_id: user.id });
     const job = Array.isArray(data) ? data[0] : data;
     if (startError || !job) return res.status(503).json({ success: false, retryable: true, error: 'The durable audit could not be started.' });
-    const kick = await kickAuditWorker(job);
+    const kick = await kickAuditWorker(job, { fullRescan });
     // The database checkpoint is the acceptance boundary. If the first worker
     // kick races a deploy/cold start, this viewer's two-second status poll (or a
     // later device) safely kicks the same queued job again.

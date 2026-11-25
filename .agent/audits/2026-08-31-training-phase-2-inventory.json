@@ -11,7 +11,7 @@
     "dynamicGameRouteExpansions": 214,
     "trainingApiRouteTemplates": 54,
     "apiReferencePrefixes": 3,
-    "dependencyFiles": 381,
+    "dependencyFiles": 382,
     "componentFiles": 55,
     "hookFiles": 14,
     "ctas": 792,
@@ -73800,6 +73800,161 @@
       "markers": []
     },
     {
+      "file": "src/lib/training/directSolverMatcher.mjs",
+      "imports": [
+        "src/lib/training/solverMatrixTrust.js"
+      ],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": true,
+        "error": true,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "cardIndex",
+          "line": 24,
+          "references": 4,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "comboIndex",
+          "line": 34,
+          "references": 3,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "normalizeCard",
+          "line": 44,
+          "references": 6,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "exactBoardStrings",
+          "line": 57,
+          "references": 3,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "handClassNotation",
+          "line": 74,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "classifyFromFrequency",
+          "line": 87,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "normalizeActionLabel",
+          "line": 94,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "matchV2Action",
+          "line": 105,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "v2NodeMatchesPoint",
+          "line": 146,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "nearestExactStack",
+          "line": 161,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "findSolvedSpotV2Match",
+          "line": 181,
+          "references": 3,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "mapChartAction",
+          "line": 330,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "findMemoryChartMatch",
+          "line": 351,
+          "references": 3,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "findDirectCorpusSolverMatch",
+          "line": 432,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [],
+      "markers": []
+    },
+    {
       "file": "src/lib/training/gradingReceipt.mjs",
       "imports": [
         "src/lib/training/difficultyQuestionContract.mjs",
@@ -74135,7 +74290,8 @@
       "imports": [
         "src/engines/HandHistoryParser.js",
         "src/lib/training/cacheTruthContract.mjs",
-        "src/lib/training/cacheTruthPersistence.mjs"
+        "src/lib/training/cacheTruthPersistence.mjs",
+        "src/lib/training/directSolverMatcher.mjs"
       ],
       "links": [],
       "apiReferences": [],
@@ -74173,7 +74329,7 @@
       "functions": [
         {
           "name": "parseJson",
-          "line": 35,
+          "line": 36,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -74181,7 +74337,7 @@
         },
         {
           "name": "playerId",
-          "line": 42,
+          "line": 43,
           "references": 9,
           "exported": false,
           "defaultExport": false,
@@ -74189,7 +74345,7 @@
         },
         {
           "name": "isSupportedHoldemVariant",
-          "line": 46,
+          "line": 47,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -74197,7 +74353,7 @@
         },
         {
           "name": "isUnsupportedSpecialFormat",
-          "line": 51,
+          "line": 52,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -74205,7 +74361,7 @@
         },
         {
           "name": "clubArenaHandRejectionReason",
-          "line": 59,
+          "line": 60,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -74213,7 +74369,7 @@
         },
         {
           "name": "cardCode",
-          "line": 79,
+          "line": 80,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -74221,7 +74377,7 @@
         },
         {
           "name": "cards",
-          "line": 98,
+          "line": 99,
           "references": 23,
           "exported": false,
           "defaultExport": false,
@@ -74229,7 +74385,7 @@
         },
         {
           "name": "normalizedRawAction",
-          "line": 102,
+          "line": 103,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -74237,7 +74393,7 @@
         },
         {
           "name": "isForcedAction",
-          "line": 106,
+          "line": 107,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -74245,7 +74401,7 @@
         },
         {
           "name": "actionName",
-          "line": 116,
+          "line": 117,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -74253,7 +74409,7 @@
         },
         {
           "name": "positionedPlayers",
-          "line": 128,
+          "line": 129,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -74261,7 +74417,7 @@
         },
         {
           "name": "normalizeClubArenaHand",
-          "line": 154,
+          "line": 155,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -74269,7 +74425,7 @@
         },
         {
           "name": "fetchPrivateHeroCards",
-          "line": 440,
+          "line": 441,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -74277,7 +74433,7 @@
         },
         {
           "name": "handNotation",
-          "line": 474,
+          "line": 475,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -74285,7 +74441,7 @@
         },
         {
           "name": "canonicalBoard",
-          "line": 487,
+          "line": 488,
           "references": 6,
           "exported": false,
           "defaultExport": false,
@@ -74293,7 +74449,7 @@
         },
         {
           "name": "canonicalCombo",
-          "line": 493,
+          "line": 494,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -74301,7 +74457,7 @@
         },
         {
           "name": "isSupportedHoldemHand",
-          "line": 497,
+          "line": 498,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -74309,7 +74465,7 @@
         },
         {
           "name": "questionBoard",
-          "line": 502,
+          "line": 503,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -74317,7 +74473,7 @@
         },
         {
           "name": "optionAction",
-          "line": 509,
+          "line": 510,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -74325,7 +74481,7 @@
         },
         {
           "name": "optionSizingPercent",
-          "line": 521,
+          "line": 522,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -74333,7 +74489,7 @@
         },
         {
           "name": "mapPlayedAction",
-          "line": 530,
+          "line": 531,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -74341,7 +74497,7 @@
         },
         {
           "name": "normalizedDecisionAction",
-          "line": 550,
+          "line": 551,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -74349,7 +74505,7 @@
         },
         {
           "name": "exactActionHistoryCompatible",
-          "line": 561,
+          "line": 562,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -74357,7 +74513,7 @@
         },
         {
           "name": "questionNode",
-          "line": 578,
+          "line": 579,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -74365,7 +74521,7 @@
         },
         {
           "name": "nodeCompatible",
-          "line": 598,
+          "line": 599,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -74373,7 +74529,7 @@
         },
         {
           "name": "fingerprint",
-          "line": 614,
+          "line": 615,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -74381,7 +74537,7 @@
         },
         {
           "name": "canonicalFingerprint",
-          "line": 620,
+          "line": 621,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -74389,7 +74545,7 @@
         },
         {
           "name": "exactIdentityCompatible",
-          "line": 624,
+          "line": 625,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -74397,7 +74553,7 @@
         },
         {
           "name": "findQuestion",
-          "line": 664,
+          "line": 665,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -74405,7 +74561,7 @@
         },
         {
           "name": "summary",
-          "line": 702,
+          "line": 703,
           "references": 31,
           "exported": false,
           "defaultExport": false,
@@ -74413,7 +74569,7 @@
         },
         {
           "name": "runWithConcurrency",
-          "line": 723,
+          "line": 724,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -74421,7 +74577,7 @@
         },
         {
           "name": "replacePersistedDecisionEvidence",
-          "line": 744,
+          "line": 745,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -74429,7 +74585,7 @@
         },
         {
           "name": "auditParsedHands",
-          "line": 771,
+          "line": 772,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -74437,7 +74593,7 @@
         },
         {
           "name": "fetchClubHandsForKey",
-          "line": 922,
+          "line": 953,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -74445,7 +74601,7 @@
         },
         {
           "name": "parseTimestampMicros",
-          "line": 961,
+          "line": 992,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -74453,7 +74609,7 @@
         },
         {
           "name": "compareHandKeyDescending",
-          "line": 971,
+          "line": 1002,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -74461,7 +74617,7 @@
         },
         {
           "name": "fetchExistingAuditRows",
-          "line": 979,
+          "line": 1010,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -74469,7 +74625,7 @@
         },
         {
           "name": "auditRowTime",
-          "line": 994,
+          "line": 1025,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -74477,7 +74633,7 @@
         },
         {
           "name": "syncClubArenaHandsForAudit",
-          "line": 1000,
+          "line": 1031,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -74485,7 +74641,7 @@
         },
         {
           "name": "rawActionsForStreet",
-          "line": 193,
+          "line": 194,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -74493,7 +74649,7 @@
         },
         {
           "name": "resolveActor",
-          "line": 199,
+          "line": 200,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -74501,7 +74657,7 @@
         },
         {
           "name": "normalizeStreet",
-          "line": 254,
+          "line": 255,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -85681,6 +85837,10 @@
       "to": "src/lib/training/questionContract.mjs"
     },
     {
+      "from": "src/lib/training/directSolverMatcher.mjs",
+      "to": "src/lib/training/solverMatrixTrust.js"
+    },
+    {
       "from": "src/lib/training/gradingReceipt.mjs",
       "to": "src/lib/training/difficultyQuestionContract.mjs"
     },
@@ -85711,6 +85871,10 @@
     {
       "from": "src/lib/training/handAuditEngine.js",
       "to": "src/lib/training/cacheTruthPersistence.mjs"
+    },
+    {
+      "from": "src/lib/training/handAuditEngine.js",
+      "to": "src/lib/training/directSolverMatcher.mjs"
     },
     {
       "from": "src/lib/training/horseBrainTrainingAdapter.js",
@@ -97727,6 +97891,7 @@
         "src/lib/training/customSolverSpotContract.mjs",
         "src/lib/training/customTrainerConfigContract.mjs",
         "src/lib/training/customTrainingLaunchContract.mjs",
+        "src/lib/training/directSolverMatcher.mjs",
         "src/lib/training/handAuditEngine.js",
         "src/lib/training/horseBrainTrainingAdapter.js",
         "src/lib/training/solverMatrixTrust.js",
@@ -130954,6 +131119,18 @@
       ]
     },
     {
+      "file": "src/lib/training/directSolverMatcher.mjs",
+      "reachableFiles": [
+        "src/lib/training/directSolverMatcher.mjs",
+        "src/lib/training/solverMatrixTrust.js",
+        "src/utils/v2Matrix.js"
+      ],
+      "apiReferences": [],
+      "persistence": [],
+      "realtime": [],
+      "tests": []
+    },
+    {
       "file": "src/lib/training/gradingReceipt.mjs",
       "reachableFiles": [
         "src/engines/DifficultyEngine.js",
@@ -131021,9 +131198,12 @@
         "src/lib/supabaseRetry.js",
         "src/lib/training/cacheTruthContract.mjs",
         "src/lib/training/cacheTruthPersistence.mjs",
+        "src/lib/training/directSolverMatcher.mjs",
         "src/lib/training/handAuditEngine.js",
+        "src/lib/training/solverMatrixTrust.js",
         "src/lib/training/solverPolicyContract.js",
-        "src/lib/training/trainingPersistence.mjs"
+        "src/lib/training/trainingPersistence.mjs",
+        "src/utils/v2Matrix.js"
       ],
       "apiReferences": [],
       "persistence": [
@@ -140838,7 +141018,7 @@
       {
         "file": "src/lib/training/handAuditEngine.js",
         "name": "syncClubArenaHandsForAudit",
-        "line": 1000,
+        "line": 1031,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -141403,6 +141583,7 @@
         "externalReferenceFiles": [
           "src/engines/DeterministicGTOEngine.js",
           "src/engines/deterministicEnginePatches.js",
+          "src/lib/training/directSolverMatcher.mjs",
           "src/services/SolverPolicyService.js"
         ]
       },
@@ -150933,7 +151114,7 @@
       {
         "file": "src/lib/training/handAuditEngine.js",
         "name": "syncClubArenaHandsForAudit",
-        "line": 1000,
+        "line": 1031,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -151498,6 +151679,7 @@
         "externalReferenceFiles": [
           "src/engines/DeterministicGTOEngine.js",
           "src/engines/deterministicEnginePatches.js",
+          "src/lib/training/directSolverMatcher.mjs",
           "src/services/SolverPolicyService.js"
         ]
       },
