@@ -92,12 +92,24 @@ async function readJson(response) {
     return body;
 }
 
+function formatExactElo(value) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return '0';
+    return Math.round(numeric).toLocaleString('en-US');
+}
+
+function eventStartMs(event) {
+    const ms = Date.parse(event?.startsAt || event?.startTime || '');
+    return Number.isFinite(ms) ? ms : 0;
+}
+
 function latestResultsEvent(instances) {
-    const list = Array.isArray(instances) ? instances : [];
-    const byNewest = (left, right) => Date.parse(right?.startsAt || 0) - Date.parse(left?.startsAt || 0);
-    return [...list].filter((event) => event?.state === 'settled').sort(byNewest)[0]
+    const list = Array.isArray(instances) ? instances.filter(Boolean) : [];
+    const byNewest = (left, right) => eventStartMs(right) - eventStartMs(left);
+    const byNearest = (left, right) => eventStartMs(left) - eventStartMs(right);
+    return [...list].filter((event) => event?.state === 'settled' || event?.settled === true).sort(byNewest)[0]
         || [...list].filter((event) => ['settling', 'live'].includes(event?.state)).sort(byNewest)[0]
-        || [...list].sort(byNewest)[0]
+        || [...list].sort(byNearest)[0]
         || null;
 }
 
@@ -162,8 +174,8 @@ function PvpEloRankDock({ currentUserId, viewerRating, onSignIn }) {
             {viewerRating ? (
                 <ul className="tc-rows" aria-label="Your Ranked PvP Rating">
                     <li className="tc-row"><span className="tc-row__label">Tier</span><span className={`tc-row__value tc-ink--${tierInk}`}>{viewerRating.tier}</span></li>
-                    <li className="tc-row"><span className="tc-row__label">Elo</span><span className="tc-row__value tc-ink--blue">{formatTriviaDisplayNumber(viewerRating.elo)}</span></li>
-                    <li className="tc-row"><span className="tc-row__label">Peak</span><span className="tc-row__value">{formatTriviaDisplayNumber(viewerRating.peakElo)}</span></li>
+                    <li className="tc-row"><span className="tc-row__label">Elo</span><span className="tc-row__value tc-ink--blue">{formatExactElo(viewerRating.elo)}</span></li>
+                    <li className="tc-row"><span className="tc-row__label">Peak</span><span className="tc-row__value">{formatExactElo(viewerRating.peakElo)}</span></li>
                     <li className="tc-row"><span className="tc-row__label">Record</span><span className="tc-row__value">{viewerRating.gamesPlayed > 0 ? `${formatTriviaDisplayNumber(viewerRating.wins)}W / ${formatTriviaDisplayNumber(viewerRating.losses)}L / ${formatTriviaDisplayNumber(viewerRating.ties)}T` : 'Unrated'}</span></li>
                 </ul>
             ) : (
@@ -192,7 +204,7 @@ export default function TriviaLeaderboard() {
     const [board, setBoard] = usePersistedState('sp-filters-trivia-leaderboard-board', SOLO_BOARD);
     const [period, setPeriod] = usePersistedState('sp-filters-trivia-leaderboard-period', 'all');
     const [mode, setMode] = usePersistedState('sp-filters-trivia-leaderboard-mode-v2', 'daily');
-    const [entrantScope, setEntrantScope] = usePersistedState('sp-filters-trivia-leaderboard-entrants', 'human');
+    const [entrantScope, setEntrantScope] = usePersistedState('sp-filters-trivia-leaderboard-entrants-v2', 'all');
     const [page, setPage] = useState(1);
     const [rows, setRows] = useState([]);
     const [pvpViewer, setPvpViewer] = useState(null);
@@ -214,7 +226,7 @@ export default function TriviaLeaderboard() {
             : SOLO_BOARD;
     const validMode = TRIVIA_SCORE_MODES.some((option) => option.id === mode) ? mode : 'daily';
     const validPeriod = TRIVIA_PERIOD_FILTERS.some((option) => option.id === period) ? period : 'all';
-    const validScope = entrantScope === 'all' ? 'all' : 'human';
+    const validScope = entrantScope === 'human' ? 'human' : 'all';
     const currentUserId = user?.id || null;
     const requestPage = validBoard === TOURNAMENT_BOARD ? page : 1;
 
@@ -423,7 +435,7 @@ export default function TriviaLeaderboard() {
                                             ) : loadError ? (
                                                 <section className="trivia-progress-state trivia-progress-state--error" role="alert"><p>{loadError}</p></section>
                                             ) : pageRows.length === 0 ? (
-                                                <section className="trivia-progress-state trivia-progress-state--empty"><p>{validBoard === SOLO_BOARD ? `No Verified ${triviaModeLabel(validMode)} Scores Match This Period Yet.` : validBoard === PVP_ELO_BOARD ? 'No Ranked PvP Elo Ratings Have Posted Yet.' : tournament ? 'Official Results Have Not Posted For This Event Yet.' : 'No Nightly Event Is Available In The Official Schedule Window.'}</p></section>
+                                                <section className="trivia-progress-state trivia-progress-state--empty"><p>{validBoard === SOLO_BOARD ? `No Verified ${triviaModeLabel(validMode)} Scores Match This Period Yet.` : validBoard === PVP_ELO_BOARD ? 'No Ranked PvP Elo Ratings Have Posted Yet.' : tournament ? (tournamentSettled && validScope === 'human' ? 'No Human Entrants Finished In This Settled Event.' : 'Official Results Have Not Posted For This Event Yet.') : 'No Nightly Event Is Available In The Official Schedule Window.'}</p></section>
                                             ) : (
                                                 <>
                                                     <div className="trivia-progress-table-wrap" tabIndex="0" role="region" aria-label="Paged Trivia Leaderboard">
@@ -439,7 +451,7 @@ export default function TriviaLeaderboard() {
                                                                                 <td className="trivia-progress-table__rank" data-label="Rank">{rankLabel(entry.rank)}</td>
                                                                                 <th className="trivia-progress-table__player" scope="row" data-label="Player"><span>{titleName(entry.displayName)}{isCurrent ? <span className="trivia-progress-table__you">You</span> : null}</span></th>
                                                                                 <td className={`trivia-progress-table__entrant tc-ink--${eloTierInk(entry.tier)}`} data-label="Tier">{entry.tier}</td>
-                                                                                <td className="trivia-progress-table__score trivia-progress-table__num" data-label="Elo">{formatTriviaDisplayNumber(entry.elo)}</td>
+                                                                                <td className="trivia-progress-table__score trivia-progress-table__num" data-label="Elo">{formatExactElo(entry.elo)}</td>
                                                                                 <td className="trivia-progress-table__accuracy trivia-progress-table__num" data-label="Record">{`${formatTriviaDisplayNumber(entry.wins)}W / ${formatTriviaDisplayNumber(entry.losses)}L / ${formatTriviaDisplayNumber(entry.ties)}T`}</td>
                                                                             </tr>
                                                                         );
