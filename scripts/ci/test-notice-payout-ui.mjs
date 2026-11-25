@@ -89,18 +89,23 @@ try {
   const notice1Id='30000000-0000-4000-8000-000000000010';
   const notice2Id='30000000-0000-4000-8000-000000000011';
   const staffMembers=[
-    {user_id:ownerId,display_name:'Club Owner',username:'clubowner',role:'owner',is_online:true},
-    {user_id:adminId,display_name:'Club Admin',username:'clubadmin',role:'admin',is_online:true},
-    {user_id:agentId,display_name:'Agent Alpha',username:'agentalpha',role:'agent',is_online:true},
-    {user_id:agent2Id,display_name:'Agent Beta',username:'agentbeta',role:'sub_agent',is_online:false},
+    {user_id:ownerId,display_name:'Club Owner',username:'clubowner',role:'owner',is_online:true,sla:null},
+    {user_id:adminId,display_name:'Club Admin',username:'clubadmin',role:'admin',is_online:true,sla:null},
+    {user_id:agentId,display_name:'Agent Alpha',username:'agentalpha',role:'agent',is_online:true,sla:{median_minutes:18,completed_30d:12,overdue_30d:1,escalated_30d:0,pending_now:1}},
+    {user_id:agent2Id,display_name:'Agent Beta',username:'agentbeta',role:'sub_agent',is_online:false,sla:{median_minutes:45,completed_30d:4,overdue_30d:0,escalated_30d:0,pending_now:0}},
   ];
-  let tab2AckCount=1,tab2SeenCount=2,tab2Unread=1,tab2PrevRead='2026-11-17T19:50:00Z';
+  let tab2AckCount=1,tab2SeenCount=2,tab2Unread=1,tab2PrevRead='2026-11-17T19:50:00Z',pollOpt0Votes=0,deltaCalls=0;
+  const threadReplies=[];
   const regularNotice=()=>({
     id:notice1Id,club_id:clubId,author_id:adminId,author_name:'Club Admin',author_role:'admin',
-    content:'Weekly Settlement Window Opens At 8 PM',status:'notice',is_pinned:true,version:1,
+    content:'**Weekly Settlement Window** Opens At 8 PM\n- Visit https://smarter.poker',status:'notice',is_pinned:true,pin_order:1,version:1,
     created_at:'2026-11-17T20:05:00Z',seen_count:tab2SeenCount,
     reactions:{ack:tab2AckCount,thumbs_up:0,fire:0,eyes:0},my_reactions:tab2AckCount>1?['ack']:[],
     ack_users:tab2AckCount>1?['Club Admin','Club Owner']:['Club Admin'],attachments:[],mentions:[],
+    require_confirmation:true,unconfirmed_count:1,unconfirmed_users:[{user_id:agent2Id,display_name:'Agent Beta',role:'sub_agent'}],
+    reply_count:threadReplies.length,recent_replies:threadReplies.slice(-2),
+    poll:{question:'Preferred Settlement Time?',options:[{id:'opt_0',label:'8 PM Central'},{id:'opt_1',label:'10 AM Central'}],allow_multiple:false,closed:false},
+    poll_results:{opt_0:pollOpt0Votes,opt_1:0},my_poll_votes:pollOpt0Votes>0?['opt_0']:[],
   });
   const liveEntries=()=>[row(),regularNotice()];
   const liveOverdue=()=>[{
@@ -115,6 +120,27 @@ try {
   const bindBoardMock=async(targetPage,isTab2)=>{
     await targetPage.exposeFunction('testRpc',async()=>({data:null,error:null}));
     await targetPage.exposeFunction('testRequest',async(method,body)=>{
+      if(method==='POST'&&body.action==='entry'){
+        deltaCalls++;
+        return {status:200,body:{success:true,entry:body.payload.id===notice1Id?regularNotice():row()}};
+      }
+      if(method==='POST'&&body.action==='search'){
+        return {status:200,body:{success:true,query:body.payload.query,entries:[regularNotice()]}};
+      }
+      if(method==='POST'&&body.action==='list_replies'){
+        return {status:200,body:{success:true,noticeId:body.payload.id,replies:threadReplies}};
+      }
+      if(method==='PATCH'&&body.action==='create_reply'){
+        threadReplies.push({id:'60000000-0000-4000-8000-000000000001',notice_id:body.payload.id,author_id:ownerId,author_name:'Club Owner',author_role:'owner',content:body.payload.content,created_at:'2026-11-17T20:06:00Z',can_delete:true});
+        return {status:200,body:{success:true,entry:regularNotice()}};
+      }
+      if(method==='PATCH'&&body.action==='vote_poll'){
+        pollOpt0Votes=pollOpt0Votes>0?0:1;
+        return {status:200,body:{success:true,entry:regularNotice()}};
+      }
+      if(method==='PATCH'&&body.action==='remind_unconfirmed'){
+        return {status:200,body:{success:true,reminded:1,entry:regularNotice()}};
+      }
       if(method==='PATCH'&&body.action==='mark_read'){
         if(!isTab2){tab2Unread=0;tab2PrevRead=null;}
         return {status:200,body:{success:true,unreadCount:0}};
@@ -154,10 +180,32 @@ try {
   await desktopPage.evaluate(()=>window.showFixture('board',11));
   await desktopPage.waitForFunction(()=>document.body.textContent.includes('Staff (4)'),{polling:50});
   await tab2Page.waitForFunction(()=>!document.body.textContent.includes('Unread Messages'),{polling:50});
-  // Verify Roster modal, search, role counts, and Agents filter on Desktop.
+  // Verify Roster modal, search, role counts, management-only 30d SLA scorecard, and Agents filter on Desktop.
   await desktopPage.evaluate(()=>{document.querySelector('[aria-label="View Staff And Agents"]').click();});
-  await desktopPage.waitForFunction(()=>document.body.textContent.includes('Fixture Club · Notice Board Staff')&&document.body.textContent.includes('Agent Alpha'),{polling:50});
+  await desktopPage.waitForFunction(()=>document.body.textContent.includes('Fixture Club · Notice Board Staff')&&document.body.textContent.includes('Agent Alpha')&&document.body.textContent.includes('30d Median: 18m'),{polling:50});
   await desktopPage.evaluate(()=>{const dlg=document.querySelector('dialog[open]');if(dlg)dlg.close();});
+  // Verify Phase 4 interactive Poll voting, Reply Threads, Mandatory Confirmation Remind, and Full-History Search.
+  await desktopPage.evaluate(()=>{[...document.querySelectorAll('button')].find(b=>b.textContent.includes('8 PM Central')).click();});
+  await desktopPage.waitForFunction(()=>document.body.textContent.includes('1 (100%)'),{polling:50});
+  await desktopPage.evaluate(()=>{[...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Remind Unconfirmed Staff').click();});
+  await desktopPage.waitForFunction(()=>document.body.textContent.includes('Reminded 1 Staff Member'),{polling:50});
+  await desktopPage.evaluate(()=>{[...document.querySelectorAll('button')].find(b=>b.textContent.includes('Reply')).click();});
+  await desktopPage.waitForSelector('[aria-label="Write A Staff Reply"]');
+  await desktopPage.type('[aria-label="Write A Staff Reply"]','Confirmed On Shift');
+  await desktopPage.evaluate(()=>{document.querySelector('[data-testid="notice-reply-thread"] button[type="submit"]').click();});
+  await desktopPage.waitForFunction(()=>document.body.textContent.includes('Confirmed On Shift')&&document.body.textContent.includes('Replies (1)'),{polling:50});
+  // Verify Alert Settings modal shows optional Quiet Hours controls.
+  await desktopPage.evaluate(()=>{document.querySelector('[aria-label="Configure Overdue Payout Alerts"]').click();});
+  await desktopPage.waitForFunction(()=>document.body.textContent.includes('Optional Quiet Hours Backup Duty Routing'),{polling:50});
+  await desktopPage.evaluate(()=>{const dlg=document.querySelector('dialog[open]');if(dlg)dlg.close();});
+  // Verify Full-History Server-Side Search.
+  await desktopPage.evaluate(()=>{document.querySelector('[aria-label="Search Notices"]').click();});
+  await desktopPage.waitForSelector('[aria-label="Filter Notice History"]');
+  await desktopPage.type('[aria-label="Filter Notice History"]','Settlement');
+  await desktopPage.evaluate(()=>{[...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Search Full History').click();});
+  await desktopPage.waitForFunction(()=>document.body.textContent.includes('Full History Results: 1 Match'),{polling:50});
+  await desktopPage.evaluate(()=>{[...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Clear Search').click();});
+  await desktopPage.evaluate(()=>{document.querySelector('[aria-label="Search Notices"]').click();});
   // Verify View Card clears an active filter (Notices) and highlights/scrolls to the escalated payout card.
   await desktopPage.evaluate(()=>{[...document.querySelectorAll('button')].find(b=>b.textContent.trim().startsWith('Notices')).click();});
   await desktopPage.waitForFunction(id=>!document.querySelector(`[data-notice-id="${id}"]`),{polling:50},row().id);
@@ -175,11 +223,13 @@ try {
   await desktopPage.evaluate(()=>{[...document.querySelectorAll('button')].find(b=>b.textContent.includes('Confirm')).click();});
   await desktopPage.waitForFunction(()=>document.body.textContent.includes('Confirmed'),{polling:50});
   tab2SeenCount=3;
-  await tab2Page.evaluate(({clubId})=>{
-    window.emitNotice('club_notice_board_reactions',{club_id:clubId});
-    window.emitNotice('club_notice_board_reads',{club_id:clubId});
-  },{clubId});
-  await tab2Page.waitForFunction(()=>document.body.textContent.includes('3/4 Seen')&&document.body.textContent.includes('Confirmed'),{polling:50});
+  await tab2Page.evaluate(({clubId,notice1Id})=>{
+    window.emitNotice('club_notice_board_reactions',{club_id:clubId,notice_id:notice1Id});
+    window.emitNotice('club_notice_board_reads',{club_id:clubId,last_read_notice_id:notice1Id});
+    window.emitNotice('club_notice_board_poll_votes',{club_id:clubId,notice_id:notice1Id});
+  },{clubId,notice1Id});
+  await tab2Page.waitForFunction(()=>document.body.textContent.includes('3/4 Seen')&&document.body.textContent.includes('Confirmed')&&document.body.textContent.includes('1 (100%)'),{polling:50});
+  assert(deltaCalls>=1,'Realtime reactions/reads/polls must use incremental single-entry delta sync');
   // Verify live notice push arrives in Tab 2 without reload.
   await tab2Page.evaluate(({clubId,notice2Id,adminId})=>{
     window.emitNotice('club_notice_board',{id:notice2Id,club_id:clubId,author_id:adminId,content:'Live Realtime Notice Arrival',status:'notice',is_pinned:false,version:1,created_at:'2026-11-17T20:10:00Z'});
