@@ -96,7 +96,9 @@ async function loadOwnedLeak(supabase, userId, leakId) {
         if (!error && data) return { drill: source.map(data), sourceTable: source.table };
         if (error && !['42P01', '22P02', 'PGRST205'].includes(error.code)) {
             console.warn(`[custom-drill] ${source.table} ownership check failed:`, error.message);
-            return null;
+            const lookupErr = new Error('Leak ownership lookup failed');
+            lookupErr.status = 503;
+            throw lookupErr;
         }
     }
     return null;
@@ -338,12 +340,26 @@ export default async function handler(req, res) {
               if (page.length < PAGE_SIZE) break;
           }
 
-          const verifiedPool = shuffle(mappedRows.filter(Boolean)).slice(0, n);
+          const dedupeByQuestionId = (list) => {
+              const seen = new Set();
+              const out = [];
+              for (const row of list) {
+                  if (!row) continue;
+                  const qid = String(row.question_id || row.id || '');
+                  if (qid && seen.has(qid)) continue;
+                  if (qid) seen.add(qid);
+                  out.push(row);
+              }
+              return out;
+          };
+          const verifiedPool = shuffle(dedupeByQuestionId(mappedRows)).slice(0, n);
           const verifiedReady = ownedDrillParams?.rewardEligible
               && verifiedPool.length >= MIN_VERIFIED_QUESTIONS;
-          const practiceCandidates = exactPracticeRows.length >= Math.min(n, MIN_VERIFIED_QUESTIONS)
-              ? exactPracticeRows
-              : scopedPracticeRows;
+          const practiceCandidates = dedupeByQuestionId(
+              exactPracticeRows.length >= Math.min(n, MIN_VERIFIED_QUESTIONS)
+                  ? exactPracticeRows
+                  : scopedPracticeRows,
+          );
           const pool = ownedDrillParams?.rewardEligible && !verifiedReady
               ? shuffle(practiceCandidates).slice(0, n)
               : verifiedPool;

@@ -49,9 +49,29 @@ function isSupportedHoldemVariant(value) {
   return HOLDEM_VARIANTS.has(normalized);
 }
 
+function isTruthySpecialFlag(value) {
+  if (value === null || value === undefined || value === false || value === 0) return false;
+  if (value === true || value === 1) return true;
+  if (typeof value === 'string') {
+    const clean = value.trim().toLowerCase();
+    return clean !== '' && clean !== 'false' && clean !== '0' && clean !== 'no' && clean !== 'none' && clean !== 'null';
+  }
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === 'object') return Object.keys(value).length > 0;
+  return Boolean(value);
+}
+
+function isMultiBoardRit(value) {
+  if (value === null || value === undefined || value === false) return false;
+  if (Array.isArray(value)) return value.length > 0;
+  const num = Number(value);
+  return Number.isFinite(num) && num > 1;
+}
+
 function isUnsupportedSpecialFormat(row) {
-  if (row?.bomb_pot !== null && row?.bomb_pot !== undefined) return true;
-  if (row?.kill_pot !== null && row?.kill_pot !== undefined) return true;
+  if (isTruthySpecialFlag(row?.bomb_pot)) return true;
+  if (isTruthySpecialFlag(row?.kill_pot)) return true;
+  if (isMultiBoardRit(row?.rit_boards)) return true;
   if (Array.isArray(row?.community_cards2) && row.community_cards2.length > 0) return true;
   if (Array.isArray(row?.community_cards3) && row.community_cards3.length > 0) return true;
   return false;
@@ -143,10 +163,18 @@ function positionedPlayers(rawPlayers, buttonSeat, bigBlind) {
   }));
   const labels = POSITION_MAP[players.length] || POSITION_MAP[9];
   const ordered = [...players].sort((a, b) => a.seat - b.seat);
-  const buttonIndex = ordered.findIndex(player => Number(player.seat) === Number(buttonSeat));
+  const btnSeatNum = Number(buttonSeat);
+  const buttonIndex = ordered.findIndex(player => Number(player.seat) === btnSeatNum);
   if (buttonIndex >= 0) {
     const clockwise = [...ordered.slice(buttonIndex), ...ordered.slice(0, buttonIndex)];
     clockwise.forEach((player, index) => { player.position = labels[index] || ''; });
+  } else if (Number.isFinite(btnSeatNum) && ordered.length >= 2) {
+    // Dead button: button_seat is vacant, so first active seat clockwise after btnSeatNum is SB.
+    const nextIdx = ordered.findIndex(player => Number(player.seat) > btnSeatNum);
+    const startIdx = nextIdx >= 0 ? nextIdx : 0;
+    const clockwise = [...ordered.slice(startIdx), ...ordered.slice(0, startIdx)];
+    const deadBtnLabels = POSITION_MAP[Math.min(9, players.length + 1)]?.slice(1) || labels;
+    clockwise.forEach((player, index) => { player.position = deadBtnLabels[index] || labels[index] || ''; });
   }
   return players;
 }
@@ -1039,11 +1067,18 @@ export async function syncClubArenaHandsForAudit(db, userId, {
 } = {}) {
   const legacyCursor = cursor && cursor.version !== 2;
   const snapshotAt = cursor?.snapshotAt || new Date(nowMs).toISOString();
+  const effectiveFullRescan = Boolean(fullRescan || (!legacyCursor && cursor?.fullRescan));
+  const effectiveSinceBoundary = effectiveFullRescan
+    ? null
+    : (sinceBoundary || (!legacyCursor ? (cursor?.sinceBoundary || null) : null));
   const requestedCursor = {
     version: 2,
     snapshotAt,
     boundary: legacyCursor ? null : (cursor?.boundary || null),
     cumulativeHandsFound: legacyCursor ? 0 : Math.max(0, Number(cursor?.cumulativeHandsFound) || 0),
+    latestHandWatermark: legacyCursor ? null : (cursor?.latestHandWatermark || null),
+    sinceBoundary: effectiveSinceBoundary,
+    fullRescan: effectiveFullRescan,
   };
   const [modern, legacy] = await Promise.all([
     fetchClubHandsForKey(db, userId, 'userId', {
@@ -1071,15 +1106,15 @@ export async function syncClubArenaHandsForAudit(db, userId, {
   const byId = new Map();
   for (const row of [...(modern.data || []), ...(legacy.data || [])]) byId.set(String(row.id), row);
   const globallyOrdered = [...byId.values()].sort(compareHandKeyDescending);
-  const useWatermark = !fullRescan
-    && sinceBoundary?.createdAt
-    && sinceBoundary?.id
-    && sinceBoundary?.matcherVersion === MATCHER_VERSION;
+  const useWatermark = !effectiveFullRescan
+    && effectiveSinceBoundary?.createdAt
+    && effectiveSinceBoundary?.id
+    && effectiveSinceBoundary?.matcherVersion === MATCHER_VERSION;
   let reachedWatermark = false;
   const filteredOrdered = useWatermark
     ? globallyOrdered.filter((row) => {
       // compareHandKeyDescending(a, b) > 0 means a is OLDER than b.
-      const cmp = compareHandKeyDescending(row, { created_at: sinceBoundary.createdAt, id: sinceBoundary.id });
+      const cmp = compareHandKeyDescending(row, { created_at: effectiveSinceBoundary.createdAt, id: effectiveSinceBoundary.id });
       if (cmp >= 0) {
         reachedWatermark = true;
         return false;
@@ -1093,9 +1128,10 @@ export async function syncClubArenaHandsForAudit(db, userId, {
     || modern.complete !== true
     || legacy.complete !== true
   );
-  const latestHandWatermark = !requestedCursor.boundary && handRows[0]
-    ? { createdAt: handRows[0].created_at, id: String(handRows[0].id), matcherVersion: MATCHER_VERSION }
-    : null;
+  const latestHandWatermark = requestedCursor.latestHandWatermark
+    || (!requestedCursor.boundary && handRows[0]
+      ? { createdAt: handRows[0].created_at, id: String(handRows[0].id), matcherVersion: MATCHER_VERSION }
+      : null);
   const last = handRows[handRows.length - 1];
   const advancedCursor = {
     version: 2,
@@ -1104,6 +1140,9 @@ export async function syncClubArenaHandsForAudit(db, userId, {
       ? { createdAt: last.created_at, id: String(last.id) }
       : null,
     cumulativeHandsFound: requestedCursor.cumulativeHandsFound + handRows.length,
+    latestHandWatermark,
+    sinceBoundary: effectiveSinceBoundary,
+    fullRescan: effectiveFullRescan,
   };
   const privateFacts = await fetchPrivateHeroCards(db, userId, handRows);
   let privateCardsRecovered = 0;
@@ -1222,7 +1261,7 @@ export async function syncClubArenaHandsForAudit(db, userId, {
       !String(row.solver_source || '').includes(MATCHER_VERSION));
     const hasLookupFailure = rows.some(row => row.solver_source === LOOKUP_FAILED_SOURCE);
     const newestAuditAt = rows.reduce((latest, row) => Math.max(latest, auditRowTime(row)), 0);
-    const staleUnpricedAudit = hasUnpricedDecision && newestAuditAt <= retryCutoff;
+    const staleUnpricedAudit = hasUnpricedDecision && (effectiveFullRescan || newestAuditAt <= retryCutoff);
     if (partialAudit || hasUntrustedClassification || hasMatcherDrift || hasLookupFailure || staleUnpricedAudit) {
       handsQueuedForRetry += 1;
       return true;

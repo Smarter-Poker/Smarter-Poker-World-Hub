@@ -14,7 +14,7 @@ const POSITIONS = new Set(['UTG', 'UTG1', 'UTG2', 'LJ', 'MP', 'HJ', 'CO', 'BTN',
 const STREETS = ['preflop', 'flop', 'turn', 'river'];
 const GAME_TYPES = new Set(['cash', 'tournament']);
 const NODE_LOCKS = new Set(['None', 'Overfold', 'CallingStation', 'Maniac']);
-const ACTION_RE = /^(?:f|fold|x|check|c|call|r|raise|allin|push|b\d+|bet_\d+|raise_\d+)$/;
+const ACTION_RE = /^(?:f|fold|x|check|c|call|r|raise|allin|push|bet|b\d+|bet_\d+|raise_\d+)$/;
 const ARCHETYPE_NAMES = {
   nit: 'Nit', tag: 'TAG', lag: 'LAG', fish: 'Fish',
   calling_station: 'Calling Station', maniac: 'Maniac', gto_neutral: 'GTO Neutral',
@@ -117,7 +117,7 @@ function normalizeRange(value, path, issues) {
     const clean = part.replace(/\+$/, '');
     return clean.length === 3 && clean[0].toUpperCase() === clean[1].toUpperCase();
   });
-  const tokens = source.split(/[,;\n]+/).map(token => token.trim().replace(/10/gi, 'T')).filter(Boolean);
+  const tokens = source.split(/[,;\s]+/).map(token => token.trim().replace(/10/gi, 'T')).filter(Boolean);
   if (tokens.length === 0 || tokens.some(token => !tokenRe.test(token) || hasInvalidPairSuffix(token))) {
     issues.push(issue(path, 'invalid_range', 'Poker range must use notation such as AA, AKs, AKo, 22+, or A5s-A2s.'));
     return '';
@@ -169,6 +169,7 @@ function canonicalActionLabel(action) {
   if (action === 'x' || action === 'check') return 'Check';
   if (action === 'c') return 'Check/Call';
   if (action === 'call') return 'Call';
+  if (action === 'bet') return 'Bet';
   if (action === 'r' || action === 'raise') return 'Raise';
   if (action === 'allin' || action === 'push') return 'All-In';
   const sized = String(action || '').match(/^(b|bet_|raise_)(\d+)$/);
@@ -183,7 +184,7 @@ function actionKind(action, hasOutstandingWager) {
   if (action === 'call') return 'call';
   if (action === 'r' || action === 'raise' || String(action || '').startsWith('raise_')) return 'raise';
   if (action === 'allin' || action === 'push') return 'allin';
-  if (/^(?:b\d+|bet_\d+)$/.test(String(action || ''))) return 'bet';
+  if (action === 'bet' || /^(?:b\d+|bet_\d+)$/.test(String(action || ''))) return 'bet';
   return 'unknown';
 }
 
@@ -253,8 +254,11 @@ function analyzeActionLine(scenario, issues = null) {
       if (!preflop && kind === 'fold') report(`${path}.action`, 'fold_without_wager', 'A postflop fold requires an outstanding wager.');
       if (!preflop && kind === 'raise') report(`${path}.action`, 'raise_without_wager', 'An unopened postflop pot must be bet rather than raised.');
 
-      if (kind === 'fold') folded.add(actor);
-      else if (kind === 'bet' || kind === 'raise' || kind === 'allin') {
+      if (kind === 'fold') {
+        folded.add(actor);
+        const remainingActing = actingSeats();
+        if (remainingActing.length > 0 && remainingActing.every(seat => checked.has(seat))) closed = true;
+      } else if (kind === 'bet' || kind === 'raise' || kind === 'allin') {
         if (kind === 'allin' && actor) allIn.add(actor);
         pending = new Set(activeBefore.filter(seat => seat !== actor));
       } else if (kind === 'check' || (preflop && kind === 'call')) {
@@ -263,7 +267,7 @@ function analyzeActionLine(scenario, issues = null) {
       }
     }
 
-    if (activeSeats().length <= 1 || (actingSeats().length === 0 && pending.size === 0)) closed = true;
+    if (activeSeats().length <= 1 || (actingSeats().length <= 1 && pending.size === 0)) closed = true;
     hadActions = true;
   });
 

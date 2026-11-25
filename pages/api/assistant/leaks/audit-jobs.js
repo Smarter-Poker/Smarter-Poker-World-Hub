@@ -9,10 +9,14 @@ const LIMIT = { max: 30, windowMs: 60_000 };
 
 let client;
 function db() {
-  if (!client) client = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY,
-  );
+  if (!client) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) {
+      throw new Error('Personal Assistant audit-jobs service role configuration is missing');
+    }
+    client = createClient(url, key);
+  }
   return client;
 }
 
@@ -42,7 +46,11 @@ export default async function handler(req, res) {
       const { data, error: readError } = await latestJob(user.id);
       if (readError) return res.status(503).json({ success: false, retryable: true, error: 'Audit progress is temporarily unavailable.' });
       if (data && (data.status === 'queued' || (data.status === 'running' && new Date(data.lease_expires_at || 0) <= new Date()))) {
-        await kickAuditWorker(data);
+        // Enforce live-play / cooldown anti-RTA gate before kicking a queued/expired worker on GET.
+        const access = await checkSandboxAccess(db(), user.id);
+        if (access?.allowed && isFeatureAccessible(access.accessLevel, 'leak_finder_detect')) {
+          await kickAuditWorker(data, { fullRescan: Boolean(data?.progress?.fullRescan) });
+        }
       }
       return res.status(200).json({ success: true, job: publicAuditJob(data) });
     }
@@ -53,8 +61,25 @@ export default async function handler(req, res) {
     }
     const fullRescan = Boolean(req.body?.fullRescan);
     const { data, error: startError } = await db().rpc('start_or_resume_pa_leak_audit_job', { p_user_id: user.id });
-    const job = Array.isArray(data) ? data[0] : data;
+    let job = Array.isArray(data) ? data[0] : data;
     if (startError || !job) return res.status(503).json({ success: false, retryable: true, error: 'The durable audit could not be started.' });
+
+    // Persist fullRescan durably on the job row so retries/cold starts never silently
+    // downgrade a Full Re-Audit to an incremental scan or resume a stale pre-fullRescan cursor.
+    if (fullRescan && job.status === 'queued') {
+      const nextProgress = { ...(job.progress && typeof job.progress === 'object' ? job.progress : {}), fullRescan: true };
+      const resetCursor = job.progress?.fullRescan === true ? job.audit_cursor : null;
+      const { data: updatedJob } = await db()
+        .from('pa_leak_audit_jobs')
+        .update({ audit_cursor: resetCursor, progress: nextProgress })
+        .eq('id', job.id)
+        .eq('user_id', user.id)
+        .eq('status', 'queued')
+        .select('*')
+        .maybeSingle();
+      if (updatedJob) job = updatedJob;
+    }
+
     const kick = await kickAuditWorker(job, { fullRescan });
     // The database checkpoint is the acceptance boundary. If the first worker
     // kick races a deploy/cold start, this viewer's two-second status poll (or a

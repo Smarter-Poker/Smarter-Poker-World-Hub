@@ -21,12 +21,13 @@ export function parseActionLabel(label) {
   const raw = String(label || '').trim().toLowerCase();
   if (!raw) return { type: null, size: null };
   let type = null;
-  if (/\b(?:all[- ]?in|allin|shove|jam)\b/.test(raw)) type = 'allin';
+  if (/\b(?:all[- ]?in|allin|shove|jam|push)\b/.test(raw)) type = 'allin';
   else if (/\bfold\b/.test(raw) || raw.startsWith('fold')) type = 'fold';
   else if (/\bcheck[- ]?raise\b|\braise\b|\b[3-9]-?bet\b|\bopen[- ]?raise\b/.test(raw)) type = 'raise';
+  else if (/\bcheck\s*\/\s*call\b/.test(raw)) type = 'check_call';
   else if (/\bcheck\b/.test(raw) || raw.startsWith('check')) type = 'check';
   else if (/\bcall\b/.test(raw) || raw.startsWith('call')) type = 'call';
-  else if (/\bbet\b/.test(raw) || raw.startsWith('bet')) type = 'bet';
+  else if (/\b(?:bet|overbet)\b/.test(raw) || raw.startsWith('bet') || raw.startsWith('overbet')) type = 'bet';
   else type = raw.split(/[\s_]/)[0] || null;
 
   let size = null;
@@ -53,7 +54,10 @@ export function parseActionLabel(label) {
 export function gradeAction(userLabel, gtoLabel) {
   const user = parseActionLabel(userLabel);
   const gto = parseActionLabel(gtoLabel);
-  if (!user.type || !gto.type || user.type !== gto.type) return false;
+  if (!user.type || !gto.type) return false;
+  if (gto.type === 'check_call' && (user.type === 'check' || user.type === 'call' || user.type === 'check_call')) return true;
+  if (user.type === 'check_call' && (gto.type === 'check' || gto.type === 'call')) return true;
+  if (user.type !== gto.type) return false;
   if (user.size && gto.size) return user.size === gto.size;
   return true;
 }

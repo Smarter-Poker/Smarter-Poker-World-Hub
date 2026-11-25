@@ -75,8 +75,8 @@ async function ownerRead(supabase, table, select, userId, configure = query => q
 }
 
 async function readReviewsWithBaseline(supabase, userId) {
-  const modernSelect = 'leak_id, due_at, reps, lapses, strong_streak, retired, last_score, history, last_outcome, schema_version, remediation_baseline_at, updated_at';
-  const legacySelect = 'leak_id, due_at, reps, lapses, strong_streak, retired, last_score, history, last_outcome, schema_version, updated_at';
+  const modernSelect = 'leak_id, due_at, interval_days, reps, lapses, strong_streak, retired, last_score, history, last_outcome, schema_version, remediation_baseline_at, updated_at';
+  const legacySelect = 'leak_id, due_at, interval_days, reps, lapses, strong_streak, retired, last_score, history, last_outcome, schema_version, updated_at';
   const res = await supabase
     .from('leak_review_state')
     .select(modernSelect)
@@ -91,7 +91,7 @@ async function readReviewsWithBaseline(supabase, userId) {
 async function readWorkspace(supabase, userId) {
   const [leakRows, decisions, reviews, goals, feedback, preferenceResult, auditResult] = await Promise.all([
     ownerRead(supabase, 'user_leaks', '*', userId, query => query.order('updated_at', { ascending: false }).limit(500)),
-    ownerRead(supabase, 'hand_audit_decisions', 'hand_external_id, decision_key, question_id, game_id, street, hero_position, villain_position, spot_type, hero_hand, board_cards, player_action, solver_action, selected_frequency, optimal_frequency, classification, ev_loss, ev_loss_measured, solver_verified, solver_source, match_tier, audited_at', userId, query => query.order('audited_at', { ascending: false }).limit(DECISION_WINDOW_LIMIT)),
+    ownerRead(supabase, 'hand_audit_decisions', 'hand_external_id, decision_key, question_id, game_id, street, hero_position, villain_position, spot_type, hero_hand, board_cards, player_action, solver_action, selected_frequency, optimal_frequency, classification, ev_loss, ev_loss_measured, solver_verified, solver_source, match_tier, audited_at', userId, query => query.like('solver_source', '%|hand-audit-v3').order('audited_at', { ascending: false }).limit(DECISION_WINDOW_LIMIT)),
     readReviewsWithBaseline(supabase, userId),
     ownerRead(supabase, 'pa_coaching_goals', 'id, leak_id, title, metric, target_value, current_value, status, due_at, created_at, updated_at', userId, query => query.order('created_at', { ascending: false }).limit(100)),
     ownerRead(supabase, 'pa_coach_feedback', 'id, leak_id, decision_key, feedback_type, note, status, created_at, updated_at', userId, query => query.order('created_at', { ascending: false }).limit(50)),
@@ -103,7 +103,8 @@ async function readWorkspace(supabase, userId) {
   if (auditResult.error && !isMissingSchema(auditResult.error)) throw auditResult.error;
   const audit = auditResult.data || null;
   const ownedDecisions = decisions.map(row => ({ ...row, evidence_scope: 'club_arena' }));
-  const rejected = audit?.progress?.coverage || audit?.progress || {};
+  // Rejected hand counts live at top-level `audit.progress`, NOT `audit.progress.coverage`.
+  const rejected = audit?.progress || {};
   const matcher = ownedDecisions.find(row => String(row.solver_source || '').includes('hand-audit-v'))?.solver_source?.match(/hand-audit-v\d+/)?.[0] || 'unavailable';
   const snapshot = buildCoachingSnapshot({
     leaks: leakRows.map(normalizeUserLeakRow),

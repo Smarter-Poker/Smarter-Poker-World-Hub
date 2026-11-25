@@ -34,11 +34,6 @@ export default async function handler(req, res) {
   if (!applyRateLimit(req, res, limit)) return;
 
     try {
-        // Extract user from auth header
-        const authHeader = req.headers.authorization;
-        const token = authHeader?.replace('Bearer ', '');
-        if (!token) return res.status(401).json({ error: 'Unauthorized' });
-
         const { user: authUser, error: authErr, status: authStatus } = await getServerUserWithFallback(req, getSupabase());
 
         const user = authUser;
@@ -82,13 +77,19 @@ export default async function handler(req, res) {
                 return res.status(413).json({ error: 'Scenario too large' });
             }
 
-            // Per-user template cap (GET only lists 20; inserts were unbounded).
+            // Per-user template cap (GET only lists 20; inserts were unbounded). Fail closed on DB error.
             const { count, error: countErr } = await getSupabase()
                 .from('sandbox_templates')
                 .select('id', { count: 'exact', head: true })
                 .eq('user_id', user.id);
 
-            if (!countErr && typeof count === 'number' && count >= 30) {
+            if (countErr) {
+                return res.status(503).json(persistenceFailure(
+                    'Templates are temporarily unavailable.',
+                    countErr.code === '42P01' ? 'storage_unavailable' : 'read_failed',
+                ));
+            }
+            if (typeof count === 'number' && count >= 30) {
                 return res.status(409).json({ error: 'Template limit reached (30). Delete one first.' });
             }
 
@@ -104,6 +105,10 @@ export default async function handler(req, res) {
 
             if (error) {
                 console.warn('[Templates] Save error:', error.message);
+                if (error.code === '42P01') return res.status(503).json(persistenceFailure(
+                    'Templates are temporarily unavailable.',
+                    'storage_unavailable',
+                ));
                 return res.status(500).json({ error: 'Internal server error' });
             }
 
@@ -113,14 +118,19 @@ export default async function handler(req, res) {
         if (req.method === 'DELETE') {
             // Next parses an empty DELETE body to `{}` (truthy), so
             // `req.body || req.query` never reached the query string.
-            const id = req.body?.id ?? req.query?.id;
+            const rawId = req.body?.id ?? req.query?.id;
+            const id = String(rawId || '').trim();
             if (!id) return res.status(400).json({ error: 'Template ID required' });
+            if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+                return res.status(400).json({ error: 'Valid template ID required' });
+            }
 
-            const { error } = await getSupabase()
+            const { data: deletedRows, error } = await getSupabase()
                 .from('sandbox_templates')
                 .delete()
                 .eq('id', id)
-                .eq('user_id', user.id);
+                .eq('user_id', user.id)
+                .select('id');
 
             if (error) {
                 if (error.code === '42P01') return res.status(503).json(persistenceFailure(
@@ -129,7 +139,10 @@ export default async function handler(req, res) {
                 ));
                 return res.status(500).json({ success: false, error: 'Internal server error' });
             }
-            return res.status(200).json(persistedResult({ id: String(id) }));
+            if (!Array.isArray(deletedRows) || deletedRows.length === 0) {
+                return res.status(404).json({ success: false, error: 'Template not found' });
+            }
+            return res.status(200).json(persistedResult({ id, deleted: deletedRows.length }));
         }
 
         return res.status(405).json({ error: 'Method not allowed' });

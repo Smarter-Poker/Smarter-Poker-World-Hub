@@ -1326,8 +1326,15 @@ function LeakDetail({
             <p style={styles.fixText}>
               Run A Focused Batch. Eligible Solver Leaks Lock Every Answer On The Server; Other Signals Stay Clearly Practice-Only.
             </p>
-            <button type="button" className="pa-btn" style={btn('success', { block: true })} onClick={() => onStartReview?.(leak)}>
-              Start Corrective Review
+            <button
+              type="button"
+              className="pa-btn"
+              style={btn('success', { block: true })}
+              disabled={isDemoLeakId(leak.id)}
+              title={isDemoLeakId(leak.id) ? 'Sign In And Run A Leak Audit To Start Verified Reviews.' : undefined}
+              onClick={() => onStartReview?.(leak)}
+            >
+              {isDemoLeakId(leak.id) ? 'Run Audit To Unlock Review' : 'Start Corrective Review'}
             </button>
           </div>
 
@@ -1642,6 +1649,7 @@ export default function LeakFinderPage() {
     const trimmed = String(value).trim();
     if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmed)) {
       setLinkedClubHand({ id: trimmed, label: `Hand ${trimmed.slice(0, 8)}` });
+      setTab('leaks');
       return;
     }
     if (trimmed.startsWith('{')) {
@@ -1651,6 +1659,7 @@ export default function LeakFinderPage() {
           const tableLabel = parsed.table ? `${parsed.table}` : `Hand ${parsed.id.trim().slice(0, 8)}`;
           const stakesLabel = parsed.stakes ? ` (${parsed.stakes})` : '';
           setLinkedClubHand({ id: parsed.id.trim(), label: `${tableLabel}${stakesLabel}` });
+          setTab('leaks');
           return;
         }
       } catch (_) {
@@ -1662,19 +1671,39 @@ export default function LeakFinderPage() {
     setLinkedHandError(null);
   }, [router.isReady, router.query?.hand]);
 
+  const prevQueryHydrationRef = useRef({ format: null, tab: null, searchTerm: null });
   useEffect(() => {
     if (!router.isReady) return;
     const rawFmt = Array.isArray(router.query?.format) ? router.query.format[0] : router.query?.format;
     const fmt = String(rawFmt || '').trim().toLowerCase();
-    if (fmt === 'cash' || fmt === 'tournament' || fmt === 'all') {
-      setFormatFilter(fmt);
-    }
     const rawTab = Array.isArray(router.query?.tab) ? router.query.tab[0] : router.query?.tab;
     const nextTab = String(rawTab || '').trim().toLowerCase();
+    const rawStreet = Array.isArray(router.query?.street) ? router.query.street[0] : router.query?.street;
+    const rawPos = Array.isArray(router.query?.position) ? router.query.position[0] : router.query?.position;
+    const rawLeakType = Array.isArray(router.query?.leakType) ? router.query.leakType[0] : router.query?.leakType;
+    const searchTerm = [rawLeakType, rawPos, rawStreet]
+      .map(v => String(v || '').trim().replace(/_/g, ' '))
+      .filter(Boolean)
+      .join(' ');
+    const prev = prevQueryHydrationRef.current;
+
+    if (fmt === 'cash' || fmt === 'tournament' || fmt === 'all') {
+      setFormatFilter(fmt);
+    } else if (!fmt && prev.format) {
+      setFormatFilter('all');
+    }
     if (nextTab === 'leaks' || nextTab === 'coaching' || nextTab === 'insights') {
       setTab(nextTab);
+    } else if (!nextTab && prev.tab) {
+      setTab('leaks');
     }
-  }, [router.isReady, router.query?.format, router.query?.tab]);
+    if (searchTerm && searchTerm !== prev.searchTerm) {
+      setQuery(searchTerm);
+    } else if (!searchTerm && prev.searchTerm) {
+      setQuery('');
+    }
+    prevQueryHydrationRef.current = { format: fmt || null, tab: nextTab || null, searchTerm: searchTerm || null };
+  }, [router.isReady, router.query?.format, router.query?.tab, router.query?.street, router.query?.position, router.query?.leakType]);
 
   const fetchLinkedHandAudit = useCallback(async (handId, { method = 'GET', signal } = {}) => {
     const token = await getFreshAccessToken();
@@ -1730,22 +1759,39 @@ export default function LeakFinderPage() {
     return () => controller.abort();
   }, [fetchLinkedHandAudit, linkedClubHand?.id, userId]);
 
+  const linkedPostAbortRef = useRef(null);
+  const linkedPostSeqRef = useRef(0);
+
+  useEffect(() => () => {
+    try { linkedPostAbortRef.current?.abort(); } catch (_) { /* noop */ }
+  }, [linkedClubHand?.id]);
+
   const handleAuditLinkedHand = useCallback(async () => {
     const handId = linkedClubHand?.id;
     if (!handId || !userId) return;
     if (!requireOnline()) return;
+    try { linkedPostAbortRef.current?.abort(); } catch (_) { /* noop */ }
+    const controller = new AbortController();
+    linkedPostAbortRef.current = controller;
+    const seq = ++linkedPostSeqRef.current;
     setLinkedHandLoading(true);
     setLinkedHandError(null);
     try {
-      const payload = await fetchLinkedHandAudit(handId, { method: 'POST' });
+      const payload = await fetchLinkedHandAudit(handId, { method: 'POST', signal: controller.signal });
+      if (controller.signal.aborted || seq !== linkedPostSeqRef.current) return;
       setLinkedHandAudit(payload);
-      if (payload.persisted) refetchLeaks();
+      if (payload.persisted) {
+        refetchLeaks();
+        refetchStats?.();
+        if (typeof window !== 'undefined') window.dispatchEvent(new Event('pa-data-updated'));
+      }
     } catch (err) {
+      if (controller.signal.aborted || isAbortError(err) || seq !== linkedPostSeqRef.current) return;
       setLinkedHandError(err?.message || 'Could Not Persist Hand Audit.');
     } finally {
-      setLinkedHandLoading(false);
+      if (!controller.signal.aborted && seq === linkedPostSeqRef.current) setLinkedHandLoading(false);
     }
-  }, [fetchLinkedHandAudit, linkedClubHand?.id, refetchLeaks, requireOnline, userId]);
+  }, [fetchLinkedHandAudit, linkedClubHand?.id, refetchLeaks, refetchStats, requireOnline, userId]);
 
   // Deep link: /hub/personal-assistant/leaks?leak=<id>
   const deepLinkedTargetRef = useRef(null);
@@ -2180,6 +2226,10 @@ export default function LeakFinderPage() {
     const target = entry || reviewQueue[0];
     const targetLeak = target?.leak || (target?.id != null ? target : null);
     if (!targetLeak) return;
+    if (targetLeak.id && isDemoLeakId(targetLeak.id)) {
+      toast.error('Sign In And Run A Leak Audit To Start Verified Reviews.');
+      return;
+    }
     const params = target.drill || leakToDrill(targetLeak);
     if (!params) {
       // No street can be inferred, so a drill would serve unrelated spots.
@@ -2188,8 +2238,11 @@ export default function LeakFinderPage() {
       return;
     }
     setReviewReceipt(null);
+    const resolvedLeakId = target.practiceOnly
+      ? null
+      : (target.leakId !== undefined ? target.leakId : targetLeak.id);
     setReviewSession({
-      leakId: String(target.leakId ?? targetLeak.id),
+      leakId: resolvedLeakId != null && String(resolvedLeakId).trim() !== '' ? String(resolvedLeakId) : null,
       params,
     });
   }, [guardAction, reviewQueue, handleOpenHandReview]);
@@ -2651,13 +2704,29 @@ export default function LeakFinderPage() {
                               : null;
                             if (matched) {
                               handleStartReview({ leak: matched, drill: linkedHandAudit.trainingAction.drillParams });
-                            } else {
+                            } else if (linkedHandAudit.trainingAction.leakId) {
                               handleStartReview({
+                                leakId: linkedHandAudit.trainingAction.leakId,
                                 leak: {
-                                  id: linkedHandAudit.trainingAction.leakId || `hand:${linkedClubHand.id}`,
+                                  id: linkedHandAudit.trainingAction.leakId,
                                   title: linkedHandAudit.trainingAction.title,
                                   leakType: linkedHandAudit.matchedLeaks?.[0]?.leakType || 'spot_review',
                                   leakCategory: linkedHandAudit.matchedLeaks?.[0]?.category || 'flop',
+                                  recommendedDrill: linkedHandAudit.trainingAction.drillParams?.game || null,
+                                },
+                                drill: linkedHandAudit.trainingAction.drillParams,
+                              });
+                            } else {
+                              // No persisted user_leaks row matched yet - launch spot-matched practice drill
+                              // without sending a synthetic `hand:<uuid>` leak ID to /api/sandbox/custom-drill.
+                              handleStartReview({
+                                practiceOnly: true,
+                                leakId: null,
+                                leak: {
+                                  id: null,
+                                  title: linkedHandAudit.trainingAction.title,
+                                  leakType: 'spot_review',
+                                  leakCategory: linkedHandAudit.trainingAction.street || 'flop',
                                   recommendedDrill: linkedHandAudit.trainingAction.drillParams?.game || null,
                                 },
                                 drill: linkedHandAudit.trainingAction.drillParams,
@@ -2689,6 +2758,10 @@ export default function LeakFinderPage() {
                           setLinkedClubHand(null);
                           setLinkedHandAudit(null);
                           setLinkedHandError(null);
+                          if (router.query?.hand) {
+                            const { hand: _removed, ...restQuery } = router.query;
+                            router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
+                          }
                         }}
                         style={iconBtn({ transparent: true, color: T.textMuted })}
                       >
@@ -2767,10 +2840,10 @@ export default function LeakFinderPage() {
                       </div>
                       {linkedHandAudit.decisions.map((decision, idx) => {
                         const selPct = decision.selectedFrequency != null && Number.isFinite(Number(decision.selectedFrequency))
-                          ? Math.max(0, Math.min(100, Math.round(Number(decision.selectedFrequency) <= 1 ? Number(decision.selectedFrequency) * 100 : Number(decision.selectedFrequency))))
+                          ? Math.max(0, Math.min(100, Math.round(Number(decision.selectedFrequency))))
                           : null;
                         const optPct = decision.optimalFrequency != null && Number.isFinite(Number(decision.optimalFrequency))
-                          ? Math.max(0, Math.min(100, Math.round(Number(decision.optimalFrequency) <= 1 ? Number(decision.optimalFrequency) * 100 : Number(decision.optimalFrequency))))
+                          ? Math.max(0, Math.min(100, Math.round(Number(decision.optimalFrequency))))
                           : null;
                         return (
                           <div

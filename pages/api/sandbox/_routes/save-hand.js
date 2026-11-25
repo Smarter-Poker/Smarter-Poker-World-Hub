@@ -48,13 +48,17 @@ export default async function handler(req, res) {
           // Scoped by user_id as well as id so a guessed id can never delete
           // another user's row (JWT-derived userId only — never req.query).
           if (req.method === 'DELETE') {
-              const id = (req.body && req.body.id) || req.query?.id;
+              const rawId = (req.body && req.body.id) || req.query?.id;
+              const id = String(rawId || '').trim();
               if (!id) return res.status(400).json({ success: false, error: 'Hand id required' });
+              if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+                  return res.status(400).json({ success: false, error: 'Valid hand id required' });
+              }
 
               const { data: deletedRows, error: delError } = await supabase
                   .from('sandbox_saved_hands')
                   .delete()
-                  .eq('id', String(id))
+                  .eq('id', id)
                   .eq('user_id', userId)
                   .select('id');
 

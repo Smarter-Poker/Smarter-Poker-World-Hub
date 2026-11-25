@@ -121,6 +121,7 @@ test('findSolvedSpotV2Match verifies exact PioSOLVER V2 combo, rejects legacy V1
       const chain = {
         select() { return chain; },
         in() { return chain; },
+        eq() { return chain; },
         not() { return chain; },
         limit() {
           if (table === 'solved_spots_gold') return Promise.resolve({ data: rows, error: null });
@@ -134,8 +135,8 @@ test('findSolvedSpotV2Match verifies exact PioSOLVER V2 combo, rejects legacy V1
   const hand = {
     format: 'cash',
     gameType: 'nlh',
-    tableSize: 6,
-    hero: { stack: 20.4 },
+    tableSize: 2,
+    hero: { stack: 40.2 },
   };
   const point = {
     street: 'flop',
@@ -151,28 +152,36 @@ test('findSolvedSpotV2Match verifies exact PioSOLVER V2 combo, rejects legacy V1
 
   const validRow = {
     id: 'row-v2-1',
-    scenario_hash: '6max_cash_BB_20bb_2dAhKd',
-    game_type: '6max_cash',
-    stack_depth: 20,
+    scenario_hash: 'hu_cash_BB_40bb_2dAhKd',
+    game_type: 'hu_cash',
+    stack_depth: 40,
     street: 'flop',
     strategy_matrix_v2: v2,
     solved_v2_at: '2026-11-01T00:00:00Z',
-    quality_status: 'verified',
+    quality_status: 'validated',
+    solver_version: 'PioSOLVER-3.0',
+    solver_binary_checksum: 'a'.repeat(64),
+    machine_id: 'M1',
+    pipeline_commit: 'b'.repeat(40),
+    manifest_version: 'v2-2026-11',
+    manifest_checksum: 'c'.repeat(64),
+    source_artifact_checksum: 'd'.repeat(64),
+    audited_at: '2026-11-01T00:00:00Z',
   };
 
-  // 1. Exact V2 match -> verified PIOSOLVER blunder/wrong with exact EV loss (3.40 - 2.55 = 0.85)
+  // 1. Exact V2 match -> verified PIOSOLVER 5% secondary frequency ('correct' in canonical 0-100 scale) with exact EV loss (3.40 - 2.55 = 0.85)
   const hit = await findSolvedSpotV2Match(makeDb([validRow]), hand, point);
   assert.ok(hit, 'expected exact V2 match');
   assert.equal(hit.solverVerified, true);
   assert.equal(hit.solverSource, 'PIOSOLVER');
   assert.equal(hit.solverAction, 'bet_75');
-  assert.equal(hit.selectedFrequency, 0.05);
-  assert.equal(hit.optimalFrequency, 0.8);
-  assert.equal(hit.classification, 'wrong');
+  assert.equal(hit.selectedFrequency, 5);
+  assert.equal(hit.optimalFrequency, 80);
+  assert.equal(hit.classification, 'correct');
   assert.equal(hit.evLossMeasured, true);
   assert.equal(hit.evLoss, 0.85);
 
-  // 2. Stack drift (> 1bb from 20bb) fails closed
+  // 2. Stack drift (> 1bb from 40bb) fails closed
   const driftMiss = await findSolvedSpotV2Match(makeDb([validRow]), { ...hand, hero: { stack: 28 } }, point);
   assert.equal(driftMiss, null);
 
@@ -184,6 +193,12 @@ test('findSolvedSpotV2Match verifies exact PioSOLVER V2 combo, rejects legacy V1
   const unsealed = { ...validRow, strategy_matrix_v2: { ...v2, source_combo_order_sha256: '0'.repeat(64) } };
   const unsealedMiss = await findSolvedSpotV2Match(makeDb([unsealed]), hand, point);
   assert.equal(unsealedMiss, null);
+
+  // 5. Quarantined or provenance-incomplete V2 row fails closed
+  const quarantinedMiss = await findSolvedSpotV2Match(makeDb([{ ...validRow, quality_status: 'quarantined' }]), hand, point);
+  assert.equal(quarantinedMiss, null);
+  const unprovenancedMiss = await findSolvedSpotV2Match(makeDb([{ ...validRow, solver_binary_checksum: null }]), hand, point);
+  assert.equal(unprovenancedMiss, null);
 });
 
 test('findMemoryChartMatch verifies exact Cash/Tournament short-stack preflop push/fold spots and fails closed on non-shoves', async () => {
@@ -301,7 +316,9 @@ test('auditParsedHands falls through from empty training_question_cache to certi
   assert.equal(result.solverVerified, 1);
   assert.equal(result.analyses[0].decisions[0].solverVerified, true);
   assert.equal(result.analyses[0].decisions[0].solverSource, `MEMORY_CHARTS_GOLD|${MATCHER_VERSION}`);
-  assert.equal(result.analyses[0].decisions[0].classification, 'correct');
+  assert.equal(result.analyses[0].decisions[0].classification, 'best');
+  assert.equal(result.analyses[0].decisions[0].selectedFrequency, 100);
+  assert.equal(result.analyses[0].decisions[0].optimalFrequency, 100);
 });
 
 test('auditJobRuntime preserves caHandFactsSummary, incrementalStop, and forwards fullRescan to audit-worker', async () => {

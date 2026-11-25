@@ -70,7 +70,7 @@ async function resolveUser(supabase, req) {
         return { userId: user?.id || null, authStatus: status || null };
     } catch (e) {
         console.warn('[App] Handled exception:', e?.message || e);
-        return { userId: null, authStatus: null };
+        return { userId: null, authStatus: 503 };
     }
 }
 

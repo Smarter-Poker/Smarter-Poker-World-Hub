@@ -1099,12 +1099,27 @@ export function useLeakDetection() {
     if (!isDetecting) return undefined;
     let cancelled = false;
     let inFlight = false;
+    let consecutiveErrors = 0;
     const poll = async () => {
       if (inFlight || (typeof document !== 'undefined' && document.visibilityState === 'hidden')) return;
       inFlight = true;
-      try { if (!cancelled) await readJob(); }
-      catch (err) { if (!cancelled) console.warn('[useLeakDetection] Poll failed:', err?.message || err); }
-      finally { inFlight = false; }
+      try {
+        if (!cancelled) {
+          await readJob();
+          consecutiveErrors = 0;
+        }
+      } catch (err) {
+        if (!cancelled) {
+          consecutiveErrors += 1;
+          console.warn('[useLeakDetection] Poll failed:', err?.message || err);
+          if (err?.status === 401 || err?.status === 403 || consecutiveErrors >= 3) {
+            setError(err?.message || 'Audit status polling failed. Please retry.');
+            setIsDetecting(false);
+          }
+        }
+      } finally {
+        inFlight = false;
+      }
     };
     const timer = setInterval(poll, 2000);
     return () => { cancelled = true; clearInterval(timer); };
