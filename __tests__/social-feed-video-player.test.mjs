@@ -12,6 +12,7 @@
  * effects never run under the harness, so that part is pinned at the source.
  */
 import test from 'node:test';
+import { isCustomVideoCover, isVideoCoverFile, VIDEO_COVER_FOLDER, VIDEO_COVER_IMAGE_TYPES } from '../src/lib/videoCover.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -55,7 +56,7 @@ function storage(initial = {}) {
 const loadPlayer = ({ state = {}, store = storage() } = {}) => {
   const surface = loadSurface(PLAYER_FILE, {
     state,
-    mocks: { [SHARED_FILE]: sharedMock() },
+    mocks: { [SHARED_FILE]: sharedMock(), 'src/lib/videoCover.mjs': { isCustomVideoCover } },
     globals: { window: {}, localStorage: store },
   });
   return { ...surface, store, Player: surface.module.default };
@@ -144,6 +145,65 @@ test('the feed fallback shows the complete thumbnail or first decoded frame', ()
   assert.equal(video.type, 'video');
   assert.equal(video.props.poster, undefined, 'do not repeatedly load a failed poster');
   assert.equal(video.props.style.objectFit, 'contain');
+});
+
+test('an uploaded custom cover is the whole idle tile and opens the same player', () => {
+  const cover = 'https://storage.example.com/storage/v1/object/public/social-media/video-covers/47965354-0e56-43ef-931c-ddaab82af765/unique-cover.png';
+  const { Player } = loadPlayer();
+  const opened = [];
+  const post = nativePost();
+  const props = { post, posterUrl: cover, onOpen: (row) => opened.push(row) };
+  const poster = Player(props);
+  assert.equal(poster.props['data-feed-video'], 'poster');
+  const image = elements(poster).find((node) => node.type === 'img');
+  assert.equal(image.props.src, cover);
+  assert.equal(image.props.style.objectFit, 'contain');
+  assert.equal(videoOf(poster), undefined, 'no inline autoplay covers the authored design');
+  poster.props.onClick();
+  assert.deepEqual(opened, [post]);
+  image.props.onError();
+  assert.equal(videoOf(Player(props)).props.poster, undefined);
+  assert.equal(Player({ ...props, posterUrl: cover.replace('.png', '.webp') }).props['data-feed-video'], 'poster');
+});
+
+test('cover selection writes original bytes to the custom storage directory', async () => {
+  const owner = '47965354-0e56-43ef-931c-ddaab82af765';
+  const source = new Blob([new Uint8Array(300).fill(42)], { type: 'image/png' });
+  const requests = [];
+  const { module: { uploadThumbnail } } = loadSurface('src/lib/thumbnailUploader.js', {
+    mocks: {
+      'src/lib/authUtils.js': { getAccessToken: () => 'a.b.c' },
+      'src/lib/videoCover.mjs': { isVideoCoverFile, VIDEO_COVER_FOLDER, VIDEO_COVER_IMAGE_TYPES },
+    },
+    globals: { fetch: async (url, options) => {
+      requests.push({ url, options });
+      if (!options) return { blob: async () => source };
+      if (url === '/api/social/upload-url') return { ok: true, json: async () => ({
+        success: true, signedUrl: 'https://storage.example.com/upload',
+        publicUrl: `https://storage.example.com/storage/v1/object/public/social-media/video-covers/${owner}/unique.png`,
+      }) };
+      return { ok: true };
+    } },
+  });
+  assert.ok(isCustomVideoCover(await uploadThumbnail('data:image/png;base64,x', owner, VIDEO_COVER_FOLDER)));
+  assert.equal(JSON.parse(requests[1].options.body).folder, 'video-covers');
+  assert.match(JSON.parse(requests[1].options.body).fileName, /\.png$/);
+  assert.equal(requests[2].options.body, source);
+  assert.equal(requests[2].options.headers['Content-Type'], 'image/png');
+  assert.equal(isCustomVideoCover(POSTER), false);
+  assert.equal(isVideoCoverFile({ type: 'image/svg+xml', size: 300 }), false);
+});
+
+test('the upload and transcode keep the explicitly selected custom cover', () => {
+  const composer = read('src/components/social/SharedPostCreator.jsx');
+  assert.match(composer, /customThumbnail: reader\.result/);
+  assert.match(composer, /if \(staged\.customCoverFile && !customCoverUrl\)/);
+  assert.ok(composer.indexOf('await uploadVideoCover(staged.customCoverFile') < composer.indexOf('const videoUrl = await new Promise'));
+  assert.match(composer, /uploadedMedia\.push\(\{ type: 'thumbnail', url: customCoverUrl \}\)/);
+  const worker = read('pages/api/cron/transcode-videos.js');
+  assert.match(worker, /!isCustomVideoCover\(priorThumbnail\)/);
+  assert.match(worker, /fallback\.eq\('thumbnail_url', priorThumbnail\)/);
+  assert.match(worker, /fallback\.is\('thumbnail_url', null\)/);
 });
 
 test('the control toggles Unmute and Mute, mutes the element, stops the tile click and remembers the choice', () => {
@@ -253,6 +313,43 @@ const feedPost = (extra) => ({
 // the life of a loaded surface, so a second card would show the first's text.
 const renderCard = (post) => render(loadCard().exposed.PostCard(cardProps(feedPost(post))));
 
+test('editing an owned video cover updates that post and keeps its caption', async () => {
+  const player = loadPlayer();
+  const caption = 'Original Caption';
+  const file = { type: 'image/jpeg', size: 300 };
+  const cover = 'https://storage.example.com/storage/v1/object/public/social-media/video-covers/47965354-0e56-43ef-931c-ddaab82af765/unique.jpg';
+  const calls = [];
+  const query = {
+    update: (patch) => { calls.push(['update', patch]); return query; },
+    eq: (column, value) => { calls.push([column, value]); return query; },
+    select: () => query,
+    maybeSingle: async () => ({ data: { id: 'p1', content: caption, thumbnail_url: cover } }),
+  };
+  const app = loadSurface(PAGE_FILE, {
+    expose: ['PostCard'],
+    state: { editing: true, editContent: caption, editCoverFile: file },
+    mocks: {
+      [PLAYER_FILE]: player.module,
+      [SHARED_FILE]: sharedMock(),
+      'src/lib/supabase.js': { supabase: { from: (table) => { calls.push(['table', table]); return query; } } },
+      'src/lib/thumbnailUploader.js': { uploadVideoCover: async (image, user) => {
+        assert.equal(image, file);
+        assert.equal(user, 'u1');
+        return cover;
+      } },
+    },
+    globals: { localStorage: player.store },
+  });
+  const props = cardProps(feedPost({ content: caption, authorId: 'u1', contentType: 'video', mediaUrls: [NATIVE_URL] }));
+  const edit = app.exposed.PostCard(props);
+  const save = elements(edit).find(node => node.type === 'button' && node.props.children === 'Save');
+  await save.props.onClick();
+  assert.deepEqual(calls, [['table', 'social_posts'], ['update', { thumbnail_url: cover }], ['id', 'p1'], ['author_id', 'u1']]);
+  assert.equal(app.state.get('coverUrl'), cover);
+  assert.equal(app.state.get('displayContent'), caption);
+  assert.equal(app.state.get('editing'), false);
+});
+
 test('the actual horse video and paired Reel link retain the video consumer through deep-link normalization', () => {
   const source = read(PAGE_FILE);
   const start = source.indexOf('  const formatDeepLinkPost = (p) => {');
@@ -354,10 +451,10 @@ test('every other post keeps its text above the media', () => {
 
 test('the page hands every video tile to the feed video player and no longer mounts the bare poster', () => {
   const page = read(PAGE_FILE);
-  assert.match(page, /import FeedVideoPlayer from '\.\.\/\.\.\/\.\.\/src\/components\/social\/FeedVideoPlayer';/);
+  assert.match(page, /import FeedVideoPlayer, \{ isNativeFeedVideo \} from '\.\.\/\.\.\/\.\.\/src\/components\/social\/FeedVideoPlayer';/);
   assert.equal((page.match(/<FeedVideoPlayer\b/g) || []).length, 2, 'the 1-up and the 2-up video tiles');
   assert.equal((page.match(/<FeedVideoPoster\b/g) || []).length, 0);
-  assert.equal((page.match(/posterUrl=\{post\.thumbnailUrl \|\| post\.thumbnail_url \|\| post\.coverFrameUrl \|\| null\}/g) || []).length, 2);
+  assert.equal((page.match(/posterUrl=\{coverUrl\}/g) || []).length, 2);
   assert.equal((page.match(/\{postBody\}/g) || []).length, 1, 'one shared text position for every post type');
   const above = page.indexOf('{postBody}');
   const grid = page.indexOf("post.contentType === 'video' ? (");

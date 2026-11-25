@@ -30,7 +30,8 @@ import {
   generateFrames,
   compressVideo,
 } from '../../../src/lib/videoCompressor';
-import { uploadThumbnail } from '../../../src/lib/thumbnailUploader';
+import { uploadThumbnail, uploadVideoCover } from '../../../src/lib/thumbnailUploader';
+import { isVideoCoverFile } from '../../lib/videoCover.mjs';
 import {
   assertUserReelPublicationSlot,
   createUserReelPublicationIntent,
@@ -1039,6 +1040,13 @@ export function SharedPostCreator({
       }
       setError('');
 
+      const videos = media.filter((item) => item.type === 'video' && item.file);
+      if (context === 'social-media' && String(user?.username || publicNameOf(user)).toLowerCase() === 'kingfish' &&
+          videos.length && (media.length !== 1 || !videos[0].customCoverFile)) {
+        setError('Choose One Video And Upload Its Custom Cover Before Posting.');
+        return;
+      }
+
       const wantsPokerReel = shareToPokerReels && canShareToPokerReels;
       const submittedReelTopic =
         normalizeUserReelTopic(reelTopicOptions.includes(reelTopic) ? reelTopic : null)
@@ -1203,6 +1211,16 @@ export function SharedPostCreator({
           let bgUnsub = null; // hoisted: accessible in catch regardless of video/image path
           try {
             if (isVideo) {
+              const customCoverUrl = staged.customCoverFile
+                ? await uploadVideoCover(staged.customCoverFile, user.id)
+                : null;
+              if (staged.customCoverFile && !customCoverUrl) {
+                setError('Could Not Upload The Custom Cover. Try Again Before Posting.');
+                setUploading(false);
+                setUploadProgress(null);
+                return;
+              }
+
               // ── Use compressed file if background compression finished ──
               let fileToUpload = staged.file;
               const comp = compressionRef.current[staged.url];
@@ -1232,7 +1250,7 @@ export function SharedPostCreator({
                     userId: user.id,
                     folder,
                     content: [content?.trim(), pokerCardsMarkup].filter(Boolean).join('\n'),
-                    thumbnail: staged.thumbnail,
+                    thumbnail: customCoverUrl || staged.thumbnail,
                     publicationKind: shouldPublishPokerReel ? 'poker_reel' : null,
                   })
                   .catch(reject);
@@ -1306,6 +1324,11 @@ export function SharedPostCreator({
               // finished (every iPhone HEVC upload), staged.thumbnail
               // is null. AWAIT the stored promise (with 60s ceiling
               // for slow iPhone HEVC decode) before deciding to skip.
+              if (customCoverUrl) {
+                uploadedMedia.push({ type: 'thumbnail', url: customCoverUrl });
+                delete thumbnailPromiseRef.current[staged.url];
+                continue;
+              }
               let thumbDataUrl = staged.thumbnail;
               const pendingThumbPromise = thumbnailPromiseRef.current[staged.url];
               if (!thumbDataUrl && pendingThumbPromise) {
@@ -2222,7 +2245,7 @@ export function SharedPostCreator({
                         )
                       }
                     />
-                  ) : m.thumbnail ? (
+                  ) : (m.customThumbnail || m.thumbnail) ? (
                     <div
                       style={{
                         width: '100%',
@@ -2239,7 +2262,7 @@ export function SharedPostCreator({
                       }
                     >
                       <img
-                        src={m.thumbnail}
+                        src={m.customThumbnail || m.thumbnail}
                         alt="Video thumbnail"
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                       />
@@ -2415,6 +2438,8 @@ export function SharedPostCreator({
                 {/* ── Thumbnail picker trigger (videos only) ── */}
                 {m.type === 'video' && !m._previewing && (
                   <button
+                    type="button"
+                    aria-label={m.customCoverFile ? 'Replace Custom Video Cover' : 'Choose Video Cover'}
                     onClick={() => {
                       if (thumbPickerIdx === i) {
                         setThumbPickerIdx(null);
@@ -2451,7 +2476,7 @@ export function SharedPostCreator({
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
                     </svg>
-                    Thumbnail
+                    {m.customCoverFile ? 'Custom Cover Selected' : 'Choose Video Cover'}
                   </button>
                 )}
               </div>
@@ -2700,19 +2725,29 @@ export function SharedPostCreator({
                   style={{ display: 'none' }}
                   onChange={(e) => {
                     const file = e.target.files?.[0];
-                    if (!file) return;
+                    const videoUrl = media[thumbPickerIdx]?.url;
+                    e.target.value = '';
+                    if (!file || !videoUrl) return;
+                    if (!isVideoCoverFile(file)) {
+                      setError('Choose A JPEG, PNG Or WebP Cover Up To 10 MB.');
+                      return;
+                    }
+                    setMedia((prev) => prev.map((item) =>
+                      item.url === videoUrl ? { ...item, customCoverFile: file, customThumbnail: null } : item
+                    ));
+                    setError('');
+                    setThumbPickerIdx(null);
+                    setScrubberCapture(null);
                     const reader = new FileReader();
-                    reader.onload = (ev) => {
-                      setMedia((prev) =>
-                        prev.map((item, idx) =>
-                          idx === thumbPickerIdx ? { ...item, thumbnail: ev.target.result } : item
-                        )
-                      );
-                      setThumbPickerIdx(null);
-                      setScrubberCapture(null);
+                    reader.onerror = () => setError('Could Not Preview The Custom Cover.');
+                    reader.onload = () => {
+                      setMedia((prev) => prev.map((item) =>
+                        item.url === videoUrl && item.customCoverFile === file
+                          ? { ...item, customThumbnail: reader.result }
+                          : item
+                      ));
                     };
                     reader.readAsDataURL(file);
-                    e.target.value = '';
                   }}
                 />
                 <button
@@ -2735,7 +2770,7 @@ export function SharedPostCreator({
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M19 7v3h-2V7h-3V5h3V2h2v3h3v2h-3zm-3 4V8h-3V5H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-8h-3zM5 19l3-4 2 3 3-4 4 5H5z" />
                   </svg>
-                  Upload Your Own Image
+                  Upload Custom Video Cover
                 </button>
               </div>
             </div>

@@ -28,6 +28,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { FeedVideoPoster } from './SharedVideoComponents';
 import { isYouTubeUrl } from '../../lib/socialHelpers';
+import { isCustomVideoCover } from '../../lib/videoCover.mjs';
 
 export const REELS_MUTED_KEY = 'sp:reels:muted';
 
@@ -93,12 +94,14 @@ export default function FeedVideoPlayer({ post, posterUrl = null, onOpen }) {
   const videoRef = useRef(null);
   const [muted, setMuted] = useState(() => readStoredMuted());
   const [videoFailed, setVideoFailed] = useState(false);
+  const [failedCover, setFailedCover] = useState(null);
+  const showCustomCover = native && isCustomVideoCover(posterUrl) && failedCover !== posterUrl;
 
   // Muted autoplay while half the tile is on screen, paused otherwise: the
   // same 0.5 threshold FeedVideoPoster uses for its own fallback <video>.
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || !native || videoFailed) return undefined;
+    if (!video || !native || videoFailed || showCustomCover) return undefined;
     if (typeof IntersectionObserver === 'undefined') return undefined;
     const observer = new IntersectionObserver(
       (entries) => {
@@ -122,7 +125,7 @@ export default function FeedVideoPlayer({ post, posterUrl = null, onOpen }) {
       observer.unobserve(video);
       observer.disconnect();
     };
-  }, [native, videoFailed]);
+  }, [native, videoFailed, showCustomCover]);
 
   const toggleMuted = (event) => {
     // The tile around this control opens Reels on click and likes on a
@@ -140,6 +143,24 @@ export default function FeedVideoPlayer({ post, posterUrl = null, onOpen }) {
   const handleOpen = () => {
     if (typeof onOpen === 'function') onOpen(post);
   };
+
+  // Published custom covers are the feed artwork. Opening the card still
+  // navigates to the full player. A broken custom image falls through to
+  // the existing native video preview.
+  if (showCustomCover) {
+    return (
+      <div data-feed-video="poster" data-sp-skip-a11y="the card around the tile opens Reels"
+        onClick={handleOpen} style={{ position: 'relative', width: '100%', height: '100%' }}>
+        <img
+          src={posterUrl}
+          alt="Custom Video Cover"
+          loading="lazy"
+          onError={() => setFailedCover(posterUrl)}
+          style={{ display: 'block', width: '100%', height: '100%', objectFit: 'contain', background: '#000' }}
+        />
+      </div>
+    );
+  }
 
   if (!native || videoFailed) {
     return (
@@ -164,7 +185,7 @@ export default function FeedVideoPlayer({ post, posterUrl = null, onOpen }) {
       <video
         ref={videoRef}
         src={playableSrc(videoUrl)}
-        poster={posterUrl || undefined}
+        poster={failedCover === posterUrl ? undefined : posterUrl || undefined}
         preload="metadata"
         muted={muted}
         playsInline

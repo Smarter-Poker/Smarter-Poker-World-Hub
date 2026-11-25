@@ -45,6 +45,7 @@ import { mkdtemp, rm, readFile, writeFile, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { withCronHealth } from '../../../src/lib/cronHealth';
+import { isCustomVideoCover } from '../../../src/lib/videoCover.mjs';
 // Use require() for ffmpeg/ffprobe via the parent packages — webpack marks them
 // external via serverExternalPackages so no static module resolution is attempted.
 // At runtime on Vercel (linux-x64) the parent packages return the linux-x64 binary
@@ -557,16 +558,21 @@ async function handler(req, res) {
         if (Array.isArray(coverFrameUrls) && coverFrameUrls.some(u => !!u)) {
             updatePayload.cover_frames = coverFrameUrls;
         }
-        if (thumbPublicUrl) {
-            // If the user picked a specific frame index in the composer, the
-            // thumbnail should reflect that even if the row already had one.
-            const userPicked = typeof post.cover_frame_index === 'number';
-            if (userPicked || !post.thumbnail_url) {
-                updatePayload.thumbnail_url = thumbPublicUrl;
-            }
-        }
         const {data:published,error:publishError}=await supa.from('social_posts').update(updatePayload).eq('id', post.id).or(NATIVE_WORKER_EXCLUSION).select('id');
         if(publishError || !published?.length) throw new Error('Native ownership changed; cron publication not committed');
+
+        // Only replace the fallback that the worker originally read. An
+        // author's cover edit while FFmpeg was running must win this race.
+        const frameSelected = typeof post.cover_frame_index === 'number';
+        const priorThumbnail = post.thumbnail_url;
+        if (thumbPublicUrl && !isCustomVideoCover(priorThumbnail) && (frameSelected || !priorThumbnail)) {
+            const fallback = supa.from('social_posts').update({ thumbnail_url: thumbPublicUrl })
+                .eq('id', post.id).or(NATIVE_WORKER_EXCLUSION);
+            const { error: thumbnailError } = await (priorThumbnail
+                ? fallback.eq('thumbnail_url', priorThumbnail)
+                : fallback.is('thumbnail_url', null));
+            if (thumbnailError) console.warn('[transcode] Fallback thumbnail not saved:', thumbnailError.message);
+        }
 
         await supa.from('social_reels')
             .update({ video_url: newPublicUrl })
