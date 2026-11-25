@@ -5,6 +5,12 @@
  * - Canonical "Train This Spot" links to real pages/hub/training/* routes
  */
 
+import {
+    TRAINING_SPOT_MAP,
+    DEFAULT_TRAINING_SPOT as CANONICAL_DEFAULT_TRAINING_SPOT,
+    getTrainingSpotForCategory,
+} from './trainingSpotMap.mjs';
+
 export const VALID_CHALLENGE_STAKES = Object.freeze([10, 25, 50, 100]);
 export const TRIVIA_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -12,27 +18,36 @@ export function isValidTriviaUuid(value) {
     return typeof value === 'string' && TRIVIA_UUID_RE.test(value.trim());
 }
 
-export const TRAINING_SPOT_BY_CATEGORY = Object.freeze({
-    gto_scenarios: Object.freeze({ label: 'Train GTO Spots', href: '/hub/training/spot-trainer' }),
-    gto_theory: Object.freeze({ label: 'Train GTO Theory', href: '/hub/training/gto-vs-exploitative' }),
-    icm_chip_ev: Object.freeze({ label: 'Train ICM & Chip EV', href: '/hub/training/icm-calculator' }),
-    mtt_situations: Object.freeze({ label: 'Train MTT Spots', href: '/hub/training/tournament-prep' }),
-    cash_game_situations: Object.freeze({ label: 'Train Cash Game Spots', href: '/hub/training/blind-defense' }),
-    rule_knowledge: Object.freeze({ label: 'Study Poker Rules Glossary', href: '/hub/training/glossary' }),
-    poker_history: Object.freeze({ label: 'Study Famous Finals', href: '/hub/training/famous-finals' }),
-    famous_hands: Object.freeze({ label: 'Review Famous Hands', href: '/hub/training/famous-finals' }),
-    player_profiles: Object.freeze({ label: 'Study Player Profiles', href: '/hub/training/player-profiles' }),
-    tournament_facts: Object.freeze({ label: 'Train Tournament Prep', href: '/hub/training/tournament-prep' }),
-});
+export const TRAINING_SPOT_BY_CATEGORY = Object.freeze(
+    Object.fromEntries(
+        Object.entries(TRAINING_SPOT_MAP).map(([category, spot]) => [
+            category,
+            Object.freeze({
+                label: spot.label,
+                href: spot.href,
+                specialty: spot.specialty,
+                categoryLabel: spot.categoryLabel,
+            }),
+        ])
+    )
+);
 
 export const DEFAULT_TRAINING_SPOT = Object.freeze({
-    label: 'Train This Spot',
-    href: '/hub/training/flashcards',
+    label: CANONICAL_DEFAULT_TRAINING_SPOT.label,
+    href: CANONICAL_DEFAULT_TRAINING_SPOT.href,
+    specialty: CANONICAL_DEFAULT_TRAINING_SPOT.specialty,
+    categoryLabel: CANONICAL_DEFAULT_TRAINING_SPOT.categoryLabel,
 });
 
 export function resolveTrainingSpotForCategory(category) {
     const key = String(category || '').trim().toLowerCase();
-    return TRAINING_SPOT_BY_CATEGORY[key] || DEFAULT_TRAINING_SPOT;
+    const spot = getTrainingSpotForCategory(key);
+    return TRAINING_SPOT_BY_CATEGORY[key] || {
+        label: spot.label,
+        href: spot.href,
+        specialty: spot.specialty,
+        categoryLabel: spot.categoryLabel,
+    };
 }
 
 export function escapeSvgText(value, maxLength = 64) {

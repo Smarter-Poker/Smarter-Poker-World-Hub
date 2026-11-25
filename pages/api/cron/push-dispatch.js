@@ -159,6 +159,7 @@ function currentSlot() {
 }
 
 async function handler(req, res) {
+    if (typeof res?.setHeader === 'function') res.setHeader('Cache-Control', 'private, no-store, max-age=0');
     let authed;
     try {
         authed = validateCronAuth(req);
@@ -183,7 +184,8 @@ async function handler(req, res) {
         if (String(runErr.code) === '23505' || /duplicate key/i.test(runErr.message || '')) {
             return res.status(200).json({ ok: true, skipped: 'slot_already_claimed', slot });
         }
-        return res.status(500).json({ error: runErr.message });
+        console.warn('[push-dispatch] slot claim failed:', runErr.message || runErr);
+        return res.status(500).json({ error: 'slot_claim_failed' });
     }
     const runId = runRow?.id || null;
 
@@ -231,7 +233,8 @@ async function handler(req, res) {
 
         if (claimErr) {
             await finish(`claim_failed:${claimErr.message}`);
-            return res.status(500).json({ error: claimErr.message });
+            console.warn('[push-dispatch] outbox claim failed:', claimErr.message || claimErr);
+            return res.status(500).json({ error: 'outbox_claim_failed' });
         }
 
         const claimedRows = batch || [];
@@ -598,7 +601,8 @@ async function handler(req, res) {
         return res.status(incomplete ? 503 : 200).json({ ok: !incomplete, ...stats, slot });
     } catch (e) {
         await finish(`threw:${e?.message || e}`);
-        return res.status(500).json({ error: e?.message || 'push-dispatch failed' });
+        console.warn('[push-dispatch] fatal:', e?.message || e);
+        return res.status(500).json({ error: 'push_dispatch_failed' });
     }
 }
 

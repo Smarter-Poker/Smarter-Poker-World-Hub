@@ -204,7 +204,7 @@ test('every Train This Spot mapping targets an existing pages/hub/training route
         const relPage = `pages${spot.href}.js`;
         assert.equal(existsSync(join(ROOT, relPage)), true, `${relPage} must exist for ${spot.href}`);
     }
-    assert.equal(resolveTrainingSpotForCategory('icm_chip_ev').href, '/hub/training/icm-calculator');
+    assert.equal(resolveTrainingSpotForCategory('icm_chip_ev').href, '/hub/training/icm-simulator');
     assert.equal(resolveTrainingSpotForCategory('unknown_cat').href, DEFAULT_TRAINING_SPOT.href);
 });
 

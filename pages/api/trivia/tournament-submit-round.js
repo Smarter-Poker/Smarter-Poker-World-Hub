@@ -159,6 +159,7 @@ async function claimMatchupSlot(sb, { round, userId, roundScore, roundTime, veri
 
 export default async function handler(req, res) {
     try {
+        res.setHeader('Cache-Control', 'private, no-store, max-age=0');
         if (req.method !== 'POST') {
             return res.status(405).json({ success: false, error: 'Method not allowed' });
         }

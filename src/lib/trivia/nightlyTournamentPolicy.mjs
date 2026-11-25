@@ -242,6 +242,10 @@ function projectSession(value) {
 
 function projectRoundHistory(value) {
     const out = pick(value, ['roundNumber', 'matchupId', 'result', 'decidedReason']);
+    if (own(value, 'sessionId')) {
+        const sid = uuidOrNull(value.sessionId);
+        if (sid) out.sessionId = sid;
+    }
     if (own(value, 'mine')) out.mine = value.mine == null ? null : projectSeat(value.mine);
     if (own(value, 'opponent')) out.opponent = value.opponent == null ? null : projectSeat(value.opponent);
     return out;

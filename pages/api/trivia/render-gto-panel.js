@@ -78,6 +78,7 @@ function clamp(text, max) {
 
 export default async function handler(req, res) {
   try {
+    res.setHeader('Cache-Control', 'private, no-store, max-age=0');
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
