@@ -39,6 +39,20 @@ import {
     sendablePhone,
 } from './dispatch.mjs';
 import { WELCOME_BACK_CODE, buildWelcomeBackOfferUrl } from './welcomeBackOffer.mjs';
+import { buildMastheadCrestUrl } from '../newsletter/emailImageProxy.mjs';
+import {
+    applyCampaignTelemetryEvent,
+    extractResendCampaignId,
+    mergeFinalCampaignErrorSummary,
+    parseCampaignTelemetrySummary,
+} from '../newsletter/campaignTelemetry.mjs';
+
+export {
+    extractResendCampaignId,
+    parseCampaignTelemetrySummary,
+    applyCampaignTelemetryEvent,
+    mergeFinalCampaignErrorSummary,
+};
 
 export const LIFECYCLE_CAMPAIGN_SUBJECT = '[Lifecycle] Automated Retention Triggers';
 export const LIFECYCLE_SUBJECT_PREFIX = '[Lifecycle]';
@@ -50,65 +64,6 @@ const HOUR_MS = 3_600_000;
 const DAY_MS = 86_400_000;
 const SYNTHETIC_USERNAME_RE = /^(?:deleted-|crest_cert_|postdeploy|reels_qa|trivia_canary|codex-)/i;
 const PERMANENT_SMS_ERROR_CODES = new Set([30004, 30005, 30006, 21211, 21610, 21614]);
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const TELEMETRY_TOKEN_RE = /(?:^|\s*\|\s*)telemetry:(\{[^{}]*\})\s*$/;
-
-export function extractResendCampaignId(tags) {
-    if (!tags) return null;
-    if (Array.isArray(tags)) {
-        for (const item of tags) {
-            const name = String(item?.name || '').trim().toLowerCase();
-            if (name === 'campaign_id') {
-                const val = String(item?.value || '').trim();
-                return UUID_RE.test(val) ? val.toLowerCase() : null;
-            }
-        }
-        return null;
-    }
-    if (typeof tags === 'object') {
-        const val = String(tags.campaign_id ?? tags.campaignId ?? '').trim();
-        return UUID_RE.test(val) ? val.toLowerCase() : null;
-    }
-    return null;
-}
-
-export function parseCampaignTelemetrySummary(errorSummary) {
-    const raw = String(errorSummary || '').trim();
-    if (!raw) {
-        return { opens: 0, clicks: 0, cleanErrorSummary: null };
-    }
-    const match = raw.match(TELEMETRY_TOKEN_RE);
-    if (!match) {
-        return { opens: 0, clicks: 0, cleanErrorSummary: raw };
-    }
-    let opens = 0;
-    let clicks = 0;
-    try {
-        const parsed = JSON.parse(match[1]);
-        opens = Math.max(0, Math.floor(Number(parsed?.opens || 0)));
-        clicks = Math.max(0, Math.floor(Number(parsed?.clicks || 0)));
-    } catch {
-        /* ignore malformed telemetry json */
-    }
-    const prefix = raw.slice(0, match.index).trim();
-    return {
-        opens,
-        clicks,
-        cleanErrorSummary: prefix || null,
-    };
-}
-
-export function applyCampaignTelemetryEvent(errorSummary, eventType) {
-    const current = parseCampaignTelemetrySummary(errorSummary);
-    const nextOpens = current.opens + (eventType === 'email.opened' ? 1 : 0);
-    const nextClicks = current.clicks + (eventType === 'email.clicked' ? 1 : 0);
-    const serialized = `telemetry:${JSON.stringify({ opens: nextOpens, clicks: nextClicks })}`;
-    return {
-        opens: nextOpens,
-        clicks: nextClicks,
-        errorSummary: current.cleanErrorSummary ? `${current.cleanErrorSummary} | ${serialized}` : serialized,
-    };
-}
 
 function escapeHtml(value) {
     return String(value == null ? '' : value)
@@ -264,8 +219,8 @@ export function renderLifecycleEmail({
             'Verify your mobile phone number in 30 seconds to activate full account security, unlock your Kings Club (Club Code 25450) seat in Club Arena, and enable instant player rewards.',
         ];
         ctaLabel = 'Verify Your Phone Number';
-        ctaUrl = `${cleanSite}/hub/verify-phone`;
-        secondaryNote = 'Once verified, enter Club Code 25450 inside Club Arena to join Kings Club immediately.';
+        ctaUrl = `${cleanSite}/hub/verify-phone?next=${encodeURIComponent('/hub/club-arena/?join=25450')}`;
+        secondaryNote = 'Once verified, you will enter Kings Club (Club Code 25450) inside Club Arena immediately.';
     } else if (trigger === 'welcome_back_21d') {
         badge = 'WELCOME-BACK OFFER';
         baseSubject = 'We Miss You At The Tables: Claim 25 Free Chips, 500 Diamonds & 1-Month VIP';
@@ -318,17 +273,21 @@ export function renderLifecycleEmail({
         }
     }
 
-    const finalSubject = subjectPrefix ? `${subjectPrefix} ${baseSubject}`.trim() : baseSubject;
+    const sanitizeCopy = (val) => String(val || '').replace(/[—–]/g, '-');
+    const finalSubject = sanitizeCopy(subjectPrefix ? `${subjectPrefix} ${baseSubject}`.trim() : baseSubject);
+    const cleanHeadline = sanitizeCopy(headline);
+    const cleanPreheader = sanitizeCopy(preheader);
     const safeUnsub = escapeHtml(unsubscribeUrl || `${cleanSite}/api/news/subscribe?unsubscribe=preview`);
     const safePrefs = escapeHtml(preferencesUrl || unsubscribeUrl || `${cleanSite}/hub/email-preferences`);
     const safeArchive = escapeHtml(`${cleanSite}/hub/wire`);
     const safeSite = escapeHtml(cleanSite);
     const safePostal = escapeHtml(cleanPostal);
+    const safeCrestUrl = escapeHtml(buildMastheadCrestUrl({ siteUrl: cleanSite }));
 
     const htmlParagraphs = paragraphs
         .map(
             (p) =>
-                `<p style="margin:0 0 16px 0;color:#d6e3f0;font-size:15px;line-height:1.62;">${escapeHtml(p)}</p>`
+                `<p style="margin:0 0 16px 0;color:#d6e3f0;font-size:15px;line-height:1.62;">${escapeHtml(sanitizeCopy(p))}</p>`
         )
         .join('');
 
@@ -340,13 +299,16 @@ export function renderLifecycleEmail({
 <title>${escapeHtml(finalSubject)}</title>
 </head>
 <body style="margin:0;padding:0;background:#05070a;color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-<div style="display:none;font-size:1px;color:#05070a;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">${escapeHtml(preheader)}&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;</div>
+<div style="display:none;font-size:1px;color:#05070a;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">${escapeHtml(cleanPreheader)}&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#05070a;">
 <tr><td align="center" style="padding:32px 14px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0b1118;border:1px solid #1b2c3d;border-radius:14px;">
 <tr><td style="padding:32px 28px;">
-<div style="color:#4fc1b3;font-size:12px;font-weight:800;letter-spacing:2.6px;text-transform:uppercase;">SMARTER.POKER &middot; ${escapeHtml(badge)}</div>
-<h1 style="margin:14px 0 18px 0;color:#ffffff;font-size:24px;line-height:1.28;font-weight:800;">${escapeHtml(headline)}</h1>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:6px;"><tr>
+<td valign="middle" style="padding-right:10px;"><img src="${safeCrestUrl}" alt="Smarter.Poker" width="32" height="32" style="display:block;width:32px;height:32px;border-radius:8px;border:0;" /></td>
+<td valign="middle"><div style="color:#4fc1b3;font-size:12px;font-weight:800;letter-spacing:2.6px;text-transform:uppercase;">SMARTER.POKER &middot; ${escapeHtml(badge)}</div></td>
+</tr></table>
+<h1 style="margin:14px 0 18px 0;color:#ffffff;font-size:24px;line-height:1.28;font-weight:800;">${escapeHtml(cleanHeadline)}</h1>
 ${htmlParagraphs}
 <div style="padding:8px 0 22px 0;">
 <a href="${escapeHtml(ctaUrl)}" style="display:inline-block;background:#4fc1b3;color:#041e1b;text-decoration:none;font-weight:800;font-size:15px;padding:14px 28px;border-radius:8px;">${escapeHtml(ctaLabel)}</a>
@@ -582,18 +544,24 @@ export async function runLifecycleRetention(
         }
     }
 
-    // 3. Load notification_preferences (mute_all)
+    // 3. Load notification_preferences (mute_all, marketing_enabled, email_enabled, sms_enabled)
+    const smsMutedUsers = new Set();
     try {
         const prefRows = await fetchPaged((offset, upper) =>
             supabase
                 .from('notification_preferences')
-                .select('user_id, mute_all')
+                .select('user_id, mute_all, marketing_enabled, email_enabled, sms_enabled')
                 .order('user_id', { ascending: true })
                 .range(offset, upper)
         );
         for (const pref of prefRows) {
-            if (pref?.user_id && pref.mute_all === true) {
-                suppressedUsers.add(String(pref.user_id));
+            if (!pref?.user_id) continue;
+            const uid = String(pref.user_id);
+            if (pref.mute_all === true || pref.marketing_enabled === false || pref.email_enabled === false) {
+                suppressedUsers.add(uid);
+            }
+            if (pref.mute_all === true || pref.marketing_enabled === false || pref.sms_enabled === false) {
+                smsMutedUsers.add(uid);
             }
         }
     } catch (_prefErr) {
@@ -628,7 +596,7 @@ export async function runLifecycleRetention(
         // Non-fatal in lightweight test mocks.
     }
 
-    // 5. Load Welcome-Back promo redemptions (both canonical and legacy code aliases)
+    // 5. Load Welcome-Back promo redemptions (both canonical and legacy code aliases, completed claims only)
     const redeemedWelcomeBackUsers = new Set();
     try {
         const { data: codeRows } = await supabase
@@ -641,16 +609,79 @@ export async function runLifecycleRetention(
             const redemptions = await fetchPaged((offset, upper) =>
                 supabase
                     .from('promo_code_redemptions')
-                    .select('id, promo_code_id, user_id')
+                    .select('id, promo_code_id, user_id, reward_applied')
                     .in('promo_code_id', codeIds.slice(i, i + IN_BATCH_SIZE))
                     .order('id', { ascending: true })
                     .range(offset, upper)
             );
             for (const r of redemptions) {
-                if (r?.user_id) redeemedWelcomeBackUsers.add(String(r.user_id));
+                if (r?.user_id && r?.reward_applied) {
+                    redeemedWelcomeBackUsers.add(String(r.user_id));
+                }
             }
         }
     } catch (_redeemErr) {
+        // Non-fatal in lightweight test mocks.
+    }
+
+    // 5b. Load Club Arena, browser-binding, and GTO training activity so 21-day dormancy
+    // matches `inspectWelcomeBackOfferStatus` (`welcomeBackOffer.mjs`) 100%.
+    const clubActivityByUser = new Map();
+    const browserSeenByUser = new Map();
+    const trainingSeenByUser = new Map();
+    try {
+        const clubMembers = await fetchPaged(
+            (offset, upper) =>
+                supabase
+                    .from('club_members')
+                    .select('user_id, is_bot, last_active_at, last_active')
+                    .order('user_id', { ascending: true })
+                    .range(offset, upper),
+            25000
+        );
+        for (const m of clubMembers) {
+            if (!m?.user_id || m.is_bot === true) continue;
+            const uid = String(m.user_id);
+            const ts = Math.max(parseTimestampMs(m.last_active_at), parseTimestampMs(m.last_active));
+            clubActivityByUser.set(uid, Math.max(clubActivityByUser.get(uid) || 0, ts));
+        }
+    } catch (_clubErr) {
+        // Non-fatal in lightweight test mocks.
+    }
+    try {
+        const bindings = await fetchPaged(
+            (offset, upper) =>
+                supabase
+                    .from('ca_browser_bindings')
+                    .select('user_id, last_seen')
+                    .order('user_id', { ascending: true })
+                    .range(offset, upper),
+            25000
+        );
+        for (const b of bindings) {
+            if (!b?.user_id) continue;
+            const uid = String(b.user_id);
+            browserSeenByUser.set(uid, Math.max(browserSeenByUser.get(uid) || 0, parseTimestampMs(b.last_seen)));
+        }
+    } catch (_bindErr) {
+        // Non-fatal in lightweight test mocks.
+    }
+    try {
+        const trainingRows = await fetchPaged(
+            (offset, upper) =>
+                supabase
+                    .from('training_progress')
+                    .select('user_id, last_played_at')
+                    .order('user_id', { ascending: true })
+                    .range(offset, upper),
+            25000
+        );
+        for (const t of trainingRows) {
+            if (!t?.user_id) continue;
+            const uid = String(t.user_id);
+            trainingSeenByUser.set(uid, Math.max(trainingSeenByUser.get(uid) || 0, parseTimestampMs(t.last_played_at)));
+        }
+    } catch (_trainErr) {
         // Non-fatal in lightweight test mocks.
     }
 
@@ -702,7 +733,13 @@ export async function runLifecycleRetention(
 
         const createdMs = parseTimestampMs(p?.created_at);
         const lastActiveMs = parseTimestampMs(p?.last_active);
-        const lastTouchMs = Math.max(createdMs, lastActiveMs);
+        const lastTouchMs = Math.max(
+            createdMs,
+            lastActiveMs,
+            clubActivityByUser.get(id) || 0,
+            browserSeenByUser.get(id) || 0,
+            trainingSeenByUser.get(id) || 0
+        );
 
         // Trigger 1: unverified_48h (48h..14d since signup, phone_verified !== true, once-ever)
         if (p?.phone_verified !== true && createdMs > 0) {
@@ -741,7 +778,8 @@ export async function runLifecycleRetention(
                 if (!markers90d.has(marker)) {
                     eligibleTotals.welcome_back_21d += 1;
                     if (queues.welcome_back_21d.length < cap) {
-                        const candidatePhone = p?.phone_verified === true ? sendablePhone(p?.phone) : null;
+                        const candidatePhone =
+                            p?.phone_verified === true && !smsMutedUsers.has(id) ? sendablePhone(p?.phone) : null;
                         const smsPhone =
                             candidatePhone &&
                             !suppressedPhones.has(candidatePhone) &&
@@ -883,6 +921,7 @@ export async function runLifecycleRetention(
 
     // Create audit row in newsletter_campaigns before sending so campaign_id tags attach cleanly
     const plannedMarkers = dueCandidates.map((c) => c.markerUuid);
+    const startedIso = new Date(nowMs).toISOString();
     const { data: campaignRow, error: insertErr } = await supabase
         .from('newsletter_campaigns')
         .insert({
@@ -895,6 +934,7 @@ export async function runLifecycleRetention(
             recipient_count: dueCandidates.length,
             sent_count: 0,
             failed_count: 0,
+            started_at: startedIso,
             created_by: createdBy || null,
         })
         .select('id')
@@ -976,6 +1016,17 @@ export async function runLifecycleRetention(
     const completedIso = new Date().toISOString();
 
     if (campaignId) {
+        let existingErrSummary = null;
+        try {
+            const { data: latestRow } = await supabase
+                .from('newsletter_campaigns')
+                .select('error_summary')
+                .eq('id', campaignId)
+                .maybeSingle();
+            existingErrSummary = latestRow?.error_summary || null;
+        } catch {
+            /* preserve send errors if readback unavailable */
+        }
         await supabase
             .from('newsletter_campaigns')
             .update({
@@ -983,7 +1034,7 @@ export async function runLifecycleRetention(
                 article_ids: recordedMarkers,
                 sent_count: totalSent,
                 failed_count: totalFailed,
-                error_summary: errors.length > 0 ? errors.join(' | ').slice(0, 1000) : null,
+                error_summary: mergeFinalCampaignErrorSummary(existingErrSummary, errors),
                 completed_at: completedIso,
                 updated_at: completedIso,
             })

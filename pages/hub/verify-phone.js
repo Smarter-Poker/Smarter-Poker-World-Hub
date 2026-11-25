@@ -59,16 +59,37 @@ export default function VerifyPhonePage() {
     // own pending invite, if any, is where the player continues to.
     const [pendingNext, setPendingNext] = useState(null);
     const nextPath = queryNext || pendingNext;
-    const selfPath = `/hub/verify-phone${isWelcome ? '?welcome=1' : ''}${queryNext ? `${isWelcome ? '&' : '?'}next=${encodeURIComponent(queryNext)}` : ''}`;
+    const safePtShape = (raw) => {
+        if (typeof cleanPromoTokenShape === 'function') return cleanPromoTokenShape(raw);
+        const val = typeof raw === 'string' ? raw.trim() : '';
+        return /^[A-Za-z0-9_-]{8,256}\.[A-Za-z0-9_-]{16,128}$/.test(val) ? val : null;
+    };
+    const readPtFromSearch = (searchStr) => {
+        if (typeof searchStr !== 'string' || !searchStr) return null;
+        const m = searchStr.match(/(?:^\?|&)pt=([^&#]+)/);
+        if (!m) return null;
+        try { return safePtShape(decodeURIComponent(m[1])); } catch { return null; }
+    };
+    const rawQueryPt = Array.isArray(router.query?.pt) ? router.query.pt[0] : router.query?.pt;
+    const initialPt = safePtShape(rawQueryPt) || (
+        typeof window !== 'undefined' ? readPtFromSearch(window.location?.search) : null
+    );
+    const selfParts = [];
+    if (isWelcome) selfParts.push('welcome=1');
+    if (queryNext) selfParts.push(`next=${encodeURIComponent(queryNext)}`);
+    if (initialPt) selfParts.push(`pt=${encodeURIComponent(initialPt)}`);
+    const selfPath = `/hub/verify-phone${selfParts.length ? `?${selfParts.join('&')}` : ''}`;
 
     useEffect(() => {
         try {
-            const rawPt = Array.isArray(router.query?.pt) ? router.query.pt[0] : router.query?.pt;
-            if (rawPt && typeof rememberPromoSignupToken === 'function') {
-                rememberPromoSignupToken(rawPt);
+            const candidatePt = initialPt || (
+                typeof window !== 'undefined' ? readPtFromSearch(window.location?.search) : null
+            );
+            if (candidatePt && typeof rememberPromoSignupToken === 'function') {
+                rememberPromoSignupToken(candidatePt);
             }
         } catch (_ptErr) { /* non-blocking */ }
-    }, [router.query?.pt]);
+    }, [initialPt]);
 
     // The repo's guard: resolves the session through every recovery layer
     // and only bounces to /auth/login when the player really is signed out.

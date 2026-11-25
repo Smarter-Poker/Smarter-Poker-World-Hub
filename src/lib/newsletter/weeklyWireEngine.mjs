@@ -814,7 +814,8 @@ export async function resolveWeeklyWireRecipients(
     } = {}
 ) {
     const suppressedEmails = new Set();
-    const emailMutedUsers = new Set();
+    const hardEmailMutedUsers = new Set();
+    const marketingDisabledUsers = new Set();
     const alreadyClaimedWbUsers = new Set();
 
     const inactiveSubs = await fetchPaged((from, to) =>
@@ -834,14 +835,18 @@ export async function resolveWeeklyWireRecipients(
         const prefs = await fetchPaged((from, to) =>
             sb
                 .from('notification_preferences')
-                .select('user_id, mute_all')
+                .select('user_id, mute_all, marketing_enabled, email_enabled')
                 .order('user_id', { ascending: true })
                 .range(from, to)
         );
         for (const p of prefs) {
             if (!p?.user_id) continue;
-            if (p.mute_all === true || p.marketing_enabled === false || p.email_enabled === false) {
-                emailMutedUsers.add(String(p.user_id));
+            const uid = String(p.user_id);
+            if (p.mute_all === true || p.email_enabled === false) {
+                hardEmailMutedUsers.add(uid);
+            }
+            if (p.marketing_enabled === false) {
+                marketingDisabledUsers.add(uid);
             }
         }
     } catch {
@@ -849,22 +854,23 @@ export async function resolveWeeklyWireRecipients(
     }
 
     try {
-        const { data: wbCode } = await sb
+        const { data: wbCodes } = await sb
             .from('promo_codes')
             .select('id, code')
-            .eq('code', WELCOME_BACK_CODE)
-            .maybeSingle();
-        if (wbCode?.id) {
+            .in('code', [WELCOME_BACK_CODE, 'sp_welcome_back_202611']);
+        const wbCodeIds = (wbCodes || []).map((r) => r?.id).filter(Boolean);
+        if (wbCodeIds.length > 0) {
+            // in-list: bounded by welcome-back code variants (<= 2)
             const redemptions = await fetchPaged((from, to) =>
                 sb
                     .from('promo_code_redemptions')
-                    .select('id, promo_code_id, user_id')
-                    .eq('promo_code_id', wbCode.id)
+                    .select('id, promo_code_id, user_id, reward_applied')
+                    .in('promo_code_id', wbCodeIds.slice(0, 10))
                     .order('id', { ascending: true })
                     .range(from, to)
             );
             for (const r of redemptions) {
-                if (r?.user_id && r.reward_applied !== false) alreadyClaimedWbUsers.add(String(r.user_id));
+                if (r?.user_id && r?.reward_applied) alreadyClaimedWbUsers.add(String(r.user_id));
             }
         }
     } catch {
@@ -911,12 +917,14 @@ export async function resolveWeeklyWireRecipients(
     }
 
     const clubActivityByUser = new Map();
+    const browserSeenByUser = new Map();
+    const trainingSeenByUser = new Map();
     try {
         const clubRows = await fetchPaged(
             (from, to) =>
                 sb
                     .from('club_members')
-                    .select('user_id, is_bot, last_active_at')
+                    .select('user_id, is_bot, last_active_at, last_active')
                     .order('user_id', { ascending: true })
                     .range(from, to),
             25000
@@ -925,6 +933,42 @@ export async function resolveWeeklyWireRecipients(
             if (!m?.user_id || m.is_bot === true) continue;
             const uid = String(m.user_id);
             clubActivityByUser.set(uid, Math.max(clubActivityByUser.get(uid) || 0, maxTs(m.last_active_at, m.last_active)));
+        }
+    } catch {
+        /* optional in mocks */
+    }
+    try {
+        const bindings = await fetchPaged(
+            (from, to) =>
+                sb
+                    .from('ca_browser_bindings')
+                    .select('user_id, last_seen')
+                    .order('user_id', { ascending: true })
+                    .range(from, to),
+            25000
+        );
+        for (const b of bindings) {
+            if (!b?.user_id) continue;
+            const uid = String(b.user_id);
+            browserSeenByUser.set(uid, Math.max(browserSeenByUser.get(uid) || 0, maxTs(b.last_seen)));
+        }
+    } catch {
+        /* optional in mocks */
+    }
+    try {
+        const trainingRows = await fetchPaged(
+            (from, to) =>
+                sb
+                    .from('training_progress')
+                    .select('user_id, last_played_at')
+                    .order('user_id', { ascending: true })
+                    .range(from, to),
+            25000
+        );
+        for (const t of trainingRows) {
+            if (!t?.user_id) continue;
+            const uid = String(t.user_id);
+            trainingSeenByUser.set(uid, Math.max(trainingSeenByUser.get(uid) || 0, maxTs(t.last_played_at)));
         }
     } catch {
         /* optional in mocks */
@@ -951,7 +995,9 @@ export async function resolveWeeklyWireRecipients(
             p.last_active,
             authUser?.created_at,
             authUser?.last_sign_in_at,
-            clubActivityByUser.get(id) || 0
+            clubActivityByUser.get(id) || 0,
+            browserSeenByUser.get(id) || 0,
+            trainingSeenByUser.get(id) || 0
         );
         const isInactive21d = lastTouchMs < cutoffMs && !alreadyClaimedWbUsers.has(id);
         const referralCode = formatValidSignupReferralCode(
@@ -959,7 +1005,8 @@ export async function resolveWeeklyWireRecipients(
         );
         accountByEmail.set(cleanEmail, {
             userId: id,
-            muted: emailMutedUsers.has(id),
+            hardMuted: hardEmailMutedUsers.has(id),
+            muted: hardEmailMutedUsers.has(id) || marketingDisabledUsers.has(id),
             segment: isInactive21d ? 'inactive_21d' : 'active_member',
             username: uname,
             diamonds: Number(p?.diamonds || 0),
@@ -989,14 +1036,18 @@ export async function resolveWeeklyWireRecipients(
             droppedInvalid += 1;
             continue;
         }
-        const snoozedUntilMs = parseSnoozeUntilMs(row?.source);
+        const rawSource = String(row?.source || '').trim();
+        const snoozedUntilMs = parseSnoozeUntilMs(rawSource);
         if (snoozedUntilMs > nowMs) {
             suppressedEmails.add(clean);
             continue;
         }
         if (suppressedEmails.has(clean) || recipientsMap.has(clean)) continue;
         const acct = accountByEmail.get(clean);
-        if (acct?.muted) continue;
+        // If subscriber explicitly chose `pref:wire_only` or `pref:all` in Email Preferences,
+        // `marketing_enabled === false` only suppresses promo/lifecycle blasts while Weekly Wire stays active.
+        const explicitWireOptIn = rawSource === 'pref:wire_only' || rawSource === 'pref:all';
+        if (acct && (explicitWireOptIn ? acct.hardMuted : acct.muted)) continue;
         const segment = acct ? acct.segment : 'non_account';
         recipientsMap.set(clean, {
             email: clean,
