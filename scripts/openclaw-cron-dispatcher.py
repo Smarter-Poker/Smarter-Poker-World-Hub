@@ -1243,16 +1243,364 @@ def _trivia_nightly_reminder_dispatch(now_utc=None):
             return None
         payload = resp.json() if hasattr(resp, 'json') else {}
         dispatched = int((payload or {}).get('dispatched_count') or 0)
+        in_app_created = int((payload or {}).get('in_app_notifications_created') or 0)
+        push_handoff = int((payload or {}).get('push_handoff_count') or 0)
+        push_status = (payload or {}).get('push_outbox_status')
         skipped_reason = (payload or {}).get('skipped_reason')
         tournament_id = (payload or {}).get('tournament_id')
         log.info(
-            '[trivia-nightly-reminders] dispatched_count=%s tournament_id=%s skipped_reason=%s',
-            dispatched, tournament_id, skipped_reason,
+            '[trivia-nightly-reminders] dispatched_count=%s in_app_created=%s push_handoff_count=%s push_outbox_status=%s tournament_id=%s skipped_reason=%s',
+            dispatched, in_app_created, push_handoff, push_status, tournament_id, skipped_reason,
         )
         return payload
     except Exception as exc:
         log.warning(f'[trivia-nightly-reminders] non-fatal dispatch error ({type(exc).__name__}): {exc}')
         return None
+
+
+# ─── Wave 3 Track 1 (2026-11-25): Sanitized Realtime Broadcasts on Nightly ───
+# Emits strictly sanitized, answer-free state-change broadcasts to Supabase
+# Realtime (`POST ${SUPABASE_URL}/realtime/v1/api/broadcast`) on channel
+# `trivia:tournament:${tournament_id}` whenever the nightly tick opens live
+# play, advances a round, resolves live matchups, or settles a tournament.
+# Hard 1.5s timeout, fail-safe (never raises or blocks tournament advancement),
+# and explicitly refuses any answer key, horse plan, secret, or private PII.
+TRIVIA_RT_BROADCAST_TIMEOUT_SECONDS = 1.5
+TRIVIA_RT_STATE_READ_TIMEOUT_SECONDS = 2.0
+TRIVIA_RT_MAX_TRACKED_TOURNAMENTS = 16
+TRIVIA_RT_ID_RE = re.compile(r'^[A-Za-z0-9_-]{3,128}$')
+TRIVIA_RT_TOKEN_RE = re.compile(r'^[A-Za-z0-9_:-]{1,64}$')
+TRIVIA_RT_FORBIDDEN_KEYS = frozenset({
+    'correct_index',
+    'correctindex',
+    'chosen_original_index',
+    'chosenoriginalindex',
+    'planned_correct',
+    'plannedcorrect',
+    'horse_plan',
+    'horseplan',
+    'horse_plan_key',
+    'horseplankey',
+    'permutations',
+    'revision_id',
+    'revisionid',
+    'seed_secret',
+    'seedsecret',
+    'secret',
+    'answer',
+    'answers',
+    'correct_answer',
+    'correctanswer',
+    'explanation',
+    'opponent_score',
+    'opponentscore',
+    'opponent_answers',
+    'opponentanswers',
+    'token',
+    'access_token',
+    'accesstoken',
+    'password',
+    'email',
+    'phone',
+    'service_role_key',
+    'servicerolekey',
+    'apikey',
+    'user_id',
+    'userid',
+    'users',
+    'entrants',
+    'players',
+})
+TRIVIA_RT_EVENT_MAP = {
+    'tournament_update': 'tournament_update',
+    'live_opened': 'tournament_update',
+    'tournament_started': 'tournament_update',
+    'round_update': 'round_update',
+    'round_advanced': 'round_update',
+    'round_opened': 'round_update',
+    'bracket_update': 'bracket_update',
+    'matchup_resolved': 'bracket_update',
+    'settlement_update': 'settlement_update',
+    'settled': 'settlement_update',
+    'settling': 'settlement_update',
+    'tournament_settled': 'settlement_update',
+}
+_trivia_rt_last_seq = 0
+_trivia_tournament_rt_state = {}
+
+
+def _next_trivia_rt_seq(now_ms=None):
+    """Return strictly increasing positive integer sequence for Realtime dedupe."""
+    global _trivia_rt_last_seq
+    candidate = int(now_ms) if isinstance(now_ms, (int, float)) and now_ms > 0 else int(time.time() * 1000)
+    if candidate <= _trivia_rt_last_seq:
+        candidate = _trivia_rt_last_seq + 1
+    _trivia_rt_last_seq = candidate
+    return candidate
+
+
+def _find_forbidden_trivia_rt_keys(value, prefix='', depth=0):
+    """Recursively scan nested structures for answer/secret/PII keys."""
+    if depth > 8 or value is None:
+        return []
+    hits = []
+    if isinstance(value, dict):
+        for k, v in value.items():
+            key_str = str(k)
+            path = f'{prefix}.{key_str}' if prefix else key_str
+            if key_str.lower() in TRIVIA_RT_FORBIDDEN_KEYS:
+                hits.append(path)
+            if isinstance(v, (dict, list, tuple)):
+                hits.extend(_find_forbidden_trivia_rt_keys(v, path, depth + 1))
+    elif isinstance(value, (list, tuple)):
+        for idx, item in enumerate(value):
+            if isinstance(item, (dict, list, tuple)):
+                hits.extend(_find_forbidden_trivia_rt_keys(item, f'{prefix}[{idx}]', depth + 1))
+    return hits
+
+
+def _sanitize_trivia_realtime_payload(tournament_id, state, current_round, event_type, seq=None, updated_at=None, extra=None):
+    """Build strictly sanitized, answer-free state_change broadcast payload.
+
+    Returns `(topic, broadcast_event, payload)` or `None` if any input is
+    malformed or contains forbidden answer/PII/secret keys.
+    """
+    if extra is not None and _find_forbidden_trivia_rt_keys(extra):
+        return None
+    if not isinstance(tournament_id, str):
+        return None
+    clean_tid = tournament_id.strip()
+    if not TRIVIA_RT_ID_RE.match(clean_tid):
+        return None
+
+    clean_state = state.strip() if isinstance(state, str) else ''
+    if not clean_state or not TRIVIA_RT_TOKEN_RE.match(clean_state):
+        return None
+
+    clean_event = event_type.strip() if isinstance(event_type, str) else ''
+    if not clean_event or not TRIVIA_RT_TOKEN_RE.match(clean_event):
+        return None
+
+    clean_round = None
+    if current_round is not None and not isinstance(current_round, bool):
+        try:
+            round_int = int(current_round)
+            if round_int >= 0:
+                clean_round = round_int
+        except (TypeError, ValueError):
+            return None
+    elif isinstance(current_round, bool):
+        return None
+
+    resolved_seq = int(seq) if isinstance(seq, int) and not isinstance(seq, bool) and seq > 0 else _next_trivia_rt_seq()
+    resolved_updated_at = (
+        updated_at.strip()[:48]
+        if isinstance(updated_at, str) and updated_at.strip()
+        else datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
+    )
+    broadcast_event = TRIVIA_RT_EVENT_MAP.get(clean_event.lower(), 'tournament_update')
+    payload = {
+        'type': 'state_change',
+        'seq': resolved_seq,
+        'entityId': clean_tid,
+        'state': clean_state,
+        'currentRound': clean_round,
+        'eventType': clean_event,
+        'updatedAt': resolved_updated_at,
+    }
+    if _find_forbidden_trivia_rt_keys(payload):
+        return None
+    return (f'trivia:tournament:{clean_tid}', broadcast_event, payload)
+
+
+def _emit_trivia_tournament_realtime_broadcast(tournament_id, state, current_round, event_type):
+    """Fail-safe Supabase Realtime HTTP Broadcast for sanitized nightly transitions.
+
+    Posts ONLY answer-free, PII-free state signals to
+    `${SUPABASE_URL}/realtime/v1/api/broadcast` on channel
+    `trivia:tournament:${tournament_id}` with a 1.5s timeout. Never raises.
+    """
+    try:
+        sanitized = _sanitize_trivia_realtime_payload(tournament_id, state, current_round, event_type)
+        if sanitized is None:
+            return {'ok': False, 'sent': 0, 'status': 0, 'reason': 'invalid_payload'}
+        topic, broadcast_event, payload = sanitized
+
+        sb_url = (os.environ.get('NEXT_PUBLIC_SUPABASE_URL') or os.environ.get('SUPABASE_URL') or '').strip().rstrip('/')
+        sb_key = (os.environ.get('SUPABASE_SERVICE_ROLE_KEY') or '').strip()
+        if not sb_url or not sb_key:
+            return {
+                'ok': False,
+                'sent': 0,
+                'status': 0,
+                'reason': 'broadcast_unconfigured',
+                'topic': topic,
+                'event': broadcast_event,
+                'payload': payload,
+            }
+
+        resp = requests.post(
+            f'{sb_url}/realtime/v1/api/broadcast',
+            headers={
+                'Content-Type': 'application/json',
+                'apikey': sb_key,
+                'Authorization': f'Bearer {sb_key}',
+            },
+            json={
+                'messages': [
+                    {
+                        'topic': topic,
+                        'event': broadcast_event,
+                        'payload': payload,
+                    }
+                ]
+            },
+            timeout=TRIVIA_RT_BROADCAST_TIMEOUT_SECONDS,
+        )
+        ok = 200 <= int(getattr(resp, 'status_code', 0) or 0) < 300
+        if not ok:
+            log.warning(
+                '[trivia-realtime-broadcast] HTTP %s for topic=%s event=%s',
+                getattr(resp, 'status_code', 0), topic, broadcast_event,
+            )
+        return {
+            'ok': ok,
+            'sent': 1 if ok else 0,
+            'status': int(getattr(resp, 'status_code', 0) or 0),
+            'reason': 'sent' if ok else 'http_error',
+            'topic': topic,
+            'event': broadcast_event,
+            'payload': payload,
+        }
+    except Exception as exc:
+        log.warning(f'[trivia-realtime-broadcast] non-fatal error ({type(exc).__name__}): {exc}')
+        return {
+            'ok': False,
+            'sent': 0,
+            'status': 0,
+            'reason': 'timeout' if isinstance(exc, TimeoutError) else 'network_error',
+        }
+
+
+def _detect_trivia_tournament_transitions(prev_state_map, tournaments, tick_payload=None):
+    """Pure transition detector comparing previous state against tick/DB rows.
+
+    Returns a list of `(tournament_id, state, current_round, event_type)` tuples
+    for live openings, round advancements, matchup resolutions, and settlements,
+    and updates `prev_state_map` in place (bounded to 16 entries).
+    """
+    transitions = []
+    emitted_keys = set()
+    actions = (tick_payload or {}).get('actions') if isinstance(tick_payload, dict) else None
+    if not isinstance(actions, dict):
+        actions = {}
+
+    row_by_id = {}
+    for row in (tournaments or []):
+        if not isinstance(row, dict):
+            continue
+        tid = str(row.get('id') or '').strip()
+        if not tid or not TRIVIA_RT_ID_RE.match(tid):
+            continue
+        state = str(row.get('lifecycle_state') or '').strip()
+        raw_round = row.get('current_round')
+        cur_round = int(raw_round) if isinstance(raw_round, int) and not isinstance(raw_round, bool) and raw_round >= 0 else 0
+        row_by_id[tid] = (state, cur_round)
+
+    def _queue(tid, state, cur_round, event_type):
+        key = (tid, event_type)
+        if key not in emitted_keys:
+            emitted_keys.add(key)
+            transitions.append((tid, state, cur_round, event_type))
+
+    # 1. Explicit tick action signals (start:<tid>, settle:<tid>)
+    for action_key in actions.keys():
+        if not isinstance(action_key, str) or ':' not in action_key:
+            continue
+        prefix, tid = action_key.split(':', 1)
+        tid = tid.strip()
+        if not TRIVIA_RT_ID_RE.match(tid):
+            continue
+        state, cur_round = row_by_id.get(tid, ('', None))
+        if prefix == 'start':
+            _queue(tid, state or 'live', cur_round if cur_round is not None else 1, 'tournament_update')
+        elif prefix == 'settle':
+            _queue(tid, state or 'settled', cur_round, 'settlement_update')
+
+    # 2. Authoritative state/round diff against previous tick observation
+    resolved_count = 0
+    try:
+        resolved_count = int(actions.get('resolved') or 0)
+    except (TypeError, ValueError):
+        resolved_count = 0
+
+    for tid, (cur_state, cur_round) in row_by_id.items():
+        if not cur_state:
+            continue
+        prev = prev_state_map.get(tid)
+        if prev is not None:
+            prev_state, prev_round = prev
+            if prev_state != 'live' and cur_state == 'live':
+                _queue(tid, cur_state, cur_round, 'tournament_update')
+            elif cur_state == 'live' and cur_round > prev_round:
+                _queue(tid, cur_state, cur_round, 'round_update')
+            elif prev_state != cur_state and cur_state in ('settling', 'settled'):
+                _queue(tid, cur_state, cur_round, 'settlement_update')
+            elif cur_state == 'live' and resolved_count > 0:
+                _queue(tid, cur_state, cur_round, 'bracket_update')
+        elif cur_state == 'live' and resolved_count > 0:
+            _queue(tid, cur_state, cur_round, 'bracket_update')
+
+        prev_state_map[tid] = (cur_state, cur_round)
+
+    # Bound in-memory state tracker
+    while len(prev_state_map) > TRIVIA_RT_MAX_TRACKED_TOURNAMENTS:
+        oldest_key = next(iter(prev_state_map))
+        prev_state_map.pop(oldest_key, None)
+
+    return transitions
+
+
+def _trivia_nightly_sync_and_broadcast_transitions(tick_payload=None):
+    """Read-only post-tick state check emitting sanitized Realtime broadcasts."""
+    try:
+        if isinstance(tick_payload, dict) and tick_payload.get('owner') is False:
+            return []
+        sb_url = (os.environ.get('NEXT_PUBLIC_SUPABASE_URL') or os.environ.get('SUPABASE_URL') or '').strip().rstrip('/')
+        sb_key = (os.environ.get('SUPABASE_SERVICE_ROLE_KEY') or '').strip()
+        rows = []
+        if sb_url and sb_key:
+            try:
+                r = requests.get(
+                    f'{sb_url}/rest/v1/trivia_tournaments',
+                    params={
+                        'schedule_kind': 'eq.public_nightly',
+                        'select': 'id,lifecycle_state,current_round',
+                        'order': 'start_time.desc',
+                        'limit': '4',
+                    },
+                    headers={
+                        'apikey': sb_key,
+                        'Authorization': f'Bearer {sb_key}',
+                        'Accept': 'application/json',
+                    },
+                    timeout=TRIVIA_RT_STATE_READ_TIMEOUT_SECONDS,
+                )
+                if int(getattr(r, 'status_code', 0) or 0) == 200 and hasattr(r, 'json'):
+                    parsed = r.json()
+                    if isinstance(parsed, list):
+                        rows = parsed
+            except Exception as read_exc:
+                log.warning(f'[trivia-realtime-broadcast] non-fatal state read error ({type(read_exc).__name__}): {read_exc}')
+
+        transitions = _detect_trivia_tournament_transitions(_trivia_tournament_rt_state, rows, tick_payload)
+        results = []
+        for tid, state, cur_round, event_type in transitions:
+            results.append(_emit_trivia_tournament_realtime_broadcast(tid, state, cur_round, event_type))
+        return results
+    except Exception as exc:
+        log.warning(f'[trivia-realtime-broadcast] non-fatal transition sync error ({type(exc).__name__}): {exc}')
+        return []
 
 
 # Host-portability (2026-08-29). SCRAPER_PY used to resolve only against
@@ -1774,6 +2122,15 @@ def fire_cron(path: str):
         if resp.status_code == 200:
             log.info(f'✅ {path} → {target_label} {resp.status_code} [{elapsed}s]')
             _critical_record(path, True)
+            if path == TRIVIA_NIGHTLY_TOURNAMENT_JOB:
+                try:
+                    tick_payload = resp.json() if hasattr(resp, 'json') else None
+                except Exception:
+                    tick_payload = None
+                try:
+                    _trivia_nightly_sync_and_broadcast_transitions(tick_payload)
+                except Exception as rt_exc:
+                    log.warning(f'[trivia-realtime-broadcast] non-fatal post-tick hook error ({type(rt_exc).__name__}): {rt_exc}')
         else:
             log.warning(f'⚠️ {path} → {target_label} {resp.status_code} [{elapsed}s]: {resp.text[:200]}')
             _critical_record(path, False, f'HTTP {resp.status_code} {resp.text[:120]}')
