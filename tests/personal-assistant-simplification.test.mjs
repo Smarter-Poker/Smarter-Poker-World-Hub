@@ -265,7 +265,7 @@ test('Phase 3 anti-regression fortress: every audited bug is hard-coded fixed an
   assert.match(coachingApiSrc, /activeAuditRunning/, 'coaching API must emit activeAuditRunning on snapshot');
 
   const statsApiSrc = fs.readFileSync(path.resolve('pages/api/assistant/stats.js'), 'utf8');
-  assert.match(statsApiSrc, /from\('ca_hand_facts'\)/, 'stats API must report availableClubArenaHands');
+  assert.match(statsApiSrc, /from\('ca_hand_facts'\)\s*\.select\('hand_id'/, 'stats API must select real ca_hand_facts.hand_id column (not phantom id)');
   assert.match(statsApiSrc, /availableClubArenaHands/, 'stats API must expose availableClubArenaHands for Home Analyze My Play state');
 
   const useAssistantSrc = fs.readFileSync(path.resolve('src/hooks/useAssistant.js'), 'utf8');

@@ -73,7 +73,7 @@ export default async function handler(req, res) {
         getLeakStats(userId),
         getSupabase()
           .from('ca_hand_facts')
-          .select('id', { count: 'exact', head: true })
+          .select('hand_id', { count: 'exact', head: true })
           .eq('user_id', userId),
       ]);
 
