@@ -41,6 +41,35 @@ function fmtTime(value) {
     return Number.isNaN(date.getTime()) ? '-' : date.toLocaleString();
 }
 
+const BURNIN_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const BURNIN_SLO_LABELS = [
+    ['horse_target_exact', 'Horse Fill'],
+    ['start_within_60s', 'Start'],
+    ['all_charged_in_bracket', 'Bracket'],
+    ['within_event_budget', 'Budget'],
+    ['settlement_within_slo', 'Settle'],
+    ['zero_escrow_and_variance', 'Escrow'],
+];
+
+function fmtBurnInDate(isoDate) {
+    if (typeof isoDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) return '-';
+    const [, monthStr, dayStr] = isoDate.split('-');
+    const month = BURNIN_MONTHS[Number.parseInt(monthStr, 10) - 1];
+    const day = Number.parseInt(dayStr, 10);
+    return month && Number.isFinite(day) ? `${month} ${day}` : isoDate;
+}
+
+function fmtSeconds(value) {
+    if (value === null || value === undefined || !Number.isFinite(Number(value))) return '-';
+    return `${Number(value)}s`;
+}
+
+function burnInTone(status) {
+    if (status === 'passed') return { background: '#14532d', border: '1px solid #2d8b60' };
+    if (status === 'pending') return { background: '#1e3a5f', border: '1px solid #4b8ec6' };
+    return { background: '#7f1d1d', border: '1px solid #c8505c' };
+}
+
 function fmtCountdown(targetIso, nowMs) {
     if (!targetIso) return '-';
     const targetMs = Date.parse(targetIso);
@@ -307,6 +336,8 @@ export default function TriviaOperationsPage() {
     const recoveryStatus = cutoverStatus.recovery_status || null;
     const soloJournalSwitch = data.db_switches?.solo_journal || null;
     const tonightFill = data.tonight_fill_monitor || null;
+    const burnIn = data.burnin_scorecard || null;
+    const burnInNights = Array.isArray(burnIn?.nights) ? burnIn.nights : [];
     const economics = data.treasury_economics || {};
     const rakeAccounts = economics.rake_accounts || {};
     const pvpMix = economics.pvp_24h_mix || {};
@@ -379,6 +410,122 @@ export default function TriviaOperationsPage() {
                 ) : (
                     <p style={S.muted}>No Nightly Tournament Instance Was Found For Tonight.</p>
                 )}
+            </Panel>
+
+            <Panel title="7-Night Launch Burn-In Scorecard">
+                <div style={S.burnInHeader}>
+                    <span
+                        style={{
+                            ...S.badge,
+                            ...(burnIn?.certified ? burnInTone('passed') : (burnIn?.failed > 0 ? burnInTone('failed') : burnInTone('pending'))),
+                        }}
+                    >
+                        {`${fmt(burnIn?.passed ?? 0)} / ${fmt(burnIn?.total ?? 7)} ${burnIn?.certified ? 'CERTIFIED' : 'IN PROGRESS'}`}
+                    </span>
+                    <span
+                        style={{
+                            ...S.badge,
+                            ...(burnIn?.ledger_clean === true
+                                ? burnInTone('passed')
+                                : (burnIn?.ledger_clean === false ? burnInTone('failed') : S.neutralBadge)),
+                        }}
+                    >
+                        {burnIn?.ledger_clean === true
+                            ? 'Ledger Clean'
+                            : (burnIn?.ledger_clean === false ? 'Ledger Attention' : 'Ledger Unavailable')}
+                    </span>
+                </div>
+                <div style={{ ...S.grid, marginBottom: 16 }}>
+                    <Metric
+                        label="Scorecard"
+                        value={`${fmt(burnIn?.passed ?? 0)} / ${fmt(burnIn?.total ?? 7)}`}
+                        detail={burnIn?.certified ? 'Certified' : 'In Progress'}
+                    />
+                    <Metric
+                        label="Launch Window (CT)"
+                        value={`${fmtBurnInDate(burnIn?.window?.start_date || '2026-11-24')} to ${fmtBurnInDate(burnIn?.window?.end_date || '2026-11-30')}`}
+                        detail={`${burnIn?.window?.start_date || '2026-11-24'} to ${burnIn?.window?.end_date || '2026-11-30'}`}
+                    />
+                    <Metric
+                        label="Passed / Pending / Failed"
+                        value={`${fmt(burnIn?.passed ?? 0)} / ${fmt(burnIn?.pending ?? 0)} / ${fmt(burnIn?.failed ?? 0)}`}
+                        detail={`Scheduled: ${fmt(burnIn?.scheduled ?? 0)} / ${fmt(burnIn?.total ?? 7)}`}
+                    />
+                    <Metric
+                        label="Ledger Clean"
+                        value={burnIn?.ledger_clean === true ? 'Clean' : (burnIn?.ledger_clean === false ? 'Attention' : 'Unavailable')}
+                        detail={burnIn?.generated_at ? `Updated ${fmtTime(burnIn.generated_at)}` : 'Read-Only Scorecard'}
+                    />
+                </div>
+                {burnInNights.length ? (
+                    <div className={consoleStyles.tableWell} style={S.tableWell} tabIndex={0} role="region" aria-label="7-Night Launch Burn-In Scorecard">
+                        <table style={S.table}>
+                            <thead>
+                                <tr>
+                                    <th style={S.th}>Night (CT)</th>
+                                    <th style={S.th}>Status</th>
+                                    <th style={S.th}>Horse Fill</th>
+                                    <th style={S.th}>Humans</th>
+                                    <th style={S.th}>Start Delay</th>
+                                    <th style={S.th}>Settlement</th>
+                                    <th style={S.th}>Escrow / Variance</th>
+                                    <th style={S.th}>Phase 12 SLOs</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {burnInNights.map((night) => {
+                                    const statusText = night.status === 'passed'
+                                        ? 'PASSED'
+                                        : (night.status === 'pending' ? 'PENDING' : 'FAILED');
+                                    return (
+                                        <tr key={night.date || night.tournament_id}>
+                                            <td style={S.td}>
+                                                <div>{fmtBurnInDate(night.date)}</div>
+                                                <div style={S.detail}>{night.date || '-'}</div>
+                                            </td>
+                                            <td style={S.td}>
+                                                <span style={{ ...S.compactBadge, ...burnInTone(night.status) }}>
+                                                    {statusText}
+                                                </span>
+                                                <div style={S.detail}>{fmt(night.lifecycle_state)}</div>
+                                            </td>
+                                            <td style={S.td}>{`${fmt(night.horses_entered)} / ${fmt(night.horse_target)}`}</td>
+                                            <td style={S.td}>{fmt(night.humans_entered)}</td>
+                                            <td style={S.td}>{fmtSeconds(night.start_delay_seconds)}</td>
+                                            <td style={S.td}>{fmtSeconds(night.settlement_latency_seconds)}</td>
+                                            <td style={S.td}>{`${fmt(night.escrow_balance)} / ${fmt(night.ledger_variance)}`}</td>
+                                            <td style={S.td}>
+                                                <div style={S.sloWrap}>
+                                                    {BURNIN_SLO_LABELS.map(([key, label]) => {
+                                                        const slo = night.slos?.[key] || { passed: false, detail: '' };
+                                                        const sloState = night.status === 'pending'
+                                                            ? 'pending'
+                                                            : (slo.passed ? 'passed' : 'failed');
+                                                        const sloMark = sloState === 'pending'
+                                                            ? 'PEND'
+                                                            : (sloState === 'passed' ? 'PASS' : 'FAIL');
+                                                        return (
+                                                            <span
+                                                                key={key}
+                                                                title={slo.detail || label}
+                                                                style={{ ...S.sloPill, ...burnInTone(sloState) }}
+                                                            >
+                                                                {`${label}: ${sloMark}`}
+                                                            </span>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                ) : (
+                    <p style={S.muted}>No Burn-In Scorecard Rows Were Returned.</p>
+                )}
+                <p style={S.note}>Informational Phase 12 Launch Exit-Gate Scorecard. Pending Nights Never Degrade Operations Health.</p>
             </Panel>
 
             <Panel title="Unit-economics and treasury headroom">
@@ -784,6 +931,11 @@ const S = {
     metricLabel: { color: '#a9bac9', fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' },
     metricValue: { marginTop: 6, color: '#fff', fontSize: 22, fontWeight: 750, overflowWrap: 'anywhere' },
     badge: { display: 'inline-flex', minHeight: 32, alignItems: 'center', padding: '5px 12px', borderRadius: 999, color: '#fff', fontSize: 13, fontWeight: 750 },
+    neutralBadge: { background: '#263646', border: '1px solid #475d72' },
+    burnInHeader: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10, marginBottom: 14 },
+    compactBadge: { display: 'inline-flex', minHeight: 24, alignItems: 'center', padding: '2px 10px', borderRadius: 999, color: '#fff', fontSize: 12, fontWeight: 750 },
+    sloWrap: { display: 'flex', flexWrap: 'wrap', gap: 6, minWidth: 280 },
+    sloPill: { display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 4, color: '#fff', fontSize: 12, fontWeight: 700 },
     tableWell: { overflowX: 'auto', border: '1px solid #283746', borderRadius: 8 },
     table: { width: '100%', minWidth: 900, borderCollapse: 'collapse', fontSize: 13 },
     th: { padding: '10px 12px', textAlign: 'left', color: '#a9bac9', background: '#111d29', borderBottom: '1px solid #34475a', fontWeight: 700 },
