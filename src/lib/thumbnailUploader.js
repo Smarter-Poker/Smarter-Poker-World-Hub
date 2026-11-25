@@ -17,6 +17,7 @@
  */
 
 import { getAccessToken } from './authUtils';
+import { isVideoCoverFile, VIDEO_COVER_FOLDER, VIDEO_COVER_IMAGE_TYPES } from './videoCover.mjs';
 
 // JWT shape: 3 dot-separated base64url parts. Reject anything else (null,
 // empty, malformed legacy SDK shape, "[object Object]", literal "undefined").
@@ -58,7 +59,11 @@ export async function uploadThumbnail(dataUrl, userId, folder = 'thumbnails') {
 
         // Build filename
         const timestamp = Date.now();
-        const fileName = `thumb_${timestamp}.jpg`;
+        const custom = folder === VIDEO_COVER_FOLDER;
+        if (custom && !isVideoCoverFile(blob)) return null;
+        const mimeType = custom ? blob.type : 'image/jpeg';
+        const extension = custom ? VIDEO_COVER_IMAGE_TYPES[mimeType] : 'jpg';
+        const fileName = `thumb_${timestamp}.${extension}`;
 
         // Get a shape-valid bearer from localStorage. If unavailable, bail —
         // thumbnails are best-effort and the post will still render without one.
@@ -74,7 +79,7 @@ export async function uploadThumbnail(dataUrl, userId, folder = 'thumbnails') {
             body: JSON.stringify({
                 fileName,
                 fileSize: blob.size,
-                mimeType: 'image/jpeg',
+                mimeType,
                 folder,
                 prefix: userId,
             }),
@@ -94,7 +99,7 @@ export async function uploadThumbnail(dataUrl, userId, folder = 'thumbnails') {
         // Upload the blob to the signed URL
         const uploadRes = await fetch(meta.signedUrl, {
             method: 'PUT',
-            headers: { 'Content-Type': 'image/jpeg' },
+            headers: { 'Content-Type': mimeType },
             body: blob,
         });
 
@@ -109,4 +114,11 @@ export async function uploadThumbnail(dataUrl, userId, folder = 'thumbnails') {
         console.warn('[ThumbnailUploader] Upload failed (non-fatal):', err?.message || err);
         return null;
     }
+}
+
+export function uploadVideoCover(file, userId) {
+    if (!isVideoCoverFile(file)) return Promise.resolve(null);
+    const url = URL.createObjectURL(file);
+    return uploadThumbnail(url, userId, VIDEO_COVER_FOLDER)
+        .finally(() => URL.revokeObjectURL(url));
 }
