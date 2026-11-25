@@ -298,16 +298,13 @@ export default async function handler(req, res) {
                 }
             }
 
-            const elapsedRaw = body.elapsedMs === undefined || body.elapsedMs === null ? 0 : Number(body.elapsedMs);
-            if (!Number.isInteger(elapsedRaw) || elapsedRaw < 0 || elapsedRaw > MAX_ELAPSED_MS) {
-                return res.status(400).json({ success: false, error: 'invalid_elapsed_ms' });
-            }
-
+            // Server SQL computes authoritative elapsed wall time from questions_fetched_at;
+            // client-supplied elapsedMs is never trusted.
             const { data, error } = await client.rpc('trivia_club_tournament_submit_v1', {
                 p_user_id: user.id,
                 p_club_tournament_id: clubTournamentId,
                 p_answers: normalizedAnswers,
-                p_elapsed_ms: elapsedRaw,
+                p_elapsed_ms: 0,
             });
             if (error) {
                 try { reportApiError(error, { route: 'trivia/club-nights', operation: 'submit', userId: user.id, clubTournamentId }); } catch (_) {}

@@ -14,6 +14,11 @@ function serviceClient() {
     return cachedServiceClient;
 }
 
+export function resolveOgPlayerLabel(profile) {
+    if (profile?.is_horse === true) return 'Smarter Horse';
+    return String(profile?.display_name || profile?.username || 'Smarter.Poker Player').trim() || 'Smarter.Poker Player';
+}
+
 function sendSvg(res, svg, cacheHeader = 'public, max-age=300, s-maxage=300') {
     res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -72,7 +77,7 @@ export default async function handler(req, res) {
                     session.user_id
                         ? client
                             .from('profiles')
-                            .select('display_name, username')
+                            .select('display_name, username, is_horse')
                             .eq('id', session.user_id)
                             .maybeSingle()
                         : Promise.resolve({ data: null }),
@@ -89,7 +94,7 @@ export default async function handler(req, res) {
                 const correctCount = Math.max(0, Number(session.correct_count) || 0);
                 const diamondsAwarded = Math.max(0, Number(session.diamonds_awarded) || 0);
                 const currentStreak = Math.max(0, Number(streakRes?.data?.current_streak) || 0);
-                const playerLabel = (profileRes?.data?.display_name || profileRes?.data?.username || 'Smarter.Poker Player').trim();
+                const playerLabel = resolveOgPlayerLabel(profileRes?.data);
 
                 // Ignore all client-supplied score/mode/diamonds/player params for DB-verified sessions.
                 const svg = buildResultCardSvg({
@@ -136,10 +141,10 @@ export default async function handler(req, res) {
             if (featuredPlayerId) {
                 const { data: profile } = await client
                     .from('profiles')
-                    .select('display_name, username')
+                    .select('display_name, username, is_horse')
                     .eq('id', featuredPlayerId)
                     .maybeSingle();
-                playerLabel = (profile?.display_name || profile?.username || 'Smarter.Poker Player').trim();
+                playerLabel = resolveOgPlayerLabel(profile);
             }
 
             const svg = buildResultCardSvg({

@@ -892,6 +892,8 @@ import './trivia-public-leaderboards-do-not-read-profiles.test.mjs';
 import './trivia-burnin-scorecard-ops.test.mjs';
 import './trivia-push-worker-rt.test.mjs';
 import './trivia-pool-quality-audit.test.mjs';
+import './trivia-fortress-db-api-laws.test.mjs';
+import './trivia-fortress-admin-lb-laws.test.mjs';
 import './trivia-fortress-ui-laws.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
