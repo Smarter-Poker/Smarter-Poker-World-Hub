@@ -85,3 +85,60 @@ test('PA Phase 2B review remediation baseline migration backfills retired rows, 
   assert.match(sql, /REVOKE ALL ON FUNCTION public\.commit_leak_review_state\(uuid, text, text, timestamp with time zone, jsonb\) FROM authenticated;/);
   assert.match(sql, /GRANT EXECUTE ON FUNCTION public\.commit_leak_review_state\(uuid, text, text, timestamp with time zone, jsonb\) TO service_role;/);
 });
+
+const PHASE_2_HARDENING_MIGRATION_PATH = path.resolve(
+  'supabase/migrations/20261125060000_pa_phase2_rpc_and_lifecycle_hardening.sql',
+);
+
+test('PA Phase 2 SQL hardening migration resolves ca_hand_facts, aligns linked-hand bundle, resets baseline on relapse, completes retention/purge, and tightens leak_hand_examples grants', () => {
+  const sql = fs.readFileSync(PHASE_2_HARDENING_MIGRATION_PATH, 'utf8');
+
+  // 1. resolve_user_leaks_if_unchanged accepts ca_hand_facts
+  assert.match(
+    sql,
+    /CREATE OR REPLACE FUNCTION public\.resolve_user_leaks_if_unchanged[\s\S]*?leak\.source_system IN \('live_play', 'solver_engine', 'training_solver', 'ca_hand_facts'\)/,
+  );
+  assert.match(
+    sql,
+    /REVOKE ALL ON FUNCTION public\.resolve_user_leaks_if_unchanged\(uuid, jsonb, timestamptz\)\s+FROM PUBLIC, anon, authenticated;/,
+  );
+
+  // 2. get_pa_linked_hand_bundle includes hand.source, leak.source_system, leak.is_active, LIMIT 12 decisions, and resolved leaks
+  const bundleStart = sql.indexOf('CREATE OR REPLACE FUNCTION public.get_pa_linked_hand_bundle');
+  const commitStart = sql.indexOf('CREATE OR REPLACE FUNCTION public.commit_leak_review_state');
+  assert.ok(bundleStart > 0 && commitStart > bundleStart);
+  const bundleBody = sql.slice(bundleStart, commitStart);
+  assert.match(bundleBody, /'source',\s*h\.source/);
+  assert.match(bundleBody, /'source_system',\s*l\.source_system/);
+  assert.match(bundleBody, /'is_active',\s*l\.is_active/);
+  assert.match(bundleBody, /LIMIT 12/);
+  assert.ok(!bundleBody.includes("l.status <> 'resolved'"), 'bundle must include resolved leaks so linked-hand evidence stays visible after resolution');
+
+  // 3. commit_leak_review_state clears remediation_baseline_at on relapse and re-stamps on re-mastery
+  const purgeStart = sql.indexOf('CREATE OR REPLACE FUNCTION public.purge_personal_assistant_data');
+  assert.ok(purgeStart > commitStart);
+  const commitBody = sql.slice(commitStart, purgeStart);
+  assert.match(
+    commitBody,
+    /remediation_baseline_at = CASE[\s\S]*?WHEN EXCLUDED\.retired THEN COALESCE\([\s\S]*?CASE WHEN public\.leak_review_state\.retired THEN public\.leak_review_state\.remediation_baseline_at ELSE NULL END,[\s\S]*?now\(\)[\s\S]*?\)[\s\S]*?ELSE NULL[\s\S]*?END/,
+  );
+
+  // 4. purge_personal_assistant_data returns both fingerprint and receipt_fingerprint
+  const retentionStart = sql.indexOf('CREATE OR REPLACE FUNCTION public.apply_personal_assistant_retention');
+  assert.ok(retentionStart > purgeStart);
+  const purgeBody = sql.slice(purgeStart, retentionStart);
+  assert.match(purgeBody, /'fingerprint',\s*v_fingerprint/);
+  assert.match(purgeBody, /'receipt_fingerprint',\s*v_fingerprint/);
+
+  // 5. apply_personal_assistant_retention covers retired/orphaned leak_review_state and abandoned leak_drill_sessions
+  const grantsStart = sql.indexOf('REVOKE ALL ON TABLE public.leak_hand_examples');
+  assert.ok(grantsStart > retentionStart);
+  const retentionBody = sql.slice(retentionStart, grantsStart);
+  assert.match(retentionBody, /DELETE FROM public\.leak_review_state lrs/);
+  assert.match(retentionBody, /completed_at IS NULL AND started_at < v_cutoff/);
+
+  // 6. leak_hand_examples grants are SELECT-only for authenticated and none for anon
+  assert.match(sql, /REVOKE ALL ON TABLE public\.leak_hand_examples FROM PUBLIC, anon, authenticated;/);
+  assert.match(sql, /GRANT SELECT ON TABLE public\.leak_hand_examples TO authenticated;/);
+  assert.match(sql, /GRANT ALL ON TABLE public\.leak_hand_examples TO service_role;/);
+});
