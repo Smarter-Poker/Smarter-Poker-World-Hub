@@ -144,6 +144,7 @@ test('minting: only reliability_* rows to Web Push devices, hash stored, failure
     assert.equal(isReceiptEvent('cashout_overdue'), true);
     assert.equal(isReceiptEvent('cashout_prebreach_warning'), true);
     assert.equal(isReceiptEvent('notice_board_mention'), true);
+    assert.equal(isReceiptEvent('notice_board_reply'), true);
     assert.equal(isReceiptEvent('system'), false);
     const overdueToken = await mintDeviceReceipt(ok, { id: OUTBOX, event: 'cashout_overdue' }, { id: SUB, transport: 'webpush' });
     assert.match(overdueToken, /^[0-9a-f]{64}$/);

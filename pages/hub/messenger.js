@@ -3518,6 +3518,8 @@ function MessengerPage() {
                                 onOpen={id => resolveConversationRef.current(id)} />
                         ) : workspaceSelection.folder === 'notice-board' && selectedClub ? (
                             <NoticeBoard key={`${user.id}:${selectedClub.id}`} club={selectedClub} userId={user.id} theme={C}
+                                initialNoticeId={typeof router.query.noticeId === 'string' ? router.query.noticeId : null}
+                                initialOpenThread={router.query.openThread === '1'}
                                 onBack={() => { setWorkspaceSelection(prev => ({ ...prev, folder: 'messages' })); setShowSidebar(true); }}
                                 onMarkRead={() => {
                                     setWorkspaceUnread(prev => prev && prev.key === workspaceKey ? { ...prev, noticeBoardUnread: 0 } : prev);

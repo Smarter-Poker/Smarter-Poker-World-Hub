@@ -31,6 +31,60 @@ export const DEFAULT_ALERT_SETTINGS = {
 
 export const ALLOWED_ATTACHMENT_MIME = /^(image\/(jpeg|jpg|png|webp|gif)|application\/pdf|text\/csv|text\/plain)$/i;
 
+export const DELIVERY_STATE_META = {
+    displayed: { label: 'Displayed On Device', color: '#22c55e', bg: 'rgba(34, 197, 94, 0.14)' },
+    received: { label: 'Delivered To Device', color: '#06b6d4', bg: 'rgba(6, 182, 212, 0.14)' },
+    provider_sent: { label: 'Sent To Push Provider', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.14)' },
+    pending: { label: 'Queued For Push', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.14)' },
+    in_app_only: { label: 'In-App Only', color: '#94a3b8', bg: 'rgba(148, 163, 184, 0.14)' },
+};
+
+export const NOTICE_TEMPLATES = [
+    {
+        id: 'shift_handoff',
+        label: 'Shift Handoff',
+        content: '**Shift Handoff Update**\n- Active Cashiers On Duty:\n- Pending Payouts Requiring Attention:\n- Notes For Incoming Shift:',
+        pin: false,
+        requireConfirmation: false,
+    },
+    {
+        id: 'settlement_window',
+        label: 'Settlement Window',
+        content: '**Weekly Settlement Window**\n- Settlement Opens:\n- Cutoff Time For Agent Payouts:\n- Confirm Below Once Reviewed.',
+        pin: true,
+        requireConfirmation: true,
+    },
+    {
+        id: 'rule_reminder',
+        label: 'Rule Reminder',
+        content: '**Club Operations Reminder**\n- All Downline Payouts Must Be Fulfilled Within 4 Hours.\n- Escalate To Club Bank If Unreachable.',
+        pin: false,
+        requireConfirmation: true,
+    },
+];
+
+export function buildAgentSlaCsv(members, clubName = 'Club') {
+    const esc = (v) => {
+        const s = v === null || v === undefined ? '' : String(v);
+        return /[",\n\r]/.test(s) ? `"${s.replaceAll('"', '""')}"` : s;
+    };
+    const header = ['Club', 'Agent', 'Username', 'Role', '30d Median Minutes', '30d Completed', '30d Overdue', '30d Escalated', 'Pending Now'];
+    const rows = (Array.isArray(members) ? members : [])
+        .filter(m => m && m.sla && typeof m.sla === 'object')
+        .map(m => [
+            clubName,
+            m.display_name || m.username || 'Club Staff',
+            m.username || '',
+            formatRoleLabel(m.role),
+            m.sla.median_minutes ?? '',
+            m.sla.completed_30d ?? 0,
+            m.sla.overdue_30d ?? 0,
+            m.sla.escalated_30d ?? 0,
+            m.sla.pending_now ?? 0,
+        ]);
+    return [header, ...rows].map(line => line.map(esc).join(',')).join('\r\n') + '\r\n';
+}
+
 export function formatRoleLabel(role) {
     return ROLE_META[role]?.label || 'Staff';
 }
@@ -199,7 +253,7 @@ export function noticePage(result) {
     };
 }
 
-const POST_SUBACTIONS = new Set(['entry', 'search', 'list_replies']);
+const POST_SUBACTIONS = new Set(['entry', 'search', 'list_replies', 'payout_audit']);
 const PATCH_SUBACTIONS = new Set([
     'add_note', 'mark_read', 'toggle_reaction', 'update_alert_settings',
     'create_reply', 'delete_reply', 'vote_poll', 'close_poll',
@@ -225,6 +279,7 @@ export function validateNoticeRequest(method, body) {
         entry: ['id'],
         search: ['query', 'limit'],
         list_replies: ['id'],
+        payout_audit: [],
         mark_read: ['lastNoticeId'],
         toggle_reaction: ['id', 'reaction'],
         create_reply: ['id', 'reply_id', 'content'],
@@ -252,6 +307,8 @@ export function validateNoticeRequest(method, body) {
         if (payload.refreshMeta && payload.before) fail();
         // Preserve microseconds from Postgres; Date round-tripping loses cursor precision.
         if (payload.before && (!ISO_TS.test(payload.before) || !Number.isFinite(Date.parse(payload.before)) || !UUID.test(payload.beforeId))) fail();
+    } else if (action === 'payout_audit') {
+        // No extra parameters permitted.
     } else if (action === 'entry' || action === 'list_replies' || action === 'close_poll' || action === 'remind_unconfirmed' || action === 'publish_now') {
         if (!UUID.test(payload.id || '')) fail();
     } else if (action === 'search') {

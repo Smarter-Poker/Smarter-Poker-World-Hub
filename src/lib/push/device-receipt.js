@@ -26,6 +26,7 @@ const RECEIPT_EXACT_EVENTS = new Set([
     'cashout_overdue',
     'cashout_prebreach_warning',
     'notice_board_mention',
+    'notice_board_reply',
 ]);
 export const isReceiptEvent = (event) => typeof event === 'string' && (event.startsWith('reliability_') || RECEIPT_EXACT_EVENTS.has(event));
 

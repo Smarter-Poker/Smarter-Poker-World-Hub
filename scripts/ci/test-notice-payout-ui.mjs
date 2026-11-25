@@ -120,6 +120,9 @@ try {
   const bindBoardMock=async(targetPage,isTab2)=>{
     await targetPage.exposeFunction('testRpc',async()=>({data:null,error:null}));
     await targetPage.exposeFunction('testRequest',async(method,body)=>{
+      if(method==='POST'&&body.action==='payout_audit'){
+        return {status:200,body:{success:true,windowDays:30,audit:[{notification_id:'70000000-0000-4000-8000-000000000001',cashout_id:cashoutId,recipient_id:ownerId,recipient_name:'Club Owner',recipient_role:'owner',alert_kind:'overdue',threshold_hours:4,notified_at:'2026-11-17T18:05:00Z',player_name:'Fixture Player',agent_name:'Agent Alpha',amount:'500.00',cashout_status:'approved',resolution_label:'Fulfilled By Agent',resolved_at:'2026-11-17T18:20:00Z',delivery_state:'displayed'}]}};
+      }
       if(method==='POST'&&body.action==='entry'){
         deltaCalls++;
         return {status:200,body:{success:true,entry:body.payload.id===notice1Id?regularNotice():row()}};
@@ -198,6 +201,16 @@ try {
   await desktopPage.evaluate(()=>{document.querySelector('[aria-label="Configure Overdue Payout Alerts"]').click();});
   await desktopPage.waitForFunction(()=>document.body.textContent.includes('Optional Quiet Hours Backup Duty Routing'),{polling:50});
   await desktopPage.evaluate(()=>{const dlg=document.querySelector('dialog[open]');if(dlg)dlg.close();});
+  // Verify Phase 5 Payout Ops & Agent SLA Leaderboard + CSV Export + Alert Delivery Log (30d) + Templates.
+  await desktopPage.evaluate(()=>{document.querySelector('[aria-label="Open Payout Ops And Agent SLA"]').click();});
+  await desktopPage.waitForFunction(()=>document.body.textContent.includes('Agent SLA Leaderboard')&&document.body.textContent.includes('Export SLA CSV')&&document.body.textContent.includes('Median: 18m'),{polling:50});
+  await desktopPage.evaluate(()=>{[...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Alert Delivery Log (30d)').click();});
+  await desktopPage.waitForFunction(()=>document.body.textContent.includes('Displayed On Device')&&document.body.textContent.includes('Fulfilled By Agent'),{polling:50});
+  await desktopPage.evaluate(()=>{const dlg=document.querySelector('dialog[open]');if(dlg)dlg.close();});
+  await desktopPage.evaluate(()=>{[...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Templates').click();});
+  await desktopPage.waitForFunction(()=>[...document.querySelectorAll('button')].some(b=>b.textContent.trim()==='Settlement Window'),{polling:50});
+  await desktopPage.evaluate(()=>{[...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Settlement Window').click();});
+  await desktopPage.waitForFunction(()=>document.querySelector('[aria-label="Notice Text"]')?.value?.includes('Weekly Settlement Window'),{polling:50});
   // Verify Full-History Server-Side Search.
   await desktopPage.evaluate(()=>{document.querySelector('[aria-label="Search Notices"]').click();});
   await desktopPage.waitForSelector('[aria-label="Filter Notice History"]');

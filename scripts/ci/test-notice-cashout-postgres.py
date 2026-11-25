@@ -494,6 +494,51 @@ try:
  assert int(asuser(PLAYER,'SELECT count(*) FROM club_notice_board_replies WHERE club_id='+lit(C)+';').splitlines()[-1])==0
  cases.append('Phase 4 threads, polls, confirmation campaigns, pin reorder, scheduled notices, PDF/CSV attachments, search, delta entry, SLA scorecard, and staff RLS verified')
 
+ # Phase 5 migration (20261125030000): scheduled-notice RLS & unread-count hardening,
+ # Pass 3 automatic scheduled-notice mention dispatch, thread reply notifications (notice_board_reply)
+ # with noticeId/openThread deep-links, management-only payout_audit RPC, and PDF/CSV storage MIME.
+ sql((R/'supabase/migrations/20261125030000_notice_board_phase5_hardening_threads_audit_and_storage.sql').read_text())
+ # 12. Scheduled notice RLS + unread-count isolation + Pass 3 automatic dispatch.
+ board(AGENT,'mark_read',{'lastNoticeId':pub_now['id']})
+ assert json.loads(asuser(OWNER,"SELECT fn_club_notice_unread_counts("+lit(AGENT)+", ARRAY["+lit(C)+"]::uuid[]);",role='service_role').splitlines()[-1])[C]==0
+ sched_p5_ts=sql("SELECT (clock_timestamp() + interval '3 hours')::text;")
+ sched_p5=board(OWNER,'create',{'id':op(),'content':'Future Scheduled Broadcast','status':'notice','is_pinned':False,'scheduled_for':sched_p5_ts,'mention_user_ids':[AGENT]})
+ # Agent MUST NOT see future scheduled notice via direct table SELECT RLS or unread badge!
+ assert int(asuser(AGENT,'SELECT count(*) FROM club_notice_board WHERE id='+lit(sched_p5['id'])+';').splitlines()[-1])==0
+ assert int(asuser(OWNER,'SELECT count(*) FROM club_notice_board WHERE id='+lit(sched_p5['id'])+';').splitlines()[-1])==1
+ assert json.loads(asuser(OWNER,"SELECT fn_club_notice_unread_counts("+lit(AGENT)+", ARRAY["+lit(C)+"]::uuid[]);",role='service_role').splitlines()[-1])[C]==0
+ # Once scheduled_for arrives (after agent's earlier last_read_at), Pass 3 dispatches held @mention once with noticeId deep-link and exposes notice to Agent!
+ agent_mentions_p5=int(sql("SELECT count(*) FROM notifications WHERE user_id="+lit(AGENT)+" AND type='notice_board_mention';"))
+ sql("UPDATE club_notice_board_reads SET last_read_at=clock_timestamp()-interval '10 minutes' WHERE club_id="+lit(C)+" AND user_id="+lit(AGENT)+';')
+ sql("UPDATE club_notice_board SET scheduled_for=clock_timestamp()-interval '1 minute' WHERE id="+lit(sched_p5['id'])+';')
+ disp1=json.loads(asuser(OWNER,'SELECT fn_notify_overdue_cashouts(4,200);',role='service_role').splitlines()[-1])
+ assert disp1['scheduled_dispatched']==1,disp1
+ disp2=json.loads(asuser(OWNER,'SELECT fn_notify_overdue_cashouts(4,200);',role='service_role').splitlines()[-1])
+ assert disp2['scheduled_dispatched']==0,disp2
+ assert int(sql("SELECT count(*) FROM notifications WHERE user_id="+lit(AGENT)+" AND type='notice_board_mention';"))==agent_mentions_p5+1
+ sched_url=sql("SELECT action_url FROM notifications WHERE user_id="+lit(AGENT)+" AND type='notice_board_mention' ORDER BY created_at DESC LIMIT 1;")
+ assert f'noticeId={sched_p5["id"]}' in sched_url,sched_url
+ assert int(asuser(AGENT,'SELECT count(*) FROM club_notice_board WHERE id='+lit(sched_p5['id'])+';').splitlines()[-1])==1
+ assert json.loads(asuser(OWNER,"SELECT fn_club_notice_unread_counts("+lit(AGENT)+", ARRAY["+lit(C)+"]::uuid[]);",role='service_role').splitlines()[-1])[C]>=1
+ # 13. Thread reply notifications (notice_board_reply) notify notice author + prior thread participants (never self).
+ owner_rep_before=int(sql("SELECT count(*) FROM notifications WHERE user_id="+lit(OWNER)+" AND type='notice_board_reply';"))
+ agent_rep_before=int(sql("SELECT count(*) FROM notifications WHERE user_id="+lit(AGENT)+" AND type='notice_board_reply';"))
+ board(AGENT,'create_reply',{'id':sched_p5['id'],'reply_id':op(),'content':'Agent First Reply'})
+ assert int(sql("SELECT count(*) FROM notifications WHERE user_id="+lit(OWNER)+" AND type='notice_board_reply';"))==owner_rep_before+1
+ assert int(sql("SELECT count(*) FROM notifications WHERE user_id="+lit(AGENT)+" AND type='notice_board_reply';"))==agent_rep_before
+ rep_url=sql("SELECT action_url FROM notifications WHERE user_id="+lit(OWNER)+" AND type='notice_board_reply' ORDER BY created_at DESC LIMIT 1;")
+ assert f'noticeId={sched_p5["id"]}&openThread=1' in rep_url,rep_url
+ board(ADMIN,'create_reply',{'id':sched_p5['id'],'reply_id':op(),'content':'Admin Follow-Up Reply'})
+ assert int(sql("SELECT count(*) FROM notifications WHERE user_id="+lit(OWNER)+" AND type='notice_board_reply';"))==owner_rep_before+2
+ assert int(sql("SELECT count(*) FROM notifications WHERE user_id="+lit(AGENT)+" AND type='notice_board_reply';"))==agent_rep_before+1
+ # 14. Management-only payout_audit RPC exposes 30-day alert deliveries & resolutions; denied to agents.
+ board(AGENT,'payout_audit',{},error='Club Admin Or Owner Required')
+ audit_res=board(OWNER,'payout_audit',{})
+ assert audit_res['windowDays']==30 and len(audit_res['audit'])>=2,audit_res
+ assert any(item['alert_kind']=='prebreach' and item['resolution_label']=='Fulfilled By Agent' for item in audit_res['audit']),audit_res
+ assert any(item['alert_kind']=='overdue' and item['resolution_label']=='Fulfilled By Agent' for item in audit_res['audit']),audit_res
+ cases.append('Phase 5 enforces scheduled-notice RLS/unread isolation, Pass 3 scheduled dispatch, thread reply notifications, and management-only payout_audit RPC')
+
  print(json.dumps({'passed':True,'cases':cases,'migrations':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(list((R/'supabase/migrations').glob('20261117203*.sql'))+list((R/'supabase/migrations').glob('20261124*.sql'))+list((R/'supabase/migrations').glob('20261125*.sql')))},'scope':'Actual transition, ledger triggers, receipt/invoice validation; isolated invoice transport fixture; no production writes'}))
 finally:
  if started:cmd('pg_ctl','-D',str(D/'data'),'-m','immediate','stop')

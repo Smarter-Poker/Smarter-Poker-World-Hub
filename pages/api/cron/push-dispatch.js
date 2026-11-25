@@ -88,6 +88,7 @@ const DIGEST_LABEL = {
     home_group_announcement: 'group announcements',
     club_announcement: 'club announcements',
     notice_board_mention: 'notice board mentions',
+    notice_board_reply: 'notice board replies',
     cashout_overdue: 'unfulfilled payouts',
     cashout_prebreach_warning: 'pending payout reminders',
     table_invite: 'table invites',

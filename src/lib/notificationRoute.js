@@ -151,9 +151,13 @@ export function resolveNotificationRoute(n) {
         return `${CA}/settlement-dashboard`;
     }
 
-    if (t === 'cashout_overdue' || t === 'notice_board_mention') {
+    if (t === 'cashout_overdue' || t === 'notice_board_mention' || t === 'notice_board_reply') {
         const clubId = pick(d, 'club_id', 'clubId');
-        if (clubId) return `/hub/messenger?clubId=${seg(clubId)}&folder=notice-board`;
+        const noticeId = pick(d, 'notice_id', 'noticeId');
+        if (clubId) {
+            const suffix = noticeId ? `&noticeId=${seg(noticeId)}${t === 'notice_board_reply' ? '&openThread=1' : ''}` : '';
+            return `/hub/messenger?clubId=${seg(clubId)}&folder=notice-board${suffix}`;
+        }
         return '/hub/messenger';
     }
 

@@ -222,6 +222,7 @@ const EVENT_ALIASES = {
     cashout_overdue: 'cashier',
     cashout_prebreach_warning: 'cashier',
     notice_board_mention: 'club_announcement',
+    notice_board_reply: 'club_announcement',
     cashout_approved: 'cashier',
     cashout_cancelled: 'cashier',
     cashout_denied: 'cashier',
