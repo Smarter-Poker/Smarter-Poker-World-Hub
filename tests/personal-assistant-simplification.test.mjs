@@ -89,6 +89,14 @@ test('assistantDefaults: resolveHomePrimaryState returns one clear CTA for every
   assert.equal(analyze.ctaLabel, 'Analyze My Play');
   assert.equal(analyze.ctaAction, 'analyze_now');
 
+  const brandNewSignedIn = resolveHomePrimaryState({ isSignedIn: true, sessionsReviewed: 0, handsAnalyzed: 0 });
+  assert.equal(brandNewSignedIn.state, 'no_history');
+  assert.equal(brandNewSignedIn.ctaLabel, 'Open Verified Training');
+
+  const analyzedClean = resolveHomePrimaryState({ isSignedIn: true, sessionsReviewed: 0, handsAnalyzed: 42, activeLeaksCount: 0 });
+  assert.equal(analyzedClean.state, 'finding_ready');
+  assert.equal(analyzedClean.ctaAction, 'analyze_now');
+
   const guest = resolveHomePrimaryState({ isSignedIn: false });
   assert.equal(guest.state, 'no_history');
   assert.equal(guest.ctaLabel, 'Open Verified Training');
@@ -96,6 +104,10 @@ test('assistantDefaults: resolveHomePrimaryState returns one clear CTA for every
 
 test('assistantDefaults: classifyFindingHonesty distinguishes all 5 required honesty categories', () => {
   assert.equal(classifyFindingHonesty(null).code, 'unmeasured');
+  assert.equal(
+    classifyFindingHonesty({ status: 'active', occurrenceCount: 12, solverEvidence: false, evLossMeasured: false }).code,
+    'unmeasured',
+  );
   assert.equal(
     classifyFindingHonesty({ gameVariant: 'plo4', occurrenceCount: 12 }).code,
     'unsupported',
@@ -148,4 +160,14 @@ test('Personal Assistant surfaces align to approved MTT lobby design tokens, opt
   assert.match(leaksSrc, /autorunTriggeredRef/, 'autorun handoff must clear query param and guard against reload duplicates');
   assert.match(homeSrc, /resolveHomePrimaryState/, 'Home must use centralized state resolver');
   assert.match(homeSrc, /<details className=\{styles\.disclosure\}>/, 'Home must tuck secondary sections behind native details');
+
+  // Swarm audit hardening: zero display:none, >= 12px range font, opt-in reduced motion, strict format separation, no legacy neon grid/banner
+  assert.doesNotMatch(paKitSrc, /::-webkit-details-marker\s*\{\s*display:\s*none/, 'paKit disclosure marker must not use display: none');
+  assert.doesNotMatch(paKitSrc, /clamp\(8px,/, 'paKit range grid font must stay >= 12px');
+  assert.doesNotMatch(paKitSrc, /Personal Assistant \/\/ Module Active/, 'BottomSheet must not show legacy sci-fi banner');
+  assert.doesNotMatch(leaksSrc, /prefers-reduced-motion:\s*reduce/, 'leaks.js must use opt-in prefers-reduced-motion: no-preference');
+  assert.match(leaksSrc, /prefers-reduced-motion:\s*no-preference/, 'leaks.js must opt in to motion');
+  assert.doesNotMatch(leaksSrc, /return isCash \|\| !isTournament/, 'Cash filter must never lump untagged/unknown formats into Cash NLH');
+  assert.match(leaksSrc, /onClick=\{handleResetAnalysisSettings\}/, 'Reset Filters must persist reset preferences');
+  assert.match(leaksSrc, /detailHonesty/, 'LeakDetail must display finding honesty badge');
 });

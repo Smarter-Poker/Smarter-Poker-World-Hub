@@ -136,7 +136,7 @@ export function PAStyles() {
                 list-style: none;
                 user-select: none;
             }
-            .pa-disclosure > summary::-webkit-details-marker { display: none; }
+            .pa-disclosure > summary::-webkit-details-marker { color: transparent; width: 0; }
             .pa-disclosure > summary:focus-visible { outline: 2px solid #83DEFF; outline-offset: -2px; }
             .pa-disclosure[open] > summary {
                 border-bottom: 1px solid #253E57;
@@ -196,7 +196,7 @@ export function PAStyles() {
             }
             .pa-range-grid > :is(button, [role="button"]) {
                 min-width: 0; font-family: 'IBM Plex Mono', monospace !important;
-                font-size: clamp(8px, 2.45vw, 11px) !important;
+                font-size: clamp(12px, 2.5vw, 13px) !important;
             }
             .pa-data-label {
                 font-family: 'IBM Plex Mono', monospace !important;
@@ -392,11 +392,6 @@ export function BottomSheet({
                         style={{ ...sheetStyle, maxWidth, ...(sheetStyleOverride || {}) }}
                     >
                         <div style={sheetGrip} aria-hidden="true" />
-
-                        <div className="pa-sheet-telemetry" aria-hidden="true">
-                            <span>Smarter.Poker</span>
-                            <span>Personal Assistant // Module Active</span>
-                        </div>
 
                         <div className="pa-sheet-header" style={sheetHeader}>
                             <div style={{ minWidth: 0, flex: 1 }}>

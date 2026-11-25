@@ -305,10 +305,16 @@ export default function PersonalAssistantPage() {
     (session) => session && !session.isDemo && session.type === 'sandbox',
   ) || null;
 
-  const activeLeakCount = Number(stats?.leaksFound) || 0;
-  const handsAnalyzedCount = Number(stats?.handsAnalyzed) || 0;
-  const sessionsReviewedCount = Number(stats?.sessionsReviewed) || 0;
   const dataSyncError = statsError || sessionsError;
+  const statsUnavailable = !user?.id || Boolean(statsDemo || stats?.isDemo || statsError);
+  const parseMetric = (val) => (
+    !statsUnavailable && typeof val === 'number' && Number.isFinite(val) ? val : null
+  );
+  const activeLeakCount = parseMetric(stats?.leaksFound);
+  const resolvedLeakCount = parseMetric(stats?.resolvedLeaks);
+  const handsAnalyzedCount = parseMetric(stats?.handsAnalyzed);
+  const sessionsReviewedCount = parseMetric(stats?.sessionsReviewed);
+  const sandboxSessionsCount = parseMetric(stats?.sandboxSessions);
   const trainingPlan = coachingSnapshot?.trainingPlan || null;
   const reviewDueCount = Number(coachingSnapshot?.summary?.reviewsDue || 0);
   const topPriority = coachingSnapshot?.priorities?.[0] || null;
@@ -339,10 +345,10 @@ export default function PersonalAssistantPage() {
     isDemo: Boolean(statsDemo || stats?.isDemo),
     auditRunning: activeAuditRunning,
     reviewDueCount,
-    activeLeaksCount: activeLeakCount,
+    activeLeaksCount: activeLeakCount ?? 0,
     topLeakTitle: topPriority?.title || trainingPlan?.modules?.[0]?.title || null,
-    handsAnalyzed: handsAnalyzedCount,
-    sessionsReviewed: sessionsReviewedCount,
+    handsAnalyzed: handsAnalyzedCount ?? 0,
+    sessionsReviewed: sessionsReviewedCount ?? 0,
     hasPracticeInProgress: Boolean(Array.isArray(trainingPlan?.modules) && trainingPlan.modules.length > 0),
     trainingPlanTitle: trainingPlan?.modules?.[0]?.title || null,
     lastSessionTitle: lastRealSession?.title || null,
@@ -370,7 +376,7 @@ export default function PersonalAssistantPage() {
       openGuardedRoute('/hub/personal-assistant/leaks?autorun=1');
       return;
     }
-    openGuardedRoute('/hub/training?source=personal-assistant-priority');
+    openGuardedRoute('/hub/training?source=personal-assistant-hero');
   };
 
   const decisionLoop = [
@@ -384,24 +390,52 @@ export default function PersonalAssistantPage() {
     {
       step: '02',
       title: 'Diagnose',
-      detail: `${activeLeakCount.toLocaleString()} Active Leak${activeLeakCount === 1 ? '' : 's'}`,
+      detail: activeLeakCount === null
+        ? 'Sign In To Audit'
+        : `${activeLeakCount.toLocaleString()} Active Leak${activeLeakCount === 1 ? '' : 's'}`,
       Icon: ScanSearch,
       route: '/hub/personal-assistant/leaks',
     },
     {
       step: '03',
       title: 'Train',
-      detail: `${handsAnalyzedCount.toLocaleString()} Analyzed`,
+      detail: handsAnalyzedCount === null
+        ? 'Verified Practice'
+        : `${handsAnalyzedCount.toLocaleString()} Analyzed`,
       Icon: BrainCircuit,
       route: '/hub/training?source=personal-assistant-loop',
     },
   ];
 
   const statCards = [
-    { title: 'Active Leaks', value: stats?.leaksFound || 0, label: `${(stats?.resolvedLeaks || 0).toLocaleString()} Resolved`, Icon: Droplet, route: '/hub/personal-assistant/leaks' },
-    { title: 'Hands Analyzed', value: stats?.handsAnalyzed || 0, label: 'Verified Audits', Icon: Layers, route: '/hub/personal-assistant/leaks' },
-    { title: 'Sessions Reviewed', value: stats?.sessionsReviewed || 0, label: 'Records', Icon: History, route: '/hub/personal-assistant/sandbox' },
-    { title: 'Archived Sessions', value: stats?.sandboxSessions || 0, label: 'Archive', Icon: FlaskConical, route: '/hub/personal-assistant/sandbox' },
+    {
+      title: 'Active Leaks',
+      value: activeLeakCount,
+      label: resolvedLeakCount === null ? 'Sign In To View' : `${resolvedLeakCount.toLocaleString()} Resolved`,
+      Icon: Droplet,
+      route: '/hub/personal-assistant/leaks',
+    },
+    {
+      title: 'Hands Analyzed',
+      value: handsAnalyzedCount,
+      label: handsAnalyzedCount === null ? 'Sign In To View' : 'Verified Audits',
+      Icon: Layers,
+      route: '/hub/personal-assistant/leaks',
+    },
+    {
+      title: 'Sessions Reviewed',
+      value: sessionsReviewedCount,
+      label: sessionsReviewedCount === null ? 'Sign In To View' : 'Records',
+      Icon: History,
+      route: '/hub/personal-assistant/sandbox',
+    },
+    {
+      title: 'Archived Sessions',
+      value: sandboxSessionsCount,
+      label: sandboxSessionsCount === null ? 'Sign In To View' : 'Archive',
+      Icon: FlaskConical,
+      route: '/hub/personal-assistant/sandbox',
+    },
   ];
 
   const activityCards = [
@@ -420,8 +454,16 @@ export default function PersonalAssistantPage() {
     },
     {
       title: 'Leak Finder',
-      label: statsBusy ? 'Loading Leak Data…' : `${(stats?.leaksFound || 0).toLocaleString()} Active`,
-      detail: statsBusy ? 'Checking Progress' : `${(stats?.resolvedLeaks || 0).toLocaleString()} Resolved`,
+      label: statsBusy
+        ? 'Loading Leak Data…'
+        : activeLeakCount === null
+          ? 'Not Available'
+          : `${activeLeakCount.toLocaleString()} Active`,
+      detail: statsBusy
+        ? 'Checking Progress'
+        : resolvedLeakCount === null
+          ? 'Sign In To Audit'
+          : `${resolvedLeakCount.toLocaleString()} Resolved`,
       Icon: ScanSearch,
       onClick: () => openGuardedRoute('/hub/personal-assistant/leaks'),
     },
@@ -507,15 +549,6 @@ export default function PersonalAssistantPage() {
                     <span className={styles.statusDot} aria-hidden="true" />
                     {dataSyncError ? 'Data Sync Needs Attention' : 'Training Pipeline Connected'}
                   </div>
-                </div>
-                <div className={styles.heroActions}>
-                  <button
-                    type="button"
-                    className={styles.secondaryButton}
-                    onClick={() => openGuardedRoute('/hub/training?source=personal-assistant-hero')}
-                  >
-                    <Play size={14} fill="currentColor" aria-hidden="true" />Open Verified Training
-                  </button>
                 </div>
               </div>
             </div>
@@ -614,21 +647,28 @@ export default function PersonalAssistantPage() {
               <p className={styles.demoNote}>Sample View · Sign In To See Your Own Hands And Leaks.</p>
             )}
             <div className={styles.statGrid} aria-busy={statsBusy} aria-live="polite">
-              {statCards.map(({ title, value, label, Icon, route }) => (
+              {statCards.map(({ title, value, label, Icon, route }) => {
+                const displayValue = statsBusy
+                  ? 'Loading…'
+                  : value === null
+                    ? 'Not Available'
+                    : value.toLocaleString();
+                return (
                 <button
                   type="button"
                   className={styles.statCard}
                   key={title}
                   onClick={() => openGuardedRoute(route)}
-                  aria-label={`${title}: ${Number(value).toLocaleString()}. ${label}.`}
+                  aria-label={`${title}: ${displayValue}. ${label}.`}
                 >
                   <span className={styles.statCardInner}>
                     <span className={styles.statTopline}><Icon size={14} aria-hidden="true" />{title}</span>
-                    <strong>{statsBusy ? 'Not Available' : Number(value).toLocaleString()}</strong>
+                    <strong>{displayValue}</strong>
                     <span className={styles.statLabel}>{statsBusy ? 'Loading…' : label}</span>
                   </span>
                 </button>
-              ))}
+                );
+              })}
             </div>
           </section>
 
