@@ -74,7 +74,7 @@ const LEVEL_DESCRIPTIONS = Array.from({ length: Object.keys(LEVEL_REGISTRY || {}
     return reg?.description || ['Learn the fundamentals', 'Reinforce core concepts', 'Apply what you know', 'Test your knowledge', 'Handle complex spots', 'Advanced decision making', 'Expert-level scenarios', 'Master the subtleties', 'Elite performance required', 'Prove your mastery'][i];
 });
 
-// Passing grades from LevelRegistry — masteryThreshold is 0.85 (85%) for L1-10, 0.90 for Boss Mode
+// Passing grades from LevelRegistry -- masteryThreshold is 0.85 (85%) for L1-10, 0.90 for Boss Mode
 // EV tolerance tightens each level, so we scale passing grades based on registry complexity
 const PASSING_GRADES = Array.from({ length: Object.keys(LEVEL_REGISTRY || {}).length }, (_, i) => {
     const reg = LEVEL_REGISTRY[i + 1];
@@ -162,22 +162,28 @@ const LevelCard: React.FC<{
     const getCardStyle = () => {
         if (isCompleted) {
             return {
-                background: 'linear-gradient(145deg, rgba(38, 65, 78, 0.98), rgba(4, 16, 24, 0.98) 48%, rgba(14, 37, 49, 0.98))',
-                border: '1px solid rgba(139, 234, 255, 0.72)',
-                boxShadow: '0 20px 45px rgba(0,0,0,.48), inset 0 1px 0 rgba(255,255,255,.28), inset 0 -2px 0 rgba(0,0,0,.84), 0 0 24px rgba(35,215,255,.12)',
+                background: 'linear-gradient(180deg, #13253a 0%, #091727 52%, #060e18 100%)',
+                border: '1px solid #56d8ff',
+                borderTopColor: '#b3eaff',
+                borderRadius: 7,
+                boxShadow: '0 16px 36px rgba(0,0,0,.48), inset 0 1px 0 rgba(255,255,255,.32)',
             };
         }
         if (isUnlocked) {
             return {
-                background: 'linear-gradient(145deg, rgba(28, 52, 67, 0.98), rgba(3, 13, 22, 0.98) 48%, rgba(10, 29, 41, 0.98))',
-                border: '1px solid rgba(139, 234, 255, 0.45)',
-                boxShadow: '0 18px 38px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.2), inset 0 -2px 0 rgba(0,0,0,.8)',
+                background: 'linear-gradient(180deg, #13253a 0%, #091727 52%, #060e18 100%)',
+                border: '1px solid #688299',
+                borderTopColor: '#aec0d0',
+                borderRadius: 7,
+                boxShadow: '0 14px 32px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.22)',
             };
         }
         return {
-            background: 'linear-gradient(145deg, rgba(20, 31, 40, 0.9), rgba(3, 9, 14, 0.96))',
-            border: '1px solid rgba(107, 133, 147, 0.28)',
-            boxShadow: 'inset 0 1px 0 rgba(255,255,255,.08), inset 0 -2px 0 rgba(0,0,0,.75)',
+            background: 'linear-gradient(180deg, #091727 0%, #030b14 100%)',
+            border: '1px solid #688299',
+            borderTopColor: '#aec0d0',
+            borderRadius: 7,
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,.1)',
             opacity: 0.72,
         };
     };
@@ -383,7 +389,7 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
 
             // Fetch user progress for this game
             // 2026-07-19 AUDIT FIX: this fetch sent NO Authorization header, so
-            // the endpoint always returned anonymous defaults — combined with
+            // the endpoint always returned anonymous defaults -- combined with
             // the dead-table read server-side, progress never displayed.
             let levelProgress: any = {};
             let highestUnlocked = 1;
@@ -562,6 +568,10 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
 
     // Calculate overall progress
     const completedLevels = levels.filter(l => l.isCompleted).length;
+    const activeQuickLevel = levels.find((l) => l.isUnlocked && !l.isCompleted)
+        || levels.filter((l) => l.isUnlocked).slice(-1)[0]
+        || levels[0]
+        || { level: 1, title: 'The Basics', isCompleted: false };
     const totalProgress = progressUnavailable
         ? null
         : levels.length > 0
@@ -607,8 +617,8 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
             )}
             {/* Game-specific command deck shared by all catalog games. */}
             <header className="sp-level-header" style={styles.header}>
-                <div className="sp-level-command-copy">
-                    <div className="sp-level-command-nav">
+                <div className="sp-level-command-copy" style={{ width: '100%' }}>
+                    <div className="sp-level-command-nav" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
                         <button className="sp-level-back" onClick={handleBack} style={styles.backButton}>
                             ← Back To Training
                         </button>
@@ -618,9 +628,37 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
                     </div>
 
                     <div className="sp-level-game-info" style={styles.gameInfo}>
-                        <div className="sp-level-eyebrow">Training Campaign / {categoryLabel}</div>
+                        <div className="sp-level-eyebrow" style={{ fontSize: 12, color: '#83deff', fontWeight: 700 }}>Training Campaign / {categoryLabel}</div>
                         <h1 style={styles.gameTitle}>{gameData?.title || 'Loading...'}</h1>
-                        <p className="sp-level-focus">{gameData?.focus || 'Build table-ready instincts through progressively harder decisions.'}</p>
+                        <p className="sp-level-focus" style={{ fontSize: 14, color: '#c7e0ec', margin: '6px 0 12px' }}>{gameData?.focus || 'Build table-ready instincts through progressively harder decisions.'}</p>
+
+                        <div style={{ margin: '10px 0 14px' }}>
+                            <button
+                                type="button"
+                                data-level-quick-start="true"
+                                onClick={() => handlePlayLevel(activeQuickLevel.level || 1)}
+                                disabled={loading}
+                                style={{
+                                    width: '100%',
+                                    minHeight: 48,
+                                    padding: '12px 20px',
+                                    borderRadius: 7,
+                                    border: '1px solid #56d8ff',
+                                    borderTopColor: '#b3eaff',
+                                    background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)',
+                                    color: '#f5fdff',
+                                    fontSize: 15,
+                                    fontWeight: 800,
+                                    cursor: loading ? 'default' : 'pointer',
+                                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.45), 0 8px 20px rgba(8,124,250,0.35)',
+                                }}
+                            >
+                                {completedLevels > 0
+                                    ? `Continue Level ${activeQuickLevel.level || 1}: ${activeQuickLevel.title || 'Campaign'} →`
+                                    : `Start Current Level (${activeQuickLevel.level || 1}: ${activeQuickLevel.title || 'The Basics'}) →`}
+                            </button>
+                        </div>
+
                         <div className="sp-level-stats">
                             <div><strong>{totalProgress === null ? '-' : completedLevels}</strong><span>Levels Cleared</span></div>
                             <div><strong>{levels.length || 12}</strong><span>Total Levels</span></div>
@@ -879,58 +917,60 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
 const styles: { [key: string]: React.CSSProperties } = {
     container: {
         minHeight: 'calc(100dvh - 59px)',
-        background: 'radial-gradient(circle at 50% 0%, rgba(13,112,174,.22), transparent 38%), linear-gradient(180deg, rgba(2,10,18,.9), rgba(1,6,11,.98))',
+        background: 'linear-gradient(180deg, #040d18 0%, #030b14 100%)',
         color: '#eefbff',
         fontFamily: "var(--font-rajdhani, 'Rajdhani'), sans-serif",
+        padding: '16px 12px',
     },
     header: {
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 18,
-        padding: '18px clamp(16px, 4vw, 56px)',
-        background: 'linear-gradient(180deg, rgba(35,57,71,.98), rgba(5,16,24,.98) 48%, rgba(13,32,43,.98))',
-        borderTop: '1px solid rgba(217,248,255,.35)', borderBottom: '2px solid rgba(35,215,255,.66)',
-        boxShadow: '0 14px 32px rgba(0,0,0,.48), inset 0 1px 0 rgba(255,255,255,.16)',
+        display: 'flex', flexDirection: 'column' as const, alignItems: 'stretch', justifyContent: 'space-between', gap: 14,
+        maxWidth: 600, margin: '0 auto 18px',
+        padding: '18px 20px',
+        background: 'linear-gradient(180deg, #091727 0%, #030b14 100%)',
+        border: '1px solid #688299', borderTopColor: '#aec0d0', borderRadius: 7,
+        boxShadow: '0 14px 32px rgba(0,0,0,.48), inset 0 1px 0 rgba(255,255,255,.25)',
     },
     backButton: {
-        padding: '8px 16px', background: 'linear-gradient(180deg, #294858, #0a1c28 52%, #020b12)',
-        border: '1px solid rgba(159,229,255,.55)', borderRadius: 0, color: '#eefbff',
+        padding: '8px 16px', background: 'linear-gradient(180deg, #13253a 0%, #060e18 100%)',
+        border: '1px solid #688299', borderTopColor: '#aec0d0', borderRadius: 7, color: '#eefbff',
         fontSize: 14, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
     },
     gameInfo: { textAlign: 'center' as const, flex: 1, minWidth: 0 },
     gameTitle: {
-        margin: 0, fontSize: 24, fontWeight: 800, color: '#f5fdff', letterSpacing: 1.2,
+        margin: 0, fontSize: 22, fontWeight: 800, color: '#f5fdff', letterSpacing: 0.8,
         fontFamily: "var(--font-orbitron, 'Orbitron'), sans-serif",
     },
     progressSummary: { marginTop: 8, display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: 6 },
     progressText: { fontSize: 12, color: '#9eb8c6', letterSpacing: 0.8 },
     progressTrack: {
         width: 220, maxWidth: '100%', height: 6, background: 'rgba(0,0,0,.72)',
-        border: '1px solid rgba(139,234,255,.2)', borderRadius: 0, overflow: 'hidden',
+        border: '1px solid #688299', borderRadius: 7, overflow: 'hidden',
     },
     progressFill: {
-        height: '100%', background: 'linear-gradient(90deg, #087faf, #70e8ff, #d9f8ff)',
-        borderRadius: 0, boxShadow: '0 0 12px rgba(35,215,255,.5)',
+        height: '100%', background: 'linear-gradient(90deg, #087cfa, #56d8ff, #d9f8ff)',
+        borderRadius: 7, boxShadow: '0 0 12px rgba(8,124,250,.5)',
     },
     categoryBadge: {
-        padding: '7px 12px', background: 'linear-gradient(180deg, rgba(43,73,89,.95), rgba(4,16,24,.96))',
-        border: '1px solid rgba(139,234,255,.4)', borderRadius: 0, fontSize: 12, fontWeight: 700,
+        padding: '7px 12px', background: 'linear-gradient(180deg, #13253a 0%, #060e18 100%)',
+        border: '1px solid #688299', borderTopColor: '#aec0d0', borderRadius: 7, fontSize: 12, fontWeight: 700,
         color: '#cceef8', letterSpacing: 1.2, whiteSpace: 'nowrap',
     },
-    levelMap: { padding: '28px clamp(14px, 4vw, 40px)', maxWidth: 980, margin: '0 auto' },
+    levelMap: { padding: '8px 0 28px', maxWidth: 600, margin: '0 auto' },
     loading: { display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'center', height: 400, gap: 16 },
     spinner: { fontSize: 48, color: '#7be9ff', textShadow: '0 0 24px rgba(35,215,255,.7)' },
     levelList: { display: 'flex', flexDirection: 'column' as const, gap: 0 },
     levelCard: {
-        position: 'relative' as const, display: 'flex', alignItems: 'center', padding: '18px 20px',
-        borderRadius: 0, marginBottom: 14, transition: 'transform .2s ease, border-color .2s ease, box-shadow .2s ease',
+        position: 'relative' as const, display: 'flex', alignItems: 'center', padding: '16px 18px',
+        borderRadius: 7, marginBottom: 12, transition: 'transform .2s ease, border-color .2s ease, box-shadow .2s ease',
     },
     levelBadge: {
-        width: 48, height: 48, borderRadius: 0, border: '1px solid rgba(221,249,255,.72)',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,.5), 0 0 18px rgba(35,215,255,.25)',
+        width: 46, height: 46, borderRadius: 7, border: '1px solid #688299', borderTopColor: '#aec0d0',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,.45), 0 0 14px rgba(35,215,255,.22)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 800,
         flexShrink: 0, fontFamily: "var(--font-orbitron, 'Orbitron'), sans-serif",
     },
-    levelInfo: { flex: 1, marginLeft: 18, minWidth: 0 },
-    levelTitle: { margin: 0, fontSize: 17, fontWeight: 700, letterSpacing: 0.4 },
+    levelInfo: { flex: 1, marginLeft: 16, minWidth: 0 },
+    levelTitle: { margin: 0, fontSize: 16, fontWeight: 700, letterSpacing: 0.3 },
     levelDesc: { margin: '4px 0 0 0', fontSize: 13, lineHeight: 1.45 },
     requirement: { marginTop: 8, display: 'flex', alignItems: 'center', flexWrap: 'wrap' as const, rowGap: 4 },
     scoreSection: { display: 'flex', flexDirection: 'column' as const, alignItems: 'flex-end', gap: 8, minWidth: 112 },
@@ -939,7 +979,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     highScoreValue: { fontSize: 22, fontWeight: 800, fontFamily: "var(--font-orbitron, 'Orbitron'), sans-serif" },
     notAttempted: { fontSize: 12, color: '#829cab' },
     playButton: {
-        padding: '9px 18px', border: '1px solid rgba(217,248,255,.7)', borderRadius: 0,
+        padding: '9px 18px', border: '1px solid #56d8ff', borderTopColor: '#b3eaff', borderRadius: 7,
         fontSize: 12, fontWeight: 800, cursor: 'pointer', letterSpacing: 0.8,
         boxShadow: 'inset 0 1px 0 rgba(255,255,255,.42), inset 0 -2px 0 rgba(0,0,0,.72), 0 8px 18px rgba(0,0,0,.34)',
     },

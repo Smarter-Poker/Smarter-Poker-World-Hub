@@ -5762,91 +5762,6 @@ function UniversalDynamicTable({
                                 </span>
                             )}
 
-                            {/* On-Table Audio & Motion Parity Control + Scenario Restart */}
-                            <div
-                                data-table-audio-control="true"
-                                data-audio-muted={String(isAudioMuted)}
-                                data-audio-pack={audioPack}
-                                data-reduced-motion={String(Boolean(reduceMotion))}
-                                style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
-                            >
-                                <button
-                                    type="button"
-                                    data-audio-mute-toggle="true"
-                                    aria-pressed={isAudioMuted}
-                                    onClick={handleToggleAudioMute}
-                                    style={{
-                                        padding: '2px 7px',
-                                        borderRadius: 5,
-                                        fontSize: 12,
-                                        fontWeight: 800,
-                                        cursor: 'pointer',
-                                        border: isAudioMuted ? '1px solid rgba(239, 68, 68, 0.55)' : '1px solid rgba(56, 189, 248, 0.45)',
-                                        background: isAudioMuted ? 'rgba(239, 68, 68, 0.15)' : 'rgba(56, 189, 248, 0.12)',
-                                        color: isAudioMuted ? '#fca5a5' : '#7dd3fc',
-                                    }}
-                                >
-                                    {isAudioMuted ? 'Audio: Muted' : 'Audio: Live'}
-                                </button>
-                                <button
-                                    type="button"
-                                    data-audio-pack-cycle="true"
-                                    onClick={handleCycleAudioPack}
-                                    style={{
-                                        padding: '2px 7px',
-                                        borderRadius: 5,
-                                        fontSize: 12,
-                                        fontWeight: 800,
-                                        cursor: 'pointer',
-                                        border: '1px solid rgba(103, 232, 249, 0.35)',
-                                        background: 'rgba(15, 23, 42, 0.75)',
-                                        color: '#67e8f9',
-                                    }}
-                                >
-                                    {`Pack: ${audioPack === 'minimal' ? 'Minimal' : audioPack === 'retro' ? 'Retro' : 'Casino'}`}
-                                </button>
-                                <button
-                                    type="button"
-                                    data-scenario-restart-btn="true"
-                                    onClick={handleRestartScenario}
-                                    style={{
-                                        padding: '2px 8px',
-                                        borderRadius: 5,
-                                        fontSize: 12,
-                                        fontWeight: 800,
-                                        cursor: 'pointer',
-                                        border: '1px solid rgba(251, 191, 36, 0.5)',
-                                        background: 'rgba(251, 191, 36, 0.14)',
-                                        color: '#fde68a',
-                                    }}
-                                >
-                                    Restart Scenario
-                                </button>
-                            </div>
-
-                            {activeNormalizedVariant === 'plo8' && (
-                                <div
-                                    data-plo8-hilo-pill="true"
-                                    data-plo8-has-low={String(Boolean(plo8LowEval?.hasLow))}
-                                    data-plo8-has-nut-low={String(Boolean(plo8LowEval?.hasNutLow))}
-                                    data-plo8-low-outs={String(Number(plo8LowEval?.lowOuts || 0))}
-                                    data-plo8-scoopable={String(Boolean(plo8LowEval?.scoopable))}
-                                    data-plo8-quartering-risk={String(Boolean(plo8LowEval?.quarteringRisk))}
-                                    data-plo8-hi-half-bb={String(hiHalfBb)}
-                                    data-plo8-lo-half-bb={String(loHalfBb)}
-                                    style={{
-                                        padding: '3px 9px',
-                                        borderRadius: 6,
-                                        fontSize: 12,
-                                        fontWeight: 800,
-                                        border: '1px solid rgba(52, 211, 153, 0.55)',
-                                        background: 'rgba(16, 185, 129, 0.18)',
-                                        color: '#6ee7b7',
-                                    }}
-                                >
-                                    {`High Pot Half: ${hiHalfBb} BB · Low 8-Or-Better Pot Half: ${loHalfBb} BB · ${plo8LowEval?.hasNutLow ? 'Nut Low' : plo8LowEval?.hasLow ? 'Low Draw Qualified' : `Low Draw (${Number(plo8LowEval?.lowOuts || 0)} Outs)`} · ${plo8LowEval?.scoopable ? 'Scoop Status: Scoopable' : 'Scoop Status: Split Pot'} (2 Hole + 3 Board Required)`}
-                                </div>
-                            )}
                             <span
                                 data-training-stakes-badge="true"
                                 data-stakes-label={activeStakesInfo.stakesLabel}
@@ -5909,9 +5824,106 @@ function UniversalDynamicTable({
                             >
                                 {displayInChips ? 'SETTINGS: CHIPS' : 'SETTINGS: BB'}
                             </button>
-                            <button
-                                type="button"
-                                data-table-icm-pko-pill="true"
+                        </div>
+
+                        <details
+                            className="sp-mtt-disclosure"
+                            data-table-study-tools-disclosure="true"
+                            open
+                            style={{ width: '100%' }}
+                        >
+                            <summary style={{ minHeight: 36, padding: '4px 10px', fontSize: 12, fontWeight: 800, cursor: 'pointer', color: '#83deff' }}>
+                                Table &amp; Study Tools (Audio, Rules, HUD, Node-Lock &amp; Simulators)
+                            </summary>
+                            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6, paddingTop: 6 }}>
+                                {/* On-Table Audio & Motion Parity Control + Scenario Restart */}
+                                <div
+                                    data-table-audio-control="true"
+                                    data-audio-muted={String(isAudioMuted)}
+                                    data-audio-pack={audioPack}
+                                    data-reduced-motion={String(Boolean(reduceMotion))}
+                                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                >
+                                    <button
+                                        type="button"
+                                        data-audio-mute-toggle="true"
+                                        aria-pressed={isAudioMuted}
+                                        onClick={handleToggleAudioMute}
+                                        style={{
+                                            padding: '2px 7px',
+                                            borderRadius: 5,
+                                            fontSize: 12,
+                                            fontWeight: 800,
+                                            cursor: 'pointer',
+                                            border: isAudioMuted ? '1px solid rgba(239, 68, 68, 0.55)' : '1px solid rgba(56, 189, 248, 0.45)',
+                                            background: isAudioMuted ? 'rgba(239, 68, 68, 0.15)' : 'rgba(56, 189, 248, 0.12)',
+                                            color: isAudioMuted ? '#fca5a5' : '#7dd3fc',
+                                        }}
+                                    >
+                                        {isAudioMuted ? 'Audio: Muted' : 'Audio: Live'}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        data-audio-pack-cycle="true"
+                                        onClick={handleCycleAudioPack}
+                                        style={{
+                                            padding: '2px 7px',
+                                            borderRadius: 5,
+                                            fontSize: 12,
+                                            fontWeight: 800,
+                                            cursor: 'pointer',
+                                            border: '1px solid rgba(103, 232, 249, 0.35)',
+                                            background: 'rgba(15, 23, 42, 0.75)',
+                                            color: '#67e8f9',
+                                        }}
+                                    >
+                                        {`Pack: ${audioPack === 'minimal' ? 'Minimal' : audioPack === 'retro' ? 'Retro' : 'Casino'}`}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        data-scenario-restart-btn="true"
+                                        onClick={handleRestartScenario}
+                                        style={{
+                                            padding: '2px 8px',
+                                            borderRadius: 5,
+                                            fontSize: 12,
+                                            fontWeight: 800,
+                                            cursor: 'pointer',
+                                            border: '1px solid rgba(251, 191, 36, 0.5)',
+                                            background: 'rgba(251, 191, 36, 0.14)',
+                                            color: '#fde68a',
+                                        }}
+                                    >
+                                        Restart Scenario
+                                    </button>
+                                </div>
+
+                                {activeNormalizedVariant === 'plo8' && (
+                                    <div
+                                        data-plo8-hilo-pill="true"
+                                        data-plo8-has-low={String(Boolean(plo8LowEval?.hasLow))}
+                                        data-plo8-has-nut-low={String(Boolean(plo8LowEval?.hasNutLow))}
+                                        data-plo8-low-outs={String(Number(plo8LowEval?.lowOuts || 0))}
+                                        data-plo8-scoopable={String(Boolean(plo8LowEval?.scoopable))}
+                                        data-plo8-quartering-risk={String(Boolean(plo8LowEval?.quarteringRisk))}
+                                        data-plo8-hi-half-bb={String(hiHalfBb)}
+                                        data-plo8-lo-half-bb={String(loHalfBb)}
+                                        style={{
+                                            padding: '3px 9px',
+                                            borderRadius: 6,
+                                            fontSize: 12,
+                                            fontWeight: 800,
+                                            border: '1px solid rgba(52, 211, 153, 0.55)',
+                                            background: 'rgba(16, 185, 129, 0.18)',
+                                            color: '#6ee7b7',
+                                        }}
+                                    >
+                                        {`High Pot Half: ${hiHalfBb} BB · Low 8-Or-Better Pot Half: ${loHalfBb} BB · ${plo8LowEval?.hasNutLow ? 'Nut Low' : plo8LowEval?.hasLow ? 'Low Draw Qualified' : `Low Draw (${Number(plo8LowEval?.lowOuts || 0)} Outs)`} · ${plo8LowEval?.scoopable ? 'Scoop Status: Scoopable' : 'Scoop Status: Split Pot'} (2 Hole + 3 Board Required)`}
+                                    </div>
+                                )}
+                                <button
+                                    type="button"
+                                    data-table-icm-pko-pill="true"
                                 data-bubble-factor={icmBubbleFactor}
                                 data-bounty-equivalence-bb={bountyEquivBb}
                                 data-chip-ev-vs-icm-action={icmAdjustedAction}
@@ -6144,11 +6156,10 @@ function UniversalDynamicTable({
                             >
                                 Hotkeys: 1-4 Actions · U Units · M Mute · R Restart · Wheel ±0.5 BB
                             </div>
-                        </div>
 
-                        {/* Monotonic-Sequence Study HUD Overlay (Pot Odds / MDF / SPR) */}
-                        <div
-                            data-study-hud-overlay="true"
+                            {/* Monotonic-Sequence Study HUD Overlay (Pot Odds / MDF / SPR) */}
+                            <div
+                                data-study-hud-overlay="true"
                             data-study-hud-seq={String(studyHudSeq)}
                             data-study-pot-odds-pct={String(potOddsPct)}
                             data-study-mdf-pct={String(mdfPct)}
@@ -6913,6 +6924,8 @@ function UniversalDynamicTable({
                                 })}
                             </div>
                         </div>
+                            </div>
+                        </details>
                     </div>
                 );
             })()}
@@ -9004,8 +9017,18 @@ function UniversalDynamicTable({
                                     Review The Coaching Below. This Screen Will Stay Open Until You Click Next.
                                 </div>
 
-                                {/* Item F: Omaha 2-Hole + 3-Board Best-5 & Draw Breakdown Pill */}
-                                {['plo4', 'plo5', 'plo6', 'plo8'].includes(activeNormalizedVariant) && brainSpotEvaluation && (
+                                <details
+                                    className="sp-mtt-disclosure"
+                                    data-posthand-simulators-disclosure="true"
+                                    open
+                                    style={{ marginTop: 10, width: '100%' }}
+                                >
+                                    <summary style={{ minHeight: 38, padding: '6px 10px', fontSize: 12, fontWeight: 800, cursor: 'pointer', color: '#83deff' }}>
+                                        Advanced Hand Simulators (What-If, Showdown, Insurance &amp; Branch Rewind)
+                                    </summary>
+
+                                    {/* Item F: Omaha 2-Hole + 3-Board Best-5 & Draw Breakdown Pill */}
+                                    {['plo4', 'plo5', 'plo6', 'plo8'].includes(activeNormalizedVariant) && brainSpotEvaluation && (
                                     <div
                                         data-omaha-best-five-highlight="true"
                                         data-omaha-best-two-hole={(brainSpotEvaluation.omahaBestTwoHole || []).join(',')}
@@ -9431,6 +9454,7 @@ function UniversalDynamicTable({
                                         })}
                                     </div>
                                 </div>
+                                </details>
                             </div>
                         );
                     })()}

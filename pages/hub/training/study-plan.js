@@ -702,7 +702,7 @@ export default function StudyPlanPage() {
         className="sp-training-journey sp-training-journey--study-plan"
         style={{
           minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
+          background: '#040d18',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
@@ -712,7 +712,8 @@ export default function StudyPlanPage() {
           className="sp-journey-header"
           style={{
             padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            borderBottom: '1px solid #688299',
+            background: 'linear-gradient(180deg, #091727 0%, #030b14 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -787,9 +788,10 @@ export default function StudyPlanPage() {
             style={{
               marginBottom: 18,
               padding: 16,
-              borderRadius: 12,
-              border: '1px solid rgba(251, 191, 36, 0.42)',
-              background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.85))',
+              borderRadius: 7,
+              border: '1px solid #688299',
+              borderTopColor: '#aec0d0',
+              background: '#091727',
             }}
           >
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 8 }}>
@@ -838,9 +840,10 @@ export default function StudyPlanPage() {
               style={{
                 marginBottom: 20,
                 padding: 18,
-                borderRadius: 12,
-                border: '1px solid rgba(56,189,248,0.40)',
-                background: 'rgba(15,23,42,0.82)',
+                borderRadius: 7,
+                border: '1px solid #688299',
+                borderTopColor: '#aec0d0',
+                background: '#091727',
               }}
             >
               <div
@@ -915,9 +918,9 @@ export default function StudyPlanPage() {
                   minHeight: 44,
                   alignItems: 'center',
                   padding: '0 18px',
-                  borderRadius: 8,
-                  border: '1px solid #67e8f9',
-                  background: 'linear-gradient(180deg, #0891b2, #075985)',
+                  borderRadius: 7,
+                  border: '1px solid #56d8ff',
+                  background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 52%, #002b68 100%)',
                   color: '#fff',
                   fontWeight: 900,
                   cursor: 'pointer',

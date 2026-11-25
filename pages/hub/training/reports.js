@@ -177,13 +177,14 @@ function formatEv(value) {
   return isFiniteNumber(value) ? `${Number(value).toFixed(3)} BB` : '-';
 }
 
-function panelStyle(accent = 'rgba(69,230,255,.28)') {
+function panelStyle(accent = '#688299') {
   return {
     position: 'relative',
     overflow: 'hidden',
     border: `1px solid ${accent}`,
-    borderRadius: 0,
-    background: 'linear-gradient(145deg, rgba(24,38,51,.96), rgba(5,10,16,.98) 55%, rgba(16,27,38,.98))',
+    borderTopColor: '#aec0d0',
+    borderRadius: 7,
+    background: '#091727',
     boxShadow: 'inset 0 1px 0 rgba(255,255,255,.16), inset 0 -12px 28px rgba(0,0,0,.38), 0 14px 34px rgba(0,0,0,.34)',
   };
 }
@@ -472,8 +473,8 @@ export default function VerifiedTrainingReports() {
         <title>Verified Training Reports | Smarter.Poker</title>
         <meta name="description" content="Review sealed Training results and measured solver evidence without inferred or simulated player statistics." />
       </Head>
-      <div className="sp-training-intelligence sp-training-intelligence--reports" style={{ minHeight: '100dvh', width: '100%', maxWidth: '100vw', overflowX: 'clip', paddingBottom: 76, background: 'radial-gradient(circle at 50% -10%, rgba(0,155,255,.18), transparent 34%), linear-gradient(180deg, #071018, #03070b 64%, #071019)', color: 'var(--sp-fg)' }}>
-        <header className="sp-intelligence-header" style={{ padding: '22px clamp(16px, 4vw, 40px) 18px', borderBottom: '1px solid rgba(91,221,255,.32)', background: 'linear-gradient(180deg, rgba(28,44,58,.96), rgba(4,10,15,.96))', boxShadow: '0 8px 24px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.16)' }}>
+      <div className="sp-training-intelligence sp-training-intelligence--reports" style={{ minHeight: '100dvh', width: '100%', maxWidth: '100vw', overflowX: 'clip', paddingBottom: 76, background: '#040d18', color: 'var(--sp-fg)' }}>
+        <header className="sp-intelligence-header" style={{ padding: '22px clamp(16px, 4vw, 40px) 18px', borderBottom: '1px solid #688299', background: 'linear-gradient(180deg, #091727 0%, #030b14 100%)', boxShadow: '0 8px 24px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.16)' }}>
           <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 14 }}>
             <button type="button" onClick={() => router.push('/hub/training')} style={{ ...panelStyle(), display: 'inline-flex', alignItems: 'center', gap: 7, color: 'var(--sp-fg)', padding: '9px 13px', cursor: 'pointer', fontWeight: 800 }} aria-label="Return To Training Hub">
               <BackArrowIcon />
@@ -639,9 +640,9 @@ export default function VerifiedTrainingReports() {
                   onClick={() => router.push(arenaHref)}
                   style={{
                     padding: '9px 16px',
-                    borderRadius: 0,
-                    border: '1px solid #45e6ff',
-                    background: 'rgba(69, 230, 255, 0.18)',
+                    borderRadius: 7,
+                    border: '1px solid #56d8ff',
+                    background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 52%, #002b68 100%)',
                     color: '#fff',
                     fontSize: 12,
                     fontWeight: 900,

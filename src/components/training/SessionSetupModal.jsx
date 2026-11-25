@@ -1,5 +1,5 @@
 /**
- * SessionSetupModal — TRAIN-SETUP-MODAL-1
+ * SessionSetupModal · TRAIN-SETUP-MODAL-1
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
  * Greenfield component originally tracked in issue #288. Mounts between a
@@ -35,9 +35,16 @@
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { normalizeTrainingSessionConfig } from '../../lib/training/sessionConfigContract.mjs';
+import {
+  resolvePresetForGame,
+  loadTrainingPreferences,
+  saveTrainingPreferences,
+  resetTrainingPreferences,
+  VARIANT_METADATA,
+} from '../../lib/training/trainingPresets.mjs';
 import TrainingGameArt from './TrainingGameArt';
 
 const DIFFICULTY_OPTIONS = [
@@ -75,7 +82,7 @@ const TABLE_OPTIONS = [
   { id: '4', label: '4 Tables', desc: 'Mass multi-table' },
 ];
 
-// GTOW parity #7 — HAND SELECTION.
+// GTOW parity #7 · HAND SELECTION.
 // The server applies this choice to answer-bearing canonical questions before
 // it creates and signs the immutable attempt. The browser receives only the
 // filtered blind DTO, so it must preserve the exact server-owned hand count.
@@ -87,10 +94,24 @@ const HAND_SELECTION_OPTIONS = [
 ];
 
 const VARIANT_OPTIONS = [
-  { id: 'nlh',  label: "Hold'em", desc: '2 Cards · NL' },
-  { id: 'plo4', label: 'PLO4',    desc: '4 Cards · PL' },
-  { id: 'plo5', label: 'PLO5',    desc: '5 Cards · PL' },
-  { id: 'plo6', label: 'PLO6',    desc: '6 Cards · PL' },
+  { id: 'nlh',  label: "Hold'em",    desc: '2 Cards · NL' },
+  { id: 'plo4', label: 'PLO4',       desc: '4 Cards · PL' },
+  { id: 'plo5', label: 'PLO5',       desc: '5 Cards · PL' },
+  { id: 'plo6', label: 'PLO6',       desc: '6 Cards · PL' },
+  { id: 'plo8', label: 'PLO8 Hi-Lo', desc: '4 Cards · Hi-Lo 8+' },
+];
+
+const BETTING_STRUCTURE_OPTIONS = [
+  { id: 'no_limit',    label: 'No-Limit',    desc: 'All-In Allowed' },
+  { id: 'pot_limit',   label: 'Pot-Limit',   desc: 'Capped At Pot' },
+  { id: 'fixed_limit', label: 'Fixed-Limit', desc: '1 BB / 2 BB Cap 4' },
+];
+
+const FORMAT_OPTIONS = [
+  { id: 'cash',  label: '6-Max Cash', desc: '100 BB Ring' },
+  { id: 'mtt',   label: 'MTT ICM',    desc: '35 BB + Ante' },
+  { id: 'spins', label: '3-Max Spins', desc: '20 BB Hyper' },
+  { id: 'hu',    label: 'Heads-Up',   desc: '40 BB 1v1' },
 ];
 
 
@@ -135,12 +156,14 @@ export default function SessionSetupModal({
 }) {
   const gameId = game?.id || game?.slug || '';
   const [difficulty, setDifficulty] = useState('standard');
-  const [timer,      setTimer]      = useState('standard');
+  const [timer,      setTimer]      = useState('relaxed');
   const [scope,      setScope]      = useState('full');
   const [targetStreet, setTargetStreet] = useState('flop');
   const [tables,     setTables]     = useState('1');
   const [handSelection, setHandSelection] = useState('all');
   const [variant, setVariant] = useState('nlh');
+  const [bettingStructure, setBettingStructure] = useState('no_limit');
+  const [format, setFormat] = useState('cash');
 
   const [stats,       setStats]       = useState(null);
   const [lastSession, setLastSession] = useState(null);
@@ -157,16 +180,54 @@ export default function SessionSetupModal({
   // actual open/game transition and reject stale/out-of-vocabulary values.
   useEffect(() => {
     if (!isOpen || !gameId) return;
-    const saved = normalizeTrainingSessionConfig(readPrefs(gameId));
+    const rawSaved = readPrefs(gameId) || loadTrainingPreferences(gameId, userId);
+    const canonical = resolvePresetForGame(game || gameId, rawSaved);
+    const saved = normalizeTrainingSessionConfig({ ...canonical, ...rawSaved });
     setDifficulty(saved.difficulty);
     setTimer(saved.timer);
     setScope(saved.scope);
     setTargetStreet(saved.targetStreet || 'flop');
     setTables(saved.tables);
     setHandSelection(saved.handSelection);
-    const defaultVariant = ['cash-005', 'cash-015', 'mtt-018'].includes(String(gameId)) ? 'plo4' : 'nlh';
-    setVariant(saved.variant || defaultVariant);
-  }, [isOpen, gameId]);
+    setVariant(canonical.variant || 'nlh');
+    setBettingStructure(canonical.bettingStructure || 'no_limit');
+    setFormat(canonical.format || 'cash');
+  }, [isOpen, gameId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const activePreset = useMemo(() => {
+    return resolvePresetForGame(game || gameId, {
+      difficulty,
+      timer,
+      scope,
+      targetStreet,
+      tables,
+      handSelection,
+      variant,
+      bettingStructure,
+      format,
+    });
+  }, [game, gameId, difficulty, timer, scope, targetStreet, tables, handSelection, variant, bettingStructure, format]);
+
+  const handleVariantChange = useCallback((nextVariant) => {
+    setVariant(nextVariant);
+    const meta = VARIANT_METADATA[nextVariant] || VARIANT_METADATA.nlh;
+    if (!meta.allowedStructures.includes(bettingStructure)) {
+      setBettingStructure(meta.defaultStructure);
+    }
+  }, [bettingStructure]);
+
+  const handleResetDefaults = useCallback(() => {
+    const defaults = resetTrainingPreferences(gameId, userId);
+    setDifficulty(defaults.difficulty);
+    setTimer(defaults.timer);
+    setScope(defaults.scope);
+    setTargetStreet(defaults.targetStreet || 'flop');
+    setTables(defaults.tables);
+    setHandSelection(defaults.handSelection);
+    setVariant(defaults.variant);
+    setBettingStructure(defaults.bettingStructure);
+    setFormat(defaults.format);
+  }, [gameId, userId]);
 
   // Pull the 30-day stats + last session from the RPCs shipped in PR #303.
   useEffect(() => {
@@ -265,21 +326,26 @@ export default function SessionSetupModal({
 
   const handleStart = useCallback(() => {
     const prefs = normalizeTrainingSessionConfig({
-      difficulty,
-      timer,
-      scope,
-      targetStreet,
+      difficulty: activePreset.difficulty,
+      timer: activePreset.timer,
+      scope: activePreset.scope,
+      targetStreet: activePreset.targetStreet,
       speed: 'normal',
-      tables,
+      tables: activePreset.tables,
       feedbackRule: 'every',
       autoAdvanceUI: 'off',
       autoAdvance: false,
-      handSelection,
-      variant,
+      handSelection: activePreset.handSelection,
+      variant: activePreset.variant,
+      bettingStructure: activePreset.bettingStructure,
+      format: activePreset.format,
     });
-    if (gameId) writePrefs(gameId, prefs);
+    if (gameId) {
+      writePrefs(gameId, prefs);
+      saveTrainingPreferences(gameId, prefs, userId);
+    }
     onStart?.({ game, ...prefs });
-  }, [game, gameId, difficulty, timer, scope, targetStreet, tables, handSelection, variant, onStart]);
+  }, [game, gameId, userId, activePreset, onStart]);
 
   if (!isOpen || !game) return null;
 
@@ -304,7 +370,7 @@ export default function SessionSetupModal({
       aria-labelledby="sp-setup-title"
       style={{
         position: 'fixed', inset: 0, zIndex: 9000,
-        background: 'rgba(0, 0, 0, 0.7)',
+        background: 'rgba(2, 7, 13, 0.84)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -316,10 +382,16 @@ export default function SessionSetupModal({
         className="sp-card-lg sp-setup-console"
         style={{
           width: '100%',
-          maxWidth: 1040,
+          maxWidth: 600,
           maxHeight: '92dvh',
           overflowY: 'auto',
           position: 'relative',
+          background: 'linear-gradient(180deg, #091727 0%, #040d18 100%)',
+          border: '1px solid #688299',
+          borderTopColor: '#aec0d0',
+          borderRadius: 7,
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.32), 0 24px 64px rgba(0,0,0,0.75)',
+          padding: 18,
         }}
       >
         <button
@@ -329,29 +401,35 @@ export default function SessionSetupModal({
           aria-label="Back to training"
           className="sp-cta sp-cta-ghost sp-setup-close"
           style={{
-            position: 'absolute', top: 8, right: 8,
-            padding: '6px 10px', fontSize: 12,
-            minHeight: 36,
+            position: 'absolute', top: 12, right: 12,
+            padding: '6px 12px', fontSize: 12,
+            minHeight: 38,
+            borderRadius: 7,
+            border: '1px solid #688299',
+            borderTopColor: '#aec0d0',
+            background: 'linear-gradient(180deg, #13253a 0%, #060e18 100%)',
+            color: '#e9f8ff',
           }}
         >
           ← Back
         </button>
 
-        <div className="sp-setup-layout">
-          <aside className="sp-setup-identity">
-            <div className="sp-setup-art" aria-hidden="true">
+        <div className="sp-setup-layout" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <aside className="sp-setup-identity" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div className="sp-setup-art" aria-hidden="true" style={{ borderRadius: 7, overflow: 'hidden', border: '1px solid #688299', maxHeight: 150, position: 'relative' }}>
               <TrainingGameArt
                 gameId={gameId}
-                sizes="(max-width: 700px) 92vw, 420px"
+                sizes="(max-width: 700px) 92vw, 600px"
                 loading="eager"
               />
               <div className="sp-setup-art-shade" />
               <div className="sp-setup-live"><span /> Live Training System</div>
             </div>
+
             <header className="sp-stack-1 sp-setup-title">
-              <div className="sp-caption">Mission Configuration</div>
-              <h2 id="sp-setup-title" className="sp-h2">{game.name || game.title || 'Training Session'}</h2>
-              <p className="sp-body-sm">{game.focus || 'Configure the table, then sharpen the decisions that matter.'}</p>
+              <div className="sp-caption" style={{ color: '#83deff', fontWeight: 700 }}>Mission Configuration</div>
+              <h2 id="sp-setup-title" className="sp-h2" style={{ margin: '2px 0' }}>{game.name || game.title || 'Training Session'}</h2>
+              <p className="sp-body-sm" style={{ margin: 0 }}>{game.focus || 'Configure the table, then sharpen the decisions that matter.'}</p>
               {(game.level || game.tier) && (
                 <div className="sp-caption">
                   {game.tier ? game.tier : null}
@@ -361,14 +439,75 @@ export default function SessionSetupModal({
               )}
             </header>
 
-            <section className="sp-card sp-stack-1 sp-setup-goal" aria-label="Session goal">
+            <section
+              className="sp-card sp-stack-1"
+              data-preset-summary-card="true"
+              aria-label="Active training preset"
+              style={{
+                padding: '12px 14px',
+                borderRadius: 7,
+                border: '1px solid #688299',
+                borderTopColor: '#aec0d0',
+                background: 'linear-gradient(180deg, #13253a 0%, #091727 65%, #060e18 100%)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                <div className="sp-h4" style={{ color: '#83deff', margin: 0 }}>Active Preset</div>
+                <button
+                  type="button"
+                  data-reset-preset-defaults="true"
+                  onClick={handleResetDefaults}
+                  style={{
+                    minHeight: 34,
+                    padding: '4px 10px',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    borderRadius: 7,
+                    border: '1px solid #688299',
+                    borderTopColor: '#aec0d0',
+                    background: 'linear-gradient(180deg, #13253a 0%, #060e18 100%)',
+                    color: '#d9edf7',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Reset To Defaults
+                </button>
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#f4fbff', marginTop: 4 }}>
+                {activePreset.summary}
+              </div>
+              <div className="sp-caption" style={{ color: '#b7cede', marginTop: 2 }}>
+                {activePreset.ruleSummary} · {activePreset.legalSizingLabel}
+              </div>
+              <div style={{ marginTop: 10 }}>
+                <button
+                  type="button"
+                  onClick={handleStart}
+                  className="sp-cta sp-cta-primary"
+                  style={{
+                    width: '100%',
+                    minHeight: 46,
+                    borderRadius: 7,
+                    border: '1px solid #56d8ff',
+                    borderTopColor: '#b3eaff',
+                    background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)',
+                    color: '#f4fbff',
+                    fontWeight: 800,
+                  }}
+                >
+                  Start Training →
+                </button>
+              </div>
+            </section>
+
+            <section className="sp-card sp-stack-1 sp-setup-goal" aria-label="Session goal" style={{ borderRadius: 7, border: '1px solid #688299', borderTopColor: '#aec0d0', background: 'linear-gradient(180deg, #13253a 0%, #060e18 100%)', padding: '10px 14px' }}>
               <div className="sp-h4">Session Goal</div>
               <div className="sp-body-sm">
                 Score ≥85% To Advance{game.level ? ` To Level ${Number(game.level) + 1}` : ''}.
               </div>
             </section>
 
-            <section className="sp-card sp-stack-2 sp-setup-performance" aria-label="Your performance over the last 30 days">
+            <section className="sp-card sp-stack-2 sp-setup-performance" aria-label="Your performance over the last 30 days" style={{ borderRadius: 7, border: '1px solid #688299', borderTopColor: '#aec0d0', background: 'linear-gradient(180deg, #13253a 0%, #060e18 100%)', padding: '10px 14px' }}>
               <div className="sp-h4">Your Performance · 30 Days</div>
               <div className="sp-cluster sp-cluster-4" style={{ justifyContent: 'space-between' }}>
                 <Stat label="Avg Accuracy" value={loading || statsError ? null : avgAccuracy} unit="%" />
@@ -391,34 +530,72 @@ export default function SessionSetupModal({
           </aside>
 
           <section className="sp-setup-config" aria-label="Training configuration">
-            <div className="sp-setup-config-heading">
-              <div>
-                <span>Training Control Deck</span>
-                <strong>Configure Your Session</strong>
+            <details
+              className="sp-mtt-disclosure"
+              data-advanced-settings-disclosure="true"
+              style={{
+                borderRadius: 7,
+                border: '1px solid #688299',
+                borderTopColor: '#aec0d0',
+                background: 'linear-gradient(180deg, #13253a 0%, #091727 45%, #060e18 100%)',
+                padding: '10px 14px',
+              }}
+            >
+              <summary
+                style={{
+                  cursor: 'pointer',
+                  fontSize: 14,
+                  fontWeight: 700,
+                  color: '#e9f8ff',
+                  padding: '6px 0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <span>Advanced Settings</span>
+                <span style={{ fontSize: 12, color: '#83deff', fontWeight: 600 }}>Variant · Structure · Format · Timer</span>
+              </summary>
+              <div className="sp-mtt-disclosure__body" style={{ marginTop: 12 }}>
+                <div className="sp-setup-config-heading" style={{ marginBottom: 10 }}>
+                  <div>
+                    <span>Training Control Deck</span>
+                    <strong>Configure Your Session</strong>
+                  </div>
+                  <span>Settings Save Automatically</span>
+                </div>
+
+                <div className="sp-setup-field-grid">
+                  <SetupField title="Poker Variant" wide><PillRow options={VARIANT_OPTIONS} value={variant} onChange={handleVariantChange} name="variant" /></SetupField>
+                  <SetupField title="Betting Structure" wide><PillRow options={BETTING_STRUCTURE_OPTIONS} value={bettingStructure} onChange={setBettingStructure} name="bettingStructure" /></SetupField>
+                  <SetupField title="Format" wide><PillRow options={FORMAT_OPTIONS} value={format} onChange={setFormat} name="format" /></SetupField>
+                  <SetupField title="Difficulty"><PillRow options={DIFFICULTY_OPTIONS} value={difficulty} onChange={setDifficulty} name="difficulty" /></SetupField>
+                  <SetupField title="Timer"><PillRow options={TIMER_OPTIONS} value={timer} onChange={setTimer} name="timer" /></SetupField>
+                  <SetupField title="Game Scope"><PillRow options={SCOPE_OPTIONS} value={scope} onChange={setScope} name="scope" /></SetupField>
+                  {scope === 'street' && (
+                    <SetupField title="Target Street" wide><PillRow options={STREET_OPTIONS} value={targetStreet} onChange={setTargetStreet} name="targetStreet" tile /></SetupField>
+                  )}
+                  <SetupField title="Tables"><PillRow options={TABLE_OPTIONS} value={tables} onChange={setTables} name="tables" /></SetupField>
+                  <SetupField title="Feedback"><div className="sp-caption"><strong>After Every Answer</strong><br />Correct And Incorrect Results Stay Visible.</div></SetupField>
+                  <SetupField title="Hand Advance"><div className="sp-caption"><strong>Manual Next Required</strong><br />Click Next When You Finish Reviewing.</div></SetupField>
+                  <SetupField title="Hand Selection"><PillRow options={HAND_SELECTION_OPTIONS} value={handSelection} onChange={setHandSelection} name="handSelection" /></SetupField>
+                </div>
               </div>
-              <span>Settings Save Automatically</span>
-            </div>
+            </details>
 
-            <div className="sp-setup-field-grid">
-              <SetupField title="Difficulty"><PillRow options={DIFFICULTY_OPTIONS} value={difficulty} onChange={setDifficulty} name="difficulty" /></SetupField>
-              <SetupField title="Timer"><PillRow options={TIMER_OPTIONS} value={timer} onChange={setTimer} name="timer" /></SetupField>
-              <SetupField title="Game Scope"><PillRow options={SCOPE_OPTIONS} value={scope} onChange={setScope} name="scope" /></SetupField>
-              {scope === 'street' && (
-                <SetupField title="Target Street" wide><PillRow options={STREET_OPTIONS} value={targetStreet} onChange={setTargetStreet} name="targetStreet" tile /></SetupField>
-              )}
-              <SetupField title="Tables"><PillRow options={TABLE_OPTIONS} value={tables} onChange={setTables} name="tables" /></SetupField>
-              <SetupField title="Feedback"><div className="sp-caption"><strong>After Every Answer</strong><br />Correct And Incorrect Results Stay Visible.</div></SetupField>
-              <SetupField title="Hand Advance"><div className="sp-caption"><strong>Manual Next Required</strong><br />Click Next When You Finish Reviewing.</div></SetupField>
-              <SetupField title="Hand Selection"><PillRow options={HAND_SELECTION_OPTIONS} value={handSelection} onChange={setHandSelection} name="handSelection" /></SetupField>
-              <SetupField title="Poker Variant" wide><PillRow options={VARIANT_OPTIONS} value={variant} onChange={setVariant} name="variant" /></SetupField>
-            </div>
-
-            <div className="sp-setup-launch">
+            <div className="sp-setup-launch" style={{ marginTop: 14 }}>
               <div><span>Ready Status</span><strong>Table Systems Online</strong></div>
               <button
                 type="button"
                 onClick={handleStart}
                 className="sp-cta sp-cta-primary"
+                style={{
+                  borderRadius: 7,
+                  border: '1px solid #56d8ff',
+                  borderTopColor: '#b3eaff',
+                  background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)',
+                  color: '#f4fbff',
+                }}
               >
                 Start Training →
               </button>

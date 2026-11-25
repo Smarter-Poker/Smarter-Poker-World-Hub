@@ -1,5 +1,5 @@
 /**
- * TRAINER CONFIG MODAL — GTO Wizard-Style Training Setup
+ * TRAINER CONFIG MODAL · GTO Wizard-Style Training Setup
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  * Lets users configure their training session before starting:
  * - Game Type: Cash / MTT / Spins
@@ -13,6 +13,17 @@
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { validateTrainingPreset } from '../../lib/training/trainingPresets.mjs';
+
+const QUICK_TRAINER_PRESETS = [
+    { id: 'cash_nlh_6max', label: '6-Max Cash 100 BB', gameType: 'cash', variant: 'nlh', bettingStructure: 'no_limit', format: 'cash', stackDepth: 100, position: 'BTN' },
+    { id: 'mtt_nlh_icm', label: 'MTT ICM 35 BB', gameType: 'mtt', variant: 'nlh', bettingStructure: 'no_limit', format: 'mtt', stackDepth: 40, position: 'CO' },
+    { id: 'spins_hyper_3max', label: 'Spins 3-Max 20 BB', gameType: 'spins', variant: 'nlh', bettingStructure: 'no_limit', format: 'spins', stackDepth: 20, position: 'BTN' },
+    { id: 'hu_duel_2max', label: 'Heads-Up 40 BB', gameType: 'cash', variant: 'nlh', bettingStructure: 'no_limit', format: 'hu', stackDepth: 40, position: 'BTN' },
+    { id: 'plo4_pot_limit_cash', label: 'PLO4 100 BB', gameType: 'cash', variant: 'plo4', bettingStructure: 'pot_limit', format: 'cash', stackDepth: 100, position: 'BTN' },
+    { id: 'plo8_hilo_split', label: 'PLO8 Hi-Lo 100 BB', gameType: 'cash', variant: 'plo8', bettingStructure: 'pot_limit', format: 'cash', stackDepth: 100, position: 'BTN' },
+    { id: 'fixed_limit_ring', label: 'Fixed-Limit', gameType: 'cash', variant: 'nlh', bettingStructure: 'fixed_limit', format: 'cash', stackDepth: 60, position: 'BTN' },
+];
 
 // Available configurations based on actual solver data in database
 const GAME_TYPES = [
@@ -65,7 +76,7 @@ const STREETS = [
 // 'standard', which the mapping resolves to the MIDDLE tier (GROUPED) because
 // that is what SessionSetupModal means by it. So picking the card below that
 // promises "Exact Sizings, up to 9 buttons" delivered grouped buckets
-// instead — and since 'standard' is also this modal's default, exact sizings
+// instead -- and since 'standard' is also this modal's default, exact sizings
 // were unreachable from the whole screen. 'exact' has always mapped to
 // DIFFICULTY.STANDARD; using it makes the label true.
 const DIFFICULTY_MODES = [
@@ -75,7 +86,11 @@ const DIFFICULTY_MODES = [
 ];
 
 export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGameId }) {
+    const [activeQuickPreset, setActiveQuickPreset] = useState('cash_nlh_6max');
     const [gameType, setGameType] = useState('cash');
+    const [variant, setVariant] = useState('nlh');
+    const [bettingStructure, setBettingStructure] = useState('no_limit');
+    const [format, setFormat] = useState('cash');
     const [position, setPosition] = useState('BTN');
     const [villainPosition, setVillainPosition] = useState('any');
     const [actionScenario, setActionScenario] = useState('any');
@@ -91,6 +106,41 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
     const modalRef = useRef(null);
     const closeRef = useRef(null);
     const previousFocusRef = useRef(null);
+
+    const applyQuickPreset = useCallback((p) => {
+        setActiveQuickPreset(p.id);
+        setGameType(p.gameType);
+        setVariant(p.variant);
+        setBettingStructure(p.bettingStructure);
+        setFormat(p.format);
+        setStackDepth(p.stackDepth);
+        setPosition(p.position);
+        setVillainPosition('any');
+        setActionScenario('any');
+        setStreet('all');
+        setHandClass('all');
+        setSpotType('any');
+        setBoardTexture('any');
+    }, []);
+
+    const handleResetDefaults = useCallback(() => {
+        applyQuickPreset(QUICK_TRAINER_PRESETS[0]);
+        setQuestionsCount(25);
+        setDifficultyMode('exact');
+        setTimerEnabled(false);
+        setTimerSeconds(30);
+    }, [applyQuickPreset]);
+
+    const validatedPreset = useMemo(() => {
+        return validateTrainingPreset({
+            variant,
+            bettingStructure,
+            format,
+            stackDepthBb: stackDepth,
+            heroPosition: position,
+            timer: timerEnabled ? 'standard' : 'relaxed',
+        }).preset;
+    }, [variant, bettingStructure, format, stackDepth, position, timerEnabled]);
 
     useEffect(() => {
         if (!isOpen) return undefined;
@@ -159,6 +209,7 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
         const gameTypeConfig = GAME_TYPES.find(g => g.id === gameType);
         const filters = [
             gameTypeConfig?.label,
+            validatedPreset.variant.toUpperCase(),
             position,
             villainPosition !== 'any' ? `vs ${villainPosition}` : null,
             actionScenario !== 'any' ? actionScenario : null,
@@ -171,6 +222,9 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
 
         onStart({
             gameType,
+            variant: validatedPreset.variant,
+            bettingStructure: validatedPreset.bettingStructure,
+            format: validatedPreset.format,
             position,
             villainPosition: villainPosition === 'any' ? null : villainPosition,
             actionScenario: actionScenario === 'any' ? null : actionScenario,
@@ -187,7 +241,7 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
             pioStackDepth: stackDepth,
             label: filters,
         });
-    }, [gameType, position, villainPosition, actionScenario, stackDepth, street, spotType, boardTexture, handClass, questionsCount, difficultyMode, timerEnabled, timerSeconds, onStart]);
+    }, [gameType, validatedPreset, position, villainPosition, actionScenario, stackDepth, street, spotType, boardTexture, handClass, questionsCount, difficultyMode, timerEnabled, timerSeconds, onStart]);
 
     if (!isOpen) return null;
 
@@ -209,16 +263,83 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
                     animate={{ scale: 1, opacity: 1, y: 0 }}
                     exit={{ scale: 0.9, opacity: 0, y: 30 }}
                     transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-                    style={{ ...styles.modal, maxHeight: '95vh' }}
+                    style={{ ...styles.modal, maxHeight: '95dvh' }}
                 >
                     {/* Header */}
                     <div style={styles.header}>
                         <button ref={closeRef} type="button" aria-label="Close Trainer Configuration" onClick={onClose} style={styles.closeBtn}>✕</button>
                         <div id="sp-trainer-config-title" style={styles.headerTitle}>Configure Trainer</div>
-                        <div style={{ width: 32 }} />
+                        <button
+                            type="button"
+                            onClick={handleResetDefaults}
+                            style={{
+                                minHeight: 38,
+                                padding: '6px 12px',
+                                borderRadius: 7,
+                                border: '1px solid #688299',
+                                borderTopColor: '#aec0d0',
+                                background: 'linear-gradient(180deg, #13253a 0%, #060e18 100%)',
+                                color: '#d9edf7',
+                                fontSize: 12,
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                            }}
+                        >
+                            Reset To Defaults
+                        </button>
                     </div>
 
                     <div style={styles.scrollArea}>
+                        {/* TOP QUICK PRESET BAR */}
+                        <div style={styles.section}>
+                            <div style={styles.sectionLabel}>QUICK PRESET BAR</div>
+                            <div style={styles.chipRow}>
+                                {QUICK_TRAINER_PRESETS.map((p) => (
+                                    <button
+                                        key={p.id}
+                                        type="button"
+                                        onClick={() => applyQuickPreset(p)}
+                                        aria-pressed={activeQuickPreset === p.id}
+                                        style={{
+                                            ...styles.chip,
+                                            ...(activeQuickPreset === p.id ? styles.chipActive : {}),
+                                        }}
+                                    >
+                                        {p.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* ACTIVE PRESET SUMMARY + IMMEDIATE START CTA */}
+                        <div
+                            style={{
+                                marginBottom: 16,
+                                padding: '12px 14px',
+                                borderRadius: 7,
+                                border: '1px solid #688299',
+                                borderTopColor: '#aec0d0',
+                                background: 'linear-gradient(180deg, #13253a 0%, #091727 60%, #060e18 100%)',
+                            }}
+                        >
+                            <div style={{ fontSize: 12, fontWeight: 700, color: '#83deff', letterSpacing: 1 }}>
+                                ACTIVE PRESET
+                            </div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: '#f4fbff', marginTop: 4 }}>
+                                {validatedPreset.summary}
+                            </div>
+                            <div style={{ fontSize: 12, color: '#b7cede', marginTop: 2 }}>
+                                {validatedPreset.ruleSummary}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleStart}
+                                style={{ ...styles.startBtn, marginTop: 10 }}
+                            >
+                                Start Training →
+                            </button>
+                        </div>
+
                         {/* SECTION 1: Game Type */}
                         <div style={styles.section}>
                             <div style={styles.sectionLabel}>GAME TYPE</div>
@@ -243,8 +364,8 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
                             </div>
                         </div>
 
-                        {/* ROW: Hero & Villain Position */}
-                        <div className="sp-trainer-config-row" style={{ display: 'flex', gap: 20 }}>
+                        {/* ROW: Hero Position & Stack Depth */}
+                        <div className="sp-trainer-config-row" style={{ display: 'flex', gap: 16 }}>
                             {/* SECTION 2: Hero Position */}
                             <div style={{ ...styles.section, flex: 1 }}>
                                 <div style={styles.sectionLabel}>HERO POSITION</div>
@@ -262,58 +383,6 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
                                             }}
                                         >
                                             {pos}
-                                        </motion.button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* SECTION 2B: Villain Position */}
-                            <div style={{ ...styles.section, flex: 1 }}>
-                                <div style={styles.sectionLabel}>VS VILLAIN</div>
-                                <div style={styles.chipRow}>
-                                    {availableVillainPositions.map(pos => (
-                                        <motion.button
-                                            key={pos}
-                                            whileHover={{ scale: 1.08 }}
-                                            whileTap={{ scale: 0.92 }}
-                                            onClick={() => setVillainPosition(pos)}
-                                            aria-pressed={villainPosition === pos}
-                                            style={{
-                                                ...styles.chip,
-                                                ...(villainPosition === pos ? styles.chipActive : {}),
-                                            }}
-                                        >
-                                            {pos === 'any' ? 'Any' : pos}
-                                        </motion.button>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* ROW: Preflop Action & Stack Depth */}
-                        <div className="sp-trainer-config-row" style={{ display: 'flex', gap: 20 }}>
-                            {/* SECTION 2C: Preflop Action Scenario */}
-                            <div style={{ ...styles.section, flex: 1 }}>
-                                <div style={styles.sectionLabel}>ACTION SCENARIO</div>
-                                <div style={styles.chipRow}>
-                                    {[
-                                        { id: 'any', label: 'Any Scenario' },
-                                        { id: 'SRP', label: 'Single Raised Pot (SRP)' },
-                                        { id: '3BP', label: '3-Bet Pot' },
-                                        { id: '4BP', label: '4-Bet+ Pot' },
-                                    ].map(act => (
-                                        <motion.button
-                                            key={act.id}
-                                            whileHover={{ scale: 1.08 }}
-                                            whileTap={{ scale: 0.92 }}
-                                            onClick={() => setActionScenario(act.id)}
-                                            aria-pressed={actionScenario === act.id}
-                                            style={{
-                                                ...styles.chip,
-                                                ...(actionScenario === act.id ? styles.chipActive : {}),
-                                            }}
-                                        >
-                                            {act.label}
                                         </motion.button>
                                     ))}
                                 </div>
@@ -390,159 +459,238 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
                             </div>
                         </div>
 
-                        {/* SECTION 4.5: Hand Class Filter */}
-                        <div style={styles.section}>
-                            <div style={styles.sectionLabel}>HAND CLASS</div>
-                            <div style={styles.chipRow}>
-                                {[
-                                    { id: 'all', label: 'Any Hand' },
-                                    { id: 'pocket_pairs', label: 'Pocket Pairs (22-AA)' },
-                                    { id: 'suited_connectors', label: 'Suited Connectors (e.g. 87s)' },
-                                    { id: 'broadways', label: 'Broadways (AT-AK, KQ, etc)' },
-                                    { id: 'suited_aces', label: 'Suited Aces (A2s-A9s)' },
-                                ].map(h => (
-                                    <motion.button
-                                        key={h.id}
-                                        whileHover={{ scale: 1.08 }}
-                                        whileTap={{ scale: 0.92 }}
-                                        onClick={() => setHandClass(h.id)}
-                                        aria-pressed={handClass === h.id}
-                                        style={{
-                                            ...styles.chip,
-                                            ...(handClass === h.id ? styles.chipActive : {}),
-                                        }}
-                                    >
-                                        {h.label}
-                                    </motion.button>
-                                ))}
-                            </div>
-                        </div>
+                        {/* ADVANCED SPOT FILTERS & SETTINGS DISCLOSURE */}
+                        <details
+                            className="sp-mtt-disclosure"
+                            data-trainer-advanced-disclosure="true"
+                            style={{
+                                borderRadius: 7,
+                                border: '1px solid #688299',
+                                borderTopColor: '#aec0d0',
+                                background: 'linear-gradient(180deg, #13253a 0%, #091727 50%, #060e18 100%)',
+                                padding: '10px 14px',
+                                marginBottom: 16,
+                            }}
+                        >
+                            <summary
+                                style={{
+                                    cursor: 'pointer',
+                                    fontSize: 14,
+                                    fontWeight: 700,
+                                    color: '#e9f8ff',
+                                    padding: '4px 0',
+                                }}
+                            >
+                                Advanced Spot Filters & Settings
+                            </summary>
+                            <div style={{ marginTop: 14 }}>
+                                {/* ROW: Villain Position & Preflop Action Scenario */}
+                                <div className="sp-trainer-config-row" style={{ display: 'flex', gap: 16 }}>
+                                    {/* SECTION 2B: Villain Position */}
+                                    <div style={{ ...styles.section, flex: 1 }}>
+                                        <div style={styles.sectionLabel}>VS VILLAIN</div>
+                                        <div style={styles.chipRow}>
+                                            {availableVillainPositions.map(pos => (
+                                                <motion.button
+                                                    key={pos}
+                                                    whileHover={{ scale: 1.08 }}
+                                                    whileTap={{ scale: 0.92 }}
+                                                    onClick={() => setVillainPosition(pos)}
+                                                    aria-pressed={villainPosition === pos}
+                                                    style={{
+                                                        ...styles.chip,
+                                                        ...(villainPosition === pos ? styles.chipActive : {}),
+                                                    }}
+                                                >
+                                                    {pos === 'any' ? 'Any' : pos}
+                                                </motion.button>
+                                            ))}
+                                        </div>
+                                    </div>
 
-                        {/* SECTION: Spot Type (Postflop) */}
-                        {(street === 'flop' || street === 'turn' || street === 'river') && (
-                            <div style={styles.section}>
-                                <div style={styles.sectionLabel}>SPOT TYPE</div>
-                                <div style={styles.chipRow}>
-                                    {[
-                                        { id: 'any', label: 'Any Spot' },
-                                        { id: 'cbet', label: 'C-Bet' },
-                                        { id: 'checkraise', label: 'Check-Raise' },
-                                        { id: 'facing_bet', label: 'Facing Bet' },
-                                        { id: 'probe', label: 'Probe Bet' },
-                                        { id: 'donk', label: 'Donk Bet' },
-                                    ].map(s => (
+                                    {/* SECTION 2C: Preflop Action Scenario */}
+                                    <div style={{ ...styles.section, flex: 1 }}>
+                                        <div style={styles.sectionLabel}>ACTION SCENARIO</div>
+                                        <div style={styles.chipRow}>
+                                            {[
+                                                { id: 'any', label: 'Any Scenario' },
+                                                { id: 'SRP', label: 'Single Raised Pot (SRP)' },
+                                                { id: '3BP', label: '3-Bet Pot' },
+                                                { id: '4BP', label: '4-Bet+ Pot' },
+                                            ].map(act => (
+                                                <motion.button
+                                                    key={act.id}
+                                                    whileHover={{ scale: 1.08 }}
+                                                    whileTap={{ scale: 0.92 }}
+                                                    onClick={() => setActionScenario(act.id)}
+                                                    aria-pressed={actionScenario === act.id}
+                                                    style={{
+                                                        ...styles.chip,
+                                                        ...(actionScenario === act.id ? styles.chipActive : {}),
+                                                    }}
+                                                >
+                                                    {act.label}
+                                                </motion.button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* SECTION 4.5: Hand Class Filter */}
+                                <div style={styles.section}>
+                                    <div style={styles.sectionLabel}>HAND CLASS</div>
+                                    <div style={styles.chipRow}>
+                                        {[
+                                            { id: 'all', label: 'Any Hand' },
+                                            { id: 'pocket_pairs', label: 'Pocket Pairs (22-AA)' },
+                                            { id: 'suited_connectors', label: 'Suited Connectors (e.g. 87s)' },
+                                            { id: 'broadways', label: 'Broadways (AT-AK, KQ, etc)' },
+                                            { id: 'suited_aces', label: 'Suited Aces (A2s-A9s)' },
+                                        ].map(h => (
+                                            <motion.button
+                                                key={h.id}
+                                                whileHover={{ scale: 1.08 }}
+                                                whileTap={{ scale: 0.92 }}
+                                                onClick={() => setHandClass(h.id)}
+                                                aria-pressed={handClass === h.id}
+                                                style={{
+                                                    ...styles.chip,
+                                                    ...(handClass === h.id ? styles.chipActive : {}),
+                                                }}
+                                            >
+                                                {h.label}
+                                            </motion.button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* SECTION: Spot Type (Postflop) */}
+                                {(street === 'flop' || street === 'turn' || street === 'river' || street === 'all') && (
+                                    <div style={styles.section}>
+                                        <div style={styles.sectionLabel}>SPOT TYPE</div>
+                                        <div style={styles.chipRow}>
+                                            {[
+                                                { id: 'any', label: 'Any Spot' },
+                                                { id: 'cbet', label: 'C-Bet' },
+                                                { id: 'checkraise', label: 'Check-Raise' },
+                                                { id: 'facing_bet', label: 'Facing Bet' },
+                                                { id: 'probe', label: 'Probe Bet' },
+                                                { id: 'donk', label: 'Donk Bet' },
+                                            ].map(s => (
+                                                <motion.button
+                                                    key={s.id}
+                                                    whileHover={{ scale: 1.08 }}
+                                                    whileTap={{ scale: 0.92 }}
+                                                    onClick={() => setSpotType(s.id)}
+                                                    aria-pressed={spotType === s.id}
+                                                    style={{
+                                                        ...styles.chip,
+                                                        ...(spotType === s.id ? styles.chipActive : {}),
+                                                    }}
+                                                >
+                                                    {s.label}
+                                                </motion.button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* SECTION: Board Texture */}
+                                {(street === 'flop' || street === 'turn' || street === 'river' || street === 'all') && (
+                                    <div style={styles.section}>
+                                        <div style={styles.sectionLabel}>BOARD TEXTURE</div>
+                                        <div style={styles.chipRow}>
+                                            {[
+                                                { id: 'any', label: 'Any Board' },
+                                                { id: 'dry_rainbow', label: 'Dry Rainbow' },
+                                                { id: 'monotone', label: 'Monotone' },
+                                                { id: 'two_tone', label: 'Two-Tone' },
+                                                { id: 'paired', label: 'Paired' },
+                                                { id: 'connected', label: 'Connected' },
+                                                { id: 'broadway', label: 'Broadway' },
+                                            ].map(b => (
+                                                <motion.button
+                                                    key={b.id}
+                                                    whileHover={{ scale: 1.08 }}
+                                                    whileTap={{ scale: 0.92 }}
+                                                    onClick={() => setBoardTexture(b.id)}
+                                                    aria-pressed={boardTexture === b.id}
+                                                    style={{
+                                                        ...styles.chip,
+                                                        ...(boardTexture === b.id ? styles.chipActive : {}),
+                                                    }}
+                                                >
+                                                    {b.label}
+                                                </motion.button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* SECTION 5: Questions Count */}
+                                <div style={styles.section}>
+                                    <div style={styles.sectionLabel}>HANDS PER SESSION</div>
+                                    <div style={styles.chipRow}>
+                                        {[10, 25, 50, 100].map(n => (
+                                            <motion.button
+                                                key={n}
+                                                whileHover={{ scale: 1.08 }}
+                                                whileTap={{ scale: 0.92 }}
+                                                onClick={() => setQuestionsCount(n)}
+                                                aria-pressed={questionsCount === n}
+                                                style={{
+                                                    ...styles.chip,
+                                                    ...(questionsCount === n ? styles.chipActive : {}),
+                                                }}
+                                            >
+                                                {n}
+                                            </motion.button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* SECTION 6: Timer */}
+                                <div style={styles.section}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                        <div style={styles.sectionLabel}>DECISION TIMER</div>
                                         <motion.button
-                                            key={s.id}
-                                            whileHover={{ scale: 1.08 }}
-                                            whileTap={{ scale: 0.92 }}
-                                            onClick={() => setSpotType(s.id)}
-                                            aria-pressed={spotType === s.id}
+                                            whileTap={{ scale: 0.9 }}
+                                            onClick={() => setTimerEnabled(!timerEnabled)}
+                                            aria-pressed={timerEnabled}
                                             style={{
-                                                ...styles.chip,
-                                                ...(spotType === s.id ? styles.chipActive : {}),
+                                                padding: '2px 10px', borderRadius: 7,
+                                                fontSize: 12, fontWeight: 700,
+                                                border: timerEnabled ? '1px solid #56d8ff' : '1px solid #688299',
+                                                background: timerEnabled ? 'rgba(8,124,250,0.35)' : '#091727',
+                                                color: timerEnabled ? '#e5fbff' : '#94a3b8',
+                                                cursor: 'pointer',
                                             }}
                                         >
-                                            {s.label}
+                                            {timerEnabled ? 'ON' : 'OFF'}
                                         </motion.button>
-                                    ))}
+                                    </div>
+                                    {timerEnabled && (
+                                        <div style={styles.chipRow}>
+                                            {[15, 30, 45, 60].map(s => (
+                                                <motion.button
+                                                    key={s}
+                                                    whileHover={{ scale: 1.08 }}
+                                                    whileTap={{ scale: 0.92 }}
+                                                    onClick={() => setTimerSeconds(s)}
+                                                    aria-pressed={timerSeconds === s}
+                                                    style={{
+                                                        ...styles.chip,
+                                                        ...(timerSeconds === s ? styles.chipActive : {}),
+                                                    }}
+                                                >
+                                                    {s}s
+                                                </motion.button>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
-                        )}
-
-                        {/* SECTION: Board Texture */}
-                        {(street === 'flop' || street === 'turn' || street === 'river') && (
-                            <div style={styles.section}>
-                                <div style={styles.sectionLabel}>BOARD TEXTURE</div>
-                                <div style={styles.chipRow}>
-                                    {[
-                                        { id: 'any', label: 'Any Board' },
-                                        { id: 'dry_rainbow', label: 'Dry Rainbow' },
-                                        { id: 'monotone', label: 'Monotone' },
-                                        { id: 'two_tone', label: 'Two-Tone' },
-                                        { id: 'paired', label: 'Paired' },
-                                        { id: 'connected', label: 'Connected' },
-                                        { id: 'broadway', label: 'Broadway' },
-                                    ].map(b => (
-                                        <motion.button
-                                            key={b.id}
-                                            whileHover={{ scale: 1.08 }}
-                                            whileTap={{ scale: 0.92 }}
-                                            onClick={() => setBoardTexture(b.id)}
-                                            aria-pressed={boardTexture === b.id}
-                                            style={{
-                                                ...styles.chip,
-                                                ...(boardTexture === b.id ? styles.chipActive : {}),
-                                            }}
-                                        >
-                                            {b.label}
-                                        </motion.button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* SECTION 5: Questions Count */}
-                        <div style={styles.section}>
-                            <div style={styles.sectionLabel}>HANDS PER SESSION</div>
-                            <div style={styles.chipRow}>
-                                {[10, 25, 50, 100].map(n => (
-                                    <motion.button
-                                        key={n}
-                                        whileHover={{ scale: 1.08 }}
-                                        whileTap={{ scale: 0.92 }}
-                                        onClick={() => setQuestionsCount(n)}
-                                        aria-pressed={questionsCount === n}
-                                        style={{
-                                            ...styles.chip,
-                                            ...(questionsCount === n ? styles.chipActive : {}),
-                                        }}
-                                    >
-                                        {n}
-                                    </motion.button>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* SECTION 6: Timer */}
-                        <div style={styles.section}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                <div style={styles.sectionLabel}>DECISION TIMER</div>
-                                <motion.button
-                                    whileTap={{ scale: 0.9 }}
-                                    onClick={() => setTimerEnabled(!timerEnabled)}
-                                    aria-pressed={timerEnabled}
-                                    style={{
-                                        padding: '2px 10px', borderRadius: 12,
-                                        fontSize: 12, fontWeight: 700,
-                                        border: timerEnabled ? '1px solid rgba(0,212,255,0.5)' : '1px solid rgba(255,255,255,0.15)',
-                                        background: timerEnabled ? 'rgba(0,212,255,0.15)' : 'rgba(255,255,255,0.05)',
-                                        color: timerEnabled ? '#00d4ff' : '#64748b',
-                                        cursor: 'pointer',
-                                    }}
-                                >
-                                    {timerEnabled ? 'ON' : 'OFF'}
-                                </motion.button>
-                            </div>
-                            {timerEnabled && (
-                                <div style={styles.chipRow}>
-                                    {[15, 30, 45, 60].map(s => (
-                                        <motion.button
-                                            key={s}
-                                            whileHover={{ scale: 1.08 }}
-                                            whileTap={{ scale: 0.92 }}
-                                            onClick={() => setTimerSeconds(s)}
-                                            aria-pressed={timerSeconds === s}
-                                            style={{
-                                                ...styles.chip,
-                                                ...(timerSeconds === s ? styles.chipActive : {}),
-                                            }}
-                                        >
-                                            {s}s
-                                        </motion.button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                        </details>
                     </div>
 
                     {/* CONFIG SUMMARY + START BUTTON */}
@@ -571,7 +719,7 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
                             </span>
                         </div>
                         <motion.button
-                            whileHover={{ scale: 1.03, boxShadow: '0 0 30px rgba(0, 212, 255, 0.4)' }}
+                            whileHover={{ scale: 1.03, boxShadow: '0 0 30px rgba(8, 124, 250, 0.45)' }}
                             whileTap={{ scale: 0.97 }}
                             onClick={handleStart}
                             style={styles.startBtn}
@@ -615,22 +763,23 @@ const styles = {
     overlay: {
         position: 'fixed',
         inset: 0,
-        background: 'radial-gradient(circle at 50% 10%, rgba(16, 105, 145, .28), transparent 46%), rgba(0, 5, 10, .94)',
+        background: 'rgba(2, 7, 13, .88)',
         backdropFilter: 'blur(12px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 9999,
-        padding: 0,
+        padding: 12,
     },
     modal: {
         width: '100%',
-        maxWidth: 960,
+        maxWidth: 600,
         height: '100%',
-        background: 'linear-gradient(145deg, rgba(24, 48, 63, .99), rgba(2, 10, 17, .995) 32%, rgba(7, 24, 34, .995) 75%, rgba(1, 7, 12, .995))',
-        borderLeft: '1px solid rgba(151, 230, 255, .55)',
-        borderRight: '1px solid rgba(151, 230, 255, .34)',
-        boxShadow: '0 30px 90px rgba(0,0,0,.78), inset 0 1px 0 rgba(255,255,255,.22), inset 0 -2px 0 rgba(0,0,0,.88)',
+        background: 'linear-gradient(180deg, #091727 0%, #040d18 100%)',
+        border: '1px solid #688299',
+        borderTopColor: '#aec0d0',
+        borderRadius: 7,
+        boxShadow: '0 30px 90px rgba(0,0,0,.78), inset 0 1px 0 rgba(255,255,255,.28)',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
@@ -639,15 +788,15 @@ const styles = {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '16px 20px',
-        borderBottom: '1px solid rgba(137,224,255,.38)',
-        background: 'linear-gradient(180deg, rgba(50,83,101,.88), rgba(5,18,27,.96) 62%, rgba(1,8,14,.98))',
-        boxShadow: 'inset 0 1px rgba(255,255,255,.25), 0 10px 30px rgba(0,0,0,.38)',
+        padding: '14px 18px',
+        borderBottom: '1px solid #688299',
+        background: 'linear-gradient(180deg, #13253a 0%, #091727 62%, #060e18 100%)',
+        boxShadow: 'inset 0 1px rgba(255,255,255,.25), 0 8px 24px rgba(0,0,0,.38)',
     },
     headerTitle: {
         fontSize: 18,
         fontWeight: 700,
-        color: '#fff',
+        color: '#f4fbff',
         letterSpacing: 0.5,
         fontFamily: "'Inter', -apple-system, sans-serif",
     },
@@ -655,8 +804,9 @@ const styles = {
         width: 44,
         height: 44,
         borderRadius: 0,
-        border: '1px solid rgba(151,230,255,.35)',
-        background: 'linear-gradient(180deg, rgba(49,78,94,.9), rgba(3,13,20,.98))',
+        border: '1px solid #688299',
+        borderTopColor: '#aec0d0',
+        background: 'linear-gradient(180deg, #13253a 0%, #060e18 100%)',
         color: '#d8f7ff',
         fontSize: 18,
         cursor: 'pointer',
@@ -667,31 +817,33 @@ const styles = {
     scrollArea: {
         flex: 1,
         overflowY: 'auto',
-        padding: '20px clamp(14px, 4vw, 32px)',
+        padding: '16px 18px',
     },
     section: {
-        marginBottom: 20,
+        marginBottom: 16,
     },
     sectionLabel: {
         fontSize: 12,
         fontWeight: 700,
-        color: '#64748b',
-        letterSpacing: 1.5,
-        marginBottom: 10,
+        color: '#9ec6da',
+        letterSpacing: 1.2,
+        marginBottom: 8,
         fontFamily: "'Inter', -apple-system, sans-serif",
     },
     optionRow: {
         display: 'flex',
-        gap: 10,
+        flexWrap: 'wrap',
+        gap: 8,
     },
     optionCard: {
         flex: 1,
-        padding: '14px 10px',
-        borderRadius: 0,
-        border: '1px solid rgba(119,185,211,.32)',
-        background: 'linear-gradient(145deg, rgba(35,61,75,.9), rgba(4,14,21,.98) 62%, rgba(10,29,40,.96))',
-        boxShadow: 'inset 0 1px rgba(255,255,255,.14), inset 0 -2px rgba(0,0,0,.65), 0 10px 22px rgba(0,0,0,.25)',
-        minWidth: 140,
+        padding: '12px 10px',
+        borderRadius: 7,
+        border: '1px solid #688299',
+        borderTopColor: '#aec0d0',
+        background: 'linear-gradient(180deg, #13253a 0%, #060e18 100%)',
+        boxShadow: 'inset 0 1px rgba(255,255,255,.16), 0 8px 18px rgba(0,0,0,.25)',
+        minWidth: 130,
         cursor: 'pointer',
         display: 'flex',
         flexDirection: 'column',
@@ -700,21 +852,22 @@ const styles = {
         transition: 'all 0.2s ease',
     },
     optionCardActive: {
-        border: '1px solid #8feaff',
-        background: 'linear-gradient(180deg, rgba(49,176,218,.48), rgba(4,45,65,.9))',
-        boxShadow: 'inset 0 1px rgba(255,255,255,.32), 0 0 22px rgba(48,200,255,.2)',
+        border: '1px solid #56d8ff',
+        borderTopColor: '#b3eaff',
+        background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)',
+        boxShadow: 'inset 0 1px rgba(255,255,255,.38), 0 0 18px rgba(8,124,250,.3)',
     },
     optionIcon: {
-        fontSize: 24,
+        fontSize: 22,
     },
     optionLabel: {
         fontSize: 13,
         fontWeight: 700,
-        color: '#e2e8f0',
+        color: '#f4fbff',
     },
     optionDesc: {
         fontSize: 12,
-        color: '#64748b',
+        color: '#b7cede',
     },
     chipRow: {
         display: 'flex',
@@ -722,36 +875,39 @@ const styles = {
         gap: 8,
     },
     chip: {
-        padding: '8px 16px',
+        padding: '8px 14px',
         minHeight: 44,
-        borderRadius: 0,
-        border: '1px solid rgba(119,185,211,.3)',
-        background: 'linear-gradient(180deg, rgba(31,54,67,.94), rgba(3,13,20,.98))',
-        color: '#94a3b8',
+        borderRadius: 7,
+        border: '1px solid #688299',
+        borderTopColor: '#aec0d0',
+        background: 'linear-gradient(180deg, #13253a 0%, #060e18 100%)',
+        color: '#c7e0ec',
         fontSize: 13,
         fontWeight: 600,
         cursor: 'pointer',
         transition: 'all 0.15s ease',
     },
     chipActive: {
-        border: '1px solid #8feaff',
-        background: 'linear-gradient(180deg, rgba(45,156,194,.5), rgba(3,45,65,.94))',
-        color: '#e5fbff',
-        boxShadow: 'inset 0 1px rgba(255,255,255,.25), 0 0 16px rgba(40,198,255,.14)',
+        border: '1px solid #56d8ff',
+        borderTopColor: '#b3eaff',
+        background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)',
+        color: '#f4fbff',
+        boxShadow: 'inset 0 1px rgba(255,255,255,.35), 0 0 14px rgba(8,124,250,.28)',
     },
     stackChip: {
-        padding: '8px 14px',
-        minHeight: 48,
-        borderRadius: 0,
-        border: '1px solid rgba(119,185,211,.3)',
-        background: 'linear-gradient(180deg, rgba(31,54,67,.94), rgba(3,13,20,.98))',
-        color: '#94a3b8',
+        padding: '8px 12px',
+        minHeight: 46,
+        borderRadius: 7,
+        border: '1px solid #688299',
+        borderTopColor: '#aec0d0',
+        background: 'linear-gradient(180deg, #13253a 0%, #060e18 100%)',
+        color: '#c7e0ec',
         cursor: 'pointer',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         gap: 2,
-        minWidth: 65,
+        minWidth: 62,
         transition: 'all 0.15s ease',
     },
     stackValue: {
@@ -760,15 +916,16 @@ const styles = {
     },
     stackDesc: {
         fontSize: 12,
-        opacity: 0.6,
+        opacity: 0.78,
     },
     streetChip: {
         padding: '8px 14px',
         minHeight: 44,
-        borderRadius: 0,
-        border: '1px solid rgba(119,185,211,.3)',
-        background: 'linear-gradient(180deg, rgba(31,54,67,.94), rgba(3,13,20,.98))',
-        color: '#94a3b8',
+        borderRadius: 7,
+        border: '1px solid #688299',
+        borderTopColor: '#aec0d0',
+        background: 'linear-gradient(180deg, #13253a 0%, #060e18 100%)',
+        color: '#c7e0ec',
         cursor: 'pointer',
         display: 'flex',
         alignItems: 'center',
@@ -780,13 +937,13 @@ const styles = {
         fontWeight: 600,
     },
     footer: {
-        padding: '20px 32px',
-        borderTop: '1px solid rgba(137,224,255,.3)',
-        background: 'linear-gradient(180deg, rgba(14,34,46,.98), rgba(2,10,16,.99))',
-        boxShadow: '0 -12px 30px rgba(0,0,0,.32), inset 0 1px rgba(255,255,255,.1)',
+        padding: '16px 18px',
+        borderTop: '1px solid #688299',
+        background: 'linear-gradient(180deg, #13253a 0%, #060e18 100%)',
+        boxShadow: '0 -12px 30px rgba(0,0,0,.35), inset 0 1px rgba(255,255,255,.15)',
         display: 'flex',
         flexDirection: 'column',
-        gap: 16,
+        gap: 12,
     },
     configSummary: {
         display: 'flex',
@@ -796,26 +953,28 @@ const styles = {
     },
     summaryBadge: {
         padding: '3px 10px',
-        borderRadius: 6,
-        background: 'rgba(255,255,255,0.06)',
-        color: '#94a3b8',
+        borderRadius: 7,
+        border: '1px solid #688299',
+        background: '#091727',
+        color: '#d9edf7',
         fontSize: 12,
         fontWeight: 600,
     },
     startBtn: {
         width: '100%',
-        padding: '16px 24px',
-        borderRadius: 0,
-        border: '1px solid #b9f5ff',
-        background: 'linear-gradient(180deg, #dffbff 0%, #39caef 16%, #087ba4 56%, #02364e 100%)',
-        color: '#00131e',
+        padding: '14px 20px',
+        borderRadius: 7,
+        border: '1px solid #56d8ff',
+        borderTopColor: '#b3eaff',
+        background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)',
+        color: '#f4fbff',
         fontSize: 16,
         fontWeight: 800,
         cursor: 'pointer',
         letterSpacing: 0.5,
         fontFamily: "'Inter', -apple-system, sans-serif",
         transition: 'all 0.2s ease',
-        boxShadow: 'inset 0 1px #fff, inset 0 -3px rgba(0,0,0,.45), 0 12px 28px rgba(0,163,216,.3)',
-        textShadow: '0 1px rgba(255,255,255,.45)',
+        boxShadow: 'inset 0 1px rgba(255,255,255,.45), inset 0 -2px #001c45, 0 10px 24px rgba(8,124,250,.35)',
+        textShadow: '0 1px 2px rgba(0,0,0,.65)',
     },
 };

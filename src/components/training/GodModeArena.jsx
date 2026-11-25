@@ -31,6 +31,7 @@ import {
   normalizeTrainingSessionConfig,
   withTrainingSessionDifficulty,
 } from '../../lib/training/sessionConfigContract.mjs';
+import { resolvePresetForGame } from '../../lib/training/trainingPresets.mjs';
 // ●●● PHASE 18: Leaderboard ●●●
 import LeaderboardPanel from './LeaderboardPanel';
 // ●●● PHASE 19: Share Card + Achievement Toasts ●●●
@@ -2005,19 +2006,80 @@ function GodModeArenaInner({
           </div>
         </div>
 
-        <div className="sp-arena-review__scroll" style={styles.reviewScrollArea}>
+        <div className="sp-arena-review__scroll" style={{ ...styles.reviewScrollArea, maxWidth: 600, margin: '0 auto', width: '100%' }}>
           {/* F13: Session-only score target. This does not award Daily Challenge progress. */}
           <SessionScoreTarget gtowScore={gtowScore} />
 
-          {/* GTOW SCORE — Hero display + Phase 255 Session Grade */}
+          {/* ESSENTIAL RESULT 1: WHAT WAS PRACTICED */}
+          {(() => {
+            const practicedPreset = resolvePresetForGame(gameId, trainerConfig || {});
+            const topTakeaway = aiCoaching?.headline
+              || (mistakePatterns && mistakePatterns[0]?.tip)
+              || (sessionMistakes === 0
+                ? 'Clean session with zero recorded mistakes. Advance or increase difficulty.'
+                : `Completed ${totalQuestions} hands at ${accuracy}% accuracy (${sessionMistakes} ${sessionMistakes === 1 ? 'mistake' : 'mistakes'}).`);
+            return (
+              <div
+                style={{
+                  marginBottom: 14,
+                  padding: '14px 16px',
+                  borderRadius: 7,
+                  border: '1px solid #688299',
+                  borderTopColor: '#aec0d0',
+                  background: 'linear-gradient(180deg, #13253a 0%, #091727 55%, #060e18 100%)',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.22), 0 12px 28px rgba(0,0,0,0.4)',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#83deff', letterSpacing: 1 }}>
+                    WHAT WAS PRACTICED
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#c7e0ec' }}>
+                    Level {currentLevel} · {totalQuestions} Hands · {accuracy}% Accuracy
+                  </div>
+                </div>
+                <div style={{ fontSize: 17, fontWeight: 800, color: '#f4fbff', marginTop: 4 }}>
+                  {gameName || practicedPreset.title || 'Training Drill'}
+                </div>
+                <div style={{ fontSize: 13, color: '#b7cede', marginTop: 2 }}>
+                  {practicedPreset.summary}
+                </div>
+                <div
+                  style={{
+                    marginTop: 10,
+                    padding: '8px 12px',
+                    borderRadius: 7,
+                    border: '1px solid #688299',
+                    background: '#040d18',
+                    fontSize: 13,
+                    color: '#e9f8ff',
+                    lineHeight: 1.45,
+                  }}
+                >
+                  <strong style={{ color: '#83deff' }}>Key Takeaway: </strong>
+                  {topTakeaway}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ESSENTIAL RESULT 2: SCORE, GRADE & ACCURACY */}
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             className="sp-arena-review__score"
-            style={styles.scoreHero}
+            style={{
+              ...styles.scoreHero,
+              padding: '18px 16px',
+              marginBottom: 12,
+              borderRadius: 7,
+              border: '1px solid #688299',
+              borderTopColor: '#aec0d0',
+              background: 'linear-gradient(180deg, #091727 0%, #030b14 100%)',
+            }}
           >
             <div style={{ ...styles.scoreHeroValue, color: scoreColor }}>{formatSignedScore(gtowScore)}</div>
-            <div style={styles.scoreHeroLabel}>GTOW SCORE</div>
+            <div style={styles.scoreHeroLabel}>GTOW SCORE · {accuracy}% ACCURACY</div>
             {/* Phase 255: Session letter grade */}
             {(() => {
               try {
@@ -2066,10 +2128,10 @@ function GodModeArenaInner({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
                 style={{
-                  background:
-                    'linear-gradient(135deg, rgba(251, 191, 36, 0.08), rgba(245, 158, 11, 0.04))',
-                  border: '1px solid rgba(251, 191, 36, 0.2)',
-                  borderRadius: 12,
+                  background: 'linear-gradient(180deg, #13253a 0%, #060e18 100%)',
+                  border: '1px solid #688299',
+                  borderTopColor: '#aec0d0',
+                  borderRadius: 7,
                   padding: '12px 16px',
                   marginBottom: 12,
                   display: 'flex',
@@ -2083,7 +2145,7 @@ function GodModeArenaInner({
                     <div
                       style={{
                         fontSize: 12,
-                        color: 'rgba(255,255,255,0.4)',
+                        color: '#9ec6da',
                         fontWeight: 600,
                         letterSpacing: 1,
                       }}
@@ -2117,7 +2179,7 @@ function GodModeArenaInner({
                       <div
                         style={{
                           padding: '4px 10px',
-                          borderRadius: 8,
+                          borderRadius: 7,
                           background: 'rgba(139, 92, 246, 0.15)',
                           border: '1px solid rgba(139, 92, 246, 0.3)',
                           fontSize: 12,
@@ -2136,6 +2198,114 @@ function GodModeArenaInner({
               </motion.div>
             );
           })()}
+
+          {/* ESSENTIAL RESULT 4: PRIMARY NEXT ACTIONS AT TOP */}
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 10,
+              marginBottom: 16,
+            }}
+          >
+            {levelPassed && currentLevel < (totalLevels || 12) && (
+              <button
+                type="button"
+                onClick={() => startNextLevel()}
+                style={{
+                  flex: '1 1 180px',
+                  minHeight: 46,
+                  padding: '12px 18px',
+                  fontSize: 14,
+                  fontWeight: 800,
+                  borderRadius: 7,
+                  border: '1px solid #56d8ff',
+                  borderTopColor: '#b3eaff',
+                  background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)',
+                  color: '#f4fbff',
+                  cursor: 'pointer',
+                }}
+              >
+                Next Level ({currentLevel + 1}) →
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => retryLevel()}
+              style={{
+                flex: '1 1 140px',
+                minHeight: 46,
+                padding: '12px 16px',
+                fontSize: 14,
+                fontWeight: 800,
+                borderRadius: 7,
+                border: levelPassed ? '1px solid #688299' : '1px solid #56d8ff',
+                borderTopColor: levelPassed ? '#aec0d0' : '#b3eaff',
+                background: levelPassed
+                  ? 'linear-gradient(180deg, #13253a 0%, #060e18 100%)'
+                  : 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)',
+                color: '#f4fbff',
+                cursor: 'pointer',
+              }}
+            >
+              Play Again
+            </button>
+            {sessionMistakes > 0 && (
+              <button
+                type="button"
+                onClick={() => retrainMistakes()}
+                style={{
+                  flex: '1 1 140px',
+                  minHeight: 46,
+                  padding: '12px 16px',
+                  fontSize: 14,
+                  fontWeight: 700,
+                  borderRadius: 7,
+                  border: '1px solid #688299',
+                  borderTopColor: '#aec0d0',
+                  background: 'linear-gradient(180deg, #13253a 0%, #060e18 100%)',
+                  color: '#fbbf24',
+                  cursor: 'pointer',
+                }}
+              >
+                Train Mistakes ({sessionMistakes})
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                onComplete?.({
+                  gameId,
+                  accuracy,
+                  questionsAnswered: totalQuestions,
+                  questionsCorrect: correctCount,
+                  bestStreak,
+                  levelPassed,
+                  level: currentLevel,
+                  gtowScore,
+                  totalEVLoss: measuredEVReviewHistory.length > 0 ? measuredEVTotal : null,
+                  measuredEVDecisions: measuredEVReviewHistory.length,
+                  sessionMistakes,
+                });
+                onExit?.();
+              }}
+              style={{
+                flex: '1 1 140px',
+                minHeight: 46,
+                padding: '12px 16px',
+                fontSize: 14,
+                fontWeight: 700,
+                borderRadius: 7,
+                border: '1px solid #688299',
+                borderTopColor: '#aec0d0',
+                background: 'linear-gradient(180deg, #13253a 0%, #060e18 100%)',
+                color: '#d9edf7',
+                cursor: 'pointer',
+              }}
+            >
+              ← Back To Training
+            </button>
+          </div>
 
           {/* SUMMARY STATS ROW */}
           <div className="sp-arena-review__summary" style={styles.summaryRow}>
@@ -2277,18 +2447,43 @@ function GodModeArenaInner({
             );
           })()}
 
+          {/* DETAILED BREAKDOWN & HAND REVIEW DISCLOSURE */}
+          <details
+            className="sp-mtt-disclosure"
+            data-review-detailed-analytics="true"
+            style={{
+              marginBottom: 16,
+              padding: '12px 14px',
+              borderRadius: 7,
+              border: '1px solid #688299',
+              borderTopColor: '#aec0d0',
+              background: 'linear-gradient(180deg, #13253a 0%, #091727 50%, #060e18 100%)',
+            }}
+          >
+            <summary
+              style={{
+                cursor: 'pointer',
+                fontSize: 14,
+                fontWeight: 700,
+                color: '#e9f8ff',
+                padding: '4px 0',
+              }}
+            >
+              Detailed Breakdown & Hand Review
+            </summary>
+            <div style={{ marginTop: 12 }}>
           {/* TAB NAVIGATION */}
           <div
             style={{
               display: 'flex',
               gap: 0,
               marginBottom: 16,
-              borderRadius: 8,
+              borderRadius: 7,
               overflowX: 'auto',
               overflowY: 'hidden',
               flexWrap: 'nowrap',
               WebkitOverflowScrolling: 'touch',
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid #688299',
             }}
           >
             {[
@@ -3938,6 +4133,8 @@ function GodModeArenaInner({
           )}
 
           {/* END VISIBLE REVIEW TABS */}
+            </div>
+          </details>
 
           {/* ACTION BUTTONS */}
           <div
@@ -4328,11 +4525,10 @@ function GodModeArenaInner({
                 className="sp-arena-lobby__content"
                 style={{
                   width: '100%',
-                  maxWidth: 420,
-                  padding: '0 16px',
+                  maxWidth: 600,
+                  padding: '20px 18px 40px',
                   overflowY: 'auto',
                   maxHeight: '100dvh',
-                  paddingBottom: 40,
                 }}
               >
                 {/* Game Title */}
@@ -4341,20 +4537,20 @@ function GodModeArenaInner({
                   initial={{ y: -20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.1 }}
-                  style={{ textAlign: 'center', marginBottom: 20, marginTop: 20 }}
+                  style={{ textAlign: 'center', marginBottom: 16 }}
                 >
                   <div
                     style={{
-                      fontSize: 28,
+                      fontSize: 26,
                       fontWeight: 800,
-                      color: '#f1f5f9',
-                      letterSpacing: -0.5,
+                      color: '#f4fbff',
+                      letterSpacing: -0.4,
                       fontFamily: "'Inter', -apple-system, sans-serif",
                     }}
                   >
                     {gameName || 'GTO Training'}
                   </div>
-                  <div style={{ fontSize: 13, color: '#64748b', fontWeight: 600, marginTop: 4 }}>
+                  <div style={{ fontSize: 13, color: '#9ec6da', fontWeight: 600, marginTop: 4 }}>
                     Level {currentLevel} Of {totalLevels || 12} • {totalQuestions || 25} Questions
                   </div>
                   {(() => {
@@ -4363,7 +4559,7 @@ function GodModeArenaInner({
                       <div
                         style={{
                           fontSize: 12,
-                          color: levelDef.accentColor || '#00d4ff',
+                          color: levelDef.accentColor || '#83deff',
                           fontWeight: 700,
                           marginTop: 2,
                           textTransform: 'capitalize',
@@ -4376,6 +4572,37 @@ function GodModeArenaInner({
                   })()}
                 </motion.div>
 
+                {/* Active Preset Summary Card */}
+                {(() => {
+                  const splashPreset = resolvePresetForGame(gameId, {
+                    ...trainerConfig,
+                    difficulty,
+                    timer: timerMode,
+                  });
+                  return (
+                    <div
+                      style={{
+                        padding: '12px 16px',
+                        borderRadius: 7,
+                        marginBottom: 12,
+                        background: 'linear-gradient(180deg, #13253a 0%, #091727 55%, #060e18 100%)',
+                        border: '1px solid #688299',
+                        borderTopColor: '#aec0d0',
+                      }}
+                    >
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#83deff', letterSpacing: 1 }}>
+                        Active Preset
+                      </div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#f4fbff', marginTop: 4 }}>
+                        {splashPreset.summary}
+                      </div>
+                      <div style={{ fontSize: 12, color: '#b7cede', marginTop: 2 }}>
+                        {splashPreset.ruleSummary}
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {/* Session Goal Card */}
                 <motion.div
                   className="sp-arena-lobby__panel sp-arena-lobby__panel--goal"
@@ -4384,18 +4611,18 @@ function GodModeArenaInner({
                   transition={{ delay: 0.2 }}
                   style={{
                     padding: '12px 16px',
-                    borderRadius: 12,
+                    borderRadius: 7,
                     marginBottom: 12,
-                    background:
-                      'linear-gradient(135deg, rgba(0,212,255,0.08) 0%, rgba(139,92,246,0.06) 100%)',
-                    border: '1px solid rgba(0,212,255,0.15)',
+                    background: 'linear-gradient(180deg, #13253a 0%, #060e18 100%)',
+                    border: '1px solid #688299',
+                    borderTopColor: '#aec0d0',
                   }}
                 >
                   <div
                     style={{
                       fontSize: 12,
                       fontWeight: 700,
-                      color: '#00d4ff',
+                      color: '#83deff',
                       textTransform: 'capitalize',
                       letterSpacing: 1,
                       marginBottom: 6,
@@ -4407,7 +4634,7 @@ function GodModeArenaInner({
                     Score ≥{passThreshold || 85}% To Advance To Level{' '}
                     {Math.min(currentLevel + 1, totalLevels || 12)}
                   </div>
-                  <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                  <div style={{ fontSize: 12, color: '#9ec6da', marginTop: 2 }}>
                     Answer {requiredCorrect || Math.ceil((totalQuestions || 25) * 0.85)} of{' '}
                     {totalQuestions || 25} Questions Correctly
                   </div>
@@ -4422,17 +4649,18 @@ function GodModeArenaInner({
                     transition={{ delay: 0.3 }}
                     style={{
                       padding: '12px 16px',
-                      borderRadius: 12,
+                      borderRadius: 7,
                       marginBottom: 12,
-                      background: 'rgba(0,0,0,0.2)',
-                      border: '1px solid rgba(255,255,255,0.06)',
+                      background: 'linear-gradient(180deg, #13253a 0%, #060e18 100%)',
+                      border: '1px solid #688299',
+                      borderTopColor: '#aec0d0',
                     }}
                   >
                     <div
                       style={{
                         fontSize: 12,
                         fontWeight: 700,
-                        color: '#94a3b8',
+                        color: '#9ec6da',
                         textTransform: 'capitalize',
                         letterSpacing: 1,
                         marginBottom: 8,
@@ -4446,7 +4674,7 @@ function GodModeArenaInner({
                           style={{
                             fontSize: 18,
                             fontWeight: 800,
-                            color: '#00d4ff',
+                            color: '#83deff',
                             fontFamily: "var(--font-inter), Inter, system-ui, sans-serif", fontVariantNumeric: "tabular-nums",
                           }}
                         >
@@ -4454,7 +4682,7 @@ function GodModeArenaInner({
                             ? `${crossSessionAnalytics.milestones.overallAccuracy}%`
                             : '-'}
                         </div>
-                        <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>
+                        <div style={{ fontSize: 12, color: '#9ec6da', fontWeight: 600 }}>
                           Accuracy
                         </div>
                       </div>
@@ -4463,13 +4691,13 @@ function GodModeArenaInner({
                           style={{
                             fontSize: 18,
                             fontWeight: 800,
-                            color: '#00d4ff',
+                            color: '#83deff',
                             fontFamily: "var(--font-inter), Inter, system-ui, sans-serif", fontVariantNumeric: "tabular-nums",
                           }}
                         >
                           {crossSessionAnalytics.milestones.totalSessions ?? 0}
                         </div>
-                        <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>
+                        <div style={{ fontSize: 12, color: '#9ec6da', fontWeight: 600 }}>
                           Sessions
                         </div>
                       </div>
@@ -4484,7 +4712,7 @@ function GodModeArenaInner({
                         >
                           {crossSessionAnalytics.milestones.totalHands ?? 0}
                         </div>
-                        <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>Hands</div>
+                        <div style={{ fontSize: 12, color: '#9ec6da', fontWeight: 600 }}>Hands</div>
                       </div>
                     </div>
                     {crossSessionAnalytics.milestones.trending && (
@@ -4496,7 +4724,7 @@ function GodModeArenaInner({
                               ? '#22c55e'
                               : crossSessionAnalytics.milestones.trending === 'down'
                                 ? '#ef4444'
-                                : '#64748b',
+                                : '#9ec6da',
                           textAlign: 'center',
                           marginTop: 6,
                           fontWeight: 600,
@@ -4515,112 +4743,127 @@ function GodModeArenaInner({
                   </motion.div>
                 )}
 
-                {/* Difficulty + Timer Selectors */}
-                <motion.div
-                  className="sp-arena-lobby__panel sp-arena-lobby__panel--controls"
-                  initial={{ y: 10, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.35 }}
+                {/* Advanced Settings (Difficulty + Timer Selectors) Disclosure */}
+                <details
+                  className="sp-mtt-disclosure sp-arena-lobby__panel sp-arena-lobby__panel--controls"
+                  data-arena-advanced-settings="true"
                   style={{
                     padding: '12px 16px',
-                    borderRadius: 12,
+                    borderRadius: 7,
                     marginBottom: 12,
-                    background: 'rgba(0,0,0,0.2)',
-                    border: '1px solid rgba(255,255,255,0.06)',
+                    background: 'linear-gradient(180deg, #13253a 0%, #091727 50%, #060e18 100%)',
+                    border: '1px solid #688299',
+                    borderTopColor: '#aec0d0',
                   }}
                 >
-                  {/* Difficulty */}
-                  <div style={{ marginBottom: 10 }}>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 700,
-                        color: '#94a3b8',
-                        textTransform: 'capitalize',
-                        letterSpacing: 1,
-                        marginBottom: 6,
-                      }}
-                    >
-                      Difficulty
+                  <summary
+                    style={{
+                      cursor: 'pointer',
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: '#e9f8ff',
+                    }}
+                  >
+                    Advanced Settings (Difficulty & Timer)
+                  </summary>
+                  <div style={{ marginTop: 12 }}>
+                    {/* Difficulty */}
+                    <div style={{ marginBottom: 10 }}>
+                      <div
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: '#9ec6da',
+                          textTransform: 'capitalize',
+                          letterSpacing: 1,
+                          marginBottom: 6,
+                        }}
+                      >
+                        Difficulty
+                      </div>
+                      <div className="sp-arena-lobby__option-grid sp-arena-lobby__option-grid--three">
+                        {[
+                          { key: 'beginner', label: 'Beginner', color: '#22c55e' },
+                          { key: 'standard', label: 'Standard', color: '#00d4ff' },
+                          { key: 'expert', label: 'Expert', color: '#ef4444' },
+                        ].map((d) => (
+                          <button
+                            className="sp-arena-lobby__option"
+                            key={d.key}
+                            data-selected={difficulty === d.key}
+                            onClick={() => setDifficulty(d.key)}
+                            style={{
+                              flex: 1,
+                              padding: '8px 0',
+                              borderRadius: 7,
+                              border: `1px solid ${difficulty === d.key ? '#56d8ff' : '#688299'}`,
+                              background: difficulty === d.key
+                                ? 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)'
+                                : '#091727',
+                              color: difficulty === d.key ? '#f4fbff' : '#c7e0ec',
+                              fontSize: 12,
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              transition: 'all 0.15s',
+                            }}
+                          >
+                            {d.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div className="sp-arena-lobby__option-grid sp-arena-lobby__option-grid--three">
-                      {[
-                        { key: 'beginner', label: 'Beginner', color: '#22c55e' },
-                        { key: 'standard', label: 'Standard', color: '#00d4ff' },
-                        { key: 'expert', label: 'Expert', color: '#ef4444' },
-                      ].map((d) => (
-                        <button
-                          className="sp-arena-lobby__option"
-                          key={d.key}
-                          data-selected={difficulty === d.key}
-                          onClick={() => setDifficulty(d.key)}
-                          style={{
-                            flex: 1,
-                            padding: '8px 0',
-                            borderRadius: 8,
-                            border: `1px solid ${difficulty === d.key ? d.color + '60' : 'rgba(255,255,255,0.08)'}`,
-                            background: difficulty === d.key ? d.color + '15' : 'transparent',
-                            color: difficulty === d.key ? d.color : '#64748b',
-                            fontSize: 12,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            transition: 'all 0.15s',
-                          }}
-                        >
-                          {d.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
 
-                  {/* Timer */}
-                  <div>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 700,
-                        color: '#94a3b8',
-                        textTransform: 'capitalize',
-                        letterSpacing: 1,
-                        marginBottom: 6,
-                      }}
-                    >
-                      Timer
-                    </div>
-                    <div className="sp-arena-lobby__option-grid sp-arena-lobby__option-grid--four">
-                      {[
-                        { key: 'relaxed', label: 'Relaxed', desc: 'No timer', color: '#22c55e' },
-                        { key: 'standard', label: 'Standard', desc: '25s', color: '#fbbf24' },
-                        { key: 'quick', label: 'Quick', desc: '15s', color: '#f59e0b' },
-                        { key: 'blitz', label: 'Blitz', desc: '7s', color: '#ef4444' },
-                      ].map((t) => (
-                        <button
-                          className="sp-arena-lobby__option"
-                          key={t.key}
-                          data-selected={timerMode === t.key}
-                          onClick={() => setTimerMode(t.key)}
-                          style={{
-                            flex: 1,
-                            padding: '8px 0',
-                            borderRadius: 8,
-                            border: `1px solid ${timerMode === t.key ? t.color + '60' : 'rgba(255,255,255,0.08)'}`,
-                            background: timerMode === t.key ? t.color + '15' : 'transparent',
-                            color: timerMode === t.key ? t.color : '#64748b',
-                            fontSize: 12,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            transition: 'all 0.15s',
-                          }}
-                        >
-                          {t.label}
-                          <div style={{ fontSize: 12, fontWeight: 600, opacity: 0.7, marginTop: 1 }}>
-                            {t.desc}
-                          </div>
-                        </button>
-                      ))}
+                    {/* Timer */}
+                    <div>
+                      <div
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: '#9ec6da',
+                          textTransform: 'capitalize',
+                          letterSpacing: 1,
+                          marginBottom: 6,
+                        }}
+                      >
+                        Timer
+                      </div>
+                      <div className="sp-arena-lobby__option-grid sp-arena-lobby__option-grid--four">
+                        {[
+                          { key: 'relaxed', label: 'Relaxed', desc: 'No timer', color: '#22c55e' },
+                          { key: 'standard', label: 'Standard', desc: '25s', color: '#fbbf24' },
+                          { key: 'quick', label: 'Quick', desc: '15s', color: '#f59e0b' },
+                          { key: 'blitz', label: 'Blitz', desc: '7s', color: '#ef4444' },
+                        ].map((t) => (
+                          <button
+                            className="sp-arena-lobby__option"
+                            key={t.key}
+                            data-selected={timerMode === t.key}
+                            onClick={() => setTimerMode(t.key)}
+                            style={{
+                              flex: 1,
+                              padding: '8px 0',
+                              borderRadius: 7,
+                              border: `1px solid ${timerMode === t.key ? '#56d8ff' : '#688299'}`,
+                              background: timerMode === t.key
+                                ? 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)'
+                                : '#091727',
+                              color: timerMode === t.key ? '#f4fbff' : '#c7e0ec',
+                              fontSize: 12,
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              transition: 'all 0.15s',
+                            }}
+                          >
+                            {t.label}
+                            <div style={{ fontSize: 12, fontWeight: 600, opacity: 0.85, marginTop: 1 }}>
+                              {t.desc}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </motion.div>
+                </details>
 
                 {/* Spaced Repetition Due */}
                 {reviewDueCount > 0 && (
@@ -4631,20 +4874,21 @@ function GodModeArenaInner({
                     transition={{ delay: 0.4 }}
                     style={{
                       padding: '10px 16px',
-                      borderRadius: 12,
+                      borderRadius: 7,
                       marginBottom: 12,
-                      background: 'rgba(139,92,246,0.08)',
-                      border: '1px solid rgba(139,92,246,0.2)',
+                      background: 'linear-gradient(180deg, #13253a 0%, #060e18 100%)',
+                      border: '1px solid #688299',
+                      borderTopColor: '#aec0d0',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
                     }}
                   >
                     <div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: '#00d4ff' }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#83deff' }}>
                         {reviewDueCount} Weak Spot{reviewDueCount > 1 ? 's' : ''} Due For Review
                       </div>
-                      <div style={{ fontSize: 12, color: '#64748b' }}>
+                      <div style={{ fontSize: 12, color: '#9ec6da' }}>
                         Reviewing Now Maximizes Long-Term Retention
                       </div>
                     </div>
@@ -4668,18 +4912,20 @@ function GodModeArenaInner({
                     style={{
                       width: '100%',
                       padding: '16px 0',
-                      borderRadius: 12,
-                      border: 'none',
+                      borderRadius: 7,
+                      border: '1px solid #56d8ff',
+                      borderTopColor: '#b3eaff',
                       background: splashReady || loadFailed
-                        ? 'linear-gradient(135deg, #00d4ff, #0891b2)'
+                        ? 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)'
                         : 'rgba(100,116,139,0.2)',
-                      color: splashReady || loadFailed ? '#fff' : '#64748b',
+                      color: splashReady || loadFailed ? '#f4fbff' : '#64748b',
                       fontSize: 16,
                       fontWeight: 800,
                       cursor: splashReady || loadFailed ? 'pointer' : 'default',
                       letterSpacing: 0.5,
                       transition: 'all 0.2s',
                       fontFamily: "'Inter', -apple-system, sans-serif",
+                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.45), 0 10px 24px rgba(8,124,250,0.35)',
                     }}
                   >
                     {!splashReady
@@ -4722,7 +4968,7 @@ function GodModeArenaInner({
                     padding: '8px 20px',
                     background: 'none',
                     border: 'none',
-                    color: '#475569',
+                    color: '#9ec6da',
                     fontSize: 12,
                     fontWeight: 600,
                     cursor: 'pointer',

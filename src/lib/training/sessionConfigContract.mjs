@@ -3,7 +3,9 @@ const TIMERS = new Set(['relaxed', 'standard', 'quick', 'blitz']);
 const STREETS = new Set(['preflop', 'flop', 'turn', 'river']);
 const TABLE_COUNTS = new Set(['1', '2', '4']);
 const HAND_SELECTIONS = new Set(['all', 'no-trivial', 'close']);
-const VARIANTS = new Set(['nlh', 'plo4', 'plo5', 'plo6']);
+const VARIANTS = new Set(['nlh', 'plo4', 'plo5', 'plo6', 'plo8']);
+const BETTING_STRUCTURES = new Set(['no_limit', 'pot_limit', 'fixed_limit']);
+const FORMATS = new Set(['cash', 'mtt', 'spins', 'hu', '9max']);
 const ENGINE_DIFFICULTY_BY_PRODUCT = {
   beginner: 'simple',
   standard: 'grouped',
@@ -76,9 +78,33 @@ export function normalizeTrainingHandSelection(value, fallback = 'all') {
 
 export function normalizeTrainingVariant(value, fallback = null) {
   const candidate = lower(value);
+  if (candidate === 'plo' || candidate === 'omaha') return 'plo4';
+  if (candidate === 'omaha8' || candidate === 'o8' || candidate === 'flo8') return 'plo8';
   if (VARIANTS.has(candidate)) return candidate;
   const fb = lower(fallback);
   return VARIANTS.has(fb) ? fb : null;
+}
+
+export function normalizeTrainingBettingStructure(value, fallback = null) {
+  const candidate = lower(value).replace(/-/g, '_');
+  if (candidate === 'nl') return 'no_limit';
+  if (candidate === 'pl') return 'pot_limit';
+  if (candidate === 'fl' || candidate === 'limit') return 'fixed_limit';
+  if (BETTING_STRUCTURES.has(candidate)) return candidate;
+  const fb = lower(fallback).replace(/-/g, '_');
+  return BETTING_STRUCTURES.has(fb) ? fb : null;
+}
+
+export function normalizeTrainingFormat(value, fallback = null) {
+  const candidate = lower(value);
+  if (candidate === '6max' || candidate === '6-max') return 'cash';
+  if (candidate === 'tournament' || candidate === 'icm') return 'mtt';
+  if (candidate === 'spin' || candidate === '3max' || candidate === '3-max') return 'spins';
+  if (candidate === 'heads_up' || candidate === 'headsup' || candidate === '2max' || candidate === '2-max') return 'hu';
+  if (candidate === '9-max' || candidate === 'full_ring') return '9max';
+  if (FORMATS.has(candidate)) return candidate;
+  const fb = lower(fallback);
+  return FORMATS.has(fb) ? fb : null;
 }
 
 /**
@@ -129,6 +155,12 @@ export function normalizeTrainingSessionConfig(input = {}, defaults = {}) {
       fallback.handSelection,
     ),
     variant: normalizeTrainingVariant(source.variant, fallback.variant),
+    ...(normalizeTrainingBettingStructure(source.bettingStructure, fallback.bettingStructure)
+      ? { bettingStructure: normalizeTrainingBettingStructure(source.bettingStructure, fallback.bettingStructure) }
+      : {}),
+    ...(normalizeTrainingFormat(source.format, fallback.format)
+      ? { format: normalizeTrainingFormat(source.format, fallback.format) }
+      : {}),
     ...(typeof source.duelToken === 'string' && source.duelToken.trim()
       ? { duelToken: source.duelToken.trim() }
       : {}),
