@@ -41053,7 +41053,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1042,
+          "line": 1041,
           "handler": "() => {\n                        setSelectedVariant(v.id);\n                        setPaneConfigs(resolveDefaultPaneConfigs(v.id));\n                      }",
           "destination": null,
           "type": "button",
@@ -41063,7 +41063,7 @@
         {
           "element": "button",
           "name": "Apply Mixed 4-Game Rotation (NLH + PLO4 + PLO5 + PLO8)",
-          "line": 1102,
+          "line": 1101,
           "handler": "() => {\n                    setTableCount(4);\n                    setSelectedVariant('nlh');\n                    setPaneConfigs([\n                      { variant: 'nlh', bettingStructure: 'no_limit', format: 'cash' },\n                      { variant: 'plo4', bettingStructure: 'pot_limit', format: 'mtt' },\n                      { variant: 'plo5', bettingStructure: 'pot_limit', format: 'cash' },\n                      { variant: 'plo8', bettingStructure: 'fixed_limit', format: 'cash' },\n                    ]);\n                  }",
           "destination": null,
           "type": "button",
@@ -41073,7 +41073,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1260,
+          "line": 1259,
           "handler": "() => {\n                        setSelectedGames((prev) => {\n                          if (prev.includes(g.id)) return prev.filter((x) => x !== g.id);\n                          if (prev.length >= tableCount) return [...prev.slice(1), g.id];\n                          return [...prev, g.id];\n                        });\n                      }",
           "destination": null,
           "type": null,
@@ -41083,7 +41083,7 @@
         {
           "element": "button",
           "name": "← Back To Training",
-          "line": 1331,
+          "line": 1329,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": null,
@@ -41093,7 +41093,7 @@
         {
           "element": "button",
           "name": "Warm Up Focused Table In 1:1 Club Arena →",
-          "line": 1373,
+          "line": 1371,
           "handler": "() => router.push(multiTableSingleArenaHref)",
           "destination": null,
           "type": "button",
@@ -41103,7 +41103,7 @@
         {
           "element": "button",
           "name": "← Exit",
-          "line": 1407,
+          "line": 1405,
           "handler": "() => {\n                  setIsStarted(false);\n                  reportedTablesRef.current = new Set();\n                  liveTableTallyRef.current = {};\n                  tableStatesRef.current = {};\n                  setTableStates({});\n                  setCompletedTables(new Set());\n                  setCombinedStats({\n                    totalHands: 0,\n                    totalCorrect: 0,\n                    totalEVLoss: 0,\n                    measuredEVDecisions: 0,\n                    tablesCompleted: 0,\n                  });\n                }",
           "destination": null,
           "type": null,
@@ -41113,7 +41113,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1459,
+          "line": 1457,
           "handler": "() => {\n                        if (selectedVariant === v.id) return;\n                        setSelectedVariant(v.id);\n                        setPaneConfigs(resolveDefaultPaneConfigs(v.id));\n                        setRunId(`mt-${Date.now()}`);\n                        reportedTablesRef.current = new Set();\n                        liveTableTallyRef.current = {};\n                        tableStatesRef.current = {};\n                        setTableStates({});\n                        setCompletedTables(new Set());\n                        setCombinedStats({\n                          totalHands: 0,\n                          totalCorrect: 0,\n                          totalEVLoss: 0,\n                          measuredEVDecisions: 0,\n                          tablesCompleted: 0,\n                        });\n                        hasSavedRef.current = false;\n                      }",
           "destination": null,
           "type": "button",
@@ -41123,7 +41123,7 @@
         {
           "element": "button",
           "name": "T · ( H · %) - BB",
-          "line": 1574,
+          "line": 1572,
           "handler": "() => setFocusedGameId(gameId)",
           "destination": null,
           "type": "button",
@@ -41133,7 +41133,7 @@
         {
           "element": "button",
           "name": "Jump To Next Pending Table →",
-          "line": 1612,
+          "line": 1610,
           "handler": "() => {\n                  if (visibleGames.length === 0) return;\n                  const curIdx = Math.max(0, visibleGames.indexOf(activeGameId));\n                  for (let offset = 1; offset <= visibleGames.length; offset += 1) {\n                    const candidateId = visibleGames[(curIdx + offset) % visibleGames.length];\n                    if (completedTables.has(candidateId)) continue;\n                    const candidateState = tableStates[candidateId];\n                    if (!candidateState?.gameComplete && !candidateState?.showFeedback) {\n                      setFocusedGameId(candidateId);\n                      return;\n                    }\n                  }\n                  const nextId = visibleGames[(curIdx + 1) % visibleGames.length];\n                  if (nextId) setFocusedGameId(nextId);\n                }",
           "destination": null,
           "type": "button",
@@ -41143,7 +41143,7 @@
         {
           "element": "button",
           "name": "TABLE",
-          "line": 1668,
+          "line": 1666,
           "handler": "() => setFocusedGameId(gameId)",
           "destination": null,
           "type": null,
@@ -41412,7 +41412,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 638,
+          "line": 637,
           "handler": "() => setActiveVariant(v)",
           "destination": null,
           "type": "button",
@@ -41422,7 +41422,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 667,
+          "line": 666,
           "handler": "() => setHeroPosition(pos)",
           "destination": null,
           "type": "button",
@@ -41432,7 +41432,7 @@
         {
           "element": "button",
           "name": "BB",
-          "line": 696,
+          "line": 695,
           "handler": "() => setEffectiveStackBb(stk)",
           "destination": null,
           "type": "button",
@@ -41442,7 +41442,7 @@
         {
           "element": "button",
           "name": "Practice Preflop Spot In Club Arena →",
-          "line": 727,
+          "line": 726,
           "handler": "() => router.push(arenaHref)",
           "destination": null,
           "type": "button",
@@ -73564,7 +73564,7 @@
       "functions": [
         {
           "name": "normalizedTopic",
-          "line": 188,
+          "line": 196,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -73572,7 +73572,7 @@
         },
         {
           "name": "rotateOptions",
-          "line": 193,
+          "line": 201,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -73580,7 +73580,7 @@
         },
         {
           "name": "alternatives",
-          "line": 200,
+          "line": 208,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -73588,7 +73588,7 @@
         },
         {
           "name": "buildPrompt",
-          "line": 245,
+          "line": 253,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -73596,7 +73596,7 @@
         },
         {
           "name": "fieldForStyle",
-          "line": 250,
+          "line": 258,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -73604,7 +73604,7 @@
         },
         {
           "name": "generateCuratedPokerConceptBatch",
-          "line": 254,
+          "line": 262,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -79565,7 +79565,7 @@
         },
         {
           "name": "inferStreet",
-          "line": 31,
+          "line": 32,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -79573,7 +79573,7 @@
         },
         {
           "name": "inferPosition",
-          "line": 46,
+          "line": 47,
           "references": 6,
           "exported": false,
           "defaultExport": false,
@@ -79581,7 +79581,7 @@
         },
         {
           "name": "estimateHandEvLossBb",
-          "line": 62,
+          "line": 63,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -79589,7 +79589,7 @@
         },
         {
           "name": "recommendationFor",
-          "line": 75,
+          "line": 76,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -79597,7 +79597,7 @@
         },
         {
           "name": "analyzeVerifiedTrainingWeaknesses",
-          "line": 107,
+          "line": 108,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -79605,7 +79605,7 @@
         },
         {
           "name": "recordSpotDecision",
-          "line": 124,
+          "line": 125,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -91851,11 +91851,11 @@
       "effectRef": "pages/hub/training/mixed-strategy-lab.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:1042:1",
+      "id": "pages/hub/training/multi-table.js:1041:1",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1042,
+      "line": 1041,
       "handler": "() => {\n                        setSelectedVariant(v.id);\n                        setPaneConfigs(resolveDefaultPaneConfigs(v.id));\n                      }",
       "destination": null,
       "type": "button",
@@ -91864,11 +91864,11 @@
       "effectRef": "pages/hub/training/multi-table.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:1102:2",
+      "id": "pages/hub/training/multi-table.js:1101:2",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "Apply Mixed 4-Game Rotation (NLH + PLO4 + PLO5 + PLO8)",
-      "line": 1102,
+      "line": 1101,
       "handler": "() => {\n                    setTableCount(4);\n                    setSelectedVariant('nlh');\n                    setPaneConfigs([\n                      { variant: 'nlh', bettingStructure: 'no_limit', format: 'cash' },\n                      { variant: 'plo4', bettingStructure: 'pot_limit', format: 'mtt' },\n                      { variant: 'plo5', bettingStructure: 'pot_limit', format: 'cash' },\n                      { variant: 'plo8', bettingStructure: 'fixed_limit', format: 'cash' },\n                    ]);\n                  }",
       "destination": null,
       "type": "button",
@@ -91877,11 +91877,11 @@
       "effectRef": "pages/hub/training/multi-table.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:1260:3",
+      "id": "pages/hub/training/multi-table.js:1259:3",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1260,
+      "line": 1259,
       "handler": "() => {\n                        setSelectedGames((prev) => {\n                          if (prev.includes(g.id)) return prev.filter((x) => x !== g.id);\n                          if (prev.length >= tableCount) return [...prev.slice(1), g.id];\n                          return [...prev, g.id];\n                        });\n                      }",
       "destination": null,
       "type": null,
@@ -91890,11 +91890,11 @@
       "effectRef": "pages/hub/training/multi-table.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:1331:4",
+      "id": "pages/hub/training/multi-table.js:1329:4",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "← Back To Training",
-      "line": 1331,
+      "line": 1329,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": null,
@@ -91903,11 +91903,11 @@
       "effectRef": "pages/hub/training/multi-table.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:1373:5",
+      "id": "pages/hub/training/multi-table.js:1371:5",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "Warm Up Focused Table In 1:1 Club Arena →",
-      "line": 1373,
+      "line": 1371,
       "handler": "() => router.push(multiTableSingleArenaHref)",
       "destination": null,
       "type": "button",
@@ -91916,11 +91916,11 @@
       "effectRef": "pages/hub/training/multi-table.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:1407:6",
+      "id": "pages/hub/training/multi-table.js:1405:6",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "← Exit",
-      "line": 1407,
+      "line": 1405,
       "handler": "() => {\n                  setIsStarted(false);\n                  reportedTablesRef.current = new Set();\n                  liveTableTallyRef.current = {};\n                  tableStatesRef.current = {};\n                  setTableStates({});\n                  setCompletedTables(new Set());\n                  setCombinedStats({\n                    totalHands: 0,\n                    totalCorrect: 0,\n                    totalEVLoss: 0,\n                    measuredEVDecisions: 0,\n                    tablesCompleted: 0,\n                  });\n                }",
       "destination": null,
       "type": null,
@@ -91929,11 +91929,11 @@
       "effectRef": "pages/hub/training/multi-table.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:1459:7",
+      "id": "pages/hub/training/multi-table.js:1457:7",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1459,
+      "line": 1457,
       "handler": "() => {\n                        if (selectedVariant === v.id) return;\n                        setSelectedVariant(v.id);\n                        setPaneConfigs(resolveDefaultPaneConfigs(v.id));\n                        setRunId(`mt-${Date.now()}`);\n                        reportedTablesRef.current = new Set();\n                        liveTableTallyRef.current = {};\n                        tableStatesRef.current = {};\n                        setTableStates({});\n                        setCompletedTables(new Set());\n                        setCombinedStats({\n                          totalHands: 0,\n                          totalCorrect: 0,\n                          totalEVLoss: 0,\n                          measuredEVDecisions: 0,\n                          tablesCompleted: 0,\n                        });\n                        hasSavedRef.current = false;\n                      }",
       "destination": null,
       "type": "button",
@@ -91942,11 +91942,11 @@
       "effectRef": "pages/hub/training/multi-table.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:1574:8",
+      "id": "pages/hub/training/multi-table.js:1572:8",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "T · ( H · %) - BB",
-      "line": 1574,
+      "line": 1572,
       "handler": "() => setFocusedGameId(gameId)",
       "destination": null,
       "type": "button",
@@ -91955,11 +91955,11 @@
       "effectRef": "pages/hub/training/multi-table.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:1612:9",
+      "id": "pages/hub/training/multi-table.js:1610:9",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "Jump To Next Pending Table →",
-      "line": 1612,
+      "line": 1610,
       "handler": "() => {\n                  if (visibleGames.length === 0) return;\n                  const curIdx = Math.max(0, visibleGames.indexOf(activeGameId));\n                  for (let offset = 1; offset <= visibleGames.length; offset += 1) {\n                    const candidateId = visibleGames[(curIdx + offset) % visibleGames.length];\n                    if (completedTables.has(candidateId)) continue;\n                    const candidateState = tableStates[candidateId];\n                    if (!candidateState?.gameComplete && !candidateState?.showFeedback) {\n                      setFocusedGameId(candidateId);\n                      return;\n                    }\n                  }\n                  const nextId = visibleGames[(curIdx + 1) % visibleGames.length];\n                  if (nextId) setFocusedGameId(nextId);\n                }",
       "destination": null,
       "type": "button",
@@ -91968,11 +91968,11 @@
       "effectRef": "pages/hub/training/multi-table.js"
     },
     {
-      "id": "pages/hub/training/multi-table.js:1668:10",
+      "id": "pages/hub/training/multi-table.js:1666:10",
       "file": "pages/hub/training/multi-table.js",
       "element": "button",
       "name": "TABLE",
-      "line": 1668,
+      "line": 1666,
       "handler": "() => setFocusedGameId(gameId)",
       "destination": null,
       "type": null,
@@ -92085,11 +92085,11 @@
       "effectRef": "pages/hub/training/multiway-preflop.js"
     },
     {
-      "id": "pages/hub/training/multiway-preflop.js:638:3",
+      "id": "pages/hub/training/multiway-preflop.js:637:3",
       "file": "pages/hub/training/multiway-preflop.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 638,
+      "line": 637,
       "handler": "() => setActiveVariant(v)",
       "destination": null,
       "type": "button",
@@ -92098,11 +92098,11 @@
       "effectRef": "pages/hub/training/multiway-preflop.js"
     },
     {
-      "id": "pages/hub/training/multiway-preflop.js:667:4",
+      "id": "pages/hub/training/multiway-preflop.js:666:4",
       "file": "pages/hub/training/multiway-preflop.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 667,
+      "line": 666,
       "handler": "() => setHeroPosition(pos)",
       "destination": null,
       "type": "button",
@@ -92111,11 +92111,11 @@
       "effectRef": "pages/hub/training/multiway-preflop.js"
     },
     {
-      "id": "pages/hub/training/multiway-preflop.js:696:5",
+      "id": "pages/hub/training/multiway-preflop.js:695:5",
       "file": "pages/hub/training/multiway-preflop.js",
       "element": "button",
       "name": "BB",
-      "line": 696,
+      "line": 695,
       "handler": "() => setEffectiveStackBb(stk)",
       "destination": null,
       "type": "button",
@@ -92124,11 +92124,11 @@
       "effectRef": "pages/hub/training/multiway-preflop.js"
     },
     {
-      "id": "pages/hub/training/multiway-preflop.js:727:6",
+      "id": "pages/hub/training/multiway-preflop.js:726:6",
       "file": "pages/hub/training/multiway-preflop.js",
       "element": "button",
       "name": "Practice Preflop Spot In Club Arena →",
-      "line": 727,
+      "line": 726,
       "handler": "() => router.push(arenaHref)",
       "destination": null,
       "type": "button",
@@ -129478,6 +129478,7 @@
         "__tests__/training-phase-4-question-truth.test.mjs",
         "__tests__/training-postflop-heuristic-provenance.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs",
+        "__tests__/training-simplification-mtt-design.test.mjs",
         "__tests__/training-solver-contract.test.mjs"
       ]
     },
@@ -132470,6 +132471,7 @@
       "tests": [
         "__tests__/training-reconciled-workflows.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs",
+        "__tests__/training-simplification-mtt-design.test.mjs",
         "__tests__/training-solver-contract.test.mjs"
       ]
     },
@@ -132619,6 +132621,7 @@
         "__tests__/training-reference-is-public-c.test.mjs",
         "__tests__/training-reissue-authority.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs",
+        "__tests__/training-simplification-mtt-design.test.mjs",
         "__tests__/training-single-question-recovery-contract.test.mjs",
         "__tests__/training-surface-inventory-classifier.test.mjs"
       ]
@@ -133463,7 +133466,8 @@
       "realtime": [],
       "tests": [
         "__tests__/training-legacy-consumer-authority.test.mjs",
-        "__tests__/training-reconciled-workflows.test.mjs"
+        "__tests__/training-reconciled-workflows.test.mjs",
+        "__tests__/training-simplification-mtt-design.test.mjs"
       ]
     },
     {
@@ -133674,6 +133678,7 @@
         "__tests__/training-mobile-upgrades.test.mjs",
         "__tests__/training-reference-is-public-c.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs",
+        "__tests__/training-simplification-mtt-design.test.mjs",
         "__tests__/training-surface-inventory-classifier.test.mjs",
         "__tests__/trivia-study-pool-curation.test.mjs",
         "__tests__/world-hub-connection-hardening.test.mjs",
@@ -143796,7 +143801,7 @@
       {
         "file": "src/lib/training/weaknessAnalysis.mjs",
         "name": "analyzeVerifiedTrainingWeaknesses",
-        "line": 107,
+        "line": 108,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -154211,7 +154216,7 @@
       {
         "file": "src/lib/training/weaknessAnalysis.mjs",
         "name": "analyzeVerifiedTrainingWeaknesses",
-        "line": 107,
+        "line": 108,
         "references": 1,
         "exported": true,
         "defaultExport": false,

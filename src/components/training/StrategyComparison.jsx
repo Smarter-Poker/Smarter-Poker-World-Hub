@@ -318,7 +318,7 @@ export default function StrategyComparison() {
         <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
           {COMPARISON_PRESETS.map(p => (
             <button key={p.id} onClick={() => setSelectedPreset(p.id)} style={{
-              padding: '6px 12px', borderRadius: 6, border: 'none', cursor: 'pointer',
+              padding: '6px 12px', borderRadius: 6, cursor: 'pointer',
               background: selectedPreset === p.id ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.04)',
               color: selectedPreset === p.id ? '#3b82f6' : '#94a3b8',
               fontSize: 12, fontWeight: 600,

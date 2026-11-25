@@ -258,7 +258,7 @@ export default function SizingTrainer() {
             return (
               <button key={s.id} onClick={() => handleSelect(s.id)} disabled={selectedSizing !== null}
                 style={{
-                  flex: 1, padding: '12px 8px', borderRadius: 8, border: 'none',
+                  flex: 1, padding: '12px 8px', borderRadius: 8,
                   cursor: selectedSizing !== null ? 'default' : 'pointer',
                   background: showResult
                     ? isCorrect

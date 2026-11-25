@@ -305,7 +305,7 @@ export default function QuizModeEngine() {
 
           return (
             <button key={i} onClick={() => handleAnswer(i)} disabled={selected !== null} style={{
-              padding: '12px 16px', borderRadius: 8, border: 'none',
+              padding: '12px 16px', borderRadius: 8,
               cursor: selected !== null ? 'default' : 'pointer', textAlign: 'left',
               background: showResult
                 ? isCorrect ? 'rgba(34,197,94,0.15)' : isSelected ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.03)'
