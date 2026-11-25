@@ -871,6 +871,7 @@ import './hub-settings-rail-opt-in.test.mjs';
 import './fleet-content-cleanup-migration.test.mjs';
 import './promo-campaigns.test.mjs';
 import './weekly-wire-newsletter.test.mjs';
+import './weekly-wire-v3-suite.test.mjs';
 import './aeo-discovery-hardening.law.test.mjs';
 import './geo-generative-engine-optimization.law.test.mjs';
 import './trivia-p11-deadlock-and-sim.test.mjs';

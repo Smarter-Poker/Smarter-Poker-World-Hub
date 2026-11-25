@@ -56,6 +56,13 @@ function extractImage(item) {
 async function scrapeAllNews() {
     console.log('🎯 Starting to scrape 50 poker news stories...\n');
 
+    const { normalizeEditorialTitle, isCompetitorSponsoredPost } = await import(
+        '../src/lib/newsletter/editorialCleaners.mjs'
+    );
+    const { isEchoingOrEmptyBlurb } = await import(
+        '../src/lib/newsletter/weeklyWireEngine.mjs'
+    );
+
     const allArticles = [];
 
     for (const source of SOURCES) {
@@ -63,17 +70,46 @@ async function scrapeAllNews() {
             console.log(`📰 Fetching from ${source.name}...`);
             const feed = await parser.parseURL(source.rss);
 
-            const articles = (feed.items || []).slice(0, 15).map(item => ({
-                title: item.title,
-                summary: (item.contentSnippet || item.content || '').replace(/<[^>]*>/g, '').slice(0, 300),
-                excerpt: (item.contentSnippet || item.content || '').replace(/<[^>]*>/g, '').slice(0, 150),
-                source_name: source.name,
-                source_url: item.link,
-                source_icon: source.icon,
-                image_url: extractImage(item),
-                category: categorizeArticle(item.title),
-                published_at: new Date(item.pubDate || item.isoDate || Date.now()).toISOString()
-            }));
+            const articles = (feed.items || [])
+                .slice(0, 15)
+                .map((item) => {
+                    const rawTitle = String(item.title || '').trim();
+                    const cleanTitle = normalizeEditorialTitle(rawTitle);
+                    const rawText = (item.contentSnippet || item.content || '')
+                        .replace(/<[^>]*>/g, '')
+                        .replace(/\s*\u2014\s*/g, ' - ')
+                        .replace(/\s+/g, ' ')
+                        .trim();
+                    const rawSummary = rawText.slice(0, 300).trim();
+                    const rawExcerpt = rawText.slice(0, 150).trim();
+                    const summary =
+                        !rawSummary ||
+                        rawSummary.toLowerCase() === rawTitle.toLowerCase() ||
+                        rawSummary.toLowerCase() === cleanTitle.toLowerCase() ||
+                        isEchoingOrEmptyBlurb(cleanTitle, rawSummary)
+                            ? ''
+                            : rawSummary;
+                    const excerpt =
+                        !rawExcerpt ||
+                        rawExcerpt.toLowerCase() === rawTitle.toLowerCase() ||
+                        rawExcerpt.toLowerCase() === cleanTitle.toLowerCase() ||
+                        isEchoingOrEmptyBlurb(cleanTitle, rawExcerpt)
+                            ? ''
+                            : rawExcerpt;
+
+                    return {
+                        title: cleanTitle,
+                        summary,
+                        excerpt,
+                        source_name: source.name,
+                        source_url: item.link,
+                        source_icon: source.icon,
+                        image_url: extractImage(item),
+                        category: categorizeArticle(cleanTitle || rawTitle),
+                        published_at: new Date(item.pubDate || item.isoDate || Date.now()).toISOString(),
+                    };
+                })
+                .filter((article) => article.title && !isCompetitorSponsoredPost(article));
 
             allArticles.push(...articles);
             console.log(`   ✅ Found ${articles.length} articles`);

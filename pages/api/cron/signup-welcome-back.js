@@ -38,6 +38,7 @@ import { sendBulkEmail, sendSms } from '../../../src/lib/dailyDigest/delivery.mj
 import { runWelcomeBack } from '../../../src/lib/welcomeBack/run.mjs';
 import { runRelaunchNotice } from '../../../src/lib/tournamentRelaunch/notice.mjs';
 import { runPlayerAnnouncements } from '../../../src/lib/playerAnnouncements/notice.mjs';
+import { runLifecycleRetention } from '../../../src/lib/promoCampaigns/lifecycleEngine.mjs';
 
 export const config = { maxDuration: 300 };
 
@@ -74,6 +75,23 @@ async function handler(req, res) {
             console.error('[player-announcements]', announcements.error);
         }
 
+        // Daily player retention lifecycle triggers (16:00 UTC, max once per 20h).
+        // Isolated try/catch: never turns signup-welcome-back red.
+        let lifecycle = null;
+        try {
+            if (new Date().getUTCHours() === 16) {
+                lifecycle = await runLifecycleRetention(sb, {
+                    dryRun: false,
+                    dailyGate: true,
+                });
+            } else {
+                lifecycle = { skipped: true, reason: 'outside_16h_utc_window' };
+            }
+        } catch (e) {
+            lifecycle = { error: String(e?.message || e) };
+            console.error('[lifecycle-retention]', lifecycle.error);
+        }
+
         // A player the promotion could not pay is an incident, not a success:
         // non-200 lets the dispatcher count it and page after three failed
         // hours. It pages for an empty promo wallet (nobody can be paid) and
@@ -82,9 +100,9 @@ async function handler(req, res) {
         // the pager does not become a permanent alarm anyone learns to mute.
         if (summary.wallet_empty || summary.failed_new > 0) {
             const why = summary.wallet_empty ? 'Midway Union promo wallet cannot fund the chips' : `${summary.failed_new} player(s) could not be paid`;
-            return res.status(503).json({ success: false, error: why, ...summary, relaunch, announcements });
+            return res.status(503).json({ success: false, error: why, ...summary, relaunch, announcements, lifecycle });
         }
-        return res.status(200).json({ success: true, ...summary, relaunch, announcements });
+        return res.status(200).json({ success: true, ...summary, relaunch, announcements, lifecycle });
     } catch (err) {
         reportApiError(err, req);
         console.error('[signup-welcome-back]', err?.message || err);

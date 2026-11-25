@@ -461,7 +461,7 @@ export async function resolvePromoAudience(
         if (d10) existingAccountPhoneDigits10.add(d10);
     };
 
-    // 1. Explicit newsletter / SMS opt-outs and bounces
+    // 1. Explicit newsletter / SMS opt-outs, bounces, wire-only preferences, and active 30d snoozes
     const inactiveSubs = await fetchPaged((from, to) =>
         sb
             .from('newsletter_subscribers')
@@ -478,6 +478,44 @@ export async function resolvePromoAudience(
         } else {
             const email = normalizeDeliverableEmail(raw);
             if (email) suppressedEmails.add(email);
+        }
+    }
+
+    const isPromoPrefSuppressed = (sourceVal) => {
+        const src = String(sourceVal || '').trim();
+        if (!src) return false;
+        if (src === 'pref:wire_only') return true;
+        if (src.toLowerCase().startsWith('snooze:')) {
+            const rawTs = src.slice('snooze:'.length).trim();
+            const untilMs = /^\d{10,13}$/.test(rawTs)
+                ? (rawTs.length === 10 ? Number(rawTs) * 1000 : Number(rawTs))
+                : Date.parse(rawTs);
+            if (Number.isFinite(untilMs) && untilMs > nowMs) return true;
+        }
+        return false;
+    };
+
+    const activeSubs = await fetchPaged((from, to) =>
+        sb
+            .from('newsletter_subscribers')
+            .select('id, email, is_active, user_id, source')
+            .or('is_active.is.null,is_active.eq.true')
+            .order('id', { ascending: true })
+            .range(from, to)
+    );
+    for (const row of activeSubs) {
+        if (!isPromoPrefSuppressed(row?.source)) continue;
+        const raw = String(row?.email || '').trim();
+        if (raw.toLowerCase().startsWith('sms:')) {
+            const phone = sendablePhone(raw);
+            if (phone) suppressedPhones.add(phone);
+        } else {
+            const email = normalizeDeliverableEmail(raw);
+            if (email) suppressedEmails.add(email);
+        }
+        if (row?.user_id) {
+            emailMutedUsers.add(String(row.user_id));
+            smsMutedUsers.add(String(row.user_id));
         }
     }
 
@@ -767,16 +805,9 @@ export async function resolvePromoAudience(
         };
     }
 
-    // 4. Active newsletter & imported leads
-    const activeSubs = await fetchPaged((from, to) =>
-        sb
-            .from('newsletter_subscribers')
-            .select('id, email, is_active, user_id')
-            .or('is_active.is.null,is_active.eq.true')
-            .order('id', { ascending: true })
-            .range(from, to)
-    );
+    // 4. Active newsletter & imported leads (already loaded above in step 1)
     for (const row of activeSubs) {
+        if (isPromoPrefSuppressed(row?.source)) continue;
         if (cleanScope === 'non_accounts' && row?.user_id && existingAccountUserIds.has(String(row.user_id))) {
             breakdown.excludedExistingAccounts += 1;
             continue;
@@ -893,7 +924,7 @@ async function sendResendBatch(resend, messages) {
         return { sent: messages.length, failed: 0, error: null };
     } catch (_firstErr) {
         try {
-            await attempt(messages.map(({ headers, ...rest }) => rest));
+            await attempt(messages.map(({ headers, tags, ...rest }) => rest));
             return { sent: messages.length, failed: 0, error: null };
         } catch (retryError) {
             return {
@@ -1157,6 +1188,7 @@ export async function dispatchPromoCampaign(
                             'List-Unsubscribe': `<${unsubscribeUrl}>`,
                             'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
                         },
+                        tags: [{ name: 'campaign_id', value: String(campaign.id) }],
                     };
                 });
                 const res = await sendResendBatch(resend, messages);

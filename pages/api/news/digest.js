@@ -145,7 +145,7 @@ async function sendBatch(resend, messages) {
         return { sent: messages.length, failed: 0, error: null };
     } catch (_firstErr) {
         try {
-            await attempt(messages.map(({ headers, ...rest }) => rest));
+            await attempt(messages.map(({ headers, tags, ...rest }) => rest));
             return { sent: messages.length, failed: 0, error: null };
         } catch (retryError) {
             return {
@@ -284,7 +284,32 @@ export default async function handler(req, res) {
             const previewSegment = ['non_account', 'inactive_21d', 'active_member'].includes(bodyObj.segment)
                 ? bodyObj.segment
                 : 'active_member';
-            const unsubUrl = `${siteUrl}/api/news/subscribe?unsubscribe=${encodeURIComponent(makeUnsubscribeToken(targetEmail))}`;
+            const unsubToken = makeUnsubscribeToken(targetEmail);
+            const unsubUrl = `${siteUrl}/api/news/subscribe?unsubscribe=${encodeURIComponent(unsubToken)}`;
+            const preferencesUrl = `${siteUrl}/hub/email-preferences?token=${encodeURIComponent(unsubToken)}`;
+            let testRecipientMeta = null;
+            try {
+                const { data: profRows } = await sb
+                    .from('profiles')
+                    .select('id, username, diamonds, is_vip, vip_expires_at, player_number')
+                    .ilike('email', targetEmail)
+                    .limit(1);
+                const prof = Array.isArray(profRows) ? profRows[0] : null;
+                if (prof?.id) {
+                    testRecipientMeta = {
+                        email: targetEmail,
+                        userId: String(prof.id),
+                        segment: previewSegment,
+                        username: prof.username || '',
+                        diamonds: Number(prof.diamonds || 0),
+                        isVip: Boolean(prof.is_vip),
+                        vipExpiresAt: prof.vip_expires_at || null,
+                        referralCode: prof.username || (prof.player_number ? String(prof.player_number) : ''),
+                    };
+                }
+            } catch (_metaErr) {
+                /* test preview continues cleanly if profile lookup is unavailable */
+            }
             const promoBlock = buildPromoBlockForSegment(previewSegment, {
                 activePromo: edition.activePromo,
                 siteUrl,
@@ -295,6 +320,8 @@ export default async function handler(req, res) {
                 siteUrl,
                 postalAddress: DEFAULT_POSTAL_ADDRESS,
                 unsubscribeUrl: unsubUrl,
+                preferencesUrl,
+                recipientMeta: testRecipientMeta,
                 subjectOverride: `[TEST] ${edition.subject}`,
             });
 
@@ -338,24 +365,32 @@ export default async function handler(req, res) {
 
         if (dryRun) {
             const sampleUnsub = `${siteUrl}/api/news/subscribe?unsubscribe=preview`;
+            const samplePreferencesUrl = `${siteUrl}/hub/email-preferences?token=preview`;
+            const sampleRecipientFor = (seg) => recipientsList.find((r) => r.segment === seg) || null;
             const segmentPreviews = {
                 non_account: renderWeeklyWireEmail({
                     edition,
                     promoBlock: buildPromoBlockForSegment('non_account', { activePromo: edition.activePromo, siteUrl }),
                     siteUrl,
                     unsubscribeUrl: sampleUnsub,
+                    preferencesUrl: samplePreferencesUrl,
+                    recipientMeta: sampleRecipientFor('non_account'),
                 }).html,
                 inactive_21d: renderWeeklyWireEmail({
                     edition,
                     promoBlock: buildPromoBlockForSegment('inactive_21d', { activePromo: edition.activePromo, siteUrl }),
                     siteUrl,
                     unsubscribeUrl: sampleUnsub,
+                    preferencesUrl: samplePreferencesUrl,
+                    recipientMeta: sampleRecipientFor('inactive_21d'),
                 }).html,
                 active_member: renderWeeklyWireEmail({
                     edition,
                     promoBlock: buildPromoBlockForSegment('active_member', { activePromo: edition.activePromo, siteUrl }),
                     siteUrl,
                     unsubscribeUrl: sampleUnsub,
+                    preferencesUrl: samplePreferencesUrl,
+                    recipientMeta: sampleRecipientFor('active_member'),
                 }).html,
             };
 
@@ -429,9 +464,9 @@ export default async function handler(req, res) {
         for (let i = 0; i < recipientsList.length; i += SEND_BATCH_SIZE) {
             const chunk = recipientsList.slice(i, i + SEND_BATCH_SIZE);
             const messages = chunk.map((recipient) => {
-                const unsubscribeUrl = `${siteUrl}/api/news/subscribe?unsubscribe=${encodeURIComponent(
-                    makeUnsubscribeToken(recipient.email)
-                )}`;
+                const unsubToken = makeUnsubscribeToken(recipient.email);
+                const unsubscribeUrl = `${siteUrl}/api/news/subscribe?unsubscribe=${encodeURIComponent(unsubToken)}`;
+                const preferencesUrl = `${siteUrl}/hub/email-preferences?token=${encodeURIComponent(unsubToken)}`;
                 const promoBlock = buildPromoBlockForSegment(recipient.segment, {
                     userId: recipient.userId || '',
                     activePromo: edition.activePromo,
@@ -443,6 +478,8 @@ export default async function handler(req, res) {
                     siteUrl,
                     postalAddress: DEFAULT_POSTAL_ADDRESS,
                     unsubscribeUrl,
+                    preferencesUrl,
+                    recipientMeta: recipient,
                 });
                 return {
                     from,
@@ -454,6 +491,7 @@ export default async function handler(req, res) {
                         'List-Unsubscribe': `<${unsubscribeUrl}>`,
                         'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
                     },
+                    tags: [{ name: 'campaign_id', value: String(campaign.id) }],
                 };
             });
 
