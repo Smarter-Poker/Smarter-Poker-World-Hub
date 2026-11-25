@@ -129,10 +129,119 @@ ${prefsLink}
 </html>`;
 }
 
+function keepConfirmationHtml(title, message) {
+    return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>${title} - Smarter.Poker</title>
+</head>
+<body style="margin:0;background:#05070a;color:#ffffff;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif">
+<div style="max-width:520px;margin:0 auto;padding:64px 24px;text-align:center">
+<h1 style="font-size:22px;margin:0 0 12px;color:#4fc1b3">${title}</h1>
+<p style="font-size:16px;line-height:1.5;margin:0 0 28px;color:#9fb3c8">${message}</p>
+<a href="/hub/wire" style="display:inline-block;padding:12px 22px;border-radius:8px;background:#4fc1b3;color:#05070a;text-decoration:none;font-weight:700">Read The Weekly Wire</a>
+</div>
+</body>
+</html>`;
+}
+
 export default async function handler(req, res) {
     try {
         if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
             if (!applyRateLimit(req, res, LIMITS.write)) return;
+        }
+
+        // 0. GET /api/news/subscribe?keep=<signed-token> (cold-lead re-permission, one click)
+        const rawKeep = Array.isArray(req.query?.keep) ? req.query.keep[0] : req.query?.keep;
+
+        if (req.method === 'GET' && typeof rawKeep === 'string' && rawKeep) {
+            if (!applyRateLimit(req, res, LIMITS.write)) return;
+            res.setHeader('Content-Type', 'text/html; charset=utf-8');
+            res.setHeader('Cache-Control', 'private, no-store');
+            const keepEmail = verifyUnsubscribeToken(rawKeep.trim());
+            if (!keepEmail) {
+                return res
+                    .status(400)
+                    .send(keepConfirmationHtml('Link Expired', 'That confirmation link is not valid or has expired.'));
+            }
+
+            try {
+                const { data: keepRows, error: keepLookupErr } = await getSupabase()
+                    .from('newsletter_subscribers')
+                    .select('id, email, is_active, source')
+                    .ilike('email', keepEmail)
+                    .limit(5);
+                if (keepLookupErr) {
+                    console.warn('[Newsletter] Keep lookup failed:', keepLookupErr.message);
+                    return res
+                        .status(500)
+                        .send(keepConfirmationHtml('Please Try Again', 'We could not confirm your subscription right now.'));
+                }
+
+                const stamp = `engaged:${new Date().toISOString().slice(0, 10)}`;
+                const rows = Array.isArray(keepRows) ? keepRows : [];
+                if (rows.length === 0) {
+                    const { error: keepInsertErr } = await getSupabase()
+                        .from('newsletter_subscribers')
+                        .insert({ email: keepEmail, is_active: true, unsubscribed_at: null, source: stamp });
+                    if (keepInsertErr) {
+                        console.warn('[Newsletter] Keep insert failed:', keepInsertErr.message);
+                        return res
+                            .status(500)
+                            .send(keepConfirmationHtml('Please Try Again', 'We could not confirm your subscription right now.'));
+                    }
+                } else {
+                    for (const row of rows) {
+                        const currentSource = String(row?.source || '').trim();
+                        // An explicit unsubscribe or complaint is never undone by a stale keep link.
+                        if (row?.is_active === false && ['unsubscribe', 'resend_complaint', 'resend_bounce'].includes(currentSource)) {
+                            return res
+                                .status(200)
+                                .send(
+                                    keepConfirmationHtml(
+                                        'Subscription Confirmed',
+                                        'Your email preferences are unchanged. You can resubscribe any time from the Weekly Wire page.'
+                                    )
+                                );
+                        }
+                        // Preserve explicit preference and snooze choices; only stamp engagement otherwise.
+                        const preserveSource = currentSource === 'pref:wire_only' || currentSource === 'pref:all' || currentSource.startsWith('snooze:');
+                        const patch = { is_active: true, unsubscribed_at: null };
+                        if (!preserveSource) patch.source = stamp;
+                        const { error: keepUpdateErr } = await getSupabase()
+                            .from('newsletter_subscribers')
+                            .update(patch)
+                            .eq('id', row.id);
+                        if (keepUpdateErr) {
+                            console.warn('[Newsletter] Keep update failed:', keepUpdateErr.message);
+                            return res
+                                .status(500)
+                                .send(keepConfirmationHtml('Please Try Again', 'We could not confirm your subscription right now.'));
+                        }
+                    }
+                }
+            } catch (keepErr) {
+                try {
+                    reportApiError(keepErr, req);
+                } catch (_e) {
+                    /* noop */
+                }
+                return res
+                    .status(500)
+                    .send(keepConfirmationHtml('Please Try Again', 'We could not confirm your subscription right now.'));
+            }
+
+            return res
+                .status(200)
+                .send(
+                    keepConfirmationHtml(
+                        'Subscription Confirmed',
+                        'Thanks for confirming. You will keep receiving the Smarter.Poker Weekly Wire every week.'
+                    )
+                );
         }
 
         // 1. GET /api/news/subscribe?preferences=<signed-token>

@@ -8,8 +8,10 @@
 import {
     fetchAndNormalizeEmailImage,
     normalizeImageMode,
+    renderSpotCardImage,
     renderVanguardFallbackImage,
     verifyEmailImageSignature,
+    verifySpotCardImageSignature,
 } from '../../../src/lib/newsletter/emailImageProxy.mjs';
 
 const EDGE_CACHE_OK = 'public, max-age=604800, s-maxage=2592000, stale-while-revalidate=2592000';
@@ -47,6 +49,25 @@ export default async function handler(req, res) {
         res.setHeader('X-Image-Status', fb.status);
         res.setHeader('Content-Length', String(fb.buffer.byteLength));
         return req.method === 'HEAD' ? res.status(200).end() : res.status(200).send(fb.buffer);
+    }
+
+    const spotSlug = firstQuery(req.query?.spot).trim();
+    if (spotSlug) {
+        const spotSignature = firstQuery(req.query?.s).trim();
+        const spot = verifySpotCardImageSignature(spotSlug, spotSignature);
+        if (!spot) {
+            res.setHeader('Cache-Control', 'private, no-store');
+            return res.status(403).json({
+                error: 'INVALID_SIGNATURE',
+                message: 'Signed Smarter.Poker image token is required.',
+            });
+        }
+        const spotImage = await renderSpotCardImage(spot);
+        res.setHeader('Content-Type', spotImage.contentType);
+        res.setHeader('Cache-Control', EDGE_CACHE_OK);
+        res.setHeader('X-Image-Status', spotImage.status);
+        res.setHeader('Content-Length', String(spotImage.buffer.byteLength));
+        return req.method === 'HEAD' ? res.status(200).end() : res.status(200).send(spotImage.buffer);
     }
 
     const encodedUrl = firstQuery(req.query?.u).trim();

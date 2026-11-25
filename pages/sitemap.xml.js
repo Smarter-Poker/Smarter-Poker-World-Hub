@@ -195,6 +195,7 @@ const staticPages = [
   { path: '/hub/home-games', priority: '0.9', changefreq: 'daily' },
   { path: '/hub/training', priority: '0.9', changefreq: 'weekly' },
   { path: '/hub/news', priority: '0.9', changefreq: 'hourly' },
+  { path: '/hub/wire', priority: '0.85', changefreq: 'weekly' },
   { path: '/hub/video-library', priority: '0.8', changefreq: 'daily' },
   { path: '/hub/video-library/channels', priority: '0.8', changefreq: 'weekly' },
   { path: '/hub/video-library/players', priority: '0.8', changefreq: 'weekly' },
@@ -804,12 +805,49 @@ function sitemapLastmodLine(lastmod) {
 }
 
 import { sendSitemapXmlResponse } from '../src/lib/seo/sitemapBuilders.mjs';
+import { isWeeklyWireDigestCampaign } from '../src/lib/newsletter/weeklyWireEngine.mjs';
+
+// Weekly Wire editions: one URL per published digest, numbered exactly like
+// /hub/wire and /hub/wire/[edition] so every <loc> resolves. lastmod is the real
+// completion/creation date of the campaign and is omitted when absent.
+async function buildWireEditionUrls() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) return [];
+
+  try {
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabase = createClient(url, key);
+    const { data, error } = await supabase
+      .from('newsletter_campaigns')
+      .select('id, subject, status, article_ids, completed_at, created_at')
+      .in('status', ['sent', 'partial'])
+      .order('created_at', { ascending: true })
+      .limit(200);
+    if (error || !Array.isArray(data)) return [];
+
+    const used = new Set();
+    return data.filter(isWeeklyWireDigestCampaign).map((row, idx) => {
+      const fromSubject = parseInt((String(row.subject || '').match(/wire\s*#(\d+)/i) || [])[1], 10);
+      let num = Number.isFinite(fromSubject) && fromSubject > 0 && !used.has(fromSubject) ? fromSubject : idx + 1;
+      while (used.has(num)) num += 1;
+      used.add(num);
+      const day = String(row.completed_at || row.created_at || '').slice(0, 10);
+      const entry = { path: `/hub/wire/${num}`, priority: '0.7', changefreq: 'monthly' };
+      if (/^\d{4}-\d{2}-\d{2}$/.test(day)) entry.lastmod = day;
+      return entry;
+    });
+  } catch {
+    return [];
+  }
+}
 
 export async function getServerSideProps({ req, res }) {
-  const [homeGameUrls, pokerVenueUrls, pokerEventDetailUrls] = await Promise.all([
+  const [homeGameUrls, pokerVenueUrls, pokerEventDetailUrls, wireEditionUrls] = await Promise.all([
     buildHomeGameUrls(),
     buildPokerVenueUrls(),
     buildPokerEventDetailUrls(),
+    buildWireEditionUrls(),
   ]);
   // A page the release gate is currently redirecting is not a page. The
   // gate is read here, from the same functions the pages read, so the
@@ -834,6 +872,7 @@ export async function getServerSideProps({ req, res }) {
     ...homeGameUrls,
     ...pokerVenueUrls,
     ...pokerEventDetailUrls,
+    ...wireEditionUrls,
   ]);
 
   res.setHeader('Content-Type', 'text/xml');

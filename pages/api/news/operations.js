@@ -10,6 +10,7 @@
  * GET   dashboard counts, subscribers, deliverability readiness, and campaign history
  * PATCH activate/deactivate one subscriber (clearing stale `snooze:*` / opt-out `source` tags on reactivate)
  */
+import dns from 'node:dns';
 import { createClient } from '../../../src/lib/supabaseServerClient.js';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth.js';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit.js';
@@ -20,6 +21,48 @@ import {
 } from '../../../src/lib/newsletter/campaignTelemetry.mjs';
 
 export { resolveAdminSubscriberPatch };
+
+const DNS_TTL_MS = 5 * 60 * 1000;
+const DNS_TIMEOUT_MS = 1500;
+const DNS_HOSTS = {
+    dmarc: '_dmarc.smarter.poker',
+    bimi: 'default._bimi.smarter.poker',
+    bimiMail: 'default._bimi.mail.smarter.poker',
+};
+let _dnsCache = null;
+
+async function resolveTxtJoined(host) {
+    try {
+        const records = await Promise.race([
+            dns.promises.resolveTxt(host),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('dns timeout')), DNS_TIMEOUT_MS)),
+        ]);
+        return (records || []).map((chunks) => (Array.isArray(chunks) ? chunks.join('') : String(chunks)));
+    } catch {
+        return [];
+    }
+}
+
+/** Live DMARC / BIMI DNS readiness, cached in memory for five minutes. */
+export async function readEmailDnsReadiness(now = Date.now()) {
+    if (_dnsCache && now - _dnsCache.at < DNS_TTL_MS) return _dnsCache.value;
+    const [dmarcRecords, bimiRecords, bimiMailRecords] = await Promise.all([
+        resolveTxtJoined(DNS_HOSTS.dmarc),
+        resolveTxtJoined(DNS_HOSTS.bimi),
+        resolveTxtJoined(DNS_HOSTS.bimiMail),
+    ]);
+    const dmarcRecord = dmarcRecords.find((r) => /^\s*v=DMARC1\b/i.test(r)) || null;
+    const bimiRecordFound =
+        [...bimiRecords, ...bimiMailRecords].find((r) => /^\s*v=BIMI1\b/i.test(r)) || null;
+    const value = {
+        dmarcConfigured: Boolean(dmarcRecord),
+        dmarcRecord,
+        bimiDnsConfigured: Boolean(bimiRecordFound),
+        bimiRecordFound,
+    };
+    _dnsCache = { at: now, value };
+    return value;
+}
 
 export const ADMIN_ROLES = ['admin', 'superadmin', 'god'];
 let _supabase = null;
@@ -170,6 +213,23 @@ export default async function handler(req, res) {
             if (result.error) throw result.error;
         }
 
+        const coldCutoffIso = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+        const [dnsReadiness, coldLeadsResult] = await Promise.all([
+            readEmailDnsReadiness().catch(() => ({
+                dmarcConfigured: false,
+                dmarcRecord: null,
+                bimiDnsConfigured: false,
+                bimiRecordFound: null,
+            })),
+            supabase
+                .from('newsletter_subscribers')
+                .select('id', { count: 'exact', head: true })
+                .in('source', ['owner_list_20261118', 'admin_import'])
+                .or('is_active.is.null,is_active.eq.true')
+                .lte('created_at', coldCutoffIso)
+                .then((r) => r, () => ({ count: 0 })),
+        ]);
+
         let welcomeBackRedemptions = 0;
         const wbCodeIds = (promoCodesResult?.data || []).map((row) => row?.id).filter(Boolean);
         if (wbCodeIds.length > 0) {
@@ -211,6 +271,15 @@ export default async function handler(req, res) {
                 bimiDnsRecord: 'v=BIMI1; l=https://smarter.poker/brand/bimi-logo.svg;',
                 preheaderEnabled: true,
                 oneClickUnsubscribe: true,
+                dmarcConfigured: dnsReadiness.dmarcConfigured,
+                dmarcRecord: dnsReadiness.dmarcRecord,
+                bimiDnsConfigured: dnsReadiness.bimiDnsConfigured,
+                bimiRecordFound: dnsReadiness.bimiRecordFound,
+                rssFeedPath: '/api/news/wire-rss',
+                spotImageEngine: true,
+                calendarIcsEnabled: true,
+                coldSunsetShield: true,
+                coldLeads90dCount: coldLeadsResult?.count || 0,
             },
             subscribers: subscribersResult.data || [],
             subscriberPagination: {

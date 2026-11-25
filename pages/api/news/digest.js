@@ -251,6 +251,7 @@ export default async function handler(req, res) {
             updateLimit: 2,
             excludedArticleIds,
             enrichMetaDescriptions: true,
+            siteUrl,
         });
 
         // Dry-well zero-repeat safeguard: never mail an empty or recycled edition.
@@ -399,6 +400,29 @@ export default async function handler(req, res) {
                 }).html,
             };
 
+            // Live Desktop/Mobile preview for /admin/newsletter: synthetic active-member sample so no
+            // real player data is rendered; venue data is public so a real nearby match is reused.
+            const nearbySample = recipientsList.find((r) => Array.isArray(r.nearbyEvents) && r.nearbyEvents.length > 0);
+            const htmlPreview = renderWeeklyWireEmail({
+                edition,
+                promoBlock: buildPromoBlockForSegment('active_member', { activePromo: edition.activePromo, siteUrl }),
+                siteUrl,
+                unsubscribeUrl: sampleUnsub,
+                preferencesUrl: samplePreferencesUrl,
+                recipientMeta: {
+                    email: 'preview@smarter.poker',
+                    userId: '',
+                    segment: 'active_member',
+                    username: 'sample_member',
+                    diamonds: 1250,
+                    isVip: true,
+                    referralCode: '',
+                    referralCount: 2,
+                    nearbyEvents: nearbySample?.nearbyEvents || [],
+                    locationLabel: nearbySample?.locationLabel || '',
+                },
+            }).html;
+
             log('dry_run', {
                 recipients: recipientsCount,
                 articles: edition.articles.length,
@@ -423,6 +447,11 @@ export default async function handler(req, res) {
                 activePromo: edition.activePromo,
                 diagnostics: edition.diagnostics,
                 segmentPreviews,
+                htmlPreview,
+                kingsClubTournaments: edition.kingsClubTournaments || [],
+                videoOfTheWeek: edition.videoOfTheWeek || null,
+                skippedColdSunset: audienceRes.skippedColdSunset || 0,
+                repermissionCount: audienceRes.repermissionCount || 0,
                 droppedInvalid: audienceRes.droppedInvalid,
                 from,
                 emailConfigured: Boolean(apiKey),
@@ -487,7 +516,14 @@ export default async function handler(req, res) {
                     postalAddress: DEFAULT_POSTAL_ADDRESS,
                     unsubscribeUrl,
                     preferencesUrl,
-                    recipientMeta: recipient,
+                    recipientMeta: {
+                        ...recipient,
+                        unsubToken,
+                        nearbyEvents: recipient.nearbyEvents || [],
+                        locationLabel: recipient.locationLabel || '',
+                        referralCount: recipient.referralCount,
+                        needsRepermission: recipient.needsRepermission === true,
+                    },
                 });
                 return {
                     from,
@@ -565,6 +601,8 @@ export default async function handler(req, res) {
             articles: edition.articles.length,
             platformUpdates: edition.platformUpdates.length,
             toolSpotlight: edition.toolSpotlight?.title || null,
+            videoOfTheWeek: edition.videoOfTheWeek?.title || null,
+            skippedColdSunset: audienceRes.skippedColdSunset || 0,
             droppedInvalid: audienceRes.droppedInvalid,
             campaignId,
             subject: edition.subject,

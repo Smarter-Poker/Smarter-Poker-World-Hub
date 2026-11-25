@@ -24,6 +24,7 @@ import { verifyOperatorTestSignature } from '../../../src/lib/promoCampaigns/dis
 import {
     LIFECYCLE_TRIGGERS,
     previewLifecycleRetention,
+    renderLifecycleEmail,
     runLifecycleRetention,
     sendTestLifecycleEmail,
 } from '../../../src/lib/promoCampaigns/lifecycleEngine.mjs';
@@ -112,7 +113,33 @@ export default async function handler(req, res) {
                 maxPerTrigger,
                 includeOlderDormant,
             });
-            return res.status(200).json(preview);
+            const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker').replace(/\/+$/, '');
+            const sampleUnsub = `${siteUrl}/api/news/subscribe?unsubscribe=preview`;
+            const samplePrefs = `${siteUrl}/hub/email-preferences?token=preview`;
+            const nowMs = Date.now();
+            const htmlPreviews = {};
+            for (const trigger of LIFECYCLE_TRIGGERS) {
+                try {
+                    htmlPreviews[trigger] = renderLifecycleEmail({
+                        trigger,
+                        username: 'grinder',
+                        userId: '00000000-0000-4000-8000-000000000001',
+                        diamonds: trigger === 'vip_diamond_nudge' ? 1200 : 0,
+                        vipExpiresAt: trigger === 'vip_diamond_nudge' ? new Date(nowMs + 2 * 86_400_000).toISOString() : null,
+                        siteUrl,
+                        unsubscribeUrl: sampleUnsub,
+                        preferencesUrl: samplePrefs,
+                        nowMs,
+                    }).html;
+                } catch (_renderErr) {
+                    htmlPreviews[trigger] = '';
+                }
+            }
+            return res.status(200).json({
+                ...preview,
+                htmlPreviews,
+                htmlPreview: htmlPreviews.welcome_back_21d || '',
+            });
         }
 
         if (rawAction === 'test') {

@@ -26262,6 +26262,7 @@
             "__tests__/aeo-dynamic-og-cards.test.mjs",
             "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/markdown-ingestion.test.mjs",
+            "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
             "__tests__/training-authored-surface-authority.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs"
@@ -26309,6 +26310,7 @@
             "__tests__/aeo-dynamic-og-cards.test.mjs",
             "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/markdown-ingestion.test.mjs",
+            "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
             "__tests__/training-authored-surface-authority.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs"
@@ -26356,6 +26358,7 @@
             "__tests__/aeo-dynamic-og-cards.test.mjs",
             "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/markdown-ingestion.test.mjs",
+            "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
             "__tests__/training-authored-surface-authority.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs"
@@ -26383,6 +26386,7 @@
             "__tests__/aeo-dynamic-og-cards.test.mjs",
             "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/markdown-ingestion.test.mjs",
+            "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
             "__tests__/training-authored-surface-authority.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs"
@@ -26419,6 +26423,7 @@
             "__tests__/aeo-dynamic-og-cards.test.mjs",
             "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/markdown-ingestion.test.mjs",
+            "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
             "__tests__/training-authored-surface-authority.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs"
@@ -26461,6 +26466,7 @@
             "__tests__/aeo-dynamic-og-cards.test.mjs",
             "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/markdown-ingestion.test.mjs",
+            "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
             "__tests__/training-authored-surface-authority.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs"
@@ -26478,6 +26484,7 @@
             "__tests__/aeo-dynamic-og-cards.test.mjs",
             "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/markdown-ingestion.test.mjs",
+            "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
             "__tests__/training-authored-surface-authority.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs"
@@ -26502,6 +26509,7 @@
             "__tests__/aeo-dynamic-og-cards.test.mjs",
             "__tests__/gsc-series4-phase3.test.mjs",
             "__tests__/markdown-ingestion.test.mjs",
+            "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
             "__tests__/training-authored-surface-authority.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/training-reference-is-public-c.test.mjs"
@@ -26513,6 +26521,7 @@
         "__tests__/aeo-dynamic-og-cards.test.mjs",
         "__tests__/gsc-series4-phase3.test.mjs",
         "__tests__/markdown-ingestion.test.mjs",
+        "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
         "__tests__/training-authored-surface-authority.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs",
         "__tests__/training-reference-is-public-c.test.mjs"
@@ -125171,6 +125180,7 @@
         "__tests__/aeo-dynamic-og-cards.test.mjs",
         "__tests__/gsc-series4-phase3.test.mjs",
         "__tests__/markdown-ingestion.test.mjs",
+        "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
         "__tests__/training-authored-surface-authority.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs",
         "__tests__/training-reference-is-public-c.test.mjs"

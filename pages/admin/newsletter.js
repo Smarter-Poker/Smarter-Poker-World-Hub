@@ -35,6 +35,107 @@ function formatDate(value) {
     return Number.isNaN(date.getTime()) ? '-' : date.toLocaleString();
 }
 
+const PREVIEW_VIEWPORTS = [
+    { key: 'desktop', label: 'Desktop 640px', width: 640 },
+    { key: 'mobile', label: 'Mobile 375px', width: 375 },
+];
+
+const LIFECYCLE_PREVIEW_TABS = [
+    { key: 'unverified_48h', label: '48h Unverified' },
+    { key: 'welcome_back_21d', label: '21d Welcome-Back' },
+    { key: 'vip_diamond_nudge', label: 'VIP Diamond Nudge' },
+];
+
+function previewToggleStyle(active) {
+    return {
+        cursor: 'pointer',
+        background: active ? 'rgba(79, 193, 179, 0.16)' : '#0b1520',
+        border: active ? '1px solid #4fc1b3' : '1px solid #254052',
+        color: active ? '#4fc1b3' : '#e2e8f0',
+        borderRadius: 999,
+        padding: '5px 12px',
+        fontSize: 12,
+        fontWeight: 700,
+    };
+}
+
+function PreviewFrame({ html, title, viewport, onViewport, tabs = null, activeTab = '', onTab = null }) {
+    const width = (PREVIEW_VIEWPORTS.find((v) => v.key === viewport) || PREVIEW_VIEWPORTS[0]).width;
+    return (
+        <div style={{ marginTop: 14 }}>
+            {tabs && (
+                <div role="tablist" aria-label="Lifecycle Trigger Tabs" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+                    {tabs.map((tab) => (
+                        <button
+                            key={tab.key}
+                            type="button"
+                            role="tab"
+                            aria-selected={activeTab === tab.key}
+                            onClick={() => onTab && onTab(tab.key)}
+                            style={previewToggleStyle(activeTab === tab.key)}
+                        >
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
+            )}
+            <div role="group" aria-label="Preview Viewport" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+                {PREVIEW_VIEWPORTS.map((v) => (
+                    <button
+                        key={v.key}
+                        type="button"
+                        aria-pressed={viewport === v.key}
+                        onClick={() => onViewport(v.key)}
+                        style={previewToggleStyle(viewport === v.key)}
+                    >
+                        {v.label}
+                    </button>
+                ))}
+            </div>
+            <div style={{ overflowX: 'auto', background: '#07121c', border: '1px solid #254052', borderRadius: 10, padding: 10 }}>
+                <iframe
+                    sandbox=""
+                    title={title}
+                    srcDoc={html}
+                    style={{
+                        display: 'block',
+                        width,
+                        maxWidth: '100%',
+                        height: 640,
+                        margin: '0 auto',
+                        border: 0,
+                        borderRadius: 6,
+                        background: '#ffffff',
+                    }}
+                />
+            </div>
+        </div>
+    );
+}
+
+function ReadinessBadge({ ok, label, detail = '' }) {
+    return (
+        <span
+            title={detail}
+            style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                background: ok ? 'rgba(79, 193, 179, 0.12)' : 'rgba(96, 165, 250, 0.10)',
+                border: ok ? '1px solid #4fc1b3' : '1px solid #60a5fa',
+                color: '#e2e8f0',
+                borderRadius: 999,
+                padding: '4px 11px',
+                fontSize: 12,
+                fontWeight: 700,
+            }}
+        >
+            <span aria-hidden="true" style={{ color: ok ? '#4fc1b3' : '#60a5fa' }}>&#9679;</span>
+            {label}
+        </span>
+    );
+}
+
 function Status({ value }) {
     return <span className={`${styles.status} ${styles[`status_${value}`] || ''}`}>{value}</span>;
 }
@@ -77,6 +178,9 @@ export default function NewsletterOperations() {
     const [importResult, setImportResult] = useState(null);
     const [lifecyclePreview, setLifecyclePreview] = useState(null);
     const [lifecycleTestTrigger, setLifecycleTestTrigger] = useState('unverified_48h');
+    const [wireViewport, setWireViewport] = useState('desktop');
+    const [lifecycleViewport, setLifecycleViewport] = useState('desktop');
+    const [lifecycleTab, setLifecycleTab] = useState('unverified_48h');
 
     // A counter that reads the same when it is loading, when the request failed and
     // when the answer is genuinely zero is not reporting, it is guessing on the operator's
@@ -104,6 +208,18 @@ export default function NewsletterOperations() {
         const parsed = new Date(raw);
         return Number.isNaN(parsed.getTime()) ? 'Unreadable Date' : parsed.toLocaleString();
     };
+
+    const lifecycleHtmlPreviews = lifecyclePreview?.htmlPreviews;
+    const lifecycleHtml = (() => {
+        if (Array.isArray(lifecycleHtmlPreviews)) {
+            const hit = lifecycleHtmlPreviews.find((entry) => entry?.trigger === lifecycleTab);
+            return hit?.html || hit?.htmlPreview || '';
+        }
+        if (lifecycleHtmlPreviews && typeof lifecycleHtmlPreviews === 'object') {
+            return lifecycleHtmlPreviews[lifecycleTab] || '';
+        }
+        return typeof lifecyclePreview?.htmlPreview === 'string' ? lifecyclePreview.htmlPreview : '';
+    })();
 
     const load = useCallback(async (sessionToken = token, nextPage = page, term = search) => {
         if (!sessionToken) return;
@@ -829,6 +945,17 @@ export default function NewsletterOperations() {
                                             ))}
                                         </div>
                                     )}
+                                    {preview.htmlPreview && (
+                                        <div>
+                                            <p className={styles.previewLabel} style={{ marginTop: 14 }}>Live Weekly Wire Email Preview</p>
+                                            <PreviewFrame
+                                                html={preview.htmlPreview}
+                                                title="Weekly Wire Email Preview"
+                                                viewport={wireViewport}
+                                                onViewport={setWireViewport}
+                                            />
+                                        </div>
+                                    )}
                                     <p style={{ marginTop: 10 }}>
                                         <Link href={`/hub/wire/${preview.editionNumber || 1}`} className={styles.back}>
                                             Open Web Edition #{preview.editionNumber || 1} Preview &rarr;
@@ -902,6 +1029,20 @@ export default function NewsletterOperations() {
                                         <div><dt>Suppressed Emails</dt><dd>{lifecyclePreview.suppressedEmails || 0}</dd></div>
                                         <div><dt>Daily Gate</dt><dd>{lifecyclePreview.alreadyRanToday ? 'Ran Today' : 'Open'}</dd></div>
                                     </dl>
+                                    {lifecycleHtml && (
+                                        <div>
+                                            <p className={styles.previewLabel} style={{ marginTop: 14 }}>Live Lifecycle Email Preview</p>
+                                            <PreviewFrame
+                                                html={lifecycleHtml}
+                                                title="Lifecycle Email Preview"
+                                                viewport={lifecycleViewport}
+                                                onViewport={setLifecycleViewport}
+                                                tabs={LIFECYCLE_PREVIEW_TABS}
+                                                activeTab={lifecycleTab}
+                                                onTab={setLifecycleTab}
+                                            />
+                                        </div>
+                                    )}
                                     <p>No Email Or SMS Was Sent During Lifecycle Queue Preview.</p>
                                 </>
                             ) : (
@@ -912,7 +1053,7 @@ export default function NewsletterOperations() {
                             )}
                         </div>
                         <aside className={styles.storyRail}>
-                            <p className={styles.previewLabel}>Inbox &amp; BIMI Readiness</p>
+                            <p className={styles.previewLabel}>Inbox &amp; Deliverability Readiness</p>
                             <div className={styles.senderMeta} style={{ display: 'grid', gap: 10 }}>
                                 <div>
                                     Welcome-Back Redemptions: <strong>{statValue(data?.stats?.welcome_back_redemptions ?? data?.welcomeBackRedemptions ?? 0)}</strong>
@@ -931,6 +1072,43 @@ export default function NewsletterOperations() {
                                     <code style={{ display: 'block', marginTop: 6, padding: '8px 10px', background: '#07121c', border: '1px solid #254052', borderRadius: 6, color: '#4fc1b3', fontSize: 11, wordBreak: 'break-all' }}>
                                         {data?.deliverability?.bimiDnsRecord || 'v=BIMI1; l=https://smarter.poker/brand/bimi-logo.svg;'}
                                     </code>
+                                </div>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }} aria-label="Live Deliverability Badges">
+                                    <ReadinessBadge
+                                        ok={Boolean(data?.deliverability?.dmarcConfigured)}
+                                        label={data?.deliverability?.dmarcConfigured ? 'DMARC Verified' : 'DMARC Pending'}
+                                        detail={data?.deliverability?.dmarcRecord || '_dmarc.smarter.poker'}
+                                    />
+                                    <ReadinessBadge
+                                        ok={Boolean(data?.deliverability?.bimiDnsConfigured)}
+                                        label={data?.deliverability?.bimiDnsConfigured ? 'BIMI Logo SVG Ready' : 'BIMI DNS Status: Pending'}
+                                        detail={data?.deliverability?.bimiRecordFound || data?.deliverability?.bimiSvgPath || '/brand/bimi-logo.svg'}
+                                    />
+                                    <ReadinessBadge
+                                        ok={Boolean(data?.deliverability?.rssFeedPath)}
+                                        label="RSS 2.0 Syndication Feed"
+                                        detail={data?.deliverability?.rssFeedPath || '/api/news/wire-rss'}
+                                    />
+                                    <ReadinessBadge ok={Boolean(data?.deliverability?.calendarIcsEnabled)} label="Calendar .ics Feed" />
+                                    <ReadinessBadge
+                                        ok={Boolean(data?.deliverability?.coldSunsetShield)}
+                                        label="Cold-Lead Sunset Shield"
+                                        detail={`${data?.deliverability?.coldLeads90dCount ?? 0} Cold Leads Older Than 90 Days`}
+                                    />
+                                </div>
+                                {data?.deliverability?.dmarcRecord && (
+                                    <div>
+                                        DMARC Policy:
+                                        <code style={{ display: 'block', marginTop: 6, padding: '8px 10px', background: '#07121c', border: '1px solid #254052', borderRadius: 6, color: '#60a5fa', fontSize: 11, wordBreak: 'break-all' }}>
+                                            {data.deliverability.dmarcRecord}
+                                        </code>
+                                    </div>
+                                )}
+                                <div>
+                                    Cold Leads Older Than 90 Days: <strong>{statValue(data?.deliverability?.coldLeads90dCount ?? 0)}</strong>
+                                </div>
+                                <div>
+                                    RSS Feed: <a href={data?.deliverability?.rssFeedPath || '/api/news/wire-rss'} style={{ color: '#60a5fa' }}>{data?.deliverability?.rssFeedPath || '/api/news/wire-rss'}</a>
                                 </div>
                                 <div style={{ paddingTop: 4 }}>
                                     <Link href="/hub/wire" className={styles.back}>

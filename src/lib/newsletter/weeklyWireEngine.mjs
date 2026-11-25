@@ -15,6 +15,7 @@
  *   5. Per-recipient Promo Banner segmentation, snooze honoring, Pulse telemetry strip,
  *      Live Series Radar, and Referral rewards block.
  */
+import crypto from 'crypto';
 import dns from 'dns';
 import { DEFAULT_POSTAL_ADDRESS, normalizeDeliverableEmail, normalizeExplicitTestEmail } from '../promoCampaigns/dispatch.mjs';
 import { buildPromoSignupUrl } from '../promoCampaigns/promoSignupToken.mjs';
@@ -26,11 +27,20 @@ import {
 } from '../promoCampaigns/welcomeBackOffer.mjs';
 import { isReferralInput } from '../pendingSignupCodes.mjs';
 import { isCompetitorSponsoredPost, normalizeEditorialTitle } from './editorialCleaners.mjs';
+import * as emailImageProxy from './emailImageProxy.mjs';
 import {
     buildMastheadCrestUrl,
     buildSignedEmailImageUrl,
     normalizeCandidateImageUrl,
 } from './emailImageProxy.mjs';
+import { VIDEO_ROW_FIELDS, normaliseVideoRow, watchPath } from '../videoLibraryWatch.mjs';
+import { BLOCKED_VIDEO_LIBRARY_IDS, isVideoLibraryVideoAllowed } from '../videoLibraryAvailability.js';
+import {
+    VIDEO_LIBRARY_POKER_TYPES,
+    dedupeVideos,
+    isCasinoGameFiledAsPoker,
+    isDisplayableVideoTitle,
+} from '../videoLibraryCuration.mjs';
 import {
     ACTIVE_MEMBER_PROMO_ROTATION,
     PLATFORM_UPDATES_CATALOG,
@@ -65,6 +75,20 @@ export function toolMarkerUuid(slug) {
 
 export function spotMarkerUuid(slug) {
     return deterministicMarkerUuid('spot', slug);
+}
+
+/** Kings Club (Club Code 25450) club row id in `public.clubs` / `public.tournaments.club_id`. */
+export const KINGS_CLUB_UUID = 'a41434bb-8d0c-400a-8f0d-e8b3d65afed4';
+
+/**
+ * Lifetime single-use marker for a Top Poker Video Of The Week. SHA-256 based UUID
+ * (version nibble 5, RFC 4122 variant) so a video id (case-sensitive) never repeats
+ * across editions.
+ */
+export function videoMarkerUuid(videoId) {
+    const hex = crypto.createHash('sha256').update(`sp-wire-video:${String(videoId == null ? '' : videoId).trim()}`).digest('hex');
+    const variant = ((parseInt(hex[16], 16) & 0x3) | 0x8).toString(16);
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-${variant}${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
 }
 
 export function promoRotationMarkerUuid(index, slug) {
@@ -404,6 +428,268 @@ export async function verifyUpstreamImageReachable(imageUrl, { fetchImpl = fetch
     }
 }
 
+// ── V4 helpers: referral milestones, cold-lead sunset, geo matching, Kings Club, video ──
+
+const REFERRAL_DIAMONDS_PER_FRIEND = 500;
+const REFERRAL_MILESTONES = Object.freeze([
+    { target: 1, diamonds: 500, label: 'Recruiter' },
+    { target: 3, diamonds: 1500, label: 'Crew Builder' },
+    { target: 5, diamonds: 2500, label: 'Crew Captain' },
+    { target: 10, diamonds: 5000, label: 'Crew Legend' },
+]);
+
+/**
+ * Tiered referral progress for the Share & Earn card. Milestones: 1 friend = 500 Diamonds,
+ * 3 = 1,500, 5 = 2,500, 10 = 5,000 (500 Diamonds per completed referral).
+ */
+export function computeReferralMilestone(referralCount) {
+    const raw = Math.floor(Number(referralCount));
+    const count = Number.isFinite(raw) && raw > 0 ? raw : 0;
+    const reached = [...REFERRAL_MILESTONES].reverse().find((m) => count >= m.target) || null;
+    const next = REFERRAL_MILESTONES.find((m) => m.target > count) || null;
+    return {
+        count,
+        diamondsEarned: count * REFERRAL_DIAMONDS_PER_FRIEND,
+        nextTarget: next ? next.target : null,
+        nextRewardDiamonds: next ? next.diamonds : 0,
+        remaining: next ? next.target - count : 0,
+        progressPct: next ? Math.max(0, Math.min(100, Math.round((count / next.target) * 100))) : 100,
+        tierLabel: reached ? reached.label : 'Getting Started',
+    };
+}
+
+export const COLD_IMPORT_SOURCES = new Set(['owner_list_20261118', 'admin_import']);
+const DAY_MS = 86_400_000;
+
+/**
+ * Cold-lead sunset re-permission shield. Only never-engaged imported addresses without a
+ * Smarter.Poker account are ever flagged (`engaged:*`, `pref:*`, `hub_*` etc. never are):
+ *   - 90..119 days old  -> keep mailing but show a one-click re-permission banner
+ *   - 120+ days old with zero open/click engagement -> suppress sends
+ */
+export function evaluateColdSubscriberSunset(subRow, { hasAccount = false, nowMs = Date.now() } = {}) {
+    const source = String(subRow?.source || '').trim();
+    const startMs = Date.parse(String(subRow?.subscribed_at || subRow?.created_at || ''));
+    const ageDays = Number.isFinite(startMs) ? Math.max(0, Math.floor((nowMs - startMs) / DAY_MS)) : 0;
+    const active = { status: 'active', ageDays, suppressSend: false, showRepermissionBanner: false };
+    if (hasAccount || !COLD_IMPORT_SOURCES.has(source)) return active;
+    if (ageDays >= 120) {
+        const engaged =
+            Number(subRow?.open_count || 0) > 0 ||
+            Number(subRow?.click_count || 0) > 0 ||
+            Boolean(subRow?.last_opened_at) ||
+            Boolean(subRow?.last_clicked_at);
+        if (engaged) return active;
+        return { status: 'sunset_suppressed', ageDays, suppressSend: true, showRepermissionBanner: false };
+    }
+    if (ageDays >= 90) {
+        return { status: 'repermission_window', ageDays, suppressSend: false, showRepermissionBanner: true };
+    }
+    return active;
+}
+
+const US_STATES = Object.freeze({
+    AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas', CA: 'California', CO: 'Colorado',
+    CT: 'Connecticut', DE: 'Delaware', DC: 'District of Columbia', FL: 'Florida', GA: 'Georgia',
+    HI: 'Hawaii', ID: 'Idaho', IL: 'Illinois', IN: 'Indiana', IA: 'Iowa', KS: 'Kansas',
+    KY: 'Kentucky', LA: 'Louisiana', ME: 'Maine', MD: 'Maryland', MA: 'Massachusetts',
+    MI: 'Michigan', MN: 'Minnesota', MS: 'Mississippi', MO: 'Missouri', MT: 'Montana',
+    NE: 'Nebraska', NV: 'Nevada', NH: 'New Hampshire', NJ: 'New Jersey', NM: 'New Mexico',
+    NY: 'New York', NC: 'North Carolina', ND: 'North Dakota', OH: 'Ohio', OK: 'Oklahoma',
+    OR: 'Oregon', PA: 'Pennsylvania', RI: 'Rhode Island', SC: 'South Carolina', SD: 'South Dakota',
+    TN: 'Tennessee', TX: 'Texas', UT: 'Utah', VT: 'Vermont', VA: 'Virginia', WA: 'Washington',
+    WV: 'West Virginia', WI: 'Wisconsin', WY: 'Wyoming',
+});
+const US_STATE_NAME_TO_CODE = new Map(Object.entries(US_STATES).map(([code, name]) => [name.toLowerCase(), code]));
+
+/** `Illinois` / `illinois` / `il` / `IL.` -> `IL`; unknown values -> ''. */
+export function normalizeUsStateCode(raw) {
+    const clean = String(raw == null ? '' : raw).replace(/\./g, '').trim();
+    if (!clean) return '';
+    const upper = clean.toUpperCase();
+    if (upper.length === 2 && US_STATES[upper]) return upper;
+    return US_STATE_NAME_TO_CODE.get(clean.toLowerCase().replace(/\s+/g, ' ')) || '';
+}
+
+function readNearMePrefs(profile) {
+    const raw = profile?.poker_near_me_preferences;
+    if (!raw) return {};
+    if (typeof raw === 'object') return raw;
+    try {
+        const parsed = JSON.parse(String(raw));
+        return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+        return {};
+    }
+}
+
+/** Resolve `{ stateCode, city, label }` from `profile.state/city` or the saved Poker Near Me location. */
+export function resolveProfileLocation(profile) {
+    const prefs = readNearMePrefs(profile);
+    const stateCode = normalizeUsStateCode(profile?.state) || normalizeUsStateCode(prefs.lastLocationState);
+    const city = stripEmDashes(String(profile?.city || prefs.lastLocationCity || '')).replace(/\s+/g, ' ').trim();
+    const label = stateCode ? (city ? `${city}, ${stateCode}` : US_STATES[stateCode]) : '';
+    return { stateCode, city, label };
+}
+
+function eventSortMs(ev, nowMs) {
+    const specific = Date.parse(String(ev?.specific_date || ''));
+    if (Number.isFinite(specific)) return specific;
+    const start = Date.parse(String(ev?.start_time || ''));
+    if (Number.isFinite(start) && /\d{4}-\d{2}-\d{2}/.test(String(ev?.start_time || ''))) return start;
+    return nowMs;
+}
+
+/**
+ * Match up to `limit` live `unified_events_calendar` events inside the recipient's state,
+ * same-city events first, soonest first, de-duplicated by venue + event name.
+ * Past one-off events are skipped; recurring weekly events always qualify.
+ */
+export function matchRecipientNearbyEvents(profileLocation, calendarEvents, { limit = 2, nowMs = Date.now() } = {}) {
+    const loc = resolveProfileLocation(profileLocation);
+    if (!loc.stateCode || !Array.isArray(calendarEvents)) return [];
+    const cityKey = loc.city.toLowerCase();
+    const cap = Math.max(0, Math.min(Number(limit) || 0, 12));
+    const pool = [];
+    for (const ev of calendarEvents) {
+        if (!ev || (!ev.venue_name && !ev.event_name)) continue;
+        if (ev.is_active === false || ev.is_suppressed === true) continue;
+        if (normalizeUsStateCode(ev.state) !== loc.stateCode) continue;
+        const recurring = ev.is_recurring === true || Boolean(ev.day_of_week);
+        const oneOffMs = Date.parse(String(ev.specific_date || ''));
+        if (!recurring && Number.isFinite(oneOffMs) && oneOffMs < nowMs - DAY_MS) continue;
+        const sameCity = Boolean(cityKey) && String(ev.city || '').trim().toLowerCase() === cityKey;
+        pool.push({ ev, sameCity, when: eventSortMs(ev, nowMs) });
+    }
+    pool.sort((a, b) => Number(b.sameCity) - Number(a.sameCity) || a.when - b.when);
+    const seen = new Set();
+    const out = [];
+    for (const { ev } of pool) {
+        const key = `${String(ev.venue_name || '').trim().toLowerCase()}|${String(ev.event_name || '').trim().toLowerCase()}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push({ ...ev });
+        if (out.length >= cap) break;
+    }
+    return out;
+}
+
+const WEEKDAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const MONTH_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function formatUtcStart(iso) {
+    const ms = Date.parse(String(iso || ''));
+    if (!Number.isFinite(ms)) return '';
+    const d = new Date(ms);
+    const hh = String(d.getUTCHours()).padStart(2, '0');
+    const mm = String(d.getUTCMinutes()).padStart(2, '0');
+    return `${WEEKDAY_NAMES[d.getUTCDay()].slice(0, 3)}, ${MONTH_ABBR[d.getUTCMonth()]} ${d.getUTCDate()} at ${hh}:${mm} UTC`;
+}
+
+function formatChips(value) {
+    return Math.round(Number(value) || 0).toLocaleString('en-US');
+}
+
+/** Normalize a `public.tournaments` row into Weekly Wire Kings Club card data (Chips only, never `$`). */
+export function normalizeKingsClubTournament(row, { siteUrl = 'https://smarter.poker' } = {}) {
+    if (!row || !row.id || !row.name) return null;
+    const cleanSite = String(siteUrl || 'https://smarter.poker').replace(/\/+$/, '');
+    const startMs = Date.parse(String(row.start_time || ''));
+    if (!Number.isFinite(startMs)) return null;
+    const amount = Math.max(0, Number(row.buy_in_amount) || 0);
+    const fee = Math.max(0, Number(row.buy_in_fee) || 0);
+    const buyInLabel = amount + fee <= 0 ? 'Freeroll' : fee > 0 ? `${formatChips(amount)} + ${formatChips(fee)} Chips` : `${formatChips(amount)} Chips`;
+    const gtd = Math.max(0, Number(row.guaranteed_prize) || 0);
+    const pool = Math.max(0, Number(row.prize_pool) || 0);
+    const gtdLabel = gtd > 0 ? `${formatChips(gtd)} Chips GTD` : pool > 0 ? `${formatChips(pool)} Chips Prize Pool` : '';
+    const id = String(row.id);
+    const startTimeIso = new Date(startMs).toISOString();
+    return {
+        id,
+        name: stripEmDashes(String(row.name)).trim(),
+        gameType: stripEmDashes(String(row.game_type || 'Poker')).trim(),
+        buyInLabel,
+        gtdLabel,
+        status: String(row.status || ''),
+        startTimeIso,
+        formattedStartUtc: formatUtcStart(startTimeIso),
+        icsUrl: `${cleanSite}/api/news/calendar-ics?tid=${encodeURIComponent(id)}`,
+        lobbyUrl: `${cleanSite}/hub/club-arena/?join=25450`,
+    };
+}
+
+async function loadKingsClubTournaments(sb, { nowMs, siteUrl, fetchTournamentsFn }) {
+    try {
+        let rows;
+        if (typeof fetchTournamentsFn === 'function') {
+            rows = await fetchTournamentsFn({ clubId: KINGS_CLUB_UUID, nowMs });
+        } else {
+            const { data, error } = await sb
+                .from('tournaments')
+                .select('id, name, game_type, buy_in_amount, buy_in_fee, guaranteed_prize, prize_pool, start_time, status, max_players, current_players')
+                .eq('club_id', KINGS_CLUB_UUID)
+                .in('status', ['ANNOUNCED', 'RUNNING', 'SCHEDULED'])
+                .gte('start_time', new Date(nowMs - 30 * 60 * 1000).toISOString())
+                .order('start_time', { ascending: true })
+                .limit(3);
+            if (error) return [];
+            rows = data;
+        }
+        return (Array.isArray(rows) ? rows : [])
+            .map((row) => normalizeKingsClubTournament(row, { siteUrl }))
+            .filter(Boolean)
+            .sort((a, b) => Date.parse(a.startTimeIso) - Date.parse(b.startTimeIso))
+            .slice(0, 3);
+    } catch {
+        return [];
+    }
+}
+
+const BLOCKED_VIDEO_ID_SET = new Set(BLOCKED_VIDEO_LIBRARY_IDS);
+
+async function loadVideoOfTheWeek(sb, { consumedIds, fetchVideosFn }) {
+    try {
+        let rows;
+        if (typeof fetchVideosFn === 'function') {
+            rows = await fetchVideosFn({ pokerTypes: VIDEO_LIBRARY_POKER_TYPES });
+        } else {
+            const { data, error } = await sb
+                .from('video_library_public_catalog')
+                .select(VIDEO_ROW_FIELDS)
+                .in('type', ['cash', 'tournament'])
+                .order('views_count', { ascending: false })
+                .order('scraped_at', { ascending: false })
+                .limit(40);
+            if (error) return null;
+            rows = data;
+        }
+        const normalized = [];
+        for (const row of Array.isArray(rows) ? rows : []) {
+            if (!row?.youtube_video_id && !row?.videoId) continue;
+            // Accept both raw catalog rows and already-normalised video objects.
+            const video = row.youtube_video_id ? normaliseVideoRow(row) : row;
+            if (!video?.videoId || BLOCKED_VIDEO_ID_SET.has(video.videoId)) continue;
+            if (!isVideoLibraryVideoAllowed(video)) continue;
+            if (!isDisplayableVideoTitle(video.rawTitle ?? video.title)) continue;
+            if (isCasinoGameFiledAsPoker(video)) continue;
+            normalized.push(video);
+        }
+        const pick = dedupeVideos(normalized).find((v) => !consumedIds.has(videoMarkerUuid(v.videoId)));
+        if (!pick) return null;
+        return {
+            videoId: pick.videoId,
+            title: normalizeEditorialTitle(pick.title),
+            sourceName: stripEmDashes(pick.sourceName || ''),
+            duration: pick.duration || '',
+            views: pick.views || '',
+            thumbnailUrl: pick.thumbnail || '',
+            watchPath: watchPath(pick),
+        };
+    } catch {
+        return null;
+    }
+}
+
 async function fetchPaged(queryBuilderFactory, maxRows = 15000) {
     const rows = [];
     for (let offset = 0; offset < maxRows; offset += PAGE_SIZE) {
@@ -492,6 +778,10 @@ export async function curateWeeklyWireEdition(
         excludedArticleIds = [],
         enrichMetaDescriptions = true,
         fetchImpl = fetch,
+        nowMs = Date.now(),
+        siteUrl = 'https://smarter.poker',
+        fetchTournamentsFn = null,
+        fetchVideosFn = null,
     } = {}
 ) {
     const ledger = await loadZeroRepeatLedger(sb);
@@ -724,6 +1014,12 @@ export async function curateWeeklyWireEdition(
         upcomingSeries = [];
     }
 
+    // 5b. Live Kings Club (25450) upcoming tournaments (defensive: mock DBs may not have `tournaments`)
+    const kingsClubTournaments = await loadKingsClubTournaments(sb, { nowMs, siteUrl, fetchTournamentsFn });
+
+    // 5c. Top Poker Video Of The Week from the public video library catalog (lifetime single-use)
+    const videoOfTheWeek = await loadVideoOfTheWeek(sb, { consumedIds: ledger.consumedIds, fetchVideosFn });
+
     // 6. Select rotating Active-Player Promo Spotlight
     const rotIdx = (ledger.editionNumber - 1) % ACTIVE_MEMBER_PROMO_ROTATION.length;
     const activePromo = {
@@ -738,6 +1034,7 @@ export async function curateWeeklyWireEdition(
         ...platformUpdates.map((u) => u.id),
         ...(spotOfTheWeek ? [spotOfTheWeek.markerUuid] : []),
         ...(toolSpotlight ? [toolSpotlight.markerUuid] : []),
+        ...(videoOfTheWeek ? [videoMarkerUuid(videoOfTheWeek.videoId)] : []),
         activePromo.markerUuid,
     ];
 
@@ -757,6 +1054,8 @@ export async function curateWeeklyWireEdition(
         spotOfTheWeek,
         toolSpotlight,
         upcomingSeries,
+        kingsClubTournaments,
+        videoOfTheWeek,
         activePromo,
         ledgerUuidsToRecord: [...new Set(ledgerUuidsToRecord)],
         diagnostics: {
@@ -890,15 +1189,45 @@ export async function resolveWeeklyWireRecipients(
     const cutoffMs = nowMs - Math.max(1, Number(minInactiveDays) || WELCOME_BACK_INACTIVE_DAYS) * 86_400_000;
     const accountByEmail = new Map();
 
-    const profiles = await fetchPaged(
-        (from, to) =>
-            sb
-                .from('profiles')
-                .select('id, username, email, phone, phone_verified, diamonds, is_vip, vip_expires_at, player_number, is_horse, created_at, last_active')
-                .order('id', { ascending: true })
-                .range(from, to),
-        25000
-    );
+    // Location columns are optional: fall back to the verified base select if a column is missing.
+    const PROFILE_BASE_COLUMNS =
+        'id, username, email, phone, phone_verified, diamonds, is_vip, vip_expires_at, player_number, is_horse, created_at, last_active';
+    const profileSelectChain = [
+        `${PROFILE_BASE_COLUMNS}, city, state, poker_near_me_preferences`,
+        `${PROFILE_BASE_COLUMNS}, poker_near_me_preferences`,
+        PROFILE_BASE_COLUMNS,
+    ];
+    let profiles = null;
+    for (let attempt = 0; attempt < profileSelectChain.length && profiles === null; attempt += 1) {
+        const isLastAttempt = attempt === profileSelectChain.length - 1;
+        try {
+            profiles = await fetchPaged(
+                (from, to) =>
+                    sb
+                        .from('profiles')
+                        .select(profileSelectChain[attempt])
+                        .order('id', { ascending: true })
+                        .range(from, to),
+                25000
+            );
+        } catch (profileErr) {
+            if (isLastAttempt) throw profileErr;
+        }
+    }
+
+    // One bounded read of live calendar events powers geo-personalized "Live Poker Near You".
+    let calendarEvents = [];
+    try {
+        const { data: calRows, error: calErr } = await sb
+            .from('unified_events_calendar')
+            .select('venue_id, venue_name, event_name, start_time, buy_in, guaranteed, game_type, day_of_week, specific_date, is_recurring, city, state')
+            .eq('is_active', true)
+            .eq('is_suppressed', false)
+            .limit(400);
+        if (!calErr && Array.isArray(calRows)) calendarEvents = calRows;
+    } catch {
+        calendarEvents = [];
+    }
 
     const authById = new Map();
     if (sb?.auth?.admin?.listUsers) {
@@ -1000,6 +1329,10 @@ export async function resolveWeeklyWireRecipients(
             trainingSeenByUser.get(id) || 0
         );
         const isInactive21d = lastTouchMs < cutoffMs && !alreadyClaimedWbUsers.has(id);
+        const profileLocation = resolveProfileLocation(p);
+        const nearbyEvents = profileLocation.stateCode
+            ? matchRecipientNearbyEvents(p, calendarEvents, { limit: 2, nowMs })
+            : [];
         const referralCode = formatValidSignupReferralCode(
             p?.player_number ? String(p.player_number) : ''
         );
@@ -1013,22 +1346,34 @@ export async function resolveWeeklyWireRecipients(
             isVip: Boolean(p?.is_vip),
             vipExpiresAt: p?.vip_expires_at || null,
             referralCode,
+            nearbyEvents,
+            locationLabel: nearbyEvents.length > 0 ? profileLocation.label : '',
         });
     }
 
     const recipientsMap = new Map();
     const segmentCounts = { non_account: 0, inactive_21d: 0, active_member: 0 };
     let droppedInvalid = 0;
+    let skippedColdSunset = 0;
+    let repermissionCount = 0;
 
-    const activeSubs = await fetchPaged((from, to) =>
-        sb
-            .from('newsletter_subscribers')
-            .select('id, email, is_active, source')
-            .like('email', '%@%')
-            .or('is_active.is.null,is_active.eq.true')
-            .order('id', { ascending: true })
-            .range(from, to)
-    );
+    let activeSubs = null;
+    for (const subCols of ['id, email, is_active, source, subscribed_at, created_at', 'id, email, is_active, source']) {
+        try {
+            activeSubs = await fetchPaged((from, to) =>
+                sb
+                    .from('newsletter_subscribers')
+                    .select(subCols)
+                    .like('email', '%@%')
+                    .or('is_active.is.null,is_active.eq.true')
+                    .order('id', { ascending: true })
+                    .range(from, to)
+            );
+            break;
+        } catch (subErr) {
+            if (subCols === 'id, email, is_active, source') throw subErr;
+        }
+    }
 
     for (const row of activeSubs) {
         const clean = normalizeDeliverableEmail(row?.email);
@@ -1048,6 +1393,11 @@ export async function resolveWeeklyWireRecipients(
         // `marketing_enabled === false` only suppresses promo/lifecycle blasts while Weekly Wire stays active.
         const explicitWireOptIn = rawSource === 'pref:wire_only' || rawSource === 'pref:all';
         if (acct && (explicitWireOptIn ? acct.hardMuted : acct.muted)) continue;
+        const sunset = evaluateColdSubscriberSunset(row, { hasAccount: Boolean(acct), nowMs });
+        if (sunset.suppressSend) {
+            skippedColdSunset += 1;
+            continue;
+        }
         const segment = acct ? acct.segment : 'non_account';
         recipientsMap.set(clean, {
             email: clean,
@@ -1058,7 +1408,11 @@ export async function resolveWeeklyWireRecipients(
             isVip: acct ? acct.isVip : false,
             vipExpiresAt: acct ? acct.vipExpiresAt : null,
             referralCode: acct?.referralCode || '',
+            nearbyEvents: acct?.nearbyEvents || [],
+            locationLabel: acct?.locationLabel || '',
+            ...(sunset.showRepermissionBanner ? { needsRepermission: true } : {}),
         });
+        if (sunset.showRepermissionBanner) repermissionCount += 1;
         segmentCounts[segment] += 1;
     }
 
@@ -1074,8 +1428,42 @@ export async function resolveWeeklyWireRecipients(
                 isVip: acct.isVip,
                 vipExpiresAt: acct.vipExpiresAt,
                 referralCode: acct.referralCode,
+                nearbyEvents: acct.nearbyEvents || [],
+                locationLabel: acct.locationLabel || '',
             });
             segmentCounts[acct.segment] += 1;
+        }
+    }
+
+    // Completed referral counts for member recipients (Share & Earn milestone bar).
+    const memberIds = [...new Set([...recipientsMap.values()].map((r) => r.userId).filter(Boolean))];
+    if (memberIds.length > 0) {
+        const referralCounts = new Map();
+        try {
+            for (let i = 0; i < memberIds.length; i += 150) {
+                const batch = memberIds.slice(i, i + 150); // in-list: bounded chunk <= 150
+                const referralRows = await fetchPaged(
+                    (from, to) =>
+                        sb
+                            .from('referrals')
+                            .select('referrer_id')
+                            .in('referrer_id', batch)
+                            .eq('status', 'completed')
+                            .order('referrer_id', { ascending: true })
+                            .range(from, to),
+                    20000
+                );
+                for (const r of referralRows) {
+                    if (!r?.referrer_id) continue;
+                    const rid = String(r.referrer_id);
+                    referralCounts.set(rid, (referralCounts.get(rid) || 0) + 1);
+                }
+            }
+            for (const recipient of recipientsMap.values()) {
+                if (recipient.userId) recipient.referralCount = referralCounts.get(recipient.userId) || 0;
+            }
+        } catch {
+            /* referrals table optional in mocks; the card falls back to the generic invite copy */
         }
     }
 
@@ -1083,6 +1471,8 @@ export async function resolveWeeklyWireRecipients(
         recipients: [...recipientsMap.values()],
         segmentCounts,
         droppedInvalid,
+        skippedColdSunset,
+        repermissionCount,
     };
 }
 
@@ -1243,12 +1633,19 @@ ${a.summary ? `<div style="color:#adc0d4;font-size:13px;line-height:1.5;">${esca
               .join('')
         : '';
 
+    const spotImgUrl = spot
+        ? typeof emailImageProxy.buildSpotCardImageUrl === 'function'
+            ? emailImageProxy.buildSpotCardImageUrl(spot.slug, { siteUrl: cleanSite })
+            : buildSignedEmailImageUrl('', { siteUrl: cleanSite, mode: 'hero' })
+        : '';
+
     const spotHtml = spot
         ? `<tr><td style="padding:8px 0 14px 0;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0f1824;border:1px solid #255c56;border-radius:12px;">
 <tr><td style="padding:18px 20px;">
 <div style="color:#4fc1b3;font-size:11px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;">Spot Of The Week &middot; ${escapeHtml(spot.category || 'GTO Hand Lab')}</div>
 <div style="margin:6px 0 8px 0;color:#ffffff;font-size:17px;font-weight:800;line-height:1.3;">${escapeHtml(spot.title)}</div>
+<img src="${escapeHtml(spotImgUrl)}" alt="${escapeHtml(spot.title)}" width="520" height="208" style="display:block;width:100%;max-width:520px;height:auto;border-radius:10px;border:1px solid #1e3347;margin:0 0 12px;" />
 <div style="color:#bdcde0;font-size:13.5px;line-height:1.55;margin-bottom:14px;">${escapeHtml(spot.situation)}</div>
 <div>${spotOptionsHtml}</div>
 </td></tr>
@@ -1283,12 +1680,101 @@ ${seriesItems
 </div>`
         : '';
 
+    const kingsTournaments = Array.isArray(edition.kingsClubTournaments) ? edition.kingsClubTournaments : [];
+    const kingsListHtml = kingsTournaments.length
+        ? `<div style="margin-top:12px;padding-top:12px;border-top:1px solid #1a2a3a;">
+<div style="color:#60a5fa;font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:6px;">Upcoming Kings Club Tournaments</div>
+${kingsTournaments
+    .map((t) => {
+        const meta = [t.gameType, t.buyInLabel, t.gtdLabel].filter(Boolean).map((x) => escapeHtml(x)).join(' &middot; ');
+        return `<div style="padding:7px 0;border-bottom:1px solid #15222f;">
+<div style="color:#ffffff;font-size:13.5px;font-weight:700;line-height:1.4;">${escapeHtml(t.name)}</div>
+<div style="color:#9fb3c8;font-size:12.5px;line-height:1.5;">${escapeHtml(t.formattedStartUtc)}${meta ? ` &middot; ${meta}` : ''}</div>
+<div style="margin-top:3px;"><a href="${escapeHtml(t.lobbyUrl)}" style="color:#4fc1b3;font-size:12.5px;font-weight:700;text-decoration:none;margin-right:14px;">Join Club 25450 -&gt;</a><a href="${escapeHtml(t.icsUrl)}" style="color:#60a5fa;font-size:12.5px;font-weight:700;text-decoration:none;">Add To Calendar (.ics)</a></div>
+</div>`;
+    })
+    .join('')}
+</div>`
+        : '';
+
+    const video = edition.videoOfTheWeek;
+    const videoHtml = video?.videoId
+        ? (() => {
+              const watchHref = `${cleanSite}${video.watchPath}`;
+              const videoThumb = buildSignedEmailImageUrl(video.thumbnailUrl || '', { siteUrl: cleanSite, mode: 'thumb' });
+              const viewsRaw = String(video.views || '').trim();
+              const viewsLabel = viewsRaw ? (/view/i.test(viewsRaw) ? viewsRaw : `${viewsRaw} views`) : '';
+              const metaLine = [video.sourceName, video.duration, viewsLabel].filter(Boolean).join(' | ');
+              return `<tr><td style="padding:6px 0 14px 0;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0f1824;border:1px solid #1e3246;border-radius:12px;">
+<tr>
+<td width="124" valign="top" style="padding:16px 0 16px 16px;"><a href="${escapeHtml(watchHref)}" style="text-decoration:none;"><img src="${escapeHtml(videoThumb)}" alt="${escapeHtml(truncateText(video.title, 90))}" width="112" height="78" border="0" style="display:block;width:112px;height:78px;border-radius:8px;border:1px solid #223548;background:#0b1520;" /></a></td>
+<td valign="top" style="padding:16px 18px 16px 14px;">
+<div style="color:#60a5fa;font-size:11px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;">Video Of The Week</div>
+<div style="margin:5px 0 4px 0;"><a href="${escapeHtml(watchHref)}" style="color:#ffffff;font-size:15.5px;font-weight:800;line-height:1.35;text-decoration:none;">${escapeHtml(video.title)}</a></div>
+<div style="color:#8da2b8;font-size:12.5px;line-height:1.5;margin-bottom:6px;">${escapeHtml(metaLine)}</div>
+<a href="${escapeHtml(watchHref)}" style="color:#4fc1b3;font-size:13px;font-weight:700;text-decoration:none;">Watch Now -&gt;</a>
+</td>
+</tr>
+</table>
+</td></tr>`;
+          })()
+        : '';
+
+    const nearbyEvents = Array.isArray(recipientMeta?.nearbyEvents) ? recipientMeta.nearbyEvents : [];
+    const nearbyLabel = stripEmDashes(String(recipientMeta?.locationLabel || '')).trim();
+    const describeNearbyWhen = (ev) => {
+        if (ev.specific_date) return formatUtcStart(`${String(ev.specific_date).slice(0, 10)}T00:00:00Z`).split(' at ')[0];
+        if (ev.day_of_week !== undefined && ev.day_of_week !== null && String(ev.day_of_week).trim() !== '') {
+            const dow = typeof ev.day_of_week === 'number' ? WEEKDAY_NAMES[ev.day_of_week % 7] : String(ev.day_of_week).trim();
+            return ev.is_recurring ? `Every ${dow}` : dow;
+        }
+        return ev.start_time && /\d{4}-\d{2}-\d{2}/.test(String(ev.start_time)) ? formatUtcStart(ev.start_time).split(' at ')[0] : '';
+    };
+    const describeNearbyBuyIn = (ev) => {
+        const raw = ev.buy_in;
+        if (raw === null || raw === undefined || String(raw).trim() === '') return '';
+        const num = Number(String(raw).replace(/[^0-9.]/g, ''));
+        const label = Number.isFinite(num) && num > 0 ? `$${Math.round(num).toLocaleString('en-US')}` : String(raw).trim();
+        return `Buy-In: ${label}`;
+    };
+    const nearbyItems = nearbyEvents.slice(0, 3).map((ev) => {
+        const href = ev.venue_id
+            ? `${cleanSite}/hub/venues/${encodeURIComponent(ev.venue_id)}`
+            : `${cleanSite}/hub/poker-near-me`;
+        const venue = stripEmDashes(ev.venue_name || '').trim();
+        const evName = stripEmDashes(ev.event_name || '').trim();
+        const place = [ev.city, normalizeUsStateCode(ev.state) || ev.state].filter(Boolean).join(', ');
+        const details = [describeNearbyWhen(ev), describeNearbyBuyIn(ev), place].filter(Boolean).join(' | ');
+        return { href, venue, evName, details };
+    });
+    const nearbyHtml = nearbyItems.length
+        ? `<tr><td style="padding:4px 0 14px 0;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0f1824;border:1px solid #1e3246;border-radius:12px;">
+<tr><td style="padding:18px 20px;">
+<div style="color:#60a5fa;font-size:11px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;">Live Poker Near You This Week</div>
+<div style="margin:6px 0 8px 0;color:#ffffff;font-size:16px;font-weight:800;line-height:1.3;">Live Poker Near You${nearbyLabel ? ` (${escapeHtml(nearbyLabel)})` : ''}</div>
+${nearbyItems
+    .map(
+        (it) => `<div style="padding:7px 0;border-top:1px solid #15222f;">
+<a href="${escapeHtml(it.href)}" style="color:#ffffff;font-size:13.5px;font-weight:700;line-height:1.4;text-decoration:none;">${escapeHtml([it.venue, it.evName].filter(Boolean).join(': '))}</a>
+${it.details ? `<div style="color:#9fb3c8;font-size:12.5px;line-height:1.5;">${escapeHtml(it.details)}</div>` : ''}
+</div>`
+    )
+    .join('')}
+<div style="margin-top:8px;"><a href="${escapeHtml(cleanSite)}/hub/poker-near-me" style="color:#4fc1b3;font-size:13px;font-weight:700;text-decoration:none;">See All Poker Near Me -&gt;</a></div>
+</td></tr>
+</table>
+</td></tr>`
+        : '';
+
     const radarHtml = `<tr><td style="padding:4px 0 14px 0;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#101a25;border:1px solid #1e3246;border-radius:12px;">
 <tr><td style="padding:18px 20px;">
 <div style="color:#4fc1b3;font-size:11px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;">Kings Club &amp; Live Series Radar</div>
 <div style="margin:6px 0 6px 0;color:#ffffff;font-size:16.5px;font-weight:800;line-height:1.3;">Nightly Cash, PLO &amp; Spin Action In Kings Club (Code 25450)</div>
 <div style="color:#bdcde0;font-size:13.5px;line-height:1.55;">Take a seat in nightly NLH, PLO4, PLO5, and fast 3-handed Spin tables inside Kings Club (Code 25450) with live Bad Beat Jackpot tracking and tournament action.</div>
+${kingsListHtml}
 ${seriesListHtml}
 <div style="margin-top:12px;">
 <a href="${escapeHtml(cleanSite)}/hub/club-arena/?join=25450" style="color:#4fc1b3;font-size:13px;font-weight:700;text-decoration:none;margin-right:16px;">Join Kings Club (Code 25450) -&gt;</a>
@@ -1302,17 +1788,63 @@ ${seriesListHtml}
     const referralUrl = validRefCode
         ? `${cleanSite}/auth/signup?ref=${encodeURIComponent(validRefCode)}`
         : `${cleanSite}/auth/signup?utm_source=weekly_wire&utm_medium=email&utm_campaign=crew_share`;
+    const hasReferralCount =
+        recipientMeta &&
+        recipientMeta.referralCount !== undefined &&
+        recipientMeta.referralCount !== null &&
+        Number.isFinite(Number(recipientMeta.referralCount));
+    const referralMilestone = computeReferralMilestone(hasReferralCount ? recipientMeta.referralCount : 0);
+    const referralProgressHtml = hasReferralCount
+        ? `<div style="margin:0 0 12px 0;">
+<div style="color:#ffffff;font-size:13px;font-weight:700;line-height:1.5;">${referralMilestone.count} completed ${referralMilestone.count === 1 ? 'referral' : 'referrals'} &middot; ${escapeHtml(referralMilestone.diamondsEarned.toLocaleString('en-US'))} Diamonds earned &middot; <span style="color:#4fc1b3;">${escapeHtml(referralMilestone.tierLabel)}</span></div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 6px 0;background:#0d1824;border:1px solid #1a2a3a;border-radius:999px;"><tr>${
+              referralMilestone.progressPct > 0
+                  ? `<td width="${referralMilestone.progressPct}%" height="10" style="height:10px;line-height:10px;font-size:0;background:#4fc1b3;background-image:linear-gradient(90deg,#4fc1b3,#60a5fa);border-radius:999px;">&nbsp;</td>`
+                  : ''
+          }${
+              referralMilestone.progressPct < 100
+                  ? `<td height="10" style="height:10px;line-height:10px;font-size:0;">&nbsp;</td>`
+                  : ''
+          }</tr></table>
+<div style="color:#8da2b8;font-size:12px;line-height:1.5;">${
+              referralMilestone.nextTarget
+                  ? `Next milestone: ${referralMilestone.nextTarget} referrals unlocks ${escapeHtml(referralMilestone.nextRewardDiamonds.toLocaleString('en-US'))} Diamonds total &middot; ${referralMilestone.remaining} more to go`
+                  : 'Top tier reached: every new friend still earns you 500 Diamonds'
+          }</div>
+</div>`
+        : `<div style="color:#8da2b8;font-size:12px;line-height:1.5;margin:0 0 12px 0;">Earn 500 Diamonds for every friend who joins. Milestones at 1, 3, 5 and 10 referrals.</div>`;
     const referralHtml = `<tr><td style="padding:4px 0 6px 0;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0f1824;border:1px solid #255c56;border-radius:12px;">
 <tr><td style="padding:18px 20px;">
 <div style="color:#60a5fa;font-size:11px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;">Share &amp; Earn Free Diamonds</div>
 <div style="margin:6px 0 6px 0;color:#ffffff;font-size:16px;font-weight:800;line-height:1.3;">Invite Your Poker Crew To Smarter.Poker</div>
 <div style="color:#bdcde0;font-size:13px;line-height:1.55;margin-bottom:12px;">Forward this issue or share your personal invite link below so friends can train with GTO tools and join you at the tables while stacking Diamond rewards.</div>
+${referralProgressHtml}
 <a href="${escapeHtml(referralUrl)}" style="display:inline-block;background:#4fc1b3;color:#041e1b;text-decoration:none;font-weight:800;font-size:13px;padding:10px 18px;border-radius:8px;">Share Invite Link -&gt;</a>
 <div style="margin-top:8px;font-size:12px;color:#8da2b8;word-break:break-all;"><a href="${escapeHtml(referralUrl)}" style="color:#60a5fa;text-decoration:underline;">${escapeHtml(referralUrl)}</a></div>
 </td></tr>
 </table>
 </td></tr>`;
+
+    let keepToken = String(recipientMeta?.unsubToken || '').trim();
+    if (!keepToken) {
+        try {
+            keepToken = String(new URL(String(unsubscribeUrl || '')).searchParams.get('unsubscribe') || '').trim();
+        } catch {
+            keepToken = '';
+        }
+    }
+    const keepUrl = keepToken ? `${cleanSite}/api/news/subscribe?keep=${encodeURIComponent(keepToken)}` : '';
+    const showRepermission = recipientMeta?.needsRepermission === true && Boolean(keepUrl);
+    const repermissionHtml = showRepermission
+        ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 22px 0;background:#0f1d2d;border:1px solid #255c56;border-radius:12px;">
+<tr><td style="padding:16px 18px;">
+<div style="color:#4fc1b3;font-size:11px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;">Still Want The Weekly Wire?</div>
+<div style="margin:6px 0 10px 0;color:#d1e3e0;font-size:13.5px;line-height:1.55;">You joined our list a few months ago. Tap once to confirm you want to keep getting the Smarter.Poker Weekly Wire. If you skip this, we will pause your emails soon.</div>
+<a href="${escapeHtml(keepUrl)}" style="display:inline-block;background:#4fc1b3;color:#041e1b;text-decoration:none;font-weight:800;font-size:13px;padding:10px 18px;border-radius:8px;">Yes, Keep Sending It -&gt;</a>
+</td></tr>
+</table>`
+        : '';
 
     const rawHtml = `<!doctype html>
 <html lang="en">
@@ -1343,6 +1875,8 @@ ${seriesListHtml}
 </tr>
 </table>
 
+${repermissionHtml}
+
 ${pulseHtml}
 
 ${updatesHtml ? `<div style="color:#60a5fa;font-size:12px;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;margin:0 0 10px 0;">New On Smarter.Poker &middot; Upgrades &amp; Enhancements</div>
@@ -1362,7 +1896,9 @@ ${articlesHtml ? `<div style="color:#4fc1b3;font-size:12px;font-weight:800;lette
 
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
 ${spotHtml}
+${videoHtml}
 ${toolHtml}
+${nearbyHtml}
 ${radarHtml}
 ${referralHtml}
 </table>
@@ -1389,6 +1925,9 @@ ${referralHtml}
         `SMARTER.POKER WEEKLY WIRE - EDITION #${editionNum}`,
         `View Web Edition -> ${webEditionUrl}`,
         '',
+        ...(showRepermission
+            ? ['STILL WANT THE WEEKLY WIRE? Confirm in one tap:', keepUrl, '']
+            : []),
         ...(showPulse
             ? [
                   `YOUR SMARTER.POKER PULSE: ${pulseUsername} | ${pulseDiamonds} Diamonds | ${pulseMembership}`,
@@ -1428,6 +1967,23 @@ ${referralHtml}
                   '',
               ]
             : []),
+        ...(video?.videoId
+            ? [
+                  `=== VIDEO OF THE WEEK: ${String(video.title || '').toUpperCase()} ===`,
+                  [video.sourceName, video.duration].filter(Boolean).join(' | '),
+                  `${cleanSite}${video.watchPath}`,
+                  '',
+              ]
+            : []),
+        ...(nearbyItems.length
+            ? [
+                  `=== LIVE POKER NEAR YOU THIS WEEK${nearbyLabel ? ` (${nearbyLabel})` : ''} ===`,
+                  ...nearbyItems.map(
+                      (it) => `- ${[it.venue, it.evName].filter(Boolean).join(': ')}${it.details ? ` | ${it.details}` : ''}\n  ${it.href}`
+                  ),
+                  '',
+              ]
+            : []),
         ...(tool
             ? [
                   `=== TOOL SPOTLIGHT: ${tool.title.toUpperCase()} ===`,
@@ -1438,12 +1994,26 @@ ${referralHtml}
             : []),
         '=== KINGS CLUB & LIVE SERIES RADAR ===',
         `Nightly NLH, PLO4/5 & Spin Action in Kings Club (Code 25450): ${cleanSite}/hub/club-arena/?join=25450`,
+        ...kingsTournaments.flatMap((t) => [
+            `- ${t.name} | ${[t.formattedStartUtc, t.gameType, t.buyInLabel, t.gtdLabel].filter(Boolean).join(' | ')}`,
+            `  Join Club 25450 -> ${t.lobbyUrl}`,
+            `  Add To Calendar (.ics): ${t.icsUrl}`,
+        ]),
         ...seriesItems.map((s) => {
             const loc = [s.city, s.state].filter(Boolean).join(', ');
             return `- ${s.series_name}${loc ? ` (${loc})` : ''}`;
         }),
         '',
         '=== SHARE & EARN FREE DIAMONDS ===',
+        ...(hasReferralCount
+            ? [
+                  `Your referrals: ${referralMilestone.count} completed | ${referralMilestone.diamondsEarned.toLocaleString('en-US')} Diamonds earned${
+                      referralMilestone.nextTarget
+                          ? ` | Next milestone: ${referralMilestone.nextTarget} referrals (${referralMilestone.nextRewardDiamonds.toLocaleString('en-US')} Diamonds)`
+                          : ''
+                  }`,
+              ]
+            : []),
         `Invite Friends: ${referralUrl}`,
         '',
         `Smarter.Poker | ${postalAddress || DEFAULT_POSTAL_ADDRESS}`,
