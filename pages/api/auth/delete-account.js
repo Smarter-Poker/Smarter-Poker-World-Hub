@@ -239,6 +239,25 @@ export default async function handler(req, res) {
           });
       }
 
+      // ── 1b. Personal Assistant and Sandbox rows leave with them ──
+      // fn_close_account predates the Personal Assistant and Sandbox tables,
+      // and the Auth user below is only SOFT-deleted, so nothing cascades into
+      // them: a closed account would keep its leaks, drills, coaching notes,
+      // saved hands and sandbox sessions. The purge is idempotent, so a failure
+      // answers 500 BEFORE the login goes and the person can simply retry
+      // (fn_close_account answers already_closed and this step runs again).
+      const { error: purgeErr } = await getSupabase().rpc('purge_personal_assistant_data', {
+          p_user_id: userId,
+          p_scope: 'all',
+      });
+      if (purgeErr) {
+          console.error('[delete-account] CRITICAL: purge_personal_assistant_data failed:', purgeErr.message);
+          return res.status(500).json({
+              success: false,
+              error: 'Your account was closed, but some of your assistant and sandbox data could not be removed yet. Please try again, or contact support.',
+          });
+      }
+
       // ── 2. Their pictures leave with them ──
       // The database has cleared the links and deleted the rows that point at
       // the files; the files go through the Storage API. Also on a retry

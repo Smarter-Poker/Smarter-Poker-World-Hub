@@ -71,6 +71,17 @@ export function mergeAuditJobProgress(previous, detection, batchDurationMs = 0, 
   next.lastUpdatedAt = new Date().toISOString();
   next.complete = !sync.auditCursor && detection?.auditInProgress !== true && detection?.success === true;
   if (sync.incrementalStop === true) next.incrementalStop = true;
+  if (typeof sync.incrementalSource === 'string' && sync.incrementalSource) {
+    next.incrementalSource = sync.incrementalSource;
+  }
+  if (typeof sync.incrementalSince === 'string' && sync.incrementalSince) {
+    next.incrementalSince = sync.incrementalSince;
+  }
+  // Every accepted or failed batch stamps a durable heartbeat so the status
+  // poll and the lease renewal in checkpoint_pa_leak_audit_job can tell a
+  // slow solver page from an abandoned worker.
+  next.lastHeartbeatAt = next.lastUpdatedAt;
+  next.heartbeatCount = number(prior.heartbeatCount) + 1;
   if (detection?.caHandFactsSummary && typeof detection.caHandFactsSummary === 'object') {
     next.caHandFactsSummary = detection.caHandFactsSummary;
   }
@@ -84,6 +95,52 @@ export function mergeAuditJobProgress(previous, detection, batchDurationMs = 0, 
     leaks: number(detection?.leaksDetected),
   };
   return next;
+}
+
+/**
+ * True when the caller explicitly demands a complete re-scan. `forceFullRescan`
+ * is the documented override; `fullRescan` is the durable job flag already used
+ * by audit-jobs.js. Either one disables every incremental boundary.
+ */
+export function isFullRescanRequested(body) {
+  const source = body && typeof body === 'object' ? body : {};
+  return Boolean(source.fullRescan) || source.forceFullRescan === true;
+}
+
+// Sorts after every real hand id at one timestamp in the engine's descending
+// (created_at, id) ordering, so every hand at or before the boundary instant is
+// treated as already audited.
+const BOUNDARY_ID_CEILING = 'ffffffff-ffff-ffff-ffff-ffffffffffff';
+
+/**
+ * Derive an incremental scan boundary from the user's latest COMPLETED audit
+ * job. Used only when the per-user hand watermark is unavailable. Fail closed:
+ * any doubt (incomplete job, queued retries, unknown/different matcher
+ * version, no usable timestamp) returns null so the audit scans everything.
+ * The job START time is used rather than completed_at, because a hand created
+ * while that job was running may not have been in its signed snapshot.
+ */
+export function incrementalBoundaryFromCompletedJob(job, matcherVersion) {
+  if (!job || typeof job !== 'object' || job.status !== 'completed' || !matcherVersion) return null;
+  const progress = job.progress && typeof job.progress === 'object' ? job.progress : {};
+  if (progress.complete !== true) return null;
+  if (number(progress.handsQueuedForRetry) > 0) return null;
+  const jobMatcher = job.result?.clubArenaSync?.latestHandWatermark?.matcherVersion
+    ?? job.result?.latestHandWatermark?.matcherVersion
+    ?? null;
+  if (jobMatcher !== matcherVersion) return null;
+  const startedMs = [job.started_at, job.created_at]
+    .map(value => (value ? new Date(value).getTime() : NaN))
+    .find(value => Number.isFinite(value));
+  const completedMs = job.completed_at ? new Date(job.completed_at).getTime() : NaN;
+  if (!Number.isFinite(startedMs)) return null;
+  if (Number.isFinite(completedMs) && completedMs < startedMs) return null;
+  return {
+    createdAt: new Date(startedMs).toISOString(),
+    id: BOUNDARY_ID_CEILING,
+    matcherVersion,
+    source: 'completed_job',
+  };
 }
 
 export function publicAuditJob(row) {

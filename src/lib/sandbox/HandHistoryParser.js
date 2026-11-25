@@ -1,6 +1,12 @@
 /**
  * HandHistoryParser — Parse pasted hand histories from major poker sites
- * Supports: PokerStars (and PokerStars-shaped exports), GGPoker, 888poker
+ * Supports: PokerStars (and PokerStars-shaped exports), GGPoker, ClubGG,
+ * ACR / Winning Poker Network, 888poker
+ *
+ * Variant honesty: the sandbox solves No-Limit Hold'em only. A hand positively
+ * identified as PLO/Omaha (any hero hand of 4+ cards), Omaha Hi-Lo, Short Deck,
+ * or limit / pot-limit Hold'em returns { success: false, unsupportedVariant }
+ * instead of silently importing its first two cards as an NLHE hand.
  *
  * Contract:
  *   parseHandHistory(text) ->
@@ -15,6 +21,10 @@
  * Pot size is intentionally NOT returned: the sandbox derives the pot from
  * actionHistory.
  */
+
+import { classifyGameVariant, detectSite } from '../../engines/HandHistoryParser.js';
+
+export { detectSite };
 
 const POSITION_MAP = {
     'UTG': 'UTG', 'UTG+1': 'UTG', 'UTG+2': 'MP', 'UTG+3': 'MP',
@@ -96,6 +106,13 @@ function detectBigBlind(text) {
         const bb = parseFloat(cashMatch[2].replace(/,/g, ''));
         if (bb > 0) return bb;
     }
+    // ACR / Winning Poker Network header has no parentheses:
+    // "Hand #123 - Holdem(No Limit) - $0.05/$0.10 - 2026/11/25 ..."
+    const wpnMatch = text.match(/-\s*[$€£]?(\d[\d,.]*)\s*\/\s*[$€£]?(\d[\d,.]*)\s*-/);
+    if (wpnMatch) {
+        const bb = parseFloat(wpnMatch[2].replace(/,/g, ''));
+        if (bb > 0) return bb;
+    }
     // Fallback: "posts big blind $1.00" / "posts big blind 200"
     const postMatch = text.match(/posts (?:the )?big blind[^\d]*(\d[\d,.]*)/i);
     if (postMatch) {
@@ -128,6 +145,8 @@ function parseAllActions(text, positionOf = {}) {
 
     // Stop at showdown/summary — those lines are results, not actions.
     const body = afterHole.split(/\*\*\*\s*(?:SHOW ?DOWN|SUMMARY)\s*\*\*\*/i)[0] || '';
+    // Longest names first so "Big Fish Jr" is never read as "Big Fish".
+    const knownNames = Object.keys(positionOf).sort((a, b) => b.length - a.length);
 
     let street = 'preflop';
     for (const rawLine of body.split('\n')) {
@@ -139,13 +158,23 @@ function parseAllActions(text, positionOf = {}) {
             street = streetHeader[1].toLowerCase();
             continue;
         }
-        if (!line.includes(':')) continue;
 
-        const m = line.match(/^(.+?): (folds|checks|calls|bets|raises)\b/i);
-        if (!m) continue;
+        let player = null;
+        let verb = null;
+        const colon = line.includes(':') ? line.match(/^(.+?): (folds|checks|calls|bets|raises)\b/i) : null;
+        if (colon) {
+            player = colon[1].trim();
+            verb = colon[2].toLowerCase();
+        } else {
+            // ACR / Winning Poker Network omit the colon: "Villain raises to $0.30".
+            const name = knownNames.find(candidate => line.startsWith(`${candidate} `));
+            const rest = name ? line.slice(name.length).trim() : '';
+            const m = rest.match(/^(folds|checks|calls|bets|raises)\b/i);
+            if (!m) continue;
+            player = name;
+            verb = m[1].toLowerCase();
+        }
 
-        const player = m[1].trim();
-        const verb = m[2].toLowerCase();
         let action = null;
         if (verb === 'folds') action = 'fold';
         else if (verb === 'checks') action = 'check';
@@ -200,6 +229,28 @@ function assignSeats(result, seats, btnSeat, heroName, bbSize) {
     return positionOf;
 }
 
+const POSITIVELY_UNSUPPORTED_VARIANTS = new Set(['short_deck', 'omaha', 'limit_holdem', 'pot_limit_holdem']);
+
+function headerLineOf(text) {
+    return String(text).split('\n').find(line => /Hand\s*#/i.test(line)) || '';
+}
+
+/**
+ * Settle site + variant honesty for a parsed hand. `supported` is true for
+ * No-Limit Hold'em, false for a positively identified other game, and null when
+ * the pasted text carries no game header (kept importable, as before).
+ */
+function applyVariant(result, text, heroCardCount, defaultBetting = null) {
+    const info = classifyGameVariant(headerLineOf(text), heroCardCount, { defaultBetting });
+    result.site = detectSite(text);
+    result.variant = info.variant;
+    result.gameVariant = info.gameVariant;
+    result.supported = info.supported ? true
+        : POSITIVELY_UNSUPPORTED_VARIANTS.has(info.variant) ? false : null;
+    result.unsupportedReason = result.supported === false ? info.unsupportedReason : null;
+    return result;
+}
+
 function emptyResult() {
     return {
         heroHand: null,
@@ -231,6 +282,7 @@ function parsePokerStars(text) {
     if (heroCards.length >= 2) {
         result.heroHand = { card1: heroCards[0], card2: heroCards[1] };
     }
+    applyVariant(result, text, heroCards.length);
 
     // Parse seats ONLY from the header before HOLE CARDS / SUMMARY so
     // "*** SUMMARY *** Seat 3: Hero (button) showed [Ah Kd] and won ($15)"
@@ -298,6 +350,8 @@ function parse888(text) {
     if (heroCards.length >= 2) {
         result.heroHand = { card1: heroCards[0], card2: heroCards[1] };
     }
+    // 888 headers rarely name the betting structure; its legacy default is No Limit.
+    applyVariant(result, text, heroCards.length, 'NL');
 
     // 888 seat lines: "Seat 4: PlayerName ( $124.50 )" — header only (exclude summary)
     const seats = {};
@@ -385,12 +439,23 @@ export function parseHandHistory(text) {
     try {
         let result = null;
         if (/PokerStars/i.test(raw)) result = parsePokerStars(raw);
+        else if (/ClubGG|Club GG/i.test(raw)) result = parsePokerStars(raw);
         else if (/GGPoker|GG Network|Poker Hand #/i.test(raw)) result = parseGGPoker(raw);
         else if (/888poker|Pacific Poker|\*\* Dealing down cards \*\*/i.test(raw)) result = parse888(raw);
-        else result = parsePokerStars(raw); // generic — most sites share this layout
+        else result = parsePokerStars(raw); // ACR / WPN and generic exports share this layout
 
         if (!result || !result.heroHand) {
             return { success: false, error: 'Could not detect a supported hand history format.' };
+        }
+
+        if (result.supported === false) {
+            return {
+                success: false,
+                error: `Unsupported game variant (${result.gameVariant}). The sandbox solves No-Limit Hold'em only, so this hand was not imported.`,
+                unsupportedVariant: result.gameVariant,
+                unsupportedReason: result.unsupportedReason,
+                site: result.site,
+            };
         }
 
         return { success: true, ...result };

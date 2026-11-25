@@ -44,6 +44,12 @@ const DESTINATIONS = [
     primary: false,
   },
   {
+    title: 'Log A Live Poker Spot',
+    description: 'Type A Live Hand In About 15 Seconds Or Paste Hands From Another Site. Only Verified Solver Matches Are Graded.',
+    href: '/hub/personal-assistant/leaks?quickspot=1&source=assistant-sandbox-retired',
+    primary: false,
+  },
+  {
     title: 'Open Club Arena Hand History',
     description: 'Replay Your Persisted Club Arena Cash And Tournament Hands Directly Under Your Own Session.',
     href: '/hub/club-arena/hand-history?source=assistant-sandbox-retired',

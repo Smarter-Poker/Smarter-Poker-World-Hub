@@ -169,6 +169,10 @@ async function invoke(options = {}) {
         if (options.rpcError) return { data: null, error: { message: 'RPC refused' } };
         return { data: options.closed ?? { ok: true, already_closed: false, request_id: REQUEST }, error: null };
       }
+      if (name === 'purge_personal_assistant_data') {
+        if (options.purgeError) return { data: null, error: { message: 'purge refused' } };
+        return { data: { receipt_id: 'receipt' }, error: null };
+      }
       if (name === 'fn_mark_gdpr_completed') {
         if (options.markerThrows) throw new Error('marker threw');
         return { data: true, error: options.markerError ? { message: 'marker refused' } : null };
@@ -237,6 +241,7 @@ test('closes the account: one RPC, a SOFT Auth delete, the erasure marked comple
   const { calls, res } = await invoke();
   assert.deepEqual(calls.rpc, [
     { name: 'fn_close_account', args: { p_user_id: ACTOR } },
+    { name: 'purge_personal_assistant_data', args: { p_user_id: ACTOR, p_scope: 'all' } },
     { name: 'fn_mark_gdpr_completed', args: { p_request_id: REQUEST } },
   ]);
   assert.deepEqual(calls.provider, [[ACTOR, true]], 'deleteUser(id, true): a hard delete cascades into the journals');
@@ -248,7 +253,7 @@ test('closes the account: one RPC, a SOFT Auth delete, the erasure marked comple
 test('a retry after the database already closed it finishes the Auth step', async () => {
   const { calls, res } = await invoke({ closed: { ok: true, already_closed: true, request_id: REQUEST } });
   assert.deepEqual(calls.provider, [[ACTOR, true]]);
-  assert.deepEqual(calls.rpc.map((c) => c.name), ['fn_close_account', 'fn_mark_gdpr_completed']);
+  assert.deepEqual(calls.rpc.map((c) => c.name), ['fn_close_account', 'purge_personal_assistant_data', 'fn_mark_gdpr_completed']);
   assert.equal(res.statusCode, 200);
 });
 
@@ -396,3 +401,20 @@ for (const [name, option] of [['listed', 'storageListError'], ['removed', 'stora
   });
 }
 
+
+test('a failed Personal Assistant purge answers 500 before any picture or login is touched, so a retry finishes it', async () => {
+  const { calls, res } = await invoke({ purgeError: true });
+  assert.equal(res.statusCode, 500);
+  assert.equal(res.body.success, false);
+  assert.equal(calls.provider.length, 0, 'the login stays so the person can retry');
+  assert.deepEqual(calls.storage, []);
+  assert.equal(calls.rpc.filter((c) => c.name === 'fn_mark_gdpr_completed').length, 0);
+});
+
+test('the Personal Assistant purge runs after the database closes the account and before pictures and login', async () => {
+  const { calls } = await invoke();
+  const first = (step) => calls.sequence.indexOf(step);
+  assert.ok(first('rpc.fn_close_account') < first('rpc.purge_personal_assistant_data'));
+  assert.ok(first('rpc.purge_personal_assistant_data') < first('storage'));
+  assert.ok(first('rpc.purge_personal_assistant_data') < first('auth.deleteUser'));
+});

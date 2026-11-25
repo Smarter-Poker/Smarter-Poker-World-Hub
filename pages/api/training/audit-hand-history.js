@@ -18,12 +18,15 @@ const HERO_CARDS_BY_VARIANT = Object.freeze({
 const BOARD_CARDS = Object.freeze(['8d', '5c', '2s', '6h', '3d']);
 
 function resolveHandVariant(hand = {}, defaultVariant = 'nlh') {
-  const raw = String(hand?.variant || hand?.gameType || defaultVariant || 'nlh').trim().toLowerCase();
+  const raw = String(hand?.variant || hand?.gameVariant || hand?.gameType || defaultVariant || 'nlh').trim().toLowerCase();
   const heroCards = Array.isArray(hand?.heroCards)
     ? hand.heroCards
     : Array.isArray(hand?.hero?.holeCards)
       ? hand.hero.holeCards
       : [];
+  if (raw === 'short_deck' || raw === '6+' || /short[\s_-]*deck|6\+/i.test(raw)) return 'short_deck';
+  if (raw === 'omaha_hi_lo' || raw === 'plo8' || /hi[\s/-]*lo|o8|plo8/i.test(raw)) return 'omaha_hi_lo';
+  if (raw === 'limit_holdem' || raw === 'pot_limit_holdem' || raw === 'fixed_limit') return raw;
   if (raw === 'plo6' || heroCards.length === 6) return 'plo6';
   if (raw === 'plo5' || heroCards.length === 5) return 'plo5';
   if (raw === 'plo4' || /plo|omaha/i.test(raw) || heroCards.length === 4) return 'plo4';
@@ -69,6 +72,25 @@ export function rankImportedHandsByEvLeak(hands = [], defaultVariant = 'nlh') {
       || (rawBoard.length >= 5 ? 'river' : rawBoard.length === 4 ? 'turn' : rawBoard.length >= 3 ? 'flop' : 'flop'),
     ).toLowerCase();
     const heroPosition = String(hand?.heroPosition || hand?.position || hand?.hero?.position || 'BTN').toUpperCase();
+    const isUnsupportedVariant = hand?.supported === false || !HERO_CARDS_BY_VARIANT[variant];
+    if (isUnsupportedVariant) {
+      return {
+        ...hand,
+        variant,
+        supported: false,
+        unsupportedReason: hand?.unsupportedReason || `unsupported_variant:${variant}`,
+        street,
+        heroPosition,
+        heroCards: Array.isArray(hand?.heroCards) ? hand.heroCards : (Array.isArray(hand?.hero?.holeCards) ? hand.hero.holeCards : []),
+        board: Array.isArray(hand?.board) && hand.board.length > 0 ? hand.board : rawBoard,
+        boardCards: rawBoard,
+        potSizeBb: Math.max(0, Number(hand?.potSizeBb || hand?.pot || 0) || 0),
+        estimatedEvLossBb: null,
+        recommendedAction: null,
+        brainSource: null,
+        _originalIndex: idx,
+      };
+    }
     const rawHeroCards = Array.isArray(hand?.heroCards) && hand.heroCards.length > 0
       ? hand.heroCards
       : Array.isArray(hand?.hero?.holeCards) && hand.hero.holeCards.length > 0
@@ -141,7 +163,9 @@ export function rankImportedHandsByEvLeak(hands = [], defaultVariant = 'nlh') {
   });
 
   scored.sort((a, b) => {
-    const diff = b.estimatedEvLossBb - a.estimatedEvLossBb;
+    const aLoss = Number.isFinite(a.estimatedEvLossBb) ? a.estimatedEvLossBb : -1;
+    const bLoss = Number.isFinite(b.estimatedEvLossBb) ? b.estimatedEvLossBb : -1;
+    const diff = bLoss - aLoss;
     if (Math.abs(diff) > 1e-9) return diff;
     return a._originalIndex - b._originalIndex;
   });

@@ -7,6 +7,7 @@ import {
 import { getFreshAccessToken } from '../../lib/authUtils';
 import { useLeakHandExamples } from '../../hooks/useAssistant';
 import { buildEvidenceChain } from '../../lib/personal-assistant/coachingIntelligence.mjs';
+import { normalizeCoverageGapsRanked, normalizeFunnelMetrics } from '../../lib/personal-assistant/liveVerificationPresentation.mjs';
 import styles from './CoachingWorkspace.module.css';
 
 const VIEWS = [
@@ -37,6 +38,14 @@ function formatGoalDate(value) {
   return Number.isFinite(date.getTime())
     ? new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(date)
     : 'Not Available';
+}
+
+function titleWords(value) {
+  return String(value ?? '').replace(/[_-]+/g, ' ').trim().replace(/\b[a-z]/g, letter => letter.toUpperCase());
+}
+
+function countOrUnavailable(value) {
+  return typeof value === 'number' && Number.isFinite(value) ? value.toLocaleString() : 'Not Available';
 }
 
 function findLeak(leaks, id) {
@@ -76,6 +85,9 @@ export default function CoachingWorkspace({
   onOpenHandReview,
   onReviewExample,
   onTrain,
+  onJumpToLeaks,
+  onInspectHand,
+  onDrillHand,
 }) {
   const [workspace, setWorkspace] = useState(null);
   const [view, setView] = useState('coach');
@@ -321,13 +333,18 @@ export default function CoachingWorkspace({
     : [];
   const exactExample = examples?.[0] || null;
   const coverage = workspace?.snapshot?.coverage || {};
+  const debriefHands = Array.isArray(workspace?.snapshot?.sessionDebrief?.topLeakedHands) && !workspace?.snapshot?.liveTableActive
+    ? workspace.snapshot.sessionDebrief.topLeakedHands.filter(Boolean).slice(0, 2)
+    : [];
+  const rankedGaps = normalizeCoverageGapsRanked(workspace?.snapshot?.coverageGapsRanked, workspace?.snapshot?.coverageGapsSummary?.totalUnpriced ?? coverage.unpriced);
+  const funnelSteps = normalizeFunnelMetrics(workspace?.snapshot?.funnelMetrics);
   const alerts = useMemo(() => {
     const rows = [];
-    if (workspace?.snapshot?.summary?.due > 0) rows.push(`${workspace.snapshot.summary.due} Corrective Review${workspace.snapshot.summary.due === 1 ? ' Is' : 's Are'} Due`);
-    if (coverage.unpriced > 0) rows.push(`${coverage.unpriced} Decisions Remain Explicitly Unpriced`);
+    if (workspace?.snapshot?.summary?.due > 0) rows.push({ key: 'due', kind: 'due', text: `${workspace.snapshot.summary.due} Corrective Review${workspace.snapshot.summary.due === 1 ? ' Is' : 's Are'} Due` });
+    if (coverage.unpriced > 0) rows.push({ key: 'unpriced', kind: 'info', text: `${coverage.unpriced} Decisions Remain Explicitly Unpriced` });
     const overdueGoals = (workspace?.goals || []).filter(item => item.status === 'active' && item.due_at && new Date(item.due_at).getTime() < Date.now());
-    if (overdueGoals.length) rows.push(`${overdueGoals.length} Coaching Goal${overdueGoals.length === 1 ? ' Needs' : 's Need'} Attention`);
-    if (!rows.length) rows.push('No Coaching Alert Needs Immediate Action');
+    if (overdueGoals.length) rows.push({ key: 'goals', kind: 'info', text: `${overdueGoals.length} Coaching Goal${overdueGoals.length === 1 ? ' Needs' : 's Need'} Attention` });
+    if (!rows.length) rows.push({ key: 'none', kind: 'info', text: 'No Coaching Alert Needs Immediate Action' });
     return rows;
   }, [coverage.unpriced, workspace]);
 
@@ -426,7 +443,23 @@ export default function CoachingWorkspace({
 
           <article className={styles.panel}>
             <span className={styles.eyebrow}><Bell size={14} aria-hidden="true" />Coaching Alerts</span>
-            <ul className={styles.alertList}>{alerts.map(alert => <li key={alert}>{alert}</li>)}</ul>
+            <ul className={styles.alertList}>
+              {alerts.map(alert => (
+                <li key={alert.key}>
+                  {alert.kind === 'due' ? (
+                    onJumpToLeaks ? (
+                      <button type="button" className={styles.alertAction} onClick={() => onJumpToLeaks()} data-alert-action="due-reviews">
+                        <span>{alert.text}</span><ChevronRight size={16} aria-hidden="true" />
+                      </button>
+                    ) : (
+                      <a className={styles.alertAction} href="/hub/personal-assistant/leaks?tab=leaks" data-alert-action="due-reviews">
+                        <span>{alert.text}</span><ChevronRight size={16} aria-hidden="true" />
+                      </a>
+                    )
+                  ) : alert.text}
+                </li>
+              ))}
+            </ul>
           </article>
 
           <div className={styles.metricGrid} aria-label="Coaching Summary">
@@ -473,6 +506,9 @@ export default function CoachingWorkspace({
               <ol className={styles.priorityList}>
                 {snapshot.trainingPlan.modules.map((mod) => {
                   const matchedLeak = findLeak(leaks, mod.leakId);
+                  const rateOrNull = (value) => (value === null || value === undefined || !Number.isFinite(Number(value)) ? null : Number(value));
+                  const postRate = rateOrNull(mod.tableVerification?.postMistakeRate ?? mod.tableVerification?.postBaselineErrorRate);
+                  const preRate = rateOrNull(mod.tableVerification?.preMistakeRate ?? mod.tableVerification?.preBaselineErrorRate);
                   return (
                     <li key={`plan-${mod.leakId}`}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
@@ -484,14 +520,14 @@ export default function CoachingWorkspace({
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                             <span
                               className={styles.confidence}
-                              data-level={mod.tableVerification.status === 'confirmed_fixed_at_tables' ? 'high' : mod.tableVerification.status === 'mastered_in_drills_still_leaking' ? 'low' : 'medium'}
+                              data-level={mod.tableVerification.status === 'confirmed_fixed_at_tables' ? 'high' : mod.tableVerification.status === 'relapsed_at_tables' ? 'low' : 'medium'}
                             >
                               {mod.tableVerification.label}
                             </span>
-                            {mod.tableVerification.postBaselineErrorRate !== null && (
+                            {postRate !== null && (
                               <small>
-                                Post-Drill Mistake Rate {mod.tableVerification.postBaselineErrorRate}% ({mod.tableVerification.postBaselineSamples} Spots)
-                                {mod.tableVerification.preBaselineErrorRate !== null ? ` · Pre-Drill ${mod.tableVerification.preBaselineErrorRate}%` : ''}
+                                Post-Drill Mistake Rate {postRate}% ({mod.tableVerification.postSampleCount ?? mod.tableVerification.postBaselineSamples ?? 0} Spots)
+                                {preRate !== null ? ` · Pre-Drill ${preRate}%` : ''}
                               </small>
                             )}
                           </div>
@@ -539,6 +575,30 @@ export default function CoachingWorkspace({
               <div><span>Most Expensive Mistake</span><strong>{snapshot?.sessionDebrief?.expensiveMistake}</strong></div>
               <div><span>Evidence Coverage</span><strong>{snapshot?.sessionDebrief?.coverageNote}</strong></div>
             </div>
+            {snapshot?.liveTableActive ? (
+              <div className={styles.inlineNotice} role="status">Hand-Level Review Is Paused While You Are Seated At A Live Table.</div>
+            ) : debriefHands.length > 0 && (
+              <ul className={styles.debriefHands} aria-label="Most Expensive Hands">
+                {debriefHands.map((hand, index) => (
+                  <li key={`${hand.handId || 'hand'}-${index}`}>
+                    <span className={styles.debriefHandCopy}>
+                      <strong>{[titleWords(hand.street), hand.position].filter(Boolean).join(' · ') || 'Hand'}{hand.heroHand ? ` · ${hand.heroHand}` : ''}</strong>
+                      <small>
+                        {hand.playerAction ? `You: ${titleWords(hand.playerAction)}` : 'Your Action Not Recorded'}
+                        {hand.solverAction ? ` · Solver: ${titleWords(hand.solverAction)}` : ''}
+                        {typeof hand.evLossBB === 'number' && Number.isFinite(hand.evLossBB) ? ` · ${Math.abs(hand.evLossBB).toFixed(2)} BB Lost` : ''}
+                      </small>
+                    </span>
+                    {hand.handId && (onInspectHand || onDrillHand) && (
+                      <span className={styles.debriefHandActions}>
+                        {onInspectHand && <button type="button" className={styles.secondaryButton} onClick={() => onInspectHand(hand.handId)}>Inspect Hand</button>}
+                        {(onDrillHand || onInspectHand) && <button type="button" className={styles.primaryButton} onClick={() => (onDrillHand || onInspectHand)(hand.handId)}>Drill Spot</button>}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
           </article>
         </div>
       )}
@@ -625,20 +685,59 @@ export default function CoachingWorkspace({
               <div><dt>Explicitly Unpriced</dt><dd>{coverage.unpriced || 0}</dd></div>
               <div><dt>Rejected Before Audit</dt><dd>{coverage.rejected || 0}</dd></div>
             </dl>
-            {Array.isArray(snapshot?.solverCoverageGaps?.topGaps) && snapshot.solverCoverageGaps.topGaps.length > 0 && (
+            {funnelSteps && (
+              <div className={styles.funnel} role="group" aria-label="Coaching Funnel">
+                <span className={styles.eyebrow}>Coaching Funnel</span>
+                <ol className={styles.funnelSteps}>
+                  {funnelSteps.map(step => (
+                    <li key={step.key}>
+                      <span>{step.label}</span>
+                      <strong>{countOrUnavailable(step.value)}</strong>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+            {((Array.isArray(snapshot?.solverCoverageGaps?.topGaps) && snapshot.solverCoverageGaps.topGaps.length > 0) || rankedGaps.rows.length > 0) && (
               <details className="pa-disclosure" style={{ marginTop: 10 }}>
                 <summary>
                   <span>Top Unmeasured Solver Buckets</span>
-                  <small>{snapshot.solverCoverageGaps.topGaps.length} Buckets</small>
+                  <small>{rankedGaps.rows.length > 0 ? rankedGaps.rows.length : snapshot.solverCoverageGaps.topGaps.length} Buckets</small>
                 </summary>
                 <div className="pa-disclosure-body" role="region" aria-label="Solver Coverage Gaps">
-                  <ul className={styles.alertList}>
-                    {snapshot.solverCoverageGaps.topGaps.slice(0, 5).map(gap => (
-                      <li key={`${gap.format}-${gap.street}-${gap.heroPosition}-${gap.spotType}`}>
-                        <strong>{gap.format} · {gap.street.toUpperCase()} · {gap.heroPosition}</strong> ({gap.spotType}): {gap.count} Spots ({gap.sharePercent}% Of Unmeasured)
-                      </li>
-                    ))}
-                  </ul>
+                  {rankedGaps.rows.length > 0 && (
+                    <>
+                      <span className={styles.eyebrow}>
+                        Most Requested Coverage Gaps{rankedGaps.total !== null ? ` · ${rankedGaps.total.toLocaleString()} Unpriced Decisions` : ''}
+                      </span>
+                      <ol className={styles.gapDemandList} aria-label="Coverage Gap Demand">
+                        {rankedGaps.rows.map((gap, index) => (
+                          <li key={`${gap.format}-${gap.street}-${gap.position}-${gap.stackBucket}-${gap.reason}-${index}`}>
+                            <span className={styles.gapRank}>{index + 1}</span>
+                            <span className={styles.gapCopy}>
+                              <strong>{[gap.format, gap.street, gap.position].filter(Boolean).join(' · ')}</strong>
+                              <small>{[gap.stackBucket, gap.reason].filter(Boolean).join(' · ') || 'No Reason Recorded'}</small>
+                              {gap.hintLabel && (
+                                <small data-coverage-tier={gap.hintTier || undefined}>
+                                  {gap.hintLabel}{gap.studyGuidance ? ` · ${gap.studyGuidance}` : ''}
+                                </small>
+                              )}
+                            </span>
+                            <span className={styles.gapCount}>{gap.count.toLocaleString()} Spots</span>
+                          </li>
+                        ))}
+                      </ol>
+                    </>
+                  )}
+                  {Array.isArray(snapshot?.solverCoverageGaps?.topGaps) && snapshot.solverCoverageGaps.topGaps.length > 0 && (
+                    <ul className={styles.alertList}>
+                      {snapshot.solverCoverageGaps.topGaps.slice(0, 5).map(gap => (
+                        <li key={`${gap.format}-${gap.street}-${gap.heroPosition}-${gap.spotType}`}>
+                          <strong>{gap.format} · {gap.street.toUpperCase()} · {gap.heroPosition}</strong> ({gap.spotType}): {gap.count} Spots ({gap.sharePercent}% Of Unmeasured)
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               </details>
             )}

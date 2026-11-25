@@ -314,6 +314,37 @@
   border-top: 1px solid #253e57;
 }
 
+/* Last Session Recap: one compact strip inside the mission frame, secondary weight only */
+.recapStrip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  padding: 12px 14px;
+  border-top: 1px solid #253e57;
+  background: #060e18;
+}
+
+.recapStrip .secondaryButton { width: 100%; }
+
+.recapList {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recapList li {
+  padding: 8px 10px;
+  border: 1px solid #253e57;
+  border-radius: 6px;
+  background: #0b1826;
+  color: #dce5ef;
+  font-size: 13px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
 .missionHeader {
   display: flex;
   align-items: center;
@@ -608,7 +639,8 @@
   background: var(--pa-row);
 }
 
-.systemCardTrigger {
+.systemCardTrigger,
+.liveSpotTrigger {
   display: block;
   width: 100%;
   padding: 0;

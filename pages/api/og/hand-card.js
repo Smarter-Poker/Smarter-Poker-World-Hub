@@ -4,6 +4,10 @@
  * 
  * Generates a beautiful shareable poker hand card image using @vercel/og
  * Every element MUST have display:'flex' for Satori compatibility.
+ *
+ * view=review (Personal Assistant hand review links) is HONEST: it renders only parameters that
+ * were explicitly passed. No default hole cards, result, amount, pot, stakes or player name is
+ * ever invented, and hole cards stay hidden unless `hero` carries two valid cards.
  */
 import { ImageResponse } from '@vercel/og';
 export const config = { runtime: 'edge' };
@@ -58,20 +62,39 @@ function CardElement({ card, size = 'large' }) {
     );
 }
 
+const REVIEW_CARD = /^(?:10|[2-9TJQKA])[shdc]$/i;
+
+function reviewCards(raw, max) {
+    return String(raw || '').split(',').map(c => c.trim()).filter(c => REVIEW_CARD.test(c)).slice(0, max);
+}
+
+function reviewText(raw, max = 48) {
+    return String(raw || '').replace(/[\u0000-\u001f\u007f<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
+}
+
 export default async function handler(req) {
     try {
         const { searchParams } = new URL(req.url);
-        const heroCards = (searchParams.get('hero') || 'Ah,Kh').split(',').filter(Boolean);
-        const board = (searchParams.get('board') || '').split(',').filter(Boolean);
-        const result = searchParams.get('result') || 'Won';
-        const amount = searchParams.get('amount') || '+$1,250';
-        const stakes = searchParams.get('stakes') || '$1/$3 NLH';
-        const venue = searchParams.get('venue') || 'Live Poker';
-        const pot = searchParams.get('pot') || '$2,500';
-        const player = searchParams.get('player') || 'Smarter.Poker Player';
-        const handName = searchParams.get('hand') || '';
+        const isReview = searchParams.get('view') === 'review';
+        const heroCards = isReview
+            ? (() => { const hero = reviewCards(searchParams.get('hero'), 2); return hero.length === 2 ? hero : []; })()
+            : (searchParams.get('hero') || 'Ah,Kh').split(',').filter(Boolean);
+        const board = isReview
+            ? reviewCards(searchParams.get('board'), 5)
+            : (searchParams.get('board') || '').split(',').filter(Boolean);
+        const result = isReview ? '' : (searchParams.get('result') || 'Won');
+        const amount = isReview ? '' : (searchParams.get('amount') || '+$1,250');
+        const stakes = isReview ? reviewText(searchParams.get('stakes'), 24) : (searchParams.get('stakes') || '$1/$3 NLH');
+        const venue = isReview ? reviewText(searchParams.get('venue'), 24) : (searchParams.get('venue') || 'Live Poker');
+        const pot = isReview ? '' : (searchParams.get('pot') || '$2,500');
+        const player = isReview ? 'Smarter.Poker Hand Review' : (searchParams.get('player') || 'Smarter.Poker Player');
+        const handName = isReview ? reviewText(searchParams.get('hand'), 60) : (searchParams.get('hand') || '');
+        const reviewStreet = isReview ? reviewText(searchParams.get('street'), 12).toUpperCase() : '';
+        const reviewPosition = isReview ? reviewText(searchParams.get('position'), 8).toUpperCase() : '';
 
-        const isWin = result.toLowerCase().includes('won') || amount.startsWith('+');
+        const isWin = !isReview && (result.toLowerCase().includes('won') || amount.startsWith('+'));
+        const accent = isReview ? '#83DEFF' : (isWin ? '#2ECC71' : '#E74C3C');
+        const accentSoft = isReview ? 'rgba(131,222,255,0.12)' : (isWin ? 'rgba(46,204,113,0.15)' : 'rgba(231,76,60,0.15)');
 
         return new ImageResponse(
             (
@@ -108,14 +131,14 @@ export default async function handler(req) {
                                 color: 'rgba(255,255,255,0.5)',
                                 marginTop: 4,
                             }}>
-                                {stakes} - {venue}
+                                {[stakes, venue].filter(Boolean).join(' - ') || 'Hand Review'}
                             </div>
                         </div>
                         <div style={{
                             display: 'flex',
                             alignItems: 'center',
-                            background: isWin ? 'rgba(46,204,113,0.15)' : 'rgba(231,76,60,0.15)',
-                            border: `2px solid ${isWin ? '#2ECC71' : '#E74C3C'}`,
+                            background: accentSoft,
+                            border: `2px solid ${accent}`,
                             borderRadius: 12,
                             padding: '8px 20px',
                         }}>
@@ -124,9 +147,9 @@ export default async function handler(req) {
                                 fontSize: 32,
                                 fontWeight: 900,
                                 letterSpacing: 1,
-                                color: isWin ? '#2ECC71' : '#E74C3C',
+color: accent,
                             }}>
-                                {amount}
+                                {isReview ? 'Hand Review' : amount}
                             </div>
                         </div>
                     </div>
@@ -194,7 +217,11 @@ export default async function handler(req) {
                                 Hole Cards
                             </div>
                             <div style={{ display: 'flex' }}>
-                                {heroCards.map((c, i) => (
+{heroCards.length === 0 ? (
+                                    <div style={{ display: 'flex', alignItems: 'center', height: 100, fontSize: 16, color: 'rgba(255,255,255,0.5)' }}>
+                                        Hidden By The Player
+                                    </div>
+                                ) : heroCards.map((c, i) => (
                                     <div key={i} style={{ display: 'flex', marginRight: i < heroCards.length - 1 ? 8 : 0 }}>
                                         <CardElement card={formatCard(c.trim())} size="large" />
                                     </div>
@@ -242,7 +269,7 @@ export default async function handler(req) {
                                 textTransform: 'uppercase',
                                 letterSpacing: 1,
                             }}>
-                                Pot
+{isReview ? 'Street' : 'Pot'}
                             </div>
                             <div style={{
                                 display: 'flex',
@@ -250,7 +277,7 @@ export default async function handler(req) {
                                 fontWeight: 800,
                                 color: '#FFD700',
                             }}>
-                                {pot}
+{isReview ? (reviewStreet || 'Not Shared') : pot}
                             </div>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -261,15 +288,15 @@ export default async function handler(req) {
                                 textTransform: 'uppercase',
                                 letterSpacing: 1,
                             }}>
-                                Result
+{isReview ? 'Position' : 'Result'}
                             </div>
                             <div style={{
                                 display: 'flex',
                                 fontSize: 24,
                                 fontWeight: 800,
-                                color: isWin ? '#2ECC71' : '#E74C3C',
+color: isReview ? '#F1F5FC' : (isWin ? '#2ECC71' : '#E74C3C'),
                             }}>
-                                {result}
+                                {isReview ? (reviewPosition || 'Not Shared') : result}
                             </div>
                         </div>
                     </div>
