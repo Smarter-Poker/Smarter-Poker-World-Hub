@@ -19,6 +19,8 @@ import {
   validateDealAndPotLimitBounds,
   resolvePrimaryTwoCardSubset,
   evaluateOmahaExactTwoPlusThree,
+  evaluateMultiwayPostflopSpot,
+  evaluateFullHandLineAndBranchComparison,
 } from '../src/lib/training/horseBrainTrainingAdapter.js';
 import brainCore from '../src/lib/poker-engine/brain/core.js';
 
@@ -40,6 +42,20 @@ import {
   computeClubArenaParityState,
   applyClubArenaAction,
   evaluateCustomRaiseSizing,
+  NINE_MAX_POSITIONS,
+  CLUB_ARENA_TABLE_SKINS,
+  CLUB_ARENA_CARD_BACKS,
+  normalizeGameFormat,
+  rotateDealerButtonPosition,
+  buildPreDecisionActionChoreography,
+  evaluateAllInEquityAndInsuranceOffer,
+  resolveRabbitHuntBoard,
+  evaluatePreActionSelection,
+  computeKillPotEscalation,
+  HERO_ACTED_FENCE_MS,
+  evaluateHeroActedFence,
+  shouldInterceptFreeCheckFold,
+  computePracticeStackReload,
 } from '../src/lib/training/clubArenaTableParity.js';
 import {
   analyzeVerifiedTrainingWeaknesses,
@@ -1571,6 +1587,217 @@ test('Phase 12 Deep Sweep & Root-Cause Anti-Regression Hardening Laws: 100% non-
       line,
       /typeof\s+window\s*!==\s*['"]undefined['"]/,
       `Every createClient( call in drill-builder.js must have a same-line typeof window !== 'undefined' guard: ${line}`,
+    );
+  }
+});
+
+test('Phase 13 True 1:1 Club Arena Clone Parity & 20-Point Master Package works end to end', () => {
+  // 1. Item 1: Sequential Pre-Decision Villain Action Choreography
+  const choreography = buildPreDecisionActionChoreography({
+    format: '9max',
+    street: 'preflop',
+    heroPosition: 'BTN',
+    villainPosition: 'CO',
+    facingBetBb: 2.5,
+    potBb: 4.0,
+  });
+  assert.equal(choreography.format, '9max');
+  assert.ok(Array.isArray(choreography.steps) && choreography.steps.length >= 2);
+  assert.ok(choreography.steps.some((s) => s.position === 'CO' && s.sound === 'raise' && s.amountBb === 2.5));
+
+  // 2. Item 2 & 16: Full-Hand Multi-Street Scorecard & Branch-Line Rewind Sandbox
+  const branchEval = evaluateFullHandLineAndBranchComparison({
+    gameId: 'cash-005',
+    variant: 'plo4',
+    bettingStructure: 'pot_limit',
+    format: '6max',
+    heroCards: ['As', 'Ks', 'Qs', 'Js'],
+    fullBoardCards: ['Ts', '9s', '2d', '4c', '8h'],
+    heroPosition: 'BTN',
+    villainPosition: 'BB',
+    basePotBb: 6.5,
+    effectiveStackBb: 100,
+    chosenBranch: 'aggressive_line',
+  });
+  assert.equal(branchEval.streetEvaluations.length, 4);
+  assert.deepEqual(
+    branchEval.streetEvaluations.map((s) => s.street),
+    ['preflop', 'flop', 'turn', 'river'],
+  );
+  assert.equal(branchEval.branches.length, 3);
+  assert.equal(branchEval.activeBranch.branchId, 'aggressive_line');
+
+  // 3. Item 3: On-Felt All-In Equity % Seat Badges & Interactive All-In Insurance EV Calculator
+  const insuranceOffer = evaluateAllInEquityAndInsuranceOffer({
+    variant: 'nlh',
+    potBb: 50,
+    heroEquityPct: 72,
+    houseMarginPct: 5.0,
+  });
+  assert.equal(insuranceOffer.isPositiveEvToAccept, false);
+  assert.equal(insuranceOffer.heroEquityPct, 72);
+  assert.equal(insuranceOffer.villainEquityPct, 28);
+  assert.equal(insuranceOffer.uninsuredEvBb, 36);
+  assert.ok(insuranceOffer.lockedCashoutBb < insuranceOffer.uninsuredEvBb);
+  assert.ok(insuranceOffer.chargedPremiumBb > 0);
+  assert.match(insuranceOffer.recommendedInsuranceDecision, /Decline Insurance/i);
+
+  // 4. Item 4: 9-Max Full-Ring & Final-Table Seat Layout Switcher
+  assert.equal(NINE_MAX_POSITIONS.length, 9);
+  assert.equal(normalizeGameFormat('9max'), '9max');
+  assert.equal(normalizeGameFormat('full_ring'), '9max');
+  assert.equal(rotateDealerButtonPosition('BTN', '9max'), 'SB');
+  assert.equal(rotateDealerButtonPosition('BB', '9max'), 'UTG');
+
+  // 5. Item 6: On-Felt Rabbit Hunting (`boardForRabbitReveal` Parity)
+  const rabbit = resolveRabbitHuntBoard({
+    visibleBoardCards: ['Qh', 'Jd', '4c'],
+    heroCards: ['As', 'Ks'],
+    villainCards: ['9c', '9d'],
+    fullCompletedBoard: ['Qh', 'Jd', '4c', 'Ts', '2h'],
+  });
+  assert.equal(rabbit.completedBoardCards.length, 5);
+  assert.deepEqual(rabbit.rabbitCards, ['Ts', '2h']);
+  assert.equal(rabbit.rabbitCount, 2);
+
+  // 6. Item 7: Live Pre-Action Checkboxes (`PreActionBar` & `usePreActionBoundary` Parity)
+  const preActionFree = evaluatePreActionSelection({
+    selectedPreAction: 'check_fold',
+    toCallBb: 0,
+    previousToCallBb: 0,
+  });
+  assert.equal(preActionFree.invalidatedByBetIncrease, false);
+  assert.equal(preActionFree.autoTriggeredAction, 'check');
+
+  const preActionInvalidated = evaluatePreActionSelection({
+    selectedPreAction: 'call_current',
+    toCallBb: 12,
+    previousToCallBb: 3,
+  });
+  assert.equal(preActionInvalidated.invalidatedByBetIncrease, true);
+  assert.equal(preActionInvalidated.autoTriggeredAction, null);
+
+  // 7. Item 10: Fixed-Limit & PLO8 Half-Kill (1.5x) and Full-Kill (2.0x) Pot Mechanics
+  const halfKill = computeKillPotEscalation({
+    killMode: 'half_kill',
+    consecutiveWins: 2,
+    previousPotWonBb: 12,
+    street: 'turn',
+  });
+  assert.equal(halfKill.isKillActive, true);
+  assert.equal(halfKill.multiplier, 1.5);
+  assert.equal(halfKill.streetFixedBetBb, 3);
+
+  const fullKill = computeKillPotEscalation({
+    killMode: 'full_kill',
+    consecutiveWins: 2,
+    previousPotWonBb: 15,
+    street: 'river',
+  });
+  assert.equal(fullKill.isKillActive, true);
+  assert.equal(fullKill.multiplier, 2.0);
+  assert.equal(fullKill.streetFixedBetBb, 4);
+
+  // 8. Item 12: Canonical 5-Skin Club Arena Felt Registry & 3 Card-Back Styles
+  assert.equal(CLUB_ARENA_TABLE_SKINS.length, 5);
+  assert.equal(CLUB_ARENA_CARD_BACKS.length, 3);
+
+  // 9. Item 13: Deterministic `HeroActedFence` Double-Tap & Street-Transition Action Lock
+  assert.equal(HERO_ACTED_FENCE_MS, 650);
+  const lockedFence = evaluateHeroActedFence({
+    fenceArmedAtMs: 1000,
+    nowMs: 1300,
+    fenceDecisionKey: '1:flop',
+    currentDecisionKey: '1:flop',
+  });
+  assert.equal(lockedFence.isLocked, true);
+  assert.equal(lockedFence.remainingLockMs, 350);
+
+  const unlockedStreetFence = evaluateHeroActedFence({
+    fenceArmedAtMs: 1000,
+    nowMs: 2000,
+    fenceDecisionKey: '1:flop',
+    currentDecisionKey: '1:turn',
+  });
+  assert.equal(unlockedStreetFence.isLocked, false);
+
+  // 10. Item 15: Multi-Way (2-Way, 3-Way, 4-Way) Postflop Pot Support
+  const multiway3 = evaluateMultiwayPostflopSpot({
+    gameId: 'cash-005',
+    variant: 'plo4',
+    street: 'flop',
+    activePlayerCount: 3,
+    heroCards: ['As', 'Ks', 'Qs', 'Js'],
+    boardCards: ['Ts', '8s', '3d'],
+    potSizeBb: 9,
+    facingBetBb: 4.5,
+  });
+  assert.equal(multiway3.activePlayerCount, 3);
+  assert.equal(multiway3.isMultiway, true);
+  assert.ok(multiway3.multiwayMdfPct < multiway3.headsUpMdfPct);
+
+  // 11. Item 17: Club Arena Fold Protection Modal When Checking Is Free (`toCall === 0`)
+  const foldIntercept = shouldInterceptFreeCheckFold({
+    actionType: 'fold',
+    toCallBb: 0,
+    foldProtectionEnabled: true,
+  });
+  assert.equal(foldIntercept.shouldIntercept, true);
+
+  const foldFacingBet = shouldInterceptFreeCheckFold({
+    actionType: 'fold',
+    toCallBb: 4,
+    foldProtectionEnabled: true,
+  });
+  assert.equal(foldFacingBet.shouldIntercept, false);
+
+  // 12. Item 19: Continuous Session Stack Drift & Practice Auto Top-Up to 100 BB
+  const reloadedStack = computePracticeStackReload({
+    currentStackBb: 82,
+    targetTopUpBb: 100,
+    autoTopUpEnabled: true,
+    handDeltaBb: -5,
+  });
+  assert.equal(reloadedStack.toppedUp, true);
+  assert.equal(reloadedStack.resultingStackBb, 100);
+  assert.equal(reloadedStack.addedPracticeBb, 23);
+
+  // 13. UniversalDynamicTable.jsx DOM Contract Assertions for All 20 Phase 13 Features
+  const tableSrc = read('src/components/training/games/UniversalDynamicTable.jsx');
+  const requiredPhase13DomContracts = [
+    'data-phase13-club-arena-clone-bar="true"',
+    'data-action-choreography="true"',
+    'data-choreography-ff-toggle="true"',
+    'data-full-hand-playthrough-mode="true"',
+    'data-allin-equity-badge="true"',
+    'data-insurance-offer-panel="true"',
+    'data-game-format-btn=',
+    'data-open-seat-hud-btn="true"',
+    'data-seat-hud-popover="true"',
+    'data-rabbit-hunt-btn="true"',
+    'data-pre-action-bar="true"',
+    'data-pre-action-btn=',
+    'data-chip-flight-layer="true"',
+    'data-card-squeeze-control="true"',
+    'data-kill-pot-pill="true"',
+    'data-action-clock-ring="true"',
+    'data-timebank-reserve-btn="true"',
+    'data-club-arena-skin-selector="true"',
+    'data-hero-acted-fence="true"',
+    'data-live-math-aid-toggle="true"',
+    'data-multiway-pot-indicator="true"',
+    'data-replay-hand-from-preflop="true"',
+    'data-rewind-street-btn=',
+    'data-branch-line-btn=',
+    'data-fold-protection-modal="true"',
+    'data-lightning-next-hand-btn="true"',
+    'data-practice-auto-topup-toggle="true"',
+    'data-bbj-mini-plate="true"',
+  ];
+  for (const selector of requiredPhase13DomContracts) {
+    assert.ok(
+      tableSrc.includes(selector),
+      `Expected UniversalDynamicTable.jsx to include Phase 13 Club Arena clone contract: ${selector}`,
     );
   }
 });

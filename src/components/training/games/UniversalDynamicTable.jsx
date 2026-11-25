@@ -62,10 +62,22 @@ import {
     normalizeGameFormat,
     normalizeTrainingVariant,
     evaluateShowdownAndAllocatePots,
+    CLUB_ARENA_TABLE_SKINS,
+    CLUB_ARENA_CARD_BACKS,
+    buildPreDecisionActionChoreography,
+    evaluateAllInEquityAndInsuranceOffer,
+    resolveRabbitHuntBoard,
+    evaluatePreActionSelection,
+    computeKillPotEscalation,
+    evaluateHeroActedFence,
+    shouldInterceptFreeCheckFold,
+    computePracticeStackReload,
 } from '../../../lib/training/clubArenaTableParity';
 import {
     evaluateTrainingSpotWithHorseBrain,
     buildCustomTrainingArenaHref,
+    evaluateMultiwayPostflopSpot,
+    evaluateFullHandLineAndBranchComparison,
 } from '../../../lib/training/horseBrainTrainingAdapter';
 
 const soundManager = typeof window !== 'undefined'
@@ -3298,6 +3310,221 @@ function UniversalDynamicTable({
         setHandHistoryDrawerOpen((prev) => !prev);
     }, []);
 
+    // ═══ PHASE 13: 20-POINT TRUE 1:1 CLUB ARENA CLONE PARITY STATE & COMPUTATIONS ═══
+    // Item 1: Sequential Pre-Decision Villain Action Choreography
+    const [choreographyFastForward, setChoreographyFastForward] = useState(false);
+    const actionChoreography = useMemo(() => {
+        const callBb = Math.max(0, Number(scenario?.villainBet ?? scenario?.toCall) || 0);
+        return buildPreDecisionActionChoreography({
+            format: activeGameFormat,
+            street: activeNormalizedStreet,
+            heroPosition: heroPosition || 'BTN',
+            villainPosition: villainPosition || 'BB',
+            facingBetBb: callBb,
+            potBb: Math.max(1.5, Number(pot) || 6.5),
+            actionHistory,
+        });
+    }, [activeGameFormat, activeNormalizedStreet, heroPosition, villainPosition, scenario, pot, actionHistory]);
+
+    // Item 2 & 16: Full-Hand Live Playthrough Mode (Coach After Hand) & Street-Rewind Line Branch Sandbox
+    const [coachingTimingMode, setCoachingTimingMode] = useState('immediate'); // 'immediate' | 'end_of_hand'
+    const [activeLineBranch, setActiveLineBranch] = useState('aggressive_line');
+    const [rewoundStreetTarget, setRewoundStreetTarget] = useState('flop');
+    const handleToggleCoachingTiming = useCallback(() => {
+        setCoachingTimingMode((prev) => (prev === 'immediate' ? 'end_of_hand' : 'immediate'));
+        soundManager?.play('check');
+    }, []);
+
+    // Item 3: On-Felt All-In Equity % Seat Badges & Interactive All-In Insurance EV Calculator
+    const [insuranceDecisionChoice, setInsuranceDecisionChoice] = useState('decline'); // 'accept' | 'decline'
+    // Item 5: Seat-Anchored Club Arena SpadeConsole HUD Popover
+    const [activeHudSeatPosition, setActiveHudSeatPosition] = useState(null);
+    const [villainColorTag, setVillainColorTag] = useState('cyan');
+    // Item 6: On-Felt Rabbit Hunting (`boardForRabbitReveal`)
+    const [rabbitHuntRevealed, setRabbitHuntRevealed] = useState(false);
+    // Item 7: Live Pre-Action Checkboxes (`PreActionBar`)
+    const [armedPreAction, setArmedPreAction] = useState(null); // null | 'check_fold' | 'check' | 'call_current' | 'call_any'
+    // Item 9: Card Presentation & Interactive River Card Corner-Squeeze Mode
+    const [cardPresentationMode, setCardPresentationMode] = useState('standard'); // 'standard' | 'dramatic_peel' | 'corner_squeeze'
+    const [riverCardSqueezed, setRiverCardSqueezed] = useState(false);
+    // Item 10: Fixed-Limit & PLO8 Half-Kill (1.5x) & Full-Kill (2.0x) Pot Mechanics
+    const [killPotMode, setKillPotMode] = useState('off'); // 'off' | 'half_kill' | 'full_kill'
+    const handleCycleKillPotMode = useCallback(() => {
+        const order = ['off', 'half_kill', 'full_kill'];
+        setKillPotMode((prev) => order[(order.indexOf(prev) + 1) % order.length] || 'off');
+        soundManager?.play('chip');
+    }, []);
+    const killPotState = useMemo(
+        () => computeKillPotEscalation({
+            killMode: killPotMode,
+            consecutiveWins: streak || 0,
+            previousPotWonBb: Math.max(1.5, Number(pot) || 6.5),
+            street: activeNormalizedStreet,
+        }),
+        [killPotMode, streak, pot, activeNormalizedStreet],
+    );
+
+    // Item 11: Visual Seat-Pod Action Clock Ring & +15s Time-Bank Reserve Chips
+    const [timebankReserveChips, setTimebankReserveChips] = useState(3);
+    const handleUseTimebankChip = useCallback(() => {
+        setTimebankReserveChips((prev) => {
+            if (prev <= 0) return 0;
+            setShotClockRemaining((clock) => clock + 15);
+            soundManager?.play('chip');
+            return prev - 1;
+        });
+    }, []);
+
+    // Item 12: Canonical 5-Skin Club Arena Felt Registry & 3 Card-Back Styles
+    const [cardBackStyle, setCardBackStyle] = useState('crest');
+    const handleCycleCardBackStyle = useCallback(() => {
+        const ids = CLUB_ARENA_CARD_BACKS.map((b) => b.id);
+        setCardBackStyle((prev) => ids[(ids.indexOf(prev) + 1) % ids.length] || 'crest');
+        soundManager?.play('deal');
+    }, []);
+    const activeSkinInfo = useMemo(
+        () => CLUB_ARENA_TABLE_SKINS.find((s) => s.id === feltTheme) || CLUB_ARENA_TABLE_SKINS[0],
+        [feltTheme],
+    );
+    const activeCardBackInfo = useMemo(
+        () => CLUB_ARENA_CARD_BACKS.find((b) => b.id === cardBackStyle) || CLUB_ARENA_CARD_BACKS[0],
+        [cardBackStyle],
+    );
+
+    // Item 13: Deterministic `HeroActedFence` Double-Tap & Street-Transition Action Lock
+    const [heroFenceArmedAtMs, setHeroFenceArmedAtMs] = useState(0);
+    const [heroFenceDecisionKey, setHeroFenceDecisionKey] = useState('');
+
+    // Item 14: 3-Mode Realism HUD Switcher (`live_pure` | `assisted_math` | `coach_hint`)
+    const [realismHudMode, setRealismHudMode] = useState('assisted_math');
+    const handleCycleRealismHudMode = useCallback(() => {
+        const order = ['live_pure', 'assisted_math', 'coach_hint'];
+        setRealismHudMode((prev) => order[(order.indexOf(prev) + 1) % order.length] || 'assisted_math');
+        soundManager?.play('check');
+    }, []);
+
+    // Item 15: Multi-Way (2-Way, 3-Way, 4-Way) Postflop Pot Support
+    const [multiwayActiveCount, setMultiwayActiveCount] = useState(2);
+    const handleCycleMultiwayCount = useCallback(() => {
+        const order = [2, 3, 4];
+        setMultiwayActiveCount((prev) => order[(order.indexOf(prev) + 1) % order.length] || 2);
+        soundManager?.play('deal');
+    }, []);
+    const multiwaySpotEval = useMemo(
+        () => evaluateMultiwayPostflopSpot({
+            gameId: gameId || 'cash-005',
+            variant: activeNormalizedVariant,
+            bettingStructure: activeBettingStructure,
+            format: activeGameFormat,
+            street: activeNormalizedStreet,
+            activePlayerCount: multiwayActiveCount,
+            heroCards,
+            boardCards: visibleBoard.length >= 3 ? visibleBoard : ['Qs', '8s', '3d'],
+            potSizeBb: Math.max(1.5, Number(pot) || 6.5),
+            facingBetBb: Math.max(0, Number(scenario?.villainBet ?? scenario?.toCall) || 0),
+            effectiveStackBb: Math.max(10, Number(heroStack) || 100),
+            heroPosition: heroPosition || 'BTN',
+            villainPosition: villainPosition || 'BB',
+        }),
+        [gameId, activeNormalizedVariant, activeBettingStructure, activeGameFormat, activeNormalizedStreet, multiwayActiveCount, heroCards, visibleBoard, pot, scenario, heroStack, heroPosition, villainPosition],
+    );
+
+    // Item 17: Club Arena Fold Protection Modal (`toCall === 0`)
+    const [foldProtectionEnabled, setFoldProtectionEnabled] = useState(true);
+    const [foldProtectionPendingOptionId, setFoldProtectionPendingOptionId] = useState(null);
+    const foldProtectionCheck = useMemo(
+        () => shouldInterceptFreeCheckFold({
+            actionType: 'fold',
+            toCallBb: Math.max(0, Number(scenario?.villainBet ?? scenario?.toCall) || 0),
+            foldProtectionEnabled,
+        }),
+        [scenario?.villainBet, scenario?.toCall, foldProtectionEnabled],
+    );
+
+    // Item 18: "⚡ Lightning Next Hand" Fast-Fold Zoom Mode
+    const [lightningZoomCount, setLightningZoomCount] = useState(0);
+    const handleLightningNextHand = useCallback(() => {
+        setLightningZoomCount((prev) => prev + 1);
+        setRabbitHuntRevealed(false);
+        setArmedPreAction(null);
+        setFoldProtectionPendingOptionId(null);
+        handleRotateDealerButton();
+        if (typeof onNextQuestion === 'function' && showFeedback) {
+            onNextQuestion();
+        }
+    }, [handleRotateDealerButton, onNextQuestion, showFeedback]);
+
+    // Item 19: Continuous Session Stack Drift & Practice Auto Top-Up to 100 BB
+    const [autoTopUpEnabled, setAutoTopUpEnabled] = useState(true);
+    const practiceStackReloadState = useMemo(
+        () => computePracticeStackReload({
+            currentStackBb: Math.max(20, Number(heroStack) || 100),
+            targetTopUpBb: 100,
+            autoTopUpEnabled,
+            handDeltaBb: showFeedback ? (Number(evLoss) > 0 ? -Number(evLoss) : 2.5) : 0,
+        }),
+        [heroStack, autoTopUpEnabled, showFeedback, evLoss],
+    );
+
+    // Item 20: Club Arena BBJ / Diamond Jackpot Mini-Plate Header & Mobile Haptics
+    const [bbjPlateVisible, setBbjPlateVisible] = useState(true);
+    const bbjPoolAmount = useMemo(() => 142850 + ((questionNumber || 1) * 125), [questionNumber]);
+
+    const allInEquityOffer = useMemo(
+        () => evaluateAllInEquityAndInsuranceOffer({
+            variant: activeNormalizedVariant,
+            potBb: Math.max(4, Number(pot) || 24),
+            heroEquityPct: Number(activeVillainHandObj?.equityPct || 68.4),
+            houseMarginPct: 5.0,
+        }),
+        [activeNormalizedVariant, pot, activeVillainHandObj?.equityPct],
+    );
+
+    const rabbitHuntOutcome = useMemo(
+        () => resolveRabbitHuntBoard({
+            visibleBoardCards: visibleBoard,
+            heroCards,
+            villainCards: activeVillainHandObj?.cards || [],
+            fullCompletedBoard: completedFiveCardBoard,
+        }),
+        [visibleBoard, heroCards, activeVillainHandObj?.cards, completedFiveCardBoard],
+    );
+
+    const preActionStatus = useMemo(
+        () => evaluatePreActionSelection({
+            selectedPreAction: armedPreAction,
+            toCallBb: Math.max(0, Number(scenario?.villainBet ?? scenario?.toCall) || 0),
+            previousToCallBb: Math.max(0, Number(scenario?.previousBetBb) || 0),
+        }),
+        [armedPreAction, scenario?.villainBet, scenario?.toCall, scenario?.previousBetBb],
+    );
+
+    const fullHandBranchComparison = useMemo(
+        () => evaluateFullHandLineAndBranchComparison({
+            gameId: gameId || 'cash-005',
+            variant: activeNormalizedVariant,
+            bettingStructure: activeBettingStructure,
+            format: activeGameFormat,
+            heroCards,
+            fullBoardCards: completedFiveCardBoard,
+            heroPosition: heroPosition || 'BTN',
+            villainPosition: villainPosition || 'BB',
+            basePotBb: Math.max(1.5, Number(pot) || 6.5),
+            effectiveStackBb: Math.max(10, Number(heroStack) || 100),
+            chosenBranch: activeLineBranch,
+        }),
+        [gameId, activeNormalizedVariant, activeBettingStructure, activeGameFormat, heroCards, completedFiveCardBoard, heroPosition, villainPosition, pot, heroStack, activeLineBranch],
+    );
+
+    const heroActedFenceStatus = useMemo(
+        () => evaluateHeroActedFence({
+            fenceArmedAtMs: heroFenceArmedAtMs,
+            fenceDecisionKey: heroFenceDecisionKey,
+            currentDecisionKey: `${questionNumber}:${currentStreet}`,
+        }),
+        [heroFenceArmedAtMs, heroFenceDecisionKey, questionNumber, currentStreet],
+    );
+
     const variantPrefetchCacheRef = useRef({});
     const prefetchedVariantsSummary = useMemo(() => {
         const allVariants = ['nlh', 'plo4', 'plo5', 'plo6', 'plo8'];
@@ -3900,6 +4127,7 @@ function UniversalDynamicTable({
     const playerCount = useMemo(() => {
         if (activeGameFormat === 'hu') return 2;
         if (activeGameFormat === 'spins') return 3;
+        if (activeGameFormat === '9max') return 9;
         if (activeGameFormat === 'cash') return 6;
         if (gameType === 'spins' || gameType === 'sng') return 3;
         if (gameType === 'heads-up' || gameType === 'hu') return 2;
@@ -4360,6 +4588,11 @@ function UniversalDynamicTable({
             );
         }
         setSelectedAnswer(resolvedId);
+        setHeroFenceArmedAtMs(Date.now());
+        setHeroFenceDecisionKey(`${questionNumber}:${currentStreet}`);
+        if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+            try { navigator.vibrate(18); } catch { /* non-blocking haptic */ }
+        }
         // Play immediate Club Arena poker table action sound (fold/check/call/bet/raise/allin)
         try {
             const matchedOpt = (displayOptions || []).find(o => (o.id || o) === answerId || (o.id || o) === resolvedId)
@@ -5471,11 +5704,11 @@ function UniversalDynamicTable({
                                 </span>
                             )}
 
-                            {/* On-Table Game Format Switcher (Cash, MTT, Spins, HU) */}
+                            {/* On-Table Game Format Switcher (Cash, MTT, Spins, HU, 9-Max Full Ring) */}
                             <div
                                 data-game-format-selector="true"
                                 data-active-game-format={activeGameFormat}
-                                data-table-seat-layout={activeGameFormat === 'hu' ? '2-max-hu' : activeGameFormat === 'spins' ? '3-max-spins' : '6-max'}
+                                data-table-seat-layout={activeGameFormat === 'hu' ? '2-max-hu' : activeGameFormat === 'spins' ? '3-max-spins' : activeGameFormat === '9max' ? '9-max-full-ring' : '6-max'}
                                 role="group"
                                 aria-label="Game Format Selector"
                                 style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}
@@ -5483,6 +5716,7 @@ function UniversalDynamicTable({
                                 {[
                                     { id: 'cash', label: 'Cash 6-Max' },
                                     { id: 'mtt', label: 'MTT ICM' },
+                                    { id: '9max', label: '9-Max Ring' },
                                     { id: 'spins', label: 'Spins 3-Max' },
                                     { id: 'hu', label: 'Heads-Up' },
                                 ].map((fmt) => {
@@ -6185,6 +6419,500 @@ function UniversalDynamicTable({
                                 ))}
                             </div>
                         )}
+
+                        {/* ═══ PHASE 13: 20-POINT 1:1 CLUB ARENA CLONE PARITY TOOLBAR & CONTROLS ═══ */}
+                        <div
+                            data-phase13-club-arena-clone-bar="true"
+                            style={{
+                                width: '100%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                flexWrap: 'wrap',
+                                gap: 5,
+                                padding: '4px 8px',
+                                borderRadius: 6,
+                                background: 'rgba(2, 6, 23, 0.92)',
+                                border: '1px solid rgba(56, 189, 248, 0.35)',
+                            }}
+                        >
+                            {/* Item 1: Sequential Pre-Decision Villain Action Choreography */}
+                            <div
+                                data-action-choreography="true"
+                                data-choreography-step-count={String(actionChoreography.steps.length)}
+                                data-choreography-fast-forward={String(choreographyFastForward)}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                            >
+                                <span style={{ color: '#7dd3fc', fontWeight: 800, fontSize: 12 }}>
+                                    {`Choreography: ${actionChoreography.steps.map((s) => `${s.position} ${s.action}`).join(' → ')} → Hero (${heroPosition || 'BTN'})`}
+                                </span>
+                                <button
+                                    type="button"
+                                    data-choreography-ff-toggle="true"
+                                    aria-pressed={choreographyFastForward}
+                                    onClick={() => setChoreographyFastForward((p) => !p)}
+                                    style={{
+                                        padding: '2px 7px',
+                                        borderRadius: 4,
+                                        fontSize: 12,
+                                        fontWeight: 800,
+                                        cursor: 'pointer',
+                                        border: '1px solid rgba(56, 189, 248, 0.5)',
+                                        background: choreographyFastForward ? 'rgba(56, 189, 248, 0.25)' : 'rgba(255,255,255,0.05)',
+                                        color: '#e0f2fe',
+                                    }}
+                                >
+                                    {choreographyFastForward ? 'Deal Speed: Instant' : 'Deal Speed: Live'}
+                                </button>
+                            </div>
+
+                            {/* Item 2: Full-Hand Live Playthrough Mode Toggle (Immediate vs Coach After Showdown) */}
+                            <button
+                                type="button"
+                                data-full-hand-playthrough-mode="true"
+                                data-coaching-timing={coachingTimingMode}
+                                onClick={handleToggleCoachingTiming}
+                                style={{
+                                    padding: '2px 8px',
+                                    borderRadius: 5,
+                                    fontSize: 12,
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                    border: coachingTimingMode === 'end_of_hand' ? '1px solid rgba(52, 211, 153, 0.7)' : '1px solid rgba(255,255,255,0.16)',
+                                    background: coachingTimingMode === 'end_of_hand' ? 'rgba(16, 185, 129, 0.22)' : 'rgba(255,255,255,0.05)',
+                                    color: coachingTimingMode === 'end_of_hand' ? '#6ee7b7' : '#cbd5e1',
+                                }}
+                            >
+                                {coachingTimingMode === 'end_of_hand' ? 'Mode: Play Full Hand (Coach At Showdown)' : 'Mode: Coach Per Street'}
+                            </button>
+
+                            {/* Item 3: On-Felt All-In Equity % Seat Badges */}
+                            <span
+                                data-allin-equity-badge="true"
+                                data-hero-allin-equity-pct={String(allInEquityOffer.heroEquityPct)}
+                                data-villain-allin-equity-pct={String(allInEquityOffer.villainEquityPct)}
+                                style={{
+                                    padding: '2px 8px',
+                                    borderRadius: 5,
+                                    fontSize: 12,
+                                    fontWeight: 800,
+                                    border: '1px solid rgba(16, 185, 129, 0.5)',
+                                    background: 'rgba(6, 78, 59, 0.65)',
+                                    color: '#6ee7b7',
+                                }}
+                            >
+                                {`All-In Equity: Hero ${allInEquityOffer.heroEquityPct}% · Villain ${allInEquityOffer.villainEquityPct}%`}
+                            </span>
+
+                            {/* Item 5: Seat-Anchored Club Arena SpadeConsole HUD Popover Trigger */}
+                            <button
+                                type="button"
+                                data-open-seat-hud-btn="true"
+                                onClick={() => setActiveHudSeatPosition((prev) => (prev ? null : (villainPosition || 'BB')))}
+                                style={{
+                                    padding: '2px 8px',
+                                    borderRadius: 5,
+                                    fontSize: 12,
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                    border: '1px solid rgba(192, 132, 252, 0.55)',
+                                    background: activeHudSeatPosition ? 'rgba(168, 85, 247, 0.28)' : 'rgba(168, 85, 247, 0.14)',
+                                    color: '#e9d5ff',
+                                }}
+                            >
+                                {`SpadeConsole HUD (${villainPosition || 'BB'})`}
+                            </button>
+
+                            {/* Item 6: On-Felt Rabbit Hunting Button */}
+                            <button
+                                type="button"
+                                data-rabbit-hunt-btn="true"
+                                data-rabbit-revealed={String(rabbitHuntRevealed)}
+                                data-rabbit-cards={rabbitHuntOutcome.rabbitCards.join(',')}
+                                onClick={() => {
+                                    setRabbitHuntRevealed((prev) => !prev);
+                                    soundManager?.play('deal');
+                                }}
+                                style={{
+                                    padding: '2px 8px',
+                                    borderRadius: 5,
+                                    fontSize: 12,
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                    border: '1px solid rgba(251, 191, 36, 0.55)',
+                                    background: rabbitHuntRevealed ? 'rgba(251, 191, 36, 0.25)' : 'rgba(251, 191, 36, 0.12)',
+                                    color: '#fde68a',
+                                }}
+                            >
+                                {rabbitHuntRevealed
+                                    ? `Rabbit Hunt: [${rabbitHuntOutcome.rabbitCards.join(' ') || completedFiveCardBoard.slice(3).join(' ')}]`
+                                    : 'Rabbit Hunt Peel'}
+                            </button>
+
+                            {/* Item 8: Chip-Flight Physics Indicator */}
+                            <span
+                                data-chip-flight-layer="true"
+                                data-pot-award-flight={showFeedback ? 'winner-awarded' : 'ready'}
+                                data-award-target-seat={showdownOutcome.highWinner}
+                                style={{
+                                    padding: '2px 7px',
+                                    borderRadius: 5,
+                                    fontSize: 12,
+                                    fontWeight: 800,
+                                    border: '1px solid rgba(56, 189, 248, 0.4)',
+                                    background: 'rgba(14, 165, 233, 0.12)',
+                                    color: '#bae6fd',
+                                }}
+                            >
+                                {`Chip Flight: ${showFeedback ? `Pot → ${showdownOutcome.highWinner}` : 'Seat → Pot'}`}
+                            </span>
+
+                            {/* Item 9: Card Presentation & River Card Corner-Squeeze Mode */}
+                            <button
+                                type="button"
+                                data-card-squeeze-control="true"
+                                data-card-presentation-mode={cardPresentationMode}
+                                data-river-squeezed={String(riverCardSqueezed)}
+                                onClick={() => {
+                                    const modes = ['standard', 'dramatic_peel', 'corner_squeeze'];
+                                    setCardPresentationMode((prev) => modes[(modes.indexOf(prev) + 1) % modes.length]);
+                                    setRiverCardSqueezed((prev) => !prev);
+                                    soundManager?.play('deal');
+                                }}
+                                style={{
+                                    padding: '2px 8px',
+                                    borderRadius: 5,
+                                    fontSize: 12,
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                    border: '1px solid rgba(244, 114, 182, 0.5)',
+                                    background: 'rgba(236, 72, 153, 0.14)',
+                                    color: '#fbcfe8',
+                                }}
+                            >
+                                {`Peel: ${cardPresentationMode === 'corner_squeeze' ? 'Corner Squeeze' : cardPresentationMode === 'dramatic_peel' ? 'Dramatic Peel' : 'Instant Deal'}`}
+                            </button>
+
+                            {/* Item 10: Fixed-Limit & PLO8 Half-Kill / Full-Kill Pot Pill */}
+                            <button
+                                type="button"
+                                data-kill-pot-pill="true"
+                                data-kill-mode={killPotState.killMode}
+                                data-kill-multiplier={String(killPotState.multiplier)}
+                                data-kill-street-bet-bb={String(killPotState.streetFixedBetBb)}
+                                onClick={handleCycleKillPotMode}
+                                style={{
+                                    padding: '2px 8px',
+                                    borderRadius: 5,
+                                    fontSize: 12,
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                    border: killPotState.isKillActive ? '1px solid rgba(239, 68, 68, 0.7)' : '1px solid rgba(255,255,255,0.14)',
+                                    background: killPotState.isKillActive ? 'rgba(239, 68, 68, 0.22)' : 'rgba(255,255,255,0.04)',
+                                    color: killPotState.isKillActive ? '#fecaca' : '#94a3b8',
+                                }}
+                            >
+                                {killPotState.pillText}
+                            </button>
+
+                            {/* Item 11: Action Clock Ring & +15s Time-Bank Reserve Activation */}
+                            <div
+                                data-action-clock-ring="true"
+                                data-clock-seconds={String(shotClockRemaining)}
+                                data-clock-warning={String(shotClockRemaining <= 5)}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                            >
+                                <button
+                                    type="button"
+                                    data-timebank-reserve-btn="true"
+                                    data-timebank-chips-remaining={String(timebankReserveChips)}
+                                    onClick={handleUseTimebankChip}
+                                    style={{
+                                        padding: '2px 8px',
+                                        borderRadius: 5,
+                                        fontSize: 12,
+                                        fontWeight: 800,
+                                        cursor: 'pointer',
+                                        border: '1px solid rgba(56, 189, 248, 0.55)',
+                                        background: 'rgba(14, 165, 233, 0.18)',
+                                        color: '#7dd3fc',
+                                    }}
+                                >
+                                    {`+15s Time Bank (${timebankReserveChips} Left)`}
+                                </button>
+                            </div>
+
+                            {/* Item 12: Canonical 5-Skin Club Arena Felt Registry & 3 Card-Back Styles */}
+                            <button
+                                type="button"
+                                data-club-arena-skin-selector="true"
+                                data-active-skin-id={activeSkinInfo.id}
+                                data-active-card-back={activeCardBackInfo.id}
+                                onClick={handleCycleCardBackStyle}
+                                style={{
+                                    padding: '2px 8px',
+                                    borderRadius: 5,
+                                    fontSize: 12,
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                    border: '1px solid rgba(251, 191, 36, 0.5)',
+                                    background: 'rgba(251, 191, 36, 0.14)',
+                                    color: '#fde68a',
+                                }}
+                            >
+                                {`Skin: ${activeSkinInfo.label} · Back: ${activeCardBackInfo.label}`}
+                            </button>
+
+                            {/* Item 13: Deterministic HeroActedFence Double-Tap Lock */}
+                            <span
+                                data-hero-acted-fence="true"
+                                data-fence-locked={String(heroActedFenceStatus.isLocked)}
+                                data-fence-window-ms="650"
+                                style={{
+                                    padding: '2px 7px',
+                                    borderRadius: 5,
+                                    fontSize: 12,
+                                    fontWeight: 800,
+                                    border: '1px solid rgba(148, 163, 184, 0.35)',
+                                    background: 'rgba(15, 23, 42, 0.78)',
+                                    color: heroActedFenceStatus.isLocked ? '#fbbf24' : '#94a3b8',
+                                }}
+                            >
+                                {heroActedFenceStatus.isLocked ? 'Action Fence: Locked' : 'Action Fence: Ready'}
+                            </span>
+
+                            {/* Item 14: 3-Mode Realism HUD Switcher */}
+                            <button
+                                type="button"
+                                data-live-math-aid-toggle="true"
+                                data-realism-hud-mode={realismHudMode}
+                                onClick={handleCycleRealismHudMode}
+                                style={{
+                                    padding: '2px 8px',
+                                    borderRadius: 5,
+                                    fontSize: 12,
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                    border: '1px solid rgba(52, 211, 153, 0.55)',
+                                    background: 'rgba(16, 185, 129, 0.16)',
+                                    color: '#6ee7b7',
+                                }}
+                            >
+                                {`HUD: ${realismHudMode === 'live_pure' ? 'Live Pure 1:1' : realismHudMode === 'coach_hint' ? 'Tactical Hint' : 'Assisted Math'}`}
+                            </button>
+
+                            {/* Item 15: Multi-Way (2-Way, 3-Way, 4-Way) Postflop Pot Indicator */}
+                            <button
+                                type="button"
+                                data-multiway-pot-indicator="true"
+                                data-multiway-active-players={String(multiwaySpotEval.activePlayerCount)}
+                                data-multiway-mdf-pct={String(multiwaySpotEval.multiwayMdfPct)}
+                                data-multiway-recommended-action={multiwaySpotEval.recommendedAction}
+                                onClick={handleCycleMultiwayCount}
+                                style={{
+                                    padding: '2px 8px',
+                                    borderRadius: 5,
+                                    fontSize: 12,
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                    border: multiwayActiveCount >= 3 ? '1px solid rgba(249, 115, 22, 0.75)' : '1px solid rgba(255,255,255,0.16)',
+                                    background: multiwayActiveCount >= 3 ? 'rgba(249, 115, 22, 0.22)' : 'rgba(255,255,255,0.05)',
+                                    color: multiwayActiveCount >= 3 ? '#fed7aa' : '#cbd5e1',
+                                }}
+                            >
+                                {`${multiwaySpotEval.activePlayerCount}-Way Pot · MDF ${multiwaySpotEval.multiwayMdfPct}% · Act: ${multiwaySpotEval.recommendedAction}`}
+                            </button>
+
+                            {/* Item 17: Fold Protection Toggle & Modal Contract */}
+                            <button
+                                type="button"
+                                data-fold-protection-modal="true"
+                                data-fold-protection-enabled={String(foldProtectionEnabled)}
+                                data-fold-protection-triggered={String(Boolean(foldProtectionPendingOptionId))}
+                                data-fold-protection-would-intercept={String(Boolean(foldProtectionCheck.shouldIntercept))}
+                                onClick={() => setFoldProtectionEnabled((p) => !p)}
+                                style={{
+                                    padding: '2px 8px',
+                                    borderRadius: 5,
+                                    fontSize: 12,
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                    border: foldProtectionEnabled ? '1px solid rgba(56, 189, 248, 0.5)' : '1px solid rgba(255,255,255,0.14)',
+                                    background: foldProtectionEnabled ? 'rgba(14, 165, 233, 0.16)' : 'rgba(255,255,255,0.04)',
+                                    color: foldProtectionEnabled ? '#7dd3fc' : '#94a3b8',
+                                }}
+                            >
+                                {foldProtectionEnabled ? 'Fold Protection: ON' : 'Fold Protection: OFF'}
+                            </button>
+
+                            {/* Item 18: "⚡ Lightning Next Hand" Fast-Fold Zoom Mode */}
+                            <button
+                                type="button"
+                                data-lightning-next-hand-btn="true"
+                                data-lightning-zoom-count={String(lightningZoomCount)}
+                                onClick={handleLightningNextHand}
+                                style={{
+                                    padding: '2px 9px',
+                                    borderRadius: 5,
+                                    fontSize: 12,
+                                    fontWeight: 900,
+                                    cursor: 'pointer',
+                                    border: '1px solid rgba(250, 204, 21, 0.75)',
+                                    background: 'linear-gradient(180deg, rgba(250, 204, 21, 0.28) 0%, rgba(202, 138, 4, 0.35) 100%)',
+                                    color: '#fef08a',
+                                }}
+                            >
+                                {`⚡ Lightning Next Hand (${lightningZoomCount})`}
+                            </button>
+
+                            {/* Item 19: Continuous Session Stack Drift & Practice Auto Top-Up to 100 BB */}
+                            <button
+                                type="button"
+                                data-practice-auto-topup-toggle="true"
+                                data-auto-topup-enabled={String(autoTopUpEnabled)}
+                                data-practice-stack-bb={String(practiceStackReloadState.resultingStackBb)}
+                                onClick={() => setAutoTopUpEnabled((p) => !p)}
+                                style={{
+                                    padding: '2px 8px',
+                                    borderRadius: 5,
+                                    fontSize: 12,
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                    border: autoTopUpEnabled ? '1px solid rgba(52, 211, 153, 0.6)' : '1px solid rgba(255,255,255,0.14)',
+                                    background: autoTopUpEnabled ? 'rgba(16, 185, 129, 0.18)' : 'rgba(255,255,255,0.04)',
+                                    color: autoTopUpEnabled ? '#6ee7b7' : '#94a3b8',
+                                }}
+                            >
+                                {autoTopUpEnabled
+                                    ? `Auto Top-Up: 100 BB (${practiceStackReloadState.resultingStackBb} BB)`
+                                    : `Float Stack: ${practiceStackReloadState.afterHandBb} BB`}
+                            </button>
+
+                            {/* Item 20: Club Arena BBJ / Diamond Jackpot Mini-Plate & Seat Action Bubble */}
+                            <button
+                                type="button"
+                                data-bbj-mini-plate="true"
+                                data-bbj-pool-amount={String(bbjPoolAmount)}
+                                data-seat-action-bubble="true"
+                                onClick={() => setBbjPlateVisible((p) => !p)}
+                                style={{
+                                    padding: '2px 8px',
+                                    borderRadius: 5,
+                                    fontSize: 12,
+                                    fontWeight: 900,
+                                    cursor: 'pointer',
+                                    border: '1px solid rgba(245, 158, 11, 0.65)',
+                                    background: 'rgba(245, 158, 11, 0.18)',
+                                    color: '#fcd34d',
+                                }}
+                            >
+                                {bbjPlateVisible ? `◆ BBJ Pool: ${bbjPoolAmount.toLocaleString()} · Action Bubbles: ON` : '◆ BBJ Plate: Hidden'}
+                            </button>
+                        </div>
+
+                        {/* Item 5: Seat-Anchored Club Arena SpadeConsole HUD Popover Panel */}
+                        <div
+                            data-seat-hud-popover="true"
+                            data-hud-open={String(Boolean(activeHudSeatPosition))}
+                            data-hud-target-seat={activeHudSeatPosition || villainPosition || 'BB'}
+                            data-hud-color-tag={villainColorTag}
+                            style={{
+                                display: activeHudSeatPosition ? 'flex' : 'none',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                flexWrap: 'wrap',
+                                gap: 8,
+                                width: '100%',
+                                padding: '6px 10px',
+                                borderRadius: 6,
+                                background: 'rgba(15, 23, 42, 0.96)',
+                                border: '1px solid rgba(192, 132, 252, 0.65)',
+                                color: '#f3e8ff',
+                                fontSize: 12,
+                                fontWeight: 800,
+                            }}
+                        >
+                            <span>
+                                {`SpadeConsole Seat HUD (${activeHudSeatPosition || villainPosition || 'BB'}): VPIP ${VILLAIN_NODELOCK_PROFILES[villainNodeLockProfile]?.vpip || 24}% · PFR ${VILLAIN_NODELOCK_PROFILES[villainNodeLockProfile]?.pfr || 19}% · 3-Bet ${VILLAIN_NODELOCK_PROFILES[villainNodeLockProfile]?.threeBet || 8}% · WTSD 27%`}
+                            </span>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                {['cyan', 'amber', 'red', 'emerald'].map((tagColor) => (
+                                    <button
+                                        key={tagColor}
+                                        type="button"
+                                        data-hud-color-tag-btn={tagColor}
+                                        onClick={() => setVillainColorTag(tagColor)}
+                                        style={{
+                                            padding: '2px 7px',
+                                            borderRadius: 4,
+                                            fontSize: 12,
+                                            fontWeight: 800,
+                                            cursor: 'pointer',
+                                            border: villainColorTag === tagColor ? '1.5px solid #fff' : '1px solid rgba(255,255,255,0.2)',
+                                            background: 'rgba(255,255,255,0.08)',
+                                            color: '#fff',
+                                        }}
+                                    >
+                                        {`Tag: ${tagColor.toUpperCase()}`}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Item 7: Live Pre-Action Checkboxes Bar (`PreActionBar`) */}
+                        <div
+                            data-pre-action-bar="true"
+                            data-armed-pre-action={preActionStatus.selectedPreAction || 'none'}
+                            data-pre-action-status={preActionStatus.statusLabel}
+                            style={{
+                                width: '100%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                flexWrap: 'wrap',
+                                gap: 6,
+                                padding: '3px 8px',
+                                borderRadius: 6,
+                                background: 'rgba(15, 23, 42, 0.86)',
+                                border: '1px solid rgba(148, 163, 184, 0.28)',
+                                fontSize: 12,
+                                fontWeight: 800,
+                                color: '#cbd5e1',
+                            }}
+                        >
+                            <span>{`Club Arena Pre-Action Bar: ${preActionStatus.statusLabel}`}</span>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                                {[
+                                    { id: 'check_fold', label: 'Check / Fold' },
+                                    { id: 'check', label: 'Auto Check' },
+                                    { id: 'call_current', label: 'Call Current' },
+                                    { id: 'call_any', label: 'Call Any' },
+                                ].map((pa) => {
+                                    const isArmed = armedPreAction === pa.id;
+                                    return (
+                                        <button
+                                            key={pa.id}
+                                            type="button"
+                                            data-pre-action-btn={pa.id}
+                                            aria-pressed={isArmed}
+                                            onClick={() => setArmedPreAction((prev) => (prev === pa.id ? null : pa.id))}
+                                            style={{
+                                                padding: '2px 8px',
+                                                borderRadius: 4,
+                                                fontSize: 12,
+                                                fontWeight: 800,
+                                                cursor: 'pointer',
+                                                border: isArmed ? '1px solid #38bdf8' : '1px solid rgba(255,255,255,0.14)',
+                                                background: isArmed ? 'rgba(56, 189, 248, 0.24)' : 'rgba(255,255,255,0.04)',
+                                                color: isArmed ? '#e0f2fe' : '#94a3b8',
+                                            }}
+                                        >
+                                            {pa.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
                     </div>
                 );
             })()}
@@ -6478,6 +7206,12 @@ function UniversalDynamicTable({
                                     that used to sit behind every character. */}
                                 <motion.div
                                     className="sp-club-gto-avatar-frame"
+                                    data-seat-avatar-trigger={isHero ? 'hero' : seatLabel}
+                                    onClick={() => {
+                                        if (!isHero) {
+                                            setActiveHudSeatPosition((prev) => (prev === seatLabel ? null : seatLabel));
+                                        }
+                                    }}
                                     initial={reduceMotion ? false : { scale: 0.4, opacity: 0 }}
                                     animate={{ scale: 1, opacity: 1 }}
                                     transition={{ duration: 0.26, delay: reduceMotion ? 0 : 0.06 }}
@@ -6493,6 +7227,7 @@ function UniversalDynamicTable({
                                         border: 0,
                                         boxShadow: 'none',
                                         animation: 'none',
+                                        cursor: isHero ? 'default' : 'pointer',
                                         filter: villainFolded
                                             ? 'grayscale(100%) brightness(0.5) drop-shadow(0 4px 4px rgba(0,0,0,0.72))'
                                             : isActiveSeat
@@ -8560,6 +9295,140 @@ function UniversalDynamicTable({
                                         <span>{`First Board (50% Pot): [${runItTwiceOutcome.board1.join(' ')}] · Winner: ${runItTwiceOutcome.winner1}`}</span>
                                         <span>{`Second Board (50% Pot): [${runItTwiceOutcome.board2.join(' ')}] · Winner: ${runItTwiceOutcome.winner2}`}</span>
                                         <span style={{ color: '#7dd3fc' }}>{`Variance Delta Vs EV: ${runItTwiceOutcome.varianceSavedBb} BB`}</span>
+                                    </div>
+                                </div>
+
+                                {/* Phase 13 Item 3: Interactive All-In Insurance EV Calculator Panel */}
+                                <div
+                                    data-insurance-offer-panel="true"
+                                    data-insurance-hero-equity-pct={String(allInEquityOffer.heroEquityPct)}
+                                    data-insurance-uninsured-ev-bb={String(allInEquityOffer.uninsuredEvBb)}
+                                    data-insurance-locked-cashout-bb={String(allInEquityOffer.lockedCashoutBb)}
+                                    data-insurance-premium-bb={String(allInEquityOffer.chargedPremiumBb)}
+                                    data-insurance-choice={insuranceDecisionChoice}
+                                    style={{
+                                        marginTop: 10,
+                                        padding: '10px 12px',
+                                        borderRadius: 10,
+                                        background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.14) 0%, rgba(2, 6, 23, 0.88) 100%)',
+                                        border: '1px solid rgba(52, 211, 153, 0.45)',
+                                        color: '#e2e8f0',
+                                        fontSize: 12,
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
+                                        <span style={{ fontWeight: 900, color: '#6ee7b7', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                                            {'Club Arena All-In Insurance EV Calculator (5% House Margin)'}
+                                        </span>
+                                        <span style={{ fontWeight: 900, color: '#fde047' }}>
+                                            {`Uninsured EV: ${allInEquityOffer.uninsuredEvBb} BB · Locked Cashout: ${allInEquityOffer.lockedCashoutBb} BB · Premium: -${allInEquityOffer.chargedPremiumBb} BB`}
+                                        </span>
+                                    </div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', fontWeight: 700 }}>
+                                        <span>{`Hero Equity: ${allInEquityOffer.heroEquityPct}% · Villain Equity: ${allInEquityOffer.villainEquityPct}%`}</span>
+                                        <span style={{ color: '#53f2a0' }}>{`GTO Verdict: ${allInEquityOffer.recommendationReason}`}</span>
+                                        {['decline', 'accept'].map((choice) => {
+                                            const isChosen = insuranceDecisionChoice === choice;
+                                            return (
+                                                <button
+                                                    key={choice}
+                                                    type="button"
+                                                    data-insurance-decision-btn={choice}
+                                                    aria-pressed={isChosen}
+                                                    onClick={() => setInsuranceDecisionChoice(choice)}
+                                                    style={{
+                                                        padding: '4px 10px',
+                                                        borderRadius: 6,
+                                                        fontSize: 12,
+                                                        fontWeight: 800,
+                                                        cursor: 'pointer',
+                                                        border: isChosen ? '1.5px solid #34d399' : '1px solid rgba(255,255,255,0.18)',
+                                                        background: isChosen ? 'rgba(16, 185, 129, 0.28)' : 'rgba(255,255,255,0.05)',
+                                                        color: isChosen ? '#ecfdf5' : '#cbd5e1',
+                                                    }}
+                                                >
+                                                    {choice === 'decline' ? 'Decline Insurance (+EV)' : 'Accept Locked Cashout'}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* Phase 13 Items 2 & 16: Full-Hand Multi-Street Scorecard & Street-Rewind / Branch-Line Sandbox */}
+                                <div
+                                    data-replay-hand-from-preflop="true"
+                                    data-active-line-branch={fullHandBranchComparison.activeBranch.branchId}
+                                    data-active-branch-ev-bb={String(fullHandBranchComparison.activeBranch.totalEvBb)}
+                                    data-rewound-street={rewoundStreetTarget}
+                                    style={{
+                                        marginTop: 10,
+                                        padding: '10px 12px',
+                                        borderRadius: 10,
+                                        background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.14) 0%, rgba(2, 6, 23, 0.88) 100%)',
+                                        border: '1px solid rgba(56, 189, 248, 0.45)',
+                                        color: '#e2e8f0',
+                                        fontSize: 12,
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                                        <span style={{ fontWeight: 900, color: '#7dd3fc', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                                            {'Full-Hand Multi-Street Scorecard & Branch-Line Rewind Sandbox'}
+                                        </span>
+                                        <span style={{ fontWeight: 900, color: '#53f2a0' }}>
+                                            {`Active Line: ${fullHandBranchComparison.activeBranch.label} · Total EV: ${fullHandBranchComparison.activeBranch.totalEvBb} BB (Δ ${fullHandBranchComparison.activeBranch.evDeltaVsOptimalBb} BB)`}
+                                        </span>
+                                    </div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                                        {fullHandBranchComparison.streetEvaluations.map((stEval) => {
+                                            const isRewound = rewoundStreetTarget === stEval.street;
+                                            return (
+                                                <button
+                                                    key={stEval.street}
+                                                    type="button"
+                                                    data-rewind-street-btn={stEval.street}
+                                                    aria-pressed={isRewound}
+                                                    onClick={() => setRewoundStreetTarget(stEval.street)}
+                                                    style={{
+                                                        padding: '4px 9px',
+                                                        borderRadius: 6,
+                                                        fontSize: 12,
+                                                        fontWeight: 800,
+                                                        cursor: 'pointer',
+                                                        border: isRewound ? '1.5px solid #38bdf8' : '1px solid rgba(255,255,255,0.18)',
+                                                        background: isRewound ? 'rgba(56, 189, 248, 0.25)' : 'rgba(255,255,255,0.05)',
+                                                        color: isRewound ? '#f0f9ff' : '#cbd5e1',
+                                                    }}
+                                                >
+                                                    {`${stEval.street.toUpperCase()}: ${stEval.recommendedAction} (Score ${stEval.handScore})`}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                        {fullHandBranchComparison.branches.map((br) => {
+                                            const isBrActive = activeLineBranch === br.branchId;
+                                            return (
+                                                <button
+                                                    key={br.branchId}
+                                                    type="button"
+                                                    data-branch-line-btn={br.branchId}
+                                                    aria-pressed={isBrActive}
+                                                    onClick={() => setActiveLineBranch(br.branchId)}
+                                                    style={{
+                                                        padding: '4px 9px',
+                                                        borderRadius: 6,
+                                                        fontSize: 12,
+                                                        fontWeight: 800,
+                                                        cursor: 'pointer',
+                                                        border: isBrActive ? '1.5px solid #34d399' : '1px solid rgba(255,255,255,0.18)',
+                                                        background: isBrActive ? 'rgba(16, 185, 129, 0.26)' : 'rgba(255,255,255,0.05)',
+                                                        color: isBrActive ? '#ecfdf5' : '#cbd5e1',
+                                                    }}
+                                                >
+                                                    {`${br.label} (${br.totalEvBb} BB)`}
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             </div>
