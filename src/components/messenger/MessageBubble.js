@@ -10,7 +10,7 @@ import ReliabilityIncidentControls, { ReliabilityMessageHeader, ReliabilityMessa
 import { isUnverifiedCorrectionPlaceholder } from '../../lib/accountingMessage.mjs';
 import { unionEcoRows } from '../../lib/unionEco.mjs';
 import { getAccessToken, authedFetch } from '../../lib/authUtils';
-import { parseMessageMedia, isMediaMessage, mediaThumbnailUrl } from '../../lib/messenger/messageMedia.mjs';
+import { parseMessageMedia, isMediaMessage, isVisualMediaKind, mediaThumbnailUrl, videoPreviewUrl } from '../../lib/messenger/messageMedia.mjs';
 import { isLiveInvite, liveInviteHref } from '../../lib/messenger/liveInvite.mjs';
 import { isCallReceipt, parseCallReceipt } from '../../lib/messenger/callReceipt.mjs';
 import { reliabilityIncidentControls, reliabilityMessageParts } from '../../lib/messenger/reliabilityIncident.mjs';
@@ -174,16 +174,41 @@ export function MediaAttachment({ media, isOwn, theme: C = defaultTheme }) {
     // scroll position and the draft. MediaViewer owns everything after that.
     if (!media) return null;
 
+    const isVisual = isVisualMediaKind(media.kind);
     const caption = media.caption
-        ? <div style={{ marginTop: 6, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{media.caption}</div>
+        ? (
+            <div style={isVisual ? {
+                padding: '8px 12px',
+                background: isOwn ? C.ownBubble : C.otherBubble,
+                color: isOwn ? 'white' : C.text,
+                fontSize: 15,
+                lineHeight: 1.4,
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+            } : { marginTop: 6, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                {media.caption}
+            </div>
+        )
         : null;
     const forwarded = media.forwarded
-        ? <span style={{ display: 'block', fontSize: 11, color: '#58a6ff', marginBottom: 4, fontStyle: 'italic' }}>Forwarded</span>
+        ? (
+            <span style={isVisual ? {
+                display: 'block',
+                padding: '6px 10px',
+                background: C.card,
+                borderBottom: `1px solid ${C.border}`,
+                fontSize: 11,
+                color: '#58a6ff',
+                fontStyle: 'italic',
+            } : { display: 'block', fontSize: 11, color: '#58a6ff', marginBottom: 4, fontStyle: 'italic' }}>
+                Forwarded
+            </span>
+        )
         : null;
 
     if (failed) {
         return (
-            <span>
+            <div style={{ display: 'block', background: isVisual ? C.card : 'transparent' }}>
                 {forwarded}
                 <a
                     href={media.url}
@@ -191,10 +216,11 @@ export function MediaAttachment({ media, isOwn, theme: C = defaultTheme }) {
                     rel="noopener noreferrer"
                     onClick={e => e.stopPropagation()}
                     style={{
-                        display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px',
-                        borderRadius: 10, textDecoration: 'none',
-                        border: `1px solid ${isOwn ? 'rgba(255,255,255,0.35)' : C.border}`,
-                        color: isOwn ? 'white' : C.text,
+                        display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px',
+                        borderRadius: isVisual ? 0 : 10, textDecoration: 'none',
+                        border: isVisual ? 'none' : `1px solid ${isOwn ? 'rgba(255,255,255,0.35)' : C.border}`,
+                        background: isVisual ? C.card : 'transparent',
+                        color: isVisual ? C.text : (isOwn ? 'white' : C.text),
                     }}
                 >
                     <span style={{ fontSize: 20 }} aria-hidden="true">📎</span>
@@ -203,42 +229,52 @@ export function MediaAttachment({ media, isOwn, theme: C = defaultTheme }) {
                     </span>
                 </a>
                 {caption}
-            </span>
+            </div>
         );
     }
 
     if (media.kind === 'video') {
+        const videoSrc = videoPreviewUrl(media.url) || media.url;
         return (
-            <span>
+            <div style={{ display: 'block' }}>
                 {forwarded}
                 <video
-                    src={media.url}
+                    src={videoSrc}
                     controls
                     playsInline
                     preload="metadata"
                     onError={() => setFailed(true)}
                     onClick={e => e.stopPropagation()}
-                    style={{ maxWidth: '100%', maxHeight: 280, borderRadius: 8, display: 'block' }}
+                    style={{
+                        display: 'block',
+                        width: 'auto',
+                        height: 'auto',
+                        maxWidth: '100%',
+                        maxHeight: 'min(520px, 68dvh)',
+                        objectFit: 'contain',
+                        background: '#000',
+                        borderRadius: 0,
+                    }}
                 />
                 {caption}
-            </span>
+            </div>
         );
     }
 
     if (media.kind === 'audio') {
         return (
-            <span>
+            <div style={{ display: 'block' }}>
                 {forwarded}
                 <AudioMessage src={media.url} isOwn={isOwn} duration={media.duration} theme={C} />
                 {caption}
-            </span>
+            </div>
         );
     }
 
     const label = media.kind === 'gif' ? 'GIF' : 'Photo Attachment';
     const threadSrc = fitted ? (mediaThumbnailUrl(media.url, { kind: media.kind }) || media.url) : media.url;
     return (
-        <span>
+        <div style={{ display: 'block' }}>
             {forwarded}
             <img
                 src={threadSrc}
@@ -249,14 +285,19 @@ export function MediaAttachment({ media, isOwn, theme: C = defaultTheme }) {
                 onClick={e => { e.stopPropagation(); setViewing(true); }}
                 {...{ [ATTACHMENT_ATTRIBUTE]: media.url }}
                 style={{
-                    maxWidth: media.kind === 'gif' ? 260 : '100%',
-                    maxHeight: media.kind === 'gif' ? 260 : 280,
-                    borderRadius: 8, display: 'block', cursor: 'zoom-in',
+                    display: 'block',
+                    width: 'auto',
+                    height: 'auto',
+                    maxWidth: media.kind === 'gif' ? 'min(320px, 100%)' : '100%',
+                    maxHeight: media.kind === 'gif' ? 'min(360px, 60dvh)' : 'min(520px, 68dvh)',
+                    objectFit: 'contain',
+                    borderRadius: 0,
+                    cursor: 'zoom-in',
                 }}
             />
             {caption}
             {viewing && <MediaViewer url={media.url} label={label} onClose={() => setViewing(false)} />}
-        </span>
+        </div>
     );
 }
 MediaAttachment.displayName = 'MediaAttachment';
@@ -672,6 +713,18 @@ export function MessageBubble({
         return acc;
     }, {});
 
+    const rawBubbleContent = message.content || message.text || '';
+    const strippedBubbleContent = rawBubbleContent.replace(/^\[REPLY:[^\]]+\]\s*/, '');
+    const bubbleMeta = message.media_metadata || message.metadata;
+    const isSpecialCard = isInvoice
+        || (bubbleMeta?.kind === 'cashout_request' && bubbleMeta?.event_kind === 'hold' && bubbleMeta?.cashout_id)
+        || isLiveInvite(strippedBubbleContent)
+        || isCallReceipt(strippedBubbleContent);
+    const parsedVisualMedia = !message.is_deleted && !isSpecialCard
+        ? parseMessageMedia(strippedBubbleContent)
+        : null;
+    const isVisualMedia = Boolean(parsedVisualMedia && isVisualMediaKind(parsedVisualMedia.kind));
+
     return (
         <div
             className="sp-message-row"
@@ -699,7 +752,7 @@ export function MessageBubble({
                 )
             )}
 
-            <div style={{ position: 'relative', maxWidth: '70%' }}>
+            <div style={{ position: 'relative', maxWidth: isVisualMedia ? 'min(400px, 78%)' : '70%', minWidth: 0 }}>
                 {showReactions && status !== 'sending' && (
                     <div style={{
                         position: 'absolute',
@@ -936,29 +989,51 @@ export function MessageBubble({
                     </div>
                 )}
 
-                <div data-user-content style={{
-                    padding: isInvoice ? 0 : '8px 12px',
-                    borderRadius: 18,
-                    background: isInvoice ? 'transparent' : isOwn ? C.ownBubble : (senderIsVip ? 'linear-gradient(135deg, rgba(255,215,0,0.08), rgba(255,215,0,0.03))' : C.otherBubble),
-                    color: isOwn ? 'white' : C.text,
-                    fontSize: 15,
-                    lineHeight: 1.4,
-                    borderBottomRightRadius: isOwn && !isLastInGroup ? 4 : 18,
-                    borderBottomLeftRadius: !isOwn && !isLastInGroup ? 4 : 18,
-                    wordBreak: 'break-word',
-                    overflow: 'hidden',
-                    ...(senderIsVip && !isOwn ? {
-                        borderLeft: '3px solid #FFD700',
-                        boxShadow: '0 0 6px rgba(255,215,0,0.15)',
-                    } : {}),
-                }}>
+                <div
+                    data-user-content
+                    data-media-frame={isVisualMedia ? parsedVisualMedia.kind : undefined}
+                    style={{
+                        padding: isInvoice || isVisualMedia ? 0 : '8px 12px',
+                        borderRadius: isVisualMedia ? 14 : 18,
+                        background: isInvoice || isVisualMedia
+                            ? 'transparent'
+                            : isOwn
+                                ? C.ownBubble
+                                : (senderIsVip ? 'linear-gradient(135deg, rgba(255,215,0,0.08), rgba(255,215,0,0.03))' : C.otherBubble),
+                        border: isVisualMedia ? `1px solid ${C.border}` : undefined,
+                        color: isOwn ? 'white' : C.text,
+                        fontSize: 15,
+                        lineHeight: 1.4,
+                        borderBottomRightRadius: isOwn && !isLastInGroup ? 4 : (isVisualMedia ? 14 : 18),
+                        borderBottomLeftRadius: !isOwn && !isLastInGroup ? 4 : (isVisualMedia ? 14 : 18),
+                        wordBreak: 'break-word',
+                        overflow: 'hidden',
+                        ...(senderIsVip && !isOwn && !isVisualMedia ? {
+                            borderLeft: '3px solid #FFD700',
+                            boxShadow: '0 0 6px rgba(255,215,0,0.15)',
+                        } : {}),
+                    }}
+                >
                     {(() => {
                         const content = message.content || message.text || '';
                         const replyMatch = content.match(/^\[REPLY:([^\]]+)\]/);
                         if (replyMatch) {
                             const replyText = replyMatch[1];
                             return (
-                                <div style={{
+                                <div style={isVisualMedia ? {
+                                    padding: '8px 10px',
+                                    marginBottom: 0,
+                                    borderLeft: `3px solid ${C.blue}`,
+                                    borderBottom: `1px solid ${C.border}`,
+                                    background: C.bg,
+                                    fontSize: 12,
+                                    lineHeight: 1.3,
+                                    color: C.textSec,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    maxWidth: '100%',
+                                } : {
                                     padding: '6px 10px',
                                     marginBottom: 6,
                                     borderLeft: `3px solid ${isOwn ? 'rgba(255,255,255,0.5)' : C.blue}`,

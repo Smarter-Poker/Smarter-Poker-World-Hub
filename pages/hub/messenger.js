@@ -71,7 +71,7 @@ import InvoicePaymentsPanel from '../../src/components/messenger/InvoicePayments
 import StatementsPanel from '../../src/components/messenger/StatementsPanel';
 import AccountingConversationIntroduction from '../../src/components/messenger/AccountingConversationIntroduction';
 import { getTheme } from '../../src/components/messenger/MessengerTheme';
-import { encodeMessageMedia } from '../../src/lib/messenger/messageMedia.mjs';
+import { encodeMessageMedia, resolveUploadMedia } from '../../src/lib/messenger/messageMedia.mjs';
 
 // Default light theme (overridden at component level)
 let C = getTheme(false);
@@ -2469,7 +2469,14 @@ function MessengerPage() {
             if (!sameAccount()) return;
             const sendContent = contentForUrl(upload.publicUrl);
             if (!sendContent) throw new Error('Upload Produced An Unusable Address');
-            await queueMessengerSend(sendContent, { actorId, conversationId, requestId, metadata, profile });
+            let recorded = false;
+            await queueMessengerSend(sendContent, {
+                actorId, conversationId, requestId, metadata, profile,
+                onRecorded: () => { recorded = true; },
+            });
+            if (!recorded && current()) {
+                setMessages(previous => current() ? previous.filter(message => message.id !== tempId) : previous);
+            }
         } catch (error) {
             if (current()) {
                 setMessages(previous => current() ? previous.filter(message => message.id !== tempId) : previous);
@@ -2483,12 +2490,12 @@ function MessengerPage() {
     // Handle media (photo/video) upload.
     const handleMediaUpload = async (file) => {
         if (!user || !activeConversation || !file) return;
-        const isImage = file.type.startsWith('image/');
-        const isVideo = file.type.startsWith('video/');
-        if (!isImage && !isVideo) {
+        const resolved = resolveUploadMedia(file);
+        if (!resolved) {
             setToast({ type: 'error', message: 'Only Images And Videos Are Supported' });
             return;
         }
+        const isVideo = resolved.kind === 'video';
         const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
         if (file.size > maxSize) {
             setToast({ type: 'error', message: `File Too Large. Max ${isVideo ? '50MB' : '10MB'}` });
@@ -2496,8 +2503,8 @@ function MessengerPage() {
         }
         return uploadMessengerAttachment(file, {
             fileName: file.name || `media_${Date.now()}.${isVideo ? 'mp4' : 'jpg'}`,
-            mimeType: file.type || (isVideo ? 'video/mp4' : 'image/jpeg'),
-            contentForUrl: url => encodeMessageMedia({ kind: isImage ? 'image' : 'video', url }), timeoutMs: 5 * 60 * 1000,
+            mimeType: resolved.mimeType,
+            contentForUrl: url => encodeMessageMedia({ kind: resolved.kind, url }), timeoutMs: 5 * 60 * 1000,
         });
     };
 

@@ -7,7 +7,7 @@ import { visibleMessageBoundary, isMessageId, CONTINUITY_PREFIX } from './messen
 import { createMessengerSendOperation, restoreMessengerSendOperations, performMessengerSend,
     mergeMessengerPendingMessages, reconcileMessengerMessage, messengerOperationMessage, acknowledgeMessengerSend } from './messengerSendOperation.mjs';
 import { persistReadWithRetry, readFailureMessage } from '../../../lib/messengerReadRetry.mjs';
-import { parseMessageMedia } from '../../../lib/messenger/messageMedia.mjs';
+import { encodeMessageMedia, isVisualMediaKind, parseMessageMedia, resolveUploadMedia, videoPreviewUrl } from '../../../lib/messenger/messageMedia.mjs';
 
 const MESSAGE_ROUTES = { 'get-messages': '/api/messenger/get-messages', 'mark-read': '/api/messenger/mark-read' };
 const safeMedia = content => parseMessageMedia(content);
@@ -219,16 +219,19 @@ export default function MessengerChat({ actorId, identity, conversation, service
     const upload = async event => {
         const media = event.target.files?.[0]; event.target.value = '';
         if (!media || !current()) return;
-        if (!/^(image|video)\//.test(media.type) || media.size > (media.type.startsWith('video/') ? 50 : 10) * 1024 * 1024) { setError('Choose An Image Under 10MB Or Video Under 50MB'); return; }
+        const resolved = resolveUploadMedia(media);
+        if (!resolved || media.size > (resolved.kind === 'video' ? 50 : 10) * 1024 * 1024) { setError('Choose An Image Under 10MB Or Video Under 50MB'); return; }
         setUploading(true);
         try {
-            const response = await services.request('/api/social/upload-url', { method: 'POST', body: JSON.stringify({ fileName: media.name, fileSize: media.size, mimeType: media.type, folder: 'messages', prefix: actorId }), actorId, currentActor: () => identity.current });
+            const response = await services.request('/api/social/upload-url', { method: 'POST', body: JSON.stringify({ fileName: media.name || `media_${Date.now()}.${resolved.kind === 'video' ? 'mp4' : 'jpg'}`, fileSize: media.size, mimeType: resolved.mimeType, folder: 'messages', prefix: actorId }), actorId, currentActor: () => identity.current });
             const result = await response.json();
             if (!response.ok || !result.success || !result.signedUrl || !result.publicUrl) throw new Error('Upload Could Not Be Started');
             if (!current()) return;
-            const uploaded = await fetch(result.signedUrl, { method: 'PUT', headers: { 'Content-Type': media.type }, body: media, signal: AbortSignal.timeout(300000) });
+            const uploaded = await fetch(result.signedUrl, { method: 'PUT', headers: { 'Content-Type': resolved.mimeType }, body: media, signal: AbortSignal.timeout(300000) });
             if (!uploaded.ok) throw new Error('Upload Did Not Complete');
-            if (current()) send(`[${media.type.startsWith('image/') ? 'Image' : 'Video'}](${result.publicUrl})`, false);
+            const encoded = encodeMessageMedia({ kind: resolved.kind, url: result.publicUrl });
+            if (!encoded) throw new Error('Upload Produced An Unusable Address');
+            if (current()) send(encoded, false);
         } catch (failure) { if (current()) setError(dockFailureText(failure)); }
         finally { if (current()) setUploading(false); }
     };
@@ -266,12 +269,22 @@ export default function MessengerChat({ actorId, identity, conversation, service
             {!loading && !messages.length && !error && <p className="dock-empty">Start A Conversation With {name}</p>}
             {messages.map(message => {
                 const own = message.sender_id === actorId;
-                const media = !message.is_deleted && safeMedia(message.content);
+                const media = !message.is_deleted && message.message_type !== 'invoice' && safeMedia(message.content);
+                const visualMedia = Boolean(media && isVisualMediaKind(media.kind));
                 return <div key={message.id} data-message-id={message.id} className={`dock-message ${own ? 'dock-own' : ''}`}>
-                    <div className="dock-message-bubble" title={new Date(message.created_at).toLocaleString()}>
+                    <div className={`dock-message-bubble ${visualMedia ? 'dock-media-bubble' : ''}`} data-media-frame={visualMedia ? media.kind : undefined} title={new Date(message.created_at).toLocaleString()}>
                         {message.is_deleted ? <em>Message Removed</em> : message.message_type === 'invoice' ? <button type="button" onClick={openFull}>Open Invoice In Messenger</button>
-                            : media?.kind === 'image' || media?.kind === 'gif' ? <a href={media.url} target="_blank" rel="noreferrer"><img src={media.url} alt="Message Attachment" loading="lazy" /></a>
-                            : media?.kind === 'video' ? <video src={media.url} controls playsInline /> : media?.kind === 'audio' ? <audio src={media.url} controls /> : String(message.content || '').startsWith('[CALL_RECEIPT]') ? <span className="dock-call-receipt">{messengerPreviewText(message.content, 0)}</span> : message.content}
+                            : media?.kind === 'image' || media?.kind === 'gif' ? <>
+                                {media.forwarded && <div className="dock-media-forwarded">Forwarded</div>}
+                                <a href={media.url} target="_blank" rel="noreferrer"><img src={media.url} alt="Message Attachment" loading="lazy" /></a>
+                                {media.caption && <div className="dock-media-caption">{media.caption}</div>}
+                            </>
+                            : media?.kind === 'video' ? <>
+                                {media.forwarded && <div className="dock-media-forwarded">Forwarded</div>}
+                                <video src={videoPreviewUrl(media.url) || media.url} controls playsInline preload="metadata" />
+                                {media.caption && <div className="dock-media-caption">{media.caption}</div>}
+                            </>
+                            : media?.kind === 'audio' ? <audio src={media.url} controls /> : String(message.content || '').startsWith('[CALL_RECEIPT]') ? <span className="dock-call-receipt">{messengerPreviewText(message.content, 0)}</span> : message.content}
                     </div>
                     {own && <small className="dock-message-status">{message.status === 'sending' ? 'Sending...' : message.status === 'failed' ? <button type="button" onClick={() => { const operation = ops.current.get(message.request_id); if (operation) void attempt(operation); }}>Not Sent. Retry</button> : message.is_read || message.status === 'read' ? 'Seen' : 'Sent'}</small>}
                     {!message.is_deleted && isMessageId(message.id) && <button type="button" className="dock-reply" aria-label="Reply To Message" onClick={() => { continuity.edit(id, 'draft', { text: draft.text, replyToId: message.id }); composer.current?.focus(); }}><Reply size={14} /></button>}

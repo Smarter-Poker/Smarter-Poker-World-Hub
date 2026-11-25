@@ -237,7 +237,7 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
         )}
         {!isOwn && !showAvatar && <div className="avatar-spacer" />}
 
-        <div className={`message-bubble ${isOwn ? 'own' : 'other'} ${message.isDisappearing ? 'ephemeral' : ''} ${message.isPinned ? 'pinned-msg' : ''} ${message.isDeleted ? 'deleted-msg' : ''}`}>
+        <div className={`message-bubble ${isOwn ? 'own' : 'other'} ${message.image && !message.isDeleted ? 'media-bubble' : ''} ${message.isDisappearing ? 'ephemeral' : ''} ${message.isPinned ? 'pinned-msg' : ''} ${message.isDeleted ? 'deleted-msg' : ''}`}>
             {/* P11-10: Deleted message placeholder */}
             {message.isDeleted ? (
                 <span style={{ fontStyle: 'italic', opacity: 0.5, fontSize: 12 }}>This Message Was Deleted</span>
@@ -285,8 +285,22 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
 
             {/* P7-6: Image / Media Preview (Lightbox Target) */}
             {message.image && (
-                <div className="message-image-bubble" onClick={() => onAction?.('openLightbox', message.image)} style={{ position: 'relative', width: '100%', minHeight: 160 }}>
-                    <SPImage src={message.image.url} alt="Attachment" className="chat-inline-image" fill style={{ objectFit: 'cover' }} />
+                <div className="message-image-bubble" onClick={() => onAction?.('openLightbox', message.image)}>
+                    <img
+                        src={message.image.url}
+                        alt="Attachment"
+                        className="chat-inline-image"
+                        loading="lazy"
+                        style={{
+                            display: 'block',
+                            width: 'auto',
+                            height: 'auto',
+                            maxWidth: '100%',
+                            maxHeight: 'min(520px, 68dvh)',
+                            objectFit: 'contain',
+                            cursor: 'zoom-in',
+                        }}
+                    />
                     {message.image.caption && <div className="image-caption">{message.image.caption}</div>}
                 </div>
             )}
@@ -506,6 +520,26 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
                 background: ${SP_COLORS.bgMain};
                 color: ${SP_COLORS.textPrimary};
                 border-bottom-left-radius: 4px;
+            }
+
+            .message-bubble.media-bubble {
+                max-width: min(400px, 78%);
+                padding: 0;
+                background: transparent;
+                border: 1px solid #E4E6EB;
+                border-radius: 14px;
+                overflow: hidden;
+            }
+
+            .message-bubble.media-bubble .image-caption {
+                padding: 8px 12px;
+                background: ${SP_COLORS.bgMain};
+                color: ${SP_COLORS.textPrimary};
+            }
+
+            .message-bubble.own.media-bubble .image-caption {
+                background: var(--messenger-accent, ${SP_COLORS.blue});
+                color: white;
             }
 
             .message-reactions {
