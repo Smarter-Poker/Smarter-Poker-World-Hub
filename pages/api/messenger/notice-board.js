@@ -28,7 +28,7 @@ export default async function handler(req, res) {
         if (action === 'read') {
             return res.status(200).json({ success: true, ...noticePage(data) });
         }
-        if (action === 'mark_read' || action === 'update_alert_settings') {
+        if (['mark_read', 'update_alert_settings', 'search', 'list_replies', 'reorder_pins', 'remind_unconfirmed'].includes(action)) {
             return res.status(200).json({ success: true, ...(data && typeof data === 'object' ? data : {}) });
         }
         return res.status(200).json({ success: true, entry: data });

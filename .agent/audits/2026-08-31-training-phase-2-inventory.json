@@ -74454,7 +74454,7 @@
         {
           "name": "compareHandKeyDescending",
           "line": 971,
-          "references": 2,
+          "references": 4,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -137593,7 +137593,6 @@
         "externalReferenceFiles": [
           "pages/hub/personal-assistant/leaks.js",
           "src/components/sandbox/SandboxComponents.jsx",
-          "src/components/sandbox/TiltMonitor.jsx",
           "src/components/sandbox/paKit.jsx"
         ]
       },
@@ -147689,7 +147688,6 @@
         "externalReferenceFiles": [
           "pages/hub/personal-assistant/leaks.js",
           "src/components/sandbox/SandboxComponents.jsx",
-          "src/components/sandbox/TiltMonitor.jsx",
           "src/components/sandbox/paKit.jsx"
         ]
       },

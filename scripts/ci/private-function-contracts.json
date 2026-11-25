@@ -158,5 +158,25 @@
       "authenticated": false,
       "service_role": false
     }
+  },
+  {
+    "file": "supabase/migrations/20261125020000_notice_board_phase4_full_upgrade_and_hardening.sql",
+    "signature": "public.fn_notice_cashout_card(uuid,uuid)",
+    "source_sha256": "a44563edd33f4319d6cb88f8a88894e6dad47727d031460f450f2f581aea325c",
+    "execute": {
+      "anon": false,
+      "authenticated": false,
+      "service_role": false
+    }
+  },
+  {
+    "file": "supabase/migrations/20261125020000_notice_board_phase4_full_upgrade_and_hardening.sql",
+    "signature": "public.fn_notice_entry(uuid,uuid)",
+    "source_sha256": "1f8100d6cad76b2159a8d0fe0abc37275745805e52a575f7985f70fde5f71797",
+    "execute": {
+      "anon": false,
+      "authenticated": false,
+      "service_role": false
+    }
   }
 ]

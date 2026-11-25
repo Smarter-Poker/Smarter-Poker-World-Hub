@@ -156,6 +156,7 @@ async function getSnapshot(req, res, client, operator) {
             .in('key', ['treasury_warning_level', 'treasury_floor', 'treasury_daily_subsidy_ceiling', 'treasury_exposure_ceiling']),
         client.rpc('trivia_integrity_review_queue_v1', { p_limit: 25 }),
         client.rpc('trivia_player_funnel_metrics_v1', { p_hours: 24 }),
+        client.rpc('trivia_nightly_burnin_scorecard_v1', { p_start_date: '2026-11-24', p_days: 7 }),
     ];
     if (lookup) {
         reads.push(lookup.kind === 'settlement'
@@ -177,7 +178,7 @@ async function getSnapshot(req, res, client, operator) {
         schedulerLeaseResult, schedulerRunsResult, alertsResult, quarantineResult,
         questionQuarantineResult, pvpConfigResult, soloJournalSwitchResult,
         ledgerHealthResult, ledgerAccountsResult, ledgerConfigResult,
-        integrityReviewResult, playerFunnelResult, supportLookupResult,
+        integrityReviewResult, playerFunnelResult, burnInScorecardResult, supportLookupResult,
     ] = await Promise.all(reads);
 
     const namedResults = {
@@ -204,6 +205,7 @@ async function getSnapshot(req, res, client, operator) {
         ledger_config: ledgerConfigResult,
         integrity_review: integrityReviewResult,
         player_funnel: playerFunnelResult,
+        burnin_scorecard: burnInScorecardResult,
     };
     if (lookup) namedResults.support_lookup = supportLookupResult;
     const sourceErrors = {};
@@ -241,6 +243,7 @@ async function getSnapshot(req, res, client, operator) {
         ledgerConfig: ledgerConfigResult.data || [],
         integrityReview: integrityReviewResult.data || null,
         playerFunnel: playerFunnelResult.data || null,
+        burnInScorecard: burnInScorecardResult.data || null,
         sourceErrors,
     });
     return res.status(snapshot.healthy ? 200 : 503).json(snapshot);

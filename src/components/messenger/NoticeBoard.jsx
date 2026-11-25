@@ -10,12 +10,100 @@ import {
     ROLE_META,
     REACTION_META,
     DEFAULT_ALERT_SETTINGS,
+    ALLOWED_ATTACHMENT_MIME,
     formatRoleLabel,
+    formatSlaMinutes,
+    parseNoticeFormatting,
     normalizeRoleCounts,
     normalizeAlertSettings,
     normalizeReactions,
     formatMemberSummary,
 } from '../../lib/clubNoticeBoard.mjs';
+
+function compressImageIfSupported(file) {
+    if (!file || !file.type || !file.type.startsWith('image/') || file.type === 'image/gif') {
+        return Promise.resolve(file);
+    }
+    if (typeof document === 'undefined' || typeof Image === 'undefined' || typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') {
+        return Promise.resolve(file);
+    }
+    return new Promise((resolve) => {
+        const objectUrl = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+            try {
+                const maxW = 1600;
+                const scale = img.width > maxW ? maxW / img.width : 1;
+                const width = Math.max(1, Math.round(img.width * scale));
+                const height = Math.max(1, Math.round(img.height * scale));
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) { URL.revokeObjectURL(objectUrl); resolve(file); return; }
+                ctx.drawImage(img, 0, 0, width, height);
+                const targetMime = 'image/webp';
+                canvas.toBlob((blob) => {
+                    URL.revokeObjectURL(objectUrl);
+                    if (!blob || blob.size >= file.size) { resolve(file); return; }
+                    const baseName = (file.name || `notice_${Date.now()}`).replace(/\.[^.]+$/, '');
+                    const ext = blob.type === 'image/webp' ? 'webp' : 'jpg';
+                    try {
+                        resolve(new File([blob], `${baseName}.${ext}`, { type: blob.type || targetMime }));
+                    } catch {
+                        resolve(file);
+                    }
+                }, targetMime, 0.82);
+            } catch {
+                URL.revokeObjectURL(objectUrl);
+                resolve(file);
+            }
+        };
+        img.onerror = () => {
+            URL.revokeObjectURL(objectUrl);
+            resolve(file);
+        };
+        img.src = objectUrl;
+    });
+}
+
+function renderFormattedText(content, accentBlue) {
+    const lines = parseNoticeFormatting(content);
+    const renderSegments = (segments, lineIdx) => segments.map((seg, segIdx) => {
+        const key = `${lineIdx}-${segIdx}`;
+        if (seg.type === 'bold') return <strong key={key}>{seg.text}</strong>;
+        if (seg.type === 'link') {
+            return (
+                <a
+                    key={key}
+                    href={seg.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: accentBlue, textDecoration: 'underline', wordBreak: 'break-all' }}
+                >
+                    {seg.text}
+                </a>
+            );
+        }
+        return <React.Fragment key={key}>{seg.text}</React.Fragment>;
+    });
+    return (
+        <div style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', lineHeight: 1.5, fontSize: 14, margin: '4px 0 8px' }}>
+            {lines.map((line, idx) => (
+                line.type === 'bullet' ? (
+                    <div key={idx} style={{ display: 'flex', gap: 6, paddingLeft: 4 }}>
+                        <span aria-hidden="true" style={{ color: accentBlue, fontWeight: 700 }}>•</span>
+                        <span style={{ flex: 1, minWidth: 0 }}>{renderSegments(line.segments, idx)}</span>
+                    </div>
+                ) : (
+                    <div key={idx} style={{ minHeight: line.segments.length === 0 ? 10 : undefined }}>
+                        {renderSegments(line.segments, idx)}
+                    </div>
+                )
+            ))}
+        </div>
+    );
+}
 
 function dayKey(iso) {
     const d = new Date(iso);
@@ -101,6 +189,8 @@ function useNativeDialog(dialogRef, open, onCloseState) {
 export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead, onMessageMember }) {
     const [rows, setRows] = useState([]);
     const [pins, setPins] = useState([]);
+    const [scheduledNotices, setScheduledNotices] = useState([]);
+    const [scheduledExpanded, setScheduledExpanded] = useState(false);
     const [canManage, setCanManage] = useState(false);
     const [viewerRole, setViewerRole] = useState(null);
     const [members, setMembers] = useState([]);
@@ -118,6 +208,13 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
     const [draft, setDraft] = useState('');
     const [kind, setKind] = useState('notice');
     const [pinOnPost, setPinOnPost] = useState(false);
+    const [requireConfirmation, setRequireConfirmation] = useState(false);
+    const [scheduleEnabled, setScheduleEnabled] = useState(false);
+    const [scheduledFor, setScheduledFor] = useState('');
+    const [pollOpen, setPollOpen] = useState(false);
+    const [pollQuestion, setPollQuestion] = useState('');
+    const [pollOptions, setPollOptions] = useState(['', '']);
+    const [pollAllowMultiple, setPollAllowMultiple] = useState(false);
     const [attachments, setAttachments] = useState([]);
     const [uploadingPhoto, setUploadingPhoto] = useState(false);
     const [mentionUserIds, setMentionUserIds] = useState([]);
@@ -127,8 +224,16 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
     const [editing, setEditing] = useState(null);
     const [busy, setBusy] = useState(false);
     const [reactingId, setReactingId] = useState(null);
+    const [votingKey, setVotingKey] = useState(null);
+    const [remindingId, setRemindingId] = useState(null);
+    const [remindFeedback, setRemindFeedback] = useState({});
+    const [expandedUnconfirmedId, setExpandedUnconfirmedId] = useState(null);
+    const [openThreads, setOpenThreads] = useState({});
+    const [replyDrafts, setReplyDrafts] = useState({});
+    const [replyBusyId, setReplyBusyId] = useState(null);
     const [escalatingId, setEscalatingId] = useState(null);
-    const [newItems, setNewItems] = useState(false);
+    const [newItemsCount, setNewItemsCount] = useState(0);
+    const [dateMenuOpen, setDateMenuOpen] = useState(false);
     const [noteTarget, setNoteTarget] = useState(null);
     const [noteDraft, setNoteDraft] = useState('');
     const [activePinIndex, setActivePinIndex] = useState(0);
@@ -138,6 +243,8 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
     const [pendingJumpId, setPendingJumpId] = useState(null);
     const [searchOpen, setSearchOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [serverSearchRows, setServerSearchRows] = useState(null);
+    const [serverSearchBusy, setServerSearchBusy] = useState(false);
     const [filterKind, setFilterKind] = useState('all');
     const [memberFilter, setMemberFilter] = useState(null);
     const [rosterOpen, setRosterOpen] = useState(false);
@@ -170,6 +277,8 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
         epoch: 0,
         capturedInitialRead: false,
         metaTimer: null,
+        deltaTimer: null,
+        pendingDeltaIds: new Set(),
     });
     const anchor = useRef(null);
     const createIntent = useRef(null);
@@ -220,11 +329,17 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
         s.denied = true; s.epoch++; s.generation++; s.loading = false; s.refreshAfterLoad = false;
         s.events = []; s.rows = []; s.pinRows = []; s.members = []; s.cursor = null; s.capturedInitialRead = false;
         if (s.metaTimer) { clearTimeout(s.metaTimer); s.metaTimer = null; }
-        setRows([]); setPins([]); setCanManage(false); setViewerRole(null);
+        if (s.deltaTimer) { clearTimeout(s.deltaTimer); s.deltaTimer = null; }
+        s.pendingDeltaIds?.clear();
+        setRows([]); setPins([]); setScheduledNotices([]); setScheduledExpanded(false);
+        setCanManage(false); setViewerRole(null);
         setMembers([]); setMemberCount(0); setRoleCounts(normalizeRoleCounts(null, 0));
         setOverduePayouts([]); setAlertSettings({ ...DEFAULT_ALERT_SETTINGS });
-        setPreviousLastReadAt(null); setInitialUnreadCount(0); setHasMore(false); setNewItems(false);
+        setPreviousLastReadAt(null); setInitialUnreadCount(0); setHasMore(false); setNewItemsCount(0);
+        setDateMenuOpen(false); setServerSearchRows(null); setOpenThreads({}); setReplyDrafts({});
         setEditing(null); setDraft(''); setAttachments([]); setMentionUserIds([]); setMentionAll(false);
+        setRequireConfirmation(false); setScheduleEnabled(false); setScheduledFor('');
+        setPollOpen(false); setPollQuestion(''); setPollOptions(['', '']); setPollAllowMultiple(false);
         setMentionPickerOpen(false); setNoteTarget(null); setNoteDraft('');
         setMemberFilter(null); setRosterOpen(false); setSettingsOpen(false); setLightboxImage(null);
         setPinsExpanded(false); setOverdueExpanded(false);
@@ -290,6 +405,40 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
         }, 450);
     }
 
+    function scheduleDeltaSync(noticeId, fallbackHydrate = false) {
+        const s = state.current;
+        if (!s.alive || s.denied) return;
+        if (!noticeId) {
+            if (fallbackHydrate) {
+                if (s.loading) s.refreshAfterLoad = true;
+                else void hydrate();
+            }
+            return;
+        }
+        s.pendingDeltaIds.add(noticeId);
+        if (s.deltaTimer) clearTimeout(s.deltaTimer);
+        s.deltaTimer = setTimeout(() => {
+            s.deltaTimer = null;
+            if (!s.alive || s.denied) return;
+            const ids = [...s.pendingDeltaIds];
+            s.pendingDeltaIds.clear();
+            if (ids.length === 0) return;
+            if (ids.length > 6) {
+                if (s.loading) s.refreshAfterLoad = true;
+                else void hydrate();
+                return;
+            }
+            void Promise.allSettled(ids.map(id => request('POST', { id }, 'entry')))
+                .then(results => {
+                    if (!s.alive || s.denied) return;
+                    const entries = results
+                        .filter(r => r.status === 'fulfilled' && r.value?.entry)
+                        .map(r => r.value.entry);
+                    if (entries.length > 0) accept(entries);
+                });
+        }, 350);
+    }
+
     function enrichWithRoster(entries) {
         const byId = new Map((state.current.members || []).map(m => [m.user_id, m]));
         return entries.map(row => {
@@ -313,15 +462,16 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
         const oldest = state.current.rows.find(row => !row.is_deleted);
         const updates = enriched.filter(row => state.current.rows.some(old => old.id === row.id) || !oldest || compareNotices(row, oldest) >= 0);
         const knownIds = new Set(state.current.rows.map(row => row.id));
-        const hasNewEntries = updates.some(row => !row.is_deleted && !knownIds.has(row.id));
+        const newEntries = updates.filter(row => !row.is_deleted && !knownIds.has(row.id));
+        const hasNewEntries = newEntries.length > 0;
         state.current.rows = mergeNotices(state.current.rows, updates);
         setRows(state.current.rows);
         state.current.pinRows = mergeNotices(state.current.pinRows, enriched);
         setPins(pendingPins(state.current.pinRows));
         if (hasNewEntries) {
             const newest = state.current.rows.filter(r => !r.is_deleted).at(-1);
-            const hasNewFromOther = updates.some(row => !row.is_deleted && !knownIds.has(row.id) && row.author_id && row.author_id !== userId);
-            if (!bottom) setNewItems(true);
+            const hasNewFromOther = newEntries.some(row => row.author_id && row.author_id !== userId);
+            if (!bottom) setNewItemsCount(prev => prev + newEntries.length);
             else if (hasNewFromOther && (typeof document === 'undefined' || document.visibilityState === 'visible')) {
                 markBoardRead(newest?.id || null);
             }
@@ -354,6 +504,7 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
             s.pinRows = mergeNotices(page.pinned, s.events);
             setRows(s.rows);
             setPins(pendingPins(s.pinRows));
+            setScheduledNotices(Array.isArray(page.scheduledNotices) ? page.scheduledNotices : []);
             setCanManage(page.canManage);
             setViewerRole(page.viewerRole || null);
             applyMeta(page);
@@ -401,14 +552,18 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
                 scheduleMetaRefresh();
             }).on('postgres_changes', { event: '*', schema: 'public', table: 'cashout_requests', filter: `club_id=eq.${club.id}` }, () => {
                 scheduleMetaRefresh();
-            }).on('postgres_changes', { event: '*', schema: 'public', table: 'club_notice_board_reactions', filter: `club_id=eq.${club.id}` }, () => {
-                if (!s.alive || s.denied) return;
-                if (s.loading) s.refreshAfterLoad = true;
-                else void hydrate();
-            }).on('postgres_changes', { event: '*', schema: 'public', table: 'club_notice_board_reads', filter: `club_id=eq.${club.id}` }, () => {
-                if (!s.alive || s.denied) return;
-                if (s.loading) s.refreshAfterLoad = true;
-                else void hydrate();
+            }).on('postgres_changes', { event: '*', schema: 'public', table: 'club_notice_board_reactions', filter: `club_id=eq.${club.id}` }, event => {
+                scheduleDeltaSync(event.new?.notice_id || event.old?.notice_id, true);
+            }).on('postgres_changes', { event: '*', schema: 'public', table: 'club_notice_board_reads', filter: `club_id=eq.${club.id}` }, event => {
+                scheduleDeltaSync(event.new?.last_read_notice_id || event.old?.last_read_notice_id, true);
+            }).on('postgres_changes', { event: '*', schema: 'public', table: 'club_notice_board_replies', filter: `club_id=eq.${club.id}` }, event => {
+                const nid = event.new?.notice_id || event.old?.notice_id;
+                scheduleDeltaSync(nid, true);
+                if (nid) {
+                    setOpenThreads(prev => (prev[nid]?.open ? { ...prev, [nid]: { ...prev[nid], stale: true } } : prev));
+                }
+            }).on('postgres_changes', { event: '*', schema: 'public', table: 'club_notice_board_poll_votes', filter: `club_id=eq.${club.id}` }, event => {
+                scheduleDeltaSync(event.new?.notice_id || event.old?.notice_id, true);
             }).subscribe(status => {
                 if (!s.alive) return;
                 setLive(status === 'SUBSCRIBED');
@@ -441,6 +596,8 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
         return () => {
             s.alive = false; s.generation++; s.epoch++;
             if (s.metaTimer) { clearTimeout(s.metaTimer); s.metaTimer = null; }
+            if (s.deltaTimer) { clearTimeout(s.deltaTimer); s.deltaTimer = null; }
+            s.pendingDeltaIds?.clear();
             if (highlightTimer.current) clearTimeout(highlightTimer.current);
             stopUnreadSync?.();
             window.removeEventListener('offline', offline);
@@ -527,6 +684,204 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
         }
     }
 
+    async function loadReplies(noticeId) {
+        setOpenThreads(prev => ({
+            ...prev,
+            [noticeId]: { open: true, loading: true, replies: prev[noticeId]?.replies || [], stale: false },
+        }));
+        try {
+            const res = await request('POST', { id: noticeId }, 'list_replies');
+            if (res && state.current.alive) {
+                setOpenThreads(prev => ({
+                    ...prev,
+                    [noticeId]: { open: true, loading: false, replies: Array.isArray(res.replies) ? res.replies : [], stale: false },
+                }));
+            }
+        } catch (failure) {
+            if (state.current.alive) {
+                setOpenThreads(prev => ({
+                    ...prev,
+                    [noticeId]: { open: true, loading: false, replies: prev[noticeId]?.replies || [], stale: false },
+                }));
+                setError(failure.message);
+            }
+        }
+    }
+
+    function toggleThread(noticeId) {
+        const cur = openThreads[noticeId];
+        if (cur?.open && !cur.stale) {
+            setOpenThreads(prev => ({ ...prev, [noticeId]: { ...prev[noticeId], open: false } }));
+            return;
+        }
+        void loadReplies(noticeId);
+    }
+
+    useEffect(() => {
+        const staleId = Object.keys(openThreads).find(id => openThreads[id]?.open && openThreads[id]?.stale && !openThreads[id]?.loading);
+        if (staleId) void loadReplies(staleId);
+    }, [openThreads]);
+
+    async function submitReply(noticeId, event) {
+        event.preventDefault();
+        const text = String(replyDrafts[noticeId] || '').trim();
+        if (!text || replyBusyId) return;
+        setReplyBusyId(noticeId);
+        setError('');
+        try {
+            const res = await request('PATCH', { id: noticeId, reply_id: crypto.randomUUID(), content: text }, 'create_reply');
+            if (res?.entry && state.current.alive) {
+                accept([res.entry]);
+                setReplyDrafts(prev => ({ ...prev, [noticeId]: '' }));
+                await loadReplies(noticeId);
+            }
+        } catch (failure) {
+            if (state.current.alive) setError(failure.message);
+        } finally {
+            if (state.current.alive) setReplyBusyId(null);
+        }
+    }
+
+    async function deleteReply(noticeId, replyId) {
+        if (replyBusyId) return;
+        setReplyBusyId(replyId);
+        setError('');
+        try {
+            const res = await request('PATCH', { reply_id: replyId }, 'delete_reply');
+            if (res?.entry && state.current.alive) {
+                accept([res.entry]);
+                await loadReplies(noticeId);
+            }
+        } catch (failure) {
+            if (state.current.alive) setError(failure.message);
+        } finally {
+            if (state.current.alive) setReplyBusyId(null);
+        }
+    }
+
+    async function votePoll(noticeId, optionId) {
+        if (votingKey) return;
+        setVotingKey(`${noticeId}:${optionId}`);
+        setError('');
+        try {
+            const res = await request('PATCH', { id: noticeId, option_id: optionId }, 'vote_poll');
+            if (res?.entry && state.current.alive) accept([res.entry]);
+        } catch (failure) {
+            if (state.current.alive) setError(failure.message);
+        } finally {
+            if (state.current.alive) setVotingKey(null);
+        }
+    }
+
+    async function closePoll(noticeId) {
+        if (busy) return;
+        setBusy(true);
+        setError('');
+        try {
+            const res = await request('PATCH', { id: noticeId }, 'close_poll');
+            if (res?.entry && state.current.alive) accept([res.entry]);
+        } catch (failure) {
+            if (state.current.alive) setError(failure.message);
+        } finally {
+            if (state.current.alive) setBusy(false);
+        }
+    }
+
+    async function remindUnconfirmed(noticeId) {
+        if (remindingId) return;
+        setRemindingId(noticeId);
+        setError('');
+        try {
+            const res = await request('PATCH', { id: noticeId }, 'remind_unconfirmed');
+            if (res && state.current.alive) {
+                if (res.entry) accept([res.entry]);
+                const n = Number(res.reminded || 0);
+                setRemindFeedback(prev => ({
+                    ...prev,
+                    [noticeId]: n > 0 ? `Reminded ${n} Staff ${n === 1 ? 'Member' : 'Members'}` : 'All Staff Already Confirmed',
+                }));
+            }
+        } catch (failure) {
+            if (state.current.alive) setError(failure.message);
+        } finally {
+            if (state.current.alive) setRemindingId(null);
+        }
+    }
+
+    async function reorderPins(index, direction) {
+        const nextIdx = index + direction;
+        if (nextIdx < 0 || nextIdx >= orderedPins.length || busy) return;
+        const list = [...orderedPins];
+        const [moved] = list.splice(index, 1);
+        list.splice(nextIdx, 0, moved);
+        const noticeIds = list.map(p => p.id);
+        setBusy(true);
+        setError('');
+        try {
+            const res = await request('PATCH', { notice_ids: noticeIds }, 'reorder_pins');
+            if (res?.reordered && state.current.alive) {
+                const reordered = list.map((p, idx) => ({ ...p, pin_order: idx + 1 }));
+                state.current.pinRows = mergeNotices(state.current.pinRows, reordered);
+                setPins(pendingPins(state.current.pinRows));
+            }
+        } catch (failure) {
+            if (state.current.alive) setError(failure.message);
+        } finally {
+            if (state.current.alive) setBusy(false);
+        }
+    }
+
+    async function publishScheduledNow(noticeId) {
+        if (busy) return;
+        setBusy(true);
+        setError('');
+        try {
+            const res = await request('PATCH', { id: noticeId }, 'publish_now');
+            if (res?.entry && state.current.alive) {
+                setScheduledNotices(prev => prev.filter(item => item.id !== noticeId));
+                accept([res.entry]);
+            }
+        } catch (failure) {
+            if (state.current.alive) setError(failure.message);
+        } finally {
+            if (state.current.alive) setBusy(false);
+        }
+    }
+
+    async function cancelScheduledNotice(row) {
+        if (busy) return;
+        if (!window.confirm('Cancel This Scheduled Notice?')) return;
+        setBusy(true);
+        setError('');
+        try {
+            await request('DELETE', { id: row.id, version: row.version });
+            if (state.current.alive) {
+                setScheduledNotices(prev => prev.filter(item => item.id !== row.id));
+            }
+        } catch (failure) {
+            if (state.current.alive) setError(failure.message);
+        } finally {
+            if (state.current.alive) setBusy(false);
+        }
+    }
+
+    async function runServerSearch() {
+        const q = searchQuery.trim();
+        if (!q || serverSearchBusy) return;
+        setServerSearchBusy(true);
+        setError('');
+        try {
+            const res = await request('POST', { query: q, limit: 50 }, 'search');
+            if (res && state.current.alive) {
+                setServerSearchRows(Array.isArray(res.entries) ? res.entries : []);
+            }
+        } catch (failure) {
+            if (state.current.alive) setError(failure.message);
+        } finally {
+            if (state.current.alive) setServerSearchBusy(false);
+        }
+    }
+
     const ESCALATE_ERROR_COPY = {
         cashier_request_already_escalated: 'This Payout Request Was Already Escalated To The Club Bank.',
         cashier_request_already_terminal: 'This Payout Request Was Already Decided.',
@@ -571,54 +926,81 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
         }
     }
 
-    async function handlePhotoSelect(event) {
-        const file = event.target?.files?.[0];
-        if (event.target) event.target.value = '';
-        if (!file || attachments.length >= 4) return;
-        if (!file.type || !file.type.startsWith('image/')) {
-            setError('Only Image Files Are Supported For Notice Attachments.');
+    async function uploadAttachmentFile(rawFile) {
+        if (!rawFile || attachments.length >= 4) return;
+        const fallbackMime = rawFile.name?.toLowerCase().endsWith('.csv')
+            ? 'text/csv'
+            : rawFile.name?.toLowerCase().endsWith('.pdf')
+                ? 'application/pdf'
+                : rawFile.type || '';
+        const mimeType = (rawFile.type || fallbackMime).toLowerCase();
+        if (!ALLOWED_ATTACHMENT_MIME.test(mimeType)) {
+            setError('Only Images, PDF, And CSV Files Are Supported For Notice Attachments.');
             return;
         }
-        if (file.size > 10 * 1024 * 1024) {
-            setError('Image Attachment Too Large (Maximum 10MB).');
+        if (rawFile.size > 10 * 1024 * 1024) {
+            setError('Attachment Too Large (Maximum 10MB).');
             return;
         }
         setUploadingPhoto(true);
         setError('');
         try {
+            const file = mimeType.startsWith('image/') ? await compressImageIfSupported(rawFile) : rawFile;
+            const finalMime = (file.type || mimeType).toLowerCase();
             const token = getAccessToken();
             const res = await authedFetch('/api/social/upload-url', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
                 body: JSON.stringify({
-                    fileName: file.name || `notice_${Date.now()}.jpg`,
+                    fileName: file.name || `notice_${Date.now()}.${finalMime === 'application/pdf' ? 'pdf' : finalMime === 'text/csv' ? 'csv' : 'webp'}`,
                     fileSize: file.size,
-                    mimeType: file.type,
+                    mimeType: finalMime,
                     folder: 'messages',
                     prefix: userId,
                 }),
             });
             const data = await res.json();
             if (!res.ok || !data?.success || !data.signedUrl || !data.publicUrl) {
-                throw new Error(data?.error || 'Photo Upload Could Not Start.');
+                throw new Error(data?.error || 'Attachment Upload Could Not Start.');
             }
             const putRes = await fetch(data.signedUrl, {
                 method: 'PUT',
-                headers: { 'Content-Type': file.type },
+                headers: { 'Content-Type': finalMime },
                 body: file,
             });
-            if (!putRes.ok) throw new Error('Photo Upload Did Not Complete.');
+            if (!putRes.ok) throw new Error('Attachment Upload Did Not Complete.');
             if (state.current.alive) {
                 setAttachments(prev => [...prev.slice(0, 3), {
                     url: data.publicUrl,
-                    name: (file.name || 'Image').slice(0, 120),
-                    mime: file.type.slice(0, 64),
+                    name: (file.name || (finalMime === 'application/pdf' ? 'Document.pdf' : finalMime.startsWith('text/') ? 'Sheet.csv' : 'Image')).slice(0, 120),
+                    mime: finalMime.slice(0, 64),
                 }]);
             }
         } catch (failure) {
-            if (state.current.alive) setError(failure.message || 'Photo Upload Failed.');
+            if (state.current.alive) setError(failure.message || 'Attachment Upload Failed.');
         } finally {
             if (state.current.alive) setUploadingPhoto(false);
+        }
+    }
+
+    async function handlePhotoSelect(event) {
+        const file = event.target?.files?.[0];
+        if (event.target) event.target.value = '';
+        if (file) await uploadAttachmentFile(file);
+    }
+
+    function handleComposerPaste(event) {
+        const items = event.clipboardData?.items;
+        if (!items || uploadingPhoto || attachments.length >= 4) return;
+        for (const item of items) {
+            if (item.kind === 'file' && item.type && item.type.startsWith('image/')) {
+                const file = item.getAsFile();
+                if (file) {
+                    event.preventDefault();
+                    void uploadAttachmentFile(file);
+                    return;
+                }
+            }
         }
     }
 
@@ -628,11 +1010,16 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
         setSettingsBusy(true);
         setError('');
         try {
+            const hasQuietRole = Boolean(settingsDraft.quiet_hours_backup_role);
             const payload = {
                 overdue_threshold_hours: Number(settingsDraft.overdue_threshold_hours) || 4,
                 followup_threshold_hours: settingsDraft.followup_threshold_hours ? Number(settingsDraft.followup_threshold_hours) : null,
                 notify_admins: Boolean(settingsDraft.notify_admins),
                 auto_escalate_hours: settingsDraft.auto_escalate_hours ? Number(settingsDraft.auto_escalate_hours) : null,
+                quiet_hours_start: hasQuietRole ? Number(settingsDraft.quiet_hours_start ?? 23) : null,
+                quiet_hours_end: hasQuietRole ? Number(settingsDraft.quiet_hours_end ?? 7) : null,
+                quiet_hours_tz: settingsDraft.quiet_hours_tz || 'America/Chicago',
+                quiet_hours_backup_role: hasQuietRole ? settingsDraft.quiet_hours_backup_role : null,
             };
             const res = await request('PATCH', payload, 'update_alert_settings');
             if (res?.alertSettings && state.current.alive) {
@@ -698,7 +1085,29 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
             if (await mutate('PATCH', updatePayload)) { setEditing(null); setDraft(''); setAttachments([]); }
         } else {
             const shouldPin = kind === 'pending_payout' ? true : Boolean(pinOnPost);
-            const sig = JSON.stringify({ content, status: kind, is_pinned: shouldPin, attachments, mentionUserIds, mentionAll });
+            let pollPayload = null;
+            if (pollOpen) {
+                const q = pollQuestion.trim();
+                const cleanOpts = pollOptions.map(o => o.trim()).filter(Boolean);
+                if (!q || cleanOpts.length < 2) {
+                    setError('Poll Requires A Question And At Least 2 Options.');
+                    return;
+                }
+                pollPayload = { question: q, options: cleanOpts, allow_multiple: Boolean(pollAllowMultiple) };
+            }
+            let scheduledIso = null;
+            if (scheduleEnabled) {
+                const parsed = scheduledFor ? new Date(scheduledFor) : null;
+                if (!parsed || Number.isNaN(parsed.getTime()) || parsed.getTime() <= Date.now()) {
+                    setError('Scheduled Time Must Be In The Future.');
+                    return;
+                }
+                scheduledIso = parsed.toISOString();
+            }
+            const sig = JSON.stringify({
+                content, status: kind, is_pinned: shouldPin, attachments, mentionUserIds, mentionAll,
+                requireConfirmation, scheduledIso, pollPayload,
+            });
             if (!createIntent.current || createIntent.current._sig !== sig) {
                 createIntent.current = {
                     _sig: sig,
@@ -710,16 +1119,45 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
                         ...(attachments.length > 0 ? { attachments } : {}),
                         ...(mentionUserIds.length > 0 && !mentionAll ? { mention_user_ids: mentionUserIds } : {}),
                         ...(mentionAll ? { mention_all: true } : {}),
+                        ...(requireConfirmation ? { require_confirmation: true } : {}),
+                        ...(scheduledIso ? { scheduled_for: scheduledIso } : {}),
+                        ...(pollPayload ? { poll: pollPayload } : {}),
                     },
                 };
             }
-            if (await mutate('PUT', createIntent.current.payload)) {
+            if (scheduledIso) {
+                if (busy) return;
+                setBusy(true); setError('');
+                try {
+                    const res = await request('PUT', createIntent.current.payload);
+                    if (res?.entry && state.current.alive) {
+                        setScheduledNotices(prev => [...prev, res.entry].sort((a, b) => Date.parse(a.scheduled_for) - Date.parse(b.scheduled_for)));
+                        setScheduledExpanded(true);
+                        createIntent.current = null;
+                        setDraft(''); setPinOnPost(false); setAttachments([]); setMentionUserIds([]); setMentionAll(false);
+                        setRequireConfirmation(false); setScheduleEnabled(false); setScheduledFor('');
+                        setPollOpen(false); setPollQuestion(''); setPollOptions(['', '']); setPollAllowMultiple(false);
+                        setMentionPickerOpen(false);
+                    }
+                } catch (failure) {
+                    if (state.current.alive) setError(failure.message);
+                } finally {
+                    if (state.current.alive) setBusy(false);
+                }
+            } else if (await mutate('PUT', createIntent.current.payload)) {
                 createIntent.current = null;
                 setDraft('');
                 setPinOnPost(false);
                 setAttachments([]);
                 setMentionUserIds([]);
                 setMentionAll(false);
+                setRequireConfirmation(false);
+                setScheduleEnabled(false);
+                setScheduledFor('');
+                setPollOpen(false);
+                setPollQuestion('');
+                setPollOptions(['', '']);
+                setPollAllowMultiple(false);
                 setMentionPickerOpen(false);
             }
         }
@@ -768,6 +1206,9 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
     }, [pendingJumpId, rows, filterKind, searchQuery, memberFilter]);
 
     const visibleRows = useMemo(() => {
+        if (Array.isArray(serverSearchRows)) {
+            return serverSearchRows.filter(row => !row.is_deleted);
+        }
         const active = rows.filter(row => !row.is_deleted);
         const q = searchQuery.trim().toLowerCase();
         return active.filter(row => {
@@ -784,13 +1225,27 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
             const hay = [
                 row.content,
                 row.author_name,
+                row.poll?.question,
                 row.cashout?.player_name,
                 row.cashout?.player_note,
                 ...(Array.isArray(row.manager_notes) ? row.manager_notes.map(n => `${n.actor_name || ''} ${n.note || ''}`) : []),
             ].filter(Boolean).join(' ').toLowerCase();
             return hay.includes(q);
         });
-    }, [rows, filterKind, searchQuery, memberFilter]);
+    }, [rows, serverSearchRows, filterKind, searchQuery, memberFilter]);
+
+    const loadedDays = useMemo(() => {
+        const seen = new Set();
+        const list = [];
+        for (const r of visibleRows) {
+            const k = dayKey(r.created_at);
+            if (k && !seen.has(k)) {
+                seen.add(k);
+                list.push({ key: k, label: formatDayLabel(r.created_at), firstNoticeId: r.id });
+            }
+        }
+        return list;
+    }, [visibleRows]);
 
     const firstUnreadId = useMemo(() => {
         if (previousLastReadAt) {
@@ -835,7 +1290,7 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
     }, [members, userId, mentionFilter]);
 
     const memberSummary = formatMemberSummary(roleCounts, memberCount);
-    const orderedPins = useMemo(() => [...pins].reverse(), [pins]);
+    const orderedPins = useMemo(() => [...pins], [pins]);
     const currentPin = orderedPins[activePinIndex] || orderedPins[0] || null;
     const canConfigureAlerts = viewerRole === 'owner' || viewerRole === 'co_owner';
     const thresholdHours = alertSettings.overdue_threshold_hours || 4;
@@ -958,35 +1413,224 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
                             {formatShortTime(row.created_at)}{row.version > 1 && !row.cashout_id ? ' · Edited' : ''}
                         </time>
                     </div>
-                    <p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', lineHeight: 1.5, fontSize: 14, margin: '4px 0 8px' }}>
-                        {row.content}
-                    </p>
+                    {renderFormattedText(row.content, accentBlue)}
                     {rowAttachments.length > 0 && (
-                        <div style={{ display: 'grid', gridTemplateColumns: rowAttachments.length === 1 ? 'minmax(0, 260px)' : 'repeat(2, minmax(0, 150px))', gap: 6, margin: '6px 0 8px' }}>
-                            {rowAttachments.map((att, idx) => (
-                                <button
-                                    key={`${att.url}-${idx}`}
-                                    type="button"
-                                    onClick={() => setLightboxImage(att)}
-                                    aria-label={`View Attachment ${att.name || 'Image'}`}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, margin: '6px 0 8px' }}>
+                            {rowAttachments.some(a => !a.mime || a.mime.startsWith('image/')) && (
+                                <div style={{ display: 'grid', gridTemplateColumns: rowAttachments.filter(a => !a.mime || a.mime.startsWith('image/')).length === 1 ? 'minmax(0, 260px)' : 'repeat(2, minmax(0, 150px))', gap: 6 }}>
+                                    {rowAttachments.filter(a => !a.mime || a.mime.startsWith('image/')).map((att, idx) => (
+                                        <button
+                                            key={`${att.url}-${idx}`}
+                                            type="button"
+                                            onClick={() => setLightboxImage(att)}
+                                            aria-label={`View Attachment ${att.name || 'Image'}`}
+                                            style={{
+                                                padding: 0,
+                                                border: `1px solid ${C.border}`,
+                                                borderRadius: 8,
+                                                overflow: 'hidden',
+                                                background: C.bg,
+                                                cursor: 'pointer',
+                                                display: 'block',
+                                            }}
+                                        >
+                                            <img
+                                                src={att.url}
+                                                alt={att.name || 'Notice Attachment'}
+                                                style={{ width: '100%', maxHeight: 180, objectFit: 'cover', display: 'block' }}
+                                            />
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                            {rowAttachments.filter(a => a.mime && !a.mime.startsWith('image/')).map((att, idx) => (
+                                <a
+                                    key={`doc-${att.url}-${idx}`}
+                                    href={att.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
                                     style={{
-                                        padding: 0,
-                                        border: `1px solid ${C.border}`,
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: 8,
+                                        padding: '7px 10px',
                                         borderRadius: 8,
-                                        overflow: 'hidden',
-                                        background: C.bg,
-                                        cursor: 'pointer',
-                                        display: 'block',
+                                        border: `1px solid ${C.border}`,
+                                        background: subtleBg,
+                                        color: C.text,
+                                        fontSize: 12,
+                                        fontWeight: 600,
+                                        textDecoration: 'none',
+                                        maxWidth: '100%',
                                     }}
                                 >
-                                    <img
-                                        src={att.url}
-                                        alt={att.name || 'Notice Attachment'}
-                                        style={{ width: '100%', maxHeight: 180, objectFit: 'cover', display: 'block' }}
-                                    />
-                                </button>
+                                    <span aria-hidden="true">{att.mime === 'application/pdf' ? '📄' : '📊'}</span>
+                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{att.name || 'Download File'}</span>
+                                    <span style={{ marginLeft: 'auto', fontSize: 11, color: accentBlue, flexShrink: 0 }}>Open</span>
+                                </a>
                             ))}
                         </div>
+                    )}
+                    {/* Interactive Staff Poll */}
+                    {!pinned && row.poll && Array.isArray(row.poll.options) && (
+                        (() => {
+                            const pollResults = row.poll_results && typeof row.poll_results === 'object' ? row.poll_results : {};
+                            const myVotes = new Set(Array.isArray(row.my_poll_votes) ? row.my_poll_votes : []);
+                            const totalVotes = row.poll.options.reduce((sum, opt) => sum + Number(pollResults[opt.id] || 0), 0);
+                            const isClosed = Boolean(row.poll.closed);
+                            return (
+                                <div
+                                    data-testid="notice-poll"
+                                    style={{
+                                        margin: '8px 0',
+                                        padding: '10px 12px',
+                                        borderRadius: 10,
+                                        border: `1px solid ${C.border}`,
+                                        background: subtleBg,
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
+                                        <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+                                            {`📊 ${row.poll.question}`}
+                                        </div>
+                                        <span style={{ fontSize: 10, fontWeight: 700, color: isClosed ? C.textSec : accentBlue, whiteSpace: 'nowrap' }}>
+                                            {isClosed ? 'Poll Closed' : row.poll.allow_multiple ? 'Multi-Choice' : 'Single Choice'}
+                                        </span>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                        {row.poll.options.map(opt => {
+                                            const cnt = Number(pollResults[opt.id] || 0);
+                                            const pct = totalVotes > 0 ? Math.round((cnt / totalVotes) * 100) : 0;
+                                            const picked = myVotes.has(opt.id);
+                                            const isVoting = votingKey === `${row.id}:${opt.id}`;
+                                            return (
+                                                <button
+                                                    key={opt.id}
+                                                    type="button"
+                                                    disabled={isClosed || Boolean(votingKey)}
+                                                    aria-pressed={picked}
+                                                    onClick={() => void votePoll(row.id, opt.id)}
+                                                    style={{
+                                                        position: 'relative',
+                                                        overflow: 'hidden',
+                                                        width: '100%',
+                                                        textAlign: 'left',
+                                                        padding: '7px 10px',
+                                                        borderRadius: 8,
+                                                        border: `1px solid ${picked ? accentBlue : C.border}`,
+                                                        background: C.bg,
+                                                        color: C.text,
+                                                        cursor: isClosed ? 'default' : isVoting ? 'wait' : 'pointer',
+                                                        fontFamily: 'inherit',
+                                                        fontSize: 12,
+                                                    }}
+                                                >
+                                                    <span
+                                                        aria-hidden="true"
+                                                        style={{
+                                                            position: 'absolute',
+                                                            left: 0,
+                                                            top: 0,
+                                                            bottom: 0,
+                                                            width: `${pct}%`,
+                                                            background: picked ? 'rgba(0, 132, 255, 0.22)' : 'rgba(255, 255, 255, 0.07)',
+                                                            transition: 'width 0.2s ease',
+                                                        }}
+                                                    />
+                                                    <span style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center' }}>
+                                                        <span style={{ fontWeight: picked ? 700 : 500 }}>
+                                                            {`${picked ? '✓ ' : ''}${opt.label}`}
+                                                        </span>
+                                                        <span style={{ fontSize: 11, color: picked ? accentBlue : C.textSec, fontWeight: 700, whiteSpace: 'nowrap' }}>
+                                                            {`${cnt} (${pct}%)`}
+                                                        </span>
+                                                    </span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 8, fontSize: 11, color: C.textSec }}>
+                                        <span>{`${totalVotes} ${totalVotes === 1 ? 'Vote' : 'Votes'}`}</span>
+                                        {canManage && !isClosed && (
+                                            <button
+                                                type="button"
+                                                disabled={busy}
+                                                onClick={() => void closePoll(row.id)}
+                                                style={{ ...button, padding: '2px 8px', fontSize: 11 }}
+                                            >
+                                                Close Poll
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })()
+                    )}
+                    {/* Mandatory Staff Confirmation Campaign Banner */}
+                    {!pinned && row.require_confirmation && (
+                        (() => {
+                            const unconfirmedCount = Number(row.unconfirmed_count || 0);
+                            const unconfirmedUsers = Array.isArray(row.unconfirmed_users) ? row.unconfirmed_users : [];
+                            const targetTotal = Math.max(0, (totalStaff > 0 ? totalStaff - 1 : 0));
+                            const confirmedCount = Math.max(rx.ack, Math.max(0, targetTotal - unconfirmedCount));
+                            const isExpanded = expandedUnconfirmedId === row.id;
+                            return (
+                                <div
+                                    data-testid="notice-confirmation-campaign"
+                                    style={{
+                                        margin: '8px 0 4px',
+                                        padding: '7px 10px',
+                                        borderRadius: 8,
+                                        border: `1px solid ${unconfirmedCount === 0 ? 'rgba(34, 197, 94, 0.4)' : 'rgba(245, 158, 11, 0.4)'}`,
+                                        background: unconfirmedCount === 0 ? 'rgba(34, 197, 94, 0.08)' : 'rgba(245, 158, 11, 0.08)',
+                                        fontSize: 11,
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                                        <span style={{ fontWeight: 700, color: unconfirmedCount === 0 ? '#22c55e' : '#f59e0b' }}>
+                                            {unconfirmedCount === 0
+                                                ? `✓ Confirmation Complete (${confirmedCount} Confirmed)`
+                                                : `Confirmation Required · ${confirmedCount} Confirmed · ${unconfirmedCount} Pending`}
+                                        </span>
+                                        {canManage && unconfirmedCount > 0 && (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                                {unconfirmedUsers.length > 0 && (
+                                                    <button
+                                                        type="button"
+                                                        style={{ ...button, padding: '2px 7px', fontSize: 10 }}
+                                                        onClick={() => setExpandedUnconfirmedId(isExpanded ? null : row.id)}
+                                                    >
+                                                        {isExpanded ? 'Hide Pending' : `Pending (${unconfirmedCount})`}
+                                                    </button>
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    disabled={remindingId === row.id}
+                                                    style={{ ...button, padding: '2px 8px', fontSize: 10, borderColor: '#f59e0b', color: '#f59e0b', fontWeight: 700 }}
+                                                    onClick={() => void remindUnconfirmed(row.id)}
+                                                >
+                                                    {remindingId === row.id ? 'Reminding...' : 'Remind Unconfirmed Staff'}
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                    {remindFeedback[row.id] && (
+                                        <div style={{ marginTop: 4, color: '#22c55e', fontWeight: 600 }}>
+                                            {remindFeedback[row.id]}
+                                        </div>
+                                    )}
+                                    {canManage && isExpanded && unconfirmedUsers.length > 0 && (
+                                        <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                                            {unconfirmedUsers.map(u => (
+                                                <span key={u.user_id} style={{ padding: '2px 7px', borderRadius: 999, background: C.bg, border: `1px solid ${C.border}`, color: C.textSec, fontSize: 10 }}>
+                                                    {`${u.display_name} · ${formatRoleLabel(u.role)}`}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })()
                     )}
                     {row.cashout_id && (
                         <CashoutRequestActions
@@ -1049,6 +1693,28 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
                                     </button>
                                 );
                             })}
+                            <button
+                                type="button"
+                                aria-expanded={Boolean(openThreads[row.id]?.open)}
+                                onClick={() => toggleThread(row.id)}
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 4,
+                                    padding: '2px 8px',
+                                    borderRadius: 999,
+                                    fontSize: 11,
+                                    fontWeight: openThreads[row.id]?.open || Number(row.reply_count || 0) > 0 ? 700 : 500,
+                                    fontFamily: 'inherit',
+                                    cursor: 'pointer',
+                                    border: `1px solid ${openThreads[row.id]?.open ? accentBlue : C.border}`,
+                                    background: openThreads[row.id]?.open ? 'rgba(0, 132, 255, 0.16)' : 'transparent',
+                                    color: openThreads[row.id]?.open ? accentBlue : C.textSec,
+                                }}
+                            >
+                                <span>💬</span>
+                                <span>{Number(row.reply_count || 0) > 0 ? `Replies (${row.reply_count})` : 'Reply'}</span>
+                            </button>
                             {seenCount > 0 && (
                                 <span
                                     data-testid="notice-seen-count"
@@ -1058,6 +1724,94 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
                                     {`👁 ${seenCount}${totalStaff > 0 ? `/${totalStaff}` : ''} Seen`}
                                 </span>
                             )}
+                        </div>
+                    )}
+
+                    {/* Inline Reply Thread Preview & Expandable Drawer (All Active Staff Can Reply) */}
+                    {!pinned && !openThreads[row.id]?.open && Array.isArray(row.recent_replies) && row.recent_replies.length > 0 && (
+                        <button
+                            type="button"
+                            onClick={() => toggleThread(row.id)}
+                            style={{
+                                marginTop: 6,
+                                width: '100%',
+                                textAlign: 'left',
+                                padding: '6px 9px',
+                                borderRadius: 8,
+                                border: `1px solid ${C.border}66`,
+                                background: subtleBg,
+                                color: C.textSec,
+                                fontSize: 11,
+                                cursor: 'pointer',
+                                fontFamily: 'inherit',
+                            }}
+                        >
+                            {row.recent_replies.map(rp => (
+                                <div key={rp.id} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 2 }}>
+                                    <strong style={{ color: C.text }}>{rp.author_name || 'Staff'}:</strong> {rp.content}
+                                </div>
+                            ))}
+                        </button>
+                    )}
+                    {!pinned && openThreads[row.id]?.open && (
+                        <div
+                            data-testid="notice-reply-thread"
+                            style={{
+                                marginTop: 8,
+                                padding: '8px 10px',
+                                borderRadius: 10,
+                                border: `1px solid ${C.border}`,
+                                background: C.bg,
+                            }}
+                        >
+                            {openThreads[row.id]?.loading ? (
+                                <div style={{ fontSize: 11, color: C.textSec, padding: '4px 0' }}>Loading Replies...</div>
+                            ) : (openThreads[row.id]?.replies || []).length === 0 ? (
+                                <div style={{ fontSize: 11, color: C.textSec, padding: '4px 0' }}>No Replies Yet. Start A Staff Thread Below.</div>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
+                                    {(openThreads[row.id]?.replies || []).map(rp => (
+                                        <div key={rp.id} style={{ padding: '6px 8px', borderRadius: 8, background: surfaceBg, border: `1px solid ${C.border}88`, fontSize: 12 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                                                <strong style={{ fontSize: 11, color: C.text }}>{rp.author_name || 'Club Staff'}</strong>
+                                                {rp.author_role && rolePill(rp.author_role)}
+                                                <time style={{ marginLeft: 'auto', fontSize: 10, color: C.textSec }} dateTime={rp.created_at}>{formatShortTime(rp.created_at)}</time>
+                                                {rp.can_delete && (
+                                                    <button
+                                                        type="button"
+                                                        disabled={Boolean(replyBusyId)}
+                                                        aria-label="Delete Reply"
+                                                        onClick={() => void deleteReply(row.id, rp.id)}
+                                                        style={{ background: 'transparent', border: 'none', color: '#ef4444', fontSize: 11, cursor: 'pointer', padding: '0 2px' }}
+                                                    >
+                                                        ×
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <div style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', lineHeight: 1.4 }}>{rp.content}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            <form onSubmit={e => void submitReply(row.id, e)} style={{ display: 'flex', gap: 6 }}>
+                                <input
+                                    type="text"
+                                    aria-label="Write A Staff Reply"
+                                    placeholder="Reply In Thread..."
+                                    maxLength={1000}
+                                    value={replyDrafts[row.id] || ''}
+                                    onChange={e => setReplyDrafts(prev => ({ ...prev, [row.id]: e.target.value }))}
+                                    disabled={replyBusyId === row.id}
+                                    style={{ ...button, flex: 1, minWidth: 0, textAlign: 'left', padding: '6px 9px' }}
+                                />
+                                <button
+                                    type="submit"
+                                    disabled={replyBusyId === row.id || !String(replyDrafts[row.id] || '').trim()}
+                                    style={{ ...button, background: accentBlue, color: '#fff', borderColor: accentBlue, fontWeight: 700, padding: '6px 12px' }}
+                                >
+                                    {replyBusyId === row.id ? 'Sending...' : 'Reply'}
+                                </button>
+                            </form>
                         </div>
                     )}
 
@@ -1312,11 +2066,37 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
                             </button>
                         </div>
                         {pinsExpanded && (
-                            <div className="nb-scroller" style={{ maxHeight: 240, overflowY: 'auto', padding: '10px 14px', borderTop: `1px solid ${C.border}`, background: C.bg }}>
+                            <div className="nb-scroller" style={{ maxHeight: 260, overflowY: 'auto', padding: '10px 14px', borderTop: `1px solid ${C.border}`, background: C.bg }}>
                                 <h3 style={{ fontSize: 12, margin: '0 0 8px', color: accentBlue }}>
                                     Pinned Messages & Pending Payouts ({orderedPins.length})
                                 </h3>
-                                {orderedPins.map(row => card(row, true))}
+                                {orderedPins.map((row, pIdx) => (
+                                    <div key={`pinwrap-${row.id}`} style={{ position: 'relative' }}>
+                                        {canManage && orderedPins.length > 1 && (
+                                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 4, marginBottom: 4 }}>
+                                                <button
+                                                    type="button"
+                                                    disabled={busy || pIdx === 0}
+                                                    aria-label="Move Pin Up"
+                                                    onClick={() => void reorderPins(pIdx, -1)}
+                                                    style={{ ...button, padding: '2px 7px', fontSize: 10 }}
+                                                >
+                                                    ↑ Move Up
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    disabled={busy || pIdx === orderedPins.length - 1}
+                                                    aria-label="Move Pin Down"
+                                                    onClick={() => void reorderPins(pIdx, 1)}
+                                                    style={{ ...button, padding: '2px 7px', fontSize: 10 }}
+                                                >
+                                                    ↓ Move Down
+                                                </button>
+                                            </div>
+                                        )}
+                                        {card(row, true)}
+                                    </div>
+                                ))}
                             </div>
                         )}
                     </>
@@ -1428,6 +2208,57 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
                 </section>
             )}
 
+            {/* Management-Only Scheduled Notices Queue Banner */}
+            {canManage && scheduledNotices.length > 0 && (
+                <section
+                    aria-label="Scheduled Notices"
+                    style={{
+                        flexShrink: 0,
+                        padding: '8px 14px',
+                        borderBottom: `1px solid ${C.border}`,
+                        background: 'rgba(168, 85, 247, 0.10)',
+                    }}
+                >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: '#c084fc' }}>
+                            {`🕒 ${scheduledNotices.length} Scheduled ${scheduledNotices.length === 1 ? 'Notice' : 'Notices'} Queued`}
+                        </div>
+                        <button
+                            type="button"
+                            style={{ ...button, fontSize: 11, padding: '3px 8px', borderColor: 'rgba(168, 85, 247, 0.45)', color: '#c084fc' }}
+                            onClick={() => setScheduledExpanded(prev => !prev)}
+                        >
+                            {scheduledExpanded ? 'Hide Queue' : 'View Queue'}
+                        </button>
+                    </div>
+                    {scheduledExpanded && (
+                        <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            {scheduledNotices.map(item => (
+                                <div key={item.id} style={{
+                                    display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+                                    padding: '7px 10px', borderRadius: 8, background: surfaceBg, border: `1px solid ${C.border}`, fontSize: 12,
+                                }}>
+                                    <div style={{ minWidth: 0, flex: '1 1 180px' }}>
+                                        <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.content}</div>
+                                        <div style={{ fontSize: 11, color: '#c084fc', marginTop: 2 }}>
+                                            {`Publishes ${new Date(item.scheduled_for).toLocaleString()}`}
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 6 }}>
+                                        <button type="button" disabled={busy} style={{ ...button, padding: '4px 8px', fontSize: 11, borderColor: accentBlue, color: accentBlue, fontWeight: 700 }} onClick={() => void publishScheduledNow(item.id)}>
+                                            Publish Now
+                                        </button>
+                                        <button type="button" disabled={busy} style={{ ...button, padding: '4px 8px', fontSize: 11, color: '#ef4444' }} onClick={() => void cancelScheduledNotice(item)}>
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </section>
+            )}
+
             {/* Quick Filter, Member Filter, Alert Settings & Search Bar */}
             <div style={{
                 flexShrink: 0,
@@ -1528,24 +2359,49 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
                     </button>
                 </div>
                 {searchOpen && (
-                    <input
-                        type="search"
-                        aria-label="Filter Notice History"
-                        placeholder="Search Notices, Authors, Players..."
-                        value={searchQuery}
-                        onChange={e => setSearchQuery(e.target.value)}
-                        style={{
-                            width: '100%',
-                            boxSizing: 'border-box',
-                            border: `1px solid ${C.border}`,
-                            borderRadius: 8,
-                            background: surfaceBg,
-                            color: C.text,
-                            padding: '5px 10px',
-                            fontSize: 12,
-                            fontFamily: 'inherit',
-                        }}
-                    />
+                    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                            <input
+                                type="search"
+                                aria-label="Filter Notice History"
+                                placeholder="Search Notices, Polls, Authors, Players..."
+                                value={searchQuery}
+                                onChange={e => {
+                                    setSearchQuery(e.target.value);
+                                    if (!e.target.value.trim()) setServerSearchRows(null);
+                                }}
+                                onKeyDown={e => { if (e.key === 'Enter' && searchQuery.trim()) void runServerSearch(); }}
+                                style={{
+                                    flex: 1,
+                                    minWidth: 0,
+                                    boxSizing: 'border-box',
+                                    border: `1px solid ${C.border}`,
+                                    borderRadius: 8,
+                                    background: surfaceBg,
+                                    color: C.text,
+                                    padding: '5px 10px',
+                                    fontSize: 12,
+                                    fontFamily: 'inherit',
+                                }}
+                            />
+                            <button
+                                type="button"
+                                disabled={serverSearchBusy || !searchQuery.trim()}
+                                onClick={() => void runServerSearch()}
+                                style={{ ...button, padding: '5px 10px', fontSize: 11, borderColor: accentBlue, color: accentBlue, fontWeight: 700, whiteSpace: 'nowrap' }}
+                            >
+                                {serverSearchBusy ? 'Searching...' : 'Search Full History'}
+                            </button>
+                        </div>
+                        {Array.isArray(serverSearchRows) && (
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11, color: accentBlue, padding: '2px 4px' }}>
+                                <span>{`Full History Results: ${serverSearchRows.length} ${serverSearchRows.length === 1 ? 'Match' : 'Matches'}`}</span>
+                                <button type="button" style={{ ...button, padding: '2px 7px', fontSize: 10 }} onClick={() => { setServerSearchRows(null); setSearchQuery(''); }}>
+                                    Clear Search
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 )}
             </div>
 
@@ -1592,18 +2448,25 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
                         return (
                             <React.Fragment key={row.id}>
                                 {showDay && (
-                                    <div style={{ display: 'flex', justifyContent: 'center', margin: '10px 0 12px' }}>
-                                        <span style={{
-                                            fontSize: 11,
-                                            fontWeight: 600,
-                                            color: C.textSec,
-                                            background: surfaceBg,
-                                            border: `1px solid ${C.border}`,
-                                            borderRadius: 999,
-                                            padding: '2px 10px',
-                                        }}>
-                                            {formatDayLabel(row.created_at)}
-                                        </span>
+                                    <div style={{ display: 'flex', justifyContent: 'center', margin: '10px 0 12px', position: 'relative' }}>
+                                        <button
+                                            type="button"
+                                            aria-label="Jump To Date"
+                                            onClick={() => setDateMenuOpen(prev => !prev)}
+                                            style={{
+                                                fontSize: 11,
+                                                fontWeight: 600,
+                                                color: C.textSec,
+                                                background: surfaceBg,
+                                                border: `1px solid ${C.border}`,
+                                                borderRadius: 999,
+                                                padding: '2px 10px',
+                                                cursor: 'pointer',
+                                                fontFamily: 'inherit',
+                                            }}
+                                        >
+                                            {`${formatDayLabel(row.created_at)}${loadedDays.length > 1 ? ' ▾' : ''}`}
+                                        </button>
                                     </div>
                                 )}
                                 {showUnreadDivider && (
@@ -1622,9 +2485,48 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
                 )}
             </div>
 
-            {newItems && (
+            {dateMenuOpen && loadedDays.length > 0 && (
+                <div
+                    role="menu"
+                    aria-label="Jump To Day"
+                    style={{
+                        position: 'absolute',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        top: 136,
+                        zIndex: 20,
+                        background: surfaceBg,
+                        border: `1px solid ${C.border}`,
+                        borderRadius: 10,
+                        padding: 8,
+                        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: 6,
+                        maxWidth: 'calc(100% - 32px)',
+                    }}
+                >
+                    {loadedDays.map(day => (
+                        <button
+                            key={day.key}
+                            type="button"
+                            onClick={() => { setDateMenuOpen(false); jumpToNotice(day.firstNoticeId); }}
+                            style={{ ...button, padding: '4px 10px', fontSize: 11 }}
+                        >
+                            {day.label}
+                        </button>
+                    ))}
+                    <button type="button" onClick={() => setDateMenuOpen(false)} style={{ ...button, padding: '4px 8px', fontSize: 11, color: C.textSec }}>
+                        Close
+                    </button>
+                </div>
+            )}
+
+            {newItemsCount > 0 && (
                 <button
                     type="button"
+                    aria-label="Latest Notices"
+                    data-testid="notice-jump-new"
                     style={{
                         ...button,
                         position: 'absolute',
@@ -1640,12 +2542,12 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
                     }}
                     onClick={() => {
                         scroller.current.scrollTop = scroller.current.scrollHeight;
-                        setNewItems(false);
+                        setNewItemsCount(0);
                         const latest = state.current.rows.filter(r => !r.is_deleted).at(-1);
                         markBoardRead(latest?.id || null);
                     }}
                 >
-                    Latest Notices ↓
+                    {`↓ ${newItemsCount} New`}
                 </button>
             )}
 
@@ -1686,7 +2588,7 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
                     gap: 10,
                 }}>
                     <p style={{ margin: 0, color: C.textSec, fontSize: 12 }}>
-                        Read Only · Tap Confirm On Any Notice To Mark Read{viewerRole ? ` · Enrolled As ${formatRoleLabel(viewerRole)}` : ''}
+                        Read Only · Confirm Notices, Vote In Polls, Or Reply In Threads{viewerRole ? ` · Enrolled As ${formatRoleLabel(viewerRole)}` : ''}
                     </p>
                     <button type="button" style={{ ...button, fontSize: 11 }} onClick={() => setRosterOpen(true)}>
                         View Staff ({roleCounts.total || memberCount})
@@ -1703,7 +2605,7 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
                             <button type="button" style={button} onClick={() => { setEditing(null); setDraft(''); setAttachments([]); }}>Cancel Edit</button>
                         </div>
                     ) : (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                             <select
                                 aria-label="Notice Type"
                                 value={kind}
@@ -1718,14 +2620,23 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
                                 <option value="notice">Club Notice</option>
                                 <option value="pending_payout">Payout Request</option>
                             </select>
-                            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: pinOnPost || kind === 'pending_payout' ? accentBlue : C.textSec, cursor: 'pointer' }}>
+                            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: pinOnPost || kind === 'pending_payout' ? accentBlue : C.textSec, cursor: 'pointer' }}>
                                 <input
                                     type="checkbox"
                                     checked={kind === 'pending_payout' ? true : pinOnPost}
                                     disabled={busy || kind === 'pending_payout'}
                                     onChange={e => setPinOnPost(e.target.checked)}
                                 />
-                                📌 Pin To Top
+                                📌 Pin
+                            </label>
+                            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: requireConfirmation ? '#f59e0b' : C.textSec, cursor: 'pointer' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={requireConfirmation}
+                                    disabled={busy}
+                                    onChange={e => setRequireConfirmation(e.target.checked)}
+                                />
+                                ✅ Confirm Campaign
                             </label>
                             <button
                                 type="button"
@@ -1733,15 +2644,31 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
                                 onClick={() => photoInputRef.current?.click()}
                                 style={{ ...button, padding: '4px 8px', fontSize: 11 }}
                             >
-                                {uploadingPhoto ? 'Uploading...' : `📷 Photo${attachments.length > 0 ? ` (${attachments.length}/4)` : ''}`}
+                                {uploadingPhoto ? 'Uploading...' : `📎 Attach${attachments.length > 0 ? ` (${attachments.length}/4)` : ''}`}
                             </button>
                             <input
                                 ref={photoInputRef}
                                 type="file"
-                                accept="image/png,image/jpeg,image/gif,image/webp"
+                                accept="image/png,image/jpeg,image/gif,image/webp,application/pdf,text/csv,.pdf,.csv"
                                 style={{ display: 'none' }}
                                 onChange={e => void handlePhotoSelect(e)}
                             />
+                            <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => setPollOpen(prev => !prev)}
+                                style={{ ...button, padding: '4px 8px', fontSize: 11, borderColor: pollOpen ? accentBlue : C.border, color: pollOpen ? accentBlue : C.text }}
+                            >
+                                📊 Poll
+                            </button>
+                            <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => setScheduleEnabled(prev => !prev)}
+                                style={{ ...button, padding: '4px 8px', fontSize: 11, borderColor: scheduleEnabled ? '#c084fc' : C.border, color: scheduleEnabled ? '#c084fc' : C.text }}
+                            >
+                                🕒 Schedule
+                            </button>
                             <button
                                 type="button"
                                 disabled={busy}
@@ -1755,6 +2682,66 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
                                     {draft.length}/4000
                                 </span>
                             )}
+                        </div>
+                    )}
+
+                    {/* Optional Poll Builder */}
+                    {!editing && pollOpen && (
+                        <div style={{ marginBottom: 8, padding: 8, borderRadius: 8, border: `1px solid ${accentBlue}66`, background: C.bg, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11, fontWeight: 700, color: accentBlue }}>
+                                <span>📊 Staff Poll Builder</span>
+                                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 500, color: C.textSec, cursor: 'pointer' }}>
+                                    <input type="checkbox" checked={pollAllowMultiple} onChange={e => setPollAllowMultiple(e.target.checked)} />
+                                    Allow Multiple
+                                </label>
+                            </div>
+                            <input
+                                type="text"
+                                aria-label="Poll Question"
+                                placeholder="Poll Question..."
+                                maxLength={240}
+                                value={pollQuestion}
+                                onChange={e => setPollQuestion(e.target.value)}
+                                style={{ ...button, textAlign: 'left', padding: '5px 8px' }}
+                            />
+                            {pollOptions.map((opt, idx) => (
+                                <div key={idx} style={{ display: 'flex', gap: 6 }}>
+                                    <input
+                                        type="text"
+                                        aria-label={`Poll Option ${idx + 1}`}
+                                        placeholder={`Option ${idx + 1}`}
+                                        maxLength={120}
+                                        value={opt}
+                                        onChange={e => setPollOptions(prev => prev.map((v, i) => (i === idx ? e.target.value : v)))}
+                                        style={{ ...button, flex: 1, minWidth: 0, textAlign: 'left', padding: '4px 8px' }}
+                                    />
+                                    {pollOptions.length > 2 && (
+                                        <button type="button" style={{ ...button, padding: '4px 8px', color: '#ef4444' }} onClick={() => setPollOptions(prev => prev.filter((_, i) => i !== idx))}>×</button>
+                                    )}
+                                </div>
+                            ))}
+                            {pollOptions.length < 6 && (
+                                <button type="button" style={{ ...button, alignSelf: 'flex-start', padding: '3px 8px', fontSize: 11 }} onClick={() => setPollOptions(prev => [...prev, ''])}>
+                                    + Add Option
+                                </button>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Optional Scheduled Publish Picker */}
+                    {!editing && scheduleEnabled && (
+                        <div style={{ marginBottom: 8, padding: '6px 8px', borderRadius: 8, border: '1px solid rgba(168, 85, 247, 0.45)', background: C.bg, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, fontSize: 11 }}>
+                            <span style={{ color: '#c084fc', fontWeight: 700 }}>🕒 Publish At:</span>
+                            <input
+                                type="datetime-local"
+                                aria-label="Schedule Publish Time"
+                                value={scheduledFor}
+                                onChange={e => setScheduledFor(e.target.value)}
+                                style={{ ...button, padding: '4px 8px', fontSize: 11 }}
+                            />
+                            <button type="button" style={{ ...button, padding: '3px 7px', fontSize: 10 }} onClick={() => { setScheduleEnabled(false); setScheduledFor(''); }}>
+                                Clear Schedule
+                            </button>
                         </div>
                     )}
 
@@ -1791,21 +2778,29 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
                         </div>
                     )}
 
-                    {/* Pending Image Attachment Previews */}
+                    {/* Pending Attachment Previews (Images, PDF, CSV) */}
                     {attachments.length > 0 && (
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
                             {attachments.map((att, idx) => (
-                                <div key={`${att.url}-${idx}`} style={{ position: 'relative', width: 58, height: 58, borderRadius: 8, overflow: 'hidden', border: `1px solid ${C.border}` }}>
-                                    <img src={att.url} alt={att.name || 'Attachment'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                    <button
-                                        type="button"
-                                        aria-label="Remove Attachment"
-                                        onClick={() => setAttachments(prev => prev.filter((_, i) => i !== idx))}
-                                        style={{ position: 'absolute', top: 2, right: 2, width: 18, height: 18, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,0.75)', color: '#fff', fontSize: 11, cursor: 'pointer', padding: 0 }}
-                                    >
-                                        ×
-                                    </button>
-                                </div>
+                                att.mime && !att.mime.startsWith('image/') ? (
+                                    <div key={`${att.url}-${idx}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, fontSize: 11 }}>
+                                        <span>{att.mime === 'application/pdf' ? '📄' : '📊'}</span>
+                                        <span style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{att.name}</span>
+                                        <button type="button" aria-label="Remove Attachment" onClick={() => setAttachments(prev => prev.filter((_, i) => i !== idx))} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: 0, fontSize: 12 }}>×</button>
+                                    </div>
+                                ) : (
+                                    <div key={`${att.url}-${idx}`} style={{ position: 'relative', width: 58, height: 58, borderRadius: 8, overflow: 'hidden', border: `1px solid ${C.border}` }}>
+                                        <img src={att.url} alt={att.name || 'Attachment'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        <button
+                                            type="button"
+                                            aria-label="Remove Attachment"
+                                            onClick={() => setAttachments(prev => prev.filter((_, i) => i !== idx))}
+                                            style={{ position: 'absolute', top: 2, right: 2, width: 18, height: 18, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,0.75)', color: '#fff', fontSize: 11, cursor: 'pointer', padding: 0 }}
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                )
                             ))}
                         </div>
                     )}
@@ -1813,9 +2808,10 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
                     <div style={{ display: 'flex', gap: 8 }}>
                         <textarea
                             aria-label="Notice Text"
-                            placeholder="Write A Club Notice... Use @ To Ping An Agent"
+                            placeholder="Write A Club Notice... Supports **Bold**, - Bullets, @Mentions, Or Paste Images"
                             value={draft}
                             onChange={e => handleDraftChange(e.target.value)}
+                            onPaste={handleComposerPaste}
                             onKeyDown={e => {
                                 if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && draft.trim() && !busy && !uploadingPhoto) {
                                     void submit(e);
@@ -1829,9 +2825,9 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
                         <button
                             type="submit"
                             disabled={busy || uploadingPhoto || !draft.trim()}
-                            style={{ ...button, background: accentBlue, color: '#fff', borderColor: accentBlue, fontWeight: 700, padding: '8px 16px' }}
+                            style={{ ...button, background: scheduleEnabled ? '#9333ea' : accentBlue, color: '#fff', borderColor: scheduleEnabled ? '#9333ea' : accentBlue, fontWeight: 700, padding: '8px 16px' }}
                         >
-                            {busy ? 'Saving...' : editing ? 'Save' : 'Post'}
+                            {busy ? 'Saving...' : editing ? 'Save' : scheduleEnabled ? 'Schedule' : 'Post'}
                         </button>
                     </div>
                 </form>
@@ -2009,6 +3005,26 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
                                                     </span>
                                                 )}
                                             </div>
+                                            {canManage && member.sla && (
+                                                <div data-testid="agent-sla-scorecard" style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4, fontSize: 10 }}>
+                                                    <span style={{ padding: '1px 6px', borderRadius: 999, background: subtleBg, border: `1px solid ${C.border}`, color: C.textSec }}>
+                                                        {`30d Median: ${formatSlaMinutes(member.sla.median_minutes) || 'N/A'}`}
+                                                    </span>
+                                                    <span style={{ padding: '1px 6px', borderRadius: 999, background: subtleBg, border: `1px solid ${C.border}`, color: '#22c55e' }}>
+                                                        {`${member.sla.completed_30d || 0} Done`}
+                                                    </span>
+                                                    {Number(member.sla.overdue_30d || 0) > 0 && (
+                                                        <span style={{ padding: '1px 6px', borderRadius: 999, background: 'rgba(245, 158, 11, 0.14)', border: '1px solid rgba(245, 158, 11, 0.4)', color: '#f59e0b', fontWeight: 700 }}>
+                                                            {`${member.sla.overdue_30d} Overdue`}
+                                                        </span>
+                                                    )}
+                                                    {Number(member.sla.escalated_30d || 0) > 0 && (
+                                                        <span style={{ padding: '1px 6px', borderRadius: 999, background: 'rgba(239, 68, 68, 0.14)', border: '1px solid rgba(239, 68, 68, 0.4)', color: '#ef4444', fontWeight: 700 }}>
+                                                            {`${member.sla.escalated_30d} Escalated`}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
                                             <button
@@ -2121,6 +3137,74 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
                             />
                             <span>Also Notify Club Management And Admins On Overdue Payouts</span>
                         </label>
+                        <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>Optional Quiet Hours Backup Duty Routing</div>
+                            <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12 }}>
+                                <span style={{ fontWeight: 600 }}>Backup Role During Quiet Hours</span>
+                                <select
+                                    aria-label="Quiet Hours Backup Role"
+                                    value={settingsDraft.quiet_hours_backup_role ?? ''}
+                                    onChange={e => {
+                                        const val = e.target.value || null;
+                                        setSettingsDraft(prev => ({
+                                            ...prev,
+                                            quiet_hours_backup_role: val,
+                                            quiet_hours_start: val ? (prev.quiet_hours_start ?? 23) : null,
+                                            quiet_hours_end: val ? (prev.quiet_hours_end ?? 7) : null,
+                                        }));
+                                    }}
+                                    style={button}
+                                >
+                                    <option value="">Disabled (Off)</option>
+                                    <option value="co_owner">Alert CO Owners During Quiet Hours</option>
+                                    <option value="admin">Alert CO Owners And Admins During Quiet Hours</option>
+                                </select>
+                            </label>
+                            {settingsDraft.quiet_hours_backup_role && (
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 6 }}>
+                                    <label style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 11 }}>
+                                        <span>Start Hour</span>
+                                        <select
+                                            aria-label="Quiet Hours Start"
+                                            value={settingsDraft.quiet_hours_start ?? 23}
+                                            onChange={e => setSettingsDraft(prev => ({ ...prev, quiet_hours_start: Number(e.target.value) }))}
+                                            style={button}
+                                        >
+                                            {Array.from({ length: 24 }, (_, h) => (
+                                                <option key={h} value={h}>{`${String(h).padStart(2, '0')}:00`}</option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                    <label style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 11 }}>
+                                        <span>End Hour</span>
+                                        <select
+                                            aria-label="Quiet Hours End"
+                                            value={settingsDraft.quiet_hours_end ?? 7}
+                                            onChange={e => setSettingsDraft(prev => ({ ...prev, quiet_hours_end: Number(e.target.value) }))}
+                                            style={button}
+                                        >
+                                            {Array.from({ length: 24 }, (_, h) => (
+                                                <option key={h} value={h}>{`${String(h).padStart(2, '0')}:00`}</option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                    <label style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 11 }}>
+                                        <span>Time Zone</span>
+                                        <select
+                                            aria-label="Quiet Hours Time Zone"
+                                            value={settingsDraft.quiet_hours_tz || 'America/Chicago'}
+                                            onChange={e => setSettingsDraft(prev => ({ ...prev, quiet_hours_tz: e.target.value }))}
+                                            style={button}
+                                        >
+                                            <option value="America/Chicago">Central</option>
+                                            <option value="America/New_York">Eastern</option>
+                                            <option value="America/Los_Angeles">Pacific</option>
+                                            <option value="UTC">UTC</option>
+                                        </select>
+                                    </label>
+                                </div>
+                            )}
+                        </div>
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 4 }}>
                             <button type="button" style={button} disabled={settingsBusy} onClick={() => setSettingsOpen(false)}>Cancel</button>
                             <button type="submit" disabled={settingsBusy} style={{ ...button, background: accentBlue, color: '#fff', borderColor: accentBlue, fontWeight: 700 }}>

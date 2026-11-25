@@ -47,7 +47,7 @@ try:
   sql('INSERT INTO profiles(id,username,status) VALUES('+lit(u)+','+lit('Fixture '+role)+",'active');")
  sql('INSERT INTO clubs(id,name,owner_id,chip_treasury) VALUES('+','.join([lit(C),"'Fixture Club'",lit(OWNER),'500'])+'),('+','.join([lit(C2),"'Other Club'",lit(OTHER),'500'])+');')
  for u,role in [(OWNER,'owner'),(AGENT,'agent'),(PLAYER,'player'),(ADMIN,'admin'),(CO,'co_owner'),(SUPER,'super_agent'),(SUB,'sub_agent')]:
-  sql('INSERT INTO club_members(club_id,user_id,role,status,is_active,membership_lifecycle_status,agent_id,chip_balance) VALUES('+','.join([lit(C),lit(u),lit(role),"'active'",'true',"'active'",lit(AGENT) if u==PLAYER else 'NULL','1000'])+');')
+  sql('INSERT INTO club_members(club_id,user_id,role,status,is_active,membership_lifecycle_status,agent_id,chip_balance) VALUES('+','.join([lit(C),lit(u),lit(role),"'active'",'true',"'active'",lit(AGENT) if u==PLAYER else 'NULL','5000'])+');')
   if role in ['agent','super_agent','sub_agent']:
    sql('INSERT INTO agents(id,club_id,user_id,role,status,agent_wallet_balance) VALUES('+','.join([lit(op()),lit(C),lit(u),lit(role),"'active'",'0'])+');')
  legacy_message=op()
@@ -348,7 +348,153 @@ try:
  assert sql('SELECT count(*) FROM club_cashout_escalations WHERE cashout_id='+lit(h_p3['cashout_id'])+';')=='1'
  decide(h_p3,OWNER)
  cases.append('hardening pass enforces receipt-verified orphan-free auto-escalation, card can_escalate parity, reactions RLS, and attachment create-replay')
- print(json.dumps({'passed':True,'cases':cases,'migrations':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(list((R/'supabase/migrations').glob('20261117203*.sql'))+list((R/'supabase/migrations').glob('20261124*.sql')))},'scope':'Actual transition, ledger triggers, receipt/invoice validation; isolated invoice transport fixture; no production writes'}))
+
+ # Phase 4 full upgrade & hardening migration (20261125020000): strict >4h boundary,
+ # FOR SHARE SKIP LOCKED fulfillment race guard, Pass 0 3h agent pre-breach warning,
+ # silent auto-resolution on settlement, reply threads, interactive polls, confirmation
+ # campaigns, multi-pin reordering, scheduled notices, PDF/CSV attachments, incremental
+ # delta sync (entry), full-history search, management-only agent SLA scorecard, quiet-hours
+ # backup duty routing, and staff-scoped realtime RLS on reads/replies/poll_votes.
+ sql((R/'supabase/migrations/20261125020000_notice_board_phase4_full_upgrade_and_hardening.sql').read_text())
+ # 9. Strict < 4h / == 4h 00m 00s / > 4h boundary + Pass 0 3h agent-only pre-breach warning + silent auto-resolution.
+ board(OWNER,'update_alert_settings',{'overdue_threshold_hours':4,'followup_threshold_hours':None,'notify_admins':False,'auto_escalate_hours':None})
+ h_bound=hold('Strict 4h boundary and pre-breach test')
+ owner_notes_pre=int(sql("SELECT count(*) FROM notifications WHERE user_id="+lit(OWNER)+" AND type IN ('cashout_overdue','cashout_prebreach_warning');"))
+ sql("UPDATE cashout_requests SET created_at=clock_timestamp()-interval '3 hours 30 minutes' WHERE id="+lit(h_bound['cashout_id'])+';')
+ pre_res=json.loads(asuser(OWNER,'SELECT fn_notify_overdue_cashouts(4,200);',role='service_role').splitlines()[-1])
+ assert pre_res['prebreach_warned']==1 and pre_res['notified']==0 and pre_res['followups']==0 and pre_res['auto_escalated']==0,pre_res
+ assert int(sql("SELECT count(*) FROM notifications WHERE user_id="+lit(AGENT)+" AND type='cashout_prebreach_warning' AND data->>'cashout_id'="+lit(h_bound['cashout_id'])+';'))==1
+ assert int(sql("SELECT count(*) FROM notifications WHERE user_id="+lit(OWNER)+" AND type IN ('cashout_overdue','cashout_prebreach_warning');"))==owner_notes_pre
+ # Second scan at 3h30m is idempotent.
+ pre_res2=json.loads(asuser(OWNER,'SELECT fn_notify_overdue_cashouts(4,200);',role='service_role').splitlines()[-1])
+ assert pre_res2['prebreach_warned']==0 and pre_res2['notified']==0,pre_res2
+ # Exact 4h 00m 00s boundary (same transaction_timestamp): MUST NOT alert owner, MUST NOT allow owner escalation, MUST NOT appear in overduePayouts.
+ exact4=json.loads(sql("""
+  BEGIN;
+  UPDATE cashout_requests SET created_at = transaction_timestamp() - interval '4 hours' WHERE id = """ + lit(h_bound['cashout_id']) + """;
+  SELECT jsonb_build_object(
+   'scan', fn_notify_overdue_cashouts(4, 200),
+   'card', fn_notice_cashout_card(""" + lit(OWNER) + """, """ + lit(h_bound['cashout_id']) + """),
+   'board', fn_club_notice_board(""" + lit(OWNER) + """, """ + lit(C) + """, 'read', '{"refreshMeta":true}'::jsonb)
+  );
+  COMMIT;
+ """).splitlines()[-1])
+ assert exact4['scan']['notified']==0 and exact4['card']['can_escalate'] is False and exact4['board']['overduePayouts']==[],exact4
+ # Strictly > 4h (4h 00m 02s): notifies owner once and appears in overduePayouts.
+ sql("UPDATE cashout_requests SET created_at=clock_timestamp()-interval '4 hours 2 seconds' WHERE id="+lit(h_bound['cashout_id'])+';')
+ over4=json.loads(asuser(OWNER,'SELECT fn_notify_overdue_cashouts(4,200);',role='service_role').splitlines()[-1])
+ assert over4['notified']==1,over4
+ # Settling h_bound silently auto-resolves BOTH cashout_overdue and cashout_prebreach_warning notifications.
+ sql('UPDATE cashout_requests SET created_at=updated_at WHERE id='+lit(h_bound['cashout_id'])+';')
+ decide(h_bound,AGENT,'approve')
+ resolved_rows=json.loads(sql("SELECT jsonb_agg(jsonb_build_object('type',type,'status',data->>'resolution_status','label',data->>'resolution_label','has_ts',(data->>'resolved_at') IS NOT NULL)) FROM notifications WHERE type IN ('cashout_overdue','cashout_prebreach_warning') AND data->>'cashout_id'="+lit(h_bound['cashout_id'])+';'))
+ assert len(resolved_rows)==2 and all(r['status']=='approved' and r['label']=='Fulfilled By Agent' and r['has_ts'] for r in resolved_rows),resolved_rows
+ # True 2-connection fulfillment-vs-overdue-scan concurrency lock (FOR SHARE SKIP LOCKED):
+ # While Connection A holds FOR UPDATE on cashout_requests (simulating in-flight fulfillment),
+ # Connection B runs fn_notify_overdue_cashouts concurrently and skips immediately with 0 stale alerts.
+ h_race=hold('Fulfillment race test')
+ sql("UPDATE cashout_requests SET created_at=clock_timestamp()-interval '5 hours' WHERE id="+lit(h_race['cashout_id'])+';')
+ def hold_row_lock():
+  sql("BEGIN; SELECT 1 FROM cashout_requests WHERE id="+lit(h_race['cashout_id'])+" FOR UPDATE; SELECT pg_sleep(1.5); ROLLBACK;")
+ def scan_during_lock():
+  time.sleep(0.35)
+  t0=time.monotonic()
+  res=json.loads(asuser(OWNER,'SELECT fn_notify_overdue_cashouts(4,200);',role='service_role').splitlines()[-1])
+  return res, time.monotonic()-t0
+ with ThreadPoolExecutor(max_workers=2) as pool:
+  f_lock=pool.submit(hold_row_lock)
+  f_scan=pool.submit(scan_during_lock)
+  race_scan, scan_dt=f_scan.result()
+  f_lock.result()
+ assert race_scan['notified']==0 and race_scan['prebreach_warned']==0 and race_scan['auto_escalated']==0 and scan_dt<1.0,(race_scan,scan_dt)
+ sql('UPDATE cashout_requests SET created_at=updated_at WHERE id='+lit(h_race['cashout_id'])+';')
+ decide(h_race,AGENT,'release')
+ assert int(sql("SELECT count(*) FROM notifications WHERE type='cashout_overdue' AND data->>'cashout_id'="+lit(h_race['cashout_id'])+';'))==0
+ cases.append('Phase 4 enforces strict >4h boundary, 3h agent-only pre-breach warning, silent auto-resolution, and FOR SHARE SKIP LOCKED fulfillment race guard')
+
+ # 10. Quiet-hours backup duty routing (owner/co-owner configured, defaults OFF).
+ qh_cfg=board(OWNER,'update_alert_settings',{
+  'overdue_threshold_hours':4,'followup_threshold_hours':None,'notify_admins':False,'auto_escalate_hours':None,
+  'quiet_hours_start':0,'quiet_hours_end':0,'quiet_hours_tz':'America/Chicago','quiet_hours_backup_role':'co_owner'
+ })
+ assert qh_cfg['alertSettings']['quiet_hours_backup_role']=='co_owner' and qh_cfg['alertSettings']['quiet_hours_start']==0,qh_cfg
+ h_qh=hold('Quiet hours backup routing')
+ sql("UPDATE cashout_requests SET created_at=clock_timestamp()-interval '5 hours' WHERE id="+lit(h_qh['cashout_id'])+';')
+ qh_scan=json.loads(asuser(OWNER,'SELECT fn_notify_overdue_cashouts(4,200);',role='service_role').splitlines()[-1])
+ assert qh_scan['notified']==2,qh_scan  # OWNER + CO (not ADMIN since backup role is co_owner)
+ qh_recips=json.loads(sql("SELECT jsonb_agg(user_id ORDER BY user_id) FROM notifications WHERE type='cashout_overdue' AND data->>'cashout_id'="+lit(h_qh['cashout_id'])+';'))
+ assert sorted(qh_recips)==sorted([OWNER,CO]),qh_recips
+ sql('UPDATE cashout_requests SET created_at=updated_at WHERE id='+lit(h_qh['cashout_id'])+';')
+ decide(h_qh,AGENT,'release')
+ board(OWNER,'update_alert_settings',{'overdue_threshold_hours':4,'followup_threshold_hours':None,'notify_admins':False,'auto_escalate_hours':None,'quiet_hours_start':None,'quiet_hours_end':None,'quiet_hours_tz':'America/Chicago','quiet_hours_backup_role':None})
+ cases.append('Phase 4 optional quiet-hours backup duty routing dispatches to configured backup role only')
+
+ # 11. Threads, Polls, Mandatory Confirmation + Remind (24h limit), Multi-Pin Reorder, Scheduled Notices, PDF/CSV attachments, Delta entry, Full-History Search, SLA & RLS.
+ p4_notice=board(OWNER,'create',{
+  'id':op(),'content':'**Club Shift Policy**\n- Check Invoices Hourly\n- Visit https://smarter.poker/hub/messenger',
+  'status':'notice','is_pinned':True,'require_confirmation':True,
+  'attachments':[{'url':'https://example.com/payout-guide.pdf','name':'Payout-Guide.pdf','mime':'application/pdf'},{'url':'https://example.com/rates.csv','name':'Rates.csv','mime':'text/csv'}],
+  'poll':{'question':'Preferred Weekend Settlement Window?','options':['Friday 8 PM','Saturday 10 AM','Sunday 6 PM'],'allow_multiple':False},
+ })
+ assert p4_notice['require_confirmation'] is True and p4_notice['unconfirmed_count']>=1 and len(p4_notice['attachments'])==2 and p4_notice['poll']['question']=='Preferred Weekend Settlement Window?',p4_notice
+ # Unsupported attachment MIME rejected.
+ board(OWNER,'create',{'id':op(),'content':'Bad Mime','status':'notice','attachments':[{'url':'https://example.com/a.exe','name':'a.exe','mime':'application/x-msdownload'}]},error='Unsupported Attachment Type')
+ # Agent (read-only notice role) CAN post reply, vote in poll, and confirm notice.
+ r_entry=board(AGENT,'create_reply',{'id':p4_notice['id'],'reply_id':op(),'content':'Copy that, checking now!'})
+ assert r_entry['reply_count']==1 and len(r_entry['recent_replies'])==1 and r_entry['recent_replies'][0]['author_id']==AGENT,r_entry
+ rep_list=board(OWNER,'list_replies',{'id':p4_notice['id']})
+ assert len(rep_list['replies'])==1 and rep_list['replies'][0]['can_delete'] is True,rep_list
+ voted=board(AGENT,'vote_poll',{'id':p4_notice['id'],'option_id':'opt_1'})
+ assert voted['poll_results']['opt_1']==1 and voted['my_poll_votes']==['opt_1'],voted
+ # Switching single-choice poll vote moves vote cleanly.
+ voted2=board(AGENT,'vote_poll',{'id':p4_notice['id'],'option_id':'opt_2'})
+ assert voted2['poll_results']['opt_1']==0 and voted2['poll_results']['opt_2']==1 and voted2['my_poll_votes']==['opt_2'],voted2
+ closed_poll=board(OWNER,'close_poll',{'id':p4_notice['id']})
+ assert closed_poll['poll']['closed'] is True
+ board(AGENT,'vote_poll',{'id':p4_notice['id'],'option_id':'opt_0'},error='Poll Is Closed')
+ # Confirmation campaign reminder notifies unconfirmed staff once and enforces 24h rate limit.
+ rem1=board(OWNER,'remind_unconfirmed',{'id':p4_notice['id']})
+ assert rem1['reminded']>=1 and rem1['entry']['last_reminded_at'] is not None,rem1
+ board(OWNER,'remind_unconfirmed',{'id':p4_notice['id']},error='Already Reminded Within The Last 24 Hours')
+ # Multi-pin reordering.
+ p4_pin2=board(OWNER,'create',{'id':op(),'content':'Second Pinned Policy','status':'notice','is_pinned':True})
+ reord=board(OWNER,'reorder_pins',{'notice_ids':[p4_pin2['id'],p4_notice['id']]})
+ assert reord['reordered'] is True and reord['count']==2
+ owner_board_p4=board(OWNER,'read')
+ pinned_ids=[p['id'] for p in owner_board_p4['pinned']]
+ assert pinned_ids.index(p4_pin2['id'])<pinned_ids.index(p4_notice['id']),pinned_ids
+ # Scheduled notice is hidden from agents until publish_now, visible in management scheduledNotices.
+ sched_ts=sql("SELECT (clock_timestamp() + interval '2 hours')::text;")
+ sched=board(OWNER,'create',{'id':op(),'content':'Scheduled Announcement Tomorrow','status':'notice','is_pinned':False,'scheduled_for':sched_ts,'mention_user_ids':[AGENT]})
+ assert sched['scheduled_for'] is not None
+ assert any(s['id']==sched['id'] for s in board(OWNER,'read')['scheduledNotices'])
+ assert not any(e['id']==sched['id'] for e in board(AGENT,'read')['rows'])
+ board(AGENT,'entry',{'id':sched['id']},error='Entry Not Found')
+ pub_now=board(OWNER,'publish_now',{'id':sched['id']})
+ assert pub_now['scheduled_for'] is None
+ assert board(AGENT,'entry',{'id':sched['id']})['id']==sched['id']
+ # Full-history search & delta single-entry read.
+ srch=board(AGENT,'search',{'query':'Weekend Settlement'})
+ assert any(e['id']==p4_notice['id'] for e in srch['entries']),srch
+ delta=board(AGENT,'entry',{'id':p4_notice['id']})
+ assert delta['id']==p4_notice['id'] and delta['reply_count']==1
+ # Delete reply works for author.
+ del_rep=board(AGENT,'delete_reply',{'reply_id':rep_list['replies'][0]['id']})
+ assert del_rep['reply_count']==0
+ # Management-only 30-day Agent Fulfillment SLA scorecard.
+ owner_agent_member=[m for m in owner_board_p4['members'] if m['user_id']==AGENT][0]
+ agent_view_member=[m for m in board(AGENT,'read')['members'] if m['user_id']==AGENT][0]
+ assert owner_agent_member['sla'] is not None and owner_agent_member['sla']['completed_30d']>=1,owner_agent_member
+ assert agent_view_member['sla'] is None,agent_view_member
+ # Staff-scoped RLS on reads, replies, and poll_votes denies ordinary players.
+ assert int(asuser(AGENT,'SELECT count(*) FROM club_notice_board_reads WHERE club_id='+lit(C)+';').splitlines()[-1])>=1
+ assert int(asuser(PLAYER,'SELECT count(*) FROM club_notice_board_reads WHERE club_id='+lit(C)+';').splitlines()[-1])==0
+ assert int(asuser(AGENT,'SELECT count(*) FROM club_notice_board_poll_votes WHERE club_id='+lit(C)+';').splitlines()[-1])>=1
+ assert int(asuser(PLAYER,'SELECT count(*) FROM club_notice_board_poll_votes WHERE club_id='+lit(C)+';').splitlines()[-1])==0
+ assert int(asuser(PLAYER,'SELECT count(*) FROM club_notice_board_replies WHERE club_id='+lit(C)+';').splitlines()[-1])==0
+ cases.append('Phase 4 threads, polls, confirmation campaigns, pin reorder, scheduled notices, PDF/CSV attachments, search, delta entry, SLA scorecard, and staff RLS verified')
+
+ print(json.dumps({'passed':True,'cases':cases,'migrations':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(list((R/'supabase/migrations').glob('20261117203*.sql'))+list((R/'supabase/migrations').glob('20261124*.sql'))+list((R/'supabase/migrations').glob('20261125*.sql')))},'scope':'Actual transition, ledger triggers, receipt/invoice validation; isolated invoice transport fixture; no production writes'}))
 finally:
  if started:cmd('pg_ctl','-D',str(D/'data'),'-m','immediate','stop')
  import shutil;shutil.rmtree(D)

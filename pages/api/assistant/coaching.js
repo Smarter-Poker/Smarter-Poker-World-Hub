@@ -74,11 +74,25 @@ async function ownerRead(supabase, table, select, userId, configure = query => q
   return result.error ? [] : (result.data || []);
 }
 
+async function readReviewsWithBaseline(supabase, userId) {
+  const modernSelect = 'leak_id, due_at, reps, lapses, strong_streak, retired, last_score, history, last_outcome, schema_version, remediation_baseline_at, updated_at';
+  const legacySelect = 'leak_id, due_at, reps, lapses, strong_streak, retired, last_score, history, last_outcome, schema_version, updated_at';
+  const res = await supabase
+    .from('leak_review_state')
+    .select(modernSelect)
+    .eq('user_id', userId)
+    .order('due_at', { ascending: true })
+    .limit(500);
+  if (!res.error) return res.data || [];
+  if (!isMissingSchema(res.error)) throw res.error;
+  return ownerRead(supabase, 'leak_review_state', legacySelect, userId, query => query.order('due_at', { ascending: true }).limit(500));
+}
+
 async function readWorkspace(supabase, userId) {
   const [leakRows, decisions, reviews, goals, feedback, preferenceResult, auditResult] = await Promise.all([
     ownerRead(supabase, 'user_leaks', '*', userId, query => query.order('updated_at', { ascending: false }).limit(500)),
     ownerRead(supabase, 'hand_audit_decisions', 'hand_external_id, decision_key, question_id, game_id, street, hero_position, villain_position, spot_type, hero_hand, board_cards, player_action, solver_action, selected_frequency, optimal_frequency, classification, ev_loss, ev_loss_measured, solver_verified, solver_source, match_tier, audited_at', userId, query => query.order('audited_at', { ascending: false }).limit(DECISION_WINDOW_LIMIT)),
-    ownerRead(supabase, 'leak_review_state', 'leak_id, due_at, reps, lapses, strong_streak, retired, last_score, history, last_outcome, schema_version, updated_at', userId, query => query.order('due_at', { ascending: true }).limit(500)),
+    readReviewsWithBaseline(supabase, userId),
     ownerRead(supabase, 'pa_coaching_goals', 'id, leak_id, title, metric, target_value, current_value, status, due_at, created_at, updated_at', userId, query => query.order('created_at', { ascending: false }).limit(100)),
     ownerRead(supabase, 'pa_coach_feedback', 'id, leak_id, decision_key, feedback_type, note, status, created_at, updated_at', userId, query => query.order('created_at', { ascending: false }).limit(50)),
     supabase.from('pa_coaching_preferences').select('saved_view, analysis_depth, panel_layout, retention_days, last_retention_run_at, updated_at').eq('user_id', userId).maybeSingle(),
