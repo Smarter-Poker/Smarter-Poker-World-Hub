@@ -1,11 +1,21 @@
 import { after } from 'next/server';
 import { createClient } from '../../../../../src/lib/supabaseServerClient';
+import { checkSandboxAccess, isFeatureAccessible } from '../../../../../src/lib/personal-assistant/contextAuthority';
 import { openAuditJobToken, sealAuditJobToken } from '../../../../../src/lib/personal-assistant/auditJobToken.mjs';
 import {
   mergeAuditJobProgress,
   newWorkerToken,
   reconcileAuditEvidence,
 } from '../../../../../src/lib/personal-assistant/auditJobRuntime.mjs';
+
+const PRIVATE_NO_STORE_HEADERS = {
+  'Cache-Control': 'private, no-store, max-age=0',
+  'Vary': 'Authorization',
+};
+
+function jsonResponse(payload, status) {
+  return Response.json(payload, { status, headers: PRIVATE_NO_STORE_HEADERS });
+}
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -60,6 +70,19 @@ async function notifyCompletion(job, result) {
 
 async function processClaimedJob(job, workerToken, origin, { fullRescan = false } = {}) {
   const startedAt = Date.now();
+  const effectiveFullRescan = Boolean(fullRescan || job?.progress?.fullRescan);
+  // Enforce anti-RTA live-play/cooldown boundary inside the worker as well.
+  const access = await checkSandboxAccess(db(), job.user_id);
+  if (!access?.allowed || !isFeatureAccessible(access.accessLevel, 'leak_finder_detect')) {
+    await checkpoint(job.id, workerToken, {
+      status: 'queued',
+      stage: 'queued',
+      auditCursor: job.audit_cursor || null,
+      progress: { ...(job.progress || {}), ...(effectiveFullRescan ? { fullRescan: true } : {}), pausedForLivePlay: true },
+    });
+    return null;
+  }
+
   let response;
   let body = {};
   try {
@@ -70,7 +93,7 @@ async function processClaimedJob(job, workerToken, origin, { fullRescan = false 
       body: JSON.stringify({
         jobId: job.id,
         auditCursor: job.audit_cursor || null,
-        ...(fullRescan && !job.audit_cursor ? { fullRescan: true } : {}),
+        ...(effectiveFullRescan ? { fullRescan: true } : {}),
       }),
     });
     body = await response.json().catch(() => ({}));
@@ -194,7 +217,7 @@ async function processClaimedJob(job, workerToken, origin, { fullRescan = false 
 
 async function handlePost(request) {
   const token = openAuditJobToken(request.headers.get('x-pa-audit-worker'), 'kick');
-  if (!token) return Response.json({ success: false, error: 'Invalid worker token' }, { status: 401 });
+  if (!token) return jsonResponse({ success: false, error: 'Invalid worker token' }, 401);
   const requestBody = await request.json().catch(() => ({}));
   const fullRescan = requestBody?.fullRescan === true;
   const workerToken = newWorkerToken();
@@ -207,9 +230,9 @@ async function handlePost(request) {
     p_lease_seconds: 300,
   });
   const job = first(data);
-  if (error) return Response.json({ success: false, retryable: true, error: 'Audit claim failed' }, { status: 503 });
+  if (error) return jsonResponse({ success: false, retryable: true, error: 'Audit claim failed' }, 503);
   if (!job || job.user_id !== token.userId) {
-    return Response.json({ success: true, accepted: false, reason: 'already_claimed_or_finished' }, { status: 202 });
+    return jsonResponse({ success: true, accepted: false, reason: 'already_claimed_or_finished' }, 202);
   }
   const origin = new URL(request.url).origin;
   after(async () => {
@@ -222,7 +245,7 @@ async function handlePost(request) {
       // invocation guard after four pages and failed valid audits with 508.
       while (activeJob && batchesProcessed < MAX_BATCHES_PER_INVOCATION && Date.now() < deadline) {
         const outcome = await processClaimedJob(activeJob, workerToken, origin, {
-          fullRescan: fullRescan && batchesProcessed === 0,
+          fullRescan: Boolean(fullRescan || activeJob?.progress?.fullRescan),
         });
         activeJob = outcome?.continueJob || null;
         batchesProcessed += 1;
@@ -247,7 +270,7 @@ async function handlePost(request) {
       }
     }
   });
-  return Response.json({ success: true, accepted: true, jobId: job.id }, { status: 202 });
+  return jsonResponse({ success: true, accepted: true, jobId: job.id }, 202);
 }
 
 export async function POST(request) {
@@ -255,10 +278,10 @@ export async function POST(request) {
     return await handlePost(request);
   } catch (error) {
     console.warn('[PA Audit Worker] Request failed:', error?.message || error);
-    return Response.json({
+    return jsonResponse({
       success: false,
       retryable: true,
       error: 'The Audit Worker Could Not Accept This Checkpoint.',
-    }, { status: 503 });
+    }, 503);
   }
 }

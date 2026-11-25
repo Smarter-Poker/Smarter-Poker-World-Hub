@@ -128,8 +128,15 @@ export default function CoachingWorkspace({
       setWorkspace(payload);
       if (hydratedPrefsForUserRef.current !== userId) {
         hydratedPrefsForUserRef.current = userId;
+        const urlView = typeof window !== 'undefined'
+          ? new URLSearchParams(window.location.search).get('view')
+          : null;
         const saved = payload.preferences?.saved_view;
-        if (VIEWS.some(item => item.id === saved)) setView(saved);
+        if (urlView && VIEWS.some(item => item.id === urlView)) {
+          setView(urlView);
+        } else if (VIEWS.some(item => item.id === saved)) {
+          setView(saved);
+        }
         if (['guided', 'detailed', 'expert'].includes(payload.preferences?.analysis_depth)) {
           setAnalysisDepth(payload.preferences.analysis_depth);
         }
@@ -444,6 +451,7 @@ export default function CoachingWorkspace({
                               title: mod.title,
                               leakCategory: mod.category,
                               recommendedDrill: mod.trainingGameId,
+                              sourceSystem: 'solver_engine',
                             })}
                           >
                             Launch Targeted Drill
@@ -500,7 +508,19 @@ export default function CoachingWorkspace({
                   <button type="button" className={styles.primaryButton} disabled={examplesLoading} onClick={() => exactExample ? onReviewExample?.(selectedLeak, exactExample) : onOpenHandReview?.(selectedLeak)}>
                     {examplesLoading ? 'Loading Hand Evidence' : 'Open Audited Hand Review'}
                   </button>
-                  <button type="button" className={styles.secondaryButton} onClick={() => onTrain?.(selectedLeak)}>Open Training Game</button>
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={() => onTrain?.(selectedLeak || {
+                      id: selectedPriority.id,
+                      title: selectedPriority.title,
+                      leakCategory: selectedPriority.category,
+                      recommendedDrill: selectedPriority.recommendedDrill,
+                      sourceSystem: 'solver_engine',
+                    })}
+                  >
+                    Open Training Game
+                  </button>
                   <button type="button" className={styles.secondaryButton} onClick={() => onOpenLeak?.(selectedPriority.id)}>Open Leak Details</button>
                 </div>
                 {examplesError && <div className={styles.inlineNotice} role="status">Exact Hand Evidence Could Not Be Loaded. <button type="button" onClick={refetchExamples}>Retry</button></div>}

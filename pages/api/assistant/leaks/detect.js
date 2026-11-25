@@ -669,8 +669,13 @@ export default async function handler(req, res) {
       } else {
         const _token = req.headers.authorization?.replace('Bearer ', '');
         if (!_token) return res.status(401).json({ success: false, error: 'Authentication required' });
-        const { user: _authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-        if (authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+        const { user: _authUser, error: authErr, status: authStatus } = await getServerUserWithFallback(req, getSupabase());
+        if (authErr || !_authUser) {
+          return res.status(authStatus === 503 ? 503 : 401).json({
+            success: false,
+            error: authStatus === 503 ? 'Session verification unavailable' : 'Invalid token',
+          });
+        }
         authenticatedUser = _authUser;
         if (!await applyDurableRateLimit(getSupabase(), res, {
           key: `pa:leaks:detect:${_authUser.id}`, max: LEAK_AUDIT_LIMIT.max, windowSeconds: 60,
@@ -928,7 +933,15 @@ export default async function handler(req, res) {
       for (const factLeak of (caHandFactsResult?.detectedLeaks || [])) {
         if (detectedLeakTypeSet.has(factLeak.leak_type)) continue;
         const existingLeak = existingLeakMap[factLeak.leak_type];
-        const status = classifyLeakStatus(existingLeak, factLeak.current_frequency, factLeak.optimal_range);
+        // caHandFactsAnalyzer has already enforced opportunity-sample and pattern trigger gates.
+        // Use minDeviation: 2 for percentage patterns (ratio metrics like AF auto-use 0.3).
+        const isRatioRange = Array.isArray(factLeak.optimal_range) && Number(factLeak.optimal_range[1]) <= 10;
+        const status = classifyLeakStatus(
+          existingLeak,
+          factLeak.current_frequency,
+          factLeak.optimal_range,
+          isRatioRange ? {} : { minDeviation: 2 },
+        );
         if (!status) continue;
         const confidence = factLeak.total_samples >= 80 ? 'high' : factLeak.total_samples >= 40 ? 'medium' : 'low';
         detectedLeaks.push({
@@ -1116,9 +1129,50 @@ export default async function handler(req, res) {
       };
       const canResolveCaFactLeak = (leakType) => {
         if (!caHandFactsResult) return false;
-        if (String(leakType).startsWith('cash_')) return (caHandFactsResult.cash?.hands || 0) >= 100;
-        if (String(leakType).startsWith('mtt_')) return (caHandFactsResult.tournament?.hands || 0) >= 100;
-        return false;
+        const key = String(leakType || '');
+        let metrics = null;
+        let posMetrics = null;
+        let slug = '';
+        if (key.startsWith('cash_')) {
+          metrics = caHandFactsResult.cash;
+          posMetrics = caHandFactsResult.positions?.cash;
+          slug = key.slice('cash_'.length);
+        } else if (key.startsWith('mtt_short_')) {
+          metrics = caHandFactsResult.tournamentByStack?.short;
+          posMetrics = caHandFactsResult.positions?.tournament;
+          slug = key.slice('mtt_short_'.length);
+        } else if (key.startsWith('mtt_mid_')) {
+          metrics = caHandFactsResult.tournamentByStack?.mid;
+          posMetrics = caHandFactsResult.positions?.tournament;
+          slug = key.slice('mtt_mid_'.length);
+        } else if (key.startsWith('mtt_deep_')) {
+          metrics = caHandFactsResult.tournamentByStack?.deep;
+          posMetrics = caHandFactsResult.positions?.tournament;
+          slug = key.slice('mtt_deep_'.length);
+        } else if (key.startsWith('mtt_')) {
+          metrics = caHandFactsResult.tournament;
+          posMetrics = caHandFactsResult.positions?.tournament;
+          slug = key.slice('mtt_'.length);
+        } else {
+          return false;
+        }
+        if (!metrics || (metrics.hands || 0) < 30) return false;
+        // Require the exact pattern's opportunity denominator to meet its sample gate
+        // before auto-resolving so a temporary dip in opportunities never falsely resolves a leak.
+        const gateBySlug = {
+          blind_defense_too_tight: (metrics.blindDefenseOpps || 0) >= 30,
+          steal_too_rare: (metrics.stealOpps || 0) >= 30,
+          squeeze_too_rare: (metrics.squeezeOpps || 0) >= 20,
+          fold_to_3bet_too_high: (metrics.facedThreeBet || 0) >= 25,
+          turn_barrel_too_rare_facts: (metrics.barrelTurnOpps || 0) >= 25,
+          river_barrel_too_rare_facts: (metrics.barrelRiverOpps || 0) >= 20,
+          check_raise_too_rare_facts: (metrics.checkRaiseOpps || 0) >= 25,
+          passive_turn_river: (metrics.turnRiverActions || 0) >= 30,
+          passive_postflop_facts: (metrics.postflopActions || 0) >= 40,
+          btn_too_tight: (posMetrics?.BTN?.hands || 0) >= 40,
+          utg_too_loose: (posMetrics?.UTG?.hands || 0) >= 40,
+        };
+        return slug in gateBySlug ? gateBySlug[slug] : (metrics.hands || 0) >= 100;
       };
       const resolutionCandidates = Object.entries(existingLeakMap || {})
         .filter(([leakType, existingLeak]) =>
@@ -1402,13 +1456,17 @@ export async function linkHandExamples(userId, leaksWithIds, db = getSupabase())
       console.warn('[LeakDetect] Batch example upsert failed, falling back:', upsertErr.message);
       let linked = 0;
       for (const example of examples) {
-        const { data: existing } = await db
+        const { data: existing, error: selErr } = await db
           .from('leak_hand_examples')
           .select('id')
           .eq('leak_id', example.leak_id)
           .eq('hand_history_id', example.hand_history_id)
           .maybeSingle();
 
+        if (selErr) {
+          console.warn('[LeakDetect] Failed to verify existing hand example:', selErr.message);
+          return { persisted: false, linked, reason: 'example_read_failed' };
+        }
         if (existing) {
           linked += 1;
         } else {

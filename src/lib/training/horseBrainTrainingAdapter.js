@@ -1314,3 +1314,181 @@ export function evaluateDoubleBoardBombPot({
     coachingExplanation,
   };
 }
+
+/**
+ * Phase 13 Item 15: Multi-Way (3-Way & 4-Way) Postflop Pot Evaluation
+ * Adjusts Horse Brain continuation-betting, bluffing, and defense thresholds
+ * for multi-villain equity protection (2-Way Heads-Up vs 3-Way vs 4-Way pots).
+ */
+export function evaluateMultiwayPostflopSpot({
+  gameId = 'cash-005',
+  variant = 'nlh',
+  bettingStructure = null,
+  format = 'cash',
+  street = 'flop',
+  activePlayerCount = 3,
+  heroCards = ['As', 'Kd'],
+  boardCards = ['Qs', '8s', '3d'],
+  potSizeBb = 12,
+  facingBetBb = 4,
+  effectiveStackBb = 100,
+  heroPosition = 'BTN',
+  villainPosition = 'BB',
+} = {}) {
+  const cleanPlayers = Math.max(2, Math.min(6, Math.round(Number(activePlayerCount) || 2)));
+  const baseEval = evaluateTrainingSpotWithHorseBrain({
+    gameId,
+    variant,
+    bettingStructure,
+    format,
+    street,
+    heroCards,
+    boardCards,
+    potSizeBb,
+    facingBetBb,
+    effectiveStackBb,
+    heroPosition,
+    villainPosition,
+  });
+
+  const rawScore = Number(baseEval?.handScore ?? 50);
+  const extraVillains = Math.max(0, cleanPlayers - 2);
+  // Each additional active player in a postflop pot increases multiway equity burden
+  // and reduces raw single-pair / non-nut bluff equity by ~7 points per extra player
+  const multiwayPenalty = extraVillains * 7;
+  const adjustedHandScore = Math.max(10, Math.min(100, rawScore - multiwayPenalty));
+  const baseMdfPct = Math.round((1 - (Math.max(0, Number(facingBetBb) || 0) / Math.max(1, Number(potSizeBb) + Math.max(0, Number(facingBetBb) || 0)))) * 1000) / 10;
+  // Multiway defense frequency splits burden across (N - 1) defenders: MDF_multiway = MDF_hu / (N - 1)
+  const multiwayMdfPct = Number((baseMdfPct / Math.max(1, cleanPlayers - 1)).toFixed(1));
+
+  let recommendedAction = baseEval?.recommendedAction || 'Check';
+  if (extraVillains >= 1 && adjustedHandScore < 54 && Number(facingBetBb) > 0) {
+    recommendedAction = 'Fold (Multiway Tightened)';
+  } else if (extraVillains >= 1 && adjustedHandScore < 58 && Number(facingBetBb) <= 0) {
+    recommendedAction = 'Check (Multiway Pot Control)';
+  }
+
+  const multiwayLabel = cleanPlayers === 2
+    ? '2-Way Heads-Up Postflop'
+    : `${cleanPlayers}-Way Multiway Pot · Equity Protection Active`;
+
+  return {
+    ok: true,
+    variant: baseEval?.variant || normalizeVariant(variant),
+    engineModule: baseEval?.engineModule || 'holdem-brain.js',
+    activePlayerCount: cleanPlayers,
+    extraVillains,
+    isMultiway: cleanPlayers >= 3,
+    multiwayLabel,
+    baseHandScore: rawScore,
+    adjustedHandScore,
+    multiwayPenalty,
+    baseMdfPct,
+    headsUpMdfPct: baseMdfPct,
+    multiwayMdfPct,
+    recommendedAction,
+    coachingNote: `${multiwayLabel}: With ${cleanPlayers} active players seeing the ${street}, defense burden drops from ${baseMdfPct}% to ${multiwayMdfPct}% per player (-${multiwayPenalty} pts non-nut discount). Recommended Play: ${recommendedAction}.`,
+  };
+}
+
+/**
+ * Phase 13 Item 2 & 16: Full-Hand Multi-Street Playthrough & Street-Rewind Line Sandbox
+ * Evaluates a complete Preflop -> Flop -> Turn -> River hand line or compares two alternate branches.
+ */
+export function evaluateFullHandLineAndBranchComparison({
+  gameId = 'cash-005',
+  variant = 'nlh',
+  bettingStructure = null,
+  format = 'cash',
+  heroCards = ['As', 'Kd'],
+  fullBoardCards = ['Qs', '8s', '3d', 'Jh', '2c'],
+  heroPosition = 'BTN',
+  villainPosition = 'BB',
+  basePotBb = 6.5,
+  effectiveStackBb = 100,
+  chosenBranch = 'aggressive_line',
+} = {}) {
+  const normVariant = normalizeVariant(variant);
+  const cleanBoard = Array.isArray(fullBoardCards) && fullBoardCards.length >= 5
+    ? fullBoardCards.slice(0, 5)
+    : ['Qs', '8s', '3d', 'Jh', '2c'];
+
+  const streetConfigs = [
+    { street: 'preflop', board: [], potBb: 2.5, toCallBb: 1.5 },
+    { street: 'flop', board: cleanBoard.slice(0, 3), potBb: Number(basePotBb) || 6.5, toCallBb: 0 },
+    { street: 'turn', board: cleanBoard.slice(0, 4), potBb: Number(((Number(basePotBb) || 6.5) * 2.1).toFixed(1)), toCallBb: 4 },
+    { street: 'river', board: cleanBoard.slice(0, 5), potBb: Number(((Number(basePotBb) || 6.5) * 4.2).toFixed(1)), toCallBb: 9 },
+  ];
+
+  const streetEvaluations = streetConfigs.map((cfg) => {
+    const ev = evaluateTrainingSpotWithHorseBrain({
+      gameId,
+      variant: normVariant,
+      bettingStructure,
+      format,
+      street: cfg.street,
+      heroCards,
+      boardCards: cfg.board,
+      potSizeBb: cfg.potBb,
+      facingBetBb: cfg.toCallBb,
+      effectiveStackBb,
+      heroPosition,
+      villainPosition,
+    });
+    const topActionEv = Number(ev?.actionEVs?.[ev?.correctAnswer] ?? 1.25);
+    return {
+      street: cfg.street,
+      boardCards: cfg.board,
+      potBb: cfg.potBb,
+      recommendedAction: ev?.recommendedAction || 'Check',
+      handScore: Number(ev?.handScore ?? 55),
+      madeHandCategory: ev?.madeHandCategory || 'Made Hand',
+      optimalEvBb: Number(topActionEv.toFixed(2)),
+    };
+  });
+
+  const aggressiveLineEvBb = Number(
+    streetEvaluations.reduce((sum, s) => sum + s.optimalEvBb, 0).toFixed(2),
+  );
+  const passivePotControlEvBb = Number((aggressiveLineEvBb * 0.78).toFixed(2));
+  const bluffCatchLineEvBb = Number((aggressiveLineEvBb * 0.86).toFixed(2));
+
+  const branchesMap = {
+    aggressive_line: {
+      key: 'aggressive_line',
+      branchId: 'aggressive_line',
+      label: 'GTO Aggressive Value / Barrel Line',
+      totalEvBb: aggressiveLineEvBb,
+      evDeltaVsOptimalBb: 0,
+    },
+    pot_control_line: {
+      key: 'pot_control_line',
+      branchId: 'pot_control_line',
+      label: 'Check-Call Pot-Control Branch',
+      totalEvBb: passivePotControlEvBb,
+      evDeltaVsOptimalBb: Number((passivePotControlEvBb - aggressiveLineEvBb).toFixed(2)),
+    },
+    bluff_catch_line: {
+      key: 'bluff_catch_line',
+      branchId: 'bluff_catch_line',
+      label: 'Delayed Turn Probe / River Bluff-Catch Branch',
+      totalEvBb: bluffCatchLineEvBb,
+      evDeltaVsOptimalBb: Number((bluffCatchLineEvBb - aggressiveLineEvBb).toFixed(2)),
+    },
+  };
+
+  const branches = Object.values(branchesMap);
+  const activeBranch = branchesMap[chosenBranch] || branchesMap.aggressive_line;
+
+  return {
+    ok: true,
+    variant: normVariant,
+    engineModule: streetEvaluations[1]?.engineModule || 'holdem-brain.js',
+    streetEvaluations,
+    branches,
+    branchesMap,
+    activeBranch,
+    optimalTotalEvBb: aggressiveLineEvBb,
+  };
+}
+

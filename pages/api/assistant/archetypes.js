@@ -64,6 +64,7 @@ export default async function handler(req, res) {
   try {
     if (req.method !== 'GET') {
       res.setHeader('Allow', 'GET');
+      res.setHeader('Cache-Control', 'no-store');
       return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
@@ -130,6 +131,7 @@ export default async function handler(req, res) {
   } catch (err) {
       try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
     console.warn('[API Error]', err);
+    res.setHeader('Cache-Control', 'no-store');
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

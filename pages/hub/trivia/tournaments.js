@@ -218,6 +218,7 @@ function TournamentPageExperience({ user, authLoading }) {
     const [reviewSessionId, setReviewSessionId] = useState('');
 
     const bracketTouchedRef = useRef(false);
+    const desktopDefaultAppliedRef = useRef(false);
     const autoResumeRef = useRef(new Set());
     const timeoutSentRef = useRef(null);
     const answerNonceRef = useRef(new Map());
@@ -234,14 +235,33 @@ function TournamentPageExperience({ user, authLoading }) {
 
     useEffect(() => () => requestAuthorityRef.current.invalidateAll(), []);
 
+    // Single authoritative URL-tab resolver: explicit deep-link query params
+    // (?tab=club-nights, ?clubCode=..., ?challenge=...) ALWAYS take precedence
+    // over the desktop min-width: 900px 'bracket' default.
     useEffect(() => {
         if (!router.isReady) return;
-        const tabParam = typeof router.query?.tab === 'string' ? router.query.tab.trim() : '';
+        const tabParam = typeof router.query?.tab === 'string' ? router.query.tab.trim().toLowerCase() : '';
         const clubCodeParam = typeof router.query?.clubCode === 'string' ? router.query.clubCode.trim() : '';
+        const challengeParam = typeof router.query?.challenge === 'string' ? router.query.challenge.trim() : '';
         if (tabParam === 'club-nights' || clubCodeParam) {
+            desktopDefaultAppliedRef.current = true;
             setActiveTab('club-nights');
+            return;
         }
-    }, [router.isReady, router.query?.clubCode, router.query?.tab]);
+        if (challengeParam) {
+            desktopDefaultAppliedRef.current = true;
+            setActiveTab('challenges');
+            return;
+        }
+        if (
+            !desktopDefaultAppliedRef.current
+            && typeof window !== 'undefined'
+            && window.matchMedia('(min-width: 900px)').matches
+        ) {
+            desktopDefaultAppliedRef.current = true;
+            setActiveTab('bracket');
+        }
+    }, [router.isReady, router.query?.challenge, router.query?.clubCode, router.query?.tab]);
 
     useEffect(() => {
         journeyTrackerRef.current.track('nightly_tournament', 'impression', {
@@ -313,6 +333,8 @@ function TournamentPageExperience({ user, authLoading }) {
         setSelectedAnswer(null);
         setPlayError('');
         setDialogError(null);
+        setShareCardOpen(false);
+        setReviewSessionId('');
         setBracketRound(1);
         setBracketQuery('');
         setFieldQuery('');
@@ -379,14 +401,6 @@ function TournamentPageExperience({ user, authLoading }) {
             window.removeEventListener('offline', handleOffline);
         };
     }, []);
-
-    useEffect(() => {
-        if (typeof router.query?.challenge === 'string' && router.query.challenge.trim()) {
-            setActiveTab('challenges');
-            return;
-        }
-        if (typeof window !== 'undefined' && window.matchMedia('(min-width: 900px)').matches) setActiveTab('bracket');
-    }, [router.query?.challenge]);
 
     const loadSchedule = useCallback(async (signal, requestLease) => {
         const payload = await nightlyRequest('schedule', { params: { days: 8 }, signal });
@@ -1023,6 +1037,25 @@ function TournamentPageExperience({ user, authLoading }) {
 
     const viewState = tournamentViewState({ tournament, myRun, receipt, session, nowMs });
     const title = tournament?.name || 'Nightly Trivia Tournament';
+    const reviewableHistoryRounds = useMemo(
+        () => (Array.isArray(myRun?.history) ? myRun.history.filter(row => Boolean(row?.sessionId)) : []),
+        [myRun?.history],
+    );
+    const settledShareSessionId = reviewableHistoryRounds.length > 0
+        ? reviewableHistoryRounds[reviewableHistoryRounds.length - 1].sessionId
+        : null;
+    const isSettledOrEliminated = Boolean(
+        tournament?.state === 'settled'
+        || myRun?.entrant?.status === 'eliminated'
+        || myRun?.entrant?.status === 'champion'
+        || ['settled', 'eliminated', 'champion', 'paid'].includes(viewState),
+    );
+    const canShareResult = Boolean(
+        signedIn
+        && myRun?.entered
+        && isSettledOrEliminated
+        && !['registration', 'scheduled', 'held'].includes(tournament?.state),
+    );
     const entryDialogAction = tournamentEntryDialogAction(dialogError?.code);
     const terminalDialog = entryDialogAction === 'diamonds';
     const dialogPrimaryAction = entryDialogAction === 'diamonds'
@@ -1189,20 +1222,25 @@ function TournamentPageExperience({ user, authLoading }) {
                                         onResume={() => openOrResume('view')}
                                     />
                                 </div>
-                                {signedIn && (myRun?.entered || tournament?.state === 'settled') ? (
+                                {signedIn && (canShareResult || reviewableHistoryRounds.length > 0) ? (
                                     <div className="tt-actions" style={{ marginTop: '12px', display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                                        <TriviaGlassAction
-                                            label="Share Result Card"
-                                            ink="gold"
-                                            onClick={() => setShareCardOpen(true)}
-                                        />
-                                        {myRun?.history?.find?.(row => row?.sessionId)?.sessionId ? (
+                                        {canShareResult ? (
                                             <TriviaGlassAction
-                                                label="Review Settled Questions"
-                                                ink="blue"
-                                                onClick={() => setReviewSessionId(myRun.history.find(row => row?.sessionId).sessionId)}
+                                                label="Share Result Card"
+                                                ink="gold"
+                                                onClick={() => setShareCardOpen(true)}
                                             />
                                         ) : null}
+                                        {reviewableHistoryRounds.map((row, idx) => (
+                                            <TriviaGlassAction
+                                                key={row.matchupId || row.sessionId || idx}
+                                                label={reviewableHistoryRounds.length > 1
+                                                    ? `Review Round ${row.roundNumber || idx + 1} Questions`
+                                                    : 'Review Settled Questions'}
+                                                ink="blue"
+                                                onClick={() => setReviewSessionId(row.sessionId)}
+                                            />
+                                        ))}
                                     </div>
                                 ) : null}
                             </TriviaConsole>
@@ -1210,7 +1248,7 @@ function TournamentPageExperience({ user, authLoading }) {
                     </main>
                 </div>
                 <ShareResultCardModal
-                    open={shareCardOpen}
+                    open={shareCardOpen && canShareResult}
                     onClose={() => setShareCardOpen(false)}
                     mode="tournaments"
                     score={Number(myRun?.entrant?.matchesWon ?? myRun?.history?.filter?.(r => r?.result === 'won')?.length ?? 0)}
@@ -1218,6 +1256,7 @@ function TournamentPageExperience({ user, authLoading }) {
                     diamonds={Number(receipt?.payout?.amount || 0)}
                     player={myRun?.entrant?.displayName || user?.user_metadata?.username || 'Tournament Player'}
                     shareUrl="https://smarter.poker/hub/trivia/tournaments"
+                    sessionId={settledShareSessionId}
                 />
                 <PostSettlementReviewDrawer
                     open={Boolean(reviewSessionId)}

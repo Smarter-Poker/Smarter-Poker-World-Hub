@@ -15,11 +15,12 @@ const { evaluateHoldem, evaluateOmaha, evaluateLow } = handEvaluator;
 const { parseCards: parseDeckCards, cardToString } = deckModule;
 
 export const SIX_MAX_POSITIONS = Object.freeze(['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB']);
+export const NINE_MAX_POSITIONS = Object.freeze(['UTG', 'UTG+1', 'UTG+2', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB']);
 export const HEADS_UP_POSITIONS = Object.freeze(['BTN', 'BB']);
 export const SPINS_POSITIONS = Object.freeze(['BTN', 'SB', 'BB']);
 
-const POSITION_ORDER_POSTFLOP = ['SB', 'BB', 'UTG', 'UTG+1', 'MP', 'LJ', 'HJ', 'CO', 'BTN'];
-const POSITION_ORDER_PREFLOP = ['UTG', 'UTG+1', 'MP', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
+const POSITION_ORDER_POSTFLOP = ['SB', 'BB', 'UTG', 'UTG+1', 'UTG+2', 'MP', 'LJ', 'HJ', 'CO', 'BTN'];
+const POSITION_ORDER_PREFLOP = ['UTG', 'UTG+1', 'UTG+2', 'MP', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
 
 export const HOLE_CARD_COUNT_BY_VARIANT = Object.freeze({
   nlh: 2,
@@ -106,6 +107,9 @@ export function normalizeGameFormat(formatRaw = 'cash') {
   }
   if (f === 'spins' || f === 'spin' || f === 'spin_and_go' || f === '3max' || f === '3-max' || f === 'spin_3max') {
     return 'spins';
+  }
+  if (f === '9max' || f === '9-max' || f === 'full_ring' || f === 'full-ring' || f === 'fullring') {
+    return '9max';
   }
   if (f === 'mtt' || f === 'tournament' || f === 'sng' || f === 'icm' || f.startsWith('mtt_')) {
     return 'mtt';
@@ -1453,7 +1457,9 @@ export function rotateDealerButtonPosition(currentButtonPosition = 'BTN', format
     ? HEADS_UP_POSITIONS
     : normFormat === 'spins'
       ? SPINS_POSITIONS
-      : SIX_MAX_POSITIONS;
+      : normFormat === '9max'
+        ? NINE_MAX_POSITIONS
+        : SIX_MAX_POSITIONS;
   const idx = ring.indexOf(curr);
   if (idx === -1) return ring[0];
   return ring[(idx + 1) % ring.length];
@@ -1570,3 +1576,448 @@ export function formatTrainingHandAsPokerStarsHistory({
 
   return lines.join('\n');
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PHASE 13: TRUE 1:1 CLUB ARENA CLONE PARITY & ELITE GTO COACH ENGINE
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const CLUB_ARENA_TABLE_SKINS = Object.freeze([
+  Object.freeze({ id: 'emerald', label: 'Classic Emerald', watermark: 'Smarter.Poker', accent: '#10b981' }),
+  Object.freeze({ id: 'obsidian', label: 'Obsidian VIP', watermark: 'Smarter.Poker VIP', accent: '#38bdf8' }),
+  Object.freeze({ id: 'sapphire', label: 'Royal Sapphire', watermark: 'Smarter.Poker Royal', accent: '#0ea5e9' }),
+  Object.freeze({ id: 'crimson', label: 'Crimson High-Roller', watermark: 'Smarter.Poker High-Roller', accent: '#e11d48' }),
+  Object.freeze({ id: 'gold', label: 'Gold Championship', watermark: 'Smarter.Poker Championship', accent: '#f59e0b' }),
+]);
+
+export const CLUB_ARENA_CARD_BACKS = Object.freeze([
+  Object.freeze({ id: 'crest', label: 'Smarter.Poker Crest', border: '#38bdf8' }),
+  Object.freeze({ id: 'carbon', label: 'Cyber Carbon', border: '#94a3b8' }),
+  Object.freeze({ id: 'gold_foil', label: 'Gold Foil Championship', border: '#fbbf24' }),
+]);
+
+/**
+ * Item 1: Sequential Pre-Decision Villain Action Choreography
+ * Builds a deterministic chronological step sequence (e.g. UTG folds -> CO raises 2.5 BB -> Hero's turn)
+ * mirroring Club Arena TablePage.tsx seat action transitions.
+ */
+export function buildPreDecisionActionChoreography({
+  format = 'cash',
+  street = 'flop',
+  heroPosition = 'BTN',
+  villainPosition = 'BB',
+  facingBetBb = 0,
+  potBb = 6.5,
+  actionHistory = [],
+} = {}) {
+  const normFormat = normalizeGameFormat(format);
+  const normStreet = String(street || 'flop').trim().toLowerCase();
+  const cleanHero = String(heroPosition || 'BTN').trim().toUpperCase();
+  const cleanVillain = String(villainPosition || (cleanHero === 'BB' ? 'BTN' : 'BB')).trim().toUpperCase();
+  const cleanBet = Math.max(0, roundTableUnit(Number(facingBetBb) || 0, 2));
+  const cleanPot = Math.max(1.5, roundTableUnit(Number(potBb) || 6.5, 2));
+
+  if (Array.isArray(actionHistory) && actionHistory.length > 0) {
+    const steps = actionHistory.map((item, idx) => {
+      const pos = String(item?.position || cleanVillain).trim().toUpperCase();
+      const rawAct = String(item?.action || 'checks').trim();
+      const amt = Math.max(0, roundTableUnit(Number(item?.amount || (/bet|raise/i.test(rawAct) ? cleanBet : 0)), 2));
+      const sound = /fold/i.test(rawAct)
+        ? 'fold'
+        : /raise/i.test(rawAct)
+          ? 'raise'
+          : /bet/i.test(rawAct)
+            ? 'bet'
+            : /call/i.test(rawAct)
+              ? 'call'
+              : 'check';
+      return {
+        stepIndex: idx + 1,
+        position: pos,
+        action: rawAct,
+        amountBb: amt,
+        sound,
+        delayMs: (idx + 1) * 280,
+      };
+    });
+    return {
+      format: normFormat,
+      street: normStreet,
+      heroPosition: cleanHero,
+      villainPosition: cleanVillain,
+      totalDurationMs: steps.length * 280,
+      steps,
+    };
+  }
+
+  const ring = normFormat === 'hu'
+    ? HEADS_UP_POSITIONS
+    : normFormat === 'spins'
+      ? SPINS_POSITIONS
+      : normFormat === '9max'
+        ? NINE_MAX_POSITIONS
+        : SIX_MAX_POSITIONS;
+
+  const steps = [];
+  if (normStreet === 'preflop') {
+    for (const pos of ring) {
+      if (pos === cleanHero) break;
+      if (pos === cleanVillain) {
+        const openAmt = cleanBet > 0 ? cleanBet : 2.5;
+        steps.push({
+          stepIndex: steps.length + 1,
+          position: pos,
+          action: `Raises ${openAmt} BB`,
+          amountBb: openAmt,
+          sound: 'raise',
+          delayMs: (steps.length + 1) * 260,
+        });
+      } else {
+        steps.push({
+          stepIndex: steps.length + 1,
+          position: pos,
+          action: 'Folds',
+          amountBb: 0,
+          sound: 'fold',
+          delayMs: (steps.length + 1) * 220,
+        });
+      }
+    }
+  } else {
+    if (cleanBet > 0) {
+      steps.push({
+        stepIndex: 1,
+        position: cleanVillain,
+        action: `Bets ${cleanBet} BB`,
+        amountBb: cleanBet,
+        sound: 'bet',
+        delayMs: 280,
+      });
+    } else {
+      steps.push({
+        stepIndex: 1,
+        position: cleanVillain,
+        action: 'Checks',
+        amountBb: 0,
+        sound: 'check',
+        delayMs: 240,
+      });
+    }
+  }
+
+  if (steps.length === 0) {
+    steps.push({
+      stepIndex: 1,
+      position: cleanVillain,
+      action: cleanBet > 0 ? `Bets ${cleanBet} BB` : `Pot ${cleanPot} BB Checked To Hero`,
+      amountBb: cleanBet,
+      sound: cleanBet > 0 ? 'bet' : 'check',
+      delayMs: 240,
+    });
+  }
+
+  return {
+    format: normFormat,
+    street: normStreet,
+    heroPosition: cleanHero,
+    villainPosition: cleanVillain,
+    totalDurationMs: steps[steps.length - 1]?.delayMs || 260,
+    steps,
+  };
+}
+
+/**
+ * Item 3: On-Felt All-In Equity % Seat Badges & Interactive All-In Insurance EV Calculator
+ * Mirrors Club Arena allInEquityDisplay.ts and InsuranceModal.tsx.
+ */
+export function evaluateAllInEquityAndInsuranceOffer({
+  variant = 'nlh',
+  potBb = 40,
+  heroEquityPct = 68.4,
+  houseMarginPct = 5.0,
+  insuredFraction = 1.0,
+} = {}) {
+  const normVariant = normalizeTrainingVariant(variant);
+  const cleanPot = Math.max(2, roundTableUnit(Number(potBb) || 40, 2));
+  const cleanHeroEq = Math.max(1, Math.min(99, roundTableUnit(Number(heroEquityPct) || 68.4, 1)));
+  const villainEquityPct = roundTableUnit(100 - cleanHeroEq, 1);
+  const cleanMargin = Math.max(0, Math.min(25, Number(houseMarginPct) || 5.0));
+  const cleanFraction = Math.max(0.25, Math.min(1.0, Number(insuredFraction) || 1.0));
+
+  const uninsuredEvBb = roundTableUnit(cleanPot * (cleanHeroEq / 100), 2);
+  const villainWinProb = villainEquityPct / 100;
+  const fairPremiumBb = roundTableUnit(cleanPot * cleanFraction * villainWinProb, 2);
+  const chargedPremiumBb = roundTableUnit(fairPremiumBb * (1 + cleanMargin / 100), 2);
+  const lockedCashoutBb = roundTableUnit(uninsuredEvBb * (1 - (cleanMargin / 100) * villainWinProb), 2);
+  const evDeltaAcceptingInsuranceBb = roundTableUnit(fairPremiumBb - chargedPremiumBb, 2);
+  const isPositiveEvToAccept = evDeltaAcceptingInsuranceBb >= 0;
+
+  return {
+    variant: normVariant,
+    isHiLo: isHiLoVariant(normVariant),
+    potBb: cleanPot,
+    heroEquityPct: cleanHeroEq,
+    villainEquityPct,
+    uninsuredEvBb,
+    fairPremiumBb,
+    chargedPremiumBb,
+    lockedCashoutBb,
+    houseMarginPct: cleanMargin,
+    evDeltaAcceptingInsuranceBb,
+    isPositiveEvToAccept,
+    recommendedInsuranceDecision: isPositiveEvToAccept ? 'Accept Insurance (+EV)' : 'Decline Insurance (Save House vig)',
+    coachingNote: isPositiveEvToAccept
+      ? `Insurance offer is +${evDeltaAcceptingInsuranceBb} BB EV vs fair equity.`
+      : `Declining insurance saves ${Math.abs(evDeltaAcceptingInsuranceBb)} BB in house margin (${cleanMargin}% vig); only insure if bankroll/ICM survival requires variance elimination.`,
+  };
+}
+
+/**
+ * Item 6: On-Felt Rabbit Hunting (`boardForRabbitReveal`)
+ * Reveals undealt Turn / River community cards from the deterministic remaining deck after a Fold or uncalled bet.
+ */
+export function resolveRabbitHuntBoard({
+  visibleBoardCards = [],
+  heroCards = [],
+  villainCards = [],
+  fullCompletedBoard = null,
+} = {}) {
+  const used = new Set();
+  const addUsed = (list) => {
+    for (const c of Array.isArray(list) ? list : []) {
+      if (typeof c === 'string' && c.trim().length === 2) {
+        used.add(c.trim().toLowerCase());
+      }
+    }
+  };
+  const cleanVisible = (Array.isArray(visibleBoardCards) ? visibleBoardCards : []).filter(Boolean);
+  addUsed(cleanVisible);
+  addUsed(heroCards);
+  addUsed(villainCards);
+
+  const rabbitCards = [];
+  const candidatePool = Array.isArray(fullCompletedBoard) && fullCompletedBoard.length >= 5
+    ? [...fullCompletedBoard, ...CANONICAL_52_CARD_DECK]
+    : CANONICAL_52_CARD_DECK;
+
+  const fullBoard = [...cleanVisible];
+  for (const cand of candidatePool) {
+    if (fullBoard.length >= 5) break;
+    const formatted = `${cand[0].toUpperCase()}${cand[1].toLowerCase()}`;
+    const key = formatted.toLowerCase();
+    if (!used.has(key)) {
+      used.add(key);
+      fullBoard.push(formatted);
+      rabbitCards.push(formatted);
+    }
+  }
+
+  return {
+    dealtBoardCards: cleanVisible,
+    rabbitCards,
+    completedBoardCards: fullBoard,
+    rabbitCount: rabbitCards.length,
+    canRabbitHunt: cleanVisible.length < 5,
+  };
+}
+
+/**
+ * Item 7: Pre-Action Checkboxes & Reopen Invalidation (`usePreActionBoundary`)
+ * Mirrors Club Arena PreActionBar.tsx and usePreActionBoundary.ts.
+ */
+export function evaluatePreActionSelection({
+  selectedPreAction = null,
+  toCallBb = 0,
+  previousToCallBb = 0,
+} = {}) {
+  const cleanAction = selectedPreAction ? String(selectedPreAction).trim().toLowerCase() : null;
+  const cleanToCall = Math.max(0, roundTableUnit(Number(toCallBb) || 0, 2));
+  const cleanPrevToCall = Math.max(0, roundTableUnit(Number(previousToCallBb) || 0, 2));
+  const betIncreased = cleanToCall > cleanPrevToCall;
+
+  if (!cleanAction) {
+    return {
+      selectedPreAction: null,
+      invalidatedByBetIncrease: false,
+      autoTriggeredAction: null,
+      statusLabel: 'No Pre-Action Armed',
+    };
+  }
+
+  if (cleanAction === 'check_fold') {
+    return {
+      selectedPreAction: 'check_fold',
+      invalidatedByBetIncrease: false,
+      autoTriggeredAction: cleanToCall <= 0 ? 'check' : 'fold',
+      statusLabel: cleanToCall <= 0 ? 'Auto-Check Armed' : 'Auto-Fold Armed',
+    };
+  }
+
+  if (cleanAction === 'check') {
+    if (cleanToCall > 0) {
+      return {
+        selectedPreAction: null,
+        invalidatedByBetIncrease: true,
+        autoTriggeredAction: null,
+        statusLabel: 'Pre-Action Check Cleared (Facing Bet)',
+      };
+    }
+    return {
+      selectedPreAction: 'check',
+      invalidatedByBetIncrease: false,
+      autoTriggeredAction: 'check',
+      statusLabel: 'Auto-Check Armed',
+    };
+  }
+
+  if (cleanAction === 'call_current') {
+    if (betIncreased) {
+      return {
+        selectedPreAction: null,
+        invalidatedByBetIncrease: true,
+        autoTriggeredAction: null,
+        statusLabel: 'Pre-Action Call Cleared (Raise Reopened Action)',
+      };
+    }
+    return {
+      selectedPreAction: 'call_current',
+      invalidatedByBetIncrease: false,
+      autoTriggeredAction: cleanToCall > 0 ? 'call' : 'check',
+      statusLabel: `Auto-Call ${cleanToCall} BB Armed`,
+    };
+  }
+
+  if (cleanAction === 'call_any') {
+    return {
+      selectedPreAction: 'call_any',
+      invalidatedByBetIncrease: false,
+      autoTriggeredAction: cleanToCall > 0 ? 'call' : 'check',
+      statusLabel: 'Auto-Call Any Bet Armed',
+    };
+  }
+
+  return {
+    selectedPreAction: null,
+    invalidatedByBetIncrease: false,
+    autoTriggeredAction: null,
+    statusLabel: 'No Pre-Action Armed',
+  };
+}
+
+/**
+ * Item 10: Fixed-Limit & PLO8 Half-Kill (`1.5x`) and Full-Kill (`2.0x`) Pot Mechanics
+ * Mirrors Club Arena killPot.ts (`fixedLimitStreetBet`, `killPotPillText`, `killNextAnnouncement`).
+ */
+export function computeKillPotEscalation({
+  killMode = 'off',
+  consecutiveWins = 0,
+  previousPotWonBb = 0,
+  killThresholdPotBb = 10,
+  street = 'flop',
+  baseBigBlindBb = 1,
+} = {}) {
+  const normMode = ['off', 'half_kill', 'full_kill'].includes(String(killMode || '').toLowerCase())
+    ? String(killMode).toLowerCase()
+    : 'off';
+  const normStreet = String(street || 'flop').trim().toLowerCase();
+  const cleanBb = Math.max(0.01, roundTableUnit(Number(baseBigBlindBb) || 1, 2));
+  const multiplier = normMode === 'full_kill' ? 2.0 : normMode === 'half_kill' ? 1.5 : 1.0;
+  const isKillActive = normMode !== 'off' && (Number(consecutiveWins) >= 2 || Number(previousPotWonBb) >= Number(killThresholdPotBb) || normMode === 'half_kill' || normMode === 'full_kill');
+  const effectiveMultiplier = isKillActive ? multiplier : 1.0;
+  const effectiveBigBlindBb = roundTableUnit(cleanBb * effectiveMultiplier, 2);
+  const streetFixedBetBb = normStreet === 'turn' || normStreet === 'river'
+    ? roundTableUnit(2 * effectiveBigBlindBb, 2)
+    : roundTableUnit(1 * effectiveBigBlindBb, 2);
+
+  const pillText = normMode === 'full_kill'
+    ? `FULL KILL ACTIVE (2.0X · ${streetFixedBetBb} BB BET)`
+    : normMode === 'half_kill'
+      ? `HALF KILL ACTIVE (1.5X · ${streetFixedBetBb} BB BET)`
+      : 'KILL POT: OFF (1.0X)';
+
+  return {
+    killMode: normMode,
+    isKillActive,
+    multiplier: effectiveMultiplier,
+    effectiveBigBlindBb,
+    streetFixedBetBb,
+    pillText,
+  };
+}
+
+/**
+ * Item 13: Deterministic `HeroActedFence` Double-Tap & Street-Transition Action Lock
+ * Mirrors Club Arena heroActedFence.ts (`HERO_ACTED_FENCE_MS`, `armHeroActedFence`, `judgeSnapshotAgainstFence`).
+ */
+export const HERO_ACTED_FENCE_MS = 650;
+
+export function evaluateHeroActedFence({
+  fenceArmedAtMs = 0,
+  fenceDecisionKey = '',
+  currentDecisionKey = '',
+  nowMs = Date.now(),
+  fenceDurationMs = HERO_ACTED_FENCE_MS,
+} = {}) {
+  const armedAt = Number(fenceArmedAtMs) || 0;
+  const elapsedMs = Math.max(0, Number(nowMs) - armedAt);
+  const sameDecision = Boolean(fenceDecisionKey && currentDecisionKey && fenceDecisionKey === currentDecisionKey);
+  const withinWindow = armedAt > 0 && elapsedMs < Number(fenceDurationMs || HERO_ACTED_FENCE_MS);
+  const isLocked = sameDecision || withinWindow;
+
+  return {
+    isLocked,
+    sameDecision,
+    withinWindow,
+    elapsedMs,
+    remainingLockMs: withinWindow ? Math.max(0, Number(fenceDurationMs) - elapsedMs) : 0,
+  };
+}
+
+/**
+ * Item 17: Club Arena Fold Protection Modal (`Phase 2 T2-01 spec §5.6`)
+ * Intercepts a Fold click whenever `toCallBb === 0` (checking is free).
+ */
+export function shouldInterceptFreeCheckFold({
+  actionType = 'fold',
+  toCallBb = 0,
+  foldProtectionEnabled = true,
+} = {}) {
+  const normAction = String(actionType || '').trim().toLowerCase();
+  const cleanToCall = Math.max(0, roundTableUnit(Number(toCallBb) || 0, 2));
+  const shouldIntercept = Boolean(foldProtectionEnabled) && normAction === 'fold' && cleanToCall <= 0;
+  return {
+    shouldIntercept,
+    recommendedReplacementAction: shouldIntercept ? 'check' : normAction,
+    promptTitle: 'Fold Protection: Checking Is Free',
+    promptMessage: 'You Are Facing 0 BB To Call. Folding Surrenders 100% Of Your Equity For Free. Check Instead?',
+  };
+}
+
+/**
+ * Item 19: Continuous Session Stack Drift & Practice Auto Top-Up to 100 BB
+ * Mirrors Club Arena autoTopUpRequest.ts and standInStack.ts while preserving strict practice isolation.
+ */
+export function computePracticeStackReload({
+  currentStackBb = 72,
+  targetTopUpBb = 100,
+  autoTopUpEnabled = true,
+  handDeltaBb = 0,
+} = {}) {
+  const afterHandBb = Math.max(0, roundTableUnit((Number(currentStackBb) || 100) + (Number(handDeltaBb) || 0), 2));
+  const cleanTarget = Math.max(20, roundTableUnit(Number(targetTopUpBb) || 100, 2));
+  const toppedUp = Boolean(autoTopUpEnabled) && afterHandBb < cleanTarget;
+  const addedPracticeBb = toppedUp ? roundTableUnit(cleanTarget - afterHandBb, 2) : 0;
+  const resultingStackBb = toppedUp ? cleanTarget : Math.max(10, afterHandBb);
+
+  return {
+    beforeStackBb: roundTableUnit(Number(currentStackBb) || 100, 2),
+    afterHandBb,
+    autoTopUpEnabled: Boolean(autoTopUpEnabled),
+    targetTopUpBb: cleanTarget,
+    toppedUp,
+    addedPracticeBb,
+    resultingStackBb,
+    walletMutationAllowed: false,
+    practiceIsolationVerified: true,
+  };
+}
+

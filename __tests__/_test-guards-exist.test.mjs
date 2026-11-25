@@ -893,6 +893,8 @@ import './trivia-burnin-scorecard-ops.test.mjs';
 import './trivia-push-worker-rt.test.mjs';
 import './trivia-pool-quality-audit.test.mjs';
 import './trivia-fortress-db-api-laws.test.mjs';
+import './trivia-fortress-admin-lb-laws.test.mjs';
+import './trivia-fortress-ui-laws.test.mjs';
 import './newsletter-zero-broken-links-and-images.law.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {

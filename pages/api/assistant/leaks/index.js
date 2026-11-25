@@ -95,11 +95,11 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'private, no-store, max-age=0');
   res.setHeader('Vary', 'Authorization');
   try {
-    if (!['GET', 'POST', 'PATCH', 'DELETE'].includes(req.method)) {
-      res.setHeader('Allow', 'GET, POST, PATCH, DELETE');
+    if (!['GET', 'POST', 'PATCH'].includes(req.method)) {
+      res.setHeader('Allow', 'GET, POST, PATCH');
       return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
-    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+    if (['POST','PUT','PATCH'].includes(req.method)) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
     if (req.method === 'GET') {
@@ -224,7 +224,7 @@ export default async function handler(req, res) {
         }
 
         res.setHeader('Server-Timing', `leak-history;dur=${Date.now() - startedAt}`);
-        res.setHeader('Cache-Control', 'private, no-store');
+        res.setHeader('Cache-Control', 'private, no-store, max-age=0');
 
         // Combine both sources
         const allLeaks = [...legacyLeaks, ...trainingLeaks];
@@ -315,14 +315,16 @@ export default async function handler(req, res) {
         if (error) {
           // Fallback when the (user_id, leak_type) unique index is missing:
           // manual select → update-or-insert, still scoped to this user
-          const { data: existing } = await getSupabase()
+          const { data: existing, error: existingErr } = await getSupabase()
             .from('user_leaks')
             .select('id')
             .eq('user_id', userId)
             .eq('leak_type', leak.leak_type)
             .maybeSingle();
 
-          if (existing) {
+          if (existingErr) {
+            error = existingErr;
+          } else if (existing) {
             ({ data, error } = await getSupabase()
               .from('user_leaks')
               .update({ ...persistenceRow, updated_at: new Date().toISOString() })
@@ -481,6 +483,7 @@ export default async function handler(req, res) {
       }
     }
 
+    res.setHeader('Allow', 'GET, POST, PATCH');
     return res.status(405).json({ success: false, error: 'Method not allowed' });
 
   } catch (err) {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { TriviaGlassAction } from './console/TriviaConsole';
 import { authedFetch } from '../../lib/authUtils';
 
@@ -11,10 +11,13 @@ export default function NightlyReminderButton({
     const [loading, setLoading] = useState(false);
     const [pending, setPending] = useState(false);
     const [statusNote, setStatusNote] = useState('');
+    const requestIdRef = useRef(0);
 
     const loadStatus = useCallback(async (signal) => {
+        const requestId = ++requestIdRef.current;
         if (!signedIn) {
             setOptedIn(false);
+            setLoading(false);
             return;
         }
         setLoading(true);
@@ -22,13 +25,17 @@ export default function NightlyReminderButton({
             const qs = tournamentId ? `?tournamentId=${encodeURIComponent(tournamentId)}` : '';
             const response = await authedFetch(`/api/trivia/nightly-reminder${qs}`, { method: 'GET', signal });
             const payload = await response.json().catch(() => ({}));
+            if (signal?.aborted || requestIdRef.current !== requestId) return;
             if (response.ok && payload?.success) {
                 setOptedIn(Boolean(payload.optedIn));
             }
-        } catch {
+        } catch (err) {
+            if (err?.name === 'AbortError' || signal?.aborted || requestIdRef.current !== requestId) return;
             // Non-blocking status check
         } finally {
-            setLoading(false);
+            if (!signal?.aborted && requestIdRef.current === requestId) {
+                setLoading(false);
+            }
         }
     }, [signedIn, tournamentId]);
 

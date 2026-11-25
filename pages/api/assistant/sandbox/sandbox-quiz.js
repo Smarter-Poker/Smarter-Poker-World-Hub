@@ -36,11 +36,9 @@ export default async function handler(req, res) {
   const limit = req.method === 'GET' ? (LIMITS.read || { max: 60, windowMs: 60_000 }) : LIMITS.write;
   if (!applyRateLimit(req, res, limit)) return;
 
-      const supabase = getSupabase();
   try {
-      // Auth guard
-      const token = req.headers.authorization?.replace('Bearer ', '');
-      if (!token) return res.status(401).json({ error: 'Auth required' });
+      const supabase = getSupabase();
+      // Auth guard (supports both Bearer JWT and cookie sessions via getServerUserWithFallback)
       const { user: authUser, error: authErr, status: authStatus } = await getServerUserWithFallback(req, supabase);
       if (authErr || !authUser) {
           return res.status(authStatus === 503 ? 503 : 401).json({
@@ -59,6 +57,9 @@ export default async function handler(req, res) {
 
           let canonical = curatedWeeklySpotById(cleanSpotId);
           if (!canonical) {
+              if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanSpotId)) {
+                  return res.status(404).json({ error: 'Quiz spot not found' });
+              }
               const { data, error: spotError } = await supabase
                   .from('sandbox_weekly_spots').select('id, correct_action').eq('id', cleanSpotId).maybeSingle();
               if (spotError) {
@@ -84,8 +85,12 @@ export default async function handler(req, res) {
                   .eq('scenario_hash', cleanSpotId)
                   .limit(1)
                   .maybeSingle();
-              if (existingErr && existingErr.code !== '42P01') {
+              if (existingErr) {
                   console.warn('Quiz dedup check error:', existingErr);
+                  return res.status(503).json(persistenceFailure(
+                      'Quiz deduplication check is temporarily unavailable. Please retry.',
+                      existingErr.code === '42P01' ? 'storage_unavailable' : 'read_failed',
+                  ));
               }
               if (existingAnswer) {
                   return res.status(200).json(persistedResult({
@@ -105,6 +110,13 @@ export default async function handler(req, res) {
               });
 
               if (error) {
+                  if (error.code === '23505') {
+                      return res.status(200).json(persistedResult({
+                          isCorrect,
+                          correctAction,
+                          alreadyAnswered: true,
+                      }));
+                  }
                   console.warn('Quiz save error:', error);
                   return res.status(error.code === '42P01' ? 503 : 500).json(persistenceFailure(
                       'Quiz progress could not be saved. Your current score remains on this device.',

@@ -203,6 +203,7 @@ export function chooseTrainingCacheMatch(rows, context = {}) {
 
   candidates.sort((a, b) => (
     a.matchTier - b.matchTier
+    || (b.contextVerified ? 1 : 0) - (a.contextVerified ? 1 : 0)
     || a.stackDelta - b.stackDelta
     || String(a.row.question_id || a.row.id || '').localeCompare(String(b.row.question_id || b.row.id || ''))
   ));

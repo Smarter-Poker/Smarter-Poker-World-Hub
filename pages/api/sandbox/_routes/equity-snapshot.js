@@ -45,14 +45,19 @@ export default async function handler(req, res) {
 
           // Authenticate
           let userId = null;
+          const hasExplicitAuth = Boolean(req.headers.authorization && String(req.headers.authorization).trim());
           const { user: authUser, status: authStatus } = await getServerUserWithFallback(req, supabase);
           if (authStatus === 503) {
               return res.status(503).json({ success: false, error: 'Session verification unavailable' });
           }
           if (authUser) userId = authUser.id;
 
-          // Guest submissions not stored
+          // If caller sent an explicit Authorization header that failed verification, return 401
+          // rather than silently downgrading to an ephemeral guest response.
           if (!userId) {
+              if (hasExplicitAuth) {
+                  return res.status(401).json({ success: false, error: 'Invalid or expired authorization token' });
+              }
               return res.status(200).json(ephemeralResult('guest', null, { stored: false }));
           }
 

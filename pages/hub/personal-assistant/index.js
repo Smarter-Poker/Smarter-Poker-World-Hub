@@ -165,15 +165,20 @@ export default function PersonalAssistantPage() {
 
   useEffect(() => { setMounted(true); }, []);
 
+  const [trainingPlanReloadKey, setTrainingPlanReloadKey] = useState(0);
+
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
     const handleAssistantUpdate = () => {
       try { refetchSessions?.(); } catch (error) { console.warn('[App] Handled exception:', error?.message || error); }
       try { refetchStats?.(); } catch (error) { console.warn('[App] Handled exception:', error?.message || error); }
+      setTrainingPlanReloadKey((n) => n + 1);
     };
     window.addEventListener('pa-sandbox-updated', handleAssistantUpdate);
+    window.addEventListener('pa-leak-review-updated', handleAssistantUpdate);
     return () => {
       window.removeEventListener('pa-sandbox-updated', handleAssistantUpdate);
+      window.removeEventListener('pa-leak-review-updated', handleAssistantUpdate);
     };
   }, [refetchSessions, refetchStats]);
 
@@ -211,7 +216,7 @@ export default function PersonalAssistantPage() {
       cancelled = true;
       controller.abort();
     };
-  }, [authInitializing, user?.id]);
+  }, [authInitializing, user?.id, trainingPlanReloadKey, stats?.leaksFound, stats?.handsAnalyzed]);
   useEffect(() => {
     let cancelled = false;
 
@@ -309,7 +314,7 @@ export default function PersonalAssistantPage() {
   };
 
   const formatEv = (value) => (
-    typeof value === 'number' && Number.isFinite(value) ? `${value.toFixed(2)} BB` : 'EV ·'
+    typeof value === 'number' && Number.isFinite(value) ? `${value.toFixed(2)} BB` : 'Unpriced'
   );
 
   const sessionTypeLabel = (session) => (
@@ -331,6 +336,7 @@ export default function PersonalAssistantPage() {
     setIsRetrying(true);
     setDataLoading(true);
     try {
+      setTrainingPlanReloadKey((n) => n + 1);
       await Promise.allSettled([
         Promise.resolve(refetchStats?.()),
         Promise.resolve(refetchSessions?.()),
@@ -688,7 +694,7 @@ export default function PersonalAssistantPage() {
                   <button
                     type="button"
                     className={styles.secondaryButton}
-                    onClick={() => openGuardedRoute('/hub/personal-assistant/leaks?tab=coaching')}
+                    onClick={() => openGuardedRoute('/hub/personal-assistant/leaks?tab=coaching&view=coach')}
                   >
                     Open Training Plan<ChevronRight size={16} aria-hidden="true" />
                   </button>

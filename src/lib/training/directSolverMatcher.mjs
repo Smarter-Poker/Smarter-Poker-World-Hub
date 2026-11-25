@@ -2,24 +2,63 @@
  * Certified Direct-Corpus Solver Matcher (PioSOLVER V2 + Gold Preflop Charts)
  *
  * PURE & FAIL-CLOSED:
- * - Queries `public.solved_spots_gold` (strictly validated `strategy_matrix_v2`
- *   via `selectTrustedSolverMatrix`, NEVER touching legacy V1 `f` channels) for
- *   exact postflop concrete-combo matches on indexed `scenario_hash`.
- * - Queries `public.memory_charts_gold` (indexed by `(game_type, stack_depth,
- *   hero_position, villain_action)`) for exact short-stack preflop push/fold
- *   matches (both Cash and Tournament).
- * - Returns `null` on ANY ambiguity, stack drift > 1bb, pot drift > 0.5bb,
- *   unmatched sizing, board collision, or missing trust envelope. Never
- *   fabricates solver grades or EV loss numbers.
+ * - Queries `public.solved_spots_gold` strictly filtered to `quality_status = 'validated'`,
+ *   validated through BOTH `customSolverProvenanceIsComplete(row)` AND
+ *   `selectTrustedSolverMatrix(row)` (`v2ToAppMatrix`), NEVER touching legacy V1
+ *   `f` channels or quarantined/unprovenanced rows.
+ * - Matches exact V2 catalog `game_type` families (`hu_cash`, `postflop_complete`,
+ *   `mtt_6max_chipev`, `mtt_9max_chipev`, `mtt_3max_chipev`, `mtt_hu_chipev`,
+ *   `spin_3max_chipev`, `spin_hu_chipev`), street hash prefixes (`''`, `'turn_'`,
+ *   `'river_'`), replayed node pot/facing bet (`bridged.pot_bb` / `bridged.facing_bet_bb`),
+ *   and cumulative chip-target sizing (`size_chips` + all-in detection) alongside `size_pct`.
+ * - Queries `public.memory_charts_gold` for exact short-stack preflop push/fold
+ *   spots (Cash and Tournament), treating omitted hands in a valid sparse chart as
+ *   pure folds (`{ fold: 1 }`), refusing limped/multiway pots, and mapping BB all-in calls.
+ * - Emits frequencies in canonical `0..100` percentage scale matching `cacheTruthContract.mjs`
+ *   and `hand_audit_decisions.NUMERIC(6,2)` with identical classification thresholds.
  */
 import { selectTrustedSolverMatrix } from './solverMatrixTrust.js';
+import { customSolverProvenanceIsComplete } from './customSolverSpotContract.mjs';
 
 const RANKS = '23456789TJQKA';
 const SUITS = 'cdhs';
 const MEMORY_CHART_STACKS = [
   2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 25,
 ];
-const SOLVED_SPOT_STACKS = [20, 40, 60, 100, 150, 200];
+const SOLVED_SPOT_STACKS = [10, 20, 25, 40, 60, 80, 100, 150, 200];
+
+const V2_SOLVED_SPOT_PROJECTION = [
+  'id',
+  'scenario_hash',
+  'game_type',
+  'stack_depth',
+  'street',
+  'strategy_matrix_v2',
+  'solved_v2_at',
+  'quality_status',
+  'solver_version',
+  'solver_binary_checksum',
+  'machine_id',
+  'pipeline_commit',
+  'manifest_version',
+  'manifest_checksum',
+  'source_artifact_checksum',
+  'audited_at',
+].join(', ');
+
+const V2_FAMILY_STACKS = Object.freeze({
+  hu_cash: new Set([40, 100, 200]),
+  postflop_complete: new Set([100]),
+  mtt_3max_chipev: new Set([20]),
+  mtt_6max_chipev: new Set([10, 20, 40, 100]),
+  mtt_9max_chipev: new Set([20, 40, 80, 100]),
+  mtt_hu_chipev: new Set([40]),
+  spin_3max_chipev: new Set([20, 25]),
+  spin_hu_chipev: new Set([10, 20]),
+});
+
+const V2_CHIPS_PER_BB = 100;
+const SCENARIO_HASH_BATCH_SIZE = 12;
 
 export function cardIndex(card) {
   const clean = String(card || '').trim();
@@ -84,25 +123,79 @@ function handClassNotation(holeCards) {
   return `${hi[0]}${lo[0]}${hi[1] === lo[1] ? 's' : 'o'}`;
 }
 
-function classifyFromFrequency(selectedFreq, optimalFreq) {
-  if (selectedFreq >= 0.35 || selectedFreq >= optimalFreq - 0.10) return 'correct';
-  if (selectedFreq >= 0.15) return 'inaccuracy';
-  if (selectedFreq >= 0.03) return 'wrong';
-  return 'blunder';
+/**
+ * Canonical percentage-scale classification (`0..100`) aligned verbatim with
+ * `src/lib/training/cacheTruthContract.mjs:gradeCanonicalPolicyDecision`.
+ */
+export function classifyFromPercentFrequency(selectedPct, optimalPct, isOptimalAction = false) {
+  if (isOptimalAction || selectedPct >= 20) return 'best';
+  if (selectedPct >= 5) return 'correct';
+  if (selectedPct >= 1) return 'inaccuracy';
+  return optimalPct >= 70 ? 'blunder' : 'wrong';
 }
 
-function normalizeActionLabel(key) {
+function normalizeActionLabel(key, action = null, bridged = null) {
   const k = String(key || '').trim().toLowerCase();
   if (k === 'c' || k === 'check') return 'check';
   if (k === 'f' || k === 'fold') return 'fold';
   if (k === 'call') return 'call';
   if (k === 'push' || k === 'shove' || k === 'allin' || k === 'all_in') return 'allin';
+  if (action && bridged && isV2ActionAllIn(action, bridged)) return 'allin';
   if (k.startsWith('bet')) return k;
   if (k.startsWith('raise')) return k;
   return k || 'unknown';
 }
 
-function matchV2Action(actions, point) {
+function extractV2TargetChips(action) {
+  const explicit = Number(action?.size_chips);
+  if (Number.isFinite(explicit) && explicit > 0) return explicit;
+  const codeMatch = String(action?.code || '').trim().match(/^b(\d+)$/i);
+  if (codeMatch) return Number(codeMatch[1]);
+  const keyMatch = String(action?.key || '').trim().match(/(?:bet|raise)_chips_(\d+)/i);
+  if (keyMatch) return Number(keyMatch[1]);
+  return null;
+}
+
+function isV2ActionAllIn(action, bridged) {
+  const k = String(action?.key || '').toLowerCase();
+  if (k.includes('allin') || k.includes('shove') || k.includes('jam')) return true;
+  const targetChips = extractV2TargetChips(action);
+  const effStackChips = Number(bridged?.eff_stack_bb) * V2_CHIPS_PER_BB;
+  if (Number.isFinite(targetChips) && Number.isFinite(effStackChips) && effStackChips > 0) {
+    return targetChips >= effStackChips - 1;
+  }
+  return false;
+}
+
+/**
+ * Derive percentage-of-pot sizing for a PioSOLVER V2 aggressive action.
+ * Handles BOTH explicit `size_pct` AND harvested `size_chips` (where `size_pct` is null
+ * and `size_chips` is cumulative postflop contribution target per `pio_harvest.py`).
+ */
+export function deriveV2ActionSizingPct(action, bridged) {
+  const explicitPct = Number(action?.size_pct);
+  if (Number.isFinite(explicitPct) && explicitPct > 0) return explicitPct;
+
+  const targetChips = extractV2TargetChips(action);
+  const potChips = Number(bridged?.pot);
+  const actorContributionChips = Number(bridged?.actor_contribution_chips);
+  const facingBetChips = Number(bridged?.facing_bet_bb) * V2_CHIPS_PER_BB;
+  if (!Number.isFinite(targetChips) || !Number.isFinite(potChips) || potChips <= 0) return null;
+
+  const actorContrib = Number.isFinite(actorContributionChips) ? actorContributionChips : 0;
+  const addedChips = targetChips - actorContrib;
+  if (!Number.isFinite(addedChips) || addedChips <= 0) return null;
+
+  if (Number.isFinite(facingBetChips) && facingBetChips > 0) {
+    // Facing a bet: compare additional raise-over-call or total wager against pot after call
+    const potAfterCall = potChips + facingBetChips;
+    const raiseAdded = Math.max(0, addedChips - facingBetChips);
+    return (raiseAdded / potAfterCall) * 100;
+  }
+  return (addedChips / potChips) * 100;
+}
+
+function matchV2Action(actions, point, bridged) {
   if (!Array.isArray(actions) || actions.length === 0) return null;
   const played = String(point?.action || '').toLowerCase();
   if (played === 'check') {
@@ -122,18 +215,26 @@ function matchV2Action(actions, point) {
     });
     if (betActions.length === 0) return null;
     if (played === 'allin') {
-      const jam = betActions.find(a => String(a?.key || '').toLowerCase().includes('allin') || String(a?.key || '').toLowerCase().includes('shove'));
+      const jam = betActions.find(a => isV2ActionAllIn(a, bridged));
       if (jam) return jam;
     }
     const sizingPct = Number(point?.sizingPct);
-    if (!Number.isFinite(sizingPct) || sizingPct <= 0) return null;
+    const pointAmountBB = Number(point?.amountBB ?? point?.amount);
+    const potBeforeBB = Number(point?.potBeforeBB);
+    const derivedPointPct = Number.isFinite(sizingPct) && sizingPct > 0
+      ? sizingPct
+      : (Number.isFinite(pointAmountBB) && pointAmountBB > 0 && Number.isFinite(potBeforeBB) && potBeforeBB > 0
+          ? (pointAmountBB / potBeforeBB) * 100
+          : null);
+    if (!Number.isFinite(derivedPointPct) || derivedPointPct <= 0) return null;
+
     let best = null;
     let bestDiff = Infinity;
     for (const action of betActions) {
-      const sizePct = Number(action?.size_pct);
+      const sizePct = deriveV2ActionSizingPct(action, bridged);
       if (!Number.isFinite(sizePct) || sizePct <= 0) continue;
-      const diff = Math.abs(sizePct - sizingPct);
-      if (diff <= 10 && diff < bestDiff) {
+      const diff = Math.abs(sizePct - derivedPointPct);
+      if (diff <= 12 && diff < bestDiff) {
         best = action;
         bestDiff = diff;
       }
@@ -143,17 +244,32 @@ function matchV2Action(actions, point) {
   return null;
 }
 
-function v2NodeMatchesPoint(v2, point) {
+function v2NodeMatchesPoint(v2, bridged, point) {
   const node = String(v2?.node || '').trim();
   const heroRole = String(v2?.hero || '').toUpperCase();
-  if (!node || !heroRole) return false;
+  if (!node || !heroRole || !bridged) return false;
+  const facingBetBb = Number(bridged.facing_bet_bb);
+  if (!Number.isFinite(facingBetBb) || facingBetBb < 0) return false;
+
   if (point.nodeClass === 'hero_bets_or_checks') {
-    if (heroRole === 'OOP' && node === 'r:0') return true;
-    if (heroRole === 'IP' && node === 'r:0:c') return true;
-    return false;
+    // At any check-or-bet node (flop, turn, or river), facingBetBb is strictly 0.
+    // On flop, also verify exact root/check-back line; on turn/river, bridged.node_state_exact
+    // already proved the full UPI replay lands on `heroRole` with 0 facing bet.
+    if (facingBetBb !== 0) return false;
+    if (String(point.street || '').toLowerCase() === 'flop') {
+      if (heroRole === 'OOP' && node === 'r:0') return true;
+      if (heroRole === 'IP' && node === 'r:0:c') return true;
+      return false;
+    }
+    return true;
   }
   if (point.nodeClass === 'hero_faces_bet') {
-    return /:b\d+$/i.test(node);
+    if (facingBetBb <= 0 || !/:b\d+$/i.test(node)) return false;
+    const pointFacing = Number(point?.facingBetBB ?? point?.toCallBB);
+    if (Number.isFinite(pointFacing) && pointFacing > 0) {
+      return Math.abs(facingBetBb - pointFacing) <= Math.max(0.5, pointFacing * 0.15);
+    }
+    return true;
   }
   return false;
 }
@@ -173,14 +289,36 @@ function nearestExactStack(heroStack, allowedStacks) {
   return best;
 }
 
+function candidateV2GameTypes(hand, stackDepth) {
+  const tableSize = Number(hand?.tableSize);
+  const raw = hand?.format === 'cash'
+    ? (tableSize === 2 ? ['hu_cash', 'postflop_complete'] : ['postflop_complete', 'hu_cash'])
+    : (tableSize === 2
+        ? ['mtt_hu_chipev', 'spin_hu_chipev', 'mtt_6max_chipev']
+        : (tableSize === 3
+            ? ['mtt_3max_chipev', 'spin_3max_chipev', 'mtt_6max_chipev']
+            : (tableSize >= 7
+                ? ['mtt_9max_chipev', 'mtt_6max_chipev']
+                : ['mtt_6max_chipev', 'mtt_9max_chipev'])));
+  return raw.filter(gt => V2_FAMILY_STACKS[gt]?.has(stackDepth));
+}
+
+function streetHashPrefix(street) {
+  const s = String(street || '').toLowerCase();
+  if (s === 'turn') return 'turn_';
+  if (s === 'river') return 'river_';
+  return '';
+}
+
 /**
  * Exact concrete-combo postflop match against `solved_spots_gold.strategy_matrix_v2`.
- * Strictly refuses untrusted legacy V1 rows, non-matching boards/stacks/pots/nodes,
- * or ambiguous sizings.
+ * Strictly refuses untrusted legacy V1 rows, quarantined/unprovenanced rows,
+ * non-matching boards/stacks/pots/nodes, or ambiguous sizings.
  */
 export async function findSolvedSpotV2Match(db, hand, point) {
   if (!db || typeof db.from !== 'function') return null;
-  if (!['flop', 'turn', 'river'].includes(String(point?.street || '').toLowerCase())) return null;
+  const street = String(point?.street || '').toLowerCase();
+  if (!['flop', 'turn', 'river'].includes(street)) return null;
   if (!['cash', 'tournament'].includes(hand?.format)) return null;
 
   const cIdx = comboIndex(point?.holeCards);
@@ -199,28 +337,34 @@ export async function findSolvedSpotV2Match(db, hand, point) {
   const boardStrings = exactBoardStrings(point.board);
   if (boardStrings.length === 0) return null;
 
-  const gameTypes = hand.format === 'cash'
-    ? (Number(hand?.tableSize) === 2 ? ['hu_cash'] : ['6max_cash'])
-    : ['mtt_6max', 'mtt_9max'];
+  const gameTypes = candidateV2GameTypes(hand, stackDepth);
+  if (gameTypes.length === 0) return null;
 
+  const prefix = streetHashPrefix(street);
   const candidateHashes = [];
   for (const gt of gameTypes) {
     for (const b of boardStrings) {
-      candidateHashes.push(`${gt}_${pos}_${stackDepth}bb_${b}`);
+      candidateHashes.push(`${prefix}${gt}_${pos}_${stackDepth}bb_${b}`);
     }
   }
 
-  let rows;
+  const rows = [];
   try {
-    const res = await db
-      .from('solved_spots_gold')
-      .select('id, scenario_hash, game_type, stack_depth, street, strategy_matrix_v2, solved_v2_at, quality_status')
-      .in('scenario_hash', candidateHashes.slice(0, 12))
-      .not('solved_v2_at', 'is', null)
-      .not('strategy_matrix_v2', 'is', null)
-      .limit(12);
-    if (res?.error) return null;
-    rows = Array.isArray(res?.data) ? res.data : [];
+    for (let offset = 0; offset < candidateHashes.length; offset += SCENARIO_HASH_BATCH_SIZE) {
+      const batch = candidateHashes.slice(offset, offset + SCENARIO_HASH_BATCH_SIZE);
+      const res = await db
+        .from('solved_spots_gold')
+        .select(V2_SOLVED_SPOT_PROJECTION)
+        .in('scenario_hash', batch)
+        .eq('quality_status', 'validated')
+        .not('solved_v2_at', 'is', null)
+        .not('strategy_matrix_v2', 'is', null)
+        .limit(SCENARIO_HASH_BATCH_SIZE);
+      if (res?.error) return null;
+      if (Array.isArray(res?.data) && res.data.length > 0) {
+        rows.push(...res.data);
+      }
+    }
   } catch (_) {
     return null;
   }
@@ -229,13 +373,14 @@ export async function findSolvedSpotV2Match(db, hand, point) {
   for (const row of rows) {
     const v2 = row?.strategy_matrix_v2;
     if (!v2 || typeof v2 !== 'object') continue;
-    // Enforce the repository's canonical V2 bridge trust boundary.
+    // Enforce BOTH relational solver provenance AND the canonical V2 matrix bridge.
+    if (!customSolverProvenanceIsComplete(row)) continue;
     const bridged = selectTrustedSolverMatrix(row);
-    if (!bridged) continue;
+    if (!bridged || bridged.source !== 'pio_v2') continue;
 
-    if (String(v2.street || '').toLowerCase() !== String(point.street).toLowerCase()) continue;
+    if (String(v2.street || '').toLowerCase() !== street) continue;
     if (String(v2.position || '').toUpperCase() !== pos) continue;
-    if (!v2NodeMatchesPoint(v2, point)) continue;
+    if (!v2NodeMatchesPoint(v2, bridged, point)) continue;
 
     const villainExpected = String(v2.hero || '').toUpperCase() === 'IP'
       ? String(v2.oop_player || '').toUpperCase()
@@ -244,9 +389,10 @@ export async function findSolvedSpotV2Match(db, hand, point) {
       continue;
     }
 
-    const potBb = Number(v2.pot_bb);
+    // Compare against bridged.pot_bb (exact replayed current-node pot), NOT root v2.pot_bb.
+    const nodePotBb = Number(bridged.pot_bb);
     const pointPot = Number(point?.potBeforeBB);
-    if (!Number.isFinite(potBb) || !Number.isFinite(pointPot) || Math.abs(potBb - pointPot) > 0.5) {
+    if (!Number.isFinite(nodePotBb) || !Number.isFinite(pointPot) || Math.abs(nodePotBb - pointPot) > 0.5) {
       continue;
     }
 
@@ -275,7 +421,7 @@ export async function findSolvedSpotV2Match(db, hand, point) {
     }
     if (corrupt || totalMass < 0.98 || totalMass > 1.02) continue;
 
-    const selectedEntry = matchV2Action(actions, point);
+    const selectedEntry = matchV2Action(actions, point, bridged);
     if (!selectedEntry) continue;
 
     const selectedObj = actionProbs.find(item => item.action === selectedEntry);
@@ -283,8 +429,10 @@ export async function findSolvedSpotV2Match(db, hand, point) {
 
     const sortedByProb = [...actionProbs].sort((a, b) => b.prob - a.prob);
     const optimalObj = sortedByProb[0];
-    const selectedFrequency = +(selectedObj.prob / totalMass).toFixed(4);
-    const optimalFrequency = +(optimalObj.prob / totalMass).toFixed(4);
+    // Canonical 0..100 percentage scale matching cacheTruthContract.mjs and NUMERIC(6,2).
+    const selectedFrequency = +((selectedObj.prob / totalMass) * 100).toFixed(2);
+    const optimalFrequency = +((optimalObj.prob / totalMass) * 100).toFixed(2);
+    const isOptimal = selectedObj.action === optimalObj.action;
 
     // Per-action EVs are measured only when exact per-action combo EV vectors exist.
     let evLoss = null;
@@ -306,13 +454,13 @@ export async function findSolvedSpotV2Match(db, hand, point) {
     matchedCandidates.push({
       questionId: `ssg:${row.id}`,
       gameId: hand.format === 'tournament' ? 'mtt-002' : 'cash-002',
-      spotType: `${point.street}_${String(v2.hero || '').toLowerCase()}_${point.nodeClass}`,
+      spotType: `${street}_${String(v2.hero || '').toLowerCase()}_${point.nodeClass}`,
       villainPosition: villainExpected || null,
       solverSource: 'PIOSOLVER',
-      solverAction: normalizeActionLabel(optimalObj.action.key || optimalObj.action.code),
+      solverAction: normalizeActionLabel(optimalObj.action.key || optimalObj.action.code, optimalObj.action, bridged),
       selectedFrequency,
       optimalFrequency,
-      classification: classifyFromFrequency(selectedFrequency, optimalFrequency),
+      classification: classifyFromPercentFrequency(selectedFrequency, optimalFrequency, isOptimal),
       evLoss,
       evLossMeasured,
       matchTier: 1,
@@ -327,26 +475,33 @@ export async function findSolvedSpotV2Match(db, hand, point) {
   return matchedCandidates[0];
 }
 
-function mapChartAction(cell, point) {
+function mapChartAction(cell, point, villainAction) {
   const played = String(point?.action || '').toLowerCase();
   const keys = Object.keys(cell || {});
   if (played === 'fold' && keys.includes('fold')) return 'fold';
   if (played === 'call' && keys.includes('call')) return 'call';
-  if ((played === 'allin' || played === 'raise' || played === 'bet')) {
-    if (keys.includes('push') && played === 'allin') return 'push';
-    if (keys.includes('raise') && played !== 'allin') return 'raise';
-    // On pure push/fold short-stack charts (only push + fold keys), any open/all-in
-    // is evaluated ONLY when the player actually shoved all-in. Never conflate a
-    // min-raise with a shove!
-    if (keys.includes('push') && played === 'allin') return 'push';
+  if (played === 'allin') {
+    if (keys.includes('push')) return 'push';
+    // When BB faces an SB shove and calls all-in (shorter stack), Club Arena records 'all_in' -> 'allin'.
+    if (villainAction === 'sb_push' && keys.includes('call')) return 'call';
+    return null;
+  }
+  if ((played === 'raise' || played === 'bet') && keys.includes('raise')) {
+    return 'raise';
   }
   return null;
+}
+
+function hasPriorPreflopCalls(point) {
+  const prior = Array.isArray(point?.priorActions) ? point.priorActions : [];
+  return prior.some(a => String(a?.action || '').toLowerCase() === 'call');
 }
 
 /**
  * Exact preflop push/fold chart match against `public.memory_charts_gold`.
  * Covers both Cash and Tournament short-stack spots (2..20bb, 25bb) when hero's
  * stack, position, and villain action match the chart's unique index exactly.
+ * Treats missing hands in a valid non-empty sparse chart as pure folds (`{ fold: 1 }`).
  */
 export async function findMemoryChartMatch(db, hand, point) {
   if (!db || typeof db.from !== 'function') return null;
@@ -361,6 +516,10 @@ export async function findMemoryChartMatch(db, hand, point) {
 
   const stackDepth = nearestExactStack(hand?.hero?.stack, MEMORY_CHART_STACKS);
   if (stackDepth === null) return null;
+
+  // Reject limped or multiway pots — memory_charts_gold push/fold charts apply strictly
+  // to unopened (`fold_to_hero`) or heads-up SB-shove (`sb_push`) spots.
+  if (hasPriorPreflopCalls(point)) return null;
 
   let villainAction = null;
   if (point.nodeClass === 'preflop_open') {
@@ -393,8 +552,22 @@ export async function findMemoryChartMatch(db, hand, point) {
     return null;
   }
 
-  const cell = row?.hand_matrix?.[notation];
-  if (!cell || typeof cell !== 'object' || Array.isArray(cell)) return null;
+  const matrix = row?.hand_matrix;
+  if (!matrix || typeof matrix !== 'object' || Array.isArray(matrix) || Object.keys(matrix).length === 0) {
+    return null;
+  }
+
+  // `memory_charts_gold.hand_matrix` is sparse by design (matching SolverPolicyService.js:931):
+  // an omitted hand in a present, populated chart is a pure fold (`{ fold: 1 }`), not missing data.
+  const rawCell = matrix[notation];
+  let cell;
+  if (rawCell === undefined || rawCell === null) {
+    cell = villainAction === 'sb_push' ? { call: 0, fold: 1 } : { push: 0, fold: 1 };
+  } else if (typeof rawCell === 'object' && !Array.isArray(rawCell)) {
+    cell = rawCell;
+  } else {
+    return null;
+  }
 
   const entries = Object.entries(cell)
     .map(([k, v]) => [String(k).toLowerCase(), Number(v)])
@@ -402,14 +575,17 @@ export async function findMemoryChartMatch(db, hand, point) {
   const sum = entries.reduce((acc, [, v]) => acc + Math.max(0, v), 0);
   if (entries.length === 0 || sum < 0.98 || sum > 1.02) return null;
 
-  const selectedKey = mapChartAction(Object.fromEntries(entries), point);
+  const cellObj = Object.fromEntries(entries);
+  const selectedKey = mapChartAction(cellObj, point, villainAction);
   if (!selectedKey) return null;
 
-  const selectedVal = Math.max(0, Number(Object.fromEntries(entries)[selectedKey]) || 0);
+  const selectedVal = Math.max(0, Number(cellObj[selectedKey]) || 0);
   const sorted = [...entries].sort((a, b) => b[1] - a[1]);
   const [optKey, optVal] = sorted[0];
-  const selectedFrequency = +(selectedVal / sum).toFixed(4);
-  const optimalFrequency = +(Math.max(0, optVal) / sum).toFixed(4);
+  // Canonical 0..100 percentage scale matching cacheTruthContract.mjs and NUMERIC(6,2).
+  const selectedFrequency = +((selectedVal / sum) * 100).toFixed(2);
+  const optimalFrequency = +((Math.max(0, optVal) / sum) * 100).toFixed(2);
+  const isOptimal = selectedKey === optKey;
 
   return {
     questionId: `mcg:${row.chart_id}`,
@@ -420,7 +596,7 @@ export async function findMemoryChartMatch(db, hand, point) {
     solverAction: normalizeActionLabel(optKey),
     selectedFrequency,
     optimalFrequency,
-    classification: classifyFromFrequency(selectedFrequency, optimalFrequency),
+    classification: classifyFromPercentFrequency(selectedFrequency, optimalFrequency, isOptimal),
     evLoss: null,
     evLossMeasured: false,
     matchTier: 1,
@@ -441,6 +617,8 @@ export default {
   cardIndex,
   comboIndex,
   exactBoardStrings,
+  deriveV2ActionSizingPct,
+  classifyFromPercentFrequency,
   findSolvedSpotV2Match,
   findMemoryChartMatch,
   findDirectCorpusSolverMatch,

@@ -144,13 +144,51 @@ export default function ClubTriviaNightsPanel({
     // Active standings / winner / post-settlement review drawer state
     const [resultsView, setResultsView] = useState(null);
     const [lastSubmission, setLastSubmission] = useState(null);
+    const loadRequestIdRef = useRef(0);
+
+    const invitedClubCode = useMemo(() => {
+        const raw = typeof router.query?.clubCode === 'string'
+            ? router.query.clubCode.trim().toUpperCase()
+            : '';
+        return /^[A-Z0-9_-]{2,32}$/.test(raw) ? raw : '';
+    }, [router.query?.clubCode]);
 
     const hostableClubs = useMemo(
         () => clubs.filter((club) => club && club.canHost === true),
         [clubs],
     );
 
+    const isItemInvitedMatch = useCallback((item) => {
+        if (!invitedClubCode || !item) return false;
+        const itemInvite = String(item.inviteCode || '').trim().toUpperCase();
+        const itemClubCode = String(item.clubCode || '').trim().toUpperCase();
+        return itemInvite === invitedClubCode || itemClubCode === invitedClubCode;
+    }, [invitedClubCode]);
+
+    const matchedInvitedItems = useMemo(
+        () => (invitedClubCode ? items.filter((item) => isItemInvitedMatch(item)) : []),
+        [invitedClubCode, isItemInvitedMatch, items],
+    );
+
+    const orderedItems = useMemo(() => {
+        if (!invitedClubCode || matchedInvitedItems.length === 0) return items;
+        const matchedIds = new Set(matchedInvitedItems.map((item) => item.id));
+        return [
+            ...matchedInvitedItems,
+            ...items.filter((item) => !matchedIds.has(item.id)),
+        ];
+    }, [invitedClubCode, items, matchedInvitedItems]);
+
+    const viewerHasInvitedClub = useMemo(
+        () => Boolean(
+            invitedClubCode
+            && clubs.some((club) => String(club?.clubCode || '').trim().toUpperCase() === invitedClubCode),
+        ),
+        [clubs, invitedClubCode],
+    );
+
     const loadClubNights = useCallback(async (signal) => {
+        const requestId = ++loadRequestIdRef.current;
         if (!signedIn) {
             setClubs([]);
             setItems([]);
@@ -169,6 +207,7 @@ export default function ClubTriviaNightsPanel({
                 signal,
             });
             const payload = await response.json().catch(() => ({}));
+            if (signal?.aborted || loadRequestIdRef.current !== requestId) return;
             if (!response.ok || payload?.success !== true) {
                 throw new Error(friendlyClubNightError(payload?.error, 'Could Not Load Private Club Trivia Nights.'));
             }
@@ -181,10 +220,12 @@ export default function ClubTriviaNightsPanel({
                 setClubId((prev) => (prev && nextClubs.some((c) => c.id === prev && c.canHost) ? prev : firstHostClub.id));
             }
         } catch (err) {
-            if (err?.name === 'AbortError') return;
+            if (err?.name === 'AbortError' || signal?.aborted || loadRequestIdRef.current !== requestId) return;
             setError(err?.message || 'Could Not Load Private Club Trivia Nights.');
         } finally {
-            setLoading(false);
+            if (!signal?.aborted && loadRequestIdRef.current === requestId) {
+                setLoading(false);
+            }
         }
     }, [signedIn]);
 
@@ -518,9 +559,43 @@ export default function ClubTriviaNightsPanel({
             {!signedIn ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'flex-start' }}>
                     <p className="trivia-console-copy tc-ink--silver" style={{ margin: 0 }}>
-                        Sign In To View Your Club Arena Clubs, Register For Private Trivia Nights, Or Host One For Your Club.
+                        {invitedClubCode
+                            ? `Invite Code ${invitedClubCode} Ready. Sign In To View Your Club Arena Clubs And Join This Private Trivia Night.`
+                            : 'Sign In To View Your Club Arena Clubs, Register For Private Trivia Nights, Or Host One For Your Club.'}
                     </p>
                     <TriviaGlassAction label="Sign In To View Club Nights" ink="gold" onClick={() => onSignIn?.()} />
+                </div>
+            ) : null}
+
+            {signedIn && !loading && invitedClubCode && matchedInvitedItems.length === 0 ? (
+                <div
+                    role="status"
+                    data-club-invite-notice={invitedClubCode}
+                    style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '10px',
+                        padding: '14px',
+                        borderRadius: '10px',
+                        border: '1px solid rgba(250, 204, 21, 0.45)',
+                        background: 'rgba(10, 18, 32, 0.72)',
+                    }}
+                >
+                    <strong className="tc-ink--gold">Club Night Invite: {invitedClubCode}</strong>
+                    <p className="trivia-console-copy tc-ink--silver" style={{ margin: 0 }}>
+                        {viewerHasInvitedClub
+                            ? `Invite Code ${invitedClubCode} Matches Your Club, But No Active Private Trivia Night Is Currently Listed.`
+                            : `Invite Code ${invitedClubCode} Belongs To A Club You Have Not Joined Yet Or Is No Longer Active. Join The Club In Club Arena To Access Its Private Trivia Nights.`}
+                    </p>
+                    {!viewerHasInvitedClub ? (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                            <TriviaGlassAction
+                                label="Open Club Arena"
+                                ink="gold"
+                                onClick={() => router.push('/hub/club-arena')}
+                            />
+                        </div>
+                    ) : null}
                 </div>
             ) : null}
 
@@ -871,10 +946,11 @@ export default function ClubTriviaNightsPanel({
                         </p>
                     ) : (
                         <ul className="tc-rows" aria-label="Private Club Trivia Nights" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            {items.map((item) => {
+                            {orderedItems.map((item) => {
                                 const isReg = item.status === 'registration';
                                 const isLive = item.status === 'live';
                                 const isSettled = item.status === 'settled';
+                                const isInvitedMatch = isItemInvitedMatch(item);
                                 const entrants = Number(item.entrantCount || 0);
                                 const isFull = entrants >= Number(item.maxPlayers || 64);
                                 const actionPending = busyKey === `join:${item.id}` || busyKey === `leave:${item.id}`;
@@ -888,17 +964,22 @@ export default function ClubTriviaNightsPanel({
                                     <li
                                         key={item.id}
                                         className="tc-row tt-row--wrap"
+                                        data-invited-match={isInvitedMatch ? 'true' : undefined}
                                         style={{
                                             padding: '12px',
                                             borderRadius: '10px',
-                                            border: '1px solid rgba(148, 163, 184, 0.22)',
-                                            background: 'rgba(10, 18, 32, 0.5)',
+                                            border: isInvitedMatch
+                                                ? '1px solid rgba(250, 204, 21, 0.7)'
+                                                : '1px solid rgba(148, 163, 184, 0.22)',
+                                            background: isInvitedMatch
+                                                ? 'rgba(250, 204, 21, 0.08)'
+                                                : 'rgba(10, 18, 32, 0.5)',
                                             gap: '8px',
                                         }}
                                     >
                                         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'baseline', gap: '8px' }}>
                                             <strong className="tc-ink--gold" style={{ fontSize: '16px' }}>
-                                                {item.title}
+                                                {item.title}{isInvitedMatch ? ' | Invited Night' : ''}
                                             </strong>
                                             <span className={`tc-ink--${statusInk(item.status)}`} style={{ fontSize: '13px', fontWeight: 700 }}>
                                                 {statusLabel(item.status)}

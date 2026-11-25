@@ -101,14 +101,19 @@ export default async function handler(req, res) {
 
           // Authenticate
           let userId = null;
+          const hasExplicitAuth = Boolean(req.headers.authorization && String(req.headers.authorization).trim());
           const { user: authUser, status: authStatus } = await getServerUserWithFallback(req, supabase);
           if (authStatus === 503) {
               return res.status(503).json({ success: false, error: 'Session verification unavailable' });
           }
           if (authUser) userId = authUser.id;
 
-          // Guest submissions are allowed but not stored
+          // If caller sent an explicit Authorization header that failed verification, return 401
+          // rather than silently downgrading to an ephemeral guest response.
           if (!userId) {
+              if (hasExplicitAuth) {
+                  return res.status(401).json({ success: false, error: 'Invalid or expired authorization token' });
+              }
               return res.status(200).json(ephemeralResult('guest', null, { stored: false }));
           }
 
@@ -152,6 +157,31 @@ export default async function handler(req, res) {
           }
           const authoritativeAction = String(ownedSession.result.primary_action).slice(0, 40);
           const authoritativeCorrect = gradeAction(userPick, authoritativeAction);
+
+          // Deduplicate per (user_id, session_id) so replaying one owned session cannot
+          // inflate sandbox_coach_results / sandbox_coach_accuracy / leaderboard scores.
+          const { data: existingResult, error: existingErr } = await supabase
+              .from('sandbox_coach_results')
+              .select('id, is_correct')
+              .eq('user_id', userId)
+              .eq('session_id', ownedSession.id)
+              .limit(1)
+              .maybeSingle();
+          if (existingErr && existingErr.code !== '42P01') {
+              console.warn('[coach-result] Dedup lookup error:', existingErr.message);
+              return res.status(503).json(persistenceFailure(
+                  'Coach progress could not be verified. Try again shortly.',
+                  'read_failed',
+                  { stored: false },
+              ));
+          }
+          if (existingResult) {
+              return res.status(200).json(persistedResult(existingResult, {
+                  id: existingResult.id,
+                  stored: true,
+                  alreadyRecorded: true,
+              }));
+          }
 
           const { data, error } = await supabase
               .from('sandbox_coach_results')

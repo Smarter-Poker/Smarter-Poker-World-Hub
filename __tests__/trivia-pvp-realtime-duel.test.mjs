@@ -19,7 +19,7 @@ test('PvP page wires useTriviaRealtimeSync for active match/ticket states and sl
     assert.match(pvpPage, /trivia:pvp:match:\$\{syncContext\.matchId\}/);
     assert.match(pvpPage, /trivia:pvp:ticket:\$\{syncContext\.ticketId\}/);
     assert.match(pvpPage, /trivia:pvp:user:\$\{user\.id\}/);
-    assert.match(pvpPage, /enabled: Boolean\(user\?\.id && syncContext\.active && realtimeChannelName\)/);
+    assert.match(pvpPage, /enabled: Boolean\(user\?\.id && realtimeChannelName\)/);
     assert.match(pvpPage, /fallbackPollMs,/);
     assert.match(pvpPage, /connectedPollMs,/);
     assert.match(pvpPage, /onSync: handleRealtimePush/);

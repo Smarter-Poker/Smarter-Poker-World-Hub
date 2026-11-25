@@ -331,6 +331,7 @@ export default function PvpCompetitiveExperience({
     realtimeEventCount = 0,
     preferredStake = null,
     activeChallenge = null,
+    pairedMatchId = null,
     settledSessionId = '',
     settledMatch = null,
 }) {
@@ -377,6 +378,7 @@ export default function PvpCompetitiveExperience({
     const staleQuoteRecoveryRef = useRef(false);
     const appliedPreferredStakeRef = useRef(null);
     const lastRealtimeEventRef = useRef(realtimeEventCount);
+    const resumedPairedMatchRef = useRef(null);
     const dtoAuthorityRef = useRef(null);
     const quoteAuthorityRef = useRef(null);
     const journeyTrackerRef = useRef(null);
@@ -529,6 +531,7 @@ export default function PvpCompetitiveExperience({
         loadedMatchRef.current = null;
         loadingMatchRef.current = null;
         finishingMatchRef.current = null;
+        resumedPairedMatchRef.current = null;
         terminalQuoteRef.current = null;
         serverRun.reset();
 
@@ -709,24 +712,67 @@ export default function PvpCompetitiveExperience({
         });
     }, [bootState, dto, onSyncContextChange, showLobby, user?.id]);
 
+    const directDuelMatchId = activeChallenge?.matchId || activeChallenge?.pvpHandoff?.matchId || pairedMatchId || null;
+    const isDirectDuelPaired = Boolean(activeChallenge?.pvpHandoff?.paired || directDuelMatchId);
+
     useEffect(() => {
         if (realtimeEventCount <= lastRealtimeEventRef.current) return undefined;
         lastRealtimeEventRef.current = realtimeEventCount;
+        if (!user?.id || bootState !== 'ready') return undefined;
         const current = latestDtoRef.current;
-        if (!user?.id || bootState !== 'ready' || showLobby || !current || !isActivePvpState(current.state)) {
-            return undefined;
-        }
         const controller = new AbortController();
-        void readLatestStatus({
-            action: current.state === 'searching' ? 'heartbeat' : 'status',
+        if (!showLobby && current && isActivePvpState(current.state)) {
+            void readLatestStatus({
+                action: current.state === 'searching' ? 'heartbeat' : 'status',
+                signal: controller.signal,
+            }).catch((error) => {
+                if (error?.name === 'AbortError') return;
+                setConnection('reconnecting');
+                setConnectionMessage(pvpErrorCopy(error));
+            });
+            return () => controller.abort();
+        }
+        // Wake waiting challengers and direct-duel accepters directly from idle/lobby
+        // into the server-escrowed match whenever a user-channel or accept signal fires.
+        void readDto('resume', {
+            method: 'GET',
             signal: controller.signal,
+        }).then((restored) => {
+            if (restored && isActivePvpState(restored.state)) {
+                setShowLobby(false);
+            }
         }).catch((error) => {
             if (error?.name === 'AbortError') return;
             setConnection('reconnecting');
             setConnectionMessage(pvpErrorCopy(error));
         });
         return () => controller.abort();
-    }, [bootState, readLatestStatus, realtimeEventCount, showLobby, user?.id]);
+    }, [bootState, readDto, readLatestStatus, realtimeEventCount, showLobby, user?.id]);
+
+    useEffect(() => {
+        if (!user?.id || bootState !== 'ready' || !directDuelMatchId) return undefined;
+        const current = latestDtoRef.current;
+        if (!showLobby && current?.match?.id === directDuelMatchId && isActivePvpState(current.state)) {
+            return undefined;
+        }
+        if (resumedPairedMatchRef.current === directDuelMatchId) return undefined;
+        resumedPairedMatchRef.current = directDuelMatchId;
+        const controller = new AbortController();
+        void readDto('resume', {
+            method: 'GET',
+            signal: controller.signal,
+        }).then((restored) => {
+            if (restored && isActivePvpState(restored.state)) {
+                setShowLobby(false);
+            }
+        }).catch((error) => {
+            resumedPairedMatchRef.current = null;
+            if (error?.name === 'AbortError') return;
+            setConnection('reconnecting');
+            setConnectionMessage(pvpErrorCopy(error));
+        });
+        return () => controller.abort();
+    }, [bootState, directDuelMatchId, readDto, showLobby, user?.id]);
 
     const markSessionFinishedLocally = useCallback((matchId) => {
         const current = latestDtoRef.current;
@@ -1230,7 +1276,9 @@ export default function PvpCompetitiveExperience({
                     </p>
                     {activeChallenge?.challengeCode ? (
                         <p className="trivia-pvp-notice" data-tone="info">
-                            Friend Duel {activeChallenge.challengeCode} ({formatDiamonds(activeChallenge.stakeAmount)} Diamonds). Review The Server Quote Below And Join When Ready.
+                            {isDirectDuelPaired
+                                ? `Direct Duel Active: Loading Live Match... (${activeChallenge.challengeCode}, ${formatDiamonds(activeChallenge.stakeAmount)} Diamonds)`
+                                : `Friend Duel ${activeChallenge.challengeCode} (${formatDiamonds(activeChallenge.stakeAmount)} Diamonds). Review The Server Quote Below And Join When Ready.`}
                         </p>
                     ) : null}
                     <LiveNotices {...reconnectProps} />
@@ -1582,7 +1630,6 @@ export default function PvpCompetitiveExperience({
                         player={playerShareName}
                         shareUrl="https://smarter.poker/hub/trivia/pvp"
                         matchId={effectiveShareMatch?.id || effectiveShareMatch?.matchId || result?.matchId || null}
-                        sessionId={effectiveReviewSessionId || null}
                     />
                 </>
             ) : null}

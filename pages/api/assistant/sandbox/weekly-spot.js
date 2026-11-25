@@ -1,6 +1,6 @@
 /**
  * Weekly Spot Challenge API
- * GET: Returns the current week's challenge scenario
+ * GET: Returns the current week's challenge scenario (strictly omitting answer key)
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { reportApiError } from '../../../../src/lib/apiErrorHandler';
@@ -24,29 +24,26 @@ function getSupabase() {
     return _supabase;
 }
 
-
-
-
+/** Never expose the grading answer key (`correct_action`) before submission. */
+function stripAnswerKey(spot) {
+    if (!spot || typeof spot !== 'object') return spot;
+    const { correct_action: _hiddenAnswer, correctAction: _hiddenCamel, ...publicSpot } = spot;
+    return publicSpot;
+}
 
 export default async function handler(req, res) {
   try {
       if (req.method !== 'GET') {
+          res.setHeader('Allow', 'GET');
+          res.setHeader('Cache-Control', 'no-store');
           return res.status(405).json({ error: 'Method not allowed' });
       }
 
-      // Rate limit before any DB work. The edge cache below only protects the
-      // DB for requests that actually hit the CDN · a unique query string per
-      // request busts it and reaches this handler every time, so the read
-      // bucket is the real floor for an unauthenticated endpoint.
       if (!applyRateLimit(req, res, LIMITS.read || { max: 60, windowMs: 60_000 })) return;
 
-      const supabase = getSupabase();
-
       try {
-          // Try to fetch from DB first · getSupabase() already falls back to the
-          // anon key, so no env guard is needed (and referencing undefined env
-          // consts here previously threw, killing the whole DB path).
-          const today = getTodayCST(); // Phase 77 · CST anchor: weekly spot rotation matches user's local week boundary
+          const supabase = getSupabase();
+          const today = getTodayCST();
 
           const { data, error } = await supabase
               .from('sandbox_weekly_spots')
@@ -61,29 +58,27 @@ export default async function handler(req, res) {
 
           if (!error && data && data.length > 0) {
               res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');
-              return res.status(200).json({ spot: data[0], source: 'database' });
+              return res.status(200).json({ spot: stripAnswerKey(data[0]), source: 'database' });
           }
 
-          // Fallback: use curated spots based on week number
           const weekNum = Math.floor((Date.now() - new Date('2026-01-01T00:00:00Z').getTime()) / (7 * 24 * 60 * 60 * 1000));
           const spot = CURATED_SPOTS[((weekNum % CURATED_SPOTS.length) + CURATED_SPOTS.length) % CURATED_SPOTS.length];
 
-          // Never CDN-cache transient DB error fallbacks for an hour.
           res.setHeader(
               'Cache-Control',
               error ? 'no-store' : 'public, s-maxage=3600, stale-while-revalidate=7200',
           );
-          return res.status(200).json({ spot, source: error ? 'fallback' : 'curated' });
+          return res.status(200).json({ spot: stripAnswerKey(spot), source: error ? 'fallback' : 'curated' });
       } catch (err) {
           console.warn('Weekly spot error:', err);
           res.setHeader('Cache-Control', 'no-store');
-          // Always return a spot, even on error
-          return res.status(200).json({ spot: CURATED_SPOTS[0], source: 'fallback' });
+          return res.status(200).json({ spot: stripAnswerKey(CURATED_SPOTS[0]), source: 'fallback' });
       }
 
   } catch (err) {
       try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
-    console.warn('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
+      console.warn('[API Error]', err);
+      res.setHeader('Cache-Control', 'no-store');
+      if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

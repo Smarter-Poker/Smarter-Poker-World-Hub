@@ -39,6 +39,8 @@ async function retentionHandler(req, res) {
 const monitoredHandler = withCronHealth('personal-assistant-retention', retentionHandler);
 
 export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+  res.setHeader('Vary', 'Authorization');
   if (!applyRateLimit(req, res, LIMITS.write)) return;
   try {
     return await monitoredHandler(req, res);

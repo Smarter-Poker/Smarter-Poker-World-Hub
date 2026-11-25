@@ -98,12 +98,22 @@ export function evidenceFingerprint({ leaks = [], decisions = [], reviews = [], 
     finite(row?.ev_loss), row?.ev_loss_measured === true, row?.solver_verified === true,
     String(row?.solver_source || ''), count(row?.match_tier), iso(row?.audited_at),
   ]));
-  const reviewRows = canonicalRows((Array.isArray(reviews) ? reviews : []).map(row => [
-    String(row?.leak_id ?? row?.leakId ?? ''), iso(row?.due_at ?? row?.dueAt),
-    count(row?.reps), count(row?.lapses), count(row?.strong_streak), row?.retired === true,
-    finite(row?.last_score), String(row?.last_outcome || ''), iso(row?.updated_at),
-    canonicalRows((Array.isArray(row?.history) ? row.history : []).map(item => [iso(item?.at), finite(item?.score)])),
-  ]));
+  const reviewRows = canonicalRows((Array.isArray(reviews) ? reviews : []).map(row => {
+    const rawOutcome = row?.last_outcome ?? row?.lastOutcome;
+    const outcomeText = rawOutcome && typeof rawOutcome === 'object'
+      ? JSON.stringify(rawOutcome)
+      : String(rawOutcome || '');
+    return [
+      String(row?.leak_id ?? row?.leakId ?? ''), iso(row?.due_at ?? row?.dueAt),
+      count(row?.reps), count(row?.lapses), count(row?.strong_streak ?? row?.strongStreak),
+      finite(row?.interval_days ?? row?.intervalDays),
+      row?.retired === true,
+      finite(row?.last_score ?? row?.lastScore), outcomeText,
+      iso(row?.remediation_baseline_at ?? row?.remediationBaselineAt),
+      iso(row?.updated_at ?? row?.updatedAt),
+      canonicalRows((Array.isArray(row?.history) ? row.history : []).map(item => [iso(item?.at), finite(item?.score)])),
+    ];
+  }));
   const rejectedRows = Object.entries(rejected || {})
     .map(([key, value]) => [String(key), count(value)])
     .sort((a, b) => a[0].localeCompare(b[0]));
@@ -293,23 +303,27 @@ function evaluateTableVerification(rawLeak, review, relatedDecisions, mastered) 
     ?? rawLeak?.first_detected_at,
   );
   const baselineMs = baselineAt ? new Date(baselineAt).getTime() : null;
+  const decisionTimeMs = (row) => {
+    const rawTs = row?.hand_played_at ?? row?.handPlayedAt ?? row?.hand_created_at ?? row?.audited_at ?? 0;
+    return new Date(rawTs).getTime();
+  };
   const verified = (relatedDecisions || []).filter(row => row?.solver_verified === true);
   const postBaseline = baselineMs !== null
     ? verified.filter(row => {
-      const ts = new Date(row?.audited_at || 0).getTime();
+      const ts = decisionTimeMs(row);
       return Number.isFinite(ts) && ts >= baselineMs;
     })
     : [];
   const preBaseline = baselineMs !== null
     ? verified.filter(row => {
-      const ts = new Date(row?.audited_at || 0).getTime();
+      const ts = decisionTimeMs(row);
       return Number.isFinite(ts) && ts < baselineMs;
     })
     : [];
 
   const errorRate = (list) => {
     if (!list.length) return null;
-    const errs = list.filter(row => String(row?.classification || '').toLowerCase() !== 'correct').length;
+    const errs = list.filter(row => !['best', 'correct'].includes(String(row?.classification || '').toLowerCase())).length;
     return Math.round((errs / list.length) * 1000) / 10;
   };
   const postErrorRate = errorRate(postBaseline);

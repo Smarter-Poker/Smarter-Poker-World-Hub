@@ -56,28 +56,77 @@ export function retentionDays(value) {
 export function sanitizeExportHandRow(row, userId) {
   if (!row || typeof row !== 'object') return row;
   const uid = String(userId || '');
+  const shownIds = new Set();
+  const isShownPlayer = (player) => Boolean(
+    player?.showed === true
+    || player?.shown === true
+    || player?.showedCards === true
+    || player?.showed_cards === true
+    || player?.wentToShowdown === true
+  );
   const sanitizePlayer = (player) => {
     if (!player || typeof player !== 'object') return player;
-    const pid = String(player.userId ?? player.user_id ?? player.id ?? '');
+    const pid = String(player.userId ?? player.user_id ?? player.id ?? player.playerId ?? '');
     const isOwner = Boolean(uid && pid === uid);
-    const showed = Boolean(
-      player.showed === true
-      || player.shown === true
-      || player.showedCards === true
-      || player.showed_cards === true
-      || player.wentToShowdown === true
-    );
+    const showed = isShownPlayer(player);
+    if (showed && pid) shownIds.add(pid);
     if (isOwner || showed) return player;
     const clean = { ...player };
     delete clean.cards;
     delete clean.hole_cards;
     delete clean.holeCards;
+    delete clean.heroCards;
     return clean;
   };
+  const sanitizeHoleCardsMap = (mapObj) => {
+    if (!mapObj || typeof mapObj !== 'object' || Array.isArray(mapObj)) return mapObj;
+    const cleanMap = {};
+    for (const [key, val] of Object.entries(mapObj)) {
+      if ((uid && String(key) === uid) || shownIds.has(String(key))) {
+        cleanMap[key] = val;
+      }
+    }
+    return cleanMap;
+  };
+  const sanitizeSummaryObject = (summaryObj) => {
+    if (!summaryObj || typeof summaryObj !== 'object') return summaryObj;
+    const cleanSum = { ...summaryObj };
+    if (Array.isArray(cleanSum.players)) {
+      cleanSum.players = cleanSum.players.map(sanitizePlayer);
+    }
+    if (cleanSum.hole_cards && typeof cleanSum.hole_cards === 'object') {
+      cleanSum.hole_cards = sanitizeHoleCardsMap(cleanSum.hole_cards);
+    }
+    if (cleanSum.holeCards && typeof cleanSum.holeCards === 'object') {
+      cleanSum.holeCards = sanitizeHoleCardsMap(cleanSum.holeCards);
+    }
+    return cleanSum;
+  };
+
   const next = { ...row };
   if (Array.isArray(row.players)) next.players = row.players.map(sanitizePlayer);
-  if (row.hand_data && typeof row.hand_data === 'object' && Array.isArray(row.hand_data.players)) {
-    next.hand_data = { ...row.hand_data, players: row.hand_data.players.map(sanitizePlayer) };
+  if (row.hand_data && typeof row.hand_data === 'object') {
+    const cleanHandData = { ...row.hand_data };
+    if (Array.isArray(cleanHandData.players)) {
+      cleanHandData.players = cleanHandData.players.map(sanitizePlayer);
+    }
+    if (cleanHandData.hole_cards && typeof cleanHandData.hole_cards === 'object') {
+      cleanHandData.hole_cards = sanitizeHoleCardsMap(cleanHandData.hole_cards);
+    }
+    next.hand_data = cleanHandData;
+  }
+  if (row.summary && typeof row.summary === 'object') {
+    next.summary = sanitizeSummaryObject(row.summary);
+  } else if (typeof row.summary === 'string' && row.summary.trim().startsWith('{')) {
+    try {
+      const parsed = JSON.parse(row.summary);
+      next.summary = JSON.stringify(sanitizeSummaryObject(parsed));
+    } catch (_) {
+      // Non-JSON summary string — leave intact
+    }
+  }
+  if (row.hole_cards && typeof row.hole_cards === 'object') {
+    next.hole_cards = sanitizeHoleCardsMap(row.hole_cards);
   }
   return next;
 }

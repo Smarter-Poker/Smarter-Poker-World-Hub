@@ -41,9 +41,11 @@ async function linkedRows(table, column, ids) {
   const rows = [];
   for (let index = 0; index < ids.length; index += 100) {
     const batch = ids.slice(index, index + 100);
-    const { data, error } = await db().from(table).select('*').in(column, batch);
-    if (error) throw error;
-    rows.push(...(data || []));
+    const batchRows = await readAll(
+      () => db().from(table).select('*').in(column, batch),
+      table,
+    );
+    rows.push(...batchRows);
   }
   return rows;
 }

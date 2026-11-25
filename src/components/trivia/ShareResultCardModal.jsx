@@ -30,9 +30,9 @@ export default function ShareResultCardModal({
         if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
     }, []);
 
-    const verifiedSessionId = isValidTriviaUuid(sessionId) ? sessionId.trim() : null;
-    const verifiedMatchId = !verifiedSessionId && isValidTriviaUuid(matchId) ? matchId.trim() : null;
-    const isVerifiedCard = Boolean(verifiedSessionId || verifiedMatchId);
+    const verifiedMatchId = isValidTriviaUuid(matchId) ? matchId.trim() : null;
+    const verifiedSessionId = !verifiedMatchId && isValidTriviaUuid(sessionId) ? sessionId.trim() : null;
+    const isVerifiedCard = Boolean(verifiedMatchId || verifiedSessionId);
 
     const normalizedGrid = useMemo(
         () => normalizeGridString(grid, score, total),
@@ -40,11 +40,11 @@ export default function ShareResultCardModal({
     );
 
     const cardUrl = useMemo(() => {
-        if (verifiedSessionId) {
-            return `/api/trivia/og-result-card?sessionId=${encodeURIComponent(verifiedSessionId)}`;
-        }
         if (verifiedMatchId) {
             return `/api/trivia/og-result-card?matchId=${encodeURIComponent(verifiedMatchId)}`;
+        }
+        if (verifiedSessionId) {
+            return `/api/trivia/og-result-card?sessionId=${encodeURIComponent(verifiedSessionId)}`;
         }
         const params = new URLSearchParams({
             mode: String(mode || 'daily'),
