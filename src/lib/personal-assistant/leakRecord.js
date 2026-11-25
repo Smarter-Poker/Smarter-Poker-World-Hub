@@ -427,7 +427,10 @@ export function classifyHandAuditEligibility(row, { requireExplicitVariant = fal
     || Boolean(summary?.killPot || summary?.kill_pot);
   const isMultiBoard = (Array.isArray(row?.community_cards2) && row.community_cards2.length > 0)
     || (Array.isArray(row?.community_cards3) && row.community_cards3.length > 0)
-    || Number(row?.rit_boards ?? summary?.ritBoards ?? summary?.rit_boards ?? 1) > 1;
+    || (Array.isArray(row?.rit_boards) && row.rit_boards.length > 0)
+    || (Array.isArray(summary?.ritBoards) && summary.ritBoards.length > 0)
+    || (Array.isArray(summary?.rit_boards) && summary.rit_boards.length > 0)
+    || Number(row?.rit_boards ?? summary?.ritBoards ?? summary?.rit_boards ?? row?.run_it_count ?? 1) > 1;
 
   if (isBombPot || isKillPot || isMultiBoard) {
     const specialLabels = [];
@@ -688,10 +691,24 @@ export function computeStatsFromAuditHands(hands, userId) {
   };
 }
 
-export function classifyLeakStatus(existingLeak, currentValue, optimalRange) {
+export function classifyLeakStatus(existingLeak, currentValue, optimalRange, options = {}) {
   const deviation = deviationFromRange(currentValue, optimalRange);
+  // Ratio metrics (e.g. Aggression Factor `[1.6, 3.4]` or `[2.0, 3.5]`) operate on a
+  // ~0-6 scale rather than 0-100%, so comparing them against a 5-point percentage
+  // threshold would make new AF leaks mathematically impossible to create.
+  const isRatioMetric = Array.isArray(optimalRange)
+    && Number.isFinite(Number(optimalRange[0]))
+    && Number.isFinite(Number(optimalRange[1]))
+    && Number(optimalRange[0]) >= 0
+    && Number(optimalRange[1]) <= 10;
+  const emergingThreshold = Number.isFinite(Number(options?.minDeviation))
+    ? Number(options.minDeviation)
+    : (isRatioMetric ? 0.3 : 5);
+  const improvingThreshold = isRatioMetric ? 0.25 : 3;
+  const improvingMax = isRatioMetric ? 0.8 : 8;
+
   if (!existingLeak) {
-    return deviation > 5 ? 'emerging' : null;
+    return deviation >= emergingThreshold ? 'emerging' : null;
   }
   const priorStatus = existingLeak.status === 'resolved' ? 'emerging' : existingLeak.status;
   const trendData = existingLeak.trend_data || [];
@@ -702,9 +719,9 @@ export function classifyLeakStatus(existingLeak, currentValue, optimalRange) {
   const improvement = oldValue !== null && oldValue !== undefined &&
     deviationFromRange(currentValue, optimalRange) < deviationFromRange(oldValue, optimalRange);
 
-  if (deviation < 3) {
+  if (deviation < improvingThreshold) {
     return 'improving';
-  } else if (improvement && deviation < 8) {
+  } else if (improvement && deviation < improvingMax) {
     return 'improving';
   } else if (existingLeak.occurrence_count > 30) {
     return 'persistent';

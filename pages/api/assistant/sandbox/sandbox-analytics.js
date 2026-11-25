@@ -36,10 +36,6 @@ export default async function handler(req, res) {
   if (!applyRateLimit(req, res, limit)) return;
 
     try {
-        const authHeader = req.headers.authorization;
-        const token = authHeader?.replace('Bearer ', '');
-        if (!token) return res.status(401).json({ error: 'Unauthorized' });
-
         const { user: authUser, error: authErr, status: authStatus } = await getServerUserWithFallback(req, getSupabase());
 
         const user = authUser;

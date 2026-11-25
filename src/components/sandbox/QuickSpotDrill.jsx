@@ -289,12 +289,20 @@ export default function QuickSpotDrill({ onClose, onReviewComplete, customParams
             const startLevel = Number.isFinite(savedLevel) && savedLevel > 0 ? savedLevel : 1;
             setLevel(startLevel);
 
-            let fetchUrl = '/api/sandbox/custom-drill?limit=10';
-            if (activeParams) {
-                const reviewParams = reviewLeakId ? { ...activeParams, leak: reviewLeakId } : activeParams;
-                const query = new URLSearchParams(reviewParams).toString();
-                fetchUrl = `/api/sandbox/custom-drill?${query}`;
+            const cleanedParams = {};
+            if (activeParams && typeof activeParams === 'object') {
+                for (const [k, v] of Object.entries(activeParams)) {
+                    if (v !== undefined && v !== null && String(v).trim() !== '') {
+                        cleanedParams[k] = String(v);
+                    }
+                }
             }
+            if (!cleanedParams.limit) cleanedParams.limit = '10';
+            if (reviewLeakId && String(reviewLeakId).trim() !== '') {
+                cleanedParams.leak = String(reviewLeakId).trim();
+            }
+            const query = new URLSearchParams(cleanedParams).toString();
+            const fetchUrl = `/api/sandbox/custom-drill?${query}`;
 
             try { abortRef.current?.abort(); } catch (e) { /* noop */ }
             abortRef.current = ctrl;

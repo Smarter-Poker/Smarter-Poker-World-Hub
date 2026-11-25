@@ -188,26 +188,18 @@ function addFactToCounter(counter, row) {
     if (row.probe_bet === true) counter.probeBet += 1;
   }
 
-  const flopAgg = Number(row.aggressive_actions_flop) || 0;
-  const flopPass = Number(row.passive_actions_flop) || 0;
-  const turnAgg = Number(row.aggressive_actions_turn) || 0;
-  const turnPass = Number(row.passive_actions_turn) || 0;
-  const riverAgg = Number(row.aggressive_actions_river) || 0;
-  const riverPass = Number(row.passive_actions_river) || 0;
+  const callOnlyAgg = Number(row.af_bet_raise_actions) || 0;
+  const callOnlyCalls = Number(row.af_call_actions) || 0;
+  counter.postflopAgg += callOnlyAgg;
+  counter.postflopPass += callOnlyCalls;
 
-  counter.flopAgg += flopAgg;
-  counter.flopPass += flopPass;
-  counter.turnRiverAgg += turnAgg + riverAgg;
-  counter.turnRiverPass += turnPass + riverPass;
-
-  const streetPostflopAgg = flopAgg + turnAgg + riverAgg;
-  const streetPostflopPass = flopPass + turnPass + riverPass;
-  if (streetPostflopAgg > 0 || streetPostflopPass > 0) {
-    counter.postflopAgg += streetPostflopAgg;
-    counter.postflopPass += streetPostflopPass;
-  } else {
-    counter.postflopAgg += Number(row.af_bet_raise_actions) || 0;
-    counter.postflopPass += Number(row.af_call_actions) || 0;
+  // Turn/river AF is only computed when call-only turn/river denominators exist.
+  // Never divide by check-inclusive `passive_actions_turn/river` against call-only baselines.
+  const trCallAgg = Number(row.af_turn_river_bet_raise);
+  const trCallPass = Number(row.af_turn_river_calls);
+  if (Number.isFinite(trCallAgg) && Number.isFinite(trCallPass) && (trCallAgg > 0 || trCallPass > 0)) {
+    counter.turnRiverAgg += trCallAgg;
+    counter.turnRiverPass += trCallPass;
   }
 }
 
@@ -434,14 +426,14 @@ function evaluateFormatLeaks(metrics, posMetrics, formatScope, stackBucket, base
     }));
   }
 
-  // 7. Flop check-raise too rare (recorded check_raise_opportunity)
+  // 7. Postflop check-raise too rare (recorded check_raise_opportunity across flop/turn/river)
   if (metrics.checkRaiseOpps >= 25 && metrics.checkRaiseFreq !== null && metrics.checkRaiseFreq < baseline.checkRaise[0] - 3) {
     const gap = Math.max(1, Math.round(((baseline.checkRaise[0] - metrics.checkRaiseFreq) / 100) * metrics.checkRaiseOpps));
     leaks.push(buildFactLeak({
       formatScope,
       stackBucket,
       slug: 'check_raise_too_rare_facts',
-      category: 'flop',
+      category: 'postflop',
       title: 'Check-Raising Too Rarely',
       currentValue: metrics.checkRaiseFreq,
       optimalRange: baseline.checkRaise,
@@ -454,7 +446,7 @@ function evaluateFormatLeaks(metrics, posMetrics, formatScope, stackBucket, base
     }));
   }
 
-  // 8. Passive Turn & River play (turn/river aggression factor)
+  // 8. Passive postflop / turn-river play (strictly call-only AF basis)
   if (metrics.turnRiverActions >= 30 && metrics.turnRiverAf !== null && metrics.turnRiverAf < baseline.turnRiverAf[0] - 0.3) {
     leaks.push(buildFactLeak({
       formatScope,
@@ -470,6 +462,22 @@ function evaluateFormatLeaks(metrics, posMetrics, formatScope, stackBucket, base
       recommendedDrill: postflopDrill,
       explanation: `Your turn-and-river aggression factor is ${metrics.turnRiverAf} across ${metrics.turnRiverActions} actions vs. ${baseline.turnRiverAf[0]}-${baseline.turnRiverAf[1]}.`,
       why: 'Calling down passively on later streets surrenders fold equity and misses thin value in big pots.',
+    }));
+  } else if (metrics.postflopActions >= 40 && metrics.postflopAf !== null && metrics.postflopAf < baseline.turnRiverAf[0] - 0.3) {
+    leaks.push(buildFactLeak({
+      formatScope,
+      stackBucket,
+      slug: 'passive_postflop_facts',
+      category: 'postflop',
+      title: 'Too Passive Postflop',
+      currentValue: metrics.postflopAf,
+      optimalRange: baseline.turnRiverAf,
+      samples: metrics.postflopActions,
+      mistakes: Math.max(5, Math.round(metrics.postflopActions * 0.2)),
+      evImpact: 0.09,
+      recommendedDrill: postflopDrill,
+      explanation: `Your call-only aggression factor is ${metrics.postflopAf} across ${metrics.postflopActions} bet/raise/call actions vs. ${baseline.turnRiverAf[0]}-${baseline.turnRiverAf[1]}.`,
+      why: 'Calling too often relative to betting and raising surrenders fold equity and misses thin value.',
     }));
   }
 
@@ -572,23 +580,57 @@ export function analyzeCaHandFacts(rows = []) {
     detectedLeaks.push(...evaluateFormatLeaks(cashMetrics, cashPositions, 'cash', null, FORMAT_BASELINES.cash));
   }
 
-  // Evaluate Tournament play with stack-depth-aware baselines when a stack bucket
-  // has sufficient sample, otherwise aggregate tournament play under the dominant stack baseline.
+  // Evaluate each Tournament stack bucket (`<20bb`, `20-40bb`, `40bb+`) independently
+  // against its own stack-depth baseline so shifting hand volumes never mix push/fold
+  // and deep-stack play or falsely auto-resolve active leaks. Only fall back to an
+  // aggregate tournament pass when no individual known stack bucket has >= 30 hands.
   if (tournamentMetrics.hands > 0) {
-    const dominantBucket = tournamentByStack.short.hands >= tournamentByStack.mid.hands
-      && tournamentByStack.short.hands >= tournamentByStack.deep.hands
-      ? 'short'
-      : (tournamentByStack.mid.hands >= tournamentByStack.deep.hands ? 'mid' : 'deep');
-    const dominantBaseline = dominantBucket === 'short'
-      ? FORMAT_BASELINES.tournament_short
-      : (dominantBucket === 'mid' ? FORMAT_BASELINES.tournament_mid : FORMAT_BASELINES.tournament_deep);
-    detectedLeaks.push(...evaluateFormatLeaks(
-      tournamentMetrics,
-      tournamentPositions,
-      'tournament',
-      dominantBucket,
-      dominantBaseline,
-    ));
+    const bucketSpecs = [
+      { key: 'short', metrics: tournamentByStack.short, baseline: FORMAT_BASELINES.tournament_short },
+      { key: 'mid', metrics: tournamentByStack.mid, baseline: FORMAT_BASELINES.tournament_mid },
+      { key: 'deep', metrics: tournamentByStack.deep, baseline: FORMAT_BASELINES.tournament_deep },
+    ];
+    const qualifiedBuckets = bucketSpecs.filter(b => b.metrics.hands >= 30);
+    if (qualifiedBuckets.length > 0) {
+      for (const b of qualifiedBuckets) {
+        detectedLeaks.push(...evaluateFormatLeaks(
+          b.metrics,
+          qualifiedBuckets.length === 1 ? tournamentPositions : {},
+          'tournament',
+          b.key,
+          b.baseline,
+        ));
+      }
+      if (qualifiedBuckets.length > 1) {
+        // Position-specific BTN/UTG leaks use aggregate tournament positions against neutral mid baseline.
+        const posOnly = evaluateFormatLeaks(
+          { hands: 0, blindDefenseOpps: 0, stealOpps: 0, squeezeOpps: 0, facedThreeBet: 0, barrelTurnOpps: 0, barrelRiverOpps: 0, checkRaiseOpps: 0, turnRiverActions: 0, postflopActions: 0 },
+          tournamentPositions,
+          'tournament',
+          null,
+          FORMAT_BASELINES.tournament_mid,
+        );
+        detectedLeaks.push(...posOnly);
+      }
+    } else {
+      // Unknown or low-volume stack splits: never force `<20bb` short-stack baseline on unknown stacks.
+      const knownTotal = tournamentByStack.short.hands + tournamentByStack.mid.hands + tournamentByStack.deep.hands;
+      const fallbackBucket = knownTotal === 0
+        ? null
+        : (tournamentByStack.short.hands >= tournamentByStack.mid.hands && tournamentByStack.short.hands >= tournamentByStack.deep.hands
+            ? 'short'
+            : (tournamentByStack.mid.hands >= tournamentByStack.deep.hands ? 'mid' : 'deep'));
+      const fallbackBaseline = fallbackBucket === 'short'
+        ? FORMAT_BASELINES.tournament_short
+        : (fallbackBucket === 'deep' ? FORMAT_BASELINES.tournament_deep : FORMAT_BASELINES.tournament_mid);
+      detectedLeaks.push(...evaluateFormatLeaks(
+        tournamentMetrics,
+        tournamentPositions,
+        'tournament',
+        fallbackBucket,
+        fallbackBaseline,
+      ));
+    }
   }
 
   return {

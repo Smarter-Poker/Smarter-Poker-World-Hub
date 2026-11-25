@@ -302,8 +302,8 @@ export function positionFromHint(hint) {
 /** evLossBB × occurrenceCount · the honest price of a leak, in big blinds. */
 export function evImpact(leak) {
     if (!isPlainRecordish(leak)) return 0;
-    const ev = Math.abs(clamp(num(leak.evLossBB, 0), -1000, 1000));
-    const occ = clamp(num(leak.occurrenceCount, 0), 0, 1e6);
+    const ev = Math.abs(clamp(num(leak.evLossBB ?? leak.avg_ev_loss_bb ?? leak.ev_loss_bb, 0), -1000, 1000));
+    const occ = clamp(num(leak.occurrenceCount ?? leak.occurrence_count, 0), 0, 1e6);
     const impact = ev * occ;
     return Number.isFinite(impact) ? round1(impact) : 0;
 }
@@ -323,21 +323,24 @@ export function drillLength(leak) {
 
 /**
  * Build the `customParams` QuickSpotDrill expects from a leak.
+ * Accepts both camelCase UI leak objects and snake_case normalized DB rows.
  * Preference order for the street:
- *   1. leak.recommendedDrill  (an explicit coach instruction beats inference)
- *   2. leak.leakCategory      ('preflop' | 'flop' | 'turn' | 'river')
- *   3. leak.leakType          ('turn_barrel_too_rare', 'lack_of_river_bluffs')
- *   4. leak.situationClass    ('BB vs River Bet in Single Raised Pots')
- * Returns null when none of them names a street · a fabricated drill sends the
- * user to spots that have nothing to do with their leak, which is worse than
- * no button at all.
+ *   1. leak.recommendedDrill / recommended_drill  (explicit coach instruction beats inference)
+ *   2. leak.leakCategory / leak_category          ('preflop' | 'flop' | 'turn' | 'river')
+ *   3. leak.leakType / leak_type                  ('turn_barrel_too_rare', 'lack_of_river_bluffs')
+ *   4. leak.situationClass / situation_class      ('BB vs River Bet in Single Raised Pots')
  */
 export function leakToDrill(leak) {
     if (!isPlainRecordish(leak)) return null;
 
+    const recommendedDrill = leak.recommendedDrill ?? leak.recommended_drill;
+    const leakCategory = leak.leakCategory ?? leak.leak_category;
+    const leakType = leak.leakType ?? leak.leak_type;
+    const situationClass = leak.situationClass ?? leak.situation_class;
+
     const legacyDrill = legacyTrainingDrill(leak);
     let street = null;
-    const sources = [leak.recommendedDrill, leak.leakCategory, leak.leakType, leak.situationClass];
+    const sources = [recommendedDrill, leakCategory, leakType, situationClass];
     for (const source of sources) {
         street = streetFromHint(source);
         if (street) break;
@@ -345,8 +348,9 @@ export function leakToDrill(leak) {
     if (!street) street = legacyDrill?.street || null;
     if (!street) return null;
 
-    const position = positionFromHint(leak.situationClass)
-        || positionFromHint(leak.recommendedDrill)
+    const position = positionFromHint(situationClass)
+        || positionFromHint(recommendedDrill)
+        || positionFromHint(leakType)
         || 'Any';
 
     const drill = {
@@ -354,12 +358,11 @@ export function leakToDrill(leak) {
         position,
         limit: clamp(drillLength(leak), 1, 20),
     };
-    // Solver-derived leaks already carry the exact Training Arena game that
-    // produced their evidence. Preserve it so a cash-rfi leak cannot open an
-    // arbitrary preflop quiz merely because street and position also match.
+    // Solver-derived and Club Arena hand-fact leaks carry the exact Training Arena
+    // game that matches their format and street. Preserve it cleanly.
     const source = str(leak.sourceSystem || leak.source_system).trim().toLowerCase();
-    const game = str(leak.recommendedDrill || leak.recommended_drill).trim().toLowerCase();
-    if (['solver_engine', 'training_solver'].includes(source)
+    const game = str(recommendedDrill).trim().toLowerCase();
+    if (['solver_engine', 'training_solver', 'ca_hand_facts'].includes(source)
         && /^[a-z0-9][a-z0-9_-]{1,64}$/.test(game)) {
         drill.game = game;
     } else {
@@ -470,6 +473,7 @@ export function migrateRecord(raw) {
             ? clamp(num(raw.lastScore, 0), 0, 1)
             : null;
 
+        const remediationBaselineAt = toIso(toMs(raw.remediationBaselineAt ?? raw.remediation_baseline_at));
         return {
             v: SCHEMA_VERSION,
             leakId,
@@ -484,6 +488,7 @@ export function migrateRecord(raw) {
             lastScore,
             strongStreak: int(raw.strongStreak, 0, 0, 10000),
             retired: retiredRaw === true,
+            ...(remediationBaselineAt ? { remediationBaselineAt } : {}),
             history,
         };
     } catch (e) {

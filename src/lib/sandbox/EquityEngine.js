@@ -214,26 +214,55 @@ function expandNotation(hand) {
     return combos;
 }
 
+function normalizeCardToken(card) {
+    if (typeof card !== 'string') return null;
+    const raw = card.trim();
+    const clean = raw.startsWith('10') ? `T${raw.slice(2)}` : raw;
+    if (clean.length !== 2) return null;
+    const rank = clean[0].toUpperCase();
+    const suit = clean[1].toLowerCase();
+    if (!RANK_VALUES[rank] || !SUITS.includes(suit)) return null;
+    return `${rank}${suit}`;
+}
+
+function normalizeUniqueCards(heroCards, boardCards) {
+    const hero = (heroCards || []).map(normalizeCardToken);
+    const board = (boardCards || []).slice(0, 5).map(normalizeCardToken);
+    if (hero.some(c => !c) || board.some(c => !c)) return { ok: false, error: 'invalid_card', hero: [], board: [] };
+    const all = [...hero, ...board];
+    if (new Set(all).size !== all.length) return { ok: false, error: 'card_collision', hero, board };
+    return { ok: true, hero, board };
+}
+
+function hasExplicitRangeSpec(range) {
+    if (!range) return false;
+    if (Array.isArray(range)) return range.some(tok => String(tok || '').trim().length > 0);
+    return String(range).trim().length > 0;
+}
+
 /**
  * Expand a '+' shorthand ('77+', 'A2s+', 'KTo+') into explicit notations.
  */
 function expandPlus(token) {
     const base = token.slice(0, -1);
     if (base.length < 2) return [];
-    const hi = base[0].toUpperCase();
-    const lo = base[1].toUpperCase();
+    const r0 = base[0].toUpperCase();
+    const r1 = base[1].toUpperCase();
     const suffix = base.slice(2).toLowerCase();
-    const hiV = RANK_VALUES[hi], loV = RANK_VALUES[lo];
-    if (!hiV || !loV) return [];
+    const v0 = RANK_VALUES[r0], v1 = RANK_VALUES[r1];
+    if (!v0 || !v1) return [];
 
     const out = [];
-    if (hi === lo) {
-        for (let v = loV; v <= 14; v++) {
+    if (r0 === r1) {
+        for (let v = v1; v <= 14; v++) {
             const r = RANKS[v - 2];
             out.push(`${r}${r}`);
         }
         return out;
     }
+    const hiV = Math.max(v0, v1);
+    const loV = Math.min(v0, v1);
+    const hi = RANKS[hiV - 2];
     for (let v = loV; v < hiV; v++) {
         out.push(`${hi}${RANKS[v - 2]}${suffix}`);
     }
@@ -265,6 +294,17 @@ function expandDash(token) {
         for (let v = lo; v <= hi; v++) {
             if (v === av1) continue;
             out.push(`${a1}${RANKS[v - 2]}${sa}`);
+        }
+        return out;
+    }
+    // Diagonal connector / gapper spans (e.g. 'JTs-54s', 'T9o-76o', 'J9s-64s')
+    const aHi = Math.max(av1, av2), aLo = Math.min(av1, av2);
+    const bHi = Math.max(bv1, bv2), bLo = Math.min(bv1, bv2);
+    const gap = aHi - aLo;
+    if (gap > 0 && gap === (bHi - bLo)) {
+        const lo = Math.min(aHi, bHi), hi = Math.max(aHi, bHi);
+        for (let v = lo; v <= hi; v++) {
+            out.push(`${RANKS[v - 2]}${RANKS[v - gap - 2]}${sa}`);
         }
         return out;
     }
@@ -368,14 +408,24 @@ function makeRng(seed) {
  * @param {number|null} seed
  */
 function calculateEquityMultiway(heroCards, board, simulations, villainRanges, seed) {
+    const norm = normalizeUniqueCards(heroCards, board);
+    if (!norm.ok) {
+        return { heroEquity: null, villainEquity: null, ties: 0, sampleSize: 0, rangeCombos: 0, villains: villainRanges.length, invalid: true, error: norm.error };
+    }
+    heroCards = norm.hero;
+    board = norm.board;
     const usedCards = new Set([...heroCards, ...board]);
     const deck = makeDeckState(buildDeck().filter(c => !usedCards.has(c)));
     const cardsNeeded = Math.max(0, 5 - board.length);
 
-    // Per-villain combo lists. A villain whose range is empty (or fully dead)
-    // draws random cards instead — same degradation the heads-up path has.
+    const explicitFlags = villainRanges.map(hasExplicitRangeSpec);
     const comboLists = villainRanges.map(r => expandRangeToCombos(r, usedCards));
     const nVillains = comboLists.length;
+    for (let i = 0; i < nVillains; i++) {
+        if (explicitFlags[i] && comboLists[i].length === 0) {
+            return { heroEquity: null, villainEquity: null, ties: 0, sampleSize: 0, rangeCombos: 0, villains: nVillains, blocked: true };
+        }
+    }
     let totalCombos = 0;
     for (let i = 0; i < nVillains; i++) totalCombos += comboLists[i].length;
 
@@ -465,7 +515,7 @@ function calculateEquityMultiway(heroCards, board, simulations, villainRanges, s
     }
 
     if (trials === 0) {
-        return { heroEquity: 50, villainEquity: 50, ties: 0, sampleSize: 0, rangeCombos: totalCombos, villains: nVillains };
+        return { heroEquity: null, villainEquity: null, ties: 0, sampleSize: 0, rangeCombos: totalCombos, villains: nVillains, blocked: true };
     }
 
     const heroEquity = Math.round((heroShare / trials) * 1000) / 10;
@@ -515,12 +565,21 @@ export function calculateEquity(heroCards, boardCards = [], simulations = 2000, 
         villainRange = list.length === 1 ? list[0] : null;
     }
 
-    const board = (boardCards || []).slice(0, 5);
+    const norm = normalizeUniqueCards(heroCards, boardCards);
+    if (!norm.ok) {
+        return { heroEquity: null, villainEquity: null, ties: 0, sampleSize: 0, rangeCombos: 0, invalid: true, error: norm.error };
+    }
+    heroCards = norm.hero;
+    const board = norm.board;
     const usedCards = new Set([...heroCards, ...board]);
     const deck = makeDeckState(buildDeck().filter(c => !usedCards.has(c)));
     const cardsNeeded = Math.max(0, 5 - board.length);
 
+    const hasRangeSpec = hasExplicitRangeSpec(villainRange);
     const combos = expandRangeToCombos(villainRange, usedCards);
+    if (hasRangeSpec && combos.length === 0) {
+        return { heroEquity: null, villainEquity: null, ties: 0, sampleSize: 0, rangeCombos: 0, blocked: true };
+    }
     const useRange = combos.length > 0;
 
     const rnd = makeRng(seed);
@@ -631,6 +690,11 @@ export function simulateRunouts(heroCards, boardCards, trials = 300, villainRang
     // A complete board has no next card to simulate.
     if (boardCards.length > 4) return empty;
 
+    const norm = normalizeUniqueCards(heroCards, boardCards);
+    if (!norm.ok) return empty;
+    heroCards = norm.hero;
+    boardCards = norm.board;
+
     const key = runoutCacheKey(heroCards, boardCards, trials, villainRange, seed);
     if (RUNOUT_CACHE.has(key)) return RUNOUT_CACHE.get(key);
 
@@ -639,6 +703,7 @@ export function simulateRunouts(heroCards, boardCards, trials = 300, villainRang
 
     // Hero's equity as the board stands — the yardstick for "improve"/"worsen".
     const baseline = calculateEquity(heroCards, boardCards, trials, villainRange, seed).heroEquity;
+    if (baseline === null) return empty;
 
     // Reuse one board buffer; only the last slot changes per candidate card.
     const newBoard = [...boardCards, null];
@@ -646,7 +711,8 @@ export function simulateRunouts(heroCards, boardCards, trials = 300, villainRang
         newBoard[newBoard.length - 1] = card;
         const eq = calculateEquity(heroCards, newBoard, trials, villainRange, seed);
         return { card, equity: eq.heroEquity };
-    });
+    }).filter(entry => entry.equity !== null);
+    if (cardEquities.length === 0) return empty;
 
     cardEquities.sort((a, b) => b.equity - a.equity);
 

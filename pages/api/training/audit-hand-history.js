@@ -388,14 +388,21 @@ export default async function handler(req, res) {
           if (!isUserParticipantInHandRow(row, user.id)) continue;
           const normalized = normalizeClubArenaHand(row, user.id);
           const summary = row.summary && typeof row.summary === 'object' ? row.summary : {};
+          const normBoard = normalized?.streets
+            ? [
+                ...(Array.isArray(normalized.streets.flop?.board) ? normalized.streets.flop.board : []),
+                ...(normalized.streets.turn?.card ? [normalized.streets.turn.card] : []),
+                ...(normalized.streets.river?.card ? [normalized.streets.river.card] : []),
+              ]
+            : [];
           const item = {
             id: String(normalized?.id || row.id),
             site: 'Club Arena Live Table',
             gameType: row.game_variant || summary.format || 'Cash',
             stakes: summary.stakes || (summary.bigBlind ? `${Number(summary.smallBlind) || 1}/${Number(summary.bigBlind)}` : '1/2'),
-            heroCards: normalized?.heroCards || [],
-            board: normalized?.board || row.community_cards || row.board || [],
-            heroPosition: normalized?.heroPosition || 'BTN',
+            heroCards: normalized?.hero?.holeCards || normalized?.heroCards || [],
+            board: normBoard.length > 0 ? normBoard : (normalized?.board || row.community_cards || row.board || []),
+            heroPosition: normalized?.hero?.position || normalized?.heroPosition || 'BTN',
             pot: Number(summary.potTotal || summary.pot || 0) || 0,
             createdAt: row.created_at,
             participantUserId: user.id,
