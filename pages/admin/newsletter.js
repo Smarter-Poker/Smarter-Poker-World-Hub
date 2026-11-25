@@ -75,6 +75,8 @@ export default function NewsletterOperations() {
     const [testPhone, setTestPhone] = useState('');
     const [leadInput, setLeadInput] = useState('');
     const [importResult, setImportResult] = useState(null);
+    const [lifecyclePreview, setLifecyclePreview] = useState(null);
+    const [lifecycleTestTrigger, setLifecycleTestTrigger] = useState('unverified_48h');
 
     // A counter that reads the same when it is loading, when the request failed and
     // when the answer is genuinely zero is not reporting, it is guessing on the operator's
@@ -395,6 +397,56 @@ export default function NewsletterOperations() {
             setNotice('Platform Upgrade Queued For The Next Weekly Wire Edition (Single-Use Guaranteed).');
         } catch (err) {
             setError(err?.message || 'Unable to queue platform update');
+        } finally {
+            setRunning('');
+        }
+    };
+
+    const runLifecycleAction = async (action) => {
+        if (!token) return;
+        if (action === 'test' && !testEmail.trim()) {
+            setError('Enter A Test Email Recipient Above First.');
+            return;
+        }
+        if (action === 'run') {
+            const dueCount = lifecyclePreview?.dueTotal || 0;
+            if (!dueCount) return;
+            if (!window.confirm(`Dispatch ${dueCount} due lifecycle retention trigger(s) now and record permanent audit markers?`)) {
+                return;
+            }
+        }
+        setRunning(`lifecycle-${action}`);
+        setError('');
+        setNotice('');
+        try {
+            const response = await fetch('/api/news/lifecycle', {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action,
+                    trigger: lifecycleTestTrigger,
+                    testEmail: testEmail.trim(),
+                }),
+            });
+            const body = await response.json();
+            if (!response.ok || body.error) {
+                throw new Error(body.error || 'Lifecycle retention operation failed');
+            }
+            if (action === 'preview') {
+                setLifecyclePreview(body);
+                setNotice(`Lifecycle Queue Ready: ${body.dueTotal || 0} Due Trigger(s) Across Unverified, Dormant, And VIP Segments.`);
+            } else if (action === 'test') {
+                setNotice(`Test Lifecycle Email Sent To ${body.targetEmail || testEmail.trim()} (${body.trigger}).`);
+            } else if (action === 'run') {
+                setLifecyclePreview(null);
+                setNotice(`Lifecycle Triggers Dispatched: ${body.emailSent || 0} Emails Sent, ${body.smsSent || 0} Texts Sent.`);
+                await load(token, 1, search);
+            }
+        } catch (err) {
+            setError(err?.message || 'Lifecycle retention operation failed');
         } finally {
             setRunning('');
         }
@@ -751,11 +803,95 @@ export default function NewsletterOperations() {
                     </div>
                 </section>
 
+                <section className={styles.dispatch}>
+                    <div className={styles.sectionHeading}>
+                        <div>
+                            <p className={styles.eyebrow}>Automated Retention</p>
+                            <h2>Lifecycle Retention Automation</h2>
+                        </div>
+                        <OperatorGlyph kind="clock" size={22} />
+                    </div>
+                    <div className={styles.dispatchBody}>
+                        <div className={styles.controls}>
+                            <button type="button" className={styles.previewButton} onClick={() => runLifecycleAction('preview')} disabled={Boolean(running) || !token}>
+                                {running === 'lifecycle-preview' ? <OperatorGlyph kind="refresh" size={15} className={styles.spin} /> : <OperatorGlyph kind="eye" size={15} />}
+                                Preview Lifecycle Queue
+                            </button>
+                            <button type="button" className={styles.sendButton} onClick={() => runLifecycleAction('run')} disabled={Boolean(running) || !lifecyclePreview || !lifecyclePreview.dueTotal}>
+                                {running === 'lifecycle-run' ? <OperatorGlyph kind="refresh" size={15} className={styles.spin} /> : <OperatorGlyph kind="send" size={15} />}
+                                Run Due Lifecycle Triggers
+                            </button>
+                            <label>
+                                Test Trigger Template
+                                <select value={lifecycleTestTrigger} onChange={(e) => setLifecycleTestTrigger(e.target.value)}>
+                                    <option value="unverified_48h">48h Phone Verification</option>
+                                    <option value="welcome_back_21d">22-30d Welcome-Back Offer</option>
+                                    <option value="vip_diamond_nudge">VIP And Diamond Nudge</option>
+                                </select>
+                            </label>
+                            <button type="button" className={styles.previewButton} onClick={() => runLifecycleAction('test')} disabled={Boolean(running) || !token}>
+                                {running === 'lifecycle-test' ? <OperatorGlyph kind="refresh" size={15} className={styles.spin} /> : <OperatorGlyph kind="mail" size={15} />}
+                                Send Test Lifecycle Email
+                            </button>
+                        </div>
+                        <div className={styles.preview}>
+                            {lifecyclePreview ? (
+                                <>
+                                    <p className={styles.previewLabel}>Lifecycle Retention Queue Ready</p>
+                                    <h3>{lifecyclePreview.dueTotal || 0} Due Player Trigger{lifecyclePreview.dueTotal === 1 ? '' : 's'}</h3>
+                                    <dl>
+                                        <div><dt>48h Unverified</dt><dd>{lifecyclePreview.counts?.unverified_48h || 0}</dd></div>
+                                        <div><dt>22-30d Welcome-Back</dt><dd>{lifecyclePreview.counts?.welcome_back_21d || 0}</dd></div>
+                                        <div><dt>VIP And Diamonds</dt><dd>{lifecyclePreview.counts?.vip_diamond_nudge || 0}</dd></div>
+                                        <div><dt>Eligible SMS</dt><dd>{lifecyclePreview.smsCandidates || 0}</dd></div>
+                                        <div><dt>Suppressed Emails</dt><dd>{lifecyclePreview.suppressedEmails || 0}</dd></div>
+                                        <div><dt>Daily Gate</dt><dd>{lifecyclePreview.alreadyRanToday ? 'Ran Today' : 'Open'}</dd></div>
+                                    </dl>
+                                    <p>No Email Or SMS Was Sent During Lifecycle Queue Preview.</p>
+                                </>
+                            ) : (
+                                <div className={styles.previewEmpty}>
+                                    <OperatorGlyph kind="clock" size={28} />
+                                    <p>Preview Lifecycle Queue To Inspect Due 48-Hour Unverified Signups, Rolling 22-30 Day Welcome-Back Offers, And VIP Or Unclaimed Diamond Nudges.</p>
+                                </div>
+                            )}
+                        </div>
+                        <aside className={styles.storyRail}>
+                            <p className={styles.previewLabel}>Inbox &amp; BIMI Readiness</p>
+                            <div className={styles.senderMeta} style={{ display: 'grid', gap: 10 }}>
+                                <div>
+                                    Welcome-Back Redemptions: <strong>{statValue(data?.stats?.welcome_back_redemptions ?? data?.welcomeBackRedemptions ?? 0)}</strong>
+                                </div>
+                                <div>
+                                    Weekly Wire Only Subscribers: <strong>{statValue(data?.stats?.wire_only ?? data?.wireOnlyCount ?? 0)}</strong>
+                                </div>
+                                <div>
+                                    Preheader &amp; One-Click Unsubscribe: <strong>{(data?.deliverability?.preheaderEnabled ?? true) && (data?.deliverability?.oneClickUnsubscribe ?? true) ? 'Active' : 'Pending'}</strong>
+                                </div>
+                                <div>
+                                    BIMI SVG Logo: <strong>{data?.deliverability?.bimiSvgPath || '/brand/bimi-logo.svg'}</strong>
+                                </div>
+                                <div>
+                                    BIMI DNS TXT Record:
+                                    <code style={{ display: 'block', marginTop: 6, padding: '8px 10px', background: '#07121c', border: '1px solid #254052', borderRadius: 6, color: '#4fc1b3', fontSize: 11, wordBreak: 'break-all' }}>
+                                        {data?.deliverability?.bimiDnsRecord || 'v=BIMI1; l=https://smarter.poker/brand/bimi-logo.svg;'}
+                                    </code>
+                                </div>
+                                <div style={{ paddingTop: 4 }}>
+                                    <Link href="/hub/wire" className={styles.back}>
+                                        <OperatorGlyph kind="archive" size={14} /> Open Weekly Wire Web Archive ({'/hub/wire'})
+                                    </Link>
+                                </div>
+                            </div>
+                        </aside>
+                    </div>
+                </section>
+
                 <section className={styles.panel}>
                     <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>Audit Trail</p><h2>Campaign History</h2></div></div>
                     <div className={styles.tableWrap}>
                         <table>
-                            <thead><tr><th>Subject</th><th>Status</th><th>Audience</th><th>Delivered</th><th>Started</th></tr></thead>
+                            <thead><tr><th>Subject</th><th>Status</th><th>Audience</th><th>Delivered</th><th>Opens / Clicks</th><th>Started</th></tr></thead>
                             <tbody>
                                 {(data?.campaigns || []).map((campaign) => (
                                     <tr key={campaign.id}>
@@ -763,10 +899,11 @@ export default function NewsletterOperations() {
                                         <td><Status value={campaign.status} /></td>
                                         <td>{campaign.recipient_count}</td>
                                         <td>{campaign.sent_count}{campaign.failed_count ? ` / ${campaign.failed_count} failed` : ''}</td>
+                                        <td>{campaign.opens || 0} / {campaign.clicks || 0}</td>
                                         <td>{formatDate(campaign.started_at)}</td>
                                     </tr>
                                 ))}
-                                {!loading && !(data?.campaigns || []).length && <tr><td colSpan="5" className={styles.emptyCell}>No Campaign Has Been Sent Yet.</td></tr>}
+                                {!loading && !(data?.campaigns || []).length && <tr><td colSpan="6" className={styles.emptyCell}>No Campaign Has Been Sent Yet.</td></tr>}
                             </tbody>
                         </table>
                     </div>

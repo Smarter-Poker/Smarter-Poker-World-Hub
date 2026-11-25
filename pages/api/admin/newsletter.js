@@ -11,6 +11,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { parseCampaignTelemetrySummary } from '../../../src/lib/promoCampaigns/lifecycleEngine.mjs';
 
 const ADMIN_ROLES = ['admin', 'superadmin', 'god'];
 let _supabase = null;
@@ -34,10 +35,10 @@ async function requireAdmin(req, res) {
     }
     const { data: profile, error } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, is_admin')
         .eq('id', user.id)
         .maybeSingle();
-    if (error || !profile || !ADMIN_ROLES.includes(profile.role)) {
+    if (error || !profile || (!profile.is_admin && !ADMIN_ROLES.includes(profile.role))) {
         res.status(403).json({ success: false, error: 'Admin access required' });
         return null;
     }
@@ -96,14 +97,17 @@ export default async function handler(req, res) {
             activeResult,
             inactiveResult,
             smsActiveResult,
+            wireOnlyResult,
             campaignCountResult,
             campaignsResult,
             articlesResult,
+            promoCodesResult,
         ] = await Promise.all([
             subscriberQuery,
             supabase.from('newsletter_subscribers').select('id', { count: 'exact', head: true }).like('email', '%@%').or('is_active.is.null,is_active.eq.true'),
             supabase.from('newsletter_subscribers').select('id', { count: 'exact', head: true }).like('email', '%@%').eq('is_active', false),
             supabase.from('newsletter_subscribers').select('id', { count: 'exact', head: true }).like('email', 'sms:%').or('is_active.is.null,is_active.eq.true'),
+            supabase.from('newsletter_subscribers').select('id', { count: 'exact', head: true }).eq('source', 'pref:wire_only').or('is_active.is.null,is_active.eq.true'),
             supabase.from('newsletter_campaigns').select('id', { count: 'exact', head: true }),
             supabase.from('newsletter_campaigns')
                 .select('id,subject,status,lookback_days,article_limit,recipient_count,sent_count,failed_count,error_summary,started_at,completed_at,created_at')
@@ -114,11 +118,36 @@ export default async function handler(req, res) {
                 .eq('is_published', true)
                 .order('published_at', { ascending: false })
                 .limit(12),
+            supabase.from('promo_codes')
+                .select('id, code')
+                .in('code', ['sp_welcome_back_202611', 'WELCOME_BACK_3WK_202611']),
         ]);
 
-        for (const result of [subscribersResult, activeResult, inactiveResult, smsActiveResult, campaignCountResult, campaignsResult, articlesResult]) {
+        for (const result of [subscribersResult, activeResult, inactiveResult, smsActiveResult, wireOnlyResult, campaignCountResult, campaignsResult, articlesResult]) {
             if (result.error) throw result.error;
         }
+
+        let welcomeBackRedemptions = 0;
+        const wbCodeIds = (promoCodesResult?.data || []).map((row) => row?.id).filter(Boolean);
+        if (wbCodeIds.length > 0) {
+            // in-list: bounded by welcome-back promo code variants (<= 2)
+            const { count: wbCount } = await supabase
+                .from('promo_code_redemptions')
+                .select('id', { count: 'exact', head: true })
+                .in('promo_code_id', wbCodeIds.slice(0, 10));
+            welcomeBackRedemptions = wbCount || 0;
+        }
+
+        const wireOnlyCount = wireOnlyResult.count || 0;
+        const parsedCampaigns = (campaignsResult.data || []).map((campaign) => {
+            const telemetry = parseCampaignTelemetrySummary(campaign.error_summary);
+            return {
+                ...campaign,
+                opens: telemetry.opens,
+                clicks: telemetry.clicks,
+                error_summary: telemetry.cleanErrorSummary,
+            };
+        });
 
         return res.status(200).json({
             success: true,
@@ -126,8 +155,18 @@ export default async function handler(req, res) {
                 active: activeResult.count || 0,
                 inactive: inactiveResult.count || 0,
                 sms_active: smsActiveResult.count || 0,
+                wire_only: wireOnlyCount,
+                welcome_back_redemptions: welcomeBackRedemptions,
                 campaigns: campaignCountResult.count || 0,
-                last_sent_at: campaignsResult.data?.find((c) => ['sent', 'partial'].includes(c.status))?.completed_at || null,
+                last_sent_at: parsedCampaigns.find((c) => ['sent', 'partial'].includes(c.status))?.completed_at || null,
+            },
+            wireOnlyCount,
+            welcomeBackRedemptions,
+            deliverability: {
+                bimiSvgPath: '/brand/bimi-logo.svg',
+                bimiDnsRecord: 'v=BIMI1; l=https://smarter.poker/brand/bimi-logo.svg;',
+                preheaderEnabled: true,
+                oneClickUnsubscribe: true,
             },
             subscribers: subscribersResult.data || [],
             subscriberPagination: {
@@ -136,7 +175,7 @@ export default async function handler(req, res) {
                 total: subscribersResult.count || 0,
                 pages: Math.max(1, Math.ceil((subscribersResult.count || 0) / pageSize)),
             },
-            campaigns: campaignsResult.data || [],
+            campaigns: parsedCampaigns,
             recentArticles: articlesResult.data || [],
         });
     } catch (error) {

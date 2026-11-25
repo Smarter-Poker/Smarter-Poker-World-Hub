@@ -4,6 +4,8 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { normalizeEditorialTitle } from '../../../src/lib/newsletter/editorialCleaners.mjs';
+import { isEchoingOrEmptyBlurb } from '../../../src/lib/newsletter/weeklyWireEngine.mjs';
 
 let _supabase = null;
 function getSupabase() {
@@ -180,7 +182,16 @@ export default async function handler(req, res) {
                   if (!row || typeof row !== 'object') return row;
                   // eslint-disable-next-line no-unused-vars
                   const { search_vector, content, ...rest } = row;
-                  return includeContent ? { ...rest, content } : rest;
+                  const cleanTitle = typeof row.title === 'string' ? normalizeEditorialTitle(row.title) : row.title;
+                  const cleanExcerpt = isEchoingOrEmptyBlurb(row.title, row.excerpt) ? '' : row.excerpt;
+                  const cleanSummary = isEchoingOrEmptyBlurb(row.title, row.summary) ? '' : row.summary;
+                  const normalized = {
+                      ...rest,
+                      title: cleanTitle,
+                      excerpt: cleanExcerpt,
+                      summary: cleanSummary,
+                  };
+                  return includeContent ? { ...normalized, content } : normalized;
               });
               // If the count comes back null (PostgREST can omit it), fall back
               // to a lower bound rather than inventing a number.

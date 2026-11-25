@@ -1,10 +1,17 @@
 /**
- * Newsletter Subscription API
+ * Newsletter Subscription, Instant Day-0 Welcome Email & Preference Center API
  */
 import crypto from 'crypto';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { resendFrom } from '../../../src/lib/email/resendAccount.mjs';
+import { sendEmail } from '../../../src/lib/dailyDigest/delivery.mjs';
+import {
+    buildWelcomeEmail,
+    derivePreferenceMode,
+    maskEmailAddress,
+} from '../../../src/lib/newsletter/welcomeAndPreferences.mjs';
 
 let _supabase = null;
 function getSupabase() {
@@ -16,28 +23,20 @@ function getSupabase() {
     return _supabase;
 }
 
-// Practical email shape check (single @, no whitespace, dot in domain)
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_EMAIL_LENGTH = 254;
+
+const DEFAULT_SITE_URL = 'https://smarter.poker';
+const DEFAULT_WELCOME_FROM = 'Smarter.Poker News <news@smarter.poker>';
+const DEFAULT_POSTAL_ADDRESS = 'PO Box 1905, 9624 Cicero Ave, Oak Lawn, IL 60453';
 
 // One generic message for every success path so responses cannot be used to
 // enumerate who is already on the subscriber list.
 const GENERIC_SUCCESS = 'Successfully subscribed!';
-
-// Same generic-response rationale as GENERIC_SUCCESS: an unsubscribe link that
-// answered "that address isn't on the list" would be an enumeration oracle.
 const GENERIC_UNSUBSCRIBED = 'You have been unsubscribed from the Smarter.Poker news digest.';
 
-// ── Unsubscribe tokens ──────────────────────────────────────────────────────
-// CAN-SPAM requires a working unsubscribe link in every digest email. The
-// digest (pages/api/news/digest.js) mints these tokens; this route verifies
-// them. The two helpers below are intentionally duplicated in digest.js rather
-// than shared through src/lib — an unsubscribe secret must never be reachable
-// from anything a page can import, and pages/api/** is the only place these
-// files are ever loaded. Keep the two copies byte-identical.
-//
+// ── Unsubscribe & Preference tokens ─────────────────────────────────────────
 // Token = base64url(email) + '.' + base64url(HMAC-SHA256(payload, secret)).
-// It is stateless, so no schema change is needed to ship the link.
 const UNSUB_SIG_LENGTH = 43; // base64url of a 32-byte HMAC, unpadded
 
 function unsubscribeSecret() {
@@ -53,12 +52,16 @@ function b64url(buf) {
     return Buffer.from(buf).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-/**
- * Verify a signed unsubscribe token.
- * @returns {string|null} the normalized email, or null if the token is
- *   malformed / unsigned / tampered with.
- */
-function verifyUnsubscribeToken(token) {
+export function makeUnsubscribeToken(email) {
+    const secret = unsubscribeSecret();
+    const normalized = String(email || '').trim().toLowerCase();
+    if (!secret) return normalized;
+    const payload = b64url(Buffer.from(normalized, 'utf8'));
+    const sig = b64url(crypto.createHmac('sha256', secret).update(payload).digest());
+    return `${payload}.${sig}`;
+}
+
+export function verifyUnsubscribeToken(token) {
     const secret = unsubscribeSecret();
     if (!secret || typeof token !== 'string') return null;
 
@@ -72,8 +75,6 @@ function verifyUnsubscribeToken(token) {
     const expected = b64url(crypto.createHmac('sha256', secret).update(payload).digest());
     const sigBuf = Buffer.from(sig, 'utf8');
     const expectedBuf = Buffer.from(expected, 'utf8');
-    // timingSafeEqual throws on a length mismatch, and a multi-byte character
-    // in `sig` can make the byte lengths differ despite equal string lengths.
     if (sigBuf.length !== expectedBuf.length) return null;
     if (!crypto.timingSafeEqual(sigBuf, expectedBuf)) return null;
 
@@ -89,13 +90,6 @@ function verifyUnsubscribeToken(token) {
     return email;
 }
 
-/**
- * Resolve the ?unsubscribe= value to an email address.
- * Accepts a signed token (preferred) or a bare email address — the contract
- * allows both, and a bare address is the standard fallback for forwarded mail.
- * Unsubscribing is the safe direction of a false positive, so a bare address
- * is accepted, but it is logged and rate limited like a write.
- */
 function resolveUnsubscribeTarget(raw) {
     const value = String(raw).trim();
     if (!value || value.length > 2048) return null;
@@ -110,9 +104,12 @@ function resolveUnsubscribeTarget(raw) {
     return null;
 }
 
-// Minimal confirmation page for the browser click-through. No user input is
-// interpolated, so there is nothing here to escape.
-function unsubscribeHtml(message) {
+export { buildWelcomeEmail, derivePreferenceMode, maskEmailAddress };
+
+function unsubscribeHtml(message, verifiedToken = '') {
+    const prefsLink = verifiedToken
+        ? `<div style="margin-top:16px"><a href="/hub/email-preferences?token=${encodeURIComponent(verifiedToken)}" style="color:#60a5fa;font-size:14px;text-decoration:underline">Manage Email Preferences Instead</a></div>`
+        : '';
     return `<!doctype html>
 <html lang="en">
 <head>
@@ -121,173 +118,310 @@ function unsubscribeHtml(message) {
 <meta name="robots" content="noindex" />
 <title>Unsubscribed - Smarter.Poker</title>
 </head>
-<body style="margin:0;background:#0a0e17;color:#e6f7ff;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif">
+<body style="margin:0;background:#05070a;color:#ffffff;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif">
 <div style="max-width:520px;margin:0 auto;padding:64px 24px;text-align:center">
 <h1 style="font-size:22px;margin:0 0 12px">Smarter.Poker News</h1>
 <p style="font-size:16px;line-height:1.5;margin:0 0 28px;color:#9fb3c8">${message}</p>
-<a href="/hub/news" style="display:inline-block;padding:12px 22px;border-radius:8px;background:#5ef5f0;color:#0a0e17;text-decoration:none;font-weight:600">Back to the News Hub</a>
+<a href="/hub/news" style="display:inline-block;padding:12px 22px;border-radius:8px;background:#4fc1b3;color:#05070a;text-decoration:none;font-weight:700">Back To The News Hub</a>
+${prefsLink}
 </div>
 </body>
 </html>`;
 }
 
 export default async function handler(req, res) {
-  try {
-    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-      if (!applyRateLimit(req, res, LIMITS.write)) return;
-    }
+    try {
+        if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+            if (!applyRateLimit(req, res, LIMITS.write)) return;
+        }
 
-      // /api/news/subscribe?unsubscribe=<token-or-email>
-      // One-click unsubscribe target for the link every digest email carries.
-      // GET handles the human clicking the link; POST is required because the
-      // digest also sets 'List-Unsubscribe-Post: List-Unsubscribe=One-Click',
-      // which makes mail providers POST to this same URL. A POST without
-      // ?unsubscribe= is still an ordinary subscribe, exactly as before, and a
-      // plain GET with no ?unsubscribe= still 405s exactly as before.
-      const rawUnsub = Array.isArray(req.query?.unsubscribe)
-          ? req.query.unsubscribe[0]
-          : req.query?.unsubscribe;
+        // 1. GET /api/news/subscribe?preferences=<signed-token>
+        const rawPreferences = Array.isArray(req.query?.preferences)
+            ? req.query.preferences[0]
+            : req.query?.preferences;
 
-      if (['GET', 'POST'].includes(req.method) && typeof rawUnsub === 'string' && rawUnsub) {
-          // This GET mutates, so it is rate limited like a write. POST already
-          // went through the limiter above — don't charge it twice.
-          if (req.method === 'GET' && !applyRateLimit(req, res, LIMITS.write)) return;
+        if (req.method === 'GET' && typeof rawPreferences === 'string' && rawPreferences) {
+            if (!applyRateLimit(req, res, LIMITS.read || LIMITS.write)) return;
+            const verifiedEmail = verifyUnsubscribeToken(rawPreferences.trim());
+            if (!verifiedEmail) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Invalid or expired email preference link.',
+                });
+            }
 
-          const wantsJson =
-              String(req.query.format || '') === 'json' ||
-              String(req.headers.accept || '').includes('application/json');
+            const { data: subRow, error: subErr } = await getSupabase()
+                .from('newsletter_subscribers')
+                .select('id, email, is_active, source')
+                .eq('email', verifiedEmail)
+                .maybeSingle();
 
-          const respond = (status, ok, message) => {
-              if (wantsJson) {
-                  return res
-                      .status(status)
-                      .json(ok ? { success: true, message } : { success: false, error: message });
-              }
-              res.setHeader('Content-Type', 'text/html; charset=utf-8');
-              return res.status(status).send(unsubscribeHtml(message));
-          };
+            if (subErr) {
+                console.warn('[Newsletter] Preference read failed:', subErr.message);
+                return res.status(500).json({ success: false, error: 'Unable to load preferences.' });
+            }
 
-          const target = resolveUnsubscribeTarget(rawUnsub);
-          if (!target) {
-              return respond(400, false, 'That unsubscribe link is not valid or has expired.');
-          }
+            return res.status(200).json({
+                success: true,
+                maskedEmail: maskEmailAddress(verifiedEmail),
+                currentMode: derivePreferenceMode(subRow),
+            });
+        }
 
-          try {
-              const nowIso = new Date().toISOString();
-              const { data: existingSub, error: lookupError } = await getSupabase()
-                  .from('newsletter_subscribers')
-                  .select('id')
-                  .eq('email', target.email)
-                  .maybeSingle();
+        // 2. GET / POST /api/news/subscribe?unsubscribe=<token-or-email>
+        const rawUnsub = Array.isArray(req.query?.unsubscribe)
+            ? req.query.unsubscribe[0]
+            : req.query?.unsubscribe;
 
-              if (lookupError) {
-                  console.warn('[Newsletter] Unsubscribe lookup failed:', lookupError.message);
-                  return respond(500, false, 'We could not process that request. Please try again.');
-              }
+        if (['GET', 'POST'].includes(req.method) && typeof rawUnsub === 'string' && rawUnsub) {
+            if (req.method === 'GET' && !applyRateLimit(req, res, LIMITS.write)) return;
 
-              const writeResult = existingSub?.id
-                  ? await getSupabase()
-                      .from('newsletter_subscribers')
-                      .update({ is_active: false, unsubscribed_at: nowIso })
-                      .eq('id', existingSub.id)
-                  : await getSupabase()
-                      .from('newsletter_subscribers')
-                      .insert({ email: target.email, is_active: false, unsubscribed_at: nowIso, source: 'unsubscribe' });
+            const wantsJson =
+                String(req.query.format || '') === 'json' ||
+                String(req.headers.accept || '').includes('application/json');
 
-              if (writeResult.error) {
-                  console.warn('[Newsletter] Unsubscribe failed:', writeResult.error.message);
-                  return respond(500, false, 'We could not process that request. Please try again.');
-              }
+            const target = resolveUnsubscribeTarget(rawUnsub);
+            const verifiedTok = target?.verified ? String(rawUnsub).trim() : '';
 
-              // Best-effort sync to notification_preferences when a profile shares this email.
-              try {
-                  const { data: profile } = await getSupabase()
-                      .from('profiles')
-                      .select('id')
-                      .eq('email', target.email)
-                      .maybeSingle();
-                  if (profile?.id) {
-                      await getSupabase()
-                          .from('notification_preferences')
-                          .upsert(
-                              { user_id: profile.id, marketing_enabled: false, updated_at: nowIso },
-                              { onConflict: 'user_id' }
-                          );
-                  }
-              } catch (_prefErr) { /* non-blocking preference mirror */ }
-          } catch (error) {
-              try { reportApiError(error, req); } catch (_e) { /* noop */ }
-              console.warn('[Newsletter] Unsubscribe exception:', error?.message || error);
-              return respond(500, false, 'We could not process that request. Please try again.');
-          }
+            const respond = (status, ok, message) => {
+                if (wantsJson) {
+                    return res
+                        .status(status)
+                        .json(ok ? { success: true, message } : { success: false, error: message });
+                }
+                res.setHeader('Content-Type', 'text/html; charset=utf-8');
+                return res.status(status).send(unsubscribeHtml(message, verifiedTok));
+            };
 
-          console.log(
-              '[Newsletter] unsubscribe',
-              JSON.stringify({ verified: target.verified, at: new Date().toISOString() })
-          );
+            if (!target) {
+                return respond(400, false, 'That unsubscribe link is not valid or has expired.');
+            }
 
-          // Deliberately generic: never confirm whether the address was on the
-          // list (see GENERIC_SUCCESS).
-          return respond(200, true, GENERIC_UNSUBSCRIBED);
-      }
-
-      if (req.method !== 'POST') {
-          return res.status(405).json({ success: false, error: 'Method not allowed' });
-      }
-
-      try {
-          const { email, source } = req.body || {};
-
-          if (typeof email !== 'string' || email.length > MAX_EMAIL_LENGTH || !EMAIL_RE.test(email.trim())) {
-              return res.status(400).json({ success: false, error: 'Valid email required' });
-          }
-          const normalizedEmail = email.trim().toLowerCase();
-
-          // Sanitize untrusted source tag: short slug or the default
-          const safeSource = (typeof source === 'string' && /^[a-z0-9_-]{1,50}$/i.test(source))
-              ? source
-              : 'news_hub';
-
-          // Check if already subscribed
-          const { data: existing } = await getSupabase()
-              .from('newsletter_subscribers')
-              .select('id, is_active')
-              .eq('email', normalizedEmail)
-              .maybeSingle();
-
-          if (existing) {
-              if (!existing.is_active) {
-                  // Reactivate subscription
-                  const { error: reactivateError } = await getSupabase()
+            try {
+                const nowIso = new Date().toISOString();
+                const { data: existingSub, error: lookupError } = await getSupabase()
                     .from('newsletter_subscribers')
-                    .update({ is_active: true, unsubscribed_at: null })
-                      .eq('id', existing.id);
-                  if (reactivateError) {
-                      // BUG FIX: previously logged and still reported success
-                      console.warn('[Newsletter] Reactivation failed:', reactivateError.message);
-                      return res.status(500).json({ success: false, error: 'Subscription failed' });
-                  }
-              }
-              return res.status(200).json({ success: true, message: GENERIC_SUCCESS });
-          }
+                    .select('id')
+                    .eq('email', target.email)
+                    .maybeSingle();
 
-          // New subscription
-          const { error } = await getSupabase()
-              .from('newsletter_subscribers')
-              .insert({ email: normalizedEmail, source: safeSource });
+                if (lookupError) {
+                    console.warn('[Newsletter] Unsubscribe lookup failed:', lookupError.message);
+                    return respond(500, false, 'We could not process that request. Please try again.');
+                }
 
-          if (error) throw error;
+                const writeResult = existingSub?.id
+                    ? await getSupabase()
+                          .from('newsletter_subscribers')
+                          .update({ is_active: false, unsubscribed_at: nowIso, source: 'unsubscribe' })
+                          .eq('id', existingSub.id)
+                    : await getSupabase()
+                          .from('newsletter_subscribers')
+                          .insert({ email: target.email, is_active: false, unsubscribed_at: nowIso, source: 'unsubscribe' });
 
-          return res.status(200).json({ success: true, message: GENERIC_SUCCESS });
-      } catch (error) {
-          try { reportApiError(error, req); } catch (_e) { /* noop */ }
-          console.warn('Newsletter subscription error:', error);
-          return res.status(500).json({ success: false, error: 'Subscription failed' });
-      }
+                if (writeResult.error) {
+                    console.warn('[Newsletter] Unsubscribe failed:', writeResult.error.message);
+                    return respond(500, false, 'We could not process that request. Please try again.');
+                }
+            } catch (error) {
+                try {
+                    reportApiError(error, req);
+                } catch (_e) {
+                    /* noop */
+                }
+                console.warn('[Newsletter] Unsubscribe exception:', error?.message || error);
+                return respond(500, false, 'We could not process that request. Please try again.');
+            }
 
-  } catch (err) {
-      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
-    console.warn('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
-  }
+            console.log(
+                '[Newsletter] unsubscribe',
+                JSON.stringify({ verified: target.verified, at: new Date().toISOString() })
+            );
+
+            return respond(200, true, GENERIC_UNSUBSCRIBED);
+        }
+
+        if (req.method !== 'POST') {
+            return res.status(405).json({ success: false, error: 'Method not allowed' });
+        }
+
+        // 3. POST /api/news/subscribe with { action: 'preferences', token, preference }
+        if (req.body?.action === 'preferences') {
+            const rawToken = typeof req.body?.token === 'string' ? req.body.token.trim() : '';
+            const verifiedEmail = verifyUnsubscribeToken(rawToken);
+            if (!verifiedEmail) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Invalid or expired preference token.',
+                });
+            }
+
+            const preference = String(req.body?.preference || '').trim();
+            if (!['wire_only', 'snooze_30d', 'all', 'unsubscribe'].includes(preference)) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Unsupported preference selection.',
+                });
+            }
+
+            const nowIso = new Date().toISOString();
+            const snoozeIso = new Date(Date.now() + 30 * 86_400_000).toISOString();
+
+            const { data: existingSub, error: lookupErr } = await getSupabase()
+                .from('newsletter_subscribers')
+                .select('id')
+                .eq('email', verifiedEmail)
+                .maybeSingle();
+
+            if (lookupErr) {
+                console.warn('[Newsletter] Preference lookup failed:', lookupErr.message);
+                return res.status(500).json({ success: false, error: 'Unable to update preferences.' });
+            }
+
+            let patch;
+            if (preference === 'wire_only') {
+                patch = { is_active: true, unsubscribed_at: null, source: 'pref:wire_only' };
+            } else if (preference === 'snooze_30d') {
+                patch = { is_active: true, unsubscribed_at: null, source: `snooze:${snoozeIso}` };
+            } else if (preference === 'all') {
+                patch = { is_active: true, unsubscribed_at: null, source: 'pref:all' };
+            } else {
+                patch = { is_active: false, unsubscribed_at: nowIso, source: 'unsubscribe' };
+            }
+
+            const saveRes = existingSub?.id
+                ? await getSupabase()
+                      .from('newsletter_subscribers')
+                      .update(patch)
+                      .eq('id', existingSub.id)
+                : await getSupabase()
+                      .from('newsletter_subscribers')
+                      .insert({ email: verifiedEmail, ...patch });
+
+            if (saveRes.error) {
+                console.warn('[Newsletter] Preference save failed:', saveRes.error.message);
+                return res.status(500).json({ success: false, error: 'Unable to update preferences.' });
+            }
+
+            try {
+                const { data: profiles } = await getSupabase()
+                    .from('profiles')
+                    .select('id')
+                    .ilike('email', verifiedEmail)
+                    .limit(1);
+                const profileId = profiles?.[0]?.id;
+                if (profileId && (preference === 'wire_only' || preference === 'all')) {
+                    await getSupabase()
+                        .from('notification_preferences')
+                        .upsert(
+                            { user_id: profileId, mute_all: false },
+                            { onConflict: 'user_id' }
+                        );
+                }
+            } catch (_prefSyncErr) {
+                /* non-blocking preference mirror */
+            }
+
+            const nextMode = preference === 'unsubscribe' ? 'unsubscribed' : preference;
+            return res.status(200).json({
+                success: true,
+                maskedEmail: maskEmailAddress(verifiedEmail),
+                currentMode: nextMode,
+            });
+        }
+
+        // 4. Ordinary POST /api/news/subscribe with { email, source } + Instant Day-0 Welcome Email
+        try {
+            const { email, source } = req.body || {};
+
+            if (typeof email !== 'string' || email.length > MAX_EMAIL_LENGTH || !EMAIL_RE.test(email.trim())) {
+                return res.status(400).json({ success: false, error: 'Valid email required' });
+            }
+            const normalizedEmail = email.trim().toLowerCase();
+
+            const safeSource =
+                typeof source === 'string' && /^[a-z0-9:_-]{1,64}$/i.test(source)
+                    ? source
+                    : 'news_hub';
+
+            const { data: existing } = await getSupabase()
+                .from('newsletter_subscribers')
+                .select('id, is_active')
+                .eq('email', normalizedEmail)
+                .maybeSingle();
+
+            const shouldSendWelcome = !existing || existing.is_active === false;
+
+            if (existing) {
+                if (!existing.is_active) {
+                    const { error: reactivateError } = await getSupabase()
+                        .from('newsletter_subscribers')
+                        .update({ is_active: true, unsubscribed_at: null, source: safeSource })
+                        .eq('id', existing.id);
+                    if (reactivateError) {
+                        console.warn('[Newsletter] Reactivation failed:', reactivateError.message);
+                        return res.status(500).json({ success: false, error: 'Subscription failed' });
+                    }
+                }
+            } else {
+                const { error } = await getSupabase()
+                    .from('newsletter_subscribers')
+                    .insert({ email: normalizedEmail, is_active: true, source: safeSource });
+
+                if (error) throw error;
+            }
+
+            if (shouldSendWelcome) {
+                try {
+                    const { data: profileRows } = await getSupabase()
+                        .from('profiles')
+                        .select('id, username, email')
+                        .ilike('email', normalizedEmail)
+                        .limit(1);
+
+                    const existingProfile = Array.isArray(profileRows) && profileRows.length > 0 ? profileRows[0] : null;
+                    const unsubToken = makeUnsubscribeToken(normalizedEmail);
+                    const welcome = buildWelcomeEmail({
+                        hasExistingProfile: Boolean(existingProfile?.id),
+                        username: existingProfile?.username || '',
+                        siteUrl: DEFAULT_SITE_URL,
+                        unsubscribeUrl: `${DEFAULT_SITE_URL}/api/news/subscribe?unsubscribe=${encodeURIComponent(unsubToken)}`,
+                        preferencesUrl: `${DEFAULT_SITE_URL}/hub/email-preferences?token=${encodeURIComponent(unsubToken)}`,
+                    });
+
+                    await sendEmail({
+                        to: [normalizedEmail],
+                        from: resendFrom(DEFAULT_WELCOME_FROM),
+                        subject: welcome.subject,
+                        html: welcome.html,
+                        text: welcome.text,
+                        headers: {
+                            'List-Unsubscribe': `<${welcome.unsubscribeUrl}>`,
+                            'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+                        },
+                    });
+                } catch (welcomeErr) {
+                    console.warn('[Newsletter] Day-0 welcome email skipped:', welcomeErr?.message || welcomeErr);
+                }
+            }
+
+            return res.status(200).json({ success: true, message: GENERIC_SUCCESS });
+        } catch (error) {
+            try {
+                reportApiError(error, req);
+            } catch (_e) {
+                /* noop */
+            }
+            console.warn('Newsletter subscription error:', error);
+            return res.status(500).json({ success: false, error: 'Subscription failed' });
+        }
+    } catch (err) {
+        try {
+            reportApiError(err, req);
+        } catch (_reportError) {
+            console.warn('[App] Handled exception:', _reportError?.message || _reportError);
+        }
+        console.warn('[API Error]', err);
+        if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
+    }
 }

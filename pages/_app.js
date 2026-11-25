@@ -240,6 +240,11 @@ const WorldCommandDock = dynamic(() => import('../src/components/ui/WorldCommand
   loading: () => null,
 });
 
+const NewsletterCaptureBar = dynamic(
+  () => import('../src/components/news/NewsletterCaptureBar'),
+  { ssr: false, loading: () => null }
+);
+
 // Operator chrome is substantial and belongs only to /horses and admin routes.
 // Keep its custom vector and machined-frame stylesheet out of the public shell.
 const OperatorConsoleShell = dynamic(() => import('../src/components/admin/OperatorConsoleShell'));
@@ -1249,6 +1254,9 @@ export default function App({ Component, pageProps }) {
                                   browser reports offline after hydration). */}
                               <HubErrorBoundary name="Offline Bar" fallback={<></>}>
                                 <OfflineBar />
+                              </HubErrorBoundary>
+                              <HubErrorBoundary name="Newsletter Capture" fallback={<></>}>
+                                {!isEmbedded && <NewsletterCaptureBar />}
                               </HubErrorBoundary>
                               {/* Page tutorials (Dan 2026-09-03): one provider for
                                   every route; the prompt, the tour and the

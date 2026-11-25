@@ -8,7 +8,7 @@ import { useRouter } from 'next/router';
 import { useState, useEffect, useCallback } from 'react';
 import { Clock, Eye, Calendar, Share2, Bookmark, User } from 'lucide-react';
 import { supabase } from '../../src/lib/supabase';
-import { getAuthUser } from '../../src/lib/authUtils';
+import { getAccessToken, getAuthUser } from '../../src/lib/authUtils';
 import toast from '../../src/stores/toastStore';
 import { addNewsBookmark, removeNewsBookmark, isArticleBookmarked } from '../../src/services/newsBookmarks';
 import {
@@ -25,6 +25,7 @@ import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
+import NewsletterCaptureBar from '../../src/components/news/NewsletterCaptureBar';
 
 // Guest bookmarks share the same localStorage key as /hub/news so the two
 // surfaces stay in sync (news.js loads this key on mount).
@@ -230,9 +231,13 @@ export default function ArticlePage() {
                 fetchRelated(data.category, data.id);
                 // Record the view (fire-and-forget) so direct visits and
                 // related-article clicks count, matching news.js behavior.
+                const accessToken = getAccessToken();
                 fetch('/api/news/articles', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+                    },
                     body: JSON.stringify({ id: data.id })
                 }).catch((e) => console.warn('[article.js] View tracking failed:', e?.message || e));
             } else {
@@ -599,27 +604,27 @@ export default function ArticlePage() {
                 <header className="header">
                     <div style={{ width: 60 }} />
                     <div className="actions">
-                        <button type="button" onClick={handleShare} aria-label="Share article">
+                        <button type="button" onClick={handleShare} aria-label="Share Article">
                             <Share2 size={18} />
                         </button>
                         <button
                             type="button"
                             onClick={handleReadLater}
-                            aria-label={isReadLater ? 'Remove from read later' : 'Save to read later'}
-                            title={isReadLater ? 'Remove from read later' : 'Save to read later'}
+                            aria-label={isReadLater ? 'Remove From Read Later' : 'Save To Read Later'}
+                            title={isReadLater ? 'Remove From Read Later' : 'Save To Read Later'}
                             aria-pressed={isReadLater}
-                            style={isReadLater ? { background: 'rgba(168,85,247,0.2)', borderColor: '#a855f7' } : {}}
+                            style={isReadLater ? { background: 'rgba(79,193,179,0.2)', borderColor: '#4fc1b3' } : {}}
                         >
-                            <Clock size={18} color={isReadLater ? '#a855f7' : '#fff'} />
+                            <Clock size={18} color={isReadLater ? '#4fc1b3' : '#fff'} />
                         </button>
                         <button
                             type="button"
                             onClick={handleBookmark}
-                            aria-label={isBookmarked ? 'Remove bookmark' : 'Bookmark article'}
+                            aria-label={isBookmarked ? 'Remove Bookmark' : 'Bookmark Article'}
                             aria-pressed={isBookmarked}
-                            style={isBookmarked ? { background: 'rgba(0,212,255,0.2)', borderColor: '#00d4ff' } : {}}
+                            style={isBookmarked ? { background: 'rgba(96,165,250,0.2)', borderColor: '#60a5fa' } : {}}
                         >
-                            <Bookmark size={18} fill={isBookmarked ? '#00d4ff' : 'none'} color={isBookmarked ? '#00d4ff' : '#fff'} />
+                            <Bookmark size={18} fill={isBookmarked ? '#60a5fa' : 'none'} color={isBookmarked ? '#60a5fa' : '#fff'} />
                         </button>
                     </div>
                 </header>
@@ -656,6 +661,8 @@ export default function ArticlePage() {
                             <p key={i}>{paragraph}</p>
                         ))}
                     </div>
+
+                    <NewsletterCaptureBar variant="inline" pathname="/hub/article" />
                 </article>
 
                 {/* Related Articles */}
@@ -830,7 +837,7 @@ export default function ArticlePage() {
                     .related-card-placeholder {
                         width: 100%;
                         aspect-ratio: 16/10;
-                        background: linear-gradient(135deg, rgba(0, 212, 255, 0.08), rgba(168, 85, 247, 0.08));
+                        background: linear-gradient(135deg, rgba(79, 193, 179, 0.12), rgba(96, 165, 250, 0.12));
                     }
 
                     .related-card span {
