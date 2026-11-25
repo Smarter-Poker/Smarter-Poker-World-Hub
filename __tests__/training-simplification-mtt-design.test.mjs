@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import test from 'node:test';
+
+const require = createRequire(import.meta.url);
 
 import {
   SUPPORTED_VARIANTS,
@@ -132,4 +135,55 @@ test('1-tap start flow, preset summary, and progressive disclosures are wired ac
   const table = read('src/components/training/games/UniversalDynamicTable.jsx');
   assert.ok(table.includes('data-table-study-tools-disclosure="true"'), 'UniversalDynamicTable must wrap secondary table & study tools inside a collapsible disclosure');
   assert.ok(table.includes('data-posthand-simulators-disclosure="true"'), 'UniversalDynamicTable must wrap post-hand simulators inside a collapsible disclosure');
+});
+
+test('no Training component has synchronous Temporal Dead Zone (TDZ) const/let references before declaration', () => {
+  const parser = require('@babel/parser');
+  const traverse = require('@babel/traverse').default;
+  const files = [
+    'src/components/training/games/UniversalDynamicTable.jsx',
+    'src/components/training/GodModeArena.jsx',
+    'src/components/training/SessionSetupModal.jsx',
+    'src/components/training/TrainerConfigModal.jsx',
+    'pages/hub/training.js',
+  ];
+  const violations = [];
+  for (const rel of files) {
+    const code = read(rel);
+    const ast = parser.parse(code, { sourceType: 'module', plugins: ['jsx', 'typescript'] });
+    traverse(ast, {
+      Function(path) {
+        const bindings = path.scope.bindings;
+        for (const [name, binding] of Object.entries(bindings)) {
+          if (binding.kind !== 'const' && binding.kind !== 'let') continue;
+          const declLoc = binding.identifier.loc.start.line;
+          for (const ref of binding.referencePaths) {
+            const refLoc = ref.node.loc.start.line;
+            if (refLoc < declLoc) {
+              let p = ref.parentPath;
+              let inDeferredFn = false;
+              while (p && p !== path) {
+                if (p.isFunction()) {
+                  const gp = p.parentPath;
+                  const isSyncMemo = gp && gp.isCallExpression() && gp.node.callee && (
+                    gp.node.callee.name === 'useMemo' ||
+                    (gp.node.callee.property && gp.node.callee.property.name === 'useMemo')
+                  );
+                  if (!isSyncMemo) {
+                    inDeferredFn = true;
+                    break;
+                  }
+                }
+                p = p.parentPath;
+              }
+              if (!inDeferredFn) {
+                violations.push(`${rel}: "${name}" declared at line ${declLoc} but referenced synchronously at line ${refLoc}`);
+              }
+            }
+          }
+        }
+      },
+    });
+  }
+  assert.deepEqual(violations, [], `TDZ violations detected:\n${violations.join('\n')}`);
 });

@@ -3311,20 +3311,8 @@ function UniversalDynamicTable({
     }, []);
 
     // ═══ PHASE 13: 20-POINT TRUE 1:1 CLUB ARENA CLONE PARITY STATE & COMPUTATIONS ═══
-    // Item 1: Sequential Pre-Decision Villain Action Choreography
+    // Item 1: Sequential Pre-Decision Villain Action Choreography (useMemo placed after actionHistory declaration below)
     const [choreographyFastForward, setChoreographyFastForward] = useState(false);
-    const actionChoreography = useMemo(() => {
-        const callBb = Math.max(0, Number(scenario?.villainBet ?? scenario?.toCall) || 0);
-        return buildPreDecisionActionChoreography({
-            format: activeGameFormat,
-            street: activeNormalizedStreet,
-            heroPosition: heroPosition || 'BTN',
-            villainPosition: villainPosition || 'BB',
-            facingBetBb: callBb,
-            potBb: Math.max(1.5, Number(pot) || 6.5),
-            actionHistory,
-        });
-    }, [activeGameFormat, activeNormalizedStreet, heroPosition, villainPosition, scenario, pot, actionHistory]);
 
     // Item 2 & 16: Full-Hand Live Playthrough Mode (Coach After Hand) & Street-Rewind Line Branch Sandbox
     const [coachingTimingMode, setCoachingTimingMode] = useState('immediate'); // 'immediate' | 'end_of_hand'
@@ -4250,6 +4238,19 @@ function UniversalDynamicTable({
         }
         return built;
     }, [question?.scenario, villainAction, villainPosition]);
+
+    const actionChoreography = useMemo(() => {
+        const callBb = Math.max(0, Number(scenario?.villainBet ?? scenario?.toCall) || 0);
+        return buildPreDecisionActionChoreography({
+            format: activeGameFormat,
+            street: activeNormalizedStreet,
+            heroPosition: heroPosition || 'BTN',
+            villainPosition: villainPosition || 'BB',
+            facingBetBb: callBb,
+            potBb: Math.max(1.5, Number(pot) || 6.5),
+            actionHistory,
+        });
+    }, [activeGameFormat, activeNormalizedStreet, heroPosition, villainPosition, scenario, pot, actionHistory]);
 
     // The solver mix for THIS decision.
     //
