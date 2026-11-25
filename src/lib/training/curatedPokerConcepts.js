@@ -109,11 +109,27 @@ const FACTS = {
     inputs: 'Every relevant stack, remaining players, positions, blinds, antes, and payouts',
     principle: 'Risk premiums can make a profitable chip decision lose tournament prize equity',
   },
+  plo8_scoop: {
+    label: 'PLO8 Two-Way Scoop & Quartering Defense', street: 'flop',
+    definition: 'Evaluating both High and 8-or-better Low pot halves in 4-card Omaha Hi-Lo split pots',
+    sequence: 'Three low-eligible flop cards appear in PLO8 and players contest both the High and Low halves of the pot',
+    inputs: 'Nut-low counterfeiting risk, high redraws, two-hole-card requirement, and pot-limit geometry',
+    principle: 'Never commit stack equity with a bare dry nut-low without counterfeiting protection or high equity redraws',
+  },
+  fixed_limit_cap: {
+    label: 'Fixed-Limit Small/Big Bet & 4-Raise Cap Geometry', street: 'turn',
+    definition: 'Navigating Fixed-Limit betting transitions where the structured bet doubles from 1 Small Bet to 1 Big Bet on the Turn',
+    sequence: 'Flop action closes in small bets and Turn action opens at double increment with a 4-raise street cap',
+    inputs: 'Pot odds in big bets, 4-raise cap boundary, implied odds to the river, and showdown equity requirement',
+    principle: 'Protect equity on the Flop-to-Turn big-bet transition and recognize when pot odds mandate a river showdown call',
+  },
 };
 
 const ALIASES = {
   '3bet': 'vs3bet',
   river_bluff_catcher: 'river_bluff_catcher',
+  plo8_hilo: 'plo8_scoop',
+  fixed_limit: 'fixed_limit_cap',
 };
 
 const STREET_BOARD = {
@@ -190,6 +206,18 @@ const VARIANT_ACTION_CHOICES = {
     'Call / Check Back',
     'Bet 33% Pot',
     'Bet 75% Pot / Overbet',
+  ],
+  fixed_limit_preflop: [
+    'Fold',
+    'Call 1 Small Bet',
+    'Raise To 2 Small Bets',
+    'Cap At 4 Small Bets',
+  ],
+  fixed_limit_postflop: [
+    'Check / Fold',
+    'Call 1 Fixed Bet',
+    'Raise 1 Big Bet',
+    'Cap At 4 Bets',
   ],
 };
 
@@ -376,10 +404,14 @@ export function generateCuratedPokerConceptBatch({
       villainArchetype: exploitProfile,
     });
 
-    const useActionChoices = isPloVariant || hasExplicitVariant;
-    const actionPool = isPloVariant
-      ? (street === 'preflop' ? VARIANT_ACTION_CHOICES.plo_preflop : VARIANT_ACTION_CHOICES.plo_postflop)
-      : (street === 'preflop' ? VARIANT_ACTION_CHOICES.nlh_preflop : VARIANT_ACTION_CHOICES.nlh_postflop);
+    const explicitStructure = String(gameConfig?.bettingStructure || '').trim().toLowerCase();
+    const isFixedLimit = explicitStructure === 'fixed_limit';
+    const useActionChoices = isPloVariant || hasExplicitVariant || isFixedLimit;
+    const actionPool = isFixedLimit
+      ? (street === 'preflop' ? VARIANT_ACTION_CHOICES.fixed_limit_preflop : VARIANT_ACTION_CHOICES.fixed_limit_postflop)
+      : isPloVariant
+        ? (street === 'preflop' ? VARIANT_ACTION_CHOICES.plo_preflop : VARIANT_ACTION_CHOICES.plo_postflop)
+        : (street === 'preflop' ? VARIANT_ACTION_CHOICES.nlh_preflop : VARIANT_ACTION_CHOICES.nlh_postflop);
     const fallbackAnswer = useActionChoices
       ? actionPool[(index + style) % actionPool.length]
       : fact[field];
@@ -388,6 +420,7 @@ export function generateCuratedPokerConceptBatch({
       : rotateOptions([fallbackAnswer, ...alternatives(topic, field, variant)], fallbackAnswer, index + level);
 
     const useBrainActionChoices = useActionChoices
+      && !isFixedLimit
       && brainEval?.ok
       && Array.isArray(brainEval.options)
       && brainEval.options.length === 4;
@@ -396,20 +429,28 @@ export function generateCuratedPokerConceptBatch({
     const finalAnswerText = useBrainActionChoices ? brainEval.correctAnswerText : fallbackAnswer;
 
     const variantSuffix = hasExplicitVariant ? `_${effectiveVariant}` : '';
+    const structSuffix = isFixedLimit ? '_fl' : '';
     const posSuffix = Array.isArray(effectivePositions) && effectivePositions.length === 1
       ? `_${String(heroPosition).toLowerCase()}`
       : '';
-    const id = `curated_${gameId}${variantSuffix}${posSuffix}_L${level}_${topic}_${style}_${index}`;
+    const id = `curated_${gameId}${variantSuffix}${structSuffix}${posSuffix}_L${level}_${topic}_${style}_${index}`;
     if (excludedIds.has(id)) continue;
-    const variantTitle = effectiveVariant === 'plo8'
-      ? 'PLO8 (Hi-Lo 8-or-Better)'
-      : effectiveVariant === 'plo6'
-        ? '6-Card PLO (Pot-Limit)'
-        : effectiveVariant === 'plo5'
-          ? '5-Card PLO (Pot-Limit)'
-          : effectiveVariant === 'plo4'
-            ? '4-Card PLO (Pot-Limit)'
-            : "No-Limit Hold'em";
+    const variantTitle = isFixedLimit
+      ? `Fixed-Limit ${effectiveVariant.toUpperCase()} (1 BB / 2 BB Cap 4)`
+      : effectiveVariant === 'plo8'
+        ? 'PLO8 (Hi-Lo 8-or-Better)'
+        : effectiveVariant === 'plo6'
+          ? '6-Card PLO (Pot-Limit)'
+          : effectiveVariant === 'plo5'
+            ? '5-Card PLO (Pot-Limit)'
+            : effectiveVariant === 'plo4'
+              ? '4-Card PLO (Pot-Limit)'
+              : "No-Limit Hold'em";
+    const resolvedBettingStructure = isFixedLimit
+      ? 'fixed_limit'
+      : isPloVariant
+        ? 'pot_limit'
+        : 'no_limit';
     questions.push({
       id,
       type: 'PIO',
@@ -424,7 +465,7 @@ export function generateCuratedPokerConceptBatch({
         street,
         variant: effectiveVariant,
         holeCardCount: heroCards.length,
-        bettingStructure: isPloVariant ? 'pot_limit' : 'no_limit',
+        bettingStructure: resolvedBettingStructure,
         board: boardCards.join(''),
         boardCards,
         action: fact.sequence,

@@ -499,6 +499,8 @@ export default function useGTOTrainer(
   // the same ordinal, continuation, or completion operation.
   const [transitionError, setTransitionError] = useState(null);
   const [transitionRetrying, setTransitionRetrying] = useState(false);
+  const [outboxPendingCount, setOutboxPendingCount] = useState(() => readFailedAnswerOutbox().length);
+  const singleQuestionPrefetchRef = useRef(null);
   const trainingSessionIdRef = useRef(null);
   const trainingSessionGameIdRef = useRef(null);
   const externalSessionIdRef = useRef(null);
@@ -1511,7 +1513,8 @@ export default function useGTOTrainer(
           } catch (networkErr) {
             lastNetworkFailure = true;
             if (attempt === 2) {
-              enqueueFailedAnswerOutbox(submissionPayload);
+              const nextOutbox = enqueueFailedAnswerOutbox(submissionPayload);
+              setOutboxPendingCount(nextOutbox.length);
               throw networkErr;
             }
             await new Promise((resolve) => setTimeout(resolve, 250 * (2 ** attempt)));
@@ -1525,7 +1528,11 @@ export default function useGTOTrainer(
             if (!serverEvidence || !payload?.feedback || typeof serverEvidence.isCorrect !== 'boolean') {
               throw new Error('The Training server did not return an authoritative verdict and feedback reveal.');
             }
-            void flushFailedAnswerOutbox(trainingFetch);
+            void flushFailedAnswerOutbox(trainingFetch).then((flushedRes) => {
+              if (flushedRes && typeof flushedRes.remaining === 'number') {
+                setOutboxPendingCount(flushedRes.remaining);
+              }
+            });
             return {
               ok: true,
               evidence: serverEvidence,
@@ -1557,7 +1564,8 @@ export default function useGTOTrainer(
         }
       } catch (err) {
         if (lastNetworkFailure) {
-          enqueueFailedAnswerOutbox(submissionPayload);
+          const nextOutbox = enqueueFailedAnswerOutbox(submissionPayload);
+          setOutboxPendingCount(nextOutbox.length);
         }
         console.warn('[Training] Answer evidence was not persisted:', err?.message || err);
         return { ok: false, error: err?.message || 'Answer persistence failed' };
@@ -2675,6 +2683,15 @@ export default function useGTOTrainer(
       throw new Error('The Training session changed before completion could be verified.');
     }
 
+    try {
+      const flushedRes = await flushFailedAnswerOutbox(trainingFetch);
+      if (flushedRes && typeof flushedRes.remaining === 'number') {
+        setOutboxPendingCount(flushedRes.remaining);
+      }
+    } catch (_) {
+      /* non-fatal outbox drain before completion */
+    }
+
     const postAttempt = async (endpoint, label) => {
       const response = await trainingFetch(endpoint, {
         method: 'POST',
@@ -3322,11 +3339,21 @@ export default function useGTOTrainer(
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
     const handleOnlineFlush = () => {
-      void flushFailedAnswerOutbox(trainingFetch);
+      void flushFailedAnswerOutbox(trainingFetch).then((res) => {
+        if (res && typeof res.remaining === 'number') {
+          setOutboxPendingCount(res.remaining);
+        }
+      });
     };
     window.addEventListener('online', handleOnlineFlush);
     return () => window.removeEventListener('online', handleOnlineFlush);
   }, []);
+
+  const nextHandPrefetched = Boolean(
+    (preloadComplete && preloadedQuestions[questionNumber])
+    || singleQuestionPrefetchRef.current?.handOrdinal === questionNumber + 1
+    || nextLevelCacheRef.current
+  );
 
   return {
     // Current state
@@ -3345,6 +3372,8 @@ export default function useGTOTrainer(
     answerSaveRequiresRefresh,
     transitionError,
     transitionRetrying,
+    outboxPendingCount,
+    nextHandPrefetched,
 
     // Pre-load state
     preloadComplete,

@@ -22,7 +22,9 @@ const QUICK_TRAINER_PRESETS = [
     { id: 'hu_duel_2max', label: 'Heads-Up 40 BB', gameType: 'cash', variant: 'nlh', bettingStructure: 'no_limit', format: 'hu', stackDepth: 40, position: 'BTN' },
     { id: 'plo4_pot_limit_cash', label: 'PLO4 100 BB', gameType: 'cash', variant: 'plo4', bettingStructure: 'pot_limit', format: 'cash', stackDepth: 100, position: 'BTN' },
     { id: 'plo8_hilo_split', label: 'PLO8 Hi-Lo 100 BB', gameType: 'cash', variant: 'plo8', bettingStructure: 'pot_limit', format: 'cash', stackDepth: 100, position: 'BTN' },
-    { id: 'fixed_limit_ring', label: 'Fixed-Limit', gameType: 'cash', variant: 'nlh', bettingStructure: 'fixed_limit', format: 'cash', stackDepth: 60, position: 'BTN' },
+    { id: 'plo8_scoop_quartering_defense', label: 'PLO8 Scoop Defense', gameType: 'cash', variant: 'plo8', bettingStructure: 'pot_limit', format: 'cash', stackDepth: 100, position: 'BTN' },
+    { id: 'fixed_limit_ring', label: 'Fixed-Limit Ring', gameType: 'cash', variant: 'nlh', bettingStructure: 'fixed_limit', format: 'cash', stackDepth: 60, position: 'BTN' },
+    { id: 'fixed_limit_cap_geometry', label: 'Fixed-Limit Cap & Turn', gameType: 'cash', variant: 'nlh', bettingStructure: 'fixed_limit', format: 'cash', stackDepth: 60, position: 'BTN' },
 ];
 
 // Available configurations based on actual solver data in database

@@ -3522,6 +3522,57 @@ export default function LeakFinderPage() {
                     <BleedSummary leaks={visibleLeaks} isDemo={leaksAreDemo} />
                   </LeakErrorBoundary>
 
+                  {shownLeaks[0] && (
+                    <div
+                      data-pa-leak-training-bridge="true"
+                      style={{
+                        marginBottom: S.md,
+                        padding: '12px 14px',
+                        borderRadius: 7,
+                        border: '1px solid #688299',
+                        borderTopColor: '#aec0d0',
+                        background: 'linear-gradient(180deg, #13253a 0%, #091727 55%, #060e18 100%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: 10,
+                      }}
+                    >
+                      <div style={{ flex: '1 1 240px', minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 800, color: '#83deff', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                          1-Tap Club Arena Corrective Drill
+                        </div>
+                        <div style={{ fontSize: 14, fontWeight: 800, color: '#f4fbff', marginTop: 2 }}>
+                          {shownLeaks[0].title}
+                        </div>
+                        <div style={{ fontSize: 12, color: '#b7cede', marginTop: 2 }}>
+                          {shownLeaks[0].situationClass || 'Targeted 10-Hand Spot Remediation'}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="pa-btn"
+                        data-drill-similar-spot-cta="true"
+                        onClick={() => handleTrainDrills(shownLeaks[0])}
+                        style={{
+                          minHeight: 40,
+                          padding: '8px 14px',
+                          borderRadius: 7,
+                          border: '1px solid #56d8ff',
+                          borderTopColor: '#b3eaff',
+                          background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)',
+                          color: '#f4fbff',
+                          fontSize: 12,
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Train Top Detected Leak In Club Arena →
+                      </button>
+                    </div>
+                  )}
+
                   {hiddenCrossFormatCount > 0 && (
                     <div
                       role="status"

@@ -113,14 +113,15 @@ const DELETED_ORPHANS = [
   'src/components/sandbox/ImportHHModal.jsx',
   'src/components/sandbox/SandboxPokerTable.jsx',
   'src/components/sandbox/VillainPresetPicker.jsx',
-  'src/components/sandbox/HandReplay.jsx',
 ];
-// Looked orphaned but are live: RangeHeatGrid imports RangeExplorer's helpers, and
-// SandboxComponents dynamically imports ExportCard. They must NOT be deleted.
+// Looked orphaned but are live: RangeHeatGrid imports RangeExplorer's helpers,
+// SandboxComponents dynamically imports ExportCard, and Training Phase 17 (#3008)
+// maintains HandReplay.jsx. They must NOT be deleted.
 const LIVE_LOOKALIKES = [
   'src/components/sandbox/RangeExplorer.jsx',
   'src/components/sandbox/ExportCard.jsx',
   'src/components/sandbox/RangeHeatGrid.jsx',
+  'src/components/sandbox/HandReplay.jsx',
 ];
 
 function sourceFiles(dir, out = []) {
