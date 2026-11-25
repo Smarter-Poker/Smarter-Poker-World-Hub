@@ -10,6 +10,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 import {
   Activity,
@@ -55,6 +56,12 @@ import {
   resolveHomePrimaryState,
 } from '../../../src/lib/personal-assistant/assistantDefaults.mjs';
 
+// The live spot logger pulls in the shared bottom sheet, so it loads only after a tap.
+const LiveSpotQuickEntry = dynamic(
+  () => import('../../../src/components/personal-assistant/LiveSpotQuickEntry'),
+  { ssr: false },
+);
+
 const SYSTEMS = [
   {
     id: 'leaks',
@@ -75,6 +82,16 @@ const SYSTEMS = [
     route: '/hub/personal-assistant/sandbox',
   },
 ];
+
+// Secondary entry inside the Tools disclosure: opens the live spot logger instead of a route.
+const LIVE_SPOT_ENTRY = {
+  id: 'live-spot',
+  eyebrow: 'Live Play And Other Sites',
+  title: 'Live Spot Or Hand Import',
+  description: 'Log A Live Poker Spot In About 15 Seconds, Or Paste PokerStars, GGPoker, ACR Or ClubGG Hands For A Solver Check.',
+  features: ['15-Second Quick Spot', 'Paste External Hands', 'Unverified Spots Stay Unpriced'],
+  action: 'Log A Live Spot',
+};
 
 const DAILY_HAND_MAX_ATTEMPTS = 2;
 const DAILY_HAND_TIMEOUT_MS = 6000;
@@ -98,6 +115,34 @@ function normalizeDailyHandPayload(payload) {
   };
 }
 
+const toTitleWords = (value) => String(value || '')
+  .replace(/_/g, ' ')
+  .replace(/\b[a-z]/g, (letter) => letter.toUpperCase());
+
+function SystemCardBody({ system }) {
+  return (
+    <span className={styles.systemCardInner}>
+      <span className={styles.systemCopy}>
+        <span style={{ display: 'block' }}>
+          <span className={styles.systemEyebrow}>{system.eyebrow}</span>
+          <strong style={{ display: 'block', margin: '4px 0', fontSize: 16, color: '#f1f5fc' }}>{system.title}</strong>
+          <span style={{ display: 'block', color: '#b6c8d6', fontSize: 13, lineHeight: 1.45, marginBottom: 8 }}>{system.description}</span>
+          <span style={{ display: 'grid', gap: 4 }}>
+            {system.features.map((feature) => (
+              <span key={feature} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#dce5ef' }}>
+                <CheckCircle2 size={13} aria-hidden="true" />{feature}
+              </span>
+            ))}
+          </span>
+        </span>
+        <span className={styles.secondaryButton}>
+          {system.action}<ChevronRight size={15} aria-hidden="true" />
+        </span>
+      </span>
+    </span>
+  );
+}
+
 const SectionBar = ({ title, meta, id }) => (
   <div className={styles.sectionBar} id={id}>
     <h2>{title}</h2>
@@ -111,6 +156,7 @@ export default function PersonalAssistantPage() {
   const [mounted, setMounted] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [liveSpotOpen, setLiveSpotOpen] = useState(false);
 
   const haptic = useHaptics();
   const online = useOnlineStatus();
@@ -123,6 +169,8 @@ export default function PersonalAssistantPage() {
 
   const closeMenu = useCallback(() => setShowMenu(false), []);
   useModalHistory(showMenu, closeMenu);
+  const closeLiveSpot = useCallback(() => setLiveSpotOpen(false), []);
+  useModalHistory(liveSpotOpen, closeLiveSpot);
 
   const { guardAction, UpgradePopup } = useFeatureGate('personal_assistant');
   const menuConfig = getMenuConfig('hub-home', user, {}, {});
@@ -274,6 +322,12 @@ export default function PersonalAssistantPage() {
     router.push(route);
   };
 
+  const openLiveSpot = () => {
+    haptic('light');
+    if (!guardAction()) return;
+    setLiveSpotOpen(true);
+  };
+
   const openDailyTraining = () => {
     haptic('light');
     if (!guardAction()) return;
@@ -325,6 +379,14 @@ export default function PersonalAssistantPage() {
   const reviewDueCount = Number(
     coachingSnapshot?.summary?.due ?? coachingSnapshot?.trainingPlan?.dueNowCount ?? 0,
   );
+  const dueCount = reviewDueCount > 0 ? Math.floor(reviewDueCount) : 0;
+  const dueSuffix = dueCount > 0 ? ` (${dueCount})` : '';
+  const sessionDebrief = coachingSnapshot?.sessionDebrief || null;
+  const showSessionRecap = sessionDebrief?.recapEligible === true && !coachingSnapshot?.liveTableActive;
+  const recapHands = showSessionRecap && Array.isArray(sessionDebrief?.topLeakedHands)
+    ? sessionDebrief.topLeakedHands.filter(Boolean).slice(0, 2)
+    : [];
+  const recapDrillHandId = recapHands.find((hand) => hand?.handId)?.handId || null;
   const topPriority = coachingSnapshot?.priorities?.[0] || null;
   const activeAuditRunning = Boolean(coachingSnapshot?.activeAuditRunning);
   const activeAuditProgressText = coachingSnapshot?.activeAuditProgressText || null;
@@ -430,9 +492,11 @@ export default function PersonalAssistantPage() {
     {
       title: 'Active Leaks',
       value: activeLeakCount,
-      label: resolvedLeakCount === null ? unavailableLabel : `${resolvedLeakCount.toLocaleString()} Resolved`,
+      label: resolvedLeakCount === null
+        ? unavailableLabel
+        : `${resolvedLeakCount.toLocaleString()} Resolved${dueCount > 0 ? ` · ${dueCount} Due` : ''}`,
       Icon: Droplet,
-      route: '/hub/personal-assistant/leaks',
+      route: dueCount > 0 ? '/hub/personal-assistant/leaks?tab=leaks' : '/hub/personal-assistant/leaks',
     },
     {
       title: 'Hands Analyzed',
@@ -550,7 +614,13 @@ export default function PersonalAssistantPage() {
         {/* Compact single-row MTT lobby tab strip */}
         <nav className={styles.tabs} aria-label="Personal Assistant Sections" data-tutorial="nav">
           <a className={styles.activeTab} href="#overview" aria-current="page" onClick={() => haptic('light')}>Overview</a>
-          <button type="button" onClick={() => openGuardedRoute('/hub/personal-assistant/leaks')}>Leak Finder</button>
+          <button
+            type="button"
+            onClick={() => openGuardedRoute(dueCount > 0 ? '/hub/personal-assistant/leaks?tab=leaks' : '/hub/personal-assistant/leaks')}
+            aria-label={dueCount > 0 ? `Leak Finder, ${dueCount} Review${dueCount === 1 ? '' : 's'} Due` : undefined}
+          >
+            Leak Finder{dueSuffix}
+          </button>
           <button type="button" onClick={() => openGuardedRoute('/hub/training')}>Training Center</button>
         </nav>
 
@@ -656,6 +726,38 @@ export default function PersonalAssistantPage() {
                   </button>
                 </div>
               )}
+
+              {/* Last Session Recap: only after a finished session, never while seated at a live table */}
+              {showSessionRecap && recapHands.length > 0 && (
+                <div className={styles.recapStrip} role="region" aria-label="Last Session Recap" data-session-recap="true">
+                  <div className={styles.missionCopy}>
+                    <span className={styles.missionBadge}>Last Session Recap</span>
+                    <h3>{sessionDebrief?.headline || 'Your Most Expensive Spots From Last Session'}</h3>
+                    <ul className={styles.recapList}>
+                      {recapHands.map((hand, index) => (
+                        <li key={`${hand.handId || 'hand'}-${index}`}>
+                          <strong>{[toTitleWords(hand.street), hand.position].filter(Boolean).join(' · ') || 'Hand'}</strong>
+                          {hand.heroHand ? ` · ${hand.heroHand}` : ''}
+                          {hand.playerAction ? ` · You: ${toTitleWords(hand.playerAction)}` : ''}
+                          {hand.solverAction ? ` · Solver: ${toTitleWords(hand.solverAction)}` : ''}
+                          {typeof hand.evLossBB === 'number' && Number.isFinite(hand.evLossBB) ? ` · ${Math.abs(hand.evLossBB).toFixed(2)} BB Lost` : ''}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={() => openGuardedRoute(
+                      recapDrillHandId
+                        ? `/hub/personal-assistant/leaks?hand=${encodeURIComponent(recapDrillHandId)}`
+                        : '/hub/personal-assistant/leaks?tab=coaching&view=coach',
+                    )}
+                  >
+                    Drill Session Spots<ChevronRight size={16} aria-hidden="true" />
+                  </button>
+                </div>
+              )}
             </div>
           </section>
 
@@ -696,7 +798,7 @@ export default function PersonalAssistantPage() {
             <details className={styles.disclosure}>
               <summary id="systems-title">
                 <span>Tools &amp; Evidence Boundary</span>
-                <small>Leak Finder · Scenario Archive</small>
+                <small>Leak Finder · Live Spots · Scenario Archive</small>
               </summary>
               <div className={styles.disclosureBody}>
                 <div className={styles.systemGrid}>
@@ -708,28 +810,20 @@ export default function PersonalAssistantPage() {
                         onClick={() => openGuardedRoute(system.route)}
                         aria-label={`${system.action}. ${system.description}`}
                       >
-                        <span className={styles.systemCardInner}>
-                          <span className={styles.systemCopy}>
-                            <span style={{ display: 'block' }}>
-                              <span className={styles.systemEyebrow}>{system.eyebrow}</span>
-                              <strong style={{ display: 'block', margin: '4px 0', fontSize: 16, color: '#f1f5fc' }}>{system.title}</strong>
-                              <span style={{ display: 'block', color: '#b6c8d6', fontSize: 13, lineHeight: 1.45, marginBottom: 8 }}>{system.description}</span>
-                              <span style={{ display: 'grid', gap: 4 }}>
-                                {system.features.map((feature) => (
-                                  <span key={feature} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#dce5ef' }}>
-                                    <CheckCircle2 size={13} aria-hidden="true" />{feature}
-                                  </span>
-                                ))}
-                              </span>
-                            </span>
-                            <span className={styles.secondaryButton}>
-                              {system.action}<ChevronRight size={15} aria-hidden="true" />
-                            </span>
-                          </span>
-                        </span>
+                        <SystemCardBody system={system} />
                       </button>
                     </article>
                   ))}
+                  <article className={styles.systemCard} data-live-spot-card="home">
+                    <button
+                      type="button"
+                      className={styles.liveSpotTrigger}
+                      onClick={openLiveSpot}
+                      aria-label={`${LIVE_SPOT_ENTRY.action}. ${LIVE_SPOT_ENTRY.description}`}
+                    >
+                      <SystemCardBody system={LIVE_SPOT_ENTRY} />
+                    </button>
+                  </article>
                 </div>
               </div>
             </details>
@@ -878,6 +972,14 @@ export default function PersonalAssistantPage() {
         </PullToRefresh>
       </div>
       </HubPageShell>
+
+      {liveSpotOpen && (
+        <LiveSpotQuickEntry
+          open
+          onClose={closeLiveSpot}
+          onAnalyzed={() => setTrainingPlanReloadKey((n) => n + 1)}
+        />
+      )}
 
       {UpgradePopup}
     </PageTransition>

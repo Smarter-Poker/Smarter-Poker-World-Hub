@@ -28303,7 +28303,7 @@
         },
         {
           "name": "resolveHandBoardCards",
-          "line": 33,
+          "line": 36,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -28311,7 +28311,7 @@
         },
         {
           "name": "rankImportedHandsByEvLeak",
-          "line": 58,
+          "line": 61,
           "references": 5,
           "exported": true,
           "defaultExport": false,
@@ -28319,7 +28319,7 @@
         },
         {
           "name": "getSupabase",
-          "line": 156,
+          "line": 180,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -28327,7 +28327,7 @@
         },
         {
           "name": "normalizeClubArenaHand",
-          "line": 166,
+          "line": 190,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -28335,7 +28335,7 @@
         },
         {
           "name": "isUserParticipantInHandRow",
-          "line": 204,
+          "line": 228,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -28343,7 +28343,7 @@
         },
         {
           "name": "extractBoardFromParsedHand",
-          "line": 214,
+          "line": 238,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -28351,7 +28351,7 @@
         },
         {
           "name": "buildDrillHrefForHand",
-          "line": 223,
+          "line": 247,
           "references": 6,
           "exported": false,
           "defaultExport": false,
@@ -28359,7 +28359,7 @@
         },
         {
           "name": "handler",
-          "line": 264,
+          "line": 288,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -60977,15 +60977,31 @@
       "functions": [
         {
           "name": "detectSite",
-          "line": 44,
+          "line": 50,
           "references": 3,
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
+          "name": "classifyGameVariant",
+          "line": 85,
+          "references": 4,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "_applyVariantInfo",
+          "line": 126,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "parseHandHistory",
-          "line": 69,
+          "line": 151,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -60993,23 +61009,39 @@
         },
         {
           "name": "parsePokerStars",
-          "line": 91,
+          "line": 177,
           "references": 4,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
+          "name": "_parsePSHeader",
+          "line": 192,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "_stakesFromHeader",
+          "line": 201,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "_parsePSHand",
-          "line": 106,
-          "references": 3,
+          "line": 208,
+          "references": 4,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "parseGGPoker",
-          "line": 232,
+          "line": 341,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -61017,15 +61049,55 @@
         },
         {
           "name": "_parseGGHand",
-          "line": 247,
+          "line": 356,
           "references": 2,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
+          "name": "_normalizeColonlessBlock",
+          "line": 377,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "_parseWpnStyleHeader",
+          "line": 403,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "_parseWpnStyleHands",
+          "line": 411,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "parseACR",
+          "line": 430,
+          "references": 3,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "parseClubGG",
+          "line": 438,
+          "references": 3,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "parse888Poker",
-          "line": 261,
+          "line": 449,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -61033,7 +61105,7 @@
         },
         {
           "name": "_parse888Hand",
-          "line": 276,
+          "line": 464,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -61041,7 +61113,7 @@
         },
         {
           "name": "_normalizeCard",
-          "line": 363,
+          "line": 554,
           "references": 9,
           "exported": false,
           "defaultExport": false,
@@ -61049,7 +61121,7 @@
         },
         {
           "name": "_normalizeAction",
-          "line": 377,
+          "line": 568,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -61057,7 +61129,7 @@
         },
         {
           "name": "_assignPositions",
-          "line": 391,
+          "line": 582,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -61065,7 +61137,7 @@
         },
         {
           "name": "getBoardAtStreet",
-          "line": 427,
+          "line": 618,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -61073,7 +61145,7 @@
         },
         {
           "name": "getHeroDecisionPoints",
-          "line": 440,
+          "line": 631,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -61081,7 +61153,7 @@
         },
         {
           "name": "playerKey",
-          "line": 459,
+          "line": 654,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -61089,7 +61161,7 @@
         },
         {
           "name": "isAggro",
-          "line": 497,
+          "line": 692,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -61100,7 +61172,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 82,
+          "line": 168,
           "excerpt": "// Try PokerStars format as fallback (most common)",
           "disposition": "training-data-provenance-fallback",
           "review": "documented-follow-up",
@@ -135799,7 +135871,7 @@
       {
         "file": "src/engines/HandHistoryParser.js",
         "kind": "FALLBACK",
-        "line": 82,
+        "line": 168,
         "excerpt": "// Try PokerStars format as fallback (most common)",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -137526,7 +137598,7 @@
       {
         "file": "pages/api/training/audit-hand-history.js",
         "name": "handler",
-        "line": 264,
+        "line": 288,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -139351,7 +139423,6 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
-          "src/components/sandbox/SandboxPokerTable.jsx",
           "src/components/sandbox/paKit.jsx"
         ]
       },
@@ -141014,7 +141085,6 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "src/components/poker/TrainingGameTable.jsx",
-          "src/components/sandbox/SandboxPokerTable.jsx",
           "src/components/training/UniversalTrainingTable.tsx",
           "src/components/training/games/UniversalDynamicTable.jsx"
         ]
@@ -146216,7 +146286,7 @@
       {
         "file": "src/engines/HandHistoryParser.js",
         "kind": "FALLBACK",
-        "line": 82,
+        "line": 168,
         "excerpt": "// Try PokerStars format as fallback (most common)",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -147943,7 +148013,7 @@
       {
         "file": "pages/api/training/audit-hand-history.js",
         "name": "handler",
-        "line": 264,
+        "line": 288,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -149768,7 +149838,6 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
-          "src/components/sandbox/SandboxPokerTable.jsx",
           "src/components/sandbox/paKit.jsx"
         ]
       },
@@ -151431,7 +151500,6 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "src/components/poker/TrainingGameTable.jsx",
-          "src/components/sandbox/SandboxPokerTable.jsx",
           "src/components/training/UniversalTrainingTable.tsx",
           "src/components/training/games/UniversalDynamicTable.jsx"
         ]

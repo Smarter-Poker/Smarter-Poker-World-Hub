@@ -7,6 +7,8 @@
  *   - PokerStars (.txt)
  *   - GGPoker (.txt)
  *   - 888poker (.txt)
+ *   - ACR / Winning Poker Network (.txt)
+ *   - ClubGG (.txt)
  *   - Generic converter to internal format
  *
  * Internal Format (per hand):
@@ -16,6 +18,10 @@
  *   - streets: { preflop, flop, turn, river }
  *   - Each street: { board, actions: [{ player, action, amount }] }
  *   - result: { winners, pot, showdown }
+ *   - variant honesty: variant, gameVariant, bettingStructure, supported,
+ *     unsupportedReason. ONLY No-Limit Hold'em is `supported: true`; PLO4/5/6,
+ *     Omaha Hi-Lo, Short Deck and limit/pot-limit Hold'em are tagged
+ *     unsupported so no consumer can grade them against NLHE solver data.
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
@@ -43,15 +49,91 @@
  */
 export function detectSite(text) {
     if (!text) return 'unknown';
-    const firstLines = text.substring(0, 500).toLowerCase();
+    const source = String(text);
+    const firstLines = source.substring(0, 500).toLowerCase();
 
     if (firstLines.includes('pokerstars')) return 'pokerstars';
+    if (firstLines.includes('clubgg') || firstLines.includes('club gg')) return 'clubgg';
     if (firstLines.includes('ggpoker') || firstLines.includes('gg poker')) return 'ggpoker';
+    if (/^\s*poker hand #(?:hd|tm|rc|om|sg|zm)\d+/im.test(source.substring(0, 1000))) return 'ggpoker';
     if (firstLines.includes('888poker') || firstLines.includes('pacific poker')) return '888poker';
     if (firstLines.includes('winamax')) return 'winamax';
     if (firstLines.includes('partypoker')) return 'partypoker';
+    // ACR / Winning Poker Network: named, or the structural header
+    // "Hand #123 - Holdem(No Limit) - $0.05/$0.10 - 2026/11/25 ..." that carries no brand.
+    if (/americas?\s*cardroom|winning\s*poker\s*network|\bacr\s*poker\b|\bwpn\b/i.test(source.substring(0, 1000))) return 'acr';
+    if (/^\s*(?:game\s+)?hand\s*#\d+\s*-\s*(?:tournament\s*#\d+\s*,?\s*-?\s*)?(?:holdem|hold'em|omaha)/im.test(source.substring(0, 1000))) return 'acr';
 
     return 'unknown';
+}
+
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+// VARIANT HONESTY
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+
+/**
+ * Classify the game from a header line (any site) and the hero hole-card count.
+ * Only No-Limit Hold'em returns `supported: true`. Everything else is tagged
+ * with an explicit unsupported reason so the leak engine can never fabricate an
+ * NLHE solver grade for it. A header that says Hold'em but a hero holding 4-6
+ * cards is treated as the Omaha family (the cards are the harder evidence).
+ *
+ * @param {string} headerText
+ * @param {number} [holeCount] hero hole cards seen (0 when unknown)
+ * @param {{defaultBetting?: 'NL'|'PL'|'FL'|null}} [options]
+ */
+export function classifyGameVariant(headerText, holeCount = 0, options = {}) {
+    const t = String(headerText || '');
+    const cards = Number.isFinite(Number(holeCount)) ? Number(holeCount) : 0;
+    const shortDeck = /short[\s-]*deck|6\s*\+|six[\s-]*plus/i.test(t);
+    const omahaText = /omaha/i.test(t);
+    const holdemText = /hold'?\s*em/i.test(t);
+    const hiLo = /\bhi[\s\/-]*lo\b|\bhilo\b|\bh\/l\b|8[\s-]*or[\s-]*better/i.test(t);
+    const betting = /no[\s-]*limit/i.test(t) ? 'NL'
+        : /pot[\s-]*limit/i.test(t) ? 'PL'
+        : /fixed[\s-]*limit|\blimit\b/i.test(t) ? 'FL'
+        : (options?.defaultBetting || null);
+    const base = { bettingStructure: betting };
+
+    if (shortDeck) {
+        return { ...base, variant: 'short_deck', gameVariant: 'short_deck', supported: false, unsupportedReason: 'short_deck_is_not_nlhe' };
+    }
+    if (omahaText || cards >= 4) {
+        // A Hold'em header over a 4-6 card hand is a mislabelled pot-limit Omaha table.
+        const potLimit = betting === 'PL' || betting === null || !omahaText;
+        const gameVariant = hiLo ? 'omaha_hilo'
+            : !potLimit ? 'omaha_non_pot_limit'
+            : cards >= 6 ? 'plo6' : cards === 5 ? 'plo5' : 'plo4';
+        return {
+            ...base,
+            variant: 'omaha',
+            gameVariant,
+            supported: false,
+            unsupportedReason: hiLo ? 'omaha_hilo_is_not_nlhe' : 'omaha_family_is_not_nlhe',
+        };
+    }
+    if (holdemText) {
+        if (betting === 'NL') return { ...base, variant: 'holdem', gameVariant: 'nlhe', supported: true, unsupportedReason: null };
+        if (betting === 'PL') return { ...base, variant: 'pot_limit_holdem', gameVariant: 'pot_limit_holdem', supported: false, unsupportedReason: 'pot_limit_holdem_is_not_nlhe' };
+        if (betting === 'FL') return { ...base, variant: 'limit_holdem', gameVariant: 'limit_holdem', supported: false, unsupportedReason: 'limit_holdem_is_not_nlhe' };
+        return { ...base, variant: 'holdem_unknown_structure', gameVariant: 'unknown', supported: false, unsupportedReason: 'betting_structure_unknown' };
+    }
+    return { ...base, variant: 'unknown', gameVariant: 'unknown', supported: false, unsupportedReason: 'unrecognized_game_variant' };
+}
+
+const _BETTING_TO_GAME_TYPE = { NL: 'NL', PL: 'PL', FL: 'FL' };
+
+function _applyVariantInfo(hand, headerText, options = {}) {
+    const info = classifyGameVariant(headerText, hand.hero?.holeCards?.length || 0, options);
+    hand.variant = info.variant;
+    hand.gameVariant = info.gameVariant;
+    hand.bettingStructure = info.bettingStructure;
+    hand.supported = info.supported;
+    hand.unsupportedReason = info.unsupportedReason;
+    if (info.bettingStructure && _BETTING_TO_GAME_TYPE[info.bettingStructure]) {
+        hand.gameType = _BETTING_TO_GAME_TYPE[info.bettingStructure];
+    }
+    return hand;
 }
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -78,6 +160,10 @@ export function parseHandHistory(text, heroName) {
             return parseGGPoker(text, heroName);
         case '888poker':
             return parse888Poker(text, heroName);
+        case 'acr':
+            return parseACR(text, heroName);
+        case 'clubgg':
+            return parseClubGG(text, heroName);
         default:
             // Try PokerStars format as fallback (most common)
             return parsePokerStars(text, heroName);
@@ -103,19 +189,37 @@ function parsePokerStars(text, heroName) {
     return hands;
 }
 
-function _parsePSHand(block, heroName) {
+function _parsePSHeader(line) {
+    const idMatch = line.match(/Hand\s*#([A-Za-z]{0,3}\d+)/i);
+    if (!idMatch) return null;
+    // Game + betting structure must both be named (Hold'em / Omaha [Hi-Lo] ...).
+    if (!/(Hold'?\s*em|Omaha)/i.test(line)) return null;
+    if (!/(No[\s-]*Limit|Pot[\s-]*Limit|Limit)/i.test(line)) return null;
+    return { id: idMatch[1], headerText: line };
+}
+
+function _stakesFromHeader(line) {
+    // Strip dates first so "2026/11/25" can never be mistaken for blinds.
+    const cleaned = String(line).replace(/\d{4}\/\d{1,2}\/\d{1,2}/g, ' ');
+    const stakesMatch = cleaned.match(/\(?[$€£]?([\d.]+)\/[$€£]?([\d.]+)/);
+    return stakesMatch ? `$${stakesMatch[1]}/$${stakesMatch[2]}` : '';
+}
+
+function _parsePSHand(block, heroName, opts = {}) {
     const lines = block.split('\n').map(l => l.trim()).filter(l => l);
     if (lines.length < 5) return null;
 
-    // Parse header: "PokerStars Hand #123456789: ..."
-    const headerMatch = lines[0].match(/Hand\s*#(\d+).*?(Hold'em|Omaha)\s*(No Limit|Pot Limit|Limit)/i);
-    if (!headerMatch) return null;
+    // Parse header: "PokerStars Hand #123456789: ..." (or an adapted site header)
+    const header = opts.header || _parsePSHeader(lines[0]);
+    if (!header) return null;
+    const headerText = header.headerText || lines[0];
+    const preliminary = classifyGameVariant(headerText, 0);
 
     const hand = {
-        id: headerMatch[1],
-        site: 'pokerstars',
-        variant: /omaha/i.test(headerMatch[2]) ? 'omaha' : 'holdem',
-        gameType: headerMatch[3].includes('No') ? 'NL' : headerMatch[3].includes('Pot') ? 'PL' : 'FL',
+        id: header.id,
+        site: opts.site || 'pokerstars',
+        variant: preliminary.variant,
+        gameType: _BETTING_TO_GAME_TYPE[preliminary.bettingStructure] || 'FL',
         format: /tournament/i.test(block) ? 'tournament' : 'cash',
         stakes: '',
         tableSize: 0,
@@ -127,11 +231,11 @@ function _parsePSHand(block, heroName) {
     };
 
     // Parse stakes
-    const stakesMatch = lines[0].match(/\(?\$?([\d.]+)\/\$?([\d.]+)/);
-    if (stakesMatch) hand.stakes = `$${stakesMatch[1]}/$${stakesMatch[2]}`;
+    hand.stakes = _stakesFromHeader(lines[0]);
 
     // Parse seats and players
     let currentStreet = 'preflop';
+    let inSummary = false;
 
     for (const line of lines) {
         const buttonMatch = line.match(/Seat\s+#?(\d+)\s+is the button/i);
@@ -139,8 +243,11 @@ function _parsePSHand(block, heroName) {
             hand.buttonSeat = parseInt(buttonMatch[1], 10);
             continue;
         }
-        // Seat line: "Seat 1: PlayerName ($100.50 in chips)"
-        const seatMatch = line.match(/^Seat\s+(\d+):\s+(.+?)\s+\(\$?([\d.]+)/);
+        if (/^\*\*\*\s*SUMMARY\s*\*\*\*/i.test(line)) inSummary = true;
+        // Seat line: "Seat 1: PlayerName ($100.50 in chips)". SUMMARY seat lines
+        // ("Seat 1: Hero (button) showed [..] and won ($15)") are results, never
+        // new seats.
+        const seatMatch = inSummary ? null : line.match(/^Seat\s+(\d+):\s+(.+?)\s+\(\$?([\d.]+)/);
         if (seatMatch) {
             hand.players.push({
                 seat: parseInt(seatMatch[1]),
@@ -174,7 +281,7 @@ function _parsePSHand(block, heroName) {
         }
         if (line.startsWith('*** TURN ***')) {
             currentStreet = 'turn';
-            const boardMatch = line.match(/\]\s*\[(.+?)\]/);
+            const boardMatch = line.match(/\]\s*\[(.+?)\]/) || line.match(/\[(.+?)\]/);
             hand.streets.turn = {
                 card: boardMatch ? _normalizeCard(boardMatch[1].trim()) : '',
                 actions: [],
@@ -183,7 +290,7 @@ function _parsePSHand(block, heroName) {
         }
         if (line.startsWith('*** RIVER ***')) {
             currentStreet = 'river';
-            const boardMatch = line.match(/\]\s*\[(.+?)\]/);
+            const boardMatch = line.match(/\]\s*\[(.+?)\]/) || line.match(/\[(.+?)\]/);
             hand.streets.river = {
                 card: boardMatch ? _normalizeCard(boardMatch[1].trim()) : '',
                 actions: [],
@@ -221,6 +328,8 @@ function _parsePSHand(block, heroName) {
 
     hand.tableSize = hand.players.length;
     _assignPositions(hand);
+    // Variant honesty needs the hero card count, so it is settled last.
+    _applyVariantInfo(hand, headerText);
 
     return hand;
 }
@@ -231,7 +340,7 @@ function _parsePSHand(block, heroName) {
 
 function parseGGPoker(text, heroName) {
     const hands = [];
-    const handBlocks = text.split(/\n\n+(?=Poker Hand)/i).filter(b => b.trim());
+    const handBlocks = text.split(/\n\s*\n+(?=Poker Hand)/i).filter(b => b.trim());
 
     for (const block of handBlocks) {
         try {
@@ -251,7 +360,86 @@ function _parseGGHand(block, heroName) {
         .replace(/Poker Hand #/gi, 'PokerStars Hand #')
         .replace(/Hero/g, heroName || 'Hero');
 
-    return _parsePSHand(adapted, heroName);
+    return _parsePSHand(adapted, heroName, { site: 'ggpoker' });
+}
+
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+// ACR / WINNING POKER NETWORK + CLUBGG PARSERS
+// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+//
+// Both sites write the PokerStars layout (Seat lines, *** HOLE CARDS ***,
+// Dealt to Hero [Ah Kd]) but ACR/WPN omits the colon after the player name
+// ("Villain raises to $0.30") and both may use thousands separators. The block
+// is normalized into the PokerStars action shape using the names read from the
+// Seat lines (names may contain spaces), then parsed by the SAME canonical
+// parser so every site yields the identical hand object.
+
+function _normalizeColonlessBlock(block) {
+    const text = String(block).replace(/\r/g, '').replace(/(\d),(?=\d{3}(?:\D|$))/g, '$1');
+    const rawLines = text.split('\n');
+    const names = [];
+    for (const line of rawLines) {
+        const m = line.trim().match(/^Seat\s+\d+:\s+(.+?)\s+\(\s*[$€£]?[\d.]+/);
+        if (m && !names.includes(m[1])) names.push(m[1]);
+    }
+    names.sort((a, b) => b.length - a.length);
+
+    let inSummary = false;
+    const out = rawLines.map(line => {
+        const t = line.trim();
+        if (/^\*\*\*\s*SUMMARY/i.test(t)) inSummary = true;
+        if (!t || inSummary || t.startsWith('***') || /^(?:Seat|Table|Dealt to|Total pot|Board|Uncalled)/i.test(t)) return line;
+        const name = names.find(n => t.startsWith(`${n} `));
+        if (!name) return line; // already "Name: action", a header, or an unknown line
+        const rest = t.slice(name.length).trim();
+        if (/^(?:folds|checks|calls|bets|raises)\b/i.test(rest)) return `${name}: ${rest}`;
+        const win = rest.match(/^(?:collected|wins)\b[^\d]*([\d.]+)/i);
+        if (win) return `${name} collected $${win[1]} from pot`;
+        return line;
+    });
+    return out.join('\n');
+}
+
+function _parseWpnStyleHeader(line) {
+    if (!line) return null;
+    const idMatch = line.match(/Hand\s*#([A-Za-z]{0,3}\d+)/i);
+    if (!idMatch) return null;
+    if (!/(Hold'?\s*em|Omaha)/i.test(line)) return null;
+    return { id: idMatch[1], headerText: line };
+}
+
+function _parseWpnStyleHands(text, heroName, { site, splitter }) {
+    const hands = [];
+    const blocks = String(text).replace(/\r/g, '').split(splitter).filter(b => b.trim());
+    for (const block of blocks) {
+        try {
+            const normalized = _normalizeColonlessBlock(block);
+            const firstLine = normalized.split('\n').map(l => l.trim()).find(Boolean);
+            const header = _parseWpnStyleHeader(firstLine);
+            if (!header) continue;
+            const hand = _parsePSHand(normalized, heroName, { site, header });
+            if (hand) hands.push(hand);
+        } catch (e) {
+            console.warn(`Failed to parse ${site} hand:`, e?.message || e);
+        }
+    }
+    return hands;
+}
+
+/** ACR / Winning Poker Network: "Hand #123 - Holdem(No Limit) - $0.05/$0.10 - 2026/11/25 ..." */
+export function parseACR(text, heroName) {
+    return _parseWpnStyleHands(text, heroName, {
+        site: 'acr',
+        splitter: /\n\s*\n+(?=(?:Game\s+)?Hand\s*#)/i,
+    });
+}
+
+/** ClubGG: "ClubGG Hand #123: Hold'em No Limit ($0.50/$1.00) - ..." */
+export function parseClubGG(text, heroName) {
+    return _parseWpnStyleHands(text, heroName, {
+        site: 'clubgg',
+        splitter: /\n\s*\n+(?=(?:ClubGG\s+)?(?:Poker\s+)?Hand\s*#)/i,
+    });
 }
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -350,6 +538,9 @@ function _parse888Hand(block, heroName) {
 
     hand.tableSize = hand.players.length;
     _assignPositions(hand);
+    // 888 prints "No Limit Holdem" / "Pot Limit Omaha" in the table header; absent
+    // an explicit structure the legacy 888 default (No Limit) is kept.
+    _applyVariantInfo(hand, block.slice(0, 600), { defaultBetting: 'NL' });
     return hand;
 }
 
@@ -439,6 +630,10 @@ export function getBoardAtStreet(hand, street) {
  */
 export function getHeroDecisionPoints(hand) {
     if (!hand.hero) return [];
+    // Variant honesty: a hand explicitly tagged unsupported (PLO, Omaha Hi-Lo,
+    // Short Deck, limit/pot-limit Hold'em) has no No-Limit Hold'em decision
+    // points. Returning none keeps the audit from grading it against NLHE data.
+    if (hand.supported === false) return [];
 
     const points = [];
     const streets = ['preflop', 'flop', 'turn', 'river'];
@@ -553,6 +748,9 @@ export default {
     parsePokerStars,
     parseGGPoker,
     parse888Poker,
+    parseACR,
+    parseClubGG,
+    classifyGameVariant,
     getBoardAtStreet,
     getHeroDecisionPoints,
 };

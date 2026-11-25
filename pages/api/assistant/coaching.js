@@ -1,6 +1,7 @@
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { buildCoachingSnapshot, receiptFingerprint } from '../../../src/lib/personal-assistant/coachingIntelligence.mjs';
 import { normalizeUserLeakRow } from '../../../src/lib/personal-assistant/leakRecord';
+import { ACCESS_LEVELS, checkSandboxAccess } from '../../../src/lib/personal-assistant/contextAuthority';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
@@ -22,6 +23,11 @@ const FEEDBACK_TYPES = new Set(['confusing', 'incorrect', 'mismatched', 'helpful
 const SAVED_VIEWS = new Set(['coach', 'evidence', 'timeline', 'goals', 'report', 'data']);
 const DEPTHS = new Set(['guided', 'detailed', 'expert']);
 const DECISION_WINDOW_LIMIT = 5000;
+const HAND_TIME_CHUNK = 150;
+const HAND_TIME_MAX_IDS = 1800;
+const SESSION_FALLBACK_MS = 4 * 60 * 60_000;
+const CLUB_HAND_PREFIX = 'club-arena:';
+const MISTAKE_CLASSES = new Set(['best', 'correct', 'unpriced', '']);
 
 function boundedText(value, max, { required = false } = {}) {
   const text = typeof value === 'string' ? value.trim() : '';
@@ -88,6 +94,114 @@ async function readReviewsWithBaseline(supabase, userId) {
   return ownerRead(supabase, 'leak_review_state', legacySelect, userId, query => query.order('due_at', { ascending: true }).limit(500));
 }
 
+
+async function readLiveTableState(supabase, userId) {
+  try {
+    const access = await checkSandboxAccess(supabase, userId);
+    // HARD_BLOCK covers an open session, a seated Club Arena table, an active
+    // Arena match and an unreadable session state (fail closed).
+    return {
+      active: access?.allowed !== true,
+      cooldown: access?.accessLevel === ACCESS_LEVELS.LIMITED_REVIEW,
+    };
+  } catch (error) {
+    console.warn('[assistant/coaching] live table check failed closed:', error?.message || error);
+    return { active: true, cooldown: false };
+  }
+}
+
+// The latest COMPLETED session window, from whichever source ended last:
+// poker_sessions, or a vacated Club Arena table seat. Missing schema or a read
+// error yields null (no recap), never a guessed window.
+async function readLatestSessionWindow(supabase, userId) {
+  const windows = [];
+  try {
+    const { data, error } = await supabase.from('poker_sessions')
+      .select('started_at, ended_at')
+      .eq('user_id', userId)
+      .not('ended_at', 'is', null)
+      .order('ended_at', { ascending: false })
+      .limit(1);
+    if (!error && Array.isArray(data) && data[0]) {
+      const endMs = new Date(data[0].ended_at).getTime();
+      const startMs = data[0].started_at ? new Date(data[0].started_at).getTime() : NaN;
+      if (Number.isFinite(endMs)) {
+        windows.push({ endMs, startMs: Number.isFinite(startMs) ? startMs : endMs - SESSION_FALLBACK_MS, source: 'poker_sessions' });
+      }
+    }
+  } catch (_) { /* optional source */ }
+  try {
+    const { data, error } = await supabase.from('table_seats')
+      .select('created_at, left_at')
+      .eq('user_id', userId)
+      .not('left_at', 'is', null)
+      .order('left_at', { ascending: false })
+      .limit(1);
+    if (!error && Array.isArray(data) && data[0]) {
+      const endMs = new Date(data[0].left_at).getTime();
+      const startMs = data[0].created_at ? new Date(data[0].created_at).getTime() : NaN;
+      if (Number.isFinite(endMs)) {
+        windows.push({ endMs, startMs: Number.isFinite(startMs) && startMs <= endMs ? startMs : endMs - SESSION_FALLBACK_MS, source: 'club_arena_seat' });
+      }
+    }
+  } catch (_) { /* optional source */ }
+  return windows.sort((a, b) => b.endMs - a.endMs)[0] || null;
+}
+
+function handUuid(externalId) {
+  const raw = String(externalId || '');
+  const id = raw.startsWith(CLUB_HAND_PREFIX) ? raw.slice(CLUB_HAND_PREFIX.length) : raw;
+  return UUID_RE.test(id) ? id : null;
+}
+
+// `hand_audit_decisions` has no hand-played time, and a re-audit rewrites
+// audited_at, so audit time alone cannot split a leak into before/after the
+// remediation baseline. Read the real hand times for the decisions that need
+// them. Best effort: on any failure rows simply keep no hand_played_at.
+async function attachHandPlayTimes(supabase, decisions, { reviews, sessionWindow }) {
+  try {
+    const baselines = reviews
+      .map(row => (row?.remediation_baseline_at ? new Date(row.remediation_baseline_at).getTime() : NaN))
+      .filter(Number.isFinite);
+    const earliestBaselineMs = baselines.length ? Math.min(...baselines) : null;
+    const sessionFloorMs = sessionWindow ? sessionWindow.startMs - 5 * 60_000 : null;
+    const wanted = new Map();
+    const lossOf = row => (row.ev_loss_measured === true ? Math.abs(Number(row.ev_loss) || 0) : 0);
+    const candidates = decisions
+      .filter(row => row.solver_verified === true)
+      .filter(row => {
+        const audited = new Date(row.audited_at).getTime();
+        const afterBaseline = earliestBaselineMs !== null && audited >= earliestBaselineMs;
+        const sessionMistake = sessionFloorMs !== null && audited >= sessionFloorMs
+          && !MISTAKE_CLASSES.has(String(row.classification || '').toLowerCase());
+        return afterBaseline || sessionMistake;
+      })
+      .sort((a, b) => lossOf(b) - lossOf(a));
+    for (const row of candidates) {
+      const id = handUuid(row.hand_external_id);
+      if (id && !wanted.has(id)) wanted.set(id, null);
+      if (wanted.size >= HAND_TIME_MAX_IDS) break;
+    }
+    const ids = [...wanted.keys()];
+    const chunks = [];
+    for (let i = 0; i < ids.length; i += HAND_TIME_CHUNK) chunks.push(ids.slice(i, i + HAND_TIME_CHUNK));
+    const results = await Promise.all(chunks.map(chunk => supabase.from('hand_history')
+      .select('id, created_at').in('id', chunk)));
+    for (const result of results) {
+      if (result.error) continue;
+      for (const row of result.data || []) wanted.set(String(row.id), row.created_at);
+    }
+    return decisions.map(row => {
+      const id = handUuid(row.hand_external_id);
+      const playedAt = id ? wanted.get(id) : null;
+      return playedAt ? { ...row, hand_played_at: playedAt } : row;
+    });
+  } catch (error) {
+    console.warn('[assistant/coaching] hand time lookup skipped:', error?.message || error);
+    return decisions;
+  }
+}
+
 async function readWorkspace(supabase, userId) {
   const [leakRows, decisions, reviews, goals, feedback, preferenceResult, auditResult, activeAuditResult] = await Promise.all([
     ownerRead(supabase, 'user_leaks', '*', userId, query => query.order('updated_at', { ascending: false }).limit(500)),
@@ -113,7 +227,12 @@ async function readWorkspace(supabase, userId) {
         ? `${activeAuditHands.toLocaleString()} hands scanned · ${activeAuditDecisions.toLocaleString()} decisions checked. You can safely leave and return later.`
         : 'Your hand audit is queued on the server. You can safely leave and return later.')
     : null;
-  const ownedDecisions = decisions.map(row => ({ ...row, evidence_scope: 'club_arena' }));
+  const baseDecisions = decisions.map(row => ({ ...row, evidence_scope: 'club_arena' }));
+  const [liveTable, sessionWindow] = await Promise.all([
+    readLiveTableState(supabase, userId),
+    readLatestSessionWindow(supabase, userId),
+  ]);
+  const ownedDecisions = await attachHandPlayTimes(supabase, baseDecisions, { reviews, sessionWindow });
   // Rejected hand counts live at top-level `audit.progress`, NOT `audit.progress.coverage`.
   const rejected = audit?.progress || {};
   const matcher = ownedDecisions.find(row => String(row.solver_source || '').includes('hand-audit-v'))?.solver_source?.match(/hand-audit-v\d+/)?.[0] || 'unavailable';
@@ -132,6 +251,9 @@ async function readWorkspace(supabase, userId) {
       detector: audit?.result?.detectorVersion || audit?.result?.detector_version || 'current',
       decisionWindow: `latest-${DECISION_WINDOW_LIMIT}`,
     },
+    audit: audit?.progress || null,
+    liveTable,
+    sessionWindow,
   });
   snapshot.coverage.windowLimited = ownedDecisions.length >= DECISION_WINDOW_LIMIT;
   snapshot.coverage.windowLimit = DECISION_WINDOW_LIMIT;

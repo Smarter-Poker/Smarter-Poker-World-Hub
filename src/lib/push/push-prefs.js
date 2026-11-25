@@ -65,6 +65,11 @@ export const PUSH_TYPES = [
     { key: 'tournament_starting', group: 'Poker and Clubs', label: 'Tournament Starting', desc: 'A tournament you registered for begins' },
     { key: 'late_reg_closing', group: 'Poker and Clubs', label: 'Late Reg Closing', desc: 'Last call to register' },
     { key: 'venue_alert', group: 'Poker and Clubs', label: 'Venue Alerts', desc: 'Games running near you' },
+    // Personal Assistant (registered 2026-11-25). Both are explicit keys so the
+    // push gate can name them: an unregistered type resolves to null, which
+    // means "unknown, allow it", and the toggle would silently do nothing.
+    { key: 'personal_assistant_audit_complete', group: 'Poker and Clubs', label: 'Leak Finder Audits', desc: 'Your Leak Finder hand audit finishes' },
+    { key: 'personal_assistant_review_due', group: 'Poker and Clubs', label: 'Study Reviews Due', desc: 'A spaced-repetition leak review is due' },
 
     // -- Rewards and Account --------------------------------------------------
     { key: 'diamond_received', group: 'Rewards and Account', label: 'Diamonds Received', desc: 'Someone sent you diamonds' },

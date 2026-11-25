@@ -1,7 +1,17 @@
 import { leakToDrill, leakToTrainingGame, resolutionProgress, RETIRE_AFTER_STRONG } from '../sandbox/leakReview.js';
-import { summarizeSolverCoverageGaps } from './caHandFactsAnalyzer.mjs';
+import { classifyStackBucket, summarizeSolverCoverageGaps } from './caHandFactsAnalyzer.mjs';
+import { COVERAGE_TIERS, describeCoverageTier } from './mttShortStackCharts.mjs';
 
 const DAY_MS = 86_400_000;
+
+/** Post-baseline solver-graded live decisions required before a fix is judged. */
+export const MIN_LIVE_VERIFY_HANDS = 8;
+/** Post-baseline mistake rate (%) at or below which a drilled leak counts as fixed. */
+export const LIVE_FIX_MAX_MISTAKE_RATE = 15;
+const COVERAGE_GAP_LIMIT = 10;
+const SESSION_RECAP_HANDS = 2;
+const SESSION_WINDOW_LEAD_MS = 5 * 60_000;
+const SESSION_WINDOW_TAIL_MS = 2 * 60_000;
 
 function finite(value) {
   if (value === null || value === undefined || value === '') return null;
@@ -291,6 +301,57 @@ function inferFormatScope(leak, relatedDecisions) {
   return 'Club Arena NLH';
 }
 
+function decisionKeys(row) {
+  return [row?.leak_id, row?.leak_type, row?.spot_type, row?.game_id, decisionLeakType(row)]
+    .filter(Boolean).map(String);
+}
+
+/**
+ * Index decisions by every key a leak may match them on, so per-leak lookups
+ * stay O(matches) instead of rescanning the whole decision window per leak.
+ */
+function buildDecisionIndex(decisions) {
+  const list = Array.isArray(decisions) ? decisions : [];
+  const byKey = new Map();
+  list.forEach((row, position) => {
+    for (const key of new Set(decisionKeys(row))) {
+      const bucket = byKey.get(key);
+      if (bucket) bucket.push(position);
+      else byKey.set(key, [position]);
+    }
+  });
+  return { list, byKey };
+}
+
+function relatedDecisionsFor(index, ...keys) {
+  const positions = new Set();
+  for (const key of keys) {
+    if (!key) continue;
+    for (const position of index.byKey.get(String(key)) || []) positions.add(position);
+  }
+  return [...positions].sort((x, y) => x - y).map(position => index.list[position]);
+}
+
+function mistakeRatePercent(rows) {
+  if (!rows.length) return null;
+  const errors = rows.filter(row => !['best', 'correct'].includes(String(row?.classification || '').toLowerCase())).length;
+  return Math.round((errors / rows.length) * 1000) / 10;
+}
+
+/**
+ * Before/after live-play proof for one leak.
+ *
+ * Only solver-verified (graded) decisions count: an unpriced decision has no
+ * grade, so it can neither prove nor disprove a fix. Hands are split on
+ * `remediation_baseline_at` using the hand's played time when known, falling
+ * back to `audited_at` (reported through `timeBasis`).
+ *
+ * `status`:
+ *   not_mastered              drills are not finished yet
+ *   awaiting_live_hands       mastered in drills, fewer than MIN_LIVE_VERIFY_HANDS live hands since
+ *   confirmed_fixed_at_tables enough live hands and the post mistake rate is at/below LIVE_FIX_MAX_MISTAKE_RATE
+ *   relapsed_at_tables        enough live hands but the leak is still leaking
+ */
 function evaluateTableVerification(rawLeak, review, relatedDecisions, mastered) {
   const firstReviewAt = Array.isArray(review?.history) && review.history.length > 0
     ? review.history.map(item => iso(item?.at)).filter(Boolean).sort()[0]
@@ -303,9 +364,15 @@ function evaluateTableVerification(rawLeak, review, relatedDecisions, mastered) 
     ?? rawLeak?.first_detected_at,
   );
   const baselineMs = baselineAt ? new Date(baselineAt).getTime() : null;
-  const decisionTimeMs = (row) => {
-    const rawTs = row?.hand_played_at ?? row?.handPlayedAt ?? row?.hand_created_at ?? row?.audited_at ?? 0;
-    return new Date(rawTs).getTime();
+  const playedMs = row => {
+    const raw = row?.hand_played_at ?? row?.handPlayedAt ?? row?.hand_created_at ?? null;
+    const parsed = raw ? new Date(raw).getTime() : NaN;
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+  const decisionTimeMs = row => {
+    const played = playedMs(row);
+    if (played !== null) return played;
+    return new Date(row?.audited_at ?? 0).getTime();
   };
   const verified = (relatedDecisions || []).filter(row => row?.solver_verified === true);
   const postBaseline = baselineMs !== null
@@ -320,40 +387,296 @@ function evaluateTableVerification(rawLeak, review, relatedDecisions, mastered) 
       return Number.isFinite(ts) && ts < baselineMs;
     })
     : [];
+  const timed = [...postBaseline, ...preBaseline];
+  const withPlayedTime = timed.filter(row => playedMs(row) !== null).length;
+  const timeBasis = timed.length === 0 ? null
+    : withPlayedTime === timed.length ? 'hand_played_at'
+    : withPlayedTime === 0 ? 'audited_at' : 'mixed';
 
-  const errorRate = (list) => {
-    if (!list.length) return null;
-    const errs = list.filter(row => !['best', 'correct'].includes(String(row?.classification || '').toLowerCase())).length;
-    return Math.round((errs / list.length) * 1000) / 10;
-  };
-  const postErrorRate = errorRate(postBaseline);
-  const preErrorRate = errorRate(preBaseline);
+  const postRate = mistakeRatePercent(postBaseline);
+  const preRate = mistakeRatePercent(preBaseline);
+  const handsRemaining = Math.max(0, MIN_LIVE_VERIFY_HANDS - postBaseline.length);
+  const deltaPct = postRate !== null && preRate !== null ? Math.round((postRate - preRate) * 10) / 10 : null;
 
-  let status = 'in_progress';
+  let status = 'not_mastered';
   let label = 'Training In Progress';
   if (mastered) {
-    if (postBaseline.length < 10) {
-      status = 'mastered_in_drills_rechecking';
-      label = `Mastered In Drills (${postBaseline.length}/10 Live Verification Spots)`;
-    } else if (postErrorRate !== null && postErrorRate <= 15) {
+    if (postBaseline.length < MIN_LIVE_VERIFY_HANDS) {
+      status = 'awaiting_live_hands';
+      label = `Mastered In Drills (${postBaseline.length}/${MIN_LIVE_VERIFY_HANDS} Live Verification Hands)`;
+    } else if (postRate !== null && postRate <= LIVE_FIX_MAX_MISTAKE_RATE) {
       status = 'confirmed_fixed_at_tables';
       label = 'Confirmed Fixed At The Tables';
     } else {
-      status = 'mastered_in_drills_still_leaking';
+      status = 'relapsed_at_tables';
       label = 'Mastered In Drills · Still Leaking Live';
     }
   }
+
+  const leakIdentifier = leakId(rawLeak);
+  // Read-only descriptor. No XP is ever granted (XP is banned) and no reward
+  // catalog row exists for this milestone, so nothing here is awardable or
+  // mutates any table: a consumer can show it, never redeem it.
+  const verifiedLiveMilestone = status === 'confirmed_fixed_at_tables'
+    ? {
+        key: 'pa_leak_verified_fixed_at_tables',
+        leakId: leakIdentifier,
+        idempotencyKey: `pa-verified-live:${leakIdentifier}:${baselineAt || 'unbaselined'}`,
+        baselineAt,
+        postSampleCount: postBaseline.length,
+        postMistakeRate: postRate,
+        preMistakeRate: preRate,
+        deltaPct,
+        readOnly: true,
+        awarded: false,
+        xp: 0,
+        rewardCatalogKey: null,
+      }
+    : null;
 
   return {
     status,
     label,
     baselineAt,
+    timeBasis,
+    // v2 live-proof fields
+    preMistakeRate: preRate,
+    postMistakeRate: postRate,
+    preSampleCount: preBaseline.length,
+    postSampleCount: postBaseline.length,
+    requiredSampleCount: MIN_LIVE_VERIFY_HANDS,
+    handsRemaining,
+    deltaPct,
+    verifiedLiveMilestone,
+    // Back-compat aliases consumed by earlier UI/tests.
     preBaselineSamples: preBaseline.length,
-    preBaselineErrorRate: preErrorRate,
+    preBaselineErrorRate: preRate,
     postBaselineSamples: postBaseline.length,
-    postBaselineErrorRate: postErrorRate,
-    requiredLiveSamples: 10,
+    postBaselineErrorRate: postRate,
+    requiredLiveSamples: MIN_LIVE_VERIFY_HANDS,
   };
+}
+
+// ── First-party coverage-gap demand telemetry ────────────────────────────────
+
+function gapFormat(row) {
+  const gameId = String(row?.game_id || '').toLowerCase();
+  if (gameId.startsWith('mtt-') || gameId.includes('tournament')) return 'Tournament NLH';
+  if (gameId.startsWith('cash-')) return 'Cash NLH';
+  return 'Unknown Format';
+}
+
+function gapReason(row) {
+  const source = String(row?.solver_source || '').toLowerCase();
+  if (source.includes('lookup-failed')) return 'solver_lookup_failed';
+  if (count(row?.match_tier) > 0) return 'partial_node_match';
+  return 'no_exact_solver_node';
+}
+
+function isUnpricedDecision(row) {
+  return row?.solver_verified === false || String(row?.classification || '').toLowerCase() === 'unpriced';
+}
+
+/**
+ * Demand-ranked list of the spots the solver could not price, from the user's
+ * own audited decisions only (first-party; no third-party telemetry).
+ * Grouped by (format, street, position, stackBucket, reason), most frequent first.
+ */
+export function buildCoverageGapsRanked(decisions = [], { limit = COVERAGE_GAP_LIMIT } = {}) {
+  const rows = Array.isArray(decisions) ? decisions.filter(Boolean) : [];
+  const unpriced = rows.filter(isUnpricedDecision);
+  const groups = new Map();
+  for (const row of unpriced) {
+    const format = gapFormat(row);
+    const street = String(row.street || 'unknown').toLowerCase();
+    const position = String(row.hero_position || 'UNKNOWN').toUpperCase();
+    const stackBucket = String(
+      row.stack_bucket ?? classifyStackBucket(row.hero_effective_stack_bb ?? row.effective_stack_bb ?? null),
+    ).toLowerCase();
+    const reason = gapReason(row);
+    const spotType = String(row.spot_type || 'general').toLowerCase();
+    const key = `${format}|${street}|${position}|${stackBucket}|${reason}`;
+    const existing = groups.get(key);
+    if (existing) {
+      existing.count += 1;
+      existing.spotTypes[spotType] = (existing.spotTypes[spotType] || 0) + 1;
+    } else {
+      groups.set(key, { format, street, position, stackBucket, reason, count: 1, spotTypes: { [spotType]: 1 } });
+    }
+  }
+  const total = unpriced.length;
+  const gaps = [...groups.values()]
+    .sort((a, b) => b.count - a.count
+      || a.format.localeCompare(b.format) || a.street.localeCompare(b.street)
+      || a.position.localeCompare(b.position) || a.stackBucket.localeCompare(b.stackBucket)
+      || a.reason.localeCompare(b.reason))
+    .slice(0, Math.max(1, limit))
+    .map(group => {
+      const dominantSpotType = Object.entries(group.spotTypes)
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0][0];
+      return {
+        format: group.format,
+        street: group.street,
+        position: group.position,
+        stackBucket: group.stackBucket,
+        reason: group.reason,
+        count: group.count,
+        sharePercent: Math.round((group.count / total) * 1000) / 10,
+        spotType: dominantSpotType,
+        coverageHint: describeCoverageTier({
+          format: group.format,
+          street: group.street,
+          stackBucket: group.stackBucket,
+          spotType: dominantSpotType,
+        }),
+      };
+    });
+  return { gaps, totalUnpriced: total, totalDecisions: rows.length, bucketCount: groups.size };
+}
+
+/** Counts of decisions by how study guidance for them is sourced. */
+export function summarizeCoverageTiers(decisions = []) {
+  const summary = {
+    solverVerified: 0,
+    deterministicIcmModel: 0,
+    deterministicHeuristicReference: 0,
+    unsupported: 0,
+    awaitingSolverCoverage: 0,
+  };
+  for (const row of Array.isArray(decisions) ? decisions : []) {
+    if (!row) continue;
+    if (row.solver_verified === true) { summary.solverVerified += 1; continue; }
+    if (!isUnpricedDecision(row)) continue;
+    const tier = describeCoverageTier({
+      format: gapFormat(row),
+      street: String(row.street || '').toLowerCase(),
+      stackBucket: String(row.stack_bucket ?? classifyStackBucket(row.hero_effective_stack_bb ?? row.effective_stack_bb ?? null)).toLowerCase(),
+      spotType: String(row.spot_type || '').toLowerCase(),
+      gameId: row.game_id,
+    }).tier;
+    if (tier === COVERAGE_TIERS.ICM_MODEL) summary.deterministicIcmModel += 1;
+    else if (tier === COVERAGE_TIERS.HEURISTIC_REFERENCE) summary.deterministicHeuristicReference += 1;
+    else if (tier === COVERAGE_TIERS.UNSUPPORTED) summary.unsupported += 1;
+    else summary.awaitingSolverCoverage += 1;
+  }
+  return summary;
+}
+
+// ── Coaching funnel ──────────────────────────────────────────────────────────
+
+/**
+ * Truthful funnel counts. A figure whose input was not supplied is `null`
+ * (never a fabricated zero). `auditedHands` prefers the audit job's own scan
+ * count; otherwise it is the distinct hands in the decision window, which is a
+ * lower bound when that window is truncated.
+ */
+export function buildFunnelMetrics({ leaks, reviews, decisions, audit = null, verifiedFixedLive = null } = {}) {
+  const leakList = Array.isArray(leaks) ? leaks : null;
+  const reviewList = Array.isArray(reviews) ? reviews : null;
+  const decisionList = Array.isArray(decisions) ? decisions : null;
+  const scanned = finite(audit?.handsScanned ?? audit?.hands_scanned);
+  let auditedHands = null;
+  let auditedHandsSource = null;
+  if (scanned !== null && scanned > 0) {
+    auditedHands = Math.round(scanned);
+    auditedHandsSource = 'audit_job';
+  } else if (decisionList && decisionList.length > 0) {
+    auditedHands = new Set(decisionList.map(row => String(row?.hand_external_id || '')).filter(Boolean)).size;
+    auditedHandsSource = 'decision_window';
+  }
+  const activeLeaks = leakList ? leakList.filter(leak => leak && leakStatus(leak) !== 'resolved').length : null;
+  const leakIds = leakList ? new Set(leakList.map(leakId).filter(Boolean)) : null;
+  const relevantReviews = reviewList
+    ? reviewList.filter(row => !leakIds || leakIds.has(String(row?.leak_id ?? row?.leakId ?? '')))
+    : null;
+  const drilledLeaks = relevantReviews
+    ? relevantReviews.filter(row => count(row?.reps) > 0 || (Array.isArray(row?.history) && row.history.length > 0)).length
+    : null;
+  const masteredLeaks = relevantReviews ? relevantReviews.filter(row => row?.retired === true).length : null;
+  return {
+    auditedHands,
+    auditedHandsSource,
+    activeLeaks,
+    drilledLeaks,
+    masteredLeaks,
+    verifiedFixedLive: Number.isFinite(verifiedFixedLive) ? verifiedFixedLive : null,
+  };
+}
+
+// ── Post-session recap ───────────────────────────────────────────────────────
+
+function playedAtMs(row) {
+  const raw = row?.hand_played_at ?? row?.handPlayedAt ?? row?.hand_created_at ?? null;
+  const parsed = raw ? new Date(raw).getTime() : NaN;
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+/**
+ * The costliest graded mistakes from the latest COMPLETED session.
+ * `sessionWindow` is `{ startMs, endMs, source }`. Without a verified window, or
+ * without hand play times, nothing is invented: the list is empty and
+ * `unavailableReason` says why. Only solver-verified, non-optimal decisions
+ * qualify.
+ */
+export function selectTopLeakedHands(decisions = [], sessionWindow = null, limit = SESSION_RECAP_HANDS) {
+  const startMs = finite(sessionWindow?.startMs);
+  const endMs = finite(sessionWindow?.endMs);
+  if (startMs === null || endMs === null) {
+    return { hands: [], sessionSource: null, unavailableReason: 'no_completed_session' };
+  }
+  const from = startMs - SESSION_WINDOW_LEAD_MS;
+  const to = endMs + SESSION_WINDOW_TAIL_MS;
+  const rows = (Array.isArray(decisions) ? decisions : []).filter(row => {
+    if (row?.solver_verified !== true) return false;
+    if (['best', 'correct', 'unpriced', ''].includes(String(row?.classification || '').toLowerCase())) return false;
+    const played = playedAtMs(row);
+    return played !== null && played >= from && played <= to;
+  });
+  const lossOf = row => (row?.ev_loss_measured === true ? Math.abs(finite(row?.ev_loss) ?? 0) : 0);
+  const byHand = new Map();
+  for (const row of rows.sort((a, b) => lossOf(b) - lossOf(a) || (playedAtMs(b) - playedAtMs(a)))) {
+    const id = String(row.hand_external_id || '');
+    if (id && !byHand.has(id)) byHand.set(id, row);
+  }
+  const hands = [...byHand.values()].slice(0, Math.max(0, limit)).map(row => ({
+    handId: String(row.hand_external_id || '').replace(/^club-arena:/, ''),
+    street: String(row.street || '').toLowerCase() || null,
+    position: row.hero_position ? String(row.hero_position).toUpperCase() : null,
+    heroHand: row.hero_hand || null,
+    playerAction: row.player_action || null,
+    solverAction: row.solver_action || null,
+    evLossBB: row.ev_loss_measured === true && finite(row.ev_loss) !== null
+      ? Math.round(Math.abs(finite(row.ev_loss)) * 100) / 100
+      : null,
+  }));
+  return {
+    hands,
+    sessionSource: sessionWindow?.source || null,
+    unavailableReason: hands.length ? null : 'no_graded_mistakes_in_session',
+  };
+}
+
+function masteryProgress(review, id) {
+  return resolutionProgress(review ? {
+    leakId: id,
+    strongStreak: count(review?.strong_streak ?? review?.strongStreak),
+    reps: count(review.reps),
+    lapses: count(review.lapses),
+    intervalDays: finite(review.interval_days ?? review.intervalDays) ?? 0,
+    retired: review.retired === true,
+    lastScore: finite(review.last_score ?? review.lastScore),
+    lastReviewedAt: review.last_reviewed_at ?? review.lastReviewedAt ?? review.updated_at ?? null,
+    history: Array.isArray(review.history) ? review.history : [],
+  } : null);
+}
+
+/** Table verification for a leak against the full indexed decision window. */
+function leakTableVerification(rawLeak, id, review, decisionIndex) {
+  const related = relatedDecisionsFor(
+    decisionIndex, id, String(rawLeak?.leakType || rawLeak?.leak_type || ''),
+  );
+  const mastered = masteryProgress(review, id)?.retired === true;
+  return evaluateTableVerification(rawLeak, review, related, mastered);
 }
 
 /**
@@ -370,32 +693,22 @@ export function buildTrainingPlan({
   coverage = {},
   now = Date.now(),
   availableGameIds = null,
+  decisionIndex = null,
 } = {}) {
   const priorities = rankCoachingPriorities(leaks, reviews, coverage, now);
   const leakById = new Map((Array.isArray(leaks) ? leaks : []).map(item => [leakId(item), item]));
   const reviewByLeak = new Map((Array.isArray(reviews) ? reviews : []).map(row => [String(row?.leak_id ?? row?.leakId ?? ''), row]));
-  const decisionList = Array.isArray(decisions) ? decisions : [];
+  const lookup = decisionIndex || buildDecisionIndex(decisions);
 
   const modules = priorities.slice(0, 6).map((priority, index) => {
     const rawLeak = leakById.get(priority.id) || priority;
     const review = reviewByLeak.get(priority.id) || null;
     const currentStreak = count(review?.strong_streak ?? review?.strongStreak);
     const targetStreak = RETIRE_AFTER_STRONG;
-    const progress = resolutionProgress(review ? {
-      leakId: priority.id,
-      strongStreak: currentStreak,
-      reps: count(review.reps),
-      lapses: count(review.lapses),
-      intervalDays: finite(review.interval_days ?? review.intervalDays) ?? 0,
-      retired: review.retired === true,
-      lastScore: finite(review.last_score ?? review.lastScore),
-      lastReviewedAt: review.last_reviewed_at ?? review.lastReviewedAt ?? review.updated_at ?? null,
-      history: Array.isArray(review.history) ? review.history : [],
-    } : null);
-    const relatedDecisions = decisionList.filter(row => {
-      const keys = [row?.leak_id, row?.leak_type, row?.spot_type, row?.game_id, decisionLeakType(row)].filter(Boolean).map(String);
-      return keys.includes(priority.id) || keys.includes(String(rawLeak?.leakType || rawLeak?.leak_type || ''));
-    });
+    const progress = masteryProgress(review, priority.id);
+    const relatedDecisions = relatedDecisionsFor(
+      lookup, priority.id, String(rawLeak?.leakType || rawLeak?.leak_type || ''),
+    );
     const exampleHands = [...new Set(
       relatedDecisions
         .map(row => String(row?.hand_external_id || '').replace(/^club-arena:/, '').trim())
@@ -407,7 +720,7 @@ export function buildTrainingPlan({
     const mastered = progress?.retired === true;
     const tableVerification = evaluateTableVerification(rawLeak, review, relatedDecisions, mastered);
     const targetSessions = mastered ? 0 : Math.max(1, targetStreak - currentStreak);
-    const cadence = tableVerification.status === 'mastered_in_drills_still_leaking'
+    const cadence = tableVerification.status === 'relapsed_at_tables'
       ? 'Re-Drill Required'
       : (priority.due
           ? 'Review Due Today'
@@ -466,11 +779,23 @@ export function buildTrainingPlan({
   };
 }
 
-export function buildCoachingSnapshot({ leaks = [], decisions = [], reviews = [], rejected = {}, now = Date.now(), versions = {}, availableGameIds = null } = {}) {
+export function buildCoachingSnapshot({
+  leaks = [],
+  decisions = [],
+  reviews = [],
+  rejected = {},
+  now = Date.now(),
+  versions = {},
+  availableGameIds = null,
+  audit = null,
+  liveTable = null,
+  sessionWindow = null,
+} = {}) {
   const coverage = decisionCoverage(decisions, rejected);
   const solverCoverageGaps = summarizeSolverCoverageGaps(decisions);
   const priorities = rankCoachingPriorities(leaks, reviews, coverage, now);
-  const trainingPlan = buildTrainingPlan({ leaks, decisions, reviews, coverage, now, availableGameIds });
+  const decisionIndex = buildDecisionIndex(decisions);
+  const trainingPlan = buildTrainingPlan({ leaks, decisions, reviews, coverage, now, availableGameIds, decisionIndex });
   const active = priorities.length;
   const resolved = (Array.isArray(leaks) ? leaks : []).filter(leak => leakStatus(leak) === 'resolved').length;
   const due = priorities.filter(priority => priority.due).length;
@@ -483,13 +808,74 @@ export function buildCoachingSnapshot({ leaks = [], decisions = [], reviews = []
       ) / 100
     : null;
   const top = priorities[0] || null;
+
+  // Before/after live-play proof for EVERY leak (not just the top plan modules).
+  const reviewByLeak = new Map((Array.isArray(reviews) ? reviews : []).map(row => [String(row?.leak_id ?? row?.leakId ?? ''), row]));
+  const leakList = Array.isArray(leaks) ? leaks.filter(Boolean) : [];
+  const tableVerificationByLeak = new Map();
+  for (const leak of leakList) {
+    const id = leakId(leak);
+    if (!id || tableVerificationByLeak.has(id)) continue;
+    tableVerificationByLeak.set(id, leakTableVerification(leak, id, reviewByLeak.get(id) || null, decisionIndex));
+  }
+  const priorityRows = priorities.map(priority => ({
+    ...priority,
+    tableVerification: tableVerificationByLeak.get(priority.id) || null,
+  }));
+  const leakRows = leakList.map(leak => {
+    const id = leakId(leak);
+    return {
+      id,
+      leakId: id,
+      title: title(leak?.title || leak?.situationClass || leak?.situation_class || leak?.leakType || leak?.leak_type),
+      category: title(leak?.leakCategory || leak?.leak_category || 'Strategy'),
+      status: leakStatus(leak),
+      tableVerification: tableVerificationByLeak.get(id) || null,
+    };
+  }).filter(row => row.id);
+  const verifiedLiveMilestones = leakRows
+    .map(row => row.tableVerification?.verifiedLiveMilestone)
+    .filter(Boolean);
+  const verifiedFixedLive = leakRows.filter(row => row.status !== 'resolved'
+    && row.tableVerification?.status === 'confirmed_fixed_at_tables').length;
+
+  const coverageGaps = buildCoverageGapsRanked(decisions);
+  const coverageGapsSummary = {
+    source: 'first_party_hand_audit_decisions',
+    thirdPartyTelemetry: false,
+    totalUnpriced: coverageGaps.totalUnpriced,
+    totalDecisions: coverageGaps.totalDecisions,
+    bucketCount: coverageGaps.bucketCount,
+    tiers: summarizeCoverageTiers(decisions),
+  };
+
+  // Recap eligibility. Without a verified table state the snapshot assumes the
+  // player MAY be seated: fail closed so a recap can never show at a live table.
+  const liveStateKnown = Boolean(liveTable) && typeof liveTable === 'object';
+  const liveTableActive = liveStateKnown ? liveTable.active === true : true;
+  const recap = liveTableActive
+    ? { hands: [], sessionSource: null, unavailableReason: 'live_table_active' }
+    : selectTopLeakedHands(decisions, sessionWindow);
+  const topLeakedHands = recap.hands;
+
   return {
     generatedAt: new Date(now).toISOString(),
     versions: { schema: 'pa-coaching-v1', ...versions },
     evidenceFingerprint: evidenceFingerprint({ leaks, decisions, reviews, rejected }),
     coverage,
     solverCoverageGaps,
-    priorities,
+    coverageGapsRanked: coverageGaps.gaps,
+    coverageGapsSummary,
+    funnelMetrics: buildFunnelMetrics({
+      leaks: Array.isArray(leaks) ? leaks : null,
+      reviews: Array.isArray(reviews) ? reviews : null,
+      decisions: Array.isArray(decisions) ? decisions : null,
+      audit,
+      verifiedFixedLive: Array.isArray(leaks) ? verifiedFixedLive : null,
+    }),
+    priorities: priorityRows,
+    leaks: leakRows,
+    verifiedLiveMilestones,
     trainingPlan,
     timeline: buildProgressTimeline(leaks, reviews),
     summary: { active, resolved, due, measuredEvLoss: measuredLoss },
@@ -504,9 +890,16 @@ export function buildCoachingSnapshot({ leaks = [], decisions = [], reviews = []
       strongestSignal: top?.title || 'Run A Fresh Club Arena Audit',
       expensiveMistake: priorities.find(priority => priority.measuredEvLoss !== null)?.title || 'No Priced Mistake Is Available',
       coverageNote: `${coverage.verified} Of ${coverage.decisions} Decisions Are Solver Verified`,
+      topLeakedHands,
+      liveTableActive,
+      liveTableStateKnown: liveStateKnown,
+      cooldownActive: liveStateKnown && liveTable.cooldown === true,
+      recapEligible: !liveTableActive && topLeakedHands.length > 0,
+      recapUnavailableReason: recap.unavailableReason,
+      recapSessionSource: recap.sessionSource,
     },
     weeklyReport: {
-      focus: priorities.slice(0, 3).map((priority, index) => ({ ...priority, rank: index + 1, targetReviews: priority.due ? 3 : 2 })),
+      focus: priorityRows.slice(0, 3).map((priority, index) => ({ ...priority, rank: index + 1, targetReviews: priority.due ? 3 : 2 })),
       reviewLoad: due,
       verifiedCoverage: coverage.verifiedPercent,
       measuredEvLoss: measuredLoss,
@@ -524,4 +917,4 @@ export function receiptFingerprint(snapshot = {}) {
   return `pa7-${hashText(input)}`;
 }
 
-export { DAY_MS };
+export { DAY_MS, describeCoverageTier };

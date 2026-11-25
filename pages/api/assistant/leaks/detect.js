@@ -19,7 +19,8 @@ import {
   cacheRowIsServingEligible,
 } from '../../../../src/lib/training/cacheTruthPersistence.mjs';
 import { readLeakStatsAggregate } from '../../../../src/lib/personal-assistant/leakStats';
-import { syncClubArenaHandsForAudit } from '../../../../src/lib/training/handAuditEngine';
+import { MATCHER_VERSION, syncClubArenaHandsForAudit } from '../../../../src/lib/training/handAuditEngine';
+import { incrementalBoundaryFromCompletedJob, isFullRescanRequested } from '../../../../src/lib/personal-assistant/auditJobRuntime.mjs';
 import { analyzeCaHandFacts } from '../../../../src/lib/personal-assistant/caHandFactsAnalyzer.mjs';
 import {
   toUserLeakPersistenceRow,
@@ -598,6 +599,27 @@ async function readAuditWatermark(db, userId) {
   }
 }
 
+// Fallback incremental boundary: the user's latest COMPLETED audit job, used
+// only when the per-user hand watermark is missing (for example the watermark
+// columns were not yet installed when the last audit finished). Fail closed to
+// a full scan on any read error or doubt.
+async function readCompletedJobBoundary(db, userId) {
+  try {
+    const { data, error } = await db
+      .from('pa_leak_audit_jobs')
+      .select('id, status, progress, result, started_at, created_at, completed_at')
+      .eq('user_id', userId)
+      .eq('status', 'completed')
+      .order('completed_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error || !data) return null;
+    return incrementalBoundaryFromCompletedJob(data, MATCHER_VERSION);
+  } catch (_) {
+    return null;
+  }
+}
+
 async function readCaHandFactsAnalysis(db, userId) {
   try {
     const { data, error } = await db
@@ -718,10 +740,19 @@ export default async function handler(req, res) {
     }
 
     try {
-      const fullRescan = Boolean(req.body?.fullRescan);
-      const sinceBoundary = (!auditCursor && !fullRescan)
-        ? await readAuditWatermark(getSupabase(), userId)
-        : null;
+      // `forceFullRescan: true` (or the durable job flag `fullRescan`) always
+      // overrides every incremental boundary and scans the whole account.
+      const fullRescan = isFullRescanRequested(req.body);
+      let sinceBoundary = null;
+      let incrementalSource = null;
+      if (!auditCursor && !fullRescan) {
+        sinceBoundary = await readAuditWatermark(getSupabase(), userId);
+        incrementalSource = sinceBoundary ? 'watermark' : null;
+        if (!sinceBoundary) {
+          sinceBoundary = await readCompletedJobBoundary(getSupabase(), userId);
+          incrementalSource = sinceBoundary ? 'completed_job' : null;
+        }
+      }
       const clubArenaSync = await syncClubArenaHandsForAudit(getSupabase(), userId, {
         limit: AUDIT_HAND_BATCH_SIZE,
         maxDecisions: AUDIT_DECISION_BATCH_SIZE,
@@ -729,6 +760,10 @@ export default async function handler(req, res) {
         sinceBoundary,
         fullRescan,
       });
+      if (incrementalSource && clubArenaSync && typeof clubArenaSync === 'object') {
+        clubArenaSync.incrementalSource = incrementalSource;
+        clubArenaSync.incrementalSince = sinceBoundary?.createdAt || null;
+      }
       if (clubArenaSync?.continuation) {
         const continuation = clubArenaSync.continuation;
         delete clubArenaSync.continuation;

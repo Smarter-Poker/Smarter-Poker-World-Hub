@@ -67,6 +67,11 @@ import {
   resetAssistantPreferences,
   saveAssistantPreferences,
 } from '../../../src/lib/personal-assistant/assistantDefaults.mjs';
+import {
+  buildHandReviewShareUrl,
+  buildTableVerificationIndex,
+  describeTableVerification,
+} from '../../../src/lib/personal-assistant/liveVerificationPresentation.mjs';
 
 const TRAINING_GAME_IDS = TRAINING_LIBRARY.map(game => game.id);
 
@@ -79,6 +84,12 @@ const TRAINING_GAME_IDS = TRAINING_LIBRARY.map(game => game.id);
 const QuickSpotDrill = dynamic(
   () => import('../../../src/components/sandbox/QuickSpotDrill'),
   { ssr: false, loading: () => <DrillSheetSkeleton /> },
+);
+
+// Live spot logger + external hand-history import. Mounted only after a tap or ?quickspot=1.
+const LiveSpotQuickEntry = dynamic(
+  () => import('../../../src/components/personal-assistant/LiveSpotQuickEntry'),
+  { ssr: false },
 );
 
 const CoachingWorkspace = dynamic(
@@ -936,6 +947,111 @@ function LeakCardProgress({ progress }) {
   );
 }
 
+/**
+ * Live-play proof badge. "Verified Fixed Live" renders ONLY for confirmed_fixed_at_tables;
+ * drill mastery alone never produces it. Spans only, so it is valid inside a <button>.
+ */
+function TableVerificationBadges({ verification, showDelta = true }) {
+  const view = describeTableVerification(verification);
+  if (!view) return null;
+  return (
+    <>
+      <span style={pill(view.tone)} data-table-verification={view.kind}>{view.label}</span>
+      {showDelta && view.delta && (
+        <span style={{ ...pill('neutral'), fontVariantNumeric: 'tabular-nums' }}>{view.delta}</span>
+      )}
+    </>
+  );
+}
+
+const shareCheckRow = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: S.sm,
+  minHeight: 44,
+  color: T.text,
+  fontSize: F.bodySm,
+  cursor: 'pointer',
+};
+
+/**
+ * Read-only hand review link. Villain names are never placed in the URL, hole cards only when
+ * the player ticks the box, and the link never points at the retired /sandbox/[id] route.
+ */
+function ShareReviewControl({ hand }) {
+  const [anonymize, setAnonymize] = useState(true);
+  const [includeHole, setIncludeHole] = useState(false);
+
+  const share = useCallback(async () => {
+    if (typeof window === 'undefined') return;
+    const url = buildHandReviewShareUrl({
+      origin: window.location.origin,
+      ...hand,
+      anonymize,
+      includeHoleCards: includeHole,
+    });
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+        toast.success('Review Link Copied');
+        return;
+      }
+    } catch (e) {
+      /* fall through to the share sheet */
+    }
+    try {
+      if (navigator?.share) {
+        await navigator.share({ title: 'Poker Hand Review', url });
+        return;
+      }
+    } catch (e) {
+      return; // dismissed
+    }
+    toast(
+      <span>
+        Copy This Link: <span data-pa-verbatim="true">{url}</span>
+      </span>,
+    );
+  }, [hand, anonymize, includeHole]);
+
+  return (
+    <details className="pa-disclosure" data-share-review="true">
+      <summary>
+        <span>Share Review</span>
+        <small>Read-Only Link</small>
+      </summary>
+      <div className="pa-disclosure-body" style={{ display: 'grid', gap: S.xs }}>
+        <label style={shareCheckRow}>
+          <input
+            type="checkbox"
+            checked={anonymize}
+            onChange={(event) => setAnonymize(event.target.checked)}
+            style={{ width: 22, height: 22, flex: '0 0 22px' }}
+          />
+          <span>Anonymize Villain Names</span>
+        </label>
+        <label style={shareCheckRow}>
+          <input
+            type="checkbox"
+            checked={includeHole}
+            onChange={(event) => setIncludeHole(event.target.checked)}
+            style={{ width: 22, height: 22, flex: '0 0 22px' }}
+          />
+          <span>Include My Hole Cards</span>
+        </label>
+        {includeHole && (
+          <p style={{ margin: 0, color: T.warn, fontSize: F.caption, lineHeight: 1.45 }}>
+            Anyone With This Link Will See Your Hole Cards.
+          </p>
+        )}
+        <button type="button" className="pa-btn" style={btn('secondary', { block: true })} onClick={share}>
+          Copy Review Link
+        </button>
+      </div>
+    </details>
+  );
+}
+
 function LeakCard({ leak, onOpen, onReview, selected, demo, progress }) {
   const priced = hasPricedEv(leak);
   const ev = priced ? Math.abs(Number(leak.evLossBB)) : 0;
@@ -977,6 +1093,7 @@ function LeakCard({ leak, onOpen, onReview, selected, demo, progress }) {
 
         <span style={styles.leakCardBadges}>
           <span style={pill(honesty.tone)}>{honesty.label}</span>
+          <TableVerificationBadges verification={leak.tableVerification} />
           <LeakStatusBadge status={leak.status} />
           {leak.sourceSystem && <SourceBadge source={leak.sourceSystem} />}
           <ConfidenceBadge confidence={leak.confidence} />
@@ -1224,6 +1341,7 @@ function LeakDetail({
         <span style={pill(detailHonesty.tone)} title={detailHonesty.detail}>
           {detailHonesty.label}
         </span>
+        <TableVerificationBadges verification={leak.tableVerification} />
       </div>
 
       {(trackingSince || resolvedWhen) && (
@@ -1309,8 +1427,8 @@ function LeakDetail({
               {examples.map((ex) => {
                 const snap = ex?.snapshot || {};
                 return (
+                  <div key={ex.id} style={{ display: 'flex', flexDirection: 'column', gap: S.xs }}>
                   <button
-                    key={ex.id}
                     type="button"
                     className="leak-card pa-btn"
                     onClick={() => onReviewExample(leak, ex)}
@@ -1329,6 +1447,16 @@ function LeakDetail({
                       <ChevronRight size={16} strokeWidth={2} aria-hidden="true" style={{ color: T.textMuted, marginLeft: 'auto' }} />
                     </span>
                   </button>
+                  <ShareReviewControl
+                    hand={{
+                      street: snap.street,
+                      position: snap.hero_position || snap.position,
+                      board: snap.board,
+                      heroCards: snap.hero_cards,
+                      title: leak.title,
+                    }}
+                  />
+                  </div>
                 );
               })}
             </div>
@@ -1504,6 +1632,15 @@ export default function LeakFinderPage() {
 
   const [tab, setTab] = useState('leaks');
   const [showMenu, setShowMenu] = useState(false);
+  const [liveSpotOpen, setLiveSpotOpen] = useState(false);
+  const [liveSpotTab, setLiveSpotTab] = useState('spot');
+  const closeLiveSpot = useCallback(() => setLiveSpotOpen(false), []);
+  useModalHistory(liveSpotOpen, closeLiveSpot);
+  const openLiveSpot = useCallback((nextTab = 'spot') => {
+    if (!guardAction()) return;
+    setLiveSpotTab(nextTab === 'paste' ? 'paste' : 'spot');
+    setLiveSpotOpen(true);
+  }, [guardAction]);
   const [selectedLeakId, setSelectedLeakId] = useState(null);
 
   // Back closes the menu, then the leak sheet, before it leaves the route.
@@ -1637,10 +1774,64 @@ export default function LeakFinderPage() {
   });
   const { runDetection, isDetecting, detectionResult, detectionProgress, auditJob, error: detectionError } = useLeakDetection();
 
+  // Live-play verification lives on the coaching snapshot, not on the leaks list. It is optional
+  // enrichment: when it is missing or fails, no badge renders (never a guessed claim).
+  const [coachingSnapshot, setCoachingSnapshot] = useState(null);
+  const requestCoachingSnapshot = useAbortableFetch();
+  const coachingSnapshotRequestIdRef = useRef(0);
+  useEffect(() => () => { coachingSnapshotRequestIdRef.current += 1; }, []);
+
+  const fetchCoachingSnapshot = useCallback(async () => {
+    const requestId = ++coachingSnapshotRequestIdRef.current;
+    if (authInitializing || !userId) {
+      setCoachingSnapshot(null);
+      return;
+    }
+    try {
+      const accessToken = await getFreshAccessToken();
+      if (!accessToken) {
+        if (requestId === coachingSnapshotRequestIdRef.current) setCoachingSnapshot(null);
+        return;
+      }
+      const res = await requestCoachingSnapshot('/api/assistant/coaching', {
+        cache: 'no-store',
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (requestId !== coachingSnapshotRequestIdRef.current) return;
+      const json = await res.json().catch(() => null);
+      if (requestId !== coachingSnapshotRequestIdRef.current) return;
+      if (res.ok && json?.success && json?.snapshot) setCoachingSnapshot(json.snapshot);
+    } catch (e) {
+      if (isAbortError(e)) return;
+      console.warn('[LeakFinder] coaching snapshot unavailable:', e?.message || e);
+    }
+  }, [authInitializing, userId, requestCoachingSnapshot]);
+
+  useEffect(() => {
+    fetchCoachingSnapshot();
+    if (typeof window === 'undefined') return undefined;
+    window.addEventListener('pa-data-updated', fetchCoachingSnapshot);
+    window.addEventListener('pa-leak-review-updated', fetchCoachingSnapshot);
+    return () => {
+      window.removeEventListener('pa-data-updated', fetchCoachingSnapshot);
+      window.removeEventListener('pa-leak-review-updated', fetchCoachingSnapshot);
+    };
+  }, [fetchCoachingSnapshot]);
+
+  const tableVerificationIndex = useMemo(
+    () => buildTableVerificationIndex(coachingSnapshot),
+    [coachingSnapshot],
+  );
+
   const safeLeaks = useMemo(() => (Array.isArray(fetchedLeaks) ? fetchedLeaks : []), [fetchedLeaks]);
   const leaks = useMemo(
-    () => safeLeaks.filter(Boolean).map(normaliseLeak),
-    [safeLeaks],
+    () => safeLeaks.filter(Boolean).map((raw) => {
+      const normalized = normaliseLeak(raw);
+      if (normalized.tableVerification || isDemoLeakId(normalized.id)) return normalized;
+      const verification = tableVerificationIndex.get(String(normalized.id));
+      return verification ? { ...normalized, tableVerification: verification } : normalized;
+    }),
+    [safeLeaks, tableVerificationIndex],
   );
 
   const activeLeaks = useMemo(() => leaks.filter(l => l.status !== 'resolved'), [leaks]);
@@ -2397,6 +2588,83 @@ export default function LeakFinderPage() {
   }, [refreshLocalReviews, fetchReviewSchedule]);
   useModalHistory(Boolean(reviewSession), closeReviewSession);
 
+  // Start the corrective drill for an audited linked hand (shared by the Drill This Spot button
+  // and the ?hand=<id>&drill=1 deep link used by the Last Session Recap).
+  const launchLinkedHandDrill = useCallback((audit) => {
+    const action = audit?.trainingAction;
+    if (!action) return;
+    const matched = action.leakId
+      ? selectablePool.find(l => String(l.id) === String(action.leakId))
+      : null;
+    if (matched) {
+      handleStartReview({ leak: matched, drill: action.drillParams });
+    } else if (action.leakId) {
+      handleStartReview({
+        leakId: action.leakId,
+        leak: {
+          id: action.leakId,
+          title: action.title,
+          leakType: audit.matchedLeaks?.[0]?.leakType || 'spot_review',
+          leakCategory: audit.matchedLeaks?.[0]?.category || 'flop',
+          recommendedDrill: action.drillParams?.game || null,
+        },
+        drill: action.drillParams,
+      });
+    } else {
+      // No persisted user_leaks row matched yet - launch spot-matched practice drill
+      // without sending a synthetic `hand:<uuid>` leak ID to /api/sandbox/custom-drill.
+      handleStartReview({
+        practiceOnly: true,
+        leakId: null,
+        leak: {
+          id: null,
+          title: action.title,
+          leakType: 'spot_review',
+          leakCategory: action.street || 'flop',
+          recommendedDrill: action.drillParams?.game || null,
+        },
+        drill: action.drillParams,
+      });
+    }
+  }, [selectablePool, handleStartReview]);
+
+  const autoDrillHandledRef = useRef(null);
+  useEffect(() => {
+    if (!router.isReady || !linkedClubHand?.id || !linkedHandAudit?.trainingAction) return;
+    const raw = Array.isArray(router.query?.drill) ? router.query.drill[0] : router.query?.drill;
+    if (String(raw || '') !== '1') return;
+    if (autoDrillHandledRef.current === linkedClubHand.id) return;
+    autoDrillHandledRef.current = linkedClubHand.id;
+    const { drill: _removed, ...restQuery } = router.query;
+    router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
+    launchLinkedHandDrill(linkedHandAudit);
+  }, [router, linkedClubHand?.id, linkedHandAudit, launchLinkedHandDrill]);
+
+  // ?quickspot=1 (or paste) opens the live spot logger once, then clears the param so a reload
+  // never reopens it.
+  const quickSpotHandledRef = useRef(false);
+  useEffect(() => {
+    if (!router.isReady || quickSpotHandledRef.current) return;
+    const raw = Array.isArray(router.query?.quickspot) ? router.query.quickspot[0] : router.query?.quickspot;
+    if (!raw) return;
+    quickSpotHandledRef.current = true;
+    const { quickspot: _removed, ...restQuery } = router.query;
+    router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
+    if (['1', 'spot', 'paste'].includes(String(raw))) openLiveSpot(String(raw) === 'paste' ? 'paste' : 'spot');
+  }, [router, openLiveSpot]);
+
+  // Last Session Recap handoff from the Coaching Workspace: open the audited hand (optionally
+  // straight into its drill).
+  const openSessionHand = useCallback((handId, drill = false) => {
+    if (!handId) return;
+    setTab('leaks');
+    router.push(
+      { pathname: router.pathname, query: { tab: 'leaks', hand: String(handId), ...(drill ? { drill: '1' } : {}) } },
+      undefined,
+      { shallow: true },
+    );
+  }, [router]);
+
   // ─── Filter / sort / paginate ────────────────────────────────────────────
   const resolveLeakFormat = (l) => {
     if (l?.formatScope === 'cash' || l?.formatScope === 'tournament' || l?.formatScope === 'cross_format') {
@@ -2576,7 +2844,7 @@ export default function LeakFinderPage() {
               value={tab}
               onChange={setTab}
               options={[
-                { value: 'leaks', label: 'Leaks' },
+                { value: 'leaks', label: reviewQueueAll.length > 0 ? `Leaks (${reviewQueueAll.length})` : 'Leaks' },
                 { value: 'insights', label: 'Insights' },
                 { value: 'coaching', label: 'Coaching' },
               ]}
@@ -2738,6 +3006,15 @@ export default function LeakFinderPage() {
                     ]}
                   />
                   <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      className="pa-btn"
+                      style={btn('secondary')}
+                      onClick={() => openLiveSpot('spot')}
+                      data-live-spot-trigger="analysis-settings"
+                    >
+                      Log A Live Spot
+                    </button>
                     {!isDetecting && userId && (
                       <button
                         type="button"
@@ -2872,41 +3149,7 @@ export default function LeakFinderPage() {
                           type="button"
                           className="pa-btn"
                           style={btn('primary')}
-                          onClick={() => {
-                            const matched = linkedHandAudit.trainingAction.leakId
-                              ? selectablePool.find(l => String(l.id) === String(linkedHandAudit.trainingAction.leakId))
-                              : null;
-                            if (matched) {
-                              handleStartReview({ leak: matched, drill: linkedHandAudit.trainingAction.drillParams });
-                            } else if (linkedHandAudit.trainingAction.leakId) {
-                              handleStartReview({
-                                leakId: linkedHandAudit.trainingAction.leakId,
-                                leak: {
-                                  id: linkedHandAudit.trainingAction.leakId,
-                                  title: linkedHandAudit.trainingAction.title,
-                                  leakType: linkedHandAudit.matchedLeaks?.[0]?.leakType || 'spot_review',
-                                  leakCategory: linkedHandAudit.matchedLeaks?.[0]?.category || 'flop',
-                                  recommendedDrill: linkedHandAudit.trainingAction.drillParams?.game || null,
-                                },
-                                drill: linkedHandAudit.trainingAction.drillParams,
-                              });
-                            } else {
-                              // No persisted user_leaks row matched yet - launch spot-matched practice drill
-                              // without sending a synthetic `hand:<uuid>` leak ID to /api/sandbox/custom-drill.
-                              handleStartReview({
-                                practiceOnly: true,
-                                leakId: null,
-                                leak: {
-                                  id: null,
-                                  title: linkedHandAudit.trainingAction.title,
-                                  leakType: 'spot_review',
-                                  leakCategory: linkedHandAudit.trainingAction.street || 'flop',
-                                  recommendedDrill: linkedHandAudit.trainingAction.drillParams?.game || null,
-                                },
-                                drill: linkedHandAudit.trainingAction.drillParams,
-                              });
-                            }
-                          }}
+                          onClick={() => launchLinkedHandDrill(linkedHandAudit)}
                         >
                           Drill This Spot
                         </button>
@@ -2943,6 +3186,20 @@ export default function LeakFinderPage() {
                       </button>
                     </div>
                   </div>
+
+                  {linkedHandAudit?.hand && (
+                    <ShareReviewControl
+                      hand={{
+                        street: linkedHandAudit.hand.street || linkedHandAudit.trainingAction?.street,
+                        position: linkedHandAudit.hand.heroPosition || linkedHandAudit.hand.position,
+                        board: linkedHandAudit.hand.board,
+                        heroCards: linkedHandAudit.hand.heroCards,
+                        stakes: linkedHandAudit.hand.stakes,
+                        formatLabel: linkedHandAudit.hand.formatLabel,
+                        title: 'Club Arena Hand Review',
+                      }}
+                    />
+                  )}
 
                   {!userId && (
                     <div style={{ fontSize: F.bodySm, color: T.textMuted }}>
@@ -3400,6 +3657,7 @@ export default function LeakFinderPage() {
                                 </span>
                                 <span style={styles.leakCardBadges}>
                                   <LeakStatusBadge status="resolved" />
+                                  <TableVerificationBadges verification={leak.tableVerification} />
                                   {leak.sourceSystem && <SourceBadge source={leak.sourceSystem} />}
                                 </span>
                                 <span style={styles.leakCardSituation}>
@@ -3453,6 +3711,33 @@ export default function LeakFinderPage() {
                       onClick={() => router.push('/hub/training/hand-history-upload?source=personal-assistant-leaks')}
                     >
                       Open Audited Hand Review
+                    </button>
+                  </div>
+                </div>
+
+                <div className={toolStyles.instrumentPanel} style={card} data-live-spot-card="insights">
+                  <h3 style={styles.cardHeading}>Live Spots And Other Sites</h3>
+                  <p style={styles.detailBody}>
+                    Log A Live Poker Spot In About 15 Seconds Or Paste Hands From PokerStars, GGPoker, ACR Or ClubGG.
+                    Only Verified Solver Matches Are Graded; Everything Else Stays Unpriced.
+                  </p>
+                  <div style={{ display: 'grid', gap: S.sm, marginTop: S.md }}>
+                    <button
+                      type="button"
+                      className="pa-btn"
+                      style={btn('secondary', { block: true })}
+                      onClick={() => openLiveSpot('spot')}
+                      data-live-spot-trigger="insights"
+                    >
+                      Log A Live Spot
+                    </button>
+                    <button
+                      type="button"
+                      className="pa-btn"
+                      style={btn('secondary', { block: true })}
+                      onClick={() => openLiveSpot('paste')}
+                    >
+                      Paste External Hand History
                     </button>
                   </div>
                 </div>
@@ -3511,12 +3796,27 @@ export default function LeakFinderPage() {
                   onOpenHandReview={handleOpenHandReview}
                   onReviewExample={handleReviewExample}
                   onTrain={handleTrainDrills}
+                  onJumpToLeaks={() => { setTab('leaks'); jumpTo('leak-list'); }}
+                  onInspectHand={(handId) => openSessionHand(handId, false)}
+                  onDrillHand={(handId) => openSessionHand(handId, true)}
                 />
               </LeakErrorBoundary>
             </section>
           )}
           <HubPageSummary page="personal-assistant-leaks" />
         </main>
+
+        {/* ── Live spot logger + external hand-history import ── */}
+        {liveSpotOpen && (
+          <LeakErrorBoundary label="The live spot logger">
+            <LiveSpotQuickEntry
+              open
+              initialTab={liveSpotTab}
+              onClose={closeLiveSpot}
+              onAnalyzed={() => { refetchLeaks?.(); refetchStats?.(); }}
+            />
+          </LeakErrorBoundary>
+        )}
 
         {/* ── Review drill (the existing sandbox drill loop, not a second one) ── */}
         {reviewSession && (

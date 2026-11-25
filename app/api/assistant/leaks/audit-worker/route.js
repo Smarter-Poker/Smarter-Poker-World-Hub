@@ -3,10 +3,12 @@ import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { checkSandboxAccess, isFeatureAccessible } from '../../../../../src/lib/personal-assistant/contextAuthority';
 import { openAuditJobToken, sealAuditJobToken } from '../../../../../src/lib/personal-assistant/auditJobToken.mjs';
 import {
+  isFullRescanRequested,
   mergeAuditJobProgress,
   newWorkerToken,
   reconcileAuditEvidence,
 } from '../../../../../src/lib/personal-assistant/auditJobRuntime.mjs';
+import { notify } from '../../../../../src/lib/notify';
 
 const PRIVATE_NO_STORE_HEADERS = {
   'Cache-Control': 'private, no-store, max-age=0',
@@ -56,16 +58,48 @@ async function checkpoint(jobId, workerToken, values) {
   return first(data);
 }
 
+const AUDIT_COMPLETE_TYPE = 'personal_assistant_audit_complete';
+
+// Completion goes through the master notification gateway (in-app bell + web
+// push, honouring the user's push preferences). Idempotent per audit job: a
+// retried worker never re-rings the bell or re-pushes, and the partial unique
+// index notifications_pa_leak_audit_job_unique backstops the bell row.
+// Never throws: a notification failure must not fail a finished audit.
 async function notifyCompletion(job, result) {
-  const count = Number(result?.leaksDetected) || 0;
-  const { error } = await db().from('notifications').insert({
-    user_id: job.user_id,
-    type: 'personal_assistant_audit_complete',
-    title: 'Leak Finder Audit Complete',
-    message: `${count} Leak${count === 1 ? '' : 's'} Found. Your Deterministic Audit Receipt Is Ready.`,
-    data: { paAuditJobId: job.id, leaksDetected: count, route: '/hub/personal-assistant/leaks' },
-  });
-  if (error && error.code !== '23505') console.warn('[PA Audit Worker] Completion notification failed:', error.message);
+  try {
+    const count = Number(result?.leaksDetected) || 0;
+    let alreadyNotified = false;
+    let lookupFailed = false;
+    try {
+      const { data: existing, error: lookupError } = await db().from('notifications')
+        .select('id')
+        .eq('user_id', job.user_id)
+        .eq('type', AUDIT_COMPLETE_TYPE)
+        .eq('data->>paAuditJobId', String(job.id))
+        .limit(1);
+      if (lookupError) lookupFailed = true;
+      else alreadyNotified = Array.isArray(existing) && existing.length > 0;
+    } catch (lookupThrow) {
+      lookupFailed = true;
+      console.warn('[PA Audit Worker] Completion notification lookup failed:', lookupThrow?.message || lookupThrow);
+    }
+    if (alreadyNotified) return { skipped: 'duplicate' };
+    return await notify(db(), {
+      userId: job.user_id,
+      type: AUDIT_COMPLETE_TYPE,
+      title: 'Leak Finder Audit Complete',
+      body: `${count} Leak${count === 1 ? '' : 's'} Found. Your Deterministic Audit Receipt Is Ready.`,
+      url: '/hub/personal-assistant/leaks',
+      data: { paAuditJobId: job.id, leaksDetected: count, route: '/hub/personal-assistant/leaks' },
+      tag: `pa-audit-${job.id}`,
+      // When the duplicate check could not run, ring the bell (the unique index
+      // dedupes it) but do not risk a second push.
+      withPush: !lookupFailed,
+    });
+  } catch (error) {
+    console.warn('[PA Audit Worker] Completion notification failed:', error?.message || error);
+    return null;
+  }
 }
 
 async function processClaimedJob(job, workerToken, origin, { fullRescan = false } = {}) {
@@ -82,6 +116,26 @@ async function processClaimedJob(job, workerToken, origin, { fullRescan = false 
     });
     return null;
   }
+
+  // Heartbeat before the slow detector/solver page so the running lease is
+  // renewed (checkpoint_pa_leak_audit_job extends it for status 'running') and
+  // a status poll never mistakes a long batch for an abandoned worker. A null
+  // answer means another worker owns the lease: stop without writing.
+  const heartbeatAt = new Date().toISOString();
+  const heartbeat = await checkpoint(job.id, workerToken, {
+    status: 'running',
+    stage: job.stage || 'importing_hands',
+    auditCursor: job.audit_cursor || null,
+    progress: {
+      ...(job.progress || {}),
+      ...(effectiveFullRescan ? { fullRescan: true } : {}),
+      lastHeartbeatAt: heartbeatAt,
+      // The live-play pause (if any) ended: this worker is now processing.
+      pausedForLivePlay: undefined,
+    },
+  });
+  if (!heartbeat) return null;
+  job = { ...job, progress: heartbeat.progress || job.progress, audit_cursor: heartbeat.audit_cursor ?? job.audit_cursor };
 
   let response;
   let body = {};
@@ -219,7 +273,7 @@ async function handlePost(request) {
   const token = openAuditJobToken(request.headers.get('x-pa-audit-worker'), 'kick');
   if (!token) return jsonResponse({ success: false, error: 'Invalid worker token' }, 401);
   const requestBody = await request.json().catch(() => ({}));
-  const fullRescan = requestBody?.fullRescan === true;
+  const fullRescan = isFullRescanRequested(requestBody);
   const workerToken = newWorkerToken();
   const { data, error } = await db().rpc('claim_pa_leak_audit_job', {
     p_job_id: token.jobId,

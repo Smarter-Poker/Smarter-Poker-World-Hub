@@ -4,6 +4,11 @@
  * 
  * Displays the OG image as a card with CTA to sign up / explore more.
  * Includes proper OG meta tags for social sharing.
+ *
+ * view=review is the Personal Assistant read-only hand review link. It is HONEST: it renders only
+ * the parameters that were explicitly passed (never default cards, amounts, pots, stakes or player
+ * names), keeps hole cards hidden unless `hero` carries two valid cards, labels opponents as
+ * anonymized, and is excluded from search indexing. Legacy links keep their existing behaviour.
  */
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -19,29 +24,83 @@ function parseCard(str) {
     return { rank, suit: SUITS[s] || '?', color: SUIT_COLORS[s] || '#fff' };
 }
 
+const REVIEW_CARD = /^(?:10|[2-9TJQKA])[shdc]$/i;
+
+function firstQuery(value) {
+    return Array.isArray(value) ? value[0] : value;
+}
+
+function reviewCardList(raw, max) {
+    return String(firstQuery(raw) || '')
+        .split(',')
+        .map(c => c.trim())
+        .filter(c => REVIEW_CARD.test(c))
+        .slice(0, max);
+}
+
+function reviewText(raw, max = 48) {
+    return String(firstQuery(raw) || '').replace(/[\u0000-\u001f\u007f<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
+}
+
 export default function ShareHandPage() {
     const router = useRouter();
-    const { hero, board, result, amount, stakes, venue, pot, player, hand } = router.query;
+    const { hero, board, result, amount, stakes, venue, pot, player, hand, view, street, position, anon } = router.query;
     const [imageLoaded, setImageLoaded] = useState(false);
+    const isReview = firstQuery(view) === 'review';
 
-    const heroCards = (hero || 'Ah,Kh').split(',').filter(Boolean).map(c => parseCard(c.trim())).filter(Boolean);
-    const boardCards = (board || '').split(',').filter(Boolean).map(c => parseCard(c.trim())).filter(Boolean);
-    const isWin = (result || '').toLowerCase().includes('won') || (amount || '').startsWith('+');
+    // Review links: explicit parameters only. Hole cards show only when exactly two valid cards were passed.
+    const reviewHeroList = isReview ? reviewCardList(hero, 2) : [];
+    const reviewBoardList = isReview ? reviewCardList(board, 5) : [];
+    const reviewHeroShared = reviewHeroList.length === 2;
+    const reviewAnonymized = firstQuery(anon) !== '0';
+    const reviewDetails = isReview
+        ? [
+            reviewText(street, 12).toUpperCase(),
+            reviewText(position, 8).toUpperCase(),
+            reviewText(stakes, 24),
+            reviewText(venue, 24),
+        ].filter(Boolean)
+        : [];
+    const reviewTitle = isReview ? (reviewText(hand, 60) || 'Poker Hand Review') : '';
 
-    const ogImageUrl = `https://smarter.poker/api/og/hand-card?${new URLSearchParams({
-        hero: hero || 'Ah,Kh',
-        board: board || '',
-        result: result || 'Won',
-        amount: amount || '+$1,250',
-        stakes: stakes || '$1/$3 NLH',
-        venue: venue || 'Live Poker',
-        pot: pot || '$2,500',
-        player: player || 'Smarter.Poker Player',
-        hand: hand || '',
-    }).toString()}`;
+    const heroCards = isReview
+        ? (reviewHeroShared ? reviewHeroList : []).map(c => parseCard(c)).filter(Boolean)
+        : (hero || 'Ah,Kh').split(',').filter(Boolean).map(c => parseCard(c.trim())).filter(Boolean);
+    const boardCards = isReview
+        ? reviewBoardList.map(c => parseCard(c)).filter(Boolean)
+        : (board || '').split(',').filter(Boolean).map(c => parseCard(c.trim())).filter(Boolean);
+    const isWin = !isReview && ((result || '').toLowerCase().includes('won') || (amount || '').startsWith('+'));
 
-    const title = `${player || 'Player'} ${result || 'played'} at ${venue || 'Poker'} - ${amount || ''} | Smarter.Poker`;
-    const description = `${hand ? hand + ' - ' : ''}${stakes || 'Cash Game'} at ${venue || 'Live Poker'}. Pot: ${pot || '?'}. See the full hand analysis on Smarter.Poker!`;
+    const ogParams = isReview
+        ? new URLSearchParams({
+            view: 'review',
+            ...(reviewHeroShared ? { hero: reviewHeroList.join(',') } : {}),
+            ...(reviewBoardList.length > 0 ? { board: reviewBoardList.join(',') } : {}),
+            ...(reviewText(street, 12) ? { street: reviewText(street, 12).toLowerCase() } : {}),
+            ...(reviewText(position, 8) ? { position: reviewText(position, 8) } : {}),
+            ...(reviewText(stakes, 24) ? { stakes: reviewText(stakes, 24) } : {}),
+            ...(reviewText(venue, 24) ? { venue: reviewText(venue, 24) } : {}),
+            ...(reviewText(hand, 60) ? { hand: reviewText(hand, 60) } : {}),
+        })
+        : new URLSearchParams({
+            hero: hero || 'Ah,Kh',
+            board: board || '',
+            result: result || 'Won',
+            amount: amount || '+$1,250',
+            stakes: stakes || '$1/$3 NLH',
+            venue: venue || 'Live Poker',
+            pot: pot || '$2,500',
+            player: player || 'Smarter.Poker Player',
+            hand: hand || '',
+        });
+    const ogImageUrl = `https://smarter.poker/api/og/hand-card?${ogParams.toString()}`;
+
+    const title = isReview
+        ? `${reviewTitle} | Smarter.Poker`
+        : `${player || 'Player'} ${result || 'played'} at ${venue || 'Poker'} - ${amount || ''} | Smarter.Poker`;
+    const description = isReview
+        ? `Read-only poker hand review${reviewDetails.length ? ` - ${reviewDetails.join(' - ')}` : ''}. Analyze your own hands with the Smarter.Poker Personal Assistant.`
+        : `${hand ? hand + ' - ' : ''}${stakes || 'Cash Game'} at ${venue || 'Live Poker'}. Pot: ${pot || '?'}. See the full hand analysis on Smarter.Poker!`;
 
     return (
         <>
@@ -60,6 +119,7 @@ export default function ShareHandPage() {
                 <meta name="twitter:description" content={description} />
                 <meta name="twitter:image" content={ogImageUrl} />
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
+                {isReview && <meta name="robots" content="noindex,nofollow" />}
             </Head>
             <div style={{
                 minHeight: '100vh',
@@ -111,9 +171,9 @@ export default function ShareHandPage() {
                         color: '#E4E6EB',
                         marginBottom: 8,
                     }}>
-                        {player || 'A Smarter Player'} {isWin ? 'Won' : 'Played'} {amount || ''}
+                        {isReview ? reviewTitle : `${player || 'A Smarter Player'} ${isWin ? 'Won' : 'Played'} ${amount || ''}`}
                     </div>
-                    {hand && (
+                    {!isReview && hand && (
                         <div style={{
                             fontSize: 16,
                             color: '#FFD700',
@@ -127,12 +187,60 @@ export default function ShareHandPage() {
                         fontSize: 14,
                         color: 'rgba(255,255,255,0.5)',
                     }}>
-                        {stakes || 'Cash Game'} At {venue || 'Live Poker'} - Pot: {pot || '?'}
+                        {isReview
+                            ? (reviewDetails.join(' · ') || 'Details Not Shared')
+                            : `${stakes || 'Cash Game'} At ${venue || 'Live Poker'} - Pot: ${pot || '?'}`}
                     </div>
                 </div>
 
+                {/* Review links: explicit cards only, opponents anonymized */}
+                {isReview && (
+                    <div
+                        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, marginBottom: 40, maxWidth: 500, textAlign: 'center' }}
+                        data-share-review="true"
+                    >
+                        {heroCards.length > 0 ? (
+                            <div style={{ display: 'flex', gap: 8 }} aria-label="Hole Cards">
+                                {heroCards.map((c, i) => (
+                                    <div key={i} style={{
+                                        width: 64, height: 90, borderRadius: 10,
+                                        background: 'linear-gradient(135deg, #1a1a3e, #2a2a5e)',
+                                        border: '2px solid rgba(255,215,0,0.3)',
+                                        display: 'flex', flexDirection: 'column',
+                                        alignItems: 'center', justifyContent: 'center',
+                                    }}>
+                                        <span style={{ fontSize: 26, fontWeight: 900, color: c.color }}>{c.rank}</span>
+                                        <span style={{ fontSize: 22, color: c.color, marginTop: -4 }}>{c.suit}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>Hole Cards Hidden By The Player</div>
+                        )}
+                        {boardCards.length > 0 && (
+                            <div style={{ display: 'flex', gap: 6 }} aria-label="Board">
+                                {boardCards.map((c, i) => (
+                                    <div key={i} style={{
+                                        width: 48, height: 68, borderRadius: 8,
+                                        background: 'linear-gradient(135deg, #0d0d2e, #1a1a3e)',
+                                        border: '1px solid rgba(255,255,255,0.12)',
+                                        display: 'flex', flexDirection: 'column',
+                                        alignItems: 'center', justifyContent: 'center',
+                                    }}>
+                                        <span style={{ fontSize: 20, fontWeight: 800, color: c.color }}>{c.rank}</span>
+                                        <span style={{ fontSize: 16, color: c.color, marginTop: -2 }}>{c.suit}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>
+                            {reviewAnonymized ? 'Opponents: Anonymized Villain' : 'Opponent Names Are Not Included In This Link'}
+                        </div>
+                    </div>
+                )}
+
                 {/* Interactive card display */}
-                {heroCards.length > 0 && (
+                {!isReview && heroCards.length > 0 && (
                     <div style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -179,6 +287,27 @@ export default function ShareHandPage() {
                 )}
 
                 {/* CTAs */}
+                {isReview ? (
+                    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+                        <a
+                            href="/hub/personal-assistant"
+                            style={{
+                                padding: '14px 32px',
+                                minHeight: 44,
+                                borderRadius: 12,
+                                background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                                color: '#000',
+                                fontWeight: 800,
+                                fontSize: 16,
+                                textDecoration: 'none',
+                                boxShadow: '0 4px 20px rgba(255,215,0,0.3)',
+                            }}
+                        >
+                            Analyze Your Own Hands
+                        </a>
+                    </div>
+                ) : (
+                <>
                 <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
                     <a
                         href="https://smarter.poker/hub"
@@ -212,6 +341,8 @@ export default function ShareHandPage() {
                         Find Games Near You
                     </a>
                 </div>
+                </>
+                )}
 
                 {/* Footer */}
                 <div style={{

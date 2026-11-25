@@ -197,9 +197,9 @@ test('buildTrainingPlan evaluates table-verified leak resolution across all four
     decisions: [],
   });
   assert.equal(inProgressPlan.version, 'pa-training-plan-v2');
-  assert.equal(inProgressPlan.modules[0].tableVerification.status, 'in_progress');
+  assert.equal(inProgressPlan.modules[0].tableVerification.status, 'not_mastered');
 
-  // 2. Mastered in drills, <10 post-baseline live spots -> rechecking
+  // 2. Mastered in drills, <8 post-baseline live spots -> awaiting_live_hands
   const recheckingDecisions = Array.from({ length: 4 }, (_, i) => ({
     leak_id: 'leak-1',
     solver_verified: true,
@@ -211,7 +211,7 @@ test('buildTrainingPlan evaluates table-verified leak resolution across all four
     reviews: [{ leak_id: 'leak-1', strong_streak: 4, retired: true, remediation_baseline_at: baseline }],
     decisions: recheckingDecisions,
   });
-  assert.equal(recheckingPlan.modules[0].tableVerification.status, 'mastered_in_drills_rechecking');
+  assert.equal(recheckingPlan.modules[0].tableVerification.status, 'awaiting_live_hands');
   assert.equal(recheckingPlan.modules[0].tableVerification.postBaselineSamples, 4);
 
   // 3. Mastered in drills + 10 post-baseline spots at <=15% error -> confirmed_fixed_at_tables
@@ -229,7 +229,7 @@ test('buildTrainingPlan evaluates table-verified leak resolution across all four
   assert.equal(fixedPlan.modules[0].tableVerification.status, 'confirmed_fixed_at_tables');
   assert.equal(fixedPlan.tableVerifiedCount, 1);
 
-  // 4. Mastered in drills + 10 post-baseline spots at 40% error -> mastered_in_drills_still_leaking
+  // 4. Mastered in drills + 10 post-baseline spots at 40% error -> relapsed_at_tables
   const leakingDecisions = Array.from({ length: 10 }, (_, i) => ({
     leak_id: 'leak-1',
     solver_verified: true,
@@ -241,7 +241,7 @@ test('buildTrainingPlan evaluates table-verified leak resolution across all four
     reviews: [{ leak_id: 'leak-1', strong_streak: 4, retired: true, remediation_baseline_at: baseline }],
     decisions: leakingDecisions,
   });
-  assert.equal(leakingPlan.modules[0].tableVerification.status, 'mastered_in_drills_still_leaking');
+  assert.equal(leakingPlan.modules[0].tableVerification.status, 'relapsed_at_tables');
   assert.equal(leakingPlan.modules[0].cadence, 'Re-Drill Required');
 
   // Snapshot carries solverCoverageGaps
