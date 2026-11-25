@@ -36,6 +36,7 @@ const ALLOWED_TYPES = [
     'video/x-matroska',
     'audio/webm', 'audio/ogg', 'audio/mpeg', 'audio/mp4', 'audio/wav',
     'audio/x-m4a', 'audio/aac',
+    'application/pdf', 'text/csv', 'text/plain',
 ];
 
 // Fallback MIME sniffer — iOS Photo Library sometimes returns empty file type
@@ -50,6 +51,8 @@ const EXT_MIME_MAP = {
     // Audio
     webm_audio: 'audio/webm', ogg: 'audio/ogg', mp3: 'audio/mpeg',
     m4a: 'audio/x-m4a', aac: 'audio/aac', wav: 'audio/wav',
+    // Club Notice Board & Document Attachments
+    pdf: 'application/pdf', csv: 'text/csv', txt: 'text/plain',
 };
 
 function sniffMimeFromExt(fileName) {

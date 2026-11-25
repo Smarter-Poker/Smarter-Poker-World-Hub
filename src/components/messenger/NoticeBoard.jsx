@@ -11,6 +11,9 @@ import {
     REACTION_META,
     DEFAULT_ALERT_SETTINGS,
     ALLOWED_ATTACHMENT_MIME,
+    DELIVERY_STATE_META,
+    NOTICE_TEMPLATES,
+    buildAgentSlaCsv,
     formatRoleLabel,
     formatSlaMinutes,
     parseNoticeFormatting,
@@ -186,7 +189,8 @@ function useNativeDialog(dialogRef, open, onCloseState) {
 }
 
 // Keyed by authenticated actor + club at the caller. No state crosses identities.
-export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead, onMessageMember }) {
+export default function NoticeBoard({ club, userId, theme: C, initialNoticeId = null, initialOpenThread = false, onBack, onMarkRead, onMessageMember }) {
+    const draftStorageKey = `sp_nb_draft:${userId}:${club.id}`;
     const [rows, setRows] = useState([]);
     const [pins, setPins] = useState([]);
     const [scheduledNotices, setScheduledNotices] = useState([]);
@@ -253,14 +257,23 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [settingsDraft, setSettingsDraft] = useState(() => ({ ...DEFAULT_ALERT_SETTINGS }));
     const [settingsBusy, setSettingsBusy] = useState(false);
+    const [opsOpen, setOpsOpen] = useState(false);
+    const [opsTab, setOpsTab] = useState('sla');
+    const [slaSortBy, setSlaSortBy] = useState('overdue');
+    const [auditRows, setAuditRows] = useState([]);
+    const [auditLoading, setAuditLoading] = useState(false);
+    const [templatesOpen, setTemplatesOpen] = useState(false);
     const [lightboxImage, setLightboxImage] = useState(null);
 
     const rosterTitleId = useId();
     const settingsTitleId = useId();
+    const opsTitleId = useId();
     const lightboxTitleId = useId();
     const rosterDialogRef = useRef(null);
     const settingsDialogRef = useRef(null);
+    const opsDialogRef = useRef(null);
     const lightboxDialogRef = useRef(null);
+    const consumedDeepLink = useRef(null);
     const photoInputRef = useRef(null);
     const noteIntent = useRef(null);
     const escalateIntents = useRef(new Map());
@@ -301,7 +314,24 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
 
     useNativeDialog(rosterDialogRef, rosterOpen, setRosterOpen);
     useNativeDialog(settingsDialogRef, settingsOpen, setSettingsOpen);
+    useNativeDialog(opsDialogRef, opsOpen, setOpsOpen);
     useNativeDialog(lightboxDialogRef, Boolean(lightboxImage), (open) => { if (!open) setLightboxImage(null); });
+
+    useEffect(() => {
+        if (typeof window === 'undefined' || !window.localStorage) return;
+        try {
+            const saved = window.localStorage.getItem(draftStorageKey);
+            if (saved && saved.trim()) setDraft(saved);
+        } catch { /* storage unavailable */ }
+    }, [draftStorageKey]);
+
+    useEffect(() => {
+        if (editing || typeof window === 'undefined' || !window.localStorage) return;
+        try {
+            if (draft.trim()) window.localStorage.setItem(draftStorageKey, draft);
+            else window.localStorage.removeItem(draftStorageKey);
+        } catch { /* storage unavailable */ }
+    }, [draft, editing, draftStorageKey]);
 
     function captureAnchor(bottom = false) {
         const box = scroller.current;
@@ -341,7 +371,8 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
         setRequireConfirmation(false); setScheduleEnabled(false); setScheduledFor('');
         setPollOpen(false); setPollQuestion(''); setPollOptions(['', '']); setPollAllowMultiple(false);
         setMentionPickerOpen(false); setNoteTarget(null); setNoteDraft('');
-        setMemberFilter(null); setRosterOpen(false); setSettingsOpen(false); setLightboxImage(null);
+        setMemberFilter(null); setRosterOpen(false); setSettingsOpen(false); setOpsOpen(false); setAuditRows([]); setTemplatesOpen(false); setLightboxImage(null);
+        try { if (typeof window !== 'undefined' && window.localStorage) window.localStorage.removeItem(draftStorageKey); } catch { /* noop */ }
         setPinsExpanded(false); setOverdueExpanded(false);
         setLoading(false); setOlderLoading(false); setLive(false);
         createIntent.current = null; noteIntent.current = null;
@@ -536,6 +567,10 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
             .on('postgres_changes', { event: '*', schema: 'public', table: 'club_notice_board', filter: `club_id=eq.${club.id}` }, event => {
                 const row = event.new;
                 if (!s.alive || s.denied || row?.club_id !== club.id) return;
+                // Defense-in-depth: future scheduled notices never enter the live staff feed early.
+                if (row.scheduled_for && Date.parse(row.scheduled_for) > Date.now()) {
+                    return;
+                }
                 // Joined cash-out details must come from the authorized reader, never
                 // from an unjoined realtime table row.
                 if (row.cashout_id) { if (s.loading) s.refreshAfterLoad = true; else void hydrate(); }
@@ -881,6 +916,69 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
             if (state.current.alive) setServerSearchBusy(false);
         }
     }
+
+    async function loadPayoutAudit() {
+        if (auditLoading) return;
+        setAuditLoading(true);
+        try {
+            const res = await request('POST', {}, 'payout_audit');
+            if (res && state.current.alive) {
+                setAuditRows(Array.isArray(res.audit) ? res.audit : []);
+            }
+        } catch (failure) {
+            if (state.current.alive) setError(failure.message);
+        } finally {
+            if (state.current.alive) setAuditLoading(false);
+        }
+    }
+
+    function openPayoutOps(tab = 'sla') {
+        setOpsTab(tab);
+        setOpsOpen(true);
+        if (tab === 'audit') void loadPayoutAudit();
+    }
+
+    function exportAgentSlaCsv() {
+        if (typeof document === 'undefined' || typeof Blob === 'undefined' || typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') return;
+        const csv = buildAgentSlaCsv(members, club.name || 'Club');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const slug = String(club.name || 'club').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'club';
+        a.href = url;
+        a.download = `${slug}-agent-sla-30d.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function applyTemplate(tpl) {
+        if (!tpl) return;
+        setDraft(tpl.content);
+        if (tpl.pin) setPinOnPost(true);
+        if (tpl.requireConfirmation) setRequireConfirmation(true);
+        setTemplatesOpen(false);
+    }
+
+    useEffect(() => {
+        if (!initialNoticeId || loading || consumedDeepLink.current === `${club.id}:${initialNoticeId}`) return;
+        consumedDeepLink.current = `${club.id}:${initialNoticeId}`;
+        const existing = [...state.current.rows, ...state.current.pinRows].find(r => r.id === initialNoticeId && !r.is_deleted);
+        if (existing) {
+            jumpToNotice(initialNoticeId);
+            if (initialOpenThread) void loadReplies(initialNoticeId);
+            return;
+        }
+        void request('POST', { id: initialNoticeId }, 'entry')
+            .then(res => {
+                if (!res?.entry || !state.current.alive) return;
+                accept([res.entry]);
+                setPendingJumpId(initialNoticeId);
+                if (initialOpenThread) void loadReplies(initialNoticeId);
+            })
+            .catch(() => { /* notice may have been deleted or inaccessible */ });
+    }, [initialNoticeId, initialOpenThread, loading, club.id]);
 
     const ESCALATE_ERROR_COPY = {
         cashier_request_already_escalated: 'This Payout Request Was Already Escalated To The Club Bank.',
@@ -1290,6 +1388,19 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
     }, [members, userId, mentionFilter]);
 
     const memberSummary = formatMemberSummary(roleCounts, memberCount);
+    const sortedSlaAgents = useMemo(() => {
+        const list = members.filter(m => m && m.sla && typeof m.sla === 'object');
+        return [...list].sort((a, b) => {
+            if (slaSortBy === 'median') {
+                const am = a.sla.median_minutes ?? Number.MAX_SAFE_INTEGER;
+                const bm = b.sla.median_minutes ?? Number.MAX_SAFE_INTEGER;
+                return am - bm || (b.sla.completed_30d || 0) - (a.sla.completed_30d || 0);
+            }
+            if (slaSortBy === 'completed') return (b.sla.completed_30d || 0) - (a.sla.completed_30d || 0);
+            if (slaSortBy === 'escalated') return (b.sla.escalated_30d || 0) - (a.sla.escalated_30d || 0);
+            return (b.sla.overdue_30d || 0) - (a.sla.overdue_30d || 0) || (b.sla.pending_now || 0) - (a.sla.pending_now || 0);
+        });
+    }, [members, slaSortBy]);
     const orderedPins = useMemo(() => [...pins], [pins]);
     const currentPin = orderedPins[activePinIndex] || orderedPins[0] || null;
     const canConfigureAlerts = viewerRole === 'owner' || viewerRole === 'co_owner';
@@ -2318,6 +2429,26 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
                     </button>
                 )}
                 <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5 }}>
+                    {canManage && (
+                        <button
+                            type="button"
+                            aria-label="Open Payout Ops And Agent SLA"
+                            onClick={() => openPayoutOps('sla')}
+                            style={{
+                                border: `1px solid ${C.border}`,
+                                borderRadius: 999,
+                                background: 'transparent',
+                                color: C.textSec,
+                                padding: '3px 9px',
+                                fontSize: 11,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                fontFamily: 'inherit',
+                            }}
+                        >
+                            📊 Ops & SLA
+                        </button>
+                    )}
                     {canConfigureAlerts && (
                         <button
                             type="button"
@@ -2677,11 +2808,35 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
                             >
                                 @ Mention
                             </button>
+                            <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => setTemplatesOpen(prev => !prev)}
+                                style={{ ...button, padding: '4px 8px', fontSize: 11, borderColor: templatesOpen ? accentBlue : C.border, color: templatesOpen ? accentBlue : C.text }}
+                            >
+                                Templates
+                            </button>
                             {draft.length > 3200 && (
                                 <span style={{ marginLeft: 'auto', fontSize: 11, color: draft.length > 3800 ? '#f59e0b' : C.textSec }}>
                                     {draft.length}/4000
                                 </span>
                             )}
+                        </div>
+                    )}
+
+                    {/* Quick Broadcast Templates Picker */}
+                    {!editing && templatesOpen && (
+                        <div aria-label="Notice Templates" style={{ marginBottom: 8, padding: 6, borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                            {NOTICE_TEMPLATES.map(tpl => (
+                                <button
+                                    key={tpl.id}
+                                    type="button"
+                                    onClick={() => applyTemplate(tpl)}
+                                    style={{ ...button, padding: '4px 9px', fontSize: 11, borderColor: accentBlue, color: accentBlue }}
+                                >
+                                    {tpl.label}
+                                </button>
+                            ))}
                         </div>
                     )}
 
@@ -3212,6 +3367,180 @@ export default function NoticeBoard({ club, userId, theme: C, onBack, onMarkRead
                             </button>
                         </div>
                     </form>
+                )}
+            </dialog>
+
+            {/* Native <dialog> Management Payout Ops, Agent SLA Leaderboard & Push Receipt Audit */}
+            <dialog
+                ref={opsDialogRef}
+                closedby="any"
+                aria-labelledby={opsTitleId}
+                className="nb-modal-dialog"
+                style={{
+                    width: 'min(560px, calc(100vw - 24px))',
+                    maxHeight: '84vh',
+                    padding: 0,
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 14,
+                    background: surfaceBg,
+                    color: C.text,
+                    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.55)',
+                    overflow: 'hidden',
+                }}
+            >
+                <div style={{ padding: '14px 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                    <div>
+                        <h1 id={opsTitleId} style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>
+                            {club.name} · Payout Ops & Agent SLA
+                        </h1>
+                        <div style={{ fontSize: 11, color: C.textSec, marginTop: 2 }}>
+                            Rolling 30-Day Fulfillment Turnaround And Device Alert Receipts
+                        </div>
+                    </div>
+                    {opsOpen && (
+                        <button type="button" style={button} onClick={() => setOpsOpen(false)} aria-label="Close Payout Ops">Close</button>
+                    )}
+                </div>
+                {opsOpen && (
+                    <>
+                        <div style={{ padding: '10px 16px', borderBottom: `1px solid ${C.border}`, background: C.bg, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
+                            <button
+                                type="button"
+                                aria-pressed={opsTab === 'sla'}
+                                onClick={() => setOpsTab('sla')}
+                                style={{ ...button, padding: '4px 10px', fontSize: 11, borderColor: opsTab === 'sla' ? accentBlue : C.border, color: opsTab === 'sla' ? accentBlue : C.textSec, fontWeight: 700 }}
+                            >
+                                {`Agent SLA Leaderboard (${sortedSlaAgents.length})`}
+                            </button>
+                            <button
+                                type="button"
+                                aria-pressed={opsTab === 'audit'}
+                                onClick={() => { setOpsTab('audit'); void loadPayoutAudit(); }}
+                                style={{ ...button, padding: '4px 10px', fontSize: 11, borderColor: opsTab === 'audit' ? accentBlue : C.border, color: opsTab === 'audit' ? accentBlue : C.textSec, fontWeight: 700 }}
+                            >
+                                Alert Delivery Log (30d)
+                            </button>
+                            {opsTab === 'sla' && sortedSlaAgents.length > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={exportAgentSlaCsv}
+                                    style={{ ...button, marginLeft: 'auto', padding: '4px 10px', fontSize: 11, borderColor: '#22c55e', color: '#22c55e', fontWeight: 700 }}
+                                >
+                                    Export SLA CSV
+                                </button>
+                            )}
+                            {opsTab === 'audit' && (
+                                <button
+                                    type="button"
+                                    disabled={auditLoading}
+                                    onClick={() => void loadPayoutAudit()}
+                                    style={{ ...button, marginLeft: 'auto', padding: '4px 10px', fontSize: 11 }}
+                                >
+                                    {auditLoading ? 'Refreshing...' : 'Refresh Log'}
+                                </button>
+                            )}
+                        </div>
+                        {opsTab === 'sla' ? (
+                            <div className="nb-scroller" style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '12px 16px' }}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 5, marginBottom: 10, fontSize: 11 }}>
+                                    <span style={{ color: C.textSec }}>Sort By:</span>
+                                    {[
+                                        { id: 'overdue', label: 'Most Overdue' },
+                                        { id: 'median', label: 'Fastest Median' },
+                                        { id: 'completed', label: 'Most Completed' },
+                                        { id: 'escalated', label: 'Most Escalated' },
+                                    ].map(opt => (
+                                        <button
+                                            key={opt.id}
+                                            type="button"
+                                            onClick={() => setSlaSortBy(opt.id)}
+                                            style={{ ...button, padding: '2px 8px', fontSize: 10, borderColor: slaSortBy === opt.id ? accentBlue : C.border, color: slaSortBy === opt.id ? accentBlue : C.textSec }}
+                                        >
+                                            {opt.label}
+                                        </button>
+                                    ))}
+                                </div>
+                                {sortedSlaAgents.length === 0 ? (
+                                    <p style={{ color: C.textSec, textAlign: 'center', fontSize: 12, padding: 20 }}>No Active Agents Found For This Club.</p>
+                                ) : (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                        {sortedSlaAgents.map(agent => (
+                                            <div key={agent.user_id} style={{ padding: '8px 10px', borderRadius: 10, border: `1px solid ${C.border}`, background: C.bg, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                                                <div style={{ minWidth: 0 }}>
+                                                    <div style={{ fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                        <span>{agent.display_name || agent.username}</span>
+                                                        {rolePill(agent.role)}
+                                                    </div>
+                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4, fontSize: 11, color: C.textSec }}>
+                                                        <span>{`Median: ${formatSlaMinutes(agent.sla.median_minutes) || 'N/A'}`}</span>
+                                                        <span style={{ color: '#22c55e' }}>{`${agent.sla.completed_30d || 0} Done`}</span>
+                                                        <span style={{ color: Number(agent.sla.overdue_30d || 0) > 0 ? '#f59e0b' : C.textSec, fontWeight: Number(agent.sla.overdue_30d || 0) > 0 ? 700 : 400 }}>
+                                                            {`${agent.sla.overdue_30d || 0} Overdue`}
+                                                        </span>
+                                                        <span style={{ color: Number(agent.sla.escalated_30d || 0) > 0 ? '#ef4444' : C.textSec }}>
+                                                            {`${agent.sla.escalated_30d || 0} Escalated`}
+                                                        </span>
+                                                        {Number(agent.sla.pending_now || 0) > 0 && (
+                                                            <span style={{ color: accentBlue, fontWeight: 700 }}>{`${agent.sla.pending_now} Pending Now`}</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                {onMessageMember && agent.user_id !== userId && (
+                                                    <button type="button" style={{ ...button, padding: '4px 8px', fontSize: 11, borderColor: accentBlue, color: accentBlue }} onClick={() => { setOpsOpen(false); onMessageMember(agent); }}>
+                                                        Message
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="nb-scroller" style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '12px 16px' }}>
+                                {auditLoading ? (
+                                    <p style={{ color: C.textSec, textAlign: 'center', fontSize: 12, padding: 20 }}>Loading Alert Delivery Log...</p>
+                                ) : auditRows.length === 0 ? (
+                                    <p style={{ color: C.textSec, textAlign: 'center', fontSize: 12, padding: 20 }}>No Overdue Or Pre-Breach Payout Alerts In The Last 30 Days.</p>
+                                ) : (
+                                    <div data-testid="payout-audit-log" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                        {auditRows.map((item, idx) => {
+                                            const dMeta = DELIVERY_STATE_META[item.delivery_state] || DELIVERY_STATE_META.in_app_only;
+                                            const kindLabel = item.alert_kind === 'prebreach'
+                                                ? `${item.threshold_hours}h Pre-Breach Warning`
+                                                : item.alert_kind === 'followup'
+                                                    ? `${item.threshold_hours}h Follow-Up Alert`
+                                                    : `${item.threshold_hours}h Overdue Alert`;
+                                            return (
+                                                <div key={`${item.notification_id || item.cashout_id}-${idx}`} style={{ padding: '9px 11px', borderRadius: 10, border: `1px solid ${C.border}`, background: C.bg, fontSize: 12 }}>
+                                                    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                                                        <strong>{`${item.player_name || 'Player'} · ${formatChipsSimple(item.amount)} Chips`}</strong>
+                                                        <span style={{ fontSize: 10, color: C.textSec }}>{new Date(item.notified_at).toLocaleString()}</span>
+                                                    </div>
+                                                    <div style={{ fontSize: 11, color: C.textSec, marginTop: 3 }}>
+                                                        {`${kindLabel} · Sent To ${item.recipient_name || 'Staff'} (${formatRoleLabel(item.recipient_role)}) · Upline: ${item.agent_name || 'Agent'}`}
+                                                    </div>
+                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                                                        <span style={{ padding: '2px 7px', borderRadius: 999, fontSize: 10, fontWeight: 700, color: dMeta.color, background: dMeta.bg }}>
+                                                            {dMeta.label}
+                                                        </span>
+                                                        {item.resolution_label ? (
+                                                            <span style={{ padding: '2px 7px', borderRadius: 999, fontSize: 10, fontWeight: 700, color: '#22c55e', background: 'rgba(34, 197, 94, 0.14)' }}>
+                                                                {`✓ ${item.resolution_label}`}
+                                                            </span>
+                                                        ) : (
+                                                            <span style={{ padding: '2px 7px', borderRadius: 999, fontSize: 10, fontWeight: 700, color: '#f59e0b', background: 'rgba(245, 158, 11, 0.14)' }}>
+                                                                {item.cashout_status === 'pending' ? 'Pending Settlement' : formatRoleLabel(item.cashout_status)}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </>
                 )}
             </dialog>
 
