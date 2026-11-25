@@ -1,13 +1,14 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { buildSignedEmailImageUrl } from '../../../src/lib/newsletter/emailImageProxy.mjs';
 import * as wireEngine from '../../../src/lib/newsletter/weeklyWireEngine.mjs';
 
+const UUID_SHAPE_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const FALLBACK_THUMB_SRC = '/api/news/email-image?fallback=1&m=thumb';
+
 function isWeeklyWireCampaign(row) {
-    const subj = String(row?.subject || '').trim();
-    if (!subj) return false;
-    if (subj.startsWith('[Promo]') || subj.startsWith('[Lifecycle]')) return false;
-    return true;
+    return wireEngine.isWeeklyWireDigestCampaign(row);
 }
 
 function parseSubjectEditionNumber(subject) {
@@ -46,6 +47,33 @@ export async function getServerSideProps({ res }) {
         const wireRows = (rows || []).filter(isWeeklyWireCampaign);
         const usedNumbers = new Set();
 
+        // Collect up to 80 candidate lead-article UUIDs across archived editions so each
+        // archived edition card can display a verified first-party thumbnail.
+        const candidateLeadIds = [];
+        for (const row of wireRows) {
+            const rawIds = Array.isArray(row.article_ids) ? row.article_ids : [];
+            for (const id of rawIds.slice(0, 3)) {
+                const cleanId = String(id || '').trim().toLowerCase();
+                if (UUID_SHAPE_RE.test(cleanId) && candidateLeadIds.length < 80) {
+                    candidateLeadIds.push(cleanId);
+                }
+            }
+        }
+
+        const thumbByArticleId = new Map();
+        if (candidateLeadIds.length > 0) {
+            // in-list: bounded by slice(0, 80)
+            const { data: artRows } = await sb
+                .from('poker_news')
+                .select('id, image_url, category')
+                .in('id', [...new Set(candidateLeadIds)].slice(0, 80));
+            for (const art of artRows || []) {
+                if (art?.id && art.category !== 'platform_update') {
+                    thumbByArticleId.set(String(art.id).toLowerCase(), art.image_url || '');
+                }
+            }
+        }
+
         const numbered = wireRows.map((row, idx) => {
             const parsed = parseSubjectEditionNumber(row.subject);
             let editionNumber = parsed && !usedNumbers.has(parsed) ? parsed : idx + 1;
@@ -54,6 +82,14 @@ export async function getServerSideProps({ res }) {
             }
             usedNumbers.add(editionNumber);
             const rawIds = Array.isArray(row.article_ids) ? row.article_ids : [];
+            let leadRawImg = '';
+            for (const id of rawIds) {
+                const key = String(id || '').trim().toLowerCase();
+                if (thumbByArticleId.has(key)) {
+                    leadRawImg = thumbByArticleId.get(key) || '';
+                    if (leadRawImg) break;
+                }
+            }
             return {
                 id: String(row.id),
                 editionNumber,
@@ -61,6 +97,7 @@ export async function getServerSideProps({ res }) {
                 sentAt: row.completed_at || row.created_at || null,
                 sentCount: Number(row.sent_count || row.recipient_count || 0),
                 itemCount: rawIds.length,
+                thumbUrl: buildSignedEmailImageUrl(leadRawImg, { relative: true, mode: 'thumb' }),
             };
         });
 
@@ -76,6 +113,10 @@ export async function getServerSideProps({ res }) {
             livePreview = {
                 editionNumber: Number(curated?.editionNumber || (editions[0]?.editionNumber || 0) + 1),
                 subject: String(curated?.subject || 'Smarter.Poker Weekly Wire').replace(/[—–]/g, '-'),
+                thumbUrl: buildSignedEmailImageUrl(curated?.articles?.[0]?.image_url || '', {
+                    relative: true,
+                    mode: 'thumb',
+                }),
                 leadUpdate: curated?.platformUpdates?.[0]
                     ? {
                           badge: String(curated.platformUpdates[0].badge || 'Platform Upgrade'),
@@ -256,26 +297,52 @@ export default function WeeklyWireArchivePage({ editions = [], livePreview = nul
                                 </Link>
                             </div>
 
-                            <h2 style={{ margin: '6px 0 12px 0', fontSize: '20px', fontWeight: 800, color: '#ffffff', lineHeight: 1.3 }}>
-                                {livePreview.subject}
-                            </h2>
+                            <div style={{ display: 'flex', gap: '18px', alignItems: 'flex-start', flexWrap: 'wrap', marginTop: '8px' }}>
+                                <img
+                                    src={livePreview.thumbUrl || FALLBACK_THUMB_SRC}
+                                    alt={livePreview.subject || 'Smarter.Poker Weekly Wire'}
+                                    width={112}
+                                    height={78}
+                                    loading="eager"
+                                    onError={(ev) => {
+                                        if (!ev.currentTarget.dataset.fb) {
+                                            ev.currentTarget.dataset.fb = '1';
+                                            ev.currentTarget.src = FALLBACK_THUMB_SRC;
+                                        }
+                                    }}
+                                    style={{
+                                        width: '112px',
+                                        height: '78px',
+                                        objectFit: 'cover',
+                                        borderRadius: '10px',
+                                        border: '1px solid #1b2c3d',
+                                        background: '#0b1520',
+                                        flexShrink: 0,
+                                    }}
+                                />
+                                <div style={{ flex: '1 1 280px', minWidth: 0 }}>
+                                    <h2 style={{ margin: '0 0 10px 0', fontSize: '20px', fontWeight: 800, color: '#ffffff', lineHeight: 1.3 }}>
+                                        {livePreview.subject}
+                                    </h2>
 
-                            <div style={{ display: 'grid', gap: '8px', color: '#b7cadc', fontSize: '13.5px', lineHeight: 1.5 }}>
-                                {livePreview.leadUpdate?.title && (
-                                    <div>
-                                        <strong style={{ color: '#60a5fa' }}>Platform Upgrade:</strong> {livePreview.leadUpdate.title}
+                                    <div style={{ display: 'grid', gap: '8px', color: '#b7cadc', fontSize: '13.5px', lineHeight: 1.5 }}>
+                                        {livePreview.leadUpdate?.title && (
+                                            <div>
+                                                <strong style={{ color: '#60a5fa' }}>Platform Upgrade:</strong> {livePreview.leadUpdate.title}
+                                            </div>
+                                        )}
+                                        {livePreview.leadStory?.title && (
+                                            <div>
+                                                <strong style={{ color: '#4fc1b3' }}>Top Poker Story:</strong> {livePreview.leadStory.title} ({livePreview.leadStory.sourceName})
+                                            </div>
+                                        )}
+                                        {livePreview.toolTitle && (
+                                            <div>
+                                                <strong style={{ color: '#ffffff' }}>Featured Tool:</strong> {livePreview.toolTitle}
+                                            </div>
+                                        )}
                                     </div>
-                                )}
-                                {livePreview.leadStory?.title && (
-                                    <div>
-                                        <strong style={{ color: '#4fc1b3' }}>Top Poker Story:</strong> {livePreview.leadStory.title} ({livePreview.leadStory.sourceName})
-                                    </div>
-                                )}
-                                {livePreview.toolTitle && (
-                                    <div>
-                                        <strong style={{ color: '#ffffff' }}>Featured Tool:</strong> {livePreview.toolTitle}
-                                    </div>
-                                )}
+                                </div>
                             </div>
                         </section>
                     )}
@@ -327,45 +394,71 @@ export default function WeeklyWireArchivePage({ editions = [], livePreview = nul
                                         key={ed.id}
                                         href={`/hub/wire/${ed.editionNumber}`}
                                         style={{
-                                            display: 'block',
+                                            display: 'flex',
+                                            gap: '16px',
+                                            alignItems: 'flex-start',
                                             background: '#0b1118',
                                             border: '1px solid #1b2c3d',
                                             borderRadius: '14px',
-                                            padding: '20px 22px',
+                                            padding: '18px 20px',
                                             textDecoration: 'none',
                                             color: '#ffffff',
                                         }}
                                     >
-                                        <div
-                                            style={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'space-between',
-                                                flexWrap: 'wrap',
-                                                gap: '8px',
-                                                marginBottom: '6px',
+                                        <img
+                                            src={ed.thumbUrl || FALLBACK_THUMB_SRC}
+                                            alt={ed.subject || `Weekly Wire Edition #${ed.editionNumber}`}
+                                            width={112}
+                                            height={78}
+                                            loading="lazy"
+                                            onError={(ev) => {
+                                                if (!ev.currentTarget.dataset.fb) {
+                                                    ev.currentTarget.dataset.fb = '1';
+                                                    ev.currentTarget.src = FALLBACK_THUMB_SRC;
+                                                }
                                             }}
-                                        >
-                                            <span
+                                            style={{
+                                                width: '112px',
+                                                height: '78px',
+                                                objectFit: 'cover',
+                                                borderRadius: '8px',
+                                                border: '1px solid #1b2c3d',
+                                                background: '#0b1520',
+                                                flexShrink: 0,
+                                            }}
+                                        />
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div
                                                 style={{
-                                                    color: '#4fc1b3',
-                                                    fontSize: '12px',
-                                                    fontWeight: 800,
-                                                    letterSpacing: '1.5px',
-                                                    textTransform: 'uppercase',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'space-between',
+                                                    flexWrap: 'wrap',
+                                                    gap: '8px',
+                                                    marginBottom: '6px',
                                                 }}
                                             >
-                                                Edition #{ed.editionNumber}
-                                            </span>
-                                            <span style={{ color: '#8fa6bc', fontSize: '12.5px', fontWeight: 600 }}>
-                                                {formatIssueDate(ed.sentAt)}
-                                            </span>
-                                        </div>
-                                        <div style={{ fontSize: '18px', fontWeight: 800, lineHeight: 1.35, color: '#ffffff', marginBottom: '8px' }}>
-                                            {ed.subject}
-                                        </div>
-                                        <div style={{ color: '#60a5fa', fontSize: '13px', fontWeight: 700 }}>
-                                            Read Full Web Edition &rarr;
+                                                <span
+                                                    style={{
+                                                        color: '#4fc1b3',
+                                                        fontSize: '12px',
+                                                        fontWeight: 800,
+                                                        letterSpacing: '1.5px',
+                                                        textTransform: 'uppercase',
+                                                    }}
+                                                >
+                                                    Edition #{ed.editionNumber}
+                                                </span>
+                                                <span style={{ color: '#8fa6bc', fontSize: '12.5px', fontWeight: 600 }}>
+                                                    {formatIssueDate(ed.sentAt)}
+                                                </span>
+                                            </div>
+                                            <div style={{ fontSize: '17.5px', fontWeight: 800, lineHeight: 1.35, color: '#ffffff', marginBottom: '8px' }}>
+                                                {ed.subject}
+                                            </div>
+                                            <div style={{ color: '#60a5fa', fontSize: '13px', fontWeight: 700 }}>
+                                                Read Full Web Edition &rarr;
+                                            </div>
                                         </div>
                                     </Link>
                                 ))}

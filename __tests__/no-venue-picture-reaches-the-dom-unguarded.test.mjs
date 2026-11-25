@@ -129,6 +129,7 @@ test('the guard actually refuses a casino host and keeps the mirror', async () =
 
 const NEWS_RENDERERS = [
     'pages/hub/news.js',
+    'pages/hub/article.js',
     'src/components/news/NewsBox.js',
     'src/components/news/MSPTBox.js',
     'src/components/news/VideoCard.js',
