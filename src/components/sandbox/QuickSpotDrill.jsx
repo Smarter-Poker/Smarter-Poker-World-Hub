@@ -256,6 +256,7 @@ export default function QuickSpotDrill({
     const [practiceDisclosure, setPracticeDisclosure] = useState(null);
     const [answerError, setAnswerError] = useState(null);
     const [isSubmittingAnswer, setIsSubmittingAnswer] = useState(false);
+    const [timerRestartNonce, setTimerRestartNonce] = useState(0);
 
     const deadlineRef = useRef(spotDuration * 1000);
     const remainingRef = useRef(spotDuration);
@@ -307,7 +308,7 @@ export default function QuickSpotDrill({
                 }
             }
             if (!cleanedParams.limit) cleanedParams.limit = '10';
-            if (reviewLeakId && String(reviewLeakId).trim() !== '') {
+            if (!ignoreFilters && reviewLeakId && String(reviewLeakId).trim() !== '') {
                 cleanedParams.leak = String(reviewLeakId).trim();
             }
             const query = new URLSearchParams(cleanedParams).toString();
@@ -341,9 +342,13 @@ export default function QuickSpotDrill({
             timerQuestionKeyRef.current = null;
             setQuestions(shuffle(mapped).slice(0, cap));
             setDrillToken(typeof json?.drillToken === 'string' ? json.drillToken : null);
-            setPracticeDisclosure(json?.practiceOnly === true && typeof json?.evidenceDisclosure === 'string'
-                ? json.evidenceDisclosure
-                : null);
+            setPracticeDisclosure(
+                json?.practiceOnly === true && typeof json?.evidenceDisclosure === 'string'
+                    ? json.evidenceDisclosure
+                    : (!json?.drillToken
+                        ? 'Practice Mode Does Not Change Leak Mastery Or Unlock Rewards. A Verified Corrective Drill Requires A Signed Solver Batch.'
+                        : null),
+            );
             setCurrentIdx(0);
             setAnswer(null);
             setRevealed(false);
@@ -363,13 +368,14 @@ export default function QuickSpotDrill({
                 : 'Could not load drills. Check your connection and try again.');
             setLoadErrorPermanent(['insufficient_verified_questions', 'no_practice_questions'].includes(e?.reason));
             setQuestions([]);
+            setDrillToken(null);
             setPracticeDisclosure(null);
         } finally {
             if (myRunId === runIdRef.current && (!ctrl || abortRef.current === ctrl)) {
                 setLoading(false);
             }
         }
-    }, [activeParams, reviewLeakId]);
+    }, [activeParams, ignoreFilters, reviewLeakId]);
 
     useEffect(() => { load(); }, [load]);
 
@@ -644,6 +650,7 @@ export default function QuickSpotDrill({
             answerLockedRef.current = false;
             pausedRef.current = false;
             setAnswerError(error?.message || 'Could not verify the timeout. Retrying the timer.');
+            setTimerRestartNonce((n) => n + 1);
             setAnnouncement('Timeout was not recorded. The timer has restarted.');
             return;
         }
@@ -653,7 +660,7 @@ export default function QuickSpotDrill({
     // ── countdown (wall-clock, pauses while hidden or confirmQuit) ───────
     useEffect(() => {
         if (loading || revealed || finished || confirmQuit || questions.length === 0) return undefined;
-        const qKey = `${runIdRef.current}:${currentIdx}:${questions.length}`;
+        const qKey = `${runIdRef.current}:${currentIdx}:${questions.length}:${spotDuration}`;
         if (timerQuestionKeyRef.current !== qKey || remainingRef.current <= 0) {
             timerQuestionKeyRef.current = qKey;
             remainingRef.current = spotDuration;
@@ -674,7 +681,7 @@ export default function QuickSpotDrill({
         }, 250);
 
         return () => clearInterval(id);
-    }, [currentIdx, loading, revealed, finished, confirmQuit, questions.length, handleTimeout, answerError, spotDuration]);
+    }, [currentIdx, loading, revealed, finished, confirmQuit, questions.length, handleTimeout, answerError, spotDuration, timerRestartNonce]);
 
     // Backgrounding a phone for ten seconds must not auto-fail the question.
     useEffect(() => {

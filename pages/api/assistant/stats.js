@@ -60,7 +60,7 @@ export default async function handler(req, res) {
       // Always count the owned session rows and active leaks live; retain the
       // stored hand total only for Club Arena scans, whose unique-hand count is
       // deliberately persisted by the deterministic audit endpoint.
-      const [storedRes, sandboxRes, leakStats] = await Promise.all([
+      const [storedRes, sandboxRes, leakStats, clubHandsRes] = await Promise.all([
         getSupabase()
           .from('user_assistant_stats')
           .select('sandbox_sessions_count, total_sessions_reviewed, total_hands_analyzed')
@@ -71,12 +71,17 @@ export default async function handler(req, res) {
           .select('id', { count: 'exact', head: true })
           .eq('user_id', userId),
         getLeakStats(userId),
+        getSupabase()
+          .from('ca_hand_facts')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', userId),
       ]);
 
       const stored = storedRes?.data || null;
       const failedSources = [];
       if (storedRes?.error) failedSources.push('user_assistant_stats');
       if (sandboxRes?.error) failedSources.push('sandbox_sessions');
+      if (clubHandsRes?.error && clubHandsRes.error.code !== '42P01') failedSources.push('ca_hand_facts');
       const storedSandboxCount = stored && Number.isFinite(Number(stored.sandbox_sessions_count ?? stored.total_sessions_reviewed))
         ? Number(stored.sandbox_sessions_count ?? stored.total_sessions_reviewed)
         : null;
@@ -87,12 +92,16 @@ export default async function handler(req, res) {
         ? Number(stored.total_hands_analyzed)
         : null;
       const handsAnalyzed = storedHands;
+      const availableClubArenaHands = !clubHandsRes?.error && typeof clubHandsRes?.count === 'number'
+        ? clubHandsRes.count
+        : null;
 
       return res.status(200).json({
         success: true,
         stats: {
           sessionsReviewed: sandboxCount,
           handsAnalyzed,
+          availableClubArenaHands,
           leaksFound: leakStats.activeLeaks,
           resolvedLeaks: leakStats.resolvedLeaks,
           sandboxSessions: sandboxCount,
@@ -107,7 +116,8 @@ export default async function handler(req, res) {
             : 'live_count',
           handsAnalyzed: handsAnalyzed === null
             ? 'unavailable'
-            : 'deterministic_audit_total',
+            : (stored ? 'deterministic_audit_total' : 'not_yet_audited'),
+          availableClubArenaHands: availableClubArenaHands === null ? 'unavailable' : 'live_count',
           leaks: 'live_aggregate',
         },
       });

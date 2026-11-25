@@ -9,6 +9,7 @@
 import Head from 'next/head';
 import { AlertTriangle, ArrowRight, ShieldCheck } from 'lucide-react';
 import PersonalAssistantCopyPolicy from '../../src/components/personal-assistant/PersonalAssistantCopyPolicy';
+import { PAStyles } from '../../src/components/sandbox/paKit';
 import { T, F, S, FONT, btn } from '../../src/components/sandbox/paTokens';
 
 const SHARE_ID_RE = /^[A-Za-z0-9]{4,16}$/;
@@ -33,6 +34,7 @@ export default function RetiredSharedScenario({ validShareId }) {
       }}
     >
       <PersonalAssistantCopyPolicy />
+      <PAStyles />
       <Head>
         <title>Shared Scenario Retired | Smarter.Poker</title>
         <meta name="robots" content="noindex, nofollow" />
@@ -103,6 +105,7 @@ export default function RetiredSharedScenario({ validShareId }) {
         <div style={{ display: 'grid', gap: S.sm }}>
           <a
             href="/hub/training/hand-history-upload?source=retired-shared-sandbox"
+            className="pa-btn"
             style={{ ...btn('primary'), width: '100%', minHeight: 48, textDecoration: 'none' }}
           >
             Open Audited Hand Review
@@ -110,6 +113,7 @@ export default function RetiredSharedScenario({ validShareId }) {
           </a>
           <a
             href="/hub/training?source=retired-shared-sandbox"
+            className="pa-btn"
             style={{ ...btn('secondary'), width: '100%', minHeight: 48, textDecoration: 'none' }}
           >
             Open Verified Training

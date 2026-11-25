@@ -244,9 +244,15 @@ export default async function handler(req, res) {
           }
 
           // parseInt('abc') is NaN; slice(0, NaN) silently returns [].
-          // Upper bound is 50 (the drill builder's longest set); the 200-row
-          // candidate window below still comfortably covers it.
-          const n = Math.min(Math.max(parseInt(ownedDrillParams?.limit ?? limit, 10) || 10, 1), MAX_DRILL_LIMIT);
+          // Honor caller's explicit practice length (5/10/20) ahead of leak default
+          // while preserving the verified minimum (MIN_VERIFIED_QUESTIONS) when reward-eligible.
+          const rawLimit = Array.isArray(limit) ? limit[0] : limit;
+          const requestedLimit = parseInt(rawLimit, 10);
+          const baseLimit = Number.isFinite(requestedLimit) && requestedLimit > 0
+            ? requestedLimit
+            : (parseInt(ownedDrillParams?.limit, 10) || 10);
+          const minLimit = ownedDrillParams?.rewardEligible ? MIN_VERIFIED_QUESTIONS : 1;
+          const n = Math.min(Math.max(baseLimit, minLimit), MAX_DRILL_LIMIT);
           const effectiveStreet = ownedDrillParams?.street ?? street;
           const effectivePosition = ownedDrillParams?.position ?? position;
           const effectiveGame = ownedDrillParams?.game ?? game;
@@ -289,11 +295,19 @@ export default async function handler(req, res) {
           };
 
           // Page deterministically until the exact shared solver scope has
-          // enough rows or the documented 2,000-candidate safety bound ends.
+          // enough UNIQUE rows or the documented 2,000-candidate safety bound ends.
           const mappedRows = [];
+          const seenMappedIds = new Set();
           const exactPracticeRows = [];
           const scopedPracticeRows = [];
           const PAGE_SIZE = 200;
+          const pushUniqueMapped = (candidate) => {
+              if (!candidate) return;
+              const qid = String(candidate.question_id || candidate.id || '');
+              if (qid && seenMappedIds.has(qid)) return;
+              if (qid) seenMappedIds.add(qid);
+              mappedRows.push(candidate);
+          };
           for (let from = 0; from < 2000 && mappedRows.length < n; from += PAGE_SIZE) {
               const { data, error } = await buildQuery().range(from, from + PAGE_SIZE - 1);
               if (error) {
@@ -321,7 +335,7 @@ export default async function handler(req, res) {
                           exactScope
                           && row.source_classification === TRAINING_SOURCE_CLASSIFICATION.SOLVER_EXACT
                           && isVerifiedSolverQuestion(hydratedQuestion)
-                      ) mappedRows.push(mapCacheRow({ ...row, question_data: hydratedQuestion }));
+                      ) pushUniqueMapped(mapCacheRow({ ...row, question_data: hydratedQuestion }));
                   }
               } else {
                   // Verify serving eligibility on the raw row BEFORE injecting canonical_policy
@@ -334,7 +348,7 @@ export default async function handler(req, res) {
                           ...row,
                           question_data: honestPracticeQuestion(hydratedQuestion),
                       });
-                      if (mapped) mappedRows.push(mapped);
+                      pushUniqueMapped(mapped);
                   }
               }
               if (page.length < PAGE_SIZE) break;

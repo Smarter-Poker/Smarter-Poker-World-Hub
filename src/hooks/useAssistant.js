@@ -29,11 +29,13 @@ async function getAuthToken() {
 
 export function useAssistantStats(authState) {
   const [stats, setStats] = useState({
-    sessionsReviewed: 0,
-    handsAnalyzed: 0,
-    leaksFound: 0,
-    sandboxSessions: 0,
-    avgEvLoss: 0,
+    sessionsReviewed: null,
+    handsAnalyzed: null,
+    availableClubArenaHands: null,
+    leaksFound: null,
+    resolvedLeaks: null,
+    sandboxSessions: null,
+    avgEvLoss: null,
   });
   const [isDemo, setIsDemo] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -261,6 +263,10 @@ function formatLeak(leak) {
     evLossBB: leak.avg_ev_loss_bb,
     evLossMeasured: leak.ev_loss_measured === true,
     occurrenceCount: leak.occurrence_count,
+    totalSamples: leak.total_samples ?? null,
+    sampleSize: leak.total_samples ?? leak.occurrence_count ?? null,
+    mistakeCount: leak.mistake_count ?? null,
+    formatScope: inferLeakFormatScope(leak),
     firstDetected: leak.first_detected_at,
     trendData: leak.trend_data || [],
     explanation: leak.explanation,
@@ -280,6 +286,18 @@ function formatLeak(leak) {
     notes: leak.notes || null,
     frequencyIsEstimated: !!leak.frequency_is_estimated,
   };
+}
+
+function inferLeakFormatScope(leak) {
+  const explicit = String(leak?.format_scope || leak?.game_format || leak?.format || '').trim().toLowerCase();
+  if (explicit === 'cash' || explicit === 'cash_game' || explicit === 'cash_nlh') return 'cash';
+  if (explicit === 'tournament' || explicit === 'mtt' || explicit === 'tournament_nlh') return 'tournament';
+  const hay = `${leak?.leak_type || ''} ${leak?.recommended_drill || ''} ${leak?.situation_class || ''} ${leak?.leak_name || ''}`.toLowerCase();
+  const isTournament = hay.includes('mtt_') || hay.includes('mtt-') || hay.includes('tournament');
+  const isCash = hay.includes('cash_') || hay.includes('cash-') || hay.includes('cash nlh') || hay.includes('cash_game');
+  if (isTournament && !isCash) return 'tournament';
+  if (isCash && !isTournament) return 'cash';
+  return 'cross_format';
 }
 
 function formatLeakTitle(leakType) {
