@@ -114,19 +114,28 @@ export default function TournamentPrepPlanner() {
     return Number(Math.max(1.1, Math.min(2.4, levelFactor + depthFactor)).toFixed(2));
   }, [currentLevel, effectiveStackBb]);
 
+  const [brainVariant, setBrainVariant] = useState('nlh');
+
   const arenaHref = useMemo(
-    () => buildCustomTrainingArenaHref({ gameId: 'mtt-001', variant: 'nlh' }, 'tournament-prep'),
-    []
+    () => buildCustomTrainingArenaHref({ gameId: 'mtt-001', variant: brainVariant }, 'tournament-prep'),
+    [brainVariant]
   );
 
   const brainEval = useMemo(() => {
     try {
       const toCallBb = effectiveStackBb <= 18 ? Math.max(3, Math.round(effectiveStackBb * 0.7)) : 2.5;
+      const heroCardsByVariant = {
+        nlh: ['As', 'Qh'],
+        plo4: ['As', 'Ks', 'Qh', 'Jh'],
+        plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
+        plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
+        plo8: ['As', '2s', 'Kd', '3d'],
+      };
       return evaluateTrainingSpotWithHorseBrain({
         gameId: 'mtt-001',
-        variant: 'nlh',
+        variant: brainVariant,
         street: 'preflop',
-        heroCards: ['As', 'Qh'],
+        heroCards: heroCardsByVariant[brainVariant] || heroCardsByVariant.nlh,
         boardCards: [],
         heroPosition: 'BTN',
         villainPosition: 'BB',
@@ -141,7 +150,7 @@ export default function TournamentPrepPlanner() {
     } catch {
       return null;
     }
-  }, [currentLevel, effectiveStackBb, dynamicBubbleFactor, initialM]);
+  }, [currentLevel, effectiveStackBb, dynamicBubbleFactor, initialM, brainVariant]);
 
   const [activeTab, setActiveTab] = useState('structure');
 
@@ -326,6 +335,28 @@ export default function TournamentPrepPlanner() {
                   <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-amber)' }}>
                     Level {currentLevel} | {effectiveStackBb} BB | BF {dynamicBubbleFactor}x
                   </span>
+                </div>
+                <div data-variant-selector="true" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+                  {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      data-variant-option={v}
+                      onClick={() => setBrainVariant(v)}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: 6,
+                        fontSize: 12,
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        border: brainVariant === v ? '1px solid rgba(0, 212, 255, 0.75)' : '1px solid rgba(255,255,255,0.14)',
+                        background: brainVariant === v ? 'rgba(0, 212, 255, 0.2)' : 'rgba(255,255,255,0.04)',
+                        color: brainVariant === v ? '#e0f2fe' : 'var(--sp-fg-muted)',
+                      }}
+                    >
+                      {v.toUpperCase()}
+                    </button>
+                  ))}
                 </div>
                 <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.55 }}>
                   {brainEval.explanation}

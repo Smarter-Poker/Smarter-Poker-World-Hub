@@ -15,6 +15,9 @@ export const GTO_REPORTS_ROUTE_STATE_CONTRACT = Object.freeze({
   stale: 'localStorage',
   success: 'success',
   authExpiry: '401 unauthorized sign in',
+  supportedVariants: Object.freeze(['nlh', 'plo4', 'plo5', 'plo6', 'plo8']),
+  brainPanelSelector: 'data-specialty-brain-panel',
+  launchArenaCtaSelector: 'data-launch-club-arena-cta',
   adapter: evaluateTrainingSpotWithHorseBrain,
   buildArenaHref: buildCustomTrainingArenaHref,
 });

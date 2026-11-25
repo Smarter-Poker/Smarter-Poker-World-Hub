@@ -460,6 +460,7 @@ export default function WeaknessScannerPage() {
           {leakBrainEval && (
             <div
               data-leak-brain-panel="true"
+              data-specialty-brain-panel="true"
               data-brain-engine={leakBrainEval.brainEvaluation?.engineModule || leakBrainEval.engineModule}
               data-leak-basis={hasVerifiedLeak ? 'verified-history' : 'general-suggestion'}
               data-leak-variant={topLeakVariant}
@@ -568,6 +569,7 @@ export default function WeaknessScannerPage() {
               <button
                 type="button"
                 data-fix-top-leak-cta="true"
+                data-launch-club-arena-cta="true"
                 data-drill-top-weakness="true"
                 data-target-game-id={topLeakGameId}
                 data-target-variant={topLeakVariant}

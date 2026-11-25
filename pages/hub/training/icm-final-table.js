@@ -10,6 +10,7 @@ export default function IcmFinalTablePage() {
   const [firstPrizePct, setFirstPrizePct] = useState(35);
   const [minCashPct, setMinCashPct] = useState(8);
   const [toCallBb, setToCallBb] = useState(14);
+  const [brainVariant, setBrainVariant] = useState('nlh');
 
   const dynamicBubbleFactor = useMemo(() => {
     const baseBf = heroStackBb <= 15 ? 1.95 : heroStackBb <= 28 ? 1.68 : 1.38;
@@ -18,17 +19,24 @@ export default function IcmFinalTablePage() {
   }, [heroStackBb, firstPrizePct, minCashPct]);
 
   const arenaHref = useMemo(
-    () => buildCustomTrainingArenaHref({ gameId: 'mtt-004', variant: 'nlh' }, 'icm-final-table'),
-    []
+    () => buildCustomTrainingArenaHref({ gameId: 'mtt-004', variant: brainVariant }, 'icm-final-table'),
+    [brainVariant]
   );
 
   const brainEval = useMemo(() => {
     try {
+      const heroCardsByVariant = {
+        nlh: ['Ah', 'Js'],
+        plo4: ['As', 'Ks', 'Qh', 'Jh'],
+        plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
+        plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
+        plo8: ['As', '2s', 'Kd', '3d'],
+      };
       return evaluateTrainingSpotWithHorseBrain({
         gameId: 'mtt-004',
-        variant: 'nlh',
+        variant: brainVariant,
         street: 'preflop',
-        heroCards: ['Ah', 'Js'],
+        heroCards: heroCardsByVariant[brainVariant] || heroCardsByVariant.nlh,
         boardCards: [],
         heroPosition: 'CO',
         villainPosition: 'BTN',
@@ -43,7 +51,7 @@ export default function IcmFinalTablePage() {
     } catch {
       return null;
     }
-  }, [heroStackBb, firstPrizePct, minCashPct, toCallBb, dynamicBubbleFactor]);
+  }, [heroStackBb, firstPrizePct, minCashPct, toCallBb, dynamicBubbleFactor, brainVariant]);
 
   return (
     <>
@@ -121,6 +129,29 @@ export default function IcmFinalTablePage() {
                   <span style={{ fontSize: 12, fontWeight: 700, color: '#fbbf24' }}>
                     Engine: {brainEval.engineModule} | BF: {dynamicBubbleFactor}x | Recommended: {brainEval.recommendedAction}
                   </span>
+                </div>
+
+                <div data-variant-selector="true" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
+                  {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      data-variant-option={v}
+                      onClick={() => setBrainVariant(v)}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: 6,
+                        fontSize: 12,
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        border: brainVariant === v ? '1px solid #79e6ff' : '1px solid rgba(255,255,255,0.14)',
+                        background: brainVariant === v ? 'rgba(121, 230, 255, 0.2)' : 'rgba(255,255,255,0.04)',
+                        color: brainVariant === v ? '#e0f2fe' : '#b7c9d7',
+                      }}
+                    >
+                      {v.toUpperCase()}
+                    </button>
+                  ))}
                 </div>
 
                 <div

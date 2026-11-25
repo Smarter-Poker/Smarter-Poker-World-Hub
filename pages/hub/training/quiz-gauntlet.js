@@ -31,8 +31,9 @@ export default function LegacyQuizGauntletRedirect(props) {
   const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
   const isStale = typeof sessionStorage !== 'undefined' && Boolean(sessionStorage.getItem('sp_quiz_gauntlet_redirect_stale'));
   const authNotice = '401 unauthorized session expired sign in';
+  const supportedVariants = ['nlh', 'plo4', 'plo5', 'plo6', 'plo8'];
   const brainPreview = evaluateTrainingSpotWithHorseBrain({
-    variant: 'nlh',
+    variant: supportedVariants[0],
     street: 'flop',
     heroPosition: 'BTN',
     villainPosition: 'BB',
@@ -43,11 +44,11 @@ export default function LegacyQuizGauntletRedirect(props) {
     effectiveStackBb: 100,
   });
   const arenaHref = buildCustomTrainingArenaHref(
-    { format: 'cash', variant: 'nlh', streets: ['flop'], positions: ['BTN'], stackDepth: 100 },
+    { format: 'cash', variant: supportedVariants[0], streets: ['flop'], positions: ['BTN'], stackDepth: 100 },
     'quiz-gauntlet'
   );
   return (
-    <div data-legacy-quiz-gauntlet-redirect="true" data-offline={String(isOffline)} data-stale={String(isStale)} data-auth-notice={authNotice}>
+    <div data-legacy-quiz-gauntlet-redirect="true" data-specialty-brain-panel="true" data-offline={String(isOffline)} data-stale={String(isStale)} data-auth-notice={authNotice}>
       <a href="/hub/training/arena/quiz-gauntlet?level=1&source=legacy-quiz-gauntlet">Retry Quiz Gauntlet Arena</a>
       <a href={arenaHref} data-launch-club-arena-cta="true" data-brain-engine={brainPreview?.engineModule || 'holdem-brain.js'}>
         Launch 1:1 Club Arena Drill

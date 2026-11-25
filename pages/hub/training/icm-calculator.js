@@ -334,19 +334,28 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
     return Number(Math.max(1.08, Math.min(2.6, baseBf + skewAdjust)).toFixed(2));
   }, [results, prizes, stacks.length, heroStackBb]);
 
+  const [brainVariant, setBrainVariant] = useState('nlh');
+
   const arenaHref = useMemo(
-    () => buildCustomTrainingArenaHref({ gameId: 'mtt-013', variant: 'nlh' }, 'icm-calculator'),
-    []
+    () => buildCustomTrainingArenaHref({ gameId: 'mtt-013', variant: brainVariant }, 'icm-calculator'),
+    [brainVariant]
   );
 
   const brainEval = useMemo(() => {
     try {
       const toCallBb = heroStackBb <= 18 ? Math.max(4, Math.round(heroStackBb * 0.75)) : 6;
+      const heroCardsByVariant = {
+        nlh: ['Ad', 'Js'],
+        plo4: ['As', 'Ks', 'Qh', 'Jh'],
+        plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
+        plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
+        plo8: ['As', '2s', 'Kd', '3d'],
+      };
       return evaluateTrainingSpotWithHorseBrain({
         gameId: 'mtt-013',
-        variant: 'nlh',
+        variant: brainVariant,
         street: 'preflop',
-        heroCards: ['Ad', 'Js'],
+        heroCards: heroCardsByVariant[brainVariant] || heroCardsByVariant.nlh,
         boardCards: [],
         heroPosition: 'CO',
         villainPosition: 'BTN',
@@ -361,7 +370,7 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
     } catch {
       return null;
     }
-  }, [heroStackBb, dynamicBubbleFactor, stacks.length, prizes.length, prizePool]);
+  }, [heroStackBb, dynamicBubbleFactor, stacks.length, prizes.length, prizePool, brainVariant]);
 
   const schema = useMemo(() => {
     const canonicalPath = router.pathname === '/tools/icm-calculator' ? '/tools/icm-calculator' : '/hub/training/icm-calculator';
@@ -830,6 +839,28 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
                 <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-amber)' }}>
                   Hero Depth: {heroStackBb} BB | BF: {dynamicBubbleFactor}x | Action: {brainEval.recommendedAction}
                 </span>
+              </div>
+              <div data-variant-selector="true" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+                {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    data-variant-option={v}
+                    onClick={() => setBrainVariant(v)}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: 6,
+                      fontSize: 12,
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      border: brainVariant === v ? '1px solid rgba(168, 85, 247, 0.75)' : '1px solid rgba(255,255,255,0.14)',
+                      background: brainVariant === v ? 'rgba(168, 85, 247, 0.24)' : 'rgba(255,255,255,0.04)',
+                      color: brainVariant === v ? '#f3e8ff' : 'var(--sp-fg-muted)',
+                    }}
+                  >
+                    {v.toUpperCase()}
+                  </button>
+                ))}
               </div>
               <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.55 }}>
                 {brainEval.explanation}
