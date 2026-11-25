@@ -20,10 +20,53 @@
  */
 
 export const MEDIA_KINDS = ['image', 'video', 'gif', 'audio'];
+export const VISUAL_MEDIA_KINDS = ['image', 'video', 'gif'];
 
 const MARKER_BY_KIND = { image: 'Image', video: 'Video', gif: 'GIF', audio: 'Audio' };
 const KIND_BY_MARKER = { image: 'image', video: 'video', gif: 'gif', audio: 'audio' };
 const LABEL_BY_KIND = { image: 'Photo', video: 'Video', gif: 'GIF', audio: 'Voice Message' };
+const UPLOAD_EXT_MIME = {
+    jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
+    gif: 'image/gif', webp: 'image/webp', heic: 'image/heic', heif: 'image/heif',
+    mp4: 'video/mp4', mov: 'video/quicktime', m4v: 'video/x-m4v',
+    webm: 'video/webm', avi: 'video/x-msvideo', '3gp': 'video/3gpp',
+    '3g2': 'video/3gpp2', hevc: 'video/hevc', mkv: 'video/x-matroska',
+};
+const BLOCKED_UPLOAD_MIMES = new Set(['image/svg+xml']);
+
+/** True when an attachment renders as visual media (1px frameless card, no thick bubble padding). */
+export function isVisualMediaKind(kind) {
+    return VISUAL_MEDIA_KINDS.includes(kind);
+}
+
+/**
+ * Resolve a browser File's upload kind and MIME type, with extension fallback
+ * for iOS Photo Library picks that omit file.type or report application/octet-stream.
+ */
+export function resolveUploadMedia(file) {
+    if (!file) return null;
+    const rawMime = String(file.type || '').split(';')[0].trim().toLowerCase();
+    let mimeType = rawMime;
+    if (!mimeType || mimeType === 'application/octet-stream') {
+        const ext = String(file.name || '').split('.').pop().toLowerCase();
+        mimeType = UPLOAD_EXT_MIME[ext] || '';
+    }
+    if (!mimeType || BLOCKED_UPLOAD_MIMES.has(mimeType)) return null;
+    if (mimeType.startsWith('image/')) return { kind: 'image', mimeType };
+    if (mimeType.startsWith('video/')) return { kind: 'video', mimeType };
+    return null;
+}
+
+/**
+ * Append the iOS Safari first-frame media fragment (#t=0.001) to safe https
+ * video URLs so uploaded videos render a decoded first frame instead of a blank box.
+ */
+export function videoPreviewUrl(url) {
+    if (!isSafeMediaUrl(url)) return null;
+    const trimmed = url.trim();
+    if (/^blob:/i.test(trimmed) || trimmed.includes('#')) return trimmed;
+    return `${trimmed}#t=0.001`;
+}
 
 const MAX_URL_LENGTH = 2048;
 const FORWARD_PREFIX = '[Forwarded] ';
