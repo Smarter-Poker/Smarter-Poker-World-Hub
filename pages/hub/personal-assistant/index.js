@@ -1,22 +1,15 @@
 /**
- * PERSONAL ASSISTANT · Jarvis Strategy Hub
+ * PERSONAL ASSISTANT · Simplified MTT-Lobby Command Center
  * /hub/personal-assistant
  *
- * The page keeps the existing data, routes, access gates, and recovery flows,
- * while using the same machined black/chrome/cyan system as the Club Shop.
- *
- * MOBILE PHASE 4 (docs/mobile-standard/ROLLOUT-PLAN.md). Everything is always
- * displayed: the five section anchors are a wrapping grid rather than a snap
- * carousel, the Decision Loop keeps its label and each session keeps its date.
- * The page carries the phase 0a foundation: HubPageShell (100dvh, no second
- * bottom pad), useLoadFailsafe so a stalled hook cannot pin "Calibrating"
- * forever, useOnlineStatus + OfflineBar on the one network action, useHaptics
- * on every navigation tap, PullToRefresh over the content, and useModalHistory
- * so Back closes the menu instead of leaving the route.
+ * Default journey: Open Personal Assistant -> Understand Next Action -> Start.
+ * Uses the approved MTT lobby visual language (600px centered interior, top-lit
+ * metallic steel borders, royal-blue primary CTA, native <details> disclosures
+ * for secondary tools/activity) while preserving every data, security, mobile,
+ * and first-paint contract.
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import Head from 'next/head';
 import { useRouter } from 'next/router';
 import {
   Activity,
@@ -57,8 +50,21 @@ import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 import styles from '../../../src/styles/worlds/PersonalAssistantHub.module.css';
 import PersonalAssistantCopyPolicy from '../../../src/components/personal-assistant/PersonalAssistantCopyPolicy';
 import { resolveDailyHeroHand } from '../../../src/lib/personal-assistant/dailyHandContract.mjs';
+import {
+  PA_ANALYSIS_DEFAULTS,
+  resolveHomePrimaryState,
+} from '../../../src/lib/personal-assistant/assistantDefaults.mjs';
 
 const SYSTEMS = [
+  {
+    id: 'leaks',
+    eyebrow: 'Track And Improve Your Game',
+    title: 'Leak Finder',
+    description: 'Analyze your Club Arena Cash and Tournament NLH hands with sensible defaults.',
+    features: ['Detect Statistical Leaks', 'Track Progress Over Time', 'Open Targeted Training'],
+    action: 'View Leaks',
+    route: '/hub/personal-assistant/leaks',
+  },
   {
     id: 'sandbox',
     eyebrow: 'Verified Evidence Boundary',
@@ -66,18 +72,7 @@ const SYSTEMS = [
     description: 'Review why approximate scenario grading is retired, then continue in evidence-backed Training.',
     features: ['No Approximate Grades', 'No Substituted Spots', 'Open Verified Training'],
     action: 'Review Evidence Gate',
-    image: '/images/personal-assistant-v2/sandbox-system.webp',
     route: '/hub/personal-assistant/sandbox',
-  },
-  {
-    id: 'leaks',
-    eyebrow: 'Track And Improve Your Game',
-    title: 'Leak Finder',
-    description: 'Turn your session history into focused training with leak detection, progress signals, and next actions.',
-    features: ['Detect Statistical Leaks', 'Track Progress Over Time', 'Open Targeted Training'],
-    action: 'View Leaks',
-    image: '/images/personal-assistant-v2/leak-finder-system.webp',
-    route: '/hub/personal-assistant/leaks',
   },
 ];
 
@@ -120,15 +115,12 @@ export default function PersonalAssistantPage() {
   const haptic = useHaptics();
   const online = useOnlineStatus();
 
-  // Offline: the network action explains instead of firing. OfflineBar in
-  // pages/_app.js is the global banner; this is the per-action guard.
   const requireOnline = useCallback(() => {
     if (online) return true;
     toast.error(OFFLINE_TOAST);
     return false;
   }, [online]);
 
-  // Back closes the menu instead of leaving the route (mobile phase 0a).
   const closeMenu = useCallback(() => setShowMenu(false), []);
   useModalHistory(showMenu, closeMenu);
 
@@ -148,13 +140,6 @@ export default function PersonalAssistantPage() {
     refetch: refetchStats,
   } = useAssistantStats({ userId: user?.id, ready: !authInitializing });
 
-  /* LOAD FAILSAFE (mobile phase 0a). `useRecentSessions` / `useAssistantStats`
-     own their own `isLoading`, and a request that never settles used to pin
-     the Priority Queue on "Calibrating - Reading Your Latest Poker Data" with
-     no way out. This mirrors both flags into one the page owns, caps it at
-     eight seconds, and every "is it still loading" read below goes through the
-     capped pair. The underlying hooks are untouched, so a late answer still
-     lands. */
   const [dataLoading, setDataLoading] = useState(true);
   useEffect(() => {
     if (!statsLoading && !sessionsLoading) setDataLoading(false);
@@ -185,11 +170,11 @@ export default function PersonalAssistantPage() {
   const [dailyHand, setDailyHand] = useState(null);
   const [dailyHandStatus, setDailyHandStatus] = useState('loading');
   const [dailyHandReloadKey, setDailyHandReloadKey] = useState(0);
-  const [trainingPlan, setTrainingPlan] = useState(null);
+  const [coachingSnapshot, setCoachingSnapshot] = useState(null);
 
   useEffect(() => {
     if (authInitializing || !user?.id) {
-      setTrainingPlan(null);
+      setCoachingSnapshot(null);
       return undefined;
     }
     let cancelled = false;
@@ -204,8 +189,8 @@ export default function PersonalAssistantPage() {
           signal: controller.signal,
         });
         const payload = await response.json().catch(() => null);
-        if (!cancelled && response.ok && payload?.success && payload?.snapshot?.trainingPlan) {
-          setTrainingPlan(payload.snapshot.trainingPlan);
+        if (!cancelled && response.ok && payload?.success && payload?.snapshot) {
+          setCoachingSnapshot(payload.snapshot);
         }
       } catch (_) {
         // Optional enrichment on hub overview; Leak Finder holds full retry UI.
@@ -217,6 +202,7 @@ export default function PersonalAssistantPage() {
       controller.abort();
     };
   }, [authInitializing, user?.id, trainingPlanReloadKey, stats?.leaksFound, stats?.handsAnalyzed]);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -229,12 +215,6 @@ export default function PersonalAssistantPage() {
         const timeout = window.setTimeout(() => controller.abort(), DAILY_HAND_TIMEOUT_MS);
 
         try {
-          // Deliberately anonymous. This card only displays today's shared
-          // hand, which is open to everyone (Dan, 2026-10-12: "THEY SHOULD
-          // OPEN TO EVERYONE"). Sending a session token would make the route
-          // open the viewer's graded Daily Challenge attempt as a side effect
-          // of viewing this dashboard; answering happens on the Daily
-          // Challenge page, which signs its own request.
           const response = await fetch('/api/training/hand-of-the-day', {
             cache: 'no-store',
             headers: { Accept: 'application/json' },
@@ -327,7 +307,12 @@ export default function PersonalAssistantPage() {
 
   const activeLeakCount = Number(stats?.leaksFound) || 0;
   const handsAnalyzedCount = Number(stats?.handsAnalyzed) || 0;
+  const sessionsReviewedCount = Number(stats?.sessionsReviewed) || 0;
   const dataSyncError = statsError || sessionsError;
+  const trainingPlan = coachingSnapshot?.trainingPlan || null;
+  const reviewDueCount = Number(coachingSnapshot?.summary?.reviewsDue || 0);
+  const topPriority = coachingSnapshot?.priorities?.[0] || null;
+  const activeAuditRunning = Boolean(coachingSnapshot?.activeAuditRunning);
 
   const retryAssistantData = useCallback(async () => {
     if (isRetrying) return;
@@ -347,88 +332,42 @@ export default function PersonalAssistantPage() {
     }
   }, [isRetrying, requireOnline, haptic, refetchStats, refetchSessions]);
 
-  const nextMission = (() => {
-    if (statsBusy || sessionsBusy) {
-      return {
-        mode: 'loading',
-        badge: 'Calibrating',
-        title: 'Reading Your Latest Poker Data',
-        description: 'Jarvis Is Checking Your Sessions, Analysis History, And Active Leaks.',
-        action: 'Syncing Data',
-        signal: 'Live Data Link',
-      };
-    }
+  const primaryState = resolveHomePrimaryState({
+    loading: statsBusy || sessionsBusy,
+    syncError: dataSyncError,
+    isSignedIn: Boolean(user?.id),
+    isDemo: Boolean(statsDemo || stats?.isDemo),
+    auditRunning: activeAuditRunning,
+    reviewDueCount,
+    activeLeaksCount: activeLeakCount,
+    topLeakTitle: topPriority?.title || trainingPlan?.modules?.[0]?.title || null,
+    handsAnalyzed: handsAnalyzedCount,
+    sessionsReviewed: sessionsReviewedCount,
+    hasPracticeInProgress: Boolean(Array.isArray(trainingPlan?.modules) && trainingPlan.modules.length > 0),
+    trainingPlanTitle: trainingPlan?.modules?.[0]?.title || null,
+    lastSessionTitle: lastRealSession?.title || null,
+  });
 
-    if (dataSyncError) {
-      return {
-        mode: 'reconnect',
-        badge: 'Data Link Interrupted',
-        title: 'Reconnect Your Live Poker Data',
-        description: 'Jarvis Could Not Confirm Your Latest Sessions And Stats. Retry Before Acting On The Priority Queue.',
-        action: isRetrying ? 'Retrying Data' : 'Retry Live Data',
-        signal: 'Your Saved Data Is Unchanged',
-      };
-    }
-
-    if (activeLeakCount > 0) {
-      return {
-        mode: 'leaks',
-        badge: 'Highest Priority',
-        title: `Review ${activeLeakCount} Active Leak${activeLeakCount === 1 ? '' : 's'}`,
-        description: 'Resolve The Repeated Decisions Costing You EV Before Adding More Volume.',
-        action: 'Open Leak Finder',
-        signal: `${Number(stats?.resolvedLeaks || 0).toLocaleString()} Already Resolved`,
-      };
-    }
-
-    if (lastRealSession) {
-      return {
-        mode: 'resume',
-        badge: 'Historical Record',
-        title: lastRealSession.title,
-        description: 'Review The Evidence Boundary For Historical Sandbox Records. Approximate Sessions Cannot Resume As Scored Analysis.',
-        action: 'Review Archive',
-        signal: formatSessionDate(lastRealSession.date) || 'Most Recent Session',
-      };
-    }
-
-    if (dailyHand) {
-      return {
-        mode: 'daily',
-        badge: 'Daily Decision',
-        title: dailyHand.title || 'Solve Today’s Featured Spot',
-        description: 'Continue In The Signed Training Pipeline For Server-Delivered Questions And Grading.',
-        action: 'Open Verified Training',
-        signal: dailyHand.position || 'Daily Scenario',
-      };
-    }
-
-    return {
-      mode: 'start',
-      badge: 'Recommended Start',
-      title: 'Start Evidence-Backed Training',
-      description: 'Open The Signed Training Pipeline For Verified Question Delivery, Grading, And Feedback.',
-      action: 'Open Verified Training',
-      signal: 'Signed Attempt Required',
-    };
-  })();
-
-  const runNextMission = () => {
-    if (nextMission.mode === 'loading') return;
-    if (nextMission.mode === 'reconnect') {
+  const runPrimaryAction = () => {
+    if (primaryState.disabled) return;
+    if (primaryState.ctaAction === 'retry') {
       retryAssistantData();
       return;
     }
-    if (nextMission.mode === 'leaks') {
+    if (primaryState.ctaAction === 'open_review') {
+      openGuardedRoute('/hub/personal-assistant/leaks?tab=leaks');
+      return;
+    }
+    if (primaryState.ctaAction === 'open_leaks') {
       openGuardedRoute('/hub/personal-assistant/leaks');
       return;
     }
-    if (nextMission.mode === 'resume') {
-      openSession(lastRealSession);
+    if (primaryState.ctaAction === 'continue_practice') {
+      openGuardedRoute('/hub/personal-assistant/leaks?tab=coaching&view=coach');
       return;
     }
-    if (nextMission.mode === 'daily') {
-      openDailyTraining();
+    if (primaryState.ctaAction === 'analyze_now') {
+      openGuardedRoute('/hub/personal-assistant/leaks?autorun=1');
       return;
     }
     openGuardedRoute('/hub/training?source=personal-assistant-priority');
@@ -438,7 +377,7 @@ export default function PersonalAssistantPage() {
     {
       step: '01',
       title: 'Play',
-      detail: 'Club Arena Live Tables And History',
+      detail: 'Club Arena Hands',
       Icon: FlaskConical,
       route: '/hub/club-arena/hand-history?source=personal-assistant-loop',
     },
@@ -452,17 +391,17 @@ export default function PersonalAssistantPage() {
     {
       step: '03',
       title: 'Train',
-      detail: `${handsAnalyzedCount.toLocaleString()} Hand${handsAnalyzedCount === 1 ? '' : 's'} Analyzed`,
+      detail: `${handsAnalyzedCount.toLocaleString()} Analyzed`,
       Icon: BrainCircuit,
       route: '/hub/training?source=personal-assistant-loop',
     },
   ];
 
   const statCards = [
-    { title: 'Sessions Reviewed', value: stats?.sessionsReviewed || 0, label: 'Historical Records', Icon: History, route: '/hub/personal-assistant/sandbox' },
-    { title: 'Hands Analyzed', value: stats?.handsAnalyzed || 0, label: 'Recorded Reviews', Icon: Layers, route: '/hub/personal-assistant/leaks' },
     { title: 'Active Leaks', value: stats?.leaksFound || 0, label: `${(stats?.resolvedLeaks || 0).toLocaleString()} Resolved`, Icon: Droplet, route: '/hub/personal-assistant/leaks' },
-    { title: 'Archived Sessions', value: stats?.sandboxSessions || 0, label: 'Historical Sandbox Records', Icon: FlaskConical, route: '/hub/personal-assistant/sandbox' },
+    { title: 'Hands Analyzed', value: stats?.handsAnalyzed || 0, label: 'Verified Audits', Icon: Layers, route: '/hub/personal-assistant/leaks' },
+    { title: 'Sessions Reviewed', value: stats?.sessionsReviewed || 0, label: 'Records', Icon: History, route: '/hub/personal-assistant/sandbox' },
+    { title: 'Archived Sessions', value: stats?.sandboxSessions || 0, label: 'Archive', Icon: FlaskConical, route: '/hub/personal-assistant/sandbox' },
   ];
 
   const activityCards = [
@@ -480,22 +419,22 @@ export default function PersonalAssistantPage() {
       onClick: () => openGuardedRoute('/hub/training?source=personal-assistant-activity'),
     },
     {
-      title: 'New Leaks',
+      title: 'Leak Finder',
       label: statsBusy ? 'Loading Leak Data…' : `${(stats?.leaksFound || 0).toLocaleString()} Active`,
       detail: statsBusy ? 'Checking Progress' : `${(stats?.resolvedLeaks || 0).toLocaleString()} Resolved`,
       Icon: ScanSearch,
       onClick: () => openGuardedRoute('/hub/personal-assistant/leaks'),
     },
     {
-      title: 'Last Session',
-      label: sessionsBusy ? 'Loading Last Session…' : (lastRealSession?.title || 'Nothing To Restore Yet'),
-      detail: lastRealSession ? formatSessionDate(lastRealSession.date) : 'No Historical Record Yet',
+      title: 'Coaching & Settings',
+      label: 'Plan, Goals, Export, Privacy',
+      detail: 'Open Coaching Workspace',
       Icon: Activity,
-      onClick: () => (lastRealSession ? openSession(lastRealSession) : openGuardedRoute('/hub/personal-assistant/sandbox')),
+      onClick: () => openGuardedRoute('/hub/personal-assistant/leaks?tab=coaching&view=coach'),
     },
     {
       title: 'Training Center',
-      label: 'Build Your Decision-Making',
+      label: 'Signed Solver Practice',
       detail: 'Open Training',
       Icon: BrainCircuit,
       onClick: () => openGuardedRoute('/hub/training'),
@@ -512,19 +451,6 @@ export default function PersonalAssistantPage() {
   const heroCards = (normalizeHeroHand(dailyHand?.heroHand)?.match(/.{2}/g) || []).map(formatCard);
   const boardCards = (normalizeBoardCards(dailyHand?.board) || []).map(formatCard);
 
-  /* The first paint used to be a black page with one centred 12px line until
-     `mounted` flipped, so the largest contentful paint was that string and
-     nothing about the page was on screen. The shell, header, the five section
-     anchors and the Jarvis hero now paint on the server; only the data blocks
-     below the hero are placeholders, and they carry the same heights as the
-     real content so nothing jumps when it arrives.
-
-     MOBILE LCP (2026-10-16). The hero is the page's largest element and holds
-     no browser-only data: its status badge and "Continue Last Session" button
-     start from the same not-loaded state on the server and on the first client
-     render. It sat behind `mounted`, so it could only appear after hydration
-     plus one more render, which put LCP at 3.1-3.9s on the 2.5s budget
-     (Global Footer E2E 38847919432). It renders on the server now. */
   const skeleton = (
     <div className={styles.skel} aria-hidden="true">
       <div className={`${styles.skelBlock} ${styles.skelBar}`} />
@@ -532,35 +458,22 @@ export default function PersonalAssistantPage() {
       <div className={styles.skelRow}>
         <div className={`${styles.skelBlock} ${styles.skelCard}`} />
         <div className={`${styles.skelBlock} ${styles.skelCard}`} />
-        <div className={`${styles.skelBlock} ${styles.skelCard}`} />
-        <div className={`${styles.skelBlock} ${styles.skelCard}`} />
       </div>
     </div>
   );
 
-  // disableInitialAnimation: the entrance variant starts at opacity 0, so the
-  // server-rendered hero stayed invisible until framer-motion hydrated and
-  // animated it in. Paint it on the first frame instead.
   return (
     <PageTransition disableInitialAnimation>
       <SEOHead
         title="Personal Poker Assistant - Jarvis AI"
-        description="Get Personalized Poker Coaching, Deterministic Leak Detection, And Evidence-Backed Training Reviews From Jarvis, Your AI Poker Strategy Assistant On Smarter.Poker."
+        description="Get Personalized Poker Coaching, Deterministic Leak Detection, And Evidence-Backed Training Reviews On Smarter.Poker."
         canonical="/hub/personal-assistant"
       />
-      <Head>
-        <link
-          rel="preload"
-          as="image"
-          href="/images/personal-assistant-v2/jarvis-hero.webp"
-          type="image/webp"
-        />
-      </Head>
 
       <PersonalAssistantCopyPolicy />
       <HubPageShell
         className="pa"
-        maxWidth={1240}
+        maxWidth={640}
         header={<UniversalHeader pageDepth={1} onMenuClick={() => setShowMenu(!showMenu)} />}
       >
       <div className={styles.page}>
@@ -573,47 +486,36 @@ export default function PersonalAssistantPage() {
           bottomLinks={menuConfig.bottomLinks}
         />
 
-        {/* Five anchors, every one on screen at 375. This was a hidden-scrollbar
-            snap carousel of 126px cards below 640 (the "slide to see" ban). */}
+        {/* Compact single-row MTT lobby tab strip */}
         <nav className={styles.tabs} aria-label="Personal Assistant Sections" data-tutorial="nav">
           <a className={styles.activeTab} href="#overview" aria-current="page" onClick={() => haptic('light')}>Overview</a>
-          <button type="button" onClick={() => openGuardedRoute('/hub/personal-assistant/sandbox')}>Scenario Archive</button>
           <button type="button" onClick={() => openGuardedRoute('/hub/personal-assistant/leaks')}>Leak Finder</button>
           <button type="button" onClick={() => openGuardedRoute('/hub/training')}>Training Center</button>
-          <a href="#activity" onClick={() => haptic('light')}>Activity</a>
         </nav>
 
-        {/* Pull down at the top to re-read sessions and stats. Off while the
-            menu is open so a drag inside it cannot fire a reload underneath. */}
         <PullToRefresh onRefresh={retryAssistantData} disabled={showMenu}>
         <main className={styles.main} id="overview">
+          {/* Compact MTT lobby header plaque (zero data deps -> instant LCP) */}
           <section className={`${styles.frame} ${styles.hero}`} aria-labelledby="assistant-title">
             <div className={styles.heroInner}>
               <div className={styles.heroCopy}>
                 <span className={styles.eyebrow}>Personal Poker Assistant</span>
-                <h1 id="assistant-title">Meet Jarvis.<br />Your Edge At The Table.</h1>
-                <p>Open Verified Training, Find Leaks, And Turn Evidence-Backed Reviews Into Better Decisions From One Command Center.</p>
-                <div className={`${styles.statusBadge} ${dataSyncError ? styles.statusWarning : ''}`} role="status">
-                  <span className={styles.statusDot} aria-hidden="true" />
-                  {dataSyncError ? 'Jarvis Online · Data Sync Needs Attention' : 'Jarvis Online · Training Pipeline Connected'}
+                <h1 id="assistant-title">Personal Assistant</h1>
+                <p>Find Leaks In Your Completed Club Arena Hands And Practice The Exact Spots Costing You Chips.</p>
+                <div className={styles.heroMetaRow}>
+                  <div className={`${styles.statusBadge} ${dataSyncError ? styles.statusWarning : ''}`} role="status">
+                    <span className={styles.statusDot} aria-hidden="true" />
+                    {dataSyncError ? 'Data Sync Needs Attention' : 'Training Pipeline Connected'}
+                  </div>
                 </div>
                 <div className={styles.heroActions}>
                   <button
                     type="button"
-                    className={styles.primaryButton}
+                    className={styles.secondaryButton}
                     onClick={() => openGuardedRoute('/hub/training?source=personal-assistant-hero')}
                   >
-                    <Play size={15} fill="currentColor" aria-hidden="true" />Open Verified Training
+                    <Play size={14} fill="currentColor" aria-hidden="true" />Open Verified Training
                   </button>
-                  {lastRealSession && (
-                    <button
-                      type="button"
-                      className={styles.secondaryButton}
-                      onClick={() => openSession(lastRealSession)}
-                    >
-                      <History size={15} aria-hidden="true" />Continue Last Session
-                    </button>
-                  )}
                 </div>
               </div>
             </div>
@@ -626,7 +528,7 @@ export default function PersonalAssistantPage() {
               <span className={styles.syncAlertIcon} aria-hidden="true"><AlertTriangle size={18} /></span>
               <span className={styles.syncAlertCopy}>
                 <strong>Live Data Could Not Refresh</strong>
-                <small>Your Saved Poker Data Is Unchanged. Retry The Connection To Refresh Sessions And Statistics.</small>
+                <small>Your Saved Poker Data Is Unchanged. Retry To Refresh Sessions And Stats.</small>
               </span>
               <button type="button" className={styles.secondaryButton} onClick={retryAssistantData} disabled={isRetrying}>
                 <RotateCw size={14} aria-hidden="true" />{isRetrying ? 'Retrying' : 'Retry Now'}
@@ -634,34 +536,42 @@ export default function PersonalAssistantPage() {
             </div>
           )}
 
-          <section className={`${styles.section} ${styles.missionSection}`} aria-labelledby="mission-title" data-tutorial="mission">
+          {/* Primary State-Driven Next Action Card */}
+          <section className={styles.section} aria-labelledby="mission-title" data-tutorial="mission">
             <SectionBar
               id="mission-title"
-              title="Jarvis Priority Queue"
-              meta={(statsDemo || stats?.isDemo) ? 'Sample Recommendation' : 'Personalized Next Move'}
+              title="Next Action"
+              meta={(statsDemo || stats?.isDemo) ? 'Preview Mode' : primaryState.badge}
             />
-            <div className={styles.missionFrame} aria-live="polite" aria-busy={nextMission.mode === 'loading'}>
+            <div className={styles.missionFrame} aria-live="polite" aria-busy={primaryState.state === 'loading'}>
               <div className={styles.missionPrimary}>
-                <span className={styles.missionTarget} aria-hidden="true"><Target size={25} /></span>
+                <div className={styles.missionHeader}>
+                  <span className={styles.missionTarget} aria-hidden="true"><Target size={20} /></span>
+                  <div className={styles.missionCopy}>
+                    <span className={styles.missionBadge}>{primaryState.badge}</span>
+                    <h3>{primaryState.title}</h3>
+                  </div>
+                </div>
                 <div className={styles.missionCopy}>
-                  <span className={styles.missionBadge}>{nextMission.badge}</span>
-                  <h3>{nextMission.title}</h3>
-                  <p>{nextMission.description}</p>
-                  <span className={styles.missionSignal}><Activity size={13} aria-hidden="true" />{nextMission.signal}</span>
+                  <p>{primaryState.summary}</p>
+                  <span className={styles.missionSignal}>
+                    <Activity size={13} aria-hidden="true" />
+                    Default Scope: {PA_ANALYSIS_DEFAULTS.scopeSummary}
+                  </span>
                 </div>
                 <button
                   type="button"
                   className={styles.primaryButton}
-                  onClick={runNextMission}
-                  disabled={nextMission.mode === 'loading' || isRetrying}
+                  onClick={runPrimaryAction}
+                  disabled={primaryState.disabled || isRetrying}
                 >
-                  {nextMission.action}<ChevronRight size={16} aria-hidden="true" />
+                  {isRetrying ? 'Retrying Data' : primaryState.ctaLabel}
+                  <ChevronRight size={16} aria-hidden="true" />
                 </button>
               </div>
-              {/* The label used to be `display: none` below 960, leaving three
-                  numbered steps with nothing saying what the row is. */}
-              <div className={styles.decisionLoop} aria-label="Jarvis improvement path" data-tutorial="loop">
-                <span className={styles.loopLabel}><Route size={15} aria-hidden="true" />Decision Loop</span>
+
+              <div className={styles.decisionLoop} aria-label="Improvement path" data-tutorial="loop">
+                <span className={styles.loopLabel}><Route size={14} aria-hidden="true" />Decision Loop</span>
                 {decisionLoop.map(({ step, title, detail, Icon, route }) => (
                   <button
                     type="button"
@@ -671,25 +581,19 @@ export default function PersonalAssistantPage() {
                     aria-label={`${step}. ${title}. ${detail}.`}
                   >
                     <span className={styles.loopNumber}>{step}</span>
-                    <Icon size={17} aria-hidden="true" />
-                    <span><strong>{title}</strong><small>{statsBusy ? 'Syncing Live Data' : detail}</small></span>
-                    <ChevronRight size={14} aria-hidden="true" />
+                    <span><strong>{title}</strong><small>{statsBusy ? 'Syncing' : detail}</small></span>
                   </button>
                 ))}
               </div>
+
               {Array.isArray(trainingPlan?.modules) && trainingPlan.modules.length > 0 && (
                 <div className={styles.missionPrimary} aria-label="Deterministic Training Plan Preview">
-                  <span className={styles.missionTarget} aria-hidden="true"><CheckCircle2 size={24} /></span>
                   <div className={styles.missionCopy}>
                     <span className={styles.missionBadge}>
                       {trainingPlan.modules[0].formatScope} · {trainingPlan.modules[0].tableVerification?.label || 'Training In Progress'}
                     </span>
                     <h3>Next Drill: {trainingPlan.modules[0].title}</h3>
                     <p>{trainingPlan.modules[0].objective}</p>
-                    <span className={styles.missionSignal}>
-                      <Activity size={13} aria-hidden="true" />
-                      {trainingPlan.totalModules} Active Module{trainingPlan.totalModules === 1 ? '' : 's'} · {trainingPlan.tableVerifiedCount || 0} Confirmed Fixed At Tables
-                    </span>
                   </div>
                   <button
                     type="button"
@@ -703,50 +607,11 @@ export default function PersonalAssistantPage() {
             </div>
           </section>
 
-          <section className={styles.section} aria-labelledby="systems-title" data-tutorial="systems">
-            <SectionBar id="systems-title" title="Choose Your Tool" meta="2 Systems Available" />
-            <div className={styles.systemGrid}>
-              {SYSTEMS.map((system) => (
-                <article className={styles.systemCard} key={system.id}>
-                  <button
-                    type="button"
-                    className={styles.systemCardTrigger}
-                    onClick={() => openGuardedRoute(system.route)}
-                    aria-label={`${system.action}. ${system.description}`}
-                  >
-                  <span className={styles.systemCardInner}>
-                    <div
-                      className={styles.systemArt}
-                      style={{ backgroundImage: `url(${system.image})` }}
-                      role="img"
-                      aria-label={`${system.title} holographic system artwork`}
-                    />
-                    <div className={styles.systemCopy}>
-                      <div>
-                        <span className={styles.systemEyebrow}>{system.eyebrow}</span>
-                        <h3>{system.title}</h3>
-                        <p>{system.description}</p>
-                        <ul>
-                          {system.features.map((feature) => (
-                            <li key={feature}><CheckCircle2 size={14} aria-hidden="true" />{feature}</li>
-                          ))}
-                        </ul>
-                      </div>
-                      <span className={system.id === 'sandbox' ? styles.primaryButton : styles.secondaryButton}>
-                        {system.action}<ChevronRight size={16} aria-hidden="true" />
-                      </span>
-                    </div>
-                  </span>
-                  </button>
-                </article>
-              ))}
-            </div>
-          </section>
-
+          {/* Compact 4-Metric Summary Strip */}
           <section className={styles.section} aria-labelledby="dashboard-title" data-tutorial="stats">
-            <SectionBar id="dashboard-title" title="Dashboard Overview" meta="Live Performance" />
+            <SectionBar id="dashboard-title" title="Summary" meta={(statsDemo || stats?.isDemo) ? 'Sample View' : 'Your Account'} />
             {(statsDemo || stats?.isDemo) && (
-              <p className={styles.demoNote}>Sample View · Sign In To See Your Own Sessions, Hands, And Leaks.</p>
+              <p className={styles.demoNote}>Sample View · Sign In To See Your Own Hands And Leaks.</p>
             )}
             <div className={styles.statGrid} aria-busy={statsBusy} aria-live="polite">
               {statCards.map(({ title, value, label, Icon, route }) => (
@@ -755,138 +620,195 @@ export default function PersonalAssistantPage() {
                   className={styles.statCard}
                   key={title}
                   onClick={() => openGuardedRoute(route)}
-                  aria-label={`${title}: ${Number(value).toLocaleString()}. ${label}. View Details.`}
+                  aria-label={`${title}: ${Number(value).toLocaleString()}. ${label}.`}
                 >
                   <span className={styles.statCardInner}>
-                    <span className={styles.statTopline}><Icon size={17} aria-hidden="true" />{title}</span>
+                    <span className={styles.statTopline}><Icon size={14} aria-hidden="true" />{title}</span>
                     <strong>{statsBusy ? 'Not Available' : Number(value).toLocaleString()}</strong>
-                    <span className={styles.statLabel}>{statsBusy ? 'Loading Live Data…' : label}</span>
-                    <span className={styles.statAction}>View Details<ChevronRight size={13} aria-hidden="true" /></span>
+                    <span className={styles.statLabel}>{statsBusy ? 'Loading…' : label}</span>
                   </span>
                 </button>
               ))}
             </div>
           </section>
 
-          <section className={styles.section} id="activity" aria-labelledby="activity-title" data-tutorial="activity">
-            <SectionBar id="activity-title" title="Your Activity" meta="Recent Data" />
-            <div className={styles.activityGrid}>
-              {activityCards.map(({ title, label, detail, Icon, onClick }) => (
-                <button type="button" className={styles.activityCard} key={title} onClick={onClick}>
-                  <span className={styles.activityCardInner}>
-                    <span className={styles.activityIcon}><Icon size={21} aria-hidden="true" /></span>
-                    <span className={styles.activityContent}>
-                      <strong>{title}</strong>
-                      <span>{label}</span>
-                      <small>{detail}</small>
-                    </span>
-                    <ChevronRight className={styles.activityChevron} size={17} aria-hidden="true" />
-                  </span>
-                </button>
-              ))}
-            </div>
-            {!sessionsBusy && (recentSessions || []).length > 0 && (
-              <div className={styles.sessionRail} aria-label="Recent session history" data-tutorial="sessions">
-                <div className={styles.sessionRailHeader}>
-                  <span>Continue A Session</span>
-                  <small>Most Recent First</small>
-                </div>
-                <div className={styles.sessionList}>
-                  {recentSessions.slice(0, 3).map((session) => (
-                    <button
-                      type="button"
-                      className={styles.sessionRow}
-                      key={`${session.type}-${session.id}`}
-                      onClick={() => openSession(session)}
-                      aria-label={`Open ${session.title}. ${sessionTypeLabel(session)}. ${formatEv(session.evLoss)}.`}
-                    >
-                      <span className={styles.sessionMarker} aria-hidden="true">
-                        {session.type === 'leak' ? <ScanSearch size={17} /> : <FlaskConical size={17} />}
-                      </span>
-                      <span className={styles.sessionIdentity}>
-                        <strong>{session.title}</strong>
-                        <small>{sessionTypeLabel(session)}{session.isDemo ? ' · Sample' : ''}</small>
-                      </span>
-                      <span className={styles.sessionDate}>{formatSessionDate(session.date) || 'Recent'}</span>
-                      <span className={`${styles.sessionEv} ${typeof session.evLoss === 'number' && session.evLoss < 0 ? styles.negativeEv : ''}`}>
-                        {formatEv(session.evLoss)}
-                      </span>
-                      <ChevronRight size={17} aria-hidden="true" />
-                    </button>
+          {/* Secondary Disclosures: More Tools & Evidence Archive */}
+          <section className={styles.section} aria-labelledby="systems-title" data-tutorial="systems">
+            <details className={styles.disclosure}>
+              <summary id="systems-title">
+                <span>Tools &amp; Evidence Boundary</span>
+                <small>Leak Finder · Scenario Archive</small>
+              </summary>
+              <div className={styles.disclosureBody}>
+                <div className={styles.systemGrid}>
+                  {SYSTEMS.map((system) => (
+                    <article className={styles.systemCard} key={system.id}>
+                      <button
+                        type="button"
+                        className={styles.systemCardTrigger}
+                        onClick={() => openGuardedRoute(system.route)}
+                        aria-label={`${system.action}. ${system.description}`}
+                      >
+                        <span className={styles.systemCardInner}>
+                          <div className={styles.systemCopy}>
+                            <div>
+                              <span className={styles.systemEyebrow}>{system.eyebrow}</span>
+                              <h3>{system.title}</h3>
+                              <p>{system.description}</p>
+                              <ul>
+                                {system.features.map((feature) => (
+                                  <li key={feature}><CheckCircle2 size={13} aria-hidden="true" />{feature}</li>
+                                ))}
+                              </ul>
+                            </div>
+                            <span className={styles.secondaryButton}>
+                              {system.action}<ChevronRight size={15} aria-hidden="true" />
+                            </span>
+                          </div>
+                        </span>
+                      </button>
+                    </article>
                   ))}
                 </div>
               </div>
-            )}
+            </details>
           </section>
 
-          <section className={styles.section} aria-labelledby="daily-title" data-tutorial="daily">
-            <SectionBar id="daily-title" title="Hand Of The Day" meta="Daily Decision Drill" />
-            <div className={styles.dailyFrame}>
-              {dailyHand ? (
-                <div className={styles.dailyInner}>
-                  <div className={styles.holeCards} aria-label={`Hero hand ${dailyHand.heroHand || 'unknown'}`}>
-                    {(heroCards.length ? heroCards : [formatCard('?'), formatCard('?')]).map((card, index) => (
-                      <span className={`${styles.playingCard} ${card.red ? styles.redCard : ''}`} key={`${card.rank}${card.suit}-${index}`}>
-                        {card.rank}<i>{card.suit}</i>
+          {/* Secondary Disclosure: Activity & Recent Sessions */}
+          <section className={styles.section} id="activity" aria-labelledby="activity-title" data-tutorial="activity">
+            <details className={styles.disclosure}>
+              <summary id="activity-title">
+                <span>Activity, Sessions &amp; Settings</span>
+                <small>{(recentSessions || []).length} Recent</small>
+              </summary>
+              <div className={styles.disclosureBody}>
+                <div className={styles.activityGrid}>
+                  {activityCards.map(({ title, label, detail, Icon, onClick }) => (
+                    <button type="button" className={styles.activityCard} key={title} onClick={onClick}>
+                      <span className={styles.activityCardInner}>
+                        <span className={styles.activityIcon}><Icon size={17} aria-hidden="true" /></span>
+                        <span className={styles.activityContent}>
+                          <strong>{title}</strong>
+                          <span>{label}</span>
+                          <small>{detail}</small>
+                        </span>
+                        <ChevronRight className={styles.activityChevron} size={15} aria-hidden="true" />
                       </span>
-                    ))}
+                    </button>
+                  ))}
+                </div>
+                {!sessionsBusy && (recentSessions || []).length > 0 && (
+                  <div className={styles.sessionRail} aria-label="Recent session history" data-tutorial="sessions">
+                    <div className={styles.sessionRailHeader}>
+                      <span>Continue A Session</span>
+                      <small>Most Recent First</small>
+                    </div>
+                    <div className={styles.sessionList}>
+                      {recentSessions.slice(0, 3).map((session) => (
+                        <button
+                          type="button"
+                          className={styles.sessionRow}
+                          key={`${session.type}-${session.id}`}
+                          onClick={() => openSession(session)}
+                          aria-label={`Open ${session.title}. ${sessionTypeLabel(session)}. ${formatEv(session.evLoss)}.`}
+                        >
+                          <span className={styles.sessionMarker} aria-hidden="true">
+                            {session.type === 'leak' ? <ScanSearch size={15} /> : <FlaskConical size={15} />}
+                          </span>
+                          <span className={styles.sessionIdentity}>
+                            <strong>{session.title}</strong>
+                            <small>{sessionTypeLabel(session)}{session.isDemo ? ' · Sample' : ''}</small>
+                          </span>
+                          <span className={styles.sessionDate}>{formatSessionDate(session.date) || 'Recent'}</span>
+                          <span className={`${styles.sessionEv} ${typeof session.evLoss === 'number' && session.evLoss < 0 ? styles.negativeEv : ''}`}>
+                            {formatEv(session.evLoss)}
+                          </span>
+                          <ChevronRight size={15} aria-hidden="true" />
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  <div className={styles.dailyCopy}>
-                    <span className={styles.dailyEyebrow}>
-                      {dailyHand.position || 'BTN'} · {Number(dailyHand.pot) > 0 ? `Pot ${Number(dailyHand.pot)} BB` : 'Daily Scenario'}
-                    </span>
-                    <h3>{dailyHand.title || 'What Is The Best Line?'}</h3>
-                    {boardCards.length > 0 && (
-                      <div className={styles.boardCards} aria-label={`Board ${dailyHand.board}`}>
-                        {boardCards.map((card, index) => (
-                          <span className={`${styles.boardCard} ${card.red ? styles.redCard : ''}`} key={`${card.rank}${card.suit}-${index}`}>
+                )}
+              </div>
+            </details>
+          </section>
+
+          {/* Secondary Disclosure: Hand Of The Day */}
+          <section className={styles.section} aria-labelledby="daily-title" data-tutorial="daily">
+            <details className={styles.disclosure}>
+              <summary id="daily-title">
+                <span>Hand Of The Day</span>
+                <small>{dailyHand ? (dailyHand.position || 'Daily Spot') : 'Daily Drill'}</small>
+              </summary>
+              <div className={styles.disclosureBody}>
+                <div className={styles.dailyFrame}>
+                  {dailyHand ? (
+                    <div className={styles.dailyInner}>
+                      <div className={styles.holeCards} aria-label={`Hero hand ${dailyHand.heroHand || 'unknown'}`}>
+                        {(heroCards.length ? heroCards : [formatCard('?'), formatCard('?')]).map((card, index) => (
+                          <span className={`${styles.playingCard} ${card.red ? styles.redCard : ''}`} key={`${card.rank}${card.suit}-${index}`}>
                             {card.rank}<i>{card.suit}</i>
                           </span>
                         ))}
                       </div>
-                    )}
-                    <span className={styles.dailyPrompt}><Sparkles size={14} aria-hidden="true" />Continue In The Signed Training Pipeline</span>
-                  </div>
-                  <button type="button" className={styles.primaryButton} onClick={openDailyTraining}>
-                    <Play size={15} fill="currentColor" aria-hidden="true" />Open Verified Training
-                  </button>
-                </div>
-              ) : (
-                <div
-                  className={styles.dailyState}
-                  role={dailyHandStatus === 'error' ? 'alert' : 'status'}
-                  aria-live="polite"
-                >
-                  <span className={`${styles.dailyStateIcon} ${dailyHandStatus === 'loading' ? styles.dailyStateIconLoading : ''}`} aria-hidden="true">
-                    <RotateCw size={23} />
-                  </span>
-                  <div className={styles.dailyStateCopy}>
-                    <span className={styles.dailyEyebrow}>
-                      {dailyHandStatus === 'loading' ? 'Syncing Training Question' : 'Training Feed Interrupted'}
-                    </span>
-                    <h3>{dailyHandStatus === 'loading' ? 'Loading Today’s Decision' : 'Daily Hand Temporarily Unavailable'}</h3>
-                    <p>
-                      {dailyHandStatus === 'loading'
-                        ? 'Jarvis Is Retrieving The Exact Hand, Board, Position, And Pot.'
-                        : 'Your Other Tools Remain Available. Retry The Training Feed To Restore Today’s Spot.'}
-                    </p>
-                  </div>
-                  {dailyHandStatus === 'error' && (
-                    <button
-                      type="button"
-                      className={styles.secondaryButton}
-                      onClick={() => {
-                        if (!requireOnline()) return;
-                        haptic('light');
-                        setDailyHandReloadKey((key) => key + 1);
-                      }}
+                      <div className={styles.dailyCopy}>
+                        <span className={styles.dailyEyebrow}>
+                          {dailyHand.position || 'BTN'} · {Number(dailyHand.pot) > 0 ? `Pot ${Number(dailyHand.pot)} BB` : 'Daily Scenario'}
+                        </span>
+                        <h3>{dailyHand.title || 'What Is The Best Line?'}</h3>
+                        {boardCards.length > 0 && (
+                          <div className={styles.boardCards} aria-label={`Board ${dailyHand.board}`}>
+                            {boardCards.map((card, index) => (
+                              <span className={`${styles.boardCard} ${card.red ? styles.redCard : ''}`} key={`${card.rank}${card.suit}-${index}`}>
+                                {card.rank}<i>{card.suit}</i>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <span className={styles.dailyPrompt}><Sparkles size={13} aria-hidden="true" />Continue In The Signed Training Pipeline</span>
+                      </div>
+                      <button type="button" className={styles.primaryButton} onClick={openDailyTraining}>
+                        <Play size={14} fill="currentColor" aria-hidden="true" />Open Verified Training
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      className={styles.dailyState}
+                      role={dailyHandStatus === 'error' ? 'alert' : 'status'}
+                      aria-live="polite"
                     >
-                      <RotateCw size={15} aria-hidden="true" />Retry Daily Hand
-                    </button>
+                      <span className={`${styles.dailyStateIcon} ${dailyHandStatus === 'loading' ? styles.dailyStateIconLoading : ''}`} aria-hidden="true">
+                        <RotateCw size={20} />
+                      </span>
+                      <div className={styles.dailyStateCopy}>
+                        <span className={styles.dailyEyebrow}>
+                          {dailyHandStatus === 'loading' ? 'Syncing Training Question' : 'Training Feed Interrupted'}
+                        </span>
+                        <h3>{dailyHandStatus === 'loading' ? 'Loading Today’s Decision' : 'Daily Hand Temporarily Unavailable'}</h3>
+                        <p>
+                          {dailyHandStatus === 'loading'
+                            ? 'Retrieving Today’s Hand, Board, Position, And Pot.'
+                            : 'Your Other Tools Remain Available. Retry To Restore Today’s Spot.'}
+                        </p>
+                      </div>
+                      {dailyHandStatus === 'error' && (
+                        <button
+                          type="button"
+                          className={styles.secondaryButton}
+                          onClick={() => {
+                            if (!requireOnline()) return;
+                            haptic('light');
+                            setDailyHandReloadKey((key) => key + 1);
+                          }}
+                        >
+                          <RotateCw size={14} aria-hidden="true" />Retry Daily Hand
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
-            </div>
+              </div>
+            </details>
           </section>
           </>
           )}

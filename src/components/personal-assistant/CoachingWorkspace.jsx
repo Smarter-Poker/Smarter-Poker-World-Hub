@@ -318,24 +318,32 @@ export default function CoachingWorkspace({
     <section className={styles.workspace} aria-label="Personal Coaching Workspace">
       <header className={styles.commandHeader}>
         <div>
-          <span className={styles.eyebrow}>Personal Coaching Command Center</span>
+          <span className={styles.eyebrow}>Coaching Plan</span>
           <h2>Your Evidence-Backed Improvement Plan</h2>
-          <p>Every Priority Links Back To Club Arena Evidence, Deterministic Grading, And Corrective Training.</p>
+          <p>Priorities Link Directly To Your Club Arena Hands And Verified Corrective Drills.</p>
         </div>
-        <div className={styles.commandControls}>
-          <label className={styles.depthControl}>
-            <span>Analysis Depth</span>
-            <select value={analysisDepth} disabled={saving} onChange={event => selectAnalysisDepth(event.target.value)} aria-label="Analysis Depth">
-              <option value="guided">Guided</option>
-              <option value="detailed">Detailed</option>
-              <option value="expert">Expert</option>
-            </select>
-          </label>
-          <div className={styles.receipt} aria-label="Reproducible Coaching Receipt">
-            <span>Analysis Receipt</span>
-            <strong data-pa-verbatim="true">{snapshot?.receipt || 'Unavailable'}</strong>
+        <details className="pa-disclosure">
+          <summary>
+            <span>Analysis Settings &amp; Receipt</span>
+            <small>{analysisDepth}</small>
+          </summary>
+          <div className="pa-disclosure-body">
+            <div className={styles.commandControls}>
+              <label className={styles.depthControl}>
+                <span>Analysis Depth</span>
+                <select value={analysisDepth} disabled={saving} onChange={event => selectAnalysisDepth(event.target.value)} aria-label="Analysis Depth">
+                  <option value="guided">Guided</option>
+                  <option value="detailed">Detailed</option>
+                  <option value="expert">Expert</option>
+                </select>
+              </label>
+              <div className={styles.receipt} aria-label="Reproducible Coaching Receipt">
+                <span>Analysis Receipt</span>
+                <strong data-pa-verbatim="true">{snapshot?.receipt || 'Unavailable'}</strong>
+              </div>
+            </div>
           </div>
-        </div>
+        </details>
       </header>
 
       <div className={styles.searchBar}>
@@ -528,24 +536,29 @@ export default function CoachingWorkspace({
               </>
             ) : <p>No Evidence Is Available Yet.</p>}
           </div>
-          <article className={`${styles.panel} ${styles.fullWidth}`}>
-            <span className={styles.eyebrow}>Source-To-Training Trace</span>
-            <div className={styles.evidenceChain}>
-              {evidence.map((entry, index) => (
-                <div key={`${entry.stage}-${index}`} data-state={entry.state}>
-                  <span>{index + 1}</span><div><strong>{entry.stage}</strong><small data-pa-verbatim={entry.stage.includes('Decision') || entry.stage.includes('Hand') ? 'true' : undefined}>{entry.detail}</small></div>
-                </div>
-              ))}
+          <details className={`pa-disclosure ${styles.fullWidth}`}>
+            <summary>
+              <span>Source-To-Training Trace &amp; Provenance</span>
+              <small>{evidence.length} Steps</small>
+            </summary>
+            <div className="pa-disclosure-body">
+              <div className={styles.evidenceChain}>
+                {evidence.map((entry, index) => (
+                  <div key={`${entry.stage}-${index}`} data-state={entry.state}>
+                    <span>{index + 1}</span><div><strong>{entry.stage}</strong><small data-pa-verbatim={entry.stage.includes('Decision') || entry.stage.includes('Hand') ? 'true' : undefined}>{entry.detail}</small></div>
+                  </div>
+                ))}
+              </div>
+              {analysisDepth === 'expert' && (
+                <dl className={styles.provenanceGrid} aria-label="Expert Analysis Provenance">
+                  <div><dt>Evidence Fingerprint</dt><dd data-pa-verbatim="true">{snapshot?.evidenceFingerprint || 'Unavailable'}</dd></div>
+                  <div><dt>Matcher</dt><dd data-pa-verbatim="true">{snapshot?.versions?.matcher || 'Unavailable'}</dd></div>
+                  <div><dt>Detector</dt><dd data-pa-verbatim="true">{snapshot?.versions?.detector || 'Unavailable'}</dd></div>
+                  <div><dt>Review Schema</dt><dd data-pa-verbatim="true">{snapshot?.versions?.reviewSchema || 'Unavailable'}</dd></div>
+                </dl>
+              )}
             </div>
-            {analysisDepth === 'expert' && (
-              <dl className={styles.provenanceGrid} aria-label="Expert Analysis Provenance">
-                <div><dt>Evidence Fingerprint</dt><dd data-pa-verbatim="true">{snapshot?.evidenceFingerprint || 'Unavailable'}</dd></div>
-                <div><dt>Matcher</dt><dd data-pa-verbatim="true">{snapshot?.versions?.matcher || 'Unavailable'}</dd></div>
-                <div><dt>Detector</dt><dd data-pa-verbatim="true">{snapshot?.versions?.detector || 'Unavailable'}</dd></div>
-                <div><dt>Review Schema</dt><dd data-pa-verbatim="true">{snapshot?.versions?.reviewSchema || 'Unavailable'}</dd></div>
-              </dl>
-            )}
-          </article>
+          </details>
           <article className={styles.panel}>
             <span className={styles.eyebrow}>Coverage Dashboard</span>
             <h3>{coverage.verified || 0} Solver-Verified Decisions</h3>
@@ -558,31 +571,42 @@ export default function CoachingWorkspace({
               <div><dt>Rejected Before Audit</dt><dd>{coverage.rejected || 0}</dd></div>
             </dl>
             {Array.isArray(snapshot?.solverCoverageGaps?.topGaps) && snapshot.solverCoverageGaps.topGaps.length > 0 && (
-              <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 6 }} aria-label="Solver Coverage Gaps">
-                <span className={styles.eyebrow}>Top Unmeasured Solver Buckets</span>
-                <ul className={styles.alertList}>
-                  {snapshot.solverCoverageGaps.topGaps.slice(0, 5).map(gap => (
-                    <li key={`${gap.format}-${gap.street}-${gap.heroPosition}-${gap.spotType}`}>
-                      <strong>{gap.format} · {gap.street.toUpperCase()} · {gap.heroPosition}</strong> ({gap.spotType}): {gap.count} Spots ({gap.sharePercent}% Of Unmeasured)
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <details className="pa-disclosure" style={{ marginTop: 10 }}>
+                <summary>
+                  <span>Top Unmeasured Solver Buckets</span>
+                  <small>{snapshot.solverCoverageGaps.topGaps.length} Buckets</small>
+                </summary>
+                <div className="pa-disclosure-body" aria-label="Solver Coverage Gaps">
+                  <ul className={styles.alertList}>
+                    {snapshot.solverCoverageGaps.topGaps.slice(0, 5).map(gap => (
+                      <li key={`${gap.format}-${gap.street}-${gap.heroPosition}-${gap.spotType}`}>
+                        <strong>{gap.format} · {gap.street.toUpperCase()} · {gap.heroPosition}</strong> ({gap.spotType}): {gap.count} Spots ({gap.sharePercent}% Of Unmeasured)
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </details>
             )}
           </article>
-          <article className={styles.panel}>
-            <span className={styles.eyebrow}><MessageSquareWarning size={14} aria-hidden="true" />Coach Feedback</span>
-            <h3>Flag This Analysis For Review</h3>
-            <select value={feedbackType} onChange={event => setFeedbackType(event.target.value)} aria-label="Feedback Type">
-              <option value="confusing">Confusing</option><option value="incorrect">Incorrect</option><option value="mismatched">Mismatched</option><option value="helpful">Helpful</option>
-            </select>
-            <textarea value={feedbackNote} onChange={event => setFeedbackNote(event.target.value)} maxLength={2000} placeholder="Explain What Needs Review" aria-label="Feedback Note" />
-            <button type="button" className={styles.primaryButton} disabled={saving || !selectedPriority} onClick={async () => {
-              const decisionKey = evidence[1]?.state === 'verified' ? evidence[1].detail : null;
-              const saved = await write({ action: 'submit_feedback', feedback: { leakId: selectedPriority?.id, feedbackType, note: feedbackNote, decisionKey } }, 'Coach Feedback Sent For Review');
-              if (saved) setFeedbackNote('');
-            }}>Submit Feedback</button>
-          </article>
+          <details className={`pa-disclosure ${styles.fullWidth}`}>
+            <summary>
+              <span><MessageSquareWarning size={14} aria-hidden="true" style={{ marginRight: 6, verticalAlign: '-2px' }} />Coach Feedback · Flag This Analysis</span>
+              <small>Optional</small>
+            </summary>
+            <div className="pa-disclosure-body">
+              <div className={styles.panel} style={{ border: 0, padding: 0, background: 'transparent' }}>
+                <select value={feedbackType} onChange={event => setFeedbackType(event.target.value)} aria-label="Feedback Type">
+                  <option value="confusing">Confusing</option><option value="incorrect">Incorrect</option><option value="mismatched">Mismatched</option><option value="helpful">Helpful</option>
+                </select>
+                <textarea value={feedbackNote} onChange={event => setFeedbackNote(event.target.value)} maxLength={2000} placeholder="Explain What Needs Review" aria-label="Feedback Note" />
+                <button type="button" className={styles.primaryButton} disabled={saving || !selectedPriority} onClick={async () => {
+                  const decisionKey = evidence[1]?.state === 'verified' ? evidence[1].detail : null;
+                  const saved = await write({ action: 'submit_feedback', feedback: { leakId: selectedPriority?.id, feedbackType, note: feedbackNote, decisionKey } }, 'Coach Feedback Sent For Review');
+                  if (saved) setFeedbackNote('');
+                }}>Submit Feedback</button>
+              </div>
+            </div>
+          </details>
         </div>
       )}
 
@@ -653,25 +677,30 @@ export default function CoachingWorkspace({
             </div>
           </article>
 
-          <article className={styles.panel}>
-            <span className={styles.eyebrow}>Data Inventory</span><h3>Records In Your Workspace</h3>
-            {lifecycleLoading && !lifecycle ? <p aria-busy="true">Loading Your Data Inventory</p> : (
-              <dl className={styles.coverageList}>
-                <div><dt>Detected Leaks</dt><dd>{lifecycle?.counts?.leaks || 0}</dd></div>
-                <div><dt>Audited Decisions</dt><dd>{lifecycle?.counts?.decisions || 0}</dd></div>
-                <div><dt>Corrective Reviews</dt><dd>{lifecycle?.counts?.reviews || 0}</dd></div>
-                <div><dt>Coaching Goals</dt><dd>{lifecycle?.counts?.goals || 0}</dd></div>
-                <div><dt>Sandbox Sessions</dt><dd>{lifecycle?.counts?.sandboxSessions || 0}</dd></div>
-                <div><dt>Saved Sandbox Hands</dt><dd>{lifecycle?.counts?.savedHands || 0}</dd></div>
-                <div><dt>Coach Decisions</dt><dd>{lifecycle?.counts?.coachResults || 0}</dd></div>
-                <div><dt>Sandbox Bookmarks</dt><dd>{lifecycle?.counts?.bookmarks || 0}</dd></div>
-                <div><dt>Equity Snapshots</dt><dd>{lifecycle?.counts?.equityHistory || 0}</dd></div>
-                <div><dt>Scenario Templates</dt><dd>{lifecycle?.counts?.templates || 0}</dd></div>
-                <div><dt>Shared Scenarios</dt><dd>{lifecycle?.counts?.sharedScenarios || 0}</dd></div>
-                <div><dt>Solution Bookmarks</dt><dd>{lifecycle?.counts?.solutionBookmarks || 0}</dd></div>
-              </dl>
-            )}
-          </article>
+          <details className={`pa-disclosure ${styles.fullWidth}`}>
+            <summary>
+              <span>Data Inventory · Records In Your Workspace</span>
+              <small>{(lifecycle?.counts?.leaks || 0) + (lifecycle?.counts?.decisions || 0)} Core Records</small>
+            </summary>
+            <div className="pa-disclosure-body">
+              {lifecycleLoading && !lifecycle ? <p aria-busy="true">Loading Your Data Inventory</p> : (
+                <dl className={styles.coverageList}>
+                  <div><dt>Detected Leaks</dt><dd>{lifecycle?.counts?.leaks || 0}</dd></div>
+                  <div><dt>Audited Decisions</dt><dd>{lifecycle?.counts?.decisions || 0}</dd></div>
+                  <div><dt>Corrective Reviews</dt><dd>{lifecycle?.counts?.reviews || 0}</dd></div>
+                  <div><dt>Coaching Goals</dt><dd>{lifecycle?.counts?.goals || 0}</dd></div>
+                  <div><dt>Sandbox Sessions</dt><dd>{lifecycle?.counts?.sandboxSessions || 0}</dd></div>
+                  <div><dt>Saved Sandbox Hands</dt><dd>{lifecycle?.counts?.savedHands || 0}</dd></div>
+                  <div><dt>Coach Decisions</dt><dd>{lifecycle?.counts?.coachResults || 0}</dd></div>
+                  <div><dt>Sandbox Bookmarks</dt><dd>{lifecycle?.counts?.bookmarks || 0}</dd></div>
+                  <div><dt>Equity Snapshots</dt><dd>{lifecycle?.counts?.equityHistory || 0}</dd></div>
+                  <div><dt>Scenario Templates</dt><dd>{lifecycle?.counts?.templates || 0}</dd></div>
+                  <div><dt>Shared Scenarios</dt><dd>{lifecycle?.counts?.sharedScenarios || 0}</dd></div>
+                  <div><dt>Solution Bookmarks</dt><dd>{lifecycle?.counts?.solutionBookmarks || 0}</dd></div>
+                </dl>
+              )}
+            </div>
+          </details>
 
           <article className={styles.panel}>
             <span className={styles.eyebrow}>Retention Policy</span><h3>Control Completed Data Retention</h3>

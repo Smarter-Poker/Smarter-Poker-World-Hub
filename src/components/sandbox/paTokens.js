@@ -9,44 +9,44 @@
 import React from 'react';
 
 export const T = {
-    // Smarter.Poker surfaces (darkest -> lightest)
-    bg: '#020609',        // obsidian page background
-    surface: '#07111B',   // primary instrument panels
-    surface2: '#10202B',  // controls, nested rows, inactive tabs
-    surface3: '#1B3342',  // hover/pressed controls and drag handles
-    border: '#35566A',    // steel hairline
-    borderHi: '#7898AA',  // chrome edge / focused-adjacent
-    // text
-    text: '#EEF8FF',      // primary
-    textMuted: '#B7D0DD', // secondary / values
-    textDim: '#8295A2',   // labels, captions, disabled, placeholders
+    // Smarter.Poker surfaces aligned to the approved MTT Lobby & Arena Workspace system
+    bg: '#040D18',        // approved MTT lobby obsidian-navy canvas
+    surface: '#091727',   // primary panel surface (--arena-panel base)
+    surface2: '#13253A',  // controls, compact rows, inactive tabs (--arena-row base)
+    surface3: '#1E3853',  // hover/pressed controls and elevated accents
+    border: '#688299',    // approved metallic steel rail
+    borderHi: '#AEC0D0',  // approved top-lit steel rim
+    // text (WCAG AA >= 4.5:1 on dark navy)
+    text: '#F1F5FC',      // primary ink
+    textMuted: '#B6C8D6', // secondary ink / values
+    textDim: '#9AABBA',   // labels, captions, disabled, placeholders
     // accent + status
-    accent: '#63E7FF',      // signal cyan
-    accentPress: '#078ED6', // electric blue
-    accentSoft: 'rgba(99,231,255,0.12)',
+    accent: '#63E7FF',      // signal cyan (kept for contract compatibility; pairs with #56D8FF / #83DEFF)
+    accentPress: '#087CFA', // approved MTT lobby active royal blue
+    accentSoft: 'rgba(8,124,250,0.18)',
     success: '#4DE0A5',
-    successSoft: 'rgba(77,224,165,0.12)',
+    successSoft: 'rgba(77,224,165,0.14)',
     warn: '#FFC66D',
-    warnSoft: 'rgba(255,198,109,0.12)',
+    warnSoft: 'rgba(255,198,109,0.14)',
     danger: '#FF6B7A',
-    dangerSoft: 'rgba(255,107,122,0.12)',
+    dangerSoft: 'rgba(255,107,122,0.14)',
     purple: '#B9A7FF', // GTO / solver / "study" semantics
-    purpleSoft: 'rgba(185,167,255,0.12)',
+    purpleSoft: 'rgba(185,167,255,0.14)',
     // scrims
-    scrim: 'rgba(0,3,6,0.78)',
-    glassEdge: 'rgba(216,251,255,0.16)',
+    scrim: 'rgba(2,7,14,0.82)',
+    glassEdge: 'rgba(174,192,208,0.22)',
 };
 
 export const F = { h1: 22, h2: 18, h3: 16, body: 15, bodySm: 14, label: 13, caption: 12, input: 16 };
 
 export const S = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 };
 
-export const R = { sm: 2, md: 4, lg: 6, sheet: '8px 8px 0 0', pill: 999 };
+export const R = { sm: 6, md: 7, lg: 9, sheet: '10px 10px 0 0', pill: 999 };
 
 export const E = {
-    card: 'inset 0 1px 0 rgba(216,251,255,0.08), 0 10px 22px rgba(0,0,0,0.34)',
-    raised: 'inset 0 1px 0 rgba(216,251,255,0.14), 0 16px 34px rgba(0,0,0,0.52)',
-    sheet: 'inset 0 1px 0 rgba(216,251,255,0.18), 0 -12px 42px rgba(0,0,0,0.72), 0 0 28px rgba(0,142,214,0.12)',
+    card: 'none',
+    raised: '0 8px 24px rgba(0,0,0,0.42)',
+    sheet: 'inset 0 1px 0 rgba(174,192,208,0.28), 0 -10px 32px rgba(0,0,0,0.72)',
 };
 
 export const Z = {
@@ -54,37 +54,61 @@ export const Z = {
     backdrop: 900, sheet: 901, popover: 950, toast: 1000,
 };
 
-export const FONT = "'Inter',-apple-system,BlinkMacSystemFont,sans-serif";
-export const DISPLAY_FONT = "'Rajdhani','Arial Narrow',sans-serif";
+export const FONT = "Arial,'Inter',-apple-system,BlinkMacSystemFont,sans-serif";
+export const DISPLAY_FONT = "'Arial Narrow','Rajdhani',Arial,sans-serif";
 export const DATA_FONT = "'IBM Plex Mono','SFMono-Regular',Consolas,monospace";
 
 /** Numeric readouts (EV, equity, pot) share this treatment. */
 export const numeric = { fontVariantNumeric: 'tabular-nums', lineHeight: 1.2 };
 
 export const card = {
-    background: `linear-gradient(180deg, rgba(23,41,56,0.96), ${T.surface} 24%, #03090E)`, border: `1px solid ${T.borderHi}`, borderRadius: R.md,
-    padding: S.lg, boxShadow: E.card, boxSizing: 'border-box', width: '100%', maxWidth: '100%',
+    background: 'radial-gradient(ellipse at 90% -40%, rgba(30,56,83,0.45), transparent 63%), linear-gradient(145deg, #091727, #030B14 74%)',
+    border: `1px solid ${T.border}`,
+    borderTopColor: T.borderHi,
+    borderRadius: R.md,
+    padding: S.md,
+    boxShadow: E.card,
+    boxSizing: 'border-box',
+    width: '100%',
+    maxWidth: '100%',
 };
 
-export const cardCompact = { ...card, padding: S.md, borderRadius: R.sm };
+export const cardCompact = {
+    ...card,
+    background: 'linear-gradient(108deg, #13253A, #060E18 72%)',
+    padding: S.md,
+    borderRadius: R.md,
+};
 
 export function btn(variant = 'primary', opts = {}) {
     const base = {
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: S.sm,
-        minHeight: 44, minWidth: 44, padding: '0 18px', borderRadius: R.sm,
-        fontSize: F.bodySm, fontWeight: 700, fontFamily: DISPLAY_FONT, lineHeight: 1,
-        letterSpacing: '0.025em',
+        minHeight: 44, minWidth: 44, padding: '0 16px', borderRadius: R.sm,
+        fontSize: F.bodySm, fontWeight: 700, fontFamily: DISPLAY_FONT, lineHeight: 1.15,
+        letterSpacing: '0.015em',
         cursor: 'pointer', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
-        transition: 'transform .12s ease, background .12s ease, opacity .12s ease',
+        transition: 'background .12s ease, opacity .12s ease, border-color .12s ease',
         boxSizing: 'border-box', border: '1px solid transparent', width: opts.block ? '100%' : 'auto',
     };
     const v = {
-        primary: { background: `linear-gradient(180deg, #2A6D94 0%, #0A3856 18%, #061826 78%, #154C6C 100%)`, color: '#FFFFFF', borderColor: '#72DFFF', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.5), inset 0 -2px 0 rgba(0,0,0,.65), 0 0 16px rgba(7,142,214,.2)' },
-        secondary: { background: `linear-gradient(180deg, #263946, #0A141C 22%, #050B10 78%, #17242D)`, color: T.text, borderColor: T.borderHi, boxShadow: 'inset 0 1px 0 rgba(255,255,255,.14), inset 0 -2px 0 rgba(0,0,0,.6)' },
+        primary: {
+            background: 'linear-gradient(180deg, #087CFA 0%, #0044AC 55%, #002B68 100%)',
+            color: '#FFFFFF',
+            borderColor: '#56D8FF',
+            borderTopColor: '#B3EAFF',
+            boxShadow: 'none',
+        },
+        secondary: {
+            background: 'linear-gradient(180deg, #152639 0%, #06111E 65%)',
+            color: '#DCE5EF',
+            borderColor: T.border,
+            borderTopColor: T.borderHi,
+            boxShadow: 'none',
+        },
         ghost: { background: 'transparent', color: T.textMuted, borderColor: 'transparent' },
-        danger: { background: T.dangerSoft, color: T.danger, borderColor: 'rgba(255,107,122,0.4)' },
-        success: { background: T.successSoft, color: T.success, borderColor: 'rgba(77,224,165,0.4)' },
-        purple: { background: T.purpleSoft, color: T.purple, borderColor: 'rgba(185,167,255,0.4)' },
+        danger: { background: T.dangerSoft, color: T.danger, borderColor: 'rgba(255,107,122,0.5)' },
+        success: { background: T.successSoft, color: T.success, borderColor: 'rgba(77,224,165,0.5)' },
+        purple: { background: T.purpleSoft, color: T.purple, borderColor: 'rgba(185,167,255,0.5)' },
     }[variant] || {};
     const dis = opts.disabled ? { opacity: 0.45, cursor: 'not-allowed', pointerEvents: 'none' } : null;
     return { ...base, ...v, ...dis };

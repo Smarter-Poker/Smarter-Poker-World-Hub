@@ -154,174 +154,151 @@ export default function VerifiedEvidenceSandboxBoundary() {
       </main>
 
       <style jsx>{`
-        /* MOBILE PHASE 4. 100dvh, never 100vh: on iOS Safari 100vh is the
-           TALLEST the viewport ever gets, so the last rows sit under the URL
-           bar. And overflow-x: clip, never hidden: a bare hidden makes this a
-           scroll container and re-parents every fixed descendant to it. */
+        /* Approved MTT Lobby & Arena Workspace Design System:
+           #040d18 obsidian-navy canvas, 600px centered interior, border-only
+           metallic steel (#688299 / #aec0d0), royal-blue primary CTA. */
         .sandbox-boundary-page {
           min-height: 100dvh;
           width: 100%;
           max-width: 100vw;
           overflow-x: clip;
-          color: #eaf8ff;
-          background:
-            radial-gradient(circle at 50% -5%, rgba(44, 189, 255, 0.2), transparent 38%),
-            linear-gradient(180deg, #07131e 0%, #02070c 58%, #010306 100%);
+          color: #f1f5fc;
+          background: #040d18;
+          font-family: Arial, Inter, -apple-system, sans-serif;
         }
 
         .sandbox-workspace {
-          width: min(100% - 28px, 980px);
+          width: min(100% - 12px, 600px);
           margin: 0 auto;
-          padding: clamp(34px, 7vw, 76px) 0 24px;
+          padding: 10px 0 24px;
         }
 
         .boundary-console {
           position: relative;
           overflow: hidden;
-          padding: clamp(24px, 6vw, 54px);
-          border: 1px solid rgba(127, 222, 255, 0.42);
+          padding: 16px;
+          border: 1px solid #688299;
+          border-top-color: #aec0d0;
+          border-radius: 7px;
           background:
-            linear-gradient(145deg, rgba(30, 61, 79, 0.97), rgba(5, 14, 22, 0.99) 54%, rgba(7, 30, 45, 0.98));
-          box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.24),
-            inset 0 -30px 60px rgba(0, 0, 0, 0.46),
-            0 30px 80px rgba(0, 0, 0, 0.55),
-            0 0 42px rgba(33, 182, 255, 0.1);
-        }
-
-        .boundary-console::before {
-          content: '';
-          position: absolute;
-          inset: 10px;
-          pointer-events: none;
-          border: 1px solid rgba(255, 255, 255, 0.06);
+            radial-gradient(ellipse at 90% -40%, rgba(30, 56, 83, 0.48), transparent 63%),
+            linear-gradient(145deg, #091727, #030b14 74%);
         }
 
         .console-status {
-          position: relative;
-          z-index: 1;
           display: inline-flex;
           align-items: center;
-          gap: 8px;
-          min-height: 32px;
-          padding: 0 12px;
-          border: 1px solid rgba(255, 200, 80, 0.45);
+          gap: 7px;
+          min-height: 28px;
+          padding: 0 10px;
+          border: 1px solid rgba(255, 198, 109, 0.45);
+          border-radius: 6px;
           color: #ffe08a;
-          background: rgba(75, 48, 5, 0.3);
+          background: rgba(75, 48, 5, 0.35);
           font-size: 12px;
-          font-weight: 900;
-          letter-spacing: 0.07em;
+          font-weight: 700;
         }
 
         .status-light {
-          width: 8px;
-          height: 8px;
+          width: 7px;
+          height: 7px;
           border-radius: 50%;
-          background: #ffc247;
-          box-shadow: 0 0 13px rgba(255, 194, 71, 0.9);
+          background: #ffc66d;
         }
 
         .eyebrow {
-          position: relative;
-          z-index: 1;
-          margin: 30px 0 8px;
-          color: #7edfff;
-          font-size: 12px;
-          font-weight: 800;
-          letter-spacing: 0.13em;
+          margin: 10px 0 4px;
+          color: #83deff;
+          font: 700 12px / 1.2 'Arial Narrow', Arial, sans-serif;
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
         }
 
         h1 {
-          position: relative;
-          z-index: 1;
           margin: 0;
-          max-width: 760px;
-          color: #f2fbff;
-          font-family: var(--font-orbitron), 'Orbitron', sans-serif;
-          font-size: clamp(34px, 7vw, 68px);
-          line-height: 0.98;
-          letter-spacing: -0.035em;
-          text-shadow: 0 2px #00121c, 0 0 28px rgba(84, 217, 255, 0.28);
+          color: #f1f5fc;
+          font: 800 clamp(22px, 5vw, 28px) / 1.08 'Arial Narrow', Arial, sans-serif;
+          letter-spacing: -0.01em;
         }
 
         .lead {
-          position: relative;
-          z-index: 1;
-          max-width: 760px;
-          margin: 22px 0 0;
-          color: #c4d7df;
-          font-size: clamp(14px, 2vw, 17px);
-          line-height: 1.75;
+          margin: 8px 0 0;
+          color: #b6c8d6;
+          font-size: 13px;
+          line-height: 1.5;
         }
 
         .evidence-panel {
-          position: relative;
-          z-index: 1;
           display: grid;
           grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 1px;
-          margin-top: 28px;
-          border: 1px solid rgba(111, 220, 255, 0.28);
-          background: rgba(111, 220, 255, 0.2);
+          gap: 6px;
+          margin-top: 12px;
         }
 
         .evidence-panel > div {
           min-width: 0;
-          padding: 16px;
-          background: rgba(2, 11, 17, 0.92);
+          padding: 10px;
+          border: 1px solid #688299;
+          border-top-color: #aec0d0;
+          border-radius: 7px;
+          background: linear-gradient(155deg, #12273b, #07111c 70%);
         }
 
         .panel-label {
           display: block;
-          margin-bottom: 6px;
-          color: #75939f;
-          font-size: 12px;
-          font-weight: 800;
-          letter-spacing: 0.08em;
-          line-height: 1.35;
+          margin-bottom: 3px;
+          color: #9aabba;
+          font: 700 12px / 1.2 'Arial Narrow', Arial, sans-serif;
+          text-transform: uppercase;
         }
 
         .evidence-panel strong {
-          color: #ddf7ff;
+          color: #f1f5fc;
           font-size: 13px;
-          line-height: 1.35;
+          line-height: 1.3;
         }
 
         .assurance-copy {
-          position: relative;
-          z-index: 1;
-          margin: 20px 0 0;
-          padding: 14px 16px;
-          border-left: 3px solid #5bdcff;
-          color: #c8e6ef;
-          background: rgba(0, 174, 255, 0.08);
-          font-size: 13px;
-          line-height: 1.65;
+          margin: 12px 0 0;
+          padding: 10px 12px;
+          border-left: 3px solid #56d8ff;
+          border-radius: 4px;
+          color: #dce5ef;
+          background: rgba(8, 124, 250, 0.12);
+          font-size: 12px;
+          line-height: 1.45;
         }
 
         .sandbox-command-bar {
-          position: relative;
-          z-index: 1;
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 12px;
-          margin-top: 24px;
+          gap: 8px;
+          margin-top: 12px;
         }
 
         .destination {
-          min-height: 92px;
-          padding: 17px;
-          border: 1px solid rgba(255, 255, 255, 0.18);
-          color: #f2fbff;
-          background: linear-gradient(180deg, rgba(45, 57, 66, 0.96), rgba(7, 13, 18, 0.99));
-          box-shadow: inset 0 1px rgba(255, 255, 255, 0.2), 0 12px 26px rgba(0, 0, 0, 0.35);
+          min-height: 68px;
+          padding: 11px 12px;
+          border: 1px solid #688299;
+          border-top-color: #aec0d0;
+          border-radius: 6px;
+          color: #f1f5fc;
+          background: linear-gradient(180deg, #152639 0%, #06111e 65%);
           text-align: left;
           cursor: pointer;
         }
 
         .destination.primary {
-          border-color: rgba(122, 225, 255, 0.76);
-          background: linear-gradient(180deg, #2b708e 0%, #0a2c40 50%, #05151f 100%);
+          grid-column: 1 / -1;
+          border-color: #56d8ff;
+          border-top-color: #b3eaff;
+          background: linear-gradient(180deg, #087cfa 0%, #0044ac 55%, #002b68 100%);
+        }
+
+        .destination:focus-visible,
+        .back-link:focus-visible {
+          outline: 2px solid #83deff;
+          outline-offset: 2px;
         }
 
         .destination span,
@@ -330,26 +307,23 @@ export default function VerifiedEvidenceSandboxBoundary() {
         }
 
         .destination span {
-          font-size: 14px;
-          font-weight: 900;
+          font: 700 14px / 1.15 'Arial Narrow', Arial, sans-serif;
         }
 
         .destination small {
-          margin-top: 6px;
-          color: #b5cbd4;
+          margin-top: 4px;
+          color: #dce5ef;
           font-size: 12px;
-          line-height: 1.5;
+          line-height: 1.35;
         }
 
         .back-link {
-          position: relative;
-          z-index: 1;
-          margin-top: 20px;
+          margin-top: 12px;
           min-height: 44px;
           border: 0;
-          color: #91bed0;
+          color: #83deff;
           background: transparent;
-          font-weight: 800;
+          font: 700 13px 'Arial Narrow', Arial, sans-serif;
           cursor: pointer;
           text-decoration: underline;
           text-underline-offset: 4px;
@@ -357,12 +331,12 @@ export default function VerifiedEvidenceSandboxBoundary() {
 
         @media (max-width: 768px) {
           .sandbox-workspace {
-            width: min(100% - 20px, 980px);
-            padding-top: 22px;
+            width: calc(100% - 12px);
+            padding-top: 8px;
           }
 
           .boundary-console {
-            padding: 24px 18px 28px;
+            padding: 12px;
           }
 
           .evidence-panel,
@@ -371,7 +345,7 @@ export default function VerifiedEvidenceSandboxBoundary() {
           }
 
           .destination {
-            min-height: 86px;
+            min-height: 62px;
           }
         }
       `}</style>

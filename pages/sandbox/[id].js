@@ -45,27 +45,28 @@ export default function RetiredSharedScenario({ validShareId }) {
       <section
         aria-labelledby="retired-share-title"
         style={{
-          width: 'min(100%, 520px)',
-          padding: 'clamp(22px, 6vw, 38px)',
-          border: '1px solid rgba(103, 232, 249, 0.34)',
+          width: 'min(100%, 560px)',
+          padding: 'clamp(16px, 4vw, 24px)',
+          border: `1px solid ${T.border}`,
+          borderTopColor: T.borderHi,
+          borderRadius: 7,
           background:
-            'linear-gradient(155deg, rgba(12, 28, 43, 0.98), rgba(3, 10, 18, 0.99))',
-          boxShadow:
-            '0 24px 70px rgba(0, 0, 0, 0.48), inset 0 1px rgba(255, 255, 255, 0.10)',
+            'radial-gradient(ellipse at 90% -40%, rgba(30, 56, 83, 0.48), transparent 63%), linear-gradient(145deg, #091727, #030b14 74%)',
         }}
       >
         <div
           aria-hidden="true"
           style={{
-            width: 58,
-            height: 58,
-            margin: `0 auto ${S.lg}px`,
+            width: 48,
+            height: 48,
+            margin: `0 auto ${S.md}px`,
             display: 'grid',
             placeItems: 'center',
-            border: '1px solid rgba(103, 232, 249, 0.42)',
-            background: 'rgba(8, 47, 73, 0.72)',
+            border: `1px solid ${T.border}`,
+            borderTopColor: T.borderHi,
+            borderRadius: 7,
+            background: 'linear-gradient(155deg, #12273b, #07111c 70%)',
             color: T.accent,
-            boxShadow: '0 0 28px rgba(34, 211, 238, 0.18)',
           }}
         >
           {validShareId ? (

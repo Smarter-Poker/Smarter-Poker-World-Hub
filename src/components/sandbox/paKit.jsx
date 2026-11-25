@@ -102,69 +102,92 @@ export function hashString(str) {
 export function PAStyles() {
     return (
         <style dangerouslySetInnerHTML={{ __html: `
-            .pa-btn { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
-            .pa-btn:active:not(:disabled) { transform: scale(0.97); filter: brightness(1.12); }
-            .pa-btn:focus-visible { outline: 2px solid ${T.accent}; outline-offset: 2px; }
+            html {
+                scroll-padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+            }
+            .pa-btn { -webkit-tap-highlight-color: transparent; touch-action: manipulation; position: relative; }
+            .pa-btn:active:not(:disabled) { filter: brightness(1.08); }
+            .pa-btn:focus-visible { outline: 2px solid #83DEFF; outline-offset: 2px; }
+            .pa-seg-btn[aria-pressed="true"]::after,
+            .pa-seg-btn[aria-selected="true"]::after {
+                content: '';
+                position: absolute;
+                inset: auto 8px 0;
+                border-block-end: 3px solid #83DEFF;
+                pointer-events: none;
+            }
+            .pa-disclosure {
+                border: 1px solid ${T.border};
+                border-top-color: ${T.borderHi};
+                border-radius: ${R.md}px;
+                background: linear-gradient(145deg, #091727, #030B14 74%);
+                overflow: clip;
+            }
+            .pa-disclosure > summary {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 10px;
+                min-height: 44px;
+                padding: 10px 14px;
+                cursor: pointer;
+                color: #DCE5EF;
+                font: 700 13px/1.2 'Arial Narrow', Arial, sans-serif;
+                list-style: none;
+                user-select: none;
+            }
+            .pa-disclosure > summary::-webkit-details-marker { display: none; }
+            .pa-disclosure > summary:focus-visible { outline: 2px solid #83DEFF; outline-offset: -2px; }
+            .pa-disclosure[open] > summary {
+                border-bottom: 1px solid #253E57;
+                color: #F1F5FC;
+            }
+            .pa-disclosure-body {
+                padding: 12px 14px;
+            }
             .pa-sheet-backdrop { padding-top: max(12px, env(safe-area-inset-top, 0px)); }
             .pa-sheet {
                 isolation: isolate;
                 position: relative;
                 color: ${T.text};
-                border-radius: 0 !important;
+                border-radius: ${R.sheet} !important;
                 text-transform: capitalize;
             }
             .pa-sheet :is(input, textarea)::placeholder { text-transform: capitalize; }
-            .pa-sheet::before {
-                position: absolute; inset: 0; z-index: -1; pointer-events: none; content: '';
-                background:
-                    linear-gradient(rgba(99,231,255,.035) 1px, transparent 1px),
-                    linear-gradient(90deg, rgba(99,231,255,.025) 1px, transparent 1px);
-                background-size: 24px 24px;
-                -webkit-mask-image: linear-gradient(to bottom, #000, transparent 72%);
-                mask-image: linear-gradient(to bottom, #000, transparent 72%);
-            }
             .pa-sheet-telemetry {
                 display: flex; align-items: center; justify-content: space-between; gap: 12px;
-                padding: 2px 16px 8px; color: ${T.accent};
-                font: 600 12px/1.3 'IBM Plex Mono', monospace; letter-spacing: .1em;
+                padding: 2px 16px 8px; color: #83DEFF;
+                font: 600 12px/1.3 'IBM Plex Mono', monospace; letter-spacing: .08em;
                 text-transform: uppercase; white-space: nowrap;
             }
-            .pa-sheet-telemetry span:last-child { color: ${T.textDim}; letter-spacing: .1em; }
-            .pa-sheet-header { background: linear-gradient(180deg, rgba(23,41,56,.74), rgba(3,9,14,.42)); }
+            .pa-sheet-telemetry span:last-child { color: ${T.textDim}; letter-spacing: .08em; }
+            .pa-sheet-header { background: linear-gradient(180deg, #13253A, #07111C); }
             .pa-sheet-title {
-                font-family: 'Rajdhani','Arial Narrow',sans-serif;
-                font-size: clamp(20px, 4vw, 25px) !important;
-                letter-spacing: .015em;
+                font-family: 'Arial Narrow','Rajdhani',Arial,sans-serif;
+                font-size: clamp(19px, 4vw, 23px) !important;
+                letter-spacing: 0;
             }
             .pa-sheet-scroll { scrollbar-color: ${T.borderHi} transparent; scrollbar-width: thin; }
             .pa-sheet-scroll :is(input, select, textarea) {
-                border-radius: 2px !important;
-                border-color: ${T.borderHi} !important;
-                background-color: rgba(7,17,27,.86) !important;
+                border-radius: 6px !important;
+                border-color: ${T.border} !important;
+                background-color: #07111C !important;
                 color: ${T.text} !important;
             }
             .pa-sheet-scroll :is(input, select, textarea):focus-visible {
-                outline: 2px solid ${T.accent}; outline-offset: 1px;
-                box-shadow: 0 0 0 3px rgba(99,231,255,.1);
+                outline: 2px solid #83DEFF; outline-offset: 1px;
             }
             .pa-chart-panel {
-                position: relative; overflow: hidden; border: 1px solid ${T.borderHi} !important;
-                border-radius: 4px !important;
-                background:
-                    linear-gradient(rgba(99,231,255,.025) 1px, transparent 1px),
-                    linear-gradient(90deg, rgba(99,231,255,.02) 1px, transparent 1px),
-                    linear-gradient(180deg, #0b1c27, #03090e) !important;
-                background-size: 20px 20px, 20px 20px, auto !important;
-                box-shadow: inset 0 1px 0 rgba(216,251,255,.12), 0 14px 28px rgba(0,0,0,.32) !important;
-            }
-            .pa-chart-panel::after {
-                position: absolute; inset: 0 0 auto; height: 1px; content: '';
-                background: linear-gradient(90deg, transparent, ${T.accent}, transparent);
-                opacity: .72; pointer-events: none;
+                position: relative; overflow: hidden;
+                border: 1px solid ${T.border} !important;
+                border-top-color: ${T.borderHi} !important;
+                border-radius: ${R.md}px !important;
+                background: linear-gradient(145deg, #091727, #030B14 74%) !important;
+                box-shadow: none !important;
             }
             .pa-range-grid {
                 min-width: 0; width: 100%; max-width: 100%;
-                box-shadow: 0 0 0 1px ${T.borderHi}, inset 0 0 24px rgba(0,142,214,.08);
+                box-shadow: 0 0 0 1px ${T.border};
             }
             .pa-range-grid-scroll {
                 width: 100%; max-width: 100%; overflow-x: auto; overflow-y: hidden;
@@ -177,12 +200,16 @@ export function PAStyles() {
             }
             .pa-data-label {
                 font-family: 'IBM Plex Mono', monospace !important;
-                letter-spacing: .08em !important; text-transform: uppercase;
+                letter-spacing: .06em !important; text-transform: uppercase;
             }
             .pa-row:active { background: ${T.surface2}; }
-            .pa-skel { animation: paSkel 1.4s ease-in-out infinite; }
+            .pa-skel { opacity: .55; }
+            @media (prefers-reduced-motion: no-preference) {
+                .pa-skel { animation: paSkel 1.4s ease-in-out infinite; }
+                .pa-spin { animation: paSpin 1s linear infinite; }
+                .pa-btn:active:not(:disabled) { transform: scale(0.98); }
+            }
             @keyframes paSkel { 0%, 100% { opacity: .35 } 50% { opacity: .7 } }
-            .pa-spin { animation: paSpin 1s linear infinite; }
             @keyframes paSpin { to { transform: rotate(360deg) } }
             .pa-sheet-scroll { -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
             .pa-vh {
@@ -191,7 +218,7 @@ export function PAStyles() {
             }
             @media (min-width: 769px) {
                 .pa-sheet-backdrop { align-items: center; }
-                .pa-sheet { border-radius: ${R.lg}px; max-height: 88dvh; border-bottom: 1px solid ${T.borderHi} !important; }
+                .pa-sheet { border-radius: ${R.lg}px !important; max-height: 88dvh; border-bottom: 1px solid ${T.border} !important; }
                 .pa-sheet-telemetry { padding-inline: 24px; }
             }
             @media (max-width: 768px) {
@@ -207,14 +234,7 @@ export function PAStyles() {
                 }
             }
             @media (prefers-reduced-motion: reduce) {
-                .pa-skel { animation: none; opacity: .5 }
-                .pa-spin { animation: none }
-                *, *::before, *::after {
-                    animation-duration: 0.01ms !important;
-                    animation-iteration-count: 1 !important;
-                    transition-duration: 0.01ms !important;
-                    scroll-behavior: auto !important;
-                }
+                .pa-range-grid-scroll { scroll-behavior: auto; }
             }
         ` }} />
     );
@@ -497,12 +517,18 @@ export function SignInState({
    Segmented control · chips that respect the 44px / 8px touch rules.
    ═══════════════════════════════════════════════════════════════════════ */
 export function Segmented({ options, value, onChange, label, tone = 'accent', columns = null, idPrefix = 'seg' }) {
-    const active = {
-        accent: [T.accent, T.accentSoft, 'rgba(99,231,255,0.45)'],
-        purple: [T.purple, T.purpleSoft, 'rgba(167,139,250,0.45)'],
-        success: [T.success, T.successSoft, 'rgba(77,224,165,0.45)'],
-        warn: [T.warn, T.warnSoft, 'rgba(255,198,109,0.45)'],
-    }[tone] || [T.accent, T.accentSoft, 'rgba(99,231,255,0.45)'];
+    const activeBg = {
+        accent: 'linear-gradient(180deg, #087CFA 0%, #0044AC 55%, #002B68 100%)',
+        purple: 'linear-gradient(180deg, #5B42B8 0%, #322274 60%, #1F154A 100%)',
+        success: 'linear-gradient(180deg, #16865A 0%, #0B4D33 60%, #073121 100%)',
+        warn: 'linear-gradient(180deg, #A16A14 0%, #5F3D0A 60%, #3E2705 100%)',
+    }[tone] || 'linear-gradient(180deg, #087CFA 0%, #0044AC 55%, #002B68 100%)';
+    const activeBorder = {
+        accent: '#56D8FF',
+        purple: '#B9A7FF',
+        success: '#4DE0A5',
+        warn: '#FFC66D',
+    }[tone] || '#56D8FF';
 
     return (
         <div role="group" aria-label={label}>
@@ -511,7 +537,7 @@ export function Segmented({ options, value, onChange, label, tone = 'accent', co
                 display: columns ? 'grid' : 'flex',
                 gridTemplateColumns: columns ? `repeat(${columns}, minmax(0,1fr))` : undefined,
                 flexWrap: columns ? undefined : 'wrap',
-                gap: S.sm,
+                gap: 6,
             }}>
                 {options.map(optRaw => {
                     const opt = typeof optRaw === 'object' ? optRaw : { value: optRaw, label: String(optRaw) };
@@ -520,18 +546,19 @@ export function Segmented({ options, value, onChange, label, tone = 'accent', co
                         <button
                             key={`${idPrefix}-${opt.value}`}
                             type="button"
-                            className="pa-btn"
+                            className="pa-btn pa-seg-btn"
                             aria-pressed={on}
                             onClick={() => onChange?.(opt.value)}
                             style={{
                                 ...btn('secondary'),
-                                padding: '0 14px',
+                                padding: '6px 10px',
                                 minHeight: 44,
-                                flex: columns ? undefined : '0 0 auto',
-                                background: on ? active[1] : T.surface2,
-                                color: on ? active[0] : T.textMuted,
-                                borderColor: on ? active[2] : T.borderHi,
-                                fontSize: F.label,
+                                flex: columns ? undefined : '1 1 auto',
+                                background: on ? activeBg : 'linear-gradient(180deg, #152639 0%, #06111E 65%)',
+                                color: on ? '#FFFFFF' : '#DCE5EF',
+                                borderColor: on ? activeBorder : T.border,
+                                borderTopColor: on ? '#B3EAFF' : T.borderHi,
+                                fontSize: F.caption,
                             }}
                         >
                             {opt.label}

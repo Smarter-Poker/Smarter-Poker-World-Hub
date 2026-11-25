@@ -57,6 +57,15 @@ import {
 import {
   definedOnly, dueInLabel, fromServerReviewRecord, queueReason, readLocalReviewRecords,
 } from '../../../src/lib/personal-assistant/reviewQueuePresentation.mjs';
+import {
+  PA_ANALYSIS_DEFAULTS,
+  classifyFindingHonesty,
+  countActivePreferenceOverrides,
+  describeAnalysisScope,
+  loadAssistantPreferences,
+  resetAssistantPreferences,
+  saveAssistantPreferences,
+} from '../../../src/lib/personal-assistant/assistantDefaults.mjs';
 
 const TRAINING_GAME_IDS = TRAINING_LIBRARY.map(game => game.id);
 
@@ -933,6 +942,7 @@ function LeakCard({ leak, onOpen, onReview, selected, demo, progress }) {
   const total = ev * occ;
   const meta = statusMeta(leak.status);
   const lowConfidence = leak.confidence === 'low';
+  const honesty = classifyFindingHonesty(leak, progress);
 
   return (
     <li
@@ -947,7 +957,7 @@ function LeakCard({ leak, onOpen, onReview, selected, demo, progress }) {
         type="button"
         className="leak-card pa-btn"
         onClick={() => onOpen(leak)}
-        aria-label={`${leak.title}. ${meta.label}. ${priced ? `${ev.toFixed(2)} BB lost per occurrence` : 'EV unpriced'} over ${occ} spots. Open details.`}
+        aria-label={`${leak.title}. ${honesty.label}. ${priced ? `${ev.toFixed(2)} BB lost per occurrence` : 'EV unpriced'} over ${occ} spots. Open details.`}
         style={styles.leakCardBody}
       >
         <span style={styles.leakCardHeader}>
@@ -965,13 +975,14 @@ function LeakCard({ leak, onOpen, onReview, selected, demo, progress }) {
         <LeakCardProgress progress={progress} />
 
         <span style={styles.leakCardBadges}>
+          <span style={pill(honesty.tone)}>{honesty.label}</span>
           <LeakStatusBadge status={leak.status} />
           {leak.sourceSystem && <SourceBadge source={leak.sourceSystem} />}
           <ConfidenceBadge confidence={leak.confidence} />
         </span>
 
         <span style={styles.leakCardSituation}>
-          Situation: {leak.situationClass || 'Not specified'}
+          {leak.situationClass || honesty.detail}
         </span>
 
         {lowConfidence && (
@@ -987,9 +998,9 @@ function LeakCard({ leak, onOpen, onReview, selected, demo, progress }) {
           type="button"
           className="pa-btn"
           onClick={() => onReview(leak)}
-          style={{ ...btn('secondary', { block: true }), color: T.accent, borderColor: 'rgba(99,231,255,0.45)' }}
+          style={btn('primary', { block: true })}
         >
-          <Target size={18} strokeWidth={2} aria-hidden="true" />
+          <Target size={16} strokeWidth={2} aria-hidden="true" />
           Open Hand Review
         </button>
       )}
@@ -1493,12 +1504,64 @@ export default function LeakFinderPage() {
   const [detectStep, setDetectStep] = useState(0);
   const [detectSlow, setDetectSlow] = useState(false);
 
-  const [sortMode, setSortMode] = useState('impact');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [formatFilter, setFormatFilter] = useState('all');
+  const [sortMode, setSortMode] = useState(PA_ANALYSIS_DEFAULTS.sortMode);
+  const [statusFilter, setStatusFilter] = useState(PA_ANALYSIS_DEFAULTS.statusFilter);
+  const [formatFilter, setFormatFilter] = useState(PA_ANALYSIS_DEFAULTS.format);
   const [query, setQuery] = useState('');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [pastOpen, setPastOpen] = useState(false);
+
+  // Account-scoped saved analysis preferences (switching accounts resets/isolates state)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const saved = loadAssistantPreferences(window.localStorage, userId);
+    setSortMode(saved.sortMode);
+    setStatusFilter(saved.statusFilter);
+    setFormatFilter(saved.format);
+  }, [userId]);
+
+  const updateSortMode = useCallback((nextSort) => {
+    setSortMode(nextSort);
+    if (typeof window !== 'undefined') {
+      saveAssistantPreferences(window.localStorage, userId, { format: formatFilter, sortMode: nextSort, statusFilter });
+    }
+  }, [userId, formatFilter, statusFilter]);
+
+  const updateFormatFilter = useCallback((nextFormat) => {
+    setFormatFilter(nextFormat);
+    if (typeof window !== 'undefined') {
+      saveAssistantPreferences(window.localStorage, userId, { format: nextFormat, sortMode, statusFilter });
+    }
+  }, [userId, sortMode, statusFilter]);
+
+  const updateStatusFilter = useCallback((nextStatus) => {
+    setStatusFilter(nextStatus);
+    if (typeof window !== 'undefined') {
+      saveAssistantPreferences(window.localStorage, userId, { format: formatFilter, sortMode, statusFilter: nextStatus });
+    }
+  }, [userId, formatFilter, sortMode]);
+
+  const handleResetAnalysisSettings = useCallback(() => {
+    const defaults = typeof window !== 'undefined'
+      ? resetAssistantPreferences(window.localStorage, userId)
+      : PA_ANALYSIS_DEFAULTS;
+    setSortMode(defaults.sortMode);
+    setFormatFilter(defaults.format);
+    setStatusFilter(defaults.statusFilter);
+    setQuery('');
+    toast.success('Analysis Settings Reset To Defaults');
+  }, [userId]);
+
+  const activeSettingsOverrides = countActivePreferenceOverrides({
+    format: formatFilter,
+    sortMode,
+    statusFilter,
+  });
+  const activeScopeSummary = describeAnalysisScope({
+    format: formatFilter,
+    sortMode,
+    statusFilter,
+  });
 
   const {
     leaks: fetchedLeaks,
@@ -1875,6 +1938,19 @@ export default function LeakFinderPage() {
     if (!requireOnline()) return;
     return executeDetection({ fullRescan: true });
   }, [requireOnline, executeDetection]);
+
+  // One-click Analyze My Play handoff from Personal Assistant Home (?autorun=1).
+  // Clears the query param immediately so reloading never duplicates an audit.
+  const autorunTriggeredRef = useRef(false);
+  useEffect(() => {
+    if (!router.isReady || !userId || isDetecting || autorunTriggeredRef.current) return;
+    const rawAuto = Array.isArray(router.query?.autorun) ? router.query.autorun[0] : router.query?.autorun;
+    if (String(rawAuto || '') !== '1') return;
+    autorunTriggeredRef.current = true;
+    const { autorun: _removed, ...restQuery } = router.query;
+    router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
+    handleRunDetection();
+  }, [router, userId, isDetecting, handleRunDetection]);
 
   const announcedAuditRef = useRef(null);
   useEffect(() => {
@@ -2399,115 +2475,27 @@ export default function LeakFinderPage() {
         />
 
         <main id="leak-finder-main" className="leaks-shell" style={styles.shell}>
+          {/* Compact MTT lobby header plaque */}
           <section className={`${toolStyles.machineHero} ${toolStyles.leakHero}`} aria-labelledby="leak-machine-title">
             <div className={toolStyles.machineHeroInner}>
               <div className={toolStyles.machineHeroCopy}>
-                <span className={toolStyles.machineEyebrow}>Deterministic Hand Audit</span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                  <span className={toolStyles.machineEyebrow}>Deterministic Hand Audit</span>
+                  <span style={styles.integrityBadge}>
+                    <Lock size={12} strokeWidth={2} aria-hidden="true" />
+                    Not Live Play · Post-Session Review Only
+                  </span>
+                </div>
                 <h1 id="leak-machine-title" className={toolStyles.machineTitle}>Leak Finder</h1>
                 <p className={toolStyles.machineDescription}>
-                  Club Arena Hands Flow Into A Solver-Verified Audit That Finds Repeated Decisions, Measures The EV Cost, And Builds The Next Drill.
+                  Analyze Your Completed Club Arena Hands With Verified Defaults And Focus On The Top EV Leaks First.
                 </p>
-                <span style={styles.integrityBadge}>
-                  <Lock size={12} strokeWidth={2} aria-hidden="true" />
-                  Not Live Play · Post-Session Review Only
-                </span>
-              </div>
-              <div className={toolStyles.machineTelemetry} aria-label="Leak Finder data telemetry">
-                <span className={toolStyles.telemetryCell}>
-                  <span className={toolStyles.telemetryLabel}>Club Arena Link</span>
-                  <strong className={toolStyles.telemetryValue} data-tone="live">
-                    {isDetecting ? 'Server Audit Active' : !detectionResult ? 'Ready To Sync' : detectionResult?.clubArenaSync?.available === false ? 'Check Required' : 'Connected'}
-                  </strong>
-                </span>
-                <span className={toolStyles.telemetryCell}>
-                  <span className={toolStyles.telemetryLabel}>Club Hands Found</span>
-                  <strong className={toolStyles.telemetryValue}>
-                    {detectionResult || detectionProgress
-                      ? num(detectionResult?.auditProgress?.handsScanned ?? detectionProgress?.handsScanned ?? detectionResult?.clubArenaSync?.handsFound).toLocaleString()
-                      : 'Not Available'}
-                  </strong>
-                </span>
-                <span className={toolStyles.telemetryCell}>
-                  <span className={toolStyles.telemetryLabel}>Solver Decisions</span>
-                  <strong className={toolStyles.telemetryValue} data-tone="gold">
-                    {detectionResult || detectionProgress ? num(detectionResult?.solverDecisionsAnalyzed ?? detectionProgress?.decisionsAnalyzed).toLocaleString() : 'Not Available'}
-                  </strong>
-                </span>
               </div>
             </div>
           </section>
 
-          {/* ── Sample-data disclosure ── */}
-          {leaksAreDemo && !leaksLoading && (
-            <section style={styles.demoBanner} aria-label="Sample data notice">
-              <p style={styles.demoBannerText}>
-                You Are Viewing Sample Data. Sign In And Run Detection To Analyse Your Own Hands.
-              </p>
-              <a className="pa-btn" href="/auth/login" style={{ ...btn('primary', { block: true }), textDecoration: 'none', minHeight: 48 }}>
-                Sign In To Analyse My Hands
-              </a>
-            </section>
-          )}
-
-          {/* ── Stats ── */}
-          <section className="leak-stat-grid" style={styles.statGrid} aria-label="Summary statistics">
-            <StatCell
-              label="Sessions reviewed"
-              value={statsLoading ? null : (statsError || statsAreDemo || stats.sessionsReviewed === null ? 'Not Available' : String(stats.sessionsReviewed))}
-            />
-            <StatCell
-              label="Hands analysed"
-              value={statsLoading ? null : (statsError || statsAreDemo || stats.handsAnalyzed === null ? 'Not Available' : stats.handsAnalyzed.toLocaleString())}
-            />
-            <StatCell
-              label="Active leaks"
-              value={leaksLoading ? null : (leaksAreDemo ? 'Not Available' : String(stats.leaksFound))}
-            />
-            <StatCell
-              label="Avg EV loss"
-              tone={T.danger}
-              value={leaksLoading || statsLoading ? null : (stats.avgEvLoss && !statsError && !statsAreDemo ? `${stats.avgEvLoss.toFixed(2)} BB` : 'Not Available')}
-            />
-            <StatCell
-              label="Archived coach records"
-              icon={<GraduationCap size={14} strokeWidth={2} aria-hidden="true" />}
-              value={coachLoading
-                ? null
-                : coachError
-                  ? 'Not Available'
-                  : (coachAccuracy && num(coachAccuracy.total_hands) > 0 ? String(num(coachAccuracy.total_hands)) : 'Not Available')}
-              tone={T.text}
-              hint={coachError ? 'Coach records unavailable' : (coachAccuracy && num(coachAccuracy.total_hands) > 0 ? 'Historical choices only · no provenance-sealed grade' : 'No coach records yet')}
-              onRetry={coachError ? fetchCoachAccuracy : null}
-            />
-            {statsAreDemo && (
-              <div style={{ gridColumn: '1 / -1' }}>
-                <span style={pill('warn')}>Sample Stats · Not Your Own Data</span>
-              </div>
-            )}
-            {statsError && !statsLoading && (
-              <div style={{ gridColumn: '1 / -1' }}>
-                <ErrorState
-                  title="Assistant Stats Unavailable"
-                  body="Your leak history is still available, but its summary totals could not be verified."
-                  onRetry={refetchStats}
-                />
-              </div>
-            )}
-            {!statsError && fetchedStats?.partial && !statsLoading && (
-              <div style={{ gridColumn: '1 / -1' }}>
-                <span style={pill('warn')}>Some Summary Sources Are Temporarily Unavailable</span>
-              </div>
-            )}
-          </section>
-
-          <div className={toolStyles.sectionRail} aria-hidden="true">
-            <strong>Analysis Control Deck</strong>
-            <span>Club Arena + Solver Evidence</span>
-          </div>
-
-          {/* ── Tabs ── */}
-          <div style={{ marginTop: S.md, marginBottom: S.md }} data-tutorial="leak-views">
+          {/* ── Tabs immediately under header (above the fold on phone & desktop) ── */}
+          <div style={{ marginTop: 6, marginBottom: S.sm }} data-tutorial="leak-views">
             <Segmented
               idPrefix="leaks-tab"
               label="View"
@@ -2522,8 +2510,152 @@ export default function LeakFinderPage() {
             />
           </div>
 
+          {/* ── Sample-data disclosure ── */}
+          {leaksAreDemo && !leaksLoading && (
+            <section style={styles.demoBanner} aria-label="Sample data notice">
+              <p style={styles.demoBannerText}>
+                You Are Viewing Sample Data. Sign In And Run Detection To Analyse Your Own Hands.
+              </p>
+              <a className="pa-btn" href="/auth/login" style={{ ...btn('primary', { block: true }), textDecoration: 'none', minHeight: 44 }}>
+                Sign In To Analyse My Hands
+              </a>
+            </section>
+          )}
+
+          {statsError && !statsLoading && (
+            <div style={{ marginBottom: S.sm }}>
+              <ErrorState
+                title="Assistant Stats Unavailable"
+                body="Your leak history is still available, but its summary totals could not be verified."
+                onRetry={refetchStats}
+              />
+            </div>
+          )}
+
           {tab === 'leaks' ? (
             <section id="leak-list" aria-label="Your leaks" data-tutorial="leak-list">
+              {/* Primary Detection Action + Optional Analysis Settings */}
+              <div className={toolStyles.scanDeck} data-tutorial="detect">
+                <div className={toolStyles.scanDeckInner}>
+                  <div className={toolStyles.scanDeckCopy}>
+                    <span className={toolStyles.scanDisc} aria-hidden="true"><Activity size={20} strokeWidth={1.8} /></span>
+                    <span className={toolStyles.scanText}>
+                      <strong>Analyze My Play</strong>
+                      <span>{activeScopeSummary}</span>
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: S.xs }}>
+                    {detectButton(true, toolStyles.scanButton)}
+                  </div>
+                </div>
+                {isDetecting && (
+                  <div style={{ padding: `0 ${S.md}px ${S.md}px` }} aria-live="polite">
+                    <div className="leak-progress"><span /></div>
+                    <p style={styles.detectStepText}>
+                      {detectionProgress?.handsScanned > 0
+                        ? `${num(detectionProgress.handsScanned).toLocaleString()} Hands Scanned · ${num(detectionProgress.handsAudited).toLocaleString()} Re-Audited · ${num(detectionProgress.decisionsAnalyzed).toLocaleString()} Decisions Checked`
+                        : detectSlow
+                        ? 'The Server Audit Is Still Working. You Can Safely Leave This Page And Return Later.'
+                        : DETECT_STEPS[detectStep]}
+                    </p>
+                  </div>
+                )}
+                {detectionSummary && (
+                  <div
+                    role="status"
+                    aria-live="polite"
+                    style={{
+                      ...styles.detectionBanner,
+                      margin: `0 ${S.md}px ${S.md}px`,
+                      borderColor: detectionSummary.type === 'error'
+                        ? 'rgba(255,107,122,0.5)'
+                        : detectionSummary.type === 'success' ? 'rgba(77,224,165,0.5)' : 'rgba(255,198,109,0.5)',
+                      color: detectionSummary.type === 'error'
+                        ? T.danger
+                        : detectionSummary.type === 'success' ? T.success : T.warn,
+                    }}
+                  >
+                    <span style={{ flex: 1, minWidth: 0 }}>{detectionSummary.text}</span>
+                    <button
+                      type="button"
+                      className="pa-btn"
+                      aria-label="Dismiss detection message"
+                      onClick={() => setDetectionSummary(null)}
+                      style={iconBtn({ transparent: true, color: T.textMuted })}
+                    >
+                      <X size={18} strokeWidth={2} />
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Optional Analysis Settings (collapsed by default) */}
+              <details className="pa-disclosure" style={{ marginBottom: S.sm }}>
+                <summary>
+                  <span>Analysis Settings</span>
+                  <small>{activeSettingsOverrides > 0 ? `${activeSettingsOverrides} Custom` : 'Defaults Active'}</small>
+                </summary>
+                <div className="pa-disclosure-body" style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
+                  <Segmented
+                    idPrefix="leak-format"
+                    label="Format (Cash And Tournament Never Mixed)"
+                    value={formatFilter}
+                    onChange={updateFormatFilter}
+                    options={[
+                      { value: 'all', label: 'All' },
+                      { value: 'cash', label: 'Cash NLH' },
+                      { value: 'tournament', label: 'Tournament NLH' },
+                    ]}
+                  />
+                  <Segmented
+                    idPrefix="leak-sort"
+                    label="Sort by"
+                    value={sortMode}
+                    onChange={updateSortMode}
+                    options={[
+                      { value: 'impact', label: 'Impact' },
+                      { value: 'recent', label: 'Recent' },
+                      { value: 'confidence', label: 'Confidence' },
+                    ]}
+                  />
+                  <Segmented
+                    idPrefix="leak-status"
+                    label="Status"
+                    tone="warn"
+                    columns={2}
+                    value={statusFilter}
+                    onChange={updateStatusFilter}
+                    options={[
+                      { value: 'all', label: 'All' },
+                      { value: 'persistent', label: 'Persistent' },
+                      { value: 'emerging', label: 'Emerging' },
+                      { value: 'improving', label: 'Improving' },
+                    ]}
+                  />
+                  <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
+                    {!isDetecting && userId && (
+                      <button
+                        type="button"
+                        className="pa-btn"
+                        style={btn('secondary')}
+                        onClick={handleFullRescan}
+                      >
+                        <RotateCcw size={15} strokeWidth={2} aria-hidden="true" />
+                        Full Re-Audit
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="pa-btn"
+                      style={btn('secondary')}
+                      onClick={handleResetAnalysisSettings}
+                    >
+                      Reset To Defaults
+                    </button>
+                  </div>
+                </div>
+              </details>
+
               {/* Due for review · the spaced-repetition entry point */}
               <LeakErrorBoundary label="The review queue">
                 <ReviewQueueCard
@@ -2573,71 +2705,6 @@ export default function LeakFinderPage() {
                   </div>
                 </section>
               )}
-
-              {/* Detection */}
-              <div className={toolStyles.scanDeck} data-tutorial="detect">
-                <div className={toolStyles.scanDeckInner}>
-                  <div className={toolStyles.scanDeckCopy}>
-                    <span className={toolStyles.scanDisc} aria-hidden="true"><Activity size={25} strokeWidth={1.8} /></span>
-                    <span className={toolStyles.scanText}>
-                      <strong>Run The Deterministic Audit</strong>
-                      <span>Import Recent Club Arena Hands, Match The Same Solver Ranges Used In Training, And Rebuild Your Leak Queue.</span>
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: S.xs, flexWrap: 'wrap' }}>
-                    {detectButton(true, toolStyles.scanButton)}
-                    {!isDetecting && userId && (
-                      <button
-                        type="button"
-                        className="pa-btn"
-                        style={btn('secondary')}
-                        onClick={handleFullRescan}
-                      >
-                        <RotateCcw size={16} strokeWidth={2} aria-hidden="true" />
-                        Full Re-Audit
-                      </button>
-                    )}
-                  </div>
-                </div>
-                {isDetecting && (
-                  <div style={{ padding: `0 ${S.md}px ${S.md}px` }} aria-live="polite">
-                    <div className="leak-progress"><span /></div>
-                    <p style={styles.detectStepText}>
-                      {detectionProgress?.handsScanned > 0
-                        ? `${num(detectionProgress.handsScanned).toLocaleString()} Hands Scanned · ${num(detectionProgress.handsAudited).toLocaleString()} Re-Audited · ${num(detectionProgress.decisionsAnalyzed).toLocaleString()} Decisions Checked`
-                        : detectSlow
-                        ? 'The Server Audit Is Still Working. You Can Safely Leave This Page And Return Later.'
-                        : DETECT_STEPS[detectStep]}
-                    </p>
-                  </div>
-                )}
-                {detectionSummary && (
-                  <div
-                    role="status"
-                    aria-live="polite"
-                    style={{
-                      ...styles.detectionBanner,
-                      borderColor: detectionSummary.type === 'error'
-                        ? 'rgba(255,107,122,0.5)'
-                        : detectionSummary.type === 'success' ? 'rgba(77,224,165,0.5)' : 'rgba(255,198,109,0.5)',
-                      color: detectionSummary.type === 'error'
-                        ? T.danger
-                        : detectionSummary.type === 'success' ? T.success : T.warn,
-                    }}
-                  >
-                    <span style={{ flex: 1, minWidth: 0 }}>{detectionSummary.text}</span>
-                    <button
-                      type="button"
-                      className="pa-btn"
-                      aria-label="Dismiss detection message"
-                      onClick={() => setDetectionSummary(null)}
-                      style={iconBtn({ transparent: true, color: T.textMuted })}
-                    >
-                      <X size={18} strokeWidth={2} />
-                    </button>
-                  </div>
-                )}
-              </div>
 
               {linkedClubHand && (
                 <section
@@ -2921,13 +2988,89 @@ export default function LeakFinderPage() {
                 </section>
               )}
 
-              <AuditReceipt result={detectionResult || (auditJob ? {
-                auditJob,
-                auditProgress: auditJob.progress,
-                reconciliation: auditJob.reconciliation,
-                leaksDetected: auditJob.progress?.coverage?.leaks || 0,
-                persisted: auditJob.status !== 'failed',
-              } : null)} />
+              {/* Collapsible Stats & Audit Details (keeps main flow focused on leaks) */}
+              <details className="pa-disclosure" style={{ marginBottom: S.md }}>
+                <summary>
+                  <span>Stats &amp; Audit Details</span>
+                  <small>
+                    {leaksAreDemo ? 'Sample Mode' : `${stats.leaksFound} Active · ${stats.handsAnalyzed ?? 0} Hands`}
+                  </small>
+                </summary>
+                <div className="pa-disclosure-body" style={{ display: 'flex', flexDirection: 'column', gap: S.sm }}>
+                  <div className={toolStyles.machineTelemetry} aria-label="Leak Finder data telemetry">
+                    <span className={toolStyles.telemetryCell}>
+                      <span className={toolStyles.telemetryLabel}>Club Arena Link</span>
+                      <strong className={toolStyles.telemetryValue} data-tone="live">
+                        {isDetecting ? 'Server Audit Active' : !detectionResult ? 'Ready To Sync' : detectionResult?.clubArenaSync?.available === false ? 'Check Required' : 'Connected'}
+                      </strong>
+                    </span>
+                    <span className={toolStyles.telemetryCell}>
+                      <span className={toolStyles.telemetryLabel}>Club Hands Found</span>
+                      <strong className={toolStyles.telemetryValue}>
+                        {detectionResult || detectionProgress
+                          ? num(detectionResult?.auditProgress?.handsScanned ?? detectionProgress?.handsScanned ?? detectionResult?.clubArenaSync?.handsFound).toLocaleString()
+                          : 'Not Available'}
+                      </strong>
+                    </span>
+                    <span className={toolStyles.telemetryCell}>
+                      <span className={toolStyles.telemetryLabel}>Solver Decisions</span>
+                      <strong className={toolStyles.telemetryValue} data-tone="gold">
+                        {detectionResult || detectionProgress ? num(detectionResult?.solverDecisionsAnalyzed ?? detectionProgress?.decisionsAnalyzed).toLocaleString() : 'Not Available'}
+                      </strong>
+                    </span>
+                  </div>
+
+                  <section className="leak-stat-grid" style={styles.statGrid} aria-label="Summary statistics">
+                    <StatCell
+                      label="Sessions reviewed"
+                      value={statsLoading ? null : (statsError || statsAreDemo || stats.sessionsReviewed === null ? 'Not Available' : String(stats.sessionsReviewed))}
+                    />
+                    <StatCell
+                      label="Hands analysed"
+                      value={statsLoading ? null : (statsError || statsAreDemo || stats.handsAnalyzed === null ? 'Not Available' : stats.handsAnalyzed.toLocaleString())}
+                    />
+                    <StatCell
+                      label="Active leaks"
+                      value={leaksLoading ? null : (leaksAreDemo ? 'Not Available' : String(stats.leaksFound))}
+                    />
+                    <StatCell
+                      label="Avg EV loss"
+                      tone={T.danger}
+                      value={leaksLoading || statsLoading ? null : (stats.avgEvLoss && !statsError && !statsAreDemo ? `${stats.avgEvLoss.toFixed(2)} BB` : 'Not Available')}
+                    />
+                    <StatCell
+                      label="Archived coach records"
+                      icon={<GraduationCap size={14} strokeWidth={2} aria-hidden="true" />}
+                      value={coachLoading
+                        ? null
+                        : coachError
+                          ? 'Not Available'
+                          : (coachAccuracy && num(coachAccuracy.total_hands) > 0 ? String(num(coachAccuracy.total_hands)) : 'Not Available')}
+                      tone={T.text}
+                      hint={coachError ? 'Coach records unavailable' : (coachAccuracy && num(coachAccuracy.total_hands) > 0 ? 'Historical choices only · no provenance-sealed grade' : 'No coach records yet')}
+                      onRetry={coachError ? fetchCoachAccuracy : null}
+                    />
+                    {statsAreDemo && (
+                      <div style={{ gridColumn: '1 / -1' }}>
+                        <span style={pill('warn')}>Sample Stats · Not Your Own Data</span>
+                      </div>
+                    )}
+                    {!statsError && fetchedStats?.partial && !statsLoading && (
+                      <div style={{ gridColumn: '1 / -1' }}>
+                        <span style={pill('warn')}>Some Summary Sources Are Temporarily Unavailable</span>
+                      </div>
+                    )}
+                  </section>
+
+                  <AuditReceipt result={detectionResult || (auditJob ? {
+                    auditJob,
+                    auditProgress: auditJob.progress,
+                    reconciliation: auditJob.reconciliation,
+                    leaksDetected: auditJob.progress?.coverage?.leaks || 0,
+                    persisted: auditJob.status !== 'failed',
+                  } : null)} />
+                </div>
+              </details>
 
               {/* Load error (never replaces the empty state / detect button) */}
               {leaksError && !leaksLoading && (
@@ -2956,16 +3099,13 @@ export default function LeakFinderPage() {
                 </div>
               ) : activeLeaks.length === 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
-                  {/* A scan the user did not start still has to be visible ·
-                      showing "no leaks detected" while one is running would be
-                      telling them something we do not yet know. */}
                   <EmptyState
+                    compact
                     icon={<Inbox size={22} strokeWidth={2} />}
                     title={(autoDetecting || isDetecting) ? 'Checking your recent hands…' : 'No leaks detected yet'}
                     body={(autoDetecting || isDetecting)
                       ? 'Scanning your hand history for repeated, measurable EV mistakes. This takes a few seconds.'
-                      : 'Run detection on your recent hands and the engine will rank every repeated, measurable EV leak.'}
-                    action={(autoDetecting || isDetecting) ? null : detectButton(false)}
+                      : 'Use Analyze My Play above to scan your completed Club Arena hands with verified defaults.'}
                   />
                   {(onboardingLeaks || []).length > 0 && (
                     <div>
@@ -2990,8 +3130,8 @@ export default function LeakFinderPage() {
                     <BleedSummary leaks={activeLeaks} isDemo={leaksAreDemo} />
                   </LeakErrorBoundary>
 
-                  {/* Search + sort + filter */}
-                  <div className={toolStyles.instrumentPanel} style={{ ...cardCompact, marginBottom: S.md, display: 'flex', flexDirection: 'column', gap: S.md }}>
+                  {/* Compact single-row search bar (Sort/Format/Status live in Analysis Settings above) */}
+                  <div className={toolStyles.instrumentPanel} style={{ ...cardCompact, marginBottom: S.md }}>
                     <div style={styles.searchWrap}>
                       <Search size={18} strokeWidth={2} aria-hidden="true" style={{ color: T.textDim, flexShrink: 0 }} />
                       <input
@@ -3014,45 +3154,6 @@ export default function LeakFinderPage() {
                         </button>
                       )}
                     </div>
-
-                    <Segmented
-                      idPrefix="leak-sort"
-                      label="Sort by"
-                      value={sortMode}
-                      onChange={setSortMode}
-                      options={[
-                        { value: 'impact', label: 'Impact' },
-                        { value: 'recent', label: 'Recent' },
-                        { value: 'confidence', label: 'Confidence' },
-                      ]}
-                    />
-
-                    <Segmented
-                      idPrefix="leak-format"
-                      label="Format"
-                      value={formatFilter}
-                      onChange={setFormatFilter}
-                      options={[
-                        { value: 'all', label: 'All' },
-                        { value: 'cash', label: 'Cash NLH' },
-                        { value: 'tournament', label: 'Tournament NLH' },
-                      ]}
-                    />
-
-                    <Segmented
-                      idPrefix="leak-status"
-                      label="Status"
-                      tone="warn"
-                      columns={2}
-                      value={statusFilter}
-                      onChange={setStatusFilter}
-                      options={[
-                        { value: 'all', label: 'All' },
-                        { value: 'persistent', label: 'Persistent' },
-                        { value: 'emerging', label: 'Emerging' },
-                        { value: 'improving', label: 'Improving' },
-                      ]}
-                    />
                   </div>
 
                   {shownLeaks.length === 0 ? (
@@ -3447,10 +3548,10 @@ const styles = {
   },
   shell: {
     width: '100%',
-    maxWidth: 1180,
+    maxWidth: 620,
     margin: '0 auto',
     boxSizing: 'border-box',
-    padding: `${S.lg}px max(${S.lg}px, env(safe-area-inset-left, 0px))`,
+    padding: `10px max(8px, env(safe-area-inset-left, 0px))`,
     paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))',
   },
 
