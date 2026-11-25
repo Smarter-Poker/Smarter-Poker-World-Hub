@@ -867,6 +867,7 @@ import './backlink-embed-citation-engine.test.mjs';
 import './seo-backlink-programme-invariants.law.test.mjs';
 import './aeo-traffic-expansion-master.test.mjs';
 import './training-reconciled-workflows.test.mjs';
+import './training-simplification-mtt-design.test.mjs';
 import './hub-settings-rail-opt-in.test.mjs';
 import './fleet-content-cleanup-migration.test.mjs';
 import './promo-campaigns.test.mjs';
