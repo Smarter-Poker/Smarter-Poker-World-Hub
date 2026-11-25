@@ -10,6 +10,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { authedFetch } from '../../src/lib/authUtils';
 import { createClient } from '../../src/lib/supabaseServerClient';
 import { getServerUserWithFallback } from '../../src/lib/serverAuth';
+import { formatQualityIssueLabel } from '../../src/lib/trivia/questionQualityAudit.mjs';
 import consoleStyles from '../../src/components/admin/OperatorAdminSurface.module.css';
 
 const TARGET_PER_CATEGORY = 1500;
@@ -204,6 +205,7 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, in
     const [activeTab, setActiveTab] = useState('overview');
     const [queueMode, setQueueMode] = useState('review_queue');
     const [queueCategory, setQueueCategory] = useState('all');
+    const [thinCategoriesFirst, setThinCategoriesFirst] = useState(true);
     const [minShown, setMinShown] = useState(initialCalibration?.minShown || 15);
     const [workbenchData, setWorkbenchData] = useState(() => (
         initialCalibration ? {
@@ -215,7 +217,7 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, in
             },
             categoryDepth: initialCalibration.categoryDepth,
             categoryDepthAlerts: (initialCalibration.categoryDepth || []).filter(r => r.below_90_day_supply),
-            queue: { mode: 'review_queue', category: 'all', items: [] },
+            queue: { mode: 'review_queue', category: 'all', priority: 'thin_categories', items: [] },
         } : null
     ));
     const [queueLoaded, setQueueLoaded] = useState(false);
@@ -227,13 +229,19 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, in
     const [actionBusy, setActionBusy] = useState(false);
     const [actionFeedback, setActionFeedback] = useState(null);
 
-    const loadWorkbench = useCallback(async ({ mode = queueMode, category = queueCategory, min = minShown } = {}) => {
+    const loadWorkbench = useCallback(async ({
+        mode = queueMode,
+        category = queueCategory,
+        min = minShown,
+        thinFirst = thinCategoriesFirst,
+    } = {}) => {
         setWorkbenchLoading(true);
         setWorkbenchError('');
         try {
             const params = new URLSearchParams({
                 queue: mode,
                 category,
+                priority: thinFirst ? 'thin_categories' : 'default',
                 minShown: String(min),
                 limit: '50',
             });
@@ -252,7 +260,7 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, in
         } finally {
             setWorkbenchLoading(false);
         }
-    }, [minShown, queueCategory, queueMode]);
+    }, [minShown, queueCategory, queueMode, thinCategoriesFirst]);
 
     useEffect(() => {
         if ((activeTab === 'curation' || activeTab === 'calibration') && !queueLoaded && !workbenchLoading) {
@@ -321,6 +329,19 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, in
             setSelectedIds(queueItems.map((item) => item.questionId));
         }
     };
+
+    const selectReadyOnly = () => {
+        setSelectedIds(
+            queueItems
+                .filter((item) => item.qualityAudit?.pass === true)
+                .map((item) => item.questionId)
+        );
+    };
+
+    const readyQueueCount = useMemo(
+        () => queueItems.filter((item) => item.qualityAudit?.pass === true).length,
+        [queueItems]
+    );
 
     if (error) {
         return <main className={consoleStyles.surface}><div className={consoleStyles.state} role="alert" style={{ padding: 24, color: '#ff7a7a' }}>Error: {error}</div></main>;
@@ -583,7 +604,7 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, in
                                     aria-pressed={queueMode === 'review_queue'}
                                     onClick={() => {
                                         setQueueMode('review_queue');
-                                        loadWorkbench({ mode: 'review_queue', category: queueCategory, min: minShown });
+                                        loadWorkbench({ mode: 'review_queue', category: queueCategory, min: minShown, thinFirst: thinCategoriesFirst });
                                     }}
                                     style={{
                                         padding: '8px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer',
@@ -599,7 +620,7 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, in
                                     aria-pressed={queueMode === 'unaudited'}
                                     onClick={() => {
                                         setQueueMode('unaudited');
-                                        loadWorkbench({ mode: 'unaudited', category: queueCategory, min: minShown });
+                                        loadWorkbench({ mode: 'unaudited', category: queueCategory, min: minShown, thinFirst: thinCategoriesFirst });
                                     }}
                                     style={{
                                         padding: '8px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer',
@@ -610,13 +631,30 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, in
                                 >
                                     Un-Audited ({Number(calibrationSummary.total_unaudited || 0).toLocaleString()})
                                 </button>
+                                <button
+                                    type="button"
+                                    aria-pressed={thinCategoriesFirst}
+                                    onClick={() => {
+                                        const nextThin = !thinCategoriesFirst;
+                                        setThinCategoriesFirst(nextThin);
+                                        loadWorkbench({ mode: queueMode, category: queueCategory, min: minShown, thinFirst: nextThin });
+                                    }}
+                                    style={{
+                                        padding: '8px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                                        border: thinCategoriesFirst ? '1px solid #fbbf24' : '1px solid rgba(255,255,255,0.22)',
+                                        background: thinCategoriesFirst ? 'rgba(251,191,36,0.22)' : 'rgba(255,255,255,0.06)',
+                                        color: thinCategoriesFirst ? '#fde68a' : '#fff',
+                                    }}
+                                >
+                                    Thin Categories First
+                                </button>
                                 <select
                                     aria-label="Filter Curation Category"
                                     value={queueCategory}
                                     onChange={(e) => {
                                         const nextCat = e.target.value;
                                         setQueueCategory(nextCat);
-                                        loadWorkbench({ mode: queueMode, category: nextCat, min: minShown });
+                                        loadWorkbench({ mode: queueMode, category: nextCat, min: minShown, thinFirst: thinCategoriesFirst });
                                     }}
                                     style={{
                                         padding: '8px 10px', borderRadius: 6, fontSize: 12,
@@ -651,8 +689,16 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, in
                         {/* Batch action controls */}
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', padding: 12, marginBottom: 16, borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}>
                             <span style={{ fontSize: 12, fontWeight: 700, color: '#93c5fd' }}>
-                                Selected: {selectedIds.length} / {queueItems.length}
+                                Selected: {selectedIds.length} / {queueItems.length} · Ready: {readyQueueCount}
                             </span>
+                            <button
+                                type="button"
+                                disabled={actionBusy || readyQueueCount === 0}
+                                onClick={selectReadyOnly}
+                                style={{ padding: '8px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(34,197,94,0.18)', color: '#bbf7d0', border: '1px solid rgba(34,197,94,0.45)' }}
+                            >
+                                Select Ready Only
+                            </button>
                             <input
                                 type="text"
                                 aria-label="Batch Curation Reason"
@@ -726,6 +772,7 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, in
                                             <th style={{ padding: '10px 10px', textAlign: 'left', fontSize: 12, color: 'rgba(255,255,255,0.68)' }}>CATEGORY</th>
                                             <th style={{ padding: '10px 10px', textAlign: 'left', fontSize: 12, color: 'rgba(255,255,255,0.68)' }}>DIFFICULTY</th>
                                             <th style={{ padding: '10px 10px', textAlign: 'left', fontSize: 12, color: 'rgba(255,255,255,0.68)' }}>QUALITY</th>
+                                            <th style={{ padding: '10px 10px', textAlign: 'left', fontSize: 12, color: 'rgba(255,255,255,0.68)' }}>PRE-CHECK</th>
                                             <th style={{ padding: '10px 10px', textAlign: 'left', fontSize: 12, color: 'rgba(255,255,255,0.68)' }}>QUESTION</th>
                                         </tr>
                                     </thead>
@@ -741,13 +788,45 @@ export default function TriviaPoolDashboard({ byCat, sources, audit, phase54, in
                                                     />
                                                 </td>
                                                 <td style={{ padding: '10px 10px', fontSize: 12, verticalAlign: 'top', whiteSpace: 'nowrap' }}>
-                                                    {PRETTY[item.category] || item.category}
+                                                    <div>{PRETTY[item.category] || item.category}</div>
+                                                    {item.isThinCategory && (
+                                                        <span style={{ display: 'inline-block', marginTop: 4, padding: '2px 6px', borderRadius: 999, background: 'rgba(251,191,36,0.18)', color: '#fde68a', fontSize: 12, fontWeight: 600 }}>
+                                                            Thin Priority
+                                                        </span>
+                                                    )}
                                                 </td>
                                                 <td style={{ padding: '10px 10px', fontSize: 12, verticalAlign: 'top', textTransform: 'capitalize' }}>
                                                     {item.difficulty}
                                                 </td>
                                                 <td style={{ padding: '10px 10px', fontSize: 12, verticalAlign: 'top' }}>
                                                     {item.qualityScore ?? 'Unset'}
+                                                </td>
+                                                <td style={{ padding: '10px 10px', fontSize: 12, verticalAlign: 'top', minWidth: 160 }}>
+                                                    {item.qualityAudit?.pass === true ? (
+                                                        <div>
+                                                            <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 999, background: 'rgba(34,197,94,0.18)', border: '1px solid rgba(34,197,94,0.45)', color: '#bbf7d0', fontSize: 12, fontWeight: 700 }}>
+                                                                Ready For Review
+                                                            </span>
+                                                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.68)', marginTop: 4 }}>
+                                                                Score {item.qualityAudit.score}/100
+                                                            </div>
+                                                        </div>
+                                                    ) : item.qualityAudit ? (
+                                                        <div>
+                                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                                                                {(item.qualityAudit.issues || []).map((issue) => (
+                                                                    <span key={issue} style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 999, background: 'rgba(239,68,68,0.18)', border: '1px solid rgba(239,68,68,0.45)', color: '#fecaca', fontSize: 12, fontWeight: 600 }}>
+                                                                        {formatQualityIssueLabel(issue)}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.68)', marginTop: 4 }}>
+                                                                Score {item.qualityAudit.score}/100
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.68)' }}>Pending Check</span>
+                                                    )}
                                                 </td>
                                                 <td style={{ padding: '10px 10px', fontSize: 13, lineHeight: 1.45 }}>
                                                     <div>{item.question}</div>
