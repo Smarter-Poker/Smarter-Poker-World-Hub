@@ -11,6 +11,7 @@ const VARIANTS = [
   { id: 'plo4', label: 'PLO4 (4 Cards)', heroCards: ['Js', 'Ts', '9h', '8h'] },
   { id: 'plo5', label: 'PLO5 (5 Cards)', heroCards: ['Js', 'Ts', '9h', '8h', '7d'] },
   { id: 'plo6', label: 'PLO6 (6 Cards)', heroCards: ['Js', 'Ts', '9h', '8h', '7d', '6c'] },
+  { id: 'plo8', label: 'PLO8 (Hi-Lo)', heroCards: ['Js', 'Ts', '9h', '8h'] },
 ];
 
 const FREQUENCY_LOCK_MODES = [

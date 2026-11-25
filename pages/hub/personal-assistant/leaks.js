@@ -1473,6 +1473,7 @@ export default function LeakFinderPage() {
 
   const [sortMode, setSortMode] = useState('impact');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [formatFilter, setFormatFilter] = useState('all');
   const [query, setQuery] = useState('');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [pastOpen, setPastOpen] = useState(false);
@@ -2174,6 +2175,15 @@ export default function LeakFinderPage() {
     const needle = query.trim().toLowerCase();
     let list = activeLeaks;
     if (statusFilter !== 'all') list = list.filter(l => l.status === statusFilter);
+    if (formatFilter !== 'all') {
+      list = list.filter((l) => {
+        const hay = `${l.leakType || ''} ${l.recommendedDrill || ''} ${l.title || ''} ${l.situationClass || ''}`.toLowerCase();
+        const isTournament = hay.includes('mtt_') || hay.includes('mtt-') || hay.includes('tournament');
+        const isCash = hay.includes('cash_') || hay.includes('cash-') || hay.includes('cash nlh');
+        if (formatFilter === 'tournament') return isTournament;
+        return isCash || !isTournament;
+      });
+    }
     if (needle) {
       list = list.filter(l =>
         String(l.title || '').toLowerCase().includes(needle)
@@ -2189,9 +2199,9 @@ export default function LeakFinderPage() {
       sorted.sort((a, b) => (confRank[b.confidence] || 0) - (confRank[a.confidence] || 0) || totalBleed(b) - totalBleed(a));
     }
     return sorted;
-  }, [activeLeaks, statusFilter, query, sortMode]);
+  }, [activeLeaks, statusFilter, formatFilter, query, sortMode]);
 
-  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [statusFilter, query, sortMode]);
+  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [statusFilter, formatFilter, query, sortMode]);
 
   const shownLeaks = visibleLeaks.slice(0, visibleCount);
   const remaining = Math.max(0, visibleLeaks.length - shownLeaks.length);
@@ -2659,42 +2669,111 @@ export default function LeakFinderPage() {
                     </div>
                   )}
 
+                  {!linkedHandLoading && Array.isArray(linkedHandAudit?.streetTimeline) && linkedHandAudit.streetTimeline.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: S.xs }} aria-label="Street Action Timeline">
+                      <div style={{ fontSize: F.caption, color: T.textMuted }}>
+                        Street Action Timeline
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {linkedHandAudit.streetTimeline.map((st) => (
+                          <div
+                            key={st.street}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: S.xs,
+                              flexWrap: 'wrap',
+                              padding: `6px ${S.sm}px`,
+                              borderRadius: R.sm,
+                              background: T.surface2,
+                              fontSize: F.caption,
+                            }}
+                          >
+                            <strong style={{ textTransform: 'capitalize', minWidth: 56 }}>{st.street}</strong>
+                            {Array.isArray(st.board) && st.board.length > 0 && (
+                              <span style={pill('muted')} data-pa-verbatim="true">{st.board.join(' ')}</span>
+                            )}
+                            {st.actions.map((act, actIdx) => (
+                              <span
+                                key={`${st.street}-${actIdx}`}
+                                style={pill(act.isHero ? 'accent' : 'neutral')}
+                              >
+                                {act.isHero ? 'Hero' : (act.position || 'Player')} {act.action}
+                                {act.amount != null && act.amount > 0 ? ` ${act.amount}` : ''}
+                              </span>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {!linkedHandLoading && Array.isArray(linkedHandAudit?.decisions) && linkedHandAudit.decisions.length > 0 && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: S.xs }}>
                       <div style={{ fontSize: F.caption, color: T.textMuted }}>
                         {linkedHandAudit.solverVerifiedCount} Solver Verified · {linkedHandAudit.unpricedCount} Explicitly Unmeasured
                       </div>
-                      {linkedHandAudit.decisions.map((decision, idx) => (
-                        <div
-                          key={decision.decisionKey || `${decision.street}-${idx}`}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            gap: S.xs,
-                            flexWrap: 'wrap',
-                            padding: `${S.xs}px ${S.sm}px`,
-                            borderRadius: R.sm,
-                            background: T.surface2,
-                            fontSize: F.bodySm,
-                          }}
-                        >
-                          <span>
-                            <strong style={{ textTransform: 'capitalize' }}>{decision.street}</strong>
-                            {decision.heroPosition ? ` · ${decision.heroPosition}` : ''}
-                            {decision.playerAction ? ` · Played ${decision.playerAction}` : ''}
-                            {decision.solverVerified && decision.solverAction ? ` · Solver ${decision.solverAction}` : ''}
-                          </span>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: S.xs }}>
-                            <span style={pill(decision.solverVerified ? (decision.classification === 'correct' ? 'success' : 'warn') : 'muted')}>
-                              {decision.solverVerified ? decision.classification : 'Unmeasured'}
-                            </span>
-                            {decision.evLossMeasured && decision.evLoss != null && (
-                              <span style={numeric}>{Number(decision.evLoss).toFixed(2)} BB</span>
+                      {linkedHandAudit.decisions.map((decision, idx) => {
+                        const selPct = decision.selectedFrequency != null && Number.isFinite(Number(decision.selectedFrequency))
+                          ? Math.max(0, Math.min(100, Math.round(Number(decision.selectedFrequency) <= 1 ? Number(decision.selectedFrequency) * 100 : Number(decision.selectedFrequency))))
+                          : null;
+                        const optPct = decision.optimalFrequency != null && Number.isFinite(Number(decision.optimalFrequency))
+                          ? Math.max(0, Math.min(100, Math.round(Number(decision.optimalFrequency) <= 1 ? Number(decision.optimalFrequency) * 100 : Number(decision.optimalFrequency))))
+                          : null;
+                        return (
+                          <div
+                            key={decision.decisionKey || `${decision.street}-${idx}`}
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 6,
+                              padding: `${S.xs}px ${S.sm}px`,
+                              borderRadius: R.sm,
+                              background: T.surface2,
+                              fontSize: F.bodySm,
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: S.xs, flexWrap: 'wrap' }}>
+                              <span>
+                                <strong style={{ textTransform: 'capitalize' }}>{decision.street}</strong>
+                                {decision.heroPosition ? ` · ${decision.heroPosition}` : ''}
+                                {decision.playerAction ? ` · Played ${decision.playerAction}` : ''}
+                                {decision.solverVerified && decision.solverAction ? ` · Solver ${decision.solverAction}` : ''}
+                              </span>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: S.xs }}>
+                                <span style={pill(decision.solverVerified ? (decision.classification === 'correct' ? 'success' : 'warn') : 'muted')}>
+                                  {decision.solverVerified ? decision.classification : 'Unmeasured'}
+                                </span>
+                                {decision.evLossMeasured && decision.evLoss != null && (
+                                  <span style={numeric}>{Number(decision.evLoss).toFixed(2)} BB</span>
+                                )}
+                              </span>
+                            </div>
+                            {decision.solverVerified && selPct !== null && optPct !== null && (
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: S.sm, fontSize: F.caption, color: T.textMuted }}>
+                                <div>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                                    <span>Your Action Frequency</span>
+                                    <strong style={{ ...numeric, color: T.text }}>{selPct}%</strong>
+                                  </div>
+                                  <div style={{ height: 6, borderRadius: 999, background: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
+                                    <div style={{ width: `${selPct}%`, height: '100%', background: decision.classification === 'correct' ? T.success : T.warn }} />
+                                  </div>
+                                </div>
+                                <div>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                                    <span>Solver Optimal Frequency</span>
+                                    <strong style={{ ...numeric, color: T.success }}>{optPct}%</strong>
+                                  </div>
+                                  <div style={{ height: 6, borderRadius: 999, background: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
+                                    <div style={{ width: `${optPct}%`, height: '100%', background: T.success }} />
+                                  </div>
+                                </div>
+                              </div>
                             )}
-                          </span>
-                        </div>
-                      ))}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
 
@@ -2824,6 +2903,18 @@ export default function LeakFinderPage() {
                     />
 
                     <Segmented
+                      idPrefix="leak-format"
+                      label="Format"
+                      value={formatFilter}
+                      onChange={setFormatFilter}
+                      options={[
+                        { value: 'all', label: 'All' },
+                        { value: 'cash', label: 'Cash NLH' },
+                        { value: 'tournament', label: 'Tournament NLH' },
+                      ]}
+                    />
+
+                    <Segmented
                       idPrefix="leak-status"
                       label="Status"
                       tone="warn"
@@ -2850,7 +2941,7 @@ export default function LeakFinderPage() {
                           type="button"
                           className="pa-btn"
                           style={btn('secondary')}
-                          onClick={() => { setQuery(''); setStatusFilter('all'); }}
+                          onClick={() => { setQuery(''); setStatusFilter('all'); setFormatFilter('all'); }}
                         >
                           Reset Filters
                         </button>

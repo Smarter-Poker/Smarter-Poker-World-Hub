@@ -53,7 +53,7 @@ export default function ClinicPlayPage() {
       street: 'flop',
       heroPosition: 'BTN',
       villainPosition: 'BB',
-      heroCards: brainVariant === 'plo6' ? ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'] : brainVariant === 'plo5' ? ['As', 'Ks', 'Qh', 'Jh', 'Td'] : brainVariant === 'plo4' ? ['As', 'Ks', 'Qh', 'Jh'] : ['As', 'Kd'],
+      heroCards: brainVariant === 'plo6' ? ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'] : brainVariant === 'plo5' ? ['As', 'Ks', 'Qh', 'Jh', 'Td'] : (brainVariant === 'plo4' || brainVariant === 'plo8') ? ['As', 'Ks', 'Qh', 'Jh'] : ['As', 'Kd'],
       boardCards: ['Qs', '7d', '2c'],
       potSizeBb: 12,
       facingBetBb: 4,
@@ -107,7 +107,7 @@ export default function ClinicPlayPage() {
                 Recommended Action: {brainPreview?.recommendedAction || 'Call'} · Score: {brainPreview?.handScore ?? 50} / 100
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginTop: 14 }}>
-                {['nlh', 'plo4', 'plo5', 'plo6'].map((v) => (
+                {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
                   <button
                     key={v}
                     type="button"

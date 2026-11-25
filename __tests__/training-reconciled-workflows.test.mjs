@@ -1309,3 +1309,141 @@ test('Phase 10 Live-Play Parity & Complete Game Coverage: 5 variants (NLH, PLO4,
   assert.match(tableSrc, /data-winner-seat-anchored="true"/, 'UniversalDynamicTable must expose winner-seat anchoring');
   assert.match(tableSrc, /data-practice-isolation-verified="true"/, 'UniversalDynamicTable must expose practice isolation verification');
 });
+
+test('Phase 11 Master 16-Point Package: Showdown Reveal, 100% 5-Variant PLO8 Hub-Wide Coverage, Continuous Live-Session Mode, Mixed 4-Table Spatial Audio Grinder, PLO8/FL Leak Diagnostics, Tab-Switch Prefetch Cache, Side-Pot & Short All-In Badges, Table Rules & Double-Board Bomb Pot, Run It Twice Dual-Board Simulator, Villain Bucket What-If, Hotkey HUD, Async Duel Spot Challenge, Decision Pacing Telemetry, 4-Color Deck/Felt Theme Sync, and Hand History Exporter', async () => {
+  const parityModule = await import('../src/lib/training/clubArenaTableParity.js');
+  const adapterModule = await import('../src/lib/training/horseBrainTrainingAdapter.js');
+  const scannerModule = await import('../src/lib/training/weaknessScannerEngine.js');
+
+  const {
+    computeTableRuleDeadMoney,
+    evaluateRunItTwiceShowdown,
+    rotateDealerButtonPosition,
+    formatTrainingHandAsPokerStarsHistory,
+  } = parityModule;
+  const { evaluateDoubleBoardBombPot } = adapterModule;
+  const { analyzePlo8AndFixedLimitLeaks, analyzeDecisionPacingTelemetry } = scannerModule;
+
+  // 1. Table Rules & Dead-Money Calculator (Item 8 & 13)
+  const bbAnteRule = computeTableRuleDeadMoney({ tableRule: 'bb_ante', basePotBb: 6.5, playerCount: 6 });
+  assert.equal(bbAnteRule.tableRule, 'bb_ante');
+  assert.equal(bbAnteRule.deadMoneyAddedBb, 1);
+  assert.equal(bbAnteRule.adjustedPotBb, 7.5);
+
+  const straddleRule = computeTableRuleDeadMoney({ tableRule: 'utg_straddle', basePotBb: 6.5, playerCount: 6 });
+  assert.equal(straddleRule.tableRule, 'utg_straddle');
+  assert.equal(straddleRule.deadMoneyAddedBb, 2);
+  assert.equal(straddleRule.effectiveMinOpenBb, 4);
+
+  const dblBombRule = computeTableRuleDeadMoney({ tableRule: 'double_board_bomb_pot', basePotBb: 0, playerCount: 6 });
+  assert.equal(dblBombRule.tableRule, 'double_board_bomb_pot');
+  assert.equal(dblBombRule.deadMoneyAddedBb, 24);
+  assert.equal(dblBombRule.skipsPreflop, true);
+  assert.equal(dblBombRule.isDoubleBoard, true);
+
+  // 2. Double-Board Bomb-Pot Evaluator (Item 13)
+  const dblBombEval = evaluateDoubleBoardBombPot({
+    variant: 'plo4',
+    heroCards: ['As', 'Ks', 'Qh', 'Jh'],
+    boardACards: ['Ts', '9s', '2d'],
+    boardBCards: ['Ad', 'Kd', '4c'],
+    potSizeBb: 24,
+    facingBetBb: 8,
+    effectiveStackBb: 100,
+  });
+  assert.equal(dblBombEval.ok, true);
+  assert.ok(dblBombEval.boardAScore > 0 && dblBombEval.boardBScore > 0);
+  assert.ok(dblBombEval.scoopStatusLabel);
+
+  // 3. Run-It-Twice Dual-Board Showdown Evaluator (Item 9)
+  const ritResult = evaluateRunItTwiceShowdown({
+    variant: 'plo8',
+    hiLo: true,
+    baseBoardCards: ['7s', '6d', '5c'],
+    seats: [
+      { id: 'hero', position: 'BTN', committedBb: 50, folded: false, holeCards: ['As', '2s', '3h', '4c'] },
+      { id: 'villain', position: 'BB', committedBb: 50, folded: false, holeCards: ['Ks', 'Kc', 'Qh', 'Jd'] },
+    ],
+  });
+  assert.equal(ritResult.board1Cards.length, 5);
+  assert.equal(ritResult.board2Cards.length, 5);
+  assert.ok(ritResult.combinedPayoutsBySeatId.hero + ritResult.combinedPayoutsBySeatId.villain === 100);
+
+  // 4. Continuous Live-Session Dealer Button Rotation (Item 3)
+  assert.equal(rotateDealerButtonPosition('BTN', 'hu'), 'BB');
+  assert.equal(rotateDealerButtonPosition('BB', 'hu'), 'BTN');
+  assert.equal(rotateDealerButtonPosition('BTN', 'spins'), 'SB');
+  assert.equal(rotateDealerButtonPosition('BTN', 'cash'), 'SB');
+
+  // 5. 1-Click Hand History Export in PokerStars / Club Arena Format (Item 16)
+  const exportedHh = formatTrainingHandAsPokerStarsHistory({
+    handId: '9910023',
+    gameId: 'cash-005',
+    variant: 'plo8',
+    bettingStructure: 'pot_limit',
+    format: 'cash',
+    heroPosition: 'BTN',
+    villainPosition: 'BB',
+    heroCards: ['As', '2s', 'Kd', '3d'],
+    boardCards: ['7s', '6d', '2c'],
+    potBb: 18,
+  });
+  assert.match(exportedHh, /PokerStars Hand #9910023:/);
+  assert.match(exportedHh, /\*\*\* HOLE CARDS \*\*\*/);
+  assert.match(exportedHh, /Dealt to Hero \[As 2s Kd 3d\]/);
+  assert.match(exportedHh, /\*\*\* FLOP \*\*\* \[7s 6d 2c\]/);
+  assert.match(exportedHh, /\*\*\* SUMMARY \*\*\*/);
+
+  // 6. PLO8 Hi-Lo & Fixed-Limit Leak Diagnostics + Decision Pacing Telemetry (Item 5 & 14)
+  const plo8Leaks = analyzePlo8AndFixedLimitLeaks([]);
+  assert.equal(Array.isArray(plo8Leaks.buckets), true);
+  assert.equal(plo8Leaks.buckets.length, 4);
+  assert.ok(plo8Leaks.topPlo8Leak);
+  assert.match(plo8Leaks.drillHref, /variant=plo8/);
+
+  const pacingTelemetry = analyzeDecisionPacingTelemetry([
+    { timeSpentMs: 1400, isCorrect: false, evLoss: 2.1 },
+    { timeSpentMs: 5200, isCorrect: true, evLoss: 0.05 },
+    { timeSpentMs: 13500, isCorrect: false, evLoss: 1.4 },
+  ]);
+  assert.equal(Array.isArray(pacingTelemetry.buckets), true);
+  assert.equal(pacingTelemetry.buckets.length, 3);
+  assert.ok(pacingTelemetry.primaryPacingLeak);
+
+  // 7. UniversalDynamicTable Phase 11 12-Feature On-Felt DOM Contract
+  const tableSrc = read('src/components/training/games/UniversalDynamicTable.jsx');
+  assert.match(tableSrc, /data-table-rules-selector="true"/);
+  assert.match(tableSrc, /data-double-board-bomb-pot="true"/);
+  assert.match(tableSrc, /data-side-pot-breakdown="true"/);
+  assert.match(tableSrc, /data-short-allin-reopen-badge="true"/);
+  assert.match(tableSrc, /data-continuous-session-toggle="true"/);
+  assert.match(tableSrc, /data-rotate-dealer-btn="true"/);
+  assert.match(tableSrc, /data-felt-hand-history-drawer="true"/);
+  assert.match(tableSrc, /data-table-theme-customizer="true"/);
+  assert.match(tableSrc, /data-four-color-deck-toggle="true"/);
+  assert.match(tableSrc, /data-felt-theme-cycle="true"/);
+  assert.match(tableSrc, /data-variant-prefetch-cache="true"/);
+  assert.match(tableSrc, /data-keyboard-shortcut-hud="true"/);
+  assert.match(tableSrc, /data-challenge-spot-duel="true"/);
+  assert.match(tableSrc, /data-export-hand-history-btn="true"/);
+  assert.match(tableSrc, /data-exported-hand-history-preview="true"/);
+  assert.match(tableSrc, /data-villain-hand-whatif="true"/);
+  assert.match(tableSrc, /data-showdown-reveal-panel="true"/);
+  assert.match(tableSrc, /data-run-it-twice-btn="true"/);
+  assert.match(tableSrc, /data-run-it-twice-panel="true"/);
+
+  // 8. Multi-Table Mixed Grinder + Analytics PLO8 Leak & Pacing Panels (Item 4, 5, 14)
+  const multiTableSrc = read('pages/hub/training/multi-table.js');
+  assert.match(multiTableSrc, /data-pane-variant-selector="true"/);
+  assert.match(multiTableSrc, /data-pane-format-selector="true"/);
+  assert.match(multiTableSrc, /data-apply-mixed-rotation-btn="true"/);
+  assert.match(multiTableSrc, /playSpatial/);
+
+  for (const diagPage of ['pages/hub/training/weakness-scanner.js', 'pages/hub/training/reports.js', 'pages/hub/training/session-dashboard.js']) {
+    const src = read(diagPage);
+    assert.match(src, /data-plo8-leak-diagnostics="true"/, `${diagPage} must render PLO8 & Fixed-Limit leak diagnostics`);
+    assert.match(src, /data-fix-plo8-leak-cta="true"/, `${diagPage} must render Fix PLO8 Leak CTA`);
+    assert.match(src, /data-decision-pacing-telemetry="true"/, `${diagPage} must render Decision Pacing telemetry`);
+    assert.match(src, /data-drill-shot-clock-cta="true"/, `${diagPage} must render Shot-Clock Drill CTA`);
+  }
+});

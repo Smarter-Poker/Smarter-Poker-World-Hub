@@ -7,7 +7,7 @@ import {
 
 const RANKS = '23456789TJQKA';
 const SUITS = 'cdhs';
-const MATCHER_VERSION = 'hand-audit-v3';
+export const MATCHER_VERSION = 'hand-audit-v3';
 const LOOKUP_FAILED_SOURCE = `${MATCHER_VERSION}:lookup-failed`;
 const FORCED_ACTIONS = new Set([
   'ante', 'sb', 'bb', 'smallblind', 'bigblind', 'blind', 'straddle', 'killblind', 'bombante',
@@ -1003,6 +1003,8 @@ export async function syncClubArenaHandsForAudit(db, userId, {
   retryUnpricedAfterMs = DEFAULT_UNPRICED_RETRY_MS,
   nowMs = Date.now(),
   cursor = null,
+  sinceBoundary = null,
+  fullRescan = false,
 } = {}) {
   const legacyCursor = cursor && cursor.version !== 2;
   const snapshotAt = cursor?.snapshotAt || new Date(nowMs).toISOString();
@@ -1038,9 +1040,31 @@ export async function syncClubArenaHandsForAudit(db, userId, {
   const byId = new Map();
   for (const row of [...(modern.data || []), ...(legacy.data || [])]) byId.set(String(row.id), row);
   const globallyOrdered = [...byId.values()].sort(compareHandKeyDescending);
-  const handRows = globallyOrdered.slice(0, Math.max(1, Math.min(1000, Number(limit) || 100)));
-  const sourceIncomplete = globallyOrdered.length > handRows.length
-    || modern.complete !== true || legacy.complete !== true;
+  const useWatermark = !fullRescan
+    && sinceBoundary?.createdAt
+    && sinceBoundary?.id
+    && sinceBoundary?.matcherVersion === MATCHER_VERSION;
+  let reachedWatermark = false;
+  const filteredOrdered = useWatermark
+    ? globallyOrdered.filter((row) => {
+      // compareHandKeyDescending(a, b) > 0 means a is OLDER than b.
+      const cmp = compareHandKeyDescending(row, { created_at: sinceBoundary.createdAt, id: sinceBoundary.id });
+      if (cmp >= 0) {
+        reachedWatermark = true;
+        return false;
+      }
+      return true;
+    })
+    : globallyOrdered;
+  const handRows = filteredOrdered.slice(0, Math.max(1, Math.min(1000, Number(limit) || 100)));
+  const sourceIncomplete = !reachedWatermark && (
+    filteredOrdered.length > handRows.length
+    || modern.complete !== true
+    || legacy.complete !== true
+  );
+  const latestHandWatermark = !requestedCursor.boundary && handRows[0]
+    ? { createdAt: handRows[0].created_at, id: String(handRows[0].id), matcherVersion: MATCHER_VERSION }
+    : null;
   const last = handRows[handRows.length - 1];
   const advancedCursor = {
     version: 2,
@@ -1112,6 +1136,8 @@ export async function syncClubArenaHandsForAudit(db, userId, {
       obsoleteDecisionsRemoved: 0,
       complete: errors.length === 0 && !sourceIncomplete,
       truncated: sourceIncomplete,
+      incrementalStop: reachedWatermark,
+      latestHandWatermark,
       continuation: errors.length === 0 && sourceIncomplete ? advancedCursor : (errors.length > 0 ? requestedCursor : null),
     };
   }
@@ -1200,6 +1226,8 @@ export async function syncClubArenaHandsForAudit(db, userId, {
     evidenceReconciled: result.evidenceReconciled,
     obsoleteDecisionsRemoved: result.obsoleteDecisionsRemoved,
     truncated: result.truncated || sourceIncomplete,
+    incrementalStop: reachedWatermark,
+    latestHandWatermark,
     // Advance the snapshot cursor only after every hand in this page was
     // reconciled. A truncated/failed audit retries the same bounded page.
     continuation: pageSucceeded && sourceIncomplete

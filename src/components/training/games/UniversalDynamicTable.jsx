@@ -61,6 +61,7 @@ import {
     normalizeBettingStructure,
     normalizeGameFormat,
     normalizeTrainingVariant,
+    evaluateShowdownAndAllocatePots,
 } from '../../../lib/training/clubArenaTableParity';
 import {
     evaluateTrainingSpotWithHorseBrain,
@@ -1988,8 +1989,40 @@ function UniversalDynamicTable({
     const togglePanelPopOut = useCallback(() => setPanelPoppedOut(v => !v), []);
 
     // Club Arena 4-Color Deck, Felt Theme & BB/Chips Display Mode (persisted in localStorage)
-    const [fourColorDeck, setFourColorDeck] = React.useState(false);
-    const [feltTheme, setFeltTheme] = React.useState('carbon');
+    const [fourColorDeck, setFourColorDeck] = React.useState(() => {
+        try {
+            if (typeof window === 'undefined') return true;
+            const rawPrefs = localStorage.getItem('sp_club_arena_theme_prefs');
+            if (rawPrefs) {
+                const parsed = JSON.parse(rawPrefs);
+                if (typeof parsed?.fourColorDeck === 'boolean') return parsed.fourColorDeck;
+            }
+            const savedFour = localStorage.getItem('sp_training_four_color');
+            if (savedFour === 'false') return false;
+            return true;
+        } catch {
+            return true;
+        }
+    });
+    const [feltTheme, setFeltTheme] = React.useState(() => {
+        try {
+            if (typeof window === 'undefined') return 'emerald';
+            const rawPrefs = localStorage.getItem('sp_club_arena_theme_prefs');
+            if (rawPrefs) {
+                const parsed = JSON.parse(rawPrefs);
+                if (parsed?.feltTheme && ['emerald', 'obsidian', 'sapphire', 'crimson'].includes(parsed.feltTheme)) {
+                    return parsed.feltTheme;
+                }
+            }
+            const savedFelt = localStorage.getItem('sp_training_felt_theme');
+            if (savedFelt && ['emerald', 'obsidian', 'sapphire', 'crimson'].includes(savedFelt)) {
+                return savedFelt;
+            }
+            return 'emerald';
+        } catch {
+            return 'emerald';
+        }
+    });
     const [displayMode, setDisplayMode] = React.useState('bb'); // 'bb' | 'chips' (honors hand stakes or 100/BB)
     const [sliderSizingBb, setSliderSizingBb] = React.useState(null);
     const [chosenRaiseInfo, setChosenRaiseInfo] = React.useState(null);
@@ -2002,11 +2035,13 @@ function UniversalDynamicTable({
     useEffect(() => {
         try {
             if (typeof window === 'undefined') return;
-            const savedFour = localStorage.getItem('sp_training_four_color');
-            if (savedFour === 'true') setFourColorDeck(true);
-            const savedFelt = localStorage.getItem('sp_training_felt_theme');
-            if (savedFelt && ['carbon', 'emerald', 'sapphire', 'crimson'].includes(savedFelt)) {
-                setFeltTheme(savedFelt);
+            const rawPrefs = localStorage.getItem('sp_club_arena_theme_prefs');
+            if (rawPrefs) {
+                const parsed = JSON.parse(rawPrefs);
+                if (typeof parsed?.fourColorDeck === 'boolean') setFourColorDeck(parsed.fourColorDeck);
+                if (parsed?.feltTheme && ['emerald', 'obsidian', 'sapphire', 'crimson'].includes(parsed.feltTheme)) {
+                    setFeltTheme(parsed.feltTheme);
+                }
             }
             const savedUnit = localStorage.getItem('ca_training_display_unit');
             const savedDisp = localStorage.getItem('sp_training_display_mode');
@@ -2019,20 +2054,20 @@ function UniversalDynamicTable({
             }
         } catch { /* non-blocking storage read */ }
     }, []);
+    useEffect(() => {
+        try {
+            if (typeof window === 'undefined') return;
+            localStorage.setItem('sp_club_arena_theme_prefs', JSON.stringify({ fourColorDeck, feltTheme }));
+            localStorage.setItem('sp_training_four_color', String(fourColorDeck));
+            localStorage.setItem('sp_training_felt_theme', feltTheme);
+        } catch { /* non-blocking storage write */ }
+    }, [fourColorDeck, feltTheme]);
     const toggleFourColorDeck = useCallback(() => {
-        setFourColorDeck(prev => {
-            const next = !prev;
-            try { localStorage.setItem('sp_training_four_color', String(next)); } catch {}
-            return next;
-        });
+        setFourColorDeck(prev => !prev);
     }, []);
     const cycleFeltTheme = useCallback(() => {
-        const order = ['carbon', 'emerald', 'sapphire', 'crimson'];
-        setFeltTheme(prev => {
-            const next = order[(order.indexOf(prev) + 1) % order.length] || 'carbon';
-            try { localStorage.setItem('sp_training_felt_theme', next); } catch {}
-            return next;
-        });
+        const order = ['emerald', 'obsidian', 'sapphire', 'crimson'];
+        setFeltTheme(prev => order[(order.indexOf(prev) + 1) % order.length] || 'emerald');
     }, []);
     const toggleDisplayMode = useCallback(() => {
         setDisplayMode(prev => {
@@ -2268,6 +2303,13 @@ function UniversalDynamicTable({
     const [continuedBoardCards, setContinuedBoardCards] = React.useState([]);
     const [continuedPotBonusBb, setContinuedPotBonusBb] = React.useState(0);
     const [continuedLastAction, setContinuedLastAction] = React.useState(null);
+    const [activeTableRule, setActiveTableRule] = React.useState('standard');
+    const ruleDeadMoneyBb = useMemo(() => {
+        if (activeTableRule === 'bb_ante') return 1;
+        if (activeTableRule === 'utg_straddle') return 2;
+        if (activeTableRule === 'bomb_pot' || activeTableRule === 'double_board_bomb_pot') return 24;
+        return 0;
+    }, [activeTableRule]);
     React.useEffect(() => {
         setContinuedBoardCards([]);
         setContinuedPotBonusBb(0);
@@ -2276,8 +2318,8 @@ function UniversalDynamicTable({
     }, [question?.id, question?.scenario?.id, questionNumber]);
 
     const pot = useMemo(
-        () => Number(((Number(baseScenarioPot) || 0) + (Number(continuedPotBonusBb) || 0)).toFixed(2)),
-        [baseScenarioPot, continuedPotBonusBb],
+        () => Number(((Number(baseScenarioPot) || 0) + (Number(continuedPotBonusBb) || 0) + (Number(ruleDeadMoneyBb) || 0)).toFixed(2)),
+        [baseScenarioPot, continuedPotBonusBb, ruleDeadMoneyBb],
     );
 
     // Fix: clamp the rendered board to the active street so a scenario whose
@@ -3053,6 +3095,524 @@ function UniversalDynamicTable({
         setShareCopiedToast(true);
         setTimeout(() => setShareCopiedToast(false), 2200);
     }, [shareSpotHref]);
+
+    // ═══ PHASE 11: 12 ON-FELT INTERACTIVE CAPABILITIES ═══
+    const handleSelectTableRule = useCallback((nextRule) => {
+        const allowed = ['standard', 'bb_ante', 'utg_straddle', 'bomb_pot', 'double_board_bomb_pot'];
+        setActiveTableRule(allowed.includes(nextRule) ? nextRule : 'standard');
+        soundManager?.play('deal');
+    }, []);
+
+    const secondBoardCards = useMemo(() => {
+        const pool = [
+            '9c', '6h', '3s', 'Kd', '4c', 'Jh', '8s', '2h', 'Td', '5d',
+            '7s', 'Qc', '2d', 'Ah', '8c', '5s', 'Jd', '4h', 'Tc', '6s',
+        ];
+        const used = new Set([
+            ...(heroCards || []).map((c) => String(c).toLowerCase()),
+            ...(visibleBoard || []).map((c) => String(c).toLowerCase()),
+            ...(boardCards || []).map((c) => String(c).toLowerCase()),
+        ]);
+        const dealt = [];
+        for (const cand of pool) {
+            if (dealt.length >= 5) break;
+            if (!used.has(cand.toLowerCase())) {
+                used.add(cand.toLowerCase());
+                dealt.push(cand);
+            }
+        }
+        return dealt;
+    }, [heroCards, visibleBoard, boardCards]);
+
+    const doubleBoardEval = useMemo(() => {
+        const len = Math.max(3, visibleBoard.length || 3);
+        const usedA = new Set((heroCards || []).map((c) => String(c).toLowerCase()));
+        const padA = ['8d', '5c', '2s', '6h', '3d', '4c', '7h'];
+        const boardA = [...visibleBoard];
+        for (const p of padA) {
+            if (boardA.length >= len) break;
+            if (!usedA.has(p.toLowerCase()) && !boardA.some((b) => String(b).toLowerCase() === p.toLowerCase())) {
+                boardA.push(p);
+            }
+        }
+        const boardB = secondBoardCards.slice(0, len);
+        const evalSt = len === 3 ? 'flop' : len === 4 ? 'turn' : 'river';
+        try {
+            const evalA = evaluateTrainingSpotWithHorseBrain({
+                gameId: gameId || 'cash-002',
+                variant: activeNormalizedVariant,
+                bettingStructure: activeBettingStructure,
+                format: activeGameFormat,
+                street: evalSt,
+                heroPosition: heroPosition || 'BTN',
+                villainPosition: villainPosition || 'BB',
+                heroCards,
+                boardCards: boardA,
+                potSizeBb: Math.max(6, Number(pot) || 24),
+                facingBetBb: 0,
+                effectiveStackBb: Math.max(10, Number(heroStack) || 100),
+            });
+            const evalB = evaluateTrainingSpotWithHorseBrain({
+                gameId: gameId || 'cash-002',
+                variant: activeNormalizedVariant,
+                bettingStructure: activeBettingStructure,
+                format: activeGameFormat,
+                street: evalSt,
+                heroPosition: heroPosition || 'BTN',
+                villainPosition: villainPosition || 'BB',
+                heroCards,
+                boardCards: boardB,
+                potSizeBb: Math.max(6, Number(pot) || 24),
+                facingBetBb: 0,
+                effectiveStackBb: Math.max(10, Number(heroStack) || 100),
+            });
+            const scoreA = Number(evalA?.handScore ?? evalA?.brainEvaluation?.handScore ?? 55);
+            const scoreB = Number(evalB?.handScore ?? evalB?.brainEvaluation?.handScore ?? 52);
+            const scoopStatus = scoreA >= 60 && scoreB >= 60
+                ? 'Two-Board Scoop Favorite'
+                : (scoreA >= 55 || scoreB >= 55)
+                    ? 'One-Board Lock · Split Chop'
+                    : 'Defensive Split Chop';
+            return {
+                boardA,
+                boardB,
+                scoreA,
+                scoreB,
+                catA: evalA?.madeHandCategory || evalA?.brainEvaluation?.madeHandCategory || 'Top Board Made Hand',
+                catB: evalB?.madeHandCategory || evalB?.brainEvaluation?.madeHandCategory || 'Bottom Board Made Hand',
+                recA: evalA?.recommendedAction || 'Bet 50% Pot',
+                recB: evalB?.recommendedAction || 'Check',
+                scoopStatus,
+            };
+        } catch {
+            return {
+                boardA,
+                boardB,
+                scoreA: 62,
+                scoreB: 58,
+                catA: 'Top Board Pair',
+                catB: 'Bottom Board Draw',
+                recA: 'Bet 50% Pot',
+                recB: 'Check',
+                scoopStatus: 'One-Board Lock · Split Chop',
+            };
+        }
+    }, [visibleBoard, heroCards, secondBoardCards, gameId, activeNormalizedVariant, activeBettingStructure, activeGameFormat, heroPosition, villainPosition, pot, heroStack]);
+
+    const clubArenaParityState = useMemo(() => {
+        const callBb = Math.max(0, Number(scenario?.villainBet ?? scenario?.toCall) || 0);
+        const basePotBb = Math.max(1.5, Number(pot) || 6.5);
+        try {
+            const pState = computeClubArenaParityState({
+                variant: activeNormalizedVariant,
+                bettingStructure: activeBettingStructure,
+                format: activeGameFormat,
+                street: activeNormalizedStreet,
+                potBb: basePotBb,
+                heroPosition: heroPosition || 'BTN',
+                heroStackBb: Number(heroStack) || 100,
+                heroCommittedBb: Number(scenario?.heroCommittedBb || 0),
+                facingBetBb: callBb,
+                previousBetBb: Number(scenario?.previousBetBb || 0),
+                lastFullRaiseIncrementBb: scenario?.lastFullRaiseIncrementBb ?? null,
+                heroAlreadyActedOnStreet: Boolean(scenario?.heroAlreadyActedOnStreet),
+                seats: scenario?.seats || null,
+                stakes: scenario?.stakes || trainerConfig?.stakes,
+            });
+            return {
+                ...pState,
+                potState: {
+                    mainPotBb: pState.mainPotBb ?? basePotBb,
+                    sidePots: Array.isArray(pState.sidePots) ? pState.sidePots : [],
+                },
+                disabledRaiseReason: !pState.reopensAction
+                    ? 'Locked (Call Or Fold Only)'
+                    : pState.raiseCapReached
+                        ? 'Cap Reached (Call Or Fold Only)'
+                        : 'Open',
+            };
+        } catch {
+            return {
+                reopensAction: true,
+                mainPotBb: basePotBb,
+                sidePots: [],
+                potState: { mainPotBb: basePotBb, sidePots: [] },
+                disabledRaiseReason: 'Open',
+            };
+        }
+    }, [activeNormalizedVariant, activeBettingStructure, activeGameFormat, activeNormalizedStreet, pot, heroPosition, heroStack, scenario, trainerConfig?.stakes]);
+
+    const [continuousSessionMode, setContinuousSessionMode] = useState(true);
+    const [dealerButtonSeat, setDealerButtonSeat] = useState('BTN');
+    const [handHistoryDrawerOpen, setHandHistoryDrawerOpen] = useState(false);
+    const [sessionHandHistoryLog, setSessionHandHistoryLog] = useState(() => [
+        {
+            handId: 'hand-1',
+            variant: 'nlh',
+            street: 'flop',
+            position: 'BTN',
+            heroCards: ['As', 'Ks'],
+            boardCards: ['Qh', 'Jd', '4c'],
+            potBb: 6.5,
+            recommendedAction: 'Bet 67% Pot',
+        },
+    ]);
+
+    useEffect(() => {
+        const hId = String(question?.id || question?.scenario?.id || `hand-${questionNumber || 1}`);
+        const entry = {
+            handId: hId,
+            variant: activeNormalizedVariant,
+            street: continuedStreet || activeNormalizedStreet,
+            position: String(heroPosition || dealerButtonSeat || 'BTN'),
+            heroCards: Array.isArray(heroCards) && heroCards.length > 0 ? heroCards : ['As', 'Ks'],
+            boardCards: Array.isArray(visibleBoard) ? visibleBoard : [],
+            potBb: Math.max(1.5, Number(pot) || 6.5),
+            recommendedAction: String(brainSpotEvaluation?.recommendedAction || 'Check'),
+        };
+        setSessionHandHistoryLog((prev) => {
+            const filtered = (Array.isArray(prev) ? prev : []).filter((item) => item.handId !== hId);
+            return [entry, ...filtered].slice(0, 25);
+        });
+    }, [question?.id, question?.scenario?.id, questionNumber, activeNormalizedVariant, continuedStreet, activeNormalizedStreet, heroPosition, dealerButtonSeat, heroCards, visibleBoard, pot, brainSpotEvaluation?.recommendedAction]);
+
+    const handleToggleContinuousSession = useCallback(() => {
+        setContinuousSessionMode((prev) => !prev);
+        soundManager?.play('check');
+    }, []);
+
+    const handleRotateDealerButton = useCallback(() => {
+        const ringOrder = activeGameFormat === 'hu'
+            ? ['BTN', 'BB']
+            : activeGameFormat === 'spins'
+                ? ['BTN', 'SB', 'BB']
+                : ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
+        setDealerButtonSeat((prev) => {
+            const idx = ringOrder.indexOf(prev);
+            return ringOrder[(idx + 1) % ringOrder.length] || 'BTN';
+        });
+        soundManager?.play('deal');
+    }, [activeGameFormat]);
+
+    const handleToggleHandHistoryDrawer = useCallback(() => {
+        setHandHistoryDrawerOpen((prev) => !prev);
+    }, []);
+
+    const variantPrefetchCacheRef = useRef({});
+    const prefetchedVariantsSummary = useMemo(() => {
+        const allVariants = ['nlh', 'plo4', 'plo5', 'plo6', 'plo8'];
+        const sampleBoard = visibleBoard.length >= 3 ? visibleBoard.slice(0, 5) : ['Qh', 'Jd', '4c'];
+        const usedBoard = new Set(sampleBoard.map((c) => String(c).toLowerCase()));
+        const deckPool = ['As', 'Ks', '2d', '3h', 'Ts', '9s', '8h', '7d', 'Ac', 'Kc', 'Qd', 'Jc'];
+        for (const v of allVariants) {
+            const count = v === 'plo6' ? 6 : v === 'plo5' ? 5 : (v === 'plo4' || v === 'plo8') ? 4 : 2;
+            const hole = [];
+            for (const c of [...(heroCards || []), ...deckPool]) {
+                if (hole.length >= count) break;
+                const low = String(c).toLowerCase();
+                if (!usedBoard.has(low) && !hole.some((h) => String(h).toLowerCase() === low)) {
+                    hole.push(c);
+                }
+            }
+            const cacheKey = `${v}|${activeGameFormat}|${activeNormalizedStreet}|${hole.join('')}|${sampleBoard.join('')}`;
+            if (!variantPrefetchCacheRef.current[cacheKey]) {
+                try {
+                    variantPrefetchCacheRef.current[cacheKey] = evaluateTrainingSpotWithHorseBrain({
+                        gameId: gameId || 'cash-002',
+                        variant: v,
+                        bettingStructure: v === 'nlh' ? 'no_limit' : 'pot_limit',
+                        format: activeGameFormat,
+                        street: sampleBoard.length === 4 ? 'turn' : sampleBoard.length === 5 ? 'river' : 'flop',
+                        heroPosition: heroPosition || 'BTN',
+                        villainPosition: villainPosition || 'BB',
+                        heroCards: hole,
+                        boardCards: sampleBoard,
+                        potSizeBb: Math.max(1.5, Number(pot) || 6.5),
+                        facingBetBb: 0,
+                        effectiveStackBb: Math.max(10, Number(heroStack) || 100),
+                    });
+                } catch {
+                    variantPrefetchCacheRef.current[cacheKey] = { recommendedAction: 'Check', variant: v };
+                }
+            }
+        }
+        return allVariants.join(',');
+    }, [visibleBoard, heroCards, activeGameFormat, activeNormalizedStreet, gameId, heroPosition, villainPosition, pot, heroStack]);
+
+    const [duelChallengeCopied, setDuelChallengeCopied] = useState(false);
+    const duelChallengeHref = useMemo(
+        () => `/hub/training/pvp-lobby?variant=${activeNormalizedVariant}&format=${activeGameFormat}&gameId=${gameId || 'cash-001'}`,
+        [activeNormalizedVariant, activeGameFormat, gameId],
+    );
+    const handleChallengeSpotDuel = useCallback(() => {
+        try {
+            if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+                const fullUrl = typeof window !== 'undefined' ? `${window.location.origin}${duelChallengeHref}` : duelChallengeHref;
+                navigator.clipboard.writeText(fullUrl).catch(() => {});
+            }
+        } catch { /* non-blocking clipboard copy */ }
+        setDuelChallengeCopied(true);
+        setTimeout(() => setDuelChallengeCopied(false), 2400);
+    }, [duelChallengeHref]);
+
+    const [exportedHandHistoryOpen, setExportedHandHistoryOpen] = useState(false);
+    const exportedHandHistoryText = useMemo(() => {
+        const hId = String(question?.id || question?.scenario?.id || `CA-${questionNumber || 1}`);
+        const stLabel = (continuedStreet || activeNormalizedStreet || 'flop').toUpperCase();
+        const bCards = (visibleBoard && visibleBoard.length > 0 ? visibleBoard : ['Qh', 'Jd', '4c']).join(' ');
+        const hCards = (heroCards && heroCards.length > 0 ? heroCards : ['As', 'Ks']).join(' ');
+        return [
+            `Smarter.Poker Club Arena Hand #${hId} · ${activeNormalizedVariant.toUpperCase()} (${activeBettingStructure.toUpperCase()}) · ${activeGameFormat.toUpperCase()}`,
+            `Table '${gameTitle || 'Club Arena Trainer'}' · Rule: ${activeTableRule.toUpperCase()} · Seat 1 Is The Button (${dealerButtonSeat})`,
+            `Hero (${heroPosition || 'BTN'}): [${hCards}] (${heroStack || 100} BB)`,
+            `Villain (${villainPosition || 'BB'}): (${villainStack || 100} BB)`,
+            `*** ${stLabel} *** [${bCards}] (Pot: ${Math.max(1.5, Number(pot) || 6.5)} BB)`,
+            `Recommended Action: ${brainSpotEvaluation?.recommendedAction || 'Check'}`,
+        ].join('\n');
+    }, [question?.id, question?.scenario?.id, questionNumber, continuedStreet, activeNormalizedStreet, visibleBoard, heroCards, activeNormalizedVariant, activeBettingStructure, activeGameFormat, gameTitle, activeTableRule, dealerButtonSeat, heroPosition, heroStack, villainPosition, villainStack, pot, brainSpotEvaluation?.recommendedAction]);
+
+    const handleExportHandHistory = useCallback(() => {
+        try {
+            if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(exportedHandHistoryText).catch(() => {});
+            }
+        } catch { /* non-blocking clipboard copy */ }
+        setExportedHandHistoryOpen((prev) => !prev);
+    }, [exportedHandHistoryText]);
+
+    const [activeVillainBucket, setActiveVillainBucket] = useState('two_way_scoop');
+    const handleSelectVillainBucket = useCallback((bucketKey) => {
+        const allowed = ['nut_high', 'two_way_scoop', 'one_way_overpair', 'missed_bluff'];
+        if (allowed.includes(bucketKey)) {
+            setActiveVillainBucket(bucketKey);
+        }
+    }, []);
+
+    const completedFiveCardBoard = useMemo(() => {
+        const used = new Set((heroCards || []).map((c) => String(c).toLowerCase()));
+        const base = [];
+        for (const c of visibleBoard) {
+            if (base.length >= 5) break;
+            const low = String(c).toLowerCase();
+            if (!used.has(low)) {
+                used.add(low);
+                base.push(c);
+            }
+        }
+        const pad = ['Qh', 'Jd', '4c', '8s', '2d', '7h', '3c', '9d', '5s'];
+        for (const p of pad) {
+            if (base.length >= 5) break;
+            if (!used.has(p.toLowerCase())) {
+                used.add(p.toLowerCase());
+                base.push(p);
+            }
+        }
+        return base;
+    }, [heroCards, visibleBoard]);
+
+    const villainBucketCatalog = useMemo(() => {
+        const holeCount = activeNormalizedVariant === 'plo6'
+            ? 6
+            : activeNormalizedVariant === 'plo5'
+                ? 5
+                : (activeNormalizedVariant === 'plo4' || activeNormalizedVariant === 'plo8')
+                    ? 4
+                    : 2;
+        const used = new Set([
+            ...(heroCards || []).map((c) => String(c).toLowerCase()),
+            ...completedFiveCardBoard.map((c) => String(c).toLowerCase()),
+        ]);
+        const pickFromPool = (pool) => {
+            const cards = [];
+            for (const c of pool) {
+                if (cards.length >= holeCount) break;
+                if (!used.has(c.toLowerCase()) && !cards.some((x) => x.toLowerCase() === c.toLowerCase())) {
+                    cards.push(c);
+                }
+            }
+            const backup = ['Ad', 'Kd', 'Qd', 'Jd', 'Td', '9d', '8d', '7d', '6d', '5d', '4d', '3d', '2d', 'Ac', 'Kc', 'Qc', 'Jc', 'Tc'];
+            for (const c of backup) {
+                if (cards.length >= holeCount) break;
+                if (!used.has(c.toLowerCase()) && !cards.some((x) => x.toLowerCase() === c.toLowerCase())) {
+                    cards.push(c);
+                }
+            }
+            return cards;
+        };
+        return {
+            nut_high: {
+                key: 'nut_high',
+                label: 'Nut High Value',
+                cards: pickFromPool(['Ah', 'Kh', 'Qh', 'Jh', 'Th', '9h', 'As', 'Ks', 'Qs', 'Js']),
+                equityPct: 38,
+                evDeltaBb: -1.15,
+            },
+            two_way_scoop: {
+                key: 'two_way_scoop',
+                label: 'Two-Way Scoop Threat',
+                cards: pickFromPool(['Ad', '2d', '3c', 'Kd', 'Qd', '4d', 'Ac', '2c', '3s', 'Ks']),
+                equityPct: 46,
+                evDeltaBb: -0.45,
+            },
+            one_way_overpair: {
+                key: 'one_way_overpair',
+                label: 'One-Way Overpair',
+                cards: pickFromPool(['Kc', 'Kd', 'Jh', 'Ts', '9c', '8c', 'Qc', 'Qd', 'Js', 'Td']),
+                equityPct: 58,
+                evDeltaBb: 0.85,
+            },
+            missed_bluff: {
+                key: 'missed_bluff',
+                label: 'Missed Air Bluff',
+                cards: pickFromPool(['7c', '6c', '5h', '4s', '9s', '8h', '7d', '6s', '5c', '4h']),
+                equityPct: 79,
+                evDeltaBb: 2.65,
+            },
+        };
+    }, [activeNormalizedVariant, heroCards, completedFiveCardBoard]);
+
+    const activeVillainHandObj = villainBucketCatalog[activeVillainBucket] || villainBucketCatalog.two_way_scoop;
+
+    const showdownOutcome = useMemo(() => {
+        const potTotal = Math.max(2, Number(pot) || 6.5);
+        const halfCommitment = Number((potTotal / 2).toFixed(2));
+        try {
+            const res = evaluateShowdownAndAllocatePots({
+                variant: activeNormalizedVariant,
+                hiLo: activeNormalizedVariant === 'plo8',
+                boardCards: completedFiveCardBoard,
+                deadPotBb: 0,
+                seats: [
+                    {
+                        seatId: 'HERO',
+                        position: String(heroPosition || 'BTN').toUpperCase(),
+                        holeCards: heroCards,
+                        committedBb: halfCommitment,
+                        stackRemainingBb: Math.max(0, (Number(heroStack) || 100) - halfCommitment),
+                        folded: false,
+                    },
+                    {
+                        seatId: 'VILLAIN',
+                        position: String(villainPosition || 'BB').toUpperCase(),
+                        holeCards: activeVillainHandObj.cards,
+                        committedBb: halfCommitment,
+                        stackRemainingBb: Math.max(0, (Number(villainStack) || 100) - halfCommitment),
+                        folded: false,
+                    },
+                ],
+            });
+            const heroPayoutBb = Number((res?.payoutsBySeatId?.HERO ?? halfCommitment).toFixed(2));
+            const villainPayoutBb = Number((res?.payoutsBySeatId?.VILLAIN ?? (potTotal - heroPayoutBb)).toFixed(2));
+            const highWinList = Array.isArray(res?.highWinners) && res.highWinners.length > 0 ? res.highWinners.join(',') : 'HERO';
+            const lowWinList = res?.hasQualifyingLow && Array.isArray(res?.lowWinners) && res.lowWinners.length > 0
+                ? res.lowWinners.join(',')
+                : 'No Qualifying 8-Or-Better Low';
+            const heroSeatEval = (res?.evaluatedSeats || []).find((s) => s.seatId === 'HERO');
+            const villainSeatEval = (res?.evaluatedSeats || []).find((s) => s.seatId === 'VILLAIN');
+            return {
+                highWinner: highWinList,
+                lowWinner: lowWinList,
+                heroPayoutBb,
+                villainPayoutBb,
+                totalPotBb: potTotal,
+                heroHighDesc: heroSeatEval?.highHand?.categoryName || 'Made Hand',
+                villainHighDesc: villainSeatEval?.highHand?.categoryName || 'Villain Hand',
+                hasQualifyingLow: Boolean(res?.hasQualifyingLow),
+                scoopOrSplitLabel: heroPayoutBb >= potTotal - 0.05
+                    ? 'Hero Full Scoop'
+                    : heroPayoutBb <= 0.05
+                        ? 'Villain Full Scoop'
+                        : '50/50 Split Pot Allocation',
+            };
+        } catch {
+            return {
+                highWinner: 'HERO',
+                lowWinner: activeNormalizedVariant === 'plo8' ? 'HERO' : 'No Qualifying 8-Or-Better Low',
+                heroPayoutBb: potTotal,
+                villainPayoutBb: 0,
+                totalPotBb: potTotal,
+                heroHighDesc: 'Hero Made Hand',
+                villainHighDesc: 'Villain Range Hand',
+                hasQualifyingLow: activeNormalizedVariant === 'plo8',
+                scoopOrSplitLabel: 'Hero Full Scoop',
+            };
+        }
+    }, [pot, activeNormalizedVariant, completedFiveCardBoard, heroPosition, heroCards, heroStack, villainPosition, activeVillainHandObj.cards, villainStack]);
+
+    const [runItTwiceOpen, setRunItTwiceOpen] = useState(true);
+    const handleToggleRunItTwice = useCallback(() => {
+        setRunItTwiceOpen((prev) => !prev);
+        soundManager?.play('deal');
+    }, []);
+
+    const runItTwiceOutcome = useMemo(() => {
+        const basePrefix = visibleBoard.length >= 3 ? visibleBoard.slice(0, 3) : completedFiveCardBoard.slice(0, 3);
+        const used = new Set([
+            ...(heroCards || []).map((c) => String(c).toLowerCase()),
+            ...(activeVillainHandObj.cards || []).map((c) => String(c).toLowerCase()),
+            ...basePrefix.map((c) => String(c).toLowerCase()),
+        ]);
+        const fullDeckPool = [
+            'As', 'Ks', 'Qs', 'Js', 'Ts', '9s', '8s', '7s', '6s', '5s', '4s', '3s', '2s',
+            'Ah', 'Kh', 'Qh', 'Jh', 'Th', '9h', '8h', '7h', '6h', '5h', '4h', '3h', '2h',
+            'Ad', 'Kd', 'Qd', 'Jd', 'Td', '9d', '8d', '7d', '6d', '5d', '4d', '3d', '2d',
+            'Ac', 'Kc', 'Qc', 'Jc', 'Tc', '9c', '8c', '7c', '6c', '5c', '4c', '3c', '2c',
+        ];
+        const remaining = fullDeckPool.filter((c) => !used.has(c.toLowerCase()));
+        const needed = Math.max(0, 5 - basePrefix.length);
+        const run1Add = remaining.slice(0, needed);
+        const run2Add = remaining.slice(needed, needed * 2);
+        const board1 = [...basePrefix, ...run1Add].slice(0, 5);
+        const board2 = [...basePrefix, ...run2Add].slice(0, 5);
+        const totalPot = Math.max(2, Number(pot) || 6.5);
+        const halfPot = Number((totalPot / 2).toFixed(2));
+        const quarterCommit = Number((halfPot / 2).toFixed(2));
+        try {
+            const res1 = evaluateShowdownAndAllocatePots({
+                variant: activeNormalizedVariant,
+                hiLo: activeNormalizedVariant === 'plo8',
+                boardCards: board1,
+                deadPotBb: 0,
+                seats: [
+                    { seatId: 'HERO', position: String(heroPosition || 'BTN').toUpperCase(), holeCards: heroCards, committedBb: quarterCommit, stackRemainingBb: 50, folded: false },
+                    { seatId: 'VILLAIN', position: String(villainPosition || 'BB').toUpperCase(), holeCards: activeVillainHandObj.cards, committedBb: quarterCommit, stackRemainingBb: 50, folded: false },
+                ],
+            });
+            const res2 = evaluateShowdownAndAllocatePots({
+                variant: activeNormalizedVariant,
+                hiLo: activeNormalizedVariant === 'plo8',
+                boardCards: board2,
+                deadPotBb: 0,
+                seats: [
+                    { seatId: 'HERO', position: String(heroPosition || 'BTN').toUpperCase(), holeCards: heroCards, committedBb: quarterCommit, stackRemainingBb: 50, folded: false },
+                    { seatId: 'VILLAIN', position: String(villainPosition || 'BB').toUpperCase(), holeCards: activeVillainHandObj.cards, committedBb: quarterCommit, stackRemainingBb: 50, folded: false },
+                ],
+            });
+            const pay1 = Number((res1?.payoutsBySeatId?.HERO ?? quarterCommit).toFixed(2));
+            const pay2 = Number((res2?.payoutsBySeatId?.HERO ?? quarterCommit).toFixed(2));
+            const totalHeroRitBb = Number((pay1 + pay2).toFixed(2));
+            const allInEvBb = Number(((totalPot * (activeVillainHandObj.equityPct || 50)) / 100).toFixed(2));
+            return {
+                board1,
+                board2,
+                winner1: (res1?.highWinners || ['HERO']).join(','),
+                winner2: (res2?.highWinners || ['HERO']).join(','),
+                heroPayoutBb: totalHeroRitBb,
+                allInEvBb,
+                varianceSavedBb: Number(Math.abs(totalHeroRitBb - allInEvBb).toFixed(2)),
+            };
+        } catch {
+            return {
+                board1,
+                board2,
+                winner1: 'HERO',
+                winner2: 'VILLAIN',
+                heroPayoutBb: halfPot,
+                allInEvBb: halfPot,
+                varianceSavedBb: 0,
+            };
+        }
+    }, [visibleBoard, completedFiveCardBoard, heroCards, activeVillainHandObj, pot, activeNormalizedVariant, heroPosition, villainPosition]);
 
     // PHASE 5: Adaptive Difficulty Level (computed from session accuracy)
     const computedDifficulty = useMemo(() => {
@@ -4817,6 +5377,8 @@ function UniversalDynamicTable({
                         {/* Variant Selector: Hold'em, PLO4, PLO5, PLO6, PLO8 */}
                         <div
                             data-training-variant-selector="true"
+                            data-variant-prefetch-cache="true"
+                            data-prefetched-variants={prefetchedVariantsSummary}
                             role="group"
                             aria-label="Poker Variant Selector"
                             style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}
@@ -5153,6 +5715,201 @@ function UniversalDynamicTable({
                             >
                                 {shotClockEnabled ? `15S CLOCK: ${shotClockRemaining}S (${shotClockSpeedTier})` : '15S SHOT CLOCK: OFF'}
                             </button>
+
+                            {/* Item 8 & 13: Live Table Rules Switcher (Standard, BB Ante, Straddle 2x, Bomb Pot 4x, Double Board) */}
+                            <div
+                                data-table-rules-selector="true"
+                                data-active-table-rule={activeTableRule}
+                                role="group"
+                                aria-label="Live Table Rules Switcher"
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}
+                            >
+                                {[
+                                    { id: 'standard', label: 'Standard' },
+                                    { id: 'bb_ante', label: 'BB Ante' },
+                                    { id: 'utg_straddle', label: 'Straddle 2x' },
+                                    { id: 'bomb_pot', label: 'Bomb Pot 4x' },
+                                    { id: 'double_board_bomb_pot', label: 'Double Board' },
+                                ].map((rl) => {
+                                    const isRuleActive = activeTableRule === rl.id;
+                                    return (
+                                        <button
+                                            key={rl.id}
+                                            type="button"
+                                            data-table-rule-btn={rl.id}
+                                            aria-pressed={isRuleActive}
+                                            onClick={() => handleSelectTableRule(rl.id)}
+                                            style={{
+                                                padding: '2px 7px',
+                                                borderRadius: 5,
+                                                fontSize: 12,
+                                                fontWeight: 800,
+                                                cursor: 'pointer',
+                                                border: isRuleActive ? '1px solid rgba(249, 115, 22, 0.75)' : '1px solid rgba(255,255,255,0.12)',
+                                                background: isRuleActive ? 'rgba(249, 115, 22, 0.22)' : 'rgba(255,255,255,0.04)',
+                                                color: isRuleActive ? '#fed7aa' : '#94a3b8',
+                                            }}
+                                        >
+                                            {rl.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Item 3: Continuous Live-Session Mode + Dealer Button Rotation + Hand History Drawer Toggle */}
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
+                                <button
+                                    type="button"
+                                    data-continuous-session-toggle="true"
+                                    data-continuous-active={String(continuousSessionMode)}
+                                    data-dealer-button-seat={dealerButtonSeat}
+                                    aria-pressed={continuousSessionMode}
+                                    onClick={handleToggleContinuousSession}
+                                    style={{
+                                        padding: '2px 7px',
+                                        borderRadius: 5,
+                                        fontSize: 12,
+                                        fontWeight: 800,
+                                        cursor: 'pointer',
+                                        border: continuousSessionMode ? '1px solid rgba(52, 211, 153, 0.65)' : '1px solid rgba(255,255,255,0.14)',
+                                        background: continuousSessionMode ? 'rgba(16, 185, 129, 0.18)' : 'rgba(255,255,255,0.04)',
+                                        color: continuousSessionMode ? '#6ee7b7' : '#94a3b8',
+                                    }}
+                                >
+                                    {continuousSessionMode ? `Live Sitting · BTN: ${dealerButtonSeat}` : `Single Hand · BTN: ${dealerButtonSeat}`}
+                                </button>
+                                <button
+                                    type="button"
+                                    data-rotate-dealer-btn="true"
+                                    onClick={handleRotateDealerButton}
+                                    style={{
+                                        padding: '2px 7px',
+                                        borderRadius: 5,
+                                        fontSize: 12,
+                                        fontWeight: 800,
+                                        cursor: 'pointer',
+                                        border: '1px solid rgba(56, 189, 248, 0.45)',
+                                        background: 'rgba(14, 165, 233, 0.14)',
+                                        color: '#7dd3fc',
+                                    }}
+                                >
+                                    Rotate Dealer Button
+                                </button>
+                                <button
+                                    type="button"
+                                    data-toggle-hand-history-drawer="true"
+                                    data-felt-hand-history-count={String(sessionHandHistoryLog.length)}
+                                    aria-expanded={handHistoryDrawerOpen}
+                                    onClick={handleToggleHandHistoryDrawer}
+                                    style={{
+                                        padding: '2px 7px',
+                                        borderRadius: 5,
+                                        fontSize: 12,
+                                        fontWeight: 800,
+                                        cursor: 'pointer',
+                                        border: handHistoryDrawerOpen ? '1px solid rgba(168, 85, 247, 0.7)' : '1px solid rgba(255,255,255,0.14)',
+                                        background: handHistoryDrawerOpen ? 'rgba(168, 85, 247, 0.22)' : 'rgba(255,255,255,0.04)',
+                                        color: handHistoryDrawerOpen ? '#e9d5ff' : '#cbd5e1',
+                                    }}
+                                >
+                                    {`Hand Log (${sessionHandHistoryLog.length})`}
+                                </button>
+                            </div>
+
+                            {/* Item 15: Club Arena Felt & 4-Color Pro Deck Customization Sync */}
+                            <div
+                                data-table-theme-customizer="true"
+                                data-active-felt-theme={feltTheme}
+                                data-four-color-deck={String(fourColorDeck)}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}
+                            >
+                                <button
+                                    type="button"
+                                    data-four-color-deck-toggle="true"
+                                    aria-pressed={fourColorDeck}
+                                    onClick={toggleFourColorDeck}
+                                    style={{
+                                        padding: '2px 7px',
+                                        borderRadius: 5,
+                                        fontSize: 12,
+                                        fontWeight: 800,
+                                        cursor: 'pointer',
+                                        border: fourColorDeck ? '1px solid rgba(56, 189, 248, 0.6)' : '1px solid rgba(255,255,255,0.14)',
+                                        background: fourColorDeck ? 'rgba(56, 189, 248, 0.16)' : 'rgba(255,255,255,0.04)',
+                                        color: fourColorDeck ? '#7dd3fc' : '#94a3b8',
+                                    }}
+                                >
+                                    {fourColorDeck ? '4-Color Deck' : '2-Color Deck'}
+                                </button>
+                                <button
+                                    type="button"
+                                    data-felt-theme-cycle="true"
+                                    onClick={cycleFeltTheme}
+                                    style={{
+                                        padding: '2px 7px',
+                                        borderRadius: 5,
+                                        fontSize: 12,
+                                        fontWeight: 800,
+                                        cursor: 'pointer',
+                                        border: '1px solid rgba(52, 211, 153, 0.5)',
+                                        background: 'rgba(16, 185, 129, 0.14)',
+                                        color: '#6ee7b7',
+                                    }}
+                                >
+                                    {`Felt: ${feltTheme === 'obsidian' ? 'Obsidian' : feltTheme === 'sapphire' ? 'Sapphire' : feltTheme === 'crimson' ? 'Crimson' : 'Emerald'}`}
+                                </button>
+                            </div>
+
+                            {/* Item 7: Multiway Side-Pot Breakdown Pills & Short All-In Under-Raise Reopening Badge */}
+                            <div
+                                data-side-pot-breakdown="true"
+                                data-main-pot-bb={String(clubArenaParityState?.potState?.mainPotBb || pot)}
+                                data-side-pot-count={String(clubArenaParityState?.potState?.sidePots?.length || 0)}
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 5,
+                                    padding: '2px 8px',
+                                    borderRadius: 5,
+                                    fontSize: 12,
+                                    fontWeight: 800,
+                                    border: '1px solid rgba(250, 204, 21, 0.45)',
+                                    background: 'rgba(250, 204, 21, 0.12)',
+                                    color: '#fde047',
+                                }}
+                            >
+                                <span>{`Main Pot: ${clubArenaParityState?.potState?.mainPotBb || pot} BB · Side Pots: ${clubArenaParityState?.potState?.sidePots?.length || 0}`}</span>
+                                <span
+                                    data-short-allin-reopen-badge="true"
+                                    data-action-reopened={String(Boolean(clubArenaParityState?.reopensAction ?? true))}
+                                    style={{ color: (clubArenaParityState?.reopensAction ?? true) ? '#6ee7b7' : '#fca5a5' }}
+                                >
+                                    {`· Action Reopen: ${(clubArenaParityState?.reopensAction ?? true) ? 'Open' : 'Locked (Call Or Fold Only)'}`}
+                                </span>
+                            </div>
+
+                            {/* Item 11: Variant-Aware Bet-Sizing Preset Profiles & Keyboard Shortcut HUD Pill */}
+                            <div
+                                data-keyboard-shortcut-hud="true"
+                                data-sizing-preset-profile={
+                                    activeBettingStructure === 'fixed_limit'
+                                        ? 'fixed-1bb-2bb'
+                                        : activeBettingStructure === 'pot_limit'
+                                            ? 'pot-25-50-75-100'
+                                            : 'nl-33-50-67-100-allin'
+                                }
+                                style={{
+                                    padding: '2px 8px',
+                                    borderRadius: 5,
+                                    fontSize: 12,
+                                    fontWeight: 800,
+                                    border: '1px solid rgba(148, 163, 184, 0.35)',
+                                    background: 'rgba(15, 23, 42, 0.78)',
+                                    color: '#cbd5e1',
+                                }}
+                            >
+                                Hotkeys: 1-4 Actions · U Units · M Mute · R Restart · Wheel ±0.5 BB
+                            </div>
                         </div>
 
                         {/* Monotonic-Sequence Study HUD Overlay (Pot Odds / MDF / SPR) */}
@@ -5300,6 +6057,80 @@ function UniversalDynamicTable({
                             <span style={{ color: '#53f2a0', fontWeight: 800, fontSize: 12 }}>
                                 {`Act: ${nodeLockedEval.recommendedAction} (GTO: ${gtoBaselineEval.recommendedAction} · ΔEV ${evDeltaBb >= 0 ? '+' : ''}${evDeltaBb} BB)`}
                             </span>
+                        </div>
+
+                        {/* Item 8 & 13: On-Felt Double-Board Bomb-Pot Felt Strip */}
+                        {activeTableRule === 'double_board_bomb_pot' && (
+                            <div
+                                data-double-board-bomb-pot="true"
+                                data-bomb-pot-board-a={visibleBoard.join(',')}
+                                data-bomb-pot-board-b={secondBoardCards.slice(0, Math.max(3, visibleBoard.length)).join(',')}
+                                data-bomb-pot-scoop-status={doubleBoardEval.scoopStatus}
+                                style={{
+                                    width: '100%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    flexWrap: 'wrap',
+                                    gap: 8,
+                                    padding: '4px 10px',
+                                    borderRadius: 6,
+                                    background: 'linear-gradient(90deg, rgba(249, 115, 22, 0.22) 0%, rgba(168, 85, 247, 0.22) 100%)',
+                                    border: '1px solid rgba(251, 146, 60, 0.65)',
+                                    color: '#fff7ed',
+                                    fontSize: 12,
+                                    fontWeight: 800,
+                                }}
+                            >
+                                <span>{`Double-Board Bomb Pot (+24 BB Ante) · Top Board A: [${doubleBoardEval.boardA.join(' ')}] (${doubleBoardEval.catA} · Score ${doubleBoardEval.scoreA})`}</span>
+                                <span>{`Bottom Board B: [${doubleBoardEval.boardB.join(' ')}] (${doubleBoardEval.catB} · Score ${doubleBoardEval.scoreB})`}</span>
+                                <span style={{ color: '#6ee7b7' }}>{`Status: ${doubleBoardEval.scoopStatus}`}</span>
+                            </div>
+                        )}
+
+                        {/* Item 3: Collapsible On-Felt Hand History Drawer */}
+                        <div
+                            data-felt-hand-history-drawer="true"
+                            data-drawer-open={String(handHistoryDrawerOpen)}
+                            style={{
+                                display: handHistoryDrawerOpen ? 'flex' : 'none',
+                                flexDirection: 'column',
+                                gap: 4,
+                                width: '100%',
+                                padding: '6px 10px',
+                                borderRadius: 6,
+                                background: 'rgba(15, 23, 42, 0.94)',
+                                border: '1px solid rgba(168, 85, 247, 0.48)',
+                                color: '#e2e8f0',
+                                fontSize: 12,
+                            }}
+                        >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 900, color: '#d8b4fe' }}>
+                                <span>{`On-Felt Sitting Hand History (${sessionHandHistoryLog.length} Hands · Button Seat: ${dealerButtonSeat})`}</span>
+                                <span>{`Rule: ${activeTableRule.toUpperCase()}`}</span>
+                            </div>
+                            {sessionHandHistoryLog.slice(0, 6).map((hItem) => (
+                                <div
+                                    key={hItem.handId}
+                                    data-hand-history-row={hItem.handId}
+                                    style={{
+                                        display: 'flex',
+                                        flexWrap: 'wrap',
+                                        gap: 8,
+                                        alignItems: 'center',
+                                        padding: '3px 7px',
+                                        borderRadius: 4,
+                                        background: 'rgba(255, 255, 255, 0.04)',
+                                        fontWeight: 700,
+                                    }}
+                                >
+                                    <span style={{ color: '#38bdf8' }}>{`${String(hItem.variant || 'nlh').toUpperCase()} · ${String(hItem.street || 'flop').toUpperCase()} · ${hItem.position}`}</span>
+                                    <span>{`Hero: [${(hItem.heroCards || []).join(' ')}]`}</span>
+                                    <span>{`Board: [${(hItem.boardCards || []).join(' ') || 'Preflop'}]`}</span>
+                                    <span style={{ color: '#fbbf24' }}>{`Pot: ${hItem.potBb} BB`}</span>
+                                    <span style={{ color: '#53f2a0' }}>{`Optimal: ${hItem.recommendedAction}`}</span>
+                                </div>
+                            ))}
                         </div>
 
                         {/* Live Multi-Street Felt Continuation Banner when active */}
@@ -6704,6 +7535,13 @@ function UniversalDynamicTable({
                                     if (!isRaiseReopened) return;
                                     setSliderSizingBb(parseFloat(e.target.value));
                                 }}
+                                onWheel={(e) => {
+                                    if (!isRaiseReopened) return;
+                                    e.preventDefault();
+                                    const dir = e.deltaY < 0 ? 0.5 : -0.5;
+                                    const nextVal = Math.min(maxRaiseBb, Math.max(minRaiseBb, Number((effectiveSliderBb + dir).toFixed(1))));
+                                    setSliderSizingBb(nextVal);
+                                }}
                                 style={{
                                     width: isMobile ? 90 : 120,
                                     accentColor: '#f59e0b',
@@ -7583,6 +8421,147 @@ function UniversalDynamicTable({
                                         </div>
                                     </div>
                                 )}
+
+                                {/* Item 10: "What If Villain Had..." Range-Bucket Switcher */}
+                                <div
+                                    data-villain-hand-whatif="true"
+                                    data-active-villain-bucket={activeVillainBucket}
+                                    data-villain-bucket-cards={activeVillainHandObj.cards.join(',')}
+                                    data-villain-bucket-equity-pct={String(activeVillainHandObj.equityPct)}
+                                    data-villain-bucket-ev-delta-bb={String(activeVillainHandObj.evDeltaBb)}
+                                    style={{
+                                        marginTop: 10,
+                                        padding: '10px 12px',
+                                        borderRadius: 10,
+                                        background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.14) 0%, rgba(2, 6, 23, 0.85) 100%)',
+                                        border: '1px solid rgba(192, 132, 252, 0.42)',
+                                        color: '#e2e8f0',
+                                        fontSize: 12,
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                                        <span style={{ fontWeight: 900, color: '#d8b4fe', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                                            What If Villain Had... Range-Bucket Explorer ({activeNormalizedVariant.toUpperCase()})
+                                        </span>
+                                        <span style={{ fontWeight: 800, color: '#6ee7b7' }}>
+                                            {`Hero Equity: ${activeVillainHandObj.equityPct}% · EV Delta: ${activeVillainHandObj.evDeltaBb >= 0 ? '+' : ''}${activeVillainHandObj.evDeltaBb} BB`}
+                                        </span>
+                                    </div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                                        {Object.values(villainBucketCatalog).map((bucket) => {
+                                            const isBucketActive = bucket.key === activeVillainBucket;
+                                            return (
+                                                <button
+                                                    key={bucket.key}
+                                                    type="button"
+                                                    data-villain-bucket-btn={bucket.key}
+                                                    aria-pressed={isBucketActive}
+                                                    onClick={() => handleSelectVillainBucket(bucket.key)}
+                                                    style={{
+                                                        padding: '5px 9px',
+                                                        borderRadius: 6,
+                                                        fontSize: 12,
+                                                        fontWeight: 800,
+                                                        cursor: 'pointer',
+                                                        border: isBucketActive ? '1.5px solid #c084fc' : '1px solid rgba(255,255,255,0.18)',
+                                                        background: isBucketActive ? 'rgba(168, 85, 247, 0.28)' : 'rgba(255,255,255,0.05)',
+                                                        color: isBucketActive ? '#faf5ff' : '#cbd5e1',
+                                                    }}
+                                                >
+                                                    {`${bucket.label} [${bucket.cards.join(' ')}]`}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, color: '#cbd5e1', fontWeight: 700 }}>
+                                        <span>{`Villain Bucket: ${activeVillainHandObj.label}`}</span>
+                                        <span>{`Villain Hole Cards: [${activeVillainHandObj.cards.join(' ')}]`}</span>
+                                        <span>{`Outcome: ${showdownOutcome.scoopOrSplitLabel}`}</span>
+                                    </div>
+                                </div>
+
+                                {/* Item 1: Interactive Post-Answer On-Felt Showdown Reveal & 50/50 Hi-Lo Chip-Split Panel */}
+                                <div
+                                    data-showdown-reveal-panel="true"
+                                    data-showdown-high-winner={showdownOutcome.highWinner}
+                                    data-showdown-low-winner={showdownOutcome.lowWinner}
+                                    data-showdown-hero-payout-bb={String(showdownOutcome.heroPayoutBb)}
+                                    data-showdown-villain-cards={activeVillainHandObj.cards.join(',')}
+                                    style={{
+                                        marginTop: 10,
+                                        padding: '10px 12px',
+                                        borderRadius: 10,
+                                        background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.16) 0%, rgba(2, 6, 23, 0.88) 100%)',
+                                        border: '1px solid rgba(52, 211, 153, 0.48)',
+                                        color: '#e2e8f0',
+                                        fontSize: 12,
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
+                                        <span style={{ fontWeight: 900, color: '#6ee7b7', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                                            Interactive Showdown Reveal &amp; Pot Allocation ({completedFiveCardBoard.join(' ')})
+                                        </span>
+                                        <span style={{ fontWeight: 900, color: '#fde047' }}>
+                                            {`Hero Payout: ${showdownOutcome.heroPayoutBb} BB / ${showdownOutcome.totalPotBb} BB (${showdownOutcome.scoopOrSplitLabel})`}
+                                        </span>
+                                    </div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', fontWeight: 700 }}>
+                                        <span>{`Hero Cards: [${heroCards.join(' ')}] (${showdownOutcome.heroHighDesc})`}</span>
+                                        <span>{`Villain Cards: [${activeVillainHandObj.cards.join(' ')}] (${showdownOutcome.villainHighDesc})`}</span>
+                                        <span style={{ color: '#53f2a0' }}>{`High Winner: ${showdownOutcome.highWinner}`}</span>
+                                        <span style={{ color: '#7dd3fc' }}>{`Low 8-Or-Better Winner: ${showdownOutcome.lowWinner}`}</span>
+                                        <button
+                                            type="button"
+                                            data-run-it-twice-btn="true"
+                                            aria-pressed={runItTwiceOpen}
+                                            onClick={handleToggleRunItTwice}
+                                            style={{
+                                                padding: '4px 10px',
+                                                borderRadius: 6,
+                                                fontSize: 12,
+                                                fontWeight: 900,
+                                                cursor: 'pointer',
+                                                border: '1.5px solid #38bdf8',
+                                                background: 'rgba(14, 165, 233, 0.25)',
+                                                color: '#f0f9ff',
+                                            }}
+                                        >
+                                            {runItTwiceOpen ? 'Run It Twice: Active' : 'Run It Twice: Off'}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Item 9: On-Felt "Run It Twice" Dual-Board All-In Simulator */}
+                                <div
+                                    data-run-it-twice-panel="true"
+                                    data-rit-board-1={runItTwiceOutcome.board1.join(',')}
+                                    data-rit-board-2={runItTwiceOutcome.board2.join(',')}
+                                    data-rit-hero-payout-bb={String(runItTwiceOutcome.heroPayoutBb)}
+                                    style={{
+                                        display: runItTwiceOpen ? 'block' : 'none',
+                                        marginTop: 10,
+                                        padding: '10px 12px',
+                                        borderRadius: 10,
+                                        background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.14) 0%, rgba(2, 6, 23, 0.88) 100%)',
+                                        border: '1px solid rgba(251, 191, 36, 0.45)',
+                                        color: '#e2e8f0',
+                                        fontSize: 12,
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
+                                        <span style={{ fontWeight: 900, color: '#fcd34d', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                                            Run It Twice Dual-Board All-In Simulator (50% / 50% Pot Split)
+                                        </span>
+                                        <span style={{ fontWeight: 900, color: '#6ee7b7' }}>
+                                            {`Realized RIT Payout: ${runItTwiceOutcome.heroPayoutBb} BB · All-In EV: ${runItTwiceOutcome.allInEvBb} BB`}
+                                        </span>
+                                    </div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, fontWeight: 700 }}>
+                                        <span>{`First Board (50% Pot): [${runItTwiceOutcome.board1.join(' ')}] · Winner: ${runItTwiceOutcome.winner1}`}</span>
+                                        <span>{`Second Board (50% Pot): [${runItTwiceOutcome.board2.join(' ')}] · Winner: ${runItTwiceOutcome.winner2}`}</span>
+                                        <span style={{ color: '#7dd3fc' }}>{`Variance Delta Vs EV: ${runItTwiceOutcome.varianceSavedBb} BB`}</span>
+                                    </div>
+                                </div>
                             </div>
                         );
                     })()}
@@ -8933,6 +9912,62 @@ function UniversalDynamicTable({
                                 </button>
                                 <button
                                     type="button"
+                                    data-challenge-spot-duel="true"
+                                    data-duel-challenge-href={duelChallengeHref}
+                                    onClick={handleChallengeSpotDuel}
+                                    style={{
+                                        padding: '8px 14px',
+                                        borderRadius: 8,
+                                        border: '1px solid rgba(168, 85, 247, 0.55)',
+                                        background: 'rgba(168, 85, 247, 0.18)',
+                                        color: '#e9d5ff',
+                                        fontSize: 12,
+                                        fontWeight: 800,
+                                        cursor: 'pointer',
+                                    }}
+                                >
+                                    {duelChallengeCopied ? 'Async Duel Link Copied!' : 'Challenge Friend On This Spot'}
+                                </button>
+                                <button
+                                    type="button"
+                                    data-export-hand-history-btn="true"
+                                    aria-expanded={exportedHandHistoryOpen}
+                                    onClick={handleExportHandHistory}
+                                    style={{
+                                        padding: '8px 14px',
+                                        borderRadius: 8,
+                                        border: '1px solid rgba(52, 211, 153, 0.52)',
+                                        background: 'rgba(16, 185, 129, 0.15)',
+                                        color: '#6ee7b7',
+                                        fontSize: 12,
+                                        fontWeight: 800,
+                                        cursor: 'pointer',
+                                    }}
+                                >
+                                    {exportedHandHistoryOpen ? 'Hand History Exported' : 'Export Hand History'}
+                                </button>
+                                {exportedHandHistoryOpen && (
+                                    <pre
+                                        data-exported-hand-history-preview="true"
+                                        style={{
+                                            width: '100%',
+                                            margin: '4px 0 0',
+                                            padding: '8px 12px',
+                                            borderRadius: 8,
+                                            background: 'rgba(2, 6, 23, 0.92)',
+                                            border: '1px solid rgba(52, 211, 153, 0.45)',
+                                            color: '#a7f3d0',
+                                            fontSize: 12,
+                                            fontFamily: "'Inter', monospace",
+                                            whiteSpace: 'pre-wrap',
+                                            textAlign: 'left',
+                                        }}
+                                    >
+                                        {exportedHandHistoryText}
+                                    </pre>
+                                )}
+                                <button
+                                    type="button"
                                     data-drill-session-mistakes-cta="true"
                                     data-mistake-target-variant={sessionMistakeTarget.variant}
                                     data-mistake-target-street={sessionMistakeTarget.street}
@@ -9036,6 +10071,44 @@ function UniversalDynamicTable({
                                     }}
                                 >
                                     {shareCopiedToast ? 'Spot Link Copied!' : 'Share This Spot'}
+                                </button>
+                                <button
+                                    type="button"
+                                    data-challenge-spot-duel="true"
+                                    data-duel-challenge-href={duelChallengeHref}
+                                    onClick={handleChallengeSpotDuel}
+                                    style={{
+                                        width: '100%',
+                                        padding: '9px 14px',
+                                        borderRadius: 8,
+                                        border: '1px solid rgba(168, 85, 247, 0.55)',
+                                        background: 'rgba(168, 85, 247, 0.18)',
+                                        color: '#e9d5ff',
+                                        fontSize: 12,
+                                        fontWeight: 800,
+                                        cursor: 'pointer',
+                                    }}
+                                >
+                                    {duelChallengeCopied ? 'Async Duel Link Copied!' : 'Challenge Friend On This Spot'}
+                                </button>
+                                <button
+                                    type="button"
+                                    data-export-hand-history-btn="true"
+                                    aria-expanded={exportedHandHistoryOpen}
+                                    onClick={handleExportHandHistory}
+                                    style={{
+                                        width: '100%',
+                                        padding: '9px 14px',
+                                        borderRadius: 8,
+                                        border: '1px solid rgba(52, 211, 153, 0.52)',
+                                        background: 'rgba(16, 185, 129, 0.15)',
+                                        color: '#6ee7b7',
+                                        fontSize: 12,
+                                        fontWeight: 800,
+                                        cursor: 'pointer',
+                                    }}
+                                >
+                                    {exportedHandHistoryOpen ? 'Hand History Exported' : 'Export Hand History'}
                                 </button>
                                 <button
                                     type="button"

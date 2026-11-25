@@ -12,6 +12,7 @@ const HERO_CARDS_BY_VARIANT = {
   plo4: ['Qh', 'Jh', 'As', 'Ks'],
   plo5: ['Qh', 'Jh', 'As', 'Ks', 'Td'],
   plo6: ['Qh', 'Jh', 'As', 'Ks', 'Td', '9d'],
+  plo8: ['Qh', 'Jh', 'As', 'Ks'],
 };
 
 const BOARD_CARDS = ['Qd', '9h', '5c'];
@@ -160,7 +161,7 @@ export default function ThreeWayPostflopPage() {
                     Variant
                   </div>
                   <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                    {['nlh', 'plo4', 'plo5', 'plo6'].map((v) => (
+                    {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
                       <button
                         key={v}
                         type="button"
