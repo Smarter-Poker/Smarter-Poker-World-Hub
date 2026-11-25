@@ -659,6 +659,7 @@ export default function LiveHudSyncPage() {
                   <button
                     type="button"
                     data-launch-club-arena-cta="true"
+                    data-drill-similar-spot-cta="true"
                     data-train-top-imported-leak="true"
                     onClick={handleTrainTopImportedLeak}
                     style={{
@@ -760,6 +761,7 @@ export default function LiveHudSyncPage() {
                       </div>
                       <a
                         data-train-this-hand="true"
+                        data-drill-similar-spot-cta="true"
                         data-hand-id={hand.id}
                         href={hand.drillHref || `/hub/training/arena/cash-002?level=1&syncedHandId=${encodeURIComponent(hand.id)}`}
                         style={{

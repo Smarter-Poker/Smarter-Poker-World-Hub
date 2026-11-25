@@ -459,3 +459,96 @@ test('evaluateMultiwayPostflopSpot and evaluateFullHandLineAndBranchComparison s
     assert.equal(lineRes.streetEvaluations.length, 4);
   }
 });
+
+test('Phase 17 full suite: PLO8/Fixed-Limit specialized curriculum, Shared Drill Packs, 5-Minute Leak Fix, Voice Coach, Hotkeys, Prefetch, Offline Queue, 3-Bullet Mastery, and Deep Links', async () => {
+  const {
+    TRAINING_PRESETS,
+    encodeSharedDrillPack,
+    decodeSharedDrillPack,
+  } = await import('../src/lib/training/trainingPresets.mjs');
+  const { generateCuratedPokerConceptBatch } = await import('../src/lib/training/curatedPokerConcepts.js');
+
+  // 1. PLO8 & Fixed-Limit specialized presets exist and validate
+  assert.ok(TRAINING_PRESETS.plo8_scoop_quartering_defense, 'plo8_scoop_quartering_defense preset must exist');
+  assert.equal(TRAINING_PRESETS.plo8_scoop_quartering_defense.variant, 'plo8');
+  assert.ok(TRAINING_PRESETS.fixed_limit_cap_geometry, 'fixed_limit_cap_geometry preset must exist');
+  assert.equal(TRAINING_PRESETS.fixed_limit_cap_geometry.bettingStructure, 'fixed_limit');
+
+  // 2. Fixed-Limit curated concept batch uses Fixed-Limit small/big bet cap-4 actions
+  const flBatch = generateCuratedPokerConceptBatch({
+    gameId: 'cash-001',
+    level: 2,
+    count: 3,
+    gameConfig: { variant: 'nlh', bettingStructure: 'fixed_limit' },
+    spotTypes: ['fixed_limit_cap'],
+    targetStreet: 'turn',
+  });
+  assert.equal(flBatch.length, 3);
+  for (const q of flBatch) {
+    assert.equal(q.scenario.bettingStructure, 'fixed_limit');
+    assert.ok(q.question.includes('Fixed-Limit'), 'Fixed-Limit curated prompt must label Fixed-Limit');
+    assert.ok(
+      q.options.some((o) => /Cap At 4|Big Bet|Fixed Bet/i.test(o.text)),
+      'Fixed-Limit curated question must offer Fixed-Limit cap/increment action choices',
+    );
+  }
+
+  // 3. Shared Drill Pack encode/decode round-trip + tamper rejection
+  const token = encodeSharedDrillPack({
+    title: 'BTN vs BB PLO8 Scoop Study Pack',
+    gameId: 'cash-005',
+    variant: 'plo8',
+    bettingStructure: 'pot_limit',
+    format: 'cash',
+    stackDepthBb: 100,
+    heroPosition: 'BTN',
+    targetStreet: 'flop',
+    questionsCount: 15,
+  });
+  assert.ok(token.startsWith('sp1.'), 'Shared drill pack token must carry sp1 prefix');
+  const decoded = decodeSharedDrillPack(token);
+  assert.ok(decoded, 'decodeSharedDrillPack must decode valid token');
+  assert.equal(decoded.title, 'BTN vs BB PLO8 Scoop Study Pack');
+  assert.equal(decoded.variant, 'plo8');
+  assert.equal(decoded.questionsCount, 15);
+  assert.equal(decodeSharedDrillPack(`${token}tampered`), null, 'Tampered shared drill pack token must return null');
+
+  // 4. Verify UI wiring markers across Phase 17 files
+  const trainingHomeSrc = read('pages/hub/training.js');
+  assert.ok(trainingHomeSrc.includes('data-five-minute-leak-fix="true"'), 'Training Home must render Today\'s 5-Minute Leak Fix banner');
+  assert.ok(trainingHomeSrc.includes('data-start-five-minute-fix-cta="true"'), 'Training Home must render 1-tap Start 5-Minute Fix CTA');
+
+  const paLeaksSrc = read('pages/hub/personal-assistant/leaks.js');
+  assert.ok(paLeaksSrc.includes('data-pa-leak-training-bridge="true"'), 'Personal Assistant Leaks must render 1-tap Club Arena training bridge');
+
+  const arenaRouteSrc = read('pages/hub/training/arena/[gameId].js');
+  assert.ok(arenaRouteSrc.includes('data-shared-drill-pack-banner="true"'), 'Arena route must render Shared Study Group Drill Pack banner when ?pack= is present');
+
+  const drillBuilderSrc = read('pages/hub/training/drill-builder.js');
+  assert.ok(drillBuilderSrc.includes('data-copy-shared-drill-pack="true"'), 'Drill Builder must render Copy Shared Drill Pack Link CTA');
+
+  const quizBuilderSrc = read('pages/hub/training/quiz-builder.js');
+  assert.ok(quizBuilderSrc.includes('data-copy-shared-drill-pack="true"'), 'Quiz Builder must render Copy Shared Drill Pack Link CTA');
+
+  const godModeSrc = read('src/components/training/GodModeArena.jsx');
+  assert.ok(godModeSrc.includes('data-session-three-bullet-mastery="true"'), 'GodModeArena review screen must render 3-Bullet Shareable Mastery Card');
+  assert.ok(godModeSrc.includes('data-drill-missed-spots-now="true"'), 'GodModeArena review screen must render 1-tap Drill My Missed Spots Now CTA');
+
+  const udtSrc = read('src/components/training/games/UniversalDynamicTable.jsx');
+  assert.ok(udtSrc.includes('data-voice-coach-toggle="true"'), 'UniversalDynamicTable must include Voice Coach toggle');
+  assert.ok(udtSrc.includes('data-offline-outbox-status="true"'), 'UniversalDynamicTable must include Offline Queue status badge');
+  assert.ok(udtSrc.includes('data-next-hand-prefetched='), 'UniversalDynamicTable Next button must expose data-next-hand-prefetched');
+  assert.ok(udtSrc.includes('data-mobile-quick-action-bar="true"'), 'UniversalDynamicTable action bar must expose data-mobile-quick-action-bar');
+  assert.ok(udtSrc.includes('data-drill-similar-spot-cta="true"'), 'UniversalDynamicTable must expose 1-tap Drill Similar Spot CTA');
+
+  for (const relPath of [
+    'src/components/sandbox/HandReplay.jsx',
+    'pages/hub/training/replay-theater.js',
+    'pages/hub/training/hand-history-upload.js',
+    'pages/hub/training/live-hud-sync.js',
+  ]) {
+    const src = read(relPath);
+    assert.ok(src.includes('data-drill-similar-spot-cta="true"'), `${relPath} must expose data-drill-similar-spot-cta="true"`);
+  }
+});
+

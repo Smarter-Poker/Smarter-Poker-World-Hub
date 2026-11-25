@@ -73,6 +73,7 @@ import {
 import SessionSetupModal from '../../src/components/training/SessionSetupModal';
 import TrainingGameArt from '../../src/components/training/TrainingGameArt';
 import { leakService } from '../../src/services/LeakService';
+import { analyzeVerifiedTrainingWeaknesses } from '../../src/lib/training/weaknessAnalysis.mjs';
 import { scrollLockCount, clearBodyScrollLockIfUnheld } from '../../src/lib/scrollLock';
 
 const GodModeArena = dynamic(() => import('../../src/components/training/GodModeArena'), {
@@ -332,6 +333,54 @@ export default function TrainingPage() {
       preset: p,
     };
   }, [resumableSession, lifetimeSessions]);
+
+  const fiveMinuteLeakFix = useMemo(() => {
+    const verifiedReport = analyzeVerifiedTrainingWeaknesses({ sessions: lifetimeSessions || [] });
+    const topSpot = verifiedReport?.topSpotLeak || verifiedReport?.spotLeaks?.[0] || null;
+    if (topSpot) {
+      const targetGame = TRAINING_LIBRARY.find((g) => g.id === topSpot.gameId) || heroGame;
+      return {
+        title: `Today's 5-Minute Leak Fix: ${topSpot.area}`,
+        subtitle: `Verified History: ${topSpot.acc}% accuracy across ${topSpot.sample} decisions (-${topSpot.evLossBb} BB). Target ≥85% over 10 focused hands.`,
+        game: targetGame,
+        overrides: {
+          variant: topSpot.variant || 'nlh',
+          targetStreet: topSpot.street || 'flop',
+          targetPositions: topSpot.position || 'BTN',
+          scope: 'spot',
+          questionsCount: 10,
+        },
+        basis: 'verified-history',
+      };
+    }
+    if (biggestLeak) {
+      const targetGame = biggestLeak.recommendedGame || heroGame;
+      return {
+        title: `Today's 5-Minute Leak Fix: ${biggestLeak.name}`,
+        subtitle: `${biggestLeak.spotLabel ? `${biggestLeak.spotLabel} · ` : ''}10-hand rapid corrective drill to seal your top detected EV leak.`,
+        game: targetGame,
+        overrides: {
+          scope: 'spot',
+          questionsCount: 10,
+        },
+        basis: 'active-leak',
+      };
+    }
+    const fallbackGame = heroGame || TRAINING_LIBRARY[0];
+    const preset = resolvePresetForGame(fallbackGame);
+    return {
+      title: `Today's 5-Minute Warmup: ${fallbackGame?.name || '6-Max Cash Blueprint'}`,
+      subtitle: `${preset.summary} · Complete a focused 10-hand sprint to calibrate your daily GTO baseline.`,
+      game: fallbackGame,
+      overrides: {
+        variant: preset.variant,
+        bettingStructure: preset.bettingStructure,
+        format: preset.format,
+        questionsCount: 10,
+      },
+      basis: 'daily-warmup',
+    };
+  }, [lifetimeSessions, biggestLeak, heroGame]);
 
   // Leak Finder And Sandbox Both Deep-Link Into The Training Center. These
   // Query Parameters Previously Had No Consumer, So The Promised Focused Game
@@ -634,6 +683,47 @@ export default function TrainingPage() {
                 signedIn={Boolean(authUser?.id)}
               />
             </section>
+
+            {fiveMinuteLeakFix && (
+              <section
+                aria-label="Today's 5-Minute Leak Fix"
+                data-five-minute-leak-fix="true"
+                data-leak-fix-basis={fiveMinuteLeakFix.basis}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: 14,
+                  padding: '14px 18px',
+                  borderRadius: 7,
+                  border: '1px solid #688299',
+                  borderTopColor: '#aec0d0',
+                  background: 'linear-gradient(180deg, #13253a 0%, #091727 55%, #060e18 100%)',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.22), 0 12px 28px rgba(0,0,0,0.4)',
+                }}
+              >
+                <div style={{ flex: '1 1 320px', minWidth: 0 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: '#83deff', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                    Adaptive Daily Workout · 10 Hands (~5 Min)
+                  </div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: '#f4fbff', marginTop: 3 }}>
+                    {fiveMinuteLeakFix.title}
+                  </div>
+                  <div style={{ fontSize: 13, color: '#b7cede', marginTop: 3, lineHeight: 1.45 }}>
+                    {fiveMinuteLeakFix.subtitle}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="sp-cta sp-cta-primary"
+                  data-start-five-minute-fix-cta="true"
+                  onClick={() => quickStartDrill(fiveMinuteLeakFix.game, fiveMinuteLeakFix.overrides)}
+                >
+                  <Zap size={16} aria-hidden /> Start 5-Minute Fix (10 Hands) →
+                </button>
+              </section>
+            )}
 
             {biggestLeak && (
               <section aria-labelledby="leak-h" className="sp-leak" data-tutorial="leak">

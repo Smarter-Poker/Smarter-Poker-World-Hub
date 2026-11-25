@@ -3060,6 +3060,33 @@ function UniversalDynamicTable({
 
     const [shotClockEnabled, setShotClockEnabled] = useState(false);
     const [shotClockRemaining, setShotClockRemaining] = useState(15);
+    const [voiceCoachEnabled, setVoiceCoachEnabled] = useState(false);
+    const handleToggleVoiceCoach = useCallback(() => {
+        setVoiceCoachEnabled((prev) => {
+            const next = !prev;
+            if (!next && typeof window !== 'undefined' && window.speechSynthesis) {
+                try { window.speechSynthesis.cancel(); } catch (_) {}
+            }
+            return next;
+        });
+    }, []);
+    const outboxPendingCount = Number(trainerConfig?.outboxPendingCount) || 0;
+    const nextHandPrefetched = trainerConfig?.nextHandPrefetched !== false;
+    const drillSimilarSpotHref = useMemo(
+        () =>
+            buildCustomTrainingArenaHref(
+                {
+                    gameId: gameId || (activeNormalizedVariant === 'nlh' ? 'cash-002' : 'cash-005'),
+                    format: activeGameFormat,
+                    variant: activeNormalizedVariant,
+                    streets: [continuedStreet || activeNormalizedStreet],
+                    positions: [heroPosition || 'BTN'],
+                    stackDepth: Math.max(10, Number(heroStack) || 100),
+                },
+                'arena-similar-spot',
+            ),
+        [gameId, activeGameFormat, activeNormalizedVariant, continuedStreet, activeNormalizedStreet, heroPosition, heroStack],
+    );
     const handleToggleShotClock = useCallback(() => {
         setShotClockEnabled((prev) => {
             const next = !prev;
@@ -4662,16 +4689,19 @@ function UniversalDynamicTable({
                     }
                     return;
                 }
-                // F/C/R/A/B shortcuts for fold/check-call/raise/all-in/bet
+                // F/C/R/A/B/Space shortcuts for fold/check-call/raise/all-in/bet
                 const lower = key.toLowerCase();
                 if (lower === 'f') {
                     const opts = displayOptions || [];
                     const foldOpt = opts.find(o => /fold/i.test(o.text || o.label || ''));
                     if (foldOpt) handleAnswerWithGrouping(foldOpt.id || foldOpt);
-                } else if (lower === 'c') {
+                } else if (lower === 'c' || key === ' ') {
                     const opts = displayOptions || [];
                     const checkCallOpt = opts.find(o => /check|call/i.test(o.text || o.label || ''));
-                    if (checkCallOpt) handleAnswerWithGrouping(checkCallOpt.id || checkCallOpt);
+                    if (checkCallOpt) {
+                        if (key === ' ') e.preventDefault();
+                        handleAnswerWithGrouping(checkCallOpt.id || checkCallOpt);
+                    }
                 } else if (lower === 'r') {
                     const opts = displayOptions || [];
                     const raiseOpt = opts.find(o => /raise|bet|all.in|shove/i.test(o.text || o.label || ''));
@@ -4685,6 +4715,9 @@ function UniversalDynamicTable({
                     const betOpt = opts.find(o => /\bbet\b/i.test(o.text || o.label || ''));
                     if (betOpt) handleAnswerWithGrouping(betOpt.id || betOpt);
                 }
+            } else if (showFeedback && onNextHand && (key === 'Enter' || key === 'ArrowRight')) {
+                e.preventDefault();
+                onNextHand();
             }
         };
 
@@ -4703,7 +4736,33 @@ function UniversalDynamicTable({
             window.removeEventListener('keydown', handleKeyDown);
             window.__spUnifiedKeyboard = Math.max(0, (window.__spUnifiedKeyboard || 1) - 1);
         };
-    }, [showFeedback, selectedAnswer, displayOptions, handleAnswerWithGrouping, isFocused]);
+    }, [showFeedback, selectedAnswer, displayOptions, handleAnswerWithGrouping, isFocused, onNextHand]);
+
+    // Voice / Audio Cadence Coach Mode (Web Speech API hands-free verbal verdict)
+    useEffect(() => {
+        if (typeof window === 'undefined' || !window.speechSynthesis) return undefined;
+        if (!voiceCoachEnabled || !showFeedback) {
+            try { window.speechSynthesis.cancel(); } catch (_) {}
+            return undefined;
+        }
+        try {
+            window.speechSynthesis.cancel();
+            const isGood = moveClassification === 'best' || moveClassification === 'correct' || feedbackResult === 'correct';
+            const takeawayText = structuredExplanation?.takeaway
+                || (explanation ? String(explanation).split(/[.!?](?:\s|$)/)[0] : '')
+                || (isGood ? 'Optimal solver line selected.' : 'Review the solver frequency distribution.');
+            const utterance = new window.SpeechSynthesisUtterance(
+                `${isGood ? 'Correct.' : 'Suboptimal.'} ${takeawayText}`,
+            );
+            utterance.rate = 1.08;
+            window.speechSynthesis.speak(utterance);
+        } catch (_) {
+            /* ignore speech synthesis errors */
+        }
+        return () => {
+            try { window.speechSynthesis.cancel(); } catch (_) {}
+        };
+    }, [voiceCoachEnabled, showFeedback, moveClassification, feedbackResult, structuredExplanation, explanation]);
 
     // GTOW parity #38 — while the dice is live it, not the solver's modal
     // action, is what "Best" means for this hand. Every display that used to
@@ -5897,6 +5956,40 @@ function UniversalDynamicTable({
                                     >
                                         Restart Scenario
                                     </button>
+                                    <button
+                                        type="button"
+                                        data-voice-coach-toggle="true"
+                                        data-voice-coach-active={String(voiceCoachEnabled)}
+                                        aria-pressed={voiceCoachEnabled}
+                                        onClick={handleToggleVoiceCoach}
+                                        style={{
+                                            padding: '2px 8px',
+                                            borderRadius: 5,
+                                            fontSize: 12,
+                                            fontWeight: 800,
+                                            cursor: 'pointer',
+                                            border: voiceCoachEnabled ? '1px solid rgba(52, 211, 153, 0.65)' : '1px solid rgba(148, 163, 184, 0.35)',
+                                            background: voiceCoachEnabled ? 'rgba(16, 185, 129, 0.2)' : 'rgba(15, 23, 42, 0.75)',
+                                            color: voiceCoachEnabled ? '#6ee7b7' : '#cbd5e1',
+                                        }}
+                                    >
+                                        {voiceCoachEnabled ? 'Voice Coach: ON' : 'Voice Coach: OFF'}
+                                    </button>
+                                    <span
+                                        data-offline-outbox-status="true"
+                                        data-outbox-pending-count={String(outboxPendingCount)}
+                                        style={{
+                                            padding: '2px 8px',
+                                            borderRadius: 5,
+                                            fontSize: 12,
+                                            fontWeight: 800,
+                                            border: outboxPendingCount > 0 ? '1px solid rgba(251, 191, 36, 0.6)' : '1px solid rgba(52, 211, 153, 0.45)',
+                                            background: outboxPendingCount > 0 ? 'rgba(251, 191, 36, 0.16)' : 'rgba(16, 185, 129, 0.12)',
+                                            color: outboxPendingCount > 0 ? '#fde68a' : '#6ee7b7',
+                                        }}
+                                    >
+                                        {outboxPendingCount > 0 ? `Offline Queue: ${outboxPendingCount} Pending` : 'Sync Queue: Live'}
+                                    </span>
                                 </div>
 
                                 {activeNormalizedVariant === 'plo8' && (
@@ -6155,7 +6248,7 @@ function UniversalDynamicTable({
                                     color: '#cbd5e1',
                                 }}
                             >
-                                Hotkeys: 1-4 Actions · U Units · M Mute · R Restart · Wheel ±0.5 BB
+                                Hotkeys: 1-4 / F C R A B / Space Check-Call · Enter Next Hand · U Units · M Mute
                             </div>
 
                             {/* Monotonic-Sequence Study HUD Overlay (Pot Odds / MDF / SPR) */}
@@ -8347,7 +8440,10 @@ function UniversalDynamicTable({
             })()}
 
             {/* ACTION BUTTONS — GTO Wizard-style poker action bar (F2: Dynamic sizing + F9: Keyboard hints) */}
-            <div className="sp-club-gto-actions" style={{
+            <div
+                className="sp-club-gto-actions"
+                data-mobile-quick-action-bar="true"
+                style={{
                 ...styles.actionBar,
                 position: 'relative',
                 // The template lays four actions out as a 2x2 GRID, not a single
@@ -10716,6 +10812,7 @@ function UniversalDynamicTable({
                             <>
                                 <motion.button
                                     className="sp-training-next-button"
+                                    data-next-hand-prefetched={String(nextHandPrefetched)}
                                     onClick={onNextHand}
                                     initial={{ opacity: 0, y: 5 }}
                                     animate={{ opacity: 1, y: 0 }}
@@ -10861,6 +10958,28 @@ function UniversalDynamicTable({
                                 )}
                                 <button
                                     type="button"
+                                    data-drill-similar-spot-cta="true"
+                                    data-similar-spot-href={drillSimilarSpotHref}
+                                    onClick={() => {
+                                        if (typeof window !== 'undefined') {
+                                            window.location.assign(drillSimilarSpotHref);
+                                        }
+                                    }}
+                                    style={{
+                                        padding: '8px 14px',
+                                        borderRadius: 7,
+                                        border: '1px solid #56d8ff',
+                                        background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)',
+                                        color: '#f4fbff',
+                                        fontSize: 12,
+                                        fontWeight: 800,
+                                        cursor: 'pointer',
+                                    }}
+                                >
+                                    Drill Similar Spot (10 Hands) →
+                                </button>
+                                <button
+                                    type="button"
                                     data-drill-session-mistakes-cta="true"
                                     data-mistake-target-variant={sessionMistakeTarget.variant}
                                     data-mistake-target-street={sessionMistakeTarget.street}
@@ -11002,6 +11121,28 @@ function UniversalDynamicTable({
                                     }}
                                 >
                                     {exportedHandHistoryOpen ? 'Hand History Exported' : 'Export Hand History'}
+                                </button>
+                                <button
+                                    type="button"
+                                    data-drill-similar-spot-cta="true"
+                                    data-similar-spot-href={drillSimilarSpotHref}
+                                    onClick={() => {
+                                        if (typeof window !== 'undefined') {
+                                            window.location.assign(drillSimilarSpotHref);
+                                        }
+                                    }}
+                                    style={{
+                                        padding: '8px 14px',
+                                        borderRadius: 7,
+                                        border: '1px solid #56d8ff',
+                                        background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)',
+                                        color: '#f4fbff',
+                                        fontSize: 12,
+                                        fontWeight: 800,
+                                        cursor: 'pointer',
+                                    }}
+                                >
+                                    Drill Similar Spot (10 Hands) →
                                 </button>
                                 <button
                                     type="button"

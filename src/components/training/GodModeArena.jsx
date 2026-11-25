@@ -1071,6 +1071,8 @@ function GodModeArenaInner({
     answerSaveRequiresRefresh,
     transitionError,
     transitionRetrying,
+    outboxPendingCount,
+    nextHandPrefetched,
     correctCount,
     streak,
     bestStreak,
@@ -1796,7 +1798,9 @@ function GodModeArenaInner({
     feedbackRule: 'every',
     autoAdvance: false,
     autoAdvanceDelayMs: 0,
-  }), [trainerConfig, timerMode]);
+    outboxPendingCount,
+    nextHandPrefetched,
+  }), [trainerConfig, timerMode, outboxPendingCount, nextHandPrefetched]);
   const handleConfigClick = useCallback(() => setShowConfigModal(true), []);
   const handleDefaultNextHand = useCallback(() => nextQuestion(), [nextQuestion]);
 
@@ -2059,6 +2063,83 @@ function GodModeArenaInner({
                   <strong style={{ color: '#83deff' }}>Key Takeaway: </strong>
                   {topTakeaway}
                 </div>
+              </div>
+            );
+          })()}
+
+          {/* ESSENTIAL RESULT 1B: 3-BULLET SHAREABLE MASTERY CARD & 1-TAP MISSED SPOTS QUEUE */}
+          {(() => {
+            const practicedPreset = resolvePresetForGame(gameId, trainerConfig || {});
+            const streetEntries = Object.entries(streetAccuracy || {});
+            const bestStreetEntry = streetEntries
+              .filter(([, v]) => (v?.total || 0) >= 1)
+              .sort((a, b) => (b[1].accuracy || 0) - (a[1].accuracy || 0))[0];
+            const bestStreetBullet = bestStreetEntry
+              ? `Best Street: ${bestStreetEntry[0].toUpperCase()} (${bestStreetEntry[1].accuracy}% across ${bestStreetEntry[1].total} decisions)`
+              : bestStreak >= 3
+                ? `Peak Momentum: ${bestStreak}-hand consecutive optimal decision streak`
+                : `Completed ${totalQuestions} verified decisions with ${formatSignedScore(gtowScore)} GTOW Score`;
+            const primaryLeakBullet = sessionMistakes > 0
+              ? (mistakePatterns && mistakePatterns[0]?.tip)
+                || (weakestPosition
+                  ? `Primary Leak: ${weakestPosition} decisions (${sessionMistakes} ${sessionMistakes === 1 ? 'mistake' : 'mistakes'} recorded - drill missed spots below)`
+                  : `Primary Leak: ${sessionMistakes} suboptimal ${sessionMistakes === 1 ? 'decision' : 'decisions'} ready for immediate mistake-replay drilling`)
+              : 'Zero Mistakes Recorded: Ready to advance level or switch to Expert / Blitz pressure';
+            return (
+              <div
+                data-session-three-bullet-mastery="true"
+                style={{
+                  marginBottom: 14,
+                  padding: '14px 16px',
+                  borderRadius: 7,
+                  border: '1px solid #688299',
+                  borderTopColor: '#aec0d0',
+                  background: 'linear-gradient(180deg, #13253a 0%, #091727 55%, #060e18 100%)',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2), 0 10px 24px rgba(0,0,0,0.35)',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: '#83deff', letterSpacing: 1 }}>
+                    3-BULLET SESSION MASTERY SUMMARY
+                  </span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#6ee7b7' }}>
+                    {practicedPreset.variant?.toUpperCase() || 'NLH'} · {practicedPreset.format?.toUpperCase() || 'CASH'}
+                  </span>
+                </div>
+                <ul style={{ margin: 0, paddingLeft: 18, color: '#e6f3ff', fontSize: 13, lineHeight: 1.55 }}>
+                  <li data-mastery-bullet="practiced">
+                    <strong>Format &amp; Score:</strong> {gameName || practicedPreset.title} · {accuracy}% Accuracy ({correctCount}/{totalQuestions}) · Score {formatSignedScore(gtowScore)}
+                  </li>
+                  <li data-mastery-bullet="strength">
+                    <strong>Top Strength:</strong> {bestStreetBullet}
+                  </li>
+                  <li data-mastery-bullet="leak">
+                    <strong>Actionable Fix:</strong> {primaryLeakBullet}
+                  </li>
+                </ul>
+                {sessionMistakes > 0 && (
+                  <button
+                    type="button"
+                    data-drill-missed-spots-now="true"
+                    onClick={() => retrainMistakes()}
+                    style={{
+                      marginTop: 10,
+                      width: '100%',
+                      minHeight: 42,
+                      padding: '10px 14px',
+                      borderRadius: 7,
+                      border: '1px solid #56d8ff',
+                      borderTopColor: '#b3eaff',
+                      background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)',
+                      color: '#f4fbff',
+                      fontSize: 13,
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {`Drill My ${sessionMistakes} Missed Spot${sessionMistakes === 1 ? '' : 's'} Now →`}
+                  </button>
+                )}
               </div>
             );
           })()}

@@ -1046,6 +1046,7 @@ function AnalyzedHandRow({ hand, index }) {
               <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
                 <a
                   data-train-this-hand="true"
+                  data-drill-similar-spot-cta="true"
                   data-hand-id={hand.id}
                   href={
                     hand?._solverAudit?.drillHref ||
@@ -1421,6 +1422,7 @@ export default function HandHistoryUploadPage() {
               <button
                 type="button"
                 data-launch-club-arena-cta="true"
+                data-drill-similar-spot-cta="true"
                 data-launch-href={arenaHref}
                 onClick={() => router.push(arenaHref)}
                 style={{

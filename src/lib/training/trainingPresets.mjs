@@ -360,6 +360,48 @@ export const TRAINING_PRESETS = Object.freeze({
     coachingTiming: 'every_street',
     objective: 'Fixed-Limit Small/Big Bet Increments & 4-Raise Cap Defense',
   }),
+  plo8_scoop_quartering_defense: Object.freeze({
+    id: 'plo8_scoop_quartering_defense',
+    title: 'PLO8 Scoop vs. Quartering Defense (100 BB)',
+    variant: 'plo8',
+    bettingStructure: 'pot_limit',
+    format: 'cash',
+    tableSize: 6,
+    stackDepthBb: 100,
+    blindsLabel: '0.5 / 1 BB (Hi-Lo 8-Or-Better)',
+    heroPosition: 'BTN',
+    villainPosition: 'BB',
+    opponentProfile: 'gto_baseline',
+    difficulty: 'standard',
+    timer: 'relaxed',
+    scope: 'spot',
+    targetStreet: 'flop',
+    tables: '1',
+    handSelection: 'all',
+    coachingTiming: 'every_street',
+    objective: 'Protect Nut-Low Redraws & Avoid Getting Quartered In PLO8 Split Pots',
+  }),
+  fixed_limit_cap_geometry: Object.freeze({
+    id: 'fixed_limit_cap_geometry',
+    title: 'Fixed-Limit Cap & Big-Bet Turn Transition (60 BB)',
+    variant: 'nlh',
+    bettingStructure: 'fixed_limit',
+    format: 'cash',
+    tableSize: 6,
+    stackDepthBb: 60,
+    blindsLabel: '1 BB Small Bet / 2 BB Big Bet (4-Raise Cap)',
+    heroPosition: 'BTN',
+    villainPosition: 'BB',
+    opponentProfile: 'gto_baseline',
+    difficulty: 'standard',
+    timer: 'relaxed',
+    scope: 'spot',
+    targetStreet: 'turn',
+    tables: '1',
+    handSelection: 'all',
+    coachingTiming: 'every_street',
+    objective: 'Master Small-Bet To Big-Bet Street Transitions & 4-Raise Cap Equity',
+  }),
 });
 
 export function formatPresetSummary(preset = {}) {
@@ -628,3 +670,84 @@ export function loadResumableTrainingSession(userId = null) {
     return null;
   }
 }
+
+function computeSharedPackChecksum(str = '') {
+  let hash = 2166136261;
+  for (let i = 0; i < str.length; i += 1) {
+    hash ^= str.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+/**
+ * Encodes a Study Group / Coach Shared Drill Pack configuration into a compact,
+ * checksum-verified URL-safe token for 1-tap permalink sharing.
+ */
+export function encodeSharedDrillPack(config = {}) {
+  const validated = validateTrainingPreset(config).preset;
+  const payload = {
+    v: 1,
+    t: String(config.title || config.name || validated.title || 'Study Group Drill Pack').slice(0, 72),
+    g: String(config.gameId || 'cash-001'),
+    vr: validated.variant,
+    bs: validated.bettingStructure,
+    fm: validated.format,
+    sd: validated.stackDepthBb,
+    pos: validated.heroPosition,
+    st: validated.targetStreet,
+    qc: Math.max(5, Math.min(50, Number(config.questionsCount) || 10)),
+  };
+  const json = JSON.stringify(payload);
+  const sig = computeSharedPackChecksum(json);
+  const b64 = typeof Buffer !== 'undefined'
+    ? Buffer.from(json, 'utf8').toString('base64')
+    : btoa(unescape(encodeURIComponent(json)));
+  const urlSafe = b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+  return `sp1.${urlSafe}.${sig}`;
+}
+
+/**
+ * Decodes and validates a Shared Drill Pack token (`sp1.<payload>.<checksum>`).
+ * Returns null if tampered or malformed.
+ */
+export function decodeSharedDrillPack(token = '') {
+  if (typeof token !== 'string' || !token.startsWith('sp1.')) return null;
+  const parts = token.trim().split('.');
+  if (parts.length !== 3) return null;
+  const [, urlSafe, sig] = parts;
+  try {
+    const padded = urlSafe.replace(/-/g, '+').replace(/_/g, '/');
+    const json = typeof Buffer !== 'undefined'
+      ? Buffer.from(padded, 'base64').toString('utf8')
+      : decodeURIComponent(escape(atob(padded)));
+    if (computeSharedPackChecksum(json) !== sig) return null;
+    const parsed = JSON.parse(json);
+    if (!parsed || parsed.v !== 1) return null;
+    const validated = validateTrainingPreset({
+      title: parsed.t,
+      variant: parsed.vr,
+      bettingStructure: parsed.bs,
+      format: parsed.fm,
+      stackDepthBb: parsed.sd,
+      heroPosition: parsed.pos,
+      targetStreet: parsed.st,
+    }).preset;
+    return Object.freeze({
+      title: parsed.t || validated.title,
+      gameId: parsed.g || 'cash-001',
+      variant: validated.variant,
+      bettingStructure: validated.bettingStructure,
+      format: validated.format,
+      stackDepthBb: validated.stackDepthBb,
+      heroPosition: validated.heroPosition,
+      targetStreet: validated.targetStreet,
+      questionsCount: Math.max(5, Math.min(50, Number(parsed.qc) || 10)),
+      summary: validated.summary,
+      preset: validated,
+    });
+  } catch (_) {
+    return null;
+  }
+}
+
