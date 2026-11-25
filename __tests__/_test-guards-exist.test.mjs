@@ -894,6 +894,7 @@ import './trivia-push-worker-rt.test.mjs';
 import './trivia-pool-quality-audit.test.mjs';
 import './trivia-fortress-db-api-laws.test.mjs';
 import './trivia-fortress-admin-lb-laws.test.mjs';
+import './trivia-fortress-ui-laws.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
     const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');

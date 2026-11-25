@@ -241,7 +241,10 @@ test('integrity telemetry hook and PvP Elo UI are wired cleanly into gameplay an
     assert.match(serverGradedRun, /integrityTelemetry\.recordAnswerTiming/);
     assert.match(serverGradedRun, /integrityTelemetry\.flushTelemetry\(id,\s*mode,\s*accuracyPct\)/);
 
-    assert.match(pvpPage, /import useTriviaIntegrityTelemetry from '\.\.\/\.\.\/\.\.\/src\/hooks\/useTriviaIntegrityTelemetry'/);
+    // Telemetry is owned exclusively by useServerGradedRun inside PvpCompetitiveExperience;
+    // pages/hub/trivia/pvp.js must not mount an orphaned duplicate hook.
+    assert.doesNotMatch(pvpPage, /useTriviaIntegrityTelemetry/);
+    assert.match(pvpExperience, /useServerGradedRun/);
     assert.match(pvpPage, /\/api\/trivia\/pvp\/ratings\?limit=1/);
     assert.match(pvpPage, /PvpEloHeaderBadge/);
     assert.match(pvpPage, /Ranked PvP Elo/);
