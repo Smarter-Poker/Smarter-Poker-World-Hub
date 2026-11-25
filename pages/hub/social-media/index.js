@@ -966,26 +966,28 @@ const PostCard = React.memo(
               setSavingEdit(true);
               try {
                 const patch = {};
-                if (editContent !== displayContent) patch.content = content;
+                if (!editCoverFile || editContent !== displayContent) patch.content = content;
                 if (editCoverFile) {
                   const thumbnailUrl = await uploadVideoCover(editCoverFile, currentUserId);
                   if (!thumbnailUrl) throw new Error('Cover Upload Failed');
                   patch.thumbnail_url = thumbnailUrl;
                 }
                 if (Object.keys(patch).length > 0) {
-                  const { data, error } = await supabase
-                    .from('social_posts')
-                    .update(patch)
-                    .eq('id', post.id)
-                    .eq('author_id', currentUserId)
-                    .select('id, content, thumbnail_url')
-                    .maybeSingle();
-                  if (error) throw error;
-                  if (!data || (patch.thumbnail_url && data.thumbnail_url !== patch.thumbnail_url)) {
-                    throw new Error('Post Update Was Not Confirmed');
+                  const write = supabase.from('social_posts').update(patch)
+                    .eq('id', post.id).eq('author_id', currentUserId);
+                  if (patch.thumbnail_url) {
+                    const { data, error } = await write.select('id, content, thumbnail_url').maybeSingle();
+                    if (error) throw error;
+                    if (data?.thumbnail_url !== patch.thumbnail_url) {
+                      throw new Error('Post Update Was Not Confirmed');
+                    }
+                    setDisplayContent(data.content);
+                    setCoverUrl(data.thumbnail_url);
+                  } else {
+                    const { error } = await write;
+                    if (error) throw error;
+                    setDisplayContent(content);
                   }
-                  setDisplayContent(data.content);
-                  if (patch.thumbnail_url) setCoverUrl(data.thumbnail_url);
                   busEmit.dataMutated?.('social_posts');
                   broadcastSync('smarter_poker_social_sync', {
                     action: 'refresh_feed',
