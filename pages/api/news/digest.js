@@ -32,6 +32,7 @@ import {
 import {
     buildPromoBlockForSegment,
     curateWeeklyWireEdition,
+    formatValidSignupReferralCode,
     normalizeExplicitTestEmail,
     renderWeeklyWireEmail,
     resolveWeeklyWireRecipients,
@@ -304,13 +305,16 @@ export default async function handler(req, res) {
                         diamonds: Number(prof.diamonds || 0),
                         isVip: Boolean(prof.is_vip),
                         vipExpiresAt: prof.vip_expires_at || null,
-                        referralCode: prof.username || (prof.player_number ? String(prof.player_number) : ''),
+                        referralCode: formatValidSignupReferralCode(
+                            prof.player_number ? String(prof.player_number) : ''
+                        ),
                     };
                 }
             } catch (_metaErr) {
                 /* test preview continues cleanly if profile lookup is unavailable */
             }
             const promoBlock = buildPromoBlockForSegment(previewSegment, {
+                userId: testRecipientMeta?.userId || '',
                 activePromo: edition.activePromo,
                 siteUrl,
             });
@@ -412,7 +416,9 @@ export default async function handler(req, res) {
                 articles: edition.articles.length,
                 articleItems: edition.articles,
                 platformUpdates: edition.platformUpdates,
+                spotOfTheWeek: edition.spotOfTheWeek,
                 toolSpotlight: edition.toolSpotlight,
+                upcomingSeries: edition.upcomingSeries,
                 activePromo: edition.activePromo,
                 diagnostics: edition.diagnostics,
                 segmentPreviews,

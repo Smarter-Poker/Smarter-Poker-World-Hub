@@ -712,7 +712,7 @@ export default function NewsletterOperations() {
                 <section className={styles.dispatch}>
                     <div className={styles.sectionHeading}>
                         <div>
-                            <p className={styles.eyebrow}>Weekly Wire V2</p>
+                            <p className={styles.eyebrow}>Weekly Wire</p>
                             <h2>Smarter.Poker Upgrades, Segmented Promos And Poker News</h2>
                         </div>
                         <OperatorGlyph kind="shield" size={22} />
@@ -771,6 +771,7 @@ export default function NewsletterOperations() {
                                         <div><dt>Platform Upgrades</dt><dd>{(preview.platformUpdates || []).length}</dd></div>
                                         <div><dt>Deduped Stories</dt><dd>{preview.articles}</dd></div>
                                         <div><dt>New Leads / Inactive / Active</dt><dd>{preview.segmentCounts?.non_account || 0} / {preview.segmentCounts?.inactive_21d || 0} / {preview.segmentCounts?.active_member || 0}</dd></div>
+                                        <div><dt>Spot Of The Week</dt><dd>{preview.spotOfTheWeek?.title || 'Ready'}</dd></div>
                                         <div><dt>Tool Spotlight</dt><dd>{preview.toolSpotlight?.title || 'None'}</dd></div>
                                         <div><dt>Duplicates Blocked</dt><dd>{(preview.diagnostics?.skippedPreviouslySent || 0) + (preview.diagnostics?.skippedStoryDuplicates || 0) + (preview.diagnostics?.skippedStubs || 0)}</dd></div>
                                     </dl>
@@ -779,6 +780,60 @@ export default function NewsletterOperations() {
                                             Upgrades In This Issue: <strong>{(preview.platformUpdates || []).map((u) => u.title).join(' | ')}</strong>
                                         </p>
                                     )}
+                                    {(preview.articleItems || []).length > 0 && (
+                                        <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
+                                            {(preview.articleItems || []).map((item) => (
+                                                <div
+                                                    key={item.id}
+                                                    style={{
+                                                        display: 'flex',
+                                                        gap: 12,
+                                                        alignItems: 'center',
+                                                        padding: '10px 12px',
+                                                        background: '#08131d',
+                                                        border: '1px solid #1f3548',
+                                                        borderRadius: 10,
+                                                    }}
+                                                >
+                                                    <img
+                                                        src={item.email_image_url || '/api/news/email-image?fallback=1&m=thumb'}
+                                                        alt={item.title || 'Weekly Wire Story'}
+                                                        width={84}
+                                                        height={58}
+                                                        loading="lazy"
+                                                        onError={(ev) => {
+                                                            if (!ev.currentTarget.dataset.fb) {
+                                                                ev.currentTarget.dataset.fb = '1';
+                                                                ev.currentTarget.src = '/api/news/email-image?fallback=1&m=thumb';
+                                                            }
+                                                        }}
+                                                        style={{
+                                                            width: 84,
+                                                            height: 58,
+                                                            objectFit: 'cover',
+                                                            borderRadius: 6,
+                                                            border: '1px solid #234055',
+                                                            background: '#0b1520',
+                                                            flexShrink: 0,
+                                                        }}
+                                                    />
+                                                    <div style={{ minWidth: 0 }}>
+                                                        <div style={{ color: '#4fc1b3', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>
+                                                            {item.source_name || 'Poker Wire'}
+                                                        </div>
+                                                        <div style={{ color: '#ffffff', fontSize: 13.5, fontWeight: 700, lineHeight: 1.3 }}>
+                                                            {item.title}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    <p style={{ marginTop: 10 }}>
+                                        <Link href={`/hub/wire/${preview.editionNumber || 1}`} className={styles.back}>
+                                            Open Web Edition #{preview.editionNumber || 1} Preview &rarr;
+                                        </Link>
+                                    </p>
                                     <p>No Email Was Sent During This Preview.</p>
                                 </>
                             ) : (

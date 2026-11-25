@@ -267,7 +267,7 @@ test('Weekly Wire V3 curates Spot Of The Week, live series, preheader, personal 
             username: 'acegrinder',
             diamonds: 1450,
             isVip: true,
-            referralCode: 'acegrinder',
+            referralCode: '84210',
         },
     });
 
@@ -277,7 +277,8 @@ test('Weekly Wire V3 curates Spot Of The Week, live series, preheader, personal 
     assert.match(rendered.html, /1,450/); // formatted diamonds
     assert.match(rendered.html, /Spot Of The Week/); // interactive GTO quiz
     assert.match(rendered.html, /Mid-States Poker Tour Venetian/); // live series radar
-    assert.match(rendered.html, /\/auth\/signup\?ref=acegrinder/); // referral loop
+    assert.match(rendered.html, /\/auth\/signup\?ref=84210/); // numeric player_number referral loop
+    assert.doesNotMatch(rendered.html, /\/auth\/signup\?ref=WIRE/i);
     assert.match(rendered.html, /\/hub\/email-preferences\?token=tok123/); // preferences center
     assert.doesNotMatch(rendered.html, BANNED_PALETTE);
     assert.doesNotMatch(rendered.html, /\u2014/);

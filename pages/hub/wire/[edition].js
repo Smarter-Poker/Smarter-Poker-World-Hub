@@ -1,17 +1,35 @@
 import Head from 'next/head';
 import Link from 'next/link';
+import { useState } from 'react';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { deterministicUuid } from '../../../src/lib/promoCampaigns/welcomeBackOffer.mjs';
+import { buildSignedEmailImageUrl } from '../../../src/lib/newsletter/emailImageProxy.mjs';
 import * as wireCatalog from '../../../src/lib/newsletter/weeklyWireCatalog.mjs';
 import * as wireEngine from '../../../src/lib/newsletter/weeklyWireEngine.mjs';
 
 const UUID_SHAPE_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const FALLBACK_THUMB_SRC = '/api/news/email-image?fallback=1&m=thumb';
 
 function isWeeklyWireCampaign(row) {
-    const subj = String(row?.subject || '').trim();
-    if (!subj) return false;
-    if (subj.startsWith('[Promo]') || subj.startsWith('[Lifecycle]')) return false;
-    return true;
+    return wireEngine.isWeeklyWireDigestCampaign(row);
+}
+
+function serializeSpot(spot) {
+    if (!spot) return null;
+    return {
+        slug: String(spot.slug),
+        category: cleanCopy(spot.category || 'GTO Decision Spot'),
+        title: cleanCopy(spot.title),
+        situation: cleanCopy(spot.situation),
+        options: (spot.options || []).map((o) => ({
+            key: String(o.key),
+            label: cleanCopy(o.label),
+        })),
+        correctKey: String(spot.correctKey || 'A'),
+        solverFrequency: cleanCopy(spot.solverFrequency || 'GTO Solver Preferred Line'),
+        evSummary: cleanCopy(spot.evSummary || ''),
+        targetUrl: String(spot.targetUrl || 'https://smarter.poker/hub/training/hand-lab'),
+    };
 }
 
 function parseSubjectEditionNumber(subject) {
@@ -116,7 +134,10 @@ export async function getServerSideProps({ params, res }) {
                         title: cleanCopy(r.title),
                         summary: cleanSummary,
                         sourceName: cleanCopy(r.source_name || 'Poker Wire'),
-                        imageUrl: r.image_url && /^https?:\/\//i.test(r.image_url) ? String(r.image_url) : '',
+                        imageUrl: buildSignedEmailImageUrl(r.image_url || '', {
+                            relative: true,
+                            mode: 'thumb',
+                        }),
                         category: cleanCopy(String(r.category || 'Poker News').toUpperCase()),
                     };
                 });
@@ -169,19 +190,7 @@ export async function getServerSideProps({ params, res }) {
                         isLivePreview: false,
                         platformUpdates,
                         articles: orderedNews,
-                        spotOfTheWeek: matchedSpot
-                            ? {
-                                  slug: String(matchedSpot.slug),
-                                  category: cleanCopy(matchedSpot.category || 'GTO Decision Spot'),
-                                  title: cleanCopy(matchedSpot.title),
-                                  situation: cleanCopy(matchedSpot.situation),
-                                  options: (matchedSpot.options || []).map((o) => ({
-                                      key: String(o.key),
-                                      label: cleanCopy(o.label),
-                                  })),
-                                  targetUrl: String(matchedSpot.targetUrl || 'https://smarter.poker/hub/training/hand-lab'),
-                              }
-                            : null,
+                        spotOfTheWeek: serializeSpot(matchedSpot),
                         toolSpotlight: matchedTool
                             ? {
                                   slug: String(matchedTool.slug),
@@ -238,22 +247,13 @@ export async function getServerSideProps({ params, res }) {
                         title: cleanCopy(a.title),
                         summary: cleanCopy(a.summary || ''),
                         sourceName: cleanCopy(a.source_name || 'Poker Wire'),
-                        imageUrl: a.image_url && /^https?:\/\//i.test(a.image_url) ? String(a.image_url) : '',
+                        imageUrl: buildSignedEmailImageUrl(a.image_url || '', {
+                            relative: true,
+                            mode: 'thumb',
+                        }),
                         category: cleanCopy(String(a.category || 'POKER NEWS')),
                     })),
-                    spotOfTheWeek: liveSpot
-                        ? {
-                              slug: String(liveSpot.slug),
-                              category: cleanCopy(liveSpot.category || 'GTO Decision Spot'),
-                              title: cleanCopy(liveSpot.title),
-                              situation: cleanCopy(liveSpot.situation),
-                              options: (liveSpot.options || []).map((o) => ({
-                                  key: String(o.key),
-                                  label: cleanCopy(o.label),
-                              })),
-                              targetUrl: String(liveSpot.targetUrl || 'https://smarter.poker/hub/training/hand-lab'),
-                          }
-                        : null,
+                    spotOfTheWeek: serializeSpot(liveSpot),
                     toolSpotlight: liveTool
                         ? {
                               slug: String(liveTool.slug),
@@ -287,16 +287,7 @@ export async function getServerSideProps({ params, res }) {
                         ctaUrl: u.ctaUrl,
                     })),
                     articles: [],
-                    spotOfTheWeek: spot
-                        ? {
-                              slug: spot.slug,
-                              category: cleanCopy(spot.category),
-                              title: cleanCopy(spot.title),
-                              situation: cleanCopy(spot.situation),
-                              options: (spot.options || []).map((o) => ({ key: o.key, label: cleanCopy(o.label) })),
-                              targetUrl: spot.targetUrl,
-                          }
-                        : null,
+                    spotOfTheWeek: serializeSpot(spot),
                     toolSpotlight: tool
                         ? {
                               slug: tool.slug,
@@ -330,6 +321,7 @@ export default function WeeklyWireEditionPage({ issue }) {
 
     const spot = issue?.spotOfTheWeek || null;
     const tool = issue?.toolSpotlight || null;
+    const [selectedSpotPick, setSelectedSpotPick] = useState('');
 
     return (
         <>
@@ -532,46 +524,101 @@ export default function WeeklyWireEditionPage({ issue }) {
                             </p>
                             <div style={{ display: 'grid', gap: '10px' }}>
                                 {(spot.options || []).map((opt) => {
-                                    const spotHref = `${toInternalHref(spot.targetUrl, '/hub/training/hand-lab')}?spot=${encodeURIComponent(spot.slug)}&pick=${encodeURIComponent(opt.key)}`;
+                                    const isChosen = selectedSpotPick === opt.key;
+                                    const isCorrectOption = Boolean(selectedSpotPick) && opt.key === spot.correctKey;
                                     return (
-                                        <Link
+                                        <button
                                             key={opt.key}
-                                            href={spotHref}
+                                            type="button"
+                                            aria-pressed={isChosen}
+                                            onClick={() => setSelectedSpotPick(opt.key)}
                                             style={{
                                                 display: 'flex',
                                                 alignItems: 'center',
+                                                justifyContent: 'space-between',
                                                 gap: '12px',
-                                                background: '#0b1118',
-                                                border: '1px solid #1b2c3d',
+                                                width: '100%',
+                                                textAlign: 'left',
+                                                cursor: 'pointer',
+                                                background: isCorrectOption
+                                                    ? 'rgba(79, 193, 179, 0.14)'
+                                                    : isChosen
+                                                      ? 'rgba(96, 165, 250, 0.14)'
+                                                      : '#0b1118',
+                                                border: isCorrectOption
+                                                    ? '1px solid #4fc1b3'
+                                                    : isChosen
+                                                      ? '1px solid #60a5fa'
+                                                      : '1px solid #1b2c3d',
                                                 borderRadius: '10px',
                                                 padding: '12px 14px',
-                                                textDecoration: 'none',
                                                 color: '#ffffff',
                                                 fontSize: '14px',
                                                 fontWeight: 700,
                                             }}
                                         >
-                                            <span
-                                                style={{
-                                                    display: 'inline-flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    width: '26px',
-                                                    height: '26px',
-                                                    borderRadius: '999px',
-                                                    background: '#4fc1b3',
-                                                    color: '#05070a',
-                                                    fontSize: '12.5px',
-                                                    fontWeight: 800,
-                                                    flexShrink: 0,
-                                                }}
-                                            >
-                                                {opt.key}
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                <span
+                                                    style={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        width: '26px',
+                                                        height: '26px',
+                                                        borderRadius: '999px',
+                                                        background: '#4fc1b3',
+                                                        color: '#05070a',
+                                                        fontSize: '12.5px',
+                                                        fontWeight: 800,
+                                                        flexShrink: 0,
+                                                    }}
+                                                >
+                                                    {opt.key}
+                                                </span>
+                                                <span>{opt.label}</span>
                                             </span>
-                                            <span>{opt.label}</span>
-                                        </Link>
+                                            {isCorrectOption && (
+                                                <span style={{ color: '#4fc1b3', fontSize: '12px', fontWeight: 800 }}>
+                                                    Solver Line
+                                                </span>
+                                            )}
+                                        </button>
                                     );
                                 })}
+                            </div>
+                            {selectedSpotPick && spot.evSummary && (
+                                <div
+                                    role="status"
+                                    style={{
+                                        marginTop: '14px',
+                                        padding: '14px 16px',
+                                        background: '#0b1118',
+                                        border: '1px solid #255c56',
+                                        borderRadius: '12px',
+                                    }}
+                                >
+                                    <div style={{ color: '#4fc1b3', fontSize: '12.5px', fontWeight: 800, marginBottom: '4px' }}>
+                                        {selectedSpotPick === spot.correctKey
+                                            ? `Exact Solver Match (${spot.solverFrequency || 'Highest-EV Line'})`
+                                            : `Solver Prefers Option ${spot.correctKey} (${spot.solverFrequency || 'Highest-EV Line'})`}
+                                    </div>
+                                    <p style={{ margin: '0 0 10px 0', color: '#c8d8e8', fontSize: '13.5px', lineHeight: 1.55 }}>
+                                        {spot.evSummary}
+                                    </p>
+                                </div>
+                            )}
+                            <div style={{ marginTop: '14px' }}>
+                                <Link
+                                    href={`${toInternalHref(spot.targetUrl, '/hub/training/hand-lab')}?spot=${encodeURIComponent(spot.slug)}&pick=${encodeURIComponent(selectedSpotPick || spot.correctKey || 'A')}`}
+                                    style={{
+                                        color: '#60a5fa',
+                                        fontSize: '13.5px',
+                                        fontWeight: 800,
+                                        textDecoration: 'none',
+                                    }}
+                                >
+                                    Simulate &amp; Run Equity In GTO Hand Lab &rarr;
+                                </Link>
                             </div>
                         </section>
                     )}
@@ -607,23 +654,28 @@ export default function WeeklyWireEditionPage({ issue }) {
                                             color: '#ffffff',
                                         }}
                                     >
-                                        {a.imageUrl && (
-                                            <img
-                                                src={a.imageUrl}
-                                                alt=""
-                                                width={112}
-                                                height={78}
-                                                loading="lazy"
-                                                style={{
-                                                    width: '112px',
-                                                    height: '78px',
-                                                    objectFit: 'cover',
-                                                    borderRadius: '8px',
-                                                    border: '1px solid #1b2c3d',
-                                                    flexShrink: 0,
-                                                }}
-                                            />
-                                        )}
+                                        <img
+                                            src={a.imageUrl || FALLBACK_THUMB_SRC}
+                                            alt={a.title || 'Smarter.Poker News Story'}
+                                            width={112}
+                                            height={78}
+                                            loading="lazy"
+                                            onError={(ev) => {
+                                                if (!ev.currentTarget.dataset.fb) {
+                                                    ev.currentTarget.dataset.fb = '1';
+                                                    ev.currentTarget.src = FALLBACK_THUMB_SRC;
+                                                }
+                                            }}
+                                            style={{
+                                                width: '112px',
+                                                height: '78px',
+                                                objectFit: 'cover',
+                                                borderRadius: '8px',
+                                                border: '1px solid #1b2c3d',
+                                                background: '#0b1520',
+                                                flexShrink: 0,
+                                            }}
+                                        />
                                         <div style={{ flex: 1, minWidth: 0 }}>
                                             <div
                                                 style={{

@@ -15,6 +15,7 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import PlayingCard from '../../../src/components/poker/PlayingCard';
 import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
 import { evaluateTrainingSpotWithHorseBrain, buildCustomTrainingArenaHref } from '../../../src/lib/training/horseBrainTrainingAdapter';
+import { SPOT_OF_THE_WEEK_CATALOG } from '../../../src/lib/newsletter/weeklyWireCatalog.mjs';
 // TRAIN-WIRE-FX-2c — adoption: hand-lab card-pick + analyze feedback
 // TRAIN-WIRE-PLAYCARD-4 — adoption: hand-lab hero+board slots via shared PlayingCard
 
@@ -81,7 +82,41 @@ export default function HandLabV2() {
   const [equity, setEquity] = useState(null);
   const [results, setResults] = useState(null);
   const [analysisError, setAnalysisError] = useState('');
+  const [activeWireSpot, setActiveWireSpot] = useState(null);
+  const [wireSpotPick, setWireSpotPick] = useState('');
   const calcSeqRef = React.useRef(0);
+
+  // Hydrate Weekly Wire Spot Of The Week (?spot=<slug>&pick=<A|B|C>) when linked from email or /hub/wire
+  useEffect(() => {
+    if (!router.isReady) return;
+    const rawSpot = Array.isArray(router.query.spot) ? router.query.spot[0] : router.query.spot;
+    const rawPick = Array.isArray(router.query.pick) ? router.query.pick[0] : router.query.pick;
+    const cleanSlug = typeof rawSpot === 'string' ? rawSpot.trim().toLowerCase() : '';
+    if (!cleanSlug) return;
+    const matchedSpot = SPOT_OF_THE_WEEK_CATALOG.find(
+      (item) => String(item.slug || '').toLowerCase() === cleanSlug
+    );
+    if (!matchedSpot) return;
+    calcSeqRef.current += 1;
+    setActiveWireSpot(matchedSpot);
+    const normalizedPick = typeof rawPick === 'string' ? rawPick.trim().toUpperCase() : '';
+    if (['A', 'B', 'C'].includes(normalizedPick)) {
+      setWireSpotPick(normalizedPick);
+    }
+    const spotVariant = VARIANTS.some((v) => v.id === matchedSpot.variant) ? matchedSpot.variant : 'nlh';
+    const spotHoleCount = (VARIANTS.find((v) => v.id === spotVariant) || VARIANTS[0]).holeCount;
+    setVariant(spotVariant);
+    setBrainVariant(spotVariant);
+    if (Array.isArray(matchedSpot.heroCards) && matchedSpot.heroCards.length === spotHoleCount) {
+      setHeroCards([...matchedSpot.heroCards]);
+    }
+    if (Array.isArray(matchedSpot.boardCards) && matchedSpot.boardCards.length === 5) {
+      setBoardCards([...matchedSpot.boardCards]);
+    }
+    setEquity(null);
+    setResults(null);
+    setAnalysisError('');
+  }, [router.isReady, router.query.spot, router.query.pick]);
 
   const variantSpec = VARIANTS.find((v) => v.id === variant) || VARIANTS[0];
   const benchmarkHands = BENCHMARK_HANDS_BY_VARIANT[variant] || BENCHMARK_HANDS_BY_VARIANT.nlh;
@@ -299,6 +334,105 @@ export default function HandLabV2() {
             Clear Board
           </button>
         </div>
+
+        {activeWireSpot && (
+          <section
+            data-weekly-wire-spot-card="true"
+            aria-label="Weekly Wire Spot Of The Week"
+            style={{
+              marginBottom: 26,
+              padding: '22px 24px',
+              borderRadius: 18,
+              background: 'rgba(10, 22, 34, 0.88)',
+              border: '1px solid rgba(79, 193, 179, 0.42)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 8 }}>
+              <span style={{ color: '#4fc1b3', fontSize: 12, fontWeight: 800, letterSpacing: 1.8, textTransform: 'uppercase' }}>
+                {`Weekly Wire Spot Of The Week · ${activeWireSpot.category}`}
+              </span>
+              <span style={{ color: '#60a5fa', fontSize: 12, fontWeight: 700 }}>
+                Cards Loaded On Canvas Below
+              </span>
+            </div>
+            <h2 style={{ margin: '0 0 8px 0', fontSize: 20, fontWeight: 800, color: '#ffffff', lineHeight: 1.3 }}>
+              {activeWireSpot.title}
+            </h2>
+            <p style={{ margin: '0 0 16px 0', color: '#cbd5e1', fontSize: 14, lineHeight: 1.6 }}>
+              {activeWireSpot.situation}
+            </p>
+            <div style={{ display: 'grid', gap: 10 }}>
+              {(activeWireSpot.options || []).map((opt) => {
+                const isSelected = wireSpotPick === opt.key;
+                const isBest = Boolean(wireSpotPick) && opt.key === activeWireSpot.correctKey;
+                return (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    aria-pressed={isSelected}
+                    onClick={() => {
+                      fb.click();
+                      setWireSpotPick(opt.key);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 12,
+                      width: '100%',
+                      textAlign: 'left',
+                      padding: '12px 16px',
+                      borderRadius: 10,
+                      cursor: 'pointer',
+                      background: isBest
+                        ? 'rgba(79, 193, 179, 0.16)'
+                        : isSelected
+                          ? 'rgba(96, 165, 250, 0.14)'
+                          : 'rgba(5, 10, 18, 0.72)',
+                      border: isBest
+                        ? '1px solid #4fc1b3'
+                        : isSelected
+                          ? '1px solid #60a5fa'
+                          : '1px solid rgba(255, 255, 255, 0.14)',
+                      color: '#ffffff',
+                      fontSize: 14,
+                      fontWeight: 700,
+                    }}
+                  >
+                    <span>{`${opt.key}. ${opt.label}`}</span>
+                    {isBest && (
+                      <span style={{ color: '#4fc1b3', fontSize: 12, fontWeight: 800 }}>
+                        Solver Play
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            {wireSpotPick && (
+              <div
+                role="status"
+                data-spot-verdict={wireSpotPick === activeWireSpot.correctKey ? 'correct' : 'review'}
+                style={{
+                  marginTop: 14,
+                  padding: '14px 16px',
+                  borderRadius: 12,
+                  background: 'rgba(5, 10, 18, 0.8)',
+                  border: '1px solid rgba(79, 193, 179, 0.35)',
+                }}
+              >
+                <div style={{ color: '#4fc1b3', fontSize: 13, fontWeight: 800, marginBottom: 4 }}>
+                  {wireSpotPick === activeWireSpot.correctKey
+                    ? `Exact Solver Match: Option ${activeWireSpot.correctKey} (${activeWireSpot.solverFrequency})`
+                    : `You Picked Option ${wireSpotPick} · Solver Prefers Option ${activeWireSpot.correctKey} (${activeWireSpot.solverFrequency})`}
+                </div>
+                <div style={{ color: '#dbeafe', fontSize: 13.5, lineHeight: 1.55 }}>
+                  {activeWireSpot.evSummary}
+                </div>
+              </div>
+            )}
+          </section>
+        )}
 
         <div style={styles.layout}>
           {/* Left: Interactive Canvas */}

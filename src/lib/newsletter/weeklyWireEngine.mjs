@@ -24,7 +24,13 @@ import {
     buildWelcomeBackOfferUrl,
     deterministicUuid,
 } from '../promoCampaigns/welcomeBackOffer.mjs';
+import { isReferralInput } from '../pendingSignupCodes.mjs';
 import { isCompetitorSponsoredPost, normalizeEditorialTitle } from './editorialCleaners.mjs';
+import {
+    buildMastheadCrestUrl,
+    buildSignedEmailImageUrl,
+    normalizeCandidateImageUrl,
+} from './emailImageProxy.mjs';
 import {
     ACTIVE_MEMBER_PROMO_ROTATION,
     PLATFORM_UPDATES_CATALOG,
@@ -235,15 +241,58 @@ function decodeHtmlEntities(str) {
 }
 
 /**
- * SSRF-hardened meta-description fetcher to backfill missing/echoed summaries
- * on the 4-5 selected digest stories (and cache onto `poker_news.summary`).
+ * Canonical Weekly Wire campaign classifier shared by `loadZeroRepeatLedger`,
+ * `/hub/wire`, and `/hub/wire/[edition]`.
+ *
+ * Excludes `[PROMO EMAIL+SMS]`, `[Promo]`, `[Lifecycle]`, `[SMS]`, and `[TEST]`
+ * audit rows (case-insensitively) AND requires at least one recorded item UUID in
+ * `article_ids` so empty promotional broadcasts can never hijack edition numbers
+ * or render blank web archive issues.
  */
-export async function fetchCleanArticleMetaDescription(sourceUrl, title, { fetchImpl = fetch, timeoutMs = 2500 } = {}) {
+export function isWeeklyWireDigestCampaign(row) {
+    if (!row || typeof row !== 'object') return false;
+    const subj = String(row.subject || '').trim();
+    if (!subj) return false;
+    if (/^\[(?:promo|lifecycle|sms|test)\b/i.test(subj)) return false;
+    const ids = Array.isArray(row.article_ids)
+        ? row.article_ids.filter((id) => typeof id === 'string' && id.trim().length > 0)
+        : [];
+    if (ids.length === 0) return false;
+    return true;
+}
+
+/**
+ * Enforces `pages/auth/signup.js`'s `isReferralInput` contract:
+ * `signup.js` copies `?ref=` into `formData.promoCode` and treats ONLY all-digit
+ * player numbers (`12345`) or dash-containing Crew codes (`SP-56737B`) as referrals;
+ * any other string (such as `WIRE` or a bare username) is sent to `/api/promo/validate-promo-code`
+ * and triggers a `400 Invalid promo code` error banner on `/auth/signup`.
+ */
+export function formatValidSignupReferralCode(raw) {
+    if (raw == null) return '';
+    const clean = String(raw).trim().toUpperCase();
+    if (!isReferralInput(clean)) return '';
+    return clean;
+}
+
+/**
+ * SSRF-hardened editorial metadata fetcher to backfill missing/echoed summaries
+ * AND missing/broken `og:image` thumbnails on selected digest stories in one pass.
+ */
+export async function fetchArticleEditorialMetadata(
+    sourceUrl,
+    title,
+    { fetchImpl = fetch, timeoutMs = 2800 } = {}
+) {
     try {
         const parsed = new URL(String(sourceUrl || '').trim());
-        if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return '';
+        if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+            return { summary: '', imageUrl: '' };
+        }
         const lookup = await dns.promises.lookup(parsed.hostname, { all: true });
-        if (!lookup?.length || lookup.some((entry) => isPrivateIp(entry.address))) return '';
+        if (!lookup?.length || lookup.some((entry) => isPrivateIp(entry.address))) {
+            return { summary: '', imageUrl: '' };
+        }
 
         const res = await fetchImpl(parsed.toString(), {
             method: 'GET',
@@ -254,26 +303,104 @@ export async function fetchCleanArticleMetaDescription(sourceUrl, title, { fetch
             },
             signal: AbortSignal.timeout(timeoutMs),
         });
-        if (!res.ok) return '';
-        const html = (await res.text()).slice(0, 120_000);
-        const patterns = [
+        if (!res.ok) return { summary: '', imageUrl: '' };
+        const html = (await res.text()).slice(0, 140_000);
+
+        let summary = '';
+        const descPatterns = [
             /<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']{25,500})["']/i,
             /<meta[^>]+content=["']([^"']{25,500})["'][^>]+property=["']og:description["']/i,
             /<meta[^>]+name=["']description["'][^>]+content=["']([^"']{25,500})["']/i,
             /<meta[^>]+content=["']([^"']{25,500})["'][^>]+name=["']description["']/i,
         ];
-        for (const re of patterns) {
+        for (const re of descPatterns) {
             const m = html.match(re);
             if (m?.[1]) {
                 const candidate = truncateText(decodeHtmlEntities(m[1]), 190);
                 if (!isEchoingOrEmptyBlurb(title, candidate)) {
-                    return candidate;
+                    summary = candidate;
+                    break;
                 }
             }
         }
-        return '';
+
+        let imageUrl = '';
+        const imgPatterns = [
+            /<meta[^>]+property=["']og:image(?::secure_url)?["'][^>]+content=["']([^"']{8,800})["']/i,
+            /<meta[^>]+content=["']([^"']{8,800})["'][^>]+property=["']og:image(?::secure_url)?["']/i,
+            /<meta[^>]+name=["']twitter:image(?::src)?["'][^>]+content=["']([^"']{8,800})["']/i,
+            /<meta[^>]+content=["']([^"']{8,800})["'][^>]+name=["']twitter:image(?::src)?["']/i,
+        ];
+        for (const re of imgPatterns) {
+            const m = html.match(re);
+            if (m?.[1]) {
+                try {
+                    const resolved = new URL(decodeHtmlEntities(m[1]).trim(), parsed.toString()).toString();
+                    const normalized = normalizeCandidateImageUrl(resolved);
+                    if (normalized) {
+                        imageUrl = normalized;
+                        break;
+                    }
+                } catch {
+                    /* ignore malformed meta image */
+                }
+            }
+        }
+
+        return { summary, imageUrl };
     } catch {
-        return '';
+        return { summary: '', imageUrl: '' };
+    }
+}
+
+export async function fetchCleanArticleMetaDescription(sourceUrl, title, opts = {}) {
+    const meta = await fetchArticleEditorialMetadata(sourceUrl, title, opts);
+    return meta.summary || '';
+}
+
+export async function verifyUpstreamImageReachable(imageUrl, { fetchImpl = fetch, timeoutMs = 2200 } = {}) {
+    const clean = normalizeCandidateImageUrl(imageUrl);
+    if (!clean) return false;
+    try {
+        const parsed = new URL(clean);
+        if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return false;
+        const lookup = await dns.promises.lookup(parsed.hostname, { all: true });
+        if (!lookup?.length || lookup.some((entry) => isPrivateIp(entry.address))) return false;
+
+        const headRes = await fetchImpl(parsed.toString(), {
+            method: 'HEAD',
+            redirect: 'follow',
+            headers: {
+                'User-Agent':
+                    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+                Accept: 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+            },
+            signal: AbortSignal.timeout(timeoutMs),
+        });
+        if (headRes.ok) {
+            const ct = String(headRes.headers?.get?.('content-type') || '').toLowerCase();
+            if (!ct || ct.startsWith('image/') || ct.includes('octet-stream')) return true;
+            if (ct.includes('text/html') || ct.includes('application/json')) return false;
+        }
+        if (headRes.status === 405 || headRes.status === 403) {
+            const getRes = await fetchImpl(parsed.toString(), {
+                method: 'GET',
+                redirect: 'follow',
+                headers: {
+                    'User-Agent':
+                        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+                    Accept: 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+                    Range: 'bytes=0-1023',
+                },
+                signal: AbortSignal.timeout(timeoutMs),
+            });
+            if (!getRes.ok && getRes.status !== 206) return false;
+            const ct = String(getRes.headers?.get?.('content-type') || '').toLowerCase();
+            return !ct.includes('text/html') && !ct.includes('application/json');
+        }
+        return false;
+    } catch {
+        return false;
     }
 }
 
@@ -310,8 +437,9 @@ export async function loadZeroRepeatLedger(sb) {
 
     const rawArticleUuidList = [];
     for (const c of campaigns || []) {
+        if (!isWeeklyWireDigestCampaign(c)) continue;
         const ids = Array.isArray(c?.article_ids) ? c.article_ids : [];
-        if (ids.length > 0) digestSendCount += 1;
+        digestSendCount += 1;
         for (const id of ids) {
             if (typeof id === 'string' && id.trim()) {
                 const clean = id.trim().toLowerCase();
@@ -488,7 +616,7 @@ export async function curateWeeklyWireEdition(
         });
     }
 
-    // Backfill real meta-descriptions for selected stories whose summary/excerpt echoed the title
+    // Backfill real meta-descriptions AND verify/heal upstream og:image URLs on selected stories
     const enrichedArticles = await Promise.all(
         selectedArticles.map(async (article) => {
             const rawBlurb = article.summary || article.excerpt || article.content || '';
@@ -497,18 +625,44 @@ export async function curateWeeklyWireEdition(
                 isEchoingOrEmptyBlurb(article.rawOriginalTitle || normalizedTitle, rawBlurb) ||
                 isEchoingOrEmptyBlurb(normalizedTitle, rawBlurb);
             let cleanSummary = echoes ? '' : truncateText(rawBlurb, 190);
+            let cleanImageUrl = normalizeCandidateImageUrl(article.image_url || '');
 
-            if (!cleanSummary && enrichMetaDescriptions && article.source_url) {
-                const fetched = await fetchCleanArticleMetaDescription(article.source_url, normalizedTitle, { fetchImpl });
-                if (fetched) {
-                    cleanSummary = fetched;
-                    try {
-                        await sb.from('poker_news').update({ summary: fetched }).eq('id', article.id);
-                    } catch {
-                        /* non-fatal cache write */
+            if (enrichMetaDescriptions) {
+                let imageHealthy = cleanImageUrl
+                    ? await verifyUpstreamImageReachable(cleanImageUrl, { fetchImpl })
+                    : false;
+                const needsMetaFetch = Boolean(article.source_url && (!cleanSummary || !imageHealthy));
+                if (needsMetaFetch) {
+                    const meta = await fetchArticleEditorialMetadata(article.source_url, normalizedTitle, { fetchImpl });
+                    const dbPatch = {};
+                    if (!cleanSummary && meta.summary) {
+                        cleanSummary = meta.summary;
+                        dbPatch.summary = meta.summary;
                     }
+                    if (!imageHealthy && meta.imageUrl) {
+                        const backfilledOk = await verifyUpstreamImageReachable(meta.imageUrl, { fetchImpl });
+                        if (backfilledOk) {
+                            cleanImageUrl = meta.imageUrl;
+                            imageHealthy = true;
+                            dbPatch.image_url = meta.imageUrl;
+                        }
+                    }
+                    if (!imageHealthy) {
+                        cleanImageUrl = '';
+                    }
+                    if (Object.keys(dbPatch).length > 0) {
+                        try {
+                            await sb.from('poker_news').update(dbPatch).eq('id', article.id);
+                        } catch {
+                            /* non-fatal cache write */
+                        }
+                    }
+                } else if (!imageHealthy) {
+                    cleanImageUrl = '';
                 }
             }
+
+            const signedThumbUrl = buildSignedEmailImageUrl(cleanImageUrl, { mode: 'thumb' });
 
             return {
                 id: article.id,
@@ -516,7 +670,8 @@ export async function curateWeeklyWireEdition(
                 summary: stripEmDashes(cleanSummary),
                 source_name: stripEmDashes(article.source_name || 'Poker Wire'),
                 source_url: article.source_url || '',
-                image_url: article.image_url || '',
+                image_url: cleanImageUrl,
+                email_image_url: signedThumbUrl,
                 category: String(article.category || 'news').toUpperCase(),
                 published_at: article.published_at || null,
                 storyFingerprintUuid: article.storyFingerprintUuid,
@@ -799,7 +954,9 @@ export async function resolveWeeklyWireRecipients(
             clubActivityByUser.get(id) || 0
         );
         const isInactive21d = lastTouchMs < cutoffMs && !alreadyClaimedWbUsers.has(id);
-        const referralCode = uname || (p?.player_number ? String(p.player_number) : '');
+        const referralCode = formatValidSignupReferralCode(
+            p?.player_number ? String(p.player_number) : ''
+        );
         accountByEmail.set(cleanEmail, {
             userId: id,
             muted: emailMutedUsers.has(id),
@@ -999,14 +1156,20 @@ export function renderWeeklyWireEmail({
         )
         .join('');
 
+    const mastheadCrestSrc = buildMastheadCrestUrl({ siteUrl: cleanSite });
+
     const articlesHtml = (edition.articles || [])
         .map((a) => {
             const href = `${cleanSite}/hub/article?id=${encodeURIComponent(a.id)}`;
-            const hasImg = Boolean(a.image_url && /^https?:\/\//i.test(a.image_url));
+            const thumbSrc = buildSignedEmailImageUrl(a.email_image_url || a.image_url || '', {
+                siteUrl: cleanSite,
+                mode: 'thumb',
+            });
+            const altTitle = truncateText(a.title || 'Smarter.Poker News Story', 90);
             return `<tr><td style="padding:0 0 14px 0;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0f1824;border:1px solid #1a2938;border-radius:10px;">
 <tr>
-${hasImg ? `<td width="116" valign="top" style="padding:14px 0 14px 14px;"><a href="${escapeHtml(href)}" style="text-decoration:none;"><img src="${escapeHtml(a.image_url)}" alt="" width="104" height="72" style="display:block;width:104px;height:72px;object-fit:cover;border-radius:8px;border:1px solid #223548;" /></a></td>` : ''}
+<td width="124" valign="top" style="padding:14px 0 14px 14px;"><a href="${escapeHtml(href)}" style="text-decoration:none;"><img src="${escapeHtml(thumbSrc)}" alt="${escapeHtml(altTitle)}" width="112" height="78" border="0" style="display:block;width:112px;height:78px;border-radius:8px;border:1px solid #223548;background:#0b1520;" /></a></td>
 <td valign="top" style="padding:14px 16px;">
 <div style="color:#4fc1b3;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">${escapeHtml(a.category || 'POKER NEWS')} &middot; <span style="color:#8da2b8;font-weight:600;">${escapeHtml(a.source_name || 'Poker Wire')}</span></div>
 <div style="margin:5px 0 6px 0;"><a href="${escapeHtml(href)}" style="color:#ffffff;font-size:15.5px;font-weight:700;line-height:1.35;text-decoration:none;">${escapeHtml(a.title)}</a></div>
@@ -1084,8 +1247,10 @@ ${seriesListHtml}
 </table>
 </td></tr>`;
 
-    const refCode = String(recipientMeta?.referralCode || 'WIRE').trim() || 'WIRE';
-    const referralUrl = `${cleanSite}/auth/signup?ref=${encodeURIComponent(refCode)}`;
+    const validRefCode = formatValidSignupReferralCode(recipientMeta?.referralCode);
+    const referralUrl = validRefCode
+        ? `${cleanSite}/auth/signup?ref=${encodeURIComponent(validRefCode)}`
+        : `${cleanSite}/auth/signup?utm_source=weekly_wire&utm_medium=email&utm_campaign=crew_share`;
     const referralHtml = `<tr><td style="padding:4px 0 6px 0;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0f1824;border:1px solid #255c56;border-radius:12px;">
 <tr><td style="padding:18px 20px;">
@@ -1114,9 +1279,12 @@ ${seriesListHtml}
 
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-bottom:1px solid #1a2a3a;padding-bottom:18px;margin-bottom:22px;">
 <tr>
-<td valign="top">
+<td width="46" valign="middle" style="padding-right:12px;">
+<a href="${escapeHtml(cleanSite)}" style="text-decoration:none;"><img src="${escapeHtml(mastheadCrestSrc)}" alt="Smarter.Poker" width="36" height="36" border="0" style="display:block;width:36px;height:36px;border-radius:9px;" /></a>
+</td>
+<td valign="middle">
 <div style="color:#4fc1b3;font-size:12px;font-weight:800;letter-spacing:3px;text-transform:uppercase;">SMARTER.POKER WEEKLY WIRE</div>
-<div style="color:#ffffff;font-size:22px;font-weight:800;margin-top:4px;line-height:1.25;">Edition #${editionNum} &middot; Upgrades, Promos &amp; Poker Intelligence</div>
+<div style="color:#ffffff;font-size:21px;font-weight:800;margin-top:4px;line-height:1.25;">Edition #${editionNum} &middot; Upgrades, Promos &amp; Poker Intelligence</div>
 </td>
 <td valign="top" align="right" style="white-space:nowrap;padding-left:12px;">
 <a href="${escapeHtml(webEditionUrl)}" style="color:#60a5fa;font-size:12px;font-weight:700;text-decoration:none;">View Web Edition -&gt;</a>

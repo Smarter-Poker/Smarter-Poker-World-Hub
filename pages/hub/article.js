@@ -4,11 +4,13 @@
 import SEOHead from '../../src/components/seo/SEOHead';
 import Head from 'next/head';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 import { useState, useEffect, useCallback } from 'react';
-import { Clock, Eye, Calendar, Share2, Bookmark, User } from 'lucide-react';
+import { Clock, Eye, Calendar, Share2, Bookmark, User, BookOpen, ExternalLink } from 'lucide-react';
 import { supabase } from '../../src/lib/supabase';
 import { getAccessToken, getAuthUser } from '../../src/lib/authUtils';
+import { newsImageUrl } from '../../src/lib/security/imageHosts.js';
 import toast from '../../src/stores/toastStore';
 import { addNewsBookmark, removeNewsBookmark, isArticleBookmarked } from '../../src/services/newsBookmarks';
 import {
@@ -26,6 +28,38 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import NewsletterCaptureBar from '../../src/components/news/NewsletterCaptureBar';
+
+const ArticleReaderModal = dynamic(() => import('../../src/components/social/ArticleReaderModal'), { ssr: false });
+const FALLBACK_HERO_IMAGE = '/api/news/email-image?fallback=1&m=hero';
+const FALLBACK_THUMB_IMAGE = '/api/news/email-image?fallback=1&m=thumb';
+
+function normalizeComparableText(text) {
+    return String(text || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim();
+}
+
+function buildDisplayParagraphs(article) {
+    if (!article) return [];
+    const normTitle = normalizeComparableText(article.title);
+    const seen = new Set();
+    const out = [];
+    const candidates = [
+        article.summary || '',
+        article.excerpt || '',
+        ...String(article.content || '').split('\n'),
+    ];
+    for (const raw of candidates) {
+        const cleaned = String(raw || '').replace(/[—–]/g, '-').replace(/\s+/g, ' ').trim();
+        if (!cleaned) continue;
+        const norm = normalizeComparableText(cleaned);
+        if (!norm || norm === normTitle || seen.has(norm)) continue;
+        seen.add(norm);
+        out.push(cleaned);
+    }
+    return out;
+}
 
 // Guest bookmarks share the same localStorage key as /hub/news so the two
 // surfaces stay in sync (news.js loads this key on mount).
@@ -176,6 +210,7 @@ export default function ArticlePage() {
     const [isBookmarked, setIsBookmarked] = useState(false);
     const [isReadLater, setIsReadLater] = useState(false);
     const [userId, setUserId] = useState(null);
+    const [readerOpen, setReaderOpen] = useState(false);
 
     const menuConfig = getMenuConfig('article', null, {}, {});
 
@@ -552,15 +587,20 @@ export default function ArticlePage() {
         );
     }
 
-    const articleDescription = article.content
-        ? `${article.content.replace(/\s+/g, ' ').trim().slice(0, 157)}...`
+    const paragraphs = buildDisplayParagraphs(article);
+    const primarySummary = paragraphs[0] || '';
+    const articleDescription = primarySummary
+        ? `${primarySummary.slice(0, 157)}${primarySummary.length > 157 ? '...' : ''}`
         : 'Read Poker Strategy Articles, News Stories, And Educational Content On Smarter.Poker.';
     const publishedDate = formatDate(article.published_at);
-    const paragraphs = (article.content || '')
-        .split('\n')
-        .map((p) => p.trim())
-        .filter(Boolean);
     const newsArticleJsonLd = buildNewsArticleJsonLd(article);
+    const guardedHeroSrc = newsImageUrl(article.image_url) || FALLBACK_HERO_IMAGE;
+    const externalSourceUrl =
+        typeof article.source_url === 'string' &&
+        /^https?:\/\//i.test(article.source_url.trim()) &&
+        !article.source_url.includes('smarter.poker')
+            ? article.source_url.trim()
+            : '';
 
     return (
         <>
@@ -629,18 +669,22 @@ export default function ArticlePage() {
                     </div>
                 </header>
 
-                {/* Hero Image.
-                    Deliberately a raw <img>, not next/image: image_url comes from
-                    the scraper and can be ANY remote host (each publisher's CDN).
-                    next/image throws at runtime for a hostname that is not listed
-                    in next.config images.remotePatterns, which would turn a new
-                    source into a hard page error. Revisit only alongside a
-                    verified remotePatterns entry (or unoptimized/a loader). */}
-                {article.image_url && (
-                    <div className="hero-image">
-                        <img src={article.image_url} alt={article.title || ''} loading="eager" fetchpriority="high" decoding="async" />
-                    </div>
-                )}
+                {/* Hero Image routed through same-origin newsImageUrl + guaranteed Vanguard fallback */}
+                <div className="hero-image">
+                    <img
+                        src={guardedHeroSrc}
+                        alt={article.title || 'Smarter.Poker News Story'}
+                        loading="eager"
+                        fetchpriority="high"
+                        decoding="async"
+                        onError={(ev) => {
+                            if (!ev.currentTarget.dataset.fb) {
+                                ev.currentTarget.dataset.fb = '1';
+                                ev.currentTarget.src = FALLBACK_HERO_IMAGE;
+                            }
+                        }}
+                    />
+                </div>
 
                 {/* Article Content */}
                 <article className="content">
@@ -657,10 +701,74 @@ export default function ArticlePage() {
                     </div>
 
                     <div className="body">
-                        {paragraphs.map((paragraph, i) => (
-                            <p key={i}>{paragraph}</p>
-                        ))}
+                        {paragraphs.length > 0 ? (
+                            paragraphs.map((paragraph, i) => (
+                                <p key={i}>{paragraph}</p>
+                            ))
+                        ) : (
+                            <p>
+                                Open The Full Dispatch Below To Read Complete Coverage From {article.source_name || 'Our Poker News Desk'}.
+                            </p>
+                        )}
                     </div>
+
+                    {externalSourceUrl && (
+                        <div
+                            style={{
+                                display: 'flex',
+                                flexWrap: 'wrap',
+                                gap: '12px',
+                                alignItems: 'center',
+                                margin: '8px 0 28px 0',
+                                padding: '18px 20px',
+                                background: '#07131d',
+                                border: '1px solid #234055',
+                                borderRadius: '12px',
+                            }}
+                        >
+                            <button
+                                type="button"
+                                onClick={() => setReaderOpen(true)}
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    background: '#4fc1b3',
+                                    color: '#05070a',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    padding: '12px 20px',
+                                    fontSize: '14px',
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                <BookOpen size={16} />
+                                Read Full Story In Reader
+                            </button>
+                            <a
+                                href={externalSourceUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '7px',
+                                    background: '#0d1e2c',
+                                    border: '1px solid #28475c',
+                                    color: '#60a5fa',
+                                    textDecoration: 'none',
+                                    borderRadius: '8px',
+                                    padding: '11px 18px',
+                                    fontSize: '13.5px',
+                                    fontWeight: 700,
+                                }}
+                            >
+                                Open Original At {article.source_name || 'Source'}
+                                <ExternalLink size={14} />
+                            </a>
+                        </div>
+                    )}
 
                     <NewsletterCaptureBar variant="inline" pathname="/hub/article" />
                 </article>
@@ -670,20 +778,38 @@ export default function ArticlePage() {
                     <section className="related">
                         <h3>Related Articles</h3>
                         <div className="related-grid">
-                            {related.map(item => (
-                                <Link key={item.id} href={`/hub/article?id=${item.id}`}>
-                                    <div className="related-card">
-                                        {item.image_url ? (
-                                            <img src={item.image_url} alt="" loading="lazy" decoding="async" />
-                                        ) : (
-                                            <div className="related-card-placeholder" aria-hidden="true" />
-                                        )}
-                                        <span>{item.title}</span>
-                                    </div>
-                                </Link>
-                            ))}
+                            {related.map(item => {
+                                const relSrc = newsImageUrl(item.image_url) || FALLBACK_THUMB_IMAGE;
+                                return (
+                                    <Link key={item.id} href={`/hub/article?id=${item.id}`}>
+                                        <div className="related-card">
+                                            <img
+                                                src={relSrc}
+                                                alt={item.title || 'Related Poker Story'}
+                                                loading="lazy"
+                                                decoding="async"
+                                                onError={(ev) => {
+                                                    if (!ev.currentTarget.dataset.fb) {
+                                                        ev.currentTarget.dataset.fb = '1';
+                                                        ev.currentTarget.src = FALLBACK_THUMB_IMAGE;
+                                                    }
+                                                }}
+                                            />
+                                            <span>{item.title}</span>
+                                        </div>
+                                    </Link>
+                                );
+                            })}
                         </div>
                     </section>
+                )}
+
+                {readerOpen && externalSourceUrl && (
+                    <ArticleReaderModal
+                        url={externalSourceUrl}
+                        title={article.title || 'Poker News Story'}
+                        onClose={() => setReaderOpen(false)}
+                    />
                 )}
 
                 <style jsx>{`
