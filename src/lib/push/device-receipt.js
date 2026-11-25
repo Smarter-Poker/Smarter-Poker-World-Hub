@@ -19,9 +19,15 @@
  */
 import { createHash, randomBytes } from 'node:crypto';
 
-// Only the reliability controller's escalations carry a receipt for now;
-// fn_mint_push_receipt refuses anything else as well.
-export const isReceiptEvent = (event) => typeof event === 'string' && event.startsWith('reliability_');
+// Reliability escalations, overdue/pre-breach payout alerts, and Notice Board
+// staff mentions carry cryptographic per-device receipts; fn_mint_push_receipt
+// enforces the same allowlist in Postgres.
+const RECEIPT_EXACT_EVENTS = new Set([
+    'cashout_overdue',
+    'cashout_prebreach_warning',
+    'notice_board_mention',
+]);
+export const isReceiptEvent = (event) => typeof event === 'string' && (event.startsWith('reliability_') || RECEIPT_EXACT_EVENTS.has(event));
 
 export const RECEIPT_TOKEN = /^[0-9a-f]{64}$/;
 export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
