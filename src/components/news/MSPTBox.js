@@ -4,7 +4,7 @@ import { timeAgo, safeText, CardErrorBoundary } from './NewsBox';
 import { newsImageUrl } from '../../lib/security/imageHosts.js';
 
 const MSPT_ACCENT = '#dc2626';
-const MSPT_FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1606167668584-78701c57f13d?w=400&q=80';
+const MSPT_FALLBACK_IMAGE = '/api/news/email-image?fallback=1&m=hero';
 
 function MSPTBoxBody({ msptNews = [], onOpenMSPT }) {
     const featured = Array.isArray(msptNews) ? msptNews[0] : null;
@@ -53,8 +53,10 @@ function MSPTBoxBody({ msptNews = [], onOpenMSPT }) {
                     loading="lazy"
                     decoding="async"
                     onError={(e) => {
-                        if (e?.target && e.target.src !== MSPT_FALLBACK_IMAGE) {
-                            e.target.src = MSPT_FALLBACK_IMAGE;
+                        const img = e?.currentTarget || e?.target;
+                        if (img && !img.dataset.fb) {
+                            img.dataset.fb = '1';
+                            img.src = MSPT_FALLBACK_IMAGE;
                         }
                     }}
                 />

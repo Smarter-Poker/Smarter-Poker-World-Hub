@@ -223,6 +223,25 @@ export default async function handler(req, res) {
                     console.warn('[Newsletter] Unsubscribe failed:', writeResult.error.message);
                     return respond(500, false, 'We could not process that request. Please try again.');
                 }
+
+                try {
+                    const { data: matchedProfiles } = await getSupabase()
+                        .from('profiles')
+                        .select('id')
+                        .ilike('email', target.email)
+                        .limit(10);
+                    for (const prof of matchedProfiles || []) {
+                        if (!prof?.id) continue;
+                        await getSupabase()
+                            .from('notification_preferences')
+                            .upsert(
+                                { user_id: prof.id, marketing_enabled: false, updated_at: nowIso },
+                                { onConflict: 'user_id' }
+                            );
+                    }
+                } catch (_unsubPrefErr) {
+                    /* non-blocking preference mirror */
+                }
             } catch (error) {
                 try {
                     reportApiError(error, req);
@@ -308,15 +327,38 @@ export default async function handler(req, res) {
                     .from('profiles')
                     .select('id')
                     .ilike('email', verifiedEmail)
-                    .limit(1);
-                const profileId = profiles?.[0]?.id;
-                if (profileId && (preference === 'wire_only' || preference === 'all')) {
-                    await getSupabase()
-                        .from('notification_preferences')
-                        .upsert(
-                            { user_id: profileId, mute_all: false },
-                            { onConflict: 'user_id' }
-                        );
+                    .limit(10);
+                for (const prof of profiles || []) {
+                    if (!prof?.id) continue;
+                    let prefPatch = null;
+                    if (preference === 'all') {
+                        prefPatch = {
+                            user_id: prof.id,
+                            mute_all: false,
+                            email_enabled: true,
+                            marketing_enabled: true,
+                            updated_at: nowIso,
+                        };
+                    } else if (preference === 'wire_only') {
+                        prefPatch = {
+                            user_id: prof.id,
+                            mute_all: false,
+                            email_enabled: true,
+                            marketing_enabled: false,
+                            updated_at: nowIso,
+                        };
+                    } else if (preference === 'unsubscribe') {
+                        prefPatch = {
+                            user_id: prof.id,
+                            marketing_enabled: false,
+                            updated_at: nowIso,
+                        };
+                    }
+                    if (prefPatch) {
+                        await getSupabase()
+                            .from('notification_preferences')
+                            .upsert(prefPatch, { onConflict: 'user_id' });
+                    }
                 }
             } catch (_prefSyncErr) {
                 /* non-blocking preference mirror */
@@ -346,14 +388,17 @@ export default async function handler(req, res) {
 
             const { data: existing } = await getSupabase()
                 .from('newsletter_subscribers')
-                .select('id, is_active')
+                .select('id, is_active, source')
                 .eq('email', normalizedEmail)
                 .maybeSingle();
 
+            const wasSnoozed = Boolean(
+                existing && String(existing.source || '').trim().toLowerCase().startsWith('snooze:')
+            );
             const shouldSendWelcome = !existing || existing.is_active === false;
 
             if (existing) {
-                if (!existing.is_active) {
+                if (!existing.is_active || wasSnoozed) {
                     const { error: reactivateError } = await getSupabase()
                         .from('newsletter_subscribers')
                         .update({ is_active: true, unsubscribed_at: null, source: safeSource })
@@ -369,6 +414,32 @@ export default async function handler(req, res) {
                     .insert({ email: normalizedEmail, is_active: true, source: safeSource });
 
                 if (error) throw error;
+            }
+
+            try {
+                const { data: matchedProfiles } = await getSupabase()
+                    .from('profiles')
+                    .select('id')
+                    .ilike('email', normalizedEmail)
+                    .limit(10);
+                const nowIso = new Date().toISOString();
+                for (const prof of matchedProfiles || []) {
+                    if (!prof?.id) continue;
+                    await getSupabase()
+                        .from('notification_preferences')
+                        .upsert(
+                            {
+                                user_id: prof.id,
+                                mute_all: false,
+                                email_enabled: true,
+                                marketing_enabled: true,
+                                updated_at: nowIso,
+                            },
+                            { onConflict: 'user_id' }
+                        );
+                }
+            } catch (_subPrefErr) {
+                /* non-blocking preference mirror */
             }
 
             if (shouldSendWelcome) {

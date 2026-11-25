@@ -37,6 +37,7 @@ import {
     renderWeeklyWireEmail,
     resolveWeeklyWireRecipients,
 } from '../../../src/lib/newsletter/weeklyWireEngine.mjs';
+import { mergeFinalCampaignErrorSummary } from '../../../src/lib/newsletter/campaignTelemetry.mjs';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
@@ -453,6 +454,7 @@ export default async function handler(req, res) {
                 article_limit: Math.max(1, Math.min(20, edition.articles.length || articleLimit)),
                 article_ids: edition.ledgerUuidsToRecord,
                 recipient_count: recipientsCount,
+                started_at: new Date().toISOString(),
                 created_by: authorization.userId,
             })
             .select('id')
@@ -518,13 +520,24 @@ export default async function handler(req, res) {
         });
 
         const campaignStatus = failed === 0 ? 'sent' : sent > 0 ? 'partial' : 'failed';
+        let existingErrSummary = null;
+        try {
+            const { data: latestRow } = await sb
+                .from('newsletter_campaigns')
+                .select('error_summary')
+                .eq('id', campaignId)
+                .maybeSingle();
+            existingErrSummary = latestRow?.error_summary || null;
+        } catch {
+            /* preserve send errors if readback unavailable */
+        }
         const { error: campaignUpdateError } = await sb
             .from('newsletter_campaigns')
             .update({
                 status: campaignStatus,
                 sent_count: sent,
                 failed_count: failed,
-                error_summary: errors.length ? errors.join(' | ').slice(0, 1000) : null,
+                error_summary: mergeFinalCampaignErrorSummary(existingErrSummary, errors),
                 completed_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
             })

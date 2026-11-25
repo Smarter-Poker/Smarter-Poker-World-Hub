@@ -181,6 +181,9 @@ export async function getServerSideProps({ params, res }) {
                 toolsCatalog.find((t) => idSet.has(wireEngine.toolMarkerUuid(t.slug))) ||
                 (toolsCatalog.length > 0 ? toolsCatalog[(editionNumber - 1) % toolsCatalog.length] : null);
 
+            const leadRawHero =
+                newsRows.find((r) => r && r.category !== 'platform_update' && r.image_url)?.image_url || '';
+
             return {
                 props: {
                     issue: {
@@ -188,6 +191,10 @@ export async function getServerSideProps({ params, res }) {
                         subject: cleanCopy(matchedCampaign.subject || `Smarter.Poker Weekly Wire #${editionNumber}`),
                         publishedAt: matchedCampaign.completed_at || matchedCampaign.created_at || null,
                         isLivePreview: false,
+                        ogImageUrl: buildSignedEmailImageUrl(leadRawHero, {
+                            siteUrl: 'https://smarter.poker',
+                            mode: 'hero',
+                        }),
                         platformUpdates,
                         articles: orderedNews,
                         spotOfTheWeek: serializeSpot(matchedSpot),
@@ -234,6 +241,10 @@ export async function getServerSideProps({ params, res }) {
                     subject: cleanCopy(curated?.subject || `Smarter.Poker Weekly Wire #${liveEditionNum}`),
                     publishedAt: null,
                     isLivePreview: true,
+                    ogImageUrl: buildSignedEmailImageUrl(curated?.articles?.[0]?.image_url || '', {
+                        siteUrl: 'https://smarter.poker',
+                        mode: 'hero',
+                    }),
                     platformUpdates: (curated?.platformUpdates || []).map((u) => ({
                         slug: String(u.slug || u.id || ''),
                         badge: cleanCopy(u.badge || 'Platform Upgrade'),
@@ -318,6 +329,7 @@ export default function WeeklyWireEditionPage({ issue }) {
     const canonicalUrl = `https://smarter.poker/hub/wire/${editionNum}`;
     const metaTitle = `${issue?.subject || `Smarter.Poker Weekly Wire #${editionNum}`} | Smarter.Poker`;
     const metaDesc = `Read Smarter.Poker Weekly Wire Edition #${editionNum}: Platform Upgrades, Solver Spot Of The Week, World Poker News, And Pro Calculator Spotlights.`;
+    const ogImageUrl = issue?.ogImageUrl || 'https://smarter.poker/api/news/email-image?fallback=1&m=hero';
 
     const spot = issue?.spotOfTheWeek || null;
     const tool = issue?.toolSpotlight || null;
@@ -333,8 +345,11 @@ export default function WeeklyWireEditionPage({ issue }) {
                 <meta key="og-url" property="og:url" content={canonicalUrl} />
                 <meta key="og-title" property="og:title" content={metaTitle} />
                 <meta key="og-description" property="og:description" content={metaDesc} />
+                <meta key="og-image" property="og:image" content={ogImageUrl} />
+                <meta key="twitter-card" name="twitter:card" content="summary_large_image" />
                 <meta key="twitter-title" name="twitter:title" content={metaTitle} />
                 <meta key="twitter-description" name="twitter:description" content={metaDesc} />
+                <meta key="twitter-image" name="twitter:image" content={ogImageUrl} />
             </Head>
 
             <main

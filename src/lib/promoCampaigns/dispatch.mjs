@@ -25,6 +25,8 @@ import {
     buildWelcomeBackOfferUrl,
     isWelcomeBackCtaUrl,
 } from './welcomeBackOffer.mjs';
+import { buildMastheadCrestUrl } from '../newsletter/emailImageProxy.mjs';
+import { mergeFinalCampaignErrorSummary } from '../newsletter/campaignTelemetry.mjs';
 
 export { DEFAULT_WELCOME_BACK_DRAFT };
 
@@ -229,9 +231,14 @@ export function renderPromoEmail({
     postalAddress = DEFAULT_POSTAL_ADDRESS,
     siteUrl = DEFAULT_SITE_URL,
     unsubscribeUrl,
+    preferencesUrl = '',
+    preheader = '',
 }) {
-    const safeHeadline = escapeHtml(headline || subject);
-    const paragraphs = String(body || '')
+    const cleanCopy = (val) => String(val || '').replace(/[—–]/g, '-');
+    const cleanSubject = cleanCopy(subject);
+    const cleanHeadline = cleanCopy(headline || subject);
+    const safeHeadline = escapeHtml(cleanHeadline);
+    const paragraphs = cleanCopy(body)
         .split(/\n{2,}/)
         .map((p) => p.trim())
         .filter(Boolean);
@@ -241,26 +248,35 @@ export function renderPromoEmail({
                 `<p style="margin:0 0 16px 0;color:#d6e3f0;font-size:15px;line-height:1.6;">${escapeHtml(p).replace(/\n/g, '<br />')}</p>`
         )
         .join('');
+    const cleanSite = String(siteUrl || DEFAULT_SITE_URL).replace(/\/+$/, '');
     const safeCtaUrl = escapeHtml(ctaUrl);
-    const safeCtaLabel = escapeHtml(ctaLabel || 'Get Started');
-    const safeUnsub = escapeHtml(unsubscribeUrl);
-    const safePostal = escapeHtml(postalAddress || DEFAULT_POSTAL_ADDRESS);
-    const safeSite = escapeHtml(siteUrl.replace(/\/+$/, ''));
+    const safeCtaLabel = escapeHtml(cleanCopy(ctaLabel || 'Get Started'));
+    const safeUnsub = escapeHtml(unsubscribeUrl || `${cleanSite}/api/news/subscribe?unsubscribe=preview`);
+    const safePrefs = escapeHtml(preferencesUrl || unsubscribeUrl || `${cleanSite}/hub/email-preferences`);
+    const safeArchive = escapeHtml(`${cleanSite}/hub/wire`);
+    const safePostal = escapeHtml(cleanCopy(postalAddress || DEFAULT_POSTAL_ADDRESS));
+    const safeSite = escapeHtml(cleanSite);
+    const safeCrestUrl = escapeHtml(buildMastheadCrestUrl({ siteUrl: cleanSite }));
+    const resolvedPreheader = cleanCopy(preheader || paragraphs[0] || cleanHeadline).slice(0, 160);
 
     const html = `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>${escapeHtml(subject)}</title>
+<title>${escapeHtml(cleanSubject)}</title>
 </head>
 <body style="margin:0;padding:0;background:#05070a;color:#e7edf3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+<div style="display:none;font-size:1px;color:#05070a;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">${escapeHtml(resolvedPreheader)}&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#05070a;">
 <tr><td align="center" style="padding:32px 14px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0b1118;border:1px solid #1b2c3d;border-radius:14px;">
 <tr><td style="padding:32px 28px;">
-<div style="color:#4fc1b3;font-size:14px;font-weight:800;letter-spacing:3px;text-transform:uppercase;">SMARTER.POKER</div>
-<h1 style="margin:16px 0 18px 0;color:#ffffff;font-size:24px;line-height:1.25;font-weight:800;">${safeHeadline}</h1>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:4px;"><tr>
+<td valign="middle" style="padding-right:10px;"><img src="${safeCrestUrl}" alt="Smarter.Poker" width="32" height="32" style="display:block;width:32px;height:32px;border-radius:8px;border:0;" /></td>
+<td valign="middle"><div style="color:#4fc1b3;font-size:13px;font-weight:800;letter-spacing:2.8px;text-transform:uppercase;">SMARTER.POKER</div></td>
+</tr></table>
+<h1 style="margin:14px 0 18px 0;color:#ffffff;font-size:24px;line-height:1.25;font-weight:800;">${safeHeadline}</h1>
 ${htmlParagraphs}
 <div style="padding:8px 0 24px 0;">
 <a href="${safeCtaUrl}" style="display:inline-block;background:#4fc1b3;color:#041e1b;text-decoration:none;font-weight:800;font-size:15px;padding:14px 28px;border-radius:8px;">${safeCtaLabel}</a>
@@ -268,7 +284,9 @@ ${htmlParagraphs}
 <div style="border-top:1px solid #1c2a38;padding-top:18px;color:#7f93a8;font-size:12px;line-height:1.6;">
 <div>Smarter.Poker &middot; ${safePostal}</div>
 <div style="margin-top:6px;">
+<a href="${safePrefs}" style="color:#60a5fa;text-decoration:underline;">Email Preferences</a> &middot;
 <a href="${safeUnsub}" style="color:#9fb3c8;text-decoration:underline;">Unsubscribe</a> &middot;
+<a href="${safeArchive}" style="color:#9fb3c8;text-decoration:underline;">Web Archive</a> &middot;
 <a href="${safeSite}" style="color:#9fb3c8;text-decoration:underline;">Visit Smarter.Poker</a>
 </div>
 </div>
@@ -282,13 +300,14 @@ ${htmlParagraphs}
     const text = [
         'SMARTER.POKER',
         '',
-        headline || subject,
+        cleanHeadline,
         '',
         ...paragraphs.flatMap((p) => [p, '']),
-        `${ctaLabel || 'Get Started'}: ${ctaUrl}`,
+        `${cleanCopy(ctaLabel || 'Get Started')}: ${ctaUrl}`,
         '',
         '---',
-        `Smarter.Poker | ${postalAddress || DEFAULT_POSTAL_ADDRESS}`,
+        `Smarter.Poker | ${cleanCopy(postalAddress || DEFAULT_POSTAL_ADDRESS)}`,
+        `Email Preferences: ${preferencesUrl || unsubscribeUrl}`,
         `Unsubscribe: ${unsubscribeUrl}`,
     ].join('\n');
 
@@ -675,18 +694,19 @@ export async function resolvePromoAudience(
             }
 
             try {
-                const { data: wbCode } = await sb
+                const { data: wbCodes } = await sb
                     .from('promo_codes')
-                    .select('id')
-                    .eq('code', WELCOME_BACK_CODE)
-                    .maybeSingle();
-                if (wbCode?.id) {
+                    .select('id, code')
+                    .in('code', [WELCOME_BACK_CODE, 'sp_welcome_back_202611']);
+                const wbCodeIds = (wbCodes || []).map((r) => r?.id).filter(Boolean);
+                if (wbCodeIds.length > 0) {
+                    // in-list: bounded by welcome-back code variants (<= 2)
                     const redemptions = await fetchPaged(
                         (from, to) =>
                             sb
                                 .from('promo_code_redemptions')
                                 .select('user_id, reward_applied')
-                                .eq('promo_code_id', wbCode.id)
+                                .in('promo_code_id', wbCodeIds.slice(0, 10))
                                 .order('id', { ascending: true })
                                 .range(from, to),
                         25000
@@ -1014,7 +1034,9 @@ export async function dispatchPromoCampaign(
 
         if (targetEmail) {
             if (!emailConfigured) throw new Error('Resend API key is not configured');
-            const unsubscribeUrl = `${siteUrl}/api/news/subscribe?unsubscribe=${encodeURIComponent(makeUnsubscribeToken(targetEmail))}`;
+            const unsubToken = makeUnsubscribeToken(targetEmail);
+            const unsubscribeUrl = `${siteUrl}/api/news/subscribe?unsubscribe=${encodeURIComponent(unsubToken)}`;
+            const preferencesUrl = `${siteUrl}/hub/email-preferences?token=${encodeURIComponent(unsubToken)}`;
             const rendered = renderPromoEmail({
                 subject: `[TEST] ${cleanSubject}`,
                 headline: cleanHeadline,
@@ -1024,6 +1046,7 @@ export async function dispatchPromoCampaign(
                 postalAddress: cleanPostal,
                 siteUrl,
                 unsubscribeUrl,
+                preferencesUrl,
             });
             if (resendFactory) {
                 const resend = effectiveResendFactory(apiKey);
@@ -1080,6 +1103,7 @@ export async function dispatchPromoCampaign(
     const totalRecipients = targetEmails.length + targetPhones.length;
 
     const sampleUnsubUrl = `${siteUrl}/api/news/subscribe?unsubscribe=preview`;
+    const samplePrefsUrl = `${siteUrl}/hub/email-preferences?token=preview`;
     const sampleEmail = renderPromoEmail({
         subject: cleanSubject,
         headline: cleanHeadline,
@@ -1089,6 +1113,7 @@ export async function dispatchPromoCampaign(
         postalAddress: cleanPostal,
         siteUrl,
         unsubscribeUrl: sampleUnsubUrl,
+        preferencesUrl: samplePrefsUrl,
     });
 
     if (dryRun) {
@@ -1145,6 +1170,7 @@ export async function dispatchPromoCampaign(
             article_limit: 1,
             article_ids: [],
             recipient_count: totalRecipients,
+            started_at: new Date().toISOString(),
             created_by: createdBy || null,
         })
         .select('id')
@@ -1166,7 +1192,9 @@ export async function dispatchPromoCampaign(
             for (let i = 0; i < targetEmails.length; i += EMAIL_BATCH_SIZE) {
                 const chunk = targetEmails.slice(i, i + EMAIL_BATCH_SIZE);
                 const messages = chunk.map((email) => {
-                    const unsubscribeUrl = `${siteUrl}/api/news/subscribe?unsubscribe=${encodeURIComponent(makeUnsubscribeToken(email))}`;
+                    const unsubToken = makeUnsubscribeToken(email);
+                    const unsubscribeUrl = `${siteUrl}/api/news/subscribe?unsubscribe=${encodeURIComponent(unsubToken)}`;
+                    const preferencesUrl = `${siteUrl}/hub/email-preferences?token=${encodeURIComponent(unsubToken)}`;
                     const recipientCtaUrl = buildSignedRecipientUrl(audience.emailToUserId?.get(email) || '');
                     const rendered = renderPromoEmail({
                         subject: cleanSubject,
@@ -1177,6 +1205,7 @@ export async function dispatchPromoCampaign(
                         postalAddress: cleanPostal,
                         siteUrl,
                         unsubscribeUrl,
+                        preferencesUrl,
                     });
                     return {
                         from,
@@ -1223,13 +1252,25 @@ export async function dispatchPromoCampaign(
         const totalFailed = emailFailed + smsFailed;
         const status = totalFailed === 0 ? 'sent' : totalSent > 0 ? 'partial' : 'failed';
 
+        let existingErrSummary = null;
+        try {
+            const { data: latestRow } = await sb
+                .from('newsletter_campaigns')
+                .select('error_summary')
+                .eq('id', campaign.id)
+                .maybeSingle();
+            existingErrSummary = latestRow?.error_summary || null;
+        } catch {
+            /* preserve send errors if readback unavailable */
+        }
+
         const { error: finalizeErr } = await sb
             .from('newsletter_campaigns')
             .update({
                 status,
                 sent_count: totalSent,
                 failed_count: totalFailed,
-                error_summary: errors.length ? errors.join(' | ').slice(0, 1000) : null,
+                error_summary: mergeFinalCampaignErrorSummary(existingErrSummary, errors),
                 completed_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
             })

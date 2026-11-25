@@ -43,6 +43,7 @@ export const config = {
 
 const SUPPRESS_EVENTS = new Set(['email.bounced', 'email.complained']);
 const TELEMETRY_EVENTS = new Set(['email.opened', 'email.clicked']);
+const TRACKABLE_CAMPAIGN_STATUSES = new Set(['sending', 'sent', 'partial']);
 
 export default async function handler(req, res) {
     res.setHeader('Cache-Control', 'no-store');
@@ -83,11 +84,11 @@ export default async function handler(req, res) {
                 .eq('id', campaignId)
                 .maybeSingle();
 
-            if (readErr || !campaign || campaign.status !== 'sent') {
+            if (readErr || !campaign || !TRACKABLE_CAMPAIGN_STATUSES.has(String(campaign.status || ''))) {
                 return res.status(200).json({
                     ok: true,
                     ignored: true,
-                    reason: campaign ? 'non_sent_status' : 'not_found',
+                    reason: campaign ? 'untrackable_status' : 'not_found',
                     type,
                 });
             }
@@ -131,17 +132,19 @@ export default async function handler(req, res) {
     try {
         const sb = createClient();
         for (const email of recipients) {
-            const { data: existing } = await sb
+            const { data: existingRows } = await sb
                 .from('newsletter_subscribers')
                 .select('id')
-                .eq('email', email)
-                .maybeSingle();
+                .ilike('email', email)
+                .limit(20);
 
-            if (existing?.id) {
-                await sb
-                    .from('newsletter_subscribers')
-                    .update({ is_active: false, unsubscribed_at: nowIso, source })
-                    .eq('id', existing.id);
+            if (Array.isArray(existingRows) && existingRows.length > 0) {
+                for (const row of existingRows) {
+                    await sb
+                        .from('newsletter_subscribers')
+                        .update({ is_active: false, unsubscribed_at: nowIso, source })
+                        .eq('id', row.id);
+                }
             } else {
                 await sb
                     .from('newsletter_subscribers')
@@ -149,12 +152,13 @@ export default async function handler(req, res) {
             }
             suppressed += 1;
 
-            const { data: profile } = await sb
+            const { data: matchedProfiles } = await sb
                 .from('profiles')
                 .select('id')
-                .eq('email', email)
-                .maybeSingle();
-            if (profile?.id) {
+                .ilike('email', email)
+                .limit(20);
+            for (const profile of matchedProfiles || []) {
+                if (!profile?.id) continue;
                 await sb
                     .from('notification_preferences')
                     .upsert(
