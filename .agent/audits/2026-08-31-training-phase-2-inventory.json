@@ -141177,6 +141177,7 @@
         "externalReferenceFiles": [
           "__tests__/correction-accounting-display.test.mjs",
           "__tests__/credit-change-accounting-display.test.mjs",
+          "__tests__/messenger-media-attachments.test.mjs",
           "__tests__/messenger-reliability-incident-controls.test.mjs",
           "__tests__/one-reader-per-sentinel.law.test.mjs",
           "src/components/social/GoLiveModal.jsx",
@@ -141197,6 +141198,7 @@
         "externalReferenceFiles": [
           "__tests__/correction-accounting-display.test.mjs",
           "__tests__/credit-change-accounting-display.test.mjs",
+          "__tests__/messenger-media-attachments.test.mjs",
           "__tests__/messenger-reliability-incident-controls.test.mjs",
           "__tests__/one-reader-per-sentinel.law.test.mjs",
           "src/components/messenger/MessageBubble.js",
@@ -151592,6 +151594,7 @@
         "externalReferenceFiles": [
           "__tests__/correction-accounting-display.test.mjs",
           "__tests__/credit-change-accounting-display.test.mjs",
+          "__tests__/messenger-media-attachments.test.mjs",
           "__tests__/messenger-reliability-incident-controls.test.mjs",
           "__tests__/one-reader-per-sentinel.law.test.mjs",
           "src/components/social/GoLiveModal.jsx",
@@ -151612,6 +151615,7 @@
         "externalReferenceFiles": [
           "__tests__/correction-accounting-display.test.mjs",
           "__tests__/credit-change-accounting-display.test.mjs",
+          "__tests__/messenger-media-attachments.test.mjs",
           "__tests__/messenger-reliability-incident-controls.test.mjs",
           "__tests__/one-reader-per-sentinel.law.test.mjs",
           "src/components/messenger/MessageBubble.js",
