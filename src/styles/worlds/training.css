@@ -5175,3 +5175,160 @@ body.world-training .sp-training-command--coach .sp-coach-score small {
         animation-iteration-count: 1 !important;
     }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   OWNER-APPROVED MTT LOBBY & ARENA WORKSPACE DESIGN CONSISTENCY
+   ═══════════════════════════════════════════════════════════════════════════
+   Matches Club Arena src/components/lobby/MttSurfaces.css & ArenaWorkspace.css
+   and PersonalAssistantHub.module.css:
+   - Canvas: #040d18 obsidian-navy
+   - Panel surface: radial-gradient(ellipse at 90% -40%, rgba(30,56,83,0.48), transparent 63%), linear-gradient(145deg, #091727, #030b14 74%)
+   - Ledger row surface: linear-gradient(108deg, #13253a, #060e18 72%)
+   - Metallic steel borders: 1px solid #688299 with #aec0d0 top-lit rim, 7px radius
+   - Primary CTA & active tab: linear-gradient(180deg, #087cfa 0%, #0044ac 55%, #002b68 100%) with 1px solid #56d8ff / #b3eaff top rim and 3px solid #83deff active underline
+   - Secondary controls: linear-gradient(180deg, #152639 0%, #06111e 65%) with 1px solid #688299 / #aec0d0
+   - Touch targets >= 44px, typography >= 12px, only 900/768/600 breakpoints
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+body.world-training {
+    --mtt-bg: #040d18;
+    --mtt-panel: radial-gradient(ellipse at 90% -40%, rgba(30, 56, 83, 0.48), transparent 63%), linear-gradient(145deg, #091727, #030b14 74%);
+    --mtt-row: linear-gradient(108deg, #13253a, #060e18 72%);
+    --mtt-border: #688299;
+    --mtt-border-hi: #aec0d0;
+    --mtt-text: #f1f5fc;
+    --mtt-muted: #b6c8d6;
+    --mtt-dim: #9aabba;
+    --mtt-accent: #83deff;
+    --mtt-cta-bg: linear-gradient(180deg, #087cfa 0%, #0044ac 55%, #002b68 100%);
+    --mtt-cta-border: #56d8ff;
+    --mtt-cta-border-hi: #b3eaff;
+    --mtt-sec-bg: linear-gradient(180deg, #152639 0%, #06111e 65%);
+    background: #040d18;
+    color: #f1f5fc;
+}
+
+body.world-training .sp-mtt-interior {
+    width: min(600px, calc(100% - 12px));
+    margin-inline: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+body.world-training .sp-mtt-frame,
+body.world-training .sp-setup-console,
+body.world-training .sp-arena-lobby__content,
+body.world-training .sp-arena-review__score,
+body.world-training .sp-arena-review__summary,
+body.world-training .sp-arena-review__classification,
+body.world-training [data-specialty-brain-panel='true'] {
+    border: 1px solid #688299 !important;
+    border-top-color: #aec0d0 !important;
+    border-radius: 7px !important;
+    background: radial-gradient(ellipse at 90% -40%, rgba(30, 56, 83, 0.48), transparent 63%), linear-gradient(145deg, #091727, #030b14 74%) !important;
+    box-shadow: none !important;
+    color: #f1f5fc;
+}
+
+body.world-training .sp-mtt-row,
+body.world-training .sp-level-card,
+body.world-training .sp-arena-lobby__panel {
+    border: 1px solid #688299 !important;
+    border-top-color: #aec0d0 !important;
+    border-radius: 7px !important;
+    background: linear-gradient(108deg, #13253a, #060e18 72%) !important;
+    box-shadow: none !important;
+}
+
+body.world-training .sp-mtt-cta-primary,
+body.world-training .sp-cta-primary,
+body.world-training .sp-arena-lobby__start,
+body.world-training .sp-level-play,
+body.world-training [data-launch-club-arena-cta='true'] {
+    min-height: 44px;
+    border: 1px solid #56d8ff !important;
+    border-top-color: #b3eaff !important;
+    border-radius: 6px !important;
+    background: linear-gradient(180deg, #087cfa 0%, #0044ac 55%, #002b68 100%) !important;
+    color: #ffffff !important;
+    font-weight: 800 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+}
+
+body.world-training .sp-mtt-cta-secondary,
+body.world-training .sp-cta-secondary,
+body.world-training .sp-arena-lobby__back,
+body.world-training .sp-level-back {
+    min-height: 44px;
+    border: 1px solid #688299 !important;
+    border-top-color: #aec0d0 !important;
+    border-radius: 6px !important;
+    background: linear-gradient(180deg, #152639 0%, #06111e 65%) !important;
+    color: #dce5ef !important;
+    font-weight: 700 !important;
+    box-shadow: none !important;
+}
+
+body.world-training .sp-cat-chip[aria-pressed='true'],
+body.world-training .sp-arena-lobby__option[data-selected='true'],
+body.world-training [role='radio'][aria-checked='true'],
+body.world-training [data-brain-variant-tab][data-active='true'] {
+    background: linear-gradient(180deg, #087cfa 0%, #0044ac 55%, #002b68 100%) !important;
+    color: #ffffff !important;
+    border: 1px solid #56d8ff !important;
+    border-top-color: #b3eaff !important;
+    border-block-end: 3px solid #83deff !important;
+    border-radius: 6px !important;
+    box-shadow: none !important;
+}
+
+body.world-training details.sp-mtt-disclosure {
+    border: 1px solid #688299;
+    border-top-color: #aec0d0;
+    border-radius: 7px;
+    background: linear-gradient(108deg, #13253a, #060e18 72%);
+    overflow: hidden;
+}
+
+body.world-training details.sp-mtt-disclosure > summary {
+    min-height: 44px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+    color: #f0f6ff;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    list-style: none;
+}
+
+body.world-training details.sp-mtt-disclosure > summary::-webkit-details-marker {
+    content: '';
+}
+
+body.world-training details.sp-mtt-disclosure > summary::after {
+    content: '▾';
+    color: #83deff;
+    font-size: 14px;
+    transition: transform 0.16s ease;
+}
+
+body.world-training details.sp-mtt-disclosure[open] > summary {
+    border-bottom: 1px solid #53738b;
+    background: rgba(8, 124, 250, 0.12);
+}
+
+body.world-training details.sp-mtt-disclosure[open] > summary::after {
+    transform: rotate(180deg);
+}
+
+body.world-training .sp-mtt-disclosure__body {
+    padding: 12px 14px;
+}
+

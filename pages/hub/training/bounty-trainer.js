@@ -61,7 +61,7 @@ export default function BountyTrainerPage() {
         style={{
           minHeight: 'calc(100dvh - 70px)',
           padding: 'clamp(30px, 8vw, 90px) 18px',
-          background: 'radial-gradient(circle at 50% 15%, #12354d 0, #050910 50%, #020407 100%)',
+          background: '#040d18',
           color: '#fff',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
@@ -72,15 +72,17 @@ export default function BountyTrainerPage() {
             maxWidth: 780,
             margin: '0 auto',
             padding: 'clamp(24px, 5vw, 44px)',
-            border: '1px solid rgba(145,229,255,.45)',
-            background: 'linear-gradient(145deg, rgba(20,42,60,.97), rgba(4,9,15,.98))',
-            boxShadow: 'inset 0 1px rgba(255,255,255,.25), 0 30px 70px rgba(0,0,0,.55)',
+            border: '1px solid #688299',
+            borderTopColor: '#aec0d0',
+            borderRadius: 7,
+            background: 'linear-gradient(180deg, #091727 0%, #030b14 100%)',
+            boxShadow: 'inset 0 1px rgba(255,255,255,.22), 0 30px 70px rgba(0,0,0,.65)',
           }}
         >
           <div style={{ position: 'relative' }}>
             <div
               style={{
-                color: '#79e6ff',
+                color: '#83deff',
                 fontSize: 12,
                 fontWeight: 900,
                 letterSpacing: '0.04em',
@@ -106,9 +108,10 @@ export default function BountyTrainerPage() {
                 style={{
                   marginTop: 24,
                   padding: 20,
-                  borderRadius: 12,
-                  border: '1px solid rgba(121, 230, 255, 0.35)',
-                  background: 'rgba(4, 12, 22, 0.85)',
+                  borderRadius: 7,
+                  border: '1px solid #688299',
+                  borderTopColor: '#aec0d0',
+                  background: '#091727',
                 }}
               >
                 <div
@@ -308,9 +311,9 @@ export default function BountyTrainerPage() {
                     minHeight: 44,
                     alignItems: 'center',
                     padding: '0 18px',
-                    borderRadius: 8,
-                    border: '1px solid #a5efff',
-                    background: 'linear-gradient(180deg, #2a6077, #07131d)',
+                    borderRadius: 7,
+                    border: '1px solid #56d8ff',
+                    background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 52%, #002b68 100%)',
                     color: '#fff',
                     fontSize: 13,
                     fontWeight: 900,
@@ -330,8 +333,9 @@ export default function BountyTrainerPage() {
                 alignItems: 'center',
                 padding: '0 20px',
                 marginTop: 20,
-                border: '1px solid #a5efff',
-                background: 'linear-gradient(180deg, #2a6077, #07131d)',
+                borderRadius: 7,
+                border: '1px solid #56d8ff',
+                background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 52%, #002b68 100%)',
                 color: '#fff',
                 fontWeight: 900,
                 textDecoration: 'none',

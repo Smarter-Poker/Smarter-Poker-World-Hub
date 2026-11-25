@@ -63,6 +63,13 @@ import useTrainingProgress from '../../src/hooks/useTrainingProgress';
 import { useTrainingStore } from '../../src/stores/trainingStore';
 import { getAuthUser, authedFetch } from '../../src/lib/authUtils';
 import { normalizeTrainingSessionConfig } from '../../src/lib/training/sessionConfigContract.mjs';
+import {
+  resolvePresetForGame,
+  loadTrainingPreferences,
+  saveTrainingPreferences,
+  saveResumableTrainingSession,
+  loadResumableTrainingSession,
+} from '../../src/lib/training/trainingPresets.mjs';
 import SessionSetupModal from '../../src/components/training/SessionSetupModal';
 import TrainingGameArt from '../../src/components/training/TrainingGameArt';
 import { leakService } from '../../src/services/LeakService';
@@ -239,6 +246,12 @@ export default function TrainingPage() {
   const [setupGame, setSetupGame] = useState(null);
   const [arenaConfig, setArenaConfig] = useState(null);
   const [arenaSessionId, setArenaSessionId] = useState(null);
+  const [resumableSession, setResumableSession] = useState(null);
+
+  useEffect(() => {
+    setResumableSession(loadResumableTrainingSession(authUser?.id));
+  }, [authUser?.id, showArena]);
+
   const startDrill = useCallback((game) => {
     if (!game) return;
     if (!requireOnline()) return;
@@ -246,6 +259,79 @@ export default function TrainingPage() {
     setActiveGame(game);
     setSetupGame(game);  // show modal; modal will call onStart to flip showArena
   }, [setActiveGame, requireOnline, haptic]);
+
+  const quickStartDrill = useCallback((game, overrides = null) => {
+    if (!game) return;
+    if (!requireOnline()) return;
+    haptic('light');
+    if (!authUser?.id) {
+      setSetupGame(null);
+      router.push({
+        pathname: '/auth/login',
+        query: { redirect: '/hub/training' },
+      });
+      return;
+    }
+    const savedPrefs = loadTrainingPreferences(game.id, authUser?.id);
+    const mergedPrefs = overrides && typeof overrides === 'object'
+      ? { ...savedPrefs, ...overrides }
+      : savedPrefs;
+    const sessionConfig = normalizeTrainingSessionConfig(mergedPrefs);
+    saveTrainingPreferences(game.id, sessionConfig, authUser?.id);
+    saveResumableTrainingSession(
+      { gameId: game.id, gameName: game.name, ...sessionConfig },
+      authUser?.id,
+    );
+    setResumableSession(loadResumableTrainingSession(authUser?.id));
+
+    const tableCount = parseInt(sessionConfig.tables, 10);
+    if (Number.isFinite(tableCount) && tableCount > 1 && game.id) {
+      setSetupGame(null);
+      router.push({
+        pathname: '/hub/training/multi-table',
+        query: {
+          tables: String(tableCount),
+          game: game.id,
+          difficulty: sessionConfig.difficulty,
+          timer: sessionConfig.timer,
+          scope: sessionConfig.scope,
+          ...(sessionConfig.targetStreet ? { targetStreet: sessionConfig.targetStreet } : {}),
+          autoAdvance: '0',
+          handSelection: sessionConfig.handSelection,
+          speed: 'normal',
+          feedbackRule: 'every',
+        },
+      });
+      return;
+    }
+
+    setActiveGame(game);
+    setArenaConfig(sessionConfig);
+    setArenaSessionId(`session-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
+    setSetupGame(null);
+    setShowArena(true);
+  }, [authUser?.id, haptic, requireOnline, router, setActiveGame, setShowArena]);
+
+  const heroGame = jarvisPick || TRAINING_LIBRARY[0];
+  const heroPreset = useMemo(
+    () => resolvePresetForGame(heroGame, loadTrainingPreferences(heroGame?.id, authUser?.id)),
+    [heroGame, authUser?.id],
+  );
+  const continueTarget = useMemo(() => {
+    if (resumableSession?.game) return resumableSession;
+    const latest = Array.isArray(lifetimeSessions) && lifetimeSessions[0] ? lifetimeSessions[0] : null;
+    if (!latest) return null;
+    const g = TRAINING_LIBRARY.find((item) => item.id === (latest.game_id || latest.gameId));
+    if (!g) return null;
+    const p = resolvePresetForGame(g);
+    return {
+      game: g,
+      gameId: g.id,
+      gameName: g.name,
+      summary: p.summary,
+      preset: p,
+    };
+  }, [resumableSession, lifetimeSessions]);
 
   // Leak Finder And Sandbox Both Deep-Link Into The Training Center. These
   // Query Parameters Previously Had No Consumer, So The Promised Focused Game
@@ -369,6 +455,14 @@ export default function TrainingPage() {
       return;
     }
     const sessionConfig = normalizeTrainingSessionConfig(prefs);
+    if (setupGame?.id) {
+      saveTrainingPreferences(setupGame.id, sessionConfig, authUser?.id);
+      saveResumableTrainingSession(
+        { gameId: setupGame.id, gameName: setupGame.name, ...sessionConfig },
+        authUser?.id,
+      );
+      setResumableSession(loadResumableTrainingSession(authUser?.id));
+    }
     // GTOW parity #10. The setup modal offers up to 4 tables, and that choice
     // used to be handed to GodModeArena's wrapper, which rendered N copies of
     // the arena with IDENTICAL props · same drill, same userId, same sessionId.
@@ -490,14 +584,41 @@ export default function TrainingPage() {
 
                 {jarvisPick && <DrillCard game={jarvisPick} />}
 
+                {heroPreset && (
+                  <div className="sp-preset-bar" data-training-preset-summary="true">
+                    <span className="sp-preset-bar-label">Active Preset</span>
+                    <strong className="sp-preset-bar-value">{heroPreset.summary}</strong>
+                    <span className="sp-preset-bar-rules">{heroPreset.ruleSummary}</span>
+                  </div>
+                )}
+
                 <div className="sp-cta-row">
                   <button
                     className="sp-cta sp-cta-primary"
-                    onClick={() => startDrill(jarvisPick || TRAINING_LIBRARY[0])}
+                    data-start-training-cta="true"
+                    onClick={() => quickStartDrill(jarvisPick || TRAINING_LIBRARY[0])}
                     disabled={recommendationLoading || !TRAINING_LIBRARY[0]}
                     aria-disabled={recommendationLoading || !TRAINING_LIBRARY[0]}
                   >
-                    <Play size={18} aria-hidden /> {jarvisPick ? "Start Today's Drill" : 'Start First Drill'}
+                    <Play size={18} aria-hidden /> {jarvisPick ? "Start Today's Drill" : 'Start Training'}
+                  </button>
+                  {continueTarget && (
+                    <button
+                      type="button"
+                      className="sp-cta sp-cta-secondary sp-cta-continue"
+                      data-continue-training-cta="true"
+                      onClick={() => quickStartDrill(continueTarget.game, continueTarget.preset)}
+                    >
+                      <Play size={16} aria-hidden /> Continue Training ({continueTarget.gameName})
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="sp-cta sp-cta-secondary"
+                    data-customize-preset-cta="true"
+                    onClick={() => startDrill(jarvisPick || TRAINING_LIBRARY[0])}
+                  >
+                    <Wrench size={16} aria-hidden /> Customize Preset
                   </button>
                   <button className="sp-cta sp-cta-secondary" onClick={browseTrainingLibrary}>
                     <Shuffle size={18} aria-hidden /> Pick A Different Drill
@@ -658,7 +779,7 @@ export default function TrainingPage() {
                         game={g}
                         progress={getGameProgress?.(g.id)?.completionPercent ?? 0}
                         isRecommended={g.id === jarvisPick?.id}
-                        onStart={() => startDrill(g)}
+                        onStart={() => quickStartDrill(g)}
                       />
                     ))}
                   </div>
@@ -1554,20 +1675,20 @@ function GlobalStyle() {
       .sp-spin { width: 32px; height: 32px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--sp-primary); border-radius: 50%; animation: sp-spin 1s linear infinite; margin: 0 auto; }
       @keyframes sp-spin { to { transform: rotate(360deg); } }
 
-      /* 2026-08-26 · Smarter.Poker Training Orb visual system.
-         Every frame is a complete rectangle. There are deliberately no
-         clip-path corners, corner caps, screw boxes, or ornamental pseudo
-         elements: depth comes from full-width metallic highlights and shadows. */
+      /* 2026-08-26 · Smarter.Poker Training Orb + MTT Lobby visual system.
+         Obsidian-navy canvas (#040d18), top-lit steel frames (1px solid #688299
+         with #aec0d0 top rim and 7px radius), #091727 -> #030b14 frames,
+         #13253a -> #060e18 rows, and royal-blue primary CTAs. */
       .sp-main {
         max-width: 1360px;
         padding: 20px 28px 128px;
         color: #eef9ff;
         background:
-          linear-gradient(rgba(3, 10, 19, .82), rgba(3, 10, 19, .94)),
+          linear-gradient(180deg, rgba(4, 13, 24, .92), rgba(4, 13, 24, .98)),
           url('/circuit-brain-bg.webp') center top / cover fixed,
-          #030811;
-        border-left: 1px solid rgba(103, 220, 255, .24);
-        border-right: 1px solid rgba(103, 220, 255, .24);
+          #040d18;
+        border-left: 1px solid #688299;
+        border-right: 1px solid #688299;
         box-shadow: 0 0 48px rgba(0, 168, 255, .08) inset;
       }
       .sp-main, .sp-main button, .sp-main input { font-family: var(--font-rajdhani), 'Rajdhani', sans-serif; }
@@ -1579,11 +1700,11 @@ function GlobalStyle() {
         align-items: center;
         margin-bottom: 14px;
         padding: 0 20px;
-        border: 1px solid rgba(126, 220, 255, .32);
-        border-radius: 0;
-        background:
-          linear-gradient(180deg, rgba(213, 246, 255, .14) 0, rgba(35, 72, 91, .10) 11%, rgba(3, 11, 19, .92) 46%, rgba(9, 24, 37, .94) 100%);
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.34), inset 0 -1px 0 rgba(29,189,255,.22), 0 10px 28px rgba(0,0,0,.28);
+        border: 1px solid #688299;
+        border-top-color: #aec0d0;
+        border-radius: 7px;
+        background: linear-gradient(180deg, #13253a 0%, #091727 42%, #060e18 100%);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.28), 0 10px 24px rgba(0,0,0,.35);
       }
       .sp-section-title {
         font-family: var(--font-orbitron), 'Orbitron', sans-serif;
@@ -1604,21 +1725,21 @@ function GlobalStyle() {
         align-items: end;
         overflow: hidden;
         padding: 54px 50px 44px;
-        border: 1px solid rgba(145, 229, 255, .62);
-        border-radius: 0;
+        border: 1px solid #688299;
+        border-top-color: #aec0d0;
+        border-radius: 7px;
         background:
-          linear-gradient(90deg, rgba(0,5,13,.98) 0%, rgba(0,7,18,.92) 31%, rgba(0,8,23,.28) 58%, rgba(0,7,18,.10) 100%),
-          linear-gradient(0deg, rgba(0,7,16,.78), transparent 42%),
+          linear-gradient(90deg, rgba(4,13,24,.98) 0%, rgba(9,23,39,.92) 31%, rgba(4,13,24,.28) 58%, rgba(3,11,20,.10) 100%),
+          linear-gradient(0deg, rgba(3,11,20,.82), transparent 42%),
           image-set(
             url('/images/training/training-orb-hero.avif') type('image/avif'),
             url('/images/training/training-orb-hero.webp') type('image/webp'),
             url('/images/training/training-orb-hero.png') type('image/png')
           ) 62% center / cover no-repeat;
         box-shadow:
-          inset 0 1px 0 rgba(255,255,255,.48),
-          inset 0 -2px 0 rgba(27,183,255,.65),
-          0 18px 50px rgba(0,0,0,.52),
-          0 0 34px rgba(0,146,255,.16);
+          inset 0 1px 0 rgba(255,255,255,.35),
+          inset 0 -2px 0 rgba(83,189,255,.45),
+          0 18px 50px rgba(0,0,0,.55);
       }
       .sp-hero-copy { position: relative; z-index: 2; max-width: 620px; align-self: center; }
       .sp-hero-eyebrow {
@@ -1654,46 +1775,81 @@ function GlobalStyle() {
       .sp-hero-sub { max-width: 56ch; color: #d6e8f3; font-size: 18px; line-height: 1.48; text-shadow: 0 2px 4px #000; }
       .sp-drill-card {
         max-width: 570px;
-        border-radius: 0;
-        border-color: rgba(114, 216, 255, .36);
-        background: linear-gradient(180deg, rgba(21,51,70,.72), rgba(3,13,23,.88));
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 12px 24px rgba(0,0,0,.28);
+        border-radius: 7px;
+        border: 1px solid #688299;
+        border-top-color: #aec0d0;
+        background: linear-gradient(180deg, #13253a 0%, #091727 55%, #060e18 100%);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 12px 24px rgba(0,0,0,.35);
       }
-      .sp-drill-cover { border-radius: 0; border-color: rgba(121,222,255,.38); }
+      .sp-drill-cover { border-radius: 7px; border-color: #688299; }
       .sp-drill-title { color: #fff; font-size: 17px; font-weight: 700; }
-      .sp-tag { border-radius: 0; color: #cfe7f4; background: rgba(3,14,24,.72); border-color: rgba(100,203,245,.22); }
-      .sp-cta { border-radius: 0; font-family: var(--font-orbitron), 'Orbitron', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: .025em; }
+      .sp-tag { border-radius: 7px; color: #cfe7f4; background: #091727; border-color: #688299; }
+      .sp-preset-bar {
+        max-width: 570px;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        padding: 10px 14px;
+        margin-bottom: 14px;
+        border-radius: 7px;
+        border: 1px solid #688299;
+        border-top-color: #aec0d0;
+        background: linear-gradient(180deg, #13253a 0%, #091727 65%, #060e18 100%);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 8px 20px rgba(0,0,0,.35);
+      }
+      .sp-preset-bar-label {
+        font-family: var(--font-orbitron), 'Orbitron', sans-serif;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: .12em;
+        color: #83deff;
+        text-transform: uppercase;
+      }
+      .sp-preset-bar-value {
+        font-size: 14px;
+        font-weight: 700;
+        color: #f4fbff;
+      }
+      .sp-preset-bar-rules {
+        font-size: 12px;
+        color: #b7cede;
+      }
+      .sp-cta { border-radius: 7px; font-family: var(--font-orbitron), 'Orbitron', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: .025em; }
       .sp-cta-primary {
-        color: #021018;
-        border: 1px solid #b9f4ff;
-        background: linear-gradient(180deg, #dcfbff 0%, #6ce7ff 11%, #0fb8e7 58%, #08729b 100%);
-        box-shadow: inset 0 1px 0 #fff, inset 0 -2px 0 #03445f, 0 0 22px rgba(0,195,255,.32), 0 8px 18px rgba(0,0,0,.35);
-        text-shadow: 0 1px 0 rgba(255,255,255,.55);
+        color: #f4fbff;
+        border: 1px solid #56d8ff;
+        border-top-color: #b3eaff;
+        background: linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.45), inset 0 -2px 0 #001c45, 0 0 18px rgba(8,124,250,.38), 0 8px 18px rgba(0,0,0,.4);
+        text-shadow: 0 1px 2px rgba(0,0,0,.65);
       }
       .sp-cta-secondary {
         color: #e9f8ff;
-        border-color: rgba(174, 231, 255, .48);
-        background: linear-gradient(180deg, rgba(216,246,255,.22) 0%, rgba(31,63,82,.38) 16%, rgba(4,15,25,.92) 74%, rgba(15,40,56,.92) 100%);
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.38), inset 0 -1px 0 rgba(75,193,239,.26), 0 7px 16px rgba(0,0,0,.34);
+        border: 1px solid #688299;
+        border-top-color: #aec0d0;
+        background: linear-gradient(180deg, #13253a 0%, #091727 52%, #060e18 100%);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.25), 0 7px 16px rgba(0,0,0,.34);
       }
 
       .sp-grade-card {
         position: relative;
         z-index: 2;
-        border-radius: 0;
-        border-color: rgba(134, 225, 255, .5);
-        background: linear-gradient(180deg, rgba(202,242,255,.16), rgba(7,20,31,.93) 16%, rgba(2,10,18,.96));
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.4), inset 0 -1px 0 rgba(0,173,242,.4), 0 18px 42px rgba(0,0,0,.5);
+        border-radius: 7px;
+        border: 1px solid #688299;
+        border-top-color: #aec0d0;
+        background: linear-gradient(180deg, #091727 0%, #030b14 100%);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.32), 0 18px 42px rgba(0,0,0,.5);
         backdrop-filter: blur(12px);
       }
       .sp-grade-letter { color: #92ebff; text-shadow: 0 0 20px rgba(0,204,255,.55); }
       .sp-grade-label, .sp-grade-value { color: #d9edf7; }
 
       .sp-leak, .sp-progress, .sp-stat, .sp-search input, .sp-empty {
-        border-radius: 0;
-        background: linear-gradient(180deg, rgba(183,232,255,.09), rgba(5,17,28,.94) 18%, rgba(2,10,18,.97));
-        border-color: rgba(112,207,245,.28);
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.18), inset 0 -1px 0 rgba(26,153,210,.22), 0 12px 24px rgba(0,0,0,.24);
+        border-radius: 7px;
+        background: linear-gradient(180deg, #091727 0%, #030b14 100%);
+        border: 1px solid #688299;
+        border-top-color: #aec0d0;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 12px 24px rgba(0,0,0,.28);
       }
       .sp-stat { min-height: 118px; padding: 20px; }
       .sp-stat-label { color: #9ec6da; font-weight: 700; letter-spacing: .08em; }
@@ -1708,17 +1864,20 @@ function GlobalStyle() {
         /* 44px, the global touch floor. This later theme block was 42 and
            won the cascade over both earlier 44s. */
         min-height: 44px;
-        border-radius: 0;
+        border-radius: 7px;
         color: #c7e0ec;
-        background: linear-gradient(180deg, rgba(201,241,255,.11), rgba(5,16,27,.92));
-        border-color: rgba(106,201,241,.26);
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.14);
+        background: linear-gradient(180deg, #13253a 0%, #060e18 100%);
+        border: 1px solid #688299;
+        border-top-color: #aec0d0;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.18);
       }
       .sp-cat-chip[aria-pressed="true"] {
-        color: #00141d;
-        background: linear-gradient(180deg, #d8faff, #35d3f8 48%, #087aa4);
-        border-color: #bdf5ff;
-        box-shadow: inset 0 1px 0 #fff, 0 0 18px rgba(0,196,255,.26);
+        color: #f4fbff;
+        background: linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%);
+        border-color: #56d8ff;
+        border-top-color: #b3eaff;
+        border-bottom: 3px solid #83deff;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 0 18px rgba(8,124,250,.32);
       }
 
       .sp-grid { gap: 20px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -1728,27 +1887,21 @@ function GlobalStyle() {
         flex-direction: column;
         overflow: hidden;
         padding: 0;
-        border-radius: 0;
-        border: 1px solid rgba(168, 226, 250, .55);
+        border-radius: 7px;
+        border: 1px solid #688299;
+        border-top-color: #aec0d0;
         color: #eef9ff;
-        background:
-          linear-gradient(90deg, transparent 0, rgba(91,210,255,.16) 18%, transparent 52%) top / 100% 2px no-repeat,
-          linear-gradient(180deg, #254253 0, #0b2130 2.5%, #071621 54%, #020a11 100%);
+        background: linear-gradient(180deg, #13253a 0%, #091727 42%, #030b14 100%);
         box-shadow:
-          inset 0 1px 0 rgba(255,255,255,.72),
-          inset 1px 0 0 rgba(114,215,255,.18),
-          inset -1px 0 0 rgba(114,215,255,.12),
-          inset 0 -2px 0 rgba(30,172,230,.38),
-          0 20px 38px rgba(0,0,0,.54),
-          0 0 28px rgba(0,142,220,.1);
+          inset 0 1px 0 rgba(255,255,255,.32),
+          0 20px 38px rgba(0,0,0,.54);
       }
       body.world-training .sp-main .sp-card[data-category]:hover {
         transform: translateY(-5px);
-        border-color: rgba(195, 242, 255, .9);
-        background:
-          linear-gradient(90deg, transparent 0, rgba(125,225,255,.34) 32%, transparent 68%) top / 100% 2px no-repeat,
-          linear-gradient(180deg, #315367 0, #0d283a 2.5%, #081824 54%, #020a11 100%);
-        box-shadow: inset 0 1px 0 #fff, inset 0 -2px 0 rgba(30,192,255,.64), 0 26px 48px rgba(0,0,0,.58), 0 0 38px rgba(0,184,255,.22);
+        border-color: #56d8ff;
+        border-top-color: #b3eaff;
+        background: linear-gradient(180deg, #18314d 0%, #0c1f35 42%, #040d18 100%);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 26px 48px rgba(0,0,0,.58), 0 0 28px rgba(8,124,250,.22);
       }
       .sp-card[data-category="mtt"] { --sector-accent: #fb923c; }
       .sp-card[data-category="cash"] { --sector-accent: #4ade80; }
@@ -1869,12 +2022,13 @@ function GlobalStyle() {
       }
 
       [role="dialog"] .sp-card-lg {
-        border-radius: 0;
-        border: 1px solid rgba(143,225,255,.52);
-        background: linear-gradient(180deg, #173142 0, #07141f 4%, #020912 100%);
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.48), inset 0 -1px 0 rgba(28,181,240,.38), 0 24px 80px rgba(0,0,0,.72), 0 0 34px rgba(0,180,255,.15);
+        border-radius: 7px;
+        border: 1px solid #688299;
+        border-top-color: #aec0d0;
+        background: linear-gradient(180deg, #091727 0%, #030b14 100%);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.32), 0 24px 80px rgba(0,0,0,.75);
       }
-      [role="dialog"] .sp-card { min-height: 0; border-radius: 0; }
+      [role="dialog"] .sp-card { min-height: 0; border-radius: 7px; }
       [role="dialog"] :is(h2, legend, div, span, button) { text-transform: capitalize; }
 
       @media (max-width: 900px) {
@@ -1892,13 +2046,12 @@ function GlobalStyle() {
         .sp-section-title { font-size: 15px; }
       }
 
-      /* Binding frame rule: no clipped, chamfered, rounded, or inset-box
-         corners anywhere in the Training Hub surface. */
+      /* MTT Lobby frame rule: 7px rounded steel frames without clip-path corners. */
       .sp-main :is(.sp-hero, .sp-section-head, .sp-drill-card, .sp-drill-cover,
         .sp-grade-card, .sp-leak, .sp-progress, .sp-stat, .sp-search input,
-        .sp-cat-chip, .sp-card, .sp-card-cover, .sp-badge, .sp-cat-pill,
-        .sp-empty, .sp-cta, .sp-tag) {
-        border-radius: 0 !important;
+        .sp-cat-chip, .sp-card, .sp-badge, .sp-cat-pill,
+        .sp-empty, .sp-cta, .sp-tag, .sp-preset-bar) {
+        border-radius: 7px !important;
         clip-path: none !important;
       }
       .sp-main .sp-card::before, .sp-main .sp-card::after,

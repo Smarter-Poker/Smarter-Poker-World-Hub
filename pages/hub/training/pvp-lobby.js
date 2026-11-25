@@ -219,8 +219,8 @@ export default function PvPLobbyPage() {
               <meta name="robots" content="noindex, nofollow" />
       </Head>
       <UniversalHeader pageDepth={2} />
-      <main className="sp-training-command sp-training-command--pvp" style={{ minHeight: 'calc(100dvh - 70px)', padding: 'clamp(26px, 7vw, 82px) 18px', background: 'radial-gradient(circle at 50% 8%, #18394d 0, #060a11 44%, #020407 100%)', color: '#f7fbff' }}>
-        <section className="sp-command-main" style={{ position: 'relative', maxWidth: 920, margin: '0 auto', border: '1px solid rgba(157,232,255,.46)', background: 'linear-gradient(145deg, rgba(18,42,59,.98), rgba(4,9,15,.99))', boxShadow: 'inset 0 1px rgba(255,255,255,.25), inset 0 -24px 55px rgba(0,0,0,.42), 0 32px 76px rgba(0,0,0,.55)', padding: 'clamp(24px, 5vw, 48px)' }}>
+      <main className="sp-training-command sp-training-command--pvp" style={{ minHeight: 'calc(100dvh - 70px)', padding: 'clamp(26px, 7vw, 82px) 18px', background: '#040d18', color: '#f7fbff' }}>
+        <section className="sp-command-main" style={{ position: 'relative', maxWidth: 920, margin: '0 auto', border: '1px solid #688299', borderTopColor: '#aec0d0', borderRadius: 7, background: 'linear-gradient(180deg, #091727 0%, #030b14 100%)', boxShadow: 'inset 0 1px rgba(255,255,255,.22), inset 0 -24px 55px rgba(0,0,0,.42), 0 32px 76px rgba(0,0,0,.55)', padding: 'clamp(24px, 5vw, 48px)' }}>
           <div aria-hidden="true" style={{ position: 'absolute', inset: 7, border: '1px solid rgba(93,201,240,.16)', pointerEvents: 'none' }} />
           <div style={{ position: 'relative' }}>
             <div className="sp-command-header" style={{ display: 'inline-flex', alignItems: 'center', gap: 9, color: '#ffcc71', fontSize: 12, fontWeight: 900, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
@@ -239,10 +239,10 @@ export default function PvPLobbyPage() {
               ))}
             </div>
 
-            <div style={{ marginTop: 28, padding: '22px', border: '1px solid rgba(102,211,246,.24)', background: 'rgba(0,0,0,.22)' }}>
+            <div style={{ marginTop: 28, padding: '22px', border: '1px solid #688299', borderTopColor: '#aec0d0', borderRadius: 7, background: '#091727' }}>
               <div style={{ color: '#82e7ff', fontSize: 12, fontWeight: 900, textTransform: 'capitalize' }}>Available Now: Heads-Up Duel</div>
               <p style={{ margin: '8px 0 0', color: '#a9becd', fontSize: 13, lineHeight: 1.65 }}>Practice Heads-Up Tournament Decisions On The Club Arena Training Table. Every Decision Uses The Authored Scenario Corpus, Explicit Grading, And Manual Next Progression.</p>
-              <a href={PRACTICE_ROUTE} style={{ display: 'inline-flex', minHeight: 50, alignItems: 'center', justifyContent: 'center', padding: '0 22px', marginTop: 18, border: '1px solid #a5efff', background: 'linear-gradient(180deg, #2a6077, #07131d)', boxShadow: 'inset 0 1px rgba(255,255,255,.25), 0 9px 22px rgba(0,0,0,.4)', color: '#fff', fontSize: 13, fontWeight: 900, textDecoration: 'none', textTransform: 'capitalize' }}>
+              <a href={PRACTICE_ROUTE} style={{ display: 'inline-flex', minHeight: 50, alignItems: 'center', justifyContent: 'center', padding: '0 22px', marginTop: 18, borderRadius: 7, border: '1px solid #56d8ff', background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 52%, #002b68 100%)', boxShadow: 'inset 0 1px rgba(255,255,255,.25), 0 9px 22px rgba(0,0,0,.4)', color: '#fff', fontSize: 13, fontWeight: 900, textDecoration: 'none', textTransform: 'capitalize' }}>
                 Enter Heads-Up Training →
               </a>
             </div>
@@ -256,8 +256,10 @@ export default function PvPLobbyPage() {
               style={{
                 marginTop: 20,
                 padding: '20px',
-                border: '1px solid rgba(130,231,255,.34)',
-                background: 'rgba(6,18,28,.86)',
+                borderRadius: 7,
+                border: '1px solid #688299',
+                borderTopColor: '#aec0d0',
+                background: '#091727',
               }}
             >
               <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
@@ -306,9 +308,9 @@ export default function PvPLobbyPage() {
                 style={{
                   minHeight: 40,
                   padding: '0 18px',
-                  borderRadius: 6,
-                  border: '1px solid #82e7ff',
-                  background: 'linear-gradient(180deg, #2a6077, #07131d)',
+                  borderRadius: 7,
+                  border: '1px solid #56d8ff',
+                  background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 52%, #002b68 100%)',
                   color: '#fff',
                   fontSize: 12,
                   fontWeight: 900,

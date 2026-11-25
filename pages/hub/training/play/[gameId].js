@@ -1,5 +1,5 @@
 /**
- * Training Play Page — Level Selector
+ * Training Play Page · Level Selector
  * ====================================
  * Shows the 12-level map for a specific game.
  * User selects which level to play, then navigates to the Game Arena.
@@ -39,7 +39,7 @@ export default function TrainingPlayPage() {
     // Fetch current user from Supabase auth.
     // 2026-07-19 AUDIT FIX: this page previously minted `anon-<ts>` user ids
     // for logged-out visitors, but every training question API requires a
-    // Bearer token (401 otherwise) — so anonymous sessions dead-ended on an
+    // Bearer token (401 otherwise) -- so anonymous sessions dead-ended on an
     // error screen in the arena. Send logged-out users to login and bring
     // them straight back here afterwards (login.js honors ?redirect=).
     useEffect(() => {
@@ -65,7 +65,7 @@ export default function TrainingPlayPage() {
         return (
             <div style={{
                 minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-                background: 'linear-gradient(180deg, #0a0a15 0%, #0d1628 100%)',
+                background: 'linear-gradient(180deg, #040d18 0%, #091727 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -86,7 +86,7 @@ export default function TrainingPlayPage() {
                 description="Smarter.Poker - The Future Of The Game."
                 noindex={true}
             />
-            <div className="training-play-page">
+            <div className="training-play-page" style={{ background: '#040d18', minHeight: '100dvh' }}>
                 <UniversalHeader pageDepth={2} />
                 <LevelSelector
                     userId={userId}
@@ -97,17 +97,20 @@ export default function TrainingPlayPage() {
                     data-brain-engine={brainPreview?.engineModule || 'holdem-brain.js'}
                     data-recommended-action={brainPreview?.recommendedAction || 'Call'}
                     style={{
-                        maxWidth: 980,
+                        maxWidth: 600,
                         margin: '0 auto 36px',
-                        padding: 20,
-                        border: '1px solid rgba(139, 234, 255, 0.35)',
-                        background: 'linear-gradient(180deg, rgba(16, 36, 48, 0.96), rgba(4, 13, 21, 0.98))',
+                        padding: 18,
+                        borderRadius: 7,
+                        border: '1px solid #688299',
+                        borderTopColor: '#aec0d0',
+                        background: 'linear-gradient(180deg, #13253a 0%, #091727 55%, #060e18 100%)',
+                        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.22), 0 14px 32px rgba(0,0,0,0.45)',
                         color: '#eefbff',
                     }}
                 >
                     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
                         <div>
-                            <div style={{ color: '#7be9ff', fontSize: 12, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                            <div style={{ color: '#83deff', fontSize: 12, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
                                 Horse Brain Variant Calibration
                             </div>
                             <div style={{ marginTop: 4, color: '#f5fdff', fontSize: 15, fontWeight: 700 }}>
@@ -123,8 +126,12 @@ export default function TrainingPlayPage() {
                                     onClick={() => setBrainVariant(v)}
                                     style={{
                                         padding: '6px 12px',
-                                        border: brainVariant === v ? '1px solid #7be9ff' : '1px solid rgba(255,255,255,0.2)',
-                                        background: brainVariant === v ? 'rgba(8,145,178,0.45)' : 'rgba(255,255,255,0.05)',
+                                        borderRadius: 7,
+                                        border: brainVariant === v ? '1px solid #56d8ff' : '1px solid #688299',
+                                        borderTopColor: brainVariant === v ? '#b3eaff' : '#aec0d0',
+                                        background: brainVariant === v
+                                            ? 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)'
+                                            : 'linear-gradient(180deg, #13253a 0%, #060e18 100%)',
                                         color: '#f5fdff',
                                         fontSize: 12,
                                         fontWeight: 700,
@@ -140,8 +147,10 @@ export default function TrainingPlayPage() {
                                 onClick={() => router.push(buildCustomTrainingArenaHref({ format: 'cash', variant: brainVariant, streets: ['flop'], positions: ['BTN'], stackDepth: 100 }, 'play'))}
                                 style={{
                                     padding: '8px 14px',
-                                    border: '1px solid #7be9ff',
-                                    background: 'linear-gradient(180deg, #078cc0, #043a54)',
+                                    borderRadius: 7,
+                                    border: '1px solid #56d8ff',
+                                    borderTopColor: '#b3eaff',
+                                    background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)',
                                     color: '#f5fdff',
                                     fontSize: 12,
                                     fontWeight: 800,

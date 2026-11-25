@@ -386,7 +386,7 @@ export default function WeaknessScannerPage() {
         className="sp-training-tool sp-training-tool--analysis sp-analysis-weakness"
         style={{
           minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
+          background: '#040d18',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
@@ -395,7 +395,8 @@ export default function WeaknessScannerPage() {
           className="sp-training-analysis-header"
           style={{
             padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            borderBottom: '1px solid #688299',
+            background: 'linear-gradient(180deg, #091727 0%, #030b14 100%)',
             display: 'flex',
             alignItems: 'center',
             gap: 12,
@@ -472,10 +473,11 @@ export default function WeaknessScannerPage() {
               data-recommended-action={leakBrainEval.correctAnswer}
               style={{
                 padding: '16px',
-                borderRadius: 12,
+                borderRadius: 7,
                 marginBottom: 16,
-                background: 'rgba(15, 23, 42, 0.72)',
-                border: '1px solid rgba(56, 189, 248, 0.35)',
+                background: '#091727',
+                border: '1px solid #688299',
+                borderTopColor: '#aec0d0',
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
@@ -582,10 +584,10 @@ export default function WeaknessScannerPage() {
                 style={{
                   width: '100%',
                   padding: '10px 14px',
-                  borderRadius: 8,
-                  border: '1px solid rgba(56, 189, 248, 0.5)',
-                  background: 'rgba(56, 189, 248, 0.16)',
-                  color: 'var(--sp-accent-cyan)',
+                  borderRadius: 7,
+                  border: '1px solid #56d8ff',
+                  background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 52%, #002b68 100%)',
+                  color: '#fff',
                   fontSize: 12,
                   fontWeight: 800,
                   cursor: 'pointer',
@@ -605,10 +607,11 @@ export default function WeaknessScannerPage() {
             data-last-hand-ev-loss-bb={String(lastClubArenaHand.estimatedEvLossBb)}
             style={{
               padding: '14px 16px',
-              borderRadius: 12,
+              borderRadius: 7,
               marginBottom: 16,
-              background: 'rgba(15, 23, 42, 0.78)',
-              border: '1px solid rgba(251, 191, 36, 0.38)',
+              background: '#091727',
+              border: '1px solid #688299',
+              borderTopColor: '#aec0d0',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',

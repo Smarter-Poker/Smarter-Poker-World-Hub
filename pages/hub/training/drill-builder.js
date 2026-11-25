@@ -429,7 +429,7 @@ export default function DrillBuilderPage() {
       <div
         style={{
           minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-          background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
+          background: '#040d18',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
@@ -438,7 +438,8 @@ export default function DrillBuilderPage() {
         <div
           style={{
             padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            borderBottom: '1px solid #688299',
+            background: 'linear-gradient(180deg, #091727 0%, #030b14 100%)',
             display: 'flex',
             alignItems: 'center',
             gap: 12,
@@ -524,9 +525,10 @@ export default function DrillBuilderPage() {
           <div
             style={{
               padding: '20px 16px',
-              borderRadius: 12,
-              background: 'rgba(0,0,0,0.2)',
-              border: '1px solid rgba(255,255,255,0.05)',
+              borderRadius: 7,
+              background: '#091727',
+              border: '1px solid #688299',
+              borderTopColor: '#aec0d0',
               marginBottom: 24,
             }}
           >
@@ -732,11 +734,11 @@ export default function DrillBuilderPage() {
                 style={{
                   flex: 1,
                   padding: '12px 0',
-                  borderRadius: 10,
-                  border: '1px solid rgba(0,212,255,0.3)',
+                  borderRadius: 7,
+                  border: '1px solid #56d8ff',
                   background:
-                    'linear-gradient(180deg, rgba(0,212,255,0.15) 0%, rgba(0,212,255,0.05) 100%)',
-                  color: 'var(--sp-accent-cyan)',
+                    'linear-gradient(180deg, #087cfa 0%, #0044ac 52%, #002b68 100%)',
+                  color: '#fff',
                   fontSize: 13,
                   fontWeight: 700,
                   cursor: 'pointer',
@@ -757,9 +759,10 @@ export default function DrillBuilderPage() {
               style={{
                 marginBottom: 24,
                 padding: 16,
-                borderRadius: 12,
-                border: '1px solid rgba(6, 182, 212, 0.35)',
-                background: 'rgba(2, 6, 23, 0.72)',
+                borderRadius: 7,
+                border: '1px solid #688299',
+                borderTopColor: '#aec0d0',
+                background: '#091727',
               }}
             >
               <div
@@ -791,10 +794,10 @@ export default function DrillBuilderPage() {
                 onClick={() => router.push(previewArenaHref)}
                 style={{
                   padding: '8px 14px',
-                  borderRadius: 8,
-                  border: '1px solid rgba(6, 182, 212, 0.45)',
-                  background: 'rgba(6, 182, 212, 0.16)',
-                  color: '#e8fbff',
+                  borderRadius: 7,
+                  border: '1px solid #56d8ff',
+                  background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 52%, #002b68 100%)',
+                  color: '#fff',
                   fontSize: 12,
                   fontWeight: 800,
                   cursor: 'pointer',
