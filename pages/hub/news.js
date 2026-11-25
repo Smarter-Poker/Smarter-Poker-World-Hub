@@ -136,13 +136,13 @@ function formatViews(num) {
     return num.toString();
 }
 
-// Fallback images for different categories - using reliable poker images
+// First-party CSP-compliant Smarter.Poker Vanguard fallback art (HTTP 200 guaranteed, zero 3rd-party CDN dependency)
 const FALLBACK_IMAGES = {
-    tournament: 'https://images.pexels.com/photos/1871508/pexels-photo-1871508.jpeg?auto=compress&cs=tinysrgb&w=400',
-    strategy: 'https://images.pexels.com/photos/279009/pexels-photo-279009.jpeg?auto=compress&cs=tinysrgb&w=400',
-    industry: 'https://images.pexels.com/photos/3279691/pexels-photo-3279691.jpeg?auto=compress&cs=tinysrgb&w=400',
-    news: 'https://images.pexels.com/photos/6664248/pexels-photo-6664248.jpeg?auto=compress&cs=tinysrgb&w=400',
-    online: 'https://images.pexels.com/photos/4254890/pexels-photo-4254890.jpeg?auto=compress&cs=tinysrgb&w=400'
+    tournament: '/api/news/email-image?fallback=1&m=thumb',
+    strategy: '/api/news/email-image?fallback=1&m=thumb',
+    industry: '/api/news/email-image?fallback=1&m=thumb',
+    news: '/api/news/email-image?fallback=1&m=thumb',
+    online: '/api/news/email-image?fallback=1&m=thumb'
 };
 
 // NewsBox, VideoCard, ReelCard, MSPTBox, SourcePlaceholderBox — extracted to src/components/news/

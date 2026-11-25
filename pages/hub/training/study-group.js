@@ -628,7 +628,7 @@ StudyGroupRoom.displayName = 'StudyGroupRoom';
 const styles = {
   container: {
     minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
-    background: 'linear-gradient(180deg, #05050A 0%, #0A0A15 100%)',
+    background: 'radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%), linear-gradient(180deg, #040d18 0%, #02070d 100%)',
     padding: '24px 4vw 80px',
     color: '#fff',
     fontFamily: "'Inter', sans-serif",

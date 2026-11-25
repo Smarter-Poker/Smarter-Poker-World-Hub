@@ -227,8 +227,9 @@ test('LAW 1: every <img> in Weekly Wire, Welcome, Lifecycle, and Promo emails us
             ctaLabel: 'Claim',
             ctaUrl: 'https://smarter.poker/auth/signup',
             unsubscribeUrl: 'https://smarter.poker/api/news/subscribe?unsubscribe=test',
+            preferencesUrl: 'https://smarter.poker/hub/email-preferences?token=test',
             siteUrl: 'https://smarter.poker',
-        }),
+        }).html,
     ];
 
     const wireImgs = extractAttrValues(htmlPayloads[0], 'img', 'src');

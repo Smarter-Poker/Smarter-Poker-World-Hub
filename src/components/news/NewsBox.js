@@ -3,13 +3,13 @@ import { Eye, Bookmark, BookmarkCheck, Share2, CheckCircle, Clock, Trophy, BookO
 import { newsImageUrl } from '../../lib/security/imageHosts.js';
 import useHasMounted from '../../hooks/useHasMounted';
 
-// Fallback images for different categories
+// First-party CSP-compliant Smarter.Poker Vanguard fallback art (HTTP 200 guaranteed, zero 3rd-party CDN dependency)
 const FALLBACK_IMAGES = {
-    tournament: 'https://images.pexels.com/photos/1871508/pexels-photo-1871508.jpeg?auto=compress&cs=tinysrgb&w=400',
-    strategy: 'https://images.pexels.com/photos/279009/pexels-photo-279009.jpeg?auto=compress&cs=tinysrgb&w=400',
-    industry: 'https://images.pexels.com/photos/3279691/pexels-photo-3279691.jpeg?auto=compress&cs=tinysrgb&w=400',
-    news: 'https://images.pexels.com/photos/6664248/pexels-photo-6664248.jpeg?auto=compress&cs=tinysrgb&w=400',
-    online: 'https://images.pexels.com/photos/4254890/pexels-photo-4254890.jpeg?auto=compress&cs=tinysrgb&w=400'
+    tournament: '/api/news/email-image?fallback=1&m=hero',
+    strategy: '/api/news/email-image?fallback=1&m=hero',
+    industry: '/api/news/email-image?fallback=1&m=hero',
+    news: '/api/news/email-image?fallback=1&m=hero',
+    online: '/api/news/email-image?fallback=1&m=hero'
 };
 
 function formatViews(num) {
@@ -334,10 +334,11 @@ function NewsBoxCard({ article, index, onOpen, isBookmarked, onBookmark, onShare
                     fetchpriority={priority ? 'high' : 'auto'}
                     decoding="async"
                     onError={(e) => {
-                        // Try category fallback before giving up
-                        const img = e?.target;
+                        // Try first-party Vanguard fallback once (dataset.fb avoids relative-vs-absolute src loop)
+                        const img = e?.currentTarget || e?.target;
                         if (!img) return;
-                        if (img.src !== fallbackUrl) {
+                        if (!img.dataset.fb && !String(img.getAttribute('src') || '').includes('fallback=1')) {
+                            img.dataset.fb = '1';
                             img.src = fallbackUrl;
                         } else {
                             img.style.display = 'none';

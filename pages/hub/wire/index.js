@@ -117,6 +117,10 @@ export async function getServerSideProps({ res }) {
                     relative: true,
                     mode: 'thumb',
                 }),
+                ogImageUrl: buildSignedEmailImageUrl(curated?.articles?.[0]?.image_url || '', {
+                    siteUrl: 'https://smarter.poker',
+                    mode: 'hero',
+                }),
                 leadUpdate: curated?.platformUpdates?.[0]
                     ? {
                           badge: String(curated.platformUpdates[0].badge || 'Platform Upgrade'),
@@ -151,6 +155,7 @@ export default function WeeklyWireArchivePage({ editions = [], livePreview = nul
     const pageTitle = 'Smarter.Poker Weekly Wire Archive | Poker News, GTO Spots & Upgrades';
     const pageDesc =
         'Read Every Issue Of The Smarter.Poker Weekly Wire: Curated World Poker News, Solver Decision Spots, Pro Poker Calculators, And Platform Upgrades.';
+    const ogImageUrl = livePreview?.ogImageUrl || 'https://smarter.poker/api/news/email-image?fallback=1&m=hero';
 
     return (
         <>
@@ -161,8 +166,11 @@ export default function WeeklyWireArchivePage({ editions = [], livePreview = nul
                 <meta key="og-url" property="og:url" content={canonicalUrl} />
                 <meta key="og-title" property="og:title" content={pageTitle} />
                 <meta key="og-description" property="og:description" content={pageDesc} />
+                <meta key="og-image" property="og:image" content={ogImageUrl} />
+                <meta key="twitter-card" name="twitter:card" content="summary_large_image" />
                 <meta key="twitter-title" name="twitter:title" content={pageTitle} />
                 <meta key="twitter-description" name="twitter:description" content={pageDesc} />
+                <meta key="twitter-image" name="twitter:image" content={ogImageUrl} />
             </Head>
 
             <main

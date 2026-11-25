@@ -67,28 +67,30 @@ export default async function handler(req, res) {
                     });
             }
 
-            if (optingOut) {
-                const digits10 = phone.startsWith('+1') ? phone.slice(2) : null;
-                const candidates = digits10 ? [phone, digits10, `1${digits10}`] : [phone];
-                // in-list: bounded to at most 3 phone representations for one handset
-                const { data: matchedProfiles } = await sb
-                    .from('profiles')
-                    .select('id')
-                    .in('phone', candidates.slice(0, 3))
-                    .limit(20);
-                for (const p of matchedProfiles || []) {
-                    await sb
-                        .from('notification_preferences')
-                        .upsert(
-                            {
-                                user_id: p.id,
-                                sms_enabled: false,
-                                marketing_enabled: false,
-                                updated_at: nowIso,
-                            },
-                            { onConflict: 'user_id' }
-                        );
-                }
+            // Mirror handset SMS opt-out (STOP) or re-subscription (START) strictly onto
+            // `sms_enabled` without disabling `marketing_enabled` (so SMS STOP never kills
+            // a player's Weekly Wire email subscription, and SMS START restores SMS delivery).
+            const digits10 = phone.startsWith('+1') ? phone.slice(2) : null;
+            const candidates = digits10 ? [phone, digits10, `1${digits10}`] : [phone];
+            // in-list: bounded to at most 3 phone representations for one handset
+            const { data: matchedProfiles } = await sb
+                .from('profiles')
+                .select('id')
+                .in('phone', candidates.slice(0, 3))
+                .limit(20);
+            for (const p of matchedProfiles || []) {
+                if (!p?.id) continue;
+                await sb
+                    .from('notification_preferences')
+                    .upsert(
+                        {
+                            user_id: p.id,
+                            sms_enabled: !optingOut,
+                            ...(!optingOut ? { mute_all: false } : {}),
+                            updated_at: nowIso,
+                        },
+                        { onConflict: 'user_id' }
+                    );
             }
         } catch (err) {
             console.error('[twilio-inbound]', String(err?.message || err));

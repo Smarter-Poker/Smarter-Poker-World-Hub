@@ -336,13 +336,25 @@ export default function OpponentProfiler() {
                         <StatComparisonTable selectedTypes={compareTypes} />
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 8, marginTop: 8 }}>
                             {compareTypes.map(t => (
-                                <ProfileCard key={t} archetype={t} isSelected={true} onClick={() => {}} />
+                                <ProfileCard
+                                    key={t}
+                                    archetype={t}
+                                    isSelected={selectedType === t}
+                                    onClick={() => {
+                                        setSelectedType(t);
+                                        setCompareMode(false);
+                                    }}
+                                />
                             ))}
                         </div>
                     </>
                 ) : (
                     <>
-                        <ProfileCard archetype={selectedType} isSelected={true} onClick={() => {}} />
+                        <ProfileCard
+                            archetype={selectedType}
+                            isSelected={true}
+                            onClick={() => setCompareMode(true)}
+                        />
                         <div style={{ marginTop: 10 }}>
                             <AdjustmentsPanel archetype={selectedType} />
                         </div>

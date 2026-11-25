@@ -110,16 +110,21 @@ export default async function handler(req, res) {
       return res.status(503).json({ success: false, error: 'Could not lock this answer. Please retry.' });
     }
 
+    const answer = data.answer || {};
+    const lockedCorrect = answer.correct === true;
+    const lockedTimedOut = answer.timed_out === true;
+    const lockedSelected = lockedTimedOut ? '__timeout__' : (answer.selected_answer || graded.selectedAnswer);
+
     const { error: eventError } = await supabase.rpc('fn_training_cache_record_event', {
       p_event_type: 'answered',
       p_event_key: `leak-drill:${batch.batchId}:${questionId}`,
       p_question_id: question.question_id,
       p_user_id: user.id,
-      p_is_correct: graded.correct,
+      p_is_correct: lockedCorrect,
       p_metadata: {
         consumer: 'verified-leak-drill',
         batchId: batch.batchId,
-        selectedAnswer: graded.timedOut ? '__timeout__' : graded.selectedAnswer,
+        selectedAnswer: lockedSelected,
         policyChecksum: question.policy_checksum,
       },
       p_occurred_at: new Date().toISOString(),
@@ -130,17 +135,16 @@ export default async function handler(req, res) {
       return res.status(503).json({ success: false, error: 'Could not finalize this answer. Please retry.' });
     }
 
-    const answer = data.answer || {};
     return res.status(200).json({
       success: true,
       idempotent: data.idempotent === true,
       result: {
-        correct: answer.correct === true,
+        correct: lockedCorrect,
         selectedAnswer: answer.selected_answer || null,
         correctAnswer: answer.correct_answer || graded.correctAnswer,
         explanation: answer.explanation || null,
         classification: answer.classification || null,
-        timedOut: answer.timed_out === true,
+        timedOut: lockedTimedOut,
       },
     });
   } catch (error) {

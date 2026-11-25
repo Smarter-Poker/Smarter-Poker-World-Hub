@@ -49,8 +49,10 @@ function VideoCardBody({ video, onClick }) {
                     fill
                     style={{ objectFit: 'cover' }}
                     onError={(e) => {
-                        if (e?.target && e.target.src !== FALLBACK_IMAGES.news) {
-                            e.target.src = FALLBACK_IMAGES.news;
+                        const img = e?.currentTarget || e?.target;
+                        if (img && !img.dataset.fb) {
+                            img.dataset.fb = '1';
+                            img.src = FALLBACK_IMAGES.news;
                         }
                     }}
                 />

@@ -139,36 +139,135 @@ test('1-tap start flow, preset summary, and progressive disclosures are wired ac
     /\.sp-club-gto-desktop-rail\s*\{[\s\S]*?pointer-events:\s*none;/m.test(table),
     'sp-club-gto-desktop-rail must have pointer-events: none so it never intercepts clicks on action or raise controls',
   );
+
+  // Phase 15 progressive disclosures and 1-tap preset summaries across secondary subpages
+  const multiTable = read('pages/hub/training/multi-table.js');
+  assert.ok(multiTable.includes('data-multitable-preset-summary="true"'), 'multi-table.js must display active preset summary bar');
+  assert.ok(multiTable.includes('data-multitable-advanced-disclosure="true"'), 'multi-table.js must wrap per-pane rotation & drill grid inside an advanced disclosure');
+
+  const categoryPage = read('pages/hub/training/category/[categoryId].js');
+  assert.ok(categoryPage.includes('data-category-preset-summary="true"'), 'category/[categoryId].js must display 1-tap sector preset summary');
+  assert.ok(categoryPage.includes('data-category-quick-start="true"'), 'category/[categoryId].js must provide 1-tap Start Sector Training CTA');
+
+  const sessionDashboard = read('pages/hub/training/session-dashboard.js');
+  assert.ok(sessionDashboard.includes('data-dashboard-detailed-diagnostics="true"'), 'session-dashboard.js must wrap specialized split-pot & pacing diagnostics inside a disclosure');
+
+  const autopilot = read('pages/hub/training/autopilot.js');
+  assert.ok(autopilot.includes('data-autopilot-preset-summary="true"'), 'autopilot.js must display preset queue summary');
+
+  const jarvis = read('pages/hub/training/jarvis.js');
+  assert.ok(jarvis.includes('data-jarvis-detailed-metrics="true"'), 'jarvis.js must wrap secondary bankroll & weekly metrics inside a disclosure');
+
+  const quizBuilder = read('pages/hub/training/quiz-builder.js');
+  assert.ok(quizBuilder.includes('data-quiz-builder-advanced="true"'), 'quiz-builder.js must wrap reference panel inside a disclosure');
 });
 
-test('no Training component has synchronous Temporal Dead Zone (TDZ) const/let references before declaration', () => {
+test('100% of Training Hub routes adopt the MTT Lobby #040d18 canvas or shared MTT/casino module tokens with zero legacy #0a0a1a/#0a0a12/#0a0a0a backgrounds', () => {
+  function walkRoutes(dir) {
+    let out = [];
+    for (const ent of fs.readdirSync(path.join(ROOT, dir), { withFileTypes: true })) {
+      const rel = path.join(dir, ent.name);
+      if (ent.isDirectory()) out = out.concat(walkRoutes(rel));
+      else if (rel.endsWith('.js') || rel.endsWith('.jsx')) out.push(rel);
+    }
+    return out;
+  }
+
+  const allRoutes = ['pages/hub/training.js', ...walkRoutes('pages/hub/training')];
+  assert.ok(allRoutes.length >= 95, `Expected at least 95 Training route files, found ${allRoutes.length}`);
+
+  const canonicalRedirect = read('src/components/training/CanonicalTrainingRedirect.jsx');
+  assert.ok(canonicalRedirect.includes('#040d18'), 'CanonicalTrainingRedirect.jsx must use #040d18 MTT Lobby canvas');
+  assert.ok(canonicalRedirect.includes('#688299'), 'CanonicalTrainingRedirect.jsx must use #688299 steel border');
+  assert.ok(canonicalRedirect.includes("'plo8'"), 'CanonicalTrainingRedirect.jsx must include plo8 variant tab');
+
+  const gameCard = read('src/components/training/GameCard.jsx');
+  assert.ok(gameCard.includes('#688299'), 'GameCard.jsx must use #688299 steel border');
+  assert.ok(gameCard.includes('#087cfa'), 'GameCard.jsx must use #087cfa royal-blue action CTA');
+
+  for (const rel of allRoutes) {
+    const src = read(rel);
+    assert.ok(
+      !src.includes('#0a0a1a') && !src.includes('#0a0a12') && !src.includes('#0a0a0a'),
+      `${rel} still contains legacy #0a0a1a / #0a0a12 / #0a0a0a background`,
+    );
+    assert.ok(
+      !src.includes('radial-gradient(circle at 50% 15%, #12354d'),
+      `${rel} still contains legacy radial-gradient(circle at 50% 15%, #12354d) background`,
+    );
+  }
+});
+
+test('no Training file across the entire 584-file Training codebase has synchronous Temporal Dead Zone (TDZ) const/let references before declaration, duplicate object literal keys, or empty no-op onClick={() => {}} handlers', () => {
   const parser = require('@babel/parser');
   const traverse = require('@babel/traverse').default;
-  const files = [
-    'src/components/training/games/UniversalDynamicTable.jsx',
-    'src/components/training/GodModeArena.jsx',
-    'src/components/training/SessionSetupModal.jsx',
-    'src/components/training/TrainerConfigModal.jsx',
+  function walkTrainingFiles(dir) {
+    const abs = path.join(ROOT, dir);
+    if (!fs.existsSync(abs)) return [];
+    let out = [];
+    for (const ent of fs.readdirSync(abs, { withFileTypes: true })) {
+      const rel = path.join(dir, ent.name);
+      if (ent.isDirectory()) out = out.concat(walkTrainingFiles(rel));
+      else if (/\.(js|jsx|mjs)$/.test(rel)) out.push(rel);
+    }
+    return out;
+  }
+  const files = Array.from(new Set([
     'pages/hub/training.js',
-  ];
-  const violations = [];
+    ...walkTrainingFiles('pages/hub/training'),
+    ...walkTrainingFiles('pages/api/training'),
+    ...walkTrainingFiles('src/components/training'),
+    ...walkTrainingFiles('src/lib/training'),
+    ...walkTrainingFiles('src/hooks').filter((f) => /training|gto|sound|progress/i.test(f)),
+    ...walkTrainingFiles('src/config').filter((f) => /training|gto/i.test(f)),
+    ...walkTrainingFiles('src/engines').filter((f) => /GTO|Scenario|Coaching|Hand|Leak|Solver|ICM|MonteCarlo|EV|Chart|Glossary/i.test(f)),
+  ])).filter((rel) => fs.existsSync(path.join(ROOT, rel)));
+
+  assert.ok(files.length >= 575, `Expected at least 575 Training files in full AST scan, found ${files.length}`);
+
+  const tdzViolations = [];
+  const dupKeyViolations = [];
+  const noopClickViolations = [];
+  const brokenImportViolations = [];
+
   for (const rel of files) {
     const code = read(rel);
     const ast = parser.parse(code, { sourceType: 'module', plugins: ['jsx', 'typescript'] });
     traverse(ast, {
-      Function(path) {
-        const bindings = path.scope.bindings;
+      ImportDeclaration(p) {
+        const src = p.node.source.value;
+        if (!src.startsWith('.')) return;
+        const baseDir = path.dirname(path.join(ROOT, rel));
+        const candidateBase = path.resolve(baseDir, src);
+        const candidates = [
+          candidateBase,
+          `${candidateBase}.js`,
+          `${candidateBase}.jsx`,
+          `${candidateBase}.mjs`,
+          `${candidateBase}.ts`,
+          `${candidateBase}.tsx`,
+          `${candidateBase}.json`,
+          path.join(candidateBase, 'index.js'),
+          path.join(candidateBase, 'index.jsx'),
+          path.join(candidateBase, 'index.mjs'),
+        ];
+        if (!candidates.some((c) => fs.existsSync(c))) {
+          brokenImportViolations.push(`${rel}:${p.node.loc?.start?.line} -> unresolved relative import "${src}"`);
+        }
+      },
+      Function(p) {
+        const bindings = p.scope.bindings;
         for (const [name, binding] of Object.entries(bindings)) {
           if (binding.kind !== 'const' && binding.kind !== 'let') continue;
           const declLoc = binding.identifier.loc.start.line;
           for (const ref of binding.referencePaths) {
             const refLoc = ref.node.loc.start.line;
             if (refLoc < declLoc) {
-              let p = ref.parentPath;
+              let cur = ref.parentPath;
               let inDeferredFn = false;
-              while (p && p !== path) {
-                if (p.isFunction()) {
-                  const gp = p.parentPath;
+              while (cur && cur !== p) {
+                if (cur.isFunction()) {
+                  const gp = cur.parentPath;
                   const isSyncMemo = gp && gp.isCallExpression() && gp.node.callee && (
                     gp.node.callee.name === 'useMemo' ||
                     (gp.node.callee.property && gp.node.callee.property.name === 'useMemo')
@@ -178,18 +277,152 @@ test('no Training component has synchronous Temporal Dead Zone (TDZ) const/let r
                     break;
                   }
                 }
-                p = p.parentPath;
+                cur = cur.parentPath;
               }
               if (!inDeferredFn) {
-                violations.push(`${rel}: "${name}" declared at line ${declLoc} but referenced synchronously at line ${refLoc}`);
+                tdzViolations.push(`${rel}: "${name}" declared at line ${declLoc} but referenced synchronously at line ${refLoc}`);
               }
             }
           }
         }
       },
+      ObjectExpression(p) {
+        const seen = new Map();
+        for (const prop of p.node.properties) {
+          if (prop.type === 'SpreadElement') {
+            seen.clear();
+            continue;
+          }
+          if (prop.computed) continue;
+          const key = prop.key?.name || prop.key?.value;
+          if (!key) continue;
+          if (seen.has(key)) {
+            dupKeyViolations.push(`${rel}:${prop.loc?.start?.line} duplicate object key "${key}" (first at line ${seen.get(key)})`);
+          }
+          seen.set(key, prop.loc?.start?.line);
+        }
+      },
+      JSXAttribute(p) {
+        const attrName = p.node.name?.name;
+        if (attrName === 'onClick' && p.node.value?.type === 'JSXExpressionContainer') {
+          const expr = p.node.value.expression;
+          if (
+            (expr.type === 'ArrowFunctionExpression' || expr.type === 'FunctionExpression') &&
+            expr.body.type === 'BlockStatement' &&
+            expr.body.body.length === 0
+          ) {
+            noopClickViolations.push(`${rel}:${p.node.loc?.start?.line} empty no-op onClick={() => {}}`);
+          }
+        }
+      },
     });
   }
-  assert.deepEqual(violations, [], `TDZ violations detected:\n${violations.join('\n')}`);
+  assert.deepEqual(brokenImportViolations, [], `Broken relative imports detected:\n${brokenImportViolations.join('\n')}`);
+  assert.deepEqual(tdzViolations, [], `TDZ violations detected:\n${tdzViolations.join('\n')}`);
+  assert.deepEqual(dupKeyViolations, [], `Duplicate object literal keys detected:\n${dupKeyViolations.join('\n')}`);
+  assert.deepEqual(noopClickViolations, [], `Empty no-op onClick handlers detected:\n${noopClickViolations.join('\n')}`);
+});
+
+test('plo8 variant parity is preserved across curatedPokerConcepts, gradingReceipt duel tokens, syncedHandDrillResolver, weaknessAnalysis, and DeterministicGTOEngine', async () => {
+  const { generateCuratedPokerConceptBatch } = await import('../src/lib/training/curatedPokerConcepts.js');
+  const { createSignedTrainingDuelToken, verifyTrainingDuelToken } = await import('../src/lib/training/gradingReceipt.mjs');
+  const { rankImportedHandsByEvLeak } = await import('../src/lib/training/syncedHandDrillResolver.js');
+  const { analyzeVerifiedTrainingWeaknesses } = await import('../src/lib/training/weaknessAnalysis.mjs');
+
+  // 1. Curated concepts must preserve variant='plo8', deal 4 hole cards, and label PLO8 Hi-Lo 8-or-Better
+  const plo8Batch = generateCuratedPokerConceptBatch({
+    gameId: 'cash-005',
+    level: 2,
+    count: 3,
+    gameConfig: { variant: 'plo8', pioGameType: 'cash_plo' },
+  });
+  assert.equal(plo8Batch.length, 3);
+  for (const q of plo8Batch) {
+    assert.equal(q.scenario.variant, 'plo8', 'curatedPokerConcepts must preserve plo8 variant');
+    assert.equal(q.heroCards.length, 4, 'plo8 must deal 4 hole cards');
+    assert.ok(q.question.includes('PLO8'), 'plo8 curated prompt must label PLO8');
+  }
+
+  // 2. Duel tokens must preserve variant='plo8' through createSignedTrainingDuelToken -> verifyTrainingDuelToken
+  const testSecret = 'd8a93f14b7c25e609184726354182736459a8b7c6d5e4f3a2b1c0d9e8f7a6b5c';
+  const duelToken = createSignedTrainingDuelToken({
+    gameId: 'cash-005',
+    level: 2,
+    variant: 'plo8',
+    questionIds: ['q1', 'q2'],
+    challengerId: 'u-1',
+    challengerName: 'Hero',
+    secret: testSecret,
+  });
+  const verifiedDuel = verifyTrainingDuelToken(duelToken, { secret: testSecret });
+  assert.ok(verifiedDuel, 'verifyTrainingDuelToken must verify token');
+  assert.equal(verifiedDuel.variant, 'plo8', 'createSignedTrainingDuelToken must not downgrade plo8 to nlh');
+
+  // 3. syncedHandDrillResolver must preserve explicit variant='plo8' even with 4 hole cards
+  const syncedDrills = rankImportedHandsByEvLeak([
+    {
+      id: 'sync-plo8-1',
+      variant: 'plo8',
+      heroCards: ['As', '2s', '3h', 'Kh'],
+      boardCards: ['Qs', '7d', '2c'],
+      heroPosition: 'BTN',
+      villainPosition: 'BB',
+      pot: 12,
+      toCall: 6,
+    },
+  ]);
+  assert.equal(syncedDrills.length, 1);
+  assert.equal(syncedDrills[0].variant, 'plo8', 'syncedHandDrillResolver must preserve explicit plo8 variant');
+
+  // 4. weaknessAnalysis must classify plo8 sessions and answers as plo8 rather than downgrading to nlh or plo4
+  const weaknessReport = analyzeVerifiedTrainingWeaknesses({
+    sessions: [
+      {
+        id: 'sess-plo8-1',
+        game_id: 'cash-005',
+        hands_played: 10,
+        correct_count: 5,
+        trainer_config: { variant: 'plo8', street: 'flop', position: 'BTN' },
+      },
+    ],
+    recentAnswers: [
+      {
+        game_id: 'cash-005',
+        question_id: 'curated_cash-005_plo8_L1_cbet_0_0',
+        is_correct: false,
+        variant: 'plo8',
+        street: 'flop',
+        hero_position: 'BTN',
+      },
+      {
+        game_id: 'cash-005',
+        question_id: 'curated_cash-005_plo8_L1_cbet_0_1',
+        is_correct: false,
+        variant: 'plo8',
+        street: 'flop',
+        hero_position: 'BTN',
+      },
+      {
+        game_id: 'cash-005',
+        question_id: 'curated_cash-005_plo8_L1_cbet_0_2',
+        is_correct: true,
+        variant: 'plo8',
+        street: 'flop',
+        hero_position: 'BTN',
+      },
+    ],
+  });
+  assert.ok(weaknessReport, 'weaknessAnalysis must return report for plo8');
+  const plo8Spot = (weaknessReport.spotLeaks || []).find((s) => s.variant === 'plo8');
+  assert.ok(plo8Spot, 'weaknessAnalysis spotLeaks must retain variant="plo8"');
+  assert.equal(weaknessReport.topSpotLeak?.variant, 'plo8', 'weaknessAnalysis topSpotLeak must retain variant="plo8"');
+
+  // 5. DeterministicGTOEngine must include plo8 in its curatedFallback variant check
+  const engineSrc = read('src/engines/DeterministicGTOEngine.js');
+  assert.ok(
+    engineSrc.includes("['plo4', 'plo5', 'plo6', 'plo8']"),
+    'DeterministicGTOEngine.js must route plo8 alongside plo4/plo5/plo6 to curatedFallback()',
+  );
 });
 
 test('evaluateMultiwayPostflopSpot and evaluateFullHandLineAndBranchComparison succeed across preflop, flop, turn, and river for all variants', async () => {

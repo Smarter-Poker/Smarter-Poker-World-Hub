@@ -22,7 +22,7 @@
 .eyebrow { display: inline-flex; gap: 6px; align-items: center; color: #83deff; font: 700 12px/1.2 "Arial Narrow", Arial, sans-serif; letter-spacing: .05em; text-transform: uppercase; }
 .commandControls { display: grid; gap: 8px; min-width: min(100%, 210px); }
 .depthControl { display: grid; gap: 5px; color: #b6c8d6; font-size: 12px; font-weight: 700; text-transform: uppercase; }
-.depthControl select { box-sizing: border-box; width: 100%; height: 44px; min-height: 44px; padding: 8px 10px; border: 1px solid #688299; border-radius: 6px; background: #07111c; color: #f1f5fc; font: 700 13px/1.2 Arial, sans-serif; }
+.depthControl select { box-sizing: border-box; width: 100%; height: 44px; min-height: 44px; padding: 8px 10px; border: 1px solid #688299; border-radius: 6px; background: #07111c; color: #f1f5fc; font: 700 16px/1.2 Arial, sans-serif; }
 .receipt { min-width: 190px; padding: 10px; border: 1px solid rgba(255, 198, 109, .45); border-radius: 6px; background: rgba(255, 198, 109, .08); }
 .receipt span, .receipt strong { display: block; }
 .receipt span { color: #b6c8d6; font-size: 12px; text-transform: uppercase; }
@@ -30,7 +30,7 @@
 
 .searchBar { min-height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 12px; }
 .searchBar svg { color: #9aabba; flex: none; }
-.searchBar input { min-height: 44px; border: 0; outline: 0; background: transparent; color: #f1f5fc; width: 100%; font: inherit; font-size: 14px; min-width: 0; }
+.searchBar input { min-height: 44px; border: 0; outline: 0; background: transparent; color: #f1f5fc; width: 100%; font: inherit; font-size: 16px; min-width: 0; }
 .searchBar input::placeholder { color: #9aabba; }
 
 .viewNav { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); }
@@ -42,7 +42,7 @@
 .status { border: 1px solid rgba(77, 224, 165, .5); border-radius: 6px; padding: 10px 12px; background: rgba(77, 224, 165, .1); color: #68efb3; font-size: 13px; }
 .status[data-tone="danger"] { border-color: rgba(255, 107, 122, .55); color: #ff8290; background: rgba(255, 107, 122, .1); }
 .inlineNotice { margin-top: 8px; padding: 8px 10px; border-left: 3px solid var(--coach-gold); border-radius: 4px; background: rgba(255, 198, 109, .08); color: #dce5ef; font-size: 12px; line-height: 1.45; }
-.inlineNotice button { min-height: 36px; margin-left: 7px; padding: 0 10px; border: 1px solid #688299; border-radius: 6px; background: #13253a; color: #f1f5fc; cursor: pointer; }
+.inlineNotice button { min-height: 44px; margin-left: 7px; padding: 0 12px; border: 1px solid #688299; border-radius: 6px; background: #13253a; color: #f1f5fc; cursor: pointer; }
 
 .coachGrid, .evidenceGrid, .goalsGrid, .dataGrid { display: grid; gap: 10px; }
 .panel { padding: 12px 14px; min-width: 0; }
@@ -103,7 +103,7 @@
 .coverageList div { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid #253e57; padding-bottom: 6px; }
 .coverageList dt { color: #b6c8d6; font-size: 13px; }
 .coverageList dd { margin: 0; font: 700 13px Arial, sans-serif; font-variant-numeric: tabular-nums; color: #f1f5fc; }
-.panel select, .panel textarea, .panel input { box-sizing: border-box; width: 100%; min-height: 44px; margin-top: 6px; padding: 10px; border: 1px solid #688299; border-radius: 6px; background: #07111c; color: #f1f5fc; font: inherit; }
+.panel select, .panel textarea, .panel input { box-sizing: border-box; width: 100%; min-height: 44px; margin-top: 6px; padding: 10px; border: 1px solid #688299; border-radius: 6px; background: #07111c; color: #f1f5fc; font: inherit; font-size: 16px; }
 .panel select { height: 44px; }
 .panel textarea { min-height: 88px; resize: vertical; margin-bottom: 10px; }
 .panel label { display: block; margin-top: 10px; color: #b6c8d6; font-size: 12px; font-weight: 700; }

@@ -107,7 +107,9 @@ import GhostPostCard from '../../../src/components/social/GhostPostCard';
 import PuzzleAnswerCard from '../../../src/components/social/PuzzleAnswerCard';
 import PokerCardText, { PokerCardSnippet } from '../../../src/components/social/PokerCardText';
 import FeedTabs, { normalizeFeedTab } from '../../../src/components/social/FeedTabs';
-import FeedVideoPlayer from '../../../src/components/social/FeedVideoPlayer';
+import FeedVideoPlayer, { isNativeFeedVideo } from '../../../src/components/social/FeedVideoPlayer';
+import { uploadVideoCover } from '../../../src/lib/thumbnailUploader';
+import { isVideoCoverFile } from '../../../src/lib/videoCover.mjs';
 import { normalizePokerPostContent, stripPokerCardMarkup, truncatePokerText } from '../../../src/lib/pokerCardMarkup';
 import dynamic from 'next/dynamic';
 const SharePostModal = dynamic(() => import('../../../src/components/social/SharePostModal'), {
@@ -233,6 +235,12 @@ const PostCard = React.memo(
     const [replyingTo, setReplyingTo] = useState(null);
     const [editing, setEditing] = useState(false);
     const [editContent, setEditContent] = useState('');
+    const [editCoverFile, setEditCoverFile] = useState(null);
+    const incomingCoverUrl = post.thumbnailUrl || post.thumbnail_url || post.coverFrameUrl || null;
+    const [coverUrl, setCoverUrl] = useState(incomingCoverUrl);
+    const [savingEdit, setSavingEdit] = useState(false);
+    const mayEditCover = post.contentType === 'video' && isNativeFeedVideo(post);
+    useEffect(() => { setCoverUrl(incomingCoverUrl); }, [incomingCoverUrl]);
     const [showReactionPicker, setShowReactionPicker] = useState(false);
 
     // Phase 28: Render @mentions as clickable links
@@ -913,8 +921,29 @@ const PostCard = React.memo(
             boxSizing: 'border-box',
           }}
         />
+        {mayEditCover && (
+          <label style={{ display: 'block', marginTop: 8 }}>
+            Upload Custom Video Cover
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              disabled={savingEdit}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+                if (!isVideoCoverFile(file)) {
+                  toast.error('Choose A JPEG, PNG Or WebP Cover Up To 10 MB.');
+                  event.target.value = '';
+                  return;
+                }
+                setEditCoverFile(file);
+              }}
+            />
+          </label>
+        )}
         <div style={{ display: 'flex', gap: 8, marginTop: 6, justifyContent: 'flex-end' }}>
           <button
+            disabled={savingEdit}
             onClick={() => setEditing(false)}
             style={{
               padding: '6px 16px',
@@ -931,33 +960,50 @@ const PostCard = React.memo(
           </button>
           <button
             onClick={async () => {
+              if (savingEdit) return;
               const content = normalizePokerPostContent(editContent.trim());
-              if (!content) {
-                toast.error('Post content cannot be empty');
-                return;
-              }
+              if (!content && !editCoverFile) return;
+              setSavingEdit(true);
               try {
-                const { error } = await supabase
-                  .from('social_posts')
-                  .update({ content })
-                  .eq('id', post.id)
-                  .eq('author_id', currentUserId);
-                if (error) throw error;
-                setDisplayContent(content);
+                const patch = {};
+                if (!editCoverFile || editContent !== displayContent) patch.content = content;
+                if (editCoverFile) {
+                  const thumbnailUrl = await uploadVideoCover(editCoverFile, currentUserId);
+                  if (!thumbnailUrl) throw new Error('Cover Upload Failed');
+                  patch.thumbnail_url = thumbnailUrl;
+                }
+                if (Object.keys(patch).length > 0) {
+                  const write = supabase.from('social_posts').update(patch)
+                    .eq('id', post.id).eq('author_id', currentUserId);
+                  if (patch.thumbnail_url) {
+                    const { data, error } = await write.select('id, content, thumbnail_url').maybeSingle();
+                    if (error) throw error;
+                    if (data?.thumbnail_url !== patch.thumbnail_url) {
+                      throw new Error('Post Update Was Not Confirmed');
+                    }
+                    setDisplayContent(data.content);
+                    setCoverUrl(data.thumbnail_url);
+                  } else {
+                    const { error } = await write;
+                    if (error) throw error;
+                    setDisplayContent(content);
+                  }
+                  busEmit.dataMutated?.('social_posts');
+                  broadcastSync('smarter_poker_social_sync', {
+                    action: 'refresh_feed',
+                    tabId: BROADCAST_TAB_ID,
+                  });
+                }
                 setEditing(false);
                 toast.success('Post updated');
-                // Notify other tabs/components of the edit
-                busEmit.dataMutated?.('social_posts');
-                broadcastSync('smarter_poker_social_sync', {
-                  action: 'refresh_feed',
-                  tabId: BROADCAST_TAB_ID,
-                });
               } catch (e) {
                 toast.error('Could not update post');
                 console.warn('[Social] Edit error:', e);
+              } finally {
+                setSavingEdit(false);
               }
             }}
-            disabled={!editContent.trim()}
+            disabled={savingEdit || (!editContent.trim() && !editCoverFile)}
             style={{
               padding: '6px 16px',
               borderRadius: 20,
@@ -967,7 +1013,7 @@ const PostCard = React.memo(
               cursor: 'pointer',
               fontSize: 13,
               fontWeight: 600,
-              opacity: editContent.trim() ? 1 : 0.5,
+              opacity: editContent.trim() || editCoverFile ? 1 : 0.5,
             }}
           >
             Save
@@ -1130,6 +1176,7 @@ const PostCard = React.memo(
                   onClick={() => {
                     setEditing(true);
                     setEditContent(displayContent || '');
+                    setEditCoverFile(null);
                   }}
                   style={{
                     background: 'none',
@@ -1636,7 +1683,7 @@ const PostCard = React.memo(
                   >
                     <FeedVideoPlayer
                       post={post}
-                      posterUrl={post.thumbnailUrl || post.thumbnail_url || post.coverFrameUrl || null}
+                      posterUrl={coverUrl}
                     />
                   </VideoPostWrapper>
                 ) : post.contentType === 'link' || post.contentType === 'article' ? (
@@ -1708,7 +1755,7 @@ const PostCard = React.memo(
                           <div style={{ width: '100%', height: '100%' }}>
                             <FeedVideoPlayer
                               post={post}
-                              posterUrl={post.thumbnailUrl || post.thumbnail_url || post.coverFrameUrl || null}
+                              posterUrl={coverUrl}
                             />
                           </div>
                           <div

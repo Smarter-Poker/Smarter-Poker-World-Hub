@@ -552,8 +552,8 @@ const styles = {
     maxWidth: '100vw',
     overflowX: 'clip',
     boxSizing: 'border-box',
-    background: '#020608',
-    color: '#eef6f9',
+    background: '#040d18',
+    color: '#f2f7fb',
   },
   content: {
     maxWidth: '860px',

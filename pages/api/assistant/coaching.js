@@ -89,7 +89,7 @@ async function readReviewsWithBaseline(supabase, userId) {
 }
 
 async function readWorkspace(supabase, userId) {
-  const [leakRows, decisions, reviews, goals, feedback, preferenceResult, auditResult] = await Promise.all([
+  const [leakRows, decisions, reviews, goals, feedback, preferenceResult, auditResult, activeAuditResult] = await Promise.all([
     ownerRead(supabase, 'user_leaks', '*', userId, query => query.order('updated_at', { ascending: false }).limit(500)),
     ownerRead(supabase, 'hand_audit_decisions', 'hand_external_id, decision_key, question_id, game_id, street, hero_position, villain_position, spot_type, hero_hand, board_cards, player_action, solver_action, selected_frequency, optimal_frequency, classification, ev_loss, ev_loss_measured, solver_verified, solver_source, match_tier, audited_at', userId, query => query.like('solver_source', '%|hand-audit-v3').order('audited_at', { ascending: false }).limit(DECISION_WINDOW_LIMIT)),
     readReviewsWithBaseline(supabase, userId),
@@ -97,11 +97,22 @@ async function readWorkspace(supabase, userId) {
     ownerRead(supabase, 'pa_coach_feedback', 'id, leak_id, decision_key, feedback_type, note, status, created_at, updated_at', userId, query => query.order('created_at', { ascending: false }).limit(50)),
     supabase.from('pa_coaching_preferences').select('saved_view, analysis_depth, panel_layout, retention_days, last_retention_run_at, updated_at').eq('user_id', userId).maybeSingle(),
     supabase.from('pa_leak_audit_jobs').select('id, status, progress, result, reconciliation, completed_at, created_at').eq('user_id', userId).eq('status', 'completed').order('completed_at', { ascending: false }).limit(1).maybeSingle(),
+    supabase.from('pa_leak_audit_jobs').select('id, status, progress, created_at').eq('user_id', userId).in('status', ['queued', 'running']).order('created_at', { ascending: false }).limit(1).maybeSingle(),
   ]);
 
   if (preferenceResult.error && !isMissingSchema(preferenceResult.error)) throw preferenceResult.error;
   if (auditResult.error && !isMissingSchema(auditResult.error)) throw auditResult.error;
+  if (activeAuditResult.error && !isMissingSchema(activeAuditResult.error)) throw activeAuditResult.error;
   const audit = auditResult.data || null;
+  const activeAudit = activeAuditResult.data || null;
+  const activeAuditRunning = Boolean(activeAudit && (activeAudit.status === 'queued' || activeAudit.status === 'running'));
+  const activeAuditHands = Number(activeAudit?.progress?.handsScanned || 0);
+  const activeAuditDecisions = Number(activeAudit?.progress?.decisionsAnalyzed || 0);
+  const activeAuditProgressText = activeAuditRunning
+    ? (activeAuditHands > 0
+        ? `${activeAuditHands.toLocaleString()} hands scanned · ${activeAuditDecisions.toLocaleString()} decisions checked. You can safely leave and return later.`
+        : 'Your hand audit is queued on the server. You can safely leave and return later.')
+    : null;
   const ownedDecisions = decisions.map(row => ({ ...row, evidence_scope: 'club_arena' }));
   // Rejected hand counts live at top-level `audit.progress`, NOT `audit.progress.coverage`.
   const rejected = audit?.progress || {};
@@ -126,13 +137,19 @@ async function readWorkspace(supabase, userId) {
   snapshot.coverage.windowLimit = DECISION_WINDOW_LIMIT;
 
   return {
-    snapshot: { ...snapshot, receipt: receiptFingerprint(snapshot) },
+    snapshot: {
+      ...snapshot,
+      activeAuditRunning,
+      activeAuditProgressText,
+      receipt: receiptFingerprint(snapshot),
+    },
     decisions: ownedDecisions,
     reviews,
     goals,
     feedback,
     preferences: preferenceResult.data || { saved_view: 'coach', analysis_depth: 'guided', panel_layout: {}, retention_days: null, last_retention_run_at: null },
     latestAudit: audit,
+    activeAudit,
   };
 }
 

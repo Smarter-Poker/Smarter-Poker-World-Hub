@@ -62,6 +62,7 @@ import {
   classifyFindingHonesty,
   countActivePreferenceOverrides,
   describeAnalysisScope,
+  getSafeLocalStorage,
   loadAssistantPreferences,
   resetAssistantPreferences,
   saveAssistantPreferences,
@@ -1205,7 +1206,12 @@ function LeakDetail({
   const resolvedWhen = relativeDate(leak.resolvedAt);
   const trackingSince = relativeDate(leak.firstDetected);
   const detailHonesty = classifyFindingHonesty(leak, {
-    retired: Boolean(reviewRecord?.remediationMastered || leak.remediationMastered),
+    retired: Boolean(
+      reviewRecord?.retired
+      || reviewRecord?.lastOutcome?.remediationMastered
+      || reviewRecord?.remediationMastered
+      || leak.remediationMastered,
+    ),
   });
 
   return (
@@ -1519,20 +1525,26 @@ export default function LeakFinderPage() {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [pastOpen, setPastOpen] = useState(false);
 
-  // Account-scoped saved analysis preferences (switching accounts resets/isolates state)
+  // Account-scoped saved analysis preferences (wait for auth hydration; preserve explicit URL ?format=).
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const saved = loadAssistantPreferences(window.localStorage, userId);
+    if (authInitializing) return;
+    const saved = loadAssistantPreferences(getSafeLocalStorage(), userId);
     setSortMode(saved.sortMode);
     setStatusFilter(saved.statusFilter);
-    setFormatFilter(saved.format);
     setPracticeLength(saved.practiceLength);
     setPracticeDifficulty(saved.practiceDifficulty);
-  }, [userId]);
+    const rawUrlFmt = Array.isArray(router.query?.format) ? router.query.format[0] : router.query?.format;
+    const urlFmt = String(rawUrlFmt || '').trim().toLowerCase();
+    const hasExplicitUrlFmt = router.isReady && (urlFmt === 'cash' || urlFmt === 'tournament' || urlFmt === 'all');
+    if (!hasExplicitUrlFmt) {
+      setFormatFilter(saved.format);
+    }
+  }, [authInitializing, userId, router.isReady, router.query?.format]);
 
   const persistPrefs = useCallback((patch) => {
-    if (typeof window === 'undefined') return;
-    saveAssistantPreferences(window.localStorage, userId, {
+    const storage = getSafeLocalStorage();
+    if (!storage) return;
+    saveAssistantPreferences(storage, userId, {
       format: formatFilter,
       sortMode,
       statusFilter,
@@ -1550,7 +1562,11 @@ export default function LeakFinderPage() {
   const updateFormatFilter = useCallback((nextFormat) => {
     setFormatFilter(nextFormat);
     persistPrefs({ format: nextFormat });
-  }, [persistPrefs]);
+    if (router.isReady && router.query?.format) {
+      const { format: _removed, ...restQuery } = router.query;
+      router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
+    }
+  }, [persistPrefs, router]);
 
   const updateStatusFilter = useCallback((nextStatus) => {
     setStatusFilter(nextStatus);
@@ -1569,8 +1585,9 @@ export default function LeakFinderPage() {
   }, [persistPrefs]);
 
   const handleResetAnalysisSettings = useCallback(() => {
-    const defaults = typeof window !== 'undefined'
-      ? resetAssistantPreferences(window.localStorage, userId)
+    const storage = getSafeLocalStorage();
+    const defaults = storage
+      ? resetAssistantPreferences(storage, userId)
       : PA_ANALYSIS_DEFAULTS;
     setSortMode(defaults.sortMode);
     setFormatFilter(defaults.format);
@@ -1578,8 +1595,12 @@ export default function LeakFinderPage() {
     setPracticeLength(defaults.practiceLength);
     setPracticeDifficulty(defaults.practiceDifficulty);
     setQuery('');
+    if (router.isReady && (router.query?.format || router.query?.street || router.query?.position || router.query?.leakType)) {
+      const { format: _f, street: _s, position: _p, leakType: _l, ...restQuery } = router.query;
+      router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
+    }
     toast.success('Analysis Settings Reset To Defaults');
-  }, [userId]);
+  }, [userId, router]);
 
   const activeSettingsOverrides = countActivePreferenceOverrides({
     format: formatFilter,
@@ -1781,12 +1802,12 @@ export default function LeakFinderPage() {
       .join(' ');
     const prev = prevQueryHydrationRef.current;
 
-    if (fmt === 'cash' || fmt === 'tournament' || fmt === 'all') {
+    if ((fmt === 'cash' || fmt === 'tournament' || fmt === 'all') && fmt !== prev.format) {
       setFormatFilter(fmt);
     } else if (!fmt && prev.format) {
       setFormatFilter('all');
     }
-    if (nextTab === 'leaks' || nextTab === 'coaching' || nextTab === 'insights') {
+    if ((nextTab === 'leaks' || nextTab === 'coaching' || nextTab === 'insights') && nextTab !== prev.tab) {
       setTab(nextTab);
     } else if (!nextTab && prev.tab) {
       setTab('leaks');
@@ -1971,17 +1992,23 @@ export default function LeakFinderPage() {
   }, [requireOnline, executeDetection]);
 
   // One-click Analyze My Play handoff from Personal Assistant Home (?autorun=1).
-  // Clears the query param immediately so reloading never duplicates an audit.
+  // Waits for auth hydration, respects ?hand= & active jobs, checks entitlement,
+  // coordinates with autoDetectRef, and clears the query param so reload never duplicates.
   const autorunTriggeredRef = useRef(false);
   useEffect(() => {
-    if (!router.isReady || !userId || isDetecting || autorunTriggeredRef.current) return;
+    if (!router.isReady || authInitializing || autorunTriggeredRef.current) return;
     const rawAuto = Array.isArray(router.query?.autorun) ? router.query.autorun[0] : router.query?.autorun;
     if (String(rawAuto || '') !== '1') return;
     autorunTriggeredRef.current = true;
     const { autorun: _removed, ...restQuery } = router.query;
     router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
+    if (!userId) return;
+    if (router.query?.hand) return;
+    if (isDetecting || auditJob?.status === 'queued' || auditJob?.status === 'running') return;
+    if (!guardAction()) return;
+    autoDetectRef.current = userId;
     handleRunDetection();
-  }, [router, userId, isDetecting, handleRunDetection]);
+  }, [router, authInitializing, userId, isDetecting, auditJob?.status, guardAction, handleRunDetection]);
 
   const announcedAuditRef = useRef(null);
   useEffect(() => {
@@ -2368,21 +2395,35 @@ export default function LeakFinderPage() {
     setReviewNowMs(Date.now());
     fetchReviewSchedule();
   }, [refreshLocalReviews, fetchReviewSchedule]);
+  useModalHistory(Boolean(reviewSession), closeReviewSession);
 
   // ─── Filter / sort / paginate ────────────────────────────────────────────
+  const resolveLeakFormat = (l) => {
+    if (l?.formatScope === 'cash' || l?.formatScope === 'tournament' || l?.formatScope === 'cross_format') {
+      return l.formatScope;
+    }
+    const hay = `${l?.leakType || ''} ${l?.recommendedDrill || ''} ${l?.title || ''} ${l?.situationClass || ''} ${l?.gameFormat || ''} ${l?.format || ''}`.toLowerCase();
+    const isTournament = hay.includes('mtt_') || hay.includes('mtt-') || hay.includes('tournament');
+    const isCash = hay.includes('cash_') || hay.includes('cash-') || hay.includes('cash nlh') || hay.includes('cash_game');
+    if (isTournament && !isCash) return 'tournament';
+    if (isCash && !isTournament) return 'cash';
+    return 'cross_format';
+  };
+
+  const hiddenCrossFormatCount = useMemo(() => {
+    if (formatFilter === 'all') return 0;
+    return activeLeaks.filter((l) => {
+      if (statusFilter !== 'all' && l.status !== statusFilter) return false;
+      return resolveLeakFormat(l) === 'cross_format';
+    }).length;
+  }, [activeLeaks, formatFilter, statusFilter]);
+
   const visibleLeaks = useMemo(() => {
     const needle = query.trim().toLowerCase();
     let list = activeLeaks;
     if (statusFilter !== 'all') list = list.filter(l => l.status === statusFilter);
     if (formatFilter !== 'all') {
-      list = list.filter((l) => {
-        const hay = `${l.leakType || ''} ${l.recommendedDrill || ''} ${l.title || ''} ${l.situationClass || ''} ${l.gameFormat || ''} ${l.format || ''}`.toLowerCase();
-        const isTournament = hay.includes('mtt_') || hay.includes('mtt-') || hay.includes('tournament');
-        const isCash = hay.includes('cash_') || hay.includes('cash-') || hay.includes('cash nlh') || hay.includes('cash_game');
-        if (formatFilter === 'tournament') return isTournament && !isCash;
-        if (formatFilter === 'cash') return isCash && !isTournament;
-        return true;
-      });
+      list = list.filter((l) => resolveLeakFormat(l) === formatFilter);
     }
     if (needle) {
       list = list.filter(l =>
@@ -2581,7 +2622,7 @@ export default function LeakFinderPage() {
                       <a
                         href="/auth/login"
                         className={`pa-btn ${toolStyles.scanButton}`}
-                        style={{ ...btn('primary', { full: true }), textDecoration: 'none' }}
+                        style={{ ...btn('primary', { block: true }), textDecoration: 'none' }}
                       >
                         Sign In To Analyze
                       </a>
@@ -3061,11 +3102,13 @@ export default function LeakFinderPage() {
                   <small>
                     {(!authInitializing && !userId)
                       ? 'Sign In Required'
-                      : (leaksError || statsError)
-                        ? 'Not Available'
-                        : leaksAreDemo
-                          ? 'Sample Mode'
-                          : `${stats.leaksFound} Active · ${stats.handsAnalyzed === null ? 'Not Available' : `${stats.handsAnalyzed} Hands`}`}
+                      : (leaksLoading || statsLoading)
+                        ? 'Loading…'
+                        : (leaksError || statsError)
+                          ? 'Not Available'
+                          : leaksAreDemo
+                            ? 'Sample Mode'
+                            : `${stats.leaksFound} Active · ${stats.handsAnalyzed === null ? 'Not Available' : `${stats.handsAnalyzed} Hands`}`}
                   </small>
                 </summary>
                 <div className="pa-disclosure-body" style={{ display: 'flex', flexDirection: 'column', gap: S.sm }}>
@@ -3103,7 +3146,7 @@ export default function LeakFinderPage() {
                     />
                     <StatCell
                       label="Active leaks"
-                      value={leaksLoading ? null : (leaksAreDemo ? 'Not Available' : String(stats.leaksFound))}
+                      value={leaksLoading ? null : (leaksError || leaksAreDemo ? 'Not Available' : String(stats.leaksFound))}
                     />
                     <StatCell
                       label="Avg EV loss"
@@ -3219,8 +3262,38 @@ export default function LeakFinderPage() {
               ) : (
                 <>
                   <LeakErrorBoundary label="The bleed summary">
-                    <BleedSummary leaks={activeLeaks} isDemo={leaksAreDemo} />
+                    <BleedSummary leaks={visibleLeaks} isDemo={leaksAreDemo} />
                   </LeakErrorBoundary>
+
+                  {hiddenCrossFormatCount > 0 && (
+                    <div
+                      role="status"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: S.sm,
+                        flexWrap: 'wrap',
+                        marginBottom: S.md,
+                        padding: `${S.sm}px ${S.md}px`,
+                        border: `1px solid ${T.border}`,
+                        borderRadius: R.sm,
+                        background: T.surface,
+                      }}
+                    >
+                      <span style={{ fontSize: F.caption, color: T.textMuted }}>
+                        {hiddenCrossFormatCount} Cross-Format Or Aggregate Leak{hiddenCrossFormatCount === 1 ? '' : 's'} Hidden By Format Filter.
+                      </span>
+                      <button
+                        type="button"
+                        className="pa-btn"
+                        style={btn('secondary')}
+                        onClick={() => updateFormatFilter('all')}
+                      >
+                        Show All Formats
+                      </button>
+                    </div>
+                  )}
 
                   {/* Compact single-row search bar (Sort/Format/Status live in Analysis Settings above) */}
                   <div className={toolStyles.instrumentPanel} style={{ ...cardCompact, marginBottom: S.md }}>

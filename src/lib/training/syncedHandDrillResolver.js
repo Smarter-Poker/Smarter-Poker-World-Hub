@@ -42,7 +42,7 @@ function parseCardList(raw) {
 
 function inferVariantFromHoleCards(heroCards = [], rawVariant = '') {
   const explicit = String(rawVariant || '').trim().toLowerCase();
-  if (['nlh', 'plo4', 'plo5', 'plo6'].includes(explicit)) return explicit;
+  if (['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].includes(explicit)) return explicit;
   if (heroCards.length === 6) return 'plo6';
   if (heroCards.length === 5) return 'plo5';
   if (heroCards.length === 4) return 'plo4';
@@ -376,13 +376,15 @@ export async function resolveSyncedHandForTrainingDrill({
   }
 
   const safeHandSlug = String(hand.handId).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 48) || 'hand';
-  const variantTitle = hand.variant === 'plo6'
-    ? '6-Card PLO (Pot-Limit)'
-    : hand.variant === 'plo5'
-      ? '5-Card PLO (Pot-Limit)'
-      : hand.variant === 'plo4'
-        ? '4-Card PLO (Pot-Limit)'
-        : "No-Limit Hold'em";
+  const variantTitle = hand.variant === 'plo8'
+    ? 'PLO8 (Hi-Lo 8-or-Better)'
+    : hand.variant === 'plo6'
+      ? '6-Card PLO (Pot-Limit)'
+      : hand.variant === 'plo5'
+        ? '5-Card PLO (Pot-Limit)'
+        : hand.variant === 'plo4'
+          ? '4-Card PLO (Pot-Limit)'
+          : "No-Limit Hold'em";
   const isPlo = hand.variant.startsWith('plo');
   const spotType = hand.street === 'preflop'
     ? (hand.heroPosition === 'BB' ? 'bb_defense' : 'rfi')
@@ -494,6 +496,7 @@ const RANK_HERO_CARDS_BY_VARIANT = Object.freeze({
   plo4: ['As', 'Ks', 'Qh', 'Jh'],
   plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
   plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
+  plo8: ['As', '2s', '3h', 'Kh'],
 });
 
 const RANK_BOARD_CARDS = Object.freeze(['8d', '5c', '2s', '6h', '3d']);
@@ -507,13 +510,15 @@ export function rankImportedHandsByEvLeak(hands = [], defaultVariant = 'nlh') {
       : Array.isArray(hand?.hero?.holeCards)
         ? hand.hero.holeCards
         : [];
-    const variant = rawVar === 'plo6' || rawHole.length === 6
-      ? 'plo6'
-      : rawVar === 'plo5' || rawHole.length === 5
-        ? 'plo5'
-        : rawVar === 'plo4' || /plo|omaha/i.test(rawVar) || rawHole.length === 4
-          ? 'plo4'
-          : 'nlh';
+    const variant = rawVar === 'plo8' || /plo8|hilo|hi-lo/i.test(rawVar)
+      ? 'plo8'
+      : rawVar === 'plo6' || rawHole.length === 6
+        ? 'plo6'
+        : rawVar === 'plo5' || rawHole.length === 5
+          ? 'plo5'
+          : rawVar === 'plo4' || /plo|omaha/i.test(rawVar) || rawHole.length === 4
+            ? 'plo4'
+            : 'nlh';
     const rawBoard = Array.isArray(hand?.boardCards) && hand.boardCards.length > 0
       ? hand.boardCards
       : Array.isArray(hand?.board) && hand.board.length > 0

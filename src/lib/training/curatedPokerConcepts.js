@@ -156,6 +156,14 @@ const VARIANT_HERO_CARDS = {
     ['Qd', 'Qc', '7h', '7c', 'Ac', 'Kc'],
     ['8h', '6c', '5d', '3h', '2d', '9c'],
   ],
+  plo8: [
+    ['As', '2s', '3h', 'Kh'],
+    ['Ah', '2h', '4c', 'Kc'],
+    ['Ad', '2d', '5c', 'Jc'],
+    ['As', '3s', '4h', 'Qh'],
+    ['Ah', '2c', '3c', 'Td'],
+    ['Ac', '2d', '6c', 'Kd'],
+  ],
 };
 
 const VARIANT_ACTION_CHOICES = {
@@ -264,16 +272,18 @@ export function generateCuratedPokerConceptBatch({
 }) {
   const family = String(gameConfig?.pioGameType || 'unknown');
   const explicitVariant = String(gameConfig?.variant || '').trim().toLowerCase();
-  const hasExplicitVariant = ['nlh', 'plo4', 'plo5', 'plo6'].includes(explicitVariant);
+  const hasExplicitVariant = ['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].includes(explicitVariant);
   const effectiveVariant = hasExplicitVariant
     ? explicitVariant
     : family === 'plo_5card'
       ? 'plo5'
       : family === 'plo_6card'
         ? 'plo6'
-        : (family.includes('plo') || ['cash-005', 'cash-015', 'mtt-018'].includes(String(gameId)))
-          ? 'plo4'
-          : 'nlh';
+        : family === 'plo8' || family === 'plo_hilo'
+          ? 'plo8'
+          : (family.includes('plo') || ['cash-005', 'cash-015', 'mtt-018'].includes(String(gameId)))
+            ? 'plo4'
+            : 'nlh';
   const isPloVariant = effectiveVariant.startsWith('plo');
   const requestedStreet = String(targetStreet || '').toLowerCase();
   const forcedStreet = ['preflop', 'flop', 'turn', 'river'].includes(requestedStreet)
@@ -391,13 +401,15 @@ export function generateCuratedPokerConceptBatch({
       : '';
     const id = `curated_${gameId}${variantSuffix}${posSuffix}_L${level}_${topic}_${style}_${index}`;
     if (excludedIds.has(id)) continue;
-    const variantTitle = effectiveVariant === 'plo6'
-      ? '6-Card PLO (Pot-Limit)'
-      : effectiveVariant === 'plo5'
-        ? '5-Card PLO (Pot-Limit)'
-        : effectiveVariant === 'plo4'
-          ? '4-Card PLO (Pot-Limit)'
-          : "No-Limit Hold'em";
+    const variantTitle = effectiveVariant === 'plo8'
+      ? 'PLO8 (Hi-Lo 8-or-Better)'
+      : effectiveVariant === 'plo6'
+        ? '6-Card PLO (Pot-Limit)'
+        : effectiveVariant === 'plo5'
+          ? '5-Card PLO (Pot-Limit)'
+          : effectiveVariant === 'plo4'
+            ? '4-Card PLO (Pot-Limit)'
+            : "No-Limit Hold'em";
     questions.push({
       id,
       type: 'PIO',

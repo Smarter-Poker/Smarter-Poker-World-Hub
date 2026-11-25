@@ -117,7 +117,7 @@ export default function NewsletterOperations() {
             const timer = setTimeout(() => controller.abort(), 15000);
             let body;
             try {
-                const response = await fetch(`/api/admin/newsletter?${params}`, {
+                const response = await fetch(`/api/news/operations?${params}`, {
                     headers: { Authorization: `Bearer ${sessionToken}` },
                     signal: controller.signal,
                 });
@@ -456,7 +456,7 @@ export default function NewsletterOperations() {
         setRunning(subscriber.id);
         setError('');
         try {
-            const response = await fetch('/api/admin/newsletter', {
+            const response = await fetch('/api/news/operations', {
                 method: 'PATCH',
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -955,7 +955,7 @@ export default function NewsletterOperations() {
                                         <td>{campaign.recipient_count}</td>
                                         <td>{campaign.sent_count}{campaign.failed_count ? ` / ${campaign.failed_count} failed` : ''}</td>
                                         <td>{campaign.opens || 0} / {campaign.clicks || 0}</td>
-                                        <td>{formatDate(campaign.started_at)}</td>
+                                        <td>{formatDate(campaign.started_at || campaign.completed_at || campaign.created_at)}</td>
                                     </tr>
                                 ))}
                                 {!loading && !(data?.campaigns || []).length && <tr><td colSpan="6" className={styles.emptyCell}>No Campaign Has Been Sent Yet.</td></tr>}

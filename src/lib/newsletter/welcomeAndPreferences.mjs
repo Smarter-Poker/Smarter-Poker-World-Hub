@@ -1,4 +1,5 @@
 import { buildPromoSignupUrl } from '../promoCampaigns/promoSignupToken.mjs';
+import { buildMastheadCrestUrl } from './emailImageProxy.mjs';
 
 const DEFAULT_SITE_URL = 'https://smarter.poker';
 const DEFAULT_POSTAL_ADDRESS = 'PO Box 1905, 9624 Cicero Ave, Oak Lawn, IL 60453';
@@ -44,6 +45,7 @@ export function buildWelcomeEmail({
     preferencesUrl = `${DEFAULT_SITE_URL}/hub/email-preferences`,
 } = {}) {
     const cleanSite = String(siteUrl || DEFAULT_SITE_URL).replace(/\/+$/, '');
+    const safeCrestUrl = escapeHtml(buildMastheadCrestUrl({ siteUrl: cleanSite }));
 
     if (!hasExistingProfile) {
         const subject = 'Welcome To Smarter.Poker: Claim 25 Free Chips + 30-Day VIP + 500 Free Diamonds';
@@ -65,7 +67,10 @@ export function buildWelcomeEmail({
 <tr><td align="center" style="padding:28px 12px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#0b1118;border:1px solid #1b2c3d;border-radius:16px;">
 <tr><td style="padding:28px 24px;">
-<div style="color:#4fc1b3;font-size:12px;font-weight:800;letter-spacing:2.8px;text-transform:uppercase;">SMARTER.POKER WEEKLY WIRE</div>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:4px;"><tr>
+<td valign="middle" style="padding-right:10px;"><img src="${safeCrestUrl}" alt="Smarter.Poker" width="32" height="32" style="display:block;width:32px;height:32px;border-radius:8px;border:0;" /></td>
+<td valign="middle"><div style="color:#4fc1b3;font-size:12px;font-weight:800;letter-spacing:2.8px;text-transform:uppercase;">SMARTER.POKER WEEKLY WIRE</div></td>
+</tr></table>
 <h1 style="margin:10px 0 12px 0;color:#ffffff;font-size:24px;line-height:1.25;font-weight:800;">Welcome To The Wire &middot; Your New-Player Bonus Is Ready</h1>
 <p style="margin:0 0 20px 0;color:#b7cadc;font-size:15px;line-height:1.6;">You are now on the Smarter.Poker Weekly Wire for solver decision spots, pro poker calculator drops, and live tournament intelligence.</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#101a24;border:1px solid #1b2c3d;border-radius:12px;margin-bottom:22px;">
@@ -123,7 +128,10 @@ export function buildWelcomeEmail({
 <tr><td align="center" style="padding:28px 12px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#0b1118;border:1px solid #1b2c3d;border-radius:16px;">
 <tr><td style="padding:28px 24px;">
-<div style="color:#4fc1b3;font-size:12px;font-weight:800;letter-spacing:2.8px;text-transform:uppercase;">SMARTER.POKER WEEKLY WIRE</div>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:4px;"><tr>
+<td valign="middle" style="padding-right:10px;"><img src="${safeCrestUrl}" alt="Smarter.Poker" width="32" height="32" style="display:block;width:32px;height:32px;border-radius:8px;border:0;" /></td>
+<td valign="middle"><div style="color:#4fc1b3;font-size:12px;font-weight:800;letter-spacing:2.8px;text-transform:uppercase;">SMARTER.POKER WEEKLY WIRE</div></td>
+</tr></table>
 <h1 style="margin:10px 0 12px 0;color:#ffffff;font-size:24px;line-height:1.25;font-weight:800;">Welcome Back, ${escapeHtml(greeting)} &middot; You're On The Wire</h1>
 <p style="margin:0 0 20px 0;color:#b7cadc;font-size:15px;line-height:1.6;">Every week you will receive curated world poker storylines, a solver-backed Spot Of The Week, new Smarter.Poker upgrades, and rotating pro calculator spotlights.</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#101a24;border:1px solid #1b2c3d;border-radius:12px;margin-bottom:20px;">

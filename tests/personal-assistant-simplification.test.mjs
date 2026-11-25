@@ -195,3 +195,105 @@ test('Personal Assistant surfaces align to approved MTT lobby design tokens, opt
   assert.match(worldCss, /#040d18/i, 'Global PA world stylesheet must align to #040d18 MTT lobby canvas');
   assert.match(worldCss, /#087cfa/i, 'Global PA world stylesheet must align to #087cfa MTT lobby primary');
 });
+
+test('Phase 3 anti-regression fortress: every audited bug is hard-coded fixed and permanently guarded', async () => {
+  const { resolveHomePrimaryState } = await import('../src/lib/personal-assistant/assistantDefaults.mjs');
+  const { buildCoachingSnapshot } = await import('../src/lib/personal-assistant/coachingIntelligence.mjs');
+
+  // 1. Heuristic unmeasured leak (evLossMeasured: false, evLossBB: 0.42) must NEVER claim measured EV
+  const heuristicLivePlay = classifyFindingHonesty({
+    sourceSystem: 'live_play',
+    occurrenceCount: 14,
+    confidence: 'high',
+    evLossMeasured: false,
+    evLossBB: 0.42,
+  });
+  assert.equal(heuristicLivePlay.code, 'unmeasured');
+
+  const heuristicFacts = classifyFindingHonesty({
+    source_system: 'ca_hand_facts',
+    occurrence_count: 4,
+    total_samples: 45,
+    confidence: 'medium',
+    ev_loss_measured: false,
+    avg_ev_loss_bb: 0.12,
+  });
+  assert.equal(heuristicFacts.code, 'supported');
+  assert.match(heuristicFacts.detail, /EV impact unpriced/i);
+
+  // 2. Signed-in Club Arena player with unanalyzed hands lands on Analyze My Play, NOT Open Verified Training
+  const unanalyzedClubPlayer = resolveHomePrimaryState({
+    isSignedIn: true,
+    isDemo: false,
+    availableClubArenaHands: 250,
+    handsAnalyzed: 0,
+    sessionsReviewed: 0,
+  });
+  assert.equal(unanalyzedClubPlayer.state, 'history_no_analysis');
+  assert.equal(unanalyzedClubPlayer.ctaAction, 'analyze_now');
+  assert.match(unanalyzedClubPlayer.summary, /250 completed Club Arena hands/i);
+
+  // 3. buildCoachingSnapshot preserves null measuredEvLoss when all active leaks are unpriced (never 0.00 BB)
+  const unpricedSnapshot = buildCoachingSnapshot({
+    leaks: [{
+      id: 'l-1',
+      title: 'Unpriced Leak',
+      status: 'active',
+      confidence: 'medium',
+      occurrence_count: 8,
+      ev_loss_measured: false,
+      avg_ev_loss_bb: 0.1,
+    }],
+    decisions: [],
+    reviews: [],
+  });
+  assert.equal(unpricedSnapshot.summary.measuredEvLoss, null);
+  assert.equal(unpricedSnapshot.weeklyReport.measuredEvLoss, null);
+
+  // 4. Producer-to-consumer contract pins across API, hooks, and pages
+  const customDrillSrc = fs.readFileSync(path.resolve('pages/api/sandbox/_routes/custom-drill.js'), 'utf8');
+  assert.match(customDrillSrc, /const requestedLimit = parseInt\(rawLimit, 10\)/, 'custom-drill must honor caller limit before ownedDrillParams.limit');
+  assert.match(customDrillSrc, /pushUniqueMapped/, 'custom-drill must guard non-null and deduplicate incrementally during paging');
+  assert.match(customDrillSrc, /const practiceOnly = Boolean\(drillUserId && !drillToken\);/, 'custom-drill must preserve practiceOnly flag');
+
+  const drillAnswerSrc = fs.readFileSync(path.resolve('pages/api/assistant/leaks/drill-answer.js'), 'utf8');
+  assert.match(drillAnswerSrc, /p_is_correct:\s*lockedCorrect/, 'drill-answer must record locked answer correctness on idempotent retries');
+  assert.match(drillAnswerSrc, /selectedAnswer:\s*lockedSelected/, 'drill-answer must record locked answer choice on idempotent retries');
+
+  const coachingApiSrc = fs.readFileSync(path.resolve('pages/api/assistant/coaching.js'), 'utf8');
+  assert.match(coachingApiSrc, /in\('status', \['queued', 'running'\]\)/, 'coaching API must query active queued/running audit jobs');
+  assert.match(coachingApiSrc, /activeAuditRunning/, 'coaching API must emit activeAuditRunning on snapshot');
+
+  const statsApiSrc = fs.readFileSync(path.resolve('pages/api/assistant/stats.js'), 'utf8');
+  assert.match(statsApiSrc, /from\('ca_hand_facts'\)\s*\.select\('hand_id'/, 'stats API must select real ca_hand_facts.hand_id column (not phantom id)');
+  assert.match(statsApiSrc, /availableClubArenaHands/, 'stats API must expose availableClubArenaHands for Home Analyze My Play state');
+
+  const useAssistantSrc = fs.readFileSync(path.resolve('src/hooks/useAssistant.js'), 'utf8');
+  assert.match(useAssistantSrc, /totalSamples:\s*leak\.total_samples/, 'formatLeak must preserve total_samples');
+  assert.match(useAssistantSrc, /formatScope:\s*inferLeakFormatScope/, 'formatLeak must classify formatScope');
+
+  const homeSrc = fs.readFileSync(path.resolve('pages/hub/personal-assistant/index.js'), 'utf8');
+  assert.match(homeSrc, /coachingSnapshot\?\.summary\?\.due/, 'Home must read summary.due (not non-existent reviewsDue)');
+  assert.doesNotMatch(homeSrc, /reviewsDue/, 'Home must not read dead reviewsDue field');
+  assert.doesNotMatch(homeSrc, /dailyHand\.position \|\| 'BTN'/, 'Home must not fabricate BTN when daily hand position is missing');
+
+  const leaksSrc = fs.readFileSync(path.resolve('pages/hub/personal-assistant/leaks.js'), 'utf8');
+  assert.match(leaksSrc, /if \(!hasExplicitUrlFmt\)/, 'leaks.js must not let localStorage overwrite explicit URL ?format=');
+  assert.match(leaksSrc, /<BleedSummary leaks=\{visibleLeaks\}/, 'BleedSummary must receive filtered visibleLeaks');
+  assert.match(leaksSrc, /hiddenCrossFormatCount/, 'leaks.js must disclose cross-format leaks hidden by format filter');
+  assert.match(leaksSrc, /useModalHistory\(Boolean\(reviewSession\), closeReviewSession\)/, 'leaks.js must trap mobile Back on drill sheet');
+  assert.match(leaksSrc, /reviewRecord\?\.retired/, 'LeakDetail honesty check must read reviewRecord.retired');
+  assert.doesNotMatch(leaksSrc, /btn\('primary',\s*\{\s*full:\s*true/, 'leaks.js must pass block: true (not unrecognized full: true)');
+
+  const quickDrillSrc = fs.readFileSync(path.resolve('src/components/sandbox/QuickSpotDrill.jsx'), 'utf8');
+  assert.match(quickDrillSrc, /if \(!ignoreFilters && reviewLeakId/, 'Try Without Filters must omit leak param');
+  assert.match(quickDrillSrc, /timerRestartNonce/, 'QuickSpotDrill must restart timer on repeated identical timeout errors');
+  assert.match(quickDrillSrc, /\$\{spotDuration\}/, 'QuickSpotDrill qKey must include spotDuration');
+
+  const coachSrc = fs.readFileSync(path.resolve('src/components/personal-assistant/CoachingWorkspace.jsx'), 'utf8');
+  const coachCss = fs.readFileSync(path.resolve('src/components/personal-assistant/CoachingWorkspace.module.css'), 'utf8');
+  assert.match(coachSrc, /setLifecycle\(null\)/, 'CoachingWorkspace must reset lifecycle on account switch');
+  assert.match(coachSrc, /role="region" aria-label="Solver Coverage Gaps"/, 'Solver Coverage Gaps requires role=region');
+  assert.match(coachCss, /\.inlineNotice button \{ min-height: 44px;/, 'CoachingWorkspace inlineNotice button must be >= 44px');
+  assert.match(coachCss, /font-size: 16px;/, 'CoachingWorkspace form inputs must be >= 16px to prevent iOS auto-zoom');
+});

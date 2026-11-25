@@ -324,7 +324,7 @@ export default function TrainingAchievements() {
                 padding: 18,
                 borderRadius: 2,
                 border: '1px solid #25c8ff',
-                background: 'linear-gradient(180deg, #101a20 0%, #040b10 100%)',
+                background: 'linear-gradient(180deg, #091727 0%, #040d18 100%)',
               }}
             >
               <div
@@ -639,7 +639,7 @@ const styles = {
     alignItems: 'center',
     gap: '16px',
     padding: '18px',
-    background: 'linear-gradient(180deg, #101a20 0%, #040b10 100%)',
+    background: 'linear-gradient(180deg, #091727 0%, #040d18 100%)',
     border: '1px solid #58717f',
     borderLeft: '3px solid #25c8ff',
     borderRadius: '2px',

@@ -7,16 +7,26 @@
  */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import test from 'node:test';
+import * as messageMedia from '../src/lib/messenger/messageMedia.mjs';
 import {
     encodeMessageMedia,
     parseMessageMedia,
     isMediaMessage,
     isSafeMediaUrl,
+    isVisualMediaKind,
     mediaPreviewLabel,
     mediaThumbnailUrl,
     isThumbnailUrl,
+    resolveUploadMedia,
+    videoPreviewUrl,
 } from '../src/lib/messenger/messageMedia.mjs';
+import * as liveInvite from '../src/lib/messenger/liveInvite.mjs';
+import * as callReceipt from '../src/lib/messenger/callReceipt.mjs';
+import * as reliabilityIncident from '../src/lib/messenger/reliabilityIncident.mjs';
+import * as accountingMessage from '../src/lib/accountingMessage.mjs';
+import * as unionEco from '../src/lib/unionEco.mjs';
 import { messengerPreviewText } from '../src/lib/messengerPreview.mjs';
 
 const PHOTO = 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/social-media-messages/a/b.png';
@@ -166,4 +176,141 @@ test('the viewer loads the original, and a failed fit costs bandwidth not the pi
     // The viewer is never fitted: it fills the screen and may be zoomed.
     const viewer = bubble.slice(bubble.indexOf('aria-modal="true"'));
     assert.equal(/mediaThumbnailUrl/.test(viewer), false, 'the full-screen viewer must load the original');
+});
+
+// UPLOADED IMAGES & VIDEOS RENDER NORMAL-SIZED WITH A 1PX THIN FRAME (2026-11-25).
+// Regression: MessageBubble wrapped photos and videos in the padded 8px/12px blue
+// text bubble and crushed height to 280px (shrinking a phone screenshot to 129px
+// wide inside a thick blue frame). Every messenger surface now renders visual
+// media flush inside a 1px hairline border at normal chat dimensions.
+test('visual media classification, upload MIME fallback, and video preview fragment', () => {
+    assert.equal(isVisualMediaKind('image'), true);
+    assert.equal(isVisualMediaKind('video'), true);
+    assert.equal(isVisualMediaKind('gif'), true);
+    assert.equal(isVisualMediaKind('audio'), false);
+    assert.equal(isVisualMediaKind(null), false);
+
+    assert.deepEqual(resolveUploadMedia({ name: 'shot.png', type: 'image/png' }), { kind: 'image', mimeType: 'image/png' });
+    assert.deepEqual(resolveUploadMedia({ name: 'clip.mp4', type: 'video/mp4; codecs=avc1' }), { kind: 'video', mimeType: 'video/mp4' });
+    // iOS Photo Library picks often omit file.type or send octet-stream.
+    assert.deepEqual(resolveUploadMedia({ name: 'IMG_1024.HEIC', type: '' }), { kind: 'image', mimeType: 'image/heic' });
+    assert.deepEqual(resolveUploadMedia({ name: 'IMG_1025.MOV', type: 'application/octet-stream' }), { kind: 'video', mimeType: 'video/quicktime' });
+    assert.equal(resolveUploadMedia({ name: 'evil.svg', type: 'image/svg+xml' }), null, 'SVG must be refused client-side');
+    assert.equal(resolveUploadMedia({ name: 'doc.pdf', type: 'application/pdf' }), null);
+
+    const video = 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/social-media/messages/a/clip.mp4';
+    assert.equal(videoPreviewUrl(video), `${video}#t=0.001`);
+    assert.equal(videoPreviewUrl(`${video}#t=2`), `${video}#t=2`);
+    assert.equal(videoPreviewUrl('blob:https://smarter.poker/abc'), 'blob:https://smarter.poker/abc');
+    assert.equal(videoPreviewUrl('javascript:alert(1)'), null);
+});
+
+test('MessageBubble renders uploaded images, videos and GIFs full-sized with a 1px thin frame and zero thick bubble padding', () => {
+    const require = createRequire(import.meta.url);
+    const ts = require('typescript');
+    const React = require('react');
+    const { renderToStaticMarkup } = require('react-dom/server');
+    const lightTheme = {
+        bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
+        blue: '#0084FF', red: '#E41E3F', border: '#E4E6EB', hoverBg: '#E4E6EB',
+        ownBubble: 'linear-gradient(135deg, #0084FF 0%, #0066CC 100%)', otherBubble: '#E4E6EB',
+    };
+    const darkTheme = { ...lightTheme, bg: '#1C1E21', card: '#242526', text: '#E4E6EB', border: '#3E4042', otherBubble: '#3A3B3C' };
+    const code = ts.transpileModule(readFileSync('src/components/messenger/MessageBubble.js', 'utf8'), {
+        fileName: 'MessageBubble.jsx',
+        compilerOptions: { jsx: ts.JsxEmit.React, module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true },
+    }).outputText;
+    const mod = { exports: {} };
+    const Nothing = () => null;
+    new Function('require', 'module', 'exports', code)(name => ({
+        './MediaViewer': { __esModule: true, default: Nothing, ATTACHMENT_ATTRIBUTE: 'data-message-attachment' },
+        './MessengerTheme': { defaultTheme: lightTheme },
+        './Avatar': { Avatar: Nothing },
+        './AccountingInvoiceCard': { __esModule: true, default: Nothing },
+        './InvoicePaymentStatus': { __esModule: true, default: Nothing },
+        './CashoutRequestActions': { __esModule: true, default: Nothing, formatChips: String },
+        './ReliabilityIncidentControls': { __esModule: true, default: Nothing, ReliabilityMessageHeader: Nothing, ReliabilityMessageDelete: Nothing },
+        '../../lib/authUtils': { getAccessToken: () => null, authedFetch: async () => ({}) },
+        '../../lib/accountingMessage.mjs': accountingMessage,
+        '../../lib/unionEco.mjs': unionEco,
+        '../../lib/messenger/messageMedia.mjs': messageMedia,
+        '../../lib/messenger/liveInvite.mjs': liveInvite,
+        '../../lib/messenger/callReceipt.mjs': callReceipt,
+        '../../lib/messenger/reliabilityIncident.mjs': reliabilityIncident,
+    })[name] || require(name), mod, mod.exports);
+    const { MessageBubble } = mod.exports;
+
+    const renderBubble = (content, { isOwn = true, theme = lightTheme, isDeleted = false, sender = { username: 'Dan', is_vip: true } } = {}) =>
+        renderToStaticMarkup(React.createElement(MessageBubble, {
+            message: { id: 'm1', content, created_at: '2026-11-25T17:00:00Z', is_deleted: isDeleted },
+            isOwn, showAvatar: false, showTime: true, isLastInGroup: true, sender, currentUserId: 'u1', theme,
+        }));
+
+    // Uploaded photo: 1px thin frame, zero bubble padding, transparent bubble background, normal sizing.
+    const photoHtml = renderBubble(`[Image](${PHOTO})`);
+    assert.match(photoHtml, /data-media-frame="image"/);
+    assert.match(photoHtml, /max-width:min\(400px, 78%\)/);
+    assert.match(photoHtml, /padding:0;border-radius:14px;background:transparent;border:1px solid #E4E6EB/);
+    assert.doesNotMatch(photoHtml, /max-height:280px/, 'photos must not be crushed to 280px');
+    assert.match(photoHtml, /max-height:min\(520px, 68dvh\)/);
+    assert.match(photoHtml, /object-fit:contain/);
+    assert.match(photoHtml, /display:block/);
+    assert.match(photoHtml, /border-radius:0/);
+
+    // Dark mode received VIP photo: still 1px thin dark border, never thick 3px VIP gold left bar.
+    const darkPhotoHtml = renderBubble(`[Image](${PHOTO})`, { isOwn: false, theme: darkTheme });
+    assert.match(darkPhotoHtml, /border:1px solid #3E4042/);
+    assert.doesNotMatch(darkPhotoHtml, /border-left:3px solid #FFD700/);
+
+    // Uploaded video: 1px thin frame, zero thick padding, normal sizing, iOS first-frame fragment.
+    const videoUrl = 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/social-media/messages/a/clip.mp4';
+    const videoHtml = renderBubble(`[Video](${videoUrl})`);
+    assert.match(videoHtml, /data-media-frame="video"/);
+    assert.match(videoHtml, /padding:0;border-radius:14px;background:transparent;border:1px solid #E4E6EB/);
+    assert.match(videoHtml, /<video[^>]+src="https:\/\/kuklfnapbkmacvwxktbh\.supabase\.co\/storage\/v1\/object\/public\/social-media\/messages\/a\/clip\.mp4#t=0\.001"/);
+    assert.match(videoHtml, /preload="metadata"/);
+    assert.match(videoHtml, /max-height:min\(520px, 68dvh\)/);
+    assert.match(videoHtml, /object-fit:contain/);
+
+    // GIF: 1px thin frame, normal sizing.
+    const gifHtml = renderBubble(`[GIF](${PHOTO})`);
+    assert.match(gifHtml, /data-media-frame="gif"/);
+    assert.match(gifHtml, /padding:0;border-radius:14px;background:transparent;border:1px solid #E4E6EB/);
+    assert.match(gifHtml, /max-height:min\(360px, 60dvh\)/);
+
+    // Captioned, replied-to and forwarded photo keep the 1px frame and padded text strips.
+    const richHtml = renderBubble(`[REPLY:Where is it?] [Forwarded] [Image](${PHOTO}) Check this hand`);
+    assert.match(richHtml, /data-media-frame="image"/);
+    assert.match(richHtml, /Where is it\?/);
+    assert.match(richHtml, /Forwarded/);
+    assert.match(richHtml, /Check this hand/);
+
+    // Plain text and voice messages keep their normal padded colored bubbles.
+    const textHtml = renderBubble('Yes it is next to your name');
+    assert.doesNotMatch(textHtml, /data-media-frame=/);
+    assert.match(textHtml, /padding:8px 12px/);
+
+    const voiceHtml = renderBubble(`[Audio](${PHOTO})|dur:9`);
+    assert.doesNotMatch(voiceHtml, /data-media-frame=/);
+    assert.match(voiceHtml, /padding:8px 12px/);
+
+    // Unsent photo never renders a media frame or <img>.
+    const deletedHtml = renderBubble(`[Image](${PHOTO})`, { isDeleted: true });
+    assert.doesNotMatch(deletedHtml, /data-media-frame=/);
+    assert.doesNotMatch(deletedHtml, /<img /);
+});
+
+test('corner Messenger dock and ClubArenaMessenger use the same 1px thin media frame and shared uploader dialect', () => {
+    const dock = readFileSync('src/components/messenger/dock/MessengerChat.jsx', 'utf8');
+    const dockCss = readFileSync('src/components/messenger/dock/MessengerDock.css', 'utf8');
+    const caMessenger = readFileSync('src/components/club-arena/ClubArenaMessenger.jsx', 'utf8');
+
+    assert.match(dock, /encodeMessageMedia/);
+    assert.match(dock, /resolveUploadMedia/);
+    assert.match(dock, /dock-media-bubble/);
+    assert.equal(/\[(?:Image|Video|GIF|Audio)\]\(\$\{/.test(dock), false, 'dock must not hand-write media markers');
+    assert.match(dockCss, /\.dock-message-bubble\.dock-media-bubble[\s\S]*padding:\s*0;[\s\S]*border:\s*1px solid/);
+    assert.match(dockCss, /\.dock-media-bubble img,[\s\S]*object-fit:\s*contain;/);
+    assert.match(caMessenger, /media-bubble/);
+    assert.match(caMessenger, /\.message-bubble\.media-bubble[\s\S]*padding:\s*0;[\s\S]*border:\s*1px solid/);
 });

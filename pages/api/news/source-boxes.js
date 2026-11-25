@@ -30,12 +30,12 @@ function getSupabase() {
 // THE 6 SOURCE BOXES - HARDCODED AND IMMUTABLE
 // (must stay in sync with VALID_SOURCES in pages/hub/news.js)
 const SOURCE_BOXES = [
-    { box: 1, source_name: 'PokerNews', fallback_image: 'https://images.pexels.com/photos/1871508/pexels-photo-1871508.jpeg?auto=compress&cs=tinysrgb&w=800' },
-    { box: 2, source_name: 'MSPT', fallback_image: 'https://images.pexels.com/photos/3279691/pexels-photo-3279691.jpeg?auto=compress&cs=tinysrgb&w=800' },
-    { box: 3, source_name: 'Card Player', fallback_image: 'https://images.pexels.com/photos/279009/pexels-photo-279009.jpeg?auto=compress&cs=tinysrgb&w=800' },
-    { box: 4, source_name: 'WSOP', fallback_image: 'https://images.pexels.com/photos/6664248/pexels-photo-6664248.jpeg?auto=compress&cs=tinysrgb&w=800' },
-    { box: 5, source_name: 'Poker.org', fallback_image: 'https://images.pexels.com/photos/4254890/pexels-photo-4254890.jpeg?auto=compress&cs=tinysrgb&w=800' },
-    { box: 6, source_name: 'Pokerfuse', fallback_image: 'https://images.pexels.com/photos/279009/pexels-photo-279009.jpeg?auto=compress&cs=tinysrgb&w=800' }
+    { box: 1, source_name: 'PokerNews', fallback_image: '/api/news/email-image?fallback=1&m=hero' },
+    { box: 2, source_name: 'MSPT', fallback_image: '/api/news/email-image?fallback=1&m=hero' },
+    { box: 3, source_name: 'Card Player', fallback_image: '/api/news/email-image?fallback=1&m=hero' },
+    { box: 4, source_name: 'WSOP', fallback_image: '/api/news/email-image?fallback=1&m=hero' },
+    { box: 5, source_name: 'Poker.org', fallback_image: '/api/news/email-image?fallback=1&m=hero' },
+    { box: 6, source_name: 'Pokerfuse', fallback_image: '/api/news/email-image?fallback=1&m=hero' }
 ];
 
 const SOURCE_BOX_SELECT = 'id, title, slug, excerpt, summary, image_url, category, read_time, views, author_name, source_name, source_url, source_box, is_featured, published_at, updated_at';

@@ -11,6 +11,7 @@ import PageTransition from '../../../../src/components/transitions/PageTransitio
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 import TrainingGameArt from '../../../../src/components/training/TrainingGameArt';
 import { evaluateTrainingSpotWithHorseBrain, buildCustomTrainingArenaHref } from '../../../../src/lib/training/horseBrainTrainingAdapter';
+import { resolvePresetForGame } from '../../../../src/lib/training/trainingPresets.mjs';
 
 const CATEGORY_META = {
     MTT: {
@@ -93,6 +94,8 @@ export default function CategoryPage() {
 
     const games = category ? getGamesByCategory(categoryId) : [];
     const heroArtId = games[0]?.id || 'quiz-gauntlet';
+    const featuredGame = games[0] || null;
+    const featuredPreset = featuredGame ? resolvePresetForGame(featuredGame) : null;
 
     if (!category || games.length === 0) {
         return (
@@ -139,6 +142,51 @@ export default function CategoryPage() {
                                 <span><b>{games.length * 12}</b> Campaign Levels</span>
                                 <span><b>Club Arena</b> Gameplay</span>
                             </div>
+                            {featuredGame && (
+                                <div
+                                    data-category-preset-summary="true"
+                                    style={{
+                                        marginTop: 18,
+                                        display: 'flex',
+                                        flexWrap: 'wrap',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        gap: 12,
+                                        padding: '12px 14px',
+                                        border: '1px solid #688299',
+                                        borderTopColor: '#aec0d0',
+                                        background: 'linear-gradient(180deg, rgba(9, 23, 39, 0.94) 0%, rgba(3, 11, 20, 0.98) 100%)',
+                                    }}
+                                >
+                                    <div>
+                                        <div style={{ color: '#8fd0ff', fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                            1-Tap Sector Preset · {featuredGame.name}
+                                        </div>
+                                        <div style={{ marginTop: 3, color: '#dbe8f2', fontSize: 13 }}>
+                                            {featuredPreset?.summary || '6-Max Cash · NLHE · 100 BB · 20 Hands'}
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        data-category-quick-start="true"
+                                        className="sp-mtt-primary-cta"
+                                        onClick={() => router.push(`/hub/training/arena/${featuredGame.id}?level=1`)}
+                                        style={{
+                                            minHeight: 44,
+                                            padding: '0 18px',
+                                            border: '1px solid #56d8ff',
+                                            borderTopColor: '#b9f3ff',
+                                            background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)',
+                                            color: '#ffffff',
+                                            fontSize: 13,
+                                            fontWeight: 800,
+                                            cursor: 'pointer',
+                                        }}
+                                    >
+                                        Start Sector Training →
+                                    </button>
+                                </div>
+                            )}
                         </div>
                         <div className="sp-category-plate">
                             <span>Casino Training System</span>
@@ -236,11 +284,10 @@ export default function CategoryPage() {
             <style jsx>{`
                 .sp-training-category {
                     min-height: 100dvh;
-                    color: #eaf3f6;
+                    color: #f2f7fb;
                     background:
-                        repeating-linear-gradient(90deg, rgba(117,203,235,.018) 0 1px, transparent 1px 5px),
-                        radial-gradient(circle at 50% -8%, color-mix(in srgb, var(--category-accent) 18%, transparent), transparent 38%),
-                        #020608;
+                        radial-gradient(circle at 50% 0%, rgba(16, 118, 226, 0.14), transparent 36%),
+                        linear-gradient(180deg, #040d18 0%, #02070d 100%);
                     font-family: var(--font-rajdhani, 'Rajdhani'), sans-serif;
                 }
                 main { width: min(1500px, calc(100% - 40px)); margin: 0 auto; padding: 22px 0 90px; }
@@ -248,11 +295,11 @@ export default function CategoryPage() {
                     position: relative;
                     min-height: 480px;
                     overflow: hidden;
-                    border: 1px solid #5f7480;
-                    border-top-color: #d8e9ee;
-                    border-bottom: 2px solid color-mix(in srgb, var(--category-accent) 78%, #111);
+                    border: 1px solid #688299;
+                    border-top-color: #aec0d0;
+                    border-bottom: 2px solid color-mix(in srgb, var(--category-accent) 78%, #091727);
                     border-radius: 0;
-                    background: #020507;
+                    background: #040d18;
                     box-shadow: inset 0 1px rgba(255,255,255,.13), 0 32px 70px rgba(0,0,0,.72);
                 }
                 .sp-category-hero-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; filter: saturate(1.02) contrast(1.1) brightness(.8); }

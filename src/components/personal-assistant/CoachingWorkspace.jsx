@@ -96,7 +96,7 @@ export default function CoachingWorkspace({
   const [deleteChallenge, setDeleteChallenge] = useState(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
 
-  const apiRequest = useCallback(async (method = 'GET', body = null) => {
+  const apiRequest = useCallback(async (method = 'GET', body = null, { signal } = {}) => {
     const token = await getFreshAccessToken();
     if (!token) throw new Error('Sign In To Load Your Coaching Workspace');
     const response = await fetch('/api/assistant/coaching', {
@@ -106,6 +106,7 @@ export default function CoachingWorkspace({
         ...(body ? { 'Content-Type': 'application/json' } : {}),
       },
       ...(body ? { body: JSON.stringify(body) } : {}),
+      ...(signal ? { signal } : {}),
     });
     const payload = await response.json().catch(() => null);
     if (!response.ok || !payload?.success) throw new Error(payload?.error || `Coaching Request Failed With HTTP ${response.status}`);
@@ -113,18 +114,48 @@ export default function CoachingWorkspace({
   }, []);
 
   const hydratedPrefsForUserRef = useRef(null);
+  const loadRequestIdRef = useRef(0);
+  const loadAbortRef = useRef(null);
+  const lifecycleRequestIdRef = useRef(0);
+  const lifecycleAbortRef = useRef(null);
+
+  // Isolate all account-scoped state immediately when switching accounts or signing out.
+  useEffect(() => {
+    loadAbortRef.current?.abort();
+    lifecycleAbortRef.current?.abort();
+    setLifecycle(null);
+    setDeleteChallenge(null);
+    setDeleteConfirmation('');
+    setSelectedLeakId(null);
+    setConfirmGoalId(null);
+    setStatus(null);
+    if (!userId) {
+      setWorkspace(null);
+      hydratedPrefsForUserRef.current = null;
+    }
+  }, [userId]);
+
+  useEffect(() => () => {
+    loadAbortRef.current?.abort();
+    lifecycleAbortRef.current?.abort();
+  }, []);
 
   const load = useCallback(async () => {
+    loadAbortRef.current?.abort();
+    const requestId = ++loadRequestIdRef.current;
     if (!userId) {
       setLoading(false);
       setWorkspace(null);
       hydratedPrefsForUserRef.current = null;
       return;
     }
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    loadAbortRef.current = controller;
     setLoading(true);
     setError(null);
     try {
-      const payload = await apiRequest();
+      const payload = await apiRequest('GET', null, { signal: controller?.signal });
+      if (requestId !== loadRequestIdRef.current) return;
       setWorkspace(payload);
       if (hydratedPrefsForUserRef.current !== userId) {
         hydratedPrefsForUserRef.current = userId;
@@ -144,9 +175,12 @@ export default function CoachingWorkspace({
       const first = payload.snapshot?.priorities?.[0]?.id;
       setSelectedLeakId(current => current || first || null);
     } catch (requestError) {
+      if (requestError?.name === 'AbortError' || requestId !== loadRequestIdRef.current) return;
       setError(requestError?.message || 'Coaching Workspace Could Not Be Loaded');
     } finally {
-      setLoading(false);
+      if (requestId === loadRequestIdRef.current) {
+        setLoading(false);
+      }
     }
   }, [apiRequest, userId]);
 
@@ -179,7 +213,7 @@ export default function CoachingWorkspace({
     }
   }, [apiRequest, load]);
 
-  const lifecycleRequest = useCallback(async (method = 'GET', body = null) => {
+  const lifecycleRequest = useCallback(async (method = 'GET', body = null, { signal } = {}) => {
     const token = await getFreshAccessToken();
     if (!token) throw new Error('Sign In To Manage Your Personal Assistant Data');
     const response = await fetch('/api/assistant/data-controls', {
@@ -189,6 +223,7 @@ export default function CoachingWorkspace({
         ...(body ? { 'Content-Type': 'application/json' } : {}),
       },
       ...(body ? { body: JSON.stringify(body) } : {}),
+      ...(signal ? { signal } : {}),
     });
     const payload = await response.json().catch(() => null);
     if (!response.ok || payload?.success === false) {
@@ -199,13 +234,22 @@ export default function CoachingWorkspace({
 
   const loadLifecycle = useCallback(async () => {
     if (!userId) return;
+    lifecycleAbortRef.current?.abort();
+    const requestId = ++lifecycleRequestIdRef.current;
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    lifecycleAbortRef.current = controller;
     setLifecycleLoading(true);
     try {
-      setLifecycle(await lifecycleRequest());
+      const result = await lifecycleRequest('GET', null, { signal: controller?.signal });
+      if (requestId !== lifecycleRequestIdRef.current) return;
+      setLifecycle(result);
     } catch (requestError) {
+      if (requestError?.name === 'AbortError' || requestId !== lifecycleRequestIdRef.current) return;
       setStatus({ tone: 'danger', text: requestError?.message || 'Data Controls Could Not Be Loaded' });
     } finally {
-      setLifecycleLoading(false);
+      if (requestId === lifecycleRequestIdRef.current) {
+        setLifecycleLoading(false);
+      }
     }
   }, [lifecycleRequest, userId]);
 
@@ -389,7 +433,14 @@ export default function CoachingWorkspace({
             <div><span>Active Leaks</span><strong>{snapshot?.summary?.active || 0}</strong></div>
             <div><span>Reviews Due</span><strong>{snapshot?.summary?.due || 0}</strong></div>
             <div><span>Resolved Leaks</span><strong>{snapshot?.summary?.resolved || 0}</strong></div>
-            <div><span>Measured Loss</span><strong>{number(snapshot?.summary?.measuredEvLoss).toFixed(2)} BB</strong></div>
+            <div>
+              <span>Measured Loss</span>
+              <strong>
+                {typeof snapshot?.summary?.measuredEvLoss === 'number' && Number.isFinite(snapshot.summary.measuredEvLoss)
+                  ? `${snapshot.summary.measuredEvLoss.toFixed(2)} BB`
+                  : 'Unpriced'}
+              </strong>
+            </div>
           </div>
 
           <article className={`${styles.panel} ${styles.fullWidth}`}>
@@ -562,7 +613,11 @@ export default function CoachingWorkspace({
           <article className={styles.panel}>
             <span className={styles.eyebrow}>Coverage Dashboard</span>
             <h3>{coverage.verified || 0} Solver-Verified Decisions</h3>
-            <Progress value={coverage.verifiedPercent} label="Verified Decision Coverage" />
+            {(coverage.decisions || 0) + (coverage.rejected || 0) > 0 ? (
+              <Progress value={coverage.verifiedPercent} label="Verified Decision Coverage" />
+            ) : (
+              <p className={styles.mutedCopy}>Verified Decision Coverage: Not Available (No Audited Decisions Yet)</p>
+            )}
             {coverage.windowLimited && <div className={styles.inlineNotice}>Coverage Uses The Latest {coverage.windowLimit} Audited Decisions. Older Evidence Remains Stored But Is Outside This Coaching Snapshot.</div>}
             <dl className={styles.coverageList}>
               <div><dt>Decisions</dt><dd>{coverage.decisions || 0}</dd></div>
@@ -576,7 +631,7 @@ export default function CoachingWorkspace({
                   <span>Top Unmeasured Solver Buckets</span>
                   <small>{snapshot.solverCoverageGaps.topGaps.length} Buckets</small>
                 </summary>
-                <div className="pa-disclosure-body" aria-label="Solver Coverage Gaps">
+                <div className="pa-disclosure-body" role="region" aria-label="Solver Coverage Gaps">
                   <ul className={styles.alertList}>
                     {snapshot.solverCoverageGaps.topGaps.slice(0, 5).map(gap => (
                       <li key={`${gap.format}-${gap.street}-${gap.heroPosition}-${gap.spotType}`}>
@@ -649,9 +704,23 @@ export default function CoachingWorkspace({
         <article className={styles.panel}>
           <div className={styles.panelHeading}><div><span className={styles.eyebrow}>Weekly Coaching Report</span><h3>Your Next Seven Days</h3></div><Trophy size={26} aria-hidden="true" /></div>
           <div className={styles.reportMetrics}>
-            <div><span>Verified Coverage</span><strong>{snapshot?.weeklyReport?.verifiedCoverage || 0}%</strong></div>
+            <div>
+              <span>Verified Coverage</span>
+              <strong>
+                {(coverage.decisions || 0) + (coverage.rejected || 0) > 0
+                  ? `${snapshot?.weeklyReport?.verifiedCoverage || 0}%`
+                  : 'Not Available'}
+              </strong>
+            </div>
             <div><span>Review Load</span><strong>{snapshot?.weeklyReport?.reviewLoad || 0}</strong></div>
-            <div><span>Measured EV Loss</span><strong>{number(snapshot?.weeklyReport?.measuredEvLoss).toFixed(2)} BB</strong></div>
+            <div>
+              <span>Measured EV Loss</span>
+              <strong>
+                {typeof snapshot?.weeklyReport?.measuredEvLoss === 'number' && Number.isFinite(snapshot.weeklyReport.measuredEvLoss)
+                  ? `${snapshot.weeklyReport.measuredEvLoss.toFixed(2)} BB`
+                  : 'Unpriced'}
+              </strong>
+            </div>
           </div>
           <ol className={styles.reportList}>{(snapshot?.weeklyReport?.focus || []).map(item => <li key={item.id}><span>Priority {item.rank}</span><strong>{item.title}</strong><small>{item.targetReviews} Corrective Reviews, Then Reassess With Fresh Club Arena Hands</small><button type="button" className={styles.secondaryButton} onClick={() => onOpenHandReview?.(findLeak(leaks, item.id))}>Open Audited Review</button></li>)}</ol>
           {!snapshot?.weeklyReport?.focus?.length && <p>Run A Fresh Deterministic Audit To Build This Week's Plan.</p>}
@@ -680,23 +749,31 @@ export default function CoachingWorkspace({
           <details className={`pa-disclosure ${styles.fullWidth}`}>
             <summary>
               <span>Data Inventory · Records In Your Workspace</span>
-              <small>{(lifecycle?.counts?.leaks || 0) + (lifecycle?.counts?.decisions || 0)} Core Records</small>
+              <small>
+                {lifecycleLoading && !lifecycle
+                  ? 'Loading…'
+                  : !lifecycle
+                    ? 'Not Available'
+                    : `${(lifecycle?.counts?.leaks || 0) + (lifecycle?.counts?.decisions || 0)} Core Records`}
+              </small>
             </summary>
             <div className="pa-disclosure-body">
-              {lifecycleLoading && !lifecycle ? <p aria-busy="true">Loading Your Data Inventory</p> : (
+              {lifecycleLoading && !lifecycle ? <p aria-busy="true">Loading Your Data Inventory</p> : !lifecycle ? (
+                <p>Data Inventory Is Currently Unavailable. Select Refresh Data Inventory To Retry.</p>
+              ) : (
                 <dl className={styles.coverageList}>
-                  <div><dt>Detected Leaks</dt><dd>{lifecycle?.counts?.leaks || 0}</dd></div>
-                  <div><dt>Audited Decisions</dt><dd>{lifecycle?.counts?.decisions || 0}</dd></div>
-                  <div><dt>Corrective Reviews</dt><dd>{lifecycle?.counts?.reviews || 0}</dd></div>
-                  <div><dt>Coaching Goals</dt><dd>{lifecycle?.counts?.goals || 0}</dd></div>
-                  <div><dt>Sandbox Sessions</dt><dd>{lifecycle?.counts?.sandboxSessions || 0}</dd></div>
-                  <div><dt>Saved Sandbox Hands</dt><dd>{lifecycle?.counts?.savedHands || 0}</dd></div>
-                  <div><dt>Coach Decisions</dt><dd>{lifecycle?.counts?.coachResults || 0}</dd></div>
-                  <div><dt>Sandbox Bookmarks</dt><dd>{lifecycle?.counts?.bookmarks || 0}</dd></div>
-                  <div><dt>Equity Snapshots</dt><dd>{lifecycle?.counts?.equityHistory || 0}</dd></div>
-                  <div><dt>Scenario Templates</dt><dd>{lifecycle?.counts?.templates || 0}</dd></div>
-                  <div><dt>Shared Scenarios</dt><dd>{lifecycle?.counts?.sharedScenarios || 0}</dd></div>
-                  <div><dt>Solution Bookmarks</dt><dd>{lifecycle?.counts?.solutionBookmarks || 0}</dd></div>
+                  <div><dt>Detected Leaks</dt><dd>{lifecycle.counts?.leaks ?? 0}</dd></div>
+                  <div><dt>Audited Decisions</dt><dd>{lifecycle.counts?.decisions ?? 0}</dd></div>
+                  <div><dt>Corrective Reviews</dt><dd>{lifecycle.counts?.reviews ?? 0}</dd></div>
+                  <div><dt>Coaching Goals</dt><dd>{lifecycle.counts?.goals ?? 0}</dd></div>
+                  <div><dt>Sandbox Sessions</dt><dd>{lifecycle.counts?.sandboxSessions ?? 0}</dd></div>
+                  <div><dt>Saved Sandbox Hands</dt><dd>{lifecycle.counts?.savedHands ?? 0}</dd></div>
+                  <div><dt>Coach Decisions</dt><dd>{lifecycle.counts?.coachResults ?? 0}</dd></div>
+                  <div><dt>Sandbox Bookmarks</dt><dd>{lifecycle.counts?.bookmarks ?? 0}</dd></div>
+                  <div><dt>Equity Snapshots</dt><dd>{lifecycle.counts?.equityHistory ?? 0}</dd></div>
+                  <div><dt>Scenario Templates</dt><dd>{lifecycle.counts?.templates ?? 0}</dd></div>
+                  <div><dt>Shared Scenarios</dt><dd>{lifecycle.counts?.sharedScenarios ?? 0}</dd></div>
+                  <div><dt>Solution Bookmarks</dt><dd>{lifecycle.counts?.solutionBookmarks ?? 0}</dd></div>
                 </dl>
               )}
             </div>
