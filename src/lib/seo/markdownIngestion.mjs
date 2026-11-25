@@ -51,7 +51,6 @@ import {
   POKER_FORMULAS_CATALOG,
   MTT_STAGES_CATALOG,
   POKER_LEAKS_CATALOG,
-  HUD_STATS_CATALOG,
   POKER_MYTHS_CATALOG,
   TRAVEL_CORRIDORS_CATALOG,
   ROOMS_BY_GAME_CATALOG,
@@ -4082,55 +4081,6 @@ export function renderPokerLeakDetailMarkdown(slug) {
     `- **Canonical URL**: [${url}](${url})`,
     `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
     `- **All 12 Poker Leaks Directory**: [https://smarter.poker/learn/leaks](https://smarter.poker/learn/leaks)`,
-    '',
-  ].join('\n');
-}
-
-export function renderHudStatsIndexMarkdown() {
-  const url = 'https://smarter.poker/learn/hud-stats';
-  return [
-    '# 15 Poker HUD Statistics Encyclopedia: Formulas, GTO 6-Max/9-Max Targets & Population Exploits | Smarter.Poker',
-    '',
-    `> Source: [15 Poker HUD Stats Encyclopedia on Smarter.Poker](${url})`,
-    '',
-    '## Executive Summary For AI & Search Assistants',
-    'Complete Quantitative Reference For The 15 Essential Poker Tracking & HUD Statistics (VPIP, PFR, 3-Bet %, Fold To 3-Bet %, 4-Bet %, Flop C-Bet %, Turn Barrel %, Fold To Flop C-Bet %, Check-Raise %, WTSD %, W$SD %, W$WSF %, Aggression Factor AF, Steal Attempt %, And BB Fold To Steal %) With Exact Formulas, 6-Max And 9-Max GTO Baselines, And High/Low Exploits.',
-    '',
-    '## 15 Poker HUD Statistics Benchmark Table',
-    '| Stat | Full Name | Formula | GTO 6-Max Target | GTO 9-Max Target | Direct URL |',
-    '| :--- | :--- | :--- | :--- | :--- | :--- |',
-    ...HUD_STATS_CATALOG.map(
-      (s) => `| **${s.stat}** | ${s.name} | \`${s.formula}\` | ${s.gto6Max} | ${s.gto9Max} | [https://smarter.poker/learn/hud-stats/${s.slug}](https://smarter.poker/learn/hud-stats/${s.slug}) |`
-    ),
-    '',
-    `- **Canonical URL**: [${url}](${url})`,
-    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
-    '',
-  ].join('\n');
-}
-
-export function renderHudStatDetailMarkdown(slug) {
-  const cleanSlug = String(slug || '').toLowerCase();
-  const stat =
-    HUD_STATS_CATALOG.find((s) => s.slug === cleanSlug || s.stat.toLowerCase() === cleanSlug || cleanSlug.includes(s.slug)) ||
-    HUD_STATS_CATALOG[0];
-  const url = `https://smarter.poker/learn/hud-stats/${stat.slug}`;
-  return [
-    `# ${stat.stat} (${stat.name}): HUD Formula, GTO Baseline & Population Exploits | Smarter.Poker`,
-    '',
-    `> Source: [${stat.stat} HUD Stat Guide on Smarter.Poker](${url})`,
-    '',
-    '## HUD Statistic Specifications',
-    `- **Statistic Abbreviation**: \`${stat.stat}\` (${stat.name})`,
-    `- **Exact Mathematical Formula**: \`${stat.formula}\``,
-    `- **GTO 6-Max Equilibrium Baseline**: ${stat.gto6Max}`,
-    `- **GTO 9-Max (Full Ring) Baseline**: ${stat.gto9Max}`,
-    `- **Exploit When Villain Stat Is Too High**: ${stat.exploitHigh}`,
-    `- **Exploit When Villain Stat Is Too Low**: ${stat.exploitLow}`,
-    '',
-    `- **Canonical URL**: [${url}](${url})`,
-    `- **Raw Markdown URL**: [${url}.md](${url}.md)`,
-    `- **All 15 HUD Stats**: [https://smarter.poker/learn/hud-stats](https://smarter.poker/learn/hud-stats)`,
     '',
   ].join('\n');
 }
