@@ -188,3 +188,22 @@ test('cashout_prebreach_warning routes to club invoices and honors cashier push 
  assert.equal(resolveNotificationRoute({ type: 'cashout_prebreach_warning', data: { club_id: clubId } }), `/hub/messenger?clubId=${clubId}&folder=invoices`);
  assert.equal(eventToTypeKey('cashout_prebreach_warning'), 'cashier');
 });
+
+test('Phase 5 payout_audit, Agent SLA CSV export, templates, and notice_board_reply deep-link routing validate cleanly', async () => {
+ const { buildAgentSlaCsv, NOTICE_TEMPLATES } = await import('../src/lib/clubNoticeBoard.mjs');
+ const { resolveNotificationRoute } = await import('../src/lib/notificationRoute.js');
+ const { eventToTypeKey } = await import('../src/lib/push/push-prefs.js');
+ assert.deepEqual(validateNoticeRequest('POST', { clubId, action: 'payout_audit', payload: {} }), { clubId, action: 'payout_audit', payload: {} });
+ assert.throws(() => validateNoticeRequest('POST', { clubId, action: 'payout_audit', payload: { extra: 1 } }), { status: 400 });
+ assert.ok(Array.isArray(NOTICE_TEMPLATES) && NOTICE_TEMPLATES.length >= 3);
+ const csv = buildAgentSlaCsv([
+  { user_id: id, display_name: 'Agent "Alpha", Jr', username: 'alpha', role: 'agent', sla: { median_minutes: 18, completed_30d: 12, overdue_30d: 1, escalated_30d: 0, pending_now: 2 } },
+  { user_id: clubId, display_name: 'Owner', username: 'owner', role: 'owner', sla: null },
+ ], 'Kings Club');
+ assert.match(csv, /^Club,Agent,Username,Role,30d Median Minutes,30d Completed,30d Overdue,30d Escalated,Pending Now\r\n/);
+ assert.match(csv, /"Agent ""Alpha"", Jr",alpha,Agent,18,12,1,0,2/);
+ assert.doesNotMatch(csv, /Owner/);
+ assert.equal(resolveNotificationRoute({ type: 'notice_board_mention', data: { club_id: clubId, notice_id: id } }), `/hub/messenger?clubId=${clubId}&folder=notice-board&noticeId=${id}`);
+ assert.equal(resolveNotificationRoute({ type: 'notice_board_reply', data: { club_id: clubId, notice_id: id } }), `/hub/messenger?clubId=${clubId}&folder=notice-board&noticeId=${id}&openThread=1`);
+ assert.equal(eventToTypeKey('notice_board_reply'), 'club_announcement');
+});

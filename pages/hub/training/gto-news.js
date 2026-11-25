@@ -335,7 +335,7 @@ export default function GtoNewsPage() {
             ? ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d']
             : brainVariant === 'plo5'
               ? ['As', 'Ks', 'Qh', 'Jh', 'Td']
-              : brainVariant === 'plo4'
+              : brainVariant === 'plo4' || brainVariant === 'plo8'
                 ? ['As', 'Ks', 'Qh', 'Jh']
                 : ['As', 'Kd'],
         boardCards: ['Qs', '7d', '2c'],
@@ -888,7 +888,7 @@ export default function GtoNewsPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
               <span style={{ fontWeight: 800, color: 'var(--sp-accent-cyan)' }}>Horse Brain Spot Preview</span>
               <div style={{ display: 'flex', gap: 6 }}>
-                {['nlh', 'plo4', 'plo5', 'plo6'].map((v) => (
+                {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
                   <button
                     key={v}
                     type="button"

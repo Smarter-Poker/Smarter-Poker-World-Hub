@@ -15,9 +15,18 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { normalizeOperatorContext } from '../../../src/lib/trivia/operationsSnapshot.mjs';
 import { TRIVIA_STUDY_CATEGORIES } from '../../../src/lib/trivia/trainingSpotMap.mjs';
+import {
+    auditTriviaQuestionStructure,
+    buildEligiblePromptHashSet,
+    isThinCategory,
+    rankCurationCandidates,
+    THIN_CATEGORY_PRIORITY,
+} from '../../../src/lib/trivia/questionQualityAudit.mjs';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const VALID_CATEGORIES = new Set(TRIVIA_STUDY_CATEGORIES);
+const ALLOWED_PRIORITIES = new Set(['default', 'thin_categories']);
+const FALLBACK_THIN_CATEGORIES = ['rule_knowledge', 'cash_game_situations', 'mtt_situations', 'icm_chip_ev'];
 const ALLOWED_ACTIONS = new Set([
     'approve',
     'quarantine',
@@ -136,53 +145,186 @@ function parseBatchBody(body) {
     };
 }
 
-async function fetchQueueItems(client, { queueMode, category, limit }) {
+async function fetchOptionalEligibilityContext(client, items) {
+    const ids = items.map((item) => item.questionId).filter(Boolean);
+    const questions = Array.from(new Set(items.map((item) => item.question).filter((q) => typeof q === 'string' && q.trim().length > 0)));
+    const eligibilityById = new Map();
+    const eligiblePrompts = [];
+
+    if (ids.length > 0) {
+        try {
+            const { data, error } = await client
+                .from('trivia_question_eligibility_v1')
+                .select('question_id, open_valid_reports, reject_reasons')
+                .in('question_id', ids.slice(0, 100));
+            if (!error && Array.isArray(data)) {
+                for (const row of data) {
+                    if (row?.question_id) eligibilityById.set(row.question_id, row);
+                }
+            }
+        } catch (_err) {
+            // Optional read-only enrichment; gracefully degrades when view is unstubbed in unit tests.
+        }
+    }
+
+    if (questions.length > 0) {
+        try {
+            const { data, error } = await client
+                .from('trivia_eligible_questions_serving_v1')
+                .select('question')
+                .in('question', questions.slice(0, 100));
+            if (!error && Array.isArray(data)) {
+                for (const row of data) {
+                    if (typeof row?.question === 'string') eligiblePrompts.push(row.question);
+                }
+            }
+        } catch (_err) {
+            // Optional read-only duplicate lookup; gracefully degrades when view is unstubbed in unit tests.
+        }
+    }
+
+    const eligiblePromptHashes = typeof buildEligiblePromptHashSet === 'function'
+        ? buildEligiblePromptHashSet(eligiblePrompts)
+        : new Set();
+
+    return { eligibilityById, eligiblePromptHashes };
+}
+
+function getThinCategoryList() {
+    return Array.isArray(THIN_CATEGORY_PRIORITY) && THIN_CATEGORY_PRIORITY.length > 0
+        ? [...THIN_CATEGORY_PRIORITY]
+        : FALLBACK_THIN_CATEGORIES;
+}
+
+async function fetchRawQueueItems(client, { queueMode, category, priorityMode, limit }) {
+    const thinCats = getThinCategoryList();
+    const prioritizeThin = priorityMode === 'thin_categories' && !category;
+
     if (queueMode === 'unaudited') {
-        let query = client
-            .from('trivia_questions')
-            .select('id, category, difficulty, question, options, correct_index, quality_score, audit_verified, source, created_at')
-            .is('audit_verified', null)
-            .order('created_at', { ascending: false })
-            .limit(limit);
-        if (category) query = query.eq('category', category);
-        const { data, error } = await query;
-        if (error) throw error;
-        return (data || []).map((row) => ({
+        const mapRow = (row) => ({
             questionId: row.id,
             category: row.category,
             difficulty: row.difficulty,
             question: row.question,
             options: Array.isArray(row.options) ? row.options : [],
             correctIndex: row.correct_index,
+            explanation: typeof row.explanation === 'string' ? row.explanation : '',
             qualityScore: row.quality_score,
             auditVerified: row.audit_verified,
             source: row.source || 'unset',
             createdAt: row.created_at || null,
             priority: null,
-        }));
+        });
+
+        const selectCols = 'id, category, difficulty, question, options, correct_index, explanation, quality_score, audit_verified, source, created_at';
+
+        if (prioritizeThin) {
+            const thinQuery = client
+                .from('trivia_questions')
+                .select(selectCols)
+                .is('audit_verified', null);
+            if (typeof thinQuery.in === 'function') {
+                const { data: thinData, error: thinError } = await thinQuery
+                    .in('category', thinCats.slice(0, 10))
+                    .order('created_at', { ascending: false })
+                    .limit(limit);
+                if (thinError) throw thinError;
+                const collected = (thinData || []).map(mapRow);
+                if (collected.length >= limit) return collected.slice(0, limit);
+
+                const seen = new Set(collected.map((item) => item.questionId));
+                const { data: fallbackData, error: fallbackError } = await client
+                    .from('trivia_questions')
+                    .select(selectCols)
+                    .is('audit_verified', null)
+                    .order('created_at', { ascending: false })
+                    .limit(limit);
+                if (fallbackError) throw fallbackError;
+                for (const row of fallbackData || []) {
+                    if (!seen.has(row.id) && collected.length < limit) {
+                        seen.add(row.id);
+                        collected.push(mapRow(row));
+                    }
+                }
+                return collected;
+            }
+        }
+
+        let query = client
+            .from('trivia_questions')
+            .select(selectCols)
+            .is('audit_verified', null)
+            .order('created_at', { ascending: false })
+            .limit(limit);
+        if (category) query = query.eq('category', category);
+        const { data, error } = await query;
+        if (error) throw error;
+        return (data || []).map(mapRow);
     }
 
-    let reviewQuery = client
-        .from('trivia_review_queue_v1')
-        .select('question_id, category, difficulty, quality_score, priority, inconclusive_attempts, created_at')
-        .order('priority', { ascending: true })
-        .order('created_at', { ascending: true })
-        .limit(limit);
-    if (category) reviewQuery = reviewQuery.eq('category', category);
-    const { data: queueRows, error: queueError } = await reviewQuery;
-    if (queueError) throw queueError;
+    let queueRows = [];
+    const reviewSelect = 'question_id, category, difficulty, quality_score, priority, inconclusive_attempts, created_at';
 
-    const ids = (queueRows || []).map((r) => r.question_id).filter(Boolean);
+    if (prioritizeThin) {
+        const thinReviewQuery = client
+            .from('trivia_review_queue_v1')
+            .select(reviewSelect);
+        if (typeof thinReviewQuery.in === 'function') {
+            const { data: thinRows, error: thinError } = await thinReviewQuery
+                .in('category', thinCats.slice(0, 10))
+                .order('priority', { ascending: true })
+                .order('created_at', { ascending: true })
+                .limit(limit);
+            if (thinError) throw thinError;
+            queueRows = Array.isArray(thinRows) ? [...thinRows] : [];
+            if (queueRows.length < limit) {
+                const seen = new Set(queueRows.map((r) => r.question_id));
+                const { data: moreRows, error: moreError } = await client
+                    .from('trivia_review_queue_v1')
+                    .select(reviewSelect)
+                    .order('priority', { ascending: true })
+                    .order('created_at', { ascending: true })
+                    .limit(limit);
+                if (moreError) throw moreError;
+                for (const row of moreRows || []) {
+                    if (!seen.has(row.question_id) && queueRows.length < limit) {
+                        seen.add(row.question_id);
+                        queueRows.push(row);
+                    }
+                }
+            }
+        } else {
+            const { data: fallbackRows, error: fallbackError } = await thinReviewQuery
+                .order('priority', { ascending: true })
+                .order('created_at', { ascending: true })
+                .limit(limit);
+            if (fallbackError) throw fallbackError;
+            queueRows = fallbackRows || [];
+        }
+    } else {
+        let reviewQuery = client
+            .from('trivia_review_queue_v1')
+            .select(reviewSelect)
+            .order('priority', { ascending: true })
+            .order('created_at', { ascending: true })
+            .limit(limit);
+        if (category) reviewQuery = reviewQuery.eq('category', category);
+        const { data: rows, error: queueError } = await reviewQuery;
+        if (queueError) throw queueError;
+        queueRows = rows || [];
+    }
+
+    const ids = queueRows.map((r) => r.question_id).filter(Boolean);
     if (ids.length === 0) return [];
 
     const { data: questions, error: qError } = await client
         .from('trivia_questions')
-        .select('id, question, options, correct_index, audit_verified, source')
+        .select('id, question, options, correct_index, explanation, audit_verified, source')
         .in('id', ids.slice(0, 100));
     if (qError) throw qError;
 
     const byId = new Map((questions || []).map((q) => [q.id, q]));
-    return (queueRows || []).map((row) => {
+    return queueRows.map((row) => {
         const q = byId.get(row.question_id);
         return {
             questionId: row.question_id,
@@ -191,12 +333,47 @@ async function fetchQueueItems(client, { queueMode, category, limit }) {
             question: q?.question || '',
             options: Array.isArray(q?.options) ? q.options : [],
             correctIndex: q?.correct_index ?? null,
+            explanation: typeof q?.explanation === 'string' ? q.explanation : '',
             qualityScore: row.quality_score,
             auditVerified: q?.audit_verified ?? null,
             source: q?.source || 'unset',
             createdAt: row.created_at || null,
             priority: row.priority ?? null,
             inconclusiveAttempts: row.inconclusive_attempts ?? 0,
+        };
+    });
+}
+
+async function fetchQueueItems(client, { queueMode, category, priorityMode, limit }) {
+    const rawItems = await fetchRawQueueItems(client, { queueMode, category, priorityMode, limit });
+    if (rawItems.length === 0) return [];
+
+    const { eligibilityById, eligiblePromptHashes } = await fetchOptionalEligibilityContext(client, rawItems);
+    const enriched = rawItems.map((item) => {
+        const elig = eligibilityById.get(item.questionId);
+        return {
+            ...item,
+            openValidReports: Number(elig?.open_valid_reports || 0),
+            rejectReasons: Array.isArray(elig?.reject_reasons) ? elig.reject_reasons : [],
+        };
+    });
+
+    if (priorityMode === 'thin_categories') {
+        const ranked = rankCurationCandidates(enriched, {
+            eligiblePromptHashes,
+            thinCategories: getThinCategoryList(),
+            thinFirst: true,
+        });
+        return Array.isArray(ranked) ? ranked : enriched;
+    }
+
+    return enriched.map((item) => {
+        const qualityAudit = auditTriviaQuestionStructure(item, { eligiblePromptHashes });
+        const thin = isThinCategory(item.category);
+        return {
+            ...item,
+            isThinCategory: Boolean(thin),
+            qualityAudit,
         };
     });
 }
@@ -221,6 +398,11 @@ export default async function handler(req, res) {
     try {
         if (req.method === 'GET') {
             const queueMode = req.query?.queue === 'unaudited' ? 'unaudited' : 'review_queue';
+            const rawPriority = typeof req.query?.priority === 'string' ? req.query.priority.trim() : '';
+            const priorityMode = rawPriority || 'default';
+            if (!ALLOWED_PRIORITIES.has(priorityMode)) {
+                return res.status(400).json({ success: false, error: 'invalid_priority' });
+            }
             const rawCat = typeof req.query?.category === 'string' ? req.query.category.trim() : '';
             const category = rawCat && rawCat !== 'all' ? rawCat : null;
             if (category && !VALID_CATEGORIES.has(category)) {
@@ -234,7 +416,7 @@ export default async function handler(req, res) {
                     p_min_shown: minShown,
                     p_limit: 100,
                 }),
-                fetchQueueItems(client, { queueMode, category, limit }),
+                fetchQueueItems(client, { queueMode, category, priorityMode, limit }),
             ]);
 
             if (calResult.error || !calResult.data?.success) {
@@ -267,6 +449,7 @@ export default async function handler(req, res) {
                 queue: {
                     mode: queueMode,
                     category: category || 'all',
+                    priority: priorityMode,
                     items: queueItems,
                 },
             });

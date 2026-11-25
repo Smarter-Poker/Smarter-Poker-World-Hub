@@ -20,6 +20,7 @@ const FTS_HERO_CARDS_BY_VARIANT = {
   plo4: ['Ah', 'Kh', 'Qs', 'Js'],
   plo5: ['Ah', 'Kh', 'Qs', 'Js', 'Td'],
   plo6: ['Ah', 'Kh', 'Qs', 'Js', 'Td', '9d'],
+  plo8: ['Ah', 'Kh', 'Qs', 'Js'],
 };
 
 // BUG FIX (TRAIN-FTS-A11Y-1): SVG back-arrow + button hardening for the
@@ -333,7 +334,7 @@ export default function FinalTableSimulator() {
                     </span>
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-                    {['nlh', 'plo4', 'plo5', 'plo6'].map((v) => (
+                    {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
                       <button
                         key={v}
                         type="button"

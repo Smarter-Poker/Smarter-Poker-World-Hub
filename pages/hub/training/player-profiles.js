@@ -11,6 +11,7 @@ const VARIANTS = [
   { id: 'plo4', label: 'PLO4 (4 Cards)', heroCards: ['Ad', 'Kd', 'Jc', 'Tc'] },
   { id: 'plo5', label: 'PLO5 (5 Cards)', heroCards: ['Ad', 'Kd', 'Jc', 'Tc', '9s'] },
   { id: 'plo6', label: 'PLO6 (6 Cards)', heroCards: ['Ad', 'Kd', 'Jc', 'Tc', '9s', '8h'] },
+  { id: 'plo8', label: 'PLO8 (Hi-Lo)', heroCards: ['Ad', 'Kd', 'Jc', 'Tc'] },
 ];
 
 const PLAYER_ARCHETYPES = [

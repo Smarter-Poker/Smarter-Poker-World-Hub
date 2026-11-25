@@ -11,6 +11,7 @@ const HERO_CARDS_BY_VARIANT = {
   plo4: ['As', 'Ks', 'Qh', 'Jh'],
   plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
   plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
+  plo8: ['As', 'Ks', 'Qh', 'Jh'],
 };
 
 const BOARD_CARDS = ['8d', '5c', '2s', '6h', '3d'];
@@ -76,8 +77,9 @@ function scoreAndRankHandsClient(rawHands = []) {
     const rawHero = Array.isArray(hand?.heroCards) ? hand.heroCards : [];
     const variant = rawVar === 'plo6' || rawHero.length === 6 ? 'plo6'
       : rawVar === 'plo5' || rawHero.length === 5 ? 'plo5'
-        : rawVar === 'plo4' || /plo|omaha/i.test(rawVar) || rawHero.length === 4 ? 'plo4'
-          : 'nlh';
+        : rawVar === 'plo8' || /plo8|hilo|hi-lo/i.test(rawVar) ? 'plo8'
+          : rawVar === 'plo4' || /plo|omaha/i.test(rawVar) || rawHero.length === 4 ? 'plo4'
+            : 'nlh';
     const expectedHoleCount = (HERO_CARDS_BY_VARIANT[variant] || HERO_CARDS_BY_VARIANT.nlh).length;
     const heroCards = rawHero.length === expectedHoleCount
       ? rawHero
@@ -632,7 +634,7 @@ export default function LiveHudSyncPage() {
                       {`Est. EV Leak: -${topLeakHand.estimatedEvLossBb} BB · Horse Brain Action: ${hudBrainPreview?.recommendedAction || topLeakHand.recommendedAction} (${hudBrainPreview?.engineModule || topLeakHand.brainSource})`}
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-                      {['nlh', 'plo4', 'plo5', 'plo6'].map((v) => (
+                      {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
                         <button
                           key={v}
                           type="button"

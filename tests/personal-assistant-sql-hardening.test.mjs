@@ -41,3 +41,22 @@ test('PA SQL hardening migration closes sandbox_results RLS, completes purge/ret
   assert.match(sql, /REVOKE ALL ON FUNCTION public\.apply_personal_assistant_retention\(uuid\) FROM PUBLIC, anon, authenticated;/);
   assert.match(sql, /REVOKE ALL ON FUNCTION public\.checkpoint_pa_leak_audit_job\(/);
 });
+
+const WAVE_B_MIGRATION_PATH = path.resolve(
+  'supabase/migrations/20261125021500_pa_watermark_and_single_hand_rpc.sql',
+);
+
+test('PA watermark and single-round-trip linked-hand RPC migration enforces owner containment and service_role-only EXECUTE', () => {
+  const sql = fs.readFileSync(WAVE_B_MIGRATION_PATH, 'utf8');
+
+  assert.match(sql, /ALTER TABLE public\.user_assistant_stats[\s\S]*?ADD COLUMN IF NOT EXISTS last_audited_hand_at timestamptz/);
+  assert.match(sql, /ADD COLUMN IF NOT EXISTS last_audited_hand_id uuid/);
+  assert.match(sql, /ADD COLUMN IF NOT EXISTS last_audited_matcher_version text/);
+  assert.match(sql, /ALTER TABLE public\.leak_review_state[\s\S]*?ADD COLUMN IF NOT EXISTS remediation_baseline_at timestamptz/);
+  assert.match(sql, /CREATE OR REPLACE FUNCTION public\.get_pa_linked_hand_bundle\([\s\S]*?SECURITY DEFINER[\s\S]*?SET search_path = public, pg_temp/);
+  assert.match(sql, /h\.players @> jsonb_build_array\(jsonb_build_object\('userId', p_user_id::text\)\)/);
+  assert.match(sql, /REVOKE ALL ON FUNCTION public\.get_pa_linked_hand_bundle\(uuid, uuid\) FROM PUBLIC;/);
+  assert.match(sql, /REVOKE ALL ON FUNCTION public\.get_pa_linked_hand_bundle\(uuid, uuid\) FROM anon;/);
+  assert.match(sql, /REVOKE ALL ON FUNCTION public\.get_pa_linked_hand_bundle\(uuid, uuid\) FROM authenticated;/);
+  assert.match(sql, /GRANT EXECUTE ON FUNCTION public\.get_pa_linked_hand_bundle\(uuid, uuid\) TO service_role;/);
+});

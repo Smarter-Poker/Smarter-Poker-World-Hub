@@ -15,6 +15,7 @@ const DUEL_HERO_CARDS_BY_VARIANT = {
   plo4: ['As', 'Ks', 'Qh', 'Jh'],
   plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
   plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
+  plo8: ['As', 'Ks', 'Qh', 'Jh'],
 };
 
 const capabilityRows = [
@@ -268,7 +269,7 @@ export default function PvPLobbyPage() {
                 </div>
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-                {['nlh', 'plo4', 'plo5', 'plo6'].map((v) => (
+                {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
                   <button
                     key={v}
                     type="button"
@@ -376,6 +377,7 @@ export default function PvPLobbyPage() {
                     <option value="plo4">PLO4 (4 Cards)</option>
                     <option value="plo5">PLO5 (5 Cards)</option>
                     <option value="plo6">PLO6 (6 Cards)</option>
+                    <option value="plo8">PLO8 (Hi-Lo)</option>
                   </select>
                   <button
                     type="button"

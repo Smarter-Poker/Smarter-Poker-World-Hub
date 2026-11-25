@@ -25,6 +25,8 @@ const migration = read('supabase/migrations/20261124150500_payout_overdue_owner_
 const migrationP2 = read('supabase/migrations/20261124180000_notice_board_phase2_reads_acks_media_mentions_and_overdue_config.sql');
 const migrationP3 = read('supabase/migrations/20261124190000_notice_board_hardening_auto_escalate_realtime_and_parity.sql');
 const migrationP4 = read('supabase/migrations/20261125020000_notice_board_phase4_full_upgrade_and_hardening.sql');
+const migrationP5 = read('supabase/migrations/20261125030000_notice_board_phase5_hardening_threads_audit_and_storage.sql');
+const uploadUrlApi = read('pages/api/social/upload-url.js');
 const deviceReceipt = read('src/lib/push/device-receipt.js');
 const notifFeed = read('src/components/notifications/HubNotificationsFeed.jsx');
 const boardLib = read('src/lib/clubNoticeBoard.mjs');
@@ -169,4 +171,30 @@ test('LAW 10: Phase 4 hardening & full Telegram upgrade preserve zero live-table
     assert.match(boardUi, /Search Full History/);
     assert.match(boardUi, /Quiet Hours Backup Role/);
     assert.doesNotMatch(boardUi, /dangerouslySetInnerHTML/);
+});
+
+test('LAW 11: Phase 5 hardening enforces PDF/CSV upload MIME parity, scheduled-notice RLS & unread isolation, automatic scheduled mention dispatch, thread reply notifications + deep-links, and management-only payout_audit + SLA CSV export', () => {
+    assert.doesNotMatch(migrationP5, /REFERENCES\s+public\.(clubs|profiles|club_members|cashout_requests)/i);
+    assert.doesNotMatch(migrationP5, /TRIGGER\s+.*\s+ON\s+public\.(clubs|profiles|club_members|cashout_requests)/i);
+    assert.match(migrationP5, /application\/pdf/);
+    assert.match(migrationP5, /text\/csv/);
+    assert.match(uploadUrlApi, /'application\/pdf'/);
+    assert.match(uploadUrlApi, /'text\/csv'/);
+    assert.match(migrationP5, /CREATE POLICY club_notice_member_read/);
+    assert.match(migrationP5, /scheduled_for <= transaction_timestamp\(\)/);
+    assert.match(migrationP5, /mentions_dispatched_at/);
+    assert.match(migrationP5, /'notice_board_reply'/);
+    assert.match(migrationP5, /p_action = 'payout_audit'/);
+    assert.match(deviceReceipt, /notice_board_reply/);
+    assert.match(pushPrefs, /notice_board_reply:\s*'club_announcement'/);
+    assert.match(routeLib, /t === 'notice_board_reply'/);
+    assert.match(pushDispatch, /notice_board_reply:/);
+    assert.match(bellUi, /notice_board_reply:/);
+    assert.match(messengerPage, /initialNoticeId=/);
+    assert.match(messengerPage, /initialOpenThread=/);
+    assert.match(boardUi, /payout_audit/);
+    assert.match(boardUi, /Export SLA CSV/);
+    assert.match(boardUi, /buildAgentSlaCsv/);
+    assert.match(boardUi, /NOTICE_TEMPLATES/);
+    assert.match(boardUi, /sp_nb_draft:/);
 });

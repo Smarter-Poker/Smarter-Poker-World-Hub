@@ -222,6 +222,7 @@ const EVENT_ALIASES = {
     cashout_overdue: 'cashier',
     cashout_prebreach_warning: 'cashier',
     notice_board_mention: 'club_announcement',
+    notice_board_reply: 'club_announcement',
     cashout_approved: 'cashier',
     cashout_cancelled: 'cashier',
     cashout_denied: 'cashier',
@@ -269,6 +270,16 @@ const EVENT_ALIASES = {
     // it is allowed to arrive at 3am. The same trade applies - muting
     // "Tournament Starting" mutes this too - and it is the same right answer.
     tournament_resumed: 'tournament_starting',
+
+    // ── TRIVIA NIGHTLY REMINDER (added 2026-11-25, Wave 3 Track 1) ─────────
+    //
+    // Emitted by trivia_dispatch_nightly_reminders_v1 during the 7:45 PM CT
+    // pre-start reminder window for players who explicitly opted into Tonight
+    // at 8 Trivia Nightly reminders. Mapped to `tournament_starting` so it
+    // honors both push_type_prefs.tournament_starting and legacy
+    // user_notification_preferences.tournament_reminders while piercing quiet
+    // hours and daily caps as a time-critical pre-start warning.
+    trivia_nightly_reminder: 'tournament_starting',
 };
 
 // Test pushes are never gated by per-type preferences -- if a user clicks

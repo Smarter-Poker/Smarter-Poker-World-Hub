@@ -20,6 +20,26 @@ import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authU
 import { normalizeTrainingSessionConfig } from '../../../src/lib/training/sessionConfigContract.mjs';
 import { savePracticeSession } from '../../../src/lib/training/practiceSession';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import PokerSoundManager from '../../../src/components/poker/PokerSoundManager';
+
+function computePaneSpatialPan(paneIndex, totalTables) {
+  const count = Math.max(1, Number(totalTables) || 1);
+  if (count <= 1) return 0;
+  const idx = Math.max(0, Math.min(count - 1, Number(paneIndex) || 0));
+  return Number((((idx / (count - 1)) * 2 - 1) * 0.8).toFixed(2));
+}
+
+function resolveDefaultPaneConfigs(baseVariant = 'nlh') {
+  const normalizedBase = ['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].includes(String(baseVariant || '').toLowerCase())
+    ? String(baseVariant).toLowerCase()
+    : 'nlh';
+  return [
+    { variant: normalizedBase, bettingStructure: normalizedBase === 'nlh' ? 'no_limit' : 'pot_limit', format: 'cash' },
+    { variant: normalizedBase, bettingStructure: normalizedBase === 'nlh' ? 'no_limit' : 'pot_limit', format: 'cash' },
+    { variant: normalizedBase, bettingStructure: normalizedBase === 'nlh' ? 'no_limit' : 'pot_limit', format: 'cash' },
+    { variant: normalizedBase, bettingStructure: normalizedBase === 'nlh' ? 'no_limit' : 'pot_limit', format: 'cash' },
+  ];
+}
 
 // Dynamic import to avoid SSR issues with the Arena
 const GodModeArena = dynamic(() => import('../../../src/components/training/GodModeArena'), {
@@ -53,6 +73,13 @@ export default function MultiTablePage() {
   useTrainingBus('multi-table');
   const [tableCount, setTableCount] = useState(2);
   const [selectedVariant, setSelectedVariant] = useState('nlh');
+  const [paneConfigs, setPaneConfigs] = useState(() => resolveDefaultPaneConfigs('nlh'));
+  const soundMgrRef = React.useRef(null);
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !soundMgrRef.current) {
+      soundMgrRef.current = new PokerSoundManager();
+    }
+  }, []);
   const [isStarted, setIsStarted] = useState(false);
   const [selectedGames, setSelectedGames] = useState([
     'cash-002',
@@ -141,7 +168,9 @@ export default function MultiTablePage() {
       setTableCount(requested);
     }
     if (typeof q.variant === 'string' && ['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].includes(q.variant.toLowerCase())) {
-      setSelectedVariant(q.variant.toLowerCase());
+      const nextVar = q.variant.toLowerCase();
+      setSelectedVariant(nextVar);
+      setPaneConfigs(resolveDefaultPaneConfigs(nextVar));
     }
     if (typeof q.game === 'string' && q.game) {
       // Lead with the drill the player actually clicked, then fill the
@@ -365,12 +394,15 @@ export default function MultiTablePage() {
 
       if (justAnswered && visibleGames.length > 1) {
         const startIdx = Math.max(0, visibleGames.indexOf(id));
+        soundMgrRef.current?.playSpatial('deal', startIdx, tableCount);
         for (let offset = 1; offset < visibleGames.length; offset += 1) {
-          const candidateId = visibleGames[(startIdx + offset) % visibleGames.length];
+          const candidateIdx = (startIdx + offset) % visibleGames.length;
+          const candidateId = visibleGames[candidateIdx];
           if (completedTables.has(candidateId)) continue;
           const candidateState = updatedMap[candidateId];
           if (!candidateState?.gameComplete && !candidateState?.showFeedback) {
             setFocusedGameId(candidateId);
+            soundMgrRef.current?.playSpatial('yourTurn', candidateIdx, tableCount);
             return;
           }
         }
@@ -384,11 +416,13 @@ export default function MultiTablePage() {
             focusedState?.showFeedback ||
             focusedState?.gameComplete)
         ) {
+          const readyIdx = Math.max(0, visibleGames.indexOf(id));
           setFocusedGameId(id);
+          soundMgrRef.current?.playSpatial('yourTurn', readyIdx, tableCount);
         }
       }
     },
-    [visibleGames, completedTables, focusedGameId],
+    [visibleGames, completedTables, focusedGameId, tableCount],
   );
 
   // Keyboard table-focus switching: '[' / ']' or Alt+1..Alt+4 moves active focus between visible tables
@@ -921,7 +955,7 @@ export default function MultiTablePage() {
               </div>
             </div>
 
-            {/* Variant Selector (Hold'em / PLO4 / PLO5 / PLO6) */}
+            {/* Variant Selector (Hold'em / PLO4 / PLO5 / PLO6 / PLO8) */}
             <div style={{ marginBottom: 24 }}>
               <div
                 style={{
@@ -944,6 +978,7 @@ export default function MultiTablePage() {
                   { id: 'plo4', label: 'PLO4 (4)' },
                   { id: 'plo5', label: 'PLO5 (5)' },
                   { id: 'plo6', label: 'PLO6 (6)' },
+                  { id: 'plo8', label: 'PLO8 (Hi-Lo)' },
                 ].map((v) => {
                   const active = selectedVariant === v.id;
                   return (
@@ -952,7 +987,10 @@ export default function MultiTablePage() {
                       type="button"
                       data-multitable-variant={v.id}
                       aria-pressed={active}
-                      onClick={() => setSelectedVariant(v.id)}
+                      onClick={() => {
+                        setSelectedVariant(v.id);
+                        setPaneConfigs(resolveDefaultPaneConfigs(v.id));
+                      }}
                       style={{
                         padding: '8px 14px',
                         borderRadius: 8,
@@ -966,6 +1004,168 @@ export default function MultiTablePage() {
                     >
                       {v.label}
                     </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Per-Pane Mixed-Game & Mixed-Format Configuration Controls */}
+            <div style={{ marginBottom: 24, textAlign: 'left' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: 8,
+                  marginBottom: 10,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: 'var(--sp-fg-dim)',
+                    letterSpacing: 1.5,
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  PER-PANE MIXED-GAME &amp; MIXED-FORMAT ROTATION
+                </div>
+                <button
+                  type="button"
+                  data-apply-mixed-rotation-btn="true"
+                  onClick={() => {
+                    setTableCount(4);
+                    setSelectedVariant('nlh');
+                    setPaneConfigs([
+                      { variant: 'nlh', bettingStructure: 'no_limit', format: 'cash' },
+                      { variant: 'plo4', bettingStructure: 'pot_limit', format: 'mtt' },
+                      { variant: 'plo5', bettingStructure: 'pot_limit', format: 'cash' },
+                      { variant: 'plo8', bettingStructure: 'fixed_limit', format: 'cash' },
+                    ]);
+                  }}
+                  style={{
+                    padding: '6px 10px',
+                    borderRadius: 8,
+                    fontSize: 12,
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    border: '1px solid rgba(56, 189, 248, 0.55)',
+                    background: 'rgba(56, 189, 248, 0.16)',
+                    color: '#7dd3fc',
+                  }}
+                >
+                  Apply Mixed 4-Game Rotation (NLH + PLO4 + PLO5 + PLO8)
+                </button>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+                {Array.from({ length: tableCount }, (_, idx) => {
+                  const cfg = paneConfigs[idx] || { variant: selectedVariant, bettingStructure: 'no_limit', format: 'cash' };
+                  const panVal = computePaneSpatialPan(idx, tableCount);
+                  return (
+                    <div
+                      key={idx}
+                      data-pane-config-card={idx + 1}
+                      data-spatial-audio-pan={String(panVal)}
+                      style={{
+                        padding: '10px',
+                        borderRadius: 10,
+                        background: 'rgba(0,0,0,0.28)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 12, fontWeight: 800, color: '#7dd3fc' }}>
+                        <span>Table {idx + 1}</span>
+                        <span>Pan: {panVal > 0 ? `+${panVal}` : String(panVal)}</span>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <select
+                          aria-label={`Table ${idx + 1} Variant`}
+                          data-pane-variant-selector="true"
+                          data-pane-index={idx + 1}
+                          value={cfg.variant}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setPaneConfigs((prev) => {
+                              const next = [...prev];
+                              next[idx] = { ...cfg, variant: val };
+                              return next;
+                            });
+                          }}
+                          style={{
+                            padding: '5px 8px',
+                            borderRadius: 6,
+                            fontSize: 12,
+                            fontWeight: 700,
+                            background: '#0f172a',
+                            color: '#e2e8f0',
+                            border: '1px solid rgba(255,255,255,0.14)',
+                          }}
+                        >
+                          <option value="nlh">NLH</option>
+                          <option value="plo4">PLO4</option>
+                          <option value="plo5">PLO5</option>
+                          <option value="plo6">PLO6</option>
+                          <option value="plo8">PLO8</option>
+                        </select>
+                        <select
+                          aria-label={`Table ${idx + 1} Betting Structure`}
+                          data-pane-betting-structure-selector="true"
+                          data-pane-index={idx + 1}
+                          value={cfg.bettingStructure}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setPaneConfigs((prev) => {
+                              const next = [...prev];
+                              next[idx] = { ...cfg, bettingStructure: val };
+                              return next;
+                            });
+                          }}
+                          style={{
+                            padding: '5px 8px',
+                            borderRadius: 6,
+                            fontSize: 12,
+                            fontWeight: 700,
+                            background: '#0f172a',
+                            color: '#e2e8f0',
+                            border: '1px solid rgba(255,255,255,0.14)',
+                          }}
+                        >
+                          <option value="no_limit">No-Limit</option>
+                          <option value="pot_limit">Pot-Limit</option>
+                          <option value="fixed_limit">Fixed-Limit</option>
+                        </select>
+                        <select
+                          aria-label={`Table ${idx + 1} Format`}
+                          data-pane-format-selector="true"
+                          data-pane-index={idx + 1}
+                          value={cfg.format}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setPaneConfigs((prev) => {
+                              const next = [...prev];
+                              next[idx] = { ...cfg, format: val };
+                              return next;
+                            });
+                          }}
+                          style={{
+                            padding: '5px 8px',
+                            borderRadius: 6,
+                            fontSize: 12,
+                            fontWeight: 700,
+                            background: '#0f172a',
+                            color: '#e2e8f0',
+                            border: '1px solid rgba(255,255,255,0.14)',
+                          }}
+                        >
+                          <option value="cash">Cash 6-Max</option>
+                          <option value="mtt">MTT</option>
+                          <option value="spins">Spins 3-Max</option>
+                          <option value="hu">Heads-Up</option>
+                        </select>
+                      </div>
+                    </div>
                   );
                 })}
               </div>
@@ -1138,6 +1338,7 @@ export default function MultiTablePage() {
                   { id: 'plo4', label: 'PLO4' },
                   { id: 'plo5', label: 'PLO5' },
                   { id: 'plo6', label: 'PLO6' },
+                  { id: 'plo8', label: 'PLO8' },
                 ].map((v) => {
                   const active = selectedVariant === v.id;
                   return (
@@ -1149,6 +1350,7 @@ export default function MultiTablePage() {
                       onClick={() => {
                         if (selectedVariant === v.id) return;
                         setSelectedVariant(v.id);
+                        setPaneConfigs(resolveDefaultPaneConfigs(v.id));
                         setRunId(`mt-${Date.now()}`);
                         reportedTablesRef.current = new Set();
                         liveTableTallyRef.current = {};
@@ -1395,12 +1597,23 @@ export default function MultiTablePage() {
                 gap: 2,
               }}
             >
-              {visibleGames.map((gameId, i) => (
+              {visibleGames.map((gameId, i) => {
+                const paneCfg = paneConfigs[i] || {
+                  variant: selectedVariant,
+                  bettingStructure: selectedVariant === 'nlh' ? 'no_limit' : 'pot_limit',
+                  format: 'cash',
+                };
+                const panValue = computePaneSpatialPan(i, tableCount);
+                return (
                 <div
                   key={gameId}
                   data-multitable-slot={gameId}
                   data-multitable-index={i + 1}
                   data-multitable-focused={gameId === activeGameId ? 'true' : 'false'}
+                  data-spatial-audio-pan={String(panValue)}
+                  data-pane-variant={paneCfg.variant}
+                  data-pane-betting-structure={paneCfg.bettingStructure}
+                  data-pane-format={paneCfg.format}
                   data-multitable-status={
                     completedTables.has(gameId) || tableStates[gameId]?.gameComplete
                       ? 'completed'
@@ -1413,7 +1626,10 @@ export default function MultiTablePage() {
                   // and stop propagation on some of their handlers — without
                   // capture, clicking an action button would answer the wrong
                   // table's question without ever transferring focus to it.
-                  onClickCapture={() => setFocusedGameId(gameId)}
+                  onClickCapture={() => {
+                    setFocusedGameId(gameId);
+                    soundMgrRef.current?.playSpatial('yourTurn', i, tableCount);
+                  }}
                   style={{
                     // Hidden, not unmounted. Unmounting would restart the
                     // hidden table's drill from question one every time the
@@ -1498,6 +1714,19 @@ export default function MultiTablePage() {
                             ? 'ANSWERED'
                             : 'UNANSWERED'}
                     </span>
+                    <span
+                      style={{
+                        padding: '2px 7px',
+                        borderRadius: 6,
+                        fontSize: 12,
+                        fontWeight: 800,
+                        background: 'rgba(15, 23, 42, 0.78)',
+                        border: '1px solid rgba(255, 255, 255, 0.14)',
+                        color: '#cbd5e1',
+                      }}
+                    >
+                      {String(paneCfg.variant || selectedVariant).toUpperCase()} · {String(paneCfg.format || 'cash').toUpperCase()} · Pan {panValue > 0 ? `+${panValue}` : String(panValue)}
+                    </span>
                   </div>
 
                   {/* The 0.85 down-scale exists to fit a tiled cell. On a
@@ -1529,7 +1758,12 @@ export default function MultiTablePage() {
                       // tables at once and any table's win covered the screen.
                       userId={userId}
                       sessionId={`${runId}-${gameId}`}
-                      initialConfig={arenaInitialConfig}
+                      initialConfig={{
+                        ...arenaInitialConfig,
+                        variant: paneCfg.variant || selectedVariant,
+                        bettingStructure: paneCfg.bettingStructure || 'no_limit',
+                        format: paneCfg.format || 'cash',
+                      }}
                       isFocused={gameId === activeGameId}
                       onTableStateChange={handleTableStateChange}
                       autoAdvance={false}
@@ -1538,7 +1772,8 @@ export default function MultiTablePage() {
                     />
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </>
         )}

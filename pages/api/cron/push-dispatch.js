@@ -88,6 +88,7 @@ const DIGEST_LABEL = {
     home_group_announcement: 'group announcements',
     club_announcement: 'club announcements',
     notice_board_mention: 'notice board mentions',
+    notice_board_reply: 'notice board replies',
     cashout_overdue: 'unfulfilled payouts',
     cashout_prebreach_warning: 'pending payout reminders',
     table_invite: 'table invites',
@@ -96,6 +97,7 @@ const DIGEST_LABEL = {
     // hourly maintenance break, and the alias to `tournament_starting` happens
     // inside the gate, after this lookup.
     tournament_resumed: 'tournaments resumed',
+    trivia_nightly_reminder: 'trivia nightly reminders',
     // Keyed on the RAW event string, which is what carrier.event holds -- the
     // engine writes `waitlist_seat_open`, and the alias to `seat_open` happens
     // later, inside the gate. Without this entry the commonest notification on
@@ -129,6 +131,9 @@ const DIGEST_LABEL = {
 const EVENT_TTL_SECONDS = {
     waitlist_seat_open: 3 * 60 + 30,
     waitlist_offer_expired: 10 * 60,
+    // 7:45 PM CT reminder for the 8:00 PM CT Tonight at 8 Trivia Nightly;
+    // expire shortly after start so reconnecting phones never buzz hours later.
+    trivia_nightly_reminder: 20 * 60,
 };
 
 // Notifications that REPLACE a banner rather than announcing something new.

@@ -12,6 +12,7 @@ const HERO_CARDS_BY_VARIANT = {
   plo4: ['Ah', 'Kh', 'Qd', 'Jd'],
   plo5: ['Ah', 'Kh', 'Qd', 'Jd', 'Tc'],
   plo6: ['Ah', 'Kh', 'Qd', 'Jd', 'Tc', '9c'],
+  plo8: ['Ah', 'Kh', 'Qd', 'Jd'],
 };
 
 const BOARD_CARDS = ['Ks', '8h', '3c'];
@@ -160,7 +161,7 @@ export default function SprTrainerPage() {
                     Variant
                   </div>
                   <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                    {['nlh', 'plo4', 'plo5', 'plo6'].map((v) => (
+                    {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
                       <button
                         key={v}
                         type="button"

@@ -26,6 +26,7 @@ const HERO_CARDS_BY_VARIANT = {
   plo4: ['As', 'Ks', 'Qh', 'Jh'],
   plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
   plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
+  plo8: ['As', '2s', 'Kd', '3d'],
 };
 
 const BOARD_CARDS_BY_STREET = {
@@ -38,6 +39,7 @@ const DEFAULT_MISTAKE_QUEUE = [
   {
     questionId: 'cash-002-flop-btn-bb-ak',
     gameId: 'cash-002',
+    variant: 'nlh',
     level: 1,
     prompt: 'BTN Single-Raised Pot On Kc-8d-3s Flop With Top Pair Top Kicker',
     correctAction: 'b33',
@@ -51,6 +53,7 @@ const DEFAULT_MISTAKE_QUEUE = [
   {
     questionId: 'cash-004-turn-bb-btn-xr',
     gameId: 'cash-004',
+    variant: 'nlh',
     level: 1,
     prompt: 'BB Check-Raise Defense On Turn 5h After Calling Dry Flop C-Bet',
     correctAction: 'c',
@@ -64,6 +67,7 @@ const DEFAULT_MISTAKE_QUEUE = [
   {
     questionId: 'mtt-001-preflop-sb-bb-icm',
     gameId: 'mtt-001',
+    variant: 'nlh',
     level: 2,
     prompt: '20BB Bubble Blind Battle From Small-Blind Under Heavy ICM Pressure',
     correctAction: 'f',
@@ -72,6 +76,48 @@ const DEFAULT_MISTAKE_QUEUE = [
     intervalDays: 1,
     easeFactor: 2.3,
     repetitions: 0,
+    nextReviewAt: '2026-11-24T00:00:00.000Z',
+  },
+  {
+    questionId: 'plo8-scoop-thresholds-flop-bb',
+    gameId: 'cash-005',
+    variant: 'plo8',
+    level: 2,
+    prompt: 'Nut Low + Redraw Scoop Thresholds On 7s-5d-2c Flop Holding As-2s-Kd-3d',
+    correctAction: 'b100',
+    explanation: 'Pot-raising nut low with emergency 3-low backup and nut spade flush redraw freerolls one-way lows for the entire pot.',
+    evLossBb: 1.64,
+    intervalDays: 1,
+    easeFactor: 2.5,
+    repetitions: 0,
+    nextReviewAt: '2026-11-24T00:00:00.000Z',
+  },
+  {
+    questionId: 'plo8-quartering-avoidance-multiway',
+    gameId: 'cash-005',
+    variant: 'plo8',
+    level: 2,
+    prompt: 'Quartering Avoidance In Multiway PLO8 Pots With Naked A-2 On Paired Low Board',
+    correctAction: 'f',
+    explanation: 'Calling pot-sized raises in 3-way pots with bare nut low and zero high equity risks losing 25% of your investment when quartered.',
+    evLossBb: 1.48,
+    intervalDays: 1,
+    easeFactor: 2.4,
+    repetitions: 0,
+    nextReviewAt: '2026-11-24T00:00:00.000Z',
+  },
+  {
+    questionId: 'plo8-fixed-limit-4-raise-cap-turn',
+    gameId: 'cash-005',
+    variant: 'plo8',
+    level: 3,
+    prompt: 'Fixed-Limit 4-Raise Cap & Big-Bet Turn Defense In Split-Pot Hi-Lo',
+    correctAction: 'c',
+    explanation: 'When the turn doubles to a full Big-Bet under a 4-raise cap, preserve call frequency with two-way draws rather than capping one-way.',
+    evLossBb: 1.12,
+    intervalDays: 2,
+    easeFactor: 2.5,
+    repetitions: 1,
     nextReviewAt: '2026-11-24T00:00:00.000Z',
   },
 ];
@@ -387,9 +433,30 @@ const CARDS = [
     q: 'What is a "delayed c-bet"?',
     a: 'Checking the flop as the preflop aggressor and then betting the turn when checked to.',
   },
+  {
+    id: 51,
+    cat: 'PLO8',
+    variant: 'plo8',
+    q: 'Nut Low + Redraw Scoop Thresholds: When should you pot-raise a made nut low in PLO8?',
+    a: 'Pot-raise when your nut A-2 low is backed by an emergency low redraw (A-2-3) or high equity (nut flush draw or set) to freeroll one-way lows.',
+  },
+  {
+    id: 52,
+    cat: 'PLO8',
+    variant: 'plo8',
+    q: 'Quartering Avoidance In Multiway PLO8 Pots: Why is calling big bets with a naked A-2 dangerous?',
+    a: 'In multiway pots, bare A-2 with zero high equity frequently gets quartered (winning only 25% of the pot while contributing 33% to 50%).',
+  },
+  {
+    id: 53,
+    cat: 'PLO8',
+    variant: 'plo8',
+    q: 'Fixed-Limit 4-Raise Cap & Big-Bet Turn Defense: How does the turn bet doubling affect Hi-Lo defense?',
+    a: 'Because the turn escalates to a full Big-Bet under a 4-raise cap, you must defend two-way draws via calling and reserve 4-bet caps for 58%+ scoop equity.',
+  },
 ];
 
-const CAT_COLORS = { Preflop: 'var(--sp-accent-blue)', Postflop: 'var(--sp-accent-green)', Math: 'var(--sp-accent-amber)', Theory: 'var(--sp-accent-purple)' };
+const CAT_COLORS = { Preflop: 'var(--sp-accent-blue)', Postflop: 'var(--sp-accent-green)', Math: 'var(--sp-accent-amber)', Theory: 'var(--sp-accent-purple)', PLO8: 'var(--sp-accent-cyan)' };
 
 function calculateSM2(quality, prevInterval = 0, prevEase = 2.5) {
   let ease = prevEase;
@@ -714,7 +781,7 @@ export default function FlashcardsPage() {
         <div style={{ padding: '20px 16px', maxWidth: 500, margin: '0 auto' }}>
           {/* Category Filter */}
           <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
-            {['all', 'Preflop', 'Postflop', 'Math', 'Theory'].map((c) => (
+            {['all', 'Preflop', 'Postflop', 'Math', 'Theory', 'PLO8'].map((c) => (
               <motion.button
                 key={c}
                 whileTap={{ scale: 0.95 }}
@@ -1013,11 +1080,14 @@ export default function FlashcardsPage() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {mistakeCards.map((card) => {
+              {mistakeCards
+                .filter((card) => (catFilter === 'PLO8' || activeVariant === 'plo8' ? (card.variant === 'plo8' || String(card.questionId || '').startsWith('plo8')) : true))
+                .map((card) => {
+                const cardVariant = card.variant || activeVariant;
                 const drillHref = buildCustomTrainingArenaHref(
                   {
                     gameId: card.gameId || 'cash-002',
-                    variant: activeVariant,
+                    variant: cardVariant,
                     street: activeStreet,
                     position: heroPosition,
                   },
@@ -1134,10 +1204,11 @@ export default function FlashcardsPage() {
                     Variant
                   </div>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    {['nlh', 'plo4', 'plo5', 'plo6'].map((v) => (
+                    {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
                       <button
                         key={v}
                         type="button"
+                        data-variant-option={v}
                         aria-pressed={activeVariant === v}
                         onClick={() => setActiveVariant(v)}
                         style={{
