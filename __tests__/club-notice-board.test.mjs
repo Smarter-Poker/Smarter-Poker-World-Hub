@@ -141,3 +141,50 @@ test('manager payout notes require a bounded note and stable operation identity'
  assert.throws(()=>validateNoticeRequest('POST',{clubId,action:'add_note',payload}),{status:400});
  assert.throws(()=>validateNoticeRequest('PATCH',{clubId,action:'approve',payload}),{status:400});
 });
+
+test('Phase 4 actions (threads, polls, confirm campaign, pin reorder, scheduled, search, delta entry, quiet hours, formatting, SLA) validate strictly', async () => {
+ const { parseNoticeFormatting, formatSlaMinutes, normalizeAlertSettings } = await import('../src/lib/clubNoticeBoard.mjs');
+ assert.deepEqual(validateNoticeRequest('POST', { clubId, action: 'entry', payload: { id } }), { clubId, action: 'entry', payload: { id } });
+ assert.deepEqual(validateNoticeRequest('POST', { clubId, action: 'search', payload: { query: '  Settlement  ', limit: 20 } }), { clubId, action: 'search', payload: { query: 'Settlement', limit: 20 } });
+ assert.throws(() => validateNoticeRequest('POST', { clubId, action: 'search', payload: { query: '   ' } }), { status: 400 });
+ assert.deepEqual(validateNoticeRequest('POST', { clubId, action: 'list_replies', payload: { id } }), { clubId, action: 'list_replies', payload: { id } });
+ assert.equal(validateNoticeRequest('PATCH', { clubId, action: 'create_reply', payload: { id, content: '  On it  ' } }).payload.content, 'On it');
+ assert.throws(() => validateNoticeRequest('PATCH', { clubId, action: 'create_reply', payload: { id, content: 'x'.repeat(1001) } }), { status: 400 });
+ assert.equal(validateNoticeRequest('PATCH', { clubId, action: 'delete_reply', payload: { reply_id: id } }).action, 'delete_reply');
+ assert.equal(validateNoticeRequest('PATCH', { clubId, action: 'vote_poll', payload: { id, option_id: 'opt_0' } }).action, 'vote_poll');
+ assert.equal(validateNoticeRequest('PATCH', { clubId, action: 'close_poll', payload: { id } }).action, 'close_poll');
+ assert.equal(validateNoticeRequest('PATCH', { clubId, action: 'remind_unconfirmed', payload: { id } }).action, 'remind_unconfirmed');
+ assert.equal(validateNoticeRequest('PATCH', { clubId, action: 'reorder_pins', payload: { notice_ids: [id] } }).action, 'reorder_pins');
+ assert.equal(validateNoticeRequest('PATCH', { clubId, action: 'publish_now', payload: { id } }).action, 'publish_now');
+ const richP4 = validateNoticeRequest('PUT', {
+  clubId,
+  payload: {
+   id, content: '**Policy**\n- Check https://smarter.poker', status: 'notice',
+   require_confirmation: true,
+   scheduled_for: '2026-12-01T12:00:00.000Z',
+   attachments: [{ url: 'https://cdn.example/guide.pdf', name: 'Guide.pdf', mime: 'application/pdf' }],
+   poll: { question: ' Best Window? ', options: [' 8 PM ', ' 10 AM '], allow_multiple: true },
+  },
+ });
+ assert.equal(richP4.payload.poll.question, 'Best Window?');
+ assert.deepEqual(richP4.payload.poll.options, ['8 PM', '10 AM']);
+ assert.throws(() => validateNoticeRequest('PUT', { clubId, payload: { id, content: 'Bad', status: 'notice', attachments: [{ url: 'https://cdn.example/x.exe', mime: 'application/x-msdownload' }] } }), { status: 400 });
+ assert.throws(() => validateNoticeRequest('PATCH', { clubId, action: 'update_alert_settings', payload: { overdue_threshold_hours: 4, quiet_hours_start: 22 } }), { status: 400 });
+ const qh = normalizeAlertSettings({ overdue_threshold_hours: 4, quiet_hours_start: 23, quiet_hours_end: 7, quiet_hours_tz: 'America/Chicago', quiet_hours_backup_role: 'co_owner' });
+ assert.equal(qh.quiet_hours_backup_role, 'co_owner');
+ assert.equal(qh.quiet_hours_start, 23);
+ const parsed = parseNoticeFormatting('**Bold** Check https://smarter.poker.\n- Bullet Item');
+ assert.equal(parsed[0].segments[0].type, 'bold');
+ assert.equal(parsed[0].segments[2].href, 'https://smarter.poker');
+ assert.equal(parsed[1].type, 'bullet');
+ assert.equal(formatSlaMinutes(0.4), '<1m');
+ assert.equal(formatSlaMinutes(18), '18m');
+ assert.equal(formatSlaMinutes(85), '1h 25m');
+});
+
+test('cashout_prebreach_warning routes to club invoices and honors cashier push pref', async () => {
+ const { resolveNotificationRoute } = await import('../src/lib/notificationRoute.js');
+ const { eventToTypeKey } = await import('../src/lib/push/push-prefs.js');
+ assert.equal(resolveNotificationRoute({ type: 'cashout_prebreach_warning', data: { club_id: clubId } }), `/hub/messenger?clubId=${clubId}&folder=invoices`);
+ assert.equal(eventToTypeKey('cashout_prebreach_warning'), 'cashier');
+});

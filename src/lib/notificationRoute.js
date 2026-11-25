@@ -157,6 +157,12 @@ export function resolveNotificationRoute(n) {
         return '/hub/messenger';
     }
 
+    if (t === 'cashout_prebreach_warning') {
+        const clubId = pick(d, 'club_id', 'clubId');
+        if (clubId) return `/hub/messenger?clubId=${seg(clubId)}&folder=invoices`;
+        return '/hub/messenger';
+    }
+
     if (t === 'cashout_request' || t === 'cashout_approved' || t === 'cashout_denied') {
         const clubId = pick(d, 'club_id', 'clubId');
         if (clubId) return `${CA}/clubs/${clubId}/financials`;

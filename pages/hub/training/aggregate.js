@@ -22,6 +22,7 @@ const HERO_CARDS_BY_VARIANT = {
   plo4: ['As', 'Ks', 'Qh', 'Jh'],
   plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
   plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
+  plo8: ['As', 'Ks', 'Qh', 'Jh'],
 };
 
 const BOARD_CARDS = ['8d', '5c', '2s', '6h', '3d'];
@@ -78,7 +79,7 @@ export default function AggregateReports() {
     window.addEventListener('offline', handleOffline);
     try {
       const savedVariant = window.localStorage.getItem('sp_aggregate_variant');
-      if (savedVariant && ['nlh', 'plo4', 'plo5', 'plo6'].includes(savedVariant)) {
+      if (savedVariant && ['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].includes(savedVariant)) {
         setActiveVariant(savedVariant);
       }
     } catch (_) {
@@ -226,7 +227,7 @@ export default function AggregateReports() {
                   Variant
                 </div>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {['nlh', 'plo4', 'plo5', 'plo6'].map((v) => (
+                  {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
                     <button
                       key={v}
                       type="button"

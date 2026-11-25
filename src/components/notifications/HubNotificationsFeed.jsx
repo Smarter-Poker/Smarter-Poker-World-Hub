@@ -1059,6 +1059,25 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
                                                     {n.operationalResolution.status === 'resolved' ? 'Resolved' : n.operationalResolution.status === 'open' ? 'Open' : 'Status Unavailable'}
                                                 </div>
                                             )}
+                                            {(n.type === 'cashout_overdue' || n.type === 'cashout_prebreach_warning') && (n.data?.resolution_label || n.metadata?.resolution_label) && (
+                                                <div
+                                                    data-payout-resolution={n.data?.resolution_status || n.metadata?.resolution_status || 'resolved'}
+                                                    style={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: 4,
+                                                        marginTop: 5,
+                                                        padding: '2px 8px',
+                                                        borderRadius: 999,
+                                                        fontSize: 11,
+                                                        fontWeight: 700,
+                                                        color: '#166534',
+                                                        background: 'rgba(34, 197, 94, 0.14)',
+                                                    }}
+                                                >
+                                                    {`✓ ${n.data?.resolution_label || n.metadata?.resolution_label}`}
+                                                </div>
+                                            )}
 
                                             {/* Accept/Decline buttons for friend requests */}
                                             {n.type === 'friend_request' && !n.handled && (

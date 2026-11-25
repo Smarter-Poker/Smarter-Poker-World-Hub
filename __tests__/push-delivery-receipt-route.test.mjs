@@ -141,7 +141,12 @@ test('minting: only reliability_* rows to Web Push devices, hash stored, failure
     assert.equal(await mintDeviceReceipt({ rpc: async () => { throw new Error('offline'); } }, row, { id: SUB }), null);
 
     assert.equal(isReceiptEvent('reliability_escalation'), true);
+    assert.equal(isReceiptEvent('cashout_overdue'), true);
+    assert.equal(isReceiptEvent('cashout_prebreach_warning'), true);
+    assert.equal(isReceiptEvent('notice_board_mention'), true);
     assert.equal(isReceiptEvent('system'), false);
+    const overdueToken = await mintDeviceReceipt(ok, { id: OUTBOX, event: 'cashout_overdue' }, { id: SUB, transport: 'webpush' });
+    assert.match(overdueToken, /^[0-9a-f]{64}$/);
     const base = { title: 't', data: { event: 'reliability_escalation', outboxId: OUTBOX } };
     assert.equal(withDeviceReceipt(base, OUTBOX, null), base);
     assert.deepEqual(withDeviceReceipt(base, OUTBOX, token).data, { event: 'reliability_escalation', outboxId: OUTBOX, receipt: { id: OUTBOX, token } });

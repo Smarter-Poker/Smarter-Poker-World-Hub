@@ -25,6 +25,7 @@ const HERO_CARDS_BY_VARIANT = {
   plo4: ['Ad', 'Kd', 'Qs', 'Js'],
   plo5: ['Ad', 'Kd', 'Qs', 'Js', 'Th'],
   plo6: ['Ad', 'Kd', 'Qs', 'Js', 'Th', '9h'],
+  plo8: ['Ad', 'Kd', 'Qs', 'Js'],
 };
 
 const BOARD_BY_STREET = {
@@ -538,14 +539,14 @@ export default function RiskAnalyzerPage() {
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>Variant</div>
                   <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                    {['nlh', 'plo4', 'plo5', 'plo6'].map((v) => (
+                    {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
                       <button
                         key={v}
                         type="button"
                         data-variant-option={v}
                         onClick={() => {
                           setActiveVariant(v);
-                          setStdDev(v === 'nlh' ? 85 : v === 'plo4' ? 135 : v === 'plo5' ? 155 : 175);
+                          setStdDev(v === 'nlh' ? 85 : v === 'plo8' ? 115 : v === 'plo4' ? 135 : v === 'plo5' ? 155 : 175);
                         }}
                         style={pillStyle(activeVariant === v)}
                       >

@@ -1206,3 +1206,111 @@ export function evaluateTrainingSpotWithHorseBrain({
     };
   });
 }
+
+function resolveDoubleBoardStreet(boardList = []) {
+  const count = Array.isArray(boardList) ? boardList.length : 0;
+  if (count >= 5) return 'river';
+  if (count === 4) return 'turn';
+  return 'flop';
+}
+
+export function evaluateDoubleBoardBombPot({
+  gameId = 'cash-005',
+  variant = 'plo4',
+  heroCards = [],
+  boardACards = [],
+  boardBCards = [],
+  potSizeBb = 24,
+  facingBetBb = 8,
+  effectiveStackBb = 100,
+  heroPosition = 'BTN',
+  villainPosition = 'BB',
+} = {}) {
+  const normVariant = normalizeVariant(variant);
+  const defaultHero = EXPECTED_HOLE_CARDS_BY_VARIANT[normVariant] === 6
+    ? ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d']
+    : EXPECTED_HOLE_CARDS_BY_VARIANT[normVariant] === 5
+      ? ['As', 'Ks', 'Qh', 'Jh', 'Td']
+      : EXPECTED_HOLE_CARDS_BY_VARIANT[normVariant] === 4
+        ? ['As', 'Ks', 'Qh', 'Jd']
+        : ['As', 'Kd'];
+  const cleanHero = Array.isArray(heroCards) && heroCards.length > 0 ? heroCards : defaultHero;
+  const cleanBoardA = Array.isArray(boardACards) && boardACards.length >= 3
+    ? boardACards
+    : ['Qs', '8s', '3d'];
+  const cleanBoardB = Array.isArray(boardBCards) && boardBCards.length >= 3
+    ? boardBCards
+    : ['Jh', '9h', '2c'];
+
+  const streetA = resolveDoubleBoardStreet(cleanBoardA);
+  const streetB = resolveDoubleBoardStreet(cleanBoardB);
+
+  const boardAEvaluation = evaluateTrainingSpotWithHorseBrain({
+    gameId,
+    variant: normVariant,
+    street: streetA,
+    heroCards: cleanHero,
+    boardCards: cleanBoardA,
+    potSizeBb,
+    facingBetBb,
+    effectiveStackBb,
+    heroPosition,
+    villainPosition,
+  });
+
+  const boardBEvaluation = evaluateTrainingSpotWithHorseBrain({
+    gameId,
+    variant: normVariant,
+    street: streetB,
+    heroCards: cleanHero,
+    boardCards: cleanBoardB,
+    potSizeBb,
+    facingBetBb,
+    effectiveStackBb,
+    heroPosition,
+    villainPosition,
+  });
+
+  const boardAScore = Number(boardAEvaluation?.handScore ?? 50);
+  const boardBScore = Number(boardBEvaluation?.handScore ?? 50);
+  const combinedHandScore = Math.round((boardAScore + boardBScore) / 2);
+  const isTwoBoardScoopCandidate = boardAScore >= 65 && boardBScore >= 65;
+  const isSplitLockCandidate = boardAScore >= 75 || boardBScore >= 75;
+  const scoopStatusLabel = isTwoBoardScoopCandidate
+    ? 'Two-Board Scoop Candidate'
+    : isSplitLockCandidate
+      ? 'One-Board Lock + Redraw'
+      : 'Split / Defensive Spot';
+
+  const maxActionText = boardAEvaluation.recommendedAction || 'Raise Pot';
+  const callOrCheckText = Number(facingBetBb) > 0 ? `Call ${facingBetBb} BB` : 'Check';
+  const foldOrCheckText = Number(facingBetBb) > 0 ? 'Fold' : 'Check';
+
+  let recommendedAction = callOrCheckText;
+  if (isTwoBoardScoopCandidate) {
+    recommendedAction = maxActionText;
+  } else if (isSplitLockCandidate && Math.min(boardAScore, boardBScore) >= 42) {
+    recommendedAction = maxActionText;
+  } else if (boardAScore < 42 && boardBScore < 42) {
+    recommendedAction = foldOrCheckText;
+  }
+
+  const coachingExplanation = `Double-Board Bomb Pot (${normVariant.toUpperCase()}): Board A [${cleanBoardA.join(' ')}] scores ${boardAScore}/100 (${boardAEvaluation.madeHandCategory}) and Board B [${cleanBoardB.join(' ')}] scores ${boardBScore}/100 (${boardBEvaluation.madeHandCategory}). Combined Scoop Score: ${combinedHandScore}/100 (${scoopStatusLabel}). Recommended Play: ${recommendedAction}.`;
+
+  return {
+    ok: true,
+    variant: normVariant,
+    boardACards: cleanBoardA,
+    boardBCards: cleanBoardB,
+    boardAEvaluation,
+    boardBEvaluation,
+    boardAScore,
+    boardBScore,
+    combinedHandScore,
+    isTwoBoardScoopCandidate,
+    isSplitLockCandidate,
+    scoopStatusLabel,
+    recommendedAction,
+    coachingExplanation,
+  };
+}

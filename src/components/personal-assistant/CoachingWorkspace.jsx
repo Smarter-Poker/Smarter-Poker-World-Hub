@@ -414,6 +414,22 @@ export default function CoachingWorkspace({
                           <strong>{mod.rank}. {mod.title}</strong>
                           <small>{mod.formatScope} · {mod.cadence}</small>
                         </div>
+                        {mod.tableVerification && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                            <span
+                              className={styles.confidence}
+                              data-level={mod.tableVerification.status === 'confirmed_fixed_at_tables' ? 'high' : mod.tableVerification.status === 'mastered_in_drills_still_leaking' ? 'low' : 'medium'}
+                            >
+                              {mod.tableVerification.label}
+                            </span>
+                            {mod.tableVerification.postBaselineErrorRate !== null && (
+                              <small>
+                                Post-Drill Mistake Rate {mod.tableVerification.postBaselineErrorRate}% ({mod.tableVerification.postBaselineSamples} Spots)
+                                {mod.tableVerification.preBaselineErrorRate !== null ? ` · Pre-Drill ${mod.tableVerification.preBaselineErrorRate}%` : ''}
+                              </small>
+                            )}
+                          </div>
+                        )}
                         <small>{mod.objective}</small>
                         <Progress
                           value={mod.mastery?.percent || 0}
@@ -521,6 +537,18 @@ export default function CoachingWorkspace({
               <div><dt>Explicitly Unpriced</dt><dd>{coverage.unpriced || 0}</dd></div>
               <div><dt>Rejected Before Audit</dt><dd>{coverage.rejected || 0}</dd></div>
             </dl>
+            {Array.isArray(snapshot?.solverCoverageGaps?.topGaps) && snapshot.solverCoverageGaps.topGaps.length > 0 && (
+              <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 6 }} aria-label="Solver Coverage Gaps">
+                <span className={styles.eyebrow}>Top Unmeasured Solver Buckets</span>
+                <ul className={styles.alertList}>
+                  {snapshot.solverCoverageGaps.topGaps.slice(0, 5).map(gap => (
+                    <li key={`${gap.format}-${gap.street}-${gap.heroPosition}-${gap.spotType}`}>
+                      <strong>{gap.format} · {gap.street.toUpperCase()} · {gap.heroPosition}</strong> ({gap.spotType}): {gap.count} Spots ({gap.sharePercent}% Of Unmeasured)
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </article>
           <article className={styles.panel}>
             <span className={styles.eyebrow}><MessageSquareWarning size={14} aria-hidden="true" />Coach Feedback</span>
