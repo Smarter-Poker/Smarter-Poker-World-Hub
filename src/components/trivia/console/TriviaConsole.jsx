@@ -1,10 +1,5 @@
-import { useFitText } from './useFitText';
 import styles from './TriviaConsole.module.css';
 import useTriviaPreferenceRuntime from '../../../hooks/useTriviaPreferenceRuntime';
-
-const MASTER_WIDTH = 1000;
-const TOP_HEIGHT = 348;
-const PLATES_HEIGHT = 277;
 
 const ZONES = Object.freeze({
     eyebrow: { x: 100, y: 128, width: 540, height: 34 },
@@ -16,63 +11,48 @@ const ZONES = Object.freeze({
     primary: { x: 520, y: 46, width: 381, height: 129 },
 });
 
-// Inks the master paints with. Anything else is not a schema colour.
-const INKS = Object.freeze(['silver', 'white', 'blue', 'green', 'red', 'gold', 'muted']);
-const TONE_INK = Object.freeze({ danger: 'red', positive: 'green', gold: 'gold' });
+// #SMARTERDESIGN canonical inks only (never yellow, gold, amber, purple, violet, lavender, pink, or magenta).
+const INKS = Object.freeze(['silver', 'white', 'blue', 'green', 'red', 'muted']);
+const TONE_INK = Object.freeze({ danger: 'red', positive: 'green', accent: 'blue' });
 
-function resolveInk(action, fallback) {
-    if (action?.ink && INKS.includes(action.ink)) return action.ink;
-    if (action?.tone && TONE_INK[action.tone]) return TONE_INK[action.tone];
+function normalizeInk(ink, fallback) {
+    if (ink && INKS.includes(ink)) return ink;
+    // Map any legacy warm/gold ink requests safely onto #SMARTERDESIGN ice blue.
+    if (ink === 'gold' || ink === 'amber' || ink === 'yellow' || ink === 'warning') return 'blue';
     return fallback;
 }
 
-function zoneStyle(zone, canvasHeight) {
-    return {
-        left: `${(zone.x / MASTER_WIDTH) * 100}%`,
-        top: `${(zone.y / canvasHeight) * 100}%`,
-        width: `${(zone.width / MASTER_WIDTH) * 100}%`,
-        height: `${(zone.height / canvasHeight) * 100}%`,
-    };
-}
-
-function ZoneText({ as: Tag = 'span', text, zone, canvasHeight = TOP_HEIGHT, className = '', id }) {
-    const ref = useFitText(text, 1, 0.5);
-    return (
-        <Tag className={`${styles.zone} ${className}`.trim()} style={zoneStyle(zone, canvasHeight)} id={id}>
-            <span ref={ref}>{text}</span>
-        </Tag>
-    );
+function resolveInk(action, fallback) {
+    if (action?.ink) return normalizeInk(action.ink, fallback);
+    if (action?.tone && TONE_INK[action.tone]) return TONE_INK[action.tone];
+    if (action?.tone === 'gold' || action?.tone === 'warning') return 'blue';
+    return fallback;
 }
 
 /**
- * A transparent button laid over one of the two PAINTED plates. It paints
- * nothing; the steel (secondary) and blue glass (primary) faces are in
- * bottom-plates.png. Only ever rendered in pairs - see TriviaConsole.
+ * Paired footer action button rendered with #SMARTERDESIGN steel/cobalt controls.
+ * Primary actions receive cobalt chrome; secondary actions receive steel chrome.
  */
 export function TriviaPlateButton({ label, zone, className = '', children, tone, ink, ...buttonProps }) {
     const text = String(label ?? children ?? '');
-    const ref = useFitText(text, 1, 0.5);
-    const resolved = resolveInk({ tone, ink }, zone === ZONES.primary ? 'white' : 'silver');
+    const isPrimary = zone === ZONES.primary;
+    const resolved = resolveInk({ tone, ink }, isPrimary ? 'white' : 'silver');
     return (
         <button
             type="button"
-            className={`${styles.plate} ${className}`.trim()}
-            style={zoneStyle(zone, PLATES_HEIGHT)}
+            className={`sd-button ${isPrimary ? 'sd-primary ' : ''}${styles.plate} ${className}`.trim()}
             data-ink={resolved}
             {...buttonProps}
         >
             <span className={styles.plateWell}>
-                <span ref={ref} className={`${styles.plateText} ${styles[`ink_${resolved}`]}`}>{text}</span>
+                <span className={`${styles.plateText} ${styles[`ink_${resolved}`]}`}>{text}</span>
             </span>
         </button>
     );
 }
 
 /**
- * The single-action control: the flat closing cap carries no plate, so the one
- * action is printed as a lit word on the black glass above it (the Club Arena
- * console's own answer for Copy, Retry and Close). A lone painted plate beside
- * an empty one reads as broken, so a single action never selects the plates.
+ * Single-action / inline control rendered with #SMARTERDESIGN steel chrome and >= 44px touch target.
  */
 export function TriviaGlassAction({ label, children, className = '', tone, ink, ...buttonProps }) {
     const text = String(label ?? children ?? '');
@@ -80,7 +60,7 @@ export function TriviaGlassAction({ label, children, className = '', tone, ink, 
     return (
         <button
             type="button"
-            className={`${styles.word} ${styles[`ink_${resolved}`]} ${className}`.trim()}
+            className={`sd-button ${styles.word} ${styles[`ink_${resolved}`]} ${className}`.trim()}
             data-ink={resolved}
             {...buttonProps}
         >
@@ -90,19 +70,18 @@ export function TriviaGlassAction({ label, children, className = '', tone, ink, 
 }
 
 /**
- * Variable-height Trivia chassis cut from the approved Club Arena spade master.
- * Nothing except live text is painted in DOM/CSS.
+ * Variable-height Trivia surface on the canonical #SMARTERDESIGN steel-rimmed
+ * ink-navy console system (styles/smarterdesign.css).
  *
- * Footer law (#ClubArenaConsole): two painted plates or none. Both actions
- * present -> bottom-plates.png with one label per plate. Exactly one action ->
- * the flat foot, and the action prints as a lit word on the glass. No actions
- * -> the flat foot alone.
+ * Footer contract: two actions render as a paired steel/cobalt action bar;
+ * a single action renders as a centered control in the body; no actions renders
+ * no footer bar.
  */
 export default function TriviaConsole({
     as: Tag = 'section',
     eyebrow,
     title,
-    titleAs = 'h2',
+    titleAs: TitleTag = 'h2',
     titleId,
     subtitle,
     pill,
@@ -117,26 +96,34 @@ export default function TriviaConsole({
     const hasPlates = Boolean(primaryAction && secondaryAction);
     const soleAction = hasPlates ? null : (primaryAction || secondaryAction || null);
     const hasBody = (children !== undefined && children !== null && children !== false) || Boolean(soleAction);
-    const pillTone = INKS.includes(pillInk) ? pillInk : 'blue';
+    const pillTone = normalizeInk(pillInk, 'blue');
+    const hasHead = Boolean(eyebrow || title || subtitle || pill);
+
     return (
         <Tag
-            className={`${styles.console} ${hasPlates ? styles.withPlates : ''} ${className}`.trim()}
-            data-master-art="spade-console-v1"
+            className={`smarterdesign sd-panel ${styles.console} ${hasPlates ? styles.withPlates : ''} ${className}`.trim()}
+            data-surface="smarterdesign"
             data-foot={hasPlates ? 'plates' : 'foot'}
             {...rest}
         >
-            <div className={styles.head} aria-hidden={!eyebrow && !title && !subtitle && !pill}>
-                {eyebrow ? <ZoneText text={eyebrow} zone={ZONES.eyebrow} className={styles.eyebrow} /> : null}
-                <ZoneText
-                    as={titleAs}
-                    id={titleId}
-                    text={title}
-                    zone={pill ? ZONES.titleBesidePill : ZONES.title}
-                    className={styles.title}
-                />
-                {subtitle ? <ZoneText text={subtitle} zone={ZONES.subtitle} className={styles.subtitle} /> : null}
-                {pill ? <ZoneText text={pill} zone={ZONES.pill} className={`${styles.pill} ${styles[`ink_${pillTone}`]}`} /> : null}
-            </div>
+            {hasHead ? (
+                <header className={styles.head}>
+                    <div className={styles.headCopy}>
+                        {eyebrow ? <span className={styles.eyebrow}>{eyebrow}</span> : null}
+                        {title ? (
+                            <TitleTag id={titleId} className={styles.title}>
+                                {title}
+                            </TitleTag>
+                        ) : null}
+                        {subtitle ? <p className={styles.subtitle}>{subtitle}</p> : null}
+                    </div>
+                    {pill ? (
+                        <span className={`${styles.pill} ${styles[`ink_${pillTone}`]}`}>
+                            {pill}
+                        </span>
+                    ) : null}
+                </header>
+            ) : null}
             {hasBody ? (
                 <div className={styles.body}>
                     {children}
@@ -147,10 +134,12 @@ export default function TriviaConsole({
                     ) : null}
                 </div>
             ) : null}
-            <div className={styles.foot}>
-                {hasPlates ? <TriviaPlateButton zone={ZONES.secondary} {...secondaryAction} /> : null}
-                {hasPlates ? <TriviaPlateButton zone={ZONES.primary} {...primaryAction} /> : null}
-            </div>
+            {hasPlates ? (
+                <div className={styles.foot}>
+                    <TriviaPlateButton zone={ZONES.secondary} {...secondaryAction} />
+                    <TriviaPlateButton zone={ZONES.primary} {...primaryAction} />
+                </div>
+            ) : null}
         </Tag>
     );
 }

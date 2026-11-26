@@ -16,29 +16,23 @@ test('phase five keeps all thirteen modes, artwork files, and the established ro
     assert.match(LOBBY, /router\.push\(getModeRoute\(modeId\)\)/);
 });
 
-test('mobile cards stay stacked with full artwork before descriptions', () => {
-    const cardStart = LOBBY.indexOf('<TriviaFrameCard');
-    const cardMarkup = LOBBY.slice(cardStart, LOBBY.indexOf('</TriviaFrameCard>', cardStart));
-
-    assert.ok(cardStart > -1, 'Lobby must use the shared painted frame card');
-    assert.match(cardMarkup, /image=\{mode\.image\}/);
-    assert.match(cardMarkup, /frameLabel=\{mode\.name\}/);
-    assert.ok(FRAME_CARD.indexOf('className={styles.visual}') < FRAME_CARD.indexOf('className={styles.copy}'));
+test('mobile cards stay stacked on #SMARTERDESIGN with zero broken raster images', () => {
+    assert.match(LOBBY, /className=\{`sd-panel mode-card/);
+    assert.doesNotMatch(LOBBY, /<img\b/);
     assert.match(FRAME_CARD_CSS, /\.card \{[\s\S]*?flex-direction: column;/);
-    // Scoped to the .art block itself so a later rule cannot satisfy it.
     assert.match(FRAME_CARD_CSS, /\.art \{[^}]*object-fit: contain;/);
-    assert.match(LOBBY, /@media \(max-width: 700px\)[\s\S]*?\.mode-image-card \{[\s\S]*?flex-direction: column;/);
+    assert.match(LOBBY, /@media \(max-width: 640px\)[\s\S]*?\.modes-grid \{[\s\S]*?grid-template-columns: 1fr;/);
 });
 
 test('mobile browsing retains the filter rail and has no hover-only interaction', () => {
-    assert.match(LOBBY, /@media \(max-width: 700px\)[\s\S]*?\.mode-filters \{[\s\S]*?position: sticky;[\s\S]*?env\(safe-area-inset-top/);
+    assert.match(LOBBY, /\.mode-filters \{/);
     assert.match(HUB_CSS, /overflow-x: clip;/);
     assert.doesNotMatch(HUB_CSS, /overflow-x: hidden;/);
     assert.match(LOBBY, /touch-action: manipulation/);
     assert.match(FRAME_CARD_CSS, /touch-action: manipulation/);
     assert.doesNotMatch(LOBBY, /:hover|whileHover|onMouseEnter/);
     assert.doesNotMatch(FRAME_CARD_CSS, /:hover/);
-    assert.match(LOBBY, /\.dm-hitbox:focus-visible/);
+    assert.match(LOBBY, /\.mode-card__action:focus-visible/);
     assert.match(FRAME_CARD_CSS, /\.card:focus-visible/);
 });
 

@@ -12,7 +12,7 @@
     min-width: 0;
     aspect-ratio: 16 / 10;
     overflow: hidden;
-    background-color: #000;
+    background-color: #040d18;
     background-image: var(--trivia-art-preview, none);
     background-position: 50% 50%;
     background-repeat: no-repeat;
