@@ -343,7 +343,7 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
         }}
       >
         {/* Header */}
-        <BankrollImageHeader art="poker_mtt" title="ICM Calculator" helpContent={<><p>Enter Each Remaining Stack, The Prize Pool And The Payout Percentages. Calculate To See Each Seat’s Tournament Equity.</p>
+        <BankrollImageHeader art="poker_mtt" title="ICM Calculator" helpContent={<><p>Enter Each Remaining Stack, The Prize Pool And The Payout Percentages. Calculate To See Each Seat’s Tournament Equity. You Can Use The Calculator Without Having To Sign In.</p>
           {/* Related Tournament Action: Freerolls */}
           <div
             style={{
@@ -913,7 +913,7 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
                 fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
               }}
             >
-              {loading ? 'CALCULATING...' : 'Calculate ICM'}
+              {loading ? 'Calculating...' : error ? 'Retry Calculation' : 'Calculate ICM'}
             </motion.button>
           </div>
 
