@@ -117,6 +117,8 @@ import './the-welcome-package-is-earned-by-phone-verification.law.test.mjs';
 import './phone-verification-uptake.test.mjs';
 // Cancellation's transactional storage cases belong to the same required CHECK 8 registry.
 import './horses-tournament-intent-storage.test.mjs';
+// API/server @vercel/nft static-page trace guard (incident 86bcafc1, 2026-11-26).
+import './api-routes-never-trace-static-pages.law.test.mjs';
 
 // ─────────────────────────────────────────────────────────────────────────
 // The 48 guards CI had never run.
@@ -780,6 +782,7 @@ const REQUIRED_TEST_FILES = [
     '__tests__/newsletter-forensic-pass-hardening.law.test.mjs',
     '__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs',
     '__tests__/smarter-poker-magazine.law.test.mjs',
+    '__tests__/api-routes-never-trace-static-pages.law.test.mjs',
 ];
 
 test('every signup-related guard test file exists on disk', () => {

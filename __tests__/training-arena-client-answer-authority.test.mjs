@@ -59,6 +59,8 @@ test('session setup and normalization cannot advertise or revive pseudo Arena mo
 });
 
 test('psychology reveal retains the submitted option across replacement, remount, and a new decision', async () => {
+  // React's act helper requires its non-production build, including inside Vercel's build:vercel subprocess.
+  process.env.NODE_ENV = 'test';
   const { createRequire } = await import('node:module');
   // Each Node test file runs in its own process. Load React's act-enabled test build here.
   process.env.NODE_ENV = 'test';
