@@ -31,6 +31,7 @@ import {
     saveResumableTrainingSession,
     decodeSharedDrillPack,
     decodeCoopStudyRoom,
+    decodeClubCoachAssignment,
 } from '../../../../src/lib/training/trainingPresets.mjs';
 
 const GodModeArena = dynamic(() => import('../../../../src/components/training/GodModeArena'), {
@@ -155,6 +156,12 @@ export default function TrainingArenaPage() {
         const rawCoop = typeof router.query.coopRoom === 'string' ? router.query.coopRoom.trim() : '';
         return rawCoop ? decodeCoopStudyRoom(rawCoop) : null;
     }, [router.isReady, router.query.coopRoom]);
+
+    const clubCoachAssignment = useMemo(() => {
+        if (!router.isReady) return null;
+        const rawAssign = typeof router.query.assignment === 'string' ? router.query.assignment.trim() : '';
+        return rawAssign ? decodeClubCoachAssignment(rawAssign) : null;
+    }, [router.isReady, router.query.assignment]);
 
     const customLaunch = useMemo(() => {
         if (!router.isReady) return { config: null, error: null };
@@ -544,6 +551,42 @@ export default function TrainingArenaPage() {
                     </a>
                 </div>
             )}
+            {clubCoachAssignment && (
+                <div
+                    data-club-assignment-banner="true"
+                    data-club-assignment-id={clubCoachAssignment.assignmentId}
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: 10,
+                        padding: '8px 16px',
+                        background: 'linear-gradient(180deg, #13253a 0%, #091727 55%, #060e18 100%)',
+                        borderBottom: '1px solid #688299',
+                        color: '#f4fbff',
+                        fontSize: 12,
+                        fontWeight: 800,
+                        fontFamily: "'Inter', -apple-system, sans-serif",
+                        zIndex: 50,
+                    }}
+                >
+                    <span>
+                        ◆ Club Coach Weekly Assignment · {clubCoachAssignment.clubName} ({clubCoachAssignment.coachName}) · Target: {clubCoachAssignment.targetAccuracyPct}% Accuracy
+                    </span>
+                    <a
+                        href="/hub/training/leaderboard"
+                        style={{
+                            color: '#83deff',
+                            textDecoration: 'none',
+                            fontWeight: 800,
+                            fontSize: 12,
+                        }}
+                    >
+                        View Club Leaderboard →
+                    </a>
+                </div>
+            )}
             {duelToken && (
                 <div
                     data-arena-duel-bar="true"
@@ -587,6 +630,7 @@ export default function TrainingArenaPage() {
                     level={level}
                     sessionId={resolvedSessionId}
                     initialConfig={initialConfig}
+                    presetOnly={startsWithPreset && !customLaunch.config}
                     onComplete={handleComplete}
                     onExit={handleExit}
                 />

@@ -83,6 +83,12 @@ import {
     RANGE_PAINTER_5X5_CLUSTERS,
     scoreRangePainterEstimate,
     encodeCoopStudyRoom,
+    computeIcmChopAndPayJump,
+    evaluateHandBlockerImpact,
+    evaluateMultiStreetLineConsistency,
+    evaluateAdaptiveVillainCounterStrategy,
+    computeSurvivingRangeFunnel,
+    evaluateTiltAndDecisionPacingGuard,
 } from '../../../lib/training/trainingPresets.mjs';
 
 const soundManager = typeof window !== 'undefined'
@@ -1674,6 +1680,7 @@ function InfoPanelShell({
 
 function UniversalDynamicTable({
     gameId = '',
+    presetOnly = false,
     question,
     questionNumber,
     totalQuestions,
@@ -3122,6 +3129,78 @@ function UniversalDynamicTable({
         setCoopLinkCopied(true);
         setTimeout(() => setCoopLinkCopied(false), 2200);
     }, [gameId, coopRoomToken]);
+
+    // ═══ PHASE 19: BLOCKER MATRIX, LINE CONSISTENCY, VILLAIN COUNTER-ADAPT, RANGE FUNNEL, TILT GUARD & ICM CHOP ═══
+    const [recentDecisionCadenceLog, setRecentDecisionCadenceLog] = useState([]);
+    const [adaptiveVillainEnabled, setAdaptiveVillainEnabled] = useState(true);
+    useEffect(() => {
+        if (!showFeedback || !selectedAnswer) return;
+        const elapsedSec = Math.max(0.2, (Date.now() - answerStartTime.current) / 1000);
+        const isCorrectMove = moveClassification === 'best' || moveClassification === 'correct' || feedbackResult === 'correct';
+        setRecentDecisionCadenceLog((prev) => [
+            ...prev.slice(-9),
+            {
+                action: String(selectedAnswer),
+                isCorrect: isCorrectMove,
+                timeSeconds: Number(elapsedSec.toFixed(2)),
+            },
+        ]);
+    }, [showFeedback, selectedAnswer, moveClassification, feedbackResult]);
+
+    const blockerImpactEval = useMemo(
+        () =>
+            evaluateHandBlockerImpact({
+                variant: activeNormalizedVariant,
+                heroCards,
+                boardCards: visibleBoard,
+            }),
+        [activeNormalizedVariant, heroCards, visibleBoard],
+    );
+
+    const lineConsistencyEval = useMemo(
+        () =>
+            evaluateMultiStreetLineConsistency({
+                street: continuedStreet || activeNormalizedStreet,
+                selectedAction: selectedAnswer || 'c',
+                correctAction: correctAnswer || 'c',
+            }),
+        [continuedStreet, activeNormalizedStreet, selectedAnswer, correctAnswer],
+    );
+
+    const adaptiveVillainEval = useMemo(
+        () =>
+            evaluateAdaptiveVillainCounterStrategy({
+                recentMoves: recentDecisionCadenceLog.map((d) => d.action),
+            }),
+        [recentDecisionCadenceLog],
+    );
+
+    const survivingRangeFunnel = useMemo(
+        () =>
+            computeSurvivingRangeFunnel({
+                street: continuedStreet || activeNormalizedStreet,
+                heroPosition: heroPosition || 'BTN',
+            }),
+        [continuedStreet, activeNormalizedStreet, heroPosition],
+    );
+
+    const tiltPacingEval = useMemo(
+        () => evaluateTiltAndDecisionPacingGuard(recentDecisionCadenceLog),
+        [recentDecisionCadenceLog],
+    );
+
+    const tableIcmChopSim = useMemo(
+        () =>
+            computeIcmChopAndPayJump({
+                heroStackBb: Math.max(5, Number(heroStack) || 24),
+                avgStackBb: 30,
+                playersRemaining: 6,
+                prizePoolUnits: 10000,
+                toCallBb: Math.max(1, Number(scenario?.villainBet ?? scenario?.toCall ?? 8)),
+                potSizeBb: Math.max(2, Number(pot) || 12),
+            }),
+        [heroStack, scenario?.villainBet, scenario?.toCall, pot],
+    );
     const drillSimilarSpotHref = useMemo(
         () =>
             buildCustomTrainingArenaHref(
@@ -5723,11 +5802,11 @@ function UniversalDynamicTable({
                             data-training-variant-selector="true"
                             data-variant-prefetch-cache="true"
                             data-prefetched-variants={prefetchedVariantsSummary}
-                            role="group"
-                            aria-label="Poker Variant Selector"
+                            role={presetOnly ? undefined : 'group'}
+                            aria-label={presetOnly ? undefined : 'Poker Variant Selector'}
                             style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}
                         >
-                            {[
+                            {presetOnly ? currentVariant.toUpperCase() : [
                                 { id: 'nlh', label: "Hold'em" },
                                 { id: 'plo4', label: 'PLO4' },
                                 { id: 'plo5', label: 'PLO5' },
@@ -5759,6 +5838,7 @@ function UniversalDynamicTable({
                             })}
 
                             {/* On-Table Betting Structure Switcher (No-Limit, Pot-Limit, Fixed-Limit) */}
+                            {!presetOnly && (
                             <div
                                 data-betting-structure-selector="true"
                                 data-active-betting-structure={activeBettingStructure}
@@ -5795,6 +5875,7 @@ function UniversalDynamicTable({
                                     );
                                 })}
                             </div>
+                            )}
 
                             {activeBettingStructure === 'fixed_limit' && (
                                 <span
@@ -5816,6 +5897,7 @@ function UniversalDynamicTable({
                             )}
 
                             {/* On-Table Game Format Switcher (Cash, MTT, Spins, HU, 9-Max Full Ring) */}
+                            {!presetOnly && (
                             <div
                                 data-game-format-selector="true"
                                 data-active-game-format={activeGameFormat}
@@ -5855,6 +5937,7 @@ function UniversalDynamicTable({
                                     );
                                 })}
                             </div>
+                            )}
 
                             {activeGameFormat === 'spins' && (
                                 <span
@@ -5937,7 +6020,7 @@ function UniversalDynamicTable({
                             </button>
                         </div>
 
-                        <details
+                        {!presetOnly && <details
                             className="sp-mtt-disclosure"
                             data-table-study-tools-disclosure="true"
                             style={{ width: '100%' }}
@@ -7234,8 +7317,115 @@ function UniversalDynamicTable({
                                 </button>
                             </div>
                         </div>
+
+                        {/* Phase 19: Blocker Matrix, Line Consistency, Adaptive Villain Counter, Range Funnel, Tilt Guard & ICM Chop Strip */}
+                        <div
+                            data-phase19-study-intelligence-strip="true"
+                            style={{
+                                width: '100%',
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+                                gap: 6,
+                                padding: '6px 10px',
+                                borderRadius: 6,
+                                background: 'rgba(9, 23, 39, 0.94)',
+                                border: '1px solid #688299',
+                                fontSize: 12,
+                                color: '#e6f3ff',
+                            }}
+                        >
+                            <div
+                                data-blocker-card-removal-matrix="true"
+                                data-blocker-value-blocked-pct={String(blockerImpactEval.valueBlockedPct)}
+                                data-blocker-bluffs-unblocked-pct={String(blockerImpactEval.bluffsUnblockedPct)}
+                                style={{ padding: '4px 8px', borderRadius: 4, background: 'rgba(4, 13, 24, 0.85)', border: '1px solid rgba(104, 130, 153, 0.45)' }}
+                            >
+                                <div style={{ fontWeight: 800, color: '#83deff' }}>
+                                    {`Blocker Matrix · Value Blocked: ${blockerImpactEval.valueBlockedPct}% · Bluffs Unblocked: ${blockerImpactEval.bluffsUnblockedPct}%`}
+                                </div>
+                                <div style={{ color: '#b7cede', marginTop: 2 }}>{blockerImpactEval.primaryEffect}</div>
+                            </div>
+
+                            <div
+                                data-multistreet-line-consistency="true"
+                                data-line-consistency-score={String(lineConsistencyEval.consistencyScore)}
+                                style={{ padding: '4px 8px', borderRadius: 4, background: 'rgba(4, 13, 24, 0.85)', border: '1px solid rgba(104, 130, 153, 0.45)' }}
+                            >
+                                <div style={{ fontWeight: 800, color: '#6ee7b7' }}>
+                                    {`Multi-Street Line Consistency: ${lineConsistencyEval.consistencyScore}/100`}
+                                </div>
+                                <div style={{ color: '#b7cede', marginTop: 2 }}>{lineConsistencyEval.lineVerdict}</div>
+                            </div>
+
+                            <div
+                                data-adaptive-villain-counter="true"
+                                data-villain-shifted-profile={adaptiveVillainEval.shiftedProfile}
+                                style={{ padding: '4px 8px', borderRadius: 4, background: 'rgba(4, 13, 24, 0.85)', border: '1px solid rgba(104, 130, 153, 0.45)' }}
+                            >
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
+                                    <span style={{ fontWeight: 800, color: '#fcd34d' }}>
+                                        {`Adaptive Villain: ${adaptiveVillainEval.shiftedProfile}`}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        data-toggle-adaptive-villain="true"
+                                        aria-pressed={adaptiveVillainEnabled}
+                                        onClick={() => setAdaptiveVillainEnabled((p) => !p)}
+                                        style={{
+                                            padding: '1px 6px',
+                                            borderRadius: 4,
+                                            fontSize: 12,
+                                            fontWeight: 800,
+                                            cursor: 'pointer',
+                                            border: '1px solid #56d8ff',
+                                            background: adaptiveVillainEnabled ? 'rgba(8, 124, 250, 0.28)' : 'rgba(255,255,255,0.06)',
+                                            color: '#f4fbff',
+                                        }}
+                                    >
+                                        {adaptiveVillainEnabled ? 'Auto-Shift: ON' : 'Auto-Shift: OFF'}
+                                    </button>
+                                </div>
+                                <div style={{ color: '#b7cede', marginTop: 2 }}>{adaptiveVillainEval.counterBadge}</div>
+                            </div>
+
+                            <div
+                                data-surviving-range-funnel="true"
+                                data-surviving-active-pct={String(survivingRangeFunnel.activePct)}
+                                style={{ padding: '4px 8px', borderRadius: 4, background: 'rgba(4, 13, 24, 0.85)', border: '1px solid rgba(104, 130, 153, 0.45)' }}
+                            >
+                                <div style={{ fontWeight: 800, color: '#83deff' }}>
+                                    {`Surviving Range Funnel: ${survivingRangeFunnel.funnelSummary}`}
+                                </div>
+                                <div style={{ color: '#b7cede', marginTop: 2 }}>
+                                    {`Value: ${survivingRangeFunnel.survivingValueClusters.slice(0, 2).join(', ')}`}
+                                </div>
+                            </div>
+
+                            <div
+                                data-tilt-pacing-guard="true"
+                                data-tilt-triggered={String(tiltPacingEval.tiltTriggered)}
+                                style={{ padding: '4px 8px', borderRadius: 4, background: 'rgba(4, 13, 24, 0.85)', border: '1px solid rgba(104, 130, 153, 0.45)' }}
+                            >
+                                <div style={{ fontWeight: 800, color: tiltPacingEval.tiltTriggered ? '#fca5a5' : '#6ee7b7' }}>
+                                    {`Mental Game & Pacing Guard (${tiltPacingEval.recommendedCadenceSeconds}s Cadence)`}
+                                </div>
+                                <div style={{ color: '#b7cede', marginTop: 2 }}>{tiltPacingEval.pacingStatus}</div>
+                            </div>
+
+                            <div
+                                data-icm-chop-simulator="true"
+                                data-icm-chop-value={String(tableIcmChopSim.icmChopValue)}
+                                data-icm-required-equity={String(tableIcmChopSim.icmRequiredEquityPct)}
+                                style={{ padding: '4px 8px', borderRadius: 4, background: 'rgba(4, 13, 24, 0.85)', border: '1px solid rgba(104, 130, 153, 0.45)' }}
+                            >
+                                <div style={{ fontWeight: 800, color: '#fcd34d' }}>
+                                    {`ICM Chop & Pay-Jump Sim: $${tableIcmChopSim.icmChopValue.toLocaleString()} (Next Jump +$${tableIcmChopSim.nextPayJumpValue.toLocaleString()})`}
+                                </div>
+                                <div style={{ color: '#b7cede', marginTop: 2 }}>{tableIcmChopSim.recommendation}</div>
+                            </div>
+                        </div>
                              </div>
-                         </details>
+                         </details>}
                     </div>
                 );
             })()}
@@ -9330,7 +9520,7 @@ function UniversalDynamicTable({
                                     Review The Coaching Below. This Screen Will Stay Open Until You Click Next.
                                 </div>
 
-                                <details
+                                {!presetOnly && <details
                                     className="sp-mtt-disclosure"
                                     data-posthand-simulators-disclosure="true"
                                     style={{ marginTop: 10, width: '100%' }}
@@ -9766,7 +9956,7 @@ function UniversalDynamicTable({
                                         })}
                                     </div>
                                 </div>
-                                </details>
+                                </details>}
                             </div>
                         );
                     })()}

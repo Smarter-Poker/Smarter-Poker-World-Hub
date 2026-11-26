@@ -41,3 +41,19 @@ test('training home and category games open a dedicated preset arena', () => {
   assert.match(arena, /customLaunch\.config \|\| \(startsWithPreset \? resolvePresetForGame\(game\) : null\)/);
   assert.match(arena, /initialConfig=\{initialConfig\}/);
 });
+
+test('preset play keeps study tooling out of the shared game table', () => {
+  const load = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  const arena = load('pages/hub/training/arena/[gameId].js');
+  const game = load('src/components/training/GodModeArena.jsx');
+  const router = load('src/components/training/GameUIRouter.jsx');
+  const table = load('src/components/training/games/UniversalDynamicTable.jsx');
+
+  assert.match(arena, /presetOnly=\{startsWithPreset && !customLaunch\.config\}/);
+  assert.match(game, /<GameUIRouter\s+presetOnly=\{presetOnly\}/);
+  assert.match(router, /<UniversalDynamicTable\s+presetOnly=\{presetOnly\}/);
+  assert.match(game, /onConfigClick=\{presetOnly \? null : handleConfigClick\}/);
+  for (const attribute of ['data-table-study-tools-disclosure', 'data-posthand-simulators-disclosure']) {
+    assert.match(table, new RegExp('!presetOnly && <details[^>]*' + attribute));
+  }
+});

@@ -34,6 +34,7 @@ import {
 import {
   resolvePresetForGame,
   buildThreeHandLeakReceipt,
+  buildSessionStudyDossierMarkdown,
 } from '../../lib/training/trainingPresets.mjs';
 // ●●● PHASE 18: Leaderboard ●●●
 import LeaderboardPanel from './LeaderboardPanel';
@@ -1014,6 +1015,7 @@ function GodModeArenaInner({
   // The arena then starts straight into play instead of showing its own
   // splash asking for the same three things a second time.
   initialConfig = null,
+  presetOnly = false,
   // GTOW parity #10. Multi-tabling puts several arenas on screen at once, and
   // two of this component's behaviours are viewport-global rather than
   // table-local: the keyboard handler listens on `window`, and the win confetti
@@ -2229,6 +2231,48 @@ function GodModeArenaInner({
                 >
                   Practice 3-Hand Leak Receipt Pack Now →
                 </a>
+                {(() => {
+                  const studyDossier = buildSessionStudyDossierMarkdown({
+                    gameName: gameName || practicedPreset.title || 'Training Session',
+                    variant: practicedPreset.variant,
+                    format: practicedPreset.format,
+                    accuracyPct: accuracy,
+                    gtowScore,
+                    handsPlayed: totalQuestions,
+                    topStrength: `${practicedPreset.heroPosition || 'BTN'} ${practicedPreset.targetStreet?.toUpperCase() || 'FLOP'} Execution`,
+                    primaryLeak: weakestPosition ? `${weakestPosition} Decision Node` : 'Turn / River Polarity Sizing',
+                    leakReceiptHref: leakReceipt.href,
+                  });
+                  return (
+                    <button
+                      type="button"
+                      data-export-session-study-dossier="true"
+                      data-dossier-line-count={String(studyDossier.lineCount)}
+                      onClick={() => {
+                        try {
+                          if (typeof window !== 'undefined' && navigator?.clipboard?.writeText) {
+                            navigator.clipboard.writeText(studyDossier.markdown).catch(() => {});
+                          }
+                        } catch (_) {}
+                      }}
+                      style={{
+                        marginTop: 8,
+                        width: '100%',
+                        minHeight: 38,
+                        padding: '8px 14px',
+                        borderRadius: 7,
+                        border: '1px solid #688299',
+                        background: '#091727',
+                        color: '#83deff',
+                        fontSize: 12,
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Copy Exportable Session Study Dossier (Markdown) →
+                    </button>
+                  );
+                })()}
               </div>
             );
           })()}
@@ -2618,6 +2662,7 @@ function GodModeArenaInner({
           })()}
 
           {/* DETAILED BREAKDOWN & HAND REVIEW DISCLOSURE */}
+          {!presetOnly && (
           <details
             className="sp-mtt-disclosure"
             data-review-detailed-analytics="true"
@@ -4305,6 +4350,7 @@ function GodModeArenaInner({
           {/* END VISIBLE REVIEW TABS */}
             </div>
           </details>
+          )}
 
           {/* ACTION BUTTONS */}
           <div
@@ -4672,12 +4718,12 @@ function GodModeArenaInner({
     return (
       <div className="sp-arena-shell" style={styles.fullScreenContainer}>
         {/* Trainer Config Modal */}
-        <TrainerConfigModal
+        {!presetOnly && <TrainerConfigModal
           isOpen={showConfigModal}
           onClose={() => setShowConfigModal(false)}
           onStart={handleConfigStart}
           currentGameId={gameId}
-        />
+        />}
 
         <AnimatePresence mode="wait">
           {/* ●●● PHASE 18: ENHANCED PRE-SESSION LOBBY ●●● */}
@@ -5170,6 +5216,7 @@ function GodModeArenaInner({
               ) : currentQuestion ? (
                 <>
                 <GameUIRouter
+                  presetOnly={presetOnly}
                   gameId={gameId}
                   gameName={gameName}
                   trainingSessionId={trainingSessionId}
@@ -5235,7 +5282,7 @@ function GodModeArenaInner({
                   onExit={onExit}
                   difficultyLevel={computedDifficultyLevel}
                   // Settings gear — relocated to scenario description area
-                  onConfigClick={handleConfigClick}
+                  onConfigClick={presetOnly ? null : handleConfigClick}
                   trainerConfig={resolvedTrainerConfig}
                 />
                 {answerSaveNotice}
@@ -5274,6 +5321,7 @@ function GodModeArenaInner({
         ) : currentQuestion ? (
           <>
           <GameUIRouter
+            presetOnly={presetOnly}
             gameId={gameId}
             gameName={gameName}
             trainingSessionId={trainingSessionId}
