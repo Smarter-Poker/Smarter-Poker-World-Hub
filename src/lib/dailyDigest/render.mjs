@@ -349,13 +349,63 @@ export function shortTitle(title, max = 260) {
     return `${(at > 40 ? cut.slice(0, at) : cut.slice(0, cut.lastIndexOf(' '))).trim()} and more`;
 }
 
+/** Clip prose cleanly on a separator or word boundary, never leaving an unclosed quote or parenthesis. */
+export function cleanClip(text, max = 160) {
+    const t = String(text ?? '').trim();
+    if (t.length <= max) return t;
+    const budget = Math.max(20, max - 3);
+    const slice = t.slice(0, budget);
+    const sep = Math.max(slice.lastIndexOf('; '), slice.lastIndexOf(', '));
+    const space = slice.lastIndexOf(' ');
+    const cutAt = sep > Math.floor(budget * 0.5) ? sep : (space > Math.floor(budget * 0.4) ? space : budget);
+    let head = slice.slice(0, cutAt).replace(/[,;:\-\s]+$/, '');
+    const openQuotes = (head.match(/"/g) || []).length % 2 === 1;
+    const openParens = (head.match(/\(/g) || []).length - (head.match(/\)/g) || []).length;
+    return `${head}...${openQuotes ? '"' : ''}${openParens > 0 ? ')'.repeat(openParens) : ''}`;
+}
+
+/** Format verified fix references cleanly on entry boundaries; never chop mid-quote. */
+export function formatFixList(fixes, max = 260) {
+    const unique = [];
+    const seen = new Set();
+    for (const raw of Array.isArray(fixes) ? fixes : []) {
+        const s = String(raw ?? '').trim();
+        if (!s || seen.has(s)) continue;
+        seen.add(s);
+        unique.push(s);
+    }
+    if (!unique.length) return '';
+    const full = unique.join('; ');
+    if (full.length <= max) return full;
+    const kept = [];
+    for (let i = 0; i < unique.length; i++) {
+        const rem = unique.length - i - 1;
+        const suffix = rem > 0 ? `; and ${rem} more` : '';
+        const candidate = [...kept, unique[i]].join('; ');
+        if (candidate.length + suffix.length <= max) {
+            kept.push(unique[i]);
+        } else {
+            break;
+        }
+    }
+    if (kept.length) {
+        const rem = unique.length - kept.length;
+        return rem > 0 ? `${kept.join('; ')}; and ${rem} more` : kept.join('; ');
+    }
+    const suffix = unique.length > 1 ? `; and ${unique.length - 1} more` : '';
+    return `${cleanClip(unique[0], Math.max(40, max - suffix.length))}${suffix}`;
+}
+
 const STATUS_LABEL = { fixed: 'Resolved Or Reviewed', in_progress: 'Under Investigation', not_picked_up: 'Not Yet Picked Up', tracked: 'Recorded Alert; Assignment Unconfirmed' };
 
 /** One line per alert type: verified-fixed count and the fix that closed it. */
 export function alertFixLines(it) {
     if (!Array.isArray(it?.fixes)) return [];
-    return it.fixes.map((f) => `${f.alertname}: ${fmtInt(f.verified)} of ${fmtInt(f.total)} verified fixed${
-        f.fixes.length ? ` (Fix: ${f.fixes.join('; ').slice(0, 140)})` : f.verified < f.total ? ' (no verified fix yet)' : ''}`);
+    return it.fixes.map((f) => {
+        const formatted = formatFixList(f.fixes);
+        return `${f.alertname}: ${fmtInt(f.verified)} of ${fmtInt(f.total)} verified fixed${
+            formatted ? ` (Fix: ${formatted})` : f.verified < f.total ? ' (no verified fix yet)' : ''}`;
+    });
 }
 
 export function attentionHtml(digest) {
@@ -373,7 +423,7 @@ export function attentionHtml(digest) {
             const sColor = it.status === 'fixed' ? C.green : it.status === 'in_progress' || it.status === 'tracked' ? C.amber : C.muted;
             return `<tr><td style="padding:8px 0;border-top:1px solid ${C.line};font-size:14px;color:${C.text};">`
                 + `<span style="display:inline-block;width:8px;height:8px;border-radius:4px;background:${color};margin-right:8px;"></span>${esc(shortTitle(it.title))}`
-                + `<div style="margin:3px 0 0 16px;font-size:11px;color:${sColor};">${esc(status)}${it.resolution ? ` - ${esc(String(it.resolution).slice(0, 160))}` : ''}</div>`
+                + `<div style="margin:3px 0 0 16px;font-size:11px;color:${sColor};">${esc(status)}${it.resolution ? ` - ${esc(cleanClip(it.resolution, 200))}` : ''}</div>`
                 + alertFixLines(it).map((line) => `<div style="margin:2px 0 0 16px;font-size:11px;color:${C.muted};">${esc(line)}</div>`).join('')
                 + `</td></tr>`;
         })
@@ -1253,7 +1303,7 @@ export function buildText(digest, opts = {}) {
     const items = digest.attention || [];
     lines.push(items.length ? `NEEDS YOUR ATTENTION (${items.length})` : 'Nothing needs your attention.');
     for (const it of items) {
-        lines.push(`- ${shortTitle(it.title)} [${STATUS_LABEL[it.status] || 'Not Yet Picked Up'}]${it.resolution ? ` - ${String(it.resolution).slice(0, 160)}` : ''}`);
+        lines.push(`- ${shortTitle(it.title)} [${STATUS_LABEL[it.status] || 'Not Yet Picked Up'}]${it.resolution ? ` - ${cleanClip(it.resolution, 200)}` : ''}`);
         for (const line of alertFixLines(it)) lines.push(`    ${line}`);
     }
     const periods = updatePeriodTitles(digest);
