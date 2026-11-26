@@ -1055,18 +1055,7 @@ test('Phase 8 Master 12-Point Package: Zero route-state coverage gaps, 100% Hors
   assert.match(studyGroupSrc, /data-study-group-spot-share="true"/);
   assert.match(studyGroupSrc, /data-share-training-spot="true"/);
 
-  // 6. All newly wired Phase 8 standalone training pages
-  const phase8BrainPages = [
-    'pages/hub/training/custom-solve.js',
-    'pages/hub/training/quiz-builder.js',
-  ];
-  for (const relPath of phase8BrainPages) {
-    const src = read(relPath);
-    assert.match(src, /evaluateTrainingSpotWithHorseBrain/, `${relPath} must wire evaluateTrainingSpotWithHorseBrain`);
-    assert.match(src, /buildCustomTrainingArenaHref/, `${relPath} must wire buildCustomTrainingArenaHref`);
-    assert.match(src, /data-specialty-brain-panel="true"/, `${relPath} must render data-specialty-brain-panel="true"`);
-    assert.match(src, /data-launch-club-arena-cta="true"/, `${relPath} must render data-launch-club-arena-cta="true"`);
-  }
+
 });
 
 test('Phase 9 Deep Sweep & Root-Cause Anti-Regression Hardening: LevelSelector query forwarding, Arena exit context preservation, get-question parallel Promise.all & 4-variant Horse Brain enrichment, useGTOTrainer custom-train variant & inside-loop network retry outbox, and 100% dynamic + core page Horse Brain DOM contract', () => {
@@ -1076,12 +1065,10 @@ test('Phase 9 Deep Sweep & Root-Cause Anti-Regression Hardening: LevelSelector q
   assert.match(levelSelectorSrc, /buildForwardedArenaQuery/, 'LevelSelector.tsx must use buildForwardedArenaQuery so variant/street/position/duelToken/syncedHandId are never stripped on level selection');
   assert.match(levelSelectorSrc, /data-level-selector-forwarded-variant=/, 'LevelSelector.tsx must expose data-level-selector-forwarded-variant');
 
-  // 2. Root Cause #2: pages/hub/training/arena/[gameId].js must preserve variant & source on handleExit and wire Horse Brain evaluation
+  // 2. Root Cause #2: pages/hub/training/arena/[gameId].js must preserve variant and source on exit
   const arenaPageSrc = read('pages/hub/training/arena/[gameId].js');
-  assert.match(arenaPageSrc, /evaluateTrainingSpotWithHorseBrain/, 'arena/[gameId].js must wire evaluateTrainingSpotWithHorseBrain');
-  assert.match(arenaPageSrc, /buildCustomTrainingArenaHref/, 'arena/[gameId].js must wire buildCustomTrainingArenaHref');
+  assert.doesNotMatch(arenaPageSrc, /evaluateTrainingSpotWithHorseBrain|data-arena-horse-brain-engine/);
   assert.match(arenaPageSrc, /\['variant',\s*'bettingStructure',\s*'format',\s*'street',\s*'position',\s*'source'\]/, 'arena/[gameId].js handleExit must preserve router.query.variant and full context when returning to /hub/training/play/[gameId]');
-  assert.match(arenaPageSrc, /data-arena-horse-brain-engine=/, 'arena/[gameId].js must expose data-arena-horse-brain-engine');
 
   // 3. Root Cause #3: pages/api/training/get-question.js must parallelize GetQuestion:seen-read & GetQuestion:cache-read via Promise.all and enrich variant questions with evaluateTrainingSpotWithHorseBrain
   const getQuestionSrc = read('pages/api/training/get-question.js');
@@ -1095,22 +1082,10 @@ test('Phase 9 Deep Sweep & Root-Cause Anti-Regression Hardening: LevelSelector q
   assert.match(useGtoTrainerSrc, /enqueueFailedAnswerOutbox/, 'useGTOTrainer.js must enqueue network-failed answer submissions');
   assert.match(useGtoTrainerSrc, /flushFailedAnswerOutbox/, 'useGTOTrainer.js must flush queued answer submissions when online');
 
-  // 5. Root Cause #5: Specialized dynamic nested pages + pvp-lobby.js + 5 core tool pages must expose the canonical [data-specialty-brain-panel="true"] and [data-launch-club-arena-cta="true"] contract
-  const phase9UnifiedContractPages = [
-    'pages/hub/training/clinic/[clinicId].js',
-    'pages/hub/training/pvp-lobby.js',
-    'pages/hub/training/equity-calculator.js',
-    'pages/hub/training/final-table-sim.js',
-    'pages/hub/training/icm-simulator.js',
-    'pages/hub/training/live-hud-sync.js',
-    'pages/hub/training/spot-trainer.js',
-  ];
-  for (const relPath of phase9UnifiedContractPages) {
-    const src = read(relPath);
-    assert.match(src, /evaluateTrainingSpotWithHorseBrain/, `${relPath} must wire evaluateTrainingSpotWithHorseBrain`);
-    assert.match(src, /buildCustomTrainingArenaHref/, `${relPath} must wire buildCustomTrainingArenaHref`);
-    assert.match(src, /data-specialty-brain-panel="true"/, `${relPath} must expose data-specialty-brain-panel="true"`);
-    assert.match(src, /data-launch-club-arena-cta="true"/, `${relPath} must expose data-launch-club-arena-cta="true"`);
+  for (const file of ['final-table-sim.js', 'icm-simulator.js']) {
+    const src = read(`pages/hub/training/${file}`);
+    assert.match(src, /data-icm-brain-panel="true"/);
+    assert.match(src, /data-launch-club-arena-cta="true"/);
   }
 });
 
@@ -1427,11 +1402,10 @@ test('Phase 11 Master 16-Point Package: Showdown Reveal, 100% 5-Variant PLO8 Hub
   assert.match(tableSrc, /data-run-it-twice-btn="true"/);
   assert.match(tableSrc, /data-run-it-twice-panel="true"/);
 
-  // 8. Multi-Table Mixed Grinder + Analytics PLO8 Leak & Pacing Panels (Item 4, 5, 14)
+  // 8. Preset Multi-Table launcher and verified leak diagnostics
   const multiTableSrc = read('pages/hub/training/multi-table.js');
-  assert.match(multiTableSrc, /data-pane-variant-selector="true"/);
-  assert.match(multiTableSrc, /data-pane-format-selector="true"/);
-  assert.match(multiTableSrc, /data-apply-mixed-rotation-btn="true"/);
+  assert.doesNotMatch(multiTableSrc, /data-pane-variant-selector|data-pane-format-selector|data-apply-mixed-rotation-btn/);
+  assert.match(multiTableSrc, /<GodModeArena\s+presetOnly/);
   assert.match(multiTableSrc, /playSpatial/);
 
   for (const diagPage of ['pages/hub/training/weakness-scanner.js', 'pages/hub/training/reports.js', 'pages/hub/training/session-dashboard.js']) {
@@ -1475,11 +1449,19 @@ test('Phase 12 Deep Sweep & Root-Cause Anti-Regression Hardening Laws: dedicated
     'hand-lab.js', 'flashcards.js', 'position-mastery.js',
     'preflop-charts.js', 'quick-warmup.js', 'tournament-prep.js',
     'tilt-guard.js', 'tournament/[id].js',
-    'table-wizard.js',
+    'table-wizard.js', 'play-mode.js',
     'nodelocking.js', 'player-profiles.js', 'villain-range.js', 'frequency-locking.js',
     'gto-vs-exploitative.js', 'blind-defense.js', 'spr-trainer.js', 'ev-trainer.js',
     'pot-geometry.js', 'three-way-postflop.js', 'multiway-postflop.js', 'bluff-catcher.js',
-    'range-advisor.js', 'preflop-advisor.js',
+    'range-advisor.js', 'preflop-advisor.js', 'mixed-strategy-lab.js',
+    'bounty-trainer.js', 'icm-final-table.js', 'icm-calculator.js', 'glossary.js', 'range-explorer.js',
+    'arena/[gameId].js', 'clinic/[clinicId].js', 'custom-solve.js',
+    'analyzer.js', 'quiz-gauntlet.js', 'ev-heatmap.js', 'gto-scorecard.js', 'performance-heatmap.js', 'bankroll-coach.js',
+    'drill-builder.js', 'equity-calculator.js', 'hand-history-upload.js',
+    'jarvis.js', 'multi-table.js',
+    'pvp-lobby.js', 'quiz-builder.js', 'range-builder.js',
+    'replay-theater.js',
+    'short-deck-trainer.js', 'solutions.js',
   ].map(file => `pages/hub/training/${file}`));
   const allTrainingPagePaths = walkTrainingPages(path.join(ROOT, 'pages/hub/training')).sort();
   let nonRedirectCount = 0;
@@ -1489,7 +1471,7 @@ test('Phase 12 Deep Sweep & Root-Cause Anti-Regression Hardening Laws: dedicated
     if (src.includes('CanonicalTrainingRedirect')) continue;
     nonRedirectCount += 1;
     if (focusedPages.has(relPath)) {
-      assert.doesNotMatch(src, /data-specialty-brain-panel|data-launch-club-arena-cta/);
+      assert.doesNotMatch(src, /data-specialty-brain-panel/);
       continue;
     }
     if (relPath === 'pages/hub/training/category/[categoryId].js') {

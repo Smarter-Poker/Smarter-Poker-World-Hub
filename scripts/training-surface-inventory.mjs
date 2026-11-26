@@ -614,12 +614,17 @@ function main() {
     const gameHref = localFiles.includes('src/components/training/TrainingGameEntry.jsx')
       ? entrySource.match(/gameHref="(\/hub\/training\/arena\/[^"?]+)\?[^"]+"/)?.[1]
       : null;
-    const gameId = gameHref?.split('/').pop();
-    const arena = gameId && games.some(game => game.id === gameId)
+    const redirectHref = entrySource.match(
+      /export async function getServerSideProps\(\) \{\s*return \{\s*redirect: \{\s*destination: ['"](\/hub\/training\/[^'"?]+)(?:\?[^'"]*)?['"]/,
+    )?.[1];
+    const gameId = (gameHref || redirectHref)?.split('/').pop();
+    const arena = (gameHref || redirectHref)?.startsWith('/hub/training/arena/')
+      && games.some(game => game.id === gameId)
       ? routes.find(candidate => candidate.template === '/hub/training/arena/[gameId]')
       : null;
-    const reachableFiles = arena
-      ? [...new Set([...localFiles, ...closureFor(arena.file, graph.edges)])].sort()
+    const destination = arena || routes.find(candidate => candidate.template === redirectHref && candidate.file !== route.file);
+    const reachableFiles = destination
+      ? [...new Set([...localFiles, ...closureFor(destination.file, graph.edges)])].sort()
       : localFiles;
     const reachableRows = reachableFiles.map((file) => sourceRows.find((row) => row.file === file)).filter(Boolean);
     const matchingTests = [...testText.entries()]
@@ -641,7 +646,8 @@ function main() {
       file: route.file,
       sample: route.sample,
       reachableFiles,
-      ...(arena ? { gameplayDestination: gameHref } : {}),
+      ...(arena ? { gameplayDestination: gameHref || redirectHref } : {}),
+      ...(redirectHref && destination ? { redirectDestination: redirectHref } : {}),
       states,
       existingTests: matchingTests,
       uncoveredStates: stateNames.filter((state) => states[state].status === 'coverage-gap'),

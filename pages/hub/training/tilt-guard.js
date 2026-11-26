@@ -403,7 +403,7 @@ export default function TiltGuardPage() {
             <BackArrowIcon size={18} />
           </button>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>Tilt Guard</div>
+            <h1 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Tilt Guard</h1>
             <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Emotional Intelligence Coach</div>
           </div>
         </div>

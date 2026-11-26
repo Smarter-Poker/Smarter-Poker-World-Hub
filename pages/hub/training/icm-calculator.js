@@ -15,6 +15,7 @@ import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import { useOnlineStatus } from '../../../src/hooks/useOnlineStatus';
 import { hubProductSchema } from '../../../src/lib/seo/hubPageSchema';
 import CitationBacklinkBox from '../../../src/components/seo/CitationBacklinkBox';
 import AiPromptLauncher from '../../../src/components/seo/AiPromptLauncher';
@@ -24,8 +25,6 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../src/engine/EventBus';
 import { authedFetch } from '../../../src/lib/authUtils';
 import VerifiedToolGateway from '../../../src/components/training/VerifiedToolGateway';
-import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
-import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
 
 // FAQ reference: What is ICM in tournament poker?
 const ICM_CALCULATOR_FAQS = [
@@ -190,6 +189,7 @@ const RISK_PREMIUM = {
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/hub/training/icm-calculator' } = {}) {
+  const online = useOnlineStatus();
   const router = useRouter();
   const effectiveCanonical = router.pathname === '/tools/icm-calculator' ? 'https://smarter.poker/tools/icm-calculator' : canonical;
   useTrainingBus('icm-calculator');
@@ -315,62 +315,10 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
 
   const totalChips = stacks.reduce((s, v) => s + v, 0);
 
-  const heroStackBb = useMemo(() => {
-    const heroRaw = Math.max(100, Number(stacks[0]) || 25000);
-    return Math.max(5, Math.min(120, Math.round(heroRaw / 1000)));
-  }, [stacks]);
 
-  const dynamicBubbleFactor = useMemo(() => {
-    const resultBf = Number(results?.bubbleFactor);
-    if (Number.isFinite(resultBf) && resultBf > 1.0) {
-      return Number(resultBf.toFixed(2));
-    }
-    const numericPrizes = (prizes || []).map((p) => Math.max(0, Number(p) || 0));
-    const sumPrizes = numericPrizes.reduce((a, b) => a + b, 0) || 100;
-    const firstShare = (numericPrizes[0] || 40) / sumPrizes;
-    const isBubble = stacks.length > prizes.length;
-    const baseBf = heroStackBb <= 15 ? 1.92 : heroStackBb <= 25 ? 1.65 : 1.35;
-    const skewAdjust = (0.45 - firstShare) * 0.6 + (isBubble ? 0.25 : 0);
-    return Number(Math.max(1.08, Math.min(2.6, baseBf + skewAdjust)).toFixed(2));
-  }, [results, prizes, stacks.length, heroStackBb]);
 
-  const [brainVariant, setBrainVariant] = useState('nlh');
 
-  const arenaHref = useMemo(
-    () => buildCustomTrainingArenaHref({ gameId: 'mtt-013', variant: brainVariant }, 'icm-calculator'),
-    [brainVariant]
-  );
 
-  const brainEval = useMemo(() => {
-    try {
-      const toCallBb = heroStackBb <= 18 ? Math.max(4, Math.round(heroStackBb * 0.75)) : 6;
-      const heroCardsByVariant = {
-        nlh: ['Ad', 'Js'],
-        plo4: ['As', 'Ks', 'Qh', 'Jh'],
-        plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
-        plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
-        plo8: ['As', '2s', 'Kd', '3d'],
-      };
-      return evaluateTrainingSpotWithHorseBrain({
-        gameId: 'mtt-013',
-        variant: brainVariant,
-        street: 'preflop',
-        heroCards: heroCardsByVariant[brainVariant] || heroCardsByVariant.nlh,
-        boardCards: [],
-        heroPosition: 'CO',
-        villainPosition: 'BTN',
-        pot: 2.5,
-        toCall: toCallBb,
-        effectiveStackBb: heroStackBb,
-        isICM: true,
-        isPKO: false,
-        bubbleFactor: dynamicBubbleFactor,
-        payoutPressure: `${stacks.length} Players / ${prizes.length} Paid (Pool $${prizePool}, BF ${dynamicBubbleFactor}x)`,
-      });
-    } catch {
-      return null;
-    }
-  }, [heroStackBb, dynamicBubbleFactor, stacks.length, prizes.length, prizePool, brainVariant]);
 
   const schema = useMemo(() => {
     const canonicalPath = router.pathname === '/tools/icm-calculator' ? '/tools/icm-calculator' : '/hub/training/icm-calculator';
@@ -443,24 +391,11 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
             >
               ICM Calculator
             </h1>
-            <span
-              style={{
-                fontSize: 12,
-                color: 'var(--sp-accent-purple)',
-                background: 'rgba(168,85,247,0.1)',
-                padding: '3px 8px',
-                borderRadius: 12,
-                fontWeight: 700,
-                border: '1px solid rgba(168,85,247,0.2)',
-                fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-              }}
-            >
-              PHASE 21
-            </span>
           </div>
         </div>
 
         <div className="sp-training-analysis-main" style={{ padding: '16px 24px', maxWidth: 700, margin: '0 auto' }}>
+          {!online && <p role="status">The Calculator Works Offline While This Page Is Open.</p>}
           {/* Quick Presets */}
           <div style={{ marginBottom: 14 }}>
             <div
@@ -809,81 +744,6 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
           )}
 
           {/* Horse Brain Tournament & ICM/PKO Engine Panel */}
-          {brainEval && (
-            <div
-              data-specialty-brain-panel="true"
-              data-brain-engine={brainEval.engineModule}
-              data-recommended-action={brainEval.correctAnswer}
-              data-bubble-factor={String(dynamicBubbleFactor)}
-              style={{
-                marginBottom: 16,
-                padding: '14px 16px',
-                borderRadius: 12,
-                border: '1px solid rgba(168, 85, 247, 0.35)',
-                background: 'rgba(15, 23, 42, 0.72)',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: 8,
-                  marginBottom: 8,
-                }}
-              >
-                <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-accent-purple)' }}>
-                  Horse Brain Tournament &amp; ICM/PKO Engine Panel
-                </span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-amber)' }}>
-                  Hero Depth: {heroStackBb} BB | BF: {dynamicBubbleFactor}x | Action: {brainEval.recommendedAction}
-                </span>
-              </div>
-              <div data-variant-selector="true" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
-                {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
-                  <button
-                    key={v}
-                    type="button"
-                    data-variant-option={v}
-                    onClick={() => setBrainVariant(v)}
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: 6,
-                      fontSize: 12,
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      border: brainVariant === v ? '1px solid rgba(168, 85, 247, 0.75)' : '1px solid rgba(255,255,255,0.14)',
-                      background: brainVariant === v ? 'rgba(168, 85, 247, 0.24)' : 'rgba(255,255,255,0.04)',
-                      color: brainVariant === v ? '#f3e8ff' : 'var(--sp-fg-muted)',
-                    }}
-                  >
-                    {v.toUpperCase()}
-                  </button>
-                ))}
-              </div>
-              <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.55 }}>
-                {brainEval.explanation}
-              </p>
-              <button
-                type="button"
-                data-launch-club-arena-cta="true"
-                onClick={() => router.push(arenaHref)}
-                style={{
-                  padding: '8px 14px',
-                  borderRadius: 8,
-                  border: '1px solid rgba(168, 85, 247, 0.5)',
-                  background: 'rgba(168, 85, 247, 0.16)',
-                  color: '#fff',
-                  fontSize: 12,
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                }}
-              >
-                Practice Tournament Spot In Club Arena →
-              </button>
-            </div>
-          )}
 
           {/* Results */}
           <AnimatePresence>

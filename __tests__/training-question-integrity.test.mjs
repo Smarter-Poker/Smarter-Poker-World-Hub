@@ -497,7 +497,7 @@ test('feedback remains until an explicit Next click', () => {
   assert.match(setup, /feedbackRule:\s*['"]every['"]/);
   assert.match(setup, /autoAdvanceUI:\s*['"]off['"]/);
   assert.match(table, /Next Question →/);
-  assert.match(table, /This Screen Will Stay Open Until You Click Next/);
+  assert.match(table, /Select Next When You Are Ready/);
 
   const manualDrills = [
     ['src/games/PatternRecognitionGame.js', /setTimeout\([^)]*nextRound/, /Next Question →/],

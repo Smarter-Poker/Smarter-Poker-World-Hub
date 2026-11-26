@@ -9476,7 +9476,7 @@ function UniversalDynamicTable({
                                 {(() => {
                                     const brainMeta = fq?.brainEvaluation || fq?.scenario?.brainEvaluation || question?.scenario?.brainEvaluation || null;
                                     const coachingText = fq?.explanation || explanation || '';
-                                    if (!brainMeta && !coachingText) return null;
+                                    if (!coachingText && (presetOnly || !brainMeta)) return null;
                                     return (
                                         <div
                                             data-training-attempt-coaching="true"
@@ -9492,7 +9492,7 @@ function UniversalDynamicTable({
                                                 lineHeight: 1.45,
                                             }}
                                         >
-                                            {brainMeta && (
+                                            {!presetOnly && brainMeta && (
                                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: coachingText ? 6 : 0 }}>
                                                     <span style={{ padding: '2px 7px', borderRadius: 999, background: 'rgba(14, 165, 233, 0.2)', color: '#7dd3fc', fontWeight: 800, fontSize: 12 }}>
                                                         Brain: {brainMeta.engineModule}
@@ -9518,7 +9518,7 @@ function UniversalDynamicTable({
                                     );
                                 })()}
                                 <div style={{ color: '#c7d7df', fontSize: 12, fontWeight: 700, letterSpacing: .35, marginTop: 10, textAlign: 'center' }}>
-                                    Review The Coaching Below. This Screen Will Stay Open Until You Click Next.
+                                    Select Next When You Are Ready.
                                 </div>
 
                                 {!presetOnly && <details

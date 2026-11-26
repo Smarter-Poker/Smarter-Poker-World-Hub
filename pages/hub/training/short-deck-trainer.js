@@ -11,7 +11,7 @@
 // TRAIN-CSS-TOKENS-ADOPT-5 — adoption of --sp-* token contract from PR #470
 // TRAIN-CSS-MOBILE-ADOPT-6 — mobile data-attr adoption from TRAIN-CSS-MOBILE-1
 // TRAIN-CSS-GRADIENT-ADOPT-45 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
-import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
@@ -24,37 +24,10 @@ import { useTrainingFeedback } from '../../../src/hooks/useTrainingFeedback';
 import BottomSheet from '../../../src/components/ui/BottomSheet';
 import ProgressStrip from '../../../src/components/poker/ProgressStrip';
 import QuizAnswer from '../../../src/components/poker/QuizAnswer';
-import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
-import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
 // TRAIN-WIRE-FX-3b — adoption: short-deck-trainer quiz feedback
 
-const BRAIN_HERO_BY_VARIANT = {
-  nlh: ['As', 'Ks'],
-  plo4: ['As', 'Ks', 'Qh', 'Jh'],
-  plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
-  plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
-  plo8: ['As', 'Ks', 'Qh', 'Jh'],
-};
 
-const BRAIN_BOARD_BY_STREET = {
-  preflop: [],
-  flop: ['Js', 'Ts', '6d'],
-  turn: ['Js', 'Ts', '6d', '9c'],
-  river: ['Js', 'Ts', '6d', '9c', '7h'],
-};
 
-const pillStyle = (active) => ({
-  padding: '6px 12px',
-  borderRadius: 6,
-  fontSize: 12,
-  fontWeight: 800,
-  cursor: 'pointer',
-  border: active ? '1px solid #67e8f9' : '1px solid rgba(255,255,255,0.16)',
-  background: active
-    ? 'linear-gradient(180deg, rgba(8,145,178,0.75), rgba(3,50,74,0.92))'
-    : 'rgba(255,255,255,0.05)',
-  color: active ? '#e8fbff' : '#cbd5e1',
-});
 
 const SUITS = ['♠', '♥', '♦', '♣'];
 const UNICODE_TO_SUIT = { '♠': 's', '♥': 'h', '♦': 'd', '♣': 'c' };
@@ -163,38 +136,9 @@ export default function ShortDeckTrainerPage() {
   const [quizScore, setQuizScore] = useState({ total: 0, correct: 0 });
   const savedMilestoneRef = useRef(0);
 
-  const [activeVariant, setActiveVariant] = useState('nlh');
-  const [street, setStreet] = useState('flop');
-  const [effectiveStackBb, setEffectiveStackBb] = useState(100);
-  const [pot, setPot] = useState(12);
-  const [toCall, setToCall] = useState(4);
-  const [rakeEnv, setRakeEnv] = useState('mid');
 
-  const brainHeroCards = BRAIN_HERO_BY_VARIANT[activeVariant] || BRAIN_HERO_BY_VARIANT.nlh;
-  const boardCards = BRAIN_BOARD_BY_STREET[street] || BRAIN_BOARD_BY_STREET.flop;
 
-  const brainEval = useMemo(
-    () =>
-      evaluateTrainingSpotWithHorseBrain({
-        variant: activeVariant,
-        street,
-        heroCards: brainHeroCards,
-        boardCards,
-        pot,
-        toCall,
-        effectiveStackBb,
-      }),
-    [activeVariant, street, brainHeroCards, boardCards, pot, toCall, effectiveStackBb]
-  );
 
-  const arenaHref = useMemo(
-    () =>
-      buildCustomTrainingArenaHref(
-        { gameId: activeVariant === 'nlh' ? 'cash-002' : 'cash-005', variant: activeVariant },
-        'short-deck-trainer'
-      ),
-    [activeVariant]
-  );
 
   // Random hero hand
   const randomHero = useCallback(() => {
@@ -692,135 +636,6 @@ export default function ShortDeckTrainerPage() {
             </div>
           )}
 
-          <div
-            data-specialty-brain-panel="true"
-            data-brain-engine={brainEval.engineModule}
-            data-recommended-action={brainEval.correctAnswer}
-            data-active-variant={activeVariant}
-            style={{
-              marginTop: 28,
-              padding: 18,
-              borderRadius: 16,
-              border: '1px solid rgba(56,189,248,0.40)',
-              background: 'rgba(15,23,42,0.82)',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
-              <div style={{ fontSize: 13, fontWeight: 900, color: '#67e8f9', textTransform: 'uppercase' }}>
-                Horse Brain Equilibrium &amp; EV Calibration Panel
-              </div>
-              <div style={{ fontSize: 12, fontWeight: 800, color: '#4ade80' }}>
-                {`Engine: ${brainEval.engineModule} · Action: ${brainEval.correctAnswerText}`}
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 14 }}>
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>Variant</div>
-                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                  {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
-                    <button key={v} type="button" data-variant-option={v} onClick={() => setActiveVariant(v)} style={pillStyle(activeVariant === v)}>
-                      {v.toUpperCase()}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>Street</div>
-                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                  {['preflop', 'flop', 'turn', 'river'].map((st) => (
-                    <button key={st} type="button" data-street-option={st} onClick={() => setStreet(st)} style={pillStyle(street === st)}>
-                      {st.charAt(0).toUpperCase() + st.slice(1)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>Stack Depth</div>
-                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                  {[20, 50, 100, 200].map((stk) => (
-                    <button key={stk} type="button" data-stack-option={stk} onClick={() => setEffectiveStackBb(stk)} style={pillStyle(effectiveStackBb === stk)}>
-                      {stk} BB
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>Pot Size</div>
-                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                  {[6, 12, 24].map((p) => (
-                    <button key={p} type="button" data-pot-option={p} onClick={() => setPot(p)} style={pillStyle(pot === p)}>
-                      {p} BB
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>Facing Bet</div>
-                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                  {[0, 4, 8, 16].map((bet) => (
-                    <button key={bet} type="button" data-facing-bet-option={bet} onClick={() => setToCall(bet)} style={pillStyle(toCall === bet)}>
-                      {bet} BB
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>Rake Environment</div>
-                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                  {['low', 'mid', 'high'].map((rk) => (
-                    <button key={rk} type="button" data-rake-option={rk} onClick={() => setRakeEnv(rk)} style={pillStyle(rakeEnv === rk)}>
-                      {rk.charAt(0).toUpperCase() + rk.slice(1)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10, marginBottom: 12 }}>
-              <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: '8px 10px' }}>
-                <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 700 }}>Hand Strength</div>
-                <div style={{ fontSize: 15, fontWeight: 900, color: '#f8fafc' }}>{brainEval.handScore}/100</div>
-              </div>
-              <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: '8px 10px' }}>
-                <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 700 }}>Category</div>
-                <div style={{ fontSize: 13, fontWeight: 900, color: '#38bdf8' }}>{brainEval.madeHandCategory}</div>
-              </div>
-              <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: '8px 10px' }}>
-                <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 700 }}>Recommended Action</div>
-                <div style={{ fontSize: 13, fontWeight: 900, color: '#4ade80' }}>{brainEval.correctAnswerText}</div>
-              </div>
-            </div>
-
-            <div style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.55, marginBottom: 14 }}>{brainEval.explanation}</div>
-
-            <button
-              type="button"
-              data-launch-club-arena-cta="true"
-              data-launch-href={arenaHref}
-              onClick={() => router.push(arenaHref)}
-              style={{
-                display: 'inline-flex',
-                minHeight: 44,
-                alignItems: 'center',
-                padding: '0 18px',
-                borderRadius: 8,
-                border: '1px solid #67e8f9',
-                background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)',
-                color: '#fff',
-                fontWeight: 900,
-                cursor: 'pointer',
-                fontSize: 13,
-              }}
-            >
-              Practice Equilibrium Spot In Club Arena →
-            </button>
-          </div>
         </div>
       </div>
       <HubPageSummary page="training-short-deck-trainer" />

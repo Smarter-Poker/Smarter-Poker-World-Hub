@@ -10,35 +10,20 @@
  */
 
 // TRAIN-CSS-TOKENS-BATCH5-17 — hex sweep batch 5: literals routed to --sp-* tokens
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import { useOnlineStatus } from '../../../src/hooks/useOnlineStatus';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 import { GLOSSARY_TERMS, GLOSSARY_CATEGORIES, glossaryTermPath } from '../../../src/content/glossary/terms';
 import { authedFetch } from '../../../src/lib/authUtils';
-import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
-import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
 // TRAIN-WIRE-EMPTY-3c — adoption: shared empty-state primitive
 
-const HERO_CARDS_BY_VARIANT = {
-  nlh: ['As', 'Kd'],
-  plo4: ['As', 'Ks', 'Qh', 'Jh'],
-  plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
-  plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
-  plo8: ['As', 'Ks', 'Qh', 'Jh'],
-};
 
-const BOARD_CARDS = ['8d', '5c', '2s', '6h', '3d'];
 
-const BOARD_CARDS_BY_STREET = {
-  preflop: [],
-  flop: BOARD_CARDS.slice(0, 3),
-  turn: BOARD_CARDS.slice(0, 4),
-  river: BOARD_CARDS.slice(0, 5),
-};
 
 
 // BUG FIX (TRAIN-GLOSSARY-A11Y-1): SVG icon components replacing emoji
@@ -92,45 +77,15 @@ const CATS = ['All', ...GLOSSARY_CATEGORIES];
 const CAT_COLORS = { 'Club Poker': 'var(--sp-accent-cyan)', 'Live Room': 'var(--sp-accent-amber)', Basics: 'var(--sp-fg-muted)', Preflop: 'var(--sp-accent-blue)', Postflop: 'var(--sp-accent-green)', Math: 'var(--sp-accent-amber)', Theory: 'var(--sp-accent-purple)' };
 
 export default function GlossaryPage() {
+  const online = useOnlineStatus();
   const router = useRouter();
   useTrainingBus('glossary');
   const [search, setSearch] = useState('');
   const [catFilter, setCatFilter] = useState('All');
   const [expanded, setExpanded] = useState(null);
   const [favorites, setFavorites] = useState(new Set());
-  const [activeVariant, setActiveVariant] = useState('nlh');
-  const [heroPosition, setHeroPosition] = useState('BTN');
-  const [activeStreet, setActiveStreet] = useState('flop');
 
-  const brainEval = useMemo(() => {
-    const heroCards = HERO_CARDS_BY_VARIANT[activeVariant] || HERO_CARDS_BY_VARIANT.nlh;
-    const boardCards = BOARD_CARDS_BY_STREET[activeStreet] || BOARD_CARDS_BY_STREET.flop;
-    return evaluateTrainingSpotWithHorseBrain({
-      variant: activeVariant,
-      street: activeStreet,
-      heroCards,
-      boardCards,
-      heroPosition,
-      villainPosition: heroPosition === 'BB' ? 'BTN' : 'BB',
-      pot: activeStreet === 'preflop' ? 1.5 : 6.5,
-      toCall: activeStreet === 'preflop' ? 1 : 2.2,
-      effectiveStackBb: 100,
-    });
-  }, [activeVariant, activeStreet, heroPosition]);
 
-  const arenaHref = useMemo(
-    () =>
-      buildCustomTrainingArenaHref(
-        {
-          gameId: activeVariant === 'nlh' ? 'cash-002' : 'cash-005',
-          variant: activeVariant,
-          street: activeStreet,
-          position: heroPosition,
-        },
-        'glossary',
-      ),
-    [activeVariant, activeStreet, heroPosition],
-  );
 
   // Load favorites
   useEffect(() => {
@@ -252,152 +207,8 @@ export default function GlossaryPage() {
           </div>
         </div>
         <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
-          {brainEval && (
-            <div
-              data-specialty-brain-panel="true"
-              data-brain-engine={brainEval.engineModule}
-              data-recommended-action={brainEval.correctAnswer}
-              data-active-variant={activeVariant}
-              data-hero-position={heroPosition}
-              style={{
-                marginBottom: 16,
-                padding: 16,
-                borderRadius: 12,
-                border: '1px solid rgba(56, 189, 248, 0.35)',
-                background: 'rgba(2, 6, 23, 0.72)',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: 8,
-                  marginBottom: 12,
-                }}
-              >
-                <span style={{ fontSize: 13, fontWeight: 900, color: '#67e8f9', textTransform: 'uppercase' }}>
-                  Horse Brain Glossary Concept Spot Preview
-                </span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#4ade80' }}>
-                  Engine: {brainEval.engineModule} | Recommended: {brainEval.correctAnswerText}
-                </span>
-              </div>
 
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 12 }}>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 4 }}>
-                    Variant
-                  </div>
-                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                    {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
-                      <button
-                        key={v}
-                        type="button"
-                        data-variant-option={v}
-                        aria-pressed={activeVariant === v}
-                        onClick={() => setActiveVariant(v)}
-                        style={{
-                          padding: '6px 10px',
-                          borderRadius: 6,
-                          border: activeVariant === v ? '1px solid #38bdf8' : '1px solid rgba(255,255,255,0.16)',
-                          background: activeVariant === v ? 'rgba(56, 189, 248, 0.22)' : 'rgba(255,255,255,0.04)',
-                          color: activeVariant === v ? '#e8fbff' : '#cbd5e1',
-                          fontSize: 12,
-                          fontWeight: 800,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {v.toUpperCase()}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 4 }}>
-                    Position
-                  </div>
-                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                    {['BTN', 'CO', 'SB', 'BB'].map((pos) => (
-                      <button
-                        key={pos}
-                        type="button"
-                        data-position-option={pos}
-                        aria-pressed={heroPosition === pos}
-                        onClick={() => setHeroPosition(pos)}
-                        style={{
-                          padding: '6px 10px',
-                          borderRadius: 6,
-                          border: heroPosition === pos ? '1px solid #34d399' : '1px solid rgba(255,255,255,0.16)',
-                          background: heroPosition === pos ? 'rgba(52, 211, 153, 0.18)' : 'rgba(255,255,255,0.04)',
-                          color: heroPosition === pos ? '#6ee7b7' : '#cbd5e1',
-                          fontSize: 12,
-                          fontWeight: 800,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {pos}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 4 }}>
-                    Street
-                  </div>
-                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                    {['preflop', 'flop', 'turn', 'river'].map((st) => (
-                      <button
-                        key={st}
-                        type="button"
-                        data-street-option={st}
-                        aria-pressed={activeStreet === st}
-                        onClick={() => setActiveStreet(st)}
-                        style={{
-                          padding: '6px 10px',
-                          borderRadius: 6,
-                          border: activeStreet === st ? '1px solid #fbbf24' : '1px solid rgba(255,255,255,0.16)',
-                          background: activeStreet === st ? 'rgba(251, 191, 36, 0.18)' : 'rgba(255,255,255,0.04)',
-                          color: activeStreet === st ? '#fde68a' : '#cbd5e1',
-                          fontSize: 12,
-                          fontWeight: 800,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {st.toUpperCase()}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.55, marginBottom: 12 }}>
-                {brainEval.explanation}
-              </div>
-
-              <button
-                type="button"
-                data-launch-club-arena-cta="true"
-                onClick={() => router.push(arenaHref)}
-                style={{
-                  padding: '8px 14px',
-                  borderRadius: 8,
-                  border: '1px solid #38bdf8',
-                  background: 'rgba(56, 189, 248, 0.18)',
-                  color: '#fff',
-                  fontSize: 12,
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                }}
-              >
-                Practice Concept Spot In Club Arena →
-              </button>
-            </div>
-          )}
-
+          {!online && <p role="status">Glossary Terms Are Available Offline.</p>}
           {/* Search */}
           <input
             value={search}

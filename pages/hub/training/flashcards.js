@@ -691,7 +691,7 @@ export default function FlashcardsPage() {
             ←
           </button>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>GTO Flashcards</div>
+            <h1 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>GTO Flashcards</h1>
             <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Spaced Repetition (SM-2)</div>
           </div>
         </div>

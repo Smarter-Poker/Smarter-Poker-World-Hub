@@ -10,7 +10,7 @@
 
 // TRAIN-CATCH-FIX-1 — replaced silent catch blocks with console.warn-backed handlers
 // TRAIN-CSS-TOKENS-BATCH5-49 — hex sweep batch 5: literals routed to --sp-* tokens
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -28,30 +28,9 @@ import {
   streetOf,
 } from '../../../src/lib/training/handHistoryEntry';
 import { buildCustomTrainingArenaHref } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
-import { evaluateTrainingSpotWithHorseBrain } from '../../../src/lib/training/horseBrainTrainingAdapter';
 
-const HERO_CARDS_BY_VARIANT = {
-  nlh: ['As', 'Kd'],
-  plo4: ['As', 'Ks', 'Qh', 'Jh'],
-  plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
-  plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
-  plo8: ['As', 'Ks', 'Qh', 'Jh'],
-};
 
-const BOARD_CARDS = ['8d', '5c', '2s'];
 
-const pillButtonStyle = (active) => ({
-  padding: '7px 12px',
-  borderRadius: 6,
-  fontSize: 12,
-  fontWeight: 800,
-  cursor: 'pointer',
-  border: active ? '1px solid #67e8f9' : '1px solid rgba(255,255,255,0.16)',
-  background: active
-    ? 'linear-gradient(180deg, rgba(8,145,178,0.75), rgba(3,50,74,0.92))'
-    : 'rgba(255,255,255,0.05)',
-  color: active ? '#e8fbff' : '#cbd5e1',
-});
 
 // TRAIN-CSS-MOTION-ADOPT-23 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds.
@@ -332,39 +311,9 @@ export default function ReplayTheaterPage() {
   const [filter, setFilter] = useState('all');
   const [streetFilter, setStreetFilter] = useState('all');
   const [fetchError, setFetchError] = useState(null);
-  const [activeVariant, setActiveVariant] = useState('nlh');
-  const [effectiveStackBb, setEffectiveStackBb] = useState(100);
 
-  const heroCards = HERO_CARDS_BY_VARIANT[activeVariant] || HERO_CARDS_BY_VARIANT.nlh;
-  const boardCards = BOARD_CARDS;
 
-  const brainEval = useMemo(
-    () =>
-      evaluateTrainingSpotWithHorseBrain({
-        variant: activeVariant,
-        street: 'flop',
-        heroCards,
-        boardCards,
-        pot: 6.5,
-        toCall: 2.2,
-        effectiveStackBb,
-      }),
-    [activeVariant, heroCards, boardCards, effectiveStackBb]
-  );
 
-  const arenaHref = useMemo(
-    () =>
-      buildCustomTrainingArenaHref(
-        {
-          gameId: activeVariant === 'nlh' ? 'cash-002' : 'cash-005',
-          variant: activeVariant,
-          street: 'flop',
-          stackDepth: effectiveStackBb,
-        },
-        'replay-theater'
-      ),
-    [activeVariant, effectiveStackBb]
-  );
 
   const fetchData = useCallback(async () => {
     const user = getAuthUser();
@@ -473,106 +422,6 @@ export default function ReplayTheaterPage() {
         </div>
 
         <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
-          {brainEval && (
-            <div
-              data-specialty-brain-panel="true"
-              data-brain-engine={brainEval.engineModule}
-              data-recommended-action={brainEval.correctAnswer}
-              data-active-variant={activeVariant}
-              style={{
-                marginBottom: 20,
-                padding: 18,
-                borderRadius: 12,
-                border: '1px solid rgba(56,189,248,0.40)',
-                background: 'rgba(15,23,42,0.82)',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: 8,
-                  marginBottom: 14,
-                }}
-              >
-                <div style={{ fontSize: 13, fontWeight: 900, color: '#67e8f9', textTransform: 'uppercase' }}>
-                  Horse Brain Spot Calibration Panel
-                </div>
-                <div style={{ fontSize: 12, fontWeight: 800, color: '#4ade80' }}>
-                  {`Engine: ${brainEval.engineModule} · Recommended: ${brainEval.correctAnswerText}`}
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 14 }}>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>
-                    Variant
-                  </div>
-                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                    {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
-                      <button
-                        key={v}
-                        type="button"
-                        data-variant-option={v}
-                        onClick={() => setActiveVariant(v)}
-                        style={pillButtonStyle(activeVariant === v)}
-                      >
-                        {v.toUpperCase()}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', marginBottom: 5 }}>
-                    Stack Depth
-                  </div>
-                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                    {[20, 40, 100, 200].map((stk) => (
-                      <button
-                        key={stk}
-                        type="button"
-                        data-stack-option={stk}
-                        onClick={() => setEffectiveStackBb(stk)}
-                        style={pillButtonStyle(effectiveStackBb === stk)}
-                      >
-                        {stk} BB
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.55, marginBottom: 14 }}>
-                {brainEval.explanation}
-              </div>
-
-              <button
-                type="button"
-                data-launch-club-arena-cta="true"
-                data-drill-similar-spot-cta="true"
-                data-launch-href={arenaHref}
-                onClick={() => router.push(arenaHref)}
-                style={{
-                  display: 'inline-flex',
-                  minHeight: 44,
-                  alignItems: 'center',
-                  padding: '0 18px',
-                  borderRadius: 8,
-                  border: '1px solid #67e8f9',
-                  background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)',
-                  color: '#fff',
-                  fontWeight: 900,
-                  cursor: 'pointer',
-                  fontSize: 13,
-                }}
-              >
-                Launch Calibrated Drill In Club Arena →
-              </button>
-            </div>
-          )}
 
           {/* Stats */}
           <div

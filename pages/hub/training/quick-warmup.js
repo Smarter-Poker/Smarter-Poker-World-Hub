@@ -261,6 +261,7 @@ export default function QuickWarmupPage() {
           </div>
         </div>
         <GodModeArena
+          presetOnly
           key={`${arenaSessionId}:${selectedGame.id}`}
           userId={arenaUserId}
           gameId={selectedGame.id}
@@ -319,7 +320,7 @@ export default function QuickWarmupPage() {
             ←
           </button>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>Quick Warmup</div>
+            <h1 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Quick Warmup</h1>
             <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>5-Minute Speed Session</div>
           </div>
         </div>
@@ -333,22 +334,9 @@ export default function QuickWarmupPage() {
               animate={{ opacity: 1, scale: 1 }}
               style={{ textAlign: 'center', padding: '40px 20px' }}
             >
-              <motion.div
-                animate={{ y: [0, -6, 0] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                style={{ fontSize: 60, marginBottom: 20 }}
-              >
-
-              </motion.div>
-              <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--sp-fg)', marginBottom: 8 }}>
-                Quick Warmup
-              </div>
-              <div style={{ fontSize: 14, color: 'var(--sp-fg-muted)', lineHeight: 1.6, marginBottom: 6 }}>
-                5 Minutes. No Setup. No Choices.
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginBottom: 20 }}>
-                We&apos;Ll Auto-Pick Your Weakest Area And Drill It.
-              </div>
+              <p style={{ margin: '0 0 20px', fontSize: 14, color: 'var(--sp-fg-muted)' }}>
+                Choose A Focus Or Start With The Recommended Drill.
+              </p>
 
               {/* Warmup mode selector */}
               <div style={{ display: 'flex', gap: 6, marginBottom: 24, justifyContent: 'center' }}>

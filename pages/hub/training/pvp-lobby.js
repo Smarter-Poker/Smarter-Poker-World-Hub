@@ -1,22 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { authedFetch, getAccessToken } from '../../../src/lib/authUtils';
-import {
-  evaluateTrainingSpotWithHorseBrain,
-  buildCustomTrainingArenaHref,
-} from '../../../src/lib/training/horseBrainTrainingAdapter';
 
 const PRACTICE_ROUTE = '/hub/training/arena/mtt-015?level=1&source=pvp-lobby';
 
-const DUEL_HERO_CARDS_BY_VARIANT = {
-  nlh: ['As', 'Kd'],
-  plo4: ['As', 'Ks', 'Qh', 'Jh'],
-  plo5: ['As', 'Ks', 'Qh', 'Jh', 'Td'],
-  plo6: ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'],
-  plo8: ['As', 'Ks', 'Qh', 'Jh'],
-};
 
 const capabilityRows = [
   ['Real-Player Matchmaking', 'Not Live'],
@@ -63,7 +52,6 @@ export default function PvPLobbyPage() {
   const router = useRouter();
   const [selectedGameId, setSelectedGameId] = useState('mtt-015');
   const [selectedVariant, setSelectedVariant] = useState('nlh');
-  const [duelVariant, setDuelVariant] = useState('nlh');
   const [creatingDuel, setCreatingDuel] = useState(false);
   const [activeDuel, setActiveDuel] = useState(null);
   const [duelTokenInput, setDuelTokenInput] = useState('');
@@ -71,40 +59,7 @@ export default function PvPLobbyPage() {
   const [loadingScoreboard, setLoadingScoreboard] = useState(false);
   const [duelError, setDuelError] = useState('');
 
-  const brainPreview = useMemo(() => {
-    const activeVar = duelVariant || selectedVariant || 'nlh';
-    try {
-      return evaluateTrainingSpotWithHorseBrain({
-        gameId: selectedGameId || 'mtt-015',
-        variant: activeVar,
-        street: 'flop',
-        heroCards: DUEL_HERO_CARDS_BY_VARIANT[activeVar] || DUEL_HERO_CARDS_BY_VARIANT.nlh,
-        boardCards: ['8d', '5c', '2s'],
-        heroPosition: 'BTN',
-        villainPosition: 'BB',
-        pot: 6.5,
-        toCall: 2.2,
-        effectiveStackBb: 100,
-      });
-    } catch (_) {
-      return null;
-    }
-  }, [duelVariant, selectedVariant, selectedGameId]);
 
-  const warmupArenaHref = useMemo(
-    () =>
-      buildCustomTrainingArenaHref(
-        {
-          format: 'cash',
-          variant: duelVariant || 'nlh',
-          streets: ['flop'],
-          positions: ['BTN'],
-          stackDepth: 100,
-        },
-        'pvp-lobby-warmup',
-      ),
-    [duelVariant],
-  );
 
   const loadScoreboard = async (tokenToLoad) => {
     const cleanToken = String(tokenToLoad || duelTokenInput || '').trim();
@@ -248,78 +203,6 @@ export default function PvPLobbyPage() {
             </div>
 
             {/* 4-Variant Duel Spot Horse Brain Preview & Warmup Launcher */}
-            <div
-              data-specialty-brain-panel="true"
-              data-brain-engine={brainPreview?.engineModule || 'holdem-brain.js'}
-              data-recommended-action={brainPreview?.recommendedAction || 'Call'}
-              data-active-variant={duelVariant}
-              style={{
-                marginTop: 20,
-                padding: '20px',
-                borderRadius: 7,
-                border: '1px solid #688299',
-                borderTopColor: '#aec0d0',
-                background: '#091727',
-              }}
-            >
-              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-                <div style={{ color: '#82e7ff', fontSize: 13, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Duel Spot Horse Brain Preview &amp; Warmup Launcher
-                </div>
-                <div style={{ fontSize: 12, fontWeight: 800, color: '#77f2b4' }}>
-                  {`Engine: ${brainPreview?.engineModule || 'holdem-brain.js'} · Recommended: ${brainPreview?.recommendedAction || 'Call'}`}
-                </div>
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-                {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
-                  <button
-                    key={v}
-                    type="button"
-                    data-brain-variant-tab={v}
-                    data-variant-option={v}
-                    onClick={() => {
-                      setDuelVariant(v);
-                      setSelectedVariant(v);
-                    }}
-                    style={{
-                      minHeight: 34,
-                      padding: '0 14px',
-                      borderRadius: 6,
-                      border: duelVariant === v ? '1px solid #82e7ff' : '1px solid rgba(132,213,242,.24)',
-                      background: duelVariant === v ? 'rgba(14,116,144,.48)' : 'rgba(5,14,22,.65)',
-                      color: duelVariant === v ? '#f0f9ff' : '#94a3b8',
-                      fontSize: 12,
-                      fontWeight: 900,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {v.toUpperCase()}
-                  </button>
-                ))}
-              </div>
-              <p style={{ margin: '12px 0 14px', color: '#cbd5e1', fontSize: 12, lineHeight: 1.6 }}>
-                {brainPreview?.explanation || 'Evaluate Multi-Variant Duel Spots Through Production Horse Brain & Omaha Brain Modules Before Launching Into 1:1 Club Arena Drills.'}
-              </p>
-              <button
-                type="button"
-                data-launch-club-arena-cta="true"
-                data-launch-href={warmupArenaHref}
-                onClick={() => router.push(warmupArenaHref)}
-                style={{
-                  minHeight: 40,
-                  padding: '0 18px',
-                  borderRadius: 7,
-                  border: '1px solid #56d8ff',
-                  background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 52%, #002b68 100%)',
-                  color: '#fff',
-                  fontSize: 12,
-                  fontWeight: 900,
-                  cursor: 'pointer',
-                }}
-              >
-                Launch Duel Warmup In Club Arena →
-              </button>
-            </div>
 
             <div data-pvp-duel-arenas="true" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10, marginTop: 18 }}>
               {duelArenas.map((duel) => (
