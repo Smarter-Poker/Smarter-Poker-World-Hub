@@ -2,7 +2,7 @@
  * ═══════════════════════════════════════════════════════════════════════════════
  *  INDIVIDUAL US STATE POKER LEGALITY & TAX GUIDE (/poker-rooms/states/[state])
  * ═══════════════════════════════════════════════════════════════════════════════
- * Static detail page for each of the top 15 US poker states with 2-letter code
+ * Static detail page for all 50 US states and DC with 2-letter code
  * alias support (e.g. /poker-rooms/states/nv -> nevada, /poker-rooms/states/tx -> texas),
  * regulatory overview, W-2G withholding notes, top cities, and JSON-LD schemas.
  *
@@ -23,6 +23,13 @@ import {
   getStateGuideBySlug,
   stateGuidePath,
 } from '../../../src/content/guides/states';
+import venueDirectorySnapshot from '../../../data/poker-venue-directory-snapshot.json';
+
+const STATES_WITH_LIVE_VENUES = new Set(
+  (venueDirectorySnapshot?.venues || [])
+    .filter((v) => v && !v.is_suppressed && v.state)
+    .map((v) => String(v.state).trim().toUpperCase())
+);
 
 export async function getStaticPaths() {
   return {
@@ -43,6 +50,8 @@ export async function getStaticProps({ params }) {
     };
   }
 
+  const hasLiveStateDirectory = STATES_WITH_LIVE_VENUES.has(String(stateGuide.code || '').toUpperCase());
+
   const peerStates = US_POKER_STATES.filter((s) => s.slug !== stateGuide.slug)
     .slice(0, 8)
     .map((s) => ({
@@ -57,11 +66,15 @@ export async function getStaticProps({ params }) {
     props: {
       stateGuide,
       peerStates,
+      hasLiveStateDirectory,
     },
   };
 }
 
-export default function USStatePokerDetailPage({ stateGuide, peerStates = [] }) {
+export default function USStatePokerDetailPage({ stateGuide, peerStates = [], hasLiveStateDirectory = false }) {
+  const liveRoomsHref = hasLiveStateDirectory
+    ? `/hub/poker-near-me/in/${stateGuide.code.toLowerCase()}`
+    : '/hub/poker-near-me/lobby';
   const [copiedCard, setCopiedCard] = useState('');
   const canonicalPath = stateGuidePath(stateGuide.slug);
   const canonicalUrl = `https://smarter.poker${canonicalPath}`;
@@ -192,14 +205,14 @@ export default function USStatePokerDetailPage({ stateGuide, peerStates = [] }) 
           </div>
 
           <div style={styles.quickCrossLinks}>
-            <Link href="/hub/poker-near-me" style={styles.crossBtnCyan}>
-              Find Live {stateGuide.name} Rooms Near Me
+            <Link href={liveRoomsHref} style={styles.crossBtnCyan}>
+              {hasLiveStateDirectory ? `Find Live ${stateGuide.name} Rooms Near Me` : 'Browse Live Poker Rooms Nationwide'}
             </Link>
             <Link href="/tools/rake-calculator" style={styles.crossBtnEmerald}>
               Run Cash Rake Impact Calculator
             </Link>
             <Link href={STATES_BASE_PATH} style={styles.crossBtnOutline}>
-              All 15 US State Guides
+              All 50 US States &amp; DC Guides
             </Link>
             <Link href="/poker-rooms/guides" style={styles.crossBtnOutline}>
               12 Regional City Market Guides
@@ -252,9 +265,11 @@ export default function USStatePokerDetailPage({ stateGuide, peerStates = [] }) 
         <section aria-label={`Live Poker Resources For ${stateGuide.name}`} style={styles.sectionPlate}>
           <h2 style={styles.h2}>Explore Live Poker &amp; Tools For {stateGuide.name}</h2>
           <div style={styles.peerGrid}>
-            <Link href={`/hub/poker-near-me/in/${stateGuide.code.toLowerCase()}`} style={styles.peerCard}>
+            <Link href={liveRoomsHref} style={styles.peerCard}>
               <span style={styles.peerCode}>LIVE DIRECTORY</span>
-              <span style={styles.peerName}>Live Poker Rooms In {stateGuide.name}</span>
+              <span style={styles.peerName}>
+                {hasLiveStateDirectory ? `Live Poker Rooms In ${stateGuide.name}` : 'Browse Nationwide Live Poker Rooms'}
+              </span>
               <span style={styles.peerTax}>Verified Rooms, Cash Games &amp; Schedules</span>
             </Link>
             <Link href={`/hub/home-games/in/${stateGuide.code.toLowerCase()}`} style={styles.peerCard}>

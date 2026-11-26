@@ -119,7 +119,7 @@ export default function PokerMarketCityGuidePage({ guide }) {
         <nav aria-label="Breadcrumb" style={{ fontSize: 13, color: '#94a3b8', marginBottom: 18 }}>
           <Link href="/" style={{ color: '#25c8ff', textDecoration: 'none' }}>Smarter.Poker</Link>
           {' / '}
-          <Link href="/hub/poker-near-me" style={{ color: '#25c8ff', textDecoration: 'none' }}>Poker Near Me</Link>
+          <Link href="/hub/poker-near-me/lobby" style={{ color: '#25c8ff', textDecoration: 'none' }}>Poker Near Me</Link>
           {' / '}
           <Link href="/poker-rooms/guides" style={{ color: '#25c8ff', textDecoration: 'none' }}>Regional Market Guides</Link>
           {' / '}
@@ -305,7 +305,7 @@ export default function PokerMarketCityGuidePage({ guide }) {
             Verify Live Waitlists &amp; Compute Your {guide.regionName} Rake Impact
           </h2>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-            <Link href="/hub/poker-near-me" style={{ padding: '8px 14px', background: '#25c8ff', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+            <Link href="/hub/poker-near-me/lobby" style={{ padding: '8px 14px', background: '#25c8ff', color: '#020608', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Find Live Poker Rooms Near Me
             </Link>
             <Link href="/tools/rake-calculator" style={{ padding: '8px 14px', background: '#020608', color: '#f2b84b', border: '1px solid #334155', borderRadius: '2px', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>

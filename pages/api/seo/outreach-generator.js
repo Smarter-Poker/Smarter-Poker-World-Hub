@@ -228,7 +228,7 @@ export const OPENSEARCH_SUGGESTION_INDEX = [
   { title: 'Live Poker Tells, Betting Timing & Anti-Angle-Shooting Encyclopedia', desc: 'Behavioral tells, action-timing clues, chip mechanics & TDA angle-shot defense', url: 'https://smarter.poker/learn/live-poker-tells' },
   { title: 'Official Poker Hand Rankings Chart & Kicker Tie-Breaker Guide', desc: 'Royal Flush to High Card combinatorics, 5-card showdown rules & short deck', url: 'https://smarter.poker/learn/poker-hand-rankings' },
   { title: 'Live Casino Poker Comps, Rewards Cards & Dealer Tipping Guide', desc: 'Hourly comp rates, tier multipliers, dealer tipping standards & comp offset math', url: 'https://smarter.poker/poker-rooms/comps-and-tipping-guide' },
-  { title: '15 US State Poker Legality, Tax & Live Room Guides', desc: 'Nevada, Texas, California, Florida, New Jersey, Pennsylvania & more', url: 'https://smarter.poker/poker-rooms/states' },
+  { title: 'All 50 US States & DC Poker Legality, Tax & Live Room Guides', desc: 'Nevada, Texas, California, Florida, New Jersey, Pennsylvania & all 50 states + DC', url: 'https://smarter.poker/poker-rooms/states' },
   { title: '169 Starting Hands GTO Encyclopedia', desc: 'Combinatorics and 100BB 6-Max positional ranges for all 169 hands', url: 'https://smarter.poker/learn/hands' },
   { title: '25 Preflop Hand-Vs-Hand Matchup Guides', desc: 'AA vs KK, QQ vs AKs, 55 vs KTs exact equities and flop shifts', url: 'https://smarter.poker/learn/matchups' },
   { title: '30 Official Poker Rules & TDA Floor Rulings', desc: 'Showdown order, oversized chip call rule, string bets, and RROP', url: 'https://smarter.poker/rules' },

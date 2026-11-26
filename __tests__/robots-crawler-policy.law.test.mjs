@@ -119,6 +119,7 @@ test('every sitemap and the Content-Signal line are declared once each', () => {
     'https://smarter.poker/sitemap-compare.xml',
     'https://smarter.poker/sitemap-learn.xml',
     'https://smarter.poker/sitemap-videos.xml',
+    'https://smarter.poker/sitemap-news.xml',
     'https://smarter.poker/hub/club-arena/sitemap.xml',
   ]);
   const signals = topLevel.filter((l) => l.key === 'content-signal');

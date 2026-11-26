@@ -913,13 +913,14 @@ import './trivia-smarterdesign-competitive-admin-laws.test.mjs';
 import './trivia-smarterdesign-gameplay-laws.test.mjs';
 import './trivia-smarterdesign-lobby-laws.test.mjs';
 import './newsletter-zero-broken-links-and-images.law.test.mjs';
+import './smarter-poker-magazine.law.test.mjs';
 import './newsletter-end-to-end-wiring-and-ops.law.test.mjs';
 import './weekly-wire-v4-enhancements.law.test.mjs';
 import './newsletter-forensic-pass-hardening.law.test.mjs';
 import './weekly-wire-v5-ecosystem-suite.law.test.mjs';
 import './newsletter-v6-forensic-hardening.law.test.mjs';
 import './seo-aeo-geo-phase4-20261126.law.test.mjs';
-import './smarter-poker-magazine.law.test.mjs';
+import './seo-aeo-geo-forensic-hardening-20261126.law.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
     const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');
