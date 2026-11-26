@@ -15,6 +15,8 @@
  *   - Monotonic `issue_number` assignment in `public.magazine_issues` with `23505` conflict retry.
  */
 import { buildPromoSignupUrl } from '../promoCampaigns/promoSignupToken.mjs';
+import { isCompetitorSponsoredPost, normalizeEditorialTitle } from '../newsletter/editorialCleaners.mjs';
+import { isEchoingOrEmptyBlurb } from '../newsletter/weeklyWireEngine.mjs';
 import {
     PLATFORM_UPDATES_CATALOG,
     SPOT_OF_THE_WEEK_CATALOG,
@@ -40,6 +42,7 @@ import {
     stripMagazineDashes,
 } from './magazineSchema.mjs';
 import { IMAGE_VAULT_FALLBACK_URL } from './imageVault.mjs';
+import { buildCleanNonEchoingDeck, stripScraperBylinePrefix } from './vaultHarvester.mjs';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const NARRATIVE_COVER_SECTIONS = new Set([
@@ -150,12 +153,14 @@ export function ensureFirstPartyMagazineImageUrl(rawUrl, { mode = 'hero' } = {})
     }
 }
 
-export function splitParagraphs(bodyText, summaryText, fallbackParagraphs = [], minCount = 8) {
+export function splitParagraphs(bodyText, summaryText, fallbackParagraphs = [], minCount = 8, headlineText = '') {
     const out = [];
     const seen = new Set();
+    const cleanHead = stripMagazineDashes(headlineText || '');
     const pushUnique = (candidate) => {
-        const clean = stripMagazineDashes(candidate || '');
+        const clean = stripScraperBylinePrefix(candidate || '');
         if (!clean || clean.length < 25) return;
+        if (cleanHead && isEchoingOrEmptyBlurb(cleanHead, clean)) return;
         const norm = normalizeDedupeKey(clean);
         if (!norm || seen.has(norm)) return;
         seen.add(norm);
@@ -167,10 +172,11 @@ export function splitParagraphs(bodyText, summaryText, fallbackParagraphs = [], 
         pushUnique(part);
     }
 
-    const cleanSummary = stripMagazineDashes(summaryText || '');
+    const cleanSummary = stripScraperBylinePrefix(summaryText || '');
     if (
         cleanSummary &&
         cleanSummary.length >= 25 &&
+        (!cleanHead || !isEchoingOrEmptyBlurb(cleanHead, cleanSummary)) &&
         !out.some((p) => p.toLowerCase().includes(cleanSummary.toLowerCase().slice(0, 48)))
     ) {
         const normSum = normalizeDedupeKey(cleanSummary);
@@ -520,13 +526,39 @@ export function buildMagazineManifestFromVault({
     const isItemPinned = (item) =>
         Boolean(item?.is_pinned) || Boolean(pinnedTargetId && String(item?.id) === pinnedTargetId);
 
-    const activeItems = (Array.isArray(vaultItems) ? vaultItems : [])
-        .filter((item) => item && item.is_excluded !== true)
-        .map((item) => ({
-            ...item,
+    const isNarrativeCompetitorLeak = (item) => {
+        if (!item || !NARRATIVE_COVER_SECTIONS.has(item.section)) return false;
+        const meta = readItemMeta(item);
+        return isCompetitorSponsoredPost({
+            title: item.headline || '',
             summary: item.deck || item.summary || item.subheadline || '',
+            excerpt: String(item.body_text || '').slice(0, 400),
             source_url: item.canonical_url || item.source_url || '',
-        }))
+            source_name: meta.byline || item.author_byline || '',
+            byline: meta.byline || item.author_byline || '',
+        });
+    };
+
+    const isPodcastOrVideoStub = (item) => {
+        const h = String(item?.headline || '');
+        return /\bpodcast\b|\bepisode\s*#?\d+\b/i.test(h) || h.includes('|');
+    };
+
+    const activeItems = (Array.isArray(vaultItems) ? vaultItems : [])
+        .filter((item) => item && item.is_excluded !== true && !isNarrativeCompetitorLeak(item))
+        .map((item) => {
+            const rawHeadline = item.headline || '';
+            const normHeadline =
+                item.source_type === 'poker_news' || NARRATIVE_COVER_SECTIONS.has(item.section)
+                    ? stripMagazineDashes(normalizeEditorialTitle(rawHeadline))
+                    : stripMagazineDashes(rawHeadline);
+            return {
+                ...item,
+                headline: normHeadline || stripMagazineDashes(rawHeadline),
+                summary: stripScraperBylinePrefix(item.deck || item.summary || item.subheadline || ''),
+                source_url: item.canonical_url || item.source_url || '',
+            };
+        })
         .sort((a, b) => {
             const aPinned = isItemPinned(a);
             const bPinned = isItemPinned(b);
@@ -541,14 +573,17 @@ export function buildMagazineManifestFromVault({
     const pinnedNonNarrative = activeItems.filter(
         (i) => isItemPinned(i) && i.section && !NARRATIVE_COVER_SECTIONS.has(i.section)
     );
-    const narrativeCandidates = [
+    const primaryNarrative = [
         ...pinnedNarrative,
+        ...bySection('cover_candidate').filter((i) => !isPodcastOrVideoStub(i)),
+        ...bySection('feature_story').filter((i) => !isPodcastOrVideoStub(i)),
+        ...bySection('news_brief').filter((i) => !isPodcastOrVideoStub(i)),
         ...bySection('cover_candidate'),
         ...bySection('feature_story'),
         ...bySection('news_brief'),
     ];
     const coverPool = dedupeByKey(
-        narrativeCandidates.length > 0 ? narrativeCandidates : [...pinnedNonNarrative],
+        primaryNarrative.length > 0 ? primaryNarrative : [...pinnedNonNarrative],
         (item) => normalizeDedupeKey(item.headline) || String(item.id || `${item.source_type}:${item.source_id}`)
     );
 
@@ -569,30 +604,44 @@ export function buildMagazineManifestFromVault({
         ),
         (item) => normalizeDedupeKey(item.headline)
     ).slice(0, 4);
+    const finalTableHeadlines = new Set(finalTableItems.map((it) => normalizeDedupeKey(it.headline)));
 
     const rawPhotoCandidates = dedupeByKey(
-        [...bySection('photo_essay'), ...bySection('cover_candidate'), ...bySection('feature_story')],
+        [
+            ...bySection('photo_essay').filter((i) => !isPodcastOrVideoStub(i)),
+            ...bySection('cover_candidate').filter((i) => !isPodcastOrVideoStub(i)),
+            ...bySection('feature_story').filter((i) => !isPodcastOrVideoStub(i)),
+            ...bySection('photo_essay'),
+            ...bySection('cover_candidate'),
+            ...bySection('feature_story'),
+        ],
         (item) => normalizeDedupeKey(item.headline) || String(item.id || item.source_id)
     );
     const distinctPhotoCandidates = rawPhotoCandidates.filter(
         (item) =>
             normalizeDedupeKey(item.headline) !== normalizeDedupeKey(leadCoverItem?.headline) &&
-            normalizeDedupeKey(item.headline) !== normalizeDedupeKey(secondaryFeatureItem?.headline)
+            normalizeDedupeKey(item.headline) !== normalizeDedupeKey(secondaryFeatureItem?.headline) &&
+            !finalTableHeadlines.has(normalizeDedupeKey(item.headline))
     );
     const photoEssayItems = dedupeByKey(
         [...distinctPhotoCandidates, ...rawPhotoCandidates],
         (item) => normalizeDedupeKey(item.headline)
     ).slice(0, 2);
+    const photoEssayHeadlines = new Set(photoEssayItems.map((it) => normalizeDedupeKey(it.headline)));
 
-    // News briefs (12 unique stories across pp. 6-9)
-    const vaultNewsBriefs = [...bySection('news_brief'), ...bySection('feature_story')]
-        .filter(
-            (item) =>
+    // News briefs (12 unique stories across pp. 6-9, disjoint from Cover, Secondary, Photo Spread & Final Table)
+    const vaultNewsBriefs = [...bySection('news_brief'), ...bySection('feature_story'), ...bySection('cover_candidate')]
+        .filter((item) => {
+            const normH = normalizeDedupeKey(item?.headline);
+            return (
                 item !== leadCoverItem &&
                 item !== secondaryFeatureItem &&
-                normalizeDedupeKey(item?.headline) !== normalizeDedupeKey(leadCoverItem?.headline) &&
-                normalizeDedupeKey(item?.headline) !== normalizeDedupeKey(secondaryFeatureItem?.headline)
-        )
+                normH !== normalizeDedupeKey(leadCoverItem?.headline) &&
+                normH !== normalizeDedupeKey(secondaryFeatureItem?.headline) &&
+                !finalTableHeadlines.has(normH) &&
+                !photoEssayHeadlines.has(normH)
+            );
+        })
         .map((item) => {
             const meta = readItemMeta(item);
             const webImg = ensureFirstPartyMagazineImageUrl(item.vaulted_image_url || item.original_image_url);
@@ -600,9 +649,21 @@ export function buildMagazineManifestFromVault({
                 item.vaulted_master_url || item.vaulted_image_url || item.original_image_url
             );
             const byline = stripMagazineDashes(meta.byline || item.author_byline || 'Smarter.Poker News Desk');
+            const headline = stripMagazineDashes(item.headline || 'World Poker Report');
+            const itemParas = String(item.body_text || '')
+                .split(/\n{2,}/)
+                .map((p) => stripScraperBylinePrefix(p))
+                .filter(Boolean);
+            const summary = buildCleanNonEchoingDeck({
+                title: headline,
+                rawSummary: item.summary || '',
+                paragraphs: itemParas,
+                sourceName: byline,
+                category: meta.category || 'Poker News',
+            });
             return {
-                headline: stripMagazineDashes(item.headline || 'World Poker Report'),
-                summary: stripMagazineDashes(item.summary || ''),
+                headline,
+                summary,
                 byline,
                 sourceName: byline,
                 category: stripMagazineDashes(meta.category || 'Poker News'),
@@ -616,7 +677,7 @@ export function buildMagazineManifestFromVault({
         (item) => normalizeDedupeKey(item.headline)
     ).slice(0, 12);
 
-    // Cover imagery & headlines (clamped <= 240 chars)
+    // Cover imagery & headlines (clamped <= 240 chars, guaranteed non-echoing subheadline)
     const coverWebImage = ensureFirstPartyMagazineImageUrl(
         overrides?.coverImageUrl || leadCoverItem?.vaulted_image_url || IMAGE_VAULT_FALLBACK_URL
     );
@@ -632,11 +693,23 @@ export function buildMagazineManifestFromVault({
             `${periodLabel} Championship Report: Inside High-Stakes Strategy & The Global POY Race`
     );
     const coverHeadline = (rawCoverHeadline || 'Inside The Month In Poker').slice(0, 240);
-    const coverSubheadline = stripMagazineDashes(
-        overrides?.coverSubheadline ||
-            leadCoverItem?.summary ||
-            'Exclusive Solver Breakdowns, Top 25 Player Of The Year Standings, Kings Club 25450 Champions & 60-Day Live Tour Radar'
-    );
+    const leadCoverParas = String(leadCoverItem?.body_text || '')
+        .split(/\n{2,}/)
+        .map((p) => stripScraperBylinePrefix(p))
+        .filter((p) => p.length >= 32 && !isEchoingOrEmptyBlurb(coverHeadline, p));
+    const explicitCoverSub = stripMagazineDashes(overrides?.coverSubheadline || '');
+    const coverSubheadline =
+        explicitCoverSub && !isEchoingOrEmptyBlurb(coverHeadline, explicitCoverSub)
+            ? explicitCoverSub
+            : leadCoverItem
+              ? buildCleanNonEchoingDeck({
+                    title: coverHeadline,
+                    rawSummary: leadCoverItem.summary || '',
+                    paragraphs: leadCoverParas,
+                    sourceName: readItemMeta(leadCoverItem).byline || leadCoverItem.author_byline || 'Smarter.Poker Feature Desk',
+                    category: readItemMeta(leadCoverItem).category || 'Championship Feature',
+                })
+              : 'Exclusive Solver Breakdowns, Top 25 Player Of The Year Standings, Kings Club 25450 Champions & 60-Day Live Tour Radar';
 
     // Cover Story 4-page paragraphs (pp. 12-15: 8 unique paragraphs, 2 per page)
     const coverStoryParagraphs = splitParagraphs(
@@ -652,7 +725,8 @@ export function buildMagazineManifestFromVault({
             'Late-stage short-stack navigation further rewarded players who mastered 14-to-22 big blind reshove thresholds under big-blind ante structures before blinds eroded fold equity.',
             'Flip forward to The Strategy Lab beginning on Page 26 to drill the exact No-Limit Holdem, Final-Table ICM, and Pot-Limit Omaha spots shaping championship poker right now.',
         ],
-        8
+        8,
+        coverHeadline
     );
 
     // Secondary Feature paragraphs (pp. 16-17: 4 unique paragraphs, 2 per page)
@@ -668,7 +742,8 @@ export function buildMagazineManifestFromVault({
             'Studying blind-versus-blind limp-stab and check-raise frequencies yields immediate non-showdown gains across long Day 1 levels when opponents over-fold unpaired air.',
             'Pair pre-session quick warmups with real-time ICM chop comparisons so every deep run converts maximum long-term tournament equity.',
         ],
-        4
+        4,
+        secondaryHeadline
     );
 
     // Platform Highlights (pp. 18-19) - deduplicated by normalized headline
@@ -844,19 +919,43 @@ export function buildMagazineManifestFromVault({
         qrUrl: t.url,
     }));
 
-    // Live Series Radar (pp. 38-39) - deduplicated by normalized headline
-    const seriesItems = bySection('series_calendar').map((s) => {
-        const meta = readItemMeta(s);
-        return {
-            headline: stripMagazineDashes(s.headline),
-            summary: stripMagazineDashes(s.summary || ''),
-            venueName: stripMagazineDashes(meta.venueName || ''),
-            city: stripMagazineDashes(meta.city || ''),
-            state: stripMagazineDashes(meta.state || ''),
-            dates: stripMagazineDashes([meta.startDate, meta.endDate].filter(Boolean).join(' to ') || meta.schedule || 'Upcoming'),
-            url: `${siteOrigin}/hub/poker-near-me`,
-        };
-    });
+    // Live Series Radar (pp. 38-39) - deduplicated by normalized headline, excluding >90-day year-long recurring placeholders
+    const seriesItems = bySection('series_calendar')
+        .filter((s) => {
+            const meta = readItemMeta(s);
+            if (meta.startDate && meta.endDate) {
+                const spanDays = (Date.parse(meta.endDate) - Date.parse(meta.startDate)) / 86_400_000;
+                if (Number.isFinite(spanDays) && spanDays > 90) return false;
+            }
+            return true;
+        })
+        .map((s) => {
+            const meta = readItemMeta(s);
+            const headline = stripMagazineDashes(normalizeEditorialTitle(s.headline || ''));
+            const venueName = stripMagazineDashes(meta.venueName || '');
+            const city = stripMagazineDashes(meta.city || '');
+            const state = stripMagazineDashes(meta.state || '');
+            const dates = stripMagazineDashes(
+                [meta.startDate, meta.endDate].filter(Boolean).join(' to ') || meta.schedule || 'Upcoming'
+            );
+            const locLabel = [venueName, city, state].filter(Boolean).join(', ');
+            const rawSum = stripMagazineDashes(s.summary || '');
+            const cleanSum =
+                rawSum && !/^\([^)]+\)$/.test(rawSum)
+                    ? rawSum
+                    : locLabel
+                      ? `${locLabel} • ${dates}`
+                      : `Verified Championship Schedule • ${dates}`;
+            return {
+                headline,
+                summary: cleanSum,
+                venueName,
+                city,
+                state,
+                dates,
+                url: `${siteOrigin}/hub/poker-near-me`,
+            };
+        });
     const fallbackSeries = [
         { headline: 'Las Vegas Championship Tour Series', summary: 'Las Vegas, NV • Multi-Flight Main Event & High Rollers', venueName: 'Las Vegas Strip', city: 'Las Vegas', state: 'NV', dates: 'Upcoming 60-Day Window', url: `${siteOrigin}/hub/poker-near-me` },
         { headline: 'South Florida Deepstack Classic', summary: 'Hollywood, FL • Guaranteed Championship & PLO Series', venueName: 'South Florida Cardroom Corridor', city: 'Hollywood', state: 'FL', dates: 'Upcoming 60-Day Window', url: `${siteOrigin}/hub/poker-near-me` },
@@ -1103,7 +1202,7 @@ export function buildMagazineManifestFromVault({
                 ctaUrl: '/hub/news',
                 qrUrl: `${siteOrigin}/hub/news`,
                 items: slice,
-                paragraphs: slice.map((s) => `${s.headline}: ${s.summary}`),
+                paragraphs: [],
             };
         }),
         // p. 10: capture_the_moment_left
@@ -1122,10 +1221,15 @@ export function buildMagazineManifestFromVault({
             ctaUrl: `/hub/magazine/${slug}`,
             qrUrl: `${siteOrigin}/hub/magazine/${slug}`,
             paragraphs: [
-                stripMagazineDashes(
-                    photoEssayItems[0]?.summary ||
-                        'Deep into the final two tables, chip stacks compress, cameras close in, and hours of disciplined preparation converge on a single river decision.'
-                ),
+                photoEssayItems[0]
+                    ? buildCleanNonEchoingDeck({
+                          title: photoEssayItems[0].headline || '',
+                          rawSummary: photoEssayItems[0].summary || '',
+                          paragraphs: String(photoEssayItems[0].body_text || '').split(/\n{2,}/),
+                          sourceName: readItemMeta(photoEssayItems[0]).byline || 'Smarter.Poker Visual Vault',
+                          category: 'Championship Spotlight',
+                      })
+                    : 'Deep into the final two tables, chip stacks compress, cameras close in, and hours of disciplined preparation converge on a single river decision.',
             ],
             pullQuote: 'Composure under final-table lights begins hundreds of hands earlier in preparation.',
         },
@@ -1145,10 +1249,15 @@ export function buildMagazineManifestFromVault({
             ctaUrl: '/hub/poker-near-me',
             qrUrl: `${siteOrigin}/hub/poker-near-me`,
             paragraphs: [
-                stripMagazineDashes(
-                    photoEssayItems[1]?.summary ||
-                        'From packed Day 1 cardroom floors to the final river showdown, live poker continues drawing surging fields across every major stop.'
-                ),
+                photoEssayItems[1]
+                    ? buildCleanNonEchoingDeck({
+                          title: photoEssayItems[1].headline || '',
+                          rawSummary: photoEssayItems[1].summary || '',
+                          paragraphs: String(photoEssayItems[1].body_text || '').split(/\n{2,}/),
+                          sourceName: readItemMeta(photoEssayItems[1]).byline || 'Smarter.Poker Visual Vault',
+                          category: 'Championship Spotlight',
+                      })
+                    : 'From packed Day 1 cardroom floors to the final river showdown, live poker continues drawing surging fields across every major stop.',
             ],
         },
         // pp. 12-15: cover_feature (4 pages, strictly non-overlapping slices)
@@ -1230,7 +1339,11 @@ export function buildMagazineManifestFromVault({
                 ctaUrl: idx === 0 ? '/hub/training' : '/tools',
                 qrUrl: `${siteOrigin}${idx === 0 ? '/hub/training' : '/tools'}`,
                 items: pSlice,
-                paragraphs: pSlice.map((p) => `${p.headline}: ${p.summary}`),
+                paragraphs: [
+                    idx === 0
+                        ? 'Every month Smarter.Poker ships direct browser-native upgrades across GTO Hand Lab, Personal Assistant EV diagnostics, and Kings Club 25450 tournament engines.'
+                        : 'Open any calculator in one tap at the table or between sessions to verify exact ICM chop equity, bounty chip-equivalents, and stack-to-pot geometry.',
+                ],
             };
         }),
         // pp. 20-21: poy_standings (2 pages)
@@ -1276,24 +1389,36 @@ export function buildMagazineManifestFromVault({
             const ftSlice = finalTableItems.slice(idx * 2, idx * 2 + 2);
             const mappedFt =
                 ftSlice.length > 0
-                    ? ftSlice.map((f) => {
-                          const meta = readItemMeta(f);
-                          const byline = stripMagazineDashes(meta.byline || f.author_byline || 'Tournament Results Desk');
-                          const webImg = ensureFirstPartyMagazineImageUrl(f.vaulted_image_url || f.original_image_url);
-                          const masterImg = ensureFirstPartyMagazineImageUrl(
-                              f.vaulted_master_url || f.vaulted_image_url || f.original_image_url
-                          );
-                          return {
-                              headline: stripMagazineDashes(f.headline),
-                              summary: stripMagazineDashes(f.summary || ''),
-                              byline,
-                              sourceName: byline,
-                              imageUrl: webImg,
-                              masterImageUrl: masterImg,
-                              url: resolvePokerNewsArticleUrl(f, siteOrigin),
-                          };
-                      })
-                    : combinedBriefs.slice(idx * 2, idx * 2 + 2);
+                      ? ftSlice.map((f) => {
+                            const meta = readItemMeta(f);
+                            const byline = stripMagazineDashes(meta.byline || f.author_byline || 'Tournament Results Desk');
+                            const webImg = ensureFirstPartyMagazineImageUrl(f.vaulted_image_url || f.original_image_url);
+                            const masterImg = ensureFirstPartyMagazineImageUrl(
+                                f.vaulted_master_url || f.vaulted_image_url || f.original_image_url
+                            );
+                            const headline = stripMagazineDashes(f.headline);
+                            const fParas = String(f.body_text || '')
+                                .split(/\n{2,}/)
+                                .map((p) => stripScraperBylinePrefix(p))
+                                .filter(Boolean);
+                            const summary = buildCleanNonEchoingDeck({
+                                title: headline,
+                                rawSummary: f.summary || '',
+                                paragraphs: fParas,
+                                sourceName: byline,
+                                category: meta.category || 'Tournament Results',
+                            });
+                            return {
+                                headline,
+                                summary,
+                                byline,
+                                sourceName: byline,
+                                imageUrl: webImg,
+                                masterImageUrl: masterImg,
+                                url: resolvePokerNewsArticleUrl(f, siteOrigin),
+                            };
+                        })
+                      : combinedBriefs.slice(idx * 2, idx * 2 + 2);
             const leadFtWeb = mappedFt[0]?.imageUrl || IMAGE_VAULT_FALLBACK_URL;
             const leadFtMaster = mappedFt[0]?.masterImageUrl || leadFtWeb;
             return {
@@ -1314,7 +1439,7 @@ export function buildMagazineManifestFromVault({
                 ctaUrl: '/hub/poker-near-me',
                 qrUrl: `${siteOrigin}/hub/poker-near-me`,
                 items: mappedFt,
-                paragraphs: mappedFt.map((m) => `${m.headline}: ${m.summary}`),
+                paragraphs: [],
             };
         }),
         // pp. 24-25: kings_club_champions (2 pages, strictly Chips, ZERO `$`)

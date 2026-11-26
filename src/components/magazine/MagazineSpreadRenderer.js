@@ -1218,7 +1218,7 @@ function FeatureArticleLayout({ page, issueMeta, theme }) {
                   'Every Decision Spot Highlighted In This Feature Connects Directly To Interactive Calculators And Solver Trees On Smarter.Poker.',
               ];
     const sideStats = Array.isArray(page?.stats) && page.stats.length > 0 ? page.stats.slice(0, 3) : [];
-    const sideItems = Array.isArray(page?.items) && page.items.length > 0 ? page.items.slice(0, 2) : [];
+    const sideItems = Array.isArray(page?.items) && page.items.length > 0 ? page.items.slice(0, 3) : [];
     const leadPara = cleanText(paragraphs[0], '');
     const firstChar = leadPara.charAt(0) || 'S';
     const restLead = leadPara.slice(1);

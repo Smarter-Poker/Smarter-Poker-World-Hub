@@ -1508,3 +1508,263 @@ test('MAG LAW 16: classifyClickedEmailSection, parseWireEditionSubjectNumber, Ne
     assert.match(notifSettingsSrc, /\/hub\/magazine/);
     assert.match(read('pages/hub/email-preferences.js'), /\/hub\/magazine/);
 });
+
+// ── MAG LAW 17: Live Editorial Hygiene, Competitor Promo Shield, Entity Decode, Non-Echoing Decks & Real poker_series Schema ──
+test('MAG LAW 17: competitor online-poker promos/outlets never leak into vault or compiled magazine, cover/feature/rail decks never echo headlines, numeric HTML entities & scraper byline prefixes are stripped, and poker_series never queries phantom venue_name', async () => {
+    const { isCompetitorSponsoredPost, normalizeEditorialTitle } = await import('../src/lib/newsletter/editorialCleaners.mjs');
+    const { isEchoingOrEmptyBlurb } = await import('../src/lib/newsletter/weeklyWireEngine.mjs');
+    const { stripMagazineDashes } = await import('../src/lib/magazine/magazineSchema.mjs');
+    const { buildCleanNonEchoingDeck, harvestMonthlyMagazineVault, stripScraperBylinePrefix } = await import(
+        '../src/lib/magazine/vaultHarvester.mjs'
+    );
+    const { buildMagazineManifestFromVault } = await import('../src/lib/magazine/magazineCompiler.mjs');
+
+    // 1. Competitor online-poker promo copy & rival operator blogs blocked at source
+    assert.equal(
+        isCompetitorSponsoredPost({
+            title: 'Climb The Cash Game Ladder At Betrivers Poker For A Share Of 20k Each Week',
+            source_name: 'Poker.org',
+        }),
+        true,
+        'BetRivers Poker cash-game ladder promo must be blocked'
+    );
+    assert.equal(
+        isCompetitorSponsoredPost({
+            title: 'BetRivers: New Jersey Online Poker Launch Remains a Top Priority',
+            source_name: 'Pokerfuse',
+        }),
+        true,
+        'BetRivers online poker promo coverage must be blocked'
+    );
+    assert.equal(
+        isCompetitorSponsoredPost({
+            title: 'Festive Season returns with $1M in rewards throughout December',
+            source_name: 'PokerStars Blog',
+        }),
+        true,
+        'PokerStars Blog promotional posts must be blocked'
+    );
+    assert.equal(
+        isCompetitorSponsoredPost({
+            title: 'Brazilian commentors Felipe de Paulo and Flavio Del Valle become PokerStars Ambassadors',
+            source_name: 'PokerStars Blog',
+        }),
+        true,
+        'PokerStars Ambassador promos must be blocked'
+    );
+    // Real live tour stories remain allowed
+    assert.equal(
+        isCompetitorSponsoredPost({
+            title: 'Ramin Hajiyev Hauls Third Triton Trophy and $2.8M After Steamrolling Final Table',
+            source_name: 'PokerNews',
+        }),
+        false
+    );
+    assert.equal(
+        isCompetitorSponsoredPost({
+            title: 'WPT Unveils Huge 2027 LAPC Schedule With $10M In Guarantees',
+            source_name: 'Poker.org',
+        }),
+        false
+    );
+
+    // 2. Acronym & bare numeric magnitude normalization (LAPC, 50M, 250K, 20K)
+    assert.equal(
+        normalizeEditorialTitle('Wpt Unveils Huge 2027 Lapc Schedule With 10m In Guarantees'),
+        'WPT Unveils Huge 2027 LAPC Schedule With 10M In Guarantees'
+    );
+    assert.equal(
+        normalizeEditorialTitle('Wsop Paradise 2026 A 50m Monster And A 250k Battle Of The Brains'),
+        'WSOP Paradise 2026 A 50M Monster And A 250K Battle Of The Brains'
+    );
+
+    // 3. Hex/decimal HTML entity decoding & punctuation spacing + scraper byline prefix stripping
+    assert.equal(
+        stripMagazineDashes('When you&#x27;re in Delaware , Michigan , and &#39;Pennsylvania&#39; &mdash; let&#8217;s play .'),
+        "When you're in Delaware, Michigan, and 'Pennsylvania' - let's play."
+    );
+    assert.equal(
+        stripScraperBylinePrefix(
+            'Justin Hammer Posted on: November 26, 2026 11:47 PST Link copied Add as a preferred source on Google It&#x27;s that time of year to reflect on tournament direction.'
+        ),
+        "It's that time of year to reflect on tournament direction."
+    );
+
+    // 4. Non-echoing deck synthesis & compile-time competitor exclusion on legacy vault rows
+    const nonEchoDeck = buildCleanNonEchoingDeck({
+        title: 'WSOP Paradise 2026 A 50M Monster And A 250K Battle Of The Brains',
+        rawSummary: 'Wsop Paradise 2026 A 50m Monster And A 250k Battle Of The Brains',
+        paragraphs: ['Wsop Paradise 2026 A 50m Monster And A 250k Battle Of The Brains'],
+        sourceName: 'Poker.org',
+        category: 'Tournament',
+    });
+    assert.equal(isEchoingOrEmptyBlurb('WSOP Paradise 2026 A 50M Monster And A 250K Battle Of The Brains', nonEchoDeck), false);
+
+    const vaultedWeb = 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/magazine-assets/2026-11/law17-web.jpg';
+    const vaultedMaster = 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/magazine-assets/2026-11/law17-master.jpg';
+    const compiledManifest = buildMagazineManifestFromVault({
+        issueNumber: 1,
+        volumeNumber: 1,
+        issuePeriod: '2026-11',
+        vaultItems: [
+            // Legacy banked competitor row with highest score -> MUST BE FILTERED OUT by compiler!
+            {
+                id: 'legacy-betrivers',
+                issue_period: '2026-11',
+                section: 'cover_candidate',
+                source_type: 'poker_news',
+                source_id: 'aaaa1111-1111-4111-8111-111111111111',
+                headline: 'Climb The Cash Game Ladder At Betrivers Poker For A Share Of 20k Each Week',
+                deck: 'Climb The Cash Game Ladder At Betrivers Poker For A Share Of 20k Each Week',
+                body_text: 'At BetRivers Poker , there&#x27;s $20,000 in cash game rewards.',
+                vaulted_image_url: vaultedWeb,
+                vaulted_master_url: vaultedMaster,
+                editorial_score: 999,
+            },
+            // Podcast pipe-stub -> demoted behind real championship journalism
+            {
+                id: 'podcast-stub',
+                issue_period: '2026-11',
+                section: 'cover_candidate',
+                source_type: 'poker_news',
+                source_id: 'bbbb2222-2222-4222-8222-222222222222',
+                headline: 'Shocking Story After EPT Win | PokerNews Podcast #1018',
+                deck: 'Shocking Story After EPT Win | PokerNews Podcast #1018',
+                vaulted_image_url: vaultedWeb,
+                vaulted_master_url: vaultedMaster,
+                editorial_score: 120,
+            },
+            // Legitimate championship lead story with echoing raw deck & hex entities
+            {
+                id: 'triton-champ',
+                issue_period: '2026-11',
+                section: 'cover_candidate',
+                source_type: 'poker_news',
+                source_id: '8cc90281-596b-4b9a-bcfc-12a5feb0f0ee',
+                headline: 'Ramin Hajiyev Hauls Third Triton Trophy and $2.8M After Steamrolling Final Table',
+                deck: 'Ramin Hajiyev Hauls Third Triton Trophy and $2.8M After Steamrolling Final Table',
+                body_text:
+                    'Ramin Hajiyev Hauls Third Triton Trophy and $2.8M After Steamrolling Final Table\n\nRamin Hajiyev captured his third career Triton Super High Roller Series title after navigating an elite final table in Monte Carlo&#x27;s $150,000 event.\n\nEntering heads-up play with a commanding chip lead , Hajiyev applied relentless turn overbet pressure to seal the $2.8M top prize.',
+                vaulted_image_url: vaultedWeb,
+                vaulted_master_url: vaultedMaster,
+                editorial_score: 96,
+                metadata_json: { byline: 'PokerNews', category: 'Tournament' },
+            },
+            // Year-long 365-day placeholder series -> MUST BE FILTERED OUT on pp. 38-39
+            {
+                id: 'year-long-series',
+                issue_period: '2026-11',
+                section: 'series_calendar',
+                source_type: 'poker_series',
+                source_id: '999',
+                headline: '2026 Year Long Placeholder Series',
+                summary: '(2026-01-01 to 2026-12-31)',
+                metadata_json: { startDate: '2026-01-01', endDate: '2026-12-31', city: '', state: '' },
+                editorial_score: 88,
+            },
+            // Genuine multi-week championship stop -> KEPT on pp. 38-39
+            {
+                id: 'real-venetian-series',
+                issue_period: '2026-11',
+                section: 'series_calendar',
+                source_type: 'tournament_series',
+                source_id: '777',
+                headline: 'DeepStack Extravaganza Championship',
+                summary: 'The Venetian Resort, Las Vegas, NV • 2026-11-28 to 2026-12-20',
+                metadata_json: {
+                    venueName: 'The Venetian Resort',
+                    city: 'Las Vegas',
+                    state: 'NV',
+                    startDate: '2026-11-28',
+                    endDate: '2026-12-20',
+                },
+                editorial_score: 85,
+            },
+        ],
+    });
+
+    const fullManifestStr = JSON.stringify(compiledManifest);
+    assert.doesNotMatch(fullManifestStr, /Betrivers/i, 'Competitor BetRivers row must never appear anywhere in manifest');
+    assert.doesNotMatch(fullManifestStr, /&#x27;|&#0?39;|&quot;|&mdash;/i, 'Raw HTML entities must never survive into manifest');
+    assert.match(compiledManifest.coverHeadline, /Ramin Hajiyev Hauls Third Triton Trophy/);
+    assert.equal(
+        isEchoingOrEmptyBlurb(compiledManifest.coverHeadline, compiledManifest.coverSubheadline),
+        false,
+        `coverSubheadline must never echo coverHeadline: "${compiledManifest.coverSubheadline}"`
+    );
+
+    const p12 = compiledManifest.pages.find((p) => p.pageNumber === 12);
+    assert.equal(
+        isEchoingOrEmptyBlurb(compiledManifest.coverHeadline, p12?.paragraphs?.[0] || ''),
+        false,
+        'Cover Story Page 12 opening paragraph must never echo headline'
+    );
+
+    // News Rail / Final Table / Platform pages carry empty paragraphs[] so Reader View never double-renders
+    for (const n of [6, 7, 8, 9, 22, 23]) {
+        assert.deepEqual(
+            compiledManifest.pages.find((p) => p.pageNumber === n)?.paragraphs,
+            [],
+            `Page ${n} must not duplicate item cards inside page.paragraphs`
+        );
+    }
+
+    // Live Series Radar pp. 38-39 excludes 365-day placeholders and keeps real stops
+    const seriesHeadlines = [38, 39].flatMap((n) => (compiledManifest.pages.find((p) => p.pageNumber === n)?.items || []).map((x) => x.headline));
+    assert.equal(seriesHeadlines.includes('2026 Year Long Placeholder Series'), false);
+    assert.equal(seriesHeadlines.includes('DeepStack Extravaganza Championship'), true);
+
+    // 5. Schema Law: neither vaultHarvester.mjs nor weeklyWireEngine.mjs queries phantom `venue_name` on `poker_series`
+    const harvesterSrc = read('src/lib/magazine/vaultHarvester.mjs');
+    const wireEngineSrc = read('src/lib/newsletter/weeklyWireEngine.mjs');
+    for (const [name, src] of [
+        ['vaultHarvester.mjs', harvesterSrc],
+        ['weeklyWireEngine.mjs', wireEngineSrc],
+    ]) {
+        const psSelects = [...src.matchAll(/from\(['"]poker_series['"]\)[\s\S]{0,180}?\.select\(([\s\S]*?)\)/g)];
+        assert.ok(psSelects.length >= 1, `${name} must query poker_series`);
+        for (const m of psSelects) {
+            assert.doesNotMatch(
+                m[1],
+                /\bvenue_name\b/,
+                `${name} must never select non-existent column venue_name on poker_series`
+            );
+        }
+    }
+
+    // Also prove harvestMonthlyMagazineVault executes tournament_series + poker_series cleanly
+    const queriedTables = [];
+    const mockSb = {
+        from(table) {
+            queriedTables.push(table);
+            const chain = {
+                select: () => chain,
+                eq: () => chain,
+                neq: () => chain,
+                in: () => chain,
+                or: () => chain,
+                gte: () => chain,
+                lt: () => chain,
+                lte: () => chain,
+                gt: () => chain,
+                ilike: () => chain,
+                like: () => chain,
+                order: () => chain,
+                limit: async () => ({ data: [], error: null }),
+                upsert: (rows) => ({
+                    select: async () => ({ data: rows, error: null }),
+                }),
+            };
+            return chain;
+        },
+        storage: {
+            from: () => ({
+                upload: async (p) => ({ data: { path: p }, error: null }),
+                getPublicUrl: (p) => ({ data: { publicUrl: `https://smarter.poker/${p}` } }),
+            }),
+        },
+    };
+    await harvestMonthlyMagazineVault(mockSb, { issuePeriod: '2026-11', externalBudgetMs: 0 });
+    assert.ok(queriedTables.includes('poker_series'), 'Harvester must query poker_series');
+    assert.ok(queriedTables.includes('tournament_series'), 'Harvester must query tournament_series');
+});
