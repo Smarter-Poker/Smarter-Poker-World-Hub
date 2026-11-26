@@ -836,7 +836,7 @@ export default function HandLabV2() {
           </div>
 
           <dialog ref={deckDialog} aria-label="Hand Lab Card Picker" style={{ ...styles.deckBox, width: 'min(94vw, 580px)', maxHeight: '82dvh', overflowY: 'auto', margin: 'auto', color: '#f1f8ff' }}>
-            <div style={{ display: 'flex', position: 'sticky', top: 0, background: '#091727', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 8 }}>
+            <div style={{ display: 'flex', position: 'sticky', top: 0, paddingTop: 'calc(4px + env(safe-area-inset-top, 0px))', boxSizing: 'border-box', background: '#091727', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 8 }}>
               <strong>{selectedSlot?.startsWith('hero') ? 'Pick A Hole Card' : 'Pick A Board Card'}</strong>
               <button type="button" className="sd-button" style={{ minHeight: 44 }} onClick={() => deckDialog.current.close()}>Done</button>
             </div>

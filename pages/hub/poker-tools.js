@@ -1,5 +1,6 @@
 /** Mobile odds console for Hold’em, Omaha, Stud and Razz. */
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { PREFLOP_MATCHUPS, DRAW_ODDS } from '../../src/lib/poker/oddsReference.mjs';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -459,7 +460,7 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
                                     Common Preflop Hand Matchups &amp; Equity Odds
                                 </h2>
                                 <p style={{ fontSize: 13, color: 'var(--world-muted, #94AFCC)', margin: '0 0 16px 0', lineHeight: 1.5 }}>
-                                    Illustrative Preflop Win And Tie Frequencies. Use The Calculator For Your Exact Suits And Dead Cards.
+                                    Win And Tie Rates Across All 1,712,304 Boards For The Suits Shown.
                                 </p>
                                 <div style={{ overflowX: 'auto', marginBottom: 24 }}>
                                     <table style={{
@@ -480,15 +481,7 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {[
-                                                { type: 'Overpair Vs Underpair', h1: 'A♠ A♥', h2: 'K♦ K♣', e1: '81.9%', e2: '17.6%', tie: '0.5%' },
-                                                { type: 'Overpair Vs Two Undercards', h1: 'Q♠ Q♥', h2: '8♦ 7♦', e1: '78.3%', e2: '21.3%', tie: '0.4%' },
-                                                { type: 'Two Overcards Vs Pocket Pair (Coinflip)', h1: 'A♠ K♠', h2: 'Q♦ Q♣', e1: '46.1%', e2: '53.5%', tie: '0.4%' },
-                                                { type: 'Two Overcards Vs Pocket Pair (Offsuit)', h1: 'A♠ K♥', h2: '9♦ 9♣', e1: '45.3%', e2: '54.3%', tie: '0.4%' },
-                                                { type: 'Dominated Kicker (Higher Ace Vs Lower Ace)', h1: 'A♠ K♥', h2: 'A♦ Q♣', e1: '73.5%', e2: '21.6%', tie: '4.9%' },
-                                                { type: 'Pocket Pair Vs Two Overcards', h1: 'J♠ J♥', h2: 'A♦ Q♦', e1: '56.8%', e2: '42.8%', tie: '0.4%' },
-                                                { type: 'Suited Connectors Vs Lower Suited Connectors', h1: '10♠ 9♠', h2: '7♦ 6♦', e1: '62.2%', e2: '37.3%', tie: '0.5%' },
-                                            ].map((row, idx) => (
+                                            {PREFLOP_MATCHUPS.map((row, idx) => (
                                                 <tr key={idx} style={{
                                                     borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
                                                     background: idx % 2 === 0 ? 'rgba(255, 255, 255, 0.015)' : 'transparent',
@@ -523,19 +516,12 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
                                             <tr style={{ borderBottom: '1px solid var(--world-border, #3D679A)', color: 'var(--world-muted, #94AFCC)' }}>
                                                 <th style={{ padding: '8px 10px', fontWeight: 700 }}>Drawing Hand Type</th>
                                                 <th style={{ padding: '8px 10px', fontWeight: 700 }}>Unseen Outs</th>
-                                                <th style={{ padding: '8px 10px', fontWeight: 700 }}>Turn Equity (Multiply By 2)</th>
-                                                <th style={{ padding: '8px 10px', fontWeight: 700 }}>Flop To River (Multiply By 4)</th>
+                                                <th style={{ padding: '8px 10px', fontWeight: 700 }}>Turn To River</th>
+                                                <th style={{ padding: '8px 10px', fontWeight: 700 }}>Flop To River</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {[
-                                                { draw: 'Open-Ended Straight Draw', outs: '8 Outs', turn: '17.4%', river: '31.5%' },
-                                                { draw: 'Four To A Flush (Flush Draw)', outs: '9 Outs', turn: '19.6%', river: '35.0%' },
-                                                { draw: 'Straight Flush Combo Draw', outs: '15 Outs', turn: '32.6%', river: '54.1%' },
-                                                { draw: 'Inside Straight Draw (Gutshot)', outs: '4 Outs', turn: '8.7%', river: '16.5%' },
-                                                { draw: 'Two Overcards (Top Pair Outs)', outs: '6 Outs', turn: '13.0%', river: '24.1%' },
-                                                { draw: 'Set To Full House Or Quads', outs: '7 Outs', turn: '15.2%', river: '33.4%' },
-                                            ].map((row, idx) => (
+                                            {DRAW_ODDS.map((row, idx) => (
                                                 <tr key={idx} style={{
                                                     borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
                                                     background: idx % 2 === 0 ? 'rgba(255, 255, 255, 0.015)' : 'transparent',

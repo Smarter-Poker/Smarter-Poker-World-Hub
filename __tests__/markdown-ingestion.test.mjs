@@ -86,7 +86,8 @@ test('renderPokerOddsCalculatorMarkdown outputs clean structured odds calculator
   assert.ok(md.includes('Pot-Limit Omaha'));
   assert.ok(md.includes('Monte Carlo'));
   assert.ok(md.includes('Common Preflop Matchup Equities & Benchmarks'));
-  assert.ok(md.includes('Overpair Vs Underpair'));
+  assert.ok(md.includes('Overpair Vs Underpair | A♠ A♥ | K♦ K♣ | 81.1% | 18.6% | 0.4%'));
+  assert.ok(md.includes('Set To Full House Or Quads | 7 Then 10 | 21.7% | 33.4%'));
   assert.ok(md.includes('The Rule Of 2 And 4 For Postflop Equity Estimation'));
   assert.ok(md.includes('Open-Ended Straight Draw'));
   assert.ok(md.includes('Frequently Asked Questions'));
