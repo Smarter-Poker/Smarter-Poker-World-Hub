@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { installRealtimeSessionGuard } from './fixtures/realtimeSessionGuard';
 
 test.use({ storageState: { cookies: [], origins: [] }, serviceWorkers: 'block', reducedMotion: 'reduce' });
 
@@ -29,7 +30,6 @@ async function dealerFixture(page: Page) {
     }));
     sessionStorage.setItem('sp_auth_confirmed', '1');
   }, user);
-  await page.routeWebSocket(/\/realtime\/v1\//, socket => socket.close());
   await page.route('**/auth/v1/**', route => route.fulfill({ json: user }));
   await page.route('**/api/**', route => route.fulfill({ json: {} }));
   await page.route('**/rest/v1/**', async route => {
@@ -45,7 +45,10 @@ async function dealerFixture(page: Page) {
   });
 }
 
-test.beforeEach(async ({ page }) => dealerFixture(page));
+test.beforeEach(async ({ context, page }) => {
+  await installRealtimeSessionGuard(context);
+  await dealerFixture(page);
+});
 
 test('Dealer earnings chart exposes its source amounts, keyboard tooltip and responsive rows', async ({ page }) => {
   await page.goto('/hub/toke-tracker/analytics');

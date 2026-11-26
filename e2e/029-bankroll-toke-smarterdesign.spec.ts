@@ -1,10 +1,12 @@
 import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test';
+import { installRealtimeSessionGuard } from './fixtures/realtimeSessionGuard';
 
 test.use({ storageState: { cookies: [], origins: [] }, serviceWorkers: 'block', contextOptions: { reducedMotion: 'reduce' } });
 
 // These are read-only guest paths. Intercept the ledger, vault, auth and API
 // transports before navigation so no user, financial or document data is used.
-test.beforeEach(async ({ page, baseURL }) => {
+test.beforeEach(async ({ page, baseURL, context }) => {
+  await installRealtimeSessionGuard(context);
   const origin = new URL(baseURL!).origin;
   await page.route('**/*', async route => {
     const request = route.request();
