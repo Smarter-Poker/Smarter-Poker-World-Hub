@@ -18,7 +18,7 @@
     "dialogs": 12,
     "persistenceFiles": 91,
     "realtimeFiles": 6,
-    "tests": 187,
+    "tests": 188,
     "markerCandidates": 390,
     "possibleUnwiredFunctions": 438,
     "routeStateCells": 752,
@@ -2296,6 +2296,7 @@
       "ctaCount": 7,
       "dialogCount": 0,
       "apiReferences": [
+        "/api/news/spot-vote",
         "/api/training/equity",
         "/api/training/tool-records"
       ],
@@ -13072,6 +13073,7 @@
             "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/trivia-club-spectator-training.test.mjs",
+            "__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -13119,6 +13121,7 @@
             "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/trivia-club-spectator-training.test.mjs",
+            "__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -13164,6 +13167,7 @@
             "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/trivia-club-spectator-training.test.mjs",
+            "__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -13189,6 +13193,7 @@
             "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/trivia-club-spectator-training.test.mjs",
+            "__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -13224,6 +13229,7 @@
             "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/trivia-club-spectator-training.test.mjs",
+            "__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -13264,6 +13270,7 @@
             "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/trivia-club-spectator-training.test.mjs",
+            "__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -13281,6 +13288,7 @@
             "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/trivia-club-spectator-training.test.mjs",
+            "__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         },
@@ -13302,6 +13310,7 @@
             "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
             "__tests__/training-reconciled-workflows.test.mjs",
             "__tests__/trivia-club-spectator-training.test.mjs",
+            "__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
         }
@@ -13311,6 +13320,7 @@
         "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
         "__tests__/training-reconciled-workflows.test.mjs",
         "__tests__/trivia-club-spectator-training.test.mjs",
+        "__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs",
         "e2e/020-hamburger.spec.ts"
       ],
       "uncoveredStates": []
@@ -39186,6 +39196,7 @@
         "/hub/training/hand-lab"
       ],
       "apiReferences": [
+        "/api/news/spot-vote",
         "/api/training/equity",
         "/api/training/tool-records"
       ],
@@ -39194,7 +39205,7 @@
         {
           "element": "button",
           "name": "← Hub",
-          "line": 387,
+          "line": 455,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": null,
@@ -39204,7 +39215,7 @@
         {
           "element": "button",
           "name": "Clear Board",
-          "line": 394,
+          "line": 462,
           "handler": "clearAll",
           "destination": null,
           "type": null,
@@ -39214,8 +39225,8 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 430,
-          "handler": "() => {\n                      fb.click();\n                      setWireSpotPick(opt.key);\n                    }",
+          "line": 498,
+          "handler": "() => handlePickSpotOption(opt.key)",
           "destination": null,
           "type": "button",
           "disabled": null,
@@ -39224,7 +39235,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 504,
+          "line": 593,
           "handler": "() => handleVariantChange(v.id)",
           "destination": null,
           "type": "button",
@@ -39234,7 +39245,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 728,
+          "line": 817,
           "handler": "() => handleCardSelect(rank, suit)",
           "destination": null,
           "type": null,
@@ -39244,7 +39255,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 768,
+          "line": 857,
           "handler": "() => setBrainVariant(v)",
           "destination": null,
           "type": "button",
@@ -39254,7 +39265,7 @@
         {
           "element": "button",
           "name": "Launch 1:1 Club Arena Drill",
-          "line": 795,
+          "line": 884,
           "handler": "() => router.push(buildCustomTrainingArenaHref({ format: 'cash', variant: brainVariant, streets: ['flop'], positions: ['BTN'], stackDepth: 100 }, 'hand-lab'))",
           "destination": null,
           "type": "button",
@@ -39318,7 +39329,7 @@
         },
         {
           "name": "getSuitColor",
-          "line": 825,
+          "line": 914,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -39326,14 +39337,14 @@
         },
         {
           "name": "spotHoleCount",
-          "line": 133,
+          "line": 173,
           "references": 5,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
-          "name": "savedHoleCount",
+          "name": "handlePickSpotOption",
           "line": 222,
           "references": 2,
           "exported": false,
@@ -39341,8 +39352,16 @@
           "namedFunctionExpression": false
         },
         {
+          "name": "savedHoleCount",
+          "line": 290,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "handleVariantChange",
-          "line": 248,
+          "line": 316,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -39350,7 +39369,7 @@
         },
         {
           "name": "handleCardSelect",
-          "line": 261,
+          "line": 329,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -39358,7 +39377,7 @@
         },
         {
           "name": "runAnalysis",
-          "line": 301,
+          "line": 369,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -39366,7 +39385,7 @@
         },
         {
           "name": "clearAll",
-          "line": 365,
+          "line": 433,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -39379,7 +39398,7 @@
       "markers": [
         {
           "kind": "PLACEHOLDER",
-          "line": 555,
+          "line": 644,
           "excerpt": "<span style={styles.placeholder}>Card {idx + 1}</span>",
           "disposition": "visible-ui-state",
           "review": "accepted",
@@ -39387,7 +39406,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 585,
+          "line": 674,
           "excerpt": "<span style={{ ...styles.placeholder, fontSize: 12 }}>",
           "disposition": "visible-ui-state",
           "review": "accepted",
@@ -39395,7 +39414,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 921,
+          "line": 1010,
           "excerpt": "placeholder: {",
           "disposition": "visible-ui-state",
           "review": "accepted",
@@ -87853,6 +87872,7 @@
     "__tests__/trivia-club-spectator-training.test.mjs",
     "__tests__/trivia-realtime-social-growth.test.mjs",
     "__tests__/trivia-study-pool-curation.test.mjs",
+    "__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs",
     "__tests__/world-command-navigation-state.test.mjs",
     "__tests__/world-hub-connection-hardening.test.mjs",
     "__tests__/world-menu-mobile-phase3.test.mjs",
@@ -91732,11 +91752,11 @@
       "effectRef": "pages/hub/training/hand-history-upload.js"
     },
     {
-      "id": "pages/hub/training/hand-lab.js:387:1",
+      "id": "pages/hub/training/hand-lab.js:455:1",
       "file": "pages/hub/training/hand-lab.js",
       "element": "button",
       "name": "← Hub",
-      "line": 387,
+      "line": 455,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": null,
@@ -91745,11 +91765,11 @@
       "effectRef": "pages/hub/training/hand-lab.js"
     },
     {
-      "id": "pages/hub/training/hand-lab.js:394:2",
+      "id": "pages/hub/training/hand-lab.js:462:2",
       "file": "pages/hub/training/hand-lab.js",
       "element": "button",
       "name": "Clear Board",
-      "line": 394,
+      "line": 462,
       "handler": "clearAll",
       "destination": null,
       "type": null,
@@ -91758,12 +91778,12 @@
       "effectRef": "pages/hub/training/hand-lab.js"
     },
     {
-      "id": "pages/hub/training/hand-lab.js:430:3",
+      "id": "pages/hub/training/hand-lab.js:498:3",
       "file": "pages/hub/training/hand-lab.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 430,
-      "handler": "() => {\n                      fb.click();\n                      setWireSpotPick(opt.key);\n                    }",
+      "line": 498,
+      "handler": "() => handlePickSpotOption(opt.key)",
       "destination": null,
       "type": "button",
       "disabled": null,
@@ -91771,11 +91791,11 @@
       "effectRef": "pages/hub/training/hand-lab.js"
     },
     {
-      "id": "pages/hub/training/hand-lab.js:504:4",
+      "id": "pages/hub/training/hand-lab.js:593:4",
       "file": "pages/hub/training/hand-lab.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 504,
+      "line": 593,
       "handler": "() => handleVariantChange(v.id)",
       "destination": null,
       "type": "button",
@@ -91784,11 +91804,11 @@
       "effectRef": "pages/hub/training/hand-lab.js"
     },
     {
-      "id": "pages/hub/training/hand-lab.js:728:5",
+      "id": "pages/hub/training/hand-lab.js:817:5",
       "file": "pages/hub/training/hand-lab.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 728,
+      "line": 817,
       "handler": "() => handleCardSelect(rank, suit)",
       "destination": null,
       "type": null,
@@ -91797,11 +91817,11 @@
       "effectRef": "pages/hub/training/hand-lab.js"
     },
     {
-      "id": "pages/hub/training/hand-lab.js:768:6",
+      "id": "pages/hub/training/hand-lab.js:857:6",
       "file": "pages/hub/training/hand-lab.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 768,
+      "line": 857,
       "handler": "() => setBrainVariant(v)",
       "destination": null,
       "type": "button",
@@ -91810,11 +91830,11 @@
       "effectRef": "pages/hub/training/hand-lab.js"
     },
     {
-      "id": "pages/hub/training/hand-lab.js:795:7",
+      "id": "pages/hub/training/hand-lab.js:884:7",
       "file": "pages/hub/training/hand-lab.js",
       "element": "button",
       "name": "Launch 1:1 Club Arena Drill",
-      "line": 795,
+      "line": 884,
       "handler": "() => router.push(buildCustomTrainingArenaHref({ format: 'cash', variant: brainVariant, streets: ['flop'], positions: ['BTN'], stackDepth: 100 }, 'hand-lab'))",
       "destination": null,
       "type": "button",
@@ -111961,6 +111981,7 @@
         "/api/friends",
         "/api/geeves/chat",
         "/api/live-help/report-bug",
+        "/api/news/spot-vote",
         "/api/notifications/mark-read",
         "/api/push/subscribe",
         "/api/push/test",
@@ -112324,7 +112345,8 @@
       "tests": [
         "__tests__/newsletter-forensic-pass-hardening.law.test.mjs",
         "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
-        "__tests__/training-reconciled-workflows.test.mjs"
+        "__tests__/training-reconciled-workflows.test.mjs",
+        "__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs"
       ]
     },
     {
@@ -131850,7 +131872,8 @@
       "realtime": [],
       "tests": [
         "__tests__/newsletter-forensic-pass-hardening.law.test.mjs",
-        "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs"
+        "__tests__/newsletter-zero-broken-links-and-images.law.test.mjs",
+        "__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs"
       ]
     },
     {
@@ -134728,6 +134751,7 @@
         "__tests__/training-simplification-mtt-design.test.mjs",
         "__tests__/training-surface-inventory-classifier.test.mjs",
         "__tests__/trivia-study-pool-curation.test.mjs",
+        "__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs",
         "__tests__/world-hub-connection-hardening.test.mjs",
         "__tests__/world-menu-mobile-phase3.test.mjs"
       ]
@@ -135294,7 +135318,7 @@
       {
         "file": "pages/hub/training/hand-lab.js",
         "kind": "PLACEHOLDER",
-        "line": 555,
+        "line": 644,
         "excerpt": "<span style={styles.placeholder}>Card {idx + 1}</span>",
         "disposition": "visible-ui-state",
         "review": "accepted",
@@ -135303,7 +135327,7 @@
       {
         "file": "pages/hub/training/hand-lab.js",
         "kind": "PLACEHOLDER",
-        "line": 585,
+        "line": 674,
         "excerpt": "<span style={{ ...styles.placeholder, fontSize: 12 }}>",
         "disposition": "visible-ui-state",
         "review": "accepted",
@@ -135312,7 +135336,7 @@
       {
         "file": "pages/hub/training/hand-lab.js",
         "kind": "PLACEHOLDER",
-        "line": 921,
+        "line": 1010,
         "excerpt": "placeholder: {",
         "disposition": "visible-ui-state",
         "review": "accepted",
@@ -145956,7 +145980,7 @@
       {
         "file": "pages/hub/training/hand-lab.js",
         "kind": "PLACEHOLDER",
-        "line": 555,
+        "line": 644,
         "excerpt": "<span style={styles.placeholder}>Card {idx + 1}</span>",
         "disposition": "visible-ui-state",
         "review": "accepted",
@@ -145965,7 +145989,7 @@
       {
         "file": "pages/hub/training/hand-lab.js",
         "kind": "PLACEHOLDER",
-        "line": 585,
+        "line": 674,
         "excerpt": "<span style={{ ...styles.placeholder, fontSize: 12 }}>",
         "disposition": "visible-ui-state",
         "review": "accepted",
@@ -145974,7 +145998,7 @@
       {
         "file": "pages/hub/training/hand-lab.js",
         "kind": "PLACEHOLDER",
-        "line": 921,
+        "line": 1010,
         "excerpt": "placeholder: {",
         "disposition": "visible-ui-state",
         "review": "accepted",
