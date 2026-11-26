@@ -7,6 +7,9 @@
  */
 
 import view from './toke/TokeWorkspace.module.css';
+import desk from './toke/DealerAnalytics.module.css';
+import { MapPin } from 'lucide-react';
+const fmt = value => value.toLocaleString('en-US', {style:'currency',currency:'USD'});
 import { useState, useMemo } from 'react';
 import ResponsiveTable from '../ui/ResponsiveTable';
 
@@ -38,11 +41,13 @@ function computeGigStats(gig) {
     let totalTokes = 0;
     let totalHours = 0;
     for (const down of downs) {
-        totalTokes += down.toke_amount || 0;
+
         // Only count dealing downs for hours (not breaks - they inflate the denominator unfairly)
         const isDealing = down.down_type === 'cash' || down.down_type === 'tournament' || down.down_type === 'brush';
+        if (isDealing) totalTokes += Number(down.toke_amount) || 0;
         if (isDealing && down.started_at && down.ended_at) {
-            totalHours += (new Date(down.ended_at) - new Date(down.started_at)) / (1000 * 60 * 60);
+            const hours = (Date.parse(down.ended_at) - Date.parse(down.started_at)) / 3600000;
+            if (Number.isFinite(hours) && hours > 0) totalHours += hours;
         }
     }
     return { totalTokes, totalHours, downs };
@@ -59,7 +64,7 @@ export default function VenueIntelligence({ gigs = [] }) {
 
     // ── Venue Performance Ranking ──────────────────────────────
     const venueRanking = useMemo(() => {
-        const map = {};
+        const map = Object.create(null);
         for (const gig of gigs) {
             const venue = gig.venue_name || 'Unknown Venue';
             if (!map[venue]) map[venue] = { venue, totalTokes: 0, totalHours: 0, events: 0 };
@@ -80,14 +85,14 @@ export default function VenueIntelligence({ gigs = [] }) {
 
     // ── Game Type Profitability ────────────────────────────────
     const gameTypeStats = useMemo(() => {
-        const map = {};
+        const map = Object.create(null);
         for (const gig of gigs) {
             for (const down of gig.downs || []) {
                 const gt = down.down_type === 'cash'
                     ? (down.game_type || 'Holdem')
                     : (down.down_type === 'tournament' ? 'tournament' : down.down_type);
                 if (!map[gt]) map[gt] = { gameType: gt, totalTokes: 0, totalDowns: 0 };
-                map[gt].totalTokes += down.toke_amount || 0;
+                map[gt].totalTokes += Number(down.toke_amount) || 0;
                 map[gt].totalDowns += 1;
             }
         }
@@ -107,10 +112,10 @@ export default function VenueIntelligence({ gigs = [] }) {
                 if (down.down_type !== 'tournament') continue;
                 hasTourneyData = true;
                 const buyin = down.tournament_buyin;
-                if (!buyin) continue;
+                if (buyin == null || buyin === '') continue;
                 const bracket = BUYIN_BRACKETS.find(b => buyin >= b.min && buyin <= b.max);
                 if (!bracket) continue;
-                bracketMap[bracket.label].totalTokes += down.toke_amount || 0;
+                bracketMap[bracket.label].totalTokes += Number(down.toke_amount) || 0;
                 bracketMap[bracket.label].totalDowns += 1;
             }
         }
@@ -131,17 +136,22 @@ export default function VenueIntelligence({ gigs = [] }) {
         gigs.reduce((sum, gig) => sum + computeGigStats(gig).totalTokes, 0), [gigs]
     );
 
-    if (totalEvents === 0) return null;
+    if (totalEvents === 0) return <section aria-label="Venue Performance" className={'sd-panel ' + desk.planner}>
+        <div className={desk.sectionHead}><MapPin aria-hidden size={21}/><h2 className="sd-section-title">Venue Performance</h2></div>
+        <p className={desk.caption}>Complete A Shift To Compare Venue Tokes, Hours And Game Types.</p>
+    </section>;
+    const measure = v => venueSort === 'events' ? v.events : venueSort === 'total' ? v.totalTokes : v.tokePerHr;
+    const largest = venueRanking.reduce((max,v)=>Math.max(max,measure(v)),1);
 
     return (
-        <section className={"sd-panel " + view.panel}>
+        <section className={"sd-panel " + desk.intelligence} aria-label="Career Intelligence">
             {/* Header */}
             <button type="button" className={view.disclosure} aria-expanded={expanded} onClick={() => setExpanded(v => !v)}>
-                <div style={s.headerLeft}>
+                <div className={desk.sectionHead}><MapPin size={22} aria-hidden/>
 
                     <div>
                         <div className="sd-section-title">Career Intelligence</div>
-                        <div style={s.headerSub}>{totalEvents} Events · ${totalTokesAllTime.toFixed(0)} Total Tokes</div>
+                        <div style={s.headerSub}>{totalEvents} {totalEvents===1?'Event':'Events'} · {fmt(totalTokesAllTime)} Total Tokes</div>
                     </div>
                 </div>
                 <span style={{ ...s.chevron, transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
@@ -173,19 +183,20 @@ export default function VenueIntelligence({ gigs = [] }) {
                                 </div>
                                 <div style={s.venueList}>
                                     {venueRanking.map((v, i) => (
-                                        <div key={v.venue} style={s.venueRow}>
+                                        <div key={v.venue} className={desk.venueRow}>
                                             <span style={s.venueRank}>
                                                 <span style={s.rankNum}>#{i + 1}</span>
                                             </span>
                                             <div style={s.venueInfo}>
-                                                <div style={s.venueName}>{v.venue}</div>
+                                                <strong>{v.venue}</strong>
+                                                <div className={desk.meter} aria-hidden><i style={{width:(100*measure(v)/largest)+'%'}}/></div>
                                                 <div style={s.venueMeta}>
                                                     {v.events} event{v.events !== 1 ? 's' : ''}
                                                     {v.totalHours > 0 && ` · ${v.totalHours.toFixed(1)}h`}
                                                 </div>
                                             </div>
-                                            <div style={s.venueStats}>
-                                                <div style={s.venueTotal}>${v.totalTokes.toFixed(0)}</div>
+                                            <div className={desk.venueTotals}>
+                                                <div style={s.venueTotal}>{fmt(v.totalTokes)}</div>
                                                 {v.tokePerHr > 0 && <div style={s.venueRate}>${v.tokePerHr.toFixed(2)}/Hr</div>}
                                             </div>
                                         </div>
@@ -199,7 +210,7 @@ export default function VenueIntelligence({ gigs = [] }) {
                     {gameTypeStats.length > 0 && (
                         <div style={s.panel}>
                             <button style={s.panelHeader} aria-expanded={gameOpen} onClick={() => setGameOpen(v => !v)}>
-                                <span style={s.panelTitle}>🃏 Game Type Profitability</span>
+                                <span style={s.panelTitle}>Game Type Profitability</span>
                                 <span style={s.panelChevron}>{gameOpen ? '▲' : '▼'}</span>
                             </button>
                             {gameOpen && (
@@ -209,7 +220,7 @@ export default function VenueIntelligence({ gigs = [] }) {
                                         rows={gameTypeStats}
                                         columns={[
                                             { key: 'gameType', label: 'Game', render: (gt) => GAME_TYPE_MAP[gt.gameType] || gt.gameType },
-                                            { key: 'totalTokes', label: 'Total $', align: 'right', render: (gt) => <span style={{ color: METAL.success }}>${gt.totalTokes.toFixed(0)}</span> },
+                                            { key: 'totalTokes', label: 'Total $', align: 'right', render: (gt) => <span style={{ color: METAL.success }}>{fmt(gt.totalTokes)}</span> },
                                             { key: 'totalDowns', label: 'Downs', align: 'right' },
                                             { key: 'avgTokePerDown', label: '$/Down', align: 'right', render: (gt) => <span style={{ fontWeight: 700, color: METAL.textPrimary }}>${gt.avgTokePerDown.toFixed(2)}</span> },
                                         ]}
@@ -234,7 +245,7 @@ export default function VenueIntelligence({ gigs = [] }) {
                                         columns={[
                                             { key: 'label', label: 'Buy-In', render: (b) => <span style={{ fontWeight: 700, color: METAL.textPrimary }}>{b.label}</span> },
                                             { key: 'totalDowns', label: 'Downs', align: 'right' },
-                                            { key: 'totalTokes', label: 'Total $', align: 'right', render: (b) => <span style={{ color: METAL.success }}>${b.totalTokes.toFixed(0)}</span> },
+                                            { key: 'totalTokes', label: 'Total $', align: 'right', render: (b) => <span style={{ color: METAL.success }}>{fmt(b.totalTokes)}</span> },
                                             { key: 'avgTokePerDown', label: 'Avg $/Down', align: 'right', render: (b) => <span style={{ fontWeight: 700, color: b.avgTokePerDown >= 20 ? METAL.success : METAL.warn }}>${b.avgTokePerDown.toFixed(2)}</span> },
                                         ]}
                                     />

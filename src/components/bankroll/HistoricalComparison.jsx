@@ -1,215 +1,69 @@
-/**
- * HISTORICAL COMPARISON
- * Compare this period vs last period — driven by entries prop for real-time filter reactivity
- */
+import ResponsiveTable from '../ui/ResponsiveTable';
+import { useMemo, useState } from 'react';
+import { CalendarRange } from 'lucide-react';
+import { comparePeriods } from '../../lib/bankroll/analyticsView.mjs';
+import { money, periodDate, tone } from './analyticsDisplay';
+import styles from './BankrollAnalytics.module.css';
+const pct = (v) => (v == null ? 'N/A' : v.toFixed(1) + '%');
 
-import { GRADIENTS, METAL } from './metalStyles';
-import { useState, useMemo } from 'react';
-
-// Non-gaming categories that should NOT count as "sessions"
-const NON_SESSION_CATEGORIES = ['expense', 'withdrawal', 'deposit'];
-
-export default function HistoricalComparison({ entries = [] }) {
-    const [period, setPeriod] = useState('month');
-
-    const comparison = useMemo(() => {
-        if (!entries || entries.length === 0) return null;
-
-        const now = new Date();
-        let currentStart, previousStart, previousEnd;
-
-        if (period === 'month') {
-            currentStart = new Date(now.getFullYear(), now.getMonth(), 1);
-            previousStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-            previousEnd = new Date(now.getFullYear(), now.getMonth(), 0);
-        } else {
-            currentStart = new Date(now.getFullYear(), 0, 1);
-            previousStart = new Date(now.getFullYear() - 1, 0, 1);
-            previousEnd = new Date(now.getFullYear() - 1, 11, 31);
-        }
-
-        const currentEntries = entries.filter(e => {
-            const d = new Date(e.entry_date + 'T12:00:00');
-            return d >= currentStart && d <= now;
-        });
-
-        const previousEntries = entries.filter(e => {
-            const d = new Date(e.entry_date + 'T12:00:00');
-            return d >= previousStart && d <= previousEnd;
-        });
-
-        const calc = (arr) => {
-            // Only count actual gaming sessions — exclude expense/withdrawal/deposit
-            const sessions = arr.filter(e => NON_SESSION_CATEGORIES.indexOf(e.category) === -1);
-            let totalIn = 0, totalOut = 0, wins = 0;
-            sessions.forEach(e => {
-                totalIn += e.gross_in || 0;
-                totalOut += e.gross_out || 0;
-                if ((e.gross_out - e.gross_in) > 0) wins++;
-            });
-            return {
-                sessions: sessions.length,
-                netResult: totalOut - totalIn,
-                winRate: sessions.length > 0 ? (wins / sessions.length) * 100 : 0,
-            };
-        };
-
-        const currentStats = calc(currentEntries);
-        const previousStats = calc(previousEntries);
-
-        return {
-            current: currentStats,
-            previous: previousStats,
-            delta: {
-                netResult: currentStats.netResult - previousStats.netResult,
-                sessions: currentStats.sessions - previousStats.sessions,
-                winRate: currentStats.winRate - previousStats.winRate,
-            },
-        };
-    }, [entries, period]);
-
-    const formatDelta = (value, isPercent = false) => {
-        const sign = value >= 0 ? '+' : '';
-        if (isPercent) return `${sign}${value.toFixed(1)}%`;
-        return `${sign}$${Math.abs(value).toLocaleString()}`;
-    };
-
-    if (!comparison) {
-        return <div style={styles.loading}>No Data For Comparison</div>;
-    }
-
-    const periodLabel = period === 'month' ? 'vs Last Month' : 'vs Last Year';
-
-    return (
-        <div style={styles.container}>
-            <div style={styles.header}>
-                <h3 style={styles.title}>Historical Comparison</h3>
-                <div style={styles.periodToggle}>
-                    <button
-                        onClick={() => setPeriod('month')}
-                        style={{ ...styles.periodBtn, ...(period === 'month' ? styles.periodBtnActive : {}) }}
-                    >
-                        Month
-                    </button>
-                    <button
-                        onClick={() => setPeriod('year')}
-                        style={{ ...styles.periodBtn, ...(period === 'year' ? styles.periodBtnActive : {}) }}
-                    >
-                        Year
-                    </button>
-                </div>
+export default function HistoricalComparison({ entries = [], displayEUR = false }) {
+  const [period, setPeriod] = useState('month');
+  const today = new Date().toISOString().slice(0, 10);
+  const { current, previous, start, previousStart } = useMemo(
+    () => comparePeriods(entries, period, today),
+    [entries, period, today]
+  );
+  const label = (d) => (period === 'month' ? periodDate(d, true) : d.slice(0, 4));
+  const priorNet = previous.count ? previous.net : null,
+    currentNet = current.count ? current.net : null;
+  return (
+    <section className={styles.card} aria-label="Historical Comparison">
+      <h3>
+        <CalendarRange aria-hidden size={18} />
+        Historical Comparison
+      </h3>
+      <div className={styles.tabs} role="group" aria-label="Comparison Period">
+        {['month', 'year'].map((k) => (
+          <button type="button" aria-pressed={k === period} key={k} onClick={() => setPeriod(k)}>
+            {k === 'month' ? 'Month' : 'Year'}
+          </button>
+        ))}
+      </div>
+      {!current.count && !previous.count ? (
+        <p className={styles.empty}>No Sessions In Either Period</p>
+      ) : (
+        <>
+          <div className={styles.compare}>
+            <ResponsiveTable
+              caption="Period Comparison"
+              keyField="name"
+              columns={[
+                { key: 'name', label: 'Measure' },
+                { key: 'now', label: label(start), align: 'right' },
+                { key: 'prior', label: label(previousStart), align: 'right' },
+              ]}
+              rows={[
+                {
+                  name: 'Net Result',
+                  now: <span className={tone(currentNet)}>{money(currentNet, displayEUR, true)}</span>,
+                  prior: <span className={tone(priorNet)}>{money(priorNet, displayEUR, true)}</span>,
+                },
+                { name: 'Sessions', now: current.count, prior: previous.count },
+                { name: 'Win Rate', now: pct(current.winRate), prior: pct(previous.winRate) },
+              ]}
+            />
+          </div>
+          {priorNet !== null && currentNet !== null && (
+            <div className={styles.pair}>
+              <small>Net Change</small>
+              <strong className={tone(currentNet - priorNet)}>
+                {money(currentNet - priorNet, displayEUR, true)}
+              </strong>
             </div>
-
-            <div style={styles.comparisonGrid}>
-                <div style={styles.comparisonRow}>
-                    <span style={styles.label}>Net Result</span>
-                    <div style={styles.values}>
-                        <span style={styles.current}>${comparison.current.netResult.toLocaleString()}</span>
-                    </div>
-                </div>
-
-                <div style={styles.comparisonRow}>
-                    <span style={styles.label}>Sessions</span>
-                    <div style={styles.values}>
-                        <span style={styles.current}>{comparison.current.sessions}</span>
-                    </div>
-                </div>
-
-                <div style={styles.comparisonRow}>
-                    <span style={styles.label}>Win Rate</span>
-                    <div style={styles.values}>
-                        <span style={styles.current}>{comparison.current.winRate.toFixed(1)}%</span>
-                    </div>
-                </div>
-            </div>
-
-            <div style={styles.periodLabel}>{periodLabel}</div>
-        </div>
-    );
+          )}
+          <p className={styles.foot}>Selected Ledger Entries · Current Period To Date</p>
+        </>
+      )}
+    </section>
+  );
 }
-
-const styles = {
-    container: {
-        padding: 16,
-        background: GRADIENTS.darkPanel,
-        border: `1px solid ${METAL.highlight}`,
-        borderRadius: 12,
-        height: '100%',
-        boxSizing: 'border-box',
-    },
-    loading: {
-        padding: 20,
-        textAlign: 'center',
-        color: 'rgba(255, 255, 255, 0.5)',
-        fontSize: 14,
-    },
-    header: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 14,
-    },
-    title: {
-        fontSize: 14,
-        fontWeight: 600,
-        color: '#92cfff',
-        margin: 0,
-    },
-    periodToggle: {
-        display: 'flex',
-        gap: 4,
-        background: 'rgba(255,255,255,0.15)',
-        borderRadius: 6,
-        padding: 2,
-    },
-    periodBtn: {
-        background: 'transparent',
-        border: 'none',
-        color: 'rgba(255,255,255,0.5)',
-        fontSize: 14,
-        padding: '4px 10px',
-        borderRadius: 4,
-        cursor: 'pointer',
-    },
-    periodBtnActive: {
-        background: 'rgba(35, 116, 225, 0.3)',
-        color: '#fff',
-    },
-    comparisonGrid: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 10,
-    },
-    comparisonRow: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '8px 10px',
-        background: 'rgba(255,255,255,0.1)',
-        borderRadius: 8,
-    },
-    label: {
-        fontSize: 14,
-        color: 'rgba(255,255,255,0.6)',
-    },
-    values: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-    },
-    current: {
-        fontSize: 14,
-        fontWeight: 600,
-        color: '#fff',
-    },
-    delta: {
-        fontSize: 14,
-        fontWeight: 500,
-    },
-    periodLabel: {
-        textAlign: 'center',
-        fontSize: 14,
-        color: 'rgba(255,255,255,0.35)',
-        marginTop: 10,
-    },
-};

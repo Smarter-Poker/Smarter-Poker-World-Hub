@@ -1,3 +1,4 @@
+import BankrollHeaderAdd from './BankrollHeaderAdd';
 /**
  * TRIP TRACKER COMPONENT
  * ═══════════════════════════════════════════════════════════════
@@ -204,6 +205,7 @@ export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEn
 
     return (
         <div className="sd-panel" style={styles.container}>
+            {activeTrip && onOpenLog && <BankrollHeaderAdd label="Add Trip Entry" onClick={onOpenLog} />}
             {/* --- ACTIVE TRIP BANNER --- */}
             {activeTrip && (
                 <motion.div
@@ -404,18 +406,20 @@ export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEn
 
             {/* --- CREATE TRIP --- */}
             {!activeTrip && !showCreateForm && (
-                <motion.button
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    onClick={() => setShowCreateForm(true)}
-                    style={styles.createTripBtn}
-                >
-                    <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.4)' }}>No Active Trip</span>
-                    <div>
-                        <div style={styles.createTripTitle}>Start A New Trip</div>
-                        <div style={styles.createTripSub}>Track All Sessions And Expenses In One Place</div>
-                    </div>
-                </motion.button>
+                <BankrollHeaderAdd label="Start A New Trip" onClick={() => setShowCreateForm(true)}>
+                    <motion.button
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        onClick={() => setShowCreateForm(true)}
+                        style={styles.createTripBtn}
+                    >
+                        <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.4)' }}>No Active Trip</span>
+                        <div>
+                            <div style={styles.createTripTitle}>Start A New Trip</div>
+                            <div style={styles.createTripSub}>Track All Sessions And Expenses In One Place</div>
+                        </div>
+                    </motion.button>
+                </BankrollHeaderAdd>
             )}
 
             <AnimatePresence>

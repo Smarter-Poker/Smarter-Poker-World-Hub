@@ -1,0 +1,227 @@
+.earnings,
+.intelligence,
+.planner {
+  min-width: 0;
+  max-width: 100%;
+  color: #ecf5ff;
+  font-family: var(--font-inter), Arial, sans-serif;
+  background: linear-gradient(120deg, #11283e, #081727 74%);
+}
+.sectionHead,
+.range,
+.plotHead,
+.exports,
+.plannerHead,
+.monthControls {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-width: 0;
+}
+.sectionHead > svg,
+.plotHead > span,
+.range > svg,
+.plannerHead svg {
+  color: #81d7ff;
+  flex-shrink: 0;
+}
+.body {
+  padding: 0 clamp(0.65rem, 2vw, 1.3rem) 1.1rem;
+}
+.range {
+  padding: 0.7rem 0;
+  border-block: 1px solid #36516a;
+  justify-content: flex-end;
+}
+.range > div,
+.monthControls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.32rem;
+}
+.range button,
+.monthControls button {
+  min-height: 42px;
+  font-size: 0.82rem;
+}
+.range button[aria-pressed='true'],
+.monthControls button[aria-pressed='true'] {
+  border-color: #78c8ff;
+  color: white;
+  background: linear-gradient(180deg, #2677d8, #104f98);
+}
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 125px), 1fr));
+  padding: 1rem 0;
+  gap: 0.35rem 0.8rem;
+}
+.metrics > div {
+  min-width: 0;
+  padding: 0.5rem 0.15rem 0.5rem 0.65rem;
+  border-left: 2px solid #416c91;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+}
+.metrics strong {
+  font-size: clamp(1.1rem, 2vw, 1.65rem);
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.plot {
+  min-width: 0;
+  margin-top: 0.85rem;
+  border-block: 1px solid #36516b;
+  padding: 1rem 0;
+  background: radial-gradient(ellipse at 40% 45%, #17345077, transparent 68%);
+}
+.plotHead {
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+  flex-wrap: wrap;
+}
+.plotHead h3,
+.plannerHead h2 {
+  margin: 0;
+  color: #f4faff;
+  font-weight: 750;
+  line-height: 1.16;
+  letter-spacing: -0.02em;
+}
+.plotHead > span,
+.caption,
+.exports span {
+  font-size: 0.8rem;
+  color: #b5d2ea;
+}
+.exports {
+  flex-wrap: wrap;
+  margin-top: 0.85rem;
+}
+.exports button,
+.titleButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+}
+.venueRow {
+  display: grid;
+  grid-template-columns: 2rem 1fr auto;
+  align-items: center;
+  gap: 0.4rem 0.7rem;
+  min-width: 0;
+  padding: 0.7rem 0;
+  border-top: 1px solid #304961;
+}
+.venueRow > span {
+  font-weight: 700;
+  color: #83d6ff;
+}
+.venueRow strong {
+  color: #f0f8ff;
+  overflow-wrap: anywhere;
+}
+.venueRow small {
+  display: block;
+  color: #bed0e2;
+  font-size: 0.8rem;
+}
+.venueTotals {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.meter {
+  height: 4px;
+  border-radius: 2px;
+  background: #1b344b;
+  margin: 0.35rem 0 0.2rem;
+}
+.meter i {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #256cc4, #83d9ff);
+}
+.planner {
+  padding: clamp(0.7rem, 2vw, 1.2rem);
+}
+.plannerHead {
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin-bottom: 0.65rem;
+}
+.plannerHead > div:first-child {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+.year {
+  min-width: 4ch;
+  text-align: center;
+  color: #fff;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+.yearGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 172px), 1fr));
+  gap: 0.5rem;
+}
+.yearGrid > div {
+  min-width: 0;
+}
+.expandedMonth {
+  grid-column: 1 / -1;
+}
+.month {
+  border: 1px solid #3b566e;
+  background: linear-gradient(145deg, #15314b, #0c1c2d);
+  border-radius: 6px;
+  padding: 0.5rem;
+}
+.planner :is(input, textarea) {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+@media (max-width: 540px) {
+  .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .range {
+    justify-content: flex-start;
+  }
+  .yearGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .month {
+    padding: 0.28rem;
+  }
+  .exports {
+    gap: 0.45rem;
+  }
+  .exports button {
+    flex: 1 1 auto;
+  }
+}
+.intelligence :global(.sd-section-title),
+.earnings :global(.sd-section-title) {
+  font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+  letter-spacing: -0.015em;
+}
+.monthControls svg {
+  display: block;
+}
+.expandedMonth button:focus-visible,
+.yearGrid button:focus-visible,
+.range button:focus-visible,
+.intelligence button:focus-visible {
+  outline: 2px solid #91dcff;
+  outline-offset: 2px;
+}
+.yearGrid button[aria-expanded] {
+  min-height: 36px;
+}

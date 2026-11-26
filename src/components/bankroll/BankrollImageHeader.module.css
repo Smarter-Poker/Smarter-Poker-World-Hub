@@ -1,0 +1,115 @@
+.header.header {
+  --seal-size: clamp(62px, 8.5vw, 96px);
+  isolation: isolate;
+  position: relative;
+  box-sizing: border-box;
+  width: auto;
+  min-width: 0;
+  min-height: clamp(110px, 14vw, 149px);
+  display: grid;
+  grid-template-columns: var(--seal-size) minmax(0, 1fr);
+  align-items: center;
+  align-content: center;
+  gap: clamp(9px, 1.8vw, 23px);
+  padding: clamp(13px, 2vw, 23px) clamp(13px, 2.5vw, 30px);
+  background: radial-gradient(ellipse at 20% 102%, #233f63 0, #102337 38%, #07121e 78%);
+}
+.scene {
+  position: absolute;
+  inset: 0 0 0 auto;
+  z-index: -1;
+  width: 57%;
+  height: 100%;
+  /* A landscape photo still fills the full rim when the mobile image reset applies. */
+  min-height: 100%;
+  max-height: 100%;
+  object-fit: cover;
+  object-position: 63% 53%;
+  mask-image: linear-gradient(90deg, transparent, #0002 18%, #0006 43%, #0009 68%, #000);
+  pointer-events: none;
+}
+.seal {
+  display: grid;
+  place-items: center;
+  width: var(--seal-size);
+  height: var(--seal-size);
+  padding: clamp(3px, 0.4vw, 5px);
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 25deg,
+    #6d94b1,
+    #d8e7f3 12%,
+    #3c5369 23%,
+    #0d263b 35%,
+    #a6c8e0 50%,
+    #465d72 64%,
+    #f4f9ff 78%,
+    #234968 90%,
+    #6d94b1
+  );
+  box-shadow:
+    0 0 0 1px #09121c,
+    0 0 0 2px #92aac0,
+    0 2px 9px #01060fbb;
+}
+.seal img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  background: #06101b;
+}
+.copy {
+  position: relative;
+  min-width: 0;
+  padding-right: 38px;
+}
+.parent {
+  margin: 0 0 3px;
+  color: #b4dff4;
+  font-size: clamp(0.75rem, 1vw, 0.87rem);
+  font-weight: 750;
+  letter-spacing: 0.055em;
+}
+.header .title {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0;
+  color: #f3f7fc;
+  -webkit-text-fill-color: #f3f7fc;
+  background: none;
+  font-family: var(--sd-type, 'Arial Narrow'), sans-serif;
+  font-weight: 800;
+  font-style: italic;
+  font-size: clamp(1.85rem, 4.5vw, 3.45rem);
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+  overflow-wrap: anywhere;
+  text-shadow:
+    0 2px 3px #020911,
+    0 0 8px #061321;
+}
+.copy > div:last-child:not(.parent):not(:empty),
+.copy > button:last-child {
+  margin-top: 8px;
+}
+@media (max-width: 600px) {
+  .header.header {
+    --seal-size: clamp(49px, 14vw, 75px);
+    gap: 10px;
+    padding: 13px 12px;
+  }
+  .scene {
+    width: 58%;
+    mask-image: linear-gradient(90deg, transparent, #0002 22%, #0006 52%, #0009 76%, #000f);
+  }
+  .header .title {
+    font-size: clamp(1.7rem, 7vw, 2.55rem);
+  }
+  .copy {
+    padding-right: 49px;
+  }
+}

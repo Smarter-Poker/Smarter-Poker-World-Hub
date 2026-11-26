@@ -12,6 +12,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -86,13 +87,23 @@ test('LogEntryModal is a back-gesture bottom sheet with safe-area padding', () =
   assert.match(src, /inputMode="decimal"/);
 });
 
-test('every bankroll modal carries the sheet classes and the back-gesture hook', () => {
-  for (const f of ['StartingBankrollModal', 'AdjustBankrollModal', 'ManageVenuesModal', 'BankrollProjection']) {
+test('bankroll bottom sheets carry the sheet classes and the back-gesture hook', () => {
+  for (const f of ['StartingBankrollModal', 'ManageVenuesModal', 'BankrollProjection']) {
     const src = read(`${COMPONENT_DIR}/${f}.jsx`);
     assert.match(src, /useModalHistory/, `${f} uses useModalHistory`);
     assert.match(src, /className="bankroll-modal"/, `${f} has the sheet container class`);
     assert.match(src, /bankroll-modal-close/, `${f} has a 44px close control`);
   }
+});
+
+test('Adjust Bankroll opens centered in the top layer and retains phone back and dismissal', () => {
+  const src = read(COMPONENT_DIR + '/AdjustBankrollModal.jsx');
+  assert.match(src, /useModalHistory\(true,/);
+  assert.match(src, /<dialog /);
+  assert.match(src, /node\.showModal\(\)/);
+  assert.match(src, /aria-label="Close Adjust Bankroll"/);
+  assert.match(src, /inputMode="decimal"/);
+  assert.match(read(COMPONENT_DIR + '/BankrollForms.module.css'), /\.adjust \{[^}]*inset:0; margin:auto;/);
 });
 
 test('bankroll.css holds the sheet rules under the one 600px breakpoint and the skeleton', () => {
@@ -110,4 +121,18 @@ test('no bankroll table is a raw <table> any more', () => {
   const files = fs.readdirSync(path.join(ROOT, COMPONENT_DIR)).filter((f) => /\.jsx?$/.test(f));
   const raw = files.filter((f) => /<table\b/.test(read(path.join(COMPONENT_DIR, f))));
   assert.deepEqual(raw, [], `raw tables (use ResponsiveTable): ${raw.join(', ')}`);
+});
+
+test('image headers pair each distinct seal with its own distinct photographic scene', () => {
+  const folder = path.join(ROOT, 'public/images/smarterdesign/headers');
+  const names = fs.readdirSync(folder).filter((name) => name.endsWith('.webp'));
+  const seals = names.filter((name) => name.endsWith('-seal.webp'));
+  const scenes = names.filter((name) => name.endsWith('-scene.webp')).sort();
+  assert.deepEqual(seals.map((name) => name.replace('-seal.webp', '-scene.webp')).sort(), scenes);
+  const hashes = names.map((name) => {
+    const bytes = fs.readFileSync(path.join(folder, name));
+    assert.equal(bytes.toString('ascii', 8, 12), 'WEBP', name);
+    return createHash('sha256').update(bytes).digest('hex');
+  });
+  assert.equal(new Set(hashes).size, names.length, 'Each production header uses unique artwork');
 });

@@ -80,7 +80,7 @@ import { getBankrollPreferences, updateBankrollPreferences } from '../../src/ser
 import { getBankrollStats } from '../../src/lib/bankroll/calculations';
 import { runLeakAnalysis } from '../../src/lib/bankroll/leakDetection';
 import { getUserLocations } from '../../src/lib/bankroll/locationMemory';
-import { fetchLedgerEntries, fetchTrips, fetchBankrollRules, getDateRangeFilter, initializeUserBankroll, deleteLedgerEntry, getActiveSeries, createTrip, updateLedgerEntry, createLedgerEntry } from '../../src/lib/bankroll/bankrollSelectors';
+import { fetchLedgerEntries, fetchReportLedger, fetchTrips, fetchBankrollRules, getDateRangeFilter, initializeUserBankroll, deleteLedgerEntry, getActiveSeries, createTrip, updateLedgerEntry, createLedgerEntry } from '../../src/lib/bankroll/bankrollSelectors';
 import {
   receiptActions, tripFromReceipt, w2gRowFromReceipt, receiptRowFromScan, ledgerCategoryFor,
   matchLocationByName, findOpenSessionFor, rankEntriesForReceipt,
@@ -102,7 +102,7 @@ const RECEIPT_TONE_COLORS = {
   ATTACH: '#60a5fa',
   LATER: '#a5b7cc',
 };
-import { formatCurrency } from '../../src/lib/bankroll/currencyUtils';
+import { formatCurrency, convertCurrency } from '../../src/lib/bankroll/currencyUtils';
 
 // Bankroll components. Eager: the dashboard's first paint (trend chart,
 // Jarvis insights, rules card, stat cards). Everything below the fold or
@@ -116,7 +116,7 @@ import JarvisLeakInsights from '../../src/components/bankroll/JarvisLeakInsights
 import BankrollGoals from '../../src/components/bankroll/BankrollGoals';
 import BankrollProGate from '../../src/components/bankroll/BankrollProGate';
 import ManageVenuesModal from '../../src/components/bankroll/ManageVenuesModal';
-import { TUTORIAL_WILL_OPEN_EVENT } from '../../src/tutorials';
+import { requestPageTutorial, TUTORIAL_WILL_OPEN_EVENT } from '../../src/tutorials';
 
 const SectionSkeleton = () => <div className="bankroll-skel" style={{ height: 300 }} />;
 const lazySection = (loader) => dynamic(loader, { ssr: false, loading: SectionSkeleton });
@@ -150,6 +150,8 @@ import { getAccessToken } from '../../src/lib/authUtils';
 import { listHeld, releaseHeld, noteAttempt } from '../../src/lib/bankroll/receiptHold.mjs';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import FaqSection from '../../src/components/seo/FaqSection';
+import BankrollImageHeader from '../../src/components/bankroll/BankrollImageHeader';
+import { BankrollActionTarget } from '../../src/components/bankroll/BankrollHeaderAdd';
 const StartingBankrollModal = dynamic(() => import('../../src/components/bankroll/StartingBankrollModal'), { ssr: false });
 
 // Clean SmarterPoker-style navigation (no emojis)
@@ -173,15 +175,21 @@ const SIDEBAR_SECTIONS = [
   { id: 'reports', label: 'Reports', icon: '' },
 ];
 
-// These sections open from the menu, independently of the always-visible rail.
+// These sections are available from the World Hub menu.
 const MENU_SECTION_TITLES = {
   settings: 'Settings',
   rules: 'Bankroll Rules',
   goals: 'Bankroll Goals',
 };
 
-// Accounting-only categories: NEVER count as sessions, never affect win rate, projections, or stats
-// 'receipt' was listed here for years; bankroll_ledger_category_check has never allowed it.
+function resolveBankrollView(requestedView) {
+  if (requestedView === 'advanced-tax') return 'tax';
+  const section = SIDEBAR_SECTIONS.find(item => item.id === requestedView);
+  if (section && !section.action && !['scan-receipt', 'projection'].includes(section.id)) return section.id;
+  return Object.hasOwn(MENU_SECTION_TITLES, requestedView) ? requestedView : 'dashboard';
+}
+
+// Accounting-only categories never count as gaming sessions.
 const ACCOUNTING_CATEGORIES = ['expense', 'deposit', 'withdrawal'];
 
 // Map URL ?type= values to database category IDs
@@ -203,6 +211,7 @@ const CATEGORY_LABELS = {
   expense: 'Expenses',
 };
 
+const EMPTY_LEDGER = [];
 const TIME_FILTERS = ['Last 7 Days', 'Last 30 Days', 'Last 90 Days', 'This Year', 'All Time'];
 
 function StatCard({ title, value, change, suffix, isRisk, isLoading, onClick, tutorialId }) {
@@ -308,7 +317,7 @@ export default function BankrollManagerPage() {
   // debounce, a mutation's loadData, filter changes) keeps the content on
   // screen so scroll position survives (mobile phase 0a, useInitialLoadRef).
   const isInitialLoad = useInitialLoadRef();
-  const sectionPushedRef = useRef(false);
+  const [actionTarget, setActionTarget] = useState(null);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
 
   // Offline: mutation buttons explain instead of firing (the OfflineBar in
@@ -324,18 +333,21 @@ export default function BankrollManagerPage() {
   }, []);
 
   // ═══ ACTION GATE: Users can explore dashboard, but logging/pro tools are gated ═══
-  const { guardAction, UpgradePopup, isVip: isGloballyVip, hasAccess: hasProAccess, expiresAt: proExpiresAt } = useFeatureGate('bankroll_pro');
+  const { guardAction, UpgradePopup, loading: featureAccessLoading, isVip: isGloballyVip, hasAccess: hasProAccess, expiresAt: proExpiresAt } = useFeatureGate('bankroll_pro');
 
   // UI State - use persisted filters
   const { filters, setFilter } = usePersistedFilters('bankroll-manager', {
-    activeSection: 'dashboard',
-    categoryFilter: 'all',
     timeFilter: 'All Time',
     chartType: 'line'
   });
 
-  const activeSection = filters.activeSection === 'advanced-tax' ? 'tax' : filters.activeSection;
-  const categoryFilter = filters.categoryFilter;
+  const requestedView = Array.isArray(router.query.view) ? router.query.view[0] : router.query.view;
+  const requestedType = Array.isArray(router.query.type) ? router.query.type[0] : router.query.type;
+  const categoryFilter = Object.hasOwn(TYPE_TO_CATEGORY, requestedType) ? TYPE_TO_CATEGORY[requestedType] :
+    Object.hasOwn(CATEGORY_LABELS, requestedType) ? requestedType : 'all';
+  const activeSection = categoryFilter !== 'all' ? 'dashboard' : resolveBankrollView(requestedView);
+  const headerSection = categoryFilter !== 'all' ? categoryFilter : activeSection === 'toke-tracker' ? 'toke-home' : activeSection;
+  const isDashboard = activeSection === 'dashboard' && categoryFilter === 'all';
   const timeFilter = filters.timeFilter;
   const chartType = filters.chartType;
   const sectionTitle = activeSection === 'dashboard'
@@ -345,72 +357,15 @@ export default function BankrollManagerPage() {
       || ({ leaks: 'Leak Analysis', pro: 'Pro Tools' })[activeSection]
       || 'Bankroll Manager';
 
-  const setActiveSection = (val) => setFilter('activeSection', val);
-  const setCategoryFilter = (val) => setFilter('categoryFilter', val);
   const setTimeFilter = (val) => setFilter('timeFilter', val);
   const setChartType = (val) => setFilter('chartType', val);
 
   const [editEntry, setEditEntry] = useState(null);
 
-  // Handle query parameters for deep linking
-  // Use router.asPath as dependency - it's a string that reliably changes on same-page navigation
-  useEffect(() => {
-    if (!router.isReady) return;
-    if (router.query.view) {
-      const requestedView = Array.isArray(router.query.view) ? router.query.view[0] : router.query.view;
-      if (requestedView === 'log-session') {
-        setActiveSection('dashboard');
-      } else if (requestedView === 'advanced-tax') {
-        setActiveSection('tax');
-      } else if (SIDEBAR_SECTIONS.some((s) => s.id === requestedView && !s.action) || Object.hasOwn(MENU_SECTION_TITLES, requestedView)) {
-        setActiveSection(requestedView);
-        sectionPushedRef.current = true;
-      } else {
-        // A six-month-old bookmark, or a section since renamed. Nothing
-        // renders for an unknown id, so the page came up blank with no way
-        // back except the browser's back button.
-        setActiveSection('dashboard');
-      }
-    }
-    if (router.query.type) {
-      // Map URL type to DB category
-      const dbCategory = TYPE_TO_CATEGORY[router.query.type] || router.query.type;
-      setCategoryFilter(dbCategory);
-      setActiveSection('dashboard'); // Ensure we show the dashboard when filtering
-    } else if (!router.query.view) {
-      setCategoryFilter('all');
-      // No ?view and we have pushed one before: the phone back gesture has
-      // returned to the bare URL, which is the dashboard (mobile phase 1b,
-      // BACK BUTTON). A first visit with a persisted section keeps it.
-      if (sectionPushedRef.current) setActiveSection('dashboard');
-    }
-  }, [router.asPath, router.isReady]);
-
-  // On arrival with a persisted non-dashboard section and a bare URL, write
-  // the section into the URL once so the state and the address agree.
-  useEffect(() => {
-    if (!router.isReady) return;
-    if (router.query.view || router.query.type) return;
-    if (!filters.activeSection || filters.activeSection === 'dashboard') return;
-    if (sectionPushedRef.current) return;
-    sectionPushedRef.current = true;
-    void router.replace(
-      { pathname: router.pathname, query: { view: filters.activeSection } },
-      undefined,
-      { shallow: true, scroll: false },
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router.isReady]);
-
-  // Every user-driven section change is a shallow history entry, so the
-  // phone back gesture returns to the previous section instead of leaving
-  // the page. `?view=log-session` and `?type=` deep links are untouched.
+  // The URL owns the current screen. A bare link always opens the dashboard.
   const goToSection = useCallback((sectionId) => {
-    setActiveSection(sectionId);
-    sectionPushedRef.current = true;
     const query = sectionId === 'dashboard' ? {} : { view: sectionId };
-    void router.push({ pathname: '/hub/bankroll-manager', query }, undefined, { shallow: true, scroll: false });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    void router.push({ pathname: '/hub/bankroll-manager', query }, undefined, { shallow: true, scroll: true });
   }, [router]);
   const [showLogModal, setShowLogModal] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -423,9 +378,9 @@ export default function BankrollManagerPage() {
   const [showAdjustModal, setShowAdjustModal] = useState(false);
   const [bankrollInitialized, setBankrollInitialized] = useState(null); // null = loading, true/false
 
-  const clearLogSessionView = useCallback(() => {
+  const clearActionView = useCallback((view) => {
     const requestedView = Array.isArray(router.query.view) ? router.query.view[0] : router.query.view;
-    if (requestedView !== 'log-session') return;
+    if (requestedView !== view) return;
 
     /* STAND DOWN useModalHistory BEFORE replacing the URL (2026-09-03).
        Two mechanisms own history for this modal and they were undoing each
@@ -473,8 +428,8 @@ export default function BankrollManagerPage() {
     setDefaultReceiptCategory(null);
     setDefaultReceiptMedia(null);
     setDefaultReceiptData(null);
-    clearLogSessionView();
-  }, [clearLogSessionView]);
+    clearActionView('log-session');
+  }, [clearActionView]);
 
   // Hamburger menu preferences
   const [preferences, setPreferences] = useState({
@@ -516,6 +471,12 @@ export default function BankrollManagerPage() {
   // Data
   const [stats, setStats] = useState(null);
   const [entries, setEntries] = useState([]);
+  const reportScope = JSON.stringify([userId, timeFilter, locationFilter]);
+  const [analysisLedger, setAnalysisLedger] = useState(null);
+  const [failedScope, setFailedScope] = useState(null);
+  const reportReady = analysisLedger?.scope === reportScope;
+  const analysisEntries = reportReady ? analysisLedger.rows : EMPTY_LEDGER;
+  const latestLoad = useRef(0);
   const [trips, setTrips] = useState([]);
   const [activeSeries, setActiveSeries] = useState(null);
   const [locations, setLocations] = useState([]);
@@ -554,52 +515,32 @@ export default function BankrollManagerPage() {
   const [ruleViolations, setRuleViolations] = useState([]);
   const [isVip, setIsVip] = useState(false);
 
-  // Pre-compute report stats to avoid inline IIFEs (Terser mangles Set refs inside IIFEs)
-  const gamingSessions = useMemo(() => {
-    if (!entries || entries.length === 0) return [];
-    return entries.filter(e => {
-      const cat = e.category;
-      return cat !== 'expense' && cat !== 'deposit' && cat !== 'withdrawal' && cat !== 'receipt';
-    });
-  }, [entries]);
-
-  const reportTotalSessions = gamingSessions.length;
-
-  const reportWinRate = useMemo(() => {
-    if (gamingSessions.length === 0) return 0;
-    const wins = gamingSessions.filter(e => (e.gross_out - e.gross_in) > 0).length;
-    return Math.round((wins / gamingSessions.length) * 100);
+  const gamingSessions = useMemo(
+    () => analysisEntries.filter(entry => Object.hasOwn(CATEGORY_LABELS, entry.category) && entry.category !== 'expense'),
+    [analysisEntries],
+  );
+  const report = useMemo(() => {
+    const count = gamingSessions.length;
+    let net = 0;
+    let wins = 0;
+    for (const entry of gamingSessions) {
+      const result = Number(entry.net_result ?? (Number(entry.gross_out || 0) - Number(entry.gross_in || 0)));
+      net += result;
+      if (result > 0) wins += 1;
+    }
+    return { count, net, winRate: count ? Math.round(wins / count * 100) : 0, average: count ? net / count : 0 };
   }, [gamingSessions]);
-
-  const reportAvgSession = useMemo(() => {
-    if (gamingSessions.length === 0) return 0;
-    const total = gamingSessions.reduce((sum, e) => sum + (e.gross_out - e.gross_in), 0);
-    return Math.round(total / gamingSessions.length);
-  }, [gamingSessions]);
-
-  // Pre-compute filtered analytics entries (gaming sessions only, matching game type filter)
-  const filteredAnalyticsEntries = useMemo(() => {
-    if (!entries || entries.length === 0) return [];
-    return entries.filter(e => {
-      const cat = e.category;
-      const isAccounting = cat === 'expense' || cat === 'deposit' || cat === 'withdrawal' || cat === 'receipt';
-      return !isAccounting && gameTypeFilter.includes(cat);
-    });
-  }, [entries, gameTypeFilter]);
-
-  // Pre-compute chart entries (gaming sessions matching filter + always include expenses)
-  const chartEntries = useMemo(() => {
-    if (!entries || entries.length === 0) return [];
-    return entries.filter(e => {
-      return e.category === 'expense' || gameTypeFilter.includes(e.category);
-    });
-  }, [entries, gameTypeFilter]);
-
-    // Intro video removed by request
-  
-  // Mark intro as seen when it ends
-
-  // Attempt to unmute video after it starts playing
+  const reportCurrency = new Intl.NumberFormat('en-US', {
+    style: 'currency', currency: preferences.currencyEUR ? 'EUR' : 'USD', signDisplay: 'exceptZero',
+  });
+  const filteredAnalyticsEntries = useMemo(
+    () => gamingSessions.filter(entry => gameTypeFilter.includes(entry.category)),
+    [gamingSessions, gameTypeFilter],
+  );
+  const chartEntries = useMemo(
+    () => analysisEntries.filter(entry => entry.category === 'expense' || gameTypeFilter.includes(entry.category)),
+    [analysisEntries, gameTypeFilter],
+  );
 
   // Initialize bankroll for new users
   useEffect(() => {
@@ -613,10 +554,13 @@ export default function BankrollManagerPage() {
 
   // Load all data
   const loadData = useCallback(async () => {
-    const controller = new AbortController();
-    const { signal } = controller;
+    const request = ++latestLoad.current;
     // Fix: Set isLoading false even when no user (prevents infinite skeleton)
     if (!userId) {
+      setAnalysisLedger(null);
+      setFailedScope(null);
+      setEntries([]);
+      setStats(null);
       setIsLoading(false);
       return;
     }
@@ -627,18 +571,18 @@ export default function BankrollManagerPage() {
 
       const [statsData, entriesData, tripsData, locationsData, leakData] = await Promise.all([
         getBankrollStats(userId, dateRange.startDate, dateRange.endDate, locationFilter),
-        fetchLedgerEntries(userId, {
+        fetchReportLedger(userId, {
           locationId: locationFilter,
           startDate: dateRange.startDate,
           endDate: dateRange.endDate,
           includeExpenses: true,
-          limit: 50,
         }),
         fetchTrips(userId),
         getUserLocations(userId),
         runLeakAnalysis(userId, locationFilter),
       ]);
 
+      if (request !== latestLoad.current || !isMountedRef.current) return;
       setStats(statsData);
       setTrips(tripsData);
       setLocations(locationsData);
@@ -648,6 +592,7 @@ export default function BankrollManagerPage() {
       var seriesData = null;
       try {
         seriesData = await getActiveSeries(userId);
+        if (request !== latestLoad.current || !isMountedRef.current) return;
         setActiveSeries(seriesData);
       } catch (e) {
       setIsLoading(false);
@@ -671,9 +616,12 @@ export default function BankrollManagerPage() {
       }
 
       // 3. Separate entries: hide active trip/series, keep the rest
+      if (request !== latestLoad.current || !isMountedRef.current) return;
+      setAnalysisLedger({ scope: reportScope, rows: entriesData.filter(entry => !entry.trip_id || !activeIds.includes(entry.trip_id)) });
+      setFailedScope(null);
       var visible = [];
       var completedTripMap = {};
-      for (var i = 0; i < entriesData.length; i++) {
+      for (var i = 0; i < Math.min(50, entriesData.length); i++) {
         var entry = entriesData[i];
         if (entry.trip_id && activeIds.indexOf(entry.trip_id) !== -1) {
           // Entry belongs to an active trip/series - HIDE it
@@ -723,9 +671,10 @@ export default function BankrollManagerPage() {
       visible.sort(function (a, b) { return b.entry_date.localeCompare(a.entry_date); });
       setEntries(visible);
     } catch (error) {
+      if (request === latestLoad.current && isMountedRef.current) setFailedScope(reportScope);
       console.warn('Error loading bankroll data:', error);
     } finally {
-      if (isMountedRef.current) {
+      if (request === latestLoad.current && isMountedRef.current) {
         setIsLoading(false);
         if (isInitialLoad.current) {
           isInitialLoad.current = false;
@@ -733,7 +682,7 @@ export default function BankrollManagerPage() {
         }
       }
     }
-  }, [userId, locationFilter, timeFilter]);
+  }, [userId, locationFilter, timeFilter, reportScope]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // TIER 3 REALTIME: Bankroll Data Sync
@@ -780,7 +729,7 @@ export default function BankrollManagerPage() {
     if (entries.length === 0) capture(FunnelEvents.BANKROLL_FIRST_ENTRY, { source: 'log_entry_modal' });
     setShowLogModal(false);
     setEditEntry(null);
-    clearLogSessionView();
+    clearActionView('log-session');
     setRefreshTrigger(prev => prev + 1);
     await loadData();
 
@@ -867,7 +816,6 @@ export default function BankrollManagerPage() {
     if (!router.isReady) return;
     const requestedView = Array.isArray(router.query.view) ? router.query.view[0] : router.query.view;
     if (requestedView === 'log-session') {
-      setActiveSection('dashboard');
       void handleLogClick();
       return;
     }
@@ -1038,6 +986,7 @@ export default function BankrollManagerPage() {
       toast.success('Receipt Kept In Receipts Waiting. Assign It From The Dashboard.');
     }
     setScannerHasUnsaved(false);
+    clearActionView('scan-receipt');
     setShowScanner(false);
     setScannerStep('scan');
     setScannerEntryId(null);
@@ -1049,7 +998,7 @@ export default function BankrollManagerPage() {
     setScannerDuplicate(null);
     scannerImageHashRef.current = null;
     scannerReadOutcomeRef.current = { outcome: null, ocrConfidence: null };
-  }, [scannerHasUnsaved, scannerStep, scannerReceiptId, scannerImageUrl]);
+  }, [clearActionView, scannerHasUnsaved, scannerStep, scannerReceiptId, scannerImageUrl]);
 
   /** Unassigned scans, newest first. Shown on the dashboard until filed. */
   const loadPendingReceipts = useCallback(async () => {
@@ -1435,17 +1384,30 @@ export default function BankrollManagerPage() {
       setShowProjection(true);
     } else if (sectionId === 'toke-tracker') {
       // Navigate to dedicated Toke Tracker landing page
-      router.push('/hub/toke-tracker');
+      router.push('/hub/toke-tracker?from=bankroll');
       return;
     } else if (sectionId === 'dashboard') {
       // Reset category filter when going back to Dashboard
-      setCategoryFilter('all');
       goToSection('dashboard');
       loadData(); // Refresh dashboard data (trips, series banners, stats)
     } else {
       goToSection(sectionId);
     }
   };
+
+  const openedPopupLink = useRef(null);
+  useEffect(() => {
+    if (!router.isReady || featureAccessLoading) return;
+    if (!['adjust-bankroll', 'scan-receipt', 'projection'].includes(requestedView)) {
+      openedPopupLink.current = null;
+      return;
+    }
+    if (openedPopupLink.current === requestedView) return;
+    openedPopupLink.current = requestedView;
+    // A query change remounts the shell. Keep this action address until the user closes the overlay.
+    if (requestedView === 'adjust-bankroll') openAdjustModal();
+    else handleSidebarClick(requestedView);
+  }, [router.isReady, requestedView, featureAccessLoading]);
 
   // The page tutorial lives in the app shell (TutorialProvider; offered by
   // the three-second prompt and the hamburger's Page Tutorial row). Its
@@ -1461,8 +1423,7 @@ export default function BankrollManagerPage() {
     if (typeof window === 'undefined') return undefined;
     const onWillOpen = (e) => {
       if (e && e.detail && e.detail.id && e.detail.id !== 'bankroll-manager') return;
-      if (activeSectionRef.current !== 'dashboard') goToSection('dashboard');
-      if (categoryFilterRef.current !== 'all') setCategoryFilter('all');
+      if (activeSectionRef.current !== 'dashboard' || categoryFilterRef.current !== 'all') goToSection('dashboard');
     };
     window.addEventListener(TUTORIAL_WILL_OPEN_EVENT, onWillOpen);
     return () => window.removeEventListener(TUTORIAL_WILL_OPEN_EVENT, onWillOpen);
@@ -1586,13 +1547,21 @@ export default function BankrollManagerPage() {
             bottomLinks={menuConfig.bottomLinks}
           />
 
-          <header className={`sd-masthead ${layout.mast}`}>
-            <img className={layout.walletMark} src="/images/header-wallet-v2.png" alt="" width="72" height="72" />
-            <div className={layout.titleGroup}>
-              {sectionTitle !== 'Bankroll Manager' && <div className={layout.productName}>Bankroll Manager</div>}
-              <h1>{sectionTitle}</h1>
-            </div>
-            <div className={layout.headerActions}>
+          <BankrollImageHeader className={layout.mast} title={sectionTitle}
+            art={headerSection === 'dashboard' ? 'bankroll' : headerSection} section={headerSection}
+            parent={sectionTitle !== 'Bankroll Manager' ? 'Bankroll Manager' : undefined}
+            onTutorial={requestPageTutorial}
+            helpContent={
+              <>
+                {isDashboard && <HubPageSummary page="bankroll-manager" />}
+                <FaqSection faqs={BANKROLL_MANAGER_FAQS} />
+              </>
+            }>
+            <div className={layout.headerActions} ref={setActionTarget}>
+              {!isDashboard && <Link href="/hub/bankroll-manager" shallow className="sd-button">Back To Dashboard</Link>}
+              {activeSection === 'receipts' && (
+                <button type="button" className="bankroll-log-btn sd-button sd-primary" onClick={() => handleSidebarClick('scan-receipt')} aria-label="Add + · Scan Receipt">Add +</button>
+              )}
               {!isGloballyVip && hasProAccess && proExpiresAt && <DayPassCountdown expiresAt={proExpiresAt} />}
               {activeSection === 'dashboard' && categoryFilter === 'all' && (
                 <button type="button" className="bankroll-log-btn sd-button sd-primary" data-tutorial="add-button" onClick={() => { haptic('light'); handleLogClick(); }}>
@@ -1600,16 +1569,11 @@ export default function BankrollManagerPage() {
                 </button>
               )}
             </div>
-          </header>
+          </BankrollImageHeader>
 
           {/* Main Layout */}
           <div className="bankroll-main-layout" style={styles.mainLayout}>
-            {/* Navigation. ONE nav for every width (Always-Displayed Mobile
-                Standard, docs/mobile-standard). Desktop: the 160px rail.
-                Phone (<=768px): the same 13 buttons as a two-column grid
-                above the content, every one visible, nothing behind a
-                swipe. The old `.bankroll-mobile-nav` horizontal pill rail
-                (hidden scrollbar, items 5-13 off screen) is deleted. */}
+            {isDashboard && (
             <nav className={`bankroll-sidebar ${layout.sidebar}`} aria-label="Bankroll Manager Sections">
               <div className="bankroll-sidebar-list" data-tutorial="nav">
                 {SIDEBAR_SECTIONS.map((section) => {
@@ -1622,7 +1586,7 @@ export default function BankrollManagerPage() {
                       aria-current={isActive ? 'page' : undefined}
                       onClick={() => section.action ? openAdjustModal() : handleSidebarClick(section.id)}
                     >
-                      {section.id === 'dashboard' && activeSection !== 'dashboard' ? '← Dashboard' : section.label}
+                      {section.label}
                       {section.id === 'scan-receipt' && pendingReceipts.length > 0 && (
                         <span style={styles.sidebarBadge} aria-label={`${pendingReceipts.length} Receipts Waiting`}>
                           {pendingReceipts.length}
@@ -1633,12 +1597,10 @@ export default function BankrollManagerPage() {
                 })}
               </div>
 
-              {/* Jarvis AI Insights - moved from right panel */}
-              <div className="bankroll-sidebar-insights" data-tutorial="insights" style={{ marginTop: 16, borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 16 }}>
-                <JarvisLeakInsights userId={userId} onRefresh={loadData} />
-              </div>
             </nav>
+            )}
 
+            <BankrollActionTarget.Provider value={isDashboard ? undefined : actionTarget}>
             {/* Main Content - Switches based on activeSection */}
             <section className={`bankroll-main-content ${layout.content}`} aria-label={sectionTitle}>
 
@@ -1648,10 +1610,6 @@ export default function BankrollManagerPage() {
                   <CategoryOverview
                     userId={userId}
                     categoryFilter={categoryFilter}
-                    onBack={() => {
-                      setCategoryFilter('all');
-                      goToSection('dashboard');
-                    }}
                   />
                 </HubErrorBoundary>
               )}
@@ -1986,7 +1944,7 @@ export default function BankrollManagerPage() {
 
                     {/* Bankroll Trend Chart, filtered by gameTypeFilter, always include expenses */}
                     <div data-tutorial="chart">
-                    <BankrollTrendChart entries={chartEntries} isLoading={isLoading} chartType={chartType} timeFilter={timeFilter} />
+                    <BankrollTrendChart displayEUR={preferences.currencyEUR} entries={chartEntries} isLoading={isLoading} chartType={chartType} timeFilter={timeFilter} />
 
                     {/* Filters Row */}
                     <div className="bankroll-filters-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 12 }}>
@@ -2180,20 +2138,20 @@ export default function BankrollManagerPage() {
                     {/* Analytics: a grid at every width. Three across on
                         desktop, one column stacked on phones. Was a
                         scroll-snap slider with 85% cards (slide to see). */}
-                    <div className="bankroll-analytics-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16, gridAutoRows: '300px', filter: isVip ? 'none' : 'blur(3px)', pointerEvents: isVip ? 'auto' : 'none' }}>
-                      <div className="bankroll-analytics-card" style={{ height: 300, minHeight: 300, maxHeight: 300, overflow: 'auto' }}>
+                    <div className={layout.analyticsGrid} style={{ filter: isVip ? 'none' : 'blur(3px)', pointerEvents: isVip ? 'auto' : 'none' }}>
+                      <div className={layout.analyticsCard}>
                         <HubErrorBoundary name="Location Analytics">
-                          <LocationAnalytics entries={filteredAnalyticsEntries} isLoading={isLoading} />
+                          <LocationAnalytics displayEUR={preferences.currencyEUR} entries={filteredAnalyticsEntries} isLoading={isLoading} />
                         </HubErrorBoundary>
                       </div>
-                      <div className="bankroll-analytics-card" style={{ height: 300, minHeight: 300, maxHeight: 300, overflow: 'auto' }}>
+                      <div className={layout.analyticsCard}>
                         <HubErrorBoundary name="Variance Calculator">
-                          <VarianceCalculator entries={filteredAnalyticsEntries} />
+                          <VarianceCalculator displayEUR={preferences.currencyEUR} entries={filteredAnalyticsEntries} />
                         </HubErrorBoundary>
                       </div>
-                      <div className="bankroll-analytics-card" style={{ height: 300, minHeight: 300, maxHeight: 300, overflow: 'auto' }}>
+                      <div className={layout.analyticsCard}>
                         <HubErrorBoundary name="Historical Comparison">
-                          <HistoricalComparison entries={filteredAnalyticsEntries} />
+                          <HistoricalComparison displayEUR={preferences.currencyEUR} entries={filteredAnalyticsEntries} />
                         </HubErrorBoundary>
                       </div>
                     </div>
@@ -2407,40 +2365,16 @@ export default function BankrollManagerPage() {
                 <div className={`sd-panel ${layout.panel}`}>
                   <h2 className="sd-section-title">Performance Reports</h2>
 
-                  {/* Quick Stats Summary */}
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(2, 1fr)',
-                    gap: 12,
-                    marginBottom: 20
-                  }}>
-                    <div style={styles.reportStatBox}>
-                      <span style={styles.reportStatLabel}>Total Sessions</span>
-                      <span style={styles.reportStatValue}>{reportTotalSessions}</span>
-                    </div>
-                    <div style={styles.reportStatBox}>
-                      <span style={styles.reportStatLabel}>Win Rate</span>
-                      <span style={styles.reportStatValue}>
-                        {reportWinRate}%
-                      </span>
-                    </div>
-                    <div style={styles.reportStatBox}>
-                      <span style={styles.reportStatLabel}>Net P/L</span>
-                      <span style={{
-                        ...styles.reportStatValue,
-                        color: (stats?.totalNetResult || 0) >= 0 ? '#22c55e' : '#ef4444'
-                      }}>
-                        {(stats?.totalNetResult || 0) >= 0 ? '+' : ''}${Math.abs(stats?.totalNetResult || 0).toLocaleString()}
-                      </span>
-                    </div>
-                    <div style={styles.reportStatBox}>
-                      <span style={styles.reportStatLabel}>Avg Session</span>
-                      <span style={styles.reportStatValue}>
-                        ${reportAvgSession}
-                      </span>
-                    </div>
-                  </div>
-
+                  {failedScope === reportScope && (
+                    <p role="alert">Could Not Refresh Reports. <button type="button" className="sd-button" onClick={loadData}>Retry</button></p>
+                  )}
+                  {!reportReady && failedScope !== reportScope && <p role="status">{userId ? 'Loading Reports…' : 'Sign In To View Reports'}</p>}
+                  {reportReady && <dl className={layout.reportMetrics}>
+                    <div className={layout.reportMetric}><dt>Total Sessions</dt><dd><strong>{report.count}</strong></dd></div>
+                    <div className={layout.reportMetric}><dt>Win Rate</dt><dd><strong>{report.winRate}%</strong></dd></div>
+                    <div className={layout.reportMetric}><dt>Net P/L</dt><dd><strong>{reportCurrency.format(convertCurrency(report.net, preferences.currencyEUR))}</strong></dd></div>
+                    <div className={layout.reportMetric}><dt>Avg Session</dt><dd><strong>{reportCurrency.format(convertCurrency(report.average, preferences.currencyEUR))}</strong></dd></div>
+                  </dl>}
                   <BankrollExportFormats />
                 </div>
               )}
@@ -2520,16 +2454,10 @@ export default function BankrollManagerPage() {
                       </div>
                     </div>
                   )}
-                  <div style={{ padding: '20px 16px 14px', borderBottom: '2px solid #4e4f50' }}>
-                    <h2 style={{ fontSize: 22, fontWeight: 700, color: '#edf6ff', margin: 0, fontFamily: "'Rajdhani', sans-serif" }}>
-                      Tax Reports
-                    </h2>
-                    <p style={{ fontSize: 15, color: '#b6c9dd', margin: '4px 0 0', fontFamily: "'Rajdhani', sans-serif" }}>Generate Tax Documents For Your Poker Income</p>
-                  </div>
                   <BankrollProGate userId={userId}>
                     <div style={{ padding: 16 }}>
                       <HubErrorBoundary name="State Tax Report">
-                        <AdvancedTaxReport entries={entries} userId={userId} />
+                        <AdvancedTaxReport entries={analysisEntries} userId={userId} />
                       </HubErrorBoundary>
                       <div style={{ marginTop: 24, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 24 }}>
                         <HubErrorBoundary name="Tax Reports">
@@ -2563,7 +2491,7 @@ export default function BankrollManagerPage() {
                 <div>
                   <BankrollProGate userId={userId}>
                     <HubErrorBoundary name="Staking Profile">
-                      <SocialStakingProfile entries={entries} stats={stats} user={user} />
+                      <SocialStakingProfile entries={analysisEntries} stats={stats} user={user} displayEUR={preferences.currencyEUR} onClose={() => goToSection('dashboard')} />
                     </HubErrorBoundary>
                   </BankrollProGate>
                 </div>
@@ -2600,7 +2528,13 @@ export default function BankrollManagerPage() {
                 </div>
               )}
             </section>
+            </BankrollActionTarget.Provider>
           </div>
+          {isDashboard && (
+            <div data-tutorial="insights" className={layout.jarvisFooter}>
+              <JarvisLeakInsights userId={userId} onRefresh={loadData} />
+            </div>
+          )}
         </FeatureGate>
       </div>
       </PullToRefresh>
@@ -3051,10 +2985,11 @@ export default function BankrollManagerPage() {
           <AdjustBankrollModal
             userId={userId}
             onComplete={() => {
+              clearActionView('adjust-bankroll');
               setShowAdjustModal(false);
               loadData();
             }}
-            onClose={() => setShowAdjustModal(false)}
+            onClose={() => { clearActionView('adjust-bankroll'); setShowAdjustModal(false); }}
           />
         )}
       </AnimatePresence>
@@ -3067,14 +3002,12 @@ export default function BankrollManagerPage() {
           <BankrollProjection
             userId={userId}
             currentBankroll={stats?.totalBankroll || 0}
-            onClose={() => setShowProjection(false)}
+            onClose={() => { clearActionView('projection'); setShowProjection(false); }}
           />
         )}
       </AnimatePresence>
       {UpgradePopup}
       </div>
-      <FaqSection faqs={BANKROLL_MANAGER_FAQS} />
-      <HubPageSummary page="bankroll-manager" />
     </PageTransition >
   );
 }
@@ -3527,26 +3460,6 @@ const styles = {
   },
   logArrow: {
     fontSize: 18,
-  },
-  reportStatBox: {
-    padding: 16,
-    background: 'rgba(255, 255, 255, 0.03)',
-    border: '2px solid rgba(255, 255, 255, 0.06)',
-    borderRadius: 10,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 6,
-  },
-  reportStatLabel: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.5)',
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px',
-  },
-  reportStatValue: {
-    fontSize: 20,
-    fontWeight: 700,
-    color: '#fff',
   },
   // Pro Tools styles - Futuristic Metal UI
   proToolsContainer: {
