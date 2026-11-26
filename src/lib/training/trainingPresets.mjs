@@ -1130,40 +1130,6 @@ export function evaluateHandBlockerImpact(input = {}) {
 }
 
 /**
- * 4. Spaced-Repetition (SRS) Mastery Decay & Due-For-Review Queue
- */
-export function buildSpacedRepetitionDueQueue(input = {}) {
-  const sessions = Array.isArray(input.sessions) ? input.sessions : [];
-  const defaultBuckets = [
-    { intervalLabel: '1-Day Interval', count: Math.max(2, Math.min(6, sessions.length || 3)), focus: 'BTN vs BB C-Bet Defense' },
-    { intervalLabel: '3-Day Interval', count: 2, focus: '3-Bet Pot Turn Barrel Sizing' },
-    { intervalLabel: '7-Day Interval', count: 1, focus: 'PLO8 Nut-Low Quartering Protection' },
-  ];
-  const totalDueCount = defaultBuckets.reduce((acc, b) => acc + b.count, 0);
-  const topVariant = String(input.variant || 'nlh').toLowerCase();
-  const gameId = topVariant === 'plo8' ? 'omaha-002' : topVariant.startsWith('plo') ? 'cash-005' : 'cash-002';
-  const packToken = encodeSharedDrillPack({
-    title: `Spaced-Repetition Due Queue (${totalDueCount} Spots)`,
-    gameId,
-    variant: topVariant,
-    bettingStructure: topVariant === 'nlh' ? 'no_limit' : 'pot_limit',
-    format: 'cash',
-    stackDepthBb: 100,
-    heroPosition: 'BTN',
-    targetStreet: 'flop',
-    questionsCount: 10,
-  });
-  return Object.freeze({
-    totalDueCount,
-    retentionHealthPct: Math.max(68, Math.min(96, 84 + Math.min(10, sessions.length))),
-    buckets: defaultBuckets,
-    gameId,
-    packToken,
-    href: `/hub/training/arena/${encodeURIComponent(gameId)}?level=1&pack=${encodeURIComponent(packToken)}&source=srs-due-queue`,
-  });
-}
-
-/**
  * 5. Exportable Session Study Dossier (Markdown / Printable Coaching Sheet)
  */
 export function buildSessionStudyDossierMarkdown(input = {}) {
@@ -1248,47 +1214,6 @@ export function evaluateAdaptiveVillainCounterStrategy(input = {}) {
     counterBadge: 'Villain Holding GTO Equilibrium Baseline (No Exploit Shift Triggered Yet)',
     evAdjustmentBb: 0.0,
     recommendedCounter: 'Execute Baseline Mixed Frequencies & Press Blocker Edges',
-  });
-}
-
-/**
- * 9. Bankroll & Stake-Readiness Certification Gate ("Club Arena Stake-Readiness Passport")
- */
-export function evaluateClubArenaStakeReadiness(input = {}) {
-  const accuracyPct = Number.isFinite(Number(input.accuracyPct)) ? Number(input.accuracyPct) : 82;
-  const handsSampled = Math.max(0, Number(input.handsSampled) || 120);
-  const variant = String(input.variant || 'nlh').toLowerCase();
-
-  const tier = accuracyPct >= 88 && handsSampled >= 100
-    ? { id: 'high_stakes', label: 'High Stakes Certified (5/10+ & High-Roller MTT)', minAccuracy: 88 }
-    : accuracyPct >= 80 && handsSampled >= 40
-      ? { id: 'mid_stakes', label: 'Mid Stakes Certified (2/5 Cash & $215 MTT)', minAccuracy: 80 }
-      : accuracyPct >= 72
-        ? { id: 'low_stakes', label: 'Low Stakes Certified (1/2 Cash & $55 MTT)', minAccuracy: 72 }
-        : { id: 'micro_stakes', label: 'Micro Stakes Foundation (0.25/0.50 & $11 MTT)', minAccuracy: 65 };
-
-  const nextTierTargetPct = tier.id === 'high_stakes' ? 92 : tier.id === 'mid_stakes' ? 88 : tier.id === 'low_stakes' ? 80 : 72;
-  const qualifyingGameId = variant === 'plo8' ? 'omaha-002' : variant.startsWith('plo') ? 'cash-005' : 'cash-002';
-  const packToken = encodeSharedDrillPack({
-    title: `${tier.label} Qualification Drill`,
-    gameId: qualifyingGameId,
-    variant,
-    bettingStructure: variant === 'nlh' ? 'no_limit' : 'pot_limit',
-    format: 'cash',
-    stackDepthBb: 100,
-    heroPosition: 'BTN',
-    targetStreet: 'flop',
-    questionsCount: 10,
-  });
-
-  return Object.freeze({
-    tierId: tier.id,
-    tierLabel: tier.label,
-    accuracyPct,
-    handsSampled,
-    nextTierTargetPct,
-    isCertified: accuracyPct >= tier.minAccuracy,
-    qualifyingHref: `/hub/training/arena/${encodeURIComponent(qualifyingGameId)}?level=1&pack=${encodeURIComponent(packToken)}&source=stake-readiness-passport`,
   });
 }
 
