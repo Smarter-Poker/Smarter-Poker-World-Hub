@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { installRealtimeSessionGuard } from './fixtures/realtimeSessionGuard';
 
-test.use({ storageState: { cookies: [], origins: [] }, serviceWorkers: 'block', reducedMotion: 'reduce' });
+test.use({ storageState: { cookies: [], origins: [] }, serviceWorkers: 'block', contextOptions: { reducedMotion: 'reduce' } });
 
 const dealerId = '00000000-0000-4000-8000-000000000001';
 const liveGig = {
