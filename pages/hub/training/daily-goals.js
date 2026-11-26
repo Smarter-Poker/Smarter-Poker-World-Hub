@@ -111,7 +111,7 @@ function generateGoals(sessionsParams) {
       target: 3,
       current: todaySessions.length,
       type: 'count',
-      color: '#f2b84b',
+      color: '#86daff',
       icon: '⌁',
     },
     {
@@ -131,7 +131,7 @@ function generateGoals(sessionsParams) {
       target: 90,
       current: bestAccuracy,
       type: 'percent',
-      color: '#f2b84b',
+      color: '#86daff',
       icon: '▲',
     },
   ];
@@ -288,7 +288,7 @@ export default function DailyGoalsPage() {
                   className={`${casinoStyles.panel} ${casinoStyles.bonusPanel}`}
                 >
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#f2b84b' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#86daff' }}>
                       Daily Bonus Settlement Paused
                     </div>
                     <div style={{ fontSize: 12, color: '#a8bbc4', marginTop: 4 }}>
@@ -356,7 +356,7 @@ export default function DailyGoalsPage() {
                   <div
                     style={{
                       fontSize: 24,
-                      color: streakDays > 0 ? '#f2b84b' : '#6c8593',
+                      color: streakDays > 0 ? '#86daff' : '#6c8593',
                       display: 'inline-flex',
                       marginBottom: 4,
                     }}
@@ -368,7 +368,7 @@ export default function DailyGoalsPage() {
                     style={{
                       fontSize: 24,
                       fontWeight: 900,
-                      color: streakDays > 0 ? '#f2b84b' : '#8ca4b0',
+                      color: streakDays > 0 ? '#86daff' : '#8ca4b0',
                       fontFamily: 'ui-monospace, SFMono-Regular, Consolas, monospace',
                     }}
                     role="status"

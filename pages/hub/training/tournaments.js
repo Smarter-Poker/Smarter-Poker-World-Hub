@@ -604,7 +604,7 @@ const styles = {
   },
   prizeAmount: {
     fontWeight: 700,
-    color: '#f2b84b',
+    color: '#86daff',
   },
   entryFee: {
     textAlign: 'center',
@@ -619,7 +619,7 @@ const styles = {
     background: 'linear-gradient(180deg, #0c1820, #050c10)',
     border: '1px solid #f2b84b',
     borderRadius: '2px',
-    color: '#f2b84b',
+    color: '#86daff',
     fontSize: '14px',
     fontWeight: 700,
     cursor: 'pointer',
