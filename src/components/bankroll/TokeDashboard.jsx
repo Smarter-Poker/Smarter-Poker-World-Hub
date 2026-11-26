@@ -168,7 +168,7 @@ function TokeDashboard({ userId, refreshTrigger, initiallyExpanded = false }) {
                         <KpiTile label="Total Events" value={analytics?.totalEvents || 0} icon={CalendarDays} />
                         <KpiTile label="Hours Worked" value={`${analytics?.totalHours || 0}h`} icon={Clock3} />
                         <KpiTile label="Avg / Down" value={fmt(analytics?.avgTokePerDown)} icon={BarChart3} />
-                        <KpiTile label="Best Event" value={analytics?.bestEvent ? fmt(analytics.bestEvent.tokes) : '—'}
+                        <KpiTile label="Best Event" value={analytics?.bestEvent ? fmt(analytics.bestEvent.tokes) : '-'}
                             sub={analytics?.bestEvent?.venueName} icon={Trophy} />
                     </dl>
                 ))}

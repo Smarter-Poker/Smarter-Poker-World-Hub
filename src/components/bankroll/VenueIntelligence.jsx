@@ -265,7 +265,7 @@ export default function VenueIntelligence({
                         </div>
                         <div>
                           <dt>Hourly Tokes</dt>
-                          <dd>{venue.totalHours > 0 ? fmt(venue.tokePerHr) : '—'}</dd>
+                          <dd>{venue.totalHours > 0 ? fmt(venue.tokePerHr) : '-'}</dd>
                         </div>
                       </dl>
                       <div className={styles.meter} aria-hidden="true">
