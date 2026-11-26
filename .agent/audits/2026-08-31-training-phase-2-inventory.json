@@ -32019,7 +32019,7 @@
         {
           "element": "button",
           "name": "Return To Training",
-          "line": 368,
+          "line": 367,
           "handler": "() => router.replace('/hub/training')",
           "destination": null,
           "type": "button",
@@ -32029,7 +32029,7 @@
         {
           "element": "a",
           "name": "← Return To Personal Assistant",
-          "line": 447,
+          "line": 446,
           "handler": null,
           "destination": "personalAssistantReturnHref",
           "type": null,
@@ -32039,7 +32039,7 @@
         {
           "element": "a",
           "name": "<dynamic>",
-          "line": 489,
+          "line": 488,
           "handler": null,
           "destination": "syncedHandReturnHref",
           "type": null,
@@ -32049,7 +32049,7 @@
         {
           "element": "a",
           "name": "Customize Pack In Drill Builder →",
-          "line": 525,
+          "line": 524,
           "handler": null,
           "destination": "/hub/training/drill-builder",
           "type": null,
@@ -32059,7 +32059,7 @@
         {
           "element": "a",
           "name": "Return To Coach Broadcast →",
-          "line": 562,
+          "line": 561,
           "handler": null,
           "destination": "/hub/training/coach-mode",
           "type": null,
@@ -32069,7 +32069,7 @@
         {
           "element": "a",
           "name": "View Club Leaderboard →",
-          "line": 598,
+          "line": 597,
           "handler": null,
           "destination": "/hub/training/leaderboard",
           "type": null,
@@ -32079,7 +32079,7 @@
         {
           "element": "a",
           "name": "View Verified Two-Player Scoreboard →",
-          "line": 633,
+          "line": 632,
           "handler": null,
           "destination": "`/hub/training/pvp-lobby?duelToken=${encodeURIComponent(duelToken)}`",
           "type": null,
@@ -84880,11 +84880,11 @@
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:368:2",
+      "id": "pages/hub/training/arena/[gameId].js:367:2",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "button",
       "name": "Return To Training",
-      "line": 368,
+      "line": 367,
       "handler": "() => router.replace('/hub/training')",
       "destination": null,
       "type": "button",
@@ -84893,11 +84893,11 @@
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:447:3",
+      "id": "pages/hub/training/arena/[gameId].js:446:3",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "a",
       "name": "← Return To Personal Assistant",
-      "line": 447,
+      "line": 446,
       "handler": null,
       "destination": "personalAssistantReturnHref",
       "type": null,
@@ -84906,11 +84906,11 @@
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:489:4",
+      "id": "pages/hub/training/arena/[gameId].js:488:4",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "a",
       "name": "<dynamic>",
-      "line": 489,
+      "line": 488,
       "handler": null,
       "destination": "syncedHandReturnHref",
       "type": null,
@@ -84919,11 +84919,11 @@
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:525:5",
+      "id": "pages/hub/training/arena/[gameId].js:524:5",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "a",
       "name": "Customize Pack In Drill Builder →",
-      "line": 525,
+      "line": 524,
       "handler": null,
       "destination": "/hub/training/drill-builder",
       "type": null,
@@ -84932,11 +84932,11 @@
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:562:6",
+      "id": "pages/hub/training/arena/[gameId].js:561:6",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "a",
       "name": "Return To Coach Broadcast →",
-      "line": 562,
+      "line": 561,
       "handler": null,
       "destination": "/hub/training/coach-mode",
       "type": null,
@@ -84945,11 +84945,11 @@
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:598:7",
+      "id": "pages/hub/training/arena/[gameId].js:597:7",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "a",
       "name": "View Club Leaderboard →",
-      "line": 598,
+      "line": 597,
       "handler": null,
       "destination": "/hub/training/leaderboard",
       "type": null,
@@ -84958,11 +84958,11 @@
       "effectRef": "pages/hub/training/arena/[gameId].js"
     },
     {
-      "id": "pages/hub/training/arena/[gameId].js:633:8",
+      "id": "pages/hub/training/arena/[gameId].js:632:8",
       "file": "pages/hub/training/arena/[gameId].js",
       "element": "a",
       "name": "View Verified Two-Player Scoreboard →",
-      "line": 633,
+      "line": 632,
       "handler": null,
       "destination": "`/hub/training/pvp-lobby?duelToken=${encodeURIComponent(duelToken)}`",
       "type": null,
