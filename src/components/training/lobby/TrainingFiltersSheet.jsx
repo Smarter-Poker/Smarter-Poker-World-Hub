@@ -20,7 +20,7 @@ const VARIANT_OPTIONS = [
 
 const DIFFICULTY_OPTIONS = [
   { id: 'ALL', label: 'All Levels' },
-  { id: 'BEGINNER', label: 'Lvl 1–2 Beginner' },
+  { id: 'BEGINNER', label: 'Lvl 1-2 Beginner' },
   { id: 'INTERMEDIATE', label: 'Lvl 3 Mid' },
   { id: 'ADVANCED', label: 'Lvl 4 Advanced' },
   { id: 'BOSS', label: 'Lvl 5 Boss' },
@@ -53,7 +53,7 @@ const SORT_OPTIONS = [
   { key: 'difficulty', dir: 'desc', label: 'Hardest First' },
   { key: 'progress', dir: 'desc', label: 'Most Progress' },
   { key: 'length', dir: 'asc', label: 'Shortest First' },
-  { key: 'name', dir: 'asc', label: 'Name (A–Z)' },
+  { key: 'name', dir: 'asc', label: 'Name (A-Z)' },
 ];
 
 function isOutsideDialog(event, dialog) {
