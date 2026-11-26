@@ -81,7 +81,7 @@ import { getFallbackFooter, resolveWorldFooter } from '../../config/worldFooterN
 // pointer-transparent.
 export const BOTTOM_NAV_Z = 900;
 export const BOTTOM_NAV_H = 'calc(56px + env(safe-area-inset-bottom, 0px))';
-export const BOTTOM_NAV_CLEARANCE = 'calc(56px + 16px + env(safe-area-inset-bottom, 0px))';
+export const BOTTOM_NAV_CLEARANCE = 'calc(clamp(44px, var(--sp-footer-frame-scale), 132px) + env(safe-area-inset-bottom, 0px))';
 
 /**
  * THE FOOTER GETS OUT OF THE WAY WHILE YOU READ (Dan, 2026-09-04, binding).
@@ -409,80 +409,10 @@ const artworkDisplayBounds = (artwork) =>
     ? artwork.contentBounds
     : { x: 0, y: 0, width: artwork.width, height: artwork.height };
 
-/**
- * CLUB ARENA'S FOOTER IS THE GOLD STANDARD (Dan, 2026-09-04, binding).
- *
- * Dan, verbatim: "the footer inside the club arena is perfect, by size height
- * and length an how it fits perfectly edge to edge. i need you to replicate
- * this size, and placement on every footer, using this as the GOLD STANDARD on
- * how footers are supposed to look and fit."
- *
- * This value IS Club Arena's, copied from `--bottom-nav-height` in
- * src/styles/globals.css of that repo. Keep the two in step: if one moves, the
- * estate stops looking like one product, which is the entire complaint.
- *
- * These stages used to size themselves by `aspect-ratio` off each world's
- * measured frame instead, which meant fourteen different footer heights that
- * all grew without limit on a desktop — 174px of social-media footer against
- * Club Arena's 132px on the same 1140px screen, and worse the wider the
- * window. One clamped height, full bleed, is what makes them match.
- */
-export const FOOTER_ARTWORK_HEIGHT = 'clamp(44px, 12.326vw, 132px)';
+// Club Arena uses this touch floor and the responsive height of its desktop and phone frames.
+export const FOOTER_ARTWORK_HEIGHT = 'clamp(44px, var(--sp-footer-frame-scale), 132px)';
+const FOOTER_FRAME_HEIGHT = 'min(132px, var(--sp-footer-frame-scale))';
 const MIN_FOOTER_HIT_ZONE = 44;
-const FOOTER_HIT_ZONE_ROUNDING_GUARD = 1;
-
-/**
- * THE STAGE KEEPS THE ARTWORK'S OWN SHAPE (Dan, 2026-09-08).
- *
- * The stage used to be `width: 100%` by `height: FOOTER_ARTWORK_HEIGHT`, and the
- * image inside it was `object-fit: fill`. Those two boxes only agree when the
- * viewport happens to be `height x artworkAspect` wide, and they never are: the
- * social-media frame is 6.537:1, while the stage is 8.11:1 for every width up to
- * 1071px (where the clamp pins at 132px) and then unbounded — 9.70:1 at 1280px,
- * 10.91:1 at 1440px, 14.55:1 at 1920px. `fill` absorbed the whole difference as
- * a horizontal stretch: 24% on every phone, and a measured 1.483x on the live
- * site at 1280px. That is what turned the frame's round corners into ellipses
- * and the quilted texture into a shimmering, pixelated mess — a 0.50x horizontal
- * against a 0.35x vertical resample aliases a high-frequency diamond pattern
- * badly. (The vw coefficient has moved before — 13.72 then 12.326 — which is why
- * the width below is derived FROM the constant rather than restating it.)
- *
- * So the stage now carries the artwork's aspect ratio and is centred by the nav's
- * existing `justifyContent: center`. Height still tops out at the shared
- * FOOTER_ARTWORK_HEIGHT, so all fourteen worlds stay the same height (the Club
- * Arena gold standard above is untouched); width is whatever that height implies,
- * clamped to the viewport so a wide frame shrinks instead of overflowing. Every
- * hit zone below is positioned in percentages OF THIS STAGE, so they follow the
- * box exactly as they did before.
- */
-const artworkStageStyle = (artwork, itemCount = 0) => {
-  const display = artworkDisplayBounds(artwork);
-  const aspect = display.width / display.height;
-  // Social/Messenger uses the owner's edge-to-edge frame at its native ratio.
-  if (artwork.fullBleed) return {
-    width: '100%', maxWidth: '100%', aspectRatio: `${display.width} / ${display.height}`, flex: '0 0 auto',
-  };
-  const controls = Number.isFinite(itemCount) ? Math.max(0, Math.trunc(itemCount)) : 0;
-  // WebKit can quantize a 264px six-way percentage split to 43.984375px per
-  // item. One shared pixel keeps every measured target safely at or above 44.
-  const minimumControlSpan = controls > 0
-    ? controls * MIN_FOOTER_HIT_ZONE + FOOTER_HIT_ZONE_ROUNDING_GUARD
-    : 0;
-  const naturalWidth = `calc(${FOOTER_ARTWORK_HEIGHT} * ${aspect.toFixed(4)})`;
-  return {
-    // min() keeps a wide frame (news is 8.3:1) inside the viewport on a phone
-    // instead of letting max-width silently squash it back out of aspect.
-    // The inner max() keeps every authored destination at least 44px wide at
-    // supported viewports. Training's narrower artwork otherwise produced six
-    // 43.47px controls at 320px after the aspect-ratio correction.
-    width: minimumControlSpan > 0
-      ? `min(100%, max(${minimumControlSpan}px, ${naturalWidth}))`
-      : `min(100%, ${naturalWidth})`,
-    maxWidth: '100%',
-    aspectRatio: `${display.width} / ${display.height}`,
-    flex: '0 0 auto',
-  };
-};
 
 const artworkImageStyle = (artwork) => {
   const display = artworkDisplayBounds(artwork);
@@ -505,36 +435,15 @@ const artworkImageStyle = (artwork) => {
   };
 };
 
-export const BottomNavSpacer = ({ config = null }) => {
-  const artwork = config?.artwork;
-  if (!artwork) {
-    return (
-      <div
-        aria-hidden="true"
-        data-bottom-nav-clearance="true"
-        style={{ height: BOTTOM_NAV_CLEARANCE, minHeight: BOTTOM_NAV_CLEARANCE, flexShrink: 0 }}
-      />
-    );
-  }
-
+export const BottomNavSpacer = ({ config = null, noSafeArea = false }) => {
+  const height = config?.artwork || noSafeArea ? FOOTER_ARTWORK_HEIGHT : BOTTOM_NAV_CLEARANCE;
   return (
     <div
       aria-hidden="true"
       data-bottom-nav-clearance="true"
-      data-footer-artwork-clearance={config.id}
-      style={{
-        width: '100%',
-        maxWidth: '100vw',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        flexShrink: 0,
-      }}
-    >
-      {/* Same box as the real stage, so the clearance is exactly the height the
-          footer now occupies rather than the pre-aspect-ratio maximum. */}
-      <div style={artworkStageStyle(artwork, config?.items?.length)} />
-    </div>
+      data-footer-artwork-clearance={config?.artwork ? config.id : undefined}
+      style={{ height, minHeight: height, flexShrink: 0 }}
+    />
   );
 };
 
@@ -794,7 +703,9 @@ function ArtworkBottomNav({ footer, activeHref, warm, hidden = false, armed = fa
         data-footer-source-width={artwork.width}
         data-footer-source-height={artwork.height}
         style={{
-          ...artworkStageStyle(artwork, items.length),
+          width: '100%',
+          height: FOOTER_FRAME_HEIGHT,
+          flex: '0 0 auto',
           position: 'relative',
           minWidth: 0,
           overflow: 'hidden',
@@ -827,10 +738,6 @@ function ArtworkBottomNav({ footer, activeHref, warm, hidden = false, armed = fa
               position: 'absolute',
               ...artworkImageStyle(artwork),
               display: 'block',
-              // `fill` is now lossless, not a stretch: artworkStageStyle gives the
-              // stage the artwork's own aspect ratio, so the box the image fills
-              // already has the frame's shape. There is nothing left to distort
-              // and nothing to letterbox.
               objectFit: 'fill',
               // A uniform downscale of a fine quilted texture still aliases on
               // low-DPR screens. High-quality resampling is what keeps the
@@ -972,7 +879,7 @@ function BottomNavBar({ config = null, theme = 'auto', noSafeArea = false }) {
         margin: 0,
         overflow: 'hidden',
         boxSizing: 'border-box',
-        minHeight: 56,
+        height: FOOTER_ARTWORK_HEIGHT,
         background: `linear-gradient(180deg, ${c.active}18 0%, ${c.bg} 42%)`,
         borderTop: `1px solid ${c.border}`,
         display: 'grid',
@@ -1019,7 +926,7 @@ function BottomNavBar({ config = null, theme = 'auto', noSafeArea = false }) {
               textDecoration: 'none',
               color: active ? c.active : c.inactive,
               minWidth: 0,
-              minHeight: 56,
+              minHeight: 0,
               padding: '5px 1px 4px',
               position: 'relative',
               boxSizing: 'border-box',

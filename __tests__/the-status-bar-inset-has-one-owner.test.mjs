@@ -9,7 +9,7 @@
  *   src/index.css (2026-01-13)          body { padding-top: env(safe-area-inset-top) }
  *   UniversalHeader.js (2026-08-29)     .approved-global-header { padding-top: env(...) }
  *
- * `.approved-global-header` is `position: sticky; top: 0`, and a sticky box can
+ * The old `.approved-global-header` was sticky, and a sticky box can
  * never paint above its normal flow position. Its flow position was already one
  * inset down because of the body rule, and then it added its own. Both bands
  * are transparent, so they rendered as empty page colour:
@@ -79,9 +79,11 @@ test('the header still owns its own top inset', () => {
   // The fix is "one owner", not "no owner". If this ever goes away the header
   // slides UNDER the status bar, which is the opposite bug and just as bad.
   const header = read('src/components/ui/UniversalHeader.js');
+  assert.match(header, /--approved-header-safe-top:\s*env\(safe-area-inset-top/);
+  assert.match(header, /\.approved-global-header__controls\s*\{[^}]*top:\s*var\(--approved-header-safe-top\)/);
   assert.match(
     header,
-    /\.approved-global-header\s*\{[^}]*padding-top\s*:\s*env\(safe-area-inset-top/,
+    /\.approved-global-header\s*\{[^}]*padding-top\s*:\s*var\(--approved-header-safe-top\)/,
     '.approved-global-header no longer applies the top inset; with the body ' +
       'rule gone, nothing would keep the header clear of the status bar'
   );

@@ -2661,12 +2661,12 @@ body.world-training .sp-training-page-stage :where(p, label, legend):not(.univer
 }
 
 /* Straight 90-degree controls and cards: no clipped corners or ornamental boxes. */
-body.world-training .sp-training-page-stage :where(button, [role='button'], .sp-card, .sp-card-sm, .sp-card-lg):not(.universal-header *) {
+body.world-training .sp-training-page-stage :where(button, [role='button'], .sp-card, .sp-card-sm, .sp-card-lg):not(.universal-header *, .approved-global-header__button) {
     border-radius: 0 !important;
     clip-path: none !important;
 }
 
-body.world-training .sp-training-page-stage :where(button, [role='button']):not(.universal-header *) {
+body.world-training .sp-training-page-stage :where(button, [role='button']):not(.universal-header *, .approved-global-header__button) {
     min-height: 44px;
     color: #eefbff !important;
     border-color: rgba(154, 226, 255, 0.52) !important;

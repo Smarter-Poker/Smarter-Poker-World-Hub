@@ -15,10 +15,8 @@
  * src/config/world-footer-navigation.json. The PNG stays the <img> src and the
  * approved original; the source sha256 is unchanged.
  *
- * `sizes` follows BottomNavBar's stage arithmetic: the stage is
- * min(100vw, FOOTER_ARTWORK_HEIGHT x aspect) with FOOTER_ARTWORK_HEIGHT =
- * clamp(44px, 12.326vw, 132px) (pinned from 1071px), full-bleed frames are
- * 100vw, and the <img> is wider than the stage by sourceWidth / cropWidth.
+ * The stage spans the viewport. The crop can make the image wider than
+ * the stage by sourceWidth / cropWidth, which `sizes` accounts for.
  *
  * Usage: node scripts/generate-footer-derivatives.mjs
  * Re-run it when an approved footer PNG changes. WebP encoder output differs
@@ -36,19 +34,10 @@ const require = createRequire(import.meta.url);
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CONFIG = join(ROOT, 'src/config/world-footer-navigation.json');
 const WIDTHS = [640, 960, 1280];
-const VW_COEFFICIENT = 0.12326; // FOOTER_ARTWORK_HEIGHT's vw term
-const HEIGHT_CAP = 132; // FOOTER_ARTWORK_HEIGHT's upper bound, reached at 1071px
-const PIN_WIDTH = 1071;
 
 export function footerSizes(artwork) {
-  const crop = artwork.cropToContentBounds && artwork.contentBounds ? artwork.contentBounds : { width: artwork.width, height: artwork.height };
-  const overscan = artwork.width / crop.width;
-  const pct = (value) => `${Math.round(value * 1000) / 10}vw`;
-  if (artwork.fullBleed) return pct(overscan);
-  const aspect = crop.width / crop.height;
-  const stageFraction = Math.min(1, VW_COEFFICIENT * aspect);
-  const pinnedStage = Math.min(PIN_WIDTH, HEIGHT_CAP * aspect);
-  return `(max-width: ${PIN_WIDTH}px) ${pct(stageFraction * overscan)}, ${Math.round(pinnedStage * overscan)}px`;
+  const crop = artwork.cropToContentBounds !== false && artwork.contentBounds ? artwork.contentBounds : artwork;
+  return `${Math.round(artwork.width / crop.width * 1000) / 10}vw`;
 }
 
 export function derivativeHeight(artwork, width) {

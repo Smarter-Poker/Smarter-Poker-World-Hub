@@ -18,6 +18,7 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 
+import { createPortal } from 'react-dom';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { supabase } from '../../lib/supabase';
@@ -895,6 +896,9 @@ export default function UniversalHeader({
     }, 500);
   };
 
+  // Keep the header outside page-owned stacking contexts and scroll containers.
+  const renderHeader = (header) => isMounted ? createPortal(header, document.body) : header;
+
   return (
     <>
       <Head>
@@ -1302,28 +1306,28 @@ export default function UniversalHeader({
 
                 /* Approved 2026-08-29 global header. The complete desktop artwork
                    is the header at every width; mobile only scales the same row. */
+                .approved-global-header,
+                .approved-global-header__clearance {
+                    --approved-header-safe-top: env(safe-area-inset-top, 0px);
+                }
+
                 .approved-global-header {
-                    position: sticky;
-                    top: 0;
-                    /* Global navigation stays reachable above page-owned tours
-                       and modal scrims; the command drawer itself is 10100+. */
+                    position: fixed;
+                    inset: 0 0 auto;
                     z-index: 10050;
-                    flex: 0 0 auto;
                     width: 100%;
                     box-sizing: border-box;
-                    padding-top: env(safe-area-inset-top, 0px);
+                    padding-top: var(--approved-header-safe-top);
                     overflow: hidden;
-                    /* NO BACKGROUND (Dan, 2026-09-01: "on mobile, the global header needs
-                       the background removed on all pages inside smarter.poker, club
-                       arena, and club commander"). The approved artwork is opaque across
-                       its whole canvas, so this fill was only ever visible where the
-                       artwork is NOT: the safe-area band this rule pads by, the standalone
-                       band below, and the left/right insets. All three are phones - a
-                       desktop has no insets - so its only observable effect was an opaque
-                       black block above and around the header on mobile. */
-                    background: transparent;
+                    background: #07141f;
                     line-height: 0;
                     isolation: isolate;
+                }
+
+                .approved-global-header__clearance {
+                    height: calc(var(--approved-header-safe-top) +
+                        (100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)) * 168 / 1648);
+                    flex: 0 0 auto;
                 }
 
                 .approved-global-header__picture {
@@ -1345,7 +1349,7 @@ export default function UniversalHeader({
 
                 .approved-global-header__controls {
                     position: absolute;
-                    top: env(safe-area-inset-top, 0px);
+                    top: var(--approved-header-safe-top);
                     right: env(safe-area-inset-right, 0px);
                     left: env(safe-area-inset-left, 0px);
                     aspect-ratio: 1648 / 168;
@@ -1589,8 +1593,10 @@ export default function UniversalHeader({
                 }
 
                 @media (display-mode: standalone), (display-mode: fullscreen) {
-                    .approved-global-header { padding-top: max(env(safe-area-inset-top, 0px), 24px); }
-                    .approved-global-header__controls { top: max(env(safe-area-inset-top, 0px), 24px); }
+                    .approved-global-header,
+                    .approved-global-header__clearance {
+                        --approved-header-safe-top: max(env(safe-area-inset-top, 0px), 24px);
+                    }
                 }
             `,
         }}
@@ -1612,6 +1618,8 @@ export default function UniversalHeader({
         />
       )}
 
+      <div className="approved-global-header__clearance" aria-hidden="true" />
+      {renderHeader(
       <header className="approved-global-header" data-artwork="approved-global-header" ref={publishHeaderHeight}>
         <picture className="approved-global-header__picture">
           {/* Lossless, responsive derivatives preserve the byte-pinned approved
@@ -1727,6 +1735,7 @@ export default function UniversalHeader({
           </button>
         </div>
       </header>
+      )}
 
 
       {/* Live Help Panel */}
