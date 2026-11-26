@@ -498,6 +498,11 @@ test('MAG LAW 6: geo-blocks.json, middleware.ts, sitemapBuilders.mjs, sitemap-co
 
     assert.equal(exists('pages/hub/magazine/rss.xml.js'), true, 'pages/hub/magazine/rss.xml.js must exist');
     assert.match(read('pages/hub/magazine/rss.xml.js'), /application\/rss\+xml/);
+    assert.doesNotMatch(
+        read('pages/hub/magazine/rss.xml.js'),
+        /^\s*export\s*\{/m,
+        'Next.js page files must not mix getServerSideProps with named re-exports that SWC strips'
+    );
     assert.match(read('src/config/hamburgerMenus.js'), /\/hub\/magazine/);
     assert.match(read('pages/hub/wire/index.js'), /\/hub\/magazine/);
 });

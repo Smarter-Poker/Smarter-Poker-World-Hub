@@ -1,12 +1,5 @@
-import {
-    MAGAZINE_SITE_URL,
-} from '../../../src/lib/magazine/magazineSchema.mjs';
-import {
-    buildMagazineRssXml,
-    escapeMagazineXml,
-} from '../../../src/lib/magazine/magazineRssBuilder.mjs';
-
-export { escapeMagazineXml as escapeMagazineRssXml, buildMagazineRssXml as renderInlineMagazineRssXml };
+import { MAGAZINE_SITE_URL } from '../../../src/lib/magazine/magazineSchema.mjs';
+import { buildMagazineRssXml } from '../../../src/lib/magazine/magazineRssBuilder.mjs';
 
 export async function getServerSideProps({ res }) {
     let publishedRows = [];
