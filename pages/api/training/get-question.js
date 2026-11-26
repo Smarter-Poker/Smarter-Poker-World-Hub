@@ -599,6 +599,19 @@ export default async function handler(req, res) {
         // that declares a street must not be handed a cached row of another
         // one; when the filter empties the pool the engine path below runs,
         // which is the correct source for a declaration the cache predates.
+        const targetVariantFilter = requestedVariant
+          || (['cash-005', 'cash-015', 'mtt-018'].includes(gameId) ? 'plo4' : null);
+        const expectedHoleCardCount = targetVariantFilter === 'plo6' ? 6
+          : targetVariantFilter === 'plo5' ? 5
+          : (targetVariantFilter === 'plo4' || targetVariantFilter === 'plo8') ? 4
+          : targetVariantFilter === 'nlh' ? 2
+          : null;
+        const expectedEngineModule = targetVariantFilter === 'plo8' ? 'plo8-brain.js'
+          : targetVariantFilter === 'plo6' ? 'plo6-brain.js'
+          : targetVariantFilter === 'plo5' ? 'plo5-brain.js'
+          : targetVariantFilter === 'plo4' ? 'plo-core.js'
+          : targetVariantFilter === 'nlh' ? 'holdem-brain.js'
+          : null;
         const eligibleCached = filterCachedRowsForGame(
           (cachedQuestions || [])
             .map((row) => ({ ...row, question_data: cacheQuestionFromRow(row) }))
@@ -607,10 +620,20 @@ export default async function handler(req, res) {
         ).map((row) => ({
           ...row,
           question_data: normalizeCampaignQuestionWithoutFabrication(row?.question_data),
-        })).filter((row) => (
-          row.question_data
-          && trainingQuestionMatchesSelection(row.question_data, attemptSelection)
-        ));
+        })).filter((row) => {
+          const q = row.question_data;
+          if (!q || !trainingQuestionMatchesSelection(q, attemptSelection)) return false;
+          if (expectedHoleCardCount !== null) {
+            const cards = Array.isArray(q.heroCards) ? q.heroCards : [];
+            if (cards.length !== expectedHoleCardCount) return false;
+            const rowEngine = String(q.scenario?.brainEvaluation?.engineModule || '');
+            if (!rowEngine) return false;
+            if (expectedEngineModule && rowEngine !== expectedEngineModule) return false;
+            if (targetVariantFilter === 'plo8' && !q.scenario?.hiLo && q.scenario?.variant !== 'plo8') return false;
+            if (targetVariantFilter === 'plo4' && (q.scenario?.hiLo || q.scenario?.variant === 'plo8')) return false;
+          }
+          return true;
+        });
 
         if (eligibleCached && eligibleCached.length > 0) {
           const randomIndex = Math.floor(Math.random() * eligibleCached.length);
