@@ -593,12 +593,24 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
                     toast.success('Friend request accepted!');
                 }
 
-                // Fire-and-forget DB updates with fetch-on-failure
+                // ACCEPT THROUGH THE DEFINER DOOR (2026-11-26). `friendships`
+                // has no UPDATE grant for authenticated, so the direct update
+                // and the accepted reverse upsert were both refused (42501 /
+                // RLS) while the card said the friend was added. A Supabase
+                // refusal resolves with { error } rather than rejecting, so the
+                // old .catch never saw it. accept_friendship checks that the
+                // caller is the recipient; reads are two-direction, so no
+                // reverse row is written.
                 Promise.all([
-                    supabase.from('friendships').update({ status: 'accepted' }).eq('id', requestId),
-                    supabase.from('friendships').upsert({ user_id: user.id, friend_id: requesterId, status: 'accepted' }, { onConflict: 'user_id,friend_id' }),
+                    supabase.rpc('accept_friendship', { p_friendship_id: requestId }),
                     supabase.from('notifications').update({ read: true, is_read: true }).eq('id', notification.id)
-                ]).catch(e => {
+                ]).then(([accepted]) => {
+                    if (accepted?.error || accepted?.data?.success === false) {
+                        console.warn('[notifications] Friend accept refused:', accepted?.error?.message || accepted?.data?.error);
+                        if (mounted.current) toast.error('Failed to accept friend request. Try again.');
+                        fetchNotifications();
+                    }
+                }).catch(e => {
                     console.warn('Exception:', e);
                     fetchNotifications();
                 });

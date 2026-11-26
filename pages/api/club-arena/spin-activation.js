@@ -29,6 +29,8 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -133,6 +135,12 @@ export default async function handler(req, res) {
     const { action, clubId } = req.body || {};
     if (!clubId || typeof clubId !== 'string') {
       return res.status(400).json({ success: false, error: 'clubId is required' });
+    }
+    // clubs.id is a uuid. A route slug (`kings-club`, `crest-cert-*`) reached
+    // `.eq('id', clubId)` below and failed at Postgres with 22P02 on every open
+    // (62 in a day, 2026-11-26). It is refused here, before the database.
+    if (!UUID_PATTERN.test(clubId)) {
+      return res.status(400).json({ success: false, error: 'clubId must be a club or union id' });
     }
 
     const auth = await authorise(token, clubId);
