@@ -14,6 +14,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
+import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
 import { readGuestTrainingFavorites, toggleGuestTrainingFavorite } from '../src/lib/training/guestTrainingFavorites.mjs';
@@ -222,4 +223,90 @@ test('preview follows current favorite state on both entry points while preservi
   const header = read('src/components/training/lobby/TrainingLobbyHeader.jsx');
   assert.ok(header.includes("'Play Again'"));
   assert.ok(!header.includes("'Resume Session'"));
+});
+
+const nodeRequire = createRequire(import.meta.url);
+function loadFavoriteModule(file, dependencies) {
+  const ts = nodeRequire('typescript');
+  const code = ts.transpile(read(file), {
+    target: ts.ScriptTarget.ES2020,
+    module: ts.ModuleKind.CommonJS,
+  });
+  const exports = {};
+  const resolve = name => {
+    assert.ok(Object.hasOwn(dependencies, name), `Unexpected dependency: ${name}`);
+    return dependencies[name];
+  };
+  new Function('require', 'exports', code)(resolve, exports);
+  return exports.default;
+}
+
+test('favorites wait for identity, support retry, and ignore writes and reads from prior accounts', async () => {
+  const React = nodeRequire('react');
+  const { act, create } = nodeRequire('react-test-renderer');
+  const requests = [];
+  const useFavorites = loadFavoriteModule('src/hooks/useTrainingFavorites.js', {
+    react: React,
+    '../lib/authUtils': {
+      authedFetch: (_url, options) => new Promise(resolve => requests.push({ options, resolve })),
+    },
+    '../stores/toastStore': { default: { error: () => {}, info: () => {} } },
+    '../lib/training/guestTrainingFavorites.mjs': { readGuestTrainingFavorites, toggleGuestTrainingFavorite },
+  });
+  let state, tree;
+  function Probe({ id, initializing }) {
+    state = useFavorites(id ? { id } : null, initializing);
+    return null;
+  }
+  const view = (id, initializing = false) => React.createElement(Probe, { id, initializing });
+  const answer = (request, ok, body) => request.resolve({ ok, json: async () => body });
+  await act(async () => { tree = create(view(null, true)); });
+  try {
+    assert.equal(requests.length, 0);
+    assert.equal(state.favoritesLoading, true);
+    await act(async () => { tree.update(view('first')); });
+    assert.equal(await state.toggleFavorite('cash-002'), false);
+    await act(async () => { answer(requests[0], false, { success: false }); });
+    assert.ok(state.favoritesError);
+    assert.equal(await state.toggleFavorite('cash-002'), false);
+    await act(async () => { state.retryFavorites(); });
+    await act(async () => { answer(requests[1], true, { success: true, favorites: ['mtt-001'] }); });
+    assert.deepEqual([...state.favoriteIds], ['mtt-001']);
+    let writing;
+    await act(async () => { writing = state.toggleFavorite('cash-002'); });
+    assert.equal(requests[2].options.headers['X-Expected-Account'], 'first');
+    assert.equal(await state.toggleFavorite('cash-002'), false);
+    await act(async () => { tree.update(view('second')); });
+    assert.equal(state.favoritesLoading, true);
+    assert.equal(state.favoriteIds.size, 0);
+    await act(async () => { tree.update(view('third')); });
+    await act(async () => { answer(requests[4], true, { success: true, favorites: ['cash-005'] }); });
+    await act(async () => {
+      answer(requests[3], true, { success: true, favorites: ['cash-004'] });
+      answer(requests[2], true, { success: true });
+      assert.equal(await writing, false);
+    });
+    assert.deepEqual([...state.favoriteIds], ['cash-005']);
+    assert.equal(state.favoritesLoading, false);
+    assert.equal(state.favoritesError, null);
+  } finally {
+    await act(async () => { tree.unmount(); });
+  }
+});
+
+test('favorites API rejects a refreshed token for a different account before any database operation', async () => {
+  const handler = loadFavoriteModule('pages/api/training/game-favorites.js', {
+    '../../../src/lib/serverAuth': { getServerUserWithFallback: async () => ({ user: { id: 'second' } }) },
+    '../../../src/lib/supabaseServerClient': { createClient: () => ({}) },
+    '../../../src/lib/apiRateLimit': { applyRateLimit: () => true, LIMITS: { write: {} } },
+    '../../../src/utils/trainingApiUtils': { withTiming() {} },
+    '../../../src/lib/apiErrorHandler': { reportApiError() { assert.fail('Unexpected API error'); } },
+    '../../../src/data/TRAINING_LIBRARY': { TRAINING_LIBRARY },
+  });
+  for (const method of ['GET', 'POST', 'DELETE']) {
+    const response = { status(code) { this.code = code; return this; }, json(body) { this.body = body; } };
+    await handler({ method, headers: { authorization: 'Bearer test', 'x-expected-account': 'first' } }, response);
+    assert.equal(response.code, 409);
+    assert.equal(response.body.success, false);
+  }
 });

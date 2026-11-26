@@ -34,6 +34,7 @@ const TrainingLobbyRow = memo(function TrainingLobbyRow({
   index = 0,
   onStart,
   onToggleFavorite,
+  favoritesUnavailable,
   onOpenPreview,
   selectedVariant,
 }) {
@@ -156,6 +157,7 @@ const TrainingLobbyRow = memo(function TrainingLobbyRow({
           aria-pressed={isFavorite}
           aria-label={isFavorite ? `Remove ${game.name} From Favorites` : `Add ${game.name} To Favorites`}
           data-favorite-game={game.id}
+          disabled={favoritesUnavailable}
           onClick={() => onToggleFavorite(game.id)}
         >
           <Star size={17} aria-hidden="true" fill={isFavorite ? 'currentColor' : 'none'} />

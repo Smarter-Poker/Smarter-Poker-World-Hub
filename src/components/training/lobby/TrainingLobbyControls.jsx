@@ -94,7 +94,7 @@ export default function TrainingLobbyControls({
           Find Your Game
         </h2>
         <a className="sp-arena-deck__count sp-arena-results-link sp-num" href="#training-results" aria-live="polite">
-          {filteredCount === totalCount
+          {filteredCount == null ? 'Favorites' : filteredCount === totalCount
             ? `View ${totalCount} Games`
             : `View ${filteredCount} Of ${totalCount}`}
         </a>

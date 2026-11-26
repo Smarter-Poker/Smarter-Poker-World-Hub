@@ -58,7 +58,9 @@ import PageTransition from '../../src/components/transitions/PageTransition';
 import { TRAINING_LIBRARY } from '../../src/data/TRAINING_LIBRARY';
 import useTrainingProgress from '../../src/hooks/useTrainingProgress';
 import useTrainingFavorites from '../../src/hooks/useTrainingFavorites';
-import { getAuthUser, authedFetch } from '../../src/lib/authUtils';
+import { useAvatar } from '../../src/contexts/AvatarContext';
+import TrainingFavoritesNotice from '../../src/components/training/lobby/TrainingFavoritesNotice';
+import { authedFetch } from '../../src/lib/authUtils';
 import {
   resolvePresetForGame,
   loadResumableTrainingSession,
@@ -144,8 +146,10 @@ export default function TrainingPage() {
 
   const { getGameProgress } = useTrainingProgress();
 
-  const [authUser, setAuthUser] = useState(null);
-  const { favoriteIds, favoriteCount, toggleFavorite } = useTrainingFavorites(authUser);
+  const { user: authUser, initializing } = useAvatar();
+  const { favoriteIds, favoriteCount, favoritesLoading, favoritesError, retryFavorites, toggleFavorite } =
+    useTrainingFavorites(authUser, initializing);
+  const favoritesUnavailable = favoritesLoading || Boolean(favoritesError);
 
   const [filters, setFilters] = useState(DEFAULT_LOBBY_FILTERS);
   const [filtersSheetOpen, setFiltersSheetOpen] = useState(false);
@@ -168,11 +172,6 @@ export default function TrainingPage() {
   }, []);
   const updateFilters = useCallback((patch) => {
     setFilters((prev) => ({ ...prev, ...patch }));
-  }, []);
-
-  useEffect(() => {
-    const user = getAuthUser();
-    setAuthUser(user);
   }, []);
 
   // Precompute deterministic Arena-row metadata for all 107 canonical games once
@@ -498,7 +497,7 @@ export default function TrainingPage() {
                 onOpenFiltersSheet={() => setFiltersSheetOpen(true)}
                 counts={lobbyCounts}
                 favoriteCount={favoriteCount}
-                filteredCount={filtered.length}
+                filteredCount={filters.favoritesOnly && favoritesUnavailable ? null : filtered.length}
                 totalCount={TRAINING_LIBRARY.length}
                 searchInputRef={searchInputRef}
                 controlsRef={controlsRef}
@@ -515,11 +514,17 @@ export default function TrainingPage() {
                 favoriteCount={favoriteCount}
               />
 
-              {filtered.length > 0 ? (
+              <TrainingFavoritesNotice
+                loading={filters.favoritesOnly && favoritesLoading}
+                error={favoritesError}
+                onRetry={retryFavorites}
+              />
+              {filters.favoritesOnly && favoritesUnavailable ? null : filtered.length > 0 ? (
                 <TrainingLobbyResults
                   key={JSON.stringify(filters)}
                   sections={sections}
                   onStart={handleRowStart}
+                  favoritesUnavailable={favoritesUnavailable}
                   onToggleFavorite={toggleFavorite}
                   onOpenPreview={setPreviewItem}
                   selectedVariant={filters.variant}
@@ -527,7 +532,7 @@ export default function TrainingPage() {
               ) : (
                 <div id="training-results" tabIndex={-1} className="sp-arena-empty" role="status">
                   <p>
-                    {filters.favoritesOnly
+                    {filters.favoritesOnly && favoriteCount === 0
                       ? 'No Favorite Games Yet. Tap The Star On Any Game To Pin It Here.'
                       : 'No Training Games Match Those Filters.'}
                   </p>
@@ -556,6 +561,7 @@ export default function TrainingPage() {
               isFavorite={favoriteIds.has(previewItem?.game.id)}
               onClose={() => setPreviewItem(null)}
               onLaunch={playGame}
+              favoritesUnavailable={favoritesUnavailable}
               onToggleFavorite={toggleFavorite}
               defaultVariant={filters.variant}
             />

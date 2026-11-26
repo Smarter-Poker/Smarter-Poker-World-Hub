@@ -55,8 +55,15 @@ export default async function handler(req, res) {
       return res.status(401).json({ success: false, error: 'Authentication required' });
     }
 
+    // A refreshed transport token may belong to a newly selected account.
+    // The asserted account can only reject a stale request; JWT auth owns userId.
+    const expectedAccount = req.headers['x-expected-account'];
+    if (expectedAccount !== undefined && expectedAccount !== userId) {
+      return res.status(409).json({ success: false, error: 'Account changed. Reload favorites.' });
+    }
+
     if (req.method === 'GET') {
-      res.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=30');
+      res.setHeader('Cache-Control', 'private, no-store');
       res.setHeader('Vary', 'Authorization');
 
       const { data, error } = await getSupabase()

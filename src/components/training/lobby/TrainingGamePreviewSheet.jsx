@@ -35,6 +35,7 @@ export default function TrainingGamePreviewSheet({
   onClose,
   onLaunch,
   onToggleFavorite,
+  favoritesUnavailable,
   defaultVariant,
 }) {
   const dialogRef = useRef(null);
@@ -199,6 +200,7 @@ export default function TrainingGamePreviewSheet({
               type="button"
               className={`sp-arena-sheet__reset sd-button${isFavorite ? ' active' : ''}`}
               aria-pressed={isFavorite}
+              disabled={favoritesUnavailable}
               onClick={() => onToggleFavorite(game.id)}
             >
               <Star size={15} aria-hidden="true" fill={isFavorite ? 'currentColor' : 'none'} />

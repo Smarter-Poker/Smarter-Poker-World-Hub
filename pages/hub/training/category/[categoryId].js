@@ -1,10 +1,12 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { ArrowLeft, Atom, DollarSign, Rocket, Trophy, Brain, Search, X, SlidersHorizontal, Star } from 'lucide-react';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { getGamesByCategory } from '../../../../src/data/TRAINING_LIBRARY';
 import useTrainingProgress from '../../../../src/hooks/useTrainingProgress';
 import useTrainingFavorites from '../../../../src/hooks/useTrainingFavorites';
+import { useAvatar } from '../../../../src/contexts/AvatarContext';
+import TrainingFavoritesNotice from '../../../../src/components/training/lobby/TrainingFavoritesNotice';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 import PageTransition from '../../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
@@ -13,7 +15,6 @@ import TrainingLobbyResults from '../../../../src/components/training/lobby/Trai
 import TrainingFiltersSheet from '../../../../src/components/training/lobby/TrainingFiltersSheet';
 import TrainingSortBar from '../../../../src/components/training/lobby/TrainingSortBar';
 import TrainingGamePreviewSheet from '../../../../src/components/training/lobby/TrainingGamePreviewSheet';
-import { getAuthUser } from '../../../../src/lib/authUtils';
 import { resolvePresetForGame, VARIANT_METADATA } from '../../../../src/lib/training/trainingPresets.mjs';
 import {
   DEFAULT_LOBBY_FILTERS,
@@ -58,12 +59,11 @@ export default function CategoryPage() {
   const { getGameProgress } = useTrainingProgress();
   useTrainingBus('training-category', { categoryId });
 
-  const [authUser, setAuthUser] = useState(null);
-  useEffect(() => {
-    setAuthUser(getAuthUser());
-  }, []);
+  const { user: authUser, initializing } = useAvatar();
 
-  const { favoriteIds, favoriteCount, toggleFavorite } = useTrainingFavorites(authUser);
+  const { favoriteIds, favoriteCount, favoritesLoading, favoritesError, retryFavorites, toggleFavorite } =
+    useTrainingFavorites(authUser, initializing);
+  const favoritesUnavailable = favoritesLoading || Boolean(favoritesError);
   const [categoryFilters, setCategoryFilters] = useState(DEFAULT_LOBBY_FILTERS);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const { query, favoritesOnly, variant } = categoryFilters;
@@ -200,7 +200,7 @@ export default function CategoryPage() {
                   Choose A Game
                 </h2>
                 <span className="sp-arena-deck__count sp-num">
-                  {items.length} Of {games.length}
+                  {favoritesOnly && favoritesUnavailable ? 'Favorites' : `${items.length} Of ${games.length}`}
                 </span>
               </div>
 
@@ -248,18 +248,26 @@ export default function CategoryPage() {
               favoriteCount={favoriteCount}
             />
 
-            {items.length > 0 ? (
+            <TrainingFavoritesNotice
+              loading={favoritesOnly && favoritesLoading}
+              error={favoritesError}
+              onRetry={retryFavorites}
+            />
+            {favoritesOnly && favoritesUnavailable ? null : items.length > 0 ? (
               <TrainingLobbyResults
                 key={JSON.stringify([categoryId, categoryFilters])}
                 sections={[{ id: categoryId, items }]}
                 onStart={playGame}
+                favoritesUnavailable={favoritesUnavailable}
                 onToggleFavorite={toggleFavorite}
                 onOpenPreview={setPreviewItem}
                 selectedVariant={variant}
               />
             ) : (
               <div className="sp-arena-empty" role="status">
-                <p>No {category.title} Drills Match Your Filter.</p>
+                <p>{favoritesOnly && favoriteCount === 0
+                  ? 'No Favorite Games Yet. Tap The Star On Any Game To Pin It Here.'
+                  : `No ${category.title} Drills Match Your Filter.`}</p>
                 <button
                   type="button"
                   className="sd-button"
@@ -286,6 +294,7 @@ export default function CategoryPage() {
             onClose={() => setPreviewItem(null)}
             onLaunch={playGame}
             defaultVariant={variant}
+            favoritesUnavailable={favoritesUnavailable}
             onToggleFavorite={toggleFavorite}
           />
         </main>

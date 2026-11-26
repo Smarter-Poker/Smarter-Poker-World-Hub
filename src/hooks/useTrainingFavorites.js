@@ -1,76 +1,63 @@
-/**
- * useTrainingFavorites — Authoritative Training Game Favorites Hook
- * ─────────────────────────────────────────────────────────────────────────────
- * Persists starred training games via /api/training/game-favorites for
- * authenticated users. Never fabricates persistence on database errors:
- * mutations only settle after a validated `{ success: true }` server payload.
- *
- * For signed-out visitors, keeps favorites in tab-scoped session storage so stars work
- * during browsing while surfacing a clear prompt that signing in syncs them.
- */
-
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { authedFetch } from '../lib/authUtils';
 import toast from '../stores/toastStore';
 import { readGuestTrainingFavorites, toggleGuestTrainingFavorite } from '../lib/training/guestTrainingFavorites.mjs';
 
-export default function useTrainingFavorites(authUser) {
-  const [favoriteIds, setFavoriteIds] = useState(() => new Set());
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const pendingRef = useRef(new Set());
+const EMPTY_IDS = new Set();
+const FAVORITES_URL = '/api/training/game-favorites';
+
+export default function useTrainingFavorites(authUser, initializing) {
+  const userId = authUser?.id || null;
+  const [attempt, setAttempt] = useState(0);
+  const [result, setResult] = useState(null);
+  const requestRef = useRef(null);
+  const scope = useMemo(() => ({ userId, initializing, attempt }), [userId, initializing, attempt]);
+  const retryFavorites = useCallback(() => setAttempt(value => value + 1), []);
 
   useEffect(() => {
-    let cancelled = false;
-    if (!authUser?.id) {
+    if (initializing) return;
+    const request = { scope, controller: new AbortController(), pending: new Set() };
+    requestRef.current = request;
+    const { signal } = request.controller;
+    async function load() {
       try {
-        setFavoriteIds(readGuestTrainingFavorites(window.sessionStorage));
+        let ids;
+        if (userId) {
+          const res = await authedFetch(FAVORITES_URL, {
+            signal,
+            headers: { 'X-Expected-Account': userId },
+            cache: 'no-store',
+          });
+          const body = await res.json().catch(() => null);
+          if (!res.ok || body?.success !== true || !Array.isArray(body.favorites)) {
+            throw new Error('Favorites could not be loaded');
+          }
+          ids = new Set(body.favorites);
+        } else {
+          ids = readGuestTrainingFavorites(window.sessionStorage);
+        }
+        if (!signal.aborted) setResult({ scope, ids, error: null });
       } catch {
-        setFavoriteIds(new Set());
+        if (!signal.aborted) setResult({ scope, ids: EMPTY_IDS, error: 'Favorites Are Unavailable.' });
       }
-      setLoading(false);
-      setError(null);
-      return () => { cancelled = true; };
     }
+    load();
+    return () => {
+      request.controller.abort();
+      requestRef.current = null;
+    };
+  }, [scope, initializing, userId]);
 
-    setFavoriteIds(new Set());
-    setLoading(true);
-    setError(null);
-
-    authedFetch('/api/training/game-favorites')
-      .then(async (res) => {
-        const body = await res.json().catch(() => null);
-        if (!res.ok || body?.success !== true || !Array.isArray(body?.favorites)) {
-          throw new Error(body?.error || `favorites ${res.status}`);
-        }
-        if (!cancelled) {
-          setFavoriteIds(new Set(body.favorites));
-        }
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setError('Favorites are temporarily unavailable.');
-          console.warn('[Training] favorites load failed:', err?.message || err);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => { cancelled = true; };
-  }, [authUser?.id]);
-
+  const current = result?.scope === scope ? result : null;
+  const favoriteIds = current?.ids || EMPTY_IDS;
   const toggleFavorite = useCallback(async (gameId) => {
-    if (!gameId || pendingRef.current.has(gameId)) return false;
-
-    const currentlyStarred = favoriteIds.has(gameId);
-    const nextAction = currentlyStarred ? 'remove' : 'add';
-
-    if (!authUser?.id) {
+    const request = requestRef.current;
+    if (!current || current.error || request?.scope !== scope || !gameId || request.pending.has(gameId)) return false;
+    if (!userId) {
       try {
-        const next = toggleGuestTrainingFavorite(window.sessionStorage, gameId);
-        setFavoriteIds(next);
-        toast.info(next.has(gameId) ? 'Saved For This Tab.' : 'Removed From Favorites.');
+        const ids = toggleGuestTrainingFavorite(window.sessionStorage, gameId);
+        setResult({ scope, ids, error: null });
+        toast.info(ids.has(gameId) ? 'Saved For This Tab.' : 'Removed From Favorites.');
         return true;
       } catch {
         toast.error('Favorites Could Not Be Saved In This Tab.');
@@ -78,39 +65,41 @@ export default function useTrainingFavorites(authUser) {
       }
     }
 
-    pendingRef.current.add(gameId);
+    const remove = current.ids.has(gameId);
+    request.pending.add(gameId);
+    const { signal } = request.controller;
     try {
-      const res = await authedFetch('/api/training/game-favorites', {
-        method: nextAction === 'add' ? 'POST' : 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await authedFetch(FAVORITES_URL, {
+        method: remove ? 'DELETE' : 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Expected-Account': userId },
         body: JSON.stringify({ gameId }),
+        signal,
       });
       const body = await res.json().catch(() => null);
-      if (!res.ok || body?.success !== true) {
-        toast.error('Favorite Change Was Not Saved. Your Display Has Not Been Changed.');
-        return false;
-      }
-      setFavoriteIds((prev) => {
-        const next = new Set(prev);
-        if (nextAction === 'add') next.add(gameId);
-        else next.delete(gameId);
-        return next;
+      if (signal.aborted) return false;
+      if (!res.ok || body?.success !== true) throw new Error('Favorite write failed');
+      setResult(prev => {
+        if (prev?.scope !== scope) return prev;
+        const ids = new Set(prev.ids);
+        if (remove) ids.delete(gameId);
+        else ids.add(gameId);
+        return { ...prev, ids };
       });
       return true;
-    } catch (err) {
-      console.warn('[Training] favorite toggle failed:', err?.message || err);
-      toast.error('Favorite Change Was Not Saved. Your Display Has Not Been Changed.');
+    } catch {
+      if (!signal.aborted) toast.error('Favorite Change Was Not Saved. Your Display Has Not Been Changed.');
       return false;
     } finally {
-      pendingRef.current.delete(gameId);
+      request.pending.delete(gameId);
     }
-  }, [authUser?.id, favoriteIds]);
+  }, [current, scope, userId]);
 
   return {
     favoriteIds,
     favoriteCount: favoriteIds.size,
-    favoritesLoading: loading,
-    favoritesError: error,
+    favoritesLoading: !current,
+    favoritesError: current?.error,
+    retryFavorites,
     toggleFavorite,
   };
 }
