@@ -8,7 +8,7 @@
  */
 
 import { useCallback, useState } from 'react';
-import { useRouter } from 'next/router';
+import Link from 'next/link';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -58,20 +58,18 @@ const DESTINATIONS = [
 ];
 
 export default function VerifiedEvidenceSandboxBoundary() {
-  const router = useRouter();
   const [showMenu, setShowMenu] = useState(false);
   const menuConfig = getMenuConfig('hub-home', null, {}, {});
   const haptic = useHaptics();
   const closeMenu = useCallback(() => setShowMenu(false), []);
   useModalHistory(showMenu, closeMenu);
 
-  const go = (href) => {
+  const handleLinkTap = (event, href) => {
     haptic('light');
     if (href.startsWith('/hub/club-arena/') && typeof window !== 'undefined') {
+      event.preventDefault();
       window.location.assign(href);
-      return;
     }
-    router.push(href);
   };
 
   return (
@@ -136,54 +134,62 @@ export default function VerifiedEvidenceSandboxBoundary() {
 
           <div className="sandbox-command-bar" aria-label="Verified Training Destinations" data-tutorial="sandbox-destinations">
             {DESTINATIONS.map((destination) => (
-              <button
+              <Link
                 key={destination.href}
-                type="button"
+                href={destination.href}
                 className={destination.primary ? 'destination primary' : 'destination'}
-                onClick={() => go(destination.href)}
+                onClick={(event) => handleLinkTap(event, destination.href)}
               >
                 <span>{destination.title}</span>
                 <small>{destination.description}</small>
-              </button>
+              </Link>
             ))}
           </div>
 
-          <button
-            type="button"
+          <Link
+            href="/hub/personal-assistant"
             className="back-link"
-            onClick={() => go('/hub/personal-assistant')}
+            onClick={(event) => handleLinkTap(event, '/hub/personal-assistant')}
           >
             Back To Personal Assistant
-          </button>
+          </Link>
         </section>
-        <HubPageSummary page="personal-assistant-sandbox" />
+        <details className="summary-disclosure">
+          <summary>
+            <span>About Scenario Analysis &amp; Verified Evidence</span>
+            <small>Platform Reference</small>
+          </summary>
+          <div className="summary-disclosure-body">
+            <HubPageSummary page="personal-assistant-sandbox" />
+          </div>
+        </details>
       </main>
 
       <style jsx>{`
         /* Approved MTT Lobby & Arena Workspace Design System:
-           #040d18 obsidian-navy canvas, 600px centered interior, border-only
-           metallic steel (#688299 / #aec0d0), royal-blue primary CTA. */
+           #040d18 / #05080c-#020407 obsidian-navy console canvas, 600px centered interior,
+           1px solid rgba(140, 161, 180, 0.24) hairline borders, royal-blue primary CTA. */
         .sandbox-boundary-page {
           min-height: 100dvh;
           width: 100%;
           max-width: 100vw;
           overflow-x: clip;
           color: #f1f5fc;
-          background: #040d18;
+          background: linear-gradient(180deg, #05080c 0%, #040d18 52%, #020407 100%);
           font-family: Arial, Inter, -apple-system, sans-serif;
         }
 
         .sandbox-workspace {
           width: min(100% - 12px, 600px);
           margin: 0 auto;
-          padding: 10px 0 24px;
+          padding: 10px 0 max(24px, env(safe-area-inset-bottom));
         }
 
         .boundary-console {
           position: relative;
           overflow: hidden;
           padding: 16px;
-          border: 1px solid #688299;
+          border: 1px solid rgba(140, 161, 180, 0.24);
           border-top-color: #aec0d0;
           border-radius: 7px;
           background:
@@ -215,7 +221,7 @@ export default function VerifiedEvidenceSandboxBoundary() {
         .eyebrow {
           margin: 10px 0 4px;
           color: #83deff;
-          font: 700 12px / 1.2 'Arial Narrow', Arial, sans-serif;
+          font: 700 12px / 1.2 'Rajdhani', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
           letter-spacing: 0.05em;
           text-transform: uppercase;
         }
@@ -223,7 +229,7 @@ export default function VerifiedEvidenceSandboxBoundary() {
         h1 {
           margin: 0;
           color: #f1f5fc;
-          font: 800 clamp(22px, 5vw, 28px) / 1.08 'Arial Narrow', Arial, sans-serif;
+          font: 800 clamp(22px, 5vw, 28px) / 1.08 'Rajdhani', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
           letter-spacing: -0.01em;
         }
 
@@ -244,7 +250,7 @@ export default function VerifiedEvidenceSandboxBoundary() {
         .evidence-panel > div {
           min-width: 0;
           padding: 10px;
-          border: 1px solid #688299;
+          border: 1px solid rgba(140, 161, 180, 0.24);
           border-top-color: #aec0d0;
           border-radius: 7px;
           background: linear-gradient(155deg, #12273b, #07111c 70%);
@@ -254,7 +260,7 @@ export default function VerifiedEvidenceSandboxBoundary() {
           display: block;
           margin-bottom: 3px;
           color: #9aabba;
-          font: 700 12px / 1.2 'Arial Narrow', Arial, sans-serif;
+          font: 700 12px / 1.2 'Rajdhani', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
           text-transform: uppercase;
         }
 
@@ -282,19 +288,23 @@ export default function VerifiedEvidenceSandboxBoundary() {
           margin-top: 12px;
         }
 
-        .destination {
+        .destination,
+        .sandbox-command-bar :global(a.destination) {
+          display: block;
           min-height: 68px;
           padding: 11px 12px;
-          border: 1px solid #688299;
+          border: 1px solid rgba(140, 161, 180, 0.24);
           border-top-color: #aec0d0;
           border-radius: 6px;
           color: #f1f5fc;
           background: linear-gradient(180deg, #152639 0%, #06111e 65%);
           text-align: left;
+          text-decoration: none;
           cursor: pointer;
         }
 
-        .destination.primary {
+        .destination.primary,
+        .sandbox-command-bar :global(a.destination.primary) {
           grid-column: 1 / -1;
           border-color: #56d8ff;
           border-top-color: #b3eaff;
@@ -302,37 +312,84 @@ export default function VerifiedEvidenceSandboxBoundary() {
         }
 
         .destination:focus-visible,
-        .back-link:focus-visible {
+        .sandbox-command-bar :global(a.destination:focus-visible),
+        .back-link:focus-visible,
+        .boundary-console :global(a.back-link:focus-visible) {
           outline: 2px solid #83deff;
           outline-offset: 2px;
         }
 
         .destination span,
-        .destination small {
+        .destination small,
+        .sandbox-command-bar :global(a.destination span),
+        .sandbox-command-bar :global(a.destination small) {
           display: block;
         }
 
-        .destination span {
-          font: 700 14px / 1.15 'Arial Narrow', Arial, sans-serif;
+        .destination span,
+        .sandbox-command-bar :global(a.destination span) {
+          font: 700 14px / 1.15 'Rajdhani', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
         }
 
-        .destination small {
+        .destination small,
+        .sandbox-command-bar :global(a.destination small) {
           margin-top: 4px;
           color: #dce5ef;
           font-size: 12px;
           line-height: 1.35;
         }
 
-        .back-link {
+        .back-link,
+        .boundary-console :global(a.back-link) {
+          display: inline-flex;
+          align-items: center;
           margin-top: 12px;
           min-height: 44px;
           border: 0;
           color: #83deff;
           background: transparent;
-          font: 700 13px 'Arial Narrow', Arial, sans-serif;
+          font: 700 13px 'Rajdhani', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
           cursor: pointer;
           text-decoration: underline;
           text-underline-offset: 4px;
+        }
+
+        .summary-disclosure {
+          margin-top: 10px;
+          border: 1px solid rgba(140, 161, 180, 0.24);
+          border-top-color: #aec0d0;
+          border-radius: 7px;
+          background: linear-gradient(145deg, #091727, #030b14 74%);
+          overflow: clip;
+        }
+
+        .summary-disclosure > summary {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          min-height: 44px;
+          padding: 10px 14px;
+          cursor: pointer;
+          color: #f1f5fc;
+          font: 700 13px / 1.2 'Rajdhani', 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
+          list-style: none;
+          user-select: none;
+        }
+
+        .summary-disclosure > summary::-webkit-details-marker {
+          color: transparent;
+          width: 0;
+        }
+
+        .summary-disclosure > summary small {
+          color: #9aabba;
+          font: 600 12px / 1.2 Arial, sans-serif;
+        }
+
+        .summary-disclosure-body {
+          border-top: 1px solid rgba(140, 161, 180, 0.24);
+          padding: 8px 12px;
         }
 
         @media (max-width: 768px) {
@@ -350,7 +407,8 @@ export default function VerifiedEvidenceSandboxBoundary() {
             grid-template-columns: 1fr;
           }
 
-          .destination {
+          .destination,
+          .sandbox-command-bar :global(a.destination) {
             min-height: 62px;
           }
         }

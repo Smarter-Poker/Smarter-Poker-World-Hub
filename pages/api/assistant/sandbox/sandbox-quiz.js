@@ -8,11 +8,16 @@ import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 import { reportApiError } from '../../../../src/lib/apiErrorHandler';
 
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
+import { checkSandboxAccess, isFeatureAccessible } from '../../../../src/lib/personal-assistant/contextAuthority';
 import { persistedResult, persistenceFailure } from '../../../../src/lib/personal-assistant/persistenceContract';
 import { curatedWeeklySpotById } from '../../../../src/lib/personal-assistant/weeklySpotCatalog';
 import { gradeAction } from '../../../../src/lib/sandbox/actionGrading';
 
 let _supabase = null;
+export function _setSupabaseForTesting(client) {
+    _supabase = client;
+}
+
 function getSupabase() {
     if (!_supabase) {
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -48,6 +53,16 @@ export default async function handler(req, res) {
       const userId = authUser.id; // Trust JWT, not client-supplied value
 
       if (req.method === 'POST') {
+          const contextAccess = await checkSandboxAccess(supabase, userId);
+          if (!contextAccess?.allowed || !isFeatureAccessible(contextAccess.accessLevel, 'sandbox_analyze')) {
+              return res.status(403).json({
+                  success: false,
+                  blocked: true,
+                  contextState: contextAccess?.contextState || 'session_active_unknown',
+                  accessLevel: contextAccess?.accessLevel || 'hard_block',
+                  error: contextAccess?.message || 'Weekly spot quiz grading is unavailable during live play or post-session cooldown.',
+              });
+          }
           const { spotId, userAction } = req.body || {};
           if (typeof spotId !== 'string' || !spotId.trim() || typeof userAction !== 'string' || !userAction.trim()) {
               return res.status(400).json({ error: 'Missing required fields' });

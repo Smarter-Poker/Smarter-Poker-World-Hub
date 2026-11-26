@@ -238,6 +238,7 @@ export default function LiveSpotQuickEntry({
   const baseId = useId();
   const triggerRef = useRef(null);
   const [tab, setTab] = useState(initialTab === 'paste' ? 'paste' : 'spot');
+  const [wizardStep, setWizardStep] = useState(1);
   const [spot, setSpot] = useState(DEFAULT_SPOT);
   const [showErrors, setShowErrors] = useState(false);
   const [pasted, setPasted] = useState('');
@@ -287,9 +288,35 @@ export default function LiveSpotQuickEntry({
   }, [onClose]);
 
   const update = useCallback((patch) => {
-    setSpot((current) => ({ ...current, ...patch }));
+    setSpot((current) => {
+      const next = { ...current, ...patch };
+      // Keep Facing Action consistent when Board or Position changes in Step 1
+      if (Object.prototype.hasOwnProperty.call(patch, 'board')) {
+        const hasBoard = String(next.board || '').trim().length > 0;
+        if (hasBoard && next.facing !== 'facing_bet') {
+          next.facing = 'facing_bet';
+        } else if (!hasBoard && next.facing === 'facing_bet') {
+          next.facing = next.position === 'UTG' ? 'unopened' : 'open_raise';
+        }
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, 'position')) {
+        if (next.position === 'UTG' && next.facing === 'open_raise') {
+          next.facing = 'unopened';
+        } else if (next.position === 'BB' && (next.facing === 'unopened' || next.facing === 'three_bet')) {
+          next.facing = 'open_raise';
+        }
+      }
+      return next;
+    });
     setResult(null);
   }, []);
+
+  const handleAdvanceToStep2 = useCallback(() => {
+    setShowErrors(true);
+    if (!built.ok) return;
+    setWizardStep(2);
+    setStatusAnnouncement('Step 2 Of 2. Choose Your Action And Review Spot.');
+  }, [built.ok]);
 
   const runAudit = useCallback(async (text, { evidenceScope = 'external_upload', externalSignal = null, suppressEvents = false } = {}) => {
     const requestId = ++requestIdRef.current;
@@ -639,6 +666,7 @@ export default function LiveSpotQuickEntry({
 
   const pasteBlocked = !pasted.trim() || detected.supported === false;
   const id = (suffix) => `${baseId}-${suffix}`;
+  const spotOneLineSummary = `${spot.heroCards.trim() || 'Cards Unset'} · ${spot.position} · ${spot.stackBb || '100'} BB · ${titleCase(spot.format)} · ${spot.board.trim() ? `Board ${spot.board.trim()}` : 'Preflop'}`;
 
   return (
     <BottomSheet
@@ -670,6 +698,17 @@ export default function LiveSpotQuickEntry({
         {statusAnnouncement}
       </div>
 
+      {/* Shared hidden file input for 1-tap .txt/.hh/.log upload from either Step 1 or Paste tab */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".txt,.hh,.log"
+        onChange={handleFileChange}
+        style={{ display: 'none' }}
+        id={id('file-input')}
+        aria-label="Upload Hand History File"
+      />
+
       <div style={{ display: 'grid', gap: 14 }} data-live-spot-quick-entry="true">
         <Segmented
           idPrefix="live-spot-tab"
@@ -680,104 +719,345 @@ export default function LiveSpotQuickEntry({
           options={TAB_OPTIONS}
         />
 
+        {/* Live Progress Region During Multi-Batch Audit */}
+        {bulkProgress?.active && (
+          <div
+            role="group"
+            aria-label="Bulk Audit Status"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+              padding: 12,
+              borderRadius: R.sm,
+              background: '#07111c',
+              border: '1px solid #56d8ff',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <strong style={{ color: '#83deff', fontSize: F.bodySm }}>
+                Auditing Batch {bulkProgress.currentBatch} Of {bulkProgress.totalBatches}
+              </strong>
+              <button
+                type="button"
+                onClick={handleCancelBulk}
+                style={{ ...btn('ghost'), minHeight: 44, color: T.danger }}
+                aria-label="Cancel Bulk Audit"
+              >
+                Cancel Audit
+              </button>
+            </div>
+            <div
+              role="progressbar"
+              aria-label="Bulk Hand Audit Progress"
+              aria-valuenow={Math.round(((bulkProgress.completedBatches ?? 0) / bulkProgress.totalBatches) * 100)}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              style={{ width: '100%', height: 6, background: '#06111e', borderRadius: 3, overflow: 'hidden' }}
+            >
+              <div
+                style={{
+                  width: `${Math.round(((bulkProgress.completedBatches ?? 0) / bulkProgress.totalBatches) * 100)}%`,
+                  height: '100%',
+                  background: 'linear-gradient(90deg, #087cfa, #56d8ff)',
+                  transition: 'width 0.2s ease',
+                }}
+              />
+            </div>
+          </div>
+        )}
+
         {tab === 'spot' ? (
           <form onSubmit={submitSpot} noValidate style={{ display: 'grid', gap: 12 }} aria-label="Live Quick Spot">
-            <Field id={id('hero')} label="Hero Cards">
-              <input
-                id={id('hero')}
-                type="text"
-                inputMode="text"
-                autoCapitalize="none"
-                autoCorrect="off"
-                spellCheck={false}
-                data-pa-verbatim="true"
-                value={spot.heroCards}
-                onChange={(event) => update({ heroCards: event.target.value })}
-                placeholder="As Kd"
-                style={controlStyle}
-              />
-            </Field>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
-              <Field id={id('position')} label="Position">
-                <select id={id('position')} value={spot.position} onChange={(event) => update({ position: event.target.value })} style={controlStyle}>
-                  {LIVE_SPOT_POSITIONS.map((pos) => <option key={pos} value={pos}>{pos}</option>)}
-                </select>
-              </Field>
-              <Field id={id('stack')} label="Stack (BB)">
-                <input
-                  id={id('stack')}
-                  type="text"
-                  inputMode="decimal"
-                  value={spot.stackBb}
-                  onChange={(event) => update({ stackBb: event.target.value.replace(/[^\d.]/g, '') })}
-                  style={controlStyle}
-                />
-              </Field>
+            {/* 2-Step Mobile Wizard Stepper */}
+            <div
+              role="group"
+              aria-label="Spot Wizard Steps"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                gap: 6,
+                padding: 4,
+                borderRadius: R.sm,
+                background: '#05080c',
+                border: '1px solid rgba(140, 161, 180, 0.24)',
+              }}
+            >
+              <button
+                type="button"
+                className="pa-btn"
+                aria-current={wizardStep === 1 ? 'step' : undefined}
+                onClick={() => setWizardStep(1)}
+                style={{
+                  ...btn(wizardStep === 1 ? 'primary' : 'ghost', { block: true }),
+                  minHeight: 44,
+                  fontSize: F.caption,
+                }}
+              >
+                <span>1. Spot Setup</span>
+              </button>
+              <button
+                type="button"
+                className="pa-btn"
+                aria-current={wizardStep === 2 ? 'step' : undefined}
+                onClick={handleAdvanceToStep2}
+                style={{
+                  ...btn(wizardStep === 2 ? 'primary' : 'ghost', { block: true }),
+                  minHeight: 44,
+                  fontSize: F.caption,
+                }}
+              >
+                <span>2. Your Action &amp; Review</span>
+              </button>
             </div>
 
-            <Segmented
-              idPrefix="live-spot-format"
-              label="Game Format"
-              columns={2}
-              value={spot.format}
-              onChange={(next) => update({ format: next })}
-              options={FORMAT_OPTIONS}
-            />
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
-              <Field id={id('facing')} label="Facing Action">
-                <select id={id('facing')} value={spot.facing} onChange={(event) => update({ facing: event.target.value })} style={controlStyle}>
-                  {Object.entries(LIVE_SPOT_FACING_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                </select>
-              </Field>
-              <Field id={id('action')} label="Your Action">
-                <select id={id('action')} value={spot.action} onChange={(event) => update({ action: event.target.value })} style={controlStyle}>
-                  {Object.entries(LIVE_SPOT_ACTION_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                </select>
-              </Field>
-            </div>
-
-            <details className="pa-disclosure">
-              <summary>
-                <span>Add Board (Optional)</span>
-                <small>Flop, Turn, River</small>
-              </summary>
-              <div className="pa-disclosure-body">
-                <Field id={id('board')} label="Board Cards">
+            {wizardStep === 1 ? (
+              <div data-testid="live-spot-step-1" style={{ display: 'grid', gap: 12 }}>
+                <Field id={id('hero')} label="Hero Cards">
                   <input
-                    id={id('board')}
+                    id={id('hero')}
                     type="text"
                     inputMode="text"
                     autoCapitalize="none"
                     autoCorrect="off"
                     spellCheck={false}
                     data-pa-verbatim="true"
-                    value={spot.board}
-                    onChange={(event) => update({ board: event.target.value })}
-                    placeholder="Ts 9h 2c"
+                    value={spot.heroCards}
+                    onChange={(event) => update({ heroCards: event.target.value })}
+                    placeholder="As Kd"
                     style={controlStyle}
                   />
                 </Field>
-                <p style={{ ...noteStyle, marginTop: 8 }}>Use Facing A Postflop Bet When You Add A Board.</p>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
+                  <Field id={id('position')} label="Position">
+                    <select id={id('position')} value={spot.position} onChange={(event) => update({ position: event.target.value })} style={controlStyle}>
+                      {LIVE_SPOT_POSITIONS.map((pos) => <option key={pos} value={pos}>{pos}</option>)}
+                    </select>
+                  </Field>
+                  <Field id={id('stack')} label="Stack (BB)">
+                    <input
+                      id={id('stack')}
+                      type="text"
+                      inputMode="decimal"
+                      value={spot.stackBb}
+                      onChange={(event) => update({ stackBb: event.target.value.replace(/[^\d.]/g, '') })}
+                      style={controlStyle}
+                    />
+                  </Field>
+                </div>
+
+                <Segmented
+                  idPrefix="live-spot-format"
+                  label="Game Format"
+                  columns={2}
+                  value={spot.format}
+                  onChange={(next) => update({ format: next })}
+                  options={FORMAT_OPTIONS}
+                />
+
+                <details className="pa-disclosure" open={Boolean(spot.board)}>
+                  <summary>
+                    <span>Add Board (Optional)</span>
+                    <small>Flop, Turn, River</small>
+                  </summary>
+                  <div className="pa-disclosure-body">
+                    <Field id={id('board')} label="Board Cards">
+                      <input
+                        id={id('board')}
+                        type="text"
+                        inputMode="text"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        data-pa-verbatim="true"
+                        value={spot.board}
+                        onChange={(event) => update({ board: event.target.value })}
+                        placeholder="Ts 9h 2c"
+                        style={controlStyle}
+                      />
+                    </Field>
+                    <p style={{ ...noteStyle, marginTop: 8 }}>Use Facing A Postflop Bet When You Add A Board.</p>
+                  </div>
+                </details>
+
+                {/* 1-Tap Quick File Drop/Pick in Step 1 */}
+                <div
+                  onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+                  onDragLeave={() => setIsDragOver(false)}
+                  onDrop={handleDrop}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: 8,
+                    padding: '10px 12px',
+                    borderRadius: R.sm,
+                    border: `1px dashed ${isDragOver ? '#56d8ff' : 'rgba(140, 161, 180, 0.24)'}`,
+                    background: isDragOver ? 'rgba(8, 124, 250, 0.12)' : '#091017',
+                  }}
+                >
+                  <span style={{ fontSize: F.caption, color: '#9eb4c8' }}>
+                    Have A Hand History File? Drop Or Pick .Txt / .Hh / .Log
+                  </span>
+                  <button
+                    type="button"
+                    className="pa-btn"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={running || bulkProgress?.active}
+                    style={{ ...btn('secondary'), minHeight: 44, padding: '6px 12px' }}
+                  >
+                    <span>Upload .Txt File</span>
+                  </button>
+                </div>
+
+                {showErrors && !built.ok && (
+                  <ul role="alert" style={{ margin: 0, paddingLeft: 18, color: T.danger, fontSize: F.bodySm, lineHeight: 1.45 }}>
+                    {built.errors.map((message) => <li key={message}>{message}</li>)}
+                  </ul>
+                )}
+
+                {/* Thumb-Zone Sticky Bottom Bar for Step 1 */}
+                <div
+                  data-testid="live-spot-step1-sticky-bar"
+                  style={{
+                    position: 'sticky',
+                    bottom: 0,
+                    zIndex: 5,
+                    paddingTop: 10,
+                    paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
+                    background: 'linear-gradient(180deg, rgba(5, 8, 12, 0.92) 0%, #05080c 24%, #091017 100%)',
+                    borderTop: '1px solid rgba(140, 161, 180, 0.24)',
+                  }}
+                >
+                  <button
+                    type="button"
+                    className="pa-btn"
+                    onClick={handleAdvanceToStep2}
+                    disabled={running || bulkProgress?.active}
+                    style={{ ...btn('primary', { block: true, disabled: running || bulkProgress?.active }), minHeight: 48, fontFamily: DISPLAY_FONT }}
+                  >
+                    <span>Review &amp; Action -&gt;</span>
+                  </button>
+                </div>
               </div>
-            </details>
+            ) : (
+              <div data-testid="live-spot-step-2" style={{ display: 'grid', gap: 12 }}>
+                {/* Compact 1-Line Summary of the Spot */}
+                <div
+                  data-testid="live-spot-summary"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: 8,
+                    padding: '10px 12px',
+                    borderRadius: R.sm,
+                    background: '#091017',
+                    border: '1px solid rgba(140, 161, 180, 0.24)',
+                    color: T.text,
+                    fontSize: F.bodySm,
+                    fontWeight: 700,
+                  }}
+                >
+                  <span>{spotOneLineSummary}</span>
+                </div>
 
-            {showErrors && !built.ok && (
-              <ul role="alert" style={{ margin: 0, paddingLeft: 18, color: T.danger, fontSize: F.bodySm, lineHeight: 1.45 }}>
-                {built.errors.map((message) => <li key={message}>{message}</li>)}
-              </ul>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
+                  <Field id={id('facing')} label="Facing Action">
+                    <select id={id('facing')} value={spot.facing} onChange={(event) => update({ facing: event.target.value })} style={controlStyle}>
+                      {Object.entries(LIVE_SPOT_FACING_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                    </select>
+                  </Field>
+                  <Field id={id('action')} label="Your Action">
+                    <select id={id('action')} value={spot.action} onChange={(event) => update({ action: event.target.value })} style={controlStyle}>
+                      {Object.entries(LIVE_SPOT_ACTION_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                    </select>
+                  </Field>
+                </div>
+
+                {/* Fast Thumb-Zone Action Buttons */}
+                <div
+                  role="group"
+                  aria-label="Quick Action Picker"
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                    gap: 8,
+                  }}
+                >
+                  {Object.entries(LIVE_SPOT_ACTION_LABELS).map(([value, label]) => {
+                    const active = spot.action === value;
+                    return (
+                      <button
+                        key={`action-pill-${value}`}
+                        type="button"
+                        className="pa-btn"
+                        aria-pressed={active}
+                        onClick={() => update({ action: value })}
+                        style={{
+                          ...btn(active ? 'primary' : 'secondary', { block: true }),
+                          minHeight: 48,
+                        }}
+                      >
+                        <span>{label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {showErrors && !built.ok && (
+                  <ul role="alert" style={{ margin: 0, paddingLeft: 18, color: T.danger, fontSize: F.bodySm, lineHeight: 1.45 }}>
+                    {built.errors.map((message) => <li key={message}>{message}</li>)}
+                  </ul>
+                )}
+
+                <p style={{ ...noteStyle, color: '#9eb4c8', fontSize: 12 }}>
+                  Logged As Self-Reported Live Study · Kept Separate From Club Arena Live Verification
+                </p>
+                <p style={noteStyle}>
+                  Only No-Limit Hold{'\u2019'}em Spots Are Checked. Anything Without A Verified Solver Match Is Saved As Unpriced, Never Guessed.
+                </p>
+
+                {/* Thumb-Zone Sticky Bottom Bar for Step 2 (Back + Analyze Spot) */}
+                <div
+                  data-testid="live-spot-step2-sticky-bar"
+                  style={{
+                    position: 'sticky',
+                    bottom: 0,
+                    zIndex: 5,
+                    display: 'grid',
+                    gridTemplateColumns: 'minmax(96px, 1fr) 2fr',
+                    gap: 8,
+                    paddingTop: 10,
+                    paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
+                    background: 'linear-gradient(180deg, rgba(5, 8, 12, 0.92) 0%, #05080c 24%, #091017 100%)',
+                    borderTop: '1px solid rgba(140, 161, 180, 0.24)',
+                  }}
+                >
+                  <button
+                    type="button"
+                    className="pa-btn"
+                    onClick={() => setWizardStep(1)}
+                    disabled={running}
+                    style={{ ...btn('secondary', { block: true, disabled: running }), minHeight: 48 }}
+                  >
+                    <span>Back</span>
+                  </button>
+                  <button
+                    type="submit"
+                    className="pa-btn"
+                    aria-label="Analyze Live Spot"
+                    disabled={running}
+                    style={{ ...btn('primary', { block: true, disabled: running }), minHeight: 48, fontFamily: DISPLAY_FONT }}
+                  >
+                    <span>{running ? 'Analyzing…' : 'Analyze Spot'}</span>
+                  </button>
+                </div>
+              </div>
             )}
-
-            <button type="submit" disabled={running} style={{ ...btn('primary', { block: true, disabled: running }), fontFamily: DISPLAY_FONT }}>
-              {running ? 'Analyzing…' : 'Analyze Live Spot'}
-            </button>
-            <p style={{ ...noteStyle, color: '#9eb4c8', fontSize: 12 }}>
-              Logged As Self-Reported Live Study · Kept Separate From Club Arena Live Verification
-            </p>
-            <p style={noteStyle}>
-              Only No-Limit Hold{'\u2019'}em Spots Are Checked. Anything Without A Verified Solver Match Is Saved As Unpriced, Never Guessed.
-            </p>
           </form>
         ) : (
           <form onSubmit={submitPaste} noValidate style={{ display: 'grid', gap: 12 }} aria-label="Paste External Hand History">
@@ -794,20 +1074,11 @@ export default function LiveSpotQuickEntry({
                 gap: 8,
                 padding: '16px 12px',
                 borderRadius: R.sm,
-                border: `2px dashed ${isDragOver ? '#56d8ff' : '#253e57'}`,
-                background: isDragOver ? 'rgba(8, 124, 250, 0.12)' : T.surface2,
+                border: `2px dashed ${isDragOver ? '#56d8ff' : 'rgba(140, 161, 180, 0.24)'}`,
+                background: isDragOver ? 'rgba(8, 124, 250, 0.12)' : '#091017',
                 textAlign: 'center',
               }}
             >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".txt,.hh,.log"
-                onChange={handleFileChange}
-                style={{ display: 'none' }}
-                id={id('file-input')}
-                aria-label="Upload Hand History File"
-              />
               <span style={{ fontSize: F.bodySm, color: T.text, fontWeight: 700 }}>
                 Upload .Txt Hand History File
               </span>
@@ -823,54 +1094,6 @@ export default function LiveSpotQuickEntry({
                 Choose .Txt File
               </button>
             </div>
-
-            {/* Live Progress Region During Multi-Batch Audit */}
-            {bulkProgress?.active && (
-              <div
-                role="group"
-                aria-label="Bulk Audit Status"
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 8,
-                  padding: 12,
-                  borderRadius: R.sm,
-                  background: '#07111c',
-                  border: '1px solid #56d8ff',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <strong style={{ color: '#83deff', fontSize: F.bodySm }}>
-                    Auditing Batch {bulkProgress.currentBatch} Of {bulkProgress.totalBatches}
-                  </strong>
-                  <button
-                    type="button"
-                    onClick={handleCancelBulk}
-                    style={{ ...btn('ghost'), minHeight: 44, color: T.danger }}
-                    aria-label="Cancel Bulk Audit"
-                  >
-                    Cancel Audit
-                  </button>
-                </div>
-                <div
-                  role="progressbar"
-                  aria-label="Bulk Hand Audit Progress"
-                  aria-valuenow={Math.round(((bulkProgress.completedBatches ?? 0) / bulkProgress.totalBatches) * 100)}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  style={{ width: '100%', height: 6, background: '#06111e', borderRadius: 3, overflow: 'hidden' }}
-                >
-                  <div
-                    style={{
-                      width: `${Math.round(((bulkProgress.completedBatches ?? 0) / bulkProgress.totalBatches) * 100)}%`,
-                      height: '100%',
-                      background: 'linear-gradient(90deg, #087cfa, #56d8ff)',
-                      transition: 'width 0.2s ease',
-                    }}
-                  />
-                </div>
-              </div>
-            )}
 
             <Field id={id('paste')} label="Hand History Text">
               <textarea
@@ -906,9 +1129,21 @@ export default function LiveSpotQuickEntry({
               </p>
             )}
 
-            <button type="submit" disabled={pasteBlocked || running || bulkProgress?.active} style={{ ...btn('primary', { block: true, disabled: pasteBlocked || running || bulkProgress?.active }), fontFamily: DISPLAY_FONT }}>
-              {running ? 'Analyzing…' : 'Analyze Hand History'}
-            </button>
+            <div
+              style={{
+                position: 'sticky',
+                bottom: 0,
+                zIndex: 5,
+                paddingTop: 10,
+                paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
+                background: 'linear-gradient(180deg, rgba(5, 8, 12, 0.92) 0%, #05080c 24%, #091017 100%)',
+                borderTop: '1px solid rgba(140, 161, 180, 0.24)',
+              }}
+            >
+              <button type="submit" disabled={pasteBlocked || running || bulkProgress?.active} style={{ ...btn('primary', { block: true, disabled: pasteBlocked || running || bulkProgress?.active }), minHeight: 48, fontFamily: DISPLAY_FONT }}>
+                {running ? 'Analyzing…' : 'Analyze Hand History'}
+              </button>
+            </div>
           </form>
         )}
 

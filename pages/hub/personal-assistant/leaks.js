@@ -21,8 +21,8 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import toast, { Toaster } from 'react-hot-toast';
 import {
   Activity, AlertTriangle, BarChart3, CalendarDays, CheckCircle2, ChevronDown, ChevronRight,
-  Clock, Dumbbell, Flame, GraduationCap, Inbox, Link2, Lock, RefreshCw, RotateCcw, Search,
-  Sparkles, Target, TrendingDown, TrendingUp, X, Zap,
+  Clock, Dumbbell, Flame, GraduationCap, Inbox, Link2, Lock, MoreHorizontal, Plus, RefreshCw,
+  RotateCcw, Search, Settings, SlidersHorizontal, Sparkles, Target, TrendingDown, TrendingUp, X, Zap,
 } from 'lucide-react';
 
 import SEOHead from '../../../src/components/seo/SEOHead';
@@ -31,6 +31,7 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
+import UiBottomSheet from '../../../src/components/ui/BottomSheet';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { useLeaks, useAssistantStats, useLeakDetection, useLeakHandExamples } from '../../../src/hooks/useAssistant';
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
@@ -73,6 +74,13 @@ import {
   buildTableVerificationIndex,
   describeTableVerification,
 } from '../../../src/lib/personal-assistant/liveVerificationPresentation.mjs';
+import {
+  buildAdviceExplanation,
+} from '../../../src/lib/personal-assistant/coachingIntelligence.mjs';
+import {
+  buildLeakTakeaway,
+  classifyEvidenceBasis,
+} from '../../../src/lib/personal-assistant/leakRecord.js';
 
 const TRAINING_GAME_IDS = TRAINING_LIBRARY.map(game => game.id);
 
@@ -331,7 +339,7 @@ function PanelSkeleton({ label = 'Loading' }) {
 /** Bottom-sheet shaped placeholder while the drill chunk downloads. */
 function DrillSheetSkeleton() {
   return (
-    <div style={styles.drillLoadingBackdrop} role="status" aria-live="polite" aria-label="Loading review drill">
+    <div style={styles.drillLoadingBackdrop} role="status" aria-live="polite" aria-label="Loading Review Drill">
       <div style={styles.drillLoadingSheet}>
         <Skeleton h={16} w="45%" />
         <Skeleton h={6} />
@@ -353,7 +361,7 @@ function DrillSheetSkeleton() {
 
 function ReviewSkeletonCard() {
   return (
-    <section className={toolStyles.instrumentPanel} style={{ ...card, marginBottom: S.md }} aria-busy="true" aria-label="Loading your review queue">
+    <section className={toolStyles.instrumentPanel} style={{ ...card, marginBottom: S.md }} aria-busy="true" aria-label="Loading Your Review Queue">
       <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm }}>
         <Skeleton h={14} w="40%" />
         <Skeleton h={22} w="70%" />
@@ -407,7 +415,7 @@ function ReviewQueueCard({
   // ── nothing to review because there is nothing to review FROM ──────────
   if (!hasLeaks) {
     return (
-      <section className={toolStyles.instrumentPanel} style={{ ...card, marginBottom: S.md }} aria-label="Review queue">
+      <section className={toolStyles.instrumentPanel} style={{ ...card, marginBottom: S.md }} aria-label="Review Queue">
         {heading}
         {/* No button here on purpose: the detection control sits immediately
             below, and two identical buttons a thumb apart reads as a bug. */}
@@ -430,7 +438,7 @@ function ReviewQueueCard({
   if (!top) {
     const nextLabel = dueInLabel(stats?.nextDueAt, nowMs);
     return (
-      <section className={toolStyles.instrumentPanel} style={{ ...card, marginBottom: S.md }} aria-label="Review queue">
+      <section className={toolStyles.instrumentPanel} style={{ ...card, marginBottom: S.md }} aria-label="Review Queue">
         {heading}
         <p style={styles.reviewCaughtUp}>
           <CheckCircle2 size={18} strokeWidth={2} color={T.success} aria-hidden="true" />
@@ -453,7 +461,7 @@ function ReviewQueueCard({
   const total = Math.max(list.length, Math.floor(num(queueTotal)) || 0);
 
   return (
-    <section className={toolStyles.instrumentPanel} style={{ ...card, marginBottom: S.md }} aria-label="Review queue">
+    <section className={toolStyles.instrumentPanel} style={{ ...card, marginBottom: S.md }} aria-label="Review Queue">
       {heading}
 
       {/* `queue` is capped at MAX_QUEUE for the session, but the count states
@@ -699,7 +707,7 @@ function TrendChart({ data, optimal, current, status }) {
       </div>
 
       {/* Tap-to-read points (no hover-only information) */}
-      <div style={styles.trendPointRow} data-hscroll="true" role="group" aria-label="Trend data points">
+      <div style={styles.trendPointRow} data-hscroll="true" role="group" aria-label="Trend Data Points">
         {points.map((p, i) => (
           <button
             key={`btn-${p.date}-${i}`}
@@ -749,7 +757,7 @@ function BleedSummary({ leaks, isDemo }) {
   const restBb = total - top.reduce((s, i) => s + i.bb, 0);
 
   return (
-    <section className={toolStyles.instrumentPanel} style={{ ...card, marginBottom: S.md }} aria-label="EV bleed summary">
+    <section className={toolStyles.instrumentPanel} style={{ ...card, marginBottom: S.md }} aria-label="EV Bleed Summary">
       <h2 style={styles.bleedHeadline}>
         {isDemo ? 'Sample data: ' : 'You are bleeding '}
         <span style={{ ...numeric, color: T.danger, fontWeight: 800 }}>~{total.toFixed(1)} BB</span>
@@ -1053,14 +1061,92 @@ function ShareReviewControl({ hand }) {
   );
 }
 
-function LeakCard({ leak, onOpen, onReview, selected, demo, progress }) {
+const EVIDENCE_BASIS_META = {
+  exact_solver_match: { label: 'Exact Solver Match', tone: 'accent' },
+  chart: { label: 'Chart', tone: 'purple' },
+  deterministic_rule: { label: 'Deterministic Rule', tone: 'warn' },
+  general_coaching: { label: 'General Coaching', tone: 'neutral' },
+};
+
+function evidenceBasisMeta(basis) {
+  const key = String(basis || '').trim().toLowerCase();
+  return {
+    key: EVIDENCE_BASIS_META[key] ? key : 'general_coaching',
+    ...(EVIDENCE_BASIS_META[key] || EVIDENCE_BASIS_META.general_coaching),
+  };
+}
+
+function titleCaseTokens(value) {
+  return String(value ?? '')
+    .replace(/[_-]+/g, ' ')
+    .trim()
+    .replace(/\b[a-z]/g, letter => letter.toUpperCase());
+}
+
+function LeakCard({
+  leak,
+  onOpen,
+  onReview,
+  onPractice,
+  onOpenOverflow,
+  onClaimReward,
+  rewardClaimed = false,
+  claimingReward = false,
+  isDue = false,
+  selected,
+  demo,
+  progress,
+}) {
   const priced = hasPricedEv(leak);
   const ev = priced ? Math.abs(Number(leak.evLossBB)) : 0;
   const occ = Math.max(0, num(leak.occurrenceCount));
   const total = ev * occ;
-  const meta = statusMeta(leak.status);
   const lowConfidence = leak.confidence === 'low';
   const honesty = classifyFindingHonesty(leak, progress);
+  const advice = useMemo(
+    () => leak?.adviceExplanation || buildAdviceExplanation(leak, [], TRAINING_GAME_IDS),
+    [leak],
+  );
+  const takeaway = leak?.takeaway || advice?.takeaway || buildLeakTakeaway(leak);
+  const basis = evidenceBasisMeta(leak?.evidenceBasis || advice?.evidenceBasis || classifyEvidenceBasis(leak));
+  const repHand = leak?.representativeHand || advice?.representativeHand || {};
+  const sampleCounts = leak?.sampleCounts || advice?.sampleCounts || {};
+  const opportunities = Math.max(occ, num(sampleCounts.opportunities || leak?.totalSamples));
+  const mistakes = num(sampleCounts.mistakes || occ);
+  const isVerifiedFixed = leak?.tableVerification?.status === 'confirmed_fixed_at_tables';
+
+  const repNoteParts = [
+    repHand.street ? titleCaseTokens(repHand.street) : null,
+    repHand.heroPosition || null,
+    repHand.playerAction ? `You: ${titleCaseTokens(repHand.playerAction)}` : null,
+    repHand.solverVerified && repHand.solverAction ? `Solver: ${titleCaseTokens(repHand.solverAction)}` : null,
+    repHand.priceOrSizing ? titleCaseTokens(repHand.priceOrSizing) : null,
+    repHand.handId ? `Hand ${String(repHand.handId).slice(0, 8)}` : null,
+  ].filter(Boolean);
+
+  const primaryLabel = (isVerifiedFixed && !rewardClaimed && onClaimReward)
+    ? (claimingReward ? 'Claiming…' : 'Claim 25 Diamonds')
+    : isDue
+      ? 'Drill Now'
+      : onPractice
+        ? 'Practice This'
+        : 'Review Hand';
+
+  const handlePrimaryClick = () => {
+    if (isVerifiedFixed && !rewardClaimed && onClaimReward) {
+      onClaimReward(leak);
+      return;
+    }
+    if (onPractice) {
+      onPractice(leak);
+      return;
+    }
+    if (onReview) {
+      onReview(leak);
+      return;
+    }
+    onOpen?.(leak);
+  };
 
   return (
     <li
@@ -1075,19 +1161,33 @@ function LeakCard({ leak, onOpen, onReview, selected, demo, progress }) {
         type="button"
         className="leak-card pa-btn"
         onClick={() => onOpen(leak)}
-        aria-label={`${leak.title}. ${honesty.label}. ${priced ? `${ev.toFixed(2)} BB lost per occurrence` : 'EV unpriced'} over ${occ} spots. Open details.`}
+        aria-label={`${leak.title}. ${basis.label}. ${honesty.label}. ${priced ? `${ev.toFixed(2)} BB lost per occurrence` : 'EV unpriced'} over ${occ} spots. Open details.`}
         style={styles.leakCardBody}
       >
         <span style={styles.leakCardHeader}>
           <span style={styles.leakCardTitle}>{leak.title}</span>
-          <ChevronRight size={18} strokeWidth={2} aria-hidden="true" style={{ color: T.textMuted, flexShrink: 0 }} />
+          <span style={pill(basis.tone)} data-evidence-basis={basis.key}>{basis.label}</span>
+        </span>
+
+        {/* Rule of 1+1: plain-English finding first */}
+        <span style={styles.leakCardFinding}>
+          {takeaway?.whatYouAreDoing || leak.explanation || leak.situationClass || honesty.detail}
+        </span>
+
+        {/* Representative hand & context note */}
+        <span style={styles.leakCardSituation}>
+          {repNoteParts.length > 0
+            ? `Representative Spot: ${repNoteParts.join(' · ')}`
+            : (leak.situationClass || honesty.detail)}
         </span>
 
         <span style={styles.leakCardMetrics}>
           <span style={styles.leakCardEv}>{priced ? `-${ev.toFixed(2)} BB` : 'Unpriced'}</span>
-          <span style={styles.leakCardMetricDim}>{priced ? 'per spot' : 'no EV claim'}</span>
-          <span style={styles.leakCardMetricDim}>{occ} spot{occ === 1 ? '' : 's'}</span>
-          <span style={styles.leakCardMetricStrong}>{priced ? `~${total.toFixed(1)} BB total` : 'Training signal'}</span>
+          <span style={styles.leakCardMetricDim}>{priced ? 'Per Spot' : 'No EV Claim'}</span>
+          <span style={styles.leakCardMetricDim}>
+            {mistakes} Mistake{mistakes === 1 ? '' : 's'} / {opportunities} Spot{opportunities === 1 ? '' : 's'}
+          </span>
+          <span style={styles.leakCardMetricStrong}>{priced ? `~${total.toFixed(1)} BB Total` : 'Training Signal'}</span>
         </span>
 
         <LeakCardProgress progress={progress} />
@@ -1100,10 +1200,6 @@ function LeakCard({ leak, onOpen, onReview, selected, demo, progress }) {
           <ConfidenceBadge confidence={leak.confidence} />
         </span>
 
-        <span style={styles.leakCardSituation}>
-          {leak.situationClass || honesty.detail}
-        </span>
-
         {lowConfidence && (
           <span style={styles.leakCardHint}>
             <AlertTriangle size={12} strokeWidth={2} aria-hidden="true" />
@@ -1112,16 +1208,30 @@ function LeakCard({ leak, onOpen, onReview, selected, demo, progress }) {
         )}
       </button>
 
-      {onReview && (
-        <button
-          type="button"
-          className="pa-btn"
-          onClick={() => onReview(leak)}
-          style={btn('primary', { block: true })}
-        >
-          <Target size={16} strokeWidth={2} aria-hidden="true" />
-          Open Hand Review
-        </button>
+      {(onPractice || onReview || onOpenOverflow) && (
+        <div style={styles.onePlusOneBar}>
+          <button
+            type="button"
+            className="pa-btn"
+            disabled={claimingReward}
+            onClick={handlePrimaryClick}
+            style={{ ...btn('primary'), flex: '1 1 auto', minWidth: 0, minHeight: 44 }}
+          >
+            <Target size={16} strokeWidth={2} aria-hidden="true" />
+            <span>{primaryLabel}</span>
+          </button>
+          {onOpenOverflow && (
+            <button
+              type="button"
+              className="pa-btn"
+              aria-label={`More Actions For ${leak.title}`}
+              onClick={() => onOpenOverflow(leak)}
+              style={styles.overflowIconBtn}
+            >
+              <MoreHorizontal size={18} strokeWidth={2} aria-hidden="true" />
+            </button>
+          )}
+        </div>
       )}
     </li>
   );
@@ -1331,11 +1441,21 @@ function LeakDetail({
       || leak.remediationMastered,
     ),
   });
+  const detailAdvice = leak.adviceExplanation || buildAdviceExplanation(leak, [], TRAINING_GAME_IDS);
+  const detailTakeaway = leak.takeaway || detailAdvice?.takeaway || buildLeakTakeaway(leak);
+  const detailBasis = evidenceBasisMeta(leak.evidenceBasis || detailAdvice?.evidenceBasis || classifyEvidenceBasis(leak));
+  const detailRepHand = leak.representativeHand || detailAdvice?.representativeHand || {};
+  const detailSamples = leak.sampleCounts || detailAdvice?.sampleCounts || {};
+  const detailOpportunities = Math.max(occ, num(detailSamples.opportunities || leak.totalSamples));
+  const detailMistakes = num(detailSamples.mistakes || occ);
 
   return (
     <div>
       {/* Badges */}
       <div style={styles.detailBadges}>
+        <span style={pill(detailBasis.tone)} data-evidence-basis={detailBasis.key}>
+          {detailBasis.label}
+        </span>
         <LeakStatusBadge status={leak.status} />
         {leak.sourceSystem && <SourceBadge source={leak.sourceSystem} />}
         <ConfidenceBadge confidence={leak.confidence} />
@@ -1352,6 +1472,59 @@ function LeakDetail({
           {trackingSince ? `Tracking since ${trackingSince}` : null}
         </p>
       )}
+
+      {/* Inspectable Finding & Evidence Basis Summary */}
+      <section style={styles.detailSection} aria-label="Finding And Evidence Basis" data-testid="leak-detail-evidence-summary">
+        <h3 style={styles.detailSectionTitle}>Finding &amp; Evidence Basis</h3>
+        <p style={{ ...styles.detailBody, color: T.text, fontWeight: 600, marginBottom: S.xs }}>
+          {detailTakeaway?.whatYouAreDoing || leak.explanation || 'Recurring strategic deviation detected.'}
+        </p>
+        {detailTakeaway?.whatToDoNextTime && (
+          <p style={{ ...styles.detailBody, marginBottom: S.sm }}>
+            Next Time: {detailTakeaway.whatToDoNextTime}
+          </p>
+        )}
+        <dl style={styles.evidenceSummaryGrid}>
+          <div style={styles.evidenceSummaryRow}>
+            <dt style={styles.evidenceSummaryLabel}>Evidence Basis</dt>
+            <dd style={styles.evidenceSummaryValue}>
+              {detailBasis.label} (<span data-pa-verbatim="true">{detailBasis.key}</span>)
+            </dd>
+          </div>
+          <div style={styles.evidenceSummaryRow}>
+            <dt style={styles.evidenceSummaryLabel}>Street &amp; Position</dt>
+            <dd style={styles.evidenceSummaryValue}>
+              {titleCaseTokens(detailRepHand.street || leak.leakCategory || 'Preflop')} · {detailRepHand.heroPosition || 'BTN'}
+            </dd>
+          </div>
+          <div style={styles.evidenceSummaryRow}>
+            <dt style={styles.evidenceSummaryLabel}>Decision</dt>
+            <dd style={styles.evidenceSummaryValue}>
+              {detailRepHand.playerAction ? `Played ${titleCaseTokens(detailRepHand.playerAction)}` : 'Pattern Aggregate'}
+              {detailRepHand.solverVerified && detailRepHand.solverAction ? ` · Optimal ${titleCaseTokens(detailRepHand.solverAction)}` : ''}
+            </dd>
+          </div>
+          <div style={styles.evidenceSummaryRow}>
+            <dt style={styles.evidenceSummaryLabel}>Price Or Sizing</dt>
+            <dd style={styles.evidenceSummaryValue}>
+              {titleCaseTokens(detailRepHand.priceOrSizing || detailRepHand.spotType || 'General')}
+            </dd>
+          </div>
+          <div style={styles.evidenceSummaryRow}>
+            <dt style={styles.evidenceSummaryLabel}>Sample &amp; Opportunities</dt>
+            <dd style={styles.evidenceSummaryValue}>
+              {detailMistakes} Mistake{detailMistakes === 1 ? '' : 's'} / {detailOpportunities} Eligible Spot{detailOpportunities === 1 ? '' : 's'}
+              {detailSamples.minRequiredSamples ? ` (Min ${detailSamples.minRequiredSamples})` : ''}
+            </dd>
+          </div>
+          {detailRepHand.handId && (
+            <div style={styles.evidenceSummaryRow}>
+              <dt style={styles.evidenceSummaryLabel}>Representative Hand</dt>
+              <dd style={styles.evidenceSummaryValue} data-pa-verbatim="true">{detailRepHand.handId}</dd>
+            </div>
+          )}
+        </dl>
+      </section>
 
       {/* Stat tiles */}
       <div style={styles.statTileGrid}>
@@ -1384,7 +1557,7 @@ function LeakDetail({
       </section>
 
       {/* How to fix it · the Grok-generated suggestion detect.js persists */}
-      <section style={styles.detailSection} aria-label="How to fix it">
+      <section style={styles.detailSection} aria-label="How To Fix It">
         <h3 style={styles.detailSectionTitle}>
           <Sparkles size={16} strokeWidth={2} aria-hidden="true" style={{ color: T.purple, marginRight: 6, verticalAlign: '-2px' }} />
           How To Fix It
@@ -1396,7 +1569,7 @@ function LeakDetail({
       </section>
 
       {/* Why it's leaking EV */}
-      <section style={styles.detailSection} aria-label="Why it is leaking EV">
+      <section style={styles.detailSection} aria-label="Why It Is Leaking EV">
         <h3 style={styles.detailSectionTitle}>Why It{"'"}s Leaking EV</h3>
         <p style={styles.detailBody}>{leak.whyLeakingEv || leak.explanation || 'No explanation recorded for this leak.'}</p>
         {leak.explanation && leak.whyLeakingEv && leak.explanation !== leak.whyLeakingEv && (
@@ -1406,7 +1579,7 @@ function LeakDetail({
 
       {/* Example hands · one tap into the exact spot */}
       {!isDemoLeak && (
-        <section style={styles.detailSection} aria-label="Recent example hands">
+        <section style={styles.detailSection} aria-label="Recent Example Hands">
           <h3 style={styles.detailSectionTitle}>Recent Example Hands</h3>
           {examplesLoading ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm }} aria-busy="true">
@@ -1466,7 +1639,7 @@ function LeakDetail({
       )}
 
       {/* Suggested fixes */}
-      <section aria-label="Suggested fixes">
+      <section aria-label="Suggested Fixes">
         <h3 style={styles.detailSectionTitle}>Suggested Fixes</h3>
         <div style={styles.fixGrid}>
           <div style={styles.fixCard}>
@@ -1523,7 +1696,7 @@ function LeakDetail({
       </section>
 
       {/* Resolve / reopen */}
-      <section style={{ marginTop: S.lg }} aria-label="Leak status">
+      <section style={{ marginTop: S.lg }} aria-label="Leak Status">
         {leak.status === 'resolved' ? (
           <>
             <button
@@ -1632,11 +1805,27 @@ export default function LeakFinderPage() {
   const { guardAction, hasAccess: paHasAccess, UpgradePopup } = useFeatureGate('personal_assistant');
 
   const [tab, setTab] = useState('leaks');
+  const [progressSubsection, setProgressSubsection] = useState(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [addHandsOpen, setAddHandsOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [overflowLeakId, setOverflowLeakId] = useState(null);
+  const [quickChip, setQuickChip] = useState('all');
+  const [claimedLeakRewards, setClaimedLeakRewards] = useState({});
+  const [claimingLeakRewardId, setClaimingLeakRewardId] = useState(null);
   const [showMenu, setShowMenu] = useState(false);
   const [liveSpotOpen, setLiveSpotOpen] = useState(false);
   const [liveSpotTab, setLiveSpotTab] = useState('spot');
   const closeLiveSpot = useCallback(() => setLiveSpotOpen(false), []);
+  const closeSettings = useCallback(() => setSettingsOpen(false), []);
+  const closeAddHands = useCallback(() => setAddHandsOpen(false), []);
+  const closeFilters = useCallback(() => setFiltersOpen(false), []);
+  const closeOverflowLeak = useCallback(() => setOverflowLeakId(null), []);
   useModalHistory(liveSpotOpen, closeLiveSpot);
+  useModalHistory(settingsOpen, closeSettings);
+  useModalHistory(addHandsOpen, closeAddHands);
+  useModalHistory(filtersOpen, closeFilters);
+  useModalHistory(Boolean(overflowLeakId), closeOverflowLeak);
   const openLiveSpot = useCallback((nextTab = 'spot') => {
     if (!guardAction()) return;
     setLiveSpotTab(nextTab === 'paste' ? 'paste' : 'spot');
@@ -1673,7 +1862,7 @@ export default function LeakFinderPage() {
     setPracticeDifficulty(saved.practiceDifficulty);
     const rawUrlFmt = Array.isArray(router.query?.format) ? router.query.format[0] : router.query?.format;
     const urlFmt = String(rawUrlFmt || '').trim().toLowerCase();
-    const hasExplicitUrlFmt = router.isReady && (urlFmt === 'cash' || urlFmt === 'tournament' || urlFmt === 'all');
+    const hasExplicitUrlFmt = router.isReady && (urlFmt === 'cash' || urlFmt === 'tournament' || urlFmt === 'mtt' || urlFmt === 'all');
     if (!hasExplicitUrlFmt) {
       setFormatFilter(saved.format);
     }
@@ -1732,6 +1921,7 @@ export default function LeakFinderPage() {
     setStatusFilter(defaults.statusFilter);
     setPracticeLength(defaults.practiceLength);
     setPracticeDifficulty(defaults.practiceDifficulty);
+    setQuickChip('all');
     setQuery('');
     if (router.isReady && (router.query?.format || router.query?.street || router.query?.position || router.query?.leakType)) {
       const { format: _f, street: _s, position: _p, leakType: _l, ...restQuery } = router.query;
@@ -1778,6 +1968,8 @@ export default function LeakFinderPage() {
   // Live-play verification lives on the coaching snapshot, not on the leaks list. It is optional
   // enrichment: when it is missing or fails, no badge renders (never a guessed claim).
   const [coachingSnapshot, setCoachingSnapshot] = useState(null);
+  const [coachingPayload, setCoachingPayload] = useState(null);
+  const [initialEvidenceLeakId, setInitialEvidenceLeakId] = useState(null);
   const requestCoachingSnapshot = useAbortableFetch();
   const coachingSnapshotRequestIdRef = useRef(0);
   useEffect(() => () => { coachingSnapshotRequestIdRef.current += 1; }, []);
@@ -1786,12 +1978,16 @@ export default function LeakFinderPage() {
     const requestId = ++coachingSnapshotRequestIdRef.current;
     if (authInitializing || !userId) {
       setCoachingSnapshot(null);
+      setCoachingPayload(null);
       return;
     }
     try {
       const accessToken = await getFreshAccessToken();
       if (!accessToken) {
-        if (requestId === coachingSnapshotRequestIdRef.current) setCoachingSnapshot(null);
+        if (requestId === coachingSnapshotRequestIdRef.current) {
+          setCoachingSnapshot(null);
+          setCoachingPayload(null);
+        }
         return;
       }
       const res = await requestCoachingSnapshot('/api/assistant/coaching', {
@@ -1801,7 +1997,10 @@ export default function LeakFinderPage() {
       if (requestId !== coachingSnapshotRequestIdRef.current) return;
       const json = await res.json().catch(() => null);
       if (requestId !== coachingSnapshotRequestIdRef.current) return;
-      if (res.ok && json?.success && json?.snapshot) setCoachingSnapshot(json.snapshot);
+      if (res.ok && json?.success) {
+        setCoachingPayload(json);
+        if (json?.snapshot) setCoachingSnapshot(json.snapshot);
+      }
     } catch (e) {
       if (isAbortError(e)) return;
       console.warn('[LeakFinder] coaching snapshot unavailable:', e?.message || e);
@@ -1824,15 +2023,36 @@ export default function LeakFinderPage() {
     [coachingSnapshot],
   );
 
+  const coachingAdviceIndex = useMemo(() => {
+    const map = new Map();
+    const snapLeaks = Array.isArray(coachingSnapshot?.leaks) ? coachingSnapshot.leaks : [];
+    const snapPriorities = Array.isArray(coachingSnapshot?.priorities) ? coachingSnapshot.priorities : [];
+    for (const item of [...snapPriorities, ...snapLeaks]) {
+      const id = String(item?.id ?? item?.leakId ?? '').trim();
+      if (!id) continue;
+      map.set(id, item);
+    }
+    return map;
+  }, [coachingSnapshot]);
+
   const safeLeaks = useMemo(() => (Array.isArray(fetchedLeaks) ? fetchedLeaks : []), [fetchedLeaks]);
   const leaks = useMemo(
     () => safeLeaks.filter(Boolean).map((raw) => {
       const normalized = normaliseLeak(raw);
-      if (normalized.tableVerification || isDemoLeakId(normalized.id)) return normalized;
-      const verification = tableVerificationIndex.get(String(normalized.id));
-      return verification ? { ...normalized, tableVerification: verification } : normalized;
+      if (isDemoLeakId(normalized.id)) return normalized;
+      const verification = normalized.tableVerification || tableVerificationIndex.get(String(normalized.id)) || null;
+      const coachingItem = coachingAdviceIndex.get(String(normalized.id)) || null;
+      return {
+        ...normalized,
+        ...(verification ? { tableVerification: verification } : {}),
+        ...(coachingItem?.evidenceBasis ? { evidenceBasis: coachingItem.evidenceBasis } : {}),
+        ...(coachingItem?.takeaway ? { takeaway: coachingItem.takeaway } : {}),
+        ...(coachingItem?.representativeHand ? { representativeHand: coachingItem.representativeHand } : {}),
+        ...(coachingItem?.sampleCounts ? { sampleCounts: coachingItem.sampleCounts } : {}),
+        ...(coachingItem?.practiceTarget ? { practiceTarget: coachingItem.practiceTarget } : {}),
+      };
     }),
-    [safeLeaks, tableVerificationIndex],
+    [safeLeaks, tableVerificationIndex, coachingAdviceIndex],
   );
 
   const activeLeaks = useMemo(() => leaks.filter(l => l.status !== 'resolved'), [leaks]);
@@ -1932,10 +2152,22 @@ export default function LeakFinderPage() {
     [selectablePool, selectedLeakId],
   );
 
+  const overflowLeak = useMemo(
+    () => (overflowLeakId == null
+      ? null
+      : selectablePool.find(l => String(l.id) === String(overflowLeakId)) || null),
+    [selectablePool, overflowLeakId],
+  );
+
   useEffect(() => {
     if (selectedLeakId == null || leaksLoading) return;
     if (!selectablePool.some(l => String(l.id) === String(selectedLeakId))) setSelectedLeakId(null);
   }, [selectedLeakId, selectablePool, leaksLoading]);
+
+  useEffect(() => {
+    if (overflowLeakId == null || leaksLoading) return;
+    if (!selectablePool.some(l => String(l.id) === String(overflowLeakId))) setOverflowLeakId(null);
+  }, [overflowLeakId, selectablePool, leaksLoading]);
 
   // Deep link: /hub/personal-assistant/leaks?hand=<uuid> (or legacy /hub/jarvis JSON summary)
   const [linkedClubHand, setLinkedClubHand] = useState(null);
@@ -1979,13 +2211,20 @@ export default function LeakFinderPage() {
     setLinkedHandError(null);
   }, [router.isReady, router.query?.hand]);
 
-  const prevQueryHydrationRef = useRef({ format: null, tab: null, searchTerm: null });
+  const prevQueryHydrationRef = useRef({ format: null, status: null, tab: null, view: null, settings: null, searchTerm: null });
   useEffect(() => {
     if (!router.isReady) return;
     const rawFmt = Array.isArray(router.query?.format) ? router.query.format[0] : router.query?.format;
     const fmt = String(rawFmt || '').trim().toLowerCase();
+    const normalizedFmt = fmt === 'mtt' ? 'tournament' : fmt;
+    const rawStatus = Array.isArray(router.query?.status) ? router.query.status[0] : router.query?.status;
+    const nextStatus = String(rawStatus || '').trim().toLowerCase();
     const rawTab = Array.isArray(router.query?.tab) ? router.query.tab[0] : router.query?.tab;
     const nextTab = String(rawTab || '').trim().toLowerCase();
+    const rawView = Array.isArray(router.query?.view) ? router.query.view[0] : router.query?.view;
+    const nextView = String(rawView || '').trim().toLowerCase();
+    const rawSettings = Array.isArray(router.query?.settings) ? router.query.settings[0] : router.query?.settings;
+    const nextSettings = String(rawSettings || '').trim().toLowerCase();
     const rawStreet = Array.isArray(router.query?.street) ? router.query.street[0] : router.query?.street;
     const rawPos = Array.isArray(router.query?.position) ? router.query.position[0] : router.query?.position;
     const rawLeakType = Array.isArray(router.query?.leakType) ? router.query.leakType[0] : router.query?.leakType;
@@ -1995,23 +2234,58 @@ export default function LeakFinderPage() {
       .join(' ');
     const prev = prevQueryHydrationRef.current;
 
-    if ((fmt === 'cash' || fmt === 'tournament' || fmt === 'all') && fmt !== prev.format) {
-      setFormatFilter(fmt);
-    } else if (!fmt && prev.format) {
+    if ((normalizedFmt === 'cash' || normalizedFmt === 'tournament' || normalizedFmt === 'all') && normalizedFmt !== prev.format) {
+      setFormatFilter(normalizedFmt);
+    } else if (!normalizedFmt && prev.format) {
       setFormatFilter('all');
     }
-    if ((nextTab === 'leaks' || nextTab === 'coaching' || nextTab === 'insights') && nextTab !== prev.tab) {
-      setTab(nextTab);
-    } else if (!nextTab && prev.tab) {
+
+    if (nextStatus !== prev.status) {
+      if (nextStatus === 'fixed' || nextStatus === 'resolved') {
+        setQuickChip('fixed');
+      } else if (nextStatus === 'due') {
+        setQuickChip('due');
+      } else if (['persistent', 'emerging', 'improving', 'all'].includes(nextStatus)) {
+        setQuickChip('all');
+        setStatusFilter(nextStatus);
+      } else if (!nextStatus && prev.status) {
+        setQuickChip('all');
+      }
+    }
+
+    if ((nextSettings === '1' || nextSettings === 'true' || nextView === 'data') && (nextSettings !== prev.settings || nextView !== prev.view)) {
+      setSettingsOpen(true);
+    }
+
+    if (['evidence', 'timeline', 'goals', 'report'].includes(nextView) && nextView !== prev.view) {
+      setTab('progress');
+      setProgressSubsection(nextView);
+    } else if (nextView === 'coach' && nextView !== prev.view) {
+      setTab('plan');
+    } else if ((nextTab === 'plan' || nextTab === 'coaching') && nextTab !== prev.tab) {
+      setTab('plan');
+    } else if ((nextTab === 'progress' || nextTab === 'insights') && nextTab !== prev.tab) {
+      setTab('progress');
+    } else if (nextTab === 'leaks' && nextTab !== prev.tab) {
+      setTab('leaks');
+    } else if (!nextTab && !nextView && (prev.tab || prev.view)) {
       setTab('leaks');
     }
+
     if (searchTerm && searchTerm !== prev.searchTerm) {
       setQuery(searchTerm);
     } else if (!searchTerm && prev.searchTerm) {
       setQuery('');
     }
-    prevQueryHydrationRef.current = { format: fmt || null, tab: nextTab || null, searchTerm: searchTerm || null };
-  }, [router.isReady, router.query?.format, router.query?.tab, router.query?.street, router.query?.position, router.query?.leakType]);
+    prevQueryHydrationRef.current = {
+      format: normalizedFmt || null,
+      status: nextStatus || null,
+      tab: nextTab || null,
+      view: nextView || null,
+      settings: nextSettings || null,
+      searchTerm: searchTerm || null,
+    };
+  }, [router.isReady, router.query?.format, router.query?.status, router.query?.tab, router.query?.view, router.query?.settings, router.query?.street, router.query?.position, router.query?.leakType]);
 
   const fetchLinkedHandAudit = useCallback(async (handId, { method = 'GET', signal } = {}) => {
     const token = await getFreshAccessToken();
@@ -2689,6 +2963,58 @@ export default function LeakFinderPage() {
     return 'cross_format';
   };
 
+  const dueLeakIdSet = useMemo(() => {
+    const ids = new Set();
+    for (const item of reviewQueueAll) {
+      const id = item?.leakId ?? item?.leak?.id;
+      if (id != null) ids.add(String(id));
+    }
+    return ids;
+  }, [reviewQueueAll]);
+
+  const handleClaimLiveFixFromCard = useCallback(async (leak) => {
+    const leakId = leak?.id;
+    if (!leakId || isDemoLeakId(leakId)) return;
+    setClaimingLeakRewardId(leakId);
+    try {
+      const token = await getFreshAccessToken();
+      if (!token) throw new Error('Sign In Required');
+      const response = await fetch('/api/assistant/leaks/claim-live-fix', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ leakId }),
+      });
+      const data = await response.json().catch(() => null);
+      const isAlreadyAwarded = Boolean(data?.alreadyAwarded || data?.code === 'already_awarded');
+      const isAwarded = Boolean(data?.awarded);
+
+      if (
+        data?.code === 'REWARDS_UNAVAILABLE'
+        || data?.code === 'REWARD_LIMIT_REACHED'
+        || (data?.awarded === false && !isAlreadyAwarded)
+      ) {
+        toast.error(data?.error || 'Diamond Reward Could Not Be Claimed Right Now.');
+        return;
+      }
+      if (!(response.ok && data?.success === true && (isAwarded || isAlreadyAwarded))) {
+        throw new Error(data?.error || `Claim Failed (HTTP ${response.status})`);
+      }
+      setClaimedLeakRewards(prev => ({ ...prev, [leakId]: isAlreadyAwarded ? 'already_awarded' : 'claimed' }));
+      toast.success(isAlreadyAwarded ? 'Reward Already Claimed For Verified Live Fix' : `${data?.diamonds || 25} Diamonds Claimed For Verified Live Fix`);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('pa-diamonds-updated'));
+        window.dispatchEvent(new CustomEvent('pa-data-updated'));
+      }
+    } catch (err) {
+      toast.error(err?.message || 'Could Not Claim Diamonds');
+    } finally {
+      setClaimingLeakRewardId(null);
+    }
+  }, []);
+
   const hiddenCrossFormatCount = useMemo(() => {
     if (formatFilter === 'all') return 0;
     return activeLeaks.filter((l) => {
@@ -2699,8 +3025,15 @@ export default function LeakFinderPage() {
 
   const visibleLeaks = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    let list = activeLeaks;
-    if (statusFilter !== 'all') list = list.filter(l => l.status === statusFilter);
+    let list = quickChip === 'fixed'
+      ? leaks.filter(l => l.status === 'resolved' || l.tableVerification?.status === 'confirmed_fixed_at_tables')
+      : activeLeaks;
+    if (quickChip === 'due') {
+      list = list.filter(l => dueLeakIdSet.has(String(l.id)));
+    }
+    if (statusFilter !== 'all' && quickChip !== 'fixed') {
+      list = list.filter(l => l.status === statusFilter);
+    }
     if (formatFilter !== 'all') {
       list = list.filter((l) => resolveLeakFormat(l) === formatFilter);
     }
@@ -2719,9 +3052,9 @@ export default function LeakFinderPage() {
       sorted.sort((a, b) => (confRank[b.confidence] || 0) - (confRank[a.confidence] || 0) || totalBleed(b) - totalBleed(a));
     }
     return sorted;
-  }, [activeLeaks, statusFilter, formatFilter, query, sortMode]);
+  }, [activeLeaks, leaks, quickChip, dueLeakIdSet, statusFilter, formatFilter, query, sortMode]);
 
-  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [statusFilter, formatFilter, query, sortMode]);
+  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [statusFilter, formatFilter, query, sortMode, quickChip]);
 
   const shownLeaks = visibleLeaks.slice(0, visibleCount);
   const remaining = Math.max(0, visibleLeaks.length - shownLeaks.length);
@@ -2743,9 +3076,9 @@ export default function LeakFinderPage() {
   }, [reduceMotion]);
 
   const menuHandlers = useMemo(() => ({
-    onViewOverview: () => { setTab('leaks'); jumpTo(null); },
+    onViewOverview: () => { setTab('plan'); jumpTo(null); },
     onViewLeaks: () => { setTab('leaks'); jumpTo('leak-list'); },
-    onViewAnalytics: () => { setTab('insights'); jumpTo('leak-insights'); },
+    onViewAnalytics: () => { setTab('progress'); jumpTo('leak-progress'); },
     onRescan: () => { if (!isDetecting) handleRunDetection(); },
     onPracticeWorst: () => {
       const worst = visibleLeaks[0] || activeLeaks[0];
@@ -2787,19 +3120,109 @@ export default function LeakFinderPage() {
     );
   }
 
-  const detectButton = (block = true, extraClass = '') => (
-    <button
-      type="button"
-      className={`pa-btn ${extraClass}`}
-      style={btn('primary', { block, disabled: isDetecting })}
-      onClick={handleRunDetection}
-      disabled={isDetecting}
-    >
-      <Activity size={18} strokeWidth={2} aria-hidden="true" />
-      {isDetecting
-        ? `Auditing${detectionProgress?.batchesCompleted ? ` · ${detectionProgress.batchesCompleted} Batches Saved` : '…'}`
-        : auditJob?.status === 'failed' && auditJob?.resumable ? 'Resume Saved Audit' : 'Run Leak Detection'}
-    </button>
+  const normalizedTab = (tab === 'coaching' || tab === 'plan')
+    ? 'plan'
+    : (tab === 'insights' || tab === 'progress')
+      ? 'progress'
+      : 'leaks';
+
+  const analysisSettingsDisclosureNode = (
+    <details className="pa-disclosure" style={{ marginBottom: S.sm }}>
+      <summary>
+        <span>Analysis Settings</span>
+        <small>{activeSettingsOverrides > 0 ? `${activeSettingsOverrides} Custom` : 'Defaults Active'}</small>
+      </summary>
+      <div className="pa-disclosure-body" style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
+        <Segmented
+          idPrefix="leak-format"
+          label="Format (Cash And Tournament Never Mixed)"
+          value={formatFilter}
+          onChange={updateFormatFilter}
+          options={[
+            { value: 'all', label: 'All' },
+            { value: 'cash', label: 'Cash NLH' },
+            { value: 'tournament', label: 'Tournament NLH' },
+          ]}
+        />
+        <Segmented
+          idPrefix="leak-sort"
+          label="Sort By"
+          value={sortMode}
+          onChange={updateSortMode}
+          options={[
+            { value: 'impact', label: 'Impact' },
+            { value: 'recent', label: 'Recent' },
+            { value: 'confidence', label: 'Confidence' },
+          ]}
+        />
+        <Segmented
+          idPrefix="leak-status"
+          label="Status"
+          tone="warn"
+          columns={2}
+          value={statusFilter}
+          onChange={updateStatusFilter}
+          options={[
+            { value: 'all', label: 'All' },
+            { value: 'persistent', label: 'Persistent' },
+            { value: 'emerging', label: 'Emerging' },
+            { value: 'improving', label: 'Improving' },
+          ]}
+        />
+        <Segmented
+          idPrefix="practice-length"
+          label="Practice Session Length"
+          value={String(practiceLength)}
+          onChange={updatePracticeLength}
+          options={[
+            { value: '5', label: '5 Spots' },
+            { value: '10', label: '10 Spots' },
+            { value: '20', label: '20 Spots' },
+          ]}
+        />
+        <Segmented
+          idPrefix="practice-pacing"
+          label="Drill Pacing"
+          value={practiceDifficulty}
+          onChange={updatePracticeDifficulty}
+          options={[
+            { value: 'fundamentals', label: '25s' },
+            { value: 'adaptive', label: '15s' },
+            { value: 'pressure', label: '10s' },
+          ]}
+        />
+        <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className="pa-btn"
+            style={btn('secondary')}
+            onClick={() => openLiveSpot('spot')}
+            data-live-spot-trigger="analysis-settings"
+          >
+            Log A Live Spot
+          </button>
+          {!isDetecting && userId && (
+            <button
+              type="button"
+              className="pa-btn"
+              style={btn('secondary')}
+              onClick={handleFullRescan}
+            >
+              <RotateCcw size={15} strokeWidth={2} aria-hidden="true" />
+              Full Re-Audit
+            </button>
+          )}
+          <button
+            type="button"
+            className="pa-btn"
+            style={btn('secondary')}
+            onClick={handleResetAnalysisSettings}
+          >
+            Reset To Defaults
+          </button>
+        </div>
+      </div>
+    </details>
   );
 
   return (
@@ -2827,16 +3250,27 @@ export default function LeakFinderPage() {
         />
 
         <main id="leak-finder-main" className="leaks-shell" style={styles.shell}>
-          {/* Compact MTT lobby header plaque */}
+          {/* Compact MTT lobby header plaque with top-right Settings gear button */}
           <section className={`${toolStyles.machineHero} ${toolStyles.leakHero}`} aria-labelledby="leak-machine-title">
             <div className={toolStyles.machineHeroInner}>
               <div className={toolStyles.machineHeroCopy}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
                   <span className={toolStyles.machineEyebrow}>Deterministic Hand Audit</span>
-                  <span style={styles.integrityBadge}>
-                    <Lock size={12} strokeWidth={2} aria-hidden="true" />
-                    Not Live Play · Post-Session Review Only
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={styles.integrityBadge}>
+                      <Lock size={12} strokeWidth={2} aria-hidden="true" />
+                      Not Live Play · Post-Session Review Only
+                    </span>
+                    <button
+                      type="button"
+                      className="pa-btn"
+                      aria-label="Open Assistant Settings"
+                      onClick={() => setSettingsOpen(true)}
+                      style={styles.overflowIconBtn}
+                    >
+                      <Settings size={18} strokeWidth={2} aria-hidden="true" />
+                    </button>
+                  </div>
                 </div>
                 <h1 id="leak-machine-title" className={toolStyles.machineTitle}>Leak Finder</h1>
                 <p className={toolStyles.machineDescription}>
@@ -2846,25 +3280,28 @@ export default function LeakFinderPage() {
             </div>
           </section>
 
-          {/* ── Tabs immediately under header (above the fold on phone & desktop) ── */}
+          {/* ── ONE Flat 3-Tab Navigation Bar (Today / Plan | Leaks | Progress) ── */}
           <div style={{ marginTop: 6, marginBottom: S.sm }} data-tutorial="leak-views">
             <Segmented
               idPrefix="leaks-tab"
               label="View"
               columns={3}
-              value={tab}
-              onChange={setTab}
+              value={normalizedTab}
+              onChange={(next) => {
+                setTab(next);
+                setProgressSubsection(null);
+              }}
               options={[
+                { value: 'plan', label: 'Today / Plan' },
                 { value: 'leaks', label: reviewQueueAll.length > 0 ? `Leaks (${reviewQueueAll.length})` : 'Leaks' },
-                { value: 'insights', label: 'Insights' },
-                { value: 'coaching', label: 'Coaching' },
+                { value: 'progress', label: 'Progress' },
               ]}
             />
           </div>
 
           {/* ── Sample-data disclosure ── */}
           {leaksAreDemo && !leaksLoading && (
-            <section style={styles.demoBanner} aria-label="Sample data notice">
+            <section style={styles.demoBanner} aria-label="Sample Data Notice">
               <p style={styles.demoBannerText}>
                 You Are Viewing Sample Data. Sign In And Run Detection To Analyse Your Own Hands.
               </p>
@@ -2884,9 +3321,9 @@ export default function LeakFinderPage() {
             </div>
           )}
 
-          {tab === 'leaks' ? (
-            <section id="leak-list" aria-label="Your leaks" data-tutorial="leak-list">
-              {/* Primary Detection Action + Optional Analysis Settings */}
+          {normalizedTab === 'leaks' ? (
+            <section id="leak-list" aria-label="Your Leaks" data-tutorial="leak-list">
+              {/* Unified + Add / Audit Hands command deck */}
               <div className={toolStyles.scanDeck} data-tutorial="detect">
                 <div className={toolStyles.scanDeckInner}>
                   <div className={toolStyles.scanDeckCopy}>
@@ -2896,7 +3333,7 @@ export default function LeakFinderPage() {
                       <span>{activeScopeSummary}</span>
                     </span>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: S.xs }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: S.xs, flexWrap: 'wrap' }}>
                     {(!authInitializing && !userId) ? (
                       <a
                         href="/auth/login"
@@ -2905,8 +3342,27 @@ export default function LeakFinderPage() {
                       >
                         Sign In To Analyze
                       </a>
+                    ) : isDetecting ? (
+                      <button
+                        type="button"
+                        className="pa-btn"
+                        style={btn('primary', { disabled: true })}
+                        disabled
+                      >
+                        <Activity size={18} strokeWidth={2} aria-hidden="true" />
+                        <span>{`Auditing${detectionProgress?.batchesCompleted ? ` · ${detectionProgress.batchesCompleted} Batches Saved` : '…'}`}</span>
+                      </button>
                     ) : (
-                      detectButton(true, toolStyles.scanButton)
+                      <button
+                        type="button"
+                        className="pa-btn"
+                        data-testid="add-audit-hands-trigger"
+                        style={btn('primary')}
+                        onClick={() => setAddHandsOpen(true)}
+                      >
+                        <Plus size={18} strokeWidth={2.2} aria-hidden="true" />
+                        <span>+ Add / Audit Hands</span>
+                      </button>
                     )}
                   </div>
                 </div>
@@ -2941,7 +3397,7 @@ export default function LeakFinderPage() {
                     <button
                       type="button"
                       className="pa-btn"
-                      aria-label="Dismiss detection message"
+                      aria-label="Dismiss Detection Message"
                       onClick={() => setDetectionSummary(null)}
                       style={iconBtn({ transparent: true, color: T.textMuted })}
                     >
@@ -2951,103 +3407,70 @@ export default function LeakFinderPage() {
                 )}
               </div>
 
-              {/* Optional Analysis Settings (collapsed by default) */}
-              <details className="pa-disclosure" style={{ marginBottom: S.sm }}>
-                <summary>
-                  <span>Analysis Settings</span>
-                  <small>{activeSettingsOverrides > 0 ? `${activeSettingsOverrides} Custom` : 'Defaults Active'}</small>
-                </summary>
-                <div className="pa-disclosure-body" style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
-                  <Segmented
-                    idPrefix="leak-format"
-                    label="Format (Cash And Tournament Never Mixed)"
-                    value={formatFilter}
-                    onChange={updateFormatFilter}
-                    options={[
-                      { value: 'all', label: 'All' },
-                      { value: 'cash', label: 'Cash NLH' },
-                      { value: 'tournament', label: 'Tournament NLH' },
-                    ]}
-                  />
-                  <Segmented
-                    idPrefix="leak-sort"
-                    label="Sort by"
-                    value={sortMode}
-                    onChange={updateSortMode}
-                    options={[
-                      { value: 'impact', label: 'Impact' },
-                      { value: 'recent', label: 'Recent' },
-                      { value: 'confidence', label: 'Confidence' },
-                    ]}
-                  />
-                  <Segmented
-                    idPrefix="leak-status"
-                    label="Status"
-                    tone="warn"
-                    columns={2}
-                    value={statusFilter}
-                    onChange={updateStatusFilter}
-                    options={[
-                      { value: 'all', label: 'All' },
-                      { value: 'persistent', label: 'Persistent' },
-                      { value: 'emerging', label: 'Emerging' },
-                      { value: 'improving', label: 'Improving' },
-                    ]}
-                  />
-                  <Segmented
-                    idPrefix="practice-length"
-                    label="Practice Session Length"
-                    value={String(practiceLength)}
-                    onChange={updatePracticeLength}
-                    options={[
-                      { value: '5', label: '5 Spots' },
-                      { value: '10', label: '10 Spots' },
-                      { value: '20', label: '20 Spots' },
-                    ]}
-                  />
-                  <Segmented
-                    idPrefix="practice-pacing"
-                    label="Drill Pacing"
-                    value={practiceDifficulty}
-                    onChange={updatePracticeDifficulty}
-                    options={[
-                      { value: 'fundamentals', label: '25s' },
-                      { value: 'adaptive', label: '15s' },
-                      { value: 'pressure', label: '10s' },
-                    ]}
-                  />
-                  <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
-                    <button
-                      type="button"
-                      className="pa-btn"
-                      style={btn('secondary')}
-                      onClick={() => openLiveSpot('spot')}
-                      data-live-spot-trigger="analysis-settings"
-                    >
-                      Log A Live Spot
-                    </button>
-                    {!isDetecting && userId && (
-                      <button
-                        type="button"
-                        className="pa-btn"
-                        style={btn('secondary')}
-                        onClick={handleFullRescan}
-                      >
-                        <RotateCcw size={15} strokeWidth={2} aria-hidden="true" />
-                        Full Re-Audit
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      className="pa-btn"
-                      style={btn('secondary')}
-                      onClick={handleResetAnalysisSettings}
-                    >
-                      Reset To Defaults
-                    </button>
-                  </div>
+              {/* Compact Single-Row Filter Chip Strip (All, Due, Cash, MTT, Fixed) + Filters Pill */}
+              <div className={toolStyles.filterStripWrap} role="group" aria-label="Quick Leak Filters">
+                <div className={toolStyles.filterChipRow}>
+                  <button
+                    type="button"
+                    className={`pa-btn ${toolStyles.filterChip}`}
+                    aria-pressed={quickChip === 'all' && formatFilter === 'all' && statusFilter === 'all'}
+                    onClick={() => {
+                      setQuickChip('all');
+                      updateFormatFilter('all');
+                      updateStatusFilter('all');
+                    }}
+                  >
+                    <span>All</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`pa-btn ${toolStyles.filterChip}`}
+                    aria-pressed={quickChip === 'due'}
+                    onClick={() => setQuickChip(prev => (prev === 'due' ? 'all' : 'due'))}
+                  >
+                    <span>{reviewQueueAll.length > 0 ? `Due (${reviewQueueAll.length})` : 'Due'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`pa-btn ${toolStyles.filterChip}`}
+                    aria-pressed={formatFilter === 'cash'}
+                    onClick={() => {
+                      setQuickChip('all');
+                      updateFormatFilter(formatFilter === 'cash' ? 'all' : 'cash');
+                    }}
+                  >
+                    <span>Cash</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`pa-btn ${toolStyles.filterChip}`}
+                    aria-pressed={formatFilter === 'tournament'}
+                    onClick={() => {
+                      setQuickChip('all');
+                      updateFormatFilter(formatFilter === 'tournament' ? 'all' : 'tournament');
+                    }}
+                  >
+                    <span>MTT</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`pa-btn ${toolStyles.filterChip}`}
+                    aria-pressed={quickChip === 'fixed'}
+                    onClick={() => setQuickChip(prev => (prev === 'fixed' ? 'all' : 'fixed'))}
+                  >
+                    <span>Fixed</span>
+                  </button>
                 </div>
-              </details>
+                <button
+                  type="button"
+                  className={`pa-btn ${toolStyles.filterMoreBtn}`}
+                  aria-label="Open Advanced Filters"
+                  onClick={() => setFiltersOpen(true)}
+                >
+                  <SlidersHorizontal size={15} strokeWidth={2} aria-hidden="true" />
+                  <span>{activeSettingsOverrides > 0 ? `Filters (${activeSettingsOverrides})` : 'Filters'}</span>
+                </button>
+              </div>
 
               {/* Due for review · the spaced-repetition entry point */}
               {(authInitializing || Boolean(userId)) && (
@@ -3181,7 +3604,7 @@ export default function LeakFinderPage() {
                       <button
                         type="button"
                         className="pa-btn"
-                        aria-label="Dismiss linked hand audit"
+                        aria-label="Dismiss Linked Hand Audit"
                         onClick={() => {
                           setLinkedClubHand(null);
                           setLinkedHandAudit(null);
@@ -3345,7 +3768,7 @@ export default function LeakFinderPage() {
                   </small>
                 </summary>
                 <div className="pa-disclosure-body" style={{ display: 'flex', flexDirection: 'column', gap: S.sm }}>
-                  <div className={toolStyles.machineTelemetry} aria-label="Leak Finder data telemetry">
+                  <div className={toolStyles.machineTelemetry} aria-label="Leak Finder Data Telemetry">
                     <span className={toolStyles.telemetryCell}>
                       <span className={toolStyles.telemetryLabel}>Club Arena Link</span>
                       <strong className={toolStyles.telemetryValue} data-tone="live">
@@ -3368,7 +3791,7 @@ export default function LeakFinderPage() {
                     </span>
                   </div>
 
-                  <section className="leak-stat-grid" style={styles.statGrid} aria-label="Summary statistics">
+                  <section className="leak-stat-grid" style={styles.statGrid} aria-label="Summary Statistics">
                     <StatCell
                       label="Sessions reviewed"
                       value={statsLoading ? null : (statsError || statsAreDemo || stats.sessionsReviewed === null ? 'Not Available' : String(stats.sessionsReviewed))}
@@ -3465,7 +3888,7 @@ export default function LeakFinderPage() {
                     <div key={i} className="leak-skeleton" style={styles.skeletonCard} />
                   ))}
                 </div>
-              ) : leaksError ? null : activeLeaks.length === 0 ? (
+              ) : leaksError ? null : (activeLeaks.length === 0 && pastLeaks.length === 0) ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
                   <EmptyState
                     compact
@@ -3588,14 +4011,14 @@ export default function LeakFinderPage() {
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         placeholder="Search Leaks Or Situations"
-                        aria-label="Search leaks"
+                        aria-label="Search Leaks"
                         style={styles.searchInput}
                       />
                       {query && (
                         <button
                           type="button"
                           className="pa-btn"
-                          aria-label="Clear search"
+                          aria-label="Clear Search"
                           onClick={() => setQuery('')}
                           style={iconBtn({ transparent: true, color: T.textMuted })}
                         >
@@ -3625,19 +4048,30 @@ export default function LeakFinderPage() {
                   ) : (
                     <>
                       <ul className="leak-list-grid" style={styles.leakList} role="list">
-                        {shownLeaks.map(leak => (
-                          <LeakCard
-                            key={leak.id}
-                            leak={leak}
-                            demo={leaksAreDemo || isDemoLeakId(leak.id)}
-                            selected={String(selectedLeakId) === String(leak.id)}
-                            onOpen={(l) => setSelectedLeakId(l.id)}
-                            onReview={handleOpenHandReview}
-                            progress={(leaksAreDemo || isDemoLeakId(leak.id))
-                              ? null
-                              : resolutionProgress(reviewRecordById.get(String(leak.id)) || null)}
-                          />
-                        ))}
+                        {shownLeaks.map(leak => {
+                          const isDemoRow = leaksAreDemo || isDemoLeakId(leak.id);
+                          const isDueRow = !isDemoRow && dueLeakIdSet.has(String(leak.id));
+                          const isRewardClaimed = Boolean(claimedLeakRewards[leak.id] || leak.tableVerification?.rewardClaimed);
+                          return (
+                            <LeakCard
+                              key={leak.id}
+                              leak={leak}
+                              demo={isDemoRow}
+                              selected={String(selectedLeakId) === String(leak.id)}
+                              isDue={isDueRow}
+                              rewardClaimed={isRewardClaimed}
+                              claimingReward={String(claimingLeakRewardId) === String(leak.id)}
+                              onOpen={(l) => setSelectedLeakId(l.id)}
+                              onReview={handleOpenHandReview}
+                              onPractice={(l) => (isDueRow ? handleStartReview({ leak: l }) : handleTrainDrills(l))}
+                              onOpenOverflow={(l) => setOverflowLeakId(l.id)}
+                              onClaimReward={handleClaimLiveFixFromCard}
+                              progress={isDemoRow
+                                ? null
+                                : resolutionProgress(reviewRecordById.get(String(leak.id)) || null)}
+                            />
+                          );
+                        })}
                       </ul>
                       {remaining > 0 && (
                         <button
@@ -3702,136 +4136,412 @@ export default function LeakFinderPage() {
               )}
               </>
               )}
-            </section>
-          ) : tab === 'insights' ? (
-            <section id="leak-insights" aria-label="Insights">
-              <h2 style={styles.sectionHeading}>
-                <BarChart3 size={14} strokeWidth={2} aria-hidden="true" style={{ marginRight: 6, verticalAlign: '-2px' }} />
-                Verified Evidence
-              </h2>
 
-              <div className="leak-insights-grid" style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
-                <div
-                  data-pa-insights-authority="verified-destinations-only"
-                  className={toolStyles.instrumentPanel}
-                  style={card}
-                >
-                  <h3 style={styles.cardHeading}>Open A Verified Report</h3>
-                  <p style={styles.detailBody}>
-                    The Retired Coach Analytics Used Historical Sandbox Rows That Were Not Sealed
-                    Training Attempts. They Are Not Used For Accuracy, Leaderboards, Solver EV,
-                    Position Grades, Or Macro-Leak Claims. Choose An Evidence-Backed Destination.
-                  </p>
-                  <div style={{ display: 'grid', gap: S.sm, marginTop: S.md }}>
-                    <button
-                      type="button"
-                      className="pa-btn"
-                      style={btn('primary', { block: true })}
-                      onClick={() => router.push('/hub/training/gto-reports?source=personal-assistant-leaks')}
-                    >
-                      Open Verified Training Reports
-                    </button>
-                    <button
-                      type="button"
-                      className="pa-btn"
-                      style={btn('secondary', { block: true })}
-                      onClick={() => router.push('/hub/training/hand-history-upload?source=personal-assistant-leaks')}
-                    >
-                      Open Audited Hand Review
-                    </button>
-                  </div>
-                </div>
-
-                <div className={toolStyles.instrumentPanel} style={card} data-live-spot-card="insights">
-                  <h3 style={styles.cardHeading}>Live Spots And Other Sites</h3>
-                  <p style={styles.detailBody}>
-                    Log A Live Poker Spot In About 15 Seconds Or Paste Hands From PokerStars, GGPoker, ACR Or ClubGG.
-                    Only Verified Solver Matches Are Graded; Everything Else Stays Unpriced.
-                  </p>
-                  <div style={{ display: 'grid', gap: S.sm, marginTop: S.md }}>
-                    <button
-                      type="button"
-                      className="pa-btn"
-                      style={btn('secondary', { block: true })}
-                      onClick={() => openLiveSpot('spot')}
-                      data-live-spot-trigger="insights"
-                    >
-                      Log A Live Spot
-                    </button>
-                    <button
-                      type="button"
-                      className="pa-btn"
-                      style={btn('secondary', { block: true })}
-                      onClick={() => openLiveSpot('paste')}
-                    >
-                      Paste External Hand History
-                    </button>
-                  </div>
-                </div>
-
-                {/* Archived coach-mode rows are shown without the legacy client grade. */}
-                <div className={toolStyles.instrumentPanel} style={card}>
-                  <h3 style={styles.cardHeading}>Archived Coach-Mode Records</h3>
-                  {coachLoading ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm }} aria-busy="true">
-                      <Skeleton h={56} />
-                      <Skeleton h={56} />
-                    </div>
-                  ) : coachError ? (
-                    <ErrorState title="Coach Stats Unavailable" body={coachError} onRetry={fetchCoachAccuracy} />
-                  ) : !Array.isArray(coachAccuracy?.topLeaks) || coachAccuracy.topLeaks.length === 0 ? (
-                    <p style={styles.detailBody}>
-                      No Archived Coach-Mode Records Are Available. Use Verified Training Or Upload A Hand History For An Audited Review.
-                    </p>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm }}>
-                      {coachAccuracy.topLeaks.map((spot, i) => (
-                        <button
-                          key={`${spot?.street || 'x'}-${i}`}
-                          type="button"
-                          className="leak-card pa-btn"
-                          style={styles.exampleRow}
-                          onClick={() => handleReviewExample()}
-                          aria-label={`Open audited hand review for the archived coach record on ${fmtCards(spot?.board)}`}
-                        >
-                          <span style={styles.exampleLine1}>
-                            <span style={styles.exampleCards}>{fmtCards(spot?.board)}</span>
-                            <span style={{ ...styles.exampleEv, ...numeric }}>Ungraded Archive</span>
-                          </span>
-                          <span style={styles.exampleLine2}>
-                            <span style={pill('accent')}>{String(spot?.street || '?').toUpperCase()}</span>
-                            <span style={styles.exampleBoard}>
-                              Recorded Choice: {spot?.user_pick || 'Not Available'} · Reference Not Verified
-                            </span>
-                            <ChevronRight size={16} strokeWidth={2} aria-hidden="true" style={{ color: T.textMuted, marginLeft: 'auto' }} />
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-              </div>
+              {/* Settings sheet remains accessible while viewing Leaks */}
+              {settingsOpen && (
+                <LeakErrorBoundary label="Assistant Settings">
+                  <CoachingWorkspace
+                    userId={userId}
+                    leaks={leaks}
+                    sharedPayload={coachingPayload}
+                    onPayloadUpdated={(nextPayload) => {
+                      setCoachingPayload(nextPayload);
+                      if (nextPayload?.snapshot) setCoachingSnapshot(nextPayload.snapshot);
+                    }}
+                    settingsOnly
+                    settingsOpen={settingsOpen}
+                    onOpenSettings={() => setSettingsOpen(true)}
+                    onCloseSettings={() => setSettingsOpen(false)}
+                    extraSettingsContent={analysisSettingsDisclosureNode}
+                    onOpenLeak={(id) => { setSelectedLeakId(id); setTab('leaks'); }}
+                    onOpenHandReview={handleOpenHandReview}
+                    onReviewExample={handleReviewExample}
+                    onTrain={handleTrainDrills}
+                    onStartReview={handleStartReview}
+                    onJumpToLeaks={() => { setTab('leaks'); jumpTo('leak-list'); }}
+                    onInspectHand={(handId) => openSessionHand(handId, false)}
+                    onDrillHand={(handId) => openSessionHand(handId, true)}
+                  />
+                </LeakErrorBoundary>
+              )}
             </section>
           ) : (
-            <section id="leak-coaching" aria-label="Coaching">
+            <section id={normalizedTab === 'progress' ? 'leak-progress' : 'leak-coaching'} aria-label={normalizedTab === 'progress' ? 'Progress' : 'Today / Plan'}>
               <LeakErrorBoundary label="The Coaching Workspace">
                 <CoachingWorkspace
                   userId={userId}
                   leaks={leaks}
+                  section={normalizedTab}
+                  initialSection={progressSubsection}
+                  initialLeakId={initialEvidenceLeakId}
+                  sharedPayload={coachingPayload}
+                  onPayloadUpdated={(nextPayload) => {
+                    setCoachingPayload(nextPayload);
+                    if (nextPayload?.snapshot) setCoachingSnapshot(nextPayload.snapshot);
+                  }}
+                  settingsOpen={settingsOpen}
+                  onOpenSettings={() => setSettingsOpen(true)}
+                  onCloseSettings={() => setSettingsOpen(false)}
+                  extraSettingsContent={analysisSettingsDisclosureNode}
+                  onSwitchSection={(nextSection, subView) => {
+                    setTab(nextSection);
+                    if (subView) setProgressSubsection(subView);
+                  }}
                   onOpenLeak={(id) => { setSelectedLeakId(id); setTab('leaks'); }}
                   onOpenHandReview={handleOpenHandReview}
                   onReviewExample={handleReviewExample}
                   onTrain={handleTrainDrills}
+                  onStartReview={handleStartReview}
                   onJumpToLeaks={() => { setTab('leaks'); jumpTo('leak-list'); }}
                   onInspectHand={(handId) => openSessionHand(handId, false)}
                   onDrillHand={(handId) => openSessionHand(handId, true)}
                 />
               </LeakErrorBoundary>
+
+              {normalizedTab === 'progress' && (
+                <div className="leak-insights-grid" style={{ display: 'flex', flexDirection: 'column', gap: S.md, marginTop: S.md }}>
+                  <div
+                    data-pa-insights-authority="verified-destinations-only"
+                    className={toolStyles.instrumentPanel}
+                    style={card}
+                  >
+                    <h3 style={styles.cardHeading}>Open A Verified Report</h3>
+                    <p style={styles.detailBody}>
+                      The Retired Coach Analytics Used Historical Sandbox Rows That Were Not Sealed
+                      Training Attempts. They Are Not Used For Accuracy, Leaderboards, Solver EV,
+                      Position Grades, Or Macro-Leak Claims. Choose An Evidence-Backed Destination.
+                    </p>
+                    <div style={{ display: 'grid', gap: S.sm, marginTop: S.md }}>
+                      <button
+                        type="button"
+                        className="pa-btn"
+                        style={btn('primary', { block: true })}
+                        onClick={() => router.push('/hub/training/gto-reports?source=personal-assistant-leaks')}
+                      >
+                        Open Verified Training Reports
+                      </button>
+                      <button
+                        type="button"
+                        className="pa-btn"
+                        style={btn('secondary', { block: true })}
+                        onClick={() => router.push('/hub/training/hand-history-upload?source=personal-assistant-leaks')}
+                      >
+                        Open Audited Hand Review
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Archived coach-mode rows are shown without the legacy client grade. */}
+                  <div className={toolStyles.instrumentPanel} style={card}>
+                    <h3 style={styles.cardHeading}>Archived Coach-Mode Records</h3>
+                    {coachLoading ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm }} aria-busy="true">
+                        <Skeleton h={56} />
+                        <Skeleton h={56} />
+                      </div>
+                    ) : coachError ? (
+                      <ErrorState title="Coach Stats Unavailable" body={coachError} onRetry={fetchCoachAccuracy} />
+                    ) : !Array.isArray(coachAccuracy?.topLeaks) || coachAccuracy.topLeaks.length === 0 ? (
+                      <p style={styles.detailBody}>
+                        No Archived Coach-Mode Records Are Available. Use Verified Training Or Upload A Hand History For An Audited Review.
+                      </p>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm }}>
+                        {coachAccuracy.topLeaks.map((spot, i) => (
+                          <button
+                            key={`${spot?.street || 'x'}-${i}`}
+                            type="button"
+                            className="leak-card pa-btn"
+                            style={styles.exampleRow}
+                            onClick={() => handleReviewExample()}
+                            aria-label={`Open audited hand review for the archived coach record on ${fmtCards(spot?.board)}`}
+                          >
+                            <span style={styles.exampleLine1}>
+                              <span style={styles.exampleCards}>{fmtCards(spot?.board)}</span>
+                              <span style={{ ...styles.exampleEv, ...numeric }}>Ungraded Archive</span>
+                            </span>
+                            <span style={styles.exampleLine2}>
+                              <span style={pill('accent')}>{String(spot?.street || '?').toUpperCase()}</span>
+                              <span style={styles.exampleBoard}>
+                                Recorded Choice: {spot?.user_pick || 'Not Available'} · Reference Not Verified
+                              </span>
+                              <ChevronRight size={16} strokeWidth={2} aria-hidden="true" style={{ color: T.textMuted, marginLeft: 'auto' }} />
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </section>
           )}
           <HubPageSummary page="personal-assistant-leaks" />
         </main>
+
+        {/* ── Unified + Add / Audit Hands 2-Option BottomSheet ── */}
+        <UiBottomSheet
+          open={addHandsOpen}
+          onClose={closeAddHands}
+          title="Add Or Audit Hands"
+          subtitle="Sync Completed Club Arena Hands Or Upload Live Hands"
+        >
+          <div style={{ display: 'grid', gap: S.md }}>
+            {/* Option 1: Sync Club Arena Hands (Obvious Primary Top Option for Arena Players) */}
+            <div style={styles.sheetOptionCard}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: S.xs }}>
+                <span style={pill('accent')}>Primary · Club Arena</span>
+                <span style={{ fontSize: F.caption, color: T.textMuted }}>Automatic Watermark Sync</span>
+              </div>
+              <strong style={{ fontSize: F.h3, color: T.text }}>Sync Club Arena Hands</strong>
+              <p style={styles.detailBody}>
+                Import And Grade Your Completed Cash And Tournament Hands Played In Club Arena With Verified Solver Matching.
+              </p>
+              <button
+                type="button"
+                className="pa-btn"
+                style={btn('primary', { block: true, disabled: isDetecting })}
+                disabled={isDetecting}
+                onClick={() => {
+                  closeAddHands();
+                  handleRunDetection();
+                }}
+              >
+                <Activity size={18} strokeWidth={2} aria-hidden="true" />
+                <span>{auditJob?.status === 'failed' && auditJob?.resumable ? 'Resume Saved Audit' : 'Sync Club Arena Hands'}</span>
+              </button>
+              {!isDetecting && userId && (
+                <button
+                  type="button"
+                  className="pa-btn"
+                  style={btn('secondary', { block: true })}
+                  onClick={() => {
+                    closeAddHands();
+                    handleFullRescan();
+                  }}
+                >
+                  <RotateCcw size={15} strokeWidth={2} aria-hidden="true" />
+                  <span>Full Re-Audit (Re-Check Older History)</span>
+                </button>
+              )}
+            </div>
+
+            {/* Option 2: Log Or Upload Live Hands (Right Below It) */}
+            <div style={styles.sheetOptionCard} data-live-spot-card="insights">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: S.xs }}>
+                <span style={pill('neutral')}>Live &amp; External</span>
+                <span style={{ fontSize: F.caption, color: T.textMuted }}>Isolated From Live Rewards</span>
+              </div>
+              <strong style={{ fontSize: F.h3, color: T.text }}>Log Or Upload Live Hands</strong>
+              <p style={styles.detailBody}>
+                Log A Live Poker Spot In Seconds Or Upload Hand History Files From PokerStars, GGPoker, ACR, ClubGG, Or 888Poker.
+              </p>
+              <button
+                type="button"
+                className="pa-btn"
+                style={btn('secondary', { block: true })}
+                data-live-spot-trigger="insights"
+                onClick={() => {
+                  closeAddHands();
+                  openLiveSpot('spot');
+                }}
+              >
+                <span>Log Or Upload Live Hands</span>
+              </button>
+              <button
+                type="button"
+                className="pa-btn"
+                style={btn('ghost', { block: true })}
+                onClick={() => {
+                  closeAddHands();
+                  openLiveSpot('paste');
+                }}
+              >
+                <span>Upload Or Paste .Txt Hand History File</span>
+              </button>
+            </div>
+          </div>
+        </UiBottomSheet>
+
+        {/* ── Advanced Filters & Practice Presets BottomSheet ── */}
+        <UiBottomSheet
+          open={filtersOpen}
+          onClose={closeFilters}
+          title="Filters & Practice Presets"
+          subtitle={activeScopeSummary}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
+            <Segmented
+              idPrefix="sheet-leak-format"
+              label="Format (Cash And Tournament Never Mixed)"
+              value={formatFilter}
+              onChange={(val) => {
+                setQuickChip('all');
+                updateFormatFilter(val);
+              }}
+              options={[
+                { value: 'all', label: 'All' },
+                { value: 'cash', label: 'Cash NLH' },
+                { value: 'tournament', label: 'Tournament NLH' },
+              ]}
+            />
+            <Segmented
+              idPrefix="sheet-leak-sort"
+              label="Sort By"
+              value={sortMode}
+              onChange={updateSortMode}
+              options={[
+                { value: 'impact', label: 'Impact' },
+                { value: 'recent', label: 'Recent' },
+                { value: 'confidence', label: 'Confidence' },
+              ]}
+            />
+            <Segmented
+              idPrefix="sheet-leak-status"
+              label="Status"
+              tone="warn"
+              columns={2}
+              value={statusFilter}
+              onChange={(val) => {
+                setQuickChip('all');
+                updateStatusFilter(val);
+              }}
+              options={[
+                { value: 'all', label: 'All' },
+                { value: 'persistent', label: 'Persistent' },
+                { value: 'emerging', label: 'Emerging' },
+                { value: 'improving', label: 'Improving' },
+              ]}
+            />
+            <Segmented
+              idPrefix="sheet-practice-length"
+              label="Practice Session Length"
+              value={String(practiceLength)}
+              onChange={updatePracticeLength}
+              options={[
+                { value: '5', label: '5 Spots' },
+                { value: '10', label: '10 Spots' },
+                { value: '20', label: '20 Spots' },
+              ]}
+            />
+            <Segmented
+              idPrefix="sheet-practice-pacing"
+              label="Drill Pacing"
+              value={practiceDifficulty}
+              onChange={updatePracticeDifficulty}
+              options={[
+                { value: 'fundamentals', label: '25s' },
+                { value: 'adaptive', label: '15s' },
+                { value: 'pressure', label: '10s' },
+              ]}
+            />
+            <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap', marginTop: S.xs }}>
+              <button
+                type="button"
+                className="pa-btn"
+                style={{ ...btn('secondary'), flex: 1 }}
+                onClick={() => {
+                  handleResetAnalysisSettings();
+                  closeFilters();
+                }}
+              >
+                <span>Reset Filters</span>
+              </button>
+              <button
+                type="button"
+                className="pa-btn"
+                style={{ ...btn('primary'), flex: 1 }}
+                onClick={closeFilters}
+              >
+                <span>Apply Filters</span>
+              </button>
+            </div>
+          </div>
+        </UiBottomSheet>
+
+        {/* ── Leak Card 1+1 Secondary Actions Overflow BottomSheet ── */}
+        <UiBottomSheet
+          open={Boolean(overflowLeak)}
+          onClose={closeOverflowLeak}
+          title={overflowLeak?.title || 'Leak Actions'}
+          subtitle={overflowLeak?.situationClass || 'Secondary Actions'}
+        >
+          {overflowLeak && (
+            <div style={{ display: 'grid', gap: S.sm }}>
+              <button
+                type="button"
+                className="pa-btn"
+                style={styles.sheetActionBtn}
+                onClick={() => {
+                  const target = overflowLeak;
+                  closeOverflowLeak();
+                  handleOpenHandReview(target);
+                }}
+              >
+                <span>Review Audited Hand</span>
+                <ChevronRight size={16} strokeWidth={2} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="pa-btn"
+                style={styles.sheetActionBtn}
+                onClick={() => {
+                  const target = overflowLeak;
+                  closeOverflowLeak();
+                  if (target?.id) setInitialEvidenceLeakId(target.id);
+                  setTab('progress');
+                  setProgressSubsection('evidence');
+                }}
+              >
+                <span>Inspect Evidence</span>
+                <ChevronRight size={16} strokeWidth={2} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="pa-btn"
+                style={styles.sheetActionBtn}
+                onClick={() => {
+                  const target = overflowLeak;
+                  closeOverflowLeak();
+                  handleShareLeak(target);
+                }}
+              >
+                <span>Share Read-Only Link</span>
+                <Link2 size={16} strokeWidth={2} aria-hidden="true" />
+              </button>
+              {!isDemoLeakId(overflowLeak.id) && (
+                <button
+                  type="button"
+                  className="pa-btn"
+                  style={styles.sheetActionBtn}
+                  disabled={String(resolvingLeakId) === String(overflowLeak.id)}
+                  onClick={() => {
+                    const target = overflowLeak;
+                    closeOverflowLeak();
+                    if (target.status === 'resolved') handleReopen(target);
+                    else handleMarkResolved(target);
+                  }}
+                >
+                  <span>{overflowLeak.status === 'resolved' ? 'Reopen Leak' : 'Mark Resolved'}</span>
+                  <CheckCircle2 size={16} strokeWidth={2} aria-hidden="true" />
+                </button>
+              )}
+              <button
+                type="button"
+                className="pa-btn"
+                style={styles.sheetActionBtn}
+                onClick={() => {
+                  const id = overflowLeak.id;
+                  closeOverflowLeak();
+                  setSelectedLeakId(id);
+                }}
+              >
+                <span>Details</span>
+                <ChevronRight size={16} strokeWidth={2} aria-hidden="true" />
+              </button>
+            </div>
+          )}
+        </UiBottomSheet>
 
         {/* ── Live spot logger + external hand-history import ── */}
         {liveSpotOpen && (
@@ -3880,7 +4590,7 @@ export default function LeakFinderPage() {
             <button
               type="button"
               className="pa-btn"
-              aria-label="Copy link to this leak"
+              aria-label="Copy Link To This Leak"
               onClick={() => handleShareLeak(selectedLeak)}
               style={iconBtn({ color: T.textMuted })}
             >
@@ -4428,7 +5138,9 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: S.md,
-    padding: S.lg,
+    padding: S.md,
+    border: '1px solid rgba(140, 161, 180, 0.24)',
+    background: 'linear-gradient(180deg, #080d14 0%, #05080c 100%)',
   },
   leakCardBody: {
     display: 'flex',
@@ -4457,18 +5169,26 @@ const styles = {
   leakCardHeader: {
     display: 'flex',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
     gap: S.sm,
     width: '100%',
     minWidth: 0,
   },
   leakCardTitle: {
-    flex: 1,
+    flex: '1 1 180px',
     minWidth: 0,
     fontSize: F.h3,
     fontWeight: 700,
     fontFamily: DISPLAY_FONT,
     color: T.text,
     lineHeight: 1.3,
+  },
+  leakCardFinding: {
+    fontSize: F.bodySm,
+    fontWeight: 600,
+    color: '#F1F5FC',
+    lineHeight: 1.45,
   },
   leakCardMetrics: {
     display: 'flex',
@@ -4512,6 +5232,72 @@ const styles = {
     fontWeight: 700,
     color: T.warn,
     lineHeight: 1.4,
+  },
+  onePlusOneBar: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: S.sm,
+    width: '100%',
+    paddingTop: S.xs,
+    borderTop: '1px solid rgba(140, 161, 180, 0.16)',
+  },
+  overflowIconBtn: {
+    minWidth: 44,
+    minHeight: 44,
+    width: 44,
+    height: 44,
+    padding: 0,
+    borderRadius: R.sm,
+    border: '1px solid rgba(140, 161, 180, 0.28)',
+    background: '#08111B',
+    color: '#DCE5EF',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    flexShrink: 0,
+  },
+  sheetOptionCard: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: S.sm,
+    padding: S.md,
+    borderRadius: R.md,
+    border: '1px solid rgba(140, 161, 180, 0.24)',
+    background: '#070D15',
+  },
+  sheetActionBtn: {
+    ...btn('secondary', { block: true }),
+    minHeight: 48,
+    justifyContent: 'space-between',
+    borderColor: 'rgba(140, 161, 180, 0.24)',
+    background: '#08101A',
+  },
+  evidenceSummaryGrid: {
+    margin: `${S.sm}px 0 0`,
+    padding: 0,
+    display: 'grid',
+    gap: 6,
+  },
+  evidenceSummaryRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    gap: S.sm,
+    paddingBottom: 6,
+    borderBottom: '1px solid rgba(140, 161, 180, 0.16)',
+  },
+  evidenceSummaryLabel: {
+    fontSize: F.caption,
+    fontWeight: 700,
+    color: T.textMuted,
+  },
+  evidenceSummaryValue: {
+    margin: 0,
+    fontSize: F.caption,
+    fontWeight: 700,
+    color: T.text,
+    textAlign: 'right',
   },
 
   disclosureBtn: {

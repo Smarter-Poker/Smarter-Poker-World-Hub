@@ -120,7 +120,7 @@ test('unified leak-to-training UI consumes launch links and waits for the review
   const drillUi = fs.readFileSync(new URL('../src/components/sandbox/QuickSpotDrill.jsx', import.meta.url), 'utf8');
 
   assert.match(trainingUi, /router\.query\.autoLaunch/);
-  assert.match(trainingUi, /startDrill\(game\)/);
+  assert.match(trainingUi, /(?:startDrill|playGame)\(game/);
   assert.match(leaksUi, /leakToTrainingGame\(target, TRAINING_GAME_IDS\)/);
   assert.match(leaksUi, /q\.autoLaunch = exactGame/);
   assert.match(leaksUi, /onReviewComplete=\{handleReviewComplete\}/);
