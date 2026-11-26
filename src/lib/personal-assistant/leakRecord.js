@@ -1143,11 +1143,21 @@ export function getWhyLeakingEV(leakType) {
   return reasons[leakType] || "This pattern deviates significantly from GTO play and allows opponents to exploit your tendencies.";
 }
 
+const RATIO_LEAK_TYPES = new Set([
+  'passive_postflop',
+  'over_aggressive_postflop',
+  'passive_turn_river',
+  'passive_postflop_facts',
+  'cash_passive_postflop_facts',
+  'mtt_passive_postflop_facts',
+]);
+
 export function buildLeakTakeaway(leak = {}) {
   const rawType = String(leak.leak_type ?? leak.leakType ?? '').trim().toLowerCase();
   const normalizedType = rawType
     .replace(/^(?:cash|mtt|tournament)_(?:(?:short|mid|deep|unknown)_)?/, '')
     .replace(/_facts$/, '');
+  const isRatioLeak = RATIO_LEAK_TYPES.has(rawType) || RATIO_LEAK_TYPES.has(normalizedType);
   const pattern = LEAK_PATTERNS[rawType] || LEAK_PATTERNS[normalizedType] || null;
   const street = String(leak.street ?? leak.leak_category ?? leak.leakCategory ?? pattern?.street ?? pattern?.category ?? 'postflop').trim();
   const position = String(leak.hero_position ?? leak.heroPosition ?? 'Any').trim();
@@ -1157,7 +1167,9 @@ export function buildLeakTakeaway(leak = {}) {
   const whatYouAreDoing = String(
     leak.explanation
     || (currentFreq !== null && optimalFreq !== null
-      ? `Observed frequency ${currentFreq}% vs ${optimalFreq}% target in ${leak.situation_class || leak.title || rawType || 'this spot'}.`
+      ? (isRatioLeak
+          ? `Observed ratio ${Number(currentFreq).toFixed(2)} vs ${Number(optimalFreq).toFixed(2)} target in ${leak.situation_class || leak.title || rawType || 'this spot'}.`
+          : `Observed frequency ${currentFreq}% vs ${optimalFreq}% target in ${leak.situation_class || leak.title || rawType || 'this spot'}.`)
       : (leak.situation_class || leak.title || 'Recurring strategic deviation detected.')),
   );
   const where = [format, street, position !== 'Any' ? position : null, leak.spot_type ?? leak.spotType ?? pattern?.spotType ?? null]

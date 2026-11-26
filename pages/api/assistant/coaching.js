@@ -249,6 +249,54 @@ async function attachHandPlayTimes(supabase, decisions, { reviews, sessionWindow
   }
 }
 
+function redactHandPrescriptionItem(item) {
+  if (!item || typeof item !== 'object') return item;
+  const next = { ...item };
+  if ('heroHand' in next) next.heroHand = null;
+  if ('boardCards' in next) next.boardCards = [];
+  if ('solverAction' in next) next.solverAction = null;
+  if ('evLossBB' in next) next.evLossBB = null;
+  if ('handId' in next) next.handId = null;
+  if ('handExternalId' in next) next.handExternalId = null;
+  if ('exampleHands' in next) next.exampleHands = [];
+  if (next.representativeHand && typeof next.representativeHand === 'object') {
+    next.representativeHand = {
+      ...next.representativeHand,
+      handId: null,
+      handExternalId: null,
+      heroHand: null,
+      boardCards: [],
+      solverAction: null,
+      evLossBB: null,
+    };
+  }
+  return next;
+}
+
+function redactSnapshotForLiveOrCooldown(snapshot) {
+  if (!snapshot || typeof snapshot !== 'object') return snapshot;
+  const next = { ...snapshot };
+  if (Array.isArray(next.priorities)) {
+    next.priorities = next.priorities.map(redactHandPrescriptionItem);
+  }
+  if (Array.isArray(next.leaks)) {
+    next.leaks = next.leaks.map(redactHandPrescriptionItem);
+  }
+  if (next.trainingPlan && typeof next.trainingPlan === 'object' && Array.isArray(next.trainingPlan.modules)) {
+    next.trainingPlan = {
+      ...next.trainingPlan,
+      modules: next.trainingPlan.modules.map(redactHandPrescriptionItem),
+    };
+  }
+  if (next.weeklyReport && typeof next.weeklyReport === 'object' && Array.isArray(next.weeklyReport.focus)) {
+    next.weeklyReport = {
+      ...next.weeklyReport,
+      focus: next.weeklyReport.focus.map(redactHandPrescriptionItem),
+    };
+  }
+  return next;
+}
+
 async function readWorkspace(supabase, userId) {
   const [leakRows, decisions, reviews, goals, feedback, preferenceResult, auditResult, activeAuditResult] = await Promise.all([
     ownerRead(supabase, 'user_leaks', '*', userId, query => query.order('updated_at', { ascending: false }).limit(500)),
@@ -319,9 +367,12 @@ async function readWorkspace(supabase, userId) {
     ...(rawPrefs?.updated_at ? { updated_at: rawPrefs.updated_at } : {}),
   };
 
+  const rtaRestricted = Boolean(liveTable.active || liveTable.cooldown);
+  const safeSnapshot = rtaRestricted ? redactSnapshotForLiveOrCooldown(snapshot) : snapshot;
+
   return {
     snapshot: {
-      ...snapshot,
+      ...safeSnapshot,
       liveTableActive: Boolean(liveTable.active),
       cooldownActive: Boolean(liveTable.cooldown),
       preferences: {
@@ -330,9 +381,9 @@ async function readWorkspace(supabase, userId) {
       },
       activeAuditRunning,
       activeAuditProgressText,
-      receipt: receiptFingerprint(snapshot),
+      receipt: receiptFingerprint(safeSnapshot),
     },
-    decisions: (liveTable.active || liveTable.cooldown) ? [] : ownedDecisions,
+    decisions: rtaRestricted ? [] : ownedDecisions,
     reviews,
     goals,
     feedback,

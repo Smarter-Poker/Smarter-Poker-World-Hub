@@ -113,6 +113,9 @@ export function sanitizeExportHandRow(row, userId) {
     if (cleanHandData.hole_cards && typeof cleanHandData.hole_cards === 'object') {
       cleanHandData.hole_cards = sanitizeHoleCardsMap(cleanHandData.hole_cards);
     }
+    if (cleanHandData.holeCards && typeof cleanHandData.holeCards === 'object') {
+      cleanHandData.holeCards = sanitizeHoleCardsMap(cleanHandData.holeCards);
+    }
     next.hand_data = cleanHandData;
   }
   if (row.summary && typeof row.summary === 'object') {
@@ -127,6 +130,9 @@ export function sanitizeExportHandRow(row, userId) {
   }
   if (row.hole_cards && typeof row.hole_cards === 'object') {
     next.hole_cards = sanitizeHoleCardsMap(row.hole_cards);
+  }
+  if (row.holeCards && typeof row.holeCards === 'object') {
+    next.holeCards = sanitizeHoleCardsMap(row.holeCards);
   }
   return next;
 }

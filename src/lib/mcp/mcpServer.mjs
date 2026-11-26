@@ -4634,7 +4634,7 @@ export async function executeMcpTool(rawName, args, { origin = SITE_ORIGIN } = {
               category: g.category,
               difficulty: g.difficulty,
               tags: g.tags || [],
-              launch_url: `${base}/hub/training?game=${g.id}`,
+              launch_url: `${base}/hub/training?autoLaunch=${g.id}`,
             }));
 
       return {

@@ -130,7 +130,9 @@ export function buildHandMetadata(row, eligibility = {}, heroCards = [], {
     pot: potSize,
     potBb,
     effectiveStackBb,
-    effectiveStack: effectiveStackBb,
+    effectiveStack: effectiveStackBb !== null && Number.isFinite(bb) && bb > 0
+      ? +(effectiveStackBb * bb).toFixed(2)
+      : null,
     heroPosition,
     street,
     board,

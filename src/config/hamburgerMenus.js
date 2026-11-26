@@ -302,7 +302,8 @@ export const MENU_CONFIGS = {
                     icon: MenuIcons.brain
                 },
                 {
-                    label: 'GTO Sandbox',
+                    // Renamed from misleading "GTO Sandbox" to "Scenario Archive" (retired unverified sandbox -> Scenario Analysis Archive)
+                    label: 'Scenario Archive',
                     href: '/hub/personal-assistant/sandbox',
                     icon: MenuIcons.target
                 },
@@ -405,7 +406,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Training Library', '/hub/training', MenuIcons.training),
             createMenuItem.navigation('My Progress', '/hub/training/progress', MenuIcons.chart),
             createMenuItem.navigation('Leaderboard', '/hub/training/leaderboard', MenuIcons.trophy),
-            createMenuItem.navigation('GTO Sandbox', '/hub/personal-assistant/sandbox', MenuIcons.target),
+            createMenuItem.navigation('Scenario Archive', '/hub/personal-assistant/sandbox', MenuIcons.target),
             createMenuItem.navigation('Leak Finder', '/hub/personal-assistant/leaks', MenuIcons.flame)
         ],
         bottomLinks: [
@@ -893,7 +894,7 @@ export const MENU_CONFIGS = {
         menuItems: [
             createMenuItem.section('Coach Tools'),
             createMenuItem.grid([
-                { label: 'GTO Sandbox', href: '/hub/personal-assistant/sandbox', icon: MenuIcons.target },
+                { label: 'Scenario Archive', href: '/hub/personal-assistant/sandbox', icon: MenuIcons.target },
                 { label: 'Leak Finder', href: '/hub/personal-assistant/leaks', icon: MenuIcons.flame },
                 { label: 'Training', href: '/hub/training', icon: MenuIcons.training },
                 { label: 'Preflop Charts', href: '/hub/preflop-charts', icon: MenuIcons.grid },
@@ -958,7 +959,7 @@ export const MENU_CONFIGS = {
                 : []),
 
             createMenuItem.section('Navigation'),
-            createMenuItem.navigation('GTO Sandbox', '/hub/personal-assistant/sandbox', MenuIcons.target),
+            createMenuItem.navigation('Scenario Archive', '/hub/personal-assistant/sandbox', MenuIcons.target),
             createMenuItem.navigation('PA Hub', '/hub/personal-assistant', MenuIcons.brain),
             createMenuItem.navigation('Session History', '/hub/session-history', MenuIcons.clock),
             createMenuItem.navigation('World Hub', '/hub', MenuIcons.home)

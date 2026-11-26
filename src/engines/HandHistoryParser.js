@@ -242,24 +242,25 @@ function _applyVariantInfo(hand, headerText, options = {}) {
  * @returns {Array<ParsedHand>} Array of parsed hands
  */
 export function parseHandHistory(text, heroName) {
-    if (!text || text.trim().length === 0) return [];
+    if (!text || String(text).trim().length === 0) return [];
+    const normalizedText = String(text).replace(/\r\n?/g, '\n');
 
-    const site = detectSite(text);
+    const site = detectSite(normalizedText);
 
     switch (site) {
         case 'pokerstars':
-            return parsePokerStars(text, heroName);
+            return parsePokerStars(normalizedText, heroName);
         case 'ggpoker':
-            return parseGGPoker(text, heroName);
+            return parseGGPoker(normalizedText, heroName);
         case '888poker':
-            return parse888Poker(text, heroName);
+            return parse888Poker(normalizedText, heroName);
         case 'acr':
-            return parseACR(text, heroName);
+            return parseACR(normalizedText, heroName);
         case 'clubgg':
-            return parseClubGG(text, heroName);
+            return parseClubGG(normalizedText, heroName);
         default:
             // Try PokerStars format as fallback (most common)
-            return parsePokerStars(text, heroName);
+            return parsePokerStars(normalizedText, heroName);
     }
 }
 
@@ -269,8 +270,9 @@ export function parseHandHistory(text, heroName) {
 
 function parsePokerStars(text, heroName) {
     const hands = [];
+    const normalizedText = String(text || '').replace(/\r\n?/g, '\n');
     // Split into individual hands (separated by double newlines or hand headers)
-    const handBlocks = text.split(/\n\n+(?=PokerStars)/i).filter(b => b.trim());
+    const handBlocks = normalizedText.split(/\n\s*\n+(?=PokerStars)/i).filter(b => b.trim());
 
     for (const block of handBlocks) {
         try {
@@ -294,8 +296,9 @@ function _parsePSHeader(line) {
 function _stakesFromHeader(line) {
     // Strip dates first so "2026/11/25" can never be mistaken for blinds.
     const cleaned = String(line).replace(/\d{4}\/\d{1,2}\/\d{1,2}/g, ' ');
-    const stakesMatch = cleaned.match(/\(?[$€£]?([\d.]+)\/[$€£]?([\d.]+)/);
-    return stakesMatch ? `$${stakesMatch[1]}/$${stakesMatch[2]}` : '';
+    const stakesMatch = cleaned.match(/\(?[$€£]?([\d,]+(?:\.\d+)?)\s*\/\s*[$€£]?([\d,]+(?:\.\d+)?)/);
+    if (!stakesMatch) return '';
+    return `$${stakesMatch[1].replace(/,/g, '')}/$${stakesMatch[2].replace(/,/g, '')}`;
 }
 
 function _parsePSHand(block, heroName, opts = {}) {
@@ -438,7 +441,8 @@ function _parsePSHand(block, heroName, opts = {}) {
 
 function parseGGPoker(text, heroName) {
     const hands = [];
-    const handBlocks = text.split(/\n\s*\n+(?=Poker Hand)/i).filter(b => b.trim());
+    const normalizedText = String(text || '').replace(/\r\n?/g, '\n');
+    const handBlocks = normalizedText.split(/\n\s*\n+(?=Poker Hand)/i).filter(b => b.trim());
 
     for (const block of handBlocks) {
         try {
@@ -554,7 +558,8 @@ export function parseClubGG(text, heroName) {
 
 function parse888Poker(text, heroName) {
     const hands = [];
-    const handBlocks = text.split(/\n\n+(?=\*\*\*\*\*)/i).filter(b => b.trim());
+    const normalizedText = String(text || '').replace(/\r\n?/g, '\n');
+    const handBlocks = normalizedText.split(/\n\s*\n+(?=\*\*\*\*\*|#Game No)/i).filter(b => b.trim());
 
     for (const block of handBlocks) {
         try {
@@ -569,16 +574,26 @@ function parse888Poker(text, heroName) {
 
 function _parse888Hand(block, heroName) {
     // 888 format differs more, but core structure is similar
-    const lines = block.split('\n').map(l => l.trim()).filter(l => l);
+    const normalizedBlock = String(block || '').replace(/\r\n?/g, '\n');
+    const lines = normalizedBlock.split('\n').map(l => l.trim()).filter(l => l);
     if (lines.length < 5) return null;
+
+    let stakes = '';
+    for (const hLine of lines.slice(0, 5)) {
+        const parsedStakes = _stakesFromHeader(hLine);
+        if (parsedStakes) {
+            stakes = parsedStakes;
+            break;
+        }
+    }
 
     const hand = {
         id: `888_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
         site: '888poker',
-        variant: /omaha/i.test(block) ? 'omaha' : 'holdem',
+        variant: /omaha/i.test(normalizedBlock) ? 'omaha' : 'holdem',
         gameType: 'NL',
-        format: /tournament|sit\s*&?\s*go/i.test(block) ? 'tournament' : 'cash',
-        stakes: '',
+        format: /(?:tournament|tourney|freeroll|sit\s*&?\s*go|mtt|level\s+[ivx0-9]+)/i.test(normalizedBlock) ? 'tournament' : 'cash',
+        stakes,
         tableSize: 0,
         buttonSeat: null,
         players: [],
@@ -592,12 +607,12 @@ function _parse888Hand(block, heroName) {
     for (const line of lines) {
         const buttonMatch = line.match(/Seat\s+#?(\d+)\s+is the button/i);
         if (buttonMatch) hand.buttonSeat = parseInt(buttonMatch[1], 10);
-        const seatMatch = line.match(/^Seat\s+(\d+):\s+(.+?)\s+\(\s*\$?([\d.]+)/);
+        const seatMatch = line.match(/^Seat\s+(\d+):\s+(.+?)\s+\(\s*[$€£]?([\d,]+(?:\.\d+)?)/);
         if (seatMatch) {
             hand.players.push({
-                seat: parseInt(seatMatch[1]),
-                name: seatMatch[2],
-                stack: parseFloat(seatMatch[3]),
+                seat: parseInt(seatMatch[1], 10),
+                name: seatMatch[2].trim(),
+                stack: parseFloat(seatMatch[3].replace(/,/g, '')),
                 position: '',
             });
         }
@@ -605,7 +620,7 @@ function _parse888Hand(block, heroName) {
         const dealtMatch = line.match(/^Dealt\s+to\s+(.+?)\s+\[(.+?)\]/);
         if (dealtMatch) {
             hand.hero = {
-                name: dealtMatch[1],
+                name: dealtMatch[1].trim(),
                 holeCards: dealtMatch[2].split(/[\s,]+/).map(_normalizeCard),
             };
         }
@@ -613,32 +628,35 @@ function _parse888Hand(block, heroName) {
         if (line.includes('** Flop **') || line.includes('*** FLOP ***')) {
             currentStreet = 'flop';
             const boardMatch = line.match(/\[(.+?)\]/);
-            hand.streets.flop = { board: boardMatch ? boardMatch[1].split(/\s+/).map(_normalizeCard) : [], actions: [] };
+            hand.streets.flop = { board: boardMatch ? boardMatch[1].split(/[\s,]+/).map(_normalizeCard).filter(Boolean) : [], actions: [] };
         }
         if (line.includes('** Turn **') || line.includes('*** TURN ***')) {
             currentStreet = 'turn';
-            const cardMatch = line.match(/\[(.+?)\]\s*\[(.+?)\]/);
-            hand.streets.turn = { card: cardMatch ? _normalizeCard(cardMatch[2]) : '', actions: [] };
+            const cardMatch = line.match(/\[(.+?)\]\s*\[(.+?)\]/) || line.match(/\[(.+?)\]/);
+            hand.streets.turn = { card: cardMatch ? _normalizeCard((cardMatch[2] || cardMatch[1]).trim()) : '', actions: [] };
         }
         if (line.includes('** River **') || line.includes('*** RIVER ***')) {
             currentStreet = 'river';
-            const cardMatch = line.match(/\[(.+?)\]\s*\[(.+?)\]/);
-            hand.streets.river = { card: cardMatch ? _normalizeCard(cardMatch[2]) : '', actions: [] };
+            const cardMatch = line.match(/\[(.+?)\]\s*\[(.+?)\]/) || line.match(/\[(.+?)\]/);
+            hand.streets.river = { card: cardMatch ? _normalizeCard((cardMatch[2] || cardMatch[1]).trim()) : '', actions: [] };
         }
 
-        const actionMatch = line.match(/^(.+?)\s+(folds|checks|calls|bets|raises)(?:\s*\[?\$?([\d.]+)\]?)?(?:\s+to\s+\$?([\d.]+))?/i);
+        const actionMatch = line.match(/^(.+?):?\s+(folds|checks|calls|bets|raises)(?:\s*\[?[$€£]?([\d,]+(?:\.\d+)?)\]?)?(?:\s+to\s+\[?[$€£]?([\d,]+(?:\.\d+)?)\]?)?/i);
         if (actionMatch && hand.streets[currentStreet] && !line.startsWith('Seat') && !line.startsWith('**')) {
+            const rawAmt = actionMatch[4] || actionMatch[3];
             hand.streets[currentStreet].actions.push({
                 player: actionMatch[1].trim(),
                 action: _normalizeAction(actionMatch[2]),
-                amount: parseFloat(actionMatch[4] || actionMatch[3]) || 0,
+                amount: rawAmt ? parseFloat(rawAmt.replace(/,/g, '')) || 0 : 0,
                 isHero: actionMatch[1].trim() === (hand.hero?.name || heroName),
             });
         }
 
-        const winMatch = line.match(/^(.+?)\s+(collected|wins)\s+\$?([\d.]+)/);
+        const winMatch = line.match(/^(.+?)\s+(collected|wins)\s+\[?[$€£]?([\d,]+(?:\.\d+)?)\]?/i);
         if (winMatch) {
-            hand.result.winners.push({ name: winMatch[1], amount: parseFloat(winMatch[3]) });
+            const winAmt = parseFloat(winMatch[3].replace(/,/g, '')) || 0;
+            hand.result.winners.push({ name: winMatch[1].trim(), amount: winAmt });
+            hand.result.pot = Math.max(hand.result.pot, winAmt);
         }
     }
 

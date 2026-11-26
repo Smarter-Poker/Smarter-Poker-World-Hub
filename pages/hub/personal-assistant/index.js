@@ -208,42 +208,59 @@ export default function PersonalAssistantPage() {
     setAssistantPrefs(loadAssistantPreferences(getSafeLocalStorage(), user?.id));
   }, [user?.id]);
 
-  // Direct hand deep-link handoff: ?hand=<uuid> routes straight to Leak Finder hand review.
+  // Direct hand/leak/tab deep-link handoff: ?hand=<uuid>, ?handId=<uuid>, ?leak=<id>, or ?tab=<tab> routes straight to Leak Finder.
   useEffect(() => {
     if (router?.isReady === false) return;
     const searchParams = typeof window !== 'undefined'
       ? new URLSearchParams(window.location.search)
       : null;
+    const readParam = (key) => {
+      const val = router?.query?.[key];
+      const raw = Array.isArray(val) ? val[0] : (val ?? searchParams?.get(key));
+      return typeof raw === 'string' ? raw.trim() : '';
+    };
     const rawHand = Array.isArray(router?.query?.hand)
       ? router.query.hand[0]
-      : (router?.query?.hand ?? searchParams?.get('hand'));
+      : (router?.query?.hand ?? router?.query?.handId ?? searchParams?.get('hand') ?? searchParams?.get('handId'));
     const handId = typeof rawHand === 'string' ? rawHand.trim() : '';
-    if (!handId) return;
-    const rawSource = Array.isArray(router?.query?.source)
-      ? router.query.source[0]
-      : (router?.query?.source ?? searchParams?.get('source'));
-    const rawFormat = Array.isArray(router?.query?.format)
-      ? router.query.format[0]
-      : (router?.query?.format ?? searchParams?.get('format'));
-    const rawDrill = Array.isArray(router?.query?.drill)
-      ? router.query.drill[0]
-      : (router?.query?.drill ?? searchParams?.get('drill'));
+    const leakId = readParam('leak') || readParam('leakId');
+    const tabVal = readParam('tab');
+    if (!handId && !leakId && !tabVal) return;
+
+    const rawSource = readParam('source');
+    const rawFormat = readParam('format');
+    const rawDrill = readParam('drill');
+    const rawStatus = readParam('status');
+    const rawView = readParam('view');
     const params = new URLSearchParams();
-    params.set('hand', handId);
-    params.set('source', typeof rawSource === 'string' && rawSource.trim() ? rawSource.trim() : 'personal-assistant');
-    if (typeof rawFormat === 'string' && rawFormat.trim()) {
-      params.set('format', rawFormat.trim());
-    }
-    if (typeof rawDrill === 'string' && rawDrill.trim()) {
-      params.set('drill', rawDrill.trim());
-    }
+    if (handId) params.set('hand', handId);
+    if (leakId) params.set('leak', leakId);
+    if (tabVal) params.set('tab', tabVal);
+    params.set('source', rawSource || 'personal-assistant');
+    if (rawFormat) params.set('format', rawFormat);
+    if (rawDrill) params.set('drill', rawDrill);
+    if (rawStatus) params.set('status', rawStatus);
+    if (rawView) params.set('view', rawView);
     const targetUrl = `/hub/personal-assistant/leaks?${params.toString()}`;
     if (typeof router?.replace === 'function') {
       router.replace(targetUrl);
     } else if (typeof router?.push === 'function') {
       router.push(targetUrl);
     }
-  }, [router, router?.isReady, router?.query?.hand, router?.query?.source, router?.query?.format, router?.query?.drill]);
+  }, [
+    router,
+    router?.isReady,
+    router?.query?.hand,
+    router?.query?.handId,
+    router?.query?.leak,
+    router?.query?.leakId,
+    router?.query?.tab,
+    router?.query?.source,
+    router?.query?.format,
+    router?.query?.drill,
+    router?.query?.status,
+    router?.query?.view,
+  ]);
 
   const [trainingPlanReloadKey, setTrainingPlanReloadKey] = useState(0);
 
@@ -266,23 +283,30 @@ export default function PersonalAssistantPage() {
   const [dailyHandStatus, setDailyHandStatus] = useState('loading');
   const [dailyHandReloadKey, setDailyHandReloadKey] = useState(0);
   const [coachingSnapshot, setCoachingSnapshot] = useState(null);
+  const [coachingStatus, setCoachingStatus] = useState('loading');
 
   useEffect(() => {
     setCoachingSnapshot(null);
+    setCoachingStatus(user?.id ? 'loading' : 'ready');
   }, [user?.id]);
 
   useEffect(() => {
     if (authInitializing || !user?.id) {
       setCoachingSnapshot(null);
+      setCoachingStatus(authInitializing ? 'loading' : 'ready');
       return undefined;
     }
     let cancelled = false;
     const controller = new AbortController();
     const loadPlan = async () => {
+      setCoachingStatus((prev) => (prev === 'ready' ? 'ready' : 'loading'));
       try {
         const token = await getFreshAccessToken();
         if (!token) {
-          if (!cancelled) setCoachingSnapshot(null);
+          if (!cancelled) {
+            setCoachingSnapshot(null);
+            setCoachingStatus('error');
+          }
           return;
         }
         if (cancelled) return;
@@ -295,13 +319,16 @@ export default function PersonalAssistantPage() {
         if (!cancelled) {
           if (response.ok && payload?.success && payload?.snapshot) {
             setCoachingSnapshot(payload.snapshot);
+            setCoachingStatus('ready');
           } else {
             setCoachingSnapshot(null);
+            setCoachingStatus('error');
           }
         }
       } catch (err) {
         if (!cancelled && err?.name !== 'AbortError') {
           setCoachingSnapshot(null);
+          setCoachingStatus('error');
         }
       }
     };
@@ -548,11 +575,15 @@ export default function PersonalAssistantPage() {
     },
   ];
 
-  const drillsDueCount = statsUnavailable ? null : dueCount;
+  const drillsDueLoading = !isSignedOut && coachingStatus === 'loading';
+  const drillsDueCount = (statsUnavailable || coachingStatus !== 'ready' || !coachingSnapshot)
+    ? null
+    : dueCount;
   const statCards = [
     {
       title: 'Active Leaks',
       value: activeLeakCount,
+      busy: false,
       label: activeLeakCount === null
         ? unavailableLabel
         : `${activeLeakCount.toLocaleString()} Open`,
@@ -562,15 +593,19 @@ export default function PersonalAssistantPage() {
     {
       title: 'Drills Due',
       value: drillsDueCount,
-      label: drillsDueCount === null
-        ? unavailableLabel
-        : `${dueCount} Due`,
+      busy: drillsDueLoading,
+      label: drillsDueLoading
+        ? 'Loading…'
+        : drillsDueCount === null
+          ? (coachingStatus === 'error' ? 'Retry To Load' : unavailableLabel)
+          : `${dueCount} Due`,
       Icon: Clock3,
       route: '/hub/personal-assistant/leaks?tab=plan',
     },
     {
       title: 'Verified Fixed',
       value: resolvedLeakCount,
+      busy: false,
       label: resolvedLeakCount === null
         ? unavailableLabel
         : 'Confirmed Live',
@@ -649,7 +684,7 @@ export default function PersonalAssistantPage() {
         </nav>
 
         <PullToRefresh onRefresh={retryAssistantData} disabled={showMenu}>
-        <main className={styles.main} id="overview">
+        <div className={styles.main} id="overview">
           {/* Compact MTT lobby header plaque (zero data deps -> instant LCP) */}
           <section className={`${styles.frame} ${styles.hero}`} aria-labelledby="assistant-title">
             <div className={styles.heroInner}>
@@ -777,8 +812,9 @@ export default function PersonalAssistantPage() {
               <p className={styles.demoNote}>Sample View · Sign In To See Your Own Hands And Leaks.</p>
             )}
             <div className={styles.statGrid} aria-busy={statsBusy} aria-live="polite">
-              {statCards.map(({ title, value, label, Icon, route }) => {
-                const displayValue = statsBusy
+              {statCards.map(({ title, value, busy, label, Icon, route }) => {
+                const tileBusy = statsBusy || Boolean(busy);
+                const displayValue = tileBusy
                   ? 'Loading…'
                   : value === null
                     ? 'Not Available'
@@ -794,7 +830,7 @@ export default function PersonalAssistantPage() {
                   <span className={styles.statCardInner}>
                     <span className={styles.statTopline}><Icon size={13} aria-hidden="true" />{title}</span>
                     <strong>{displayValue}</strong>
-                    <span className={styles.statLabel}>{statsBusy ? 'Loading…' : label}</span>
+                    <span className={styles.statLabel}>{tileBusy ? 'Loading…' : label}</span>
                   </span>
                 </button>
                 );
@@ -974,7 +1010,7 @@ export default function PersonalAssistantPage() {
           </section>
           </>
           )}
-        </main>
+        </div>
         </PullToRefresh>
       </div>
       </HubPageShell>

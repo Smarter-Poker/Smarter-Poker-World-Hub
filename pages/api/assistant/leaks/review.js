@@ -462,6 +462,18 @@ async function handleGet(req, res, userId) {
         return res.status(200).json({ success: true, records: [], persisted: false, reason: 'guest', authenticated: false });
     }
 
+    const supabase = getSupabase();
+    const contextAccess = await checkSandboxAccess(supabase, userId);
+    if (!contextAccess?.allowed || !isFeatureAccessible(contextAccess.accessLevel, 'leak_finder_view') || !isFeatureAccessible(contextAccess.accessLevel, 'leak_finder_detect')) {
+        return res.status(403).json({
+            success: false,
+            blocked: true,
+            contextState: contextAccess?.contextState || 'session_active_unknown',
+            accessLevel: contextAccess?.accessLevel || 'hard_block',
+            error: contextAccess?.message || 'Leak review schedule is unavailable during live play or post-session cooldown.',
+        });
+    }
+
     const nowMs = Date.now();
     const { leakId: rawLeakId, due, limit } = req.query || {};
 

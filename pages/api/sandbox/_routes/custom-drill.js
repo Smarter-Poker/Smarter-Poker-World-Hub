@@ -230,28 +230,24 @@ export default async function handler(req, res) {
           const { street, position, game, limit } = req.query;
           const rawLeakId = Array.isArray(req.query.leak) ? req.query.leak[0] : req.query.leak;
           const leakId = typeof rawLeakId === 'string' ? rawLeakId.trim() : '';
-          const hasAuthHeader = Boolean(req.headers?.authorization && String(req.headers.authorization).trim());
-          let authedUser = null;
           let drillUserId = null;
           let ownedDrillParams = null;
           if (leakId) {
               if (!LEAK_ID_RE.test(leakId)) return res.status(400).json({ success: false, error: 'Invalid leak id' });
           }
-          if (leakId || hasAuthHeader) {
-              const { user, error: authError, status: authStatus } = await getServerUserWithFallback(req, supabase);
-              if (authStatus === 503) return res.status(503).json({ success: false, error: 'Session verification unavailable' });
-              if (authError || !user) return res.status(401).json({ success: false, error: 'Authentication required' });
-              authedUser = user;
-              const contextAccess = await checkSandboxAccess(supabase, user.id);
-              if (!contextAccess?.allowed || !isFeatureAccessible(contextAccess.accessLevel, 'leak_finder_detect')) {
-                  return res.status(403).json({
-                      success: false,
-                      blocked: true,
-                      contextState: contextAccess?.contextState || 'session_active_unknown',
-                      accessLevel: contextAccess?.accessLevel || 'hard_block',
-                      error: contextAccess?.message || 'Practice drills are unavailable during live play or post-session cooldown.',
-                  });
-              }
+          const { user, error: authError, status: authStatus } = await getServerUserWithFallback(req, supabase);
+          if (authStatus === 503) return res.status(503).json({ success: false, error: 'Session verification unavailable' });
+          if (authError || !user) return res.status(401).json({ success: false, error: 'Authentication required' });
+          const authedUser = user;
+          const contextAccess = await checkSandboxAccess(supabase, user.id);
+          if (!contextAccess?.allowed || !isFeatureAccessible(contextAccess.accessLevel, 'leak_finder_detect')) {
+              return res.status(403).json({
+                  success: false,
+                  blocked: true,
+                  contextState: contextAccess?.contextState || 'session_active_unknown',
+                  accessLevel: contextAccess?.accessLevel || 'hard_block',
+                  error: contextAccess?.message || 'Practice drills are unavailable during live play or post-session cooldown.',
+              });
           }
           if (leakId && authedUser) {
               const ownedLeak = await loadOwnedLeak(supabase, authedUser.id, leakId);
@@ -464,7 +460,13 @@ export default async function handler(req, res) {
           });
       } catch (err) {
           console.warn('[custom-drill] Error:', err);
-          return res.status(500).json({ success: false, error: 'Internal server error' });
+          const status = Number.isInteger(err?.status) && err.status >= 400 && err.status <= 599
+              ? err.status
+              : 500;
+          return res.status(status).json({
+              success: false,
+              error: status !== 500 && err?.message ? err.message : 'Internal server error',
+          });
       }
 
   } catch (err) {

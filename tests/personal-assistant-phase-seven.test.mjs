@@ -245,7 +245,7 @@ test('Personal Assistant wiring uses fresh auth tokens, Club Arena hand replay, 
 
   assert.match(nextConfig, /source:\s*'\/hub\/jarvis'[\s\S]*destination:\s*'\/hub\/personal-assistant\/leaks'/);
   assert.match(sandboxPage, /\/hub\/personal-assistant\/leaks\?source=assistant-sandbox-retired/);
-  assert.match(sandboxPage, /\/hub\/club-arena\/hand-history\?source=assistant-sandbox-retired/);
+  assert.match(sandboxPage, /\/hub\/club-arena\/hand-history\?source=personal-assistant-sandbox-retired/);
 
   assert.match(detectApi, /ca_player_stats_overview_separated/);
   assert.match(detectApi, /ca_hand_facts/);
