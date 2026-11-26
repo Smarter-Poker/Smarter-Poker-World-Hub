@@ -12,7 +12,7 @@ import { PUSH_TYPES, PUSH_TYPE_KEYS } from '../src/lib/push/push-prefs.js';
 import equitySnapshotHandler from '../pages/api/sandbox/_routes/equity-snapshot.js';
 import saveHandHandler from '../pages/api/sandbox/_routes/save-hand.js';
 import { auditMigration } from '../scripts/ci/check-explicit-table-access.mjs';
-import { normalizeUserLeakRow } from '../src/lib/personal-assistant/leakRecord.js';
+import { normalizeUserLeakRow, leakTypeTitle } from '../src/lib/personal-assistant/leakRecord.js';
 import { ACCESS_LEVELS } from '../src/lib/personal-assistant/contextAuthority.js';
 
 import { buildCoachingSnapshot } from '../src/lib/personal-assistant/coachingIntelligence.mjs';
@@ -198,6 +198,9 @@ function getMaintenanceModule(deps = {}) {
     },
     '../../../src/lib/personal-assistant/auditJobRuntime.mjs': {
       kickAuditWorker: deps.kickAuditWorker || (async () => ({ ok: true, status: 200 })),
+    },
+    '../../../src/lib/personal-assistant/leakRecord': {
+      leakTypeTitle,
     },
   };
   return compile('pages/api/assistant/maintenance-jobs.js', { ...defaultDeps, ...deps });
@@ -405,7 +408,7 @@ test('Maintenance cron: runWeeklyDigest respects 7-day throttle and builds 3-lin
               order: () => ({
                 limit: async () => ({
                   data: [
-                    { id: 'leak-bb-defend', title: 'Overfolding Big Blind', status: 'active', ev_loss: 4.2 },
+                    { id: 'leak-bb-defend', leak_type: 'overfolding_big_blind', status: 'emerging', avg_ev_loss_bb: 4.2, is_active: true },
                   ],
                   error: null,
                 }),

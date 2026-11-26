@@ -5,6 +5,7 @@ import { validateCronAuth } from '../../../src/utils/cron-auth';
 import { ACCESS_LEVELS, checkSandboxAccess } from '../../../src/lib/personal-assistant/contextAuthority.js';
 import { notify } from '../../../src/lib/notify';
 import { kickAuditWorker } from '../../../src/lib/personal-assistant/auditJobRuntime.mjs';
+import { leakTypeTitle } from '../../../src/lib/personal-assistant/leakRecord';
 
 export const config = { maxDuration: 60 };
 
@@ -216,7 +217,7 @@ export async function runWeeklyDigest(supabase, { limit = 100 } = {}) {
     const [leaksRes, reviewsRes] = await Promise.all([
       supabase
         .from('user_leaks')
-        .select('id, title, leak_type, status, ev_loss')
+        .select('id, leak_type, status, avg_ev_loss_bb, is_active')
         .eq('user_id', userId)
         .order('updated_at', { ascending: false })
         .limit(20),
@@ -230,8 +231,12 @@ export async function runWeeklyDigest(supabase, { limit = 100 } = {}) {
     const leaks = leaksRes.data || [];
     const reviews = reviewsRes.data || [];
 
-    const activeLeaks = leaks.filter(l => l.status !== 'resolved');
-    const topLeakName = activeLeaks[0]?.title || activeLeaks[0]?.leak_type || 'None Detected';
+    const activeLeaks = leaks
+      .filter(l => l.status !== 'resolved' && l.is_active !== false)
+      .sort((a, b) => Number(b.avg_ev_loss_bb || 0) - Number(a.avg_ev_loss_bb || 0));
+    const topLeakName = activeLeaks[0]?.leak_type
+      ? leakTypeTitle(activeLeaks[0].leak_type)
+      : 'None Detected';
 
     const totalDrills = reviews.reduce((sum, r) => sum + (Number(r.reps) || 0), 0);
     const verifiedLiveFixes = reviews.filter(r => Boolean(r.remediation_baseline_at)).length;
