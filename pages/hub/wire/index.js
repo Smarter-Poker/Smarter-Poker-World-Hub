@@ -358,7 +358,24 @@ export default function WeeklyWireArchivePage({ editions = [], livePreview = nul
                             >
                                 Smarter.Poker Intelligence Dispatch
                             </span>
-                            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                <Link
+                                    href="/hub/magazine"
+                                    style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        color: '#05070a',
+                                        background: '#4fc1b3',
+                                        borderRadius: '999px',
+                                        padding: '4px 13px',
+                                        fontSize: '12.5px',
+                                        fontWeight: 800,
+                                        textDecoration: 'none',
+                                    }}
+                                >
+                                    Monthly Magazine &rarr;
+                                </Link>
                                 <Link
                                     href="/hub/news"
                                     style={{

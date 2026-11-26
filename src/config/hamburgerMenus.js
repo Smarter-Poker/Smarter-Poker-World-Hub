@@ -766,6 +766,8 @@ export const MENU_CONFIGS = {
         menuItems: [
             createMenuItem.section('Browse'),
             createMenuItem.navigation('All News', '/hub/news'),
+            createMenuItem.navigation('Monthly Magazine', '/hub/magazine'),
+            createMenuItem.navigation('Weekly Wire', '/hub/wire'),
             createMenuItem.navigation('Videos', '/hub/news?tab=videos'),
             createMenuItem.navigation('Reels', '/hub/news?tab=reels'),
             createMenuItem.navigation('Events', '/hub/news?tab=events'),

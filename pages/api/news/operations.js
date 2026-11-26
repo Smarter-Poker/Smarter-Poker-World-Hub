@@ -20,6 +20,10 @@ import {
     parseCampaignTelemetrySummary,
     resolveAdminSubscriberPatch,
 } from '../../../src/lib/newsletter/campaignTelemetry.mjs';
+import {
+    MAGAZINE_SECTIONS,
+    currentIssuePeriod,
+} from '../../../src/lib/magazine/magazineSchema.mjs';
 
 export { resolveAdminSubscriberPatch };
 
@@ -504,6 +508,111 @@ export default async function handler(req, res) {
             };
         });
 
+        const currentPeriod = currentIssuePeriod();
+        const defaultVaultCounts = Object.fromEntries(MAGAZINE_SECTIONS.map((sec) => [sec, 0]));
+        let magazineSummary = {
+            currentPeriod,
+            issues: [],
+            vaultCounts: { ...defaultVaultCounts },
+            vaultTotal: 0,
+            vaultedImagesCount: 0,
+            strategyAndTriviaCount: 0,
+            vaultCandidates: [],
+            roomSubscriptions: [],
+            totalRequestedCopies: 0,
+        };
+        try {
+            const [magIssuesRes, magVaultRes, magRoomsRes, magActiveCopiesRes] = await Promise.all([
+                Promise.resolve(
+                    supabase
+                        .from('magazine_issues')
+                        .select(
+                            'id, issue_number, volume_number, issue_period, slug, title, cover_headline, cover_subheadline, editor_note, cover_image_url, status, page_count, published_at, email_campaign_id, updated_at'
+                        )
+                        .order('issue_number', { ascending: false })
+                        .limit(12)
+                ).catch(() => ({ data: [], error: null })),
+                Promise.resolve(
+                    supabase
+                        .from('magazine_vault_items')
+                        .select('id, section, headline, vaulted_image_url, editorial_score, is_pinned, is_excluded')
+                        .eq('issue_period', currentPeriod)
+                        .order('editorial_score', { ascending: false })
+                        .limit(500)
+                ).catch(() => ({ data: [], error: null })),
+                Promise.resolve(
+                    supabase
+                        .from('magazine_room_subscriptions')
+                        .select(
+                            'id, room_name, contact_name, contact_email, city, state, table_count, requested_copies, status, created_at'
+                        )
+                        .order('created_at', { ascending: false })
+                        .limit(25)
+                ).catch(() => ({ data: [], error: null })),
+                Promise.resolve(
+                    supabase
+                        .from('magazine_room_subscriptions')
+                        .select('requested_copies, status')
+                        // in-list: bounded by 3 active room subscription statuses
+                        .in('status', ['pending', 'verified', 'active'])
+                        .limit(500)
+                ).catch(() => ({ data: null, error: null })),
+            ]);
+
+            const issues = Array.isArray(magIssuesRes?.data) ? magIssuesRes.data : [];
+            const vaultRows = Array.isArray(magVaultRes?.data) ? magVaultRes.data : [];
+            const vaultCounts = { ...defaultVaultCounts };
+            let vaultedImagesCount = 0;
+
+            for (const row of vaultRows) {
+                const sec = String(row?.section || 'news_brief');
+                vaultCounts[sec] = (vaultCounts[sec] || 0) + 1;
+                if (row?.vaulted_image_url) {
+                    vaultedImagesCount += 1;
+                }
+            }
+
+            const vaultCandidates = [...vaultRows]
+                .sort(
+                    (a, b) =>
+                        Number(Boolean(b?.is_pinned)) - Number(Boolean(a?.is_pinned)) ||
+                        Number(b?.editorial_score || 0) - Number(a?.editorial_score || 0)
+                )
+                .slice(0, 12)
+                .map((row) => ({
+                    id: row.id,
+                    section: row.section || 'news_brief',
+                    headline: row.headline || '',
+                    vaulted_image_url: row.vaulted_image_url || null,
+                    editorial_score: Number(row.editorial_score || 0),
+                    is_pinned: Boolean(row.is_pinned),
+                    is_excluded: Boolean(row.is_excluded),
+                }));
+
+            const roomSubscriptions = Array.isArray(magRoomsRes?.data) ? magRoomsRes.data : [];
+            const activeCopySource = Array.isArray(magActiveCopiesRes?.data)
+                ? magActiveCopiesRes.data
+                : roomSubscriptions.filter((r) => ['pending', 'verified', 'active'].includes(String(r?.status || '')));
+            const totalRequestedCopies = activeCopySource.reduce(
+                (sum, r) => sum + (Number.isFinite(Number(r?.requested_copies)) ? Math.max(0, Number(r.requested_copies)) : 0),
+                0
+            );
+
+            magazineSummary = {
+                currentPeriod,
+                issues,
+                vaultCounts,
+                vaultTotal: vaultRows.length,
+                vaultedImagesCount,
+                strategyAndTriviaCount: (vaultCounts.strategy_spot || 0) + (vaultCounts.trivia_quiz || 0),
+                vaultCandidates,
+                roomSubscriptions,
+                totalRequestedCopies,
+            };
+        } catch (_magErr) {
+            /* non-blocking magazine summary telemetry */
+        }
+
         return res.status(200).json({
             success: true,
             stats: {
@@ -542,6 +651,7 @@ export default async function handler(req, res) {
             campaigns: parsedCampaigns,
             promoDrafts,
             attributionSummary,
+            magazineSummary,
             recentArticles: articlesResult.data || [],
         });
     } catch (error) {

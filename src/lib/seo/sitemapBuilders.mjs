@@ -251,6 +251,8 @@ export const STATIC_PAGES = [
   { path: '/hub/training', priority: '0.9', changefreq: 'weekly' },
   { path: '/hub/news', priority: '0.9', changefreq: 'hourly' },
   { path: '/hub/wire', priority: '0.85', changefreq: 'weekly' },
+  { path: '/hub/magazine', priority: '0.85', changefreq: 'monthly' },
+  { path: '/hub/magazine/poker-rooms', priority: '0.8', changefreq: 'monthly' },
   { path: '/hub/video-library', priority: '0.8', changefreq: 'daily' },
   { path: '/hub/video-library/channels', priority: '0.8', changefreq: 'weekly' },
   { path: '/hub/video-library/players', priority: '0.8', changefreq: 'weekly' },
@@ -533,6 +535,51 @@ export async function buildWireEditionUrls(wireCampaignRows) {
     if (/^\d{4}-\d{2}-\d{2}$/.test(day)) entry.lastmod = day;
     return entry;
   });
+}
+
+export async function buildMagazineIssueUrls(issueRows) {
+  let rows = Array.isArray(issueRows) ? issueRows : null;
+  if (!rows) {
+    const sb = issueRows && typeof issueRows.from === 'function' ? issueRows : null;
+    if (sb) {
+      try {
+        const { data, error } = await sb
+          .from('magazine_issues')
+          .select('slug, issue_period, issue_number, status, published_at, updated_at')
+          .eq('status', 'published')
+          .order('issue_number', { ascending: false })
+          .limit(120);
+        if (!error && Array.isArray(data)) rows = data;
+      } catch {
+        rows = [];
+      }
+    }
+  }
+
+  const list = Array.isArray(rows) ? rows : [];
+  const seenSlugs = new Set();
+  const out = [];
+
+  for (const row of list) {
+    if (!row || (row.status && String(row.status).toLowerCase() !== 'published')) continue;
+    const rawSlug = String(row.slug || row.issue_period || row.issue_number || '').trim().toLowerCase();
+    if (!/^[a-z0-9][a-z0-9._-]{0,63}$/i.test(rawSlug) || seenSlugs.has(rawSlug)) continue;
+    seenSlugs.add(rawSlug);
+
+    const entry = {
+      path: `/hub/magazine/${rawSlug}`,
+      priority: '0.8',
+      changefreq: 'monthly',
+    };
+    const evidence = row.published_at || row.updated_at || '';
+    const day = String(evidence).slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(day)) {
+      entry.lastmod = day;
+    }
+    out.push(entry);
+  }
+
+  return out;
 }
 
 /**
