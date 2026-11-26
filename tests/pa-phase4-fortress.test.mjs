@@ -274,4 +274,8 @@ test('fortress: PA Home recap wires &drill=1 and cooldown check, ShareHandPage e
 
   const smoke = read('scripts/ci/pa-browser-smoke.mjs');
   assert.match(smoke, /item\.label === 'cash' \|\| item\.label === 'tournament' \|\| item\.label === 'all formats'/);
+
+  const nextConfig = read('next.config.js');
+  assert.doesNotMatch(nextConfig, /source:\s*'\/share\/hand\/:id\*'/, 'zero-or-more :id* hijacks bare /share/hand?view=review with a 308 redirect');
+  assert.match(nextConfig, /source:\s*'\/share\/hand\/:id\+'/);
 });

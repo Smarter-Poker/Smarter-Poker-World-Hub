@@ -1345,7 +1345,9 @@ const nextConfig = {
       { source: '/invite/:id*', destination: '/hub/club-arena/invite/:id*', permanent: true },
       { source: '/profile/:id*', destination: '/hub/club-arena/profile/:id*', permanent: true },
       { source: '/replay/:id*', destination: '/hub/club-arena/replay/:id*', permanent: true },
-      { source: '/share/hand/:id*', destination: '/hub/club-arena/share/hand/:id*', permanent: true },
+      // Use :id+ (one or more segments) so tokenized /share/hand/<token> Club Arena
+      // links keep redirecting while bare /share/hand?view=review reaches pages/share/hand.js.
+      { source: '/share/hand/:id+', destination: '/hub/club-arena/share/hand/:id+', permanent: true },
       // Legacy avatar page names (Club Arena's ProfilePage/AvatarService still
       // link to /hub/avatars-complete, which no longer exists as a page)
       { source: '/hub/avatars-complete', destination: '/hub/avatars', permanent: true },
