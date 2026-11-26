@@ -26,6 +26,25 @@ function getSupabase() {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_EMAIL_LENGTH = 254;
+const BLOCKED_CAPTURE_DOMAINS = new Set([
+    'example.com',
+    'example.org',
+    'example.net',
+    'test.com',
+    'invalid',
+    'localhost',
+    'horse.ai',
+]);
+
+export function isBlockedCaptureEmail(email) {
+    const clean = String(email || '').trim().toLowerCase();
+    const at = clean.lastIndexOf('@');
+    if (at <= 0) return true;
+    const domain = clean.slice(at + 1);
+    if (!domain || BLOCKED_CAPTURE_DOMAINS.has(domain)) return true;
+    if (domain.endsWith('.invalid') || domain.endsWith('.localhost') || domain.endsWith('.example')) return true;
+    return false;
+}
 
 const DEFAULT_SITE_URL = 'https://smarter.poker';
 const DEFAULT_WELCOME_FROM = 'Smarter.Poker News <news@smarter.poker>';
@@ -100,19 +119,18 @@ export function resolveTokenOrEmailQuery(query = {}) {
     const rawT = typeof query.t === 'string' ? query.t : (typeof query.token === 'string' ? query.token : '');
     const cleanE = rawE.trim().toLowerCase();
     const cleanT = rawT.trim();
-    if (cleanT) {
-        if (cleanT.includes('.')) {
-            const verified = verifyUnsubscribeToken(cleanT);
-            if (verified) return { email: verified, verified: true, token: cleanT };
-        }
-        if (cleanE) {
-            const reconstructed = `${b64url(Buffer.from(cleanE, 'utf8'))}.${cleanT}`;
-            const verified = verifyUnsubscribeToken(reconstructed);
-            if (verified) return { email: verified, verified: true, token: reconstructed };
+    if (!cleanT) return null;
+
+    if (cleanT.includes('.')) {
+        const verified = verifyUnsubscribeToken(cleanT);
+        if (verified && (!cleanE || verified === cleanE)) {
+            return { email: verified, verified: true, token: cleanT };
         }
     }
     if (cleanE && cleanE.length <= MAX_EMAIL_LENGTH && EMAIL_RE.test(cleanE)) {
-        return { email: cleanE, verified: false, token: null };
+        const reconstructed = `${b64url(Buffer.from(cleanE, 'utf8'))}.${cleanT}`;
+        const verified = verifyUnsubscribeToken(reconstructed);
+        if (verified) return { email: verified, verified: true, token: reconstructed };
     }
     return null;
 }
@@ -123,10 +141,13 @@ export function resolveUnsubscribeTarget(raw, query = {}) {
         const fromToken = verifyUnsubscribeToken(value);
         if (fromToken) return { email: fromToken, verified: true, token: value };
 
-        const email = value.toLowerCase();
-        if (email.length <= MAX_EMAIL_LENGTH && EMAIL_RE.test(email)) {
-            return { email, verified: false, token: null };
+        if (query?.t || query?.token) {
+            return resolveTokenOrEmailQuery({
+                ...query,
+                e: query.e || query.email || value,
+            });
         }
+        return null;
     }
     return resolveTokenOrEmailQuery(query);
 }
@@ -377,7 +398,7 @@ export default async function handler(req, res) {
                 String(req.headers.accept || '').includes('application/json');
 
             const target = resolveUnsubscribeTarget(rawUnsub, req.query);
-            const verifiedTok = target?.verified ? String(rawUnsub).trim() : '';
+            const verifiedTok = target?.verified ? String(target.token || '').trim() : '';
 
             const respond = (status, ok, message) => {
                 if (wantsJson) {
@@ -389,7 +410,7 @@ export default async function handler(req, res) {
                 return res.status(status).send(unsubscribeHtml(message, verifiedTok));
             };
 
-            if (!target) {
+            if (!target || target.verified !== true) {
                 return respond(400, false, 'That unsubscribe link is not valid or has expired.');
             }
 
@@ -635,6 +656,28 @@ export default async function handler(req, res) {
                 return res.status(400).json({ success: false, error: 'Valid email required' });
             }
             const normalizedEmail = email.trim().toLowerCase();
+            if (isBlockedCaptureEmail(normalizedEmail)) {
+                return res.status(400).json({ success: false, error: 'Valid email required' });
+            }
+
+            let authenticatedOwnerId = null;
+            try {
+                const sb = getSupabase();
+                const authRes = await getServerUserWithFallback(req, sb);
+                const authUser = authRes?.user ?? authRes;
+                if (authUser?.id) {
+                    const sessionEmail = String(
+                        authUser.email || (await sb.auth.admin.getUserById(authUser.id))?.data?.user?.email || ''
+                    )
+                        .trim()
+                        .toLowerCase();
+                    if (sessionEmail && sessionEmail === normalizedEmail) {
+                        authenticatedOwnerId = authUser.id;
+                    }
+                }
+            } catch (_sessionCheckErr) {
+                /* anonymous capture allowed */
+            }
 
             const safeSource =
                 typeof source === 'string' && /^[a-z0-9:_-]{1,64}$/i.test(source)
@@ -649,17 +692,26 @@ export default async function handler(req, res) {
                 .limit(20);
 
             const rows = Array.isArray(existingRows) ? existingRows : [];
+            const hasHardSuppression = rows.some((r) =>
+                ['resend_complaint', 'resend_bounce'].includes(String(r.source || '').trim().toLowerCase())
+            );
             const wasSnoozed = rows.some((r) =>
                 String(r.source || '').trim().toLowerCase().startsWith('snooze:')
             );
             const allInactive = rows.length > 0 && rows.every((r) => r.is_active === false);
-            const shouldSendWelcome = rows.length === 0 || allInactive;
+            const shouldSendWelcome = !hasHardSuppression && (rows.length === 0 || allInactive);
 
             if (rows.length > 0) {
-                if (rows.some((r) => !r.is_active) || wasSnoozed) {
+                if ((!hasHardSuppression || authenticatedOwnerId) && (rows.some((r) => !r.is_active) || wasSnoozed)) {
+                    const updatePayload = {
+                        is_active: true,
+                        unsubscribed_at: null,
+                        source: safeSource,
+                        ...(authenticatedOwnerId ? { user_id: authenticatedOwnerId } : {}),
+                    };
                     const { error: reactivateError } = await getSupabase()
                         .from('newsletter_subscribers')
-                        .update({ is_active: true, unsubscribed_at: null, source: safeSource })
+                        .update(updatePayload)
                         // in-list: bounded duplicate subscriber rows for one email
                         .in('id', rows.map((r) => r.id).slice(0, 20));
                     if (reactivateError) {
@@ -670,25 +722,24 @@ export default async function handler(req, res) {
             } else {
                 const { error } = await getSupabase()
                     .from('newsletter_subscribers')
-                    .insert({ email: normalizedEmail, is_active: true, source: safeSource, subscribed_at: nowIso });
+                    .insert({
+                        email: normalizedEmail,
+                        is_active: true,
+                        source: safeSource,
+                        subscribed_at: nowIso,
+                        ...(authenticatedOwnerId ? { user_id: authenticatedOwnerId } : {}),
+                    });
 
                 if (error) throw error;
             }
 
-            try {
-                const { data: matchedProfiles } = await getSupabase()
-                    .from('profiles')
-                    .select('id')
-                    .ilike('email', escapeIlikePattern(normalizedEmail))
-                    .limit(10);
-                const nowIso = new Date().toISOString();
-                for (const prof of matchedProfiles || []) {
-                    if (!prof?.id) continue;
+            if (authenticatedOwnerId) {
+                try {
                     await getSupabase()
                         .from('notification_preferences')
                         .upsert(
                             {
-                                user_id: prof.id,
+                                user_id: authenticatedOwnerId,
                                 mute_all: false,
                                 email_enabled: true,
                                 marketing_enabled: true,
@@ -696,9 +747,9 @@ export default async function handler(req, res) {
                             },
                             { onConflict: 'user_id' }
                         );
+                } catch (_subPrefErr) {
+                    /* non-blocking preference mirror */
                 }
-            } catch (_subPrefErr) {
-                /* non-blocking preference mirror */
             }
 
             if (shouldSendWelcome) {
