@@ -107,6 +107,11 @@ export default function CoachingWorkspace({
   const [deleteScope, setDeleteScope] = useState('analysis');
   const [deleteChallenge, setDeleteChallenge] = useState(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [weeklyDigestOptIn, setWeeklyDigestOptIn] = useState(false);
+  const [showExportTray, setShowExportTray] = useState(false);
+  const [exportingPlan, setExportingPlan] = useState(false);
+  const [claimedRewardLeaks, setClaimedRewardLeaks] = useState({});
+  const [claimingRewardLeakId, setClaimingRewardLeakId] = useState(null);
 
   const apiRequest = useCallback(async (method = 'GET', body = null, { signal } = {}) => {
     const token = await getFreshAccessToken();
@@ -182,6 +187,9 @@ export default function CoachingWorkspace({
         }
         if (['guided', 'detailed', 'expert'].includes(payload.preferences?.analysis_depth)) {
           setAnalysisDepth(payload.preferences.analysis_depth);
+        }
+        if (payload.preferences?.weekly_digest_opt_in !== undefined || payload.preferences?.weeklyDigestOptIn !== undefined || payload.snapshot?.preferences?.weeklyDigestOptIn !== undefined) {
+          setWeeklyDigestOptIn(Boolean(payload.preferences?.weekly_digest_opt_in ?? payload.preferences?.weeklyDigestOptIn ?? payload.snapshot?.preferences?.weeklyDigestOptIn));
         }
       }
       const first = payload.snapshot?.priorities?.[0]?.id;
@@ -301,9 +309,10 @@ export default function CoachingWorkspace({
         savedView: nextView,
         analysisDepth,
         panelLayout: workspace?.preferences?.panel_layout || {},
+        weeklyDigestOptIn: Boolean(weeklyDigestOptIn),
       },
     }, 'Saved View Updated', { reload: false });
-  }, [analysisDepth, userId, workspace, write]);
+  }, [analysisDepth, userId, weeklyDigestOptIn, workspace, write]);
 
   const selectAnalysisDepth = useCallback(async (nextDepth) => {
     const previousDepth = analysisDepth;
@@ -314,10 +323,109 @@ export default function CoachingWorkspace({
         savedView: view,
         analysisDepth: nextDepth,
         panelLayout: workspace?.preferences?.panel_layout || {},
+        weeklyDigestOptIn: Boolean(weeklyDigestOptIn),
       },
     }, 'Analysis Depth Updated', { reload: false });
     if (!saved) setAnalysisDepth(previousDepth);
+  }, [analysisDepth, view, weeklyDigestOptIn, workspace, write]);
+
+  const toggleWeeklyDigest = useCallback(async (enabled) => {
+    setWeeklyDigestOptIn(enabled);
+    await write({
+      action: 'save_preferences',
+      preferences: {
+        savedView: view,
+        analysisDepth,
+        panelLayout: workspace?.preferences?.panel_layout || {},
+        weeklyDigestOptIn: enabled,
+      },
+    }, enabled ? 'Weekly Coaching Digest Enabled' : 'Weekly Coaching Digest Disabled', { reload: false });
   }, [analysisDepth, view, workspace, write]);
+
+  const getStudyPlanMarkdown = useCallback(async () => {
+    try {
+      const mod = await import('../../lib/personal-assistant/studyPlanExport.mjs');
+      if (typeof mod.buildStudyPlanMarkdown === 'function') {
+        return mod.buildStudyPlanMarkdown(workspace?.snapshot);
+      }
+    } catch (_) {}
+    const snap = workspace?.snapshot;
+    const lines = [
+      '# Coach-Ready Study Plan',
+      `Generated: ${new Date().toISOString().slice(0, 10)}`,
+      '',
+      '## Priorities',
+      ...(snap?.priorities || []).map((p, i) => `${i + 1}. **${p.title}** (${p.confidence?.score}% confidence) - ${p.reason}`),
+    ];
+    return lines.join('\n');
+  }, [workspace?.snapshot]);
+
+  const handleCopyStudyPlan = useCallback(async () => {
+    setExportingPlan(true);
+    try {
+      const md = await getStudyPlanMarkdown();
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(md);
+      }
+      setStatus({ tone: 'success', text: 'Study Plan Copied To Clipboard' });
+    } catch (_) {
+      setStatus({ tone: 'danger', text: 'Could Not Copy Study Plan' });
+    } finally {
+      setExportingPlan(false);
+    }
+  }, [getStudyPlanMarkdown]);
+
+  const handleDownloadStudyPlan = useCallback(async () => {
+    setExportingPlan(true);
+    try {
+      const md = await getStudyPlanMarkdown();
+      const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `smarter-poker-study-plan-${new Date().toISOString().slice(0, 10)}.md`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setStatus({ tone: 'success', text: 'Study Plan Downloaded As Markdown' });
+    } catch (_) {
+      setStatus({ tone: 'danger', text: 'Could Not Download Study Plan' });
+    } finally {
+      setExportingPlan(false);
+    }
+  }, [getStudyPlanMarkdown]);
+
+  const handleClaimLiveFix = useCallback(async (leakId) => {
+    setClaimingRewardLeakId(leakId);
+    try {
+      const token = await getFreshAccessToken();
+      if (!token) throw new Error('Sign In Required');
+      const response = await fetch('/api/assistant/leaks/claim-live-fix', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ leakId }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok && data?.code !== 'already_awarded' && !data?.alreadyAwarded) {
+        throw new Error(data?.error || `Claim Failed (HTTP ${response.status})`);
+      }
+      const state = (data?.alreadyAwarded || data?.code === 'already_awarded') ? 'already_awarded' : 'claimed';
+      setClaimedRewardLeaks(prev => ({ ...prev, [leakId]: state }));
+      setStatus({ tone: 'success', text: '25 Diamonds Claimed For Verified Live Fix' });
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('pa-diamonds-updated'));
+        window.dispatchEvent(new CustomEvent('pa-data-updated'));
+      }
+    } catch (err) {
+      setStatus({ tone: 'danger', text: err?.message || 'Could Not Claim Diamonds' });
+    } finally {
+      setClaimingRewardLeakId(null);
+    }
+  }, []);
 
   const priorities = workspace?.snapshot?.priorities || [];
   const needle = query.trim().toLowerCase();
@@ -378,10 +486,44 @@ export default function CoachingWorkspace({
   return (
     <section className={styles.workspace} aria-label="Personal Coaching Workspace">
       <header className={styles.commandHeader}>
-        <div>
-          <span className={styles.eyebrow}>Coaching Plan</span>
-          <h2>Your Evidence-Backed Improvement Plan</h2>
-          <p>Priorities Link Directly To Your Club Arena Hands And Verified Corrective Drills.</p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10 }}>
+          <div>
+            <span className={styles.eyebrow}>Coaching Plan</span>
+            <h2>Your Evidence-Backed Improvement Plan</h2>
+            <p>Priorities Link Directly To Your Club Arena Hands And Verified Corrective Drills.</p>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              onClick={() => setShowExportTray(prev => !prev)}
+              aria-expanded={showExportTray}
+              disabled={exportingPlan}
+            >
+              <Download size={16} aria-hidden="true" />
+              <span>Export Study Plan</span>
+            </button>
+            {showExportTray && (
+              <div className={styles.exportTray} role="region" aria-label="Export Study Plan Actions">
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={handleCopyStudyPlan}
+                  disabled={exportingPlan}
+                >
+                  Copy Markdown
+                </button>
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={handleDownloadStudyPlan}
+                  disabled={exportingPlan}
+                >
+                  Download .Md File
+                </button>
+              </div>
+            )}
+          </div>
         </div>
         <details className="pa-disclosure">
           <summary>
@@ -397,6 +539,19 @@ export default function CoachingWorkspace({
                   <option value="detailed">Detailed</option>
                   <option value="expert">Expert</option>
                 </select>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 44, cursor: 'pointer', marginTop: 4 }}>
+                <input
+                  type="checkbox"
+                  checked={Boolean(weeklyDigestOptIn)}
+                  disabled={saving}
+                  onChange={(event) => toggleWeeklyDigest(event.target.checked)}
+                  aria-label="Weekly Coaching Digest"
+                  style={{ width: 20, height: 20, minHeight: 20, margin: 0, cursor: 'pointer' }}
+                />
+                <span style={{ color: '#f1f5fc', fontSize: 13, fontWeight: 700 }}>
+                  Weekly Coaching Digest
+                </span>
               </label>
               <div className={styles.receipt} aria-label="Reproducible Coaching Receipt">
                 <span>Analysis Receipt</span>
@@ -530,6 +685,32 @@ export default function CoachingWorkspace({
                                 {preRate !== null ? ` · Pre-Drill ${preRate}%` : ''}
                               </small>
                             )}
+                          </div>
+                        )}
+                        {mod.tableVerification?.status === 'confirmed_fixed_at_tables' && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                            {claimedRewardLeaks[mod.leakId] || mod.tableVerification?.rewardClaimed ? (
+                              <span className={styles.claimedBadge}>
+                                Reward Claimed
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                className={styles.claimButton}
+                                disabled={claimingRewardLeakId === mod.leakId}
+                                onClick={() => handleClaimLiveFix(mod.leakId)}
+                                aria-label={`Claim 25 Diamonds For ${mod.title}`}
+                              >
+                                <span>{claimingRewardLeakId === mod.leakId ? 'Claiming…' : 'Claim 25 Diamonds'}</span>
+                              </button>
+                            )}
+                          </div>
+                        )}
+                        {mod.stakePoolContext && !snapshot?.sessionDebrief?.liveTableActive && !snapshot?.sessionDebrief?.cooldownActive && !snapshot?.liveTableActive && (
+                          <div className={styles.stakePoolNote} role="note">
+                            <span>
+                              {mod.stakePoolContext.label || 'Stake Pool Benchmark'}: {mod.stakePoolContext.poolMetricLabel || ''}{mod.stakePoolContext.stakeLabel ? ` (${mod.stakePoolContext.stakeLabel})` : ''} · GTO: {mod.stakePoolContext.gtoBaselineLabel || 'Optimal'}{mod.stakePoolContext.sampleHands ? ` · ${mod.stakePoolContext.sampleHands.toLocaleString()} Hands` : ''}
+                            </span>
                           </div>
                         )}
                         <small>{mod.objective}</small>

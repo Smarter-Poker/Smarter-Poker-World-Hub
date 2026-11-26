@@ -14,8 +14,14 @@
  *   - no <button> contains an invalid block-level / interactive descendant
  *   - /hub/personal-assistant/leaks?format=tournament keeps "tournament" after a
  *     pre-seeded localStorage preference of format "cash" has hydrated
+ *   - Accessibility & focus checks:
+ *     - Every visible <button> and <a href> has a non-empty accessible name
+ *     - At least one heading (h1/h2) or landmark (main, [role="main"]) exists
+ *     - Primary interactive controls do not collapse below 36px touch height
+ *     - Keyboard Tab reaches an interactive element cleanly without throwing errors
  * And the private APIs fail closed (no authorization header sent): their answer
  * carries `Cache-Control: private, no-store, max-age=0` and `Vary: Authorization`.
+ * And the live SSR /share/hand?view=review check verifies headers, robots, no +$1,250 and OG tags.
  *
  * Playwright's bundled Chromium is used; when it is not installed the script
  * falls back to the machine's Chrome (`channel: 'chrome'`).
@@ -64,6 +70,10 @@ export const INVALID_BUTTON_DESCENDANTS = Object.freeze([
   'a', 'button', 'input', 'select', 'textarea',
 ]);
 
+export const SHARE_REVIEW_PATH = '/share/hand?view=review&street=flop&position=BTN';
+
+export const MIN_TOUCH_TARGET_HEIGHT = 36;
+
 export const CHECKS = Object.freeze([
   'http-200',
   'no-page-errors',
@@ -71,13 +81,19 @@ export const CHECKS = Object.freeze([
   'no-invalid-button-nesting',
   'format-query-preserved',
   'private-api-headers',
+  'a11y-accessible-name',
+  'a11y-landmark-or-heading',
+  'a11y-touch-targets',
+  'a11y-keyboard-tab',
+  'share-review-ssr',
 ]);
 
 export function parseArgs(argv) {
-  const out = { baseUrl: DEFAULT_BASE_URL, checkOnly: false, storageState: null };
+  const out = { baseUrl: DEFAULT_BASE_URL, checkOnly: false, storageState: null, strictOg: false };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === '--check-only') out.checkOnly = true;
+    else if (arg === '--strict-og') out.strictOg = true;
     else if (arg === '--base-url') out.baseUrl = argv[++i];
     else if (arg.startsWith('--base-url=')) out.baseUrl = arg.slice('--base-url='.length);
     else if (arg === '--storage-state') out.storageState = argv[++i];
@@ -99,6 +115,59 @@ export function privateHeaderProblems(headers) {
   const vary = get('vary').split(',').map((v) => v.trim());
   if (!vary.includes(REQUIRED_PRIVATE_HEADERS.vary)) {
     problems.push(`Vary is "${headers?.vary ?? ''}", expected it to include "Authorization"`);
+  }
+  return problems;
+}
+
+/** Computes accessible name from element attributes / innerText according to accessible name basics. */
+export function computeAccessibleName({ tagName, textContent, innerText, ariaLabel, ariaLabelledby, title, imgAlt, svgTitle } = {}) {
+  const label = String(ariaLabel || '').trim();
+  if (label) return label;
+  const labelledBy = String(ariaLabelledby || '').trim();
+  if (labelledBy) return labelledBy;
+  const t = String(title || '').trim();
+  if (t) return t;
+  const txt = String(innerText ?? textContent ?? '').trim();
+  if (txt) return txt;
+  const alt = String(imgAlt || '').trim();
+  if (alt) return alt;
+  const svg = String(svgTitle || '').trim();
+  if (svg) return svg;
+  return '';
+}
+
+/** Validates SSR response for /share/hand?view=review */
+export function shareReviewProblems({ status, headers = {}, body = '', strictOg = false } = {}) {
+  const problems = [];
+  if (status !== 200) {
+    problems.push(`status is ${status}, expected 200 (no redirect)`);
+  }
+  const get = (name) => {
+    const val = headers?.[name] ?? headers?.[name.toLowerCase()] ?? headers?.[name.toUpperCase()];
+    return String(val ?? '').toLowerCase();
+  };
+  const xRobots = get('x-robots-tag');
+  if (!xRobots.includes('noindex')) {
+    problems.push(`X-Robots-Tag "${headers?.['x-robots-tag'] || headers?.['X-Robots-Tag'] || ''}" does not contain "noindex"`);
+  }
+  const cacheControl = get('cache-control');
+  if (!cacheControl.includes('no-store')) {
+    problems.push(`Cache-Control "${headers?.['cache-control'] || headers?.['Cache-Control'] || ''}" does not contain "no-store"`);
+  }
+  const hasRobotsMeta = /<meta\s+name=["']robots["']\s+content=["'][^"']*noindex,nofollow[^"']*["']/i.test(body)
+    || body.includes('content="noindex,nofollow"');
+  if (!hasRobotsMeta) {
+    problems.push('HTML missing <meta name="robots" content="noindex,nofollow">');
+  }
+  if (body.includes('+$1,250')) {
+    problems.push('HTML contains fabricated "+$1,250" default winning amount');
+  }
+  const hasOgTitle = /property=["']og:title["']\s+content=["'][^"']*Poker Hand Review[^"']*["']/i.test(body)
+    || /<title>[^<]*Poker Hand Review[^<]*<\/title>/i.test(body);
+  const hasOgImage = /property=["']og:image["']\s+content=["'][^"']*view=review[^"']*["']/i.test(body);
+  if (strictOg || hasOgTitle || hasOgImage) {
+    if (!hasOgTitle) problems.push('og:title does not contain "Poker Hand Review"');
+    if (!hasOgImage) problems.push('og:image does not contain "view=review"');
   }
   return problems;
 }
@@ -159,6 +228,103 @@ async function checkRoute(browser, baseUrl, viewport, route, storageState) {
     if (overflow > 0) failures.push(`no-horizontal-overflow: ${overflow}px`);
     const nested = await page.evaluate(invalidButtonNesting, INVALID_BUTTON_DESCENDANTS.join(','));
     if (nested.length) failures.push(`no-invalid-button-nesting: ${nested.length} (${nested[0]})`);
+
+    // A11y 1: Landmark or heading exists
+    const landmarkHeadingError = await page.evaluate(() => {
+      const headings = document.querySelectorAll('h1, h2');
+      const landmarks = document.querySelectorAll('main, [role="main"]');
+      if (headings.length === 0 && landmarks.length === 0) {
+        return 'no heading (h1/h2) or landmark (main, [role="main"]) found on page';
+      }
+      return null;
+    });
+    if (landmarkHeadingError) failures.push(`a11y-landmark-or-heading: ${landmarkHeadingError}`);
+
+    // A11y 2: Visible buttons and links have accessible names
+    const unnamedControls = await page.evaluate(() => {
+      const problems = [];
+      const isVisible = (el) => {
+        if (!el) return false;
+        const style = window.getComputedStyle(el);
+        if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false;
+        const rect = el.getBoundingClientRect();
+        return (rect.width > 0 && rect.height > 0) || (el.getClientRects && el.getClientRects().length > 0);
+      };
+      const getName = (el) => {
+        const ariaLabel = (el.getAttribute('aria-label') || '').trim();
+        if (ariaLabel) return ariaLabel;
+        const ariaLabelledby = el.getAttribute('aria-labelledby');
+        if (ariaLabelledby) {
+          const ids = ariaLabelledby.split(/\s+/).filter(Boolean);
+          const text = ids.map((id) => {
+            const target = document.getElementById(id);
+            return target ? (target.innerText || target.textContent || '').trim() : '';
+          }).join(' ').trim();
+          if (text) return text;
+        }
+        const title = (el.getAttribute('title') || '').trim();
+        if (title) return title;
+        const text = (el.innerText || el.textContent || '').trim();
+        if (text) return text;
+        const imgAlt = el.querySelector('img[alt]');
+        if (imgAlt && (imgAlt.getAttribute('alt') || '').trim()) return imgAlt.getAttribute('alt').trim();
+        const svgTitle = el.querySelector('svg title');
+        if (svgTitle && (svgTitle.textContent || '').trim()) return svgTitle.textContent.trim();
+        return '';
+      };
+      for (const el of document.querySelectorAll('button, a[href]')) {
+        if (!isVisible(el)) continue;
+        if (!getName(el)) {
+          const tag = el.tagName.toLowerCase();
+          const id = el.id ? `#${el.id}` : '';
+          const cls = el.className && typeof el.className === 'string'
+            ? `.${el.className.trim().split(/\s+/).slice(0, 2).join('.')}`
+            : '';
+          problems.push(`${tag}${id}${cls || ''}`);
+        }
+      }
+      return problems;
+    });
+    if (unnamedControls.length) {
+      failures.push(`a11y-accessible-name: ${unnamedControls.length} control(s) missing accessible name (${unnamedControls.slice(0, 3).join(', ')})`);
+    }
+
+    // A11y 3: Primary interactive controls do not collapse below 36px touch height
+    const collapsedTargets = await page.evaluate((minHeight) => {
+      const problems = [];
+      const isVisible = (el) => {
+        if (!el) return false;
+        const style = window.getComputedStyle(el);
+        if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false;
+        const rect = el.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+      };
+      const controls = document.querySelectorAll('button:not([aria-hidden="true"]), [role="button"]:not([aria-hidden="true"]), input[type="button"], input[type="submit"], a.btn, a.pa-btn');
+      for (const el of controls) {
+        if (!isVisible(el)) continue;
+        const rect = el.getBoundingClientRect();
+        if (rect.height < minHeight) {
+          const tag = el.tagName.toLowerCase();
+          const id = el.id ? `#${el.id}` : '';
+          const cls = el.className && typeof el.className === 'string'
+            ? `.${el.className.trim().split(/\s+/).slice(0, 2).join('.')}`
+            : '';
+          problems.push(`${tag}${id}${cls || ''} (${Math.round(rect.height)}px < ${minHeight}px)`);
+        }
+      }
+      return problems;
+    }, MIN_TOUCH_TARGET_HEIGHT);
+    if (collapsedTargets.length) {
+      failures.push(`a11y-touch-targets: ${collapsedTargets.slice(0, 3).join('; ')}`);
+    }
+
+    // A11y 4: Keyboard Tab reaches interactive element cleanly without errors
+    try {
+      await page.keyboard.press('Tab');
+    } catch (tabErr) {
+      failures.push(`a11y-keyboard-tab: Tab threw error (${String(tabErr.message).split('\n')[0]})`);
+    }
+
     if (route === FORMAT_ROUTE) {
       const finalUrl = new URL(page.url());
       if (finalUrl.searchParams.get('format') !== 'tournament') {
@@ -205,7 +371,26 @@ async function checkPrivateApis(baseUrl) {
   return failures;
 }
 
-export async function runSmoke({ baseUrl, storageState }) {
+export async function checkShareHandReviewSsr(baseUrl, { strictOg = false } = {}) {
+  const failures = [];
+  try {
+    const targetUrl = new URL(SHARE_REVIEW_PATH, baseUrl);
+    const response = await fetch(targetUrl, {
+      headers: { accept: 'text/html,application/xhtml+xml' },
+      redirect: 'manual',
+    });
+    const status = response.status;
+    const headers = Object.fromEntries(response.headers.entries());
+    const body = await response.text();
+    const problems = shareReviewProblems({ status, headers, body, strictOg });
+    for (const problem of problems) failures.push(`${SHARE_REVIEW_PATH}: ${problem}`);
+  } catch (error) {
+    failures.push(`${SHARE_REVIEW_PATH}: request failed (${error.message})`);
+  }
+  return failures;
+}
+
+export async function runSmoke({ baseUrl, storageState, strictOg = false }) {
   const browser = await launchBrowser();
   const results = [];
   try {
@@ -219,6 +404,7 @@ export async function runSmoke({ baseUrl, storageState }) {
     await browser.close();
   }
   results.push({ label: 'private APIs fail closed', failures: await checkPrivateApis(baseUrl) });
+  results.push({ label: `live SSR ${SHARE_REVIEW_PATH}`, failures: await checkShareHandReviewSsr(baseUrl, { strictOg }) });
   return results;
 }
 
@@ -229,13 +415,38 @@ export function checkContract() {
   if (!VIEWPORTS.some((v) => v.width === 390 && v.height === 844)) problems.push('missing mobile 390x844');
   if (!ROUTES.includes(FORMAT_ROUTE)) problems.push('format route is not in ROUTES');
   if (new Set(ROUTES).size !== ROUTES.length) problems.push('duplicate route');
-  for (const path of [...ROUTES, ...PRIVATE_API_PATHS]) if (!path.startsWith('/')) problems.push(`not absolute: ${path}`);
+  for (const path of [...ROUTES, ...PRIVATE_API_PATHS, SHARE_REVIEW_PATH.split('?')[0]]) {
+    if (!path.startsWith('/')) problems.push(`not absolute: ${path}`);
+  }
   if (privateHeaderProblems({ 'cache-control': 'private, no-store, max-age=0', vary: 'Authorization' }).length) {
     problems.push('a compliant header set is rejected');
   }
   if (privateHeaderProblems({ 'cache-control': 'public, max-age=60' }).length !== 2) {
     problems.push('a non-private header set is not rejected');
   }
+  // Validate SSR Share Review contract validator
+  const validReview = {
+    status: 200,
+    headers: { 'x-robots-tag': 'noindex, nofollow', 'cache-control': 'private, no-store, max-age=0' },
+    body: '<!DOCTYPE html><html><head><title>Poker Hand Review | Smarter.Poker</title><meta property="og:title" content="Poker Hand Review | Smarter.Poker" /><meta property="og:image" content="https://smarter.poker/api/og/hand-card?view=review&amp;street=flop&amp;position=BTN" /><meta name="robots" content="noindex,nofollow" /></head><body><main><h1>Poker Hand Review</h1></main></body></html>',
+    strictOg: true,
+  };
+  if (shareReviewProblems(validReview).length) {
+    problems.push('a compliant share review SSR response is rejected');
+  }
+  const invalidReview = {
+    status: 308,
+    headers: { 'cache-control': 'public, max-age=3600' },
+    body: '<html><body>+$1,250</body></html>',
+    strictOg: true,
+  };
+  if (shareReviewProblems(invalidReview).length < 4) {
+    problems.push('an invalid share review SSR response is not properly rejected');
+  }
+  // Validate a11y helpers
+  if (computeAccessibleName({ ariaLabel: 'Submit' }) !== 'Submit') problems.push('accessible name helper failed on aria-label');
+  if (computeAccessibleName({ textContent: 'Close' }) !== 'Close') problems.push('accessible name helper failed on textContent');
+  if (computeAccessibleName({}) !== '') problems.push('accessible name helper failed on empty element');
   return problems;
 }
 

@@ -445,7 +445,13 @@ export function normalizeClubArenaHand(row, userId) {
       stack: (Number.isFinite(Number(row?.hero_effective_stack_bb)) && Number(row?.hero_effective_stack_bb) > 0)
         ? Number(row.hero_effective_stack_bb)
         : (heroPlayer?.stack || null),
+      effectiveStackBb: (Number.isFinite(Number(row?.hero_effective_stack_bb)) && Number(row?.hero_effective_stack_bb) > 0)
+        ? Number(row.hero_effective_stack_bb)
+        : null,
     },
+    effectiveStackBb: (Number.isFinite(Number(row?.hero_effective_stack_bb)) && Number(row?.hero_effective_stack_bb) > 0)
+      ? Number(row.hero_effective_stack_bb)
+      : null,
     streets: {
       preflop: { actions: preflopActions },
       flop: finalFlop.length >= 3 ? { board: finalFlop, actions: flopActions } : null,
@@ -728,6 +734,50 @@ async function findQuestion(db, hand, point) {
   return new Set(best.map(canonicalFingerprint)).size === 1 ? best[0] : null;
 }
 
+export function resolveStackDepthBb(hand, point) {
+  const candidates = [
+    point?.effectiveStackBb,
+    point?.effective_stack_bb,
+    point?.stackDepthBb,
+    point?.stack_depth_bb,
+    hand?.effectiveStackBb,
+    hand?.effective_stack_bb,
+    hand?.effective_stack_bb_at_deal,
+    hand?.hero?.effectiveStackBb,
+    hand?.hero?.effective_stack_bb,
+    hand?.hero?.effective_stack_bb_at_deal,
+    hand?.hero_effective_stack_bb,
+  ];
+
+  for (const c of candidates) {
+    if (c !== null && c !== undefined && c !== '') {
+      const num = Number(c);
+      if (Number.isFinite(num) && num > 0) {
+        return Math.round(num * 10) / 10;
+      }
+    }
+  }
+
+  // Hero starting stack divided by big blind
+  const heroStack = Number(
+    hand?.hero?.stack
+    ?? hand?.hero?.startingStack
+    ?? (Array.isArray(hand?.players)
+        ? hand.players.find(p => p?.name && hand?.hero?.name && p.name === hand.hero.name)?.stack
+        : null)
+  );
+  const bigBlind = Number(hand?.bigBlind);
+
+  if (Number.isFinite(heroStack) && heroStack > 0 && Number.isFinite(bigBlind) && bigBlind > 0) {
+    const depth = heroStack / bigBlind;
+    if (Number.isFinite(depth) && depth > 0) {
+      return Math.round(depth * 10) / 10;
+    }
+  }
+
+  return null;
+}
+
 function summary(row) {
   return {
     decisionKey: row.decision_key || null,
@@ -746,6 +796,8 @@ function summary(row) {
     solverVerified: row.solver_verified,
     solverSource: row.solver_source,
     matchTier: row.match_tier,
+    stackDepthBb: row.stack_depth_bb ?? null,
+    evidenceScope: row.evidence_scope ?? null,
   };
 }
 
@@ -797,12 +849,16 @@ async function replacePersistedDecisionEvidence(db, userId, handIds, rows) {
   return { persisted: true, reconciled: true, removed };
 }
 
+const VALID_EVIDENCE_SCOPES = Object.freeze(new Set(['club_arena', 'external_upload', 'self_reported_live', 'training_solver']));
+
 export async function auditParsedHands(db, userId, hands, {
   maxDecisions = 250,
   persist = true,
   queryConcurrency = 6,
   reconcileExisting = true,
+  evidenceScope = 'external_upload',
 } = {}) {
+  const effectiveScope = VALID_EVIDENCE_SCOPES.has(evidenceScope) ? evidenceScope : 'external_upload';
   const rows = [];
   const analyses = [];
   const work = [];
@@ -921,6 +977,8 @@ export async function auditParsedHands(db, userId, hands, {
             ? `${grade.solverSource || candidate?.question_data?.source || 'solver'}|${MATCHER_VERSION}`
             : `${candidate?.question_data?.source ? `${candidate.question_data.source}|` : ''}${MATCHER_VERSION}:unpriced`),
         match_tier: cacheVerified ? candidate?.matchTier : (useDirect ? directMatch.matchTier : (candidate?.matchTier || null)),
+        stack_depth_bb: resolveStackDepthBb(hand, point),
+        evidence_scope: effectiveScope,
         audited_at: now,
         updated_at: now,
       };
@@ -974,6 +1032,7 @@ export async function auditParsedHands(db, userId, hands, {
     complete: !truncated && solverLookupFailures === 0 && persisted && reconciliation.reconciled,
     truncated,
     maxDecisions,
+    evidenceScope: effectiveScope,
     analyses,
   };
 }
@@ -1271,7 +1330,7 @@ export async function syncClubArenaHandsForAudit(db, userId, {
     handsAlreadyCurrent += 1;
     return false;
   });
-  const result = await auditParsedHands(db, userId, pending, { maxDecisions, persist: true });
+  const result = await auditParsedHands(db, userId, pending, { maxDecisions, persist: true, evidenceScope: 'club_arena' });
   const pageSucceeded = errors.length === 0 && result.complete;
   return {
     available: true,

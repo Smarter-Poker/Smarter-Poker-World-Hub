@@ -51,6 +51,9 @@ const API_ROOTS = ['pages/api/assistant', 'pages/api/sandbox', 'app/api/assistan
 const EXEMPT = {
     // Retired endpoint: a bare 410, touches nothing.
     'pages/api/assistant/setup-database.js': ['rateLimit', 'tryCatch'],
+    // Retired sandbox endpoints: bare 410 Gone, touch no database.
+    'pages/api/sandbox/_routes/equity-snapshot.js': ['rateLimit'],
+    'pages/api/sandbox/_routes/save-hand.js': ['rateLimit'],
     // Internal worker: only a short-lived, purpose-bound HMAC token reaches
     // database work. Invalid public traffic is rejected before db() runs.
     'app/api/assistant/leaks/audit-worker/route.js': ['rateLimit'],
