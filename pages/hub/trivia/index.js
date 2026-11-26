@@ -77,23 +77,23 @@ function WeeklyWireTriviaBanner({ router }) {
                 marginBottom: 24,
                 padding: '20px 24px',
                 borderRadius: 16,
-                background: 'linear-gradient(135deg, #0b1118 0%, #101a24 100%)',
-                border: '1px solid #1b2c3d',
-                borderLeft: '3px solid #4fc1b3',
-                color: '#ffffff',
+                background: 'var(--tc-chassis-black, #050607)',
+                border: '1px solid var(--tc-bevel, #6d747c)',
+                borderLeft: '3px solid var(--tc-ink-blue, #45adff)',
+                color: 'var(--tc-ink-white, #f4f7fb)',
             }}
         >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
-                <span style={{ color: '#4fc1b3', fontSize: 12, fontWeight: 800, letterSpacing: 1.8, textTransform: 'uppercase' }}>
+                <span style={{ color: 'var(--tc-ink-blue, #45adff)', fontSize: 12, fontWeight: 800, letterSpacing: 1.8, textTransform: 'uppercase' }}>
                     Weekly Wire Trivia Of The Week
                 </span>
                 {matchedTrivia.categoryLabel && (
-                    <span style={{ color: '#60a5fa', fontSize: 12, fontWeight: 700, background: 'rgba(96, 165, 250, 0.12)', border: '1px solid rgba(96, 165, 250, 0.3)', padding: '2px 8px', borderRadius: 999 }}>
+                    <span style={{ color: 'var(--tc-ink-blue, #45adff)', fontSize: 12, fontWeight: 700, background: 'rgba(69, 173, 255, 0.12)', border: '1px solid rgba(69, 173, 255, 0.35)', padding: '2px 8px', borderRadius: 999 }}>
                         {matchedTrivia.categoryLabel}
                     </span>
                 )}
             </div>
-            <h2 style={{ margin: '0 0 12px 0', fontSize: 18, fontWeight: 800, color: '#ffffff', lineHeight: 1.35 }}>
+            <h2 style={{ margin: '0 0 12px 0', fontSize: 18, fontWeight: 800, color: 'var(--tc-ink-white, #f4f7fb)', lineHeight: 1.35 }}>
                 {matchedTrivia.question}
             </h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10, marginTop: 12 }}>
@@ -115,23 +115,23 @@ function WeeklyWireTriviaBanner({ router }) {
                                 textAlign: 'left',
                                 cursor: 'pointer',
                                 background: isTheAnswer
-                                    ? 'rgba(79, 193, 179, 0.16)'
+                                    ? 'rgba(53, 217, 90, 0.14)'
                                     : isSelected
-                                        ? 'rgba(96, 165, 250, 0.16)'
-                                        : '#05070a',
+                                        ? 'rgba(69, 173, 255, 0.14)'
+                                        : 'var(--tc-black, #000000)',
                                 border: isTheAnswer
-                                    ? '1px solid #4fc1b3'
+                                    ? '1px solid var(--tc-glow-green, #35d95a)'
                                     : isSelected
-                                        ? '1px solid #60a5fa'
-                                        : '1px solid #1b2c3d',
-                                color: '#ffffff',
+                                        ? '1px solid var(--tc-ink-blue, #45adff)'
+                                        : '1px solid var(--tc-bevel, #6d747c)',
+                                color: 'var(--tc-ink-white, #f4f7fb)',
                                 fontSize: 13.5,
                                 fontWeight: 700,
                             }}
                         >
                             <span>{`${opt.key}. ${opt.label}`}</span>
                             {isTheAnswer && (
-                                <span style={{ color: '#4fc1b3', fontSize: 11.5, fontWeight: 800 }}>
+                                <span style={{ color: 'var(--tc-ink-green, #c8ffd2)', fontSize: 11.5, fontWeight: 800 }}>
                                     Correct
                                 </span>
                             )}
@@ -146,23 +146,23 @@ function WeeklyWireTriviaBanner({ router }) {
                         marginTop: 14,
                         padding: '12px 16px',
                         borderRadius: 10,
-                        background: '#05070a',
-                        border: isCorrect ? '1px solid #4fc1b3' : '1px solid #60a5fa',
+                        background: 'var(--tc-black, #000000)',
+                        border: isCorrect ? '1px solid var(--tc-glow-green, #35d95a)' : '1px solid var(--tc-ink-blue, #45adff)',
                     }}
                 >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                         {isCorrect ? (
-                            <span style={{ color: '#4fc1b3', fontSize: 13, fontWeight: 800 }}>
+                            <span style={{ color: 'var(--tc-ink-green, #c8ffd2)', fontSize: 13, fontWeight: 800 }}>
                                 Correct Solver Pick
                             </span>
                         ) : (
-                            <span style={{ color: '#60a5fa', fontSize: 13, fontWeight: 800 }}>
+                            <span style={{ color: 'var(--tc-ink-blue, #45adff)', fontSize: 13, fontWeight: 800 }}>
                                 {`Missed - Option ${matchedTrivia.answerKey} Is Correct`}
                             </span>
                         )}
                     </div>
                     {matchedTrivia.explanation && (
-                        <p style={{ margin: 0, color: '#cbd5e1', fontSize: 13, lineHeight: 1.5 }}>
+                        <p style={{ margin: 0, color: 'var(--tc-ink-silver, #e4e7ec)', fontSize: 13, lineHeight: 1.5 }}>
                             {matchedTrivia.explanation}
                         </p>
                     )}
