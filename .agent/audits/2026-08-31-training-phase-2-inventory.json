@@ -18,7 +18,7 @@
     "dialogs": 18,
     "persistenceFiles": 92,
     "realtimeFiles": 6,
-    "tests": 193,
+    "tests": 194,
     "markerCandidates": 391,
     "possibleUnwiredFunctions": 460,
     "routeStateCells": 752,
@@ -83573,6 +83573,7 @@
     "e2e/014-cron-health.spec.ts",
     "e2e/020-hamburger.spec.ts",
     "e2e/021-personal-assistant.spec.ts",
+    "e2e/025-poker-odds-controls.spec.ts",
     "e2e/03-training-gto.spec.ts",
     "e2e/09-games.spec.ts",
     "e2e/global-footer-visual.spec.ts"
