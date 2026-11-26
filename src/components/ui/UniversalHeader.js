@@ -1317,7 +1317,7 @@ export default function UniversalHeader({
                     z-index: 10050;
                     width: 100%;
                     box-sizing: border-box;
-                    padding-top: var(--approved-header-safe-top);
+                    padding-top: env(safe-area-inset-top, 0px);
                     overflow: hidden;
                     background: #07141f;
                     line-height: 0;
@@ -1597,6 +1597,7 @@ export default function UniversalHeader({
                     .approved-global-header__clearance {
                         --approved-header-safe-top: max(env(safe-area-inset-top, 0px), 24px);
                     }
+                    .approved-global-header { padding-top: var(--approved-header-safe-top); }
                 }
             `,
         }}

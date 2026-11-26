@@ -83,7 +83,7 @@ test('the header still owns its own top inset', () => {
   assert.match(header, /\.approved-global-header__controls\s*\{[^}]*top:\s*var\(--approved-header-safe-top\)/);
   assert.match(
     header,
-    /\.approved-global-header\s*\{[^}]*padding-top\s*:\s*var\(--approved-header-safe-top\)/,
+    /\.approved-global-header\s*\{[^}]*padding-top\s*:\s*env\(safe-area-inset-top/,
     '.approved-global-header no longer applies the top inset; with the body ' +
       'rule gone, nothing would keep the header clear of the status bar'
   );
