@@ -38,7 +38,7 @@ export function selectCatalogGames(games, selection) {
 
 // Compare what the player sees with the server's post-answer reveal for that decision.
 export function checkStrategyReveal(feedback, state, rows) {
-  const frequencies = feedback.gtoFrequencies || feedback.frequencies;
+  const frequencies = feedback.gtoFrequencies;
   if (state === 'unavailable') {
     assert.equal(rows.length, 0, 'an unavailable strategy showed numeric bars');
     assert.ok(!feedback.solverVerified || !frequencies || !Object.keys(frequencies).length,
@@ -70,6 +70,14 @@ async function verifyCoachingReveal(surface, verdict, receipt, request) {
     'visible answer key differs from the graded action');
   assert.equal(await verdict.getAttribute('data-selected-action'), request.answerId ?? request.selectedAnswer,
     'visible selection differs from the submitted action');
+  const visibleText = value => String(value).replace(/\s+/g, ' ').trim().toLowerCase();
+  assert.ok(visibleText(await verdict.innerText()).includes(visibleText(feedback.correctAnswerText)),
+    'graded answer label is missing from the verdict');
+  const explanation = verdict.locator('[data-training-feedback="explanation"]');
+  await explanation.waitFor({ timeout: ANSWER_TIMEOUT });
+  const coaching = visibleText(await explanation.innerText());
+  assert.ok(coaching.length && (!feedback.explanation || coaching.includes(visibleText(feedback.explanation))),
+    'visible coaching differs from the server explanation');
   if (!(await verdict.evaluate(node => node.classList.contains('sp-training-feedback')))) return 'verdict';
   const expand = surface.getByRole('button', { name: 'Show Coaching Details', exact: true });
   if (await expand.isVisible()) await expand.click();
