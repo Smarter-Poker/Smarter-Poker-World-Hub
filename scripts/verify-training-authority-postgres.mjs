@@ -32,6 +32,10 @@ const STREAK_OUT_OF_ORDER_MIGRATION = path.join(
   ROOT,
   'supabase/migrations/20260907202000_training_streak_out_of_order_completion.sql',
 );
+const TRAINING_DAILY_REWARD_CAP_MIGRATION = path.join(
+  ROOT,
+  'supabase/migrations/20261126211919_training_results_at_diamond_daily_cap.sql',
+);
 const SESSION_POLICY_PROJECTION_MIGRATION = path.join(
   ROOT,
   'supabase/migrations/20260908192000_training_session_projection_policy_checksum.sql',
@@ -1804,6 +1808,69 @@ END $$;
 RESET ROLE;
 `;
 
+const DAILY_REWARD_CAP_BEHAVIOR_SQL = String.raw`
+BEGIN;
+CREATE FUNCTION public.phase6_reject_training_award() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.transaction_type = 'training_reward' THEN
+    RAISE EXCEPTION USING ERRCODE = 'P0407',
+      MESSAGE = current_setting('phase6.journal_refusal');
+  END IF;
+  RETURN NEW;
+END;
+$$;
+CREATE TRIGGER phase6_journal_guard AFTER INSERT ON public.diamond_transactions
+FOR EACH ROW EXECUTE FUNCTION public.phase6_reject_training_award();
+
+DO $$
+DECLARE
+  test_user constant uuid := '11111111-1111-4111-8111-111111111111';
+  attempt uuid := public.phase6_seed_attempt('cash-020', 'phase6-engine-cap', 20);
+  balance_before integer;
+  completion jsonb;
+  blocked boolean := false;
+BEGIN
+  SELECT diamond_balance INTO balance_before FROM public.profiles WHERE id = test_user;
+  PERFORM set_config('phase6.journal_refusal', 'DR9: promotional issuance refused (test)', true);
+  BEGIN
+    PERFORM public.fn_complete_training_attempt_v2(test_user, attempt);
+  EXCEPTION WHEN SQLSTATE 'P0407' THEN
+    blocked := true;
+  END;
+  IF NOT blocked OR NOT EXISTS (
+    SELECT 1 FROM public.training_attempts WHERE id = attempt AND status = 'open'
+  ) THEN
+    RAISE EXCEPTION 'unexpected economy refusal did not leave completion retryable';
+  END IF;
+
+  PERFORM set_config('phase6.journal_refusal',
+    'DR7:user_over_daily_cap: promotional issuance refused (engine catalog_v2 cap 500 awarded 505)', true);
+  completion := public.fn_complete_training_attempt_v2(test_user, attempt);
+  IF completion->>'success' IS DISTINCT FROM 'true'
+     OR completion->>'newCompletion' IS DISTINCT FROM 'true'
+     OR completion->>'diamondsEarned' IS DISTINCT FROM '0'
+     OR completion#>>'{rewardVerdict,reason}' IS DISTINCT FROM 'daily_cap'
+     OR completion->>'answered' IS DISTINCT FROM '20' THEN
+    RAISE EXCEPTION 'journal-capped completion failed: %', completion;
+  END IF;
+
+  completion := public.fn_complete_training_attempt_v2(test_user, attempt);
+  IF completion->>'newCompletion' IS DISTINCT FROM 'false'
+     OR completion->>'diamondsEarned' IS DISTINCT FROM '0'
+     OR (SELECT count(*) FROM public.training_level_history WHERE attempt_id = attempt) <> 1
+     OR EXISTS (SELECT 1 FROM public.diamond_transactions WHERE reference_id = 'training_attempt:' || attempt)
+     OR (SELECT diamond_balance FROM public.profiles WHERE id = test_user) IS DISTINCT FROM balance_before THEN
+    RAISE EXCEPTION 'journal cap or replay changed the balance or duplicated history';
+  END IF;
+  completion := public.fn_save_training_session_v2(test_user, attempt);
+  IF completion->>'success' IS DISTINCT FROM 'true' OR completion->>'diamondsEarned' IS DISTINCT FROM '0' THEN
+    RAISE EXCEPTION 'journal-capped result did not project to Training session history';
+  END IF;
+END;
+$$;
+ROLLBACK;
+`;
+
 const postgresBin = resolvePostgresBin();
 const tempRoot = mkdtempSync(path.join(tmpdir(), 'sp-training-authority-'));
 const dataDir = path.join(tempRoot, 'data');
@@ -1941,6 +2008,9 @@ try {
     input: SESSION_CACHE_COMPLETION_INTEGRATION_SQL,
     quiet: true,
   });
+  command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection, '-f', TRAINING_DAILY_REWARD_CAP_MIGRATION], {
+    quiet: true,
+  });
   command(tool('psql'), [
     '-X', '-v', 'ON_ERROR_STOP=1', ...connection, '-f', SESSION_POLICY_PROJECTION_MIGRATION,
   ], { quiet: true });
@@ -1956,6 +2026,10 @@ try {
   });
   const evidence = command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
     input: BEHAVIOR_SQL,
+    quiet: true,
+  });
+  command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
+    input: DAILY_REWARD_CAP_BEHAVIOR_SQL,
     quiet: true,
   });
   command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
