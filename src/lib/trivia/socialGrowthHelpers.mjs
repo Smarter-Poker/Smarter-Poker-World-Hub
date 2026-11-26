@@ -71,14 +71,14 @@ export function clampNonNegativeInt(value, max = 999999) {
 }
 
 export function computeTriviaGrade(score, total) {
-    if (!total || total <= 0) return { letter: 'S', label: 'Complete', accent: '#45adff' };
+    if (!total || total <= 0) return { letter: 'S', label: 'Complete', accent: '#86daff' };
     const pct = Math.round((Math.min(score, total) / total) * 100);
-    if (pct >= 100) return { letter: 'S', label: 'Flawless', accent: '#ffd700' };
-    if (pct >= 90) return { letter: 'A', label: 'Sharp', accent: '#35d95a' };
-    if (pct >= 80) return { letter: 'B', label: 'Solid', accent: '#45adff' };
-    if (pct >= 70) return { letter: 'C', label: 'Steady', accent: '#e4e7ec' };
-    if (pct >= 60) return { letter: 'D', label: 'Grinding', accent: '#9aa5b3' };
-    return { letter: 'F', label: 'Study Spot', accent: '#f02849' };
+    if (pct >= 100) return { letter: 'S', label: 'Flawless', accent: '#86daff' };
+    if (pct >= 90) return { letter: 'A', label: 'Sharp', accent: '#4ade80' };
+    if (pct >= 80) return { letter: 'B', label: 'Solid', accent: '#86daff' };
+    if (pct >= 70) return { letter: 'C', label: 'Steady', accent: '#f2f7ff' };
+    if (pct >= 60) return { letter: 'D', label: 'Grinding', accent: '#bdd0e2' };
+    return { letter: 'F', label: 'Study Spot', accent: '#ff5b6e' };
 }
 
 export function formatModeTitle(mode) {
@@ -187,43 +187,42 @@ export function buildResultCardSvg({
     const sealText = isVerified
         ? (safeRef ? `VERIFIED RESULT | #${safeRef}` : 'VERIFIED RESULT')
         : 'SAMPLE PREVIEW | UNVERIFIED';
-    const sealStroke = isVerified ? '#35d95a' : '#f02849';
-    const sealColor = isVerified ? '#35d95a' : '#ffd700';
+    const sealStroke = isVerified ? '#4ade80' : '#ff5b6e';
+    const sealColor = isVerified ? '#4ade80' : '#86daff';
 
     const tileSize = 36;
     const tileGap = 10;
     const cells = normalizedGrid.split('').slice(0, 15);
     const tilesSvg = cells.map((cell, idx) => {
         const x = 64 + idx * (tileSize + tileGap);
-        const fill = cell === 'C' ? '#35d95a' : cell === 'S' ? '#6d747c' : '#f02849';
+        const fill = cell === 'C' ? '#4ade80' : cell === 'S' ? '#bdd0e2' : '#ff5b6e';
         const glyph = cell === 'C' ? 'OK' : cell === 'S' ? '--' : 'X';
         return `<g transform="translate(${x}, 406)">`
-            + `<rect width="${tileSize}" height="${tileSize}" rx="4" fill="#050607" stroke="${fill}" stroke-width="2" />`
+            + `<rect width="${tileSize}" height="${tileSize}" rx="4" fill="#040d18" stroke="${fill}" stroke-width="2" />`
             + `<text x="${tileSize / 2}" y="23" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" font-weight="700" fill="${fill}">${glyph}</text>`
             + `</g>`;
     }).join('');
 
     return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="Smarter.Poker Trivia Result Card">
-  <rect width="1200" height="630" fill="#050607" />
-  <rect x="28" y="28" width="1144" height="574" rx="12" fill="#000000" stroke="#6d747c" stroke-width="2" />
-  <rect x="44" y="44" width="1112" height="542" rx="8" fill="none" stroke="${grade.accent}" stroke-width="1.5" stroke-opacity="0.65" />
-  <text x="64" y="96" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="22" font-weight="700" letter-spacing="3" fill="#45adff">SMARTER.POKER TRIVIA</text>
-  <rect x="430" y="68" width="340" height="36" rx="6" fill="#050607" stroke="${sealStroke}" stroke-width="2" />
+  <rect width="1200" height="630" fill="#040d18" />
+  <rect x="28" y="28" width="1144" height="574" rx="12" fill="#0a1829" stroke="#445e77" stroke-width="2.5" />
+  <text x="64" y="96" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="22" font-weight="700" letter-spacing="1" fill="#86daff">Smarter.Poker Trivia</text>
+  <rect x="430" y="68" width="340" height="36" rx="6" fill="#040d18" stroke="${sealStroke}" stroke-width="2" />
   <text x="600" y="92" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15" font-weight="800" letter-spacing="1.2" fill="${sealColor}">${sealText}</text>
-  <text x="1136" y="96" text-anchor="end" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="20" font-weight="600" fill="#9aa5b3">${modeTitle}</text>
-  <line x1="64" y1="120" x2="1136" y2="120" stroke="#6d747c" stroke-width="1" stroke-opacity="0.5" />
-  <text x="64" y="182" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="30" font-weight="700" fill="#f4f7fb">${safePlayer}</text>
-  <text x="64" y="286" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="84" font-weight="800" fill="#f4f7fb">${scoreLine}</text>
-  <text x="64" y="336" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="28" font-weight="600" fill="#e4e7ec">Accuracy ${pct}%  |  Grade ${grade.letter} (${escapeSvgText(grade.label, 24)})</text>
-  <rect x="928" y="160" width="208" height="208" rx="12" fill="#050607" stroke="${grade.accent}" stroke-width="3" />
+  <text x="1136" y="96" text-anchor="end" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="20" font-weight="600" fill="#bdd0e2">${modeTitle}</text>
+  <line x1="64" y1="120" x2="1136" y2="120" stroke="#445e77" stroke-width="1" stroke-opacity="0.7" />
+  <text x="64" y="182" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="30" font-weight="700" fill="#f2f7ff">${safePlayer}</text>
+  <text x="64" y="286" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="84" font-weight="800" fill="#f2f7ff">${scoreLine}</text>
+  <text x="64" y="336" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="28" font-weight="600" fill="#bdd0e2">Accuracy ${pct}%  |  Grade ${grade.letter} (${escapeSvgText(grade.label, 24)})</text>
+  <rect x="928" y="160" width="208" height="208" rx="12" fill="#040d18" stroke="${grade.accent}" stroke-width="3" />
   <text x="1032" y="288" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="112" font-weight="800" fill="${grade.accent}">${grade.letter}</text>
-  <text x="1032" y="336" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="22" font-weight="700" fill="#e4e7ec">${escapeSvgText(grade.label, 20)}</text>
-  <text x="64" y="390" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="18" font-weight="600" letter-spacing="1.5" fill="#9aa5b3">QUESTION LEDGER</text>
+  <text x="1032" y="336" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="22" font-weight="700" fill="#f2f7ff">${escapeSvgText(grade.label, 20)}</text>
+  <text x="64" y="390" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="18" font-weight="600" letter-spacing="0.5" fill="#bdd0e2">Question Ledger</text>
   ${tilesSvg}
-  <line x1="64" y1="484" x2="1136" y2="484" stroke="#6d747c" stroke-width="1" stroke-opacity="0.5" />
-  <text x="64" y="538" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="26" font-weight="700" fill="#ffd700">+${safeDiamonds} Diamonds</text>
-  <text x="380" y="538" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="26" font-weight="700" fill="#c8ffd2">${safeStreak} Day Streak</text>
-  <text x="1136" y="538" text-anchor="end" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="22" font-weight="600" fill="#45adff">smarter.poker/hub/trivia</text>
+  <line x1="64" y1="484" x2="1136" y2="484" stroke="#445e77" stroke-width="1" stroke-opacity="0.7" />
+  <text x="64" y="538" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="26" font-weight="700" fill="#86daff">+${safeDiamonds} Diamonds</text>
+  <text x="380" y="538" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="26" font-weight="700" fill="#4ade80">${safeStreak} Day Streak</text>
+  <text x="1136" y="538" text-anchor="end" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="22" font-weight="600" fill="#86daff">smarter.poker/hub/trivia</text>
 </svg>`;
 }

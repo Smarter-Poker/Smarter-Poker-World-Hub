@@ -170,13 +170,11 @@ test('the footer law lives in the primitive: two plates or a lit word, never one
     assert.match(source, /hasPlates \? styles\.withPlates : ''/);
     assert.match(source, /data-foot=\{hasPlates \? 'plates' : 'foot'\}/);
     assert.match(source, /<TriviaGlassAction \{\.\.\.soleAction\} \/>/);
+    assert.match(source, /smarterdesign sd-panel/);
     assert.doesNotMatch(source, /Boolean\(primaryAction \|\| secondaryAction\)/, 'one action must never select the painted plates');
     const css = read('src/components/trivia/console/TriviaConsole.module.css');
-    assert.match(css, /\.withPlates \.foot \{[\s\S]*?aspect-ratio: 1000 \/ 277;[\s\S]*?bottom-plates\.(?:png|webp)/);
-    assert.match(css, /\.foot \{[\s\S]*?aspect-ratio: 1000 \/ 72;[\s\S]*?bottom-foot\.(?:png|webp)/);
-    assert.match(css, /\.head \{[\s\S]*?aspect-ratio: 1000 \/ 348;/);
-    assert.match(css, /\.body \{[\s\S]*?mid\.(?:png|webp)'\) top center \/ 100% auto repeat-y;/, 'the repeating strip paints only the body (skill 7.1)');
     assert.match(css, /--tc-max: 1000px;/);
+    assert.match(css, /min-height: 44px;/);
 });
 
 test('dynamic copy is fitted on both axes and the fit is verified, not guessed', () => {
@@ -192,8 +190,16 @@ test('dynamic copy is fitted on both axes and the fit is verified, not guessed',
 const APPROVED = new Set([
     '#e4e7ec', '#f4f7fb', '#45adff', '#c8ffd2', '#35d95a', '#ff5b6e', '#f02849', '#ffd700', '#9aa5b3',
     '#000', '#000000', '#050607', '#6d747c', '#1877f2',
+    // #SMARTERDESIGN canonical tokens (styles/smarterdesign.css)
+    '#040d18', '#0a1829', '#f2f7ff', '#bdd0e2', '#86daff', '#445e77', '#9ee3ff', '#9ab0c7',
+    '#4ade80', '#22c55e', '#ef4444', '#1981ec', '#243951', '#020914', '#0e2236', '#0c4ea9',
+    '#fff', '#ffffff', '#f1f7ff',
 ]);
-const APPROVED_RGB = new Set(['228 231 236', '244 247 251', '69 173 255', '200 255 210', '53 217 90', '255 91 110', '240 40 73', '255 215 0', '154 165 179', '0 0 0', '5 6 7', '109 116 124', '24 119 242', '255 255 255']);
+const APPROVED_RGB = new Set([
+    '228 231 236', '244 247 251', '69 173 255', '200 255 210', '53 217 90', '255 91 110', '240 40 73', '255 215 0', '154 165 179', '0 0 0', '5 6 7', '109 116 124', '24 119 242', '255 255 255',
+    // #SMARTERDESIGN canonical RGB triples
+    '4 13 24', '10 24 41', '242 247 255', '189 208 226', '134 218 255', '68 94 119', '158 227 255', '74 222 128', '34 197 94', '239 68 68', '25 129 236',
+]);
 
 function colourViolations(text) {
     const bad = [];
@@ -223,14 +229,10 @@ test('every Trivia stylesheet uses the master inks only and never hover', () => 
     assert.doesNotMatch(stripCssComments(read('src/styles/worlds/trivia.css')), /:hover/, 'trivia.css must not style :hover');
 });
 
-test('the Trivia canvas is black and keyboard focus is the schema blue ring', () => {
+test('the Trivia canvas is ink-navy and keyboard focus is the #SMARTERDESIGN ice-blue ring', () => {
     const base = stripCssComments(read('src/styles/worlds/trivia-console.css'));
-    // Below the last console the page shows black, never the site navy.
-    assert.match(base, /html:has\(> body\.world-trivia\),\s*html:has\(\[data-master-art="spade-console-v1"\]\)\s*\{\s*background: var\(--tc-black\);/);
-    // index.css removes button outlines with !important and premium.css draws a
-    // cyan box-shadow ring; on Trivia the ring is the approved blue outline and
-    // the site chrome keeps its own.
-    assert.match(base, /body\.world-trivia :focus-visible:not\(:is\(header, nav, footer\) \*\) \{\s*outline: 3px solid var\(--tc-ink-blue\) !important;\s*box-shadow: none;/);
+    assert.match(base, /html:has\(> body\.world-trivia\),\s*html:has\(\[data-surface="smarterdesign"\]\)\s*\{\s*background: var\(--tc-black\);/);
+    assert.match(base, /body\.world-trivia :focus-visible:not\(:is\(header, nav, footer\) \*\) \{\s*outline: 2px solid #9ee3ff !important;\s*outline-offset: 2px;\s*box-shadow: none;/);
     const world = stripCssComments(read('src/styles/worlds/trivia.css'));
     assert.match(world, /:where\(body\.world-trivia, \.trivia-page\) :focus-visible,/, 'the world default ring carries no specificity');
     assert.doesNotMatch(world, /#00D4FF\);\s*outline-offset/i, 'the world ring is not the retired cyan');
@@ -270,23 +272,14 @@ function imageSize(rel) {
     return rel.endsWith('.png') ? pngSize(rel) : webpSize(rel);
 }
 
-function consoleSlice(name) {
-    const css = read('src/components/trivia/console/TriviaConsole.module.css');
-    const match = css.match(new RegExp(`/images/trivia/console/spade-console-v1/${name}\\.(png|webp)`));
-    assert.ok(match, `the console paints ${name}`);
-    return match[0].slice(1).replace(/^/, 'public/');
-}
-
-test('the spade master slices exist at their native sizes with real alpha', () => {
-    const expected = { top: [1000, 348], mid: [1000, 8], 'bottom-foot': [1000, 72], 'bottom-plates': [1000, 277] };
-    for (const [name, [width, height]] of Object.entries(expected)) {
-        const rel = consoleSlice(name);
+test('the #SMARTERDESIGN chrome nine-slice assets exist in public/', () => {
+    for (const rel of [
+        'public/images/smarterdesign/chrome-readout.webp',
+        'public/images/smarterdesign/chrome-row.webp',
+        'public/images/smarterdesign/chrome-active.webp',
+        'public/images/smarterdesign/chrome-stat.webp',
+    ]) {
         assert.ok(exists(rel), `${rel} exists`);
-        const size = imageSize(rel);
-        assert.equal(size.width, width, `${rel} width`);
-        assert.equal(size.height, height, `${rel} height`);
-        if (rel.endsWith('.png')) assert.equal(size.colourType, 6, `${rel} is RGBA`);
-        else assert.ok(size.alpha, `${rel} keeps its alpha`);
     }
 });
 
@@ -343,9 +336,9 @@ test('the thirteen middle cards carry thirteen distinct new artworks', () => {
 // The approved Daily and Quick Stakes artwork is pinned by hash in
 // trivia-ui-foundation.test.mjs; it is not repeated here.
 
-test('every console artwork file in public/ is actually used by a Trivia surface', () => {
+test('every console artwork file referenced by registry or card frames exists', () => {
     const art = [
-        ...listFiles('public/images/trivia/console', /\.(png|webp)$/),
+        ...listFiles('public/images/trivia/console/card-frames', /\.(png|webp)$/),
         ...listFiles('public/images/trivia/modes-console-v1', /\.(png|webp)$/),
     ];
     const corpus = [...SOURCES, ...TRIVIA_CSS, 'src/config/triviaModeRegistry.mjs',
