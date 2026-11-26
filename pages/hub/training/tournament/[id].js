@@ -16,7 +16,6 @@
  * browser-authored score path or implying a registration succeeded.
  */
 
-import { useState, useMemo } from 'react';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -27,7 +26,6 @@ import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { getAuthUserId, authedFetch } from '../../../../src/lib/authUtils';
 import { getGameById } from '../../../../src/data/TRAINING_LIBRARY';
 import TrainingSignInPrompt from '../../../../src/components/training/TrainingSignInPrompt';
-import { evaluateTrainingSpotWithHorseBrain, buildCustomTrainingArenaHref } from '../../../../src/lib/training/horseBrainTrainingAdapter';
 
 // Standings are open to everyone (Dan, 2026-10-12). authedFetch attaches
 // Authorization only when a session exists; a stale session that cannot be
@@ -60,21 +58,6 @@ export default function TrainingTournamentDetail() {
   const router = useRouter();
   const { id } = router.query;
   const userId = getAuthUserId();
-  const [brainVariant, setBrainVariant] = useState('nlh');
-
-  const brainPreview = useMemo(() => {
-    return evaluateTrainingSpotWithHorseBrain({
-      variant: brainVariant,
-      street: 'flop',
-      heroPosition: 'BTN',
-      villainPosition: 'BB',
-      heroCards: brainVariant === 'plo6' ? ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'] : brainVariant === 'plo5' ? ['As', 'Ks', 'Qh', 'Jh', 'Td'] : (brainVariant === 'plo4' || brainVariant === 'plo8') ? ['As', 'Ks', 'Qh', 'Jh'] : ['As', 'Kd'],
-      boardCards: ['Qs', '7d', '2c'],
-      potSizeBb: 12,
-      facingBetBb: 4,
-      effectiveStackBb: 100,
-    });
-  }, [brainVariant]);
 
   const { data, error, isLoading } = useSWR(
     id ? `/api/training/tournaments?tournamentId=${encodeURIComponent(id)}` : null,
@@ -128,70 +111,6 @@ export default function TrainingTournamentDetail() {
             </p>
           </div>
         )}
-
-        <section
-          data-specialty-brain-panel="true"
-          data-brain-engine={brainPreview?.engineModule || 'holdem-brain.js'}
-          data-recommended-action={brainPreview?.recommendedAction || 'Call'}
-          style={{
-            marginTop: 18,
-            marginBottom: 18,
-            padding: 16,
-            borderRadius: 10,
-            border: '1px solid rgba(56, 189, 248, 0.3)',
-            background: 'rgba(15, 23, 42, 0.72)',
-          }}
-        >
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <div>
-              <div style={{ color: '#67e8f9', fontSize: 12, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                Horse Brain Tournament Warmup
-              </div>
-              <div style={{ marginTop: 4, color: '#f8fafc', fontSize: 14, fontWeight: 700 }}>
-                Recommended Action: {brainPreview?.recommendedAction || 'Call'} · Score: {brainPreview?.handScore ?? 50} / 100
-              </div>
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
-              {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
-                <button
-                  key={v}
-                  type="button"
-                  data-brain-variant-tab={v}
-                  onClick={() => setBrainVariant(v)}
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: 6,
-                    border: brainVariant === v ? '1px solid #67e8f9' : '1px solid rgba(255,255,255,0.18)',
-                    background: brainVariant === v ? 'rgba(8,145,178,0.45)' : 'rgba(255,255,255,0.05)',
-                    color: '#f8fafc',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {v.toUpperCase()}
-                </button>
-              ))}
-              <button
-                type="button"
-                data-launch-club-arena-cta="true"
-                onClick={() => router.push(buildCustomTrainingArenaHref({ format: 'cash', variant: brainVariant, streets: ['flop'], positions: ['BTN'], stackDepth: 100 }, 'tournament'))}
-                style={{
-                  padding: '8px 14px',
-                  borderRadius: 6,
-                  border: '1px solid #38bdf8',
-                  background: 'rgba(56, 189, 248, 0.2)',
-                  color: '#fff',
-                  fontSize: 12,
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                }}
-              >
-                Launch 1:1 Club Arena Drill
-              </button>
-            </div>
-          </div>
-        </section>
 
         {!isLoading && tournament && (
           <>

@@ -39,3 +39,28 @@ test('workflow connects maintained public collector without exporting session or
   const safety = readFileSync(new URL('../.github/workflows/build-safety-gate.yml', import.meta.url), 'utf8');
   assert.match(safety, /run: node --test __tests__\/training-phase6-public-certificate\.test\.mjs/);
 });
+
+test('catalog verification uses the designated browser session and never invokes the authority collector', async () => {
+  const dir = await mkdtemp(join(process.cwd(), '.catalog-certificate-test-'));
+  const payload = Buffer.from(JSON.stringify({ sub: AUDIT_UUID })).toString('base64url');
+  const session = { access_token: 'header.' + payload + '.fixture', refresh_token: 'fixture', user: { id: AUDIT_UUID } };
+  const origin = new URL(base.DEPLOYMENT_URL).origin;
+  try {
+    const result = await collectPublic({ ...base, RUNNER_TEMP: dir, TRAINING_VERIFICATION: 'catalog' }, {
+      createClient: () => ({ auth: {
+        signInWithPassword: async () => ({ data: { session } }),
+        getUser: async () => ({ data: { user: { id: AUDIT_UUID, email: base.TEST_USER_EMAIL } } }),
+      } }),
+      collect: () => assert.fail('catalog path must not run the authority cohort'),
+      verifyCatalog: async ({ state, expectedSha, origin: receivedOrigin }) => {
+        assert.equal(receivedOrigin, origin);
+        assert.equal(expectedSha, base.EXPECTED_SHA);
+        assert.equal(state.origins[0].origin, origin);
+        assert.equal(JSON.parse(state.origins[0].localStorage[0].value).user.id, AUDIT_UUID);
+        return 'catalog';
+      },
+    });
+    assert.equal(result, 'catalog');
+    assert.deepEqual(await readdir(dir), []);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});

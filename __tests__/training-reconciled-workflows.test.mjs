@@ -1058,8 +1058,6 @@ test('Phase 8 Master 12-Point Package: Zero route-state coverage gaps, 100% Hors
   // 6. All newly wired Phase 8 standalone training pages
   const phase8BrainPages = [
     'pages/hub/training/custom-solve.js',
-    'pages/hub/training/flashcards.js',
-    'pages/hub/training/hand-lab.js',
     'pages/hub/training/quiz-builder.js',
   ];
   for (const relPath of phase8BrainPages) {
@@ -1100,7 +1098,6 @@ test('Phase 9 Deep Sweep & Root-Cause Anti-Regression Hardening: LevelSelector q
   // 5. Root Cause #5: Specialized dynamic nested pages + pvp-lobby.js + 5 core tool pages must expose the canonical [data-specialty-brain-panel="true"] and [data-launch-club-arena-cta="true"] contract
   const phase9UnifiedContractPages = [
     'pages/hub/training/clinic/[clinicId].js',
-    'pages/hub/training/tournament/[id].js',
     'pages/hub/training/pvp-lobby.js',
     'pages/hub/training/equity-calculator.js',
     'pages/hub/training/final-table-sim.js',
@@ -1473,6 +1470,12 @@ test('Phase 12 Deep Sweep & Root-Cause Anti-Regression Hardening Laws: dedicated
     'gto-news.js', 'gto-preloader.js', 'milestones.js', 'play/[gameId].js',
     'session-notes.js', 'streaks.js', 'study-group-finder.js', 'tournaments.js',
     'training-feed.js', 'autopilot.js', 'scenario-demo.js', 'session-warmup.js', 'progress.js',
+    'mental-journal.js', 'training-calendar.js', 'skill-tree.js',
+    'daily-challenge.js', 'daily-goals.js', 'study-plan.js',
+    'hand-lab.js', 'flashcards.js', 'position-mastery.js',
+    'preflop-charts.js', 'quick-warmup.js', 'tournament-prep.js',
+    'tilt-guard.js', 'tournament/[id].js',
+    'table-wizard.js',
   ].map(file => `pages/hub/training/${file}`));
   const allTrainingPagePaths = walkTrainingPages(path.join(ROOT, 'pages/hub/training')).sort();
   let nonRedirectCount = 0;
@@ -1482,7 +1485,7 @@ test('Phase 12 Deep Sweep & Root-Cause Anti-Regression Hardening Laws: dedicated
     if (src.includes('CanonicalTrainingRedirect')) continue;
     nonRedirectCount += 1;
     if (focusedPages.has(relPath)) {
-      assert.doesNotMatch(src, /data-specialty-brain-panel|data-launch-club-arena-cta|evaluateTrainingSpotWithHorseBrain/);
+      assert.doesNotMatch(src, /data-specialty-brain-panel|data-launch-club-arena-cta/);
       continue;
     }
     if (relPath === 'pages/hub/training/category/[categoryId].js') {

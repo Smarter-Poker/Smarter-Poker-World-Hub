@@ -374,6 +374,7 @@ export default function GTOQuestionCard({
                     {shuffledOptions.map((option, index) => (
                         <button
                             key={option.id}
+                            data-training-answer-option="true"
                             style={getButtonStyle(option, index)}
                             onClick={() => handleSelect(option.id)}
                             onMouseEnter={() => setHoveredId(option.id)}
@@ -398,6 +399,7 @@ export default function GTOQuestionCard({
                         <motion.div
                             key="feedback"
                             role="status"
+                            data-training-feedback="verdict"
                             aria-live="assertive"
                             aria-atomic="true"
                             initial={reduceMotion ? false : { opacity: 0, scale: .96 }}

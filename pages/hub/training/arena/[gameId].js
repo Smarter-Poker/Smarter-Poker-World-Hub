@@ -289,15 +289,15 @@ export default function TrainingArenaPage() {
         ? getGameById(gameId)
         : null;
     const gameName = game?.name || 'Training Game';
-    const startsWithPreset = router.query.start === '1' && Boolean(game);
+    const startsWithPreset = Boolean(game && !customLaunch.config && !customLaunch.error);
     const initialConfig = useMemo(() => (
         customLaunch.config || (startsWithPreset ? resolvePresetForGame(game) : null)
     ), [customLaunch.config, game, startsWithPreset]);
     const level = parseInt(queryLevel, 10) || 1;
     useEffect(() => {
-        if (!startsWithPreset || !userId || !resolvedSessionId || customLaunch.error) return;
+        if (!startsWithPreset || !userId || !resolvedSessionId) return;
         saveResumableTrainingSession({ ...initialConfig, gameId, gameName, level }, userId);
-    }, [startsWithPreset, userId, resolvedSessionId, customLaunch.error, initialConfig, gameId, gameName, level]);
+    }, [startsWithPreset, userId, resolvedSessionId, initialConfig, gameId, gameName, level]);
     const resolvedQueryVariant = (
         typeof router.query.variant === 'string' && router.query.variant.trim()
             ? router.query.variant.trim().toLowerCase()
@@ -642,7 +642,7 @@ export default function TrainingArenaPage() {
                     level={level}
                     sessionId={resolvedSessionId}
                     initialConfig={initialConfig}
-                    presetOnly={startsWithPreset && !customLaunch.config}
+                    presetOnly={startsWithPreset}
                     onComplete={handleComplete}
                     onExit={handleExit}
                 />
