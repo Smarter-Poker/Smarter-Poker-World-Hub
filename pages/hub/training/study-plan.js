@@ -760,7 +760,7 @@ export default function StudyPlanPage() {
               onClick={() => router.push(topLeakDrillHref)}
               style={{
                 display: 'inline-flex',
-                minHeight: 40,
+                minHeight: 44,
                 alignItems: 'center',
                 padding: '0 16px',
                 borderRadius: 8,
