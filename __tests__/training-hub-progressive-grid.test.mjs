@@ -11,15 +11,16 @@ test('the training hub renders a first batch of game cards, not the whole librar
   assert.match(hub, /const INITIAL_GAME_CARDS = 12;/);
   assert.match(hub, /const GAME_CARD_BATCH = 24;/);
   assert.match(hub, /const visibleGames = filtered\.slice\(0, visibleCardCount\);/);
-  assert.match(hub, /\{visibleGames\.map\(g => \(/);
-  assert.doesNotMatch(hub, /\{filtered\.map\(g => \(/);
+  assert.match(hub, /buildLobbySections\(visibleGames, effectiveFilters\)/);
+  assert.match(hub, /visibleSections\.reduce\(/);
+  assert.doesNotMatch(hub, /\{filtered\.map\(/);
 });
 
 test('the rest of the library mounts as the reader approaches it, and filters restart the batch', () => {
   assert.match(hub, /new IntersectionObserver\(/);
   assert.match(hub, /rootMargin: '1200px 0px'/);
   assert.match(hub, /setVisibleCardCount\(\(count\) => Math\.min\(filtered\.length, count \+ GAME_CARD_BATCH\)\)/);
-  assert.match(hub, /useEffect\(\(\) => \{ setVisibleCardCount\(INITIAL_GAME_CARDS\); \}, \[activeCat, debouncedQuery\]\);/);
+  assert.match(hub, /setVisibleCardCount\(INITIAL_GAME_CARDS\);[\s\S]*?activeCat,[\s\S]*?debouncedQuery,/);
   // Without IntersectionObserver every card renders rather than none.
   assert.match(hub, /typeof IntersectionObserver !== 'function'\) \{\s*setVisibleCardCount\(filtered\.length\);/);
 });
@@ -27,17 +28,18 @@ test('the rest of the library mounts as the reader approaches it, and filters re
 test('training home and category games open a dedicated preset arena', () => {
   const category = readFileSync(new URL('../pages/hub/training/category/[categoryId].js', import.meta.url), 'utf8');
   const arena = readFileSync(new URL('../pages/hub/training/arena/[gameId].js', import.meta.url), 'utf8');
+  const controls = readFileSync(new URL('../src/components/training/lobby/TrainingLobbyControls.jsx', import.meta.url), 'utf8');
 
-  assert.match(hub, /<Link key=\{category\}[^\n]+href=\{`\/hub\/training\/category\//);
-  assert.match(hub, /onStart=\{\(\) => playGame\(g\)\}/);
+  assert.match(controls, /data-category-tab=\{catId\.toLowerCase\(\)\}/);
+  assert.match(hub, /onStart=\{handleRowStart\}/);
   assert.ok(hub.indexOf('id="training-library"') < hub.indexOf('aria-labelledby="stats-h"'));
   assert.doesNotMatch(category, /data-specialty-brain-panel|data-brain-variant-tab/);
-  assert.match(category, /onClick=\{playGame\}/);
+  assert.match(category, /onStart=\{playGame\}/);
   for (const source of [hub, category]) {
     assert.match(source, /pathname: '\/hub\/training\/arena\/\[gameId\]'/);
   }
   assert.match(hub, /const query = \{ gameId: game\.id, start: '1', source: 'training-home' \}/);
-  assert.match(category, /query: \{ gameId: game\.id, start: '1', source: 'training-category' \}/);
+  assert.match(category, /source: 'training-category'/);
   assert.match(arena, /startsWithPreset = Boolean\(game && !customLaunch\.error && \(presetLaunch \|\| !customLaunch\.config\)\)/);
   assert.match(arena, /\.\.\.resolvePresetForGame\(game\),\s*\.\.\.customLaunch\.config/);
   assert.match(arena, /initialConfig=\{initialConfig\}/);
