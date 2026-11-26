@@ -1,3 +1,4 @@
+import { verifyBankrollHeader } from './fixtures/verifyBankrollHeader';
 import { captureBankrollPanel } from './fixtures/bankrollPanelCapture';
 import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test';
 import { installRealtimeSessionGuard } from './fixtures/realtimeSessionGuard';
@@ -471,6 +472,7 @@ test('Jarvis Insights opens the owner report and recalculates the selected ledge
   await launch.click();
   const dialog = page.getByRole('dialog', {name:'Jarvis Insights'});
   await expect(dialog.getByRole('button',{name:'90 Days'})).toHaveAttribute('aria-pressed','true');
+  await verifyBankrollHeader(page,dialog.locator('[data-header-art]'),'Jarvis Insights','jarvis',info);
   await expect(dialog.locator('.sd-metric').filter({hasText:'Session Net'})).toContainText('$30.50');
   await expect(dialog.getByRole('heading',{name:'Results By Format'})).toBeVisible();
   expect(await dialog.evaluate(el => el.matches(':modal'))).toBe(true);
@@ -486,7 +488,7 @@ test('Jarvis Insights opens the owner report and recalculates the selected ledge
   await expect(dialog.getByText('May 25, 2026 To May 31, 2026')).toBeVisible();
   await expect(dialog.locator('.sd-metric').filter({hasText:'Session Net'})).toContainText('$42.50');
   await expect(dialog.locator('.sd-metric').filter({hasText:'Net Per Hour'})).toContainText('$21.25');
-  await dialog.getByText('How These Figures Are Calculated').click();
+  await dialog.getByText('How These Figures Are Calculated',{exact:true}).click();
   await expect(dialog.getByText(/superseded entries/i)).toBeVisible();
   await dialog.getByRole('button',{name:'Refresh Analysis'}).click();
   await expect.poll(() => requests).toEqual([90,7,7]);
@@ -532,3 +534,31 @@ test('State Tax Report switches periods, recalculates its visible estimate and e
   await report.getByRole('button',{name:'Export Tax Report',exact:true}).click();
   expect((await download).suggestedFilename()).toBe('poker-tax-report-' + previous + '-IL.txt');
 });
+
+const bankrollHeaders = [
+  ['Bankroll Manager','bankroll',''], ['Trip Tracker','trips','?view=trips'], ['Series Tracker','series','?view=series'],
+  ['Player Notes','players','?view=players'], ['Saved Receipts','receipts','?view=receipts'], ['Staking Tracker','staking','?view=staking'],
+  ['Tax Reports','tax','?view=tax'], ['Staking Profile','staking-profile','?view=staking-profile'],
+  ['Tournament Calendar','tournament-calendar','?view=tournament-calendar'], ['Reports','reports','?view=reports'],
+  ['Bankroll Rules','rules','?view=rules'], ['Bankroll Goals','goals','?view=goals'], ['Settings','settings','?view=settings'],
+  ['Export Data','export','/export'], ['Cash Games','poker_cash','?type=cash'], ['Tournaments','poker_mtt','?type=tournament'],
+  ['Table Games','casino_table','?type=casino'], ['Slots','slots','?type=slots'], ['Sports Betting','sports','?type=sports'],
+  ['Expenses','expense','?type=expense'],
+];
+const dealerHeaders = [
+  ['Toke Tracker','toke-home',''],['Shift Tracker','toke-shift','/shift'],['Analytics','toke-analytics','/analytics'],
+  ['Dealer Vault','toke-vault','/vault'],['Venue Intel','toke-venues','/venues'],
+];
+for (const [base, headers] of [
+  ['/hub/bankroll-manager', bankrollHeaders],
+  ['/hub/toke-tracker', dealerHeaders],
+] as const) {
+  for (const [title, art, suffix] of headers) {
+    test(title + ' renders its Cashier-standard title and keyboard Help', async ({ page }, info) => {
+      await installBankrollSession(page);
+      await page.addInitScript(() => localStorage.setItem('bankroll_tutorial_seen_v1:prompt', '1'));
+      await page.goto(base + suffix, { waitUntil: 'domcontentloaded' });
+      await verifyBankrollHeader(page, page.locator('header.sd-masthead').first(), title, art, info);
+    });
+  }
+}

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { BankrollActionTarget } from '../BankrollHeaderAdd';
 import Link from 'next/link';
 import { ArrowLeft, ArrowUpRight, ChevronRight } from 'lucide-react';
-import BankrollHelp from '../BankrollHelp';
+import BankrollImageHeader from '../BankrollImageHeader';
 import styles from './TokeWorkspace.module.css';
 
 const home = '/hub/toke-tracker';
@@ -27,12 +27,10 @@ export function TokeWorkspace({ section, children }) {
   const current = sections.find(item => item.slug === section);
   const title = current?.title || 'Toke Tracker';
   return <div className={'smarterdesign ' + styles.workspace}><main className={styles.shell}>
-    <header className={'sd-masthead ' + styles.masthead} style={{ '--toke-art': 'url("/images/smarterdesign/' + (current?.art || 'dealer-table') + '.webp")' }}>
-      {current && <Link href={home} className={styles.parentLink}>Toke Tracker<ChevronRight size={14} aria-hidden="true" /></Link>}
-      <h1>{title}</h1>
+    <BankrollImageHeader title={title} art={'toke-' + (section || 'home')}
+      parent={current && <Link href={home} className={styles.parentLink}>Toke Tracker<ChevronRight size={14} aria-hidden="true" /></Link>}>
       <div ref={setActionTarget} className={styles.headerActions}><Link href="/hub/bankroll-manager" className={'sd-button ' + styles.back}><ArrowLeft aria-hidden="true" size={16} /> Back To Dashboard</Link></div>
-      <BankrollHelp title={title} section={'toke-' + (section || 'home')} />
-    </header>
+    </BankrollImageHeader>
     {current && <nav aria-label="Toke Tracker Tools" className={'sd-tabs ' + styles.sectionNav}>
       {sections.map(item => <Link key={item.slug} href={home + '/' + item.slug} aria-current={item.slug === section ? 'page' : undefined}>{item.title}</Link>)}
     </nav>}

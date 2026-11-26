@@ -150,7 +150,7 @@ import { getAccessToken } from '../../src/lib/authUtils';
 import { listHeld, releaseHeld, noteAttempt } from '../../src/lib/bankroll/receiptHold.mjs';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import FaqSection from '../../src/components/seo/FaqSection';
-import BankrollHelp from '../../src/components/bankroll/BankrollHelp';
+import BankrollImageHeader from '../../src/components/bankroll/BankrollImageHeader';
 import { BankrollActionTarget } from '../../src/components/bankroll/BankrollHeaderAdd';
 const StartingBankrollModal = dynamic(() => import('../../src/components/bankroll/StartingBankrollModal'), { ssr: false });
 
@@ -346,6 +346,7 @@ export default function BankrollManagerPage() {
   const categoryFilter = Object.hasOwn(TYPE_TO_CATEGORY, requestedType) ? TYPE_TO_CATEGORY[requestedType] :
     Object.hasOwn(CATEGORY_LABELS, requestedType) ? requestedType : 'all';
   const activeSection = categoryFilter !== 'all' ? 'dashboard' : resolveBankrollView(requestedView);
+  const headerSection = categoryFilter !== 'all' ? categoryFilter : activeSection === 'toke-tracker' ? 'toke-home' : activeSection;
   const isDashboard = activeSection === 'dashboard' && categoryFilter === 'all';
   const timeFilter = filters.timeFilter;
   const chartType = filters.chartType;
@@ -1522,7 +1523,7 @@ export default function BankrollManagerPage() {
         title="Bankroll Manager - Track Your Poker Profits"
         description="Professional Bankroll Tracking For Poker Players. Monitor Sessions, Analyze Leaks, Track ROI, And Visualize Trends With Detailed Analytics And Variance Analysis."
         canonical="/hub/bankroll-manager"
-        jsonLd={isDashboard ? BANKROLL_SCHEMA : undefined}
+        jsonLd={BANKROLL_SCHEMA}
       />
 
       <HubPageShell className="bankroll" maxWidth={960} background="#06101e" onMenuClick={() => setMenuOpen(true)}>
@@ -1546,11 +1547,16 @@ export default function BankrollManagerPage() {
             bottomLinks={menuConfig.bottomLinks}
           />
 
-          <header className={`sd-masthead ${layout.mast}`}>
-            <div className={layout.titleGroup}>
-              {sectionTitle !== 'Bankroll Manager' && <div className={layout.productName}>Bankroll Manager</div>}
-              <h1>{sectionTitle}</h1>
-            </div>
+          <BankrollImageHeader className={layout.mast} title={sectionTitle}
+            art={headerSection === 'dashboard' ? 'bankroll' : headerSection} section={headerSection}
+            parent={sectionTitle !== 'Bankroll Manager' ? 'Bankroll Manager' : undefined}
+            onTutorial={requestPageTutorial}
+            helpContent={
+              <>
+                {isDashboard && <HubPageSummary page="bankroll-manager" />}
+                <FaqSection faqs={BANKROLL_MANAGER_FAQS} />
+              </>
+            }>
             <div className={layout.headerActions} ref={setActionTarget}>
               {!isDashboard && <Link href="/hub/bankroll-manager" shallow className="sd-button">Back To Dashboard</Link>}
               {activeSection === 'receipts' && (
@@ -1563,10 +1569,7 @@ export default function BankrollManagerPage() {
                 </button>
               )}
             </div>
-            <BankrollHelp title={sectionTitle} onTutorial={requestPageTutorial} section={categoryFilter !== 'all' ? categoryFilter : activeSection}>
-              {isDashboard && <><HubPageSummary page="bankroll-manager" /><FaqSection faqs={BANKROLL_MANAGER_FAQS} /></>}
-            </BankrollHelp>
-          </header>
+          </BankrollImageHeader>
 
           {/* Main Layout */}
           <div className="bankroll-main-layout" style={styles.mainLayout}>

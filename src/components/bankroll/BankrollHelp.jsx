@@ -3,6 +3,16 @@ import { X } from 'lucide-react';
 import styles from './BankrollHelp.module.css';
 
 const guides = {
+  jarvis: ['Select 7, 30 or 90 days to compare recorded gaming sessions. Refresh Analysis reads the current ledger for that window.', 'Open How These Figures Are Calculated for the definitions and exclusions.'],
+  settings: ['Manage your bankroll display preferences and preferred currency.'],
+  goals: ['Track your bankroll targets and review progress against each goal.'],
+  rules: ['Review the bankroll limits and reminders you have configured.'],
+  poker_cash: ['Review your cash sessions, including each buy-in, cash-out and recorded result.'],
+  poker_mtt: ['Review your tournament entries, buy-ins, fees and recorded cashes.'],
+  casino_table: ['Review recorded casino table sessions and their results.'],
+  slots: ['Review your recorded slot sessions, amounts played and payouts.'],
+  sports: ['Review recorded wagers and results for your sports betting activity.'],
+  expense: ['Review recorded expenses and their effect on your ledger.'],
   dashboard: ['Use Add + to log play. Use Adjust Bankroll for deposits and withdrawals from outside play.', 'Open a tool to work in its own view. Return with Back To Dashboard. Jarvis Insights reviews your recorded sessions at the bottom of the dashboard.'],
   trips: ['Use Add + to create a trip. Open a trip to review or link its sessions.'],
   series: ['Use Add + to start a series and group its events. Open the series to review its results.'],

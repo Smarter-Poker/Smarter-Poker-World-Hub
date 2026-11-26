@@ -7,15 +7,9 @@
 }
 .shell { max-width: 970px; min-width: 0; margin-inline: auto; }
 .shell > * + * { margin-top: 14px; }
- .shell .masthead {
-    position: relative; display: grid; align-content: end; justify-items: start; gap: 10px;
-    padding: clamp(16px, 3vw, 30px); min-height: clamp(154px,23vw,230px);
-    background: linear-gradient(90deg,#071322ed 0%,#071322ac 33%,#07132218 74%), var(--toke-art) center 53% / cover;
-}
-.masthead h1 { margin: 0; max-width: calc(100% - 44px); font-style: italic; font-size: clamp(32px,6vw,64px); text-shadow: 0 2px 12px #03070b; }
 .headerActions { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
 .parentLink, .back { display: inline-flex; align-items: center; gap: 6px; }
-.parentLink { min-height: 32px; color: #bbdfff; font-size: .89rem; font-weight: 650; text-decoration: none; }
+.parentLink { min-height: 24px; color: #bbdfff; font-size: .89rem; font-weight: 650; text-decoration: none; }
 .back { font-size: .9rem; }
 .sectionNav { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:4px; }
 .sectionNav a { display:grid; place-items:center; padding-inline:4px; font-size:clamp(13px,2.8vw,16px); }

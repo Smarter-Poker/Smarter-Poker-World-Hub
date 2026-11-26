@@ -12,6 +12,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -120,4 +121,18 @@ test('no bankroll table is a raw <table> any more', () => {
   const files = fs.readdirSync(path.join(ROOT, COMPONENT_DIR)).filter((f) => /\.jsx?$/.test(f));
   const raw = files.filter((f) => /<table\b/.test(read(path.join(COMPONENT_DIR, f))));
   assert.deepEqual(raw, [], `raw tables (use ResponsiveTable): ${raw.join(', ')}`);
+});
+
+test('image headers pair each distinct seal with its own distinct photographic scene', () => {
+  const folder = path.join(ROOT, 'public/images/smarterdesign/headers');
+  const names = fs.readdirSync(folder).filter((name) => name.endsWith('.webp'));
+  const seals = names.filter((name) => name.endsWith('-seal.webp'));
+  const scenes = names.filter((name) => name.endsWith('-scene.webp')).sort();
+  assert.deepEqual(seals.map((name) => name.replace('-seal.webp', '-scene.webp')).sort(), scenes);
+  const hashes = names.map((name) => {
+    const bytes = fs.readFileSync(path.join(folder, name));
+    assert.equal(bytes.toString('ascii', 8, 12), 'WEBP', name);
+    return createHash('sha256').update(bytes).digest('hex');
+  });
+  assert.equal(new Set(hashes).size, names.length, 'Each production header uses unique artwork');
 });

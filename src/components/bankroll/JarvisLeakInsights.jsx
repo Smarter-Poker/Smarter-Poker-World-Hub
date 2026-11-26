@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronRight, LockKeyhole } from 'lucide-react';
 import useVIPGate from '../../hooks/useVIPGate';
-import useAccessibleDialog from '../../hooks/useAccessibleDialog';
+import { acquireScrollLock } from '../../lib/scrollLock';
 import { getFreshAccessToken } from '../../lib/authUtils';
 import VIPGateModal from '../ui/VIPGateModal';
 import view from './JarvisLeakInsights.module.css';
+import BankrollImageHeader from './BankrollImageHeader';
 
 const money = value => value == null ? 'Not Measured' : value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 const date = iso => new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(new Date(iso + 'T00:00:00Z'));
@@ -56,13 +57,22 @@ function OwnerInsights({ userId }) {
   const [days, setDays] = useState(90);
   const [revision, setRevision] = useState(0);
   const [result, setResult] = useState(null);
-  const { dialogRef, initialFocusRef } = useAccessibleDialog({ open: open && allowed, onClose: () => setOpen(false) });
+  const dialogRef = useRef(null);
+  const initialFocusRef = useRef(null);
+  const launcherRef = useRef(null);
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!open || !allowed || !dialog) return;
+    const launcher = launcherRef.current;
+    const releaseScroll = acquireScrollLock('JarvisInsights');
     dialog.showModal();
-    return () => { if (dialog.open) dialog.close(); };
-  }, [open, allowed, dialogRef]);
+    initialFocusRef.current?.focus();
+    return () => {
+      if (dialog.open) dialog.close();
+      releaseScroll();
+      launcher?.focus({ preventScroll: true });
+    };
+  }, [open, allowed]);
   useEffect(() => {
     if (!allowed || !open) return;
     const controller = new AbortController();
@@ -89,24 +99,28 @@ function OwnerInsights({ userId }) {
   const current = result?.days === days && result.revision === revision ? result : null;
   const refresh = () => setRevision(n => n + 1);
   return <>
-    <button type="button" className={'sd-button ' + view.launcher} disabled={checkingAccess} aria-haspopup="dialog"
+    <button type="button" ref={launcherRef} className={'sd-button ' + view.launcher} disabled={checkingAccess} aria-haspopup="dialog"
       onClick={() => { if (!allowed) { showUpgradeModal(); return; } refresh(); setOpen(true); }}>
       <img src="/images/smarterdesign/jarvis-insights.webp" alt="" width="192" height="96" />
       <span className={view.launchCopy}><strong>Jarvis Insights</strong><span>Review Session Results, Hourly Earnings And Drawdowns.</span></span>
       {allowed ? <ChevronRight aria-hidden="true" size={21} /> : <LockKeyhole aria-hidden="true" size={17} />}
     </button>
     <VIPGateModal visible={upgradeModalVisible} onClose={hideUpgradeModal} featureName="Jarvis Insights" featureConfig={featureConfig} />
-    {open && allowed && createPortal(<dialog className={'smarterdesign sd-panel ' + view.sheet}
+    {open && allowed && createPortal(<dialog className={'smarterdesign ' + view.sheet}
       aria-labelledby="bankroll-insights-title" ref={dialogRef}
-      onCancel={event => { event.preventDefault(); setOpen(false); }}
+      onCancel={event => {
+        if (event.target !== event.currentTarget) return;
+        event.preventDefault();
+        setOpen(false);
+      }}
       onClick={event => {
         if (event.target !== event.currentTarget) return;
         const rect = event.currentTarget.getBoundingClientRect();
         if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) setOpen(false);
       }}>
-        <header className={view.titlebar}><h2 id="bankroll-insights-title">Jarvis Insights</h2>
+        <BankrollImageHeader title="Jarvis Insights" art="jarvis" heading="h2" titleId="bankroll-insights-title" className={view.titlebar}>
           <button className="sd-button" ref={initialFocusRef} type="button" onClick={() => setOpen(false)} aria-label="Close Jarvis Insights">Close</button>
-        </header>
+        </BankrollImageHeader>
         <div className={view.content}>
           <div className={'sd-tabs ' + view.windows} role="group" aria-label="Analysis Window">
             {[7, 30, 90].map(period => <button key={period} type="button" aria-pressed={days === period} onClick={() => setDays(period)}>{period} Days</button>)}

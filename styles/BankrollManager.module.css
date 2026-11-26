@@ -1,11 +1,4 @@
-.mast.mast {
-  display: grid; align-content: end; justify-items: start; position: relative; gap: 14px; margin: 10px 12px 14px;
-  padding: clamp(17px,3vw,32px); min-height: clamp(158px,21vw,228px);
-  background: linear-gradient(90deg,#061221ed 0%,#0a1727af 30%,transparent 78%), url('/images/smarterdesign/bankroll-desk.webp') center / cover;
-}
-.titleGroup { max-width: calc(100% - 34px); min-width: 0; }
-.mast .titleGroup h1 { margin: 0; font-family: var(--sd-type); font-style: italic; font-size: clamp(32px,6vw,64px); font-weight: 750; line-height: 1; color: #f2f8ff; overflow-wrap: anywhere; text-shadow: 0 2px 12px #02080e; }
-.productName { color: #b3e3ff; font-size: 13px; font-weight: 650; letter-spacing: .07em; margin-bottom: 4px; }
+.mast { margin:10px 12px 14px; }
 .headerActions { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
 .headerActions:empty { display:none; }
 .headerActions :is(a,button) { min-width: 78px; }
