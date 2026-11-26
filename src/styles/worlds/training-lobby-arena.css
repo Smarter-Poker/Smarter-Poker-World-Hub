@@ -466,6 +466,7 @@ body.world-training .sp-arena-pill {
   justify-content: center;
   gap: 5px;
   min-height: 44px;
+  min-width: 44px;
   padding: 0 8px;
   border: 1px solid #526c85;
   border-top-color: #9ab2c7;
@@ -1331,4 +1332,43 @@ body.world-training .sp-arena-empty p {
   body.world-training .sp-arena-row__telemetry-left {
     grid-template-columns: 1.05fr 0.9fr 0.8fr;
   }
+}
+
+body.world-training .sp-arena-results-range {
+  margin: 0;
+  padding-block: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--sd-silver, #ccd7e3);
+}
+
+body.world-training #training-results {
+  scroll-margin-block-start: calc(var(--universal-header-height, 56px) + env(safe-area-inset-top, 0px) + 110px);
+}
+
+body.world-training .sp-arena-results-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--sd-ice, #86daff);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+body.world-training .sp-arena-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-block-start: 8px;
+  font-size: 0.875rem;
+}
+
+body.world-training .sp-arena-pagination button {
+  min-height: 44px;
+  min-width: 66px;
+}
+
+body.world-training .sp-arena-pagination button:disabled {
+  opacity: 0.55;
 }

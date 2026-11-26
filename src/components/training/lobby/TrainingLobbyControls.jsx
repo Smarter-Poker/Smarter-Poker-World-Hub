@@ -93,11 +93,11 @@ export default function TrainingLobbyControls({
         <h2 ref={headingRef} id="lib-h" className="sp-arena-deck__heading" tabIndex={-1}>
           Find Your Game
         </h2>
-        <span className="sp-arena-deck__count sp-num" aria-live="polite">
+        <a className="sp-arena-deck__count sp-arena-results-link sp-num" href="#training-results" aria-live="polite">
           {filteredCount === totalCount
-            ? `${totalCount} Games`
-            : `${filteredCount} Of ${totalCount}`}
-        </span>
+            ? `View ${totalCount} Games`
+            : `View ${filteredCount} Of ${totalCount}`}
+        </a>
       </div>
 
       {/* Tier 1: Primary Mode Plates (Exact 2-column Poker Arena geometry) */}

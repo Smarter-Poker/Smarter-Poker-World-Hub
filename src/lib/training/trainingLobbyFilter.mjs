@@ -333,3 +333,27 @@ export function buildLobbySections(items, filters) {
 
   return sections;
 }
+
+// Page the grouped, filtered order so a featured game is never repeated across pages.
+export function getLobbyResultsPage(sections, requestedPage) {
+  const pageSize = 8;
+  const total = sections.reduce((count, section) => count + section.items.length, 0);
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const page = Math.min(pageCount, Math.max(1, requestedPage));
+  const start = (page - 1) * pageSize;
+  const end = Math.min(start + pageSize, total);
+  let offset = 0;
+  const groups = [];
+  for (const section of sections) {
+    const groupStart = offset;
+    offset += section.items.length;
+    if (offset <= start || groupStart >= end) continue;
+    groups.push({
+      ...section,
+      items: section.items.slice(Math.max(start - groupStart, 0), end - groupStart),
+      total: section.items.length,
+      rowOffset: Math.max(groupStart - start, 0),
+    });
+  }
+  return { groups, total, page, pageCount, first: total ? start + 1 : 0, last: end };
+}

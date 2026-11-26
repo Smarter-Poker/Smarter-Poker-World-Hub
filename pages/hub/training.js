@@ -75,7 +75,7 @@ import {
 import TrainingLobbyHeader from '../../src/components/training/lobby/TrainingLobbyHeader';
 import TrainingLobbyControls from '../../src/components/training/lobby/TrainingLobbyControls';
 import TrainingSortBar from '../../src/components/training/lobby/TrainingSortBar';
-import TrainingLobbyRow from '../../src/components/training/lobby/TrainingLobbyRow';
+import TrainingLobbyResults from '../../src/components/training/lobby/TrainingLobbyResults';
 import TrainingFiltersSheet from '../../src/components/training/lobby/TrainingFiltersSheet';
 import TrainingGamePreviewSheet from '../../src/components/training/lobby/TrainingGamePreviewSheet';
 import TrainingGameArt from '../../src/components/training/TrainingGameArt';
@@ -129,11 +129,6 @@ function formatSignedValue(value) {
   return number >= 0 ? `+${number}` : number;
 }
 
-// Cards rendered before the reader scrolls (about three phone screens), and
-// how many more mount each time the grid's end comes within 1200px.
-const INITIAL_GAME_CARDS = 12;
-const GAME_CARD_BATCH = 24;
-
 export default function TrainingPage() {
   const router = useRouter();
   // Mobile phase 5 foundation (docs/mobile-standard/ROLLOUT-PLAN.md).
@@ -153,7 +148,6 @@ export default function TrainingPage() {
   const { favoriteIds, favoriteCount, toggleFavorite } = useTrainingFavorites(authUser);
 
   const [filters, setFilters] = useState(DEFAULT_LOBBY_FILTERS);
-  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [filtersSheetOpen, setFiltersSheetOpen] = useState(false);
   const [previewItem, setPreviewItem] = useState(null);
   const libraryHeadingRef = useRef(null);
@@ -161,8 +155,6 @@ export default function TrainingPage() {
   const searchInputRef = useRef(null);
   const launchQueryHandledRef = useRef(null);
 
-  const activeCat = filters.category;
-  const query = filters.query;
   const setActiveCat = useCallback((cat) => {
     setFilters((prev) => ({
       ...prev,
@@ -177,11 +169,6 @@ export default function TrainingPage() {
   const updateFilters = useCallback((patch) => {
     setFilters((prev) => ({ ...prev, ...patch }));
   }, []);
-
-  useEffect(() => {
-    const id = setTimeout(() => setDebouncedQuery(filters.query), 120);
-    return () => clearTimeout(id);
-  }, [filters.query]);
 
   useEffect(() => {
     const user = getAuthUser();
@@ -236,11 +223,6 @@ export default function TrainingPage() {
   // Use the real recommendation when available; null otherwise (UI handles empty state)
   const jarvisPick = recommendation;
 
-  const effectiveFilters = useMemo(
-    () => ({ ...filters, query: debouncedQuery }),
-    [filters, debouncedQuery],
-  );
-
   const progressById = useMemo(() => {
     const map = {};
     for (const g of TRAINING_LIBRARY) {
@@ -250,57 +232,16 @@ export default function TrainingPage() {
   }, [getGameProgress]);
 
   const filtered = useMemo(() => (
-    filterAndSortTrainingGames(TRAINING_LIBRARY, effectiveFilters, {
+    filterAndSortTrainingGames(TRAINING_LIBRARY, filters, {
       metaMap,
       favoriteIds,
       recommendedGameId: jarvisPick?.id || null,
       leakGameId: biggestLeak?.recommendedGame?.id || null,
       getProgress: (gameId) => progressById[gameId] ?? 0,
     })
-  ), [effectiveFilters, metaMap, favoriteIds, jarvisPick?.id, biggestLeak?.recommendedGame?.id, progressById]);
+  ), [filters, metaMap, favoriteIds, jarvisPick?.id, biggestLeak?.recommendedGame?.id, progressById]);
 
-  // PROGRESSIVE GAME GRID (2026-10-12). Mounts the initial batch immediately
-  // (server and first client render agree on the same count) and reveals the
-  // rest as the player scrolls, paired with below-the-fold content-visibility.
-  const [visibleCardCount, setVisibleCardCount] = useState(INITIAL_GAME_CARDS);
-  useEffect(() => {
-    setVisibleCardCount(INITIAL_GAME_CARDS);
-  }, [
-    activeCat,
-    debouncedQuery,
-    filters.group,
-    filters.favoritesOnly,
-    filters.quickFilter,
-    filters.difficultyTier,
-    filters.styleTag,
-    filters.statusFilter,
-    filters.accessFilter,
-    filters.variant,
-    filters.sortKey,
-    filters.sortDir,
-  ]);
-  const visibleGames = filtered.slice(0, visibleCardCount);
-  const visibleSections = useMemo(
-    () => buildLobbySections(visibleGames, effectiveFilters),
-    [visibleGames, effectiveFilters],
-  );
-  const moreGamesPending = visibleCardCount < filtered.length;
-  const gridSentinelRef = useRef(null);
-  useEffect(() => {
-    const sentinel = gridSentinelRef.current;
-    if (!moreGamesPending || !sentinel) return undefined;
-    if (typeof IntersectionObserver !== 'function') {
-      setVisibleCardCount(filtered.length);
-      return undefined;
-    }
-    const observer = new IntersectionObserver((entries) => {
-      if (entries.some((entry) => entry.isIntersecting)) {
-        setVisibleCardCount((count) => Math.min(filtered.length, count + GAME_CARD_BATCH));
-      }
-    }, { rootMargin: '1200px 0px' });
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [moreGamesPending, filtered.length, visibleCardCount]);
+  const sections = useMemo(() => buildLobbySections(filtered, filters), [filtered, filters]);
 
   const [resumableSession, setResumableSession] = useState(null);
 
@@ -415,7 +356,6 @@ export default function TrainingPage() {
     if (game && rawAutoLaunch) {
       setActiveCat(game.category || 'ALL');
       setQuery('');
-      setDebouncedQuery('');
       const qVariant = typeof router.query.variant === 'string' ? router.query.variant.trim().toLowerCase() : '';
       const qStruct = typeof router.query.bettingStructure === 'string' ? router.query.bettingStructure.trim().toLowerCase() : '';
       const qFormat = typeof router.query.format === 'string' ? router.query.format.trim().toLowerCase() : '';
@@ -438,14 +378,12 @@ export default function TrainingPage() {
     if (game) {
       setActiveCat(game.category || 'ALL');
       setQuery(game.name || game.id);
-      setDebouncedQuery(game.name || game.id);
       return;
     }
     if (CATEGORY_ORDER.includes(rawCategory)) setActiveCat(rawCategory);
     if (requestedGame) {
       const readable = requestedGame.replace(/[-_]+/g, ' ');
       setQuery(readable);
-      setDebouncedQuery(readable);
     }
   }, [router.isReady, router.query.autoLaunch, router.query.focus, router.query.category, playGame]);
 
@@ -474,7 +412,6 @@ export default function TrainingPage() {
   const browseTrainingLibrary = useCallback(() => {
     setActiveCat('ALL');
     setQuery('');
-    setDebouncedQuery('');
     if (typeof window === 'undefined') return;
     window.requestAnimationFrame(() => {
       const heading = libraryHeadingRef.current;
@@ -489,7 +426,6 @@ export default function TrainingPage() {
 
   const resetBrowseFilters = useCallback(() => {
     setFilters(DEFAULT_LOBBY_FILTERS);
-    setDebouncedQuery('');
   }, []);
 
   const jumpToControls = useCallback((focusSearch = false) => {
@@ -580,41 +516,16 @@ export default function TrainingPage() {
               />
 
               {filtered.length > 0 ? (
-                <>
-                  <div className="sp-arena-sections" data-tutorial="games">
-                    {visibleSections.reduce((acc, section) => {
-                      const startOffset = acc.offset;
-                      acc.offset += section.items.length;
-                      acc.nodes.push(
-                        <div key={section.id} className="sp-arena-group">
-                          <div className="sp-arena-divider">
-                            <span className="sp-arena-divider__label">{section.label}</span>
-                            <span className="sp-arena-divider__count sp-num">{section.items.length}</span>
-                          </div>
-                          <div className="sp-arena-row-list">
-                            {section.items.map((item, localIdx) => (
-                              <TrainingLobbyRow
-                                key={item.game.id}
-                                item={item}
-                                index={startOffset + localIdx}
-                                onStart={handleRowStart}
-                                onToggleFavorite={toggleFavorite}
-                                onOpenPreview={setPreviewItem}
-                                selectedVariant={filters.variant}
-                              />
-                            ))}
-                          </div>
-                        </div>,
-                      );
-                      return acc;
-                    }, { offset: 0, nodes: [] }).nodes}
-                  </div>
-                  {moreGamesPending && (
-                    <div ref={gridSentinelRef} className="sp-grid-sentinel" aria-hidden="true" />
-                  )}
-                </>
+                <TrainingLobbyResults
+                  key={JSON.stringify(filters)}
+                  sections={sections}
+                  onStart={handleRowStart}
+                  onToggleFavorite={toggleFavorite}
+                  onOpenPreview={setPreviewItem}
+                  selectedVariant={filters.variant}
+                />
               ) : (
-                <div className="sp-arena-empty" role="status">
+                <div id="training-results" tabIndex={-1} className="sp-arena-empty" role="status">
                   <p>
                     {filters.favoritesOnly
                       ? 'No Favorite Games Yet. Tap The Star On Any Game To Pin It Here.'
@@ -1502,7 +1413,6 @@ function GlobalStyle() {
       .sp-cat-chip[aria-pressed="true"] .sp-cat-count { color: rgba(0,26,34,0.55); }
 
       .sp-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
-      .sp-grid-sentinel { height: 1px; }
       @media (max-width: 600px) { .sp-grid { grid-template-columns: 1fr; } }
 
       .sp-card { position: relative; background: rgba(255,255,255,0.03); border: 1px solid var(--sp-line); border-radius: var(--sp-r-md); overflow: hidden; transition: transform .15s, border-color .15s, background .15s; text-align: left; width: 100%; cursor: pointer; padding: 0; color: inherit; }

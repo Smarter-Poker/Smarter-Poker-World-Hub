@@ -55,7 +55,7 @@ test('Training Hub categories and progress indicators expose valid accessible se
 test('Training Hub browse recovery and mobile library title remain fully visible', () => {
   const source = read('pages/hub/training.js');
 
-  assert.match(source, /const resetBrowseFilters = useCallback\(\(\) => \{[\s\S]*?setFilters\(DEFAULT_LOBBY_FILTERS\);[\s\S]*?setDebouncedQuery\(''\);/);
+  assert.match(source, /const resetBrowseFilters = useCallback\(\(\) => \{[\s\S]*?setFilters\(DEFAULT_LOBBY_FILTERS\);/);
   assert.match(source, /className="sp-arena-empty" role="status"[\s\S]*?Reset All Filters/);
   assert.match(source, /#training-library \.sp-section-title \{[\s\S]*?overflow:\s*visible;[\s\S]*?text-overflow:\s*clip;[\s\S]*?white-space:\s*normal;/);
 });
