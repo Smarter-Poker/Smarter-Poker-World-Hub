@@ -210,7 +210,7 @@ function EntryQuote({ quote, selectedStake, onSelectStake, disabled }) {
             </div>
             {selected ? (
                 <dl className="trivia-pvp-data">
-                    <DataRow label="Stake" value={`${formatDiamonds(selected.stake)} Diamonds`} ink="gold" />
+                    <DataRow label="Stake" value={`${formatDiamonds(selected.stake)} Diamonds`} ink="blue" />
                     <DataRow label="Match Pot" value={`${formatDiamonds(selected.pot)} Diamonds`} />
                     <DataRow label="Win Rake" value={`${formatDiamonds(selected.rake)} Diamonds`} />
                     <DataRow label="Possible Return" value={`${formatDiamonds(selected.possibleReturn)} Diamonds`} ink="green" />
@@ -221,14 +221,30 @@ function EntryQuote({ quote, selectedStake, onSelectStake, disabled }) {
     );
 }
 
+function formatReceiptLabel(reference, fallbackLabel = 'Record') {
+    if (!reference || typeof reference !== 'string') return 'Unavailable';
+    const trimmed = reference.trim();
+    if (!trimmed) return 'Unavailable';
+    const stakeMatch = /^pvp_stake_([a-z0-9-]{4,})/i.exec(trimmed);
+    if (stakeMatch) return `Stake Entry #${stakeMatch[1].slice(0, 8)}`;
+    const payoutMatch = /^pvp_(?:payout|win|credit)_([a-z0-9-]{4,})/i.exec(trimmed);
+    if (payoutMatch) return `Payout Credit #${payoutMatch[1].slice(0, 8)}`;
+    const refundMatch = /^pvp_refund_([a-z0-9-]{4,})/i.exec(trimmed);
+    if (refundMatch) return `Stake Refund #${refundMatch[1].slice(0, 8)}`;
+    const settleMatch = /^pvp_(?:settle|settlement)_([a-z0-9-]{4,})/i.exec(trimmed);
+    if (settleMatch) return `Settlement #${settleMatch[1].slice(0, 8)}`;
+    return trimmed.length > 24 ? `${fallbackLabel} #${trimmed.slice(0, 8)}` : trimmed;
+}
+
 function ResultReceipts({ result, headingId = 'pvp-receipts-title' }) {
     const receipts = Array.isArray(result?.receipts) ? result.receipts : [];
+    const hasRawReferences = Boolean(result?.stakeReference || result?.settlementReference || receipts.some((r) => r?.reference));
     return (
         <section className="trivia-pvp-receipts" aria-labelledby={headingId}>
             <h3 id={headingId} className="tc-label">Transaction Record</h3>
             <dl className="trivia-pvp-data">
-                <DataRow label="Stake Reference" value={result?.stakeReference || 'Unavailable'} preserveCase />
-                <DataRow label="Settlement Reference" value={result?.settlementReference || 'Unavailable'} preserveCase />
+                <DataRow label="Stake Entry" value={formatReceiptLabel(result?.stakeReference, 'Stake')} />
+                <DataRow label="Settlement" value={formatReceiptLabel(result?.settlementReference, 'Settlement')} />
                 <DataRow label="Settled" value={result?.settledAt || 'Unavailable'} />
             </dl>
             {receipts.length > 0 ? (
@@ -237,7 +253,7 @@ function ResultReceipts({ result, headingId = 'pvp-receipts-title' }) {
                         <li key={`${receipt.reference || 'receipt'}-${index}`}>
                             <span>{receipt.kind || 'Receipt'}</span>
                             <strong>{formatDiamonds(receipt.amount)} Diamonds</strong>
-                            <code>{receipt.reference || 'Reference Unavailable'}</code>
+                            <span>{formatReceiptLabel(receipt.reference, receipt.kind || 'Receipt')}</span>
                         </li>
                     ))}
                 </ol>
@@ -248,73 +264,96 @@ function ResultReceipts({ result, headingId = 'pvp-receipts-title' }) {
                         : 'No Credit Receipt Was Returned With This Result.'}
                 </p>
             )}
+            {hasRawReferences ? (
+                <details style={{ marginTop: '8px' }}>
+                    <summary className="trivia-pvp-fine-print" style={{ cursor: 'pointer', minHeight: '44px', display: 'flex', alignItems: 'center' }}>
+                        View Exact Reference IDs
+                    </summary>
+                    <dl className="trivia-pvp-data" style={{ marginTop: '6px' }}>
+                        {result?.stakeReference ? <DataRow label="Stake Reference" value={result.stakeReference} preserveCase /> : null}
+                        {result?.settlementReference ? <DataRow label="Settlement Reference" value={result.settlementReference} preserveCase /> : null}
+                        {receipts.map((receipt, index) => (
+                            receipt?.reference ? (
+                                <DataRow key={`raw-${receipt.reference}-${index}`} label={receipt.kind || 'Receipt Reference'} value={receipt.reference} preserveCase />
+                            ) : null
+                        ))}
+                    </dl>
+                </details>
+            ) : null}
         </section>
     );
 }
 
-function PvpHistory({ history, loading, error, onPage, onRetry }) {
+function PvpHistory({ history, loading, error, onPage, onRetry, defaultOpen = false }) {
     const items = Array.isArray(history?.items) ? history.items : [];
     const offset = Number(history?.offset || 0);
     const limit = Number(history?.limit || 5);
     const total = Number(history?.total || 0);
     return (
         <section className="trivia-pvp-history" aria-labelledby="pvp-history-title">
-            <div className="trivia-pvp-history-head">
-                <div>
-                    <p className="tc-label">Permanent Record</p>
-                    <h2 id="pvp-history-title" className="trivia-pvp-section-title">Match History</h2>
+            <details open={defaultOpen || undefined}>
+                <summary
+                    className="trivia-pvp-history-head"
+                    style={{ cursor: 'pointer', minHeight: '44px', listStylePosition: 'inside' }}
+                >
+                    <div>
+                        <p className="tc-label">Permanent Record{total > 0 ? ` (${formatDiamonds(total)})` : ''}</p>
+                        <h2 id="pvp-history-title" className="trivia-pvp-section-title">Match History</h2>
+                    </div>
+                </summary>
+                <div style={{ marginTop: '10px', marginBottom: '10px' }}>
+                    <TriviaGlassAction label="Refresh History" onClick={onRetry} disabled={loading} />
                 </div>
-                <TriviaGlassAction label="Refresh History" onClick={onRetry} disabled={loading} />
-            </div>
-            {loading && !history ? <p className="trivia-pvp-fine-print" role="status">Loading Your Settled Matches.</p> : null}
-            {error ? <p className="trivia-pvp-notice" data-tone="danger" role="alert">{error}</p> : null}
-            {!loading && !error && items.length === 0 ? (
-                <p className="trivia-pvp-fine-print">No Settled Head To Head Match Is Recorded For This Account Yet.</p>
-            ) : null}
-            {items.length > 0 ? (
-                <ol className="trivia-pvp-history-list">
-                    {items.map((item, index) => {
-                        const itemNumber = offset + index + 1;
-                        return (
-                            <li key={`${item.settlementReference || item.stakeReference || 'match'}-${itemNumber}`}>
-                                <details>
-                                    <summary>
-                                        <span>{pvpOutcomeLabel(item)}</span>
-                                        <strong>Vs {item.opponent?.isHorse ? 'Smarter Horse' : (item.opponent?.displayName || 'Player')}</strong>
-                                        <span>{formatNet(item.net)} Diamonds</span>
-                                    </summary>
-                                    <div className="trivia-pvp-history-detail">
-                                        <dl className="trivia-pvp-data">
-                                            <DataRow label="Settled" value={item.settledAt || 'Unavailable'} />
-                                            <DataRow label="Your Score" value={formatDiamonds(item.myCorrect)} />
-                                            <DataRow label="Opponent Score" value={formatDiamonds(item.opponentCorrect)} />
-                                            <DataRow label="Stake" value={`${formatDiamonds(item.stake)} Diamonds`} ink="gold" />
-                                            <DataRow label="Payout" value={`${formatDiamonds(item.payout)} Diamonds`} ink={item.payout > 0 ? 'green' : 'silver'} />
-                                            <DataRow label="Rules" value={item.rulesVersion || 'Unavailable'} preserveCase />
-                                        </dl>
-                                        <ResultReceipts result={item} headingId={`pvp-history-receipt-${itemNumber}`} />
-                                    </div>
-                                </details>
-                            </li>
-                        );
-                    })}
-                </ol>
-            ) : null}
-            {total > limit ? (
-                <div className="trivia-pvp-history-pages" aria-label="Match History Pages">
-                    <TriviaGlassAction
-                        label="Newer Matches"
-                        onClick={() => onPage(Math.max(0, offset - limit))}
-                        disabled={loading || offset === 0}
-                    />
-                    <span>{Math.min(offset + 1, total)} To {Math.min(offset + items.length, total)} Of {total}</span>
-                    <TriviaGlassAction
-                        label="Older Matches"
-                        onClick={() => onPage(offset + limit)}
-                        disabled={loading || offset + items.length >= total}
-                    />
-                </div>
-            ) : null}
+                {loading && !history ? <p className="trivia-pvp-fine-print" role="status">Loading Your Settled Matches.</p> : null}
+                {error ? <p className="trivia-pvp-notice" data-tone="danger" role="alert">{error}</p> : null}
+                {!loading && !error && items.length === 0 ? (
+                    <p className="trivia-pvp-fine-print">No Settled Head To Head Match Is Recorded For This Account Yet.</p>
+                ) : null}
+                {items.length > 0 ? (
+                    <ol className="trivia-pvp-history-list">
+                        {items.map((item, index) => {
+                            const itemNumber = offset + index + 1;
+                            return (
+                                <li key={`${item.settlementReference || item.stakeReference || 'match'}-${itemNumber}`}>
+                                    <details>
+                                        <summary style={{ minHeight: '44px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                            <span>{pvpOutcomeLabel(item)}</span>
+                                            <strong>Vs {item.opponent?.isHorse ? 'Smarter Horse' : (item.opponent?.displayName || 'Player')}</strong>
+                                            <span>{formatNet(item.net)} Diamonds</span>
+                                        </summary>
+                                        <div className="trivia-pvp-history-detail">
+                                            <dl className="trivia-pvp-data">
+                                                <DataRow label="Settled" value={item.settledAt || 'Unavailable'} />
+                                                <DataRow label="Your Score" value={formatDiamonds(item.myCorrect)} />
+                                                <DataRow label="Opponent Score" value={formatDiamonds(item.opponentCorrect)} />
+                                                <DataRow label="Stake" value={`${formatDiamonds(item.stake)} Diamonds`} ink="blue" />
+                                                <DataRow label="Payout" value={`${formatDiamonds(item.payout)} Diamonds`} ink={item.payout > 0 ? 'green' : 'silver'} />
+                                                <DataRow label="Rules" value={item.rulesVersion || 'Unavailable'} preserveCase />
+                                            </dl>
+                                            <ResultReceipts result={item} headingId={`pvp-history-receipt-${itemNumber}`} />
+                                        </div>
+                                    </details>
+                                </li>
+                            );
+                        })}
+                    </ol>
+                ) : null}
+                {total > limit ? (
+                    <div className="trivia-pvp-history-pages" aria-label="Match History Pages">
+                        <TriviaGlassAction
+                            label="Newer Matches"
+                            onClick={() => onPage(Math.max(0, offset - limit))}
+                            disabled={loading || offset === 0}
+                        />
+                        <span>{Math.min(offset + 1, total)} To {Math.min(offset + items.length, total)} Of {total}</span>
+                        <TriviaGlassAction
+                            label="Older Matches"
+                            onClick={() => onPage(offset + limit)}
+                            disabled={loading || offset + items.length >= total}
+                        />
+                    </div>
+                ) : null}
+            </details>
         </section>
     );
 }
@@ -334,6 +373,7 @@ export default function PvpCompetitiveExperience({
     pairedMatchId = null,
     settledSessionId = '',
     settledMatch = null,
+    friendChallengeSlot = null,
 }) {
     const router = useRouter();
     const serverRun = useServerGradedRun('pvp', { accessTokenProvider: getFreshAccessToken });
@@ -1177,7 +1217,7 @@ export default function PvpCompetitiveExperience({
             >
                 <div className="trivia-pvp-layout trivia-pvp-layout--active" aria-live="polite">
                     <PvpArt priority />
-                    <section className="trivia-pvp-main">
+                    <section className="trivia-pvp-main" style={{ minHeight: '340px' }}>
                         <p className="trivia-pvp-state">Looking For An Open Search, Committed Match Or Settled Result.</p>
                     </section>
                     <aside className="trivia-pvp-side">
@@ -1212,7 +1252,7 @@ export default function PvpCompetitiveExperience({
             >
                 <div className="trivia-pvp-layout trivia-pvp-layout--idle">
                     <PvpArt priority />
-                    <section className="trivia-pvp-main">
+                    <section className="trivia-pvp-main" style={{ minHeight: '340px' }}>
                         <p className="trivia-pvp-state">Sign In To Restore An Existing Match Or Request A Server-Quoted Diamond Stake.</p>
                     </section>
                 </div>
@@ -1269,7 +1309,7 @@ export default function PvpCompetitiveExperience({
         body = (
             <div className="trivia-pvp-layout trivia-pvp-layout--idle">
                 <PvpArt priority />
-                <section className="trivia-pvp-main" aria-labelledby="pvp-entry-title">
+                <section className="trivia-pvp-main" aria-labelledby="pvp-entry-title" style={{ minHeight: '340px' }}>
                     <h2 id="pvp-entry-title" className="trivia-pvp-section-title">Server-Quoted Entry</h2>
                     <p className="trivia-pvp-copy">
                         Choose A Diamond Stake. The Server Checks Your Balance, Searches For A Human First And Commits The Stake Only When A Match Is Made.
@@ -1301,7 +1341,7 @@ export default function PvpCompetitiveExperience({
                     {quote ? (
                         <>
                             <dl className="trivia-pvp-data trivia-pvp-data--summary">
-                                <DataRow label="Current Balance" value={`${formatDiamonds(quote.balance)} Diamonds`} ink="gold" />
+                                <DataRow label="Current Balance" value={`${formatDiamonds(quote.balance)} Diamonds`} ink="blue" />
                                 <DataRow label="Questions" value={formatDiamonds(quote.questionCount)} />
                                 <DataRow label="Rules Version" value={quote.rulesVersion} preserveCase />
                                 <DataRow
@@ -1341,7 +1381,7 @@ export default function PvpCompetitiveExperience({
                     <p className="trivia-pvp-copy">No Stake Is Taken Until The Server Commits A Match.</p>
                     <LiveNotices {...reconnectProps} />
                     <dl className="trivia-pvp-data">
-                        <DataRow label="Stake" value={`${formatDiamonds(dto.ticket?.stake)} Diamonds`} ink="gold" />
+                        <DataRow label="Stake" value={`${formatDiamonds(dto.ticket?.stake)} Diamonds`} ink="blue" />
                         <DataRow label="Presence" value={dto.ticket?.presence || 'Awaiting Server'} />
                         <DataRow label="Ticket" value={dto.ticket?.id || 'Unavailable'} />
                     </dl>
@@ -1385,7 +1425,7 @@ export default function PvpCompetitiveExperience({
                 <aside className="trivia-pvp-side">
                     <dl className="trivia-pvp-data">
                         <DataRow label="Opponent" value={displayOpponent(match)} />
-                        <DataRow label="Stake" value={`${formatDiamonds(match?.stake)} Diamonds`} ink="gold" />
+                        <DataRow label="Stake" value={`${formatDiamonds(match?.stake)} Diamonds`} ink="blue" />
                         <DataRow label="Questions" value={formatDiamonds(match?.questionCount)} />
                         <DataRow label="Match" value={match?.id || 'Unavailable'} />
                     </dl>
@@ -1451,7 +1491,7 @@ export default function PvpCompetitiveExperience({
                     <dl className="trivia-pvp-data">
                         <DataRow label="You Locked" value={`${formatDiamonds(match?.me?.answered)} Of ${formatDiamonds(match?.questionCount)}`} />
                         <DataRow label={`${displayOpponent(match)} Locked`} value={`${formatDiamonds(match?.opponent?.answered)} Of ${formatDiamonds(match?.questionCount)}`} />
-                        <DataRow label="Stake" value={`${formatDiamonds(match?.stake)} Diamonds`} ink="gold" />
+                        <DataRow label="Stake" value={`${formatDiamonds(match?.stake)} Diamonds`} ink="blue" />
                     </dl>
                     <p className="trivia-pvp-fine-print">Correct Answers Stay Sealed Until Settlement.</p>
                 </aside>
@@ -1507,7 +1547,7 @@ export default function PvpCompetitiveExperience({
                             <dl className="trivia-pvp-data">
                                 <DataRow label="Your Score" value={formatDiamonds(result.myCorrect)} />
                                 <DataRow label={`${displayOpponent(match)} Score`} value={formatDiamonds(result.opponentCorrect)} />
-                                <DataRow label="Stake" value={`${formatDiamonds(result.stake)} Diamonds`} ink="gold" />
+                                <DataRow label="Stake" value={`${formatDiamonds(result.stake)} Diamonds`} ink="blue" />
                                 <DataRow label="Pot" value={`${formatDiamonds(result.pot)} Diamonds`} />
                                 <DataRow label="Rake" value={`${formatDiamonds(result.rake)} Diamonds`} />
                                 <DataRow label="Payout" value={`${formatDiamonds(result.payout)} Diamonds`} ink={result.payout > 0 ? 'green' : 'silver'} />
@@ -1527,7 +1567,7 @@ export default function PvpCompetitiveExperience({
                                     ) : null}
                                     <TriviaGlassAction
                                         label="Share Result Card"
-                                        ink="gold"
+                                        ink="blue"
                                         onClick={() => setShareModalOpen(true)}
                                     />
                                 </div>
@@ -1549,7 +1589,7 @@ export default function PvpCompetitiveExperience({
         title = reason;
         subtitle = 'Server Search Record Closed';
         pill = dto.ticket?.stake ? `${formatDiamonds(dto.ticket.stake)} Diamonds` : 'Closed';
-        pillInk = /refund|void/i.test(reason) ? 'gold' : 'silver';
+        pillInk = /refund|void/i.test(reason) ? 'blue' : 'silver';
         secondaryAction = { label: 'Trivia Lobby', onClick: () => router.push('/hub/trivia') };
         primaryAction = { label: 'New Search', onClick: handlePlayAgain };
         body = (
@@ -1602,6 +1642,7 @@ export default function PvpCompetitiveExperience({
             data-pvp-state={effectiveState}
         >
             {body}
+            {friendChallengeSlot}
             {user?.id && bootState === 'ready' ? (
                 <PvpHistory
                     history={history}
@@ -1609,6 +1650,7 @@ export default function PvpCompetitiveExperience({
                     error={historyError}
                     onPage={(offset) => loadHistory(offset)}
                     onRetry={() => loadHistory(history?.offset || 0)}
+                    defaultOpen={effectiveState === 'result'}
                 />
             ) : null}
             {isSettledResult ? (

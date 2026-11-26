@@ -230,12 +230,12 @@ export default function FriendChallengePanel({
         <section className="tt-section" aria-labelledby="trivia-friend-challenge-title" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div className="tt-section-head">
                 <h2 id="trivia-friend-challenge-title" className="tc-label">Direct Friend Challenge</h2>
-                <span className="tc-ink--gold">1v1 Duel Invite</span>
+                <span className="tc-ink--blue">1v1 Duel Invite</span>
             </div>
 
             {incoming ? (
-                <div style={{ border: '1px solid #ffd700', background: '#050607', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <strong className="tc-ink--gold">
+                <div style={{ border: '1px solid #86daff', background: '#0a1829', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <strong className="tc-ink--blue">
                         Challenge From {incoming.challengerDisplayName} ({incoming.stakeAmount} Diamonds)
                     </strong>
                     <p className="trivia-console-copy tc-ink--silver" style={{ margin: 0 }}>
@@ -259,12 +259,13 @@ export default function FriendChallengePanel({
                         type="button"
                         role="radio"
                         aria-checked={stake === amount}
-                        className={`tc-word ${stake === amount ? 'tc-ink--gold' : 'tc-ink--silver'}`}
+                        className={`tc-word ${stake === amount ? 'tc-ink--blue' : 'tc-ink--silver'}`}
                         style={{
                             minHeight: '44px',
                             padding: '6px 12px',
-                            border: stake === amount ? '1px solid #ffd700' : '1px solid #6d747c',
-                            background: '#050607',
+                            border: stake === amount ? '1px solid #86daff' : '1px solid #445e77',
+                            background: stake === amount ? '#0c55c0' : '#0a1829',
+                            color: stake === amount ? '#f2f7ff' : '#bdd0e2',
                         }}
                         onClick={() => setStake(amount)}
                     >
@@ -283,13 +284,13 @@ export default function FriendChallengePanel({
             </div>
 
             {created ? (
-                <div style={{ border: '1px solid #45adff', background: '#050607', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ border: '1px solid #86daff', background: '#0a1829', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <strong className="tc-ink--blue">Invite Ready: {created.challengeCode}</strong>
                     <p className="trivia-console-copy tc-ink--silver" style={{ margin: 0, wordBreak: 'break-all' }}>
                         {challengeShareUrl(created.challengeCode)}
                     </p>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                        <TriviaGlassAction label="Copy Duel Link" ink="gold" onClick={() => handleCopyLink(created.challengeCode)} />
+                        <TriviaGlassAction label="Copy Duel Link" ink="blue" onClick={() => handleCopyLink(created.challengeCode)} />
                         <TriviaGlassAction label="Share Invite" ink="green" onClick={() => handleShareLink(created)} />
                     </div>
                 </div>
@@ -309,6 +310,7 @@ export default function FriendChallengePanel({
                                 <button
                                     type="button"
                                     className="tc-word tc-ink--blue"
+                                    style={{ minHeight: '44px', padding: '6px 10px' }}
                                     onClick={() => handleCopyLink(item.challengeCode)}
                                 >
                                     Copy
@@ -316,6 +318,7 @@ export default function FriendChallengePanel({
                                 <button
                                     type="button"
                                     className="tc-word tc-ink--red"
+                                    style={{ minHeight: '44px', padding: '6px 10px' }}
                                     disabled={busy === `cancel:${item.challengeCode}`}
                                     onClick={() => handleCancel(item.challengeCode)}
                                 >

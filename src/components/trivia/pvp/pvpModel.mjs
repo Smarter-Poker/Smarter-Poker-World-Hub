@@ -398,7 +398,7 @@ export function pvpOutcomeInk(result) {
     switch (result?.outcome) {
         case 'win': return 'green';
         case 'loss': return 'red';
-        case 'tie': case 'refund': case 'void': return 'gold';
+        case 'tie': case 'refund': case 'void': return 'blue';
         default: return 'silver';
     }
 }

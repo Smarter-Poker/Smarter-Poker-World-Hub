@@ -28,7 +28,7 @@ function matchupStatusLabel(status) {
 function matchupStatusInk(status) {
     const normalized = String(status || '').trim().toLowerCase();
     if (normalized === 'resolved') return 'green';
-    if (normalized === 'live' || normalized === 'playing' || normalized === 'ready') return 'gold';
+    if (normalized === 'live' || normalized === 'playing' || normalized === 'ready') return 'blue';
     return 'muted';
 }
 
@@ -131,7 +131,7 @@ export default function NightlySpectatorBanner({
         >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 <strong className="tc-ink--blue">Live Spectator View | {stageLabel}</strong>
-                <span className={realtimeConnected ? 'tc-ink--green' : 'tc-ink--gold'}>
+                <span className={realtimeConnected ? 'tc-ink--green' : 'tc-ink--blue'}>
                     {realtimeConnected ? 'Realtime Push Connected' : 'Live Sync Active'}
                 </span>
             </div>
@@ -139,7 +139,7 @@ export default function NightlySpectatorBanner({
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 <p className="trivia-console-copy tc-ink--silver" style={{ margin: 0 }}>{reasonText}</p>
                 {isLiveWindow && activeDeadlineSeconds !== null ? (
-                    <span className={activeDeadlineSeconds <= 30 ? 'tc-ink--red' : 'tc-ink--gold'} style={{ fontSize: '12px', fontWeight: 700 }}>
+                    <span className={activeDeadlineSeconds <= 30 ? 'tc-ink--red' : 'tc-ink--blue'} style={{ fontSize: '12px', fontWeight: 700 }}>
                         Round Deadline: {formatCountdown(activeDeadlineSeconds)}
                     </span>
                 ) : null}
@@ -150,8 +150,8 @@ export default function NightlySpectatorBanner({
                     role="status"
                     aria-label="Tournament Champion Announcement"
                     style={{
-                        border: '1px solid rgba(250, 204, 21, 0.55)',
-                        background: 'rgba(250, 204, 21, 0.08)',
+                        border: '1px solid rgba(134, 218, 255, 0.55)',
+                        background: 'rgba(12, 85, 192, 0.14)',
                         borderRadius: '8px',
                         padding: '10px 12px',
                         display: 'flex',
@@ -161,7 +161,7 @@ export default function NightlySpectatorBanner({
                         gap: '8px',
                     }}
                 >
-                    <strong className="tc-ink--gold" style={{ fontSize: '15px' }}>
+                    <strong className="tc-ink--blue" style={{ fontSize: '15px' }}>
                         Champion: {participantLabel(resolvedChampion)}
                     </strong>
                     <span className="tc-ink--green" style={{ fontSize: '13px', fontWeight: 700 }}>
@@ -196,7 +196,7 @@ export default function NightlySpectatorBanner({
                                 key={matchup.matchupId || `${matchRound}-${matchup.slot}`}
                                 style={{
                                     border: matchRound === finalRound && totalRounds >= 1
-                                        ? '1px solid rgba(250, 204, 21, 0.45)'
+                                        ? '1px solid rgba(134, 218, 255, 0.5)'
                                         : '1px solid rgba(148, 163, 184, 0.28)',
                                     background: 'rgba(10, 18, 32, 0.72)',
                                     borderRadius: '8px',
@@ -207,7 +207,7 @@ export default function NightlySpectatorBanner({
                                 }}
                             >
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                                    <span className={matchRound === finalRound ? 'tc-ink--gold' : 'tc-ink--blue'} style={{ fontSize: '12px', fontWeight: 700 }}>
+                                    <span className="tc-ink--blue" style={{ fontSize: '12px', fontWeight: 700 }}>
                                         {matchupStageLabel(matchup, totalRounds, semiRound, finalRound)}
                                     </span>
                                     <span className={`tc-ink--${matchupStatusInk(matchup.status)}`} style={{ fontSize: '12px', fontWeight: 700 }}>
@@ -216,13 +216,13 @@ export default function NightlySpectatorBanner({
                                 </div>
 
                                 <SpectatorSeatRow seat={seatA} winnerEntrantId={matchup.winnerEntrantId} isBye={false} />
-                                <div className="tc-ink--muted" style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>
+                                <div className="tc-ink--muted" style={{ fontSize: '12px', fontWeight: 700 }}>
                                     {matchup.isBye ? 'Bye Advance' : 'Vs'}
                                 </div>
                                 <SpectatorSeatRow seat={seatB} winnerEntrantId={matchup.winnerEntrantId} isBye={Boolean(matchup.isBye)} />
 
                                 {matchDeadlineSec !== null ? (
-                                    <div className="tc-ink--gold" style={{ fontSize: '11px', marginTop: '2px' }}>
+                                    <div className="tc-ink--blue" style={{ fontSize: '12px', marginTop: '2px' }}>
                                         Deadline: {formatCountdown(matchDeadlineSec)}
                                     </div>
                                 ) : null}
@@ -246,7 +246,7 @@ export default function NightlySpectatorBanner({
                     {totalRounds >= 2 ? (
                         <TriviaGlassAction
                             label="Watch Semifinals"
-                            ink="gold"
+                            ink="blue"
                             onClick={() => onWatchRound(semiRound)}
                         />
                     ) : null}
