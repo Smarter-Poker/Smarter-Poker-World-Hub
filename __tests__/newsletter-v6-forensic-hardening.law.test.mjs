@@ -36,8 +36,10 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 
 import { resolveNotificationRoute } from '../src/lib/notificationRoute.js';
@@ -423,4 +425,77 @@ test('V6 LAW 12: Cross-surface subscription sync, per-user capture cache, strict
     assert.equal(shouldOptimizeSpImageSrc('https://evilsmarter.poker/attack.jpg'), false);
     assert.equal(shouldOptimizeSpImageSrc('https://smarter.poker/images/logo.png'), true);
     assert.equal(shouldOptimizeSpImageSrc('/api/news/email-image?fallback=1'), false);
+});
+
+test('V6 LAW 13: Unsubscribe & preference targets require valid HMAC-SHA256 signatures and block bare-email IDOR or synthetic capture domains', () => {
+    const subSrc = read('pages/api/news/subscribe.js');
+    assert.match(subSrc, /if\s*\(!target\s*\|\|\s*target\.verified\s*!==\s*true\)/);
+    assert.doesNotMatch(subSrc, /verified:\s*false/, 'subscribe.js must never emit unverified email targets');
+    assert.match(subSrc, /authenticatedOwnerId/, 'anonymous POST /api/news/subscribe must not overwrite existing member notification_preferences without session ownership');
+
+    const startIdx = subSrc.indexOf('const EMAIL_RE =');
+    const endIdx = subSrc.indexOf('export { buildWelcomeEmail');
+    assert.ok(startIdx > 0 && endIdx > startIdx, 'subscribe.js must expose pure token & domain helpers');
+    const snippet = subSrc
+        .slice(startIdx, endIdx)
+        .replace(/^export\s+function\s+/gm, 'function ');
+    const sandbox = { Buffer, crypto, process, Set, exports: {} };
+    vm.runInNewContext(
+        `${snippet}\nexports.makeUnsubscribeToken = makeUnsubscribeToken;\nexports.resolveTokenOrEmailQuery = resolveTokenOrEmailQuery;\nexports.resolveUnsubscribeTarget = resolveUnsubscribeTarget;\nexports.isBlockedCaptureEmail = isBlockedCaptureEmail;`,
+        sandbox
+    );
+    const {
+        makeUnsubscribeToken,
+        resolveTokenOrEmailQuery,
+        resolveUnsubscribeTarget,
+        isBlockedCaptureEmail,
+    } = sandbox.exports;
+
+    const savedSecret = process.env.NEWSLETTER_UNSUBSCRIBE_SECRET;
+    process.env.NEWSLETTER_UNSUBSCRIBE_SECRET = 'v6-law-13-hmac-test-secret-20261126';
+    try {
+        // 1. Bare unauthenticated email MUST be rejected (prevents mass-unsubscribe IDOR)
+        assert.equal(resolveUnsubscribeTarget('victim@gmail.com', {}), null);
+        assert.equal(resolveUnsubscribeTarget('1', { e: 'victim@gmail.com' }), null);
+
+        // 2. Forged or tampered HMAC signatures MUST be rejected
+        assert.equal(resolveUnsubscribeTarget('1', { e: 'victim@gmail.com', t: 'invalid' }), null);
+        assert.equal(resolveTokenOrEmailQuery({ e: 'victim@gmail.com', t: 'invalid' }), null);
+
+        // 3. Valid full signed token (?unsubscribe=<payload.sig>) resolves with verified: true and full token
+        const fullTok = makeUnsubscribeToken('Player.One@Gmail.com');
+        const [payloadPart, sigPart] = fullTok.split('.');
+        assert.ok(payloadPart && sigPart);
+        const resolvedDirect = resolveUnsubscribeTarget(fullTok, {});
+        assert.deepEqual(
+            { ...resolvedDirect },
+            {
+                email: 'player.one@gmail.com',
+                verified: true,
+                token: fullTok,
+            }
+        );
+
+        // 4. Valid split RFC 8058 pair (?unsubscribe=1&e=<email>&t=<sig>) reconstructs full token (never '1')
+        const resolvedSplit = resolveUnsubscribeTarget('1', { e: 'Player.One@Gmail.com', t: sigPart });
+        assert.deepEqual(
+            { ...resolvedSplit },
+            {
+                email: 'player.one@gmail.com',
+                verified: true,
+                token: fullTok,
+            }
+        );
+
+        // 5. Mismatched email + foreign valid token MUST be rejected
+        assert.equal(resolveTokenOrEmailQuery({ e: 'other@gmail.com', t: fullTok }), null);
+
+        // 6. Synthetic / RFC 2606 domains blocked at capture ingress
+        assert.equal(isBlockedCaptureEmail('test@example.com'), true);
+        assert.equal(isBlockedCaptureEmail('bot@horse.ai'), true);
+        assert.equal(isBlockedCaptureEmail('real.player@gmail.com'), false);
+    } finally {
+        if (savedSecret === undefined) delete process.env.NEWSLETTER_UNSUBSCRIBE_SECRET;
+        else process.env.NEWSLETTER_UNSUBSCRIBE_SECRET = savedSecret;
+    }
 });
