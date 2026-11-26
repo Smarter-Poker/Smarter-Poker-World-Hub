@@ -1267,10 +1267,11 @@ const nextConfig = {
         ],
       },
       // [GEO / AI Agent Link Discovery Headers] Advertises /llms.txt, /.well-known/mcp.json,
-      // and /.well-known/ai-facts.json via RFC 8288 HTTP Link headers across /tools, /learn,
-      // /research, and /poker-rooms surfaces.
+      // and /.well-known/ai-facts.json via RFC 8288 HTTP Link headers site-wide across all
+      // public surfaces (homepage, Hub, tools, learn, research, poker rooms, compare,
+      // features, glossary, rules, games, poker-series, authors, about, facts, press, freerolls).
       {
-        source: '/:surface(tools|learn|research|poker-rooms)/:path*',
+        source: '/:surface(tools|learn|research|poker-rooms|hub|compare|features|glossary|rules|games|poker-series|authors)/:path*',
         headers: [
           {
             key: 'Link',
@@ -1279,7 +1280,16 @@ const nextConfig = {
         ],
       },
       {
-        source: '/:surface(tools|learn|research)',
+        source: '/:surface(tools|learn|research|hub|compare|features|glossary|rules|games|authors|about|facts|press|freerolls)',
+        headers: [
+          {
+            key: 'Link',
+            value: '</llms.txt>; rel="llms-txt", </.well-known/mcp.json>; rel="service-desc", </.well-known/ai-facts.json>; rel="describedby"',
+          },
+        ],
+      },
+      {
+        source: '/',
         headers: [
           {
             key: 'Link',

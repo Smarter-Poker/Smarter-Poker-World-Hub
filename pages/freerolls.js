@@ -246,7 +246,7 @@ export default function FreerollsPage() {
       <SEOHead
         title="Daily Free Poker Tournaments | Smarter.Poker Freerolls"
         description={FREE_BUY_SUMMARY}
-        canonicalUrl="https://smarter.poker/freerolls"
+        canonical="/freerolls"
         jsonLd={FREEROLLS_SCHEMA}
         markdownUrl="https://smarter.poker/freerolls.md"
         calendarUrl="https://smarter.poker/freerolls.ics"
