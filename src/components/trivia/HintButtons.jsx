@@ -102,7 +102,7 @@ function HintButtons({
                     >
                         <span className="hint-name tc-ink--white">{hint.name}</span>
                         {!compact ? <span className="hint-description">{hint.description}</span> : null}
-                        <span className={`hint-cost ${isUsed ? 'tc-ink--green' : isVip ? 'tc-ink--gold' : canAfford ? 'tc-ink--blue' : 'tc-ink--red'}`}>
+                        <span className={`hint-cost ${isUsed ? 'tc-ink--green' : isVip ? 'tc-ink--cyan' : canAfford ? 'tc-ink--blue' : 'tc-ink--red'}`}>
                             {isUsed ? 'Used' : isVip ? 'VIP' : `${hint.cost} Diamonds`}
                         </span>
                     </button>

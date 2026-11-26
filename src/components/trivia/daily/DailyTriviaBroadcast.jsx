@@ -8,7 +8,7 @@ import styles from './DailyTriviaBroadcast.module.css';
 
 function inkClass(ink) {
     if (ink === 'green') return 'tc-ink--green';
-    if (ink === 'gold') return 'tc-ink--gold';
+    if (ink === 'cyan') return 'tc-ink--cyan';
     if (ink === 'red') return 'tc-ink--red';
     return 'tc-ink--blue';
 }
@@ -107,11 +107,11 @@ export default function DailyTriviaBroadcast({
                     <div><dt>Questions</dt><dd>{formatTriviaDisplayNumber(questionsCount)}</dd></div>
                     <div><dt>Clock</dt><dd>Untimed</dd></div>
                     <div><dt>Entry</dt><dd className="tc-ink--green">Free</dd></div>
-                    <div><dt>Completion Bonus</dt><dd className="tc-ink--gold">10 Diamonds</dd></div>
+                    <div><dt>Completion Bonus</dt><dd className="tc-ink--cyan">10 Diamonds</dd></div>
                     <div><dt>Daily Earning Cap</dt><dd>{formatTriviaDisplayNumber(dailyCap)} Diamonds</dd></div>
                     <div><dt>Current Streak</dt><dd>{signedIn ? `${formatTriviaDisplayNumber(userStreak)} Days` : 'Sign In'}</dd></div>
                     <div><dt>Best Streak</dt><dd>{signedIn ? `${formatTriviaDisplayNumber(bestStreak)} Days` : 'Sign In'}</dd></div>
-                    {signedIn ? <div><dt>Your Diamonds</dt><dd className="tc-ink--gold">{formatTriviaDisplayNumber(userDiamonds)}</dd></div> : null}
+                    {signedIn ? <div><dt>Your Diamonds</dt><dd className="tc-ink--cyan">{formatTriviaDisplayNumber(userDiamonds)}</dd></div> : null}
                     {personalBest != null ? <div><dt>Best Score</dt><dd>{formatTriviaDisplayNumber(personalBest)}</dd></div> : null}
                     <div><dt>Daily Reset</dt><dd>{resetIn} · Chicago</dd></div>
                 </dl>
@@ -162,7 +162,7 @@ export function DailySettlementReceipt({ result }) {
         <section className={styles.receipt} aria-labelledby="daily-settlement-receipt">
             <div className={styles.sectionHead}>
                 <h2 id="daily-settlement-receipt">Settlement Receipt</h2>
-                <span className={result.settlementReplayed ? 'tc-ink--gold' : 'tc-ink--green'}>
+                <span className={result.settlementReplayed ? 'tc-ink--cyan' : 'tc-ink--green'}>
                     {result.settlementReplayed ? 'Verified Replay' : 'Settled'}
                 </span>
             </div>
@@ -179,8 +179,8 @@ export function DailySettlementReceipt({ result }) {
                 {receipt?.resultHash ? <div><dt>Result Hash</dt><dd data-preserve-case="true">{receipt.resultHash}</dd></div> : null}
                 {receipt?.submittedAt ? <div><dt>Submitted</dt><dd><time data-preserve-case="true" dateTime={receipt.submittedAt}>{receipt.submittedAt}</time></dd></div> : null}
                 <div><dt>Server Grade</dt><dd>{formatTriviaDisplayNumber(result.correctCount)} / {formatTriviaDisplayNumber(result.totalQuestions)}</dd></div>
-                <div><dt>Run Reward</dt><dd className={reward > 0 ? 'tc-ink--gold' : undefined}>{formatTriviaDisplayNumber(reward)} Diamonds</dd></div>
-                <div><dt>Daily Bonus</dt><dd className={bonus > 0 ? 'tc-ink--gold' : undefined}>{formatTriviaDisplayNumber(bonus)} Diamonds</dd></div>
+                <div><dt>Run Reward</dt><dd className={reward > 0 ? 'tc-ink--green' : undefined}>{formatTriviaDisplayNumber(reward)} Diamonds</dd></div>
+                <div><dt>Daily Bonus</dt><dd className={bonus > 0 ? 'tc-ink--green' : undefined}>{formatTriviaDisplayNumber(bonus)} Diamonds</dd></div>
                 <div><dt>Voided Questions</dt><dd>{formatTriviaDisplayNumber(voided)}</dd></div>
             </dl>
             {receipt && transactions.length > 0 ? (
@@ -189,7 +189,7 @@ export function DailySettlementReceipt({ result }) {
                         <li key={transaction.id || transaction.referenceId || index} className={styles.transaction}>
                             <div className={styles.transactionHead}>
                                 <strong>{transactionLabel(transaction.role)}</strong>
-                                <span className={Number(transaction.amount) > 0 ? 'tc-ink--gold' : 'tc-ink--silver'}>
+                                <span className={Number(transaction.amount) > 0 ? 'tc-ink--green' : 'tc-ink--silver'}>
                                     {Number(transaction.amount) > 0 ? '+' : ''}{formatTriviaDisplayNumber(Number(transaction.amount) || 0)} Diamonds
                                 </span>
                             </div>

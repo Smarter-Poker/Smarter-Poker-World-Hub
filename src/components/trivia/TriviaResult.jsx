@@ -140,7 +140,7 @@ export default function TriviaResult({
                 spread: 70,
                 origin: { y: 0.6 },
                 // Schema inks only; canvas-confetti's default palette is off-schema.
-                colors: isPerfect ? ['#ffd700', '#f02849', '#c8ffd2', '#45adff'] : ['#45adff', '#ffd700', '#e4e7ec'],
+                colors: isPerfect ? ['#86daff', '#f02849', '#c8ffd2', '#45adff'] : ['#45adff', '#86daff', '#e4e7ec'],
                 disableForReducedMotion: true,
             });
         }
@@ -156,7 +156,7 @@ export default function TriviaResult({
             try { navigator.vibrate?.([30, 50, 30]); } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
             flawlessTimer = setTimeout(() => {
                 setShowFlawless(true);
-                fireConfetti({ particleCount: 100, spread: 100, origin: { y: 0.4 }, colors: ['#ffd700', '#45adff', '#f4f7fb'], disableForReducedMotion: true });
+                fireConfetti({ particleCount: 100, spread: 100, origin: { y: 0.4 }, colors: ['#86daff', '#45adff', '#f4f7fb'], disableForReducedMotion: true });
             }, 800);
         }
         return () => {
@@ -230,7 +230,7 @@ export default function TriviaResult({
     }, []);
 
     const getGrade = () => {
-        if (accuracy >= 100) return { letter: 'S', ink: 'gold', label: 'Perfect!' };
+        if (accuracy >= 100) return { letter: 'S', ink: 'cyan', label: 'Perfect!' };
         if (accuracy >= 90) return { letter: 'A', ink: 'green', label: 'Excellent!' };
         if (accuracy >= 80) return { letter: 'B', ink: 'blue', label: 'Great Job!' };
         if (accuracy >= 70) return { letter: 'C', ink: 'silver', label: 'Good Work!' };
@@ -299,7 +299,7 @@ export default function TriviaResult({
                     <span className="trivia-result__grade-label tc-ink--silver">{grade.label}</span>
                 </p>
                 {showFlawless && (
-                    <p className="trivia-result__flawless tc-ink--gold" role="status">Flawless Victory</p>
+                    <p className="trivia-result__flawless tc-ink--cyan" role="status">Flawless Victory</p>
                 )}
             </div>
 
@@ -319,13 +319,13 @@ export default function TriviaResult({
                 {(stakePot > 0 || diamondsEarned > 0) && (
                     <li className="tc-row">
                         <span className="tc-row__label">{cashedOut ? 'Cashed Out' : 'Diamonds Earned'}</span>
-                        <span className="tc-row__value tc-ink--gold">+{formatTriviaDisplayNumber(displayDiamonds)}</span>
+                        <span className="tc-row__value tc-ink--green">+{formatTriviaDisplayNumber(displayDiamonds)}</span>
                     </li>
                 )}
                 {hasMultiplier && (
                     <li className="tc-row">
                         <span className="tc-row__label">Streak Bonus</span>
-                        <span className="tc-row__value tc-ink--gold">{streakMultiplier}X</span>
+                        <span className="tc-row__value tc-ink--cyan">{streakMultiplier}X</span>
                     </li>
                 )}
                 {skippedCount > 0 && (
@@ -349,13 +349,13 @@ export default function TriviaResult({
                 {Number.isFinite(personalBest) && (
                     <li className="tc-row">
                         <span className="tc-row__label">{beatPersonalBest ? 'New Personal Best' : 'Your Best'}</span>
-                        <span className={`tc-row__value ${beatPersonalBest ? 'tc-ink--gold' : ''}`}>{formatTriviaDisplayNumber(personalBest)}</span>
+                        <span className={`tc-row__value ${beatPersonalBest ? 'tc-ink--green' : ''}`}>{formatTriviaDisplayNumber(personalBest)}</span>
                     </li>
                 )}
                 {streak > 0 && !isArcade && (
                     <li className="tc-row">
                         <span className="tc-row__label">Streak</span>
-                        <span className="tc-row__value tc-ink--gold">{streak} Day Streak</span>
+                        <span className="tc-row__value tc-ink--cyan">{streak} Day Streak</span>
                     </li>
                 )}
             </ul>
@@ -369,7 +369,7 @@ export default function TriviaResult({
                         {breakdownRows.map((row) => (
                             <li key={row.key} className={`tc-row breakdown-row ${row.muted ? 'muted' : ''}`}>
                                 <span className="tc-row__label breakdown-label">{row.label}</span>
-                                <span className={`tc-row__value breakdown-value ${row.muted ? 'tc-ink--muted' : row.isDiamond ? 'tc-ink--gold' : ''}`}>
+                                <span className={`tc-row__value breakdown-value ${row.muted ? 'tc-ink--muted' : row.isDiamond ? 'tc-ink--green' : ''}`}>
                                     {row.value}{row.isDiamond ? ' Diamonds' : ''}
                                 </span>
                             </li>
@@ -381,7 +381,7 @@ export default function TriviaResult({
             {/* Arcade Time Bonus - rendered only when the award really
                 contained one (see shownTimeBonus above). */}
             {isArcade && shownTimeBonus > 0 && (
-                <p className="trivia-console-copy tc-ink--gold">
+                <p className="trivia-console-copy tc-ink--green">
                     +{shownTimeBonus} Bonus Diamonds For {timeRemaining} Sec Remaining!
                 </p>
             )}
@@ -446,7 +446,7 @@ export default function TriviaResult({
                 </button>
                 <button
                     type="button"
-                    className="result-action result-action--share-card tc-word tc-ink--gold"
+                    className="result-action result-action--share-card tc-word tc-ink--cyan"
                     onClick={() => setShareCardOpen(true)}
                 >
                     Share Score Card
@@ -462,7 +462,7 @@ export default function TriviaResult({
                 ) : null}
 
                 {showSpinButton && onSpinWheel && (
-                    <button type="button" className="result-action result-action--spin-wheel tc-word tc-ink--gold" onClick={onSpinWheel}>
+                    <button type="button" className="result-action result-action--spin-wheel tc-word tc-ink--cyan" onClick={onSpinWheel}>
                         Spin Prize Wheel!
                     </button>
                 )}
