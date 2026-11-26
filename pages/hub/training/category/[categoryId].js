@@ -15,7 +15,7 @@ const CATEGORY_META = {
     MTT: {
         title: 'Tournaments',
         Icon: Trophy,
-        accent: '#f3b151',
+        accent: '#86daff',
         description: 'Tournament pressure, stack survival, ICM and final-table execution.'
     },
     CASH: {
@@ -27,13 +27,13 @@ const CATEGORY_META = {
     SPINS: {
         title: 'Spins & SNGs',
         Icon: Rocket,
-        accent: '#ffe16a',
+        accent: '#86daff',
         description: 'Fast stack transitions, heads-up pressure and hyper-turbo execution.'
     },
     PSYCHOLOGY: {
         title: 'Mental Game',
         Icon: Brain,
-        accent: '#c99cff',
+        accent: '#86daff',
         description: 'Decision discipline, emotional control and resilient performance under pressure.'
     },
     ADVANCED: {

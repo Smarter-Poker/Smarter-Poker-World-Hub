@@ -766,7 +766,7 @@ export default function StudyPlanPage() {
                 borderRadius: 8,
                 border: '1px solid #fbbf24',
                 background: 'linear-gradient(180deg, rgba(217, 119, 6, 0.48), rgba(146, 64, 14, 0.72))',
-                color: '#fef3c7',
+                color: '#86daff',
                 fontSize: 12,
                 fontWeight: 900,
                 cursor: 'pointer',

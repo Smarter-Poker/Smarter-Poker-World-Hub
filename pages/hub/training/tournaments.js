@@ -295,7 +295,7 @@ export default function TournamentsPage() {
                 borderRadius: 0,
                 border: '1px solid rgba(251, 191, 36, 0.4)',
                 background: 'rgba(251, 191, 36, 0.08)',
-                color: '#fde68a',
+                color: '#86daff',
                 fontSize: 12,
                 fontWeight: 700,
               }}

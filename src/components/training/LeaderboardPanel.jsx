@@ -88,7 +88,7 @@ function LeaderboardEntry({ entry, rank, isCurrentUser }) {
             <div style={{ textAlign: 'right' }}>
                 <div style={{
                     fontSize: 14, fontWeight: 800,
-                    color: accuracy >= 80 ? '#22c55e' : accuracy >= 60 ? '#fbbf24' : '#ef4444',
+                    color: accuracy >= 80 ? '#22c55e' : accuracy >= 60 ? '#86daff' : '#ef4444',
                     fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                 }}>
                     {accuracy}%

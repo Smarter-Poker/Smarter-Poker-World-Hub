@@ -3,15 +3,16 @@ import { ArrowRight, Check, Lock } from 'lucide-react';
 import TRAINING_CONFIG from '../../config/trainingConfig';
 import { getLevel } from '../../config/LevelRegistry';
 import { getGameImage } from '../../data/GAME_IMAGES';
+import { resolvePresetForGame } from '../../lib/training/trainingPresets.mjs';
 import TrainingGameArt from './TrainingGameArt';
 
 const TOTAL_LEVELS = TRAINING_CONFIG.totalLevels;
 
 const CATEGORY_META = {
-    MTT: { label: 'Tournament Sector', accent: '#f3b151' },
+    MTT: { label: 'Tournament Sector', accent: '#86daff' },
     CASH: { label: 'Cash Sector', accent: '#62e9a6' },
-    SPINS: { label: 'Spin Sector', accent: '#ffe16a' },
-    PSYCHOLOGY: { label: 'Mental Sector', accent: '#c99cff' },
+    SPINS: { label: 'Spin Sector', accent: '#86daff' },
+    PSYCHOLOGY: { label: 'Mental Sector', accent: '#86daff' },
     ADVANCED: { label: 'Solver Sector', accent: '#68d8ff' },
 };
 
@@ -19,6 +20,8 @@ export default function GameCard({ game, onClick, index = 0, image, progress, pl
     if (!game) return null;
 
     const meta = CATEGORY_META[game.category] || CATEGORY_META.MTT;
+    const preset = resolvePresetForGame(game);
+    const choiceSummary = `${preset.variant.toUpperCase()} · ${preset.format === 'mtt' ? 'MTT' : preset.format === 'spins' ? 'Spins' : preset.format === 'hu' ? 'Heads-Up' : 'Cash'} · ${preset.tableSize} · ${preset.stackDepthBb} BB`;
     const currentLevel = Math.min(progress?.levelsCompleted || 0, TOTAL_LEVELS);
     const bestScore = progress?.bestScore || 0;
     const percent = Math.round((currentLevel / TOTAL_LEVELS) * 100);
@@ -39,7 +42,7 @@ export default function GameCard({ game, onClick, index = 0, image, progress, pl
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: Math.min(index, 10) * 0.025, duration: 0.28 }}
             whileTap={{ y: 1 }}
-            aria-label={`${game.name}. ${game.focus}. ${action}.`}
+            aria-label={`${game.name}. ${choiceSummary}. ${game.focus}. ${action}.`}
         >
             <span className="sp-casino-game-rail" aria-hidden="true" />
             <span className="sp-casino-game-visual">
@@ -59,6 +62,18 @@ export default function GameCard({ game, onClick, index = 0, image, progress, pl
 
             <span className="sp-casino-game-body">
                 <span className="sp-casino-game-title">{game.name}</span>
+                <span
+                    data-game-preset-summary="true"
+                    style={{
+                        display: 'block',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: '#86daff',
+                        marginTop: 4,
+                    }}
+                >
+                    {choiceSummary}
+                </span>
                 <span className="sp-casino-game-focus">{game.focus}</span>
 
                 <span className="sp-casino-game-readout">

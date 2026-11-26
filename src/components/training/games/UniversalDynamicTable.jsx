@@ -2214,6 +2214,8 @@ function UniversalDynamicTable({
     );
     const [audioPack, setAudioPack] = React.useState(() => (soundManager?.soundPack || 'casino'));
     const [continuationStreetIndex, setContinuationStreetIndex] = React.useState(0);
+    const [customizeOpen, setCustomizeOpen] = React.useState(false);
+    const showTableCustomControls = !presetOnly || customizeOpen;
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -4723,7 +4725,7 @@ function UniversalDynamicTable({
     // the badge, the range chips and the feedback indicator can never drift out
     // of agreement with each other or with the mode that is actually live.
     const rngTheme = rngHighLow === 'high'
-        ? { fg: '#facc15', strong: 'rgba(250,204,21,0.45)', soft: 'rgba(250,204,21,0.15)', faint: 'rgba(250,204,21,0.08)', hairline: 'rgba(250,204,21,0.3)', glow: 'rgba(250,204,21,0.4)', label: 'HIGH' }
+        ? { fg: '#86daff', strong: 'rgba(134,218,255,0.45)', soft: 'rgba(134,218,255,0.15)', faint: 'rgba(134,218,255,0.08)', hairline: 'rgba(134,218,255,0.3)', glow: 'rgba(134,218,255,0.4)', label: 'HIGH' }
         : { fg: '#38bdf8', strong: 'rgba(56,189,248,0.45)', soft: 'rgba(56,189,248,0.15)', faint: 'rgba(56,189,248,0.08)', hairline: 'rgba(56,189,248,0.3)', glow: 'rgba(56,189,248,0.4)', label: 'LOW' };
 
     // Wrap handleAnswer to resolve grouped actions back to solver actions for scoring
@@ -5703,7 +5705,7 @@ function UniversalDynamicTable({
                             { key: 'best', color: '#22c55e', count: counts.best || 0 },
                             { key: 'correct', color: '#00d4ff', count: counts.correct || 0 },
                             { key: 'inaccuracy', color: '#86daff', count: counts.inaccuracy || 0 },
-                            { key: 'wrong', color: '#f97316', count: counts.wrong || 0 },
+                            { key: 'wrong', color: '#fca5a5', count: counts.wrong || 0 },
                             { key: 'blunder', color: '#ef4444', count: counts.blunder || 0 },
                         ].filter(seg => seg.count > 0);
                         return (
@@ -5735,7 +5737,7 @@ function UniversalDynamicTable({
                             : totalSessionEVLoss > 1
                             ? '#ef4444'
                             : totalSessionEVLoss > 0
-                            ? '#fbbf24'
+                            ? '#86daff'
                             : '#22c55e',
                     }}
                     title="Total EV surrendered this session"
@@ -5801,13 +5803,64 @@ function UniversalDynamicTable({
                         {/* Variant Selector: Hold'em, PLO4, PLO5, PLO6, PLO8 */}
                         <div
                             data-training-variant-selector="true"
+                            data-table-variant-switcher="true"
                             data-variant-prefetch-cache="true"
                             data-prefetched-variants={prefetchedVariantsSummary}
-                            role={presetOnly ? undefined : 'group'}
-                            aria-label={presetOnly ? undefined : 'Poker Variant Selector'}
+                            role="group"
+                            aria-label="Poker Variant Selector"
                             style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}
                         >
-                            {presetOnly ? currentVariant.toUpperCase() : [
+                            <span
+                                data-training-mode-badge="true"
+                                data-training-mode={fullHandPlaythroughMode ? 'full-hand-practice' : 'single-decision-drill'}
+                                style={{
+                                    padding: '2px 7px',
+                                    borderRadius: 5,
+                                    fontSize: 12,
+                                    fontWeight: 800,
+                                    border: '1px solid rgba(134, 218, 255, 0.45)',
+                                    background: 'rgba(134, 218, 255, 0.12)',
+                                    color: '#86daff',
+                                }}
+                            >
+                                {fullHandPlaythroughMode ? 'Full-Hand Practice' : 'Single-Decision Drill'}
+                            </span>
+                            {presetOnly && (
+                                <button
+                                    type="button"
+                                    data-customize-table-toggle="true"
+                                    aria-expanded={customizeOpen}
+                                    onClick={() => setCustomizeOpen((prev) => !prev)}
+                                    style={{
+                                        padding: '2px 8px',
+                                        borderRadius: 5,
+                                        fontSize: 12,
+                                        fontWeight: 800,
+                                        cursor: 'pointer',
+                                        border: customizeOpen ? '1px solid #56d8ff' : '1px solid #688299',
+                                        background: customizeOpen ? 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)' : 'rgba(255,255,255,0.06)',
+                                        color: '#f2f7ff',
+                                    }}
+                                >
+                                    {customizeOpen ? 'Done Customizing' : 'Customize'}
+                                </button>
+                            )}
+                            {(!showTableCustomControls) ? (
+                                <span
+                                    data-preset-active-summary="true"
+                                    style={{
+                                        padding: '2px 7px',
+                                        borderRadius: 5,
+                                        fontSize: 12,
+                                        fontWeight: 800,
+                                        color: '#bdd0e2',
+                                        border: '1px solid rgba(104, 130, 153, 0.4)',
+                                        background: 'rgba(10, 24, 41, 0.65)',
+                                    }}
+                                >
+                                    {`${currentVariant.toUpperCase()} · ${activeBettingStructure === 'pot_limit' ? 'Pot-Limit' : activeBettingStructure === 'fixed_limit' ? 'Fixed-Limit' : 'No-Limit'} · ${activeGameFormat === '9max' ? '9 Seats' : activeGameFormat === 'spins' ? '3 Seats' : activeGameFormat === 'hu' ? '2 Seats' : '6 Seats'} · ${heroStack} BB`}
+                                </span>
+                            ) : [
                                 { id: 'nlh', label: "Hold'em" },
                                 { id: 'plo4', label: 'PLO4' },
                                 { id: 'plo5', label: 'PLO5' },
@@ -5820,6 +5873,7 @@ function UniversalDynamicTable({
                                         key={v.id}
                                         type="button"
                                         data-variant-option={v.id}
+                                        data-variant-btn={v.id}
                                         aria-pressed={active}
                                         onClick={() => handleSelectVariant(v.id)}
                                         style={{
@@ -5839,7 +5893,7 @@ function UniversalDynamicTable({
                             })}
 
                             {/* On-Table Betting Structure Switcher (No-Limit, Pot-Limit, Fixed-Limit) */}
-                            {!presetOnly && (
+                            {showTableCustomControls && (
                             <div
                                 data-betting-structure-selector="true"
                                 data-active-betting-structure={activeBettingStructure}
@@ -5898,7 +5952,7 @@ function UniversalDynamicTable({
                             )}
 
                             {/* On-Table Game Format Switcher (Cash, MTT, Spins, HU, 9-Max Full Ring) */}
-                            {!presetOnly && (
+                            {showTableCustomControls && (
                             <div
                                 data-game-format-selector="true"
                                 data-active-game-format={activeGameFormat}
@@ -5928,9 +5982,9 @@ function UniversalDynamicTable({
                                                 fontSize: 12,
                                                 fontWeight: 800,
                                                 cursor: 'pointer',
-                                                border: isFmtActive ? '1px solid rgba(168, 85, 247, 0.75)' : '1px solid rgba(255,255,255,0.12)',
-                                                background: isFmtActive ? 'rgba(168, 85, 247, 0.22)' : 'rgba(255,255,255,0.04)',
-                                                color: isFmtActive ? '#e9d5ff' : '#94a3b8',
+                                                border: isFmtActive ? '1px solid #56d8ff' : '1px solid rgba(255,255,255,0.12)',
+                                                background: isFmtActive ? 'rgba(8, 124, 250, 0.28)' : 'rgba(255,255,255,0.04)',
+                                                color: isFmtActive ? '#86daff' : '#94a3b8',
                                             }}
                                         >
                                             {fmt.label}
@@ -6024,6 +6078,7 @@ function UniversalDynamicTable({
                         {!presetOnly && <details
                             className="sp-mtt-disclosure"
                             data-table-study-tools-disclosure="true"
+                            data-study-tools-disclosure="true"
                             style={{ width: '100%' }}
                         >
                             <summary style={{ minHeight: 36, padding: '4px 10px', fontSize: 12, fontWeight: 800, cursor: 'pointer', color: '#83deff' }}>
@@ -6083,9 +6138,9 @@ function UniversalDynamicTable({
                                             fontSize: 12,
                                             fontWeight: 800,
                                             cursor: 'pointer',
-                                            border: '1px solid rgba(251, 191, 36, 0.5)',
-                                            background: 'rgba(251, 191, 36, 0.14)',
-                                            color: '#fde68a',
+                                            border: '1px solid rgba(134, 218, 255, 0.5)',
+                                            background: 'rgba(134, 218, 255, 0.14)',
+                                            color: '#86daff',
                                         }}
                                     >
                                         Restart Scenario
@@ -6117,9 +6172,9 @@ function UniversalDynamicTable({
                                             borderRadius: 5,
                                             fontSize: 12,
                                             fontWeight: 800,
-                                            border: outboxPendingCount > 0 ? '1px solid rgba(251, 191, 36, 0.6)' : '1px solid rgba(52, 211, 153, 0.45)',
-                                            background: outboxPendingCount > 0 ? 'rgba(251, 191, 36, 0.16)' : 'rgba(16, 185, 129, 0.12)',
-                                            color: outboxPendingCount > 0 ? '#fde68a' : '#6ee7b7',
+                                            border: outboxPendingCount > 0 ? '1px solid rgba(134, 218, 255, 0.6)' : '1px solid rgba(52, 211, 153, 0.45)',
+                                            background: outboxPendingCount > 0 ? 'rgba(134, 218, 255, 0.16)' : 'rgba(16, 185, 129, 0.12)',
+                                            color: outboxPendingCount > 0 ? '#86daff' : '#6ee7b7',
                                         }}
                                     >
                                         {outboxPendingCount > 0 ? `Offline Queue: ${outboxPendingCount} Pending` : 'Sync Queue: Live'}
@@ -6162,9 +6217,9 @@ function UniversalDynamicTable({
                                     fontSize: 12,
                                     fontWeight: 800,
                                     cursor: 'pointer',
-                                    border: isMttOrPkoActive ? '1px solid rgba(245, 158, 11, 0.65)' : '1px solid rgba(255,255,255,0.14)',
-                                    background: isMttOrPkoActive ? 'rgba(245, 158, 11, 0.18)' : 'rgba(255,255,255,0.04)',
-                                    color: isMttOrPkoActive ? '#fcd34d' : '#cbd5e1',
+                                    border: isMttOrPkoActive ? '1px solid rgba(134, 218, 255, 0.65)' : '1px solid rgba(255,255,255,0.14)',
+                                    background: isMttOrPkoActive ? 'rgba(134, 218, 255, 0.18)' : 'rgba(255,255,255,0.04)',
+                                    color: isMttOrPkoActive ? '#86daff' : '#cbd5e1',
                                 }}
                             >
                                 {`ICM BF ${icmBubbleFactor}x · Bounty Eq +${bountyEquivBb} BB · Act: ${icmAdjustedAction}`}
@@ -6219,9 +6274,9 @@ function UniversalDynamicTable({
                                                 fontSize: 12,
                                                 fontWeight: 800,
                                                 cursor: 'pointer',
-                                                border: isRuleActive ? '1px solid rgba(249, 115, 22, 0.75)' : '1px solid rgba(255,255,255,0.12)',
-                                                background: isRuleActive ? 'rgba(249, 115, 22, 0.22)' : 'rgba(255,255,255,0.04)',
-                                                color: isRuleActive ? '#fed7aa' : '#94a3b8',
+                                                border: isRuleActive ? '1px solid #56d8ff' : '1px solid rgba(255,255,255,0.12)',
+                                                background: isRuleActive ? 'rgba(8, 124, 250, 0.25)' : 'rgba(255,255,255,0.04)',
+                                                color: isRuleActive ? '#86daff' : '#94a3b8',
                                             }}
                                         >
                                             {rl.label}
@@ -6281,9 +6336,9 @@ function UniversalDynamicTable({
                                         fontSize: 12,
                                         fontWeight: 800,
                                         cursor: 'pointer',
-                                        border: handHistoryDrawerOpen ? '1px solid rgba(168, 85, 247, 0.7)' : '1px solid rgba(255,255,255,0.14)',
-                                        background: handHistoryDrawerOpen ? 'rgba(168, 85, 247, 0.22)' : 'rgba(255,255,255,0.04)',
-                                        color: handHistoryDrawerOpen ? '#e9d5ff' : '#cbd5e1',
+                                        border: handHistoryDrawerOpen ? '1px solid #56d8ff' : '1px solid rgba(255,255,255,0.14)',
+                                        background: handHistoryDrawerOpen ? 'rgba(8, 124, 250, 0.25)' : 'rgba(255,255,255,0.04)',
+                                        color: handHistoryDrawerOpen ? '#86daff' : '#cbd5e1',
                                     }}
                                 >
                                     {`Hand Log (${sessionHandHistoryLog.length})`}
@@ -6423,9 +6478,9 @@ function UniversalDynamicTable({
                                     borderRadius: 4,
                                     fontSize: 12,
                                     fontWeight: 700,
-                                    color: hasNumericBounty ? '#fbbf24' : '#94a3b8',
-                                    background: hasNumericBounty ? 'rgba(251, 191, 36, 0.14)' : 'rgba(255,255,255,0.04)',
-                                    border: hasNumericBounty ? '1px solid rgba(251, 191, 36, 0.4)' : '1px solid rgba(255,255,255,0.08)',
+                                    color: hasNumericBounty ? '#86daff' : '#94a3b8',
+                                    background: hasNumericBounty ? 'rgba(134, 218, 255, 0.14)' : 'rgba(255,255,255,0.04)',
+                                    border: hasNumericBounty ? '1px solid rgba(134, 218, 255, 0.4)' : '1px solid rgba(255,255,255,0.08)',
                                 }}
                             >
                                 {hasNumericBounty
@@ -6445,9 +6500,9 @@ function UniversalDynamicTable({
                                     borderRadius: 4,
                                     fontSize: 12,
                                     fontWeight: 700,
-                                    color: (hasNumericBubbleFactor || rawPayoutPressure) ? '#f59e0b' : '#94a3b8',
-                                    background: (hasNumericBubbleFactor || rawPayoutPressure) ? 'rgba(245, 158, 11, 0.14)' : 'rgba(255,255,255,0.04)',
-                                    border: (hasNumericBubbleFactor || rawPayoutPressure) ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid rgba(255,255,255,0.08)',
+                                    color: (hasNumericBubbleFactor || rawPayoutPressure) ? '#86daff' : '#94a3b8',
+                                    background: (hasNumericBubbleFactor || rawPayoutPressure) ? 'rgba(134, 218, 255, 0.14)' : 'rgba(255,255,255,0.04)',
+                                    border: (hasNumericBubbleFactor || rawPayoutPressure) ? '1px solid rgba(134, 218, 255, 0.4)' : '1px solid rgba(255,255,255,0.08)',
                                 }}
                             >
                                 {hasNumericBubbleFactor
@@ -6754,9 +6809,9 @@ function UniversalDynamicTable({
                                     fontSize: 12,
                                     fontWeight: 800,
                                     cursor: 'pointer',
-                                    border: '1px solid rgba(192, 132, 252, 0.55)',
-                                    background: activeHudSeatPosition ? 'rgba(168, 85, 247, 0.28)' : 'rgba(168, 85, 247, 0.14)',
-                                    color: '#e9d5ff',
+                                    border: '1px solid rgba(134, 218, 255, 0.55)',
+                                    background: activeHudSeatPosition ? 'rgba(8, 124, 250, 0.28)' : 'rgba(134, 218, 255, 0.14)',
+                                    color: '#86daff',
                                 }}
                             >
                                 {`SpadeConsole HUD (${villainPosition || 'BB'})`}
@@ -6778,9 +6833,9 @@ function UniversalDynamicTable({
                                     fontSize: 12,
                                     fontWeight: 800,
                                     cursor: 'pointer',
-                                    border: '1px solid rgba(251, 191, 36, 0.55)',
-                                    background: rabbitHuntRevealed ? 'rgba(251, 191, 36, 0.25)' : 'rgba(251, 191, 36, 0.12)',
-                                    color: '#fde68a',
+                                    border: '1px solid rgba(134, 218, 255, 0.55)',
+                                    background: rabbitHuntRevealed ? 'rgba(8, 124, 250, 0.25)' : 'rgba(134, 218, 255, 0.12)',
+                                    color: '#86daff',
                                 }}
                             >
                                 {rabbitHuntRevealed
@@ -6894,9 +6949,9 @@ function UniversalDynamicTable({
                                     fontSize: 12,
                                     fontWeight: 800,
                                     cursor: 'pointer',
-                                    border: '1px solid rgba(251, 191, 36, 0.5)',
-                                    background: 'rgba(251, 191, 36, 0.14)',
-                                    color: '#fde68a',
+                                    border: '1px solid rgba(134, 218, 255, 0.5)',
+                                    background: 'rgba(134, 218, 255, 0.14)',
+                                    color: '#86daff',
                                 }}
                             >
                                 {`Skin: ${activeSkinInfo.label} · Back: ${activeCardBackInfo.label}`}
@@ -6914,7 +6969,7 @@ function UniversalDynamicTable({
                                     fontWeight: 800,
                                     border: '1px solid rgba(148, 163, 184, 0.35)',
                                     background: 'rgba(15, 23, 42, 0.78)',
-                                    color: heroActedFenceStatus.isLocked ? '#fbbf24' : '#94a3b8',
+                                    color: heroActedFenceStatus.isLocked ? '#86daff' : '#94a3b8',
                                 }}
                             >
                                 {heroActedFenceStatus.isLocked ? 'Action Fence: Locked' : 'Action Fence: Ready'}
@@ -6954,9 +7009,9 @@ function UniversalDynamicTable({
                                     fontSize: 12,
                                     fontWeight: 800,
                                     cursor: 'pointer',
-                                    border: multiwayActiveCount >= 3 ? '1px solid rgba(249, 115, 22, 0.75)' : '1px solid rgba(255,255,255,0.16)',
-                                    background: multiwayActiveCount >= 3 ? 'rgba(249, 115, 22, 0.22)' : 'rgba(255,255,255,0.05)',
-                                    color: multiwayActiveCount >= 3 ? '#fed7aa' : '#cbd5e1',
+                                    border: multiwayActiveCount >= 3 ? '1px solid #56d8ff' : '1px solid rgba(255,255,255,0.16)',
+                                    background: multiwayActiveCount >= 3 ? 'rgba(8, 124, 250, 0.22)' : 'rgba(255,255,255,0.05)',
+                                    color: multiwayActiveCount >= 3 ? '#86daff' : '#cbd5e1',
                                 }}
                             >
                                 {`${multiwaySpotEval.activePlayerCount}-Way Pot · MDF ${multiwaySpotEval.multiwayMdfPct}% · Act: ${multiwaySpotEval.recommendedAction}`}
@@ -7607,7 +7662,7 @@ function UniversalDynamicTable({
                         marginTop: ui(3),
                         fontSize: Math.max(12, ui(12)),
                         fontWeight: 800,
-                        color: 'rgba(226,175,58,0.95)',
+                        color: 'rgba(134,218,255,0.92)',
                         letterSpacing: 0.3,
                         textShadow: '0 1px 6px rgba(0,0,0,0.85)',
                     }}>
@@ -7828,7 +7883,7 @@ function UniversalDynamicTable({
                                             fontSize: Math.max(12, ui(11)),
                                             fontWeight: 800,
                                             fontVariantNumeric: 'tabular-nums',
-                                            color: isActiveSeat ? '#ffd67a' : '#e2af3a',
+                                            color: isActiveSeat ? '#86daff' : '#dbe8f4',
                                             whiteSpace: 'nowrap',
                                             cursor: 'pointer',
                                         }}
@@ -8394,7 +8449,7 @@ function UniversalDynamicTable({
                                     flexShrink: 0,
                                 }}
                             />
-                            <span style={{ fontSize: Math.max(12, ui(10)), fontWeight: 900, letterSpacing: 1.1, color: '#f5a623' }}>POT</span>
+                            <span style={{ fontSize: Math.max(12, ui(10)), fontWeight: 900, letterSpacing: 1.1, color: '#86daff' }}>POT</span>
                             {formatTableAmount(displayPot, { unit: false })}
                             <span style={{ fontSize: Math.max(12, ui(9)), fontWeight: 700, color: 'rgba(255,255,255,0.45)', marginLeft: -ui(3) }}>
                                 {displayMode === 'chips' ? 'CHIPS' : 'BB'}
@@ -8760,9 +8815,9 @@ function UniversalDynamicTable({
                                             fontWeight: 800,
                                             cursor: isRaiseReopened ? 'pointer' : 'not-allowed',
                                             opacity: isRaiseReopened ? 1 : 0.45,
-                                            border: isPresetActive ? '1px solid #fbbf24' : '1px solid rgba(255,255,255,0.14)',
-                                            background: isPresetActive ? 'rgba(251,191,36,0.2)' : 'rgba(255,255,255,0.05)',
-                                            color: isPresetActive ? '#fde68a' : '#cbd5e1',
+                                            border: isPresetActive ? '1px solid #56d8ff' : '1px solid rgba(255,255,255,0.14)',
+                                            background: isPresetActive ? 'rgba(8, 124, 250, 0.25)' : 'rgba(255,255,255,0.05)',
+                                            color: isPresetActive ? '#86daff' : '#cbd5e1',
                                         }}
                                     >
                                         {p.label}
@@ -8793,7 +8848,7 @@ function UniversalDynamicTable({
                                 }}
                                 style={{
                                     width: isMobile ? 90 : 120,
-                                    accentColor: '#f59e0b',
+                                    accentColor: '#00d4ff',
                                     cursor: isRaiseReopened ? 'pointer' : 'not-allowed',
                                     opacity: isRaiseReopened ? 1 : 0.45,
                                 }}
@@ -8833,9 +8888,9 @@ function UniversalDynamicTable({
                                     fontWeight: 900,
                                     cursor: isRaiseReopened ? 'pointer' : 'not-allowed',
                                     opacity: isRaiseReopened ? 1 : 0.45,
-                                    border: '1px solid rgba(245,158,11,0.65)',
-                                    background: 'linear-gradient(180deg, #f59e0b 0%, #d97706 100%)',
-                                    color: '#0f172a',
+                                    border: '1px solid #56d8ff',
+                                    background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)',
+                                    color: '#f2f7ff',
                                     whiteSpace: 'nowrap',
                                 }}
                             >
@@ -9388,8 +9443,8 @@ function UniversalDynamicTable({
                                     onClick={handleToggleDisplayUnit}
                                     style={{
                                         ...styles.settingsBtn,
-                                        color: displayInChips ? '#fbbf24' : 'var(--sp-fg)',
-                                        borderColor: displayInChips ? 'rgba(251,191,36,0.4)' : 'rgba(255,255,255,0.1)',
+                                        color: displayInChips ? '#86daff' : 'var(--sp-fg)',
+                                        borderColor: displayInChips ? 'rgba(134,218,255,0.4)' : 'rgba(255,255,255,0.1)',
                                     }}
                                 >
                                     {displayInChips ? `◆ Stack & Pot Units: CHIPS (${activeStakesInfo.stakesLabel})` : '◆ Stack & Pot Units: Big Blinds (BB)'}
@@ -9475,11 +9530,13 @@ function UniversalDynamicTable({
                                 </div>
                                 {(() => {
                                     const brainMeta = fq?.brainEvaluation || fq?.scenario?.brainEvaluation || question?.scenario?.brainEvaluation || null;
-                                    const coachingText = fq?.explanation || explanation || '';
-                                    if (!coachingText && (presetOnly || !brainMeta)) return null;
+                                    const rawCoachingText = fq?.explanation || explanation || '';
+                                    const fallbackExplanationText = `${correctText} is the solver's highest-EV action in this ${activeNormalizedVariant.toUpperCase()} ${String(continuedStreet || activeNormalizedStreet || 'postflop').toUpperCase()} spot (${heroPosition || 'BTN'} vs ${villainPosition || 'BB'}, Pot ${pot} BB).`;
+                                    const coachingText = rawCoachingText || fallbackExplanationText;
                                     return (
                                         <div
                                             data-training-attempt-coaching="true"
+                                            data-training-feedback="explanation"
                                             data-brain-engine={brainMeta?.engineModule || 'solver-node'}
                                             style={{
                                                 marginTop: 10,
@@ -9503,7 +9560,7 @@ function UniversalDynamicTable({
                                                         </span>
                                                     )}
                                                     {brainMeta.potLimitBounds?.maxBetBb && (
-                                                        <span style={{ padding: '2px 7px', borderRadius: 999, background: 'rgba(245, 158, 11, 0.2)', color: '#86daff', fontWeight: 800, fontSize: 12 }}>
+                                                        <span style={{ padding: '2px 7px', borderRadius: 999, background: 'rgba(134, 218, 255, 0.16)', color: '#86daff', fontWeight: 800, fontSize: 12 }}>
                                                             Pot-Limit Max: {brainMeta.potLimitBounds.maxBetBb} BB
                                                         </span>
                                                     )}
@@ -10123,10 +10180,10 @@ function UniversalDynamicTable({
                                 width: '100%',
                                 padding: '6px 10px',
                                 borderRadius: 8,
-                                background: 'rgba(251, 191, 36, 0.08)',
-                                border: '1px solid rgba(251, 191, 36, 0.35)',
+                                background: 'rgba(134, 218, 255, 0.08)',
+                                border: '1px solid rgba(134, 218, 255, 0.35)',
                                 fontSize: 12,
-                                color: '#fde68a',
+                                color: '#86daff',
                                 lineHeight: 1.45,
                             }}
                         >
@@ -11248,6 +11305,8 @@ function UniversalDynamicTable({
                                 </motion.button>
                                 {!isMultiStreetActive && lastQuestionRef.current && (
                                     <motion.button
+                                        type="button"
+                                        data-replay-current-hand="true"
                                         onClick={() => {
                                             setRetryActive(true);
                                             setSelectedAnswer(null);
@@ -11259,13 +11318,13 @@ function UniversalDynamicTable({
                                         whileTap={{ scale: 0.95 }}
                                         style={{
                                             padding: '8px 16px', borderRadius: 8,
-                                            border: '1px solid rgba(255,255,255,0.1)',
-                                            background: 'rgba(255,255,255,0.03)',
-                                            color: 'var(--sp-fg-muted)', fontSize: 12, fontWeight: 600,
+                                            border: '1px solid rgba(134, 218, 255, 0.35)',
+                                            background: 'rgba(134, 218, 255, 0.08)',
+                                            color: '#86daff', fontSize: 12, fontWeight: 700,
                                             cursor: 'pointer',
                                         }}
                                     >
-                                        Retry
+                                        Practice Again
                                     </motion.button>
                                 )}
                                 {/* PHASE 6: Bookmark Button */}
@@ -11316,9 +11375,9 @@ function UniversalDynamicTable({
                                     style={{
                                         padding: '8px 14px',
                                         borderRadius: 8,
-                                        border: '1px solid rgba(168, 85, 247, 0.55)',
-                                        background: 'rgba(168, 85, 247, 0.18)',
-                                        color: '#e9d5ff',
+                                        border: '1px solid rgba(134, 218, 255, 0.55)',
+                                        background: 'rgba(8, 124, 250, 0.18)',
+                                        color: '#86daff',
                                         fontSize: 12,
                                         fontWeight: 800,
                                         cursor: 'pointer',
@@ -11400,9 +11459,9 @@ function UniversalDynamicTable({
                                     style={{
                                         padding: '8px 14px',
                                         borderRadius: 8,
-                                        border: '1px solid rgba(251, 191, 36, 0.48)',
-                                        background: 'rgba(251, 191, 36, 0.14)',
-                                        color: '#fde68a',
+                                        border: '1px solid rgba(134, 218, 255, 0.48)',
+                                        background: 'rgba(134, 218, 255, 0.14)',
+                                        color: '#86daff',
                                         fontSize: 12,
                                         fontWeight: 800,
                                         cursor: 'pointer',
@@ -11501,9 +11560,9 @@ function UniversalDynamicTable({
                                         width: '100%',
                                         padding: '9px 14px',
                                         borderRadius: 8,
-                                        border: '1px solid rgba(168, 85, 247, 0.55)',
-                                        background: 'rgba(168, 85, 247, 0.18)',
-                                        color: '#e9d5ff',
+                                        border: '1px solid rgba(134, 218, 255, 0.55)',
+                                        background: 'rgba(8, 124, 250, 0.18)',
+                                        color: '#86daff',
                                         fontSize: 12,
                                         fontWeight: 800,
                                         cursor: 'pointer',
@@ -11567,9 +11626,9 @@ function UniversalDynamicTable({
                                         width: '100%',
                                         padding: '9px 14px',
                                         borderRadius: 8,
-                                        border: '1px solid rgba(251, 191, 36, 0.52)',
-                                        background: 'rgba(251, 191, 36, 0.15)',
-                                        color: '#fde68a',
+                                        border: '1px solid rgba(134, 218, 255, 0.52)',
+                                        background: 'rgba(134, 218, 255, 0.15)',
+                                        color: '#86daff',
                                         fontSize: 12,
                                         fontWeight: 800,
                                         cursor: 'pointer',
@@ -11792,21 +11851,21 @@ const styles = {
         letterSpacing: 1,
     },
 
-    // Gold pill (template: XP) and cyan pill (template: diamonds).
+    // Ice-Blue pill (template: XP) and cyan pill (template: diamonds).
     xpPill: {
         display: 'inline-flex',
         alignItems: 'center',
         gap: 5,
         padding: '4px 10px',
         borderRadius: 999,
-        background: 'rgba(226,175,58,0.10)',
-        border: '1px solid rgba(226,175,58,0.55)',
-        boxShadow: '0 0 10px rgba(226,175,58,0.15)',
+        background: 'rgba(134,218,255,0.10)',
+        border: '1px solid rgba(134,218,255,0.55)',
+        boxShadow: '0 0 10px rgba(134,218,255,0.15)',
         lineHeight: 1,
     },
 
     xpPillIcon: {
-        color: '#e2af3a',
+        color: '#86daff',
         fontSize: 12,
         lineHeight: 1,
     },
