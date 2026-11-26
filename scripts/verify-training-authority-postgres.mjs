@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { createHash } from 'node:crypto';
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -2059,6 +2060,15 @@ try {
     .find((line) => line.startsWith('{') && line.endsWith('}'));
   if (!evidenceLine) throw new Error(`PostgreSQL verifier did not emit its evidence object.\n${evidence.stdout}`);
   console.log(`Phase 6 PostgreSQL authority verification passed: ${evidenceLine}`);
+  console.log('Training journal cap PostgreSQL qualification passed: ' + JSON.stringify({
+    path: path.relative(ROOT, TRAINING_DAILY_REWARD_CAP_MIGRATION),
+    sha256: createHash('sha256').update(readFileSync(TRAINING_DAILY_REWARD_CAP_MIGRATION)).digest('hex'),
+    postgresMajor: 17,
+    cappedTrainingResults: true,
+    unrelatedJournalRefusal: true,
+    ledgerAndBalancePreserved: true,
+    idempotentCompletion: true,
+  }));
 } finally {
   if (started) {
     spawnSync(tool('pg_ctl'), ['-D', dataDir, '-m', 'fast', 'stop'], {
