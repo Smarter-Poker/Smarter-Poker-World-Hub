@@ -98,11 +98,12 @@ test('7. /hub renders a semantic SSR <h1> and concise description', () => {
   assert.ok(descMatch && descMatch[1].length <= 160, `hub description should be <= 160 chars (got ${descMatch?.[1]?.length})`);
 });
 
-test('8. /about and /features emit FAQPage + visible FaqSection, and market guides breadcrumbs skip /hub/poker-near-me redirect', () => {
-  for (const file of ['pages/about.js', 'pages/features/index.js']) {
+test('8. /about, /features, and /learn/category emit FAQPage + valid FaqSection faqs prop, and market guides skip /hub/poker-near-me redirect', () => {
+  for (const file of ['pages/about.js', 'pages/features/index.js', 'pages/learn/category/[category].js']) {
     const src = read(file);
     assert.match(src, /'@type': 'FAQPage'/, `${file} must emit FAQPage JSON-LD`);
-    assert.match(src, /<FaqSection/, `${file} must render visible FaqSection`);
+    assert.match(src, /<FaqSection[^>]*\bfaqs=\{/, `${file} must pass faqs={} prop to FaqSection`);
+    assert.doesNotMatch(src, /<FaqSection[^>]*\bitems=\{/, `${file} must not pass dead items={} prop to FaqSection`);
   }
   for (const file of ['pages/poker-rooms/guides/index.js', 'pages/poker-rooms/guides/[city].js']) {
     const src = read(file);

@@ -197,7 +197,7 @@ export default function AboutPage() {
             </Link>
           </p>
 
-          <FaqSection heading="Frequently Asked Questions About Smarter.Poker" items={ABOUT_FAQS} />
+          <FaqSection title="Frequently Asked Questions About Smarter.Poker" faqs={ABOUT_FAQS} />
 
           <p style={styles.compliance}>Free To Play. 18+. Diamonds And Chips Have No Cash Value.</p>
         </article>

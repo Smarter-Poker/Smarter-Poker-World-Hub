@@ -385,7 +385,7 @@ export default function FeaturesIndexPage() {
         </section>
 
         <div style={{ maxWidth: 1180, margin: '0 auto 40px' }}>
-          <FaqSection heading="Smarter.Poker Platform Features FAQ" items={FEATURES_FAQS} />
+          <FaqSection title="Smarter.Poker Platform Features FAQ" faqs={FEATURES_FAQS} />
         </div>
 
         <CitationBacklinkBox
