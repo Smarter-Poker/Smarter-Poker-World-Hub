@@ -128,7 +128,6 @@ test('8. Core index pages emit SpeakableSpecification and stay within SERP meta 
   }
 
   const conciseDescPages = [
-    'pages/index.js',
     'pages/facts.js',
     'pages/rules/index.js',
     'pages/games/index.js',

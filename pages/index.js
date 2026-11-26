@@ -186,7 +186,7 @@ export default function LandingPage() {
     <>
       <SEOHead
         title="Smarter.Poker: Free Poker Training, Clubs And Live Games"
-        description="Free Online Poker Platform: GTO Training, 52 Calculators, Private Clubs, Club Commander, Live Venues And Bankroll Tracking. No Real-Money Gambling."
+        description="Smarter.Poker Is A Free Online Poker Platform: GTO Training, Private Poker Clubs In Poker Arena, Club Commander Room Management, Live Venue Discovery, Home Games And A Bankroll Manager. Free To Play, No Real-Money Gambling."
         canonical="/"
         jsonLd={[schemas.organization, schemas.website, schemas.softwareApp]}
       >
