@@ -976,15 +976,7 @@ test('Phase 7 Package A-J: Parallel API latency optimization, Runout What-If Exp
     'pages/hub/training/aggregate.js',
     'pages/hub/training/gto-reports.js',
     'pages/hub/training/reports.js',
-    'pages/hub/training/tournaments.js',
-    'pages/hub/training/challenges.js',
-    'pages/hub/training/community-leaderboard.js',
     'pages/hub/training/study-group.js',
-    'pages/hub/training/study-group-finder.js',
-    'pages/hub/training/training-feed.js',
-    'pages/hub/training/achievements.js',
-    'pages/hub/training/milestones.js',
-    'pages/hub/training/streaks.js',
     'pages/hub/training/progress.js',
     'pages/hub/training/leaderboard.js',
   ];
@@ -1066,17 +1058,10 @@ test('Phase 8 Master 12-Point Package: Zero route-state coverage gaps, 100% Hors
 
   // 6. All newly wired Phase 8 standalone training pages
   const phase8BrainPages = [
-    'pages/hub/training/autopilot.js',
     'pages/hub/training/custom-solve.js',
     'pages/hub/training/flashcards.js',
-    'pages/hub/training/focus-timer.js',
-    'pages/hub/training/gto-news.js',
-    'pages/hub/training/gto-preloader.js',
     'pages/hub/training/hand-lab.js',
     'pages/hub/training/quiz-builder.js',
-    'pages/hub/training/scenario-demo.js',
-    'pages/hub/training/session-notes.js',
-    'pages/hub/training/session-warmup.js',
   ];
   for (const relPath of phase8BrainPages) {
     const src = read(relPath);
@@ -1113,10 +1098,9 @@ test('Phase 9 Deep Sweep & Root-Cause Anti-Regression Hardening: LevelSelector q
   assert.match(useGtoTrainerSrc, /enqueueFailedAnswerOutbox/, 'useGTOTrainer.js must enqueue network-failed answer submissions');
   assert.match(useGtoTrainerSrc, /flushFailedAnswerOutbox/, 'useGTOTrainer.js must flush queued answer submissions when online');
 
-  // 5. Root Cause #5: The 3 specialized dynamic nested pages + pvp-lobby.js + 5 core tool pages must expose the canonical [data-specialty-brain-panel="true"] and [data-launch-club-arena-cta="true"] contract
+  // 5. Root Cause #5: Specialized dynamic nested pages + pvp-lobby.js + 5 core tool pages must expose the canonical [data-specialty-brain-panel="true"] and [data-launch-club-arena-cta="true"] contract
   const phase9UnifiedContractPages = [
     'pages/hub/training/clinic/[clinicId].js',
-    'pages/hub/training/play/[gameId].js',
     'pages/hub/training/tournament/[id].js',
     'pages/hub/training/pvp-lobby.js',
     'pages/hub/training/equity-calculator.js',
@@ -1485,6 +1469,12 @@ test('Phase 12 Deep Sweep & Root-Cause Anti-Regression Hardening Laws: dedicated
     return out;
   };
 
+  const focusedPages = new Set([
+    'achievements.js', 'challenges.js', 'community-leaderboard.js', 'focus-timer.js',
+    'gto-news.js', 'gto-preloader.js', 'milestones.js', 'play/[gameId].js',
+    'session-notes.js', 'streaks.js', 'study-group-finder.js', 'tournaments.js',
+    'training-feed.js', 'autopilot.js', 'scenario-demo.js', 'session-warmup.js',
+  ].map(file => `pages/hub/training/${file}`));
   const allTrainingPagePaths = walkTrainingPages(path.join(ROOT, 'pages/hub/training')).sort();
   let nonRedirectCount = 0;
   for (const absPath of allTrainingPagePaths) {
@@ -1492,6 +1482,10 @@ test('Phase 12 Deep Sweep & Root-Cause Anti-Regression Hardening Laws: dedicated
     const src = fs.readFileSync(absPath, 'utf8');
     if (src.includes('CanonicalTrainingRedirect')) continue;
     nonRedirectCount += 1;
+    if (focusedPages.has(relPath)) {
+      assert.doesNotMatch(src, /data-specialty-brain-panel|data-launch-club-arena-cta|evaluateTrainingSpotWithHorseBrain/);
+      continue;
+    }
     if (relPath === 'pages/hub/training/category/[categoryId].js') {
       assert.doesNotMatch(src, /data-specialty-brain-panel|data-launch-club-arena-cta/);
       assert.match(src, /onClick=\{playGame\}/);

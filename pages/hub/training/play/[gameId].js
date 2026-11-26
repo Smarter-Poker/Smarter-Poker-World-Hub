@@ -6,12 +6,11 @@
  */
 
 import { useRouter } from 'next/router';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import LevelSelector from '../../../../src/components/training/LevelSelector';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
-import { evaluateTrainingSpotWithHorseBrain, buildCustomTrainingArenaHref } from '../../../../src/lib/training/horseBrainTrainingAdapter';
 
 export default function TrainingPlayPage() {
     const bus = useTrainingBus('training-play');
@@ -20,21 +19,7 @@ export default function TrainingPlayPage() {
 
     const [userId, setUserId] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [brainVariant, setBrainVariant] = useState('nlh');
 
-    const brainPreview = useMemo(() => {
-        return evaluateTrainingSpotWithHorseBrain({
-            variant: brainVariant,
-            street: 'flop',
-            heroPosition: 'BTN',
-            villainPosition: 'BB',
-            heroCards: brainVariant === 'plo6' ? ['As', 'Ks', 'Qh', 'Jh', 'Td', '9d'] : brainVariant === 'plo5' ? ['As', 'Ks', 'Qh', 'Jh', 'Td'] : brainVariant === 'plo8' ? ['As', '2s', 'Kd', '3d'] : brainVariant === 'plo4' ? ['As', 'Ks', 'Qh', 'Jh'] : ['As', 'Kd'],
-            boardCards: ['Qs', '7d', '2c'],
-            potSizeBb: 12,
-            facingBetBb: 4,
-            effectiveStackBb: 100,
-        });
-    }, [brainVariant]);
 
     // Fetch current user from Supabase auth.
     // 2026-07-19 AUDIT FIX: this page previously minted `anon-<ts>` user ids
@@ -92,76 +77,6 @@ export default function TrainingPlayPage() {
                     userId={userId}
                     gameId={gameId}
                 />
-                <section
-                    data-specialty-brain-panel="true"
-                    data-brain-engine={brainPreview?.engineModule || 'holdem-brain.js'}
-                    data-recommended-action={brainPreview?.recommendedAction || 'Call'}
-                    style={{
-                        maxWidth: 600,
-                        margin: '0 auto 36px',
-                        padding: 18,
-                        borderRadius: 7,
-                        border: '1px solid #688299',
-                        borderTopColor: '#aec0d0',
-                        background: 'linear-gradient(180deg, #13253a 0%, #091727 55%, #060e18 100%)',
-                        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.22), 0 14px 32px rgba(0,0,0,0.45)',
-                        color: '#eefbff',
-                    }}
-                >
-                    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
-                        <div>
-                            <div style={{ color: '#83deff', fontSize: 12, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                                Horse Brain Variant Calibration
-                            </div>
-                            <div style={{ marginTop: 4, color: '#f5fdff', fontSize: 15, fontWeight: 700 }}>
-                                Recommended Action: {brainPreview?.recommendedAction || 'Call'} · Score: {brainPreview?.handScore ?? 50} / 100
-                            </div>
-                        </div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
-                            {['nlh', 'plo4', 'plo5', 'plo6', 'plo8'].map((v) => (
-                                <button
-                                    key={v}
-                                    type="button"
-                                    data-brain-variant-tab={v}
-                                    onClick={() => setBrainVariant(v)}
-                                    style={{
-                                        padding: '6px 12px',
-                                        borderRadius: 7,
-                                        border: brainVariant === v ? '1px solid #56d8ff' : '1px solid #688299',
-                                        borderTopColor: brainVariant === v ? '#b3eaff' : '#aec0d0',
-                                        background: brainVariant === v
-                                            ? 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)'
-                                            : 'linear-gradient(180deg, #13253a 0%, #060e18 100%)',
-                                        color: '#f5fdff',
-                                        fontSize: 12,
-                                        fontWeight: 700,
-                                        cursor: 'pointer',
-                                    }}
-                                >
-                                    {v.toUpperCase()}
-                                </button>
-                            ))}
-                            <button
-                                type="button"
-                                data-launch-club-arena-cta="true"
-                                onClick={() => router.push(buildCustomTrainingArenaHref({ format: 'cash', variant: brainVariant, streets: ['flop'], positions: ['BTN'], stackDepth: 100 }, 'play'))}
-                                style={{
-                                    padding: '8px 14px',
-                                    borderRadius: 7,
-                                    border: '1px solid #56d8ff',
-                                    borderTopColor: '#b3eaff',
-                                    background: 'linear-gradient(180deg, #087cfa 0%, #0044ac 58%, #002b68 100%)',
-                                    color: '#f5fdff',
-                                    fontSize: 12,
-                                    fontWeight: 800,
-                                    cursor: 'pointer',
-                                }}
-                            >
-                                Launch 1:1 Club Arena Drill
-                            </button>
-                        </div>
-                    </div>
-                </section>
             </div>
         </>
     );
