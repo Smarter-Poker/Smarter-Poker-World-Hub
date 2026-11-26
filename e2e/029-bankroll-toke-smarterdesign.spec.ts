@@ -225,6 +225,110 @@ test('A bookmarked projection opens its popup and returns to the dashboard', asy
   await expect(page.getByRole('navigation', { name: 'Bankroll Manager Sections' }).getByRole('button')).toHaveCount(14);
 });
 
+test('Tournament entry names its controls and keeps optional fields linked to their visible labels', async ({ page }) => {
+  const user = await installBankrollSession(page);
+  await page.route('**/api/vip/check-status?*', route => route.fulfill({ json: { isVip: true } }));
+  await page.route('**/rest/v1/bankroll_segments*', route => route.fulfill({ json: [{
+    user_id: user.id, segment_type: 'poker', initial_deposit: 1000, current_balance: 1000,
+  }] }));
+  await page.addInitScript(() => localStorage.setItem('bankroll_tutorial_seen_v1:prompt', '1'));
+  await page.goto('/hub/bankroll-manager', { waitUntil: 'domcontentloaded' });
+  await page.getByRole('button', { name: 'Add +', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Tournaments', exact: true }).click();
+
+  const form = page.getByRole('dialog', { name: 'Log Tournaments', exact: true });
+  await expect(form).toBeVisible();
+  const name = form.getByRole('textbox', { name: 'Tournament Name', exact: true });
+  await form.getByText('Tournament Name', { exact: true }).click();
+  await expect(name).toBeFocused();
+  const type = form.getByRole('combobox', { name: 'Tournament Type', exact: true });
+  await type.selectOption('mystery_bounty');
+  await expect(form.getByRole('spinbutton', { name: 'Bounties Collected ($)', exact: true })).toBeVisible();
+  await type.selectOption('satellite');
+  await expect(form.getByRole('spinbutton', { name: 'Bounties Collected ($)', exact: true })).toHaveCount(0);
+
+  const rebuys = form.getByRole('spinbutton', { name: 'Rebuys', exact: true });
+  await form.getByRole('button', { name: 'Increase Rebuys', exact: true }).click();
+  await expect(rebuys).toHaveValue('1');
+  await form.getByRole('button', { name: 'Decrease Rebuys', exact: true }).click();
+  await expect(rebuys).toHaveValue('0');
+  for (const [section, field] of [['Swap Deductions', 'Player Name'], ['Staking Deductions', 'Staker Name'], ['Sold Action', 'Buyer Name']]) {
+    const toggle = form.getByRole('button', { name: section, exact: true });
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(form.getByLabel(field, { exact: true })).toBeVisible();
+  }
+  await expect(form.getByLabel('Location / Venue', { exact: true })).toBeVisible();
+  for (const period of ['Start Time Period', 'End Time Period']) {
+    await expect(form.getByRole('combobox', { name: period, exact: true })).toBeVisible();
+  }
+  for (const field of await form.locator('input:visible,select:visible,textarea:visible').all()) {
+    await expect(field).toHaveAccessibleName(/\S/);
+  }
+  await form.getByRole('button', { name: 'Back', exact: true }).click();
+  const categories = page.getByRole('dialog', { name: 'Log Session', exact: true });
+  await categories.getByRole('button', { name: 'Close', exact: true }).click();
+  await expect(categories).toHaveCount(0);
+});
+
+test('Tournament entry records the entered buy-in and applies each bounty once across edits', async ({ page }) => {
+  const user = await installBankrollSession(page);
+  await page.addInitScript(() => localStorage.setItem('bankroll_tutorial_seen_v1:prompt', '1'));
+  const id = '84159925-e03a-4bf0-bbac-5041cb551b10';
+  let saved: Record<string, unknown> | undefined;
+  const writes: Record<string, unknown>[] = [];
+  await page.route('**/rest/v1/bankroll_ledger*', async route => {
+    const request = route.request();
+    if (request.method() === 'POST' || request.method() === 'PATCH') {
+      const data = request.postDataJSON();
+      if (request.method() === 'POST') expect(data.user_id).toBe(user.id);
+      else {
+        const params = new URL(request.url()).searchParams;
+        expect(params.get('id')).toBe('eq.' + id);
+        expect(params.get('user_id')).toBe('eq.' + user.id);
+      }
+      writes.push(data);
+      saved = { ...saved, ...data, id, user_id: user.id };
+      await route.fulfill({ json: saved });
+    } else {
+      await route.fulfill({ json: saved ? [saved] : [] });
+    }
+  });
+  await page.goto('/hub/bankroll-manager?type=tournament', { waitUntil: 'domcontentloaded' });
+  await page.getByRole('button', { name: 'Add + · Log Category Entry' }).click();
+  const form = page.getByRole('dialog', { name: 'Log Tournaments' });
+  await form.getByLabel('Tournament Name', { exact: true }).fill('Fixture Bounty');
+  const personalNotes = 'Keep this hand history.\nBounties: $999 was my previous event.';
+  await form.getByLabel('Session Notes', { exact: true }).fill(personalNotes);
+  await form.getByLabel('Buy-In ($)', { exact: true }).fill('100');
+  await form.getByLabel('Cash-Out ($)', { exact: true }).fill('250');
+  await form.getByRole('button', { name: 'Increase Rebuys' }).click();
+  await form.getByLabel('Add-On ($)', { exact: true }).fill('5');
+  await form.getByLabel('Tournament Type', { exact: true }).selectOption('pko');
+  await form.getByLabel('Bounties Collected ($)', { exact: true }).fill('20');
+  await expect(form.getByText('Total Buy-In:')).toContainText('$205');
+  await expect(form.getByText('Net: +$65', { exact: true })).toBeVisible();
+  await form.getByRole('button', { name: 'Log Entry', exact: true }).click();
+  await expect.poll(() => writes.length).toBe(1);
+  expect(writes[0]).toMatchObject({
+    category: 'poker_mtt', buy_in_amount: 100, reentry_count: 1, add_on_amount: 5,
+    gross_in: 205, gross_out: 270, bounties_collected: 20,
+  });
+  for (const [bounty, payout] of [[20, 270], [30, 280]]) {
+    await page.getByRole('button', { name: 'Entry Actions' }).click();
+    await page.getByRole('button', { name: /Edit/ }).click();
+    const edit = page.getByRole('dialog', { name: 'Edit Tournaments' });
+    await expect(edit.getByLabel('Buy-In ($)', { exact: true })).toHaveValue('100');
+    await edit.getByLabel('Bounties Collected ($)', { exact: true }).fill(String(bounty));
+    await edit.getByRole('button', { name: 'Save Changes', exact: true }).click();
+    await expect(edit).toHaveCount(0);
+    expect(writes.at(-1)).toMatchObject({
+      buy_in_amount: 100, gross_in: 205, gross_out: payout, bounties_collected: bounty,
+      notes: personalNotes + '\nRebuys: 1 (Total Buy-In: $205) | Add-On: $5 | Bounties: $' + bounty,
+    });
+  }
+});
+
 test('Bankroll entry screens open their own real form from the masthead', async ({ page }) => {
   await installBankrollSession(page);
   await page.route('**/api/vip/check-status?*', route => route.fulfill({ json: { isVip: true } }));
