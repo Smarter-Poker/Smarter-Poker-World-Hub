@@ -130,7 +130,7 @@ function FrequencyBars({ freqs }) {
       <div
         style={{
           fontSize: 12,
-          color: 'var(--sp-accent-amber)',
+          color: '#86daff',
           letterSpacing: 0.8,
           textTransform: 'uppercase',
           textAlign: 'center',

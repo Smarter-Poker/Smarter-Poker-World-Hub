@@ -12,8 +12,8 @@ import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import TriviaConsoleDialog from './console/TriviaConsoleDialog';
 import { toTitleCase } from '../../lib/trivia/titleCase';
 
-// Confetti uses the master's own inks only (#ClubArenaConsole 3.4).
-const CONFETTI_COLORS = ['#ffd700', '#45adff', '#c8ffd2', '#e4e7ec', '#f4f7fb', '#1877f2'];
+// Confetti uses the #SMARTERDESIGN palette only.
+const CONFETTI_COLORS = ['#86daff', '#45adff', '#c8ffd2', '#e4e7ec', '#f4f7fb', '#1877f2'];
 const CONFETTI_COUNT = 100;
 const CONFETTI_COUNT_MOBILE = 60;
 
@@ -95,7 +95,7 @@ export function ConfettiExplosion({ duration = 3000, onComplete }) {
     );
 }
 
-const RARITY_INK = Object.freeze({ legendary: 'gold', epic: 'gold', rare: 'blue', common: 'silver' });
+const RARITY_INK = Object.freeze({ legendary: 'cyan', epic: 'cyan', rare: 'blue', common: 'silver' });
 
 /**
  * Achievement unlock, printed on the painted console dialog. Auto-closes
@@ -186,7 +186,7 @@ export function WrongAnswerShake({ target = null, duration = SHAKE_MS }) {
 }
 
 /**
- * Perfect score celebration: confetti plus the moment itself, printed in gold
+ * Perfect score celebration: confetti plus the moment itself, printed in ice-blue
  * ink on the painted console dialog. The hook closes it after 4 seconds.
  */
 export function PerfectScoreCelebration({ onClose }) {
@@ -201,7 +201,7 @@ export function PerfectScoreCelebration({ onClose }) {
                 pill="Flawless"
                 secondaryAction={onClose ? { label: 'Continue', onClick: onClose } : undefined}
             >
-                <p className="trivia-perfect__line tc-ink--gold">Flawless Victory</p>
+                <p className="trivia-perfect__line tc-ink--cyan">Flawless Victory</p>
             </TriviaConsoleDialog>
         </>
     );

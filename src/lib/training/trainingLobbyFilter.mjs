@@ -118,6 +118,7 @@ export function buildLobbyGameMeta(game) {
     styleLabel,
     VARIANT_METADATA[preset?.variant]?.label,
     variantShort,
+    preset?.variant.startsWith('plo') ? 'omaha plo4 plo5 plo6 plo8 5-card five-card 6-card six-card hi-lo' : '',
     ...tags,
     game.vipOnly ? 'vip boss level 10' : 'free',
     `level ${difficulty}`,
@@ -228,11 +229,10 @@ export function filterAndSortTrainingGames(library, filters, ctx = {}) {
     if (f.accessFilter === 'FREE' && meta.vipOnly) continue;
     if (f.accessFilter === 'VIP' && !meta.vipOnly) continue;
 
-    // Variant filter matches games whose default preset matches OR that can be launched in that variant
-    // (mental-game drills don't run PLO variant trees, whereas table drills do).
     if (f.variant !== 'ALL') {
-      if (meta.category === 'PSYCHOLOGY') continue;
-      if (f.variant !== 'nlh' && meta.category === 'SPINS' && f.variant === 'plo6') continue;
+      const omahaPreset = meta.preset?.variant.startsWith('plo');
+      if (f.variant === 'nlh' && omahaPreset) continue;
+      if (f.variant !== 'nlh' && !omahaPreset && meta.category !== 'CASH') continue;
     }
 
     if (queryTerms.length > 0 && !queryTerms.every((term) => meta.searchWords.some((word) => word.startsWith(term)))) {

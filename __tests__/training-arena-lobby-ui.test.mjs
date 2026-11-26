@@ -88,9 +88,11 @@ test('poker search understands common spellings and does not match PLO inside ex
   assert.ok(find('sit and go').includes('spins-001'));
   const omaha = TRAINING_LIBRARY.filter((game) => buildLobbyGameMeta(game).preset.variant.startsWith('plo'));
   assert.ok(omaha.length > 0);
-  for (const query of ['plo', 'omaha']) {
+  for (const query of ['plo', 'omaha', 'plo5', 'five-card', 'hi-lo']) {
     assert.deepEqual(new Set(find(query)), new Set(omaha.map((game) => game.id)));
   }
+  const fiveCard = filterAndSortTrainingGames(TRAINING_LIBRARY, { variant: 'plo5' });
+  assert.deepEqual(new Set(fiveCard.map(({ game }) => game.id)), new Set([...omaha, ...TRAINING_LIBRARY.filter(g => g.category === 'CASH')].map(g => g.id)));
   for (const game of TRAINING_LIBRARY) {
     assert.ok(find(game.name).includes(game.id), game.name);
   }

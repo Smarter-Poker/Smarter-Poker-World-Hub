@@ -138,9 +138,33 @@ export const LANDING_GUIDES = [
   },
   {
     id: 'tools-hub',
-    name: '34 Free Poker Calculators & Solvers',
+    name: '52 Free Poker Calculators & Solvers',
     href: '/tools',
     summary: 'Browser-Native ICM Deal Chop, Board Texture C-Bet, M-Ratio, Tax W-2G, PKO Bounty, Side Pot And Equity Calculators.',
+  },
+  {
+    id: 'poker-series',
+    name: 'Live Poker Tournament Series',
+    href: '/hub/poker-series',
+    summary: 'Complete Schedules, Buy-Ins, And Guarantees For WSOP, WPT, MSPT, RGPS, And Regional Casino Poker Series Across North America.',
+  },
+  {
+    id: 'poker-tours',
+    name: 'Traveling Poker Tours & Circuits',
+    href: '/hub/poker-tours',
+    summary: 'Track Every Major Traveling Poker Tour Stop, Circuit Schedule, And Championship Main Event Across Verified US Card Rooms.',
+  },
+  {
+    id: 'events-calendar',
+    name: 'Live Poker Events Calendar',
+    href: '/hub/events-calendar',
+    summary: 'Daily And Monthly National Poker Tournament Calendar Featuring Upcoming Series Starts, Guarantees, And Host Venue Profiles.',
+  },
+  {
+    id: 'home-games-near-me',
+    name: 'Home Poker Games Near Me',
+    href: '/hub/home-games/near-me',
+    summary: 'Browse Public Home Poker Games By State And City With Host Reputation Badges, Blind Structures, And Free Seating Tools.',
   },
   {
     id: 'matchups',

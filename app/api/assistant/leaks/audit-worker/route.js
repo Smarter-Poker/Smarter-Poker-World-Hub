@@ -168,6 +168,15 @@ async function processClaimedJob(job, workerToken, origin, { fullRescan = false 
   const transient = (response.status === 508)
     || ([429, 502, 503, 504].includes(response.status) && body?.retryable === true);
   if (!response.ok || body?.success === false) {
+    if (response.status === 403 && (body?.code === 'paused_for_live_play' || body?.blocked === true)) {
+      await checkpoint(job.id, workerToken, {
+        status: 'queued',
+        stage: 'queued',
+        auditCursor: job.audit_cursor || null,
+        progress: { ...(job.progress || {}), ...(effectiveFullRescan ? { fullRescan: true } : {}), pausedForLivePlay: true },
+      });
+      return null;
+    }
     const failures = Number(job.progress?.consecutiveFailures || 0) + 1;
     progress = { ...progress, consecutiveFailures: failures, complete: false };
     const retry = transient && failures < MAX_TRANSIENT_FAILURES;

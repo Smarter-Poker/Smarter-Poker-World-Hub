@@ -86,7 +86,7 @@ import { analyzeVerifiedTrainingWeaknesses } from '../../src/lib/training/weakne
 import { scrollLockCount, clearBodyScrollLockIfUnheld } from '../../src/lib/scrollLock';
 
 const CATEGORY_META = {
-  MTT:        { label: 'Tournaments',  Icon: Trophy,     color: '#FB923C', glow: 'rgba(251,146,60,0.25)' },
+  MTT:        { label: 'Tournaments',  Icon: Trophy,     color: '#86daff', glow: 'rgba(134,218,255,0.22)' },
   CASH:       { label: 'Cash Games',   Icon: DollarSign, color: '#4ADE80', glow: 'rgba(74,222,128,0.22)' },
   SPINS:      { label: 'Spins & SNGs', Icon: Rocket,     color: '#86daff', glow: 'rgba(134,218,255,0.16)' },
   PSYCHOLOGY: { label: 'Mental Game',  Icon: Brain,      color: '#86daff', glow: 'rgba(134,218,255,0.16)' },
@@ -261,7 +261,13 @@ export default function TrainingPage() {
     if (!game || !requireOnline()) return;
     haptic('light');
     const query = { gameId: game.id, start: '1', source: 'training-home' };
-    if (focus?.variant) query.variant = focus.variant;
+    const effectiveVariant = focus?.variant || (filters.variant !== 'ALL' && game.category !== 'PSYCHOLOGY' ? filters.variant : null);
+    if (effectiveVariant) {
+      query.variant = effectiveVariant;
+      if (!focus?.bettingStructure && effectiveVariant !== 'nlh') {
+        query.bettingStructure = 'pot_limit';
+      }
+    }
     if (focus?.bettingStructure) query.bettingStructure = focus.bettingStructure;
     if (focus?.format) query.format = focus.format;
     if (focus?.targetStreet) query.targetStreet = focus.targetStreet;
@@ -270,7 +276,7 @@ export default function TrainingPage() {
     }
     if (Number.isInteger(focus?.questionsCount)) query.hands = String(focus.questionsCount);
     router.push({ pathname: '/hub/training/arena/[gameId]', query });
-  }, [haptic, requireOnline, router]);
+  }, [filters.variant, haptic, requireOnline, router]);
 
   const heroGame = jarvisPick || TRAINING_LIBRARY[0];
   const continueTarget = useMemo(() => {
@@ -418,8 +424,7 @@ export default function TrainingPage() {
   }, [requireOnline, retryStats, retryProgress]);
 
   const browseTrainingLibrary = useCallback(() => {
-    setActiveCat('ALL');
-    setQuery('');
+    setFilters(DEFAULT_LOBBY_FILTERS);
     if (typeof window === 'undefined') return;
     window.requestAnimationFrame(() => {
       const heading = libraryHeadingRef.current;
@@ -873,9 +878,20 @@ function Sparkline({ data }) {
   );
 }
 
-function GameCardNew({ game, progress, isRecommended, onStart }) {
+function GameCardNew({ game, isFirstCard = false, variantOverride = null, progress, isRecommended, onStart }) {
+  void isFirstCard;
   const meta = CATEGORY_META[game.category] || CATEGORY_META.MTT;
   const Icon = meta.Icon;
+  const preset = resolvePresetForGame(
+    game,
+    variantOverride
+      ? {
+          variant: variantOverride,
+          bettingStructure: variantOverride === 'nlh' ? 'no_limit' : 'pot_limit',
+        }
+      : {}
+  );
+  const choiceSummary = `${preset.variant.toUpperCase()} · ${preset.format === 'mtt' ? 'MTT' : preset.format === 'spins' ? 'Spins' : preset.format === 'hu' ? 'Heads-Up' : 'Cash'} · ${preset.tableSize} · ${preset.stackDepthBb} BB`;
   const tag  = isRecommended ? 'recommended'
               : progress >= 100 ? 'mastered'
               : progress === 0  ? 'new'
@@ -884,9 +900,10 @@ function GameCardNew({ game, progress, isRecommended, onStart }) {
     <button
       className="sp-card"
       data-category={game.category.toLowerCase()}
+      data-training-game-card={game.id}
       style={{ '--cat-color': meta.color, '--cover-glow': meta.glow }}
       onClick={onStart}
-      aria-label={`Play ${game.name}, ${meta.label}, ${game.estMinutes || 10} minutes, ${progress}% complete`}
+      aria-label={`Play ${game.name}, ${choiceSummary}, ${meta.label}, ${game.estMinutes || 10} minutes, ${progress}% complete`}
     >
       <div className="sp-card-cover">
         <TrainingGameArt
@@ -918,7 +935,7 @@ function GameCardNew({ game, progress, isRecommended, onStart }) {
         </div>
       </div>
       <div className="sp-card-body">
-        <div className="sp-card-cat"><span className="sp-swatch" /> {meta.label}</div>
+        <div className="sp-card-cat" data-game-preset-summary="true"><span className="sp-swatch" /> {meta.label} · {choiceSummary} · Single-Decision Drill</div>
         <h3 className="sp-card-title">{game.name}</h3>
         <p className="sp-card-focus">{game.focus}</p>
         <div className="sp-card-meta">
@@ -1735,10 +1752,10 @@ function GlobalStyle() {
         background: linear-gradient(180deg, #18314d 0%, #0c1f35 42%, #040d18 100%);
         box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 26px 48px rgba(0,0,0,.58), 0 0 28px rgba(8,124,250,.22);
       }
-      .sp-card[data-category="mtt"] { --sector-accent: #fb923c; }
+      .sp-card[data-category="mtt"] { --sector-accent: #86daff; }
       .sp-card[data-category="cash"] { --sector-accent: #4ade80; }
-      .sp-card[data-category="spins"] { --sector-accent: #facc15; }
-      .sp-card[data-category="psychology"] { --sector-accent: #c084fc; }
+      .sp-card[data-category="spins"] { --sector-accent: #86daff; }
+      .sp-card[data-category="psychology"] { --sector-accent: #86daff; }
       .sp-card[data-category="advanced"] { --sector-accent: #60a5fa; }
       .sp-card-cover {
         aspect-ratio: 16 / 10;

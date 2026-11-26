@@ -7,9 +7,14 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
+import { checkSandboxAccess, isFeatureAccessible } from '../../../../src/lib/personal-assistant/contextAuthority';
 import { openDrillBatch, gradeDrillAnswer } from '../../../../src/lib/personal-assistant/drillTelemetry';
 
 let _supabase = null;
+export function _setSupabaseForTesting(client) {
+  _supabase = client;
+}
+
 function getSupabase() {
   if (!_supabase) {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -43,6 +48,17 @@ export default async function handler(req, res) {
       return res.status(503).json({ success: false, error: 'Session verification unavailable' });
     }
     if (authError || !user) return res.status(401).json({ success: false, error: 'Authentication required' });
+
+    const contextAccess = await checkSandboxAccess(supabase, user.id);
+    if (!contextAccess?.allowed || !isFeatureAccessible(contextAccess.accessLevel, 'leak_finder_detect')) {
+      return res.status(403).json({
+        success: false,
+        blocked: true,
+        contextState: contextAccess?.contextState || 'session_active_unknown',
+        accessLevel: contextAccess?.accessLevel || 'hard_block',
+        error: contextAccess?.message || 'Solver drill grading is unavailable during live play or post-session cooldown.',
+      });
+    }
 
     const body = req.body && typeof req.body === 'object' ? req.body : {};
     const leakId = typeof body.leakId === 'string' ? body.leakId.trim() : '';

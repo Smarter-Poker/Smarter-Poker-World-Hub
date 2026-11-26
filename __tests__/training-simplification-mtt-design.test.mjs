@@ -933,6 +933,172 @@ test('Phase 21 deep forensic root-cause hardening: 9max Launch Contract, Duel To
   assert.ok(messagesSrc.includes(".order('created_at', { ascending: false })") && messagesSrc.includes('[...rawMessages].reverse()'), 'study-groups messages API must fetch newest 200 and reverse to chronological order');
 });
 
+test('Phase 22 Poker Arena Parity, 6 Matched Comparison Cases, Worked Pot-Limit Math, Preset Customize Toggle, 1-Tap PLO5 Cash Discovery, and #SMARTERDESIGN Color Law', async () => {
+  const {
+    computeLegalBettingBounds,
+    computeClubArenaParityState,
+    evaluateShowdownAndAllocatePots,
+    computeMainAndSidePots,
+    resolveNextActor,
+    HOLE_CARD_COUNT_BY_VARIANT,
+    NINE_MAX_POSITIONS,
+    HEADS_UP_POSITIONS,
+    SPINS_POSITIONS,
+  } = await import('../src/lib/training/clubArenaTableParity.js');
+  const { CLUB_ARENA_SEAT_LAYOUTS } = await import('../src/lib/training/clubArenaTableGeometry.mjs');
+
+  // Case 1: Nine-handed Hold'em (9max) geometry & action order
+  assert.equal(CLUB_ARENA_SEAT_LAYOUTS[9].length, 9, '9max geometry must define 9 seat coordinates');
+  assert.equal(NINE_MAX_POSITIONS.length, 9, '9max must define 9 canonical positions');
+  const nineMaxFirstPreflop = resolveNextActor({
+    activePositions: NINE_MAX_POSITIONS,
+    street: 'preflop',
+    format: '9max',
+  });
+  assert.equal(nineMaxFirstPreflop, 'UTG', '9max preflop first actor must be UTG');
+  const nineMaxFirstPostflop = resolveNextActor({
+    activePositions: NINE_MAX_POSITIONS,
+    street: 'flop',
+    format: '9max',
+  });
+  assert.equal(nineMaxFirstPostflop, 'SB', '9max postflop first actor must be SB');
+
+  // Case 2: PLO5 and PLO6 with a bet to call & worked Pot-Limit raise math
+  // Worked Pot-Limit example: pot before bet is 10 BB, facing bet of 5 BB -> current pot on table is 15 BB (or if potBb=15 includes the 5 BB bet, call=5 brings pot to 20 -> max raise-to is 5 + 20 = 25 BB).
+  const plo5Bounds = computeLegalBettingBounds({
+    variant: 'plo5',
+    bettingStructure: 'pot_limit',
+    street: 'flop',
+    potBb: 15, // 10 BB starting pot + 5 BB villain bet
+    heroStackBb: 100,
+    heroCommittedBb: 0,
+    facingBetBb: 5,
+  });
+  assert.equal(plo5Bounds.isPotLimit, true);
+  assert.equal(plo5Bounds.toCallBb, 5);
+  assert.equal(plo5Bounds.maxPotLimitRaiseToBb, 25, 'Pot 10 + 5 bet (15 current pot) + 2*5 call = 25 BB max pot-limit raise-to');
+
+  const plo6Parity = computeClubArenaParityState({
+    variant: 'plo6',
+    bettingStructure: 'pot_limit',
+    format: 'cash',
+    street: 'flop',
+    potBb: 15,
+    heroStackBb: 100,
+    heroCommittedBb: 0,
+    facingBetBb: 5,
+  });
+  assert.equal(HOLE_CARD_COUNT_BY_VARIANT.plo5, 5, 'PLO5 must require 5 hole cards');
+  assert.equal(HOLE_CARD_COUNT_BY_VARIANT.plo6, 6, 'PLO6 must require 6 hole cards');
+  assert.equal(plo6Parity.maxRaiseToBb, 25);
+
+  // Case 3: PLO8 with a qualifying low (split pot) and without a qualifying low (high-only scoop)
+  const plo8WithLow = evaluateShowdownAndAllocatePots({
+    variant: 'plo8',
+    boardCards: ['As', '2d', '7c', 'Kh', 'Qd'], // 3 low cards on board: A, 2, 7
+    deadPotBb: 0,
+    seats: [
+      { seatId: 'HERO', position: 'BTN', holeCards: ['Ah', 'Ks', 'Qh', 'Jd'], committedBb: 20, stackRemainingBb: 80, folded: false }, // High winner (top two pair / set), no low
+      { seatId: 'VILLAIN', position: 'BB', holeCards: ['3s', '4s', '9c', 'Tc'], committedBb: 20, stackRemainingBb: 80, folded: false }, // Nut low (A-2-3-4-7 using 3s,4s + As,2d,7c)
+    ],
+  });
+  assert.equal(plo8WithLow.hasQualifyingLow, true, 'PLO8 board with A-2-7 and villain 3-4 must qualify for low');
+  assert.deepEqual(plo8WithLow.highWinners, ['HERO']);
+  assert.deepEqual(plo8WithLow.lowWinners, ['VILLAIN']);
+  assert.equal(plo8WithLow.payoutsBySeatId.HERO, 20, 'Hero wins 20 BB high half');
+  assert.equal(plo8WithLow.payoutsBySeatId.VILLAIN, 20, 'Villain wins 20 BB low half');
+
+  const plo8WithoutLow = evaluateShowdownAndAllocatePots({
+    variant: 'plo8',
+    boardCards: ['Ks', 'Qd', 'Jc', '9h', '2d'], // Only one low card (2d) -> no qualifying low possible
+    deadPotBb: 0,
+    seats: [
+      { seatId: 'HERO', position: 'BTN', holeCards: ['As', 'Ts', '3h', '4h'], committedBb: 20, stackRemainingBb: 80, folded: false }, // Broadway straight
+      { seatId: 'VILLAIN', position: 'BB', holeCards: ['Kh', 'Qh', '5c', '6c'], committedBb: 20, stackRemainingBb: 80, folded: false },
+    ],
+  });
+  assert.equal(plo8WithoutLow.hasQualifyingLow, false, 'PLO8 board with <3 low cards cannot qualify a low');
+  assert.equal(plo8WithoutLow.payoutsBySeatId.HERO, 40, 'Hero scoops full 40 BB pot when no low qualifies');
+
+  // Case 4: Short all-in with an unmatched amount or side pot & reopening rules
+  const shortAllInLocked = computeClubArenaParityState({
+    variant: 'nlh',
+    street: 'flop',
+    potBb: 26,
+    heroPosition: 'BTN',
+    heroStackBb: 100,
+    heroCommittedBb: 10, // Hero opened to 10 BB
+    facingBetBb: 16,     // Short stack shoved to 16 BB (+6 BB, less than full +10 BB raise increment)
+    previousBetBb: 10,
+    lastFullRaiseIncrementBb: 10,
+    heroAlreadyActedOnStreet: true,
+  });
+  assert.equal(shortAllInLocked.reopensAction, false, 'Short all-in (+6 BB vs 10 BB full raise) must not reopen raising for hero who already acted');
+
+  const sidePotBreakdown = computeMainAndSidePots([
+    { position: 'SB', committedBb: 15, stackRemainingBb: 0, allIn: true, folded: false },
+    { position: 'BB', committedBb: 40, stackRemainingBb: 60, allIn: false, folded: false },
+    { position: 'BTN', committedBb: 55, stackRemainingBb: 45, allIn: false, folded: false }, // 15 BB uncalled excess over BB's 40 BB if BB is all-in, or if BB is all-in at 40:
+  ]);
+  assert.ok(sidePotBreakdown.mainPotBb >= 45, 'Main pot must cap at shortest all-in (15 * 3 = 45 BB)');
+
+  const uncalledPotBreakdown = computeMainAndSidePots([
+    { position: 'SB', committedBb: 15, stackRemainingBb: 0, allIn: true, folded: false },
+    { position: 'BB', committedBb: 40, stackRemainingBb: 0, allIn: true, folded: false },
+    { position: 'BTN', committedBb: 55, stackRemainingBb: 45, allIn: false, folded: false },
+  ]);
+  assert.equal(uncalledPotBreakdown.uncalledReturnBb, 15, '15 BB unmatched overbet above 40 BB all-in must be returned to BTN');
+  assert.equal(uncalledPotBreakdown.uncalledSeatPosition, 'BTN');
+  assert.equal(uncalledPotBreakdown.mainPotBb, 45, 'Main pot is 15 * 3 = 45 BB');
+  assert.equal(uncalledPotBreakdown.sidePots.length, 1, 'One side pot between BB and BTN');
+  assert.equal(uncalledPotBreakdown.sidePots[0].amountBb, 50, 'Side pot is (40 - 15) * 2 = 50 BB');
+
+  // Case 5: Heads-up (hu), Spin (spins), and Fixed-Limit (fixed_limit) hands
+  assert.deepEqual(HEADS_UP_POSITIONS, ['BTN', 'BB']);
+  assert.deepEqual(SPINS_POSITIONS, ['BTN', 'SB', 'BB']);
+  assert.equal(resolveNextActor({ activePositions: HEADS_UP_POSITIONS, street: 'preflop', format: 'hu' }), 'BTN', 'HU preflop BTN/SB acts first');
+  assert.equal(resolveNextActor({ activePositions: HEADS_UP_POSITIONS, street: 'flop', format: 'hu' }), 'BB', 'HU postflop BB acts first');
+  const flTurnBounds = computeLegalBettingBounds({
+    variant: 'nlh',
+    bettingStructure: 'fixed_limit',
+    street: 'turn',
+    potBb: 10,
+    heroStackBb: 50,
+    facingBetBb: 2,
+    numRaisesOnStreet: 3,
+    maxRaisesPerRound: 4,
+  });
+  assert.equal(flTurnBounds.isFixedLimit, true);
+  assert.equal(flTurnBounds.fixedIncrementBb, 2, 'Turn/River fixed-limit increment must be 2 BB (big bet)');
+  assert.equal(flTurnBounds.canRaise, true);
+  assert.equal(flTurnBounds.minRaiseToBb, 4);
+
+  const flCappedBounds = computeLegalBettingBounds({
+    variant: 'nlh',
+    bettingStructure: 'fixed_limit',
+    street: 'turn',
+    potBb: 14,
+    heroStackBb: 50,
+    facingBetBb: 8,
+    numRaisesOnStreet: 4,
+    maxRaisesPerRound: 4,
+  });
+  assert.equal(flCappedBounds.raiseCapReached, true, '4th raise reaches Fixed-Limit cap');
+  assert.equal(flCappedBounds.canRaise, false, 'Cannot raise once 4-raise cap is reached');
+
+  // Case 6 & Usability / SmarterDesign source contracts
+  const udtSrc = read('src/components/training/games/UniversalDynamicTable.jsx');
+  const trainingHomeSrc = read('pages/hub/training.js');
+  const godModeSrc = read('src/components/training/GodModeArena.jsx');
+
+  assert.ok(udtSrc.includes('data-customize-table-toggle="true"'), 'UniversalDynamicTable must expose Customize toggle when presetOnly is true');
+  assert.ok(udtSrc.includes('data-training-feedback="explanation"'), 'UniversalDynamicTable must expose data-training-feedback="explanation" in inline verdict');
+  assert.ok(udtSrc.includes('data-replay-current-hand="true"'), 'UniversalDynamicTable must expose data-replay-current-hand="true" Practice Again button');
+  assert.ok(godModeSrc.includes('const handleDefaultNextHand = useCallback((arg) => nextQuestion(arg), [nextQuestion]);') || udtSrc.includes('onNextHand({ retry: true, retryQuestion: lastQuestionRef.current })'), 'Practice Again must pass retry payload');
+  assert.ok(trainingHomeSrc.includes('data-variant-filter-bar="true"') && trainingHomeSrc.includes("id: 'plo5'"), 'Training Home must expose 1-tap PLO5 variant filter and quick launch');
+});
+
+
 
 
 

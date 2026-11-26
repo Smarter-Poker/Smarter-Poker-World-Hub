@@ -252,6 +252,126 @@ function displayToken(value, fallback) {
   return text.replace(/\b\w/g, c => c.toUpperCase());
 }
 
+export const SOLVER_EVIDENCE_RULE_VERSION = 'solver-decision-evidence-v3';
+
+function decisionRowIdentityKey(row) {
+  if (!row || typeof row !== 'object') return null;
+  if (row.id !== null && row.id !== undefined && String(row.id).trim() !== '') {
+    return `id:${String(row.id).trim()}`;
+  }
+  const dk = String(row.decision_key ?? row.decisionKey ?? '').trim();
+  if (dk) {
+    const ext = String(row.hand_external_id ?? row.handExternalId ?? '').trim();
+    return `dk:${ext}|${dk}`;
+  }
+  const attemptId = String(row.attempt_id ?? row.attemptId ?? '').trim();
+  const questionId = String(row.question_id ?? row.questionId ?? '').trim();
+  if (attemptId && questionId) {
+    return `attempt:${attemptId}|q:${questionId}`;
+  }
+  return null;
+}
+
+function isChartDecisionRow(row) {
+  const src = String(row?.solver_source ?? row?.solverSource ?? '').toLowerCase();
+  const cls = String(row?.source_classification ?? row?.sourceClassification ?? '').toUpperCase();
+  const qid = String(row?.question_id ?? row?.questionId ?? '').toLowerCase();
+  return cls === 'CHART_AUDITED' || src.includes('memory_charts_gold') || src.includes('chart') || qid.startsWith('mcg:');
+}
+
+const GENERIC_SOLVER_GAME_SLUGS = new Set([
+  'training', 'cash_hand_audit', 'mtt_hand_audit', 'hand_audit', 'cash', 'mtt', 'tournament', 'unknown',
+]);
+
+const PREFLOP_DEFAULT_GAME_SLUGS = new Set([
+  'cash_001', 'cash_006', 'cash_007', 'cash_008', 'cash_010', 'cash_018',
+  'mtt_001', 'mtt_002', 'mtt_003', 'mtt_004', 'mtt_005', 'mtt_006',
+  'mtt_007', 'mtt_008', 'mtt_009', 'mtt_010', 'mtt_011', 'mtt_012',
+  'mtt_013', 'mtt_014', 'mtt_015', 'mtt_016', 'mtt_017', 'mtt_018',
+  'mtt_019', 'mtt_020', 'mtt_022', 'mtt_023',
+]);
+
+const FLOP_DEFAULT_GAME_SLUGS = new Set(['cash_002', 'cash_011', 'cash_014']);
+
+export function resolveSolverRecommendedDrill(group = {}) {
+  const gameSlug = safeSlug(group.gameId ?? group.game_id, 'training');
+  const street = safeSlug(group.street, 'all_streets');
+  const spot = safeSlug(group.spotType ?? group.spot_type, 'general');
+  const pos = safeSlug(group.position ?? group.heroPosition ?? group.hero_position, 'all_positions');
+  const dominantAction = safeSlug(group.dominantPlayerAction ?? group.player_action, '');
+  const isMtt = gameSlug.startsWith('mtt') || gameSlug.includes('tournament');
+  const isGeneric = GENERIC_SOLVER_GAME_SLUGS.has(gameSlug);
+  const isMismatchedPostflop = (
+    (street === 'river' && (PREFLOP_DEFAULT_GAME_SLUGS.has(gameSlug) || FLOP_DEFAULT_GAME_SLUGS.has(gameSlug)))
+    || (street === 'turn' && (PREFLOP_DEFAULT_GAME_SLUGS.has(gameSlug) || FLOP_DEFAULT_GAME_SLUGS.has(gameSlug)))
+    || (street === 'flop' && PREFLOP_DEFAULT_GAME_SLUGS.has(gameSlug))
+  );
+
+  if (!isGeneric && !isMismatchedPostflop) {
+    return gameSlug.replace(/_/g, '-');
+  }
+
+  const combined = `${spot}_${dominantAction}`;
+  if (street === 'river') {
+    if (isMtt) {
+      return /(?:check_raise|check_shove|xr)/.test(combined) ? 'mtt-021' : 'mtt-024';
+    }
+    if (/(?:overbet)/.test(spot) && !/(?:faces_bet|facing|defense|bluff_catch|call|fold)/.test(combined)) {
+      return 'cash-015';
+    }
+    if (
+      /(?:faces_bet|facing|bluff_catch|hero_call|defense|overfold|river_call|over_call)/.test(combined)
+      || dominantAction === 'call'
+      || dominantAction === 'fold'
+    ) {
+      return 'cash-005';
+    }
+    if (/(?:thin_value|river_value|missed_value|value)/.test(spot)) {
+      return 'cash-004';
+    }
+    return 'cash-012';
+  }
+
+  if (street === 'turn') {
+    if (isMtt) {
+      return /(?:faces_bet|facing|defense|overfold|check_raise|check_shove)/.test(combined) ? 'mtt-021' : 'mtt-024';
+    }
+    if (/(?:faces_bet|facing|defense|overfold)/.test(combined)) return 'cash-003';
+    if (/(?:probe)/.test(spot)) return 'cash-013';
+    return 'cash-004';
+  }
+
+  if (street === 'flop') {
+    if (isMtt) {
+      return /(?:cbet|barrel)/.test(spot) && !/(?:faces_bet|facing|defense|overfold|check_raise)/.test(combined)
+        ? 'mtt-024'
+        : 'mtt-021';
+    }
+    if (/(?:check_raise|xr)/.test(combined)) return 'cash-014';
+    if (/(?:donk)/.test(spot)) return 'cash-011';
+    if (/(?:faces_bet|facing|defense|overfold)/.test(combined)) return 'cash-003';
+    return 'cash-002';
+  }
+
+  if (street === 'preflop') {
+    if (isMtt) {
+      if (/(?:squeeze)/.test(spot)) return 'mtt-010';
+      if (/(?:3bet|three_bet|vs3bet|resteal)/.test(spot)) return 'mtt-009';
+      if (/(?:bb_defense|blind|facing_steal|sb_push)/.test(spot)) return 'mtt-017';
+      if (pos === 'btn') return 'mtt-018';
+      return 'mtt-001';
+    }
+    if (/(?:4bet|four_bet)/.test(spot)) return 'cash-008';
+    if (/(?:3bet|three_bet|vs3bet)/.test(spot)) return 'cash-007';
+    if (/(?:squeeze)/.test(spot)) return 'cash-016';
+    if (/(?:bb_defense|blind|cold_call|facing_raise)/.test(spot)) return 'cash-003';
+    if (pos === 'btn') return 'cash-006';
+    return 'cash-001';
+  }
+
+  return gameSlug.replace(/_/g, '-');
+}
+
 export function solverDecisionGroupKey({ evidenceScope, gameId, street, position, spotType } = {}) {
   return [
     'solver',
@@ -265,9 +385,15 @@ export function solverDecisionGroupKey({ evidenceScope, gameId, street, position
 
 export function summarizeSolverDecisionGroups(rows, { minSamples = 8, targetErrorRate = 15 } = {}) {
   const groups = new Map();
+  const seenIdentityKeys = new Set();
 
   for (const row of rows || []) {
     if (!row?.solver_verified) continue;
+    const identityKey = decisionRowIdentityKey(row);
+    if (identityKey) {
+      if (seenIdentityKeys.has(identityKey)) continue;
+      seenIdentityKeys.add(identityKey);
+    }
     const classification = String(row.classification || '').toLowerCase();
     if (!classification) continue;
     const gameId = safeSlug(row.game_id, 'training');
@@ -285,33 +411,88 @@ export function summarizeSolverDecisionGroups(rows, { minSamples = 8, targetErro
         samples: 0, mistakes: 0, totalMeasuredEV: 0, measuredEVMistakes: 0,
         mistakenHandExternalIds: [],
         newestAt: null,
+        chartCount: 0,
+        exactSolverCount: 0,
+        actionCounts: {},
+        representativeDecision: null,
       });
     }
     const group = groups.get(key);
     group.samples += 1;
+    if (isChartDecisionRow(row)) group.chartCount += 1;
+    else group.exactSolverCount += 1;
+
     const isMistake = !GOOD_CLASSIFICATIONS.has(classification);
     if (isMistake) {
       group.mistakes += 1;
+      const pAction = safeSlug(row.player_action ?? row.playerAction ?? row.answer_id, '');
+      if (pAction && pAction !== 'unknown') {
+        group.actionCounts[pAction] = (group.actionCounts[pAction] || 0) + 1;
+      }
       if (evidenceScope === 'club_arena' && row.hand_external_id) {
         const externalId = String(row.hand_external_id);
         if (!group.mistakenHandExternalIds.includes(externalId)) {
           group.mistakenHandExternalIds.push(externalId);
         }
       }
-      if (row.ev_loss_measured && finiteNumber(row.ev_loss) !== null) {
-        group.totalMeasuredEV += Math.max(0, finiteNumber(row.ev_loss));
+      const evVal = row.ev_loss_measured && finiteNumber(row.ev_loss) !== null
+        ? Math.max(0, finiteNumber(row.ev_loss))
+        : null;
+      if (evVal !== null) {
+        group.totalMeasuredEV += evVal;
         group.measuredEVMistakes += 1;
       }
+      const prevRepLoss = group.representativeDecision?.evLossBB ?? -1;
+      const candidateLoss = evVal ?? 0;
+      if (!group.representativeDecision || candidateLoss > prevRepLoss) {
+        group.representativeDecision = {
+          handExternalId: row.hand_external_id || null,
+          decisionKey: row.decision_key || null,
+          questionId: row.question_id || null,
+          street: row.street || street,
+          heroPosition: row.hero_position || position,
+          villainPosition: row.villain_position || null,
+          heroHand: row.hero_hand || null,
+          boardCards: Array.isArray(row.board_cards) ? row.board_cards : [],
+          spotType: row.spot_type || spotType,
+          playerAction: row.player_action ?? row.answer_id ?? null,
+          solverAction: row.solver_action ?? null,
+          sizingPct: finiteNumber(row.sizing_pct ?? row.sizingPct),
+          potBeforeBB: finiteNumber(row.pot_before_bb ?? row.potBeforeBB),
+          stackDepthBb: finiteNumber(row.stack_depth_bb ?? row.stackDepthBb),
+          evLossBB: evVal,
+          evLossMeasured: evVal !== null,
+        };
+      }
     }
-    if (row.answered_at && (!group.newestAt || row.answered_at > group.newestAt)) {
-      group.newestAt = row.answered_at;
+    const rowTime = row.answered_at || row.audited_at || null;
+    if (rowTime && (!group.newestAt || rowTime > group.newestAt)) {
+      group.newestAt = rowTime;
     }
   }
 
   return [...groups.values()].map(group => {
     const errorRate = group.samples > 0 ? (group.mistakes / group.samples) * 100 : 0;
+    const dominantPlayerAction = Object.entries(group.actionCounts)
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] || null;
+    const evidenceBasis = group.chartCount > 0 && group.exactSolverCount === 0
+      ? 'chart'
+      : 'exact_solver_match';
     return {
-      ...group,
+      evidenceScope: group.evidenceScope,
+      gameId: group.gameId,
+      street: group.street,
+      position: group.position,
+      spotType: group.spotType,
+      samples: group.samples,
+      mistakes: group.mistakes,
+      totalMeasuredEV: group.totalMeasuredEV,
+      measuredEVMistakes: group.measuredEVMistakes,
+      mistakenHandExternalIds: group.mistakenHandExternalIds,
+      newestAt: group.newestAt,
+      dominantPlayerAction,
+      evidenceBasis,
+      representativeDecision: group.representativeDecision,
       leakType: solverDecisionGroupKey(group),
       errorRate,
       recoveryEligible: group.samples >= minSamples && errorRate < targetErrorRate + 10,
@@ -358,6 +539,7 @@ export function aggregateSolverLeaks(rows, { minSamples = 8, minMistakes = 3, ta
         : 0;
       const confidence = group.samples >= 40 ? 'high' : group.samples >= 20 ? 'medium' : 'low';
       const context = `${displayToken(group.position)} ${displayToken(group.street)} ${displayToken(group.spotType)}`;
+      const recommendedDrill = resolveSolverRecommendedDrill(group);
       return {
         leak_type: group.leakType,
         leak_category: group.street === 'all_streets' ? 'training' : group.street,
@@ -380,7 +562,10 @@ export function aggregateSolverLeaks(rows, { minSamples = 8, minMistakes = 3, ta
           : group.measuredEVMistakes > 0
             ? `Only ${group.measuredEVMistakes} of ${group.mistakes} mistakes expose exact per-action solver EV. Coverage is incomplete, so no aggregate BB loss is claimed.`
             : 'The shared solver range rejects these actions, but the source rows do not expose complete per-action EVs, so no BB loss is invented.',
-        recommended_drill: group.gameId.replace(/_/g, '-'),
+        recommended_drill: recommendedDrill,
+        rule_version: SOLVER_EVIDENCE_RULE_VERSION,
+        evidence_basis: group.evidenceBasis,
+        representative_decision: group.representativeDecision,
         _sample_count: group.samples,
         _mistake_count: group.mistakes,
         _ev_measured_count: group.measuredEVMistakes,
@@ -391,4 +576,151 @@ export function aggregateSolverLeaks(rows, { minSamples = 8, minMistakes = 3, ta
     .sort((a, b) => b.current_frequency - a.current_frequency || b._sample_count - a._sample_count);
 }
 
-export default { isVerifiedSolverQuestion, enforceSolverClaimHonesty, classifyFrequencyDecision, gradeSolverDecision, solverDecisionGroupKey, summarizeSolverDecisionGroups, canResolveSolverLeakScope, aggregateSolverLeaks };
+/**
+ * Qualify a set of decision rows for a situation class without fabricating
+ * recurring leaks on small samples or inventing optimal play / EV loss on
+ * unpriced or failed-lookup rows.
+ */
+export function qualifySolverDecisionSample(rows = [], { minSamples = 8, minMistakes = 3, targetErrorRate = 15 } = {}) {
+  const validRows = Array.isArray(rows) ? rows.filter(Boolean) : [];
+  if (validRows.length === 0) {
+    return {
+      state: 'unavailable_metric',
+      isRecurringLeak: false,
+      evidenceBasis: null,
+      ruleVersion: SOLVER_EVIDENCE_RULE_VERSION,
+      opportunities: 0,
+      mistakes: 0,
+      requiredOpportunities: minSamples,
+      requiredMistakes: minMistakes,
+      optimalAction: null,
+      evLossBB: null,
+      evLossMeasured: false,
+      limitation: 'No audited decision rows are available for this situation class.',
+      explanation: 'Decision evidence is unavailable; no optimal play or EV loss is claimed.',
+    };
+  }
+
+  const verifiedRows = validRows.filter(row => row.solver_verified === true);
+  if (verifiedRows.length === 0) {
+    const first = validRows[0];
+    const source = String(first?.solver_source || '').toLowerCase();
+    const lookupFailed = source.includes('lookup-failed');
+    return {
+      state: 'unavailable_metric',
+      isRecurringLeak: false,
+      evidenceBasis: null,
+      ruleVersion: SOLVER_EVIDENCE_RULE_VERSION,
+      opportunities: 0,
+      unpricedCount: validRows.length,
+      mistakes: 0,
+      requiredOpportunities: minSamples,
+      requiredMistakes: minMistakes,
+      optimalAction: null,
+      evLossBB: null,
+      evLossMeasured: false,
+      reason: lookupFailed ? 'solver_lookup_failed' : 'no_exact_solver_node',
+      limitation: lookupFailed
+        ? 'Solver lookup failed for this decision; the spot remains explicitly unpriced until the cache refresh window.'
+        : 'No exact solver node matched this decision; no optimal action or EV loss is invented.',
+      explanation: 'This spot is unpriced in the verified solver corpus. No optimal play or BB loss is claimed.',
+    };
+  }
+
+  const groups = summarizeSolverDecisionGroups(verifiedRows, { minSamples, targetErrorRate });
+  const primary = groups.sort((a, b) => b.mistakes - a.mistakes || b.samples - a.samples)[0];
+  const leaks = aggregateSolverLeaks(verifiedRows, { minSamples, minMistakes, targetErrorRate });
+
+  if (leaks.length > 0) {
+    const leak = leaks[0];
+    const rep = primary?.representativeDecision || null;
+    const drill = leak.recommended_drill;
+    const where = `${displayToken(primary.position)} · ${displayToken(primary.street)} · ${displayToken(primary.spotType)}`;
+    const nextTime = rep?.solverAction && rep?.playerAction
+      ? `Prefer ${displayToken(rep.solverAction)} over ${displayToken(rep.playerAction)} in this node and practice in ${drill}.`
+      : `Review the range frequencies in ${drill} to bring your mistake rate below ${targetErrorRate}%.`;
+    return {
+      state: 'supported_leak',
+      isRecurringLeak: true,
+      evidenceBasis: primary.evidenceBasis,
+      ruleVersion: SOLVER_EVIDENCE_RULE_VERSION,
+      opportunities: primary.samples,
+      mistakes: primary.mistakes,
+      errorRatePct: +primary.errorRate.toFixed(1),
+      requiredOpportunities: minSamples,
+      requiredMistakes: minMistakes,
+      recommendedDrill: drill,
+      representativeDecision: rep,
+      optimalAction: rep?.solverAction || null,
+      evLossBB: leak.avg_ev_loss_bb,
+      evLossMeasured: leak.ev_loss_measured,
+      takeaway: {
+        whatYouAreDoing: leak.explanation,
+        where,
+        whatToDoNextTime: nextTime,
+        summary: `What you are doing: ${leak.explanation} Where: ${where}. Next time: ${nextTime}`,
+      },
+      leak,
+    };
+  }
+
+  if (primary.samples < minSamples || (primary.mistakes > 0 && primary.mistakes < minMistakes)) {
+    const rep = primary.representativeDecision || null;
+    const where = `${displayToken(primary.position)} · ${displayToken(primary.street)} · ${displayToken(primary.spotType)}`;
+    const singleHandCopy = rep?.playerAction && rep?.solverAction
+      ? `In hand ${rep.handExternalId || 'reviewed'}, choosing ${rep.playerAction} instead of ${rep.solverAction} was a single-spot error.`
+      : `Observed ${primary.mistakes} error${primary.mistakes === 1 ? '' : 's'} across ${primary.samples} verified decision${primary.samples === 1 ? '' : 's'}.`;
+    return {
+      state: 'insufficient_sample',
+      isRecurringLeak: false,
+      evidenceBasis: primary.evidenceBasis,
+      ruleVersion: SOLVER_EVIDENCE_RULE_VERSION,
+      opportunities: primary.samples,
+      mistakes: primary.mistakes,
+      errorRatePct: +primary.errorRate.toFixed(1),
+      requiredOpportunities: minSamples,
+      requiredMistakes: minMistakes,
+      recommendedDrill: resolveSolverRecommendedDrill(primary),
+      representativeDecision: rep,
+      optimalAction: rep?.solverAction || null,
+      evLossBB: rep?.evLossMeasured ? rep.evLossBB : null,
+      evLossMeasured: Boolean(rep?.evLossMeasured),
+      explanation: `${singleHandCopy} Evidence count: ${primary.mistakes} mistake${primary.mistakes === 1 ? '' : 's'} in ${primary.samples} verified opportunit${primary.samples === 1 ? 'y' : 'ies'} (${minSamples} opportunities and ${minMistakes} mistakes are required before claiming a recurring leak).`,
+    };
+  }
+
+  return {
+    state: 'sound_play',
+    isRecurringLeak: false,
+    evidenceBasis: primary.evidenceBasis,
+    ruleVersion: SOLVER_EVIDENCE_RULE_VERSION,
+    opportunities: primary.samples,
+    mistakes: primary.mistakes,
+    errorRatePct: +primary.errorRate.toFixed(1),
+    requiredOpportunities: minSamples,
+    requiredMistakes: minMistakes,
+    optimalAction: null,
+    evLossBB: null,
+    evLossMeasured: false,
+    explanation: `Sound play across ${primary.samples} verified opportunities (${primary.mistakes} mistakes, ${primary.errorRate.toFixed(1)}% error rate vs ${targetErrorRate}% target).`,
+  };
+}
+
+export {
+  gradeCanonicalPolicyDecision,
+};
+
+export default {
+  SOLVER_EVIDENCE_RULE_VERSION,
+  gradeCanonicalPolicyDecision,
+  isVerifiedSolverQuestion,
+  enforceSolverClaimHonesty,
+  classifyFrequencyDecision,
+  gradeSolverDecision,
+  resolveSolverRecommendedDrill,
+  solverDecisionGroupKey,
+  summarizeSolverDecisionGroups,
+  canResolveSolverLeakScope,
+  aggregateSolverLeaks,
+  qualifySolverDecisionSample,
+};

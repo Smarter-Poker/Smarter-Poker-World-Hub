@@ -1,301 +1,341 @@
-/**
- * VENUE INTELLIGENCE
- * ═══════════════════════════════════════════════════════════════
- * Career analytics derived from completed gigs - zero new DB queries
- * SmarterPoker Dark UI - matches TokeTracker pattern
- * ═══════════════════════════════════════════════════════════════
- */
-
-import view from './toke/TokeWorkspace.module.css';
-import desk from './toke/DealerAnalytics.module.css';
-import { MapPin } from 'lucide-react';
-const fmt = value => value.toLocaleString('en-US', {style:'currency',currency:'USD'});
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { Activity, ChevronDown, Layers3, MapPin, Trophy } from 'lucide-react';
 import ResponsiveTable from '../ui/ResponsiveTable';
+import styles from './toke/VenueConsole.module.css';
 
-const METAL = {
-    base: '#0d1b2b', mid: '#112338', elevated: '#30485f', darkest: '#07111e',
-    highlight: 'rgba(255,255,255,0.08)', primary: '#8acbff', primaryDim: 'rgba(74,144,217,0.15)',
-    success: '#8cdeee', warn: '#85d8fb', textPrimary: '#eff5fc', textSecondary: '#bfcee0',
-};
+const fmt = (value) => value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 
+function PanelHeading({ icon: Icon, title, expanded, onToggle, controls }) {
+  return (
+    <h3 className={styles.sectionTitle}>
+      <button type="button" aria-expanded={expanded} aria-controls={controls} onClick={onToggle}>
+        <Icon size={21} aria-hidden="true" />
+        <span>{title}</span>
+        <ChevronDown className={styles.chevron} size={19} aria-hidden="true" />
+      </button>
+    </h3>
+  );
+}
+
+const distributionColumns = [
+  { key: 'totalTokes', label: 'Total Tokes', align: 'right', render: (row) => fmt(row.totalTokes) },
+  { key: 'totalDowns', label: 'Downs', align: 'right' },
+  {
+    key: 'avgTokePerDown',
+    label: 'Tokes Per Down',
+    align: 'right',
+    render: (row) => fmt(row.avgTokePerDown),
+  },
+];
 
 const GAME_TYPE_MAP = {
-    Holdem: "Hold'em", PLO: 'PLO', Mixed: 'Mixed',
-    tournament: 'Tournament', brush: 'Brush', break: 'Break', other: 'Other',
+  Holdem: "Hold'em",
+  PLO: 'PLO',
+  Mixed: 'Mixed',
+  tournament: 'Tournament',
+  brush: 'Brush',
+  break: 'Break',
+  other: 'Other',
 };
 
 const BUYIN_BRACKETS = [
-    { label: '$1k+', min: 1000, max: Infinity },
-    { label: '$500-$999', min: 500, max: 999.99 },
-    { label: '$250-$499', min: 250, max: 499.99 },
-    { label: '$100-$249', min: 100, max: 249.99 },
-    { label: '<$100', min: 0, max: 99.99 },
+  { label: '$1k+', min: 1000, max: Infinity },
+  { label: '$500-$999', min: 500, max: 999.99 },
+  { label: '$250-$499', min: 250, max: 499.99 },
+  { label: '$100-$249', min: 100, max: 249.99 },
+  { label: '<$100', min: 0, max: 99.99 },
 ];
 
 // ── Helpers ──────────────────────────────────────────────────────
 
 function computeGigStats(gig) {
-    // Use gig.downs[] directly (attached by fetchGigs for analytics)
-    const downs = gig.downs || [];
-    let totalTokes = 0;
-    let totalHours = 0;
-    for (const down of downs) {
-
-        // Only count dealing downs for hours (not breaks - they inflate the denominator unfairly)
-        const isDealing = down.down_type === 'cash' || down.down_type === 'tournament' || down.down_type === 'brush';
-        if (isDealing) totalTokes += Number(down.toke_amount) || 0;
-        if (isDealing && down.started_at && down.ended_at) {
-            const hours = (Date.parse(down.ended_at) - Date.parse(down.started_at)) / 3600000;
-            if (Number.isFinite(hours) && hours > 0) totalHours += hours;
-        }
+  // Use gig.downs[] directly (attached by fetchGigs for analytics)
+  const downs = gig.downs || [];
+  let totalTokes = 0;
+  let totalHours = 0;
+  for (const down of downs) {
+    // Only count dealing downs for hours (not breaks - they inflate the denominator unfairly)
+    const isDealing =
+      down.down_type === 'cash' || down.down_type === 'tournament' || down.down_type === 'brush';
+    if (isDealing) totalTokes += Number(down.toke_amount) || 0;
+    if (isDealing && down.started_at && down.ended_at) {
+      const hours = (Date.parse(down.ended_at) - Date.parse(down.started_at)) / 3600000;
+      if (Number.isFinite(hours) && hours > 0) totalHours += hours;
     }
-    return { totalTokes, totalHours, downs };
+  }
+  return { totalTokes, totalHours, downs };
 }
 
 // ── Main Component ───────────────────────────────────────────────
 
-export default function VenueIntelligence({ gigs = [] }) {
-    const [expanded, setExpanded] = useState(true);
-    const [venueSort, setVenueSort] = useState('toke_hr');
-    const [venueOpen, setVenueOpen] = useState(true);
-    const [gameOpen, setGameOpen] = useState(true);
-    const [tourneyOpen, setTourneyOpen] = useState(true);
+export default function VenueIntelligence({
+  gigs = [],
+  loading = false,
+  error = false,
+  signedIn = true,
+  onRetry,
+}) {
+  const [expanded, setExpanded] = useState(true);
+  const [venueSort, setVenueSort] = useState('toke_hr');
+  const [venueOpen, setVenueOpen] = useState(true);
+  const [gameOpen, setGameOpen] = useState(true);
+  const [tourneyOpen, setTourneyOpen] = useState(true);
 
-    // ── Venue Performance Ranking ──────────────────────────────
-    const venueRanking = useMemo(() => {
-        const map = Object.create(null);
-        for (const gig of gigs) {
-            const venue = gig.venue_name || 'Unknown Venue';
-            if (!map[venue]) map[venue] = { venue, totalTokes: 0, totalHours: 0, events: 0 };
-            const { totalTokes, totalHours } = computeGigStats(gig);
-            map[venue].totalTokes += totalTokes;
-            map[venue].totalHours += totalHours;
-            map[venue].events += 1;
-        }
-        const arr = Object.values(map || {});
-        for (const v of arr) v.tokePerHr = v.totalHours > 0 ? v.totalTokes / v.totalHours : 0;
-        const sorted = {
-            toke_hr: [...arr].sort((a, b) => b.tokePerHr - a.tokePerHr),
-            total: [...arr].sort((a, b) => b.totalTokes - a.totalTokes),
-            events: [...arr].sort((a, b) => b.events - a.events),
-        };
-        return sorted[venueSort];
-    }, [gigs, venueSort]);
+  // ── Venue Performance Ranking ──────────────────────────────
+  const venueRanking = useMemo(() => {
+    const map = Object.create(null);
+    for (const gig of gigs) {
+      const venue = gig.venue_name || 'Unknown Venue';
+      if (!map[venue]) map[venue] = { venue, totalTokes: 0, totalHours: 0, events: 0 };
+      const { totalTokes, totalHours } = computeGigStats(gig);
+      map[venue].totalTokes += totalTokes;
+      map[venue].totalHours += totalHours;
+      map[venue].events += 1;
+    }
+    const arr = Object.values(map || {});
+    for (const v of arr) v.tokePerHr = v.totalHours > 0 ? v.totalTokes / v.totalHours : 0;
+    const sorted = {
+      toke_hr: [...arr].sort((a, b) => b.tokePerHr - a.tokePerHr),
+      total: [...arr].sort((a, b) => b.totalTokes - a.totalTokes),
+      events: [...arr].sort((a, b) => b.events - a.events),
+    };
+    return sorted[venueSort];
+  }, [gigs, venueSort]);
 
-    // ── Game Type Profitability ────────────────────────────────
-    const gameTypeStats = useMemo(() => {
-        const map = Object.create(null);
-        for (const gig of gigs) {
-            for (const down of gig.downs || []) {
-                const gt = down.down_type === 'cash'
-                    ? (down.game_type || 'Holdem')
-                    : (down.down_type === 'tournament' ? 'tournament' : down.down_type);
-                if (!map[gt]) map[gt] = { gameType: gt, totalTokes: 0, totalDowns: 0 };
-                map[gt].totalTokes += Number(down.toke_amount) || 0;
-                map[gt].totalDowns += 1;
-            }
-        }
-        return Object.values(map || {})
-            .map(gt => ({ ...gt, avgTokePerDown: gt.totalDowns > 0 ? gt.totalTokes / gt.totalDowns : 0 }))
-            .sort((a, b) => b.avgTokePerDown - a.avgTokePerDown);
-    }, [gigs]);
+  // ── Game Type Profitability ────────────────────────────────
+  const gameTypeStats = useMemo(() => {
+    const map = Object.create(null);
+    for (const gig of gigs) {
+      for (const down of gig.downs || []) {
+        const gt =
+          down.down_type === 'cash'
+            ? down.game_type || 'Holdem'
+            : down.down_type === 'tournament'
+              ? 'tournament'
+              : down.down_type;
+        if (!map[gt]) map[gt] = { gameType: gt, totalTokes: 0, totalDowns: 0 };
+        map[gt].totalTokes += Number(down.toke_amount) || 0;
+        map[gt].totalDowns += 1;
+      }
+    }
+    return Object.values(map || {})
+      .map((gt) => ({
+        ...gt,
+        avgTokePerDown: gt.totalDowns > 0 ? gt.totalTokes / gt.totalDowns : 0,
+      }))
+      .sort((a, b) => b.avgTokePerDown - a.avgTokePerDown);
+  }, [gigs]);
 
-    // ── Tournament Buy-In Bracket Analysis ────────────────────
-    const tournamentBrackets = useMemo(() => {
-        const bracketMap = {};
-        for (const b of BUYIN_BRACKETS) bracketMap[b.label] = { label: b.label, totalTokes: 0, totalDowns: 0 };
+  // ── Tournament Buy-In Bracket Analysis ────────────────────
+  const tournamentBrackets = useMemo(() => {
+    const bracketMap = {};
+    for (const b of BUYIN_BRACKETS)
+      bracketMap[b.label] = { label: b.label, totalTokes: 0, totalDowns: 0 };
 
-        let hasTourneyData = false;
-        for (const gig of gigs) {
-            for (const down of gig.downs || []) {  // use gig.downs directly
-                if (down.down_type !== 'tournament') continue;
-                hasTourneyData = true;
-                const buyin = down.tournament_buyin;
-                if (buyin == null || buyin === '') continue;
-                const bracket = BUYIN_BRACKETS.find(b => buyin >= b.min && buyin <= b.max);
-                if (!bracket) continue;
-                bracketMap[bracket.label].totalTokes += Number(down.toke_amount) || 0;
-                bracketMap[bracket.label].totalDowns += 1;
-            }
-        }
-        if (!hasTourneyData) return null;
+    let hasTourneyData = false;
+    for (const gig of gigs) {
+      for (const down of gig.downs || []) {
+        // use gig.downs directly
+        if (down.down_type !== 'tournament') continue;
+        hasTourneyData = true;
+        const buyin = down.tournament_buyin;
+        if (buyin == null || buyin === '') continue;
+        const bracket = BUYIN_BRACKETS.find((b) => buyin >= b.min && buyin <= b.max);
+        if (!bracket) continue;
+        bracketMap[bracket.label].totalTokes += Number(down.toke_amount) || 0;
+        bracketMap[bracket.label].totalDowns += 1;
+      }
+    }
+    if (!hasTourneyData) return null;
 
-        return BUYIN_BRACKETS
-            .map(b => ({
-                ...bracketMap[b.label],
-                avgTokePerDown: bracketMap[b.label].totalDowns > 0
-                    ? bracketMap[b.label].totalTokes / bracketMap[b.label].totalDowns
-                    : 0,
-            }))
-            .filter(b => b.totalDowns > 0);
-    }, [gigs]);
+    return BUYIN_BRACKETS.map((b) => ({
+      ...bracketMap[b.label],
+      avgTokePerDown:
+        bracketMap[b.label].totalDowns > 0
+          ? bracketMap[b.label].totalTokes / bracketMap[b.label].totalDowns
+          : 0,
+    })).filter((b) => b.totalDowns > 0);
+  }, [gigs]);
 
-    const totalEvents = gigs.length;
-    const totalTokesAllTime = useMemo(() =>
-        gigs.reduce((sum, gig) => sum + computeGigStats(gig).totalTokes, 0), [gigs]
-    );
+  const totalEvents = gigs.length;
+  const totalTokesAllTime = useMemo(
+    () => gigs.reduce((sum, gig) => sum + computeGigStats(gig).totalTokes, 0),
+    [gigs]
+  );
 
-    if (totalEvents === 0) return <section aria-label="Venue Performance" className={'sd-panel ' + desk.planner}>
-        <div className={desk.sectionHead}><MapPin aria-hidden size={21}/><h2 className="sd-section-title">Venue Performance</h2></div>
-        <p className={desk.caption}>Complete A Shift To Compare Venue Tokes, Hours And Game Types.</p>
-    </section>;
-    const measure = v => venueSort === 'events' ? v.events : venueSort === 'total' ? v.totalTokes : v.tokePerHr;
-    const largest = venueRanking.reduce((max,v)=>Math.max(max,measure(v)),1);
-
-    return (
-        <section className={"sd-panel " + desk.intelligence} aria-label="Career Intelligence">
-            {/* Header */}
-            <button type="button" className={view.disclosure} aria-expanded={expanded} onClick={() => setExpanded(v => !v)}>
-                <div className={desk.sectionHead}><MapPin size={22} aria-hidden/>
-
-                    <div>
-                        <div className="sd-section-title">Career Intelligence</div>
-                        <div style={s.headerSub}>{totalEvents} {totalEvents===1?'Event':'Events'} · {fmt(totalTokesAllTime)} Total Tokes</div>
-                    </div>
-                </div>
-                <span style={{ ...s.chevron, transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
-            </button>
-
-            {!expanded ? null : (
-                <div style={s.body}>
-
-                    {/* ── Venue Performance Ranking ── */}
-                    <div style={s.panel}>
-                        <button style={s.panelHeader} aria-expanded={venueOpen} onClick={() => setVenueOpen(v => !v)}>
-                            <span style={s.panelTitle}>Venue Performance</span>
-                            <span style={s.panelChevron}>{venueOpen ? '▲' : '▼'}</span>
-                        </button>
-                        {venueOpen && (
-                            <>
-                                <div style={s.sortRow}>
-                                    {[
-                                        { key: 'toke_hr', label: '$/hr' },
-                                        { key: 'total', label: 'Total $' },
-                                        { key: 'events', label: '# Events' },
-                                    ].map(opt => (
-                                        <button
-                                            key={opt.key} aria-pressed={venueSort === opt.key}
-                                            style={{ ...s.sortBtn, ...(venueSort === opt.key ? s.sortBtnActive : {}) }}
-                                            onClick={() => setVenueSort(opt.key)}
-                                        >{opt.label}</button>
-                                    ))}
-                                </div>
-                                <div style={s.venueList}>
-                                    {venueRanking.map((v, i) => (
-                                        <div key={v.venue} className={desk.venueRow}>
-                                            <span style={s.venueRank}>
-                                                <span style={s.rankNum}>#{i + 1}</span>
-                                            </span>
-                                            <div style={s.venueInfo}>
-                                                <strong>{v.venue}</strong>
-                                                <div className={desk.meter} aria-hidden><i style={{width:(100*measure(v)/largest)+'%'}}/></div>
-                                                <div style={s.venueMeta}>
-                                                    {v.events} event{v.events !== 1 ? 's' : ''}
-                                                    {v.totalHours > 0 && ` · ${v.totalHours.toFixed(1)}h`}
-                                                </div>
-                                            </div>
-                                            <div className={desk.venueTotals}>
-                                                <div style={s.venueTotal}>{fmt(v.totalTokes)}</div>
-                                                {v.tokePerHr > 0 && <div style={s.venueRate}>${v.tokePerHr.toFixed(2)}/Hr</div>}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </>
-                        )}
-                    </div>
-
-                    {/* ── Game Type Profitability ── */}
-                    {gameTypeStats.length > 0 && (
-                        <div style={s.panel}>
-                            <button style={s.panelHeader} aria-expanded={gameOpen} onClick={() => setGameOpen(v => !v)}>
-                                <span style={s.panelTitle}>Game Type Profitability</span>
-                                <span style={s.panelChevron}>{gameOpen ? '▲' : '▼'}</span>
-                            </button>
-                            {gameOpen && (
-                                <div style={s.tableWrapper}>
-                                    <ResponsiveTable
-                                        keyField="gameType"
-                                        rows={gameTypeStats}
-                                        columns={[
-                                            { key: 'gameType', label: 'Game', render: (gt) => GAME_TYPE_MAP[gt.gameType] || gt.gameType },
-                                            { key: 'totalTokes', label: 'Total $', align: 'right', render: (gt) => <span style={{ color: METAL.success }}>{fmt(gt.totalTokes)}</span> },
-                                            { key: 'totalDowns', label: 'Downs', align: 'right' },
-                                            { key: 'avgTokePerDown', label: '$/Down', align: 'right', render: (gt) => <span style={{ fontWeight: 700, color: METAL.textPrimary }}>${gt.avgTokePerDown.toFixed(2)}</span> },
-                                        ]}
-                                    />
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* ── Tournament Buy-In Analysis ── */}
-                    {tournamentBrackets && tournamentBrackets.length > 0 && (
-                        <div style={s.panel}>
-                            <button style={s.panelHeader} aria-expanded={tourneyOpen} onClick={() => setTourneyOpen(v => !v)}>
-                                <span style={s.panelTitle}>Tournament Buy-In Analysis</span>
-                                <span style={s.panelChevron}>{tourneyOpen ? '▲' : '▼'}</span>
-                            </button>
-                            {tourneyOpen && (
-                                <div style={s.tableWrapper}>
-                                    <ResponsiveTable
-                                        keyField="label"
-                                        rows={tournamentBrackets}
-                                        columns={[
-                                            { key: 'label', label: 'Buy-In', render: (b) => <span style={{ fontWeight: 700, color: METAL.textPrimary }}>{b.label}</span> },
-                                            { key: 'totalDowns', label: 'Downs', align: 'right' },
-                                            { key: 'totalTokes', label: 'Total $', align: 'right', render: (b) => <span style={{ color: METAL.success }}>{fmt(b.totalTokes)}</span> },
-                                            { key: 'avgTokePerDown', label: 'Avg $/Down', align: 'right', render: (b) => <span style={{ fontWeight: 700, color: b.avgTokePerDown >= 20 ? METAL.success : METAL.warn }}>${b.avgTokePerDown.toFixed(2)}</span> },
-                                        ]}
-                                    />
-                                    <div style={s.tourneyNote}>
-                                        Log Buy-In Amounts When Starting Tournament Downs To Populate This Table
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </div>
+  const measure = (venue) =>
+    venueSort === 'events'
+      ? venue.events
+      : venueSort === 'total'
+        ? venue.totalTokes
+        : venue.tokePerHr;
+  const largest = venueRanking.reduce((max, venue) => Math.max(max, measure(venue)), 0);
+  const ready = signedIn && !loading && !error;
+  return (
+    <section aria-label="Career Intelligence" className={styles.stack}>
+      <div className={'sd-panel ' + styles.summary}>
+        <h2 className={styles.summaryTitle}>
+          <button
+            type="button"
+            aria-expanded={expanded}
+            aria-controls="venue-career-panels"
+            onClick={() => setExpanded((value) => !value)}
+          >
+            <Activity size={25} aria-hidden="true" />
+            <span>Career Intelligence</span>
+            <ChevronDown size={20} aria-hidden="true" className={styles.chevron} />
+          </button>
+        </h2>
+        {ready ? (
+          <dl className={styles.summaryFigures}>
+            <div>
+              <dt>Total Tokes</dt>
+              <dd>{fmt(totalTokesAllTime)}</dd>
+            </div>
+            <div>
+              <dt>Completed Events</dt>
+              <dd>{totalEvents}</dd>
+            </div>
+            <div>
+              <dt>Venues</dt>
+              <dd>{venueRanking.length}</dd>
+            </div>
+          </dl>
+        ) : (
+          <p className={styles.status} role={error ? 'alert' : 'status'}>
+            {!signedIn
+              ? 'Sign In To View Your Career Figures.'
+              : error
+                ? 'Career Figures Could Not Be Loaded.'
+                : 'Loading Career Figures…'}
+            {error && onRetry && (
+              <button className="sd-button" type="button" onClick={onRetry}>
+                Retry
+              </button>
             )}
+          </p>
+        )}
+      </div>
+      <div id="venue-career-panels" className={styles.stack} hidden={!expanded}>
+        <section aria-label="Venue Performance" className={'sd-panel ' + styles.panel}>
+          <PanelHeading
+            icon={MapPin}
+            title="Venue Performance"
+            expanded={venueOpen}
+            controls="venue-performance-ranking"
+            onToggle={() => setVenueOpen((value) => !value)}
+          />
+          <div id="venue-performance-ranking" hidden={!venueOpen}>
+            {ready && venueRanking.length > 0 ? (
+              <>
+                <div className={styles.sortRail} role="group" aria-label="Rank Venues By">
+                  {[
+                    ['toke_hr', 'Hourly Tokes'],
+                    ['total', 'Total Tokes'],
+                    ['events', 'Events'],
+                  ].map(([key, label]) => (
+                    <button
+                      key={key}
+                      className="sd-button"
+                      type="button"
+                      aria-pressed={venueSort === key}
+                      onClick={() => setVenueSort(key)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <ol className={styles.ranking} aria-label="Ranked Venues">
+                  {venueRanking.map((venue, index) => (
+                    <li key={venue.venue}>
+                      <span className={styles.rank} aria-label={'Rank ' + (index + 1)}>
+                        {String(index + 1).padStart(2, '0')}
+                      </span>
+                      <div className={styles.venueName}>
+                        <strong>{venue.venue}</strong>
+                        <small>
+                          {venue.events} {venue.events === 1 ? 'Event' : 'Events'} ·{' '}
+                          {venue.totalHours.toFixed(1)} Dealing Hours
+                        </small>
+                      </div>
+                      <dl className={styles.rowFigures}>
+                        <div>
+                          <dt>Total Tokes</dt>
+                          <dd>{fmt(venue.totalTokes)}</dd>
+                        </div>
+                        <div>
+                          <dt>Hourly Tokes</dt>
+                          <dd>{venue.totalHours > 0 ? fmt(venue.tokePerHr) : '-'}</dd>
+                        </div>
+                      </dl>
+                      <div className={styles.meter} aria-hidden="true">
+                        <span
+                          style={{
+                            width: (largest > 0 ? (100 * measure(venue)) / largest : 0) + '%',
+                          }}
+                        />
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </>
+            ) : (
+              <p className={styles.empty}>
+                {ready
+                  ? 'Complete A Shift To Compare Tokes And Dealing Hours By Venue.'
+                  : 'Venue Rankings Use Completed Shifts.'}
+              </p>
+            )}
+          </div>
         </section>
-    );
+        <section aria-label="Game Type Profitability" className={'sd-panel ' + styles.panel}>
+          <PanelHeading
+            icon={Layers3}
+            title="Game Type Profitability"
+            expanded={gameOpen}
+            controls="venue-game-types"
+            onToggle={() => setGameOpen((value) => !value)}
+          />
+          <div id="venue-game-types" className={styles.table} hidden={!gameOpen}>
+            {ready && gameTypeStats.length > 0 ? (
+              <ResponsiveTable
+                keyField="gameType"
+                caption="Results By Game Type"
+                rows={gameTypeStats}
+                columns={[
+                  {
+                    key: 'gameType',
+                    label: 'Game',
+                    render: (row) => GAME_TYPE_MAP[row.gameType] || row.gameType || 'Other',
+                  },
+                  ...distributionColumns,
+                ]}
+              />
+            ) : (
+              <p className={styles.empty}>Recorded Downs Show Tokes By Game Type Here.</p>
+            )}
+          </div>
+        </section>
+        {ready && tournamentBrackets?.length > 0 && (
+          <section aria-label="Tournament Buy-In Analysis" className={'sd-panel ' + styles.panel}>
+            <PanelHeading
+              icon={Trophy}
+              title="Tournament Buy-In Analysis"
+              expanded={tourneyOpen}
+              controls="venue-tournament-brackets"
+              onToggle={() => setTourneyOpen((value) => !value)}
+            />
+            <div id="venue-tournament-brackets" className={styles.table} hidden={!tourneyOpen}>
+              <ResponsiveTable
+                keyField="label"
+                caption="Tournament Buy-In Brackets"
+                rows={tournamentBrackets}
+                columns={[{ key: 'label', label: 'Buy-In' }, ...distributionColumns]}
+              />
+            </div>
+          </section>
+        )}
+      </div>
+    </section>
+  );
 }
-
-// ── Styles ────────────────────────────────────────────────────────
-const s = {
-    card: { background: METAL.mid, border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, overflow: 'hidden' },
-    header: { width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', background: 'transparent', border: 'none', cursor: 'pointer', color: METAL.textPrimary },
-    headerLeft: { display: 'flex', alignItems: 'center', gap: 12 },
-    headerIcon: { fontSize: 24 },
-    headerTitle: { fontSize: 17, fontWeight: 700, color: METAL.textPrimary },
-    headerSub: { fontSize: 13, color: METAL.textSecondary, marginTop: 2 },
-    chevron: { fontSize: 18, color: METAL.textSecondary, transition: 'transform 0.2s' },
-    body: { borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 0 },
-    panel: { borderBottom: '1px solid rgba(255,255,255,0.06)' },
-    panelHeader: { width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', background: 'transparent', border: 'none', cursor: 'pointer' },
-    panelTitle: { fontSize: 14, fontWeight: 700, color: METAL.textPrimary },
-    panelChevron: { fontSize: 12, color: METAL.textSecondary },
-    sortRow: { display: 'flex', gap: 8, padding: '0 16px 12px' },
-    sortBtn: { padding: '6px 12px', background: METAL.darkest, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, color: METAL.textSecondary, fontSize: 12, fontWeight: 600, cursor: 'pointer' },
-    sortBtnActive: { background: METAL.primaryDim, border: '1px solid #8acbff', color: '#8acbff' },
-    venueList: { padding: '0 16px 8px', display: 'flex', flexDirection: 'column', gap: 0 },
-    venueRow: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' },
-    venueRank: { fontSize: 20, width: 28, flexShrink: 0, textAlign: 'center' },
-    rankNum: { fontSize: 14, color: METAL.textSecondary, fontWeight: 700 },
-    venueInfo: { flex: 1, minWidth: 0 },
-    venueName: { fontSize: 14, fontWeight: 600, color: METAL.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-    venueMeta: { fontSize: 12, color: METAL.textSecondary, marginTop: 2 },
-    venueStats: { textAlign: 'right', flexShrink: 0 },
-    venueTotal: { fontSize: 15, fontWeight: 700, color: METAL.success },
-    venueRate: { fontSize: 12, color: METAL.textSecondary },
-    // Four short columns fit 375px; no sideways scroll (Always-Displayed standard).
-    tableWrapper: { padding: '0 16px 12px' },
-    table: { width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' },
-    thead: { background: METAL.darkest },
-    th: { padding: '8px 10px', fontSize: 12, fontWeight: 700, color: METAL.textSecondary, textTransform: 'uppercase', letterSpacing: '0.07em', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.08)' },
-    td: { padding: '10px 10px', fontSize: 14, color: METAL.textSecondary, borderBottom: '1px solid rgba(255,255,255,0.04)' },
-    trEven: { background: 'transparent' },
-    trOdd: { background: 'rgba(0,0,0,0.15)' },
-    tourneyNote: { fontSize: 12, color: METAL.textSecondary, padding: '8px 0 4px', fontStyle: 'italic' },
-};

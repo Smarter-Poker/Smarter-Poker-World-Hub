@@ -75,6 +75,7 @@ const TrainingLobbyRow = memo(function TrainingLobbyRow({
     <article
       className={`sp-arena-row sp-arena-row--led-${ledTone}${isRecommended || isLeakTarget ? ' is-featured' : ''}${deferredClass}`}
       data-game-id={game.id}
+      data-training-game-card={game.id}
       data-category={meta.category.toLowerCase()}
       data-training-play-game={game.id}
     >
@@ -84,7 +85,7 @@ const TrainingLobbyRow = memo(function TrainingLobbyRow({
           type="button"
           className="sp-arena-row__head"
           onClick={() => onStart(game)}
-          aria-label={`Play ${game.name}, ${meta.categoryLabel}, Level ${meta.difficulty}, ${progress}% complete`}
+          aria-label={`Play ${game.name}, ${selectedVariant && selectedVariant !== 'ALL' ? selectedVariant.toUpperCase() : meta.variantShort}, ${meta.plaqueLabel}, ${meta.categoryLabel}, Level ${meta.difficulty}, ${progress}% complete`}
         >
           <span className="sp-arena-row__emblem" aria-hidden="true">
             <TrainingGameArt
@@ -104,7 +105,7 @@ const TrainingLobbyRow = memo(function TrainingLobbyRow({
                 </span>
               )}
             </span>
-            <span className="sp-arena-row__focus">{selectedVariant && selectedVariant !== 'ALL' ? `${selectedVariant.toUpperCase()} · ` : ''}{game.focus}</span>
+            <span className="sp-arena-row__focus" data-game-preset-summary="true">{selectedVariant && selectedVariant !== 'ALL' ? `${selectedVariant.toUpperCase()} · ` : ''}{game.focus}</span>
           </span>
 
           <span className="sp-arena-row__plaque" aria-hidden="true">

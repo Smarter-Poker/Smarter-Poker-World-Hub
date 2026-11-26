@@ -20,7 +20,7 @@ import { authedFetch } from '../../../src/lib/authUtils';
 const PHASES = {
   FOCUS: { id: 'focus', label: 'Focus Block', mins: 25, color: 'var(--sp-accent-blue)' },
   SHORT_BREAK: { id: 'short', label: 'Short Break', mins: 5, color: 'var(--sp-accent-green)' },
-  LONG_BREAK: { id: 'long', label: 'Long Break', mins: 15, color: 'var(--sp-accent-amber)' },
+  LONG_BREAK: { id: 'long', label: 'Long Break', mins: 15, color: '#86daff' },
 };
 
 // BUG FIX (TRAIN-FOCUS-A11Y-1): SVG icons replacing back arrow, bell toggle,

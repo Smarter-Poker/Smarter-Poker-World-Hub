@@ -227,5 +227,5 @@ const styles = {
         alignItems: 'center', justifyContent: 'center',
         fontSize: 12, fontWeight: 'bold',
     },
-    streakBadge: { fontSize: 12, color: '#f97316' },
+    streakBadge: { fontSize: 12, color: '#fca5a5' },
 };

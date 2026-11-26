@@ -55,6 +55,10 @@ const AUDIT_HAND_BATCH_SIZE = 200;
 const AUDIT_DECISION_BATCH_SIZE = 500;
 
 let _supabase = null;
+export function _setSupabaseForTesting(client) {
+    _supabase = client;
+}
+
 function getSupabase() {
     if (!_supabase) {
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -114,6 +118,33 @@ function mergeSeparatedStatsSlices(slices) {
     .filter(slice => slice.mode === 'tournament')
     .reduce((sum, slice) => sum + Number(slice.data.overall.total_hands || 0), 0);
 
+  const isAfSliceMeasured = (o, avail) => {
+    if (avail.aggression_factor === false) return false;
+    if (o.aggression_factor === null || o.aggression_factor === undefined || !Number.isFinite(Number(o.aggression_factor)) || Number(o.aggression_factor) < 0) {
+      return false;
+    }
+    if (avail.aggression_factor_denominator !== undefined) {
+      return Number(avail.aggression_factor_denominator) > 0;
+    }
+    if (avail.aggression_factor_actions !== undefined || avail.postflop_actions !== undefined) {
+      return Number(avail.aggression_factor_actions ?? avail.postflop_actions) > 0;
+    }
+    return Number(o.aggression_factor) > 0;
+  };
+
+  const readSlicePostflopActions = (o, avail) => {
+    const explicit = avail.aggression_factor_actions ?? avail.postflop_actions;
+    if (explicit !== null && explicit !== undefined && Number.isFinite(Number(explicit)) && Number(explicit) >= 0) {
+      return Number(explicit);
+    }
+    const calls = Number(avail.aggression_factor_denominator);
+    const af = Number(o.aggression_factor);
+    if (isAfSliceMeasured(o, avail) && Number.isFinite(calls) && calls > 0 && Number.isFinite(af) && af >= 0) {
+      return Math.round(calls * (1 + af));
+    }
+    return null;
+  };
+
   const normalized = normalizeStats({
     hands_played: totalHands,
     vpip: weightedRate((o) => o.vpip, (o) => o.total_hands, () => true),
@@ -132,10 +163,10 @@ function mergeSeparatedStatsSlices(slices) {
     cbet_opportunities: sumCount((_o, avail) => avail.cbet_flop_opportunities),
     aggression_factor: weightedRate(
       (o) => o.aggression_factor,
-      (o, avail) => avail.aggression_factor_actions ?? avail.postflop_actions ?? o.total_hands,
-      (_o, avail) => avail.aggression_factor !== false,
+      (o, avail) => avail.aggression_factor_denominator ?? avail.aggression_factor_actions ?? avail.postflop_actions ?? o.total_hands,
+      (o, avail) => isAfSliceMeasured(o, avail),
     ),
-    postflop_actions: sumCount((_o, avail) => avail.aggression_factor_actions ?? avail.postflop_actions),
+    postflop_actions: sumCount((o, avail) => readSlicePostflopActions(o, avail)),
     wtsd: weightedRate(
       (o) => o.wtsd,
       (o, avail) => avail.wtsd_opportunities ?? o.total_hands,
@@ -149,6 +180,9 @@ function mergeSeparatedStatsSlices(slices) {
   normalized.formatBreakdown = {
     cashHands,
     tournamentHands,
+    scope: cashHands > 0 && tournamentHands > 0
+      ? 'cash_and_tournament'
+      : (tournamentHands > 0 ? 'tournament_only' : (cashHands > 0 ? 'cash_only' : 'no_hands')),
     sources: valid.map(slice => `${slice.mode}:${slice.asset}`),
   };
   return normalized;
@@ -202,6 +236,13 @@ async function getPlayerStats(supabase, userId) {
         const avail = rpcStats?.quality?.metric_availability || o.metric_availability || {};
         const threeBetMeasured = avail.three_bet_percent !== false
           && (avail.three_bet_opportunities === undefined || Number(avail.three_bet_opportunities) > 0);
+        const afMeasured = avail.aggression_factor !== false
+          && (avail.aggression_factor_denominator === undefined || Number(avail.aggression_factor_denominator) > 0);
+        const derivedPostflopActions = avail.aggression_factor_actions
+          ?? avail.postflop_actions
+          ?? (afMeasured && Number(avail.aggression_factor_denominator) > 0 && Number.isFinite(Number(o.aggression_factor))
+            ? Math.round(Number(avail.aggression_factor_denominator) * (1 + Number(o.aggression_factor)))
+            : null);
         finalStats = normalizeStats({
           hands_played: o.total_hands,
           vpip: o.vpip,
@@ -209,13 +250,24 @@ async function getPlayerStats(supabase, userId) {
           three_bet_percentage: threeBetMeasured ? o.three_bet_percent : null,
           cbet_percentage: avail.cbet_flop === false ? null : o.cbet_flop,
           cbet_opportunities: avail.cbet_flop_opportunities ?? null,
-          aggression_factor: avail.aggression_factor === false ? null : o.aggression_factor,
-          postflop_actions: avail.aggression_factor_actions ?? avail.postflop_actions ?? null,
+          aggression_factor: afMeasured ? o.aggression_factor : null,
+          postflop_actions: derivedPostflopActions,
           wtsd: avail.wtsd === false ? null : o.wtsd,
         });
         finalStats.analysisWindowHands = o.total_hands;
         finalStats.lifetimeHands = rpcStats?.lifetime?.hands ?? o.total_hands;
-        finalStats.formatBreakdown = { cashHands: null, tournamentHands: null, sources: ['ca_player_stats_full'] };
+        const fullCashHands = Number.isFinite(Number(o.cash_hands)) ? Number(o.cash_hands) : null;
+        const fullTourneyHands = Number.isFinite(Number(o.tourney_hands)) ? Number(o.tourney_hands) : null;
+        finalStats.formatBreakdown = {
+          cashHands: fullCashHands,
+          tournamentHands: fullTourneyHands,
+          scope: fullCashHands !== null && fullTourneyHands !== null
+            ? (fullCashHands > 0 && fullTourneyHands > 0
+                ? 'cash_and_tournament'
+                : (fullTourneyHands > 0 ? 'tournament_only' : (fullCashHands > 0 ? 'cash_only' : 'no_hands')))
+            : 'combined_or_unavailable',
+          sources: ['ca_player_stats_full'],
+        };
       }
     }
   } catch (e) {
@@ -274,11 +326,15 @@ async function getPlayerStats(supabase, userId) {
 }
 
 function normalizeStats(stats) {
-  // Return the first numeric value, or null when the column is absent ·
-  // never fabricate frequencies or sample sizes for missing columns.
+  // Return the first finite numeric value, or null when the column is absent,
+  // blank, boolean, NaN, or Infinity · never fabricate frequencies or sample
+  // sizes for missing or non-finite columns.
   const num = (...vals) => {
     for (const v of vals) {
-      if (v !== null && v !== undefined && !Number.isNaN(Number(v))) return Number(v);
+      if (v === null || v === undefined || typeof v === 'boolean') continue;
+      if (typeof v === 'string' && v.trim() === '') continue;
+      const parsed = Number(v);
+      if (Number.isFinite(parsed)) return parsed;
     }
     return null;
   };
@@ -316,6 +372,44 @@ function normalizeStats(stats) {
     return v === null || v === 0 ? null : v;
   };
 
+  // Postflop Aggression Factor = (bets + raises) / calls (checks & folds excluded).
+  // Zero calls or zero postflop actions MUST normalize to null (never NaN,
+  // Infinity, or a fabricated 0 when 0 calls occurred).
+  const rawBetsRaises = num(stats.af_bet_raise_actions, stats.postflop_aggressive_actions, stats.postflopAggressiveActions);
+  const rawCalls = num(stats.af_call_actions, stats.postflop_passive_actions, stats.postflopPassiveActions, stats.aggression_factor_denominator);
+  let postflopActions = num(stats.postflop_actions, stats.aggression_factor_actions, stats.postflopActions);
+  if (postflopActions === null && rawBetsRaises !== null && rawCalls !== null && rawBetsRaises >= 0 && rawCalls >= 0) {
+    postflopActions = rawBetsRaises + rawCalls;
+  }
+
+  let aggFactor = num(stats.aggression_factor, stats.af, stats.aggFactor);
+  const hasExplicitCalls = stats.af_call_actions !== undefined
+    || stats.postflop_passive_actions !== undefined
+    || stats.postflopPassiveActions !== undefined;
+  if (rawBetsRaises !== null && hasExplicitCalls) {
+    const callsVal = num(stats.af_call_actions, stats.postflop_passive_actions, stats.postflopPassiveActions);
+    const betsVal = rawBetsRaises ?? 0;
+    if (callsVal === null || callsVal <= 0 || betsVal < 0) {
+      aggFactor = null;
+    } else if (aggFactor === null || aggFactor < 0) {
+      aggFactor = +(betsVal / callsVal).toFixed(2);
+    }
+  } else if (hasExplicitCalls) {
+    const callsVal = num(stats.af_call_actions, stats.postflop_passive_actions, stats.postflopPassiveActions);
+    if (callsVal === null || callsVal <= 0) {
+      aggFactor = null;
+    }
+  }
+  if (rawCalls !== null && rawCalls <= 0) {
+    aggFactor = null;
+  } else if (postflopActions !== null && postflopActions <= 0) {
+    aggFactor = null;
+  } else if (aggFactor !== null && (aggFactor < 0 || (aggFactor === 0 && (postflopActions === null || postflopActions <= 0) && (rawCalls === null || rawCalls <= 0)))) {
+    aggFactor = null;
+  } else if (aggFactor !== null) {
+    aggFactor = +aggFactor.toFixed(2);
+  }
+
   return {
     handsPlayed: num(stats.hands_played, stats.total_hands) ?? 0,
     vpip: asMeasuredPercent(stats.vpip),
@@ -346,8 +440,8 @@ function normalizeStats(stats) {
     riverFaced: num(stats.river_bets_faced) ?? 0,
     riverValueBetFreq: asPercent(stats.river_value_bet_freq),
     riverBetOpps: num(stats.river_bet_opportunities) ?? 0,
-    aggFactor: num(stats.aggression_factor, stats.af),
-    postflopActions: num(stats.postflop_actions, stats.aggression_factor_actions),
+    aggFactor,
+    postflopActions,
     wtsd: asPercent(stats.wtsd, stats.went_to_showdown),
   };
 }
@@ -355,6 +449,23 @@ function normalizeStats(stats) {
 function computeStatsFromHands(hands, userId) {
   return computeStatsFromAuditHands(hands, userId);
 }
+
+export function computeAggressionFactor(betRaiseActions, callActions) {
+  const parseCount = (v) => {
+    if (v === null || v === undefined || typeof v === 'boolean') return null;
+    if (typeof v === 'string' && v.trim() === '') return null;
+    const n = Number(v);
+    return Number.isFinite(n) && n >= 0 ? n : null;
+  };
+  const betsAndRaises = parseCount(betRaiseActions);
+  const calls = parseCount(callActions);
+  if (betsAndRaises === null || calls === null || (betsAndRaises + calls) === 0 || calls === 0) {
+    return null;
+  }
+  return +(betsAndRaises / calls).toFixed(2);
+}
+
+export { normalizeStats, mergeSeparatedStatsSlices };
 
 function canonicalSpotType(question, fallback) {
   const scenario = question?.scenario || {};
@@ -723,16 +834,17 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, error: 'userId required' });
     }
 
-    if (!workerAuth) {
-      const contextAccess = await checkSandboxAccess(getSupabase(), authenticatedUser?.id);
-      if (!contextAccess.allowed || !isFeatureAccessible(contextAccess.accessLevel, 'leak_finder_detect')) {
-        return res.status(403).json({
-          success: false,
-          blocked: true,
-          contextState: contextAccess.contextState,
-          error: contextAccess.message || 'Leak detection is unavailable in the current session context.',
-        });
-      }
+    const contextAccess = await checkSandboxAccess(getSupabase(), authenticatedUser?.id);
+    if (!contextAccess.allowed || !isFeatureAccessible(contextAccess.accessLevel, 'leak_finder_detect')) {
+      return res.status(403).json({
+        success: false,
+        blocked: true,
+        retryable: Boolean(workerAuth),
+        code: workerAuth ? 'paused_for_live_play' : (contextAccess.contextState || 'live_play_restricted'),
+        contextState: contextAccess.contextState,
+        accessLevel: contextAccess.accessLevel,
+        error: contextAccess.message || 'Leak detection is unavailable in the current session context.',
+      });
     }
 
     let auditCursor = null;

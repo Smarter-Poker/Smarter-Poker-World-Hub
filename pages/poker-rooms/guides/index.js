@@ -38,9 +38,9 @@ const DIRECTORY_FAQS = [
 export default function PokerMarketGuidesIndexPage() {
   const canonicalPath = '/poker-rooms/guides';
   const canonicalUrl = `${SITE_URL}${canonicalPath}`;
-  const pageTitle = 'US Regional Live Poker Market Guides: Rake, Stakes & Venues';
+  const pageTitle = 'US Live Poker Market Guides: Rake & Rooms';
   const pageDesc =
-    'Explore Comprehensive Strategy And Rake Guides For The Top 12 US Regional Live Poker Markets: Las Vegas, Los Angeles, South Florida, Houston, DFW, Austin, Tampa, Atlantic City, Philadelphia, Phoenix, Chicago, And New England.';
+    'Compare Rake, Stakes, And Card Rooms Across 12 Top US Live Poker Markets Including Las Vegas, Los Angeles, Florida, Texas, Atlantic City, And Chicago.';
 
   const jsonLd = [
     {
@@ -55,6 +55,10 @@ export default function PokerMarketGuidesIndexPage() {
       dateModified: MARKET_GUIDES_AS_OF,
       isAccessibleForFree: true,
       publisher: { '@id': ORGANIZATION_ID },
+      speakable: {
+        '@type': 'SpeakableSpecification',
+        cssSelector: ['h1', 'main p:first-of-type'],
+      },
     },
     {
       '@type': 'FAQPage',
@@ -73,7 +77,7 @@ export default function PokerMarketGuidesIndexPage() {
       '@id': `${canonicalUrl}#breadcrumb`,
       itemListElement: [
         { '@type': 'ListItem', position: 1, name: 'Smarter.Poker', item: `${SITE_URL}/` },
-        { '@type': 'ListItem', position: 2, name: 'Poker Near Me', item: `${SITE_URL}/hub/poker-near-me` },
+        { '@type': 'ListItem', position: 2, name: 'Poker Near Me', item: `${SITE_URL}/hub/poker-near-me/lobby` },
         { '@type': 'ListItem', position: 3, name: 'US Regional Poker Market Guides', item: canonicalUrl },
       ],
     },

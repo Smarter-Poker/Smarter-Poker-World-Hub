@@ -26,9 +26,9 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 const TIERS = {
   Bronze: { color: '#cd7f32', bg: 'rgba(205,127,50,0.1)' },
   Silver: { color: 'var(--sp-fg)', bg: 'rgba(203,213,225,0.1)' },
-  Gold: { color: 'var(--sp-accent-amber)', bg: 'rgba(251,191,36,0.1)' },
+  Gold: { color: '#86daff', bg: 'rgba(251,191,36,0.1)' },
   Diamond: { color: 'var(--sp-accent-cyan)', bg: 'rgba(0,212,255,0.1)' },
-  Master: { color: 'var(--sp-accent-purple)', bg: 'rgba(168,85,247,0.1)' },
+  Master: { color: '#86daff', bg: 'rgba(168,85,247,0.1)' },
 };
 
 
@@ -544,7 +544,7 @@ export default function MilestonesPage() {
             }}
           >
             {/* TRAIN-MILESTONES-A11Y-1: status role for the reached counter */}
-            <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-accent-amber)' }} role="status" aria-label={`${reached.length} of ${MILESTONE_DEFS.length} thresholds reached`}>{reached.length}</span>
+            <span style={{ fontSize: 13, fontWeight: 800, color: '#86daff' }} role="status" aria-label={`${reached.length} of ${MILESTONE_DEFS.length} thresholds reached`}>{reached.length}</span>
             <span style={{ fontSize: 12, color: 'var(--sp-fg-muted)' }}>/{MILESTONE_DEFS.length}</span>
           </div>
         </div>
@@ -560,7 +560,7 @@ export default function MilestonesPage() {
                 borderRadius: 8,
                 border: '1px solid rgba(251, 191, 36, 0.4)',
                 background: 'rgba(251, 191, 36, 0.08)',
-                color: '#fde68a',
+                color: '#86daff',
                 fontSize: 12,
                 fontWeight: 700,
               }}

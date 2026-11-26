@@ -1,6 +1,30 @@
-import { leakToDrill, leakToTrainingGame, resolutionProgress, RETIRE_AFTER_STRONG } from '../sandbox/leakReview.js';
-import { classifyStackBucket, summarizeSolverCoverageGaps } from './caHandFactsAnalyzer.mjs';
+import {
+  leakToDrill,
+  leakToTrainingGame,
+  resolveSkillMatchedDrillGame,
+  resolutionProgress,
+  RETIRE_AFTER_STRONG,
+} from '../sandbox/leakReview.js';
+import {
+  CA_HAND_FACTS_DETECTORS,
+  CA_HAND_FACTS_RULE_VERSION,
+  classifyStackBucket,
+  summarizeSolverCoverageGaps,
+} from './caHandFactsAnalyzer.mjs';
 import { COVERAGE_TIERS, describeCoverageTier } from './mttShortStackCharts.mjs';
+import {
+  DETECTOR_RULE_VERSION,
+  EVIDENCE_BASIS,
+  LEAK_PATTERNS,
+  PATTERN_STAT_KEYS,
+  buildLeakTakeaway,
+  classifyEvidenceBasis,
+  generateLeakFix,
+} from './leakRecord.js';
+import {
+  SOLVER_EVIDENCE_RULE_VERSION,
+  qualifySolverDecisionSample,
+} from '../training/solverDecisionEvidence.js';
 
 const DAY_MS = 86_400_000;
 
@@ -75,6 +99,131 @@ function decisionLeakType(row) {
   ].join('_').slice(0, 180);
 }
 
+/**
+ * Deduplicate leaks by durable leak identifier or leakType so interrupted or
+ * retried syncs never inflate priority lists or snapshot counts.
+ */
+export function dedupeLeaks(leaks = []) {
+  if (!Array.isArray(leaks)) return [];
+  const seen = new Map();
+  const anonymous = [];
+  for (const leak of leaks) {
+    if (!leak || typeof leak !== 'object') continue;
+    const key = leakId(leak) || String(leak?.leakType || leak?.leak_type || '').trim();
+    if (!key) {
+      anonymous.push(leak);
+      continue;
+    }
+    const existing = seen.get(key);
+    if (!existing) {
+      seen.set(key, leak);
+    } else if (leakSamples(leak) > leakSamples(existing)) {
+      seen.set(key, leak);
+    }
+  }
+  return [...seen.values(), ...anonymous];
+}
+
+/**
+ * Deduplicate review records by leak_id and deduplicate history entries within
+ * each review record by timestamp + score.
+ */
+export function dedupeReviews(reviews = []) {
+  if (!Array.isArray(reviews)) return [];
+  const seen = new Map();
+  const anonymous = [];
+  for (const row of reviews) {
+    if (!row || typeof row !== 'object') continue;
+    let normalized = row;
+    if (Array.isArray(row.history) && row.history.length > 1) {
+      const seenHist = new Set();
+      const dedupedHist = [];
+      for (const item of row.history) {
+        if (!item) continue;
+        const hKey = `${iso(item.at) || String(item.at || '')}:${finite(item.score)}`;
+        if (seenHist.has(hKey)) continue;
+        seenHist.add(hKey);
+        dedupedHist.push(item);
+      }
+      if (dedupedHist.length !== row.history.length) {
+        normalized = { ...row, history: dedupedHist };
+      }
+    }
+    const key = String(normalized?.leak_id ?? normalized?.leakId ?? '').trim();
+    if (!key) {
+      anonymous.push(normalized);
+      continue;
+    }
+    if (!seen.has(key)) {
+      seen.set(key, normalized);
+    }
+  }
+  return [...seen.values(), ...anonymous];
+}
+
+/**
+ * Deduplicate decision rows when a durable unique key (`id`, `decision_key`, or
+ * `attempt_id + question_id`) is present. Rows without a unique decision key
+ * (such as synthetic hand-level test fixtures) are preserved untouched.
+ */
+export function dedupeDecisions(decisions = []) {
+  if (!Array.isArray(decisions)) return [];
+  const seen = new Set();
+  const out = [];
+  for (const row of decisions) {
+    if (!row || typeof row !== 'object') continue;
+    let key = null;
+    if (row.id !== undefined && row.id !== null && String(row.id).trim() !== '') {
+      key = `id:${String(row.id).trim()}`;
+    } else if (row.decision_key !== undefined && row.decision_key !== null && String(row.decision_key).trim() !== '') {
+      key = `dk:${String(row.hand_external_id ?? row.handExternalId ?? '').trim()}:${String(row.decision_key).trim()}:${String(row.evidence_scope ?? row.evidenceScope ?? '').trim()}`;
+    } else if (
+      row.attempt_id !== undefined && row.attempt_id !== null && String(row.attempt_id).trim() !== ''
+      && row.question_id !== undefined && row.question_id !== null && String(row.question_id).trim() !== ''
+    ) {
+      key = `aq:${String(row.attempt_id).trim()}:${String(row.question_id).trim()}`;
+    }
+    if (key) {
+      if (seen.has(key)) continue;
+      seen.add(key);
+    }
+    out.push(row);
+  }
+  return out;
+}
+
+function resolveLeakRuleVersion(leak) {
+  if (leak?.ruleVersion || leak?.rule_version) {
+    return String(leak.ruleVersion || leak.rule_version);
+  }
+  const source = String(leak?.sourceSystem || leak?.source_system || '').toLowerCase();
+  const lType = String(leak?.leakType || leak?.leak_type || '').toLowerCase();
+  if (source.includes('ca_hand_facts') || lType.endsWith('_facts')) {
+    return CA_HAND_FACTS_RULE_VERSION;
+  }
+  if (lType.startsWith('solver_') || source.includes('solver')) {
+    return SOLVER_EVIDENCE_RULE_VERSION;
+  }
+  return DETECTOR_RULE_VERSION;
+}
+
+function resolveLeakEvidenceBasis(leak, relatedDecisions = []) {
+  const explicit = leak?.evidenceBasis || leak?.evidence_basis;
+  if (explicit && Object.values(EVIDENCE_BASIS).includes(explicit)) {
+    return explicit;
+  }
+  const decisionList = Array.isArray(relatedDecisions) ? relatedDecisions : [];
+  const hasChartDecision = decisionList.some(
+    row => row?.solver_verified === true && /chart|push_fold|icm/i.test(String(row?.solver_source || '')),
+  );
+  if (hasChartDecision) return EVIDENCE_BASIS.CHART;
+  const hasExactSolverDecision = decisionList.some(row => row?.solver_verified === true);
+  if (hasExactSolverDecision && (String(leak?.leakType || leak?.leak_type || '').startsWith('solver_') || measuredLoss(leak) !== null)) {
+    return EVIDENCE_BASIS.EXACT_SOLVER_MATCH;
+  }
+  return classifyEvidenceBasis(leak);
+}
+
 function hashText(input) {
   let forward = 2166136261;
   let reverse = 3339675911;
@@ -92,14 +241,17 @@ function canonicalRows(rows) {
 }
 
 export function evidenceFingerprint({ leaks = [], decisions = [], reviews = [], rejected = {} } = {}) {
-  const leakRows = canonicalRows((Array.isArray(leaks) ? leaks : []).map(leak => [
+  const uniqueLeaks = dedupeLeaks(leaks);
+  const uniqueDecisions = dedupeDecisions(decisions);
+  const uniqueReviews = dedupeReviews(reviews);
+  const leakRows = canonicalRows(uniqueLeaks.map(leak => [
     leakId(leak), leakStatus(leak), leakSamples(leak), leakMistakes(leak), measuredLoss(leak),
     iso(leak?.firstDetected || leak?.first_detected_at || leak?.created_at),
     iso(leak?.resolvedAt || leak?.resolved_at),
     finite(leak?.currentFrequency ?? leak?.current_frequency),
     finite(leak?.optimalFrequency ?? leak?.optimal_frequency),
   ]));
-  const decisionRows = canonicalRows((Array.isArray(decisions) ? decisions : []).map(row => [
+  const decisionRows = canonicalRows(uniqueDecisions.map(row => [
     String(row?.hand_external_id || ''), String(row?.decision_key || ''), String(row?.question_id || ''), String(row?.evidence_scope || ''),
     String(row?.game_id || ''), String(row?.street || ''), String(row?.hero_position || ''),
     String(row?.villain_position || ''), String(row?.spot_type || ''), String(row?.hero_hand || ''),
@@ -108,7 +260,7 @@ export function evidenceFingerprint({ leaks = [], decisions = [], reviews = [], 
     finite(row?.ev_loss), row?.ev_loss_measured === true, row?.solver_verified === true,
     String(row?.solver_source || ''), count(row?.match_tier), iso(row?.audited_at),
   ]));
-  const reviewRows = canonicalRows((Array.isArray(reviews) ? reviews : []).map(row => {
+  const reviewRows = canonicalRows(uniqueReviews.map(row => {
     const rawOutcome = row?.last_outcome ?? row?.lastOutcome;
     const outcomeText = rawOutcome && typeof rawOutcome === 'object'
       ? JSON.stringify(rawOutcome)
@@ -132,7 +284,7 @@ export function evidenceFingerprint({ leaks = [], decisions = [], reviews = [], 
 }
 
 export function decisionCoverage(decisions = [], rejected = {}) {
-  const rows = Array.isArray(decisions) ? decisions.filter(Boolean) : [];
+  const rows = dedupeDecisions(decisions);
   const verified = rows.filter(row => row.solver_verified === true).length;
   const priced = rows.filter(row => row.ev_loss_measured === true && finite(row.ev_loss) !== null).length;
   const unpriced = rows.filter(row => row.ev_loss_measured !== true).length;
@@ -187,8 +339,10 @@ export function confidenceBreakdown(leak, coverage = {}) {
 }
 
 export function rankCoachingPriorities(leaks = [], reviewRecords = [], coverage = {}, now = Date.now()) {
-  const reviewByLeak = new Map((Array.isArray(reviewRecords) ? reviewRecords : []).map(row => [String(row.leak_id ?? row.leakId ?? ''), row]));
-  return (Array.isArray(leaks) ? leaks : [])
+  const uniqueLeaks = dedupeLeaks(leaks);
+  const uniqueReviews = dedupeReviews(reviewRecords);
+  const reviewByLeak = new Map(uniqueReviews.map(row => [String(row.leak_id ?? row.leakId ?? ''), row]));
+  return uniqueLeaks
     .filter(leak => leak && leakStatus(leak) !== 'resolved')
     .map(leak => {
       const id = leakId(leak);
@@ -204,6 +358,11 @@ export function rankCoachingPriorities(leaks = [], reviewRecords = [], coverage 
       const dueWeight = due ? 15 : 0;
       const score = statusWeight + evWeight + sampleWeight + dueWeight;
       const confidence = confidenceBreakdown(leak, coverage);
+      const drillParams = leakToDrill(leak);
+      const recommendedDrill = leakToTrainingGame(leak) || resolveSkillMatchedDrillGame(leak, drillParams?.street) || leak?.recommendedDrill || leak?.recommended_drill || null;
+      const evidenceBasis = resolveLeakEvidenceBasis(leak);
+      const ruleVersion = resolveLeakRuleVersion(leak);
+      const takeaway = leak?.takeaway || buildLeakTakeaway(leak);
       return {
         id,
         title: title(leak?.title || leak?.situationClass || leak?.situation_class || leak?.leakType || leak?.leak_type),
@@ -216,7 +375,10 @@ export function rankCoachingPriorities(leaks = [], reviewRecords = [], coverage 
         mistakes,
         samples,
         confidence,
-        recommendedDrill: leak?.recommendedDrill || leak?.recommended_drill || null,
+        recommendedDrill,
+        evidenceBasis,
+        ruleVersion,
+        takeaway,
         reason: loss !== null
           ? `${mistakes} Repeated Mistakes With ${loss.toFixed(2)} BB Measured Loss Per Occurrence`
           : `${mistakes} Repeated Mistakes Require Review While Solver EV Remains Unpriced`,
@@ -241,14 +403,14 @@ export function buildEvidenceChain(leak, decisions = [], reviewRecords = [], ver
     }
     return ids;
   }))];
-  const decisionRows = (Array.isArray(decisions) ? decisions : []).filter(row => {
+  const decisionRows = dedupeDecisions(decisions).filter(row => {
     const keys = [row?.leak_id, row?.leak_type, row?.spot_type, row?.game_id, decisionLeakType(row)].filter(Boolean).map(String);
     return keys.includes(id)
       || keys.includes(String(leak?.leakType || leak?.leak_type || ''))
       || exampleExternalIds.includes(String(row?.hand_external_id || ''));
   });
   const newest = [...decisionRows].sort((a, b) => String(b?.audited_at || '').localeCompare(String(a?.audited_at || '')))[0] || null;
-  const review = (Array.isArray(reviewRecords) ? reviewRecords : []).find(row => String(row?.leak_id ?? row?.leakId ?? '') === id) || null;
+  const review = dedupeReviews(reviewRecords).find(row => String(row?.leak_id ?? row?.leakId ?? '') === id) || null;
   const sourceHand = newest?.hand_external_id || exampleExternalIds[0] || example?.handId || null;
   return [
     { stage: 'Club Arena Hand', state: sourceHand ? 'verified' : 'unavailable', detail: sourceHand || 'No Source Hand Is Attached' },
@@ -262,7 +424,7 @@ export function buildEvidenceChain(leak, decisions = [], reviewRecords = [], ver
 
 export function buildProgressTimeline(leaks = [], reviewRecords = []) {
   const events = [];
-  for (const leak of Array.isArray(leaks) ? leaks : []) {
+  for (const leak of dedupeLeaks(leaks)) {
     const id = leakId(leak);
     const label = title(leak?.title || leak?.leakType || leak?.leak_type);
     const detected = iso(leak?.firstDetected || leak?.first_detected_at || leak?.created_at);
@@ -274,7 +436,7 @@ export function buildProgressTimeline(leaks = [], reviewRecords = []) {
     const resolved = iso(leak?.resolvedAt || leak?.resolved_at);
     if (resolved) events.push({ at: resolved, type: 'resolved', leakId: id, title: `${label} Confirmed Resolved` });
   }
-  for (const review of Array.isArray(reviewRecords) ? reviewRecords : []) {
+  for (const review of dedupeReviews(reviewRecords)) {
     const id = String(review?.leak_id ?? review?.leakId ?? '');
     const history = Array.isArray(review?.history) ? review.history : [];
     for (const item of history) {
@@ -638,9 +800,9 @@ export function summarizeCoverageTiers(decisions = []) {
  * lower bound when that window is truncated.
  */
 export function buildFunnelMetrics({ leaks, reviews, decisions, audit = null, verifiedFixedLive = null } = {}) {
-  const leakList = Array.isArray(leaks) ? leaks : null;
-  const reviewList = Array.isArray(reviews) ? reviews : null;
-  const decisionList = Array.isArray(decisions) ? decisions : null;
+  const leakList = Array.isArray(leaks) ? dedupeLeaks(leaks) : null;
+  const reviewList = Array.isArray(reviews) ? dedupeReviews(reviews) : null;
+  const decisionList = Array.isArray(decisions) ? dedupeDecisions(decisions) : null;
   const scanned = finite(audit?.handsScanned ?? audit?.hands_scanned);
   let auditedHands = null;
   let auditedHandsSource = null;
@@ -1011,6 +1173,374 @@ function leakTableVerification(rawLeak, id, review, decisionIndex, claimedSet = 
 }
 
 /**
+ * Extracts a deterministic representative hand & decision summary for a finding.
+ * Never fabricates optimal solver actions or EV loss when solver_verified or
+ * ev_loss_measured is false.
+ */
+export function buildRepresentativeHandSummary(leak, relatedDecisions = []) {
+  const rows = Array.isArray(relatedDecisions) ? relatedDecisions.filter(Boolean) : [];
+  const mistakeRows = rows.filter(
+    row => !['best', 'correct'].includes(String(row?.classification || '').toLowerCase()),
+  );
+  const pool = mistakeRows.length > 0 ? mistakeRows : rows;
+  const lossOf = row => (row?.ev_loss_measured === true ? Math.abs(finite(row?.ev_loss) ?? 0) : -1);
+  const sorted = [...pool].sort((a, b) => {
+    const lossDiff = lossOf(b) - lossOf(a);
+    if (lossDiff !== 0) return lossDiff;
+    const tA = playedAtMs(a) ?? new Date(a?.audited_at ?? 0).getTime();
+    const tB = playedAtMs(b) ?? new Date(b?.audited_at ?? 0).getTime();
+    return tB - tA;
+  });
+  const rep = sorted[0] || leak?.representativeDecision || leak?.representative_decision || null;
+  const drill = leakToDrill(leak);
+  const rawExternalId = String(
+    rep?.hand_external_id
+    ?? rep?.handExternalId
+    ?? leak?.representative_hand_id
+    ?? leak?.representativeHandId
+    ?? (Array.isArray(leak?.sample_hand_ids) ? leak.sample_hand_ids[0] : null)
+    ?? '',
+  ).trim();
+  const handId = rawExternalId ? rawExternalId.replace(/^club-arena:/, '') : null;
+  const solverVerified = rep?.solver_verified === true;
+  const evMeasured = rep?.ev_loss_measured === true
+    || (rep === null && (leak?.evLossMeasured === true || leak?.ev_loss_measured === true));
+  const rawEvLoss = rep?.ev_loss_measured === true
+    ? finite(rep?.ev_loss ?? rep?.evLossBB)
+    : (evMeasured ? measuredLoss(leak) : null);
+  const evLossBB = evMeasured && rawEvLoss !== null
+    ? Math.round(Math.abs(rawEvLoss) * 100) / 100
+    : null;
+  const priceOrSizing = rep?.price_or_sizing
+    ?? rep?.priceOrSizing
+    ?? (finite(rep?.pot_odds_pct) !== null ? `${finite(rep.pot_odds_pct)}% pot odds` : null)
+    ?? (finite(rep?.bet_pct_pot) !== null ? `${finite(rep.bet_pct_pot)}% pot bet` : null)
+    ?? String(rep?.spot_type ?? leak?.spotType ?? leak?.spot_type ?? drill?.spotType ?? 'general');
+
+  return {
+    handId: handId || null,
+    handExternalId: rawExternalId || null,
+    decisionKey: rep?.decision_key ?? rep?.decisionKey ?? null,
+    street: String(rep?.street || leak?.street || drill?.street || 'Preflop'),
+    heroPosition: String(rep?.hero_position || rep?.heroPosition || leak?.hero_position || leak?.position || drill?.position || 'BTN').toUpperCase(),
+    villainPosition: rep?.villain_position || rep?.villainPosition || null,
+    heroHand: rep?.hero_hand ?? rep?.heroHand ?? null,
+    boardCards: Array.isArray(rep?.board_cards)
+      ? rep.board_cards
+      : (Array.isArray(rep?.boardCards) ? rep.boardCards : []),
+    playerAction: rep?.player_action ?? rep?.playerAction ?? null,
+    solverAction: solverVerified ? (rep?.solver_action ?? rep?.solverAction ?? null) : null,
+    spotType: String(rep?.spot_type || rep?.spotType || leak?.spotType || leak?.spot_type || drill?.spotType || 'general'),
+    priceOrSizing,
+    stackDepthBb: finite(rep?.stack_depth_bb ?? rep?.stackDepthBb ?? leak?.stack_depth_bb ?? null),
+    evLossBB,
+    evLossMeasured: Boolean(evMeasured && evLossBB !== null),
+    solverVerified,
+  };
+}
+
+function minSamplesForLeak(leak) {
+  const explicit = finite(leak?.minSamples ?? leak?.min_samples ?? leak?.minOpportunities);
+  if (explicit !== null && explicit > 0) return Math.round(explicit);
+  const rawKey = String(leak?.leakType || leak?.leak_type || leak?.id || '').toLowerCase().trim();
+  const normKey = normalizeRuleLeakKey(rawKey);
+  if (LEAK_PATTERNS[rawKey]?.minSamples) return LEAK_PATTERNS[rawKey].minSamples;
+  if (LEAK_PATTERNS[normKey]?.minSamples) return LEAK_PATTERNS[normKey].minSamples;
+  const factsKey = `${normKey}_facts`;
+  if (CA_HAND_FACTS_DETECTORS[rawKey]?.minOpportunities) return CA_HAND_FACTS_DETECTORS[rawKey].minOpportunities;
+  if (CA_HAND_FACTS_DETECTORS[normKey]?.minOpportunities) return CA_HAND_FACTS_DETECTORS[normKey].minOpportunities;
+  if (CA_HAND_FACTS_DETECTORS[factsKey]?.minOpportunities) return CA_HAND_FACTS_DETECTORS[factsKey].minOpportunities;
+  if (rawKey.startsWith('solver_')) return 5;
+  return 12;
+}
+
+/**
+ * Qualifies sample and opportunity counts for a leak or candidate spot.
+ */
+export function buildSampleQualification(leak, relatedDecisions = []) {
+  const rows = Array.isArray(relatedDecisions) ? relatedDecisions.filter(Boolean) : [];
+  const rawSamples = leakSamples(leak);
+  const rawMistakes = leakMistakes(leak);
+  const opportunities = rawSamples > 0 ? rawSamples : rows.length;
+  const mistakes = rawMistakes > 0
+    ? rawMistakes
+    : rows.filter(r => !['best', 'correct', 'unpriced', ''].includes(String(r?.classification || '').toLowerCase())).length;
+  const minRequiredSamples = minSamplesForLeak(leak);
+  const minRequiredMistakes = String(leak?.leakType || leak?.leak_type || '').startsWith('solver_') ? 3 : 2;
+  const mistakeRatePct = opportunities > 0 ? Math.round((mistakes / opportunities) * 1000) / 10 : null;
+  const measuredDecisionMistakes = rows.filter(
+    r => r?.ev_loss_measured === true && !['best', 'correct'].includes(String(r?.classification || '').toLowerCase()),
+  ).length;
+  const measuredEvMistakes = measuredDecisionMistakes > 0
+    ? measuredDecisionMistakes
+    : (measuredLoss(leak) !== null ? mistakes : 0);
+  const sufficientSample = opportunities >= minRequiredSamples && mistakes >= minRequiredMistakes;
+  let sampleState = 'no_opportunities_recorded';
+  if (sufficientSample) {
+    sampleState = 'recurring_leak_qualified';
+  } else if (mistakes === 1) {
+    sampleState = 'single_hand_observation';
+  } else if (opportunities > 0) {
+    sampleState = 'insufficient_sample';
+  }
+  return {
+    mistakes,
+    opportunities,
+    minRequiredSamples,
+    minRequiredMistakes,
+    mistakeRatePct,
+    measuredEvMistakes,
+    sufficientSample,
+    sampleState,
+  };
+}
+
+/**
+ * Complete advice & evidence basis contract for a finding:
+ * plain-English takeaway, representative hand, sample & opportunity counts,
+ * explicit basis classification, rule version, and skill-matched Practice This target.
+ */
+export function buildAdviceExplanation(leak, relatedDecisions = [], availableGameIds = null) {
+  const drillParams = leakToDrill(leak);
+  const trainingGameId = leakToTrainingGame(leak, availableGameIds)
+    || resolveSkillMatchedDrillGame(leak, drillParams?.street)
+    || drillParams?.game
+    || null;
+  const evidenceBasis = resolveLeakEvidenceBasis(leak, relatedDecisions);
+  const ruleVersion = resolveLeakRuleVersion(leak);
+  const takeaway = leak?.takeaway || buildLeakTakeaway(leak);
+  const representativeHand = buildRepresentativeHandSummary(leak, relatedDecisions);
+  const sampleCounts = buildSampleQualification(leak, relatedDecisions);
+  const practiceTarget = {
+    trainingGameId,
+    street: drillParams?.street || representativeHand.street || 'Preflop',
+    position: drillParams?.position || representativeHand.heroPosition || 'BTN',
+    spotType: drillParams?.spotType || representativeHand.spotType || normalizeRuleLeakKey(leak?.leakType || leak?.leak_type || '') || 'general',
+    limit: drillParams?.limit || 'NL100',
+  };
+  return {
+    evidenceBasis,
+    ruleVersion,
+    takeaway,
+    representativeHand,
+    sampleCounts,
+    practiceTarget,
+  };
+}
+
+/**
+ * Deterministic qualification evaluator for any candidate finding, single hand,
+ * missing-metric spot, unsupported game variant, or failed solver lookup.
+ * Enforces:
+ *   - Unsupported game / missing metric / failed lookup -> explicit limitation, zero fabricated optimal play or EV loss
+ *   - Single poor decision or too few opportunities -> explains hand & exact count without claiming recurring leak
+ *   - Supported recurring mistake -> cites decisions, evidence basis, rule version, takeaway, and skill-matched practice target
+ */
+export function qualifyDetectorFinding({
+  leak = null,
+  decisions = [],
+  gameVariant = null,
+  metricAvailable = true,
+  availableGameIds = null,
+} = {}) {
+  const normalizedVariant = String(gameVariant || leak?.gameVariant || leak?.game_variant || 'nlhe').toLowerCase().trim();
+  const isUnsupportedVariant = ['plo', 'plo5', 'plo6', 'omaha', 'ofc', 'pineapple', 'short_deck', '6plus', 'stud', 'razz', 'badugi', 'draw', 'mixed', 'unsupported'].some(
+    v => normalizedVariant === v || normalizedVariant.includes(v),
+  );
+  if (isUnsupportedVariant) {
+    return {
+      status: 'unsupported_game_context',
+      isRecurringLeak: false,
+      gameVariant: normalizedVariant,
+      ruleVersion: resolveLeakRuleVersion(leak),
+      evidenceBasis: null,
+      optimalAction: null,
+      evLossBB: null,
+      evLossMeasured: false,
+      limitation: `Unsupported game variant (${normalizedVariant.toUpperCase()}): deterministic leak detectors and Hold'em solver tables only support No-Limit Hold'em cash and tournament hands.`,
+    };
+  }
+
+  if (metricAvailable === false) {
+    return {
+      status: 'unavailable_metric',
+      isRecurringLeak: false,
+      ruleVersion: resolveLeakRuleVersion(leak),
+      evidenceBasis: null,
+      optimalAction: null,
+      evLossBB: null,
+      evLossMeasured: false,
+      limitation: 'Required opportunity or action frequency metric is unavailable for this spot; no recurring leak, optimal frequency, or EV loss is claimed.',
+    };
+  }
+
+  const dedupedDecisions = dedupeDecisions(decisions);
+  const allUnpricedOrLookupFailed = dedupedDecisions.length > 0 && dedupedDecisions.every(
+    row => row?.solver_verified !== true || /lookup-failed|unpriced/i.test(String(row?.solver_source || '')),
+  );
+  if (!leak && allUnpricedOrLookupFailed) {
+    const first = dedupedDecisions[0];
+    const isLookupFailed = /lookup-failed/i.test(String(first?.solver_source || ''));
+    return {
+      status: isLookupFailed ? 'solver_lookup_failed' : 'unpriced_spot',
+      isRecurringLeak: false,
+      ruleVersion: SOLVER_EVIDENCE_RULE_VERSION,
+      evidenceBasis: null,
+      optimalAction: null,
+      evLossBB: null,
+      evLossMeasured: false,
+      sampleCounts: {
+        mistakes: 0,
+        opportunities: dedupedDecisions.length,
+        sufficientSample: false,
+        sampleState: isLookupFailed ? 'solver_lookup_failed' : 'unpriced_spot',
+      },
+      limitation: isLookupFailed
+        ? 'Solver lookup failed for this decision node; optimal action and EV loss are withheld rather than fabricated.'
+        : 'No exact solver node or chart covers this spot; decision is preserved as unpriced with zero fabricated EV loss.',
+    };
+  }
+
+  if (!leak && dedupedDecisions.length > 0) {
+    const solverQual = qualifySolverDecisionSample(dedupedDecisions, { minSamples: 5, minMistakes: 3 });
+    if (!solverQual.isRecurringLeak) {
+      const sampleState = solverQual.mistakes === 1 ? 'single_hand_observation' : solverQual.state;
+      return {
+        status: sampleState,
+        isRecurringLeak: false,
+        ruleVersion: solverQual.ruleVersion,
+        evidenceBasis: solverQual.evidenceBasis,
+        optimalAction: solverQual.optimalAction,
+        evLossBB: solverQual.evLossMeasured ? solverQual.evLossBB : null,
+        evLossMeasured: Boolean(solverQual.evLossMeasured),
+        sampleCounts: {
+          mistakes: solverQual.mistakes,
+          opportunities: solverQual.opportunities,
+          minRequiredSamples: solverQual.requiredOpportunities,
+          minRequiredMistakes: solverQual.requiredMistakes,
+          sufficientSample: false,
+          sampleState,
+        },
+        handExplanation: solverQual.explanation,
+        limitation: sampleState === 'insufficient_sample' || sampleState === 'single_hand_observation'
+          ? solverQual.explanation
+          : null,
+      };
+    }
+  }
+
+  const effectiveLeak = leak || {};
+  const advice = buildAdviceExplanation(effectiveLeak, dedupedDecisions, availableGameIds);
+  if (!advice.sampleCounts.sufficientSample) {
+    const { mistakes, opportunities, minRequiredSamples, minRequiredMistakes, sampleState } = advice.sampleCounts;
+    const rep = advice.representativeHand;
+    const handDesc = rep.handId
+      ? `Hand ${rep.handId} (${rep.street} ${rep.heroPosition}${rep.playerAction ? ` ${rep.playerAction}` : ''})`
+      : `${rep.street} ${rep.heroPosition} spot`;
+    return {
+      status: sampleState,
+      isRecurringLeak: false,
+      ruleVersion: advice.ruleVersion,
+      evidenceBasis: advice.evidenceBasis,
+      optimalAction: rep.solverVerified ? rep.solverAction : null,
+      evLossBB: rep.evLossMeasured ? rep.evLossBB : null,
+      evLossMeasured: rep.evLossMeasured,
+      sampleCounts: advice.sampleCounts,
+      representativeHand: rep,
+      handExplanation: mistakes === 1
+        ? `Single-hand observation on ${handDesc}: 1 mistake across ${opportunities} eligible opportunities (minimum ${minRequiredMistakes} mistakes across ${minRequiredSamples} opportunities required before claiming a recurring leak).`
+        : `Insufficient sample on ${handDesc}: ${mistakes} mistakes across ${opportunities} eligible opportunities (minimum ${minRequiredMistakes} mistakes across ${minRequiredSamples} opportunities required before claiming a recurring leak).`,
+    };
+  }
+
+  return {
+    status: 'recurring_leak_qualified',
+    isRecurringLeak: true,
+    ...advice,
+  };
+}
+
+/**
+ * Authoritative catalog of every active detector across `leakRecord.js` (16 patterns),
+ * `caHandFactsAnalyzer.mjs` (11 opportunity detectors), and `solverDecisionEvidence.js`
+ * (solver & chart decision group aggregator).
+ */
+export const DETECTOR_QUALIFICATION_MATRIX = Object.freeze([
+  ...Object.entries(LEAK_PATTERNS).map(([id, pattern]) => {
+    const canonicalStreet = title(pattern.street || pattern.category || 'Preflop');
+    const cashLeak = { leakType: id, leakCategory: pattern.category, street: canonicalStreet, recommendedDrill: pattern.recommendedDrill };
+    const mttLeak = { leakType: id, leakCategory: pattern.category, street: canonicalStreet, format: 'mtt', recommendedDrill: null };
+    return Object.freeze({
+      id,
+      family: 'leak_patterns',
+      title: pattern.name || pattern.title || title(id),
+      ruleVersion: pattern.ruleVersion || DETECTOR_RULE_VERSION,
+      gameContext: 'Cash & Tournament NLH',
+      street: canonicalStreet,
+      spotType: pattern.spotType,
+      inputs: Object.freeze([...new Set([...(PATTERN_STAT_KEYS[id] || [id]), pattern.opportunityKey || 'handsPlayed'])]),
+      opportunityKey: pattern.opportunityKey || 'handsPlayed',
+      minSamples: pattern.minSamples || 15,
+      evidenceSource: 'ca_player_stats_overview_separated / hand_audit_decisions',
+      evidenceBasis: pattern.evidenceBasis || EVIDENCE_BASIS.DETERMINISTIC_RULE,
+      recommendation: generateLeakFix({ leakType: id }),
+      practiceMapping: Object.freeze({
+        cashGameId: leakToTrainingGame(cashLeak),
+        mttGameId: resolveSkillMatchedDrillGame(mttLeak, canonicalStreet),
+        street: canonicalStreet,
+        spotType: pattern.spotType,
+      }),
+    });
+  }),
+  ...Object.values(CA_HAND_FACTS_DETECTORS).map((det) => Object.freeze({
+    id: det.slug,
+    family: 'ca_hand_facts',
+    title: title(det.slug),
+    ruleVersion: det.ruleVersion || CA_HAND_FACTS_RULE_VERSION,
+    gameContext: 'Cash & Tournament NLH (Per Format & Stack Bucket)',
+    street: title(det.street),
+    spotType: det.spotType,
+    inputs: Object.freeze([det.opportunityField, 'hero_position', 'is_tournament', 'hero_effective_stack_bb']),
+    opportunityKey: det.opportunityField,
+    minSamples: det.minOpportunities,
+    evidenceSource: 'ca_hand_facts',
+    evidenceBasis: det.evidenceBasis || EVIDENCE_BASIS.DETERMINISTIC_RULE,
+    recommendation: `Calibrate ${det.spotType} frequency on ${det.opportunityField} (${det.heroPosition})`,
+    practiceMapping: Object.freeze({
+      cashGameId: det.cashDrill,
+      mttShortGameId: det.tournamentShortDrill || det.tournamentDrill,
+      mttDeepGameId: det.tournamentDrill,
+      street: title(det.street),
+      spotType: det.spotType,
+    }),
+  })),
+  Object.freeze({
+    id: 'solver_decision_group',
+    family: 'solver_decision_evidence',
+    title: 'Solver & Chart Decision Evidence Aggregator',
+    ruleVersion: SOLVER_EVIDENCE_RULE_VERSION,
+    gameContext: 'Cash & Tournament NLH (By Evidence Scope, Game, Street, Position, Spot)',
+    street: 'Preflop | Flop | Turn | River',
+    spotType: 'exact_node_or_chart_spot',
+    inputs: Object.freeze(['hand_audit_decisions', 'jarvis_training_question_attempts']),
+    opportunityKey: 'grouped_decisions_in_spot',
+    minSamples: 5,
+    evidenceSource: 'jarvis_Precomputed_Solutions / mttShortStackCharts / deterministic_policy',
+    evidenceBasis: `${EVIDENCE_BASIS.EXACT_SOLVER_MATCH} | ${EVIDENCE_BASIS.CHART}`,
+    recommendation: 'Follow highest-EV solver or push/fold chart action at this street, position, and stack depth',
+    practiceMapping: Object.freeze({
+      preflopCashGameId: 'cash-001',
+      flopCashGameId: 'cash-002',
+      turnCashGameId: 'cash-004',
+      riverDefenseCashGameId: 'cash-005',
+      riverValueCashGameId: 'cash-012',
+      mttShortGameId: 'mtt-001',
+      mttPostflopGameId: 'mtt-024',
+    }),
+  }),
+]);
+
+/**
  * Deterministic Training Plan generator.
  * Turns ranked active leaks, audited Club Arena/Training decisions, and
  * spaced-repetition review state into an ordered, reproducible training plan
@@ -1030,11 +1560,14 @@ export function buildTrainingPlan({
   cooldownActive = false,
   claimedReferenceIds = null,
 } = {}) {
+  const uniqueLeaks = dedupeLeaks(leaks);
+  const uniqueDecisions = dedupeDecisions(decisions);
+  const uniqueReviews = dedupeReviews(reviews);
   const claimedSet = toClaimedSet(claimedReferenceIds);
-  const priorities = rankCoachingPriorities(leaks, reviews, coverage, now);
-  const leakById = new Map((Array.isArray(leaks) ? leaks : []).map(item => [leakId(item), item]));
-  const reviewByLeak = new Map((Array.isArray(reviews) ? reviews : []).map(row => [String(row?.leak_id ?? row?.leakId ?? ''), row]));
-  const lookup = decisionIndex || buildDecisionIndex(decisions);
+  const priorities = rankCoachingPriorities(uniqueLeaks, uniqueReviews, coverage, now);
+  const leakById = new Map(uniqueLeaks.map(item => [leakId(item), item]));
+  const reviewByLeak = new Map(uniqueReviews.map(row => [String(row?.leak_id ?? row?.leakId ?? ''), row]));
+  const lookup = decisionIndex || buildDecisionIndex(uniqueDecisions);
 
   const modules = priorities.slice(0, 6).map((priority, index) => {
     const rawLeak = leakById.get(priority.id) || priority;
@@ -1054,7 +1587,11 @@ export function buildTrainingPlan({
         .filter(Boolean),
     )].slice(0, 3);
     const drillParams = leakToDrill(rawLeak);
-    const trainingGameId = leakToTrainingGame(rawLeak, availableGameIds) || drillParams?.game || null;
+    const trainingGameId = leakToTrainingGame(rawLeak, availableGameIds)
+      || resolveSkillMatchedDrillGame(rawLeak, drillParams?.street)
+      || drillParams?.game
+      || null;
+    const advice = buildAdviceExplanation(rawLeak, relatedDecisions, availableGameIds);
     const formatScope = inferFormatScope(rawLeak, relatedDecisions);
     const mastered = progress?.retired === true;
     const tableVerification = evaluateTableVerification(rawLeak, review, relatedDecisions, mastered, claimedSet);
@@ -1089,6 +1626,12 @@ export function buildTrainingPlan({
       drillParams,
       trainingGameId,
       exampleHands,
+      evidenceBasis: advice.evidenceBasis,
+      ruleVersion: advice.ruleVersion,
+      takeaway: advice.takeaway,
+      representativeHand: advice.representativeHand,
+      sampleCounts: advice.sampleCounts,
+      practiceTarget: advice.practiceTarget,
       mastery: {
         currentStreak,
         targetStreak,
@@ -1139,20 +1682,23 @@ export function buildCoachingSnapshot({
   poolBenchmarks = null,
   claimedReferenceIds = null,
 } = {}) {
+  const uniqueLeaks = dedupeLeaks(leaks);
+  const uniqueDecisions = dedupeDecisions(decisions);
+  const uniqueReviews = dedupeReviews(reviews);
   const claimedSet = toClaimedSet(claimedReferenceIds);
-  const coverage = decisionCoverage(decisions, rejected);
-  const solverCoverageGaps = summarizeSolverCoverageGaps(decisions);
-  const priorities = rankCoachingPriorities(leaks, reviews, coverage, now);
-  const decisionIndex = buildDecisionIndex(decisions);
+  const coverage = decisionCoverage(uniqueDecisions, rejected);
+  const solverCoverageGaps = summarizeSolverCoverageGaps(uniqueDecisions);
+  const priorities = rankCoachingPriorities(uniqueLeaks, uniqueReviews, coverage, now);
+  const decisionIndex = buildDecisionIndex(uniqueDecisions);
 
   const liveStateKnown = Boolean(liveTable) && typeof liveTable === 'object';
   const liveTableActive = liveStateKnown ? liveTable.active === true : true;
   const cooldownActive = liveStateKnown && liveTable.cooldown === true;
 
   const trainingPlan = buildTrainingPlan({
-    leaks,
-    decisions,
-    reviews,
+    leaks: uniqueLeaks,
+    decisions: uniqueDecisions,
+    reviews: uniqueReviews,
     coverage,
     now,
     availableGameIds,
@@ -1163,7 +1709,7 @@ export function buildCoachingSnapshot({
     claimedReferenceIds: claimedSet,
   });
   const active = priorities.length;
-  const resolved = (Array.isArray(leaks) ? leaks : []).filter(leak => leakStatus(leak) === 'resolved').length;
+  const resolved = uniqueLeaks.filter(leak => leakStatus(leak) === 'resolved').length;
   const due = priorities.filter(priority => priority.due).length;
   const measuredPriorities = priorities.filter(
     priority => typeof priority.measuredEvLoss === 'number' && Number.isFinite(priority.measuredEvLoss),
@@ -1175,21 +1721,42 @@ export function buildCoachingSnapshot({
     : null;
   const top = priorities[0] || null;
 
-  // Before/after live-play proof for EVERY leak (not just the top plan modules).
-  const reviewByLeak = new Map((Array.isArray(reviews) ? reviews : []).map(row => [String(row?.leak_id ?? row?.leakId ?? ''), row]));
-  const leakList = Array.isArray(leaks) ? leaks.filter(Boolean) : [];
+  // Before/after live-play proof and advice explanation for EVERY leak.
+  const reviewByLeak = new Map(uniqueReviews.map(row => [String(row?.leak_id ?? row?.leakId ?? ''), row]));
+  const leakList = uniqueLeaks.filter(Boolean);
   const tableVerificationByLeak = new Map();
+  const adviceByLeak = new Map();
   for (const leak of leakList) {
     const id = leakId(leak);
     if (!id || tableVerificationByLeak.has(id)) continue;
-    tableVerificationByLeak.set(id, leakTableVerification(leak, id, reviewByLeak.get(id) || null, decisionIndex, claimedSet));
+    let related = relatedDecisionsFor(
+      decisionIndex, id, String(leak?.leakType || leak?.leak_type || ''),
+    );
+    if (related.length === 0) {
+      related = findRuleBasedDecisions(leak, id, decisionIndex);
+    }
+    const mastered = masteryProgress(reviewByLeak.get(id) || null, id)?.retired === true;
+    tableVerificationByLeak.set(id, evaluateTableVerification(leak, reviewByLeak.get(id) || null, related, mastered, claimedSet));
+    adviceByLeak.set(id, buildAdviceExplanation(leak, related, availableGameIds));
   }
-  const priorityRows = priorities.map(priority => ({
-    ...priority,
-    tableVerification: tableVerificationByLeak.get(priority.id) || null,
-  }));
+  const priorityRows = priorities.map(priority => {
+    const advice = adviceByLeak.get(priority.id) || null;
+    return {
+      ...priority,
+      ...(advice ? {
+        evidenceBasis: advice.evidenceBasis,
+        ruleVersion: advice.ruleVersion,
+        takeaway: advice.takeaway,
+        representativeHand: advice.representativeHand,
+        sampleCounts: advice.sampleCounts,
+        practiceTarget: advice.practiceTarget,
+      } : {}),
+      tableVerification: tableVerificationByLeak.get(priority.id) || null,
+    };
+  });
   const leakRows = leakList.map(leak => {
     const id = leakId(leak);
+    const advice = adviceByLeak.get(id) || buildAdviceExplanation(leak, [], availableGameIds);
     const stakePoolContext = buildStakePoolContext({
       leak,
       poolBenchmarks,
@@ -1202,6 +1769,12 @@ export function buildCoachingSnapshot({
       title: title(leak?.title || leak?.situationClass || leak?.situation_class || leak?.leakType || leak?.leak_type),
       category: title(leak?.leakCategory || leak?.leak_category || 'Strategy'),
       status: leakStatus(leak),
+      evidenceBasis: advice.evidenceBasis,
+      ruleVersion: advice.ruleVersion,
+      takeaway: advice.takeaway,
+      representativeHand: advice.representativeHand,
+      sampleCounts: advice.sampleCounts,
+      practiceTarget: advice.practiceTarget,
       tableVerification: tableVerificationByLeak.get(id) || null,
       ...(stakePoolContext ? { stakePoolContext } : {}),
     };
@@ -1212,14 +1785,14 @@ export function buildCoachingSnapshot({
   const verifiedFixedLive = leakRows.filter(row => row.status !== 'resolved'
     && row.tableVerification?.status === 'confirmed_fixed_at_tables').length;
 
-  const coverageGaps = buildCoverageGapsRanked(decisions);
+  const coverageGaps = buildCoverageGapsRanked(uniqueDecisions);
   const coverageGapsSummary = {
     source: 'first_party_hand_audit_decisions',
     thirdPartyTelemetry: false,
     totalUnpriced: coverageGaps.totalUnpriced,
     totalDecisions: coverageGaps.totalDecisions,
     bucketCount: coverageGaps.bucketCount,
-    tiers: summarizeCoverageTiers(decisions),
+    tiers: summarizeCoverageTiers(uniqueDecisions),
   };
 
   // Recap eligibility. Without a verified table state the snapshot assumes the
@@ -1228,21 +1801,21 @@ export function buildCoachingSnapshot({
   const recapBlockedByLivePolicy = liveTableActive || cooldownActive;
   const recap = recapBlockedByLivePolicy
     ? { hands: [], sessionSource: null, unavailableReason: liveTableActive ? 'live_table_active' : 'cooldown_active' }
-    : selectTopLeakedHands(decisions, sessionWindow);
+    : selectTopLeakedHands(uniqueDecisions, sessionWindow);
   const topLeakedHands = recap.hands;
 
   return {
     generatedAt: new Date(now).toISOString(),
     versions: { schema: 'pa-coaching-v1', ...versions },
-    evidenceFingerprint: evidenceFingerprint({ leaks, decisions, reviews, rejected }),
+    evidenceFingerprint: evidenceFingerprint({ leaks: uniqueLeaks, decisions: uniqueDecisions, reviews: uniqueReviews, rejected }),
     coverage,
     solverCoverageGaps,
     coverageGapsRanked: coverageGaps.gaps,
     coverageGapsSummary,
     funnelMetrics: buildFunnelMetrics({
-      leaks: Array.isArray(leaks) ? leaks : null,
-      reviews: Array.isArray(reviews) ? reviews : null,
-      decisions: Array.isArray(decisions) ? decisions : null,
+      leaks: Array.isArray(leaks) ? uniqueLeaks : null,
+      reviews: Array.isArray(reviews) ? uniqueReviews : null,
+      decisions: Array.isArray(decisions) ? uniqueDecisions : null,
       audit,
       verifiedFixedLive: Array.isArray(leaks) ? verifiedFixedLive : null,
     }),
@@ -1250,7 +1823,7 @@ export function buildCoachingSnapshot({
     leaks: leakRows,
     verifiedLiveMilestones,
     trainingPlan,
-    timeline: buildProgressTimeline(leaks, reviews),
+    timeline: buildProgressTimeline(uniqueLeaks, uniqueReviews),
     summary: { active, resolved, due, measuredEvLoss: measuredLoss },
     nextBestAction: top ? {
       leakId: top.id,
@@ -1290,4 +1863,4 @@ export function receiptFingerprint(snapshot = {}) {
   return `pa7-${hashText(input)}`;
 }
 
-export { DAY_MS, describeCoverageTier };
+export { DAY_MS, describeCoverageTier, qualifySolverDecisionSample };
