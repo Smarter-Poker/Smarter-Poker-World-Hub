@@ -75415,7 +75415,7 @@
         },
         {
           "name": "fetchPrivateHeroCards",
-          "line": 469,
+          "line": 475,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -75423,7 +75423,7 @@
         },
         {
           "name": "handNotation",
-          "line": 503,
+          "line": 509,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -75431,7 +75431,7 @@
         },
         {
           "name": "canonicalBoard",
-          "line": 516,
+          "line": 522,
           "references": 6,
           "exported": false,
           "defaultExport": false,
@@ -75439,7 +75439,7 @@
         },
         {
           "name": "canonicalCombo",
-          "line": 522,
+          "line": 528,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -75447,7 +75447,7 @@
         },
         {
           "name": "isSupportedHoldemHand",
-          "line": 526,
+          "line": 532,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -75455,7 +75455,7 @@
         },
         {
           "name": "questionBoard",
-          "line": 531,
+          "line": 537,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -75463,7 +75463,7 @@
         },
         {
           "name": "optionAction",
-          "line": 538,
+          "line": 544,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -75471,7 +75471,7 @@
         },
         {
           "name": "optionSizingPercent",
-          "line": 550,
+          "line": 556,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -75479,7 +75479,7 @@
         },
         {
           "name": "mapPlayedAction",
-          "line": 559,
+          "line": 565,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -75487,7 +75487,7 @@
         },
         {
           "name": "normalizedDecisionAction",
-          "line": 579,
+          "line": 585,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -75495,7 +75495,7 @@
         },
         {
           "name": "exactActionHistoryCompatible",
-          "line": 590,
+          "line": 596,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -75503,7 +75503,7 @@
         },
         {
           "name": "questionNode",
-          "line": 607,
+          "line": 613,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -75511,7 +75511,7 @@
         },
         {
           "name": "nodeCompatible",
-          "line": 627,
+          "line": 633,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -75519,14 +75519,6 @@
         },
         {
           "name": "fingerprint",
-          "line": 643,
-          "references": 2,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "canonicalFingerprint",
           "line": 649,
           "references": 2,
           "exported": false,
@@ -75534,8 +75526,16 @@
           "namedFunctionExpression": false
         },
         {
+          "name": "canonicalFingerprint",
+          "line": 655,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "exactIdentityCompatible",
-          "line": 653,
+          "line": 659,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -75543,15 +75543,23 @@
         },
         {
           "name": "findQuestion",
-          "line": 693,
+          "line": 699,
           "references": 2,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
+          "name": "resolveStackDepthBb",
+          "line": 737,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "summary",
-          "line": 731,
+          "line": 781,
           "references": 31,
           "exported": false,
           "defaultExport": false,
@@ -75559,7 +75567,7 @@
         },
         {
           "name": "runWithConcurrency",
-          "line": 752,
+          "line": 804,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -75567,7 +75575,7 @@
         },
         {
           "name": "replacePersistedDecisionEvidence",
-          "line": 773,
+          "line": 825,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -75575,7 +75583,7 @@
         },
         {
           "name": "auditParsedHands",
-          "line": 800,
+          "line": 854,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -75583,7 +75591,7 @@
         },
         {
           "name": "fetchClubHandsForKey",
-          "line": 981,
+          "line": 1040,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -75591,7 +75599,7 @@
         },
         {
           "name": "parseTimestampMicros",
-          "line": 1020,
+          "line": 1079,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -75599,7 +75607,7 @@
         },
         {
           "name": "compareHandKeyDescending",
-          "line": 1030,
+          "line": 1089,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -75607,7 +75615,7 @@
         },
         {
           "name": "fetchExistingAuditRows",
-          "line": 1038,
+          "line": 1097,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -75615,7 +75623,7 @@
         },
         {
           "name": "auditRowTime",
-          "line": 1053,
+          "line": 1112,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -75623,7 +75631,7 @@
         },
         {
           "name": "syncClubArenaHandsForAudit",
-          "line": 1059,
+          "line": 1118,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -143438,7 +143446,7 @@
       {
         "file": "src/lib/training/handAuditEngine.js",
         "name": "syncClubArenaHandsForAudit",
-        "line": 1059,
+        "line": 1118,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -153932,7 +153940,7 @@
       {
         "file": "src/lib/training/handAuditEngine.js",
         "name": "syncClubArenaHandsForAudit",
-        "line": 1059,
+        "line": 1118,
         "references": 1,
         "exported": true,
         "defaultExport": false,

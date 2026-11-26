@@ -70,6 +70,7 @@ export const PUSH_TYPES = [
     // means "unknown, allow it", and the toggle would silently do nothing.
     { key: 'personal_assistant_audit_complete', group: 'Poker and Clubs', label: 'Leak Finder Audits', desc: 'Your Leak Finder hand audit finishes' },
     { key: 'personal_assistant_review_due', group: 'Poker and Clubs', label: 'Study Reviews Due', desc: 'A spaced-repetition leak review is due' },
+    { key: 'personal_assistant_weekly_digest', group: 'Poker and Clubs', label: 'Weekly Coaching Digest', desc: 'Your weekly poker leak and drill progress summary' },
 
     // -- Rewards and Account --------------------------------------------------
     { key: 'diamond_received', group: 'Rewards and Account', label: 'Diamonds Received', desc: 'Someone sent you diamonds' },

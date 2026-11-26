@@ -377,7 +377,9 @@ function evaluateTableVerification(rawLeak, review, relatedDecisions, mastered) 
     if (played !== null) return played;
     return new Date(row?.audited_at ?? 0).getTime();
   };
-  const verified = (relatedDecisions || []).filter(row => row?.solver_verified === true);
+  const selfReportedExcludedCount = (relatedDecisions || []).filter(row => row?.evidence_scope === 'self_reported_live').length;
+  const eligibleDecisions = (relatedDecisions || []).filter(row => row?.evidence_scope !== 'self_reported_live');
+  const verified = eligibleDecisions.filter(row => row?.solver_verified === true);
   const postBaseline = baselineMs !== null
     ? verified.filter(row => {
       const ts = decisionTimeMs(row);
@@ -451,6 +453,7 @@ function evaluateTableVerification(rawLeak, review, relatedDecisions, mastered) 
     handsRemaining,
     deltaPct,
     verifiedLiveMilestone,
+    selfReportedExcludedCount,
     // Back-compat aliases consumed by earlier UI/tests.
     preBaselineSamples: preBaseline.length,
     preBaselineErrorRate: preRate,
@@ -480,6 +483,16 @@ function isUnpricedDecision(row) {
   return row?.solver_verified === false || String(row?.classification || '').toLowerCase() === 'unpriced';
 }
 
+export function bucketStackDepth(stackDepthBb) {
+  if (stackDepthBb === null || stackDepthBb === undefined || stackDepthBb === '') return 'unknown';
+  const bb = Number(stackDepthBb);
+  if (!Number.isFinite(bb) || bb <= 0) return 'unknown';
+  if (bb <= 20) return '<=20bb';
+  if (bb <= 50) return '20-50bb';
+  if (bb <= 100) return '50-100bb';
+  return '100bb+';
+}
+
 /**
  * Demand-ranked list of the spots the solver could not price, from the user's
  * own audited decisions only (first-party; no third-party telemetry).
@@ -493,9 +506,14 @@ export function buildCoverageGapsRanked(decisions = [], { limit = COVERAGE_GAP_L
     const format = gapFormat(row);
     const street = String(row.street || 'unknown').toLowerCase();
     const position = String(row.hero_position || 'UNKNOWN').toUpperCase();
-    const stackBucket = String(
-      row.stack_bucket ?? classifyStackBucket(row.hero_effective_stack_bb ?? row.effective_stack_bb ?? null),
-    ).toLowerCase();
+    let stackBucket;
+    if (row.stack_depth_bb !== undefined || row.stackDepthBb !== undefined) {
+      stackBucket = bucketStackDepth(row.stack_depth_bb ?? row.stackDepthBb);
+    } else if (row.stack_bucket !== undefined) {
+      stackBucket = String(row.stack_bucket).toLowerCase();
+    } else {
+      stackBucket = classifyStackBucket(row.hero_effective_stack_bb ?? row.effective_stack_bb ?? null);
+    }
     const reason = gapReason(row);
     const spotType = String(row.spot_type || 'general').toLowerCase();
     const key = `${format}|${street}|${position}|${stackBucket}|${reason}`;
@@ -529,7 +547,7 @@ export function buildCoverageGapsRanked(decisions = [], { limit = COVERAGE_GAP_L
         coverageHint: describeCoverageTier({
           format: group.format,
           street: group.street,
-          stackBucket: group.stackBucket,
+          stackBucket: group.stackBucket === '<=20bb' ? 'short' : group.stackBucket,
           spotType: dominantSpotType,
         }),
       };
@@ -550,10 +568,18 @@ export function summarizeCoverageTiers(decisions = []) {
     if (!row) continue;
     if (row.solver_verified === true) { summary.solverVerified += 1; continue; }
     if (!isUnpricedDecision(row)) continue;
+    let stackBucket;
+    if (row.stack_depth_bb !== undefined || row.stackDepthBb !== undefined) {
+      stackBucket = bucketStackDepth(row.stack_depth_bb ?? row.stackDepthBb);
+    } else if (row.stack_bucket !== undefined) {
+      stackBucket = String(row.stack_bucket).toLowerCase();
+    } else {
+      stackBucket = classifyStackBucket(row.hero_effective_stack_bb ?? row.effective_stack_bb ?? null);
+    }
     const tier = describeCoverageTier({
       format: gapFormat(row),
       street: String(row.street || '').toLowerCase(),
-      stackBucket: String(row.stack_bucket ?? classifyStackBucket(row.hero_effective_stack_bb ?? row.effective_stack_bb ?? null)).toLowerCase(),
+      stackBucket: stackBucket === '<=20bb' ? 'short' : stackBucket,
       spotType: String(row.spot_type || '').toLowerCase(),
       gameId: row.game_id,
     }).tier;
@@ -630,6 +656,7 @@ export function selectTopLeakedHands(decisions = [], sessionWindow = null, limit
   const from = startMs - SESSION_WINDOW_LEAD_MS;
   const to = endMs + SESSION_WINDOW_TAIL_MS;
   const rows = (Array.isArray(decisions) ? decisions : []).filter(row => {
+    if (row?.evidence_scope === 'self_reported_live') return false;
     if (row?.solver_verified !== true) return false;
     if (['best', 'correct', 'unpriced', ''].includes(String(row?.classification || '').toLowerCase())) return false;
     const played = playedAtMs(row);
@@ -673,11 +700,172 @@ function masteryProgress(review, id) {
   } : null);
 }
 
+export const RULE_LEAK_DECISION_MATCHERS = Object.freeze({
+  river_overfold: (row) => {
+    const street = String(row?.street || '').toLowerCase();
+    const action = String(row?.player_action || '').toLowerCase();
+    return street === 'river' && action === 'fold';
+  },
+  flop_cbet_too_low: (row) => {
+    const street = String(row?.street || '').toLowerCase();
+    const action = String(row?.player_action || '').toLowerCase();
+    const spot = String(row?.spot_type || '').toLowerCase();
+    return street === 'flop' && action === 'check' && (spot.includes('cbet') || spot.includes('srp') || spot.includes('single_raised') || spot === 'general' || spot === 'hand_history');
+  },
+  cbet_too_rarely: (row) => {
+    const street = String(row?.street || '').toLowerCase();
+    const action = String(row?.player_action || '').toLowerCase();
+    return street === 'flop' && action === 'check';
+  },
+  flop_cbet_too_high: (row) => {
+    const street = String(row?.street || '').toLowerCase();
+    const action = String(row?.player_action || '').toLowerCase();
+    const spot = String(row?.spot_type || '').toLowerCase();
+    return street === 'flop' && (action === 'bet' || action === 'raise') && (spot.includes('cbet') || spot.includes('srp') || spot === 'general' || spot === 'hand_history');
+  },
+  cbet_too_often: (row) => {
+    const street = String(row?.street || '').toLowerCase();
+    const action = String(row?.player_action || '').toLowerCase();
+    return street === 'flop' && (action === 'bet' || action === 'raise');
+  },
+  fold_to_3bet_high: (row) => {
+    const street = String(row?.street || '').toLowerCase();
+    const action = String(row?.player_action || '').toLowerCase();
+    const spot = String(row?.spot_type || '').toLowerCase();
+    return street === 'preflop' && action === 'fold' && (spot.includes('3bet') || spot.includes('three_bet') || spot.includes('facing_raise') || spot === 'general' || spot === 'hand_history');
+  },
+  overfolding_to_3bet: (row) => {
+    const street = String(row?.street || '').toLowerCase();
+    const action = String(row?.player_action || '').toLowerCase();
+    return street === 'preflop' && action === 'fold';
+  },
+  vpip_too_high: (row) => {
+    const street = String(row?.street || '').toLowerCase();
+    const action = String(row?.player_action || '').toLowerCase();
+    return street === 'preflop' && (action === 'call' || action === 'raise' || action === 'bet');
+  },
+  pfr_too_low: (row) => {
+    const street = String(row?.street || '').toLowerCase();
+    const action = String(row?.player_action || '').toLowerCase();
+    return street === 'preflop' && (action === 'call' || action === 'check');
+  },
+  bb_overfold: (row) => {
+    const street = String(row?.street || '').toLowerCase();
+    const pos = String(row?.hero_position || '').toUpperCase();
+    const action = String(row?.player_action || '').toLowerCase();
+    return street === 'preflop' && pos === 'BB' && action === 'fold';
+  },
+  turn_barrel_leak: (row) => {
+    const street = String(row?.street || '').toLowerCase();
+    const action = String(row?.player_action || '').toLowerCase();
+    return street === 'turn' && (action === 'check' || action === 'fold');
+  },
+  turn_barrel_too_rare: (row) => {
+    const street = String(row?.street || '').toLowerCase();
+    const action = String(row?.player_action || '').toLowerCase();
+    return street === 'turn' && action === 'check';
+  },
+  aggression_low: (row) => {
+    const street = String(row?.street || '').toLowerCase();
+    const action = String(row?.player_action || '').toLowerCase();
+    return ['flop', 'turn', 'river'].includes(street) && (action === 'call' || action === 'check');
+  },
+  passive_postflop: (row) => {
+    const street = String(row?.street || '').toLowerCase();
+    const action = String(row?.player_action || '').toLowerCase();
+    return ['flop', 'turn', 'river'].includes(street) && action === 'call';
+  },
+  over_calling: (row) => {
+    const action = String(row?.player_action || '').toLowerCase();
+    return action === 'call';
+  },
+  missed_value: (row) => {
+    const street = String(row?.street || '').toLowerCase();
+    const action = String(row?.player_action || '').toLowerCase();
+    return (street === 'river' || street === 'turn') && action === 'check';
+  },
+  missing_thin_value: (row) => {
+    const street = String(row?.street || '').toLowerCase();
+    const action = String(row?.player_action || '').toLowerCase();
+    return street === 'river' && action === 'check';
+  },
+  overfolding_to_cbets: (row) => {
+    const street = String(row?.street || '').toLowerCase();
+    const action = String(row?.player_action || '').toLowerCase();
+    return street === 'flop' && action === 'fold';
+  },
+});
+
+export function findRuleBasedDecisions(rawLeak, id, decisionIndex) {
+  const leakKey = String(rawLeak?.leak_type || rawLeak?.leakType || rawLeak?.situation_class || rawLeak?.situationClass || id || '').toLowerCase().trim();
+  const matcher = RULE_LEAK_DECISION_MATCHERS[leakKey]
+    || Object.entries(RULE_LEAK_DECISION_MATCHERS).find(([k]) => leakKey === k || leakKey.includes(k) || k.includes(leakKey))?.[1];
+  if (!matcher || typeof matcher !== 'function') return [];
+  const list = decisionIndex?.list || [];
+  return list.filter(row => {
+    try {
+      return Boolean(matcher(row));
+    } catch (_) {
+      return false;
+    }
+  });
+}
+
+export function buildStakePoolContext({ leak, poolBenchmarks, liveTableActive, cooldownActive } = {}) {
+  if (liveTableActive || cooldownActive) return null;
+  if (!leak || !poolBenchmarks) return null;
+
+  let benchmarksList = [];
+  if (Array.isArray(poolBenchmarks)) {
+    benchmarksList = poolBenchmarks;
+  } else if (typeof poolBenchmarks === 'object') {
+    benchmarksList = Object.values(poolBenchmarks);
+  }
+
+  const leakFormat = String(leak?.format || leak?.gameType || '').toLowerCase();
+  const leakCat = String(leak?.category || leak?.leakCategory || leak?.leak_category || '').toLowerCase();
+  const leakType = String(leak?.leakType || leak?.leak_type || leak?.id || '').toLowerCase();
+
+  const match = benchmarksList.find(b => {
+    if (!b) return false;
+    const sample = Number(b.sampleHands ?? b.sample_hands ?? 0);
+    if (!Number.isFinite(sample) || sample < 500) return false;
+    if (b.verified === false) return false;
+
+    if (b.format && leakFormat && String(b.format).toLowerCase() !== leakFormat) return false;
+
+    const bKey = String(b.key || b.category || b.leakType || b.leak_type || b.leakCategory || '').toLowerCase();
+    if (!bKey) return false;
+    return bKey === leakType || bKey === leakCat || leakType.includes(bKey) || bKey.includes(leakType) || leakCat.includes(bKey) || bKey.includes(leakCat);
+  });
+
+  if (!match) return null;
+
+  const sampleHands = Number(match.sampleHands ?? match.sample_hands);
+  const stakeLabel = String(match.stakeLabel ?? match.stakes ?? match.stake ?? 'Pool Stakes');
+  const poolMetricLabel = String(match.poolMetricLabel ?? match.poolMetric ?? match.poolAverage ?? match.metricLabel ?? 'Pool Average');
+  const gtoBaselineLabel = String(match.gtoBaselineLabel ?? match.gtoBaseline ?? match.baselineLabel ?? 'GTO Baseline');
+  const label = String(match.label ?? `${stakeLabel} Pool Context`);
+
+  return {
+    label,
+    stakeLabel,
+    poolMetricLabel,
+    gtoBaselineLabel,
+    sampleHands,
+    readOnly: true,
+    postSessionOnly: true,
+  };
+}
+
 /** Table verification for a leak against the full indexed decision window. */
 function leakTableVerification(rawLeak, id, review, decisionIndex) {
-  const related = relatedDecisionsFor(
+  let related = relatedDecisionsFor(
     decisionIndex, id, String(rawLeak?.leakType || rawLeak?.leak_type || ''),
   );
+  if (related.length === 0) {
+    related = findRuleBasedDecisions(rawLeak, id, decisionIndex);
+  }
   const mastered = masteryProgress(review, id)?.retired === true;
   return evaluateTableVerification(rawLeak, review, related, mastered);
 }
@@ -697,6 +885,9 @@ export function buildTrainingPlan({
   now = Date.now(),
   availableGameIds = null,
   decisionIndex = null,
+  poolBenchmarks = null,
+  liveTableActive = false,
+  cooldownActive = false,
 } = {}) {
   const priorities = rankCoachingPriorities(leaks, reviews, coverage, now);
   const leakById = new Map((Array.isArray(leaks) ? leaks : []).map(item => [leakId(item), item]));
@@ -709,9 +900,12 @@ export function buildTrainingPlan({
     const currentStreak = count(review?.strong_streak ?? review?.strongStreak);
     const targetStreak = RETIRE_AFTER_STRONG;
     const progress = masteryProgress(review, priority.id);
-    const relatedDecisions = relatedDecisionsFor(
+    let relatedDecisions = relatedDecisionsFor(
       lookup, priority.id, String(rawLeak?.leakType || rawLeak?.leak_type || ''),
     );
+    if (relatedDecisions.length === 0) {
+      relatedDecisions = findRuleBasedDecisions(rawLeak, priority.id, lookup);
+    }
     const exampleHands = [...new Set(
       relatedDecisions
         .map(row => String(row?.hand_external_id || '').replace(/^club-arena:/, '').trim())
@@ -722,6 +916,12 @@ export function buildTrainingPlan({
     const formatScope = inferFormatScope(rawLeak, relatedDecisions);
     const mastered = progress?.retired === true;
     const tableVerification = evaluateTableVerification(rawLeak, review, relatedDecisions, mastered);
+    const stakePoolContext = buildStakePoolContext({
+      leak: rawLeak,
+      poolBenchmarks,
+      liveTableActive,
+      cooldownActive,
+    });
     const targetSessions = mastered ? 0 : Math.max(1, targetStreak - currentStreak);
     const cadence = tableVerification.status === 'relapsed_at_tables'
       ? 'Re-Drill Required'
@@ -757,6 +957,7 @@ export function buildTrainingPlan({
         remainingSessions: targetSessions,
       },
       tableVerification,
+      ...(stakePoolContext ? { stakePoolContext } : {}),
       objective: tableVerification.status === 'confirmed_fixed_at_tables'
         ? 'Verified Fixed In Post-Drill Live Play. Keep Reviewing Periodically To Prevent Regression.'
         : (priority.measuredEvLoss !== null
@@ -793,12 +994,29 @@ export function buildCoachingSnapshot({
   audit = null,
   liveTable = null,
   sessionWindow = null,
+  poolBenchmarks = null,
 } = {}) {
   const coverage = decisionCoverage(decisions, rejected);
   const solverCoverageGaps = summarizeSolverCoverageGaps(decisions);
   const priorities = rankCoachingPriorities(leaks, reviews, coverage, now);
   const decisionIndex = buildDecisionIndex(decisions);
-  const trainingPlan = buildTrainingPlan({ leaks, decisions, reviews, coverage, now, availableGameIds, decisionIndex });
+
+  const liveStateKnown = Boolean(liveTable) && typeof liveTable === 'object';
+  const liveTableActive = liveStateKnown ? liveTable.active === true : true;
+  const cooldownActive = liveStateKnown && liveTable.cooldown === true;
+
+  const trainingPlan = buildTrainingPlan({
+    leaks,
+    decisions,
+    reviews,
+    coverage,
+    now,
+    availableGameIds,
+    decisionIndex,
+    poolBenchmarks,
+    liveTableActive,
+    cooldownActive,
+  });
   const active = priorities.length;
   const resolved = (Array.isArray(leaks) ? leaks : []).filter(leak => leakStatus(leak) === 'resolved').length;
   const due = priorities.filter(priority => priority.due).length;
@@ -827,6 +1045,12 @@ export function buildCoachingSnapshot({
   }));
   const leakRows = leakList.map(leak => {
     const id = leakId(leak);
+    const stakePoolContext = buildStakePoolContext({
+      leak,
+      poolBenchmarks,
+      liveTableActive,
+      cooldownActive,
+    });
     return {
       id,
       leakId: id,
@@ -834,6 +1058,7 @@ export function buildCoachingSnapshot({
       category: title(leak?.leakCategory || leak?.leak_category || 'Strategy'),
       status: leakStatus(leak),
       tableVerification: tableVerificationByLeak.get(id) || null,
+      ...(stakePoolContext ? { stakePoolContext } : {}),
     };
   }).filter(row => row.id);
   const verifiedLiveMilestones = leakRows
@@ -855,9 +1080,6 @@ export function buildCoachingSnapshot({
   // Recap eligibility. Without a verified table state the snapshot assumes the
   // player MAY be seated: fail closed so a recap can never show at a live table
   // OR during the mandatory 5-minute post-session cooldown.
-  const liveStateKnown = Boolean(liveTable) && typeof liveTable === 'object';
-  const liveTableActive = liveStateKnown ? liveTable.active === true : true;
-  const cooldownActive = liveStateKnown && liveTable.cooldown === true;
   const recapBlockedByLivePolicy = liveTableActive || cooldownActive;
   const recap = recapBlockedByLivePolicy
     ? { hands: [], sessionSource: null, unavailableReason: liveTableActive ? 'live_table_active' : 'cooldown_active' }
