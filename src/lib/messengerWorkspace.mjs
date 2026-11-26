@@ -408,17 +408,26 @@ export async function getMessengerWorkspace(db, userId, request, internal = {}) 
 
     // Empty (0-message) threads with an active server-saved draft are omitted
     // by fn_get_user_conversations. Surface strictly message-less, authorized,
-    // non-accounting draft threads in their matching workspace so users never
-    // lose an unsent new-conversation draft after reloading.
+    // non-accounting draft threads in their matching workspace (including when
+    // resolving a deep-linked or reloaded draft thread) so users never lose an
+    // unsent new-conversation draft.
     const existingIds = new Set([...emptyGroups, ...listed].map(c => c.conversation_id || c.id));
     const draftThreads = [];
     const draftPreviewMap = new Map();
-    if (folder === 'messages' && !authorizeOne && !internal.unreadOnly && !resolvedId) {
+    if (folder === 'messages' && !authorizeOne && !internal.unreadOnly && (!resolvedId || !existingIds.has(resolvedId))) {
         const draftStates = Array.isArray(internal.draftStates)
             ? internal.draftStates
-            : await rows(db.from('messenger_conversation_state').select('conversation_id,draft_text,updated_at')
-                .eq('user_id', userId).neq('draft_text', '').limit(50), 'draft conversations');
-        const candidateDrafts = draftStates.filter(d => d && typeof d.draft_text === 'string' && d.draft_text.trim() && !existingIds.has(d.conversation_id));
+            : await rows(
+                (resolvedId
+                    ? db.from('messenger_conversation_state').select('conversation_id,draft_text,updated_at')
+                        .eq('user_id', userId).eq('conversation_id', resolvedId).neq('draft_text', '').limit(1)
+                    : db.from('messenger_conversation_state').select('conversation_id,draft_text,updated_at')
+                        .eq('user_id', userId).neq('draft_text', '').limit(50)),
+                'draft conversations',
+            );
+        const candidateDrafts = draftStates.filter(d => d && typeof d.draft_text === 'string' && d.draft_text.trim()
+            && !existingIds.has(d.conversation_id)
+            && (!resolvedId || d.conversation_id === resolvedId));
         if (candidateDrafts.length) {
             const candidateIds = candidateDrafts.map(d => d.conversation_id);
             const draftParts = [];

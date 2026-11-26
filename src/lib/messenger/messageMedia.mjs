@@ -116,6 +116,46 @@ export function encodeMessageMedia({ kind, url, duration, caption } = {}) {
     return `${body} ${cleanCaption}`;
 }
 
+const VOICE_MIME_CANDIDATES = [
+    'audio/webm;codecs=opus',
+    'audio/webm',
+    'audio/mp4;codecs=mp4a.40.2',
+    'audio/mp4',
+    'audio/ogg;codecs=opus',
+    'audio/ogg',
+];
+
+/**
+ * Pick the best MediaRecorder MIME type supported by the current browser.
+ * Returns '' when the browser should choose its native default (e.g. older iOS Safari).
+ */
+export function selectVoiceRecordingMime(isTypeSupported) {
+    if (typeof isTypeSupported !== 'function') return '';
+    for (const candidate of VOICE_MIME_CANDIDATES) {
+        try {
+            if (isTypeSupported(candidate)) return candidate;
+        } catch {
+            /* ignore unsupported check */
+        }
+    }
+    return '';
+}
+
+/**
+ * Map a recorded MediaRecorder MIME type to an upload-url-allowed MIME and extension.
+ */
+export function resolveVoiceUploadMeta(rawMime = '') {
+    const clean = String(rawMime || '').split(';')[0].trim().toLowerCase();
+    if (clean === 'audio/mp4' || clean === 'audio/x-m4a' || clean === 'audio/m4a') {
+        return { mimeType: 'audio/mp4', ext: 'm4a' };
+    }
+    if (clean === 'audio/aac') return { mimeType: 'audio/aac', ext: 'aac' };
+    if (clean === 'audio/ogg') return { mimeType: 'audio/ogg', ext: 'ogg' };
+    if (clean === 'audio/mpeg') return { mimeType: 'audio/mpeg', ext: 'mp3' };
+    if (clean === 'audio/wav') return { mimeType: 'audio/wav', ext: 'wav' };
+    return { mimeType: 'audio/webm', ext: 'webm' };
+}
+
 const MIN_MEDIA_ASPECT = 0.25;
 const MAX_MEDIA_ASPECT = 4;
 
