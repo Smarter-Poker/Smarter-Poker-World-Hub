@@ -1,6 +1,14 @@
 /** Local API diagnostics and error responses. No external reporting transport. */
+// The second argument is either the Next.js request or a diagnostics context
+// such as { route: '/api/cron/marketplace-health' }. 73 call sites pass the
+// context form; reading only req.url logged every one of them as
+// route 'unknown', so unrelated failures shared one error group.
 function routeOf(req) {
-  return typeof req?.url === 'string' ? req.url.split('?')[0] : 'unknown';
+  if (typeof req?.url === 'string') return req.url.split('?')[0];
+  if (typeof req?.route === 'string' && req.route.startsWith('/')) {
+    return req.route.split('?')[0].slice(0, 200);
+  }
+  return 'unknown';
 }
 
 /** Logs only the error summary and route, never headers, body or user context. */

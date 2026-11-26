@@ -259,25 +259,29 @@ class SimulatorHistoryTruthTests(unittest.TestCase):
             )
 
         observation_error = missing_column("observation_kind")
-        buyin_error = missing_column("buyin_range")
         self.addCleanup(observation_error.close)
-        self.addCleanup(buyin_error.close)
         model = simulator.PatternModel()
         with mock.patch.object(
             simulator,
             "sb_fetch",
-            side_effect=[observation_error, buyin_error, []],
+            side_effect=[observation_error, []],
         ) as fetch:
             self.assertEqual(model._fetch_history("bravo"), [])
 
         selects = [call.args[1]["select"] for call in fetch.call_args_list]
         self.assertIn("observation_kind", selects[0])
-        self.assertIn("buyin_range", selects[0])
         self.assertNotIn("observation_kind", selects[1])
-        self.assertIn("buyin_range", selects[1])
-        self.assertNotIn("observation_kind", selects[2])
-        self.assertNotIn("buyin_range", selects[2])
 
+    def test_history_fetch_never_asks_for_a_column_the_table_lacks(self):
+        # 2026-11-26 production: every simulator run opened with a refused
+        # query, "column game_live_history.buyin_range does not exist".
+        # buyin_range is a venue_live_tables column; game_live_history has
+        # none, so the first select must not name it.
+        model = simulator.PatternModel()
+        with mock.patch.object(simulator, "sb_fetch", side_effect=[[]]) as fetch:
+            self.assertEqual(model._fetch_history("bravo"), [])
+        self.assertEqual(fetch.call_count, 1)
+        self.assertNotIn("buyin_range", fetch.call_args_list[0].args[1]["select"].split(","))
 
 if __name__ == "__main__":
     unittest.main()

@@ -201,6 +201,7 @@ jobs:
           python -m venv "$RUNNER_TEMP/pnm-session-contracts"
           "$RUNNER_TEMP/pnm-session-contracts/bin/python" -m pip install python-dotenv==1.2.2 patchright==1.58.2
           "$RUNNER_TEMP/pnm-session-contracts/bin/python" scripts/test_pokeratlas_persistence.py
+          "$RUNNER_TEMP/pnm-session-contracts/bin/python" scripts/test_bravo_simulator_history_truth.py
 
       - name: Poker Near Me Tour Calendar Truth
         run: node --test __tests__/poker-near-me-tour-calendar-truth.test.mjs __tests__/poker-near-me-tour-db-schedule.test.mjs __tests__/poker-near-me-tour-stop-scope.test.mjs __tests__/poker-near-me-data-truth.test.mjs __tests__/poker-near-me-coordinate-repair.test.mjs __tests__/poker-near-me-schedule-artifact-truth.test.mjs
@@ -219,6 +220,16 @@ jobs:
 
       - name: Home Games Privacy Membership Publication And Qualification Safety
         run: node --test __tests__/poker-near-me-console-home-games.test.mjs __tests__/home-games-emergency-gate.test.mjs __tests__/home-games-join-outcome.test.mjs __tests__/home-games-alternate-privacy.test.mjs __tests__/home-games-phase3-qualification-safety.test.mjs __tests__/social-feed-author-cap.test.mjs __tests__/a-post-never-says-who-wrote-it.law.test.mjs
+
+      - name: Bankroll Writes Name Their Natural Key
+        # 2026-11-26: 193 + 96 unique-key refusals a day from upserts that
+        # targeted "id" instead of (user_id, segment_type) / (user_id, rule_type).
+        run: node --test __tests__/a-bankroll-upsert-names-its-natural-key.law.test.mjs
+
+      - name: An API Error Names Its Route
+        # 2026-11-26: 97 marketplace-health errors a day were logged as
+        # route 'unknown' because reportApiError ignored a context's route.
+        run: node --test __tests__/an-api-error-names-its-route.law.test.mjs
 
       - name: Poker Near Me Installed Collector Contracts
         run: |
