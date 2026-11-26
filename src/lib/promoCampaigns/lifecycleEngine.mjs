@@ -42,13 +42,34 @@ import { WELCOME_BACK_CODE, buildWelcomeBackOfferUrl } from './welcomeBackOffer.
 import { buildMastheadCrestUrl } from '../newsletter/emailImageProxy.mjs';
 import {
     applyCampaignTelemetryEvent,
-    extractResendCampaignId,
     mergeFinalCampaignErrorSummary,
     parseCampaignTelemetrySummary,
 } from '../newsletter/campaignTelemetry.mjs';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export function extractResendCampaignId(tagsOrEvent) {
+    if (!tagsOrEvent) return null;
+    const rawTags = tagsOrEvent?.data?.tags ?? tagsOrEvent?.tags ?? tagsOrEvent;
+    if (!rawTags) return null;
+    if (Array.isArray(rawTags)) {
+        for (const item of rawTags) {
+            const name = String(item?.name || '').trim().toLowerCase();
+            if (name === 'campaign_id' || name === 'campaignid') {
+                const val = String(item?.value || '').trim();
+                return UUID_RE.test(val) ? val.toLowerCase() : null;
+            }
+        }
+        return null;
+    }
+    if (typeof rawTags === 'object') {
+        const val = String(rawTags.campaign_id ?? rawTags.campaignId ?? '').trim();
+        return UUID_RE.test(val) ? val.toLowerCase() : null;
+    }
+    return null;
+}
+
 export {
-    extractResendCampaignId,
     parseCampaignTelemetrySummary,
     applyCampaignTelemetryEvent,
     mergeFinalCampaignErrorSummary,
@@ -444,6 +465,7 @@ export async function runLifecycleRetention(
         sendSmsFn = defaultSendSms,
         siteUrl = DEFAULT_SITE_URL,
         createdBy = null,
+        deadline = null,
     } = {}
 ) {
     const cleanSite = String(siteUrl || process.env.NEXT_PUBLIC_SITE_URL || DEFAULT_SITE_URL).replace(/\/+$/, '');
@@ -961,11 +983,16 @@ export async function runLifecycleRetention(
     let emailFailed = 0;
     let smsSent = 0;
     let smsFailed = 0;
+    let stoppedAtDeadline = false;
     const recordedMarkers = [];
     const errors = [];
     const smsText = buildWelcomeBackLifecycleSms();
 
     for (const candidate of dueCandidates) {
+        if (deadline && Date.now() >= deadline) {
+            stoppedAtDeadline = true;
+            break;
+        }
         const unsubToken = makeUnsubscribeToken(candidate.email);
         const unsubUrl = `${cleanSite}/api/news/subscribe?unsubscribe=${encodeURIComponent(unsubToken)}`;
         const preferencesUrl = `${cleanSite}/hub/email-preferences?token=${encodeURIComponent(unsubToken)}`;
@@ -1068,6 +1095,7 @@ export async function runLifecycleRetention(
         smsSent,
         failed: totalFailed,
         recordedMarkersCount: recordedMarkers.length,
+        stoppedAtDeadline,
         errors: errors.length > 0 ? errors : undefined,
     };
 }

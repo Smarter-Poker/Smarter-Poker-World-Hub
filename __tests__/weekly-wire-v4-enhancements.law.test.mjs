@@ -637,7 +637,16 @@ test('V4 LAW 7: cold-lead sunset shield, webhook open/click engagement stamping,
     assert.match(readRepo('pages/api/news/lifecycle.js'), /\bhtmlPreviews\b/);
     assert.match(readRepo('pages/api/news/operations.js'), /\breadEmailDnsReadiness\b/);
     const adminSrc = readRepo('pages/admin/newsletter.js');
-    assert.match(adminSrc, /<iframe[\s\S]*?sandbox=""/, 'Admin newsletter studio must render sandboxed preview iframes');
+    assert.match(
+        adminSrc,
+        /<iframe[\s\S]*?sandbox="allow-popups allow-popups-to-escape-sandbox"/,
+        'Admin newsletter studio must render sandboxed preview iframes that open clicked links safely in a new tab'
+    );
+    assert.doesNotMatch(
+        adminSrc,
+        /allow-scripts|allow-same-origin/,
+        'Admin newsletter preview iframes must never enable scripts or same-origin access'
+    );
     assert.match(adminSrc, /Desktop 640px/);
     assert.match(adminSrc, /Mobile 375px/);
     assert.doesNotMatch(adminSrc, FORBIDDEN_PALETTE_HEX_RE, 'Admin newsletter studio must never use yellow or purple hexes');

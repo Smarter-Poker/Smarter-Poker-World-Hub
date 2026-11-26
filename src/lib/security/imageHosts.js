@@ -22,6 +22,7 @@ const IMAGE_SOURCES = [
     'data:',
     'blob:',
     'https://*.supabase.co',        // the venue-logos mirror, avatars, uploads
+    'https://smarter.poker',
     'https://*.smarter.poker',
     'https://storage.googleapis.com',
     'https://maps.googleapis.com',

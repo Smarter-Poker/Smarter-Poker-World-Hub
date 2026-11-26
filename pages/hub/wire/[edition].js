@@ -12,6 +12,7 @@ import {
     dedupeVideos,
     isCasinoGameFiledAsPoker,
     isDisplayableVideoTitle,
+    isCuratedFeedVideo,
 } from '../../../src/lib/videoLibraryCuration.mjs';
 
 const UUID_SHAPE_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -74,7 +75,7 @@ async function resolveMatchedHistoricalVideo(sb, idSet) {
         const candidates = dedupeVideos(
             (data || [])
                 .map((row) => normaliseVideoRow(row))
-                .filter((v) => isVideoLibraryVideoAllowed(v) && isDisplayableVideoTitle(v.rawTitle ?? v.title) && !isCasinoGameFiledAsPoker(v))
+                .filter((v) => isCuratedFeedVideo(v) && isVideoLibraryVideoAllowed(v) && isDisplayableVideoTitle(v.rawTitle ?? v.title) && !isCasinoGameFiledAsPoker(v))
         );
         const found = candidates.find((v) => idSet.has(wireEngine.videoMarkerUuid(v.videoId)));
         if (!found) return null;
@@ -403,7 +404,6 @@ async function getWireIssueProps({ params, res }) {
     } catch (err) {
         console.warn('[wire/[edition]] SSR fallback:', err?.message || err);
         const fallbackNum = parsedNum || 1;
-        const spot = spotsCatalog[0] || null;
         const tool = toolsCatalog[0] || null;
         return {
             props: {
@@ -412,25 +412,29 @@ async function getWireIssueProps({ params, res }) {
                     subject: `Smarter.Poker Weekly Wire #${fallbackNum}`,
                     publishedAt: null,
                     isLivePreview: true,
+                    ogImageUrl: 'https://smarter.poker/api/news/email-image?fallback=1&w=960&h=540',
+                    videoOfTheWeek: null,
+                    tournaments: [],
+                    spotOfTheWeek: null,
                     platformUpdates: updatesCatalog.slice(0, 2).map((u) => ({
-                        slug: u.slug,
-                        badge: cleanCopy(u.badge),
-                        title: cleanCopy(u.title),
-                        summary: cleanCopy(u.summary),
-                        ctaLabel: cleanCopy(u.ctaLabel),
-                        ctaUrl: u.ctaUrl,
+                        slug: String(u?.slug || ''),
+                        badge: cleanCopy(u?.badge || 'Platform Upgrade'),
+                        title: cleanCopy(u?.title || ''),
+                        summary: cleanCopy(u?.summary || ''),
+                        ctaLabel: cleanCopy(u?.ctaLabel || 'Open On Smarter.Poker'),
+                        ctaUrl: cleanCopy(u?.ctaUrl || 'https://smarter.poker/hub'),
                     })),
                     articles: [],
-                    spotOfTheWeek: serializeSpot(spot),
                     toolSpotlight: tool
                         ? {
-                              slug: tool.slug,
-                              category: cleanCopy(tool.category),
-                              title: cleanCopy(tool.title),
-                              tip: cleanCopy(tool.tip),
-                              url: tool.url,
+                              slug: String(tool.slug || ''),
+                              category: cleanCopy(tool.category || 'Pro Poker Calculator'),
+                              title: cleanCopy(tool.title || ''),
+                              tip: cleanCopy(tool.tip || ''),
+                              url: String(tool.url || 'https://smarter.poker/tools'),
                           }
                         : null,
+                    promo: null,
                 },
             },
         };
@@ -493,12 +497,15 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                 <meta key="twitter-title" name="twitter:title" content={metaTitle} />
                 <meta key="twitter-description" name="twitter:description" content={metaDesc} />
                 <meta key="twitter-image" name="twitter:image" content={ogImageUrl} />
+                {Boolean(issue?.isLivePreview) && (
+                    <meta key="robots" name="robots" content="noindex,follow" />
+                )}
                 <link
                     key="wire-rss"
                     rel="alternate"
                     type="application/rss+xml"
                     title="Smarter.Poker Weekly Wire RSS"
-                    href="https://smarter.poker/api/news/wire-rss"
+                    href="https://smarter.poker/hub/wire/rss.xml"
                 />
                 <script
                     key="wire-jsonld"
@@ -533,6 +540,21 @@ export default function WeeklyWireEditionPage({ issue, kingsSchedule = [] }) {
                             &larr; All Weekly Wire Editions
                         </Link>
                         <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
+                            <a
+                                href="/hub/wire/rss.xml"
+                                type="application/rss+xml"
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    color: '#e2e8f0',
+                                    textDecoration: 'none',
+                                    fontWeight: 700,
+                                }}
+                            >
+                                <span aria-hidden="true" style={{ color: '#4fc1b3' }}>&#9679;</span>
+                                RSS Feed
+                            </a>
                             <Link href="/tools" style={{ color: '#60a5fa', textDecoration: 'none', fontWeight: 700 }}>
                                 42 Poker Tools
                             </Link>

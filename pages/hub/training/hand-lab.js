@@ -59,8 +59,34 @@ const BENCHMARK_HANDS_BY_VARIANT = {
   ],
 };
 
+const SUIT_TO_ASCII = {
+  '♠': 's',
+  '♥': 'h',
+  '♦': 'd',
+  '♣': 'c',
+  s: 's',
+  h: 'h',
+  d: 'd',
+  c: 'c',
+  S: 's',
+  H: 'h',
+  D: 'd',
+  C: 'c',
+};
+const FULL_DECK = RANKS.flatMap((r) => SUITS.map((s) => `${r}${s}`));
+
 function cardToAscii(card) {
-  return card ? `${card[0]}${SUIT_CODES[card[1]] || card[1]}` : '';
+  const clean = String(card || '').trim();
+  if (!clean || clean.length < 2) return '';
+  const suitChar = clean.slice(-1);
+  const rawRank = clean.slice(0, -1).toUpperCase();
+  const rank = rawRank === '10' ? 'T' : rawRank;
+  const suit = SUIT_TO_ASCII[suitChar] || suitChar.toLowerCase();
+  return `${rank}${suit}`;
+}
+
+function cardsToAscii(cards) {
+  return (cards || []).map(cardToAscii).filter(Boolean).join('');
 }
 
 export default function HandLabV2() {
@@ -105,13 +131,48 @@ export default function HandLabV2() {
     }
     const spotVariant = VARIANTS.some((v) => v.id === matchedSpot.variant) ? matchedSpot.variant : 'nlh';
     const spotHoleCount = (VARIANTS.find((v) => v.id === spotVariant) || VARIANTS[0]).holeCount;
+    const nextHero =
+      Array.isArray(matchedSpot.heroCards) && matchedSpot.heroCards.length === spotHoleCount
+        ? [...matchedSpot.heroCards]
+        : Array(spotHoleCount).fill('');
+    const nextBoard =
+      Array.isArray(matchedSpot.boardCards) && matchedSpot.boardCards.length > 0
+        ? [...matchedSpot.boardCards.slice(0, 5), '', '', '', '', ''].slice(0, 5)
+        : ['', '', '', '', ''];
+
+    const usedAscii = new Set([...nextHero, ...nextBoard].map(cardToAscii).filter(Boolean));
+
+    let nextVillainAscii = '';
+    const variantBenchmarks = BENCHMARK_HANDS_BY_VARIANT[spotVariant] || [];
+    for (const b of variantBenchmarks) {
+      const handStr = b.value || b.hand || '';
+      const tokens = handStr.match(/([2-9TJQKA][shdc])/gi) || [];
+      if (
+        tokens.length === spotHoleCount &&
+        tokens.every((t) => !usedAscii.has(t[0].toUpperCase() + t[1].toLowerCase()))
+      ) {
+        nextVillainAscii = tokens.map((t) => t[0].toUpperCase() + t[1].toLowerCase()).join('');
+        break;
+      }
+    }
+    if (!nextVillainAscii) {
+      const fallbackCards = [];
+      for (const c of FULL_DECK) {
+        const ascii = cardToAscii(c);
+        if (ascii && !usedAscii.has(ascii)) {
+          fallbackCards.push(c);
+          if (fallbackCards.length === spotHoleCount) break;
+        }
+      }
+      nextVillainAscii = cardsToAscii(fallbackCards);
+    }
+
     setVariant(spotVariant);
     setBrainVariant(spotVariant);
-    if (Array.isArray(matchedSpot.heroCards) && matchedSpot.heroCards.length === spotHoleCount) {
-      setHeroCards([...matchedSpot.heroCards]);
-    }
-    if (Array.isArray(matchedSpot.boardCards) && matchedSpot.boardCards.length === 5) {
-      setBoardCards([...matchedSpot.boardCards]);
+    setHeroCards(nextHero);
+    setBoardCards(nextBoard);
+    if (nextVillainAscii) {
+      setVillainHand(nextVillainAscii);
     }
     setEquity(null);
     setResults(null);

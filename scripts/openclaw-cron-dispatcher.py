@@ -130,6 +130,8 @@ JOB_TIMEOUTS = {
     '/api/cron/scrape-sports-clips':   300,
     '/api/cron/scrape-poker-clips':    300,
     '/api/cron/revalidate-poker-clips': 120,
+    '/api/news/digest':                300,
+    '/api/news/digest?days=7':         300,
     # SCRIPT_JOBS (2026-09-04). These are subprocesses, and for a subprocess
     # the timeout IS a kill - subprocess.run() sends SIGKILL and the day's
     # ingestion stops wherever it was. The scraper walks 23 YouTube channels

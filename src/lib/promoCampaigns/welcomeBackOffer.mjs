@@ -28,6 +28,7 @@
 import crypto from 'crypto';
 
 export const WELCOME_BACK_CODE = 'WELCOME_BACK_3WK_202611';
+export const WELCOME_BACK_CODES = [WELCOME_BACK_CODE, 'sp_welcome_back_202611'];
 export const WELCOME_BACK_STORAGE_KEY = 'sp_welcome_back_offer_token';
 export const WELCOME_BACK_INACTIVE_DAYS = 21;
 export const WELCOME_BACK_CHIPS = 25;
@@ -264,26 +265,29 @@ export async function inspectWelcomeBackOfferStatus(
         };
     }
 
-    // Check if already claimed
-    const { data: promoCode } = await sb
+    // Check if already claimed across canonical and legacy alias codes
+    const { data: promoCodeRows } = await sb
         .from('promo_codes')
         .select('id')
-        .eq('code', WELCOME_BACK_CODE)
-        .maybeSingle();
+        // in-list: bounded 2-element welcome-back code alias list
+        .in('code', WELCOME_BACK_CODES.slice(0, 2));
 
-    if (promoCode?.id) {
-        const { data: existingRedemption } = await sb
+    const codeIds = (promoCodeRows || []).map((r) => r?.id).filter(Boolean);
+    if (codeIds.length > 0) {
+        // in-list: bounded welcome-back promo_code ids
+        const { data: existingRedemptions } = await sb
             .from('promo_code_redemptions')
             .select('id, redeemed_at, reward_applied')
-            .eq('promo_code_id', promoCode.id)
-            .eq('user_id', user.id)
-            .maybeSingle();
-        if (existingRedemption?.id && existingRedemption.reward_applied) {
+            .in('promo_code_id', codeIds.slice(0, 10))
+            .eq('user_id', user.id);
+
+        const claimed = (existingRedemptions || []).find((r) => r?.reward_applied);
+        if (claimed) {
             return {
                 eligible: true,
                 alreadyClaimed: true,
-                redeemedAt: existingRedemption.redeemed_at,
-                reward: existingRedemption.reward_applied,
+                redeemedAt: claimed.redeemed_at,
+                reward: claimed.reward_applied,
             };
         }
     }

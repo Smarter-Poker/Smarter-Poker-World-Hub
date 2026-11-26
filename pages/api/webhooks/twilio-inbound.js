@@ -41,13 +41,14 @@ export default async function handler(req, res) {
         const smsKey = `sms:${phone}`;
         try {
             const sb = createClient();
-            const { data: existing } = await sb
+            const { data: existingRows } = await sb
                 .from('newsletter_subscribers')
                 .select('id')
-                .eq('email', smsKey)
-                .maybeSingle();
+                .ilike('email', smsKey)
+                .limit(20);
 
-            if (existing?.id) {
+            const rows = Array.isArray(existingRows) ? existingRows : [];
+            if (rows.length > 0) {
                 await sb
                     .from('newsletter_subscribers')
                     .update({
@@ -55,16 +56,21 @@ export default async function handler(req, res) {
                         unsubscribed_at: optingOut ? nowIso : null,
                         source: optingOut ? 'sms_opt_out' : 'sms_opt_in',
                     })
-                    .eq('id', existing.id);
+                    // in-list: bounded sms:<phone> subscriber rows
+                    .in('id', rows.map((r) => r.id).slice(0, 20));
             } else {
+                const insertPayload = {
+                    email: smsKey.toLowerCase(),
+                    is_active: !optingOut,
+                    unsubscribed_at: optingOut ? nowIso : null,
+                    source: optingOut ? 'sms_opt_out' : 'sms_opt_in',
+                };
+                if (!optingOut) {
+                    insertPayload.subscribed_at = nowIso;
+                }
                 await sb
                     .from('newsletter_subscribers')
-                    .insert({
-                        email: smsKey,
-                        is_active: !optingOut,
-                        unsubscribed_at: optingOut ? nowIso : null,
-                        source: optingOut ? 'sms_opt_out' : 'sms_opt_in',
-                    });
+                    .insert(insertPayload);
             }
 
             // Mirror handset SMS opt-out (STOP) or re-subscription (START) strictly onto

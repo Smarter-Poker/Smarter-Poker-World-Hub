@@ -13,7 +13,7 @@
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TOURNAMENT_COLUMNS =
-    'id, name, club_id, game_type, buy_in_amount, buy_in_fee, guaranteed_prize, prize_pool, start_time, status';
+    'id, name, club_id, game_type, buy_in_amount, buy_in_fee, guaranteed_prize, prize_pool, start_time, status, updated_at, created_at';
 
 const ICS_LOCATION = 'Smarter.Poker Kings Club (Club 25450)';
 const ICS_URL = 'https://smarter.poker/hub/club-arena/?join=25450';
@@ -102,6 +102,14 @@ export function buildTournamentIcs(tournament, { now = new Date() } = {}) {
     if (!tournament.start_time || Number.isNaN(start.getTime())) return null;
     const end = new Date(start.getTime() + DURATION_MS);
 
+    const rawStamp = tournament.updated_at || tournament.created_at || tournament.start_time;
+    let stampDate = null;
+    if (rawStamp) {
+        const parsed = new Date(rawStamp);
+        if (!Number.isNaN(parsed.getTime())) stampDate = parsed;
+    }
+    const dtstamp = stampDate || (now instanceof Date && !Number.isNaN(now.getTime()) ? now : new Date());
+
     const name = String(tournament.name || '').trim() || 'Smarter.Poker Tournament';
     const gameKey = String(tournament.game_type || '').trim().toUpperCase();
     const gameLabel = GAME_TYPE_LABELS[gameKey] || String(tournament.game_type || '').trim();
@@ -121,7 +129,8 @@ export function buildTournamentIcs(tournament, { now = new Date() } = {}) {
         'METHOD:PUBLISH',
         'BEGIN:VEVENT',
         `UID:${tournament.id}@smarter.poker`,
-        `DTSTAMP:${formatIcsUtc(now)}`,
+        `DTSTAMP:${formatIcsUtc(dtstamp)}`,
+        'SEQUENCE:0',
         `DTSTART:${formatIcsUtc(start)}`,
         `DTEND:${formatIcsUtc(end)}`,
         `SUMMARY:${escapeIcsText(name)}`,

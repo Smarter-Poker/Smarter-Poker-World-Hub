@@ -19,7 +19,7 @@ const walk = (dir) => readdirSync(dir).flatMap((name) => {
   const path = join(dir, name);
   return statSync(path).isDirectory()
     ? walk(path)
-    : /\.(js|jsx|tsx)$/.test(name)
+    : /\.(js|jsx|tsx)$/.test(name) && !/\.xml\.(js|jsx|tsx)$/.test(name)
       ? [path]
       : [];
 });

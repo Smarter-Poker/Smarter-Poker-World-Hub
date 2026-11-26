@@ -45,6 +45,7 @@ function modeLabel(mode) {
 export default function EmailPreferencesPage() {
     const router = useRouter();
     const [prefToken, setPrefToken] = useState('');
+    const [useSessionAuth, setUseSessionAuth] = useState(false);
     const [loading, setLoading] = useState(true);
     const [savingKey, setSavingKey] = useState('');
     const [maskedEmail, setMaskedEmail] = useState('');
@@ -68,8 +69,33 @@ export default function EmailPreferencesPage() {
                 setErrorMessage('This Email Preference Link Is Invalid Or Has Expired.');
                 return;
             }
-            setMaskedEmail(body.maskedEmail || '');
+            setMaskedEmail(body.maskedEmail || body.email || '');
             setCurrentMode(body.currentMode || 'all');
+        } catch {
+            setErrorMessage('Unable To Load Email Preferences Right Now - Please Try Again.');
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    const loadSessionPreferences = useCallback(async (sessionJwt) => {
+        setLoading(true);
+        setErrorMessage('');
+        try {
+            const response = await fetch('/api/news/subscribe?preferences=session', {
+                headers: {
+                    Accept: 'application/json',
+                    Authorization: `Bearer ${sessionJwt}`,
+                },
+            });
+            const body = await response.json().catch(() => ({}));
+            if (!response.ok || !body?.success) {
+                setLoading(false);
+                return;
+            }
+            setMaskedEmail(body.maskedEmail || body.email || '');
+            setCurrentMode(body.currentMode || 'all');
+            setUseSessionAuth(true);
         } catch {
             setErrorMessage('Unable To Load Email Preferences Right Now - Please Try Again.');
         } finally {
@@ -84,40 +110,62 @@ export default function EmailPreferencesPage() {
             : router.query.token;
         const clean = typeof fromQuery === 'string' ? fromQuery.trim() : '';
         setPrefToken(clean);
-        if (!clean) {
-            setLoading(false);
+        if (clean) {
+            loadCurrentPreferences(clean);
             return;
         }
-        loadCurrentPreferences(clean);
-    }, [router.isReady, router.query.token, loadCurrentPreferences]);
+
+        const sessionJwt = getAccessToken();
+        if (sessionJwt) {
+            loadSessionPreferences(sessionJwt);
+            return;
+        }
+
+        setLoading(false);
+    }, [router.isReady, router.query.token, loadCurrentPreferences, loadSessionPreferences]);
 
     const handleSelectPreference = async (preferenceKey) => {
-        if (!prefToken || savingKey) return;
+        if ((!prefToken && !useSessionAuth) || savingKey) return;
         setSavingKey(preferenceKey);
         setErrorMessage('');
         setStatusNotice('');
         try {
             const accessToken = getAccessToken();
+            const headers = {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+            };
+            if (accessToken) {
+                headers.Authorization = `Bearer ${accessToken}`;
+            }
+            const bodyPayload = {
+                action: 'preferences',
+                mode: preferenceKey,
+                preference: preferenceKey,
+            };
+            if (prefToken) {
+                bodyPayload.token = prefToken;
+            }
             const response = await fetch('/api/news/subscribe', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-                },
-                body: JSON.stringify({
-                    action: 'preferences',
-                    token: prefToken,
-                    preference: preferenceKey,
-                }),
+                headers,
+                body: JSON.stringify(bodyPayload),
             });
             const body = await response.json().catch(() => ({}));
             if (!response.ok || !body?.success) {
                 setErrorMessage('Could Not Save Your Email Preference - Please Try Again.');
                 return;
             }
+            if (preferenceKey === 'unsubscribe' && typeof window !== 'undefined') {
+                try {
+                    window.localStorage.removeItem('sp_wire_subscribed_v1');
+                } catch {
+                    /* ignore storage restrictions */
+                }
+            }
             const updatedMode = body.currentMode || (preferenceKey === 'unsubscribe' ? 'unsubscribed' : preferenceKey);
             setCurrentMode(updatedMode);
-            if (body.maskedEmail) setMaskedEmail(body.maskedEmail);
+            if (body.maskedEmail || body.email) setMaskedEmail(body.maskedEmail || body.email);
             setStatusNotice(`Saved: ${modeLabel(updatedMode)}`);
         } catch {
             setErrorMessage('Could Not Save Your Email Preference - Please Try Again.');
@@ -196,7 +244,7 @@ export default function EmailPreferencesPage() {
                         >
                             Loading Your Email Preferences...
                         </div>
-                    ) : !prefToken ? (
+                    ) : !prefToken && !useSessionAuth ? (
                         <div
                             style={{
                                 background: '#101a24',

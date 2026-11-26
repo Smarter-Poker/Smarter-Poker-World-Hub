@@ -3,6 +3,7 @@
  */
 import crypto from 'crypto';
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { resendFrom } from '../../../src/lib/email/resendAccount.mjs';
@@ -50,6 +51,10 @@ function unsubscribeSecret() {
 
 function b64url(buf) {
     return Buffer.from(buf).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+export function escapeIlikePattern(value) {
+    return String(value || '').replace(/([\\%_])/g, '\\$1');
 }
 
 export function makeUnsubscribeToken(email) {
@@ -172,7 +177,7 @@ export default async function handler(req, res) {
                 const { data: keepRows, error: keepLookupErr } = await getSupabase()
                     .from('newsletter_subscribers')
                     .select('id, email, is_active, source')
-                    .ilike('email', keepEmail)
+                    .ilike('email', escapeIlikePattern(keepEmail))
                     .limit(5);
                 if (keepLookupErr) {
                     console.warn('[Newsletter] Keep lookup failed:', keepLookupErr.message);
@@ -245,35 +250,77 @@ export default async function handler(req, res) {
         }
 
         // 1. GET /api/news/subscribe?preferences=<signed-token>
+        const hasPreferencesParam = typeof req.query?.preferences !== 'undefined';
         const rawPreferences = Array.isArray(req.query?.preferences)
             ? req.query.preferences[0]
             : req.query?.preferences;
 
-        if (req.method === 'GET' && typeof rawPreferences === 'string' && rawPreferences) {
+        if (req.method === 'GET' && hasPreferencesParam) {
             if (!applyRateLimit(req, res, LIMITS.read || LIMITS.write)) return;
-            const verifiedEmail = verifyUnsubscribeToken(rawPreferences.trim());
-            if (!verifiedEmail) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Invalid or expired email preference link.',
-                });
+            const prefStr = typeof rawPreferences === 'string' ? rawPreferences.trim() : '';
+            let verifiedEmail = null;
+
+            let sessionUserId = null;
+            if (!prefStr || prefStr === 'session') {
+                const sb = getSupabase();
+                const authRes = await getServerUserWithFallback(req, sb);
+                const user = authRes?.user ?? authRes;
+                if (user?.id) {
+                    sessionUserId = user.id;
+                    verifiedEmail = user.email || (await sb.auth.admin.getUserById(user.id))?.data?.user?.email || null;
+                }
+                if (!verifiedEmail) {
+                    return res.status(401).json({
+                        success: false,
+                        error: 'Authentication required.',
+                    });
+                }
+            } else {
+                verifiedEmail = verifyUnsubscribeToken(prefStr);
+                if (!verifiedEmail) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'Invalid or expired email preference link.',
+                    });
+                }
             }
 
-            const { data: subRow, error: subErr } = await getSupabase()
+            verifiedEmail = verifiedEmail.trim().toLowerCase();
+
+            const { data: existingRows, error: subErr } = await getSupabase()
                 .from('newsletter_subscribers')
                 .select('id, email, is_active, source')
-                .eq('email', verifiedEmail)
-                .maybeSingle();
+                .ilike('email', escapeIlikePattern(verifiedEmail))
+                .limit(20);
 
             if (subErr) {
                 console.warn('[Newsletter] Preference read failed:', subErr.message);
                 return res.status(500).json({ success: false, error: 'Unable to load preferences.' });
             }
 
+            const rows = Array.isArray(existingRows) ? existingRows : [];
+            const subRow = rows.length > 0 ? rows[0] : null;
+            let resolvedMode = derivePreferenceMode(subRow);
+            if (!subRow && sessionUserId) {
+                try {
+                    const { data: npRows } = await getSupabase()
+                        .from('notification_preferences')
+                        .select('mute_all, email_enabled, marketing_enabled')
+                        .eq('user_id', sessionUserId)
+                        .limit(1);
+                    const np = Array.isArray(npRows) && npRows.length > 0 ? npRows[0] : null;
+                    if (np && (np.mute_all === true || np.email_enabled === false || np.marketing_enabled === false)) {
+                        resolvedMode = 'unsubscribed';
+                    }
+                } catch (_npErr) {
+                    /* non-blocking fallback */
+                }
+            }
+
             return res.status(200).json({
                 success: true,
                 maskedEmail: maskEmailAddress(verifiedEmail),
-                currentMode: derivePreferenceMode(subRow),
+                currentMode: resolvedMode,
             });
         }
 
@@ -308,25 +355,28 @@ export default async function handler(req, res) {
 
             try {
                 const nowIso = new Date().toISOString();
-                const { data: existingSub, error: lookupError } = await getSupabase()
+                const targetEmail = target.email.trim().toLowerCase();
+                const { data: existingRows, error: lookupError } = await getSupabase()
                     .from('newsletter_subscribers')
                     .select('id')
-                    .eq('email', target.email)
-                    .maybeSingle();
+                    .ilike('email', escapeIlikePattern(targetEmail))
+                    .limit(20);
 
                 if (lookupError) {
                     console.warn('[Newsletter] Unsubscribe lookup failed:', lookupError.message);
                     return respond(500, false, 'We could not process that request. Please try again.');
                 }
 
-                const writeResult = existingSub?.id
+                const rows = Array.isArray(existingRows) ? existingRows : [];
+                const writeResult = rows.length > 0
                     ? await getSupabase()
                           .from('newsletter_subscribers')
                           .update({ is_active: false, unsubscribed_at: nowIso, source: 'unsubscribe' })
-                          .eq('id', existingSub.id)
+                          // in-list: bounded duplicate subscriber rows for one email
+                          .in('id', rows.map((r) => r.id).slice(0, 20))
                     : await getSupabase()
                           .from('newsletter_subscribers')
-                          .insert({ email: target.email, is_active: false, unsubscribed_at: nowIso, source: 'unsubscribe' });
+                          .insert({ email: targetEmail, is_active: false, unsubscribed_at: nowIso, source: 'unsubscribe' });
 
                 if (writeResult.error) {
                     console.warn('[Newsletter] Unsubscribe failed:', writeResult.error.message);
@@ -337,7 +387,7 @@ export default async function handler(req, res) {
                     const { data: matchedProfiles } = await getSupabase()
                         .from('profiles')
                         .select('id')
-                        .ilike('email', target.email)
+                        .ilike('email', escapeIlikePattern(targetEmail))
                         .limit(10);
                     for (const prof of matchedProfiles || []) {
                         if (!prof?.id) continue;
@@ -373,18 +423,38 @@ export default async function handler(req, res) {
             return res.status(405).json({ success: false, error: 'Method not allowed' });
         }
 
-        // 3. POST /api/news/subscribe with { action: 'preferences', token, preference }
+        // 3. POST /api/news/subscribe with { action: 'preferences', token, mode/preference }
         if (req.body?.action === 'preferences') {
             const rawToken = typeof req.body?.token === 'string' ? req.body.token.trim() : '';
-            const verifiedEmail = verifyUnsubscribeToken(rawToken);
-            if (!verifiedEmail) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Invalid or expired preference token.',
-                });
+            let verifiedEmail = null;
+
+            if (!rawToken || rawToken === 'session') {
+                const sb = getSupabase();
+                const authRes = await getServerUserWithFallback(req, sb);
+                const user = authRes?.user ?? authRes;
+                if (user?.id) {
+                    verifiedEmail = user.email || (await sb.auth.admin.getUserById(user.id))?.data?.user?.email || null;
+                }
+                if (!verifiedEmail) {
+                    return res.status(401).json({
+                        success: false,
+                        error: 'Authentication required.',
+                    });
+                }
+            } else {
+                verifiedEmail = verifyUnsubscribeToken(rawToken);
+                if (!verifiedEmail) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'Invalid or expired preference token.',
+                    });
+                }
             }
 
-            const preference = String(req.body?.preference || '').trim();
+            verifiedEmail = verifiedEmail.trim().toLowerCase();
+
+            const rawPref = req.body?.preference || req.body?.mode;
+            const preference = String(rawPref || '').trim();
             if (!['wire_only', 'snooze_30d', 'all', 'unsubscribe'].includes(preference)) {
                 return res.status(400).json({
                     success: false,
@@ -395,11 +465,11 @@ export default async function handler(req, res) {
             const nowIso = new Date().toISOString();
             const snoozeIso = new Date(Date.now() + 30 * 86_400_000).toISOString();
 
-            const { data: existingSub, error: lookupErr } = await getSupabase()
+            const { data: existingRows, error: lookupErr } = await getSupabase()
                 .from('newsletter_subscribers')
                 .select('id')
-                .eq('email', verifiedEmail)
-                .maybeSingle();
+                .ilike('email', escapeIlikePattern(verifiedEmail))
+                .limit(20);
 
             if (lookupErr) {
                 console.warn('[Newsletter] Preference lookup failed:', lookupErr.message);
@@ -417,14 +487,26 @@ export default async function handler(req, res) {
                 patch = { is_active: false, unsubscribed_at: nowIso, source: 'unsubscribe' };
             }
 
-            const saveRes = existingSub?.id
-                ? await getSupabase()
-                      .from('newsletter_subscribers')
-                      .update(patch)
-                      .eq('id', existingSub.id)
-                : await getSupabase()
-                      .from('newsletter_subscribers')
-                      .insert({ email: verifiedEmail, ...patch });
+            const rows = Array.isArray(existingRows) ? existingRows : [];
+            let saveRes;
+            if (rows.length > 0) {
+                saveRes = await getSupabase()
+                    .from('newsletter_subscribers')
+                    .update(patch)
+                    // in-list: bounded duplicate subscriber rows for one email
+                    .in('id', rows.map((r) => r.id).slice(0, 20));
+            } else {
+                const insertPayload = {
+                    email: verifiedEmail,
+                    ...patch,
+                };
+                if (patch.is_active) {
+                    insertPayload.subscribed_at = nowIso;
+                }
+                saveRes = await getSupabase()
+                    .from('newsletter_subscribers')
+                    .insert(insertPayload);
+            }
 
             if (saveRes.error) {
                 console.warn('[Newsletter] Preference save failed:', saveRes.error.message);
@@ -435,7 +517,7 @@ export default async function handler(req, res) {
                 const { data: profiles } = await getSupabase()
                     .from('profiles')
                     .select('id')
-                    .ilike('email', verifiedEmail)
+                    .ilike('email', escapeIlikePattern(verifiedEmail))
                     .limit(10);
                 for (const prof of profiles || []) {
                     if (!prof?.id) continue;
@@ -495,23 +577,27 @@ export default async function handler(req, res) {
                     ? source
                     : 'news_hub';
 
-            const { data: existing } = await getSupabase()
+            const nowIso = new Date().toISOString();
+            const { data: existingRows } = await getSupabase()
                 .from('newsletter_subscribers')
                 .select('id, is_active, source')
-                .eq('email', normalizedEmail)
-                .maybeSingle();
+                .ilike('email', escapeIlikePattern(normalizedEmail))
+                .limit(20);
 
-            const wasSnoozed = Boolean(
-                existing && String(existing.source || '').trim().toLowerCase().startsWith('snooze:')
+            const rows = Array.isArray(existingRows) ? existingRows : [];
+            const wasSnoozed = rows.some((r) =>
+                String(r.source || '').trim().toLowerCase().startsWith('snooze:')
             );
-            const shouldSendWelcome = !existing || existing.is_active === false;
+            const allInactive = rows.length > 0 && rows.every((r) => r.is_active === false);
+            const shouldSendWelcome = rows.length === 0 || allInactive;
 
-            if (existing) {
-                if (!existing.is_active || wasSnoozed) {
+            if (rows.length > 0) {
+                if (rows.some((r) => !r.is_active) || wasSnoozed) {
                     const { error: reactivateError } = await getSupabase()
                         .from('newsletter_subscribers')
                         .update({ is_active: true, unsubscribed_at: null, source: safeSource })
-                        .eq('id', existing.id);
+                        // in-list: bounded duplicate subscriber rows for one email
+                        .in('id', rows.map((r) => r.id).slice(0, 20));
                     if (reactivateError) {
                         console.warn('[Newsletter] Reactivation failed:', reactivateError.message);
                         return res.status(500).json({ success: false, error: 'Subscription failed' });
@@ -520,7 +606,7 @@ export default async function handler(req, res) {
             } else {
                 const { error } = await getSupabase()
                     .from('newsletter_subscribers')
-                    .insert({ email: normalizedEmail, is_active: true, source: safeSource });
+                    .insert({ email: normalizedEmail, is_active: true, source: safeSource, subscribed_at: nowIso });
 
                 if (error) throw error;
             }
@@ -529,7 +615,7 @@ export default async function handler(req, res) {
                 const { data: matchedProfiles } = await getSupabase()
                     .from('profiles')
                     .select('id')
-                    .ilike('email', normalizedEmail)
+                    .ilike('email', escapeIlikePattern(normalizedEmail))
                     .limit(10);
                 const nowIso = new Date().toISOString();
                 for (const prof of matchedProfiles || []) {
@@ -556,7 +642,7 @@ export default async function handler(req, res) {
                     const { data: profileRows } = await getSupabase()
                         .from('profiles')
                         .select('id, username')
-                        .ilike('email', normalizedEmail)
+                        .ilike('email', escapeIlikePattern(normalizedEmail))
                         .limit(1);
 
                     const existingProfile = Array.isArray(profileRows) && profileRows.length > 0 ? profileRows[0] : null;

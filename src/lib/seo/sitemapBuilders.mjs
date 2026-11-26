@@ -51,6 +51,7 @@ import { HUD_STATS, HUD_STATS_AS_OF, hudStatPath } from '../../content/learn/hud
 import { EDITORIAL_AUTHORS, AUTHORS_AS_OF, authorPath } from '../../content/authors.js';
 import { POKER_TRAVEL_CORRIDORS, CORRIDORS_AS_OF, corridorGuidePath } from '../../content/guides/corridors.js';
 import { POKER_ROOMS_BY_GAME, BY_GAME_AS_OF, byGameGuidePath } from '../../content/guides/byGame.js';
+import { isWeeklyWireDigestCampaign } from '../newsletter/wireCampaignPredicate.mjs';
 
 export const SITE_URL = 'https://smarter.poker';
 export const SITEMAP_DB_PAGE_SIZE = 1000;
@@ -422,11 +423,21 @@ export function getReleaseGatedPages() {
   ];
 }
 
+export function escapeXml(value) {
+  return String(value == null ? '' : value)
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
 export function sitemapLastmodLine(lastmod) {
   if (!lastmod) return '';
   const time = new Date(lastmod).getTime();
   if (!Number.isFinite(time) || time <= 0) return '';
-  return `    <lastmod>${new Date(time).toISOString()}</lastmod>\n`;
+  return `    <lastmod>${escapeXml(new Date(time).toISOString())}</lastmod>\n`;
 }
 
 export function generateSitemapXml(urls) {
@@ -437,11 +448,18 @@ export function generateSitemapXml(urls) {
         http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
 ${urls
   .map(
-    (url) => `  <url>
-    <loc>${SITE_URL}${url.path}</loc>
-${sitemapLastmodLine(url.lastmod)}    <changefreq>${url.changefreq}</changefreq>
-    <priority>${url.priority}</priority>
-  </url>`
+    (url) => {
+      const loc = url.loc ? url.loc : (url.path ? (url.path.startsWith('http') ? url.path : `${SITE_URL}${url.path}`) : '');
+      const escapedLoc = escapeXml(loc);
+      const lastmodLine = sitemapLastmodLine(url.lastmod);
+      const changefreq = escapeXml(url.changefreq || 'monthly');
+      const priority = escapeXml(url.priority || '0.5');
+      return `  <url>
+    <loc>${escapedLoc}</loc>
+${lastmodLine}    <changefreq>${changefreq}</changefreq>
+    <priority>${priority}</priority>
+  </url>`;
+    }
   )
   .join('\n')}
 </urlset>`;
@@ -456,11 +474,65 @@ export function generateSitemapIndexXml(sitemaps) {
 ${sitemaps
   .map(
     (s) => `  <sitemap>
-    <loc>${s.loc.startsWith('http') ? s.loc : `${SITE_URL}${s.loc}`}</loc>
+    <loc>${escapeXml(s.loc.startsWith('http') ? s.loc : `${SITE_URL}${s.loc}`)}</loc>
 ${sitemapLastmodLine(s.lastmod)}  </sitemap>`
   )
   .join('\n')}
 </sitemapindex>`;
+}
+
+export function buildStaticCoreUrls(today = new Date().toISOString().slice(0, 10)) {
+  return STATIC_PAGES;
+}
+
+export async function buildWireEditionUrls(wireCampaignRows) {
+  let rows = Array.isArray(wireCampaignRows) ? wireCampaignRows : null;
+  if (!rows) {
+    const sb = (wireCampaignRows && typeof wireCampaignRows.from === 'function')
+      ? wireCampaignRows
+      : null;
+    if (sb) {
+      const { data, error } = await sb
+        .from('newsletter_campaigns')
+        .select('id, subject, status, completed_at, created_at, article_ids')
+        .in('status', ['sent', 'partial'])
+        .order('created_at', { ascending: true })
+        .limit(200);
+      if (!error && Array.isArray(data)) rows = data;
+    } else {
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      if (url && key) {
+        try {
+          const { createClient } = await import('@supabase/supabase-js');
+          const client = createClient(url, key);
+          const { data, error } = await client
+            .from('newsletter_campaigns')
+            .select('id, subject, status, completed_at, created_at, article_ids')
+            .in('status', ['sent', 'partial'])
+            .order('created_at', { ascending: true })
+            .limit(200);
+          if (!error && Array.isArray(data)) rows = data;
+        } catch {
+          // Non-fatal
+        }
+      }
+    }
+  }
+
+  const list = Array.isArray(rows) ? rows : [];
+  const used = new Set();
+  return list.filter(isWeeklyWireDigestCampaign).map((row, idx) => {
+    const match = String(row.subject || '').match(/wire\s*#(\d+)/i);
+    const fromSubject = match ? parseInt(match[1], 10) : null;
+    let num = Number.isFinite(fromSubject) && fromSubject > 0 && !used.has(fromSubject) ? fromSubject : idx + 1;
+    while (used.has(num)) num += 1;
+    used.add(num);
+    const day = String(row.completed_at || row.created_at || '').slice(0, 10);
+    const entry = { path: `/hub/wire/${num}`, priority: '0.7', changefreq: 'monthly' };
+    if (/^\d{4}-\d{2}-\d{2}$/.test(day)) entry.lastmod = day;
+    return entry;
+  });
 }
 
 /**

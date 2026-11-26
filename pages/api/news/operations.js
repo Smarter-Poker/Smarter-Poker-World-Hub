@@ -226,7 +226,7 @@ export default async function handler(req, res) {
                 .select('id', { count: 'exact', head: true })
                 .in('source', ['owner_list_20261118', 'admin_import'])
                 .or('is_active.is.null,is_active.eq.true')
-                .lte('created_at', coldCutoffIso)
+                .or(`subscribed_at.lte.${coldCutoffIso},and(subscribed_at.is.null,created_at.lte.${coldCutoffIso})`)
                 .then((r) => r, () => ({ count: 0 })),
         ]);
 
@@ -275,7 +275,7 @@ export default async function handler(req, res) {
                 dmarcRecord: dnsReadiness.dmarcRecord,
                 bimiDnsConfigured: dnsReadiness.bimiDnsConfigured,
                 bimiRecordFound: dnsReadiness.bimiRecordFound,
-                rssFeedPath: '/api/news/wire-rss',
+                rssFeedPath: '/hub/wire/rss.xml',
                 spotImageEngine: true,
                 calendarIcsEnabled: true,
                 coldSunsetShield: true,

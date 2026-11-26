@@ -38,7 +38,7 @@ export function deriveCaptureSource(rawPath) {
     return 'capture:hub';
 }
 
-export default function NewsletterCaptureBar({ pathname: pathnameProp, variant = 'floating' }) {
+export default function NewsletterCaptureBar({ pathname: pathnameProp, variant = 'floating', alwaysVisible = false }) {
     const router = useRouter();
     const activePath = pathnameProp || router?.asPath || router?.pathname || '';
     const isInline = variant === 'inline';
@@ -81,7 +81,7 @@ export default function NewsletterCaptureBar({ pathname: pathnameProp, variant =
         return null;
     }
 
-    if (hidden && !subscribed) {
+    if (hidden && !subscribed && !alwaysVisible) {
         return null;
     }
 
@@ -148,15 +148,17 @@ export default function NewsletterCaptureBar({ pathname: pathnameProp, variant =
                         <div className={styles.confirmedText}>
                             You Are Subscribed - Check Your Inbox For Your Welcome Bonus
                         </div>
-                        <button
-                            type="button"
-                            className={styles.dismissBtn}
-                            onClick={handleDismiss}
-                            aria-label="Close Subscription Confirmation"
-                            title="Close Subscription Confirmation"
-                        >
-                            &times;
-                        </button>
+                        {!alwaysVisible && (
+                            <button
+                                type="button"
+                                className={styles.dismissBtn}
+                                onClick={handleDismiss}
+                                aria-label="Close Subscription Confirmation"
+                                title="Close Subscription Confirmation"
+                            >
+                                &times;
+                            </button>
+                        )}
                     </div>
                 ) : (
                     <>
@@ -189,7 +191,7 @@ export default function NewsletterCaptureBar({ pathname: pathnameProp, variant =
                                 <button type="submit" className={styles.submitBtn} disabled={submitting}>
                                     {submitting ? 'Joining...' : 'Get Weekly Wire'}
                                 </button>
-                                {!isInline && (
+                                {!isInline && !alwaysVisible && (
                                     <button
                                         type="button"
                                         className={styles.dismissBtn}

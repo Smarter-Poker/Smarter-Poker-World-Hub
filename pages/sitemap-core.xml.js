@@ -11,15 +11,38 @@ import {
   generateSitemapXml,
   getReleaseGatedPages,
   sendSitemapXmlResponse,
-  STATIC_PAGES,
+  buildStaticCoreUrls,
+  buildWireEditionUrls,
 } from '../src/lib/seo/sitemapBuilders.mjs';
+import { createClient } from '../src/lib/supabaseServerClient';
 
 export async function getServerSideProps({ req, res }) {
   const releaseGatedPages = getReleaseGatedPages();
+  const today = new Date().toISOString().slice(0, 10);
+
+  let wireCampaignRows = [];
+  try {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from('newsletter_campaigns')
+      .select('id, subject, status, completed_at, created_at, article_ids')
+      .eq('status', 'sent')
+      .order('created_at', { ascending: true })
+      .limit(200);
+    if (Array.isArray(data)) {
+      wireCampaignRows = data;
+    }
+  } catch (_err) {
+    wireCampaignRows = [];
+  }
+
+  const wireEditionUrls = await buildWireEditionUrls(wireCampaignRows);
+  const staticCoreUrls = typeof buildStaticCoreUrls === 'function' ? buildStaticCoreUrls(today) : [];
 
   const sitemap = generateSitemapXml([
-    ...STATIC_PAGES,
+    ...staticCoreUrls,
     ...releaseGatedPages,
+    ...wireEditionUrls,
   ]);
 
   res.setHeader('Content-Type', 'text/xml');

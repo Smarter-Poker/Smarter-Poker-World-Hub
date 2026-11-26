@@ -39,6 +39,7 @@ import {
     VIDEO_LIBRARY_POKER_TYPES,
     dedupeVideos,
     isCasinoGameFiledAsPoker,
+    isCuratedFeedVideo,
     isDisplayableVideoTitle,
 } from '../videoLibraryCuration.mjs';
 import {
@@ -273,17 +274,8 @@ function decodeHtmlEntities(str) {
  * `article_ids` so empty promotional broadcasts can never hijack edition numbers
  * or render blank web archive issues.
  */
-export function isWeeklyWireDigestCampaign(row) {
-    if (!row || typeof row !== 'object') return false;
-    const subj = String(row.subject || '').trim();
-    if (!subj) return false;
-    if (/^\[(?:promo|lifecycle|sms|test)\b/i.test(subj)) return false;
-    const ids = Array.isArray(row.article_ids)
-        ? row.article_ids.filter((id) => typeof id === 'string' && id.trim().length > 0)
-        : [];
-    if (ids.length === 0) return false;
-    return true;
-}
+import { isWeeklyWireDigestCampaign } from './wireCampaignPredicate.mjs';
+export { isWeeklyWireDigestCampaign };
 
 /**
  * Enforces `pages/auth/signup.js`'s `isReferralInput` contract:
@@ -666,9 +658,11 @@ async function loadVideoOfTheWeek(sb, { consumedIds, fetchVideosFn }) {
         const normalized = [];
         for (const row of Array.isArray(rows) ? rows : []) {
             if (!row?.youtube_video_id && !row?.videoId) continue;
-            // Accept both raw catalog rows and already-normalised video objects.
+            // Accept both raw catalog rows and already-normalised video objects;
+            // normaliseVideoRow maps source_id -> video.source before isCuratedFeedVideo runs.
             const video = row.youtube_video_id ? normaliseVideoRow(row) : row;
             if (!video?.videoId || BLOCKED_VIDEO_ID_SET.has(video.videoId)) continue;
+            if (!isCuratedFeedVideo(video)) continue;
             if (!isVideoLibraryVideoAllowed(video)) continue;
             if (!isDisplayableVideoTitle(video.rawTitle ?? video.title)) continue;
             if (isCasinoGameFiledAsPoker(video)) continue;
@@ -703,6 +697,86 @@ async function fetchPaged(queryBuilderFactory, maxRows = 15000) {
     return rows;
 }
 
+export function selectRotatingCatalogItem(
+    catalog,
+    getKey,
+    cycleZeroMarkerFn,
+    cycleNamespace,
+    consumedIds,
+    editionNumber = 1
+) {
+    if (!Array.isArray(catalog) || catalog.length === 0) return null;
+    const consumed = consumedIds instanceof Set ? consumedIds : new Set(consumedIds || []);
+
+    // First check cycle 0: find first item where !consumedIds.has(cycleZeroMarkerFn(getKey(item)))
+    for (const item of catalog) {
+        const key = getKey(item);
+        const markerId = cycleZeroMarkerFn(key);
+        if (!consumed.has(markerId)) {
+            return { item, markerId, cycle: 0 };
+        }
+    }
+
+    // Otherwise loop for (let cycle = 1; cycle <= 50; cycle++)
+    for (let cycle = 1; cycle <= 50; cycle++) {
+        for (const item of catalog) {
+            const key = getKey(item);
+            const markerId = deterministicMarkerUuid(cycleNamespace, `${cycle}:${key}`);
+            if (!consumed.has(markerId)) {
+                return { item, markerId, cycle };
+            }
+        }
+    }
+
+    // Ultimate fallback
+    const idx = (Math.max(1, Number(editionNumber) || 1) - 1) % catalog.length;
+    const fallbackItem = catalog[idx];
+    const markerId = deterministicMarkerUuid(cycleNamespace, `mod:${editionNumber}:${getKey(fallbackItem)}`);
+    return { item: fallbackItem, markerId, cycle: 51 };
+}
+
+export function parseWireEditionSubjectNumber(subject) {
+    if (typeof subject !== 'string') return null;
+    const match = subject.match(/(?:Weekly\s+Wire|Wire)\s*#\s*(\d+)/i) || subject.match(/#\s*(\d+)/);
+    if (!match) return null;
+    const num = parseInt(match[1], 10);
+    return Number.isFinite(num) && num > 0 ? num : null;
+}
+
+export function numberWeeklyWireCampaigns(rows) {
+    const list = (Array.isArray(rows) ? rows : []).filter(isWeeklyWireDigestCampaign);
+    const getTimestamp = (r) => {
+        const val = r?.completed_at || r?.started_at || r?.created_at;
+        return val ? new Date(val).getTime() : 0;
+    };
+    list.sort((a, b) => getTimestamp(a) - getTimestamp(b));
+
+    let currentEdition = 0;
+    const numbered = list.map((campaign, idx) => {
+        const seq = idx + 1;
+        const subjectNum = parseWireEditionSubjectNumber(campaign?.subject);
+        if (subjectNum && subjectNum >= seq && subjectNum > currentEdition) {
+            currentEdition = subjectNum;
+        } else {
+            currentEdition = Math.max(currentEdition + 1, seq);
+        }
+        return {
+            ...campaign,
+            editionNumber: currentEdition,
+        };
+    });
+
+    numbered.sort((a, b) => b.editionNumber - a.editionNumber);
+    return numbered;
+}
+
+export function computeNextWeeklyWireEditionNumber(rows) {
+    const numbered = numberWeeklyWireCampaigns(rows);
+    if (!numbered || numbered.length === 0) return 1;
+    const maxEdition = Math.max(...numbered.map((r) => r.editionNumber));
+    return maxEdition + 1;
+}
+
 /**
  * Load the complete historical consumption ledger from `newsletter_campaigns` +
  * historical `poker_news` rows referenced by past campaigns.
@@ -710,11 +784,10 @@ async function fetchPaged(queryBuilderFactory, maxRows = 15000) {
 export async function loadZeroRepeatLedger(sb) {
     const consumedIds = new Set();
     const historicalTitles = [];
-    let digestSendCount = 0;
 
     const { data: campaigns, error } = await sb
         .from('newsletter_campaigns')
-        .select('id, subject, status, article_ids, created_at')
+        .select('id, subject, status, article_ids, created_at, completed_at')
         .in('status', ['sent', 'partial', 'sending'])
         .order('created_at', { ascending: false })
         .limit(250);
@@ -725,7 +798,6 @@ export async function loadZeroRepeatLedger(sb) {
     for (const c of campaigns || []) {
         if (!isWeeklyWireDigestCampaign(c)) continue;
         const ids = Array.isArray(c?.article_ids) ? c.article_ids : [];
-        digestSendCount += 1;
         for (const id of ids) {
             if (typeof id === 'string' && id.trim()) {
                 const clean = id.trim().toLowerCase();
@@ -755,7 +827,7 @@ export async function loadZeroRepeatLedger(sb) {
     return {
         consumedIds,
         historicalTitles,
-        editionNumber: digestSendCount + 1,
+        editionNumber: computeNextWeeklyWireEditionNumber(campaigns),
     };
 }
 
@@ -969,22 +1041,43 @@ export async function curateWeeklyWireEdition(
         })
     );
 
-    // 3. Select 1 unconsumed Spot of the Week (recycling to [0] only when all 16 are consumed)
-    const spotCandidates = SPOT_OF_THE_WEEK_CATALOG.map((s) => ({
-        ...s,
-        markerUuid: spotMarkerUuid(s.slug),
-    }));
-    const spotOfTheWeek =
-        spotCandidates.find((s) => !ledger.consumedIds.has(s.markerUuid)) ||
-        spotCandidates[0] ||
-        null;
+    // 3. Select 1 rotating Spot of the Week from the 16-spot catalog
+    const spotResult = selectRotatingCatalogItem(
+        SPOT_OF_THE_WEEK_CATALOG,
+        (s) => s.slug,
+        spotMarkerUuid,
+        'spot',
+        ledger.consumedIds,
+        ledger.editionNumber
+    );
+    const spotOfTheWeek = spotResult?.item
+        ? {
+              ...spotResult.item,
+              markerUuid: spotResult.markerId,
+              spotMarkerId: spotResult.markerId,
+              cycle: spotResult.cycle,
+          }
+        : null;
+    const spotMarkerId = spotResult?.markerId || null;
 
-    // 4. Select 1 un-sent Tool Spotlight from the 35-tool catalog
-    const toolSpotlight =
-        TOOL_SPOTLIGHT_CATALOG.map((t) => ({
-            ...t,
-            markerUuid: toolMarkerUuid(t.slug),
-        })).find((t) => !ledger.consumedIds.has(t.markerUuid)) || null;
+    // 4. Select 1 rotating Tool Spotlight from the 35-tool catalog
+    const toolResult = selectRotatingCatalogItem(
+        TOOL_SPOTLIGHT_CATALOG,
+        (t) => t.slug,
+        toolMarkerUuid,
+        'tool',
+        ledger.consumedIds,
+        ledger.editionNumber
+    );
+    const toolSpotlight = toolResult?.item
+        ? {
+              ...toolResult.item,
+              markerUuid: toolResult.markerId,
+              toolMarkerId: toolResult.markerId,
+              cycle: toolResult.cycle,
+          }
+        : null;
+    const toolMarkerId = toolResult?.markerId || null;
 
     // 5. Query upcoming live poker_series safely (graceful fallback if unavailable in mock DB)
     let upcomingSeries = [];
@@ -1032,8 +1125,8 @@ export async function curateWeeklyWireEdition(
         ...enrichedArticles.map((a) => a.id),
         ...enrichedArticles.map((a) => a.storyFingerprintUuid),
         ...platformUpdates.map((u) => u.id),
-        ...(spotOfTheWeek ? [spotOfTheWeek.markerUuid] : []),
-        ...(toolSpotlight ? [toolSpotlight.markerUuid] : []),
+        ...(spotMarkerId ? [spotMarkerId] : []),
+        ...(toolMarkerId ? [toolMarkerId] : []),
         ...(videoOfTheWeek ? [videoMarkerUuid(videoOfTheWeek.videoId)] : []),
         activePromo.markerUuid,
     ];
@@ -1052,7 +1145,9 @@ export async function curateWeeklyWireEdition(
         platformUpdates,
         articles: enrichedArticles,
         spotOfTheWeek,
+        spotMarkerId,
         toolSpotlight,
+        toolMarkerId,
         upcomingSeries,
         kingsClubTournaments,
         videoOfTheWeek,

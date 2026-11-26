@@ -46,6 +46,23 @@ const LIFECYCLE_PREVIEW_TABS = [
     { key: 'vip_diamond_nudge', label: 'VIP Diamond Nudge' },
 ];
 
+const WIRE_SEGMENT_TABS = [
+    { key: 'default', label: 'Default Preview' },
+    { key: 'active_member', label: 'Active Member' },
+    { key: 'inactive_21d', label: '21-Day Inactive' },
+    { key: 'non_account', label: 'New Lead' },
+];
+
+function preparePreviewHtml(rawHtml) {
+    if (!rawHtml || typeof rawHtml !== 'string') return '';
+    if (/<base\s/i.test(rawHtml)) return rawHtml;
+    const baseTag = '<base target="_blank" rel="noopener noreferrer" />';
+    if (/<head[^>]*>/i.test(rawHtml)) {
+        return rawHtml.replace(/(<head[^>]*>)/i, `$1${baseTag}`);
+    }
+    return `${baseTag}${rawHtml}`;
+}
+
 function previewToggleStyle(active) {
     return {
         cursor: 'pointer',
@@ -59,12 +76,27 @@ function previewToggleStyle(active) {
     };
 }
 
-function PreviewFrame({ html, title, viewport, onViewport, tabs = null, activeTab = '', onTab = null }) {
+function PreviewFrame({
+    html,
+    title,
+    viewport: controlledViewport,
+    onViewport: controlledOnViewport,
+    tabs = null,
+    activeTab = '',
+    onTab = null,
+    tabsLabel = 'Preview Variant Tabs',
+    maxHeight = 640,
+}) {
+    const [internalViewport, setInternalViewport] = useState('desktop');
+    const viewport = controlledViewport || internalViewport;
+    const onViewport = controlledOnViewport || setInternalViewport;
     const width = (PREVIEW_VIEWPORTS.find((v) => v.key === viewport) || PREVIEW_VIEWPORTS[0]).width;
+    const height = maxHeight || 640;
+
     return (
         <div style={{ marginTop: 14 }}>
             {tabs && (
-                <div role="tablist" aria-label="Lifecycle Trigger Tabs" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+                <div role="tablist" aria-label={tabsLabel} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
                     {tabs.map((tab) => (
                         <button
                             key={tab.key}
@@ -94,14 +126,15 @@ function PreviewFrame({ html, title, viewport, onViewport, tabs = null, activeTa
             </div>
             <div style={{ overflowX: 'auto', background: '#07121c', border: '1px solid #254052', borderRadius: 10, padding: 10 }}>
                 <iframe
-                    sandbox=""
+                    sandbox="allow-popups allow-popups-to-escape-sandbox"
                     title={title}
-                    srcDoc={html}
+                    srcDoc={preparePreviewHtml(html)}
                     style={{
                         display: 'block',
                         width,
                         maxWidth: '100%',
-                        height: 640,
+                        height,
+                        maxHeight: height,
                         margin: '0 auto',
                         border: 0,
                         borderRadius: 6,
@@ -159,6 +192,7 @@ export default function NewsletterOperations() {
     const [digestAudience, setDigestAudience] = useState('opted_in_all');
     const [digestTestSegment, setDigestTestSegment] = useState('active_member');
     const [preview, setPreview] = useState(null);
+    const [wirePreviewSegment, setWirePreviewSegment] = useState('default');
     const [running, setRunning] = useState('');
     const [updateBadge, setUpdateBadge] = useState('Platform Upgrade');
     const [updateTitle, setUpdateTitle] = useState('');
@@ -219,6 +253,13 @@ export default function NewsletterOperations() {
             return lifecycleHtmlPreviews[lifecycleTab] || '';
         }
         return typeof lifecyclePreview?.htmlPreview === 'string' ? lifecyclePreview.htmlPreview : '';
+    })();
+
+    const selectedWireHtml = (() => {
+        if (wirePreviewSegment === 'default') {
+            return preview?.htmlPreview || preview?.segmentPreviews?.active_member || '';
+        }
+        return preview?.segmentPreviews?.[wirePreviewSegment] || preview?.htmlPreview || '';
     })();
 
     const load = useCallback(async (sessionToken = token, nextPage = page, term = search) => {
@@ -708,7 +749,7 @@ export default function NewsletterOperations() {
                                 <div className={styles.fieldRow}>
                                     <label>
                                         Test Email Recipient
-                                        <input value={testEmail} onChange={(e) => { setTestEmail(e.target.value); setPromoInlineError(''); }} placeholder="you@example.com" />
+                                        <input type="email" className="no-capitalize" value={testEmail} onChange={(e) => { setTestEmail(e.target.value); setPromoInlineError(''); }} placeholder="you@example.com" />
                                     </label>
                                     <label>
                                         Test SMS Phone
@@ -762,16 +803,24 @@ export default function NewsletterOperations() {
                                     <div className={styles.senderMeta} style={{ marginBottom: 8 }}>
                                         <div>Subject: <strong>{promoDraft.subject}</strong></div>
                                     </div>
-                                    <div className={styles.emailPreviewCard}>
-                                        <div className={styles.emailPreviewBrand}>SMARTER.POKER</div>
-                                        <div className={styles.emailPreviewHeadline}>{promoDraft.headline || promoDraft.subject}</div>
-                                        <div className={styles.emailPreviewBody}>{promoDraft.body}</div>
-                                        <span className={styles.emailPreviewButton}>{promoDraft.ctaLabel || 'Claim Your Free Rewards'}</span>
-                                        <div className={styles.emailPreviewFooter}>
-                                            <div>Smarter.Poker &middot; {promoDraft.postalAddress}</div>
-                                            <div>Unsubscribe &middot; Visit Smarter.Poker</div>
+                                    {promoPreview?.htmlPreview ? (
+                                        <PreviewFrame
+                                            title="Promotional Email HTML Preview"
+                                            html={promoPreview.htmlPreview}
+                                            maxHeight={560}
+                                        />
+                                    ) : (
+                                        <div className={styles.emailPreviewCard}>
+                                            <div className={styles.emailPreviewBrand}>SMARTER.POKER</div>
+                                            <div className={styles.emailPreviewHeadline}>{promoDraft.headline || promoDraft.subject}</div>
+                                            <div className={styles.emailPreviewBody}>{promoDraft.body}</div>
+                                            <span className={styles.emailPreviewButton}>{promoDraft.ctaLabel || 'Claim Your Free Rewards'}</span>
+                                            <div className={styles.emailPreviewFooter}>
+                                                <div>Smarter.Poker &middot; {promoDraft.postalAddress}</div>
+                                                <div>Unsubscribe &middot; Visit Smarter.Poker</div>
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
                                 </div>
                             )}
 
@@ -872,6 +921,23 @@ export default function NewsletterOperations() {
                                     <option value="non_account">New-Lead Signup Bonus</option>
                                 </select>
                             </label>
+                            <input
+                                type="email"
+                                value={testEmail}
+                                onChange={(e) => setTestEmail(e.target.value)}
+                                placeholder="Test Inbox Email"
+                                aria-label="Weekly Wire Test Email"
+                                className="no-capitalize"
+                                style={{
+                                    background: '#07121c',
+                                    border: '1px solid #254052',
+                                    borderRadius: 8,
+                                    padding: '8px 12px',
+                                    color: '#ffffff',
+                                    fontSize: 13,
+                                    minWidth: 190,
+                                }}
+                            />
                             <button type="button" className={styles.previewButton} onClick={sendTestDigest} disabled={Boolean(running)}>
                                 {running === 'digest-test' ? <OperatorGlyph kind="refresh" size={15} className={styles.spin} /> : <OperatorGlyph kind="mail" size={15} />}
                                 Send Test Weekly Wire
@@ -945,14 +1011,18 @@ export default function NewsletterOperations() {
                                             ))}
                                         </div>
                                     )}
-                                    {preview.htmlPreview && (
+                                    {(preview.htmlPreview || preview.segmentPreviews) && (
                                         <div>
                                             <p className={styles.previewLabel} style={{ marginTop: 14 }}>Live Weekly Wire Email Preview</p>
                                             <PreviewFrame
-                                                html={preview.htmlPreview}
+                                                html={selectedWireHtml}
                                                 title="Weekly Wire Email Preview"
                                                 viewport={wireViewport}
                                                 onViewport={setWireViewport}
+                                                tabs={WIRE_SEGMENT_TABS}
+                                                activeTab={wirePreviewSegment}
+                                                onTab={setWirePreviewSegment}
+                                                tabsLabel="Weekly Wire Segment Tabs"
                                             />
                                         </div>
                                     )}
@@ -1011,6 +1081,23 @@ export default function NewsletterOperations() {
                                     <option value="vip_diamond_nudge">VIP And Diamond Nudge</option>
                                 </select>
                             </label>
+                            <input
+                                type="email"
+                                value={testEmail}
+                                onChange={(e) => setTestEmail(e.target.value)}
+                                placeholder="Test Inbox Email"
+                                aria-label="Lifecycle Test Email"
+                                className="no-capitalize"
+                                style={{
+                                    background: '#07121c',
+                                    border: '1px solid #254052',
+                                    borderRadius: 8,
+                                    padding: '8px 12px',
+                                    color: '#ffffff',
+                                    fontSize: 13,
+                                    minWidth: 190,
+                                }}
+                            />
                             <button type="button" className={styles.previewButton} onClick={() => runLifecycleAction('test')} disabled={Boolean(running) || !token}>
                                 {running === 'lifecycle-test' ? <OperatorGlyph kind="refresh" size={15} className={styles.spin} /> : <OperatorGlyph kind="mail" size={15} />}
                                 Send Test Lifecycle Email
@@ -1087,7 +1174,7 @@ export default function NewsletterOperations() {
                                     <ReadinessBadge
                                         ok={Boolean(data?.deliverability?.rssFeedPath)}
                                         label="RSS 2.0 Syndication Feed"
-                                        detail={data?.deliverability?.rssFeedPath || '/api/news/wire-rss'}
+                                        detail={data?.deliverability?.rssFeedPath || '/hub/wire/rss.xml'}
                                     />
                                     <ReadinessBadge ok={Boolean(data?.deliverability?.calendarIcsEnabled)} label="Calendar .ics Feed" />
                                     <ReadinessBadge
@@ -1108,7 +1195,7 @@ export default function NewsletterOperations() {
                                     Cold Leads Older Than 90 Days: <strong>{statValue(data?.deliverability?.coldLeads90dCount ?? 0)}</strong>
                                 </div>
                                 <div>
-                                    RSS Feed: <a href={data?.deliverability?.rssFeedPath || '/api/news/wire-rss'} style={{ color: '#60a5fa' }}>{data?.deliverability?.rssFeedPath || '/api/news/wire-rss'}</a>
+                                    RSS Feed: <a href={data?.deliverability?.rssFeedPath || '/hub/wire/rss.xml'} style={{ color: '#60a5fa' }}>{data?.deliverability?.rssFeedPath || '/hub/wire/rss.xml'}</a>
                                 </div>
                                 <div style={{ paddingTop: 4 }}>
                                     <Link href="/hub/wire" className={styles.back}>
