@@ -8,7 +8,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { FileText, Download, Calendar, AlertTriangle, Loader2, DollarSign, TrendingUp, TrendingDown, Upload, Trash2, Eye, Plus, X, Check, Camera, RefreshCw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { uploadBankrollFile, removeBankrollObject } from '../../lib/bankroll/receiptStorage';
-import { METAL, ANIMATIONS } from './metalStyles';
+import { METAL, ANIMATIONS, GRADIENTS } from './metalStyles';
 import DocumentCropper from './DocumentCropper';
 import LiveCameraScanner from './LiveCameraScanner';
 
@@ -265,10 +265,7 @@ export default function TaxReportPanel({ userId }) {
     };
 
     return (
-        <div style={styles.container}>
-            {/* Top accent */}
-            <div style={styles.topAccent} />
-
+        <div className="sd-panel" style={styles.container}>
             {/* Header */}
             <div style={styles.header}>
                 <div style={styles.headerTitle}>
@@ -574,7 +571,7 @@ export default function TaxReportPanel({ userId }) {
                             <span style={styles.statLabel}>GROSS WINNINGS</span>
                         </div>
                         <div style={styles.statBox}>
-                            <div style={{ ...styles.statIcon, background: 'rgba(240,40,73,0.15)', borderColor: METAL.danger }}>
+                            <div style={{ ...styles.statIcon, background: 'rgba(238, 86, 81,0.15)', borderColor: METAL.danger }}>
                                 <TrendingDown size={20} style={{ color: METAL.danger }} />
                             </div>
                             <span style={{ ...styles.statValue, color: METAL.danger }}>
@@ -583,8 +580,8 @@ export default function TaxReportPanel({ userId }) {
                             <span style={styles.statLabel}>GROSS LOSSES</span>
                         </div>
                         <div style={styles.statBox}>
-                            <div style={{ ...styles.statIcon, background: 'rgba(155,89,182,0.15)', borderColor: METAL.purple }}>
-                                <DollarSign size={20} style={{ color: METAL.purple }} />
+                            <div style={{ ...styles.statIcon, background: 'rgba(113, 170, 200,0.15)', borderColor: METAL.cyan }}>
+                                <DollarSign size={20} style={{ color: METAL.cyan }} />
                             </div>
                             <span style={{
                                 ...styles.statValue,
@@ -712,18 +709,8 @@ export default function TaxReportPanel({ userId }) {
 const styles = {
     container: {
         position: 'relative',
-        background: METAL.base,
-        border: `2px solid ${METAL.highlight}`,
-        borderRadius: 12,
+
         overflow: 'hidden',
-    },
-    topAccent: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: 3,
-        background: METAL.primary,
     },
     header: {
         padding: '20px 20px 16px',
@@ -770,8 +757,8 @@ const styles = {
     },
     yearBtn: {
         padding: '10px 20px',
-        background: METAL.mid,
-        border: `2px solid ${METAL.highlight}`,
+        background: GRADIENTS.metalButton,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 8,
         fontFamily: "'Rajdhani', sans-serif",
         fontSize: 16,
@@ -808,8 +795,8 @@ const styles = {
         alignItems: 'center',
         gap: 8,
         padding: '8px 18px',
-        background: METAL.primaryDim,
-        border: `2px solid ${METAL.primary}`,
+        background: GRADIENTS.cyanAction,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 8,
         fontFamily: "'Rajdhani', sans-serif",
         fontSize: 14,
@@ -912,8 +899,8 @@ const styles = {
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '12px 14px',
-        background: METAL.darkest,
-        border: `2px solid ${METAL.highlight}`,
+        background: GRADIENTS.darkPanel,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 10,
         marginBottom: 8,
     },
@@ -980,7 +967,7 @@ const styles = {
     },
     formDeleteBtn: {
         color: METAL.danger,
-        borderColor: 'rgba(240,40,73,0.4)',
+        borderColor: 'rgba(238, 86, 81,0.4)',
     },
 
     // ━━━ ACTION / REPORT STYLES ━━━
@@ -1011,7 +998,7 @@ const styles = {
         gap: 10,
         margin: '0 20px 18px',
         padding: '16px',
-        background: 'rgba(240,40,73,0.1)',
+        background: 'rgba(238, 86, 81,0.1)',
         border: `2px solid ${METAL.danger}`,
         borderRadius: 10,
         fontFamily: "'Rajdhani', sans-serif",
@@ -1025,7 +1012,7 @@ const styles = {
     },
     statsGrid: {
         display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 112px), 1fr))',
         gap: 12,
         marginBottom: 18,
     },
@@ -1082,8 +1069,8 @@ const styles = {
     },
     breakdownCard: {
         padding: 16,
-        background: METAL.darkest,
-        border: `2px solid ${METAL.highlight}`,
+        background: GRADIENTS.darkPanel,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 10,
         textAlign: 'center',
     },
@@ -1164,13 +1151,13 @@ const styles = {
         gap: 12,
         width: '100%',
         padding: '18px',
-        background: METAL.primary,
-        border: 'none',
+        background: GRADIENTS.cyanAction,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 12,
         fontFamily: "'Rajdhani', sans-serif",
         fontSize: 18,
         fontWeight: 700,
-        color: '#fff',
+        color: '#edf6ff',
         letterSpacing: '0.06em',
         cursor: 'pointer',
     },

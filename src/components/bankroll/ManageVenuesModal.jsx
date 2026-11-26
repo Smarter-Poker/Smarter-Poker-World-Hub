@@ -1,3 +1,4 @@
+import { GRADIENTS } from './metalStyles';
 import React, { useState, useEffect } from 'react';
 import { useModalHistory } from '../../hooks/useModalHistory';
 import { useScrimDismiss } from '../../hooks/useScrimDismiss';
@@ -159,11 +160,8 @@ const s = {
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
     },
     modal: {
-        background: '#1a1d2e', borderRadius: 14, width: '100%', maxWidth: 480,
         maxHeight: '80dvh', display: 'flex', flexDirection: 'column',
         paddingBottom: 'env(safe-area-inset-bottom, 0px)', boxSizing: 'border-box',
-        border: '2px solid rgba(255,255,255,0.1)',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
     },
     header: {
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -177,7 +175,7 @@ const s = {
         touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
     },
     content: { padding: '12px 16px', overflowY: 'auto', flex: 1 },
-    emptyText: { color: '#8a8d91', fontSize: 14, textAlign: 'center', padding: '40px 0' },
+    emptyText: { color: '#a1b4c7', fontSize: 14, textAlign: 'center', padding: '40px 0' },
     venueRow: {
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         padding: '12px 8px', borderBottom: '1px solid rgba(255,255,255,0.15)',
@@ -201,12 +199,12 @@ const s = {
     saveBtn: {
         minHeight: 44, touchAction: 'manipulation',
         padding: '8px 14px', borderRadius: 8, border: 'none',
-        background: '#2374e1', color: '#fff', fontSize: 14, cursor: 'pointer', fontWeight: 600,
+        background: GRADIENTS.cyanAction, color: '#fff', fontSize: 14, cursor: 'pointer', fontWeight: 600,
     },
     cancelBtn: {
         minHeight: 44, touchAction: 'manipulation',
         padding: '8px 14px', borderRadius: 8, border: '2px solid rgba(255,255,255,0.1)',
-        background: 'transparent', color: '#b0b3b8', fontSize: 14, cursor: 'pointer',
+        background: 'transparent', color: '#b6c9dd', fontSize: 14, cursor: 'pointer',
     },
     deleteBtnConfirm: {
         minHeight: 44, touchAction: 'manipulation',

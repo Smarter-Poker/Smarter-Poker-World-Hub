@@ -146,6 +146,7 @@ import './horses-tournament-intent-storage.test.mjs';
 // them by name with the reason. Both run their own harness and call
 // process.exit() on import, which would truncate this whole run.
 import './api-routes-exist.test.mjs';
+import './bankroll-export-download.test.mjs';
 import './bankroll-mobile-upgrades.test.mjs';
 import './club-stats-maintenance-runtime-budget.test.mjs';
 // 2026-09-22: the same route schedules only its periodic steps. Runs the real

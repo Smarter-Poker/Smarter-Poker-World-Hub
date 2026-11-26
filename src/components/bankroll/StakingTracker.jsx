@@ -4,6 +4,7 @@
  * Matches TripTracker/SeriesTracker styling
  */
 
+import { GRADIENTS, METAL } from './metalStyles';
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -222,7 +223,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
 
     if (isLoading) {
         return (
-            <div style={styles.container}>
+            <div className="sd-panel" style={styles.container}>
                 <div style={styles.loadingState}>Loading Staking Data...</div>
             </div>
         );
@@ -237,7 +238,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
     };
 
     return (
-        <div style={styles.container}>
+        <div className="sd-panel" style={styles.container}>
             {/* Header */}
             <div style={styles.header}>
                 <h3 style={styles.headerTitle}>Staking Tracker</h3>
@@ -456,7 +457,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.95 }}
-                            style={styles.modal}
+                            className="sd-panel" style={styles.modal}
                             onClick={e => e.stopPropagation()}
                         >
                             <h3 style={styles.modalTitle}>
@@ -605,13 +606,13 @@ const styles = {
     headerTitle: {
         fontSize: 17,
         fontWeight: 700,
-        color: '#e4e6eb',
+        color: '#edf6ff',
         margin: 0,
     },
     addBtn: {
-        background: '#3b82f6',
-        color: '#fff',
-        border: 'none',
+        background: GRADIENTS.cyanAction,
+        color: '#edf6ff',
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 8,
         padding: '8px 16px',
         fontSize: 14,
@@ -660,12 +661,12 @@ const styles = {
     splitValue: {
         fontSize: 20,
         fontWeight: 800,
-        color: '#e4e6eb',
+        color: '#edf6ff',
     },
     splitLabel: {
         fontSize: 14,
         fontWeight: 600,
-        color: '#64748b',
+        color: '#9aaec3',
         letterSpacing: 0.8,
         marginTop: 2,
     },
@@ -687,7 +688,7 @@ const styles = {
     statLabel: {
         fontSize: 14,
         fontWeight: 600,
-        color: '#64748b',
+        color: '#9aaec3',
         letterSpacing: 0.5,
         marginBottom: 2,
     },
@@ -730,7 +731,7 @@ const styles = {
     },
     sessionDate: {
         fontSize: 14,
-        color: '#64748b',
+        color: '#9aaec3',
         fontWeight: 500,
     },
     sessionCat: {
@@ -764,9 +765,9 @@ const styles = {
         alignItems: 'center',
     },
     editBtn: {
-        background: 'rgba(59, 130, 246, 0.15)',
-        color: '#3b82f6',
-        border: '2px solid rgba(59, 130, 246, 0.3)',
+        background: GRADIENTS.metalButton,
+        color: '#edf6ff',
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 8,
         padding: '10px 18px',
         fontSize: 14,
@@ -774,9 +775,9 @@ const styles = {
         cursor: 'pointer',
     },
     addEntryBtn: {
-        background: 'rgba(16, 185, 129, 0.15)',
-        color: '#10b981',
-        border: '2px solid rgba(16, 185, 129, 0.3)',
+        background: GRADIENTS.cyanAction,
+        color: '#edf6ff',
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 8,
         padding: '10px 18px',
         fontSize: 14,
@@ -832,7 +833,7 @@ const styles = {
     },
     emptyHint: {
         fontSize: 14,
-        color: '#64748b',
+        color: '#9aaec3',
         margin: '0 0 16px',
     },
 
@@ -851,8 +852,8 @@ const styles = {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        background: 'rgba(0,0,0,0.2)',
-        border: '2px solid rgba(255,255,255,0.15)',
+        background: GRADIENTS.darkPanel,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 8,
         padding: '10px 14px',
         marginBottom: 6,
@@ -860,11 +861,11 @@ const styles = {
     pastName: {
         fontSize: 14,
         fontWeight: 600,
-        color: '#e4e6eb',
+        color: '#edf6ff',
     },
     pastMeta: {
         fontSize: 14,
-        color: '#64748b',
+        color: '#9aaec3',
         marginTop: 2,
     },
     pastActions: {
@@ -915,15 +916,14 @@ const styles = {
     modal: {
         width: '100%',
         maxWidth: 440,
-        background: '#242526',
-        border: '2px solid rgba(255,255,255,0.12)',
+
         borderRadius: 16,
         padding: 24,
     },
     modalTitle: {
         fontSize: 18,
         fontWeight: 700,
-        color: '#e4e6eb',
+        color: '#edf6ff',
         marginBottom: 18,
         textAlign: 'center',
     },
@@ -938,11 +938,11 @@ const styles = {
     formInput: {
         width: '100%',
         padding: '10px 12px',
-        background: '#18191a',
+        background: '#081320',
         border: '2px solid rgba(255,255,255,0.1)',
         borderRadius: 8,
         fontSize: 14,
-        color: '#e4e6eb',
+        color: '#edf6ff',
         boxSizing: 'border-box',
     },
     formRow: {
@@ -968,12 +968,12 @@ const styles = {
     saveBtn: {
         flex: 1,
         padding: 12,
-        background: '#3b82f6',
-        border: 'none',
+        background: GRADIENTS.cyanAction,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 10,
         fontSize: 14,
         fontWeight: 600,
-        color: '#fff',
+        color: '#edf6ff',
         cursor: 'pointer',
     },
 };

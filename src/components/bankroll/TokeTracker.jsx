@@ -6,9 +6,10 @@
  * ═══════════════════════════════════════════════════════════════
  */
 
+import view from './toke/TokeWorkspace.module.css';
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera } from 'lucide-react';
+import { Camera, CarFront, CircleCheck, Download, Pencil, PlusCircle, Receipt, Target, Trash2 } from 'lucide-react';
 import ReceiptScanner from './ReceiptScanner';
 import DoubleDownPrompt from './toke/DoubleDownPrompt';
 import AddDownModal from './toke/AddDownModal';
@@ -48,8 +49,8 @@ import { busEmit } from '../../engine/EventBus';
 const DOWN_TYPES = [
     { id: 'cash', label: 'Cash Game', color: '#3b82f6' },
     { id: 'tournament', label: 'Tournament', color: '#38bdf8' },
-    { id: 'break', label: 'On Break', color: '#8b5cf6' },
-    { id: 'brush', label: 'Brush', color: '#10b981' },
+    { id: 'break', label: 'On Break', color: '#8aa9cb' },
+    { id: 'brush', label: 'Brush', color: '#8cdeee' },
 ];
 
 // ── Cash game variants ──
@@ -68,8 +69,8 @@ const DOWN_TYPE_LABELS = {
 const DOWN_TYPE_COLORS = {
     cash: '#3b82f6',
     tournament: '#38bdf8',
-    break: '#8b5cf6',
-    brush: '#10b981',
+    break: '#8aa9cb',
+    brush: '#8cdeee',
 };
 
 // 35 minutes in milliseconds
@@ -893,7 +894,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                 if (err_toke_gig_days_ynifb) console.warn('[Supabase] Silent mutation failed in toke_gig_days:', err_toke_gig_days_ynifb.message);
             }
             await closeDay(currentDay.id);
-            toast.success(`Day ${currentDay.day_number} closed! 🎉`);
+            toast.success(`Day ${currentDay.day_number} closed!`);
             setCloseDayNotes('');
             await loadData();
             window.dispatchEvent(new CustomEvent('toke-data-updated'));
@@ -1122,9 +1123,9 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                         const irsRates = { 2025: 0.70, 2024: 0.67, 2023: 0.655, 2022: 0.585 };
                         const rate = irsRates[year] || 0.67;
                         return (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', marginBottom: 8, background: 'rgba(56,189,248,0.08)', border: '2px solid rgba(56,189,248,0.25)', boxShadow: 'inset 0 0 0 1px rgba(56,189,248,0.25)', borderRadius: 8, fontSize: 13 }}>
-                                <span>🚗</span>
-                                <span style={{ color: '#B0B3B8' }}>{gig.mileage.toLocaleString()} Miles × ${rate}/Mi</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', marginBottom: 8, background: 'rgba(56,189,248,0.08)', border: '2px solid rgba(56,189,248,0.25)', borderRadius: 8, fontSize: 13 }}>
+                                <CarFront size={16} aria-hidden="true" />
+                                <span style={{ color: '#bfcee0' }}>{gig.mileage.toLocaleString()} Miles × ${rate}/Mi</span>
                                 <span style={{ color: '#38bdf8', fontWeight: 700 }}>= ${(gig.mileage * rate).toFixed(2)} Deductible</span>
                             </div>
                         );
@@ -1133,7 +1134,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                     <div style={styles.reportStatsGrid}>
                         <div style={styles.reportStat}>
                             <span style={styles.reportStatLabel}>Total Earnings</span>
-                            <span style={{ ...styles.reportStatValue, color: '#10b981' }}>{formatCurrency(stats.totalEarnings)}</span>
+                            <span style={{ ...styles.reportStatValue, color: '#8cdeee' }}>{formatCurrency(stats.totalEarnings)}</span>
                         </div>
                         <div style={styles.reportStat}>
                             <span style={styles.reportStatLabel}>Total Tokes</span>
@@ -1141,7 +1142,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                         </div>
                         <div style={styles.reportStat}>
                             <span style={styles.reportStatLabel}>Expenses</span>
-                            <span style={{ ...styles.reportStatValue, color: '#ef4444' }}>{formatCurrency(stats.totalExpenses || 0)}</span>
+                            <span style={{ ...styles.reportStatValue, color: '#d5e5f3' }}>{formatCurrency(stats.totalExpenses || 0)}</span>
                         </div>
                         <div style={styles.reportStat}>
                             <span style={styles.reportStatLabel}>Hourly Pay</span>
@@ -1182,15 +1183,15 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                             <h4 style={styles.reportBreakdownTitle}>Daily Breakdown</h4>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                                 {selectedReport.days.map(day => (
-                                    <div key={day.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', background: 'rgba(0,0,0,0.2)', borderRadius: 8, border: '2px solid rgba(255,255,255,0.06)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.06)' }}>
-                                        <span style={{ fontSize: 13, fontWeight: 700, color: '#B0B3B8' }}>
+                                    <div key={day.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', background: 'rgba(0,0,0,0.2)', borderRadius: 8, border: '2px solid rgba(255,255,255,0.06)' }}>
+                                        <span style={{ fontSize: 13, fontWeight: 700, color: '#bfcee0' }}>
                                             Day {day.day_number} - {new Date(day.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                         </span>
-                                        <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#64748b' }}>
+                                        <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#a6bfd3' }}>
                                             <span style={{ color: '#38bdf8', fontWeight: 700 }}>{formatCurrency(day.totalTokes || 0)}</span>
                                             <span>{day.totalDowns || 0} Downs</span>
                                             <span>{(day.totalHoursWorked || 0).toFixed(1)}h</span>
-                                            {(day.totalExpenses || 0) > 0 && <span style={{ color: '#ef4444' }}>-{formatCurrency(day.totalExpenses)}</span>}
+                                            {(day.totalExpenses || 0) > 0 && <span style={{ color: '#d5e5f3' }}>-{formatCurrency(day.totalExpenses)}</span>}
                                         </div>
                                     </div>
                                 ))}
@@ -1205,11 +1206,11 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                                 {selectedReport.expenses.map(exp => (
                                     <div key={exp.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
-                                        <span style={{ color: '#B0B3B8', fontSize: 13 }}>
+                                        <span style={{ color: '#bfcee0', fontSize: 13 }}>
                                             {EXPENSE_CATEGORIES.find(c => c.id === exp.category)?.label || exp.category}
                                             {exp.description && ` - ${exp.description}`}
                                         </span>
-                                        <span style={{ color: '#ef4444', fontWeight: 700, fontSize: 13 }}>-{formatCurrency(exp.amount)}</span>
+                                        <span style={{ color: '#d5e5f3', fontWeight: 700, fontSize: 13 }}>-{formatCurrency(exp.amount)}</span>
                                     </div>
                                 ))}
                             </div>
@@ -1219,15 +1220,15 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                     <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
                         <button
                             onClick={handleCopyReport}
-                            style={{ fontSize: 13, fontWeight: 600, padding: '8px 14px', borderRadius: 8, cursor: 'pointer', background: 'rgba(255,255,255,0.07)', border: '2px solid rgba(255,255,255,0.15)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.15)', color: '#E4E6EB' }}
+                            style={{ fontSize: 13, fontWeight: 600, padding: '8px 14px', borderRadius: 8, cursor: 'pointer', background: 'rgba(255,255,255,0.07)', border: '2px solid rgba(255,255,255,0.15)', color: '#eff5fc' }}
                         >
                             Copy Summary
                         </button>
                         <button
                             onClick={handleDownloadCSV}
-                            style={{ fontSize: 13, fontWeight: 600, padding: '8px 14px', borderRadius: 8, cursor: 'pointer', background: 'rgba(56,189,248,0.1)', border: '2px solid rgba(56,189,248,0.3)', boxShadow: 'inset 0 0 0 1px rgba(56,189,248,0.3)', color: '#38bdf8' }}
+                            style={{ fontSize: 13, fontWeight: 600, padding: '8px 14px', borderRadius: 8, cursor: 'pointer', background: 'rgba(56,189,248,0.1)', border: '2px solid rgba(56,189,248,0.3)', color: '#38bdf8' }}
                         >
-                            📄 Download CSV
+                            <Download size={15} aria-hidden="true" /> Download CSV
                         </button>
                     </div>
                 </div>
@@ -1249,7 +1250,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
     const isDownActive = currentDown && !currentDown.ended_at;
 
     return (
-        <div style={styles.trackerContainer}>
+        <div className={view.shiftBody}>
             <AnimatePresence>
                 {viewingReceiptUrl && (
                     <motion.div
@@ -1275,21 +1276,21 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                 <div style={{
                     position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 9000,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: 'rgba(16,185,129,0.08)',
+                    background: 'rgba(76,172,200,0.08)',
                     animation: 'celebrationFade 1.8s ease-out forwards',
                 }}>
                     <div style={{
                         fontSize: 64, lineHeight: 1,
                         animation: 'celebrationBounce 0.6s ease-out',
-                    }}>🎉</div>
+                    }}><CircleCheck size={54} aria-hidden="true" /></div>
                 </div>
             )}
             <style>{`
                 @keyframes celebrationFade {
-                    0%   { opacity: 0; background: rgba(16,185,129,0.15); }
+                    0%   { opacity: 0; background: rgba(76,172,200,0.15); }
                     20%  { opacity: 1; }
                     80%  { opacity: 1; }
-                    100% { opacity: 0; background: rgba(16,185,129,0); }
+                    100% { opacity: 0; background: rgba(76,172,200,0); }
                 }
                 @keyframes celebrationBounce {
                     0%   { transform: scale(0.5); opacity: 0; }
@@ -1311,7 +1312,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                 <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    style={styles.activeGigCard}
+                    className="sd-panel"
                 >
                     {/* ── LIVE EVENT HEADER ── */}
                     <div style={styles.activeHeader}>
@@ -1321,8 +1322,8 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                         {/* Event Admin Actions (Edit / Delete) */}
                         {!editMode && !confirmDelete && !confirmComplete && !confirmCloseDay && (
                             <div style={{ display: 'flex', gap: 6, marginLeft: 16 }}>
-                                <button onClick={startEditing} style={styles.topActionBtn} title="Edit Event Details">✏️</button>
-                                <button onClick={() => setConfirmDelete(true)} style={{ ...styles.topActionBtn, color: '#ef4444' }} title="Delete Event">🗑️</button>
+                                <button onClick={startEditing} style={styles.topActionBtn} title="Edit Event Details"><Pencil size={15} aria-hidden="true" /></button>
+                                <button onClick={() => setConfirmDelete(true)} style={{ ...styles.topActionBtn, color: '#d5e5f3' }} title="Delete Event"><Trash2 size={15} aria-hidden="true" /></button>
                             </div>
                         )}
 
@@ -1351,7 +1352,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                             </p>
                         </>
                     ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, margin: '8px 0 16px', background: 'rgba(0,0,0,0.2)', padding: 16, borderRadius: 12, border: '2px solid rgba(255,255,255,0.05)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.05)' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, margin: '8px 0 16px', background: 'rgba(0,0,0,0.2)', padding: 16, borderRadius: 12, border: '2px solid rgba(255,255,255,0.05)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                                 <span style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>Edit Event</span>
                             </div>
@@ -1394,40 +1395,9 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
 
                     {/* ── PRIMARY LOGGING ACTIONS (MASSIVE + TOP MOUNTED) ── */}
                     {!editMode && isDayOpen && !confirmCloseDay && !confirmComplete && !confirmDelete && (
-                        <div style={{ display: 'flex', gap: 12, margin: '20px 0', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 24 }}>
-                            <button onClick={() => setShowAddDown(true)} style={{
-                                ...styles.addDownBtn,
-                                flex: 2,
-                                padding: '24px 16px',
-                                fontSize: 18,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                borderRadius: 16,
-                                background: 'linear-gradient(135deg, rgba(56,189,248,0.2) 0%, rgba(56,189,248,0.05) 100%)',
-                                border: '2px solid rgba(56,189,248,0.5)',
-                                boxShadow: '0 8px 32px rgba(56,189,248,0.15), inset 0 0 0 1px rgba(56,189,248,0.5)',
-                            }}>
-                                <span style={{ fontSize: 32, lineHeight: 1, marginBottom: 8, color: '#38bdf8' }}>+</span>
-                                <span style={{ fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' }}>Add Down</span>
-                            </button>
-                            <button onClick={() => setShowAddExpense(true)} style={{
-                                ...styles.addExpenseBtn,
-                                flex: 1,
-                                padding: '24px 16px',
-                                fontSize: 15,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                borderRadius: 16,
-                                background: 'linear-gradient(135deg, rgba(239,68,68,0.15) 0%, rgba(239,68,68,0.05) 100%)',
-                                border: '2px solid rgba(239,68,68,0.3)', boxShadow: 'inset 0 0 0 1px rgba(239,68,68,0.3)',
-                            }}>
-                                <span style={{ fontSize: 28, lineHeight: 1, marginBottom: 8 }}>🧾</span>
-                                <span style={{ fontWeight: 700, letterSpacing: 0.5 }}>Expense</span>
-                            </button>
+                        <div className={view.shiftActions}>
+                            <button type="button" className="sd-button sd-primary" onClick={() => setShowAddDown(true)}><PlusCircle size={20} aria-hidden="true" /> Add Down</button>
+                            <button type="button" className="sd-button" onClick={() => setShowAddExpense(true)}><Receipt size={18} aria-hidden="true" /> Expense</button>
                         </div>
                     )}
 
@@ -1452,7 +1422,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                             </div>
                             <div style={styles.runningStat}>
                                 <span style={styles.runningStatLabel}>Expenses</span>
-                                <span style={{ ...styles.runningStatValue, color: '#ef4444' }}>
+                                <span style={{ ...styles.runningStatValue, color: '#d5e5f3' }}>
                                     {formatCurrency(activeGig.totalExpenses || 0)}
                                 </span>
                             </div>
@@ -1476,12 +1446,12 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                     <span style={{ color: '#94a3b8' }}>·</span>
                                     <span>{(day.totalHoursWorked || 0).toFixed(1)}h</span>
                                 </span>
-                                <span style={{ color: '#64748b', fontSize: 12 }}>{collapsedDays[day.id] ? '▸' : '▾'}</span>
+                                <span style={{ color: '#a6bfd3', fontSize: 12 }}>{collapsedDays[day.id] ? '▸' : '▾'}</span>
                             </button>
                             {!collapsedDays[day.id] && day.downs && day.downs.length > 0 && (
                                 <div style={styles.closedDayDowns}>
                                     {day.downs.map(down => {
-                                        const typeColor = DOWN_TYPE_COLORS[down.down_type] || '#64748b';
+                                        const typeColor = DOWN_TYPE_COLORS[down.down_type] || '#a6bfd3';
                                         const duration = down.ended_at
                                             ? new Date(down.ended_at).getTime() - new Date(down.started_at).getTime()
                                             : 0;
@@ -1507,15 +1477,15 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                             {!collapsedDays[day.id] && day.expenses && day.expenses.length > 0 && (
                                 <div style={{ ...styles.closedDayDowns, borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 6 }}>
                                     {day.expenses.map(exp => (
-                                        <div key={exp.id} style={{ ...styles.downRow, border: '2px solid rgba(239,68,68,0.4)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)', opacity: 0.8 }}>
+                                        <div key={exp.id} style={{ ...styles.downRow, border: '2px solid rgba(91,133,176,0.4)', opacity: 0.8 }}>
                                             <div style={styles.downInfo}>
-                                                <span style={{ ...styles.downTypeBadge, background: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '2px solid rgba(239,68,68,0.2)', boxShadow: 'inset 0 0 0 1px rgba(239,68,68,0.2)', fontSize: 12 }}>
+                                                <span style={{ ...styles.downTypeBadge, background: 'rgba(91,133,176,0.08)', color: '#d5e5f3', border: '2px solid rgba(91,133,176,0.2)', fontSize: 12 }}>
                                                     {EXPENSE_CATEGORIES.find(c => c.id === exp.category)?.label || exp.category}
                                                 </span>
                                                 {exp.description && <span style={styles.downDetail}>{exp.description}</span>}
                                             </div>
                                             <div style={styles.downRight}>
-                                                <span style={{ color: '#ef4444', fontWeight: 700, fontSize: 12 }}>-{formatCurrency(exp.amount)}</span>
+                                                <span style={{ color: '#d5e5f3', fontWeight: 700, fontSize: 12 }}>-{formatCurrency(exp.amount)}</span>
                                             </div>
                                         </div>
                                     ))}
@@ -1534,9 +1504,9 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                     const duration = isOpen
                                         ? Date.now() - new Date(down.started_at).getTime()
                                         : new Date(down.ended_at).getTime() - new Date(down.started_at).getTime();
-                                    const typeColor = DOWN_TYPE_COLORS[down.down_type] || '#64748b';
+                                    const typeColor = DOWN_TYPE_COLORS[down.down_type] || '#a6bfd3';
                                     return (
-                                        <div key={down.id} style={{ ...styles.downRow, border: `2px solid ${typeColor}`, boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.15)' }}>
+                                        <div key={down.id} style={{ ...styles.downRow, border: `2px solid ${typeColor}` }}>
                                             <div style={styles.downInfo}>
                                                 <span style={{ ...styles.downTypeBadge, background: `${typeColor}22`, color: typeColor, border: `2px solid ${typeColor}44`, boxShadow: `inset 0 0 0 1px ${typeColor}44` }}>
                                                     {DOWN_TYPE_LABELS[down.down_type]}{down.is_double_down && ' (x2)'}
@@ -1560,7 +1530,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                                     <>
                                                         {down.tournament_name && <span style={styles.downDetail}>{down.tournament_name}</span>}
                                                         {down.tournament_buyin && parseFloat(down.tournament_buyin) > 0 && (
-                                                            <span style={{ ...styles.downDetail, color: '#a78bfa', fontWeight: 600 }}>
+                                                            <span style={{ ...styles.downDetail, color: '#bdd4ea', fontWeight: 600 }}>
                                                                 ${parseFloat(down.tournament_buyin).toLocaleString()} Buy-In
                                                             </span>
                                                         )}
@@ -1581,7 +1551,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                                             <button onClick={() => handleSaveToke(down.id)} style={styles.tokeSaveBtn}>✓</button>
                                                         </div>
                                                     ) : (
-                                                        <button onClick={() => { setEditingTokeId(down.id); setTokeEditValue(down.toke_amount || ''); }} style={{ ...styles.tokeDisplay, color: (down.toke_amount || 0) > 0 ? '#38bdf8' : '#64748b' }} title="Edit Toke">
+                                                        <button onClick={() => { setEditingTokeId(down.id); setTokeEditValue(down.toke_amount || ''); }} style={{ ...styles.tokeDisplay, color: (down.toke_amount || 0) > 0 ? '#38bdf8' : '#a6bfd3' }} title="Edit Toke">
                                                             {(down.toke_amount || 0) > 0 ? formatCurrency(down.toke_amount) : '+ Toke'}
                                                         </button>
                                                     )
@@ -1598,21 +1568,21 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                                             <button onClick={() => handleSaveMultiplier(down.id)} style={styles.tokeSaveBtn}>✓</button>
                                                         </div>
                                                     ) : (
-                                                        <button onClick={() => { setEditingMultiplierId(down.id); setMultiplierEditValue(down.down_multiplier || 1); }} style={{ ...styles.tokeDisplay, color: (down.down_multiplier || 1) > 1 ? '#8b5cf6' : '#64748b' }} title="Down Multiplier">
+                                                        <button onClick={() => { setEditingMultiplierId(down.id); setMultiplierEditValue(down.down_multiplier || 1); }} style={{ ...styles.tokeDisplay, color: (down.down_multiplier || 1) > 1 ? '#8aa9cb' : '#a6bfd3' }} title="Down Multiplier">
                                                             {(down.down_multiplier || 1).toFixed(1)}x
                                                         </button>
                                                     )
                                                 )}
                                                 {editingDownId === down.id ? (
                                                     <>
-                                                        <button onClick={handleSaveDownEdit} style={{ ...styles.downDeleteBtn, background: 'rgba(16,185,129,0.15)', color: '#10b981', borderColor: 'rgba(16,185,129,0.3)' }} title="Save">✓</button>
+                                                        <button onClick={handleSaveDownEdit} style={{ ...styles.downDeleteBtn, background: 'rgba(76,172,200,0.15)', color: '#8cdeee', borderColor: 'rgba(76,172,200,0.3)' }} title="Save">✓</button>
                                                         <button onClick={() => { setEditingDownId(null); setEditingDownForm(null); }} style={styles.downDeleteBtn} title="Cancel">✕</button>
-                                                        <button onClick={() => { if (confirm('Delete this down?')) handleDeleteDown(down.id); }} style={{ ...styles.downDeleteBtn, color: '#ef4444', borderColor: 'rgba(239,68,68,0.3)' }} title="Delete Down">🗑️</button>
+                                                        <button onClick={() => { if (confirm('Delete this down?')) handleDeleteDown(down.id); }} style={{ ...styles.downDeleteBtn, color: '#d5e5f3', borderColor: 'rgba(91,133,176,0.3)' }} title="Delete Down"><Trash2 size={15} aria-hidden="true" /></button>
                                                     </>
                                                 ) : (
                                                     <>
                                                         {isOpen && <button onClick={() => handleEndDown(down.id)} style={styles.endDownSmallBtn}>End</button>}
-                                                        <button onClick={() => { setEditingDownId(down.id); setEditingDownForm(down); }} style={{ ...styles.downDeleteBtn, color: '#64748b', borderColor: 'rgba(255,255,255,0.1)', background: 'transparent' }} title="Edit Down">✏️</button>
+                                                        <button onClick={() => { setEditingDownId(down.id); setEditingDownForm(down); }} style={{ ...styles.downDeleteBtn, color: '#a6bfd3', borderColor: 'rgba(255,255,255,0.1)', background: 'transparent' }} title="Edit Down"><Pencil size={15} aria-hidden="true" /></button>
                                                     </>
                                                 )}
                                             </div>
@@ -1629,16 +1599,16 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                             <h4 style={styles.downsSectionTitle}>Day {currentDayNumber} Expenses ({currentDay.expenses.length})</h4>
                             <div style={styles.downsScroll}>
                                 {currentDay.expenses.map(exp => (
-                                    <div key={exp.id} style={{ ...styles.downRow, border: '2px solid #ef4444', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.15)' }}>
+                                    <div key={exp.id} style={{ ...styles.downRow, border: '2px solid #d5e5f3' }}>
                                         <div style={styles.downInfo}>
-                                            <span style={{ ...styles.downTypeBadge, background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '2px solid rgba(239,68,68,0.3)', boxShadow: 'inset 0 0 0 1px rgba(239,68,68,0.3)' }}>
+                                            <span style={{ ...styles.downTypeBadge, background: 'rgba(91,133,176,0.12)', color: '#d5e5f3', border: '2px solid rgba(91,133,176,0.3)' }}>
                                                 {EXPENSE_CATEGORIES.find(c => c.id === exp.category)?.label || exp.category}
                                             </span>
-                                            {exp.receipt_url && <button style={styles.receiptIconBtn} onClick={() => setViewingReceiptUrl(exp.receipt_url)} title="View Receipt"><Camera size={14} color="#ef4444" /></button>}
+                                            {exp.receipt_url && <button style={styles.receiptIconBtn} onClick={() => setViewingReceiptUrl(exp.receipt_url)} title="View Receipt"><Camera size={14} color="#d5e5f3" /></button>}
                                             {exp.description && <span style={styles.downDetail}>{exp.description}</span>}
                                         </div>
                                         <div style={styles.downRight}>
-                                            <span style={{ color: '#ef4444', fontWeight: 700, fontSize: 13 }}>-{formatCurrency(exp.amount)}</span>
+                                            <span style={{ color: '#d5e5f3', fontWeight: 700, fontSize: 13 }}>-{formatCurrency(exp.amount)}</span>
                                             <button onClick={() => handleDeleteExpense(exp.id)} style={styles.downDeleteBtn}>✕</button>
                                         </div>
                                     </div>
@@ -1650,7 +1620,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                     {/* Actions */}
                     <div style={styles.activeActions}>
                         {confirmCloseDay ? (
-                            <div style={{ ...styles.confirmRow, flexDirection: 'column', alignItems: 'flex-start', gap: 10, width: '100%', background: 'rgba(0,0,0,0.2)', padding: 16, borderRadius: 12, border: '2px solid rgba(255,255,255,0.05)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.05)' }}>
+                            <div style={{ ...styles.confirmRow, flexDirection: 'column', alignItems: 'flex-start', gap: 10, width: '100%', background: 'rgba(0,0,0,0.2)', padding: 16, borderRadius: 12, border: '2px solid rgba(255,255,255,0.05)' }}>
                                 <span style={styles.confirmText}>Close Out Day {currentDayNumber}? Add A Note (Optional):</span>
                                 <input
                                     type="text"
@@ -1717,13 +1687,13 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                 !activeGig && !showCreateForm && (
                     <motion.button
                         initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-                        whileHover={{ scale: 1.05 }}
+                        whileHover={{ y: -1 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => setShowCreateForm(true)}
-                        style={styles.createGigBtn}
+                        className={"sd-button sd-primary " + view.newShift}
                     >
-                        <div style={styles.addEventIcon}>+</div>
-                        <div style={styles.createGigSub}>New Event</div>
+                        <PlusCircle size={25} aria-hidden="true" />
+                        <span>New Event</span>
                     </motion.button>
                 )
             }
@@ -1734,7 +1704,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
-                        style={styles.createForm}
+                        className="sd-panel"
                     >
                         <h3 style={styles.formTitle}>New Event</h3>
 
@@ -1758,34 +1728,34 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                             }}
                         />
 
-                        <label style={styles.formLabel}>Start Date</label>
+                        <label htmlFor="toke-start-date" style={styles.formLabel}>Start Date</label>
                         <input
-                            type="date" value={newGig.start_date}
+                            id="toke-start-date" type="date" value={newGig.start_date}
                             onChange={e => setNewGig({ ...newGig, start_date: e.target.value })}
                             style={styles.formInput}
                         />
 
-                        <label style={styles.formLabel}>Hourly Pay Rate</label>
+                        <label htmlFor="toke-hourly-rate" style={styles.formLabel}>Hourly Pay Rate</label>
                         <input
-                            type="number" value={newGig.hourly_rate}
+                            id="toke-hourly-rate" type="number" value={newGig.hourly_rate}
                             onChange={e => setNewGig({ ...newGig, hourly_rate: e.target.value })}
                             placeholder="E.g. 15.00" step="0.01" style={styles.formInput}
                         />
 
-                        <label style={styles.formLabel}>Notes</label>
-                        <textarea
+                        <label htmlFor="toke-shift-notes" style={styles.formLabel}>Notes</label>
+                        <textarea id="toke-shift-notes"
                             value={newGig.notes}
                             onChange={e => setNewGig({ ...newGig, notes: e.target.value })}
                             placeholder="Any Notes..." style={{ ...styles.formInput, minHeight: 60, resize: 'vertical' }}
                         />
 
                         <div style={styles.formActions}>
-                            <button type="button" onClick={handleCreateGig} disabled={isCreating} style={{ ...styles.formSubmitBtn, opacity: isCreating ? 0.6 : 1, cursor: isCreating ? 'not-allowed' : 'pointer' }}>{isCreating ? 'Creating...' : 'Start Event'}</button>
+                            <button type="button" onClick={handleCreateGig} disabled={isCreating} className="sd-button sd-primary">{isCreating ? 'Creating...' : 'Start Event'}</button>
                             <button type="button" onClick={() => setShowCreateForm(false)} style={styles.formCancelBtn}>Cancel</button>
                         </div>
                         {createError && (
-                            <div style={{ margin: '8px 0 0', padding: '10px 14px', background: 'rgba(239,68,68,0.15)', border: '2px solid rgba(239,68,68,0.4)', borderRadius: 8, color: '#fca5a5', fontSize: 14, fontWeight: 600, textAlign: 'center' }}>
-                                ⚠️ {createError}
+                            <div style={{ margin: '8px 0 0', padding: '10px 14px', background: 'rgba(91,133,176,0.15)', border: '2px solid rgba(91,133,176,0.4)', borderRadius: 8, color: '#e5f1fb', fontSize: 14, fontWeight: 600, textAlign: 'center' }}>
+                                {createError}
                             </div>
                         )}
                     </motion.div>
@@ -1926,7 +1896,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                             const pct = monthlyGoal > 0 ? Math.min(100, (currentMonthTokes / monthlyGoal) * 100) : 0;
                             const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
                             const daysLeft = daysInMonth - new Date().getDate();
-                            const barColor = pct >= 80 ? '#36bb6a' : pct >= 50 ? '#38bdf8' : '#f02849';
+                            const barColor = pct >= 80 ? '#8cdeee' : pct >= 50 ? '#38bdf8' : '#e7effa';
                             return (
                                 <>
                                     <div style={styles.goalText}>
@@ -2018,7 +1988,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             {
                 !monthlyGoal && !showGoalEdit && (
                     <button style={styles.setGoalBtn} onClick={() => setShowGoalEdit(true)}>
-                        <span style={styles.goalBtnIcon}>🎯</span>
+                        <Target size={18} aria-hidden="true" />
                         Set Monthly Income Goal
                     </button>
                 )
@@ -2056,8 +2026,8 @@ const styles = {
 
     // Active Gig
     activeGigCard: {
-        background: '#242526',
-        border: '2px solid #3A3B3C',
+        background: '#112338',
+        border: '2px solid #30485f',
         borderRadius: 12, padding: 20, position: 'relative',
     },
     activeHeader: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 },
@@ -2066,15 +2036,15 @@ const styles = {
         boxShadow: '0 0 8px rgba(56, 189, 248, 0.6)', animation: 'pulse 2s infinite',
     },
     activeLabel: { fontSize: 14, fontWeight: 700, letterSpacing: 1.5, color: '#38bdf8', textTransform: 'uppercase' },
-    activeGigName: { fontSize: 22, fontWeight: 700, color: '#E4E6EB', margin: '4px 0' },
-    activeGigAddress: { fontSize: 13, color: '#B0B3B8', margin: '0 0 4px', fontStyle: 'italic' },
-    activeGigMeta: { fontSize: 14, color: '#B0B3B8', margin: '0 0 16px' },
+    activeGigName: { fontSize: 22, fontWeight: 700, color: '#eff5fc', margin: '4px 0' },
+    activeGigAddress: { fontSize: 13, color: '#bfcee0', margin: '0 0 4px', fontStyle: 'italic' },
+    activeGigMeta: { fontSize: 14, color: '#bfcee0', margin: '0 0 16px' },
 
     // Running stats
     runningStats: { display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 16 },
-    runningStat: { flex: '1 1 90px', display: 'flex', flexDirection: 'column', alignItems: 'center', background: '#3A3B3C', borderRadius: 8, padding: '10px 8px' },
-    runningStatLabel: { fontSize: 13, color: '#B0B3B8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4, textAlign: 'center' },
-    runningStatValue: { fontSize: 18, fontWeight: 700, color: '#E4E6EB' },
+    runningStat: { flex: '1 1 90px', display: 'flex', flexDirection: 'column', alignItems: 'center', background: '#30485f', borderRadius: 8, padding: '10px 8px' },
+    runningStatLabel: { fontSize: 13, color: '#bfcee0', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4, textAlign: 'center' },
+    runningStatValue: { fontSize: 18, fontWeight: 700, color: '#eff5fc' },
 
     // Timer
     timerBanner: {
@@ -2084,10 +2054,10 @@ const styles = {
     },
     timerIcon: { fontSize: 24, flexShrink: 0 },
     timerInfo: { flex: 1, minWidth: 120, display: 'flex', flexDirection: 'column' },
-    timerLabel: { fontSize: 13, fontWeight: 600, color: '#E4E6EB' },
+    timerLabel: { fontSize: 13, fontWeight: 600, color: '#eff5fc' },
     timerCountdown: { fontSize: 20, fontWeight: 800, color: '#38bdf8', fontFamily: 'monospace' },
     endDownBtn: {
-        background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '2px solid rgba(239,68,68,0.3)',
+        background: 'rgba(91,133,176,0.15)', color: '#d5e5f3', border: '2px solid rgba(91,133,176,0.3)',
         borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
         whiteSpace: 'nowrap',
     },
@@ -2098,36 +2068,36 @@ const styles = {
     downsScroll: { maxHeight: 300, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 },
     downRow: {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
-        background: '#3A3B3C', borderRadius: 6, padding: '8px 10px', flexWrap: 'wrap',
+        background: '#30485f', borderRadius: 6, padding: '8px 10px', flexWrap: 'wrap',
     },
     downInfo: { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', minWidth: 100, flex: 1 },
     downTypeBadge: { fontSize: 12, fontWeight: 700, borderRadius: 4, padding: '2px 8px', whiteSpace: 'nowrap' },
-    downDetail: { fontSize: 12, color: '#B0B3B8', wordBreak: 'break-word' },
-    downTime: { fontSize: 12, color: '#B0B3B8', whiteSpace: 'nowrap' },
+    downDetail: { fontSize: 12, color: '#bfcee0', wordBreak: 'break-word' },
+    downTime: { fontSize: 12, color: '#bfcee0', whiteSpace: 'nowrap' },
     downRight: { display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end', minWidth: 140 },
     tokeDisplay: {
-        background: 'none', border: '2px solid rgba(255,255,255,0.08)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)', fontSize: 13,
+        background: 'none', border: '2px solid rgba(255,255,255,0.08)', fontSize: 13,
         fontWeight: 700, cursor: 'pointer', padding: '0 6px',
         minWidth: 54, height: 26, display: 'inline-flex', alignItems: 'center',
         justifyContent: 'center', borderRadius: 4, boxSizing: 'border-box',
     },
     tokeEditRow: { display: 'flex', alignItems: 'center', gap: 4 },
     tokeInput: {
-        width: 60, padding: '4px 6px', background: '#242526', border: '2px solid #3A3B3C', boxShadow: 'inset 0 0 0 1px #3A3B3C',
+        width: 60, padding: '4px 6px', background: '#112338', border: '2px solid #30485f',
         borderRadius: 4, color: '#fff', fontSize: 13, textAlign: 'right',
     },
     tokeSaveBtn: {
-        background: 'rgba(16,185,129,0.15)', color: '#10b981', border: '2px solid rgba(16,185,129,0.3)', boxShadow: 'inset 0 0 0 1px rgba(16,185,129,0.3)',
+        background: 'rgba(76,172,200,0.15)', color: '#8cdeee', border: '2px solid rgba(76,172,200,0.3)',
         borderRadius: 4, padding: '4px 8px', fontSize: 13, cursor: 'pointer', fontWeight: 700,
     },
     endDownSmallBtn: {
-        background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '2px solid rgba(239,68,68,0.3)', boxShadow: 'inset 0 0 0 1px rgba(239,68,68,0.3)',
+        background: 'rgba(91,133,176,0.15)', color: '#d5e5f3', border: '2px solid rgba(91,133,176,0.3)',
         borderRadius: 4, padding: '2px 8px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
         whiteSpace: 'nowrap',
     },
     downDeleteBtn: {
-        background: 'rgba(239,68,68,0.15)', border: '2px solid rgba(239,68,68,0.3)', boxShadow: 'inset 0 0 0 1px rgba(239,68,68,0.3)',
-        borderRadius: 4, padding: '2px 6px', fontSize: 12, cursor: 'pointer', color: '#ef4444', lineHeight: 1,
+        background: 'rgba(91,133,176,0.15)', border: '2px solid rgba(91,133,176,0.3)',
+        borderRadius: 4, padding: '2px 6px', fontSize: 12, cursor: 'pointer', color: '#d5e5f3', lineHeight: 1,
     },
 
     // Actions
@@ -2142,11 +2112,11 @@ const styles = {
         borderRadius: 8, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer',
     },
     addExpenseBtn: {
-        background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: '2px solid rgba(239, 68, 68, 0.3)',
+        background: 'rgba(91,133,176,0.15)', color: '#d5e5f3', border: '2px solid rgba(91,133,176,0.3)',
         borderRadius: 8, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer',
     },
     completeBtn: {
-        background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: '2px solid rgba(16, 185, 129, 0.3)',
+        background: 'rgba(76,172,200,0.15)', color: '#8cdeee', border: '2px solid rgba(76,172,200,0.3)',
         borderRadius: 8, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer',
     },
     cancelEditBtn: {
@@ -2154,9 +2124,9 @@ const styles = {
         borderRadius: 8, padding: '10px 18px', fontSize: 14, cursor: 'pointer',
     },
     confirmRow: { display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
-    confirmText: { fontSize: 14, fontWeight: 600, color: '#E4E6EB' },
+    confirmText: { fontSize: 14, fontWeight: 600, color: '#eff5fc' },
     confirmYes: {
-        background: '#10b981', color: '#fff', border: '2px solid rgba(255,255,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)',
+        background: '#124fa2', color: '#fff', border: '2px solid rgba(255,255,255,0.2)',
         borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
     },
     confirmNo: {
@@ -2166,7 +2136,7 @@ const styles = {
 
     // Delete
     topActionBtn: {
-        background: 'rgba(255,255,255,0.05)', border: '2px solid rgba(255,255,255,0.1)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)',
+        background: 'rgba(255,255,255,0.05)', border: '2px solid rgba(255,255,255,0.1)',
         borderRadius: 8, padding: '4px 10px', color: '#94a3b8', fontSize: 14, cursor: 'pointer',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         transition: 'all 0.2s ease'
@@ -2178,7 +2148,7 @@ const styles = {
     deletePopup: { textAlign: 'center', padding: 20 },
     deletePopupText: { fontSize: 16, fontWeight: 600, color: '#fff', marginBottom: 16 },
     deleteConfirmBtn: {
-        background: '#ef4444', color: '#fff', border: '2px solid rgba(255,255,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)',
+        background: '#20466b', color: '#fff', border: '2px solid rgba(255,255,255,0.2)',
         borderRadius: 8, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer',
     },
     deleteCancelBtn: {
@@ -2188,7 +2158,7 @@ const styles = {
 
     // Create Gig
     createGigBtn: {
-        background: 'linear-gradient(135deg, #242526 0%, #1c1e21 100%)', border: '2px solid #3A3B3C',
+        background: 'linear-gradient(135deg, #112338 0%, #0d1b2b 100%)', border: '2px solid #30485f',
         borderRadius: 16, padding: '28px 20px', cursor: 'pointer',
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, textAlign: 'center', width: '100%',
         transition: 'border-color 0.2s, box-shadow 0.2s',
@@ -2201,15 +2171,15 @@ const styles = {
         fontSize: 32, fontWeight: 300, color: '#fff',
         boxShadow: '0 0 20px rgba(35,116,225,0.3)',
     },
-    createGigSub: { fontSize: 14, fontWeight: 600, color: '#B0B3B8', letterSpacing: '0.03em' },
+    createGigSub: { fontSize: 14, fontWeight: 600, color: '#bfcee0', letterSpacing: '0.03em' },
 
     // Form
     createForm: {
-        background: '#242526', border: '2px solid #3A3B3C',
+        background: '#112338', border: '2px solid #30485f',
         borderRadius: 12, padding: 20, overflow: 'hidden',
     },
-    formTitle: { fontSize: 18, fontWeight: 700, color: '#E4E6EB', margin: '0 0 16px' },
-    formLabel: { fontSize: 13, fontWeight: 600, color: '#B0B3B8', marginBottom: 4, display: 'block', marginTop: 12 },
+    formTitle: { fontSize: 18, fontWeight: 700, color: '#eff5fc', margin: '0 0 16px' },
+    formLabel: { fontSize: 13, fontWeight: 600, color: '#bfcee0', marginBottom: 4, display: 'block', marginTop: 12 },
     formInput: {
         width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.5)', border: '2px solid rgba(255,255,255,0.15)',
         borderRadius: 8, color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box',
@@ -2217,11 +2187,11 @@ const styles = {
     },
     attachedReceiptBox: {
         display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px',
-        background: 'rgba(16,185,129,0.1)', border: '2px solid rgba(16,185,129,0.3)', boxShadow: 'inset 0 0 0 1px rgba(16,185,129,0.3)',
+        background: 'rgba(76,172,200,0.1)', border: '2px solid rgba(76,172,200,0.3)',
         borderRadius: 8, width: '100%', boxSizing: 'border-box'
     },
     removeReceiptBtn: {
-        marginLeft: 'auto', background: 'transparent', border: '2px solid rgba(255,255,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)', color: '#10b981',
+        marginLeft: 'auto', background: 'transparent', border: '2px solid rgba(255,255,255,0.2)', color: '#8cdeee',
         fontSize: 16, cursor: 'pointer', padding: 4
     },
     scanReceiptBtn: {
@@ -2232,7 +2202,7 @@ const styles = {
         cursor: 'pointer', transition: 'all 0.2s'
     },
     receiptIconBtn: {
-        background: 'transparent', border: '2px solid rgba(255,255,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)', padding: 4, cursor: 'pointer',
+        background: 'transparent', border: '2px solid rgba(255,255,255,0.2)', padding: 4, cursor: 'pointer',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         marginLeft: 8, opacity: 0.8, transition: 'opacity 0.2s'
     },
@@ -2272,7 +2242,7 @@ const styles = {
     },
     formActions: { display: 'flex', gap: 10, marginTop: 16 },
     formSubmitBtn: {
-        background: 'linear-gradient(135deg, #2374e1, #1a5fc9)', color: '#fff', border: '2px solid rgba(255,255,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)',
+        background: 'linear-gradient(135deg, #2374e1, #1a5fc9)', color: '#fff', border: '2px solid rgba(255,255,255,0.2)',
         borderRadius: 8, padding: '10px 24px', fontSize: 14, fontWeight: 700, cursor: 'pointer', flex: 1,
     },
     formCancelBtn: {
@@ -2289,30 +2259,14 @@ const styles = {
         boxSizing: 'border-box',
     },
     modalCard: {
-        position: 'relative',
-        backgroundImage: 'url(/images/toke-add-down-bg.jpg)',
-        backgroundSize: '100% 100%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat',
-        border: '2px solid rgba(255,255,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)', padding: 0, backgroundColor: 'transparent',
-        width: '100%', maxWidth: 450,
-        aspectRatio: '854 / 1018',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.8)', overflow: 'hidden',
-        display: 'block',
-    },
-    imgMapBtn: {
-        position: 'absolute', background: 'transparent', border: '2px solid rgba(255,255,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)', cursor: 'pointer', outline: 'none',
-        WebkitAppearance: 'none', appearance: 'none',
-        WebkitTapHighlightColor: 'rgba(0,0,0,0)', boxShadow: 'none'
-    },
-    imgMapInput: {
-        width: '100%', height: '100%', background: 'transparent', border: '2px solid rgba(255,255,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)', color: '#fff', fontSize: 18,
-        textAlign: 'left', textAlignLast: 'left', fontWeight: 600, outline: 'none', appearance: 'none',
-        WebkitAppearance: 'none', boxShadow: 'none', WebkitTapHighlightColor: 'rgba(0,0,0,0)',
-        paddingLeft: 12,
+        width: '100%', maxWidth: 450, maxHeight: 'calc(100dvh - 40px)', overflowY: 'auto',
+        boxSizing: 'border-box', padding: 20, background: '#0c1b2c', border: '1px solid #7891a9',
+        borderRadius: 8, color: '#e8f3ff',
     },
 
     // Double down prompt
     promptCard: {
-        background: '#242526', border: '2px solid rgba(56,189,248,0.4)', borderRadius: 16, padding: 28,
+        background: '#112338', border: '2px solid rgba(56,189,248,0.4)', borderRadius: 16, padding: 28,
         width: '100%', maxWidth: 380, textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
     },
     promptIcon: { fontSize: 48, marginBottom: 12 },
@@ -2331,68 +2285,68 @@ const styles = {
     // History
     historySection: { marginTop: 8 },
     historyTitle: { fontSize: 18, fontWeight: 700, color: '#fff', marginBottom: 12 },
-    loadingPlaceholder: { padding: 20, textAlign: 'center', color: '#64748b', fontSize: 14 },
-    emptyState: { padding: 24, textAlign: 'center', color: '#64748b', fontSize: 14, background: 'rgba(255,255,255,0.03)', borderRadius: 10, border: '2px solid rgba(255,255,255,0.06)' },
+    loadingPlaceholder: { padding: 20, textAlign: 'center', color: '#a6bfd3', fontSize: 14 },
+    emptyState: { padding: 24, textAlign: 'center', color: '#a6bfd3', fontSize: 14, background: 'rgba(255,255,255,0.03)', borderRadius: 10, border: '2px solid rgba(255,255,255,0.06)' },
     gigGrid: { display: 'flex', flexDirection: 'column', gap: 10 },
     gigCard: {
-        background: 'rgba(36,37,38,0.8)', border: '2px solid rgba(255,255,255,0.08)',
+        background: 'rgba(16,35,52,0.8)', border: '2px solid rgba(255,255,255,0.08)',
         borderRadius: 10, padding: '14px 16px', cursor: 'pointer', transition: 'border-color 0.15s',
     },
     gigCardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-    gigCardName: { fontSize: 16, fontWeight: 600, color: '#E4E6EB', margin: 0 },
+    gigCardName: { fontSize: 16, fontWeight: 600, color: '#eff5fc', margin: 0 },
     gigCardTokes: { fontSize: 16, fontWeight: 700 },
-    gigCardMeta: { fontSize: 13, color: '#64748b', marginBottom: 6 },
-    gigCardFooter: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: '#64748b' },
+    gigCardMeta: { fontSize: 13, color: '#a6bfd3', marginBottom: 6 },
+    gigCardFooter: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: '#a6bfd3' },
     viewReportLink: { color: '#3b82f6', fontWeight: 600 },
 
     // Report
     backBtn: {
-        background: 'none', border: '2px solid rgba(255,255,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)', color: '#3b82f6', fontSize: 14,
+        background: 'none', border: '2px solid rgba(255,255,255,0.2)', color: '#3b82f6', fontSize: 14,
         fontWeight: 600, cursor: 'pointer', padding: '4px 0', marginBottom: 8,
     },
     reportCard: {
-        background: 'rgba(36,37,38,0.95)', border: '2px solid rgba(255,255,255,0.1)',
+        background: 'rgba(16,35,52,0.95)', border: '2px solid rgba(255,255,255,0.1)',
         borderRadius: 12, padding: 24,
     },
     reportTitle: { fontSize: 24, fontWeight: 700, color: '#fff', margin: '0 0 4px' },
-    reportAddress: { fontSize: 13, color: '#8A8D91', margin: '0 0 4px', fontStyle: 'italic' },
-    reportDates: { fontSize: 14, color: '#64748b', margin: '0 0 20px' },
+    reportAddress: { fontSize: 13, color: '#9fb2c7', margin: '0 0 4px', fontStyle: 'italic' },
+    reportDates: { fontSize: 14, color: '#a6bfd3', margin: '0 0 20px' },
     reportStatsGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 },
     reportStat: { display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: '10px 8px' },
     reportStatLabel: { fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
     reportStatValue: { fontSize: 18, fontWeight: 700, color: '#fff' },
     reportBreakdown: { background: 'rgba(0,0,0,0.15)', borderRadius: 8, padding: 16 },
-    reportBreakdownTitle: { fontSize: 14, fontWeight: 600, color: '#E4E6EB', margin: '0 0 10px' },
+    reportBreakdownTitle: { fontSize: 14, fontWeight: 600, color: '#eff5fc', margin: '0 0 10px' },
     reportBreakdownGrid: { display: 'flex', flexWrap: 'wrap', gap: 8 },
-    breakdownItem: { fontSize: 13, background: 'rgba(255,255,255,0.06)', border: '2px solid rgba(255,255,255,0.1)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)', borderRadius: 6, padding: '4px 10px', color: '#94a3b8' },
+    breakdownItem: { fontSize: 13, background: 'rgba(255,255,255,0.06)', border: '2px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '4px 10px', color: '#94a3b8' },
 
     // Jarvis Panel
     jarvisPanel: {
-        background: '#242526', border: '2px solid rgba(35,116,225,0.25)',
+        background: '#112338', border: '2px solid rgba(35,116,225,0.25)',
         borderRadius: 12, padding: '14px 16px', marginTop: 8,
     },
     jarvisPanelHeader: {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        background: 'none', border: '2px solid rgba(255,255,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)', cursor: 'pointer', padding: 0, width: '100%',
+        background: 'none', border: '2px solid rgba(255,255,255,0.2)', cursor: 'pointer', padding: 0, width: '100%',
     },
     jarvisHeaderLeft: { display: 'flex', alignItems: 'center', gap: 10 },
     jarvisIcon: { fontSize: 26 },
     jarvisAvatarImg: { width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 },
-    jarvisTitle: { fontSize: 16, fontWeight: 700, color: '#E4E6EB', textAlign: 'left' },
-    jarvisSub: { fontSize: 12, color: '#64748b', marginTop: 1, textAlign: 'left' },
-    jarvisChevron: { fontSize: 14, color: '#64748b', transition: 'transform 0.2s', flexShrink: 0 },
+    jarvisTitle: { fontSize: 16, fontWeight: 700, color: '#eff5fc', textAlign: 'left' },
+    jarvisSub: { fontSize: 12, color: '#a6bfd3', marginTop: 1, textAlign: 'left' },
+    jarvisChevron: { fontSize: 14, color: '#a6bfd3', transition: 'transform 0.2s', flexShrink: 0 },
     jarvisChips: {
         display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 14, marginBottom: 12,
     },
     jarvisChip: {
         fontSize: 12, fontWeight: 600, padding: '5px 10px', borderRadius: 20, cursor: 'pointer',
         background: 'rgba(56,189,248,0.08)', color: '#38bdf8',
-        border: '2px solid rgba(56,189,248,0.25)', boxShadow: 'inset 0 0 0 1px rgba(56,189,248,0.25)', transition: 'all 0.15s',
+        border: '2px solid rgba(56,189,248,0.25)', transition: 'all 0.15s',
     },
     jarvisInputRow: { display: 'flex', gap: 8, marginBottom: 12 },
     jarvisInput: {
         flex: 1, padding: '10px 12px', background: 'rgba(0,0,0,0.4)',
-        border: '2px solid rgba(255,255,255,0.12)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.12)', borderRadius: 8,
+        border: '2px solid rgba(255,255,255,0.12)', borderRadius: 8,
         color: '#fff', fontSize: 14, outline: 'none',
     },
     jarvisAskBtn: {
@@ -2411,19 +2365,19 @@ const styles = {
     },
     jarvisAnswer: {
         background: 'rgba(0,0,0,0.25)', borderRadius: 10,
-        padding: 14, border: '2px solid rgba(56,189,248,0.15)', boxShadow: 'inset 0 0 0 1px rgba(56,189,248,0.15)',
+        padding: 14, border: '2px solid rgba(56,189,248,0.15)',
     },
     jarvisAnswerLabel: { fontSize: 12, fontWeight: 700, color: '#38bdf8', letterSpacing: 1, marginBottom: 8, textTransform: 'uppercase' },
-    jarvisAnswerText: { fontSize: 13, color: '#E4E6EB', lineHeight: 1.65, whiteSpace: 'pre-wrap' },
+    jarvisAnswerText: { fontSize: 13, color: '#eff5fc', lineHeight: 1.65, whiteSpace: 'pre-wrap' },
     jarvisHistory: { display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 },
     jarvisHistoryItem: {
         background: 'rgba(0,0,0,0.15)', borderRadius: 8, padding: '10px 12px',
-        border: '2px solid rgba(255,255,255,0.05)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.05)',
+        border: '2px solid rgba(255,255,255,0.05)',
     },
     taxSummaryBtn: {
         width: '100%', padding: '13px', background: 'rgba(54,187,106,0.08)',
         border: '1px dashed rgba(54,187,106,0.4)', borderRadius: 10,
-        color: '#36bb6a', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+        color: '#8cdeee', fontSize: 14, fontWeight: 600, cursor: 'pointer',
         textAlign: 'center',
     },
     // Event action row (edit/delete for completed events)
@@ -2433,60 +2387,60 @@ const styles = {
     },
     eventEditBtn: {
         flex: 1, padding: '6px 0', background: 'rgba(74,144,217,0.1)',
-        border: '2px solid rgba(74,144,217,0.3)', boxShadow: 'inset 0 0 0 1px rgba(74,144,217,0.3)', borderRadius: 6,
-        color: '#4A90D9', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+        border: '2px solid rgba(74,144,217,0.3)', borderRadius: 6,
+        color: '#8acbff', fontSize: 12, fontWeight: 600, cursor: 'pointer',
         textAlign: 'center',
     },
     eventDeleteBtn: {
-        flex: 1, padding: '6px 0', background: 'rgba(240,40,73,0.08)',
-        border: '2px solid rgba(240,40,73,0.3)', boxShadow: 'inset 0 0 0 1px rgba(240,40,73,0.3)', borderRadius: 6,
-        color: '#F02849', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+        flex: 1, padding: '6px 0', background: 'rgba(110,151,181,0.08)',
+        border: '2px solid rgba(110,151,181,0.3)', borderRadius: 6,
+        color: '#e7effa', fontSize: 12, fontWeight: 600, cursor: 'pointer',
         textAlign: 'center',
     },
     eventSaveBtn: {
         flex: 1, padding: '8px 0', background: 'rgba(54,187,106,0.15)',
-        border: '2px solid rgba(54,187,106,0.4)', boxShadow: 'inset 0 0 0 1px rgba(54,187,106,0.4)', borderRadius: 6,
-        color: '#36bb6a', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+        border: '2px solid rgba(54,187,106,0.4)', borderRadius: 6,
+        color: '#8cdeee', fontSize: 13, fontWeight: 700, cursor: 'pointer',
     },
     eventCancelBtn: {
         padding: '8px 16px', background: 'rgba(255,255,255,0.06)',
-        border: '2px solid rgba(255,255,255,0.12)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.12)', borderRadius: 6,
-        color: '#B0B3B8', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+        border: '2px solid rgba(255,255,255,0.12)', borderRadius: 6,
+        color: '#bfcee0', fontSize: 13, fontWeight: 600, cursor: 'pointer',
     },
     editInlineInput: {
         width: '100%', padding: '8px 10px', background: 'rgba(0,0,0,0.3)',
-        border: '2px solid rgba(255,255,255,0.15)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.15)', borderRadius: 6,
-        color: '#E4E6EB', fontSize: 13, outline: 'none', boxSizing: 'border-box',
+        border: '2px solid rgba(255,255,255,0.15)', borderRadius: 6,
+        color: '#eff5fc', fontSize: 13, outline: 'none', boxSizing: 'border-box',
     },
     jarvisHistoryQ: { fontSize: 12, fontWeight: 600, color: '#94a3b8', marginBottom: 4 },
-    jarvisHistoryA: { fontSize: 12, color: '#B0B3B8', lineHeight: 1.55, whiteSpace: 'pre-wrap' },
+    jarvisHistoryA: { fontSize: 12, color: '#bfcee0', lineHeight: 1.55, whiteSpace: 'pre-wrap' },
 
     // Monthly Income Goal
     goalCard: {
-        background: '#242526', border: '2px solid rgba(255,255,255,0.08)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)',
+        background: '#112338', border: '2px solid rgba(255,255,255,0.08)',
         borderRadius: 12, padding: '16px 20px',
     },
     goalHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-    goalTitle: { fontSize: 15, fontWeight: 700, color: '#E4E6EB' },
+    goalTitle: { fontSize: 15, fontWeight: 700, color: '#eff5fc' },
     goalEditBtn: {
-        padding: '4px 12px', background: 'rgba(74,144,217,0.15)', border: '2px solid #4A90D9', boxShadow: 'inset 0 0 0 1px #4A90D9',
-        borderRadius: 6, color: '#4A90D9', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+        padding: '4px 12px', background: 'rgba(74,144,217,0.15)', border: '2px solid #8acbff',
+        borderRadius: 6, color: '#8acbff', fontSize: 12, fontWeight: 600, cursor: 'pointer',
     },
-    goalText: { fontSize: 14, color: '#B0B3B8', marginBottom: 10, lineHeight: 1.5 },
-    goalBarBg: { height: 8, background: '#3A3B3C', borderRadius: 4, overflow: 'hidden' },
+    goalText: { fontSize: 14, color: '#bfcee0', marginBottom: 10, lineHeight: 1.5 },
+    goalBarBg: { height: 8, background: '#30485f', borderRadius: 4, overflow: 'hidden' },
     goalBarFill: { height: '100%', borderRadius: 4, transition: 'width 0.4s ease' },
     goalEditRow: { display: 'flex', gap: 8, alignItems: 'center' },
     goalInput: {
-        flex: 1, padding: '10px 12px', background: '#18191A', border: '2px solid rgba(255,255,255,0.12)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.12)',
-        borderRadius: 8, color: '#E4E6EB', fontSize: 14, outline: 'none',
+        flex: 1, padding: '10px 12px', background: '#07111e', border: '2px solid rgba(255,255,255,0.12)',
+        borderRadius: 8, color: '#eff5fc', fontSize: 14, outline: 'none',
     },
     goalSaveBtn: {
-        padding: '10px 16px', background: '#4A90D9', border: '2px solid rgba(255,255,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)',
+        padding: '10px 16px', background: '#8acbff', border: '2px solid rgba(255,255,255,0.2)',
         borderRadius: 8, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer',
     },
     goalCancelBtn: {
-        padding: '10px 12px', background: '#3A3B3C', border: '2px solid rgba(255,255,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)',
-        borderRadius: 8, color: '#B0B3B8', fontSize: 16, cursor: 'pointer',
+        padding: '10px 12px', background: '#30485f', border: '2px solid rgba(255,255,255,0.2)',
+        borderRadius: 8, color: '#bfcee0', fontSize: 16, cursor: 'pointer',
     },
     setGoalBtn: {
         width: '100%', padding: '14px 20px', background: 'linear-gradient(135deg, rgba(35,116,225,0.12), rgba(35,116,225,0.06))',
@@ -2499,25 +2453,25 @@ const styles = {
 
     // Calendar wrapper
     calendarWrapper: {
-        background: '#242526', border: '2px solid rgba(255,255,255,0.07)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.07)',
+        background: '#112338', border: '2px solid rgba(255,255,255,0.07)',
         borderRadius: 12, padding: '14px 12px', marginTop: 8,
     },
 
     // Multi-day styles
     closedDayCard: {
-        background: 'rgba(0,0,0,0.2)', border: '2px solid rgba(255,255,255,0.07)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.07)',
+        background: 'rgba(0,0,0,0.2)', border: '2px solid rgba(255,255,255,0.07)',
         borderRadius: 8, marginBottom: 6, overflow: 'hidden',
     },
     closedDayHeader: {
         display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px',
-        background: 'none', border: '2px solid rgba(255,255,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)', cursor: 'pointer', width: '100%',
+        background: 'none', border: '2px solid rgba(255,255,255,0.2)', cursor: 'pointer', width: '100%',
     },
-    closedDayLabel: { fontSize: 13, fontWeight: 700, color: '#B0B3B8', flex: 1, textAlign: 'left' },
-    closedDayStats: { display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, color: '#64748b' },
+    closedDayLabel: { fontSize: 13, fontWeight: 700, color: '#bfcee0', flex: 1, textAlign: 'left' },
+    closedDayStats: { display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, color: '#a6bfd3' },
     closedDayDowns: { padding: '0 8px 8px', display: 'flex', flexDirection: 'column', gap: 4 },
     closeDayBtn: {
-        background: 'rgba(16,185,129,0.12)', border: '2px solid rgba(16,185,129,0.35)',
-        color: '#10b981', borderRadius: 8, padding: '8px 14px', fontSize: 13,
+        background: 'rgba(76,172,200,0.12)', border: '2px solid rgba(76,172,200,0.35)',
+        color: '#8cdeee', borderRadius: 8, padding: '8px 14px', fontSize: 13,
         fontWeight: 700, cursor: 'pointer',
     },
     startDayBtn: {
@@ -2526,12 +2480,12 @@ const styles = {
         fontWeight: 700, cursor: 'pointer',
     },
     confirmYes: {
-        background: '#10b981', color: '#fff', border: '2px solid rgba(255,255,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)',
+        background: '#124fa2', color: '#fff', border: '2px solid rgba(255,255,255,0.2)',
         borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
     },
     confirmNo: {
         background: 'transparent', color: '#94a3b8',
-        border: '2px solid rgba(255,255,255,0.15)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.15)', borderRadius: 8,
+        border: '2px solid rgba(255,255,255,0.15)', borderRadius: 8,
         padding: '8px 16px', fontSize: 13, cursor: 'pointer',
     },
 };

@@ -6,6 +6,7 @@
  * ═══════════════════════════════════════════════════════════════════
  */
 
+import view from './toke/TokeWorkspace.module.css';
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -13,6 +14,7 @@ import {
     createCalendarEvent,
     deleteCalendarEvent,
 } from '../../lib/bankroll/calendarSelectors';
+import useAccessibleDialog from '../../hooks/useAccessibleDialog';
 import toast from '../../stores/toastStore';
 import { supabase } from '../../lib/supabase';
 
@@ -35,6 +37,7 @@ function getCalendarDays(year, month) {
 function TokeCalendar({ userId }) {
     const [events, setEvents] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [readError, setReadError] = useState(false);
     const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
     const [expandedMonth, setExpandedMonth] = useState(null); // 0-indexed
     const [selectedDate, setSelectedDate] = useState(null); // 'YYYY-MM-DD'
@@ -43,18 +46,23 @@ function TokeCalendar({ userId }) {
     const [addForm, setAddForm] = useState({ title: '', venue_name: '', notes: '', alert_enabled: true });
     const [saving, setSaving] = useState(false);
 
+    const addDialog = useAccessibleDialog({ open: showAddModal, onClose: () => setShowAddModal(false), dismissDisabled: saving });
+    const eventDialog = useAccessibleDialog({ open: Boolean(showEventDetail), onClose: () => setShowEventDetail(null) });
     const isMountedRef = useRef(true);
     useEffect(() => {
+        isMountedRef.current = true;
         return () => { isMountedRef.current = false; };
     }, []);
 
     const loadEvents = useCallback(async () => {
         if (!userId) return;
         setIsLoading(true);
+        setReadError(false);
         try {
             const data = await fetchCalendarEvents(userId);
             if (isMountedRef.current) setEvents(data);
         } catch (err) {
+            if (isMountedRef.current) setReadError(true);
             console.warn('Calendar load error:', err);
         } finally {
             if (isMountedRef.current) setIsLoading(false);
@@ -185,20 +193,20 @@ function TokeCalendar({ userId }) {
     const monthsInYear = Array.from({ length: 12 }, (_, i) => i);
 
     return (
-        <div style={calStyles.wrapper}>
+        <div className={"sd-panel " + view.panel}>
             {/* Header */}
             <div style={calStyles.header}>
                 <div style={calStyles.headerLeft}>
-                    <span style={calStyles.calIcon}></span>
+
                     <div>
-                        <div style={calStyles.title}>Event Calendar</div>
+                        <div className="sd-section-title">Event Calendar</div>
                         <div style={calStyles.subtitle}>Schedule Future Gigs & Get Alerts</div>
                     </div>
                 </div>
                 <div style={calStyles.yearNav}>
-                    <button onClick={() => setCurrentYear(y => y - 1)} style={calStyles.navBtn}>‹</button>
+                    <button type="button" aria-label="Previous Year" onClick={() => setCurrentYear(y => y - 1)} style={calStyles.navBtn}>‹</button>
                     <span style={calStyles.yearLabel}>{currentYear}</span>
-                    <button onClick={() => setCurrentYear(y => y + 1)} style={calStyles.navBtn}>›</button>
+                    <button type="button" aria-label="Next Year" onClick={() => setCurrentYear(y => y + 1)} style={calStyles.navBtn}>›</button>
                 </div>
             </div>
 
@@ -209,11 +217,15 @@ function TokeCalendar({ userId }) {
                 </div>
             )}
 
-            {isLoading ? (
-                <div style={calStyles.loading}>Loading Calendar...</div>
+            {!userId ? <p className={view.status}>Sign In To View Your Shift Calendar.</p> : isLoading ? (
+                <p role="status" className={view.status}>Loading Calendar…</p>
+            ) : readError ? (
+                <div role="alert" className={view.status}>The Shift Calendar Could Not Be Loaded.
+                    <button type="button" className="sd-button" onClick={loadEvents}>Retry</button>
+                </div>
             ) : (
                 /* 12-Month Year Grid */
-                <div style={calStyles.yearGrid}>
+                <div className={view.calendarGrid}>
                     {monthsInYear.map(monthIdx => {
                         const days = getCalendarDays(currentYear, monthIdx);
                         const isExpanded = expandedMonth === monthIdx;
@@ -229,10 +241,10 @@ function TokeCalendar({ userId }) {
                             <div key={monthIdx} style={{ ...calStyles.monthCard, ...(isExpanded ? calStyles.monthCardExpanded : {}) }}>
                                 {/* Month header */}
                                 <button
-                                    style={calStyles.monthHeader}
+                                    type="button" aria-expanded={isExpanded} style={calStyles.monthHeader}
                                     onClick={() => setExpandedMonth(isExpanded ? null : monthIdx)}
                                 >
-                                    <span style={{ ...calStyles.monthName, ...(hasEvents ? { color: '#f59e0b' } : {}) }}>
+                                    <span style={{ ...calStyles.monthName, ...(hasEvents ? { color: '#85d8fb' } : {}) }}>
                                         {MONTHS[monthIdx]}
                                     </span>
                                     {hasEvents && (
@@ -253,8 +265,9 @@ function TokeCalendar({ userId }) {
                                             const hasEv = !!eventMap[ds];
                                             const isToday = ds === todayStr;
                                             return (
-                                                <div
-                                                    key={day}
+                                                <button
+                                                    type="button" tabIndex={-1} aria-label={ds} aria-current={isToday ? 'date' : undefined}
+                                                    key={day} className={view.calendarDay}
                                                     onClick={() => handleDateClick(currentYear, monthIdx, day)}
                                                     style={{
                                                         ...calStyles.miniDay,
@@ -264,8 +277,8 @@ function TokeCalendar({ userId }) {
                                                     title={hasEv ? eventMap[ds].map(e => e.title).join(', ') : undefined}
                                                 >
                                                     {day}
-                                                    {hasEv && <div style={calStyles.miniDot} />}
-                                                </div>
+                                                    {hasEv && <span style={calStyles.miniDot} />}
+                                                </button>
                                             );
                                         })}
                                     </div>
@@ -294,20 +307,21 @@ function TokeCalendar({ userId }) {
                                                     return (
                                                         <div
                                                             key={day}
-                                                            onClick={() => handleDateClick(currentYear, monthIdx, day)}
                                                             style={{
                                                                 ...calStyles.fullDay,
                                                                 ...(isToday ? calStyles.fullDayToday : {}),
                                                                 ...(isPast ? calStyles.fullDayPast : {}),
                                                             }}
                                                         >
-                                                            <span style={calStyles.fullDayNum}>{day}</span>
+                                                            <button type="button" className={view.calendarDay} aria-label={ds}
+                                                                aria-current={isToday ? 'date' : undefined}
+                                                                onClick={() => handleDateClick(currentYear, monthIdx, day)}>{day}</button>
                                                             {dayEvs.map(ev => (
-                                                                <div key={ev.id} style={calStyles.eventPill}
+                                                                <button type="button" className={view.calendarEvent} key={ev.id} style={calStyles.eventPill}
                                                                     onClick={e => { e.stopPropagation(); setShowEventDetail(ev); }}
                                                                 >
-                                                                    {ev.alert_enabled ? '' : ''}{ev.title}
-                                                                </div>
+                                                                    {ev.title}
+                                                                </button>
                                                             ))}
                                                             {!isPast && dayEvs.length === 0 && (
                                                                 <div style={calStyles.addHint}>+</div>
@@ -333,7 +347,7 @@ function TokeCalendar({ userId }) {
                         style={calStyles.overlay}
                         onClick={() => setShowAddModal(false)}
                     >
-                        <motion.form
+                        <motion.form ref={addDialog.dialogRef} role="dialog" aria-modal="true" aria-labelledby="toke-calendar-create-title"
                             initial={{ scale: 0.95, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.95, opacity: 0 }}
@@ -341,33 +355,32 @@ function TokeCalendar({ userId }) {
                             onClick={e => e.stopPropagation()}
                             onSubmit={handleAddEvent}
                         >
-                            <h3 style={calStyles.modalTitle}>New Calendar Event</h3>
+                            <h3 id="toke-calendar-create-title" style={calStyles.modalTitle}>New Calendar Event</h3>
                             <div style={calStyles.modalDate}>
                                 {new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                             </div>
 
-                            <label style={calStyles.label}>Event Title *</label>
+                            <label htmlFor="toke-event-title" style={calStyles.label}>Event Title *</label>
                             <input
                                 type="text"
-                                value={addForm.title}
+                                ref={addDialog.initialFocusRef} id="toke-event-title" value={addForm.title}
                                 onChange={e => setAddForm({ ...addForm, title: e.target.value })}
                                 placeholder="e.g. WSOP Main Event"
                                 style={calStyles.input}
-                                autoFocus
                             />
 
-                            <label style={{ ...calStyles.label, marginTop: 12 }}>Venue (Optional)</label>
+                            <label htmlFor="toke-event-venue" style={{ ...calStyles.label, marginTop: 12 }}>Venue (Optional)</label>
                             <input
                                 type="text"
-                                value={addForm.venue_name}
+                                id="toke-event-venue" value={addForm.venue_name}
                                 onChange={e => setAddForm({ ...addForm, venue_name: e.target.value })}
                                 placeholder="e.g. Horseshoe Casino"
                                 style={calStyles.input}
                             />
 
-                            <label style={{ ...calStyles.label, marginTop: 12 }}>Notes (Optional)</label>
+                            <label htmlFor="toke-event-notes" style={{ ...calStyles.label, marginTop: 12 }}>Notes (Optional)</label>
                             <textarea
-                                value={addForm.notes}
+                                id="toke-event-notes" value={addForm.notes}
                                 onChange={e => setAddForm({ ...addForm, notes: e.target.value })}
                                 placeholder="Dress code, contact info, etc."
                                 style={{ ...calStyles.input, minHeight: 60, resize: 'vertical' }}
@@ -378,18 +391,19 @@ function TokeCalendar({ userId }) {
                                 <span style={calStyles.alertLabel}>Day-Of Alert</span>
                                 <button
                                     type="button"
+                                    aria-label="Day-Of Alert" aria-pressed={addForm.alert_enabled}
                                     onClick={() => setAddForm(f => ({ ...f, alert_enabled: !f.alert_enabled }))}
-                                    style={{ ...calStyles.toggleBtn, background: addForm.alert_enabled ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)', border: addForm.alert_enabled ? '2px solid rgba(16,185,129,0.4)' : '2px solid rgba(255,255,255,0.1)', color: addForm.alert_enabled ? '#10b981' : '#64748b' }}
+                                    style={{ ...calStyles.toggleBtn, background: addForm.alert_enabled ? 'rgba(76,172,200,0.15)' : 'rgba(255,255,255,0.05)', border: addForm.alert_enabled ? '2px solid rgba(76,172,200,0.4)' : '2px solid rgba(255,255,255,0.1)', color: addForm.alert_enabled ? '#8cdeee' : '#a6bfd3' }}
                                 >
                                     {addForm.alert_enabled ? 'ON' : 'OFF'}
                                 </button>
                             </div>
 
                             <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
-                                <button type="submit" disabled={saving} style={calStyles.submitBtn}>
+                                <button type="submit" disabled={saving} className="sd-button sd-primary">
                                     {saving ? 'Saving...' : '+ Add Event'}
                                 </button>
-                                <button type="button" onClick={() => setShowAddModal(false)} style={calStyles.cancelBtn}>Cancel</button>
+                                <button type="button" onClick={() => setShowAddModal(false)} className="sd-button">Cancel</button>
                             </div>
                         </motion.form>
                     </motion.div>
@@ -408,15 +422,16 @@ function TokeCalendar({ userId }) {
                             initial={{ scale: 0.95, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.95, opacity: 0 }}
-                            style={{ ...calStyles.modal, border: '2px solid rgba(245,158,11,0.35)' }}
+                            ref={eventDialog.dialogRef} role="dialog" aria-modal="true" aria-labelledby="toke-calendar-detail-title"
+                            style={{ ...calStyles.modal, border: '2px solid rgba(45,137,234,0.35)' }}
                             onClick={e => e.stopPropagation()}
                         >
-                            <h3 style={calStyles.modalTitle}>{showEventDetail.title}</h3>
+                            <h3 id="toke-calendar-detail-title" style={calStyles.modalTitle}>{showEventDetail.title}</h3>
                             <div style={calStyles.modalDate}>
                                 {new Date(showEventDetail.event_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                             </div>
                             {showEventDetail.venue_name && (
-                                <div style={{ color: '#B0B3B8', fontSize: 14, marginTop: 4 }}>
+                                <div style={{ color: '#bfcee0', fontSize: 14, marginTop: 4 }}>
                                     {showEventDetail.venue_name}
                                 </div>
                             )}
@@ -425,7 +440,7 @@ function TokeCalendar({ userId }) {
                                     {showEventDetail.notes}
                                 </div>
                             )}
-                            <div style={{ fontSize: 13, color: '#64748b', marginTop: 8 }}>
+                            <div style={{ fontSize: 13, color: '#a6bfd3', marginTop: 8 }}>
                                 {showEventDetail.alert_enabled ? 'Alert enabled' : 'No alert'}
                             </div>
                             <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
@@ -435,7 +450,7 @@ function TokeCalendar({ userId }) {
                                 <button onClick={() => handleDeleteEvent(showEventDetail.id)} style={calStyles.deleteBtn}>
                                     Delete
                                 </button>
-                                <button onClick={() => setShowEventDetail(null)} style={calStyles.cancelBtn}>Close</button>
+                                <button ref={eventDialog.initialFocusRef} onClick={() => setShowEventDetail(null)} className="sd-button">Close</button>
                             </div>
                         </motion.div>
                     </motion.div>
@@ -456,21 +471,21 @@ const calStyles = {
     },
     headerLeft: { display: 'flex', alignItems: 'center', gap: 12 },
     calIcon: { fontSize: 28 },
-    title: { fontSize: 18, fontWeight: 700, color: '#E4E6EB' },
-    subtitle: { fontSize: 13, color: '#64748b', marginTop: 1 },
+    title: { fontSize: 18, fontWeight: 700, color: '#eff5fc' },
+    subtitle: { fontSize: 13, color: '#a6bfd3', marginTop: 1 },
     yearNav: { display: 'flex', alignItems: 'center', gap: 8 },
     navBtn: {
         background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
-        color: '#E4E6EB', borderRadius: 6, width: 28, height: 28, fontSize: 18,
+        color: '#eff5fc', borderRadius: 6, width: 28, height: 28, fontSize: 18,
         display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', lineHeight: 1,
     },
-    yearLabel: { fontSize: 16, fontWeight: 700, color: '#f59e0b', minWidth: 44, textAlign: 'center' },
+    yearLabel: { fontSize: 16, fontWeight: 700, color: '#85d8fb', minWidth: 44, textAlign: 'center' },
     eventsBadge: {
-        fontSize: 12, color: '#f59e0b', background: 'rgba(245,158,11,0.08)',
-        border: '1px solid rgba(245,158,11,0.2)', borderRadius: 20, padding: '4px 12px',
+        fontSize: 12, color: '#85d8fb', background: 'rgba(45,137,234,0.08)',
+        border: '1px solid rgba(45,137,234,0.2)', borderRadius: 20, padding: '4px 12px',
         display: 'inline-block', marginBottom: 12,
     },
-    loading: { padding: 24, textAlign: 'center', color: '#64748b', fontSize: 14 },
+    loading: { padding: 24, textAlign: 'center', color: '#a6bfd3', fontSize: 14 },
 
     // Year grid — 3 columns on mobile, 4 on wider
     yearGrid: {
@@ -479,47 +494,47 @@ const calStyles = {
         gap: 8,
     },
     monthCard: {
-        background: '#242526', border: '1px solid rgba(255,255,255,0.07)',
+        background: '#112338', border: '1px solid rgba(255,255,255,0.07)',
         borderRadius: 10, padding: '10px 8px', transition: 'border-color 0.2s',
     },
     monthCardExpanded: {
-        border: '1px solid rgba(245,158,11,0.3)',
+        border: '1px solid rgba(45,137,234,0.3)',
         gridColumn: '1 / -1', // span full row when expanded
     },
     monthHeader: {
         display: 'flex', alignItems: 'center', gap: 4, width: '100%',
         background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: 6,
     },
-    monthName: { fontSize: 12, fontWeight: 700, color: '#E4E6EB', letterSpacing: 0.3, flex: 1, textAlign: 'left' },
+    monthName: { fontSize: 12, fontWeight: 700, color: '#eff5fc', letterSpacing: 0.3, flex: 1, textAlign: 'left' },
     monthDot: {
-        fontSize: 12, background: '#f59e0b', color: '#000',
+        fontSize: 12, background: '#85d8fb', color: '#000',
         borderRadius: 10, minWidth: 16, height: 16,
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700,
     },
-    monthChevron: { fontSize: 12, color: '#64748b', transition: 'transform 0.2s' },
+    monthChevron: { fontSize: 12, color: '#a6bfd3', transition: 'transform 0.2s' },
 
     // Mini calendar
     miniGrid: {
         display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 1,
     },
-    miniDayHeader: { fontSize: 12, color: '#64748b', textAlign: 'center', fontWeight: 600, paddingBottom: 2 },
+    miniDayHeader: { fontSize: 12, color: '#a6bfd3', textAlign: 'center', fontWeight: 600, paddingBottom: 2 },
     miniDay: {
         fontSize: 12, color: '#94a3b8', textAlign: 'center', cursor: 'pointer',
         borderRadius: 3, padding: '1px 0', position: 'relative', lineHeight: '14px',
         transition: 'background 0.15s',
     },
-    miniDayToday: { background: 'rgba(245,158,11,0.2)', color: '#f59e0b', fontWeight: 700 },
-    miniDayHasEvent: { color: '#fff', fontWeight: 700, background: 'rgba(245,158,11,0.12)' },
+    miniDayToday: { background: 'rgba(45,137,234,0.2)', color: '#85d8fb', fontWeight: 700 },
+    miniDayHasEvent: { color: '#fff', fontWeight: 700, background: 'rgba(45,137,234,0.12)' },
     miniDot: {
         position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)',
-        width: 3, height: 3, background: '#f59e0b', borderRadius: '50%',
+        width: 3, height: 3, background: '#85d8fb', borderRadius: '50%',
     },
 
     // Expanded full grid
     fullGrid: {
         display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3, marginTop: 6,
     },
-    fullDayHeader: { fontSize: 12, color: '#64748b', textAlign: 'center', fontWeight: 600, padding: '4px 0' },
+    fullDayHeader: { fontSize: 12, color: '#a6bfd3', textAlign: 'center', fontWeight: 600, padding: '4px 0' },
     fullDay: {
         fontSize: 12, color: '#94a3b8', textAlign: 'center', borderRadius: 6,
         padding: '4px 2px', minHeight: 44, cursor: 'pointer',
@@ -527,16 +542,16 @@ const calStyles = {
         border: '1px solid rgba(255,255,255,0.04)', transition: 'background 0.15s',
         position: 'relative',
     },
-    fullDayToday: { background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.35)', color: '#f59e0b' },
-    fullDayPast: { opacity: 0.45 },
+    fullDayToday: { background: 'rgba(45,137,234,0.15)', border: '1px solid rgba(45,137,234,0.35)', color: '#85d8fb' },
+    fullDayPast: { opacity: 0.8 },
     fullDayNum: { fontWeight: 600, lineHeight: 1.3 },
     eventPill: {
-        fontSize: 12, background: 'rgba(245,158,11,0.2)', color: '#f59e0b',
+        fontSize: 12, background: 'rgba(45,137,234,0.2)', color: '#85d8fb',
         borderRadius: 4, padding: '1px 4px', fontWeight: 600, width: '100%',
         textAlign: 'left', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
     },
     addHint: {
-        fontSize: 14, color: 'rgba(255,255,255,0.15)', lineHeight: 1, marginTop: 'auto',
+        pointerEvents: 'none', fontSize: 14, color: '#8ca9c2', lineHeight: 1, marginTop: 'auto',
     },
 
     // Modals
@@ -545,24 +560,24 @@ const calStyles = {
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
     },
     modal: {
-        background: '#242526', border: '2px solid rgba(255,255,255,0.1)', borderRadius: 16, padding: 24,
+        background: '#112338', border: '2px solid rgba(255,255,255,0.1)', borderRadius: 16, padding: 24,
         width: '100%', maxWidth: 420, boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
     },
-    modalTitle: { fontSize: 20, fontWeight: 700, color: '#E4E6EB', margin: '0 0 8px' },
-    modalDate: { fontSize: 14, color: '#f59e0b', fontWeight: 600, marginBottom: 16 },
-    label: { fontSize: 13, fontWeight: 600, color: '#B0B3B8', marginBottom: 4, display: 'block' },
+    modalTitle: { fontSize: 20, fontWeight: 700, color: '#eff5fc', margin: '0 0 8px' },
+    modalDate: { fontSize: 14, color: '#85d8fb', fontWeight: 600, marginBottom: 16 },
+    label: { fontSize: 13, fontWeight: 600, color: '#bfcee0', marginBottom: 4, display: 'block' },
     input: {
         width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.5)',
         border: '2px solid rgba(255,255,255,0.15)', borderRadius: 8, color: '#fff',
         fontSize: 14, outline: 'none', boxSizing: 'border-box',
     },
     alertRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16 },
-    alertLabel: { fontSize: 14, fontWeight: 600, color: '#E4E6EB' },
+    alertLabel: { fontSize: 14, fontWeight: 600, color: '#eff5fc' },
     toggleBtn: {
         borderRadius: 8, padding: '6px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s',
     },
     submitBtn: {
-        flex: 1, background: '#f59e0b', color: '#000', border: 'none',
+        flex: 1, background: '#85d8fb', color: '#000', border: 'none',
         borderRadius: 10, padding: '12px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer',
     },
     shareBtn: {
@@ -571,8 +586,8 @@ const calStyles = {
         padding: '10px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
     },
     deleteBtn: {
-        background: 'rgba(239,68,68,0.15)', color: '#ef4444',
-        border: '2px solid rgba(239,68,68,0.3)', borderRadius: 10,
+        background: 'rgba(91,133,176,0.15)', color: '#d5e5f3',
+        border: '2px solid rgba(91,133,176,0.3)', borderRadius: 10,
         padding: '10px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
     },
     cancelBtn: {

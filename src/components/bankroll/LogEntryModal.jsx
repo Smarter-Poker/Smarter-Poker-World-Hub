@@ -3,6 +3,7 @@
  * Category-first session logging with minimal required fields
  */
 
+import { GRADIENTS, METAL } from './metalStyles';
 import { memo,  useState, useEffect, useRef } from 'react';
 import { useModalHistory } from '../../hooks/useModalHistory';
 import { useScrimDismiss } from '../../hooks/useScrimDismiss';
@@ -860,7 +861,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
               const totalBuyIn = buyIn * (1 + rebuys) + addOn;
               if (buyIn > 0 && (rebuys > 0 || addOn > 0)) {
                 return (
-                  <div style={{ padding: '8px 12px', background: 'rgba(255,165,0,0.1)', border: '1px solid rgba(255,165,0,0.3)', borderRadius: 8, fontSize: 13, color: '#ffa500', textAlign: 'center', marginBottom: 8 }}>
+                  <div style={{ padding: '8px 12px', background: 'rgba(55, 127, 194,0.1)', border: '1px solid rgba(55, 127, 194,0.3)', borderRadius: 8, fontSize: 13, color: '#377fc2', textAlign: 'center', marginBottom: 8 }}>
                     Total Buy-In: <strong>${totalBuyIn.toLocaleString()}</strong>
                     {rebuys > 0 && <span> ({1 + rebuys} Bullets × ${buyIn.toLocaleString()}{addOn > 0 ? ` + $${addOn.toLocaleString()} add-on` : ''})</span>}
                     {rebuys === 0 && addOn > 0 && <span> (${buyIn.toLocaleString()} + ${addOn.toLocaleString()} Add-On)</span>}
@@ -875,7 +876,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
               <button
                 type="button"
                 onClick={() => setShowSwaps(!showSwaps)}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '10px 12px', background: 'none', border: 'none', cursor: 'pointer', color: '#b0b3b8', fontSize: 14, fontWeight: 500 }}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '10px 12px', background: 'none', border: 'none', cursor: 'pointer', color: '#b6c9dd', fontSize: 14, fontWeight: 500 }}
               >
                 <span>Swap Deductions</span>
                 <span style={{ fontSize: 14, transition: 'transform 0.2s', transform: showSwaps ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
@@ -945,7 +946,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
               <button
                 type="button"
                 onClick={() => setShowStaking(!showStaking)}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '10px 12px', background: 'none', border: 'none', cursor: 'pointer', color: '#b0b3b8', fontSize: 14, fontWeight: 500 }}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '10px 12px', background: 'none', border: 'none', cursor: 'pointer', color: '#b6c9dd', fontSize: 14, fontWeight: 500 }}
               >
                 <span>Staking Deductions</span>
                 <span style={{ fontSize: 14, transition: 'transform 0.2s', transform: showStaking ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
@@ -1015,7 +1016,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
               <button
                 type="button"
                 onClick={() => setShowSoldAction(!showSoldAction)}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '10px 12px', background: 'none', border: 'none', cursor: 'pointer', color: '#b0b3b8', fontSize: 14, fontWeight: 500 }}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '10px 12px', background: 'none', border: 'none', cursor: 'pointer', color: '#b6c9dd', fontSize: 14, fontWeight: 500 }}
               >
                 <span>Sold Action</span>
                 <span style={{ fontSize: 14, transition: 'transform 0.2s', transform: showSoldAction ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
@@ -1370,7 +1371,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
         {/* Inline Expense - available on all non-expense categories */}
         {!isExpense && (
           <div style={{ ...styles.formGroup, padding: 12, background: 'rgba(255,255,255,0.1)', borderRadius: 8, border: '2px solid rgba(255,255,255,0.15)' }}>
-            <label style={{ ...styles.label, fontSize: 14, color: '#b0b3b8', marginBottom: 8 }}>Session Expense (Optional)</label>
+            <label style={{ ...styles.label, fontSize: 14, color: '#b6c9dd', marginBottom: 8 }}>Session Expense (Optional)</label>
             <div style={styles.amountRow}>
               <div style={styles.formGroup}>
                 <label style={styles.label}>Type</label>
@@ -1467,12 +1468,12 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
           <div style={styles.warningBox}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
               <span style={{ fontSize: 16 }}>⚠️</span>
-              <strong style={{ color: '#e4e6eb', fontSize: 14 }}>Bankroll Rule Alerts</strong>
+              <strong style={{ color: '#edf6ff', fontSize: 14 }}>Bankroll Rule Alerts</strong>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {ruleWarnings.map((w, i) => (
                 <div key={i} style={styles.warningItem}>
-                  <span style={{ flex: 1, fontSize: 14, color: '#b0b3b8' }}>{w}</span>
+                  <span style={{ flex: 1, fontSize: 14, color: '#b6c9dd' }}>{w}</span>
                   <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                     <button
                       type="button"
@@ -1487,7 +1488,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
                 </div>
               ))}
             </div>
-            <p style={{ fontSize: 14, color: '#65676b', margin: '10px 0 0', fontStyle: 'italic' }}>
+            <p style={{ fontSize: 14, color: '#91a7bc', margin: '10px 0 0', fontStyle: 'italic' }}>
               Manage Rules From Bankroll Rules On Your Dashboard
             </p>
           </div>
@@ -1577,9 +1578,9 @@ const styles = {
     maxWidth: 480,
     maxHeight: '90dvh',
     paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-    background: '#1a2a44',
+
     borderRadius: 16,
-    border: '2px solid rgba(255, 255, 255, 0.12)',
+
     outline: '3px solid rgba(255, 255, 255, 0.3)',
     outlineOffset: '2px',
     overflow: 'hidden',
@@ -1633,8 +1634,8 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
-    background: 'rgba(255, 255, 255, 0.03)',
-    border: '2px solid rgba(255, 255, 255, 0.2)',
+    background: GRADIENTS.darkPanel,
+    border: `1px solid ${METAL.highlight}`,
     borderRadius: 12,
     cursor: 'pointer',
     transition: 'all 0.2s ease',
@@ -1729,8 +1730,8 @@ const styles = {
   },
   warningBox: {
     padding: 14,
-    background: '#242526',
-    border: '2px solid #3a3b3c',
+    background: '#101f31',
+    border: '2px solid #22394e',
     borderRadius: 10,
     fontSize: 14,
   },
@@ -1739,16 +1740,16 @@ const styles = {
     alignItems: 'center',
     gap: 8,
     padding: '8px 10px',
-    background: '#3a3b3c',
+    background: '#22394e',
     borderRadius: 8,
     flexWrap: 'wrap',
   },
   warningDismissBtn: {
     padding: '4px 10px',
     borderRadius: 6,
-    border: '2px solid #4a4b4c',
+    border: '2px solid #41617b',
     background: 'transparent',
-    color: '#b0b3b8',
+    color: '#b6c9dd',
     fontSize: 14,
     cursor: 'pointer',
     whiteSpace: 'nowrap',
@@ -1769,10 +1770,10 @@ const styles = {
   backButton: {
     flex: 1,
     padding: 14,
-    background: 'rgba(255, 255, 255, 0.1)',
-    border: '2px solid rgba(255, 255, 255, 0.15)',
+    background: GRADIENTS.metalButton,
+    border: `1px solid ${METAL.highlight}`,
     borderRadius: 8,
-    color: '#fff',
+    color: '#edf6ff',
     fontSize: 14,
     fontWeight: 500,
     cursor: 'pointer',
@@ -1780,10 +1781,10 @@ const styles = {
   submitButton: {
     flex: 2,
     padding: 14,
-    background: 'linear-gradient(135deg, #2374e1, #1a5fc9)',
-    border: 'none',
+    background: GRADIENTS.cyanAction,
+    border: `1px solid ${METAL.highlight}`,
     borderRadius: 8,
-    color: '#fff',
+    color: '#edf6ff',
     fontSize: 14,
     fontWeight: 600,
     cursor: 'pointer',

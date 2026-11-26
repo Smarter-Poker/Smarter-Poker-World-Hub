@@ -5,6 +5,7 @@
  * ═══════════════════════════════════════════════════════════════
  */
 
+import { GRADIENTS, METAL } from './metalStyles';
 import React from 'react';
 import { formatCurrency } from '../../lib/bankroll/currencyUtils';
 
@@ -21,7 +22,7 @@ function TripReport({ report, onBack }) {
     const { trip, stats, categoryBreakdown, dailyBreakdown, entries } = report;
 
     return (
-        <div style={styles.container}>
+        <div className="sd-panel" style={styles.container}>
             {/* Back Button */}
             <button onClick={onBack} style={styles.backBtn}>← Back To Trip Tracker</button>
 
@@ -148,11 +149,11 @@ const styles = {
         gap: 20,
     },
     backBtn: {
-        background: 'rgba(255,255,255,0.15)',
-        border: '2px solid rgba(255,255,255,0.1)',
+        background: GRADIENTS.metalButton,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 8,
         padding: '8px 16px',
-        color: '#94a3b8',
+        color: '#edf6ff',
         fontSize: 14,
         cursor: 'pointer',
         alignSelf: 'flex-start',
@@ -194,7 +195,7 @@ const styles = {
     },
     statLabel: {
         fontSize: 14,
-        color: '#64748b',
+        color: '#9aaec3',
         textTransform: 'uppercase',
         letterSpacing: 0.5,
     },
@@ -242,7 +243,7 @@ const styles = {
     },
     catMeta: {
         fontSize: 14,
-        color: '#64748b',
+        color: '#9aaec3',
         marginTop: 2,
     },
 
@@ -294,7 +295,7 @@ const styles = {
     },
     entryDate: {
         fontSize: 14,
-        color: '#64748b',
+        color: '#9aaec3',
         flexShrink: 0,
     },
     entryCat: {

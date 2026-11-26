@@ -4,6 +4,7 @@
  * Includes "Add Custom Rule" functionality
  */
 
+import { GRADIENTS, METAL } from './metalStyles';
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import toast from '../../stores/toastStore';
@@ -287,7 +288,7 @@ export default function BankrollRulesCard({ userId }) {
 
   if (isLoading) {
     return (
-      <div style={styles.container}>
+      <div className="sd-panel" style={styles.container}>
         <h3 style={styles.title}>Bankroll Rules</h3>
         <div style={{ padding: 20, textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>
           Loading Rules...
@@ -297,7 +298,7 @@ export default function BankrollRulesCard({ userId }) {
   }
 
   return (
-    <div style={styles.container}>
+    <div className="sd-panel" style={styles.container}>
       <h3 style={styles.title}>Bankroll Rules</h3>
       <p style={styles.subtitle}>Toggle Rules On Or Off. Tap The Value To Customize.</p>
       <div style={styles.ruleList}>
@@ -363,8 +364,8 @@ export default function BankrollRulesCard({ userId }) {
         {/* Custom Rules */}
         {customRules.length > 0 && (
           <>
-            <div style={{ margin: '12px 0 4px', borderTop: '1px solid #4a4b4c', paddingTop: 12 }}>
-              <span style={{ fontSize: 14, fontWeight: 600, color: '#b0b3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>Custom Rules</span>
+            <div style={{ margin: '12px 0 4px', borderTop: '1px solid #41617b', paddingTop: 12 }}>
+              <span style={{ fontSize: 14, fontWeight: 600, color: '#b6c9dd', textTransform: 'uppercase', letterSpacing: 0.5 }}>Custom Rules</span>
             </div>
             {customRules.map((cr) => {
               const isEditing = editingRule === cr.id;
@@ -444,10 +445,10 @@ export default function BankrollRulesCard({ userId }) {
       ) : (
         <div style={styles.addForm}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <span style={{ fontSize: 14, fontWeight: 600, color: '#e4e6eb' }}>New Custom Rule</span>
+            <span style={{ fontSize: 14, fontWeight: 600, color: '#edf6ff' }}>New Custom Rule</span>
             <button
               onClick={() => { setShowAddForm(false); setNewLabel(''); setNewDescription(''); setNewValue(''); setNewUnit('$'); }}
-              style={{ background: 'none', border: 'none', color: '#b0b3b8', fontSize: 16, cursor: 'pointer' }}
+              style={{ background: 'none', border: 'none', color: '#b6c9dd', fontSize: 16, cursor: 'pointer' }}
             >✕</button>
           </div>
           <input
@@ -505,20 +506,16 @@ export default function BankrollRulesCard({ userId }) {
 const styles = {
   container: {
     marginBottom: 24,
-    padding: 16,
-    background: '#242526',
-    border: '2px solid #3a3b3c',
-    borderRadius: 10,
   },
   title: {
     fontSize: 14,
     fontWeight: 600,
-    color: '#e4e6eb',
+    color: '#edf6ff',
     margin: '0 0 4px',
   },
   subtitle: {
     fontSize: 14,
-    color: '#b0b3b8',
+    color: '#b6c9dd',
     margin: '0 0 14px',
   },
   ruleList: {
@@ -528,9 +525,9 @@ const styles = {
   },
   ruleItem: {
     padding: 12,
-    background: '#3a3b3c',
+    background: '#22394e',
     borderRadius: 8,
-    border: '2px solid #4a4b4c',
+    border: '2px solid #41617b',
     transition: 'opacity 0.2s',
   },
   ruleTop: {
@@ -548,11 +545,11 @@ const styles = {
   ruleLabel: {
     fontSize: 14,
     fontWeight: 600,
-    color: '#e4e6eb',
+    color: '#edf6ff',
   },
   ruleDesc: {
     fontSize: 14,
-    color: '#b0b3b8',
+    color: '#b6c9dd',
   },
   toggle: {
     width: 40,
@@ -575,12 +572,12 @@ const styles = {
   ruleValueRow: {
     marginTop: 8,
     paddingTop: 8,
-    borderTop: '1px solid #4a4b4c',
+    borderTop: '1px solid #41617b',
   },
   valueBtn: {
     background: 'none',
     border: 'none',
-    color: '#2374e1',
+    color: '#92cfff',
     fontSize: 14,
     fontWeight: 600,
     cursor: 'pointer',
@@ -594,22 +591,22 @@ const styles = {
   editInput: {
     width: 80,
     padding: '4px 8px',
-    background: '#18191a',
-    border: '2px solid #4a4b4c',
+    background: '#081320',
+    border: '2px solid #41617b',
     borderRadius: 4,
-    color: '#e4e6eb',
+    color: '#edf6ff',
     fontSize: 14,
   },
   editUnit: {
     fontSize: 14,
-    color: '#b0b3b8',
+    color: '#b6c9dd',
   },
   saveBtn: {
     padding: '4px 10px',
-    background: '#2374e1',
-    border: 'none',
+    background: GRADIENTS.cyanAction,
+    border: `1px solid ${METAL.highlight}`,
     borderRadius: 4,
-    color: '#fff',
+    color: '#edf6ff',
     fontSize: 14,
     fontWeight: 600,
     cursor: 'pointer',
@@ -617,7 +614,7 @@ const styles = {
   cancelBtn: {
     background: 'none',
     border: 'none',
-    color: '#b0b3b8',
+    color: '#b6c9dd',
     fontSize: 14,
     cursor: 'pointer',
     padding: '2px 4px',
@@ -627,9 +624,9 @@ const styles = {
     marginTop: 12,
     padding: '12px 16px',
     background: 'transparent',
-    border: '1px dashed #4a4b4c',
+    border: '1px dashed #41617b',
     borderRadius: 8,
-    color: '#2374e1',
+    color: '#92cfff',
     fontSize: 14,
     fontWeight: 600,
     cursor: 'pointer',
@@ -638,7 +635,7 @@ const styles = {
   addForm: {
     marginTop: 12,
     padding: 14,
-    background: '#3a3b3c',
+    background: '#22394e',
     border: '2px solid rgba(255,255,255,0.15)',
     borderRadius: 8,
     outline: '3px solid rgba(255,255,255,0.3)',
@@ -647,20 +644,20 @@ const styles = {
   formInput: {
     width: '100%',
     padding: '10px 12px',
-    background: '#18191a',
-    border: '2px solid #4a4b4c',
+    background: '#081320',
+    border: '2px solid #41617b',
     borderRadius: 6,
-    color: '#e4e6eb',
+    color: '#edf6ff',
     fontSize: 14,
     outline: 'none',
     boxSizing: 'border-box',
   },
   formSelect: {
     padding: '10px 12px',
-    background: '#18191a',
-    border: '2px solid #4a4b4c',
+    background: '#081320',
+    border: '2px solid #41617b',
     borderRadius: 6,
-    color: '#e4e6eb',
+    color: '#edf6ff',
     fontSize: 14,
     outline: 'none',
     minWidth: 80,

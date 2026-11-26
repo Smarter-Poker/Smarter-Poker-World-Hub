@@ -111,8 +111,7 @@ export default function AdvancedTaxReport({ entries = [], userId }) {
         setDeductions(prev => ({ ...prev, [id]: value }));
     };
 
-    const handleExportPDF = () => {
-        // In production this uses jspdf — here we simulate
+    const downloadTaxSummary = () => {
         const content = [
             `POKER TAX REPORT - ${year}`,
             `State: ${stateInfo.name} (${stateInfo.code})`,
@@ -140,15 +139,15 @@ export default function AdvancedTaxReport({ entries = [], userId }) {
     };
 
     return (
-        <div style={{ padding: '0 0 40px' }}>
+        <div className="sd-panel">
             {/* Header Bar */}
             <div style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 marginBottom: 24, flexWrap: 'wrap', gap: 12,
             }}>
                 <div>
-                    <div style={{ fontSize: 20, fontWeight: 900, color: '#e2e8f0', letterSpacing: '-0.3px' }}>Advanced Tax Report</div>
-                    <div style={{ fontSize: 12, color: '#64748b' }}>IRS-Ready P/L Summary With State-Specific Calculations</div>
+                    <div style={{ fontSize: 20, fontWeight: 900, color: '#e2e8f0', letterSpacing: '-0.3px' }}>State Tax Report</div>
+                    <div style={{ fontSize: 12, color: '#9aaec3' }}>IRS-Ready P/L Summary With State-Specific Calculations</div>
                 </div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                     <select
@@ -179,16 +178,16 @@ export default function AdvancedTaxReport({ entries = [], userId }) {
                 {[
                     { label: 'GROSS WINNINGS', value: `$${totalIncome.toLocaleString()}`, color: '#4ade80' },
                     { label: 'TOTAL LOSSES', value: `-$${totalLosses.toLocaleString()}`, color: '#f87171' },
-                    { label: 'DEDUCTIONS', value: `-$${totalDeductions.toLocaleString()}`, color: '#fbbf24' },
+                    { label: 'DEDUCTIONS', value: `-$${totalDeductions.toLocaleString()}`, color: '#94e7ff' },
                     { label: 'NET TAXABLE', value: `$${netTaxableIncome.toLocaleString()}`, color: '#e2e8f0' },
                     { label: 'FEDERAL TAX', value: `$${Math.round(federalTax).toLocaleString()}`, color: '#60a5fa' },
-                    { label: `${stateInfo.code} STATE TAX`, value: `$${Math.round(stateTax).toLocaleString()}`, color: '#a78bfa' },
+                    { label: `${stateInfo.code} STATE TAX`, value: `$${Math.round(stateTax).toLocaleString()}`, color: '#a8ccf1' },
                 ].map((card, i) => (
                     <div key={i} style={{
-                        background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)',
+                        background: 'var(--sd-surface)', border: '1px solid var(--sd-line)',
                         borderRadius: 12, padding: '14px 16px',
                     }}>
-                        <div style={{ fontSize: 12, color: '#64748b', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 }}>{card.label}</div>
+                        <div style={{ fontSize: 12, color: '#9aaec3', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 }}>{card.label}</div>
                         <div style={{ fontSize: 18, fontWeight: 900, color: card.color }}>{card.value}</div>
                     </div>
                 ))}
@@ -196,26 +195,26 @@ export default function AdvancedTaxReport({ entries = [], userId }) {
 
             {/* Effective Rate Highlight */}
             <div style={{
-                background: 'linear-gradient(135deg, rgba(99,102,241,0.08), rgba(0,0,0,0.2))',
-                border: '1px solid rgba(99,102,241,0.2)', borderRadius: 16, padding: '20px 24px',
+                background: 'linear-gradient(135deg, rgba(71, 149, 243,0.08), rgba(0,0,0,0.2))',
+                border: '1px solid rgba(71, 149, 243,0.2)', borderRadius: 16, padding: '20px 24px',
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24,
             }}>
                 <div>
                     <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 700 }}>Combined Effective Tax Rate</div>
-                    <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>Federal + {stateInfo.name}</div>
+                    <div style={{ fontSize: 12, color: '#9aaec3', marginTop: 2 }}>Federal + {stateInfo.name}</div>
                 </div>
                 <div style={{ fontSize: 32, fontWeight: 900, color: '#fff' }}>{effectiveRate}%</div>
             </div>
 
             {/* Quarterly Breakdown */}
             <div style={{
-                background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)',
+                background: 'var(--sd-surface)', border: '1px solid var(--sd-line)',
                 borderRadius: 16, padding: 20, marginBottom: 24,
             }}>
                 <div style={{ fontSize: 13, fontWeight: 800, color: '#e2e8f0', marginBottom: 16, letterSpacing: 0.3 }}>
                     Quarterly P/L Breakdown - {year}
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 115px), 1fr))', gap: 12 }}>
                     {quarterlyData.map((q, i) => {
                         const net = q.income - q.losses;
                         return (
@@ -227,7 +226,7 @@ export default function AdvancedTaxReport({ entries = [], userId }) {
                                 <div style={{ fontSize: 16, fontWeight: 900, color: net >= 0 ? '#4ade80' : '#f87171' }}>
                                     {net >= 0 ? '+' : '−'}${Math.abs(net).toLocaleString()}
                                 </div>
-                                <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
+                                <div style={{ fontSize: 12, color: '#9aaec3', marginTop: 4 }}>
                                     W: ${q.income.toLocaleString()} / L: ${q.losses.toLocaleString()}
                                 </div>
                             </div>
@@ -238,7 +237,7 @@ export default function AdvancedTaxReport({ entries = [], userId }) {
 
             {/* Itemized Deductions */}
             <div style={{
-                background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)',
+                background: 'var(--sd-surface)', border: '1px solid var(--sd-line)',
                 borderRadius: 16, padding: 20, marginBottom: 24,
             }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -288,7 +287,7 @@ export default function AdvancedTaxReport({ entries = [], userId }) {
                 </AnimatePresence>
 
                 {!showDeductionForm && totalDeductions > 0 && (
-                    <div style={{ fontSize: 13, color: '#fbbf24', fontWeight: 700 }}>
+                    <div style={{ fontSize: 13, color: '#94e7ff', fontWeight: 700 }}>
                         Total Deductions: ${totalDeductions.toLocaleString()}
                     </div>
                 )}
@@ -297,10 +296,10 @@ export default function AdvancedTaxReport({ entries = [], userId }) {
             {/* Export Controls */}
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                 <button
-                    onClick={handleExportPDF}
+                    onClick={downloadTaxSummary}
                     style={{
                         flex: 1, minWidth: 160, padding: '14px', borderRadius: 12,
-                        background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                        background: 'linear-gradient(135deg, #4795f3, #2563a8)',
                         border: 'none', color: '#fff', fontSize: 14, fontWeight: 800,
                         cursor: 'pointer', letterSpacing: 0.5,
                     }}

@@ -3,6 +3,7 @@
  * Statistical analysis — driven by entries prop for real-time filter reactivity
  */
 
+import { GRADIENTS, METAL } from './metalStyles';
 import { memo,  useMemo  } from 'react';
 
 function VarianceCalculator({ entries = [] }) {
@@ -83,7 +84,7 @@ function VarianceCalculator({ entries = [] }) {
                 </div>
                 <div style={styles.extremeItem}>
                     <span style={styles.extremeLabel}>Max Drawdown</span>
-                    <span style={{ ...styles.extremeValue, color: '#eab308' }}>${stats.maxDrawdown.toLocaleString()}</span>
+                    <span style={{ ...styles.extremeValue, color: '#61d0e8' }}>${stats.maxDrawdown.toLocaleString()}</span>
                 </div>
             </div>
             <div style={styles.sampleNote}>Based On {stats.sampleSize} Sessions</div>
@@ -94,8 +95,8 @@ function VarianceCalculator({ entries = [] }) {
 const styles = {
     container: {
         padding: 16,
-        background: 'linear-gradient(135deg, rgba(0,30,60,0.95), rgba(0,20,40,0.9))',
-        border: '2px solid rgba(0,212,255,0.2)',
+        background: GRADIENTS.darkPanel,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 12,
         height: '100%',
         boxSizing: 'border-box',
@@ -111,7 +112,7 @@ const styles = {
     title: {
         fontSize: 14,
         fontWeight: 600,
-        color: '#2374e1',
+        color: '#92cfff',
         margin: '0 0 14px',
     },
     grid: {

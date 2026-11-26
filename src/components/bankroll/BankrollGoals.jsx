@@ -3,6 +3,7 @@
  * Set and track profit targets with progress visualization
  */
 
+import { GRADIENTS, METAL } from './metalStyles';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
@@ -247,9 +248,9 @@ export default function BankrollGoals({ userId, currentBankroll = 0, periodPL = 
 
 const styles = {
     container: {
-        background: 'linear-gradient(135deg, rgba(0,30,60,0.95), rgba(0,20,40,0.9))',
+        background: GRADIENTS.darkPanel,
         borderRadius: 12,
-        border: '2px solid rgba(0,212,255,0.2)',
+        border: `1px solid ${METAL.highlight}`,
         padding: 14,
         marginBottom: 16,
     },
@@ -271,7 +272,7 @@ const styles = {
         margin: 0,
         fontSize: 14,
         fontWeight: 600,
-        color: '#2374e1',
+        color: '#92cfff',
     },
     addBtn: {
         width: 28,
@@ -279,17 +280,17 @@ const styles = {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'rgba(0,212,255,0.2)',
-        border: '2px solid rgba(0,212,255,0.4)',
+        background: GRADIENTS.cyanAction,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 6,
-        color: '#2374e1',
+        color: '#edf6ff',
         fontSize: 18,
         cursor: 'pointer',
     },
     loading: {
         padding: 20,
         textAlign: 'center',
-        color: '#8a8d91',
+        color: '#a1b4c7',
         fontSize: 14,
     },
     addForm: {
@@ -324,17 +325,17 @@ const styles = {
     periodBtn: {
         flex: 1,
         padding: '8px 4px',
-        background: 'rgba(255,255,255,0.15)',
-        border: '2px solid rgba(255,255,255,0.1)',
+        background: GRADIENTS.metalButton,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 6,
-        color: '#888',
+        color: '#edf6ff',
         fontSize: 14,
         cursor: 'pointer',
     },
     periodBtnActive: {
         background: 'rgba(0,212,255,0.2)',
         borderColor: '#2374e1',
-        color: '#2374e1',
+        color: '#92cfff',
     },
     formActions: {
         display: 'flex',
@@ -343,25 +344,25 @@ const styles = {
     cancelBtn: {
         flex: 1,
         padding: '10px',
-        background: 'rgba(255,255,255,0.15)',
-        border: '2px solid rgba(255,255,255,0.1)',
+        background: GRADIENTS.metalButton,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 8,
-        color: '#888',
+        color: '#edf6ff',
         cursor: 'pointer',
     },
     saveBtn: {
         flex: 1,
         padding: '10px',
-        background: 'linear-gradient(135deg, #2374e1, #1a5fc9)',
-        border: 'none',
+        background: GRADIENTS.cyanAction,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 8,
-        color: '#fff',
+        color: '#edf6ff',
         fontWeight: 600,
         cursor: 'pointer',
     },
     goalCard: {
-        background: 'rgba(0,212,255,0.05)',
-        border: '2px solid rgba(0,212,255,0.2)',
+        background: GRADIENTS.darkPanel,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 10,
         padding: 12,
     },
@@ -373,7 +374,7 @@ const styles = {
     },
     goalPeriod: {
         fontSize: 14,
-        color: '#888',
+        color: '#9fb4c8',
         textTransform: 'uppercase',
         display: 'block',
         marginBottom: 2,
@@ -391,7 +392,7 @@ const styles = {
         justifyContent: 'center',
         background: 'transparent',
         border: 'none',
-        color: '#8a8d91',
+        color: '#a1b4c7',
         fontSize: 18,
         cursor: 'pointer',
     },
@@ -415,11 +416,11 @@ const styles = {
         fontSize: 14,
     },
     progressPercent: {
-        color: '#888',
+        color: '#9fb4c8',
     },
     daysRemaining: {
         fontSize: 14,
-        color: '#8a8d91',
+        color: '#a1b4c7',
         textAlign: 'center',
     },
     milestone: {
@@ -439,15 +440,15 @@ const styles = {
         alignItems: 'center',
         gap: 10,
         padding: 16,
-        color: '#8a8d91',
+        color: '#a1b4c7',
         fontSize: 14,
     },
     setGoalBtn: {
         padding: '8px 16px',
-        background: 'rgba(0,212,255,0.1)',
-        border: '2px solid rgba(0,212,255,0.3)',
+        background: GRADIENTS.cyanAction,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 6,
-        color: '#2374e1',
+        color: '#edf6ff',
         fontSize: 14,
         cursor: 'pointer',
     },
@@ -457,7 +458,7 @@ const styles = {
         justifyContent: 'center',
         gap: 8,
         padding: 20,
-        color: '#8a8d91',
+        color: '#a1b4c7',
         fontSize: 14,
     },
 };

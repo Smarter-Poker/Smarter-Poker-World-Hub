@@ -182,7 +182,7 @@ export default function ReceiptScanner({
 
     const getConfidenceLabel = (score) => {
         if (score >= 75) return { label: 'HIGH', color: '#4ade80', bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.3)' };
-        if (score >= 40) return { label: 'MEDIUM', color: '#fbbf24', bg: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.3)' };
+        if (score >= 40) return { label: 'MEDIUM', color: '#94e7ff', bg: 'rgba(148, 231, 255,0.1)', border: 'rgba(148, 231, 255,0.3)' };
         return { label: 'LOW', color: '#f87171', bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.3)' };
     };
 
@@ -798,7 +798,7 @@ export default function ReceiptScanner({
                                 type="button"
                                 style={{
                                     ...styles.confirmBtn,
-                                    background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                                    background: 'linear-gradient(135deg, #4795f3, #2563a8)',
                                     color: '#fff',
                                     flex: 1,
                                 }}
@@ -833,7 +833,7 @@ const styles = {
     container: {
         position: 'relative',
         background: GRADIENTS.darkPanel,
-        border: `2px solid ${METAL.mid}`,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 12,
         overflow: 'hidden',
     },
@@ -894,9 +894,9 @@ const styles = {
         width: '100%',
         padding: '22px 16px',
         background: GRADIENTS.cyanAction,
-        border: 'none',
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 12,
-        color: '#fff',
+        color: '#edf6ff',
         cursor: 'pointer',
         minHeight: 56,
     },
@@ -990,7 +990,7 @@ const styles = {
         gap: 10,
         padding: 20,
         margin: 16,
-        background: 'rgba(240,40,73,0.08)',
+        background: 'rgba(238, 86, 81,0.08)',
         border: `2px solid ${METAL.danger}`,
         borderRadius: 10,
         textAlign: 'center',
@@ -1018,7 +1018,7 @@ const styles = {
         justifyContent: 'center',
         gap: 10,
         padding: '20px',
-        background: 'rgba(240,40,73,0.1)',
+        background: 'rgba(238, 86, 81,0.1)',
         border: `2px solid ${METAL.danger}`,
         margin: 16,
         borderRadius: 10,
@@ -1031,8 +1031,8 @@ const styles = {
     retryBtn: {
         padding: '8px 14px',
         minHeight: 40,
-        background: 'rgba(240,40,73,0.2)',
-        border: `2px solid ${METAL.danger}`,
+        background: GRADIENTS.cyanAction,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 6,
         color: METAL.danger,
         fontFamily: "'Rajdhani', sans-serif",
@@ -1155,12 +1155,12 @@ const styles = {
         padding: '13px',
         minHeight: 48,
         background: GRADIENTS.cyanAction,
-        border: 'none',
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 8,
         fontFamily: "'Rajdhani', sans-serif",
         fontSize: 14,
         fontWeight: 700,
-        color: '#fff',
+        color: '#edf6ff',
         letterSpacing: '0.1em',
         cursor: 'pointer',
     },

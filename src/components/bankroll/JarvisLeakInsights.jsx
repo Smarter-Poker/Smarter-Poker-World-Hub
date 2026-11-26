@@ -3,6 +3,7 @@
  * AI-powered bankroll analysis — user-triggered only, full-screen modal
  */
 
+import { GRADIENTS, METAL } from './metalStyles';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useVIPGate from '../../hooks/useVIPGate';
@@ -10,9 +11,9 @@ import VIPGateModal from '../ui/VIPGateModal';
 
 const RISK_CONFIG = {
     low: { color: '#22c55e', label: 'Low Risk', bg: 'rgba(34,197,94,0.15)' },
-    medium: { color: '#f59e0b', label: 'Moderate', bg: 'rgba(245,158,11,0.15)' },
+    medium: { color: '#56c8dd', label: 'Moderate', bg: 'rgba(86, 200, 221,0.15)' },
     high: { color: '#ef4444', label: 'High Risk', bg: 'rgba(239,68,68,0.15)' },
-    unknown: { color: '#888', label: 'Unknown', bg: 'rgba(136,136,136,0.15)' },
+    unknown: { color: '#9fb4c8', label: 'Unknown', bg: 'rgba(136,136,136,0.15)' },
 };
 
 export default function JarvisLeakInsights({ userId, onRefresh }) {
@@ -103,7 +104,7 @@ export default function JarvisLeakInsights({ userId, onRefresh }) {
                             animate={{ scale: 1, y: 0 }}
                             exit={{ scale: 0.95, y: 20 }}
                             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                            style={styles.modal}
+                            className="sd-panel" style={styles.modal}
                             onClick={e => e.stopPropagation()}
                         >
                             {/* Modal Header */}
@@ -248,7 +249,7 @@ const styles = {
         gap: 10,
         width: '100%',
         padding: '12px 14px',
-        background: '#18191a',
+        background: '#081320',
         border: '2px solid rgba(255,255,255,0.1)',
         borderRadius: 12,
         cursor: 'pointer',
@@ -261,8 +262,8 @@ const styles = {
         height: 52,
         borderRadius: '50%',
         flexShrink: 0,
-        border: '2px solid rgba(139,92,246,0.4)',
-        boxShadow: '0 0 12px rgba(139,92,246,0.2)',
+        border: '2px solid rgba(139, 185, 244,0.4)',
+        boxShadow: '0 0 12px rgba(139, 185, 244,0.2)',
     },
     triggerText: {
         flex: 1,
@@ -301,21 +302,19 @@ const styles = {
         width: '100%',
         maxWidth: 680,
         maxHeight: '90vh',
-        background: 'linear-gradient(180deg, #0d0d2b 0%, #0a1929 50%, #0d1117 100%)',
-        border: '2px solid rgba(139,92,246,0.35)',
+
         borderRadius: 16,
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(139,92,246,0.15)',
     },
     modalHeader: {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
         padding: '16px 24px',
-        borderBottom: '1px solid rgba(139,92,246,0.2)',
-        background: 'rgba(139,92,246,0.05)',
+        borderBottom: '1px solid rgba(139, 185, 244,0.2)',
+        background: 'rgba(139, 185, 244,0.05)',
     },
     modalTitleRow: {
         display: 'flex',
@@ -326,7 +325,7 @@ const styles = {
         width: 48,
         height: 48,
         borderRadius: '50%',
-        border: '2px solid rgba(139,92,246,0.5)',
+        border: '2px solid rgba(139, 185, 244,0.5)',
     },
     modalTitle: {
         margin: 0,
@@ -346,10 +345,10 @@ const styles = {
     },
     refreshBtn: {
         padding: '8px 16px',
-        background: 'rgba(139,92,246,0.15)',
-        border: '2px solid rgba(139,92,246,0.3)',
+        background: GRADIENTS.metalButton,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 8,
-        color: '#8b5cf6',
+        color: '#edf6ff',
         cursor: 'pointer',
         fontSize: 14,
         fontWeight: 600,
@@ -363,7 +362,7 @@ const styles = {
         background: 'rgba(255,255,255,0.15)',
         border: '2px solid rgba(255,255,255,0.1)',
         borderRadius: 8,
-        color: '#888',
+        color: '#9fb4c8',
         cursor: 'pointer',
         fontSize: 16,
     },
@@ -380,7 +379,7 @@ const styles = {
     },
     loadingText: {
         fontSize: 18,
-        color: '#8b5cf6',
+        color: '#8bb9f4',
         fontWeight: 600,
         marginBottom: 8,
     },
@@ -402,10 +401,10 @@ const styles = {
     },
     retryBtn: {
         padding: '10px 24px',
-        background: 'rgba(239,68,68,0.15)',
-        border: '2px solid rgba(239,68,68,0.4)',
+        background: GRADIENTS.cyanAction,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 8,
-        color: '#ef4444',
+        color: '#edf6ff',
         cursor: 'pointer',
         fontSize: 14,
         fontWeight: 600,
@@ -425,8 +424,8 @@ const styles = {
     },
     summaryCard: {
         padding: 16,
-        background: 'rgba(255,255,255,0.1)',
-        border: '2px solid rgba(255,255,255,0.08)',
+        background: GRADIENTS.darkPanel,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 12,
         marginBottom: 20,
     },
@@ -451,8 +450,8 @@ const styles = {
     },
     sectionCard: {
         padding: 16,
-        background: 'rgba(255,255,255,0.1)',
-        border: '2px solid rgba(255,255,255,0.15)',
+        background: GRADIENTS.darkPanel,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 12,
     },
     list: {
@@ -465,12 +464,12 @@ const styles = {
         alignItems: 'flex-start',
         gap: 8,
         fontSize: 14,
-        color: '#e4e6eb',
+        color: '#edf6ff',
         padding: '6px 0',
         lineHeight: 1.4,
     },
     bullet: {
-        color: '#8b5cf6',
+        color: '#8bb9f4',
         fontWeight: 700,
         flexShrink: 0,
     },
@@ -481,13 +480,13 @@ const styles = {
         fontSize: 14,
         color: '#fff',
         padding: '8px 12px',
-        background: 'rgba(139,92,246,0.08)',
+        background: 'rgba(139, 185, 244,0.08)',
         borderRadius: 8,
         marginBottom: 6,
         lineHeight: 1.4,
     },
     recArrow: {
-        color: '#8b5cf6',
+        color: '#8bb9f4',
         fontWeight: 700,
         flexShrink: 0,
     },
@@ -525,13 +524,13 @@ const styles = {
     },
     analyzeBtn: {
         padding: '14px 32px',
-        background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
-        border: 'none',
+        background: GRADIENTS.cyanAction,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 10,
-        color: '#fff',
+        color: '#edf6ff',
         fontWeight: 600,
         cursor: 'pointer',
         fontSize: 15,
-        boxShadow: '0 4px 20px rgba(139,92,246,0.3)',
+        boxShadow: '0 4px 20px rgba(139, 185, 244,0.3)',
     },
 };

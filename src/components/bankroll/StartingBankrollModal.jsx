@@ -6,6 +6,7 @@
  * ═══════════════════════════════════════════════════════════════
  */
 
+import { GRADIENTS, METAL } from './metalStyles';
 import { useState } from 'react';
 import { useModalHistory } from '../../hooks/useModalHistory';
 import { useScrimDismiss } from '../../hooks/useScrimDismiss';
@@ -150,8 +151,6 @@ const styles = {
         padding: 20,
     },
     modal: {
-        background: 'linear-gradient(180deg, #0d1f3c 0%, #0a1628 100%)',
-        border: '2px solid rgba(59, 130, 246, 0.3)',
         borderRadius: 16,
         padding: '0 24px 24px',
         maxWidth: 440,
@@ -251,12 +250,12 @@ const styles = {
         justifyContent: 'center',
     },
     presetBtn: {
-        background: 'rgba(255,255,255,0.15)',
-        border: '2px solid rgba(255,255,255,0.12)',
+        background: GRADIENTS.metalButton,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 8,
         padding: '8px 14px',
         minHeight: 44,
-        color: '#94a3b8',
+        color: '#edf6ff',
         fontSize: 14,
         fontWeight: 500,
         cursor: 'pointer',
@@ -270,7 +269,7 @@ const styles = {
     },
     hint: {
         fontSize: 14,
-        color: '#64748b',
+        color: '#9aaec3',
         margin: 0,
     },
     submitBtn: {

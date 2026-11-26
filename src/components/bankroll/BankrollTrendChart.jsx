@@ -24,8 +24,8 @@ const ReferenceLine = dynamic(() => import('recharts').then(m => m.ReferenceLine
 const CATEGORY_COLORS = {
     poker_cash: '#22c55e',
     poker_mtt: '#3b82f6',
-    casino_table: '#f59e0b',
-    slots: '#a855f7',
+    casino_table: '#56c8dd',
+    slots: '#a9c6e6',
     sports: '#ef4444',
     expense: '#6b7280',
 };
@@ -395,8 +395,8 @@ function BankrollTrendChart({ entries = [], isLoading = false, chartType = 'line
                             <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.7} />
                         </linearGradient>
                     </defs>
-                    <XAxis dataKey="range" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 14 }} interval={0} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 14 }} width={30} allowDecimals={false} />
+                    <XAxis dataKey="range" axisLine={false} tickLine={false} tick={{ fill: '#a5bcd1', fontSize: 14 }} interval={0} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#a5bcd1', fontSize: 14 }} width={30} allowDecimals={false} />
                     <Tooltip cursor={{ fill: 'rgba(255,255,255,0.1)' }} content={({ active, payload }) => {
                         if (!active || !payload?.[0]) return null;
                         const d = payload[0].payload;
@@ -577,8 +577,8 @@ function BankrollTrendChart({ entries = [], isLoading = false, chartType = 'line
         const DONUT_COLORS = {
             poker_cash: ['#22c55e', '#15803d'],
             poker_mtt: ['#60a5fa', '#2563eb'],
-            casino_table: ['#fbbf24', '#d97706'],
-            slots: ['#c084fc', '#7c3aed'],
+            casino_table: ['#94e7ff', '#33849f'],
+            slots: ['#bad4f0', '#6085b9'],
             sports: ['#f87171', '#dc2626'],
             expense: ['#94a3b8', '#475569'],
         };
@@ -747,12 +747,8 @@ function BankrollTrendChart({ entries = [], isLoading = false, chartType = 'line
 // ── Styles ────────────────────────────────────────────────────
 const S = {
     container: {
-        background: 'linear-gradient(160deg, rgba(8,16,32,0.95) 0%, rgba(12,24,48,0.92) 50%, rgba(8,20,40,0.90) 100%)',
-        borderRadius: 16,
-        border: '2px solid rgba(255,255,255,0.07)',
         padding: '18px 16px 14px',
         marginBottom: 16,
-        boxShadow: '0 4px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.1)',
     },
     titleRow: {
         display: 'flex',

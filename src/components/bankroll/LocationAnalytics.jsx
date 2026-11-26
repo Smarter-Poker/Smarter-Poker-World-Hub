@@ -3,6 +3,7 @@
  * P/L breakdown by venue with bar chart visualization
  */
 
+import { GRADIENTS, METAL } from './metalStyles';
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 
@@ -73,7 +74,7 @@ export default function LocationAnalytics({ entries = [], isLoading }) {
                 </div>
                 <div style={styles.emptyState}>
                     <span style={{ opacity: 0.5 }}>No Venue Data Yet</span>
-                    <span style={{ fontSize: 14, color: '#8a8d91' }}>
+                    <span style={{ fontSize: 14, color: '#a1b4c7' }}>
                         Add Locations To Your Sessions To See Analytics
                     </span>
                 </div>
@@ -166,9 +167,9 @@ export default function LocationAnalytics({ entries = [], isLoading }) {
 
 const styles = {
     container: {
-        background: 'linear-gradient(135deg, rgba(0,30,60,0.95), rgba(0,20,40,0.9))',
+        background: GRADIENTS.darkPanel,
         borderRadius: 12,
-        border: '2px solid rgba(0,212,255,0.2)',
+        border: `1px solid ${METAL.highlight}`,
         padding: 16,
         height: '100%',
         boxSizing: 'border-box',
@@ -194,7 +195,7 @@ const styles = {
         margin: 0,
         fontSize: 14,
         fontWeight: 600,
-        color: '#2374e1',
+        color: '#92cfff',
     },
     sortToggle: {
         display: 'flex',
@@ -208,19 +209,19 @@ const styles = {
         background: 'transparent',
         border: '2px solid rgba(255,255,255,0.1)',
         borderRadius: 4,
-        color: '#8a8d91',
+        color: '#a1b4c7',
         fontSize: 14,
         cursor: 'pointer',
     },
     sortBtnActive: {
         background: 'rgba(0,212,255,0.2)',
         borderColor: 'rgba(0,212,255,0.4)',
-        color: '#2374e1',
+        color: '#92cfff',
     },
     loading: {
         padding: 20,
         textAlign: 'center',
-        color: '#8a8d91',
+        color: '#a1b4c7',
         fontSize: 14,
     },
     emptyState: {
@@ -229,7 +230,7 @@ const styles = {
         alignItems: 'center',
         gap: 6,
         padding: 20,
-        color: '#888',
+        color: '#9fb4c8',
         fontSize: 14,
     },
     chartContainer: {
@@ -257,7 +258,7 @@ const styles = {
     },
     sessionCount: {
         fontSize: 14,
-        color: '#8a8d91',
+        color: '#a1b4c7',
     },
     barContainer: {
         height: 20,
@@ -278,12 +279,12 @@ const styles = {
     },
     winRate: {
         fontSize: 14,
-        color: '#888',
+        color: '#9fb4c8',
     },
     moreIndicator: {
         marginTop: 10,
         textAlign: 'center',
         fontSize: 14,
-        color: '#8a8d91',
+        color: '#a1b4c7',
     },
 };

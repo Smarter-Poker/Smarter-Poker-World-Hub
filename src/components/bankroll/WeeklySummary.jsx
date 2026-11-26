@@ -202,7 +202,7 @@ export default function WeeklySummary({
                             <div style={styles.emptyWeek}>
                                 <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.4)' }}>No Data</span>
                                 <span>No Sessions Logged This Week</span>
-                                <span style={{ fontSize: 14, color: '#8a8d91' }}>
+                                <span style={{ fontSize: 14, color: '#a1b4c7' }}>
                                     Keep Tracking To See Your Weekly Trends!
                                 </span>
                             </div>
@@ -259,7 +259,7 @@ const styles = {
     },
     dateRange: {
         fontSize: 14,
-        color: '#888',
+        color: '#9fb4c8',
         marginTop: 4,
         display: 'block',
     },
@@ -273,7 +273,7 @@ const styles = {
     mainLabel: {
         display: 'block',
         fontSize: 14,
-        color: '#888',
+        color: '#9fb4c8',
         textTransform: 'uppercase',
         marginBottom: 8,
     },
@@ -302,7 +302,7 @@ const styles = {
     },
     statLabel: {
         fontSize: 14,
-        color: '#8a8d91',
+        color: '#a1b4c7',
         textTransform: 'uppercase',
     },
     categorySection: {
@@ -311,7 +311,7 @@ const styles = {
     sectionTitle: {
         display: 'block',
         fontSize: 14,
-        color: '#888',
+        color: '#9fb4c8',
         textTransform: 'uppercase',
         marginBottom: 10,
     },
@@ -330,7 +330,7 @@ const styles = {
         fontSize: 14,
     },
     categoryName: {
-        color: '#e4e6eb',
+        color: '#edf6ff',
     },
     emptyWeek: {
         display: 'flex',
@@ -338,7 +338,7 @@ const styles = {
         alignItems: 'center',
         gap: 8,
         padding: 30,
-        color: '#888',
+        color: '#9fb4c8',
         fontSize: 14,
     },
     closeBtn: {

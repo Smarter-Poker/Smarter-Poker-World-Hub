@@ -6,16 +6,16 @@
  * ═══════════════════════════════════════════════════════════════
  */
 
+import view from './toke/TokeWorkspace.module.css';
 import { useState, useMemo } from 'react';
 import ResponsiveTable from '../ui/ResponsiveTable';
 
 const METAL = {
-    base: '#1C1E21', mid: '#242526', elevated: '#3A3B3C', darkest: '#18191A',
-    highlight: 'rgba(255,255,255,0.08)', primary: '#4A90D9', primaryDim: 'rgba(74,144,217,0.15)',
-    success: '#36bb6a', warn: '#f59e0b', textPrimary: '#E4E6EB', textSecondary: '#B0B3B8',
+    base: '#0d1b2b', mid: '#112338', elevated: '#30485f', darkest: '#07111e',
+    highlight: 'rgba(255,255,255,0.08)', primary: '#8acbff', primaryDim: 'rgba(74,144,217,0.15)',
+    success: '#8cdeee', warn: '#85d8fb', textPrimary: '#eff5fc', textSecondary: '#bfcee0',
 };
 
-const RANK_MEDALS = ['🥇', '🥈', '🥉'];
 
 const GAME_TYPE_MAP = {
     Holdem: "Hold'em", PLO: 'PLO', Mixed: 'Mixed',
@@ -134,13 +134,13 @@ export default function VenueIntelligence({ gigs = [] }) {
     if (totalEvents === 0) return null;
 
     return (
-        <div style={s.card}>
+        <section className={"sd-panel " + view.panel}>
             {/* Header */}
-            <button style={s.header} onClick={() => setExpanded(v => !v)}>
+            <button type="button" className={view.disclosure} aria-expanded={expanded} onClick={() => setExpanded(v => !v)}>
                 <div style={s.headerLeft}>
-                    <span style={s.headerIcon}></span>
+
                     <div>
-                        <div style={s.headerTitle}>Career Intelligence</div>
+                        <div className="sd-section-title">Career Intelligence</div>
                         <div style={s.headerSub}>{totalEvents} Events · ${totalTokesAllTime.toFixed(0)} Total Tokes</div>
                     </div>
                 </div>
@@ -152,7 +152,7 @@ export default function VenueIntelligence({ gigs = [] }) {
 
                     {/* ── Venue Performance Ranking ── */}
                     <div style={s.panel}>
-                        <button style={s.panelHeader} onClick={() => setVenueOpen(v => !v)}>
+                        <button style={s.panelHeader} aria-expanded={venueOpen} onClick={() => setVenueOpen(v => !v)}>
                             <span style={s.panelTitle}>Venue Performance</span>
                             <span style={s.panelChevron}>{venueOpen ? '▲' : '▼'}</span>
                         </button>
@@ -165,7 +165,7 @@ export default function VenueIntelligence({ gigs = [] }) {
                                         { key: 'events', label: '# Events' },
                                     ].map(opt => (
                                         <button
-                                            key={opt.key}
+                                            key={opt.key} aria-pressed={venueSort === opt.key}
                                             style={{ ...s.sortBtn, ...(venueSort === opt.key ? s.sortBtnActive : {}) }}
                                             onClick={() => setVenueSort(opt.key)}
                                         >{opt.label}</button>
@@ -175,7 +175,7 @@ export default function VenueIntelligence({ gigs = [] }) {
                                     {venueRanking.map((v, i) => (
                                         <div key={v.venue} style={s.venueRow}>
                                             <span style={s.venueRank}>
-                                                {i < 3 ? RANK_MEDALS[i] : <span style={s.rankNum}>#{i + 1}</span>}
+                                                <span style={s.rankNum}>#{i + 1}</span>
                                             </span>
                                             <div style={s.venueInfo}>
                                                 <div style={s.venueName}>{v.venue}</div>
@@ -198,7 +198,7 @@ export default function VenueIntelligence({ gigs = [] }) {
                     {/* ── Game Type Profitability ── */}
                     {gameTypeStats.length > 0 && (
                         <div style={s.panel}>
-                            <button style={s.panelHeader} onClick={() => setGameOpen(v => !v)}>
+                            <button style={s.panelHeader} aria-expanded={gameOpen} onClick={() => setGameOpen(v => !v)}>
                                 <span style={s.panelTitle}>🃏 Game Type Profitability</span>
                                 <span style={s.panelChevron}>{gameOpen ? '▲' : '▼'}</span>
                             </button>
@@ -222,7 +222,7 @@ export default function VenueIntelligence({ gigs = [] }) {
                     {/* ── Tournament Buy-In Analysis ── */}
                     {tournamentBrackets && tournamentBrackets.length > 0 && (
                         <div style={s.panel}>
-                            <button style={s.panelHeader} onClick={() => setTourneyOpen(v => !v)}>
+                            <button style={s.panelHeader} aria-expanded={tourneyOpen} onClick={() => setTourneyOpen(v => !v)}>
                                 <span style={s.panelTitle}>Tournament Buy-In Analysis</span>
                                 <span style={s.panelChevron}>{tourneyOpen ? '▲' : '▼'}</span>
                             </button>
@@ -247,7 +247,7 @@ export default function VenueIntelligence({ gigs = [] }) {
                     )}
                 </div>
             )}
-        </div>
+        </section>
     );
 }
 
@@ -267,7 +267,7 @@ const s = {
     panelChevron: { fontSize: 12, color: METAL.textSecondary },
     sortRow: { display: 'flex', gap: 8, padding: '0 16px 12px' },
     sortBtn: { padding: '6px 12px', background: METAL.darkest, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, color: METAL.textSecondary, fontSize: 12, fontWeight: 600, cursor: 'pointer' },
-    sortBtnActive: { background: METAL.primaryDim, border: '1px solid #4A90D9', color: '#4A90D9' },
+    sortBtnActive: { background: METAL.primaryDim, border: '1px solid #8acbff', color: '#8acbff' },
     venueList: { padding: '0 16px 8px', display: 'flex', flexDirection: 'column', gap: 0 },
     venueRow: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' },
     venueRank: { fontSize: 20, width: 28, flexShrink: 0, textAlign: 'center' },

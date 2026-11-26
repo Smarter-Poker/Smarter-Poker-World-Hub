@@ -28,6 +28,10 @@ The restored provider routes have successful production evidence; this does not 
 
 On the owner's Mac, also read `/Users/smarter.poker/Documents/AGENTS.md` and `/Users/smarter.poker/Documents/AGENT-HARDENING-STANDARD.md` at task start, after context loss and before completion. Their absence in a cloud checkout does not remove the instructions above. Later explicit owner instructions take precedence.
 
+## Smarter.Poker interface design
+
+Use [#SMARTERDESIGN](docs/SMARTERDESIGN.md) and its [agent skill](.agent/skills/smarterdesign/SKILL.md) for Club Arena-style product interiors, including Bankroll Manager and Toke Tracker. Yellow, purple and pink text are prohibited throughout Smarter.Poker, including their gold, amber, violet, lavender and magenta variants.
+
 ## Reddit research-and-drafting skill (owner instruction, November 10, 2026)
 
 `.claude/skills/reddit-agent/` holds the Smarter.Poker Reddit skill. It researches poker communities, records their rules with sources and verification dates, and drafts posts and comments. It never posts. Nothing goes to Reddit, and no message is sent, without Dan's explicit approval of the exact text and the exact destination; loading the skill authorizes no publication. Affiliation is disclosed whenever Smarter.Poker is mentioned. Karma farming, fake stories or testimonials, coordinated voting, bulk messages and disguised promotion are prohibited.

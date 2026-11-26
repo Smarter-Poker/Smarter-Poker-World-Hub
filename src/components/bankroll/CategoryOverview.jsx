@@ -4,6 +4,7 @@
  * with Add, Edit, and Delete functionality
  */
 
+import { GRADIENTS, METAL } from './metalStyles';
 import { useState, useEffect, useCallback } from 'react';
 import { fetchLedgerEntries, deleteLedgerEntry } from '../../lib/bankroll/bankrollSelectors';
 import LedgerTimeline from './LedgerTimeline';
@@ -13,10 +14,10 @@ import toast from '../../stores/toastStore';
 
 const CATEGORY_META = {
     poker_cash: { label: 'Cash Games', icon: '🃏', color: '#22c55e' },
-    poker_mtt: { label: 'Tournaments', icon: '🏆', color: '#a855f7' },
-    casino_table: { label: 'Table Games', icon: '🎲', color: '#eab308' },
-    slots: { label: 'Slots', icon: '🎲', color: '#f97316' },
-    sports: { label: 'Sports Betting', icon: '⚽', color: '#f97316' },
+    poker_mtt: { label: 'Tournaments', icon: '🏆', color: '#a9c6e6' },
+    casino_table: { label: 'Table Games', icon: '🎲', color: '#61d0e8' },
+    slots: { label: 'Slots', icon: '🎲', color: '#a1bbd5' },
+    sports: { label: 'Sports Betting', icon: '⚽', color: '#a1bbd5' },
     expense: { label: 'Expenses', icon: '💸', color: '#6b7280' },
 };
 
@@ -94,16 +95,13 @@ export default function CategoryOverview({ userId, categoryFilter, onBack }) {
     const winRate = totalSessions > 0 ? Math.round((wins / totalSessions) * 100) : 0;
 
     return (
-        <div style={styles.container}>
+        <div className="sd-panel">
             {/* Header */}
             <div style={styles.header}>
                 <div style={styles.headerLeft}>
                     <button style={styles.backButton} onClick={onBack}>
                         ← All
                     </button>
-                    <h1 style={{ ...styles.title, color: meta.color }}>
-                        {meta.icon} {meta.label}
-                    </h1>
                 </div>
                 <button
                     style={styles.addButton}
@@ -191,9 +189,6 @@ export default function CategoryOverview({ userId, categoryFilter, onBack }) {
 }
 
 const styles = {
-    container: {
-        padding: 0,
-    },
     header: {
         display: 'flex',
         alignItems: 'center',
@@ -208,26 +203,21 @@ const styles = {
         gap: 12,
     },
     backButton: {
-        background: 'rgba(255,255,255,0.08)',
-        border: '2px solid rgba(255,255,255,0.15)',
+        background: GRADIENTS.metalButton,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 8,
-        color: 'rgba(255,255,255,0.7)',
+        color: '#edf6ff',
         padding: '8px 14px',
         cursor: 'pointer',
         fontSize: 14,
         fontWeight: 500,
         transition: 'all 0.2s',
     },
-    title: {
-        fontSize: 24,
-        fontWeight: 700,
-        margin: 0,
-    },
     addButton: {
-        background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
-        border: 'none',
+        background: GRADIENTS.cyanAction,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 10,
-        color: 'white',
+        color: '#edf6ff',
         padding: '10px 20px',
         cursor: 'pointer',
         fontSize: 14,

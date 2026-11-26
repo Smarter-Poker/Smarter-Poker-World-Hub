@@ -92,7 +92,7 @@ export default function SavedReceipts({ userId }) {
 
     if (loading) {
         return (
-            <div style={styles.loadingState}>
+            <div className="sd-panel" style={styles.loadingState}>
                 <div style={styles.spinner} />
                 <span>Loading Receipts...</span>
             </div>
@@ -101,7 +101,7 @@ export default function SavedReceipts({ userId }) {
 
     if (receipts.length === 0) {
         return (
-            <div style={styles.emptyState}>
+            <div className="sd-panel" style={styles.emptyState}>
                 <Image size={40} style={{ color: 'rgba(255,255,255,0.2)', marginBottom: 16 }} />
                 <p style={styles.emptyTitle}>No Saved Receipts</p>
                 <p style={styles.emptyHint}>Scan Or Upload A Receipt From The Scan Receipt Section To See It Here.</p>
@@ -110,7 +110,7 @@ export default function SavedReceipts({ userId }) {
     }
 
     return (
-        <div style={styles.container}>
+        <div className="sd-panel">
             <div style={styles.header}>
                 <h3 style={styles.title}>Saved Receipts</h3>
                 <span style={styles.count}>{receipts.length} receipt{receipts.length !== 1 ? 's' : ''}</span>
@@ -173,9 +173,6 @@ export default function SavedReceipts({ userId }) {
 }
 
 const styles = {
-    container: {
-        padding: '16px 0',
-    },
     header: {
         display: 'flex',
         justifyContent: 'space-between',

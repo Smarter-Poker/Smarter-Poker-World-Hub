@@ -5,6 +5,7 @@
  * ═══════════════════════════════════════════════════════════════
  */
 
+import { GRADIENTS, METAL } from './metalStyles';
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -202,7 +203,7 @@ export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEn
         : 0;
 
     return (
-        <div style={styles.container}>
+        <div className="sd-panel" style={styles.container}>
             {/* --- ACTIVE TRIP BANNER --- */}
             {activeTrip && (
                 <motion.div
@@ -500,33 +501,33 @@ export default function TripTracker({ userId, onOpenLog, onEditEntry, onDeleteEn
                 ) : (
                     <div style={styles.tripGrid}>
                         {completedTrips.map(trip => (
-                            <motion.div
+                            <motion.button type="button"
                                 key={trip.id}
-                                whileHover={{ scale: 1.02 }}
+                                aria-label={`View Report For ${trip.name}`}
                                 onClick={() => handleViewReport(trip.id)}
                                 style={styles.tripCard}
                             >
-                                <div style={styles.tripCardHeader}>
-                                    <h4 style={styles.tripCardName}>{trip.name}</h4>
+                                <span style={styles.tripCardHeader}>
+                                    <span style={styles.tripCardName}>{trip.name}</span>
                                     <span style={{
                                         ...styles.tripCardPL,
                                         color: (trip.totalNet || 0) >= 0 ? '#10b981' : '#ef4444',
                                     }}>
                                         {formatCurrency(trip.totalNet || 0)}
                                     </span>
-                                </div>
-                                <div style={styles.tripCardMeta}>
+                                </span>
+                                <span style={styles.tripCardMeta}>
                                     {trip.location_name && <span>{trip.location_name}</span>}
                                     <span>{new Date(trip.start_date + 'T12:00:00').toLocaleDateString()}</span>
                                     {trip.end_date && (
                                         <span> - {new Date(trip.end_date + 'T12:00:00').toLocaleDateString()}</span>
                                     )}
-                                </div>
-                                <div style={styles.tripCardFooter}>
+                                </span>
+                                <span style={styles.tripCardFooter}>
                                     <span>{trip.entryCount || 0} Entries</span>
                                     <span style={styles.viewReportLink}>View Report →</span>
-                                </div>
-                            </motion.div>
+                                </span>
+                            </motion.button>
                         ))}
                     </div>
                 )}
@@ -544,8 +545,8 @@ const styles = {
 
     // Active Trip
     activeTripCard: {
-        background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(59, 130, 246, 0.08) 100%)',
-        border: '2px solid rgba(16, 185, 129, 0.3)',
+        background: GRADIENTS.darkPanel,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 12,
         padding: 20,
         position: 'relative',
@@ -586,7 +587,7 @@ const styles = {
     // Running stats
     runningStats: {
         display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 112px), 1fr))',
         gap: 12,
         marginBottom: 16,
     },
@@ -664,7 +665,7 @@ const styles = {
     },
     entryDate: {
         fontSize: 14,
-        color: '#64748b',
+        color: '#9aaec3',
         fontWeight: 500,
         whiteSpace: 'nowrap',
     },
@@ -675,7 +676,7 @@ const styles = {
     },
     entryStakes: {
         fontSize: 14,
-        color: '#64748b',
+        color: '#9aaec3',
         background: 'rgba(255,255,255,0.15)',
         borderRadius: 3,
         padding: '1px 5px',
@@ -724,9 +725,9 @@ const styles = {
         alignItems: 'center',
     },
     logEntryBtn: {
-        background: '#3b82f6',
-        color: '#fff',
-        border: 'none',
+        background: GRADIENTS.cyanAction,
+        color: '#edf6ff',
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 8,
         padding: '10px 18px',
         fontSize: 14,
@@ -744,9 +745,9 @@ const styles = {
         cursor: 'pointer',
     },
     editBtn: {
-        background: 'rgba(59, 130, 246, 0.15)',
-        color: '#3b82f6',
-        border: '2px solid rgba(59, 130, 246, 0.3)',
+        background: GRADIENTS.metalButton,
+        color: '#edf6ff',
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 8,
         padding: '10px 18px',
         fontSize: 14,
@@ -754,9 +755,9 @@ const styles = {
         cursor: 'pointer',
     },
     addEntryBtn: {
-        background: 'rgba(16, 185, 129, 0.15)',
-        color: '#10b981',
-        border: '2px solid rgba(16, 185, 129, 0.3)',
+        background: GRADIENTS.cyanAction,
+        color: '#edf6ff',
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 8,
         padding: '10px 18px',
         fontSize: 14,
@@ -784,7 +785,7 @@ const styles = {
         background: 'rgba(255,255,255,0.15)',
         border: '2px solid rgba(255,255,255,0.1)',
         borderRadius: 6,
-        color: '#8a8d91',
+        color: '#a1b4c7',
         fontSize: 14,
         cursor: 'pointer',
     },
@@ -866,7 +867,7 @@ const styles = {
         display: 'flex',
         alignItems: 'center',
         gap: 14,
-        background: 'rgba(59, 130, 246, 0.08)',
+        background: GRADIENTS.cyanAction,
         border: '2px dashed rgba(59, 130, 246, 0.3)',
         borderRadius: 12,
         padding: '20px 24px',
@@ -926,9 +927,9 @@ const styles = {
         marginTop: 20,
     },
     formSubmitBtn: {
-        background: '#3b82f6',
-        color: '#fff',
-        border: 'none',
+        background: GRADIENTS.cyanAction,
+        color: '#edf6ff',
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 8,
         padding: '10px 24px',
         fontSize: 14,
@@ -956,13 +957,13 @@ const styles = {
         margin: '0 0 14px',
     },
     loadingPlaceholder: {
-        color: '#64748b',
+        color: '#9aaec3',
         fontSize: 14,
         textAlign: 'center',
         padding: 32,
     },
     emptyState: {
-        color: '#64748b',
+        color: '#9aaec3',
         fontSize: 14,
         textAlign: 'center',
         padding: 32,
@@ -977,8 +978,10 @@ const styles = {
         gap: 10,
     },
     tripCard: {
-        background: 'rgba(30, 58, 95, 0.3)',
-        border: '2px solid rgba(255,255,255,0.08)',
+        width: '100%',
+        textAlign: 'left',
+        background: GRADIENTS.darkPanel,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 10,
         padding: 16,
         cursor: 'pointer',
@@ -1012,7 +1015,7 @@ const styles = {
         justifyContent: 'space-between',
         alignItems: 'center',
         fontSize: 14,
-        color: '#64748b',
+        color: '#9aaec3',
     },
     viewReportLink: {
         color: '#3b82f6',

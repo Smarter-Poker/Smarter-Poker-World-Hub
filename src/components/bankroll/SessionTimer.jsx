@@ -159,7 +159,7 @@ const styles = {
     timerDisplay: {
         fontSize: 32,
         fontWeight: 700,
-        color: '#2374e1',
+        color: '#92cfff',
         fontFamily: 'monospace',
         marginBottom: 4,
     },
@@ -204,7 +204,7 @@ const styles = {
         background: 'rgba(0, 212, 255, 0.1)',
         border: '2px solid rgba(0, 212, 255, 0.3)',
         borderRadius: 8,
-        color: '#2374e1',
+        color: '#92cfff',
         fontSize: 14,
         fontWeight: 600,
         cursor: 'pointer',

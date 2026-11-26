@@ -1,0 +1,103 @@
+/* #SMARTERDESIGN. These nine-slice rims are the original Club Arena console
+   assets. Only their edges are painted; type and figures remain live DOM. */
+.smarterdesign, .bankroll-modal {
+  --sd-ink: #040d18;
+  --sd-surface: #0a1829;
+  --sd-text: #f2f7ff;
+  --sd-silver: #bdd0e2;
+  --sd-ice: #86daff;
+  --sd-line: #445e77;
+  --sd-navy: linear-gradient(155deg, #182d43 0%, #0b1c2c 43%, #050e18 87%);
+  --sd-control: linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c);
+  --sd-cobalt: linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba);
+  --sd-type: var(--font-rajdhani, 'Arial Narrow'), 'Arial Narrow', sans-serif;
+  color: var(--sd-text);
+  font-family: var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-variant-numeric: tabular-nums;
+  color-scheme: dark;
+}
+.smarterdesign { min-width: 0; }
+
+.sd-masthead, .sd-panel, .smarterdesign .bankroll-modal {
+  box-sizing: border-box;
+  min-width: 0;
+  color: var(--sd-text, #f2f7ff);
+  background: var(--sd-navy, #091828);
+  border: 5px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch;
+}
+.sd-masthead {
+  position: relative;
+  padding: clamp(9px, 2vw, 18px) clamp(13px, 3vw, 30px);
+  background: radial-gradient(ellipse at 22% 110%, #153b64, transparent 63%), linear-gradient(115deg, #0c2035, #071322 58%, #040b14);
+}
+.sd-masthead h1, h1.sd-masthead {
+  color: #f1f7ff;
+  font-family: var(--sd-type);
+  font-size: clamp(1.8rem, 4.9vw, 3rem);
+  font-weight: 750;
+  line-height: 1.06;
+  letter-spacing: -.025em;
+  overflow-wrap: anywhere;
+  text-shadow: 0 2px 0 #243951, 0 3px 6px #020914;
+}
+.sd-panel { padding: clamp(10px, 2.3vw, 22px); }
+.sd-section-title {
+  margin: 0 0 .7rem;
+  color: var(--sd-text, #f2f7ff);
+  font: 700 clamp(1.12rem, 2.5vw, 1.55rem)/1.15 var(--sd-type, sans-serif);
+  letter-spacing: .015em;
+}
+.sd-button, .sd-tabs > :is(a, button), .bankroll-sidebar .bankroll-sidebar-item.sd-button {
+  box-sizing: border-box;
+  min-height: 44px;
+  min-width: 0;
+  padding: 5px 11px;
+  align-content: center;
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-row.webp') 13 / 4px stretch;
+  background: var(--sd-control, #0e2236);
+  color: var(--sd-text, #f2f7ff);
+  font-family: var(--sd-type, sans-serif);
+  font-weight: 700;
+  line-height: 1.18;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.sd-button:is(.active, .sd-primary, [aria-pressed="true"], [aria-selected="true"], [aria-current="page"]),
+.sd-tabs > :is(.active, [aria-current="page"], [aria-selected="true"], [aria-pressed="true"]),
+.bankroll-sidebar .bankroll-sidebar-item.sd-button.active {
+  color: #fff;
+  border-image-source: url('/images/smarterdesign/chrome-active.webp');
+  border-image-slice: 11;
+  background: var(--sd-cobalt, #0c4ea9);
+}
+.sd-button:active, .sd-tabs > :is(a,button):active { filter: brightness(.89); }
+.sd-button:disabled { color: #a7b7c8; background: #13202c; cursor: default; }
+.smarterdesign :is(button, a, input, textarea, select, summary, [tabindex]):focus-visible,
+.bankroll-modal :is(button, a, input, textarea, select, summary):focus-visible {
+  outline: 2px solid #9ee3ff;
+  outline-offset: 2px;
+}
+.sd-metric {
+  min-width: 0;
+  color: var(--sd-text, #f2f7ff);
+  background: var(--sd-navy, #0b1929);
+  border: 3px solid transparent;
+  border-image: url('/images/smarterdesign/chrome-stat.webp') 11 / 4px stretch;
+  padding: .65rem .85rem;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.smarterdesign :is(select, option) { color-scheme: dark; }
+@media (prefers-reduced-motion: reduce) {
+  .smarterdesign *, .smarterdesign *::before, .smarterdesign *::after,
+  .bankroll-modal *, .bankroll-modal *::before, .bankroll-modal *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

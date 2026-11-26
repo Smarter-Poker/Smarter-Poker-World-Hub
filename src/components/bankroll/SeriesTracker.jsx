@@ -6,6 +6,7 @@
  * ---------------------------------------------------------------
  */
 
+import { GRADIENTS, METAL } from './metalStyles';
 import React, { memo, useCallback, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -231,7 +232,7 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
         : 0;
 
     return (
-        <div style={styles.container}>
+        <div className="sd-panel" style={styles.container}>
             {/* --- ACTIVE SERIES BANNER --- */}
             {activeSeries && (
                 <motion.div
@@ -495,26 +496,26 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
                                 return (
                                     <div style={{
                                         position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4,
-                                        background: '#242526', border: '2px solid rgba(255,255,255,0.15)',
+                                        background: '#101f31', border: '2px solid rgba(255,255,255,0.15)',
                                         borderRadius: 8, maxHeight: 200, overflowY: 'auto', zIndex: 50,
                                         boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
                                     }}>
                                         {pastNames.length > 0 && filtered.some(n => pastNames.includes(n)) && (
-                                            <div style={{ padding: '6px 14px', fontSize: 14, color: '#8a8d91', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.15)' }}>Your Series</div>
+                                            <div style={{ padding: '6px 14px', fontSize: 14, color: '#a1b4c7', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.15)' }}>Your Series</div>
                                         )}
                                         {filtered.filter(n => pastNames.includes(n)).map((name, i) => (
                                             <button key={`p-${i}`} type="button"
                                                 onMouseDown={e => { e.preventDefault(); setNewSeries({ ...newSeries, name }); setShowSeriesSuggestions(false); }}
-                                                style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.15)', color: '#e4e6eb', fontSize: 14, textAlign: 'left', cursor: 'pointer' }}
+                                                style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.15)', color: '#edf6ff', fontSize: 14, textAlign: 'left', cursor: 'pointer' }}
                                             >{name}</button>
                                         ))}
                                         {dbSeriesNames.length > 0 && filtered.some(n => dbSeriesNames.includes(n) && !pastNames.includes(n)) && (
-                                            <div style={{ padding: '6px 14px', fontSize: 14, color: '#8a8d91', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.15)' }}>Tournament Tours</div>
+                                            <div style={{ padding: '6px 14px', fontSize: 14, color: '#a1b4c7', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.15)' }}>Tournament Tours</div>
                                         )}
                                         {filtered.filter(n => !pastNames.includes(n)).map((name, i) => (
                                             <button key={`d-${i}`} type="button"
                                                 onMouseDown={e => { e.preventDefault(); setNewSeries({ ...newSeries, name }); setShowSeriesSuggestions(false); }}
-                                                style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.15)', color: '#e4e6eb', fontSize: 14, textAlign: 'left', cursor: 'pointer' }}
+                                                style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.15)', color: '#edf6ff', fontSize: 14, textAlign: 'left', cursor: 'pointer' }}
                                             >{name}</button>
                                         ))}
                                     </div>
@@ -553,27 +554,27 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
                                 return (
                                     <div style={{
                                         position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4,
-                                        background: '#242526', border: '2px solid rgba(255,255,255,0.15)',
+                                        background: '#101f31', border: '2px solid rgba(255,255,255,0.15)',
                                         borderRadius: 8, maxHeight: 220, overflowY: 'auto', zIndex: 50,
                                         boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
                                     }}>
                                         {savedFiltered.length > 0 && (
-                                            <div style={{ padding: '6px 14px', fontSize: 14, color: '#8a8d91', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.15)' }}>Your Venues</div>
+                                            <div style={{ padding: '6px 14px', fontSize: 14, color: '#a1b4c7', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.15)' }}>Your Venues</div>
                                         )}
                                         {savedFiltered.map(loc => (
                                             <button key={`s-${loc.id}`} type="button"
                                                 onMouseDown={e => { e.preventDefault(); setNewSeries({ ...newSeries, location_id: loc.id, location_name: loc.name }); setShowLocationSuggestions(false); }}
-                                                style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.15)', color: '#e4e6eb', fontSize: 14, textAlign: 'left', cursor: 'pointer' }}
+                                                style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.15)', color: '#edf6ff', fontSize: 14, textAlign: 'left', cursor: 'pointer' }}
                                             >{loc.name}</button>
                                         ))}
                                         {dbFiltered.length > 0 && (
-                                            <div style={{ padding: '6px 14px', fontSize: 14, color: '#8a8d91', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.15)' }}>Poker Venues</div>
+                                            <div style={{ padding: '6px 14px', fontSize: 14, color: '#a1b4c7', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.15)' }}>Poker Venues</div>
                                         )}
                                         {dbFiltered.slice(0, 20).map((v, i) => (
                                             <button key={`db-${i}`} type="button"
                                                 onMouseDown={e => { e.preventDefault(); setNewSeries({ ...newSeries, location_id: '__new__', location_name: v.name }); setShowLocationSuggestions(false); }}
-                                                style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.15)', color: '#e4e6eb', fontSize: 14, textAlign: 'left', cursor: 'pointer' }}
-                                            >{v.name} <span style={{ fontSize: 14, color: '#888' }}>{v.city}, {v.state}</span></button>
+                                                style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.15)', color: '#edf6ff', fontSize: 14, textAlign: 'left', cursor: 'pointer' }}
+                                            >{v.name} <span style={{ fontSize: 14, color: '#9fb4c8' }}>{v.city}, {v.state}</span></button>
                                         ))}
                                     </div>
                                 );
@@ -623,33 +624,33 @@ function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshT
                 ) : (
                     <div style={styles.seriesGrid}>
                         {completedSeries.map(series => (
-                            <motion.div
+                            <motion.button type="button"
                                 key={series.id}
-                                whileHover={{ scale: 1.02 }}
+                                aria-label={`View Report For ${series.name}`}
                                 onClick={() => handleViewReport(series.id)}
                                 style={styles.seriesCard}
                             >
-                                <div style={styles.seriesCardHeader}>
-                                    <h4 style={styles.seriesCardName}>{series.name}</h4>
+                                <span style={styles.seriesCardHeader}>
+                                    <span style={styles.seriesCardName}>{series.name}</span>
                                     <span style={{
                                         ...styles.seriesCardPL,
                                         color: (series.totalNet || 0) >= 0 ? '#10b981' : '#ef4444',
                                     }}>
                                         {formatCurrency(series.totalNet || 0)}
                                     </span>
-                                </div>
-                                <div style={styles.seriesCardMeta}>
+                                </span>
+                                <span style={styles.seriesCardMeta}>
                                     {series.location_name && <span>{series.location_name}</span>}
                                     <span>{new Date(series.start_date + 'T12:00:00').toLocaleDateString()}</span>
                                     {series.end_date && (
                                         <span> -- {new Date(series.end_date + 'T12:00:00').toLocaleDateString()}</span>
                                     )}
-                                </div>
-                                <div style={styles.seriesCardFooter}>
+                                </span>
+                                <span style={styles.seriesCardFooter}>
                                     <span>{series.entryCount || 0} Entries</span>
-                                    <span style={styles.viewReportLink}>View Report --&gt;</span>
-                                </div>
-                            </motion.div>
+                                    <span style={styles.viewReportLink}>View Report →</span>
+                                </span>
+                            </motion.button>
                         ))}
                     </div>
                 )}
@@ -667,8 +668,8 @@ const styles = {
 
     // Active Series
     activeCard: {
-        background: 'linear-gradient(135deg, rgba(35, 116, 225, 0.1) 0%, rgba(59, 130, 246, 0.08) 100%)',
-        border: '2px solid rgba(35, 116, 225, 0.3)',
+        background: GRADIENTS.darkPanel,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 12,
         padding: 20,
         position: 'relative',
@@ -691,7 +692,7 @@ const styles = {
         fontSize: 14,
         fontWeight: 700,
         letterSpacing: 1.5,
-        color: '#2374e1',
+        color: '#92cfff',
         textTransform: 'uppercase',
     },
     activeName: {
@@ -709,7 +710,7 @@ const styles = {
     // Running stats
     runningStats: {
         display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 112px), 1fr))',
         gap: 12,
         marginBottom: 16,
     },
@@ -787,7 +788,7 @@ const styles = {
     },
     entryDate: {
         fontSize: 14,
-        color: '#64748b',
+        color: '#9aaec3',
         fontWeight: 500,
         whiteSpace: 'nowrap',
     },
@@ -798,7 +799,7 @@ const styles = {
     },
     entryStakes: {
         fontSize: 14,
-        color: '#64748b',
+        color: '#9aaec3',
         background: 'rgba(255,255,255,0.15)',
         borderRadius: 3,
         padding: '1px 5px',
@@ -848,7 +849,7 @@ const styles = {
     },
     completeBtn: {
         background: 'rgba(35, 116, 225, 0.15)',
-        color: '#2374e1',
+        color: '#92cfff',
         border: '2px solid rgba(35, 116, 225, 0.3)',
         borderRadius: 8,
         padding: '10px 18px',
@@ -857,9 +858,9 @@ const styles = {
         cursor: 'pointer',
     },
     editBtn: {
-        background: 'rgba(59, 130, 246, 0.15)',
-        color: '#3b82f6',
-        border: '2px solid rgba(59, 130, 246, 0.3)',
+        background: GRADIENTS.metalButton,
+        color: '#edf6ff',
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 8,
         padding: '10px 18px',
         fontSize: 14,
@@ -867,9 +868,9 @@ const styles = {
         cursor: 'pointer',
     },
     addEntryBtn: {
-        background: 'rgba(16, 185, 129, 0.15)',
-        color: '#10b981',
-        border: '2px solid rgba(16, 185, 129, 0.3)',
+        background: GRADIENTS.cyanAction,
+        color: '#edf6ff',
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 8,
         padding: '10px 18px',
         fontSize: 14,
@@ -897,7 +898,7 @@ const styles = {
         background: 'rgba(255,255,255,0.15)',
         border: '2px solid rgba(255,255,255,0.1)',
         borderRadius: 6,
-        color: '#8a8d91',
+        color: '#a1b4c7',
         fontSize: 14,
         cursor: 'pointer',
     },
@@ -979,7 +980,7 @@ const styles = {
         display: 'flex',
         alignItems: 'center',
         gap: 14,
-        background: 'rgba(35, 116, 225, 0.08)',
+        background: GRADIENTS.cyanAction,
         border: '2px dashed rgba(35, 116, 225, 0.3)',
         borderRadius: 12,
         padding: '20px 24px',
@@ -1039,9 +1040,9 @@ const styles = {
         marginTop: 20,
     },
     formSubmitBtn: {
-        background: '#2374e1',
-        color: '#fff',
-        border: 'none',
+        background: GRADIENTS.cyanAction,
+        color: '#edf6ff',
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 8,
         padding: '10px 24px',
         fontSize: 14,
@@ -1069,13 +1070,13 @@ const styles = {
         margin: '0 0 14px',
     },
     loadingPlaceholder: {
-        color: '#64748b',
+        color: '#9aaec3',
         fontSize: 14,
         textAlign: 'center',
         padding: 32,
     },
     emptyState: {
-        color: '#64748b',
+        color: '#9aaec3',
         fontSize: 14,
         textAlign: 'center',
         padding: 32,
@@ -1090,8 +1091,10 @@ const styles = {
         gap: 10,
     },
     seriesCard: {
-        background: 'rgba(35, 116, 225, 0.08)',
-        border: '2px solid rgba(255,255,255,0.08)',
+        width: '100%',
+        textAlign: 'left',
+        background: GRADIENTS.darkPanel,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 10,
         padding: 16,
         cursor: 'pointer',
@@ -1125,10 +1128,10 @@ const styles = {
         justifyContent: 'space-between',
         alignItems: 'center',
         fontSize: 14,
-        color: '#64748b',
+        color: '#9aaec3',
     },
     viewReportLink: {
-        color: '#2374e1',
+        color: '#92cfff',
         fontWeight: 500,
     },
 };

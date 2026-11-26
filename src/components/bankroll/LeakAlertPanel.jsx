@@ -18,8 +18,8 @@ const ALERT_ICONS = {
 const ALERT_COLORS = {
   1: '#6b7280',
   2: '#3b82f6',
-  3: '#eab308',
-  4: '#f97316',
+  3: '#61d0e8',
+  4: '#a1bbd5',
   5: '#ef4444',
 };
 

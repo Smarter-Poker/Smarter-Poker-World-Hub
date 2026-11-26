@@ -115,7 +115,7 @@ export default function SessionHandReview({ userId }) {
     }
 
     return (
-        <div style={styles.container}>
+        <div className="sd-panel" style={styles.container}>
             {/* LED Strip */}
             <div style={styles.ledStrip} />
 
@@ -207,10 +207,10 @@ export default function SessionHandReview({ userId }) {
             {/* Link Modal */}
             {linkingHand && (
                 <div style={styles.modalOverlay} onClick={() => setLinkingHand(null)}>
-                    <div style={styles.modal} onClick={e => e.stopPropagation()}>
+                    <div className="sd-panel" style={styles.modal} onClick={e => e.stopPropagation()}>
                         <div style={styles.modalLed} />
                         <h3 style={styles.modalTitle}>
-                            <Link2 size={16} style={{ color: METAL.purple }} />
+                            <Link2 size={16} style={{ color: METAL.cyan }} />
                             LINK TO SESSION
                         </h3>
 
@@ -277,9 +277,7 @@ export default function SessionHandReview({ userId }) {
 const styles = {
     container: {
         position: 'relative',
-        background: GRADIENTS.darkPanel,
-        border: `2px solid ${METAL.mid}`,
-        borderRadius: 12,
+
         overflow: 'hidden',
     },
     ledStrip: {
@@ -288,8 +286,8 @@ const styles = {
         left: '10%',
         right: '10%',
         height: 2,
-        background: METAL.purple,
-        boxShadow: `0 0 10px ${METAL.purpleGlow}`,
+        background: METAL.cyan,
+        boxShadow: `0 0 10px ${METAL.primaryGlow}`,
     },
     loadingContainer: {
         display: 'flex',
@@ -327,14 +325,14 @@ const styles = {
         alignItems: 'center',
         gap: 6,
         padding: '6px 12px',
-        background: 'rgba(168,85,247,0.15)',
-        border: `2px solid ${METAL.purple}`,
+        background: 'rgba(169, 198, 230,0.15)',
+        border: `2px solid ${METAL.cyan}`,
         borderRadius: 6,
         fontFamily: "'Rajdhani', sans-serif",
         fontSize: 14,
         fontWeight: 700,
         letterSpacing: '0.1em',
-        color: METAL.purple,
+        color: METAL.cyan,
         textDecoration: 'none',
     },
     searchSection: {
@@ -376,8 +374,8 @@ const styles = {
         width: 56,
         height: 56,
         margin: '0 auto 16px',
-        background: 'rgba(168,85,247,0.15)',
-        border: `1px dashed ${METAL.purple}`,
+        background: 'rgba(169, 198, 230,0.15)',
+        border: `1px dashed ${METAL.cyan}`,
         borderRadius: '50%',
         animation: 'float 3s ease-in-out infinite',
     },
@@ -398,8 +396,8 @@ const styles = {
     },
     handCard: {
         padding: 14,
-        background: 'rgba(0,0,0,0.2)',
-        border: `2px solid ${METAL.mid}`,
+        background: GRADIENTS.darkPanel,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 10,
         marginBottom: 10,
     },
@@ -480,13 +478,13 @@ const styles = {
         alignItems: 'center',
         gap: 6,
         padding: '8px 14px',
-        background: 'rgba(168,85,247,0.15)',
-        border: `2px solid ${METAL.purple}`,
+        background: 'rgba(169, 198, 230,0.15)',
+        border: `2px solid ${METAL.cyan}`,
         borderRadius: 6,
         fontFamily: "'Rajdhani', sans-serif",
         fontSize: 14,
         fontWeight: 700,
-        color: METAL.purple,
+        color: METAL.cyan,
         letterSpacing: '0.1em',
         cursor: 'pointer',
     },
@@ -505,8 +503,7 @@ const styles = {
         position: 'relative',
         width: '100%',
         maxWidth: 400,
-        background: `linear-gradient(180deg, #1a2a3a 0%, ${METAL.base} 100%)`,
-        border: `2px solid ${METAL.highlight}`,
+
         borderRadius: 16,
         padding: 24,
     },
@@ -516,8 +513,8 @@ const styles = {
         left: '20%',
         right: '20%',
         height: 2,
-        background: METAL.purple,
-        boxShadow: `0 0 10px ${METAL.purpleGlow}`,
+        background: METAL.cyan,
+        boxShadow: `0 0 10px ${METAL.primaryGlow}`,
     },
     modalTitle: {
         display: 'flex',
@@ -556,8 +553,8 @@ const styles = {
         transition: 'border-color 0.2s',
     },
     sessionOptionSelected: {
-        borderColor: METAL.purple,
-        background: 'rgba(168,85,247,0.1)',
+        borderColor: METAL.cyan,
+        background: 'rgba(169, 198, 230,0.1)',
     },
     sessionInfo: {
         display: 'flex',
@@ -588,12 +585,12 @@ const styles = {
         flex: 1,
         padding: 14,
         background: GRADIENTS.metalButton,
-        border: `2px solid ${METAL.mid}`,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 10,
         fontFamily: "'Rajdhani', sans-serif",
         fontSize: 14,
         fontWeight: 600,
-        color: 'rgba(255,255,255,0.6)',
+        color: '#edf6ff',
         letterSpacing: '0.1em',
         cursor: 'pointer',
     },
@@ -604,13 +601,13 @@ const styles = {
         justifyContent: 'center',
         gap: 6,
         padding: 14,
-        background: GRADIENTS.purplePro,
-        border: 'none',
+        background: GRADIENTS.cyanAction,
+        border: `1px solid ${METAL.highlight}`,
         borderRadius: 10,
         fontFamily: "'Rajdhani', sans-serif",
         fontSize: 14,
         fontWeight: 700,
-        color: '#fff',
+        color: '#edf6ff',
         letterSpacing: '0.1em',
         cursor: 'pointer',
     },

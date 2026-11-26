@@ -27,7 +27,7 @@ function DoubleDownPrompt({ show, promptDown, onYes, onNo, styles }) {
             >
                 <motion.div
                     initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-                    style={styles.promptCard}
+                    role="dialog" aria-modal="true" aria-label="Confirm Down" style={styles.promptCard}
                 >
                     <div style={styles.promptIcon}>35M</div>
                     <h3 style={styles.promptTitle}>
@@ -48,10 +48,10 @@ function DoubleDownPrompt({ show, promptDown, onYes, onNo, styles }) {
                             )}
                     </p>
                     <div style={styles.promptActions}>
-                        <button onClick={onYes} style={styles.promptYesBtn}>
+                        <button onClick={onYes} className="sd-button sd-primary">
                             Yes, Double Down
                         </button>
-                        <button onClick={onNo} style={styles.promptNoBtn}>
+                        <button onClick={onNo} className="sd-button">
                             No, New Down
                         </button>
                     </div>

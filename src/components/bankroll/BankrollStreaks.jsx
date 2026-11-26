@@ -173,7 +173,7 @@ const styles = {
     streakNumber: {
         fontSize: 36,
         fontWeight: 800,
-        background: 'linear-gradient(135deg, #ff6b35, #ff9f1c)',
+        background: 'linear-gradient(135deg, #ff6b35, #9ed5e4)',
         WebkitBackgroundClip: 'text',
         WebkitTextFillColor: 'transparent',
         lineHeight: 1,
@@ -188,14 +188,14 @@ const styles = {
     },
     streakMessage: {
         fontSize: 14,
-        color: '#888',
+        color: '#9fb4c8',
     },
     expandBtn: {
         padding: 8,
         background: 'rgba(255,255,255,0.1)',
         border: 'none',
         borderRadius: 6,
-        color: '#888',
+        color: '#9fb4c8',
         cursor: 'pointer',
     },
     statsRow: {
@@ -217,7 +217,7 @@ const styles = {
     },
     statLabel: {
         fontSize: 14,
-        color: '#8a8d91',
+        color: '#a1b4c7',
         textTransform: 'uppercase',
     },
     achievementsSection: {
@@ -259,14 +259,14 @@ const styles = {
     },
     diamondReward: {
         fontSize: 14,
-        color: '#2374e1',
+        color: '#92cfff',
     },
     lockedSection: {
         marginTop: 12,
     },
     lockedTitle: {
         fontSize: 14,
-        color: '#8a8d91',
+        color: '#a1b4c7',
         marginBottom: 6,
         textTransform: 'uppercase',
     },
@@ -292,7 +292,7 @@ const styles = {
         display: 'flex',
         justifyContent: 'center',
         padding: 20,
-        color: '#8a8d91',
+        color: '#a1b4c7',
         fontSize: 14,
     },
 };

@@ -1,73 +1,65 @@
-/**
- * BANKROLL STYLES
- * SmarterPoker Dark theme for Bankroll Manager
- * Clean, sleek, professional styling
+/** Console materials shared by Bankroll, Toke and their portaled tools.
+ * Keep literal colors here for chart renderers that also receive these values.
  */
+const ice = '#86daff';
+const silver = '#bdd0e2';
+const rim = '#57728b';
+const iceGlow = 'rgba(79, 178, 239, .28)';
+const cobalt = 'linear-gradient(180deg, #1981ec, #0c55c0 26%, #07377e 76%, #125bba)';
+const control = 'linear-gradient(180deg, #263f58, #112338 39%, #071420 77%, #12283c)';
+const panel = 'linear-gradient(155deg, #182d43, #0b1c2c 43%, #050e18 87%)';
 
-// SmarterPoker Dark Color Palette
 export const METAL = {
-    // Core backgrounds (SmarterPoker Dark)
-    darkest: '#18191a',    // Deepest background
-    base: '#242526',       // Standard surface
-    mid: '#3a3b3c',        // Elevated surfaces
-    highlight: '#4e4f50',  // Borders and dividers
-    light: '#65676b',      // Secondary text
-
-    // SmarterPoker blue accent
-    primary: '#2374e1',    // SmarterPoker blue
-    primaryGlow: 'rgba(35, 116, 225, 0.4)',
-    primaryDim: 'rgba(35, 116, 225, 0.15)',
-
-    // Keep cyan for backwards compat but make it FB blue
-    cyan: '#2374e1',
-    cyanGlow: 'rgba(35, 116, 225, 0.4)',
-    cyanDim: 'rgba(35, 116, 225, 0.15)',
-
-    // Status colors
-    success: '#31a24c',    // SmarterPoker green
-    successGlow: 'rgba(49, 162, 76, 0.4)',
-    warning: '#f7b928',    // SmarterPoker warning
-    warningGlow: 'rgba(247, 185, 40, 0.4)',
-    danger: '#f02849',     // SmarterPoker red
-    dangerGlow: 'rgba(240, 40, 73, 0.4)',
-
-    // Premium accents
-    gold: '#f7b928',
-    goldGlow: 'rgba(247, 185, 40, 0.4)',
-    purple: '#9b59b6',
-    purpleGlow: 'rgba(155, 89, 182, 0.4)',
-
-    // Text colors
-    textPrimary: '#e4e6eb',
-    textSecondary: '#b0b3b8',
-    textMuted: '#8a8d91',
+    darkest: '#040d18',
+    base: '#0a1829',
+    mid: '#172d42',
+    elevated: '#20394f',
+    highlight: rim,
+    light: '#aabdd0',
+    primary: '#72c6ff',
+    primaryGlow: iceGlow,
+    primaryDim: 'rgba(56, 143, 216, .17)',
+    cyan: ice,
+    cyanGlow: iceGlow,
+    cyanDim: 'rgba(56, 143, 216, .17)',
+    success: '#60dc9f',
+    successGlow: 'rgba(45, 185, 112, .25)',
+    warning: ice,
+    warn: ice,
+    warningGlow: iceGlow,
+    danger: '#ff7770',
+    dangerGlow: 'rgba(213, 66, 53, .28)',
+    // Legacy API names used by older component-local presets.
+    gold: ice,
+    goldGlow: iceGlow,
+    purple: silver,
+    purpleGlow: iceGlow,
+    textPrimary: '#f2f7ff',
+    textSecondary: silver,
+    textMuted: '#9caec1',
 };
 
-// Gradient presets (SmarterPoker style - subtle, clean)
 export const GRADIENTS = {
-    metalSurface: 'linear-gradient(180deg, #3a3b3c 0%, #242526 100%)',
-    metalButton: 'linear-gradient(180deg, #3a3b3c 0%, #2d2e2f 100%)',
-    cyanAction: 'linear-gradient(135deg, #2374e1 0%, #1a5fc9 100%)',
-    goldPremium: 'linear-gradient(135deg, #f7b928 0%, #d9a520 100%)',
-    purplePro: 'linear-gradient(135deg, #9b59b6 0%, #7c4a99 100%)',
-    darkPanel: 'linear-gradient(180deg, #242526 0%, #18191a 100%)',
-    // SmarterPoker button styles
-    fbButton: 'linear-gradient(180deg, #3a3b3c 0%, #333435 100%)',
-    fbPrimary: '#2374e1',
+    metalSurface: panel,
+    metalButton: control,
+    cyanAction: cobalt,
+    goldPremium: control,
+    purplePro: cobalt,
+    darkPanel: panel,
+    fbButton: control,
+    fbPrimary: '#0c55c0',
 };
 
-// Shadow presets (clean, subtle - no neon glow)
+const edgeShadow = 'inset 0 1px 0 rgba(203, 232, 252, .22), 0 2px 6px rgba(0, 6, 13, .42)';
 export const GLOWS = {
-    cyan: '0 1px 2px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(35, 116, 225, 0.15)',
-    cyanSubtle: '0 1px 2px rgba(0, 0, 0, 0.1)',
-    gold: '0 1px 2px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(247, 185, 40, 0.15)',
-    success: '0 1px 2px rgba(0, 0, 0, 0.2)',
-    danger: '0 1px 2px rgba(0, 0, 0, 0.2)',
-    // SmarterPoker-style subtle shadows
-    card: '0 1px 2px rgba(0, 0, 0, 0.2)',
-    elevated: '0 2px 12px rgba(0, 0, 0, 0.25)',
+    cyan: '0 1px 6px rgba(35, 115, 196, .25)',
+    cyanSubtle: edgeShadow,
+    gold: edgeShadow,
+    success: '0 1px 3px rgba(0, 0, 0, .3)',
+    danger: '0 1px 3px rgba(0, 0, 0, .3)',
+    card: edgeShadow,
+    elevated: '0 8px 26px rgba(0, 6, 13, .56)',
 };
-
 
 // Animations (CSS keyframes as strings)
 export const ANIMATIONS = `
@@ -141,7 +133,7 @@ export const metalStyles = {
 
     // Premium panel with glow
     premiumPanel: {
-        background: `linear-gradient(180deg, rgba(0, 20, 40, 0.95), rgba(5, 15, 30, 0.98))`,
+        background: GRADIENTS.darkPanel,
         border: `2px solid ${METAL.cyan}`,
         borderRadius: 16,
         padding: 24,
@@ -196,7 +188,7 @@ export const metalStyles = {
         background: GRADIENTS.cyanAction,
         border: 'none',
         borderRadius: 8,
-        color: '#000',
+        color: METAL.textPrimary,
         fontSize: 14,
         fontFamily: "'Rajdhani', sans-serif",
         fontWeight: 700,
@@ -259,7 +251,7 @@ export const metalStyles = {
     },
     statLabel: {
         fontSize: 12,
-        color: 'rgba(255,255,255,0.5)',
+        color: METAL.textSecondary,
         textTransform: 'uppercase',
         letterSpacing: '0.1em',
         marginTop: 4,
@@ -282,8 +274,8 @@ export const metalStyles = {
         color: METAL.cyan,
     },
     badgeGold: {
-        background: 'rgba(245, 158, 11, 0.15)',
-        border: '1px solid rgba(245, 158, 11, 0.4)',
+        background: METAL.cyanDim,
+        border: `1px solid ${METAL.highlight}`,
         color: METAL.gold,
     },
     badgeSuccess: {
@@ -323,7 +315,7 @@ export const metalStyles = {
     emptyState: {
         textAlign: 'center',
         padding: '32px 16px',
-        color: 'rgba(255,255,255,0.4)',
+        color: METAL.textMuted,
     },
     emptyIcon: {
         display: 'flex',
@@ -337,13 +329,12 @@ export const metalStyles = {
         borderRadius: '50%',
         color: METAL.cyan,
         opacity: 0.6,
-        animation: 'float 3s ease-in-out infinite',
     },
     emptyTitle: {
         fontFamily: "'Rajdhani', sans-serif",
         fontSize: 14,
         fontWeight: 600,
-        color: 'rgba(255,255,255,0.5)',
+        color: METAL.textSecondary,
         textTransform: 'uppercase',
         letterSpacing: '0.1em',
         margin: '0 0 8px',
@@ -351,7 +342,7 @@ export const metalStyles = {
     emptyHint: {
         fontFamily: "'Rajdhani', sans-serif",
         fontSize: 12,
-        color: 'rgba(255,255,255,0.35)',
+        color: METAL.textMuted,
         margin: 0,
     },
 
@@ -383,7 +374,7 @@ export const metalStyles = {
         background: GRADIENTS.cyanAction,
         border: 'none',
         borderRadius: 8,
-        color: '#000',
+        color: METAL.textPrimary,
         fontFamily: "'Rajdhani', sans-serif",
         fontSize: 13,
         fontWeight: 700,
@@ -403,13 +394,12 @@ export const metalStyles = {
         alignItems: 'center',
         gap: 4,
         padding: '4px 10px',
-        background: METAL.gold,
+        background: GRADIENTS.cyanAction,
         borderRadius: 20,
         fontSize: 12,
         fontWeight: 700,
-        color: '#000',
+        color: METAL.textPrimary,
         boxShadow: GLOWS.gold,
-        animation: 'float 2s ease-in-out infinite',
     },
 };
 
