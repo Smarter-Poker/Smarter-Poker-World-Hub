@@ -10,6 +10,8 @@
      matches BOTTOM_NAV_H in src/components/ui/BottomNavBar.jsx. */
   --sp-header-height: 56px;
   --sp-bottom-nav-height: 56px;
+  --sp-footer-frame-scale: 12.326vw;
+  --sp-footer-dock-height: clamp(44px, var(--sp-footer-frame-scale), 132px);
 
   /* ═══════════════════════════════════════════════════════════════════════════
      DEFAULT WORLD THEME
@@ -203,4 +205,12 @@ body,
 @keyframes spPtrSpin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+
+/* Match the taller phone frame used by the Poker Arena dock. */
+@media (max-width: 600px) {
+  :root {
+    --sp-footer-frame-scale: 15.53vw;
+  }
 }

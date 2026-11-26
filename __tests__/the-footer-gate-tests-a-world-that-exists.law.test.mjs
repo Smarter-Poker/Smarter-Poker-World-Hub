@@ -322,7 +322,7 @@ test('the footer gate waits for product facts instead of WebKit lifecycle accide
     );
     assert.match(
         spec,
-        /navBox!\.height - expectedClubFooterHeight\(320\)/,
+        /navBox!\.height - expectedArenaDockHeight\(320\)/,
         'the 320px check must measure the fixed control shell against its own shared height token',
     );
     assert.match(

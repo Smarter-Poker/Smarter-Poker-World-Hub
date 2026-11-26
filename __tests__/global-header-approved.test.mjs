@@ -118,13 +118,13 @@ test('World Hub header wires all approved controls and replaces the profile icon
  * only frame is the 0.5px hairline. The binding version, by arithmetic, is
  * __tests__/global-header-profile-frame-law.test.mjs and
  * GLOBAL_HEADER_PROFILE_FRAME_LAW.md; this block keeps the wiring. The header
- * still paints no background of its own (Dan, 2026-09-01) - that part stands.
+ * now backs the artwork with an opaque surface to cover scrolling content.
  */
-test('World Hub masks the ornament with a black disc, seats the hairlined portrait in it, and paints no header background', () => {
+test('World Hub masks the ornament with a black disc, seats the hairlined portrait in it, and locks the opaque header to the viewport', () => {
   assert.match(header, /approved-global-header__avatar-slot/);
-  assert.match(header, /\.approved-global-header\s*\{[\s\S]*?background: transparent;/);
-  // the header's own rule only: the profile disc below is #000 on purpose.
-  assert.doesNotMatch(header, /\.approved-global-header\s*\{[^}]*background: #000;/);
+  assert.match(header, /\.approved-global-header\s*\{[^}]*position: fixed;[^}]*inset: 0 0 auto;[^}]*background: #[a-f0-9]{6};/);
+  assert.match(header, /createPortal\(header, document.body\)/);
+  assert.match(header, /approved-global-header__clearance" aria-hidden="true"/);
   assert.match(header, /\.approved-global-header__profile\s*\{[\s\S]*?position: absolute !important;[\s\S]*?contain: layout paint;/);
   assert.match(header, /\.approved-global-header__profile\s*\{[\s\S]*?aspect-ratio: 1;/);
   // THE MASK. Opaque, round, over the ring and its glow.

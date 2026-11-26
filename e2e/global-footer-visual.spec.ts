@@ -201,33 +201,16 @@ const routeMatrix = walkPages(path.join(process.cwd(), 'pages'))
 const expectedClubFooterHeight = (viewportWidth: number) =>
   Math.min(132, Math.max(44, viewportWidth * 0.12326));
 
-// The Poker Arena's own dock (served from Club Arena at /hub/club-arena) has
-// had a separate phone composition since Club Arena #7390 (Dan 2026-10-17: "ON
-// MOBILE THE HEADERS AND FOOTERS ARE TOO SMALL"). Its club-engine.css sets
-// `clamp(44px, 15.53vw, 132px)` at max-width 600px (the 1481x230 phone frame)
-// and keeps the 12.326vw token above it. The World Hub's own footers above
-// still use 12.326vw at every width, so only the arena probe reads this.
+// The Poker Arena uses a taller 1481x230 frame at phone widths.
 const expectedArenaDockHeight = (viewportWidth: number) =>
   viewportWidth <= 600
     ? Math.min(132, Math.max(44, viewportWidth * 0.1553))
     : expectedClubFooterHeight(viewportWidth);
 
-const expectedArtworkStage = (
-  viewportWidth: number,
-  world: (typeof footerRegistry.worlds)[number]
-) => {
-  const artwork = world.artwork;
-  const display =
-    artwork.cropToContentBounds !== false && artwork.contentBounds
-      ? artwork.contentBounds
-      : artwork;
-  const aspect = display.width / display.height;
-  const width = ('fullBleed' in artwork && artwork.fullBleed) ? viewportWidth : Math.min(
-    viewportWidth,
-    Math.max(world.items.length * 44 + 1, expectedClubFooterHeight(viewportWidth) * aspect)
-  );
-  return { width, height: width / aspect };
-};
+const expectedArtworkStage = (viewportWidth: number) => ({
+  width: viewportWidth,
+  height: Math.min(132, viewportWidth * (viewportWidth <= 600 ? 0.1553 : 0.12326)),
+});
 
 const visit = async (page: Page, route: string) => {
   let lastError: unknown;
@@ -355,6 +338,36 @@ const documentedTotal = Number(
 const arenaRoutesExcluded = (matrixDoc.match(/^\|\s*`?\/hub\/training\/arena\//gm) || []).length;
 const EXPECTED_ROUTES = documentedTotal - arenaRoutesExcluded;
 
+test('Training header stays above scrolling content and keeps the mobile portrait square', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await visit(page, '/hub/training');
+  const header = page.locator('body > .approved-global-header');
+  await expect(header).toBeVisible();
+  await expect(header).toHaveCSS('position', 'fixed');
+  await expect(header).toHaveCSS('background-color', 'rgb(7, 20, 31)');
+
+  const profile = header.locator('.approved-global-header__profile');
+  await expect(profile).toHaveCSS('min-height', '0px');
+  const portrait = profile.locator('img');
+  await expect(portrait).toHaveCSS('object-fit', 'cover');
+  await expect.poll(() => portrait.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+  const portraitBox = await portrait.boundingBox();
+  expect(portraitBox).not.toBeNull();
+  expect(Math.abs(portraitBox!.width - portraitBox!.height)).toBeLessThan(1);
+  const profileBox = await profile.boundingBox();
+  expect(profileBox).not.toBeNull();
+  expect(Math.abs(profileBox!.width - profileBox!.height)).toBeLessThan(1);
+
+  await page.evaluate(() => window.scrollTo(0, 400));
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+  const headerBox = await header.boundingBox();
+  expect(headerBox?.y).toBe(0);
+  await expect.poll(() => header.evaluate((element) => {
+    const bounds = element.getBoundingClientRect();
+    return element.contains(document.elementFromPoint(bounds.width / 2, bounds.height / 2));
+  })).toBe(true);
+});
+
 test.describe('dynamic World Hub footer route and visual contract', () => {
   test('a verified video watch sample server-renders the Video Library footer', async ({ request }) => {
     const route = await watchFooterSample(request);
@@ -386,6 +399,11 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
     await expect(pageFooter).toBeVisible();
     await expect(pageFooter).toHaveAttribute('data-footer-layout', 'in-flow');
     await expect(pageFooter).toHaveCSS('position', 'static');
+    const footerBox = await pageFooter.boundingBox();
+    expect(footerBox).not.toBeNull();
+    expect(Math.abs(footerBox!.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(footerBox!.width - 390)).toBeLessThanOrEqual(1);
+    expect(Math.abs(footerBox!.height - expectedArenaDockHeight(390))).toBeLessThanOrEqual(1);
     await expect(page.locator('.world-copy-scope')).toHaveCount(1);
   });
 
@@ -514,16 +532,12 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
 
         const stageBox = await stage.boundingBox();
         expect(stageBox).not.toBeNull();
-        // Every authored frame keeps its measured aspect ratio. The stage uses
-        // Club Arena's shared height token unless it needs a small width floor to
-        // keep six 44px destinations usable, and it never exceeds the viewport.
-        const expectedStage = expectedArtworkStage(320, definition!);
+        const expectedStage = expectedArtworkStage(320);
+        expect(Math.abs(stageBox!.x)).toBeLessThanOrEqual(1);
         expect(Math.abs(stageBox!.width - expectedStage.width)).toBeLessThanOrEqual(1);
         expect(Math.abs(stageBox!.height - expectedStage.height)).toBeLessThanOrEqual(1);
         expect(Math.abs(stageBox!.y + stageBox!.height - 568)).toBeLessThan(4);
-        // The fixed control shell owns Club Arena's shared 44px floor. Narrow
-        // artwork can be shorter while remaining bottom-welded and unstretched.
-        expect(Math.abs(navBox!.height - expectedClubFooterHeight(320))).toBeLessThanOrEqual(3);
+        expect(Math.abs(navBox!.height - expectedArenaDockHeight(320))).toBeLessThanOrEqual(3);
         const decodedArtwork = await artwork.evaluate((image: HTMLImageElement) => ({
           width: image.naturalWidth,
           height: image.naturalHeight,
@@ -623,11 +637,19 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
       });
       expect(Math.abs(navBox.x)).toBeLessThanOrEqual(1);
       expect(Math.abs(navBox.y + navBox.height - viewport.height)).toBeLessThan(4);
-      expect(navBox.width).toBeLessThanOrEqual(viewport.width + 1);
+      expect(Math.abs(navBox.width - viewport.width)).toBeLessThanOrEqual(1);
+      const stage = await nav.locator('.bn-artwork-stage').evaluate((element) => {
+        const { x, width, height } = element.getBoundingClientRect();
+        return { x, width, height };
+      });
+      const expectedStage = expectedArtworkStage(viewport.width);
+      expect(Math.abs(stage.x)).toBeLessThanOrEqual(1);
+      expect(Math.abs(stage.width - expectedStage.width)).toBeLessThanOrEqual(1);
+      expect(Math.abs(stage.height - expectedStage.height)).toBeLessThanOrEqual(1);
       // The Club Arena height token, at every supported width. This is the one
       // assertion that keeps the estate looking like a single product.
       expect(
-        Math.abs(navBox.height - expectedClubFooterHeight(viewport.width))
+        Math.abs(navBox.height - expectedArenaDockHeight(viewport.width))
       ).toBeLessThanOrEqual(3);
       expect(await nav.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(
         true
