@@ -15,4 +15,6 @@ description: Apply the approved Smarter.Poker chrome and cobalt console style to
 7. Carry the design through every screen and interaction. Inspect every button and its states, chart, data display, dialog, and X/close affordance. Give close controls an accessible name and a 44px hit area. Center adjustment dialogs and verify focus, Escape, mobile scrolling and return navigation.
 8. For Bankroll Manager and Toke Tracker, keep entry actions near the top and contextual help in the upper-right question mark. Keep the Bankroll launcher on Dashboard and Jarvis Insights at its foot. Subpages provide Back To Dashboard.
 
+9. Model every page image header on [the Cashier reference](references/cashier-header.webp). Use one steel rim, a prominent page-specific icon in a circular chrome frame on the left, and a bold title beside it in solid white or silver with uniform letter fill. Blend the dark title surface into a realistic scene on the right. Choose a distinct icon and scene for every destination. The vault belongs to Cashier. Place an accessible working question mark in the upper right with a 44px target and page-specific help. Check the title, circle, scene crop and help action on phone and desktop.
+
 In World Hub, read `docs/SMARTERDESIGN.md` for the canonical design standard.
