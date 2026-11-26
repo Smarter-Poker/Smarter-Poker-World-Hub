@@ -1123,10 +1123,12 @@ export async function syncClubArenaHandsForAudit(db, userId, {
     })
     : globallyOrdered;
   const handRows = filteredOrdered.slice(0, Math.max(1, Math.min(1000, Number(limit) || 100)));
-  const sourceIncomplete = !reachedWatermark && (
-    filteredOrdered.length > handRows.length
-    || modern.complete !== true
-    || legacy.complete !== true
+  const hasBatchOverflow = filteredOrdered.length > handRows.length;
+  const sourceIncomplete = hasBatchOverflow || (
+    !reachedWatermark && (
+      modern.complete !== true
+      || legacy.complete !== true
+    )
   );
   const latestHandWatermark = requestedCursor.latestHandWatermark
     || (!requestedCursor.boundary && handRows[0]

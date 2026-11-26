@@ -42,9 +42,25 @@ function reviewText(raw, max = 48) {
     return String(firstQuery(raw) || '').replace(/[\u0000-\u001f\u007f<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
 }
 
-export default function ShareHandPage() {
+export async function getServerSideProps({ query = {}, res }) {
+    if (firstQuery(query?.view) === 'review' && res) {
+        res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+        res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+    }
+    const initialQuery = {};
+    for (const [k, v] of Object.entries(query || {})) {
+        const val = firstQuery(v);
+        if (typeof val === 'string') initialQuery[k] = val;
+    }
+    return { props: { initialQuery } };
+}
+
+export default function ShareHandPage({ initialQuery = {} }) {
     const router = useRouter();
-    const { hero, board, result, amount, stakes, venue, pot, player, hand, view, street, position, anon } = router.query;
+    const resolvedQuery = router.isReady && router.query && Object.keys(router.query).length > 0
+        ? router.query
+        : initialQuery;
+    const { hero, board, result, amount, stakes, venue, pot, player, hand, view, street, position, anon } = resolvedQuery;
     const [imageLoaded, setImageLoaded] = useState(false);
     const isReview = firstQuery(view) === 'review';
 
