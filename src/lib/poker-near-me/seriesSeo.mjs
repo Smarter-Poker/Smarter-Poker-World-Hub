@@ -23,6 +23,7 @@ import {
   buildSeriesSpeakableJsonLd,
 } from './venueAeo.mjs';
 import { resolveSeriesWikidataLinks } from '../seo/wikidataRegistry.mjs';
+import { isSyntheticTestSeries } from './seriesRouteIdentity.mjs';
 
 const TIMEOUT_MS = 10000;
 
@@ -155,9 +156,9 @@ export function seriesCacheControl(series, nowMs = Date.now()) {
   return nowMs - endMs > 2 * 24 * 60 * 60 * 1000 ? SERIES_CACHE_CONCLUDED : SERIES_CACHE_ACTIVE;
 }
 
-/** A series with no name has nothing to index. */
+/** A series with no name or a synthetic test fixture has nothing to index. */
 export function isPublicSeries(v) {
-  return !!v && !!v.name;
+  return !!v && !!v.name && !isSyntheticTestSeries(v);
 }
 
 /**
@@ -214,6 +215,28 @@ export async function fetchSeries(id, origin) {
 }
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const SHORT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+/** Compact SERP-friendly range: "Aug 26-Sep 7, 2026" or "Aug 2026", or null. */
+export function formatShortRange(startDate, endDate) {
+  const part = (iso) => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso ?? ''));
+    if (!m) return null;
+    const month = SHORT_MONTHS[Number(m[2]) - 1];
+    return month ? { month, day: String(Number(m[3])), year: m[1] } : null;
+  };
+  const a = part(startDate);
+  const b = part(endDate);
+  if (!a && !b) return null;
+  if (!b || !a) {
+    const one = a || b;
+    return `${one.month} ${one.day}, ${one.year}`;
+  }
+  if (a.year === b.year && a.month === b.month && a.day === b.day) return `${a.month} ${a.day}, ${a.year}`;
+  if (a.year === b.year && a.month === b.month) return `${a.month} ${a.day}-${b.day}, ${a.year}`;
+  if (a.year === b.year) return `${a.month} ${a.day}-${b.month} ${b.day}, ${a.year}`;
+  return `${a.month} ${a.year}-${b.month} ${b.year}`;
+}
 
 /** "February 25 to March 31, 2026", or a single date, or null. */
 export function formatRange(startDate, endDate) {
@@ -285,9 +308,15 @@ export function seriesTitle(v) {
   const name = typeof v.name === 'string' ? v.name.trim() : '';
   const venue = realPlace(v.venueName);
   const city = cityWithoutVenue(realPlace(v.city), venue);
+  const shortRange = formatShortRange(v.startDate, v.endDate);
+  const monthYear = /^\d{4}-\d{2}-\d{2}$/.test(String(v.startDate ?? ''))
+    ? `${SHORT_MONTHS[Number(String(v.startDate).slice(5, 7)) - 1]} ${String(v.startDate).slice(0, 4)}`
+    : null;
   return firstThatFits([
     venue ? `${name} At ${venue}` : null,
     city ? `${name} At ${city}` : null,
+    !venue && !city && shortRange ? `${name} (${shortRange})` : null,
+    !venue && !city && monthYear ? `${name} (${monthYear})` : null,
     name,
   ].filter(Boolean));
 }

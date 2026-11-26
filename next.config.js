@@ -1254,6 +1254,18 @@ const nextConfig = {
           },
         ],
       },
+      // Raw Markdown (.md) AI-ingestion mirrors remain 200 OK for LLM crawlers
+      // (ChatGPT, Claude, Perplexity) while signaling Googlebot to keep Web Search
+      // indexation focused on the canonical HTML pages rather than .md mirrors.
+      {
+        source: '/:path*.md',
+        headers: [
+          {
+            key: 'X-Robots-Tag',
+            value: 'noindex, follow',
+          },
+        ],
+      },
       // [GEO / AI Agent Link Discovery Headers] Advertises /llms.txt, /.well-known/mcp.json,
       // and /.well-known/ai-facts.json via RFC 8288 HTTP Link headers across /tools, /learn,
       // /research, and /poker-rooms surfaces.
@@ -1328,6 +1340,47 @@ const nextConfig = {
       { source: '/auth/sign' + 'in', destination: '/auth/login', permanent: true },
       { source: '/signup', destination: '/auth/sign' + 'up', permanent: true },
       { source: '/register', destination: '/auth/sign' + 'up', permanent: true },
+      // Legacy /research/* study slugs crawled in Google Search Console -> canonical published studies
+      {
+        source: '/research/plo4-plo5-plo6-equity-and-variance-study',
+        destination: '/research/pot-limit-omaha-plo4-plo5-plo6-equity-and-variance-study',
+        permanent: true,
+      },
+      {
+        source: '/research/plo4-plo5-plo6-equity-and-variance-study.md',
+        destination: '/research/pot-limit-omaha-plo4-plo5-plo6-equity-and-variance-study.md',
+        permanent: true,
+      },
+      {
+        source: '/research/live-poker-tournament-guarantee-and-overlay-study',
+        destination: '/research/daily-poker-tournament-buy-in-and-guarantee-index',
+        permanent: true,
+      },
+      {
+        source: '/research/live-poker-tournament-guarantee-and-overlay-study.md',
+        destination: '/research/daily-poker-tournament-buy-in-and-guarantee-index.md',
+        permanent: true,
+      },
+      {
+        source: '/research/live-cash-game-winrate-variance-and-bankroll-study',
+        destination: '/research/live-low-stakes-1-2-and-2-5-nlh-population-tendencies-report',
+        permanent: true,
+      },
+      {
+        source: '/research/live-cash-game-winrate-variance-and-bankroll-study.md',
+        destination: '/research/live-low-stakes-1-2-and-2-5-nlh-population-tendencies-report.md',
+        permanent: true,
+      },
+      {
+        source: '/research/state-by-state-live-poker-legal-and-regulatory-guide',
+        destination: '/poker-rooms/states',
+        permanent: true,
+      },
+      {
+        source: '/research/state-by-state-live-poker-legal-and-regulatory-guide.md',
+        destination: '/poker-rooms/states.md',
+        permanent: true,
+      },
       // /privacy is a real, server-rendered page since 2026-09-08 (the app
       // stores read the privacy policy URL with a crawler, and the tab inside
       // /terms is client-rendered). Only the legacy alias redirects now.

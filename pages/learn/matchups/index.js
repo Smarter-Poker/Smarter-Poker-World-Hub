@@ -279,7 +279,7 @@ export default function PokerMatchupsIndexPage() {
                       {m.combosA} / {m.combosB}
                     </td>
                     <td style={styles.tdAction}>
-                      <Link href={`/tools/poker-odds-calculator?hand1=${encodeURIComponent(m.handA)}&hand2=${encodeURIComponent(m.handB)}`} style={styles.calcLink}>
+                      <Link href={`/tools/poker-odds-calculator?hand1=${encodeURIComponent(m.handA)}&hand2=${encodeURIComponent(m.handB)}`} rel="nofollow" prefetch={false} style={styles.calcLink}>
                         Run In Odds Calculator
                       </Link>
                     </td>
@@ -339,7 +339,7 @@ export default function PokerMatchupsIndexPage() {
                   <Link href={matchupPath(m.slug)} style={styles.readGuideLink}>
                     View Flop Shifts &amp; 100BB EV Guide
                   </Link>
-                  <Link href={`/tools/poker-odds-calculator?hand1=${encodeURIComponent(m.handA)}&hand2=${encodeURIComponent(m.handB)}`} style={styles.oddsToolLink}>
+                  <Link href={`/tools/poker-odds-calculator?hand1=${encodeURIComponent(m.handA)}&hand2=${encodeURIComponent(m.handB)}`} rel="nofollow" prefetch={false} style={styles.oddsToolLink}>
                     Odds Calculator
                   </Link>
                 </div>
