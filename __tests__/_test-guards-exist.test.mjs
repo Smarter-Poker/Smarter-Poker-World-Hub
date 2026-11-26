@@ -780,6 +780,7 @@ const REQUIRED_TEST_FILES = [
     '__tests__/newsletter-forensic-pass-hardening.law.test.mjs',
     '__tests__/weekly-wire-v5-ecosystem-suite.law.test.mjs',
     '__tests__/smarter-poker-magazine.law.test.mjs',
+    '__tests__/api-routes-never-trace-static-pages.law.test.mjs',
 ];
 
 test('every signup-related guard test file exists on disk', () => {
@@ -921,6 +922,7 @@ import './weekly-wire-v5-ecosystem-suite.law.test.mjs';
 import './newsletter-v6-forensic-hardening.law.test.mjs';
 import './seo-aeo-geo-phase4-20261126.law.test.mjs';
 import './seo-aeo-geo-forensic-hardening-20261126.law.test.mjs';
+import './api-routes-never-trace-static-pages.law.test.mjs';
 
 test('every guard in __tests__ is reachable by CI', () => {
     const here = fs.readFileSync(path.join(REPO, '__tests__', '_test-guards-exist.test.mjs'), 'utf8');
