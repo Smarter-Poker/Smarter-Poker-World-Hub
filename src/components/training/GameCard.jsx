@@ -32,7 +32,8 @@ export default function GameCard({ game, onClick, index = 0, image, progress, pl
         <motion.button
             type="button"
             className="sp-casino-game-card"
-            style={{ '--game-accent': meta.accent }}
+            data-training-play-game={game.id}
+            style={{ '--game-accent': 'var(--sd-ice)' }}
             onClick={() => onClick?.(game)}
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -70,7 +71,7 @@ export default function GameCard({ game, onClick, index = 0, image, progress, pl
                     <span style={{ width: `${percent}%` }} />
                 </span>
 
-                <span className="sp-casino-game-action">
+                <span className="sp-casino-game-action sd-button sd-primary">
                     <span>{action}</span>
                     <ArrowRight size={16} aria-hidden="true" />
                 </span>

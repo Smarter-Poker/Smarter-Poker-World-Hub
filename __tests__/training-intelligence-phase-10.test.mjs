@@ -51,7 +51,7 @@ test('the intelligence system provides straight metallic cards and accessible pr
   assert.match(css, /PHASE 10 — REPORTING & COMPETITIVE INTELLIGENCE/);
   assert.match(css, /\.sp-training-intelligence div\[style\*="border-radius"\][\s\S]*border-radius:\s*0\s*!important/);
   assert.match(css, /\.sp-training-intelligence button\[aria-pressed="true"\][\s\S]*#e9fcff/);
-  assert.match(css, /\.sp-intelligence-header::after[\s\S]*#ffbd4a/);
+  assert.match(css, /\.sp-intelligence-header\.sd-masthead\s*\{[^}]*chrome-readout\.webp/);
 });
 
 test('phone layouts reduce metric grids and profile comparisons without horizontal page overflow', () => {

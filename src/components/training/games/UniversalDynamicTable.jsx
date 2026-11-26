@@ -5702,7 +5702,7 @@ function UniversalDynamicTable({
                         const segments = [
                             { key: 'best', color: '#22c55e', count: counts.best || 0 },
                             { key: 'correct', color: '#00d4ff', count: counts.correct || 0 },
-                            { key: 'inaccuracy', color: '#fbbf24', count: counts.inaccuracy || 0 },
+                            { key: 'inaccuracy', color: '#86daff', count: counts.inaccuracy || 0 },
                             { key: 'wrong', color: '#f97316', count: counts.wrong || 0 },
                             { key: 'blunder', color: '#ef4444', count: counts.blunder || 0 },
                         ].filter(seg => seg.count > 0);
@@ -5950,7 +5950,7 @@ function UniversalDynamicTable({
                                         fontWeight: 800,
                                         border: '1px solid rgba(250, 204, 21, 0.6)',
                                         background: 'rgba(250, 204, 21, 0.16)',
-                                        color: '#fde047',
+                                        color: '#86daff',
                                     }}
                                 >
                                     Spins 3x Multiplier · 20 BB Hyper
@@ -5993,7 +5993,7 @@ function UniversalDynamicTable({
                                     cursor: 'pointer',
                                     border: '1px solid rgba(251, 191, 36, 0.45)',
                                     background: displayInChips ? 'rgba(251, 191, 36, 0.2)' : 'rgba(255,255,255,0.05)',
-                                    color: '#fbbf24',
+                                    color: '#86daff',
                                 }}
                             >
                                 {displayInChips ? `CHIPS (${activeStakesInfo.stakesLabel})` : 'UNITS: BB'}
@@ -6349,7 +6349,7 @@ function UniversalDynamicTable({
                                     fontWeight: 800,
                                     border: '1px solid rgba(250, 204, 21, 0.45)',
                                     background: 'rgba(250, 204, 21, 0.12)',
-                                    color: '#fde047',
+                                    color: '#86daff',
                                 }}
                             >
                                 <span>{`Main Pot: ${clubArenaParityState?.potState?.mainPotBb || pot} BB · Side Pots: ${clubArenaParityState?.potState?.sidePots?.length || 0}`}</span>
@@ -6502,7 +6502,7 @@ function UniversalDynamicTable({
                                 border: '1px solid rgba(168, 85, 247, 0.42)',
                             }}
                         >
-                            <span style={{ color: '#d8b4fe', fontWeight: 800, fontSize: 12 }}>Node-Lock Villain:</span>
+                            <span style={{ color: '#86daff', fontWeight: 800, fontSize: 12 }}>Node-Lock Villain:</span>
                             {Object.values(VILLAIN_NODELOCK_PROFILES).map((prof) => {
                                 const isProfActive = villainNodeLockProfile === prof.key;
                                 return (
@@ -6578,7 +6578,7 @@ function UniversalDynamicTable({
                                 fontSize: 12,
                             }}
                         >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 900, color: '#d8b4fe' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 900, color: '#86daff' }}>
                                 <span>{`On-Felt Sitting Hand History (${sessionHandHistoryLog.length} Hands · Button Seat: ${dealerButtonSeat})`}</span>
                                 <span>{`Rule: ${activeTableRule.toUpperCase()}`}</span>
                             </div>
@@ -6600,7 +6600,7 @@ function UniversalDynamicTable({
                                     <span style={{ color: '#38bdf8' }}>{`${String(hItem.variant || 'nlh').toUpperCase()} · ${String(hItem.street || 'flop').toUpperCase()} · ${hItem.position}`}</span>
                                     <span>{`Hero: [${(hItem.heroCards || []).join(' ')}]`}</span>
                                     <span>{`Board: [${(hItem.boardCards || []).join(' ') || 'Preflop'}]`}</span>
-                                    <span style={{ color: '#fbbf24' }}>{`Pot: ${hItem.potBb} BB`}</span>
+                                    <span style={{ color: '#86daff' }}>{`Pot: ${hItem.potBb} BB`}</span>
                                     <span style={{ color: '#53f2a0' }}>{`Optimal: ${hItem.recommendedAction}`}</span>
                                 </div>
                             ))}
@@ -6998,7 +6998,7 @@ function UniversalDynamicTable({
                                     cursor: 'pointer',
                                     border: '1px solid rgba(250, 204, 21, 0.75)',
                                     background: 'linear-gradient(180deg, rgba(250, 204, 21, 0.28) 0%, rgba(202, 138, 4, 0.35) 100%)',
-                                    color: '#fef08a',
+                                    color: '#86daff',
                                 }}
                             >
                                 {`⚡ Lightning Next Hand (${lightningZoomCount})`}
@@ -7042,7 +7042,7 @@ function UniversalDynamicTable({
                                     cursor: 'pointer',
                                     border: '1px solid rgba(245, 158, 11, 0.65)',
                                     background: 'rgba(245, 158, 11, 0.18)',
-                                    color: '#fcd34d',
+                                    color: '#86daff',
                                 }}
                             >
                                 {bbjPlateVisible ? `◆ BBJ Pool: ${bbjPoolAmount.toLocaleString()} · Action Bubbles: ON` : '◆ BBJ Plate: Hidden'}
@@ -7364,7 +7364,7 @@ function UniversalDynamicTable({
                                 style={{ padding: '4px 8px', borderRadius: 4, background: 'rgba(4, 13, 24, 0.85)', border: '1px solid rgba(104, 130, 153, 0.45)' }}
                             >
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
-                                    <span style={{ fontWeight: 800, color: '#fcd34d' }}>
+                                    <span style={{ fontWeight: 800, color: '#86daff' }}>
                                         {`Adaptive Villain: ${adaptiveVillainEval.shiftedProfile}`}
                                     </span>
                                     <button
@@ -7419,7 +7419,7 @@ function UniversalDynamicTable({
                                 data-icm-required-equity={String(tableIcmChopSim.icmRequiredEquityPct)}
                                 style={{ padding: '4px 8px', borderRadius: 4, background: 'rgba(4, 13, 24, 0.85)', border: '1px solid rgba(104, 130, 153, 0.45)' }}
                             >
-                                <div style={{ fontWeight: 800, color: '#fcd34d' }}>
+                                <div style={{ fontWeight: 800, color: '#86daff' }}>
                                     {`ICM Chop & Pay-Jump Sim: $${tableIcmChopSim.icmChopValue.toLocaleString()} (Next Jump +$${tableIcmChopSim.nextPayJumpValue.toLocaleString()})`}
                                 </div>
                                 <div style={{ color: '#b7cede', marginTop: 2 }}>{tableIcmChopSim.recommendation}</div>
@@ -7858,7 +7858,7 @@ function UniversalDynamicTable({
                                                             fontSize: 12,
                                                             fontWeight: 900,
                                                             letterSpacing: 0.4,
-                                                            color: '#fbbf24',
+                                                            color: '#86daff',
                                                             background: 'rgba(251,191,36,0.14)',
                                                             border: '1px solid rgba(251,191,36,0.45)',
                                                             borderRadius: 4,
@@ -8424,7 +8424,7 @@ function UniversalDynamicTable({
                                         data-icm-authority={hasBf || rawPressure ? 'scenario' : 'reference'}
                                         style={{
                                             ...styles.potOverlayBadge,
-                                            color: '#f59e0b',
+                                            color: '#86daff',
                                             borderColor: 'rgba(245, 158, 11, 0.45)',
                                             background: 'rgba(245, 158, 11, 0.14)',
                                         }}
@@ -9503,7 +9503,7 @@ function UniversalDynamicTable({
                                                         </span>
                                                     )}
                                                     {brainMeta.potLimitBounds?.maxBetBb && (
-                                                        <span style={{ padding: '2px 7px', borderRadius: 999, background: 'rgba(245, 158, 11, 0.2)', color: '#fcd34d', fontWeight: 800, fontSize: 12 }}>
+                                                        <span style={{ padding: '2px 7px', borderRadius: 999, background: 'rgba(245, 158, 11, 0.2)', color: '#86daff', fontWeight: 800, fontSize: 12 }}>
                                                             Pot-Limit Max: {brainMeta.potLimitBounds.maxBetBb} BB
                                                         </span>
                                                     )}
@@ -9555,7 +9555,7 @@ function UniversalDynamicTable({
                                             <span style={{ fontWeight: 900, color: '#6ee7b7', textTransform: 'uppercase', letterSpacing: 0.8 }}>
                                                 Omaha 2-Hole + 3-Board Best-5 &amp; Draw Breakdown ({activeNormalizedVariant.toUpperCase()})
                                             </span>
-                                            <span style={{ fontWeight: 800, color: '#fcd34d' }}>
+                                            <span style={{ fontWeight: 800, color: '#86daff' }}>
                                                 Pot-Limit Max Raise (Pot + 2x Call): {brainSpotEvaluation.potLimitMaxBetBb ?? 0} BB
                                             </span>
                                         </div>
@@ -9595,9 +9595,9 @@ function UniversalDynamicTable({
                                         </div>
                                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, color: '#cbd5e1', fontWeight: 700 }}>
                                             <span>Made Hand: <strong style={{ color: '#6ee7b7' }}>{brainSpotEvaluation.madeHandCategory || 'Unpaired'}</strong></span>
-                                            <span>Wrap Type: <strong style={{ color: '#f472b6' }}>{brainSpotEvaluation.wrapType || 'NONE'}</strong></span>
+                                            <span>Wrap Type: <strong style={{ color: '#86daff' }}>{brainSpotEvaluation.wrapType || 'NONE'}</strong></span>
                                             <span>Straight Outs: <strong style={{ color: '#38bdf8' }}>{brainSpotEvaluation.straightOuts ?? 0}</strong></span>
-                                            <span>Flush Outs: <strong style={{ color: '#a78bfa' }}>{brainSpotEvaluation.flushOuts ?? 0}{brainSpotEvaluation.isNutFlushDraw ? ' (Nut Flush Draw)' : ''}</strong></span>
+                                            <span>Flush Outs: <strong style={{ color: '#86daff' }}>{brainSpotEvaluation.flushOuts ?? 0}{brainSpotEvaluation.isNutFlushDraw ? ' (Nut Flush Draw)' : ''}</strong></span>
                                         </div>
                                     </div>
                                 )}
@@ -9658,7 +9658,7 @@ function UniversalDynamicTable({
                                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', color: '#e2e8f0', fontWeight: 700 }}>
                                             <span>Runout Card: <strong style={{ color: '#38bdf8' }}>{activeRunoutCard} ({nextStreet.toUpperCase()})</strong></span>
                                             <span>Recommended Action: <strong style={{ color: '#53f2a0' }}>{whatIfEvaluation.recommendedAction}</strong></span>
-                                            <span>Made Hand: <strong style={{ color: '#fcd34d' }}>{whatIfEvaluation.madeHandCategory}</strong></span>
+                                            <span>Made Hand: <strong style={{ color: '#86daff' }}>{whatIfEvaluation.madeHandCategory}</strong></span>
                                             <span>Sizing: <strong style={{ color: '#7dd3fc' }}>{whatIfEvaluation.recommendedSizingBb} BB</strong></span>
                                             <span>Equity Score: <strong>{whatIfEvaluation.handScore}/100</strong></span>
                                             <span>Outs: <strong>{whatIfEvaluation.flushOuts} Flush / {whatIfEvaluation.straightOuts} Straight</strong></span>
@@ -9701,7 +9701,7 @@ function UniversalDynamicTable({
                                     }}
                                 >
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-                                        <span style={{ fontWeight: 900, color: '#d8b4fe', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                                        <span style={{ fontWeight: 900, color: '#86daff', textTransform: 'uppercase', letterSpacing: 0.8 }}>
                                             What If Villain Had... Range-Bucket Explorer ({activeNormalizedVariant.toUpperCase()})
                                         </span>
                                         <span style={{ fontWeight: 800, color: '#6ee7b7' }}>
@@ -9762,7 +9762,7 @@ function UniversalDynamicTable({
                                         <span style={{ fontWeight: 900, color: '#6ee7b7', textTransform: 'uppercase', letterSpacing: 0.8 }}>
                                             Interactive Showdown Reveal &amp; Pot Allocation ({completedFiveCardBoard.join(' ')})
                                         </span>
-                                        <span style={{ fontWeight: 900, color: '#fde047' }}>
+                                        <span style={{ fontWeight: 900, color: '#86daff' }}>
                                             {`Hero Payout: ${showdownOutcome.heroPayoutBb} BB / ${showdownOutcome.totalPotBb} BB (${showdownOutcome.scoopOrSplitLabel})`}
                                         </span>
                                     </div>
@@ -9810,7 +9810,7 @@ function UniversalDynamicTable({
                                     }}
                                 >
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
-                                        <span style={{ fontWeight: 900, color: '#fcd34d', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                                        <span style={{ fontWeight: 900, color: '#86daff', textTransform: 'uppercase', letterSpacing: 0.8 }}>
                                             Run It Twice Dual-Board All-In Simulator (50% / 50% Pot Split)
                                         </span>
                                         <span style={{ fontWeight: 900, color: '#6ee7b7' }}>
@@ -9846,7 +9846,7 @@ function UniversalDynamicTable({
                                         <span style={{ fontWeight: 900, color: '#6ee7b7', textTransform: 'uppercase', letterSpacing: 0.8 }}>
                                             {'Club Arena All-In Insurance EV Calculator (5% House Margin)'}
                                         </span>
-                                        <span style={{ fontWeight: 900, color: '#fde047' }}>
+                                        <span style={{ fontWeight: 900, color: '#86daff' }}>
                                             {`Uninsured EV: ${allInEquityOffer.uninsuredEvBb} BB · Locked Cashout: ${allInEquityOffer.lockedCashoutBb} BB · Premium: -${allInEquityOffer.chargedPremiumBb} BB`}
                                         </span>
                                     </div>
@@ -11218,7 +11218,8 @@ function UniversalDynamicTable({
                         {onNextHand ? (
                             <>
                                 <motion.button
-                                    className="sp-training-next-button"
+                                    className="sp-training-next-button sd-button sd-primary"
+                                    data-training-next-decision
                                     data-next-hand-prefetched={String(nextHandPrefetched)}
                                     onClick={onNextHand}
                                     initial={{ opacity: 0, y: 5 }}
@@ -11235,7 +11236,7 @@ function UniversalDynamicTable({
                                         background: isMultiStreetActive
                                             ? 'linear-gradient(180deg, rgba(251, 146, 60, 0.25) 0%, rgba(251, 146, 60, 0.08) 100%)'
                                             : 'linear-gradient(180deg, rgba(34, 197, 94, 0.2) 0%, rgba(34, 197, 94, 0.06) 100%)',
-                                        color: isMultiStreetActive ? 'var(--sp-accent-orange)' : 'var(--sp-accent-green)',
+                                        color: 'var(--sd-text)',
                                         fontSize: 15, fontWeight: 800, cursor: 'pointer',
                                         letterSpacing: 0.8, fontFamily: "'Inter', -apple-system, sans-serif",
                                         boxShadow: isMultiStreetActive
@@ -11243,7 +11244,7 @@ function UniversalDynamicTable({
                                             : '0 0 10px rgba(34,197,94,0.12)',
                                     }}
                                 >
-                                    {isMultiStreetActive ? 'Next - Continue Hand →' : 'Next Question →'}
+                                    {isMultiStreetActive ? 'Continue Hand' : questionNumber >= totalQuestions ? 'See Results' : 'Next Question'}
                                 </motion.button>
                                 {!isMultiStreetActive && lastQuestionRef.current && (
                                     <motion.button
@@ -12162,7 +12163,7 @@ const styles = {
     },
     modeButtonRng: {
         background: 'rgba(168,85,247,0.22)',
-        color: '#c084fc',
+        color: '#86daff',
         boxShadow: 'inset 0 0 12px rgba(168,85,247,0.35)',
     },
     modeButtonStudy: {

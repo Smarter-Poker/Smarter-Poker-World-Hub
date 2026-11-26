@@ -210,7 +210,7 @@ export default function CommunityLeaderboardPage() {
       >
         {/* Header */}
         <div
-          className="sp-intelligence-header"
+          className="sp-intelligence-header sd-masthead"
           style={{
             padding: '16px 20px',
             borderBottom: '1px solid rgba(255,255,255,0.06)',

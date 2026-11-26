@@ -28,7 +28,7 @@ import React from 'react';
 const TONE = {
   neutral: { color: '#94a3b8', glow: 'rgba(148,163,184,0.18)' },
   success: { color: '#4ade80', glow: 'rgba(74,222,128,0.18)' },
-  warning: { color: '#fbbf24', glow: 'rgba(251,191,36,0.18)' },
+  warning: { color: '#86daff', glow: 'rgba(134,218,255,0.13)' },
   danger:  { color: '#f87171', glow: 'rgba(248,113,113,0.18)' },
 };
 
@@ -144,49 +144,24 @@ const TrainerEmptyState = React.memo(function TrainerEmptyState({
     justifyContent: 'center',
   };
 
-  const primaryBtnStyle = {
-    minHeight: 44,
-    padding: '0 18px',
-    borderRadius: 10,
-    border: 'none',
-    background: 'linear-gradient(135deg, #00d4ff, #0099ff)',
-    color: '#0a0a0a',
-    fontWeight: 800,
-    fontSize: 13,
-    letterSpacing: 0.3,
-    textTransform: 'uppercase',
-    cursor: 'pointer',
-  };
-  const secondaryBtnStyle = {
-    minHeight: 44,
-    padding: '0 16px',
-    borderRadius: 10,
-    border: '1px solid rgba(255,255,255,0.1)',
-    background: 'rgba(255,255,255,0.04)',
-    color: '#cbd5e1',
-    fontWeight: 700,
-    fontSize: 13,
-    cursor: 'pointer',
-  };
-
   const resolvedIcon = icon || <IconC size={compact ? 28 : 32} />;
   const resolvedTitle = title || v.title;
   const resolvedMsg = message || v.message;
 
   return (
-    <div className={className} style={wrapStyle} role="status">
+    <div className={['smarterdesign sd-panel', className].filter(Boolean).join(' ')} style={wrapStyle} role={variant === 'retry' ? 'alert' : 'status'}>
       <span style={iconStyle} aria-hidden>{resolvedIcon}</span>
-      <h2 style={titleStyle}>{resolvedTitle}</h2>
+      <h2 className="sd-section-title" style={titleStyle}>{resolvedTitle}</h2>
       <p style={msgStyle}>{resolvedMsg}</p>
       {cta || secondary ? (
         <div style={ctaRowStyle}>
           {secondary ? (
-            <button type="button" onClick={secondary.onClick} aria-label={secondary.label} style={secondaryBtnStyle}>
+            <button type="button" onClick={secondary.onClick} aria-label={secondary.label} className="sd-button">
               {secondary.label}
             </button>
           ) : null}
           {cta ? (
-            <button type="button" onClick={cta.onClick} aria-label={cta.label} style={primaryBtnStyle}>
+            <button type="button" onClick={cta.onClick} aria-label={cta.label} className="sd-button sd-primary">
               {cta.label}
             </button>
           ) : null}

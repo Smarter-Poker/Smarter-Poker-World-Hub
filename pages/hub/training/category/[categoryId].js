@@ -96,11 +96,11 @@ export default function CategoryPage() {
     return (
         <PageTransition>
             {pageHead}
-            <div className="sp-training-category" style={{ '--category-accent': category.accent }}>
+            <div className="sp-training-category" style={{ '--category-accent': 'var(--sd-ice)' }}>
                 <UniversalHeader pageDepth={2} />
 
                 <main>
-                    <section className="sp-category-hero">
+                    <section className="sp-category-hero sd-masthead">
                         <TrainingGameArt
                             gameId={heroArtId}
                             className="sp-category-hero-art"
@@ -109,7 +109,7 @@ export default function CategoryPage() {
                             fetchPriority="high"
                         />
                         <div className="sp-category-hero-shade" aria-hidden="true" />
-                        <button className="sp-category-back" type="button" onClick={() => router.push('/hub/training')}>
+                        <button className="sp-category-back sd-button" type="button" onClick={() => router.push('/hub/training')}>
                             <ArrowLeft size={15} aria-hidden="true" /> Training Hub
                         </button>
                         <div className="sp-category-copy">
@@ -145,7 +145,7 @@ export default function CategoryPage() {
                                     <button
                                         type="button"
                                         data-category-quick-start="true"
-                                        className="sp-mtt-primary-cta"
+                                        className="sp-mtt-primary-cta sd-button sd-primary"
                                         onClick={() => playGame(featuredGame)}
                                         style={{
                                             minHeight: 44,
@@ -203,11 +203,10 @@ export default function CategoryPage() {
                 main { width: min(1500px, calc(100% - 40px)); margin: 0 auto; padding: 22px 0 90px; }
                 .sp-category-hero {
                     position: relative;
-                    min-height: 480px;
+                    min-height: 340px;
                     overflow: hidden;
-                    border: 1px solid #688299;
-                    border-top-color: #aec0d0;
-                    border-bottom: 2px solid color-mix(in srgb, var(--category-accent) 78%, #091727);
+                    border: 5px solid transparent;
+                    border-image: url("/images/smarterdesign/chrome-readout.webp") 21 / 8px stretch;
                     border-radius: 0;
                     background: #040d18;
                     box-shadow: inset 0 1px rgba(255,255,255,.13), 0 32px 70px rgba(0,0,0,.72);
@@ -222,7 +221,7 @@ export default function CategoryPage() {
                     display: inline-flex;
                     align-items: center;
                     gap: 9px;
-                    min-height: 39px;
+                    min-height: 44px;
                     padding: 0 14px;
                     border: 1px solid #718894 !important;
                     border-top-color: #dbe9ee !important;
@@ -258,7 +257,7 @@ export default function CategoryPage() {
                 @media (max-width: 900px) { .sp-category-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .sp-category-copy { width: min(620px, 74%); } }
                 @media (max-width: 768px) {
                     main { width: 100%; padding: 0 0 calc(74px + env(safe-area-inset-bottom, 0px)); }
-                    .sp-category-hero { min-height: 620px; border-left: 0; border-right: 0; }
+                    .sp-category-hero { min-height: 0; }
                     .sp-category-hero-art { height: 300px; object-position: 62% center; }
                     .sp-category-hero-shade { background: linear-gradient(180deg, rgba(1,4,6,.12), rgba(1,5,8,.2) 30%, rgba(1,5,8,.93) 48%, #020608 66%); }
                     .sp-category-back { top: 14px; left: 13px; }

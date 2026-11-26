@@ -244,7 +244,7 @@ export default function TrainingTournamentDetail() {
                   borderRadius: 10,
                   fontWeight: 800,
                   background: 'rgba(234,179,8,0.10)',
-                  color: '#eab308',
+                  color: '#86daff',
                   marginBottom: 8,
                 }}
               >
