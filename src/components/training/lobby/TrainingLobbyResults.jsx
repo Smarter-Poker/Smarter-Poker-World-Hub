@@ -25,7 +25,7 @@ export default function TrainingLobbyResults({ sections, ...rowProps }) {
   return (
     <div className="sp-arena-sections" data-tutorial="games">
       <h3 id="training-results" className="sp-arena-results-range" ref={headingRef} tabIndex={-1}>
-        Games {first}–{last} Of {total}
+        Games {first}-{last} Of {total}
       </h3>
       {groups.map((group) => (
         <div key={group.id} className="sp-arena-group">
