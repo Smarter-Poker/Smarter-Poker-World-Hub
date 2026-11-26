@@ -273,7 +273,7 @@ export default function MessageRequests() {
                             <p style={styles.emptyText}>
                                 Sign In To See Who Has Messaged You.
                             </p>
-                            <Link href="/login" style={styles.inboxLink}>
+                            <Link href="/auth/login" style={styles.inboxLink}>
                                 Sign In
                             </Link>
                         </div>

@@ -699,7 +699,7 @@ export default function CompareHubPage() {
               Discover Live Card Rooms, Daily Tournament Schedules, And Home Games Near You.
             </span>
             <Link
-              href="/hub/poker-near-me"
+              href="/hub/poker-near-me/lobby"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',

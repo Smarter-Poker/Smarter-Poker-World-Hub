@@ -1086,6 +1086,14 @@ export default function App({ Component, pageProps }) {
   // the contract and the exclusions are documented in src/lib/resumeRoute.js.
   useEffect(() => installLastRouteRecorder(router), [router]);
 
+  // First-party GEO attribution: record inbound visits referred by AI answer engines
+  // (ChatGPT, Perplexity, Claude, Copilot, Gemini, etc.) once per browser session.
+  useEffect(() => {
+    import('../src/lib/seo/aiReferralTracker')
+      .then(({ recordAiReferralVisit }) => recordAiReferralVisit())
+      .catch(() => null);
+  }, []);
+
   return (
     <SWRConfig value={{ ...SWR_DEFAULTS, provider: swrLocalStorageProvider }}>
       <div

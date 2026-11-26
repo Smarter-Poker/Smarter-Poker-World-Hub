@@ -132,7 +132,7 @@ function CardSlot({ card, active, onPick, onRemove, label }) {
             <button type="button" className="odds-slot" onClick={e => { e.stopPropagation(); onRemove(); }}
                 aria-label={`Remove ${cardName(card)} From ${label}`}>
                 <span className="odds-slot__face">
-                    <img src={getCardImage(card.rank, card.suit)} alt="" loading="lazy" />
+                    <img src={getCardImage(card.rank, card.suit)} alt="" width="64" height="90" loading="lazy" decoding="async" />
                 </span>
             </button>
         );
@@ -760,7 +760,7 @@ export default function PokerToolsPage({ canonical = 'https://smarter.poker/hub/
                                             className={`odds-pick${isUsed ? ' is-used' : ''}`}
                                             style={{ '--odds-suit': SUIT_COLORS[suit] }}
                                             aria-label={`${rank} Of ${SUIT_NAMES[suit]}${isUsed ? ', In Use' : ''}`}>
-                                            <img src={getCardImage(rank, suit)} alt="" />
+                                            <img src={getCardImage(rank, suit)} alt="" width="48" height="68" loading="lazy" decoding="async" />
                                         </button>
                                     );
                                 })}

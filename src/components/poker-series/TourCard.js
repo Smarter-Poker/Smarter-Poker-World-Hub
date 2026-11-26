@@ -166,6 +166,10 @@ export default function TourCard({
                             <img
                                 src={tour.logo_url}
                                 alt={tour.tour_name + ' logo'}
+                                width="44"
+                                height="44"
+                                loading="lazy"
+                                decoding="async"
                                 className="tour-logo-img"
                                 onError={e => { e.target.style.display = 'none'; }}
                             />

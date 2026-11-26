@@ -72,7 +72,7 @@ export default function PokerTourCard({ tourPin = {} }) {
                 <div className="pnm-console-card__brand-row">
                     {safeImageUrl(tourPin.logo_url) && (
                         <div className="tour-logo-container pnm-console-card__logo-frame">
-                            <img src={safeImageUrl(tourPin.logo_url)} alt={`${tourPin.tour_name || tourPin.name || 'Tour'} logo`} className="tour-logo-img" />
+                            <img src={safeImageUrl(tourPin.logo_url)} alt={`${tourPin.tour_name || tourPin.name || 'Tour'} logo`} width="44" height="44" loading="lazy" decoding="async" className="tour-logo-img" />
                         </div>
                     )}
                     <div className="tour-code-badge pnm-console-card__brand" data-tone={style.tone}>

@@ -55,3 +55,22 @@ export function firstThatFits(candidates) {
   if (space > cut.length * 0.6) cut = cut.slice(0, space);
   return cut.replace(/[\s,\-–—&]+$/, '');
 }
+
+/**
+ * Fit a meta description cleanly inside Google's ~158-character SERP snippet
+ * budget without clipping mid-word or leaving trailing punctuation.
+ */
+export function fitMetaDescription(text, maxLen = 158) {
+  const clean = String(text || '').replace(/\s+/g, ' ').trim();
+  if (!clean || clean.length <= maxLen) return clean;
+  const slice = clean.slice(0, maxLen);
+  const lastSentence = Math.max(slice.lastIndexOf('. '), slice.lastIndexOf('! '), slice.lastIndexOf('? '));
+  if (lastSentence >= Math.floor(maxLen * 0.55)) {
+    return slice.slice(0, lastSentence + 1).trim();
+  }
+  const lastSpace = slice.lastIndexOf(' ');
+  const trimmed = (lastSpace >= Math.floor(maxLen * 0.6) ? slice.slice(0, lastSpace) : slice)
+    .replace(/[\s,;:(\-]+$/, '')
+    .trim();
+  return /[.!?]$/.test(trimmed) ? trimmed : `${trimmed}.`;
+}
