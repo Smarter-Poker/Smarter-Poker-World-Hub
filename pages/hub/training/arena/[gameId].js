@@ -340,6 +340,9 @@ export default function TrainingArenaPage() {
                 exitParams.set(key, val.trim());
             }
         }
+        if (!exitParams.get('street') && typeof router.query?.targetStreet === 'string' && router.query.targetStreet.trim()) {
+            exitParams.set('targetStreet', router.query.targetStreet.trim());
+        }
         for (const extraKey of ['targetStreet', 'targetPositions', 'hands']) {
             const val = router.query?.[extraKey];
             if (typeof val === 'string' && val.trim()) {
