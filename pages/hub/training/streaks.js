@@ -518,7 +518,7 @@ export default function StreaksPage() {
             <div style={styles.flameContainer}>
               {/* TRAIN-STREAKS-A11Y-1: SVG flame replaces ▲ hero icon.
                   Color drives the gradient; CSS keeps the pulse animation. */}
-              <span style={{ ...styles.flame, color: '#f2b84b', display: 'inline-flex' }} aria-hidden>
+              <span style={{ ...styles.flame, color: '#86daff', display: 'inline-flex' }} aria-hidden>
                 <FlameIcon size={64} />
               </span>
             </div>
@@ -676,7 +676,7 @@ export default function StreaksPage() {
             {/* TRAIN-STREAKS-A11Y-1: SVG trophy in section heading */}
             <h2 style={styles.sectionTitle}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ display: 'inline-flex', color: '#f2b84b' }} aria-hidden>
+                <span style={{ display: 'inline-flex', color: '#86daff' }} aria-hidden>
                   <TrophyIcon size={18} />
                 </span>
                 Milestones
@@ -726,7 +726,7 @@ export default function StreaksPage() {
                     whileHover={isClaimable ? { scale: 1.02 } : {}}
                   >
                     {/* TRAIN-STREAKS-A11Y-1: SVG milestone icon via MilestoneIcon */}
-                    <div style={{ ...styles.milestoneIcon, color: isClaimable ? '#f2b84b' : 'var(--sp-fg-muted)', display: 'inline-flex' }} aria-hidden>
+                    <div style={{ ...styles.milestoneIcon, color: isClaimable ? '#86daff' : 'var(--sp-fg-muted)', display: 'inline-flex' }} aria-hidden>
                       <MilestoneIcon kind={kind} size={32} />
                     </div>
                     <div style={styles.milestoneInfo}>

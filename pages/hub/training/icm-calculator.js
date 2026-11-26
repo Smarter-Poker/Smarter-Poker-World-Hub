@@ -1092,7 +1092,7 @@ export default function ICMCalculatorPage({ canonical = 'https://smarter.poker/h
             }}
           >
             <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#FFD700' }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#86daff' }}>
                 Test Your ICM Skills In Daily Freerolls
               </div>
               <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginTop: 2 }}>

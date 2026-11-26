@@ -5789,6 +5789,8 @@ function UniversalDynamicTable({
                     <div
                         data-training-scenario-telemetry="true"
                         style={{
+                            position: 'relative',
+                            zIndex: 25,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
@@ -6575,7 +6577,7 @@ function UniversalDynamicTable({
                                             cursor: 'pointer',
                                             border: isProfActive ? '1px solid #c084fc' : '1px solid rgba(255,255,255,0.14)',
                                             background: isProfActive ? 'rgba(168, 85, 247, 0.28)' : 'rgba(255,255,255,0.04)',
-                                            color: isProfActive ? '#f3e8ff' : '#cbd5e1',
+                                            color: isProfActive ? '#86daff' : '#cbd5e1',
                                         }}
                                     >
                                         {`${prof.label} (${prof.vpip}/${prof.pfr})`}
@@ -6605,7 +6607,7 @@ function UniversalDynamicTable({
                                     borderRadius: 6,
                                     background: 'linear-gradient(90deg, rgba(249, 115, 22, 0.22) 0%, rgba(168, 85, 247, 0.22) 100%)',
                                     border: '1px solid rgba(251, 146, 60, 0.65)',
-                                    color: '#fff7ed',
+                                    color: '#86daff',
                                     fontSize: 12,
                                     fontWeight: 800,
                                 }}
@@ -6881,7 +6883,7 @@ function UniversalDynamicTable({
                                     cursor: 'pointer',
                                     border: '1px solid rgba(244, 114, 182, 0.5)',
                                     background: 'rgba(236, 72, 153, 0.14)',
-                                    color: '#fbcfe8',
+                                    color: '#86daff',
                                 }}
                             >
                                 {`Peel: ${cardPresentationMode === 'corner_squeeze' ? 'Corner Squeeze' : cardPresentationMode === 'dramatic_peel' ? 'Dramatic Peel' : 'Instant Deal'}`}
@@ -7121,7 +7123,7 @@ function UniversalDynamicTable({
                                 borderRadius: 6,
                                 background: 'rgba(15, 23, 42, 0.96)',
                                 border: '1px solid rgba(192, 132, 252, 0.65)',
-                                color: '#f3e8ff',
+                                color: '#86daff',
                                 fontSize: 12,
                                 fontWeight: 800,
                             }}
@@ -10879,7 +10881,7 @@ function UniversalDynamicTable({
                                     background: 'rgba(249, 115, 22, 0.06)',
                                     borderRadius: 8,
                                     border: '1px solid rgba(249, 115, 22, 0.15)',
-                                    fontSize: 12, lineHeight: 1.5, color: '#fdba74',
+                                    fontSize: 12, lineHeight: 1.5, color: '#86daff',
                                 }}>
                                     <span style={{ fontWeight: 700, fontSize: 12, letterSpacing: 0.5 }}>PATTERN DETECTED: </span>
                                     {structuredExplanation.pattern.message}

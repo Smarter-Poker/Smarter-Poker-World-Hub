@@ -1203,10 +1203,10 @@ body.world-training .sp-dynamics-metric strong {
 }
 
 body.world-training .sp-dynamics-tone--positive { color: #5df5a7; }
-body.world-training .sp-dynamics-tone--warning { color: #ffc65d; }
+body.world-training .sp-dynamics-tone--warning { color: #86daff; }
 body.world-training .sp-dynamics-tone--danger { color: #ff7777; }
 body.world-training .sp-dynamics-tone--info { color: #64bdff; }
-body.world-training .sp-dynamics-tone--accent { color: #c293ff; }
+body.world-training .sp-dynamics-tone--accent { color: #86daff; }
 
 body.world-training .sp-dynamics-instruments {
     position: relative;
@@ -1414,10 +1414,10 @@ body.world-training .sp-dynamics-adjustment p {
 }
 
 body.world-training .sp-dynamics-adjustment--positive { color: #5df5a7; }
-body.world-training .sp-dynamics-adjustment--warning { color: #ffc65d; }
+body.world-training .sp-dynamics-adjustment--warning { color: #86daff; }
 body.world-training .sp-dynamics-adjustment--danger { color: #ff7777; }
 body.world-training .sp-dynamics-adjustment--info { color: #64bdff; }
-body.world-training .sp-dynamics-adjustment--accent { color: #c293ff; }
+body.world-training .sp-dynamics-adjustment--accent { color: #86daff; }
 
 @media (max-width: 768px) {
     body.world-training .sp-dynamics-panel--floating {

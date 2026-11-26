@@ -439,7 +439,7 @@ const styles = {
   userRankValue: {
     fontSize: '24px',
     fontWeight: 800,
-    color: '#f2b84b',
+    color: '#86daff',
   },
   leaderboardList: {
     display: 'grid',
