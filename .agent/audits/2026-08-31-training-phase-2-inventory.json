@@ -119764,7 +119764,6 @@
           "src/components/poker-near-me/modals/ManualLocationModal.js",
           "src/components/store/MerchPurchaseDialog.jsx",
           "src/components/training/GodModeArena.jsx",
-          "src/components/trivia/TriviaLobby.jsx",
           "src/hooks/useAccessibleDialog.js"
         ]
       },
@@ -130472,7 +130471,6 @@
           "src/components/poker-near-me/modals/ManualLocationModal.js",
           "src/components/store/MerchPurchaseDialog.jsx",
           "src/components/training/GodModeArena.jsx",
-          "src/components/trivia/TriviaLobby.jsx",
           "src/hooks/useAccessibleDialog.js"
         ]
       },

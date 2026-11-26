@@ -421,7 +421,7 @@ export default function TriviaHubPage({ modeAvailability }) {
                 canonical="/hub/trivia"
             />
 
-            <div className={`${styles.page} smarterdesign`} style={{ background: 'var(--sd-ink, #040d18)' }}>
+            <div className={`${styles.page} smarterdesign`} style={{ background: 'var(--tc-black, #040d18)' }}>
                 <UniversalHeader
                     pageDepth={1}
                     commandMenuOpen={menuOpen}
