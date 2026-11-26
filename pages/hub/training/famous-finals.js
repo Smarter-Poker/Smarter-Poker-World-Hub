@@ -66,7 +66,7 @@ export default function FamousFinalsArchivePage() {
               border: '1px solid rgba(139,238,255,0.32)',
               background: 'linear-gradient(180deg, rgba(27,55,72,0.92), rgba(5,15,23,0.98))',
               color: '#dff8ff',
-              minHeight: 42,
+              minHeight: 44,
               padding: '0 16px',
               cursor: 'pointer',
               fontWeight: 800,
