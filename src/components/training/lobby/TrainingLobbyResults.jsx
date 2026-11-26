@@ -24,15 +24,16 @@ export default function TrainingLobbyResults({ sections, ...rowProps }) {
 
   return (
     <div className="sp-arena-sections" data-tutorial="games">
-      <h3 id="training-results" className="sp-arena-results-range" ref={headingRef} tabIndex={-1}>
-        Games {first}-{last} Of {total}
-      </h3>
-      {groups.map((group) => (
+      {groups.map((group, index) => (
         <div key={group.id} className="sp-arena-group">
-          {group.label && (
+          {(index === 0 || group.label) && (
             <div className="sp-arena-divider">
-              <span className="sp-arena-divider__label">{group.label}</span>
-              <span className="sp-arena-divider__count sp-num">{group.total}</span>
+              {group.label && <span className="sp-arena-divider__label">{group.label}</span>}
+              {index === 0 && (
+                <h3 id="training-results" className="sp-arena-results-range" ref={headingRef} tabIndex={-1}>
+                  Games {first}-{last} Of {total}
+                </h3>
+              )}
             </div>
           )}
           <div className="sp-arena-row-list">

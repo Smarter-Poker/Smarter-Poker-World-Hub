@@ -488,14 +488,7 @@ export default function TrainingPage() {
             <TrainingLobbyHeader
               heroGame={heroGame}
               continueTarget={continueTarget}
-              stats={stats}
-              statsLoading={statsBusy}
-              statsError={statsError}
-              onRetryStats={retryStats}
-              signedIn={Boolean(authUser?.id)}
               onPlayGame={playGame}
-              fiveMinuteLeakFix={fiveMinuteLeakFix}
-              totalGames={TRAINING_LIBRARY.length}
             />
 
             <section id="training-library" className="sp-arena-lobby-section" aria-labelledby="lib-h" data-tutorial="library">
@@ -690,6 +683,35 @@ export default function TrainingPage() {
                 <h2 id="prog-h" className="sp-section-title">Progress</h2>
                 <Link className="sp-section-link" href="/hub/training/progress">View Progress <ArrowRight size={14} aria-hidden /></Link>
               </div>
+              {fiveMinuteLeakFix && (
+                <div
+                  className="sp-arena-quickbar"
+                  data-five-minute-leak-fix="true"
+                  data-leak-fix-basis={fiveMinuteLeakFix.basis}
+                >
+                  <div className="sp-arena-quickbar__copy">
+                    <span className="sp-arena-quickbar__tag">
+                      <Zap size={12} aria-hidden="true" />
+                      {fiveMinuteLeakFix.basis === 'active-leak' ? '5-Min Leak Fix' : '5-Min Warmup'}
+                    </span>
+                    <span className="sp-arena-quickbar__text">{fiveMinuteLeakFix.title}</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="sp-arena-quickbar__cta sd-button sd-primary"
+                    data-start-five-minute-fix-cta="true"
+                    data-speculative-prefetch="ready"
+                    onMouseEnter={() => {
+                      if (typeof window !== 'undefined') {
+                        window.__spSpeculativePrefetchGameId = fiveMinuteLeakFix.game?.id || 'cash-002';
+                      }
+                    }}
+                    onClick={() => playGame(fiveMinuteLeakFix.game, fiveMinuteLeakFix.overrides)}
+                  >
+                    10-Hand Fix
+                  </button>
+                </div>
+              )}
               <GradeCard
                 stats={stats}
                 loading={statsBusy}

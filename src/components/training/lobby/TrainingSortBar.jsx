@@ -80,7 +80,7 @@ export default function TrainingSortBar({
         <nav className="sp-arena-sticky-rail" aria-label="Quick Training Filters">
           <button
             type="button"
-            className="sp-arena-sticky-rail__btn sd-button"
+            className="sp-arena-sticky-rail__btn"
             onClick={() => onJumpToControls(false)}
             aria-label="Scroll To Game Categories"
           >
@@ -89,7 +89,7 @@ export default function TrainingSortBar({
 
           <button
             type="button"
-            className="sp-arena-sticky-rail__btn sd-button"
+            className="sp-arena-sticky-rail__btn"
             aria-pressed={filters.favoritesOnly}
             onClick={onToggleFavorites}
           >
@@ -103,7 +103,7 @@ export default function TrainingSortBar({
 
           <button
             type="button"
-            className="sp-arena-sticky-rail__btn sd-button"
+            className="sp-arena-sticky-rail__btn"
             onClick={() => onJumpToControls(true)}
             aria-label="Focus Search Games"
           >
@@ -113,7 +113,7 @@ export default function TrainingSortBar({
 
           <button
             type="button"
-            className={`sp-arena-sticky-rail__btn sd-button${advancedCount > 0 ? ' active' : ''}`}
+            className={`sp-arena-sticky-rail__btn${advancedCount > 0 ? ' active' : ''}`}
             onClick={onOpenFilters}
             aria-label="Open Training Filters"
           >

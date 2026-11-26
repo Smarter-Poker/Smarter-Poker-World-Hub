@@ -62,11 +62,11 @@ export default function TrainingLobbyControls({
 
   return (
     <div className="sp-arena-deck" ref={controlsRef} id="training-lobby-controls">
-      <div className="sp-arena-deck__heading-row">
-        <h2 ref={headingRef} id="lib-h" className="sp-arena-deck__heading" tabIndex={-1}>
+      <div className="sp-arena-browse-shortcuts">
+        <h2 ref={headingRef} id="lib-h" className="sp-arena-keyboard-shortcut" tabIndex={-1}>
           Find Your Game
         </h2>
-        <a className="sp-arena-deck__count sp-arena-results-link sp-num" href="#training-results" aria-live="polite">
+        <a className="sp-arena-keyboard-shortcut" href="#training-results" aria-live="polite">
           {filteredCount == null ? 'Favorites' : filteredCount === totalCount
             ? `View ${totalCount} Games`
             : `View ${filteredCount} Of ${totalCount}`}
@@ -99,7 +99,7 @@ export default function TrainingLobbyControls({
 
         <button
           type="button"
-          className={`sp-arena-pill sp-arena-pill--filters sd-button${advancedCount > 0 ? ' active' : ''}`}
+          className={`sp-arena-pill sp-arena-pill--filters${advancedCount > 0 ? ' active' : ''}`}
           data-open-filters-sheet="true"
           aria-haspopup="dialog"
           onClick={onOpenFiltersSheet}
@@ -119,11 +119,11 @@ export default function TrainingLobbyControls({
         )}
       </div>
 
-      {/* Tier 1: Primary Mode Plates (Exact 2-column Poker Arena geometry) */}
+      {/* Primary Game Modes And Saved Favorites */}
       <div className="sp-arena-primary-plates" role="group" aria-label="Training Mode">
         <button
           type="button"
-          className="sp-arena-plate sd-button"
+          className="sp-arena-plate"
           data-group-plate="DRILLS"
           aria-pressed={filters.group === 'DRILLS'}
           onClick={() => handleGroupToggle('DRILLS')}
@@ -135,7 +135,7 @@ export default function TrainingLobbyControls({
 
         <button
           type="button"
-          className="sp-arena-plate sd-button"
+          className="sp-arena-plate"
           data-group-plate="LABS"
           aria-pressed={filters.group === 'LABS'}
           onClick={() => handleGroupToggle('LABS')}
@@ -144,13 +144,9 @@ export default function TrainingLobbyControls({
             <span className="sp-arena-plate__title">Strategy Labs</span>
           </span>
         </button>
-      </div>
-
-      {/* Centered Favorites Plate (Matches Club Arena FAVORITES button) */}
-      <div className="sp-arena-favorites-row">
         <button
           type="button"
-          className="sp-arena-favorites-btn sd-button"
+          className="sp-arena-favorites-btn"
           data-favorites-toggle="true"
           aria-pressed={filters.favoritesOnly}
           onClick={handleFavoritesToggle}
@@ -184,7 +180,7 @@ export default function TrainingLobbyControls({
             <button
               key={catId}
               type="button"
-              className="sp-cat-chip sp-arena-subtab sd-button"
+              className="sp-cat-chip sp-arena-subtab"
               data-category-tab={catId.toLowerCase()}
               aria-pressed={active}
               aria-label={`${label}, ${catCount} Games`}
