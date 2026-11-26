@@ -11,6 +11,7 @@
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { requireMfaEnrolled } from '../../../src/lib/mfaGate';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { normalizeOperatorContext } from '../../../src/lib/trivia/operationsSnapshot.mjs';
@@ -457,6 +458,17 @@ export default async function handler(req, res) {
 
         if (!operator.canCurate) {
             return res.status(403).json({ success: false, error: 'operator_capability_required' });
+        }
+
+        // Full HMAC verification: middleware only checks cookie shape/expiry.
+        const mfaGate = await requireMfaEnrolled(req, client, operator.user);
+        if (!mfaGate.ok) {
+            return res.status(mfaGate.status || 403).json({
+                success: false,
+                error: mfaGate.reason || 'MFA challenge required',
+                requiresMfa: true,
+                requiresEnrollment: mfaGate.requiresEnrollment === true,
+            });
         }
 
         const parsed = parseBatchBody(req.body);

@@ -10,7 +10,7 @@
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
-import { verifyMfaCookie } from '../../../src/lib/mfaGate';
+import { requireMfaEnrolled, verifyMfaCookie, verifyTrustedDevice, TRUSTED_DEVICE_MAX_AGE_SEC } from '../../../src/lib/mfaGate';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import {
@@ -185,13 +185,22 @@ async function getSnapshot(req, res, client, operator) {
         legacyObservationResult, launchReadinessResult, supportLookupResult,
     ] = await Promise.all(reads);
 
-    const mfaCheck = verifyMfaCookie(req, operator.user.id);
+    const sessionCheck = verifyMfaCookie(req, operator.user.id);
+    const trustedCheck = verifyTrustedDevice(req, operator.user.id);
+    const sessionOk = sessionCheck?.ok === true && Number.isFinite(sessionCheck.issuedAt);
+    const trustedOk = trustedCheck?.ok === true && Number.isFinite(trustedCheck.issuedAt);
+    const sessionExpiresMs = sessionOk ? sessionCheck.issuedAt + (12 * 60 * 60 * 1000) : null;
+    const trustedExpiresMs = trustedOk ? trustedCheck.issuedAt + (TRUSTED_DEVICE_MAX_AGE_SEC * 1000) : null;
+    // Report the longest-lived valid proof so the operator sees the true window.
+    const mfaMethod = sessionOk || trustedOk
+        ? ((trustedOk && (!sessionOk || trustedExpiresMs > sessionExpiresMs)) ? 'trusted_device' : 'session')
+        : null;
+    const mfaExpiresMs = mfaMethod === 'trusted_device' ? trustedExpiresMs : sessionExpiresMs;
     const operatorMfa = {
-        verified: mfaCheck?.ok === true,
-        expiresAt: mfaCheck?.ok === true && Number.isFinite(mfaCheck.issuedAt)
-            ? new Date(mfaCheck.issuedAt + (12 * 60 * 60 * 1000)).toISOString()
-            : null,
-        reason: mfaCheck?.ok === true ? null : (mfaCheck?.reason || 'MFA challenge required'),
+        verified: mfaMethod !== null,
+        method: mfaMethod,
+        expiresAt: mfaMethod !== null ? new Date(mfaExpiresMs).toISOString() : null,
+        reason: mfaMethod !== null ? null : (sessionCheck?.reason || 'MFA challenge required'),
         stepUpUrl: '/auth/mfa?stepup=1&next=%2Fadmin%2Ftrivia-operations',
     };
 
@@ -283,6 +292,16 @@ export default async function handler(req, res) {
 
     try {
         if (req.method === 'POST') {
+            // Full HMAC verification: middleware only checks cookie shape/expiry.
+            const mfaGate = await requireMfaEnrolled(req, client, operator.user);
+            if (!mfaGate.ok) {
+                return res.status(mfaGate.status || 403).json({
+                    success: false,
+                    error: mfaGate.reason || 'MFA challenge required',
+                    requiresMfa: true,
+                    requiresEnrollment: mfaGate.requiresEnrollment === true,
+                });
+            }
             const parsed = parseOperationsActionRequest(req.body);
             if (!parsed.ok) {
                 const status = parsed.error === 'request_too_large' ? 413 : 400;
@@ -302,18 +321,20 @@ export default async function handler(req, res) {
                 return res.status(503).json({ success: false, error: 'action_authority_unavailable' });
             }
             if (data?.success === true && data?.receipt_id) {
-                try {
-                    const mfaCheck = verifyMfaCookie(req, operator.user.id);
-                    if (mfaCheck?.ok === true && Number.isFinite(mfaCheck.issuedAt)) {
-                        await client.rpc('trivia_record_mfa_write_proof_v1', {
+                if (mfaGate.ok === true && Number.isFinite(mfaGate.verifiedAt)) {
+                    try {
+                        const { error: proofError } = await client.rpc('trivia_record_mfa_write_proof_v1', {
                             p_operator_id: operator.user.id,
                             p_action: action.action,
                             p_receipt_id: data.receipt_id,
-                            p_mfa_verified_at: new Date(mfaCheck.issuedAt).toISOString(),
+                            p_mfa_verified_at: new Date(mfaGate.verifiedAt).toISOString(),
                         });
+                        if (proofError) {
+                            console.warn('[trivia-operations] mfa proof rpc failed:', proofError.code || proofError.message);
+                        }
+                    } catch (proofException) {
+                        console.warn('[trivia-operations] mfa proof rpc failed:', proofException?.message || proofException);
                     }
-                } catch (_mfaProofError) {
-                    // Fail-safe: never disrupt the authoritative action receipt return.
                 }
             }
             const item = actionDto(data);
