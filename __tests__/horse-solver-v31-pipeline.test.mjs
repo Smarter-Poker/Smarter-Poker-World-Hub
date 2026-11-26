@@ -255,3 +255,23 @@ test(`${folder} publication contains its exact maintained source and no private 
   }
 });
 }
+
+test('bounded operational partition continuation preserves the original experiment and cumulative budget', () => {
+  const python = process.env.V31_NUMERIC_PYTHON || process.env.PYTHON_BIN || 'python3';
+  const base = 'scripts/horse-solver-v31/pot136-operational-continuation/';
+  const result = spawnSync(python, ['-I', '-B', base + 'test_contracts.py'], {
+    cwd: ROOT, encoding: 'utf8', timeout: 120_000,
+    env: { ...process.env, OMP_NUM_THREADS: '1', OPENBLAS_NUM_THREADS: '1', MKL_NUM_THREADS: '1' },
+  });
+  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+  assert.match(result.stderr, /Ran 12 tests/);
+  assert.match(result.stderr, /OK/);
+  assert.doesNotMatch(result.stderr, /skipped=/);
+  const manifest = JSON.parse(read(base + 'source-manifest.json'));
+  assert.equal(manifest.live_play, false);
+  assert.equal(manifest.private_inputs_included, false);
+  for (const [path, expected] of Object.entries(manifest.source_files)) {
+    assert.ok(!path.startsWith('/') && !path.split('/').includes('..'));
+    assert.equal(createHash('sha256').update(readFileSync(new URL(base + path, ROOT))).digest('hex'), expected, path);
+  }
+});

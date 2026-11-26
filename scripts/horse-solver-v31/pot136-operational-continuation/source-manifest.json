@@ -1,0 +1,13 @@
+{
+  "format": "HV31_POT136_OPERATIONAL_CONTINUATION_SOURCE_V1",
+  "live_play": false,
+  "private_inputs_included": false,
+  "source_files": {
+    ".gitignore": "7037832568784f94c04517907ecd5142d6c98e68887991ef6226acc2f6e38aa5",
+    "API.md": "776788146c136f372351f7576c708a9e781bd61c04d74d93d997d0fcd37d7d73",
+    "PLAN.md": "4b06f13500570bae86d632331de046fb3c2d193a834b2051446c9013060c5f06",
+    "README.md": "147f69b19e4546f15fdeba175a2486a671c206879703ac0c02b25744843be3e1",
+    "src/continuation.py": "e0818b872e6ef33b5aeac13aa80bd4ec14f3c2459cb407db7fd9bb5056a1cb4d",
+    "test_contracts.py": "95597406964517c36c6d5766e96e9d8a2949a86505b75671d8a77d9cc6d66eb2"
+  }
+}
