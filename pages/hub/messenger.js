@@ -71,7 +71,8 @@ import InvoicePaymentsPanel from '../../src/components/messenger/InvoicePayments
 import StatementsPanel from '../../src/components/messenger/StatementsPanel';
 import AccountingConversationIntroduction from '../../src/components/messenger/AccountingConversationIntroduction';
 import { getTheme } from '../../src/components/messenger/MessengerTheme';
-import { encodeMessageMedia, resolveUploadMedia } from '../../src/lib/messenger/messageMedia.mjs';
+import { encodeMessageMedia, formatReplyQuote, isStructuredMessageContent, resolveUploadMedia, stripForwardPrefix } from '../../src/lib/messenger/messageMedia.mjs';
+import { messengerPreviewText } from '../../src/lib/messengerPreview.mjs';
 
 // Default light theme (overridden at component level)
 let C = getTheme(false);
@@ -2150,7 +2151,7 @@ function MessengerPage() {
         sendLockRef.current = sendOwner;
         let finalContent = content.trim();
         if (replyToMessage) {
-            const replyText = (replyToMessage.content || replyToMessage.text || '').replace(/\[REPLY:[^\]]+\]\s*/, '').slice(0, 80);
+            const replyText = formatReplyQuote(replyToMessage.content || replyToMessage.text || '', 80);
             finalContent = `[REPLY:${replyText}] ${finalContent}`;
         }
         const conversationId = activeConversation.id;
@@ -2291,6 +2292,7 @@ function MessengerPage() {
 
     // Handle message editing (inline edit → API call)
     const handleEditMessage = async (message) => {
+        if (!message || isStructuredMessageContent(message.content || '')) return;
         setEditingMessage(message);
         setEditText(message.content);
     };
@@ -2389,8 +2391,8 @@ function MessengerPage() {
                 setToast({ type: 'info', message: 'Call Receipts Cannot Be Forwarded' });
                 return;
             }
-            rawContent = rawContent.replace(/^\[REPLY:[^\]]+\]\s*/, '');
-            const content = rawContent.trim() ? `[Forwarded] ${rawContent.trim()}` : '[Forwarded Message]';
+            rawContent = stripForwardPrefix(rawContent.replace(/^\[REPLY:[^\]]+\]\s*/, ''));
+            const content = rawContent ? `[Forwarded] ${rawContent}` : '[Forwarded Message]';
             const receipt = await queueMessengerSend(content, { actorId, conversationId: targetConversation.id });
             if (receipt && current()) {
                 setToast({ type: 'success', message: `Message Forwarded To ${targetConversation.otherUser?.display_name || targetConversation.otherUser?.username || 'Conversation'}` });
@@ -3100,7 +3102,7 @@ function MessengerPage() {
                             : continuity.saved.length === 0 ? <p>No Saved Messages Yet</p> : continuity.saved.map(item => <div key={item.messageId} style={{ marginBottom: 12 }}>
                                 <button type="button" aria-label="Open Saved Message" disabled={!item.message || item.message.is_deleted} onClick={() => openSavedMessage(item)}
                                     style={{ border: 0, background: 'none', color: C.text, textAlign: 'left', cursor: 'pointer', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                    {item.message && !item.message.is_deleted ? (item.message.content || 'Saved Message').slice(0, 120) : 'Message Is No Longer Available'}
+                                    {item.message && !item.message.is_deleted ? (messengerPreviewText(item.message.content || '', 120) || 'Saved Message') : 'Message Is No Longer Available'}
                                 </button>
                                 <button type="button" aria-label="Remove Saved Message" onClick={() => continuity.write(item.conversationId, 'saved', { messageId: item.messageId, saved: false })}
                                     style={continuityButtonStyle}>Remove</button>
@@ -3387,7 +3389,7 @@ function MessengerPage() {
                                                         textOverflow: 'ellipsis',
                                                         whiteSpace: 'nowrap',
                                                     }}>
-                                                        {hit.content}
+                                                        {messengerPreviewText(hit.content || '', 120)}
                                                     </div>
                                                 </button>
                                             );
@@ -3737,7 +3739,7 @@ function MessengerPage() {
                                                             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                                                         >
                                                             <div style={{ fontSize: 13, color: C.text, marginBottom: 2 }}>
-                                                                {result.content.slice(0, 80)}{result.content.length > 80 ? '...' : ''}
+                                                                {messengerPreviewText(result.content || '', 80)}
                                                             </div>
                                                             <div style={{ fontSize: 11, color: C.textSec }}>
                                                                 {timeAgo(result.created_at)}
@@ -3997,7 +3999,7 @@ function MessengerPage() {
                                                 fontSize: 13, color: C.textSec,
                                                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                                             }}>
-                                                {(replyToMessage.content || '').replace(/\[REPLY:[^\]]+\]\s*/, '').slice(0, 80)}
+                                                {formatReplyQuote(replyToMessage.content || replyToMessage.text || '', 80)}
                                             </div>
                                         </div>
                                         <button onClick={clearReply} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec, fontSize: 18 }}>×</button>
