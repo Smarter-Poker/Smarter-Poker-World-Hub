@@ -312,10 +312,10 @@ export default function WeaknessScannerPage() {
                           textAlign: 'center',
                         }}
                       >
-                        <div style={{ fontSize: 16, fontWeight: 900, color: 'var(--sp-accent-amber)' }}>
+                        <div style={{ fontSize: 16, fontWeight: 900, color: '#86daff' }}>
                           {medCount}
                         </div>
-                        <div style={{ fontSize: 12, color: 'var(--sp-accent-amber)', textTransform: 'uppercase' }}>
+                        <div style={{ fontSize: 12, color: '#86daff', textTransform: 'uppercase' }}>
                           Medium
                         </div>
                       </div>
@@ -521,7 +521,7 @@ export default function WeaknessScannerPage() {
                           borderRadius: 8,
                           border: 'none',
                           background: 'rgba(168,85,247,0.1)',
-                          color: 'var(--sp-accent-purple)',
+                          color: '#86daff',
                           fontSize: 12,
                           fontWeight: 700,
                           cursor: 'pointer',

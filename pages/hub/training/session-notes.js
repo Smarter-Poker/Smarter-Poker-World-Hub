@@ -39,30 +39,26 @@ function formatDate(ts) {
   );
 }
 
-const parseMarkdown = (text) => {
+function renderNoteText(text) {
   if (!text) return null;
-  return text.split('\n').map((line, i) => {
-    let htmlLine = line
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(
-        /`(.*?)`/g,
-        '<code style="background:rgba(255,255,255,0.1);padding:2px 4px;border-radius:3px;font-size:12px;">$1</code>'
-      );
-    if (htmlLine.startsWith('- ')) {
-      return (
-        <li
-          key={i}
-          dangerouslySetInnerHTML={{ __html: htmlLine.substring(2) }}
-          style={{ marginLeft: 16 }}
-        />
-      );
-    }
+  return text.split('\n').map((line, lineIndex) => {
+    const bulleted = line.startsWith('- ');
+    const words = (bulleted ? line.slice(2) : line)
+      .split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g)
+      .map((part, index) => {
+        if (index % 2 === 0) return part;
+        if (part.startsWith('**')) return <strong key={index}>{part.slice(2, -2)}</strong>;
+        if (part.startsWith('*')) return <em key={index}>{part.slice(1, -1)}</em>;
+        return <code key={index}>{part.slice(1, -1)}</code>;
+      });
     return (
-      <div key={i} dangerouslySetInnerHTML={{ __html: htmlLine }} style={{ minHeight: '1em' }} />
+      <div key={lineIndex} style={{ minHeight: '1em', paddingInlineStart: bulleted ? 16 : undefined }}>
+        {bulleted && <span aria-hidden="true">• </span>}
+        {words}
+      </div>
     );
   });
-};
+}
 
 const SUGGESTED_TAGS = [
   'Preflop',
@@ -296,38 +292,17 @@ export default function SessionNotesPage() {
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}
       >
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
+        <header className="sd-masthead" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button
+            type="button"
+            className="sd-button"
+            aria-label="Back To Training"
             onClick={() => router.push('/hub/training')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: 'none',
-              color: 'var(--sp-fg-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
           >
-            ←
+            <span aria-hidden="true">←</span>
           </button>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>Session Notes</div>
-            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Your Training Journal</div>
-          </div>
-        </div>
+          <h1 style={{ margin: 0 }}>Session Notes</h1>
+        </header>
 
         {/* Tabs */}
         <div
@@ -345,21 +320,13 @@ export default function SessionNotesPage() {
           ].map((t) => (
             <motion.button
               key={t.id}
+              type="button"
+              className="sd-button"
               whileTap={{ scale: 0.97 }}
               aria-label={`Tab: ${t.id === 'write' ? 'Write new note' : 'Browse notes'}`}
               aria-pressed={tab === t.id}
               onClick={() => setTab(t.id)}
-              style={{
-                flex: 1,
-                padding: '8px',
-                borderRadius: 6,
-                border: `1px solid ${tab === t.id ? 'rgba(0,212,255,0.2)' : 'transparent'}`,
-                background: tab === t.id ? 'rgba(0,212,255,0.06)' : 'transparent',
-                color: tab === t.id ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
+              style={{ flex: 1 }}
             >
               {t.label}
             </motion.button>
@@ -851,7 +818,7 @@ export default function SessionNotesPage() {
                       <div
                         style={{ fontSize: 12, color: 'var(--sp-fg)', marginTop: 6, lineHeight: 1.5 }}
                       >
-                        {parseMarkdown(note.freeText)}
+                        {renderNoteText(note.freeText)}
                       </div>
                     )}
                   </motion.div>

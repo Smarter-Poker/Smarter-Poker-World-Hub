@@ -67,7 +67,7 @@ const FOCUS_AREAS = [
     name: 'Turn Play',
     positions: [],
     streets: ['turn'],
-    color: 'var(--sp-accent-purple)',
+    color: '#86daff',
     icon: '',
   },
   {
@@ -94,7 +94,7 @@ const FOCUS_AREAS = [
     name: 'MTT Push/Fold',
     positions: [],
     streets: ['preflop'],
-    color: 'var(--sp-accent-amber)',
+    color: '#86daff',
     icon: '',
   },
   {
@@ -112,7 +112,7 @@ const FOCUS_AREAS = [
     name: 'SB Strategy',
     positions: ['SB'],
     streets: ['preflop'],
-    color: 'var(--sp-accent-purple)',
+    color: '#86daff',
     icon: '♠',
   },
   {
@@ -185,7 +185,7 @@ function generateStudyPlan(sessions) {
         id: 'challenge',
         gameId: 'quiz-gauntlet',
           name: 'Daily Challenge',
-          color: 'var(--sp-accent-amber)',
+          color: '#86daff',
           icon: '★',
           difficulty: 'hard',
           goal: 70,

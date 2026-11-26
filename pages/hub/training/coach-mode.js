@@ -105,7 +105,7 @@ const LESSONS = [
     art: '/images/training/coach-mode/three-bet-pressure.webp',
     iconKind: 'bolt',
     icon: '',
-    color: 'var(--sp-accent-purple)',
+    color: '#86daff',
     desc: 'When and how to re-raise preflop',
     concepts: [
       'A 3-bet is the first re-raise before the flop. It builds a larger pot with strong hands and can deny equity to the original raiser\'s weakest hands.',
@@ -205,7 +205,7 @@ const LESSONS = [
     art: '/images/training/coach-mode/pot-odds-core.webp',
     iconKind: 'abacus',
     icon: '',
-    color: 'var(--sp-accent-amber)',
+    color: '#86daff',
     desc: 'The math behind calling and defense decisions',
     concepts: [
       'Call break-even equity equals the call amount divided by the final pot after your call. If the pot is 100 and Villain bets 50, calling 50 contests a final pot of 200, so the break-even equity is 25%.',

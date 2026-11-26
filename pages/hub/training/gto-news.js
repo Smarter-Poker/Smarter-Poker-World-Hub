@@ -557,7 +557,7 @@ export default function GtoNewsPage() {
                 style={{
                   fontSize: 12,
                   fontWeight: 800,
-                  color: 'var(--sp-accent-amber)',
+                  color: '#86daff',
                   textTransform: 'uppercase',
                   letterSpacing: 1,
                 }}
@@ -586,7 +586,7 @@ export default function GtoNewsPage() {
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
                 {/* TRAIN-NEWS-A11Y-1: SVG lightbulb */}
-                <span style={{ display: 'inline-flex', color: 'var(--sp-accent-amber)' }} aria-hidden><LightbulbIcon size={14} /></span>
+                <span style={{ display: 'inline-flex', color: '#86daff' }} aria-hidden><LightbulbIcon size={14} /></span>
                 <span
                   style={{
                     fontSize: 12,
@@ -742,7 +742,7 @@ export default function GtoNewsPage() {
                         padding: '1px 6px',
                         borderRadius: 3,
                         background: 'rgba(251,191,36,0.1)',
-                        color: 'var(--sp-accent-amber)',
+                        color: '#86daff',
                         fontSize: 12,
                         fontWeight: 700,
                         letterSpacing: 0.5,

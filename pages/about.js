@@ -21,7 +21,41 @@
 
 import Link from 'next/link';
 import SEOHead, { schemas, FOUNDER } from '../src/components/seo/SEOHead';
+import FaqSection from '../src/components/seo/FaqSection';
 import { LANDING_PRODUCTS } from '../src/components/landing/LandingProductSummary';
+
+const ABOUT_FAQS = [
+  {
+    question: 'What Is Smarter.Poker?',
+    answer:
+      'Smarter.Poker Is A Free Online Poker Platform Built And Operated By Smarter Software Inc., Combining Five Free Daily Poker Tournaments, 52 Free Poker Calculators, GTO Training, Private Poker Clubs In Poker Arena, Live Venue Discovery In Poker Near Me, Home Games, Bankroll Tracking, And Club Commander Room Management Software.',
+  },
+  {
+    question: 'Is Smarter.Poker Real-Money Gambling?',
+    answer:
+      'No. There Is No Real-Money Gambling On Smarter.Poker. Club Chips Are Play Credits With No Cash Value, Diamonds Are A Promotional Rewards Currency, And The Platform Is 100% Free To Play With Zero Deposit Required. Funded Diamond Games Are Not Open For Play Yet.',
+  },
+  {
+    question: 'Who Founded And Operates Smarter.Poker?',
+    answer:
+      'Smarter.Poker Was Founded By Daniel Bekavac In October 2025 And Is Operated By Smarter Software Inc. Official Support Is Available At Support@Smarter.Poker.',
+  },
+  {
+    question: 'What Free Poker Tools Does Smarter.Poker Include?',
+    answer:
+      'Smarter.Poker Includes 52 Browser-Native Poker Calculators (Odds, ICM, Push/Fold, Preflop Ranges, Bankroll, Form W-2G Tax Ledger), Over 100 GTO Training Scenario Games, A 324+ Room US Live Poker Directory, And Free Club Commander Cardroom Management Software.',
+  },
+];
+
+const ABOUT_FAQ_SCHEMA = {
+  '@type': 'FAQPage',
+  '@id': 'https://smarter.poker/about#faq',
+  mainEntity: ABOUT_FAQS.map((item) => ({
+    '@type': 'Question',
+    name: item.question,
+    acceptedAnswer: { '@type': 'Answer', text: item.answer },
+  })),
+};
 
 // This page states the company identity. Software repositories, datasets and
 // archived code identify its works, not alternate identities of the company.
@@ -81,7 +115,15 @@ export default function AboutPage() {
         ogImage="/api/og/tool-card?tool=about&title=About+Smarter.Poker&subtitle=Free+Online+Poker+Platform+Operated+By+Smarter+Software+Inc&statLabel=OPERATOR&statValue=SMARTER+SOFTWARE"
         jsonLd={[ABOUT_ORGANIZATION_SCHEMA, ABOUT_PAGE_SCHEMA]}
         markdownUrl="https://smarter.poker/about.md"
-      />
+      >
+        <script
+          key="about-faq-jsonld"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({ '@context': 'https://schema.org', ...ABOUT_FAQ_SCHEMA }).replace(/</g, '\\u003c'),
+          }}
+        />
+      </SEOHead>
 
       <main style={styles.page}>
         <article style={styles.article}>
@@ -154,6 +196,8 @@ export default function AboutPage() {
               Responsible Gaming
             </Link>
           </p>
+
+          <FaqSection title="Frequently Asked Questions About Smarter.Poker" faqs={ABOUT_FAQS} />
 
           <p style={styles.compliance}>Free To Play. 18+. Diamonds And Chips Have No Cash Value.</p>
         </article>

@@ -358,7 +358,7 @@ export default function MultiwayPreflopPage() {
             style={{
               background: 'rgba(var(--sp-accent-purple-rgb), 0.08)',
               border: '1px solid rgba(var(--sp-accent-purple-rgb), 0.25)',
-              color: 'var(--sp-accent-purple)',
+              color: '#86daff',
               fontSize: 12,
               fontWeight: 700,
               padding: '6px 12px',
@@ -399,7 +399,7 @@ export default function MultiwayPreflopPage() {
               lineHeight: 1.6,
             }}
           >
-            <strong style={{ color: 'var(--sp-accent-amber)' }}>Authored Reference · Ungraded.</strong>{' '}
+            <strong style={{ color: '#86daff' }}>Authored Reference · Ungraded.</strong>{' '}
             These Hand Sets Have No Solver Artifact, Tree Identity, Or Payout Model. Use Them To
             Explore A Teaching Example; They Never Affect Accuracy, Streaks, Progress, Or Rewards.
           </div>
@@ -452,7 +452,7 @@ export default function MultiwayPreflopPage() {
               border: '1px solid rgba(168,85,247,0.15)',
             }}
           >
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-accent-purple)', marginBottom: 4 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#86daff', marginBottom: 4 }}>
               {scenario.name}
             </div>
             <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)' }}>{scenario.desc}</div>

@@ -104,7 +104,7 @@ function calculateRakeImpact(rakePct, capDollars, stackBB, bigBlindDollars) {
       {
         stat: 'Open Raise Range',
         adj: `${impactBand} Rake Sensitivity`,
-        color: 'var(--sp-accent-amber)',
+        color: '#86daff',
         note: 'Marginal opens may lose value as rake rises; verify a concrete spot before changing a range.',
       },
       {
@@ -352,7 +352,7 @@ export default function CustomRakePage() {
             }}
           >
             {[
-              { label: 'Estimated Rake Per Pot', value: `${impact.rakePerPot}BB`, color: 'var(--sp-accent-amber)' },
+              { label: 'Estimated Rake Per Pot', value: `${impact.rakePerPot}BB`, color: '#86daff' },
               { label: 'Estimated Rake / Hour', value: `${impact.rakePerHourBB}BB`, color: 'var(--sp-accent-red)' },
               { label: '40-Hour Model', value: `${impact.monthlyImpactBB}BB`, color: 'var(--sp-accent-red)' },
             ].map((s) => (
