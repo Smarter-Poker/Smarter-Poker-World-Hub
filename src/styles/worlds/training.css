@@ -3580,7 +3580,7 @@ body.world-training .sp-intelligence-header {
         0 15px 34px rgba(0,0,0,0.4);
 }
 
-body.world-training .sp-intelligence-header::after,
+body.world-training .sp-intelligence-header:not(.sd-masthead)::after,
 body.world-training .sp-training-intelligence--leaderboard::before {
     content: "";
     position: absolute;
@@ -3605,6 +3605,21 @@ body.world-training .sp-training-intelligence--leaderboard > h1 {
     letter-spacing: 0.018em !important;
     text-align: left !important;
     text-shadow: 0 2px 0 #000, 0 0 22px rgba(54, 213, 255, 0.3) !important;
+}
+
+body.world-training .sp-intelligence-header.sd-masthead {
+    margin: 8px auto 0;
+    width: min(calc(100% - 16px), 1080px);
+    padding: clamp(12px, 3vw, 26px) !important;
+    background: var(--sd-navy) !important;
+    border: 5px solid transparent !important;
+    border-image: url('/images/smarterdesign/chrome-readout.webp') 21 / 8px stretch !important;
+    box-shadow: none;
+}
+
+body.world-training .sp-intelligence-header.sd-masthead :is(h1, h2) {
+    font-family: var(--sd-type) !important;
+    text-shadow: none !important;
 }
 
 body.world-training .sp-intelligence-header p,

@@ -749,7 +749,7 @@ export default function SessionDashboard() {
         }}
       >
         {/* Header */}
-        <div className="sp-intelligence-header" style={{ padding: '20px 24px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="sp-intelligence-header sd-masthead" style={{ padding: '20px 24px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button
               type="button"
