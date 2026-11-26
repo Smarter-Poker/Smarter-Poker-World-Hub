@@ -1,11 +1,9 @@
 import assert from 'node:assert/strict';
 import { writeFile } from 'node:fs/promises';
 import { TRAINING_LIBRARY } from '../../src/data/TRAINING_LIBRARY.js';
-import {
-  installAttestationProtectionBypassRoute,
-  readDeploymentIdentity,
-} from '../training-phase6-production-delivery-attestation.mjs';
+import { readDeploymentIdentity } from '../training-phase6-production-delivery-attestation.mjs';
 
+export const CATALOG_ORIGIN = 'https://smarter.poker';
 const ANSWER_TIMEOUT = 20_000;
 
 async function verifyGame(page, origin, game, entry) {
@@ -48,23 +46,20 @@ async function verifyGame(page, origin, game, entry) {
   await surface.locator('[data-training-feedback="verdict"]').waitFor({ timeout: ANSWER_TIMEOUT });
 }
 
-export async function verifyLiveTrainingCatalog({ origin, expectedSha, state, output, protectionBypassSecret }) {
-  const options = { protectionBypassSecret };
-  const deployed = await fetch('https://smarter.poker/api/health', { cache: 'no-store', signal: AbortSignal.timeout(20_000) });
-  assert.ok(deployed.ok(), 'production health unavailable');
-  assert.equal((await deployed.json()).commitSha, expectedSha, 'production is not serving the expected revision');
-  await readDeploymentIdentity(origin, expectedSha, options);
+export async function verifyLiveTrainingCatalog({ origin: expectedDeploymentOrigin, expectedSha, state, output }) {
+  const options = { expectedDeploymentOrigin };
+  const identity = await readDeploymentIdentity(CATALOG_ORIGIN, expectedSha, options);
+  console.log('TRAINING_CATALOG_SERVING_DEPLOYMENT_CONFIRMED');
   const { chromium } = await import('playwright');
   const browser = await chromium.launch();
   const results = [];
   try {
     const context = await browser.newContext({ storageState: state });
-    await installAttestationProtectionBypassRoute(context, origin, protectionBypassSecret);
     for (const game of TRAINING_LIBRARY) {
       const page = await context.newPage();
       const entry = { gameId: game.id, status: 'failed' };
       try {
-        await verifyGame(page, origin, game, entry);
+        await verifyGame(page, CATALOG_ORIGIN, game, entry);
         entry.status = 'passed';
         delete entry.stage;
       } catch (error) {
@@ -82,8 +77,9 @@ export async function verifyLiveTrainingCatalog({ origin, expectedSha, state, ou
     }
   } finally {
     await browser.close();
-    await writeFile(output, JSON.stringify({ expectedSha, results }, null, 2));
+    await writeFile(output, JSON.stringify({ expectedSha, deployment: identity, results }, null, 2));
   }
-  await readDeploymentIdentity(origin, expectedSha, options);
-  assert.ok(results.length && results.every(result => result.status === 'passed'), 'catalog verification incomplete');
+  const finalIdentity = await readDeploymentIdentity(CATALOG_ORIGIN, expectedSha, options);
+  assert.deepEqual(finalIdentity, identity, 'serving deployment changed during the catalog run');
+  assert.ok(results.length === TRAINING_LIBRARY.length && results.every(result => result.status === 'passed'), 'catalog verification incomplete');
 }

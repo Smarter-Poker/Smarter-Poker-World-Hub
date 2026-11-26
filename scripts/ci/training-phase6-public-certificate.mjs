@@ -28,14 +28,15 @@ export async function collectPublic(env = process.env, runtime = {}) {
     assert.equal(checked.data?.user?.id, AUDIT_UUID, 'designated audit identity mismatch');
     assert.equal(checked.data.user.email?.toLowerCase(), env.TEST_USER_EMAIL.toLowerCase(), 'configured email mismatch');
     const state = { cookies: [], origins: [{ origin: 'https://smarter.poker', localStorage: [{ name: 'smarter-poker-auth', value: JSON.stringify(login.data.session) }] }] };
-    const { storageState } = validateDesignatedAuditAuthState(state, config.origin, AUDIT_UUID);
     if (env.TRAINING_VERIFICATION === 'catalog') {
-      const verifyCatalog = runtime.verifyCatalog || (await import('./training-catalog-live.mjs')).verifyLiveTrainingCatalog;
+      const { CATALOG_ORIGIN, verifyLiveTrainingCatalog } = await import('./training-catalog-live.mjs');
+      const { storageState } = validateDesignatedAuditAuthState(state, CATALOG_ORIGIN, AUDIT_UUID);
+      console.log('TRAINING_CATALOG_TEST_ACCOUNT_CONFIRMED');
+      const verifyCatalog = runtime.verifyCatalog || verifyLiveTrainingCatalog;
       return await verifyCatalog({
         ...config,
         state: storageState,
         output: env.PUBLIC_EVIDENCE,
-        protectionBypassSecret: env.VERCEL_AUTOMATION_BYPASS_SECRET || '',
       });
     }
     const authState = join(privateDir, 'state.json');
