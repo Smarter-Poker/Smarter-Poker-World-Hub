@@ -104,7 +104,7 @@ export default function SmarterPokerMagazinePrintSheetPage({
             : '@page { size: 8.375in 10.875in; margin: 0; }',
         '@media print {',
         '  html, body { margin: 0 !important; padding: 0 !important; background: #ffffff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }',
-        '  .sp-mag-print-toolbar { display: none !important; }',
+        '  .sp-mag-print-toolbar, .approved-global-header, [data-global-footer] { display: none !important; }',
         '  .sp-mag-print-canvas { padding: 0 !important; gap: 0 !important; background: #ffffff !important; }',
         '  .sp-mag-print-sheet { box-shadow: none !important; margin: 0 !important; page-break-after: always; break-after: page; page-break-inside: avoid; break-inside: avoid; }',
         '  .sp-mag-print-sheet:last-child { page-break-after: auto; break-after: auto; }',
