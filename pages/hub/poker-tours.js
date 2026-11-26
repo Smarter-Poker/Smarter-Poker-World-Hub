@@ -782,11 +782,11 @@ export default function PokerToursPage({ initialTours = [], houseSeries = [] }) 
             <Head>
                 <title>Poker Tours: Series And Circuits | Smarter.Poker</title>
                 <meta name="description" content="Browse all major poker tours including WSOP, WPT, MSPT, RGPS and more. Find upcoming series, tour stops, and schedules." />
-                <link rel="canonical" href="https://smarter.poker/hub/poker-tours" />
-                <link rel="alternate" type="text/markdown" title="Markdown" href="https://smarter.poker/hub/poker-tours.md" />
-                <meta property="og:title" content="Poker Tours Directory | Smarter.Poker" />
-                <meta property="og:description" content="Browse traveling poker tours, upcoming stops, and tournament circuits in one national directory." />
-                <meta property="og:url" content="https://smarter.poker/hub/poker-tours" />
+                <link key="canonical" rel="canonical" href="https://smarter.poker/hub/poker-tours" />
+                <link key="alternate-markdown" rel="alternate" type="text/markdown" title="Markdown" href="https://smarter.poker/hub/poker-tours.md" />
+                <meta key="og-title" property="og:title" content="Poker Tours Directory | Smarter.Poker" />
+                <meta key="og-description" property="og:description" content="Browse traveling poker tours, upcoming stops, and tournament circuits in one national directory." />
+                <meta key="og-url" property="og:url" content="https://smarter.poker/hub/poker-tours" />
             
                 <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializePokerJsonLd({
                     "@context": "https://schema.org",

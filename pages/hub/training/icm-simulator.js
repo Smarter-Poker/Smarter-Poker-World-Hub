@@ -297,7 +297,7 @@ export default function IcmSimulatorPage() {
                   style={{
                     fontSize: 13,
                     fontWeight: 700,
-                    color: 'var(--sp-accent-amber)',
+                    color: '#86daff',
                     textTransform: 'uppercase',
                     letterSpacing: 1,
                   }}

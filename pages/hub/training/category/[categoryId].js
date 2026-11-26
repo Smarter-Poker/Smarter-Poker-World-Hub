@@ -24,26 +24,31 @@ const CATEGORY_META = {
   MTT: {
     title: 'Tournaments',
     Icon: Trophy,
+    accent: '#86daff',
     description: 'Tournament pressure, stack survival, ICM and final-table execution.',
   },
   CASH: {
     title: 'Cash Games',
     Icon: DollarSign,
+    accent: '#62e9a6',
     description: 'Street-by-street range discipline for deep, repeatable cash-game decisions.',
   },
   SPINS: {
     title: 'Spins & SNGs',
     Icon: Rocket,
+    accent: '#86daff',
     description: 'Fast stack transitions, heads-up pressure and hyper-turbo execution.',
   },
   PSYCHOLOGY: {
     title: 'Mental Game',
     Icon: Brain,
+    accent: '#86daff',
     description: 'Decision discipline, emotional control and resilient performance under pressure.',
   },
   ADVANCED: {
     title: 'Poker Strategy',
     Icon: Atom,
+    accent: '#68d8ff',
     description: 'Range construction, equilibrium mechanics and high-resolution strategic theory.',
   },
 };

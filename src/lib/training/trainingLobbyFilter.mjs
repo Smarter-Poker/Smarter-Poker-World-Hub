@@ -61,6 +61,8 @@ const STYLE_LABELS = Object.freeze({
   exploitative: 'Exploit',
 });
 
+const OMAHA_GAME_IDS = new Set(['cash-005', 'cash-015', 'mtt-018']);
+
 /**
  * Enrich a canonical TRAINING_LIBRARY game entry with deterministic Arena-row
  * telemetry derived from its real fields + resolvePresetForGame().
@@ -100,6 +102,8 @@ export function buildLobbyGameMeta(game) {
 
   const variantShort = VARIANT_METADATA[preset?.variant]?.shortLabel || 'NLH';
 
+  const isOmahaGame = OMAHA_GAME_IDS.has(game.id);
+
   const searchHaystack = [
     game.id,
     game.name,
@@ -109,6 +113,7 @@ export function buildLobbyGameMeta(game) {
     plaqueLabel,
     styleLabel,
     variantShort,
+    isOmahaGame ? 'omaha plo 5-card five-card 6-card hi-lo plo4 plo5 plo6 plo8' : '',
     ...tags,
     game.vipOnly ? 'vip boss level 10' : 'free',
     `level ${difficulty}`,
@@ -133,6 +138,7 @@ export function buildLobbyGameMeta(game) {
     styleLabel,
     plaqueLabel,
     variantShort,
+    isOmahaGame,
     preset,
     vipOnly: Boolean(game.vipOnly),
     searchHaystack,
@@ -220,11 +226,14 @@ export function filterAndSortTrainingGames(library, filters, ctx = {}) {
     if (f.accessFilter === 'FREE' && meta.vipOnly) continue;
     if (f.accessFilter === 'VIP' && !meta.vipOnly) continue;
 
-    // Variant filter matches games whose default preset matches OR that can be launched in that variant
-    // (mental-game drills don't run PLO variant trees, whereas table drills do).
+    // Variant filter matches games compatible with the selected variant (preserving
+    // 1-tap PLO4/PLO5/PLO6/PLO8 discovery for Omaha + Cash games and Hold'em isolation).
     if (f.variant !== 'ALL') {
       if (meta.category === 'PSYCHOLOGY') continue;
-      if (f.variant !== 'nlh' && meta.category === 'SPINS' && f.variant === 'plo6') continue;
+      if (f.variant === 'nlh' && meta.isOmahaGame) continue;
+      if (['plo4', 'plo5', 'plo6', 'plo8'].includes(f.variant) && !meta.isOmahaGame && meta.category !== 'CASH') {
+        continue;
+      }
     }
 
     if (queryTerms.length > 0 && !queryTerms.every((term) => meta.searchHaystack.includes(term))) {

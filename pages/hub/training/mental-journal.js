@@ -60,7 +60,7 @@ function CoffeeIcon({ size=12 }) { return <_Svg size={size}><path d="M18 8h1a4 4
 const STATES = [
   { id: 'zone', label: 'In The Zone', color: 'var(--sp-accent-green)', iconKind: 'bolt', icon: '⌁' },
   { id: 'bored', label: 'Bored / Autopilot', color: 'var(--sp-fg-muted)', iconKind: 'sleep', icon: '·' },
-  { id: 'frust', label: 'Frustrated', color: 'var(--sp-accent-amber)', iconKind: 'angry', icon: '▲' },
+  { id: 'frust', label: 'Frustrated', color: '#86daff', iconKind: 'angry', icon: '▲' },
   { id: 'tilt', label: 'Monkey Tilt', color: 'var(--sp-accent-red)', iconKind: 'monkey', icon: '●' },
 ];
 
@@ -368,7 +368,7 @@ export default function MentalJournalPage() {
                   <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg-muted)' }}>
                     Caffeine Level
                   </span>
-                  <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-accent-amber)' }}>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: '#86daff' }}>
                     {caffeine} Cups
                   </span>
                 </div>
@@ -609,7 +609,7 @@ export default function MentalJournalPage() {
                         </div>
                         <div>
                           {/* TRAIN-JOURNAL-A11Y-1: SVG coffee replaces ● */}
-                          <span style={{ color: 'var(--sp-accent-amber)', display: 'inline-flex', alignItems: 'center', gap: 4 }}><CoffeeIcon size={12} /> Caf:</span> {e.caffeine} Cups
+                          <span style={{ color: '#86daff', display: 'inline-flex', alignItems: 'center', gap: 4 }}><CoffeeIcon size={12} /> Caf:</span> {e.caffeine} Cups
                         </div>
                       </div>
                       {e.triggers && e.triggers.length > 0 && (

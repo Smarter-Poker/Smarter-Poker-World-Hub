@@ -37,8 +37,8 @@ import { deriveTrainingSessionAccuracy } from '../../../src/lib/training/session
 const EVENT_TYPES = {
   session:     { icon: '◆', iconKind: 'target',  color: 'var(--sp-accent-blue)', label: 'Training' },
   streak:      { icon: '▲', iconKind: 'flame',   color: 'var(--sp-accent-orange)', label: 'Streak' },
-  achievement: { icon: '★', iconKind: 'trophy',  color: 'var(--sp-accent-amber)', label: 'Badge' },
-  mastery:     { icon: '★', iconKind: 'star',    color: 'var(--sp-accent-purple)', label: 'Mastery' },
+  achievement: { icon: '★', iconKind: 'trophy',  color: '#86daff', label: 'Badge' },
+  mastery:     { icon: '★', iconKind: 'star',    color: '#86daff', label: 'Mastery' },
   leaderboard: { icon: '■', iconKind: 'chart',   color: 'var(--sp-accent-green)', label: 'Rank Up' },
 };
 
@@ -162,7 +162,7 @@ function FeedItem({ item }) {
           <>
             <span style={{ fontWeight: 700, color: 'var(--sp-fg)' }}>{item.user}</span>
             {' unlocked the '}
-            <span style={{ fontWeight: 800, color: 'var(--sp-accent-amber)' }}>{item.badge}</span>
+            <span style={{ fontWeight: 800, color: '#86daff' }}>{item.badge}</span>
             {' badge'}
           </>
         );
@@ -171,7 +171,7 @@ function FeedItem({ item }) {
           <>
             <span style={{ fontWeight: 700, color: 'var(--sp-fg)' }}>{item.user}</span>
             {' mastered Level '}
-            <span style={{ fontWeight: 800, color: 'var(--sp-accent-purple)' }}>{item.level}</span>
+            <span style={{ fontWeight: 800, color: '#86daff' }}>{item.level}</span>
             {' of '}
             <span style={{ fontWeight: 700, color: 'var(--sp-fg)' }}>{item.game}</span>
           </>
@@ -419,7 +419,7 @@ export default function TrainingFeedPage() {
                 borderRadius: 8,
                 border: '1px solid rgba(251, 191, 36, 0.4)',
                 background: 'rgba(251, 191, 36, 0.08)',
-                color: '#fde68a',
+                color: '#86daff',
                 fontSize: 12,
                 fontWeight: 700,
               }}

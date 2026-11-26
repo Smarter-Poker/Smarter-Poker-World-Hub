@@ -559,6 +559,56 @@ body.world-training .sp-arena-reset-btn {
   text-transform: uppercase;
 }
 
+/* 1-Tap Poker Variant Strip (Hold'em / PLO4 / PLO5 / PLO6 / PLO8 + Instant Cash Launch) */
+body.world-training .sp-arena-variant-bar {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 6px 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border: 1px solid #4d6780;
+  border-top-color: #8ba3ba;
+  background: linear-gradient(180deg, #0d1d2f 0%, #050d17 100%);
+}
+
+body.world-training .sp-arena-variant-bar::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+body.world-training .sp-arena-variant-pill {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 44px;
+  padding: 0 11px;
+  border: 1px solid #526c85;
+  border-top-color: #9ab2c7;
+  border-radius: 5px;
+  background: linear-gradient(180deg, #132334 0%, #07101b 70%);
+  color: #dce9f5;
+  font-family: var(--font-rajdhani, sans-serif);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+body.world-training .sp-arena-variant-pill[aria-pressed='true'],
+body.world-training .sp-arena-variant-pill.is-active {
+  border-color: #56d8ff;
+  border-top-color: #ccf3ff;
+  background: linear-gradient(180deg, #0b78f2 0%, #064296 62%, #03265c 100%);
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(69, 173, 255, 0.28);
+}
+
 /* ─── ZONE C: STICKY QUICK RAIL & SORTABLE COLUMN BAR ────────────────────── */
 
 body.world-training .sp-arena-sticky-dock {

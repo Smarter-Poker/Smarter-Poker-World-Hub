@@ -65,17 +65,17 @@ export const CLASSIFICATION_CONFIG = {
     },
     [MOVE_CLASSIFICATIONS.INACCURACY]: {
         label: 'Inaccuracy',
-        color: '#facc15',       // Yellow
-        bgColor: 'rgba(250, 204, 21, 0.12)',
-        borderColor: '#facc15',
+        color: '#86daff',       // Ice-Blue (#SMARTERDESIGN)
+        bgColor: 'rgba(134, 218, 255, 0.12)',
+        borderColor: '#86daff',
         icon: 'alert',
         scoreImpact: { min: -1, max: -2 },
     },
     [MOVE_CLASSIFICATIONS.WRONG]: {
         label: 'Mistake',
-        color: '#f97316',       // Orange
-        bgColor: 'rgba(249, 115, 22, 0.12)',
-        borderColor: '#f97316',
+        color: '#fca5a5',       // Soft Red (#SMARTERDESIGN)
+        bgColor: 'rgba(252, 165, 165, 0.12)',
+        borderColor: '#fca5a5',
         icon: 'x',
         scoreImpact: { min: -3, max: -5 },
     },

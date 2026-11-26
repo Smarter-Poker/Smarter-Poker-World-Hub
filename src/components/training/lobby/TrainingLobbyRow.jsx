@@ -78,6 +78,7 @@ const TrainingLobbyRow = memo(function TrainingLobbyRow({
     <article
       className={`sp-arena-row sp-arena-row--led-${ledTone}${isRecommended || isLeakTarget ? ' is-featured' : ''}${deferredClass}`}
       data-game-id={game.id}
+      data-training-game-card={game.id}
       data-category={meta.category.toLowerCase()}
       data-training-play-game={game.id}
     >
@@ -110,7 +111,7 @@ const TrainingLobbyRow = memo(function TrainingLobbyRow({
             <span className="sp-arena-row__focus">{game.focus}</span>
           </span>
 
-          <span className="sp-arena-row__plaque" aria-label={`Format ${plaqueText}`}>
+          <span className="sp-arena-row__plaque" data-game-preset-summary="true" aria-label={`Format ${plaqueText}`}>
             <span>{plaqueText}</span>
           </span>
         </button>

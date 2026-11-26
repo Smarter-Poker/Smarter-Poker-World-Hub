@@ -1054,7 +1054,7 @@ export default function EquityCalculatorPage() {
             <span
               style={{
                 fontSize: 12,
-                color: 'var(--sp-accent-purple)',
+                color: '#86daff',
                 background: 'rgba(168,85,247,0.1)',
                 padding: '3px 8px',
                 borderRadius: 12,
@@ -1282,7 +1282,7 @@ export default function EquityCalculatorPage() {
                 borderRadius: 10,
                 border: '1px solid rgba(251, 191, 36, 0.45)',
                 background: 'rgba(120, 53, 15, 0.22)',
-                color: '#fde68a',
+                color: '#86daff',
                 fontSize: 12,
               }}
             >
@@ -1301,7 +1301,7 @@ export default function EquityCalculatorPage() {
                     borderRadius: 6,
                     border: '1px solid rgba(251, 191, 36, 0.5)',
                     background: 'rgba(217, 119, 6, 0.28)',
-                    color: '#fef3c7',
+                    color: '#86daff',
                     fontSize: 12,
                     fontWeight: 800,
                     cursor: 'pointer',
@@ -1389,7 +1389,7 @@ export default function EquityCalculatorPage() {
                   style={{
                     fontSize: 12,
                     fontWeight: 800,
-                    color: 'var(--sp-accent-purple)',
+                    color: '#86daff',
                     fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                     letterSpacing: 1.5,
                     textTransform: 'uppercase',

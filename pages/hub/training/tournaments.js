@@ -277,7 +277,7 @@ export default function TournamentsPage() {
           {/* Header */}
           <div style={styles.header}>
             <h1 style={styles.title}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: 'var(--sp-accent-amber)' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: '#86daff' }}>
                 <TrophyIcon size={22} />
                 Training Tournaments
               </span>
@@ -295,7 +295,7 @@ export default function TournamentsPage() {
                 borderRadius: 0,
                 border: '1px solid rgba(251, 191, 36, 0.4)',
                 background: 'rgba(251, 191, 36, 0.08)',
-                color: '#fde68a',
+                color: '#86daff',
                 fontSize: 12,
                 fontWeight: 700,
               }}
